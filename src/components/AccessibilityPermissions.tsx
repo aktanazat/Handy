@@ -92,17 +92,17 @@ const AccessibilityPermissions: React.FC = () => {
   const config = buttonConfig[permissionState] as ButtonConfig;
 
   return (
-    <div role="status" className="w-full rounded-md border border-border bg-surface p-3">
+    <div
+      role="status"
+      className="w-full rounded-md border border-border bg-surface p-3"
+    >
       <div className="flex justify-between items-center gap-2">
         <div className="">
           <p className="text-sm font-medium text-text-primary">
             {t("accessibility.permissionsDescription")}
           </p>
         </div>
-        <button
-          onClick={handleButtonClick}
-          className={config.className}
-        >
+        <button onClick={handleButtonClick} className={config.className}>
           {config.text}
         </button>
       </div>

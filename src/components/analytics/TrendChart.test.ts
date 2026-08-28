@@ -13,13 +13,13 @@ describe("compareTrendHalves", () => {
   test("reports growth when the second half is larger", () => {
     const delta = compareTrendHalves([1, 2, 3, 4, 5, 6]);
     expect(delta.kind).toBe("change");
-        expect(delta.percent).toBe(150);
+    expect(delta.percent).toBe(150);
   });
 
   test("reports decline when the second half is smaller", () => {
     const delta = compareTrendHalves([6, 5, 4, 3, 2, 1]);
     expect(delta.kind).toBe("change");
-        expect(delta.percent).toBe(-60);
+    expect(delta.percent).toBe(-60);
   });
 
   test("reports flat for equal halves", () => {

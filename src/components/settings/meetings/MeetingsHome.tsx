@@ -1,16 +1,24 @@
-import React from "react";
-import { ChevronRight } from "lucide-react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   MeetingHistorySummary,
+  MeetingRetentionPolicy,
   MeetingSuggestion,
 } from "@/bindings";
-import { Button } from "../../ui/Button";
-import { CloudSyncPanel } from "../../cloud-sync/CloudSyncPanel";
 import {
-  CaptureCompletenessBadge,
-  MeetingPhaseBadge,
-  ProcessingStatusLine,
+  Alert,
+  Button,
+  EmptyState,
+  Input,
+  List,
+  Row,
+  Section,
+  Skeleton,
+} from "../../ui";
+import {
+  CaptureCompletenessText,
+  MeetingPhaseText,
+  ProcessingStatusText,
 } from "./MeetingStatus";
 import { formatMeetingDate, meetingProviderKey } from "./meetingUtils";
 
@@ -19,36 +27,108 @@ interface MeetingsHomeProps {
   recovery: MeetingHistorySummary[];
   meetings: MeetingHistorySummary[];
   loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
+  /** Read-only echo of the policy owned by Settings, Privacy. */
+  retention: MeetingRetentionPolicy | null;
   error: string | null;
   onStartManual: () => void;
   onStartSuggestion: (suggestion: MeetingSuggestion) => void;
   onOpenMeeting: (sessionId: string) => void;
   onFinalizeRecovery: (sessionId: string) => void;
   onDiscardRecovery: (sessionId: string) => void;
+  onLoadMore: () => void;
   onRetry: () => void;
 }
+
+const MeetingListSkeleton: React.FC<{ label: string }> = ({ label }) => (
+  <div
+    role="status"
+    aria-label={label}
+    className="divide-y divide-border overflow-hidden rounded-panel border border-border bg-surface"
+  >
+    {[0, 1, 2].map((row) => (
+      <div
+        key={row}
+        className="flex min-h-14 items-center justify-between gap-4 px-4 py-3"
+      >
+        <div className="space-y-1.5">
+          <Skeleton className="h-3.5 w-48" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+        <Skeleton className="h-3 w-20" />
+      </div>
+    ))}
+  </div>
+);
+
+interface MeetingRowMetaProps {
+  meeting: MeetingHistorySummary;
+}
+
+/* State on the right, in words, on two lines: phase first because it decides
+ * what the row can do, then how complete the capture was and where
+ * processing got to. */
+const MeetingRowMeta: React.FC<MeetingRowMetaProps> = ({ meeting }) => (
+  <span className="flex flex-col items-end gap-0.5">
+    <MeetingPhaseText phase={meeting.phase} />
+    <span className="flex items-center gap-2">
+      <CaptureCompletenessText completeness={meeting.capture_completeness} />
+      <ProcessingStatusText status={meeting.processing_status} />
+    </span>
+  </span>
+);
 
 export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
   suggestions,
   recovery,
   meetings,
   loading,
+  loadingMore,
+  hasMore,
+  retention,
   error,
   onStartManual,
   onStartSuggestion,
   onOpenMeeting,
   onFinalizeRecovery,
   onDiscardRecovery,
+  onLoadMore,
   onRetry,
 }) => {
   const { t } = useTranslation();
+  const [query, setQuery] = useState("");
+  const trimmedQuery = query.trim();
+  const visibleMeetings = useMemo(() => {
+    if (trimmedQuery.length === 0) return meetings;
+    const needle = trimmedQuery.toLocaleLowerCase();
+    return meetings.filter((meeting) =>
+      meeting.title.toLocaleLowerCase().includes(needle),
+    );
+  }, [meetings, trimmedQuery]);
+
+  const retentionHint =
+    retention === null
+      ? t("meetings.history.description")
+      : t(
+          "meetings.list.retentionHint",
+          "Retention: {{policy}}. Change it in Settings, Privacy.",
+          {
+            policy:
+              retention.kind === "forever"
+                ? t("meetings.retention.forever")
+                : t("meetings.retention.days", { days: retention.days }),
+          },
+        );
 
   return (
-    <div className="meetings-page meetings-home">
+    <div className="settings-page">
       <header className="settings-page-header data-page-header">
         <div>
           <h1 className="settings-page-title">{t("meetings.title")}</h1>
-          <p className="settings-page-description">{t("meetings.description")}</p>
+          <p className="settings-page-description">
+            {t("meetings.description")}
+          </p>
         </div>
         <div className="data-page-actions">
           <Button type="button" onClick={onStartManual}>
@@ -57,127 +137,184 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
         </div>
       </header>
 
-      <CloudSyncPanel />
-
       {error ? (
-        <div className="inline-error" role="alert">
-          <span>{error}</span>
-          <Button type="button" variant="ghost" size="sm" onClick={onRetry}>
-            {t("meetings.actions.retry")}
-          </Button>
-        </div>
+        <Alert
+          variant="error"
+          action={
+            <Button type="button" variant="ghost" size="sm" onClick={onRetry}>
+              {t("meetings.actions.retry")}
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
       ) : null}
 
       {suggestions.length > 0 ? (
-        <section className="detected-meeting-strip" aria-labelledby="meeting-detected">
-          <h2 id="meeting-detected">{t("meetings.detected.title")}</h2>
-          <div>
+        <Section
+          title={t("meetings.detected.title")}
+          description={t("meetings.detected.description")}
+        >
+          <List label={t("meetings.detected.title")}>
             {suggestions.map((suggestion) => (
-              <div key={suggestion.offer_id} className="detected-meeting-row">
-                <span>{t(meetingProviderKey(suggestion.provider))}</span>
-                <strong>
-                  {t("meetings.detected.mayBeActive", {
-                    provider: t(meetingProviderKey(suggestion.provider)),
-                  })}
-                </strong>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => onStartSuggestion(suggestion)}
-                >
-                  {t("meetings.actions.startLocal")}
-                </Button>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {recovery.length > 0 ? (
-        <section className="meeting-recovery-section" aria-labelledby="meeting-recovery">
-          <div className="section-heading-inline">
-            <div>
-              <h2 id="meeting-recovery">{t("meetings.recovery.title")}</h2>
-              <p>{t("meetings.recovery.description")}</p>
-            </div>
-          </div>
-          <div className="meeting-history-list">
-            {recovery.map((meeting) => (
-              <div key={meeting.session_id} className="meeting-history-row">
-                <div className="meeting-history-row-copy">
-                  <strong>{meeting.title}</strong>
-                  <span>{formatMeetingDate(meeting.created_at_utc_ms)}</span>
-                </div>
-                <div className="meeting-history-row-actions">
+              <Row
+                key={suggestion.offer_id}
+                title={t("meetings.detected.mayBeActive", {
+                  provider: t(meetingProviderKey(suggestion.provider)),
+                })}
+                description={t(meetingProviderKey(suggestion.provider))}
+                actions={
                   <Button
                     type="button"
                     variant="secondary"
                     size="sm"
-                    onClick={() => onFinalizeRecovery(meeting.session_id)}
+                    onClick={() => onStartSuggestion(suggestion)}
                   >
-                    {t("meetings.recovery.finalize")}
+                    {t("meetings.actions.startLocal")}
                   </Button>
-                  <Button
-                    type="button"
-                    variant="danger-ghost"
-                    size="sm"
-                    onClick={() => onDiscardRecovery(meeting.session_id)}
-                  >
-                    {t("meetings.actions.discard")}
-                  </Button>
-                </div>
-              </div>
+                }
+              />
             ))}
-          </div>
-        </section>
+          </List>
+        </Section>
       ) : null}
 
-      <section className="meeting-history-section" aria-labelledby="meeting-history">
-        <div className="section-heading-inline">
-          <div>
-            <h2 id="meeting-history">{t("meetings.history.title")}</h2>
-          </div>
-        </div>
-        {loading ? (
-          <p className="compact-empty-row" role="status">
-            {t("meetings.history.loading")}
-          </p>
-        ) : meetings.length === 0 ? (
-          <div className="meetings-empty-state">
-            <div>
-              <h3>{t("meetings.history.emptyTitle")}</h3>
-              <p>{t("meetings.history.emptyDescription")}</p>
-            </div>
-            <Button type="button" onClick={onStartManual}>
-              {t("meetings.actions.newMeeting")}
-            </Button>
-          </div>
-        ) : (
-          <div className="meeting-history-list">
-            {meetings.map((meeting) => (
-              <button
+      {recovery.length > 0 ? (
+        <Section
+          title={t("meetings.recovery.title")}
+          description={t("meetings.recovery.description")}
+        >
+          <List label={t("meetings.recovery.title")}>
+            {recovery.map((meeting) => (
+              <Row
                 key={meeting.session_id}
-                type="button"
-                className="meeting-history-row meeting-history-button"
-                onClick={() => onOpenMeeting(meeting.session_id)}
-              >
-                <span className="meeting-history-row-copy">
-                  <strong>{meeting.title}</strong>
-                  <span>{formatMeetingDate(meeting.created_at_utc_ms)}</span>
-                </span>
-                <span className="meeting-history-row-meta">
-                  <MeetingPhaseBadge phase={meeting.phase} />
-                  <CaptureCompletenessBadge completeness={meeting.capture_completeness} />
-                  <ProcessingStatusLine status={meeting.processing_status} />
-                  <ChevronRight size={15} aria-hidden="true" />
-                </span>
-              </button>
+                title={meeting.title}
+                description={formatMeetingDate(meeting.created_at_utc_ms)}
+                meta={
+                  <CaptureCompletenessText
+                    completeness={meeting.capture_completeness}
+                  />
+                }
+                actions={
+                  <>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => onFinalizeRecovery(meeting.session_id)}
+                    >
+                      {t("meetings.recovery.finalize")}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="danger-ghost"
+                      size="sm"
+                      onClick={() => onDiscardRecovery(meeting.session_id)}
+                    >
+                      {t("meetings.actions.discard")}
+                    </Button>
+                  </>
+                }
+              />
             ))}
-          </div>
-        )}
-      </section>
+          </List>
+        </Section>
+      ) : null}
 
+      <Section
+        title={t("meetings.history.title")}
+        description={retentionHint}
+        actions={
+          meetings.length > 0 ? (
+            <Input
+              type="search"
+              variant="compact"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              aria-label={t("meetings.list.searchLabel", "Search meetings")}
+              placeholder={t(
+                "meetings.list.searchPlaceholder",
+                "Search by title",
+              )}
+              className="w-56"
+            />
+          ) : null
+        }
+      >
+        {loading ? (
+          <MeetingListSkeleton label={t("meetings.history.loading")} />
+        ) : meetings.length === 0 ? (
+          <EmptyState
+            title={t("meetings.history.emptyTitle")}
+            description={t("meetings.history.emptyDescription")}
+            action={
+              <Button type="button" onClick={onStartManual}>
+                {t("meetings.actions.newMeeting")}
+              </Button>
+            }
+          />
+        ) : (
+          <>
+            {visibleMeetings.length === 0 ? (
+              <EmptyState
+                title={t(
+                  "meetings.list.noMatches",
+                  "No meetings match that search",
+                )}
+                description={
+                  hasMore
+                    ? t(
+                        "meetings.list.noMatchesNotLoaded",
+                        'No loaded meeting title contains "{{query}}". Older meetings are still on disk: load them and search again.',
+                        { query: trimmedQuery },
+                      )
+                    : t(
+                        "meetings.list.noMatchesDescription",
+                        'No meeting title contains "{{query}}". Clear the search to see the whole list.',
+                        { query: trimmedQuery },
+                      )
+                }
+                action={
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setQuery("")}
+                  >
+                    {t("meetings.list.clearSearch", "Clear search")}
+                  </Button>
+                }
+              />
+            ) : (
+              <List label={t("meetings.history.title")}>
+                {visibleMeetings.map((meeting) => (
+                  <Row
+                    key={meeting.session_id}
+                    title={meeting.title}
+                    description={formatMeetingDate(meeting.created_at_utc_ms)}
+                    meta={<MeetingRowMeta meeting={meeting} />}
+                    onSelect={() => onOpenMeeting(meeting.session_id)}
+                  />
+                ))}
+              </List>
+            )}
+            {hasMore ? (
+              <div className="mt-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={onLoadMore}
+                  disabled={loadingMore}
+                >
+                  {loadingMore
+                    ? t("meetings.list.loadingMore", "Loading older meetings…")
+                    : t("meetings.list.loadMore", "Load older meetings")}
+                </Button>
+              </div>
+            ) : null}
+          </>
+        )}
+      </Section>
     </div>
   );
 };

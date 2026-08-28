@@ -72,35 +72,6 @@
   padding: 0;
 }
 
-.modes-page .modes-master-list {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  overflow: visible;
-}
-
-.modes-page .mode-master-row {
-  gap: 0;
-  min-block-size: 38px;
-}
-
-.modes-page .mode-master-row[data-selected] {
-  background: var(--color-subtle);
-  box-shadow: inset 2px 0 0 var(--color-text-primary);
-}
-
-.modes-page .mode-select {
-  align-items: center;
-  flex-direction: row;
-  min-block-size: 38px;
-  padding: 0 var(--space-2);
-}
-
-.modes-page .mode-select strong {
-  font-size: 12.5px;
-  font-weight: 560;
-}
-
 .modes-page .mode-actions-menu > summary {
   block-size: 28px;
   inline-size: 28px;
@@ -137,20 +108,6 @@
   white-space: nowrap;
 }
 
-.modes-page .mode-editor-tabs {
-  background: var(--color-canvas);
-  gap: 0;
-  min-block-size: 34px;
-  position: sticky;
-  top: 39px;
-  z-index: 2;
-}
-
-.modes-page .mode-editor-tabs button {
-  min-block-size: 34px;
-  padding-inline: var(--space-2);
-}
-
 .modes-page .mode-editor-panel {
   flex: 1;
   gap: var(--space-3);
@@ -176,7 +133,11 @@
   padding-inline: 0;
 }
 
-.modes-page .mode-editor-panel .settings-group-panel > .divide-y > :not(:last-child) {
+.modes-page
+  .mode-editor-panel
+  .settings-group-panel
+  > .divide-y
+  > :not(:last-child) {
   border-bottom-color: var(--color-border);
 }
 
@@ -189,92 +150,10 @@
   margin: 0;
 }
 
-.history-page.density-page .history-stats-grid {
-  gap: var(--space-2);
-}
-
 .history-page.density-page .divide-y > .flex.flex-col {
   min-block-size: 40px;
   padding-block: var(--space-2);
 }
-
-.agents-density .settings-group-panel,
-.privacy-density .settings-group-panel {
-  border-radius: var(--radius-control);
-}
-
-.agents-density .settings-group,
-.privacy-density .settings-group {
-  margin: 0;
-}
-
-.agents-density .settings-group > div:first-child p,
-.privacy-density .settings-group > div:first-child p {
-  display: none;
-}
-
-.agents-density .settings-group-panel > .divide-y > *,
-.privacy-density .settings-group-panel > .divide-y > * {
-  min-block-size: 40px;
-}
-
-.meetings-page {
-  gap: var(--space-3);
-}
-
-.meetings-page .meeting-review-section,
-.meetings-page .meeting-home-section {
-  padding-top: var(--space-3);
-}
-
-.meetings-page .meeting-section-heading {
-  min-block-size: 32px;
-}
-
-.meetings-page .meeting-source-grid {
-  gap: var(--space-2);
-}
-
-.meetings-page .meeting-source-card,
-.meetings-page .meeting-artifact {
-  border-radius: var(--radius-control);
-}
-
-.meetings-page .meeting-review textarea,
-.meetings-page .meeting-live textarea {
-  min-block-size: 64px;
-}
-
-.agents-density .settings-page-header,
-.privacy-density .settings-page-header {
-  align-items: center;
-  display: flex;
-  min-block-size: 30px;
-}
-
-.agents-density .settings-page-description,
-.privacy-density .settings-page-description {
-  display: none;
-}
-
-.agents-density .settings-group-panel,
-.privacy-density .settings-group-panel {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  overflow: visible;
-}
-
-.agents-density .settings-group-panel > .divide-y,
-.privacy-density .settings-group-panel > .divide-y {
-  border-block: 1px solid var(--color-border);
-}
-
-.agents-density .setting-row,
-.privacy-density .setting-row {
-  padding-inline: 0;
-}
-
 
 @media (max-width: 760px) {
   .modes-page .modes-workspace {

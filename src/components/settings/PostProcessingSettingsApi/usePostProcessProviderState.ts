@@ -40,7 +40,6 @@ const APPLE_PROVIDER_ID = "apple_intelligence";
 const EMPTY_POST_PROCESS_PROVIDERS: PostProcessProvider[] = [];
 const EMPTY_POST_PROCESS_MODEL_OPTIONS: string[] = [];
 
-
 export const usePostProcessProviderState = (): PostProcessProviderState => {
   const {
     settings,
@@ -81,11 +80,7 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
     if (!isAppleProvider) {
       void refreshPostProcessSecretState(selectedProviderId);
     }
-  }, [
-    isAppleProvider,
-    refreshPostProcessSecretState,
-    selectedProviderId,
-  ]);
+  }, [isAppleProvider, refreshPostProcessSecretState, selectedProviderId]);
 
   const providerOptions = useMemo<DropdownOption[]>(
     () =>
@@ -176,7 +171,8 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
   ]);
 
   const availableModelsRaw =
-    postProcessModelOptions[selectedProviderId] ?? EMPTY_POST_PROCESS_MODEL_OPTIONS;
+    postProcessModelOptions[selectedProviderId] ??
+    EMPTY_POST_PROCESS_MODEL_OPTIONS;
   const modelOptions = useMemo<ModelOption[]>(() => {
     const seen = new Set<string>();
     const options: ModelOption[] = [];

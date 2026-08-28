@@ -60,7 +60,9 @@ export const bucketTrendPoints = <Point extends DatedValue>(
     let value = 0;
     for (const point of slice) value += valueFor(point);
 
-    const firstLabel = formatter.format(new Date(`${first.local_date}T12:00:00`));
+    const firstLabel = formatter.format(
+      new Date(`${first.local_date}T12:00:00`),
+    );
     const lastLabel = formatter.format(new Date(`${last.local_date}T12:00:00`));
     buckets.push({
       date: first.local_date,

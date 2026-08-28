@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ExternalLink } from "lucide-react";
 import { getVersion } from "@tauri-apps/api/app";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { commands } from "@/bindings";
-import { SettingsGroup } from "../../ui/SettingsGroup";
-import { SettingContainer } from "../../ui/SettingContainer";
-import { Button } from "../../ui/Button";
+import { Button, SettingContainer, SettingsGroup } from "@/components/ui";
 import { AppDataDirectory } from "../AppDataDirectory";
-import { AppLanguageSelector } from "../AppLanguageSelector";
-import { ShowWhatsNewOnUpdate } from "../ShowWhatsNewOnUpdate";
-import { ThemeSelector } from "../ThemeSelector";
 import { LogDirectory } from "../debug/LogDirectory";
+import { ShowWhatsNewOnUpdate } from "../ShowWhatsNewOnUpdate";
+import { UpdateRows, type VersionState } from "./UpdateRows";
+
+const REPOSITORY_URL = "https://github.com/aktanazat/Handy";
+const UPSTREAM_URL = "https://github.com/cjpais/Handy";
 
 const openLicenseNotices = async () => {
   const result = await commands.openLicenseNotices();
@@ -18,71 +20,126 @@ const openLicenseNotices = async () => {
   }
 };
 
+const openExternal = async (url: string) => {
+  try {
+    await openUrl(url);
+  } catch (error) {
+    console.error("Failed to open link:", error);
+  }
+};
+
 export const AboutSettings: React.FC = () => {
   const { t } = useTranslation();
-  const [version, setVersion] = useState("");
+  const [version, setVersion] = useState<VersionState>({ kind: "loading" });
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchVersion = async () => {
       try {
         const appVersion = await getVersion();
-        setVersion(appVersion);
+        if (!cancelled) setVersion({ kind: "ready", version: appVersion });
       } catch (error) {
         console.error("Failed to get app version:", error);
-        setVersion("0.1.2");
+        if (!cancelled) setVersion({ kind: "unavailable" });
       }
     };
 
-    fetchVersion();
+    void fetchVersion();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
-    <div className="settings-page space-y-4">
+    <div className="settings-page">
       <header className="settings-page-header">
         <h1 className="settings-page-title">{t("settings.about.title")}</h1>
+        <p className="settings-page-description">
+          {t(
+            "settings.about.description",
+            "Which build you are running, where it came from, and where it keeps your files.",
+          )}
+        </p>
       </header>
-      <SettingsGroup>
-        <AppLanguageSelector descriptionMode="tooltip" grouped={true} />
-        <ThemeSelector descriptionMode="tooltip" grouped={true} />
-        <SettingContainer
-          title={t("settings.about.version.title")}
-          description={t("settings.about.version.description")}
-          grouped={true}
-        >
-          {/* eslint-disable-next-line i18next/no-literal-string */}
-          <span className="text-sm font-mono">v{version}</span>
-        </SettingContainer>
 
-        <ShowWhatsNewOnUpdate descriptionMode="tooltip" grouped={true} />
+      <SettingsGroup
+        title={t("settings.about.updates.title", "Version and updates")}
+      >
+        <UpdateRows version={version} />
+        <ShowWhatsNewOnUpdate grouped />
+      </SettingsGroup>
 
+      <SettingsGroup
+        title={t("settings.about.source.title", "Source")}
+        description={t(
+          "settings.about.source.description",
+          "Sona is MIT licensed, copyright 2025 CJ Pais, and built on top of Handy.",
+        )}
+      >
         <SettingContainer
-          title={t("settings.about.sourceCode.title")}
-          description={t("settings.about.sourceCode.description")}
-          grouped={true}
+          grouped
+          title={t("settings.about.source.repository", "Repository")}
+          description={REPOSITORY_URL}
         >
           <Button
             variant="secondary"
-            size="md"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => void openExternal(REPOSITORY_URL)}
+          >
+            <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+            {t("settings.about.source.open", "Open on GitHub")}
+          </Button>
+        </SettingContainer>
+        <SettingContainer
+          grouped
+          title={t("settings.about.source.upstream", "Built on Handy")}
+          description={t(
+            "settings.about.source.upstreamDescription",
+            "Sona is a fork of cjpais/Handy and still tracks its upstream fixes.",
+          )}
+        >
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => void openExternal(UPSTREAM_URL)}
+          >
+            <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+            {t("settings.about.source.upstreamOpen", "cjpais/Handy")}
+          </Button>
+        </SettingContainer>
+        <SettingContainer
+          grouped
+          title={t("settings.about.sourceCode.title")}
+          description={t("settings.about.sourceCode.description")}
+        >
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => void openLicenseNotices()}
           >
             {t("settings.about.sourceCode.button")}
           </Button>
         </SettingContainer>
+      </SettingsGroup>
 
-        <AppDataDirectory descriptionMode="tooltip" grouped={true} />
-        <LogDirectory grouped={true} />
+      <SettingsGroup title={t("settings.about.files.title", "Files")}>
+        <AppDataDirectory grouped />
+        <LogDirectory grouped />
       </SettingsGroup>
 
       <SettingsGroup title={t("settings.about.acknowledgments.title")}>
         <SettingContainer
+          grouped
+          layout="stacked"
           title={t("settings.about.acknowledgments.ggml.title")}
           description={t("settings.about.acknowledgments.ggml.description")}
-          grouped={true}
-          layout="stacked"
         >
-          <div className="text-sm text-mid-gray">
+          <p className="text-[13px] leading-5 text-text-secondary">
             {t("settings.about.acknowledgments.ggml.details")}
-          </div>
+          </p>
         </SettingContainer>
       </SettingsGroup>
     </div>

@@ -9,7 +9,6 @@ import { LANGUAGE_METADATA } from "@/i18n/languages";
 
 export type LanguageDirection = "ltr" | "rtl";
 
-
 /**
  * Check if a language code is RTL (Right-to-Left)
  * @param langCode - The language code (e.g., 'ar', 'en', 'he')

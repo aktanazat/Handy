@@ -1,48 +1,69 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { WordCorrectionThreshold } from "./WordCorrectionThreshold";
-import { LogLevelSelector } from "./LogLevelSelector";
-import { LiveLogViewer } from "./LiveLogViewer";
-import { PasteDelay } from "./PasteDelay";
-import { ReliablePasteToggle } from "./ReliablePaste";
-import { RecordingBuffer } from "./RecordingBuffer";
-import { SettingsGroup } from "../../ui/SettingsGroup";
+import { SettingsGroup } from "@/components/ui";
 import { AlwaysOnMicrophone } from "../AlwaysOnMicrophone";
-import { SoundPicker } from "../SoundPicker";
 import { ClamshellMicrophoneSelector } from "../ClamshellMicrophoneSelector";
-import { WhatsNewPreview } from "./WhatsNewPreview";
+import { SoundPicker } from "../SoundPicker";
 import { KeyboardDiagnostic } from "./KeyboardDiagnostic";
+import { LiveLogViewer } from "./LiveLogViewer";
+import { LogLevelSelector } from "./LogLevelSelector";
+import { PasteDelay } from "./PasteDelay";
+import { RecordingBuffer } from "./RecordingBuffer";
+import { ReliablePasteToggle } from "./ReliablePaste";
+import { WhatsNewPreview } from "./WhatsNewPreview";
+import { WordCorrectionThreshold } from "./WordCorrectionThreshold";
 
+/* Everything here used to sit in one unlabelled group of twelve rows. Same
+ * twelve affordances, sorted into the four things people come here to debug. */
 export const DebugSettings: React.FC = () => {
   const { t } = useTranslation();
 
   return (
-    <div className="settings-page space-y-4">
+    <div className="settings-page">
       <header className="settings-page-header">
         <h1 className="settings-page-title">{t("settings.debug.title")}</h1>
+        <p className="settings-page-description">
+          {t(
+            "settings.debug.description",
+            "Instrumentation and unsupported knobs. Visible because debug mode is on.",
+          )}
+        </p>
       </header>
-      <SettingsGroup>
-        <LogLevelSelector grouped={true} />
-        <WhatsNewPreview descriptionMode="tooltip" grouped={true} />
+
+      <SettingsGroup title={t("settings.debug.groups.capture", "Capture")}>
+        <AlwaysOnMicrophone grouped />
+        <ClamshellMicrophoneSelector grouped />
+        <RecordingBuffer grouped />
         <SoundPicker
           label={t("settings.debug.soundTheme.label")}
           description={t("settings.debug.soundTheme.description")}
         />
-        <WordCorrectionThreshold descriptionMode="tooltip" grouped={true} />
-        <PasteDelay descriptionMode="tooltip" grouped={true} />
+      </SettingsGroup>
+
+      <SettingsGroup
+        title={t("settings.debug.groups.delivery", "Text delivery")}
+      >
+        <WordCorrectionThreshold grouped />
+        <PasteDelay grouped />
         <PasteDelay
-          descriptionMode="tooltip"
-          grouped={true}
+          grouped
           settingKey="paste_delay_after_ms"
           labelKey="settings.debug.pasteDelayAfter.title"
           descriptionKey="settings.debug.pasteDelayAfter.description"
         />
-        <ReliablePasteToggle descriptionMode="tooltip" grouped={true} />
-        <RecordingBuffer descriptionMode="tooltip" grouped={true} />
-        <AlwaysOnMicrophone descriptionMode="tooltip" grouped={true} />
-        <ClamshellMicrophoneSelector descriptionMode="tooltip" grouped={true} />
+        <ReliablePasteToggle grouped />
+      </SettingsGroup>
+
+      <SettingsGroup
+        title={t("settings.debug.groups.diagnostics", "Diagnostics")}
+      >
         <KeyboardDiagnostic />
-        <LiveLogViewer descriptionMode="tooltip" grouped={true} />
+        <WhatsNewPreview grouped />
+      </SettingsGroup>
+
+      <SettingsGroup title={t("settings.debug.groups.logging", "Logging")}>
+        <LogLevelSelector grouped />
+        <LiveLogViewer grouped />
       </SettingsGroup>
     </div>
   );

@@ -51,8 +51,21 @@ const DYNAMIC_KEYS: Record<string, readonly string[]> = {
   "settings.history.stats.source": ["microphone", "file", "legacy"],
   "settings.history.receipts.engine": ["local", "cloud", "local_fallback"],
   "settings.history.receipts.source": ["microphone", "file", "legacy"],
-  "settings.hub.tabs": ["general", "privacy", "agents", "advanced", "about", "debug"],
-  "settings.modes.tabs": ["recognition", "rewrite", "context", "delivery", "automation"],
+  "settings.hub.tabs": [
+    "general",
+    "privacy",
+    "agents",
+    "advanced",
+    "about",
+    "debug",
+  ],
+  "settings.modes.tabs": [
+    "recognition",
+    "rewrite",
+    "context",
+    "delivery",
+    "automation",
+  ],
   "settings.modes.views": ["modes", "vocabulary"],
   "theme.options": ["system", "light", "dark"],
 };

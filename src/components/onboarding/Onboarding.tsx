@@ -174,15 +174,15 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
                 </h2>
               </div>
               {downloadedModels.map((model: ModelInfo) => (
-                  <ModelCard
-                    key={model.id}
-                    model={model}
-                    status={getExistingModelStatus(model.id)}
-                    disabled={isBusy}
-                    onSelect={handleSelectExistingModel}
-                    showRecommended={false}
-                  />
-                ))}
+                <ModelCard
+                  key={model.id}
+                  model={model}
+                  status={getExistingModelStatus(model.id)}
+                  disabled={isBusy}
+                  onSelect={handleSelectExistingModel}
+                  showRecommended={false}
+                />
+              ))}
             </div>
           )}
 

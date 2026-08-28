@@ -23,7 +23,9 @@ type EndpointState =
   | { kind: "invalid" }
   | { kind: "remote"; endpoint: string };
 
-const endpointStateForProvider = (provider: PostProcessProvider): EndpointState => {
+const endpointStateForProvider = (
+  provider: PostProcessProvider,
+): EndpointState => {
   try {
     const endpoint = new URL(provider.base_url.trim());
     const isLoopback =
@@ -81,7 +83,9 @@ const RemoteProviderConsentContent: React.FC<
     setSaving(true);
     setErrorKey(null);
     try {
-      const result = await commands.acceptPostProcessProviderConsent(provider.id);
+      const result = await commands.acceptPostProcessProviderConsent(
+        provider.id,
+      );
       if (result.status === "error") {
         if (result.error === "invalid_destination") {
           setErrorKey(
@@ -120,7 +124,7 @@ const RemoteProviderConsentContent: React.FC<
       >
         <Button
           type="button"
-          variant={currentConsent ? "secondary" : "warning"}
+          variant={currentConsent ? "secondary" : "primary"}
           size="sm"
           className="gap-1.5 whitespace-nowrap"
           onClick={() => setOpen(true)}
@@ -181,9 +185,15 @@ const RemoteProviderConsentContent: React.FC<
               onChange={(event) => setAcknowledged(event.target.checked)}
               disabled={saving || currentConsent}
             />
-            <span>{t("settings.postProcessing.remoteConsent.acknowledge")}</span>
+            <span>
+              {t("settings.postProcessing.remoteConsent.acknowledge")}
+            </span>
           </label>
-          {errorKey ? <Alert variant="error" contained>{t(errorKey)}</Alert> : null}
+          {errorKey ? (
+            <Alert variant="error" contained>
+              {t(errorKey)}
+            </Alert>
+          ) : null}
           <p className="flex items-center gap-1 text-xs text-text-secondary">
             <ExternalLink size={12} aria-hidden="true" />
             {t("settings.postProcessing.remoteConsent.destinationPinned")}

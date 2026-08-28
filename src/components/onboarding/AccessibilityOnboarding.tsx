@@ -93,7 +93,9 @@ interface PermissionOnboardingContentProps {
   onGrantAccessibility: () => void;
 }
 
-const PermissionOnboardingContent: React.FC<PermissionOnboardingContentProps> = ({
+const PermissionOnboardingContent: React.FC<
+  PermissionOnboardingContentProps
+> = ({
   view,
   microphoneStatus,
   accessibilityStatus,
@@ -149,7 +151,12 @@ const PermissionOnboardingContent: React.FC<PermissionOnboardingContentProps> = 
 
         {showMicrophonePermission && (
           <PermissionCard
-            icon={<Mic className="h-4 w-4 shrink-0 text-text-secondary" aria-hidden="true" />}
+            icon={
+              <Mic
+                className="h-4 w-4 shrink-0 text-text-secondary"
+                aria-hidden="true"
+              />
+            }
             title={t("onboarding.permissions.microphone.title")}
             description={t("onboarding.permissions.microphone.description")}
             status={microphoneStatus}
@@ -164,7 +171,12 @@ const PermissionOnboardingContent: React.FC<PermissionOnboardingContentProps> = 
 
         {showAccessibilityPermission && (
           <PermissionCard
-            icon={<Keyboard className="h-4 w-4 shrink-0 text-text-secondary" aria-hidden="true" />}
+            icon={
+              <Keyboard
+                className="h-4 w-4 shrink-0 text-text-secondary"
+                aria-hidden="true"
+              />
+            }
             title={t("onboarding.permissions.accessibility.title")}
             description={t("onboarding.permissions.accessibility.description")}
             status={accessibilityStatus}

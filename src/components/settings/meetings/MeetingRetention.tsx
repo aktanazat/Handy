@@ -5,16 +5,16 @@ import {
   type MeetingRetentionPolicy,
   type MeetingRetentionSnapshot,
 } from "@/bindings";
-import { Button } from "../../ui/Button";
-import { Dropdown } from "../../ui/Dropdown";
-import { SettingContainer } from "../../ui/SettingContainer";
+import { Button, Dropdown, SettingContainer, StatusText } from "../../ui";
 import { meetingErrorKey } from "./meetingUtils";
 
 const RETENTION_DAYS = [7, 30, 90] as const;
 
 export const MeetingRetentionSettings: React.FC = () => {
   const { t } = useTranslation();
-  const [snapshot, setSnapshot] = useState<MeetingRetentionSnapshot | null>(null);
+  const [snapshot, setSnapshot] = useState<MeetingRetentionSnapshot | null>(
+    null,
+  );
   const [selection, setSelection] = useState("forever");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -91,12 +91,18 @@ export const MeetingRetentionSettings: React.FC = () => {
         title={t("meetings.retention.title")}
         description={t("meetings.retention.description")}
       >
-        <div className="meeting-retention-control">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {loading ? (
+            <StatusText tone="muted" live="polite">
+              {t("meetings.retention.loading", "Reading the current policy…")}
+            </StatusText>
+          ) : null}
           <Dropdown
             selectedValue={selection}
             options={options}
             onSelect={setSelection}
             disabled={loading || saving || snapshot === null}
+            className="min-w-[220px] flex-1 basis-56"
           />
           <Button
             type="button"
@@ -110,7 +116,10 @@ export const MeetingRetentionSettings: React.FC = () => {
         </div>
       </SettingContainer>
       {error ? (
-        <div className="inline-setting-error" role="alert">
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-end gap-2 px-4 py-2 text-[13px] text-danger-strong"
+        >
           <span>{error}</span>
           <Button variant="ghost" size="sm" onClick={() => void load()}>
             {t("meetings.actions.retry")}

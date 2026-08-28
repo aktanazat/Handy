@@ -14,7 +14,9 @@ export const ModelSettingsCard: React.FC = () => {
   const { t } = useTranslation();
   const { currentModel, models } = useModelStore();
 
-  const currentModelInfo = models.find((model: ModelInfo) => model.id === currentModel);
+  const currentModelInfo = models.find(
+    (model: ModelInfo) => model.id === currentModel,
+  );
 
   const supportsLanguageSelection =
     currentModelInfo?.supports_language_selection ?? false;

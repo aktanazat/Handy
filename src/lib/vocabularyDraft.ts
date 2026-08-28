@@ -11,6 +11,41 @@ export interface PairEntry {
   written: string;
 }
 
+/**
+ * The key the recognizer matches a spoken phrase by: alphanumeric characters
+ * only, lowercased. Mirrors `vocabulary_spoken_key` in the Rust text pipeline,
+ * which is what makes "Open AI" and "open-ai" the same rule.
+ */
+export const spokenMatchKey = (spoken: string): string =>
+  spoken.replace(/[^\p{Alphabetic}\p{N}]/gu, "").toLowerCase();
+
+/**
+ * Spoken phrases that more than one row claims once normalized.
+ *
+ * The backend rejects the whole list in that case ("Vocabulary entries need
+ * unique spoken phrases after normalization"), so the editor blocks the save
+ * and names the offending phrases instead of forwarding a doomed write.
+ */
+export const duplicateSpokenPhrases = (
+  entries: readonly PairEntry[],
+): string[] => {
+  const seen = new Map<string, number>();
+  for (const entry of entries) {
+    const key = spokenMatchKey(entry.spoken);
+    if (key === "") continue;
+    seen.set(key, (seen.get(key) ?? 0) + 1);
+  }
+  const reported = new Set<string>();
+  const duplicates: string[] = [];
+  for (const entry of entries) {
+    const key = spokenMatchKey(entry.spoken);
+    if ((seen.get(key) ?? 0) < 2 || reported.has(key)) continue;
+    reported.add(key);
+    duplicates.push(entry.spoken);
+  }
+  return duplicates;
+};
+
 const pairKey = (entry: PairEntry): string =>
   `${entry.spoken}\u0000${entry.written}`;
 
@@ -37,7 +72,8 @@ export const resolveRefreshDraft = <T extends PairEntry>(
   current: readonly T[],
   previousSaved: readonly T[],
   incomingSaved: readonly T[],
-): T[] => (samePairEntries(current, previousSaved) ? [...incomingSaved] : [...current]);
+): T[] =>
+  samePairEntries(current, previousSaved) ? [...incomingSaved] : [...current];
 
 /**
  * Merge a CSV apply result with unsaved local drafts.

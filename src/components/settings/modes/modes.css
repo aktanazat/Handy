@@ -1,0 +1,236 @@
+/* Modes page. The two-pane workspace, the mode list rows and the segmented
+ * pickers the editor uses. Tokens only, no raw values for color or motion.
+ * Reduced motion is handled once, globally, in App.css. */
+
+/* The list stays put while the editor scrolls, so the workspace is sized to
+ * the viewport: 44 top bar, 24 content padding, 47 title block, 33 view nav,
+ * stack gaps, and slack for the error banner. Clamped low so a short window
+ * keeps a usable editor and lets the page scroll instead. */
+.settings-page.modes-page .modes-workspace {
+  block-size: min(560px, max(320px, calc(100dvh - 208px)));
+}
+
+@media (max-width: 760px) {
+  /* Stacked: list above editor, both at their natural height. */
+  .settings-page.modes-page .modes-workspace {
+    block-size: auto;
+  }
+}
+
+/* ------------------------------------------------------------- mode list */
+
+.modes-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  min-block-size: 0;
+  min-inline-size: 0;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.modes-list-row {
+  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-block-size: 38px;
+  padding-inline-end: var(--space-0-5);
+}
+
+.modes-list-row:not(:last-child) {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+/* Selected is the mode open in the editor. Active is the mode a dictation
+ * would use: that one reads from the word "Active" and a heavier name, never
+ * from color alone. */
+.modes-list-row[data-selected] {
+  background: var(--color-subtle);
+  box-shadow: inset 2px 0 0 var(--color-text-primary);
+}
+
+.modes-list-button {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  justify-content: center;
+  min-block-size: 38px;
+  min-inline-size: 0;
+  padding: var(--space-1) var(--space-2);
+  text-align: start;
+  transition-duration: var(--duration-fast);
+  transition-property: background-color;
+  transition-timing-function: var(--ease-out);
+}
+
+.modes-list-button:hover {
+  background: var(--color-hover);
+}
+
+.modes-list-button:active {
+  background: var(--color-pressed);
+}
+
+.modes-list-name {
+  color: var(--color-text-primary);
+  font-size: 12.5px;
+  font-weight: 510;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modes-list-row[data-active] .modes-list-name {
+  font-weight: 620;
+}
+
+.modes-list-meta {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: 11px;
+  gap: var(--space-1);
+  min-inline-size: 0;
+  overflow: hidden;
+}
+
+.modes-list-meta:empty {
+  display: none;
+}
+
+.modes-list-active {
+  flex: none;
+  font-weight: 560;
+}
+
+.mode-chord {
+  display: inline-flex;
+  gap: 2px;
+  min-inline-size: 0;
+  overflow: hidden;
+}
+
+/* ----------------------------------------------------------- mode editor */
+
+.mode-detail-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-inline-size: 0;
+}
+
+/* The editor column has no gap of its own, so banners bring their own. */
+.mode-detail-notice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-block: var(--space-2);
+}
+
+.mode-tabstrip {
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  min-block-size: 36px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.mode-tabstrip::-webkit-scrollbar {
+  display: none;
+}
+
+.mode-editor-tabpanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-inline-size: 0;
+}
+
+/* --------------------------------------------------------- segmented set */
+
+.mode-segment {
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  min-inline-size: 0;
+  padding: 0;
+}
+
+.mode-segment-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 900px) {
+  .mode-segment-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.mode-segment-option {
+  cursor: pointer;
+  min-inline-size: 0;
+}
+
+.mode-segment-option > span {
+  align-items: center;
+  background: var(--color-control);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: 12px;
+  font-weight: 510;
+  justify-content: center;
+  min-block-size: var(--control-height-sm);
+  overflow: hidden;
+  padding-inline: var(--space-2);
+  text-align: center;
+  text-overflow: ellipsis;
+  transition-duration: var(--duration-fast);
+  transition-property: background-color, border-color, box-shadow, color;
+  transition-timing-function: var(--ease-out);
+  white-space: nowrap;
+}
+
+.mode-segment-option > input:enabled:hover + span,
+.mode-segment-option > input:enabled + span:hover {
+  background: var(--color-control-hover);
+  border-color: var(--color-control-border-hover);
+  color: var(--color-text-primary);
+}
+
+.mode-segment-option > input:enabled:active + span {
+  background: var(--color-control-active);
+}
+
+/* Selection is weight plus a rule under the label, so it survives greyscale
+ * and forced-colors rendering. */
+.mode-segment-option > input:checked + span {
+  border-color: var(--color-border-strong);
+  box-shadow: inset 0 -2px 0 var(--color-text-primary);
+  color: var(--color-text-primary);
+  font-weight: 620;
+}
+
+.mode-segment-option > input:focus-visible + span {
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.mode-segment-option > input:disabled + span {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+.mode-segment-option:has(> input:disabled) {
+  cursor: not-allowed;
+}

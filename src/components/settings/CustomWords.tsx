@@ -1,11 +1,14 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Ellipsis, Plus, Trash2 } from "lucide-react";
+import React, { useCallback, useEffect, useId, useRef, useState } from "react";
+import { Download, Plus, Trash2, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
+  duplicateSpokenPhrases,
   mergeAppliedCsv,
   resolveRefreshDraft,
   samePairEntries,
+  spokenMatchKey,
+  type PairEntry,
 } from "@/lib/vocabularyDraft";
 import {
   commands,
@@ -14,71 +17,84 @@ import {
   type VocabularyEntry,
 } from "@/bindings";
 import { useSettings } from "../../hooks/useSettings";
-import { Button } from "../ui/Button";
-import { Dialog } from "../ui/Dialog";
-import { Input } from "../ui/Input";
-import { SettingContainer } from "../ui/SettingContainer";
-import { ToggleSwitch } from "../ui/ToggleSwitch";
+import {
+  Alert,
+  Button,
+  Dialog,
+  IconButton,
+  Input,
+  SettingContainer,
+  ToggleSwitch,
+} from "../ui";
+import {
+  ColumnHeader,
+  EmptyHint,
+  Hint,
+  LoadingRows,
+  RuleList,
+} from "./vocabulary/PanelParts";
+import { SnippetsPanel } from "./vocabulary/SnippetsPanel";
 
 interface CustomWordsProps {
   descriptionMode?: "inline" | "tooltip";
   grouped?: boolean;
 }
 
-interface PairRowsProps {
-  entries: VocabularyEntry[] | EmojiReplacement[];
-  listLabel: string;
-  spokenLabel: string;
-  writtenLabel: string;
-  onChange: (index: number, field: "spoken" | "written", value: string) => void;
-  onRemove: (index: number) => void;
-  removeLabel: (spoken: string) => string;
-  disabled: boolean;
-  getRowKey: (entry: VocabularyEntry | EmojiReplacement) => string;
-}
-
-interface VocabularyPairsEditorProps {
-  entries: VocabularyEntry[];
+interface PairEditorLabels {
+  title: string;
+  description: string;
   spoken: string;
   written: string;
-  descriptionMode: "inline" | "tooltip";
-  grouped: boolean;
-  fileInputRef: React.RefObject<HTMLInputElement>;
-  changed: boolean;
-  saving: boolean;
-  onSpokenChange: (value: string) => void;
-  onWrittenChange: (value: string) => void;
-  onAdd: () => void;
-  onChange: (index: number, field: "spoken" | "written", value: string) => void;
-  onRemove: (index: number) => void;
-  getRowKey: (entry: VocabularyEntry) => string;
-  onSave: () => void;
-  onImport: () => void;
-  onExport: () => void;
-  onFile: (file: File) => void;
+  spokenPlaceholder: string;
+  writtenPlaceholder: string;
+  add: string;
+  save: string;
+  remove: (spoken: string) => string;
+  emptyTitle: string;
+  emptyDescription: string;
 }
 
-interface EmojiPairsEditorProps {
-  entries: EmojiReplacement[];
-  spoken: string;
-  written: string;
-  descriptionMode: "inline" | "tooltip";
-  grouped: boolean;
+interface PairEditorProps {
+  labels: PairEditorLabels;
+  entries: readonly PairEntry[];
+  draftSpoken: string;
+  draftWritten: string;
+  /** Draft-row problem: sits under the new-pair fields and blocks Add. */
+  draftHint: { text: string; blocking: boolean } | null;
+  canAdd: boolean;
   changed: boolean;
   saving: boolean;
-  onSpokenChange: (value: string) => void;
-  onWrittenChange: (value: string) => void;
+  loading: boolean;
+  /** Rules the backend would reject. Named under the list; they block Save. */
+  blockers: readonly string[];
+  descriptionMode: "inline" | "tooltip";
+  grouped: boolean;
+  testId: string;
+  getRowKey: (entry: PairEntry) => string;
+  onDraftSpokenChange: (value: string) => void;
+  onDraftWrittenChange: (value: string) => void;
   onAdd: () => void;
-  onChange: (index: number, field: "spoken" | "written", value: string) => void;
+  onEdit: (index: number, field: "spoken" | "written", value: string) => void;
   onRemove: (index: number) => void;
   onSave: () => void;
-  getRowKey: (entry: EmojiReplacement) => string;
+  /** Extra controls beside Save, such as the CSV group. */
+  actions?: React.ReactNode;
+  /** Where the rows in this list come from, and where the others live. */
+  footnote?: React.ReactNode;
+}
+
+interface ImportReview {
+  csv: string;
+  preview: VocabularyCsvPreview;
+  step: "review" | "confirm";
 }
 
 interface ImportPreviewDialogProps {
-  preview: VocabularyCsvPreview | null;
+  review: ImportReview | null;
+  savedCount: number;
   saving: boolean;
   unsavedChanges: boolean;
+  onStep: (step: "review" | "confirm") => void;
   onClose: () => void;
   onApply: () => void;
 }
@@ -87,16 +103,16 @@ const GLOBAL_SCOPE = { kind: "global" } as const;
 const EMPTY_ENTRIES: VocabularyEntry[] = [];
 const EMPTY_EMOJI_REPLACEMENTS: EmojiReplacement[] = [];
 
-const normalizePair = (spoken: string, written: string): VocabularyEntry => ({
-  spoken: spoken.trim(),
-  written: written.trim(),
-});
+/* One grid template for the column header and every row, so cells line up.
+ * The trailing column is a fixed width because it holds a 32px icon button. */
+const PAIR_GRID =
+  "grid items-center gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.5rem]";
 
 const usePairRowKeys = () => {
   const keysByEntryRef = useRef(new WeakMap<object, string>());
   const nextKeyRef = useRef(0);
 
-  const getRowKey = useCallback((entry: VocabularyEntry | EmojiReplacement) => {
+  const getRowKey = useCallback((entry: PairEntry) => {
     const existingKey = keysByEntryRef.current.get(entry);
     if (existingKey) return existingKey;
 
@@ -107,10 +123,7 @@ const usePairRowKeys = () => {
   }, []);
 
   const preserveRowKey = useCallback(
-    (
-      previous: VocabularyEntry | EmojiReplacement,
-      next: VocabularyEntry | EmojiReplacement,
-    ) => {
+    (previous: PairEntry, next: PairEntry) => {
       keysByEntryRef.current.set(next, getRowKey(previous));
     },
     [getRowKey],
@@ -119,261 +132,235 @@ const usePairRowKeys = () => {
   return { getRowKey, preserveRowKey };
 };
 
-
-const PairRows: React.FC<PairRowsProps> = ({
+/**
+ * A spoken/written rule list: one row per rule, edited in place, with a
+ * new-pair row above it and one save for the whole list. Both the vocabulary
+ * and the emoji replacements are this shape, and the backend takes the whole
+ * list on every write, which is why Save is per list and not per row.
+ */
+const PairEditor: React.FC<PairEditorProps> = ({
+  labels,
   entries,
-  listLabel,
-  spokenLabel,
-  writtenLabel,
-  onChange,
-  onRemove,
-  removeLabel,
+  draftSpoken,
+  draftWritten,
+  draftHint,
+  canAdd,
+  changed,
+  saving,
+  loading,
+  blockers,
+  descriptionMode,
+  grouped,
+  testId,
   getRowKey,
-  disabled,
+  onDraftSpokenChange,
+  onDraftWrittenChange,
+  onAdd,
+  onEdit,
+  onRemove,
+  onSave,
+  actions,
+  footnote,
 }) => {
-  if (entries.length === 0) return null;
+  const { t } = useTranslation();
+  const createRowRef = useRef<HTMLDivElement>(null);
+  const draftHintId = useId();
+
+  const focusDraft = () => {
+    createRowRef.current?.getElementsByTagName("input")[0]?.focus();
+  };
 
   return (
-    <ul className="space-y-2" aria-label={listLabel}>
-      {entries.map((entry, index) => (
-        <li
-          key={getRowKey(entry)}
-          className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
-        >
+    <SettingContainer
+      title={labels.title}
+      description={labels.description}
+      descriptionMode={descriptionMode}
+      grouped={grouped}
+      layout="stacked"
+    >
+      <div className="space-y-3" data-testid={testId}>
+        <div className={PAIR_GRID} ref={createRowRef}>
           <Input
-            value={entry.spoken}
-            onChange={(event) => onChange(index, "spoken", event.target.value)}
-            aria-label={spokenLabel}
-            disabled={disabled}
+            value={draftSpoken}
+            onChange={(event) => onDraftSpokenChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && canAdd) onAdd();
+            }}
+            placeholder={labels.spokenPlaceholder}
+            aria-label={labels.spoken}
+            aria-describedby={draftHint ? draftHintId : undefined}
+            invalid={draftHint?.blocking ?? false}
+            disabled={saving}
+            data-testid={`${testId}-new-spoken`}
           />
           <Input
-            value={entry.written}
-            onChange={(event) => onChange(index, "written", event.target.value)}
-            aria-label={writtenLabel}
-            disabled={disabled}
+            value={draftWritten}
+            onChange={(event) => onDraftWrittenChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && canAdd) onAdd();
+            }}
+            placeholder={labels.writtenPlaceholder}
+            aria-label={labels.written}
+            aria-describedby={draftHint ? draftHintId : undefined}
+            disabled={saving}
+            data-testid={`${testId}-new-written`}
           />
           <Button
-            variant="ghost"
             size="sm"
-            className="px-2"
-            onClick={() => onRemove(index)}
-            aria-label={removeLabel(entry.spoken)}
-            title={removeLabel(entry.spoken)}
-            disabled={disabled}
+            className="gap-1 justify-self-start sm:justify-self-end"
+            onClick={onAdd}
+            disabled={!canAdd}
+            data-testid={`${testId}-add`}
           >
-            <Trash2 aria-hidden="true" className="h-4 w-4" />
-          </Button>
-        </li>
-      ))}
-    </ul>
-  );
-};
-
-const VocabularyPairsEditor: React.FC<VocabularyPairsEditorProps> = ({
-  entries,
-  spoken,
-  written,
-  descriptionMode,
-  grouped,
-  fileInputRef,
-  changed,
-  saving,
-  onSpokenChange,
-  onWrittenChange,
-  onAdd,
-  onChange,
-  onRemove,
-  onSave,
-  onImport,
-  onExport,
-  onFile,
-  getRowKey,
-}) => {
-  const { t } = useTranslation();
-
-  return (
-    <SettingContainer
-      title={t("settings.advanced.customWords.title")}
-      description={t("settings.advanced.customWords.description")}
-      descriptionMode={descriptionMode}
-      grouped={grouped}
-      layout="stacked"
-    >
-      <div className="space-y-3">
-        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-          <Input
-            value={spoken}
-            onChange={(event) => onSpokenChange(event.target.value)}
-            placeholder={t("settings.advanced.customWords.spokenPlaceholder")}
-            aria-label={t("settings.advanced.customWords.spoken")}
-            disabled={saving}
-          />
-          <Input
-            value={written}
-            onChange={(event) => onWrittenChange(event.target.value)}
-            placeholder={t("settings.advanced.customWords.writtenPlaceholder")}
-            aria-label={t("settings.advanced.customWords.written")}
-            disabled={saving}
-          />
-          <Button onClick={onAdd} disabled={saving} size="sm" className="gap-1">
             <Plus aria-hidden="true" className="h-4 w-4" />
-            {t("settings.advanced.customWords.add")}
+            {labels.add}
           </Button>
         </div>
 
-        <PairRows
-          entries={entries}
-          listLabel={t("settings.advanced.customWords.title")}
-          spokenLabel={t("settings.advanced.customWords.spoken")}
-          writtenLabel={t("settings.advanced.customWords.written")}
-          onChange={onChange}
-          onRemove={onRemove}
-          removeLabel={(entrySpoken) =>
-            t("settings.advanced.customWords.remove", { spoken: entrySpoken })
-          }
-          disabled={saving}
-          getRowKey={getRowKey}
-        />
+        {draftHint && (
+          <Hint
+            id={draftHintId}
+            tone={draftHint.blocking ? "danger" : "muted"}
+            live={draftHint.blocking ? "polite" : "off"}
+          >
+            {draftHint.text}
+          </Hint>
+        )}
 
-        <div className="flex items-center justify-between gap-2">
-          <Button onClick={onSave} disabled={saving || !changed} size="sm">
-            {t("settings.advanced.customWords.save")}
-          </Button>
-          <details className="vocabulary-actions-menu relative">
-            <summary
-              className="liquid-control control-surface inline-flex min-h-8 cursor-pointer list-none items-center justify-center border px-2 text-text-primary"
-              aria-label={t("settings.advanced.customWords.actions")}
-              title={t("settings.advanced.customWords.actions")}
+        {loading ? (
+          <LoadingRows label={t("common.loading")} />
+        ) : entries.length === 0 ? (
+          <EmptyHint
+            title={labels.emptyTitle}
+            description={labels.emptyDescription}
+            action={
+              <Button size="sm" variant="secondary" onClick={focusDraft}>
+                {labels.add}
+              </Button>
+            }
+          />
+        ) : (
+          <>
+            <ColumnHeader
+              gridClassName={PAIR_GRID}
+              start={labels.spoken}
+              end={labels.written}
+            />
+            <RuleList label={labels.title}>
+              {entries.map((entry, index) => (
+                <li
+                  key={getRowKey(entry)}
+                  className={`${PAIR_GRID} py-2`}
+                  data-testid={`${testId}-row`}
+                >
+                  <Input
+                    variant="compact"
+                    value={entry.spoken}
+                    onChange={(event) =>
+                      onEdit(index, "spoken", event.target.value)
+                    }
+                    aria-label={labels.spoken}
+                    invalid={entry.spoken.trim() === ""}
+                    disabled={saving}
+                  />
+                  <Input
+                    variant="compact"
+                    value={entry.written}
+                    onChange={(event) =>
+                      onEdit(index, "written", event.target.value)
+                    }
+                    aria-label={labels.written}
+                    invalid={entry.written.trim() === ""}
+                    disabled={saving}
+                  />
+                  <IconButton
+                    size="sm"
+                    variant="danger-ghost"
+                    className="justify-self-end"
+                    onClick={() => onRemove(index)}
+                    label={labels.remove(entry.spoken)}
+                    icon={<Trash2 aria-hidden="true" className="h-4 w-4" />}
+                    disabled={saving}
+                  />
+                </li>
+              ))}
+            </RuleList>
+          </>
+        )}
+
+        {blockers.map((blocker) => (
+          <Hint key={blocker} tone="danger" live="polite">
+            {blocker}
+          </Hint>
+        ))}
+
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5">
+            <Button
+              size="sm"
+              onClick={onSave}
+              disabled={saving || !changed || blockers.length > 0}
+              data-testid={`${testId}-save`}
             >
-              <Ellipsis aria-hidden="true" className="h-4 w-4" />
-            </summary>
-            <div className="vocabulary-actions-popover" role="menu">
-              <button
-                type="button"
-                role="menuitem"
-                disabled={saving}
-                onClick={(event) => {
-                  onImport();
-                  const menu = event.currentTarget.closest("details");
-                  if (menu) menu.open = false;
-                }}
-              >
-                {t("settings.advanced.customWords.import")}
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                disabled={saving}
-                onClick={(event) => {
-                  onExport();
-                  const menu = event.currentTarget.closest("details");
-                  if (menu) menu.open = false;
-                }}
-              >
-                {t("settings.advanced.customWords.export")}
-              </button>
-            </div>
-          </details>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv,text/csv"
-            className="sr-only"
-            aria-label={t("settings.advanced.customWords.import")}
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              event.target.value = "";
-              if (file) onFile(file);
-            }}
-          />
+              {labels.save}
+            </Button>
+            {changed && blockers.length === 0 && (
+              <Hint>
+                {t("settings.advanced.customWords.unsaved", "Unsaved changes")}
+              </Hint>
+            )}
+          </div>
+          {actions}
         </div>
+
+        {footnote}
       </div>
     </SettingContainer>
   );
 };
 
-const EmojiPairsEditor: React.FC<EmojiPairsEditorProps> = ({
-  entries,
-  spoken,
-  written,
-  descriptionMode,
-  grouped,
-  changed,
-  saving,
-  onSpokenChange,
-  onWrittenChange,
-  onAdd,
-  onChange,
-  onRemove,
-  onSave,
-  getRowKey,
-}) => {
-  const { t } = useTranslation();
-
-  return (
-    <SettingContainer
-      title={t("settings.advanced.emoji.title")}
-      description={t("settings.advanced.emoji.description")}
-      descriptionMode={descriptionMode}
-      grouped={grouped}
-      layout="stacked"
-    >
-      <div className="space-y-3">
-        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-          <Input
-            value={spoken}
-            onChange={(event) => onSpokenChange(event.target.value)}
-            placeholder={t("settings.advanced.emoji.spokenPlaceholder")}
-            aria-label={t("settings.advanced.emoji.spoken")}
-            disabled={saving}
-          />
-          <Input
-            value={written}
-            onChange={(event) => onWrittenChange(event.target.value)}
-            placeholder={t("settings.advanced.emoji.writtenPlaceholder")}
-            aria-label={t("settings.advanced.emoji.written")}
-            disabled={saving}
-          />
-          <Button onClick={onAdd} disabled={saving} size="sm" className="gap-1">
-            <Plus aria-hidden="true" className="h-4 w-4" />
-            {t("settings.advanced.emoji.add")}
-          </Button>
-        </div>
-
-        <PairRows
-          entries={entries}
-          listLabel={t("settings.advanced.emoji.title")}
-          spokenLabel={t("settings.advanced.emoji.spoken")}
-          writtenLabel={t("settings.advanced.emoji.written")}
-          onChange={onChange}
-          onRemove={onRemove}
-          removeLabel={(entrySpoken) =>
-            t("settings.advanced.emoji.remove", { spoken: entrySpoken })
-          }
-          getRowKey={getRowKey}
-          disabled={saving}
-        />
-
-        <Button onClick={onSave} disabled={saving || !changed} size="sm">
-          {t("settings.advanced.emoji.save")}
-        </Button>
-      </div>
-    </SettingContainer>
-  );
-};
-
+/**
+ * Two steps, because a CSV import replaces the saved list: read what the file
+ * contains, then confirm the replacement. Nothing is written until the last
+ * button.
+ */
 const ImportPreviewDialog: React.FC<ImportPreviewDialogProps> = ({
-  preview,
+  review,
+  savedCount,
   saving,
   unsavedChanges,
+  onStep,
   onClose,
   onApply,
 }) => {
   const { t } = useTranslation();
+  const preview = review?.preview ?? null;
+  const reviewing = review?.step !== "confirm";
+
+  const counts: { label: string; value: number }[] = preview
+    ? [
+        {
+          label: t("settings.advanced.customWords.importPreview.valid"),
+          value: preview.valid_rows,
+        },
+        {
+          label: t("settings.advanced.customWords.importPreview.invalid"),
+          value: preview.invalid_rows,
+        },
+        {
+          label: t("settings.advanced.customWords.importPreview.duplicates"),
+          value: preview.duplicate_rows,
+        },
+        {
+          label: t("settings.advanced.customWords.importPreview.conflicts"),
+          value: preview.conflict_rows,
+        },
+      ]
+    : [];
 
   return (
     <Dialog
-      open={preview !== null}
+      open={review !== null}
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
@@ -381,66 +368,131 @@ const ImportPreviewDialog: React.FC<ImportPreviewDialogProps> = ({
       description={t("settings.advanced.customWords.importPreview.description")}
       closeLabel={t("common.close")}
       footer={
-        <>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onClose}
-            disabled={saving}
-          >
-            {t("common.cancel")}
-          </Button>
-          <Button
-            size="sm"
-            onClick={onApply}
-            disabled={saving || !preview?.can_apply}
-          >
-            {t("settings.advanced.customWords.importPreview.apply")}
-          </Button>
-        </>
+        reviewing ? (
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onClose}
+              disabled={saving}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => onStep("confirm")}
+              disabled={saving || !preview?.can_apply}
+              data-testid="vocabulary-import-continue"
+            >
+              {t(
+                "settings.advanced.customWords.importPreview.continue",
+                "Continue",
+              )}
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => onStep("review")}
+              disabled={saving}
+            >
+              {t("settings.advanced.customWords.importPreview.back", "Back")}
+            </Button>
+            <Button
+              size="sm"
+              onClick={onApply}
+              disabled={saving || !preview?.can_apply}
+              data-testid="vocabulary-import-apply"
+            >
+              {t("settings.advanced.customWords.importPreview.apply")}
+            </Button>
+          </>
+        )
       }
     >
       {preview && (
-        <div className="space-y-3 text-sm">
+        <div className="space-y-3">
+          <Hint>
+            {reviewing
+              ? t("settings.advanced.customWords.importPreview.stepReview", {
+                  defaultValue: "Step 1 of 2: what the file contains",
+                })
+              : t("settings.advanced.customWords.importPreview.stepConfirm", {
+                  defaultValue: "Step 2 of 2: confirm the replacement",
+                })}
+          </Hint>
+
           {unsavedChanges && (
-            <p
-              role="alert"
-              className="rounded-md border border-border bg-surface px-3 py-2 text-text-primary"
-            >
+            <Alert variant="warning">
               {t("settings.advanced.customWords.importPreview.unsavedWarning")}
-            </p>
+            </Alert>
           )}
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
-            <dt className="text-text-secondary">
-              {t("settings.advanced.customWords.importPreview.valid")}
-            </dt>
-            <dd>{preview.valid_rows}</dd>
-            <dt className="text-text-secondary">
-              {t("settings.advanced.customWords.importPreview.invalid")}
-            </dt>
-            <dd>{preview.invalid_rows}</dd>
-            <dt className="text-text-secondary">
-              {t("settings.advanced.customWords.importPreview.duplicates")}
-            </dt>
-            <dd>{preview.duplicate_rows}</dd>
-            <dt className="text-text-secondary">
-              {t("settings.advanced.customWords.importPreview.conflicts")}
-            </dt>
-            <dd>{preview.conflict_rows}</dd>
-          </dl>
-          {!preview.can_apply && (
-            <p role="alert" className="text-sm text-danger">
-              {t("settings.advanced.customWords.importPreview.blocked")}
+
+          {reviewing ? (
+            <>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12.5px] leading-[18px]">
+                {counts.map((count) => (
+                  <React.Fragment key={count.label}>
+                    <dt className="text-text-secondary">{count.label}</dt>
+                    <dd className="text-end tabular-nums text-text-primary">
+                      {count.value}
+                    </dd>
+                  </React.Fragment>
+                ))}
+              </dl>
+
+              {!preview.can_apply && (
+                <Alert variant="error">
+                  {t("settings.advanced.customWords.importPreview.blocked")}
+                </Alert>
+              )}
+
+              {preview.entries.length > 0 && (
+                <div className="max-h-56 overflow-y-auto">
+                  <table className="w-full table-fixed border-collapse">
+                    <thead>
+                      <tr>
+                        <th
+                          scope="col"
+                          className="py-1 pe-2 text-start text-[11px] leading-4 font-semibold tracking-[0.04em] text-text-tertiary uppercase"
+                        >
+                          {t("settings.advanced.customWords.spoken")}
+                        </th>
+                        <th
+                          scope="col"
+                          className="py-1 text-start text-[11px] leading-4 font-semibold tracking-[0.04em] text-text-tertiary uppercase"
+                        >
+                          {t("settings.advanced.customWords.written")}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {preview.entries.map((entry) => (
+                        <tr key={`${entry.spoken}\u0000${entry.written}`}>
+                          <td className="truncate py-1.5 pe-2 text-[12.5px] leading-[18px] text-text-primary">
+                            {entry.spoken}
+                          </td>
+                          <td className="truncate py-1.5 text-[12.5px] leading-[18px] text-text-secondary">
+                            {entry.written}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="text-[13px] leading-5 text-text-primary">
+              {t("settings.advanced.customWords.importPreview.replaceSummary", {
+                defaultValue:
+                  "Applying replaces the {{savedCount}} saved pairs with the {{importedCount}} pairs from this file.",
+                savedCount,
+                importedCount: preview.entries.length,
+              })}
             </p>
-          )}
-          {preview.entries.length > 0 && (
-            <ul className="max-h-40 space-y-1 overflow-y-auto text-xs text-text-secondary">
-              {preview.entries.map((entry) => (
-                <li key={`${entry.spoken}\u0000${entry.written}`}>
-                  {entry.spoken} → {entry.written}
-                </li>
-              ))}
-            </ul>
           )}
         </div>
       )}
@@ -453,9 +505,8 @@ export const CustomWords: React.FC<CustomWordsProps> = ({
   grouped = false,
 }) => {
   const { t } = useTranslation();
-  const { settings, refreshSettings } = useSettings();
+  const { settings, isLoading, refreshSettings } = useSettings();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const importCsvRef = useRef<string | null>(null);
   const savedEntries = settings?.custom_words ?? EMPTY_ENTRIES;
   const savedEmojiReplacements =
     settings?.emoji_replacements ?? EMPTY_EMOJI_REPLACEMENTS;
@@ -469,12 +520,14 @@ export const CustomWords: React.FC<CustomWordsProps> = ({
   const [written, setWritten] = useState("");
   const [emojiSpoken, setEmojiSpoken] = useState("");
   const [emojiWritten, setEmojiWritten] = useState("");
-  const [preview, setPreview] = useState<VocabularyCsvPreview | null>(null);
+  const [review, setReview] = useState<ImportReview | null>(null);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<{
+    message: string;
+    retry: () => void;
+  } | null>(null);
   const vocabularyRowKeys = usePairRowKeys();
   const emojiRowKeys = usePairRowKeys();
-
 
   useEffect(() => {
     const previousSaved = syncedEntriesRef.current;
@@ -493,7 +546,7 @@ export const CustomWords: React.FC<CustomWordsProps> = ({
 
   const saveEntries = async () => {
     setSaving(true);
-    setError(null);
+    setFailure(null);
     try {
       const result = await commands.updateVocabularyEntries(
         GLOBAL_SCOPE,
@@ -504,7 +557,10 @@ export const CustomWords: React.FC<CustomWordsProps> = ({
       await refreshSettings();
       toast.success(t("settings.advanced.customWords.saved"));
     } catch (saveError) {
-      setError(String(saveError));
+      setFailure({
+        message: String(saveError),
+        retry: () => void saveEntries(),
+      });
       toast.error(t("settings.advanced.customWords.saveError"));
     } finally {
       setSaving(false);
@@ -513,7 +569,7 @@ export const CustomWords: React.FC<CustomWordsProps> = ({
 
   const saveEmojiReplacements = async () => {
     setSaving(true);
-    setError(null);
+    setFailure(null);
     try {
       const result = await commands.updateEmojiReplacements(emojiReplacements);
       if (result.status !== "ok") throw new Error(String(result.error));
@@ -521,83 +577,40 @@ export const CustomWords: React.FC<CustomWordsProps> = ({
       await refreshSettings();
       toast.success(t("settings.advanced.emoji.saved"));
     } catch (saveError) {
-      setError(String(saveError));
+      setFailure({
+        message: String(saveError),
+        retry: () => void saveEmojiReplacements(),
+      });
       toast.error(t("settings.advanced.emoji.saveError"));
     } finally {
       setSaving(false);
     }
   };
 
-  const addEntry = () => {
-    const entry = normalizePair(spoken, written);
-    if (!entry.spoken || !entry.written) {
-      setError(t("settings.advanced.customWords.errors.incomplete"));
-      return;
-    }
-    if (
-      entries.some(
-        (current) =>
-          current.spoken === entry.spoken && current.written === entry.written,
-      )
-    ) {
-      setError(t("settings.advanced.customWords.errors.duplicate"));
-      return;
-    }
-    setEntries([...entries, entry]);
-    setSpoken("");
-    setWritten("");
-    setError(null);
-  };
-
-  const addEmojiReplacement = () => {
-    const replacement = normalizePair(emojiSpoken, emojiWritten);
-    if (!replacement.spoken || !replacement.written) {
-      setError(t("settings.advanced.emoji.errors.incomplete"));
-      return;
-    }
-    if (
-      emojiReplacements.some(
-        (current) =>
-          current.spoken === replacement.spoken &&
-          current.written === replacement.written,
-      )
-    ) {
-      setError(t("settings.advanced.emoji.errors.duplicate"));
-      return;
-    }
-    setEmojiReplacements([...emojiReplacements, replacement]);
-    setEmojiSpoken("");
-    setEmojiWritten("");
-    setError(null);
-  };
-
   const previewImport = async (file: File) => {
     setSaving(true);
-    setError(null);
+    setFailure(null);
     try {
       const csv = await file.text();
       const result = await commands.previewVocabularyCsv(GLOBAL_SCOPE, csv);
       if (result.status !== "ok") throw new Error(String(result.error));
-      importCsvRef.current = csv;
-      setPreview(result.data);
+      setReview({ csv, preview: result.data, step: "review" });
     } catch (previewError) {
-      setError(String(previewError));
+      setFailure({
+        message: String(previewError),
+        retry: () => fileInputRef.current?.click(),
+      });
       toast.error(t("settings.advanced.customWords.importError"));
     } finally {
       setSaving(false);
     }
   };
 
-  const closePreview = () => {
-    importCsvRef.current = null;
-    setPreview(null);
-  };
-
   const applyImport = async () => {
-    const csv = importCsvRef.current;
-    if (!csv || !preview?.can_apply) return;
+    if (!review?.preview.can_apply) return;
+    const csv = review.csv;
     setSaving(true);
-    setError(null);
+    setFailure(null);
     try {
       const result = await commands.applyVocabularyCsv(GLOBAL_SCOPE, csv);
       if (result.status !== "ok") throw new Error(String(result.error));
@@ -606,10 +619,13 @@ export const CustomWords: React.FC<CustomWordsProps> = ({
       // instead of silently discarding them.
       setEntries((current) => mergeAppliedCsv(current, result.data));
       await refreshSettings();
-      closePreview();
+      setReview(null);
       toast.success(t("settings.advanced.customWords.imported"));
     } catch (applyError) {
-      setError(String(applyError));
+      setFailure({
+        message: String(applyError),
+        retry: () => void applyImport(),
+      });
       toast.error(t("settings.advanced.customWords.importError"));
     } finally {
       setSaving(false);
@@ -618,7 +634,7 @@ export const CustomWords: React.FC<CustomWordsProps> = ({
 
   const exportCsv = async () => {
     setSaving(true);
-    setError(null);
+    setFailure(null);
     try {
       const result = await commands.exportVocabularyCsv(GLOBAL_SCOPE);
       if (result.status !== "ok") throw new Error(String(result.error));
@@ -631,7 +647,10 @@ export const CustomWords: React.FC<CustomWordsProps> = ({
       link.click();
       URL.revokeObjectURL(url);
     } catch (exportError) {
-      setError(String(exportError));
+      setFailure({
+        message: String(exportError),
+        retry: () => void exportCsv(),
+      });
       toast.error(t("settings.advanced.customWords.exportError"));
     } finally {
       setSaving(false);
@@ -640,13 +659,16 @@ export const CustomWords: React.FC<CustomWordsProps> = ({
 
   const toggleEmojiReplacements = async (enabled: boolean) => {
     setSaving(true);
-    setError(null);
+    setFailure(null);
     try {
       const result = await commands.updateEmojiReplacementsEnabled(enabled);
       if (result.status !== "ok") throw new Error(String(result.error));
       await refreshSettings();
     } catch (toggleError) {
-      setError(String(toggleError));
+      setFailure({
+        message: String(toggleError),
+        retry: () => void toggleEmojiReplacements(enabled),
+      });
       toast.error(t("settings.advanced.emoji.toggleError"));
     } finally {
       setSaving(false);
@@ -654,24 +676,181 @@ export const CustomWords: React.FC<CustomWordsProps> = ({
   };
 
   const vocabularyChanged = !samePairEntries(entries, savedEntries);
-  const emojiChanged = !samePairEntries(emojiReplacements, savedEmojiReplacements);
+  const emojiChanged = !samePairEntries(
+    emojiReplacements,
+    savedEmojiReplacements,
+  );
   const emojiEnabled = settings?.emoji_replacements_enabled ?? false;
+
+  /* The backend normalizes and validates the whole list on save. Naming the
+   * same rules here means a rejected write becomes a hint on the row instead
+   * of an error toast about the list. */
+  const vocabularyBlockers: string[] = [];
+  if (entries.some((entry) => !entry.spoken.trim() || !entry.written.trim())) {
+    vocabularyBlockers.push(
+      t(
+        "settings.advanced.customWords.errors.incompleteRow",
+        "Complete or remove every row before saving.",
+      ),
+    );
+  }
+  const conflictingSpoken = duplicateSpokenPhrases(entries);
+  if (conflictingSpoken.length > 0) {
+    vocabularyBlockers.push(
+      t("settings.advanced.customWords.errors.duplicateSpoken", {
+        defaultValue:
+          "More than one row matches {{spoken}}. Sona keeps one rule per spoken phrase.",
+        spoken: conflictingSpoken.join(", "),
+      }),
+    );
+  }
+  const unusableSpoken = entries
+    .filter(
+      (entry) =>
+        entry.spoken.trim() !== "" && spokenMatchKey(entry.spoken) === "",
+    )
+    .map((entry) => entry.spoken);
+  if (unusableSpoken.length > 0) {
+    vocabularyBlockers.push(
+      t("settings.advanced.customWords.errors.unusableSpoken", {
+        defaultValue:
+          "{{spoken}} needs at least one letter or number to be recognized.",
+        spoken: unusableSpoken.join(", "),
+      }),
+    );
+  }
+
+  const emojiBlockers: string[] = emojiReplacements.some(
+    (entry) => !entry.spoken.trim() || !entry.written.trim(),
+  )
+    ? [
+        t(
+          "settings.advanced.emoji.errors.incompleteRow",
+          "Complete or remove every row before saving.",
+        ),
+      ]
+    : [];
+
+  const draftSpoken = spoken.trim();
+  const draftWritten = written.trim();
+  const draftStarted = spoken !== "" || written !== "";
+  const draftIncomplete = draftSpoken === "" || draftWritten === "";
+  const draftPairExists =
+    !draftIncomplete &&
+    entries.some(
+      (entry) => entry.spoken === draftSpoken && entry.written === draftWritten,
+    );
+  const draftSpokenTaken =
+    spokenMatchKey(draftSpoken) !== "" &&
+    entries.some(
+      (entry) => spokenMatchKey(entry.spoken) === spokenMatchKey(draftSpoken),
+    );
+  /* Anything the backend would refuse. Named on the field, so Add is never
+   * disabled without saying why. */
+  const draftBlocker = draftPairExists
+    ? t("settings.advanced.customWords.errors.duplicate")
+    : draftSpokenTaken
+      ? t("settings.advanced.customWords.errors.duplicateSpoken", {
+          defaultValue:
+            "More than one row matches {{spoken}}. Sona keeps one rule per spoken phrase.",
+          spoken: draftSpoken,
+        })
+      : !draftIncomplete && spokenMatchKey(draftSpoken) === ""
+        ? t("settings.advanced.customWords.errors.unusableSpoken", {
+            defaultValue:
+              "{{spoken}} needs at least one letter or number to be recognized.",
+            spoken: draftSpoken,
+          })
+        : null;
+  const vocabularyDraftHint =
+    draftBlocker !== null
+      ? { text: draftBlocker, blocking: true }
+      : draftIncomplete && draftStarted
+        ? {
+            text: t("settings.advanced.customWords.errors.incomplete"),
+            blocking: false,
+          }
+        : null;
+
+  const emojiDraftSpoken = emojiSpoken.trim();
+  const emojiDraftWritten = emojiWritten.trim();
+  const emojiDraftStarted = emojiSpoken !== "" || emojiWritten !== "";
+  const emojiDraftIncomplete =
+    emojiDraftSpoken === "" || emojiDraftWritten === "";
+  const emojiDraftExists = emojiReplacements.some(
+    (entry) =>
+      entry.spoken === emojiDraftSpoken && entry.written === emojiDraftWritten,
+  );
+  const emojiDraftHint = emojiDraftIncomplete
+    ? emojiDraftStarted
+      ? {
+          text: t("settings.advanced.emoji.errors.incomplete"),
+          blocking: false,
+        }
+      : null
+    : emojiDraftExists
+      ? { text: t("settings.advanced.emoji.errors.duplicate"), blocking: true }
+      : null;
+
+  const addEntry = () => {
+    setEntries([...entries, { spoken: draftSpoken, written: draftWritten }]);
+    setSpoken("");
+    setWritten("");
+  };
+
+  const addEmojiReplacement = () => {
+    setEmojiReplacements([
+      ...emojiReplacements,
+      { spoken: emojiDraftSpoken, written: emojiDraftWritten },
+    ]);
+    setEmojiSpoken("");
+    setEmojiWritten("");
+  };
 
   return (
     <>
-      <VocabularyPairsEditor
+      <PairEditor
+        labels={{
+          title: t("settings.advanced.customWords.title"),
+          description: t("settings.advanced.customWords.description"),
+          spoken: t("settings.advanced.customWords.spoken"),
+          written: t("settings.advanced.customWords.written"),
+          spokenPlaceholder: t(
+            "settings.advanced.customWords.spokenPlaceholder",
+          ),
+          writtenPlaceholder: t(
+            "settings.advanced.customWords.writtenPlaceholder",
+          ),
+          add: t("settings.advanced.customWords.add"),
+          save: t("settings.advanced.customWords.save"),
+          remove: (entrySpoken) =>
+            t("settings.advanced.customWords.remove", { spoken: entrySpoken }),
+          emptyTitle: t(
+            "settings.advanced.customWords.empty.title",
+            "No vocabulary rules yet",
+          ),
+          emptyDescription: t(
+            "settings.advanced.customWords.empty.description",
+            "Add a pair such as open ai and OpenAI, and Sona writes the exact form every time it hears the phrase.",
+          ),
+        }}
         entries={entries}
-        spoken={spoken}
-        written={written}
-        descriptionMode={descriptionMode}
-        grouped={grouped}
-        fileInputRef={fileInputRef}
+        draftSpoken={spoken}
+        draftWritten={written}
+        draftHint={vocabularyDraftHint}
+        canAdd={!saving && !draftIncomplete && draftBlocker === null}
         changed={vocabularyChanged}
         saving={saving}
-        onSpokenChange={setSpoken}
-        onWrittenChange={setWritten}
+        loading={isLoading}
+        blockers={vocabularyBlockers}
+        descriptionMode={descriptionMode}
+        grouped={grouped}
+        testId="vocabulary-editor"
+        getRowKey={vocabularyRowKeys.getRowKey}
+        onDraftSpokenChange={setSpoken}
+        onDraftWrittenChange={setWritten}
         onAdd={addEntry}
-        onChange={(index, field, value) =>
+        onEdit={(index, field, value) =>
           setEntries((current) =>
             current.map((entry, row) => {
               if (row !== index) return entry;
@@ -685,14 +864,80 @@ export const CustomWords: React.FC<CustomWordsProps> = ({
           setEntries((current) => current.filter((_, row) => row !== index))
         }
         onSave={() => void saveEntries()}
-        onImport={() => fileInputRef.current?.click()}
-        onExport={() => void exportCsv()}
-        onFile={(file) => void previewImport(file)}
-        getRowKey={vocabularyRowKeys.getRowKey}
+        actions={
+          <div
+            role="group"
+            aria-label={t("settings.advanced.customWords.actions")}
+            className="flex items-center gap-1.5"
+          >
+            <Button
+              size="sm"
+              variant="secondary"
+              className="gap-1"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={saving}
+            >
+              <Upload aria-hidden="true" className="h-4 w-4" />
+              {t("settings.advanced.customWords.import")}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="gap-1"
+              onClick={() => void exportCsv()}
+              disabled={saving || savedEntries.length === 0}
+            >
+              <Download aria-hidden="true" className="h-4 w-4" />
+              {t("settings.advanced.customWords.export")}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="sr-only"
+              aria-label={t("settings.advanced.customWords.import")}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (file) void previewImport(file);
+              }}
+            />
+          </div>
+        }
+        footnote={
+          <Hint>
+            {t(
+              "settings.advanced.customWords.sources",
+              "Corrections you save from a transcript in Library land in this list. Rules for a single mode live in that mode's own vocabulary.",
+            )}
+          </Hint>
+        }
       />
+
+      {failure && (
+        <Alert
+          variant="error"
+          contained
+          action={
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={saving}
+              onClick={failure.retry}
+            >
+              {t("common.retry")}
+            </Button>
+          }
+        >
+          {failure.message}
+        </Alert>
+      )}
+
+      <SnippetsPanel descriptionMode={descriptionMode} grouped={grouped} />
 
       <ToggleSwitch
         grouped={grouped}
+        descriptionMode={descriptionMode}
         checked={emojiEnabled}
         onChange={(enabled) => void toggleEmojiReplacements(enabled)}
         isUpdating={saving}
@@ -701,18 +946,44 @@ export const CustomWords: React.FC<CustomWordsProps> = ({
       />
 
       {emojiEnabled ? (
-        <EmojiPairsEditor
+        <PairEditor
+          labels={{
+            title: t("settings.advanced.emoji.title"),
+            description: t("settings.advanced.emoji.description"),
+            spoken: t("settings.advanced.emoji.spoken"),
+            written: t("settings.advanced.emoji.written"),
+            spokenPlaceholder: t("settings.advanced.emoji.spokenPlaceholder"),
+            writtenPlaceholder: t("settings.advanced.emoji.writtenPlaceholder"),
+            add: t("settings.advanced.emoji.add"),
+            save: t("settings.advanced.emoji.save"),
+            remove: (entrySpoken) =>
+              t("settings.advanced.emoji.remove", { spoken: entrySpoken }),
+            emptyTitle: t(
+              "settings.advanced.emoji.empty.title",
+              "No emoji replacements yet",
+            ),
+            emptyDescription: t(
+              "settings.advanced.emoji.empty.description",
+              "Map an exact spoken token such as smiley face to the emoji you want written.",
+            ),
+          }}
           entries={emojiReplacements}
-          spoken={emojiSpoken}
-          written={emojiWritten}
-          descriptionMode={descriptionMode}
-          grouped={grouped}
+          draftSpoken={emojiSpoken}
+          draftWritten={emojiWritten}
+          draftHint={emojiDraftHint}
+          canAdd={!saving && !emojiDraftIncomplete && !emojiDraftExists}
           changed={emojiChanged}
           saving={saving}
-          onSpokenChange={setEmojiSpoken}
-          onWrittenChange={setEmojiWritten}
+          loading={isLoading}
+          blockers={emojiBlockers}
+          descriptionMode={descriptionMode}
+          grouped={grouped}
+          testId="emoji-editor"
+          getRowKey={emojiRowKeys.getRowKey}
+          onDraftSpokenChange={setEmojiSpoken}
+          onDraftWrittenChange={setEmojiWritten}
           onAdd={addEmojiReplacement}
-          onChange={(index, field, value) =>
+          onEdit={(index, field, value) =>
             setEmojiReplacements((current) =>
               current.map((entry, row) => {
                 if (row !== index) return entry;
@@ -728,21 +999,22 @@ export const CustomWords: React.FC<CustomWordsProps> = ({
             )
           }
           onSave={() => void saveEmojiReplacements()}
-          getRowKey={emojiRowKeys.getRowKey}
         />
-      ) : null}
-
-      {error && (
-        <p role="alert" className="px-4 text-sm text-danger">
-          {error}
-        </p>
+      ) : (
+        <div className="p-3">
+          <Hint>{t("settings.advanced.emoji.offState")}</Hint>
+        </div>
       )}
 
       <ImportPreviewDialog
-        preview={preview}
+        review={review}
+        savedCount={savedEntries.length}
         saving={saving}
         unsavedChanges={vocabularyChanged}
-        onClose={closePreview}
+        onStep={(step) =>
+          setReview((current) => (current ? { ...current, step } : current))
+        }
+        onClose={() => setReview(null)}
         onApply={() => void applyImport()}
       />
     </>

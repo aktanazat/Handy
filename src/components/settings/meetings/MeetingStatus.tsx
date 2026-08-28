@@ -1,12 +1,14 @@
 import React from "react";
-import { Check, CircleAlert, CircleDashed, Pause, Radio } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type {
   CaptureCompleteness,
   MeetingPhase,
   MeetingSourceSnapshot,
   ProcessingStatus,
+  SourceAvailability,
+  SourceHealth,
 } from "@/bindings";
+import { List, StatusText, type StatusTone } from "../../ui";
 import {
   captureCompletenessKey,
   formatMeetingOffset,
@@ -17,84 +19,136 @@ import {
   sourceKey,
 } from "./meetingUtils";
 
-interface MeetingPhaseBadgeProps {
+/* Every meeting state reads as a word. The only second channel is a 6px
+ * static mark beside "Recording", the one state where a misread costs the
+ * person a meeting. Nothing here animates, so reduced motion has nothing to
+ * switch off and the sentence still reads in greyscale. */
+
+const PHASE_TONES = {
+  preflight: "muted",
+  starting: "muted",
+  capturing_recording: "danger",
+  capturing_pausing: "muted",
+  capturing_paused: "muted",
+  capturing_resuming: "muted",
+  stopping: "muted",
+  processing: "muted",
+  review_ready: "neutral",
+  recovery_required: "warning",
+  deleting: "muted",
+} as const satisfies Record<MeetingPhase, StatusTone>;
+
+export interface MeetingPhaseTextProps {
   phase: MeetingPhase;
+  className?: string;
 }
 
-export const MeetingPhaseBadge: React.FC<MeetingPhaseBadgeProps> = ({
+export const MeetingPhaseText: React.FC<MeetingPhaseTextProps> = ({
   phase,
+  className = "",
 }) => {
   const { t } = useTranslation();
+  const capturing = phase === "capturing_recording";
 
   return (
-    <span className="meeting-status-badge" data-phase={phase}>
-      <span className="meeting-status-badge-icon" aria-hidden="true">
-        {phase === "capturing_recording" ? (
-          <Radio size={13} />
-        ) : phase === "capturing_paused" ? (
-          <Pause size={12} />
-        ) : phase === "review_ready" ? (
-          <Check size={13} />
-        ) : (
-          <CircleDashed size={13} />
-        )}
-      </span>
+    <StatusText
+      tone={PHASE_TONES[phase]}
+      className={`inline-flex items-center gap-1.5 ${capturing ? "font-semibold" : ""} ${className}`}
+    >
+      {capturing ? (
+        <span
+          aria-hidden="true"
+          className="size-1.5 flex-none rounded-xs bg-danger"
+        />
+      ) : null}
       {t(meetingPhaseKey(phase))}
-    </span>
+    </StatusText>
   );
 };
 
-interface CaptureCompletenessBadgeProps {
+const COMPLETENESS_TONES = {
+  not_started: "muted",
+  complete: "muted",
+  partial: "warning",
+} as const satisfies Record<CaptureCompleteness, StatusTone>;
+
+export interface CaptureCompletenessTextProps {
   completeness: CaptureCompleteness;
+  className?: string;
 }
 
-export const CaptureCompletenessBadge: React.FC<
-  CaptureCompletenessBadgeProps
-> = ({ completeness }) => {
+export const CaptureCompletenessText: React.FC<
+  CaptureCompletenessTextProps
+> = ({ completeness, className = "" }) => {
   const { t } = useTranslation();
 
   return (
-    <span
-      className="meeting-completeness-badge"
-      data-completeness={completeness}
-    >
+    <StatusText tone={COMPLETENESS_TONES[completeness]} className={className}>
       {t(captureCompletenessKey(completeness))}
-    </span>
+    </StatusText>
   );
 };
 
-interface ProcessingStatusLineProps {
+export interface ProcessingStatusTextProps {
   status: ProcessingStatus;
+  /** Announce transitions on surfaces that own one meeting, never in lists. */
+  live?: "off" | "polite";
+  className?: string;
 }
 
-export const ProcessingStatusLine: React.FC<ProcessingStatusLineProps> = ({
+export const ProcessingStatusText: React.FC<ProcessingStatusTextProps> = ({
   status,
+  live = "off",
+  className = "",
 }) => {
   const { t } = useTranslation();
   const failed = status.kind === "failed" || status.kind === "cancelled";
 
   return (
-    <span
-      className="meeting-processing-status"
-      data-status={status.kind}
-      role={failed ? "alert" : undefined}
+    <StatusText
+      tone={failed ? "danger" : "muted"}
+      live={live}
+      className={className}
     >
-      {failed ? <CircleAlert size={14} aria-hidden="true" /> : null}
       {t(processingStatusKey(status))}
-    </span>
+    </StatusText>
   );
 };
 
-interface SourceHealthCardProps {
+const AVAILABILITY_TONES = {
+  available: "muted",
+  permission_required: "warning",
+  permission_denied: "danger",
+  device_unavailable: "danger",
+  unsupported_platform: "warning",
+  storage_unavailable: "danger",
+  unknown: "muted",
+} as const satisfies Record<SourceAvailability, StatusTone>;
+
+const HEALTH_TONES = {
+  not_started: "muted",
+  starting: "muted",
+  healthy: "muted",
+  paused: "muted",
+  degraded: "warning",
+  failed: "danger",
+  stopped: "muted",
+} as const satisfies Record<SourceHealth, StatusTone>;
+
+interface MeetingSourceItemProps {
   source: MeetingSourceSnapshot;
-  elapsedOffsetNs?: number | null;
-  showTelemetry?: boolean;
+  elapsedOffsetNs: number | null;
+  showTelemetry: boolean;
 }
 
-export const SourceHealthCard: React.FC<SourceHealthCardProps> = ({
+/* One capture source per row: name, what the backend reports about it, and
+ * its health. Rows, not tiles: two cards side by side implied a comparison
+ * that does not exist, and the empty level meter implied a signal reading
+ * capture never sends. */
+const MeetingSourceItem: React.FC<MeetingSourceItemProps> = ({
   source,
-  elapsedOffsetNs = null,
-  showTelemetry = false,
+  elapsedOffsetNs,
+  showTelemetry,
 }) => {
   const { t } = useTranslation();
   const durableLagNs =
@@ -103,49 +157,81 @@ export const SourceHealthCard: React.FC<SourceHealthCardProps> = ({
       : Math.max(0, elapsedOffsetNs - source.last_durable_offset_ns);
 
   return (
-    <section
-      className="meeting-source-card"
-      data-source={source.source_kind}
-      data-health={source.health}
-    >
-      <div className="meeting-source-card-heading">
-        <div>
-          <h3>{t(sourceKey(source.source_kind))}</h3>
-          <p>{t(sourceAvailabilityKey(source.availability))}</p>
-        </div>
-        <span className="meeting-source-health">
+    <li className="px-4 py-3" data-source={source.source_kind}>
+      <div className="flex items-baseline justify-between gap-4">
+        <h3 className="text-[13px] leading-[19px] font-medium text-text-primary">
+          {t(sourceKey(source.source_kind))}
+        </h3>
+        <StatusText tone={HEALTH_TONES[source.health]} className="flex-none">
           {t(sourceHealthKey(source.health))}
-        </span>
+        </StatusText>
       </div>
-      {showTelemetry ? (
-        <div className="meeting-source-telemetry">
-          <div
-            className="meeting-source-meter"
-            aria-label={t("meetings.live.signalUnavailable", {
-              source: t(sourceKey(source.source_kind)),
+      <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <StatusText tone={AVAILABILITY_TONES[source.availability]}>
+          {t(sourceAvailabilityKey(source.availability))}
+        </StatusText>
+        {source.required ? (
+          <StatusText tone="muted">
+            {t("meetings.status.required", "Required")}
+          </StatusText>
+        ) : null}
+        {source.gap_count > 0 ? (
+          <StatusText tone="warning">
+            {t("meetings.status.gapCount", "Gaps: {{total}}", {
+              total: source.gap_count,
             })}
-            data-telemetry="unavailable"
-          >
-            <span aria-hidden="true" />
+          </StatusText>
+        ) : null}
+      </p>
+      {showTelemetry ? (
+        <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
+          <div>
+            <dt className="text-[11px] leading-4 text-text-tertiary">
+              {t("meetings.live.signal")}
+            </dt>
+            <dd className="text-[12px] leading-[18px] text-text-secondary">
+              {t("meetings.live.notReported")}
+            </dd>
           </div>
-          <dl className="meeting-source-metrics">
-            <div>
-              <dt>{t("meetings.live.signal")}</dt>
-              <dd>{t("meetings.live.notReported")}</dd>
-            </div>
-            <div>
-              <dt>{t("meetings.live.durabilityLag")}</dt>
-              <dd>
-                {durableLagNs === null
-                  ? t("meetings.live.notReported")
-                  : t("meetings.live.behind", {
-                      duration: formatMeetingOffset(durableLagNs),
-                    })}
-              </dd>
-            </div>
-          </dl>
-        </div>
+          <div>
+            <dt className="text-[11px] leading-4 text-text-tertiary">
+              {t("meetings.live.durabilityLag")}
+            </dt>
+            <dd className="text-[12px] leading-[18px] text-text-secondary tabular-nums">
+              {durableLagNs === null
+                ? t("meetings.live.notReported")
+                : t("meetings.live.behind", {
+                    duration: formatMeetingOffset(durableLagNs),
+                  })}
+            </dd>
+          </div>
+        </dl>
       ) : null}
-    </section>
+    </li>
   );
 };
+
+export interface MeetingSourceListProps {
+  sources: MeetingSourceSnapshot[];
+  label: string;
+  elapsedOffsetNs?: number | null;
+  showTelemetry?: boolean;
+}
+
+export const MeetingSourceList: React.FC<MeetingSourceListProps> = ({
+  sources,
+  label,
+  elapsedOffsetNs = null,
+  showTelemetry = false,
+}) => (
+  <List label={label}>
+    {sources.map((source) => (
+      <MeetingSourceItem
+        key={source.source_kind}
+        source={source}
+        elapsedOffsetNs={elapsedOffsetNs}
+        showTelemetry={showTelemetry}
+      />
+    ))}
+  </List>
+);

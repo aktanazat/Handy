@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import {
   Check,
   ChevronDown,
@@ -17,46 +17,21 @@ import {
   type HistoryRunReceipt,
 } from "@/bindings";
 import { formatDateTime } from "@/utils/dateFormat";
-import { AudioPlayer } from "../../ui/AudioPlayer";
-import { Button } from "../../ui/Button";
-import { Dialog } from "../../ui/Dialog";
-import { Input } from "../../ui/Input";
+import {
+  AudioPlayer,
+  Button,
+  Dialog,
+  IconButton,
+  Input,
+  StatusText,
+} from "../../ui";
 
 export type HistoryTextView = "processed" | "raw";
 
-interface IconButtonProps {
-  onClick: () => void;
-  title: string;
-  disabled?: boolean;
-  active?: boolean;
-  pressed?: boolean;
-  children: React.ReactNode;
-}
-
-const IconButton: React.FC<IconButtonProps> = ({
-  onClick,
-  title,
-  disabled,
-  active,
-  pressed,
-  children,
-}) => (
-  <button
-    type="button"
-    onClick={onClick}
-    disabled={disabled}
-    aria-pressed={pressed}
-    aria-label={title}
-    className={`flex cursor-pointer items-center justify-center rounded-md p-1.5 transition-colors disabled:cursor-not-allowed disabled:text-text-tertiary/50 ${
-      active
-        ? "text-accent hover:bg-hover"
-        : "text-text-secondary hover:bg-hover hover:text-text-primary"
-    }`}
-    title={title}
-  >
-    {children}
-  </button>
-);
+/* Mirrors --duration-standard, the row collapse in history.css. Under
+ * prefers-reduced-motion the collapse is instant and this is just a short
+ * pause before the delete call. */
+const ROW_COLLAPSE_MS = 180;
 
 type CorrectionScope = "global" | "current_mode";
 
@@ -90,6 +65,7 @@ const HistoryCorrectionDialog = ({
   onSave,
 }: HistoryCorrectionDialogProps) => {
   const { t } = useTranslation();
+  const fieldId = useId();
 
   return (
     <Dialog
@@ -101,47 +77,68 @@ const HistoryCorrectionDialog = ({
       footer={
         <>
           <Button
-            variant="secondary"
+            variant="ghost"
             size="sm"
             onClick={() => onOpenChange(false)}
             disabled={saving}
           >
             {t("common.cancel")}
           </Button>
-          <Button size="sm" onClick={onSave} disabled={!ready || saving}>
+          <Button
+            size="sm"
+            onClick={onSave}
+            disabled={!ready || saving}
+            data-testid="history-correction-save"
+          >
             {t("settings.history.correction.save")}
           </Button>
         </>
       }
     >
-      <div className="space-y-3">
-        <Input
-          value={spoken}
-          onChange={(event) => onSpokenChange(event.target.value)}
-          placeholder={t("settings.history.correction.spokenPlaceholder")}
-          aria-label={t("settings.history.correction.spoken")}
-          disabled={saving}
-        />
-        <Input
-          value={written}
-          onChange={(event) => onWrittenChange(event.target.value)}
-          placeholder={t("settings.history.correction.writtenPlaceholder")}
-          aria-label={t("settings.history.correction.written")}
-          disabled={saving}
-        />
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor={`${fieldId}-spoken`}
+            className="text-[13px] leading-[19px] font-medium text-text-primary"
+          >
+            {t("settings.history.correction.spoken")}
+          </label>
+          <Input
+            id={`${fieldId}-spoken`}
+            value={spoken}
+            onChange={(event) => onSpokenChange(event.target.value)}
+            placeholder={t("settings.history.correction.spokenPlaceholder")}
+            disabled={saving}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor={`${fieldId}-written`}
+            className="text-[13px] leading-[19px] font-medium text-text-primary"
+          >
+            {t("settings.history.correction.written")}
+          </label>
+          <Input
+            id={`${fieldId}-written`}
+            value={written}
+            onChange={(event) => onWrittenChange(event.target.value)}
+            placeholder={t("settings.history.correction.writtenPlaceholder")}
+            disabled={saving}
+          />
+        </div>
         {ready && (
-          <p className="rounded-md border border-border bg-subtle px-3 py-2 text-sm text-text-primary">
+          <p className="rounded-control border border-border bg-subtle px-3 py-2 text-[13px] leading-5 text-text-primary">
             {t("settings.history.correction.preview", {
               spoken: spoken.trim(),
               written: written.trim(),
             })}
           </p>
         )}
-        <fieldset className="space-y-2">
-          <legend className="text-sm font-medium text-text-primary">
+        <fieldset className="flex flex-col gap-2">
+          <legend className="text-[13px] leading-[19px] font-medium text-text-primary">
             {t("settings.history.correction.scope")}
           </legend>
-          <label className="flex items-center gap-2 text-sm text-text-secondary">
+          <label className="flex items-center gap-2 text-[13px] leading-[19px] text-text-secondary">
             <input
               type="radio"
               name={`history-correction-scope-${entryId}`}
@@ -151,7 +148,7 @@ const HistoryCorrectionDialog = ({
             />
             {t("settings.history.correction.currentMode")}
           </label>
-          <label className="flex items-center gap-2 text-sm text-text-secondary">
+          <label className="flex items-center gap-2 text-[13px] leading-[19px] text-text-secondary">
             <input
               type="radio"
               name={`history-correction-scope-${entryId}`}
@@ -191,6 +188,7 @@ export const HistoryEntryComponent: React.FC<HistoryEntryComponentProps> = ({
   const { t } = useTranslation();
   const [showCopied, setShowCopied] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [correctionOpen, setCorrectionOpen] = useState(false);
   const [correctionSpoken, setCorrectionSpoken] = useState("");
   const [correctionWritten, setCorrectionWritten] = useState("");
@@ -198,8 +196,15 @@ export const HistoryEntryComponent: React.FC<HistoryEntryComponentProps> = ({
     useState<CorrectionScope>("current_mode");
   const [savingCorrection, setSavingCorrection] = useState(false);
   const copiedTimerRef = useRef<number | undefined>(undefined);
+  const deleteTimerRef = useRef<number | undefined>(undefined);
 
-  useEffect(() => () => window.clearTimeout(copiedTimerRef.current), []);
+  useEffect(
+    () => () => {
+      window.clearTimeout(copiedTimerRef.current);
+      window.clearTimeout(deleteTimerRef.current);
+    },
+    [],
+  );
 
   const processedText = entry.post_processed_text?.trim() ?? "";
   const rawText = entry.transcription_text.trim();
@@ -230,7 +235,6 @@ export const HistoryEntryComponent: React.FC<HistoryEntryComponentProps> = ({
     duration = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
   }
 
-
   const handleCopyText = async () => {
     if (!hasText) return;
     try {
@@ -246,13 +250,23 @@ export const HistoryEntryComponent: React.FC<HistoryEntryComponentProps> = ({
     }
   };
 
-  const handleDeleteEntry = async () => {
-    try {
-      await deleteAudio(entry.id);
-    } catch (error) {
-      console.error("Failed to delete entry:", error);
-      toast.error(t("settings.history.deleteError"));
-    }
+  // The row collapses to zero height first and only then asks the backend to
+  // delete, so the removal event unmounts something that already takes no
+  // space. Without the wait the list would jump by a row height. A failed
+  // delete puts the row back rather than leaving a ghost.
+  const handleDeleteEntry = () => {
+    setRemoving(true);
+    deleteTimerRef.current = window.setTimeout(() => {
+      void (async () => {
+        try {
+          await deleteAudio(entry.id);
+        } catch (error) {
+          console.error("Failed to delete entry:", error);
+          setRemoving(false);
+          toast.error(t("settings.history.deleteError"));
+        }
+      })();
+    }, ROW_COLLAPSE_MS);
   };
 
   const handleRetranscribe = async () => {
@@ -293,46 +307,54 @@ export const HistoryEntryComponent: React.FC<HistoryEntryComponentProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-3 px-4 py-3">
-      <HistoryEntrySummary
-        entry={entry}
-        latestReceipt={latestReceipt}
-        duration={duration}
-        noSpeechCaptured={noSpeechCaptured}
-        hasText={hasText}
-        retrying={retrying}
-        showCopied={showCopied}
-        onCopy={() => void handleCopyText()}
-        onOpenCorrection={() => setCorrectionOpen(true)}
-        onToggleSaved={() => void onToggleSaved(entry.id)}
-        onRetry={() => void handleRetranscribe()}
-        onDelete={() => void handleDeleteEntry()}
-      />
-      <HistoryEntryContent
-        entry={entry}
-        shownText={shownText}
-        hasText={hasText}
-        retrying={retrying}
-        noSpeechCaptured={noSpeechCaptured}
-        processedTextMissing={processedTextMissing}
-        getAudioBlob={getAudioBlob}
-        correctionOpen={correctionOpen}
-        correctionSpoken={correctionSpoken}
-        correctionWritten={correctionWritten}
-        correctionScope={correctionScope}
-        savingCorrection={savingCorrection}
-        correctionReady={correctionReady}
-        onCorrectionOpenChange={setCorrectionOpen}
-        onSpokenChange={setCorrectionSpoken}
-        onWrittenChange={setCorrectionWritten}
-        onScopeChange={setCorrectionScope}
-        onSaveCorrection={() => void saveCorrection()}
-      />
-      <HistoryReceiptDetails receipts={receipts} />
-    </div>
+    <li
+      className="history-row"
+      data-removing={removing ? "true" : undefined}
+      data-testid="history-entry"
+    >
+      <div className="history-row-clip">
+        <div className="history-row-body">
+          <HistoryEntrySummary
+            entry={entry}
+            latestReceipt={latestReceipt}
+            duration={duration}
+            noSpeechCaptured={noSpeechCaptured}
+            hasText={hasText}
+            busy={retrying || removing}
+            retrying={retrying}
+            showCopied={showCopied}
+            onCopy={() => void handleCopyText()}
+            onOpenCorrection={() => setCorrectionOpen(true)}
+            onToggleSaved={() => void onToggleSaved(entry.id)}
+            onRetry={() => void handleRetranscribe()}
+            onDelete={handleDeleteEntry}
+          />
+          <HistoryEntryContent
+            entry={entry}
+            shownText={shownText}
+            hasText={hasText}
+            retrying={retrying}
+            noSpeechCaptured={noSpeechCaptured}
+            processedTextMissing={processedTextMissing}
+            getAudioBlob={getAudioBlob}
+            correctionOpen={correctionOpen}
+            correctionSpoken={correctionSpoken}
+            correctionWritten={correctionWritten}
+            correctionScope={correctionScope}
+            savingCorrection={savingCorrection}
+            correctionReady={correctionReady}
+            onCorrectionOpenChange={setCorrectionOpen}
+            onSpokenChange={setCorrectionSpoken}
+            onWrittenChange={setCorrectionWritten}
+            onScopeChange={setCorrectionScope}
+            onSaveCorrection={() => void saveCorrection()}
+          />
+          <HistoryReceiptDetails receipts={receipts} />
+        </div>
+      </div>
+    </li>
   );
 };
-
 
 interface HistoryEntrySummaryProps {
   entry: HistoryEntry;
@@ -340,6 +362,7 @@ interface HistoryEntrySummaryProps {
   duration: string | null;
   noSpeechCaptured: boolean;
   hasText: boolean;
+  busy: boolean;
   retrying: boolean;
   showCopied: boolean;
   onCopy: () => void;
@@ -355,6 +378,7 @@ const HistoryEntrySummary: React.FC<HistoryEntrySummaryProps> = ({
   duration,
   noSpeechCaptured,
   hasText,
+  busy,
   retrying,
   showCopied,
   onCopy,
@@ -366,104 +390,112 @@ const HistoryEntrySummary: React.FC<HistoryEntrySummaryProps> = ({
   const { t, i18n } = useTranslation();
   const formattedDate = formatDateTime(String(entry.timestamp), i18n.language);
 
+  // Provenance reads as one sentence of text. Chips and colored dots would
+  // say the same thing louder and survive greyscale worse.
+  const metaParts: string[] = [];
+  if (latestReceipt) {
+    if (noSpeechCaptured) metaParts.push(t("errors.noSpeechDetectedTitle"));
+    if (duration) {
+      metaParts.push(t("settings.history.receipts.duration", { duration }));
+    }
+    if (latestReceipt.word_count !== null) {
+      metaParts.push(
+        t("settings.history.receipts.words", {
+          count: latestReceipt.word_count,
+        }),
+      );
+    }
+    if (latestReceipt.source_kind) {
+      metaParts.push(
+        t("settings.history.receipts.source." + latestReceipt.source_kind),
+      );
+    }
+    metaParts.push(
+      t("settings.history.receipts.mode", {
+        mode: latestReceipt.mode.mode_id,
+      }),
+      t(
+        "settings.history.receipts.engine." +
+          latestReceipt.mode.engine_requested,
+      ),
+    );
+  }
+
   return (
-    <div className="flex items-start justify-between gap-2">
-      <div className="min-w-0">
-        <p className="truncate text-sm font-medium">{formattedDate}</p>
-        {latestReceipt ? (
-          <div className="mt-1 flex flex-wrap gap-1.5">
-            {noSpeechCaptured ? (
-              <span className="rounded-md border border-border px-1.5 py-0.5 text-xs text-text-secondary">
-                {t("errors.noSpeechDetectedTitle")}
-              </span>
-            ) : null}
-            {duration ? (
-              <span className="rounded-md border border-border px-1.5 py-0.5 text-xs text-text-secondary">
-                {t("settings.history.receipts.duration", { duration })}
-              </span>
-            ) : null}
-            {latestReceipt.word_count !== null ? (
-              <span className="rounded-md border border-border px-1.5 py-0.5 text-xs text-text-secondary">
-                {t("settings.history.receipts.words", {
-                  count: latestReceipt.word_count,
-                })}
-              </span>
-            ) : null}
-            {latestReceipt.source_kind ? (
-              <span className="rounded-md border border-border px-1.5 py-0.5 text-xs text-text-secondary">
-                {t(
-                  "settings.history.receipts.source." + latestReceipt.source_kind,
-                )}
-              </span>
-            ) : null}
-            <span className="max-w-full truncate rounded-md border border-border px-1.5 py-0.5 text-xs text-text-secondary">
-              {t("settings.history.receipts.mode", {
-                mode: latestReceipt.mode.mode_id,
-              })}
-            </span>
-            <span className="rounded-md border border-border px-1.5 py-0.5 text-xs text-text-secondary">
-              {t(
-                "settings.history.receipts.engine." +
-                  latestReceipt.mode.engine_requested,
-              )}
-            </span>
-          </div>
-        ) : null}
+    <div className="history-row-head">
+      <div className="history-row-heading">
+        <p className="history-row-time">{formattedDate}</p>
+        {metaParts.length > 0 && (
+          <p className="history-row-meta">{metaParts.join(" · ")}</p>
+        )}
       </div>
-      <div className="flex shrink-0 items-center">
+      <div className="history-row-actions">
         <IconButton
+          size="sm"
+          label={t("settings.history.copyToClipboard")}
           onClick={onCopy}
-          disabled={!hasText || retrying}
-          title={t("settings.history.copyToClipboard")}
-        >
-          {showCopied ? (
-            <Check width={16} height={16} />
-          ) : (
-            <Copy width={16} height={16} />
-          )}
-        </IconButton>
+          disabled={!hasText || busy}
+          data-testid="history-entry-copy"
+          icon={
+            showCopied ? (
+              <Check aria-hidden="true" width={16} height={16} />
+            ) : (
+              <Copy aria-hidden="true" width={16} height={16} />
+            )
+          }
+        />
         <IconButton
+          size="sm"
+          label={t("settings.history.correction.add")}
           onClick={onOpenCorrection}
-          disabled={!hasText || retrying}
-          title={t("settings.history.correction.add")}
-        >
-          <Pencil width={16} height={16} />
-        </IconButton>
+          disabled={!hasText || busy}
+          data-testid="history-entry-correct"
+          icon={<Pencil aria-hidden="true" width={16} height={16} />}
+        />
         <IconButton
-          onClick={onToggleSaved}
-          disabled={retrying}
-          active={entry.saved}
-          pressed={entry.saved}
-          title={
+          size="sm"
+          label={
             entry.saved
               ? t("settings.history.unsave")
               : t("settings.history.save")
           }
-        >
-          <Star
-            width={16}
-            height={16}
-            fill={entry.saved ? "currentColor" : "none"}
-          />
-        </IconButton>
+          onClick={onToggleSaved}
+          disabled={busy}
+          aria-pressed={entry.saved}
+          data-testid="history-entry-save"
+          icon={
+            <Star
+              aria-hidden="true"
+              width={16}
+              height={16}
+              fill={entry.saved ? "currentColor" : "none"}
+            />
+          }
+        />
         <IconButton
+          size="sm"
+          label={t("settings.history.retranscribe")}
           onClick={onRetry}
-          disabled={retrying}
-          title={t("settings.history.retranscribe")}
-        >
-          <RotateCcw
-            width={16}
-            height={16}
-            className={retrying ? "history-retry-spin" : undefined}
-          />
-        </IconButton>
+          disabled={busy}
+          data-testid="history-entry-retry"
+          icon={
+            <RotateCcw
+              aria-hidden="true"
+              width={16}
+              height={16}
+              className={retrying ? "history-retry-spin" : undefined}
+            />
+          }
+        />
         <IconButton
+          size="sm"
+          className="history-action-danger"
+          label={t("settings.history.delete")}
           onClick={onDelete}
-          disabled={retrying}
-          title={t("settings.history.delete")}
-        >
-          <Trash2 width={16} height={16} />
-        </IconButton>
+          disabled={busy}
+          data-testid="history-entry-delete"
+          icon={<Trash2 aria-hidden="true" width={16} height={16} />}
+        />
       </div>
     </div>
   );
@@ -514,25 +546,25 @@ const HistoryEntryContent: React.FC<HistoryEntryContentProps> = ({
 
   return (
     <>
-      <p
-        className={"pb-1 text-sm " +
-          (retrying
-            ? "history-transcribing"
-            : hasText
-              ? "cursor-text break-words whitespace-pre-wrap text-text-primary select-text"
-              : "text-text-tertiary")}
-      >
-        {retrying
-          ? t("settings.history.transcribing")
-          : hasText
+      {retrying ? (
+        <p className="history-transcript history-transcribing" role="status">
+          {t("settings.history.transcribing")}
+        </p>
+      ) : (
+        <p
+          className="history-transcript"
+          data-state={hasText ? "text" : "missing"}
+        >
+          {hasText
             ? shownText
             : noSpeechCaptured
               ? t("errors.noSpeechDetected")
               : t("settings.history.transcriptionFailed")}
-      </p>
+        </p>
+      )}
 
       {processedTextMissing && !retrying ? (
-        <p className="text-xs text-text-tertiary">
+        <p className="history-transcript-note">
           {t("settings.history.postProcessEmpty")}
         </p>
       ) : null}
@@ -556,7 +588,6 @@ const HistoryEntryContent: React.FC<HistoryEntryContentProps> = ({
     </>
   );
 };
-
 
 interface HistoryAudioPlayerProps {
   historyId: number;
@@ -602,7 +633,6 @@ const HistoryAudioPlayer: React.FC<HistoryAudioPlayerProps> = ({
   return <AudioPlayer onLoadRequest={loadAudio} className="w-full" />;
 };
 
-
 interface HistoryReceiptDetailsProps {
   receipts: HistoryRunReceipt[] | null | undefined;
 }
@@ -614,12 +644,13 @@ const HistoryReceiptDetails: React.FC<HistoryReceiptDetailsProps> = ({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="border-t border-border pt-2">
+    <div className="history-receipts">
       <button
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
-        className="flex min-h-8 items-center gap-1 rounded-md px-1 text-xs font-medium text-text-secondary transition-colors hover:text-text-primary"
+        className="history-receipts-toggle"
+        data-testid="history-receipts-toggle"
       >
         {open ? (
           <ChevronUp aria-hidden="true" className="h-4 w-4" />
@@ -642,36 +673,32 @@ const HistoryReceiptList: React.FC<HistoryReceiptDetailsProps> = ({
 
   if (receipts === undefined) {
     return (
-      <div className="mt-2 divide-y divide-border border-t border-border text-sm">
-        <p role="status" className="py-3 text-text-secondary">
+      <div className="history-receipts-body py-3">
+        <StatusText live="polite">
           {t("settings.history.receipts.loading")}
-        </p>
+        </StatusText>
       </div>
     );
   }
 
   if (receipts === null) {
     return (
-      <div className="mt-2 divide-y divide-border border-t border-border text-sm">
-        <p className="py-3 text-text-secondary">
-          {t("settings.history.receipts.unavailable")}
-        </p>
+      <div className="history-receipts-body py-3">
+        <StatusText>{t("settings.history.receipts.unavailable")}</StatusText>
       </div>
     );
   }
 
   if (receipts.length === 0) {
     return (
-      <div className="mt-2 divide-y divide-border border-t border-border text-sm">
-        <p className="py-3 text-text-secondary">
-          {t("settings.history.receipts.none")}
-        </p>
+      <div className="history-receipts-body py-3">
+        <StatusText>{t("settings.history.receipts.none")}</StatusText>
       </div>
     );
   }
 
   return (
-    <div className="mt-2 divide-y divide-border border-t border-border text-sm">
+    <div className="history-receipts-body">
       {receipts
         .slice()
         .sort((left, right) => right.completed_at_ms - left.completed_at_ms)
@@ -689,38 +716,26 @@ interface HistoryReceiptCardProps {
 const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({ receipt }) => {
   const { t } = useTranslation();
 
-  return (
-    <section className="space-y-3 py-3">
-      <div className="flex flex-wrap gap-1.5">
-        <span className="rounded-md border border-border px-1.5 py-0.5 text-xs text-text-secondary">
-          {t("settings.history.receipts.mode", {
-            mode: receipt.mode.mode_id,
-          })}
-        </span>
-        <span className="rounded-md border border-border px-1.5 py-0.5 text-xs text-text-secondary">
-          {t("settings.history.receipts.revision", {
-            revision: receipt.mode.settings_revision,
-          })}
-        </span>
-        <span className="rounded-md border border-border px-1.5 py-0.5 text-xs text-text-secondary">
-          {t(
-            "settings.history.receipts.engine." + receipt.mode.engine_requested,
-          )}
-        </span>
-        {receipt.source_kind ? (
-          <span className="rounded-md border border-border px-1.5 py-0.5 text-xs text-text-secondary">
-            {t("settings.history.receipts.source." + receipt.source_kind)}
-          </span>
-        ) : null}
-      </div>
+  const headline = [
+    t("settings.history.receipts.mode", { mode: receipt.mode.mode_id }),
+    t("settings.history.receipts.revision", {
+      revision: receipt.mode.settings_revision,
+    }),
+    t("settings.history.receipts.engine." + receipt.mode.engine_requested),
+  ];
+  if (receipt.source_kind) {
+    headline.push(t("settings.history.receipts.source." + receipt.source_kind));
+  }
 
-      <dl className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-x-3 gap-y-2 text-xs">
+  return (
+    <section className="history-receipt">
+      <p className="history-receipt-meta">{headline.join(" · ")}</p>
+
+      <dl className="history-receipt-grid">
         {receipt.duration_ms !== null ? (
           <>
-            <dt className="text-text-tertiary">
-              {t("settings.history.receipts.durationLabel")}
-            </dt>
-            <dd className="text-text-primary">
+            <dt>{t("settings.history.receipts.durationLabel")}</dt>
+            <dd>
               {t("settings.history.receipts.duration", {
                 duration:
                   Math.floor(receipt.duration_ms / 60000) +
@@ -735,24 +750,16 @@ const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({ receipt }) => {
         ) : null}
         {receipt.word_count !== null ? (
           <>
-            <dt className="text-text-tertiary">
-              {t("settings.history.receipts.wordsLabel")}
-            </dt>
-            <dd className="text-text-primary">{receipt.word_count}</dd>
+            <dt>{t("settings.history.receipts.wordsLabel")}</dt>
+            <dd>{receipt.word_count}</dd>
           </>
         ) : null}
-        <dt className="text-text-tertiary">
-          {t("settings.history.receipts.presetLabel")}
-        </dt>
-        <dd className="text-text-primary">
-          {t(
-            "settings.history.receipts.preset." + receipt.mode.prompt_preset,
-          )}
+        <dt>{t("settings.history.receipts.presetLabel")}</dt>
+        <dd>
+          {t("settings.history.receipts.preset." + receipt.mode.prompt_preset)}
         </dd>
-        <dt className="text-text-tertiary">
-          {t("settings.history.receipts.contextPolicy")}
-        </dt>
-        <dd className="text-text-primary">
+        <dt>{t("settings.history.receipts.contextPolicy")}</dt>
+        <dd>
           {t(
             "settings.history.receipts.contextPolicyValues." +
               receipt.mode.context_policy,
@@ -760,31 +767,27 @@ const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({ receipt }) => {
         </dd>
         {receipt.mode.provider_id ? (
           <>
-            <dt className="text-text-tertiary">
-              {t("settings.history.receipts.provider")}
-            </dt>
-            <dd className="break-words text-text-primary">
+            <dt>{t("settings.history.receipts.provider")}</dt>
+            <dd>
               {receipt.mode.provider_id}
-              {receipt.mode.model_id
-                ? " · " + receipt.mode.model_id
-                : ""}
+              {receipt.mode.model_id ? " · " + receipt.mode.model_id : ""}
             </dd>
           </>
         ) : null}
       </dl>
 
       <div>
-        <h4 className="text-xs font-medium text-text-primary">
+        <h4 className="history-receipt-subtitle">
           {t("settings.history.receipts.contextSources")}
         </h4>
-        <ul className="mt-2 grid grid-cols-1 gap-1 text-xs text-text-secondary sm:grid-cols-2">
+        <ul className="history-receipt-list history-receipt-list--pairs">
           {Object.entries(receipt.context.sources).map(
             ([source, sourceStatus]) => (
-              <li key={source} className="flex justify-between gap-2">
+              <li key={source}>
                 <span>
                   {t("settings.history.receipts.contextSource." + source)}
                 </span>
-                <span className="text-text-primary">
+                <span>
                   {t("settings.history.receipts.contextStatus." + sourceStatus)}
                 </span>
               </li>
@@ -794,25 +797,24 @@ const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({ receipt }) => {
       </div>
 
       <div>
-        <h4 className="text-xs font-medium text-text-primary">
+        <h4 className="history-receipt-subtitle">
           {t("settings.history.receipts.deliveryAttempts")}
         </h4>
         {receipt.delivery_attempts.length === 0 ? (
-          <p className="mt-1 text-xs text-text-secondary">
+          <p className="history-receipt-empty">
             {t("settings.history.receipts.noDeliveryAttempts")}
           </p>
         ) : (
-          <ul className="mt-2 space-y-1 text-xs text-text-secondary">
+          <ul className="history-receipt-list">
             {receipt.delivery_attempts.map((attempt) => (
-              <li key={attempt.id} className="flex flex-wrap gap-x-1">
+              <li key={attempt.id}>
                 <span>
                   {t(
                     "settings.history.receipts.deliveryMethod." +
                       attempt.delivery.method,
                   )}
                 </span>
-                <span aria-hidden="true">·</span>
-                <span className="text-text-primary">
+                <span>
                   {t(
                     "settings.history.receipts.deliveryOutcome." +
                       attempt.delivery.outcome,

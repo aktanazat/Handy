@@ -27,21 +27,49 @@ import {
   cloudSttProviderHasCurrentConsent,
 } from "@/lib/cloudStt";
 import { AppDataDirectory } from "../AppDataDirectory";
-import { Button } from "../../ui/Button";
-import { Dropdown } from "../../ui/Dropdown";
-import { Input } from "../../ui/Input";
-import { SettingContainer } from "../../ui/SettingContainer";
-import { SettingsGroup } from "../../ui/SettingsGroup";
-import { ToggleSwitch } from "../../ui/ToggleSwitch";
+import { CloudSyncPanel } from "../../cloud-sync/CloudSyncPanel";
+import {
+  Alert,
+  Button,
+  Dropdown,
+  Input,
+  SettingContainer,
+  SettingsGroup,
+  StatusText,
+  ToggleSwitch,
+  type StatusTone,
+} from "@/components/ui";
 import { MeetingRetentionSettings } from "../meetings/MeetingRetention";
+import {
+  useCloudSyncServiceStatus,
+  useHistoryStorageStatus,
+} from "./privacyStatus";
 
-import "../settings-density.css";
 const CONTEXT_POLICIES = [
   "none",
   "target",
   "target_and_selection",
   "full",
 ] as const satisfies readonly ContextPolicy[];
+
+/* The per-source rows in the diagnostics group, in capture order, with the
+ * English fallback for each. The keys are harvested at integration; the
+ * wording mirrors the Rust doc comments on ContextDiagnostics. */
+const CONTEXT_SOURCE_DETAILS = {
+  target_identity: "The frontmost application's name and identifier.",
+  focused_field: "The contents of the focused control.",
+  selected_text: "The current selection.",
+  browser_url: "The frontmost browser's page URL.",
+  clipboard: "Recently changed clipboard text.",
+} as const;
+
+const CONTEXT_SOURCES = [
+  "target_identity",
+  "focused_field",
+  "selected_text",
+  "browser_url",
+  "clipboard",
+] as const satisfies readonly (keyof typeof CONTEXT_SOURCE_DETAILS)[];
 
 const RETENTION_OPTIONS = [
   "never",
@@ -213,6 +241,14 @@ const usePrivacySettings = () => {
     (provider) => providerSecretStates[provider.id] === undefined,
   );
 
+  const [cloudSttAttempt, setCloudSttAttempt] = useState(0);
+  // A failed secret-state read is transient (the credential store can be
+  // locked), so the row offers a retry rather than a dead end.
+  const retryCloudSttRoutes = useCallback(
+    () => setCloudSttAttempt((current) => current + 1),
+    [],
+  );
+
   useEffect(() => {
     let cancelled = false;
 
@@ -251,7 +287,7 @@ const usePrivacySettings = () => {
     return () => {
       cancelled = true;
     };
-  }, [settings?.cloud_stt_providers]);
+  }, [cloudSttAttempt, settings?.cloud_stt_providers]);
 
   const cloudSttDisclosureProviders = useMemo(
     () =>
@@ -462,6 +498,7 @@ const usePrivacySettings = () => {
     checkingCloudSttRoutes,
     cloudSttRouteError,
     cloudSttDisclosureProviders,
+    retryCloudSttRoutes,
     diagnostics,
     diagnosticsError,
     loadingDiagnostics,
@@ -490,7 +527,6 @@ const usePrivacySettings = () => {
   };
 };
 
-
 type PrivacySettingsModel = ReturnType<typeof usePrivacySettings>;
 
 export const PrivacySettings: React.FC = () => {
@@ -504,17 +540,20 @@ const PrivacySettingsPage: React.FC<{ model: PrivacySettingsModel }> = ({
   const { t } = useTranslation();
 
   return (
-    <div className="settings-page density-page privacy-density space-y-4">
+    <div className="settings-page">
       <header className="settings-page-header">
         <h1 className="settings-page-title">{t("settings.privacy.title")}</h1>
         <p className="settings-page-description">
           {t("settings.privacy.description")}
         </p>
       </header>
+      {/* Ordered by how far the data travels: what Sona reads from other
+       * apps, then what leaves the machine, then what stays on disk. */}
       <PrivacyContextSettings model={model} />
       <PrivacyCloudTranscription model={model} />
-      <PrivacyDiagnostics model={model} />
+      <PrivacyCloudSync />
       <PrivacyDataSettings model={model} />
+      <PrivacyDiagnostics model={model} />
       <PrivacyUpstreamImport model={model} />
     </div>
   );
@@ -586,23 +625,25 @@ const PrivacyContextSettings: React.FC<{
         description={t("settings.privacy.context.urlCapture.description")}
       />
       {model.urlCaptureError ? (
-        <p role="alert" className="px-4 pb-3 text-sm text-danger">
+        <Alert contained variant="error">
           {model.urlCaptureError}
-        </p>
+        </Alert>
       ) : null}
       {model.ceilingError ? (
-        <p role="alert" className="px-4 pb-3 text-sm text-danger">
+        <Alert contained variant="error">
           {t("settings.privacy.context.ceiling.error")}: {model.ceilingError}
-        </p>
+        </Alert>
       ) : null}
-      <div className="px-4 py-3 text-sm text-text-secondary">
-        {model.cloudRoutePending
-          ? t("settings.privacy.context.checkingRoute")
-          : model.configuredCloudProviders.length > 0
-            ? t("settings.privacy.context.cloudRoute", {
-                providers: model.configuredCloudProviders.join(", "),
-              })
-            : t("settings.privacy.context.localRoute")}
+      <div className="px-4 py-3">
+        <StatusText live="polite">
+          {model.cloudRoutePending
+            ? t("settings.privacy.context.checkingRoute")
+            : model.configuredCloudProviders.length > 0
+              ? t("settings.privacy.context.cloudRoute", {
+                  providers: model.configuredCloudProviders.join(", "),
+                })
+              : t("settings.privacy.context.localRoute")}
+        </StatusText>
       </div>
     </SettingsGroup>
   );
@@ -619,49 +660,93 @@ const PrivacyCloudTranscription: React.FC<{
       description={t("settings.privacy.cloudTranscription.description")}
     >
       {model.checkingCloudSttRoutes ? (
-        <p role="status" className="px-4 py-3 text-sm text-text-secondary">
-          {t("settings.privacy.cloudTranscription.checking")}
-        </p>
-      ) : model.cloudSttRouteError ? (
-        <p role="alert" className="px-4 py-3 text-sm text-danger">
-          {t("settings.privacy.cloudTranscription.checkFailed")}
-        </p>
-      ) : model.cloudSttDisclosureProviders.length > 0 ? (
-        <div className="space-y-3 px-4 py-3 text-sm text-text-secondary">
-          <p>{t("settings.privacy.cloudTranscription.disclosure")}</p>
-          <ul className="space-y-2">
-            {model.cloudSttDisclosureProviders.map((provider) => (
-              <li key={provider.provider}>
-                <p className="font-medium text-text-primary">
-                  {t(provider.labelKey)}
-                </p>
-                <p>
-                  {t("settings.privacy.cloudTranscription.providerDetail", {
-                    provider: t(provider.labelKey),
-                  })}
-                </p>
-              </li>
-            ))}
-          </ul>
+        <div className="px-4 py-3">
+          <StatusText live="polite">
+            {t("settings.privacy.cloudTranscription.checking")}
+          </StatusText>
         </div>
+      ) : model.cloudSttRouteError ? (
+        <Alert
+          contained
+          variant="error"
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={model.retryCloudSttRoutes}
+            >
+              {t("common.retry")}
+            </Button>
+          }
+        >
+          {t("settings.privacy.cloudTranscription.checkFailed")}
+        </Alert>
+      ) : model.cloudSttDisclosureProviders.length > 0 ? (
+        <>
+          <div className="px-4 py-3">
+            <p className="text-[13px] leading-5 text-text-secondary">
+              {t("settings.privacy.cloudTranscription.disclosure")}
+            </p>
+          </div>
+          {model.cloudSttDisclosureProviders.map((provider) => (
+            <SettingContainer
+              key={provider.provider}
+              grouped
+              title={t(provider.labelKey)}
+              description={t(
+                "settings.privacy.cloudTranscription.providerDetail",
+                { provider: t(provider.labelKey) },
+              )}
+            >
+              <StatusText tone="warning">
+                {t("settings.privacy.cloudTranscription.inUse", "In use")}
+              </StatusText>
+            </SettingContainer>
+          ))}
+        </>
       ) : (
-        <p className="px-4 py-3 text-sm text-text-secondary">
-          {t("settings.privacy.cloudTranscription.localOnly")}
-        </p>
+        <div className="px-4 py-3">
+          <StatusText>
+            {t("settings.privacy.cloudTranscription.localOnly")}
+          </StatusText>
+        </div>
       )}
     </SettingsGroup>
   );
+};
+
+/* Four different reasons a source went unread are four different things the
+ * user can act on, so the tone follows the reason rather than flattening
+ * everything to "off". The word is always present; colour never carries the
+ * meaning alone. */
+const diagnosticTone = (status: string): StatusTone => {
+  switch (status) {
+    case "granted":
+    case "captured":
+      return "success";
+    case "denied":
+    case "permission_denied":
+    case "failed":
+      return "danger";
+    case "disabled_by_ceiling":
+    case "secure_field":
+    case "stale":
+      return "warning";
+    default:
+      return "muted";
+  }
 };
 
 const PrivacyDiagnostics: React.FC<{
   model: PrivacySettingsModel;
 }> = ({ model }) => {
   const { t } = useTranslation();
+  const { diagnostics } = model;
 
   return (
     <SettingsGroup title={t("settings.privacy.diagnostics.title")}>
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-        <p className="text-sm text-text-secondary">
+        <p className="min-w-0 text-[13px] leading-5 text-text-secondary">
           {t("settings.privacy.diagnostics.description")}
         </p>
         <Button
@@ -681,44 +766,54 @@ const PrivacyDiagnostics: React.FC<{
         </Button>
       </div>
       {model.diagnosticsError ? (
-        <p role="alert" className="px-4 pb-3 text-sm text-danger">
+        <Alert
+          contained
+          variant="error"
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void model.refreshDiagnostics()}
+              disabled={model.loadingDiagnostics}
+            >
+              {t("common.retry")}
+            </Button>
+          }
+        >
           {t("settings.privacy.diagnostics.error")}: {model.diagnosticsError}
-        </p>
+        </Alert>
       ) : null}
-      {model.loadingDiagnostics && !model.diagnostics ? (
-        <p role="status" className="px-4 pb-3 text-sm text-text-secondary">
-          {t("common.loading")}
-        </p>
-      ) : model.diagnostics ? (
+      {model.loadingDiagnostics && !diagnostics ? (
+        <div className="px-4 pb-3">
+          <StatusText live="polite">{t("common.loading")}</StatusText>
+        </div>
+      ) : diagnostics ? (
         <>
           <SettingContainer
             grouped
             title={t("settings.privacy.diagnostics.accessibility.label")}
             description={t(
               "settings.privacy.diagnostics.accessibility." +
-                model.diagnostics.accessibility,
+                diagnostics.accessibility,
             )}
           >
-            <span className="rounded-md border border-border px-2 py-1 text-xs font-medium text-text-primary">
-              {t("settings.privacy.status." + model.diagnostics.accessibility)}
-            </span>
+            <StatusText tone={diagnosticTone(diagnostics.accessibility)}>
+              {t("settings.privacy.status." + diagnostics.accessibility)}
+            </StatusText>
           </SettingContainer>
-          {[
-            ["target_identity", model.diagnostics.target_identity],
-            ["focused_field", model.diagnostics.focused_field],
-            ["selected_text", model.diagnostics.selected_text],
-            ["browser_url", model.diagnostics.browser_url],
-            ["clipboard", model.diagnostics.clipboard],
-          ].map(([source, status]) => (
+          {CONTEXT_SOURCES.map((source) => (
             <SettingContainer
               key={source}
               grouped
               title={t("settings.privacy.diagnostics.sources." + source)}
-              description={t("settings.privacy.status." + status)}
+              description={t(
+                "settings.privacy.diagnostics.sourceDetail." + source,
+                { defaultValue: CONTEXT_SOURCE_DETAILS[source] },
+              )}
             >
-              <span className="rounded-md border border-border px-2 py-1 text-xs font-medium text-text-primary">
-                {t("settings.privacy.status." + status)}
-              </span>
+              <StatusText tone={diagnosticTone(diagnostics[source])}>
+                {t("settings.privacy.status." + diagnostics[source])}
+              </StatusText>
             </SettingContainer>
           ))}
         </>
@@ -734,15 +829,11 @@ const PrivacyDataSettings: React.FC<{
 
   return (
     <SettingsGroup title={t("settings.privacy.data.title")}>
-      <div className="px-4 py-3 text-sm text-text-secondary">
-        <p>{t("settings.privacy.data.credentialStore")}</p>
-        <p className="mt-2">{t("settings.privacy.data.locations")}</p>
-      </div>
-      <AppDataDirectory grouped />
+      <PrivacyHistoryStorage />
       {model.dataError ? (
-        <p role="alert" className="px-4 pb-3 text-sm text-danger">
+        <Alert contained variant="error">
           {t("settings.privacy.data.error")}: {model.dataError}
-        </p>
+        </Alert>
       ) : null}
       <SettingContainer
         grouped
@@ -756,7 +847,9 @@ const PrivacyDataSettings: React.FC<{
           min="0"
           max="1000"
           value={model.historyLimit}
-          onChange={(event) => void model.updateHistoryLimit(event.target.value)}
+          onChange={(event) =>
+            void model.updateHistoryLimit(event.target.value)
+          }
           disabled={model.dataUpdating}
           className="w-20"
         />
@@ -782,10 +875,223 @@ const PrivacyDataSettings: React.FC<{
         />
       </SettingContainer>
       <MeetingRetentionSettings />
+      <AppDataDirectory grouped />
+      <div className="space-y-1 px-4 py-3 text-xs leading-4 text-text-secondary">
+        <p>{t("settings.privacy.data.credentialStore")}</p>
+        <p>{t("settings.privacy.data.locations")}</p>
+      </div>
     </SettingsGroup>
   );
 };
 
+/* History is encrypted at rest with a key from the OS credential store. The
+ * key is fetched off the startup path, so this row begins life "unlocking"
+ * and settles when the backend raises history-storage-changed. Every failure
+ * mode stays visible rather than silently reading a plaintext database. */
+const PrivacyHistoryStorage: React.FC = () => {
+  const { t, i18n } = useTranslation();
+  const storage = useHistoryStorageStatus();
+  const migratedFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(i18n.language, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+    [i18n.language],
+  );
+
+  const reasonText = (reason: string): string => {
+    switch (reason) {
+      case "unlocking":
+        return t(
+          "settings.privacy.data.historyStorage.reasons.unlocking",
+          "Opening the encrypted database. This clears moments after startup.",
+        );
+      case "key_unavailable":
+        return t(
+          "settings.privacy.data.historyStorage.reasons.key_unavailable",
+          "The system credential store returned no usable key, so history is stored unencrypted.",
+        );
+      case "encryption_unavailable":
+        return t(
+          "settings.privacy.data.historyStorage.reasons.encryption_unavailable",
+          "This build cannot open an encrypted database, so history is stored unencrypted.",
+        );
+      case "migration_failed":
+        return t(
+          "settings.privacy.data.historyStorage.reasons.migration_failed",
+          "Encrypting the existing database failed. The unencrypted database is intact and still in use.",
+        );
+      case "key_rejected":
+        return t(
+          "settings.privacy.data.historyStorage.reasons.key_rejected",
+          "The stored key does not open the encrypted database, so history cannot be read.",
+        );
+      default:
+        return reason;
+    }
+  };
+
+  const title = t(
+    "settings.privacy.data.historyStorage.label",
+    "History storage",
+  );
+  const status = storage.value;
+
+  if (storage.phase === "failed") {
+    return (
+      <SettingContainer
+        grouped
+        title={title}
+        description={
+          storage.error ??
+          t(
+            "settings.privacy.data.historyStorage.unknown",
+            "Sona could not read how history is stored.",
+          )
+        }
+      >
+        <Button variant="secondary" size="sm" onClick={storage.reload}>
+          {t("common.retry")}
+        </Button>
+      </SettingContainer>
+    );
+  }
+
+  if (status === null) {
+    return (
+      <SettingContainer
+        grouped
+        title={title}
+        description={t(
+          "settings.privacy.data.historyStorage.description",
+          "Whether dictation history is encrypted on this disk.",
+        )}
+      >
+        <StatusText live="polite">{t("common.loading")}</StatusText>
+      </SettingContainer>
+    );
+  }
+
+  const encryptedAndReadable = status.encrypted && status.reason === null;
+  const description = encryptedAndReadable
+    ? status.migrated_at === null
+      ? t(
+          "settings.privacy.data.historyStorage.description",
+          "Whether dictation history is encrypted on this disk.",
+        )
+      : t("settings.privacy.data.historyStorage.since", {
+          defaultValue: "Encrypted since {{date}}.",
+          date: migratedFormatter.format(new Date(status.migrated_at)),
+        })
+    : reasonText(status.reason ?? "");
+
+  return (
+    <SettingContainer grouped title={title} description={description}>
+      <StatusText
+        tone={
+          encryptedAndReadable
+            ? "success"
+            : status.reason === "unlocking"
+              ? "muted"
+              : "danger"
+        }
+        live="polite"
+      >
+        {encryptedAndReadable
+          ? t(
+              "settings.privacy.data.historyStorage.encrypted",
+              "Encrypted at rest",
+            )
+          : status.reason === "unlocking"
+            ? t("settings.privacy.data.historyStorage.unlocking", "Unlocking")
+            : status.encrypted
+              ? t("settings.privacy.data.historyStorage.locked", "Locked")
+              : t(
+                  "settings.privacy.data.historyStorage.plaintext",
+                  "Not encrypted",
+                )}
+      </StatusText>
+    </SettingContainer>
+  );
+};
+
+/* Availability is derived from stored settings, never guessed, and it is
+ * never a switch: bootstrapping is what turns cloud sync on, and that lives
+ * in the collapsed panel below. */
+const PrivacyCloudSync: React.FC = () => {
+  const { t } = useTranslation();
+  const service = useCloudSyncServiceStatus();
+  const status = service.value;
+
+  return (
+    <>
+      <SettingsGroup
+        title={t("settings.privacy.cloudSync.title", "Cloud sync")}
+        description={t(
+          "settings.privacy.cloudSync.description",
+          "Sona can mirror meetings to a server you run. Nothing is uploaded until setup finishes on this device.",
+        )}
+      >
+        {service.phase === "failed" ? (
+          <Alert
+            contained
+            variant="error"
+            action={
+              <Button variant="secondary" size="sm" onClick={service.reload}>
+                {t("common.retry")}
+              </Button>
+            }
+          >
+            {t(
+              "settings.privacy.cloudSync.checkFailed",
+              "Sona could not read the cloud sync configuration.",
+            )}
+            {service.error === null ? "" : ` ${service.error}`}
+          </Alert>
+        ) : status === null ? (
+          <div className="px-4 py-3">
+            <StatusText live="polite">{t("common.loading")}</StatusText>
+          </div>
+        ) : (
+          <>
+            <SettingContainer
+              grouped
+              title={t("settings.privacy.cloudSync.service", "Service")}
+              description={status.reason}
+            >
+              <StatusText tone={status.configured ? "success" : "muted"}>
+                {status.configured
+                  ? t("settings.privacy.cloudSync.configured", "Configured")
+                  : t(
+                      "settings.privacy.cloudSync.notConfigured",
+                      "Not configured",
+                    )}
+              </StatusText>
+            </SettingContainer>
+            {status.endpoint === null ? null : (
+              <SettingContainer
+                grouped
+                title={t("settings.privacy.cloudSync.endpoint", "Endpoint")}
+                description={t(
+                  "settings.privacy.cloudSync.endpointDescription",
+                  "The server this device is pointed at.",
+                )}
+              >
+                <code className="min-w-0 font-mono text-xs break-all text-text-primary">
+                  {status.endpoint}
+                </code>
+              </SettingContainer>
+            )}
+          </>
+        )}
+      </SettingsGroup>
+      {/* Setup, recovery and pairing stay collapsed: they are a one-time
+       * task, and they must not read as a switch that is simply off. */}
+      <CloudSyncPanel />
+    </>
+  );
+};
 
 const PrivacyUpstreamImport: React.FC<{
   model: PrivacySettingsModel;
@@ -814,7 +1120,9 @@ const PrivacyUpstreamImport: React.FC<{
             {t("settings.privacy.upstreamImport.source.recordings", {
               count: status.recording_files,
               size: t("settings.privacy.upstreamImport.byteCount", {
-                value: NUMBER_FORMATTER.format(model.upstreamRecordingSize.value),
+                value: NUMBER_FORMATTER.format(
+                  model.upstreamRecordingSize.value,
+                ),
                 unit: t(
                   "settings.privacy.upstreamImport.byteUnits." +
                     model.upstreamRecordingSize.unit,
@@ -825,23 +1133,27 @@ const PrivacyUpstreamImport: React.FC<{
           <p>{t("settings.privacy.upstreamImport.modelsNotImported")}</p>
         </div>
         {!model.upstreamSourceHasImportableData ? (
-          <p role="status" className="px-4 pb-3 text-sm text-text-secondary">
-            {t("settings.privacy.upstreamImport.source.empty")}
-          </p>
+          <div className="px-4 pb-3">
+            <StatusText live="polite">
+              {t("settings.privacy.upstreamImport.source.empty")}
+            </StatusText>
+          </div>
         ) : !model.upstreamSelectionValid ? (
-          <p role="status" className="px-4 pb-3 text-sm text-text-secondary">
-            {t("settings.privacy.upstreamImport.selectionRequired")}
-          </p>
+          <div className="px-4 pb-3">
+            <StatusText live="polite">
+              {t("settings.privacy.upstreamImport.selectionRequired")}
+            </StatusText>
+          </div>
         ) : null}
         {status.app_state === "running" ? (
-          <p role="alert" className="px-4 pb-3 text-sm text-danger">
+          <Alert contained variant="error">
             {t("settings.privacy.upstreamImport.appRunning")}
-          </p>
+          </Alert>
         ) : null}
         {status.app_state === "unverifiable" ? (
-          <p role="alert" className="px-4 pb-3 text-sm text-danger">
+          <Alert contained variant="error">
             {t("settings.privacy.upstreamImport.appUnverifiable")}
-          </p>
+          </Alert>
         ) : null}
         <fieldset
           className="space-y-2 border-t border-border px-4 py-3"
@@ -911,34 +1223,40 @@ const PrivacyUpstreamImport: React.FC<{
           </p>
         </fieldset>
         {model.upstreamProgress ? (
-          <p role="status" className="px-4 pb-3 text-sm text-text-secondary">
-            {t("settings.privacy.upstreamImport.progress", {
-              phase: t(
-                "settings.privacy.upstreamImport.phases." +
-                  model.upstreamProgress.phase,
-              ),
-              completed: model.upstreamProgress.completed,
-              total: model.upstreamProgress.total,
-            })}
-          </p>
+          <div className="px-4 pb-3">
+            <StatusText live="polite">
+              {t("settings.privacy.upstreamImport.progress", {
+                phase: t(
+                  "settings.privacy.upstreamImport.phases." +
+                    model.upstreamProgress.phase,
+                ),
+                completed: model.upstreamProgress.completed,
+                total: model.upstreamProgress.total,
+              })}
+            </StatusText>
+          </div>
         ) : null}
         {model.upstreamResult ? (
-          <p role="status" className="px-4 pb-3 text-sm text-text-secondary">
-            {t("settings.privacy.upstreamImport.result", {
-              settings: model.upstreamResult.settings_imported
-                ? t("settings.privacy.upstreamImport.settingsImported")
-                : t("settings.privacy.upstreamImport.settingsAlreadyImported"),
-              historyImported: model.upstreamResult.history_imported,
-              historyExisting: model.upstreamResult.history_existing,
-              recordingsCopied: model.upstreamResult.recordings_copied,
-              recordingsExisting: model.upstreamResult.recordings_existing,
-            })}
-          </p>
+          <div className="px-4 pb-3">
+            <StatusText tone="success" live="polite">
+              {t("settings.privacy.upstreamImport.result", {
+                settings: model.upstreamResult.settings_imported
+                  ? t("settings.privacy.upstreamImport.settingsImported")
+                  : t(
+                      "settings.privacy.upstreamImport.settingsAlreadyImported",
+                    ),
+                historyImported: model.upstreamResult.history_imported,
+                historyExisting: model.upstreamResult.history_existing,
+                recordingsCopied: model.upstreamResult.recordings_copied,
+                recordingsExisting: model.upstreamResult.recordings_existing,
+              })}
+            </StatusText>
+          </div>
         ) : null}
         {model.upstreamError ? (
-          <p role="alert" className="px-4 pb-3 text-sm text-danger">
+          <Alert contained variant="error">
             {t("settings.privacy.upstreamImport.errors." + model.upstreamError)}
-          </p>
+          </Alert>
         ) : null}
         <div className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-3">
           <Button
@@ -970,9 +1288,22 @@ const PrivacyUpstreamImport: React.FC<{
   if (model.upstreamError) {
     return (
       <SettingsGroup title={t("settings.privacy.upstreamImport.title")}>
-        <p role="alert" className="px-4 py-3 text-sm text-danger">
+        <Alert
+          contained
+          variant="error"
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void model.refreshUpstreamStatus()}
+              disabled={model.loadingUpstreamStatus}
+            >
+              {t("common.retry")}
+            </Button>
+          }
+        >
           {t("settings.privacy.upstreamImport.errors." + model.upstreamError)}
-        </p>
+        </Alert>
       </SettingsGroup>
     );
   }

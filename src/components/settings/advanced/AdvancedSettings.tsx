@@ -1,19 +1,20 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { ShowOverlay } from "../ShowOverlay";
-import { ModelUnloadTimeoutSetting } from "../ModelUnloadTimeout";
-import { Dropdown } from "../../ui/Dropdown";
-import { SettingContainer } from "../../ui/SettingContainer";
-import { SettingsGroup } from "../../ui/SettingsGroup";
-import { StartHidden } from "../StartHidden";
-import { AutostartToggle } from "../AutostartToggle";
-import { ShowTrayIcon } from "../ShowTrayIcon";
-import { ExperimentalToggle } from "../ExperimentalToggle";
+import { Dropdown, SettingContainer, SettingsGroup } from "@/components/ui";
 import { useSettings } from "../../../hooks/useSettings";
-import { KeyboardImplementationSelector } from "../debug/KeyboardImplementationSelector";
 import { AccelerationSelector } from "../AccelerationSelector";
+import { AutostartToggle } from "../AutostartToggle";
+import { ExperimentalToggle } from "../ExperimentalToggle";
 import { LazyStreamClose } from "../LazyStreamClose";
+import { ModelUnloadTimeoutSetting } from "../ModelUnloadTimeout";
+import { ShowOverlay } from "../ShowOverlay";
+import { ShowTrayIcon } from "../ShowTrayIcon";
+import { StartHidden } from "../StartHidden";
+import { KeyboardImplementationSelector } from "../debug/KeyboardImplementationSelector";
 
+/* Previously three collapsed <details> disclosures, which hid every advanced
+ * setting behind a click and made the page unscannable. The same settings are
+ * now plain groups; the disclosure headings became the group headings. */
 export const AdvancedSettings: React.FC = () => {
   const { t } = useTranslation();
   const { getSetting, settings, updateSetting } = useSettings();
@@ -29,85 +30,64 @@ export const AdvancedSettings: React.FC = () => {
         </p>
       </header>
 
-      <SettingsGroup title={t("settings.advanced.groups.app")}>
-        <ExperimentalToggle descriptionMode="tooltip" grouped />
+      <SettingsGroup
+        title={t("settings.advanced.disclosures.launch.title")}
+        description={t("settings.advanced.disclosures.launch.description")}
+      >
+        <StartHidden grouped />
+        <AutostartToggle grouped />
+        <ShowTrayIcon grouped />
+        <ShowOverlay grouped />
       </SettingsGroup>
 
-      <details className="settings-disclosure">
-        <summary>
-          <span>{t("settings.advanced.disclosures.launch.title")}</span>
-          <span>{t("settings.advanced.disclosures.launch.description")}</span>
-        </summary>
-        <div className="settings-disclosure-body">
-          <SettingsGroup>
-            <StartHidden descriptionMode="tooltip" grouped />
-            <AutostartToggle descriptionMode="tooltip" grouped />
-            <ShowTrayIcon descriptionMode="tooltip" grouped />
-            <ShowOverlay descriptionMode="tooltip" grouped />
-          </SettingsGroup>
-        </div>
-      </details>
+      <SettingsGroup
+        title={t("settings.advanced.disclosures.processing.title")}
+        description={t("settings.advanced.disclosures.processing.description")}
+      >
+        <ModelUnloadTimeoutSetting grouped />
+        <SettingContainer
+          grouped
+          title={t("settings.advanced.englishSpelling.label")}
+          description={t("settings.advanced.englishSpelling.description")}
+        >
+          <Dropdown
+            selectedValue={englishSpelling}
+            options={[
+              {
+                value: "as_spoken",
+                label: t("settings.advanced.englishSpelling.values.as_spoken"),
+              },
+              {
+                value: "british",
+                label: t("settings.advanced.englishSpelling.values.british"),
+              },
+            ]}
+            onSelect={(value) => {
+              if (value === "as_spoken" || value === "british") {
+                void updateSetting("english_spelling", value);
+              }
+            }}
+          />
+        </SettingContainer>
+      </SettingsGroup>
 
-      <details className="settings-disclosure">
-        <summary>
-          <span>{t("settings.advanced.disclosures.processing.title")}</span>
-          <span>
-            {t("settings.advanced.disclosures.processing.description")}
-          </span>
-        </summary>
-        <div className="settings-disclosure-body">
-          <SettingsGroup>
-            <ModelUnloadTimeoutSetting descriptionMode="tooltip" grouped />
-            <SettingContainer
-              grouped
-              title={t("settings.advanced.englishSpelling.label")}
-              description={t("settings.advanced.englishSpelling.description")}
-            >
-              <Dropdown
-                selectedValue={englishSpelling}
-                options={[
-                  {
-                    value: "as_spoken",
-                    label: t(
-                      "settings.advanced.englishSpelling.values.as_spoken",
-                    ),
-                  },
-                  {
-                    value: "british",
-                    label: t("settings.advanced.englishSpelling.values.british"),
-                  },
-                ]}
-                onSelect={(value) => {
-                  if (value === "as_spoken" || value === "british") {
-                    void updateSetting("english_spelling", value);
-                  }
-                }}
-              />
-            </SettingContainer>
-          </SettingsGroup>
-        </div>
-      </details>
-
-      {experimentalEnabled ? (
-        <details className="settings-disclosure">
-          <summary>
-            <span>{t("settings.advanced.groups.experimental")}</span>
-            <span>
-              {t("settings.advanced.disclosures.experimental.description")}
-            </span>
-          </summary>
-          <div className="settings-disclosure-body">
-            <SettingsGroup>
-              <KeyboardImplementationSelector
-                descriptionMode="tooltip"
-                grouped
-              />
-              <AccelerationSelector descriptionMode="tooltip" grouped />
-              <LazyStreamClose descriptionMode="tooltip" grouped />
-            </SettingsGroup>
-          </div>
-        </details>
-      ) : null}
+      {/* The switch sits with what it unlocks, so turning it on visibly
+       * extends this group instead of revealing a section elsewhere. */}
+      <SettingsGroup
+        title={t("settings.advanced.groups.experimental")}
+        description={t(
+          "settings.advanced.disclosures.experimental.description",
+        )}
+      >
+        <ExperimentalToggle grouped />
+        {experimentalEnabled ? (
+          <>
+            <KeyboardImplementationSelector grouped />
+            <AccelerationSelector grouped />
+            <LazyStreamClose grouped />
+          </>
+        ) : null}
+      </SettingsGroup>
     </div>
   );
 };

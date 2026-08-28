@@ -1,6 +1,7 @@
 import React, {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useReducer,
   useRef,
@@ -8,7 +9,7 @@ import React, {
 } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { FileAudio, FolderOpen, Search } from "lucide-react";
+import { FileAudio, FolderOpen, Search, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
@@ -20,20 +21,24 @@ import {
   type HistoryStats,
   type HistoryUpdatePayload,
 } from "@/bindings";
-import { AudioPlayerGroup } from "../../ui/AudioPlayer";
-import { Button } from "../../ui/Button";
-import { CloudSyncPanel } from "../../cloud-sync/CloudSyncPanel";
-import { Input } from "../../ui/Input";
-import "../settings-density.css";
+import {
+  Alert,
+  AudioPlayerGroup,
+  Button,
+  EmptyState,
+  IconButton,
+  Input,
+  List,
+  Skeleton,
+  StatusText,
+} from "../../ui";
+import "./history.css";
 import { HistoryEntryComponent, type HistoryTextView } from "./HistoryEntry";
-type HistoryMetric = "recordings" | "duration" | "words";
 
 const PAGE_SIZE = 30;
 const SEARCH_DEBOUNCE_MS = 200;
+const SKELETON_ROWS = [0, 1, 2, 3, 4];
 const NUMBER_FORMATTER = new Intl.NumberFormat();
-const DURATION_FORMATTER = new Intl.NumberFormat(undefined, {
-  maximumFractionDigits: 1,
-});
 const TEXT_VIEWS = [
   { value: "processed", labelKey: "settings.history.textView.processed" },
   { value: "raw", labelKey: "settings.history.textView.raw" },
@@ -53,6 +58,13 @@ const MEDIA_IMPORT_EXTENSIONS = [
   "mp4",
   "m4v",
 ];
+
+// A job is still cancellable while it is in one of these states.
+const IMPORT_RUNNING = new Set<AudioImportJob["status"]>([
+  "queued",
+  "decoding",
+  "transcribing",
+]);
 
 type HistoryAudioChunk = {
   bytes: number[];
@@ -240,34 +252,14 @@ const subscribeToHistoryUpdates = (
     }
     onMutation();
   });
+
 const subscribeToAudioImportUpdates = (
   onUpdate: (job: AudioImportJob) => void,
 ) =>
   events.audioImportUpdateEvent.listen((event) => onUpdate(event.payload.job));
 
-interface OpenRecordingsButtonProps {
-  onClick: () => void;
-  label: string;
-}
-
-const OpenRecordingsButton: React.FC<OpenRecordingsButtonProps> = ({
-  onClick,
-  label,
-}) => (
-  <Button
-    onClick={onClick}
-    variant="secondary"
-    size="sm"
-    className="flex items-center gap-2"
-    title={label}
-  >
-    <FolderOpen aria-hidden="true" className="h-4 w-4" />
-    <span>{label}</span>
-  </Button>
-);
-
 const useHistoryData = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [state, dispatch] = useReducer(listReducer, INITIAL_LIST_STATE);
   const [query, setQuery] = useState("");
   const [activeQuery, setActiveQuery] = useState("");
@@ -298,8 +290,7 @@ const useHistoryData = () => {
   const entriesRef = useRef(state.entries);
   const completedAudioImportIdsRef = useRef(new Set<number>());
 
-
-  // All-time stats follow the same discipline as the trend: only the newest
+  // All-time stats follow the same discipline as the list: only the newest
   // request may write, an error clears stale data, and late responses are
   // ignored so a slow read never overwrites a fresh one.
   const refreshHistoryStats = useCallback(async () => {
@@ -596,12 +587,7 @@ const useHistoryData = () => {
   };
 
   const cancelAudioImport = async (job: AudioImportJob) => {
-    if (
-      job.cancel_requested ||
-      (job.status !== "queued" &&
-        job.status !== "decoding" &&
-        job.status !== "transcribing")
-    ) {
+    if (job.cancel_requested || !IMPORT_RUNNING.has(job.status)) {
       return;
     }
     setAudioImportError(null);
@@ -647,80 +633,110 @@ const useHistoryData = () => {
   };
 };
 
-interface HistoryStatsSectionProps {
+interface HistorySummaryProps {
   stats: HistoryStats | null;
   loading: boolean;
   error: boolean;
   onRetry: () => void;
 }
 
-const HistoryStatsSection: React.FC<HistoryStatsSectionProps> = ({
+/* One line under the title: how much has been captured, all time. The full
+ * analytics band lives on Capture; this is the glanceable version. */
+const HistorySummary: React.FC<HistorySummaryProps> = ({
   stats,
   loading,
   error,
   onRetry,
 }) => {
   const { t } = useTranslation();
-  return (
-    <section className="history-stats" aria-labelledby="history-stats-title">
-      <div className="section-heading-inline">
-        <div>
-          <h2 id="history-stats-title">{t("settings.history.stats.title")}</h2>
-        </div>
+
+  if (error) {
+    return (
+      <div className="history-summary">
+        <StatusText tone="danger">
+          {t("settings.history.stats.unavailable")}
+        </StatusText>
+        <Button variant="ghost" size="sm" onClick={onRetry}>
+          {t("settings.history.retry")}
+        </Button>
       </div>
-      {error ? (
-        <div className="inline-error" role="alert">
-          <span>{t("settings.history.stats.unavailable")}</span>
-          <Button variant="ghost" size="sm" onClick={onRetry}>
-            {t("settings.history.retry")}
-          </Button>
-        </div>
-      ) : loading && stats === null ? (
-        <div className="data-status-row" role="status">
-          {t("settings.history.stats.loading")}
-        </div>
-      ) : stats ? (
-        <div className="history-stats-grid">
-          <dl className="history-stats-values">
-            <div>
-              <dt>{t("settings.history.stats.entries")}</dt>
-              <dd>{NUMBER_FORMATTER.format(stats.entries)}</dd>
-            </div>
-            <div>
-              <dt>{t("settings.history.stats.duration")}</dt>
-              <dd>
-                {t("settings.history.stats.durationValue", {
-                  hours: Math.floor(stats.total_duration_ms / 3_600_000),
-                  minutes: Math.round(
-                    (stats.total_duration_ms % 3_600_000) / 60_000,
-                  ),
-                })}
-              </dd>
-            </div>
-            <div>
-              <dt>{t("settings.history.stats.words")}</dt>
-              <dd>{NUMBER_FORMATTER.format(stats.total_words)}</dd>
-            </div>
-          </dl>
-          {stats.entries > 0 ? (
-            <ul className="history-stats-sources">
-              {stats.by_source.map((source) => (
-                <li key={source.source_kind ?? "legacy"}>
-                  <span>
-                    {t(
-                      `settings.history.stats.source.${source.source_kind ?? "legacy"}`,
-                    )}
-                  </span>
-                  <strong>{NUMBER_FORMATTER.format(source.entries)}</strong>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="compact-empty-row">{t("settings.history.empty")}</p>
-          )}
-        </div>
-      ) : null}
-    </section>
+    );
+  }
+
+  if (stats === null) {
+    return (
+      <div className="history-summary">
+        {loading ? (
+          <Skeleton className="h-[14px] w-64" />
+        ) : (
+          <StatusText>{t("settings.history.stats.unavailable")}</StatusText>
+        )}
+      </div>
+    );
+  }
+
+  const totals = [
+    `${NUMBER_FORMATTER.format(stats.entries)} ${t("settings.history.stats.entries")}`,
+    `${t("settings.history.stats.durationValue", {
+      hours: Math.floor(stats.total_duration_ms / 3_600_000),
+      minutes: Math.round((stats.total_duration_ms % 3_600_000) / 60_000),
+    })} ${t("settings.history.stats.duration")}`,
+    `${NUMBER_FORMATTER.format(stats.total_words)} ${t("settings.history.stats.words")}`,
+  ];
+
+  // The source split only earns its place when provenance is actually mixed.
+  const sources =
+    stats.by_source.length > 1
+      ? stats.by_source.map(
+          (source) =>
+            `${t(`settings.history.stats.source.${source.source_kind ?? "legacy"}`)} ${NUMBER_FORMATTER.format(source.entries)}`,
+        )
+      : [];
+
+  return (
+    <div className="history-summary" data-testid="history-summary">
+      <span>{totals.join(" · ")}</span>
+      {sources.length > 0 && (
+        <>
+          <span aria-hidden="true" className="history-summary-sep">
+            ·
+          </span>
+          <span>{sources.join(" · ")}</span>
+        </>
+      )}
+    </div>
+  );
+};
+
+/* The one sentence a screen reader hears while a file import runs. Always
+ * mounted, so a status transition is never lost to the region appearing at
+ * the same moment as its first message. Empty it takes no space. */
+const HistoryImportLive: React.FC<{ jobs: AudioImportJob[] }> = ({ jobs }) => {
+  const { t } = useTranslation();
+  const running = jobs.filter(
+    (job) => !job.cancel_requested && IMPORT_RUNNING.has(job.status),
+  );
+  const first = running[0];
+
+  let message = "";
+  if (running.length > 1) {
+    message = t(
+      "settings.history.audioImport.running",
+      "Transcribing {{count}} files",
+      { count: running.length },
+    );
+  } else if (first) {
+    message = `${first.file_name} · ${t(`settings.history.audioImport.status.${first.status}`)}`;
+  }
+
+  return (
+    <p
+      className="history-import-live"
+      aria-live="polite"
+      data-testid="history-import-live"
+    >
+      {message}
+    </p>
   );
 };
 
@@ -736,60 +752,55 @@ const HistoryAudioImportSection: React.FC<HistoryAudioImportSectionProps> = ({
   onCancel,
 }) => {
   const { t } = useTranslation();
+
+  if (jobs.length === 0 && error === null) return null;
+
   return (
-    <>
+    <div className="flex flex-col gap-2">
       {error && (
-        <p role="alert" className="px-4 text-sm text-danger">
+        <Alert variant="error">
           {t(`settings.history.audioImport.errors.${error}`)}
-        </p>
+        </Alert>
       )}
+
       {jobs.length > 0 && (
         <section
+          className="history-imports"
           aria-labelledby="audio-import-jobs-title"
-          className="border-y border-border bg-surface"
+          data-testid="history-imports"
         >
-          <div className="px-4 py-2">
-            <h3
-              id="audio-import-jobs-title"
-              className="text-xs font-medium tracking-wide text-text-secondary uppercase"
-            >
+          <div className="history-imports-head">
+            <h2 id="audio-import-jobs-title" className="history-imports-title">
               {t("settings.history.audioImport.jobs")}
-            </h3>
+            </h2>
           </div>
-          <ol className="divide-y divide-border">
+          <ol>
             {jobs.map((job) => {
               const canCancel =
-                !job.cancel_requested &&
-                (job.status === "queued" ||
-                  job.status === "decoding" ||
-                  job.status === "transcribing");
+                !job.cancel_requested && IMPORT_RUNNING.has(job.status);
               const failure =
                 job.result?.kind === "failed" ? job.result.code : null;
               return (
-                <li
-                  key={job.id}
-                  className="flex flex-wrap items-start justify-between gap-2 px-4 py-3"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-text-primary">
+                <li key={job.id} className="history-import-row">
+                  <div className="history-import-copy">
+                    <p className="history-import-name" title={job.file_name}>
                       {job.file_name}
                     </p>
-                    <p
-                      role={failure ? "alert" : "status"}
-                      className={
-                        failure
-                          ? "mt-1 text-xs text-danger"
-                          : "mt-1 text-xs text-text-secondary"
-                      }
-                    >
-                      {failure
-                        ? t(`settings.history.audioImport.failure.${failure}`)
-                        : job.cancel_requested
-                          ? t("settings.history.audioImport.status.cancelling")
-                          : t(`settings.history.audioImport.status.${job.status}`)}
+                    <p className="mt-0.5" role={failure ? "alert" : undefined}>
+                      <StatusText tone={failure ? "danger" : "muted"}>
+                        {failure
+                          ? t(`settings.history.audioImport.failure.${failure}`)
+                          : job.cancel_requested
+                            ? t(
+                                "settings.history.audioImport.status.cancelling",
+                              )
+                            : t(
+                                `settings.history.audioImport.status.${job.status}`,
+                              )}
+                      </StatusText>
                     </p>
                     {job.status === "decoding" && (
-                      <p className="mt-1 text-xs text-text-tertiary">
+                      <p className="history-import-detail">
                         {t("settings.history.audioImport.decodedSamples", {
                           count: job.decoded_samples,
                         })}
@@ -801,6 +812,7 @@ const HistoryAudioImportSection: React.FC<HistoryAudioImportSectionProps> = ({
                       variant="secondary"
                       size="sm"
                       onClick={() => void onCancel(job)}
+                      data-testid="history-import-cancel"
                     >
                       {t("settings.history.audioImport.cancel")}
                     </Button>
@@ -811,7 +823,7 @@ const HistoryAudioImportSection: React.FC<HistoryAudioImportSectionProps> = ({
           </ol>
         </section>
       )}
-    </>
+    </div>
   );
 };
 
@@ -824,12 +836,14 @@ interface HistoryListSectionProps {
   activeQuery: string;
   sentinelRef: React.RefObject<HTMLDivElement>;
   receiptsByHistoryId: Record<number, HistoryRunReceipt[] | null>;
+  startingAudioImport: boolean;
   toggleSaved: (id: number) => Promise<void>;
   copyToClipboard: (text: string) => Promise<void>;
   getAudioBlob: (historyId: number) => Promise<Blob | null>;
   deleteEntry: (id: number) => Promise<void>;
   retryHistoryEntry: (id: number) => Promise<void>;
   fetchPage: (query: string, cursor: number | null) => Promise<void>;
+  onStartAudioImport: () => void;
 }
 
 const HistoryListSection: React.FC<HistoryListSectionProps> = ({
@@ -841,117 +855,173 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
   activeQuery,
   sentinelRef,
   receiptsByHistoryId,
+  startingAudioImport,
   toggleSaved,
   copyToClipboard,
   getAudioBlob,
   deleteEntry,
   retryHistoryEntry,
   fetchPage,
+  onStartAudioImport,
 }) => {
   const { t } = useTranslation();
+  const countId = useId();
   const trimmedActiveQuery = activeQuery.trim();
+  const searching = trimmedActiveQuery !== "";
+  const settled = state.phase !== "loading" && state.phase !== "error";
+  const count = state.entries.length;
+
+  const loadNextPage = () => {
+    const last = state.entries[state.entries.length - 1];
+    if (last) void fetchPage(activeQuery, last.id);
+  };
+
+  // Only the search result count is announced. A running total that changes
+  // on every scroll tick would turn the live region into noise.
+  const resultCount = useMemo(() => {
+    if (!searching || !settled) return "";
+    if (count === 0) return t("settings.history.resultsNone", "No matches");
+    return state.hasMore
+      ? t("settings.history.resultsMore", "{{count}}+ matches", { count })
+      : t("settings.history.results", "{{count}} matches", { count });
+  }, [searching, settled, count, state.hasMore, t]);
+
   let content: React.ReactNode;
 
   if (state.phase === "loading") {
     content = (
       <div
         role="status"
-        className="px-4 py-3 text-center text-sm text-text-secondary"
+        aria-label={t("settings.history.loading")}
+        className="rounded-panel border border-border bg-surface"
+        data-testid="history-loading"
       >
-        {t("settings.history.loading")}
+        {SKELETON_ROWS.map((row) => (
+          <div key={row} className="history-skeleton-row">
+            <Skeleton className="h-[19px] w-44" />
+            <Skeleton className="h-[14px] w-full" />
+            <Skeleton className="h-[14px] w-3/5" />
+          </div>
+        ))}
       </div>
     );
   } else if (state.phase === "error") {
     content = (
-      <div
-        role="alert"
-        className="flex flex-col items-center gap-2 px-4 py-3 text-center"
+      <Alert
+        variant="error"
+        action={
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => void fetchPage(activeQuery, null)}
+          >
+            {t("settings.history.retry")}
+          </Button>
+        }
       >
-        <p className="text-sm text-text-primary">
-          {t("settings.history.loadError")}
-        </p>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => void fetchPage(activeQuery, null)}
-        >
-          {t("settings.history.retry")}
-        </Button>
-      </div>
+        {t("settings.history.loadError")}
+      </Alert>
     );
-  } else if (state.entries.length === 0) {
-    content = (
-      <div
-        role="status"
-        className="px-4 py-3 text-center text-sm text-text-secondary"
-      >
-        {trimmedActiveQuery === ""
-          ? t("settings.history.empty")
-          : t("settings.history.noResults", { query: trimmedActiveQuery })}
-      </div>
+  } else if (count === 0) {
+    content = searching ? (
+      <EmptyState
+        title={t("settings.history.noResults", { query: trimmedActiveQuery })}
+        description={t(
+          "settings.history.noResultsHint",
+          "Search matches whole words in both the raw and the processed transcript.",
+        )}
+        action={
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setQuery("")}
+            data-testid="history-empty-clear"
+          >
+            {t("settings.history.clearSearch", "Clear search")}
+          </Button>
+        }
+      />
+    ) : (
+      <EmptyState
+        title={t("settings.history.empty")}
+        description={t(
+          "settings.history.emptyHint",
+          "You can also transcribe an existing recording: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 or M4V, up to 30 minutes.",
+        )}
+        action={
+          <Button
+            size="sm"
+            onClick={onStartAudioImport}
+            disabled={startingAudioImport}
+            data-testid="history-empty-import"
+          >
+            <FileAudio aria-hidden="true" className="h-4 w-4" />
+            {t("settings.history.audioImport.start")}
+          </Button>
+        }
+      />
     );
   } else {
+    const showFooter =
+      state.hasMore ||
+      state.phase === "paging" ||
+      state.phase === "paging-error";
     content = (
-      <>
-        <AudioPlayerGroup>
-          <div className="divide-y divide-border">
-            {state.entries.map((entry) => (
-              <HistoryEntryComponent
-                key={entry.id}
-                entry={entry}
-                receipts={receiptsByHistoryId[entry.id]}
-                view={view}
-                onToggleSaved={toggleSaved}
-                onCopyText={copyToClipboard}
-                getAudioBlob={getAudioBlob}
-                deleteAudio={deleteEntry}
-                retryTranscription={retryHistoryEntry}
-              />
-            ))}
-          </div>
-        </AudioPlayerGroup>
-        <div ref={sentinelRef} className="h-1" />
-        {state.phase === "paging" && (
-          <div
-            role="status"
-            className="px-4 py-2 text-center text-xs text-text-tertiary"
-          >
-            {t("settings.history.loading")}
-          </div>
-        )}
-        {state.phase === "paging-error" && (
-          <div
-            role="alert"
-            className="flex flex-wrap items-center justify-center gap-2 border-t border-border px-4 py-3 text-center"
-          >
-            <span className="text-xs text-text-secondary">
-              {t("settings.history.loadError")}
-            </span>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                const last = state.entries[state.entries.length - 1];
-                if (last) void fetchPage(activeQuery, last.id);
-              }}
-            >
-              {t("settings.history.retry")}
-            </Button>
-          </div>
-        )}
-      </>
+      <AudioPlayerGroup>
+        <List label={t("settings.history.title")} data-testid="history-list">
+          {state.entries.map((entry) => (
+            <HistoryEntryComponent
+              key={entry.id}
+              entry={entry}
+              receipts={receiptsByHistoryId[entry.id]}
+              view={view}
+              onToggleSaved={toggleSaved}
+              onCopyText={copyToClipboard}
+              getAudioBlob={getAudioBlob}
+              deleteAudio={deleteEntry}
+              retryTranscription={retryHistoryEntry}
+            />
+          ))}
+          {showFooter && (
+            <li className="history-list-footer">
+              {state.phase === "paging" && (
+                <StatusText live="polite">
+                  {t("settings.history.loading")}
+                </StatusText>
+              )}
+              {state.phase === "paging-error" && (
+                <>
+                  <span className="history-list-footer-text" role="alert">
+                    {t("settings.history.loadError")}
+                  </span>
+                  <Button variant="secondary" size="sm" onClick={loadNextPage}>
+                    {t("settings.history.retry")}
+                  </Button>
+                </>
+              )}
+              {state.phase === "ready" && state.hasMore && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={loadNextPage}
+                  data-testid="history-load-more"
+                >
+                  {t("settings.history.loadMore", "Load more")}
+                </Button>
+              )}
+              <div ref={sentinelRef} className="history-sentinel" />
+            </li>
+          )}
+        </List>
+      </AudioPlayerGroup>
     );
   }
 
-
   return (
-    <>
-      <div className="flex flex-wrap items-center gap-2 px-4">
-        <div className="relative min-w-40 flex-1">
-          <Search
-            aria-hidden="true"
-            className="pointer-events-none absolute start-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary"
-          />
+    <div className="flex flex-col gap-3">
+      <div className="history-toolbar">
+        <div className="history-search">
+          <Search aria-hidden="true" className="history-search-icon h-4 w-4" />
           <Input
             type="search"
             variant="compact"
@@ -959,25 +1029,45 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
             onChange={(event) => setQuery(event.target.value)}
             placeholder={t("settings.history.searchPlaceholder")}
             aria-label={t("settings.history.search")}
-            className="w-full ps-8"
+            aria-describedby={countId}
+            data-testid="history-search"
           />
+          {query !== "" && (
+            <IconButton
+              size="sm"
+              className="history-search-clear"
+              label={t("settings.history.clearSearch", "Clear search")}
+              onClick={() => setQuery("")}
+              icon={<X aria-hidden="true" className="h-4 w-4" />}
+              data-testid="history-search-clear"
+            />
+          )}
         </div>
 
-        <fieldset className="flex items-center gap-0.5 rounded-md border border-border bg-surface p-0.5">
+        <p
+          id={countId}
+          className="history-result-count"
+          aria-live="polite"
+          data-testid="history-result-count"
+        >
+          {resultCount}
+        </p>
+
+        <fieldset className="history-segmented">
           <legend className="sr-only">
             {t("settings.history.textView.label")}
           </legend>
           {TEXT_VIEWS.map((option) => (
-            <label key={option.value} className="cursor-pointer">
+            <label key={option.value} className="history-segmented-option">
               <input
                 type="radio"
                 name="history-text-view"
                 value={option.value}
                 checked={view === option.value}
                 onChange={() => setView(option.value)}
-                className="peer sr-only"
+                className="sr-only"
               />
-              <span className="flex min-h-7 items-center rounded-[5px] px-2.5 text-xs font-medium text-text-secondary transition-colors peer-checked:bg-subtle peer-checked:text-text-primary peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-strong">
+              <span className="history-segmented-text">
                 {t(option.labelKey)}
               </span>
             </label>
@@ -985,10 +1075,8 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
         </fieldset>
       </div>
 
-      <div className="rounded-lg border border-border bg-canvas">
-        {content}
-      </div>
-    </>
+      {content}
+    </div>
   );
 };
 
@@ -1022,55 +1110,64 @@ export const HistorySettings: React.FC = () => {
   } = useHistoryData();
 
   return (
-    <div className="settings-page history-page density-page space-y-4">
-      <header className="settings-page-header flex flex-wrap items-end justify-between gap-3">
-        <h1 className="settings-page-title">{t("settings.history.title")}</h1>
-        <div className="flex flex-wrap items-center gap-2">
+    <div className="settings-page history-page">
+      <header className="history-header">
+        <div className="history-header-copy">
+          <h1 className="settings-page-title">{t("settings.history.title")}</h1>
+          <HistorySummary
+            stats={historyStats}
+            loading={statsLoading}
+            error={statsError}
+            onRetry={() => void refreshHistoryStats()}
+          />
+          <HistoryImportLive jobs={audioImportJobs} />
+        </div>
+        <div className="history-header-actions">
           <Button
             size="sm"
-            className="gap-1.5"
             onClick={() => void startAudioImport()}
             disabled={startingAudioImport}
+            data-testid="history-import"
           >
             <FileAudio aria-hidden="true" className="h-4 w-4" />
             {t("settings.history.audioImport.start")}
           </Button>
-          <OpenRecordingsButton
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => void openRecordingsFolder()}
-            label={t("settings.history.openFolder")}
-          />
+            data-testid="history-open-folder"
+          >
+            <FolderOpen aria-hidden="true" className="h-4 w-4" />
+            {t("settings.history.openFolder")}
+          </Button>
         </div>
       </header>
-      <div className="space-y-2">
-        <CloudSyncPanel />
-        <HistoryStatsSection
-          stats={historyStats}
-          loading={statsLoading}
-          error={statsError}
-          onRetry={() => void refreshHistoryStats()}
-        />
-        <HistoryAudioImportSection
-          jobs={audioImportJobs}
-          error={audioImportError}
-          onCancel={cancelAudioImport}
-        />
-        <HistoryListSection
-          state={state}
-          query={query}
-          setQuery={setQuery}
-          view={view}
-          setView={setView}
-          activeQuery={activeQuery}
-          sentinelRef={sentinelRef}
-          receiptsByHistoryId={receiptsByHistoryId}
-          toggleSaved={toggleSaved}
-          copyToClipboard={copyToClipboard}
-          getAudioBlob={getAudioBlob}
-          deleteEntry={deleteEntry}
-          retryHistoryEntry={retryHistoryEntry}
-          fetchPage={fetchPage}
-        />
-      </div>
+
+      <HistoryAudioImportSection
+        jobs={audioImportJobs}
+        error={audioImportError}
+        onCancel={cancelAudioImport}
+      />
+
+      <HistoryListSection
+        state={state}
+        query={query}
+        setQuery={setQuery}
+        view={view}
+        setView={setView}
+        activeQuery={activeQuery}
+        sentinelRef={sentinelRef}
+        receiptsByHistoryId={receiptsByHistoryId}
+        startingAudioImport={startingAudioImport}
+        toggleSaved={toggleSaved}
+        copyToClipboard={copyToClipboard}
+        getAudioBlob={getAudioBlob}
+        deleteEntry={deleteEntry}
+        retryHistoryEntry={retryHistoryEntry}
+        fetchPage={fetchPage}
+        onStartAudioImport={() => void startAudioImport()}
+      />
     </div>
   );
 };

@@ -8,11 +8,13 @@ import {
   type MeetingHistorySummary,
   type MeetingMutationResult,
   type MeetingNavigationPayload,
+  type MeetingRetentionPolicy,
   type MeetingReviewSnapshot,
   type MeetingSuggestion,
   type OperationReceipt,
   type Result,
 } from "@/bindings";
+import { Skeleton } from "../../ui";
 import { MeetingDraftComposer, MeetingPreflight } from "./MeetingPreflight";
 import { MeetingLive } from "./MeetingLive";
 import { MeetingReview } from "./MeetingReview";
@@ -38,8 +40,14 @@ type MeetingMutationInvocation = (
 
 const DEFAULT_MEETING_SOURCES = ["microphone", "system_audio"] as const;
 
+/* One screenful of meetings, then an explicit request for older ones. The
+ * backend clamps a single page at 100 rows, so paging by cursor is the only
+ * way to reach a long history. */
+const MEETING_PAGE_SIZE = 25;
+
 const useMeetingsController = ({
   invalidation = 0,
+  navigationRequest = null,
   startRequest = 0,
 }: MeetingsSettingsProps) => {
   const { t } = useTranslation();
@@ -64,6 +72,11 @@ const useMeetingsController = ({
   const [suggestions, setSuggestions] = useState<MeetingSuggestion[]>([]);
   const [recovery, setRecovery] = useState<MeetingHistorySummary[]>([]);
   const [meetings, setMeetings] = useState<MeetingHistorySummary[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [retention, setRetention] = useState<MeetingRetentionPolicy | null>(
+    null,
+  );
   const [homeLoading, setHomeLoading] = useState(true);
   const [homeError, setHomeError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
@@ -71,6 +84,7 @@ const useMeetingsController = ({
   const homeRequestRef = useRef(0);
   const snapshotRequestRef = useRef(0);
   const screenRef = useRef<MeetingScreen>(screen);
+  const handledNavigationRef = useRef<MeetingNavigationPayload | null>(null);
   useEffect(() => {
     screenRef.current = screen;
   }, [screen]);
@@ -99,11 +113,12 @@ const useMeetingsController = ({
     setHomeLoading(true);
 
     try {
-      const [listResult, recoveryResult, suggestionsResult] =
+      const [listResult, recoveryResult, suggestionsResult, retentionResult] =
         await Promise.allSettled([
-          commands.meetingList(null, 100),
+          commands.meetingList(null, MEETING_PAGE_SIZE),
           commands.meetingRecoveryList(),
           commands.meetingSuggestionsList(),
+          commands.meetingRetentionGet(),
         ]);
 
       if (homeRequestRef.current !== requestId) return;
@@ -112,6 +127,7 @@ const useMeetingsController = ({
       if (listResult.status === "fulfilled") {
         if (listResult.value.status === "ok") {
           setMeetings(listResult.value.data.entries);
+          setHasMore(listResult.value.data.has_more);
         } else {
           errors.push(listResult.value.error);
         }
@@ -126,6 +142,14 @@ const useMeetingsController = ({
       if (suggestionsResult.status === "fulfilled") {
         setSuggestions(suggestionsResult.value);
       }
+      // The policy itself belongs to Settings, Privacy. The list only echoes
+      // it, so a failed read drops the hint instead of raising an error.
+      setRetention(
+        retentionResult.status === "fulfilled" &&
+          retentionResult.value.status === "ok"
+          ? retentionResult.value.data.policy
+          : null,
+      );
 
       setHomeError(
         errors.length > 0
@@ -146,6 +170,31 @@ const useMeetingsController = ({
       );
     }
   }, [t]);
+
+  /* Older meetings are appended, never merged: every page comes back strictly
+   * older than the cursor, so there is nothing to reconcile. */
+  const loadMoreMeetings = useCallback(async () => {
+    const oldest = meetings[meetings.length - 1];
+    if (oldest === undefined) return;
+
+    setLoadingMore(true);
+    try {
+      const result = await commands.meetingList(
+        oldest.created_at_utc_ms,
+        MEETING_PAGE_SIZE,
+      );
+      if (result.status === "error") {
+        setHomeError(t(meetingErrorKey(result.error)));
+        return;
+      }
+      setMeetings((current) => [...current, ...result.data.entries]);
+      setHasMore(result.data.has_more);
+    } catch {
+      setHomeError(t("meetings.errors.load"));
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [meetings, t]);
 
   const reportMeetingError = useCallback(
     (error: MeetingCommandError) => {
@@ -225,11 +274,7 @@ const useMeetingsController = ({
         setScreen({
           kind: "preflight",
           sessionId,
-          draft: draftFor(
-            "manual",
-            null,
-            nextSnapshot.session.title,
-          ),
+          draft: draftFor("manual", null, nextSnapshot.session.title),
         });
       }
     },
@@ -356,7 +401,14 @@ const useMeetingsController = ({
     } finally {
       setPendingAction(null);
     }
-  }, [receiveReceipt, refreshSessionAndHome, reportMeetingError, screen, snapshot, t]);
+  }, [
+    receiveReceipt,
+    refreshSessionAndHome,
+    reportMeetingError,
+    screen,
+    snapshot,
+    t,
+  ]);
 
   const startMeeting = useCallback(
     async (consent: MeetingConsentInput) => {
@@ -380,7 +432,10 @@ const useMeetingsController = ({
           return;
         }
         if (receiveReceipt(result.data.receipt)) {
-          setScreen({ kind: "session", sessionId: snapshot.session.session_id });
+          setScreen({
+            kind: "session",
+            sessionId: snapshot.session.session_id,
+          });
           await refreshSessionAndHome(snapshot.session.session_id);
         } else {
           await refreshSessionAndHome(snapshot.session.session_id);
@@ -391,7 +446,14 @@ const useMeetingsController = ({
         setPendingAction(null);
       }
     },
-    [receiveReceipt, refreshSessionAndHome, reportMeetingError, screen, snapshot, t],
+    [
+      receiveReceipt,
+      refreshSessionAndHome,
+      reportMeetingError,
+      screen,
+      snapshot,
+      t,
+    ],
   );
 
   const mutateSession = useCallback(
@@ -524,15 +586,35 @@ const useMeetingsController = ({
 
     void refreshHome();
     const activeScreen = screenRef.current;
-    if (
-      activeScreen.kind === "preflight" ||
-      activeScreen.kind === "session"
-    ) {
+    if (activeScreen.kind === "preflight" || activeScreen.kind === "session") {
       void readSnapshot(activeScreen.sessionId);
     }
   }, [invalidation, readSnapshot, refreshHome]);
 
+  /* A navigation request arrives when the backend wants a specific meeting on
+   * screen: a tray click, a recovery prompt, a finished capture. Each event
+   * delivers a fresh payload object, so identity is both the trigger and the
+   * record of what has already been handled. */
+  useEffect(() => {
+    if (
+      navigationRequest === null ||
+      handledNavigationRef.current === navigationRequest
+    ) {
+      return;
+    }
+    handledNavigationRef.current = navigationRequest;
 
+    if (
+      navigationRequest.destination === "list" ||
+      navigationRequest.session_id === null
+    ) {
+      setSnapshot(null);
+      setScreen({ kind: "home" });
+      return;
+    }
+
+    void openSession(navigationRequest.session_id);
+  }, [navigationRequest, openSession]);
 
   return {
     screen,
@@ -540,6 +622,9 @@ const useMeetingsController = ({
     suggestions,
     recovery,
     meetings,
+    hasMore,
+    loadingMore,
+    retention,
     homeLoading,
     homeError,
     pendingAction,
@@ -549,6 +634,7 @@ const useMeetingsController = ({
     setPendingAction,
     draftFor,
     refreshHome,
+    loadMoreMeetings,
     openSession,
     createPreflight,
     cancelPreflight,
@@ -565,7 +651,6 @@ const useMeetingsController = ({
     refreshSessionAndHome,
   };
 };
-
 
 type MeetingsController = ReturnType<typeof useMeetingsController>;
 
@@ -591,6 +676,9 @@ const renderMeetingsContent = (
     suggestions,
     recovery,
     meetings,
+    hasMore,
+    loadingMore,
+    retention,
     homeLoading,
     homeError,
     pendingAction,
@@ -601,15 +689,16 @@ const renderMeetingsContent = (
     finalizeRecovery,
     discardRecovery,
     refreshHome,
+    loadMoreMeetings,
   } = controller;
 
   if (screen.kind === "draft") {
     const suggestion =
       screen.draft.suggestionId === null
         ? null
-        : suggestions.find(
+        : (suggestions.find(
             (candidate) => candidate.offer_id === screen.draft.suggestionId,
-          ) ?? null;
+          ) ?? null);
 
     return (
       <MeetingDraftComposer
@@ -635,6 +724,9 @@ const renderMeetingsContent = (
       recovery={recovery}
       meetings={meetings}
       loading={homeLoading}
+      loadingMore={loadingMore}
+      hasMore={hasMore}
+      retention={retention}
       error={homeError}
       onStartManual={() =>
         setScreen({ kind: "draft", draft: draftFor("manual") })
@@ -648,10 +740,32 @@ const renderMeetingsContent = (
       onOpenMeeting={openSession}
       onFinalizeRecovery={finalizeRecovery}
       onDiscardRecovery={discardRecovery}
+      onLoadMore={() => void loadMoreMeetings()}
       onRetry={() => void refreshHome()}
     />
   );
 };
+
+/* The detail view loads a whole snapshot: transcript, speakers, notes,
+ * artifacts, answers. The skeleton keeps the header and the first rows in
+ * place so the swap does not jump. */
+const MeetingDetailSkeleton: React.FC<{ label: string }> = ({ label }) => (
+  <div className="settings-page" role="status" aria-label={label}>
+    <div className="space-y-2">
+      <Skeleton className="h-4 w-16" />
+      <Skeleton className="h-7 w-72" />
+      <Skeleton className="h-4 w-56" />
+    </div>
+    <div className="space-y-2">
+      <Skeleton className="h-8 w-64" />
+      <Skeleton className="h-[120px] w-full" />
+    </div>
+    <div className="space-y-2">
+      <Skeleton className="h-4 w-40" />
+      <Skeleton className="h-[88px] w-full" />
+    </div>
+  </div>
+);
 
 const renderMeetingSessionContent = (
   controller: MeetingsController,
@@ -670,13 +784,7 @@ const renderMeetingSessionContent = (
   } = controller;
 
   if (!currentSnapshot) {
-    return (
-      <div className="meetings-page">
-        <p className="meeting-empty-state" role="status">
-          {t("meetings.loading")}
-        </p>
-      </div>
-    );
+    return <MeetingDetailSkeleton label={t("meetings.loading")} />;
   }
 
   if (screen.kind === "preflight") {
@@ -716,7 +824,6 @@ const renderMeetingSessionContent = (
 
   return renderMeetingReviewSession(controller, currentSnapshot, t);
 };
-
 
 const renderMeetingLiveSession = (
   controller: MeetingsController,

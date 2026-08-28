@@ -1,0 +1,203 @@
+/* Overview page layout, type scale and the SVG activity chart.
+ *
+ * Shared surfaces (cards, lists, alerts, buttons) come from the primitives, so
+ * this file only carries what is specific to this page. Every value is a token
+ * from styles/theme.css. This file lives beside the page because the page owns
+ * it: App.css holds the other sections' CSS. */
+
+.ov-page {
+  /* --chart-height (160px) is sized for a page whose whole job is one chart.
+   * The overview band sits between a hero and a list inside a 570px-tall
+   * window, so it gets a shorter band of its own. */
+  --ov-chart-height: 84px;
+}
+
+/* ------------------------------------------------------------------ hero */
+
+.ov-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.ov-hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.ov-hero-title {
+  color: var(--color-text-primary);
+  font-size: var(--type-title-size);
+  font-weight: var(--type-title-weight);
+  letter-spacing: var(--type-title-tracking);
+  line-height: var(--type-title-line);
+  margin: 0;
+}
+
+/* Recording is the one state allowed to use the identity red. */
+.ov-hero-title[data-recording="true"] {
+  color: var(--color-danger-strong);
+}
+
+.ov-hero-instruction {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--type-body-size);
+  gap: var(--space-1);
+  line-height: var(--type-body-line);
+  margin: 0;
+}
+
+.ov-keys {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.ov-hero-meta {
+  color: var(--color-text-tertiary);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line);
+  margin: 0;
+}
+
+.ov-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* ------------------------------------------------------------- stat band */
+
+.ov-stat-grid {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ov-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+}
+
+.ov-stat-label {
+  color: var(--color-text-secondary);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line);
+}
+
+.ov-stat-value {
+  color: var(--color-text-primary);
+  font-size: var(--type-metric-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--type-metric-weight);
+  letter-spacing: var(--type-metric-tracking);
+  line-height: var(--type-metric-line);
+}
+
+.ov-stat-meta {
+  color: var(--color-text-tertiary);
+  font-size: var(--type-caption-size);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--type-caption-line);
+}
+
+/* ----------------------------------------------------------------- chart */
+
+.ov-chart-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+.ov-chart-head,
+.ov-chart-axis {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+}
+
+.ov-chart-legend {
+  color: var(--color-text-secondary);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line);
+}
+
+.ov-chart-peak,
+.ov-chart-axis {
+  color: var(--color-text-tertiary);
+  font-size: var(--type-caption-size);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--type-caption-line);
+}
+
+.ov-chart {
+  block-size: var(--ov-chart-height);
+  display: block;
+  inline-size: 100%;
+}
+
+.ov-chart-skeleton {
+  block-size: var(--ov-chart-height);
+  margin-top: var(--space-5);
+}
+
+.ov-chart-bar {
+  fill: color-mix(
+    in oklab,
+    var(--color-accent-strong) 72%,
+    var(--color-surface)
+  );
+  transition-duration: var(--duration-fast);
+  transition-property: fill;
+  transition-timing-function: var(--ease-out);
+}
+
+/* A day with nothing in it keeps a hairline stub, which is what makes the
+ * baseline readable without drawing an axis. */
+.ov-chart-bar[data-empty="true"] {
+  fill: var(--color-border-strong);
+}
+
+.ov-chart-bar:hover {
+  fill: var(--color-accent-strong);
+}
+
+/* ---------------------------------------------------------------- source */
+
+.ov-source-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-4);
+}
+
+.ov-source-line {
+  color: var(--color-text-secondary);
+  font-size: var(--type-secondary-size);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--type-secondary-line);
+  margin: 0;
+}
+
+/* ---------------------------------------------------------------- footer */
+
+.ov-footer-note {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ov-chart-bar {
+    transition-duration: 1ms;
+  }
+}

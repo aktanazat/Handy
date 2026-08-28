@@ -22,12 +22,18 @@ import {
   type Result,
 } from "@/bindings";
 import { useSettings } from "@/hooks/useSettings";
-import { Button } from "../../ui/Button";
-import { SettingsGroup } from "../../ui/SettingsGroup";
-import { Textarea } from "../../ui/Textarea";
-import { ToggleSwitch } from "../../ui/ToggleSwitch";
+import {
+  Alert,
+  Button,
+  SettingsGroup,
+  StatusText,
+  Tabs,
+  Textarea,
+  ToggleSwitch,
+  type TabItem,
+} from "@/components/ui";
+import { AgentPanelToggle } from "./AgentPanelToggle";
 
-import "../settings-density.css";
 const EMPTY_BRIDGE_SETTINGS: AgentBridgeSettings = {
   master_enabled: false,
   claude_enabled: false,
@@ -465,13 +471,14 @@ const useAgentBridgeSettings = () => {
   };
 };
 
-
 type AgentBridgeSettingsModel = ReturnType<typeof useAgentBridgeSettings>;
 
 export const AgentsSettings: React.FC = () => {
   const model = useAgentBridgeSettings();
   return <AgentBridgeSettingsPage model={model} />;
 };
+
+const AGENT_WORKSPACE_PANEL_ID = "agents-workspace-panel";
 
 const AgentBridgeSettingsPage: React.FC<{
   model: AgentBridgeSettingsModel;
@@ -481,54 +488,68 @@ const AgentBridgeSettingsPage: React.FC<{
     "status",
   );
   const tabs = [
-    { id: "status" as const, label: t("settings.agents.observed.title") },
-    { id: "queue" as const, label: t("settings.agents.replyQueue.title") },
-    { id: "rules" as const, label: t("settings.agents.rules.title") },
-  ];
+    {
+      id: "status",
+      label: t("settings.agents.observed.title"),
+      panelId: AGENT_WORKSPACE_PANEL_ID,
+    },
+    {
+      id: "queue",
+      label: t("settings.agents.replyQueue.title"),
+      panelId: AGENT_WORKSPACE_PANEL_ID,
+    },
+    {
+      id: "rules",
+      label: t("settings.agents.rules.title"),
+      panelId: AGENT_WORKSPACE_PANEL_ID,
+    },
+  ] as const satisfies readonly TabItem[];
 
   return (
-    <div className="settings-page density-page agents-density space-y-4">
+    <div className="settings-page">
       <header className="settings-page-header">
         <h1 className="settings-page-title">{t("settings.agents.title")}</h1>
         <p className="settings-page-description">
           {t("settings.agents.description")}
         </p>
       </header>
-      <nav className="settings-local-nav agents-view-nav" aria-label={t("settings.agents.title")}>
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            aria-current={workspace === tab.id ? "page" : undefined}
-            onClick={() => setWorkspace(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </nav>
-      {model.error ? (
-        <p
-          role="alert"
-          className="rounded-md border border-danger/40 bg-surface px-3 py-2 text-sm text-danger"
+      <AgentPanelToggle />
+      {model.error ? <Alert variant="error">{model.error}</Alert> : null}
+      <div className="flex flex-col gap-4">
+        <Tabs
+          items={tabs}
+          value={workspace}
+          onChange={(id) => {
+            const next = tabs.find((tab) => tab.id === id);
+            if (next) setWorkspace(next.id);
+          }}
+          label={t("settings.agents.workspaceNavigation", "Agent bridge views")}
+          className="self-start"
+        />
+        <div
+          id={AGENT_WORKSPACE_PANEL_ID}
+          role="tabpanel"
+          aria-labelledby={`tab-${workspace}`}
+          className="flex flex-col gap-7"
         >
-          {model.error}
-        </p>
-      ) : null}
-      {workspace === "status" ? (
-        <>
-          <AgentBridgeControls model={model} />
-          <AgentBridgeProjects model={model} />
-          <AgentBridgeHook model={model} />
-          <AgentBridgeObservations model={model} />
-        </>
-      ) : workspace === "queue" ? (
-        <AgentBridgeReplyQueue model={model} />
-      ) : (
-        <AgentBridgeRules model={model} />
-      )}
+          {workspace === "status" ? (
+            <>
+              <AgentBridgeControls model={model} />
+              <AgentBridgeProjects model={model} />
+              <AgentBridgeHook model={model} />
+              <AgentBridgeObservations model={model} />
+            </>
+          ) : workspace === "queue" ? (
+            <AgentBridgeReplyQueue model={model} />
+          ) : (
+            <AgentBridgeRules model={model} />
+          )}
+        </div>
+      </div>
     </div>
   );
 };
+
 const isAgentEnabled = (
   bridge: AgentBridgeSettingsModel["bridge"],
   agent: AgentBridgeAgent,
@@ -557,9 +578,11 @@ const AgentBridgeControls: React.FC<{
         description={t("settings.agents.controls.master.description")}
       />
       {!bridge.master_enabled ? (
-        <p role="status" className="px-4 py-3 text-sm text-text-secondary">
-          {t("settings.agents.controls.offState")}
-        </p>
+        <div className="px-4 py-3">
+          <StatusText live="polite">
+            {t("settings.agents.controls.offState")}
+          </StatusText>
+        </div>
       ) : null}
       {AGENTS.map((agent) => (
         <ToggleSwitch
@@ -579,13 +602,13 @@ const AgentBridgeControls: React.FC<{
         />
       ))}
       {status ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
-          <span className="text-text-secondary">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+          <span className="text-[13px] leading-5 text-text-secondary">
             {t("settings.agents.controls.status")}
           </span>
-          <span className="rounded-md border border-border px-2 py-1 text-xs font-medium text-text-primary">
+          <StatusText tone="neutral" live="polite">
             {t("settings.agents.status." + status.diagnostic)}
-          </span>
+          </StatusText>
         </div>
       ) : null}
     </SettingsGroup>
@@ -604,7 +627,7 @@ const AgentBridgeProjects: React.FC<{
       description={t("settings.agents.projects.description")}
     >
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-        <p className="text-sm text-text-secondary">
+        <p className="min-w-0 text-[13px] leading-5 text-text-secondary">
           {t("settings.agents.projects.hashOnly")}
         </p>
         <Button
@@ -619,16 +642,16 @@ const AgentBridgeProjects: React.FC<{
         </Button>
       </div>
       {bridge.allowed_projects.length === 0 ? (
-        <p className="px-4 py-3 text-sm text-text-secondary">
-          {t("settings.agents.projects.empty")}
-        </p>
+        <div className="px-4 py-3">
+          <StatusText>{t("settings.agents.projects.empty")}</StatusText>
+        </div>
       ) : (
         bridge.allowed_projects.map((project) => (
           <div
             key={project.canonical_project_hash}
             className="flex min-w-0 items-center justify-between gap-3 px-4 py-3"
           >
-            <code className="min-w-0 break-all font-mono text-xs text-text-primary">
+            <code className="min-w-0 font-mono text-xs break-all text-text-primary">
               {project.canonical_project_hash}
             </code>
             <Button
@@ -666,9 +689,9 @@ const AgentBridgeHook: React.FC<{
           {t("settings.agents.hook.description")}
         </p>
         {model.hookError ? (
-          <p role="alert" className="text-sm text-danger">
+          <Alert variant="error">
             {t("settings.agents.hook.error")}: {model.hookError}
-          </p>
+          </Alert>
         ) : null}
         {model.hookSnippet ? (
           <>
@@ -690,7 +713,6 @@ const AgentBridgeHook: React.FC<{
     </SettingsGroup>
   );
 };
-
 
 const AgentBridgeReplyQueue: React.FC<{
   model: AgentBridgeSettingsModel;
@@ -714,8 +736,16 @@ const AgentBridgeReplyQueue: React.FC<{
       description={t("settings.agents.replyQueue.description")}
     >
       <div className="space-y-3 px-4 py-3">
+        {interactiveReady ? null : (
+          <StatusText live="polite">
+            {t(
+              "settings.agents.replyQueue.notReady",
+              "Replies need the bridge on and at least one agent enabled.",
+            )}
+          </StatusText>
+        )}
         <label
-          className="block text-sm font-medium text-text-primary"
+          className="block text-[13px] leading-5 font-medium text-text-primary"
           htmlFor="agent-reply-session"
         >
           {t("settings.agents.replyQueue.session")}
@@ -723,12 +753,16 @@ const AgentBridgeReplyQueue: React.FC<{
         <select
           id="agent-reply-session"
           value={replySessionId}
-          onChange={(event) => updateView({ replySessionId: event.target.value })}
+          onChange={(event) =>
+            updateView({ replySessionId: event.target.value })
+          }
           disabled={!interactiveReady || replySessions.length === 0}
-          className="control-surface min-h-8 w-full border px-3 text-sm text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
+          className="control-surface w-full border px-3 text-[13px] text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
         >
           {replySessions.length === 0 ? (
-            <option value="">{t("settings.agents.replyQueue.noSession")}</option>
+            <option value="">
+              {t("settings.agents.replyQueue.noSession")}
+            </option>
           ) : (
             replySessions.map((session) => (
               <option key={session.id} value={session.id}>
@@ -744,7 +778,7 @@ const AgentBridgeReplyQueue: React.FC<{
           )}
         </select>
         <label
-          className="block text-sm font-medium text-text-primary"
+          className="block text-[13px] leading-5 font-medium text-text-primary"
           htmlFor="agent-reply-text"
         >
           {t("settings.agents.replyQueue.message")}
@@ -759,15 +793,17 @@ const AgentBridgeReplyQueue: React.FC<{
         <Button
           size="sm"
           onClick={() => void createReplyPreview()}
-          disabled={!interactiveReady || !replySessionId || replyText.trim() === ""}
+          disabled={
+            !interactiveReady || !replySessionId || replyText.trim() === ""
+          }
         >
           {t("settings.agents.replyQueue.createPreview")}
         </Button>
       </div>
       {pendingMessages.length === 0 ? (
-        <p className="px-4 py-3 text-sm text-text-secondary">
-          {t("settings.agents.pending.empty")}
-        </p>
+        <div className="px-4 py-3">
+          <StatusText>{t("settings.agents.pending.empty")}</StatusText>
+        </div>
       ) : (
         pendingMessages.map((pending) => (
           <div
@@ -775,27 +811,32 @@ const AgentBridgeReplyQueue: React.FC<{
             className="flex min-w-0 flex-wrap items-center justify-between gap-2 px-4 py-3"
           >
             <div className="min-w-0">
-              <p className="break-all font-mono text-xs text-text-primary">
-                <span className="font-sans text-text-secondary">
-                  {t(
-                    "settings.agents.controls.providers." +
-                      pending.agent +
-                      ".label",
-                  )}
-                  {" · "}
-                  {t("settings.agents.replyQueue.session")}: {" "}
-                </span>
-                {pending.session_id}
+              <p className="text-[12px] leading-4 text-text-secondary">
+                {t(
+                  "settings.agents.controls.providers." +
+                    pending.agent +
+                    ".label",
+                )}
+                {" · "}
+                {t("settings.agents.replyQueue.session")}:{" "}
+                <code className="font-mono break-all text-text-primary">
+                  {pending.session_id}
+                </code>
               </p>
-              <p className="mt-1 whitespace-pre-wrap break-words text-sm text-text-primary">
+              <p className="mt-1 text-[13px] leading-5 break-words whitespace-pre-wrap text-text-primary">
                 {pending.text}
               </p>
-              <p className="mt-1 text-xs text-text-secondary">
-                {pending.state === "held"
-                  ? pending.confirmed
-                    ? t("settings.agents.pending.confirmed")
-                    : t("settings.agents.pending.preview")
-                  : t("settings.agents.pending.states." + pending.state)}
+              <p className="mt-1">
+                <StatusText
+                  tone={pending.confirmed ? "success" : "muted"}
+                  live="polite"
+                >
+                  {pending.state === "held"
+                    ? pending.confirmed
+                      ? t("settings.agents.pending.confirmed")
+                      : t("settings.agents.pending.preview")
+                    : t("settings.agents.pending.states." + pending.state)}
+                </StatusText>
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -839,7 +880,7 @@ const AgentBridgeObservations: React.FC<{
   return (
     <SettingsGroup title={t("settings.agents.observed.title")}>
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-        <p className="text-sm text-text-secondary">
+        <p className="min-w-0 text-[13px] leading-5 text-text-secondary">
           {t("settings.agents.observed.description")}
         </p>
         <Button
@@ -857,17 +898,20 @@ const AgentBridgeObservations: React.FC<{
         </Button>
       </div>
       <div className="px-4 py-3">
-        <h3 className="text-sm font-medium text-text-primary">
+        <h3 className="text-[13px] leading-5 font-semibold text-text-primary">
           {t("settings.agents.observed.sessions")}
         </h3>
         {sessions.length === 0 ? (
-          <p className="mt-1 text-sm text-text-secondary">
-            {t("settings.agents.observed.noSessions")}
+          <p className="mt-1">
+            <StatusText>{t("settings.agents.observed.noSessions")}</StatusText>
           </p>
         ) : (
           <ul className="mt-2 space-y-2">
             {sessions.map((session) => (
-              <li key={session.id} className="min-w-0 text-sm text-text-secondary">
+              <li
+                key={session.id}
+                className="min-w-0 text-[13px] leading-5 text-text-secondary"
+              >
                 <span className="font-medium text-text-primary">
                   {t(
                     "settings.agents.controls.providers." +
@@ -876,7 +920,9 @@ const AgentBridgeObservations: React.FC<{
                   )}
                 </span>
                 {" · "}
-                <code className="break-all font-mono text-xs">{session.id}</code>
+                <code className="break-all font-mono text-xs">
+                  {session.id}
+                </code>
                 {" · "}
                 <code className="break-all font-mono text-xs">
                   {session.canonical_project_hash}
@@ -887,12 +933,12 @@ const AgentBridgeObservations: React.FC<{
         )}
       </div>
       <div className="px-4 py-3">
-        <h3 className="text-sm font-medium text-text-primary">
+        <h3 className="text-[13px] leading-5 font-semibold text-text-primary">
           {t("settings.agents.observed.requests")}
         </h3>
         {requests.length === 0 ? (
-          <p className="mt-1 text-sm text-text-secondary">
-            {t("settings.agents.observed.noRequests")}
+          <p className="mt-1">
+            <StatusText>{t("settings.agents.observed.noRequests")}</StatusText>
           </p>
         ) : (
           <ul className="mt-2 space-y-3">
@@ -910,7 +956,10 @@ const AgentBridgeObservations: React.FC<{
                 request.state === "observed";
 
               return (
-                <li key={request.id} className="min-w-0 text-sm text-text-secondary">
+                <li
+                  key={request.id}
+                  className="min-w-0 text-[13px] leading-5 text-text-secondary"
+                >
                   <p className="break-words">
                     <span className="font-medium text-text-primary">
                       {t(
@@ -931,8 +980,10 @@ const AgentBridgeObservations: React.FC<{
                     })}
                   </p>
                   {ompPermissionObserveOnly ? (
-                    <p role="status" className="mt-2 text-xs text-text-secondary">
-                      {t("settings.agents.observed.ompPermissionObserveOnly")}
+                    <p className="mt-2">
+                      <StatusText>
+                        {t("settings.agents.observed.ompPermissionObserveOnly")}
+                      </StatusText>
                     </p>
                   ) : null}
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -941,7 +992,9 @@ const AgentBridgeObservations: React.FC<{
                         <Button
                           variant="secondary"
                           size="sm"
-                          onClick={() => void decidePermission(request, "allow")}
+                          onClick={() =>
+                            void decidePermission(request, "allow")
+                          }
                         >
                           {t("settings.agents.observed.allowExact")}
                         </Button>
@@ -954,7 +1007,8 @@ const AgentBridgeObservations: React.FC<{
                         </Button>
                       </>
                     ) : null}
-                    {request.agent === "claude" && request.state === "observed" ? (
+                    {request.agent === "claude" &&
+                    request.state === "observed" ? (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -982,20 +1036,20 @@ const AgentBridgeRules: React.FC<{
 
   return (
     <SettingsGroup title={t("settings.agents.rules.title")}>
-      <p className="px-4 py-3 text-sm text-text-secondary">
+      <p className="px-4 py-3 text-[13px] leading-5 text-text-secondary">
         {t("settings.agents.rules.description")}
       </p>
       {bridge.permission_rules.length === 0 ? (
-        <p className="px-4 pb-3 text-sm text-text-secondary">
-          {t("settings.agents.rules.empty")}
-        </p>
+        <div className="px-4 pb-3">
+          <StatusText>{t("settings.agents.rules.empty")}</StatusText>
+        </div>
       ) : (
         bridge.permission_rules.map((rule) => (
           <div
             key={rule.id}
             className="flex min-w-0 flex-wrap items-center justify-between gap-3 px-4 py-3"
           >
-            <div className="min-w-0 text-sm text-text-secondary">
+            <div className="min-w-0 text-[13px] leading-5 text-text-secondary">
               <p className="break-words text-text-primary">
                 {rule.tool_name}
                 {" · "}

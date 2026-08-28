@@ -1,15 +1,13 @@
 import React, { useMemo, useState } from "react";
-import { CirclePause, Square } from "lucide-react";
+import { Pause, Play, Square } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { MeetingReviewSnapshot } from "@/bindings";
-import { Alert } from "../../ui/Alert";
-import { Button } from "../../ui/Button";
-import { Dialog } from "../../ui/Dialog";
+import { Alert, Button, Dialog, Section, StatusText, Textarea } from "../../ui";
 import {
-  CaptureCompletenessBadge,
-  MeetingPhaseBadge,
-  ProcessingStatusLine,
-  SourceHealthCard,
+  CaptureCompletenessText,
+  MeetingPhaseText,
+  MeetingSourceList,
+  ProcessingStatusText,
 } from "./MeetingStatus";
 import { formatMeetingOffset } from "./meetingUtils";
 
@@ -22,6 +20,25 @@ interface MeetingLiveProps {
   onDiscard: () => void;
   onCreateNote: (body: string) => void;
 }
+
+const PROGRESS_ROW_CLASSES =
+  "flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2.5";
+
+interface ProgressRowProps {
+  label: string;
+  children: React.ReactNode;
+}
+
+const ProgressRow: React.FC<ProgressRowProps> = ({ label, children }) => (
+  <div className={PROGRESS_ROW_CLASSES}>
+    <dt className="text-[13px] leading-[19px] font-medium text-text-primary">
+      {label}
+    </dt>
+    <dd className="flex-none text-[12.5px] leading-[18px] text-text-secondary tabular-nums">
+      {children}
+    </dd>
+  </div>
+);
 
 export const MeetingLive: React.FC<MeetingLiveProps> = ({
   snapshot,
@@ -57,6 +74,7 @@ export const MeetingLive: React.FC<MeetingLiveProps> = ({
     systemAudio.availability !== "available" ||
     systemAudio.health === "failed" ||
     systemAudio.health === "degraded";
+  const storageAvailable = snapshot.session.storage === "available";
   const canPause = snapshot.session.allowed_actions.includes("pause");
   const canResume = snapshot.session.allowed_actions.includes("resume");
   const canStop = snapshot.session.allowed_actions.includes("stop");
@@ -75,120 +93,105 @@ export const MeetingLive: React.FC<MeetingLiveProps> = ({
   };
 
   return (
-    <div className="meetings-page meetings-live">
-      <header className="meeting-live-header">
-        <div className="meeting-live-identity">
-          <div>
-            <p>{t("meetings.live.activeCapture")}</p>
-            <h1>{snapshot.session.title}</h1>
-          </div>
-          <div className="meeting-live-statuses">
-            <MeetingPhaseBadge phase={snapshot.session.phase} />
-            <CaptureCompletenessBadge
+    <div className="settings-page">
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-border pb-4">
+        <div className="min-w-0">
+          <p className="font-mono text-[11px] leading-4 tracking-[0.045em] text-danger-strong uppercase">
+            {t("meetings.live.activeCapture")}
+          </p>
+          <h1 className="settings-page-title mt-0.5">
+            {snapshot.session.title}
+          </h1>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <MeetingPhaseText phase={snapshot.session.phase} />
+            <CaptureCompletenessText
               completeness={snapshot.session.capture_completeness}
             />
           </div>
         </div>
-        <dl className="meeting-live-timer">
-          <dt>{t("meetings.live.elapsed")}</dt>
-          <dd>{formatMeetingOffset(elapsedOffsetNs)}</dd>
+        <dl className="flex flex-none items-baseline gap-2">
+          <dt className="text-[12px] leading-4 text-text-secondary">
+            {t("meetings.live.elapsed")}
+          </dt>
+          <dd className="font-mono text-[19px] leading-6 font-semibold text-text-primary tabular-nums">
+            {formatMeetingOffset(elapsedOffsetNs)}
+          </dd>
         </dl>
       </header>
 
       {systemAudioLimited ? (
-        <Alert variant="warning" contained>
+        <Alert variant="warning">
           {t("meetings.live.microphoneOnlyPartial")}
         </Alert>
       ) : snapshot.session.capture_completeness === "partial" ? (
-        <Alert variant="warning" contained>
-          {t("meetings.live.partialCapture")}
-        </Alert>
+        <Alert variant="warning">{t("meetings.live.partialCapture")}</Alert>
       ) : null}
 
-      <section aria-labelledby="meeting-live-inputs">
-        <div className="meeting-section-heading">
-          <div>
-            <h2 id="meeting-live-inputs">{t("meetings.live.inputs")}</h2>
-            <p>{t("meetings.live.inputsDescription")}</p>
-          </div>
-        </div>
-        <div className="meeting-source-grid">
-          {snapshot.session.sources.map((source) => (
-            <SourceHealthCard
-              key={source.source_kind}
-              source={source}
-              elapsedOffsetNs={elapsedOffsetNs}
-              showTelemetry
-            />
-          ))}
-        </div>
-      </section>
+      <Section
+        title={t("meetings.live.inputs")}
+        description={t("meetings.live.inputsDescription")}
+      >
+        <MeetingSourceList
+          sources={snapshot.session.sources}
+          label={t("meetings.live.inputs")}
+          elapsedOffsetNs={elapsedOffsetNs}
+          showTelemetry
+        />
+      </Section>
 
-      <section className="meeting-live-progress" aria-labelledby="meeting-progress">
-        <div className="meeting-section-heading">
-          <div>
-            <h2 id="meeting-progress">{t("meetings.live.progress")}</h2>
-            <p>{t("meetings.live.progressDescription")}</p>
-          </div>
-        </div>
-        <dl>
-          <div>
-            <dt>{t("meetings.live.transcript")}</dt>
-            <dd>
+      <Section
+        title={t("meetings.live.progress")}
+        description={t("meetings.live.progressDescription")}
+      >
+        <div className="settings-group-panel">
+          <dl>
+            <ProgressRow label={t("meetings.live.transcript")}>
               {latestTranscriptOffsetNs === null
                 ? t("meetings.live.noTranscriptCheckpoint")
                 : t("meetings.live.transcriptThrough", {
                     time: formatMeetingOffset(latestTranscriptOffsetNs),
                   })}
-            </dd>
-          </div>
-          <div>
-            <dt>{t("meetings.live.asrLag")}</dt>
-            <dd>
+            </ProgressRow>
+            <ProgressRow label={t("meetings.live.asrLag")}>
               {transcriptLagNs === null
                 ? t("meetings.live.notReported")
                 : t("meetings.live.behind", {
                     duration: formatMeetingOffset(transcriptLagNs),
                   })}
-            </dd>
-          </div>
-          <div>
-            <dt>{t("meetings.live.storage")}</dt>
-            <dd>
-              {snapshot.session.storage === "available"
-                ? t("meetings.live.storageHealthy")
-                : t("meetings.live.storageUnavailable")}
-            </dd>
-          </div>
-          <div>
-            <dt>{t("meetings.live.processing")}</dt>
-            <dd>
-              <ProcessingStatusLine status={snapshot.session.processing_status} />
-            </dd>
-          </div>
-        </dl>
-      </section>
-
-      <section className="meeting-manual-note" aria-labelledby="meeting-manual-note-title">
-        <div className="meeting-section-heading">
-          <div>
-            <h2 id="meeting-manual-note-title">{t("meetings.live.manualNote")}</h2>
-            <p>
-              {t("meetings.live.manualNoteDescription", {
-                time: formatMeetingOffset(elapsedOffsetNs),
-              })}
-            </p>
-          </div>
+            </ProgressRow>
+            <ProgressRow label={t("meetings.live.storage")}>
+              <StatusText tone={storageAvailable ? "muted" : "danger"}>
+                {storageAvailable
+                  ? t("meetings.live.storageHealthy")
+                  : t("meetings.live.storageUnavailable")}
+              </StatusText>
+            </ProgressRow>
+            <ProgressRow label={t("meetings.live.processing")}>
+              <ProcessingStatusText
+                status={snapshot.session.processing_status}
+                live="polite"
+              />
+            </ProgressRow>
+          </dl>
         </div>
-        <textarea
+      </Section>
+
+      <Section
+        title={t("meetings.live.manualNote")}
+        description={t("meetings.live.manualNoteDescription", {
+          time: formatMeetingOffset(elapsedOffsetNs),
+        })}
+      >
+        <Textarea
           value={noteBody}
           onChange={(event) => setNoteBody(event.target.value)}
           placeholder={t("meetings.live.notePlaceholder")}
           aria-label={t("meetings.live.manualNote")}
           disabled={isMutating}
+          className="w-full"
         />
-        <div className="meeting-note-actions">
-          <span>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <span className="font-mono text-[11px] leading-4 text-text-secondary tabular-nums">
             {t("meetings.live.timestamp", {
               time: formatMeetingOffset(elapsedOffsetNs),
             })}
@@ -202,38 +205,9 @@ export const MeetingLive: React.FC<MeetingLiveProps> = ({
             {t("meetings.live.addNote")}
           </Button>
         </div>
-      </section>
+      </Section>
 
-      <div className="meeting-live-actions">
-        {isPaused ? (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onResume}
-            disabled={!canResume || isMutating}
-          >
-            <CirclePause size={15} aria-hidden="true" />
-            {t("meetings.actions.resume")}
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onPause}
-            disabled={!canPause || isMutating}
-          >
-            <CirclePause size={15} aria-hidden="true" />
-            {t("meetings.actions.pause")}
-          </Button>
-        )}
-        <Button
-          type="button"
-          onClick={onStop}
-          disabled={!canStop || isMutating}
-        >
-          <Square size={14} aria-hidden="true" />
-          {t("meetings.actions.stop")}
-        </Button>
+      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-4">
         <Button
           type="button"
           variant="danger-ghost"
@@ -241,6 +215,36 @@ export const MeetingLive: React.FC<MeetingLiveProps> = ({
           disabled={!canDiscard || isMutating}
         >
           {t("meetings.actions.discard")}
+        </Button>
+        {isPaused ? (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onResume}
+            disabled={!canResume || isMutating}
+          >
+            <Play size={14} aria-hidden="true" />
+            {t("meetings.actions.resume")}
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onPause}
+            disabled={!canPause || isMutating}
+          >
+            <Pause size={14} aria-hidden="true" />
+            {t("meetings.actions.pause")}
+          </Button>
+        )}
+        <Button
+          type="button"
+          variant="danger"
+          onClick={onStop}
+          disabled={!canStop || isMutating}
+        >
+          <Square size={13} aria-hidden="true" />
+          {t("meetings.actions.stop")}
         </Button>
       </div>
 

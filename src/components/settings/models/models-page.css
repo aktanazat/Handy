@@ -1,0 +1,244 @@
+/* Models page. Only rules this page needs; the shell, the primitives and the
+ * tokens live in src/styles. Sticky behaviour copies the modes page: opaque
+ * canvas plus one hairline, so rows scroll under it without a blur layer. */
+
+.models-page .models-storage-summary {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin-top: var(--space-1-5);
+}
+
+.models-catalog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.models-filter-bar {
+  background: var(--color-canvas);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-block: var(--space-2) var(--space-2-5);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+:root[data-material="glass"] .models-filter-bar {
+  background: var(--color-material-content);
+}
+
+.models-filter-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.models-filter-search {
+  flex: 1 1 220px;
+  min-inline-size: 0;
+}
+
+.models-filter-family {
+  inline-size: 200px;
+}
+
+.models-filter-clear {
+  margin-inline-start: auto;
+}
+
+/* ------------------------------------------------------------- families */
+
+.models-family {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.models-family-header {
+  align-items: baseline;
+  display: flex;
+  gap: var(--space-2);
+  justify-content: space-between;
+}
+
+.models-family-header h2 {
+  color: var(--color-text-primary);
+  font-size: var(--type-section-size);
+  font-weight: var(--type-section-weight);
+  letter-spacing: var(--type-section-tracking);
+  line-height: var(--type-section-line);
+  margin: 0;
+}
+
+.models-family-count {
+  color: var(--color-text-secondary);
+  flex: none;
+  font-size: var(--type-caption-size);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--type-caption-line);
+}
+
+/* ----------------------------------------------------------------- rows */
+
+.models-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.models-row-main {
+  align-items: flex-start;
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-2-5) var(--space-4);
+}
+
+.models-row-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-inline-size: 0;
+  flex: 1;
+}
+
+.models-row-name {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+}
+
+.models-row-name h3 {
+  color: var(--color-text-primary);
+  font-size: var(--type-row-size);
+  font-weight: var(--type-row-weight);
+  line-height: var(--type-row-line);
+  margin: 0;
+}
+
+/* A word, not a colored block: "Recommended" reads the same in greyscale. */
+.models-row-tag {
+  color: var(--color-text-secondary);
+  font-size: var(--type-caption-size);
+  font-weight: var(--type-caption-weight);
+  letter-spacing: var(--type-caption-tracking);
+  line-height: var(--type-caption-line);
+  text-transform: uppercase;
+}
+
+.models-row-description,
+.models-row-meta {
+  color: var(--color-text-secondary);
+  font-size: var(--type-secondary-size);
+  line-height: var(--type-secondary-line);
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.models-row-meta {
+  font-variant-numeric: tabular-nums;
+}
+
+.models-row-actions {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: var(--space-2);
+}
+
+.models-row-actions > span:first-child {
+  min-inline-size: 96px;
+  text-align: end;
+}
+
+.models-row-progress {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+  padding: 0 var(--space-4) var(--space-2-5);
+}
+
+.models-row-progress-bar {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.models-row-progress-bar progress {
+  inline-size: 100%;
+}
+
+.models-row-error {
+  align-items: center;
+  background: var(--color-danger-soft);
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4);
+}
+
+/* --------------------------------------------------------- loading state */
+
+.models-skeleton-list {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+}
+
+.models-skeleton-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  padding: var(--space-3) var(--space-4);
+}
+
+.models-skeleton-row + .models-skeleton-row {
+  border-top: 1px solid var(--color-border);
+}
+
+.models-spin {
+  animation: models-spin 900ms linear infinite;
+}
+
+@keyframes models-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .models-spin {
+    animation: none;
+  }
+}
+
+/* Narrow window (min 680px): the actions column drops under the identity
+   block rather than squeezing the name to nothing. Nothing is hidden. */
+@media (max-width: 820px) {
+  .models-row-main {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .models-row-actions {
+    inline-size: 100%;
+    justify-content: flex-start;
+  }
+
+  .models-row-actions > span:first-child {
+    min-inline-size: 0;
+    text-align: start;
+  }
+
+  .models-filter-family {
+    inline-size: 100%;
+  }
+
+  .models-filter-clear {
+    margin-inline-start: 0;
+  }
+}

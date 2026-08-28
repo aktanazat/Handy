@@ -1,10 +1,4 @@
-import {
-  FileAudio,
-  FolderOpen,
-  MessageSquare,
-  Mic,
-  Video,
-} from "lucide-react";
+import { FileAudio, FolderOpen, MessageSquare, Mic, Video } from "lucide-react";
 import type { ReactNode } from "react";
 
 const ICON_SIZE = 16;
