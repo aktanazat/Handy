@@ -135,6 +135,16 @@ export function prepareAgentHook(targetTriple: string, root = ROOT): string {
     sidecarFilename(target),
   );
   stageSidecar(source, destination, target);
+
+  /* The tauri bundler strips the app's main-binary prefix ("sona-") when it
+   * derives the bundled sidecar name, then copies that derived name out of the
+   * host-profile directory. Without this copy `tauri build` dies at bundling
+   * with: Failed to copy binary from ".../target/release/agent-hook". */
+  const strippedName = `agent-hook${target.includes("-windows-") ? ".exe" : ""}`;
+  const hostRelease = process.env.CARGO_TARGET_DIR
+    ? join(process.env.CARGO_TARGET_DIR, "release")
+    : join(root, "src-tauri", "target", "release");
+  stageSidecar(source, join(hostRelease, strippedName), target);
   return destination;
 }
 
