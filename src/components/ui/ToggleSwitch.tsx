@@ -1,7 +1,8 @@
 import React, { useId } from "react";
 import { SettingContainer } from "./SettingContainer";
+import { Switch } from "./Switch";
 
-interface ToggleSwitchProps {
+export interface ToggleSwitchProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
@@ -13,6 +14,9 @@ interface ToggleSwitchProps {
   tooltipPosition?: "top" | "bottom";
 }
 
+/* A settings row whose control is a Switch: label and description on the
+ * left, the switch on the right. Reach for Switch directly when the row
+ * chrome is not wanted. */
 export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   checked,
   onChange,
@@ -37,21 +41,14 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
       tooltipPosition={tooltipPosition}
       controlId={inputId}
     >
-      <label
-        htmlFor={inputId}
-        className={`flex items-center ${unavailable ? "cursor-not-allowed" : "cursor-pointer"}`}
-      >
-        <input
-          id={inputId}
-          type="checkbox"
-          className="peer sr-only"
-          checked={checked}
-          disabled={unavailable}
-          aria-describedby={`${inputId}-description`}
-          onChange={(event) => onChange(event.target.checked)}
-        />
-        <span className="glass-toggle relative h-5 w-9 rounded-full peer-checked:bg-inverse-background peer-disabled:opacity-50 peer-focus-visible:ring-2 peer-focus-visible:ring-accent-strong peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-canvas after:absolute after:start-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:border after:border-border after:bg-surface after:transition-transform after:duration-150 peer-checked:after:translate-x-4 rtl:peer-checked:after:-translate-x-4" />
-      </label>
+      <Switch
+        id={inputId}
+        checked={checked}
+        onChange={onChange}
+        label={label}
+        disabled={unavailable}
+        describedBy={`${inputId}-description`}
+      />
       {isUpdating && (
         <div className="absolute inset-0 flex items-center justify-center bg-surface/80">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-text-secondary border-t-transparent" />

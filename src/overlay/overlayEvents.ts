@@ -1,6 +1,10 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { events } from "@/bindings";
-import type { StreamEngineEvent, StreamPhaseEvent, StreamTextEvent } from "@/bindings";
+import type {
+  StreamEngineEvent,
+  StreamPhaseEvent,
+  StreamTextEvent,
+} from "@/bindings";
 
 export type OverlayState =
   | "recording"

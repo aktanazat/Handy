@@ -1,0 +1,636 @@
+/* App chrome: window shell, top bar, section sub-nav, command palette and the
+ * scrolling page container.
+ *
+ * The top bar is the whole navigation model: three text routes on the left,
+ * model state and two utilities on the right. Location is shown twice — a
+ * 2px underline under the active route and aria-current="page" — so it reads
+ * without color. Every interactive target in the bar is 44px tall; the
+ * visible wash is smaller and drawn by a pseudo-element, so density stays
+ * desktop-native without shrinking the hit area. */
+
+/* ---------------------------------------------------------------- shell */
+
+.app-shell,
+.onboarding-shell {
+  background: var(--color-canvas);
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
+}
+
+:root[data-material="glass"] .app-shell,
+:root[data-material="glass"] .onboarding-shell {
+  background: transparent;
+}
+
+/* ------------------------------------------------------------- top nav */
+
+.app-topnav {
+  align-items: stretch;
+  background: var(--color-canvas);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  flex: none;
+  gap: var(--space-2);
+  min-block-size: var(--topnav-height);
+  padding-inline: var(--space-2);
+  user-select: none;
+}
+
+:root[data-platform="macos"] .app-topnav {
+  padding-inline-start: 80px;
+}
+
+.app-topnav-mark {
+  align-items: center;
+  color: var(--color-text-primary);
+  display: flex;
+  flex: none;
+  gap: var(--space-1-5);
+}
+
+.app-topnav-mark svg {
+  block-size: 14px;
+  color: currentColor;
+  inline-size: 14px;
+}
+
+.app-topnav-wordmark {
+  font-size: 12px;
+  font-weight: 620;
+  letter-spacing: -0.018em;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.app-topnav-routes {
+  align-items: stretch;
+  display: flex;
+  gap: var(--space-0-5);
+  margin-inline-start: var(--space-3);
+  min-inline-size: 0;
+}
+
+.app-topnav-route {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: var(--type-row-size);
+  font-weight: var(--type-row-weight);
+  min-block-size: var(--touch-target);
+  min-inline-size: var(--touch-target);
+  padding-inline: var(--space-2-5);
+  position: relative;
+  transition: color var(--duration-fast) var(--ease-out);
+  white-space: nowrap;
+}
+
+/* The underline lives on a pseudo-element so it can animate on transform
+ * only, and so it can sit flush with the bar's bottom hairline. */
+.app-topnav-route::after {
+  background: currentColor;
+  block-size: 2px;
+  content: "";
+  inset-block-end: 0;
+  inset-inline: var(--space-1-5);
+  position: absolute;
+  transform: scaleX(0);
+  transition: transform var(--duration-standard) var(--ease-out);
+}
+
+.app-topnav-route:hover {
+  color: var(--color-text-primary);
+}
+
+.app-topnav-route:active {
+  color: var(--color-text-secondary);
+}
+
+.app-topnav-route:focus-visible {
+  color: var(--color-text-primary);
+  outline-offset: calc(var(--focus-ring-offset) * -2);
+}
+
+.app-topnav-route[aria-current="page"] {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.app-topnav-route[aria-current="page"]::after {
+  transform: scaleX(1);
+}
+
+.app-topnav-spacer {
+  flex: 1 1 auto;
+  min-inline-size: var(--space-2);
+}
+
+.app-topnav-actions {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: var(--space-0-5);
+  min-inline-size: 0;
+}
+
+.app-topnav-icon-button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  block-size: var(--touch-target);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  inline-size: var(--touch-target);
+  justify-content: center;
+  padding: 0;
+  position: relative;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.app-topnav-icon-button::before {
+  background: transparent;
+  border-radius: var(--radius-control);
+  content: "";
+  inset: var(--space-1-5);
+  position: absolute;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.app-topnav-icon-button:hover {
+  color: var(--color-text-primary);
+}
+
+.app-topnav-icon-button:hover::before {
+  background: var(--color-hover);
+}
+
+.app-topnav-icon-button:active::before {
+  background: var(--color-pressed);
+}
+
+.app-topnav-icon-button:focus-visible {
+  color: var(--color-text-primary);
+  /* Pull the ring in so it hugs the 32px wash, not the 44px hit area. */
+  outline-offset: calc(var(--space-1-5) * -1);
+}
+
+.app-topnav-icon-button[aria-current="page"],
+.app-topnav-icon-button[aria-expanded="true"] {
+  color: var(--color-text-primary);
+}
+
+.app-topnav-icon-button[aria-current="page"]::before {
+  background: var(--color-subtle);
+}
+
+.app-topnav-icon-button svg {
+  block-size: 15px;
+  inline-size: 15px;
+  position: relative;
+}
+
+/* ---------------------------------------------------------- model chip */
+
+.app-topnav-model {
+  align-items: center;
+  display: flex;
+  margin-inline-end: var(--space-1);
+  min-inline-size: 0;
+  position: relative;
+}
+
+.model-chip {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  gap: var(--space-1-5);
+  max-inline-size: 176px;
+  min-block-size: var(--touch-target);
+  padding-inline: var(--space-2);
+  position: relative;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.model-chip::before {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  content: "";
+  inset: var(--space-1-5) 0;
+  position: absolute;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.model-chip:hover {
+  color: var(--color-text-primary);
+}
+
+.model-chip:hover::before {
+  background: var(--color-hover);
+}
+
+.model-chip:active::before {
+  background: var(--color-pressed);
+}
+
+.model-chip:focus-visible {
+  outline-offset: calc(var(--space-1-5) * -1);
+}
+
+.model-chip[aria-expanded="true"] {
+  color: var(--color-text-primary);
+}
+
+.model-chip[aria-expanded="true"]::before {
+  background: var(--color-subtle);
+  border-color: var(--color-border);
+}
+
+.model-chip[data-status="error"] {
+  color: var(--color-danger);
+}
+
+.model-chip-label {
+  font-size: 12px;
+  font-weight: 500;
+  min-inline-size: 0;
+  overflow: hidden;
+  position: relative;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-chip-caret {
+  block-size: 12px;
+  flex: none;
+  inline-size: 12px;
+  position: relative;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.model-chip[aria-expanded="true"] .model-chip-caret {
+  transform: rotate(180deg);
+}
+
+/* Determinate download progress, drawn under the label instead of a second
+ * widget in the bar. */
+.model-chip-progress {
+  background: var(--color-border-strong);
+  block-size: 2px;
+  border-radius: var(--radius-pill);
+  inset-block-end: var(--space-2);
+  inset-inline: var(--space-2);
+  overflow: hidden;
+  position: absolute;
+}
+
+.model-chip-progress > span {
+  background: var(--color-text-primary);
+  display: block;
+  inline-size: var(--model-chip-progress, 0%);
+  min-inline-size: 2px;
+  transition: inline-size var(--duration-standard) var(--ease-out);
+}
+
+/* The chip carries download state, so the standalone progress widget the
+ * model selector also renders stays out of the bar. */
+.app-topnav-model > :not(.model-chip-anchor) {
+  display: none;
+}
+
+.model-chip-anchor {
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  position: relative;
+}
+
+/* ---------------------------------------------------------- section nav */
+
+.app-subnav {
+  background: var(--color-canvas);
+  border-bottom: 1px solid var(--color-border);
+  flex: none;
+}
+
+.app-subnav-inner {
+  display: flex;
+  gap: var(--space-0-5);
+  margin-inline: auto;
+  max-inline-size: var(--page-max-width);
+  padding-inline: var(--space-6);
+}
+
+.app-subnav-item {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: var(--type-row-size);
+  font-weight: var(--type-row-weight);
+  min-block-size: var(--touch-target);
+  min-inline-size: var(--touch-target);
+  padding-inline: var(--space-3);
+  position: relative;
+  transition: color var(--duration-fast) var(--ease-out);
+  white-space: nowrap;
+}
+
+.app-subnav-item::before {
+  background: transparent;
+  border-radius: var(--radius-control);
+  content: "";
+  inset: var(--space-1-5) 0;
+  position: absolute;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.app-subnav-item > span {
+  position: relative;
+}
+
+.app-subnav-item:hover {
+  color: var(--color-text-primary);
+}
+
+.app-subnav-item:hover::before {
+  background: var(--color-hover);
+}
+
+.app-subnav-item:active::before {
+  background: var(--color-pressed);
+}
+
+.app-subnav-item:focus-visible {
+  outline-offset: calc(var(--space-1-5) * -1);
+}
+
+.app-subnav-item[aria-current="page"] {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.app-subnav-item[aria-current="page"]::before {
+  background: var(--color-subtle);
+}
+
+/* -------------------------------------------------------- command palette */
+
+.command-palette {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-dialog);
+  box-shadow: var(--shadow-dialog);
+  display: flex;
+  flex-direction: column;
+  inline-size: min(560px, calc(100vw - 32px));
+  inset-block-start: max(12vh, 64px);
+  inset-inline-start: 50%;
+  margin: 0;
+  overflow: hidden;
+  padding: 0;
+  position: fixed;
+  transform: translateX(-50%);
+}
+
+.command-palette[open] {
+  animation: command-palette-in var(--duration-standard) var(--ease-out);
+}
+
+.command-palette::backdrop {
+  background: var(--color-backdrop);
+}
+
+@keyframes command-palette-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-4px);
+  }
+}
+
+.command-palette-input-row {
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  gap: var(--space-2-5);
+  padding: var(--space-3) var(--space-4);
+}
+
+.command-palette-search-icon {
+  color: var(--color-text-tertiary);
+  display: inline-flex;
+  flex: none;
+}
+
+/* A ring around the search field inside an already-modal palette is noise,
+ * so the row itself carries the indicator: the divider under it goes to full
+ * contrast while the field holds focus. */
+.command-palette-input-row:focus-within {
+  border-bottom-color: var(--color-border-strong);
+}
+
+.command-palette-input-row input {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-primary);
+  flex: 1 1 auto;
+  font-size: 14px;
+  line-height: 20px;
+  min-inline-size: 0;
+  outline: none;
+}
+
+.command-palette-input-row input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.command-palette-list {
+  max-block-size: min(340px, 50vh);
+  overflow-y: auto;
+  padding: var(--space-1-5) 0;
+}
+
+.command-palette-group {
+  color: var(--color-text-tertiary);
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  font-weight: var(--type-caption-weight);
+  letter-spacing: 0.06em;
+  line-height: 16px;
+  padding: var(--space-2) var(--space-4) var(--space-1);
+  text-transform: uppercase;
+}
+
+.command-palette-item {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-control);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: flex;
+  font-size: var(--type-row-size);
+  gap: var(--space-2-5);
+  inline-size: calc(100% - 12px);
+  margin-inline: var(--space-1-5);
+  min-block-size: 36px;
+  padding-inline: var(--space-2-5);
+  text-align: start;
+  transition: background-color var(--duration-instant) var(--ease-out);
+}
+
+.command-palette-item:hover,
+.command-palette-item[data-highlighted] {
+  background: var(--color-hover);
+}
+
+.command-palette-item:active {
+  background: var(--color-pressed);
+}
+
+.command-palette-item-icon {
+  color: var(--color-text-tertiary);
+  display: inline-flex;
+  flex: none;
+}
+
+.command-palette-item-label {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.command-palette-item-hint {
+  color: var(--color-text-tertiary);
+  flex: none;
+  font-family: var(--font-geist-mono);
+  font-size: 11px;
+}
+
+.command-palette-empty {
+  color: var(--color-text-secondary);
+  font-size: var(--type-row-size);
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.command-palette-footer {
+  align-items: center;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-tertiary);
+  display: flex;
+  font-size: 11px;
+  gap: var(--space-3);
+  justify-content: space-between;
+  min-block-size: 36px;
+  padding: var(--space-1-5) var(--space-4);
+}
+
+.command-palette-version {
+  font-family: var(--font-geist-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.command-palette-keys {
+  align-items: center;
+  display: flex;
+  gap: var(--space-1-5);
+}
+
+/* ---------------------------------------------------------------- main */
+
+.settings-main {
+  background: var(--color-canvas);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  min-inline-size: 0;
+}
+
+:root[data-material="glass"] .settings-main {
+  -webkit-backdrop-filter: blur(24px) saturate(104%);
+  backdrop-filter: blur(24px) saturate(104%);
+  background: var(--color-material-content);
+}
+
+.settings-scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.settings-content {
+  box-sizing: border-box;
+  gap: var(--space-4);
+  margin-inline: auto;
+  max-inline-size: var(--page-max-width);
+  padding: var(--space-6) var(--space-6) 48px;
+}
+
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+  inline-size: 100%;
+  margin-inline: auto;
+}
+
+.settings-page > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0 !important;
+}
+
+.settings-page-header {
+  padding: 0;
+}
+
+.settings-page-title {
+  color: var(--color-text-primary);
+  font-size: var(--type-title-size);
+  font-weight: var(--type-title-weight);
+  letter-spacing: var(--type-title-tracking);
+  line-height: var(--type-title-line);
+  text-wrap: balance;
+}
+
+.settings-page-description {
+  color: var(--color-text-secondary);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  margin-top: var(--space-1);
+  max-inline-size: 62ch;
+  text-wrap: pretty;
+}
+
+.data-page-header {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
+  justify-content: space-between;
+}
+
+.data-page-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* --------------------------------------------------------- route loading */
+
+.app-route-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  inline-size: 100%;
+  padding-block-start: var(--space-1);
+}

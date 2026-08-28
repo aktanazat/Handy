@@ -1,9 +1,18 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { getVersion } from "@tauri-apps/api/app";
+import { Search } from "lucide-react";
+import { Kbd } from "./ui/Kbd";
 import type { CommandPaletteAction } from "./commandPaletteActions";
 
-interface CommandPaletteProps {
+export interface CommandPaletteProps {
   open: boolean;
   onClose: () => void;
   actions: CommandPaletteAction[];
@@ -15,6 +24,10 @@ interface CommandPaletteGroup {
 }
 
 const ICON_SIZE = 16;
+const LISTBOX_ID = "command-palette-listbox";
+
+const optionId = (action: CommandPaletteAction) =>
+  `command-palette-option-${action.id}`;
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
   open,
@@ -44,11 +57,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   ) : null;
 };
 
-interface CommandPaletteDialogProps
-  extends Omit<CommandPaletteProps, "open"> {
+interface CommandPaletteDialogProps extends Omit<CommandPaletteProps, "open"> {
   version: string;
 }
 
+/* Combobox over a listbox: the input keeps focus and owns the keyboard, and
+ * aria-activedescendant moves the announced option. Mounted only while open,
+ * so the query and the highlight reset every time it is summoned. */
 const CommandPaletteDialog: React.FC<CommandPaletteDialogProps> = ({
   onClose,
   actions,
@@ -58,13 +73,21 @@ const CommandPaletteDialog: React.FC<CommandPaletteDialogProps> = ({
   const [query, setQuery] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  /* StrictMode runs this effect twice: the first cleanup closes the dialog,
+   * and that close event must not reach the parent as a user close or the
+   * palette dismisses itself the moment it opens. */
+  const closingFromCleanup = useRef(false);
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
     dialog.showModal();
     return () => {
-      if (dialog.open) dialog.close();
+      if (dialog.open) {
+        closingFromCleanup.current = true;
+        dialog.close();
+      }
     };
   }, []);
 
@@ -75,7 +98,9 @@ const CommandPaletteDialog: React.FC<CommandPaletteDialogProps> = ({
   }, [actions, query]);
 
   const grouped = useMemo(() => {
-    const navigation = filtered.filter((action) => action.group === "navigation");
+    const navigation = filtered.filter(
+      (action) => action.group === "navigation",
+    );
     const commandActions = filtered.filter(
       (action) => action.group === "actions",
     );
@@ -94,53 +119,94 @@ const CommandPaletteDialog: React.FC<CommandPaletteDialogProps> = ({
 
   const close = useCallback(() => dialogRef.current?.close(), []);
 
-  const runHighlighted = useCallback(() => {
-    const action = filtered[highlightedIndex];
-    if (!action) return;
-    action.run();
-    close();
-  }, [close, filtered, highlightedIndex]);
+  const run = useCallback(
+    (action: CommandPaletteAction | undefined) => {
+      if (!action) return;
+      action.run();
+      close();
+    },
+    [close],
+  );
+
+  const safeIndex = Math.min(
+    highlightedIndex,
+    Math.max(0, filtered.length - 1),
+  );
+  const highlighted = filtered[safeIndex];
 
   useEffect(() => {
-    if (highlightedIndex >= filtered.length) {
+    if (highlightedIndex !== safeIndex) setHighlightedIndex(safeIndex);
+  }, [highlightedIndex, safeIndex]);
+
+  // Keep the highlighted option in view when the arrows walk past the fold.
+  useLayoutEffect(() => {
+    if (!highlighted) return;
+    listRef.current
+      ?.querySelector(`#${CSS.escape(optionId(highlighted))}`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [highlighted]);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDialogElement>) => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setHighlightedIndex((current) =>
+        Math.min(filtered.length - 1, current + 1),
+      );
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setHighlightedIndex((current) => Math.max(0, current - 1));
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      setHighlightedIndex(0);
+    } else if (event.key === "End") {
+      event.preventDefault();
       setHighlightedIndex(Math.max(0, filtered.length - 1));
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      run(highlighted);
     }
-  }, [filtered.length, highlightedIndex]);
+  };
 
   return (
     <dialog
       ref={dialogRef}
       className="command-palette"
-      style={{ margin: 0, padding: 0 }}
       aria-label={t("commandPalette.open")}
       onCancel={(event) => {
         event.preventDefault();
         close();
       }}
-      onClose={onClose}
-      onKeyDown={(event) => {
-        if (event.key === "ArrowDown") {
-          event.preventDefault();
-          setHighlightedIndex((current) =>
-            Math.min(filtered.length - 1, current + 1),
-          );
-        } else if (event.key === "ArrowUp") {
-          event.preventDefault();
-          setHighlightedIndex((current) => Math.max(0, current - 1));
-        } else if (event.key === "Enter") {
-          event.preventDefault();
-          runHighlighted();
+      onClose={() => {
+        if (closingFromCleanup.current) {
+          closingFromCleanup.current = false;
+          return;
         }
+        onClose();
       }}
+      // Clicking the backdrop targets the dialog element itself.
+      onMouseDown={(event) => {
+        if (event.target === dialogRef.current) close();
+      }}
+      onKeyDown={handleKeyDown}
     >
       <div className="command-palette-input-row">
         <span className="command-palette-search-icon" aria-hidden="true">
-          <SearchGlyph />
+          <Search size={ICON_SIZE} />
         </span>
         <input
           type="text"
+          role="combobox"
+          aria-expanded={true}
+          aria-controls={LISTBOX_ID}
+          aria-activedescendant={
+            highlighted ? optionId(highlighted) : undefined
+          }
+          aria-autocomplete="list"
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setHighlightedIndex(0);
+          }}
           placeholder={t("commandPalette.placeholder")}
           aria-label={t("commandPalette.placeholder")}
           autoComplete="off"
@@ -148,75 +214,74 @@ const CommandPaletteDialog: React.FC<CommandPaletteDialogProps> = ({
           spellCheck={false}
         />
       </div>
-      <div className="command-palette-list">
+      <div ref={listRef} className="command-palette-list">
         {grouped.length === 0 ? (
           <p className="command-palette-empty" role="status">
             {t("commandPalette.noResults")}
           </p>
         ) : (
-          grouped.map((group) => (
-            <section key={group.label} aria-label={group.label}>
-              <h3 className="command-palette-group">{group.label}</h3>
-              {group.items.map((action) => {
-                const flatIndex = filtered.indexOf(action);
-                return (
-                  <button
-                    key={action.id}
-                    type="button"
-                    className="command-palette-item"
-                    data-highlighted={flatIndex === highlightedIndex || undefined}
-                    onMouseEnter={() => setHighlightedIndex(flatIndex)}
-                    onClick={() => {
-                      action.run();
-                      close();
-                    }}
-                  >
-                    <span className="command-palette-item-icon" aria-hidden="true">
-                      {action.icon}
-                    </span>
-                    <span className="command-palette-item-label">
-                      {action.label}
-                    </span>
-                    {action.hint ? (
-                      <span className="command-palette-item-hint">
-                        {action.hint}
+          <div
+            id={LISTBOX_ID}
+            role="listbox"
+            aria-label={t("commandPalette.open")}
+          >
+            {grouped.map((group) => (
+              <div key={group.label} role="group" aria-label={group.label}>
+                <p className="command-palette-group" aria-hidden="true">
+                  {group.label}
+                </p>
+                {group.items.map((action) => {
+                  const index = filtered.indexOf(action);
+                  return (
+                    <button
+                      key={action.id}
+                      id={optionId(action)}
+                      type="button"
+                      role="option"
+                      aria-selected={index === safeIndex}
+                      tabIndex={-1}
+                      className="command-palette-item"
+                      data-highlighted={index === safeIndex || undefined}
+                      onMouseMove={() => setHighlightedIndex(index)}
+                      onClick={() => run(action)}
+                    >
+                      <span
+                        className="command-palette-item-icon"
+                        aria-hidden="true"
+                      >
+                        {action.icon}
                       </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </section>
-          ))
+                      <span className="command-palette-item-label">
+                        {action.label}
+                      </span>
+                      {action.hint ? (
+                        <span className="command-palette-item-hint">
+                          {action.hint}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         )}
       </div>
       <footer className="command-palette-footer">
-        {/* eslint-disable-next-line i18next/no-literal-string */}
-        {version ? <span className="command-palette-version">v{version}</span> : null}
+        {version ? (
+          <span className="command-palette-version">{`v${version}`}</span>
+        ) : (
+          <span />
+        )}
         <span className="command-palette-keys">
-          <kbd>↑</kbd>
-          <kbd>↓</kbd>
+          <Kbd>{"\u2191"}</Kbd>
+          <Kbd>{"\u2193"}</Kbd>
           <span>{t("commandPalette.navigate")}</span>
-          <kbd>↵</kbd>
+          <Kbd>{"\u21B5"}</Kbd>
           <span>{t("commandPalette.select")}</span>
-          <kbd>{t("commandPalette.esc")}</kbd>
+          <Kbd>{t("commandPalette.esc")}</Kbd>
         </span>
       </footer>
     </dialog>
   );
 };
-
-const SearchGlyph = () => (
-  <svg
-    width={ICON_SIZE}
-    height={ICON_SIZE}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="11" cy="11" r="7" />
-    <path d="m21 21-4.3-4.3" />
-  </svg>
-);

@@ -1,6 +1,6 @@
 import React from "react";
 
-interface SettingsGroupProps {
+export interface SettingsGroupProps {
   title?: string;
   description?: string;
   children: React.ReactNode;

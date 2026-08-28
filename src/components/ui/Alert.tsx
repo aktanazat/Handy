@@ -1,12 +1,14 @@
 import React from "react";
 import { AlertCircle, AlertTriangle, Info, CheckCircle } from "lucide-react";
 
-type AlertVariant = "error" | "warning" | "info" | "success";
+export type AlertVariant = "error" | "warning" | "info" | "success";
 
-interface AlertProps {
+export interface AlertProps {
   variant?: AlertVariant;
   /** When true, removes rounded corners for use inside containers */
   contained?: boolean;
+  /** One control, right-aligned: usually a retry or a dismiss. */
+  action?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
 }
@@ -17,7 +19,7 @@ const variantStyles: Record<
 > = {
   error: {
     container: "border-border bg-surface",
-    icon: "text-danger",
+    icon: "text-danger-strong",
     text: "text-text-primary",
   },
   warning: {
@@ -47,6 +49,7 @@ const variantIcons: Record<AlertVariant, React.ElementType> = {
 export const Alert: React.FC<AlertProps> = ({
   variant = "error",
   contained = false,
+  action,
   children,
   className = "",
 }) => {
@@ -56,10 +59,13 @@ export const Alert: React.FC<AlertProps> = ({
   return (
     <div
       role={variant === "error" ? "alert" : "status"}
-      className={`flex items-start gap-2.5 border p-3 ${styles.container} ${contained ? "border-x-0 rounded-none" : "rounded-md"} ${className}`}
+      className={`flex items-start gap-2.5 border p-3 ${styles.container} ${contained ? "border-x-0 rounded-none" : "rounded-control"} ${className}`}
     >
       <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${styles.icon}`} />
-      <p className={`text-sm leading-5 ${styles.text}`}>{children}</p>
+      <p className={`min-w-0 flex-1 text-[13px] leading-5 ${styles.text}`}>
+        {children}
+      </p>
+      {action && <div className="flex flex-none items-center">{action}</div>}
     </div>
   );
 };

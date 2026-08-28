@@ -1,6 +1,7 @@
 import React from "react";
+import { ChevronDown } from "lucide-react";
 
-type ModelStatus =
+export type ModelStatus =
   | "ready"
   | "loading"
   | "downloading"
@@ -10,66 +11,55 @@ type ModelStatus =
   | "unloaded"
   | "none";
 
-interface ModelStatusButtonProps {
+/** Inline style carrying the download fraction through to CSS. */
+interface ProgressStyle extends React.CSSProperties {
+  "--model-chip-progress": string;
+}
+
+export interface ModelStatusButtonProps {
   status: ModelStatus;
   displayText: string;
   isDropdownOpen: boolean;
   onClick: () => void;
-  className?: string;
+  /** 0-100 while a download is in flight, otherwise null. */
+  progress?: number | null;
 }
 
-const getStatusClasses = (status: ModelStatus): string => {
-  switch (status) {
-    case "loading":
-    case "downloading":
-    case "verifying":
-    case "extracting":
-      return "text-text-secondary";
-    case "error":
-      return "text-danger";
-    default:
-      return "text-text-secondary";
-  }
-};
-
 /**
- * Compact model switcher trigger for the top nav. Status is conveyed with
- * text color, not a status dot: busy states pulse the label, errors go
- * danger. The label truncates so the nav bar never clips it.
+ * Model switcher trigger in the top bar. Status is carried by the label text
+ * and, while downloading, by a hairline progress rule under it. No status
+ * dot: the words already say what is happening, and the error state shifts
+ * the label to danger so it reads in greyscale too.
  */
 const ModelStatusButton: React.FC<ModelStatusButtonProps> = ({
   status,
   displayText,
   isDropdownOpen,
   onClick,
-  className = "",
+  progress = null,
 }) => {
+  const progressStyle: ProgressStyle | undefined =
+    progress === null
+      ? undefined
+      : { "--model-chip-progress": `${Math.max(0, Math.min(100, progress))}%` };
+
   return (
     <button
       type="button"
       onClick={onClick}
       aria-haspopup="listbox"
       aria-expanded={isDropdownOpen}
+      data-status={status}
       title={displayText}
-      className={`flex h-[28px] max-w-full items-center gap-1.5 rounded-[6px] px-2 text-[12px] font-medium transition-colors hover:bg-hover hover:text-text-primary ${getStatusClasses(status)} ${className}`}
+      className="model-chip"
     >
-      <span className="max-w-[108px] truncate">{displayText}</span>
-      <svg
-        className={`h-3 w-3 shrink-0 text-text-tertiary transition-transform ${
-          isDropdownOpen ? "rotate-180" : ""
-        }`}
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M19 9l-7 7-7-7"
-        />
-      </svg>
+      <span className="model-chip-label">{displayText}</span>
+      <ChevronDown className="model-chip-caret" aria-hidden="true" />
+      {progressStyle && (
+        <span className="model-chip-progress" style={progressStyle}>
+          <span />
+        </span>
+      )}
     </button>
   );
 };

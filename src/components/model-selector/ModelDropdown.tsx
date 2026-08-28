@@ -33,7 +33,7 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
     <div
       role="listbox"
       aria-label={t("modelSelector.model")}
-      className="absolute left-0 top-full z-50 mt-1 max-h-[60vh] w-72 overflow-y-auto border border-border-strong bg-surface py-1.5 shadow-[var(--shadow-popover)]"
+      className="absolute left-0 top-full z-50 mt-1 max-h-[60vh] w-72 overflow-y-auto rounded-panel border border-border-strong bg-surface py-1.5 shadow-[var(--shadow-popover)]"
     >
       {downloadedModels.length > 0 ? (
         <div>

@@ -11,7 +11,7 @@ const FOCUSABLE_SELECTOR = [
   "[tabindex]:not([tabindex='-1'])",
 ].join(",");
 
-interface DialogProps {
+export interface DialogProps {
   open: boolean;
   title: React.ReactNode;
   children: React.ReactNode;

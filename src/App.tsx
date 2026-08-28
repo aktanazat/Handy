@@ -1,5 +1,5 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -17,6 +17,7 @@ import AccessibilityOnboarding from "./components/onboarding/AccessibilityOnboar
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { TopNav } from "./components/TopNav";
 import { CommandPalette } from "./components/CommandPalette";
+import { RouteSkeleton, Toaster } from "./components/ui";
 import {
   commandActionIcons,
   type CommandPaletteAction,
@@ -28,11 +29,7 @@ import {
 import { WhatsNewGate } from "./components/whats-new";
 import { useSettings } from "./hooks/useSettings";
 import { useSettingsStore } from "./stores/settingsStore";
-import {
-  commands,
-  events,
-  type MeetingNavigationPayload,
-} from "@/bindings";
+import { commands, events, type MeetingNavigationPayload } from "@/bindings";
 import {
   getLanguageDirection,
   initializeRTL,
@@ -113,22 +110,8 @@ const subscribeToMeetingEvents = async (
   };
 };
 
-const AppToaster = () => (
-  <Toaster
-    theme="system"
-    toastOptions={{
-      unstyled: true,
-      classNames: {
-        toast:
-          "bg-surface border border-border rounded-[8px] px-4 py-3 flex items-center gap-3 text-sm",
-        title: "font-medium",
-        description: "text-text-secondary",
-        actionButton:
-          "min-h-8 px-2 text-xs font-medium rounded-md border border-border bg-surface hover:bg-hover cursor-pointer whitespace-nowrap",
-      },
-    }}
-  />
-);
+/* The toast surface and the route skeleton both live in the design system;
+ * the shell only decides where they mount. */
 
 interface AppContentProps {
   onboardingStep: OnboardingStep | null;
@@ -143,7 +126,7 @@ interface AppContentProps {
   meetingStartRequest: number;
   commandOpen: boolean;
   commandActions: CommandPaletteAction[];
-   onCommandClose: () => void;
+  onCommandClose: () => void;
   onCommandOpen: () => void;
 }
 
@@ -160,7 +143,7 @@ const AppContent = ({
   meetingStartRequest,
   commandOpen,
   commandActions,
-   onCommandClose,
+  onCommandClose,
   onCommandOpen,
 }: AppContentProps) => {
   if (onboardingStep === null) return null;
@@ -182,31 +165,27 @@ const AppContent = ({
       <TopNav
         activeSection={currentSection}
         onSectionChange={onSectionChange}
-                onOpenCommand={onCommandOpen}
+        onOpenCommand={onCommandOpen}
       />
       <main className="settings-main flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="settings-scroll flex-1 overflow-y-auto">
           <div className="settings-content flex w-full flex-col items-stretch">
             <AccessibilityPermissions />
             <SecureInputWarning />
-            <Suspense
-              fallback={
-                <div
-                  role="status"
-                  className="flex min-h-36 items-center justify-center text-sm text-text-secondary"
-                >
-                  {loadingLabel}
-                </div>
-              }
-            >
-              {renderSettingsContent({
-                section: currentSection,
-                meetingInvalidation,
-                meetingNavigationRequest,
-                meetingStartRequest,
-                onSectionChange,
-              })}
-            </Suspense>
+            {/* Keyed on the section so switching routes shows the skeleton
+             * again rather than holding the previous page while the next
+             * chunk loads, and so a crashed section resets when you leave. */}
+            <ErrorBoundary key={currentSection} context={currentSection}>
+              <Suspense fallback={<RouteSkeleton label={loadingLabel} />}>
+                {renderSettingsContent({
+                  section: currentSection,
+                  meetingInvalidation,
+                  meetingNavigationRequest,
+                  meetingStartRequest,
+                  onSectionChange,
+                })}
+              </Suspense>
+            </ErrorBoundary>
           </div>
         </div>
       </main>
@@ -314,7 +293,6 @@ const buildCommandActions = ({
     : []),
 ];
 
-
 const AppEventListeners: React.FC = () => {
   const { t } = useTranslation();
   // Listen for recording errors from the backend and show a toast
@@ -416,12 +394,14 @@ const AppEventListeners: React.FC = () => {
   return null;
 };
 
-
 const revealMainWindowForPermissions = async (): Promise<void> => {
   try {
     await commands.showMainWindowCommand();
   } catch (error) {
-    console.warn("Failed to show main window for permission onboarding:", error);
+    console.warn(
+      "Failed to show main window for permission onboarding:",
+      error,
+    );
   }
 };
 
@@ -505,7 +485,10 @@ function App() {
   // Global command palette trigger: Cmd+K / Ctrl+K
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() !== "k" || !(event.metaKey || event.ctrlKey)) {
+      if (
+        event.key.toLowerCase() !== "k" ||
+        !(event.metaKey || event.ctrlKey)
+      ) {
         return;
       }
       event.preventDefault();
@@ -671,7 +654,7 @@ function App() {
 
   return (
     <>
-      <AppToaster />
+      <Toaster />
       <AppEventListeners />
       <AppContent
         onboardingStep={onboardingStep}
@@ -686,7 +669,7 @@ function App() {
         meetingStartRequest={meetingStartRequest}
         commandOpen={commandOpen}
         commandActions={commandActions}
-                onCommandClose={() => setCommandOpen(false)}
+        onCommandClose={() => setCommandOpen(false)}
         onCommandOpen={() => setCommandOpen(true)}
       />
     </>

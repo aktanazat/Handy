@@ -56,7 +56,6 @@ const overlayViewReducer = (
   action: OverlayViewAction,
 ) => action(state);
 
-
 const RecordingOverlay: React.FC = () => {
   const { i18n } = useTranslation();
   const [overlay, dispatchOverlay] = useReducer(

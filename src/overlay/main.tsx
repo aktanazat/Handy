@@ -10,7 +10,6 @@ import {
 import type { Theme } from "@/bindings";
 import "@/i18n";
 
-
 // The recording panel draws its own translucent solid card. It never inherits
 // the desktop material from the main window.
 document.documentElement.dataset.material = "opaque";

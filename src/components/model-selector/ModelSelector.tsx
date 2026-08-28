@@ -4,23 +4,13 @@ import { listen } from "@tauri-apps/api/event";
 import { commands } from "@/bindings";
 import { getTranslatedModelName } from "../../lib/utils/modelTranslation";
 import { useModelStore } from "../../stores/modelStore";
-import ModelStatusButton from "./ModelStatusButton";
+import ModelStatusButton, { type ModelStatus } from "./ModelStatusButton";
 import ModelDropdown from "./ModelDropdown";
 import DownloadProgressDisplay from "./DownloadProgressDisplay";
 
 import { ModelStateEvent } from "@/lib/types/events";
 
-type ModelStatus =
-  | "ready"
-  | "loading"
-  | "downloading"
-  | "verifying"
-  | "extracting"
-  | "error"
-  | "unloaded"
-  | "none";
-
-interface ModelSelectorProps {
+export interface ModelSelectorProps {
   onError?: (error: string) => void;
 }
 
@@ -250,15 +240,23 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
     return modelStatus;
   };
 
+  // Single download: the chip carries the bar. Several at once has no one
+  // percentage to show, so the label counts them instead.
+  const chipProgress = (): number | null => {
+    const values = Object.values(downloadProgress);
+    return values.length === 1 ? values[0].percentage : null;
+  };
+
   return (
     <>
       {/* Model Status and Switcher */}
-      <div className="relative" ref={dropdownRef}>
+      <div className="model-chip-anchor" ref={dropdownRef}>
         <ModelStatusButton
           status={getDisplayStatus()}
           displayText={getModelDisplayText()}
           isDropdownOpen={showModelDropdown}
           onClick={() => setShowModelDropdown(!showModelDropdown)}
+          progress={chipProgress()}
         />
 
         {/* Model Dropdown */}

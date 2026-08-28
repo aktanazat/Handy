@@ -180,7 +180,9 @@ export const RecordingOverlayContent = ({
 
   const working = state === "transcribing" || state === "processing";
   const workLabel =
-    state === "processing" ? t("overlay.processing") : t("overlay.transcribing");
+    state === "processing"
+      ? t("overlay.processing")
+      : t("overlay.transcribing");
 
   return (
     <div
@@ -188,7 +190,12 @@ export const RecordingOverlayContent = ({
       className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
     >
       <div
-        className={["scard", "compact", working && isVisible && "cworking", engineClass]
+        className={[
+          "scard",
+          "compact",
+          working && isVisible && "cworking",
+          engineClass,
+        ]
           .filter(Boolean)
           .join(" ")}
       >

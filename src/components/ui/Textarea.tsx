@@ -1,6 +1,6 @@
 import React from "react";
 
-interface TextareaProps
+export interface TextareaProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   variant?: "default" | "compact";
 }

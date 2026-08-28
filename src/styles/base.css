@@ -1,0 +1,92 @@
+/* Document defaults: color scheme, root type, focus, selection.
+ *
+ * Everything here is unconditional and applies to the main window, the
+ * onboarding shell and any surface that imports App.css. Component styling
+ * belongs in primitives.css; shell chrome belongs in shell.css. */
+
+:root {
+  color: var(--color-text-primary);
+  background-color: var(--color-canvas);
+  color-scheme: light;
+  font-family: var(--font-geist-sans);
+  font-size: 14px;
+  font-synthesis: none;
+  line-height: 20px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  --scrollbar-thumb: color-mix(
+    in oklab,
+    var(--color-text-secondary) 34%,
+    transparent
+  );
+  --scrollbar-thumb-hover: color-mix(
+    in oklab,
+    var(--color-text-secondary) 52%,
+    transparent
+  );
+  --color-log-surface: var(--color-subtle);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  block-size: 100%;
+  inline-size: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+}
+
+:root[data-material="glass"],
+:root[data-material="glass"] body,
+:root[data-material="glass"] #root {
+  background: transparent;
+}
+
+::selection {
+  background: var(--color-inverse-background);
+  color: var(--color-inverse-text);
+}
+
+/* One focus treatment for the whole app: a solid accent ring, offset so it
+ * reads against both the control and the surface behind it. Anything that
+ * removes this outline has to draw its own indicator of at least the same
+ * contrast.
+ *
+ * The selector list is wrapped in :where() so it contributes no specificity:
+ * a component can then pull the ring tighter with a plain class rule instead
+ * of having to out-specify this one. */
+:where(
+  button,
+  input,
+  select,
+  textarea,
+  [role="button"],
+  [role="option"],
+  [tabindex]
+):focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+:where(button, input, select, textarea):disabled {
+  cursor: not-allowed;
+}

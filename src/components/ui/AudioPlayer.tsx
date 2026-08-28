@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import { Play, Pause } from "lucide-react";
 
-interface AudioPlayerProps {
+export interface AudioPlayerProps {
   /** Audio source URL. If not provided, onLoadRequest must be provided. */
   src?: string;
   /** Called when play is clicked and no src is loaded yet. Should return the audio URL. */
@@ -275,7 +275,6 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const handleSliderTouchStart = () => {
     setIsDragging(true);
   };
-
 
   // Fix playhead positioning with better edge case handling
   const getProgressPercent = (): number => {

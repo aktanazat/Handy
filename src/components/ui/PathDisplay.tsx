@@ -2,7 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./Button";
 
-interface PathDisplayProps {
+export interface PathDisplayProps {
   path: string;
   onOpen: () => void;
   disabled?: boolean;

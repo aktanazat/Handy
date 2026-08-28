@@ -1,6 +1,6 @@
 import React, { useId } from "react";
 
-interface SettingContainerProps {
+export interface SettingContainerProps {
   title: string;
   description: string;
   children: React.ReactNode;

@@ -1,0 +1,210 @@
+/* Shared component surfaces: settings groups and rows, the control fill
+ * ladder, popovers, dialogs and the loading skeleton.
+ *
+ * These rules back the primitives in src/components/ui. Components carry
+ * layout and variant classes with Tailwind utilities; anything that needs a
+ * pseudo-element, a keyframe, or a rule that has to reach into third-party
+ * markup lives here. */
+
+/* ------------------------------------------------------ groups & rows */
+
+.settings-group {
+  margin: 0;
+  position: relative;
+}
+
+.settings-group > div:first-child {
+  margin-bottom: var(--space-2-5);
+  padding-inline: 0;
+}
+
+.settings-group > div:first-child h2,
+.section-heading-inline h2,
+.modes-master-heading h2,
+.mode-detail-header h2 {
+  color: var(--color-text-primary);
+  font-size: var(--type-section-size);
+  font-weight: var(--type-section-weight);
+  letter-spacing: var(--type-section-tracking);
+  line-height: var(--type-section-line);
+}
+
+.settings-group > div:first-child p,
+.section-heading-inline p,
+.mode-detail-header p {
+  color: var(--color-text-secondary);
+  font-size: var(--type-secondary-size);
+  line-height: var(--type-secondary-line);
+  margin-top: var(--space-0-5);
+  max-inline-size: 68ch;
+  text-wrap: pretty;
+}
+
+.settings-group-panel,
+.setting-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.settings-group-panel > .divide-y {
+  background: transparent;
+  display: block;
+}
+
+.settings-group-panel > .divide-y > :not(:last-child),
+.settings-group-panel > div > :not(:last-child) {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.setting-panel {
+  border-radius: var(--radius-panel);
+}
+
+.setting-row {
+  align-items: center;
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: minmax(180px, 1fr) minmax(160px, 280px);
+  min-block-size: var(--settings-row-height);
+  padding: var(--space-2-5) var(--space-4);
+}
+
+.setting-copy {
+  min-inline-size: 0;
+}
+
+.setting-copy h3 {
+  font-size: var(--type-row-size);
+  font-weight: var(--type-row-weight);
+  letter-spacing: -0.005em;
+  line-height: var(--type-row-line);
+}
+
+.setting-copy p {
+  font-size: var(--type-secondary-size);
+  line-height: 17px;
+  margin-top: 1px;
+  text-wrap: pretty;
+}
+
+.setting-control {
+  inline-size: 100%;
+  justify-self: end;
+  max-inline-size: 280px;
+  min-inline-size: 0;
+}
+
+.setting-row-disabled,
+.setting-panel-disabled {
+  background: var(--color-subtle);
+}
+
+/* ----------------------------------------------------------- controls */
+
+.control-surface,
+.settings-main
+  :is(
+    input[type="text"],
+    input[type="search"],
+    input[type="password"],
+    input[type="url"],
+    textarea,
+    select
+  ) {
+  background: var(--color-control);
+  border-color: var(--color-control-border);
+  box-shadow: none;
+}
+
+.liquid-control,
+.control-surface,
+.settings-main :is(input, select, textarea) {
+  border-radius: var(--radius-control);
+}
+
+.control-surface:not(textarea),
+.settings-main :is(input:not([type="checkbox"]):not([type="radio"]), select) {
+  min-block-size: var(--control-height);
+}
+
+.settings-main input[type="text"],
+.settings-main input[type="search"],
+.settings-main input[type="password"],
+.settings-main input[type="url"],
+.settings-main select {
+  border: 1px solid var(--color-control-border);
+  padding-inline: var(--space-2-5);
+}
+
+.settings-main input[type="text"]:hover,
+.settings-main input[type="search"]:hover,
+.settings-main input[type="password"]:hover,
+.settings-main input[type="url"]:hover,
+.settings-main select:hover {
+  border-color: var(--color-control-border-hover);
+}
+
+.settings-main select:hover {
+  background: var(--color-control-hover);
+}
+
+.settings-main select:active {
+  background: var(--color-control-active);
+}
+
+.settings-main button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.glass-toggle {
+  background: var(--color-pressed);
+  border: 1px solid var(--color-border-strong);
+  box-shadow: none;
+}
+
+.glass-toggle::after {
+  box-shadow: none;
+}
+
+.glass-popover {
+  background: var(--color-material-dialog);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-popover);
+}
+
+.glass-popover [role="option"][aria-selected="true"] {
+  background: var(--color-inverse-background);
+  color: var(--color-inverse-text);
+}
+
+.glass-dialog-backdrop {
+  background: var(--color-backdrop);
+}
+
+.glass-dialog {
+  background: var(--color-material-dialog);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-dialog);
+  box-shadow: var(--shadow-dialog);
+}
+
+/* ---------------------------------------------------------- skeletons */
+
+/* Loading placeholders breathe on opacity only. The global reduced-motion
+ * rule collapses the duration, which leaves a flat block rather than a
+ * pulsing one. */
+.ui-skeleton {
+  animation: ui-skeleton-pulse 1.6s var(--ease-in-out) infinite;
+  background: var(--color-subtle);
+  border-radius: var(--radius-control);
+}
+
+@keyframes ui-skeleton-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}

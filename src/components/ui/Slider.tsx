@@ -2,7 +2,7 @@ import React, { useId } from "react";
 import { SettingContainer } from "./SettingContainer";
 import { ResetButton } from "./ResetButton";
 
-interface SliderProps {
+export interface SliderProps {
   value: number;
   onChange: (value: number) => void;
   min: number;

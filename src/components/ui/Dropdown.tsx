@@ -7,7 +7,7 @@ export interface DropdownOption {
   disabled?: boolean;
 }
 
-interface DropdownProps {
+export interface DropdownProps {
   options: DropdownOption[];
   className?: string;
   selectedValue: string | null;

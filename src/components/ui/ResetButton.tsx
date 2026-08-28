@@ -1,7 +1,7 @@
 import React from "react";
 import ResetIcon from "../icons/ResetIcon";
 
-interface ResetButtonProps {
+export interface ResetButtonProps {
   onClick: () => void;
   disabled?: boolean;
   className?: string;

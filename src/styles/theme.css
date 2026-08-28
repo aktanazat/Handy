@@ -1,23 +1,42 @@
-/* Sona design tokens — Vercel/Geist product system.
+/* Sona design tokens.
  *
- * Exact black/white inversion across themes: same structure, opposite poles.
- * Canvas is the window color, surface is content, subtle is selected rows,
- * hover/pressed are interaction washes. Danger is the only chromatic color
- * in the product UI; info/success/warning remain reserved for status copy
- * that carries meaning (links, meeting health) and are muted greys except
- * where a real state needs them.
+ * The product is a near-monochrome macOS utility window. Light and dark are
+ * structural inversions of one another: the same ladder, opposite poles.
+ *
+ * Neutral steps sit on an even OKLCH lightness ladder (values in the comments
+ * are the OKLCH L of that sRGB grey), so every step is perceptually spaced
+ * rather than spaced in sRGB bytes. The tokens themselves stay hex/rgba for
+ * the widest webview support; the derived washes mix in oklab, which is where
+ * srgb mixing actually goes muddy.
+ *
+ * Progressions, in the order a component should reach for them:
+ *   text     primary -> secondary -> tertiary -> disabled
+ *   surface  canvas -> surface -> raised (dark only) -> subtle -> sunken
+ *   border   subtle -> border -> strong
+ *   control  control -> hover -> active -> disabled, plus its own border pair
+ *   accent   accent -> hover -> pressed (monochrome: black in light, white in dark)
+ *   danger   danger -> hover -> pressed, plus soft fill and border
+ *
+ * Danger is the only strong chroma in the product UI. info/success/warning
+ * carry meaning in status copy only and never fill a surface.
+ *
+ * Tokens live here and nowhere else. Extend this file; do not rename.
  */
 
 :root {
-  /* Light — #000 on #fafafa, hairlines at 8% black. */
-  --light-color-canvas: #fafafa;
-  --light-color-surface: #ffffff;
-  --light-color-subtle: #f4f4f4;
+  /* Light: #000 on #fafafa, hairlines at 8% black. */
+  --light-color-canvas: #fafafa; /* L 0.985 */
+  --light-color-surface: #ffffff; /* L 1.000 */
+  --light-color-surface-raised: #ffffff; /* light cannot go above white; raise with shadow */
+  --light-color-subtle: #f4f4f4; /* L 0.967 */
+  --light-color-surface-sunken: #ebebeb; /* L 0.940 */
   --light-color-hover: rgba(0, 0, 0, 0.05);
   --light-color-pressed: rgba(0, 0, 0, 0.09);
-  --light-color-text-primary: #000000;
-  --light-color-text-secondary: #5c5c5c;
-  --light-color-text-tertiary: #8f8f8f;
+  --light-color-text-primary: #000000; /* L 0.000 */
+  --light-color-text-secondary: #5c5c5c; /* L 0.475, 7.0:1 on white */
+  --light-color-text-tertiary: #8f8f8f; /* L 0.650, metadata only */
+  --light-color-text-disabled: #b7b7b7; /* L 0.780 */
+  --light-color-border-subtle: rgba(0, 0, 0, 0.05);
   --light-color-border: rgba(0, 0, 0, 0.08);
   --light-color-border-strong: rgba(0, 0, 0, 0.18);
   --light-color-inverse-background: #000000;
@@ -28,17 +47,22 @@
   --light-color-info: #2563eb;
   --light-color-success: #18794e;
   --light-color-warning: #9a6700;
-  --light-color-danger: #e5484d;
+  --light-color-danger: #e5484d; /* identity red: graphics, borders, fills */
+  --light-color-danger-strong: #d32f35; /* 4.97:1 on white, 4.97:1 under white */
 
-  /* Dark — #fafafa on #000, hairlines at 14% white. */
-  --dark-color-canvas: #000000;
-  --dark-color-surface: #0d0d0d;
-  --dark-color-subtle: #1a1a1a;
+  /* Dark: #fafafa on #000, hairlines at 14% white. */
+  --dark-color-canvas: #000000; /* L 0.000 */
+  --dark-color-surface: #0d0d0d; /* L 0.159 */
+  --dark-color-surface-raised: #161616; /* L 0.200 */
+  --dark-color-subtle: #1a1a1a; /* L 0.218 */
+  --dark-color-surface-sunken: #050505; /* L 0.115 */
   --dark-color-hover: rgba(255, 255, 255, 0.08);
   --dark-color-pressed: rgba(255, 255, 255, 0.13);
-  --dark-color-text-primary: #fafafa;
-  --dark-color-text-secondary: #a0a0a0;
-  --dark-color-text-tertiary: #6f6f6f;
+  --dark-color-text-primary: #fafafa; /* L 0.985 */
+  --dark-color-text-secondary: #a0a0a0; /* L 0.706, 6.4:1 on #0d0d0d */
+  --dark-color-text-tertiary: #6f6f6f; /* L 0.542, metadata only */
+  --dark-color-text-disabled: #525252; /* L 0.440 */
+  --dark-color-border-subtle: rgba(255, 255, 255, 0.09);
   --dark-color-border: rgba(255, 255, 255, 0.14);
   --dark-color-border-strong: rgba(255, 255, 255, 0.26);
   --dark-color-inverse-background: #fafafa;
@@ -49,16 +73,21 @@
   --dark-color-info: #60a5fa;
   --dark-color-success: #3dd68c;
   --dark-color-warning: #e3a008;
-  --dark-color-danger: #ff6369;
+  --dark-color-danger: #ff6369; /* identity red: graphics, borders, fills */
+  --dark-color-danger-strong: #ff6369; /* 6.7:1 on #0d0d0d, 7.2:1 under black */
 
   --color-canvas: var(--light-color-canvas);
   --color-surface: var(--light-color-surface);
+  --color-surface-raised: var(--light-color-surface-raised);
   --color-subtle: var(--light-color-subtle);
+  --color-surface-sunken: var(--light-color-surface-sunken);
   --color-hover: var(--light-color-hover);
   --color-pressed: var(--light-color-pressed);
   --color-text-primary: var(--light-color-text-primary);
   --color-text-secondary: var(--light-color-text-secondary);
   --color-text-tertiary: var(--light-color-text-tertiary);
+  --color-text-disabled: var(--light-color-text-disabled);
+  --color-border-subtle: var(--light-color-border-subtle);
   --color-border: var(--light-color-border);
   --color-border-strong: var(--light-color-border-strong);
   --color-inverse-background: var(--light-color-inverse-background);
@@ -70,22 +99,86 @@
   --color-success: var(--light-color-success);
   --color-warning: var(--light-color-warning);
   --color-danger: var(--light-color-danger);
+  --color-danger-strong: var(--light-color-danger-strong);
 
   /* Material aliases stay opaque — the desktop shell never blurs. */
   --color-material-sidebar: var(--color-surface);
   --color-material-content: var(--color-surface);
   --color-material-dialog: var(--color-surface);
-  --color-control: color-mix(in srgb, var(--color-surface) 60%, var(--color-canvas));
   --color-backdrop: color-mix(
-    in srgb,
+    in oklab,
     var(--color-inverse-background) 34%,
     transparent
   );
-  --color-focus-soft: color-mix(
-    in srgb,
-    var(--color-accent-strong) 18%,
+
+  /* Controls: one fill ladder shared by buttons, inputs and selects. */
+  --color-control: color-mix(
+    in oklab,
+    var(--color-surface) 60%,
+    var(--color-canvas)
+  );
+  --color-control-hover: color-mix(
+    in oklab,
+    var(--color-inverse-background) 5%,
+    var(--color-control)
+  );
+  --color-control-active: color-mix(
+    in oklab,
+    var(--color-inverse-background) 9%,
+    var(--color-control)
+  );
+  --color-control-disabled: var(--color-subtle);
+  --color-control-border: var(--color-border);
+  --color-control-border-hover: var(--color-border-strong);
+
+  /* Accent recedes toward the canvas when pressed, in both themes. */
+  --color-accent-hover: color-mix(
+    in oklab,
+    var(--color-accent-strong) 86%,
+    var(--color-canvas)
+  );
+  --color-accent-pressed: color-mix(
+    in oklab,
+    var(--color-accent-strong) 74%,
+    var(--color-canvas)
+  );
+
+  /* --color-danger is the identity red and misses AA as text on white, so
+   * danger *type* and solid destructive fills use --color-danger-strong: it
+   * clears 4.5:1 against the surface in light and against --color-inverse-text
+   * when filled, in both themes. Danger gains contrast when pressed. */
+  --color-danger-hover: color-mix(
+    in oklab,
+    var(--color-danger-strong) 86%,
+    var(--color-inverse-background)
+  );
+  --color-danger-pressed: color-mix(
+    in oklab,
+    var(--color-danger-strong) 74%,
+    var(--color-inverse-background)
+  );
+  --color-danger-soft: color-mix(
+    in oklab,
+    var(--color-danger) 12%,
+    var(--color-surface)
+  );
+  --color-danger-border: color-mix(
+    in oklab,
+    var(--color-danger) 40%,
     transparent
   );
+
+  /* Focus is a solid accent ring (>= 3:1 against every surface) plus a soft
+   * halo. Never replace the ring with the halo alone: 20% alpha fails AA. */
+  --color-focus-ring: var(--color-accent-strong);
+  --color-focus-soft: color-mix(
+    in oklab,
+    var(--color-accent-strong) 20%,
+    transparent
+  );
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --shadow-focus: 0 0 0 var(--focus-ring-width) var(--color-focus-soft);
 
   --space-0-5: 2px;
   --space-1: 4px;
@@ -99,28 +192,71 @@
   --space-7: 28px;
   --space-8: 32px;
 
+  --control-height-sm: 28px;
   --control-height: 32px;
+  --control-height-lg: 36px;
+  --touch-target: 44px;
+  --topnav-height: 44px;
+  --list-row-height: 40px;
+  --settings-row-height: 44px;
   --page-max-width: 1040px;
-  --topnav-height: 40px;
   --chart-height: 160px;
 
+  --radius-xs: 4px;
   --radius-control: 6px;
   --radius-panel: 8px;
-  --radius-dialog: 12px;
+  --radius-dialog: 10px;
   --radius-pill: 999px;
+  /* Concentric nesting: an inner surface inset by P from a radius-R parent
+   * gets R - P, so the two curves stay parallel. */
+  --radius-in-control: calc(var(--radius-control) - var(--space-1));
+  --radius-in-panel: calc(var(--radius-panel) - var(--space-1));
+  --radius-in-dialog: calc(var(--radius-dialog) - var(--space-1));
+  --radius-around-control: calc(var(--radius-control) + var(--space-2));
 
+  --duration-instant: 80ms;
   --duration-fast: 120ms;
   --duration-standard: 180ms;
+  --duration-slow: 240ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
+  /* Type scale. Hierarchy comes from size, weight and tracking only: one
+   * system stack, no display face, no italics. */
+  --type-title-size: 20px;
+  --type-title-line: 28px;
+  --type-title-weight: 620;
+  --type-title-tracking: -0.022em;
+  --type-section-size: 15px;
+  --type-section-line: 21px;
+  --type-section-weight: 600;
+  --type-section-tracking: -0.014em;
+  --type-row-size: 13px;
+  --type-row-line: 19px;
+  --type-row-weight: 510;
+  --type-body-size: 13px;
+  --type-body-line: 19px;
+  --type-secondary-size: 12.5px;
+  --type-secondary-line: 18px;
+  --type-caption-size: 12px;
+  --type-caption-line: 16px;
+  --type-caption-weight: 600;
+  --type-caption-tracking: 0.045em;
+  --type-metric-size: 24px;
+  --type-metric-line: 30px;
+  --type-metric-weight: 620;
+  --type-metric-tracking: -0.02em;
+
+  /* Shadows only on things that float. One sharp layer, never a blur stack. */
   --shadow-popover:
     0 0 0 1px var(--color-border-strong),
-    0 8px 24px -8px
-      color-mix(in srgb, var(--color-inverse-background) 14%, transparent);
+    0 4px 14px -4px
+      color-mix(in oklab, var(--color-inverse-background) 12%, transparent);
   --shadow-dialog:
     0 0 0 1px var(--color-border-strong),
-    0 24px 64px -16px
-      color-mix(in srgb, var(--color-inverse-background) 22%, transparent);
+    0 8px 24px -6px
+      color-mix(in oklab, var(--color-inverse-background) 16%, transparent);
 
   /* Compatibility aliases for existing feature components. */
   --color-background: var(--color-canvas);
@@ -140,14 +276,10 @@
   --shadow-glass: none;
   --shadow-glass-soft: none;
   --color-meeting-recording: var(--color-danger);
-  --color-meeting-recording-soft: color-mix(
-    in srgb,
-    var(--color-danger) 10%,
-    var(--color-surface)
-  );
+  --color-meeting-recording-soft: var(--color-danger-soft);
   --color-meeting-safe: var(--color-success);
   --color-meeting-warning-soft: color-mix(
-    in srgb,
+    in oklab,
     var(--color-warning) 11%,
     var(--color-surface)
   );
@@ -157,12 +289,16 @@
   :root {
     --color-canvas: var(--dark-color-canvas);
     --color-surface: var(--dark-color-surface);
+    --color-surface-raised: var(--dark-color-surface-raised);
     --color-subtle: var(--dark-color-subtle);
+    --color-surface-sunken: var(--dark-color-surface-sunken);
     --color-hover: var(--dark-color-hover);
     --color-pressed: var(--dark-color-pressed);
     --color-text-primary: var(--dark-color-text-primary);
     --color-text-secondary: var(--dark-color-text-secondary);
     --color-text-tertiary: var(--dark-color-text-tertiary);
+    --color-text-disabled: var(--dark-color-text-disabled);
+    --color-border-subtle: var(--dark-color-border-subtle);
     --color-border: var(--dark-color-border);
     --color-border-strong: var(--dark-color-border-strong);
     --color-inverse-background: var(--dark-color-inverse-background);
@@ -174,18 +310,23 @@
     --color-success: var(--dark-color-success);
     --color-warning: var(--dark-color-warning);
     --color-danger: var(--dark-color-danger);
+    --color-danger-strong: var(--dark-color-danger-strong);
   }
 }
 
 :root[data-theme="light"] {
   --color-canvas: var(--light-color-canvas);
   --color-surface: var(--light-color-surface);
+  --color-surface-raised: var(--light-color-surface-raised);
   --color-subtle: var(--light-color-subtle);
+  --color-surface-sunken: var(--light-color-surface-sunken);
   --color-hover: var(--light-color-hover);
   --color-pressed: var(--light-color-pressed);
   --color-text-primary: var(--light-color-text-primary);
   --color-text-secondary: var(--light-color-text-secondary);
   --color-text-tertiary: var(--light-color-text-tertiary);
+  --color-text-disabled: var(--light-color-text-disabled);
+  --color-border-subtle: var(--light-color-border-subtle);
   --color-border: var(--light-color-border);
   --color-border-strong: var(--light-color-border-strong);
   --color-inverse-background: var(--light-color-inverse-background);
@@ -197,17 +338,22 @@
   --color-success: var(--light-color-success);
   --color-warning: var(--light-color-warning);
   --color-danger: var(--light-color-danger);
+  --color-danger-strong: var(--light-color-danger-strong);
 }
 
 :root[data-theme="dark"] {
   --color-canvas: var(--dark-color-canvas);
   --color-surface: var(--dark-color-surface);
+  --color-surface-raised: var(--dark-color-surface-raised);
   --color-subtle: var(--dark-color-subtle);
+  --color-surface-sunken: var(--dark-color-surface-sunken);
   --color-hover: var(--dark-color-hover);
   --color-pressed: var(--dark-color-pressed);
   --color-text-primary: var(--dark-color-text-primary);
   --color-text-secondary: var(--dark-color-text-secondary);
   --color-text-tertiary: var(--dark-color-text-tertiary);
+  --color-text-disabled: var(--dark-color-text-disabled);
+  --color-border-subtle: var(--dark-color-border-subtle);
   --color-border: var(--dark-color-border);
   --color-border-strong: var(--dark-color-border-strong);
   --color-inverse-background: var(--dark-color-inverse-background);
@@ -219,4 +365,5 @@
   --color-success: var(--dark-color-success);
   --color-warning: var(--dark-color-warning);
   --color-danger: var(--dark-color-danger);
+  --color-danger-strong: var(--dark-color-danger-strong);
 }
