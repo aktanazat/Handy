@@ -221,7 +221,12 @@
       "pushToTalk": {
         "label": "Pressionar para Falar",
         "description": "Segure para gravar, solte para parar"
-      }
+      },
+      "appearance": {
+        "description": "Idioma da interface e esquema de cores. Ambos se aplicam imediatamente.",
+        "title": "Aparência"
+      },
+      "description": "As teclas que prime, o microfone que o Sona escuta e o aspeto da app."
     },
     "models": {
       "title": "Modelos de Transcrição",
@@ -232,7 +237,12 @@
       "filters": {
         "allLanguages": "Todos os Idiomas",
         "streaming": "Filtrar modelos compatíveis com transcrição ao vivo",
-        "translation": "Filtrar modelos compatíveis com tradução para inglês"
+        "translation": "Filtrar modelos compatíveis com tradução para inglês",
+        "allFamilies": "Todas as famílias",
+        "clear": "Limpar filtros",
+        "downloadedOnly": "No disco",
+        "downloadedOnlyHint": "Mostrar apenas modelos já descarregados",
+        "family": "Família de modelos"
       },
       "noModelsMatch": "Nenhum modelo corresponde a este filtro.",
       "yourModels": "Modelos baixados",
@@ -286,6 +296,34 @@
           "protocol": "The provider returned an unexpected verification response.",
           "unknown_provider": "This cloud provider is not available in this build."
         }
+      },
+      "actions": {
+        "activate": "Usar",
+        "activateNamed": "Usar {{modelName}}",
+        "download": "Descarregar",
+        "downloadNamed": "Descarregar {{modelName}}",
+        "retryNamed": "Tentar descarregar {{modelName}} novamente"
+      },
+      "emptyCatalog": "O Sona não conseguiu ler o catálogo de modelos. Uma nova análise deteta modelos já na pasta de modelos ou na cache do Hugging Face.",
+      "errors": {
+        "downloadFailed": "O download não começou. Verifique a ligação e tente novamente."
+      },
+      "families": {
+        "custom": "Adicionados por si",
+        "other": "Outros modelos"
+      },
+      "familyCount": "{{total}} modelos",
+      "noModelsMatchHint": "Nada no catálogo corresponde a todos os filtros ao mesmo tempo.",
+      "searchByAnything": "Pesquisar por nome, idioma ou capacidade",
+      "state": {
+        "activeInMemory": "Ativo, em memória",
+        "downloaded": "Descarregado",
+        "notDownloaded": "Não descarregado"
+      },
+      "summary": {
+        "active": "Ativo: {{name}}",
+        "noActive": "Nenhum modelo selecionado",
+        "onDisk": "{{total}} no disco"
       }
     },
     "sound": {
@@ -461,7 +499,10 @@
         "imported": "Vocabulário importado",
         "errors": {
           "incomplete": "Insira uma frase falada e um texto escrito.",
-          "duplicate": "Este par de vocabulário já existe."
+          "duplicate": "Este par de vocabulário já existe.",
+          "incompleteRow": "Complete ou remova todas as linhas antes de guardar.",
+          "duplicateSpoken": "Mais de uma linha corresponde a {{spoken}}. O Sona mantém uma regra por frase falada.",
+          "unusableSpoken": "{{spoken}} precisa de pelo menos uma letra ou número para ser reconhecido."
         },
         "importPreview": {
           "title": "Revisar importação de vocabulário",
@@ -472,7 +513,12 @@
           "conflicts": "Linhas conflitantes",
           "blocked": "Corrija todas as linhas inválidas, duplicadas ou conflitantes antes de aplicar.",
           "apply": "Aplicar importação",
-          "unsavedWarning": "Você tem alterações não salvas no vocabulário. Aplicar esta importação as substitui."
+          "unsavedWarning": "Você tem alterações não salvas no vocabulário. Aplicar esta importação as substitui.",
+          "back": "Voltar",
+          "continue": "Continuar",
+          "replaceSummary": "Aplicar substitui os {{savedCount}} pares guardados pelos {{importedCount}} pares deste ficheiro.",
+          "stepConfirm": "Passo 2 de 2: confirmar a substituição",
+          "stepReview": "Passo 1 de 2: o que o ficheiro contém"
         },
         "actions": "Vocabulary actions",
         "audioImport": {
@@ -482,7 +528,13 @@
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
           }
-        }
+        },
+        "empty": {
+          "description": "Adicione um par como open ai e OpenAI, e o Sona escreve a forma exata sempre que ouve a frase.",
+          "title": "Ainda sem regras de vocabulário"
+        },
+        "sources": "As correções que guarda a partir de uma transcrição na Biblioteca entram nesta lista. As regras de um único modo ficam no vocabulário desse modo.",
+        "unsaved": "Alterações não guardadas"
       },
       "voiceActivityDetection": {
         "title": "Detecção de atividade de voz",
@@ -510,7 +562,12 @@
         "toggleError": "Não foi possível alterar as substituições por emoji.",
         "errors": {
           "incomplete": "Insira uma frase falada e um texto de emoji.",
-          "duplicate": "Esta substituição por emoji já existe."
+          "duplicate": "Esta substituição por emoji já existe.",
+          "incompleteRow": "Complete ou remova todas as linhas antes de guardar."
+        },
+        "empty": {
+          "description": "Associe um termo falado exato, como cara sorridente, ao emoji que quer escrever.",
+          "title": "Ainda sem substituições de emoji"
         }
       },
       "description": "Startup, processing, and experimental behavior.",
@@ -526,6 +583,39 @@
         "experimental": {
           "description": "Unstable options that can change without notice."
         }
+      },
+      "snippets": {
+        "add": "Adicionar snippet",
+        "confirmDelete": {
+          "description": "O acionador deixa de expandir em transcrições futuras. O texto já escrito permanece inalterado.",
+          "body": "{{trigger}} atualmente expande para {{expansion}}.",
+          "title": "Eliminar {{trigger}}?"
+        },
+        "description": "Acionadores curtos que o Sona expande em texto mais longo. As alterações aqui afetam apenas transcrições futuras, nunca texto já escrito.",
+        "empty": {
+          "action": "Escreva o seu primeiro snippet",
+          "description": "Adicione um acionador como acm e o Sona escreve a caminho sempre que o disser.",
+          "title": "Ainda sem snippets"
+        },
+        "enabledDescription": "Substituir acionadores de snippets em todas as transcrições, imediatamente após as correções de vocabulário.",
+        "enabledLabel": "Ativar expansão de texto",
+        "errors": {
+          "duplicate": "Outro snippet já usa este acionador.",
+          "incomplete": "Introduza um acionador e uma expansão."
+        },
+        "expansion": "Expansão",
+        "expansionPlaceholder": "a caminho",
+        "loadError": "Não foi possível carregar os snippets.",
+        "loading": "A carregar snippets",
+        "matching": "Os acionadores correspondem a palavras inteiras e ignoram maiúsculas e minúsculas. Quando dois acionadores se ajustam ao mesmo ponto, ganha o mais longo, e a expansão ocorre logo após as correções de vocabulário.",
+        "offState": "A expansão de texto está desligada. Os snippets permanecem guardados e voltam a aplicar-se assim que a reativar.",
+        "title": "Expansão de texto",
+        "trigger": "Acionador",
+        "triggerPlaceholder": "acm",
+        "unsaved": "Prima Enter ou Guardar para manter esta alteração.",
+        "enableRow": "Ativar {{trigger}}",
+        "remove": "Eliminar {{trigger}}",
+        "saveRow": "Guardar {{trigger}}"
       }
     },
     "postProcessing": {
@@ -579,7 +669,27 @@
         "createPrompt": "Criar Prompt",
         "cancel": "Cancelar",
         "selectToEdit": "Selecione um prompt acima para visualizar e editar seus detalhes.",
-        "createFirst": "Clique em 'Criar Novo Prompt' acima para criar seu primeiro prompt de pós-processamento."
+        "createFirst": "Clique em 'Criar Novo Prompt' acima para criar seu primeiro prompt de pós-processamento.",
+        "empty": {
+          "description": "Um prompt diz ao modelo o que fazer com a transcrição, por exemplo: reescreve o seguinte como uma mensagem curta, mantendo todos os factos: ${output}"
+        },
+        "errors": {
+          "incomplete": "Dê ao prompt um nome e instruções antes de guardar."
+        },
+        "inUse": "Em uso",
+        "lastPrompt": "O Sona mantém pelo menos um prompt, por isso este não pode ser eliminado. Crie outro primeiro.",
+        "libraryTitle": "Prompts de pós-processamento",
+        "loading": "A carregar prompts",
+        "noSelection": "Nenhum prompt selecionado: cada modo usa o prompt que define.",
+        "outputTip": "Escreva ${output} onde a transcrição deve ser inserida.",
+        "use": "Usar",
+        "confirmDelete": {
+          "body": "{{name}} é removido da biblioteca. Os modos que já copiaram o seu texto mantêm o próprio prompt.",
+          "selected": "{{name}} está em uso. Eliminá-lo move a seleção para o primeiro prompt da lista."
+        },
+        "deleteNamed": "Eliminar {{name}}",
+        "editNamed": "Editar {{name}}",
+        "useNamed": "Usar {{name}}"
       },
       "remoteConsent": {
         "title": "Remote text transfer",
@@ -754,7 +864,8 @@
           "start": "Não foi possível iniciar a importação do arquivo.",
           "cancel": "Não foi possível cancelar a importação do arquivo.",
           "load": "Não foi possível carregar o status da importação do arquivo."
-        }
+        },
+        "running": "A transcrever {{count}} ficheiros"
       },
       "trends": {
         "title": "History trends",
@@ -771,7 +882,14 @@
           "words": "Words"
         },
         "streak": "{{count}} day streak"
-      }
+      },
+      "clearSearch": "Limpar pesquisa",
+      "emptyHint": "Também pode transcrever uma gravação existente: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 ou M4V, até 30 minutos.",
+      "loadMore": "Carregar mais",
+      "noResultsHint": "A pesquisa corresponde a palavras inteiras tanto na transcrição original como na processada.",
+      "results": "{{count}} correspondências",
+      "resultsMore": "{{count}}+ correspondências",
+      "resultsNone": "Sem correspondências"
     },
     "debug": {
       "title": "Depuração",
@@ -889,13 +1007,21 @@
         "button": "Pré-visualizar",
         "noNotes": "Nenhuma nota de versão incorporada encontrada",
         "error": "Falha ao pré-visualizar as notas de versão"
+      },
+      "description": "Instrumentação e controlos não suportados. Visível porque o modo de depuração está ligado.",
+      "groups": {
+        "capture": "Captura",
+        "delivery": "Entrega de texto",
+        "diagnostics": "Diagnóstico",
+        "logging": "Registo"
       }
     },
     "about": {
       "title": "Sobre",
       "version": {
         "title": "Versão",
-        "description": "Versão atual do Sona"
+        "description": "Versão atual do Sona",
+        "unavailable": "Indisponível"
       },
       "appDataDirectory": {
         "title": "Diretório de Dados do App",
@@ -922,6 +1048,36 @@
       "whatsNewUpdates": {
         "label": "Mostrar novidades",
         "description": "Mostrar notas de versão após atualizações do Sona"
+      },
+      "description": "Qual a versão que está a executar, de onde veio e onde guarda os seus ficheiros.",
+      "files": {
+        "title": "Ficheiros"
+      },
+      "source": {
+        "description": "O Sona tem licença MIT, copyright 2025 CJ Pais, e é construído sobre o Handy.",
+        "open": "Abrir no GitHub",
+        "repository": "Repositório",
+        "title": "Código-fonte",
+        "upstream": "Construído sobre o Handy",
+        "upstreamDescription": "O Sona é um fork de cjpais/Handy e continua a acompanhar as correções do projeto original.",
+        "upstreamOpen": "cjpais/Handy"
+      },
+      "updates": {
+        "autoDescription": "Consulta o GitHub sobre o lançamento mais recente. O Sona nunca instala nada sozinho.",
+        "autoLabel": "Procurar atualizações automaticamente",
+        "check": "Verificar agora",
+        "checking": "A verificar…",
+        "disabled": "As verificações automáticas estão desligadas, por isso o Sona não contactou o GitHub.",
+        "enable": "Ativar verificações",
+        "failed": "Não foi possível executar a verificação de atualizações.",
+        "manualDescription": "Compare esta versão com o lançamento mais recente publicado.",
+        "manualTitle": "Verificação manual",
+        "preferenceError": "Não foi possível guardar a preferência de atualizações.",
+        "title": "Versão e atualizações",
+        "viewRelease": "Ver lançamento",
+        "available": "O Sona {{version}} está disponível.",
+        "published": "Publicado {{date}}",
+        "upToDate": "O Sona {{version}} é o lançamento mais recente."
       }
     },
     "modes": {
@@ -951,8 +1107,12 @@
             "action": "Capturar site atual",
             "capturing": "Capturando..."
           },
-          "empty": "Nenhum site ativa este modo."
-        }
+          "empty": "Nenhum site ativa este modo.",
+          "exampleDescription": "Uma regra guarda um host de navegador, por exemplo mail.google.com."
+        },
+        "exampleDescription": "Uma regra guarda a identidade de uma aplicação, por exemplo com.apple.mail.",
+        "removeTarget": "Remover {{target}}",
+        "unsupported": "A ativação por app e por site está disponível apenas no macOS."
       },
       "title": "Modes",
       "description": "Choose what each dictation run recognizes, rewrites, and delivers.",
@@ -1017,12 +1177,15 @@
         "provider": {
           "label": "AI provider",
           "description": "The configured provider used for this mode.",
-          "empty": "No provider configured"
+          "empty": "No provider configured",
+          "noneConfigured": "Ainda não há nenhum fornecedor de IA configurado. Adicione um nas Definições antes que este modo possa reescrever.",
+          "unknownSelected": "Este modo indica um fornecedor que não está configurado nesta instalação."
         },
         "model": {
           "label": "AI model",
           "description": "The provider model identifier for this mode."
-        }
+        },
+        "disabledNote": "Ative a limpeza por IA para usar o modelo, fornecedor, tom e predefinição abaixo."
       },
       "recognition": {
         "literalPunctuation": {
@@ -1062,7 +1225,8 @@
           "writtenPlaceholder": "What to write",
           "add": "Add pair",
           "remove": "Remove {{spoken}}",
-          "incomplete": "Complete or remove each vocabulary pair before saving this mode."
+          "incomplete": "Complete or remove each vocabulary pair before saving this mode.",
+          "empty": "Este modo não tem vocabulário próprio. O vocabulário global continua a aplicar-se."
         },
         "engine": {
           "label": "Transcription engine",
@@ -1115,7 +1279,8 @@
               "unknown_provider": "This cloud provider is not available in this build.",
               "backend": "The consent record could not be saved."
             }
-          }
+          },
+          "title": "Transporte na nuvem"
         }
       },
       "context": {
@@ -1129,7 +1294,9 @@
             "target": "App",
             "target_and_selection": "Selection",
             "full": "Full"
-          }
+          },
+          "blockedByCeiling": "A privacidade limita este modo a {{ceiling}}.",
+          "raiseCeiling": "Aumente o limite em Privacy para usar níveis mais altos."
         }
       },
       "delivery": {
@@ -1165,7 +1332,8 @@
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
             "cmd_enter": "Command+Enter"
-          }
+          },
+          "requiresAutoSubmit": "Ative o envio automático para escolher uma tecla."
         },
         "trailingSpace": {
           "label": "Append a trailing space",
@@ -1191,7 +1359,8 @@
             "dotool": "dotool",
             "ydotool": "ydotool",
             "xdotool": "xdotool"
-          }
+          },
+          "requiresDirect": "Escolha Escrever diretamente como método de entrega para selecionar uma ferramenta."
         },
         "script": {
           "label": "External script",
@@ -1235,7 +1404,16 @@
       "views": {
         "modes": "Modes",
         "vocabulary": "Vocabulary"
-      }
+      },
+      "cleanup": {
+        "title": "Limpeza da transcrição"
+      },
+      "dismissError": "Ignorar o erro",
+      "emptyHint": "Escolha um modo à esquerda para alterar o que ele reconhece, reescreve e entrega.",
+      "listEmpty": "Nenhum modo está configurado.",
+      "listEmptyHint": "O Sona mantém sempre um modo. Recarregue para obter a lista atual.",
+      "unsavedChanges": "Alterações não guardadas",
+      "untitled": "Modo sem título"
     },
     "privacy": {
       "title": "Privacy",
@@ -1323,7 +1501,24 @@
             "months_3": "3 months"
           }
         },
-        "error": "Data retention could not be saved"
+        "error": "Data retention could not be saved",
+        "historyStorage": {
+          "description": "Se o histórico de ditados está encriptado neste disco.",
+          "encrypted": "Encriptado em repouso",
+          "label": "Armazenamento do histórico",
+          "locked": "Bloqueado",
+          "plaintext": "Não encriptado",
+          "reasons": {
+            "encryption_unavailable": "Esta versão não consegue abrir uma base de dados encriptada, por isso o histórico é guardado sem encriptação.",
+            "key_rejected": "A chave guardada não abre a base de dados encriptada, por isso o histórico não pode ser lido.",
+            "key_unavailable": "O repositório de credenciais do sistema não devolveu uma chave utilizável, por isso o histórico é guardado sem encriptação.",
+            "migration_failed": "A encriptação da base de dados existente falhou. A base de dados não encriptada está intacta e continua em uso.",
+            "unlocking": "A abrir a base de dados encriptada. Isto desaparece momentos após o arranque."
+          },
+          "unknown": "O Sona não conseguiu ler como o histórico está guardado.",
+          "unlocking": "A desbloquear",
+          "since": "Encriptado desde {{date}}."
+        }
       },
       "cloudTranscription": {
         "title": "Cloud transcription",
@@ -1332,7 +1527,8 @@
         "checkFailed": "Cloud transcription setup could not be checked.",
         "disclosure": "For a cloud-enabled mode, Sona sends recorded audio, the selected language, and mode keyterms directly to the provider. Application context and native credentials stay on this device.",
         "providerDetail": "{{provider}} has a saved native API key and current transfer consent.",
-        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent."
+        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent.",
+        "inUse": "Em uso"
       },
       "upstreamImport": {
         "title": "Import from legacy app",
@@ -1386,6 +1582,16 @@
           "internal": "The import did not finish.",
           "status": "The original Sona data could not be inspected."
         }
+      },
+      "cloudSync": {
+        "checkFailed": "O Sona não conseguiu ler a configuração de sincronização na nuvem.",
+        "configured": "Configurado",
+        "description": "O Sona pode espelhar reuniões para um servidor gerido por si. Nada é enviado até a configuração terminar neste dispositivo.",
+        "endpoint": "Endpoint",
+        "endpointDescription": "O servidor para o qual este dispositivo aponta.",
+        "notConfigured": "Não configurado",
+        "service": "Serviço",
+        "title": "Sincronização na nuvem"
       }
     },
     "agents": {
@@ -1445,7 +1651,8 @@
         "session": "Reply destination",
         "noSession": "No observed reply-capable session",
         "message": "Reply text",
-        "createPreview": "Create preview"
+        "createPreview": "Create preview",
+        "notReady": "As respostas requerem a ponte ligada e pelo menos um agente ativado."
       },
       "pending": {
         "empty": "No pending replies.",
@@ -1497,7 +1704,15 @@
       "errors": {
         "load": "Agent bridge data could not be loaded: {{error}}",
         "operation": "The agent bridge action could not be completed: {{error}}"
-      }
+      },
+      "panel": {
+        "description": "A janela flutuante onde os agentes publicam e leem respostas.",
+        "error": "Não foi possível guardar a definição do painel de agentes.",
+        "label": "Ativar painel de agentes",
+        "rowDescription": "Desligar isto fecha a janela do painel e faz com que o Sona recuse todos os pedidos para a reabrir.",
+        "title": "Painel de agentes"
+      },
+      "workspaceNavigation": "Vistas da ponte de agentes"
     },
     "hub": {
       "navigation": "Settings sections",
@@ -1706,7 +1921,8 @@
       "localOnly": "Local only",
       "check": "Check recording setup",
       "checking": "Checking setup…",
-      "defaultTitle": "Local notes"
+      "defaultTitle": "Local notes",
+      "remoteUnavailable": "O processamento remoto não está disponível nesta versão, por isso todas as reuniões são transcritas e resumidas neste Mac."
     },
     "preflight": {
       "title": "Check recording setup",
@@ -1725,7 +1941,8 @@
       "remoteNotSelected": "No remote destination is selected.",
       "remoteSelected": "Selected destination: {{destination}}",
       "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
-      "starting": "Starting visible capture…"
+      "starting": "Starting visible capture…",
+      "refreshing": "A verificar…"
     },
     "consent": {
       "title": "Recording acknowledgement",
@@ -1778,7 +1995,8 @@
       "title": "Retention",
       "description": "Sona deletes eligible local meeting records through the same verified deletion path.",
       "forever": "Keep until I delete it",
-      "days": "Delete after {{days}} days"
+      "days": "Delete after {{days}} days",
+      "loading": "A ler a política atual…"
     },
     "receipts": {
       "title": "Correction receipt",
@@ -1926,7 +2144,29 @@
       "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
       "searchPlaceholder": "Search this meeting",
       "search": "Search",
-      "noSearchResults": "No exact local matches."
+      "noSearchResults": "No exact local matches.",
+      "askUnavailable": "Fazer perguntas requer uma transcrição local concluída.",
+      "asking": "A consultar esta reunião…",
+      "captured": "Capturado {{time}}",
+      "droppedFrames": "Frames perdidos: {{total}}",
+      "hitKind": {
+        "manualNote": "Nota manual",
+        "title": "Título da reunião",
+        "transcript": "Transcrição"
+      },
+      "noGeneratedNotesDescription": "As notas geradas derivam da transcrição, por isso podem ser reconstruídas a qualquer momento.",
+      "processingDescription": "As notas geradas e as respostas locais aparecem assim que a transcrição estiver completa.",
+      "processingTitle": "O Sona ainda está a processar esta reunião",
+      "remoteProcessingUnavailable": "O destino remoto nunca ficou disponível, por isso nada foi gerado. A regeneração é executada neste Mac.",
+      "searching": "A pesquisar…",
+      "sonaAnswered": "O Sona respondeu",
+      "tabs": {
+        "insights": "Insights",
+        "questions": "Perguntas e respostas",
+        "transcript": "Transcrição"
+      },
+      "tabsLabel": "Secções de revisão da reunião",
+      "youAsked": "Você perguntou"
     },
     "artifactState": {
       "current": "Current",
@@ -1960,6 +2200,21 @@
         "transcript": "Transcript segments",
         "actions": "Action items"
       }
+    },
+    "list": {
+      "clearSearch": "Limpar pesquisa",
+      "loadMore": "Carregar reuniões mais antigas",
+      "loadingMore": "A carregar reuniões mais antigas…",
+      "noMatches": "Nenhuma reunião corresponde a essa pesquisa",
+      "noMatchesDescription": "Nenhum título de reunião contém \"{{query}}\". Limpe a pesquisa para ver a lista completa.",
+      "noMatchesNotLoaded": "Nenhum título de reunião carregada contém \"{{query}}\". As reuniões mais antigas ainda estão no disco: carregue-as e pesquise novamente.",
+      "retentionHint": "Retenção: {{policy}}. Altere-a em Definições, Privacy.",
+      "searchLabel": "Pesquisar reuniões",
+      "searchPlaceholder": "Pesquisar por título"
+    },
+    "status": {
+      "gapCount": "Lacunas: {{total}}",
+      "required": "Obrigatório"
     }
   },
   "agentPanel": {
@@ -2017,23 +2272,66 @@
       "microphone": "Microphone",
       "file": "File import",
       "legacy": "Legacy",
-      "empty": "No recordings in this range."
+      "empty": "No recordings in this range.",
+      "meetings": "Reuniões",
+      "meetingsUnavailable": "O armazenamento de reuniões não está disponível, por isso as reuniões não são contadas aqui."
     },
     "recent": {
       "title": "Recent activity",
       "history": "Transcription",
-      "meeting": "Meeting"
+      "meeting": "Meeting",
+      "emptyDescription": "As capturas retidas aparecem aqui assim que ditar ou gravar uma reunião.",
+      "emptyTitle": "Nada recente",
+      "error": "Não foi possível carregar as capturas recentes neste momento.",
+      "viewAll": "Ver tudo"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
       "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
-      "importAudio": "Import audio"
+      "importAudio": "Import audio",
+      "mode": "Modo: {{name}}",
+      "setShortcut": "Defina um atalho de ditado nas Definições para capturar a partir de qualquer app."
     },
     "actions": {
       "dictate": "Dictate",
       "unavailable": "Shortcut unavailable"
+    },
+    "chart": {
+      "day": "{{date}} \\u00b7 ditados {{dictations}}",
+      "dayWithMeetings": "{{date}} \\u00b7 ditados {{dictations}} \\u00b7 reuniões {{meetings}}",
+      "legend": "Ditados por dia",
+      "peak": "Dia mais ativo {{peak}}",
+      "summary": "Ditados por dia de {{from}} a {{to}}. Total {{total}}, dia mais ativo {{peak}}."
+    },
+    "empty": {
+      "action": "Abrir biblioteca",
+      "description": "Mantenha premido o atalho de ditado em qualquer app e o Sona escreve o que você diz. As estatísticas de uso e as capturas recentes aparecem aqui após a primeira.",
+      "title": "Ainda sem capturas"
+    },
+    "stats": {
+      "activeDays": "{{active}} de {{total}} dias ativos",
+      "allTime": "{{total}} no total",
+      "dictations": "Ditados",
+      "dictationsAllTime": "Ditados, desde sempre",
+      "error": "O Sona não conseguiu ler o seu histórico de uso neste momento.",
+      "range": "{{from}} a {{to}}",
+      "rangeUnavailable": "Não foi possível ler os últimos 30 dias, por isso estes são os totais desde sempre.",
+      "speaking": "Tempo de fala",
+      "speakingAllTime": "Tempo de fala, desde sempre",
+      "streak": "Sequência atual",
+      "tiles": "Resumo de uso",
+      "title": "Atividade",
+      "words": "Palavras",
+      "wordsAllTime": "Palavras, desde sempre"
+    },
+    "update": {
+      "available": "O Sona {{latest}} está disponível. Esta instalação está na versão {{current}}.",
+      "dismiss": "Ignorar",
+      "failed": "Não foi possível procurar atualizações.",
+      "failedWithReason": "Não foi possível procurar atualizações: {{reason}}",
+      "view": "Ver lançamento"
     }
   },
   "cloudSync": {

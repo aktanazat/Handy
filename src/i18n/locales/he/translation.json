@@ -221,7 +221,12 @@
       "pushToTalk": {
         "label": "לחץ כדי לדבר",
         "description": "החזק כדי להקליט, שחרר כדי לעצור"
-      }
+      },
+      "appearance": {
+        "description": "שפת הממשק וערכת הצבעים. שניהם חלים מיד.",
+        "title": "מראה"
+      },
+      "description": "המקשים שאתה לוחץ, המיקרופון ש־Sona מאזין לו, ואיך האפליקציה נראית."
     },
     "models": {
       "title": "מודלי תמלול",
@@ -234,7 +239,12 @@
       "filters": {
         "allLanguages": "כל השפות",
         "streaming": "סינון דגמים התומכים בתמלול חי",
-        "translation": "סינון דגמים התומכים בתרגום לאנגלית"
+        "translation": "סינון דגמים התומכים בתרגום לאנגלית",
+        "allFamilies": "כל המשפחות",
+        "clear": "נקה מסננים",
+        "downloadedOnly": "בדיסק",
+        "downloadedOnlyHint": "הצג רק מודלים שכבר הורדו",
+        "family": "משפחת מודלים"
       },
       "noModelsMatch": "אין מודלים שמתאימים לסינון הזה.",
       "searchPlaceholder": "חיפוש מודלים לפי שם…",
@@ -286,6 +296,34 @@
           "protocol": "The provider returned an unexpected verification response.",
           "unknown_provider": "This cloud provider is not available in this build."
         }
+      },
+      "actions": {
+        "activate": "השתמש",
+        "activateNamed": "השתמש ב־{{modelName}}",
+        "download": "הורד",
+        "downloadNamed": "הורד את {{modelName}}",
+        "retryNamed": "נסה שוב להוריד את {{modelName}}"
+      },
+      "emptyCatalog": "Sona לא הצליח לקרוא את קטלוג המודלים שלו. סריקה מחדש מזהה מודלים שכבר נמצאים בתיקיית המודלים או במטמון של Hugging Face.",
+      "errors": {
+        "downloadFailed": "ההורדה לא התחילה. בדוק את החיבור ונסה שוב."
+      },
+      "families": {
+        "custom": "נוספו על ידך",
+        "other": "מודלים אחרים"
+      },
+      "familyCount": "{{total}} מודלים",
+      "noModelsMatchHint": "שום פריט בקטלוג אינו תואם לכל המסננים בבת אחת.",
+      "searchByAnything": "חפש לפי שם, שפה או יכולת",
+      "state": {
+        "activeInMemory": "פעיל, בזיכרון",
+        "downloaded": "הורד",
+        "notDownloaded": "לא הורד"
+      },
+      "summary": {
+        "active": "פעיל: {{name}}",
+        "noActive": "לא נבחר מודל",
+        "onDisk": "{{total}} בדיסק"
       }
     },
     "sound": {
@@ -461,7 +499,10 @@
         "imported": "אוצר המילים יובא",
         "errors": {
           "incomplete": "הזן גם ביטוי מדובר וגם טקסט כתוב.",
-          "duplicate": "זוג זה כבר קיים באוצר המילים."
+          "duplicate": "זוג זה כבר קיים באוצר המילים.",
+          "incompleteRow": "השלם או הסר כל שורה לפני השמירה.",
+          "duplicateSpoken": "יותר משורה אחת תואמת ל־{{spoken}}. Sona שומר כלל אחד לכל ביטוי מדובר.",
+          "unusableSpoken": "{{spoken}} דורש לפחות אות או ספרה אחת כדי להיות מזוהה."
         },
         "importPreview": {
           "title": "בדיקת ייבוא אוצר מילים",
@@ -472,7 +513,12 @@
           "conflicts": "שורות סותרות",
           "blocked": "תקן כל שורה לא תקינה, כפולה או סותרת לפני ההחלה.",
           "apply": "החל ייבוא",
-          "unsavedWarning": "יש לך שינויים שלא נשמרו באוצר המילים. החלת הייבוא הזה תחליף אותם."
+          "unsavedWarning": "יש לך שינויים שלא נשמרו באוצר המילים. החלת הייבוא הזה תחליף אותם.",
+          "back": "חזרה",
+          "continue": "המשך",
+          "replaceSummary": "החלה מחליפה את {{savedCount}} הזוגות השמורים ב־{{importedCount}} הזוגות מקובץ זה.",
+          "stepConfirm": "שלב 2 מתוך 2: אשר את ההחלפה",
+          "stepReview": "שלב 1 מתוך 2: מה הקובץ מכיל"
         },
         "actions": "Vocabulary actions",
         "audioImport": {
@@ -482,7 +528,13 @@
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
           }
-        }
+        },
+        "empty": {
+          "description": "הוסף זוג כמו open ai ו־OpenAI, ו־Sona יכתוב את הצורה המדויקת בכל פעם שישמע את הביטוי.",
+          "title": "אין כללי אוצר מילים עדיין"
+        },
+        "sources": "תיקונים שאתה שומר מתוך תמלול בספרייה נכנסים לרשימה הזו. כללים למצב יחיד נמצאים באוצר המילים של אותו מצב.",
+        "unsaved": "שינויים שלא נשמרו"
       },
       "voiceActivityDetection": {
         "title": "זיהוי פעילות קולית",
@@ -510,7 +562,12 @@
         "toggleError": "לא ניתן לשנות החלפות אימוג'י.",
         "errors": {
           "incomplete": "הזן גם ביטוי מדובר וגם טקסט אימוג'י.",
-          "duplicate": "החלפת אימוג'י זו כבר קיימת."
+          "duplicate": "החלפת אימוג'י זו כבר קיימת.",
+          "incompleteRow": "השלם או הסר כל שורה לפני השמירה."
+        },
+        "empty": {
+          "description": "מפה מילה מדוברת מדויקת כמו סמיילי לאמוג׳י שברצונך שייכתב.",
+          "title": "אין החלפות אמוג׳י עדיין"
         }
       },
       "description": "Startup, processing, and experimental behavior.",
@@ -526,6 +583,39 @@
         "experimental": {
           "description": "Unstable options that can change without notice."
         }
+      },
+      "snippets": {
+        "add": "הוסף מקטע",
+        "confirmDelete": {
+          "description": "הטריגר יפסיק להתרחב בתמלולים עתידיים. טקסט שכבר נכתב לא ישתנה.",
+          "body": "{{trigger}} מתרחב כרגע ל־{{expansion}}.",
+          "title": "למחוק את {{trigger}}?"
+        },
+        "description": "טריגרים קצרים ש־Sona מרחיב לטקסט ארוך יותר. שינויים כאן משפיעים על תמלולים עתידיים בלבד, לעולם לא על טקסט שכבר נכתב.",
+        "empty": {
+          "action": "כתוב את המקטע הראשון שלך",
+          "description": "הוסף טריגר כמו omw ו־Sona יכתוב on my way בכל פעם שתאמר אותו.",
+          "title": "אין מקטעים עדיין"
+        },
+        "enabledDescription": "החלף טריגרים של מקטעים בכל תמלול, מיד אחרי תיקוני אוצר המילים.",
+        "enabledLabel": "הפעל הרחבת טקסט",
+        "errors": {
+          "duplicate": "מקטע אחר כבר משתמש בטריגר הזה.",
+          "incomplete": "הזן גם טריגר וגם הרחבה."
+        },
+        "expansion": "הרחבה",
+        "expansionPlaceholder": "on my way",
+        "loadError": "לא ניתן היה לטעון מקטעים.",
+        "loading": "טוען מקטעים",
+        "matching": "טריגרים תואמים מילים שלמות ומתעלמים מרישיות. כאשר שני טריגרים מתאימים לאותו מקום, הארוך יותר מנצח, וההרחבה רצה מיד אחרי תיקוני אוצר המילים.",
+        "offState": "הרחבת טקסט כבויה. המקטעים נשמרים ויחולו שוב ברגע שתפעיל אותה מחדש.",
+        "title": "הרחבת טקסט",
+        "trigger": "טריגר",
+        "triggerPlaceholder": "omw",
+        "unsaved": "הקש Enter או שמור כדי לשמור את השינוי.",
+        "enableRow": "הפעל את {{trigger}}",
+        "remove": "מחק את {{trigger}}",
+        "saveRow": "שמור את {{trigger}}"
       }
     },
     "postProcessing": {
@@ -579,7 +669,27 @@
         "createPrompt": "צור פרומפט",
         "cancel": "ביטול",
         "selectToEdit": "בחר פרומפט למעלה כדי לצפות בפרטים שלו ולערוך אותם.",
-        "createFirst": "לחץ על 'צור פרומפט חדש' למעלה כדי ליצור את פרומפט העיבוד הראשון שלך."
+        "createFirst": "לחץ על 'צור פרומפט חדש' למעלה כדי ליצור את פרומפט העיבוד הראשון שלך.",
+        "empty": {
+          "description": "הנחיה אומרת למודל מה לעשות עם התמלול, לדוגמה: שכתב את הטקסט הבא כהודעה קצרה תוך שמירה על כל עובדה: ${output}"
+        },
+        "errors": {
+          "incomplete": "תן להנחיה שם והוראות לפני השמירה."
+        },
+        "inUse": "בשימוש",
+        "lastPrompt": "Sona שומר לפחות הנחיה אחת, ולכן לא ניתן למחוק אותה. צור אחרת תחילה.",
+        "libraryTitle": "הנחיות עיבוד לאחר תמלול",
+        "loading": "טוען הנחיות",
+        "noSelection": "לא נבחרה הנחיה: כל מצב משתמש בהנחיה שהוא מגדיר.",
+        "outputTip": "כתוב ${output} במקום שבו התמלול צריך להשתלב.",
+        "use": "השתמש",
+        "confirmDelete": {
+          "body": "{{name}} יוסר מהספרייה. מצבים שכבר העתיקו את הטקסט שלו שומרים על ההנחיה שלהם.",
+          "selected": "{{name}} נמצא בשימוש. מחיקתו מעבירה את הבחירה להנחיה הראשונה ברשימה."
+        },
+        "deleteNamed": "מחק את {{name}}",
+        "editNamed": "ערוך את {{name}}",
+        "useNamed": "השתמש ב־{{name}}"
       },
       "remoteConsent": {
         "title": "Remote text transfer",
@@ -754,7 +864,8 @@
           "start": "לא ניתן להתחיל בייבוא הקובץ.",
           "cancel": "לא ניתן לבטל את ייבוא הקובץ.",
           "load": "לא ניתן לטעון את מצב ייבוא הקובץ."
-        }
+        },
+        "running": "מתמלל {{count}} קבצים"
       },
       "trends": {
         "title": "History trends",
@@ -771,7 +882,14 @@
           "words": "Words"
         },
         "streak": "{{count}} day streak"
-      }
+      },
+      "clearSearch": "נקה חיפוש",
+      "emptyHint": "אפשר גם לתמלל הקלטה קיימת: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 או M4V, עד 30 דקות.",
+      "loadMore": "טען עוד",
+      "noResultsHint": "החיפוש תואם מילים שלמות הן בתמלול הגולמי והן בתמלול המעובד.",
+      "results": "{{count}} התאמות",
+      "resultsMore": "{{count}}+ התאמות",
+      "resultsNone": "אין התאמות"
     },
     "debug": {
       "title": "ניפוי שגיאות",
@@ -889,13 +1007,21 @@
         "button": "תצוגה מקדימה",
         "noNotes": "לא נמצאו הערות גרסה מצורפות",
         "error": "הצגת התצוגה המקדימה של הערות הגרסה נכשלה"
+      },
+      "description": "מכשור ובקרות שאינן נתמכות. מוצג מכיוון שמצב ניפוי באגים מופעל.",
+      "groups": {
+        "capture": "קליטה",
+        "delivery": "מסירת טקסט",
+        "diagnostics": "אבחון",
+        "logging": "רישום"
       }
     },
     "about": {
       "title": "אודות",
       "version": {
         "title": "גרסה",
-        "description": "הגרסה הנוכחית של Sona"
+        "description": "הגרסה הנוכחית של Sona",
+        "unavailable": "לא זמין"
       },
       "appDataDirectory": {
         "title": "תיקיית נתוני אפליקציה",
@@ -922,6 +1048,36 @@
       "whatsNewUpdates": {
         "label": "הצג מה חדש",
         "description": "הצג הערות גרסה לאחר עדכוני Sona"
+      },
+      "description": "איזו גרסה אתה מריץ, מאיפה היא הגיעה, והיכן היא שומרת את הקבצים שלך.",
+      "files": {
+        "title": "קבצים"
+      },
+      "source": {
+        "description": "Sona מופץ ברישיון MIT, זכויות יוצרים 2025 CJ Pais, ובנוי על Handy.",
+        "open": "פתח ב־GitHub",
+        "repository": "מאגר",
+        "title": "קוד מקור",
+        "upstream": "בנוי על Handy",
+        "upstreamDescription": "Sona הוא fork של cjpais/Handy ועדיין עוקב אחרי התיקונים במקור.",
+        "upstreamOpen": "cjpais/Handy"
+      },
+      "updates": {
+        "autoDescription": "שואל את GitHub לגבי הגרסה האחרונה. Sona לעולם לא מתקין דבר בעצמו.",
+        "autoLabel": "בדוק עדכונים אוטומטית",
+        "check": "בדוק עכשיו",
+        "checking": "בודק…",
+        "disabled": "בדיקות אוטומטיות כבויות, ולכן Sona לא פנה ל־GitHub.",
+        "enable": "הפעל בדיקות",
+        "failed": "לא ניתן היה להריץ את בדיקת העדכון.",
+        "manualDescription": "השווה את הגרסה הזו לגרסה האחרונה שפורסמה.",
+        "manualTitle": "בדיקה ידנית",
+        "preferenceError": "לא ניתן היה לשמור את העדפת העדכונים.",
+        "title": "גרסה ועדכונים",
+        "viewRelease": "הצג גרסה",
+        "available": "Sona {{version}} זמין.",
+        "published": "פורסם {{date}}",
+        "upToDate": "Sona {{version}} הוא הגרסה האחרונה."
       }
     },
     "modes": {
@@ -951,8 +1107,12 @@
             "action": "לכידת האתר הנוכחי",
             "capturing": "מתבצעת לכידה..."
           },
-          "empty": "אף אתר לא מפעיל מצב זה."
-        }
+          "empty": "אף אתר לא מפעיל מצב זה.",
+          "exampleDescription": "כלל שומר מארח דפדפן אחד, לדוגמה mail.google.com."
+        },
+        "exampleDescription": "כלל שומר זהות אפליקציה אחת, לדוגמה com.apple.mail.",
+        "removeTarget": "הסר את {{target}}",
+        "unsupported": "הפעלה לפי אפליקציה ואתר זמינה ב־macOS בלבד."
       },
       "title": "Modes",
       "description": "Choose what each dictation run recognizes, rewrites, and delivers.",
@@ -1017,12 +1177,15 @@
         "provider": {
           "label": "AI provider",
           "description": "The configured provider used for this mode.",
-          "empty": "No provider configured"
+          "empty": "No provider configured",
+          "noneConfigured": "עדיין לא הוגדר ספק AI. הוסף אחד ב־Settings לפני שמצב זה יוכל לשכתב.",
+          "unknownSelected": "מצב זה מציין ספק שאינו מוגדר בהתקנה זו."
         },
         "model": {
           "label": "AI model",
           "description": "The provider model identifier for this mode."
-        }
+        },
+        "disabledNote": "הפעל ניקוי AI כדי להשתמש בתבנית, בטון, בספק ובמודל שלמטה."
       },
       "recognition": {
         "literalPunctuation": {
@@ -1062,7 +1225,8 @@
           "writtenPlaceholder": "What to write",
           "add": "Add pair",
           "remove": "Remove {{spoken}}",
-          "incomplete": "Complete or remove each vocabulary pair before saving this mode."
+          "incomplete": "Complete or remove each vocabulary pair before saving this mode.",
+          "empty": "למצב זה אין אוצר מילים משלו. אוצר המילים הגלובלי עדיין חל."
         },
         "engine": {
           "label": "Transcription engine",
@@ -1115,7 +1279,8 @@
               "unknown_provider": "This cloud provider is not available in this build.",
               "backend": "The consent record could not be saved."
             }
-          }
+          },
+          "title": "תעבורת ענן"
         }
       },
       "context": {
@@ -1129,7 +1294,9 @@
             "target": "App",
             "target_and_selection": "Selection",
             "full": "Full"
-          }
+          },
+          "blockedByCeiling": "Privacy מגביל מצב זה ל־{{ceiling}}.",
+          "raiseCeiling": "העלה את התקרה ב־Privacy כדי להשתמש ברמות גבוהות יותר."
         }
       },
       "delivery": {
@@ -1165,7 +1332,8 @@
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
             "cmd_enter": "Command+Enter"
-          }
+          },
+          "requiresAutoSubmit": "הפעל שליחה אוטומטית כדי לבחור מקש."
         },
         "trailingSpace": {
           "label": "Append a trailing space",
@@ -1191,7 +1359,8 @@
             "dotool": "dotool",
             "ydotool": "ydotool",
             "xdotool": "xdotool"
-          }
+          },
+          "requiresDirect": "בחר בהקלדה ישירה כשיטת המסירה כדי לבחור כלי."
         },
         "script": {
           "label": "External script",
@@ -1235,7 +1404,16 @@
       "views": {
         "modes": "Modes",
         "vocabulary": "Vocabulary"
-      }
+      },
+      "cleanup": {
+        "title": "ניקוי תמלול"
+      },
+      "dismissError": "סגור את השגיאה",
+      "emptyHint": "בחר מצב משמאל כדי לשנות מה הוא מזהה, משכתב ומוסר.",
+      "listEmpty": "לא הוגדרו מצבים.",
+      "listEmptyHint": "Sona תמיד שומר מצב אחד. טען מחדש כדי לקבל את הרשימה הנוכחית.",
+      "unsavedChanges": "שינויים שלא נשמרו",
+      "untitled": "מצב ללא שם"
     },
     "privacy": {
       "title": "Privacy",
@@ -1323,7 +1501,24 @@
             "months_3": "3 months"
           }
         },
-        "error": "Data retention could not be saved"
+        "error": "Data retention could not be saved",
+        "historyStorage": {
+          "description": "האם היסטוריית ההכתבות מוצפנת בדיסק זה.",
+          "encrypted": "מוצפן במנוחה",
+          "label": "אחסון היסטוריה",
+          "locked": "נעול",
+          "plaintext": "לא מוצפן",
+          "reasons": {
+            "encryption_unavailable": "גרסה זו אינה יכולה לפתוח מסד נתונים מוצפן, ולכן ההיסטוריה נשמרת ללא הצפנה.",
+            "key_rejected": "המפתח השמור אינו פותח את מסד הנתונים המוצפן, ולכן לא ניתן לקרוא את ההיסטוריה.",
+            "key_unavailable": "מאגר האישורים של המערכת לא החזיר מפתח שמיש, ולכן ההיסטוריה נשמרת ללא הצפנה.",
+            "migration_failed": "הצפנת מסד הנתונים הקיים נכשלה. מסד הנתונים הלא מוצפן שלם ועדיין בשימוש.",
+            "unlocking": "פותח את מסד הנתונים המוצפן. הודעה זו נעלמת רגעים לאחר ההפעלה."
+          },
+          "unknown": "Sona לא הצליח לקרוא כיצד ההיסטוריה נשמרת.",
+          "unlocking": "פותח נעילה",
+          "since": "מוצפן מאז {{date}}."
+        }
       },
       "cloudTranscription": {
         "title": "Cloud transcription",
@@ -1332,7 +1527,8 @@
         "checkFailed": "Cloud transcription setup could not be checked.",
         "disclosure": "For a cloud-enabled mode, Sona sends recorded audio, the selected language, and mode keyterms directly to the provider. Application context and native credentials stay on this device.",
         "providerDetail": "{{provider}} has a saved native API key and current transfer consent.",
-        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent."
+        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent.",
+        "inUse": "בשימוש"
       },
       "upstreamImport": {
         "title": "Import from legacy app",
@@ -1386,6 +1582,16 @@
           "internal": "The import did not finish.",
           "status": "The original Sona data could not be inspected."
         }
+      },
+      "cloudSync": {
+        "checkFailed": "Sona לא הצליח לקרוא את תצורת סנכרון הענן.",
+        "configured": "מוגדר",
+        "description": "Sona יכול לשקף פגישות לשרת שאתה מפעיל. דבר אינו מועלה עד שההגדרה תושלם במכשיר זה.",
+        "endpoint": "נקודת קצה",
+        "endpointDescription": "השרת שאליו מכשיר זה מכוון.",
+        "notConfigured": "לא מוגדר",
+        "service": "שירות",
+        "title": "סנכרון ענן"
       }
     },
     "agents": {
@@ -1445,7 +1651,8 @@
         "session": "Reply destination",
         "noSession": "No observed reply-capable session",
         "message": "Reply text",
-        "createPreview": "Create preview"
+        "createPreview": "Create preview",
+        "notReady": "תשובות דורשות שהגשר יהיה פעיל ולפחות סוכן אחד מופעל."
       },
       "pending": {
         "empty": "No pending replies.",
@@ -1497,7 +1704,15 @@
       "errors": {
         "load": "Agent bridge data could not be loaded: {{error}}",
         "operation": "The agent bridge action could not be completed: {{error}}"
-      }
+      },
+      "panel": {
+        "description": "החלון הצף שסוכנים כותבים אליו וקוראים ממנו תשובות.",
+        "error": "לא ניתן היה לשמור את הגדרת חלונית הסוכנים.",
+        "label": "הפעל את חלונית הסוכנים",
+        "rowDescription": "כיבוי האפשרות סוגר את חלון החלונית וגורם ל־Sona לסרב לכל בקשה לפתוח אותה מחדש.",
+        "title": "חלונית סוכנים"
+      },
+      "workspaceNavigation": "תצוגות גשר הסוכנים"
     },
     "hub": {
       "navigation": "Settings sections",
@@ -1706,7 +1921,8 @@
       "localOnly": "Local only",
       "check": "Check recording setup",
       "checking": "Checking setup…",
-      "defaultTitle": "Local notes"
+      "defaultTitle": "Local notes",
+      "remoteUnavailable": "עיבוד מרוחק אינו זמין בגרסה זו, ולכן כל פגישה מתומללת ומסוכמת במחשב Mac זה."
     },
     "preflight": {
       "title": "Check recording setup",
@@ -1725,7 +1941,8 @@
       "remoteNotSelected": "No remote destination is selected.",
       "remoteSelected": "Selected destination: {{destination}}",
       "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
-      "starting": "Starting visible capture…"
+      "starting": "Starting visible capture…",
+      "refreshing": "בודק…"
     },
     "consent": {
       "title": "Recording acknowledgement",
@@ -1778,7 +1995,8 @@
       "title": "Retention",
       "description": "Sona deletes eligible local meeting records through the same verified deletion path.",
       "forever": "Keep until I delete it",
-      "days": "Delete after {{days}} days"
+      "days": "Delete after {{days}} days",
+      "loading": "קורא את המדיניות הנוכחית…"
     },
     "receipts": {
       "title": "Correction receipt",
@@ -1926,7 +2144,29 @@
       "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
       "searchPlaceholder": "Search this meeting",
       "search": "Search",
-      "noSearchResults": "No exact local matches."
+      "noSearchResults": "No exact local matches.",
+      "askUnavailable": "שאילת שאלות דורשת תמלול מקומי שהושלם.",
+      "asking": "שואל את הפגישה…",
+      "captured": "נקלט {{time}}",
+      "droppedFrames": "פריימים שאבדו: {{total}}",
+      "hitKind": {
+        "manualNote": "הערה ידנית",
+        "title": "כותרת הפגישה",
+        "transcript": "תמלול"
+      },
+      "noGeneratedNotesDescription": "הערות שנוצרו נגזרות מהתמלול, ולכן ניתן לבנות אותן מחדש בכל עת.",
+      "processingDescription": "הערות שנוצרו ותשובות מקומיות יופיעו לאחר שהתמלול יושלם.",
+      "processingTitle": "Sona עדיין מעבד את הפגישה הזו",
+      "remoteProcessingUnavailable": "היעד המרוחק לא הפך לזמין, ולכן לא נוצר דבר. יצירה מחדש מתבצעת במחשב Mac זה.",
+      "searching": "מחפש…",
+      "sonaAnswered": "Sona ענה",
+      "tabs": {
+        "insights": "תובנות",
+        "questions": "שאלות ותשובות",
+        "transcript": "תמלול"
+      },
+      "tabsLabel": "מקטעי סקירת פגישה",
+      "youAsked": "שאלת"
     },
     "artifactState": {
       "current": "Current",
@@ -1960,6 +2200,21 @@
         "transcript": "Transcript segments",
         "actions": "Action items"
       }
+    },
+    "list": {
+      "clearSearch": "נקה חיפוש",
+      "loadMore": "טען פגישות ישנות יותר",
+      "loadingMore": "טוען פגישות ישנות יותר…",
+      "noMatches": "אין פגישות התואמות לחיפוש",
+      "noMatchesDescription": "אין כותרת פגישה המכילה \"{{query}}\". נקה את החיפוש כדי לראות את הרשימה המלאה.",
+      "noMatchesNotLoaded": "אין כותרת פגישה טעונה המכילה \"{{query}}\". פגישות ישנות יותר עדיין בדיסק: טען אותן וחפש שוב.",
+      "retentionHint": "שמירה: {{policy}}. ניתן לשנות זאת ב־Settings, Privacy.",
+      "searchLabel": "חיפוש פגישות",
+      "searchPlaceholder": "חיפוש לפי כותרת"
+    },
+    "status": {
+      "gapCount": "פערים: {{total}}",
+      "required": "נדרש"
     }
   },
   "agentPanel": {
@@ -2017,23 +2272,66 @@
       "microphone": "Microphone",
       "file": "File import",
       "legacy": "Legacy",
-      "empty": "No recordings in this range."
+      "empty": "No recordings in this range.",
+      "meetings": "פגישות",
+      "meetingsUnavailable": "אחסון הפגישות אינו זמין, ולכן פגישות אינן נספרות כאן."
     },
     "recent": {
       "title": "Recent activity",
       "history": "Transcription",
-      "meeting": "Meeting"
+      "meeting": "Meeting",
+      "emptyDescription": "קליטות שנשמרו יופיעו כאן ברגע שתכתיב או תקליט פגישה.",
+      "emptyTitle": "אין פריטים אחרונים",
+      "error": "לא ניתן היה לטעון כעת את הקליטות האחרונות.",
+      "viewAll": "הצג הכול"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
       "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
-      "importAudio": "Import audio"
+      "importAudio": "Import audio",
+      "mode": "מצב: {{name}}",
+      "setShortcut": "הגדר קיצור הכתבה ב־Settings כדי לקלוט מכל אפליקציה."
     },
     "actions": {
       "dictate": "Dictate",
       "unavailable": "Shortcut unavailable"
+    },
+    "chart": {
+      "day": "{{date}} \\u00b7 הכתבות {{dictations}}",
+      "dayWithMeetings": "{{date}} \\u00b7 הכתבות {{dictations}} \\u00b7 פגישות {{meetings}}",
+      "legend": "הכתבות ליום",
+      "peak": "היום העמוס ביותר {{peak}}",
+      "summary": "הכתבות ליום מ־{{from}} עד {{to}}. סך הכול {{total}}, היום העמוס ביותר {{peak}}."
+    },
+    "empty": {
+      "action": "פתח את הספרייה",
+      "description": "החזק את קיצור ההכתבה בכל אפליקציה ו־Sona יקליד את מה שאתה אומר. נתוני השימוש והקליטות האחרונות יופיעו כאן לאחר הראשונה.",
+      "title": "אין קליטות עדיין"
+    },
+    "stats": {
+      "activeDays": "{{active}} מתוך {{total}} ימים פעילים",
+      "allTime": "{{total}} מאז ומעולם",
+      "dictations": "הכתבות",
+      "dictationsAllTime": "הכתבות, כל הזמן",
+      "error": "Sona לא הצליח לקרוא כעת את היסטוריית השימוש שלך.",
+      "range": "{{from}} עד {{to}}",
+      "rangeUnavailable": "לא ניתן היה לקרוא את 30 הימים האחרונים, ולכן אלה סיכומים מכל הזמנים.",
+      "speaking": "זמן דיבור",
+      "speakingAllTime": "זמן דיבור, כל הזמן",
+      "streak": "רצף נוכחי",
+      "tiles": "סיכום שימוש",
+      "title": "פעילות",
+      "words": "מילים",
+      "wordsAllTime": "מילים, כל הזמן"
+    },
+    "update": {
+      "available": "Sona {{latest}} זמין. ההתקנה הזו על {{current}}.",
+      "dismiss": "סגור",
+      "failed": "לא ניתן היה לבדוק עדכונים.",
+      "failedWithReason": "לא ניתן היה לבדוק עדכונים: {{reason}}",
+      "view": "הצג גרסה"
     }
   },
   "cloudSync": {

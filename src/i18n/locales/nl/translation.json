@@ -221,7 +221,12 @@
       "pushToTalk": {
         "label": "Push-to-talk",
         "description": "Ingedrukt houden om op te nemen, loslaten om te stoppen"
-      }
+      },
+      "appearance": {
+        "description": "Taal van de interface en kleurenschema. Beide gelden direct.",
+        "title": "Weergave"
+      },
+      "description": "De toetsen die je indrukt, de microfoon waarnaar Sona luistert en hoe de app eruitziet."
     },
     "models": {
       "title": "Transcriptiemodellen",
@@ -235,7 +240,12 @@
       "filters": {
         "allLanguages": "Alle talen",
         "streaming": "Filter modellen die live transcriptie ondersteunen",
-        "translation": "Filter modellen die vertaling naar het Engels ondersteunen"
+        "translation": "Filter modellen die vertaling naar het Engels ondersteunen",
+        "allFamilies": "Alle families",
+        "clear": "Filters wissen",
+        "downloadedOnly": "Op schijf",
+        "downloadedOnlyHint": "Toon alleen al gedownloade modellen",
+        "family": "Modelfamilie"
       },
       "rescan": {
         "label": "Opnieuw scannen",
@@ -286,6 +296,34 @@
           "protocol": "The provider returned an unexpected verification response.",
           "unknown_provider": "This cloud provider is not available in this build."
         }
+      },
+      "actions": {
+        "activate": "Gebruiken",
+        "activateNamed": "{{modelName}} gebruiken",
+        "download": "Downloaden",
+        "downloadNamed": "{{modelName}} downloaden",
+        "retryNamed": "Download van {{modelName}} opnieuw proberen"
+      },
+      "emptyCatalog": "Sona kon zijn modelcatalogus niet lezen. Opnieuw scannen vindt modellen die al in de modellenmap of de Hugging Face-cache staan.",
+      "errors": {
+        "downloadFailed": "De download is niet gestart. Controleer je verbinding en probeer het opnieuw."
+      },
+      "families": {
+        "custom": "Door jou toegevoegd",
+        "other": "Overige modellen"
+      },
+      "familyCount": "{{total}} modellen",
+      "noModelsMatchHint": "Niets in de catalogus voldoet aan alle filters tegelijk.",
+      "searchByAnything": "Zoeken op naam, taal of functionaliteit",
+      "state": {
+        "activeInMemory": "Actief, in geheugen",
+        "downloaded": "Gedownload",
+        "notDownloaded": "Niet gedownload"
+      },
+      "summary": {
+        "active": "Actief: {{name}}",
+        "noActive": "Geen model geselecteerd",
+        "onDisk": "{{total}} op schijf"
       }
     },
     "sound": {
@@ -461,7 +499,10 @@
         "imported": "Woordenschat geïmporteerd",
         "errors": {
           "incomplete": "Voer zowel een gesproken zin als geschreven tekst in.",
-          "duplicate": "Dit woordenschatpaar bestaat al."
+          "duplicate": "Dit woordenschatpaar bestaat al.",
+          "incompleteRow": "Vul elke rij in of verwijder deze voordat je opslaat.",
+          "duplicateSpoken": "Meerdere rijen matchen {{spoken}}. Sona houdt één regel per gesproken frase.",
+          "unusableSpoken": "{{spoken}} heeft minstens één letter of cijfer nodig om herkend te worden."
         },
         "importPreview": {
           "title": "Import van woordenschat controleren",
@@ -472,7 +513,12 @@
           "conflicts": "Conflicterende rijen",
           "blocked": "Los elke ongeldige, dubbele of conflicterende rij op voordat je toepast.",
           "apply": "Import toepassen",
-          "unsavedWarning": "U hebt niet-opgeslagen wijzigingen in de woordenschat. Door deze import toe te passen worden ze vervangen."
+          "unsavedWarning": "U hebt niet-opgeslagen wijzigingen in de woordenschat. Door deze import toe te passen worden ze vervangen.",
+          "back": "Terug",
+          "continue": "Doorgaan",
+          "replaceSummary": "Toepassen vervangt de {{savedCount}} opgeslagen paren door de {{importedCount}} paren uit dit bestand.",
+          "stepConfirm": "Stap 2 van 2: bevestig de vervanging",
+          "stepReview": "Stap 1 van 2: wat het bestand bevat"
         },
         "actions": "Vocabulary actions",
         "audioImport": {
@@ -482,7 +528,13 @@
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
           }
-        }
+        },
+        "empty": {
+          "description": "Voeg een paar toe zoals open ai en OpenAI, en Sona schrijft telkens de exacte vorm wanneer het de frase hoort.",
+          "title": "Nog geen woordenschatregels"
+        },
+        "sources": "Correcties die je opslaat vanuit een transcript in Bibliotheek komen in deze lijst terecht. Regels voor één modus staan in de eigen woordenschat van die modus.",
+        "unsaved": "Niet-opgeslagen wijzigingen"
       },
       "voiceActivityDetection": {
         "title": "Spraakactiviteitsdetectie (VAD)",
@@ -510,7 +562,12 @@
         "toggleError": "Kan emoji-vervangingen niet wijzigen.",
         "errors": {
           "incomplete": "Voer zowel een gesproken zin als emojitekst in.",
-          "duplicate": "Deze emoji-vervanging bestaat al."
+          "duplicate": "Deze emoji-vervanging bestaat al.",
+          "incompleteRow": "Vul elke rij in of verwijder deze voordat je opslaat."
+        },
+        "empty": {
+          "description": "Koppel een exact gesproken woord zoals smiley aan de emoji die je geschreven wilt hebben.",
+          "title": "Nog geen emojivervangingen"
         }
       },
       "description": "Startup, processing, and experimental behavior.",
@@ -526,6 +583,39 @@
         "experimental": {
           "description": "Unstable options that can change without notice."
         }
+      },
+      "snippets": {
+        "add": "Fragment toevoegen",
+        "confirmDelete": {
+          "description": "De trigger wordt in toekomstige transcripten niet meer uitgebreid. Reeds geschreven tekst blijft ongewijzigd.",
+          "body": "{{trigger}} wordt momenteel uitgebreid tot {{expansion}}.",
+          "title": "{{trigger}} verwijderen?"
+        },
+        "description": "Korte triggers die Sona uitbreidt tot langere tekst. Wijzigingen hier gelden alleen voor toekomstige transcripten, nooit voor al geschreven tekst.",
+        "empty": {
+          "action": "Schrijf je eerste fragment",
+          "description": "Voeg een trigger toe zoals omw en Sona schrijft onderweg telkens wanneer je het zegt.",
+          "title": "Nog geen fragmenten"
+        },
+        "enabledDescription": "Vervang fragmenttriggers in elk transcript, direct na woordenschatcorrecties.",
+        "enabledLabel": "Tekstuitbreiding inschakelen",
+        "errors": {
+          "duplicate": "Een ander fragment gebruikt deze trigger al.",
+          "incomplete": "Voer zowel een trigger als een uitbreiding in."
+        },
+        "expansion": "Uitbreiding",
+        "expansionPlaceholder": "onderweg",
+        "loadError": "Kon fragmenten niet laden.",
+        "loading": "Fragmenten laden",
+        "matching": "Triggers matchen hele woorden en negeren hoofdletters. Als twee triggers op dezelfde plek passen, wint de langste, en uitbreiding gebeurt direct na woordenschatcorrecties.",
+        "offState": "Tekstuitbreiding staat uit. Fragmenten blijven opgeslagen en gelden weer zodra je het inschakelt.",
+        "title": "Tekstuitbreiding",
+        "trigger": "Trigger",
+        "triggerPlaceholder": "omw",
+        "unsaved": "Druk op Enter of Opslaan om deze wijziging te bewaren.",
+        "enableRow": "{{trigger}} inschakelen",
+        "remove": "{{trigger}} verwijderen",
+        "saveRow": "{{trigger}} opslaan"
       }
     },
     "postProcessing": {
@@ -579,7 +669,27 @@
         "createPrompt": "Prompt maken",
         "cancel": "Annuleren",
         "selectToEdit": "Selecteer hierboven een prompt om de details te bekijken en te bewerken.",
-        "createFirst": "Klik hierboven op 'Nieuwe prompt maken' om je eerste naverwerkingsprompt aan te maken."
+        "createFirst": "Klik hierboven op 'Nieuwe prompt maken' om je eerste naverwerkingsprompt aan te maken.",
+        "empty": {
+          "description": "Een prompt vertelt het model wat het met het transcript moet doen, bijvoorbeeld: herschrijf het volgende als een kort bericht en behoud elk feit: ${output}"
+        },
+        "errors": {
+          "incomplete": "Geef de prompt een naam en instructies voordat je opslaat."
+        },
+        "inUse": "In gebruik",
+        "lastPrompt": "Sona bewaart minstens één prompt, dus deze kan niet worden verwijderd. Maak eerst een andere.",
+        "libraryTitle": "Nabewerkingsprompts",
+        "loading": "Prompts laden",
+        "noSelection": "Geen prompt geselecteerd: elke modus gebruikt de prompt die deze zelf definieert.",
+        "outputTip": "Schrijf ${output} op de plek waar het transcript moet worden ingevoegd.",
+        "use": "Gebruiken",
+        "confirmDelete": {
+          "body": "{{name}} wordt uit de bibliotheek verwijderd. Modi die de tekst al hebben gekopieerd, behouden hun eigen prompt.",
+          "selected": "{{name}} is in gebruik. Verwijderen verplaatst de selectie naar de eerste prompt in de lijst."
+        },
+        "deleteNamed": "{{name}} verwijderen",
+        "editNamed": "{{name}} bewerken",
+        "useNamed": "{{name}} gebruiken"
       },
       "remoteConsent": {
         "title": "Remote text transfer",
@@ -754,7 +864,8 @@
           "start": "Kan de bestandsimport niet starten.",
           "cancel": "Kan de bestandsimport niet annuleren.",
           "load": "Kan de status van de bestandsimport niet laden."
-        }
+        },
+        "running": "{{count}} bestanden transcriberen"
       },
       "trends": {
         "title": "History trends",
@@ -771,7 +882,14 @@
           "words": "Words"
         },
         "streak": "{{count}} day streak"
-      }
+      },
+      "clearSearch": "Zoekopdracht wissen",
+      "emptyHint": "Je kunt ook een bestaande opname transcriberen: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 of M4V, tot 30 minuten.",
+      "loadMore": "Meer laden",
+      "noResultsHint": "Zoeken matcht hele woorden in zowel het ruwe als het verwerkte transcript.",
+      "results": "{{count}} resultaten",
+      "resultsMore": "{{count}}+ resultaten",
+      "resultsNone": "Geen resultaten"
     },
     "debug": {
       "title": "Probleemoplossing",
@@ -889,13 +1007,21 @@
         "verdictOk": "Toetsgebeurtenissen bereiken Sona normaal.",
         "verdictNoEvents": "Geen gebeurtenissen vastgelegd — heb je tijdens de test toetsen ingedrukt?",
         "failed": "Diagnose mislukt: {{error}}"
+      },
+      "description": "Instrumentatie en niet-ondersteunde knoppen. Zichtbaar omdat debugmodus aan staat.",
+      "groups": {
+        "capture": "Opname",
+        "delivery": "Tekstlevering",
+        "diagnostics": "Diagnostiek",
+        "logging": "Logboek"
       }
     },
     "about": {
       "title": "Over Sona",
       "version": {
         "title": "Versie",
-        "description": "Huidige versie van Sona"
+        "description": "Huidige versie van Sona",
+        "unavailable": "Niet beschikbaar"
       },
       "whatsNewUpdates": {
         "label": "Toon 'Wat is er nieuw'",
@@ -922,6 +1048,36 @@
           "description": "Krachtige tensorbibliotheek voor lokale AI-verwerking",
           "details": "Sona's lokale spraak-naar-tekst is gebouwd op transcribe.cpp en ggml. Met dank aan het geweldige werk van Georgi Gerganov en alle bijdragers."
         }
+      },
+      "description": "Welke build je draait, waar die vandaan komt en waar je bestanden worden bewaard.",
+      "files": {
+        "title": "Bestanden"
+      },
+      "source": {
+        "description": "Sona is MIT-gelicentieerd, copyright 2025 CJ Pais, en gebouwd op Handy.",
+        "open": "Openen op GitHub",
+        "repository": "Repository",
+        "title": "Broncode",
+        "upstream": "Gebouwd op Handy",
+        "upstreamDescription": "Sona is een fork van cjpais/Handy en volgt nog steeds de upstream-fixes.",
+        "upstreamOpen": "cjpais/Handy"
+      },
+      "updates": {
+        "autoDescription": "Vraagt GitHub om de nieuwste release. Sona installeert nooit iets zelfstandig.",
+        "autoLabel": "Automatisch op updates controleren",
+        "check": "Nu controleren",
+        "checking": "Controleren…",
+        "disabled": "Automatische controles staan uit, dus Sona heeft geen contact gemaakt met GitHub.",
+        "enable": "Controles inschakelen",
+        "failed": "De updatecontrole kon niet worden uitgevoerd.",
+        "manualDescription": "Vergelijk deze build met de laatst gepubliceerde release.",
+        "manualTitle": "Handmatige controle",
+        "preferenceError": "De updatevoorkeur kon niet worden opgeslagen.",
+        "title": "Versie en updates",
+        "viewRelease": "Release bekijken",
+        "available": "Sona {{version}} is beschikbaar.",
+        "published": "Gepubliceerd {{date}}",
+        "upToDate": "Sona {{version}} is de nieuwste release."
       }
     },
     "modes": {
@@ -951,8 +1107,12 @@
             "action": "Huidige website vastleggen",
             "capturing": "Vastleggen..."
           },
-          "empty": "Geen website activeert deze modus."
-        }
+          "empty": "Geen website activeert deze modus.",
+          "exampleDescription": "Een regel bewaart één browserhost, bijvoorbeeld mail.google.com."
+        },
+        "exampleDescription": "Een regel bewaart één applicatie-identiteit, bijvoorbeeld com.apple.mail.",
+        "removeTarget": "{{target}} verwijderen",
+        "unsupported": "Activatie per app en website is alleen beschikbaar op macOS."
       },
       "title": "Modes",
       "description": "Choose what each dictation run recognizes, rewrites, and delivers.",
@@ -1017,12 +1177,15 @@
         "provider": {
           "label": "AI provider",
           "description": "The configured provider used for this mode.",
-          "empty": "No provider configured"
+          "empty": "No provider configured",
+          "noneConfigured": "Er is nog geen AI-provider geconfigureerd. Voeg er een toe in Instellingen voordat deze modus kan herschrijven.",
+          "unknownSelected": "Deze modus verwijst naar een provider die niet is geconfigureerd op deze installatie."
         },
         "model": {
           "label": "AI model",
           "description": "The provider model identifier for this mode."
-        }
+        },
+        "disabledNote": "Schakel AI-opschoning in om de preset, toon, provider en het model hieronder te gebruiken."
       },
       "recognition": {
         "literalPunctuation": {
@@ -1062,7 +1225,8 @@
           "writtenPlaceholder": "What to write",
           "add": "Add pair",
           "remove": "Remove {{spoken}}",
-          "incomplete": "Complete or remove each vocabulary pair before saving this mode."
+          "incomplete": "Complete or remove each vocabulary pair before saving this mode.",
+          "empty": "Deze modus heeft geen eigen woordenschat. Globale woordenschat geldt nog steeds."
         },
         "engine": {
           "label": "Transcription engine",
@@ -1115,7 +1279,8 @@
               "unknown_provider": "This cloud provider is not available in this build.",
               "backend": "The consent record could not be saved."
             }
-          }
+          },
+          "title": "Cloudtransport"
         }
       },
       "context": {
@@ -1129,7 +1294,9 @@
             "target": "App",
             "target_and_selection": "Selection",
             "full": "Full"
-          }
+          },
+          "blockedByCeiling": "Privacy beperkt deze modus tot {{ceiling}}.",
+          "raiseCeiling": "Verhoog het plafond in Privacy om hogere niveaus te gebruiken."
         }
       },
       "delivery": {
@@ -1165,7 +1332,8 @@
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
             "cmd_enter": "Command+Enter"
-          }
+          },
+          "requiresAutoSubmit": "Schakel automatisch verzenden in om een toets te kiezen."
         },
         "trailingSpace": {
           "label": "Append a trailing space",
@@ -1191,7 +1359,8 @@
             "dotool": "dotool",
             "ydotool": "ydotool",
             "xdotool": "xdotool"
-          }
+          },
+          "requiresDirect": "Kies Direct typen als leveringsmethode om een tool te kiezen."
         },
         "script": {
           "label": "External script",
@@ -1235,7 +1404,16 @@
       "views": {
         "modes": "Modes",
         "vocabulary": "Vocabulary"
-      }
+      },
+      "cleanup": {
+        "title": "Transcriptopschoning"
+      },
+      "dismissError": "Fout sluiten",
+      "emptyHint": "Kies links een modus om te wijzigen wat deze herkent, herschrijft en levert.",
+      "listEmpty": "Er zijn geen modi geconfigureerd.",
+      "listEmptyHint": "Sona houdt altijd één modus. Herlaad om de huidige lijst op te halen.",
+      "unsavedChanges": "Niet-opgeslagen wijzigingen",
+      "untitled": "Naamloze modus"
     },
     "privacy": {
       "title": "Privacy",
@@ -1323,7 +1501,24 @@
             "months_3": "3 months"
           }
         },
-        "error": "Data retention could not be saved"
+        "error": "Data retention could not be saved",
+        "historyStorage": {
+          "description": "Of de dicteergeschiedenis op deze schijf versleuteld is.",
+          "encrypted": "Versleuteld in rust",
+          "label": "Geschiedenisopslag",
+          "locked": "Vergrendeld",
+          "plaintext": "Niet versleuteld",
+          "reasons": {
+            "encryption_unavailable": "Deze build kan geen versleutelde database openen, dus de geschiedenis wordt onversleuteld opgeslagen.",
+            "key_rejected": "De opgeslagen sleutel opent de versleutelde database niet, dus de geschiedenis kan niet worden gelezen.",
+            "key_unavailable": "De systeemsleutelopslag gaf geen bruikbare sleutel terug, dus de geschiedenis wordt onversleuteld opgeslagen.",
+            "migration_failed": "Het versleutelen van de bestaande database is mislukt. De onversleutelde database is intact en nog in gebruik.",
+            "unlocking": "De versleutelde database wordt geopend. Dit verdwijnt kort na het opstarten."
+          },
+          "unknown": "Sona kon niet lezen hoe de geschiedenis is opgeslagen.",
+          "unlocking": "Ontgrendelen",
+          "since": "Versleuteld sinds {{date}}."
+        }
       },
       "cloudTranscription": {
         "title": "Cloud transcription",
@@ -1332,7 +1527,8 @@
         "checkFailed": "Cloud transcription setup could not be checked.",
         "disclosure": "For a cloud-enabled mode, Sona sends recorded audio, the selected language, and mode keyterms directly to the provider. Application context and native credentials stay on this device.",
         "providerDetail": "{{provider}} has a saved native API key and current transfer consent.",
-        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent."
+        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent.",
+        "inUse": "In gebruik"
       },
       "upstreamImport": {
         "title": "Import from legacy app",
@@ -1386,6 +1582,16 @@
           "internal": "The import did not finish.",
           "status": "The original Sona data could not be inspected."
         }
+      },
+      "cloudSync": {
+        "checkFailed": "Sona kon de cloudsynchronisatieconfiguratie niet lezen.",
+        "configured": "Geconfigureerd",
+        "description": "Sona kan vergaderingen spiegelen naar een server die je zelf beheert. Er wordt niets geüpload totdat de installatie op dit apparaat is voltooid.",
+        "endpoint": "Endpoint",
+        "endpointDescription": "De server waarnaar dit apparaat verwijst.",
+        "notConfigured": "Niet geconfigureerd",
+        "service": "Service",
+        "title": "Cloudsynchronisatie"
       }
     },
     "agents": {
@@ -1445,7 +1651,8 @@
         "session": "Reply destination",
         "noSession": "No observed reply-capable session",
         "message": "Reply text",
-        "createPreview": "Create preview"
+        "createPreview": "Create preview",
+        "notReady": "Antwoorden vereisen dat de bridge aan staat en minstens één agent is ingeschakeld."
       },
       "pending": {
         "empty": "No pending replies.",
@@ -1497,7 +1704,15 @@
       "errors": {
         "load": "Agent bridge data could not be loaded: {{error}}",
         "operation": "The agent bridge action could not be completed: {{error}}"
-      }
+      },
+      "panel": {
+        "description": "Het zwevende venster waar agents naartoe posten en antwoorden uit lezen.",
+        "error": "De instelling voor het agentpaneel kon niet worden opgeslagen.",
+        "label": "Agentpaneel inschakelen",
+        "rowDescription": "Uitschakelen sluit het paneelvenster en laat Sona elk verzoek om het te heropenen weigeren.",
+        "title": "Agentpaneel"
+      },
+      "workspaceNavigation": "Agentbridge-weergaven"
     },
     "hub": {
       "navigation": "Settings sections",
@@ -1706,7 +1921,8 @@
       "localOnly": "Local only",
       "check": "Check recording setup",
       "checking": "Checking setup…",
-      "defaultTitle": "Local notes"
+      "defaultTitle": "Local notes",
+      "remoteUnavailable": "Externe verwerking is niet beschikbaar in deze build, dus elke vergadering wordt op deze Mac getranscribeerd en samengevat."
     },
     "preflight": {
       "title": "Check recording setup",
@@ -1725,7 +1941,8 @@
       "remoteNotSelected": "No remote destination is selected.",
       "remoteSelected": "Selected destination: {{destination}}",
       "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
-      "starting": "Starting visible capture…"
+      "starting": "Starting visible capture…",
+      "refreshing": "Controleren…"
     },
     "consent": {
       "title": "Recording acknowledgement",
@@ -1778,7 +1995,8 @@
       "title": "Retention",
       "description": "Sona deletes eligible local meeting records through the same verified deletion path.",
       "forever": "Keep until I delete it",
-      "days": "Delete after {{days}} days"
+      "days": "Delete after {{days}} days",
+      "loading": "Huidig beleid lezen…"
     },
     "receipts": {
       "title": "Correction receipt",
@@ -1926,7 +2144,29 @@
       "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
       "searchPlaceholder": "Search this meeting",
       "search": "Search",
-      "noSearchResults": "No exact local matches."
+      "noSearchResults": "No exact local matches.",
+      "askUnavailable": "Vragen stellen vereist een voltooid lokaal transcript.",
+      "asking": "Deze vergadering wordt bevraagd…",
+      "captured": "Vastgelegd {{time}}",
+      "droppedFrames": "Verloren frames: {{total}}",
+      "hitKind": {
+        "manualNote": "Handmatige notitie",
+        "title": "Vergadertitel",
+        "transcript": "Transcript"
+      },
+      "noGeneratedNotesDescription": "Gegenereerde notities zijn afgeleid van het transcript en kunnen dus altijd opnieuw worden opgebouwd.",
+      "processingDescription": "Gegenereerde notities en lokale antwoorden verschijnen zodra het transcript voltooid is.",
+      "processingTitle": "Sona verwerkt deze vergadering nog",
+      "remoteProcessingUnavailable": "De externe bestemming werd nooit beschikbaar, dus er is niets gegenereerd. Opnieuw genereren gebeurt op deze Mac.",
+      "searching": "Zoeken…",
+      "sonaAnswered": "Sona antwoordde",
+      "tabs": {
+        "insights": "Inzichten",
+        "questions": "Q&A",
+        "transcript": "Transcript"
+      },
+      "tabsLabel": "Secties vergaderoverzicht",
+      "youAsked": "Je vroeg"
     },
     "artifactState": {
       "current": "Current",
@@ -1960,6 +2200,21 @@
         "transcript": "Transcript segments",
         "actions": "Action items"
       }
+    },
+    "list": {
+      "clearSearch": "Zoekopdracht wissen",
+      "loadMore": "Oudere vergaderingen laden",
+      "loadingMore": "Oudere vergaderingen laden…",
+      "noMatches": "Geen vergaderingen komen overeen met die zoekopdracht",
+      "noMatchesDescription": "Geen vergadertitel bevat \"{{query}}\". Wis de zoekopdracht om de hele lijst te zien.",
+      "noMatchesNotLoaded": "Geen geladen vergadertitel bevat \"{{query}}\". Oudere vergaderingen staan nog op schijf: laad ze en zoek opnieuw.",
+      "retentionHint": "Bewaartermijn: {{policy}}. Wijzig dit in Instellingen, Privacy.",
+      "searchLabel": "Vergaderingen zoeken",
+      "searchPlaceholder": "Zoeken op titel"
+    },
+    "status": {
+      "gapCount": "Hiaten: {{total}}",
+      "required": "Vereist"
     }
   },
   "agentPanel": {
@@ -2017,23 +2272,66 @@
       "microphone": "Microphone",
       "file": "File import",
       "legacy": "Legacy",
-      "empty": "No recordings in this range."
+      "empty": "No recordings in this range.",
+      "meetings": "Vergaderingen",
+      "meetingsUnavailable": "Vergaderopslag is niet beschikbaar, dus vergaderingen worden hier niet meegeteld."
     },
     "recent": {
       "title": "Recent activity",
       "history": "Transcription",
-      "meeting": "Meeting"
+      "meeting": "Meeting",
+      "emptyDescription": "Bewaarde opnames verschijnen hier zodra je dicteert of een vergadering opneemt.",
+      "emptyTitle": "Niets recents",
+      "error": "Recente opnames konden nu niet worden geladen.",
+      "viewAll": "Alles bekijken"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
       "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
-      "importAudio": "Import audio"
+      "importAudio": "Import audio",
+      "mode": "Modus: {{name}}",
+      "setShortcut": "Stel een dicteersneltoets in bij Instellingen om vanuit elke app op te nemen."
     },
     "actions": {
       "dictate": "Dictate",
       "unavailable": "Shortcut unavailable"
+    },
+    "chart": {
+      "day": "{{date}} \\u00b7 dictaten {{dictations}}",
+      "dayWithMeetings": "{{date}} \\u00b7 dictaten {{dictations}} \\u00b7 vergaderingen {{meetings}}",
+      "legend": "Dictaten per dag",
+      "peak": "Drukste dag {{peak}}",
+      "summary": "Dictaten per dag van {{from}} tot {{to}}. Totaal {{total}}, drukste dag {{peak}}."
+    },
+    "empty": {
+      "action": "Bibliotheek openen",
+      "description": "Houd je dicteersneltoets ingedrukt in elke app en Sona typt wat je zegt. Je gebruiksstatistieken en recente opnames verschijnen hier na de eerste.",
+      "title": "Nog geen opnames"
+    },
+    "stats": {
+      "activeDays": "{{active}} van {{total}} dagen actief",
+      "allTime": "{{total}} in totaal",
+      "dictations": "Dictaten",
+      "dictationsAllTime": "Dictaten, in totaal",
+      "error": "Sona kon je gebruiksgeschiedenis nu niet lezen.",
+      "range": "{{from}} tot {{to}}",
+      "rangeUnavailable": "De laatste 30 dagen konden niet worden gelezen, dus dit zijn totalen over de hele periode.",
+      "speaking": "Spreektijd",
+      "speakingAllTime": "Spreektijd, in totaal",
+      "streak": "Huidige reeks",
+      "tiles": "Gebruiksoverzicht",
+      "title": "Activiteit",
+      "words": "Woorden",
+      "wordsAllTime": "Woorden, in totaal"
+    },
+    "update": {
+      "available": "Sona {{latest}} is beschikbaar. Deze installatie draait {{current}}.",
+      "dismiss": "Sluiten",
+      "failed": "Kon niet op updates controleren.",
+      "failedWithReason": "Kon niet op updates controleren: {{reason}}",
+      "view": "Release bekijken"
     }
   },
   "cloudSync": {

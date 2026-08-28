@@ -191,7 +191,12 @@
       "filters": {
         "allLanguages": "Tüm Diller",
         "streaming": "Canlı transkripsiyonu destekleyen modelleri filtrele",
-        "translation": "İngilizce'ye çeviriyi destekleyen modelleri filtrele"
+        "translation": "İngilizce'ye çeviriyi destekleyen modelleri filtrele",
+        "allFamilies": "Tüm aileler",
+        "clear": "Filtreleri temizle",
+        "downloadedOnly": "Diskte",
+        "downloadedOnlyHint": "Yalnızca indirilmiş modelleri göster",
+        "family": "Model ailesi"
       },
       "noModelsMatch": "Bu filtreyle eşleşen model yok.",
       "yourModels": "İndirilen Modeller",
@@ -245,6 +250,34 @@
           "protocol": "The provider returned an unexpected verification response.",
           "unknown_provider": "This cloud provider is not available in this build."
         }
+      },
+      "actions": {
+        "activate": "Kullan",
+        "activateNamed": "{{modelName}} kullan",
+        "download": "İndir",
+        "downloadNamed": "{{modelName}} indir",
+        "retryNamed": "{{modelName}} indirmesini yeniden dene"
+      },
+      "emptyCatalog": "Sona model kataloğunu okuyamadı. Yeniden tarama, modeller klasöründeki veya Hugging Face önbelleğindeki mevcut modelleri bulur.",
+      "errors": {
+        "downloadFailed": "İndirme başlamadı. Bağlantınızı kontrol edip yeniden deneyin."
+      },
+      "families": {
+        "custom": "Sizin eklediğiniz",
+        "other": "Diğer modeller"
+      },
+      "familyCount": "{{total}} model",
+      "noModelsMatchHint": "Katalogda tüm filtrelerle aynı anda eşleşen hiçbir şey yok.",
+      "searchByAnything": "Ada, dile veya yeteneğe göre ara",
+      "state": {
+        "activeInMemory": "Aktif, bellekte",
+        "downloaded": "İndirildi",
+        "notDownloaded": "İndirilmedi"
+      },
+      "summary": {
+        "active": "Aktif: {{name}}",
+        "noActive": "Model seçilmedi",
+        "onDisk": "{{total}} diskte"
       }
     },
     "general": {
@@ -286,7 +319,12 @@
       "pushToTalk": {
         "label": "Bas Konuş",
         "description": "Kaydetmek için basılı tutun, durdurmak için bırakın"
-      }
+      },
+      "appearance": {
+        "description": "Arayüz dili ve renk şeması. İkisi de hemen uygulanır.",
+        "title": "Görünüm"
+      },
+      "description": "Bastığınız tuşlar, Sona'nın dinlediği mikrofon ve uygulamanın görünümü."
     },
     "sound": {
       "title": "Ses",
@@ -461,7 +499,10 @@
         "imported": "Sözcük dağarcığı içe aktarıldı",
         "errors": {
           "incomplete": "Hem söylenen ifadeyi hem de yazılı metni girin.",
-          "duplicate": "Bu sözcük dağarcığı çifti zaten var."
+          "duplicate": "Bu sözcük dağarcığı çifti zaten var.",
+          "incompleteRow": "Kaydetmeden önce her satırı tamamlayın veya kaldırın.",
+          "duplicateSpoken": "Birden fazla satır {{spoken}} ile eşleşiyor. Sona her söylenen ifade için tek kural tutar.",
+          "unusableSpoken": "{{spoken}} ifadesinin tanınması için en az bir harf veya rakam gerekir."
         },
         "importPreview": {
           "title": "Sözcük dağarcığı içe aktarımını gözden geçir",
@@ -472,7 +513,12 @@
           "conflicts": "Çakışan satırlar",
           "blocked": "Uygulamadan önce tüm geçersiz, yinelenen veya çakışan satırları düzeltin.",
           "apply": "İçe aktarmayı uygula",
-          "unsavedWarning": "Kaydedilmemiş kelime dağarcığı değişiklikleriniz var. Bu içe aktarmayı uygulamak bunların yerini alır."
+          "unsavedWarning": "Kaydedilmemiş kelime dağarcığı değişiklikleriniz var. Bu içe aktarmayı uygulamak bunların yerini alır.",
+          "back": "Geri",
+          "continue": "Devam",
+          "replaceSummary": "Uygulamak, kayıtlı {{savedCount}} çifti bu dosyadaki {{importedCount}} çiftle değiştirir.",
+          "stepConfirm": "Adım 2 / 2: değişimi onaylayın",
+          "stepReview": "Adım 1 / 2: dosyanın içeriği"
         },
         "actions": "Vocabulary actions",
         "audioImport": {
@@ -482,7 +528,13 @@
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
           }
-        }
+        },
+        "empty": {
+          "description": "open ai ve OpenAI gibi bir çift ekleyin; Sona bu ifadeyi her duyduğunda tam biçimi yazar.",
+          "title": "Henüz sözcük kuralı yok"
+        },
+        "sources": "Kitaplıktaki bir transkriptten kaydettiğiniz düzeltmeler bu listeye gelir. Tek bir moda özgü kurallar o modun kendi sözlüğünde yer alır.",
+        "unsaved": "Kaydedilmemiş değişiklikler"
       },
       "voiceActivityDetection": {
         "title": "Ses Etkinliği Algılama",
@@ -510,7 +562,12 @@
         "toggleError": "Emoji değiştirmeleri değiştirilemedi.",
         "errors": {
           "incomplete": "Hem söylenen ifadeyi hem de emoji metnini girin.",
-          "duplicate": "Bu emoji değiştirmesi zaten var."
+          "duplicate": "Bu emoji değiştirmesi zaten var.",
+          "incompleteRow": "Kaydetmeden önce her satırı tamamlayın veya kaldırın."
+        },
+        "empty": {
+          "description": "smiley face gibi tam bir söylenen ifadeyi, yazılmasını istediğiniz emojiyle eşleştirin.",
+          "title": "Henüz emoji değişimi yok"
         }
       },
       "description": "Startup, processing, and experimental behavior.",
@@ -526,6 +583,39 @@
         "experimental": {
           "description": "Unstable options that can change without notice."
         }
+      },
+      "snippets": {
+        "add": "Kısaltma ekle",
+        "confirmDelete": {
+          "description": "Tetikleyici gelecekteki transkriptlerde genişlemeyi durdurur. Zaten yazılmış metin değişmez.",
+          "body": "{{trigger}} şu anda {{expansion}} olarak genişliyor.",
+          "title": "{{trigger}} silinsin mi?"
+        },
+        "description": "Sona'nın daha uzun metne genişlettiği kısa tetikleyiciler. Buradaki değişiklikler yalnızca gelecekteki transkriptleri etkiler, zaten yazılmış metni asla etkilemez.",
+        "empty": {
+          "action": "İlk kısaltmanızı yazın",
+          "description": "omw gibi bir tetikleyici ekleyin; siz her söylediğinizde Sona on my way yazsın.",
+          "title": "Henüz kısaltma yok"
+        },
+        "enabledDescription": "Her transkriptte, sözcük düzeltmelerinin hemen ardından kısaltma tetikleyicilerini değiştir.",
+        "enabledLabel": "Metin genişletmeyi etkinleştir",
+        "errors": {
+          "duplicate": "Başka bir kısaltma bu tetikleyiciyi zaten kullanıyor.",
+          "incomplete": "Hem bir tetikleyici hem bir genişletme girin."
+        },
+        "expansion": "Genişletme",
+        "expansionPlaceholder": "yoldayım",
+        "loadError": "Kısaltmalar yüklenemedi.",
+        "loading": "Kısaltmalar yükleniyor",
+        "matching": "Tetikleyiciler tam kelimelerle eşleşir ve büyük/küçük harf ayrımı yapmaz. Aynı yere iki tetikleyici uyduğunda uzun olan kazanır ve genişletme sözcük düzeltmelerinin hemen ardından çalışır.",
+        "offState": "Metin genişletme kapalı. Kısaltmalar kayıtlı kalır ve yeniden açtığınız anda tekrar uygulanır.",
+        "title": "Metin genişletme",
+        "trigger": "Tetikleyici",
+        "triggerPlaceholder": "omw",
+        "unsaved": "Bu değişikliği korumak için Enter'a veya Kaydet'e basın.",
+        "enableRow": "{{trigger}} etkinleştir",
+        "remove": "{{trigger}} sil",
+        "saveRow": "{{trigger}} kaydet"
       }
     },
     "postProcessing": {
@@ -579,7 +669,27 @@
         "createPrompt": "Prompt Oluştur",
         "cancel": "İptal",
         "selectToEdit": "Ayrıntılarını görüntülemek ve düzenlemek için yukarıdan bir prompt seçin.",
-        "createFirst": "İlk son işlem promptunuzu oluşturmak için yukarıdaki “Yeni Prompt Oluştur” seçeneğine tıklayın."
+        "createFirst": "İlk son işlem promptunuzu oluşturmak için yukarıdaki “Yeni Prompt Oluştur” seçeneğine tıklayın.",
+        "empty": {
+          "description": "Bir istem, modele transkriptle ne yapacağını söyler, örneğin: aşağıdakini her gerçeği koruyarak kısa bir mesaj olarak yeniden yaz: ${output}"
+        },
+        "errors": {
+          "incomplete": "Kaydetmeden önce isteme bir ad ve talimatlar verin."
+        },
+        "inUse": "Kullanımda",
+        "lastPrompt": "Sona en az bir istem tutar, bu yüzden bu istem silinemez. Önce başka bir tane oluşturun.",
+        "libraryTitle": "Son işleme istemleri",
+        "loading": "İstemler yükleniyor",
+        "noSelection": "İstem seçilmedi: her mod kendi tanımladığı istemi kullanır.",
+        "outputTip": "Transkriptin ekleneceği yere ${output} yazın.",
+        "use": "Kullan",
+        "confirmDelete": {
+          "body": "{{name}} kitaplıktan kaldırılır. Metnini zaten kopyalayan modlar kendi istemlerini korur.",
+          "selected": "{{name}} kullanımda. Silinirse seçim listedeki ilk isteme taşınır."
+        },
+        "deleteNamed": "{{name}} sil",
+        "editNamed": "{{name}} düzenle",
+        "useNamed": "{{name}} kullan"
       },
       "remoteConsent": {
         "title": "Remote text transfer",
@@ -754,7 +864,8 @@
           "start": "Dosya içe aktarma başlatılamadı.",
           "cancel": "Dosya içe aktarma iptal edilemedi.",
           "load": "Dosya içe aktarma durumu yüklenemedi."
-        }
+        },
+        "running": "{{count}} dosya çevriliyor"
       },
       "trends": {
         "title": "History trends",
@@ -771,7 +882,14 @@
           "words": "Words"
         },
         "streak": "{{count}} day streak"
-      }
+      },
+      "clearSearch": "Aramayı temizle",
+      "emptyHint": "Mevcut bir kaydı da çevirebilirsiniz: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 veya M4V, en fazla 30 dakika.",
+      "loadMore": "Daha fazla yükle",
+      "noResultsHint": "Arama, hem ham hem de işlenmiş transkriptteki tam kelimelerle eşleşir.",
+      "results": "{{count}} eşleşme",
+      "resultsMore": "{{count}}+ eşleşme",
+      "resultsNone": "Eşleşme yok"
     },
     "debug": {
       "title": "Hata Ayıklama",
@@ -889,13 +1007,21 @@
         "button": "Önizle",
         "noNotes": "Paketlenmiş sürüm notu bulunamadı",
         "error": "Sürüm notları önizlenemedi"
+      },
+      "description": "Enstrümantasyon ve desteklenmeyen ayarlar. Hata ayıklama modu açık olduğu için görünür.",
+      "groups": {
+        "capture": "Kayıt",
+        "delivery": "Metin iletimi",
+        "diagnostics": "Tanılama",
+        "logging": "Günlük kaydı"
       }
     },
     "about": {
       "title": "Hakkında",
       "version": {
         "title": "Sürüm",
-        "description": "Sona'nin mevcut sürümü"
+        "description": "Sona'nin mevcut sürümü",
+        "unavailable": "Kullanılamıyor"
       },
       "appDataDirectory": {
         "title": "Uygulama Veri Dizini",
@@ -922,6 +1048,36 @@
       "whatsNewUpdates": {
         "label": "Yenilikleri Göster",
         "description": "Sona güncellemelerinden sonra sürüm notlarını göster"
+      },
+      "description": "Hangi sürümü çalıştırdığınız, nereden geldiği ve dosyalarınızı nerede tuttuğu.",
+      "files": {
+        "title": "Dosyalar"
+      },
+      "source": {
+        "description": "Sona MIT lisanslıdır, telif hakkı 2025 CJ Pais'e aittir ve Handy üzerine inşa edilmiştir.",
+        "open": "GitHub'da aç",
+        "repository": "Depo",
+        "title": "Kaynak",
+        "upstream": "Handy üzerine inşa edildi",
+        "upstreamDescription": "Sona, cjpais/Handy çatalıdır ve upstream düzeltmelerini takip etmeye devam eder.",
+        "upstreamOpen": "cjpais/Handy"
+      },
+      "updates": {
+        "autoDescription": "GitHub'dan en son sürümü sorar. Sona hiçbir zaman kendi başına bir şey yüklemez.",
+        "autoLabel": "Güncellemeleri otomatik denetle",
+        "check": "Şimdi denetle",
+        "checking": "Denetleniyor…",
+        "disabled": "Otomatik denetimler kapalı, bu yüzden Sona GitHub ile iletişim kurmadı.",
+        "enable": "Denetimleri aç",
+        "failed": "Güncelleme denetimi çalıştırılamadı.",
+        "manualDescription": "Bu sürümü en son yayımlanan sürümle karşılaştırın.",
+        "manualTitle": "Elle denetim",
+        "preferenceError": "Güncelleme tercihi kaydedilemedi.",
+        "title": "Sürüm ve güncellemeler",
+        "viewRelease": "Sürümü görüntüle",
+        "available": "Sona {{version}} kullanılabilir.",
+        "published": "{{date}} tarihinde yayımlandı",
+        "upToDate": "Sona {{version}} en son sürümdür."
       }
     },
     "modes": {
@@ -951,8 +1107,12 @@
             "action": "Geçerli web sitesini yakala",
             "capturing": "Yakalanıyor..."
           },
-          "empty": "Hiçbir web sitesi bu modu etkinleştirmiyor."
-        }
+          "empty": "Hiçbir web sitesi bu modu etkinleştirmiyor.",
+          "exampleDescription": "Bir kural tek bir tarayıcı sunucusu saklar, örneğin mail.google.com."
+        },
+        "exampleDescription": "Bir kural tek bir uygulama kimliği saklar, örneğin com.apple.mail.",
+        "removeTarget": "{{target}} öğesini kaldır",
+        "unsupported": "Uygulama ve web sitesi etkinleştirme yalnızca macOS'te kullanılabilir."
       },
       "title": "Modes",
       "description": "Choose what each dictation run recognizes, rewrites, and delivers.",
@@ -1017,12 +1177,15 @@
         "provider": {
           "label": "AI provider",
           "description": "The configured provider used for this mode.",
-          "empty": "No provider configured"
+          "empty": "No provider configured",
+          "noneConfigured": "Henüz yapılandırılmış bir AI sağlayıcısı yok. Bu modun yeniden yazabilmesi için Settings'te bir tane ekleyin.",
+          "unknownSelected": "Bu mod, bu kurulumda yapılandırılmamış bir sağlayıcı belirtiyor."
         },
         "model": {
           "label": "AI model",
           "description": "The provider model identifier for this mode."
-        }
+        },
+        "disabledNote": "Aşağıdaki hazır ayar, ton, sağlayıcı ve modeli kullanmak için AI temizlemeyi açın."
       },
       "recognition": {
         "literalPunctuation": {
@@ -1062,7 +1225,8 @@
           "writtenPlaceholder": "What to write",
           "add": "Add pair",
           "remove": "Remove {{spoken}}",
-          "incomplete": "Complete or remove each vocabulary pair before saving this mode."
+          "incomplete": "Complete or remove each vocabulary pair before saving this mode.",
+          "empty": "Bu modun kendi sözlüğü yok. Genel sözlük yine de uygulanır."
         },
         "engine": {
           "label": "Transcription engine",
@@ -1115,7 +1279,8 @@
               "unknown_provider": "This cloud provider is not available in this build.",
               "backend": "The consent record could not be saved."
             }
-          }
+          },
+          "title": "Bulut aktarımı"
         }
       },
       "context": {
@@ -1129,7 +1294,9 @@
             "target": "App",
             "target_and_selection": "Selection",
             "full": "Full"
-          }
+          },
+          "blockedByCeiling": "Privacy bu modu {{ceiling}} ile sınırlıyor.",
+          "raiseCeiling": "Daha yüksek düzeyler için Privacy'deki üst sınırı yükseltin."
         }
       },
       "delivery": {
@@ -1165,7 +1332,8 @@
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
             "cmd_enter": "Command+Enter"
-          }
+          },
+          "requiresAutoSubmit": "Tuş seçmek için otomatik göndermeyi açın."
         },
         "trailingSpace": {
           "label": "Append a trailing space",
@@ -1191,7 +1359,8 @@
             "dotool": "dotool",
             "ydotool": "ydotool",
             "xdotool": "xdotool"
-          }
+          },
+          "requiresDirect": "Araç seçmek için iletim yöntemi olarak Doğrudan yaz'ı seçin."
         },
         "script": {
           "label": "External script",
@@ -1235,7 +1404,16 @@
       "views": {
         "modes": "Modes",
         "vocabulary": "Vocabulary"
-      }
+      },
+      "cleanup": {
+        "title": "Transkript temizleme"
+      },
+      "dismissError": "Hatayı kapat",
+      "emptyHint": "Neyi tanıdığını, yeniden yazdığını ve ilettiğini değiştirmek için soldan bir mod seçin.",
+      "listEmpty": "Yapılandırılmış mod yok.",
+      "listEmptyHint": "Sona her zaman bir mod tutar. Geçerli listeyi almak için yeniden yükleyin.",
+      "unsavedChanges": "Kaydedilmemiş değişiklikler",
+      "untitled": "Adsız mod"
     },
     "privacy": {
       "title": "Privacy",
@@ -1323,7 +1501,24 @@
             "months_3": "3 months"
           }
         },
-        "error": "Data retention could not be saved"
+        "error": "Data retention could not be saved",
+        "historyStorage": {
+          "description": "Dikte geçmişinin bu diskte şifreli olup olmadığı.",
+          "encrypted": "Bekleme durumunda şifreli",
+          "label": "Geçmiş depolaması",
+          "locked": "Kilitli",
+          "plaintext": "Şifreli değil",
+          "reasons": {
+            "encryption_unavailable": "Bu sürüm şifreli bir veritabanını açamıyor, bu yüzden geçmiş şifrelenmeden saklanıyor.",
+            "key_rejected": "Saklanan anahtar şifreli veritabanını açmıyor, bu yüzden geçmiş okunamıyor.",
+            "key_unavailable": "Sistem kimlik bilgisi deposu kullanılabilir bir anahtar döndürmedi, bu yüzden geçmiş şifrelenmeden saklanıyor.",
+            "migration_failed": "Mevcut veritabanının şifrelenmesi başarısız oldu. Şifrelenmemiş veritabanı sağlam ve kullanımda.",
+            "unlocking": "Şifreli veritabanı açılıyor. Bu, başlatmadan kısa süre sonra kaybolur."
+          },
+          "unknown": "Sona geçmişin nasıl saklandığını okuyamadı.",
+          "unlocking": "Kilit açılıyor",
+          "since": "{{date}} tarihinden beri şifreli."
+        }
       },
       "cloudTranscription": {
         "title": "Cloud transcription",
@@ -1332,7 +1527,8 @@
         "checkFailed": "Cloud transcription setup could not be checked.",
         "disclosure": "For a cloud-enabled mode, Sona sends recorded audio, the selected language, and mode keyterms directly to the provider. Application context and native credentials stay on this device.",
         "providerDetail": "{{provider}} has a saved native API key and current transfer consent.",
-        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent."
+        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent.",
+        "inUse": "Kullanımda"
       },
       "upstreamImport": {
         "title": "Import from legacy app",
@@ -1386,6 +1582,16 @@
           "internal": "The import did not finish.",
           "status": "The original Sona data could not be inspected."
         }
+      },
+      "cloudSync": {
+        "checkFailed": "Sona bulut eşitleme yapılandırmasını okuyamadı.",
+        "configured": "Yapılandırıldı",
+        "description": "Sona toplantıları çalıştırdığınız bir sunucuya yansıtabilir. Kurulum bu cihazda tamamlanana kadar hiçbir şey yüklenmez.",
+        "endpoint": "Uç nokta",
+        "endpointDescription": "Bu cihazın yöneltildiği sunucu.",
+        "notConfigured": "Yapılandırılmadı",
+        "service": "Hizmet",
+        "title": "Bulut eşitleme"
       }
     },
     "agents": {
@@ -1445,7 +1651,8 @@
         "session": "Reply destination",
         "noSession": "No observed reply-capable session",
         "message": "Reply text",
-        "createPreview": "Create preview"
+        "createPreview": "Create preview",
+        "notReady": "Yanıtlar için köprünün açık olması ve en az bir ajanın etkin olması gerekir."
       },
       "pending": {
         "empty": "No pending replies.",
@@ -1497,7 +1704,15 @@
       "errors": {
         "load": "Agent bridge data could not be loaded: {{error}}",
         "operation": "The agent bridge action could not be completed: {{error}}"
-      }
+      },
+      "panel": {
+        "description": "Ajanların yazdığı ve yanıtları okuduğu yüzen pencere.",
+        "error": "Ajan paneli ayarı kaydedilemedi.",
+        "label": "Ajan panelini etkinleştir",
+        "rowDescription": "Bunu kapatmak panel penceresini kapatır ve Sona'nın yeniden açma isteklerinin tümünü reddetmesini sağlar.",
+        "title": "Ajan paneli"
+      },
+      "workspaceNavigation": "Ajan köprüsü görünümleri"
     },
     "hub": {
       "navigation": "Settings sections",
@@ -1706,7 +1921,8 @@
       "localOnly": "Local only",
       "check": "Check recording setup",
       "checking": "Checking setup…",
-      "defaultTitle": "Local notes"
+      "defaultTitle": "Local notes",
+      "remoteUnavailable": "Bu sürümde uzaktan işleme kullanılamaz, bu yüzden her toplantı bu Mac üzerinde çevriliyor ve özetleniyor."
     },
     "preflight": {
       "title": "Check recording setup",
@@ -1725,7 +1941,8 @@
       "remoteNotSelected": "No remote destination is selected.",
       "remoteSelected": "Selected destination: {{destination}}",
       "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
-      "starting": "Starting visible capture…"
+      "starting": "Starting visible capture…",
+      "refreshing": "Kontrol ediliyor…"
     },
     "consent": {
       "title": "Recording acknowledgement",
@@ -1778,7 +1995,8 @@
       "title": "Retention",
       "description": "Sona deletes eligible local meeting records through the same verified deletion path.",
       "forever": "Keep until I delete it",
-      "days": "Delete after {{days}} days"
+      "days": "Delete after {{days}} days",
+      "loading": "Geçerli politika okunuyor…"
     },
     "receipts": {
       "title": "Correction receipt",
@@ -1926,7 +2144,29 @@
       "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
       "searchPlaceholder": "Search this meeting",
       "search": "Search",
-      "noSearchResults": "No exact local matches."
+      "noSearchResults": "No exact local matches.",
+      "askUnavailable": "Soru sormak için tamamlanmış bir yerel transkript gerekir.",
+      "asking": "Bu toplantıya soruluyor…",
+      "captured": "{{time}} tarihinde kaydedildi",
+      "droppedFrames": "Düşen kareler: {{total}}",
+      "hitKind": {
+        "manualNote": "Elle alınan not",
+        "title": "Toplantı başlığı",
+        "transcript": "Transkript"
+      },
+      "noGeneratedNotesDescription": "Oluşturulan notlar transkriptten türetilir, bu yüzden istenildiğinde yeniden oluşturulabilir.",
+      "processingDescription": "Oluşturulan notlar ve yerel yanıtlar transkript tamamlanınca görünür.",
+      "processingTitle": "Sona bu toplantıyı hâlâ işliyor",
+      "remoteProcessingUnavailable": "Uzak hedef hiç kullanılabilir olmadı, bu yüzden hiçbir şey oluşturulmadı. Yeniden oluşturma bu Mac üzerinde çalışır.",
+      "searching": "Aranıyor…",
+      "sonaAnswered": "Sona yanıtladı",
+      "tabs": {
+        "insights": "İçgörüler",
+        "questions": "Soru-Cevap",
+        "transcript": "Transkript"
+      },
+      "tabsLabel": "Toplantı inceleme bölümleri",
+      "youAsked": "Siz sordunuz"
     },
     "artifactState": {
       "current": "Current",
@@ -1960,6 +2200,21 @@
         "transcript": "Transcript segments",
         "actions": "Action items"
       }
+    },
+    "list": {
+      "clearSearch": "Aramayı temizle",
+      "loadMore": "Daha eski toplantıları yükle",
+      "loadingMore": "Daha eski toplantılar yükleniyor…",
+      "noMatches": "Bu aramayla eşleşen toplantı yok",
+      "noMatchesDescription": "Hiçbir toplantı başlığı \"{{query}}\" içermiyor. Tüm listeyi görmek için aramayı temizleyin.",
+      "noMatchesNotLoaded": "Yüklenen hiçbir toplantı başlığı \"{{query}}\" içermiyor. Daha eski toplantılar hâlâ diskte: onları yükleyip tekrar arayın.",
+      "retentionHint": "Saklama: {{policy}}. Settings, Privacy bölümünden değiştirin.",
+      "searchLabel": "Toplantılarda ara",
+      "searchPlaceholder": "Başlığa göre ara"
+    },
+    "status": {
+      "gapCount": "Boşluklar: {{total}}",
+      "required": "Gerekli"
     }
   },
   "agentPanel": {
@@ -2017,23 +2272,66 @@
       "microphone": "Microphone",
       "file": "File import",
       "legacy": "Legacy",
-      "empty": "No recordings in this range."
+      "empty": "No recordings in this range.",
+      "meetings": "Toplantılar",
+      "meetingsUnavailable": "Toplantı depolaması kullanılamıyor, bu yüzden toplantılar burada sayılmıyor."
     },
     "recent": {
       "title": "Recent activity",
       "history": "Transcription",
-      "meeting": "Meeting"
+      "meeting": "Meeting",
+      "emptyDescription": "Saklanan kayıtlar, dikte yaptığınız veya bir toplantı kaydettiğiniz anda burada görünür.",
+      "emptyTitle": "Yakın zamanda bir şey yok",
+      "error": "Son kayıtlar şu anda yüklenemedi.",
+      "viewAll": "Tümünü gör"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
       "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
-      "importAudio": "Import audio"
+      "importAudio": "Import audio",
+      "mode": "Mod: {{name}}",
+      "setShortcut": "Her uygulamadan kayıt yapmak için Settings'te bir dikte kısayolu ayarlayın."
     },
     "actions": {
       "dictate": "Dictate",
       "unavailable": "Shortcut unavailable"
+    },
+    "chart": {
+      "day": "{{date}} \\u00b7 dikte {{dictations}}",
+      "dayWithMeetings": "{{date}} \\u00b7 dikte {{dictations}} \\u00b7 toplantı {{meetings}}",
+      "legend": "Günlük dikte sayısı",
+      "peak": "En yoğun gün {{peak}}",
+      "summary": "{{from}} - {{to}} arası günlük dikte sayısı. Toplam {{total}}, en yoğun gün {{peak}}."
+    },
+    "empty": {
+      "action": "Kitaplığı aç",
+      "description": "Herhangi bir uygulamada dikte kısayolunu basılı tutun, Sona söylediklerinizi yazsın. Kullanım istatistikleriniz ve son kayıtlarınız ilk kayıttan sonra burada görünür.",
+      "title": "Henüz kayıt yok"
+    },
+    "stats": {
+      "activeDays": "{{total}} günün {{active}} günü aktif",
+      "allTime": "Tüm zamanlar {{total}}",
+      "dictations": "Dikteler",
+      "dictationsAllTime": "Dikteler, tüm zamanlar",
+      "error": "Sona kullanım geçmişinizi şu anda okuyamadı.",
+      "range": "{{from}} - {{to}}",
+      "rangeUnavailable": "Son 30 gün okunamadı, bu yüzden bunlar tüm zamanların toplamları.",
+      "speaking": "Konuşma süresi",
+      "speakingAllTime": "Konuşma süresi, tüm zamanlar",
+      "streak": "Mevcut seri",
+      "tiles": "Kullanım özeti",
+      "title": "Etkinlik",
+      "words": "Kelimeler",
+      "wordsAllTime": "Kelimeler, tüm zamanlar"
+    },
+    "update": {
+      "available": "Sona {{latest}} kullanılabilir. Bu kurulum {{current}} sürümünde.",
+      "dismiss": "Kapat",
+      "failed": "Güncellemeler denetlenemedi.",
+      "failedWithReason": "Güncellemeler denetlenemedi: {{reason}}",
+      "view": "Sürümü görüntüle"
     }
   },
   "cloudSync": {

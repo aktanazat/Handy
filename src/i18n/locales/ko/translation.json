@@ -221,7 +221,12 @@
       "pushToTalk": {
         "label": "녹음 중 단축키 홀딩",
         "description": "누르고 있으면 녹음, 놓으면 정지"
-      }
+      },
+      "appearance": {
+        "description": "인터페이스 언어와 색상 테마입니다. 둘 다 즉시 적용됩니다.",
+        "title": "모양"
+      },
+      "description": "누르는 키, Sona가 듣는 마이크, 앱의 모양을 설정합니다."
     },
     "sound": {
       "title": "사운드",
@@ -263,7 +268,12 @@
       "filters": {
         "allLanguages": "모든 언어",
         "streaming": "실시간 음성 인식을 지원하는 모델 필터링",
-        "translation": "영어 번역을 지원하는 모델 필터링"
+        "translation": "영어 번역을 지원하는 모델 필터링",
+        "allFamilies": "모든 계열",
+        "clear": "필터 지우기",
+        "downloadedOnly": "디스크에 있음",
+        "downloadedOnlyHint": "이미 다운로드된 모델만 표시",
+        "family": "모델 계열"
       },
       "noModelsMatch": "이 필터에 맞는 모델이 없습니다.",
       "searchPlaceholder": "이름으로 모델 검색…",
@@ -315,6 +325,34 @@
           "protocol": "The provider returned an unexpected verification response.",
           "unknown_provider": "This cloud provider is not available in this build."
         }
+      },
+      "actions": {
+        "activate": "사용",
+        "activateNamed": "{{modelName}} 사용",
+        "download": "다운로드",
+        "downloadNamed": "{{modelName}} 다운로드",
+        "retryNamed": "{{modelName}} 다운로드 재시도"
+      },
+      "emptyCatalog": "Sona가 모델 카탈로그를 읽을 수 없습니다. 다시 스캔하면 모델 폴더나 Hugging Face 캐시에 이미 있는 모델을 인식합니다.",
+      "errors": {
+        "downloadFailed": "다운로드가 시작되지 않았습니다. 연결을 확인하고 다시 시도하세요."
+      },
+      "families": {
+        "custom": "직접 추가함",
+        "other": "기타 모델"
+      },
+      "familyCount": "모델 {{total}}개",
+      "noModelsMatchHint": "카탈로그에 모든 필터를 동시에 만족하는 항목이 없습니다.",
+      "searchByAnything": "이름, 언어 또는 기능으로 검색",
+      "state": {
+        "activeInMemory": "활성, 메모리에 로드됨",
+        "downloaded": "다운로드됨",
+        "notDownloaded": "다운로드되지 않음"
+      },
+      "summary": {
+        "active": "활성: {{name}}",
+        "noActive": "선택된 모델 없음",
+        "onDisk": "디스크에 {{total}}개"
       }
     },
     "advanced": {
@@ -461,7 +499,10 @@
         "imported": "어휘를 가져왔습니다",
         "errors": {
           "incomplete": "발화 문구와 표기 텍스트를 모두 입력하세요.",
-          "duplicate": "이 어휘 쌍은 이미 있습니다."
+          "duplicate": "이 어휘 쌍은 이미 있습니다.",
+          "incompleteRow": "저장하기 전에 모든 행을 완성하거나 제거하세요.",
+          "duplicateSpoken": "{{spoken}}과(와) 일치하는 행이 둘 이상입니다. Sona는 발화 구문당 규칙 하나만 유지합니다.",
+          "unusableSpoken": "{{spoken}}이(가) 인식되려면 문자나 숫자가 하나 이상 필요합니다."
         },
         "importPreview": {
           "title": "어휘 가져오기 확인",
@@ -472,7 +513,12 @@
           "conflicts": "충돌하는 행",
           "blocked": "적용하기 전에 잘못된 행, 중복 행, 충돌 행을 모두 수정하세요.",
           "apply": "가져오기 적용",
-          "unsavedWarning": "저장되지 않은 어휘 변경이 있습니다. 이 가져오기를 적용하면 해당 변경 사항이 대체됩니다."
+          "unsavedWarning": "저장되지 않은 어휘 변경이 있습니다. 이 가져오기를 적용하면 해당 변경 사항이 대체됩니다.",
+          "back": "뒤로",
+          "continue": "계속",
+          "replaceSummary": "적용하면 저장된 {{savedCount}}개의 쌍이 이 파일의 {{importedCount}}개 쌍으로 대체됩니다.",
+          "stepConfirm": "2단계 중 2단계: 교체 확인",
+          "stepReview": "2단계 중 1단계: 파일 내용"
         },
         "actions": "Vocabulary actions",
         "audioImport": {
@@ -482,7 +528,13 @@
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
           }
-        }
+        },
+        "empty": {
+          "description": "open ai와 OpenAI 같은 쌍을 추가하면 Sona가 해당 구문을 들을 때마다 정확한 형태로 씁니다.",
+          "title": "아직 어휘 규칙이 없습니다"
+        },
+        "sources": "라이브러리의 전사에서 저장한 교정이 이 목록에 추가됩니다. 특정 모드 전용 규칙은 해당 모드의 어휘에 있습니다.",
+        "unsaved": "저장되지 않은 변경 사항"
       },
       "voiceActivityDetection": {
         "title": "음성 활동 감지",
@@ -510,7 +562,12 @@
         "toggleError": "이모지 대체를 변경할 수 없습니다.",
         "errors": {
           "incomplete": "발화 문구와 이모지 텍스트를 모두 입력하세요.",
-          "duplicate": "이 이모지 대체는 이미 있습니다."
+          "duplicate": "이 이모지 대체는 이미 있습니다.",
+          "incompleteRow": "저장하기 전에 모든 행을 완성하거나 제거하세요."
+        },
+        "empty": {
+          "description": "smiley face 같은 정확한 발화 토큰을 원하는 이모지에 매핑하세요.",
+          "title": "아직 이모지 치환이 없습니다"
         }
       },
       "description": "Startup, processing, and experimental behavior.",
@@ -526,6 +583,39 @@
         "experimental": {
           "description": "Unstable options that can change without notice."
         }
+      },
+      "snippets": {
+        "add": "스니펫 추가",
+        "confirmDelete": {
+          "description": "이후 전사에서 트리거가 더 이상 확장되지 않습니다. 이미 작성된 텍스트는 변경되지 않습니다.",
+          "body": "{{trigger}}은(는) 현재 {{expansion}}(으)로 확장됩니다.",
+          "title": "{{trigger}}을(를) 삭제할까요?"
+        },
+        "description": "Sona가 더 긴 텍스트로 확장하는 짧은 트리거입니다. 여기서의 변경은 이후 전사에만 적용되며 이미 작성된 텍스트는 영향을 받지 않습니다.",
+        "empty": {
+          "action": "첫 스니펫 작성하기",
+          "description": "omw 같은 트리거를 추가하면 말할 때마다 Sona가 on my way를 씁니다.",
+          "title": "아직 스니펫이 없습니다"
+        },
+        "enabledDescription": "어휘 교정 직후 모든 전사에서 스니펫 트리거를 치환합니다.",
+        "enabledLabel": "텍스트 확장 사용",
+        "errors": {
+          "duplicate": "다른 스니펫이 이미 이 트리거를 사용하고 있습니다.",
+          "incomplete": "트리거와 확장 텍스트를 모두 입력하세요."
+        },
+        "expansion": "확장 텍스트",
+        "expansionPlaceholder": "on my way",
+        "loadError": "스니펫을 불러올 수 없습니다.",
+        "loading": "스니펫 불러오는 중",
+        "matching": "트리거는 전체 단어와 일치하며 대소문자를 구분하지 않습니다. 두 트리거가 같은 위치에 맞으면 더 긴 것이 적용되고, 확장은 어휘 교정 직후에 실행됩니다.",
+        "offState": "텍스트 확장이 꺼져 있습니다. 스니펫은 저장된 상태로 유지되며 다시 켜면 즉시 적용됩니다.",
+        "title": "텍스트 확장",
+        "trigger": "트리거",
+        "triggerPlaceholder": "omw",
+        "unsaved": "Enter 키나 저장을 눌러 변경 사항을 유지하세요.",
+        "enableRow": "{{trigger}} 사용",
+        "remove": "{{trigger}} 삭제",
+        "saveRow": "{{trigger}} 저장"
       }
     },
     "postProcessing": {
@@ -579,7 +669,27 @@
         "createPrompt": "프롬프트 만들기",
         "cancel": "취소",
         "selectToEdit": "세부 정보를 보고 편집하려면 위에서 프롬프트를 선택하세요.",
-        "createFirst": "첫 번째 후처리 프롬프트를 만들려면 위의 '새 프롬프트 만들기'를 클릭하세요."
+        "createFirst": "첫 번째 후처리 프롬프트를 만들려면 위의 '새 프롬프트 만들기'를 클릭하세요.",
+        "empty": {
+          "description": "프롬프트는 모델이 전사로 무엇을 할지 지시합니다. 예: 모든 사실을 유지하면서 다음을 짧은 메시지로 다시 쓰기: ${output}"
+        },
+        "errors": {
+          "incomplete": "저장하기 전에 프롬프트에 이름과 지시를 입력하세요."
+        },
+        "inUse": "사용 중",
+        "lastPrompt": "Sona는 프롬프트를 최소 하나 유지하므로 이 프롬프트는 삭제할 수 없습니다. 먼저 다른 프롬프트를 만드세요.",
+        "libraryTitle": "후처리 프롬프트",
+        "loading": "프롬프트 불러오는 중",
+        "noSelection": "선택된 프롬프트 없음: 각 모드가 자체 정의한 프롬프트를 사용합니다.",
+        "outputTip": "전사가 삽입될 위치에 ${output}을 쓰세요.",
+        "use": "사용",
+        "confirmDelete": {
+          "body": "{{name}}이(가) 라이브러리에서 제거됩니다. 이미 텍스트를 복사한 모드는 자체 프롬프트를 유지합니다.",
+          "selected": "{{name}}이(가) 사용 중입니다. 삭제하면 목록의 첫 번째 프롬프트가 선택됩니다."
+        },
+        "deleteNamed": "{{name}} 삭제",
+        "editNamed": "{{name}} 편집",
+        "useNamed": "{{name}} 사용"
       },
       "remoteConsent": {
         "title": "Remote text transfer",
@@ -754,7 +864,8 @@
           "start": "파일 가져오기를 시작할 수 없습니다.",
           "cancel": "파일 가져오기를 취소할 수 없습니다.",
           "load": "파일 가져오기 상태를 불러올 수 없습니다."
-        }
+        },
+        "running": "파일 {{count}}개 전사 중"
       },
       "trends": {
         "title": "History trends",
@@ -771,7 +882,14 @@
           "words": "Words"
         },
         "streak": "{{count}} day streak"
-      }
+      },
+      "clearSearch": "검색 지우기",
+      "emptyHint": "기존 녹음 파일도 전사할 수 있습니다: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 또는 M4V, 최대 30분.",
+      "loadMore": "더 불러오기",
+      "noResultsHint": "검색은 원본 전사와 처리된 전사 모두에서 전체 단어와 일치합니다.",
+      "results": "일치 {{count}}건",
+      "resultsMore": "일치 {{count}}+건",
+      "resultsNone": "일치 없음"
     },
     "debug": {
       "title": "디버그",
@@ -889,13 +1007,21 @@
         "button": "미리보기",
         "noNotes": "내장 릴리스 노트를 찾을 수 없습니다",
         "error": "릴리스 노트를 미리 볼 수 없습니다"
+      },
+      "description": "계측 및 지원되지 않는 설정입니다. 디버그 모드가 켜져 있어 표시됩니다.",
+      "groups": {
+        "capture": "캡처",
+        "delivery": "텍스트 전달",
+        "diagnostics": "진단",
+        "logging": "로깅"
       }
     },
     "about": {
       "title": "정보",
       "version": {
         "title": "버전",
-        "description": "Sona의 현재 버전"
+        "description": "Sona의 현재 버전",
+        "unavailable": "확인 불가"
       },
       "appDataDirectory": {
         "title": "앱 데이터 디렉토리",
@@ -922,6 +1048,36 @@
       "whatsNewUpdates": {
         "label": "새 소식 표시",
         "description": "Sona 업데이트 후 릴리스 노트를 표시합니다"
+      },
+      "description": "실행 중인 빌드, 출처, 파일 저장 위치를 확인합니다.",
+      "files": {
+        "title": "파일"
+      },
+      "source": {
+        "description": "Sona는 MIT 라이선스이며 저작권은 2025 CJ Pais에게 있고 Handy를 기반으로 만들어졌습니다.",
+        "open": "GitHub에서 열기",
+        "repository": "저장소",
+        "title": "소스",
+        "upstream": "Handy 기반",
+        "upstreamDescription": "Sona는 cjpais/Handy의 포크이며 업스트림 수정 사항을 계속 반영합니다.",
+        "upstreamOpen": "cjpais/Handy"
+      },
+      "updates": {
+        "autoDescription": "GitHub에 최신 릴리스를 요청합니다. Sona는 스스로 아무것도 설치하지 않습니다.",
+        "autoLabel": "업데이트 자동 확인",
+        "check": "지금 확인",
+        "checking": "확인 중…",
+        "disabled": "자동 확인이 꺼져 있어 Sona가 GitHub에 접속하지 않았습니다.",
+        "enable": "확인 켜기",
+        "failed": "업데이트 확인을 실행할 수 없습니다.",
+        "manualDescription": "이 빌드를 최신 게시 릴리스와 비교합니다.",
+        "manualTitle": "수동 확인",
+        "preferenceError": "업데이트 설정을 저장할 수 없습니다.",
+        "title": "버전 및 업데이트",
+        "viewRelease": "릴리스 보기",
+        "available": "Sona {{version}}을(를) 사용할 수 있습니다.",
+        "published": "{{date}}에 게시됨",
+        "upToDate": "Sona {{version}}이(가) 최신 릴리스입니다."
       }
     },
     "modes": {
@@ -951,8 +1107,12 @@
             "action": "현재 웹사이트 캡처",
             "capturing": "캡처 중..."
           },
-          "empty": "이 모드를 활성화하는 웹사이트가 없습니다."
-        }
+          "empty": "이 모드를 활성화하는 웹사이트가 없습니다.",
+          "exampleDescription": "규칙 하나에 브라우저 호스트 하나가 저장됩니다. 예: mail.google.com."
+        },
+        "exampleDescription": "규칙 하나에 애플리케이션 식별자 하나가 저장됩니다. 예: com.apple.mail.",
+        "removeTarget": "{{target}} 제거",
+        "unsupported": "앱 및 웹사이트 활성화는 macOS에서만 사용할 수 있습니다."
       },
       "title": "Modes",
       "description": "Choose what each dictation run recognizes, rewrites, and delivers.",
@@ -1017,12 +1177,15 @@
         "provider": {
           "label": "AI provider",
           "description": "The configured provider used for this mode.",
-          "empty": "No provider configured"
+          "empty": "No provider configured",
+          "noneConfigured": "아직 구성된 AI 제공자가 없습니다. 이 모드가 재작성하려면 먼저 설정에서 추가하세요.",
+          "unknownSelected": "이 모드가 지정한 제공자는 이 설치본에 구성되어 있지 않습니다."
         },
         "model": {
           "label": "AI model",
           "description": "The provider model identifier for this mode."
-        }
+        },
+        "disabledNote": "아래의 프리셋, 어조, 제공자, 모델을 사용하려면 AI 정리를 켜세요."
       },
       "recognition": {
         "literalPunctuation": {
@@ -1062,7 +1225,8 @@
           "writtenPlaceholder": "What to write",
           "add": "Add pair",
           "remove": "Remove {{spoken}}",
-          "incomplete": "Complete or remove each vocabulary pair before saving this mode."
+          "incomplete": "Complete or remove each vocabulary pair before saving this mode.",
+          "empty": "이 모드에는 고유 어휘가 없습니다. 전역 어휘는 계속 적용됩니다."
         },
         "engine": {
           "label": "Transcription engine",
@@ -1115,7 +1279,8 @@
               "unknown_provider": "This cloud provider is not available in this build.",
               "backend": "The consent record could not be saved."
             }
-          }
+          },
+          "title": "클라우드 전송"
         }
       },
       "context": {
@@ -1129,7 +1294,9 @@
             "target": "App",
             "target_and_selection": "Selection",
             "full": "Full"
-          }
+          },
+          "blockedByCeiling": "Privacy에서 이 모드를 {{ceiling}}(으)로 제한하고 있습니다.",
+          "raiseCeiling": "더 높은 수준을 사용하려면 Privacy에서 상한을 올리세요."
         }
       },
       "delivery": {
@@ -1165,7 +1332,8 @@
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
             "cmd_enter": "Command+Enter"
-          }
+          },
+          "requiresAutoSubmit": "키를 선택하려면 자동 제출을 켜세요."
         },
         "trailingSpace": {
           "label": "Append a trailing space",
@@ -1191,7 +1359,8 @@
             "dotool": "dotool",
             "ydotool": "ydotool",
             "xdotool": "xdotool"
-          }
+          },
+          "requiresDirect": "도구를 선택하려면 전달 방식으로 직접 입력을 선택하세요."
         },
         "script": {
           "label": "External script",
@@ -1235,7 +1404,16 @@
       "views": {
         "modes": "Modes",
         "vocabulary": "Vocabulary"
-      }
+      },
+      "cleanup": {
+        "title": "전사 정리"
+      },
+      "dismissError": "오류 닫기",
+      "emptyHint": "왼쪽에서 모드를 선택해 인식, 재작성, 전달 방식을 변경하세요.",
+      "listEmpty": "구성된 모드가 없습니다.",
+      "listEmptyHint": "Sona는 항상 모드 하나를 유지합니다. 새로 고침해 현재 목록을 가져오세요.",
+      "unsavedChanges": "저장되지 않은 변경 사항",
+      "untitled": "제목 없는 모드"
     },
     "privacy": {
       "title": "Privacy",
@@ -1323,7 +1501,24 @@
             "months_3": "3 months"
           }
         },
-        "error": "Data retention could not be saved"
+        "error": "Data retention could not be saved",
+        "historyStorage": {
+          "description": "이 디스크에서 받아쓰기 기록이 암호화되는지 여부입니다.",
+          "encrypted": "저장 시 암호화됨",
+          "label": "기록 저장소",
+          "locked": "잠김",
+          "plaintext": "암호화되지 않음",
+          "reasons": {
+            "encryption_unavailable": "이 빌드는 암호화된 데이터베이스를 열 수 없어 기록이 암호화되지 않은 상태로 저장됩니다.",
+            "key_rejected": "저장된 키로 암호화된 데이터베이스를 열 수 없어 기록을 읽을 수 없습니다.",
+            "key_unavailable": "시스템 자격 증명 저장소에서 사용 가능한 키를 받지 못해 기록이 암호화되지 않은 상태로 저장됩니다.",
+            "migration_failed": "기존 데이터베이스 암호화에 실패했습니다. 암호화되지 않은 데이터베이스는 손상 없이 계속 사용 중입니다.",
+            "unlocking": "암호화된 데이터베이스를 여는 중입니다. 시작 후 잠시 뒤 사라집니다."
+          },
+          "unknown": "Sona가 기록 저장 방식을 읽을 수 없습니다.",
+          "unlocking": "잠금 해제 중",
+          "since": "{{date}}부터 암호화됨."
+        }
       },
       "cloudTranscription": {
         "title": "Cloud transcription",
@@ -1332,7 +1527,8 @@
         "checkFailed": "Cloud transcription setup could not be checked.",
         "disclosure": "For a cloud-enabled mode, Sona sends recorded audio, the selected language, and mode keyterms directly to the provider. Application context and native credentials stay on this device.",
         "providerDetail": "{{provider}} has a saved native API key and current transfer consent.",
-        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent."
+        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent.",
+        "inUse": "사용 중"
       },
       "upstreamImport": {
         "title": "Import from legacy app",
@@ -1386,6 +1582,16 @@
           "internal": "The import did not finish.",
           "status": "The original Sona data could not be inspected."
         }
+      },
+      "cloudSync": {
+        "checkFailed": "Sona가 클라우드 동기화 구성을 읽을 수 없습니다.",
+        "configured": "구성됨",
+        "description": "Sona는 직접 운영하는 서버에 회의를 미러링할 수 있습니다. 이 기기에서 설정을 완료하기 전에는 아무것도 업로드되지 않습니다.",
+        "endpoint": "엔드포인트",
+        "endpointDescription": "이 기기가 연결된 서버입니다.",
+        "notConfigured": "구성되지 않음",
+        "service": "서비스",
+        "title": "클라우드 동기화"
       }
     },
     "agents": {
@@ -1445,7 +1651,8 @@
         "session": "Reply destination",
         "noSession": "No observed reply-capable session",
         "message": "Reply text",
-        "createPreview": "Create preview"
+        "createPreview": "Create preview",
+        "notReady": "답변에는 브리지가 켜져 있고 에이전트가 하나 이상 활성화되어 있어야 합니다."
       },
       "pending": {
         "empty": "No pending replies.",
@@ -1497,7 +1704,15 @@
       "errors": {
         "load": "Agent bridge data could not be loaded: {{error}}",
         "operation": "The agent bridge action could not be completed: {{error}}"
-      }
+      },
+      "panel": {
+        "description": "에이전트가 글을 올리고 답변을 읽는 플로팅 창입니다.",
+        "error": "에이전트 패널 설정을 저장할 수 없습니다.",
+        "label": "에이전트 패널 사용",
+        "rowDescription": "끄면 패널 창이 닫히고 Sona가 재열기 요청을 모두 거부합니다.",
+        "title": "에이전트 패널"
+      },
+      "workspaceNavigation": "에이전트 브리지 보기"
     },
     "hub": {
       "navigation": "Settings sections",
@@ -1706,7 +1921,8 @@
       "localOnly": "Local only",
       "check": "Check recording setup",
       "checking": "Checking setup…",
-      "defaultTitle": "Local notes"
+      "defaultTitle": "Local notes",
+      "remoteUnavailable": "이 빌드에서는 원격 처리를 사용할 수 없으므로 모든 회의가 이 Mac에서 전사되고 요약됩니다."
     },
     "preflight": {
       "title": "Check recording setup",
@@ -1725,7 +1941,8 @@
       "remoteNotSelected": "No remote destination is selected.",
       "remoteSelected": "Selected destination: {{destination}}",
       "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
-      "starting": "Starting visible capture…"
+      "starting": "Starting visible capture…",
+      "refreshing": "확인 중…"
     },
     "consent": {
       "title": "Recording acknowledgement",
@@ -1778,7 +1995,8 @@
       "title": "Retention",
       "description": "Sona deletes eligible local meeting records through the same verified deletion path.",
       "forever": "Keep until I delete it",
-      "days": "Delete after {{days}} days"
+      "days": "Delete after {{days}} days",
+      "loading": "현재 정책 읽는 중…"
     },
     "receipts": {
       "title": "Correction receipt",
@@ -1926,7 +2144,29 @@
       "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
       "searchPlaceholder": "Search this meeting",
       "search": "Search",
-      "noSearchResults": "No exact local matches."
+      "noSearchResults": "No exact local matches.",
+      "askUnavailable": "질문하려면 완료된 로컬 전사가 필요합니다.",
+      "asking": "이 회의에 질문하는 중…",
+      "captured": "{{time}}에 캡처됨",
+      "droppedFrames": "누락된 프레임: {{total}}",
+      "hitKind": {
+        "manualNote": "수동 메모",
+        "title": "회의 제목",
+        "transcript": "전사"
+      },
+      "noGeneratedNotesDescription": "생성된 노트는 전사에서 만들어지므로 언제든지 다시 생성할 수 있습니다.",
+      "processingDescription": "전사가 완료되면 생성된 노트와 로컬 답변이 표시됩니다.",
+      "processingTitle": "Sona가 아직 이 회의를 처리하는 중입니다",
+      "remoteProcessingUnavailable": "원격 대상을 사용할 수 없어 아무것도 생성되지 않았습니다. 재생성은 이 Mac에서 실행됩니다.",
+      "searching": "검색 중…",
+      "sonaAnswered": "Sona의 답변",
+      "tabs": {
+        "insights": "인사이트",
+        "questions": "Q&A",
+        "transcript": "전사"
+      },
+      "tabsLabel": "회의 검토 섹션",
+      "youAsked": "내 질문"
     },
     "artifactState": {
       "current": "Current",
@@ -1960,6 +2200,21 @@
         "transcript": "Transcript segments",
         "actions": "Action items"
       }
+    },
+    "list": {
+      "clearSearch": "검색 지우기",
+      "loadMore": "이전 회의 불러오기",
+      "loadingMore": "이전 회의 불러오는 중…",
+      "noMatches": "검색과 일치하는 회의가 없습니다",
+      "noMatchesDescription": "\"{{query}}\"이(가) 포함된 회의 제목이 없습니다. 검색을 지우면 전체 목록을 볼 수 있습니다.",
+      "noMatchesNotLoaded": "불러온 회의 제목 중 \"{{query}}\"이(가) 포함된 것이 없습니다. 이전 회의는 디스크에 남아 있으니 불러온 뒤 다시 검색하세요.",
+      "retentionHint": "보존 기간: {{policy}}. 설정의 Privacy에서 변경할 수 있습니다.",
+      "searchLabel": "회의 검색",
+      "searchPlaceholder": "제목으로 검색"
+    },
+    "status": {
+      "gapCount": "공백: {{total}}",
+      "required": "필수"
     }
   },
   "agentPanel": {
@@ -2017,23 +2272,66 @@
       "microphone": "Microphone",
       "file": "File import",
       "legacy": "Legacy",
-      "empty": "No recordings in this range."
+      "empty": "No recordings in this range.",
+      "meetings": "회의",
+      "meetingsUnavailable": "회의 저장소를 사용할 수 없어 여기에는 회의가 집계되지 않습니다."
     },
     "recent": {
       "title": "Recent activity",
       "history": "Transcription",
-      "meeting": "Meeting"
+      "meeting": "Meeting",
+      "emptyDescription": "받아쓰기하거나 회의를 녹음하면 보존된 캡처가 여기에 표시됩니다.",
+      "emptyTitle": "최근 항목 없음",
+      "error": "지금은 최근 캡처를 불러올 수 없습니다.",
+      "viewAll": "모두 보기"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
       "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
-      "importAudio": "Import audio"
+      "importAudio": "Import audio",
+      "mode": "모드: {{name}}",
+      "setShortcut": "설정에서 받아쓰기 단축키를 지정하면 어느 앱에서든 캡처할 수 있습니다."
     },
     "actions": {
       "dictate": "Dictate",
       "unavailable": "Shortcut unavailable"
+    },
+    "chart": {
+      "day": "{{date}} \\u00b7 받아쓰기 {{dictations}}",
+      "dayWithMeetings": "{{date}} \\u00b7 받아쓰기 {{dictations}} \\u00b7 회의 {{meetings}}",
+      "legend": "일별 받아쓰기",
+      "peak": "가장 바쁜 날 {{peak}}",
+      "summary": "{{from}}부터 {{to}}까지의 일별 받아쓰기. 합계 {{total}}, 가장 바쁜 날 {{peak}}."
+    },
+    "empty": {
+      "action": "라이브러리 열기",
+      "description": "어느 앱에서든 받아쓰기 단축키를 누르고 있으면 Sona가 말한 내용을 입력합니다. 첫 캡처 후 사용 통계와 최근 캡처가 여기에 표시됩니다.",
+      "title": "아직 캡처가 없습니다"
+    },
+    "stats": {
+      "activeDays": "{{total}}일 중 {{active}}일 활동",
+      "allTime": "전체 기간 {{total}}",
+      "dictations": "받아쓰기",
+      "dictationsAllTime": "받아쓰기, 전체 기간",
+      "error": "지금은 Sona가 사용 기록을 읽을 수 없습니다.",
+      "range": "{{from}}부터 {{to}}까지",
+      "rangeUnavailable": "최근 30일을 읽을 수 없어 전체 기간 합계를 표시합니다.",
+      "speaking": "발화 시간",
+      "speakingAllTime": "발화 시간, 전체 기간",
+      "streak": "현재 연속 기록",
+      "tiles": "사용 요약",
+      "title": "활동",
+      "words": "단어",
+      "wordsAllTime": "단어, 전체 기간"
+    },
+    "update": {
+      "available": "Sona {{latest}}을(를) 사용할 수 있습니다. 이 설치본은 {{current}}입니다.",
+      "dismiss": "닫기",
+      "failed": "업데이트를 확인할 수 없습니다.",
+      "failedWithReason": "업데이트를 확인할 수 없습니다: {{reason}}",
+      "view": "릴리스 보기"
     }
   },
   "cloudSync": {

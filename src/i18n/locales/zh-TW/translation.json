@@ -221,7 +221,12 @@
       "pushToTalk": {
         "label": "按住說話",
         "description": "按住錄製，放開停止"
-      }
+      },
+      "appearance": {
+        "description": "介面語言與色彩配置。兩者皆立即生效。",
+        "title": "外觀"
+      },
+      "description": "你按的按鍵、Sona 聆聽的麥克風，以及 App 的外觀。"
     },
     "models": {
       "title": "轉錄模型",
@@ -234,7 +239,12 @@
       "filters": {
         "allLanguages": "所有語言",
         "streaming": "篩選支援即時轉錄的模型",
-        "translation": "篩選支援翻譯為英語的模型"
+        "translation": "篩選支援翻譯為英語的模型",
+        "allFamilies": "所有系列",
+        "clear": "清除篩選",
+        "downloadedOnly": "已在磁碟上",
+        "downloadedOnlyHint": "只顯示已下載的模型",
+        "family": "模型系列"
       },
       "noModelsMatch": "沒有符合此篩選條件的模型",
       "searchPlaceholder": "依名稱搜尋模型…",
@@ -286,6 +296,34 @@
           "protocol": "The provider returned an unexpected verification response.",
           "unknown_provider": "This cloud provider is not available in this build."
         }
+      },
+      "actions": {
+        "activate": "使用",
+        "activateNamed": "使用 {{modelName}}",
+        "download": "下載",
+        "downloadNamed": "下載 {{modelName}}",
+        "retryNamed": "重試下載 {{modelName}}"
+      },
+      "emptyCatalog": "Sona 無法讀取其模型目錄。重新掃描可找到已在模型資料夾或 Hugging Face 快取中的模型。",
+      "errors": {
+        "downloadFailed": "下載未開始。請檢查連線後再試一次。"
+      },
+      "families": {
+        "custom": "你新增的",
+        "other": "其他模型"
+      },
+      "familyCount": "{{total}} 個模型",
+      "noModelsMatchHint": "目錄中沒有同時符合所有篩選條件的項目。",
+      "searchByAnything": "依名稱、語言或功能搜尋",
+      "state": {
+        "activeInMemory": "使用中，已載入記憶體",
+        "downloaded": "已下載",
+        "notDownloaded": "未下載"
+      },
+      "summary": {
+        "active": "使用中：{{name}}",
+        "noActive": "未選取模型",
+        "onDisk": "磁碟上有 {{total}} 個"
       }
     },
     "sound": {
@@ -461,7 +499,10 @@
         "imported": "詞彙已匯入",
         "errors": {
           "incomplete": "請同時輸入口述片語和書面文字。",
-          "duplicate": "這個詞彙配對已存在。"
+          "duplicate": "這個詞彙配對已存在。",
+          "incompleteRow": "儲存前請完成或移除每一列。",
+          "duplicateSpoken": "有多列符合 {{spoken}}。Sona 每個口說詞語只保留一條規則。",
+          "unusableSpoken": "{{spoken}} 需要至少一個字母或數字才能被辨識。"
         },
         "importPreview": {
           "title": "檢查詞彙匯入",
@@ -472,7 +513,12 @@
           "conflicts": "衝突列",
           "blocked": "套用前，請修正所有無效、重複或衝突的列。",
           "apply": "套用匯入",
-          "unsavedWarning": "您有未儲存的詞彙變更。套用此匯入將取代它們。"
+          "unsavedWarning": "您有未儲存的詞彙變更。套用此匯入將取代它們。",
+          "back": "返回",
+          "continue": "繼續",
+          "replaceSummary": "套用後會以此檔案中的 {{importedCount}} 組配對取代已儲存的 {{savedCount}} 組配對。",
+          "stepConfirm": "步驟 2/2：確認取代",
+          "stepReview": "步驟 1/2：檔案內容"
         },
         "actions": "Vocabulary actions",
         "audioImport": {
@@ -482,7 +528,13 @@
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
           }
-        }
+        },
+        "empty": {
+          "description": "新增像 open ai 與 OpenAI 這樣的配對，Sona 每次聽到該詞語就會寫出正確形式。",
+          "title": "尚無詞彙規則"
+        },
+        "sources": "你在資料庫中從逐字稿儲存的更正會加入此列表。單一模式的規則存放在該模式自己的詞彙中。",
+        "unsaved": "未儲存的變更"
       },
       "voiceActivityDetection": {
         "title": "語音活動偵測",
@@ -510,7 +562,12 @@
         "toggleError": "無法變更表情符號替換。",
         "errors": {
           "incomplete": "請同時輸入口述片語和表情符號文字。",
-          "duplicate": "這個表情符號替換已存在。"
+          "duplicate": "這個表情符號替換已存在。",
+          "incompleteRow": "儲存前請完成或移除每一列。"
+        },
+        "empty": {
+          "description": "將明確的口說詞語（例如 smiley face）對應到你想寫出的表情符號。",
+          "title": "尚無表情符號替換"
         }
       },
       "description": "Startup, processing, and experimental behavior.",
@@ -526,6 +583,39 @@
         "experimental": {
           "description": "Unstable options that can change without notice."
         }
+      },
+      "snippets": {
+        "add": "新增片段",
+        "confirmDelete": {
+          "description": "此觸發詞不會再在之後的逐字稿中展開。已寫出的文字不受影響。",
+          "body": "{{trigger}} 目前展開為 {{expansion}}。",
+          "title": "刪除 {{trigger}}？"
+        },
+        "description": "Sona 會將簡短觸發詞展開成較長文字。此處的變更只影響之後的逐字稿，絕不影響已寫出的文字。",
+        "empty": {
+          "action": "建立你的第一個片段",
+          "description": "新增像 omw 這樣的觸發詞，Sona 每次聽到你說它就會寫出 on my way。",
+          "title": "尚無片段"
+        },
+        "enabledDescription": "在詞彙更正之後，立即替換每份逐字稿中的片段觸發詞。",
+        "enabledLabel": "啟用文字擴展",
+        "errors": {
+          "duplicate": "另一個片段已使用此觸發詞。",
+          "incomplete": "請同時輸入觸發詞和展開文字。"
+        },
+        "expansion": "展開文字",
+        "expansionPlaceholder": "on my way",
+        "loadError": "無法載入片段。",
+        "loading": "正在載入片段",
+        "matching": "觸發詞比對完整單字且不分大小寫。兩個觸發詞符合同一位置時，較長者優先，展開會在詞彙更正之後立即執行。",
+        "offState": "文字擴展已關閉。片段會保留，重新開啟後立即再次生效。",
+        "title": "文字擴展",
+        "trigger": "觸發詞",
+        "triggerPlaceholder": "omw",
+        "unsaved": "按 Enter 或「儲存」以保留此變更。",
+        "enableRow": "啟用 {{trigger}}",
+        "remove": "刪除 {{trigger}}",
+        "saveRow": "儲存 {{trigger}}"
       }
     },
     "postProcessing": {
@@ -579,7 +669,27 @@
         "createPrompt": "建立提示詞",
         "cancel": "取消",
         "selectToEdit": "選擇上方的提示詞以檢視和編輯其詳細資訊",
-        "createFirst": "點選上方的「建立新提示詞」來建立您的第一個後處理提示詞"
+        "createFirst": "點選上方的「建立新提示詞」來建立您的第一個後處理提示詞",
+        "empty": {
+          "description": "提示會告訴模型如何處理逐字稿，例如：將以下內容改寫為簡短訊息，保留所有事實：${output}"
+        },
+        "errors": {
+          "incomplete": "儲存前請為提示命名並填寫指示。"
+        },
+        "inUse": "使用中",
+        "lastPrompt": "Sona 至少保留一個提示，因此無法刪除此提示。請先建立另一個。",
+        "libraryTitle": "後處理提示",
+        "loading": "正在載入提示",
+        "noSelection": "未選取提示：每個模式使用自己定義的提示。",
+        "outputTip": "在應插入逐字稿的位置寫上 ${output}。",
+        "use": "使用",
+        "confirmDelete": {
+          "body": "{{name}} 會從提示庫中移除。已複製其文字的模式會保留自己的提示。",
+          "selected": "{{name}} 使用中。刪除後選取項目會移至列表中的第一個提示。"
+        },
+        "deleteNamed": "刪除 {{name}}",
+        "editNamed": "編輯 {{name}}",
+        "useNamed": "使用 {{name}}"
       },
       "remoteConsent": {
         "title": "Remote text transfer",
@@ -754,7 +864,8 @@
           "start": "無法開始檔案匯入。",
           "cancel": "無法取消檔案匯入。",
           "load": "無法載入檔案匯入狀態。"
-        }
+        },
+        "running": "正在轉錄 {{count}} 個檔案"
       },
       "trends": {
         "title": "History trends",
@@ -771,7 +882,14 @@
           "words": "Words"
         },
         "streak": "{{count}} day streak"
-      }
+      },
+      "clearSearch": "清除搜尋",
+      "emptyHint": "你也可以轉錄現有錄音：WAV、MP3、M4A、AAC、FLAC、OGG、MOV、MP4 或 M4V，最長 30 分鐘。",
+      "loadMore": "載入更多",
+      "noResultsHint": "搜尋會比對原始與處理後逐字稿中的完整單字。",
+      "results": "{{count}} 個符合項目",
+      "resultsMore": "{{count}}+ 個符合項目",
+      "resultsNone": "沒有符合項目"
     },
     "debug": {
       "title": "偵錯",
@@ -889,13 +1007,21 @@
         "button": "預覽",
         "noNotes": "找不到內建版本資訊",
         "error": "無法預覽版本資訊"
+      },
+      "description": "檢測工具與不受支援的選項。因偵錯模式已開啟而顯示。",
+      "groups": {
+        "capture": "擷取",
+        "delivery": "文字輸出",
+        "diagnostics": "診斷",
+        "logging": "記錄"
       }
     },
     "about": {
       "title": "關於",
       "version": {
         "title": "版本",
-        "description": "Sona 的目前版本"
+        "description": "Sona 的目前版本",
+        "unavailable": "無法取得"
       },
       "appDataDirectory": {
         "title": "應用程式資料目錄",
@@ -922,6 +1048,36 @@
       "whatsNewUpdates": {
         "label": "顯示新功能",
         "description": "Sona 更新後顯示版本資訊"
+      },
+      "description": "你執行的版本、來源，以及檔案的存放位置。",
+      "files": {
+        "title": "檔案"
+      },
+      "source": {
+        "description": "Sona 採用 MIT 授權，版權所有 2025 CJ Pais，基於 Handy 建置。",
+        "open": "在 GitHub 上開啟",
+        "repository": "儲存庫",
+        "title": "原始碼",
+        "upstream": "基於 Handy 建置",
+        "upstreamDescription": "Sona 是 cjpais/Handy 的分支，仍會跟進其上游修正。",
+        "upstreamOpen": "cjpais/Handy"
+      },
+      "updates": {
+        "autoDescription": "向 GitHub 查詢最新版本。Sona 絕不會自行安裝任何內容。",
+        "autoLabel": "自動檢查更新",
+        "check": "立即檢查",
+        "checking": "正在檢查…",
+        "disabled": "自動檢查已關閉，因此 Sona 未連線 GitHub。",
+        "enable": "開啟檢查",
+        "failed": "無法執行更新檢查。",
+        "manualDescription": "將此版本與最新發佈的版本比較。",
+        "manualTitle": "手動檢查",
+        "preferenceError": "無法儲存更新偏好設定。",
+        "title": "版本與更新",
+        "viewRelease": "查看版本資訊",
+        "available": "Sona {{version}} 已推出。",
+        "published": "發佈於 {{date}}",
+        "upToDate": "Sona {{version}} 已是最新版本。"
       }
     },
     "modes": {
@@ -951,8 +1107,12 @@
             "action": "擷取目前網站",
             "capturing": "正在擷取..."
           },
-          "empty": "沒有網站會啟用這個模式。"
-        }
+          "empty": "沒有網站會啟用這個模式。",
+          "exampleDescription": "一條規則儲存一個瀏覽器主機，例如 mail.google.com。"
+        },
+        "exampleDescription": "一條規則儲存一個應用程式識別碼，例如 com.apple.mail。",
+        "removeTarget": "移除 {{target}}",
+        "unsupported": "App 與網站啟用僅適用於 macOS。"
       },
       "title": "Modes",
       "description": "Choose what each dictation run recognizes, rewrites, and delivers.",
@@ -1017,12 +1177,15 @@
         "provider": {
           "label": "AI provider",
           "description": "The configured provider used for this mode.",
-          "empty": "No provider configured"
+          "empty": "No provider configured",
+          "noneConfigured": "尚未設定 AI 供應商。請先在「設定」中新增一個，此模式才能改寫。",
+          "unknownSelected": "此模式指定的供應商未在此安裝上設定。"
         },
         "model": {
           "label": "AI model",
           "description": "The provider model identifier for this mode."
-        }
+        },
+        "disabledNote": "開啟 AI 整理以使用下方的預設集、語氣、供應商和模型。"
       },
       "recognition": {
         "literalPunctuation": {
@@ -1062,7 +1225,8 @@
           "writtenPlaceholder": "What to write",
           "add": "Add pair",
           "remove": "Remove {{spoken}}",
-          "incomplete": "Complete or remove each vocabulary pair before saving this mode."
+          "incomplete": "Complete or remove each vocabulary pair before saving this mode.",
+          "empty": "此模式沒有自己的詞彙。全域詞彙仍會套用。"
         },
         "engine": {
           "label": "Transcription engine",
@@ -1115,7 +1279,8 @@
               "unknown_provider": "This cloud provider is not available in this build.",
               "backend": "The consent record could not be saved."
             }
-          }
+          },
+          "title": "雲端傳輸"
         }
       },
       "context": {
@@ -1129,7 +1294,9 @@
             "target": "App",
             "target_and_selection": "Selection",
             "full": "Full"
-          }
+          },
+          "blockedByCeiling": "Privacy 將此模式限制為 {{ceiling}}。",
+          "raiseCeiling": "在 Privacy 中提高上限以使用更高層級。"
         }
       },
       "delivery": {
@@ -1165,7 +1332,8 @@
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
             "cmd_enter": "Command+Enter"
-          }
+          },
+          "requiresAutoSubmit": "開啟自動送出以選擇按鍵。"
         },
         "trailingSpace": {
           "label": "Append a trailing space",
@@ -1191,7 +1359,8 @@
             "dotool": "dotool",
             "ydotool": "ydotool",
             "xdotool": "xdotool"
-          }
+          },
+          "requiresDirect": "將輸出方式設為「直接輸入」以選擇工具。"
         },
         "script": {
           "label": "External script",
@@ -1235,7 +1404,16 @@
       "views": {
         "modes": "Modes",
         "vocabulary": "Vocabulary"
-      }
+      },
+      "cleanup": {
+        "title": "逐字稿整理"
+      },
+      "dismissError": "關閉錯誤",
+      "emptyHint": "在左側選擇一個模式，以變更它辨識、改寫和輸出的內容。",
+      "listEmpty": "未設定任何模式。",
+      "listEmptyHint": "Sona 一律保留一個模式。重新載入以取得目前列表。",
+      "unsavedChanges": "未儲存的變更",
+      "untitled": "未命名模式"
     },
     "privacy": {
       "title": "Privacy",
@@ -1323,7 +1501,24 @@
             "months_3": "3 months"
           }
         },
-        "error": "Data retention could not be saved"
+        "error": "Data retention could not be saved",
+        "historyStorage": {
+          "description": "此磁碟上的聽寫記錄是否加密。",
+          "encrypted": "靜態加密",
+          "label": "記錄儲存",
+          "locked": "已鎖定",
+          "plaintext": "未加密",
+          "reasons": {
+            "encryption_unavailable": "此版本無法開啟加密資料庫，因此記錄以未加密方式儲存。",
+            "key_rejected": "儲存的金鑰無法開啟加密資料庫，因此無法讀取記錄。",
+            "key_unavailable": "系統憑證儲存區未提供可用的金鑰，因此記錄以未加密方式儲存。",
+            "migration_failed": "加密現有資料庫失敗。未加密的資料庫完好無損且仍在使用中。",
+            "unlocking": "正在開啟加密資料庫。啟動後片刻即會消失。"
+          },
+          "unknown": "Sona 無法讀取記錄的儲存方式。",
+          "unlocking": "正在解鎖",
+          "since": "自 {{date}} 起加密。"
+        }
       },
       "cloudTranscription": {
         "title": "Cloud transcription",
@@ -1332,7 +1527,8 @@
         "checkFailed": "Cloud transcription setup could not be checked.",
         "disclosure": "For a cloud-enabled mode, Sona sends recorded audio, the selected language, and mode keyterms directly to the provider. Application context and native credentials stay on this device.",
         "providerDetail": "{{provider}} has a saved native API key and current transfer consent.",
-        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent."
+        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent.",
+        "inUse": "使用中"
       },
       "upstreamImport": {
         "title": "Import from legacy app",
@@ -1386,6 +1582,16 @@
           "internal": "The import did not finish.",
           "status": "The original Sona data could not be inspected."
         }
+      },
+      "cloudSync": {
+        "checkFailed": "Sona 無法讀取雲端同步設定。",
+        "configured": "已設定",
+        "description": "Sona 可將會議鏡像到你自行架設的伺服器。在此裝置完成設定前不會上傳任何內容。",
+        "endpoint": "端點",
+        "endpointDescription": "此裝置指向的伺服器。",
+        "notConfigured": "未設定",
+        "service": "服務",
+        "title": "雲端同步"
       }
     },
     "agents": {
@@ -1445,7 +1651,8 @@
         "session": "Reply destination",
         "noSession": "No observed reply-capable session",
         "message": "Reply text",
-        "createPreview": "Create preview"
+        "createPreview": "Create preview",
+        "notReady": "回覆需要開啟橋接並至少啟用一個代理程式。"
       },
       "pending": {
         "empty": "No pending replies.",
@@ -1497,7 +1704,15 @@
       "errors": {
         "load": "Agent bridge data could not be loaded: {{error}}",
         "operation": "The agent bridge action could not be completed: {{error}}"
-      }
+      },
+      "panel": {
+        "description": "代理程式用來張貼與讀取回覆的浮動視窗。",
+        "error": "無法儲存代理程式面板設定。",
+        "label": "啟用代理程式面板",
+        "rowDescription": "關閉此選項會關閉面板視窗，並讓 Sona 拒絕所有重新開啟的要求。",
+        "title": "代理程式面板"
+      },
+      "workspaceNavigation": "代理程式橋接檢視"
     },
     "hub": {
       "navigation": "Settings sections",
@@ -1706,7 +1921,8 @@
       "localOnly": "Local only",
       "check": "Check recording setup",
       "checking": "Checking setup…",
-      "defaultTitle": "Local notes"
+      "defaultTitle": "Local notes",
+      "remoteUnavailable": "此版本無法使用遠端處理，因此每場會議都在這台 Mac 上轉錄與摘要。"
     },
     "preflight": {
       "title": "Check recording setup",
@@ -1725,7 +1941,8 @@
       "remoteNotSelected": "No remote destination is selected.",
       "remoteSelected": "Selected destination: {{destination}}",
       "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
-      "starting": "Starting visible capture…"
+      "starting": "Starting visible capture…",
+      "refreshing": "正在檢查…"
     },
     "consent": {
       "title": "Recording acknowledgement",
@@ -1778,7 +1995,8 @@
       "title": "Retention",
       "description": "Sona deletes eligible local meeting records through the same verified deletion path.",
       "forever": "Keep until I delete it",
-      "days": "Delete after {{days}} days"
+      "days": "Delete after {{days}} days",
+      "loading": "正在讀取目前的政策…"
     },
     "receipts": {
       "title": "Correction receipt",
@@ -1926,7 +2144,29 @@
       "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
       "searchPlaceholder": "Search this meeting",
       "search": "Search",
-      "noSearchResults": "No exact local matches."
+      "noSearchResults": "No exact local matches.",
+      "askUnavailable": "提問需要已完成的本機逐字稿。",
+      "asking": "正在詢問這場會議…",
+      "captured": "擷取於 {{time}}",
+      "droppedFrames": "丟失影格：{{total}}",
+      "hitKind": {
+        "manualNote": "手動筆記",
+        "title": "會議標題",
+        "transcript": "逐字稿"
+      },
+      "noGeneratedNotesDescription": "生成的筆記衍生自逐字稿，因此隨時可以重新建立。",
+      "processingDescription": "逐字稿完成後，生成的筆記和本機回答就會出現。",
+      "processingTitle": "Sona 仍在處理這場會議",
+      "remoteProcessingUnavailable": "遠端目的地一直無法使用，因此未生成任何內容。重新生成會在這台 Mac 上執行。",
+      "searching": "正在搜尋…",
+      "sonaAnswered": "Sona 的回答",
+      "tabs": {
+        "insights": "洞察",
+        "questions": "問答",
+        "transcript": "逐字稿"
+      },
+      "tabsLabel": "會議回顧區段",
+      "youAsked": "你的提問"
     },
     "artifactState": {
       "current": "Current",
@@ -1960,6 +2200,21 @@
         "transcript": "Transcript segments",
         "actions": "Action items"
       }
+    },
+    "list": {
+      "clearSearch": "清除搜尋",
+      "loadMore": "載入較舊的會議",
+      "loadingMore": "正在載入較舊的會議…",
+      "noMatches": "沒有符合該搜尋的會議",
+      "noMatchesDescription": "沒有會議標題包含「{{query}}」。清除搜尋即可查看完整列表。",
+      "noMatchesNotLoaded": "已載入的會議標題中沒有包含「{{query}}」的項目。較舊的會議仍在磁碟上：載入後再搜尋一次。",
+      "retentionHint": "保留政策：{{policy}}。可在「設定」的「Privacy」中變更。",
+      "searchLabel": "搜尋會議",
+      "searchPlaceholder": "依標題搜尋"
+    },
+    "status": {
+      "gapCount": "間隔：{{total}}",
+      "required": "必要"
     }
   },
   "agentPanel": {
@@ -2017,23 +2272,66 @@
       "microphone": "Microphone",
       "file": "File import",
       "legacy": "Legacy",
-      "empty": "No recordings in this range."
+      "empty": "No recordings in this range.",
+      "meetings": "會議",
+      "meetingsUnavailable": "會議儲存空間無法使用，因此這裡不計入會議。"
     },
     "recent": {
       "title": "Recent activity",
       "history": "Transcription",
-      "meeting": "Meeting"
+      "meeting": "Meeting",
+      "emptyDescription": "你聽寫或錄製會議後，保留的擷取會立即顯示在這裡。",
+      "emptyTitle": "最近沒有內容",
+      "error": "目前無法載入最近的擷取。",
+      "viewAll": "查看全部"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
       "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
-      "importAudio": "Import audio"
+      "importAudio": "Import audio",
+      "mode": "模式：{{name}}",
+      "setShortcut": "在「設定」中設定聽寫快捷鍵，即可從任何 App 擷取。"
     },
     "actions": {
       "dictate": "Dictate",
       "unavailable": "Shortcut unavailable"
+    },
+    "chart": {
+      "day": "{{date}} \\u00b7 聽寫 {{dictations}}",
+      "dayWithMeetings": "{{date}} \\u00b7 聽寫 {{dictations}} \\u00b7 會議 {{meetings}}",
+      "legend": "每日聽寫次數",
+      "peak": "最忙碌的一天 {{peak}}",
+      "summary": "{{from}} 至 {{to}} 的每日聽寫次數。總計 {{total}}，最忙碌的一天 {{peak}}。"
+    },
+    "empty": {
+      "action": "開啟資料庫",
+      "description": "在任何 App 中按住聽寫快捷鍵，Sona 就會輸入你說的話。第一次擷取後，你的使用統計和最近擷取會顯示在這裡。",
+      "title": "尚無擷取"
+    },
+    "stats": {
+      "activeDays": "{{total}} 天中有 {{active}} 天活躍",
+      "allTime": "歷來共 {{total}}",
+      "dictations": "聽寫",
+      "dictationsAllTime": "聽寫（歷來）",
+      "error": "Sona 目前無法讀取你的使用記錄。",
+      "range": "{{from}} 至 {{to}}",
+      "rangeUnavailable": "無法讀取最近 30 天，因此這些是歷來總計。",
+      "speaking": "說話時間",
+      "speakingAllTime": "說話時間（歷來）",
+      "streak": "目前連續天數",
+      "tiles": "使用摘要",
+      "title": "活動",
+      "words": "字數",
+      "wordsAllTime": "字數（歷來）"
+    },
+    "update": {
+      "available": "Sona {{latest}} 已推出。目前安裝的是 {{current}}。",
+      "dismiss": "關閉",
+      "failed": "無法檢查更新。",
+      "failedWithReason": "無法檢查更新：{{reason}}",
+      "view": "查看版本資訊"
     }
   },
   "cloudSync": {

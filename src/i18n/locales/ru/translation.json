@@ -191,7 +191,12 @@
       "filters": {
         "allLanguages": "Все языки",
         "streaming": "Фильтровать модели с поддержкой транскрипции в реальном времени",
-        "translation": "Фильтровать модели с поддержкой перевода на английский"
+        "translation": "Фильтровать модели с поддержкой перевода на английский",
+        "allFamilies": "Все семейства",
+        "clear": "Сбросить фильтры",
+        "downloadedOnly": "На диске",
+        "downloadedOnlyHint": "Показывать только уже скачанные модели",
+        "family": "Семейство моделей"
       },
       "noModelsMatch": "Нет моделей, соответствующих этому фильтру.",
       "yourModels": "Загруженные модели",
@@ -245,6 +250,34 @@
           "protocol": "The provider returned an unexpected verification response.",
           "unknown_provider": "This cloud provider is not available in this build."
         }
+      },
+      "actions": {
+        "activate": "Использовать",
+        "activateNamed": "Использовать {{modelName}}",
+        "download": "Скачать",
+        "downloadNamed": "Скачать {{modelName}}",
+        "retryNamed": "Повторить скачивание {{modelName}}"
+      },
+      "emptyCatalog": "Sona не удалось прочитать каталог моделей. Повторное сканирование найдёт модели, уже лежащие в папке моделей или в кэше Hugging Face.",
+      "errors": {
+        "downloadFailed": "Скачивание не началось. Проверьте подключение и попробуйте снова."
+      },
+      "families": {
+        "custom": "Добавлено вами",
+        "other": "Другие модели"
+      },
+      "familyCount": "Моделей: {{total}}",
+      "noModelsMatchHint": "В каталоге нет моделей, подходящих под все фильтры сразу.",
+      "searchByAnything": "Поиск по названию, языку или возможностям",
+      "state": {
+        "activeInMemory": "Активна, в памяти",
+        "downloaded": "Скачана",
+        "notDownloaded": "Не скачана"
+      },
+      "summary": {
+        "active": "Активна: {{name}}",
+        "noActive": "Модель не выбрана",
+        "onDisk": "На диске: {{total}}"
       }
     },
     "general": {
@@ -286,7 +319,12 @@
       "pushToTalk": {
         "label": "Нажми и говори",
         "description": "Удерживайте, чтобы записать, отпустите, чтобы остановить"
-      }
+      },
+      "appearance": {
+        "description": "Язык интерфейса и цветовая схема. Оба применяются сразу.",
+        "title": "Внешний вид"
+      },
+      "description": "Клавиши, которые вы нажимаете, микрофон, который слушает Sona, и внешний вид приложения."
     },
     "sound": {
       "title": "Звук",
@@ -461,7 +499,10 @@
         "imported": "Словарь импортирован",
         "errors": {
           "incomplete": "Введите произнесённую фразу и текст для записи.",
-          "duplicate": "Такая пара слов уже есть в словаре."
+          "duplicate": "Такая пара слов уже есть в словаре.",
+          "incompleteRow": "Заполните или удалите каждую строку перед сохранением.",
+          "duplicateSpoken": "Несколько строк соответствуют {{spoken}}. Sona хранит одно правило на произносимую фразу.",
+          "unusableSpoken": "{{spoken}} должно содержать хотя бы одну букву или цифру, чтобы распознаваться."
         },
         "importPreview": {
           "title": "Проверка импорта словаря",
@@ -472,7 +513,12 @@
           "conflicts": "Конфликтующие строки",
           "blocked": "Исправьте все недопустимые, повторяющиеся и конфликтующие строки перед применением.",
           "apply": "Применить импорт",
-          "unsavedWarning": "У вас есть несохранённые изменения словаря. Применение этого импорта заменит их."
+          "unsavedWarning": "У вас есть несохранённые изменения словаря. Применение этого импорта заменит их.",
+          "back": "Назад",
+          "continue": "Продолжить",
+          "replaceSummary": "Применение заменит сохранённые пары ({{savedCount}}) парами из этого файла ({{importedCount}}).",
+          "stepConfirm": "Шаг 2 из 2: подтвердите замену",
+          "stepReview": "Шаг 1 из 2: что содержит файл"
         },
         "actions": "Vocabulary actions",
         "audioImport": {
@@ -482,7 +528,13 @@
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
           }
-        }
+        },
+        "empty": {
+          "description": "Добавьте пару, например open ai и OpenAI, и Sona будет писать точную форму каждый раз, когда услышит эту фразу.",
+          "title": "Правил словаря пока нет"
+        },
+        "sources": "Исправления, сохранённые из расшифровки в библиотеке, попадают в этот список. Правила для отдельного режима хранятся в словаре самого режима.",
+        "unsaved": "Несохранённые изменения"
       },
       "voiceActivityDetection": {
         "title": "Определение голосовой активности",
@@ -510,7 +562,12 @@
         "toggleError": "Не удалось изменить замены эмодзи.",
         "errors": {
           "incomplete": "Введите произнесённую фразу и текст эмодзи.",
-          "duplicate": "Такая замена эмодзи уже существует."
+          "duplicate": "Такая замена эмодзи уже существует.",
+          "incompleteRow": "Заполните или удалите каждую строку перед сохранением."
+        },
+        "empty": {
+          "description": "Сопоставьте точную произносимую фразу, например смайлик, с нужным эмодзи.",
+          "title": "Замен эмодзи пока нет"
         }
       },
       "description": "Startup, processing, and experimental behavior.",
@@ -526,6 +583,39 @@
         "experimental": {
           "description": "Unstable options that can change without notice."
         }
+      },
+      "snippets": {
+        "add": "Добавить сниппет",
+        "confirmDelete": {
+          "description": "Триггер перестанет разворачиваться в будущих расшифровках. Уже написанный текст не изменится.",
+          "body": "{{trigger}} сейчас разворачивается в {{expansion}}.",
+          "title": "Удалить {{trigger}}?"
+        },
+        "description": "Короткие триггеры, которые Sona разворачивает в длинный текст. Изменения здесь влияют только на будущие расшифровки, но не на уже написанный текст.",
+        "empty": {
+          "action": "Создайте первый сниппет",
+          "description": "Добавьте триггер, например «щас буду», и Sona будет писать «скоро буду» каждый раз, когда вы его произнесёте.",
+          "title": "Сниппетов пока нет"
+        },
+        "enabledDescription": "Заменять триггеры сниппетов в каждой расшифровке сразу после словарных исправлений.",
+        "enabledLabel": "Включить расширение текста",
+        "errors": {
+          "duplicate": "Этот триггер уже используется другим сниппетом.",
+          "incomplete": "Введите и триггер, и расширение."
+        },
+        "expansion": "Расширение",
+        "expansionPlaceholder": "скоро буду",
+        "loadError": "Не удалось загрузить сниппеты.",
+        "loading": "Загрузка сниппетов",
+        "matching": "Триггеры совпадают с целыми словами без учёта регистра. Если два триггера подходят к одному месту, побеждает более длинный, а расширение выполняется сразу после словарных исправлений.",
+        "offState": "Расширение текста выключено. Сниппеты сохранены и снова заработают, как только вы его включите.",
+        "title": "Расширение текста",
+        "trigger": "Триггер",
+        "triggerPlaceholder": "щас буду",
+        "unsaved": "Нажмите Enter или «Сохранить», чтобы сохранить изменение.",
+        "enableRow": "Включить {{trigger}}",
+        "remove": "Удалить {{trigger}}",
+        "saveRow": "Сохранить {{trigger}}"
       }
     },
     "postProcessing": {
@@ -579,7 +669,27 @@
         "createPrompt": "Создать запрос",
         "cancel": "Отмена",
         "selectToEdit": "Выберите запрос выше, чтобы просмотреть и изменить его сведения.",
-        "createFirst": "Нажмите «Создать новый запрос» выше, чтобы создать первый запрос для постобработки."
+        "createFirst": "Нажмите «Создать новый запрос» выше, чтобы создать первый запрос для постобработки.",
+        "empty": {
+          "description": "Промпт говорит модели, что делать с расшифровкой, например: перепиши следующее как короткое сообщение, сохранив все факты: ${output}"
+        },
+        "errors": {
+          "incomplete": "Дайте промпту название и инструкции перед сохранением."
+        },
+        "inUse": "Используется",
+        "lastPrompt": "Sona хранит как минимум один промпт, поэтому этот удалить нельзя. Сначала создайте другой.",
+        "libraryTitle": "Промпты постобработки",
+        "loading": "Загрузка промптов",
+        "noSelection": "Промпт не выбран: каждый режим использует свой собственный промпт.",
+        "outputTip": "Напишите ${output} там, куда должна вставляться расшифровка.",
+        "use": "Использовать",
+        "confirmDelete": {
+          "body": "{{name}} удаляется из библиотеки. Режимы, которые уже скопировали его текст, сохранят собственный промпт.",
+          "selected": "{{name}} используется. После удаления будет выбран первый промпт в списке."
+        },
+        "deleteNamed": "Удалить {{name}}",
+        "editNamed": "Изменить {{name}}",
+        "useNamed": "Использовать {{name}}"
       },
       "remoteConsent": {
         "title": "Remote text transfer",
@@ -754,7 +864,8 @@
           "start": "Не удалось начать импорт файла.",
           "cancel": "Не удалось отменить импорт файла.",
           "load": "Не удалось загрузить статус импорта файла."
-        }
+        },
+        "running": "Расшифровка файлов: {{count}}"
       },
       "trends": {
         "title": "History trends",
@@ -771,7 +882,14 @@
           "words": "Words"
         },
         "streak": "{{count}} day streak"
-      }
+      },
+      "clearSearch": "Очистить поиск",
+      "emptyHint": "Можно также расшифровать существующую запись: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 или M4V, до 30 минут.",
+      "loadMore": "Загрузить ещё",
+      "noResultsHint": "Поиск сопоставляет целые слова и в исходной, и в обработанной расшифровке.",
+      "results": "Совпадений: {{count}}",
+      "resultsMore": "Совпадений: {{count}}+",
+      "resultsNone": "Совпадений нет"
     },
     "debug": {
       "title": "Отлаживать",
@@ -889,13 +1007,21 @@
         "button": "Предпросмотр",
         "noNotes": "Встроенные примечания к выпуску не найдены",
         "error": "Не удалось показать предварительный просмотр примечаний к выпуску"
+      },
+      "description": "Инструментирование и неподдерживаемые настройки. Видимы, потому что включён режим отладки.",
+      "groups": {
+        "capture": "Запись",
+        "delivery": "Доставка текста",
+        "diagnostics": "Диагностика",
+        "logging": "Журналирование"
       }
     },
     "about": {
       "title": "О программе",
       "version": {
         "title": "Версия",
-        "description": "Текущая версия Sona"
+        "description": "Текущая версия Sona",
+        "unavailable": "Недоступно"
       },
       "appDataDirectory": {
         "title": "Каталог данных приложения",
@@ -922,6 +1048,36 @@
       "whatsNewUpdates": {
         "label": "Показывать новинки",
         "description": "Показывать примечания к выпуску после обновлений Sona"
+      },
+      "description": "Какая сборка запущена, откуда она и где хранит ваши файлы.",
+      "files": {
+        "title": "Файлы"
+      },
+      "source": {
+        "description": "Sona распространяется по лицензии MIT, авторские права 2025 CJ Pais, и построена на основе Handy.",
+        "open": "Открыть на GitHub",
+        "repository": "Репозиторий",
+        "title": "Исходный код",
+        "upstream": "Основано на Handy",
+        "upstreamDescription": "Sona — форк cjpais/Handy и продолжает получать исправления из upstream.",
+        "upstreamOpen": "cjpais/Handy"
+      },
+      "updates": {
+        "autoDescription": "Запрашивает у GitHub последний релиз. Sona никогда ничего не устанавливает сама.",
+        "autoLabel": "Проверять обновления автоматически",
+        "check": "Проверить сейчас",
+        "checking": "Проверка…",
+        "disabled": "Автоматические проверки выключены, поэтому Sona не обращалась к GitHub.",
+        "enable": "Включить проверки",
+        "failed": "Не удалось выполнить проверку обновлений.",
+        "manualDescription": "Сравнить эту сборку с последним опубликованным релизом.",
+        "manualTitle": "Ручная проверка",
+        "preferenceError": "Не удалось сохранить настройку обновлений.",
+        "title": "Версия и обновления",
+        "viewRelease": "Открыть релиз",
+        "available": "Доступна Sona {{version}}.",
+        "published": "Опубликовано {{date}}",
+        "upToDate": "Sona {{version}} — последний релиз."
       }
     },
     "modes": {
@@ -951,8 +1107,12 @@
             "action": "Захватить текущий сайт",
             "capturing": "Захват..."
           },
-          "empty": "Ни один сайт не активирует этот режим."
-        }
+          "empty": "Ни один сайт не активирует этот режим.",
+          "exampleDescription": "Правило хранит один хост браузера, например mail.google.com."
+        },
+        "exampleDescription": "Правило хранит один идентификатор приложения, например com.apple.mail.",
+        "removeTarget": "Удалить {{target}}",
+        "unsupported": "Активация по приложениям и сайтам доступна только на macOS."
       },
       "title": "Modes",
       "description": "Choose what each dictation run recognizes, rewrites, and delivers.",
@@ -1017,12 +1177,15 @@
         "provider": {
           "label": "AI provider",
           "description": "The configured provider used for this mode.",
-          "empty": "No provider configured"
+          "empty": "No provider configured",
+          "noneConfigured": "ИИ-провайдер ещё не настроен. Добавьте его в настройках, прежде чем этот режим сможет переписывать.",
+          "unknownSelected": "Этот режим ссылается на провайдера, который не настроен в этой установке."
         },
         "model": {
           "label": "AI model",
           "description": "The provider model identifier for this mode."
-        }
+        },
+        "disabledNote": "Включите ИИ-очистку, чтобы использовать пресет, тон, провайдера и модель ниже."
       },
       "recognition": {
         "literalPunctuation": {
@@ -1062,7 +1225,8 @@
           "writtenPlaceholder": "What to write",
           "add": "Add pair",
           "remove": "Remove {{spoken}}",
-          "incomplete": "Complete or remove each vocabulary pair before saving this mode."
+          "incomplete": "Complete or remove each vocabulary pair before saving this mode.",
+          "empty": "У этого режима нет собственного словаря. Глобальный словарь по-прежнему применяется."
         },
         "engine": {
           "label": "Transcription engine",
@@ -1115,7 +1279,8 @@
               "unknown_provider": "This cloud provider is not available in this build.",
               "backend": "The consent record could not be saved."
             }
-          }
+          },
+          "title": "Облачный транспорт"
         }
       },
       "context": {
@@ -1129,7 +1294,9 @@
             "target": "App",
             "target_and_selection": "Selection",
             "full": "Full"
-          }
+          },
+          "blockedByCeiling": "Настройки Privacy ограничивают этот режим до {{ceiling}}.",
+          "raiseCeiling": "Повысьте предел в разделе Privacy, чтобы использовать более высокие уровни."
         }
       },
       "delivery": {
@@ -1165,7 +1332,8 @@
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
             "cmd_enter": "Command+Enter"
-          }
+          },
+          "requiresAutoSubmit": "Включите автоотправку, чтобы выбрать клавишу."
         },
         "trailingSpace": {
           "label": "Append a trailing space",
@@ -1191,7 +1359,8 @@
             "dotool": "dotool",
             "ydotool": "ydotool",
             "xdotool": "xdotool"
-          }
+          },
+          "requiresDirect": "Выберите способ доставки «Печатать напрямую», чтобы выбрать инструмент."
         },
         "script": {
           "label": "External script",
@@ -1235,7 +1404,16 @@
       "views": {
         "modes": "Modes",
         "vocabulary": "Vocabulary"
-      }
+      },
+      "cleanup": {
+        "title": "Очистка расшифровки"
+      },
+      "dismissError": "Скрыть ошибку",
+      "emptyHint": "Выберите режим слева, чтобы изменить, что он распознаёт, переписывает и доставляет.",
+      "listEmpty": "Режимы не настроены.",
+      "listEmptyHint": "Sona всегда сохраняет один режим. Перезагрузите, чтобы получить текущий список.",
+      "unsavedChanges": "Несохранённые изменения",
+      "untitled": "Режим без названия"
     },
     "privacy": {
       "title": "Privacy",
@@ -1323,7 +1501,24 @@
             "months_3": "3 months"
           }
         },
-        "error": "Data retention could not be saved"
+        "error": "Data retention could not be saved",
+        "historyStorage": {
+          "description": "Зашифрована ли история диктовок на этом диске.",
+          "encrypted": "Зашифровано при хранении",
+          "label": "Хранение истории",
+          "locked": "Заблокировано",
+          "plaintext": "Не зашифровано",
+          "reasons": {
+            "encryption_unavailable": "Эта сборка не может открыть зашифрованную базу данных, поэтому история хранится без шифрования.",
+            "key_rejected": "Сохранённый ключ не открывает зашифрованную базу данных, поэтому историю прочитать нельзя.",
+            "key_unavailable": "Системное хранилище учётных данных не вернуло пригодный ключ, поэтому история хранится без шифрования.",
+            "migration_failed": "Не удалось зашифровать существующую базу данных. Незашифрованная база цела и по-прежнему используется.",
+            "unlocking": "Открытие зашифрованной базы данных. Это исчезнет через несколько мгновений после запуска."
+          },
+          "unknown": "Sona не удалось определить, как хранится история.",
+          "unlocking": "Разблокировка",
+          "since": "Зашифровано с {{date}}."
+        }
       },
       "cloudTranscription": {
         "title": "Cloud transcription",
@@ -1332,7 +1527,8 @@
         "checkFailed": "Cloud transcription setup could not be checked.",
         "disclosure": "For a cloud-enabled mode, Sona sends recorded audio, the selected language, and mode keyterms directly to the provider. Application context and native credentials stay on this device.",
         "providerDetail": "{{provider}} has a saved native API key and current transfer consent.",
-        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent."
+        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent.",
+        "inUse": "Используется"
       },
       "upstreamImport": {
         "title": "Import from legacy app",
@@ -1386,6 +1582,16 @@
           "internal": "The import did not finish.",
           "status": "The original Sona data could not be inspected."
         }
+      },
+      "cloudSync": {
+        "checkFailed": "Sona не удалось прочитать конфигурацию облачной синхронизации.",
+        "configured": "Настроено",
+        "description": "Sona может зеркалировать встречи на ваш собственный сервер. Ничего не выгружается, пока настройка на этом устройстве не завершена.",
+        "endpoint": "Адрес сервера",
+        "endpointDescription": "Сервер, на который указывает это устройство.",
+        "notConfigured": "Не настроено",
+        "service": "Сервис",
+        "title": "Облачная синхронизация"
       }
     },
     "agents": {
@@ -1445,7 +1651,8 @@
         "session": "Reply destination",
         "noSession": "No observed reply-capable session",
         "message": "Reply text",
-        "createPreview": "Create preview"
+        "createPreview": "Create preview",
+        "notReady": "Для ответов нужен включённый мост и хотя бы один включённый агент."
       },
       "pending": {
         "empty": "No pending replies.",
@@ -1497,7 +1704,15 @@
       "errors": {
         "load": "Agent bridge data could not be loaded: {{error}}",
         "operation": "The agent bridge action could not be completed: {{error}}"
-      }
+      },
+      "panel": {
+        "description": "Плавающее окно, куда агенты отправляют сообщения и откуда читают ответы.",
+        "error": "Не удалось сохранить настройку панели агентов.",
+        "label": "Включить панель агентов",
+        "rowDescription": "Выключение закрывает окно панели, и Sona отклоняет все запросы открыть его снова.",
+        "title": "Панель агентов"
+      },
+      "workspaceNavigation": "Представления моста агентов"
     },
     "hub": {
       "navigation": "Settings sections",
@@ -1706,7 +1921,8 @@
       "localOnly": "Local only",
       "check": "Check recording setup",
       "checking": "Checking setup…",
-      "defaultTitle": "Local notes"
+      "defaultTitle": "Local notes",
+      "remoteUnavailable": "Удалённая обработка недоступна в этой сборке, поэтому каждая встреча расшифровывается и суммируется на этом Mac."
     },
     "preflight": {
       "title": "Check recording setup",
@@ -1725,7 +1941,8 @@
       "remoteNotSelected": "No remote destination is selected.",
       "remoteSelected": "Selected destination: {{destination}}",
       "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
-      "starting": "Starting visible capture…"
+      "starting": "Starting visible capture…",
+      "refreshing": "Проверка…"
     },
     "consent": {
       "title": "Recording acknowledgement",
@@ -1778,7 +1995,8 @@
       "title": "Retention",
       "description": "Sona deletes eligible local meeting records through the same verified deletion path.",
       "forever": "Keep until I delete it",
-      "days": "Delete after {{days}} days"
+      "days": "Delete after {{days}} days",
+      "loading": "Чтение текущей политики…"
     },
     "receipts": {
       "title": "Correction receipt",
@@ -1926,7 +2144,29 @@
       "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
       "searchPlaceholder": "Search this meeting",
       "search": "Search",
-      "noSearchResults": "No exact local matches."
+      "noSearchResults": "No exact local matches.",
+      "askUnavailable": "Для вопросов нужна готовая локальная расшифровка.",
+      "asking": "Запрос к этой встрече…",
+      "captured": "Записано {{time}}",
+      "droppedFrames": "Потерянные кадры: {{total}}",
+      "hitKind": {
+        "manualNote": "Ручная заметка",
+        "title": "Название встречи",
+        "transcript": "Расшифровка"
+      },
+      "noGeneratedNotesDescription": "Сгенерированные заметки строятся из расшифровки, поэтому их можно пересоздать в любой момент.",
+      "processingDescription": "Сгенерированные заметки и локальные ответы появятся после завершения расшифровки.",
+      "processingTitle": "Sona ещё обрабатывает эту встречу",
+      "remoteProcessingUnavailable": "Удалённый сервер так и не стал доступен, поэтому ничего не сгенерировано. Повторная генерация выполняется на этом Mac.",
+      "searching": "Поиск…",
+      "sonaAnswered": "Sona ответила",
+      "tabs": {
+        "insights": "Выводы",
+        "questions": "Вопросы и ответы",
+        "transcript": "Расшифровка"
+      },
+      "tabsLabel": "Разделы обзора встречи",
+      "youAsked": "Вы спросили"
     },
     "artifactState": {
       "current": "Current",
@@ -1960,6 +2200,21 @@
         "transcript": "Transcript segments",
         "actions": "Action items"
       }
+    },
+    "list": {
+      "clearSearch": "Очистить поиск",
+      "loadMore": "Загрузить более ранние встречи",
+      "loadingMore": "Загрузка более ранних встреч…",
+      "noMatches": "Нет встреч по этому запросу",
+      "noMatchesDescription": "Ни одно название встречи не содержит «{{query}}». Очистите поиск, чтобы увидеть весь список.",
+      "noMatchesNotLoaded": "Ни одно название загруженной встречи не содержит «{{query}}». Более ранние встречи всё ещё на диске: загрузите их и повторите поиск.",
+      "retentionHint": "Хранение: {{policy}}. Изменить можно в настройках, раздел Privacy.",
+      "searchLabel": "Поиск встреч",
+      "searchPlaceholder": "Поиск по названию"
+    },
+    "status": {
+      "gapCount": "Пропуски: {{total}}",
+      "required": "Обязательно"
     }
   },
   "agentPanel": {
@@ -2017,23 +2272,66 @@
       "microphone": "Microphone",
       "file": "File import",
       "legacy": "Legacy",
-      "empty": "No recordings in this range."
+      "empty": "No recordings in this range.",
+      "meetings": "Встречи",
+      "meetingsUnavailable": "Хранилище встреч недоступно, поэтому встречи здесь не учитываются."
     },
     "recent": {
       "title": "Recent activity",
       "history": "Transcription",
-      "meeting": "Meeting"
+      "meeting": "Meeting",
+      "emptyDescription": "Сохранённые записи появятся здесь, как только вы продиктуете или запишете встречу.",
+      "emptyTitle": "Ничего недавнего",
+      "error": "Не удалось загрузить недавние записи.",
+      "viewAll": "Показать все"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
       "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
-      "importAudio": "Import audio"
+      "importAudio": "Import audio",
+      "mode": "Режим: {{name}}",
+      "setShortcut": "Задайте сочетание клавиш для диктовки в настройках, чтобы записывать из любого приложения."
     },
     "actions": {
       "dictate": "Dictate",
       "unavailable": "Shortcut unavailable"
+    },
+    "chart": {
+      "day": "{{date}} \\u00b7 диктовок {{dictations}}",
+      "dayWithMeetings": "{{date}} \\u00b7 диктовок {{dictations}} \\u00b7 встреч {{meetings}}",
+      "legend": "Диктовок в день",
+      "peak": "Самый активный день {{peak}}",
+      "summary": "Диктовок в день с {{from}} по {{to}}. Всего {{total}}, самый активный день {{peak}}."
+    },
+    "empty": {
+      "action": "Открыть библиотеку",
+      "description": "Удерживайте сочетание клавиш для диктовки в любом приложении, и Sona напечатает сказанное. Статистика и недавние записи появятся здесь после первой из них.",
+      "title": "Записей пока нет"
+    },
+    "stats": {
+      "activeDays": "Активных дней: {{active}} из {{total}}",
+      "allTime": "{{total}} за всё время",
+      "dictations": "Диктовки",
+      "dictationsAllTime": "Диктовки, за всё время",
+      "error": "Sona сейчас не может прочитать историю использования.",
+      "range": "С {{from}} по {{to}}",
+      "rangeUnavailable": "Не удалось прочитать последние 30 дней, поэтому показаны итоги за всё время.",
+      "speaking": "Время речи",
+      "speakingAllTime": "Время речи, за всё время",
+      "streak": "Текущая серия",
+      "tiles": "Сводка использования",
+      "title": "Активность",
+      "words": "Слова",
+      "wordsAllTime": "Слова, за всё время"
+    },
+    "update": {
+      "available": "Доступна Sona {{latest}}. Установлена версия {{current}}.",
+      "dismiss": "Скрыть",
+      "failed": "Не удалось проверить обновления.",
+      "failedWithReason": "Не удалось проверить обновления: {{reason}}",
+      "view": "Открыть релиз"
     }
   },
   "cloudSync": {

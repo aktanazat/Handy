@@ -221,7 +221,12 @@
       "pushToTalk": {
         "label": "Утримувати для запису (Push To Talk)",
         "description": "Утримуйте для запису, відпустіть для зупинки"
-      }
+      },
+      "appearance": {
+        "description": "Мова інтерфейсу та колірна схема. Обидві застосовуються негайно.",
+        "title": "Вигляд"
+      },
+      "description": "Клавіші, які ви натискаєте, мікрофон, який слухає Sona, і вигляд програми."
     },
     "models": {
       "title": "Моделі транскрипції",
@@ -232,7 +237,12 @@
       "filters": {
         "allLanguages": "Усі мови",
         "streaming": "Фільтрувати моделі з підтримкою транскрипції в реальному часі",
-        "translation": "Фільтрувати моделі з підтримкою перекладу англійською"
+        "translation": "Фільтрувати моделі з підтримкою перекладу англійською",
+        "allFamilies": "Усі родини",
+        "clear": "Скинути фільтри",
+        "downloadedOnly": "На диску",
+        "downloadedOnlyHint": "Показувати лише вже завантажені моделі",
+        "family": "Родина моделей"
       },
       "noModelsMatch": "Жодна модель не відповідає цьому фільтру.",
       "yourModels": "Завантажені моделі",
@@ -286,6 +296,34 @@
           "protocol": "The provider returned an unexpected verification response.",
           "unknown_provider": "This cloud provider is not available in this build."
         }
+      },
+      "actions": {
+        "activate": "Використати",
+        "activateNamed": "Використати {{modelName}}",
+        "download": "Завантажити",
+        "downloadNamed": "Завантажити {{modelName}}",
+        "retryNamed": "Повторити завантаження {{modelName}}"
+      },
+      "emptyCatalog": "Sona не змогла прочитати каталог моделей. Повторне сканування знайде моделі, які вже є в теці моделей або в кеші Hugging Face.",
+      "errors": {
+        "downloadFailed": "Завантаження не розпочалося. Перевірте з'єднання та спробуйте ще раз."
+      },
+      "families": {
+        "custom": "Додані вами",
+        "other": "Інші моделі"
+      },
+      "familyCount": "Моделей: {{total}}",
+      "noModelsMatchHint": "Ніщо в каталозі не відповідає всім фільтрам одночасно.",
+      "searchByAnything": "Пошук за назвою, мовою чи можливістю",
+      "state": {
+        "activeInMemory": "Активна, в пам'яті",
+        "downloaded": "Завантажено",
+        "notDownloaded": "Не завантажено"
+      },
+      "summary": {
+        "active": "Активна: {{name}}",
+        "noActive": "Модель не вибрано",
+        "onDisk": "На диску: {{total}}"
       }
     },
     "sound": {
@@ -461,7 +499,10 @@
         "imported": "Словник імпортовано",
         "errors": {
           "incomplete": "Введіть вимовлену фразу й текст для запису.",
-          "duplicate": "Така пара у словнику вже існує."
+          "duplicate": "Така пара у словнику вже існує.",
+          "incompleteRow": "Заповніть або видаліть кожен рядок перед збереженням.",
+          "duplicateSpoken": "Кілька рядків збігаються з {{spoken}}. Sona зберігає одне правило на вимовлену фразу.",
+          "unusableSpoken": "{{spoken}} потребує принаймні однієї літери чи цифри, щоб розпізнаватися."
         },
         "importPreview": {
           "title": "Перевірка імпорту словника",
@@ -472,7 +513,12 @@
           "conflicts": "Конфліктні рядки",
           "blocked": "Виправте всі некоректні, повторювані та конфліктні рядки перед застосуванням.",
           "apply": "Застосувати імпорт",
-          "unsavedWarning": "У вас є незбережені зміни словника. Застосування цього імпорту замінить їх."
+          "unsavedWarning": "У вас є незбережені зміни словника. Застосування цього імпорту замінить їх.",
+          "back": "Назад",
+          "continue": "Продовжити",
+          "replaceSummary": "Застосування замінить {{savedCount}} збережених пар на {{importedCount}} пар із цього файлу.",
+          "stepConfirm": "Крок 2 з 2: підтвердьте заміну",
+          "stepReview": "Крок 1 з 2: що містить файл"
         },
         "actions": "Vocabulary actions",
         "audioImport": {
@@ -482,7 +528,13 @@
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
           }
-        }
+        },
+        "empty": {
+          "description": "Додайте пару, наприклад open ai і OpenAI, і Sona писатиме точну форму щоразу, коли почує цю фразу.",
+          "title": "Ще немає словникових правил"
+        },
+        "sources": "Виправлення, збережені зі стенограми в бібліотеці, потрапляють до цього списку. Правила для окремого режиму зберігаються у власному словнику режиму.",
+        "unsaved": "Незбережені зміни"
       },
       "voiceActivityDetection": {
         "title": "Виявлення голосової активності",
@@ -510,7 +562,12 @@
         "toggleError": "Не вдалося змінити заміни емодзі.",
         "errors": {
           "incomplete": "Введіть вимовлену фразу й текст емодзі.",
-          "duplicate": "Така заміна емодзі вже існує."
+          "duplicate": "Така заміна емодзі вже існує.",
+          "incompleteRow": "Заповніть або видаліть кожен рядок перед збереженням."
+        },
+        "empty": {
+          "description": "Зіставте точний вимовлений вираз, наприклад смайлик, з емодзі, яке слід написати.",
+          "title": "Ще немає замін емодзі"
         }
       },
       "description": "Startup, processing, and experimental behavior.",
@@ -526,6 +583,39 @@
         "experimental": {
           "description": "Unstable options that can change without notice."
         }
+      },
+      "snippets": {
+        "add": "Додати сніпет",
+        "confirmDelete": {
+          "description": "Тригер більше не розгортатиметься в майбутніх стенограмах. Уже написаний текст не змінюється.",
+          "body": "{{trigger}} наразі розгортається в {{expansion}}.",
+          "title": "Видалити {{trigger}}?"
+        },
+        "description": "Короткі тригери, які Sona розгортає в довший текст. Зміни тут стосуються лише майбутніх стенограм, а не вже написаного тексту.",
+        "empty": {
+          "action": "Створіть перший сніпет",
+          "description": "Додайте тригер, наприклад «вжї», і Sona писатиме «вже їду» щоразу, коли ви це скажете.",
+          "title": "Ще немає сніпетів"
+        },
+        "enabledDescription": "Замінювати тригери сніпетів у кожній стенограмі одразу після словникових виправлень.",
+        "enabledLabel": "Увімкнути розгортання тексту",
+        "errors": {
+          "duplicate": "Інший сніпет уже використовує цей тригер.",
+          "incomplete": "Введіть і тригер, і розгортання."
+        },
+        "expansion": "Розгортання",
+        "expansionPlaceholder": "вже їду",
+        "loadError": "Не вдалося завантажити сніпети.",
+        "loading": "Завантаження сніпетів",
+        "matching": "Тригери збігаються з цілими словами та не враховують регістр. Якщо два тригери підходять до одного місця, перемагає довший, а розгортання виконується одразу після словникових виправлень.",
+        "offState": "Розгортання тексту вимкнено. Сніпети залишаються збереженими та знову діятимуть, щойно ви його увімкнете.",
+        "title": "Розгортання тексту",
+        "trigger": "Тригер",
+        "triggerPlaceholder": "вжї",
+        "unsaved": "Натисніть Enter або Зберегти, щоб зберегти цю зміну.",
+        "enableRow": "Увімкнути {{trigger}}",
+        "remove": "Видалити {{trigger}}",
+        "saveRow": "Зберегти {{trigger}}"
       }
     },
     "postProcessing": {
@@ -579,7 +669,27 @@
         "createPrompt": "Створити промпт",
         "cancel": "Скасувати",
         "selectToEdit": "Оберіть промпт вище для перегляду та редагування його деталей.",
-        "createFirst": "Натисніть «Створити новий промпт» вище, щоб створити ваш перший промпт постобробки."
+        "createFirst": "Натисніть «Створити новий промпт» вище, щоб створити ваш перший промпт постобробки.",
+        "empty": {
+          "description": "Промпт вказує моделі, що робити зі стенограмою, наприклад: перепиши наступне як коротке повідомлення, зберігаючи кожен факт: ${output}"
+        },
+        "errors": {
+          "incomplete": "Дайте промпту назву та інструкції перед збереженням."
+        },
+        "inUse": "Використовується",
+        "lastPrompt": "Sona зберігає щонайменше один промпт, тому цей не можна видалити. Спершу створіть інший.",
+        "libraryTitle": "Промпти постопрацювання",
+        "loading": "Завантаження промптів",
+        "noSelection": "Промпт не вибрано: кожен режим використовує власний визначений промпт.",
+        "outputTip": "Напишіть ${output} там, куди слід вставити стенограму.",
+        "use": "Використати",
+        "confirmDelete": {
+          "body": "{{name}} видаляється з бібліотеки. Режими, які вже скопіювали його текст, зберігають власний промпт.",
+          "selected": "{{name}} використовується. Видалення перемістить вибір на перший промпт у списку."
+        },
+        "deleteNamed": "Видалити {{name}}",
+        "editNamed": "Редагувати {{name}}",
+        "useNamed": "Використати {{name}}"
       },
       "remoteConsent": {
         "title": "Remote text transfer",
@@ -754,7 +864,8 @@
           "start": "Не вдалося почати імпорт файлу.",
           "cancel": "Не вдалося скасувати імпорт файлу.",
           "load": "Не вдалося завантажити статус імпорту файлу."
-        }
+        },
+        "running": "Транскрибування файлів: {{count}}"
       },
       "trends": {
         "title": "History trends",
@@ -771,7 +882,14 @@
           "words": "Words"
         },
         "streak": "{{count}} day streak"
-      }
+      },
+      "clearSearch": "Очистити пошук",
+      "emptyHint": "Можна також транскрибувати наявний запис: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 або M4V, до 30 хвилин.",
+      "loadMore": "Завантажити ще",
+      "noResultsHint": "Пошук збігається з цілими словами і в сирій, і в опрацьованій стенограмі.",
+      "results": "Збігів: {{count}}",
+      "resultsMore": "Збігів: {{count}}+",
+      "resultsNone": "Немає збігів"
     },
     "debug": {
       "title": "Дебаг",
@@ -889,13 +1007,21 @@
         "button": "Перегляд",
         "noNotes": "Вбудовані примітки до випуску не знайдено",
         "error": "Не вдалося переглянути примітки до випуску"
+      },
+      "description": "Інструментування та непідтримувані налаштування. Видимо, бо ввімкнено режим налагодження.",
+      "groups": {
+        "capture": "Запис",
+        "delivery": "Доставлення тексту",
+        "diagnostics": "Діагностика",
+        "logging": "Журналювання"
       }
     },
     "about": {
       "title": "Інфо",
       "version": {
         "title": "Версія",
-        "description": "Поточна версія Sona"
+        "description": "Поточна версія Sona",
+        "unavailable": "Недоступно"
       },
       "appDataDirectory": {
         "title": "Папка даних програми",
@@ -922,6 +1048,36 @@
       "whatsNewUpdates": {
         "label": "Показувати новини",
         "description": "Показувати примітки до випуску після оновлень Sona"
+      },
+      "description": "Яка збірка запущена, звідки вона походить і де зберігає ваші файли.",
+      "files": {
+        "title": "Файли"
+      },
+      "source": {
+        "description": "Sona має ліцензію MIT, авторське право 2025 CJ Pais, і побудована на основі Handy.",
+        "open": "Відкрити на GitHub",
+        "repository": "Репозиторій",
+        "title": "Джерело",
+        "upstream": "Побудовано на Handy",
+        "upstreamDescription": "Sona — це форк cjpais/Handy, який досі отримує виправлення з апстріму.",
+        "upstreamOpen": "cjpais/Handy"
+      },
+      "updates": {
+        "autoDescription": "Запитує GitHub про останній реліз. Sona ніколи нічого не встановлює самостійно.",
+        "autoLabel": "Перевіряти оновлення автоматично",
+        "check": "Перевірити зараз",
+        "checking": "Перевірка…",
+        "disabled": "Автоматичні перевірки вимкнено, тому Sona не зверталася до GitHub.",
+        "enable": "Увімкнути перевірки",
+        "failed": "Не вдалося виконати перевірку оновлень.",
+        "manualDescription": "Порівняти цю збірку з останнім опублікованим релізом.",
+        "manualTitle": "Ручна перевірка",
+        "preferenceError": "Не вдалося зберегти налаштування оновлень.",
+        "title": "Версія та оновлення",
+        "viewRelease": "Переглянути реліз",
+        "available": "Доступна Sona {{version}}.",
+        "published": "Опубліковано {{date}}",
+        "upToDate": "Sona {{version}} — останній реліз."
       }
     },
     "modes": {
@@ -951,8 +1107,12 @@
             "action": "Захопити поточний вебсайт",
             "capturing": "Захоплення..."
           },
-          "empty": "Жоден вебсайт не активує цей режим."
-        }
+          "empty": "Жоден вебсайт не активує цей режим.",
+          "exampleDescription": "Правило зберігає один хост браузера, наприклад mail.google.com."
+        },
+        "exampleDescription": "Правило зберігає один ідентифікатор програми, наприклад com.apple.mail.",
+        "removeTarget": "Видалити {{target}}",
+        "unsupported": "Активація за програмами та сайтами доступна лише на macOS."
       },
       "title": "Modes",
       "description": "Choose what each dictation run recognizes, rewrites, and delivers.",
@@ -1017,12 +1177,15 @@
         "provider": {
           "label": "AI provider",
           "description": "The configured provider used for this mode.",
-          "empty": "No provider configured"
+          "empty": "No provider configured",
+          "noneConfigured": "Жодного постачальника AI ще не налаштовано. Додайте його в Параметрах, щоб цей режим міг переписувати.",
+          "unknownSelected": "Цей режим посилається на постачальника, який не налаштований у цій інсталяції."
         },
         "model": {
           "label": "AI model",
           "description": "The provider model identifier for this mode."
-        }
+        },
+        "disabledNote": "Увімкніть AI-очищення, щоб використовувати шаблон, тон, постачальника та модель нижче."
       },
       "recognition": {
         "literalPunctuation": {
@@ -1062,7 +1225,8 @@
           "writtenPlaceholder": "What to write",
           "add": "Add pair",
           "remove": "Remove {{spoken}}",
-          "incomplete": "Complete or remove each vocabulary pair before saving this mode."
+          "incomplete": "Complete or remove each vocabulary pair before saving this mode.",
+          "empty": "Цей режим не має власного словника. Глобальний словник усе одно застосовується."
         },
         "engine": {
           "label": "Transcription engine",
@@ -1115,7 +1279,8 @@
               "unknown_provider": "This cloud provider is not available in this build.",
               "backend": "The consent record could not be saved."
             }
-          }
+          },
+          "title": "Хмарний транспорт"
         }
       },
       "context": {
@@ -1129,7 +1294,9 @@
             "target": "App",
             "target_and_selection": "Selection",
             "full": "Full"
-          }
+          },
+          "blockedByCeiling": "Privacy обмежує цей режим до {{ceiling}}.",
+          "raiseCeiling": "Підвищте межу в Privacy, щоб використовувати вищі рівні."
         }
       },
       "delivery": {
@@ -1165,7 +1332,8 @@
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
             "cmd_enter": "Command+Enter"
-          }
+          },
+          "requiresAutoSubmit": "Увімкніть автонадсилання, щоб вибрати клавішу."
         },
         "trailingSpace": {
           "label": "Append a trailing space",
@@ -1191,7 +1359,8 @@
             "dotool": "dotool",
             "ydotool": "ydotool",
             "xdotool": "xdotool"
-          }
+          },
+          "requiresDirect": "Виберіть спосіб доставлення «Друкувати безпосередньо», щоб обрати інструмент."
         },
         "script": {
           "label": "External script",
@@ -1235,7 +1404,16 @@
       "views": {
         "modes": "Modes",
         "vocabulary": "Vocabulary"
-      }
+      },
+      "cleanup": {
+        "title": "Очищення стенограми"
+      },
+      "dismissError": "Закрити помилку",
+      "emptyHint": "Виберіть режим ліворуч, щоб змінити, що він розпізнає, переписує та доставляє.",
+      "listEmpty": "Жодного режиму не налаштовано.",
+      "listEmptyHint": "Sona завжди зберігає один режим. Перезавантажте, щоб отримати поточний список.",
+      "unsavedChanges": "Незбережені зміни",
+      "untitled": "Режим без назви"
     },
     "privacy": {
       "title": "Privacy",
@@ -1323,7 +1501,24 @@
             "months_3": "3 months"
           }
         },
-        "error": "Data retention could not be saved"
+        "error": "Data retention could not be saved",
+        "historyStorage": {
+          "description": "Чи зашифрована історія диктувань на цьому диску.",
+          "encrypted": "Зашифровано в стані спокою",
+          "label": "Сховище історії",
+          "locked": "Заблоковано",
+          "plaintext": "Не зашифровано",
+          "reasons": {
+            "encryption_unavailable": "Ця збірка не може відкрити зашифровану базу даних, тому історія зберігається незашифрованою.",
+            "key_rejected": "Збережений ключ не відкриває зашифровану базу даних, тому історію неможливо прочитати.",
+            "key_unavailable": "Системне сховище облікових даних не повернуло придатного ключа, тому історія зберігається незашифрованою.",
+            "migration_failed": "Не вдалося зашифрувати наявну базу даних. Незашифрована база даних ціла й досі використовується.",
+            "unlocking": "Відкриття зашифрованої бази даних. Це зникає за мить після запуску."
+          },
+          "unknown": "Sona не змогла прочитати, як зберігається історія.",
+          "unlocking": "Розблокування",
+          "since": "Зашифровано з {{date}}."
+        }
       },
       "cloudTranscription": {
         "title": "Cloud transcription",
@@ -1332,7 +1527,8 @@
         "checkFailed": "Cloud transcription setup could not be checked.",
         "disclosure": "For a cloud-enabled mode, Sona sends recorded audio, the selected language, and mode keyterms directly to the provider. Application context and native credentials stay on this device.",
         "providerDetail": "{{provider}} has a saved native API key and current transfer consent.",
-        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent."
+        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent.",
+        "inUse": "Використовується"
       },
       "upstreamImport": {
         "title": "Import from legacy app",
@@ -1386,6 +1582,16 @@
           "internal": "The import did not finish.",
           "status": "The original Sona data could not be inspected."
         }
+      },
+      "cloudSync": {
+        "checkFailed": "Sona не змогла прочитати конфігурацію хмарної синхронізації.",
+        "configured": "Налаштовано",
+        "description": "Sona може дзеркалити зустрічі на ваш власний сервер. Нічого не вивантажується, поки налаштування на цьому пристрої не завершено.",
+        "endpoint": "Кінцева точка",
+        "endpointDescription": "Сервер, на який спрямований цей пристрій.",
+        "notConfigured": "Не налаштовано",
+        "service": "Служба",
+        "title": "Хмарна синхронізація"
       }
     },
     "agents": {
@@ -1445,7 +1651,8 @@
         "session": "Reply destination",
         "noSession": "No observed reply-capable session",
         "message": "Reply text",
-        "createPreview": "Create preview"
+        "createPreview": "Create preview",
+        "notReady": "Для відповідей потрібен увімкнений міст і принаймні один увімкнений агент."
       },
       "pending": {
         "empty": "No pending replies.",
@@ -1497,7 +1704,15 @@
       "errors": {
         "load": "Agent bridge data could not be loaded: {{error}}",
         "operation": "The agent bridge action could not be completed: {{error}}"
-      }
+      },
+      "panel": {
+        "description": "Плавуче вікно, куди агенти надсилають повідомлення та звідки читають відповіді.",
+        "error": "Не вдалося зберегти налаштування панелі агентів.",
+        "label": "Увімкнути панель агентів",
+        "rowDescription": "Вимкнення закриває вікно панелі, і Sona відхилятиме будь-який запит на його повторне відкриття.",
+        "title": "Панель агентів"
+      },
+      "workspaceNavigation": "Подання моста агентів"
     },
     "hub": {
       "navigation": "Settings sections",
@@ -1706,7 +1921,8 @@
       "localOnly": "Local only",
       "check": "Check recording setup",
       "checking": "Checking setup…",
-      "defaultTitle": "Local notes"
+      "defaultTitle": "Local notes",
+      "remoteUnavailable": "Віддалене опрацювання недоступне в цій збірці, тому кожна зустріч транскрибується та підсумовується на цьому Mac."
     },
     "preflight": {
       "title": "Check recording setup",
@@ -1725,7 +1941,8 @@
       "remoteNotSelected": "No remote destination is selected.",
       "remoteSelected": "Selected destination: {{destination}}",
       "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
-      "starting": "Starting visible capture…"
+      "starting": "Starting visible capture…",
+      "refreshing": "Перевірка…"
     },
     "consent": {
       "title": "Recording acknowledgement",
@@ -1778,7 +1995,8 @@
       "title": "Retention",
       "description": "Sona deletes eligible local meeting records through the same verified deletion path.",
       "forever": "Keep until I delete it",
-      "days": "Delete after {{days}} days"
+      "days": "Delete after {{days}} days",
+      "loading": "Читання поточної політики…"
     },
     "receipts": {
       "title": "Correction receipt",
@@ -1926,7 +2144,29 @@
       "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
       "searchPlaceholder": "Search this meeting",
       "search": "Search",
-      "noSearchResults": "No exact local matches."
+      "noSearchResults": "No exact local matches.",
+      "askUnavailable": "Для запитань потрібна готова локальна стенограма.",
+      "asking": "Запит до цієї зустрічі…",
+      "captured": "Записано {{time}}",
+      "droppedFrames": "Втрачені кадри: {{total}}",
+      "hitKind": {
+        "manualNote": "Ручна нотатка",
+        "title": "Назва зустрічі",
+        "transcript": "Стенограма"
+      },
+      "noGeneratedNotesDescription": "Згенеровані нотатки походять зі стенограми, тож їх можна перебудувати будь-коли.",
+      "processingDescription": "Згенеровані нотатки та локальні відповіді з'являться після завершення стенограми.",
+      "processingTitle": "Sona ще опрацьовує цю зустріч",
+      "remoteProcessingUnavailable": "Віддалене призначення так і не стало доступним, тому нічого не було згенеровано. Повторна генерація виконується на цьому Mac.",
+      "searching": "Пошук…",
+      "sonaAnswered": "Sona відповіла",
+      "tabs": {
+        "insights": "Висновки",
+        "questions": "Питання й відповіді",
+        "transcript": "Стенограма"
+      },
+      "tabsLabel": "Розділи огляду зустрічі",
+      "youAsked": "Ви запитали"
     },
     "artifactState": {
       "current": "Current",
@@ -1960,6 +2200,21 @@
         "transcript": "Transcript segments",
         "actions": "Action items"
       }
+    },
+    "list": {
+      "clearSearch": "Очистити пошук",
+      "loadMore": "Завантажити давніші зустрічі",
+      "loadingMore": "Завантаження давніших зустрічей…",
+      "noMatches": "Жодна зустріч не відповідає пошуку",
+      "noMatchesDescription": "Жодна назва зустрічі не містить \"{{query}}\". Очистіть пошук, щоб побачити весь список.",
+      "noMatchesNotLoaded": "Жодна назва завантаженої зустрічі не містить \"{{query}}\". Давніші зустрічі ще на диску: завантажте їх і повторіть пошук.",
+      "retentionHint": "Зберігання: {{policy}}. Змініть у Параметрах, розділ Privacy.",
+      "searchLabel": "Пошук зустрічей",
+      "searchPlaceholder": "Пошук за назвою"
+    },
+    "status": {
+      "gapCount": "Прогалини: {{total}}",
+      "required": "Обов'язково"
     }
   },
   "agentPanel": {
@@ -2017,23 +2272,66 @@
       "microphone": "Microphone",
       "file": "File import",
       "legacy": "Legacy",
-      "empty": "No recordings in this range."
+      "empty": "No recordings in this range.",
+      "meetings": "Зустрічі",
+      "meetingsUnavailable": "Сховище зустрічей недоступне, тому зустрічі тут не враховуються."
     },
     "recent": {
       "title": "Recent activity",
       "history": "Transcription",
-      "meeting": "Meeting"
+      "meeting": "Meeting",
+      "emptyDescription": "Збережені записи з'являться тут, щойно ви продиктуєте щось або запишете зустріч.",
+      "emptyTitle": "Немає нещодавніх",
+      "error": "Не вдалося завантажити нещодавні записи.",
+      "viewAll": "Переглянути всі"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
       "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
-      "importAudio": "Import audio"
+      "importAudio": "Import audio",
+      "mode": "Режим: {{name}}",
+      "setShortcut": "Задайте комбінацію диктування в Параметрах, щоб записувати з будь-якої програми."
     },
     "actions": {
       "dictate": "Dictate",
       "unavailable": "Shortcut unavailable"
+    },
+    "chart": {
+      "day": "{{date}} \\u00b7 диктувань {{dictations}}",
+      "dayWithMeetings": "{{date}} \\u00b7 диктувань {{dictations}} \\u00b7 зустрічей {{meetings}}",
+      "legend": "Диктувань на день",
+      "peak": "Найактивніший день {{peak}}",
+      "summary": "Диктувань на день з {{from}} до {{to}}. Усього {{total}}, найактивніший день {{peak}}."
+    },
+    "empty": {
+      "action": "Відкрити бібліотеку",
+      "description": "Утримуйте комбінацію диктування в будь-якій програмі, і Sona надрукує сказане. Статистика використання та останні записи з'являться тут після першого запису.",
+      "title": "Ще немає записів"
+    },
+    "stats": {
+      "activeDays": "{{active}} з {{total}} днів активні",
+      "allTime": "{{total}} за весь час",
+      "dictations": "Диктування",
+      "dictationsAllTime": "Диктування, за весь час",
+      "error": "Sona не змогла прочитати історію використання.",
+      "range": "{{from}} – {{to}}",
+      "rangeUnavailable": "Не вдалося прочитати останні 30 днів, тому показано підсумки за весь час.",
+      "speaking": "Час мовлення",
+      "speakingAllTime": "Час мовлення, за весь час",
+      "streak": "Поточна серія",
+      "tiles": "Підсумок використання",
+      "title": "Активність",
+      "words": "Слова",
+      "wordsAllTime": "Слова, за весь час"
+    },
+    "update": {
+      "available": "Доступна Sona {{latest}}. Установлена версія — {{current}}.",
+      "dismiss": "Відхилити",
+      "failed": "Не вдалося перевірити оновлення.",
+      "failedWithReason": "Не вдалося перевірити оновлення: {{reason}}",
+      "view": "Переглянути реліз"
     }
   },
   "cloudSync": {

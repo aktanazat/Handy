@@ -218,7 +218,12 @@
       "pushToTalk": {
         "label": "اضغط للتحدث",
         "description": "استمر في الضغط للتسجيل، واترك للتوقف"
-      }
+      },
+      "appearance": {
+        "description": "لغة الواجهة ونظام الألوان. كلاهما يُطبّق فورًا.",
+        "title": "المظهر"
+      },
+      "description": "المفاتيح التي تضغطها، والميكروفون الذي يستمع إليه Sona، ومظهر التطبيق."
     },
     "sound": {
       "title": "الصوت",
@@ -393,7 +398,10 @@
         "imported": "تم استيراد المفردات",
         "errors": {
           "incomplete": "أدخل عبارة منطوقة ونصًا مكتوبًا.",
-          "duplicate": "زوج المفردات هذا موجود بالفعل."
+          "duplicate": "زوج المفردات هذا موجود بالفعل.",
+          "incompleteRow": "أكمل كل صف أو أزله قبل الحفظ.",
+          "duplicateSpoken": "أكثر من صف يطابق {{spoken}}. يحتفظ Sona بقاعدة واحدة لكل عبارة منطوقة.",
+          "unusableSpoken": "يحتاج {{spoken}} إلى حرف أو رقم واحد على الأقل ليتم التعرف عليه."
         },
         "importPreview": {
           "title": "مراجعة استيراد المفردات",
@@ -404,7 +412,12 @@
           "conflicts": "صفوف متعارضة",
           "blocked": "أصلح كل الصفوف غير الصالحة أو المكررة أو المتعارضة قبل التطبيق.",
           "apply": "تطبيق الاستيراد",
-          "unsavedWarning": "لديك تغييرات غير محفوظة في المفردات. تطبيق هذا الاستيراد يستبدلها."
+          "unsavedWarning": "لديك تغييرات غير محفوظة في المفردات. تطبيق هذا الاستيراد يستبدلها.",
+          "back": "رجوع",
+          "continue": "متابعة",
+          "replaceSummary": "التطبيق يستبدل الأزواج المحفوظة البالغ عددها {{savedCount}} بالأزواج البالغ عددها {{importedCount}} من هذا الملف.",
+          "stepConfirm": "الخطوة 2 من 2: تأكيد الاستبدال",
+          "stepReview": "الخطوة 1 من 2: محتوى الملف"
         },
         "actions": "Vocabulary actions",
         "audioImport": {
@@ -414,7 +427,13 @@
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
           }
-        }
+        },
+        "empty": {
+          "description": "أضف زوجًا مثل open ai وOpenAI، وسيكتب Sona الصيغة الدقيقة في كل مرة يسمع فيها العبارة.",
+          "title": "لا توجد قواعد مفردات بعد"
+        },
+        "sources": "التصحيحات التي تحفظها من نص في المكتبة تظهر في هذه القائمة. قواعد وضع واحد توجد في مفردات ذلك الوضع نفسه.",
+        "unsaved": "تغييرات غير محفوظة"
       },
       "voiceActivityDetection": {
         "title": "كشف النشاط الصوتي",
@@ -442,7 +461,12 @@
         "toggleError": "تعذّر تغيير استبدالات الرموز التعبيرية.",
         "errors": {
           "incomplete": "أدخل عبارة منطوقة ونص رمز تعبيري.",
-          "duplicate": "استبدال الرمز التعبيري هذا موجود بالفعل."
+          "duplicate": "استبدال الرمز التعبيري هذا موجود بالفعل.",
+          "incompleteRow": "أكمل كل صف أو أزله قبل الحفظ."
+        },
+        "empty": {
+          "description": "اربط كلمة منطوقة محددة مثل smiley face بالإيموجي الذي تريد كتابته.",
+          "title": "لا توجد استبدالات إيموجي بعد"
         }
       },
       "description": "Startup, processing, and experimental behavior.",
@@ -458,6 +482,39 @@
         "experimental": {
           "description": "Unstable options that can change without notice."
         }
+      },
+      "snippets": {
+        "add": "إضافة مقتطف",
+        "confirmDelete": {
+          "description": "سيتوقف المحفّز عن التوسّع في النصوص المستقبلية. النص المكتوب بالفعل لن يتغير.",
+          "body": "يتوسّع {{trigger}} حاليًا إلى {{expansion}}.",
+          "title": "حذف {{trigger}}؟"
+        },
+        "description": "محفّزات قصيرة يوسّعها Sona إلى نص أطول. التغييرات هنا تؤثر على النصوص المستقبلية فقط، وليس النص المكتوب بالفعل أبدًا.",
+        "empty": {
+          "action": "اكتب أول مقتطف لك",
+          "description": "أضف محفّزًا مثل omw وسيكتب Sona في طريقي في كل مرة تقوله.",
+          "title": "لا توجد مقتطفات بعد"
+        },
+        "enabledDescription": "استبدال محفّزات المقتطفات في كل نص، مباشرة بعد تصحيحات المفردات.",
+        "enabledLabel": "تمكين توسيع النص",
+        "errors": {
+          "duplicate": "مقتطف آخر يستخدم هذا المحفّز بالفعل.",
+          "incomplete": "أدخل محفّزًا وتوسيعًا معًا."
+        },
+        "expansion": "التوسيع",
+        "expansionPlaceholder": "في طريقي",
+        "loadError": "تعذر تحميل المقتطفات.",
+        "loading": "جارٍ تحميل المقتطفات",
+        "matching": "تطابق المحفّزات الكلمات الكاملة وتتجاهل حالة الأحرف. عندما يناسب محفّزان الموضع نفسه يفوز الأطول، ويجري التوسيع مباشرة بعد تصحيحات المفردات.",
+        "offState": "توسيع النص متوقف. تبقى المقتطفات محفوظة وتُطبّق مجددًا بمجرد إعادة تشغيله.",
+        "title": "توسيع النص",
+        "trigger": "المحفّز",
+        "triggerPlaceholder": "omw",
+        "unsaved": "اضغط Enter أو حفظ للاحتفاظ بهذا التغيير.",
+        "enableRow": "تمكين {{trigger}}",
+        "remove": "حذف {{trigger}}",
+        "saveRow": "حفظ {{trigger}}"
       }
     },
     "postProcessing": {
@@ -511,7 +568,27 @@
         "createPrompt": "إنشاء مطالبة",
         "cancel": "إلغاء",
         "selectToEdit": ".اختر مطالبة أعلاه لعرض وتعديل تفاصيلها",
-        "createFirst": ".انقر على 'إنشاء مطالبة جديدة' أعلاه لإنشاء أول مطالبة معالجة لاحقة لك"
+        "createFirst": ".انقر على 'إنشاء مطالبة جديدة' أعلاه لإنشاء أول مطالبة معالجة لاحقة لك",
+        "empty": {
+          "description": "يخبر الموجّه النموذج بما يفعله بالنص، مثلًا: أعد كتابة ما يلي كرسالة قصيرة مع الحفاظ على كل الحقائق: ${output}"
+        },
+        "errors": {
+          "incomplete": "أعطِ الموجّه اسمًا وتعليمات قبل الحفظ."
+        },
+        "inUse": "قيد الاستخدام",
+        "lastPrompt": "يحتفظ Sona بموجّه واحد على الأقل، لذا لا يمكن حذف هذا. أنشئ آخر أولًا.",
+        "libraryTitle": "موجّهات المعالجة اللاحقة",
+        "loading": "جارٍ تحميل الموجّهات",
+        "noSelection": "لم يتم اختيار موجّه: يستخدم كل وضع الموجّه الذي يعرّفه.",
+        "outputTip": "اكتب ${output} في المكان الذي يجب إدراج النص فيه.",
+        "use": "استخدام",
+        "confirmDelete": {
+          "body": "تتم إزالة {{name}} من المكتبة. الأوضاع التي نسخت نصه بالفعل تحتفظ بموجّهها الخاص.",
+          "selected": "{{name}} قيد الاستخدام. حذفه ينقل الاختيار إلى أول موجّه في القائمة."
+        },
+        "deleteNamed": "حذف {{name}}",
+        "editNamed": "تحرير {{name}}",
+        "useNamed": "استخدام {{name}}"
       },
       "remoteConsent": {
         "title": "Remote text transfer",
@@ -686,7 +763,8 @@
           "start": "تعذّر بدء استيراد الملف.",
           "cancel": "تعذّر إلغاء استيراد الملف.",
           "load": "تعذّر تحميل حالة استيراد الملف."
-        }
+        },
+        "running": "جارٍ تفريغ {{count}} ملفات"
       },
       "trends": {
         "title": "History trends",
@@ -703,7 +781,14 @@
           "words": "Words"
         },
         "streak": "{{count}} day streak"
-      }
+      },
+      "clearSearch": "مسح البحث",
+      "emptyHint": "يمكنك أيضًا تفريغ تسجيل موجود: WAV أو MP3 أو M4A أو AAC أو FLAC أو OGG أو MOV أو MP4 أو M4V، حتى 30 دقيقة.",
+      "loadMore": "تحميل المزيد",
+      "noResultsHint": "يطابق البحث الكلمات الكاملة في النص الخام والنص المعالج معًا.",
+      "results": "{{count}} نتيجة مطابقة",
+      "resultsMore": "{{count}}+ نتيجة مطابقة",
+      "resultsNone": "لا توجد نتائج مطابقة"
     },
     "debug": {
       "title": "تصحيح الأخطاء",
@@ -821,13 +906,21 @@
         "button": "معاينة",
         "noNotes": "لم يتم العثور على ملاحظات إصدار مضمنة",
         "error": "تعذرت معاينة ملاحظات الإصدار"
+      },
+      "description": "أدوات القياس وخيارات غير مدعومة. مرئية لأن وضع التصحيح مفعّل.",
+      "groups": {
+        "capture": "الالتقاط",
+        "delivery": "تسليم النص",
+        "diagnostics": "التشخيصات",
+        "logging": "التسجيل"
       }
     },
     "about": {
       "title": "حول",
       "version": {
         "title": "الإصدار",
-        "description": "الإصدار الحالي من Sona"
+        "description": "الإصدار الحالي من Sona",
+        "unavailable": "غير متاح"
       },
       "appDataDirectory": {
         "title": "مجلد بيانات التطبيق",
@@ -854,6 +947,36 @@
       "whatsNewUpdates": {
         "label": "إظهار الجديد",
         "description": "إظهار ملاحظات الإصدار بعد تحديثات Sona"
+      },
+      "description": "أي إصدار تستخدمه، ومن أين أتى، وأين يحتفظ بملفاتك.",
+      "files": {
+        "title": "الملفات"
+      },
+      "source": {
+        "description": "Sona مرخّص بترخيص MIT، حقوق النشر 2025 لـ CJ Pais، ومبني على Handy.",
+        "open": "فتح على GitHub",
+        "repository": "المستودع",
+        "title": "المصدر",
+        "upstream": "مبني على Handy",
+        "upstreamDescription": "Sona هو تفريعة من cjpais/Handy ولا يزال يتابع إصلاحات المصدر الأصلي.",
+        "upstreamOpen": "cjpais/Handy"
+      },
+      "updates": {
+        "autoDescription": "يسأل GitHub عن أحدث إصدار. لا يثبّت Sona أي شيء من تلقاء نفسه أبدًا.",
+        "autoLabel": "التحقق من التحديثات تلقائيًا",
+        "check": "التحقق الآن",
+        "checking": "جارٍ التحقق…",
+        "disabled": "عمليات التحقق التلقائية متوقفة، لذا لم يتصل Sona بـ GitHub.",
+        "enable": "تشغيل عمليات التحقق",
+        "failed": "تعذر إجراء التحقق من التحديث.",
+        "manualDescription": "قارن هذا الإصدار بأحدث إصدار منشور.",
+        "manualTitle": "تحقق يدوي",
+        "preferenceError": "تعذر حفظ تفضيل التحديث.",
+        "title": "الإصدار والتحديثات",
+        "viewRelease": "عرض الإصدار",
+        "available": "Sona {{version}} متاح.",
+        "published": "نُشر {{date}}",
+        "upToDate": "Sona {{version}} هو أحدث إصدار."
       }
     },
     "modelSettings": {
@@ -870,7 +993,12 @@
       "filters": {
         "allLanguages": "جميع اللغات",
         "streaming": "تصفية النماذج التي تدعم النسخ المباشر",
-        "translation": "تصفية النماذج التي تدعم الترجمة إلى الإنجليزية"
+        "translation": "تصفية النماذج التي تدعم الترجمة إلى الإنجليزية",
+        "allFamilies": "كل العائلات",
+        "clear": "مسح عوامل التصفية",
+        "downloadedOnly": "على القرص",
+        "downloadedOnlyHint": "إظهار النماذج المنزّلة بالفعل فقط",
+        "family": "عائلة النموذج"
       },
       "noModelsMatch": "لا توجد نماذج مطابقة لهذا الفلتر.",
       "searchPlaceholder": "ابحث عن النماذج بالاسم…",
@@ -922,6 +1050,34 @@
           "protocol": "The provider returned an unexpected verification response.",
           "unknown_provider": "This cloud provider is not available in this build."
         }
+      },
+      "actions": {
+        "activate": "استخدام",
+        "activateNamed": "استخدام {{modelName}}",
+        "download": "تنزيل",
+        "downloadNamed": "تنزيل {{modelName}}",
+        "retryNamed": "إعادة محاولة تنزيل {{modelName}}"
+      },
+      "emptyCatalog": "تعذر على Sona قراءة كتالوج النماذج. تلتقط إعادة الفحص النماذج الموجودة بالفعل في مجلد النماذج أو ذاكرة Hugging Face المؤقتة.",
+      "errors": {
+        "downloadFailed": "لم يبدأ التنزيل. تحقق من اتصالك وحاول مجددًا."
+      },
+      "families": {
+        "custom": "أضفتها أنت",
+        "other": "نماذج أخرى"
+      },
+      "familyCount": "{{total}} نماذج",
+      "noModelsMatchHint": "لا شيء في الكتالوج يطابق كل عوامل التصفية معًا.",
+      "searchByAnything": "البحث حسب الاسم أو اللغة أو القدرة",
+      "state": {
+        "activeInMemory": "نشط، في الذاكرة",
+        "downloaded": "منزّل",
+        "notDownloaded": "غير منزّل"
+      },
+      "summary": {
+        "active": "النشط: {{name}}",
+        "noActive": "لم يتم اختيار نموذج",
+        "onDisk": "{{total}} على القرص"
       }
     },
     "modes": {
@@ -951,8 +1107,12 @@
             "action": "التقاط الموقع الحالي",
             "capturing": "جارٍ الالتقاط..."
           },
-          "empty": "لا يوجد موقع يفعّل هذا الوضع."
-        }
+          "empty": "لا يوجد موقع يفعّل هذا الوضع.",
+          "exampleDescription": "تخزّن القاعدة مضيف متصفح واحدًا، مثل mail.google.com."
+        },
+        "exampleDescription": "تخزّن القاعدة هوية تطبيق واحدة، مثل com.apple.mail.",
+        "removeTarget": "إزالة {{target}}",
+        "unsupported": "تفعيل التطبيقات والمواقع متاح على macOS فقط."
       },
       "title": "Modes",
       "description": "Choose what each dictation run recognizes, rewrites, and delivers.",
@@ -1017,12 +1177,15 @@
         "provider": {
           "label": "AI provider",
           "description": "The configured provider used for this mode.",
-          "empty": "No provider configured"
+          "empty": "No provider configured",
+          "noneConfigured": "لم يتم تكوين مزوّد ذكاء اصطناعي بعد. أضف واحدًا في الإعدادات قبل أن يتمكن هذا الوضع من إعادة الكتابة.",
+          "unknownSelected": "يشير هذا الوضع إلى مزوّد غير مكوّن على هذا التثبيت."
         },
         "model": {
           "label": "AI model",
           "description": "The provider model identifier for this mode."
-        }
+        },
+        "disabledNote": "شغّل تنظيف الذكاء الاصطناعي لاستخدام الإعداد المسبق والنبرة والمزوّد والنموذج أدناه."
       },
       "recognition": {
         "literalPunctuation": {
@@ -1062,7 +1225,8 @@
           "writtenPlaceholder": "What to write",
           "add": "Add pair",
           "remove": "Remove {{spoken}}",
-          "incomplete": "Complete or remove each vocabulary pair before saving this mode."
+          "incomplete": "Complete or remove each vocabulary pair before saving this mode.",
+          "empty": "لا يملك هذا الوضع مفردات خاصة به. المفردات العامة لا تزال سارية."
         },
         "engine": {
           "label": "Transcription engine",
@@ -1115,7 +1279,8 @@
               "unknown_provider": "This cloud provider is not available in this build.",
               "backend": "The consent record could not be saved."
             }
-          }
+          },
+          "title": "نقل سحابي"
         }
       },
       "context": {
@@ -1129,7 +1294,9 @@
             "target": "App",
             "target_and_selection": "Selection",
             "full": "Full"
-          }
+          },
+          "blockedByCeiling": "تحد Privacy هذا الوضع إلى {{ceiling}}.",
+          "raiseCeiling": "ارفع الحد الأقصى في Privacy لاستخدام مستويات أعلى."
         }
       },
       "delivery": {
@@ -1165,7 +1332,8 @@
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
             "cmd_enter": "Command+Enter"
-          }
+          },
+          "requiresAutoSubmit": "شغّل الإرسال التلقائي لاختيار مفتاح."
         },
         "trailingSpace": {
           "label": "Append a trailing space",
@@ -1191,7 +1359,8 @@
             "dotool": "dotool",
             "ydotool": "ydotool",
             "xdotool": "xdotool"
-          }
+          },
+          "requiresDirect": "اختر الكتابة مباشرة كطريقة تسليم لاختيار أداة."
         },
         "script": {
           "label": "External script",
@@ -1235,7 +1404,16 @@
       "views": {
         "modes": "Modes",
         "vocabulary": "Vocabulary"
-      }
+      },
+      "cleanup": {
+        "title": "تنظيف النص"
+      },
+      "dismissError": "تجاهل الخطأ",
+      "emptyHint": "اختر وضعًا على اليسار لتغيير ما يتعرف عليه ويعيد كتابته ويسلّمه.",
+      "listEmpty": "لم يتم تكوين أي أوضاع.",
+      "listEmptyHint": "يحتفظ Sona دائمًا بوضع واحد. أعد التحميل لجلب القائمة الحالية.",
+      "unsavedChanges": "تغييرات غير محفوظة",
+      "untitled": "وضع بلا عنوان"
     },
     "privacy": {
       "title": "Privacy",
@@ -1323,7 +1501,24 @@
             "months_3": "3 months"
           }
         },
-        "error": "Data retention could not be saved"
+        "error": "Data retention could not be saved",
+        "historyStorage": {
+          "description": "ما إذا كان سجل الإملاء مشفّرًا على هذا القرص.",
+          "encrypted": "مشفّر أثناء التخزين",
+          "label": "تخزين السجل",
+          "locked": "مقفل",
+          "plaintext": "غير مشفّر",
+          "reasons": {
+            "encryption_unavailable": "لا يمكن لهذا الإصدار فتح قاعدة بيانات مشفّرة، لذا يُخزّن السجل دون تشفير.",
+            "key_rejected": "المفتاح المخزّن لا يفتح قاعدة البيانات المشفّرة، لذا لا يمكن قراءة السجل.",
+            "key_unavailable": "لم يُرجع مخزن بيانات اعتماد النظام مفتاحًا قابلًا للاستخدام، لذا يُخزّن السجل دون تشفير.",
+            "migration_failed": "فشل تشفير قاعدة البيانات الموجودة. قاعدة البيانات غير المشفّرة سليمة ولا تزال قيد الاستخدام.",
+            "unlocking": "جارٍ فتح قاعدة البيانات المشفّرة. يختفي هذا بعد لحظات من بدء التشغيل."
+          },
+          "unknown": "تعذر على Sona قراءة كيفية تخزين السجل.",
+          "unlocking": "جارٍ فتح القفل",
+          "since": "مشفّر منذ {{date}}."
+        }
       },
       "cloudTranscription": {
         "title": "Cloud transcription",
@@ -1332,7 +1527,8 @@
         "checkFailed": "Cloud transcription setup could not be checked.",
         "disclosure": "For a cloud-enabled mode, Sona sends recorded audio, the selected language, and mode keyterms directly to the provider. Application context and native credentials stay on this device.",
         "providerDetail": "{{provider}} has a saved native API key and current transfer consent.",
-        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent."
+        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent.",
+        "inUse": "قيد الاستخدام"
       },
       "upstreamImport": {
         "title": "Import from legacy app",
@@ -1386,6 +1582,16 @@
           "internal": "The import did not finish.",
           "status": "The original Sona data could not be inspected."
         }
+      },
+      "cloudSync": {
+        "checkFailed": "تعذر على Sona قراءة تكوين المزامنة السحابية.",
+        "configured": "مكوّن",
+        "description": "يمكن لـ Sona نسخ الاجتماعات إلى خادم تديره أنت. لا يُرفع أي شيء حتى يكتمل الإعداد على هذا الجهاز.",
+        "endpoint": "نقطة النهاية",
+        "endpointDescription": "الخادم الذي يشير إليه هذا الجهاز.",
+        "notConfigured": "غير مكوّن",
+        "service": "الخدمة",
+        "title": "المزامنة السحابية"
       }
     },
     "agents": {
@@ -1445,7 +1651,8 @@
         "session": "Reply destination",
         "noSession": "No observed reply-capable session",
         "message": "Reply text",
-        "createPreview": "Create preview"
+        "createPreview": "Create preview",
+        "notReady": "تتطلب الردود تشغيل الجسر وتمكين وكيل واحد على الأقل."
       },
       "pending": {
         "empty": "No pending replies.",
@@ -1497,7 +1704,15 @@
       "errors": {
         "load": "Agent bridge data could not be loaded: {{error}}",
         "operation": "The agent bridge action could not be completed: {{error}}"
-      }
+      },
+      "panel": {
+        "description": "النافذة العائمة التي ينشر فيها الوكلاء ويقرأون الردود منها.",
+        "error": "تعذر حفظ إعداد لوحة الوكيل.",
+        "label": "تمكين لوحة الوكيل",
+        "rowDescription": "إيقاف هذا يغلق نافذة اللوحة ويجعل Sona يرفض كل طلب لإعادة فتحها.",
+        "title": "لوحة الوكيل"
+      },
+      "workspaceNavigation": "عروض جسر الوكيل"
     },
     "hub": {
       "navigation": "Settings sections",
@@ -1706,7 +1921,8 @@
       "localOnly": "Local only",
       "check": "Check recording setup",
       "checking": "Checking setup…",
-      "defaultTitle": "Local notes"
+      "defaultTitle": "Local notes",
+      "remoteUnavailable": "المعالجة عن بُعد غير متاحة في هذا الإصدار، لذا يتم تفريغ كل اجتماع وتلخيصه على جهاز Mac هذا."
     },
     "preflight": {
       "title": "Check recording setup",
@@ -1725,7 +1941,8 @@
       "remoteNotSelected": "No remote destination is selected.",
       "remoteSelected": "Selected destination: {{destination}}",
       "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
-      "starting": "Starting visible capture…"
+      "starting": "Starting visible capture…",
+      "refreshing": "جارٍ التحقق…"
     },
     "consent": {
       "title": "Recording acknowledgement",
@@ -1778,7 +1995,8 @@
       "title": "Retention",
       "description": "Sona deletes eligible local meeting records through the same verified deletion path.",
       "forever": "Keep until I delete it",
-      "days": "Delete after {{days}} days"
+      "days": "Delete after {{days}} days",
+      "loading": "جارٍ قراءة السياسة الحالية…"
     },
     "receipts": {
       "title": "Correction receipt",
@@ -1926,7 +2144,29 @@
       "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
       "searchPlaceholder": "Search this meeting",
       "search": "Search",
-      "noSearchResults": "No exact local matches."
+      "noSearchResults": "No exact local matches.",
+      "askUnavailable": "يتطلب طرح الأسئلة نصًا محليًا مكتملًا.",
+      "asking": "جارٍ سؤال هذا الاجتماع…",
+      "captured": "التُقط {{time}}",
+      "droppedFrames": "الإطارات المفقودة: {{total}}",
+      "hitKind": {
+        "manualNote": "ملاحظة يدوية",
+        "title": "عنوان الاجتماع",
+        "transcript": "النص"
+      },
+      "noGeneratedNotesDescription": "الملاحظات المولّدة مشتقة من النص، لذا يمكن إعادة إنشائها في أي وقت.",
+      "processingDescription": "تظهر الملاحظات المولّدة والإجابات المحلية بمجرد اكتمال النص.",
+      "processingTitle": "لا يزال Sona يعالج هذا الاجتماع",
+      "remoteProcessingUnavailable": "لم تصبح الوجهة البعيدة متاحة قط، لذا لم يُولَّد أي شيء. تتم إعادة التوليد على جهاز Mac هذا.",
+      "searching": "جارٍ البحث…",
+      "sonaAnswered": "أجاب Sona",
+      "tabs": {
+        "insights": "الرؤى",
+        "questions": "أسئلة وأجوبة",
+        "transcript": "النص"
+      },
+      "tabsLabel": "أقسام مراجعة الاجتماع",
+      "youAsked": "سألت"
     },
     "artifactState": {
       "current": "Current",
@@ -1960,6 +2200,21 @@
         "transcript": "Transcript segments",
         "actions": "Action items"
       }
+    },
+    "list": {
+      "clearSearch": "مسح البحث",
+      "loadMore": "تحميل الاجتماعات الأقدم",
+      "loadingMore": "جارٍ تحميل الاجتماعات الأقدم…",
+      "noMatches": "لا توجد اجتماعات مطابقة لهذا البحث",
+      "noMatchesDescription": "لا يحتوي أي عنوان اجتماع على \"{{query}}\". امسح البحث لرؤية القائمة كاملة.",
+      "noMatchesNotLoaded": "لا يحتوي أي عنوان اجتماع محمّل على \"{{query}}\". الاجتماعات الأقدم ما زالت على القرص: حمّلها وابحث مجددًا.",
+      "retentionHint": "الاحتفاظ: {{policy}}. يمكنك تغييره في الإعدادات، Privacy.",
+      "searchLabel": "البحث في الاجتماعات",
+      "searchPlaceholder": "البحث حسب العنوان"
+    },
+    "status": {
+      "gapCount": "الفجوات: {{total}}",
+      "required": "مطلوب"
     }
   },
   "agentPanel": {
@@ -2017,23 +2272,66 @@
       "microphone": "Microphone",
       "file": "File import",
       "legacy": "Legacy",
-      "empty": "No recordings in this range."
+      "empty": "No recordings in this range.",
+      "meetings": "الاجتماعات",
+      "meetingsUnavailable": "تخزين الاجتماعات غير متاح، لذا لا تُحتسب الاجتماعات هنا."
     },
     "recent": {
       "title": "Recent activity",
       "history": "Transcription",
-      "meeting": "Meeting"
+      "meeting": "Meeting",
+      "emptyDescription": "تظهر الالتقاطات المحفوظة هنا بمجرد أن تملي أو تسجل اجتماعًا.",
+      "emptyTitle": "لا شيء حديث",
+      "error": "تعذر تحميل الالتقاطات الأخيرة الآن.",
+      "viewAll": "عرض الكل"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
       "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
-      "importAudio": "Import audio"
+      "importAudio": "Import audio",
+      "mode": "الوضع: {{name}}",
+      "setShortcut": "عيّن اختصار إملاء في الإعدادات للالتقاط من أي تطبيق."
     },
     "actions": {
       "dictate": "Dictate",
       "unavailable": "Shortcut unavailable"
+    },
+    "chart": {
+      "day": "{{date}} \\u00b7 الإملاءات {{dictations}}",
+      "dayWithMeetings": "{{date}} \\u00b7 الإملاءات {{dictations}} \\u00b7 الاجتماعات {{meetings}}",
+      "legend": "الإملاءات في اليوم",
+      "peak": "اليوم الأكثر نشاطًا {{peak}}",
+      "summary": "الإملاءات في اليوم من {{from}} إلى {{to}}. الإجمالي {{total}}، اليوم الأكثر نشاطًا {{peak}}."
+    },
+    "empty": {
+      "action": "فتح المكتبة",
+      "description": "اضغط باستمرار على اختصار الإملاء في أي تطبيق وسيكتب Sona ما تقوله. تظهر إحصاءات استخدامك والالتقاطات الأخيرة هنا بعد أول التقاط.",
+      "title": "لا توجد التقاطات بعد"
+    },
+    "stats": {
+      "activeDays": "{{active}} من {{total}} يومًا نشطًا",
+      "allTime": "{{total}} منذ البداية",
+      "dictations": "الإملاءات",
+      "dictationsAllTime": "الإملاءات، منذ البداية",
+      "error": "تعذر على Sona قراءة سجل استخدامك الآن.",
+      "range": "من {{from}} إلى {{to}}",
+      "rangeUnavailable": "تعذرت قراءة آخر 30 يومًا، لذا هذه إجماليات منذ البداية.",
+      "speaking": "وقت التحدث",
+      "speakingAllTime": "وقت التحدث، منذ البداية",
+      "streak": "السلسلة الحالية",
+      "tiles": "ملخص الاستخدام",
+      "title": "النشاط",
+      "words": "الكلمات",
+      "wordsAllTime": "الكلمات، منذ البداية"
+    },
+    "update": {
+      "available": "Sona {{latest}} متاح. هذا التثبيت على {{current}}.",
+      "dismiss": "تجاهل",
+      "failed": "تعذر التحقق من التحديثات.",
+      "failedWithReason": "تعذر التحقق من التحديثات: {{reason}}",
+      "view": "عرض الإصدار"
     }
   },
   "cloudSync": {

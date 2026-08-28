@@ -191,7 +191,12 @@
       "filters": {
         "allLanguages": "Tất cả ngôn ngữ",
         "streaming": "Lọc các mô hình hỗ trợ phiên âm trực tiếp",
-        "translation": "Lọc các mô hình hỗ trợ dịch sang tiếng Anh"
+        "translation": "Lọc các mô hình hỗ trợ dịch sang tiếng Anh",
+        "allFamilies": "Tất cả họ mô hình",
+        "clear": "Xóa bộ lọc",
+        "downloadedOnly": "Trên đĩa",
+        "downloadedOnlyHint": "Chỉ hiển thị các mô hình đã tải xuống",
+        "family": "Họ mô hình"
       },
       "noModelsMatch": "Không có mô hình nào khớp với bộ lọc này.",
       "yourModels": "Mô hình đã tải",
@@ -245,6 +250,34 @@
           "protocol": "The provider returned an unexpected verification response.",
           "unknown_provider": "This cloud provider is not available in this build."
         }
+      },
+      "actions": {
+        "activate": "Dùng",
+        "activateNamed": "Dùng {{modelName}}",
+        "download": "Tải xuống",
+        "downloadNamed": "Tải xuống {{modelName}}",
+        "retryNamed": "Thử tải lại {{modelName}}"
+      },
+      "emptyCatalog": "Sona không thể đọc danh mục mô hình của mình. Quét lại sẽ tìm các mô hình đã có trong thư mục models hoặc bộ nhớ đệm Hugging Face.",
+      "errors": {
+        "downloadFailed": "Việc tải xuống không bắt đầu được. Kiểm tra kết nối và thử lại."
+      },
+      "families": {
+        "custom": "Do bạn thêm",
+        "other": "Mô hình khác"
+      },
+      "familyCount": "{{total}} mô hình",
+      "noModelsMatchHint": "Không có mục nào trong danh mục khớp với tất cả các bộ lọc cùng lúc.",
+      "searchByAnything": "Tìm theo tên, ngôn ngữ hoặc khả năng",
+      "state": {
+        "activeInMemory": "Đang hoạt động, trong bộ nhớ",
+        "downloaded": "Đã tải xuống",
+        "notDownloaded": "Chưa tải xuống"
+      },
+      "summary": {
+        "active": "Đang hoạt động: {{name}}",
+        "noActive": "Chưa chọn mô hình nào",
+        "onDisk": "{{total}} trên đĩa"
       }
     },
     "general": {
@@ -286,7 +319,12 @@
       "pushToTalk": {
         "label": "Nhấn để nói",
         "description": "Giữ để ghi âm, thả để dừng"
-      }
+      },
+      "appearance": {
+        "description": "Ngôn ngữ giao diện và bảng màu. Cả hai áp dụng ngay lập tức.",
+        "title": "Giao diện"
+      },
+      "description": "Các phím bạn nhấn, micrô mà Sona lắng nghe và giao diện của ứng dụng."
     },
     "sound": {
       "title": "Âm thanh",
@@ -461,7 +499,10 @@
         "imported": "Đã nhập từ vựng",
         "errors": {
           "incomplete": "Nhập cả cụm từ đã nói và văn bản viết.",
-          "duplicate": "Cặp từ vựng này đã tồn tại."
+          "duplicate": "Cặp từ vựng này đã tồn tại.",
+          "incompleteRow": "Hoàn thành hoặc xóa mọi hàng trước khi lưu.",
+          "duplicateSpoken": "Có nhiều hơn một hàng khớp với {{spoken}}. Sona chỉ giữ một quy tắc cho mỗi cụm từ nói.",
+          "unusableSpoken": "{{spoken}} cần ít nhất một chữ cái hoặc chữ số để được nhận dạng."
         },
         "importPreview": {
           "title": "Xem lại dữ liệu nhập từ vựng",
@@ -472,7 +513,12 @@
           "conflicts": "Hàng xung đột",
           "blocked": "Hãy sửa mọi hàng không hợp lệ, trùng lặp hoặc xung đột trước khi áp dụng.",
           "apply": "Áp dụng dữ liệu nhập",
-          "unsavedWarning": "Bạn có các thay đổi từ vựng chưa lưu. Việc áp dụng bản nhập này sẽ thay thế chúng."
+          "unsavedWarning": "Bạn có các thay đổi từ vựng chưa lưu. Việc áp dụng bản nhập này sẽ thay thế chúng.",
+          "back": "Quay lại",
+          "continue": "Tiếp tục",
+          "replaceSummary": "Áp dụng sẽ thay {{savedCount}} cặp đã lưu bằng {{importedCount}} cặp từ tệp này.",
+          "stepConfirm": "Bước 2 trên 2: xác nhận thay thế",
+          "stepReview": "Bước 1 trên 2: nội dung tệp"
         },
         "actions": "Vocabulary actions",
         "audioImport": {
@@ -482,7 +528,13 @@
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
           }
-        }
+        },
+        "empty": {
+          "description": "Thêm một cặp như open ai và OpenAI, và Sona sẽ viết đúng dạng đó mỗi khi nghe thấy cụm từ.",
+          "title": "Chưa có quy tắc từ vựng nào"
+        },
+        "sources": "Các sửa lỗi bạn lưu từ bản ghi thoại trong Thư viện sẽ nằm trong danh sách này. Quy tắc cho một chế độ riêng nằm trong từ vựng của chế độ đó.",
+        "unsaved": "Thay đổi chưa lưu"
       },
       "voiceActivityDetection": {
         "title": "Phát hiện hoạt động giọng nói",
@@ -510,7 +562,12 @@
         "toggleError": "Không thể thay đổi các thay thế biểu tượng cảm xúc.",
         "errors": {
           "incomplete": "Nhập cả cụm từ đã nói và văn bản biểu tượng cảm xúc.",
-          "duplicate": "Thay thế biểu tượng cảm xúc này đã tồn tại."
+          "duplicate": "Thay thế biểu tượng cảm xúc này đã tồn tại.",
+          "incompleteRow": "Hoàn thành hoặc xóa mọi hàng trước khi lưu."
+        },
+        "empty": {
+          "description": "Ánh xạ một từ nói chính xác như smiley face sang emoji bạn muốn viết.",
+          "title": "Chưa có thay thế emoji nào"
         }
       },
       "description": "Startup, processing, and experimental behavior.",
@@ -526,6 +583,39 @@
         "experimental": {
           "description": "Unstable options that can change without notice."
         }
+      },
+      "snippets": {
+        "add": "Thêm đoạn văn mẫu",
+        "confirmDelete": {
+          "description": "Từ kích hoạt sẽ ngừng mở rộng trong các bản ghi thoại sau này. Văn bản đã viết không thay đổi.",
+          "body": "{{trigger}} hiện mở rộng thành {{expansion}}.",
+          "title": "Xóa {{trigger}}?"
+        },
+        "description": "Các từ kích hoạt ngắn được Sona mở rộng thành văn bản dài hơn. Thay đổi ở đây chỉ ảnh hưởng đến các bản ghi thoại sau này, không bao giờ ảnh hưởng đến văn bản đã viết.",
+        "empty": {
+          "action": "Viết đoạn văn mẫu đầu tiên của bạn",
+          "description": "Thêm một từ kích hoạt như omw và Sona sẽ viết on my way mỗi khi bạn nói nó.",
+          "title": "Chưa có đoạn văn mẫu nào"
+        },
+        "enabledDescription": "Thay thế từ kích hoạt trong mọi bản ghi thoại, ngay sau các sửa lỗi từ vựng.",
+        "enabledLabel": "Bật mở rộng văn bản",
+        "errors": {
+          "duplicate": "Một đoạn văn mẫu khác đã dùng từ kích hoạt này.",
+          "incomplete": "Nhập cả từ kích hoạt và nội dung mở rộng."
+        },
+        "expansion": "Nội dung mở rộng",
+        "expansionPlaceholder": "on my way",
+        "loadError": "Không thể tải các đoạn văn mẫu.",
+        "loading": "Đang tải các đoạn văn mẫu",
+        "matching": "Từ kích hoạt khớp nguyên từ và bỏ qua chữ hoa chữ thường. Khi hai từ kích hoạt khớp cùng một vị trí, từ dài hơn sẽ thắng, và việc mở rộng chạy ngay sau các sửa lỗi từ vựng.",
+        "offState": "Mở rộng văn bản đang tắt. Các đoạn văn mẫu vẫn được lưu và sẽ áp dụng lại ngay khi bạn bật lại.",
+        "title": "Mở rộng văn bản",
+        "trigger": "Từ kích hoạt",
+        "triggerPlaceholder": "omw",
+        "unsaved": "Nhấn Enter hoặc Lưu để giữ thay đổi này.",
+        "enableRow": "Bật {{trigger}}",
+        "remove": "Xóa {{trigger}}",
+        "saveRow": "Lưu {{trigger}}"
       }
     },
     "postProcessing": {
@@ -579,7 +669,27 @@
         "createPrompt": "Tạo Prompt",
         "cancel": "Hủy",
         "selectToEdit": "Chọn một prompt ở trên để xem và chỉnh sửa chi tiết.",
-        "createFirst": "Nhấn 'Tạo Prompt mới' ở trên để tạo prompt xử lý sau đầu tiên của bạn."
+        "createFirst": "Nhấn 'Tạo Prompt mới' ở trên để tạo prompt xử lý sau đầu tiên của bạn.",
+        "empty": {
+          "description": "Prompt cho mô hình biết cần làm gì với bản ghi thoại, ví dụ: viết lại nội dung sau thành một tin nhắn ngắn, giữ nguyên mọi dữ kiện: ${output}"
+        },
+        "errors": {
+          "incomplete": "Đặt tên và hướng dẫn cho prompt trước khi lưu."
+        },
+        "inUse": "Đang dùng",
+        "lastPrompt": "Sona giữ ít nhất một prompt, nên không thể xóa prompt này. Hãy tạo prompt khác trước.",
+        "libraryTitle": "Prompt hậu xử lý",
+        "loading": "Đang tải prompt",
+        "noSelection": "Chưa chọn prompt nào: mỗi chế độ dùng prompt mà nó tự định nghĩa.",
+        "outputTip": "Viết ${output} tại vị trí bản ghi thoại cần được chèn vào.",
+        "use": "Dùng",
+        "confirmDelete": {
+          "body": "{{name}} sẽ bị xóa khỏi thư viện. Các chế độ đã sao chép văn bản của nó giữ prompt riêng của chúng.",
+          "selected": "{{name}} đang được dùng. Xóa nó sẽ chuyển lựa chọn sang prompt đầu tiên trong danh sách."
+        },
+        "deleteNamed": "Xóa {{name}}",
+        "editNamed": "Sửa {{name}}",
+        "useNamed": "Dùng {{name}}"
       },
       "remoteConsent": {
         "title": "Remote text transfer",
@@ -754,7 +864,8 @@
           "start": "Không thể bắt đầu nhập tệp.",
           "cancel": "Không thể hủy việc nhập tệp.",
           "load": "Không thể tải trạng thái nhập tệp."
-        }
+        },
+        "running": "Đang chuyển thành văn bản {{count}} tệp"
       },
       "trends": {
         "title": "History trends",
@@ -771,7 +882,14 @@
           "words": "Words"
         },
         "streak": "{{count}} day streak"
-      }
+      },
+      "clearSearch": "Xóa tìm kiếm",
+      "emptyHint": "Bạn cũng có thể chuyển một bản ghi âm sẵn có thành văn bản: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 hoặc M4V, tối đa 30 phút.",
+      "loadMore": "Tải thêm",
+      "noResultsHint": "Tìm kiếm khớp nguyên từ trong cả bản ghi thoại thô và bản đã xử lý.",
+      "results": "{{count}} kết quả khớp",
+      "resultsMore": "{{count}}+ kết quả khớp",
+      "resultsNone": "Không có kết quả khớp"
     },
     "debug": {
       "title": "Gỡ lỗi",
@@ -889,13 +1007,21 @@
         "button": "Xem trước",
         "noNotes": "Không tìm thấy ghi chú phát hành được đóng gói",
         "error": "Không thể xem trước ghi chú phát hành"
+      },
+      "description": "Công cụ đo lường và các nút không được hỗ trợ. Hiển thị vì chế độ gỡ lỗi đang bật.",
+      "groups": {
+        "capture": "Ghi",
+        "delivery": "Gửi văn bản",
+        "diagnostics": "Chẩn đoán",
+        "logging": "Ghi nhật ký"
       }
     },
     "about": {
       "title": "Giới thiệu",
       "version": {
         "title": "Phiên bản",
-        "description": "Phiên bản hiện tại của Sona"
+        "description": "Phiên bản hiện tại của Sona",
+        "unavailable": "Không khả dụng"
       },
       "appDataDirectory": {
         "title": "Thư mục dữ liệu ứng dụng",
@@ -922,6 +1048,36 @@
       "whatsNewUpdates": {
         "label": "Hiển thị điểm mới",
         "description": "Hiển thị ghi chú phát hành sau khi Sona cập nhật"
+      },
+      "description": "Bạn đang chạy bản dựng nào, nó đến từ đâu và lưu tệp của bạn ở đâu.",
+      "files": {
+        "title": "Tệp"
+      },
+      "source": {
+        "description": "Sona được cấp phép MIT, bản quyền 2025 CJ Pais, và được xây dựng trên nền Handy.",
+        "open": "Mở trên GitHub",
+        "repository": "Kho mã nguồn",
+        "title": "Mã nguồn",
+        "upstream": "Xây dựng trên Handy",
+        "upstreamDescription": "Sona là một nhánh của cjpais/Handy và vẫn theo dõi các bản sửa lỗi từ nguồn.",
+        "upstreamOpen": "cjpais/Handy"
+      },
+      "updates": {
+        "autoDescription": "Hỏi GitHub về bản phát hành mới nhất. Sona không bao giờ tự cài đặt bất cứ thứ gì.",
+        "autoLabel": "Tự động kiểm tra bản cập nhật",
+        "check": "Kiểm tra ngay",
+        "checking": "Đang kiểm tra…",
+        "disabled": "Kiểm tra tự động đang tắt, nên Sona đã không liên hệ GitHub.",
+        "enable": "Bật kiểm tra",
+        "failed": "Không thể chạy kiểm tra bản cập nhật.",
+        "manualDescription": "So sánh bản dựng này với bản phát hành mới nhất đã công bố.",
+        "manualTitle": "Kiểm tra thủ công",
+        "preferenceError": "Không thể lưu tùy chọn cập nhật.",
+        "title": "Phiên bản và cập nhật",
+        "viewRelease": "Xem bản phát hành",
+        "available": "Đã có Sona {{version}}.",
+        "published": "Phát hành {{date}}",
+        "upToDate": "Sona {{version}} là bản phát hành mới nhất."
       }
     },
     "modes": {
@@ -951,8 +1107,12 @@
             "action": "Chụp trang web hiện tại",
             "capturing": "Đang chụp..."
           },
-          "empty": "Không có trang web nào kích hoạt chế độ này."
-        }
+          "empty": "Không có trang web nào kích hoạt chế độ này.",
+          "exampleDescription": "Một quy tắc lưu một máy chủ trình duyệt, ví dụ mail.google.com."
+        },
+        "exampleDescription": "Một quy tắc lưu một định danh ứng dụng, ví dụ com.apple.mail.",
+        "removeTarget": "Xóa {{target}}",
+        "unsupported": "Kích hoạt theo ứng dụng và trang web chỉ khả dụng trên macOS."
       },
       "title": "Modes",
       "description": "Choose what each dictation run recognizes, rewrites, and delivers.",
@@ -1017,12 +1177,15 @@
         "provider": {
           "label": "AI provider",
           "description": "The configured provider used for this mode.",
-          "empty": "No provider configured"
+          "empty": "No provider configured",
+          "noneConfigured": "Chưa cấu hình nhà cung cấp AI nào. Thêm một nhà cung cấp trong Settings trước khi chế độ này có thể viết lại.",
+          "unknownSelected": "Chế độ này chỉ định một nhà cung cấp chưa được cấu hình trên bản cài đặt này."
         },
         "model": {
           "label": "AI model",
           "description": "The provider model identifier for this mode."
-        }
+        },
+        "disabledNote": "Bật dọn dẹp bằng AI để dùng preset, giọng điệu, nhà cung cấp và mô hình bên dưới."
       },
       "recognition": {
         "literalPunctuation": {
@@ -1062,7 +1225,8 @@
           "writtenPlaceholder": "What to write",
           "add": "Add pair",
           "remove": "Remove {{spoken}}",
-          "incomplete": "Complete or remove each vocabulary pair before saving this mode."
+          "incomplete": "Complete or remove each vocabulary pair before saving this mode.",
+          "empty": "Chế độ này không có từ vựng riêng. Từ vựng toàn cục vẫn được áp dụng."
         },
         "engine": {
           "label": "Transcription engine",
@@ -1115,7 +1279,8 @@
               "unknown_provider": "This cloud provider is not available in this build.",
               "backend": "The consent record could not be saved."
             }
-          }
+          },
+          "title": "Truyền tải đám mây"
         }
       },
       "context": {
@@ -1129,7 +1294,9 @@
             "target": "App",
             "target_and_selection": "Selection",
             "full": "Full"
-          }
+          },
+          "blockedByCeiling": "Privacy giới hạn chế độ này ở mức {{ceiling}}.",
+          "raiseCeiling": "Nâng giới hạn trong Privacy để dùng các mức cao hơn."
         }
       },
       "delivery": {
@@ -1165,7 +1332,8 @@
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
             "cmd_enter": "Command+Enter"
-          }
+          },
+          "requiresAutoSubmit": "Bật tự động gửi để chọn phím."
         },
         "trailingSpace": {
           "label": "Append a trailing space",
@@ -1191,7 +1359,8 @@
             "dotool": "dotool",
             "ydotool": "ydotool",
             "xdotool": "xdotool"
-          }
+          },
+          "requiresDirect": "Chọn Gõ trực tiếp làm phương thức gửi để chọn công cụ."
         },
         "script": {
           "label": "External script",
@@ -1235,7 +1404,16 @@
       "views": {
         "modes": "Modes",
         "vocabulary": "Vocabulary"
-      }
+      },
+      "cleanup": {
+        "title": "Dọn dẹp bản ghi thoại"
+      },
+      "dismissError": "Bỏ qua lỗi",
+      "emptyHint": "Chọn một chế độ bên trái để thay đổi những gì nó nhận dạng, viết lại và gửi.",
+      "listEmpty": "Chưa cấu hình chế độ nào.",
+      "listEmptyHint": "Sona luôn giữ một chế độ. Tải lại để lấy danh sách hiện tại.",
+      "unsavedChanges": "Thay đổi chưa lưu",
+      "untitled": "Chế độ chưa đặt tên"
     },
     "privacy": {
       "title": "Privacy",
@@ -1323,7 +1501,24 @@
             "months_3": "3 months"
           }
         },
-        "error": "Data retention could not be saved"
+        "error": "Data retention could not be saved",
+        "historyStorage": {
+          "description": "Lịch sử đọc chính tả có được mã hóa trên đĩa này hay không.",
+          "encrypted": "Được mã hóa khi lưu trữ",
+          "label": "Lưu trữ lịch sử",
+          "locked": "Đã khóa",
+          "plaintext": "Không được mã hóa",
+          "reasons": {
+            "encryption_unavailable": "Bản dựng này không thể mở cơ sở dữ liệu mã hóa, nên lịch sử được lưu không mã hóa.",
+            "key_rejected": "Khóa được lưu không mở được cơ sở dữ liệu mã hóa, nên không thể đọc lịch sử.",
+            "key_unavailable": "Kho thông tin xác thực hệ thống không trả về khóa dùng được, nên lịch sử được lưu không mã hóa.",
+            "migration_failed": "Mã hóa cơ sở dữ liệu hiện có thất bại. Cơ sở dữ liệu không mã hóa vẫn nguyên vẹn và đang được dùng.",
+            "unlocking": "Đang mở cơ sở dữ liệu mã hóa. Trạng thái này sẽ hết ngay sau khi khởi động."
+          },
+          "unknown": "Sona không thể đọc cách lịch sử được lưu trữ.",
+          "unlocking": "Đang mở khóa",
+          "since": "Được mã hóa từ {{date}}."
+        }
       },
       "cloudTranscription": {
         "title": "Cloud transcription",
@@ -1332,7 +1527,8 @@
         "checkFailed": "Cloud transcription setup could not be checked.",
         "disclosure": "For a cloud-enabled mode, Sona sends recorded audio, the selected language, and mode keyterms directly to the provider. Application context and native credentials stay on this device.",
         "providerDetail": "{{provider}} has a saved native API key and current transfer consent.",
-        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent."
+        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent.",
+        "inUse": "Đang dùng"
       },
       "upstreamImport": {
         "title": "Import from legacy app",
@@ -1386,6 +1582,16 @@
           "internal": "The import did not finish.",
           "status": "The original Sona data could not be inspected."
         }
+      },
+      "cloudSync": {
+        "checkFailed": "Sona không thể đọc cấu hình đồng bộ đám mây.",
+        "configured": "Đã cấu hình",
+        "description": "Sona có thể sao chép cuộc họp lên máy chủ do bạn vận hành. Không có gì được tải lên cho đến khi thiết lập hoàn tất trên thiết bị này.",
+        "endpoint": "Điểm cuối",
+        "endpointDescription": "Máy chủ mà thiết bị này đang trỏ đến.",
+        "notConfigured": "Chưa cấu hình",
+        "service": "Dịch vụ",
+        "title": "Đồng bộ đám mây"
       }
     },
     "agents": {
@@ -1445,7 +1651,8 @@
         "session": "Reply destination",
         "noSession": "No observed reply-capable session",
         "message": "Reply text",
-        "createPreview": "Create preview"
+        "createPreview": "Create preview",
+        "notReady": "Phản hồi cần bật cầu nối và ít nhất một agent được bật."
       },
       "pending": {
         "empty": "No pending replies.",
@@ -1497,7 +1704,15 @@
       "errors": {
         "load": "Agent bridge data could not be loaded: {{error}}",
         "operation": "The agent bridge action could not be completed: {{error}}"
-      }
+      },
+      "panel": {
+        "description": "Cửa sổ nổi mà các agent gửi tin và đọc phản hồi.",
+        "error": "Không thể lưu cài đặt bảng agent.",
+        "label": "Bật bảng agent",
+        "rowDescription": "Tắt tùy chọn này sẽ đóng cửa sổ bảng và khiến Sona từ chối mọi yêu cầu mở lại.",
+        "title": "Bảng agent"
+      },
+      "workspaceNavigation": "Chế độ xem cầu nối agent"
     },
     "hub": {
       "navigation": "Settings sections",
@@ -1706,7 +1921,8 @@
       "localOnly": "Local only",
       "check": "Check recording setup",
       "checking": "Checking setup…",
-      "defaultTitle": "Local notes"
+      "defaultTitle": "Local notes",
+      "remoteUnavailable": "Xử lý từ xa không khả dụng trong bản dựng này, nên mọi cuộc họp đều được chuyển thành văn bản và tóm tắt trên máy Mac này."
     },
     "preflight": {
       "title": "Check recording setup",
@@ -1725,7 +1941,8 @@
       "remoteNotSelected": "No remote destination is selected.",
       "remoteSelected": "Selected destination: {{destination}}",
       "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
-      "starting": "Starting visible capture…"
+      "starting": "Starting visible capture…",
+      "refreshing": "Đang kiểm tra…"
     },
     "consent": {
       "title": "Recording acknowledgement",
@@ -1778,7 +1995,8 @@
       "title": "Retention",
       "description": "Sona deletes eligible local meeting records through the same verified deletion path.",
       "forever": "Keep until I delete it",
-      "days": "Delete after {{days}} days"
+      "days": "Delete after {{days}} days",
+      "loading": "Đang đọc chính sách hiện tại…"
     },
     "receipts": {
       "title": "Correction receipt",
@@ -1926,7 +2144,29 @@
       "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
       "searchPlaceholder": "Search this meeting",
       "search": "Search",
-      "noSearchResults": "No exact local matches."
+      "noSearchResults": "No exact local matches.",
+      "askUnavailable": "Việc hỏi cần một bản ghi thoại cục bộ đã hoàn tất.",
+      "asking": "Đang hỏi cuộc họp này…",
+      "captured": "Đã ghi lúc {{time}}",
+      "droppedFrames": "Khung hình bị mất: {{total}}",
+      "hitKind": {
+        "manualNote": "Ghi chú thủ công",
+        "title": "Tiêu đề cuộc họp",
+        "transcript": "Bản ghi thoại"
+      },
+      "noGeneratedNotesDescription": "Ghi chú được tạo bắt nguồn từ bản ghi thoại, nên có thể tạo lại bất cứ lúc nào.",
+      "processingDescription": "Ghi chú được tạo và câu trả lời cục bộ sẽ xuất hiện khi bản ghi thoại hoàn tất.",
+      "processingTitle": "Sona vẫn đang xử lý cuộc họp này",
+      "remoteProcessingUnavailable": "Đích từ xa không bao giờ khả dụng, nên không có gì được tạo. Việc tạo lại sẽ chạy trên máy Mac này.",
+      "searching": "Đang tìm kiếm…",
+      "sonaAnswered": "Sona đã trả lời",
+      "tabs": {
+        "insights": "Thông tin chuyên sâu",
+        "questions": "Hỏi đáp",
+        "transcript": "Bản ghi thoại"
+      },
+      "tabsLabel": "Các phần xem lại cuộc họp",
+      "youAsked": "Bạn đã hỏi"
     },
     "artifactState": {
       "current": "Current",
@@ -1960,6 +2200,21 @@
         "transcript": "Transcript segments",
         "actions": "Action items"
       }
+    },
+    "list": {
+      "clearSearch": "Xóa tìm kiếm",
+      "loadMore": "Tải các cuộc họp cũ hơn",
+      "loadingMore": "Đang tải các cuộc họp cũ hơn…",
+      "noMatches": "Không có cuộc họp nào khớp với tìm kiếm đó",
+      "noMatchesDescription": "Không có tiêu đề cuộc họp nào chứa \"{{query}}\". Xóa tìm kiếm để xem toàn bộ danh sách.",
+      "noMatchesNotLoaded": "Không có tiêu đề cuộc họp đã tải nào chứa \"{{query}}\". Các cuộc họp cũ hơn vẫn còn trên đĩa: hãy tải chúng và tìm kiếm lại.",
+      "retentionHint": "Lưu giữ: {{policy}}. Thay đổi trong Settings, Privacy.",
+      "searchLabel": "Tìm kiếm cuộc họp",
+      "searchPlaceholder": "Tìm theo tiêu đề"
+    },
+    "status": {
+      "gapCount": "Khoảng trống: {{total}}",
+      "required": "Bắt buộc"
     }
   },
   "agentPanel": {
@@ -2017,23 +2272,66 @@
       "microphone": "Microphone",
       "file": "File import",
       "legacy": "Legacy",
-      "empty": "No recordings in this range."
+      "empty": "No recordings in this range.",
+      "meetings": "Cuộc họp",
+      "meetingsUnavailable": "Kho lưu trữ cuộc họp không khả dụng, nên cuộc họp không được tính ở đây."
     },
     "recent": {
       "title": "Recent activity",
       "history": "Transcription",
-      "meeting": "Meeting"
+      "meeting": "Meeting",
+      "emptyDescription": "Các bản ghi được lưu giữ sẽ hiển thị ở đây ngay khi bạn đọc chính tả hoặc ghi lại một cuộc họp.",
+      "emptyTitle": "Không có gì gần đây",
+      "error": "Hiện không thể tải các bản ghi gần đây.",
+      "viewAll": "Xem tất cả"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
       "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
-      "importAudio": "Import audio"
+      "importAudio": "Import audio",
+      "mode": "Chế độ: {{name}}",
+      "setShortcut": "Đặt phím tắt đọc chính tả trong Settings để ghi từ bất kỳ ứng dụng nào."
     },
     "actions": {
       "dictate": "Dictate",
       "unavailable": "Shortcut unavailable"
+    },
+    "chart": {
+      "day": "{{date}} \\u00b7 lần đọc chính tả {{dictations}}",
+      "dayWithMeetings": "{{date}} \\u00b7 lần đọc chính tả {{dictations}} \\u00b7 cuộc họp {{meetings}}",
+      "legend": "Số lần đọc chính tả mỗi ngày",
+      "peak": "Ngày bận nhất {{peak}}",
+      "summary": "Số lần đọc chính tả mỗi ngày từ {{from}} đến {{to}}. Tổng cộng {{total}}, ngày bận nhất {{peak}}."
+    },
+    "empty": {
+      "action": "Mở Thư viện",
+      "description": "Giữ phím tắt đọc chính tả trong bất kỳ ứng dụng nào và Sona sẽ gõ những gì bạn nói. Thống kê sử dụng và các bản ghi gần đây sẽ xuất hiện ở đây sau lần đầu tiên.",
+      "title": "Chưa có bản ghi nào"
+    },
+    "stats": {
+      "activeDays": "{{active}} trong {{total}} ngày hoạt động",
+      "allTime": "{{total}} từ trước đến nay",
+      "dictations": "Lần đọc chính tả",
+      "dictationsAllTime": "Lần đọc chính tả, từ trước đến nay",
+      "error": "Sona hiện không thể đọc lịch sử sử dụng của bạn.",
+      "range": "{{from}} đến {{to}}",
+      "rangeUnavailable": "Không thể đọc dữ liệu 30 ngày qua, nên đây là tổng từ trước đến nay.",
+      "speaking": "Thời gian nói",
+      "speakingAllTime": "Thời gian nói, từ trước đến nay",
+      "streak": "Chuỗi ngày hiện tại",
+      "tiles": "Tóm tắt sử dụng",
+      "title": "Hoạt động",
+      "words": "Số từ",
+      "wordsAllTime": "Số từ, từ trước đến nay"
+    },
+    "update": {
+      "available": "Đã có Sona {{latest}}. Bản cài đặt này đang ở {{current}}.",
+      "dismiss": "Bỏ qua",
+      "failed": "Không thể kiểm tra bản cập nhật.",
+      "failedWithReason": "Không thể kiểm tra bản cập nhật: {{reason}}",
+      "view": "Xem bản phát hành"
     }
   },
   "cloudSync": {
