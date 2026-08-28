@@ -104,7 +104,10 @@ clap = { version = "4", features = ["derive"] }
 specta = { version = "=2.0.0-rc.22", features = ["uuid"] }
 specta-typescript = "0.0.9"
 tauri-specta = { version = "=2.0.0-rc.21", features = ["derive", "typescript"] }
-tauri-plugin-dialog = "2.6"
+# Tilde-pinned to one minor: `tauri build` errors out unless this crate and the
+# `@tauri-apps/plugin-dialog` npm package agree on major.minor. A plain caret
+# here let cargo float to 2.7 while npm stayed on 2.6, which broke the build.
+tauri-plugin-dialog = "~2.7"
 hf-hub = { git = "https://github.com/cjpais/hf-hub", branch = "cancellable-downloads", features = [
   "tokio",
 ] }
