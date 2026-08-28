@@ -5,6 +5,7 @@ use crate::modes::{
     DEFAULT_MODE_ID, LEGACY_POST_PROCESS_BINDING_ID,
 };
 use crate::secrets::SecretState;
+use crate::snippets::Snippet;
 use log::{debug, warn};
 use reqwest::Url;
 use serde::de::{self, Visitor};
@@ -305,7 +306,7 @@ impl std::fmt::Display for PostProcessEndpointError {
 
 impl std::error::Error for PostProcessEndpointError {}
 
-fn is_loopback_host(host: &str) -> bool {
+pub(crate) fn is_loopback_host(host: &str) -> bool {
     host.eq_ignore_ascii_case("localhost")
         || host
             .parse::<IpAddr>()
@@ -1007,9 +1008,18 @@ pub struct AppSettings {
     /// no user text or provider payloads; those are in-memory only.
     #[serde(default)]
     pub agent_bridge: AgentBridgeSettings,
+    /// User text expansions applied after vocabulary correction.
+    #[serde(default)]
+    pub snippets: Vec<Snippet>,
+    #[serde(default = "default_snippets_enabled")]
+    pub snippets_enabled: bool,
+    /// Whether the app may ask GitHub for the latest published release. No
+    /// update is ever installed automatically.
+    #[serde(default = "default_update_check_enabled")]
+    pub update_check_enabled: bool,
     /// Attached-panel relay configuration. This contains routing and public-key
     /// material only; the panel signing seed remains in SecretManager.
-    #[serde(default)]
+    #[serde(default = "default_agent_panel_enabled")]
     pub agent_panel_enabled: bool,
     #[serde(default)]
     pub agent_panel_relay_url: Option<String>,
@@ -1029,7 +1039,19 @@ fn default_model() -> String {
     "".to_string()
 }
 
-pub(crate) const CURRENT_SETTINGS_SCHEMA_VERSION: u32 = 14;
+fn default_snippets_enabled() -> bool {
+    true
+}
+
+fn default_update_check_enabled() -> bool {
+    true
+}
+
+fn default_agent_panel_enabled() -> bool {
+    true
+}
+
+pub(crate) const CURRENT_SETTINGS_SCHEMA_VERSION: u32 = 15;
 
 fn default_settings_schema_version() -> u32 {
     CURRENT_SETTINGS_SCHEMA_VERSION
@@ -1506,7 +1528,10 @@ pub fn get_default_settings() -> AppSettings {
         overlay_style: default_overlay_style(),
         context_url_capture_enabled: false,
         agent_bridge: AgentBridgeSettings::default(),
-        agent_panel_enabled: false,
+        snippets: Vec::new(),
+        snippets_enabled: default_snippets_enabled(),
+        update_check_enabled: default_update_check_enabled(),
+        agent_panel_enabled: default_agent_panel_enabled(),
         agent_panel_relay_url: None,
         agent_panel_relay_key_id: None,
         agent_panel_relay_public_key: None,
@@ -1976,6 +2001,15 @@ fn apply_settings_migrations(
         // Cloud sync can move encrypted meeting material. Never infer an opt-in,
         // consent, endpoint, or pre-release operational state during upgrade.
         settings.cloud_sync = CloudSyncSettings::default();
+        updated = true;
+    }
+
+    if stored_schema_version < 15 {
+        // Snippets, the snippet master toggle, and the update check are
+        // additive fields with their own serde defaults. A stored
+        // `agent_panel_enabled` stays authoritative: the new default only
+        // applies to documents that never recorded the user's choice. This
+        // branch only records that the document reached schema 15.
         updated = true;
     }
     if settings.settings_schema_version < CURRENT_SETTINGS_SCHEMA_VERSION {

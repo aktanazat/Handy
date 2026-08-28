@@ -12,6 +12,7 @@ use crate::settings::{
     get_settings, vocabulary_initial_prompt, ModelUnloadTimeout, OrtAcceleratorSetting,
     TranscribeAcceleratorSetting,
 };
+use crate::snippets::apply_snippets;
 use anyhow::Result;
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
@@ -565,26 +566,115 @@ enum LoadedEngine {
     Cohere(CohereModel),
 }
 
-/// RAII guard that clears the `is_loading` flag and notifies waiters on drop.
-/// Ensures the loading flag is always reset, even on early returns or panics.
+/// The engine's transition state: how many model loads are in flight and
+/// whether an unload is running. One owner for both facts, so serialization
+/// (loaders wait for loaders) and status reporting (the UI shows a spinner)
+/// can never disagree.
+struct EngineTransition {
+    /// Nested load scopes. An outer scope may be opened by a queueing caller
+    /// (see [`TranscriptionManager::try_start_loading`]) before the inner load
+    /// boundary opens its own.
+    load_depth: Mutex<u32>,
+    load_idle: Condvar,
+    unloading: AtomicBool,
+}
+
+impl EngineTransition {
+    fn new() -> Self {
+        Self {
+            load_depth: Mutex::new(0),
+            load_idle: Condvar::new(),
+            unloading: AtomicBool::new(false),
+        }
+    }
+
+    /// Open a load scope unconditionally. Used at the real load boundary, which
+    /// may run inside a caller's scope.
+    fn begin_load(self: &Arc<Self>) -> LoadingGuard {
+        *lock_recover(&self.load_depth) += 1;
+        LoadingGuard {
+            transition: Arc::clone(self),
+        }
+    }
+
+    /// Open a load scope only when no load is running, so a caller can refuse
+    /// to queue a second one.
+    fn try_begin_load(self: &Arc<Self>) -> Option<LoadingGuard> {
+        let mut depth = lock_recover(&self.load_depth);
+        if *depth > 0 {
+            return None;
+        }
+        *depth = 1;
+        drop(depth);
+        Some(LoadingGuard {
+            transition: Arc::clone(self),
+        })
+    }
+
+    fn begin_unload(self: &Arc<Self>) -> UnloadingGuard {
+        self.unloading.store(true, Ordering::Release);
+        UnloadingGuard {
+            transition: Arc::clone(self),
+        }
+    }
+
+    fn loads_in_flight(&self) -> bool {
+        *lock_recover(&self.load_depth) > 0
+    }
+
+    /// Block until no load scope is open. Callers must not hold the engine
+    /// lease gate, or a queued loader could never finish.
+    fn wait_for_load_idle(&self) {
+        let mut depth = lock_recover(&self.load_depth);
+        while *depth > 0 {
+            depth = self
+                .load_idle
+                .wait(depth)
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+        }
+    }
+
+    /// True while the engine is being loaded or unloaded. An idle engine with
+    /// no model reports false, which is what "is the model loading" means.
+    fn in_progress(&self) -> bool {
+        self.loads_in_flight() || self.unloading.load(Ordering::Acquire)
+    }
+}
+
+/// RAII guard that closes one load scope and wakes waiters when the last scope
+/// closes. Ensures the load state is always released, even on early returns or
+/// panics.
 pub struct LoadingGuard {
-    is_loading: Arc<Mutex<bool>>,
-    loading_condvar: Arc<Condvar>,
+    transition: Arc<EngineTransition>,
 }
 
 impl Drop for LoadingGuard {
     fn drop(&mut self) {
-        // Recover from a poisoned mutex instead of panicking —
-        // a panic inside Drop calls abort().
-        let mut is_loading = match self.is_loading.lock() {
-            Ok(g) => g,
-            Err(e) => {
-                warn!("Recovered poisoned is_loading mutex during LoadingGuard drop — a panic occurred earlier this session");
-                e.into_inner()
+        // Recover from a poisoned mutex instead of panicking, because a panic
+        // inside Drop calls abort().
+        let mut depth = match self.transition.load_depth.lock() {
+            Ok(depth) => depth,
+            Err(poisoned) => {
+                warn!("Recovered poisoned load_depth mutex during LoadingGuard drop after an earlier panic this session");
+                poisoned.into_inner()
             }
         };
-        *is_loading = false;
-        self.loading_condvar.notify_all();
+        *depth = depth.saturating_sub(1);
+        if *depth == 0 {
+            self.transition.load_idle.notify_all();
+        }
+    }
+}
+
+/// RAII guard that clears the unloading flag on drop, so a failed or panicking
+/// unload cannot leave status stuck on "transitioning".
+pub struct UnloadingGuard {
+    transition: Arc<EngineTransition>,
+}
+
+impl Drop for UnloadingGuard {
+    fn drop(&mut self) {
+        self.transition.unloading.store(false, Ordering::Release);
     }
 }
 
@@ -641,8 +731,8 @@ pub struct TranscriptionManager {
     last_activity: Arc<AtomicU64>,
     shutdown_signal: Arc<AtomicBool>,
     watcher_handle: Arc<Mutex<Option<thread::JoinHandle<()>>>>,
-    is_loading: Arc<Mutex<bool>>,
-    loading_condvar: Arc<Condvar>,
+    /// Load and unload progress; see [`EngineTransition`].
+    transition: Arc<EngineTransition>,
     reload_model_on_next_use: Arc<AtomicBool>,
     /// Routes real-time audio frames to the active streaming worker; see
     /// [`StreamRouter`]. Shared with the audio recorder so per-frame feeds skip
@@ -693,8 +783,7 @@ impl TranscriptionManager {
             last_activity: Arc::new(AtomicU64::new(Self::now_ms())),
             shutdown_signal: Arc::new(AtomicBool::new(false)),
             watcher_handle: Arc::new(Mutex::new(None)),
-            is_loading: Arc::new(Mutex::new(false)),
-            loading_condvar: Arc::new(Condvar::new()),
+            transition: Arc::new(EngineTransition::new()),
             reload_model_on_next_use: Arc::new(AtomicBool::new(false)),
             router: Arc::new(StreamRouter::new()),
             stream_active: Arc::new(AtomicBool::new(false)),
@@ -807,27 +896,11 @@ impl TranscriptionManager {
     /// acquiring it so a queued loader cannot race a batch or stream owner.
     fn wait_for_load_then_lock_engine_lease(&self) -> MutexGuard<'_, ()> {
         loop {
-            {
-                let mut is_loading = self.is_loading.lock().unwrap_or_else(|poisoned| {
-                    warn!("Recovered poisoned is_loading mutex while acquiring engine lease");
-                    poisoned.into_inner()
-                });
-                while *is_loading {
-                    is_loading = self
-                        .loading_condvar
-                        .wait(is_loading)
-                        .unwrap_or_else(|poisoned| poisoned.into_inner());
-                }
-            }
+            self.transition.wait_for_load_idle();
             let lease = self.lock_engine_lease_gate();
-            let is_loading = self
-                .is_loading
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            if !*is_loading {
+            if !self.transition.loads_in_flight() {
                 return lease;
             }
-            drop(is_loading);
             drop(lease);
         }
     }
@@ -853,24 +926,22 @@ impl TranscriptionManager {
         self.reload_model_on_next_use.store(true, Ordering::Release);
     }
 
-    /// Atomically check whether a model load is in progress and, if not, mark
-    /// one as starting. Returns a [`LoadingGuard`] whose [`Drop`] impl will
-    /// clear the flag and wake waiters. Returns `None` if a load is already in
-    /// progress.
+    /// Open a load scope only when no load is in progress. Returns a
+    /// [`LoadingGuard`] whose [`Drop`] impl closes the scope and wakes waiters,
+    /// or `None` if a load is already running.
     pub fn try_start_loading(&self) -> Option<LoadingGuard> {
-        let mut is_loading = lock_recover(&self.is_loading);
-        if *is_loading {
-            return None;
-        }
-        *is_loading = true;
-        Some(LoadingGuard {
-            is_loading: self.is_loading.clone(),
-            loading_condvar: self.loading_condvar.clone(),
-        })
+        self.transition.try_begin_load()
+    }
+
+    /// True while the engine is loading or unloading a model. An idle engine
+    /// with no model loaded is not "loading".
+    pub fn is_model_loading(&self) -> bool {
+        self.transition.in_progress()
     }
 
     pub fn unload_model(&self) -> Result<()> {
         let _engine_lease = self.lock_engine_lease_gate();
+        let _unloading = self.transition.begin_unload();
         let unload_start = std::time::Instant::now();
         debug!("Starting to unload model");
 
@@ -1001,6 +1072,10 @@ impl TranscriptionManager {
         selected_gpu_device: Option<&str>,
         ort_accelerator: OrtAcceleratorSetting,
     ) -> Result<()> {
+        // Every load path funnels through here, so this is the one place that
+        // has to mark the engine as loading. Nested inside a caller's scope
+        // (see `initiate_model_load`) it just adds depth.
+        let _loading = self.transition.begin_load();
         apply_ort_accelerator(ort_accelerator);
 
         let load_start = std::time::Instant::now();
@@ -1241,10 +1316,9 @@ impl TranscriptionManager {
 
     /// Kicks off loading the exact model and runtime choices frozen for a run.
     pub fn initiate_model_load(&self, plan: &AsrPlan) {
-        let mut is_loading = lock_recover(&self.is_loading);
-        if *is_loading {
+        let Some(loading) = self.transition.try_begin_load() else {
             return;
-        }
+        };
 
         let reload_pending = self.reload_model_on_next_use.load(Ordering::Acquire);
         let loaded_for_plan = self.get_current_model().as_deref() == Some(plan.model_id.as_str());
@@ -1252,10 +1326,13 @@ impl TranscriptionManager {
             return;
         }
 
-        *is_loading = true;
         let self_clone = self.clone();
         let plan = plan.clone();
         thread::spawn(move || {
+            // Hold the scope opened above until this thread finishes, so a
+            // waiting stream or batch owner sees no gap between the decision to
+            // load and the load itself.
+            let _loading = loading;
             if reload_pending {
                 self_clone
                     .reload_model_on_next_use
@@ -1264,9 +1341,6 @@ impl TranscriptionManager {
             if let Err(e) = self_clone.load_model_for_plan(&plan) {
                 error!("Failed to load frozen run model: {}", e);
             }
-            let mut is_loading = lock_recover(&self_clone.is_loading);
-            *is_loading = false;
-            self_clone.loading_condvar.notify_all();
         });
     }
 
@@ -1483,18 +1557,8 @@ impl TranscriptionManager {
             stream_active: Arc::clone(&self.stream_active),
         };
 
-        // Wait for any in-progress model load to finish (start_stream races the
-        // background load kicked off when recording starts).
-        {
-            let mut is_loading = lock_recover(&self.is_loading);
-            while *is_loading {
-                is_loading = self
-                    .loading_condvar
-                    .wait(is_loading)
-                    .unwrap_or_else(|poisoned| poisoned.into_inner());
-            }
-        }
-
+        // start_stream races the background load kicked off when recording
+        // starts, so wait that load out before taking the engine.
         let _engine_lease = self.wait_for_load_then_lock_engine_lease();
         let model_id = asr.model_id.clone();
         if self.get_current_model().as_deref() != Some(model_id.as_str()) {
@@ -2759,6 +2823,11 @@ fn post_process_transcription_text(
         } else {
             apply_vocabulary_entries(&corrected, &asr.custom_words, asr.correction_threshold)
         };
+        let corrected = if asr.snippets_enabled {
+            apply_snippets(&corrected, &asr.snippets)
+        } else {
+            corrected
+        };
         let corrected = if asr.emoji_replacements_enabled {
             apply_emoji_replacements(&corrected, &asr.emoji_replacements)
         } else {
@@ -3183,6 +3252,74 @@ mod tests {
 
     fn languages(codes: &[&str]) -> Vec<String> {
         codes.iter().map(|code| (*code).to_string()).collect()
+    }
+
+    #[test]
+    fn engine_transition_reports_idle_when_nothing_is_loaded() {
+        let transition = Arc::new(EngineTransition::new());
+
+        // The bug this replaces: "no model loaded" was reported as "loading".
+        assert!(!transition.in_progress());
+    }
+
+    #[test]
+    fn engine_transition_refuses_a_second_queued_load_until_the_scope_closes() {
+        let transition = Arc::new(EngineTransition::new());
+
+        let first = transition.try_begin_load().expect("first load scope");
+        assert!(transition.in_progress());
+        assert!(transition.try_begin_load().is_none());
+
+        drop(first);
+        assert!(!transition.in_progress());
+        assert!(transition.try_begin_load().is_some());
+    }
+
+    #[test]
+    fn engine_transition_stays_in_progress_until_the_outer_load_scope_closes() {
+        let transition = Arc::new(EngineTransition::new());
+
+        let outer = transition.try_begin_load().expect("outer load scope");
+        let inner = transition.begin_load();
+        drop(inner);
+        assert!(transition.in_progress());
+
+        drop(outer);
+        assert!(!transition.in_progress());
+    }
+
+    #[test]
+    fn engine_transition_reports_unloading_and_clears_it_after_an_idle_unload() {
+        let transition = Arc::new(EngineTransition::new());
+
+        let unloading = transition.begin_unload();
+        assert!(transition.in_progress());
+        assert!(!transition.loads_in_flight());
+
+        drop(unloading);
+        assert!(!transition.in_progress());
+    }
+
+    #[test]
+    fn engine_transition_wakes_waiters_when_the_last_load_scope_closes() {
+        let transition = Arc::new(EngineTransition::new());
+        let loading = transition.begin_load();
+        let (started_tx, started_rx) = mpsc::channel();
+
+        let loader = {
+            let transition = Arc::clone(&transition);
+            thread::spawn(move || {
+                started_tx.send(()).expect("signal the waiter");
+                thread::sleep(Duration::from_millis(20));
+                drop(loading);
+                assert!(!transition.in_progress());
+            })
+        };
+
+        started_rx.recv().expect("loader started");
+        transition.wait_for_load_idle();
+        assert!(!transition.loads_in_flight());
+        loader.join().expect("loader finished");
     }
 
     #[cfg(feature = "cloud-realtime")]
@@ -3622,6 +3759,55 @@ mod tests {
                 &[],
             ),
             "const 🙂 = 1"
+        );
+    }
+
+    #[test]
+    fn snippets_expand_after_vocabulary_and_before_emoji_replacement() {
+        let settings = AppSettings {
+            custom_words: vec![VocabularyEntry {
+                spoken: "north star".to_string(),
+                written: "Northstar".to_string(),
+            }],
+            snippets: vec![crate::snippets::Snippet {
+                id: "one".to_string(),
+                trigger: "northstar".to_string(),
+                expansion: "the Northstar plan".to_string(),
+                enabled: true,
+                created_at: 0,
+                updated_at: 0,
+            }],
+            emoji_replacements: vec![EmojiReplacement {
+                spoken: "plan".to_string(),
+                written: "📋".to_string(),
+            }],
+            emoji_replacements_enabled: true,
+            filler_word_removal_enabled: false,
+            ..Default::default()
+        };
+
+        assert_eq!(
+            post_process_transcription_text(
+                "north star".to_string(),
+                &AsrPlan::from_settings(&settings),
+                false,
+                &OutputLanguageEvidence::Unknown,
+                &[],
+            ),
+            "the Northstar 📋"
+        );
+
+        let mut disabled = settings;
+        disabled.snippets_enabled = false;
+        assert_eq!(
+            post_process_transcription_text(
+                "north star".to_string(),
+                &AsrPlan::from_settings(&disabled),
+                false,
+                &OutputLanguageEvidence::Unknown,
+                &[],
+            ),
+            "Northstar"
         );
     }
 

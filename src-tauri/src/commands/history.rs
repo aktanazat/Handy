@@ -2,8 +2,8 @@ use crate::actions::process_transcription_output;
 use crate::analytics::DashboardTrendRequest;
 use crate::managers::{
     history::{
-        HistoryManager, HistorySourceKind, HistoryStats, HistoryTrendProjection, NewRunReceipt,
-        PaginatedHistory,
+        HistoryManager, HistorySourceKind, HistoryStats, HistoryStorageStatus,
+        HistoryTrendProjection, NewRunReceipt, PaginatedHistory,
     },
     transcription::TranscriptionManager,
 };
@@ -12,7 +12,7 @@ use std::fs::{self, File};
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 use std::sync::Arc;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 
 const HISTORY_AUDIO_CHUNK_BYTES: usize = 256 * 1024;
 const HISTORY_AUDIO_CHUNK_BYTES_U64: u64 = 256 * 1024;
@@ -108,6 +108,14 @@ pub async fn get_history_stats(
         .get_history_stats()
         .await
         .map_err(|error| error!("Failed to read history statistics: {error:#}"))
+}
+
+/// Whether dictation history is encrypted at rest. Reads in-memory state, so it
+/// answers while the database itself is locked or degraded.
+#[tauri::command]
+#[specta::specta]
+pub fn history_storage_status(app: AppHandle) -> HistoryStorageStatus {
+    app.state::<Arc<HistoryManager>>().storage_status()
 }
 
 #[tauri::command]

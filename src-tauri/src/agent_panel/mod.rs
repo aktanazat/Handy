@@ -1343,6 +1343,23 @@ pub async fn agent_panel_public_identity(
     manager.public_identity().await
 }
 
+/// The panel's lifecycle owner also owns the switch that turns it off:
+/// disabling closes an attached panel instead of leaving a window whose
+/// commands would all be refused.
+#[tauri::command]
+#[specta::specta]
+pub fn change_agent_panel_enabled_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    crate::settings::update_settings(&app, |settings| {
+        settings.agent_panel_enabled = enabled;
+    });
+    if !enabled {
+        if let Some(manager) = app.try_state::<AgentPanelManager>() {
+            manager.close();
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

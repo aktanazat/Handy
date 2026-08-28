@@ -7,8 +7,12 @@ use crate::cloud_sync::types::{
 };
 use crate::cloud_sync::{CloudSyncErrorKind, CloudSyncRuntime};
 use crate::meeting::types::MeetingSessionId;
+use crate::settings::{is_loopback_host, CloudSyncSettings};
+use reqwest::Url;
+use serde::{Deserialize, Serialize};
+use specta::Type;
 use std::sync::Arc;
-use tauri::State;
+use tauri::{AppHandle, State};
 
 #[tauri::command]
 #[specta::specta]
@@ -184,4 +188,154 @@ pub async fn cloud_share_import_file(
         .share_import(request)
         .await
         .map_err(|error| error.kind())
+}
+
+/// Whether this installation actually has a cloud-sync service to talk to.
+/// Derived only from stored settings: this reads no network and starts no
+/// sync work, so the UI can hide destructive setup actions on a device that
+/// was never bootstrapped.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct CloudSyncServiceStatus {
+    pub configured: bool,
+    pub endpoint: Option<String>,
+    pub reason: String,
+}
+
+fn service_status(settings: &CloudSyncSettings, portable_mode: bool) -> CloudSyncServiceStatus {
+    let unconfigured = |endpoint: Option<String>, reason: &str| CloudSyncServiceStatus {
+        configured: false,
+        endpoint,
+        reason: reason.to_string(),
+    };
+
+    if portable_mode {
+        return unconfigured(None, "Cloud sync is unavailable in portable mode");
+    }
+    let endpoint = match settings.endpoint() {
+        Ok(Some(endpoint)) => endpoint,
+        Ok(None) => return unconfigured(None, "No cloud sync endpoint is configured"),
+        Err(error) => return unconfigured(None, &error.to_string()),
+    };
+    let host_is_local = Url::parse(&endpoint)
+        .ok()
+        .and_then(|url| url.host_str().map(is_loopback_host))
+        .unwrap_or(false);
+    if host_is_local {
+        return unconfigured(
+            Some(endpoint),
+            "The configured endpoint is on this machine, so there is no cloud service to sync with",
+        );
+    }
+    if !settings.enabled {
+        return unconfigured(
+            Some(endpoint),
+            "Cloud sync setup has not finished on this device",
+        );
+    }
+    if !settings.has_current_consent() {
+        return unconfigured(
+            Some(endpoint),
+            "Cloud sync is waiting for the current transfer disclosure to be accepted",
+        );
+    }
+
+    CloudSyncServiceStatus {
+        configured: true,
+        endpoint: Some(endpoint),
+        reason: "Cloud sync is set up for this device".to_string(),
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn cloud_sync_service_status(app: AppHandle) -> CloudSyncServiceStatus {
+    let settings = crate::settings::get_settings(&app).cloud_sync;
+    service_status(&settings, crate::portable::is_portable())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::settings::CLOUD_SYNC_CONSENT_VERSION;
+
+    fn bootstrapped(endpoint: &str) -> CloudSyncSettings {
+        CloudSyncSettings {
+            enabled: true,
+            paused: false,
+            consent_version: Some(CLOUD_SYNC_CONSENT_VERSION),
+            endpoint: Some(endpoint.to_string()),
+        }
+    }
+
+    #[test]
+    fn a_bootstrapped_remote_endpoint_is_configured() {
+        let status = service_status(&bootstrapped("https://sync.example.test/v1"), false);
+
+        assert!(status.configured);
+        assert_eq!(
+            status.endpoint.as_deref(),
+            Some("https://sync.example.test/v1")
+        );
+    }
+
+    #[test]
+    fn a_store_without_an_endpoint_is_not_configured() {
+        let status = service_status(&CloudSyncSettings::default(), false);
+
+        assert!(!status.configured);
+        assert!(status.endpoint.is_none());
+        assert!(status.reason.contains("No cloud sync endpoint"));
+    }
+
+    #[test]
+    fn a_loopback_endpoint_is_not_a_cloud_service() {
+        for endpoint in ["https://localhost/v1", "https://127.0.0.1/v1"] {
+            let status = service_status(&bootstrapped(endpoint), false);
+
+            assert!(!status.configured, "{endpoint} must not count as cloud");
+            assert_eq!(status.endpoint.as_deref(), Some(endpoint));
+        }
+    }
+
+    #[test]
+    fn an_unfinished_bootstrap_is_not_configured() {
+        let mut settings = bootstrapped("https://sync.example.test/v1");
+        settings.enabled = false;
+
+        let status = service_status(&settings, false);
+
+        assert!(!status.configured);
+        assert!(status.reason.contains("setup has not finished"));
+    }
+
+    #[test]
+    fn a_stale_consent_is_not_configured() {
+        let mut settings = bootstrapped("https://sync.example.test/v1");
+        settings.consent_version = None;
+
+        let status = service_status(&settings, false);
+
+        assert!(!status.configured);
+        assert!(status.reason.contains("disclosure"));
+    }
+
+    #[test]
+    fn an_unusable_endpoint_reports_why() {
+        let mut settings = bootstrapped("http://sync.example.test/v1");
+        settings.enabled = true;
+
+        let status = service_status(&settings, false);
+
+        assert!(!status.configured);
+        assert!(status.endpoint.is_none());
+        assert!(status.reason.contains("HTTPS"));
+    }
+
+    #[test]
+    fn portable_installs_have_no_cloud_service() {
+        let status = service_status(&bootstrapped("https://sync.example.test/v1"), true);
+
+        assert!(!status.configured);
+        assert!(status.reason.contains("portable"));
+    }
 }

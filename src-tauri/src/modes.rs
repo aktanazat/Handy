@@ -5,6 +5,7 @@ use crate::settings::{
     OrtAcceleratorSetting, PasteMethod, PostProcessEndpoint, PostProcessProvider, ShortcutBinding,
     TranscribeAcceleratorSetting, TypingTool, VocabularyEntry,
 };
+use crate::snippets::Snippet;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::collections::HashSet;
@@ -1102,6 +1103,8 @@ pub struct AsrPlan {
     pub custom_words: Vec<VocabularyEntry>,
     pub emoji_replacements: Vec<EmojiReplacement>,
     pub emoji_replacements_enabled: bool,
+    pub snippets: Vec<Snippet>,
+    pub snippets_enabled: bool,
     pub correction_threshold: f64,
     pub filler_word_removal_enabled: bool,
     pub custom_filler_words: Option<Vec<String>>,
@@ -1122,6 +1125,8 @@ impl AsrPlan {
             custom_words: effective_vocabulary(&settings.custom_words, &mode.custom_words),
             emoji_replacements: settings.emoji_replacements.clone(),
             emoji_replacements_enabled: settings.emoji_replacements_enabled,
+            snippets: settings.snippets.clone(),
+            snippets_enabled: settings.snippets_enabled,
             correction_threshold: settings.word_correction_threshold,
             filler_word_removal_enabled: mode.filler_word_removal_enabled,
             custom_filler_words: mode.custom_filler_words.clone(),
@@ -1142,6 +1147,8 @@ impl AsrPlan {
             custom_words: settings.custom_words.clone(),
             emoji_replacements: settings.emoji_replacements.clone(),
             emoji_replacements_enabled: settings.emoji_replacements_enabled,
+            snippets: settings.snippets.clone(),
+            snippets_enabled: settings.snippets_enabled,
             correction_threshold: settings.word_correction_threshold,
             filler_word_removal_enabled: settings.filler_word_removal_enabled,
             custom_filler_words: settings.custom_filler_words.clone(),

@@ -214,11 +214,11 @@ pub fn apply_exact_vocabulary_entries(text: &str, entries: &[VocabularyEntry]) -
     apply_vocabulary_entries(text, entries, f64::EPSILON)
 }
 
-fn is_token_character(character: char) -> bool {
+pub(crate) fn is_token_character(character: char) -> bool {
     character.is_alphanumeric() || character == '_'
 }
 
-fn has_token_boundaries(text: &str, start: usize, end: usize) -> bool {
+pub(crate) fn has_token_boundaries(text: &str, start: usize, end: usize) -> bool {
     let before = text[..start].chars().next_back();
     let after = text[end..].chars().next();
     before.is_none_or(|character| !is_token_character(character))

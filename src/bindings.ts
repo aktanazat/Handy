@@ -217,6 +217,19 @@ async agentPanelPublicIdentity() : Promise<Result<AgentPanelPublicIdentityV1, Ag
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * The panel's lifecycle owner also owns the switch that turns it off:
+ * disabling closes an attached panel instead of leaving a window whose
+ * commands would all be refused.
+ */
+async changeAgentPanelEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_agent_panel_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getModes() : Promise<ModeSettingsSnapshot> {
     return await TAURI_INVOKE("get_modes");
 },
@@ -358,6 +371,52 @@ async updateEmojiReplacementsEnabled(enabled: boolean) : Promise<Result<null, st
 async addVocabularyCorrection(spoken: string, written: string, scope: VocabularyScope) : Promise<Result<VocabularyEntry, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("add_vocabulary_correction", { spoken, written, scope }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async listSnippets() : Promise<Result<Snippet[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_snippets") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async upsertSnippet(snippet: Snippet) : Promise<Result<Snippet[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("upsert_snippet", { snippet }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async deleteSnippet(snippetId: string) : Promise<Result<Snippet[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("delete_snippet", { snippetId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Toggle one snippet. The master switch is `set_snippets_enabled`.
+ */
+async setSnippetEnabled(snippetId: string, enabled: boolean) : Promise<Result<Snippet[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_snippet_enabled", { snippetId, enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * The master switch: stops snippet expansion without editing the list.
+ */
+async setSnippetsEnabled(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_snippets_enabled", { enabled }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -1356,6 +1415,13 @@ async updateRecordingRetentionPeriod(period: string) : Promise<Result<null, stri
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * Whether dictation history is encrypted at rest. Reads in-memory state, so it
+ * answers while the database itself is locked or degraded.
+ */
+async historyStorageStatus() : Promise<HistoryStorageStatus> {
+    return await TAURI_INVOKE("history_storage_status");
+},
 async meetingSuggestionsList() : Promise<MeetingSuggestion[]> {
     return await TAURI_INVOKE("meeting_suggestions_list");
 },
@@ -1723,6 +1789,31 @@ async cloudShareImportFile(request: CloudShareImportRequest) : Promise<Result<Cl
     else return { status: "error", error: e  as any };
 }
 },
+async cloudSyncServiceStatus() : Promise<CloudSyncServiceStatus> {
+    return await TAURI_INVOKE("cloud_sync_service_status");
+},
+/**
+ * Ask GitHub for the latest published release. This never downloads or
+ * installs anything, a repository with no releases yet is reported as up to
+ * date rather than as a failure, and nothing leaves the device while the user
+ * keeps update checks turned off.
+ */
+async checkForUpdates() : Promise<Result<UpdateCheckResult, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("check_for_updates") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeUpdateCheckEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_update_check_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 /**
  * Checks if the Mac is a laptop by detecting battery presence
  *
@@ -1964,6 +2055,15 @@ context_url_capture_enabled?: boolean;
  */
 agent_bridge?: AgentBridgeSettings;
 /**
+ * User text expansions applied after vocabulary correction.
+ */
+snippets?: Snippet[]; snippets_enabled?: boolean;
+/**
+ * Whether the app may ask GitHub for the latest published release. No
+ * update is ever installed automatically.
+ */
+update_check_enabled?: boolean;
+/**
  * Attached-panel relay configuration. This contains routing and public-key
  * material only; the panel signing seed remains in SecretManager.
  */
@@ -2033,6 +2133,13 @@ export type CloudSyncChangedPayload = { event_schema_version: number; session_id
 export type CloudSyncErrorKind = "portable_unavailable" | "secret_unavailable" | "setup_required" | "auth_required" | "quota" | "integrity_failure" | "conflict" | "unsupported_protocol" | "transient"
 export type CloudSyncOverview = { enabled: boolean; portable_mode: boolean; paused: boolean; queued_objects: number; pending_deletions: number; terminal_error: CloudSyncErrorKind | null }
 export type CloudSyncRecoveryRequest = { endpoint: string; recovery_code: string }
+/**
+ * Whether this installation actually has a cloud-sync service to talk to.
+ * Derived only from stored settings: this reads no network and starts no
+ * sync work, so the UI can hide destructive setup actions on a device that
+ * was never bootstrapped.
+ */
+export type CloudSyncServiceStatus = { configured: boolean; endpoint: string | null; reason: string }
 /**
  * Persisted cloud-sync intent only. Cryptographic material, vault identifiers,
  * device identifiers, and sync cursors remain outside the settings store.
@@ -2210,6 +2317,11 @@ export type HistoryStats = { entries: number; total_duration_ms: number; total_w
  * have no source because Sona does not invent provenance during migration.
  */
 export type HistoryStatsBySource = { source_kind: HistorySourceKind | null; entries: number; total_duration_ms: number; total_words: number }
+/**
+ * Whether dictation history is encrypted at rest, and why not when it is not.
+ * `migrated_at` is the moment encryption was established for this file.
+ */
+export type HistoryStorageStatus = { encrypted: boolean; migrated_at: number | null; reason: string | null }
 /**
  * One local-calendar day in the history trend. Every requested date is
  * present, including dates with zero recordings.
@@ -2517,6 +2629,11 @@ uncovered_bindings: string[];
  */
 recorder_blocked: boolean }
 export type ShortcutBinding = { id: string; name: string; description: string; default_binding: string; current_binding: string }
+/**
+ * A user-authored text expansion. The trigger is matched on whole words after
+ * vocabulary correction; the expansion is inserted verbatim.
+ */
+export type Snippet = { id: string; trigger: string; expansion: string; enabled: boolean; created_at: number; updated_at: number }
 export type SonaAgentChatRoleV1 = "user" | "assistant"
 export type SonaAgentChatTurnV1 = { role: SonaAgentChatRoleV1; message: string }
 export type SonaConfirmationClassV1 = "automatic" | "review" | "explicit"
@@ -2587,6 +2704,17 @@ export type TranscriptRevisionId = string
 export type TranscriptSegment = { segment_id: TranscriptSegmentId; transcript_revision_id: TranscriptRevisionId; track_id: SourceTrackId; ordinal: number; start_offset_ns: number; end_offset_ns: number; speaker_id: SpeakerId; text: string; confidence_milli: number | null }
 export type TranscriptSegmentId = string
 export type TypingTool = "auto" | "wtype" | "kwtype" | "dotool" | "ydotool" | "xdotool"
+/**
+ * The result of one manual update check. A failed check is reported in
+ * `status` and `error` rather than as a command error, so the UI can show the
+ * current version either way.
+ */
+export type UpdateCheckResult = { current_version: string; latest_version: string | null; update_available: boolean; url: string | null; notes_excerpt: string | null; published_at_utc_ms: number | null; status: UpdateCheckStatus; error: string | null }
+export type UpdateCheckStatus = "up_to_date" | "update_available" | "check_failed" |
+/**
+ * The user turned update checks off, so nothing was requested.
+ */
+"disabled"
 export type UpstreamAppState = "closed" | "running" | "unverifiable"
 export type UpstreamImportError = "source_unavailable" | "upstream_running" | "app_state_unverifiable" | "invalid_selection" | "settings_unreadable" | "settings_backup_write_failed" | "settings_backup_unreadable" | "settings_not_imported" | "secret_store_unavailable" | "secret_conflict" | "history_unreadable" | "recording_copy_failed" | "receipt_write_failed" | "internal"
 export type UpstreamImportPhase = "settings" | "history" | "recordings"

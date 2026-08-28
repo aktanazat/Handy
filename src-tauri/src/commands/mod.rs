@@ -4,7 +4,9 @@ pub mod history;
 pub mod media_import;
 pub mod meeting;
 pub mod models;
+pub mod snippets;
 pub mod transcription;
+pub mod updates;
 pub mod vocabulary;
 
 use crate::settings::{get_settings, update_settings, AppSettings, LogLevel};

@@ -12,8 +12,19 @@ use specta::Type;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 use tauri_specta::Event;
+
+mod storage;
+
+use storage::HistoryStorage;
+pub use storage::HistoryStorageStatus;
+
+/// Emitted after the startup unlock decides whether history is encrypted at
+/// rest. The payload is [`HistoryStorageStatus`]; a listener that gets a
+/// non-encrypted or locked status should surface the degraded state, and one
+/// that was refused a read while locked should retry.
+pub const HISTORY_STORAGE_EVENT: &str = "history-storage-changed";
 
 /// Database migrations for transcription history.
 /// Each migration is applied in order. The library tracks which migrations
@@ -486,7 +497,7 @@ pub(crate) enum UpstreamHistoryImportOutcome {
 pub struct HistoryManager {
     app_handle: AppHandle,
     recordings_dir: PathBuf,
-    db_path: PathBuf,
+    storage: HistoryStorage,
 }
 
 impl HistoryManager {
@@ -494,7 +505,7 @@ impl HistoryManager {
         // Create recordings directory in app data dir
         let app_data_dir = crate::portable::app_data_dir(app_handle)?;
         let recordings_dir = app_data_dir.join("recordings");
-        let db_path = app_data_dir.join("history.db");
+        let storage = HistoryStorage::at_startup(app_data_dir.join("history.db"));
 
         // Ensure recordings directory exists
         if !recordings_dir.exists() {
@@ -505,19 +516,45 @@ impl HistoryManager {
         let manager = Self {
             app_handle: app_handle.clone(),
             recordings_dir,
-            db_path,
+            storage,
         };
 
-        // Initialize database and run migrations synchronously
-        manager.init_database()?;
+        // Initialize database and run migrations synchronously, unless the file
+        // is encrypted and still waiting for its key. `unlock_storage` runs
+        // migrations for that one, off the startup critical path.
+        if manager.storage.is_ready() {
+            manager.init_database()?;
+        }
 
         Ok(manager)
     }
 
-    fn init_database(&self) -> Result<()> {
-        info!("Initializing database at {:?}", self.db_path);
+    /// Resolve the storage key, encrypt the database if it is still plaintext,
+    /// and bring the schema to the latest migration. Called once, after the
+    /// window is up, because reading the OS credential store can block behind a
+    /// system prompt.
+    pub async fn unlock_storage(&self, secrets: &crate::secrets::SecretManager) {
+        let status = self
+            .storage
+            .unlock(secrets, Utc::now().timestamp_millis())
+            .await;
+        if let Err(error) = self.init_database() {
+            error!("History database is unavailable: {error:#}");
+        }
+        if let Err(error) = self.app_handle.emit(HISTORY_STORAGE_EVENT, &status) {
+            error!("Failed to emit {HISTORY_STORAGE_EVENT} event: {error}");
+        }
+    }
 
-        let mut conn = Connection::open(&self.db_path)?;
+    /// Whether dictation history is encrypted at rest right now.
+    pub fn storage_status(&self) -> HistoryStorageStatus {
+        self.storage.status()
+    }
+
+    fn init_database(&self) -> Result<()> {
+        info!("Initializing database at {:?}", self.storage.path());
+
+        let mut conn = self.storage.connect()?;
 
         // Handle migration from tauri-plugin-sql to rusqlite_migration
         // tauri-plugin-sql used _sqlx_migrations table, rusqlite_migration uses user_version pragma
@@ -614,7 +651,7 @@ impl HistoryManager {
     }
 
     fn get_connection(&self) -> Result<Connection> {
-        Ok(Connection::open(&self.db_path)?)
+        self.storage.connect()
     }
 
     fn map_history_entry(row: &rusqlite::Row<'_>) -> rusqlite::Result<HistoryEntry> {

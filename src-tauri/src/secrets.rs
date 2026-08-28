@@ -64,6 +64,12 @@ impl SecretAccount {
         }
     }
 
+    pub(crate) fn history_storage() -> Self {
+        Self {
+            account: "history_storage/database-key-v1".to_string(),
+        }
+    }
+
     pub(crate) fn agent_panel_signing_seed() -> Self {
         Self {
             account: "agent_panel/signing-seed-v1".to_string(),
@@ -120,6 +126,17 @@ impl MeetingStorageKey {
     }
 }
 
+/// An opaque SQLCipher key for the dictation history database. It is a distinct
+/// type from [`MeetingStorageKey`] so one database's key can never open the
+/// other by accident.
+pub(crate) struct HistoryStorageKey(Zeroizing<[u8; 32]>);
+
+impl HistoryStorageKey {
+    pub(crate) fn as_bytes(&self) -> &[u8; 32] {
+        &self.0
+    }
+}
+
 /// The agent panel's Ed25519 seed. It stays opaque to callers so neither the
 /// Tauri command surface nor logging can expose signing material.
 pub(crate) struct AgentPanelSigningSeed(Zeroizing<[u8; 32]>);
@@ -164,6 +181,12 @@ fn decode_meeting_storage_key(
     stored: SecretValue,
 ) -> Result<MeetingStorageKey, SecretResolveError> {
     Ok(MeetingStorageKey(decode_fixed_size_secret(stored)?))
+}
+
+fn decode_history_storage_key(
+    stored: SecretValue,
+) -> Result<HistoryStorageKey, SecretResolveError> {
+    Ok(HistoryStorageKey(decode_fixed_size_secret(stored)?))
 }
 
 pub(crate) enum SecretRead {
@@ -695,12 +718,14 @@ impl SecretManager {
             .map_err(SecretResolveError::Store)
     }
 
-    /// Resolve the one native-store key used to open the SQLCipher meeting
-    /// database. The key is created once under the manager's serialized native
-    /// operation lock, then read back before it is returned.
-    pub(crate) async fn meeting_storage_key(
+    /// Resolve one 32-byte native-store key, creating it on first use. Creation,
+    /// storage, and read-back verification happen under the manager's serialized
+    /// native operation lock, so concurrent first use cannot replace a key that
+    /// already encrypts a database.
+    async fn database_key_secret(
         &self,
-    ) -> Result<MeetingStorageKey, SecretResolveError> {
+        account: SecretAccount,
+    ) -> Result<SecretValue, SecretResolveError> {
         if self.migration_is_pending() {
             return Err(SecretResolveError::Store(SecretStoreError::new(
                 SecretErrorKind::Unavailable,
@@ -710,31 +735,46 @@ impl SecretManager {
             return Err(SecretResolveError::Store(error));
         }
 
-        let mut generated = Zeroizing::new([0_u8; 32]);
-        getrandom::fill(&mut *generated).map_err(|_| {
-            SecretResolveError::Store(SecretStoreError::new(SecretErrorKind::Backend))
-        })?;
-        let encoded = Zeroizing::new(hex::encode(*generated));
-        let account = SecretAccount::meeting_storage();
-        let stored = self
-            .run_blocking(move |backend| match backend.read(account.as_str())? {
-                SecretRead::Found(existing) => Ok(existing),
-                SecretRead::NotFound => {
-                    backend.write(account.as_str(), encoded.as_str())?;
-                    match backend.read(account.as_str())? {
-                        SecretRead::Found(stored) if stored.expose() == encoded.as_str() => {
-                            Ok(stored)
-                        }
-                        SecretRead::Found(_) | SecretRead::NotFound => {
-                            Err(SecretStoreError::new(SecretErrorKind::Corrupt))
-                        }
+        self.run_blocking(move |backend| match backend.read(account.as_str())? {
+            SecretRead::Found(existing) => Ok(existing),
+            SecretRead::NotFound => {
+                let mut generated = Zeroizing::new([0_u8; 32]);
+                getrandom::fill(&mut *generated)
+                    .map_err(|_| SecretStoreError::new(SecretErrorKind::Backend))?;
+                let encoded = Zeroizing::new(hex::encode(*generated));
+                backend.write(account.as_str(), encoded.as_str())?;
+                match backend.read(account.as_str())? {
+                    SecretRead::Found(stored) if stored.expose() == encoded.as_str() => Ok(stored),
+                    SecretRead::Found(_) | SecretRead::NotFound => {
+                        Err(SecretStoreError::new(SecretErrorKind::Corrupt))
                     }
                 }
-            })
-            .await
-            .map_err(SecretResolveError::Store)?;
+            }
+        })
+        .await
+        .map_err(SecretResolveError::Store)
+    }
 
+    /// Resolve the one native-store key used to open the SQLCipher meeting
+    /// database.
+    pub(crate) async fn meeting_storage_key(
+        &self,
+    ) -> Result<MeetingStorageKey, SecretResolveError> {
+        let stored = self
+            .database_key_secret(SecretAccount::meeting_storage())
+            .await?;
         decode_meeting_storage_key(stored)
+    }
+
+    /// Resolve the one native-store key used to open the SQLCipher dictation
+    /// history database.
+    pub(crate) async fn history_storage_key(
+        &self,
+    ) -> Result<HistoryStorageKey, SecretResolveError> {
+        let stored = self
+            .database_key_secret(SecretAccount::history_storage())
+            .await?;
+        decode_history_storage_key(stored)
     }
 
     /// Resolve the dedicated Ed25519 seed used by the attached agent panel.

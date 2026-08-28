@@ -39,6 +39,7 @@ mod secure_input;
 mod settings;
 mod shortcut;
 mod signal_handle;
+mod snippets;
 mod transcription_coordinator;
 mod tray;
 mod tray_i18n;
@@ -396,9 +397,9 @@ fn initialize_core_logic(app_handle: &AppHandle) -> anyhow::Result<()> {
     ));
     meeting_manager.set_source_provider(production_source_provider(Arc::clone(&recording_manager)));
     meeting_manager.set_transcription_manager(Arc::clone(&transcription_manager));
-    if let Err(error) = tauri::async_runtime::block_on(meeting_manager.recover_at_startup()) {
-        log::warn!("Meeting recovery is unavailable at startup: {error:?}");
-    }
+    // Meeting storage opens with a key from the OS credential store, and that
+    // read can block behind a system prompt. Recovery therefore runs off the
+    // startup path, below, once state is registered.
     let cloud_runtime = Arc::new(cloud_sync::CloudSyncRuntime::new(
         app_handle.clone(),
         Arc::clone(&meeting_manager),
@@ -420,8 +421,18 @@ fn initialize_core_logic(app_handle: &AppHandle) -> anyhow::Result<()> {
     app_handle.manage(media_import_manager.clone());
     app_handle.manage(Arc::clone(&meeting_manager));
     app_handle.manage(Arc::clone(&cloud_runtime));
-    cloud_runtime.start();
-    meeting_manager.start_retention_sweeper();
+    // Ordering preserved from the former synchronous startup: recovery opens the
+    // store, then the cloud runtime claims its outbox, then the retention
+    // sweeper starts. Nothing before the window paint waits on any of it.
+    let recovery_meetings = Arc::clone(&meeting_manager);
+    let recovery_cloud = Arc::clone(&cloud_runtime);
+    tauri::async_runtime::spawn(async move {
+        if let Err(error) = recovery_meetings.recover_at_startup().await {
+            log::warn!("Meeting recovery is unavailable at startup: {error:?}");
+        }
+        recovery_cloud.start();
+        recovery_meetings.start_retention_sweeper();
+    });
     match agent_bridge::AgentBridgeManager::new(app_handle) {
         Ok(manager) => {
             if let Err(error) = manager.reconcile() {
@@ -1029,6 +1040,7 @@ pub fn run(cli_args: CliArgs) {
             agent_panel::agent_panel_apply_change,
             agent_panel::agent_panel_undo_change,
             agent_panel::agent_panel_public_identity,
+            agent_panel::change_agent_panel_enabled_setting,
             modes::get_modes,
             modes::set_active_mode,
             modes::upsert_mode,
@@ -1046,6 +1058,11 @@ pub fn run(cli_args: CliArgs) {
             commands::vocabulary::update_emoji_replacements,
             commands::vocabulary::update_emoji_replacements_enabled,
             commands::vocabulary::add_vocabulary_correction,
+            commands::snippets::list_snippets,
+            commands::snippets::upsert_snippet,
+            commands::snippets::delete_snippet,
+            commands::snippets::set_snippet_enabled,
+            commands::snippets::set_snippets_enabled,
             settings::change_context_policy_ceiling_setting,
             settings::change_context_url_capture_enabled_setting,
             settings::accept_cloud_stt_provider_consent,
@@ -1172,6 +1189,7 @@ pub fn run(cli_args: CliArgs) {
             commands::history::retry_history_entry_transcription,
             commands::history::update_history_limit,
             commands::history::update_recording_retention_period,
+            commands::history::history_storage_status,
             commands::meeting::meeting_suggestions_list,
             commands::meeting::meeting_preflight_create,
             commands::meeting::meeting_preflight_refresh,
@@ -1218,6 +1236,9 @@ pub fn run(cli_args: CliArgs) {
             commands::cloud_sync::cloud_browser_share_create,
             commands::cloud_sync::cloud_share_revoke,
             commands::cloud_sync::cloud_share_import_file,
+            commands::cloud_sync::cloud_sync_service_status,
+            commands::updates::check_for_updates,
+            commands::updates::change_update_check_enabled_setting,
             helpers::clamshell::is_laptop,
         ])
         .events(collect_events![
@@ -1566,6 +1587,19 @@ pub fn run(cli_args: CliArgs) {
             if should_force_show || !should_hide || !tray_available || opened_audio_queued {
                 show_main_window(&app_handle);
             }
+
+            // Last, and only now: the dictation history database resolves its
+            // encryption key. The read can surface an OS credential prompt, and
+            // a prompt raised before the window exists is invisible, which froze
+            // startup with no way forward. Every history query either waits out
+            // this task or reports a locked database, and the resulting state is
+            // readable through the `history_storage_status` command and the
+            // `history-storage-changed` event.
+            let unlock_history = Arc::clone(&app_handle.state::<Arc<HistoryManager>>());
+            let unlock_secrets = Arc::clone(&app_handle.state::<Arc<secrets::SecretManager>>());
+            tauri::async_runtime::spawn(async move {
+                unlock_history.unlock_storage(&unlock_secrets).await;
+            });
 
             Ok(())
         })
