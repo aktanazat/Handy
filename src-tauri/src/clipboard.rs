@@ -5,15 +5,18 @@ use crate::settings::TypingTool;
 use crate::settings::{AutoSubmitKey, PasteMethod};
 use enigo::{Direction, Enigo, Key, Keyboard};
 use log::info;
-use std::process::Command;
+use std::fs;
+use std::io::Write;
+use std::path::Path;
+use std::process::{Child, Command, ExitStatus, Stdio};
 #[cfg(target_os = "linux")]
 use std::sync::OnceLock;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tauri::{AppHandle, Manager};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 
 #[cfg(target_os = "linux")]
-use crate::utils::{is_kde_wayland, is_wayland};
+use crate::utils::{is_gnome_wayland, is_kde_wayland, is_wayland};
 
 fn with_enigo<T>(
     app_handle: &AppHandle,
@@ -47,9 +50,11 @@ pub(crate) fn write_text_to_clipboard(app_handle: &AppHandle, text: &str) -> Res
 #[cfg(target_os = "linux")]
 fn try_send_key_combo_linux(paste_method: &PasteMethod) -> Result<bool, String> {
     if is_wayland() {
-        // Wayland: prefer wtype (but not on KDE), then dotool, then ydotool
-        // Note: wtype doesn't work on KDE (no zwp_virtual_keyboard_manager_v1 support)
-        if !is_kde_wayland() && is_wtype_available() {
+        // Wayland: prefer wtype, then dotool, then ydotool. wtype needs the
+        // zwp_virtual_keyboard_manager_v1 protocol, which neither KWin (KDE)
+        // nor Mutter (GNOME) implements, so on those it fails and the cascade
+        // has to fall through instead of propagating the error.
+        if !is_kde_wayland() && !is_gnome_wayland() && is_wtype_available() {
             info!("Using wtype for key combo");
             send_key_combo_via_wtype(paste_method)?;
             return Ok(true);
@@ -128,9 +133,9 @@ fn try_direct_typing_linux(text: &str, preferred_tool: TypingTool) -> Result<boo
             type_text_via_kwtype(text)?;
             return Ok(true);
         }
-        // Wayland: prefer wtype, then dotool, then ydotool
-        // Note: wtype doesn't work on KDE (no zwp_virtual_keyboard_manager_v1 support)
-        if !is_kde_wayland() && is_wtype_available() {
+        // Wayland: prefer wtype, then dotool, then ydotool. Skipped on KDE and
+        // GNOME for the same missing virtual-keyboard protocol as above.
+        if !is_kde_wayland() && !is_gnome_wayland() && is_wtype_available() {
             info!("Using wtype for direct text input");
             type_text_via_wtype(text)?;
             return Ok(true);
@@ -598,28 +603,181 @@ fn send_key_combo_via_xdotool(paste_method: &PasteMethod) -> Result<(), String> 
     Ok(())
 }
 
+/// How long an external delivery script may run before Sona gives up on it.
+/// Delivery sits on the user's critical path, so a script that has not
+/// finished pasting by now is wedged; waiting longer only hides the failure.
+const EXTERNAL_SCRIPT_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// How often the delivery thread checks whether the script has exited.
+const EXTERNAL_SCRIPT_POLL: Duration = Duration::from_millis(10);
+
+/// Why an external delivery script did not deliver.
+#[derive(Debug)]
+enum ExternalScriptError {
+    /// Refused before the script ran, so nothing reached the target and the
+    /// caller may still try another route.
+    Refused(String),
+    /// The script ran. Whether it pasted before failing is unknowable, so this
+    /// is never retried.
+    Failed(String),
+}
+
 /// Pastes text by invoking an external script.
-/// The script receives the text to paste as a single argument.
-fn paste_via_external_script(text: &str, script_path: &str) -> Result<(), String> {
+///
+/// The script receives the text on stdin. It is never passed on the command
+/// line, where any local process can read it out of the process table, and
+/// never through a shell, which would make the transcript executable text.
+fn paste_via_external_script(text: &str, script_path: &str) -> Result<(), ExternalScriptError> {
+    run_external_script(text, script_path, EXTERNAL_SCRIPT_TIMEOUT)
+}
+
+fn run_external_script(
+    text: &str,
+    script_path: &str,
+    timeout: Duration,
+) -> Result<(), ExternalScriptError> {
+    verify_external_script(Path::new(script_path)).map_err(ExternalScriptError::Refused)?;
     info!("Pasting via external script: {}", script_path);
 
-    let output = Command::new(script_path)
-        .arg(text)
-        .output()
-        .map_err(|e| format!("Failed to execute external script '{}': {}", script_path, e))?;
+    // Do not capture the script's stdout or stderr. Wayland clipboard helpers
+    // such as wl-copy fork a background selection daemon that inherits those
+    // file descriptors; reading them to EOF would block until the clipboard
+    // selection is replaced instead of returning when the script itself exits.
+    let mut child = Command::new(script_path)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|error| {
+            ExternalScriptError::Refused(format!(
+                "Failed to execute external script '{}': {}",
+                script_path, error
+            ))
+        })?;
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        return Err(format!(
-            "External script '{}' failed with exit code {:?}. stderr: {}, stdout: {}",
+    // Write on a separate thread: a script that never reads stdin would
+    // otherwise wedge delivery once the pipe buffer fills. Whatever ends the
+    // child closes the pipe, so this thread always finishes.
+    if let Some(mut stdin) = child.stdin.take() {
+        let payload = text.to_owned();
+        std::thread::spawn(move || {
+            let _ = stdin.write_all(payload.as_bytes());
+        });
+    }
+
+    let status = match wait_bounded(&mut child, timeout) {
+        Ok(status) => status,
+        Err(error) => {
+            return Err(ExternalScriptError::Failed(format!(
+                "External script '{}' {}",
+                script_path, error
+            )))
+        }
+    };
+
+    if !status.success() {
+        return Err(ExternalScriptError::Failed(format!(
+            "External script '{}' failed with exit code {:?}",
             script_path,
-            output.status.code(),
-            stderr.trim(),
-            stdout.trim()
+            status.code()
+        )));
+    }
+
+    Ok(())
+}
+
+/// Wait for `child`, killing it once `timeout` elapses.
+fn wait_bounded(child: &mut Child, timeout: Duration) -> Result<ExitStatus, String> {
+    let deadline = Instant::now() + timeout;
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => return Ok(status),
+            Ok(None) => {}
+            Err(error) => return Err(format!("could not be waited for: {error}")),
+        }
+        if Instant::now() >= deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(format!("did not finish within {:?}; killed", timeout));
+        }
+        std::thread::sleep(EXTERNAL_SCRIPT_POLL);
+    }
+}
+
+/// Refuse a delivery script that the user is not the only one able to change.
+/// Sona runs it with the user's own privileges after every transcription, so a
+/// script any local account can rewrite is a standing hole, not a paste method.
+#[cfg(unix)]
+fn verify_external_script(path: &Path) -> Result<(), String> {
+    use std::os::unix::fs::PermissionsExt;
+
+    let metadata = fs::metadata(path).map_err(|error| {
+        format!(
+            "External script '{}' cannot be read: {error}",
+            path.display()
+        )
+    })?;
+    if !metadata.is_file() {
+        return Err(format!(
+            "External script '{}' is not a regular file",
+            path.display()
         ));
     }
 
+    let mode = metadata.permissions().mode();
+    if mode & 0o111 == 0 {
+        return Err(format!(
+            "External script '{}' is not executable",
+            path.display()
+        ));
+    }
+    if mode & 0o002 != 0 {
+        return Err(format!(
+            "External script '{}' is world-writable",
+            path.display()
+        ));
+    }
+
+    let parent = match path.parent() {
+        Some(parent) if !parent.as_os_str().is_empty() => parent,
+        _ => Path::new("."),
+    };
+    let parent_mode = fs::metadata(parent)
+        .map_err(|error| {
+            format!(
+                "External script directory '{}' cannot be read: {error}",
+                parent.display()
+            )
+        })?
+        .permissions()
+        .mode();
+    // A world-writable directory lets any local account replace the script,
+    // unless the sticky bit reserves that right for the owner (as on /tmp).
+    if parent_mode & 0o002 != 0 && parent_mode & 0o1000 == 0 {
+        return Err(format!(
+            "External script '{}' is in a world-writable directory",
+            parent.display()
+        ));
+    }
+
+    Ok(())
+}
+
+/// Windows has no mode bits to check, so the guard is existence and file kind.
+#[cfg(not(unix))]
+fn verify_external_script(path: &Path) -> Result<(), String> {
+    let metadata = fs::metadata(path).map_err(|error| {
+        format!(
+            "External script '{}' cannot be read: {error}",
+            path.display()
+        )
+    })?;
+    if !metadata.is_file() {
+        return Err(format!(
+            "External script '{}' is not a regular file",
+            path.display()
+        ));
+    }
     Ok(())
 }
 
@@ -753,10 +911,16 @@ pub(crate) fn paste_frozen(
                 );
             };
             // A script that starts can have sent input before it reports a
-            // non-zero status, so its result is intentionally not retried.
+            // non-zero status, so its result is intentionally not retried. A
+            // script the guard refused never ran, so that stays a clean miss
+            // the caller can report and route around.
             match paste_via_external_script(text, script_path) {
                 Ok(()) => ClipboardDispatch::Dispatched,
-                Err(error) => {
+                Err(ExternalScriptError::Refused(error)) => {
+                    log::warn!("External delivery script was refused: {error}");
+                    ClipboardDispatch::DefinitelyNotDispatched(error)
+                }
+                Err(ExternalScriptError::Failed(error)) => {
                     log::warn!("External delivery script reported a failure: {error}");
                     ClipboardDispatch::DispatchedWithBackendError
                 }
@@ -947,5 +1111,184 @@ e.g. 28:1 28:0 means pressing on the Enter button on a standard US keyboard.
             "Sona temporary text"
         ));
         assert!(!clipboard_still_ours(None, "Sona temporary text"));
+    }
+
+    #[cfg(unix)]
+    mod external_script {
+        use super::super::{run_external_script, verify_external_script, ExternalScriptError};
+        use std::fs;
+        use std::os::unix::fs::PermissionsExt;
+        use std::path::{Path, PathBuf};
+        use std::sync::mpsc;
+        use std::thread;
+        use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+
+        /// A directory of its own per test, so permission changes never race.
+        struct Sandbox {
+            root: PathBuf,
+        }
+
+        impl Sandbox {
+            fn new(name: &str) -> Self {
+                let unique = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .expect("system clock after the unix epoch")
+                    .as_nanos();
+                let root = std::env::temp_dir().join(format!(
+                    "sona-external-script-{}-{}-{}",
+                    name,
+                    std::process::id(),
+                    unique
+                ));
+                fs::create_dir_all(&root).expect("create sandbox");
+                Self { root }
+            }
+
+            fn script(&self, body: &str, mode: u32) -> PathBuf {
+                let path = self.root.join("deliver.sh");
+                fs::write(&path, body).expect("write script");
+                fs::set_permissions(&path, fs::Permissions::from_mode(mode))
+                    .expect("set script mode");
+                path
+            }
+        }
+
+        impl Drop for Sandbox {
+            fn drop(&mut self) {
+                let _ = fs::set_permissions(&self.root, fs::Permissions::from_mode(0o700));
+                let _ = fs::remove_dir_all(&self.root);
+            }
+        }
+
+        fn path_str(path: &Path) -> &str {
+            path.to_str().expect("utf-8 script path")
+        }
+
+        /// The message of a failure that happened after the script started.
+        fn run_failure(result: Result<(), ExternalScriptError>) -> String {
+            match result {
+                Err(ExternalScriptError::Failed(error)) => error,
+                other => panic!("expected a run failure, got {other:?}"),
+            }
+        }
+
+        #[test]
+        fn transcript_reaches_the_script_on_stdin_and_never_on_argv() {
+            let sandbox = Sandbox::new("stdin");
+            let stdin_out = sandbox.root.join("stdin.txt");
+            let argv_out = sandbox.root.join("argv.txt");
+            let script = sandbox.script(
+                &format!(
+                    "#!/bin/sh\ncat > {}\nprintf '%s' \"$*\" > {}\n",
+                    stdin_out.display(),
+                    argv_out.display()
+                ),
+                0o700,
+            );
+
+            run_external_script("hello tail", path_str(&script), Duration::from_secs(5))
+                .expect("script runs");
+
+            assert_eq!(fs::read_to_string(&stdin_out).unwrap(), "hello tail");
+            assert_eq!(fs::read_to_string(&argv_out).unwrap(), "");
+        }
+
+        #[test]
+        fn script_returns_without_waiting_for_its_background_children() {
+            let sandbox = Sandbox::new("nonblocking");
+            let script = sandbox.script("#!/bin/sh\nsleep 5 &\nexit 0\n", 0o700);
+            let script_for_thread = script.clone();
+
+            let (sender, receiver) = mpsc::channel();
+            thread::spawn(move || {
+                let result = run_external_script(
+                    "text",
+                    script_for_thread.to_str().expect("utf-8 script path"),
+                    Duration::from_secs(5),
+                );
+                let _ = sender.send(result);
+            });
+
+            let result = receiver
+                .recv_timeout(Duration::from_secs(2))
+                .expect("delivery must not wait for a child that inherited the script's stdio");
+            assert!(result.is_ok(), "{result:?}");
+        }
+
+        #[test]
+        fn a_wedged_script_is_killed_at_the_deadline() {
+            let sandbox = Sandbox::new("timeout");
+            let marker = sandbox.root.join("survived.txt");
+            let script = sandbox.script(
+                &format!("#!/bin/sh\nsleep 1\ntouch {}\n", marker.display()),
+                0o700,
+            );
+
+            let started = Instant::now();
+            let error = run_failure(run_external_script(
+                "text",
+                path_str(&script),
+                Duration::from_millis(100),
+            ));
+            assert!(error.contains("did not finish"), "{error}");
+            assert!(started.elapsed() < Duration::from_secs(1));
+
+            thread::sleep(Duration::from_millis(1500));
+            assert!(
+                !marker.exists(),
+                "the script kept running after the deadline"
+            );
+        }
+
+        #[test]
+        fn a_failing_script_reports_its_exit_code() {
+            let sandbox = Sandbox::new("exit-code");
+            let script = sandbox.script("#!/bin/sh\nexit 3\n", 0o700);
+
+            let error = run_failure(run_external_script(
+                "text",
+                path_str(&script),
+                Duration::from_secs(5),
+            ));
+            assert!(error.contains("exit code Some(3)"), "{error}");
+        }
+
+        #[test]
+        fn the_guard_refuses_scripts_the_user_does_not_solely_control() {
+            let sandbox = Sandbox::new("guard");
+
+            let missing = sandbox.root.join("absent.sh");
+            assert!(verify_external_script(&missing)
+                .expect_err("missing")
+                .contains("cannot be read"));
+
+            assert!(verify_external_script(&sandbox.root)
+                .expect_err("directory")
+                .contains("not a regular file"));
+
+            let not_executable = sandbox.script("#!/bin/sh\nexit 0\n", 0o600);
+            assert!(verify_external_script(&not_executable)
+                .expect_err("not executable")
+                .contains("not executable"));
+
+            let world_writable = sandbox.script("#!/bin/sh\nexit 0\n", 0o777);
+            assert!(verify_external_script(&world_writable)
+                .expect_err("world-writable")
+                .contains("world-writable"));
+
+            let safe = sandbox.script("#!/bin/sh\nexit 0\n", 0o700);
+            assert!(verify_external_script(&safe).is_ok());
+        }
+
+        #[test]
+        fn the_guard_refuses_a_script_in_a_world_writable_directory() {
+            let sandbox = Sandbox::new("open-dir");
+            let script = sandbox.script("#!/bin/sh\nexit 0\n", 0o700);
+            fs::set_permissions(&sandbox.root, fs::Permissions::from_mode(0o777))
+                .expect("open the directory up");
+
+            let error = verify_external_script(&script).expect_err("world-writable directory");
+            assert!(error.contains("world-writable directory"), "{error}");
+        }
     }
 }

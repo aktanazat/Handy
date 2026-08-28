@@ -1328,9 +1328,13 @@ fn close_meeting_callback(
     meeting_control: &MeetingCallbackControl,
     sample_rate: u32,
 ) -> bool {
-    meeting_control.request_stop();
+    // Close the lane before the callback mode, so the next callback is still
+    // dispatched as a capture and commits the block it took before the stop.
+    // The lane keeps that boundary block and acknowledges on the same call;
+    // closing the mode first would drop up to one buffer period of tail audio.
     let acknowledgements_before = lane.stop_acks();
     lane.request_stop();
+    meeting_control.request_stop();
     let deadline = Instant::now() + STOP_ACK_TIMEOUT;
 
     loop {

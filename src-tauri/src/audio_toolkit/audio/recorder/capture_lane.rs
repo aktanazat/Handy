@@ -151,8 +151,8 @@ struct DescriptorState {
 /// Every field is written by exactly one side, which is why none of them
 /// needs a lock. `written`, `stop_acks`, `lost`, `refused`, raising
 /// `high_water`, publishing descriptors, and setting `overrun` belong to the
-/// producer; `read`, descriptor release, resetting `high_water`, and clearing
-/// `overrun` belong to the consumer.
+/// producer; `read`, `stopped`, `stop_generation`, descriptor release,
+/// resetting `high_water`, and clearing `overrun` belong to the consumer.
 struct LaneState {
     /// Sample storage, allocated once. `UnsafeCell` per element rather than
     /// around the whole buffer, so the two halves can hold references into
@@ -164,11 +164,16 @@ struct LaneState {
     written: AtomicUsize,
     /// Absolute count of samples the consumer has released.
     read: AtomicUsize,
-    /// While set, the producer commits nothing: the recording is over.
+    /// While set, the recording is over: the producer commits the one block
+    /// that was already captured when it observed this, then nothing more.
     stopped: AtomicBool,
-    /// Bumped once per callback that observed `stopped` and returned. A
-    /// change in this counter is the consumer's proof that the device has
-    /// delivered its last sample for the recording it is closing.
+    /// Bumped by every stop request. The producer records the generation it
+    /// acknowledged, so a stop/resume/stop cycle that no callback observed in
+    /// between still gets its own boundary block and its own acknowledgement.
+    stop_generation: AtomicU64,
+    /// Bumped once per callback that acknowledged `stopped`. A change in this
+    /// counter is the consumer's proof that the device has delivered its last
+    /// sample for the recording it is closing.
     stop_acks: AtomicU64,
     /// Sticky: a device buffer did not fit, so audio was lost and the
     /// recording in progress is invalid.
@@ -214,6 +219,7 @@ fn make_lane(
         written: AtomicUsize::new(0),
         read: AtomicUsize::new(0),
         stopped: AtomicBool::new(false),
+        stop_generation: AtomicU64::new(0),
         stop_acks: AtomicU64::new(0),
         overrun: AtomicBool::new(false),
         lost: AtomicUsize::new(0),
@@ -225,6 +231,7 @@ fn make_lane(
     (
         CaptureProducer {
             state: Arc::clone(&state),
+            acknowledged_generation: 0,
         },
         CaptureConsumer { state },
     )
@@ -249,9 +256,24 @@ pub fn timed_lane_with_descriptor_capacity(
     make_lane(sample_capacity, Some(descriptor_capacity))
 }
 
+/// Where a callback sits relative to the stop the consumer asked for.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum StopPosition {
+    /// No stop is pending.
+    Running,
+    /// The first callback to observe this stop. It captured its block before
+    /// the stop, so the block still belongs to the recording being closed.
+    Boundary,
+    /// The barrier is already published; this block belongs to no recording.
+    Past,
+}
+
 /// The device-callback half of the lane.
 pub struct CaptureProducer {
     state: Arc<LaneState>,
+    /// The last stop generation this producer acknowledged. Everything after
+    /// that acknowledgement belongs to no recording and is dropped.
+    acknowledged_generation: u64,
 }
 
 impl CaptureProducer {
@@ -292,8 +314,26 @@ impl CaptureProducer {
         if !state.stopped.load(Ordering::Acquire) {
             return false;
         }
+        // Read after the acquire above: the generation was bumped before the
+        // stop was published, so this is the generation being closed.
+        self.acknowledged_generation = state.stop_generation.load(Ordering::Relaxed);
         state.stop_acks.fetch_add(1, Ordering::Release);
         true
+    }
+
+    /// Where this producer sits relative to the current stop.
+    fn stop_position(&self) -> StopPosition {
+        let state = &*self.state;
+        if !state.stopped.load(Ordering::Acquire) {
+            return StopPosition::Running;
+        }
+        // Read after the acquire above, which publishes the generation bump
+        // that `request_stop` made before setting the flag.
+        if self.acknowledged_generation == state.stop_generation.load(Ordering::Relaxed) {
+            StopPosition::Past
+        } else {
+            StopPosition::Boundary
+        }
     }
 
     /// Commit `count` mono samples written in place by `fill`.
@@ -303,20 +343,33 @@ impl CaptureProducer {
     /// contiguous runs those samples map to, in order — the second is empty
     /// unless the write wraps the end of the buffer.
     ///
-    /// Returns false when nothing was committed: either the recording is
-    /// stopped, or the lane is (or has just become) overrun. An overrun is
-    /// sticky for the rest of the recording — the producer stops accepting
-    /// rather than resuming on the far side of a gap — so the consumer can
-    /// report the loss instead of a plausible short buffer.
+    /// Returns false when nothing was committed: either this producer already
+    /// closed the current stop, or the lane is (or has just become) overrun.
+    /// An overrun is sticky for the rest of the recording — the producer stops
+    /// accepting rather than resuming on the far side of a gap — so the
+    /// consumer can report the loss instead of a plausible short buffer.
     pub fn commit(&mut self, count: usize, fill: impl FnOnce(&mut [f32], &mut [f32])) -> bool {
-        let state = &*self.state;
-
-        // A stop outranks everything: the recording is over, and the
-        // consumer is waiting for exactly this acknowledgement.
-        if state.stopped.load(Ordering::Acquire) {
-            self.acknowledge_stop();
+        // The block that first observes a stop was captured before it, so it
+        // is the tail of the recording being closed: commit it, then publish
+        // the barrier the consumer is waiting for. Dropping it would lose up
+        // to one callback period of audio (~10 ms built-in, ~100 ms on
+        // Bluetooth), which is a whole trailing word.
+        let position = self.stop_position();
+        if position == StopPosition::Past {
             return false;
         }
+        let committed = self.append(count, fill);
+        if position == StopPosition::Boundary {
+            self.acknowledge_stop();
+        }
+        committed
+    }
+
+    /// Write `count` samples into the ring and publish them. The stop barrier
+    /// is the caller's business; this is the unconditional half of
+    /// [`CaptureProducer::commit`].
+    fn append(&mut self, count: usize, fill: impl FnOnce(&mut [f32], &mut [f32])) -> bool {
+        let state = &*self.state;
 
         if state.overrun.load(Ordering::Relaxed) {
             return self.reject(count, state.written.load(Ordering::Relaxed), None);
@@ -357,18 +410,34 @@ impl CaptureProducer {
     ///
     /// Samples publish before their descriptor. The consumer acquires the
     /// descriptor and therefore cannot observe a descriptor without all of its
-    /// samples. The two rings share the original sticky-overrun rule.
+    /// samples. The two rings share the original sticky-overrun rule, and the
+    /// same boundary rule as [`CaptureProducer::commit`]: the block that first
+    /// observes a stop still lands.
     pub fn commit_timed(
         &mut self,
         count: usize,
         descriptor: CaptureDescriptor,
         fill: impl FnOnce(&mut [f32], &mut [f32]),
     ) -> bool {
-        let state = &*self.state;
-        if state.stopped.load(Ordering::Acquire) {
-            self.acknowledge_stop();
+        let position = self.stop_position();
+        if position == StopPosition::Past {
             return false;
         }
+        let committed = self.append_timed(count, descriptor, fill);
+        if position == StopPosition::Boundary {
+            self.acknowledge_stop();
+        }
+        committed
+    }
+
+    /// The unconditional half of [`CaptureProducer::commit_timed`].
+    fn append_timed(
+        &mut self,
+        count: usize,
+        descriptor: CaptureDescriptor,
+        fill: impl FnOnce(&mut [f32], &mut [f32]),
+    ) -> bool {
+        let state = &*self.state;
 
         let written = state.written.load(Ordering::Relaxed);
         if state.overrun.load(Ordering::Relaxed) {
@@ -633,9 +702,12 @@ impl CaptureConsumer {
         self.state.stop_acks.load(Ordering::Acquire)
     }
 
-    /// Close the lane: the producer commits nothing more and acknowledges on
-    /// its next callback.
+    /// Close the lane: the producer commits the block it captured before this
+    /// stop, acknowledges on that same callback, and appends nothing after.
     pub fn request_stop(&self) {
+        // Ordered before the release store below, so a producer that observes
+        // the stop also observes the generation it belongs to.
+        self.state.stop_generation.fetch_add(1, Ordering::Relaxed);
         self.state.stopped.store(true, Ordering::Release);
     }
 
@@ -647,7 +719,9 @@ impl CaptureConsumer {
 
 #[cfg(test)]
 mod tests {
-    use super::{timed_lane_with_descriptor_capacity, CaptureDescriptor, CaptureSampleFormat};
+    use super::{
+        lane, timed_lane_with_descriptor_capacity, CaptureDescriptor, CaptureSampleFormat,
+    };
 
     fn descriptor(sequence: u64, epoch: u64, timestamp: i64) -> CaptureDescriptor {
         CaptureDescriptor {
@@ -782,5 +856,77 @@ mod tests {
         assert_eq!(consumer.stop_acks(), before + 1);
         consumer.resume();
         assert!(!producer.acknowledge_stop());
+    }
+
+    #[test]
+    fn boundary_block_lands_before_the_stop_barrier() {
+        let (mut producer, mut consumer) = lane(8);
+        assert!(producer.commit(2, |head, tail| {
+            head.copy_from_slice(&[0.1, 0.2]);
+            assert!(tail.is_empty());
+        }));
+
+        // The callback that first observes the stop captured its block before
+        // the stop was requested, so the samples land and the same call
+        // publishes the barrier.
+        let acks_before = consumer.stop_acks();
+        consumer.request_stop();
+        assert!(producer.commit(2, |head, tail| {
+            head.copy_from_slice(&[0.5, 0.6]);
+            assert!(tail.is_empty());
+        }));
+        assert_eq!(consumer.stop_acks(), acks_before + 1);
+
+        // Everything after the barrier belongs to no recording.
+        assert!(!producer.commit(1, |head, _| head[0] = 0.9));
+        assert_eq!(consumer.stop_acks(), acks_before + 1);
+
+        let mut drained = Vec::new();
+        consumer.drain(|chunk| drained.extend_from_slice(chunk));
+        assert_eq!(drained, vec![0.1, 0.2, 0.5, 0.6]);
+    }
+
+    #[test]
+    fn every_stop_gets_its_own_boundary_block_and_acknowledgement() {
+        let (mut producer, mut consumer) = lane(8);
+        consumer.request_stop();
+        assert!(producer.commit(1, |head, _| head[0] = 1.0));
+        consumer.resume();
+
+        // No callback runs between the resume and the next stop, so the
+        // producer cannot rely on having seen the lane running again.
+        let acks_before = consumer.stop_acks();
+        consumer.request_stop();
+        assert!(producer.commit(1, |head, _| head[0] = 2.0));
+        assert_eq!(
+            consumer.stop_acks(),
+            acks_before + 1,
+            "the second stop needs its own acknowledgement"
+        );
+
+        let mut drained = Vec::new();
+        consumer.drain(|chunk| drained.extend_from_slice(chunk));
+        assert_eq!(drained, vec![1.0, 2.0]);
+    }
+
+    #[test]
+    fn timed_boundary_block_lands_with_its_descriptor() {
+        let (mut producer, mut consumer) = timed_lane_with_descriptor_capacity(8, 8);
+        let acks_before = consumer.stop_acks();
+        consumer.request_stop();
+        assert!(
+            producer.commit_timed(2, descriptor(4, 1, 40), |head, tail| {
+                head.copy_from_slice(&[0.3, 0.4]);
+                assert!(tail.is_empty());
+            })
+        );
+        assert_eq!(consumer.stop_acks(), acks_before + 1);
+        assert!(!producer.commit_timed(2, descriptor(5, 1, 50), |_, _| {}));
+
+        let mut drained = Vec::new();
+        consumer.drain_timed(|metadata, head, tail| {
+            drained.push((metadata.sequence, [head, tail].concat()));
+        });
+        assert_eq!(drained, vec![(4, vec![0.3, 0.4])]);
     }
 }
