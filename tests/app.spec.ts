@@ -1,18 +1,23 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+
+import { installTauriMock } from "./support/tauri-mock";
 
 test.describe("Sona App", () => {
   test("dev server responds", async ({ page }) => {
-    // Just verify the dev server is running and responds
     const response = await page.goto("/");
     expect(response?.status()).toBe(200);
   });
 
-  test("page has html structure", async ({ page }) => {
+  test("app mounts against the mocked Tauri runtime", async ({ page }) => {
+    const failures: string[] = [];
+    page.on("pageerror", (error) => failures.push(error.message));
+
+    await installTauriMock(page);
     await page.goto("/");
 
-    // Verify basic HTML structure exists
-    const html = await page.content();
-    expect(html).toContain("<html");
-    expect(html).toContain("<body");
+    // A mount failure leaves #root empty, so this is the cheapest proof that
+    // the mocked plugin internals are complete enough for the real app.
+    await expect(page.locator("#root > *")).not.toHaveCount(0);
+    expect(failures).toEqual([]);
   });
 });

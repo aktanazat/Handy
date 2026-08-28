@@ -19,3 +19,7 @@ src-tauri/src/catalog/catalog.json
 # Misc
 .DS_Store
 *.log
+
+# Byte-exact golden fixtures; tests compare raw bytes.
+src-tauri/src/bin/agent-hook/fixtures/
+cloudflare/sona-companion/fixtures/

@@ -18,9 +18,11 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "bunx vite dev",
+    command: "bun run dev",
     url: "http://localhost:1420",
-    reuseExistingServer: !process.env.CI,
+    // A developer's own `bun run dev` on 1420 is reused instead of fighting it
+    // for the port; CI has no server running, so it starts one.
+    reuseExistingServer: true,
     timeout: 30000,
   },
 });
