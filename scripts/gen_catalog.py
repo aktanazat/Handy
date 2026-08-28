@@ -3,7 +3,7 @@
 # dependencies = ["huggingface_hub", "fsspec"]
 # ///
 """
-Handy model catalog generator.
+Sona model catalog generator.
 
 Merges three sources into one catalog.json:
   1. HF card `transcribe_cpp` block  -> capabilities + benchmarks (canonical)
@@ -13,7 +13,7 @@ Merges three sources into one catalog.json:
 Emits catalog.json to be committed and `include_str!`'d into the Rust binary.
 Run:  HF_TOKEN=$(hf auth token) uv run gen_catalog.py [out_path]
 """
-import json, os, re, sys, math, struct, datetime
+import json, os, re, sys, math, struct
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from huggingface_hub import HfApi, HfFileSystem
 
@@ -56,7 +56,7 @@ CURATION = {
     "Fun-ASR-MLT-Nano-2512":           {"rank": 10, "desc": "A tiny multilingual model"},
     # description-only (unranked, not recommended) — carried over from the legacy .bin entry
     "Breeze-ASR-25":                   {"desc": "Optimized for Taiwanese Mandarin. Code-switching support."},
-    # Sortformer emits speaker segments only; Handy's catalog is for models
+    # Sortformer emits speaker segments only; Sona's catalog is for models
     # that produce transcription text.
     "diar_streaming_sortformer_4spk-v2.1": {"hidden": True},
 }
@@ -279,7 +279,6 @@ def main():
                                m["family"], -(m["speed_score"] or 0), m["slug"]))
     catalog = {
         "catalog_version": CATALOG_VERSION,
-        "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
         "mirrors": MIRRORS,
         "models": models,
     }

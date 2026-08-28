@@ -1,0 +1,244 @@
+//! Clipboard recency, without a clipboard-content poller.
+//!
+//! macOS does not give a pasteboard item's timestamp. The closest reliable
+//! primitive is its monotonically changing `changeCount`, so this module samples
+//! that cheap generation number once per second while a Full-context mode exists.
+//! A text value is read only by the run that needs it, and only when a generation
+//! change is known to have happened in the preceding three seconds.
+
+use std::sync::{Condvar, LazyLock, Mutex};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+const POLL_INTERVAL: Duration = Duration::from_secs(1);
+const RECENCY_WINDOW_MS: u64 = 3_000;
+/// A changed count is fresh only when the observer checked often enough to put
+/// an honest upper bound on its age. This lets scheduling hiccups degrade to
+/// `Stale` rather than claiming an old clipboard is recent.
+const MAX_OBSERVATION_GAP_MS: u64 = 2_500;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct Generation {
+    count: Option<i64>,
+    changed_at_ms: Option<u64>,
+}
+
+impl Generation {
+    pub(crate) fn is_fresh(self, now_ms: u64) -> bool {
+        self.count.is_some()
+            && self
+                .changed_at_ms
+                .is_some_and(|changed_at| now_ms.saturating_sub(changed_at) <= RECENCY_WINDOW_MS)
+    }
+
+    pub(crate) fn matches_current(self) -> bool {
+        self.count
+            .is_some_and(|count| platform_generation() == Some(count))
+    }
+}
+
+#[derive(Debug, Default)]
+struct State {
+    enabled: bool,
+    worker_started: bool,
+    last_count: Option<i64>,
+    last_observed_at_ms: Option<u64>,
+    changed_at_ms: Option<u64>,
+}
+
+static RECENCY: LazyLock<(Mutex<State>, Condvar)> =
+    LazyLock::new(|| (Mutex::new(State::default()), Condvar::new()));
+
+/// Starts or stops generation-only polling. The worker is created at most once
+/// and sleeps on a condition variable while no stored mode can use clipboard
+/// context, so the default (all non-Full modes) has no periodic work.
+pub fn set_clipboard_watch_enabled(enabled: bool) {
+    let (lock, wake) = &*RECENCY;
+    let start_worker = match lock.lock() {
+        Ok(mut state) => {
+            state.enabled = enabled;
+            if !enabled {
+                // A later enable needs a new baseline; stale old knowledge must
+                // not make an untouched clipboard look fresh.
+                state.last_count = None;
+                state.last_observed_at_ms = None;
+                state.changed_at_ms = None;
+            }
+            let start = enabled && !state.worker_started;
+            if start {
+                state.worker_started = true;
+            }
+            start
+        }
+        Err(_) => return,
+    };
+    wake.notify_all();
+
+    if start_worker {
+        let _ = std::thread::Builder::new()
+            .name("sona-clipboard-recency".to_string())
+            .spawn(watch_generations);
+    }
+}
+
+pub(crate) fn watch_enabled() -> bool {
+    RECENCY.0.lock().map(|state| state.enabled).unwrap_or(false)
+}
+
+/// Takes a run-start generation snapshot. It does not read clipboard content.
+pub(crate) fn observe_clipboard_generation() -> Generation {
+    let (lock, _) = &*RECENCY;
+    let Ok(mut state) = lock.lock() else {
+        return Generation::default();
+    };
+    if !state.enabled {
+        return Generation::default();
+    }
+
+    observe_locked(&mut state, now_ms(), platform_generation());
+    Generation {
+        count: state.last_count,
+        changed_at_ms: state.changed_at_ms,
+    }
+}
+
+fn watch_generations() {
+    loop {
+        let (lock, wake) = &*RECENCY;
+        let mut state = match lock.lock() {
+            Ok(state) => state,
+            Err(_) => return,
+        };
+        while !state.enabled {
+            state = match wake.wait(state) {
+                Ok(state) => state,
+                Err(_) => return,
+            };
+        }
+        drop(state);
+
+        let now = now_ms();
+        let count = platform_generation();
+        if let Ok(mut state) = lock.lock() {
+            if state.enabled {
+                observe_locked(&mut state, now, count);
+            }
+            let _ = wake.wait_timeout(state, POLL_INTERVAL);
+        } else {
+            return;
+        }
+    }
+}
+
+fn observe_locked(state: &mut State, now: u64, count: Option<i64>) {
+    let prior_count = state.last_count;
+    let prior_observation = state.last_observed_at_ms;
+    let observation_gap = prior_observation.map(|then| now.saturating_sub(then));
+
+    if count != prior_count {
+        state.changed_at_ms = match (prior_count, count, observation_gap) {
+            // The first sample only establishes a baseline. We do not know when
+            // that content was copied, so we must not call it fresh.
+            (None, Some(_), _) => None,
+            // We observed a different generation recently enough to prove its
+            // change happened inside the recency window.
+            (Some(_), Some(_), Some(gap)) if gap <= MAX_OBSERVATION_GAP_MS => Some(now),
+            // The pasteboard disappeared or we missed too much time. Lose
+            // freshness rather than stretching an old observation.
+            _ => None,
+        };
+        state.last_count = count;
+    }
+    state.last_observed_at_ms = Some(now);
+}
+
+#[cfg(target_os = "macos")]
+fn platform_generation() -> Option<i64> {
+    use objc2_app_kit::NSPasteboard;
+
+    // `changeCount` is a scalar property of the general pasteboard; unlike
+    // reading data, this never copies the user's contents into Sona.
+    //
+    // The pool is for `generalPasteboard()`: this runs on the long-lived watcher
+    // thread and on the run-start caller, neither of which has a pool, so an
+    // autoreleased return here would be held for the thread's whole life.
+    objc2::rc::autoreleasepool(|_| {
+        i64::try_from(NSPasteboard::generalPasteboard().changeCount()).ok()
+    })
+}
+
+#[cfg(not(target_os = "macos"))]
+fn platform_generation() -> Option<i64> {
+    None
+}
+
+fn now_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .ok()
+        .and_then(|elapsed| u64::try_from(elapsed.as_millis()).ok())
+        .unwrap_or(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn first_observation_is_a_baseline_not_a_claim_of_freshness() {
+        let mut state = State::default();
+        observe_locked(&mut state, 1_000, Some(8));
+        assert_eq!(state.changed_at_ms, None);
+    }
+
+    #[test]
+    fn closely_observed_change_is_fresh() {
+        let mut state = State {
+            last_count: Some(8),
+            last_observed_at_ms: Some(1_000),
+            ..State::default()
+        };
+        observe_locked(&mut state, 2_000, Some(9));
+        let generation = Generation {
+            count: state.last_count,
+            changed_at_ms: state.changed_at_ms,
+        };
+        assert!(generation.is_fresh(4_999));
+        assert!(!generation.is_fresh(5_001));
+    }
+
+    #[test]
+    fn delayed_observation_does_not_invent_a_recent_copy() {
+        let mut state = State {
+            last_count: Some(8),
+            last_observed_at_ms: Some(1_000),
+            ..State::default()
+        };
+        observe_locked(&mut state, 4_000, Some(9));
+        assert_eq!(state.changed_at_ms, None);
+    }
+
+    #[test]
+    fn equal_generation_keeps_the_original_change_time() {
+        let mut state = State {
+            last_count: Some(8),
+            last_observed_at_ms: Some(1_000),
+            changed_at_ms: Some(900),
+            ..State::default()
+        };
+        observe_locked(&mut state, 2_000, Some(8));
+        assert_eq!(state.changed_at_ms, Some(900));
+    }
+
+    #[test]
+    fn disappeared_pasteboard_clears_freshness() {
+        let mut state = State {
+            last_count: Some(8),
+            last_observed_at_ms: Some(1_000),
+            changed_at_ms: Some(900),
+            ..State::default()
+        };
+        observe_locked(&mut state, 2_000, None);
+        assert_eq!(state.changed_at_ms, None);
+        assert_eq!(state.last_count, None);
+    }
+}

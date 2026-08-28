@@ -34,4 +34,6 @@ jobs:
 
       - name: Run Rust tests
         working-directory: src-tauri
+        env:
+          TAURI_CONFIG: '{"bundle":{"externalBin":[]}}'
         run: cargo test

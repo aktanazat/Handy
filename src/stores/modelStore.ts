@@ -85,11 +85,11 @@ export const useModelStore = create<ModelsStore>()(
           set(
             produce((state) => {
               const backendDownloading: Record<string, true> = {};
-              result.data
-                .filter((m) => m.is_downloading)
-                .forEach((m) => {
-                  backendDownloading[m.id] = true;
-                });
+              for (const model of result.data) {
+                if (model.is_downloading) {
+                  backendDownloading[model.id] = true;
+                }
+              }
 
               // Merge: keep frontend state if downloading, add backend state
               Object.keys(backendDownloading).forEach((id) => {
@@ -276,6 +276,7 @@ export const useModelStore = create<ModelsStore>()(
       // Set up event listeners
       listen<DownloadProgress>("model-download-progress", (event) => {
         const progress = event.payload;
+        if (!get().downloadingModels[progress.model_id]) return;
         set(
           produce((state) => {
             state.downloadProgress[progress.model_id] = progress;

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Encrypted share — Sona</title>
+    <link rel="stylesheet" href="/viewer.css" />
+    <script type="module" src="/viewer.js"></script>
+  </head>
+  <body>
+    <main class="viewer-shell">
+      <header class="viewer-header">
+        <p class="eyebrow">Sona encrypted share</p>
+        <h1 id="share-title">Opening share</h1>
+        <p id="status" aria-live="polite">Reading the encrypted bundle.</p>
+      </header>
+
+      <aside class="trust-notice" aria-label="Browser trust notice">
+        <h2>Browser trust notice</h2>
+        <p>
+          Browser view trusts the deployed Sona viewer and Cloudflare account. Download the encrypted
+          Sona file when that trust is not acceptable.
+        </p>
+        <a id="download-file" class="download-link" download>Download encrypted Sona file</a>
+      </aside>
+
+      <article id="markdown-content" class="markdown-content" hidden></article>
+    </main>
+  </body>
+</html>

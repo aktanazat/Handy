@@ -16,24 +16,24 @@ const variantStyles: Record<
   { container: string; icon: string; text: string }
 > = {
   error: {
-    container: "bg-red-500/10",
-    icon: "text-red-500",
-    text: "text-red-400",
+    container: "border-border bg-surface",
+    icon: "text-danger",
+    text: "text-text-primary",
   },
   warning: {
-    container: "bg-yellow-500/10",
-    icon: "text-yellow-500",
-    text: "text-yellow-400",
+    container: "border-border bg-surface",
+    icon: "text-text-secondary",
+    text: "text-text-primary",
   },
   info: {
-    container: "bg-blue-500/10",
-    icon: "text-blue-500",
-    text: "text-blue-400",
+    container: "border-border bg-surface",
+    icon: "text-text-secondary",
+    text: "text-text-primary",
   },
   success: {
-    container: "bg-green-500/10",
-    icon: "text-green-500",
-    text: "text-green-400",
+    container: "border-border bg-surface",
+    icon: "text-text-secondary",
+    text: "text-text-primary",
   },
 };
 
@@ -55,10 +55,11 @@ export const Alert: React.FC<AlertProps> = ({
 
   return (
     <div
-      className={`flex items-start gap-3 p-4 ${styles.container} ${contained ? "" : "rounded-lg"} ${className}`}
+      role={variant === "error" ? "alert" : "status"}
+      className={`flex items-start gap-2.5 border p-3 ${styles.container} ${contained ? "border-x-0 rounded-none" : "rounded-md"} ${className}`}
     >
-      <Icon className={`w-5 h-5 shrink-0 mt-0.5 ${styles.icon}`} />
-      <p className={`text-sm ${styles.text}`}>{children}</p>
+      <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${styles.icon}`} />
+      <p className={`text-sm leading-5 ${styles.text}`}>{children}</p>
     </div>
   );
 };

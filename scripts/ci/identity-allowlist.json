@@ -1,0 +1,36 @@
+{
+  "ignoredPaths": [
+    "LICENSE",
+    "NOTICE",
+    "scripts/ci/check-identity.ts",
+    "scripts/ci/identity-allowlist.json",
+    "src-tauri/Cargo.lock",
+    "bun.lock",
+    ".nix/bun.nix"
+  ],
+  "allowedPaths": [
+    "src-tauri/catalog/catalog.json",
+    "src-tauri/src/shortcut/handy_keys.rs",
+    "src/components/settings/HandyKeysShortcutInput.tsx",
+    "src-tauri/src/identity_adoption.rs",
+    "src-tauri/src/upstream_import.rs",
+    "src-tauri/src/autostart.rs",
+    "src-tauri/nsis/installer.nsi"
+  ],
+  "allowedLinePatterns": [
+    "handy-computer",
+    "blob\\.handy\\.computer",
+    "handy-keys",
+    "handy_keys",
+    "com\\.pais\\.handy",
+    "com\\.aktanazat\\.handy-personal",
+    "Handy Portable Mode",
+    "Handy Personal\\.desktop",
+    "Handy\\.desktop",
+    "Handy\\.plist",
+    "handy\\.exe",
+    "name\\.trim\\(\\) == \\\"handy\\\"",
+    "Handy #",
+    "`handy` ="
+  ]
+}

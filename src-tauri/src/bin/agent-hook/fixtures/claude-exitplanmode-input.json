@@ -1,0 +1,1 @@
+{"session_id":"golden-plan-session","transcript_path":"/tmp/golden-transcript.jsonl","stop_hook_active":false,"hook_event_name":"PreToolUse","last_assistant_message":"","tool_name":"ExitPlanMode","tool_input":{"plan":"Implement the runtime protocol."}}

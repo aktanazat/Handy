@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useId } from "react";
 import { SettingContainer } from "./SettingContainer";
 import { ResetButton } from "./ResetButton";
 
@@ -28,16 +28,14 @@ export const Slider: React.FC<SliderProps> = ({
   disabled = false,
   label,
   description,
-  descriptionMode = "tooltip",
+  descriptionMode = "inline",
   grouped = false,
   showValue = true,
-  formatValue = (v) => v.toFixed(2),
+  formatValue = (currentValue) => currentValue.toFixed(2),
   onReset,
   isResetting = false,
 }) => {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(parseFloat(e.target.value));
-  };
+  const inputId = useId();
 
   return (
     <SettingContainer
@@ -47,35 +45,33 @@ export const Slider: React.FC<SliderProps> = ({
       grouped={grouped}
       layout="horizontal"
       disabled={disabled}
+      controlId={inputId}
     >
-      <div className="w-full">
-        <div className="flex items-center space-x-1 h-6">
-          <input
-            type="range"
-            min={min}
-            max={max}
-            step={step}
-            value={value}
-            onChange={handleChange}
-            disabled={disabled}
-            className="flex-grow h-2 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-logo-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              background: `linear-gradient(to right, var(--color-background-ui) ${
-                ((value - min) / (max - min)) * 100
-              }%, rgba(128, 128, 128, 0.2) ${
-                ((value - min) / (max - min)) * 100
-              }%)`,
-            }}
-          />
-          {showValue && (
-            <span className="text-sm font-medium text-text/90 w-12 text-end">
-              {formatValue(value)}
-            </span>
-          )}
-          {onReset && (
-            <ResetButton onClick={onReset} disabled={disabled || isResetting} />
-          )}
-        </div>
+      <div className="flex h-9 items-center gap-2">
+        <input
+          id={inputId}
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          disabled={disabled}
+          aria-describedby={`${inputId}-description`}
+          className="h-1.5 min-w-32 flex-1 cursor-pointer appearance-none rounded-full accent-[var(--color-inverse-background)] disabled:cursor-not-allowed disabled:opacity-70"
+          style={{ accentColor: "var(--color-inverse-background)" }}
+          onChange={(event) => onChange(Number(event.target.value))}
+        />
+        {showValue && (
+          <output
+            htmlFor={inputId}
+            className="w-12 text-end text-sm font-medium tabular-nums text-text-primary"
+          >
+            {formatValue(value)}
+          </output>
+        )}
+        {onReset && (
+          <ResetButton onClick={onReset} disabled={disabled || isResetting} />
+        )}
       </div>
     </SettingContainer>
   );

@@ -7,11 +7,14 @@ pub mod vad;
 
 pub use audio::{
     is_microphone_access_denied, is_no_input_device_error, list_input_devices, list_output_devices,
-    read_wav_samples, save_wav_file, verify_wav_file, AudioRecorder, CpalDeviceInfo, VadPolicy,
+    read_wav_samples, save_wav_file, verify_wav_file, AudioRecorder, CaptureError, CaptureOverrun,
+    CpalDeviceInfo, RecordedAudio, VadPolicy,
 };
 pub use lang_id::detect_output_language;
 pub use text::{
-    apply_custom_words, normalize_transcription_output, remove_filler_words, OutputLanguageEvidence,
+    apply_british_spelling, apply_emoji_replacements, apply_exact_vocabulary_entries,
+    apply_literal_punctuation, apply_vocabulary_entries, normalize_transcription_output,
+    remove_filler_words, OutputLanguageEvidence,
 };
 pub use utils::get_cpal_host;
 pub use vad::{SileroVad, VoiceActivityDetector};

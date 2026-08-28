@@ -38,23 +38,23 @@ const LEVEL_META: Record<
   },
   2: {
     tag: "DEBUG",
-    tagClass: "text-sky-600 dark:text-sky-400",
+    tagClass: "text-text-tertiary",
     msgClass: "text-text/80",
   },
   3: {
     tag: "INFO",
-    tagClass: "text-emerald-600 dark:text-emerald-400",
+    tagClass: "text-text-secondary",
     msgClass: "text-text",
   },
   4: {
     tag: "WARN",
-    tagClass: "text-amber-600 dark:text-amber-400",
-    msgClass: "text-amber-700 dark:text-amber-300",
+    tagClass: "text-text-secondary",
+    msgClass: "text-text-secondary",
   },
   5: {
     tag: "ERROR",
-    tagClass: "text-red-600 dark:text-red-400",
-    msgClass: "text-red-700 dark:text-red-300",
+    tagClass: "text-danger",
+    msgClass: "text-danger",
   },
 };
 
@@ -180,8 +180,8 @@ export const LiveLogViewer: React.FC<LiveLogViewerProps> = ({
       <div className="flex items-center justify-between mb-2 gap-2">
         <div className="flex items-center gap-2 text-xs text-mid-gray min-w-0">
           <span
-            className={`inline-block w-2 h-2 rounded-full shrink-0 ${
-              paused ? "bg-mid-gray" : "bg-emerald-500 animate-pulse"
+            className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${
+              paused ? "bg-mid-gray" : "bg-danger animate-pulse"
             }`}
           />
           <span className="shrink-0">

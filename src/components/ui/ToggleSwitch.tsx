@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useId } from "react";
 import { SettingContainer } from "./SettingContainer";
 
 interface ToggleSwitchProps {
@@ -20,10 +20,13 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   isUpdating = false,
   label,
   description,
-  descriptionMode = "tooltip",
+  descriptionMode = "inline",
   grouped = false,
   tooltipPosition = "top",
 }) => {
+  const inputId = useId();
+  const unavailable = disabled || isUpdating;
+
   return (
     <SettingContainer
       title={label}
@@ -32,23 +35,26 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
       grouped={grouped}
       disabled={disabled}
       tooltipPosition={tooltipPosition}
+      controlId={inputId}
     >
       <label
-        className={`flex items-center ${disabled || isUpdating ? "cursor-not-allowed" : "cursor-pointer"}`}
+        htmlFor={inputId}
+        className={`flex items-center ${unavailable ? "cursor-not-allowed" : "cursor-pointer"}`}
       >
         <input
+          id={inputId}
           type="checkbox"
-          value=""
-          className="sr-only peer"
+          className="peer sr-only"
           checked={checked}
-          disabled={disabled || isUpdating}
-          onChange={(e) => onChange(e.target.checked)}
+          disabled={unavailable}
+          aria-describedby={`${inputId}-description`}
+          onChange={(event) => onChange(event.target.checked)}
         />
-        <div className="relative w-11 h-6 bg-mid-gray/20 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-logo-primary rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-background-ui peer-disabled:opacity-50"></div>
+        <span className="glass-toggle relative h-5 w-9 rounded-full peer-checked:bg-inverse-background peer-disabled:opacity-50 peer-focus-visible:ring-2 peer-focus-visible:ring-accent-strong peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-canvas after:absolute after:start-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:border after:border-border after:bg-surface after:transition-transform after:duration-150 peer-checked:after:translate-x-4 rtl:peer-checked:after:-translate-x-4" />
       </label>
       {isUpdating && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-4 h-4 border-2 border-logo-primary border-t-transparent rounded-full animate-spin"></div>
+        <div className="absolute inset-0 flex items-center justify-center bg-surface/80">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-text-secondary border-t-transparent" />
         </div>
       )}
     </SettingContainer>

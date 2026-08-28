@@ -48,11 +48,11 @@ define_class!(
     // SAFETY: NSObject has no subclassing requirements and the ivars are
     // plain Rust values guarded by a Mutex.
     #[unsafe(super(NSObject))]
-    #[name = "HandyPasteProvider"]
+    #[name = "SonaPasteProvider"]
     #[ivars = ProviderIvars]
-    pub struct HandyPasteProvider;
+    pub struct SonaPasteProvider;
 
-    impl HandyPasteProvider {
+    impl SonaPasteProvider {
         // NSPasteboardOwner informal protocol: the pasteboard is asking for the
         // promised data — our receipt that a consumer read the clipboard.
         #[unsafe(method(pasteboard:provideDataForType:))]
@@ -86,9 +86,11 @@ define_class!(
     }
 );
 
-impl HandyPasteProvider {
+impl SonaPasteProvider {
     fn new(state: Arc<Mutex<TxState>>, text: String) -> Retained<Self> {
         let this = Self::alloc().set_ivars(ProviderIvars { state, text });
+        // `this` is a freshly allocated SonaPasteProvider with valid NSObject ivars.
+        // SAFETY: Objective-C initialization retains that ownership.
         unsafe { msg_send![super(this), init] }
     }
 }
@@ -98,7 +100,7 @@ struct MacPending {
     saved_text: Option<String>,
     saved_image: Option<tauri::image::Image<'static>>,
     change_count: NSInteger,
-    provider: Option<Retained<HandyPasteProvider>>,
+    provider: Option<Retained<SonaPasteProvider>>,
     auto_submit: bool,
     auto_submit_key: AutoSubmitKey,
     /// ClipboardHandling::CopyToClipboard — instead of restoring, settle by
@@ -277,7 +279,7 @@ pub(super) fn run(
     };
 
     let state = Arc::new(Mutex::new(TxState::new()));
-    let provider = HandyPasteProvider::new(state.clone(), text.to_string());
+    let provider = SonaPasteProvider::new(state.clone(), text.to_string());
     let pasteboard = NSPasteboard::generalPasteboard();
 
     let mut types: Vec<Retained<NSString>> = Vec::with_capacity(1 + CONCEALMENT_TYPES.len());
@@ -289,6 +291,8 @@ pub(super) fn run(
 
     // declareTypes:owner: clears the pasteboard and puts our promise on it;
     // the return value is the new changeCount.
+    // All Retained Objective-C objects are valid on the main thread.
+    // SAFETY: `provider` remains retained while it owns this promise.
     let change_count: NSInteger =
         unsafe { msg_send![&*pasteboard, declareTypes: &*types, owner: &*provider] };
     if change_count <= 0 {

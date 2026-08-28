@@ -1,5 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import {
   AudioLines,
   Check,
@@ -11,6 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import type { ModelInfo } from "@/bindings";
+import { isLegacySource } from "./modelSource";
 import { formatModelSize } from "../../lib/utils/format";
 import {
   getTranslatedModelDescription,
@@ -27,7 +29,7 @@ import { useSettingsStore } from "@/stores/settingsStore";
 // Get display text for model's language support
 const getLanguageDisplayText = (
   supportedLanguages: string[],
-  t: (key: string, options?: Record<string, unknown>) => string,
+  t: TFunction,
 ): string => {
   const capabilityLanguages = getUniqueCapabilityLanguages(supportedLanguages);
   if (capabilityLanguages.length === 1) {
@@ -39,11 +41,6 @@ const getLanguageDisplayText = (
     total: capabilityLanguages.length,
   });
 };
-
-// Legacy = a blob (Url-sourced) .bin/ONNX model, kept runnable but no longer the
-// advertised download (catalog GGUFs supersede it).
-export const isLegacySource = (model: ModelInfo): boolean =>
-  typeof model.source === "object" && "Url" in model.source;
 
 // Extract a GGUF quantization label from a filename, if present (e.g. "Q8_0").
 const getQuantLabel = (filename: string): string | null => {
@@ -64,7 +61,7 @@ export type ModelCardStatus =
 
 interface ModelCardProps {
   model: ModelInfo;
-  variant?: "default" | "featured";
+  variant?: "default" | "featured" | "catalog";
   status?: ModelCardStatus;
   disabled?: boolean;
   className?: string;
@@ -95,7 +92,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
   const debugMode = useSettingsStore(
     (state) => state.settings?.debug_mode ?? false,
   );
-  const isFeatured = variant === "featured";
+  const isCatalog = variant === "catalog";
   // The active model is already loaded — re-selecting it just reloads it for no
   // gain, so it is deliberately not clickable.
   const isClickable = status === "available" || status === "downloadable";
@@ -112,23 +109,15 @@ const ModelCard: React.FC<ModelCardProps> = ({
   );
 
   const baseClasses =
-    "flex flex-col rounded-xl px-4 py-3 gap-2 text-left transition-all duration-200";
+    "flex flex-col gap-2 px-3 py-2.5 text-left transition-[background-color] duration-200";
 
-  const getVariantClasses = () => {
-    if (status === "active") {
-      return "border-2 border-logo-primary/50 bg-logo-primary/10";
-    }
-    if (isFeatured) {
-      return "border-2 border-logo-primary/25 bg-logo-primary/5";
-    }
-    return "border-2 border-mid-gray/20";
-  };
-
-  const getInteractiveClasses = () => {
-    if (!isClickable) return "";
-    if (disabled) return "opacity-50 cursor-not-allowed";
-    return "cursor-pointer hover:border-logo-primary/50 hover:bg-logo-primary/5 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] group";
-  };
+  const variantClasses =
+    status === "active" ? "bg-subtle" : "bg-transparent";
+  const interactiveClasses = !isClickable
+    ? ""
+    : disabled
+      ? "cursor-not-allowed opacity-50"
+      : "group cursor-pointer hover:bg-hover";
 
   const handleClick = () => {
     if (!isClickable || disabled) return;
@@ -147,26 +136,25 @@ const ModelCard: React.FC<ModelCardProps> = ({
   return (
     <div
       onClick={handleClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" && isClickable) handleClick();
+      onKeyDown={(event) => {
+        if (event.nativeEvent.isComposing || !isClickable) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          handleClick();
+        }
       }}
       role={isClickable ? "button" : undefined}
       tabIndex={isClickable ? 0 : undefined}
-      className={[
-        baseClasses,
-        getVariantClasses(),
-        getInteractiveClasses(),
-        className,
-      ]
+      className={[baseClasses, variantClasses, interactiveClasses, className]
         .filter(Boolean)
         .join(" ")}
     >
       {/* Top section: name/description + score bars */}
-      <div className="flex justify-between items-center w-full">
-        <div className="flex flex-col items-start flex-1 min-w-0">
-          <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex w-full items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-1 flex-col items-start">
+          <div className="flex flex-wrap items-center gap-2">
             <h3
-              className={`text-base font-semibold text-text ${isClickable ? "group-hover:text-logo-primary" : ""} transition-colors`}
+              className={`${isCatalog ? "text-sm" : "text-base"} font-semibold text-text ${isClickable ? "group-hover:text-logo-primary" : ""} transition-colors`}
             >
               {displayName}
             </h3>
@@ -192,20 +180,24 @@ const ModelCard: React.FC<ModelCardProps> = ({
               </Badge>
             )}
           </div>
-          <p className="text-text/60 text-sm leading-relaxed">
+          <p
+            className={`${isCatalog ? "text-xs leading-4" : "text-sm leading-relaxed"} text-text/60`}
+          >
             {displayDescription}
           </p>
         </div>
         {(model.accuracy_score > 0 || model.speed_score > 0) && (
-          <div className="hidden sm:flex items-center ms-4">
+          <div
+            className={`${isCatalog ? "hidden min-[900px]:flex" : "hidden sm:flex"} items-center ms-4`}
+          >
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <p className="text-xs text-text/60 w-24 text-end">
                   {t("onboarding.modelCard.accuracy")}
                 </p>
-                <div className="w-16 h-1.5 bg-mid-gray/20 rounded-full overflow-hidden">
+                <div className="w-16 h-1 bg-mid-gray/20 overflow-hidden">
                   <div
-                    className="h-full bg-logo-primary rounded-full"
+                    className="h-full bg-logo-primary"
                     style={{ width: `${model.accuracy_score * 100}%` }}
                   />
                 </div>
@@ -214,9 +206,9 @@ const ModelCard: React.FC<ModelCardProps> = ({
                 <p className="text-xs text-text/60 w-24 text-end">
                   {t("onboarding.modelCard.speed")}
                 </p>
-                <div className="w-16 h-1.5 bg-mid-gray/20 rounded-full overflow-hidden">
+                <div className="w-16 h-1 bg-mid-gray/20 overflow-hidden">
                   <div
-                    className="h-full bg-logo-primary rounded-full"
+                    className="h-full bg-logo-primary"
                     style={{ width: `${model.speed_score * 100}%` }}
                   />
                 </div>
@@ -226,10 +218,13 @@ const ModelCard: React.FC<ModelCardProps> = ({
         )}
       </div>
 
-      <hr className="w-full border-mid-gray/20" />
+      {!isCatalog && <hr className="w-full border-mid-gray/20" />}
 
-      {/* Bottom row: tags + action buttons (full width) */}
-      <div className="flex items-center gap-3 w-full -mb-0.5 mt-0.5 h-5">
+      <div
+        className={`flex w-full items-center gap-3 ${
+          isCatalog ? "border-t border-border pt-2" : "-mb-0.5 mt-0.5 h-5"
+        }`}
+      >
         {capabilityLanguages.length > 0 && (
           <div
             className="flex items-center gap-1 text-xs text-text/50"
@@ -290,10 +285,10 @@ const ModelCard: React.FC<ModelCardProps> = ({
 
       {/* Download/extract progress */}
       {status === "downloading" && downloadProgress !== undefined && (
-        <div className="w-full mt-3">
-          <div className="w-full h-1.5 bg-mid-gray/20 rounded-full overflow-hidden">
+        <div className={`w-full ${isCatalog ? "mt-1" : "mt-3"}`}>
+          <div className="w-full h-1 bg-mid-gray/20 overflow-hidden">
             <div
-              className="h-full bg-logo-primary rounded-full transition-all duration-300"
+              className="h-full bg-logo-primary transition-[width] duration-300"
               style={{ width: `${downloadProgress}%` }}
             />
           </div>
@@ -330,9 +325,9 @@ const ModelCard: React.FC<ModelCardProps> = ({
         </div>
       )}
       {status === "verifying" && (
-        <div className="w-full mt-3">
-          <div className="w-full h-1.5 bg-mid-gray/20 rounded-full overflow-hidden">
-            <div className="h-full bg-logo-primary rounded-full animate-pulse w-full" />
+        <div className={`w-full ${isCatalog ? "mt-1" : "mt-3"}`}>
+          <div className="w-full h-1 bg-mid-gray/20 overflow-hidden">
+            <div className="h-full bg-logo-primary animate-pulse w-full" />
           </div>
           <p className="text-xs text-text/50 mt-1">
             {t("modelSelector.verifyingGeneric")}
@@ -340,9 +335,9 @@ const ModelCard: React.FC<ModelCardProps> = ({
         </div>
       )}
       {status === "extracting" && (
-        <div className="w-full mt-3">
-          <div className="w-full h-1.5 bg-mid-gray/20 rounded-full overflow-hidden">
-            <div className="h-full bg-logo-primary rounded-full animate-pulse w-full" />
+        <div className={`w-full ${isCatalog ? "mt-1" : "mt-3"}`}>
+          <div className="w-full h-1 bg-mid-gray/20 overflow-hidden">
+            <div className="h-full bg-logo-primary animate-pulse w-full" />
           </div>
           <p className="text-xs text-text/50 mt-1">
             {t("modelSelector.extractingGeneric")}

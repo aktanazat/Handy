@@ -17,12 +17,13 @@ export default defineConfig(async () => ({
     },
   },
 
-  // Multiple entry points for main app and overlay
+  // Multiple entry points for main app, overlay, and companion agent panel
   build: {
     rollupOptions: {
       input: {
         main: resolve(__dirname, "index.html"),
         overlay: resolve(__dirname, "src/overlay/index.html"),
+        agentPanel: resolve(__dirname, "src/agent-panel/index.html"),
       },
     },
   },

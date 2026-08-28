@@ -1,0 +1,1083 @@
+use crate::analytics::DashboardTrendRange;
+use serde::{Deserialize, Serialize};
+use specta::Type;
+use uuid::Uuid;
+
+macro_rules! meeting_id {
+    ($name:ident) => {
+        #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, Type)]
+        #[serde(transparent)]
+        pub struct $name(pub Uuid);
+
+        impl $name {
+            pub fn new() -> Self {
+                Self(Uuid::new_v4())
+            }
+
+            pub const fn from_uuid(value: Uuid) -> Self {
+                Self(value)
+            }
+
+            pub const fn uuid(self) -> Uuid {
+                self.0
+            }
+        }
+
+        impl Default for $name {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
+    };
+}
+
+meeting_id!(MeetingSessionId);
+meeting_id!(MeetingPlanId);
+meeting_id!(ConsentId);
+meeting_id!(SourceTrackId);
+meeting_id!(TranscriptRevisionId);
+meeting_id!(TranscriptSegmentId);
+meeting_id!(SpeakerId);
+meeting_id!(ManualNoteId);
+meeting_id!(MeetingSuggestionId);
+meeting_id!(MeetingOperationId);
+meeting_id!(MeetingDeletionJobId);
+meeting_id!(MeetingExportReceiptId);
+meeting_id!(MeetingQuestionId);
+meeting_id!(MeetingArtifactId);
+meeting_id!(MeetingDiarizationGenerationId);
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, Type)]
+#[serde(transparent)]
+pub struct SourceEpoch(pub u64);
+
+impl SourceEpoch {
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum MeetingPhase {
+    Preflight,
+    Starting,
+    CapturingRecording,
+    CapturingPausing,
+    CapturingPaused,
+    CapturingResuming,
+    Stopping,
+    Processing,
+    ReviewReady,
+    RecoveryRequired,
+    Deleting,
+}
+
+impl MeetingPhase {
+    pub const fn capture_mode(self) -> Option<CaptureMode> {
+        match self {
+            Self::CapturingRecording => Some(CaptureMode::Recording),
+            Self::CapturingPausing => Some(CaptureMode::Pausing),
+            Self::CapturingPaused => Some(CaptureMode::Paused),
+            Self::CapturingResuming => Some(CaptureMode::Resuming),
+            _ => None,
+        }
+    }
+
+    pub const fn retains_capture_lease(self) -> bool {
+        matches!(
+            self,
+            Self::Starting
+                | Self::CapturingRecording
+                | Self::CapturingPausing
+                | Self::CapturingPaused
+                | Self::CapturingResuming
+                | Self::Stopping
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum CaptureMode {
+    Recording,
+    Pausing,
+    Paused,
+    Resuming,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum SourceKind {
+    Microphone,
+    SystemAudio,
+}
+
+impl SourceKind {
+    pub const ALL: [Self; 2] = [Self::Microphone, Self::SystemAudio];
+
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Microphone => "microphone",
+            Self::SystemAudio => "system_audio",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum SourceAvailability {
+    Available,
+    PermissionRequired,
+    PermissionDenied,
+    DeviceUnavailable,
+    UnsupportedPlatform,
+    StorageUnavailable,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum SourceHealth {
+    NotStarted,
+    Starting,
+    Healthy,
+    Paused,
+    Degraded,
+    Failed,
+    Stopped,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum SourceProbeDetail {
+    Permission,
+    Device,
+    Platform,
+    Stream,
+    Route,
+    Storage,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum SourceGapReason {
+    SourceUnavailable,
+    SourceStartFailed,
+    PermissionLost,
+    Paused,
+    PacketDropped,
+    WriterPressure,
+    StorageFailure,
+    TimestampMissing,
+    TimestampDiscontinuity,
+    InvalidFormat,
+    SourceStopped,
+    CorruptRecord,
+    MissingRecord,
+    RecoveryTail,
+    SystemSleep,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum ProcessingFailure {
+    LocalModelUnavailable,
+    RemoteUnavailable,
+    EngineFailure,
+    Cancelled,
+}
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum ProcessingStatus {
+    Pending,
+    Running,
+    Succeeded,
+    Failed { reason: ProcessingFailure },
+    Cancelled,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum DiarizationStatus {
+    NotRequested,
+    ModelUnavailable,
+    Downloading,
+    Running,
+    Succeeded,
+    Failed,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingDiarizationSnapshot {
+    pub status: DiarizationStatus,
+    pub model_id: String,
+    pub model_version: String,
+    pub generation_id: Option<MeetingDiarizationGenerationId>,
+    pub assigned_segment_count: u64,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum CaptureCompleteness {
+    NotStarted,
+    Complete,
+    Partial,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum DegradedStartPolicy {
+    AbortIfRequiredSourceFails,
+    ContinueAndMarkPartial,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum ProcessingDestination {
+    Local,
+    Remote { destination_id: String },
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct RemoteAcknowledgement {
+    pub destination_id: String,
+    pub policy_version: u32,
+    pub acknowledged_at_utc_ms: i64,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum DeletionCause {
+    Discard,
+    User,
+    Retention,
+    Recovery,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum MeetingOrigin {
+    Manual,
+    Suggestion,
+    Cli,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum StorageAvailability {
+    Available,
+    Unavailable,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, Type)]
+pub struct MeetingRetentionSetRequest {
+    pub operation_id: MeetingOperationId,
+    pub expected_revision: u64,
+    pub policy: MeetingRetentionPolicy,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum MeetingCommandError {
+    ConsentRequired,
+    ConsentStale,
+    InvalidTransition,
+    StaleRevision,
+    CaptureLeaseBusy,
+    NoSourceStarted,
+    SourceUnavailable,
+    StorageUnavailable,
+    RecoveryRequired,
+    DeletionInProgress,
+    NotFound,
+    InvalidRequest,
+    ExportCancelled,
+    ExportFailed,
+    LocalModelUnavailable,
+    RemoteUnavailable,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum MeetingCaptureError {
+    Unavailable,
+    PermissionDenied,
+    InvalidFormat,
+    StreamFailure,
+    InvalidState,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum PacketPushResult {
+    Accepted,
+    Dropped { frames: u32 },
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct PacketDiscontinuityFlags {
+    pub timestamp_reset: bool,
+    pub route_changed: bool,
+    pub source_restarted: bool,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct AudioFormat {
+    pub sample_rate_hz: u32,
+    pub channels: u16,
+}
+
+impl AudioFormat {
+    pub fn checked_frame_samples(self, frame_count: u32) -> Option<usize> {
+        usize::try_from(frame_count)
+            .ok()?
+            .checked_mul(usize::from(self.channels))
+    }
+
+    pub fn bytes_per_second(self) -> Option<u64> {
+        u64::from(self.sample_rate_hz)
+            .checked_mul(u64::from(self.channels))
+            .and_then(|samples| {
+                samples.checked_mul(u64::try_from(std::mem::size_of::<f32>()).ok()?)
+            })
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct SessionClockAnchor {
+    pub host_monotonic_anchor_ns: u64,
+    pub wall_start_utc_ms: i64,
+    pub clock_policy_version: u32,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct TimestampBridge {
+    /// Native timestamp units are deliberately retained with their source
+    /// timescale. Arrival time never participates in timeline reconstruction.
+    pub native_anchor_value: i64,
+    pub native_timescale: u32,
+    pub host_monotonic_anchor_ns: u64,
+    pub session_offset_ns: u64,
+}
+
+impl TimestampBridge {
+    pub fn map_native(self, native_timestamp_value: i64, native_timescale: u32) -> Option<u64> {
+        if native_timescale == 0 || native_timescale != self.native_timescale {
+            return None;
+        }
+        let delta = native_timestamp_value.checked_sub(self.native_anchor_value)?;
+        let delta_ns = u64::try_from(delta)
+            .ok()?
+            .checked_mul(1_000_000_000)?
+            .checked_div(u64::from(native_timescale))?;
+        self.session_offset_ns.checked_add(delta_ns)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct SourceClockEpoch {
+    pub track_id: SourceTrackId,
+    pub epoch: SourceEpoch,
+    pub format_epoch: u64,
+    pub bridge: TimestampBridge,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct CapturedPacket {
+    pub track_id: SourceTrackId,
+    pub source_epoch: SourceEpoch,
+    pub format_epoch: u64,
+    pub sequence: u64,
+    pub native_timestamp_value: Option<i64>,
+    pub native_timestamp_timescale: Option<u32>,
+    /// A platform host-clock sample from the callback, never callback arrival time.
+    pub host_monotonic_anchor_ns: Option<u64>,
+    pub sample_rate_hz: u32,
+    pub channels: u16,
+    pub frame_count: u32,
+    pub discontinuity_flags: PacketDiscontinuityFlags,
+}
+
+impl CapturedPacket {
+    pub fn format(self) -> AudioFormat {
+        AudioFormat {
+            sample_rate_hz: self.sample_rate_hz,
+            channels: self.channels,
+        }
+    }
+
+    pub fn native_timestamp(self) -> Option<(i64, u32)> {
+        Some((
+            self.native_timestamp_value?,
+            self.native_timestamp_timescale
+                .filter(|timescale| *timescale > 0)?,
+        ))
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct SourceProbe {
+    pub source_kind: SourceKind,
+    pub availability: SourceAvailability,
+    pub health: SourceHealth,
+    pub detail: Option<SourceProbeDetail>,
+    pub negotiated_format: Option<AudioFormat>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct SourceStartPlan {
+    pub session_id: MeetingSessionId,
+    pub track_id: SourceTrackId,
+    pub source_kind: SourceKind,
+    pub required: bool,
+    pub frozen_application_bundle_ids: Vec<String>,
+    pub source_epoch: SourceEpoch,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct SourceStartReport {
+    pub track_id: SourceTrackId,
+    pub source_kind: SourceKind,
+    pub format: AudioFormat,
+    pub epoch: SourceEpoch,
+    pub format_epoch: u64,
+    pub timestamp_bridge: TimestampBridge,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct SourceGap {
+    pub track_id: SourceTrackId,
+    pub epoch: SourceEpoch,
+    pub start_offset_ns: Option<u64>,
+    pub end_offset_ns: Option<u64>,
+    pub reason: SourceGapReason,
+    pub dropped_frames: Option<u64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct SourceStopReport {
+    pub track_id: SourceTrackId,
+    pub final_offset_ns: Option<u64>,
+    pub health: SourceHealth,
+    pub observed_gaps: Vec<SourceGap>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingStoragePlan {
+    pub format_version: u32,
+    pub record_max_payload_bytes: u32,
+    pub checkpoint_interval_ms: u32,
+    pub source_lane_sample_capacity: u32,
+    pub source_lane_descriptor_capacity: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingRunPlan {
+    pub plan_id: MeetingPlanId,
+    pub session_id: MeetingSessionId,
+    pub consent_id: ConsentId,
+    pub attempt_number: u32,
+    pub schema_version: u32,
+    pub app_build: String,
+    pub preflight_revision: u64,
+    pub requested_sources: Vec<SourceKind>,
+    pub required_sources: Vec<SourceKind>,
+    pub accepted_known_missing_sources: Vec<SourceKind>,
+    pub degraded_start_policy: DegradedStartPolicy,
+    pub microphone_device_uid: Option<String>,
+    pub frozen_system_audio_application_bundle_ids: Vec<String>,
+    pub session_clock_anchor: SessionClockAnchor,
+    pub storage: MeetingStoragePlan,
+    pub language: String,
+    pub asr_model_id: Option<String>,
+    pub asr_model_version: Option<String>,
+    pub diarization_model_id: Option<String>,
+    pub diarization_model_version: Option<String>,
+    pub destination: ProcessingDestination,
+    pub remote_acknowledgement: Option<RemoteAcknowledgement>,
+    pub retention_policy: MeetingRetentionPolicy,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingConsent {
+    pub consent_id: ConsentId,
+    pub session_id: MeetingSessionId,
+    pub attempt_number: u32,
+    pub preflight_revision: u64,
+    pub policy_version: u32,
+    pub acknowledged_at_utc_ms: i64,
+    pub microphone_acknowledged: bool,
+    pub system_audio_acknowledged: bool,
+    pub known_missing_sources_acknowledged: Vec<SourceKind>,
+    pub degraded_start_policy: DegradedStartPolicy,
+    pub destination: ProcessingDestination,
+    pub remote_acknowledgement: Option<RemoteAcknowledgement>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum MeetingRetentionPolicy {
+    Forever,
+    DeleteAfterDays { days: u32 },
+}
+
+impl MeetingRetentionPolicy {
+    pub fn delete_after_utc_ms(&self, from_utc_ms: i64) -> Option<i64> {
+        match self {
+            Self::Forever => None,
+            Self::DeleteAfterDays { days } => i64::from(*days)
+                .checked_mul(86_400_000)
+                .and_then(|duration| from_utc_ms.checked_add(duration)),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingRetentionSnapshot {
+    pub policy: MeetingRetentionPolicy,
+    pub revision: u64,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum MeetingReasonCode {
+    ConsentMissing,
+    ConsentStale,
+    StaleRevision,
+    CaptureLeaseBusy,
+    SourceUnavailable,
+    SourceStartFailed,
+    SourceGap,
+    StorageUnavailable,
+    StorageFailure,
+    LocalModelUnavailable,
+    RecoveryRequired,
+    Deleted,
+    InvalidTransition,
+    DuplicateOperation,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum OperationResult {
+    Committed,
+    Rejected,
+    Failed,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum MeetingCommandKind {
+    PreflightCreate,
+    PreflightRefresh,
+    PreflightCancel,
+    Start,
+    Pause,
+    Resume,
+    Stop,
+    Discard,
+    RecoveryFinalize,
+    TitleSet,
+    SpeakerRename,
+    SpeakerMerge,
+    SegmentEdit,
+    NoteCreate,
+    NoteUpdate,
+    NoteDelete,
+    ArtifactsRegenerate,
+    QuestionAsk,
+    QuestionForget,
+    Export,
+    Delete,
+    RetentionSet,
+    RemoteCancel,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct OperationReceipt {
+    pub schema_version: u32,
+    pub operation_id: MeetingOperationId,
+    pub session_id: Option<MeetingSessionId>,
+    pub actor: OperationActor,
+    pub command: MeetingCommandKind,
+    pub expected_revision: u64,
+    pub from_phase: Option<MeetingPhase>,
+    pub to_phase: Option<MeetingPhase>,
+    pub requested_at_utc_ms: i64,
+    pub committed_at_utc_ms: Option<i64>,
+    pub result: OperationResult,
+    pub reason_codes: Vec<MeetingReasonCode>,
+    pub new_revision: Option<u64>,
+    pub effect_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingRetentionMutationResult {
+    pub receipt: OperationReceipt,
+    pub snapshot: MeetingRetentionSnapshot,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum OperationActor {
+    User,
+    System,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum AllowedMeetingAction {
+    RefreshPreflight,
+    CancelPreflight,
+    Start,
+    Pause,
+    Resume,
+    Stop,
+    Discard,
+    FinalizePartial,
+    Edit,
+    Regenerate,
+    AskQuestion,
+    Export,
+    Delete,
+    CancelRemote,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingSourceSnapshot {
+    pub track_id: Option<SourceTrackId>,
+    pub source_kind: SourceKind,
+    pub required: bool,
+    pub availability: SourceAvailability,
+    pub health: SourceHealth,
+    pub format: Option<AudioFormat>,
+    pub last_durable_offset_ns: Option<u64>,
+    pub gap_count: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingPreflightSnapshot {
+    pub session_id: MeetingSessionId,
+    pub revision: u64,
+    pub proposed_title: String,
+    pub origin: MeetingOrigin,
+    pub sources: Vec<MeetingSourceSnapshot>,
+    pub storage: StorageAvailability,
+    pub local_processing: SourceAvailability,
+    pub destination: ProcessingDestination,
+    pub microphone_device_uid: Option<String>,
+    pub frozen_system_audio_application_bundle_ids: Vec<String>,
+    pub accepted_known_missing_sources: Vec<SourceKind>,
+    pub degraded_start_policy: DegradedStartPolicy,
+    pub required_acknowledgements: Vec<SourceKind>,
+    pub allowed_actions: Vec<AllowedMeetingAction>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingSessionSnapshot {
+    pub session_id: MeetingSessionId,
+    pub phase: MeetingPhase,
+    pub revision: u64,
+    pub title: String,
+    pub started_at_utc_ms: Option<i64>,
+    pub elapsed_offset_ns: Option<u64>,
+    pub sources: Vec<MeetingSourceSnapshot>,
+    pub open_capture_window_started_at_ns: Option<u64>,
+    pub capture_completeness: CaptureCompleteness,
+    pub storage: StorageAvailability,
+    pub processing_status: ProcessingStatus,
+    pub retention_deadline_utc_ms: Option<i64>,
+    pub allowed_actions: Vec<AllowedMeetingAction>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingTrackSnapshot {
+    pub track_id: SourceTrackId,
+    pub source_kind: SourceKind,
+    pub format: Option<AudioFormat>,
+    pub first_offset_ns: Option<u64>,
+    pub last_offset_ns: Option<u64>,
+    pub durable_record_count: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingSpeaker {
+    pub speaker_id: SpeakerId,
+    pub session_id: MeetingSessionId,
+    pub source_kind: SourceKind,
+    pub display_name: String,
+    pub revision: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct TranscriptSegment {
+    pub segment_id: TranscriptSegmentId,
+    pub transcript_revision_id: TranscriptRevisionId,
+    pub track_id: SourceTrackId,
+    pub ordinal: u64,
+    pub start_offset_ns: u64,
+    pub end_offset_ns: u64,
+    pub speaker_id: SpeakerId,
+    pub text: String,
+    pub confidence_milli: Option<u16>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum SpeakerAssignmentKind {
+    LocalSpeaker,
+    SystemSpeaker,
+    Unknown,
+    Overlap,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct EffectiveTranscriptSegment {
+    pub base: TranscriptSegment,
+    pub replacement_text: Option<String>,
+    pub removed: bool,
+    pub edit_revision: Option<u64>,
+    pub assigned_speaker_id: SpeakerId,
+    pub speaker_assignment: SpeakerAssignmentKind,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct ManualNote {
+    pub note_id: ManualNoteId,
+    pub session_id: MeetingSessionId,
+    pub start_offset_ns: Option<u64>,
+    pub end_offset_ns: Option<u64>,
+    pub body: String,
+    pub revision: u64,
+    pub created_at_utc_ms: i64,
+    pub updated_at_utc_ms: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingReviewSnapshot {
+    pub session: MeetingSessionSnapshot,
+    pub tracks: Vec<MeetingTrackSnapshot>,
+    pub gaps: Vec<SourceGap>,
+    pub speakers: Vec<MeetingSpeaker>,
+    pub transcript: Vec<EffectiveTranscriptSegment>,
+    pub notes: Vec<ManualNote>,
+    pub artifacts: Vec<MeetingArtifactRevision>,
+    pub questions: Vec<MeetingAnswer>,
+    pub diarization: MeetingDiarizationSnapshot,
+    pub can_export: bool,
+    pub remote_cancellation_pending: bool,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum HistoryItemKind {
+    Meeting,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingHistorySummary {
+    pub kind: HistoryItemKind,
+    pub session_id: MeetingSessionId,
+    pub title: String,
+    pub phase: MeetingPhase,
+    pub created_at_utc_ms: i64,
+    pub capture_completeness: CaptureCompleteness,
+    pub processing_status: ProcessingStatus,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct PaginatedMeetings {
+    pub entries: Vec<MeetingHistorySummary>,
+    pub has_more: bool,
+}
+
+/// Content-free aggregate for either the selected meeting trend range or all
+/// retained meeting sessions.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingTrendTotals {
+    pub meetings: u64,
+    pub verified_captured_duration_ms: u64,
+    pub transcript_segments: u64,
+    pub generated_action_items: u64,
+}
+
+/// One local-calendar day in the meeting trend. Every requested date is
+/// present, including dates with no retained meeting sessions.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingTrendPoint {
+    pub local_date: String,
+    pub meetings: u64,
+    pub verified_captured_duration_ms: u64,
+    pub transcript_segments: u64,
+    pub generated_action_items: u64,
+}
+
+/// A bounded meeting projection. Storage failures have no zero-valued data
+/// projection, so callers can distinguish unavailable storage from an empty
+/// range.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum MeetingTrendProjection {
+    Available {
+        range: DashboardTrendRange,
+        range_start_local_date: String,
+        range_end_local_date: String,
+        all_time: MeetingTrendTotals,
+        range_total: MeetingTrendTotals,
+        points: Vec<MeetingTrendPoint>,
+    },
+    Unavailable {
+        range: DashboardTrendRange,
+    },
+}
+
+impl MeetingTrendProjection {
+    pub(crate) const fn unavailable(range: DashboardTrendRange) -> Self {
+        Self::Unavailable { range }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum MeetingArtifactKind {
+    Notes,
+    Actions,
+    Decisions,
+    Topics,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum MeetingArtifactState {
+    Current,
+    OutOfDate,
+    Failed,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingArtifact {
+    pub artifact_id: MeetingArtifactId,
+    pub session_id: MeetingSessionId,
+    pub kind: MeetingArtifactKind,
+    pub transcript_revision_id: Option<TranscriptRevisionId>,
+    pub state: MeetingArtifactState,
+    pub created_at_utc_ms: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct ArtifactCitation {
+    pub segment_id: TranscriptSegmentId,
+    pub start_offset_ns: u64,
+    pub end_offset_ns: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct CitedArtifactText {
+    pub text: String,
+    pub citations: Vec<ArtifactCitation>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingOutlineTopic {
+    pub title: CitedArtifactText,
+    pub detail: Option<CitedArtifactText>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingActionItem {
+    pub text: CitedArtifactText,
+    pub owner_text: Option<String>,
+    pub due_text: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct GeneratedMeetingArtifacts {
+    pub summary: CitedArtifactText,
+    pub outline: Vec<MeetingOutlineTopic>,
+    pub decisions: Vec<CitedArtifactText>,
+    pub action_items: Vec<MeetingActionItem>,
+    pub key_questions: Vec<CitedArtifactText>,
+    pub risks: Vec<CitedArtifactText>,
+    pub follow_up_draft: CitedArtifactText,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingArtifactRevision {
+    pub artifact_id: MeetingArtifactId,
+    pub session_id: MeetingSessionId,
+    pub transcript_revision_id: TranscriptRevisionId,
+    pub input_revision: u64,
+    pub template_id: String,
+    pub template_version: u32,
+    pub generation_key: String,
+    pub state: MeetingArtifactState,
+    pub generated_at_utc_ms: i64,
+    pub content: Option<GeneratedMeetingArtifacts>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum CitationKind {
+    Transcript,
+    ManualNote,
+    Title,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingCitation {
+    pub kind: CitationKind,
+    pub session_id: MeetingSessionId,
+    pub entity_id: String,
+    pub start_offset_ns: Option<u64>,
+    #[serde(default)]
+    pub end_offset_ns: Option<u64>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum MeetingQuestionScope {
+    #[default]
+    ThisMeeting,
+    ExplicitSeries {
+        session_ids: Vec<MeetingSessionId>,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum MeetingAnswerState {
+    Supported,
+    InsufficientEvidence,
+    Unavailable,
+    OutOfDate,
+    Forgotten,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingAnswer {
+    pub question_id: MeetingQuestionId,
+    pub session_id: MeetingSessionId,
+    pub scope: MeetingQuestionScope,
+    pub question: Option<String>,
+    pub state: MeetingAnswerState,
+    pub answer: Option<String>,
+    pub citations: Vec<MeetingCitation>,
+    pub input_revision: u64,
+    pub revision: u64,
+    pub created_at_utc_ms: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingSearchHit {
+    pub session_id: MeetingSessionId,
+    pub kind: CitationKind,
+    pub entity_id: String,
+    pub start_offset_ns: Option<u64>,
+    pub end_offset_ns: Option<u64>,
+    pub excerpt: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingSearchResult {
+    pub entries: Vec<MeetingSearchHit>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, Type)]
+pub struct MeetingSearchRequest {
+    pub query: String,
+    pub session_ids: Vec<MeetingSessionId>,
+    pub limit: Option<usize>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum MeetingExportFormat {
+    Json,
+    Markdown,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, Type)]
+pub struct MeetingExportRequest {
+    pub operation_id: MeetingOperationId,
+    pub session_id: MeetingSessionId,
+    pub expected_revision: u64,
+    pub format: MeetingExportFormat,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingExportReceipt {
+    pub export_receipt_id: MeetingExportReceiptId,
+    pub session_id: MeetingSessionId,
+    pub format: MeetingExportFormat,
+    pub snapshot_revision: u64,
+    pub capture_completeness: CaptureCompleteness,
+    pub transcript_revision_id: Option<TranscriptRevisionId>,
+    pub created_at_utc_ms: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingExportResult {
+    pub receipt: OperationReceipt,
+    pub export_receipt: MeetingExportReceipt,
+}
+
+macro_rules! meeting_event {
+    ($event_type:ident, $event_name:literal) => {
+        #[derive(Clone, Debug, Deserialize, Serialize, Type)]
+        #[serde(transparent)]
+        pub struct $event_type(pub MeetingEventPayload);
+
+        impl tauri_specta::Event for $event_type {
+            const NAME: &'static str = $event_name;
+        }
+    };
+}
+
+meeting_event!(MeetingSuggestionChangedEvent, "meeting:suggestion-changed");
+meeting_event!(MeetingSessionChangedEvent, "meeting:session-changed");
+meeting_event!(
+    MeetingSourceHealthChangedEvent,
+    "meeting:source-health-changed"
+);
+meeting_event!(MeetingTranscriptChangedEvent, "meeting:transcript-changed");
+meeting_event!(MeetingNoteChangedEvent, "meeting:note-changed");
+meeting_event!(MeetingArtifactChangedEvent, "meeting:artifact-changed");
+meeting_event!(MeetingRemoteJobChangedEvent, "meeting:remote-job-changed");
+meeting_event!(MeetingRemovedEvent, "meeting:removed");
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingEventPayload {
+    pub event_schema_version: u32,
+    pub session_id: Option<MeetingSessionId>,
+    pub revision: u64,
+}
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum MeetingNavigationDestination {
+    List,
+    Preflight,
+    Session,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingNavigationPayload {
+    pub event_schema_version: u32,
+    pub destination: MeetingNavigationDestination,
+    pub session_id: Option<MeetingSessionId>,
+    pub revision: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, Type)]
+#[serde(transparent)]
+pub struct MeetingNavigationRequestedEvent(pub MeetingNavigationPayload);
+
+impl tauri_specta::Event for MeetingNavigationRequestedEvent {
+    const NAME: &'static str = "meeting:navigation-requested";
+}

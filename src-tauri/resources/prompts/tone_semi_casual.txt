@@ -1,0 +1,2 @@
+[TONE_RULE: SEMI_CASUAL]
+Use friendly, natural language. Keep the structure clear without making it stiff or overly formal.

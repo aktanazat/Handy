@@ -1,77 +1,222 @@
-/* Handy Colors */
+/* Sona design tokens — Vercel/Geist product system.
+ *
+ * Exact black/white inversion across themes: same structure, opposite poles.
+ * Canvas is the window color, surface is content, subtle is selected rows,
+ * hover/pressed are interaction washes. Danger is the only chromatic color
+ * in the product UI; info/success/warning remain reserved for status copy
+ * that carries meaning (links, meeting health) and are muted greys except
+ * where a real state needs them.
+ */
 
 :root {
-  /* Palette source of truth. Each themed color is defined once as a
-     light/dark pair; the active tokens below and the `data-theme` overrides
-     in App.css reference these, so a hex value lives in exactly one place. */
-  --light-color-text: #0f0f0f;
-  --light-color-background: #fbfbfb;
-  --light-color-logo-primary: #faa2ca;
-  --light-color-logo-stroke: #382731;
+  /* Light — #000 on #fafafa, hairlines at 8% black. */
+  --light-color-canvas: #fafafa;
+  --light-color-surface: #ffffff;
+  --light-color-subtle: #f4f4f4;
+  --light-color-hover: rgba(0, 0, 0, 0.05);
+  --light-color-pressed: rgba(0, 0, 0, 0.09);
+  --light-color-text-primary: #000000;
+  --light-color-text-secondary: #5c5c5c;
+  --light-color-text-tertiary: #8f8f8f;
+  --light-color-border: rgba(0, 0, 0, 0.08);
+  --light-color-border-strong: rgba(0, 0, 0, 0.18);
+  --light-color-inverse-background: #000000;
+  --light-color-inverse-text: #ffffff;
+  --light-color-accent: #000000;
+  --light-color-accent-strong: #000000;
+  --light-color-accent-soft: #ededed;
+  --light-color-info: #2563eb;
+  --light-color-success: #18794e;
+  --light-color-warning: #9a6700;
+  --light-color-danger: #e5484d;
 
-  --dark-color-text: #fbfbfb;
-  --dark-color-background: #2c2b29;
-  --dark-color-logo-primary: #f28cbb;
-  --dark-color-logo-stroke: #fad1ed;
+  /* Dark — #fafafa on #000, hairlines at 14% white. */
+  --dark-color-canvas: #000000;
+  --dark-color-surface: #0d0d0d;
+  --dark-color-subtle: #1a1a1a;
+  --dark-color-hover: rgba(255, 255, 255, 0.08);
+  --dark-color-pressed: rgba(255, 255, 255, 0.13);
+  --dark-color-text-primary: #fafafa;
+  --dark-color-text-secondary: #a0a0a0;
+  --dark-color-text-tertiary: #6f6f6f;
+  --dark-color-border: rgba(255, 255, 255, 0.14);
+  --dark-color-border-strong: rgba(255, 255, 255, 0.26);
+  --dark-color-inverse-background: #fafafa;
+  --dark-color-inverse-text: #000000;
+  --dark-color-accent: #fafafa;
+  --dark-color-accent-strong: #fafafa;
+  --dark-color-accent-soft: #262626;
+  --dark-color-info: #60a5fa;
+  --dark-color-success: #3dd68c;
+  --dark-color-warning: #e3a008;
+  --dark-color-danger: #ff6369;
 
-  /* Semantic status colors. First used by SecureInputWarning; intended to
-     replace the ad-hoc yellow-500/red-500 usages (e.g. ui/Alert.tsx) over
-     time so status styling is themeable from one place. */
-  --light-color-warning: #d97706;
-  --light-color-error: #dc2626;
-  --dark-color-warning: #fbbf24;
-  --dark-color-error: #f87171;
-
-  /* Tokens that do not change between light and dark */
-  --color-background-ui: #da5893;
-  --color-text-stroke: #f6f6f6;
-  --color-mid-gray: #808080;
-
-  /* Active palette — defaults to light, follows the OS via the media query
-     below, or is forced by `data-theme` (see the overrides below). */
-  --color-text: var(--light-color-text);
-  --color-background: var(--light-color-background);
-  --color-logo-primary: var(--light-color-logo-primary);
-  --color-logo-stroke: var(--light-color-logo-stroke);
+  --color-canvas: var(--light-color-canvas);
+  --color-surface: var(--light-color-surface);
+  --color-subtle: var(--light-color-subtle);
+  --color-hover: var(--light-color-hover);
+  --color-pressed: var(--light-color-pressed);
+  --color-text-primary: var(--light-color-text-primary);
+  --color-text-secondary: var(--light-color-text-secondary);
+  --color-text-tertiary: var(--light-color-text-tertiary);
+  --color-border: var(--light-color-border);
+  --color-border-strong: var(--light-color-border-strong);
+  --color-inverse-background: var(--light-color-inverse-background);
+  --color-inverse-text: var(--light-color-inverse-text);
+  --color-accent: var(--light-color-accent);
+  --color-accent-strong: var(--light-color-accent-strong);
+  --color-accent-soft: var(--light-color-accent-soft);
+  --color-info: var(--light-color-info);
+  --color-success: var(--light-color-success);
   --color-warning: var(--light-color-warning);
-  --color-error: var(--light-color-error);
+  --color-danger: var(--light-color-danger);
+
+  /* Material aliases stay opaque — the desktop shell never blurs. */
+  --color-material-sidebar: var(--color-surface);
+  --color-material-content: var(--color-surface);
+  --color-material-dialog: var(--color-surface);
+  --color-control: color-mix(in srgb, var(--color-surface) 60%, var(--color-canvas));
+  --color-backdrop: color-mix(
+    in srgb,
+    var(--color-inverse-background) 34%,
+    transparent
+  );
+  --color-focus-soft: color-mix(
+    in srgb,
+    var(--color-accent-strong) 18%,
+    transparent
+  );
+
+  --space-0-5: 2px;
+  --space-1: 4px;
+  --space-1-5: 6px;
+  --space-2: 8px;
+  --space-2-5: 10px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+
+  --control-height: 32px;
+  --page-max-width: 1040px;
+  --topnav-height: 40px;
+  --chart-height: 160px;
+
+  --radius-control: 6px;
+  --radius-panel: 8px;
+  --radius-dialog: 12px;
+  --radius-pill: 999px;
+
+  --duration-fast: 120ms;
+  --duration-standard: 180ms;
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+
+  --shadow-popover:
+    0 0 0 1px var(--color-border-strong),
+    0 8px 24px -8px
+      color-mix(in srgb, var(--color-inverse-background) 14%, transparent);
+  --shadow-dialog:
+    0 0 0 1px var(--color-border-strong),
+    0 24px 64px -16px
+      color-mix(in srgb, var(--color-inverse-background) 22%, transparent);
+
+  /* Compatibility aliases for existing feature components. */
+  --color-background: var(--color-canvas);
+  --color-text: var(--color-text-primary);
+  --color-background-ui: var(--color-inverse-background);
+  --color-logo-primary: var(--color-text-primary);
+  --color-logo-stroke: var(--color-text-secondary);
+  --color-text-stroke: var(--color-canvas);
+  --color-mid-gray: var(--color-text-secondary);
+  --color-error: var(--color-danger);
+  --color-glass-panel: var(--color-material-content);
+  --color-glass-panel-strong: var(--color-subtle);
+  --color-glass-control: var(--color-control);
+  --color-glass-border: var(--color-border);
+  --color-glass-border-soft: var(--color-border);
+  --color-glass-highlight: transparent;
+  --shadow-glass: none;
+  --shadow-glass-soft: none;
+  --color-meeting-recording: var(--color-danger);
+  --color-meeting-recording-soft: color-mix(
+    in srgb,
+    var(--color-danger) 10%,
+    var(--color-surface)
+  );
+  --color-meeting-safe: var(--color-success);
+  --color-meeting-warning-soft: color-mix(
+    in srgb,
+    var(--color-warning) 11%,
+    var(--color-surface)
+  );
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-text: var(--dark-color-text);
-    --color-background: var(--dark-color-background);
-    --color-logo-primary: var(--dark-color-logo-primary);
-    --color-logo-stroke: var(--dark-color-logo-stroke);
+    --color-canvas: var(--dark-color-canvas);
+    --color-surface: var(--dark-color-surface);
+    --color-subtle: var(--dark-color-subtle);
+    --color-hover: var(--dark-color-hover);
+    --color-pressed: var(--dark-color-pressed);
+    --color-text-primary: var(--dark-color-text-primary);
+    --color-text-secondary: var(--dark-color-text-secondary);
+    --color-text-tertiary: var(--dark-color-text-tertiary);
+    --color-border: var(--dark-color-border);
+    --color-border-strong: var(--dark-color-border-strong);
+    --color-inverse-background: var(--dark-color-inverse-background);
+    --color-inverse-text: var(--dark-color-inverse-text);
+    --color-accent: var(--dark-color-accent);
+    --color-accent-strong: var(--dark-color-accent-strong);
+    --color-accent-soft: var(--dark-color-accent-soft);
+    --color-info: var(--dark-color-info);
+    --color-success: var(--dark-color-success);
     --color-warning: var(--dark-color-warning);
-    --color-error: var(--dark-color-error);
+    --color-danger: var(--dark-color-danger);
   }
 }
 
-/*
- * Explicit theme override, driven by the `theme` setting via
- * `document.documentElement.dataset.theme`. When set, the higher-specificity
- * attribute selectors win over the `prefers-color-scheme` media query above,
- * so a user can keep Handy light or dark regardless of the OS setting.
- * `system` (or no attribute) leaves the OS in charge.
- *
- * Lives here (not in App.css) so every window that imports the shared palette —
- * the settings window and the recording overlay alike — honours the override.
- */
 :root[data-theme="light"] {
-  --color-text: var(--light-color-text);
-  --color-background: var(--light-color-background);
-  --color-logo-primary: var(--light-color-logo-primary);
-  --color-logo-stroke: var(--light-color-logo-stroke);
+  --color-canvas: var(--light-color-canvas);
+  --color-surface: var(--light-color-surface);
+  --color-subtle: var(--light-color-subtle);
+  --color-hover: var(--light-color-hover);
+  --color-pressed: var(--light-color-pressed);
+  --color-text-primary: var(--light-color-text-primary);
+  --color-text-secondary: var(--light-color-text-secondary);
+  --color-text-tertiary: var(--light-color-text-tertiary);
+  --color-border: var(--light-color-border);
+  --color-border-strong: var(--light-color-border-strong);
+  --color-inverse-background: var(--light-color-inverse-background);
+  --color-inverse-text: var(--light-color-inverse-text);
+  --color-accent: var(--light-color-accent);
+  --color-accent-strong: var(--light-color-accent-strong);
+  --color-accent-soft: var(--light-color-accent-soft);
+  --color-info: var(--light-color-info);
+  --color-success: var(--light-color-success);
   --color-warning: var(--light-color-warning);
-  --color-error: var(--light-color-error);
+  --color-danger: var(--light-color-danger);
 }
 
 :root[data-theme="dark"] {
-  --color-text: var(--dark-color-text);
-  --color-background: var(--dark-color-background);
-  --color-logo-primary: var(--dark-color-logo-primary);
-  --color-logo-stroke: var(--dark-color-logo-stroke);
+  --color-canvas: var(--dark-color-canvas);
+  --color-surface: var(--dark-color-surface);
+  --color-subtle: var(--dark-color-subtle);
+  --color-hover: var(--dark-color-hover);
+  --color-pressed: var(--dark-color-pressed);
+  --color-text-primary: var(--dark-color-text-primary);
+  --color-text-secondary: var(--dark-color-text-secondary);
+  --color-text-tertiary: var(--dark-color-text-tertiary);
+  --color-border: var(--dark-color-border);
+  --color-border-strong: var(--dark-color-border-strong);
+  --color-inverse-background: var(--dark-color-inverse-background);
+  --color-inverse-text: var(--dark-color-inverse-text);
+  --color-accent: var(--dark-color-accent);
+  --color-accent-strong: var(--dark-color-accent-strong);
+  --color-accent-soft: var(--dark-color-accent-soft);
+  --color-info: var(--dark-color-info);
+  --color-success: var(--dark-color-success);
   --color-warning: var(--dark-color-warning);
-  --color-error: var(--dark-color-error);
+  --color-danger: var(--dark-color-danger);
 }

@@ -1,4 +1,4 @@
-use rustfft::{num_complex::Complex32, Fft, FftPlanner};
+use rustfft::{num_complex::Complex32, num_traits::ToPrimitive, Fft, FftPlanner};
 use std::sync::Arc;
 
 // `db` below is not true dBFS: it's a per-bin average divided by the FFT
@@ -11,6 +11,31 @@ const DB_MIN: f32 = -68.0;
 const DB_MAX: f32 = -30.0;
 const GAIN: f32 = 1.3;
 const CURVE_POWER: f32 = 0.7;
+
+#[inline]
+fn usize_to_f32(value: usize) -> f32 {
+    let Some(value) = value.to_f32() else {
+        unreachable!("all supported usize values fit within the finite f32 range");
+    };
+    value
+}
+
+#[inline]
+fn u32_to_f32(value: u32) -> f32 {
+    let Some(value) = value.to_f32() else {
+        unreachable!("all u32 values fit within the finite f32 range");
+    };
+    value
+}
+
+#[inline]
+fn f32_to_usize_saturating(value: f32) -> usize {
+    match value.to_usize() {
+        Some(value) => value,
+        None if value.is_nan() || value.is_sign_negative() => 0,
+        None => usize::MAX,
+    }
+}
 
 pub struct AudioVisualiser {
     fft: Arc<dyn Fft<f32>>,
@@ -34,15 +59,20 @@ impl AudioVisualiser {
         let mut planner = FftPlanner::<f32>::new();
         let fft = planner.plan_fft_forward(window_size);
 
+        let window_size_f32 = usize_to_f32(window_size);
+        let sample_rate_f32 = u32_to_f32(sample_rate);
+        let bucket_count = usize_to_f32(buckets);
+
         // Pre-compute Hann window
         let window: Vec<f32> = (0..window_size)
             .map(|i| {
-                0.5 * (1.0 - (2.0 * std::f32::consts::PI * i as f32 / window_size as f32).cos())
+                let i = usize_to_f32(i);
+                0.5 * (1.0 - (2.0 * std::f32::consts::PI * i / window_size_f32).cos())
             })
             .collect();
 
         // Pre-compute bucket frequency ranges
-        let nyquist = sample_rate as f32 / 2.0;
+        let nyquist = sample_rate_f32 / 2.0;
         let freq_min = freq_min.min(nyquist);
         let freq_max = freq_max.min(nyquist);
 
@@ -50,14 +80,14 @@ impl AudioVisualiser {
 
         for b in 0..buckets {
             // Use logarithmic spacing for better perceptual representation
-            let log_start = (b as f32 / buckets as f32).powi(2);
-            let log_end = ((b + 1) as f32 / buckets as f32).powi(2);
+            let log_start = (usize_to_f32(b) / bucket_count).powi(2);
+            let log_end = (usize_to_f32(b + 1) / bucket_count).powi(2);
 
             let start_hz = freq_min + (freq_max - freq_min) * log_start;
             let end_hz = freq_min + (freq_max - freq_min) * log_end;
 
-            let start_bin = ((start_hz * window_size as f32) / sample_rate as f32) as usize;
-            let mut end_bin = ((end_hz * window_size as f32) / sample_rate as f32) as usize;
+            let start_bin = f32_to_usize_saturating(start_hz * window_size_f32 / sample_rate_f32);
+            let mut end_bin = f32_to_usize_saturating(end_hz * window_size_f32 / sample_rate_f32);
 
             // Ensure each bucket has at least one bin
             if end_bin <= start_bin {
@@ -96,7 +126,7 @@ impl AudioVisualiser {
         let window_samples = &self.buffer[..self.window_size];
 
         // Remove DC component
-        let mean = window_samples.iter().sum::<f32>() / self.window_size as f32;
+        let mean = window_samples.iter().sum::<f32>() / usize_to_f32(self.window_size);
 
         // Apply window function and prepare FFT input
         for (i, &sample) in window_samples.iter().enumerate() {
@@ -122,11 +152,11 @@ impl AudioVisualiser {
                 power_sum += magnitude * magnitude;
             }
 
-            let avg_power = power_sum / (end_bin - start_bin) as f32;
+            let avg_power = power_sum / usize_to_f32(end_bin - start_bin);
 
             // Convert to dB with proper scaling
             let db = if avg_power > 1e-12 {
-                20.0 * (avg_power.sqrt() / self.window_size as f32).log10()
+                20.0 * (avg_power.sqrt() / usize_to_f32(self.window_size)).log10()
             } else {
                 -80.0 // Very low floor for zero power
             };
@@ -158,5 +188,33 @@ impl AudioVisualiser {
         self.buffer.clear();
         // Reset noise floor to initial values
         self.noise_floor.fill(-40.0);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn feed_produces_finite_buckets_after_a_complete_fft_window() {
+        const WINDOW_SIZE: usize = 512;
+        const BUCKETS: usize = 16;
+        let mut visualizer = AudioVisualiser::new(16_000, WINDOW_SIZE, BUCKETS, 50.0, 8_000.0);
+        let samples = (0..WINDOW_SIZE)
+            .map(|index| {
+                (2.0 * std::f32::consts::PI * 1_000.0 * usize_to_f32(index) / 16_000.0).sin()
+            })
+            .collect::<Vec<_>>();
+
+        assert!(visualizer.feed(&samples[..WINDOW_SIZE - 1]).is_none());
+        let Some(levels) = visualizer.feed(&samples[WINDOW_SIZE - 1..]) else {
+            panic!("a complete FFT window must produce bucket levels");
+        };
+
+        assert_eq!(levels.len(), BUCKETS);
+        assert!(levels
+            .iter()
+            .all(|level| level.is_finite() && (0.0..=1.0).contains(level)));
+        assert!(levels.iter().any(|&level| level > 0.0));
     }
 }

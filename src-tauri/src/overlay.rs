@@ -73,6 +73,32 @@ const OVERLAY_BOTTOM_OFFSET: f64 = 15.0;
 #[cfg(any(target_os = "windows", target_os = "linux"))]
 const OVERLAY_BOTTOM_OFFSET: f64 = 40.0;
 
+fn saturating_truncated_i32(value: f64) -> i32 {
+    if value.is_nan() {
+        return 0;
+    }
+    if value <= f64::from(i32::MIN) {
+        return i32::MIN;
+    }
+    if value >= f64::from(i32::MAX) {
+        return i32::MAX;
+    }
+    // SAFETY: value is finite and strictly inside i32's representable range after the checks above.
+    unsafe { value.to_int_unchecked() }
+}
+
+#[cfg(any(not(target_os = "windows"), test))]
+fn saturating_truncated_u32(value: f64) -> u32 {
+    if value.is_nan() || value <= 0.0 {
+        return 0;
+    }
+    if value >= f64::from(u32::MAX) {
+        return u32::MAX;
+    }
+    // SAFETY: value is finite and strictly inside u32's representable range after the checks above.
+    unsafe { value.to_int_unchecked() }
+}
+
 /// Configures the edge and offset of a GTK layer surface. gtk-layer-shell
 /// commits anchor and margin changes itself, including while the surface is
 /// mapped, so changing position does not require a manual hide/show cycle.
@@ -85,7 +111,7 @@ fn configure_layer_shell_position(gtk_window: &gtk::ApplicationWindow, position:
 
     gtk_window.set_anchor(edge, true);
     gtk_window.set_anchor(opposite_edge, false);
-    gtk_window.set_layer_shell_margin(edge, margin.round() as i32);
+    gtk_window.set_layer_shell_margin(edge, saturating_truncated_i32(margin.round()));
     gtk_window.set_layer_shell_margin(opposite_edge, 0);
 }
 
@@ -106,8 +132,8 @@ fn configure_layer_shell_surface(
     configure_layer_shell_position(gtk_window, position);
 
     gtk_window.set_size_request(
-        width.round().max(1.0) as i32,
-        height.round().max(1.0) as i32,
+        saturating_truncated_i32(width.round()).max(1),
+        saturating_truncated_i32(height.round()).max(1),
     );
     gtk_window.resize(1, 1);
 }
@@ -131,8 +157,8 @@ fn env_flag_enabled(name: &str) -> bool {
 /// Returns true if layer shell was successfully initialized, false otherwise
 #[cfg(target_os = "linux")]
 fn init_gtk_layer_shell(overlay_window: &tauri::webview::WebviewWindow) -> bool {
-    if env_flag_enabled("HANDY_NO_GTK_LAYER_SHELL") {
-        debug!("Skipping GTK layer shell init (HANDY_NO_GTK_LAYER_SHELL is enabled)");
+    if env_flag_enabled("SONA_NO_GTK_LAYER_SHELL") {
+        debug!("Skipping GTK layer shell init (SONA_NO_GTK_LAYER_SHELL is enabled)");
         return false;
     }
 
@@ -171,8 +197,9 @@ fn force_overlay_topmost(overlay_window: &tauri::webview::WebviewWindow) {
     // Make sure the Win32 call happens on the UI thread
     let _ = overlay_clone.clone().run_on_main_thread(move || {
         if let Ok(hwnd) = overlay_clone.hwnd() {
+            // SAFETY: hwnd is a live Tauri window handle, and this closure runs on its UI thread.
             unsafe {
-                // Force Z-order: make this window topmost without changing size/pos or stealing focus
+                // Force Z-order: make this window topmost without changing size, position, or focus.
                 let _ = SetWindowPos(
                     hwnd,
                     Some(HWND_TOPMOST),
@@ -203,12 +230,12 @@ fn get_monitor_with_cursor(app_handle: &AppHandle) -> Option<tauri::Monitor> {
                 {
                     let scale = monitor.scale_factor();
                     let pos = PhysicalPosition::new(
-                        (monitor.position().x as f64 / scale) as i32,
-                        (monitor.position().y as f64 / scale) as i32,
+                        saturating_truncated_i32(f64::from(monitor.position().x) / scale),
+                        saturating_truncated_i32(f64::from(monitor.position().y) / scale),
                     );
                     let size = PhysicalSize::new(
-                        (monitor.size().width as f64 / scale) as u32,
-                        (monitor.size().height as f64 / scale) as u32,
+                        saturating_truncated_u32(f64::from(monitor.size().width) / scale),
+                        saturating_truncated_u32(f64::from(monitor.size().height) / scale),
                     );
                     if is_mouse_within_monitor(mouse_location, &pos, &size) {
                         return Some(monitor);
@@ -235,11 +262,14 @@ fn is_mouse_within_monitor(
         width: monitor_width,
         height: monitor_height,
     } = *monitor_size;
+    let monitor_right = monitor_x.saturating_add(i32::try_from(monitor_width).unwrap_or(i32::MAX));
+    let monitor_bottom =
+        monitor_y.saturating_add(i32::try_from(monitor_height).unwrap_or(i32::MAX));
 
     mouse_x >= monitor_x
-        && mouse_x < (monitor_x + monitor_width as i32)
+        && mouse_x < monitor_right
         && mouse_y >= monitor_y
-        && mouse_y < (monitor_y + monitor_height as i32)
+        && mouse_y < monitor_bottom
 }
 
 /// Returns overlay position in logical coordinates (points on macOS).
@@ -262,9 +292,9 @@ fn calculate_overlay_position(
 ) -> Option<(f64, f64)> {
     let monitor = get_monitor_with_cursor(app_handle)?;
     let scale = monitor.scale_factor();
-    let monitor_x = monitor.position().x as f64 / scale;
-    let monitor_y = monitor.position().y as f64 / scale;
-    let monitor_width = monitor.size().width as f64 / scale;
+    let monitor_x = f64::from(monitor.position().x) / scale;
+    let monitor_y = f64::from(monitor.position().y) / scale;
+    let monitor_width = f64::from(monitor.size().width) / scale;
 
     let settings = settings::get_settings(app_handle);
 
@@ -277,10 +307,10 @@ fn calculate_overlay_position(
             #[cfg(target_os = "macos")]
             let bottom = {
                 let wa = monitor.work_area();
-                (wa.position.y as f64 + wa.size.height as f64) / scale
+                (f64::from(wa.position.y) + f64::from(wa.size.height)) / scale
             };
             #[cfg(not(target_os = "macos"))]
-            let bottom = monitor_y + monitor.size().height as f64 / scale;
+            let bottom = monitor_y + f64::from(monitor.size().height) / scale;
 
             bottom - height - OVERLAY_BOTTOM_OFFSET
         }
@@ -295,7 +325,10 @@ fn calculate_overlay_position(
 fn current_overlay_logical_size(window: &tauri::webview::WebviewWindow) -> Option<(f64, f64)> {
     let size = window.inner_size().ok()?;
     let scale = window.scale_factor().ok()?;
-    Some((size.width as f64 / scale, size.height as f64 / scale))
+    Some((
+        f64::from(size.width) / scale,
+        f64::from(size.height) / scale,
+    ))
 }
 
 #[cfg(target_os = "windows")]
@@ -312,18 +345,22 @@ fn windows_overlay_bounds(
     logical_height: f64,
     overlay_position: OverlayPosition,
 ) -> (i32, i32, i32, i32) {
-    let width = (logical_width * scale).round().max(1.0) as i32;
-    let height = (logical_height * scale).round().max(1.0) as i32;
-    let x = (monitor_position.x as f64 + (monitor_size.width as f64 - width as f64) / 2.0).round()
-        as i32;
+    let width = saturating_truncated_i32((logical_width * scale).round()).max(1);
+    let height = saturating_truncated_i32((logical_height * scale).round()).max(1);
+    let x = saturating_truncated_i32(
+        (f64::from(monitor_position.x) + (f64::from(monitor_size.width) - f64::from(width)) / 2.0)
+            .round(),
+    );
     let y = match overlay_position {
-        OverlayPosition::Top => {
-            (monitor_position.y as f64 + OVERLAY_TOP_OFFSET * scale).round() as i32
-        }
-        OverlayPosition::Bottom => (monitor_position.y as f64 + monitor_size.height as f64
-            - height as f64
-            - OVERLAY_BOTTOM_OFFSET * scale)
-            .round() as i32,
+        OverlayPosition::Top => saturating_truncated_i32(
+            (f64::from(monitor_position.y) + OVERLAY_TOP_OFFSET * scale).round(),
+        ),
+        OverlayPosition::Bottom => saturating_truncated_i32(
+            (f64::from(monitor_position.y) + f64::from(monitor_size.height)
+                - f64::from(height)
+                - OVERLAY_BOTTOM_OFFSET * scale)
+                .round(),
+        ),
     };
 
     (x, y, width, height)
@@ -354,6 +391,7 @@ fn place_windows_overlay(
         .hwnd()
         .map_err(|error| format!("failed to get overlay window handle: {error}"))?;
 
+    // SAFETY: hwnd is the live Tauri window handle for the destination monitor, and the dimensions are physical Win32 pixels.
     unsafe {
         SetWindowPos(
             hwnd,
@@ -717,10 +755,13 @@ pub fn emit_levels(app_handle: &AppHandle, levels: &[f32]) {
     // callback fires far faster than the UI needs; capping emission rate
     // cuts the per-frame `eval_script`/IPC volume that drives the wry
     // memory growth in issue #1279 (upstream tauri-apps/wry#1489).
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as u64;
+    let now = u64::try_from(
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis(),
+    )
+    .unwrap_or(u64::MAX);
     let last = LAST_MIC_LEVEL_EMIT.load(Ordering::Relaxed);
     if now.saturating_sub(last) < EMIT_THROTTLE_MS {
         return;
@@ -767,12 +808,12 @@ mod tests {
         // that is visibly inside a secondary display running at 150%.
         let scale = 1.5;
         let logical_position = PhysicalPosition::new(
-            (position.x as f64 / scale) as i32,
-            (position.y as f64 / scale) as i32,
+            saturating_truncated_i32(f64::from(position.x) / scale),
+            saturating_truncated_i32(f64::from(position.y) / scale),
         );
         let logical_size = PhysicalSize::new(
-            (size.width as f64 / scale) as u32,
-            (size.height as f64 / scale) as u32,
+            saturating_truncated_u32(f64::from(size.width) / scale),
+            saturating_truncated_u32(f64::from(size.height) / scale),
         );
         assert!(!is_mouse_within_monitor(
             cursor,

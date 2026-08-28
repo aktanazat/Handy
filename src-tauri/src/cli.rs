@@ -2,7 +2,7 @@ use clap::Parser;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug, Clone, Default)]
-#[command(name = "handy", about = "Handy - Speech to Text")]
+#[command(name = "sona", about = "Sona — speech to text")]
 pub struct CliArgs {
     /// Start with the main window hidden
     #[arg(long)]
@@ -53,6 +53,10 @@ pub struct CliArgs {
     #[arg(long)]
     pub list_models: bool,
 
+    /// Print the Agent Panel public identity and exit. No private key is exposed.
+    #[arg(long)]
+    pub agent_panel_public_identity: bool,
+
     /// Repeat the transcription N times (best_ms reports the fastest run).
     #[arg(long, value_name = "N")]
     pub repeat: Option<usize>,
@@ -60,4 +64,33 @@ pub struct CliArgs {
     /// Emit --transcribe-file results as JSON.
     #[arg(long)]
     pub json: bool,
+    /// Audio file paths supplied by an operating-system Open With action.
+    /// They enter the GUI import queue and never trigger direct delivery.
+    #[arg(value_name = "AUDIO", num_args = 0..)]
+    pub opened_audio_files: Vec<PathBuf>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::CliArgs;
+    use clap::Parser;
+    use std::path::PathBuf;
+
+    #[test]
+    fn parses_open_with_paths_without_entering_headless_mode() {
+        let args = CliArgs::try_parse_from(["sona", "/tmp/example.flac"])
+            .expect("parse an operating-system file argument");
+        assert_eq!(
+            args.opened_audio_files,
+            vec![PathBuf::from("/tmp/example.flac")]
+        );
+        assert!(args.transcribe_file.is_none());
+    }
+    #[test]
+    fn parses_agent_panel_public_identity_flag() {
+        let args = CliArgs::try_parse_from(["sona", "--agent-panel-public-identity"])
+            .expect("parse the public identity flag");
+        assert!(args.agent_panel_public_identity);
+        assert!(args.opened_audio_files.is_empty());
+    }
 }

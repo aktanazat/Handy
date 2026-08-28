@@ -1,7 +1,7 @@
 use super::model_capabilities::{
     CapabilityProbe, CapabilityProber, Compatibility, GgufHeaderProber,
 };
-use crate::settings::{get_settings, write_settings};
+use crate::settings::{get_settings, update_settings};
 use anyhow::Result;
 use flate2::read::GzDecoder;
 use hf_hub::api::tokio::{ApiBuilder, CancellationToken, Progress};
@@ -14,8 +14,8 @@ use std::fs;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::{Duration, Instant, UNIX_EPOCH};
 use tar::Archive;
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -38,7 +38,7 @@ pub enum EngineType {
     Cohere,
 }
 
-/// Where a model comes from and how Handy obtains it — the routing discriminant
+/// Where a model comes from and how Sona obtains it — the routing discriminant
 /// for downloading and on-disk resolution.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub enum ModelSource {
@@ -80,7 +80,6 @@ pub struct ModelInfo {
     pub supports_streaming: bool, // Whether this model supports live streaming preview (transcribe-cpp)
     pub supports_language_detection: bool, // Whether the model can auto-detect language (gates the "Auto" option)
 }
-
 const CHINESE_LANGUAGE_CODE: &str = "zh";
 
 fn recognition_language(language: &str) -> &str {
@@ -90,7 +89,7 @@ fn recognition_language(language: &str) -> &str {
     }
 }
 
-/// The base code Handy matches a language *intent* on: a tag's primary subtag,
+/// The base code Sona matches a language *intent* on: a tag's primary subtag,
 /// with any BCP-47 region or script suffix dropped (`en-US` → `en`, `zh-CN` →
 /// `zh`, `zh-Hant` → `zh`). Bare and three-letter codes (`haw`) pass through
 /// unchanged. Lets a bare intent (`en`) match a model that advertises full
@@ -310,6 +309,31 @@ pub struct DownloadProgress {
     pub percentage: f64,
 }
 
+fn u64_to_f64(value: u64) -> f64 {
+    let bytes = value.to_le_bytes();
+    let lower = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
+    let upper = u32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]);
+    f64::from(upper) * 4_294_967_296.0 + f64::from(lower)
+}
+
+fn progress_percentage(downloaded: u64, total: u64) -> f64 {
+    if total == 0 {
+        return 0.0;
+    }
+    (u64_to_f64(downloaded) / u64_to_f64(total)) * 100.0
+}
+
+fn usize_to_u64_saturating(value: usize) -> u64 {
+    u64::try_from(value).unwrap_or(u64::MAX)
+}
+
+fn lock_model_state<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    match mutex.lock() {
+        Ok(guard) => guard,
+        Err(_) => panic!("model manager state mutex must not be poisoned"),
+    }
+}
+
 /// Resolve a Hugging Face model file in the shared HF cache, if already present.
 /// Uses hf-hub's stock location (HF_HOME or ~/.cache/huggingface/hub) so
 /// downloads are shared with other tools.
@@ -330,6 +354,347 @@ fn hf_cached_path(repo_id: &str, revision: &str, filename: &str) -> Option<PathB
             .get(filename)
     };
     get(revision).or_else(|| (revision != "main").then(|| get("main")).flatten())
+}
+const INSTALL_RECEIPTS_FILENAME: &str = ".model-install-receipts.json";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CacheTrust {
+    CatalogVerified,
+    Unverified,
+}
+
+/// The filesystem identity a receipt is bound to, beyond size and mtime.
+///
+/// Size and mtime alone are restorable through ordinary metadata calls:
+/// `utimensat` (`touch -r`) puts back a saved mtime after a same-size rewrite,
+/// so a receipt bound to them alone can vouch for content it never hashed. The
+/// fields here are the ones no ordinary userspace metadata API restores: a
+/// replace-by-rename allocates a new inode/file id, and any content write
+/// updates the change time.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+struct FileIdentity {
+    /// Unix `st_dev`; Windows volume serial number.
+    volume: u64,
+    /// Unix `st_ino`; Windows 128-bit file id.
+    file_id: u128,
+    /// Unix `st_ctime` in nanoseconds; Windows `ChangeTime` in 100 ns ticks.
+    /// The unit is platform-local: a receipt is only ever read back on the
+    /// machine that wrote it.
+    change_time: i128,
+}
+
+impl FileIdentity {
+    #[cfg(unix)]
+    fn read(_path: &Path, metadata: &fs::Metadata) -> Result<Self> {
+        use std::os::unix::fs::MetadataExt;
+        Ok(Self {
+            volume: metadata.dev(),
+            file_id: u128::from(metadata.ino()),
+            change_time: i128::from(metadata.ctime()) * 1_000_000_000
+                + i128::from(metadata.ctime_nsec()),
+        })
+    }
+
+    /// Windows exposes both fields only through a file handle, so this costs one
+    /// extra open per verification. `FILE_ID_INFO` is the ReFS-safe identity
+    /// (`nFileIndex` is 64-bit and NTFS-only) and `FILE_BASIC_INFO::ChangeTime`
+    /// is the metadata/content change stamp, which no documented API sets.
+    #[cfg(windows)]
+    fn read(path: &Path, _metadata: &fs::Metadata) -> Result<Self> {
+        use std::os::windows::io::AsRawHandle;
+        use windows::Win32::Foundation::HANDLE;
+        use windows::Win32::Storage::FileSystem::{
+            FileBasicInfo, FileIdInfo, GetFileInformationByHandleEx, FILE_BASIC_INFO, FILE_ID_INFO,
+        };
+
+        let file = File::open(path)?;
+        let handle = HANDLE(file.as_raw_handle());
+        let mut id = FILE_ID_INFO::default();
+        let mut basic = FILE_BASIC_INFO::default();
+        // Both buffers are live locals of exactly the class each call names, and
+        // their sizes come from `size_of` of those same types.
+        // SAFETY: `handle` stays valid for both calls because `file` is alive.
+        unsafe {
+            GetFileInformationByHandleEx(
+                handle,
+                FileIdInfo,
+                std::ptr::from_mut(&mut id).cast(),
+                u32::try_from(std::mem::size_of::<FILE_ID_INFO>())?,
+            )?;
+            GetFileInformationByHandleEx(
+                handle,
+                FileBasicInfo,
+                std::ptr::from_mut(&mut basic).cast(),
+                u32::try_from(std::mem::size_of::<FILE_BASIC_INFO>())?,
+            )?;
+        }
+        Ok(Self {
+            volume: id.VolumeSerialNumber,
+            file_id: u128::from_le_bytes(id.FileId.Identifier),
+            change_time: i128::from(basic.ChangeTime),
+        })
+    }
+
+    /// No other platform is built, so nothing here can silently weaken the
+    /// binding: a build for one would fail to compile until it is written.
+    #[cfg(not(any(unix, windows)))]
+    fn read(_path: &Path, _metadata: &fs::Metadata) -> Result<Self> {
+        Err(anyhow::anyhow!(
+            "Model cache receipts need a filesystem identity this platform does not provide"
+        ))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct CacheFileBinding {
+    size_bytes: u64,
+    modified_nanos: u64,
+    identity: FileIdentity,
+}
+
+impl CacheFileBinding {
+    fn read(path: &Path) -> Result<Self> {
+        let metadata = fs::metadata(path)?;
+        if !metadata.is_file() {
+            return Err(anyhow::anyhow!(
+                "Expected a regular model file at {}",
+                path.display()
+            ));
+        }
+        let modified_nanos = u64::try_from(
+            metadata
+                .modified()?
+                .duration_since(UNIX_EPOCH)
+                .map_err(|_| anyhow::anyhow!("Model file modification time predates UNIX epoch"))?
+                .as_nanos(),
+        )
+        .map_err(|_| anyhow::anyhow!("Model file modification time is out of range"))?;
+        Ok(Self {
+            size_bytes: metadata.len(),
+            modified_nanos,
+            identity: FileIdentity::read(path, &metadata)?,
+        })
+    }
+}
+
+/// A cache of one past full-hash verification. It is valid only while the
+/// file's content-coupled identity — file id, change time, size and mtime — is
+/// unchanged; any mismatch takes the full `compute_sha256` path.
+///
+/// Trust boundary, stated exactly: the receipts file lives in `models_dir`,
+/// the same user-writable directory as the artifacts it vouches for. It is
+/// therefore not a defense against a local attacker holding user-level write
+/// access, who can rewrite both the model and its receipt. What it does defend
+/// against is accidental replacement that restores metadata — a corrupted sync
+/// client, a restore-from-backup, a `touch -r` after a same-size rewrite. The
+/// only unforgeable anchor is the catalog hash compiled into the binary, and
+/// spending it costs a full rehash (~19-32 s for the largest catalog entry),
+/// which is why the receipt exists at all.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct InstallReceipt {
+    path: PathBuf,
+    size_bytes: u64,
+    modified_nanos: u64,
+    /// Required, with no serde default: a receipts file written before this
+    /// field existed fails to parse, and `InstallReceipts::load` discards the
+    /// whole file. That costs one rehash per installed model after the upgrade
+    /// and never lets an unbound receipt validate.
+    identity: FileIdentity,
+    expected_sha256: String,
+}
+
+impl InstallReceipt {
+    fn matches(&self, path: &Path, binding: &CacheFileBinding, expected_sha256: &str) -> bool {
+        self.path == path
+            && self.size_bytes == binding.size_bytes
+            && self.modified_nanos == binding.modified_nanos
+            && self.identity == binding.identity
+            && self.expected_sha256 == expected_sha256
+    }
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+struct InstallReceipts {
+    #[serde(default)]
+    entries: HashMap<String, InstallReceipt>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ReceiptMatch {
+    Current,
+    Missing,
+    Stale,
+}
+
+impl InstallReceipts {
+    fn receipt_path(models_dir: &Path) -> PathBuf {
+        models_dir.join(INSTALL_RECEIPTS_FILENAME)
+    }
+
+    fn key(path: &Path) -> String {
+        path.to_string_lossy().into_owned()
+    }
+
+    fn load(models_dir: &Path) -> Self {
+        fs::read(Self::receipt_path(models_dir))
+            .ok()
+            .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+            .unwrap_or_default()
+    }
+
+    fn persist(&self, models_dir: &Path) -> Result<()> {
+        fs::write(Self::receipt_path(models_dir), serde_json::to_vec(self)?)?;
+        Ok(())
+    }
+
+    fn check(
+        &mut self,
+        path: &Path,
+        binding: &CacheFileBinding,
+        expected_sha256: &str,
+    ) -> ReceiptMatch {
+        let key = Self::key(path);
+        if self
+            .entries
+            .get(&key)
+            .is_some_and(|receipt| receipt.matches(path, binding, expected_sha256))
+        {
+            return ReceiptMatch::Current;
+        }
+        if self.entries.remove(&key).is_some() {
+            ReceiptMatch::Stale
+        } else {
+            ReceiptMatch::Missing
+        }
+    }
+
+    fn remove(&mut self, path: &Path) -> bool {
+        self.entries.remove(&Self::key(path)).is_some()
+    }
+
+    fn record(&mut self, path: &Path, binding: CacheFileBinding, expected_sha256: &str) {
+        self.entries.insert(
+            Self::key(path),
+            InstallReceipt {
+                path: path.to_path_buf(),
+                size_bytes: binding.size_bytes,
+                modified_nanos: binding.modified_nanos,
+                identity: binding.identity,
+                expected_sha256: expected_sha256.to_string(),
+            },
+        );
+    }
+}
+
+fn persist_install_receipts(receipts: &InstallReceipts, models_dir: &Path) {
+    if let Err(error) = receipts.persist(models_dir) {
+        warn!("Failed to persist model cache receipt: {}", error);
+    }
+}
+
+fn catalog_cache_anchor(model_info: &ModelInfo) -> Result<Option<(u64, &'static str)>> {
+    let ModelSource::HuggingFace { repo_id, .. } = &model_info.source else {
+        return Ok(None);
+    };
+    let Some((_, file)) = crate::catalog::file_in_catalog(&model_info.filename, Some(repo_id))
+    else {
+        return Ok(None);
+    };
+    let expected_sha256 = file.sha256.as_deref().ok_or_else(|| {
+        anyhow::anyhow!(
+            "Catalog file {} is missing its required SHA-256",
+            model_info.filename
+        )
+    })?;
+    Ok(Some((file.size_bytes, expected_sha256)))
+}
+
+fn verify_pinned_cache_file(
+    models_dir: &Path,
+    path: &Path,
+    expected_size: u64,
+    expected_sha256: &str,
+) -> Result<()> {
+    let mut receipts = InstallReceipts::load(models_dir);
+    let binding = match CacheFileBinding::read(path) {
+        Ok(binding) => binding,
+        Err(error) => {
+            if receipts.remove(path) {
+                persist_install_receipts(&receipts, models_dir);
+            }
+            return Err(error);
+        }
+    };
+    let receipt_match = receipts.check(path, &binding, expected_sha256);
+
+    if binding.size_bytes != expected_size {
+        if receipt_match == ReceiptMatch::Stale {
+            persist_install_receipts(&receipts, models_dir);
+        }
+        return Err(anyhow::anyhow!(
+            "Model file {} has {} bytes; expected {}",
+            path.display(),
+            binding.size_bytes,
+            expected_size
+        ));
+    }
+    if receipt_match == ReceiptMatch::Current {
+        return Ok(());
+    }
+
+    let actual_sha256 = match ModelManager::compute_sha256(path) {
+        Ok(actual_sha256) => actual_sha256,
+        Err(error) => {
+            if receipt_match == ReceiptMatch::Stale {
+                persist_install_receipts(&receipts, models_dir);
+            }
+            return Err(error);
+        }
+    };
+    if actual_sha256 != expected_sha256 {
+        if receipt_match == ReceiptMatch::Stale {
+            persist_install_receipts(&receipts, models_dir);
+        }
+        return Err(anyhow::anyhow!(
+            "Model file {} failed SHA-256 verification",
+            path.display()
+        ));
+    }
+
+    let verified_binding = match CacheFileBinding::read(path) {
+        Ok(binding) => binding,
+        Err(error) => {
+            if receipt_match == ReceiptMatch::Stale {
+                persist_install_receipts(&receipts, models_dir);
+            }
+            return Err(error);
+        }
+    };
+    // The hash just computed describes the bytes behind the identity read
+    // before it. Anything else — a replace-by-rename, an in-place rewrite —
+    // means the receipt would vouch for content this call never read.
+    if verified_binding != binding {
+        return Err(anyhow::anyhow!(
+            "Model file {} changed while verifying",
+            path.display()
+        ));
+    }
+
+    receipts.record(path, verified_binding, expected_sha256);
+    persist_install_receipts(&receipts, models_dir);
+    Ok(())
+}
+
+fn verify_model_cache_trust(
+    models_dir: &Path,
+    model_info: &ModelInfo,
+    path: &Path,
+) -> Result<CacheTrust> {
+    let Some((expected_size, expected_sha256)) = catalog_cache_anchor(model_info)? else {
+        return Ok(CacheTrust::Unverified);
+    };
+    verify_pinned_cache_file(models_dir, path, expected_size, expected_sha256)?;
+    Ok(CacheTrust::CatalogVerified)
 }
 
 /// Friendly name advertised by GGUF metadata, if present. Empty strings are not
@@ -369,7 +734,7 @@ fn local_caps(probe: &CapabilityProbe) -> LocalCaps {
     }
 }
 
-/// Bridges hf-hub's async download progress to Handy's `model-download-progress`
+/// Bridges hf-hub's async download progress to Sona's `model-download-progress`
 /// event. hf-hub clones the reporter, so shared state lives behind an `Arc`.
 #[derive(Clone)]
 struct HfDownloadProgress {
@@ -404,15 +769,11 @@ impl HfDownloadProgress {
 
     /// Instant of the most recent sign of life from the transfer.
     fn last_activity(&self) -> Instant {
-        self.state.lock().unwrap().last_activity
+        lock_model_state(&self.state).last_activity
     }
 
     fn emit(&self, downloaded: u64, total: u64) {
-        let percentage = if total > 0 {
-            (downloaded as f64 / total as f64) * 100.0
-        } else {
-            0.0
-        };
+        let percentage = progress_percentage(downloaded, total);
         let _ = self.app_handle.emit(
             "model-download-progress",
             &DownloadProgress {
@@ -427,20 +788,22 @@ impl HfDownloadProgress {
 
 impl Progress for HfDownloadProgress {
     async fn init(&mut self, size: usize, _filename: &str) {
+        let size = usize_to_u64_saturating(size);
         {
-            let mut st = self.state.lock().unwrap();
-            st.total = size as u64;
+            let mut st = lock_model_state(&self.state);
+            st.total = size;
             st.downloaded = 0;
             st.last_emit = Instant::now();
             st.last_activity = Instant::now();
         }
-        self.emit(0, size as u64);
+        self.emit(0, size);
     }
 
     async fn update(&mut self, size: usize) {
+        let size = usize_to_u64_saturating(size);
         let (downloaded, total, emit) = {
-            let mut st = self.state.lock().unwrap();
-            st.downloaded = st.downloaded.saturating_add(size as u64);
+            let mut st = lock_model_state(&self.state);
+            st.downloaded = st.downloaded.saturating_add(size);
             let now = Instant::now();
             st.last_activity = now;
             // Throttle to ~10 updates/sec, but always emit the final byte.
@@ -458,7 +821,7 @@ impl Progress for HfDownloadProgress {
 
     async fn finish(&mut self) {
         let total = {
-            let st = self.state.lock().unwrap();
+            let st = lock_model_state(&self.state);
             st.total.max(st.downloaded)
         };
         self.emit(total, total);
@@ -493,12 +856,12 @@ impl<'a> Drop for DownloadCleanup<'a> {
             return;
         }
         {
-            let mut models = self.available_models.lock().unwrap();
+            let mut models = lock_model_state(self.available_models);
             if let Some(model) = models.get_mut(self.model_id.as_str()) {
                 model.is_downloading = false;
             }
         }
-        self.cancel_flags.lock().unwrap().remove(&self.model_id);
+        lock_model_state(self.cancel_flags).remove(&self.model_id);
     }
 }
 
@@ -1146,7 +1509,7 @@ impl ModelManager {
 
     pub fn get_available_models(&self) -> Vec<ModelInfo> {
         let mut list: Vec<ModelInfo> = {
-            let models = self.available_models.lock().unwrap();
+            let models = lock_model_state(&self.available_models);
             models.values().cloned().collect()
         };
         // Stable, reasonable order: catalog editorial rank first (lower = higher
@@ -1197,7 +1560,7 @@ impl ModelManager {
     }
 
     /// Re-run the local discovery scans (custom models dir + shared HF cache) so
-    /// models dropped in or downloaded outside Handy show up without a restart.
+    /// models dropped in or downloaded outside Sona show up without a restart.
     /// The merge is additive: only new ids are inserted, so existing entries keep
     /// their values — including runtime-probed capabilities from
     /// [`Self::set_runtime_capabilities`]. It then runs [`Self::update_download_status`],
@@ -1220,7 +1583,7 @@ impl ModelManager {
         // Snapshot the current registry and discover against the copy off-lock.
         // The discover_* helpers are purely additive (they skip ids already in
         // the map), so the snapshot ends up as {current} ∪ {newly-found}.
-        let mut snapshot = self.available_models.lock().unwrap().clone();
+        let mut snapshot = lock_model_state(&self.available_models).clone();
         if let Err(e) = Self::discover_custom_transcribe_models(&self.models_dir, &mut snapshot) {
             warn!("Rescan: failed to discover custom models: {}", e);
         }
@@ -1230,7 +1593,7 @@ impl ModelManager {
         // leaves every existing entry exactly as it was.
         let mut added = 0usize;
         {
-            let mut live = self.available_models.lock().unwrap();
+            let mut live = lock_model_state(&self.available_models);
             for (id, info) in snapshot {
                 if let std::collections::hash_map::Entry::Vacant(entry) = live.entry(id) {
                     entry.insert(info);
@@ -1247,9 +1610,8 @@ impl ModelManager {
         let _ = self.app_handle.emit("models-updated", ());
         Ok(())
     }
-
     pub fn get_model_info(&self, model_id: &str) -> Option<ModelInfo> {
-        let models = self.available_models.lock().unwrap();
+        let models = lock_model_state(&self.available_models);
         models.get(model_id).cloned()
     }
 
@@ -1275,7 +1637,7 @@ impl ModelManager {
         supported_languages: Vec<String>,
     ) {
         let supported_languages = canonicalize_supported_languages(supported_languages);
-        let mut models = self.available_models.lock().unwrap();
+        let mut models = lock_model_state(&self.available_models);
         if let Some(model) = models.get_mut(model_id) {
             model.supports_streaming = supports_streaming;
             model.supports_translation = supports_translation;
@@ -1364,9 +1726,11 @@ impl ModelManager {
     fn update_download_status(&self) -> Result<()> {
         // Snapshot in-flight download ids before taking the registry lock (the
         // two locks are never nested) so a mid-download entry is never dropped.
-        let downloading_ids: HashSet<String> =
-            self.cancel_flags.lock().unwrap().keys().cloned().collect();
-        let mut models = self.available_models.lock().unwrap();
+        let downloading_ids: HashSet<String> = lock_model_state(&self.cancel_flags)
+            .keys()
+            .cloned()
+            .collect();
+        let mut models = lock_model_state(&self.available_models);
         let mut vanished_alternates: Vec<String> = Vec::new();
 
         for model in models.values_mut() {
@@ -1374,7 +1738,7 @@ impl ModelManager {
                 // A models-dir copy counts too: mirror-fallback downloads land
                 // there, and it makes manual drop-ins of catalog files work.
                 let local_path = self.models_dir.join(&model.filename);
-                let partial_path = self.models_dir.join(format!("{}.partial", &model.filename));
+                let partial_path = self.models_dir.join(format!("{}.partial", model.filename));
                 model.is_downloaded = hf_cached_path(repo_id, revision, &model.filename).is_some()
                     || local_path.exists();
                 model.is_downloading = false;
@@ -1394,15 +1758,15 @@ impl ModelManager {
             if model.is_directory {
                 // For directory-based models, check if the directory exists
                 let model_path = self.models_dir.join(&model.filename);
-                let partial_path = self.models_dir.join(format!("{}.partial", &model.filename));
+                let partial_path = self.models_dir.join(format!("{}.partial", model.filename));
                 let extracting_path = self
                     .models_dir
-                    .join(format!("{}.extracting", &model.filename));
+                    .join(format!("{}.extracting", model.filename));
 
                 // Clean up any leftover .extracting directories from interrupted extractions
                 // But only if this model is NOT currently being extracted
                 let is_currently_extracting = {
-                    let extracting = self.extracting_models.lock().unwrap();
+                    let extracting = lock_model_state(&self.extracting_models);
                     extracting.contains(&model.id)
                 };
                 if extracting_path.exists() && !is_currently_extracting {
@@ -1422,7 +1786,7 @@ impl ModelManager {
             } else {
                 // For file-based models (existing logic)
                 let model_path = self.models_dir.join(&model.filename);
-                let partial_path = self.models_dir.join(format!("{}.partial", &model.filename));
+                let partial_path = self.models_dir.join(format!("{}.partial", model.filename));
 
                 model.is_downloaded = model_path.exists();
                 model.is_downloading = false;
@@ -1477,36 +1841,40 @@ impl ModelManager {
     }
 
     fn auto_select_model_if_needed(&self) -> Result<()> {
-        let mut settings = get_settings(&self.app_handle);
+        let settings = get_settings(&self.app_handle);
+        let mut selected_model = settings.selected_model.clone();
+        let mut onboarding_completed = settings.onboarding_completed;
 
-        // Clear stale selection: selected model is set but doesn't exist
-        // in available_models (e.g. deleted custom model file)
-        if !settings.selected_model.is_empty() {
-            let models = self.available_models.lock().unwrap();
-            let exists = models.contains_key(&settings.selected_model);
+        if !selected_model.is_empty() {
+            let models = lock_model_state(&self.available_models);
+            let exists = models.contains_key(&selected_model);
             drop(models);
 
             if !exists {
                 info!(
                     "Selected model '{}' not found in available models, clearing selection",
-                    settings.selected_model
+                    selected_model
                 );
-                settings.selected_model = String::new();
-                write_settings(&self.app_handle, settings.clone());
+                let stale_selection = selected_model.clone();
+                (selected_model, onboarding_completed) =
+                    update_settings(&self.app_handle, |settings| {
+                        if settings.selected_model == stale_selection {
+                            settings.selected_model.clear();
+                        }
+                        (
+                            settings.selected_model.clone(),
+                            settings.onboarding_completed,
+                        )
+                    });
             }
         }
 
-        // If onboarding is still pending, do not auto-select just because a
-        // compatible model exists on disk or in the shared HF cache. The
-        // onboarding model step should present that choice explicitly.
-        if !settings.onboarding_completed {
+        if !onboarding_completed {
             debug!("Skipping model auto-selection until onboarding is complete");
             return Ok(());
         }
 
-        // If no model is selected, pick the first downloaded one using the same
-        // ranked order the UI receives.
-        if settings.selected_model.is_empty() {
+        if selected_model.is_empty() {
             if let Some(available_model) = self
                 .get_available_models()
                 .into_iter()
@@ -1517,12 +1885,17 @@ impl ModelManager {
                     available_model.id, available_model.name
                 );
 
-                // Update settings with the selected model
-                let mut updated_settings = settings;
-                updated_settings.selected_model = available_model.id.clone();
-                write_settings(&self.app_handle, updated_settings);
-
-                info!("Successfully auto-selected model: {}", available_model.id);
+                let model_id = available_model.id.clone();
+                let selected = update_settings(&self.app_handle, |settings| {
+                    if !settings.onboarding_completed || !settings.selected_model.is_empty() {
+                        return false;
+                    }
+                    settings.selected_model = model_id.clone();
+                    true
+                });
+                if selected {
+                    info!("Successfully auto-selected model: {}", available_model.id);
+                }
             }
         }
 
@@ -1644,7 +2017,7 @@ impl ModelManager {
 
             // Probe GGUF headers for advertised capabilities so a dropped-in
             // model surfaces streaming / translation / languages just like a
-            // Handy-downloaded one. Legacy `.bin` files have no GGUF header, so
+            // Sona-downloaded one. Legacy `.bin` files have no GGUF header, so
             // they stay "unknown" until transcribe-cpp reconciles them at load.
             let probe = if is_gguf {
                 GgufHeaderProber.probe_file(&path)
@@ -1690,7 +2063,7 @@ impl ModelManager {
     }
 
     /// Discover transcribe-cpp-compatible GGUF models already present in the
-    /// shared Hugging Face cache, so models downloaded by Handy (or any other
+    /// shared Hugging Face cache, so models downloaded by Sona (or any other
     /// tool) appear in "Your Models" without re-downloading. Only architectures
     /// transcribe-cpp recognises are surfaced; arbitrary (e.g. LLM) GGUFs that
     /// share the cache are ignored.
@@ -1859,19 +2232,34 @@ impl ModelManager {
         let model_id = model_info.id.clone();
         let filename = model_info.filename.clone();
 
-        // Already in the shared cache (possibly from another tool), or dropped
-        // into the models dir (mirror fallback / manual install)? Done.
-        if hf_cached_path(&repo_id, &revision, &filename).is_some()
-            || self.models_dir.join(&filename).exists()
-        {
-            self.update_download_status()?;
-            let _ = self.app_handle.emit("model-download-complete", &model_id);
-            return Ok(());
+        // A catalog cache becomes usable only after its pinned size and digest
+        // have been checked. Unpinned discovery remains available as such.
+        let local_path = self.models_dir.join(&filename);
+        let candidate = hf_cached_path(&repo_id, &revision, &filename)
+            .or_else(|| local_path.is_file().then(|| local_path.clone()));
+        if let Some(path) = candidate {
+            match verify_model_cache_trust(&self.models_dir, model_info, &path) {
+                Ok(CacheTrust::CatalogVerified | CacheTrust::Unverified) => {
+                    self.update_download_status()?;
+                    let _ = self.app_handle.emit("model-download-complete", &model_id);
+                    return Ok(());
+                }
+                Err(error) => {
+                    warn!("Discarding untrusted cached model {}: {}", model_id, error);
+                    if path == local_path {
+                        if path.is_file() {
+                            fs::remove_file(&path)?;
+                        }
+                    } else {
+                        let _ = Self::delete_hf_cache_file(&repo_id, &revision, &filename);
+                    }
+                }
+            }
         }
 
         // Mark downloading; the guard resets the flag on any error path.
         {
-            let mut models = self.available_models.lock().unwrap();
+            let mut models = lock_model_state(&self.available_models);
             if let Some(model) = models.get_mut(&model_id) {
                 model.is_downloading = true;
             }
@@ -1881,7 +2269,7 @@ impl ModelManager {
         // transfer promptly. The guard removes it on every exit path.
         let cancel_token = CancellationToken::new();
         {
-            let mut flags = self.cancel_flags.lock().unwrap();
+            let mut flags = lock_model_state(&self.cancel_flags);
             flags.insert(model_id.clone(), cancel_token.clone());
         }
 
@@ -2101,9 +2489,14 @@ impl ModelManager {
             }
         }
 
+        let installed_path = hf_cached_path(&repo_id, &revision, &filename)
+            .or_else(|| local_path.is_file().then(|| local_path.clone()))
+            .ok_or_else(|| anyhow::anyhow!("Downloaded model file not found: {}", model_id))?;
+        verify_model_cache_trust(&self.models_dir, model_info, &installed_path)?;
+
         cleanup.disarmed = true;
         self.update_download_status()?;
-        self.cancel_flags.lock().unwrap().remove(&model_id);
+        lock_model_state(&self.cancel_flags).remove(&model_id);
         let _ = self.app_handle.emit("model-download-complete", &model_id);
         info!("HF model {} downloaded", model_id);
         Ok(())
@@ -2124,7 +2517,18 @@ impl ModelManager {
         let partial_path = self.models_dir.join(format!("{}.partial", filename));
 
         if model_path.exists() {
-            return Ok(true);
+            match verify_pinned_cache_file(
+                &self.models_dir,
+                &model_path,
+                mirror.size_bytes,
+                &mirror.sha256,
+            ) {
+                Ok(()) => return Ok(true),
+                Err(error) => {
+                    warn!("Discarding untrusted mirror cache {}: {}", model_id, error);
+                    fs::remove_file(&model_path)?;
+                }
+            }
         }
 
         match self
@@ -2141,6 +2545,12 @@ impl ModelManager {
             HttpDownloadOutcome::Cancelled => Ok(false),
             HttpDownloadOutcome::Completed => {
                 fs::rename(&partial_path, &model_path)?;
+                verify_pinned_cache_file(
+                    &self.models_dir,
+                    &model_path,
+                    mirror.size_bytes,
+                    &mirror.sha256,
+                )?;
                 info!(
                     "Mirror download of {} completed and verified ({:?})",
                     model_id, model_path
@@ -2152,7 +2562,7 @@ impl ModelManager {
 
     pub async fn download_model(&self, model_id: &str) -> Result<()> {
         let model_info = {
-            let models = self.available_models.lock().unwrap();
+            let models = lock_model_state(&self.available_models);
             models.get(model_id).cloned()
         };
 
@@ -2173,7 +2583,7 @@ impl ModelManager {
         let model_path = self.models_dir.join(&model_info.filename);
         let partial_path = self
             .models_dir
-            .join(format!("{}.partial", &model_info.filename));
+            .join(format!("{}.partial", model_info.filename));
 
         // Don't download if complete version already exists
         if model_path.exists() {
@@ -2187,7 +2597,7 @@ impl ModelManager {
 
         // Mark as downloading
         {
-            let mut models = self.available_models.lock().unwrap();
+            let mut models = lock_model_state(&self.available_models);
             if let Some(model) = models.get_mut(model_id) {
                 model.is_downloading = true;
             }
@@ -2196,7 +2606,7 @@ impl ModelManager {
         // Create cancellation token for this download
         let cancel_token = CancellationToken::new();
         {
-            let mut flags = self.cancel_flags.lock().unwrap();
+            let mut flags = lock_model_state(&self.cancel_flags);
             flags.insert(model_id.to_string(), cancel_token.clone());
         }
 
@@ -2235,7 +2645,7 @@ impl ModelManager {
         if model_info.is_directory {
             // Track that this model is being extracted
             {
-                let mut extracting = self.extracting_models.lock().unwrap();
+                let mut extracting = lock_model_state(&self.extracting_models);
                 extracting.insert(model_id.to_string());
             }
 
@@ -2246,7 +2656,7 @@ impl ModelManager {
             // Use a temporary extraction directory to ensure atomic operations
             let temp_extract_dir = self
                 .models_dir
-                .join(format!("{}.extracting", &model_info.filename));
+                .join(format!("{}.extracting", model_info.filename));
             let final_model_dir = self.models_dir.join(&model_info.filename);
 
             // Clean up any previous incomplete extraction
@@ -2272,7 +2682,7 @@ impl ModelManager {
                 let _ = fs::remove_file(&partial_path);
                 // Remove from extracting set
                 {
-                    let mut extracting = self.extracting_models.lock().unwrap();
+                    let mut extracting = lock_model_state(&self.extracting_models);
                     extracting.remove(model_id);
                 }
                 let _ = self.app_handle.emit(
@@ -2311,7 +2721,7 @@ impl ModelManager {
             info!("Successfully extracted archive for model: {}", model_id);
             // Remove from extracting set
             {
-                let mut extracting = self.extracting_models.lock().unwrap();
+                let mut extracting = lock_model_state(&self.extracting_models);
                 extracting.remove(model_id);
             }
             // Emit extraction completed event
@@ -2328,14 +2738,14 @@ impl ModelManager {
         // additionally sets is_downloaded = true.
         cleanup.disarmed = true;
         {
-            let mut models = self.available_models.lock().unwrap();
+            let mut models = lock_model_state(&self.available_models);
             if let Some(model) = models.get_mut(model_id) {
                 model.is_downloading = false;
                 model.is_downloaded = true;
                 model.partial_size = 0;
             }
         }
-        self.cancel_flags.lock().unwrap().remove(model_id);
+        lock_model_state(&self.cancel_flags).remove(model_id);
 
         // Emit completion event
         let _ = self.app_handle.emit("model-download-complete", model_id);
@@ -2352,7 +2762,7 @@ impl ModelManager {
         debug!("ModelManager: delete_model called for: {}", model_id);
 
         let model_info = {
-            let models = self.available_models.lock().unwrap();
+            let models = lock_model_state(&self.available_models);
             models.get(model_id).cloned()
         };
 
@@ -2391,7 +2801,7 @@ impl ModelManager {
             for path in [
                 self.models_dir.join(&model_info.filename),
                 self.models_dir
-                    .join(format!("{}.partial", &model_info.filename)),
+                    .join(format!("{}.partial", model_info.filename)),
             ] {
                 if path.exists() {
                     info!("Deleting model file at: {:?}", path);
@@ -2406,7 +2816,7 @@ impl ModelManager {
             // seeds defaults), so deleting one un-discovers it rather than
             // leaving a permanent "(Q4_K_M)" row in the list.
             if is_alternate_quant {
-                self.available_models.lock().unwrap().remove(model_id);
+                lock_model_state(&self.available_models).remove(model_id);
             }
             self.update_download_status()?;
             let _ = self.app_handle.emit("model-deleted", model_id);
@@ -2416,7 +2826,7 @@ impl ModelManager {
         let model_path = self.models_dir.join(&model_info.filename);
         let partial_path = self
             .models_dir
-            .join(format!("{}.partial", &model_info.filename));
+            .join(format!("{}.partial", model_info.filename));
         debug!("ModelManager: Model path: {:?}", model_path);
         debug!("ModelManager: Partial path: {:?}", partial_path);
 
@@ -2455,7 +2865,7 @@ impl ModelManager {
         // Custom models should be removed from the list entirely since they
         // have no download URL and can't be re-downloaded
         if model_info.is_custom {
-            let mut models = self.available_models.lock().unwrap();
+            let mut models = lock_model_state(&self.available_models);
             models.remove(model_id);
             debug!("ModelManager: removed custom model from available models");
         } else {
@@ -2475,11 +2885,7 @@ impl ModelManager {
             .get_model_info(model_id)
             .ok_or_else(|| anyhow::anyhow!("Model not found: {}", model_id))?;
 
-        if !model_info.is_downloaded {
-            return Err(anyhow::anyhow!("Model not available: {}", model_id));
-        }
-
-        // Ensure we don't return partial files/directories
+        // Ensure we don't return a model while its bytes are still changing.
         if model_info.is_downloading {
             return Err(anyhow::anyhow!(
                 "Model is currently downloading: {}",
@@ -2489,17 +2895,17 @@ impl ModelManager {
 
         if let ModelSource::HuggingFace { repo_id, revision } = &model_info.source {
             if let Some(path) = hf_cached_path(repo_id, revision, &model_info.filename) {
+                verify_model_cache_trust(&self.models_dir, &model_info, &path)?;
                 return Ok(path);
             }
             // Mirror-fallback download or manual drop-in in the models dir.
-            // The complete file only ever appears after verification, so a
-            // stale `.partial` alongside it is leftover noise, not a veto —
-            // clear it rather than declaring the model missing.
+            // A stale partial alongside a verified final file is leftover noise.
             let local_path = self.models_dir.join(&model_info.filename);
-            if local_path.exists() {
+            if local_path.is_file() {
+                verify_model_cache_trust(&self.models_dir, &model_info, &local_path)?;
                 let partial_path = self
                     .models_dir
-                    .join(format!("{}.partial", &model_info.filename));
+                    .join(format!("{}.partial", model_info.filename));
                 if partial_path.exists() {
                     let _ = fs::remove_file(&partial_path);
                 }
@@ -2511,10 +2917,14 @@ impl ModelManager {
             ));
         }
 
+        if !model_info.is_downloaded {
+            return Err(anyhow::anyhow!("Model not available: {}", model_id));
+        }
+
         let model_path = self.models_dir.join(&model_info.filename);
         let partial_path = self
             .models_dir
-            .join(format!("{}.partial", &model_info.filename));
+            .join(format!("{}.partial", model_info.filename));
 
         if model_info.is_directory {
             // For directory-based models, ensure the directory exists and is complete
@@ -2546,7 +2956,7 @@ impl ModelManager {
         // aborts its in-flight chunk tasks and unwinds promptly; the URL path
         // observes it on the next chunk of its stream loop.
         {
-            let flags = self.cancel_flags.lock().unwrap();
+            let flags = lock_model_state(&self.cancel_flags);
             if let Some(token) = flags.get(model_id) {
                 token.cancel();
                 info!("Cancellation token triggered for: {}", model_id);
@@ -2557,7 +2967,7 @@ impl ModelManager {
 
         // Update state immediately for UI responsiveness
         {
-            let mut models = self.available_models.lock().unwrap();
+            let mut models = lock_model_state(&self.available_models);
             if let Some(model) = models.get_mut(model_id) {
                 model.is_downloading = false;
             }
@@ -2579,6 +2989,262 @@ mod tests {
     use super::*;
     use std::io::Write;
     use tempfile::TempDir;
+
+    #[test]
+    fn download_progress_percentage_handles_zero_and_large_byte_counts() {
+        assert_eq!(progress_percentage(0, 0), 0.0);
+        assert_eq!(progress_percentage(1, 4), 25.0);
+        assert_eq!(progress_percentage(u64::MAX, u64::MAX), 100.0);
+    }
+
+    fn write_cache_file(temp_dir: &TempDir, bytes: &[u8]) -> Result<PathBuf> {
+        let path = temp_dir.path().join("model.gguf");
+        fs::write(&path, bytes)?;
+        Ok(path)
+    }
+
+    #[test]
+    fn pinned_cache_writes_and_reuses_a_valid_receipt() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let path = write_cache_file(&temp_dir, b"verified-model")?;
+        let expected_sha256 = ModelManager::compute_sha256(&path)?;
+        let binding = CacheFileBinding::read(&path)?;
+
+        verify_pinned_cache_file(temp_dir.path(), &path, binding.size_bytes, &expected_sha256)?;
+
+        let mut receipts = InstallReceipts::load(temp_dir.path());
+        assert_eq!(
+            receipts.check(&path, &binding, &expected_sha256),
+            ReceiptMatch::Current
+        );
+        verify_pinned_cache_file(temp_dir.path(), &path, binding.size_bytes, &expected_sha256)?;
+        Ok(())
+    }
+
+    #[test]
+    fn pinned_cache_rejects_tampered_bytes() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let path = write_cache_file(&temp_dir, b"verified-model")?;
+        let expected_sha256 = ModelManager::compute_sha256(&path)?;
+        let expected_size = CacheFileBinding::read(&path)?.size_bytes;
+        verify_pinned_cache_file(temp_dir.path(), &path, expected_size, &expected_sha256)?;
+
+        let mut receipts = InstallReceipts::load(temp_dir.path());
+        assert!(receipts.remove(&path));
+        receipts.persist(temp_dir.path())?;
+        fs::write(&path, b"tampered-model")?;
+
+        let result =
+            verify_pinned_cache_file(temp_dir.path(), &path, expected_size, &expected_sha256);
+        assert!(matches!(result, Err(ref error) if error.to_string().contains("SHA-256")));
+        assert!(InstallReceipts::load(temp_dir.path()).entries.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn stale_receipt_is_revalidated_before_use() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let path = write_cache_file(&temp_dir, b"verified-model")?;
+        let expected_sha256 = ModelManager::compute_sha256(&path)?;
+        let binding = CacheFileBinding::read(&path)?;
+        verify_pinned_cache_file(temp_dir.path(), &path, binding.size_bytes, &expected_sha256)?;
+
+        let mut receipts = InstallReceipts::load(temp_dir.path());
+        receipts.record(
+            &path,
+            CacheFileBinding {
+                size_bytes: binding.size_bytes,
+                modified_nanos: binding.modified_nanos.saturating_add(1),
+                identity: binding.identity,
+            },
+            &expected_sha256,
+        );
+        receipts.persist(temp_dir.path())?;
+
+        verify_pinned_cache_file(temp_dir.path(), &path, binding.size_bytes, &expected_sha256)?;
+        let mut receipts = InstallReceipts::load(temp_dir.path());
+        assert_eq!(
+            receipts.check(&path, &CacheFileBinding::read(&path)?, &expected_sha256),
+            ReceiptMatch::Current
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn pinned_cache_rejects_partial_file() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let path = write_cache_file(&temp_dir, b"partial")?;
+        let expected_sha256 = ModelManager::compute_sha256(&path)?;
+        let expected_size = CacheFileBinding::read(&path)?.size_bytes + 1;
+
+        let result =
+            verify_pinned_cache_file(temp_dir.path(), &path, expected_size, &expected_sha256);
+        assert!(matches!(result, Err(ref error) if error.to_string().contains("expected")));
+        assert!(!InstallReceipts::receipt_path(temp_dir.path()).exists());
+        Ok(())
+    }
+
+    /// Puts a recorded mtime back after a rewrite, the way `touch -r` does.
+    fn restore_modified_time(path: &Path, recorded: &CacheFileBinding) -> Result<()> {
+        let modified = UNIX_EPOCH + Duration::from_nanos(recorded.modified_nanos);
+        File::options()
+            .write(true)
+            .open(path)?
+            .set_times(fs::FileTimes::new().set_modified(modified))?;
+        Ok(())
+    }
+
+    #[test]
+    fn a_same_size_rewrite_with_a_restored_mtime_is_rehashed() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let path = write_cache_file(&temp_dir, b"verified-model")?;
+        let expected_sha256 = ModelManager::compute_sha256(&path)?;
+        let installed = CacheFileBinding::read(&path)?;
+        verify_pinned_cache_file(
+            temp_dir.path(),
+            &path,
+            installed.size_bytes,
+            &expected_sha256,
+        )?;
+
+        fs::write(&path, b"swapped-model!")?;
+        restore_modified_time(&path, &installed)?;
+
+        // Size and mtime are exactly what the receipt recorded, so a receipt
+        // bound to those two fields alone would accept these bytes unread.
+        let rewritten = CacheFileBinding::read(&path)?;
+        assert_eq!(rewritten.size_bytes, installed.size_bytes);
+        assert_eq!(rewritten.modified_nanos, installed.modified_nanos);
+
+        let result = verify_pinned_cache_file(
+            temp_dir.path(),
+            &path,
+            installed.size_bytes,
+            &expected_sha256,
+        );
+        assert!(matches!(&result, Err(error) if error.to_string().contains("SHA-256")));
+        assert!(InstallReceipts::load(temp_dir.path()).entries.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn a_replacement_renamed_over_the_cache_file_is_rehashed() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let path = write_cache_file(&temp_dir, b"verified-model")?;
+        let expected_sha256 = ModelManager::compute_sha256(&path)?;
+        let installed = CacheFileBinding::read(&path)?;
+        verify_pinned_cache_file(
+            temp_dir.path(),
+            &path,
+            installed.size_bytes,
+            &expected_sha256,
+        )?;
+
+        let replacement = temp_dir.path().join("replacement.gguf");
+        fs::write(&replacement, b"swapped-model!")?;
+        fs::rename(&replacement, &path)?;
+        restore_modified_time(&path, &installed)?;
+
+        let renamed = CacheFileBinding::read(&path)?;
+        assert_eq!(renamed.size_bytes, installed.size_bytes);
+        assert_eq!(renamed.modified_nanos, installed.modified_nanos);
+        assert_ne!(renamed.identity.file_id, installed.identity.file_id);
+
+        let result = verify_pinned_cache_file(
+            temp_dir.path(),
+            &path,
+            installed.size_bytes,
+            &expected_sha256,
+        );
+        assert!(matches!(&result, Err(error) if error.to_string().contains("SHA-256")));
+        assert!(InstallReceipts::load(temp_dir.path()).entries.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn an_unchanged_file_is_accepted_from_the_receipt_without_rehashing() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let path = write_cache_file(&temp_dir, b"verified-model")?;
+        // A hash these bytes do not have. Verification can then succeed only by
+        // trusting the receipt, so `Ok` proves `compute_sha256` never ran.
+        let unhashable = "0".repeat(64);
+        assert_ne!(ModelManager::compute_sha256(&path)?, unhashable);
+
+        let binding = CacheFileBinding::read(&path)?;
+        let mut receipts = InstallReceipts::load(temp_dir.path());
+        receipts.record(&path, binding.clone(), &unhashable);
+        receipts.persist(temp_dir.path())?;
+
+        verify_pinned_cache_file(temp_dir.path(), &path, binding.size_bytes, &unhashable)?;
+        Ok(())
+    }
+
+    #[test]
+    fn a_receipts_file_without_an_identity_binding_is_discarded() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let path = write_cache_file(&temp_dir, b"verified-model")?;
+        let expected_sha256 = ModelManager::compute_sha256(&path)?;
+        let binding = CacheFileBinding::read(&path)?;
+        // The shape written by builds before the identity binding existed.
+        let key = InstallReceipts::key(&path);
+        let legacy = serde_json::json!({
+            "entries": {
+                (key): {
+                    "path": path,
+                    "size_bytes": binding.size_bytes,
+                    "modified_nanos": binding.modified_nanos,
+                    "expected_sha256": expected_sha256,
+                }
+            }
+        });
+        fs::write(
+            InstallReceipts::receipt_path(temp_dir.path()),
+            serde_json::to_vec(&legacy)?,
+        )?;
+
+        assert!(InstallReceipts::load(temp_dir.path()).entries.is_empty());
+        let mut receipts = InstallReceipts::load(temp_dir.path());
+        assert_eq!(
+            receipts.check(&path, &binding, &expected_sha256),
+            ReceiptMatch::Missing
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn unpinned_custom_model_remains_explicitly_unverified() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let path = write_cache_file(&temp_dir, b"custom-model")?;
+        let model = ModelInfo {
+            id: "custom".to_string(),
+            name: "Custom".to_string(),
+            description: String::new(),
+            filename: "model.gguf".to_string(),
+            source: ModelSource::Local,
+            size_mb: 0,
+            is_downloaded: true,
+            is_downloading: false,
+            partial_size: 0,
+            is_directory: false,
+            engine_type: EngineType::TranscribeCpp,
+            accuracy_score: 0.0,
+            speed_score: 0.0,
+            supports_translation: false,
+            is_recommended: false,
+            supported_languages: Vec::new(),
+            supports_language_selection: false,
+            is_custom: true,
+            supports_streaming: false,
+            supports_language_detection: false,
+        };
+
+        assert_eq!(
+            verify_model_cache_trust(temp_dir.path(), &model, &path)?,
+            CacheTrust::Unverified
+        );
+        assert!(!InstallReceipts::receipt_path(temp_dir.path()).exists());
+        Ok(())
+    }
 
     #[test]
     fn test_effective_language_accepts_chinese_script_intent_for_zh_capability() {
@@ -2639,12 +3305,19 @@ mod tests {
         assert_eq!(languages, vec!["en", "zh", "yue"]);
     }
 
+    fn test_gguf_u64(value: usize, field: &str) -> u64 {
+        match u64::try_from(value) {
+            Ok(value) => value,
+            Err(_) => panic!("{field} length does not fit in a GGUF u64"),
+        }
+    }
+
     fn build_test_gguf_string_metadata(kvs: &[(&str, &str)]) -> Vec<u8> {
         let mut out = Vec::new();
         out.extend_from_slice(b"GGUF");
         out.extend_from_slice(&3u32.to_le_bytes());
         out.extend_from_slice(&0u64.to_le_bytes());
-        out.extend_from_slice(&(kvs.len() as u64).to_le_bytes());
+        out.extend_from_slice(&test_gguf_u64(kvs.len(), "metadata entry count").to_le_bytes());
         for (key, value) in kvs {
             push_gguf_str(&mut out, key);
             out.extend_from_slice(&8u32.to_le_bytes()); // GGUF string value type.
@@ -2880,7 +3553,7 @@ mod tests {
     }
 
     fn push_gguf_str(out: &mut Vec<u8>, val: &str) {
-        out.extend_from_slice(&(val.len() as u64).to_le_bytes());
+        out.extend_from_slice(&test_gguf_u64(val.len(), "string").to_le_bytes());
         out.extend_from_slice(val.as_bytes());
     }
 
@@ -2898,7 +3571,7 @@ mod tests {
         push_gguf_str(&mut out, "general.languages");
         out.extend_from_slice(&9u32.to_le_bytes()); // ARRAY
         out.extend_from_slice(&8u32.to_le_bytes()); // elem STRING
-        out.extend_from_slice(&(languages.len() as u64).to_le_bytes());
+        out.extend_from_slice(&test_gguf_u64(languages.len(), "language count").to_le_bytes());
         for l in languages {
             push_gguf_str(&mut out, l);
         }

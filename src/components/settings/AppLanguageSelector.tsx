@@ -5,6 +5,7 @@ import { SettingContainer } from "../ui/SettingContainer";
 import {
   SUPPORTED_LANGUAGES,
   getSupportedLanguage,
+  setLanguage,
   type SupportedLanguageCode,
 } from "../../i18n";
 import { useSettings } from "@/hooks/useSettings";
@@ -28,7 +29,8 @@ export const AppLanguageSelector: React.FC<AppLanguageSelectorProps> =
     }));
 
     const handleLanguageChange = (langCode: string) => {
-      i18n.changeLanguage(langCode);
+      // The locale's strings load on demand, so this resolves after the switch.
+      void setLanguage(langCode);
       updateSetting("app_language", langCode);
     };
 

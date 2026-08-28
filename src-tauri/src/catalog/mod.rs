@@ -3,7 +3,7 @@
 //! `catalog.json` is generated at build time by `scripts/gen_catalog.py` from the
 //! `handy-computer` Hugging Face org (card `transcribe_cpp` capabilities +
 //! benchmarks, a GGUF header probe for name/params, and local curation for the
-//! recommended set). It is compiled into the binary so Handy ships a complete
+//! recommended set). It is compiled into the binary so Sona ships a complete
 //! model list with zero network access.
 //!
 //! Each entry is normalised into a [`ModelDescriptor`] — the same source-agnostic
@@ -115,6 +115,7 @@ impl From<&CatalogModel> for ModelDescriptor {
 /// The raw parsed catalog. Kept alive (not consumed) so mirror metadata that
 /// deliberately stays out of [`ModelDescriptor`] can be looked up separately.
 static ROOT: Lazy<CatalogRoot> = Lazy::new(|| {
+    // PANIC: catalog.json is bundled with the binary and must match CatalogRoot.
     serde_json::from_str(include_str!("catalog.json"))
         .expect("bundled catalog.json is valid JSON matching the catalog schema")
 });

@@ -1,11 +1,12 @@
-use crate::settings::PostProcessProvider;
+use crate::secrets::SecretValue;
+use crate::settings::{PostProcessEndpoint, PostProcessProvider};
 use log::{debug, error, info};
-use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE, REFERER, USER_AGENT};
+use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE, USER_AGENT};
+use reqwest::redirect::Policy;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::collections::HashSet;
-use std::error::Error as StdError;
 use std::sync::{Mutex, OnceLock};
+use zeroize::Zeroizing;
 
 #[derive(Debug, Serialize)]
 struct ChatMessage {
@@ -14,10 +15,14 @@ struct ChatMessage {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(transparent)]
+pub(crate) struct StructuredOutputSchema(pub(crate) serde_json::Value);
+
+#[derive(Debug, Serialize)]
 struct JsonSchema {
     name: String,
     strict: bool,
-    schema: Value,
+    schema: StructuredOutputSchema,
 }
 
 #[derive(Debug, Serialize)]
@@ -35,6 +40,12 @@ struct ReasoningConfig {
     exclude: Option<bool>,
 }
 
+#[derive(Debug, Serialize, Clone, PartialEq)]
+struct ThinkingParams {
+    #[serde(rename = "type")]
+    kind: &'static str,
+}
+
 /// Request fields used to ask an endpoint to skip reasoning/thinking.
 /// Providers disagree on the field name and accepted values, so at most one of
 /// these is set per request (see `reasoning_disable_params`).
@@ -45,7 +56,7 @@ struct ReasoningParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     reasoning: Option<ReasoningConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    thinking: Option<Value>,
+    thinking: Option<ThinkingParams>,
 }
 
 impl ReasoningParams {
@@ -57,13 +68,16 @@ impl ReasoningParams {
 /// Pick the reasoning-disable request fields an endpoint understands.
 /// Unknown endpoints get the common OpenAI-style field; if they reject it,
 /// the request is retried without it (see `send_chat_completion_with_schema`).
-fn reasoning_disable_params(provider: &PostProcessProvider) -> ReasoningParams {
-    let base_url = provider.base_url.to_lowercase();
+fn reasoning_disable_params(
+    provider: &PostProcessProvider,
+    endpoint: &PostProcessEndpoint,
+) -> ReasoningParams {
+    let base_url = endpoint.base_url().to_lowercase();
     if base_url.contains("api.deepseek.com") {
         // DeepSeek rejects reasoning_effort "none" and uses its own field:
         // https://api-docs.deepseek.com/guides/thinking_mode
         ReasoningParams {
-            thinking: Some(serde_json::json!({ "type": "disabled" })),
+            thinking: Some(ThinkingParams { kind: "disabled" }),
             ..Default::default()
         }
     } else if provider.id == "openrouter" {
@@ -92,8 +106,8 @@ fn reasoning_rejections() -> &'static Mutex<HashSet<String>> {
     REJECTED.get_or_init(|| Mutex::new(HashSet::new()))
 }
 
-fn endpoint_key(provider: &PostProcessProvider, model: &str) -> String {
-    format!("{}|{}", provider.base_url.trim_end_matches('/'), model)
+fn endpoint_key(endpoint: &PostProcessEndpoint, model: &str) -> String {
+    format!("{}|{}", endpoint.base_url(), model)
 }
 
 fn is_known_rejected(key: &str) -> bool {
@@ -119,6 +133,16 @@ struct ChatCompletionRequest {
     #[serde(flatten)]
     reasoning: ReasoningParams,
 }
+pub(crate) struct ChatCompletionInput<'a> {
+    pub provider: &'a PostProcessProvider,
+    pub endpoint: &'a PostProcessEndpoint,
+    pub secret: Option<&'a SecretValue>,
+    pub model: &'a str,
+    pub user_content: String,
+    pub system_prompt: Option<String>,
+    pub json_schema: Option<StructuredOutputSchema>,
+    pub disable_reasoning: bool,
+}
 
 #[derive(Debug, Deserialize)]
 struct ChatCompletionResponse {
@@ -135,36 +159,31 @@ struct ChatMessageResponse {
     content: Option<String>,
 }
 
-/// Build headers for API requests based on provider type
-fn build_headers(provider: &PostProcessProvider, api_key: &str) -> Result<HeaderMap, String> {
+/// Build headers for API requests based on provider type.
+fn build_headers(
+    provider: &PostProcessProvider,
+    secret: Option<&SecretValue>,
+) -> Result<HeaderMap, String> {
     let mut headers = HeaderMap::new();
 
-    // Common headers
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-    headers.insert(
-        REFERER,
-        HeaderValue::from_static("https://github.com/cjpais/Handy"),
-    );
-    headers.insert(
-        USER_AGENT,
-        HeaderValue::from_static("Handy/1.0 (+https://github.com/cjpais/Handy)"),
-    );
-    headers.insert("X-Title", HeaderValue::from_static("Handy"));
+    headers.insert(USER_AGENT, HeaderValue::from_static("Sona/1.0"));
+    headers.insert("X-Title", HeaderValue::from_static("Sona"));
 
-    // Provider-specific auth headers
-    if !api_key.is_empty() {
+    if let Some(secret) = secret {
         if provider.id == "anthropic" {
             headers.insert(
                 "x-api-key",
-                HeaderValue::from_str(api_key)
-                    .map_err(|e| format!("Invalid API key header value: {}", e))?,
+                HeaderValue::from_str(secret.expose())
+                    .map_err(|_| "Invalid API key header value".to_string())?,
             );
             headers.insert("anthropic-version", HeaderValue::from_static("2023-06-01"));
         } else {
+            let bearer = Zeroizing::new(format!("Bearer {}", secret.expose()));
             headers.insert(
                 AUTHORIZATION,
-                HeaderValue::from_str(&format!("Bearer {}", api_key))
-                    .map_err(|e| format!("Invalid authorization header value: {}", e))?,
+                HeaderValue::from_str(bearer.as_str())
+                    .map_err(|_| "Invalid authorization header value".to_string())?,
             );
         }
     }
@@ -172,35 +191,19 @@ fn build_headers(provider: &PostProcessProvider, api_key: &str) -> Result<Header
     Ok(headers)
 }
 
-/// Create an HTTP client with provider-specific headers
-fn create_client(provider: &PostProcessProvider, api_key: &str) -> Result<reqwest::Client, String> {
-    let headers = build_headers(provider, api_key)?;
+/// Create an HTTP client with provider-specific headers. Redirects are disabled
+/// so an Authorization header cannot reach a destination outside the frozen
+/// endpoint.
+fn create_client(
+    provider: &PostProcessProvider,
+    secret: Option<&SecretValue>,
+) -> Result<reqwest::Client, String> {
+    let headers = build_headers(provider, secret)?;
     reqwest::Client::builder()
         .default_headers(headers)
+        .redirect(Policy::none())
         .build()
         .map_err(|e| report_reqwest_error("Failed to build HTTP client", &e))
-}
-
-/// Format a bounded error source chain.
-///
-/// `reqwest::Error`'s Display implementation intentionally gives only a short
-/// summary. Nested causes contain the useful transport details, such as a
-/// certificate validation failure, an HTTP/2 error, or a connection reset.
-/// Callers must skip source types whose Display text can quote payload data.
-fn error_source_chain(error: &(dyn StdError + 'static)) -> Vec<String> {
-    let mut causes = Vec::new();
-    let mut source = error.source();
-
-    // Defensive cap in case a third-party error exposes a cyclic source chain.
-    for _ in 0..16 {
-        let Some(cause) = source else {
-            break;
-        };
-        causes.push(cause.to_string());
-        source = cause.source();
-    }
-
-    causes
 }
 
 fn reqwest_error_kinds(error: &reqwest::Error) -> String {
@@ -241,57 +244,19 @@ fn reqwest_error_kinds(error: &reqwest::Error) -> String {
     }
 }
 
-fn sanitized_url(url: &reqwest::Url) -> String {
-    let mut url = url.clone();
-
-    // Custom endpoints should not contain credentials or query-string tokens,
-    // but omit them from diagnostics in case one does.
-    let _ = url.set_username("");
-    let _ = url.set_password(None);
-    url.set_query(None);
-    url.set_fragment(None);
-
-    url.to_string()
-}
-
-fn sanitized_url_for_log(url: &str) -> String {
-    reqwest::Url::parse(url)
-        .map(|url| sanitized_url(&url))
-        // Do not echo an invalid URL: the parse failure might have been caused
-        // by sensitive data entered in the custom endpoint field.
-        .unwrap_or_else(|_| "<invalid URL>".to_string())
-}
-
 fn report_reqwest_error(context: &str, error: &reqwest::Error) -> String {
-    let kinds = reqwest_error_kinds(error);
-    let url = error
-        .url()
-        .map(sanitized_url)
-        .map(|url| format!(", url: {url}"))
-        .unwrap_or_default();
-
-    // serde_json's error text can quote values from a malformed response. That
-    // response may contain transcription content, so retain the useful decode
-    // classification but never put its nested source in logs or UI errors.
-    let causes = if error.is_decode() {
-        Vec::new()
-    } else {
-        error_source_chain(error)
-    };
-    let cause_details = if !causes.is_empty() {
-        format!(": caused by: {}", causes.join(" -> "))
-    } else if error.url().is_none() {
-        // Reqwest's short Display text is safe when it cannot append a raw URL.
-        format!(": {error}")
-    } else {
-        // The sanitized URL is already included above. Avoid formatting the
-        // original error because its Display implementation includes the raw URL.
-        String::new()
-    };
-
-    let details = format!("{context} (kind: {kinds}{url}){cause_details}");
+    let details = format!("{context} (kind: {})", reqwest_error_kinds(error));
     error!("{details}");
     details
+}
+
+fn endpoint_matches_provider(
+    provider: &PostProcessProvider,
+    endpoint: &PostProcessEndpoint,
+) -> bool {
+    provider
+        .endpoint()
+        .is_ok_and(|current| current == *endpoint)
 }
 
 /// Send a chat completion request to an OpenAI-compatible API
@@ -299,20 +264,22 @@ fn report_reqwest_error(context: &str, error: &reqwest::Error) -> String {
 /// or Err on actual errors (HTTP, parsing, etc.)
 pub async fn send_chat_completion(
     provider: &PostProcessProvider,
-    api_key: String,
+    endpoint: &PostProcessEndpoint,
+    secret: Option<&SecretValue>,
     model: &str,
     prompt: String,
     disable_reasoning: bool,
 ) -> Result<Option<String>, String> {
-    send_chat_completion_with_schema(
+    send_chat_completion_with_schema(ChatCompletionInput {
         provider,
-        api_key,
+        endpoint,
+        secret,
         model,
-        prompt,
-        None,
-        None,
+        user_content: prompt,
+        system_prompt: None,
+        json_schema: None,
         disable_reasoning,
-    )
+    })
     .await
 }
 
@@ -326,24 +293,27 @@ pub async fn send_chat_completion(
 /// upstreams reject with 400), so a 400/422 answer to such a request triggers
 /// one retry without the fields, and the rejection is remembered per
 /// (base_url, model) so later requests skip the failing attempt entirely.
-pub async fn send_chat_completion_with_schema(
-    provider: &PostProcessProvider,
-    api_key: String,
-    model: &str,
-    user_content: String,
-    system_prompt: Option<String>,
-    json_schema: Option<Value>,
-    disable_reasoning: bool,
+pub(crate) async fn send_chat_completion_with_schema(
+    input: ChatCompletionInput<'_>,
 ) -> Result<Option<String>, String> {
-    let base_url = provider.base_url.trim_end_matches('/');
-    let url = format!("{}/chat/completions", base_url);
+    let ChatCompletionInput {
+        provider,
+        endpoint,
+        secret,
+        model,
+        user_content,
+        system_prompt,
+        json_schema,
+        disable_reasoning,
+    } = input;
+    if !endpoint_matches_provider(provider, endpoint) {
+        return Err("Post-processing destination changed".to_string());
+    }
+    let url = endpoint.request_url("chat/completions");
 
-    debug!(
-        "Sending chat completion request to: {}",
-        sanitized_url_for_log(&url)
-    );
+    debug!("Sending chat completion request");
 
-    let client = create_client(provider, &api_key)?;
+    let client = create_client(provider, secret)?;
 
     // Build messages vector
     let mut messages = Vec::new();
@@ -372,9 +342,9 @@ pub async fn send_chat_completion_with_schema(
         },
     });
 
-    let key = endpoint_key(provider, model);
+    let key = endpoint_key(endpoint, model);
     let reasoning = if disable_reasoning && !is_known_rejected(&key) {
-        reasoning_disable_params(provider)
+        reasoning_disable_params(provider, endpoint)
     } else {
         ReasoningParams::default()
     };
@@ -392,13 +362,12 @@ pub async fn send_chat_completion_with_schema(
         .json(&request_body)
         .send()
         .await
-        .map_err(|e| report_reqwest_error("HTTP request failed", &e))?;
+        .map_err(|error| report_reqwest_error("HTTP request failed", &error))?;
     let mut status = response.status();
     debug!(
-        "Chat completion response received with status {} over {:?} from {}",
+        "Chat completion response received with status {} over {:?}",
         status,
-        response.version(),
-        sanitized_url(response.url())
+        response.version()
     );
 
     // A 400/422 on a request carrying reasoning-disable fields is almost always
@@ -407,12 +376,12 @@ pub async fn send_chat_completion_with_schema(
         && matches!(status.as_u16(), 400 | 422)
         && !request_body.reasoning.is_empty()
     {
-        let error_text = response.text().await.unwrap_or_else(|e| {
-            report_reqwest_error("Failed to read reasoning rejection response", &e)
-        });
+        // Provider bodies are not useful for this retry and may contain
+        // submitted text, so never materialize them.
+        drop(response);
         info!(
-            "Endpoint rejected request with reasoning disabled (status {}): {}. Retrying without reasoning fields",
-            status, error_text
+            "Endpoint rejected reasoning-disable fields with status {}; retrying without them",
+            status
         );
 
         request_body.reasoning = ReasoningParams::default();
@@ -421,39 +390,30 @@ pub async fn send_chat_completion_with_schema(
             .json(&request_body)
             .send()
             .await
-            .map_err(|e| report_reqwest_error("HTTP retry failed", &e))?;
+            .map_err(|error| report_reqwest_error("HTTP retry failed", &error))?;
         status = response.status();
         debug!(
-            "Chat completion retry response received with status {} over {:?} from {}",
+            "Chat completion retry response received with status {} over {:?}",
             status,
-            response.version(),
-            sanitized_url(response.url())
+            response.version()
         );
 
         if status.is_success() {
             info!(
-                "Retry without reasoning fields succeeded; '{}' (model '{}') will skip them from now on",
-                sanitized_url_for_log(base_url), model
+                "Retry without reasoning fields succeeded; the frozen destination will skip them"
             );
             remember_rejection(key);
         }
     }
 
     if !status.is_success() {
-        let error_text = response
-            .text()
-            .await
-            .unwrap_or_else(|e| report_reqwest_error("Failed to read API error response", &e));
-        return Err(format!(
-            "API request failed with status {}: {}",
-            status, error_text
-        ));
+        return Err(format!("API request failed with status {status}"));
     }
 
     let completion: ChatCompletionResponse = response
         .json()
         .await
-        .map_err(|e| report_reqwest_error("Failed to parse API response", &e))?;
+        .map_err(|error| report_reqwest_error("Failed to parse API response", &error))?;
 
     Ok(completion
         .choices
@@ -461,56 +421,50 @@ pub async fn send_chat_completion_with_schema(
         .and_then(|choice| choice.message.content.clone()))
 }
 
-/// Fetch available models from an OpenAI-compatible API
-/// Returns a list of model IDs
+/// Fetch available models from an OpenAI-compatible API.
 pub async fn fetch_models(
     provider: &PostProcessProvider,
-    api_key: String,
+    endpoint: &PostProcessEndpoint,
+    secret: Option<SecretValue>,
 ) -> Result<Vec<String>, String> {
-    let base_url = provider.base_url.trim_end_matches('/');
-    let url = format!("{}/models", base_url);
+    if !endpoint_matches_provider(provider, endpoint) {
+        return Err("Post-processing destination changed".to_string());
+    }
+    let url = endpoint.request_url("models");
 
-    debug!("Fetching models from: {}", sanitized_url_for_log(&url));
+    debug!("Fetching post-processing models");
 
-    let client = create_client(provider, &api_key)?;
+    let client = create_client(provider, secret.as_ref())?;
 
     let response = client
         .get(&url)
         .send()
         .await
-        .map_err(|e| report_reqwest_error("Failed to fetch models", &e))?;
+        .map_err(|error| report_reqwest_error("Failed to fetch models", &error))?;
 
     let status = response.status();
     debug!(
-        "Model list response received with status {} over {:?} from {}",
+        "Model list response received with status {} over {:?}",
         status,
-        response.version(),
-        sanitized_url(response.url())
+        response.version()
     );
     if !status.is_success() {
-        let error_text = response
-            .text()
-            .await
-            .unwrap_or_else(|e| report_reqwest_error("Failed to read model list error", &e));
-        return Err(format!(
-            "Model list request failed ({}): {}",
-            status, error_text
-        ));
+        return Err(format!("Model list request failed ({status})"));
     }
 
     let parsed: serde_json::Value = response
         .json()
         .await
-        .map_err(|e| report_reqwest_error("Failed to parse model list response", &e))?;
+        .map_err(|error| report_reqwest_error("Failed to parse model list response", &error))?;
 
     let mut models = Vec::new();
 
     // Handle OpenAI format: { data: [ { id: "..." }, ... ] }
-    if let Some(data) = parsed.get("data").and_then(|d| d.as_array()) {
+    if let Some(data) = parsed.get("data").and_then(|data| data.as_array()) {
         for entry in data {
-            if let Some(id) = entry.get("id").and_then(|i| i.as_str()) {
+            if let Some(id) = entry.get("id").and_then(|id| id.as_str()) {
                 models.push(id.to_string());
-            } else if let Some(name) = entry.get("name").and_then(|n| n.as_str()) {
+            } else if let Some(name) = entry.get("name").and_then(|name| name.as_str()) {
                 models.push(name.to_string());
             }
         }
@@ -530,28 +484,8 @@ pub async fn fetch_models(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fmt;
+    use std::time::Duration;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
-
-    #[derive(Debug)]
-    struct TestError {
-        message: &'static str,
-        source: Option<Box<TestError>>,
-    }
-
-    impl fmt::Display for TestError {
-        fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-            formatter.write_str(self.message)
-        }
-    }
-
-    impl StdError for TestError {
-        fn source(&self) -> Option<&(dyn StdError + 'static)> {
-            self.source
-                .as_deref()
-                .map(|source| source as &(dyn StdError + 'static))
-        }
-    }
 
     fn provider(id: &str, base_url: &str) -> PostProcessProvider {
         PostProcessProvider {
@@ -564,7 +498,35 @@ mod tests {
         }
     }
 
-    fn request_json(reasoning: ReasoningParams) -> Value {
+    fn endpoint(provider: &PostProcessProvider) -> PostProcessEndpoint {
+        provider.endpoint().expect("test provider endpoint")
+    }
+
+    #[test]
+    fn structured_output_schema_preserves_schema_bytes() {
+        let schema = serde_json::json!({
+            "type": "object",
+            "properties": { "text": { "type": "string" } },
+        });
+        let expected = serde_json::to_vec(&schema).expect("schema serializes");
+        let encoded =
+            serde_json::to_vec(&StructuredOutputSchema(schema)).expect("typed schema serializes");
+
+        assert_eq!(encoded, expected);
+    }
+
+    #[derive(Debug)]
+    struct RequestJson(serde_json::Value);
+
+    impl std::ops::Deref for RequestJson {
+        type Target = serde_json::Value;
+
+        fn deref(&self) -> &Self::Target {
+            &self.0
+        }
+    }
+
+    fn request_json(reasoning: ReasoningParams) -> RequestJson {
         let request = ChatCompletionRequest {
             model: "test-model".to_string(),
             messages: vec![ChatMessage {
@@ -575,7 +537,7 @@ mod tests {
             response_format: None,
             reasoning,
         };
-        serde_json::to_value(&request).unwrap()
+        RequestJson(serde_json::to_value(&request).unwrap())
     }
 
     async fn serve_one_response(status: &str, body: &str) -> String {
@@ -596,70 +558,87 @@ mod tests {
         format!("http://{address}")
     }
 
-    #[test]
-    fn error_source_chain_includes_all_nested_causes() {
-        let error = TestError {
-            message: "request failed",
-            source: Some(Box::new(TestError {
-                message: "TLS handshake failed",
-                source: Some(Box::new(TestError {
-                    message: "unknown certificate authority",
-                    source: None,
-                })),
-            })),
-        };
-
-        assert_eq!(
-            error_source_chain(&error),
-            vec!["TLS handshake failed", "unknown certificate authority"]
-        );
-    }
-
-    #[test]
-    fn log_url_sanitization_removes_credentials_and_tokens() {
-        let url = "https://user:password@example.com/v1/models?api_key=secret#private";
-        assert_eq!(sanitized_url_for_log(url), "https://example.com/v1/models");
-    }
-
-    #[test]
-    fn invalid_log_urls_are_not_echoed() {
-        assert_eq!(
-            sanitized_url_for_log("not a URL containing secret"),
-            "<invalid URL>"
-        );
-    }
-
     #[tokio::test]
-    async fn decode_error_does_not_echo_response_values() {
-        let base_url =
-            serve_one_response("200 OK", r#"{"choices":"PRIVATE TRANSCRIPTION CONTENT"}"#).await;
-        let error = reqwest::get(base_url)
+    async fn failure_diagnostics_exclude_transcript_and_endpoint_canaries() {
+        const CANARY: &str = "TRANSCRIPT-CANARY-4EE1";
+        let base_url = serve_one_response("400 Bad Request", CANARY).await;
+        let error = reqwest::get(format!("{base_url}/private?token={CANARY}"))
             .await
-            .unwrap()
-            .json::<ChatCompletionResponse>()
-            .await
-            .unwrap_err();
-
-        let details = report_reqwest_error("Failed to parse API response", &error);
-        assert!(details.contains("kind: decode"));
-        assert!(!details.contains("PRIVATE TRANSCRIPTION CONTENT"));
-    }
-
-    #[tokio::test]
-    async fn raw_error_url_is_not_reintroduced_without_a_source() {
-        let base_url = serve_one_response("400 Bad Request", "bad request").await;
-        let error = reqwest::get(format!(
-            "{base_url}/private?api_key=SECRET_QUERY_TOKEN#private"
-        ))
-        .await
-        .unwrap()
-        .error_for_status()
-        .unwrap_err();
+            .expect("request")
+            .error_for_status()
+            .expect_err("400 response");
 
         let details = report_reqwest_error("Request failed", &error);
-        assert!(details.contains(&format!("url: {base_url}/private")));
-        assert!(!details.contains("SECRET_QUERY_TOKEN"));
-        assert!(!details.contains("#private"));
+        assert!(details.contains("kind: status"));
+        assert!(!details.contains(CANARY));
+        assert!(!details.contains(&base_url));
+
+        let decode_url =
+            serve_one_response("200 OK", &format!(r#"{{"choices":"{CANARY}"}}"#)).await;
+        let decode_error = reqwest::get(decode_url)
+            .await
+            .expect("request")
+            .json::<ChatCompletionResponse>()
+            .await
+            .expect_err("malformed response");
+        let decode_details = report_reqwest_error("Failed to parse API response", &decode_error);
+        assert!(decode_details.contains("kind: decode"));
+        assert!(!decode_details.contains(CANARY));
+    }
+
+    /// A rejected reasoning request is retried even when the server closes its
+    /// discarded error body early. The body has no semantic use, so a read
+    /// failure must not turn a recoverable 400 into a failed transcription.
+    #[tokio::test]
+    async fn retries_after_the_discarded_reasoning_rejection_body_fails_to_read() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind retry server");
+        let address = listener.local_addr().expect("retry server address");
+        let server = tokio::spawn(async move {
+            let (mut first, _) = listener.accept().await.expect("first request");
+            let mut request = [0_u8; 4096];
+            let _ = first.read(&mut request).await.expect("read first request");
+            // Claim a longer body, write only part of it, then close. Reqwest
+            // receives the 400 headers, but response.text() returns an error.
+            first
+                .write_all(
+                    b"HTTP/1.1 400 Bad Request\r\nContent-Length: 32\r\nConnection: close\r\n\r\nbad",
+                )
+                .await
+                .expect("write truncated rejection");
+            first.shutdown().await.expect("close rejection");
+
+            let (mut retry, _) = listener.accept().await.expect("retry request");
+            let _ = retry.read(&mut request).await.expect("read retry request");
+            let body = br#"{"choices":[{"message":{"content":"retried"}}]}"#;
+            retry
+                .write_all(
+                    format!(
+                        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                        body.len()
+                    )
+                    .as_bytes(),
+                )
+                .await
+                .expect("write retry headers");
+            retry.write_all(body).await.expect("write retry body");
+        });
+
+        let provider = provider("custom", &format!("http://{address}"));
+        let endpoint = endpoint(&provider);
+        let result = send_chat_completion(
+            &provider,
+            &endpoint,
+            None,
+            "retry-after-truncated-rejection",
+            "transcribe this".to_string(),
+            true,
+        )
+        .await;
+
+        assert_eq!(result, Ok(Some("retried".to_string())));
+        server.await.expect("retry server completed");
     }
 
     #[test]
@@ -678,7 +657,8 @@ mod tests {
 
     #[test]
     fn custom_provider_uses_top_level_reasoning_effort() {
-        let params = reasoning_disable_params(&provider("custom", "http://localhost:11434/v1"));
+        let provider = provider("custom", "http://localhost:11434/v1");
+        let params = reasoning_disable_params(&provider, &endpoint(&provider));
         let json = request_json(params);
         assert_eq!(json["reasoning_effort"], "none");
         assert!(json.get("reasoning").is_none());
@@ -687,8 +667,8 @@ mod tests {
 
     #[test]
     fn openrouter_uses_nested_reasoning_object() {
-        let params =
-            reasoning_disable_params(&provider("openrouter", "https://openrouter.ai/api/v1"));
+        let provider = provider("openrouter", "https://openrouter.ai/api/v1");
+        let params = reasoning_disable_params(&provider, &endpoint(&provider));
         let json = request_json(params);
         assert!(json.get("reasoning_effort").is_none());
         assert_eq!(json["reasoning"]["effort"], "none");
@@ -698,7 +678,8 @@ mod tests {
 
     #[test]
     fn deepseek_base_url_uses_thinking_disabled() {
-        let params = reasoning_disable_params(&provider("custom", "https://api.deepseek.com"));
+        let provider = provider("custom", "https://api.deepseek.com");
+        let params = reasoning_disable_params(&provider, &endpoint(&provider));
         let json = request_json(params);
         assert!(json.get("reasoning_effort").is_none());
         assert!(json.get("reasoning").is_none());
@@ -714,21 +695,92 @@ mod tests {
         }
         .is_empty());
         assert!(!ReasoningParams {
-            thinking: Some(serde_json::json!({ "type": "disabled" })),
+            thinking: Some(ThinkingParams { kind: "disabled" }),
             ..Default::default()
         }
         .is_empty());
     }
 
     #[test]
-    fn rejection_memo_is_keyed_by_base_url_and_model() {
+    fn rejection_memo_is_keyed_by_endpoint_and_model() {
         let deepseek = provider("custom", "https://api.deepseek.com/");
-        let key = endpoint_key(&deepseek, "deepseek-chat");
+        let endpoint = endpoint(&deepseek);
+        let key = endpoint_key(&endpoint, "deepseek-chat");
         assert_eq!(key, "https://api.deepseek.com|deepseek-chat");
         assert!(!is_known_rejected(&key));
         remember_rejection(key.clone());
         assert!(is_known_rejected(&key));
-        // A different model on the same endpoint is tracked separately
-        assert!(!is_known_rejected(&endpoint_key(&deepseek, "other-model")));
+        // A different model on the same endpoint is tracked separately.
+        assert!(!is_known_rejected(&endpoint_key(&endpoint, "other-model")));
+    }
+
+    #[tokio::test]
+    async fn redirects_do_not_forward_authorization() {
+        let target = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind redirect target");
+        let target_address = target.local_addr().expect("target address");
+        let source = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind redirect source");
+        let source_address = source.local_addr().expect("source address");
+        let source_server = tokio::spawn(async move {
+            let (mut stream, _) = source.accept().await.expect("source request");
+            let mut request = [0_u8; 2048];
+            let _ = stream
+                .read(&mut request)
+                .await
+                .expect("read source request");
+            let response = format!(
+                "HTTP/1.1 302 Found\r\nLocation: http://{target_address}/redirected\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+            );
+            stream
+                .write_all(response.as_bytes())
+                .await
+                .expect("write redirect");
+        });
+
+        let provider = provider("custom", &format!("http://{source_address}"));
+        let endpoint = endpoint(&provider);
+        let response = create_client(&provider, None)
+            .expect("client")
+            .post(endpoint.request_url("chat/completions"))
+            .header(
+                reqwest::header::AUTHORIZATION,
+                "Bearer TRANSCRIPT-CANARY-4EE1",
+            )
+            .send()
+            .await
+            .expect("redirect response");
+
+        assert_eq!(response.status().as_u16(), 302);
+        assert!(
+            tokio::time::timeout(Duration::from_millis(100), target.accept())
+                .await
+                .is_err()
+        );
+        source_server.await.expect("source completed");
+    }
+
+    #[tokio::test]
+    async fn frozen_destination_rejects_changed_provider_before_request() {
+        const CANARY: &str = "TRANSCRIPT-CANARY-4EE1";
+        let original = provider("custom", "http://127.0.0.1:31001/v1");
+        let frozen = endpoint(&original);
+        let changed = provider("custom", "http://127.0.0.1:31002/v1");
+
+        let error = send_chat_completion(
+            &changed,
+            &frozen,
+            None,
+            "test-model",
+            CANARY.to_string(),
+            false,
+        )
+        .await
+        .expect_err("changed endpoint must be rejected");
+
+        assert_eq!(error, "Post-processing destination changed");
+        assert!(!error.contains(CANARY));
     }
 }

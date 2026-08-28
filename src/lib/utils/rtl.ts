@@ -7,6 +7,9 @@
  */
 import { LANGUAGE_METADATA } from "@/i18n/languages";
 
+export type LanguageDirection = "ltr" | "rtl";
+
+
 /**
  * Check if a language code is RTL (Right-to-Left)
  * @param langCode - The language code (e.g., 'ar', 'en', 'he')
@@ -23,7 +26,7 @@ export const isRTLLanguage = (langCode: string): boolean => {
  * @param langCode - The language code (e.g., 'ar', 'en', 'he')
  * @returns 'rtl' if RTL language, 'ltr' otherwise
  */
-export const getLanguageDirection = (langCode: string): "ltr" | "rtl" => {
+export const getLanguageDirection = (langCode: string): LanguageDirection => {
   return isRTLLanguage(langCode) ? "rtl" : "ltr";
 };
 
@@ -31,7 +34,7 @@ export const getLanguageDirection = (langCode: string): "ltr" | "rtl" => {
  * Update the HTML document's dir attribute
  * @param dir - The direction ('ltr' or 'rtl')
  */
-export const updateDocumentDirection = (dir: "ltr" | "rtl"): void => {
+export const updateDocumentDirection = (dir: LanguageDirection): void => {
   if (typeof document !== "undefined") {
     document.documentElement.setAttribute("dir", dir);
   }

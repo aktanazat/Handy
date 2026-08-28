@@ -125,7 +125,7 @@ mod imp {
     use log::{debug, error, info, warn};
     use std::process::Command;
     use std::sync::atomic::{AtomicBool, Ordering};
-    use std::sync::Mutex;
+    use std::sync::{Mutex, MutexGuard};
     use std::time::{Duration, Instant};
 
     /// How often the monitor thread polls.
@@ -141,6 +141,8 @@ mod imp {
     }
 
     pub fn is_enabled() -> bool {
+        // Carbon's query takes no pointers and retains no state.
+        // SAFETY: it is documented to be callable while the application runs.
         unsafe { IsSecureEventInputEnabled() != 0 }
     }
 
@@ -162,6 +164,21 @@ mod imp {
         degraded: Vec<String>,
         /// Cannot fire at all while secure input is held
         uncovered: Vec<String>,
+    }
+
+    #[derive(Clone, Copy, Debug)]
+    enum SecureInputStateLock {
+        EnabledSince,
+        Culprit,
+        Fallback,
+        FallbackOperation,
+    }
+
+    fn state_lock<'a, T>(
+        mutex: &'a Mutex<T>,
+        kind: SecureInputStateLock,
+    ) -> Result<MutexGuard<'a, T>, SecureInputStateLock> {
+        mutex.lock().map_err(|_| kind)
     }
 
     pub struct SecureInputState {
@@ -206,7 +223,13 @@ mod imp {
             if !self.is_sustained() {
                 return false;
             }
-            let fallback = self.fallback.lock().unwrap();
+            let fallback = match state_lock(&self.fallback, SecureInputStateLock::Fallback) {
+                Ok(fallback) => fallback,
+                Err(lock) => {
+                    error!("SecureInput {lock:?} lock poisoned; showing the warning");
+                    return true;
+                }
+            };
             !fallback.degraded.is_empty() || !fallback.uncovered.is_empty()
         }
     }
@@ -254,17 +277,35 @@ mod imp {
         // Culprit discovery shells out to ioreg and is intentionally performed
         // only by the monitor (or the blocking diagnostic), never by this
         // synchronous Tauri command.
-        let culprit = state.culprit.lock().unwrap().clone();
-        let fallback = state.fallback.lock().unwrap();
+        let culprit = match state_lock(&state.culprit, SecureInputStateLock::Culprit) {
+            Ok(culprit) => culprit.clone(),
+            Err(lock) => {
+                error!("SecureInput {lock:?} lock poisoned while reading status");
+                None
+            }
+        };
+        let (fallback_active, covered_bindings, degraded_bindings, uncovered_bindings) =
+            match state_lock(&state.fallback, SecureInputStateLock::Fallback) {
+                Ok(fallback) => (
+                    !fallback.registered.is_empty(),
+                    fallback.covered.clone(),
+                    fallback.degraded.clone(),
+                    fallback.uncovered.clone(),
+                ),
+                Err(lock) => {
+                    error!("SecureInput {lock:?} lock poisoned while reading status");
+                    (false, Vec::new(), Vec::new(), Vec::new())
+                }
+            };
         SecureInputStatus {
             enabled,
             sustained: state.sustained.load(Ordering::SeqCst),
-            culprit_pid: culprit.as_ref().map(|c| c.pid),
-            culprit_name: culprit.map(|c| c.name),
-            fallback_active: !fallback.registered.is_empty(),
-            covered_bindings: fallback.covered.clone(),
-            degraded_bindings: fallback.degraded.clone(),
-            uncovered_bindings: fallback.uncovered.clone(),
+            culprit_pid: culprit.as_ref().map(|culprit| culprit.pid),
+            culprit_name: culprit.map(|culprit| culprit.name),
+            fallback_active,
+            covered_bindings,
+            degraded_bindings,
+            uncovered_bindings,
             recorder_blocked: state.recorder_blocked.load(Ordering::SeqCst),
         }
     }
@@ -314,8 +355,14 @@ mod imp {
                         }
                         None => info!("SecureInput ENABLED (no visible holder)"),
                     }
-                    *state.enabled_since.lock().unwrap() = Some(Instant::now());
-                    *state.culprit.lock().unwrap() = culprit;
+                    match state_lock(&state.enabled_since, SecureInputStateLock::EnabledSince) {
+                        Ok(mut enabled_since) => *enabled_since = Some(Instant::now()),
+                        Err(lock) => error!("SecureInput {lock:?} lock poisoned while enabling"),
+                    }
+                    match state_lock(&state.culprit, SecureInputStateLock::Culprit) {
+                        Ok(mut state_culprit) => *state_culprit = culprit,
+                        Err(lock) => error!("SecureInput {lock:?} lock poisoned while enabling"),
+                    }
                 }
 
                 if !now_enabled {
@@ -325,8 +372,18 @@ mod imp {
                     let was_blocked = state.recorder_blocked.swap(false, Ordering::SeqCst);
                     if was_enabled {
                         info!("SecureInput DISABLED");
-                        *state.enabled_since.lock().unwrap() = None;
-                        *state.culprit.lock().unwrap() = None;
+                        match state_lock(&state.enabled_since, SecureInputStateLock::EnabledSince) {
+                            Ok(mut enabled_since) => *enabled_since = None,
+                            Err(lock) => {
+                                error!("SecureInput {lock:?} lock poisoned while disabling")
+                            }
+                        }
+                        match state_lock(&state.culprit, SecureInputStateLock::Culprit) {
+                            Ok(mut state_culprit) => *state_culprit = None,
+                            Err(lock) => {
+                                error!("SecureInput {lock:?} lock poisoned while disabling")
+                            }
+                        }
                     }
 
                     if state.sustained.swap(false, Ordering::SeqCst) {
@@ -340,12 +397,18 @@ mod imp {
 
                 // Promote to "sustained" after the threshold.
                 if !state.sustained.load(Ordering::SeqCst) {
-                    let held_long_enough = state
-                        .enabled_since
-                        .lock()
-                        .unwrap()
-                        .map(|t| t.elapsed() >= SUSTAIN_THRESHOLD)
-                        .unwrap_or(false);
+                    let held_long_enough = match state_lock(
+                        &state.enabled_since,
+                        SecureInputStateLock::EnabledSince,
+                    ) {
+                        Ok(enabled_since) => enabled_since
+                            .map(|enabled_at| enabled_at.elapsed() >= SUSTAIN_THRESHOLD)
+                            .unwrap_or(false),
+                        Err(lock) => {
+                            error!("SecureInput {lock:?} lock poisoned while checking duration");
+                            false
+                        }
+                    };
                     if held_long_enough {
                         warn!(
                             "SecureInput held for {}s — keyed shortcuts are blocked; activating fallback",
@@ -475,10 +538,25 @@ mod imp {
     /// global-shortcut plugin call to avoid lock-order inversion with callbacks.
     pub fn reconcile_fallback(app: &AppHandle) {
         let state = app.state::<SecureInputState>();
-        let _operation = state.fallback_operation.lock().unwrap();
+        let operation = match state_lock(
+            &state.fallback_operation,
+            SecureInputStateLock::FallbackOperation,
+        ) {
+            Ok(operation) => operation,
+            Err(lock) => {
+                error!("SecureInput {lock:?} lock poisoned; skipping fallback reconciliation");
+                return;
+            }
+        };
 
         let previous = {
-            let mut fallback = state.fallback.lock().unwrap();
+            let mut fallback = match state_lock(&state.fallback, SecureInputStateLock::Fallback) {
+                Ok(fallback) => fallback,
+                Err(lock) => {
+                    error!("SecureInput {lock:?} lock poisoned; skipping fallback reconciliation");
+                    return;
+                }
+            };
             std::mem::take(&mut *fallback)
         };
 
@@ -511,9 +589,6 @@ mod imp {
                 if id == "cancel" && !state.cancel_requested.load(Ordering::SeqCst) {
                     continue;
                 }
-                if id == "transcribe_with_post_process" && !settings.post_process_enabled {
-                    continue;
-                }
 
                 if register_fallback_binding(app, id, binding, &mut next) {
                     immune += 1;
@@ -536,8 +611,11 @@ mod imp {
             debug!("SecureInput fallback deferred until shortcuts are initialized");
         }
 
-        *state.fallback.lock().unwrap() = next;
-        drop(_operation);
+        match state_lock(&state.fallback, SecureInputStateLock::Fallback) {
+            Ok(mut fallback) => *fallback = next,
+            Err(lock) => error!("SecureInput {lock:?} lock poisoned while replacing fallback"),
+        }
+        drop(operation);
 
         // The tray sync diffs against what is displayed, so this is free when
         // the warning state did not change. Lock is released first: the sync
@@ -584,7 +662,7 @@ mod imp {
 
             let enabled_at_start = is_enabled();
             let start = Instant::now();
-            let deadline = start + Duration::from_secs(duration_secs as u64);
+            let deadline = start + Duration::from_secs(u64::from(duration_secs));
             let (mut key_down, mut key_up, mut flags_changed, mut mouse) = (0u32, 0u32, 0u32, 0u32);
 
             while Instant::now() < deadline {
@@ -605,6 +683,8 @@ mod imp {
                 "keyboard diagnostic: secure_input={} key_down={} key_up={} flags_changed={} mouse={}",
                 enabled, key_down, key_up, flags_changed, mouse
             );
+            let duration_ms = u32::try_from(start.elapsed().as_millis())
+                .map_err(|_| "Keyboard diagnostic duration exceeds u32 milliseconds".to_string())?;
 
             Ok(KeyboardDiagnosticReport {
                 secure_input_enabled: enabled,
@@ -614,7 +694,7 @@ mod imp {
                 key_up,
                 flags_changed,
                 mouse,
-                duration_ms: start.elapsed().as_millis() as u32,
+                duration_ms,
             })
         })
         .await

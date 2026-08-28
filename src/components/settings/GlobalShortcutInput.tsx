@@ -93,7 +93,7 @@ export const GlobalShortcutInput: React.FC<GlobalShortcutInputProps> = ({
           "win",
           "windows",
         ];
-        const sortedKeys = recordedKeys.sort((a, b) => {
+        const sortedKeys = [...recordedKeys].sort((a, b) => {
           const aIsModifier = modifiers.includes(a.toLowerCase());
           const bIsModifier = modifiers.includes(b.toLowerCase());
           if (aIsModifier && !bIsModifier) return -1;
@@ -102,7 +102,7 @@ export const GlobalShortcutInput: React.FC<GlobalShortcutInputProps> = ({
         });
         const newShortcut = sortedKeys.join("+");
 
-        if (editingShortcutId && bindings[editingShortcutId]) {
+        if (editingShortcutId && getSetting("bindings")?.[editingShortcutId]) {
           try {
             await updateBinding(editingShortcutId, newShortcut);
           } catch (error) {
@@ -173,10 +173,11 @@ export const GlobalShortcutInput: React.FC<GlobalShortcutInputProps> = ({
     keyPressed,
     recordedKeys,
     editingShortcutId,
-    bindings,
+    getSetting,
     originalBinding,
     updateBinding,
     osType,
+    t,
   ]);
 
   // Start recording a new shortcut
@@ -284,12 +285,13 @@ export const GlobalShortcutInput: React.FC<GlobalShortcutInputProps> = ({
             {formatCurrentKeys()}
           </div>
         ) : (
-          <div
+          <button
             className="px-2 py-1 text-sm font-semibold bg-mid-gray/10 border border-mid-gray/80 hover:bg-logo-primary/10 rounded-md cursor-pointer hover:border-logo-primary"
             onClick={() => startRecording(shortcutId)}
+            type="button"
           >
             {formatKeyCombination(binding.current_binding, osType)}
-          </div>
+          </button>
         )}
         <ResetButton
           onClick={() => resetBinding(shortcutId)}

@@ -27,8 +27,7 @@
 /// negligible at dictation frequency.
 #[cfg(all(target_os = "linux", target_env = "gnu"))]
 pub fn init_allocator() {
-    // SAFETY: FFI call with no memory arguments; mallopt only updates
-    // malloc's internal parameters.
+    // SAFETY: mallopt has no pointer arguments; this process-wide glibc setting is valid before dictation allocates.
     unsafe {
         libc::mallopt(libc::M_MMAP_THRESHOLD, 128 * 1024);
     }
@@ -39,13 +38,12 @@ pub fn init_allocator() {}
 
 /// Return freed-but-cached malloc arena memory to the OS.
 ///
-/// Called once per finished transcription pipeline (see `FinishGuard`); it
+/// Called once per finished transcription pipeline (see FinishGuard); it
 /// sweeps whatever smaller-than-threshold churn still accumulates in the
 /// arenas. Takes on the order of a millisecond, off the main thread.
 #[cfg(all(target_os = "linux", target_env = "gnu"))]
 pub fn trim_freed_memory() {
-    // SAFETY: FFI call with no memory arguments; malloc_trim releases whole
-    // free pages back to the OS via madvise and is thread-safe.
+    // SAFETY: malloc_trim has no pointer arguments and is thread-safe; it returns only whole free pages to the OS.
     unsafe {
         libc::malloc_trim(0);
     }

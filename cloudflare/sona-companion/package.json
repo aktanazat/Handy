@@ -1,0 +1,32 @@
+{
+  "name": "sona-companion",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.viewer.json && tsc --noEmit -p scripts/tsconfig.json",
+    "test": "vitest run && vitest run --config vitest.viewer.config.ts",
+    "test:coverage": "vitest run --coverage && vitest run --config vitest.viewer.config.ts --coverage",
+    "lint": "eslint src test scripts --max-warnings=0",
+    "lint:anti-slop": "cd ../.. && bunx oxlint --config oxlint.config.ts cloudflare/sona-companion/src cloudflare/sona-companion/test cloudflare/sona-companion/scripts cloudflare/sona-companion/public",
+    "fixtures:crypto": "bun scripts/generate-crypto-fixture.ts",
+    "migrations:check": "bun scripts/check-migrations.ts",
+    "migrations:local": "bun run migrations:check && wrangler d1 migrations apply sona-companion --local --config wrangler.jsonc",
+    "dry-run": "bun run migrations:check && wrangler deploy --dry-run --config wrangler.jsonc",
+    "smoke:scheduled": "vitest run test/scheduled.smoke.worker.spec.ts"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.22.0",
+    "@cloudflare/workers-types": "5.20260825.1",
+    "@eslint/js": "9.35.0",
+    "@types/node": "24.3.0",
+    "@vitest/coverage-istanbul": "4.1.11",
+    "@vitest/coverage-v8": "4.1.11",
+    "eslint": "9.35.0",
+    "jsdom": "26.1.0",
+    "typescript": "5.8.3",
+    "typescript-eslint": "8.42.0",
+    "vitest": "4.1.11",
+    "wrangler": "4.126.0"
+  }
+}

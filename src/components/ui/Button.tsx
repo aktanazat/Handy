@@ -12,6 +12,32 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   size?: "sm" | "md" | "lg";
 }
 
+const BUTTON_BASE_CLASSES =
+  "liquid-control inline-flex items-center justify-center border font-medium transition-[background-color,border-color,color] disabled:cursor-not-allowed disabled:opacity-65";
+
+const BUTTON_VARIANT_CLASSES = {
+  primary:
+    "border-inverse-background bg-inverse-background text-inverse-text hover:bg-text-primary hover:border-text-primary",
+  "primary-soft":
+    "border-border bg-subtle/80 text-text-primary hover:bg-hover hover:border-border-strong",
+  secondary:
+    "control-surface border-border text-text-primary hover:bg-hover hover:border-border-strong",
+  warning:
+    "control-surface border-border text-text-primary hover:bg-hover hover:border-border-strong",
+  danger:
+    "border-danger bg-danger text-inverse-text hover:bg-danger/85 hover:border-danger/85",
+  "danger-ghost":
+    "border-transparent text-danger hover:bg-danger/10 hover:border-danger/30",
+  ghost:
+    "border-transparent text-text-primary hover:bg-hover hover:border-border",
+} as const;
+
+const BUTTON_SIZE_CLASSES = {
+  sm: "min-h-8 px-2.5 text-sm",
+  md: "min-h-9 px-3 text-sm",
+  lg: "min-h-10 px-4 text-sm",
+} as const;
+
 export const Button: React.FC<ButtonProps> = ({
   children,
   className = "",
@@ -19,38 +45,9 @@ export const Button: React.FC<ButtonProps> = ({
   size = "md",
   ...props
 }) => {
-  const baseClasses =
-    "font-medium rounded-lg border focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
-
-  const variantClasses = {
-    primary:
-      "text-white bg-background-ui border-background-ui hover:bg-background-ui/80 hover:border-background-ui/80 focus:ring-1 focus:ring-background-ui",
-    "primary-soft":
-      "text-text bg-logo-primary/20 border-transparent hover:bg-logo-primary/30 focus:ring-1 focus:ring-logo-primary",
-    secondary:
-      "bg-mid-gray/10 border-mid-gray/20 hover:bg-background-ui/30 hover:border-logo-primary focus:outline-none",
-    // Secondary's neutral resting look, but hover/focus use the semantic
-    // --color-warning token (theme.css) instead of the pink accent — for
-    // buttons sitting on warning surfaces like SecureInputWarning
-    warning:
-      "text-text bg-mid-gray/10 border-mid-gray/20 hover:bg-warning/15 hover:border-warning focus:ring-1 focus:ring-warning",
-    danger:
-      "text-white bg-red-600 border-mid-gray/20 hover:bg-red-700 hover:border-red-700 focus:ring-1 focus:ring-red-500",
-    "danger-ghost":
-      "text-red-400 border-transparent hover:text-red-300 hover:bg-red-500/10 focus:bg-red-500/20",
-    ghost:
-      "text-current border-transparent hover:bg-mid-gray/10 hover:border-logo-primary focus:bg-mid-gray/20",
-  };
-
-  const sizeClasses = {
-    sm: "px-2 py-1 text-xs",
-    md: "px-4 py-[5px] text-sm",
-    lg: "px-4 py-2 text-base",
-  };
-
   return (
     <button
-      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      className={`${BUTTON_BASE_CLASSES} ${BUTTON_VARIANT_CLASSES[variant]} ${BUTTON_SIZE_CLASSES[size]} ${className}`}
       {...props}
     >
       {children}

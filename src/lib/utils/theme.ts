@@ -3,8 +3,8 @@ import { commands, type Theme } from "@/bindings";
 /**
  * Appearance theme handling.
  *
- * Handy already ships a full light palette and a full dark palette (see
- * `App.css`). This module lets the user pick which one is used instead of
+ * Sona ships a full light palette and a full dark palette (see `App.css`).
+ * This module lets the user pick which one is used instead of
  * always following the OS:
  *  - `system` removes the override so the `prefers-color-scheme` media query
  *    governs (the historical behaviour).
@@ -16,7 +16,7 @@ import { commands, type Theme } from "@/bindings";
  * avoiding a flash of the wrong palette.
  */
 
-export const THEME_STORAGE_KEY = "handy.theme";
+export const THEME_STORAGE_KEY = "sona.theme";
 
 export const THEME_OPTIONS: Theme[] = ["system", "light", "dark"];
 

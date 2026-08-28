@@ -1,13 +1,13 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { listen } from "@tauri-apps/api/event";
-import type {
-  AppSettings as Settings,
-  AudioDevice,
-  TranscribeAcceleratorSetting,
-  OrtAcceleratorSetting,
+import {
+  commands,
+  type AppSettings as Settings,
+  type AudioDevice,
+  type TranscribeAcceleratorSetting,
+  type OrtAcceleratorSetting,
 } from "@/bindings";
-import { commands } from "@/bindings";
 
 interface SettingsStore {
   settings: Settings | null;
@@ -37,19 +37,16 @@ interface SettingsStore {
   playTestSound: (soundType: "start" | "stop") => Promise<void>;
   checkCustomSounds: () => Promise<void>;
   setPostProcessProvider: (providerId: string) => Promise<void>;
-  updatePostProcessSetting: (
-    settingType: "base_url" | "api_key" | "model",
-    providerId: string,
-    value: string,
-  ) => Promise<void>;
   updatePostProcessBaseUrl: (
     providerId: string,
     baseUrl: string,
   ) => Promise<void>;
-  updatePostProcessApiKey: (
+  replacePostProcessSecret: (
     providerId: string,
-    apiKey: string,
-  ) => Promise<void>;
+    secret: string,
+  ) => Promise<boolean>;
+  removePostProcessSecret: (providerId: string) => Promise<boolean>;
+  refreshPostProcessSecretState: (providerId: string) => Promise<void>;
   updatePostProcessModel: (providerId: string, model: string) => Promise<void>;
   fetchPostProcessModels: (providerId: string) => Promise<string[]>;
   setPostProcessModelOptions: (providerId: string, models: string[]) => void;
@@ -73,9 +70,9 @@ const DEFAULT_AUDIO_DEVICE: AudioDevice = {
   is_default: true,
 };
 
-const settingUpdaters: {
-  [K in keyof Settings]?: (value: Settings[K]) => Promise<unknown>;
-} = {
+type SettingUpdater = (value: unknown) => Promise<unknown>;
+
+const settingUpdaters: Partial<Record<keyof Settings, SettingUpdater>> = {
   always_on_microphone: (value) =>
     commands.updateMicrophoneMode(value as boolean),
   audio_feedback: (value) =>
@@ -86,8 +83,6 @@ const settingUpdaters: {
   start_hidden: (value) => commands.changeStartHiddenSetting(value as boolean),
   autostart_enabled: (value) =>
     commands.changeAutostartSetting(value as boolean),
-  update_checks_enabled: (value) =>
-    commands.changeUpdateChecksSetting(value as boolean),
   show_whats_new_on_update: (value) =>
     commands.changeShowWhatsNewOnUpdateSetting(value as boolean),
   whats_new_last_seen_version: (value) =>
@@ -123,10 +118,15 @@ const settingUpdaters: {
     commands.changeTranslateToEnglishSetting(value as boolean),
   selected_language: (value) =>
     commands.changeSelectedLanguageSetting(value as string),
+  english_spelling: (value) => {
+    if (value !== "as_spoken" && value !== "british") {
+      return Promise.reject(new Error("Invalid English spelling setting"));
+    }
+    return commands.changeEnglishSpellingSetting(value);
+  },
   overlay_position: (value) =>
     commands.changeOverlayPositionSetting(value as string),
   debug_mode: (value) => commands.changeDebugModeSetting(value as boolean),
-  custom_words: (value) => commands.updateCustomWords(value as string[]),
   word_correction_threshold: (value) =>
     commands.changeWordCorrectionThresholdSetting(value as number),
   paste_delay_ms: (value) =>
@@ -343,20 +343,21 @@ export const useSettingsStore = create<SettingsStore>()(
 
       try {
         // Optimistic update
-        set((state) => ({
-          settings: state.settings
-            ? {
-                ...state.settings,
-                bindings: {
-                  ...state.settings.bindings,
-                  [id]: {
-                    ...state.settings.bindings?.[id]!,
-                    current_binding: binding,
-                  },
-                },
-              }
-            : null,
-        }));
+        set((state) => {
+          const currentSettings = state.settings;
+          const bindings = currentSettings?.bindings;
+          const currentBinding = bindings?.[id];
+          if (!currentSettings || !bindings || !currentBinding) return {};
+          return {
+            settings: {
+              ...currentSettings,
+              bindings: {
+                ...bindings,
+                [id]: { ...currentBinding, current_binding: binding },
+              },
+            } as Settings,
+          };
+        });
 
         const result = await commands.changeBinding(id, binding);
 
@@ -372,22 +373,23 @@ export const useSettingsStore = create<SettingsStore>()(
       } catch (error) {
         console.error(`Failed to update binding ${id}:`, error);
 
-        // Rollback on error
-        if (originalBinding && get().settings) {
-          set((state) => ({
-            settings: state.settings
-              ? {
-                  ...state.settings,
-                  bindings: {
-                    ...state.settings.bindings,
-                    [id]: {
-                      ...state.settings.bindings?.[id]!,
-                      current_binding: originalBinding,
-                    },
-                  },
-                }
-              : null,
-          }));
+        // Roll back only the binding record that the optimistic update changed.
+        if (originalBinding) {
+          set((state) => {
+            const currentSettings = state.settings;
+            const bindings = currentSettings?.bindings;
+            const currentBinding = bindings?.[id];
+            if (!currentSettings || !bindings || !currentBinding) return {};
+            return {
+              settings: {
+                ...currentSettings,
+                bindings: {
+                  ...bindings,
+                  [id]: { ...currentBinding, current_binding: originalBinding },
+                },
+              } as Settings,
+            };
+          });
         }
 
         // Re-throw to let the caller know it failed
@@ -455,44 +457,12 @@ export const useSettingsStore = create<SettingsStore>()(
       }
     },
 
-    // Generic updater for post-processing provider settings
-    updatePostProcessSetting: async (
-      settingType: "base_url" | "api_key" | "model",
-      providerId: string,
-      value: string,
-    ) => {
-      const { setUpdating, refreshSettings } = get();
-      const updateKey = `post_process_${settingType}:${providerId}`;
-
-      setUpdating(updateKey, true);
-
-      try {
-        if (settingType === "base_url") {
-          await commands.changePostProcessBaseUrlSetting(providerId, value);
-        } else if (settingType === "api_key") {
-          await commands.changePostProcessApiKeySetting(providerId, value);
-        } else if (settingType === "model") {
-          await commands.changePostProcessModelSetting(providerId, value);
-        }
-        await refreshSettings();
-      } catch (error) {
-        console.error(
-          `Failed to update post-process ${settingType.replace("_", " ")}:`,
-          error,
-        );
-      } finally {
-        setUpdating(updateKey, false);
-      }
-    },
-
     updatePostProcessBaseUrl: async (providerId, baseUrl) => {
       const { setUpdating, refreshSettings } = get();
       const updateKey = `post_process_base_url:${providerId}`;
 
       setUpdating(updateKey, true);
-
       try {
-        // Persist the new base URL first.
         const urlResult = await commands.changePostProcessBaseUrlSetting(
           providerId,
           baseUrl,
@@ -502,9 +472,6 @@ export const useSettingsStore = create<SettingsStore>()(
           return;
         }
 
-        // Reset the stored model since the previous value is almost certainly
-        // invalid for the new endpoint (e.g. switching Custom from Groq to
-        // Cerebras). Only proceed if the reset succeeds.
         const modelResult = await commands.changePostProcessModelSetting(
           providerId,
           "",
@@ -514,15 +481,12 @@ export const useSettingsStore = create<SettingsStore>()(
           return;
         }
 
-        // Clear cached model options only after both backend writes succeed.
         set((state) => ({
           postProcessModelOptions: {
             ...state.postProcessModelOptions,
             [providerId]: [],
           },
         }));
-
-        // Single refresh after both backend writes.
         await refreshSettings();
       } catch (error) {
         console.error("Failed to update post-process base URL:", error);
@@ -531,19 +495,132 @@ export const useSettingsStore = create<SettingsStore>()(
       }
     },
 
-    updatePostProcessApiKey: async (providerId, apiKey) => {
-      // Clear cached models when API key changes - user should click refresh after
-      set((state) => ({
-        postProcessModelOptions: {
-          ...state.postProcessModelOptions,
-          [providerId]: [],
-        },
-      }));
-      return get().updatePostProcessSetting("api_key", providerId, apiKey);
+    replacePostProcessSecret: async (providerId, secret) => {
+      const updateKey = `post_process_secret:${providerId}`;
+      const { setUpdating } = get();
+      setUpdating(updateKey, true);
+
+      try {
+        const result = await commands.setProviderSecret(
+          "llm",
+          providerId,
+          secret,
+        );
+        if (result.status === "error") {
+          console.error("Failed to store provider credential:", result.error);
+          return false;
+        }
+        set((state) => ({
+          settings: state.settings
+            ? {
+                ...state.settings,
+                post_process_secret_states: {
+                  ...state.settings.post_process_secret_states,
+                  [providerId]: result.data,
+                },
+              }
+            : null,
+          postProcessModelOptions: {
+            ...state.postProcessModelOptions,
+            [providerId]: [],
+          },
+        }));
+        return true;
+      } catch (error) {
+        console.error("Failed to store provider credential:", error);
+        return false;
+      } finally {
+        setUpdating(updateKey, false);
+      }
+    },
+
+    removePostProcessSecret: async (providerId) => {
+      const updateKey = `post_process_secret:${providerId}`;
+      const { setUpdating } = get();
+      setUpdating(updateKey, true);
+
+      try {
+        const result = await commands.deleteProviderSecret("llm", providerId);
+        if (result.status === "error") {
+          console.error("Failed to remove provider credential:", result.error);
+          return false;
+        }
+        set((state) => ({
+          settings: state.settings
+            ? {
+                ...state.settings,
+                post_process_secret_states: {
+                  ...state.settings.post_process_secret_states,
+                  [providerId]: result.data,
+                },
+              }
+            : null,
+          postProcessModelOptions: {
+            ...state.postProcessModelOptions,
+            [providerId]: [],
+          },
+        }));
+        return true;
+      } catch (error) {
+        console.error("Failed to remove provider credential:", error);
+        return false;
+      } finally {
+        setUpdating(updateKey, false);
+      }
+    },
+
+    refreshPostProcessSecretState: async (providerId) => {
+      const updateKey = `post_process_secret:${providerId}`;
+      const { setUpdating } = get();
+      setUpdating(updateKey, true);
+
+      try {
+        const result = await commands.getProviderSecretState("llm", providerId);
+        if (result.status === "error") {
+          console.error(
+            "Failed to read provider credential state:",
+            result.error,
+          );
+          return;
+        }
+        set((state) => ({
+          settings: state.settings
+            ? {
+                ...state.settings,
+                post_process_secret_states: {
+                  ...state.settings.post_process_secret_states,
+                  [providerId]: result.data,
+                },
+              }
+            : null,
+        }));
+      } catch (error) {
+        console.error("Failed to read provider credential state:", error);
+      } finally {
+        setUpdating(updateKey, false);
+      }
     },
 
     updatePostProcessModel: async (providerId, model) => {
-      return get().updatePostProcessSetting("model", providerId, model);
+      const updateKey = `post_process_model:${providerId}`;
+      const { setUpdating, refreshSettings } = get();
+      setUpdating(updateKey, true);
+
+      try {
+        const result = await commands.changePostProcessModelSetting(
+          providerId,
+          model,
+        );
+        if (result.status === "error") {
+          console.error("Failed to update post-process model:", result.error);
+          return;
+        }
+        await refreshSettings();
+      } catch (error) {
+        console.error("Failed to update post-process model:", error);
+      } finally {
+        setUpdating(updateKey, false);
+      }
     },
 
     fetchPostProcessModels: async (providerId) => {

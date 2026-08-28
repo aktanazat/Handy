@@ -1,29 +1,14 @@
 name: "code quality"
+# No `paths` filter: every check in this job reads the whole tree. `prettier
+# --check .` covers markdown and JSON, and the anti-slop gate lints `src/**`,
+# `scripts/**`, `.nix/scripts/**`, `tests/**`, and the root config files. A
+# path list would have to name all of them, and would silently stop gating the
+# day someone adds a directory the linter picks up.
 on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths:
-      - "src/**"
-      - "package.json"
-      - "bun.lock"
-      - ".eslintrc*"
-      - "eslint.config.*"
-      - ".prettierrc*"
-      - "tsconfig*"
-      - "tailwind.config.*"
-      - ".github/workflows/**"
   pull_request:
-    paths:
-      - "src/**"
-      - "package.json"
-      - "bun.lock"
-      - ".eslintrc*"
-      - "eslint.config.*"
-      - ".prettierrc*"
-      - "tsconfig*"
-      - "tailwind.config.*"
-      - ".github/workflows/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -45,8 +30,17 @@ jobs:
       - name: Check translation consistency
         run: bun run check:translations
 
+      - name: Check Sona identity
+        run: bun run check:identity
+
       - name: Run ESLint
         run: bun run lint
 
       - name: Run prettier
         run: bun run format:check
+
+      - name: Run script tests
+        run: bun run test:scripts
+
+      - name: Run anti-slop gate
+        run: bun run lint:anti-slop

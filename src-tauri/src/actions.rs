@@ -2,12 +2,19 @@
 use crate::apple_intelligence;
 use crate::audio_feedback::{play_feedback_sound, play_feedback_sound_blocking, SoundType};
 use crate::audio_toolkit::{is_microphone_access_denied, is_no_input_device_error, VadPolicy};
-use crate::managers::audio::AudioRecordingManager;
-use crate::managers::history::HistoryManager;
+use crate::delivery::{self, DeliveryOutcome, DeliveryReceipt};
+use crate::managers::audio::{AudioRecordingManager, RecordingStop};
+use crate::managers::history::{CaptureStatus, HistoryManager, NewRunReceipt};
 use crate::managers::model::ModelManager;
-use crate::managers::transcription::StreamWorkKind;
-use crate::managers::transcription::TranscriptionManager;
-use crate::settings::{get_settings, AppSettings, OverlayStyle, APPLE_INTELLIGENCE_PROVIDER_ID};
+#[cfg(feature = "cloud-realtime")]
+use crate::managers::transcription::CloudStreamFinalization;
+#[cfg(feature = "cloud-realtime")]
+use crate::managers::transcription::StreamEngine;
+use crate::managers::transcription::{StreamWorkKind, TranscriptionManager};
+use crate::modes::{AsrPlan, CloudReceiptStatus, RequestedEngine, RunPlan};
+use crate::prompt_renderer::RenderedPrompt;
+use crate::secrets::{SecretAccount, SecretManager, SecretResolveError};
+use crate::settings::{get_settings, OverlayStyle, APPLE_INTELLIGENCE_PROVIDER_ID};
 use crate::shortcut;
 use crate::tray::{set_tray_state, TrayIconState};
 use crate::utils::{
@@ -16,20 +23,109 @@ use crate::utils::{
 use crate::TranscriptionCoordinator;
 use ferrous_opencc::{config::BuiltinConfig, OpenCC};
 use log::{debug, error, warn};
-use once_cell::sync::Lazy;
-use std::collections::HashMap;
 use std::future::Future;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tauri::Manager;
 use tauri::{AppHandle, Emitter};
 
 const CANCELLATION_POLL_INTERVAL: Duration = Duration::from_millis(25);
 
+const TRANSCRIPTION_FAILURE_LOG_MESSAGE: &str = "Transcription failed; no text was delivered";
+const TRANSCRIPTION_FAILURE_EVENT_MESSAGE: &str = "Transcription failed";
+
+/// The one user-visible run-failure lane, emitted as `recording-error` by this
+/// module and by the capture owner. `error_type` names the failure; no field
+/// carries transcript, audio, sample counts, or provider text.
 #[derive(Clone, serde::Serialize)]
-struct RecordingErrorEvent {
+pub(crate) struct RecordingErrorEvent {
     error_type: String,
+    /// Sub-code for `cloud_unavailable`, so the frontend can pick exact copy
+    /// without parsing prose.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cloud_kind: Option<&'static str>,
+    /// Retained for the frontend's event shape; diagnostic events always leave
+    /// it empty so arbitrary OS or provider text cannot cross the event boundary.
+    #[serde(skip_serializing_if = "Option::is_none")]
     detail: Option<String>,
+}
+
+impl RecordingErrorEvent {
+    pub(crate) fn typed(error_type: &str) -> Self {
+        Self {
+            error_type: error_type.to_string(),
+            cloud_kind: None,
+            detail: None,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum NoSpeechPersistence {
+    Cancelled,
+    SaveFailed,
+    Saved,
+}
+
+impl NoSpeechPersistence {
+    const fn recording_error_type(self) -> Option<&'static str> {
+        match self {
+            Self::Cancelled => None,
+            Self::SaveFailed => Some("no_speech_save_failed"),
+            Self::Saved => Some("no_speech_detected"),
+        }
+    }
+}
+
+/// Why a cloud-configured run could not start.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum CloudRunError {
+    #[cfg(feature = "cloud-realtime")]
+    NativeKey,
+    #[cfg(feature = "cloud-realtime")]
+    FallbackModelUnavailable,
+    /// Reachable only in a build compiled without `cloud-realtime`, where a
+    /// cloud-configured mode has no transport at all.
+    #[cfg(not(feature = "cloud-realtime"))]
+    FeatureUnavailable,
+}
+
+impl CloudRunError {
+    /// `(wire sub-code, log line)`. The sub-code is a contract the frontend
+    /// maps to translated copy; the message is for the log and never reaches
+    /// the UI.
+    const fn describe(self) -> (&'static str, &'static str) {
+        match self {
+            #[cfg(feature = "cloud-realtime")]
+            Self::NativeKey => (
+                "native_key",
+                "Cloud transcription needs a configured native provider key.",
+            ),
+            #[cfg(feature = "cloud-realtime")]
+            Self::FallbackModelUnavailable => (
+                "fallback_model_unavailable",
+                "Cloud transcription needs its frozen local fallback model installed.",
+            ),
+            #[cfg(not(feature = "cloud-realtime"))]
+            Self::FeatureUnavailable => (
+                "feature_unavailable",
+                "Cloud transcription is unavailable in this build.",
+            ),
+        }
+    }
+}
+
+fn emit_cloud_run_error(app: &AppHandle, error: CloudRunError) {
+    let (kind, message) = error.describe();
+    warn!("{message}");
+    let _ = app.emit(
+        "recording-error",
+        RecordingErrorEvent {
+            error_type: "cloud_unavailable".to_string(),
+            cloud_kind: Some(kind),
+            detail: None,
+        },
+    );
 }
 
 /// Drop guard that notifies the [`TranscriptionCoordinator`] when the
@@ -47,15 +143,112 @@ impl Drop for FinishGuard {
     }
 }
 
-// Shortcut Action Trait
-pub trait ShortcutAction: Send + Sync {
-    fn start(&self, app: &AppHandle, binding_id: &str, shortcut_str: &str);
-    fn stop(&self, app: &AppHandle, binding_id: &str, shortcut_str: &str);
+// Transcribe Action. One instance carries exactly one frozen run plan, so a
+// settings edit between start and stop cannot change the run in flight.
+struct TranscribeAction {
+    run: RunPlan,
 }
 
-// Transcribe Action
-struct TranscribeAction {
-    post_process: bool,
+#[cfg(feature = "cloud-realtime")]
+fn ensure_cloud_fallback_is_installed(
+    run: &RunPlan,
+    is_installed: impl FnOnce(&str) -> bool,
+) -> Result<(), CloudRunError> {
+    let Some(fallback) = run.local_asr() else {
+        return Ok(());
+    };
+
+    if is_installed(&fallback.model_id) {
+        Ok(())
+    } else {
+        Err(CloudRunError::FallbackModelUnavailable)
+    }
+}
+
+/// The pure preflight decision: everything a cloud run must satisfy *before*
+/// capture. Both lookups read state that is already in memory — resolving the
+/// credential itself is explicitly not part of this, see [`cloud_key_source`].
+#[cfg(feature = "cloud-realtime")]
+fn check_cloud_preconditions(
+    run: &RunPlan,
+    is_installed: impl FnOnce(&str) -> bool,
+    key_configured: impl FnOnce(crate::modes::CloudSttProvider) -> bool,
+) -> Result<(), CloudRunError> {
+    let Some(cloud) = run.cloud() else {
+        return Ok(());
+    };
+
+    ensure_cloud_fallback_is_installed(run, is_installed)?;
+
+    // The cached provider state answers the common misconfiguration (no key
+    // ever saved) immediately. A key deleted out of band still passes here and
+    // degrades on the worker into fallback or a held run, which is visible in
+    // history — never a silent success.
+    if key_configured(cloud.provider()) {
+        Ok(())
+    } else {
+        Err(CloudRunError::NativeKey)
+    }
+}
+
+/// Code on the coordinator thread must not perform keychain, network, or other
+/// unbounded-blocking I/O: it also has to service the next keypress, including
+/// cancel. Reading the in-memory settings cache is the ceiling.
+#[cfg(feature = "cloud-realtime")]
+fn cloud_preflight(app: &AppHandle, run: &RunPlan) -> Result<(), CloudRunError> {
+    check_cloud_preconditions(
+        run,
+        |model_id| {
+            app.state::<Arc<ModelManager>>()
+                .get_model_info(model_id)
+                .is_some_and(|model| model.is_downloaded)
+        },
+        |provider| {
+            get_settings(app)
+                .cloud_stt_provider(provider)
+                .is_some_and(|settings| settings.secret_state.configured)
+        },
+    )
+}
+
+/// Resolves this run's provider key on the cloud worker. Returned as a closure
+/// so the keychain read — which can block on an OS prompt or a locked secret
+/// service — never runs on the coordinator's serialization thread.
+#[cfg(feature = "cloud-realtime")]
+fn cloud_key_source(
+    app: &AppHandle,
+    provider: crate::modes::CloudSttProvider,
+) -> crate::managers::transcription::CloudKeySource {
+    let secrets = Arc::clone(&app.state::<Arc<SecretManager>>());
+    Box::new(move || {
+        tauri::async_runtime::block_on(crate::secrets::resolve_stt_secret(
+            secrets.as_ref(),
+            provider,
+        ))
+        .map_err(|error| {
+            warn!("Cloud provider key could not be resolved: {error:?}");
+            error.into()
+        })
+    })
+}
+
+#[cfg(not(feature = "cloud-realtime"))]
+fn cloud_preflight(_app: &AppHandle, run: &RunPlan) -> Result<(), CloudRunError> {
+    if run.cloud().is_some() {
+        Err(CloudRunError::FeatureUnavailable)
+    } else {
+        Ok(())
+    }
+}
+
+/// Begin a recording for an already-frozen run plan.
+pub fn start_transcription(app: &AppHandle, binding_id: &str, shortcut_str: &str, run: &RunPlan) {
+    TranscribeAction { run: run.clone() }.start(app, binding_id, shortcut_str);
+}
+
+/// Finish the recording started with this exact run plan.
+pub fn stop_transcription(app: &AppHandle, binding_id: &str, shortcut_str: &str, run: RunPlan) {
+    TranscribeAction { run }.stop(app, binding_id, shortcut_str);
 }
 
 /// Field name for structured output JSON schema
@@ -79,12 +272,6 @@ fn strip_think_block(s: &str) -> &str {
     s
 }
 
-/// Build a system prompt from the user's prompt template.
-/// Removes `${output}` placeholder since the transcription is sent as the user message.
-fn build_system_prompt(prompt_template: &str) -> String {
-    prompt_template.replace("${output}", "").trim().to_string()
-}
-
 /// Returns `true` when a transcription has no meaningful content to
 /// post-process (empty or whitespace-only). Used to skip the post-processing
 /// LLM call when nothing was actually transcribed, which would otherwise make
@@ -92,6 +279,119 @@ fn build_system_prompt(prompt_template: &str) -> String {
 /// transcription".
 fn is_blank_transcription(transcription: &str) -> bool {
     transcription.trim().is_empty()
+}
+
+fn share_completed_pcm(samples: Vec<f32>) -> Arc<Vec<f32>> {
+    Arc::new(samples)
+}
+
+fn select_final_transcription<F>(
+    stream_result: anyhow::Result<Option<String>>,
+    samples: &[f32],
+    batch: F,
+) -> anyhow::Result<String>
+where
+    F: FnOnce(&[f32]) -> anyhow::Result<String>,
+{
+    match stream_result {
+        Ok(Some(text)) if !text.trim().is_empty() => Ok(text),
+        Ok(_) => batch(samples),
+        Err(err) => Err(err),
+    }
+}
+
+#[derive(Debug)]
+enum FrozenTranscript {
+    Final {
+        text: String,
+        engine_used: RequestedEngine,
+        cloud_status: CloudReceiptStatus,
+    },
+    HeldCloudUnavailable,
+}
+
+#[cfg(feature = "cloud-realtime")]
+fn resolve_cloud_finalization<F>(
+    run: &RunPlan,
+    finalization: CloudStreamFinalization,
+    samples: &[f32],
+    decode_fallback: F,
+) -> anyhow::Result<FrozenTranscript>
+where
+    F: FnOnce(&AsrPlan, &[f32]) -> anyhow::Result<String>,
+{
+    match finalization {
+        CloudStreamFinalization::Final(text) => Ok(FrozenTranscript::Final {
+            text,
+            engine_used: run.requested_engine(),
+            cloud_status: CloudReceiptStatus::Final,
+        }),
+        CloudStreamFinalization::Failed { failure, .. } => {
+            let Some(fallback) = run.local_asr() else {
+                debug!("Cloud final unavailable without local fallback: {failure:?}");
+                return Ok(FrozenTranscript::HeldCloudUnavailable);
+            };
+
+            Ok(FrozenTranscript::Final {
+                text: decode_fallback(fallback, samples)?,
+                engine_used: RequestedEngine::Local,
+                cloud_status: CloudReceiptStatus::Fallback,
+            })
+        }
+    }
+}
+
+#[cfg(feature = "cloud-realtime")]
+fn transcribe_frozen_run(
+    manager: &TranscriptionManager,
+    run: &RunPlan,
+    samples: &[f32],
+) -> anyhow::Result<FrozenTranscript> {
+    if run.cloud().is_some() {
+        let finalization = manager.finalize_cloud_stream();
+        if matches!(&finalization, CloudStreamFinalization::Failed { .. })
+            && run.local_asr().is_some()
+        {
+            // Provider text was preview-only. Clear it before the single
+            // full-PCM local decode selects the delivery transcript.
+            manager.clear_stream_preview();
+            manager.emit_stream_engine(StreamEngine::LocalFallback);
+        }
+        resolve_cloud_finalization(run, finalization, samples, |fallback, audio| {
+            manager.transcribe_shared(fallback, audio)
+        })
+    } else {
+        let text =
+            select_final_transcription(manager.finalize_stream(run.asr()), samples, |audio| {
+                manager.transcribe_shared(run.asr(), audio)
+            })?;
+        Ok(FrozenTranscript::Final {
+            text,
+            engine_used: RequestedEngine::Local,
+            cloud_status: CloudReceiptStatus::NotRequested,
+        })
+    }
+}
+
+#[cfg(not(feature = "cloud-realtime"))]
+fn transcribe_frozen_run(
+    manager: &TranscriptionManager,
+    run: &RunPlan,
+    samples: &[f32],
+) -> anyhow::Result<FrozenTranscript> {
+    if run.cloud().is_some() {
+        Ok(FrozenTranscript::HeldCloudUnavailable)
+    } else {
+        let text =
+            select_final_transcription(manager.finalize_stream(run.asr()), samples, |audio| {
+                manager.transcribe_shared(run.asr(), audio)
+            })?;
+        Ok(FrozenTranscript::Final {
+            text,
+            engine_used: RequestedEngine::Local,
+            cloud_status: CloudReceiptStatus::NotRequested,
+        })
+    }
 }
 
 async fn complete_unless_cancelled<F, C>(operation: F, is_cancelled: C) -> Option<F::Output>
@@ -118,129 +418,107 @@ fn should_use_streaming_overlay(style: OverlayStyle, is_streaming: bool) -> bool
     style == OverlayStyle::Live && is_streaming
 }
 
-async fn post_process_transcription(settings: &AppSettings, transcription: &str) -> Option<String> {
+fn provider_allows_unauthenticated_request(
+    provider: &crate::settings::PostProcessProvider,
+    endpoint: &crate::settings::PostProcessEndpoint,
+) -> bool {
+    provider.id == "custom" && !endpoint.is_remote()
+}
+
+async fn post_process_transcription(
+    app: &AppHandle,
+    run: &RunPlan,
+    rendered: &RenderedPrompt,
+    transcription: &str,
+) -> Option<String> {
     if is_blank_transcription(transcription) {
         debug!("Post-processing skipped because the transcription is empty");
         return None;
     }
 
-    let provider = match settings.active_post_process_provider().cloned() {
-        Some(provider) => provider,
-        None => {
-            debug!("Post-processing enabled but no provider is selected");
-            return None;
-        }
+    // The run plan freezes the provider and model at recording start. The
+    // credential is resolved immediately before provider I/O instead.
+    let Some(llm) = run.prompt().llm.as_ref() else {
+        debug!("Post-processing skipped because this run resolved no provider");
+        return None;
     };
-
-    let model = settings
-        .post_process_models
-        .get(&provider.id)
-        .cloned()
-        .unwrap_or_default();
+    let provider = llm.provider.clone();
+    let endpoint = llm.endpoint.clone();
+    if !provider.endpoint().is_ok_and(|current| current == endpoint) {
+        warn!("Post-processing skipped because its frozen destination changed");
+        return None;
+    }
+    let model = llm.model_id.clone();
 
     if model.trim().is_empty() {
-        debug!(
-            "Post-processing skipped because provider '{}' has no model configured",
-            provider.id
-        );
+        debug!("Post-processing skipped because no model is configured");
         return None;
     }
 
-    let selected_prompt_id = match &settings.post_process_selected_prompt_id {
-        Some(id) => id.clone(),
-        None => {
-            debug!("Post-processing skipped because no prompt is selected");
-            return None;
-        }
-    };
-
-    let prompt = match settings
-        .post_process_prompts
-        .iter()
-        .find(|prompt| prompt.id == selected_prompt_id)
-    {
-        Some(prompt) => prompt.prompt.clone(),
-        None => {
-            debug!(
-                "Post-processing skipped because prompt '{}' was not found",
-                selected_prompt_id
-            );
-            return None;
-        }
-    };
-
-    if prompt.trim().is_empty() {
-        debug!("Post-processing skipped because the selected prompt is empty");
-        return None;
-    }
-
-    debug!(
-        "Starting LLM post-processing with provider '{}' (model: {})",
-        provider.id, model
-    );
-
-    let api_key = settings
-        .post_process_api_keys
-        .get(&provider.id)
-        .cloned()
-        .unwrap_or_default();
+    debug!("Starting LLM post-processing");
 
     // Ask these providers to skip reasoning/thinking — post-processing rarely
     // benefits from it and it adds seconds of latency. llm_client picks the
     // field the endpoint understands and retries without it if rejected.
     let disable_reasoning = matches!(provider.id.as_str(), "custom" | "openrouter");
 
-    if provider.supports_structured_output {
-        debug!("Using structured outputs for provider '{}'", provider.id);
+    if provider.supports_structured_output && provider.id == APPLE_INTELLIGENCE_PROVIDER_ID {
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        {
+            if !apple_intelligence::check_apple_intelligence_availability() {
+                debug!("Apple Intelligence selected but is not currently available");
+                return None;
+            }
 
-        let system_prompt = build_system_prompt(&prompt);
-        let user_content = transcription.to_string();
+            let token_limit = model.trim().parse::<i32>().unwrap_or(0);
+            return match apple_intelligence::process_text_with_system_prompt(
+                &rendered.system_message,
+                &rendered.user_message,
+                token_limit,
+            ) {
+                Ok(result) if result.trim().is_empty() => None,
+                Ok(result) => Some(strip_invisible_chars(&result)),
+                Err(_) => None,
+            };
+        }
 
-        // Handle Apple Intelligence separately since it uses native Swift APIs
-        if provider.id == APPLE_INTELLIGENCE_PROVIDER_ID {
-            #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-            {
-                if !apple_intelligence::check_apple_intelligence_availability() {
-                    debug!(
-                        "Apple Intelligence selected but not currently available on this device"
+        #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+        {
+            debug!("Apple Intelligence provider selected on an unsupported platform");
+            return None;
+        }
+    }
+
+    let secret = {
+        let account = match SecretAccount::llm(&provider.id) {
+            Ok(account) => account,
+            Err(_) => {
+                warn!("Post-processing skipped because its credential account is invalid");
+                return None;
+            }
+        };
+        if provider_allows_unauthenticated_request(&provider, &endpoint) {
+            None
+        } else {
+            let secrets = app.state::<Arc<SecretManager>>();
+            match secrets.resolve(account).await {
+                Ok(secret) => Some(secret),
+                Err(SecretResolveError::NotFound) => {
+                    warn!("Post-processing skipped because no credential is configured");
+                    return None;
+                }
+                Err(SecretResolveError::Store(error)) => {
+                    warn!(
+                        "Post-processing skipped because credential access failed ({:?})",
+                        error.kind
                     );
                     return None;
                 }
-
-                let token_limit = model.trim().parse::<i32>().unwrap_or(0);
-                return match apple_intelligence::process_text_with_system_prompt(
-                    &system_prompt,
-                    &user_content,
-                    token_limit,
-                ) {
-                    Ok(result) => {
-                        if result.trim().is_empty() {
-                            debug!("Apple Intelligence returned an empty response");
-                            None
-                        } else {
-                            let result = strip_invisible_chars(&result);
-                            debug!(
-                                "Apple Intelligence post-processing succeeded. Output length: {} chars",
-                                result.len()
-                            );
-                            Some(result)
-                        }
-                    }
-                    Err(err) => {
-                        error!("Apple Intelligence post-processing failed: {}", err);
-                        None
-                    }
-                };
-            }
-
-            #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
-            {
-                debug!("Apple Intelligence provider selected on unsupported platform");
-                return None;
             }
         }
+    };
 
-        // Define JSON schema for transcription output
+    if provider.supports_structured_output {
         let json_schema = serde_json::json!({
             "type": "object",
             "properties": {
@@ -254,66 +532,49 @@ async fn post_process_transcription(settings: &AppSettings, transcription: &str)
         });
 
         match crate::llm_client::send_chat_completion_with_schema(
-            &provider,
-            api_key.clone(),
-            &model,
-            user_content,
-            Some(system_prompt),
-            Some(json_schema),
-            disable_reasoning,
+            crate::llm_client::ChatCompletionInput {
+                provider: &provider,
+                endpoint: &endpoint,
+                secret: secret.as_ref(),
+                model: &model,
+                user_content: rendered.user_message.clone(),
+                system_prompt: Some(rendered.system_message.clone()),
+                json_schema: Some(crate::llm_client::StructuredOutputSchema(json_schema)),
+                disable_reasoning,
+            },
         )
         .await
         {
             Ok(Some(content)) => {
-                // Parse the JSON response to extract the transcription field
+                if secret.is_some() {
+                    crate::settings::mark_post_process_secret_verified(app, &provider.id);
+                }
                 let content = strip_think_block(&content);
                 match serde_json::from_str::<serde_json::Value>(content) {
                     Ok(json) => {
-                        if let Some(transcription_value) =
-                            json.get(TRANSCRIPTION_FIELD).and_then(|t| t.as_str())
+                        if let Some(transcription_value) = json
+                            .get(TRANSCRIPTION_FIELD)
+                            .and_then(|value| value.as_str())
                         {
-                            let result = strip_invisible_chars(transcription_value);
-                            debug!(
-                                "Structured output post-processing succeeded for provider '{}'. Output length: {} chars",
-                                provider.id,
-                                result.len()
-                            );
-                            return Some(result);
-                        } else {
-                            error!("Structured output response missing 'transcription' field");
-                            return Some(strip_invisible_chars(content));
+                            return Some(strip_invisible_chars(transcription_value));
                         }
-                    }
-                    Err(e) => {
-                        error!(
-                            "Failed to parse structured output JSON: {}. Returning raw content.",
-                            e
-                        );
                         return Some(strip_invisible_chars(content));
                     }
+                    Err(_) => return Some(strip_invisible_chars(content)),
                 }
             }
-            Ok(None) => {
-                error!("LLM API response has no content");
-                return None;
-            }
-            Err(e) => {
-                warn!(
-                    "Structured output failed for provider '{}': {}. Falling back to legacy mode.",
-                    provider.id, e
-                );
-                // Fall through to legacy mode below
+            Ok(None) => return None,
+            Err(_) => {
+                warn!("Structured post-processing failed; retrying without a schema");
             }
         }
     }
 
-    // Legacy mode: Replace ${output} variable in the prompt with the actual text
-    let processed_prompt = prompt.replace("${output}", transcription);
-    debug!("Processed prompt length: {} chars", processed_prompt.len());
-
+    let processed_prompt = format!("{}\n\n{}", rendered.system_message, rendered.user_message);
     match crate::llm_client::send_chat_completion(
         &provider,
-        api_key,
+        &endpoint,
+        secret.as_ref(),
         &model,
         processed_prompt,
         disable_reasoning,
@@ -321,26 +582,12 @@ async fn post_process_transcription(settings: &AppSettings, transcription: &str)
     .await
     {
         Ok(Some(content)) => {
-            let content = strip_invisible_chars(strip_think_block(&content));
-            debug!(
-                "LLM post-processing succeeded for provider '{}'. Output length: {} chars",
-                provider.id,
-                content.len()
-            );
-            Some(content)
+            if secret.is_some() {
+                crate::settings::mark_post_process_secret_verified(app, &provider.id);
+            }
+            Some(strip_invisible_chars(strip_think_block(&content)))
         }
-        Ok(None) => {
-            error!("LLM API response has no content");
-            None
-        }
-        Err(e) => {
-            error!(
-                "LLM post-processing failed for provider '{}': {}. Falling back to original transcription.",
-                provider.id,
-                e
-            );
-            None
-        }
+        Ok(None) | Err(_) => None,
     }
 }
 
@@ -395,64 +642,419 @@ async fn maybe_convert_chinese_variant(
 pub(crate) struct ProcessedTranscription {
     pub final_text: String,
     pub post_processed_text: Option<String>,
-    pub post_process_prompt: Option<String>,
 }
 
-/// Resolve the persisted language *intent* into the language the currently-loaded
-/// model will actually use — the same capability-aware coercion the transcription
-/// paths apply (see [`crate::managers::model::effective_language`]). Post-processing
-/// resolves it independently so it agrees with the language the transcription ran
-/// in, without threading a value through the pipeline.
-fn resolve_effective_language(app: &AppHandle, settings: &AppSettings) -> String {
-    let tm = app.state::<Arc<TranscriptionManager>>();
+struct CompletedCapture {
+    duration_ms: Option<u64>,
+    has_audio: bool,
+}
+
+#[derive(Clone)]
+struct PendingHistoryEntry {
+    file_name: String,
+    transcription: String,
+    post_process_requested: bool,
+    post_processed_text: Option<String>,
+    run_receipt: crate::modes::ModeReceipt,
+    context_receipt: crate::context::ContextReceipt,
+    started_at_ms: u64,
+    duration_ms: Option<u64>,
+    word_count: Option<u64>,
+    has_audio: bool,
+    capture_status: Option<CaptureStatus>,
+}
+
+impl PendingHistoryEntry {
+    fn from_run(
+        file_name: String,
+        transcription: String,
+        processed: &ProcessedTranscription,
+        run: &RunPlan,
+        engine_used: RequestedEngine,
+        cloud_status: CloudReceiptStatus,
+        capture: CompletedCapture,
+    ) -> Self {
+        Self {
+            file_name,
+            transcription,
+            post_process_requested: run.post_process_requested(),
+            post_processed_text: processed.post_processed_text.clone(),
+            run_receipt: run.mode_receipt_with_cloud_status(Some(engine_used), cloud_status),
+            context_receipt: run.context().receipt().clone(),
+            started_at_ms: run.run_started_at_ms,
+            duration_ms: capture.duration_ms,
+            word_count: word_count(&processed.final_text),
+            has_audio: capture.has_audio,
+            capture_status: Some(CaptureStatus::Complete),
+        }
+    }
+
+    fn held_cloud_unavailable(
+        file_name: String,
+        run: &RunPlan,
+        duration_ms: Option<u64>,
+        has_audio: bool,
+    ) -> Self {
+        Self {
+            file_name,
+            transcription: String::new(),
+            post_process_requested: false,
+            post_processed_text: None,
+            run_receipt: run
+                .mode_receipt_with_cloud_status(None, CloudReceiptStatus::HeldCloudUnavailable),
+            context_receipt: run.context().receipt().clone(),
+            started_at_ms: run.run_started_at_ms,
+            duration_ms,
+            word_count: Some(0),
+            has_audio,
+            capture_status: Some(CaptureStatus::Complete),
+        }
+    }
+
+    fn no_speech(
+        file_name: String,
+        run: &RunPlan,
+        duration_ms: Option<u64>,
+        has_audio: bool,
+    ) -> Self {
+        Self {
+            file_name,
+            transcription: String::new(),
+            post_process_requested: false,
+            post_processed_text: None,
+            // VAD rejected the full capture, so neither a local model nor a
+            // cloud session supplied text for this receipt.
+            run_receipt: run.mode_receipt_with_cloud_status(None, CloudReceiptStatus::NotRequested),
+            context_receipt: run.context().receipt().clone(),
+            started_at_ms: run.run_started_at_ms,
+            duration_ms,
+            word_count: Some(0),
+            has_audio,
+            capture_status: Some(CaptureStatus::NoSpeechDetected),
+        }
+    }
+
+    /// Persist a capture prefix without a transcript. The original run is
+    /// permanently marked truncated; only an explicit history retry may decode
+    /// the WAV.
+    fn truncated_capture(
+        file_name: String,
+        run: &RunPlan,
+        duration_ms: Option<u64>,
+        has_audio: bool,
+    ) -> Self {
+        Self {
+            file_name,
+            transcription: String::new(),
+            post_process_requested: false,
+            post_processed_text: None,
+            run_receipt: run.mode_receipt(),
+            context_receipt: run.context().receipt().clone(),
+            started_at_ms: run.run_started_at_ms,
+            duration_ms,
+            word_count: Some(0),
+            has_audio,
+            capture_status: Some(CaptureStatus::Truncated),
+        }
+    }
+
+    fn failed(
+        file_name: String,
+        post_process_requested: bool,
+        run: &RunPlan,
+        duration_ms: Option<u64>,
+        has_audio: bool,
+    ) -> Self {
+        Self {
+            file_name,
+            transcription: String::new(),
+            post_process_requested,
+            post_processed_text: None,
+            run_receipt: run.mode_receipt(),
+            context_receipt: run.context().receipt().clone(),
+            started_at_ms: run.run_started_at_ms,
+            duration_ms,
+            word_count: Some(0),
+            has_audio,
+            capture_status: Some(CaptureStatus::Complete),
+        }
+    }
+
+    fn save(self, history: &HistoryManager) -> Option<i64> {
+        let completed_at_ms = now_ms();
+        match history.save_entry_with_receipt(
+            self.file_name,
+            self.transcription,
+            self.post_process_requested,
+            self.post_processed_text,
+            Some(NewRunReceipt {
+                run: self.run_receipt,
+                context: self.context_receipt,
+                started_at_ms: self.started_at_ms,
+                completed_at_ms,
+                duration_ms: self.duration_ms,
+                word_count: self.word_count,
+                source_kind: crate::managers::history::HistorySourceKind::Microphone,
+                has_audio: self.has_audio,
+                capture_status: self.capture_status,
+            }),
+        ) {
+            Ok(entry) => Some(entry.id),
+            Err(error) => {
+                error!("Failed to save history entry with run receipt: {error}");
+                None
+            }
+        }
+    }
+}
+
+fn persist_delivery_attempt(
+    history: &HistoryManager,
+    history_id: Option<i64>,
+    run_id: u64,
+    delivery: DeliveryReceipt,
+) {
+    if let Some(history_id) = history_id {
+        if let Err(error) = history.append_delivery_attempt(history_id, run_id, delivery) {
+            error!("Failed to append delivery receipt: {error}");
+        }
+    }
+}
+
+fn now_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .ok()
+        .and_then(|elapsed| u64::try_from(elapsed.as_millis()).ok())
+        .unwrap_or(0)
+}
+
+fn duration_ms(sample_count: usize) -> Option<u64> {
+    u64::try_from(sample_count)
+        .ok()?
+        .checked_mul(1_000)
+        .map(|samples| samples / u64::from(crate::audio_toolkit::constants::WHISPER_SAMPLE_RATE))
+}
+
+fn word_count(text: &str) -> Option<u64> {
+    u64::try_from(text.split_whitespace().count()).ok()
+}
+
+/// Save the contiguous prefix from a capture overrun. It never enters a
+/// transcription path. The recorded receipt leaves an explicit retry as the
+/// only way to decode the audio.
+async fn persist_truncated_capture(
+    app: &AppHandle,
+    history: &HistoryManager,
+    run: &RunPlan,
+    prefix_samples: Vec<f32>,
+) {
+    let history_id = if prefix_samples.is_empty() {
+        warn!("Capture overran before a usable audio prefix reached Sona");
+        None
+    } else {
+        let completed_pcm = share_completed_pcm(prefix_samples);
+        let sample_count = completed_pcm.len();
+        let duration_ms = duration_ms(sample_count);
+        let file_name = format!("sona-{}.wav", chrono::Utc::now().timestamp());
+        let wav_path = history.recordings_dir().join(&file_name);
+        let wav_path_for_verify = wav_path.clone();
+        let samples_for_wav = Arc::clone(&completed_pcm);
+        let wav_handle = tauri::async_runtime::spawn_blocking(move || {
+            crate::audio_toolkit::save_wav_file(&wav_path, samples_for_wav.as_slice())
+        });
+        let wav_saved = match wav_handle.await {
+            Ok(Ok(())) => {
+                match crate::audio_toolkit::verify_wav_file(&wav_path_for_verify, sample_count) {
+                    Ok(()) => true,
+                    Err(error) => {
+                        error!("Truncated-capture WAV verification failed: {error}");
+                        false
+                    }
+                }
+            }
+            Ok(Err(error)) => {
+                error!("Failed to save truncated-capture WAV: {error}");
+                false
+            }
+            Err(error) => {
+                error!("Truncated-capture WAV task panicked: {error}");
+                false
+            }
+        };
+        PendingHistoryEntry::truncated_capture(file_name, run, duration_ms, wav_saved).save(history)
+    };
+
+    persist_delivery_attempt(
+        history,
+        history_id,
+        run.run_id,
+        DeliveryReceipt::not_dispatched(),
+    );
+    let _ = app.emit(
+        "recording-error",
+        RecordingErrorEvent::typed("capture_overrun"),
+    );
+}
+
+/// Persist VAD-rejected microphone audio without sending it to an ASR engine.
+/// A silent recording can still be useful evidence when the user checks their
+/// input device, so History retains the verified WAV and an explicit receipt.
+fn remove_no_speech_wav(wav_path: &std::path::Path, reason: &str) {
+    if let Err(error) = std::fs::remove_file(wav_path) {
+        if error.kind() != std::io::ErrorKind::NotFound {
+            warn!("Could not remove {reason} no-speech WAV: {error}");
+        }
+    }
+}
+
+async fn rollback_cancelled_no_speech_history(
+    history: &HistoryManager,
+    history_id: i64,
+) -> NoSpeechPersistence {
+    match history.delete_entry(history_id).await {
+        Ok(()) => NoSpeechPersistence::Cancelled,
+        Err(error) => {
+            error!("Could not roll back cancelled no-speech history entry: {error}");
+            NoSpeechPersistence::SaveFailed
+        }
+    }
+}
+
+async fn persist_no_speech_capture(
+    history: &HistoryManager,
+    recording: &AudioRecordingManager,
+    cancel_generation: u64,
+    run: &RunPlan,
+    samples: Vec<f32>,
+) -> NoSpeechPersistence {
+    let sample_count = samples.len();
+    let duration_ms = duration_ms(sample_count);
+    let file_name = format!("sona-{}.wav", chrono::Utc::now().timestamp());
+    let wav_path = history.recordings_dir().join(&file_name);
+    let wav_saved = if samples.is_empty() {
+        false
+    } else {
+        let completed_pcm = share_completed_pcm(samples);
+        let wav_path_for_write = wav_path.clone();
+        let wav_path_for_verify = wav_path.clone();
+        let samples_for_wav = Arc::clone(&completed_pcm);
+        match tauri::async_runtime::spawn_blocking(move || {
+            crate::audio_toolkit::save_wav_file(&wav_path_for_write, samples_for_wav.as_slice())
+        })
+        .await
+        {
+            Ok(Ok(())) => {
+                match crate::audio_toolkit::verify_wav_file(&wav_path_for_verify, sample_count) {
+                    Ok(()) => true,
+                    Err(error) => {
+                        error!("No-speech WAV verification failed: {error}");
+                        false
+                    }
+                }
+            }
+            Ok(Err(error)) => {
+                error!("Failed to save no-speech WAV: {error}");
+                false
+            }
+            Err(error) => {
+                error!("No-speech WAV task panicked: {error}");
+                false
+            }
+        }
+    };
+
+    // A cancel can arrive while the blocking write or verification is pending.
+    // Remove any partial file before reporting the terminal result.
+    if recording.was_cancelled_since(cancel_generation) {
+        remove_no_speech_wav(&wav_path, "cancelled");
+        return NoSpeechPersistence::Cancelled;
+    }
+    if !wav_saved {
+        remove_no_speech_wav(&wav_path, "unverified");
+        return NoSpeechPersistence::SaveFailed;
+    }
+
+    let Some(history_id) =
+        PendingHistoryEntry::no_speech(file_name, run, duration_ms, true).save(history)
+    else {
+        remove_no_speech_wav(&wav_path, "untracked");
+        return if recording.was_cancelled_since(cancel_generation) {
+            NoSpeechPersistence::Cancelled
+        } else {
+            NoSpeechPersistence::SaveFailed
+        };
+    };
+
+    if recording.was_cancelled_since(cancel_generation) {
+        return rollback_cancelled_no_speech_history(history, history_id).await;
+    }
+
+    persist_delivery_attempt(
+        history,
+        Some(history_id),
+        run.run_id,
+        DeliveryReceipt::not_dispatched(),
+    );
+
+    if recording.was_cancelled_since(cancel_generation) {
+        return rollback_cancelled_no_speech_history(history, history_id).await;
+    }
+
+    NoSpeechPersistence::Saved
+}
+
+/// Resolve the frozen language intent against the model selected for this run.
+fn resolve_effective_language(app: &AppHandle, asr: &AsrPlan) -> String {
     let model_manager = app.state::<Arc<ModelManager>>();
-    let active_model = tm
-        .get_current_model()
-        .unwrap_or_else(|| settings.selected_model.clone());
-    match model_manager.get_model_info(&active_model) {
+    match model_manager.get_model_info(&asr.model_id) {
         Some(info) => crate::managers::model::effective_language(
-            &settings.selected_language,
+            &asr.language,
             &info.supported_languages,
             info.supports_language_detection,
         ),
-        None => settings.selected_language.clone(),
+        None => asr.language.clone(),
     }
 }
 
 pub(crate) async fn process_transcription_output(
     app: &AppHandle,
     transcription: &str,
-    post_process: bool,
+    run: &RunPlan,
 ) -> ProcessedTranscription {
-    let settings = get_settings(app);
+    let asr = run.asr();
     let mut final_text = transcription.to_string();
     let mut post_processed_text: Option<String> = None;
-    let mut post_process_prompt: Option<String> = None;
 
-    // Resolve the language the transcription actually ran in (the persisted
-    // intent coerced against the loaded model's capabilities) so OpenCC keys off
-    // the effective language rather than a possibly-stale intent.
-    let effective_language = resolve_effective_language(app, &settings);
+    // Resolve the language from the frozen ASR plan rather than a later
+    // settings write.
+    let effective_language = resolve_effective_language(app, asr);
     if let Some(converted_text) =
         maybe_convert_chinese_variant(&effective_language, transcription).await
     {
         final_text = converted_text;
     }
 
-    if post_process {
-        if let Some(processed_text) = post_process_transcription(&settings, &final_text).await {
+    if run.post_process_requested() {
+        let context = run.context();
+        let rendered = crate::prompt_renderer::render(crate::prompt_renderer::PromptRenderInput {
+            run,
+            transcript: &final_text,
+            language: &effective_language,
+            target: context.target(),
+            context: context.packet(),
+        });
+        debug!(
+            "Prompt budget: {} of {} bytes (transcript truncated: {})",
+            rendered.budget_receipt.user_bytes,
+            rendered.budget_receipt.user_budget_bytes,
+            rendered.budget_receipt.transcript_truncated
+        );
+        if let Some(processed_text) =
+            post_process_transcription(app, run, &rendered, &final_text).await
+        {
             post_processed_text = Some(processed_text.clone());
             final_text = processed_text;
-
-            if let Some(prompt_id) = &settings.post_process_selected_prompt_id {
-                if let Some(prompt) = settings
-                    .post_process_prompts
-                    .iter()
-                    .find(|prompt| &prompt.id == prompt_id)
-                {
-                    post_process_prompt = Some(prompt.prompt.clone());
-                }
-            }
         }
     } else if final_text != transcription {
         post_processed_text = Some(final_text.clone());
@@ -461,60 +1063,75 @@ pub(crate) async fn process_transcription_output(
     ProcessedTranscription {
         final_text,
         post_processed_text,
-        post_process_prompt,
     }
 }
 
-impl ShortcutAction for TranscribeAction {
+impl TranscribeAction {
     fn start(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) {
         let start_time = Instant::now();
         debug!("TranscribeAction::start called for binding: {}", binding_id);
 
-        // Load model in the background
         let tm = app.state::<Arc<TranscriptionManager>>();
         let rm = app.state::<Arc<AudioRecordingManager>>();
+        if let Err(error) = cloud_preflight(app, &self.run) {
+            emit_cloud_run_error(app, error);
+            return;
+        }
+        let cloud_requested = self.run.cloud().is_some();
 
-        // Load ASR model and VAD model in parallel
-        let kickoff_started = Instant::now();
-        tm.initiate_model_load();
+        let vad_preload_started = Instant::now();
         let rm_clone = Arc::clone(&rm);
         std::thread::spawn(move || {
             if let Err(e) = rm_clone.preload_vad() {
                 debug!("VAD pre-load failed: {}", e);
             }
         });
-        let kickoff_elapsed = kickoff_started.elapsed();
+        let vad_preload_elapsed = vad_preload_started.elapsed();
 
         let binding_id = binding_id.to_string();
         let tray_started = Instant::now();
         set_tray_state(app, TrayIconState::Recording);
         let tray_elapsed = tray_started.elapsed();
 
-        // Get the microphone mode to determine audio feedback timing
         let plan_started = Instant::now();
-        let settings = get_settings(app);
-        let is_always_on = settings.always_on_microphone;
-
-        let selected_model_info = app
-            .state::<Arc<ModelManager>>()
-            .get_model_info(&settings.selected_model);
-
-        // Use the app-facing model capability as the single pre-recording source
-        // for live streaming decisions. Unknown support is represented as false
-        // until the model registry is updated by discovery or runtime load.
-        let model_supports_streaming = selected_model_info
-            .as_ref()
-            .map(|m| m.supports_streaming)
-            .unwrap_or(false);
-        let vad_policy = if !settings.vad_enabled {
+        let ui_settings = get_settings(app);
+        let is_always_on = ui_settings.always_on_microphone;
+        let asr = self.run.asr();
+        let selected_model_info = self.run.local_asr().and_then(|local_asr| {
+            app.state::<Arc<ModelManager>>()
+                .get_model_info(&local_asr.model_id)
+        });
+        let model_supports_streaming = !cloud_requested
+            && selected_model_info
+                .as_ref()
+                .is_some_and(|model| model.supports_streaming);
+        let vad_policy = if !asr.vad_enabled {
             VadPolicy::Disabled
-        } else if model_supports_streaming {
+        } else if cloud_requested || model_supports_streaming {
             VadPolicy::Streaming
         } else {
             VadPolicy::Offline
         };
+        // ASR work starts on the recorder's first VAD-forwarded speech frame.
+        // A no-speech capture must keep its WAV and receipt without loading a
+        // local model or opening a cloud session.
+        #[cfg(feature = "cloud-realtime")]
+        if let Some(cloud) = self.run.cloud() {
+            tm.arm_cloud_stream_on_first_speech(
+                cloud,
+                cloud_key_source(app, cloud.provider()),
+                self.run.local_asr(),
+            );
+        } else if model_supports_streaming {
+            tm.arm_stream_on_first_speech(asr);
+        } else if let Some(local_asr) = self.run.local_asr() {
+            tm.arm_model_load_on_first_speech(local_asr);
+        }
+        #[cfg(not(feature = "cloud-realtime"))]
         if model_supports_streaming {
-            tm.start_stream();
+            tm.arm_stream_on_first_speech(asr);
+        } else if let Some(local_asr) = self.run.local_asr() {
+            tm.arm_model_load_on_first_speech(local_asr);
         }
         let plan_elapsed = plan_started.elapsed();
 
@@ -522,16 +1139,18 @@ impl ShortcutAction for TranscribeAction {
         // doesn't stream (or whose capability is not known yet) gets the compact
         // pill instead of an oversized transparent live window.
         let overlay_started = Instant::now();
-        match settings.overlay_style {
-            OverlayStyle::Live if model_supports_streaming => utils::show_streaming_overlay(app),
+        match ui_settings.overlay_style {
+            OverlayStyle::Live if cloud_requested || model_supports_streaming => {
+                utils::show_streaming_overlay(app)
+            }
             OverlayStyle::Live | OverlayStyle::Minimal => show_recording_overlay(app),
             OverlayStyle::None => {} // show_overlay_state no-ops on None anyway
         }
-        // Everything above runs before capture can begin, so each span here is
-        // added keypress->capture latency.
+        // The VAD preload above is the only pre-capture inference work. ASR
+        // model loading and remote connections wait for actual speech.
         debug!(
-            "start-path pre-recording steps: model_kickoff={:?} tray={:?} settings+stream_plan={:?} overlay={:?}",
-            kickoff_elapsed,
+            "start-path pre-recording steps: vad_preload={:?} tray={:?} settings+stream_plan={:?} overlay={:?}",
+            vad_preload_elapsed,
             tray_elapsed,
             plan_elapsed,
             overlay_started.elapsed()
@@ -559,7 +1178,7 @@ impl ShortcutAction for TranscribeAction {
                     // arming animation on hardware that normally starts too fast
                     // to make it visible.
                     #[cfg(debug_assertions)]
-                    if let Ok(delay_ms) = std::env::var("HANDY_DEBUG_MIC_READY_DELAY_MS")
+                    if let Ok(delay_ms) = std::env::var("SONA_DEBUG_MIC_READY_DELAY_MS")
                         .unwrap_or_default()
                         .parse::<u64>()
                     {
@@ -590,9 +1209,9 @@ impl ShortcutAction for TranscribeAction {
                     }
                 });
             }
-            Err(e) => {
-                debug!("Failed to start recording: {}", e);
-                recording_error = Some(e);
+            Err(error) => {
+                debug!("Failed to start recording");
+                recording_error = Some(error);
             }
         }
 
@@ -613,13 +1232,7 @@ impl ShortcutAction for TranscribeAction {
                 } else {
                     "unknown"
                 };
-                let _ = app.emit(
-                    "recording-error",
-                    RecordingErrorEvent {
-                        error_type: error_type.to_string(),
-                        detail: Some(err),
-                    },
-                );
+                let _ = app.emit("recording-error", RecordingErrorEvent::typed(error_type));
             }
         }
 
@@ -654,7 +1267,8 @@ impl ShortcutAction for TranscribeAction {
         let style = get_settings(app).overlay_style;
         // Capture this before finalizing the stream so every later working state
         // targets the same overlay that was shown for this transcription.
-        let use_streaming_overlay = should_use_streaming_overlay(style, tm.is_streaming());
+        let use_streaming_overlay =
+            should_use_streaming_overlay(style, self.run.cloud().is_some() || tm.is_streaming());
         if use_streaming_overlay {
             tm.emit_stream_working(StreamWorkKind::Transcribing);
         } else {
@@ -668,7 +1282,14 @@ impl ShortcutAction for TranscribeAction {
         play_feedback_sound(app, SoundType::Stop);
 
         let binding_id = binding_id.to_string(); // Clone binding_id for the async task
-        let post_process = self.post_process;
+        let post_process = self.run.post_process_requested();
+        let run = self.run.clone();
+        // Content-free receipts: identifiers, policy, and source decisions only.
+        debug!(
+            "Run receipt {:?} context {:?}",
+            run.mode_receipt(),
+            run.context().receipt()
+        );
         let cancel_generation = rm.cancel_generation();
 
         tauri::async_runtime::spawn(async move {
@@ -679,206 +1300,313 @@ impl ShortcutAction for TranscribeAction {
             );
 
             let stop_recording_time = Instant::now();
-            if let Some(samples) = rm.stop_recording(&binding_id, cancel_generation) {
-                debug!(
-                    "Recording stopped and samples retrieved in {:?}, sample count: {}",
-                    stop_recording_time.elapsed(),
-                    samples.len()
-                );
-
-                if rm.was_cancelled_since(cancel_generation) {
-                    debug!("Transcription operation cancelled after recording stop");
+            match rm.stop_recording(&binding_id, cancel_generation) {
+                Some(RecordingStop::NoSpeech { samples }) => {
+                    if rm.was_cancelled_since(cancel_generation) {
+                        debug!("No-speech recording was cancelled before persistence");
+                        tm.cancel_stream();
+                        utils::hide_recording_overlay(&ah);
+                        set_tray_state(&ah, TrayIconState::Idle);
+                        return;
+                    }
                     tm.cancel_stream();
+                    let persistence =
+                        persist_no_speech_capture(&hm, &rm, cancel_generation, &run, samples).await;
+                    if let Some(error_type) = persistence.recording_error_type() {
+                        let _ = ah.emit("recording-error", RecordingErrorEvent::typed(error_type));
+                    }
                     utils::hide_recording_overlay(&ah);
                     set_tray_state(&ah, TrayIconState::Idle);
-                    return;
                 }
-
-                if samples.is_empty() {
-                    debug!("Recording produced no audio samples; skipping persistence");
-                    // Tear down any streaming worker so its channel doesn't leak
-                    // and block the next start_stream.
-                    tm.cancel_stream();
-                    utils::hide_recording_overlay(&ah);
-                    set_tray_state(&ah, TrayIconState::Idle);
-                } else {
-                    // Save WAV concurrently with transcription
-                    let sample_count = samples.len();
-                    let file_name = format!("handy-{}.wav", chrono::Utc::now().timestamp());
-                    let wav_path = hm.recordings_dir().join(&file_name);
-                    let wav_path_for_verify = wav_path.clone();
-                    let samples_for_wav = samples.clone();
-                    let wav_handle = tauri::async_runtime::spawn_blocking(move || {
-                        crate::audio_toolkit::save_wav_file(&wav_path, &samples_for_wav)
-                    });
-
-                    // Transcribe concurrently with WAV save. If a live stream was
-                    // running, finalize it and use its text (all audio was already
-                    // fed to the stream); otherwise batch-transcribe the samples.
-                    let transcription_time = Instant::now();
-                    let transcription_result = match tm.finalize_stream() {
-                        // A finalized stream with usable text wins. An empty result
-                        // (no active stream, produced nothing, or a finalize error
-                        // after the engine was returned) falls back to a full batch
-                        // transcription of the same audio. A finalize timeout is
-                        // surfaced instead — the worker may still hold the engine,
-                        // so a batch fallback would contend with it.
-                        Ok(Some(text)) if !text.trim().is_empty() => Ok(text),
-                        Ok(_) => tm.transcribe(samples),
-                        Err(err) => Err(err),
-                    };
-
-                    // Await WAV save and verify
-                    let wav_saved = match wav_handle.await {
-                        Ok(Ok(())) => {
-                            match crate::audio_toolkit::verify_wav_file(
-                                &wav_path_for_verify,
-                                sample_count,
-                            ) {
-                                Ok(()) => true,
-                                Err(e) => {
-                                    error!("WAV verification failed: {}", e);
-                                    false
-                                }
-                            }
-                        }
-                        Ok(Err(e)) => {
-                            error!("Failed to save WAV file: {}", e);
-                            false
-                        }
-                        Err(e) => {
-                            error!("WAV save task panicked: {}", e);
-                            false
-                        }
-                    };
+                Some(RecordingStop::Complete(samples)) => {
+                    debug!(
+                        "Recording stopped and samples retrieved in {:?}, sample count: {}",
+                        stop_recording_time.elapsed(),
+                        samples.len()
+                    );
 
                     if rm.was_cancelled_since(cancel_generation) {
-                        debug!("Transcription operation cancelled before output handling");
+                        debug!("Transcription operation cancelled after recording stop");
+                        tm.cancel_stream();
                         utils::hide_recording_overlay(&ah);
                         set_tray_state(&ah, TrayIconState::Idle);
                         return;
                     }
 
-                    match transcription_result {
-                        Ok(transcription) => {
-                            debug!(
-                                "Transcription completed in {:?}: '{}'",
-                                transcription_time.elapsed(),
-                                transcription
-                            );
-
-                            if post_process {
-                                if use_streaming_overlay {
-                                    tm.emit_stream_working(StreamWorkKind::Polishing);
-                                } else {
-                                    show_processing_overlay(&ah);
-                                }
-                            }
-                            let Some(processed) = complete_unless_cancelled(
-                                process_transcription_output(&ah, &transcription, post_process),
-                                || rm.was_cancelled_since(cancel_generation),
+                    if samples.is_empty() {
+                        debug!("Recording produced no audio samples; skipping persistence");
+                        // Tear down any streaming worker so its channel doesn't leak
+                        // and block the next start_stream.
+                        tm.cancel_stream();
+                        utils::hide_recording_overlay(&ah);
+                        set_tray_state(&ah, TrayIconState::Idle);
+                    } else {
+                        // Save WAV concurrently with transcription
+                        let completed_pcm = share_completed_pcm(samples);
+                        let sample_count = completed_pcm.len();
+                        let duration_ms = duration_ms(sample_count);
+                        let file_name = format!("sona-{}.wav", chrono::Utc::now().timestamp());
+                        let wav_path = hm.recordings_dir().join(&file_name);
+                        let wav_path_for_verify = wav_path.clone();
+                        let samples_for_wav = Arc::clone(&completed_pcm);
+                        let wav_handle = tauri::async_runtime::spawn_blocking(move || {
+                            crate::audio_toolkit::save_wav_file(
+                                &wav_path,
+                                samples_for_wav.as_slice(),
                             )
-                            .await
-                            else {
-                                debug!("Transcription operation cancelled during output handling");
-                                utils::hide_recording_overlay(&ah);
-                                set_tray_state(&ah, TrayIconState::Idle);
-                                return;
-                            };
+                        });
 
-                            if rm.was_cancelled_since(cancel_generation) {
-                                debug!("Transcription operation cancelled before paste");
-                                utils::hide_recording_overlay(&ah);
-                                set_tray_state(&ah, TrayIconState::Idle);
-                                return;
-                            }
+                        // Transcribe concurrently with WAV save. If a live stream was
+                        // running, finalize it and use its text (all audio was already
+                        // fed to the stream); otherwise batch-transcribe the samples.
+                        let transcription_time = Instant::now();
+                        let transcription_result =
+                            transcribe_frozen_run(&tm, &run, completed_pcm.as_slice());
 
-                            // Save to history if WAV was saved
-                            if wav_saved {
-                                if let Err(err) = hm.save_entry(
-                                    file_name,
-                                    transcription,
-                                    post_process,
-                                    processed.post_processed_text.clone(),
-                                    processed.post_process_prompt.clone(),
+                        // Await WAV save and verify
+                        let wav_saved = match wav_handle.await {
+                            Ok(Ok(())) => {
+                                match crate::audio_toolkit::verify_wav_file(
+                                    &wav_path_for_verify,
+                                    sample_count,
                                 ) {
-                                    error!("Failed to save history entry: {}", err);
+                                    Ok(()) => true,
+                                    Err(e) => {
+                                        error!("WAV verification failed: {}", e);
+                                        false
+                                    }
                                 }
                             }
-
-                            if processed.final_text.is_empty() {
-                                utils::hide_recording_overlay(&ah);
-                                set_tray_state(&ah, TrayIconState::Idle);
-                            } else {
-                                let ah_clone = ah.clone();
-                                let paste_time = Instant::now();
-                                let final_text = processed.final_text;
-                                let rm_for_paste = Arc::clone(&rm);
-                                ah.run_on_main_thread(move || {
-                                    if rm_for_paste.was_cancelled_since(cancel_generation) {
-                                        debug!("Transcription operation cancelled before paste");
-                                        utils::hide_recording_overlay(&ah_clone);
-                                        set_tray_state(&ah_clone, TrayIconState::Idle);
-                                        return;
-                                    }
-
-                                    match utils::paste(final_text, ah_clone.clone()) {
-                                        Ok(()) => debug!(
-                                            "Text pasted successfully in {:?}",
-                                            paste_time.elapsed()
-                                        ),
-                                        Err(e) => {
-                                            error!("Failed to paste transcription: {}", e);
-                                            let _ = ah_clone.emit("paste-error", ());
-                                        }
-                                    }
-                                    utils::hide_recording_overlay(&ah_clone);
-                                    set_tray_state(&ah_clone, TrayIconState::Idle);
-                                })
-                                .unwrap_or_else(|e| {
-                                    error!("Failed to run paste on main thread: {:?}", e);
-                                    utils::hide_recording_overlay(&ah);
-                                    set_tray_state(&ah, TrayIconState::Idle);
-                                });
+                            Ok(Err(e)) => {
+                                error!("Failed to save WAV file: {}", e);
+                                false
                             }
+                            Err(e) => {
+                                error!("WAV save task panicked: {}", e);
+                                false
+                            }
+                        };
+
+                        if rm.was_cancelled_since(cancel_generation) {
+                            debug!("Transcription operation cancelled before output handling");
+                            utils::hide_recording_overlay(&ah);
+                            set_tray_state(&ah, TrayIconState::Idle);
+                            return;
                         }
-                        Err(err) => {
-                            if rm.was_cancelled_since(cancel_generation) {
-                                debug!(
-                                    "Transcription operation cancelled after transcription error"
+
+                        match transcription_result {
+                            Ok(FrozenTranscript::HeldCloudUnavailable) => {
+                                // The complete PCM/WAV is retained, but no provider partial
+                                // or local substitute exists to paste or auto-submit.
+                                let history_id = PendingHistoryEntry::held_cloud_unavailable(
+                                    file_name,
+                                    &run,
+                                    duration_ms,
+                                    wav_saved,
+                                )
+                                .save(&hm);
+                                persist_delivery_attempt(
+                                    &hm,
+                                    history_id,
+                                    run.run_id,
+                                    DeliveryReceipt::not_dispatched(),
+                                );
+                                // Same lane every other terminal run failure uses,
+                                // so one listener covers them all. The recording
+                                // and its receipt are already in history.
+                                let _ = ah.emit(
+                                    "recording-error",
+                                    RecordingErrorEvent::typed("cloud_transcription_held"),
                                 );
                                 utils::hide_recording_overlay(&ah);
                                 set_tray_state(&ah, TrayIconState::Idle);
-                                return;
                             }
+                            Ok(FrozenTranscript::Final {
+                                text: transcription,
+                                engine_used,
+                                cloud_status,
+                            }) => {
+                                debug!(
+                                    "Transcription completed in {:?}",
+                                    transcription_time.elapsed()
+                                );
+                                if post_process {
+                                    if use_streaming_overlay {
+                                        tm.emit_stream_working(StreamWorkKind::Polishing);
+                                    } else {
+                                        show_processing_overlay(&ah);
+                                    }
+                                }
+                                let Some(processed) = complete_unless_cancelled(
+                                    process_transcription_output(&ah, &transcription, &run),
+                                    || rm.was_cancelled_since(cancel_generation),
+                                )
+                                .await
+                                else {
+                                    debug!(
+                                        "Transcription operation cancelled during output handling"
+                                    );
+                                    utils::hide_recording_overlay(&ah);
+                                    set_tray_state(&ah, TrayIconState::Idle);
+                                    return;
+                                };
 
-                            error!("Transcription failed: {}", err);
-                            // Surface the failure to the UI (toast). The full
-                            // message is also in handy.log via the line above.
-                            let _ = ah.emit("transcription-error", err.to_string());
-                            // Save entry with empty text so user can retry
-                            if wav_saved {
-                                if let Err(save_err) = hm.save_entry(
+                                if rm.was_cancelled_since(cancel_generation) {
+                                    debug!("Transcription operation cancelled before paste");
+                                    utils::hide_recording_overlay(&ah);
+                                    set_tray_state(&ah, TrayIconState::Idle);
+                                    return;
+                                }
+
+                                let history_entry = PendingHistoryEntry::from_run(
                                     file_name,
-                                    String::new(),
-                                    post_process,
-                                    None,
-                                    None,
-                                ) {
-                                    error!("Failed to save failed history entry: {}", save_err);
+                                    transcription,
+                                    &processed,
+                                    &run,
+                                    engine_used,
+                                    cloud_status,
+                                    CompletedCapture {
+                                        duration_ms,
+                                        has_audio: wav_saved,
+                                    },
+                                );
+
+                                if processed.final_text.is_empty() {
+                                    let history_id = history_entry.save(&hm);
+                                    persist_delivery_attempt(
+                                        &hm,
+                                        history_id,
+                                        run.run_id,
+                                        DeliveryReceipt::not_dispatched(),
+                                    );
+                                    utils::hide_recording_overlay(&ah);
+                                    set_tray_state(&ah, TrayIconState::Idle);
+                                } else {
+                                    // Persist the text and content-free run receipt
+                                    // before dispatch. The later delivery outcome is
+                                    // an append-only child record.
+                                    let history_id = history_entry.save(&hm);
+                                    let ah_clone = ah.clone();
+                                    let hm_for_main = Arc::clone(&hm);
+                                    let hm_for_fallback = Arc::clone(&hm);
+                                    let history_for_main = history_id;
+                                    let history_for_fallback = history_id;
+                                    let run_id = run.run_id;
+                                    let paste_time = Instant::now();
+                                    let final_text = processed.final_text;
+                                    let delivery_settings = run.delivery().clone();
+                                    let rm_for_paste = Arc::clone(&rm);
+                                    let dispatch = ah.run_on_main_thread(move || {
+                                        if rm_for_paste.was_cancelled_since(cancel_generation) {
+                                            debug!(
+                                                "Transcription operation cancelled before delivery"
+                                            );
+                                            persist_delivery_attempt(
+                                                &hm_for_main,
+                                                history_for_main,
+                                                run_id,
+                                                DeliveryReceipt::not_dispatched(),
+                                            );
+                                            utils::hide_recording_overlay(&ah_clone);
+                                            set_tray_state(&ah_clone, TrayIconState::Idle);
+                                            return;
+                                        }
+
+                                        let receipt = delivery::deliver(
+                                            &ah_clone,
+                                            final_text,
+                                            &delivery_settings,
+                                        );
+                                        if receipt.outcome
+                                            == DeliveryOutcome::DefinitelyNotDispatched
+                                        {
+                                            let _ = ah_clone.emit("paste-error", ());
+                                        }
+                                        persist_delivery_attempt(
+                                            &hm_for_main,
+                                            history_for_main,
+                                            run_id,
+                                            receipt,
+                                        );
+                                        debug!(
+                                            "Text delivery completed in {:?}",
+                                            paste_time.elapsed()
+                                        );
+                                        utils::hide_recording_overlay(&ah_clone);
+                                        set_tray_state(&ah_clone, TrayIconState::Idle);
+                                    });
+                                    if let Err(error) = dispatch {
+                                        error!("Failed to schedule text delivery on the main thread: {error:?}");
+                                        persist_delivery_attempt(
+                                            &hm_for_fallback,
+                                            history_for_fallback,
+                                            run_id,
+                                            DeliveryReceipt::not_dispatched(),
+                                        );
+                                        utils::hide_recording_overlay(&ah);
+                                        set_tray_state(&ah, TrayIconState::Idle);
+                                    }
                                 }
                             }
-                            utils::hide_recording_overlay(&ah);
-                            set_tray_state(&ah, TrayIconState::Idle);
+                            Err(_) => {
+                                if rm.was_cancelled_since(cancel_generation) {
+                                    debug!(
+                                    "Transcription operation cancelled after transcription error"
+                                );
+                                    utils::hide_recording_overlay(&ah);
+                                    set_tray_state(&ah, TrayIconState::Idle);
+                                    return;
+                                }
+
+                                error!("{TRANSCRIPTION_FAILURE_LOG_MESSAGE}");
+                                let _ = ah.emit(
+                                    "transcription-error",
+                                    TRANSCRIPTION_FAILURE_EVENT_MESSAGE,
+                                );
+                                let history_id = PendingHistoryEntry::failed(
+                                    file_name,
+                                    post_process,
+                                    &run,
+                                    duration_ms,
+                                    wav_saved,
+                                )
+                                .save(&hm);
+                                persist_delivery_attempt(
+                                    &hm,
+                                    history_id,
+                                    run.run_id,
+                                    DeliveryReceipt::not_dispatched(),
+                                );
+                                utils::hide_recording_overlay(&ah);
+                                set_tray_state(&ah, TrayIconState::Idle);
+                            }
                         }
                     }
                 }
-            } else {
-                debug!("No samples retrieved from recording stop");
-                // Tear down any streaming worker so its channel doesn't leak.
-                tm.cancel_stream();
-                utils::hide_recording_overlay(&ah);
-                set_tray_state(&ah, TrayIconState::Idle);
+                Some(RecordingStop::Overrun { prefix_samples }) => {
+                    if rm.was_cancelled_since(cancel_generation) {
+                        debug!("Capture overrun was cancelled before prefix persistence");
+                        tm.cancel_stream();
+                        utils::hide_recording_overlay(&ah);
+                        set_tray_state(&ah, TrayIconState::Idle);
+                        return;
+                    }
+
+                    // Cloud partials are preview-only. A capture gap forbids a
+                    // final transcript, so discard them before saving the
+                    // clean prefix for an explicit history retry.
+                    tm.cancel_stream();
+                    persist_truncated_capture(&ah, &hm, &run, prefix_samples).await;
+                    utils::hide_recording_overlay(&ah);
+                    set_tray_state(&ah, TrayIconState::Idle);
+                }
+                None => {
+                    debug!("No samples retrieved from recording stop");
+                    // Tear down any streaming worker so its channel doesn't leak.
+                    tm.cancel_stream();
+                    utils::hide_recording_overlay(&ah);
+                    set_tray_state(&ah, TrayIconState::Idle);
+                }
             }
         });
 
@@ -889,72 +1617,16 @@ impl ShortcutAction for TranscribeAction {
     }
 }
 
-// Cancel Action
-struct CancelAction;
-
-impl ShortcutAction for CancelAction {
-    fn start(&self, app: &AppHandle, _binding_id: &str, _shortcut_str: &str) {
-        utils::cancel_current_operation(app);
-    }
-
-    fn stop(&self, _app: &AppHandle, _binding_id: &str, _shortcut_str: &str) {
-        // Nothing to do on stop for cancel
-    }
-}
-
-// Test Action
-struct TestAction;
-
-impl ShortcutAction for TestAction {
-    fn start(&self, app: &AppHandle, binding_id: &str, shortcut_str: &str) {
-        log::info!(
-            "Shortcut ID '{}': Started - {} (App: {})", // Changed "Pressed" to "Started" for consistency
-            binding_id,
-            shortcut_str,
-            app.package_info().name
-        );
-    }
-
-    fn stop(&self, app: &AppHandle, binding_id: &str, shortcut_str: &str) {
-        log::info!(
-            "Shortcut ID '{}': Stopped - {} (App: {})", // Changed "Released" to "Stopped" for consistency
-            binding_id,
-            shortcut_str,
-            app.package_info().name
-        );
-    }
-}
-
-// Static Action Map
-pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::new(|| {
-    let mut map = HashMap::new();
-    map.insert(
-        "transcribe".to_string(),
-        Arc::new(TranscribeAction {
-            post_process: false,
-        }) as Arc<dyn ShortcutAction>,
-    );
-    map.insert(
-        "transcribe_with_post_process".to_string(),
-        Arc::new(TranscribeAction { post_process: true }) as Arc<dyn ShortcutAction>,
-    );
-    map.insert(
-        "cancel".to_string(),
-        Arc::new(CancelAction) as Arc<dyn ShortcutAction>,
-    );
-    map.insert(
-        "test".to_string(),
-        Arc::new(TestAction) as Arc<dyn ShortcutAction>,
-    );
-    map
-});
-
 #[cfg(test)]
 mod tests {
     use super::{
-        complete_unless_cancelled, is_blank_transcription, should_use_streaming_overlay,
-        strip_think_block,
+        complete_unless_cancelled, is_blank_transcription, select_final_transcription,
+        share_completed_pcm, should_use_streaming_overlay, strip_think_block, CloudRunError,
+        PendingHistoryEntry, TRANSCRIPTION_FAILURE_EVENT_MESSAGE,
+        TRANSCRIPTION_FAILURE_LOG_MESSAGE,
     };
+    #[cfg(feature = "cloud-realtime")]
+    use super::{ensure_cloud_fallback_is_installed, resolve_cloud_finalization, FrozenTranscript};
     use crate::settings::OverlayStyle;
     use std::future;
     use std::sync::atomic::{AtomicBool, Ordering};
@@ -973,6 +1645,54 @@ mod tests {
     fn non_blank_transcription_is_kept() {
         assert!(!is_blank_transcription("hello"));
         assert!(!is_blank_transcription("  hello  "));
+    }
+
+    #[test]
+    fn truncated_capture_has_no_transcript_or_post_processing_path() {
+        let settings = crate::settings::get_default_settings();
+        let run = crate::modes::RunPlan::for_intent(
+            &settings,
+            &crate::modes::TranscriptionIntent::ActiveMode,
+        )
+        .expect("default run");
+        let entry =
+            PendingHistoryEntry::truncated_capture("prefix.wav".to_string(), &run, Some(320), true);
+
+        assert!(entry.transcription.is_empty());
+        assert!(!entry.post_process_requested);
+        assert!(entry.post_processed_text.is_none());
+        assert_eq!(entry.word_count, Some(0));
+        assert!(entry.has_audio);
+        assert_eq!(
+            entry.capture_status,
+            Some(crate::managers::history::CaptureStatus::Truncated)
+        );
+    }
+
+    #[test]
+    fn no_speech_keeps_audio_but_records_no_engine_or_text() {
+        let settings = crate::settings::get_default_settings();
+        let run = crate::modes::RunPlan::for_intent(
+            &settings,
+            &crate::modes::TranscriptionIntent::ActiveMode,
+        )
+        .expect("default run");
+        let entry = PendingHistoryEntry::no_speech("silent.wav".to_string(), &run, Some(320), true);
+
+        assert!(entry.transcription.is_empty());
+        assert!(!entry.post_process_requested);
+        assert!(entry.post_processed_text.is_none());
+        assert_eq!(entry.word_count, Some(0));
+        assert!(entry.has_audio);
+        assert_eq!(
+            entry.capture_status,
+            Some(crate::managers::history::CaptureStatus::NoSpeechDetected)
+        );
+        assert_eq!(entry.run_receipt.engine_used, None);
+        assert_eq!(
+            entry.run_receipt.cloud_status,
+            crate::modes::CloudReceiptStatus::NotRequested
+        );
     }
 
     #[test]
@@ -1035,5 +1755,332 @@ mod tests {
         assert!(!should_use_streaming_overlay(OverlayStyle::Live, false));
         assert!(!should_use_streaming_overlay(OverlayStyle::Minimal, true));
         assert!(!should_use_streaming_overlay(OverlayStyle::None, true));
+    }
+    #[test]
+    fn preview_degradation_uses_the_complete_batch_pcm() {
+        let completed = share_completed_pcm(vec![0.25, -0.5, 0.75]);
+        let pcm_ptr = completed.as_slice().as_ptr();
+
+        let result = select_final_transcription(Ok(None), completed.as_slice(), |audio| {
+            assert_eq!(audio, [0.25, -0.5, 0.75]);
+            assert_eq!(audio.as_ptr(), pcm_ptr);
+            Ok("batch result".to_string())
+        });
+
+        assert_eq!(result.expect("batch transcription"), "batch result");
+    }
+
+    #[test]
+    fn completed_pcm_is_shared_by_wav_and_batch_consumers() {
+        let captured = vec![0.25, -0.5, 0.75];
+        let captured_ptr = captured.as_ptr();
+        let completed = share_completed_pcm(captured);
+        let wav_pcm = Arc::clone(&completed);
+
+        assert_eq!(completed.as_slice().as_ptr(), captured_ptr);
+        assert!(Arc::ptr_eq(&completed, &wav_pcm));
+        assert_eq!(wav_pcm.as_slice(), completed.as_slice());
+    }
+
+    #[cfg(feature = "cloud-realtime")]
+    fn cloud_run(local_fallback_enabled: bool) -> crate::modes::RunPlan {
+        use crate::modes::{CloudSttProvider, RequestedEngine, RunPlan, TranscriptionIntent};
+
+        let mut settings = crate::settings::get_default_settings();
+        let mode = settings.modes.first_mut().expect("default mode");
+        mode.asr.requested_engine = RequestedEngine::DeepgramNova3;
+        mode.asr.local_fallback_enabled = local_fallback_enabled;
+        mode.asr.local_fallback_model_id =
+            local_fallback_enabled.then(|| "fallback-model".to_string());
+        let provider = settings
+            .cloud_stt_provider_mut(CloudSttProvider::DeepgramNova3)
+            .expect("default cloud provider");
+        provider.consent_version = crate::settings::CLOUD_STT_CONSENT_VERSION;
+        provider.audio_transfer_consent = true;
+        provider.privacy_consent = true;
+        provider.local_fallback_consent = true;
+
+        RunPlan::for_intent(&settings, &TranscriptionIntent::ActiveMode).expect("valid cloud run")
+    }
+
+    #[cfg(feature = "cloud-realtime")]
+    #[test]
+    fn cloud_final_keeps_provider_text_without_local_decode() {
+        use crate::managers::transcription::CloudStreamFinalization;
+        use crate::modes::{CloudReceiptStatus, RequestedEngine};
+
+        let run = cloud_run(true);
+        let result = resolve_cloud_finalization(
+            &run,
+            CloudStreamFinalization::Final("provider final".to_string()),
+            &[0.25, -0.5],
+            |_, _| panic!("provider final must not decode locally"),
+        )
+        .expect("cloud final");
+
+        match result {
+            FrozenTranscript::Final {
+                text,
+                engine_used,
+                cloud_status,
+            } => {
+                assert_eq!(text, "provider final");
+                assert_eq!(engine_used, RequestedEngine::DeepgramNova3);
+                assert_eq!(cloud_status, CloudReceiptStatus::Final);
+            }
+            FrozenTranscript::HeldCloudUnavailable => panic!("provider final was held"),
+        }
+    }
+
+    #[cfg(feature = "cloud-realtime")]
+    #[test]
+    fn unavailable_key_decodes_full_captured_pcm_once_and_keeps_fallback_transcript() {
+        use crate::managers::transcription::{CloudStreamFailure, CloudStreamFinalization};
+        use crate::modes::{CloudReceiptStatus, RequestedEngine};
+        use std::cell::Cell;
+
+        let run = cloud_run(true);
+        let completed = share_completed_pcm(vec![0.25, -0.5, 0.75, -1.0]);
+        let pcm_ptr = completed.as_slice().as_ptr();
+        let decode_calls = Cell::new(0);
+        let result = resolve_cloud_finalization(
+            &run,
+            CloudStreamFinalization::Failed {
+                failure: CloudStreamFailure::KeyUnavailable,
+                audio_sent: false,
+            },
+            completed.as_slice(),
+            |fallback, audio| {
+                decode_calls.set(decode_calls.get() + 1);
+                assert_eq!(fallback.model_id, "fallback-model");
+                assert_eq!(audio, [0.25, -0.5, 0.75, -1.0]);
+                assert_eq!(audio.as_ptr(), pcm_ptr);
+                Ok("local fallback transcript".to_string())
+            },
+        )
+        .expect("local fallback");
+
+        assert_eq!(decode_calls.get(), 1);
+        match result {
+            FrozenTranscript::Final {
+                text,
+                engine_used,
+                cloud_status,
+            } => {
+                assert_eq!(text, "local fallback transcript");
+                assert_eq!(engine_used, RequestedEngine::Local);
+                assert_eq!(cloud_status, CloudReceiptStatus::Fallback);
+            }
+            FrozenTranscript::HeldCloudUnavailable => panic!("fallback was held"),
+        }
+    }
+
+    #[cfg(feature = "cloud-realtime")]
+    #[test]
+    fn unavailable_key_without_fallback_is_held_without_delivery_text() {
+        use crate::managers::transcription::{CloudStreamFailure, CloudStreamFinalization};
+        use std::cell::Cell;
+
+        let run = cloud_run(false);
+        let decode_calls = Cell::new(0);
+        let result = resolve_cloud_finalization(
+            &run,
+            CloudStreamFinalization::Failed {
+                failure: CloudStreamFailure::KeyUnavailable,
+                audio_sent: false,
+            },
+            &[0.25, -0.5],
+            |_, _| {
+                decode_calls.set(decode_calls.get() + 1);
+                Ok("must not be delivered".to_string())
+            },
+        )
+        .expect("held cloud result");
+
+        assert_eq!(decode_calls.get(), 0);
+        assert!(matches!(result, FrozenTranscript::HeldCloudUnavailable));
+    }
+
+    #[cfg(feature = "cloud-realtime")]
+    #[test]
+    fn cloud_fallback_installation_gate_checks_only_the_frozen_fallback_plan() {
+        use std::cell::Cell;
+
+        let with_fallback = cloud_run(true);
+        let checked = Cell::new(false);
+        assert!(matches!(
+            ensure_cloud_fallback_is_installed(&with_fallback, |model_id| {
+                checked.set(true);
+                model_id == "installed-model"
+            }),
+            Err(CloudRunError::FallbackModelUnavailable)
+        ));
+        assert!(checked.get());
+
+        let without_fallback = cloud_run(false);
+        assert!(ensure_cloud_fallback_is_installed(&without_fallback, |_| {
+            panic!("a disabled fallback must not be queried")
+        })
+        .is_ok());
+    }
+
+    /// The coordinator's preflight rejects only what it can know without
+    /// touching the credential store: a missing fallback model, or a provider
+    /// whose key was never configured.
+    #[cfg(feature = "cloud-realtime")]
+    #[test]
+    fn cloud_preflight_rejects_only_in_memory_preconditions() {
+        use super::check_cloud_preconditions;
+
+        let local = crate::modes::RunPlan::for_intent(
+            &crate::settings::get_default_settings(),
+            &crate::modes::TranscriptionIntent::ActiveMode,
+        )
+        .expect("local run");
+        assert!(check_cloud_preconditions(
+            &local,
+            |_| panic!("a local run must not check a cloud fallback"),
+            |_| panic!("a local run must not check a provider key"),
+        )
+        .is_ok());
+
+        let cloud = cloud_run(true);
+        assert_eq!(
+            check_cloud_preconditions(&cloud, |_| false, |_| true),
+            Err(CloudRunError::FallbackModelUnavailable)
+        );
+        assert_eq!(
+            check_cloud_preconditions(&cloud, |_| true, |_| false),
+            Err(CloudRunError::NativeKey)
+        );
+        assert_eq!(
+            check_cloud_preconditions(&cloud, |_| true, |_| true),
+            Ok(())
+        );
+
+        // Without a fallback there is no model to install, so the key state is
+        // the only remaining precondition.
+        let cloud_without_fallback = cloud_run(false);
+        assert_eq!(
+            check_cloud_preconditions(
+                &cloud_without_fallback,
+                |_| panic!("a disabled fallback must not be queried"),
+                |_| false,
+            ),
+            Err(CloudRunError::NativeKey)
+        );
+    }
+
+    /// Every terminal run failure the user can see rides one event with a
+    /// typed code and no content. A regression here either silently drops a
+    /// toast (unknown code) or leaks transcript/provider text into the UI.
+    #[test]
+    fn recording_error_payloads_are_typed_and_content_free() {
+        use super::RecordingErrorEvent;
+
+        let held = serde_json::to_value(RecordingErrorEvent::typed("cloud_transcription_held"))
+            .expect("held payload");
+        assert_eq!(
+            held,
+            serde_json::json!({ "error_type": "cloud_transcription_held" })
+        );
+
+        let overrun =
+            serde_json::to_value(RecordingErrorEvent::typed("capture_overrun")).expect("overrun");
+        assert_eq!(
+            overrun,
+            serde_json::json!({ "error_type": "capture_overrun" })
+        );
+
+        let no_speech = serde_json::to_value(RecordingErrorEvent::typed("no_speech_detected"))
+            .expect("no-speech payload");
+        assert_eq!(
+            no_speech,
+            serde_json::json!({ "error_type": "no_speech_detected" })
+        );
+
+        let denied =
+            serde_json::to_value(RecordingErrorEvent::typed("microphone_permission_denied"))
+                .expect("denied payload");
+        assert_eq!(
+            denied,
+            serde_json::json!({
+                "error_type": "microphone_permission_denied",
+            })
+        );
+    }
+
+    #[test]
+    fn no_speech_persistence_outcomes_emit_only_truthful_terminal_events() {
+        use super::{NoSpeechPersistence, RecordingErrorEvent};
+
+        assert_eq!(NoSpeechPersistence::Cancelled.recording_error_type(), None);
+        for (outcome, expected) in [
+            (NoSpeechPersistence::SaveFailed, "no_speech_save_failed"),
+            (NoSpeechPersistence::Saved, "no_speech_detected"),
+        ] {
+            let payload = serde_json::to_value(RecordingErrorEvent::typed(
+                outcome.recording_error_type().expect("terminal event"),
+            ))
+            .expect("no-speech payload");
+            assert_eq!(payload, serde_json::json!({ "error_type": expected }));
+        }
+    }
+
+    #[test]
+    fn transcript_canary_is_absent_from_transcription_failure_diagnostics() {
+        const CANARY: &str = "TRANSCRIPT-CANARY-4EE1";
+        let event = serde_json::to_string(&TRANSCRIPTION_FAILURE_EVENT_MESSAGE)
+            .expect("transcription failure event serialization");
+        let report = serde_json::to_string(&serde_json::json!({
+            "log": TRANSCRIPTION_FAILURE_LOG_MESSAGE,
+            "event": event,
+        }))
+        .expect("diagnostic report serialization");
+
+        for diagnostic in [
+            TRANSCRIPTION_FAILURE_LOG_MESSAGE,
+            TRANSCRIPTION_FAILURE_EVENT_MESSAGE,
+            report.as_str(),
+        ] {
+            assert!(!diagnostic.contains(CANARY), "{diagnostic}");
+        }
+    }
+
+    #[test]
+    fn cloud_run_errors_expose_one_wire_kind_each() {
+        use super::RecordingErrorEvent;
+
+        let kinds = [
+            #[cfg(feature = "cloud-realtime")]
+            (CloudRunError::NativeKey, "native_key"),
+            #[cfg(feature = "cloud-realtime")]
+            (
+                CloudRunError::FallbackModelUnavailable,
+                "fallback_model_unavailable",
+            ),
+            #[cfg(not(feature = "cloud-realtime"))]
+            (CloudRunError::FeatureUnavailable, "feature_unavailable"),
+        ];
+
+        for (error, expected_kind) in kinds {
+            let (kind, message) = error.describe();
+            assert_eq!(kind, expected_kind, "wire kind for {error:?}");
+            assert!(!message.is_empty(), "log message for {error:?}");
+
+            let payload = serde_json::to_value(RecordingErrorEvent {
+                error_type: "cloud_unavailable".to_string(),
+                cloud_kind: Some(kind),
+                detail: None,
+            })
+            .expect("cloud payload");
+            assert_eq!(
+                payload,
+                serde_json::json!({
+                    "error_type": "cloud_unavailable",
+                    "cloud_kind": expected_kind,
+                })
+            );
+        }
     }
 }

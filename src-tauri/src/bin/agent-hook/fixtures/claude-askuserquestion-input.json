@@ -1,0 +1,1 @@
+{"session_id":"golden-question-session","transcript_path":"/tmp/golden-transcript.jsonl","stop_hook_active":false,"hook_event_name":"PreToolUse","last_assistant_message":"","tool_name":"AskUserQuestion","tool_input":{"questions":[{"header":"Pick one","multiSelect":false,"options":["First","Second"],"question":"Which option?"}]}}

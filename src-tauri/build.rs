@@ -2,21 +2,26 @@ fn main() {
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     build_apple_intelligence_bridge();
 
+    #[cfg(target_os = "macos")]
+    build_meeting_capture_bridge();
+    #[cfg(target_os = "macos")]
+    println!("cargo:rustc-link-arg=-Wl,-rpath,/usr/lib/swift");
+
     generate_tray_translations();
 
     // Linux ships transcribe-cpp as a shared libtranscribe + loadable ggml
     // backend modules (the `dynamic-backends` posture in Cargo.toml). Bake an
-    // $ORIGIN-relative rpath into the `handy` binary so it finds libtranscribe
+    // $ORIGIN-relative rpath into the `sona` binary so it finds libtranscribe
     // next to it in the package — deb/rpm install into the app-private
-    // `/usr/lib/Handy` (the dir tauri already uses for resources; keeps
-    // Handy's libs out of the ldconfig-scanned `/usr/lib`, issue #1639) while
+    // `/usr/lib/sona` (the dir Tauri already uses for resources; keeps
+    // Sona's libs out of the ldconfig-scanned `/usr/lib`, issue #1639) while
     // the AppImage keeps them in `usr/lib` (linuxdeploy's layout), hence both
     // entries. transcribe's
     // init_backends_default() then loads the ggml modules co-located there.
     // (Windows resolves DLLs from the exe directory, so it needs no rpath;
     // macOS links transcribe-cpp statically via the `metal` feature.)
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("linux") {
-        println!("cargo:rustc-link-arg=-Wl,-rpath,$ORIGIN/../lib/Handy:$ORIGIN/../lib");
+        println!("cargo:rustc-link-arg=-Wl,-rpath,$ORIGIN/../lib/sona:$ORIGIN/../lib");
     }
 
     // Stage transcribe-cpp's shared runtime libraries (and the dlopen'd ggml
@@ -27,7 +32,7 @@ fn main() {
 
     // When ORT is dynamically linked (Windows CI sets ORT_LIB_LOCATION +
     // ORT_PREFER_DYNAMIC_LINK to a baseline ONNX Runtime), ship its onnxruntime.dll
-    // next to Handy.exe so the app loads our baseline build instead of statically
+    // next to Sona.exe so the app loads our baseline build instead of statically
     // embedding pyke's /arch:AVX2 one (which crashes at startup on pre-Haswell CPUs).
     stage_onnxruntime_dll();
 
@@ -39,19 +44,19 @@ fn main() {
 
 /// Stage the MSVC runtime DLLs into `transcribe-libs/` for app-local deployment.
 ///
-/// Handy's native stack links the VC++ runtime dynamically (/MD). Shipping the
-/// DLLs beside `handy.exe` covers machines with no redistributable installed and
+/// Sona's native stack links the VC++ runtime dynamically (/MD). Shipping the
+/// DLLs beside `sona.exe` covers machines with no redistributable installed and
 /// machines whose system redist is older than the CI toolset (issue #1527).
 ///
-/// Driven by `HANDY_VC_REDIST_DIRS`, set by CI to the redist dirs from the same
+/// Driven by `SONA_VC_REDIST_DIRS`, set by CI to the redist dirs from the same
 /// Visual Studio install that compiled the native code. Copies only the runtime
-/// DLL families Handy imports and no-ops when the env var is unset.
+/// DLL families Sona imports and no-ops when the env var is unset.
 fn stage_vc_runtime_dlls() {
     use std::path::PathBuf;
 
-    println!("cargo:rerun-if-env-changed=HANDY_VC_REDIST_DIRS");
+    println!("cargo:rerun-if-env-changed=SONA_VC_REDIST_DIRS");
 
-    let Some(redist_dirs) = std::env::var_os("HANDY_VC_REDIST_DIRS") else {
+    let Some(redist_dirs) = std::env::var_os("SONA_VC_REDIST_DIRS") else {
         return;
     };
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
@@ -64,7 +69,7 @@ fn stage_vc_runtime_dlls() {
     let mut copied: Vec<String> = Vec::new();
     for dir in std::env::split_paths(&redist_dirs) {
         for entry in std::fs::read_dir(&dir)
-            .unwrap_or_else(|e| panic!("HANDY_VC_REDIST_DIRS: read {}: {e}", dir.display()))
+            .unwrap_or_else(|e| panic!("SONA_VC_REDIST_DIRS: read {}: {e}", dir.display()))
             .flatten()
         {
             let src = entry.path();
@@ -90,8 +95,8 @@ fn stage_vc_runtime_dlls() {
     for required in ["msvcp140.dll", "vcruntime140.dll"] {
         if !copied.iter().any(|n| n == required) {
             panic!(
-                "HANDY_VC_REDIST_DIRS is set but {required} was not found in it; \
-                 the app-local VC++ runtime would be incomplete and Handy would \
+                "SONA_VC_REDIST_DIRS is set but {required} was not found in it; \
+                 the app-local VC++ runtime would be incomplete and Sona would \
                  crash on machines without a current redist (issue #1527)"
             );
         }
@@ -104,7 +109,7 @@ fn stage_vc_runtime_dlls() {
 
 /// Copy the dynamically-linked ONNX Runtime `onnxruntime.dll` into the
 /// `transcribe-libs/` staging dir so `tauri.windows.conf.json` bundles it beside
-/// `Handy.exe` (Windows resolves DLLs from the executable's directory).
+/// `Sona.exe` (Windows resolves DLLs from the executable's directory).
 ///
 /// No-op unless `ORT_PREFER_DYNAMIC_LINK` + `ORT_LIB_LOCATION` are set for a Windows
 /// target — i.e. the CI dynamic-link path. A plain static build (no env) skips this
@@ -159,8 +164,8 @@ fn stage_onnxruntime_dll() {
 /// this is a no-op there. `RUNTIME_DIR` (core libs) and `MODULE_DIR` (dlopen'd
 /// ggml modules) may be the same dir — the `BTreeSet` below dedups them.
 ///
-/// Where the staged dir lands: Windows bundles it beside `handy.exe` (DLLs resolve
-/// from the exe dir); Linux deb/rpm map it into the app-private `/usr/lib/Handy`
+/// Where the staged dir lands: Windows bundles it beside `sona.exe` (DLLs resolve
+/// from the exe dir); Linux deb/rpm map it into the app-private `/usr/lib/sona`
 /// and the AppImage into `usr/lib`, both on the binary's rpath.
 fn stage_transcribe_runtime_libs() {
     use std::collections::BTreeSet;
@@ -381,6 +386,114 @@ fn escape_string(s: &str) -> String {
         .replace('\t', "\\t")
 }
 
+#[cfg(target_os = "macos")]
+fn build_meeting_capture_bridge() {
+    use std::env;
+    use std::path::{Path, PathBuf};
+    use std::process::Command;
+
+    const SOURCE: &str = "swift/meeting_capture.swift";
+    println!("cargo:rerun-if-changed={SOURCE}");
+
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
+    let object_path = out_dir.join("meeting_capture.o");
+    let archive_path = out_dir.join("libmeeting_capture.a");
+    let sdk_path = env::var("SDKROOT").unwrap_or_else(|_| {
+        String::from_utf8(
+            Command::new("xcrun")
+                .args(["--sdk", "macosx", "--show-sdk-path"])
+                .output()
+                .expect("Failed to locate macOS SDK")
+                .stdout,
+        )
+        .expect("SDK path is not valid UTF-8")
+        .trim()
+        .to_string()
+    });
+    let swiftc_path = env::var("SWIFTC").unwrap_or_else(|_| {
+        String::from_utf8(
+            Command::new("xcrun")
+                .args(["--find", "swiftc"])
+                .output()
+                .expect("Failed to locate swiftc")
+                .stdout,
+        )
+        .expect("swiftc path is not valid UTF-8")
+        .trim()
+        .to_string()
+    });
+    let target_arch = env::var("CARGO_CFG_TARGET_ARCH").expect("target architecture unavailable");
+    let target = format!("{target_arch}-apple-macosx14.0");
+
+    if !Path::new(SOURCE).is_file() {
+        panic!("Meeting capture Swift source is missing");
+    }
+    let status = Command::new(&swiftc_path)
+        .args([
+            "-parse-as-library",
+            "-target",
+            &target,
+            "-sdk",
+            &sdk_path,
+            "-O",
+            "-c",
+            SOURCE,
+            "-o",
+            object_path
+                .to_str()
+                .expect("meeting capture object path is not UTF-8"),
+        ])
+        .status()
+        .expect("Failed to invoke swiftc for meeting capture");
+    if !status.success() {
+        panic!("swiftc failed to compile meeting capture bridge");
+    }
+    let status = Command::new("libtool")
+        .args([
+            "-static",
+            "-o",
+            archive_path
+                .to_str()
+                .expect("meeting capture archive path is not UTF-8"),
+            object_path
+                .to_str()
+                .expect("meeting capture object path is not UTF-8"),
+        ])
+        .status()
+        .expect("Failed to archive meeting capture bridge");
+    if !status.success() {
+        panic!("libtool failed for meeting capture bridge");
+    }
+
+    let toolchain_swift_lib = Path::new(&swiftc_path)
+        .parent()
+        .and_then(|path| path.parent())
+        .map(|root| root.join("lib/swift/macosx"))
+        .expect("Unable to determine Swift toolchain lib directory");
+    let sdk_swift_lib = Path::new(&sdk_path).join("usr/lib/swift");
+    println!("cargo:rustc-link-search=native={}", out_dir.display());
+    println!("cargo:rustc-link-lib=static=meeting_capture");
+    println!(
+        "cargo:rustc-link-search=native={}",
+        toolchain_swift_lib.display()
+    );
+    println!("cargo:rustc-link-search=native={}", sdk_swift_lib.display());
+    for framework in [
+        "ScreenCaptureKit",
+        "AVFoundation",
+        "AppKit",
+        "ApplicationServices",
+        "CoreMedia",
+        "CoreAudio",
+        "AudioToolbox",
+        "CoreGraphics",
+        "Foundation",
+        "CoreFoundation",
+    ] {
+        println!("cargo:rustc-link-lib=framework={framework}");
+    }
+}
+
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn build_apple_intelligence_bridge() {
     use std::env;
@@ -417,11 +530,11 @@ fn build_apple_intelligence_bridge() {
     // Check if the SDK supports FoundationModels (required for Apple Intelligence)
     let framework_path =
         Path::new(&sdk_path).join("System/Library/Frameworks/FoundationModels.framework");
-    // HANDY_FORCE_AI_STUB=1 is an explicit escape hatch: force the stub even when
+    // SONA_FORCE_AI_STUB=1 is an explicit escape hatch: force the stub even when
     // the active toolchain could build the real path (e.g. to skip the Swift
     // compile, or if the auto-detection below misfires). The common CLT-only case
     // is detected automatically just below, so this flag is rarely needed.
-    let force_stub = env::var("HANDY_FORCE_AI_STUB").as_deref() == Ok("1");
+    let force_stub = env::var("SONA_FORCE_AI_STUB").as_deref() == Ok("1");
 
     // Auto-detect a Command-Line-Tools-only toolchain. The CLT SDK contains
     // FoundationModels.framework, so the `framework_path.exists()` check alone
@@ -436,7 +549,7 @@ fn build_apple_intelligence_bridge() {
         println!(
             "cargo:warning=Command Line Tools-only toolchain detected; Apple Intelligence \
              (FoundationModels) needs full Xcode. Falling back to stubs. Install Xcode and run \
-             `sudo xcode-select -s /Applications/Xcode.app`, or set HANDY_FORCE_AI_STUB=1 to \
+             `sudo xcode-select -s /Applications/Xcode.app`, or set SONA_FORCE_AI_STUB=1 to \
              silence this message."
         );
     }
@@ -448,7 +561,7 @@ fn build_apple_intelligence_bridge() {
         REAL_SWIFT_FILE
     } else {
         // The SDK genuinely lacking FoundationModels is only one reason we build
-        // stubs — CLT-only detection and HANDY_FORCE_AI_STUB (each warned about
+        // stubs — CLT-only detection and SONA_FORCE_AI_STUB (each warned about
         // above) also land here, and for those the framework does exist. Only
         // claim it's "not found" when that's actually true.
         if framework_path.exists() {
@@ -551,8 +664,6 @@ fn build_apple_intelligence_bridge() {
         println!("cargo:rustc-link-arg=-weak_framework");
         println!("cargo:rustc-link-arg=FoundationModels");
     }
-
-    println!("cargo:rustc-link-arg=-Wl,-rpath,/usr/lib/swift");
 }
 
 /// Returns true when the active developer directory is the standalone Command

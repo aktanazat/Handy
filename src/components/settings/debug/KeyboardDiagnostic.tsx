@@ -7,7 +7,7 @@ import { useOsType } from "../../../hooks/useOsType";
  * Count-only keyboard capture test (macOS).
  *
  * Opens a short-lived listener and tallies how many key-down / key-up /
- * modifier / mouse events reach Handy — never *which* keys were pressed.
+ * modifier / mouse events reach Sona — never *which* keys were pressed.
  * The signature of stuck Secure Input (issue #1578) is modifier events
  * flowing while key-down stays at zero.
  */
@@ -95,7 +95,7 @@ export const KeyboardDiagnostic: React.FC = () => {
         </p>
       )}
       {error !== null && (
-        <p className="text-sm text-red-500">
+        <p role="alert" className="text-sm text-danger">
           {t("settings.debug.keyboardDiagnostic.failed", { error })}
         </p>
       )}

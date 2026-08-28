@@ -35,10 +35,12 @@ interface UseSettingsReturn {
     providerId: string,
     baseUrl: string,
   ) => Promise<void>;
-  updatePostProcessApiKey: (
+  replacePostProcessSecret: (
     providerId: string,
-    apiKey: string,
-  ) => Promise<void>;
+    secret: string,
+  ) => Promise<boolean>;
+  removePostProcessSecret: (providerId: string) => Promise<boolean>;
+  refreshPostProcessSecretState: (providerId: string) => Promise<void>;
   updatePostProcessModel: (providerId: string, model: string) => Promise<void>;
   fetchPostProcessModels: (providerId: string) => Promise<string[]>;
 }
@@ -71,7 +73,9 @@ export const useSettings = (): UseSettingsReturn => {
     getSetting: store.getSetting,
     setPostProcessProvider: store.setPostProcessProvider,
     updatePostProcessBaseUrl: store.updatePostProcessBaseUrl,
-    updatePostProcessApiKey: store.updatePostProcessApiKey,
+    replacePostProcessSecret: store.replacePostProcessSecret,
+    removePostProcessSecret: store.removePostProcessSecret,
+    refreshPostProcessSecretState: store.refreshPostProcessSecretState,
     updatePostProcessModel: store.updatePostProcessModel,
     fetchPostProcessModels: store.fetchPostProcessModels,
   };

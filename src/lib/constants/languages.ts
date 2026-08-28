@@ -133,11 +133,11 @@ export const SELECTABLE_LANGUAGES: Language[] = LANGUAGES.filter(
   (language) => language.value !== CHINESE_LANGUAGE_CODE,
 );
 
-// Collapse a language tag to the base code Handy matches on, dropping any
+// Collapse a language tag to the base code Sona matches on, dropping any
 // BCP-47 region or script subtag: "en-US" → "en", "zh-CN" → "zh", "zh-Hant" →
 // "zh". Bare and three-letter codes ("haw") pass through unchanged. This lets
-// the picker match a model's *real* codes — which may be full locales like
-// "en-US" (e.g. Nemotron Streaming) — against Handy's canonical bare-code
+// the picker match a model's real codes — which may be full locales like
+// "en-US" (e.g. Nemotron Streaming) — against Sona's canonical bare-code
 // LANGUAGES list without the backend having to mangle the codes the engine needs.
 export const recognitionLanguage = (languageCode: string): string => {
   const separatorIndex = languageCode.indexOf("-");
@@ -161,11 +161,17 @@ export const getUniqueCapabilityLanguages = (
   supportedLanguages: string[],
 ): string[] => {
   const seen = new Set<string>();
-  return supportedLanguages.map(recognitionLanguage).filter((languageCode) => {
-    if (seen.has(languageCode)) return false;
+  const uniqueLanguages: string[] = [];
+
+  for (const supportedLanguage of supportedLanguages) {
+    const languageCode = recognitionLanguage(supportedLanguage);
+    if (seen.has(languageCode)) continue;
+
     seen.add(languageCode);
-    return true;
-  });
+    uniqueLanguages.push(languageCode);
+  }
+
+  return uniqueLanguages;
 };
 
 export const getLanguageLabel = (languageCode: string): string | undefined =>

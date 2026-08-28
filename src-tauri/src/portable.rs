@@ -1,14 +1,16 @@
-//! Portable mode support for Handy.
-//!
+//! Portable mode support for Sona.
 //! When a file named `portable` exists next to the executable, all user data
 //! (settings, models, recordings, database, logs) is stored in a `Data/`
-//! directory alongside the executable instead of `%APPDATA%`.
+//! directory alongside the executable instead of the platform app-data root.
 
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use tauri::Manager;
 
 static PORTABLE_DATA_DIR: OnceLock<Option<PathBuf>> = OnceLock::new();
+
+pub const PORTABLE_MAGIC: &str = "Sona Portable Mode";
+const LEGACY_PORTABLE_MAGIC: &str = "Handy Portable Mode";
 
 /// Detect portable mode by looking for a `portable` marker file next to the exe.
 /// Must be called once at startup before Tauri initializes.
@@ -20,20 +22,35 @@ pub fn init() {
         let marker_path = exe_dir.join("portable");
         let data_dir = exe_dir.join("Data");
 
-        let is_portable = if is_valid_portable_marker(&marker_path) {
-            true
-        } else if marker_path.exists() && data_dir.exists() {
-            // Migration: v0.8.0 created an empty marker file. If we find an
-            // empty/invalid marker alongside an existing Data/ dir, this is a
-            // real portable install — upgrade the marker in place.
-            eprintln!("[portable] upgrading legacy empty marker to magic string");
-            let _ = std::fs::write(&marker_path, "Handy Portable Mode");
-            true
-        } else {
-            false
-        };
+        let marker = portable_marker(&marker_path);
+        let legacy_empty_marker =
+            marker.is_none() && marker_path.exists() && data_dir.exists();
+        let is_portable = marker.is_some() || legacy_empty_marker;
+
+        if is_portable
+            && debug_portable_marker_requires_override(
+                &exe_path,
+                cfg!(debug_assertions),
+                debug_portable_override_enabled(),
+            )
+        {
+            eprintln!(
+                "[portable] refusing Cargo debug portable marker at {}: it disables native secure storage. Remove or archive the marker before `tauri dev`, or set SONA_ALLOW_PORTABLE_DEV=1 for an intentional portable development run.",
+                marker_path.display()
+            );
+            std::process::exit(78);
+        }
 
         if is_portable {
+            if marker == Some(LEGACY_PORTABLE_MAGIC) {
+                eprintln!("[portable] upgrading legacy marker to Sona");
+                let _ = std::fs::write(&marker_path, PORTABLE_MAGIC);
+            } else if legacy_empty_marker {
+                // An empty marker next to Data/ is the legacy Scoop layout. Keep
+                // the install portable and make its intent explicit for Sona.
+                eprintln!("[portable] upgrading legacy empty marker to Sona");
+                let _ = std::fs::write(&marker_path, PORTABLE_MAGIC);
+            }
             if !data_dir.exists() {
                 std::fs::create_dir_all(&data_dir).ok()?;
             }
@@ -100,12 +117,49 @@ pub fn store_path(relative: &str) -> PathBuf {
     }
 }
 
-/// Check if a marker file path contains the portable magic string.
-/// Extracted for testability.
-fn is_valid_portable_marker(path: &std::path::Path) -> bool {
-    std::fs::read_to_string(path)
-        .map(|s| s.trim().starts_with("Handy Portable Mode"))
-        .unwrap_or(false)
+/// Return a recognized marker after trimming only surrounding whitespace.
+/// Legacy content remains accepted so an in-place portable upgrade retains
+/// its data, but `init` immediately rewrites it to `PORTABLE_MAGIC`.
+fn portable_marker(path: &Path) -> Option<&'static str> {
+    match std::fs::read_to_string(path).ok()?.trim() {
+        PORTABLE_MAGIC => Some(PORTABLE_MAGIC),
+        LEGACY_PORTABLE_MAGIC => Some(LEGACY_PORTABLE_MAGIC),
+        _ => None,
+    }
+}
+
+fn debug_portable_override_enabled() -> bool {
+    std::env::var("SONA_ALLOW_PORTABLE_DEV").as_deref() == Ok("1")
+}
+
+fn debug_portable_marker_requires_override(
+    executable: &Path,
+    debug_build: bool,
+    explicit_override: bool,
+) -> bool {
+    if !debug_build || explicit_override {
+        return false;
+    }
+
+    let Some(debug_directory) = executable.parent() else {
+        return false;
+    };
+    let Some(target_directory) = debug_directory.parent() else {
+        return false;
+    };
+
+    debug_directory
+        .file_name()
+        .is_some_and(|name| name == "debug")
+        && target_directory
+            .file_name()
+            .is_some_and(|name| name == "target")
+}
+
+#[cfg(test)]
+/// Check whether a marker uses either supported portable sentinel.
+fn is_valid_portable_marker(path: &Path) -> bool {
+    portable_marker(path).is_some()
 }
 
 #[cfg(test)]
@@ -113,70 +167,89 @@ mod tests {
     use super::*;
     use std::io::Write;
 
+    fn temporary_directory(name: &str) -> std::path::PathBuf {
+        let path =
+            std::env::temp_dir().join(format!("sona-portable-{name}-{}", std::process::id()));
+        std::fs::create_dir_all(&path).unwrap();
+        path
+    }
+
     #[test]
-    fn test_valid_magic_string_enables_portable() {
-        let dir = std::env::temp_dir().join("handy_test_valid");
-        std::fs::create_dir_all(&dir).unwrap();
+    fn new_magic_string_enables_portable() {
+        let dir = temporary_directory("current");
         let marker = dir.join("portable");
-        let mut f = std::fs::File::create(&marker).unwrap();
-        write!(f, "Handy Portable Mode").unwrap();
+        std::fs::write(&marker, PORTABLE_MAGIC).unwrap();
+        assert!(is_valid_portable_marker(&marker));
+        assert_eq!(portable_marker(&marker), Some(PORTABLE_MAGIC));
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn legacy_magic_string_remains_accepted_for_in_place_upgrade() {
+        let dir = temporary_directory("legacy");
+        let marker = dir.join("portable");
+        std::fs::write(&marker, LEGACY_PORTABLE_MAGIC).unwrap();
+        assert!(is_valid_portable_marker(&marker));
+        assert_eq!(portable_marker(&marker), Some(LEGACY_PORTABLE_MAGIC));
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn empty_marker_requires_existing_data_directory() {
+        let dir = temporary_directory("empty");
+        let marker = dir.join("portable");
+        std::fs::File::create(&marker).unwrap();
+        assert!(!is_valid_portable_marker(&marker));
+        std::fs::create_dir(dir.join("Data")).unwrap();
+        assert!(marker.exists());
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn wrong_content_does_not_enable_portable() {
+        let dir = temporary_directory("wrong");
+        let marker = dir.join("portable");
+        std::fs::write(&marker, "some other content").unwrap();
+        assert!(!is_valid_portable_marker(&marker));
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn whitespace_is_accepted_only_around_a_known_magic_string() {
+        let dir = temporary_directory("whitespace");
+        let marker = dir.join("portable");
+        let mut file = std::fs::File::create(&marker).unwrap();
+        writeln!(file, "  {PORTABLE_MAGIC}").unwrap();
         assert!(is_valid_portable_marker(&marker));
         std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
-    fn test_empty_file_does_not_enable_portable() {
-        let dir = std::env::temp_dir().join("handy_test_empty");
-        std::fs::create_dir_all(&dir).unwrap();
-        let marker = dir.join("portable");
-        std::fs::File::create(&marker).unwrap();
-        assert!(!is_valid_portable_marker(&marker));
-        std::fs::remove_dir_all(dir).unwrap();
-    }
-
-    #[test]
-    fn test_wrong_content_does_not_enable_portable() {
-        let dir = std::env::temp_dir().join("handy_test_wrong");
-        std::fs::create_dir_all(&dir).unwrap();
-        let marker = dir.join("portable");
-        let mut f = std::fs::File::create(&marker).unwrap();
-        write!(f, "some other content").unwrap();
-        assert!(!is_valid_portable_marker(&marker));
-        std::fs::remove_dir_all(dir).unwrap();
-    }
-
-    #[test]
-    fn test_missing_file_does_not_enable_portable() {
-        let path = std::path::Path::new("/nonexistent/portable");
-        assert!(!is_valid_portable_marker(path));
-    }
-
-    #[test]
-    fn test_legacy_empty_marker_without_data_dir_does_not_enable_portable() {
-        // Empty marker alone (scoop scenario) — no Data/ dir → not portable
-        let dir = std::env::temp_dir().join("handy_test_legacy_no_data");
-        std::fs::create_dir_all(&dir).unwrap();
-        let marker = dir.join("portable");
-        std::fs::File::create(&marker).unwrap();
-        assert!(!is_valid_portable_marker(&marker));
-        std::fs::remove_dir_all(dir).unwrap();
-    }
-
-    #[test]
-    fn test_magic_string_with_whitespace_enables_portable() {
-        let dir = std::env::temp_dir().join("handy_test_ws");
-        std::fs::create_dir_all(&dir).unwrap();
-        let marker = dir.join("portable");
-        let mut f = std::fs::File::create(&marker).unwrap();
-        write!(f, "  Handy Portable Mode\n").unwrap();
-        assert!(is_valid_portable_marker(&marker));
-        std::fs::remove_dir_all(dir).unwrap();
-    }
-
-    #[test]
-    fn test_hugging_face_home_is_inside_portable_data() {
+    fn hugging_face_home_is_inside_portable_data() {
         let data_dir = Path::new("portable-root").join("Data");
-
         assert_eq!(hugging_face_home(&data_dir), data_dir.join("huggingface"));
+    }
+
+    #[test]
+    fn cargo_debug_portable_marker_requires_explicit_override() {
+        let executable = Path::new("/workspace/src-tauri/target/debug/sona");
+
+        assert!(debug_portable_marker_requires_override(
+            executable, true, false
+        ));
+    }
+
+    #[test]
+    fn explicit_override_keeps_intentional_debug_portable_mode_available() {
+        let executable = Path::new("/workspace/src-tauri/target/debug/sona");
+
+        assert!(!debug_portable_marker_requires_override(
+            executable, true, true
+        ));
+        assert!(!debug_portable_marker_requires_override(
+            Path::new("/Applications/Sona.app/Contents/MacOS/Sona"),
+            false,
+            false,
+        ));
     }
 }

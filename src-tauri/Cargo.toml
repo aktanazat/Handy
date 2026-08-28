@@ -1,11 +1,19 @@
 [package]
-name = "handy"
-version = "0.9.5"
-description = "Handy"
-authors = ["cjpais"]
+name = "sona"
+version = "1.0.0"
+description = "Sona"
+authors = ["Aktan Azat"]
 edition = "2021"
 license = "MIT"
-default-run = "handy"
+default-run = "sona"
+
+[features]
+cloud-realtime = [
+  "dep:tokio-tungstenite",
+  "tokio/net",
+  "tokio/sync",
+  "tokio/time",
+]
 
 [profile.dev]
 incremental = true # Compile your binary in smaller steps.
@@ -13,10 +21,9 @@ incremental = true # Compile your binary in smaller steps.
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-# The `_lib` suffix may seem redundant but it is necessary
-# to make the lib name unique and wouldn't conflict with the bin name.
-# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
-name = "handy_app_lib"
+# The `_lib` suffix keeps the library distinct from the application binary on
+# Windows.
+name = "sona_app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 # [[bin]]
@@ -36,6 +43,7 @@ tauri = { version = "2.11.5", features = [
   "tray-icon",
   'image-png',
 ] }
+window-vibrancy = "0.8.0"
 tauri-plugin-log = "2.7.1"
 tauri-plugin-opener = "2.5.2"
 tauri-plugin-store = "2.4.1"
@@ -47,11 +55,15 @@ rusqlite_migration = "2.3"
 tauri-plugin-fs = "2.4.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+zeroize = "=1.8.2"
+libc = "0.2"
 rdev = { git = "https://github.com/rustdesk-org/rdev" }
 cpal = "0.16.0"
 anyhow = "1.0.95"
 rubato = "0.16.2"
 hound = "3.5.1"
+symphonia = { version = "=0.5.5", default-features = false, features = ["aac", "flac", "isomp4", "mp3", "ogg", "pcm", "vorbis", "wav"] }
+parking_lot = "0.12"
 log = "0.4.25"
 env_filter = "0.1.0"
 tokio = "1.43.0"
@@ -59,17 +71,25 @@ vad-rs = { git = "https://github.com/cjpais/vad-rs", default-features = false }
 enigo = "0.6.1"
 rodio = { git = "https://github.com/cjpais/rodio.git" }
 reqwest = { version = "0.12", features = ["json", "stream", "gzip", "brotli", "deflate"] }
-futures-util = "0.3"
-rustfft = "6.4.0"
+futures-util = { version = "=0.3.31", default-features = false, features = ["sink", "std"] }
+tokio-tungstenite = { version = "=0.30.0", optional = true, default-features = false, features = ["connect", "rustls-tls-native-roots"] }
+base64 = { version = "=0.22.1", default-features = false, features = ["alloc"] }
+ed25519-dalek = "3"
+x25519-dalek = { version = "2.0.1", features = ["static_secrets"] }
+ndarray = "0.17"
+rustfft = "6.4.1"
+ort = { version = "=2.0.0-rc.12", default-features = false, features = ["std", "ndarray"] }
 strsim = "0.11.0"
 natural = "0.5.0"
 regex = "1"
+url = "2"
+csv = "1"
 # Text-based language ID (filler-word removal fallback); isolang bridges the
 # ISO 639-1 codes in model metadata to whatlang's 639-3 codes.
 whatlang = "0.16"
 isolang = "2"
 chrono = "0.4"
-rusqlite = { version = "0.37", features = ["bundled"] }
+rusqlite = { version = "0.37", features = ["bundled-sqlcipher"] }
 tar = "0.4.44"
 flate2 = "1.0"
 sha2 = "0.10"
@@ -81,13 +101,19 @@ transcribe-cpp = { version = "0.2.0", default-features = false }
 handy-keys = "0.3.4"
 ferrous-opencc = "0.2.3"
 clap = { version = "4", features = ["derive"] }
-specta = "=2.0.0-rc.22"
+specta = { version = "=2.0.0-rc.22", features = ["uuid"] }
 specta-typescript = "0.0.9"
 tauri-specta = { version = "=2.0.0-rc.21", features = ["derive", "typescript"] }
 tauri-plugin-dialog = "2.6"
 hf-hub = { git = "https://github.com/cjpais/hf-hub", branch = "cancellable-downloads", features = [
   "tokio",
 ] }
+aes-gcm = "0.10"
+getrandom = "0.3"
+hex = "0.4"
+hkdf = "0.12"
+rtrb = "0.3"
+uuid = { version = "1", features = ["v4", "v5", "serde"] }
 
 [target.'cfg(unix)'.dependencies]
 signal-hook = "0.3"
@@ -96,7 +122,6 @@ signal-hook = "0.3"
 tauri-plugin-autostart = "2.5.1"
 tauri-plugin-global-shortcut = "2.3.1"
 tauri-plugin-single-instance = "2.3.2"
-tauri-plugin-updater = "2.10.1"
 
 [target.'cfg(windows)'.dependencies]
 # ONNX Runtime on Windows is CPU-only (no ort-directml), matching macOS/Linux.
@@ -112,14 +137,20 @@ windows = { version = "0.61.3", features = [
   "Win32_System_Com_StructuredStorage",
   "Win32_System_DataExchange",
   "Win32_System_LibraryLoader",
+  "Win32_System_Diagnostics_ToolHelp",
   "Win32_System_Ole",
   "Win32_System_Memory",
+  # File identity + ChangeTime for model install receipts
+  # (GetFileInformationByHandleEx).
+  "Win32_Storage_FileSystem",
   "Win32_System_Threading",
   "Win32_System_Variant",
   "Win32_Foundation",
   "Win32_Graphics_Gdi",
   "Win32_UI_WindowsAndMessaging",
 ] }
+libloading = "0.8.9"
+keyring = { version = "=3.6.1", default-features = false, features = ["windows-native"] }
 winreg = "0.55"
 
 # Whisper backend per Windows arch. x86_64 ships the Vulkan GPU backend and
@@ -132,7 +163,7 @@ winreg = "0.55"
 # buys nothing on ARM — ALL_VARIANTS is an x86 concept, so a DL build there is
 # just a single portable CPU module shipped as a DLL. So ARM links transcribe-cpp
 # STATICALLY (no features = static CPU-only): the one CPU backend is compiled into
-# handy.exe and we ship zero DLLs, which sidesteps the installer's per-DLL
+# sona.exe and we ship zero DLLs, which sidesteps the installer's per-DLL
 # signtool verify entirely. CI pins -DGGML_NATIVE=OFF (see build.yml) so the
 # static build targets a portable ARM baseline, not the build runner's CPU.
 [target.'cfg(all(windows, target_arch = "x86_64"))'.dependencies]
@@ -153,15 +184,31 @@ objc2 = "0.6"
 objc2-foundation = "0.3"
 objc2-app-kit = "0.3"
 objc2-service-management = "0.3.2"
+# Accessibility (ApplicationServices/HIServices) drives context capture and the
+# preferred delivery path: reading the focused control and inserting text into
+# it. Feature-pared to the AXUIElement surface actually used.
+objc2-application-services = { version = "0.3", default-features = false, features = [
+  "std",
+  "libc",
+  "HIServices",
+  "AXUIElement",
+  "AXError",
+] }
+objc2-core-foundation = { version = "0.3", default-features = false, features = [
+  "std",
+  "CFString",
+  "CFURL",
+] }
 
+keyring = { version = "=3.6.1", default-features = false, features = ["apple-native"] }
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk-layer-shell = { version = "0.8", features = ["v0_6"] }
 gtk = "0.18"
-libc = "0.2"
 transcribe-cpp = { version = "0.2.0", default-features = false, features = [
   "dynamic-backends",
   "vulkan",
 ] }
+keyring = { version = "=3.6.1", default-features = false, features = ["sync-secret-service"] }
 
 # TEMPORARY: tao pinned past 0.35.3 for the Wayland client-side-decorations fix
 # (tao #1218, fixes tauri #11856 — dead titlebar buttons after visible(false) →

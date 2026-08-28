@@ -69,11 +69,11 @@ export const findReleaseNoteToShow = ({
 
   const hasValidLastSeenVersion = parseVersion(lastSeenVersion) !== null;
   const candidate = Array.from(releaseNotesByVersion.values())
-    .filter((note) => compareVersions(note.version, currentVersion) <= 0)
     .filter(
       (note) =>
-        !hasValidLastSeenVersion ||
-        compareVersions(note.version, lastSeenVersion) > 0,
+        compareVersions(note.version, currentVersion) <= 0 &&
+        (!hasValidLastSeenVersion ||
+          compareVersions(note.version, lastSeenVersion) > 0),
     )
     .sort((a, b) => compareVersions(b.version, a.version))[0];
 

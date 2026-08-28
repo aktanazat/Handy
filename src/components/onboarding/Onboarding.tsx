@@ -4,8 +4,10 @@ import { toast } from "sonner";
 import { ChevronDown } from "lucide-react";
 import type { ModelInfo } from "@/bindings";
 import type { ModelCardStatus } from "./ModelCard";
-import ModelCard, { isLegacySource } from "./ModelCard";
-import HandyTextLogo from "../icons/HandyTextLogo";
+import ModelCard from "./ModelCard";
+import { isLegacySource } from "./modelSource";
+import { SonaMark } from "../icons/SonaMark";
+import { SonaWordmark } from "../icons/SonaWordmark";
 import { useModelStore } from "../../stores/modelStore";
 
 interface OnboardingProps {
@@ -36,22 +38,31 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
   // disk). The catalog arrives rank-sorted, so the first two recommended models
   // are the featured picks — currently Parakeet Unified (English) and Nemotron
   // Streaming (multilingual). Everything else hides behind "Show all".
-  const { downloadable, topPicks, otherRecommended, rest } = useMemo(() => {
-    const downloadable = models.filter(
-      (m: ModelInfo) => !m.is_downloaded && !isLegacySource(m),
-    );
-    const recommended = downloadable.filter((m: ModelInfo) => m.is_recommended);
-    // `models` arrives in editorial rank order (the backend sorts by rank_of,
-    // then accuracy), so keep that order here: ranked-but-not-recommended models
-    // surface first, then the unranked tail by accuracy.
-    const rest = downloadable.filter((m: ModelInfo) => !m.is_recommended);
-    return {
-      downloadable,
-      topPicks: recommended.slice(0, 2),
-      otherRecommended: recommended.slice(2),
-      rest,
-    };
-  }, [models]);
+  const { downloadedModels, downloadable, topPicks, otherRecommended, rest } =
+    useMemo(() => {
+      const downloadedModels = models.filter(
+        (model: ModelInfo) => model.is_downloaded,
+      );
+      const downloadable = models.filter(
+        (model: ModelInfo) => !model.is_downloaded && !isLegacySource(model),
+      );
+      const recommended = downloadable.filter(
+        (model: ModelInfo) => model.is_recommended,
+      );
+      // `models` arrives in editorial rank order (the backend sorts by rank_of,
+      // then accuracy), so keep that order here: ranked-but-not-recommended models
+      // surface first, then the unranked tail by accuracy.
+      const rest = downloadable.filter(
+        (model: ModelInfo) => !model.is_recommended,
+      );
+      return {
+        downloadedModels,
+        downloadable,
+        topPicks: recommended.slice(0, 2),
+        otherRecommended: recommended.slice(2),
+        rest,
+      };
+    }, [models]);
 
   const hasRecommended = topPicks.length > 0 || otherRecommended.length > 0;
   // When nothing recommended remains to download (e.g. all already on disk),
@@ -144,26 +155,25 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col p-6 gap-4 inset-0">
-      <div className="flex flex-col items-center gap-2 shrink-0">
-        <HandyTextLogo width={200} />
-        <p className="text-text/70 max-w-md font-medium mx-auto">
+    <div className="onboarding-shell h-screen w-screen flex flex-col p-6 gap-4 inset-0">
+      <div className="flex shrink-0 flex-col items-center gap-3 text-text-primary">
+        <SonaMark width={36} height={36} />
+        <SonaWordmark className="text-2xl" />
+        <p className="mx-auto max-w-md font-medium text-text-secondary">
           {t("onboarding.subtitle")}
         </p>
       </div>
 
-      <div className="max-w-[600px] w-full mx-auto text-center flex-1 flex flex-col min-h-0">
+      <div className="onboarding-panel max-w-[600px] w-full mx-auto text-center flex-1 flex flex-col min-h-0">
         <div className="space-y-6 pb-6">
-          {models.some((m: ModelInfo) => m.is_downloaded) && (
+          {downloadedModels.length > 0 && (
             <div className="space-y-3">
               <div className="text-left">
                 <h2 className="text-sm font-medium text-text/60">
                   {t("onboarding.existingModelsTitle")}
                 </h2>
               </div>
-              {models
-                .filter((m: ModelInfo) => m.is_downloaded)
-                .map((model: ModelInfo) => (
+              {downloadedModels.map((model: ModelInfo) => (
                   <ModelCard
                     key={model.id}
                     model={model}

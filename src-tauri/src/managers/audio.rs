@@ -1,24 +1,48 @@
 use crate::audio_toolkit::{
-    list_input_devices,
+    is_microphone_access_denied, is_no_input_device_error, list_input_devices,
     vad::{
         SmoothedVad, VAD_OFFLINE_HANGOVER_FRAMES, VAD_ONSET_FRAMES, VAD_PREFILL_FRAMES,
         VAD_STREAMING_HANGOVER_FRAMES,
     },
-    AudioRecorder, SileroVad, VadPolicy,
+    AudioRecorder, CaptureError, CaptureOverrun, SileroVad, VadPolicy,
 };
 use crate::helpers::clamshell;
 use crate::managers::transcription::StreamRouter;
-use crate::settings::{get_settings, write_settings, AppSettings};
+use crate::meeting::{
+    capture::{MeetingCaptureSource, PacketSink},
+    types::{
+        MeetingCaptureError, SessionClockAnchor, SourceAvailability, SourceEpoch, SourceHealth,
+        SourceKind, SourceProbe, SourceProbeDetail, SourceStartPlan, SourceStartReport,
+        SourceStopReport,
+    },
+};
+use crate::settings::{get_settings, update_settings, AppSettings};
 use crate::utils;
 use log::{debug, error, info, trace, warn};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::{mpsc, Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 use tauri::{Emitter, Manager};
 
 const STREAM_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// The terminal result of one microphone capture. An overrun keeps only the
+/// contiguous prefix before the gap; the action owner saves it for an explicit
+/// retry and must never transcribe or deliver it automatically.
+pub enum RecordingStop {
+    Complete(Vec<f32>),
+    NoSpeech { samples: Vec<f32> },
+    Overrun { prefix_samples: Vec<f32> },
+}
 const VAD_THRESHOLD: f32 = 0.3;
+
+fn lock_recover<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    match mutex.lock() {
+        Ok(guard) => guard,
+        Err(poisoned) => poisoned.into_inner(),
+    }
+}
 
 fn set_mute(mute: bool) {
     // Expected behavior:
@@ -30,6 +54,7 @@ fn set_mute(mute: bool) {
 
     #[cfg(target_os = "windows")]
     {
+        // SAFETY: This block uses only COM interfaces returned by Windows calls and a null optional SetMute pointer.
         unsafe {
             use windows::Win32::{
                 Media::Audio::{
@@ -117,6 +142,7 @@ fn set_mute(mute: bool) {
 /// so we never strand the user's audio muted.
 #[cfg(target_os = "windows")]
 fn get_mute() -> Option<bool> {
+    // SAFETY: This block uses only COM interfaces returned by Windows calls and a null optional SetMute pointer.
     unsafe {
         use windows::Win32::{
             Media::Audio::{
@@ -341,6 +367,71 @@ impl RecordingReadiness {
     }
 }
 
+/// Lock-free ownership record for the one meeting microphone stream. The
+/// session manager owns the global meeting lease; this narrower lease prevents
+/// dictation and a meeting from commanding the same cpal stream concurrently.
+struct MeetingMicrophoneLease {
+    active: AtomicBool,
+    next_generation: AtomicU64,
+    owner_generation: AtomicU64,
+}
+
+impl MeetingMicrophoneLease {
+    fn new() -> Self {
+        Self {
+            active: AtomicBool::new(false),
+            next_generation: AtomicU64::new(0),
+            owner_generation: AtomicU64::new(0),
+        }
+    }
+
+    fn try_acquire(&self) -> Option<u64> {
+        self.active
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .ok()?;
+        let generation = self.next_generation.fetch_add(1, Ordering::AcqRel) + 1;
+        self.owner_generation.store(generation, Ordering::Release);
+        Some(generation)
+    }
+
+    fn owns(&self, generation: u64) -> bool {
+        self.active.load(Ordering::Acquire)
+            && self.owner_generation.load(Ordering::Acquire) == generation
+    }
+
+    fn release(&self, generation: u64) -> bool {
+        if !self.owns(generation) {
+            return false;
+        }
+        self.active.store(false, Ordering::Release);
+        true
+    }
+
+    fn is_active(&self) -> bool {
+        self.active.load(Ordering::Acquire)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum MeetingMicrophonePhase {
+    Ready,
+    Recording,
+    Paused,
+    Closed,
+}
+
+/// A single, explicitly acquired meeting adapter for the microphone device.
+///
+/// It owns no meeting lifecycle state. It translates the meeting capture
+/// contract into the existing microphone recorder while the audio manager
+/// retains device ownership.
+pub struct MeetingMicrophoneSource {
+    audio: Arc<AudioRecordingManager>,
+    lease_generation: u64,
+    phase: MeetingMicrophonePhase,
+    epoch: Option<SourceEpoch>,
+}
+
 #[derive(Clone)]
 pub struct AudioRecordingManager {
     /// Never assign through this directly — route every write through
@@ -373,6 +464,7 @@ pub struct AudioRecordingManager {
     /// so the retry re-enumerates. The system-default case is never cached —
     /// the recorder resolves the current default itself, cheaply.
     cached_device: Arc<Mutex<Option<(String, cpal::Device)>>>,
+    meeting_lease: Arc<MeetingMicrophoneLease>,
 }
 
 impl AudioRecordingManager {
@@ -404,6 +496,7 @@ impl AudioRecordingManager {
             recording_active: Arc::new(AtomicBool::new(false)),
             capture_generation: Arc::new(AtomicU64::new(0)),
             cached_device: Arc::new(Mutex::new(None)),
+            meeting_lease: Arc::new(MeetingMicrophoneLease::new()),
         };
 
         // Always-on?  Open immediately.
@@ -439,7 +532,7 @@ impl AudioRecordingManager {
     }
 
     pub fn invalidate_device_cache(&self) {
-        *self.cached_device.lock().unwrap() = None;
+        *lock_recover(&self.cached_device) = None;
     }
 
     fn resolve_microphone_device(&self, settings: &AppSettings) -> MicrophoneResolution {
@@ -458,7 +551,7 @@ impl AudioRecordingManager {
 
         // Cache hit: skip the full enumeration. A stale device (unplugged)
         // fails at open, where the caller invalidates and retries fresh.
-        if let Some((cached_name, device)) = self.cached_device.lock().unwrap().as_ref() {
+        if let Some((cached_name, device)) = lock_recover(&self.cached_device).as_ref() {
             if *cached_name == device_name {
                 debug!("device resolve: cache hit for '{}'", device_name);
                 return MicrophoneResolution {
@@ -491,7 +584,7 @@ impl AudioRecordingManager {
             device.is_some()
         );
         if let Some(d) = &device {
-            *self.cached_device.lock().unwrap() = Some((device_name, d.clone()));
+            *lock_recover(&self.cached_device) = Some((device_name, d.clone()));
         }
 
         let unavailable_selected_microphone = if enumeration_succeeded && device.is_none() {
@@ -506,16 +599,20 @@ impl AudioRecordingManager {
     }
 
     /// Keep persisted settings and the UI aligned with a successful runtime
-    /// fallback. Re-read first so recovery cannot clear a microphone the user
-    /// selected concurrently while the stream was being rebuilt.
+    /// fallback. The update compares and clears one field under the settings
+    /// lock, so recovery cannot clear a microphone selected concurrently while
+    /// the stream was being rebuilt.
     fn persist_default_microphone_after_fallback(&self, unavailable_name: &str) {
-        let mut settings = get_settings(&self.app_handle);
-        if settings.selected_microphone.as_deref() != Some(unavailable_name) {
+        let reset = update_settings(&self.app_handle, |settings| {
+            if settings.selected_microphone.as_deref() != Some(unavailable_name) {
+                return false;
+            }
+            settings.selected_microphone = None;
+            true
+        });
+        if !reset {
             return;
         }
-
-        settings.selected_microphone = None;
-        write_settings(&self.app_handle, settings);
         let _ = self.app_handle.emit(
             "settings-changed",
             serde_json::json!({
@@ -534,9 +631,10 @@ impl AudioRecordingManager {
             // Hold state lock across the check AND close to serialize against
             // try_start_recording, preventing a race where the stream is closed
             // under an active recording.
-            let state = rm.state.lock().unwrap();
+            let state = lock_recover(&rm.state);
             if rm.close_generation.load(Ordering::SeqCst) == gen
                 && matches!(*state, RecordingState::Idle)
+                && !rm.meeting_lease.is_active()
             {
                 // stop_microphone_stream does not acquire the state lock,
                 // so holding it here is safe (no deadlock).
@@ -547,6 +645,42 @@ impl AudioRecordingManager {
                 rm.stop_microphone_stream();
             }
         });
+    }
+
+    /// Reserve the microphone for one meeting source without opening a stream.
+    ///
+    /// The meeting session actor remains capture authority. This lease only
+    /// prevents the existing dictation path from driving the same device while
+    /// that authorized source is live or paused.
+    pub fn try_acquire_meeting_microphone(
+        self: &Arc<Self>,
+    ) -> Result<MeetingMicrophoneSource, MeetingCaptureError> {
+        let Some(lease_generation) = self.meeting_lease.try_acquire() else {
+            return Err(MeetingCaptureError::Unavailable);
+        };
+        if !matches!(*self.state.lock().unwrap(), RecordingState::Idle) {
+            self.meeting_lease.release(lease_generation);
+            return Err(MeetingCaptureError::InvalidState);
+        }
+        Ok(MeetingMicrophoneSource {
+            audio: Arc::clone(self),
+            lease_generation,
+            phase: MeetingMicrophonePhase::Ready,
+            epoch: None,
+        })
+    }
+
+    fn release_meeting_microphone(&self, lease_generation: u64) {
+        if !self.meeting_lease.release(lease_generation) {
+            return;
+        }
+        if matches!(*self.mode.lock().unwrap(), MicrophoneMode::OnDemand) {
+            if get_settings(&self.app_handle).lazy_stream_close {
+                self.schedule_lazy_close();
+            } else {
+                self.stop_microphone_stream();
+            }
+        }
     }
 
     /* ---------- microphone life-cycle -------------------------------------- */
@@ -561,8 +695,8 @@ impl AudioRecordingManager {
         }
 
         // Lock order: is_open before mute_state (matches stop_microphone_stream).
-        let is_open = self.is_open.lock().unwrap();
-        let mut mute_guard = self.mute_state.lock().unwrap();
+        let is_open = lock_recover(&self.is_open);
+        let mut mute_guard = lock_recover(&self.mute_state);
         // Already muted this session — don't re-snapshot, or a duplicate/late
         // apply would overwrite prev_muted with our own forced-muted state and
         // strand audio muted on stop.
@@ -580,7 +714,7 @@ impl AudioRecordingManager {
     /// Removes mute if it was applied, restoring the system's prior mute state
     /// (a system already muted before recording stays muted).
     pub fn remove_mute(&self) {
-        let mut mute_guard = self.mute_state.lock().unwrap();
+        let mut mute_guard = lock_recover(&self.mute_state);
         if mute_guard.did_mute {
             restore_mute(mute_guard.prev_muted);
             mute_guard.did_mute = false;
@@ -592,7 +726,7 @@ impl AudioRecordingManager {
     }
 
     pub fn preload_vad(&self) -> Result<(), anyhow::Error> {
-        let mut recorder_opt = self.recorder.lock().unwrap();
+        let mut recorder_opt = lock_recover(&self.recorder);
         if recorder_opt.is_none() {
             let vad_path = self
                 .app_handle
@@ -614,16 +748,13 @@ impl AudioRecordingManager {
     }
 
     pub fn start_microphone_stream(&self) -> Result<(), anyhow::Error> {
-        let mut open_flag = self.is_open.lock().unwrap();
+        let mut open_flag = lock_recover(&self.is_open);
         if *open_flag {
             // `is_open` only records that we opened a stream at some point, not
             // that one is still running. If capture has since failed (mic
             // unplugged mid-session, USB dropout), rebuild it before the next
             // recording instead of handing the caller a stalled recorder.
-            let needs_reopen = self
-                .recorder
-                .lock()
-                .unwrap()
+            let needs_reopen = lock_recover(&self.recorder)
                 .as_ref()
                 .is_some_and(|rec| rec.needs_reopen());
 
@@ -640,16 +771,16 @@ impl AudioRecordingManager {
             // Torn down inline rather than via stop_microphone_stream(), which
             // takes the `is_open` lock we are already holding.
             {
-                let mut mute_guard = self.mute_state.lock().unwrap();
+                let mut mute_guard = lock_recover(&self.mute_state);
                 if mute_guard.did_mute {
                     restore_mute(mute_guard.prev_muted);
                     mute_guard.did_mute = false;
                 }
             }
-            if let Some(rec) = self.recorder.lock().unwrap().as_mut() {
+            if let Some(rec) = lock_recover(&self.recorder).as_mut() {
                 let _ = rec.close();
             }
-            *self.is_recording.lock().unwrap() = false;
+            *lock_recover(&self.is_recording) = false;
             *open_flag = false;
             self.invalidate_device_cache();
             // Fall through to the same fresh resolution and fallback path used
@@ -663,7 +794,7 @@ impl AudioRecordingManager {
         // be false here; if it somehow isn't, restore rather than just clearing the
         // flag, which would strand system audio muted.
         {
-            let mut mute_guard = self.mute_state.lock().unwrap();
+            let mut mute_guard = lock_recover(&self.mute_state);
             if mute_guard.did_mute {
                 restore_mute(mute_guard.prev_muted);
                 mute_guard.did_mute = false;
@@ -686,7 +817,7 @@ impl AudioRecordingManager {
         let vad_elapsed = vad_started.elapsed();
 
         let open_started = Instant::now();
-        let mut recorder_opt = self.recorder.lock().unwrap();
+        let mut recorder_opt = lock_recover(&self.recorder);
         if let Some(rec) = recorder_opt.as_mut() {
             if let Err(first_err) = rec.open(resolution.device.clone()) {
                 // A cached device or config may have gone stale (unplugged,
@@ -726,24 +857,27 @@ impl AudioRecordingManager {
     }
 
     pub fn stop_microphone_stream(&self) {
-        let mut open_flag = self.is_open.lock().unwrap();
+        if self.meeting_lease.is_active() {
+            return;
+        }
+        let mut open_flag = lock_recover(&self.is_open);
         if !*open_flag {
             return;
         }
 
         {
-            let mut mute_guard = self.mute_state.lock().unwrap();
+            let mut mute_guard = lock_recover(&self.mute_state);
             if mute_guard.did_mute {
                 restore_mute(mute_guard.prev_muted);
             }
             mute_guard.did_mute = false;
         }
 
-        if let Some(rec) = self.recorder.lock().unwrap().as_mut() {
+        if let Some(rec) = lock_recover(&self.recorder).as_mut() {
             // If still recording, stop first.
-            if *self.is_recording.lock().unwrap() {
+            if *lock_recover(&self.is_recording) {
                 let _ = rec.stop();
-                *self.is_recording.lock().unwrap() = false;
+                *lock_recover(&self.is_recording) = false;
             }
             let _ = rec.close();
         }
@@ -755,7 +889,7 @@ impl AudioRecordingManager {
     /* ---------- mode switching --------------------------------------------- */
 
     pub fn update_mode(&self, new_mode: MicrophoneMode) -> Result<(), anyhow::Error> {
-        let cur_mode = self.mode.lock().unwrap().clone();
+        let cur_mode = lock_recover(&self.mode).clone();
 
         match (cur_mode, &new_mode) {
             (MicrophoneMode::AlwaysOn, MicrophoneMode::OnDemand) => {
@@ -771,7 +905,7 @@ impl AudioRecordingManager {
             _ => {}
         }
 
-        *self.mode.lock().unwrap() = new_mode;
+        *lock_recover(&self.mode) = new_mode;
         Ok(())
     }
 
@@ -797,7 +931,10 @@ impl AudioRecordingManager {
         binding_id: &str,
         vad_policy: VadPolicy,
     ) -> Result<RecordingReadiness, String> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = lock_recover(&self.state);
+        if self.meeting_lease.is_active() {
+            return Err("Microphone is leased by an active meeting".to_string());
+        }
 
         if let RecordingState::Idle = *state {
             // Cancel any pending lazy close (no-op in always-on mode, where
@@ -814,11 +951,11 @@ impl AudioRecordingManager {
                 return Err(msg);
             }
 
-            if let Some(rec) = self.recorder.lock().unwrap().as_ref() {
+            if let Some(rec) = lock_recover(&self.recorder).as_ref() {
                 match rec.start(vad_policy) {
                     Ok(receiver) => {
                         let generation = self.capture_generation.fetch_add(1, Ordering::AcqRel) + 1;
-                        *self.is_recording.lock().unwrap() = true;
+                        *lock_recover(&self.is_recording) = true;
                         self.set_state(
                             &mut state,
                             RecordingState::Recording {
@@ -841,9 +978,14 @@ impl AudioRecordingManager {
     }
 
     pub fn update_selected_device(&self) -> Result<(), anyhow::Error> {
+        if self.meeting_lease.is_active() {
+            return Err(anyhow::anyhow!(
+                "Cannot change the microphone while a meeting is capturing"
+            ));
+        }
         // Device settings changed; re-enumerate the device and restart capture.
         self.invalidate_device_cache();
-        let was_open = *self.is_open.lock().unwrap();
+        let was_open = *lock_recover(&self.is_open);
         if was_open {
             self.close_generation.fetch_add(1, Ordering::SeqCst);
             self.stop_microphone_stream();
@@ -856,10 +998,15 @@ impl AudioRecordingManager {
         &self,
         selected_channel: Option<u16>,
     ) -> Result<(), anyhow::Error> {
+        if self.meeting_lease.is_active() {
+            return Err(anyhow::anyhow!(
+                "Cannot change the input channel while a meeting is capturing"
+            ));
+        }
         // Serialize against recording start/stop. Restarting an active capture
         // would discard its samples and leave the manager's recording state out
         // of sync with the new recorder.
-        let state = self.state.lock().unwrap();
+        let state = lock_recover(&self.state);
         if !matches!(*state, RecordingState::Idle) {
             return Err(anyhow::anyhow!(
                 "Cannot change the input channel while recording"
@@ -867,17 +1014,17 @@ impl AudioRecordingManager {
         }
 
         let previous_channel = get_settings(&self.app_handle).selected_channel;
-        let was_open = *self.is_open.lock().unwrap();
+        let was_open = *lock_recover(&self.is_open);
         if was_open {
             self.close_generation.fetch_add(1, Ordering::SeqCst);
             self.stop_microphone_stream();
         }
-        if let Some(recorder) = self.recorder.lock().unwrap().as_mut() {
+        if let Some(recorder) = lock_recover(&self.recorder).as_mut() {
             recorder.set_selected_channel(selected_channel);
         }
         if was_open {
             if let Err(error) = self.start_microphone_stream() {
-                if let Some(recorder) = self.recorder.lock().unwrap().as_mut() {
+                if let Some(recorder) = lock_recover(&self.recorder).as_mut() {
                     recorder.set_selected_channel(previous_channel);
                 }
                 return Err(error);
@@ -905,9 +1052,13 @@ impl AudioRecordingManager {
         self.cancel_generation.load(Ordering::Acquire) != generation
     }
 
-    pub fn stop_recording(&self, binding_id: &str, cancel_generation: u64) -> Option<Vec<f32>> {
+    pub fn stop_recording(
+        &self,
+        binding_id: &str,
+        cancel_generation: u64,
+    ) -> Option<RecordingStop> {
         self.invalidate_recording_readiness();
-        let mut state = self.state.lock().unwrap();
+        let mut state = lock_recover(&self.state);
 
         match *state {
             RecordingState::Recording {
@@ -938,21 +1089,15 @@ impl AudioRecordingManager {
                     }
                 }
 
-                let samples = if let Some(rec) = self.recorder.lock().unwrap().as_ref() {
-                    match rec.stop() {
-                        Ok(buf) => buf,
-                        Err(e) => {
-                            error!("stop() failed: {e}");
-                            Vec::new()
-                        }
-                    }
+                let capture = if let Some(rec) = lock_recover(&self.recorder).as_ref() {
+                    rec.stop()
                 } else {
                     error!("Recorder not available");
-                    Vec::new()
+                    Err(CaptureError::NotCapturing)
                 };
 
-                *self.is_recording.lock().unwrap() = false;
-                self.set_state(&mut self.state.lock().unwrap(), RecordingState::Idle);
+                *lock_recover(&self.is_recording) = false;
+                self.set_state(&mut lock_recover(&self.state), RecordingState::Idle);
 
                 // In on-demand mode, close the mic (lazily if the setting is enabled)
                 if matches!(*self.mode.lock().unwrap(), MicrophoneMode::OnDemand) {
@@ -968,20 +1113,48 @@ impl AudioRecordingManager {
                     return None;
                 }
 
-                // Pad if very short
+                let capture = match capture {
+                    Ok(capture) => capture,
+                    Err(CaptureError::Overrun {
+                        overrun,
+                        prefix_samples,
+                    }) => {
+                        self.log_capture_overrun(overrun);
+                        return Some(RecordingStop::Overrun { prefix_samples });
+                    }
+                    Err(error) => {
+                        error!("stop() failed: {error}");
+                        return None;
+                    }
+                };
+                if capture.no_speech_detected {
+                    return Some(RecordingStop::NoSpeech {
+                        samples: capture.samples,
+                    });
+                }
+
+                // Pad a normal, very short recording for model input. An
+                // overrun prefix stays exact and takes the branch above.
+                let samples = capture.samples;
                 let s_len = samples.len();
-                // debug!("Got {} samples", s_len);
                 if s_len < WHISPER_SAMPLE_RATE && s_len > 0 {
                     let mut padded = samples;
                     padded.resize(WHISPER_SAMPLE_RATE * 5 / 4, 0.0);
-                    Some(padded)
+                    Some(RecordingStop::Complete(padded))
                 } else {
-                    Some(samples)
+                    Some(RecordingStop::Complete(samples))
                 }
             }
             _ => None,
         }
     }
+
+    /// Log capture diagnostics only. The action owner emits the content-free
+    /// event after it has persisted the prefix and receipt.
+    fn log_capture_overrun(&self, overrun: CaptureOverrun) {
+        error!("Audio capture overran; retaining the contiguous prefix: {overrun}");
+    }
+
     pub fn is_recording(&self) -> bool {
         // Lock-free: mirrors the `state` {Recording, Stopping} membership via
         // an atomic maintained by `set_state()`. Polled from the webview/main
@@ -995,18 +1168,18 @@ impl AudioRecordingManager {
     pub fn cancel_recording(&self) {
         self.invalidate_recording_readiness();
         self.cancel_generation.fetch_add(1, Ordering::AcqRel);
-        let mut state = self.state.lock().unwrap();
+        let mut state = lock_recover(&self.state);
 
         match *state {
             RecordingState::Recording { .. } => {
                 self.set_state(&mut state, RecordingState::Idle);
                 drop(state);
 
-                if let Some(rec) = self.recorder.lock().unwrap().as_ref() {
+                if let Some(rec) = lock_recover(&self.recorder).as_ref() {
                     let _ = rec.stop(); // Discard the result
                 }
 
-                *self.is_recording.lock().unwrap() = false;
+                *lock_recover(&self.is_recording) = false;
 
                 // In on-demand mode, close the mic (lazily if the setting is enabled)
                 if matches!(*self.mode.lock().unwrap(), MicrophoneMode::OnDemand) {
@@ -1022,5 +1195,224 @@ impl AudioRecordingManager {
             }
             RecordingState::Idle => {}
         }
+    }
+}
+
+impl MeetingMicrophoneSource {
+    fn ensure_lease(&self) -> Result<(), MeetingCaptureError> {
+        if self.audio.meeting_lease.owns(self.lease_generation) {
+            Ok(())
+        } else {
+            Err(MeetingCaptureError::InvalidState)
+        }
+    }
+
+    fn finish(&mut self) {
+        if self.phase == MeetingMicrophonePhase::Closed {
+            return;
+        }
+        self.audio.release_meeting_microphone(self.lease_generation);
+        self.phase = MeetingMicrophonePhase::Closed;
+    }
+
+    fn start_error(error: anyhow::Error) -> MeetingCaptureError {
+        let message = error.to_string();
+        if is_microphone_access_denied(&message) {
+            MeetingCaptureError::PermissionDenied
+        } else if is_no_input_device_error(&message) {
+            MeetingCaptureError::Unavailable
+        } else {
+            MeetingCaptureError::StreamFailure
+        }
+    }
+
+    fn abort_inner(&mut self) -> Result<(), MeetingCaptureError> {
+        let result = match self.phase {
+            MeetingMicrophonePhase::Recording | MeetingMicrophonePhase::Paused => {
+                lock_recover(&self.audio.recorder)
+                    .as_ref()
+                    .ok_or(MeetingCaptureError::Unavailable)
+                    .and_then(AudioRecorder::abort_meeting_capture)
+            }
+            MeetingMicrophonePhase::Ready | MeetingMicrophonePhase::Closed => Ok(()),
+        };
+        self.finish();
+        result
+    }
+}
+
+impl MeetingCaptureSource for MeetingMicrophoneSource {
+    fn probe(&self) -> SourceProbe {
+        #[cfg(target_os = "macos")]
+        {
+            let availability = match list_input_devices() {
+                Ok(devices) if devices.is_empty() => SourceAvailability::DeviceUnavailable,
+                Ok(_) => SourceAvailability::Available,
+                Err(_) => SourceAvailability::Unknown,
+            };
+            SourceProbe {
+                source_kind: SourceKind::Microphone,
+                availability,
+                health: if availability == SourceAvailability::Available {
+                    SourceHealth::NotStarted
+                } else {
+                    SourceHealth::Failed
+                },
+                detail: (availability != SourceAvailability::Available)
+                    .then_some(SourceProbeDetail::Device),
+                negotiated_format: None,
+            }
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            SourceProbe {
+                source_kind: SourceKind::Microphone,
+                availability: SourceAvailability::UnsupportedPlatform,
+                health: SourceHealth::NotStarted,
+                detail: Some(SourceProbeDetail::Platform),
+                negotiated_format: None,
+            }
+        }
+    }
+
+    fn start(
+        &mut self,
+        plan: SourceStartPlan,
+        anchor: SessionClockAnchor,
+        sink: PacketSink,
+    ) -> Result<SourceStartReport, MeetingCaptureError> {
+        if self.phase != MeetingMicrophonePhase::Ready {
+            return Err(MeetingCaptureError::InvalidState);
+        }
+        self.ensure_lease()?;
+        if plan.source_kind != SourceKind::Microphone {
+            return Err(MeetingCaptureError::InvalidFormat);
+        }
+        if let Err(error) = self.audio.start_microphone_stream() {
+            self.finish();
+            return Err(Self::start_error(error));
+        }
+
+        self.phase = MeetingMicrophonePhase::Recording;
+        let result = lock_recover(&self.audio.recorder)
+            .as_ref()
+            .ok_or(MeetingCaptureError::Unavailable)
+            .and_then(|recorder| recorder.start_meeting_capture(plan, anchor, sink));
+        match result {
+            Ok(report) => {
+                self.epoch = Some(report.epoch);
+                Ok(report)
+            }
+            Err(error) => {
+                let _ = self.abort_inner();
+                Err(error)
+            }
+        }
+    }
+
+    fn pause(&mut self) -> Result<(), MeetingCaptureError> {
+        if self.phase != MeetingMicrophonePhase::Recording {
+            return Err(MeetingCaptureError::InvalidState);
+        }
+        self.ensure_lease()?;
+        let result = lock_recover(&self.audio.recorder)
+            .as_ref()
+            .ok_or(MeetingCaptureError::Unavailable)
+            .and_then(AudioRecorder::pause_meeting_capture);
+        match result {
+            Ok(()) => {
+                self.phase = MeetingMicrophonePhase::Paused;
+                Ok(())
+            }
+            Err(error) => {
+                let _ = self.abort_inner();
+                Err(error)
+            }
+        }
+    }
+
+    fn resume(&mut self, epoch: SourceEpoch) -> Result<SourceStartReport, MeetingCaptureError> {
+        if self.phase != MeetingMicrophonePhase::Paused {
+            return Err(MeetingCaptureError::InvalidState);
+        }
+        self.ensure_lease()?;
+        let current_epoch = self.epoch.ok_or(MeetingCaptureError::InvalidState)?;
+        let resumed_epoch = if epoch.get() > current_epoch.get() {
+            epoch
+        } else {
+            SourceEpoch::new(
+                current_epoch
+                    .get()
+                    .checked_add(1)
+                    .ok_or(MeetingCaptureError::InvalidState)?,
+            )
+        };
+        let result = lock_recover(&self.audio.recorder)
+            .as_ref()
+            .ok_or(MeetingCaptureError::Unavailable)
+            .and_then(|recorder| recorder.resume_meeting_capture(resumed_epoch));
+        match result {
+            Ok(report) => {
+                self.epoch = Some(report.epoch);
+                self.phase = MeetingMicrophonePhase::Recording;
+                Ok(report)
+            }
+            Err(error) => {
+                let _ = self.abort_inner();
+                Err(error)
+            }
+        }
+    }
+
+    fn stop(&mut self) -> Result<SourceStopReport, MeetingCaptureError> {
+        if !matches!(
+            self.phase,
+            MeetingMicrophonePhase::Recording | MeetingMicrophonePhase::Paused
+        ) {
+            return Err(MeetingCaptureError::InvalidState);
+        }
+        self.ensure_lease()?;
+        let result = lock_recover(&self.audio.recorder)
+            .as_ref()
+            .ok_or(MeetingCaptureError::Unavailable)
+            .and_then(AudioRecorder::stop_meeting_capture);
+        if result.is_err() {
+            let _ = lock_recover(&self.audio.recorder)
+                .as_ref()
+                .ok_or(MeetingCaptureError::Unavailable)
+                .and_then(AudioRecorder::abort_meeting_capture);
+        }
+        self.finish();
+        result
+    }
+
+    fn abort(&mut self) -> Result<(), MeetingCaptureError> {
+        self.abort_inner()
+    }
+}
+
+impl Drop for MeetingMicrophoneSource {
+    fn drop(&mut self) {
+        let _ = self.abort_inner();
+    }
+}
+
+#[cfg(test)]
+mod meeting_microphone_lease_tests {
+    use super::MeetingMicrophoneLease;
+
+    #[test]
+    fn lease_allows_one_owner_and_rejects_stale_release() {
+        let lease = MeetingMicrophoneLease::new();
+        let first = lease.try_acquire().expect("first lease");
+        assert!(lease.owns(first));
+        assert!(lease.try_acquire().is_none());
+        assert!(!lease.release(first + 1));
+        assert!(lease.is_active());
+        assert!(lease.release(first));
+
+        let second = lease.try_acquire().expect("second lease");
+        assert_ne!(first, second);
+        assert!(lease.release(second));
     }
 }

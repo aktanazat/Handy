@@ -3,7 +3,7 @@
 //! Both legacy URL models and Hugging Face mirror fallbacks use this module;
 //! source-specific orchestration and finalization remain in the parent module.
 
-use super::{DownloadProgress, ModelManager};
+use super::{progress_percentage, usize_to_u64_saturating, DownloadProgress, ModelManager};
 use anyhow::Result;
 use futures_util::StreamExt;
 use hf_hub::api::tokio::CancellationToken;
@@ -85,7 +85,7 @@ impl ModelManager {
     }
 
     /// Computes the SHA256 hex digest of a file, reading in 64KB chunks to handle large models.
-    fn compute_sha256(path: &Path) -> Result<String> {
+    pub(super) fn compute_sha256(path: &Path) -> Result<String> {
         let mut file = File::open(path)?;
         let mut hasher = Sha256::new();
         let mut buffer = [0u8; 65536];
@@ -307,11 +307,7 @@ impl ModelManager {
                 model_id: model_id.to_string(),
                 downloaded,
                 total: total_size,
-                percentage: if total_size > 0 {
-                    (downloaded as f64 / total_size as f64) * 100.0
-                } else {
-                    0.0
-                },
+                percentage: progress_percentage(downloaded, total_size),
             }));
         };
         emit_progress(downloaded);
@@ -336,12 +332,18 @@ impl ModelManager {
                     return Ok(HttpDownloadOutcome::Cancelled);
                 }
             };
+            let chunk_len = usize_to_u64_saturating(chunk.len());
+            let Some(next_downloaded) = downloaded.checked_add(chunk_len) else {
+                drop(file);
+                let _ = fs::remove_file(partial_path);
+                return Err(anyhow::anyhow!("download size exceeds the supported range"));
+            };
             // An untrusted server must not be able to fill the disk: cut the
             // transfer at the first byte past the known total instead of
             // trusting it to eventually close the stream. Everything written
             // so far is tainted by a provably-misbehaving server — clear it.
             if let Some(cap) = known_total {
-                if downloaded + chunk.len() as u64 > cap {
+                if next_downloaded > cap {
                     drop(file);
                     let _ = fs::remove_file(partial_path);
                     return Err(anyhow::anyhow!(
@@ -351,7 +353,7 @@ impl ModelManager {
                 }
             }
             file.write_all(&chunk)?;
-            downloaded += chunk.len() as u64;
+            downloaded = next_downloaded;
             if last_emit.elapsed() >= throttle {
                 emit_progress(downloaded);
                 last_emit = Instant::now();

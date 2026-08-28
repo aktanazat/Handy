@@ -1,7 +1,8 @@
 use hound::WavWriter;
+use rustfft::num_traits::ToPrimitive;
 use std::io::{self, Write};
 
-use handy_app_lib::audio_toolkit::{
+use sona_app_lib::audio_toolkit::{
     audio::{list_input_devices, CpalDeviceInfo},
     vad::{
         SmoothedVad, VAD_OFFLINE_HANGOVER_FRAMES, VAD_ONSET_FRAMES, VAD_PREFILL_FRAMES,
@@ -9,6 +10,16 @@ use handy_app_lib::audio_toolkit::{
     },
     AudioRecorder, SileroVad, VadPolicy,
 };
+
+fn wav_sample_to_i16(sample: f32) -> i16 {
+    let scaled = sample * f32::from(i16::MAX);
+    match scaled.to_i16() {
+        Some(sample) => sample,
+        None if scaled.is_nan() => 0,
+        None if scaled.is_sign_negative() => i16::MIN,
+        None => i16::MAX,
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 enum RecorderMode {
@@ -141,7 +152,7 @@ impl RecorderState {
             return Err("No recording in progress.".into());
         }
 
-        let samples = self.recorder.stop()?;
+        let samples = self.recorder.stop()?.samples;
         self.is_recording = false;
 
         match self.mode {
@@ -360,10 +371,27 @@ fn save_audio(samples: &[f32], filename: &str) -> Result<(), Box<dyn std::error:
     let mut writer = WavWriter::create(filename, spec)?;
 
     for &sample in samples {
-        let sample_i16 = (sample * i16::MAX as f32) as i16;
-        writer.write_sample(sample_i16)?;
+        writer.write_sample(wav_sample_to_i16(sample))?;
     }
 
     writer.finalize()?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::wav_sample_to_i16;
+
+    #[test]
+    fn wav_sample_conversion_preserves_float_to_i16_semantics() {
+        assert_eq!(wav_sample_to_i16(f32::NAN), 0);
+        assert_eq!(wav_sample_to_i16(f32::NEG_INFINITY), i16::MIN);
+        assert_eq!(wav_sample_to_i16(-2.0), i16::MIN);
+        assert_eq!(wav_sample_to_i16(-1.0), -i16::MAX);
+        assert_eq!(wav_sample_to_i16(-0.5), -16_383);
+        assert_eq!(wav_sample_to_i16(0.5), 16_383);
+        assert_eq!(wav_sample_to_i16(1.0), i16::MAX);
+        assert_eq!(wav_sample_to_i16(2.0), i16::MAX);
+        assert_eq!(wav_sample_to_i16(f32::INFINITY), i16::MAX);
+    }
 }

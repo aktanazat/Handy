@@ -1,4 +1,10 @@
 mod actions;
+pub mod agent_bridge;
+pub mod agent_hook_wire;
+mod agent_panel;
+mod analytics;
+pub mod upstream_import;
+
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 mod apple_intelligence;
 mod audio_feedback;
@@ -7,15 +13,28 @@ mod autostart;
 mod catalog;
 pub mod cli;
 mod clipboard;
+#[cfg(feature = "cloud-realtime")]
+pub mod cloud_stt;
+mod cloud_sync;
 mod commands;
+mod context;
+mod delivery;
+mod fs_util;
 mod helpers;
+mod identity_adoption;
 mod input;
 mod llm_client;
 mod managers;
+pub mod meeting;
+#[cfg(target_os = "macos")]
+pub mod meeting_macos;
 mod memory;
+mod modes;
 mod overlay;
 mod paste_tx;
 pub mod portable;
+mod prompt_renderer;
+mod secrets;
 mod secure_input;
 mod settings;
 mod shortcut;
@@ -30,14 +49,22 @@ pub use cli::CliArgs;
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use tauri_specta::{collect_commands, collect_events, Builder};
 
+use clap::Parser;
+use commands::media_import::OpenedAudioImportFailure;
 use env_filter::Builder as EnvFilterBuilder;
 use managers::audio::AudioRecordingManager;
 use managers::history::HistoryManager;
+use managers::media_import::MediaImportManager;
 use managers::model::ModelManager;
 use managers::transcription::TranscriptionManager;
+use meeting::session::{production_source_provider, MeetingMutationRequest, MeetingSessionManager};
+use meeting::types::{
+    AllowedMeetingAction, MeetingEventPayload, MeetingNavigationDestination,
+    MeetingNavigationPayload, MeetingOperationId, MeetingSessionSnapshot, OperationResult,
+};
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::Arc;
-use tauri::image::Image;
 pub use transcription_coordinator::TranscriptionCoordinator;
 
 use tauri::tray::TrayIconBuilder;
@@ -45,11 +72,17 @@ use tauri::{AppHandle, Emitter, Listener, Manager};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_log::{Builder as LogBuilder, RotationStrategy, Target, TargetKind};
 
+#[cfg(target_os = "macos")]
+use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState};
+
 use crate::settings::get_settings;
 
+// The webview starts in the opaque mode. macOS switches it to glass only after
+// its native vibrancy view has been applied while the hidden window is starting.
+const MAIN_WINDOW_MATERIAL_INIT: &str = "document.documentElement.dataset.material = 'opaque';";
 // Global atomic to store the file log level filter
 // We use u8 to store the log::LevelFilter as a number
-pub static FILE_LOG_LEVEL: AtomicU8 = AtomicU8::new(log::LevelFilter::Debug as u8);
+pub static FILE_LOG_LEVEL: AtomicU8 = AtomicU8::new(4);
 
 /// When `true`, log records are also forwarded to the webview via the
 /// `log://log` event for the debug panel's live log viewer. Gated on debug
@@ -68,6 +101,16 @@ fn level_filter_from_u8(value: u8) -> log::LevelFilter {
         4 => log::LevelFilter::Debug,
         5 => log::LevelFilter::Trace,
         _ => log::LevelFilter::Trace,
+    }
+}
+pub(crate) const fn level_filter_code(value: log::LevelFilter) -> u8 {
+    match value {
+        log::LevelFilter::Off => 0,
+        log::LevelFilter::Error => 1,
+        log::LevelFilter::Warn => 2,
+        log::LevelFilter::Info => 3,
+        log::LevelFilter::Debug => 4,
+        log::LevelFilter::Trace => 5,
     }
 }
 
@@ -104,6 +147,9 @@ fn show_main_window(app: &AppHandle) {
         if let Err(e) = main_window.set_focus() {
             log::error!("Failed to focus webview window: {}", e);
         }
+        if let Some(panel) = app.try_state::<agent_panel::AgentPanelManager>() {
+            panel.on_main_shown();
+        }
         #[cfg(target_os = "macos")]
         {
             if let Err(e) = app.set_activation_policy(tauri::ActivationPolicy::Regular) {
@@ -118,6 +164,168 @@ fn show_main_window(app: &AppHandle) {
         "Main window not found. Webview labels: {:?}",
         webview_labels
     );
+}
+fn show_meeting_destination(
+    app: &AppHandle,
+    destination: MeetingNavigationDestination,
+    snapshot: Option<&MeetingSessionSnapshot>,
+) {
+    show_main_window(app);
+    let (session_id, revision) = snapshot
+        .map(|snapshot| (Some(snapshot.session_id), snapshot.revision))
+        .unwrap_or((None, 0));
+    let _ = app.emit(
+        "meeting:navigation-requested",
+        MeetingNavigationPayload {
+            event_schema_version: 1,
+            destination,
+            session_id,
+            revision,
+        },
+    );
+}
+fn refresh_meeting_tray(app: AppHandle, manager: Arc<MeetingSessionManager>) {
+    tauri::async_runtime::spawn(async move {
+        if let Ok(snapshot) = manager.tray_snapshot().await {
+            tray::set_meeting_tray_snapshot(&app, snapshot.as_ref());
+        }
+    });
+}
+
+fn resolve_opened_audio_path(path: &Path, cwd: &str) -> PathBuf {
+    if path.is_absolute() || cwd.is_empty() {
+        path.to_path_buf()
+    } else {
+        Path::new(cwd).join(path)
+    }
+}
+
+fn initial_opened_audio_paths(
+    paths: &[PathBuf],
+) -> impl Iterator<Item = Result<&Path, OpenedAudioImportFailure>> {
+    paths
+        .iter()
+        .map(|path| Ok::<&Path, OpenedAudioImportFailure>(path.as_path()))
+}
+
+fn forwarded_opened_audio_paths<'a>(
+    paths: &'a [PathBuf],
+    cwd: &'a str,
+) -> impl Iterator<Item = Result<PathBuf, OpenedAudioImportFailure>> + 'a {
+    paths.iter().map(move |path| {
+        Ok::<PathBuf, OpenedAudioImportFailure>(resolve_opened_audio_path(path, cwd))
+    })
+}
+
+#[cfg(target_os = "macos")]
+fn macos_opened_audio_paths(
+    urls: &[tauri::Url],
+) -> impl Iterator<Item = Result<PathBuf, OpenedAudioImportFailure>> + '_ {
+    urls.iter().map(|url| {
+        url.to_file_path()
+            .map_err(|_| OpenedAudioImportFailure::non_file_url())
+    })
+}
+
+fn enqueue_opened_audio_path(app: &AppHandle, path: &Path) -> Result<(), OpenedAudioImportFailure> {
+    let media_import_manager = app
+        .try_state::<Arc<MediaImportManager>>()
+        .ok_or_else(OpenedAudioImportFailure::unavailable)?;
+    commands::media_import::enqueue_opened_audio_file(
+        app,
+        media_import_manager.inner().as_ref(),
+        path,
+    )
+    .map(|_| ())
+}
+
+fn report_opened_audio_failure(
+    app: &AppHandle,
+    path: Option<&Path>,
+    failure: OpenedAudioImportFailure,
+) {
+    log::warn!("Rejected an operating-system opened audio file: {failure}");
+    show_main_window(app);
+    commands::media_import::report_opened_audio_failure(app, path, failure);
+}
+
+fn dispatch_opened_audio_paths<I, P>(
+    paths: I,
+    mut enqueue: impl FnMut(&Path) -> Result<(), OpenedAudioImportFailure>,
+    mut reject: impl FnMut(Option<&Path>, OpenedAudioImportFailure),
+) -> bool
+where
+    I: IntoIterator<Item = Result<P, OpenedAudioImportFailure>>,
+    P: AsRef<Path>,
+{
+    let mut queued_any = false;
+    for path in paths {
+        match path {
+            Ok(path) => {
+                let path = path.as_ref();
+                match enqueue(path) {
+                    Ok(()) => queued_any = true,
+                    Err(failure) => reject(Some(path), failure),
+                }
+            }
+            Err(failure) => reject(None, failure),
+        }
+    }
+    queued_any
+}
+
+fn enqueue_opened_audio_paths<I, P>(app: &AppHandle, paths: I) -> bool
+where
+    I: IntoIterator<Item = Result<P, OpenedAudioImportFailure>>,
+    P: AsRef<Path>,
+{
+    dispatch_opened_audio_paths(
+        paths,
+        |path| enqueue_opened_audio_path(app, path),
+        |path, failure| report_opened_audio_failure(app, path, failure),
+    )
+}
+fn is_opened_share_file(path: &Path) -> bool {
+    path.extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("sona"))
+}
+
+fn enqueue_opened_paths<I, P>(app: &AppHandle, paths: I) -> bool
+where
+    I: IntoIterator<Item = Result<P, OpenedAudioImportFailure>>,
+    P: AsRef<Path>,
+{
+    let mut share_paths = Vec::new();
+    let mut audio_paths = Vec::new();
+    for path in paths {
+        match path {
+            Ok(path) => {
+                let path = path.as_ref().to_path_buf();
+                if is_opened_share_file(&path) {
+                    share_paths.push(path);
+                } else {
+                    audio_paths.push(Ok(path));
+                }
+            }
+            Err(error) => audio_paths.push(Err(error)),
+        }
+    }
+    if share_paths.is_empty() {
+        return enqueue_opened_audio_paths(app, audio_paths);
+    }
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        if let Some(runtime) = app.try_state::<Arc<cloud_sync::CloudSyncRuntime>>() {
+            for path in share_paths {
+                let _ = runtime.opened_share_file(path).await;
+            }
+        }
+        if enqueue_opened_audio_paths(&app, audio_paths) {
+            show_main_window(&app);
+        }
+    });
+    true
 }
 
 #[allow(unused_variables)]
@@ -146,7 +354,7 @@ fn should_force_show_permissions_window(app: &AppHandle) -> bool {
     false
 }
 
-fn initialize_core_logic(app_handle: &AppHandle) {
+fn initialize_core_logic(app_handle: &AppHandle) -> anyhow::Result<()> {
     // Note: Enigo (keyboard/mouse simulation) is NOT initialized here.
     // The frontend is responsible for calling the `initialize_enigo` command
     // after onboarding completes. This avoids triggering permission dialogs
@@ -155,18 +363,47 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     // Initialize the managers. The audio recorder receives the streaming router
     // explicitly, so always-on microphone startup can wire live-preview frames
     // even before Tauri state is populated.
-    let model_manager =
-        Arc::new(ModelManager::new(app_handle).expect("Failed to initialize model manager"));
-    let transcription_manager = Arc::new(
-        TranscriptionManager::new(app_handle, model_manager.clone())
-            .expect("Failed to initialize transcription manager"),
-    );
-    let recording_manager = Arc::new(
-        AudioRecordingManager::new(app_handle, transcription_manager.stream_router())
-            .expect("Failed to initialize recording manager"),
-    );
-    let history_manager =
-        Arc::new(HistoryManager::new(app_handle).expect("Failed to initialize history manager"));
+    let model_manager = Arc::new(ModelManager::new(app_handle)?);
+    let transcription_manager = Arc::new(TranscriptionManager::new(
+        app_handle,
+        model_manager.clone(),
+    )?);
+    let recording_manager = Arc::new(AudioRecordingManager::new(
+        app_handle,
+        transcription_manager.stream_router(),
+    )?);
+    let history_manager = Arc::new(HistoryManager::new(app_handle)?);
+    // The configured asset scope is empty, so the webview may read exactly one
+    // directory: the recordings this app wrote. The grant happens here because
+    // only the manager knows the portable-aware data directory, which does not
+    // always match the `$APPDATA` the capability files can name. Non-recursive:
+    // recordings are flat files.
+    if let Err(error) = app_handle
+        .asset_protocol_scope()
+        .allow_directory(history_manager.recordings_dir(), false)
+    {
+        log::error!("History audio playback is unavailable: {error}");
+    }
+    let media_import_manager = Arc::new(MediaImportManager::new(
+        app_handle,
+        transcription_manager.clone(),
+        history_manager.clone(),
+    ));
+    let meeting_secrets = Arc::clone(&app_handle.state::<Arc<secrets::SecretManager>>());
+    let meeting_manager = Arc::new(MeetingSessionManager::new(
+        app_handle,
+        Arc::clone(&meeting_secrets),
+    ));
+    meeting_manager.set_source_provider(production_source_provider(Arc::clone(&recording_manager)));
+    meeting_manager.set_transcription_manager(Arc::clone(&transcription_manager));
+    if let Err(error) = tauri::async_runtime::block_on(meeting_manager.recover_at_startup()) {
+        log::warn!("Meeting recovery is unavailable at startup: {error:?}");
+    }
+    let cloud_runtime = Arc::new(cloud_sync::CloudSyncRuntime::new(
+        app_handle.clone(),
+        Arc::clone(&meeting_manager),
+        meeting_secrets,
+    ));
 
     // Initialize the transcribe-cpp native backend (logging + backend module
     // registration) once, before any whisper model is loaded.
@@ -180,7 +417,56 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     app_handle.manage(model_manager.clone());
     app_handle.manage(transcription_manager.clone());
     app_handle.manage(history_manager.clone());
+    app_handle.manage(media_import_manager.clone());
+    app_handle.manage(Arc::clone(&meeting_manager));
+    app_handle.manage(Arc::clone(&cloud_runtime));
+    cloud_runtime.start();
+    meeting_manager.start_retention_sweeper();
+    match agent_bridge::AgentBridgeManager::new(app_handle) {
+        Ok(manager) => {
+            if let Err(error) = manager.reconcile() {
+                log::warn!("Agent bridge is unavailable: {error}");
+            }
+            app_handle.manage(manager);
+        }
+        Err(error) => log::warn!("Agent bridge runtime is unavailable: {error}"),
+    }
     app_handle.manage(tray::TrayState::new());
+    let meeting_manager_for_changes = Arc::clone(&meeting_manager);
+    let app_handle_for_meeting_changes = app_handle.clone();
+    app_handle.listen("meeting:session-changed", move |event| {
+        let Ok(payload) = serde_json::from_str::<MeetingEventPayload>(event.payload()) else {
+            return;
+        };
+        if payload.session_id.is_some() {
+            refresh_meeting_tray(
+                app_handle_for_meeting_changes.clone(),
+                Arc::clone(&meeting_manager_for_changes),
+            );
+        }
+    });
+    let meeting_manager_for_removals = Arc::clone(&meeting_manager);
+    let app_handle_for_meeting_removals = app_handle.clone();
+    app_handle.listen("meeting:removed", move |_| {
+        refresh_meeting_tray(
+            app_handle_for_meeting_removals.clone(),
+            Arc::clone(&meeting_manager_for_removals),
+        );
+    });
+    #[cfg(target_os = "macos")]
+    {
+        match meeting_macos::MacosMeetingSuggestionObserver::start(
+            &[],
+            meeting_manager.suggestion_sink(),
+        ) {
+            Ok(observer) => {
+                app_handle.manage(observer);
+            }
+            Err(error) => {
+                log::warn!("Meeting suggestion observer is unavailable: {error:?}");
+            }
+        }
+    }
 
     // Note: Shortcuts are NOT initialized here.
     // The frontend is responsible for calling the `initialize_shortcuts` command
@@ -208,16 +494,9 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     // Choose the appropriate initial icon based on theme
     let initial_icon_path = tray::get_icon_path(initial_theme, tray::TrayIconState::Idle, false);
 
+    let initial_icon = tray::load_initial_tray_icon(app_handle, initial_icon_path);
     let mut tray_builder = TrayIconBuilder::new()
-        .icon(
-            Image::from_path(
-                app_handle
-                    .path()
-                    .resolve(initial_icon_path, tauri::path::BaseDirectory::Resource)
-                    .unwrap(),
-            )
-            .unwrap(),
-        )
+        .icon(initial_icon)
         .tooltip(tray::tray_tooltip())
         .icon_as_template(true);
 
@@ -252,19 +531,19 @@ fn initialize_core_logic(app_handle: &AppHandle) {
 
     let tray = tray_builder
         .on_menu_event(|app, event| match event.id.as_ref() {
+            "open_sona" => {
+                show_main_window(app);
+            }
+            "start_dictation" | "stop_dictation" => {
+                let coordinator = app.state::<TranscriptionCoordinator>();
+                coordinator.send_intent(modes::TranscriptionIntent::ActiveMode, "tray");
+            }
             "settings" => {
                 show_main_window(app);
             }
             "secure_input_warning" => {
                 // Full explanation lives in the settings-window banner
                 show_main_window(app);
-            }
-            "check_updates" => {
-                let settings = settings::get_settings(app);
-                if settings.update_checks_enabled {
-                    show_main_window(app);
-                    let _ = app.emit("check-for-updates", ());
-                }
             }
             "copy_last_transcript" => {
                 tray::copy_last_transcript(app);
@@ -280,17 +559,122 @@ fn initialize_core_logic(app_handle: &AppHandle) {
                     Err(e) => log::error!("Failed to unload model via tray: {}", e),
                 }
             }
-            "cancel" => {
-                use crate::utils::cancel_current_operation;
-
-                // Use centralized cancellation that handles all operations
-                cancel_current_operation(app);
+            "cancel_transcription" => {
+                utils::cancel_current_operation(app);
+            }
+            "start_meeting_notes" => {
+                let manager = Arc::clone(&app.state::<Arc<MeetingSessionManager>>());
+                let app = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    match manager.create_manual_preflight_from_tray().await {
+                        Ok(snapshot) => {
+                            tray::set_meeting_tray_snapshot(&app, Some(&snapshot));
+                            show_meeting_destination(
+                                &app,
+                                MeetingNavigationDestination::Preflight,
+                                Some(&snapshot),
+                            );
+                        }
+                        Err(error) => {
+                            log::warn!("Meeting preflight request was rejected: {error:?}");
+                        }
+                    }
+                });
+            }
+            "open_meeting_notes" => {
+                let manager = Arc::clone(&app.state::<Arc<MeetingSessionManager>>());
+                let app = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    let snapshot = manager.tray_snapshot().await.ok().flatten();
+                    let destination = match snapshot.as_ref() {
+                        Some(snapshot)
+                            if snapshot.phase == meeting::types::MeetingPhase::Preflight =>
+                        {
+                            MeetingNavigationDestination::Preflight
+                        }
+                        Some(_) => MeetingNavigationDestination::Session,
+                        None => MeetingNavigationDestination::List,
+                    };
+                    show_meeting_destination(&app, destination, snapshot.as_ref());
+                });
+            }
+            "stop_meeting_notes" => {
+                let manager = Arc::clone(&app.state::<Arc<MeetingSessionManager>>());
+                let app = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    let Ok(Some(snapshot)) = manager.tray_snapshot().await else {
+                        return;
+                    };
+                    if !snapshot
+                        .allowed_actions
+                        .contains(&AllowedMeetingAction::Stop)
+                    {
+                        return;
+                    }
+                    match manager
+                        .stop(MeetingMutationRequest {
+                            operation_id: MeetingOperationId::new(),
+                            session_id: snapshot.session_id,
+                            expected_revision: snapshot.revision,
+                        })
+                        .await
+                    {
+                        Ok(result) => tray::set_meeting_tray_snapshot(&app, Some(&result.snapshot)),
+                        Err(error) => log::warn!("Meeting stop request was rejected: {error:?}"),
+                    }
+                });
+            }
+            "cancel_meeting_notes" => {
+                let manager = Arc::clone(&app.state::<Arc<MeetingSessionManager>>());
+                let app = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    let Ok(Some(snapshot)) = manager.tray_snapshot().await else {
+                        return;
+                    };
+                    let request = MeetingMutationRequest {
+                        operation_id: MeetingOperationId::new(),
+                        session_id: snapshot.session_id,
+                        expected_revision: snapshot.revision,
+                    };
+                    if snapshot
+                        .allowed_actions
+                        .contains(&AllowedMeetingAction::CancelPreflight)
+                    {
+                        match manager.cancel_preflight(request).await {
+                            Ok(receipt) if receipt.result == OperationResult::Committed => {
+                                tray::set_meeting_tray_snapshot(&app, None);
+                            }
+                            Ok(_) => refresh_meeting_tray(app, manager),
+                            Err(error) => {
+                                log::warn!(
+                                    "Meeting preflight cancellation was rejected: {error:?}"
+                                );
+                            }
+                        }
+                    } else if snapshot
+                        .allowed_actions
+                        .contains(&AllowedMeetingAction::Discard)
+                    {
+                        match manager.discard(request).await {
+                            Ok(result) if result.removed => {
+                                tray::set_meeting_tray_snapshot(&app, None);
+                            }
+                            Ok(_) => refresh_meeting_tray(app, manager),
+                            Err(error) => {
+                                log::warn!("Meeting discard request was rejected: {error:?}");
+                            }
+                        }
+                    }
+                });
             }
             "quit" => {
                 app.exit(0);
             }
             id if id.starts_with("model_select:") => {
-                let model_id = id.strip_prefix("model_select:").unwrap().to_string();
+                let Some(model_id) = id.strip_prefix("model_select:") else {
+                    return;
+                };
+                let model_id = model_id.to_string();
                 let current_model = settings::get_settings(app).selected_model;
                 if model_id == current_model {
                     return;
@@ -310,8 +694,7 @@ fn initialize_core_logic(app_handle: &AppHandle) {
             }
             _ => {}
         })
-        .build(app_handle)
-        .unwrap();
+        .build(app_handle)?;
     app_handle.manage(tray);
 
     // Initialize tray menu with idle state
@@ -335,17 +718,6 @@ fn initialize_core_logic(app_handle: &AppHandle) {
 
     // Create the recording overlay window (hidden by default)
     utils::create_recording_overlay(app_handle);
-}
-
-#[tauri::command]
-#[specta::specta]
-fn trigger_update_check(app: AppHandle) -> Result<(), String> {
-    let settings = settings::get_settings(&app);
-    if !settings.update_checks_enabled {
-        return Ok(());
-    }
-    app.emit("check-for-updates", ())
-        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -365,33 +737,18 @@ where
 {
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(operation)) {
         Ok(code) => code,
-        Err(payload) => {
-            let message = if let Some(message) = payload.downcast_ref::<&str>() {
-                (*message).to_string()
-            } else if let Some(message) = payload.downcast_ref::<String>() {
-                message.clone()
-            } else {
-                "unknown panic".to_string()
-            };
-            eprintln!("error: headless transcription panicked: {message}");
+        Err(_) => {
+            eprintln!("error: headless transcription failed unexpectedly");
             1
         }
     }
 }
 
-#[cfg(test)]
-mod headless_guard_tests {
-    use super::run_headless_guarded;
-
-    #[test]
-    fn preserves_normal_exit_codes() {
-        assert_eq!(run_headless_guarded(|| 2), 2);
-    }
-
-    #[test]
-    fn converts_worker_panics_to_runtime_failures() {
-        assert_eq!(run_headless_guarded(|| panic!("simulated failure")), 1);
-    }
+fn is_headless_mode(args: &CliArgs) -> bool {
+    args.transcribe_file.is_some()
+        || args.list_devices
+        || args.list_models
+        || args.agent_panel_public_identity
 }
 
 /// Headless one-shot transcription for the `--transcribe-file` / `--list-devices`
@@ -399,7 +756,7 @@ mod headless_guard_tests {
 /// mic, no VAD, no download. Returns a process exit code (0 ok, 1 runtime
 /// failure, 2 bad input/usage).
 fn run_headless_transcription(app: &AppHandle, args: &CliArgs) -> i32 {
-    use std::time::Instant;
+    use std::time::{Duration, Instant};
 
     // --list-devices: print registered compute devices (with indices) and exit.
     // Useful on multi-GPU machines to discover the index for --device-index.
@@ -494,18 +851,28 @@ fn run_headless_transcription(app: &AppHandle, args: &CliArgs) -> i32 {
             return 2;
         }
     };
-    let audio_secs = samples.len() as f64 / 16_000.0;
+    let sample_count = match u64::try_from(samples.len()) {
+        Ok(count) => count,
+        Err(_) => {
+            eprintln!("error: audio file is too large to transcribe");
+            return 2;
+        }
+    };
+    let audio_secs = (Duration::from_secs(sample_count / 16_000)
+        + Duration::from_nanos((sample_count % 16_000) * 62_500))
+    .as_secs_f64();
 
     let tm = app.state::<Arc<TranscriptionManager>>();
 
-    let model_id = args
-        .model
-        .clone()
-        .unwrap_or_else(|| get_settings(app).selected_model);
-    if model_id.is_empty() {
+    let mut asr = modes::AsrPlan::from_settings(&get_settings(app));
+    if let Some(model_id) = args.model.clone() {
+        asr.model_id = model_id;
+    }
+    if asr.model_id.is_empty() {
         eprintln!("error: no model selected (pass --model or pick one in the app)");
         return 2;
     }
+    let model_id = asr.model_id.clone();
 
     // --device-index hard-selects a compute device by its --list-devices registry
     // index (transcribe-cpp / whisper-family models only; not persisted). Omit it
@@ -522,7 +889,7 @@ fn run_headless_transcription(app: &AppHandle, args: &CliArgs) -> i32 {
         eprintln!("error: load_model('{}') failed: {}", model_id, e);
         return 1;
     }
-    let load_ms = load_start.elapsed().as_millis() as u64;
+    let load_ms = u64::try_from(load_start.elapsed().as_millis()).unwrap_or(u64::MAX);
     let bound_backend = tm.current_backend();
 
     let runs = args.repeat.unwrap_or(1).max(1);
@@ -539,18 +906,18 @@ fn run_headless_transcription(app: &AppHandle, args: &CliArgs) -> i32 {
             }
         }
         let t = Instant::now();
-        match tm.transcribe(samples.clone()) {
+        match tm.transcribe_shared(&asr, &samples) {
             Ok(out) => text = out,
             Err(e) => {
                 eprintln!("error: transcribe failed: {}", e);
                 return 1;
             }
         }
-        times_ms.push(t.elapsed().as_millis() as u64);
+        times_ms.push(u64::try_from(t.elapsed().as_millis()).unwrap_or(u64::MAX));
     }
     let best_ms = times_ms.iter().copied().min().unwrap_or(0);
     let rtf = if best_ms > 0 {
-        audio_secs / (best_ms as f64 / 1000.0)
+        audio_secs / Duration::from_millis(best_ms).as_secs_f64()
     } else {
         0.0
     };
@@ -591,9 +958,9 @@ pub fn run(cli_args: CliArgs) {
     // Avoid ggml-metal residency-set teardown assertions when a native engine
     // outlives the Tauri shutdown sequence (#1902). This must happen before
     // transcribe-cpp initializes its Metal device. Advanced users can restore
-    // upstream residency behavior with HANDY_METAL_RESIDENCY=1.
+    // upstream residency behavior with SONA_METAL_RESIDENCY=1.
     #[cfg(target_os = "macos")]
-    if std::env::var("HANDY_METAL_RESIDENCY").as_deref() == Ok("1") {
+    if std::env::var("SONA_METAL_RESIDENCY").as_deref() == Ok("1") {
         // ggml treats GGML_METAL_NO_RESIDENCY as presence-based, so remove an
         // inherited value as well when explicitly opting back in.
         std::env::remove_var("GGML_METAL_NO_RESIDENCY");
@@ -609,12 +976,80 @@ pub fn run(cli_args: CliArgs) {
     // Detect portable mode before anything else
     portable::init();
 
+    if cli_args.agent_panel_public_identity {
+        match tauri::async_runtime::block_on(agent_panel::cli_public_identity()) {
+            Ok(identity) => match serde_json::to_string(&identity) {
+                Ok(json) => println!("{json}"),
+                Err(error) => {
+                    eprintln!("error: failed to serialize public identity: {error}");
+                    std::process::exit(1);
+                }
+            },
+            Err(error) => {
+                eprintln!("error: failed to access public identity: {error:?}");
+                std::process::exit(1);
+            }
+        }
+        return;
+    }
+
     // Parse console logging directives from RUST_LOG, falling back to info-level logging
     // when the variable is unset
     let console_filter = build_console_filter();
+    let headless_mode = is_headless_mode(&cli_args);
 
     let specta_builder = Builder::<tauri::Wry>::new()
         .commands(collect_commands![
+            upstream_import::get_upstream_import_status,
+            upstream_import::import_legacy_app,
+            upstream_import::revert_upstream_import_settings,
+            identity_adoption::get_identity_adoption_status,
+            identity_adoption::revert_identity_adoption,
+            agent_bridge::get_agent_bridge_status,
+            agent_bridge::get_agent_bridge_sessions,
+            agent_bridge::get_agent_bridge_requests,
+            agent_bridge::get_agent_bridge_pending_messages,
+            agent_bridge::set_agent_bridge_master,
+            agent_bridge::set_agent_bridge_agent_enabled,
+            agent_bridge::authorize_agent_bridge_project,
+            agent_bridge::remove_agent_bridge_project,
+            agent_bridge::create_agent_bridge_reply_preview,
+            agent_bridge::confirm_agent_bridge_reply,
+            agent_bridge::cancel_agent_bridge_message,
+            agent_bridge::dismiss_agent_bridge_request,
+            agent_bridge::create_agent_bridge_permission_rule,
+            agent_bridge::delete_agent_bridge_permission_rule,
+            agent_bridge::respond_agent_bridge_permission,
+            agent_bridge::get_agent_bridge_hook_snippet,
+            agent_panel::agent_panel_open,
+            agent_panel::agent_panel_close,
+            agent_panel::agent_panel_status,
+            agent_panel::agent_panel_send_turn,
+            agent_panel::agent_panel_cancel_turn,
+            agent_panel::agent_panel_apply_change,
+            agent_panel::agent_panel_undo_change,
+            agent_panel::agent_panel_public_identity,
+            modes::get_modes,
+            modes::set_active_mode,
+            modes::upsert_mode,
+            modes::delete_mode,
+            modes::reorder_modes,
+            commands::vocabulary::list_vocabulary_entries,
+            modes::capture_mode_activation_rule,
+            modes::remove_mode_activation_rule,
+            modes::capture_mode_website_activation_rule,
+            modes::remove_mode_website_activation_rule,
+            commands::vocabulary::update_vocabulary_entries,
+            commands::vocabulary::preview_vocabulary_csv,
+            commands::vocabulary::apply_vocabulary_csv,
+            commands::vocabulary::export_vocabulary_csv,
+            commands::vocabulary::update_emoji_replacements,
+            commands::vocabulary::update_emoji_replacements_enabled,
+            commands::vocabulary::add_vocabulary_correction,
+            settings::change_context_policy_ceiling_setting,
+            settings::change_context_url_capture_enabled_setting,
+            settings::accept_cloud_stt_provider_consent,
+            settings::accept_post_process_provider_consent,
             shortcut::change_binding,
             shortcut::reset_binding,
             shortcut::change_ptt_setting,
@@ -627,6 +1062,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_translate_to_english_setting,
             shortcut::change_selected_language_setting,
             shortcut::change_overlay_position_setting,
+            shortcut::change_english_spelling_setting,
             shortcut::change_overlay_style_setting,
             shortcut::change_debug_mode_setting,
             shortcut::change_word_correction_threshold_setting,
@@ -644,7 +1080,10 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_post_process_enabled_setting,
             shortcut::change_experimental_enabled_setting,
             shortcut::change_post_process_base_url_setting,
-            shortcut::change_post_process_api_key_setting,
+            secrets::get_provider_secret_state,
+            secrets::set_provider_secret,
+            secrets::delete_provider_secret,
+            secrets::verify_stt_provider_secret,
             shortcut::change_post_process_model_setting,
             shortcut::set_post_process_provider,
             shortcut::fetch_post_process_models,
@@ -652,7 +1091,6 @@ pub fn run(cli_args: CliArgs) {
             shortcut::update_post_process_prompt,
             shortcut::delete_post_process_prompt,
             shortcut::set_post_process_selected_prompt,
-            shortcut::update_custom_words,
             shortcut::suspend_all_bindings,
             shortcut::resume_all_bindings,
             shortcut::change_mute_while_recording_setting,
@@ -661,7 +1099,6 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_vad_enabled_setting,
             shortcut::change_filler_word_removal_enabled_setting,
             shortcut::change_app_language_setting,
-            shortcut::change_update_checks_setting,
             shortcut::change_show_whats_new_on_update_setting,
             shortcut::change_whats_new_last_seen_version_setting,
             shortcut::change_keyboard_implementation_setting,
@@ -675,18 +1112,19 @@ pub fn run(cli_args: CliArgs) {
             shortcut::handy_keys::stop_handy_keys_recording,
             secure_input::get_secure_input_status,
             secure_input::run_keyboard_diagnostic,
-            trigger_update_check,
             show_main_window_command,
             commands::cancel_operation,
             commands::is_portable,
             commands::get_app_dir_path,
             commands::get_app_settings,
             commands::get_default_settings,
+            context::get_context_diagnostics,
             commands::get_log_dir_path,
             commands::set_log_level,
             commands::open_recordings_folder,
             commands::open_log_dir,
             commands::open_app_data_dir,
+            commands::open_license_notices,
             commands::check_apple_intelligence_available,
             commands::initialize_enigo,
             commands::initialize_shortcuts,
@@ -720,35 +1158,118 @@ pub fn run(cli_args: CliArgs) {
             commands::transcription::set_model_unload_timeout,
             commands::transcription::get_model_load_status,
             commands::transcription::unload_model_manually,
+            commands::media_import::import_audio_file,
+            commands::media_import::cancel_audio_import,
+            commands::media_import::list_audio_import_jobs,
+            commands::history::get_history_stats,
+            commands::history::get_history_trend,
             commands::history::get_history_entries,
+            commands::history::search_history_entries,
+            commands::history::get_history_run_receipts,
             commands::history::toggle_history_entry_saved,
-            commands::history::get_audio_file_path,
+            commands::history::read_history_audio_chunk,
             commands::history::delete_history_entry,
             commands::history::retry_history_entry_transcription,
             commands::history::update_history_limit,
             commands::history::update_recording_retention_period,
+            commands::meeting::meeting_suggestions_list,
+            commands::meeting::meeting_preflight_create,
+            commands::meeting::meeting_preflight_refresh,
+            commands::meeting::meeting_preflight_cancel,
+            commands::meeting::meeting_start,
+            commands::meeting::meeting_pause,
+            commands::meeting::meeting_resume,
+            commands::meeting::meeting_stop,
+            commands::meeting::meeting_discard,
+            commands::meeting::meeting_recovery_list,
+            commands::meeting::meeting_recovery_finalize,
+            commands::meeting::meeting_list,
+            commands::meeting::meeting_trend,
+            commands::meeting::meeting_get,
+            commands::meeting::meeting_search,
+            commands::meeting::meeting_title_set,
+            commands::meeting::meeting_speaker_rename,
+            commands::meeting::meeting_speaker_merge,
+            commands::meeting::meeting_segment_edit,
+            commands::meeting::meeting_note_create,
+            commands::meeting::meeting_note_update,
+            commands::meeting::meeting_note_delete,
+            commands::meeting::meeting_artifacts_regenerate,
+            commands::meeting::meeting_question_ask,
+            commands::meeting::meeting_question_forget,
+            commands::meeting::meeting_export,
+            commands::meeting::meeting_delete,
+            commands::meeting::meeting_retention_get,
+            commands::meeting::meeting_retention_set,
+            commands::meeting::meeting_remote_cancel,
+            commands::cloud_sync::cloud_sync_overview_get,
+            commands::cloud_sync::cloud_sync_meeting_status_get,
+            commands::cloud_sync::cloud_sync_meeting_status_list,
+            commands::cloud_sync::cloud_sync_bootstrap,
+            commands::cloud_sync::cloud_sync_recover,
+            commands::cloud_sync::cloud_sync_pairing_offer,
+            commands::cloud_sync::cloud_sync_pairing_approve,
+            commands::cloud_sync::cloud_sync_pairing_accept,
+            commands::cloud_sync::cloud_sync_pause,
+            commands::cloud_sync::cloud_sync_resume,
+            commands::cloud_sync::cloud_sync_retry,
+            commands::cloud_sync::cloud_sync_conflict_resolve,
+            commands::cloud_sync::cloud_share_create,
+            commands::cloud_sync::cloud_browser_share_create,
+            commands::cloud_sync::cloud_share_revoke,
+            commands::cloud_sync::cloud_share_import_file,
             helpers::clamshell::is_laptop,
         ])
         .events(collect_events![
+            upstream_import::UpstreamImportProgressEvent,
+            agent_bridge::AgentBridgeUpdateEvent,
+            agent_panel::AgentPanelStatusChangedEvent,
+            agent_panel::AgentPanelTurnChangedEvent,
+            agent_panel::AgentPanelProposalChangedEvent,
+            agent_panel::AgentPanelGeometryChangedEvent,
+            modes::ModesChangedEvent,
             managers::history::HistoryUpdatePayload,
             managers::transcription::StreamTextEvent,
             managers::transcription::StreamPhaseEvent,
+            managers::transcription::StreamEngineEvent,
+            managers::media_import::AudioImportUpdateEvent,
+            meeting::types::MeetingSuggestionChangedEvent,
+            meeting::types::MeetingSessionChangedEvent,
+            meeting::types::MeetingSourceHealthChangedEvent,
+            meeting::types::MeetingTranscriptChangedEvent,
+            meeting::types::MeetingNoteChangedEvent,
+            meeting::types::MeetingArtifactChangedEvent,
+            meeting::types::MeetingRemoteJobChangedEvent,
+            meeting::types::MeetingRemovedEvent,
+            cloud_sync::types::CloudSyncChangedEvent,
+            meeting::types::MeetingNavigationRequestedEvent,
         ]);
 
-    #[cfg(debug_assertions)] // <- Only export on non-release builds
-    specta_builder
-        .export(
+    #[cfg(debug_assertions)]
+    {
+        const BINDINGS_PATH: &str = "../src/bindings.ts";
+        if let Err(error) = specta_builder.export(
             Typescript::default().bigint(BigIntExportBehavior::Number),
-            "../src/bindings.ts",
-        )
-        .expect("Failed to export typescript bindings");
+            BINDINGS_PATH,
+        ) {
+            panic!("Failed to export TypeScript bindings: {error}");
+        }
+        let source = match std::fs::read_to_string(BINDINGS_PATH) {
+            Ok(source) => source,
+            Err(error) => panic!("Failed to read exported TypeScript bindings: {error}"),
+        };
+        let mut normalized = source
+            .lines()
+            .map(str::trim_end)
+            .collect::<Vec<_>>()
+            .join("\n");
+        normalized.push('\n');
+        if let Err(error) = std::fs::write(BINDINGS_PATH, normalized) {
+            panic!("Failed to normalize exported TypeScript bindings: {error}");
+        }
+    }
 
     let invoke_handler = specta_builder.invoke_handler();
-
-    // The headless path must run as its own instance (see the single-instance
-    // note below), not forward to an already-running app.
-    let headless_mode =
-        cli_args.transcribe_file.is_some() || cli_args.list_devices || cli_args.list_models;
 
     #[allow(unused_mut)]
     let mut builder = tauri::Builder::default()
@@ -778,11 +1299,11 @@ pub fn run(cli_args: CliArgs) {
                     Target::new(if let Some(data_dir) = portable::data_dir() {
                         TargetKind::Folder {
                             path: data_dir.join("logs"),
-                            file_name: Some("handy".into()),
+                            file_name: Some("sona".into()),
                         }
                     } else {
                         TargetKind::LogDir {
-                            file_name: Some("handy".into()),
+                            file_name: Some("sona".into()),
                         }
                     })
                     .filter(|metadata| {
@@ -807,19 +1328,34 @@ pub fn run(cli_args: CliArgs) {
         builder = builder.plugin(tauri_nspanel::init());
     }
 
-    // Single-instance forwards CLI args to an already-running Handy and exits.
+    // Single-instance forwards CLI args to an already-running Sona and exits.
     // That would make the headless path
     // (--transcribe-file/--list-devices/--list-models) a silent no-op whenever the
     // app is already open, so skip it in headless mode and run a standalone
     // instance instead.
     if !headless_mode {
-        builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
+            let opened_audio_paths = CliArgs::try_parse_from(args.clone())
+                .map(|parsed| parsed.opened_audio_files)
+                .unwrap_or_default();
+            let opened_audio_queued =
+                enqueue_opened_paths(app, forwarded_opened_audio_paths(&opened_audio_paths, &cwd));
             if args.iter().any(|a| a == "--toggle-transcription") {
-                signal_handle::send_transcription_input(app, "transcribe", "CLI");
+                signal_handle::send_transcription_intent(
+                    app,
+                    modes::TranscriptionIntent::ActiveMode,
+                    "CLI",
+                );
             } else if args.iter().any(|a| a == "--toggle-post-process") {
-                signal_handle::send_transcription_input(app, "transcribe_with_post_process", "CLI");
+                signal_handle::send_transcription_intent(
+                    app,
+                    modes::TranscriptionIntent::ActiveModeWithPostProcess,
+                    "CLI",
+                );
             } else if args.iter().any(|a| a == "--cancel") {
                 crate::utils::cancel_current_operation(app);
+            } else if opened_audio_queued {
+                show_main_window(app);
             } else {
                 // A second process was launched without remote-control flags
                 // (e.g. the binary run from a shell). On macOS, relaunching the
@@ -834,10 +1370,9 @@ pub fn run(cli_args: CliArgs) {
         }));
     }
 
-    builder
+    let app = match builder
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_macos_permissions::init())
@@ -850,6 +1385,15 @@ pub fn run(cli_args: CliArgs) {
         ))
         .manage(cli_args.clone())
         .setup(move |app| {
+            identity_adoption::adopt_before_startup(app.handle())?;
+            let secret_manager = Arc::new(secrets::SecretManager::native());
+            let migration_pending =
+                settings::legacy_provider_secret_migration_pending(app.handle());
+            let legacy_secret_cutover_pending =
+                settings::legacy_provider_secret_cutover_pending(app.handle());
+            secret_manager.set_migration_pending(migration_pending);
+            app.manage(secret_manager.clone());
+
             specta_builder.mount_events(app);
 
             // Headless one-shot path (`--transcribe-file` / `--list-devices` /
@@ -861,13 +1405,11 @@ pub fn run(cli_args: CliArgs) {
             // signal handlers, and autostart that initialize_core_logic sets up.
             if headless_mode {
                 let app_handle = app.handle().clone();
-                let model_manager = Arc::new(
-                    ModelManager::new(&app_handle).expect("Failed to initialize model manager"),
-                );
-                let transcription_manager = Arc::new(
-                    TranscriptionManager::new(&app_handle, model_manager.clone())
-                        .expect("Failed to initialize transcription manager"),
-                );
+                let model_manager = Arc::new(ModelManager::new(&app_handle)?);
+                let transcription_manager = Arc::new(TranscriptionManager::new(
+                    &app_handle,
+                    model_manager.clone(),
+                )?);
                 app_handle.manage(model_manager);
                 app_handle.manage(transcription_manager);
                 managers::transcription::init_transcribe_backend();
@@ -898,8 +1440,8 @@ pub fn run(cli_args: CliArgs) {
             // for portable mode (redirects WebView2 cache to portable Data dir)
             let mut win_builder =
                 tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App("/".into()))
-                    .title("Handy")
-                    .inner_size(680.0, 570.0)
+                    .title("Sona")
+                    .inner_size(900.0, 680.0)
                     .min_inner_size(680.0, 570.0)
                     .resizable(true)
                     .maximizable(true)
@@ -909,9 +1451,39 @@ pub fn run(cli_args: CliArgs) {
                 win_builder = win_builder.data_directory(data_dir.join("webview"));
             }
 
-            win_builder.build()?;
+            #[cfg(target_os = "macos")]
+            {
+                win_builder = win_builder
+                    .transparent(true)
+                    .title_bar_style(tauri::TitleBarStyle::Overlay)
+                    .hidden_title(true);
+            }
+
+            win_builder = win_builder.initialization_script(MAIN_WINDOW_MATERIAL_INIT);
+            let _main_window = win_builder.build()?;
+            app.manage(agent_panel::AgentPanelManager::new(app.handle()));
+
+            #[cfg(target_os = "macos")]
+            match apply_vibrancy(
+                &_main_window,
+                NSVisualEffectMaterial::UnderWindowBackground,
+                Some(NSVisualEffectState::FollowsWindowActiveState),
+                None,
+            ) {
+                Ok(()) => {
+                    if let Err(error) =
+                        _main_window.eval("document.documentElement.dataset.material = 'glass';")
+                    {
+                        log::warn!("Could not mark the Sona window as glass: {error}");
+                    }
+                }
+                Err(error) => {
+                    log::warn!("Could not apply Sona window vibrancy; using opaque UI: {error}");
+                }
+            };
 
             let mut settings = get_settings(app.handle());
+            modes::refresh_clipboard_context_watcher(&settings);
 
             // Apply the persisted appearance theme to the native title bar before
             // the window is shown, so it matches the in-app palette without a flash
@@ -929,7 +1501,10 @@ pub fn run(cli_args: CliArgs) {
             let tauri_log_level: tauri_plugin_log::LogLevel = settings.log_level.into();
             let file_log_level: log::Level = tauri_log_level.into();
             // Store the file log level in the atomic for the filter to use
-            FILE_LOG_LEVEL.store(file_log_level.to_level_filter() as u8, Ordering::Relaxed);
+            FILE_LOG_LEVEL.store(
+                level_filter_code(file_log_level.to_level_filter()),
+                Ordering::Relaxed,
+            );
             // Only forward logs to the webview while debug mode is on (the live log
             // viewer is the sole consumer and only exists in debug mode). This also
             // honors the runtime `--debug` override applied to `settings` above.
@@ -937,7 +1512,20 @@ pub fn run(cli_args: CliArgs) {
             let app_handle = app.handle().clone();
             app.manage(TranscriptionCoordinator::new(app_handle.clone()));
 
-            initialize_core_logic(&app_handle);
+            initialize_core_logic(&app_handle)?;
+            let opened_audio_queued = enqueue_opened_paths(
+                &app_handle,
+                initial_opened_audio_paths(&cli_args.opened_audio_files),
+            );
+
+            if legacy_secret_cutover_pending {
+                let migration_app = app_handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    let _ =
+                        secrets::migrate_legacy_provider_secrets(&migration_app, secret_manager)
+                            .await;
+                });
+            }
 
             // Secure Input monitor (macOS): detects stuck secure input that
             // silently blocks keyed shortcuts, warns the user, and activates
@@ -975,68 +1563,295 @@ pub fn run(cli_args: CliArgs) {
             // If start_hidden but tray is disabled, we must show the window
             // anyway. Without a tray icon, the dock is the only way back in.
             let tray_available = settings.show_tray_icon && !cli_args.no_tray;
-            if should_force_show || !should_hide || !tray_available {
+            if should_force_show || !should_hide || !tray_available || opened_audio_queued {
                 show_main_window(&app_handle);
             }
 
             Ok(())
         })
-        .on_window_event(|window, event| match event {
-            tauri::WindowEvent::CloseRequested { api, .. } => {
-                api.prevent_close();
-                let _res = window.hide();
+        .on_window_event(|window, event| {
+            let label = window.label();
+            match event {
+                tauri::WindowEvent::CloseRequested { api, .. } if label == "agent-panel" => {
+                    api.prevent_close();
+                    if let Some(panel) = window
+                        .app_handle()
+                        .try_state::<agent_panel::AgentPanelManager>()
+                    {
+                        panel.close();
+                    }
+                }
+                tauri::WindowEvent::CloseRequested { api, .. } if label == "main" => {
+                    api.prevent_close();
+                    if let Some(panel) = window
+                        .app_handle()
+                        .try_state::<agent_panel::AgentPanelManager>()
+                    {
+                        panel.on_main_hidden();
+                    }
+                    let _ = window.hide();
 
-                #[cfg(target_os = "macos")]
-                {
-                    let settings = get_settings(window.app_handle());
-                    let tray_visible =
-                        settings.show_tray_icon && !window.app_handle().state::<CliArgs>().no_tray;
-                    if tray_visible {
-                        // Tray is available: hide the dock icon, app lives in the tray
-                        let res = window
-                            .app_handle()
-                            .set_activation_policy(tauri::ActivationPolicy::Accessory);
-                        if let Err(e) = res {
-                            log::error!("Failed to set activation policy: {}", e);
+                    #[cfg(target_os = "macos")]
+                    {
+                        let settings = get_settings(window.app_handle());
+                        let tray_visible = settings.show_tray_icon
+                            && !window.app_handle().state::<CliArgs>().no_tray;
+                        if tray_visible {
+                            if let Err(error) = window
+                                .app_handle()
+                                .set_activation_policy(tauri::ActivationPolicy::Accessory)
+                            {
+                                log::error!("Failed to set activation policy: {error}");
+                            }
                         }
                     }
-                    // No tray: keep the dock icon visible so the user can reopen
                 }
+                tauri::WindowEvent::Moved(_)
+                | tauri::WindowEvent::Resized(_)
+                | tauri::WindowEvent::ScaleFactorChanged { .. }
+                    if label == "main" =>
+                {
+                    if let Some(panel) = window
+                        .app_handle()
+                        .try_state::<agent_panel::AgentPanelManager>()
+                    {
+                        panel.sync_main_window();
+                    }
+                }
+                tauri::WindowEvent::Destroyed if label == "agent-panel" => {
+                    if let Some(panel) = window
+                        .app_handle()
+                        .try_state::<agent_panel::AgentPanelManager>()
+                    {
+                        panel.on_panel_destroyed();
+                    }
+                }
+                tauri::WindowEvent::Destroyed if label == "main" => {
+                    if let Some(panel) = window
+                        .app_handle()
+                        .try_state::<agent_panel::AgentPanelManager>()
+                    {
+                        panel.on_main_destroyed();
+                    }
+                }
+                tauri::WindowEvent::ThemeChanged(theme) if label == "main" => {
+                    log::info!("Theme changed to: {theme:?}");
+                    utils::refresh_tray_icon(window.app_handle());
+                }
+                _ => {}
             }
-            tauri::WindowEvent::ThemeChanged(theme) => {
-                log::info!("Theme changed to: {:?}", theme);
-                // Re-apply the current tray state with the new theme's icon set
-                utils::refresh_tray_icon(window.app_handle());
-            }
-            _ => {}
         })
         .invoke_handler(invoke_handler)
         .build(tauri::generate_context!())
-        .expect("error while building tauri application")
-        .run(|app, event| match &event {
-            #[cfg(target_os = "macos")]
-            tauri::RunEvent::Reopen { .. } => {
-                // Fired when the already-running bundle is launched again from
-                // Spotlight/Finder or the Dock icon is clicked. If the settings
-                // window is hidden, the user is likely looking for a tray icon
-                // that vanished (#1948): recreate it. When the window is
-                // already visible this is just a focus request and the tray is
-                // left alone.
-                let window_visible = app
-                    .get_webview_window("main")
-                    .and_then(|w| w.is_visible().ok())
-                    .unwrap_or(false);
-                if !window_visible {
-                    tray::recreate_tray_icon(app);
-                }
+    {
+        Ok(app) => app,
+        Err(error) => {
+            eprintln!("error: failed to build Tauri application: {error}");
+            return;
+        }
+    };
+    app.run(|app, event| match &event {
+        #[cfg(target_os = "macos")]
+        tauri::RunEvent::Opened { urls } => {
+            let opened_audio_queued = enqueue_opened_paths(app, macos_opened_audio_paths(urls));
+            if opened_audio_queued {
                 show_main_window(app);
             }
-            // Teardown transcribe.cpp before exit
-            tauri::RunEvent::Exit => {
-                if let Some(tm) = app.try_state::<Arc<TranscriptionManager>>() {
-                    let _ = tm.unload_model();
-                }
+        }
+        #[cfg(target_os = "macos")]
+        tauri::RunEvent::Reopen { .. } => {
+            // Fired when the already-running bundle is launched again from
+            // Spotlight/Finder or the Dock icon is clicked. If the settings
+            // window is hidden, the user is likely looking for a tray icon
+            // that vanished (#1948): recreate it. When the window is
+            // already visible this is just a focus request and the tray is
+            // left alone.
+            let window_visible = app
+                .get_webview_window("main")
+                .and_then(|w| w.is_visible().ok())
+                .unwrap_or(false);
+            if !window_visible {
+                tray::recreate_tray_icon(app);
             }
-            _ => {}
-        });
+            show_main_window(app);
+        }
+        // Teardown transcribe.cpp before exit
+        tauri::RunEvent::Exit => {
+            if let Some(runtime) = app.try_state::<Arc<cloud_sync::CloudSyncRuntime>>() {
+                runtime.shutdown();
+            }
+            if let Some(panel) = app.try_state::<agent_panel::AgentPanelManager>() {
+                tauri::async_runtime::block_on(panel.shutdown());
+            }
+            if let Some(tm) = app.try_state::<Arc<TranscriptionManager>>() {
+                let _ = tm.unload_model();
+            }
+        }
+        _ => {}
+    });
+}
+
+#[cfg(test)]
+mod headless_guard_tests {
+    use super::{is_headless_mode, run_headless_guarded};
+    use crate::cli::CliArgs;
+
+    #[test]
+    fn preserves_normal_exit_codes() {
+        assert_eq!(run_headless_guarded(|| 2), 2);
+    }
+
+    #[test]
+    fn converts_worker_panics_to_runtime_failures() {
+        assert_eq!(run_headless_guarded(|| panic!("simulated failure")), 1);
+    }
+
+    #[test]
+    fn treats_list_models_as_headless_before_binding_export() {
+        let args = CliArgs {
+            list_models: true,
+            ..Default::default()
+        };
+        assert!(is_headless_mode(&args));
+    }
+}
+#[cfg(test)]
+mod opened_audio_tests {
+    #[cfg(target_os = "macos")]
+    use super::macos_opened_audio_paths;
+    use super::{
+        dispatch_opened_audio_paths, forwarded_opened_audio_paths, initial_opened_audio_paths,
+    };
+    use crate::commands::media_import::OpenedAudioImportFailure;
+    use std::ffi::OsStr;
+    use std::path::{Path, PathBuf};
+
+    fn rejected_path() -> OpenedAudioImportFailure {
+        OpenedAudioImportFailure::unavailable()
+    }
+
+    #[test]
+    fn initial_startup_enqueues_all_audio_paths_in_input_order() {
+        let paths = vec![PathBuf::from("first.wav"), PathBuf::from("second.mp3")];
+        let mut enqueued = Vec::new();
+        let queued_any = dispatch_opened_audio_paths(
+            initial_opened_audio_paths(&paths),
+            |path| {
+                enqueued.push(path.to_path_buf());
+                Ok(())
+            },
+            |_, _| panic!("valid startup path was rejected"),
+        );
+
+        assert!(queued_any);
+        assert_eq!(enqueued, paths);
+    }
+
+    #[test]
+    fn mixed_opened_paths_continue_after_each_rejection_and_reveal_the_window() {
+        let paths = vec![
+            PathBuf::from("first.wav"),
+            PathBuf::from("unsupported.mp4"),
+            PathBuf::from("second.flac"),
+        ];
+        let mut enqueued = Vec::new();
+        let mut rejected = Vec::new();
+        let mut reveal_count = 0;
+        let queued_any = dispatch_opened_audio_paths(
+            initial_opened_audio_paths(&paths),
+            |path| {
+                if path.file_name() == Some(OsStr::new("unsupported.mp4")) {
+                    Err(rejected_path())
+                } else {
+                    enqueued.push(path.to_path_buf());
+                    Ok(())
+                }
+            },
+            |path, _| {
+                rejected.push(path.map(Path::to_path_buf));
+                reveal_count += 1;
+            },
+        );
+
+        assert!(queued_any);
+        assert_eq!(
+            enqueued,
+            [PathBuf::from("first.wav"), PathBuf::from("second.flac")]
+        );
+        assert_eq!(rejected, [Some(PathBuf::from("unsupported.mp4"))]);
+        assert_eq!(reveal_count, 1);
+    }
+
+    #[test]
+    fn single_instance_forwarding_resolves_and_enqueues_every_path_in_order() {
+        let forwarded = vec![
+            PathBuf::from("first.wav"),
+            PathBuf::from("invalid.mp4"),
+            PathBuf::from("second.ogg"),
+        ];
+        let mut enqueued = Vec::new();
+        let mut rejected = Vec::new();
+        let mut reveal_count = 0;
+        let queued_any = dispatch_opened_audio_paths(
+            forwarded_opened_audio_paths(&forwarded, "/tmp/opened"),
+            |path| {
+                if path.file_name() == Some(OsStr::new("invalid.mp4")) {
+                    Err(rejected_path())
+                } else {
+                    enqueued.push(path.to_path_buf());
+                    Ok(())
+                }
+            },
+            |path, _| {
+                rejected.push(path.map(Path::to_path_buf));
+                reveal_count += 1;
+            },
+        );
+
+        assert!(queued_any);
+        assert_eq!(
+            enqueued,
+            [
+                PathBuf::from("/tmp/opened/first.wav"),
+                PathBuf::from("/tmp/opened/second.ogg"),
+            ]
+        );
+        assert_eq!(rejected, [Some(PathBuf::from("/tmp/opened/invalid.mp4"))]);
+        assert_eq!(reveal_count, 1);
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_opened_urls_enqueue_file_urls_and_report_non_file_urls() {
+        let urls = [
+            tauri::Url::from_file_path("/tmp/first.wav").expect("file URL"),
+            tauri::Url::parse("https://example.com/recording.wav").expect("web URL"),
+            tauri::Url::from_file_path("/tmp/second.m4a").expect("file URL"),
+        ];
+        let mut enqueued = Vec::new();
+        let mut rejected = Vec::new();
+        let mut reveal_count = 0;
+        let queued_any = dispatch_opened_audio_paths(
+            macos_opened_audio_paths(&urls),
+            |path| {
+                enqueued.push(path.to_path_buf());
+                Ok(())
+            },
+            |path, _| {
+                rejected.push(path.map(Path::to_path_buf));
+                reveal_count += 1;
+            },
+        );
+
+        assert!(queued_any);
+        assert_eq!(
+            enqueued,
+            [
+                PathBuf::from("/tmp/first.wav"),
+                PathBuf::from("/tmp/second.m4a")
+            ]
+        );
+        assert_eq!(rejected, [None]);
+        assert_eq!(reveal_count, 1);
+    }
 }

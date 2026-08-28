@@ -15,6 +15,12 @@ interface ProgressBarProps {
   showLabel?: boolean;
 }
 
+const SIZE_CLASSES = {
+  small: "w-16 h-1",
+  medium: "w-20 h-1.5",
+  large: "w-24 h-2",
+} as const;
+
 const ProgressBar: React.FC<ProgressBarProps> = ({
   progress,
   className = "",
@@ -22,13 +28,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   showSpeed = false,
   showLabel = false,
 }) => {
-  const sizeClasses = {
-    small: "w-16 h-1",
-    medium: "w-20 h-1.5",
-    large: "w-24 h-2",
-  };
-
-  const progressClasses = sizeClasses[size];
+  const progressClasses = SIZE_CLASSES[size];
 
   if (progress.length === 0) {
     return null;
@@ -44,7 +44,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
         <progress
           value={percentage}
           max={100}
-          className={`${progressClasses} [&::-webkit-progress-bar]:rounded-full [&::-webkit-progress-bar]:bg-mid-gray/20 [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-logo-primary`}
+          className={`${progressClasses} [&::-webkit-progress-bar]:bg-mid-gray/20 [&::-webkit-progress-value]:bg-logo-primary`}
         />
         {(showSpeed || showLabel) && (
           <div className="text-xs text-text/60 tabular-nums min-w-fit">
@@ -75,7 +75,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
               value={percentage}
               max={100}
               title={item.label || `${percentage}%`}
-              className="w-3 h-1.5 [&::-webkit-progress-bar]:rounded-full [&::-webkit-progress-bar]:bg-mid-gray/20 [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-logo-primary"
+              className="w-3 h-1 [&::-webkit-progress-bar]:bg-mid-gray/20 [&::-webkit-progress-value]:bg-logo-primary"
             />
           );
         })}

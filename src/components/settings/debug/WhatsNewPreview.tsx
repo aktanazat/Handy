@@ -18,11 +18,8 @@ export const WhatsNewPreview: React.FC<WhatsNewPreviewProps> = ({
 }) => {
   const { t } = useTranslation();
   const [note, setNote] = useState<ReleaseNote | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
   const preview = () => {
-    setIsLoading(true);
-
     try {
       const releaseNote = findLatestReleaseNote();
 
@@ -35,8 +32,6 @@ export const WhatsNewPreview: React.FC<WhatsNewPreviewProps> = ({
     } catch (error) {
       console.error("Failed to preview release notes:", error);
       toast.error(t("settings.debug.whatsNewPreview.error"));
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -52,7 +47,6 @@ export const WhatsNewPreview: React.FC<WhatsNewPreviewProps> = ({
           variant="secondary"
           size="md"
           onClick={preview}
-          disabled={isLoading}
         >
           {t("settings.debug.whatsNewPreview.button")}
         </Button>

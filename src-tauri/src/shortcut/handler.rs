@@ -1,70 +1,85 @@
-//! Shared shortcut event handling logic
-//!
-//! This module contains the common logic for handling shortcut events,
-//! used by both the Tauri and handy-keys implementations.
+//! Shared shortcut event handling logic used by both shortcut backends.
 
 use log::warn;
 use std::sync::Arc;
 use tauri::{AppHandle, Manager};
 
-use crate::actions::ACTION_MAP;
 use crate::managers::audio::AudioRecordingManager;
+use crate::modes::{parse_mode_shortcut_id, ModeShortcutKind, TranscriptionIntent};
 use crate::settings::get_settings;
-use crate::transcription_coordinator::is_transcribe_binding;
 use crate::TranscriptionCoordinator;
 
-/// Handle a shortcut event from either implementation.
-///
-/// This function contains the shared logic for:
-/// - Looking up the action in ACTION_MAP
-/// - Handling the cancel binding (only fires when recording)
-/// - Handling push-to-talk mode (start on press, stop on release)
-/// - Handling toggle mode (toggle state on press only)
-///
-/// # Arguments
-/// * `app` - The Tauri app handle
-/// * `binding_id` - The ID of the binding (e.g., "transcribe", "cancel")
-/// * `hotkey_string` - The string representation of the hotkey
-/// * `is_pressed` - Whether this is a key press (true) or release (false)
-pub fn handle_shortcut_event(
-    app: &AppHandle,
-    binding_id: &str,
-    hotkey_string: &str,
-    is_pressed: bool,
-) {
-    let settings = get_settings(app);
+/// The only shortcut behaviors that can reach the application. Start/stop
+/// resolution belongs to the coordinator because it owns recording state.
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum ShortcutIntent {
+    StartStop(TranscriptionIntent),
+    Cancel,
+    SwitchMode(String),
+}
 
-    // Transcribe bindings are handled by the coordinator.
-    if is_transcribe_binding(binding_id) {
-        if let Some(coordinator) = app.try_state::<TranscriptionCoordinator>() {
-            coordinator.send_input(binding_id, hotkey_string, is_pressed, settings.push_to_talk);
-        } else {
-            warn!("TranscriptionCoordinator is not initialized");
-        }
-        return;
+fn shortcut_intent(binding_id: &str) -> Option<ShortcutIntent> {
+    if binding_id == "cancel" {
+        return Some(ShortcutIntent::Cancel);
     }
+    if let Some((mode_id, ModeShortcutKind::Switch)) = parse_mode_shortcut_id(binding_id) {
+        return Some(ShortcutIntent::SwitchMode(mode_id));
+    }
+    TranscriptionIntent::from_binding(binding_id).map(ShortcutIntent::StartStop)
+}
 
-    let Some(action) = ACTION_MAP.get(binding_id) else {
-        warn!(
-            "No action defined in ACTION_MAP for shortcut ID '{}'. Shortcut: '{}', Pressed: {}",
-            binding_id, hotkey_string, is_pressed
-        );
+/// Handle a shortcut event from either implementation.
+pub fn handle_shortcut_event(app: &AppHandle, binding_id: &str, shortcut: &str, is_pressed: bool) {
+    let Some(intent) = shortcut_intent(binding_id) else {
+        warn!("No typed shortcut intent for '{binding_id}'");
         return;
     };
 
-    // Cancel binding: only fires when recording and key is pressed
-    if binding_id == "cancel" {
-        let audio_manager = app.state::<Arc<AudioRecordingManager>>();
-        if audio_manager.is_recording() && is_pressed {
-            action.start(app, binding_id, hotkey_string);
+    match intent {
+        ShortcutIntent::SwitchMode(mode_id) => {
+            if is_pressed {
+                if let Err(error) = crate::modes::set_active_mode(app.clone(), mode_id) {
+                    warn!("Could not activate mode from shortcut '{binding_id}': {error}");
+                }
+            }
         }
-        return;
+        ShortcutIntent::StartStop(transcription_intent) => {
+            let settings = get_settings(app);
+            if let Some(coordinator) = app.try_state::<TranscriptionCoordinator>() {
+                coordinator.send_shortcut_input(
+                    transcription_intent,
+                    shortcut,
+                    is_pressed,
+                    settings.push_to_talk,
+                );
+            } else {
+                warn!("TranscriptionCoordinator is not initialized");
+            }
+        }
+        ShortcutIntent::Cancel => {
+            let audio_manager = app.state::<Arc<AudioRecordingManager>>();
+            if is_pressed && audio_manager.is_recording() {
+                crate::utils::cancel_current_operation(app);
+            }
+        }
     }
+}
 
-    // Remaining bindings (e.g. "test") use simple start/stop on press/release.
-    if is_pressed {
-        action.start(app, binding_id, hotkey_string);
-    } else {
-        action.stop(app, binding_id, hotkey_string);
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn only_typed_shortcut_intents_are_dispatched() {
+        assert_eq!(
+            shortcut_intent("transcribe"),
+            Some(ShortcutIntent::StartStop(TranscriptionIntent::ActiveMode))
+        );
+        assert_eq!(
+            shortcut_intent("mode/email/switch"),
+            Some(ShortcutIntent::SwitchMode("email".to_string()))
+        );
+        assert_eq!(shortcut_intent("cancel"), Some(ShortcutIntent::Cancel));
+        assert_eq!(shortcut_intent("test"), None);
     }
 }

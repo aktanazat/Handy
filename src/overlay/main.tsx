@@ -10,6 +10,10 @@ import {
 import type { Theme } from "@/bindings";
 import "@/i18n";
 
+
+// The recording panel draws its own translucent solid card. It never inherits
+// the desktop material from the main window.
+document.documentElement.dataset.material = "opaque";
 // A separate webview from the settings window, so the overlay has to set
 // `data-theme` on its own document: last-known theme before render (shared
 // localStorage) to avoid a flash, reconcile with the persisted setting in case

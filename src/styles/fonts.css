@@ -1,0 +1,38 @@
+/* Geist Sans and Geist Mono, bundled locally.
+   Copyright (c) 2023 Vercel, in collaboration with basement.studio.
+   Licensed under the SIL Open Font License 1.1 — full text in
+   ../assets/fonts/OFL.txt. The OFL permits bundling and redistribution with
+   the software, so Sona ships the fonts instead of fetching them at runtime.
+
+   Both files are the variable cuts (one axis, wght 100-900), 72 KB each, so the
+   whole type system costs two requests against the app's own asset protocol.
+   `font-synthesis: none` in App.css keeps the browser from faking weights the
+   axis already covers. */
+
+@font-face {
+  font-family: "Geist Sans";
+  src: url("../assets/fonts/Geist-Variable.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("../assets/fonts/GeistMono-Variable.woff2")
+    format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* System stacks stay behind Geist so a failed font decode degrades to the
+     platform UI face instead of Times. */
+  --font-geist-sans:
+    "Geist Sans", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --font-geist-mono:
+    "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+    "Liberation Mono", monospace;
+}

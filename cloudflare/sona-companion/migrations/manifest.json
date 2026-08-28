@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "migrations": [
+    {
+      "file": "0001_initial.sql",
+      "version": "0001_initial",
+      "checksum": "sha256:36c221b4ebea5ec3fb6f663e124db0c05c2cb94b3aa926793977c7d34dad59a3"
+    },
+    {
+      "file": "0002_upload_lookup.sql",
+      "version": "0002_upload_lookup",
+      "checksum": "sha256:9f05889f771b4486becc105c60505cdb3d361248922babf5b4b00887416814a5"
+    },
+    {
+      "file": "0003_maintenance_leases.sql",
+      "version": "0003_maintenance_leases",
+      "checksum": "sha256:ee4a245b4d2e42220fea50d09ff72c96cf12c501810d2dc1c6162906e217838d"
+    },
+    {
+      "file": "0004_bootstrap_registry.sql",
+      "version": "0004_bootstrap_registry",
+      "checksum": "sha256:ae6e9b051ea617b15b02614b352dcc65ce08a93cee0e70f214893b9af0c224e8"
+    }
+  ]
+}

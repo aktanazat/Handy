@@ -18,6 +18,25 @@ interface ModelStatusButtonProps {
   className?: string;
 }
 
+const getStatusClasses = (status: ModelStatus): string => {
+  switch (status) {
+    case "loading":
+    case "downloading":
+    case "verifying":
+    case "extracting":
+      return "text-text-secondary";
+    case "error":
+      return "text-danger";
+    default:
+      return "text-text-secondary";
+  }
+};
+
+/**
+ * Compact model switcher trigger for the top nav. Status is conveyed with
+ * text color, not a status dot: busy states pulse the label, errors go
+ * danger. The label truncates so the nav bar never clips it.
+ */
 const ModelStatusButton: React.FC<ModelStatusButtonProps> = ({
   status,
   displayText,
@@ -25,42 +44,24 @@ const ModelStatusButton: React.FC<ModelStatusButtonProps> = ({
   onClick,
   className = "",
 }) => {
-  const getStatusColor = (status: ModelStatus): string => {
-    switch (status) {
-      case "ready":
-        return "bg-green-400";
-      case "loading":
-        return "bg-yellow-400 animate-pulse";
-      case "downloading":
-        return "bg-logo-primary animate-pulse";
-      case "verifying":
-        return "bg-orange-400 animate-pulse";
-      case "extracting":
-        return "bg-orange-400 animate-pulse";
-      case "error":
-        return "bg-red-400";
-      case "unloaded":
-        return "bg-mid-gray/60";
-      case "none":
-        return "bg-red-400";
-      default:
-        return "bg-mid-gray/60";
-    }
-  };
-
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`flex items-center gap-2 hover:text-text/80 transition-colors ${className}`}
-      title={`Model status: ${displayText}`}
+      aria-haspopup="listbox"
+      aria-expanded={isDropdownOpen}
+      title={displayText}
+      className={`flex h-[28px] max-w-full items-center gap-1.5 rounded-[6px] px-2 text-[12px] font-medium transition-colors hover:bg-hover hover:text-text-primary ${getStatusClasses(status)} ${className}`}
     >
-      <div className={`w-2 h-2 rounded-full ${getStatusColor(status)}`} />
-      <span className="max-w-28 truncate">{displayText}</span>
+      <span className="max-w-[108px] truncate">{displayText}</span>
       <svg
-        className={`w-3 h-3 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
+        className={`h-3 w-3 shrink-0 text-text-tertiary transition-transform ${
+          isDropdownOpen ? "rotate-180" : ""
+        }`}
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
+        aria-hidden="true"
       >
         <path
           strokeLinecap="round"

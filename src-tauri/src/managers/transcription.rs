@@ -1,11 +1,15 @@
 use crate::audio_toolkit::{
-    apply_custom_words, detect_output_language, normalize_transcription_output,
-    remove_filler_words, OutputLanguageEvidence,
+    apply_british_spelling, apply_emoji_replacements, apply_exact_vocabulary_entries,
+    apply_literal_punctuation, apply_vocabulary_entries, detect_output_language,
+    normalize_transcription_output, remove_filler_words, OutputLanguageEvidence,
 };
 use crate::managers::audio::AudioRecordingManager;
 use crate::managers::model::{EngineType, ModelManager};
+use crate::modes::AsrPlan;
+#[cfg(feature = "cloud-realtime")]
+use crate::modes::{CloudRunPlan, CloudSttProvider};
 use crate::settings::{
-    get_settings, AppSettings, ModelUnloadTimeout, OrtAcceleratorSetting,
+    get_settings, vocabulary_initial_prompt, ModelUnloadTimeout, OrtAcceleratorSetting,
     TranscribeAcceleratorSetting,
 };
 use anyhow::Result;
@@ -35,19 +39,25 @@ use transcribe_rs::{
     },
     SpeechModel, TranscribeOptions,
 };
+#[cfg(feature = "cloud-realtime")]
+use zeroize::Zeroizing;
 
 const STREAM_PERF_LOG_INTERVAL: Duration = Duration::from_secs(5);
 const STREAM_FINALIZE_REPLY_TIMEOUT: Duration = Duration::from_secs(30);
+const STREAM_PREVIEW_QUEUE_SAMPLES: usize = 2 * 16_000;
+const STREAM_PREVIEW_FRAME_SAMPLES: usize = 480;
+const STREAM_PREVIEW_QUEUE_CAPACITY: usize =
+    STREAM_PREVIEW_QUEUE_SAMPLES / STREAM_PREVIEW_FRAME_SAMPLES;
+const STREAM_CONTROL_POLL_INTERVAL: Duration = Duration::from_millis(20);
+#[cfg(feature = "cloud-realtime")]
+const CLOUD_EVENT_POLL_INTERVAL: Duration = Duration::from_millis(20);
+#[cfg(feature = "cloud-realtime")]
+const CLOUD_FINALIZE_TIMEOUT: Duration = Duration::from_secs(8);
 
-fn panic_payload_message(payload: &(dyn std::any::Any + Send)) -> String {
-    if let Some(message) = payload.downcast_ref::<&str>() {
-        (*message).to_string()
-    } else if let Some(message) = payload.downcast_ref::<String>() {
-        message.clone()
-    } else {
-        "unknown panic".to_string()
-    }
-}
+const ENGINE_PANIC_LOG_MESSAGE: &str = "Transcription engine panicked; the model has been unloaded";
+const ENGINE_PANIC_EVENT_MESSAGE: &str = "Transcription engine failed and the model was unloaded";
+const ENGINE_PANIC_ERROR_MESSAGE: &str =
+    "Transcription engine failed; the model was unloaded and will reload on the next attempt";
 
 #[derive(Clone, Debug, Serialize)]
 pub struct ModelStateEvent {
@@ -55,6 +65,15 @@ pub struct ModelStateEvent {
     pub model_id: Option<String>,
     pub model_name: Option<String>,
     pub error: Option<String>,
+}
+
+fn engine_panic_model_state_event() -> ModelStateEvent {
+    ModelStateEvent {
+        event_type: "unloaded".to_string(),
+        model_id: None,
+        model_name: None,
+        error: Some(ENGINE_PANIC_EVENT_MESSAGE.to_string()),
+    }
 }
 
 /// Live transcription snapshot emitted to the overlay during a streaming run.
@@ -86,6 +105,22 @@ pub enum StreamWorkKind {
     Polishing,
 }
 
+/// The source currently shown by the live overlay. Cloud failures switch to
+/// local_fallback before any batch decoding begins; provider partials never
+/// become delivery text.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum StreamEngine {
+    Local,
+    Cloud,
+    LocalFallback,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Type, tauri_specta::Event)]
+pub struct StreamEngineEvent {
+    pub engine: StreamEngine,
+}
+
 /// Emitted to switch the streaming overlay to a working spinner.
 #[derive(Clone, Debug, Serialize, Deserialize, Type, tauri_specta::Event)]
 pub struct StreamPhaseEvent {
@@ -100,10 +135,112 @@ pub struct StreamPhaseEvent {
 /// is processed before finalize runs.
 enum StreamCmd {
     Feed(Vec<f32>),
-    /// Flush the stream and reply with the final text, or `None` if no stream
-    /// was ever active (caller should fall back to batch transcription).
     Finalize(mpsc::Sender<Option<FinalizedStreamText>>),
     Cancel,
+}
+
+/// Lossless terminal controls use a separate lane from bounded preview audio.
+enum StreamControl {
+    Finalize(mpsc::Sender<Option<FinalizedStreamText>>),
+    Cancel,
+}
+
+struct StreamRoute {
+    audio_tx: mpsc::SyncSender<Vec<f32>>,
+    control_tx: mpsc::Sender<StreamControl>,
+}
+
+struct StreamLanes {
+    audio_rx: mpsc::Receiver<Vec<f32>>,
+    control_rx: mpsc::Receiver<StreamControl>,
+    pending_finalize: Option<mpsc::Sender<Option<FinalizedStreamText>>>,
+}
+
+impl StreamLanes {
+    fn recv(&mut self) -> Result<StreamCmd, mpsc::RecvError> {
+        loop {
+            if let Some(reply) = self.pending_finalize.take() {
+                match self.audio_rx.try_recv() {
+                    Ok(pcm) => {
+                        self.pending_finalize = Some(reply);
+                        return Ok(StreamCmd::Feed(pcm));
+                    }
+                    Err(mpsc::TryRecvError::Empty | mpsc::TryRecvError::Disconnected) => {
+                        return Ok(StreamCmd::Finalize(reply));
+                    }
+                }
+            }
+
+            match self.control_rx.try_recv() {
+                Ok(StreamControl::Cancel) => return Ok(StreamCmd::Cancel),
+                Ok(StreamControl::Finalize(reply)) => {
+                    self.pending_finalize = Some(reply);
+                    continue;
+                }
+                Err(mpsc::TryRecvError::Disconnected) => {
+                    return self.control_rx.recv().map(|control| match control {
+                        StreamControl::Finalize(reply) => StreamCmd::Finalize(reply),
+                        StreamControl::Cancel => StreamCmd::Cancel,
+                    });
+                }
+                Err(mpsc::TryRecvError::Empty) => {}
+            }
+
+            match self.audio_rx.recv_timeout(STREAM_CONTROL_POLL_INTERVAL) {
+                Ok(pcm) => return Ok(StreamCmd::Feed(pcm)),
+                Err(mpsc::RecvTimeoutError::Timeout) => {}
+                Err(mpsc::RecvTimeoutError::Disconnected) => {
+                    return self.control_rx.recv().map(|control| match control {
+                        StreamControl::Finalize(reply) => StreamCmd::Finalize(reply),
+                        StreamControl::Cancel => StreamCmd::Cancel,
+                    });
+                }
+            }
+        }
+    }
+
+    #[cfg(feature = "cloud-realtime")]
+    /// Wait for one bounded audio/control command, or return None so a cloud
+    /// worker can drive provider input and its required idle keepalive.
+    fn poll(&mut self) -> Option<StreamCmd> {
+        loop {
+            if let Some(reply) = self.pending_finalize.take() {
+                return match self.audio_rx.try_recv() {
+                    Ok(pcm) => {
+                        self.pending_finalize = Some(reply);
+                        Some(StreamCmd::Feed(pcm))
+                    }
+                    Err(mpsc::TryRecvError::Empty | mpsc::TryRecvError::Disconnected) => {
+                        Some(StreamCmd::Finalize(reply))
+                    }
+                };
+            }
+
+            match self.control_rx.try_recv() {
+                Ok(StreamControl::Cancel) => return Some(StreamCmd::Cancel),
+                Ok(StreamControl::Finalize(reply)) => {
+                    self.pending_finalize = Some(reply);
+                    continue;
+                }
+                Err(mpsc::TryRecvError::Disconnected) => return None,
+                Err(mpsc::TryRecvError::Empty) => {}
+            }
+
+            match self.audio_rx.recv_timeout(STREAM_CONTROL_POLL_INTERVAL) {
+                Ok(pcm) => return Some(StreamCmd::Feed(pcm)),
+                Err(mpsc::RecvTimeoutError::Timeout) => return None,
+                Err(mpsc::RecvTimeoutError::Disconnected) => {
+                    return match self.control_rx.recv_timeout(STREAM_CONTROL_POLL_INTERVAL) {
+                        Ok(StreamControl::Cancel) => Some(StreamCmd::Cancel),
+                        Ok(StreamControl::Finalize(reply)) => Some(StreamCmd::Finalize(reply)),
+                        Err(
+                            mpsc::RecvTimeoutError::Timeout | mpsc::RecvTimeoutError::Disconnected,
+                        ) => None,
+                    };
+                }
+            }
+        }
+    }
 }
 
 struct FinalizedStreamText {
@@ -116,63 +253,301 @@ struct FinalizedStreamText {
 /// Routes real-time audio frames to the active streaming worker. Shared between
 /// the [`TranscriptionManager`] (opens/closes the route) and the audio recorder's
 /// per-frame callback (feeds frames). The recorder holds an `Arc<StreamRouter>`
-/// directly, so a frame with no stream pending costs a single relaxed atomic
-/// load — no Tauri state lookup, no mutex lock.
+/// directly, so an unarmed frame costs only atomic loads — no Tauri state lookup
+/// or mutex lock.
 pub struct StreamRouter {
-    /// Command channel to the active streaming worker, present from
-    /// `start_stream` until `finalize_stream`/`cancel_stream`.
-    tx: Mutex<Option<mpsc::Sender<StreamCmd>>>,
-    /// True while a stream is pending or active (channel is open). The audio
-    /// callback checks this first to avoid the mutex lock when no stream runs.
-    open: Arc<AtomicBool>,
+    route: Mutex<Option<StreamRoute>>,
+    /// True while a worker exists, including a degraded preview awaiting its engine return.
+    open: AtomicBool,
+    /// Stops copies into preview as soon as its bounded lane fills.
+    accepting_audio: AtomicBool,
+    /// Makes finalization return batch fallback only after the worker returns its engine.
+    preview_degraded: AtomicBool,
+    /// Starts an ASR worker only after VAD forwards the first speech frame.
+    /// Silence must not load a model or open a cloud connection.
+    first_speech_start: Mutex<Option<Box<dyn FnOnce() + Send + 'static>>>,
+    first_speech_armed: AtomicBool,
 }
 
 impl StreamRouter {
     fn new() -> Self {
         Self {
-            tx: Mutex::new(None),
-            open: Arc::new(AtomicBool::new(false)),
+            route: Mutex::new(None),
+            open: AtomicBool::new(false),
+            accepting_audio: AtomicBool::new(false),
+            preview_degraded: AtomicBool::new(false),
+            first_speech_start: Mutex::new(None),
+            first_speech_armed: AtomicBool::new(false),
         }
     }
 
-    /// Open a fresh command channel for a new streaming session, returning the
-    /// receiver the worker should drain. Caller must ensure no prior channel is
-    /// still open.
-    fn open(&self) -> mpsc::Receiver<StreamCmd> {
-        let (tx, rx) = mpsc::channel::<StreamCmd>();
-        *self.tx.lock().unwrap() = Some(tx);
-        self.open.store(true, Ordering::Relaxed);
-        rx
+    fn open(&self) -> StreamLanes {
+        let (audio_tx, audio_rx) = mpsc::sync_channel(STREAM_PREVIEW_QUEUE_CAPACITY);
+        let (control_tx, control_rx) = mpsc::channel();
+        *self
+            .route
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(StreamRoute {
+            audio_tx,
+            control_tx,
+        });
+        self.preview_degraded.store(false, Ordering::Release);
+        self.accepting_audio.store(true, Ordering::Release);
+        self.open.store(true, Ordering::Release);
+        StreamLanes {
+            audio_rx,
+            control_rx,
+            pending_finalize: None,
+        }
     }
 
-    /// Take the sender out (closing the channel to new feeds). Returns the
-    /// sender so the caller can send the final `Finalize`/`Cancel` command.
-    fn take(&self) -> Option<mpsc::Sender<StreamCmd>> {
-        self.open.store(false, Ordering::Relaxed);
-        self.tx.lock().unwrap().take()
+    fn arm_on_first_speech(&self, start: impl FnOnce() + Send + 'static) {
+        let mut pending = self
+            .first_speech_start
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if pending.is_some() {
+            warn!("replacing a stream start that was still waiting for speech");
+        }
+        *pending = Some(Box::new(start));
+        self.first_speech_armed.store(true, Ordering::Release);
     }
 
-    /// Drop the channel and mark closed without sending a final command (used
-    /// when the worker exits without a finalize/cancel handshake).
+    fn take(&self) -> Option<StreamRoute> {
+        // Serializing with feed preserves the data-before-finalize ordering.
+        self.accepting_audio.store(false, Ordering::Release);
+        self.open.store(false, Ordering::Release);
+        self.first_speech_armed.store(false, Ordering::Release);
+        let route = self
+            .route
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take();
+        self.first_speech_start
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take();
+        route
+    }
+
     fn clear(&self) {
-        self.open.store(false, Ordering::Relaxed);
-        *self.tx.lock().unwrap() = None;
+        self.accepting_audio.store(false, Ordering::Release);
+        self.open.store(false, Ordering::Release);
+        self.first_speech_armed.store(false, Ordering::Release);
+        *self
+            .route
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
+        self.first_speech_start
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take();
     }
 
-    /// Forward a 16 kHz frame to the active streaming worker. Cheap no-op (a
-    /// single relaxed atomic load) when no stream is pending.
+    /// Live preview is best-effort. A full lane is terminal for preview, never for capture.
     pub fn feed(&self, frame: &[f32]) {
-        if !self.open.load(Ordering::Relaxed) {
+        if self.first_speech_armed.load(Ordering::Acquire) {
+            // Keep this lock across `start`: cancellation either clears this
+            // one-shot before it can run, or takes the route it creates.
+            let mut pending = self
+                .first_speech_start
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            if let Some(start) = pending.take() {
+                self.first_speech_armed.store(false, Ordering::Release);
+                start();
+            }
+        }
+
+        if !self.accepting_audio.load(Ordering::Acquire) {
             return;
         }
-        if let Some(tx) = self.tx.lock().unwrap().as_ref() {
-            let _ = tx.send(StreamCmd::Feed(frame.to_vec()));
+        if frame.len() > STREAM_PREVIEW_FRAME_SAMPLES {
+            self.disable_preview("received an oversized frame");
+            return;
+        }
+
+        let send_result = {
+            let route = self
+                .route
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            let Some(route) = route.as_ref() else {
+                return;
+            };
+            route.audio_tx.try_send(frame.to_vec())
+        };
+        if let Err(error) = send_result {
+            match error {
+                mpsc::TrySendError::Full(_) => {
+                    self.disable_preview("decoder backlog reached the two-second limit");
+                }
+                mpsc::TrySendError::Disconnected(_) => {
+                    self.disable_preview("preview worker stopped receiving audio");
+                }
+            }
         }
     }
 
-    /// Whether a stream is pending or active.
     pub fn is_open(&self) -> bool {
-        self.open.load(Ordering::Relaxed)
+        self.open.load(Ordering::Acquire)
+    }
+
+    fn preview_degraded(&self) -> bool {
+        self.preview_degraded.load(Ordering::Acquire)
+    }
+
+    fn disable_preview(&self, reason: &str) {
+        if !self.preview_degraded.swap(true, Ordering::AcqRel) {
+            warn!("Live preview disabled ({reason}); final transcription will use complete batch audio");
+        }
+        self.accepting_audio.store(false, Ordering::Release);
+    }
+}
+
+#[cfg(feature = "cloud-realtime")]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CloudStreamFailure {
+    Authentication,
+    Quota,
+    Network,
+    Protocol,
+    Disconnected,
+    Backpressure,
+    MissingFinal,
+    /// The native credential store could not produce this provider's key on
+    /// the worker: locked, unavailable, busy, or holding an unusable entry.
+    KeyUnavailable,
+}
+
+#[cfg(feature = "cloud-realtime")]
+impl From<crate::cloud_stt::CloudError> for CloudStreamFailure {
+    fn from(error: crate::cloud_stt::CloudError) -> Self {
+        match error {
+            crate::cloud_stt::CloudError::Authentication => Self::Authentication,
+            crate::cloud_stt::CloudError::Quota => Self::Quota,
+            crate::cloud_stt::CloudError::Network => Self::Network,
+            crate::cloud_stt::CloudError::Protocol
+            | crate::cloud_stt::CloudError::AudioFrameTooLarge
+            | crate::cloud_stt::CloudError::Finalized => Self::Protocol,
+            crate::cloud_stt::CloudError::Disconnected => Self::Disconnected,
+            crate::cloud_stt::CloudError::Backpressure => Self::Backpressure,
+        }
+    }
+}
+
+/// Key resolution happens on the cloud worker, so its failures share the one
+/// terminal-state lattice the rest of the session uses.
+#[cfg(feature = "cloud-realtime")]
+impl From<crate::secrets::SttSecretVerificationError> for CloudStreamFailure {
+    fn from(error: crate::secrets::SttSecretVerificationError) -> Self {
+        use crate::secrets::SttSecretVerificationError as KeyError;
+        match error {
+            KeyError::NotConfigured | KeyError::Authentication => Self::Authentication,
+            KeyError::Quota => Self::Quota,
+            KeyError::Network => Self::Network,
+            KeyError::Unavailable
+            | KeyError::Locked
+            | KeyError::Busy
+            | KeyError::Backend
+            | KeyError::Corrupt
+            | KeyError::Invalid
+            | KeyError::ConsentRequired
+            | KeyError::Protocol => Self::KeyUnavailable,
+        }
+    }
+}
+
+/// Resolves this run's provider key. Called exactly once, on the cloud worker,
+/// immediately before connect; the key is used and dropped there and never
+/// cached by the manager.
+#[cfg(feature = "cloud-realtime")]
+pub type CloudKeySource = Box<dyn FnOnce() -> Result<Zeroizing<String>, CloudStreamFailure> + Send>;
+
+/// A cloud final is usable only after the provider closed the finalized session
+/// with at least one timestamped final segment. Every other terminal state is
+/// deliberately routed through frozen local fallback or held history.
+#[cfg(feature = "cloud-realtime")]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CloudStreamFinalization {
+    Final(String),
+    Failed {
+        failure: CloudStreamFailure,
+        audio_sent: bool,
+    },
+}
+
+#[cfg(feature = "cloud-realtime")]
+trait CloudTransport: Send {
+    fn send_audio(&mut self, samples: &[f32]) -> Result<(), CloudStreamFailure>;
+    fn poll_event(
+        &mut self,
+        wait: Duration,
+    ) -> Result<Option<crate::cloud_stt::CloudEvent>, CloudStreamFailure>;
+    fn finalize(&mut self) -> Result<(), CloudStreamFailure>;
+}
+
+#[cfg(feature = "cloud-realtime")]
+trait CloudTransportFactory: Send + Sync {
+    fn connect(
+        &self,
+        plan: &CloudRunPlan,
+        api_key: Zeroizing<String>,
+    ) -> Result<Box<dyn CloudTransport>, CloudStreamFailure>;
+}
+
+#[cfg(feature = "cloud-realtime")]
+struct DirectCloudTransport(crate::cloud_stt::CloudSession);
+
+#[cfg(feature = "cloud-realtime")]
+impl CloudTransport for DirectCloudTransport {
+    fn send_audio(&mut self, samples: &[f32]) -> Result<(), CloudStreamFailure> {
+        tauri::async_runtime::block_on(self.0.send_audio(samples)).map_err(Into::into)
+    }
+
+    fn poll_event(
+        &mut self,
+        wait: Duration,
+    ) -> Result<Option<crate::cloud_stt::CloudEvent>, CloudStreamFailure> {
+        match tauri::async_runtime::block_on(tokio::time::timeout(wait, self.0.next_event())) {
+            Ok(result) => result.map(Some).map_err(Into::into),
+            Err(_) => Ok(None),
+        }
+    }
+
+    fn finalize(&mut self) -> Result<(), CloudStreamFailure> {
+        tauri::async_runtime::block_on(self.0.finalize()).map_err(Into::into)
+    }
+}
+
+#[cfg(feature = "cloud-realtime")]
+struct DirectCloudTransportFactory;
+
+#[cfg(feature = "cloud-realtime")]
+impl CloudTransportFactory for DirectCloudTransportFactory {
+    fn connect(
+        &self,
+        plan: &CloudRunPlan,
+        api_key: Zeroizing<String>,
+    ) -> Result<Box<dyn CloudTransport>, CloudStreamFailure> {
+        if !plan.timestamps() {
+            return Err(CloudStreamFailure::Protocol);
+        }
+        let provider = match plan.provider() {
+            CloudSttProvider::DeepgramNova3 => crate::cloud_stt::CloudProvider::DeepgramNova3,
+            CloudSttProvider::ElevenLabsScribeV2 => {
+                crate::cloud_stt::CloudProvider::ElevenLabsScribeV2
+            }
+        };
+        let config = crate::cloud_stt::CloudRunConfig::new(
+            provider,
+            plan.language().map(str::to_owned),
+            plan.keyterms().to_vec(),
+            false,
+        );
+        tauri::async_runtime::block_on(crate::cloud_stt::CloudSession::connect(config, api_key))
+            .map(|session| Box::new(DirectCloudTransport(session)) as Box<dyn CloudTransport>)
+            .map_err(Into::into)
     }
 }
 
@@ -213,6 +588,17 @@ impl Drop for LoadingGuard {
     }
 }
 
+/// Keeps automatic model unloading suspended while a media import owns its
+/// bounded decode/transcription lifecycle.
+pub struct MediaImportActivityGuard {
+    active_media_imports: Arc<AtomicU64>,
+}
+
+impl Drop for MediaImportActivityGuard {
+    fn drop(&mut self) {
+        self.active_media_imports.fetch_sub(1, Ordering::AcqRel);
+    }
+}
 /// RAII guard that clears the streaming worker/lease flags on any worker exit -
 /// normal return, early return, or a panic in an engine call that unwinds the
 /// detached worker thread. Tokens prevent an older worker from clearing a newer
@@ -247,6 +633,8 @@ impl Drop for StreamWorkerGuard {
 #[derive(Clone)]
 pub struct TranscriptionManager {
     engine: Arc<Mutex<Option<LoadedEngine>>>,
+    /// Serializes loading, streaming, and batch use of the one native engine.
+    engine_lease_gate: Arc<Mutex<()>>,
     model_manager: Arc<ModelManager>,
     app_handle: AppHandle,
     current_model_id: Arc<Mutex<Option<String>>>,
@@ -277,12 +665,28 @@ pub struct TranscriptionManager {
     /// `is_model_loaded()` consults this so the model still reports "loaded"
     /// while the worker holds it.
     active_engine_lease: Arc<AtomicU64>,
+    /// Active import jobs suspend automatic model unloading while they decode
+    /// and wait for the engine. A manual unload remains user-controlled.
+    active_media_imports: Arc<AtomicU64>,
+    /// The one injectable provider connector. Production supplies the direct
+    /// BYOK WebSocket path; focused manager tests supply deterministic fakes.
+    #[cfg(feature = "cloud-realtime")]
+    cloud_transport_factory: Arc<dyn CloudTransportFactory>,
+    #[cfg(feature = "cloud-realtime")]
+    cloud_finalization: Arc<Mutex<Option<mpsc::Receiver<CloudStreamFinalization>>>>,
 }
 
+fn lock_recover<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    match mutex.lock() {
+        Ok(guard) => guard,
+        Err(poisoned) => poisoned.into_inner(),
+    }
+}
 impl TranscriptionManager {
     pub fn new(app_handle: &AppHandle, model_manager: Arc<ModelManager>) -> Result<Self> {
         let manager = Self {
             engine: Arc::new(Mutex::new(None)),
+            engine_lease_gate: Arc::new(Mutex::new(())),
             model_manager,
             app_handle: app_handle.clone(),
             current_model_id: Arc::new(Mutex::new(None)),
@@ -297,6 +701,11 @@ impl TranscriptionManager {
             next_stream_worker_id: Arc::new(AtomicU64::new(1)),
             active_stream_worker: Arc::new(AtomicU64::new(0)),
             active_engine_lease: Arc::new(AtomicU64::new(0)),
+            active_media_imports: Arc::new(AtomicU64::new(0)),
+            #[cfg(feature = "cloud-realtime")]
+            cloud_transport_factory: Arc::new(DirectCloudTransportFactory),
+            #[cfg(feature = "cloud-realtime")]
+            cloud_finalization: Arc::new(Mutex::new(None)),
         };
 
         // Start the idle watcher
@@ -329,7 +738,7 @@ impl TranscriptionManager {
                     let is_recording = app_handle_cloned
                         .try_state::<Arc<AudioRecordingManager>>()
                         .is_some_and(|a| a.is_recording());
-                    if is_recording {
+                    if is_recording || manager_cloned.has_active_media_import() {
                         manager_cloned.touch_activity();
                         continue;
                     }
@@ -367,7 +776,7 @@ impl TranscriptionManager {
                 }
                 debug!("Idle watcher thread shutting down gracefully");
             });
-            *manager.watcher_handle.lock().unwrap() = Some(handle);
+            *lock_recover(&manager.watcher_handle) = Some(handle);
         }
 
         Ok(manager)
@@ -387,6 +796,56 @@ impl TranscriptionManager {
         self.lock_engine().is_some() || self.active_engine_lease.load(Ordering::Acquire) != 0
     }
 
+    fn lock_engine_lease_gate(&self) -> MutexGuard<'_, ()> {
+        self.engine_lease_gate.lock().unwrap_or_else(|poisoned| {
+            warn!("Engine lease gate was poisoned by a previous panic, recovering");
+            poisoned.into_inner()
+        })
+    }
+
+    /// Wait for a loader without holding the engine gate, then recheck after
+    /// acquiring it so a queued loader cannot race a batch or stream owner.
+    fn wait_for_load_then_lock_engine_lease(&self) -> MutexGuard<'_, ()> {
+        loop {
+            {
+                let mut is_loading = self.is_loading.lock().unwrap_or_else(|poisoned| {
+                    warn!("Recovered poisoned is_loading mutex while acquiring engine lease");
+                    poisoned.into_inner()
+                });
+                while *is_loading {
+                    is_loading = self
+                        .loading_condvar
+                        .wait(is_loading)
+                        .unwrap_or_else(|poisoned| poisoned.into_inner());
+                }
+            }
+            let lease = self.lock_engine_lease_gate();
+            let is_loading = self
+                .is_loading
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            if !*is_loading {
+                return lease;
+            }
+            drop(is_loading);
+            drop(lease);
+        }
+    }
+
+    /// Begin a bounded file-import lifecycle without granting it a separate
+    /// engine. The returned guard is held by MediaImportManager's one worker.
+    pub fn begin_media_import(&self) -> MediaImportActivityGuard {
+        self.active_media_imports.fetch_add(1, Ordering::AcqRel);
+        self.touch_activity();
+        MediaImportActivityGuard {
+            active_media_imports: Arc::clone(&self.active_media_imports),
+        }
+    }
+
+    fn has_active_media_import(&self) -> bool {
+        self.active_media_imports.load(Ordering::Acquire) != 0
+    }
+
     /// Accelerator changes should not disturb the current transcription. Mark
     /// the cached engine stale; the next model-use path reloads it with the
     /// latest settings.
@@ -399,7 +858,7 @@ impl TranscriptionManager {
     /// clear the flag and wake waiters. Returns `None` if a load is already in
     /// progress.
     pub fn try_start_loading(&self) -> Option<LoadingGuard> {
-        let mut is_loading = self.is_loading.lock().unwrap();
+        let mut is_loading = lock_recover(&self.is_loading);
         if *is_loading {
             return None;
         }
@@ -411,6 +870,7 @@ impl TranscriptionManager {
     }
 
     pub fn unload_model(&self) -> Result<()> {
+        let _engine_lease = self.lock_engine_lease_gate();
         let unload_start = std::time::Instant::now();
         debug!("Starting to unload model");
 
@@ -420,7 +880,7 @@ impl TranscriptionManager {
             *engine = None;
         }
         {
-            let mut current_model = self.current_model_id.lock().unwrap();
+            let mut current_model = lock_recover(&self.current_model_id);
             *current_model = None;
         }
 
@@ -444,10 +904,10 @@ impl TranscriptionManager {
     }
 
     fn now_ms() -> u64 {
-        SystemTime::now()
+        let elapsed = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64
+            .unwrap_or_default();
+        u64::try_from(elapsed.as_millis()).unwrap_or(u64::MAX)
     }
 
     /// Reset the idle timer to now.
@@ -457,6 +917,9 @@ impl TranscriptionManager {
 
     /// Unloads the model immediately if the setting is enabled and the model is loaded
     pub fn maybe_unload_immediately(&self, context: &str) {
+        if self.has_active_media_import() {
+            return;
+        }
         let settings = get_settings(&self.app_handle);
         if settings.model_unload_timeout == ModelUnloadTimeout::Immediately
             && self.is_model_loaded()
@@ -474,15 +937,71 @@ impl TranscriptionManager {
 
     /// Like [`load_model`](Self::load_model), but lets a caller hard-select the
     /// compute device for this one load by its `transcribe_cpp::devices()`
-    /// registry index (the index shown by `--list-devices`). `None` keeps the
-    /// persisted accelerator setting (which may be Auto). Only affects
-    /// transcribe-cpp (whisper-family) models; the selection is not persisted.
+    /// registry index. This command-facing path snapshots the current settings
+    /// before loading; recording paths use [`load_model_for_plan`](Self::load_model_for_plan).
     pub fn load_model_with_device(
         &self,
         model_id: &str,
         device_index: Option<usize>,
     ) -> Result<()> {
-        apply_accelerator_settings(&self.app_handle);
+        let settings = get_settings(&self.app_handle);
+        self.load_model_with_configuration(
+            model_id,
+            device_index,
+            settings.transcribe_accelerator,
+            settings.transcribe_gpu_device.as_deref(),
+            settings.ort_accelerator,
+        )
+    }
+
+    /// Load exactly the model and accelerator choices frozen for one run.
+    pub fn load_model_for_plan(&self, plan: &AsrPlan) -> Result<()> {
+        self.load_model_with_configuration(
+            &plan.model_id,
+            None,
+            plan.transcribe_accelerator,
+            plan.transcribe_gpu_device.as_deref(),
+            plan.ort_accelerator,
+        )
+    }
+
+    fn load_model_for_plan_while_leased(&self, plan: &AsrPlan) -> Result<()> {
+        self.load_model_with_configuration_while_leased(
+            &plan.model_id,
+            None,
+            plan.transcribe_accelerator,
+            plan.transcribe_gpu_device.as_deref(),
+            plan.ort_accelerator,
+        )
+    }
+
+    fn load_model_with_configuration(
+        &self,
+        model_id: &str,
+        device_index: Option<usize>,
+        accelerator: TranscribeAcceleratorSetting,
+        selected_gpu_device: Option<&str>,
+        ort_accelerator: OrtAcceleratorSetting,
+    ) -> Result<()> {
+        let _engine_lease = self.lock_engine_lease_gate();
+        self.load_model_with_configuration_while_leased(
+            model_id,
+            device_index,
+            accelerator,
+            selected_gpu_device,
+            ort_accelerator,
+        )
+    }
+
+    fn load_model_with_configuration_while_leased(
+        &self,
+        model_id: &str,
+        device_index: Option<usize>,
+        accelerator: TranscribeAcceleratorSetting,
+        selected_gpu_device: Option<&str>,
+        ort_accelerator: OrtAcceleratorSetting,
+    ) -> Result<()> {
+        apply_ort_accelerator(ort_accelerator);
 
         let load_start = std::time::Instant::now();
         debug!("Starting to load model: {}", model_id);
@@ -528,7 +1047,7 @@ impl TranscriptionManager {
             *engine = None;
         }
         {
-            let mut current_model = self.current_model_id.lock().unwrap();
+            let mut current_model = lock_recover(&self.current_model_id);
             *current_model = None;
         }
 
@@ -547,25 +1066,15 @@ impl TranscriptionManager {
 
         let loaded_engine = match model_info.engine_type {
             EngineType::TranscribeCpp => {
-                // The whisper backend is chosen at load time (transcribe-cpp has
-                // no runtime global). With an explicit `device_index` (the
-                // --device-index flag) hard-select that registered device;
-                // otherwise re-read the persisted accelerator preference (so an
-                // accelerator change marked for reload takes effect here).
+                // The whisper backend is selected at model-load time from the
+                // already-frozen run choices, unless this is the explicit CLI
+                // device-index path.
                 let (backend, device) = match device_index {
                     Some(index) => resolve_device_index(index).inspect_err(|e| {
                         emit_loading_failed(&e.to_string());
                     })?,
                     None => {
-                        let settings = get_settings(&self.app_handle);
-                        let accelerator = settings.transcribe_accelerator;
-                        let device = resolve_gpu_device(
-                            accelerator,
-                            settings.transcribe_gpu_device.as_deref(),
-                        );
-                        // Backend::Auto accepts an exact GPU device. Without a
-                        // valid exact device, backend selection handles the
-                        // retired generic GPU state and host CPU guard.
+                        let device = resolve_gpu_device(accelerator, selected_gpu_device);
                         let backend = if device.is_some() {
                             Backend::Auto
                         } else {
@@ -703,7 +1212,7 @@ impl TranscriptionManager {
             *engine = Some(loaded_engine);
         }
         {
-            let mut current_model = self.current_model_id.lock().unwrap();
+            let mut current_model = lock_recover(&self.current_model_id);
             *current_model = Some(model_id.to_string());
         }
 
@@ -730,39 +1239,70 @@ impl TranscriptionManager {
         Ok(())
     }
 
-    /// Kicks off the model loading in a background thread if it's not already loaded
-    pub fn initiate_model_load(&self) {
-        let mut is_loading = self.is_loading.lock().unwrap();
+    /// Kicks off loading the exact model and runtime choices frozen for a run.
+    pub fn initiate_model_load(&self, plan: &AsrPlan) {
+        let mut is_loading = lock_recover(&self.is_loading);
         if *is_loading {
             return;
         }
 
         let reload_pending = self.reload_model_on_next_use.load(Ordering::Acquire);
-        if !reload_pending && self.is_model_loaded() {
+        let loaded_for_plan = self.get_current_model().as_deref() == Some(plan.model_id.as_str());
+        if !reload_pending && loaded_for_plan && self.is_model_loaded() {
             return;
         }
 
         *is_loading = true;
         let self_clone = self.clone();
+        let plan = plan.clone();
         thread::spawn(move || {
             if reload_pending {
                 self_clone
                     .reload_model_on_next_use
                     .store(false, Ordering::Release);
             }
-            let settings = get_settings(&self_clone.app_handle);
-            if let Err(e) = self_clone.load_model(&settings.selected_model) {
-                error!("Failed to load model: {}", e);
+            if let Err(e) = self_clone.load_model_for_plan(&plan) {
+                error!("Failed to load frozen run model: {}", e);
             }
-            let mut is_loading = self_clone.is_loading.lock().unwrap();
+            let mut is_loading = lock_recover(&self_clone.is_loading);
             *is_loading = false;
             self_clone.loading_condvar.notify_all();
         });
     }
 
     pub fn get_current_model(&self) -> Option<String> {
-        let current_model = self.current_model_id.lock().unwrap();
+        let current_model = lock_recover(&self.current_model_id);
         current_model.clone()
+    }
+
+    /// Returns the configured local ASR model only when its verified asset is
+    /// already installed. Meeting capture never turns an unavailable local model
+    /// into a remote request.
+    pub fn meeting_selected_asr_model_id(&self) -> Option<String> {
+        let plan = AsrPlan::from_settings(&get_settings(&self.app_handle));
+        self.model_manager
+            .get_model_info(&plan.model_id)
+            .filter(|model| model.is_downloaded)
+            .map(|_| plan.model_id)
+    }
+
+    /// Freezes the selected local ASR model and language into a meeting run.
+    /// The caller supplies both values from the immutable meeting plan, so later
+    /// settings edits cannot change an in-flight or recovered meeting.
+    pub fn meeting_asr_plan_for(&self, model_id: &str, language: &str) -> Option<AsrPlan> {
+        let mut plan = AsrPlan::from_settings(&get_settings(&self.app_handle));
+        if !self
+            .model_manager
+            .get_model_info(model_id)
+            .is_some_and(|model| model.is_downloaded)
+        {
+            return None;
+        }
+        plan.model_id = model_id.to_string();
+        if language != "und" {
+            plan.language = language.to_string();
+        }
+        Some(plan)
     }
 
     /// The compute backend the currently-loaded engine is bound to, for
@@ -791,6 +1331,49 @@ impl TranscriptionManager {
         Arc::clone(&self.router)
     }
 
+    /// Start loading a local model only once VAD has forwarded speech. A silent
+    /// run keeps its audio/receipt without paying a model-load cost.
+    pub fn arm_model_load_on_first_speech(&self, asr: &AsrPlan) {
+        let manager = self.clone();
+        let asr = asr.clone();
+        self.router.arm_on_first_speech(move || {
+            manager.initiate_model_load(&asr);
+        });
+    }
+
+    /// Start a local streaming worker only after VAD has forwarded speech.
+    pub fn arm_stream_on_first_speech(&self, asr: &AsrPlan) {
+        let manager = self.clone();
+        let asr = asr.clone();
+        self.router.arm_on_first_speech(move || {
+            manager.initiate_model_load(&asr);
+            manager.start_stream(&asr);
+        });
+    }
+
+    /// Resolve the native key and open a remote session only after VAD has
+    /// forwarded speech. The optional local model still warms at that same
+    /// boundary so an eligible fallback does not add avoidable delay.
+    #[cfg(feature = "cloud-realtime")]
+    pub fn arm_cloud_stream_on_first_speech(
+        &self,
+        plan: &CloudRunPlan,
+        key_source: CloudKeySource,
+        local_fallback: Option<&AsrPlan>,
+    ) {
+        let manager = self.clone();
+        let plan = plan.clone();
+        let local_fallback = local_fallback.cloned();
+        self.router.arm_on_first_speech(move || {
+            if let Some(fallback) = local_fallback.as_ref() {
+                manager.initiate_model_load(fallback);
+            }
+            if !manager.start_cloud_stream(&plan, key_source) {
+                warn!("cloud stream could not start after speech was detected");
+            }
+        });
+    }
+
     /// Begin a live streaming transcription on the held engine's session.
     /// Audio frames pushed via [`StreamRouter::feed`] (captured directly by the
     /// audio recorder) are decoded incrementally and emitted to the overlay as
@@ -801,7 +1384,7 @@ impl TranscriptionManager {
     /// model can't stream, the worker idles until finalize/cancel and reports
     /// `None` so the caller falls back to batch transcription. Frames sent
     /// before the stream begins queue on the channel and are not lost.
-    pub fn start_stream(&self) {
+    pub fn start_stream(&self, asr: &AsrPlan) {
         if self.router.is_open() || self.active_stream_worker.load(Ordering::Acquire) != 0 {
             warn!("start_stream called while a stream worker is already active");
             return;
@@ -815,14 +1398,84 @@ impl TranscriptionManager {
             warn!("start_stream lost a race with another stream worker");
             return;
         }
-        let rx = self.router.open();
+        let lanes = self.router.open();
         self.stream_active.store(false, Ordering::Release);
 
         let manager = self.clone();
-        thread::spawn(move || manager.run_stream_worker(rx, worker_id));
+        let asr = asr.clone();
+        thread::spawn(move || manager.run_stream_worker(lanes, worker_id, asr));
     }
 
-    fn run_stream_worker(&self, rx: mpsc::Receiver<StreamCmd>, worker_id: u64) {
+    /// Open one direct cloud session on a worker after VAD forwards speech. The
+    /// recorder callback only arms the existing bounded router; it never owns a
+    /// socket, key, allocation-heavy conversion, or network wait.
+    ///
+    /// `key_source` is invoked on that worker, never on the caller's thread:
+    /// resolving a native credential can block on a keychain prompt or a
+    /// locked secret service, and the caller is the shortcut serialization
+    /// thread that also has to service cancel presses.
+    #[cfg(feature = "cloud-realtime")]
+    pub fn start_cloud_stream(&self, plan: &CloudRunPlan, key_source: CloudKeySource) -> bool {
+        if self.router.is_open() || self.active_stream_worker.load(Ordering::Acquire) != 0 {
+            warn!("start_cloud_stream called while a stream worker is already active");
+            return false;
+        }
+        let worker_id = self.next_stream_worker_id.fetch_add(1, Ordering::Relaxed);
+        if self
+            .active_stream_worker
+            .compare_exchange(0, worker_id, Ordering::AcqRel, Ordering::Acquire)
+            .is_err()
+        {
+            warn!("start_cloud_stream lost a race with another stream worker");
+            return false;
+        }
+
+        let lanes = self.router.open();
+        let (result_tx, result_rx) = mpsc::sync_channel(1);
+        *self
+            .cloud_finalization
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(result_rx);
+        self.stream_active.store(true, Ordering::Release);
+        self.emit_stream_engine(StreamEngine::Cloud);
+
+        let manager = self.clone();
+        let plan = plan.clone();
+        thread::spawn(move || {
+            manager.run_cloud_stream_worker(lanes, worker_id, plan, key_source, result_tx)
+        });
+        true
+    }
+
+    #[cfg(feature = "cloud-realtime")]
+    fn run_cloud_stream_worker(
+        &self,
+        lanes: StreamLanes,
+        worker_id: u64,
+        plan: CloudRunPlan,
+        key_source: CloudKeySource,
+        result_tx: mpsc::SyncSender<CloudStreamFinalization>,
+    ) {
+        let _worker = StreamWorkerGuard {
+            worker_id,
+            active_stream_worker: Arc::clone(&self.active_stream_worker),
+            active_engine_lease: Arc::clone(&self.active_engine_lease),
+            stream_active: Arc::clone(&self.stream_active),
+        };
+        run_cloud_transport_session(
+            lanes,
+            self.cloud_transport_factory.as_ref(),
+            &plan,
+            key_source,
+            self.router.as_ref(),
+            |event, final_segments, interim| {
+                self.consume_cloud_event(event, final_segments, interim)
+            },
+            result_tx,
+        );
+    }
+
+    fn run_stream_worker(&self, mut lanes: StreamLanes, worker_id: u64, asr: AsrPlan) {
         let _worker = StreamWorkerGuard {
             worker_id,
             active_stream_worker: Arc::clone(&self.active_stream_worker),
@@ -833,13 +1486,26 @@ impl TranscriptionManager {
         // Wait for any in-progress model load to finish (start_stream races the
         // background load kicked off when recording starts).
         {
-            let mut is_loading = self.is_loading.lock().unwrap();
+            let mut is_loading = lock_recover(&self.is_loading);
             while *is_loading {
-                is_loading = self.loading_condvar.wait(is_loading).unwrap();
+                is_loading = self
+                    .loading_condvar
+                    .wait(is_loading)
+                    .unwrap_or_else(|poisoned| poisoned.into_inner());
             }
         }
 
-        let model_id = self.get_current_model().unwrap_or_default();
+        let _engine_lease = self.wait_for_load_then_lock_engine_lease();
+        let model_id = asr.model_id.clone();
+        if self.get_current_model().as_deref() != Some(model_id.as_str()) {
+            info!(
+                "Live preview: frozen model '{}' is unavailable; using batch fallback",
+                model_id
+            );
+            self.router.clear();
+            drain_until_finalize(lanes);
+            return;
+        }
 
         // Take the engine out of the mutex so we own it during streaming,
         // structurally excluding any concurrent batch transcription (which
@@ -852,7 +1518,7 @@ impl TranscriptionManager {
         {
             warn!("Live preview: another worker already holds the transcription engine");
             self.router.clear();
-            drain_until_finalize(rx);
+            drain_until_finalize(lanes);
             return;
         }
         let mut engine = match self.lock_engine().take() {
@@ -860,7 +1526,7 @@ impl TranscriptionManager {
             None => {
                 info!(
                     "Live preview: model '{}' was unloaded before streaming could begin; \
-                     falling back to batch transcription",
+                 falling back to batch transcription",
                     model_id
                 );
                 let _ = self.active_engine_lease.compare_exchange(
@@ -870,7 +1536,7 @@ impl TranscriptionManager {
                     Ordering::Acquire,
                 );
                 self.router.clear();
-                drain_until_finalize(rx);
+                drain_until_finalize(lanes);
                 return;
             }
         };
@@ -884,7 +1550,7 @@ impl TranscriptionManager {
                 let caps = model.capabilities();
                 info!(
                     "Live preview: model '{}' arch='{}' variant='{}' supports_streaming={} \
-                     supports_translate={} languages={:?}",
+                 supports_translate={} languages={:?}",
                     model_id,
                     model.arch(),
                     model.variant(),
@@ -901,7 +1567,7 @@ impl TranscriptionManager {
             _ => {
                 info!(
                     "Live preview: model '{}' is not a transcribe-cpp model; \
-                     streaming is unavailable, using batch transcription",
+                 streaming is unavailable, using batch transcription",
                     model_id
                 );
                 (false, false, Vec::new())
@@ -911,23 +1577,21 @@ impl TranscriptionManager {
         if !supports_streaming {
             self.return_engine(engine, &model_id);
             self.router.clear();
-            drain_until_finalize(rx);
+            drain_until_finalize(lanes);
             return;
         }
 
-        // Build run options mirroring the offline transcribe-cpp path: task +
-        // language gated against what the model actually advertises.
-        let settings = get_settings(&self.app_handle);
+        // Build options from the frozen ASR plan, never from mutable settings.
         let effective_language =
-            effective_language_for_model(&settings, self.model_manager.as_ref(), &model_id);
+            effective_language_for_plan(&asr, self.model_manager.as_ref(), &model_id);
         let run_plan = transcribe_cpp_run_plan(
-            settings.translate_to_english,
+            asr.translate_to_english,
             &effective_language,
             &languages,
             supports_translate,
         );
         let output_language = resolve_output_language_evidence(
-            &settings,
+            &asr,
             run_plan.language.as_deref(),
             &languages,
             run_plan.target_language.as_deref() == Some("en"),
@@ -974,9 +1638,12 @@ impl TranscriptionManager {
             );
 
             let mut perf = StreamPerf::new();
-            while let Ok(cmd) = rx.recv() {
+            while let Ok(cmd) = lanes.recv() {
                 match cmd {
                     StreamCmd::Feed(pcm) => {
+                        if self.router.preview_degraded() {
+                            continue;
+                        }
                         self.touch_activity();
                         perf.record_feed(pcm.len());
                         let feed_start = Instant::now();
@@ -999,14 +1666,21 @@ impl TranscriptionManager {
                             Err(e) => {
                                 perf.record_compute(feed_start.elapsed());
                                 warn!("stream feed failed: {}", e);
+                                self.router.disable_preview("stream decoder rejected audio");
                             }
                         }
                     }
                     StreamCmd::Finalize(reply) => {
+                        if self.router.preview_degraded() {
+                            stream.reset();
+                            perf.log_finalized(0);
+                            finalize_reply = Some(reply);
+                            finalize_result = Some(None);
+                            break;
+                        }
+
                         let finalize_start = Instant::now();
                         let result = match stream.finalize() {
-                            // After finalize the committed prefix holds the full
-                            // text; display() = committed + tentative is the safe read.
                             Ok(update) => {
                                 perf.record_compute(finalize_start.elapsed());
                                 perf.record_update(
@@ -1015,9 +1689,6 @@ impl TranscriptionManager {
                                     update.audio_committed_ms,
                                     update.buffered_ms,
                                 );
-                                // In auto mode the model's own LID is the best
-                                // remaining evidence; the snapshot is only
-                                // materialized when it can change the outcome.
                                 let output_language = match &output_language {
                                     OutputLanguageEvidence::Unknown => {
                                         with_model_detected_language(
@@ -1036,15 +1707,15 @@ impl TranscriptionManager {
                             Err(e) => {
                                 perf.record_compute(finalize_start.elapsed());
                                 error!(
-                                    "stream finalize failed: {}; falling back to batch transcription",
-                                    e
-                                );
+                                "stream finalize failed: {}; falling back to batch transcription",
+                                e
+                            );
                                 None
                             }
                         };
                         let chars = match &result {
                             Some(finalized) => finalized.text.len(),
-                            _ => 0,
+                            None => 0,
                         };
                         perf.log_finalized(chars);
                         finalize_reply = Some(reply);
@@ -1068,7 +1739,7 @@ impl TranscriptionManager {
             // caller falls back to batch transcription. Return the engine first
             // so the fallback can immediately use it.
             self.return_engine(engine, &model_id);
-            drain_until_finalize(rx);
+            drain_until_finalize(lanes);
             return;
         }
 
@@ -1080,11 +1751,82 @@ impl TranscriptionManager {
         // the engine has been returned to the pool.
     }
 
-    /// Return the leased engine to the mutex, unless the model was switched or
-    /// unloaded during transcription (in which case the stale engine is dropped).
+    /// Consume a body-free cloud protocol event without promoting preview text.
+    #[cfg(feature = "cloud-realtime")]
+    fn consume_cloud_event(
+        &self,
+        event: crate::cloud_stt::CloudEvent,
+        final_segments: &mut Vec<String>,
+        interim: &mut String,
+    ) -> Result<bool, CloudStreamFailure> {
+        consume_cloud_event_with_preview(event, final_segments, interim, |segments, preview| {
+            self.emit_cloud_preview(segments, preview)
+        })
+    }
+
+    #[cfg(feature = "cloud-realtime")]
+    fn emit_cloud_preview(&self, final_segments: &[String], interim: &str) {
+        let mut preview = final_segments.join(" ");
+        if !interim.trim().is_empty() {
+            if !preview.is_empty() {
+                preview.push(' ');
+            }
+            preview.push_str(interim);
+        }
+        // Provider text is preview-only. Committed remains empty until the
+        // post-stop outcome selects an actual final engine result.
+        self.emit_stream_text("", &preview);
+    }
+
+    /// Finalize the active cloud worker. Timeout is an external recovery
+    /// boundary: the worker is discarded and the caller performs one frozen
+    /// local fallback (or records Held when fallback is disabled).
+    #[cfg(feature = "cloud-realtime")]
+    pub fn finalize_cloud_stream(&self) -> CloudStreamFinalization {
+        let Some(route) = self.router.take() else {
+            return CloudStreamFinalization::Failed {
+                failure: CloudStreamFailure::Disconnected,
+                audio_sent: false,
+            };
+        };
+        let receiver = self
+            .cloud_finalization
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take();
+        let Some(receiver) = receiver else {
+            let _ = route.control_tx.send(StreamControl::Cancel);
+            return CloudStreamFinalization::Failed {
+                failure: CloudStreamFailure::Protocol,
+                audio_sent: false,
+            };
+        };
+        let (reply_tx, _reply_rx) = mpsc::channel();
+        if route
+            .control_tx
+            .send(StreamControl::Finalize(reply_tx))
+            .is_err()
+        {
+            return CloudStreamFinalization::Failed {
+                failure: CloudStreamFailure::Disconnected,
+                audio_sent: false,
+            };
+        }
+        match receiver.recv_timeout(STREAM_FINALIZE_REPLY_TIMEOUT) {
+            Ok(outcome) => outcome,
+            Err(mpsc::RecvTimeoutError::Timeout | mpsc::RecvTimeoutError::Disconnected) => {
+                CloudStreamFinalization::Failed {
+                    failure: CloudStreamFailure::MissingFinal,
+                    audio_sent: true,
+                }
+            }
+        }
+    }
+
+    /// Return the leased engine unless the model was switched or unloaded.
     fn return_engine(&self, engine: LoadedEngine, expected_model_id: &str) {
         let still_current =
-            self.current_model_id.lock().unwrap().as_deref() == Some(expected_model_id);
+            lock_recover(&self.current_model_id).as_deref() == Some(expected_model_id);
         if still_current {
             *self.lock_engine() = Some(engine);
         } else {
@@ -1102,12 +1844,16 @@ impl TranscriptionManager {
     /// to batch transcription. `Err` means finalize itself failed or timed out.
     /// A timeout may still leave the worker holding the engine, so callers
     /// should surface it instead of immediately starting a batch fallback.
-    pub fn finalize_stream(&self) -> Result<Option<String>> {
-        let Some(tx) = self.router.take() else {
+    pub fn finalize_stream(&self, asr: &AsrPlan) -> Result<Option<String>> {
+        let Some(route) = self.router.take() else {
             return Ok(None);
         };
         let (reply_tx, reply_rx) = mpsc::channel();
-        if tx.send(StreamCmd::Finalize(reply_tx)).is_err() {
+        if route
+            .control_tx
+            .send(StreamControl::Finalize(reply_tx))
+            .is_err()
+        {
             return Ok(None);
         }
         let finalized = match reply_rx.recv_timeout(STREAM_FINALIZE_REPLY_TIMEOUT) {
@@ -1123,12 +1869,11 @@ impl TranscriptionManager {
             }
         };
 
-        let settings = get_settings(&self.app_handle);
         // Streaming models do not receive a decode prompt, so custom words
         // always go through the shared fuzzy post-correction path.
         let filtered = post_process_transcription_text(
             finalized.text,
-            &settings,
+            asr,
             false,
             &finalized.output_language,
             &finalized.supported_languages,
@@ -1140,9 +1885,14 @@ impl TranscriptionManager {
 
     /// Abandon any active stream without producing text (e.g. on cancel).
     pub fn cancel_stream(&self) {
-        if let Some(tx) = self.router.take() {
-            let _ = tx.send(StreamCmd::Cancel);
+        if let Some(route) = self.router.take() {
+            let _ = route.control_tx.send(StreamControl::Cancel);
         }
+        #[cfg(feature = "cloud-realtime")]
+        self.cloud_finalization
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take();
         self.stream_active.store(false, Ordering::Release);
     }
 
@@ -1154,7 +1904,10 @@ impl TranscriptionManager {
         }
         .emit(&self.app_handle);
     }
-
+    #[cfg(feature = "cloud-realtime")]
+    pub fn emit_stream_engine(&self, engine: StreamEngine) {
+        let _ = StreamEngineEvent { engine }.emit(&self.app_handle);
+    }
     fn emit_stream_text(&self, committed: &str, tentative: &str) {
         let _ = StreamTextEvent {
             committed: committed.to_string(),
@@ -1162,12 +1915,16 @@ impl TranscriptionManager {
         }
         .emit(&self.app_handle);
     }
-
-    pub fn transcribe(&self, audio: Vec<f32>) -> Result<String> {
+    #[cfg(feature = "cloud-realtime")]
+    pub fn clear_stream_preview(&self) {
+        self.emit_stream_text("", "");
+    }
+    /// Batch-transcribe shared completed PCM without copying it.
+    pub fn transcribe_shared(&self, asr: &AsrPlan, audio: &[f32]) -> Result<String> {
         #[cfg(debug_assertions)]
-        if std::env::var("HANDY_FORCE_TRANSCRIPTION_FAILURE").is_ok() {
+        if std::env::var("SONA_FORCE_TRANSCRIPTION_FAILURE").is_ok() {
             return Err(anyhow::anyhow!(
-                "Simulated transcription failure (HANDY_FORCE_TRANSCRIPTION_FAILURE)"
+                "Simulated transcription failure (SONA_FORCE_TRANSCRIPTION_FAILURE)"
             ));
         }
 
@@ -1185,57 +1942,32 @@ impl TranscriptionManager {
             return Ok(String::new());
         }
 
-        // Check if model is loaded, if not try to load it
-        {
-            // If the model is loading, wait for it to complete.
-            let mut is_loading = self.is_loading.lock().unwrap();
-            while *is_loading {
-                is_loading = self.loading_condvar.wait(is_loading).unwrap();
-            }
-
-            let engine_guard = self.lock_engine();
-            if engine_guard.is_none() {
-                return Err(anyhow::anyhow!("Model is not loaded for transcription."));
-            }
+        // The native engine has one owner. Wait without holding the loading
+        // mutex, then retain the lease across a load and the complete engine
+        // call so imports and dictation make forward progress in FIFO order.
+        let engine_lease = self.wait_for_load_then_lock_engine_lease();
+        let active_model = asr.model_id.clone();
+        let model_is_ready = self.get_current_model().as_deref() == Some(active_model.as_str())
+            && self.lock_engine().is_some();
+        if !model_is_ready {
+            self.load_model_for_plan_while_leased(asr)?;
         }
-
-        // Get current settings for configuration
-        let settings = get_settings(&self.app_handle);
-
-        // Validate selected language against the model's supported languages.
-        // If the language isn't supported, fall back to "auto" to prevent errors.
-        // Validate against the model that's actually loaded (which can differ
-        // from settings.selected_model when a caller loaded a specific model —
-        // e.g. the --transcribe-file path's --model), not the persisted
-        // selection.
-        let active_model = self
-            .get_current_model()
-            .unwrap_or_else(|| settings.selected_model.clone());
-        // Resolve the persisted language *intent* into the language this model
-        // will actually use. The coercion is capability-aware (a must-pick model
-        // never receives "auto") and computed fresh here — it is never written
-        // back to settings, so the intent survives switching models and back.
         let validated_language =
-            effective_language_for_model(&settings, self.model_manager.as_ref(), &active_model);
-        if validated_language != settings.selected_language {
+            effective_language_for_plan(asr, self.model_manager.as_ref(), &active_model);
+        if validated_language != asr.language {
             debug!(
-                "Language intent '{}' resolved to '{}' for model '{}'",
-                settings.selected_language, validated_language, active_model
+                "Frozen language intent '{}' resolved to '{}' for model '{}'",
+                asr.language, validated_language, active_model
             );
         }
 
-        // Whether the loaded transcribe-cpp model advertises
-        // Feature::InitialPrompt. Informational (logged below); the whisper
-        // run extension and the fuzzy-correction skip are gated on
-        // `model_is_whisper` instead, since non-whisper archs can advertise
-        // the feature while rejecting the whisper-kind extension.
-        let mut model_takes_initial_prompt = false;
         // Whether the loaded model is actually whisper-family (arch string).
         // Non-whisper archs (e.g. Voxtral Small) can advertise
         // Feature::InitialPrompt yet reject the whisper-kind run extension
         // with INVALID_ARG, so the whisper extension must be gated on the
         // arch, not on the feature (see #1601).
         let mut model_is_whisper = false;
+        let mut vocabulary_prompted = false;
 
         // Perform transcription with the appropriate engine.
         // We use catch_unwind to prevent engine panics from poisoning the mutex,
@@ -1275,13 +2007,13 @@ impl TranscriptionManager {
             if let LoadedEngine::TranscribeCpp(session) = &engine {
                 let model = session.model();
                 let caps = model.capabilities();
-                model_takes_initial_prompt = model.supports(Feature::InitialPrompt);
+                let model_takes_initial_prompt = model.supports(Feature::InitialPrompt);
                 model_is_whisper = model.arch() == "whisper";
                 model_supports_translate = caps.supports_translate;
                 model_languages = caps.languages;
                 debug!(
                     "transcribe-cpp model '{}' on '{}': initial_prompt={}, translate={}, languages={:?}",
-                    settings.selected_model,
+                    active_model,
                     model.backend(),
                     model_takes_initial_prompt,
                     model_supports_translate,
@@ -1292,22 +2024,21 @@ impl TranscriptionManager {
             let transcribe_result = catch_unwind(AssertUnwindSafe(|| -> Result<String> {
                 match &mut engine {
                     LoadedEngine::TranscribeCpp(session) => {
-                        // Custom words become the initial prompt ONLY for models
-                        // that accept one (whisper family). Attaching the
-                        // whisper run extension to a non-whisper arch is rejected
-                        // with INVALID_ARG, so skip it there and let the fuzzy
-                        // post-correction handle custom words instead.
-                        let family = if settings.custom_words.is_empty() || !model_is_whisper {
-                            None
-                        } else {
-                            Some(RunExtension::Whisper(WhisperRunOptions {
-                                initial_prompt: Some(settings.custom_words.join(", ")),
+                        // Only actual whisper-family sessions receive a decode
+                        // prompt. Its written forms still receive exact correction;
+                        // only fuzzy matching is skipped for prompted runs.
+                        let initial_prompt = model_is_whisper
+                            .then(|| vocabulary_initial_prompt(&asr.custom_words))
+                            .flatten();
+                        vocabulary_prompted = initial_prompt.is_some();
+                        let family = initial_prompt.map(|initial_prompt| {
+                            RunExtension::Whisper(WhisperRunOptions {
+                                initial_prompt: Some(initial_prompt),
                                 ..Default::default()
-                            }))
-                        };
-
+                            })
+                        });
                         let run_plan = transcribe_cpp_run_plan(
-                            settings.translate_to_english,
+                            asr.translate_to_english,
                             &validated_language,
                             &model_languages,
                             model_supports_translate,
@@ -1331,7 +2062,7 @@ impl TranscriptionManager {
                         );
 
                         session
-                            .run(&audio, &run_options)
+                            .run(audio, &run_options)
                             .map(|t| {
                                 // Whisper's audio-based LID (auto mode only;
                                 // `None` when a language hint was passed).
@@ -1348,16 +2079,16 @@ impl TranscriptionManager {
                             ..Default::default()
                         };
                         parakeet_engine
-                            .transcribe_with(&audio, &params)
+                            .transcribe_with(audio, &params)
                             .map(|r| r.text)
                             .map_err(|e| anyhow::anyhow!("Parakeet transcription failed: {}", e))
                     }
                     LoadedEngine::Moonshine(moonshine_engine) => moonshine_engine
-                        .transcribe(&audio, &TranscribeOptions::default())
+                        .transcribe(audio, &TranscribeOptions::default())
                         .map(|r| r.text)
                         .map_err(|e| anyhow::anyhow!("Moonshine transcription failed: {}", e)),
                     LoadedEngine::MoonshineStreaming(streaming_engine) => streaming_engine
-                        .transcribe(&audio, &TranscribeOptions::default())
+                        .transcribe(audio, &TranscribeOptions::default())
                         .map(|r| r.text)
                         .map_err(|e| {
                             anyhow::anyhow!("Moonshine streaming transcription failed: {}", e)
@@ -1377,16 +2108,16 @@ impl TranscriptionManager {
                             use_itn: Some(true),
                         };
                         sense_voice_engine
-                            .transcribe_with(&audio, &params)
+                            .transcribe_with(audio, &params)
                             .map(|r| r.text)
                             .map_err(|e| anyhow::anyhow!("SenseVoice transcription failed: {}", e))
                     }
                     LoadedEngine::GigaAM(gigaam_engine) => gigaam_engine
-                        .transcribe(&audio, &TranscribeOptions::default())
+                        .transcribe(audio, &TranscribeOptions::default())
                         .map(|r| r.text)
                         .map_err(|e| anyhow::anyhow!("GigaAM transcription failed: {}", e)),
                     LoadedEngine::Canary(canary_engine) => {
-                        output_was_translated = settings.translate_to_english;
+                        output_was_translated = asr.translate_to_english;
                         let lang = if validated_language == "auto" {
                             None
                         } else {
@@ -1395,11 +2126,11 @@ impl TranscriptionManager {
                         applied_language_hint = lang.clone();
                         let options = TranscribeOptions {
                             language: lang,
-                            translate: settings.translate_to_english,
+                            translate: asr.translate_to_english,
                             ..Default::default()
                         };
                         canary_engine
-                            .transcribe(&audio, &options)
+                            .transcribe(audio, &options)
                             .map(|r| r.text)
                             .map_err(|e| anyhow::anyhow!("Canary transcription failed: {}", e))
                     }
@@ -1415,7 +2146,7 @@ impl TranscriptionManager {
                             ..Default::default()
                         };
                         cohere_engine
-                            .transcribe(&audio, &options)
+                            .transcribe(audio, &options)
                             .map(|r| r.text)
                             .map_err(|e| anyhow::anyhow!("Cohere transcription failed: {}", e))
                     }
@@ -1429,44 +2160,31 @@ impl TranscriptionManager {
                     self.return_engine(engine, &active_model);
                     inner_result?
                 }
-                Err(panic_payload) => {
+                Err(_) => {
                     // Engine panicked — do NOT put it back (it's in an unknown state).
                     // The engine is dropped here, effectively unloading it.
-                    let panic_msg = panic_payload_message(panic_payload.as_ref());
-                    error!(
-                        "Transcription engine panicked: {}. Model has been unloaded.",
-                        panic_msg
-                    );
+                    error!("{ENGINE_PANIC_LOG_MESSAGE}");
 
-                    // Clear the model ID so it will be reloaded on next attempt
+                    // Clear the model ID so it will be reloaded on next attempt.
                     {
                         let mut current_model = self
                             .current_model_id
                             .lock()
-                            .unwrap_or_else(|e| e.into_inner());
+                            .unwrap_or_else(|error| error.into_inner());
                         *current_model = None;
                     }
 
-                    let _ = self.app_handle.emit(
-                        "model-state-changed",
-                        ModelStateEvent {
-                            event_type: "unloaded".to_string(),
-                            model_id: None,
-                            model_name: None,
-                            error: Some(format!("Engine panicked: {}", panic_msg)),
-                        },
-                    );
+                    let _ = self
+                        .app_handle
+                        .emit("model-state-changed", engine_panic_model_state_event());
 
-                    return Err(anyhow::anyhow!(
-                        "Transcription engine panicked: {}. The model has been unloaded and will reload on next attempt.",
-                        panic_msg
-                    ));
+                    return Err(anyhow::anyhow!(ENGINE_PANIC_ERROR_MESSAGE));
                 }
             };
 
             let output_language = with_model_detected_language(
                 resolve_output_language_evidence(
-                    &settings,
+                    asr,
                     applied_language_hint.as_deref(),
                     &model_languages,
                     output_was_translated,
@@ -1478,21 +2196,20 @@ impl TranscriptionManager {
             (text, output_language, model_languages)
         };
 
-        // Apply fuzzy word correction if custom words are configured — UNLESS the
-        // words were already handed to the model as an initial prompt (whisper
-        // family). We don't pass a prompt to non-whisper models (it requires the
-        // whisper-kind run extension), so they still get fuzzy correction here,
-        // same as the ONNX engines.
+        drop(engine_lease);
+        // Prompted Whisper runs retain exact spoken-form correction, while
+        // non-Whisper runs use fuzzy correction because they receive no decode
+        // prompt. The post-processor owns that distinction for every engine.
         let filtered_result = post_process_transcription_text(
             result,
-            &settings,
-            model_is_whisper,
+            asr,
+            vocabulary_prompted,
             &output_language,
             &model_languages,
         );
 
         let et = std::time::Instant::now();
-        let translation_note = if settings.translate_to_english {
+        let translation_note = if asr.translate_to_english {
             " (translated)"
         } else {
             ""
@@ -1501,7 +2218,9 @@ impl TranscriptionManager {
         // is samples / 16000. `speedup` is audio_secs / elapsed_secs — e.g. 4.00x
         // means transcribed 4x faster than real time
         let elapsed_secs = (et - st).as_secs_f64();
-        let audio_secs = audio_len as f64 / 16_000.0;
+        let audio_secs = u64::try_from(audio_len)
+            .map(samples_to_seconds)
+            .unwrap_or(f64::INFINITY);
         let speedup = real_time_factor(audio_secs, elapsed_secs);
         info!(
             "Transcription completed in {:.2}s for {:.2}s of audio ({:.2}x real-time){}",
@@ -1513,12 +2232,273 @@ impl TranscriptionManager {
         if final_result.is_empty() {
             info!("Transcription result is empty");
         } else {
-            info!("Transcription result: {}", final_result);
+            info!("Transcription completed");
         }
 
         self.maybe_unload_immediately("transcription");
 
         Ok(final_result)
+    }
+}
+
+#[cfg(feature = "cloud-realtime")]
+fn consume_cloud_event_with_preview<F>(
+    event: crate::cloud_stt::CloudEvent,
+    final_segments: &mut Vec<String>,
+    interim: &mut String,
+    mut emit_preview: F,
+) -> Result<bool, CloudStreamFailure>
+where
+    F: FnMut(&[String], &str),
+{
+    match event {
+        crate::cloud_stt::CloudEvent::Interim { text, .. } => {
+            *interim = text;
+            emit_preview(final_segments, interim);
+            Ok(false)
+        }
+        crate::cloud_stt::CloudEvent::Final { text, words } => {
+            if !text.trim().is_empty() && !words.is_empty() {
+                final_segments.push(text.trim().to_owned());
+            }
+            interim.clear();
+            emit_preview(final_segments, interim);
+            Ok(false)
+        }
+        crate::cloud_stt::CloudEvent::ProviderError(error) => Err(error.into()),
+        crate::cloud_stt::CloudEvent::Closed => Ok(true),
+    }
+}
+#[cfg(feature = "cloud-realtime")]
+fn run_cloud_transport_session<F>(
+    mut lanes: StreamLanes,
+    factory: &dyn CloudTransportFactory,
+    plan: &CloudRunPlan,
+    key_source: CloudKeySource,
+    router: &StreamRouter,
+    mut consume_event: F,
+    result_tx: mpsc::SyncSender<CloudStreamFinalization>,
+) where
+    F: FnMut(
+        crate::cloud_stt::CloudEvent,
+        &mut Vec<String>,
+        &mut String,
+    ) -> Result<bool, CloudStreamFailure>,
+{
+    let mut audio_sent = false;
+    // The key is resolved here, not by the caller: a native store read can
+    // block, and no audio has been sent yet, so a failure lands on the same
+    // pre-connect path as an unreachable provider.
+    let api_key = match key_source() {
+        Ok(api_key) => api_key,
+        Err(failure) => {
+            router.disable_preview("cloud provider key was unavailable");
+            drain_cloud_until_finalize(
+                lanes,
+                result_tx,
+                CloudStreamFinalization::Failed {
+                    failure,
+                    audio_sent,
+                },
+            );
+            return;
+        }
+    };
+    let mut transport = match factory.connect(plan, api_key) {
+        Ok(transport) => transport,
+        Err(failure) => {
+            router.disable_preview("cloud session could not connect");
+            drain_cloud_until_finalize(
+                lanes,
+                result_tx,
+                CloudStreamFinalization::Failed {
+                    failure,
+                    audio_sent,
+                },
+            );
+            return;
+        }
+    };
+    let mut final_segments = Vec::new();
+    let mut interim = String::new();
+
+    loop {
+        match lanes.poll() {
+            Some(StreamCmd::Feed(frame)) => {
+                if router.preview_degraded() {
+                    drain_cloud_until_finalize(
+                        lanes,
+                        result_tx,
+                        CloudStreamFinalization::Failed {
+                            failure: CloudStreamFailure::Backpressure,
+                            audio_sent,
+                        },
+                    );
+                    return;
+                }
+                if let Err(failure) = transport.send_audio(&frame) {
+                    router.disable_preview("cloud audio send failed");
+                    drain_cloud_until_finalize(
+                        lanes,
+                        result_tx,
+                        CloudStreamFinalization::Failed {
+                            failure,
+                            audio_sent,
+                        },
+                    );
+                    return;
+                }
+                audio_sent = true;
+                match transport.poll_event(Duration::from_millis(1)) {
+                    Ok(Some(event)) => {
+                        match consume_event(event, &mut final_segments, &mut interim) {
+                            Ok(false) => {}
+                            Ok(true) => {
+                                drain_cloud_until_finalize(
+                                    lanes,
+                                    result_tx,
+                                    CloudStreamFinalization::Failed {
+                                        failure: CloudStreamFailure::Disconnected,
+                                        audio_sent,
+                                    },
+                                );
+                                return;
+                            }
+                            Err(failure) => {
+                                router.disable_preview("cloud provider rejected the session");
+                                drain_cloud_until_finalize(
+                                    lanes,
+                                    result_tx,
+                                    CloudStreamFinalization::Failed {
+                                        failure,
+                                        audio_sent,
+                                    },
+                                );
+                                return;
+                            }
+                        }
+                    }
+                    Ok(None) => {}
+                    Err(failure) => {
+                        router.disable_preview("cloud provider disconnected");
+                        drain_cloud_until_finalize(
+                            lanes,
+                            result_tx,
+                            CloudStreamFinalization::Failed {
+                                failure,
+                                audio_sent,
+                            },
+                        );
+                        return;
+                    }
+                }
+            }
+            None => match transport.poll_event(CLOUD_EVENT_POLL_INTERVAL) {
+                Ok(Some(event)) => match consume_event(event, &mut final_segments, &mut interim) {
+                    Ok(false) => {}
+                    Ok(true) => {
+                        drain_cloud_until_finalize(
+                            lanes,
+                            result_tx,
+                            CloudStreamFinalization::Failed {
+                                failure: CloudStreamFailure::Disconnected,
+                                audio_sent,
+                            },
+                        );
+                        return;
+                    }
+                    Err(failure) => {
+                        router.disable_preview("cloud provider rejected the session");
+                        drain_cloud_until_finalize(
+                            lanes,
+                            result_tx,
+                            CloudStreamFinalization::Failed {
+                                failure,
+                                audio_sent,
+                            },
+                        );
+                        return;
+                    }
+                },
+                Ok(None) => {}
+                Err(failure) => {
+                    router.disable_preview("cloud provider disconnected");
+                    drain_cloud_until_finalize(
+                        lanes,
+                        result_tx,
+                        CloudStreamFinalization::Failed {
+                            failure,
+                            audio_sent,
+                        },
+                    );
+                    return;
+                }
+            },
+            Some(StreamCmd::Finalize(reply)) => {
+                let _ = reply.send(None);
+                if router.preview_degraded() {
+                    let _ = result_tx.send(CloudStreamFinalization::Failed {
+                        failure: CloudStreamFailure::Backpressure,
+                        audio_sent,
+                    });
+                    return;
+                }
+                if let Err(failure) = transport.finalize() {
+                    let _ = result_tx.send(CloudStreamFinalization::Failed {
+                        failure,
+                        audio_sent,
+                    });
+                    return;
+                }
+
+                let deadline = Instant::now() + CLOUD_FINALIZE_TIMEOUT;
+                loop {
+                    let remaining = deadline.saturating_duration_since(Instant::now());
+                    if remaining.is_zero() {
+                        let _ = result_tx.send(CloudStreamFinalization::Failed {
+                            failure: CloudStreamFailure::MissingFinal,
+                            audio_sent,
+                        });
+                        return;
+                    }
+                    match transport.poll_event(remaining.min(CLOUD_EVENT_POLL_INTERVAL)) {
+                        Ok(Some(event)) => {
+                            match consume_event(event, &mut final_segments, &mut interim) {
+                                Ok(false) => {}
+                                Ok(true) => {
+                                    let outcome = if final_segments.is_empty() {
+                                        CloudStreamFinalization::Failed {
+                                            failure: CloudStreamFailure::MissingFinal,
+                                            audio_sent,
+                                        }
+                                    } else {
+                                        CloudStreamFinalization::Final(final_segments.join(" "))
+                                    };
+                                    let _ = result_tx.send(outcome);
+                                    return;
+                                }
+                                Err(failure) => {
+                                    let _ = result_tx.send(CloudStreamFinalization::Failed {
+                                        failure,
+                                        audio_sent,
+                                    });
+                                    return;
+                                }
+                            }
+                        }
+                        Ok(None) => {}
+                        Err(failure) => {
+                            let _ = result_tx.send(CloudStreamFinalization::Failed {
+                                failure,
+                                audio_sent,
+                            });
+                            return;
+                        }
+                    }
+                }
+            }
+            Some(StreamCmd::Cancel) => return,
+        }
     }
 }
 
@@ -1551,7 +2531,7 @@ impl StreamPerf {
 
     fn record_feed(&mut self, samples: usize) {
         self.feed_count += 1;
-        self.streamed_samples += samples as u64;
+        self.streamed_samples += u64::try_from(samples).unwrap_or(u64::MAX);
     }
 
     fn record_compute(&mut self, elapsed: Duration) {
@@ -1620,12 +2600,17 @@ impl StreamPerf {
     }
 
     fn audio_secs(&self) -> f64 {
-        self.streamed_samples as f64 / 16_000.0
+        samples_to_seconds(self.streamed_samples)
     }
 
     fn compute_secs(&self) -> f64 {
         self.stream_compute_elapsed.as_secs_f64()
     }
+}
+
+fn samples_to_seconds(samples: u64) -> f64 {
+    Duration::from_secs(samples / 16_000).as_secs_f64()
+        + Duration::from_nanos((samples % 16_000) * 62_500).as_secs_f64()
 }
 
 fn real_time_factor(audio_secs: f64, compute_secs: f64) -> f64 {
@@ -1649,26 +2634,26 @@ fn base_language_code(language: &str) -> &str {
 
 /// Resolve the persisted language intent into the language a specific model can
 /// use without writing the coerced value back to settings.
-fn effective_language_for_model(
-    settings: &AppSettings,
+fn effective_language_for_plan(
+    asr: &AsrPlan,
     model_manager: &ModelManager,
     model_id: &str,
 ) -> String {
     match model_manager.get_model_info(model_id) {
         Some(info) => crate::managers::model::effective_language(
-            &settings.selected_language,
+            &asr.language,
             &info.supported_languages,
             info.supports_language_detection,
         ),
-        None => settings.selected_language.clone(),
+        None => asr.language.clone(),
     }
 }
 
-/// Resolve how confidently Handy knows the language of the text produced by a
+/// Resolve how confidently Sona knows the language of the text produced by a
 /// transcription run. The UI language is deliberately not part of this
 /// decision.
 fn resolve_output_language_evidence(
-    settings: &AppSettings,
+    asr: &AsrPlan,
     applied_language_hint: Option<&str>,
     supported_languages: &[String],
     translated_to_english: bool,
@@ -1677,25 +2662,16 @@ fn resolve_output_language_evidence(
         return OutputLanguageEvidence::TranslatedToEnglish;
     }
 
-    // Stored language intent is only evidence when this specific engine run
-    // actually received the hint. Some multilingual engines (notably Parakeet
-    // V3) always auto-detect and ignore Handy's selection; transcribe-cpp also
-    // drops a requested hint when the loaded model does not advertise it.
     if let Some(language) = applied_language_hint.filter(|lang| !lang.is_empty() && *lang != "auto")
     {
-        if settings.selected_language != "auto"
-            && base_language_code(&settings.selected_language) == base_language_code(language)
+        if asr.language != "auto"
+            && base_language_code(&asr.language) == base_language_code(language)
         {
             return OutputLanguageEvidence::UserSelected(language.to_string());
         }
-
-        // The engine may have required a concrete fallback even though the
-        // user's persisted language was auto or unsupported.
         return OutputLanguageEvidence::ModelConstrained(language.to_string());
     }
 
-    // A single-language model has a known output language without needing a
-    // selectable language hint.
     if let [language] = supported_languages {
         return OutputLanguageEvidence::ModelConstrained(language.clone());
     }
@@ -1758,29 +2734,40 @@ fn transcribe_cpp_run_plan(
 
 fn post_process_transcription_text(
     raw: String,
-    settings: &AppSettings,
-    custom_words_already_prompted: bool,
+    asr: &AsrPlan,
+    vocabulary_already_prompted: bool,
     output_language: &OutputLanguageEvidence,
     supported_languages: &[String],
 ) -> String {
     fail_open_text_transform(raw, |raw| {
-        let corrected = if !settings.custom_words.is_empty() && !custom_words_already_prompted {
-            apply_custom_words(
-                &raw,
-                &settings.custom_words,
-                settings.word_correction_threshold,
-            )
+        let corrected = apply_literal_punctuation(
+            &raw,
+            output_language,
+            asr.literal_punctuation,
+            &asr.custom_words,
+        );
+        let corrected = apply_british_spelling(
+            &corrected,
+            output_language,
+            asr.english_spelling,
+            &asr.custom_words,
+        );
+        let corrected = if asr.custom_words.is_empty() {
+            corrected
+        } else if vocabulary_already_prompted {
+            apply_exact_vocabulary_entries(&corrected, &asr.custom_words)
         } else {
-            raw
+            apply_vocabulary_entries(&corrected, &asr.custom_words, asr.correction_threshold)
+        };
+        let corrected = if asr.emoji_replacements_enabled {
+            apply_emoji_replacements(&corrected, &asr.emoji_replacements)
+        } else {
+            corrected
         };
 
-        // Last-resort language evidence: confidence-gated detection from the
-        // transcribed text itself, constrained to the model's languages. Only
-        // consulted when it can change the outcome (built-in gated fillers).
         let output_language = match output_language {
             OutputLanguageEvidence::Unknown
-                if settings.filler_word_removal_enabled
-                    && settings.custom_filler_words.is_none() =>
+                if asr.filler_word_removal_enabled && asr.custom_filler_words.is_none() =>
             {
                 match detect_output_language(&corrected, supported_languages) {
                     Some(language) => {
@@ -1796,8 +2783,8 @@ fn post_process_transcription_text(
         let without_fillers = remove_filler_words(
             &corrected,
             &output_language,
-            &settings.custom_filler_words,
-            settings.filler_word_removal_enabled,
+            &asr.custom_filler_words,
+            asr.filler_word_removal_enabled,
         );
 
         normalize_transcription_output(&without_fillers)
@@ -1814,11 +2801,8 @@ where
     let fallback = raw.clone();
     match catch_unwind(AssertUnwindSafe(|| transform(raw))) {
         Ok(processed) => processed,
-        Err(payload) => {
-            error!(
-                "Optional transcription text post-processing panicked: {}; using the raw transcription",
-                panic_payload_message(payload.as_ref())
-            );
+        Err(_) => {
+            error!("Optional transcription text post-processing panicked; using the raw result");
             fallback
         }
     }
@@ -1853,8 +2837,8 @@ fn cpp_translation_task(
 /// finalizes or cancels. Used when streaming can't actually run (model not
 /// loaded / not streaming-capable) so the finalize handshake still completes
 /// and the caller falls back to batch transcription.
-fn drain_until_finalize(rx: mpsc::Receiver<StreamCmd>) {
-    while let Ok(cmd) = rx.recv() {
+fn drain_until_finalize(mut lanes: StreamLanes) {
+    while let Ok(cmd) = lanes.recv() {
         match cmd {
             StreamCmd::Feed(_) => {}
             StreamCmd::Finalize(reply) => {
@@ -1865,7 +2849,24 @@ fn drain_until_finalize(rx: mpsc::Receiver<StreamCmd>) {
         }
     }
 }
-
+#[cfg(feature = "cloud-realtime")]
+fn drain_cloud_until_finalize(
+    mut lanes: StreamLanes,
+    result_tx: mpsc::SyncSender<CloudStreamFinalization>,
+    outcome: CloudStreamFinalization,
+) {
+    while let Ok(command) = lanes.recv() {
+        match command {
+            StreamCmd::Feed(_) => {}
+            StreamCmd::Finalize(reply) => {
+                let _ = reply.send(None);
+                let _ = result_tx.send(outcome);
+                break;
+            }
+            StreamCmd::Cancel => break,
+        }
+    }
+}
 /// Initialize the transcribe-cpp native backend once at startup: route native +
 /// ggml diagnostics into the `log` facade and register compute backend modules.
 /// In a static build (macOS Metal) `init_backends_default` is a harmless no-op;
@@ -1949,7 +2950,7 @@ fn resolve_device_index(index: usize) -> Result<(Backend, Option<transcribe_cpp:
     Ok((Backend::Auto, Some(device)))
 }
 
-/// Map Handy's whisper accelerator setting to a transcribe-cpp [`Backend`].
+/// Map Sona's whisper accelerator setting to a transcribe-cpp [`Backend`].
 ///
 /// `Auto` lets the library pick the best device (with CPU fallback), while
 /// `Cpu` forces strict CPU. `Gpu` only remains as the companion setting for an
@@ -2000,7 +3001,7 @@ fn transcribe_device_key(device: &transcribe_cpp::Device) -> String {
         None => ("name", device.name.as_str()),
     };
     serde_json::to_string(&(device.kind.as_str(), identity_kind, identity))
-        .expect("transcribe device identity is always JSON serializable")
+        .unwrap_or_else(|error| unreachable!("device identity tuple is JSON serializable: {error}"))
 }
 
 fn transcribe_device_label(device: &transcribe_cpp::Device) -> String {
@@ -2011,23 +3012,11 @@ fn transcribe_device_label(device: &transcribe_cpp::Device) -> String {
     }
 }
 
-/// Apply the user's ORT accelerator preference to the transcribe-rs global.
-/// Called on startup and before loading a model.
-///
-/// The transcribe.cpp (whisper-family) backend is no longer set here: it is
-/// chosen at model-load time from [`select_transcribe_backend`], so changing the
-/// accelerator only needs a model reload (see `reload_model_on_next_use`).
-pub fn apply_accelerator_settings(app: &tauri::AppHandle) {
+/// Apply a frozen ORT accelerator choice before the corresponding model load.
+fn apply_ort_accelerator(setting: OrtAcceleratorSetting) {
     use transcribe_rs::accel;
 
-    let settings = get_settings(app);
-
-    info!(
-        "transcribe.cpp accelerator preference: {:?} (applied on next model load)",
-        settings.transcribe_accelerator
-    );
-
-    let ort_pref = match settings.ort_accelerator {
+    let ort_pref = match setting {
         OrtAcceleratorSetting::Auto => accel::OrtAccelerator::Auto,
         OrtAcceleratorSetting::Cpu => accel::OrtAccelerator::CpuOnly,
         OrtAcceleratorSetting::Cuda => accel::OrtAccelerator::Cuda,
@@ -2036,6 +3025,16 @@ pub fn apply_accelerator_settings(app: &tauri::AppHandle) {
     };
     accel::set_ort_accelerator(ort_pref);
     info!("ORT accelerator set to: {}", ort_pref);
+}
+
+/// Apply the currently persisted accelerator preference outside a run.
+pub fn apply_accelerator_settings(app: &tauri::AppHandle) {
+    let settings = get_settings(app);
+    info!(
+        "transcribe.cpp accelerator preference: {:?} (applied on next model load)",
+        settings.transcribe_accelerator
+    );
+    apply_ort_accelerator(settings.ort_accelerator);
 }
 
 #[derive(Serialize, Clone, Debug, Type)]
@@ -2106,7 +3105,8 @@ fn cached_gpu_devices() -> &'static [GpuDeviceOption] {
             .map(|d| GpuDeviceOption {
                 id: transcribe_device_key(&d),
                 name: transcribe_device_label(&d),
-                total_vram_mb: (d.memory_total / (1024 * 1024)) as usize,
+                total_vram_mb: usize::try_from(d.memory_total / (1024 * 1024))
+                    .unwrap_or(usize::MAX),
             })
             .collect()
     })
@@ -2137,12 +3137,290 @@ pub fn get_available_accelerators() -> AvailableAccelerators {
     }
 }
 
+impl Drop for TranscriptionManager {
+    fn drop(&mut self) {
+        // Skip shutdown unless this is the very last clone. TranscriptionManager
+        // is cloned by initiate_model_load() and the watcher thread — those
+        // clones dropping must not kill the watcher. The watcher thread holds
+        // its own clone, so engine's strong_count is always >= 2 while the
+        // watcher is alive. When it reaches 1, only this instance remains
+        // and we can safely shut down.
+        if Arc::strong_count(&self.engine) > 1 {
+            return;
+        }
+
+        // Signal the watcher thread to shutdown
+        self.shutdown_signal.store(true, Ordering::Relaxed);
+
+        // Wait for the thread to finish gracefully.
+        // Use match instead of unwrap to avoid panicking if the mutex is
+        // poisoned — a panic inside Drop calls abort().
+        let mut guard = match self.watcher_handle.lock() {
+            Ok(g) => g,
+            Err(e) => {
+                warn!("Recovered poisoned watcher_handle mutex during TranscriptionManager drop — a panic occurred earlier this session");
+                e.into_inner()
+            }
+        };
+        if let Some(handle) = guard.take() {
+            if let Err(e) = handle.join() {
+                warn!("Failed to join idle watcher thread: {:?}", e);
+            } else {
+                debug!("Idle watcher thread joined successfully");
+            }
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::settings::{AppSettings, EmojiReplacement, EnglishSpelling, VocabularyEntry};
+    #[cfg(feature = "cloud-realtime")]
+    use std::collections::VecDeque;
+    #[cfg(feature = "cloud-realtime")]
+    #[cfg(feature = "cloud-realtime")]
+    use zeroize::Zeroizing;
 
     fn languages(codes: &[&str]) -> Vec<String> {
         codes.iter().map(|code| (*code).to_string()).collect()
+    }
+
+    #[cfg(feature = "cloud-realtime")]
+    #[derive(Default)]
+    struct FakeCloudTransportState {
+        connects: usize,
+        plans: Vec<CloudRunPlan>,
+        frames: Vec<Vec<f32>>,
+        connect_failure: Option<CloudStreamFailure>,
+        send_failure_at: Option<(usize, CloudStreamFailure)>,
+        disconnect_after_frames: Option<usize>,
+        disconnect_triggered: bool,
+        pre_finalize_events: VecDeque<Result<crate::cloud_stt::CloudEvent, CloudStreamFailure>>,
+        post_finalize_events: VecDeque<Result<crate::cloud_stt::CloudEvent, CloudStreamFailure>>,
+        finalize_failure: Option<CloudStreamFailure>,
+        finalized: bool,
+        finalize_calls: usize,
+    }
+
+    #[cfg(feature = "cloud-realtime")]
+    #[derive(Clone)]
+    struct FakeCloudTransportFactory {
+        state: Arc<Mutex<FakeCloudTransportState>>,
+    }
+
+    #[cfg(feature = "cloud-realtime")]
+    struct FakeCloudTransport {
+        state: Arc<Mutex<FakeCloudTransportState>>,
+    }
+
+    #[cfg(feature = "cloud-realtime")]
+    impl CloudTransportFactory for FakeCloudTransportFactory {
+        fn connect(
+            &self,
+            plan: &CloudRunPlan,
+            _api_key: Zeroizing<String>,
+        ) -> Result<Box<dyn CloudTransport>, CloudStreamFailure> {
+            let mut state = self.state.lock().expect("fake cloud state");
+            state.connects += 1;
+            state.plans.push(plan.clone());
+            if let Some(failure) = state.connect_failure {
+                return Err(failure);
+            }
+            Ok(Box::new(FakeCloudTransport {
+                state: Arc::clone(&self.state),
+            }))
+        }
+    }
+
+    #[cfg(feature = "cloud-realtime")]
+    impl CloudTransport for FakeCloudTransport {
+        fn send_audio(&mut self, samples: &[f32]) -> Result<(), CloudStreamFailure> {
+            let mut state = self.state.lock().expect("fake cloud state");
+            let frame_index = state.frames.len();
+            if let Some((failure_at, failure)) = state.send_failure_at {
+                if frame_index == failure_at {
+                    return Err(failure);
+                }
+            }
+            state.frames.push(samples.to_vec());
+            Ok(())
+        }
+
+        fn poll_event(
+            &mut self,
+            _wait: Duration,
+        ) -> Result<Option<crate::cloud_stt::CloudEvent>, CloudStreamFailure> {
+            let mut state = self.state.lock().expect("fake cloud state");
+            if !state.finalized
+                && !state.disconnect_triggered
+                && state
+                    .disconnect_after_frames
+                    .is_some_and(|boundary| state.frames.len() >= boundary)
+            {
+                state.disconnect_triggered = true;
+                return Err(CloudStreamFailure::Disconnected);
+            }
+            let event = if state.finalized {
+                state.post_finalize_events.pop_front()
+            } else {
+                state.pre_finalize_events.pop_front()
+            };
+            event.map_or(Ok(None), |event| event.map(Some))
+        }
+
+        fn finalize(&mut self) -> Result<(), CloudStreamFailure> {
+            let mut state = self.state.lock().expect("fake cloud state");
+            state.finalize_calls += 1;
+            state.finalized = true;
+            state.finalize_failure.map_or(Ok(()), Err)
+        }
+    }
+
+    #[cfg(feature = "cloud-realtime")]
+    fn cloud_plan() -> CloudRunPlan {
+        use crate::modes::{CloudSttProvider, RequestedEngine, RunPlan, TranscriptionIntent};
+
+        let mut settings = crate::settings::get_default_settings();
+        let mode = settings.modes.first_mut().expect("default mode");
+        mode.asr.requested_engine = RequestedEngine::DeepgramNova3;
+        mode.asr.local_fallback_model_id = Some("frozen-fallback".to_string());
+        let provider = settings
+            .cloud_stt_provider_mut(CloudSttProvider::DeepgramNova3)
+            .expect("default Deepgram provider");
+        provider.consent_version = crate::settings::CLOUD_STT_CONSENT_VERSION;
+        provider.audio_transfer_consent = true;
+        provider.privacy_consent = true;
+        provider.local_fallback_consent = true;
+
+        RunPlan::for_intent(&settings, &TranscriptionIntent::ActiveMode)
+            .expect("valid cloud plan")
+            .cloud()
+            .expect("cloud plan")
+            .clone()
+    }
+
+    #[cfg(feature = "cloud-realtime")]
+    fn run_fake_cloud(
+        factory: Arc<FakeCloudTransportFactory>,
+        frames: &[Vec<f32>],
+    ) -> CloudStreamFinalization {
+        run_fake_cloud_with_key(factory, frames, || {
+            Ok(Zeroizing::new("test-key".to_string()))
+        })
+    }
+
+    #[cfg(feature = "cloud-realtime")]
+    fn run_fake_cloud_with_key(
+        factory: Arc<FakeCloudTransportFactory>,
+        frames: &[Vec<f32>],
+        key_source: impl FnOnce() -> Result<Zeroizing<String>, CloudStreamFailure> + Send + 'static,
+    ) -> CloudStreamFinalization {
+        let router = Arc::new(StreamRouter::new());
+        let lanes = router.open();
+        let plan = cloud_plan();
+        let (result_tx, result_rx) = mpsc::sync_channel(1);
+        let worker_router = Arc::clone(&router);
+        let worker_factory = Arc::clone(&factory);
+        let worker = thread::spawn(move || {
+            run_cloud_transport_session(
+                lanes,
+                worker_factory.as_ref(),
+                &plan,
+                Box::new(key_source),
+                worker_router.as_ref(),
+                |event, final_segments, interim| {
+                    consume_cloud_event_with_preview(event, final_segments, interim, |_, _| {})
+                },
+                result_tx,
+            );
+        });
+
+        for frame in frames {
+            router.feed(frame);
+        }
+        let route = router.take().expect("active cloud route");
+        let (reply_tx, _reply_rx) = mpsc::channel();
+        route
+            .control_tx
+            .send(StreamControl::Finalize(reply_tx))
+            .expect("finalize cloud route");
+        let finalization = result_rx
+            .recv_timeout(Duration::from_secs(1))
+            .expect("cloud finalization");
+        worker.join().expect("cloud worker");
+        finalization
+    }
+
+    #[test]
+    fn first_speech_start_is_one_shot_and_cancellation_clears_it() {
+        use std::sync::atomic::AtomicUsize;
+
+        let router = StreamRouter::new();
+        let starts = Arc::new(AtomicUsize::new(0));
+        let first_starts = Arc::clone(&starts);
+        router.arm_on_first_speech(move || {
+            first_starts.fetch_add(1, Ordering::AcqRel);
+        });
+
+        assert_eq!(starts.load(Ordering::Acquire), 0);
+        router.feed(&[0.25; STREAM_PREVIEW_FRAME_SAMPLES]);
+        router.feed(&[0.25; STREAM_PREVIEW_FRAME_SAMPLES]);
+        assert_eq!(starts.load(Ordering::Acquire), 1);
+
+        let cancelled_starts = Arc::new(AtomicUsize::new(0));
+        let cancelled_counter = Arc::clone(&cancelled_starts);
+        router.arm_on_first_speech(move || {
+            cancelled_counter.fetch_add(1, Ordering::AcqRel);
+        });
+        assert!(router.take().is_none());
+        router.feed(&[0.25; STREAM_PREVIEW_FRAME_SAMPLES]);
+        assert_eq!(cancelled_starts.load(Ordering::Acquire), 0);
+    }
+
+    #[test]
+    fn preview_queue_overflow_preserves_finalize_order() {
+        let router = StreamRouter::new();
+        let mut lanes = router.open();
+        let frame = vec![0.25; STREAM_PREVIEW_FRAME_SAMPLES];
+
+        for _ in 0..STREAM_PREVIEW_QUEUE_CAPACITY {
+            router.feed(&frame);
+        }
+        router.feed(&frame);
+
+        assert!(router.preview_degraded());
+        let route = router.take().expect("active stream route");
+        let (reply_tx, _reply_rx) = mpsc::channel();
+        route
+            .control_tx
+            .send(StreamControl::Finalize(reply_tx))
+            .expect("lossless finalize control");
+
+        for _ in 0..STREAM_PREVIEW_QUEUE_CAPACITY {
+            assert!(matches!(
+                lanes.recv().expect("queued frame"),
+                StreamCmd::Feed(_)
+            ));
+        }
+        assert!(matches!(
+            lanes.recv().expect("finalize after queued frames"),
+            StreamCmd::Finalize(_)
+        ));
+    }
+
+    #[test]
+    fn decoder_stall_bounds_preview_audio_memory() {
+        let router = StreamRouter::new();
+        let lanes = router.open();
+        let frame = vec![0.25; STREAM_PREVIEW_FRAME_SAMPLES];
+
+        for _ in 0..(STREAM_PREVIEW_QUEUE_CAPACITY * 4) {
+            router.feed(&frame);
+        }
+
+        assert!(router.preview_degraded());
+        let queued_samples: usize = lanes.audio_rx.try_iter().map(|pcm| pcm.len()).sum();
+        assert!(queued_samples <= STREAM_PREVIEW_QUEUE_SAMPLES);
     }
 
     #[test]
@@ -2210,6 +3488,144 @@ mod tests {
     }
 
     #[test]
+    fn transcript_canary_is_absent_from_log_event_panic_and_report_diagnostics() {
+        const CANARY: &str = "TRANSCRIPT-CANARY-4EE1";
+        let event = serde_json::to_string(&engine_panic_model_state_event())
+            .expect("model state event serialization");
+        let support_report = serde_json::to_string(&serde_json::json!({
+            "diagnostic": ENGINE_PANIC_LOG_MESSAGE,
+            "event": event,
+            "panic": ENGINE_PANIC_ERROR_MESSAGE,
+        }))
+        .expect("diagnostic report serialization");
+
+        for (sink, diagnostic) in [
+            ("log", ENGINE_PANIC_LOG_MESSAGE),
+            ("event", event.as_str()),
+            ("stdout", ENGINE_PANIC_LOG_MESSAGE),
+            ("stderr", ENGINE_PANIC_LOG_MESSAGE),
+            ("panic", ENGINE_PANIC_ERROR_MESSAGE),
+            ("support report", support_report.as_str()),
+        ] {
+            assert!(!diagnostic.contains(CANARY), "{sink}: {diagnostic}");
+        }
+    }
+
+    #[test]
+    fn prompted_whisper_corrects_spoken_forms_without_reapplying_honored_forms() {
+        let settings = AppSettings {
+            custom_words: vec![
+                VocabularyEntry {
+                    spoken: "north star".to_string(),
+                    written: "Northstar".to_string(),
+                },
+                VocabularyEntry {
+                    spoken: "color".to_string(),
+                    written: "BrandColor".to_string(),
+                },
+            ],
+            filler_word_removal_enabled: false,
+            ..Default::default()
+        };
+        let asr = AsrPlan::from_settings(&settings);
+
+        assert_eq!(
+            post_process_transcription_text(
+                "north starr north star Northstar color BrandColor".to_string(),
+                &asr,
+                true,
+                &OutputLanguageEvidence::Unknown,
+                &[],
+            ),
+            "north starr Northstar Northstar BrandColor BrandColor",
+        );
+        assert_eq!(
+            post_process_transcription_text(
+                "north starr".to_string(),
+                &asr,
+                false,
+                &OutputLanguageEvidence::Unknown,
+                &[],
+            ),
+            "Northstar"
+        );
+    }
+
+    #[test]
+    fn literal_punctuation_then_british_spelling_then_vocabulary_is_deterministic() {
+        let settings = AppSettings {
+            custom_words: vec![
+                VocabularyEntry {
+                    spoken: "north star".to_string(),
+                    written: "Northstar".to_string(),
+                },
+                VocabularyEntry {
+                    spoken: "color".to_string(),
+                    written: "BrandColor".to_string(),
+                },
+            ],
+            english_spelling: EnglishSpelling::British,
+            filler_word_removal_enabled: false,
+            ..Default::default()
+        };
+        let mut asr = AsrPlan::from_settings(&settings);
+        asr.literal_punctuation = true;
+        let english = OutputLanguageEvidence::UserSelected("en-US".to_string());
+
+        assert_eq!(
+            post_process_transcription_text(
+                "organize comma north star".to_string(),
+                &asr,
+                false,
+                &english,
+                &[],
+            ),
+            "organise, Northstar"
+        );
+        assert_eq!(
+            post_process_transcription_text("color".to_string(), &asr, false, &english, &[]),
+            "BrandColor"
+        );
+    }
+
+    #[test]
+    fn emoji_replacement_stays_off_without_an_explicit_toggle_even_for_code_text() {
+        let disabled = AppSettings {
+            emoji_replacements: vec![EmojiReplacement {
+                spoken: "smiley face".to_string(),
+                written: "🙂".to_string(),
+            }],
+            emoji_replacements_enabled: false,
+            filler_word_removal_enabled: false,
+            ..Default::default()
+        };
+        let source = "const smiley face = 1".to_string();
+        assert_eq!(
+            post_process_transcription_text(
+                source.clone(),
+                &AsrPlan::from_settings(&disabled),
+                false,
+                &OutputLanguageEvidence::Unknown,
+                &[],
+            ),
+            source
+        );
+
+        let mut enabled = disabled;
+        enabled.emoji_replacements_enabled = true;
+        assert_eq!(
+            post_process_transcription_text(
+                "const smiley face = 1".to_string(),
+                &AsrPlan::from_settings(&enabled),
+                false,
+                &OutputLanguageEvidence::Unknown,
+                &[],
+            ),
+            "const 🙂 = 1"
+        );
+    }
+
+    #[test]
     fn portuguese_transcription_does_not_use_english_ui_filler_words() {
         let settings = AppSettings {
             app_language: "en".to_string(),
@@ -2217,11 +3633,16 @@ mod tests {
             ..Default::default()
         };
         let supported = languages(&["en", "pt"]);
-        let evidence = resolve_output_language_evidence(&settings, Some("pt"), &supported, false);
+        let evidence = resolve_output_language_evidence(
+            &AsrPlan::from_settings(&settings),
+            Some("pt"),
+            &supported,
+            false,
+        );
 
         let result = post_process_transcription_text(
             "eu vi um carro".to_string(),
-            &settings,
+            &AsrPlan::from_settings(&settings),
             false,
             &evidence,
             &supported,
@@ -2240,14 +3661,18 @@ mod tests {
             selected_language: "auto".to_string(),
             ..Default::default()
         };
-        let evidence =
-            resolve_output_language_evidence(&settings, None, &languages(&["en", "pt"]), false);
+        let evidence = resolve_output_language_evidence(
+            &AsrPlan::from_settings(&settings),
+            None,
+            &languages(&["en", "pt"]),
+            false,
+        );
 
         // Too short for a reliable text detection, so the gated "um" must
         // survive; the universal "uhm" is removed regardless.
         let result = post_process_transcription_text(
             "um uhm ok".to_string(),
-            &settings,
+            &AsrPlan::from_settings(&settings),
             false,
             &evidence,
             &languages(&["en", "pt"]),
@@ -2267,7 +3692,7 @@ mod tests {
         let result = post_process_transcription_text(
             "um so the weather forecast said it would probably rain throughout the whole weekend"
                 .to_string(),
-            &settings,
+            &AsrPlan::from_settings(&settings),
             false,
             &OutputLanguageEvidence::Unknown,
             &languages(&["en", "pt", "es", "de"]),
@@ -2288,7 +3713,7 @@ mod tests {
 
         let result = post_process_transcription_text(
             "eu vi um carro na rua ontem de manhã quando fui ao mercado".to_string(),
-            &settings,
+            &AsrPlan::from_settings(&settings),
             false,
             &OutputLanguageEvidence::Unknown,
             &languages(&["en", "pt", "es", "de"]),
@@ -2330,8 +3755,12 @@ mod tests {
             ..Default::default()
         };
 
-        let evidence =
-            resolve_output_language_evidence(&settings, None, &languages(&["en"]), false);
+        let evidence = resolve_output_language_evidence(
+            &AsrPlan::from_settings(&settings),
+            None,
+            &languages(&["en"]),
+            false,
+        );
 
         assert_eq!(
             evidence,
@@ -2347,7 +3776,7 @@ mod tests {
         };
 
         let evidence = resolve_output_language_evidence(
-            &settings,
+            &AsrPlan::from_settings(&settings),
             Some("en"),
             &languages(&["en", "de"]),
             false,
@@ -2369,12 +3798,17 @@ mod tests {
         };
         let supported = languages(&["en", "de", "pt"]);
 
-        let evidence = resolve_output_language_evidence(&settings, None, &supported, false);
+        let evidence = resolve_output_language_evidence(
+            &AsrPlan::from_settings(&settings),
+            None,
+            &supported,
+            false,
+        );
         assert_eq!(evidence, OutputLanguageEvidence::Unknown);
 
         let result = post_process_transcription_text(
             "eu vi um carro".to_string(),
-            &settings,
+            &AsrPlan::from_settings(&settings),
             false,
             &evidence,
             &supported,
@@ -2394,7 +3828,7 @@ mod tests {
         assert_eq!(plan.language, None);
         assert_eq!(
             resolve_output_language_evidence(
-                &settings,
+                &AsrPlan::from_settings(&settings),
                 plan.language.as_deref(),
                 &supported,
                 false,
@@ -2411,7 +3845,7 @@ mod tests {
         };
 
         let evidence = resolve_output_language_evidence(
-            &settings,
+            &AsrPlan::from_settings(&settings),
             Some("pt"),
             &languages(&["en", "pt"]),
             true,
@@ -2455,39 +3889,211 @@ mod tests {
         assert_eq!(plan.language.as_deref(), Some("es"));
         assert_eq!(plan.target_language, None);
     }
-}
 
-impl Drop for TranscriptionManager {
-    fn drop(&mut self) {
-        // Skip shutdown unless this is the very last clone. TranscriptionManager
-        // is cloned by initiate_model_load() and the watcher thread — those
-        // clones dropping must not kill the watcher. The watcher thread holds
-        // its own clone, so engine's strong_count is always >= 2 while the
-        // watcher is alive. When it reaches 1, only this instance remains
-        // and we can safely shut down.
-        if Arc::strong_count(&self.engine) > 1 {
-            return;
-        }
+    #[cfg(feature = "cloud-realtime")]
+    #[test]
+    fn stream_engine_event_encodes_cloud_and_local_fallback() {
+        assert_eq!(
+            serde_json::to_value(StreamEngineEvent {
+                engine: StreamEngine::Cloud,
+            })
+            .expect("cloud event JSON"),
+            serde_json::json!({ "engine": "cloud" })
+        );
+        assert_eq!(
+            serde_json::to_value(StreamEngineEvent {
+                engine: StreamEngine::LocalFallback,
+            })
+            .expect("fallback event JSON"),
+            serde_json::json!({ "engine": "local_fallback" })
+        );
+    }
 
-        // Signal the watcher thread to shutdown
-        self.shutdown_signal.store(true, Ordering::Relaxed);
+    #[cfg(feature = "cloud-realtime")]
+    #[test]
+    fn fake_cloud_transport_returns_interim_timestamped_final_and_close_with_full_pcm() {
+        use crate::cloud_stt::{CloudEvent, CloudWord};
 
-        // Wait for the thread to finish gracefully.
-        // Use match instead of unwrap to avoid panicking if the mutex is
-        // poisoned — a panic inside Drop calls abort().
-        let mut guard = match self.watcher_handle.lock() {
-            Ok(g) => g,
-            Err(e) => {
-                warn!("Recovered poisoned watcher_handle mutex during TranscriptionManager drop — a panic occurred earlier this session");
-                e.into_inner()
-            }
-        };
-        if let Some(handle) = guard.take() {
-            if let Err(e) = handle.join() {
-                warn!("Failed to join idle watcher thread: {:?}", e);
+        let state = Arc::new(Mutex::new(FakeCloudTransportState {
+            pre_finalize_events: VecDeque::from([Ok(CloudEvent::Interim {
+                text: "provider interim".to_string(),
+                words: Vec::new(),
+            })]),
+            post_finalize_events: VecDeque::from([
+                Ok(CloudEvent::Final {
+                    text: "provider final".to_string(),
+                    words: vec![CloudWord {
+                        text: "provider".to_string(),
+                        start: Duration::from_millis(0),
+                        end: Duration::from_millis(250),
+                        speaker: None,
+                    }],
+                }),
+                Ok(CloudEvent::Closed),
+            ]),
+            ..Default::default()
+        }));
+        let factory = Arc::new(FakeCloudTransportFactory {
+            state: Arc::clone(&state),
+        });
+        let frames = vec![vec![0.25, -0.5], vec![0.75, -1.0]];
+
+        let finalization = run_fake_cloud(factory, &frames);
+
+        assert_eq!(
+            finalization,
+            CloudStreamFinalization::Final("provider final".to_string())
+        );
+        let state = state.lock().expect("fake cloud state");
+        assert_eq!(state.connects, 1);
+        assert_eq!(state.finalize_calls, 1);
+        assert_eq!(state.frames, frames);
+        assert_eq!(state.plans.len(), 1);
+        assert_eq!(state.plans[0].provider(), CloudSttProvider::DeepgramNova3);
+        assert!(state.plans[0].timestamps());
+    }
+
+    #[cfg(feature = "cloud-realtime")]
+    #[test]
+    fn cloud_disconnect_maps_to_a_failed_finalization_at_every_frame_boundary() {
+        let frames = vec![vec![0.1], vec![0.2], vec![0.3]];
+
+        for boundary in 0..=frames.len() {
+            let mut fake = FakeCloudTransportState::default();
+            if boundary == 0 {
+                fake.send_failure_at = Some((0, CloudStreamFailure::Disconnected));
             } else {
-                debug!("Idle watcher thread joined successfully");
+                fake.disconnect_after_frames = Some(boundary);
             }
+            let state = Arc::new(Mutex::new(fake));
+            let factory = Arc::new(FakeCloudTransportFactory {
+                state: Arc::clone(&state),
+            });
+
+            let finalization = run_fake_cloud(factory, &frames);
+
+            assert_eq!(
+                finalization,
+                CloudStreamFinalization::Failed {
+                    failure: CloudStreamFailure::Disconnected,
+                    audio_sent: boundary != 0,
+                },
+                "disconnect boundary {boundary}"
+            );
+            assert_eq!(
+                state.lock().expect("fake cloud state").frames,
+                frames[..boundary].to_vec(),
+                "PCM captured before boundary {boundary}"
+            );
+        }
+    }
+
+    #[cfg(feature = "cloud-realtime")]
+    #[test]
+    fn fake_cloud_transport_maps_terminal_failures_without_provider_data() {
+        let one_frame = vec![vec![0.25, -0.5]];
+        let assert_failure = |fake: FakeCloudTransportState,
+                              expected_failure: CloudStreamFailure,
+                              audio_sent: bool| {
+            let state = Arc::new(Mutex::new(fake));
+            let factory = Arc::new(FakeCloudTransportFactory {
+                state: Arc::clone(&state),
+            });
+            assert_eq!(
+                run_fake_cloud(factory, &one_frame),
+                CloudStreamFinalization::Failed {
+                    failure: expected_failure,
+                    audio_sent,
+                }
+            );
+        };
+
+        for failure in [
+            CloudStreamFailure::Authentication,
+            CloudStreamFailure::Quota,
+            CloudStreamFailure::Protocol,
+        ] {
+            assert_failure(
+                FakeCloudTransportState {
+                    connect_failure: Some(failure),
+                    ..Default::default()
+                },
+                failure,
+                false,
+            );
+        }
+        assert_failure(
+            FakeCloudTransportState {
+                send_failure_at: Some((0, CloudStreamFailure::Backpressure)),
+                ..Default::default()
+            },
+            CloudStreamFailure::Backpressure,
+            false,
+        );
+        assert_failure(
+            FakeCloudTransportState {
+                post_finalize_events: VecDeque::from([Ok(crate::cloud_stt::CloudEvent::Closed)]),
+                ..Default::default()
+            },
+            CloudStreamFailure::MissingFinal,
+            true,
+        );
+    }
+
+    /// A key that cannot be resolved must look exactly like a provider that
+    /// could not be reached: no frame was sent, so the run is free to fall back
+    /// to the frozen local model or be held.
+    #[cfg(feature = "cloud-realtime")]
+    #[test]
+    fn unresolvable_key_fails_before_connect_without_sending_audio() {
+        let state = Arc::new(Mutex::new(FakeCloudTransportState::default()));
+        let factory = Arc::new(FakeCloudTransportFactory {
+            state: Arc::clone(&state),
+        });
+
+        let finalization = run_fake_cloud_with_key(factory, &[vec![0.25, -0.5]], || {
+            Err(CloudStreamFailure::KeyUnavailable)
+        });
+
+        assert_eq!(
+            finalization,
+            CloudStreamFinalization::Failed {
+                failure: CloudStreamFailure::KeyUnavailable,
+                audio_sent: false,
+            }
+        );
+        let state = state.lock().expect("fake cloud state");
+        assert_eq!(state.connects, 0);
+        assert!(state.frames.is_empty());
+    }
+
+    #[cfg(feature = "cloud-realtime")]
+    #[test]
+    fn key_resolution_errors_map_to_one_terminal_failure_each() {
+        use crate::secrets::SttSecretVerificationError as KeyError;
+
+        for (error, expected) in [
+            (KeyError::NotConfigured, CloudStreamFailure::Authentication),
+            (KeyError::Authentication, CloudStreamFailure::Authentication),
+            (KeyError::Quota, CloudStreamFailure::Quota),
+            (KeyError::Network, CloudStreamFailure::Network),
+            (KeyError::Unavailable, CloudStreamFailure::KeyUnavailable),
+            (KeyError::Locked, CloudStreamFailure::KeyUnavailable),
+            (KeyError::Busy, CloudStreamFailure::KeyUnavailable),
+            (KeyError::Backend, CloudStreamFailure::KeyUnavailable),
+            (KeyError::Corrupt, CloudStreamFailure::KeyUnavailable),
+            (KeyError::Invalid, CloudStreamFailure::KeyUnavailable),
+            (
+                KeyError::ConsentRequired,
+                CloudStreamFailure::KeyUnavailable,
+            ),
+            (KeyError::Protocol, CloudStreamFailure::KeyUnavailable),
+        ] {
+            assert_eq!(
+                CloudStreamFailure::from(error),
+                expected,
+                "key error {error:?}"
+            );
         }
     }
 }

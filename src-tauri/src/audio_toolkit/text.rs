@@ -1,52 +1,69 @@
+use crate::settings::{EmojiReplacement, EnglishSpelling, VocabularyEntry};
 use natural::phonetics::soundex;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use strsim::levenshtein;
 
-/// Builds an n-gram string by cleaning and concatenating words
-///
-/// Strips punctuation from each word, lowercases, and joins without spaces.
-/// This allows matching "Charge B" against "ChargeBee".
+/// Builds an n-gram string by cleaning and concatenating words.
 fn build_ngram(words: &[&str]) -> String {
     words
         .iter()
-        .map(|w| build_match_key(w))
+        .map(|word| build_match_key(word))
         .collect::<Vec<_>>()
         .concat()
 }
 
 fn build_match_key(word: &str) -> String {
     word.chars()
-        .filter(|c| c.is_alphanumeric())
-        .flat_map(|c| c.to_lowercase())
+        .filter(|character| character.is_alphanumeric())
+        .flat_map(|character| character.to_lowercase())
         .collect()
 }
 
-struct CustomWordMatchKey {
-    word_index: usize,
+pub(crate) fn vocabulary_spoken_key(spoken: &str) -> String {
+    build_match_key(spoken)
+}
+fn starts_with_spoken_character(candidate: &str, entry: &VocabularyEntry) -> bool {
+    let Some(candidate_first) = candidate.chars().next() else {
+        return false;
+    };
+    let Some(spoken_first) = entry
+        .spoken
+        .chars()
+        .find(|character| character.is_alphanumeric())
+    else {
+        return false;
+    };
+    candidate_first == spoken_first.to_ascii_lowercase()
+}
+
+struct VocabularyMatchKey {
+    entry_index: usize,
     key: String,
 }
 
-fn build_custom_word_match_keys(word: &str, word_index: usize) -> Vec<CustomWordMatchKey> {
-    let primary_key = build_match_key(word);
+fn build_vocabulary_match_keys(
+    entry: &VocabularyEntry,
+    entry_index: usize,
+) -> Vec<VocabularyMatchKey> {
+    let primary_key = build_match_key(&entry.spoken);
     let mut keys = Vec::with_capacity(2);
 
     // The fallback matcher is intentionally limited to ASCII terms. Its
     // whitespace tokenization and Soundex scoring are not suitable for CJK
-    // scripts. Unicode custom words remain available to models that accept
-    // them as native decode prompts; they are simply skipped by this fallback.
+    // scripts. Unicode entries still participate in Whisper prompt biasing.
     if is_supported_fuzzy_key(&primary_key) {
-        keys.push(CustomWordMatchKey {
-            word_index,
+        keys.push(VocabularyMatchKey {
+            entry_index,
             key: primary_key.clone(),
         });
     }
 
-    if word.contains('&') {
-        let expanded_key = build_match_key(&word.replace('&', " and "));
+    if entry.spoken.contains('&') {
+        let expanded_key = build_match_key(&entry.spoken.replace('&', " and "));
         if is_supported_fuzzy_key(&expanded_key) && expanded_key != primary_key {
-            keys.push(CustomWordMatchKey {
-                word_index,
+            keys.push(VocabularyMatchKey {
+                entry_index,
                 key: expanded_key,
             });
         }
@@ -56,184 +73,202 @@ fn build_custom_word_match_keys(word: &str, word_index: usize) -> Vec<CustomWord
 }
 
 fn is_supported_fuzzy_key(key: &str) -> bool {
-    !key.is_empty() && key.chars().all(|c| c.is_ascii_alphanumeric())
+    !key.is_empty()
+        && key
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric())
 }
 
 fn supports_soundex(key: &str) -> bool {
-    !key.is_empty() && key.chars().all(|c| c.is_ascii_alphabetic())
+    !key.is_empty() && key.chars().all(|character| character.is_ascii_alphabetic())
 }
 
-/// Finds the best matching custom word for a candidate string
-///
-/// Uses Levenshtein distance and Soundex phonetic matching to find
-/// the best match above the given threshold.
-///
-/// # Arguments
-/// * `candidate` - The cleaned/lowercased candidate string to match
-/// * `custom_words` - Original custom words (for returning the replacement)
-/// * `custom_word_match_keys` - Normalized custom-word keys for comparison
-/// * `threshold` - Maximum similarity score to accept
-///
-/// # Returns
-/// The best matching custom word and its score, if any match was found
-fn find_best_match<'a>(
+fn fuzzy_count_as_f64(value: usize) -> Option<f64> {
+    u32::try_from(value).ok().map(f64::from)
+}
+
+/// Finds the best spoken-form match for a candidate string.
+fn find_best_vocabulary_match<'a>(
     candidate: &str,
-    custom_words: &'a [String],
-    custom_word_match_keys: &[CustomWordMatchKey],
+    entries: &'a [VocabularyEntry],
+    match_keys: &[VocabularyMatchKey],
     threshold: f64,
-) -> Option<(&'a String, f64)> {
+) -> Option<(&'a VocabularyEntry, f64)> {
     if !is_supported_fuzzy_key(candidate) || candidate.chars().count() > 50 {
         return None;
     }
 
-    let mut best_match: Option<&String> = None;
+    let mut best_match: Option<&VocabularyEntry> = None;
     let mut best_score = f64::MAX;
 
-    for custom_word_key in custom_word_match_keys {
-        // Skip if lengths are too different (optimization + prevents over-matching)
-        // Use percentage-based check: max 25% length difference (prevents n-grams from
-        // matching significantly shorter custom words, e.g., "openaigpt" vs "openai")
+    for match_key in match_keys {
         let candidate_len = candidate.chars().count();
-        let custom_word_len = custom_word_key.key.chars().count();
-        let len_diff = candidate_len.abs_diff(custom_word_len) as f64;
-        let max_len = candidate_len.max(custom_word_len) as f64;
-        let max_allowed_diff = (max_len * 0.25).max(2.0); // At least 2 chars difference allowed
+        let spoken_len = match_key.key.chars().count();
+        let Some(len_diff) = fuzzy_count_as_f64(candidate_len.abs_diff(spoken_len)) else {
+            continue;
+        };
+        let Some(max_len) = fuzzy_count_as_f64(candidate_len.max(spoken_len)) else {
+            continue;
+        };
+        let max_allowed_diff = (max_len * 0.25).max(2.0);
         if len_diff > max_allowed_diff {
             continue;
         }
 
-        // Calculate Levenshtein distance (normalized by length)
-        let levenshtein_dist = levenshtein(candidate, &custom_word_key.key);
         let levenshtein_score = if max_len > 0.0 {
-            levenshtein_dist as f64 / max_len
+            let Some(distance) = fuzzy_count_as_f64(levenshtein(candidate, &match_key.key)) else {
+                continue;
+            };
+            distance / max_len
         } else {
             1.0
         };
-
-        // Soundex is an English/ASCII phonetic algorithm. Numeric terms can
-        // still use edit distance, but must not receive a phonetic boost.
         let phonetic_match = supports_soundex(candidate)
-            && supports_soundex(&custom_word_key.key)
-            && soundex(candidate, &custom_word_key.key);
-
-        // Combine scores: favor phonetic matches, but also consider string similarity
+            && supports_soundex(&match_key.key)
+            && soundex(candidate, &match_key.key);
         let combined_score = if phonetic_match {
-            levenshtein_score * 0.3 // Give significant boost to phonetic matches
+            levenshtein_score * 0.3
         } else {
             levenshtein_score
         };
 
-        // Accept if the score is good enough (configurable threshold)
         if combined_score < threshold && combined_score < best_score {
-            best_match = Some(&custom_words[custom_word_key.word_index]);
+            best_match = Some(&entries[match_key.entry_index]);
             best_score = combined_score;
         }
     }
 
-    best_match.map(|m| (m, best_score))
+    best_match.map(|entry| (entry, best_score))
 }
 
-/// Applies custom word corrections to transcribed text using fuzzy matching
-///
-/// This function corrects words in the input text by finding the best matches
-/// from a list of custom words using a combination of:
-/// - Levenshtein distance for string similarity
-/// - Soundex phonetic matching for pronunciation similarity
-/// - N-gram matching for multi-word speech artifacts (e.g., "Charge B" -> "ChargeBee")
-///
-/// # Arguments
-/// * `text` - The input text to correct
-/// * `custom_words` - List of custom words to match against
-/// * `threshold` - Maximum similarity score to accept (0.0 = exact match, 1.0 = any match)
-///
-/// # Returns
-/// The corrected text with custom words applied
-pub fn apply_custom_words(text: &str, custom_words: &[String], threshold: f64) -> String {
-    if custom_words.is_empty() {
+/// Applies deterministic fuzzy corrections from spoken forms to written forms.
+/// The existing threshold, three-token n-gram ceiling, punctuation boundary,
+/// and length guards remain the sole fuzzy matching policy.
+pub fn apply_vocabulary_entries(text: &str, entries: &[VocabularyEntry], threshold: f64) -> String {
+    if entries.is_empty() {
         return text.to_string();
     }
 
-    // Pre-compute normalized comparison keys to avoid repeated allocations.
-    let custom_word_match_keys: Vec<CustomWordMatchKey> = custom_words
+    let match_keys: Vec<VocabularyMatchKey> = entries
         .iter()
         .enumerate()
-        .flat_map(|(index, word)| build_custom_word_match_keys(word, index))
+        .filter(|(_, entry)| entry.is_usable())
+        .flat_map(|(index, entry)| build_vocabulary_match_keys(entry, index))
         .collect();
+    if match_keys.is_empty() {
+        return text.to_string();
+    }
 
     let words: Vec<&str> = text.split_whitespace().collect();
-    let mut result = Vec::new();
-    let mut i = 0;
+    let mut result = Vec::with_capacity(words.len());
+    let mut index = 0;
 
-    while i < words.len() {
-        let mut best_match: Option<(usize, &String, f64)> = None;
-
-        // Consider n-grams up to three words and choose the closest match. A
-        // longest-first match can consume a following ordinary word when both
-        // candidates happen to share a Soundex code (for example,
-        // "Charge B, che" matching "ChargeBee").
-        for n in (1..=3).rev() {
-            if i + n > words.len() {
+    while index < words.len() {
+        let mut best_match: Option<(usize, &VocabularyEntry, f64)> = None;
+        for ngram_len in (1..=3).rev() {
+            if index + ngram_len > words.len() {
                 continue;
             }
 
-            let ngram_words = &words[i..i + n];
-            // Do not consume across a punctuation boundary. In
-            // "Charge B, che", the comma closes the candidate at "B,".
-            if ngram_words[..n.saturating_sub(1)]
+            let ngram_words = &words[index..index + ngram_len];
+            if ngram_words[..ngram_len.saturating_sub(1)]
                 .iter()
                 .any(|word| !extract_punctuation(word).1.is_empty())
             {
                 continue;
             }
-            let ngram = build_ngram(ngram_words);
-
-            if let Some((replacement, score)) =
-                find_best_match(&ngram, custom_words, &custom_word_match_keys, threshold)
+            let candidate = build_ngram(ngram_words);
+            if let Some((entry, score)) =
+                find_best_vocabulary_match(&candidate, entries, &match_keys, threshold)
             {
-                let is_better = best_match
+                if ngram_len > 1 && !starts_with_spoken_character(&candidate, entry) {
+                    continue;
+                }
+
+                if best_match
                     .as_ref()
-                    .is_none_or(|(_, _, best_score)| score < *best_score);
-                if is_better {
-                    best_match = Some((n, replacement, score));
+                    .is_none_or(|(_, _, best_score)| score < *best_score)
+                {
+                    best_match = Some((ngram_len, entry, score));
                 }
             }
         }
 
-        if let Some((n, replacement, _)) = best_match {
-            let ngram_words = &words[i..i + n];
-            // Extract punctuation from first and last words of the n-gram.
+        if let Some((ngram_len, entry, _)) = best_match {
+            let ngram_words = &words[index..index + ngram_len];
             let (prefix, _) = extract_punctuation(ngram_words[0]);
-            let (_, suffix) = extract_punctuation(ngram_words[n - 1]);
-
-            // Preserve case from first word.
-            let corrected = preserve_case_pattern(ngram_words[0], replacement);
-
-            result.push(format!("{}{}{}", prefix, corrected, suffix));
-            i += n;
+            let (_, suffix) = extract_punctuation(ngram_words[ngram_len - 1]);
+            result.push(format!("{}{}{}", prefix, entry.written, suffix));
+            index += ngram_len;
         } else {
-            result.push(words[i].to_string());
-            i += 1;
+            result.push(words[index].to_string());
+            index += 1;
         }
     }
 
     result.join(" ")
 }
 
-/// Preserves the case pattern of the original word when applying a replacement
-fn preserve_case_pattern(original: &str, replacement: &str) -> String {
-    if original.chars().all(|c| c.is_uppercase()) {
-        replacement.to_uppercase()
-    } else if original.chars().next().is_some_and(|c| c.is_uppercase()) {
-        let mut chars: Vec<char> = replacement.chars().collect();
-        if let Some(first_char) = chars.get_mut(0) {
-            *first_char = first_char.to_uppercase().next().unwrap_or(*first_char);
-        }
-        chars.into_iter().collect()
-    } else {
-        replacement.to_string()
-    }
+/// Applies only normalized exact vocabulary matches after prompt-biased decoding.
+pub fn apply_exact_vocabulary_entries(text: &str, entries: &[VocabularyEntry]) -> String {
+    apply_vocabulary_entries(text, entries, f64::EPSILON)
 }
 
+fn is_token_character(character: char) -> bool {
+    character.is_alphanumeric() || character == '_'
+}
+
+fn has_token_boundaries(text: &str, start: usize, end: usize) -> bool {
+    let before = text[..start].chars().next_back();
+    let after = text[end..].chars().next();
+    before.is_none_or(|character| !is_token_character(character))
+        && after.is_none_or(|character| !is_token_character(character))
+}
+
+/// Applies exact phrase replacements while respecting Unicode token boundaries.
+/// This intentionally never performs fuzzy matching or case normalization.
+pub fn apply_emoji_replacements(text: &str, replacements: &[EmojiReplacement]) -> String {
+    if text.is_empty() || replacements.is_empty() {
+        return text.to_string();
+    }
+
+    let mut result = String::with_capacity(text.len());
+    let mut cursor = 0;
+
+    for (start, _) in text.char_indices() {
+        if start < cursor {
+            continue;
+        }
+        let mut selected: Option<&EmojiReplacement> = None;
+        for replacement in replacements
+            .iter()
+            .filter(|replacement| replacement.is_usable())
+        {
+            let end = start + replacement.spoken.len();
+            if text[start..].starts_with(&replacement.spoken)
+                && has_token_boundaries(text, start, end)
+                && selected
+                    .as_ref()
+                    .is_none_or(|current| replacement.spoken.len() > current.spoken.len())
+            {
+                selected = Some(replacement);
+            }
+        }
+
+        if let Some(replacement) = selected {
+            let end = start + replacement.spoken.len();
+            result.push_str(&text[cursor..start]);
+            result.push_str(&replacement.written);
+            cursor = end;
+        }
+    }
+
+    if cursor == 0 {
+        return text.to_string();
+    }
+    result.push_str(&text[cursor..]);
+    result
+}
 /// Extracts punctuation prefix and suffix from a word
 fn extract_punctuation(word: &str) -> (&str, &str) {
     // String slices use byte offsets. Derive both boundaries from char_indices
@@ -267,7 +302,7 @@ fn extract_punctuation(word: &str) -> (&str, &str) {
 
 /// Evidence for the language of the text being cleaned.
 ///
-/// This intentionally describes the transcription output, not Handy's UI
+/// This intentionally describes the transcription output, not Sona's UI
 /// language. Unknown output languages fail closed: built-in filler removal is
 /// skipped rather than applying a language profile speculatively.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -297,7 +332,514 @@ impl OutputLanguageEvidence {
     }
 }
 
-/// Filler tokens that are not lexical words in any language Handy's models can
+fn is_english_language(language: &str) -> bool {
+    language
+        .split(&['-', '_'][..])
+        .next()
+        .is_some_and(|base| base.eq_ignore_ascii_case("en"))
+}
+
+impl OutputLanguageEvidence {
+    fn is_english(&self) -> bool {
+        self.language().is_some_and(is_english_language)
+    }
+}
+
+/// The spelling transform is deliberately a fixed dictionary, not a suffix
+/// heuristic. This table is the complete supported contract: add a pair only
+/// with its intended forms, then extend the table-driven case tests below.
+const AMERICAN_TO_BRITISH_SPELLINGS: &[(&str, &str)] = &[
+    ("acknowledgment", "acknowledgement"),
+    ("acknowledgments", "acknowledgements"),
+    ("aging", "ageing"),
+    ("analyze", "analyse"),
+    ("analyzed", "analysed"),
+    ("analyzes", "analyses"),
+    ("analyzing", "analysing"),
+    ("anemia", "anaemia"),
+    ("anemic", "anaemic"),
+    ("apologize", "apologise"),
+    ("apologized", "apologised"),
+    ("apologizes", "apologises"),
+    ("apologizing", "apologising"),
+    ("armor", "armour"),
+    ("armored", "armoured"),
+    ("armoring", "armouring"),
+    ("armors", "armours"),
+    ("artifact", "artefact"),
+    ("artifacts", "artefacts"),
+    ("authorize", "authorise"),
+    ("authorized", "authorised"),
+    ("authorizes", "authorises"),
+    ("authorizing", "authorising"),
+    ("behavior", "behaviour"),
+    ("behaviors", "behaviours"),
+    ("canceled", "cancelled"),
+    ("canceler", "canceller"),
+    ("cancelers", "cancellers"),
+    ("canceling", "cancelling"),
+    ("catalog", "catalogue"),
+    ("cataloged", "catalogued"),
+    ("cataloging", "cataloguing"),
+    ("catalogs", "catalogues"),
+    ("categorize", "categorise"),
+    ("categorized", "categorised"),
+    ("categorizes", "categorises"),
+    ("categorizing", "categorising"),
+    ("center", "centre"),
+    ("centered", "centred"),
+    ("centering", "centring"),
+    ("centers", "centres"),
+    ("centralize", "centralise"),
+    ("centralized", "centralised"),
+    ("centralizes", "centralises"),
+    ("centralizing", "centralising"),
+    ("characterize", "characterise"),
+    ("characterized", "characterised"),
+    ("characterizes", "characterises"),
+    ("characterizing", "characterising"),
+    ("civilize", "civilise"),
+    ("civilized", "civilised"),
+    ("civilizes", "civilises"),
+    ("civilizing", "civilising"),
+    ("colonize", "colonise"),
+    ("colonized", "colonised"),
+    ("colonizes", "colonises"),
+    ("colonizing", "colonising"),
+    ("color", "colour"),
+    ("colored", "coloured"),
+    ("coloring", "colouring"),
+    ("colorless", "colourless"),
+    ("colors", "colours"),
+    ("cozier", "cosier"),
+    ("coziest", "cosiest"),
+    ("coziness", "cosiness"),
+    ("cozy", "cosy"),
+    ("criticize", "criticise"),
+    ("criticized", "criticised"),
+    ("criticizes", "criticises"),
+    ("criticizing", "criticising"),
+    ("customize", "customise"),
+    ("customized", "customised"),
+    ("customizes", "customises"),
+    ("customizing", "customising"),
+    ("defense", "defence"),
+    ("defenses", "defences"),
+    ("dialog", "dialogue"),
+    ("dialogs", "dialogues"),
+    ("digitize", "digitise"),
+    ("digitized", "digitised"),
+    ("digitizes", "digitises"),
+    ("digitizing", "digitising"),
+    ("dramatize", "dramatise"),
+    ("dramatized", "dramatised"),
+    ("dramatizes", "dramatises"),
+    ("dramatizing", "dramatising"),
+    ("emphasize", "emphasise"),
+    ("emphasized", "emphasised"),
+    ("emphasizes", "emphasises"),
+    ("emphasizing", "emphasising"),
+    ("endeavor", "endeavour"),
+    ("endeavored", "endeavoured"),
+    ("endeavoring", "endeavouring"),
+    ("endeavors", "endeavours"),
+    ("enroll", "enrol"),
+    ("enrollment", "enrolment"),
+    ("enrollments", "enrolments"),
+    ("estrogen", "oestrogen"),
+    ("familiarize", "familiarise"),
+    ("familiarized", "familiarised"),
+    ("familiarizes", "familiarises"),
+    ("familiarizing", "familiarising"),
+    ("favor", "favour"),
+    ("favored", "favoured"),
+    ("favoring", "favouring"),
+    ("favors", "favours"),
+    ("fiber", "fibre"),
+    ("fibers", "fibres"),
+    ("finalize", "finalise"),
+    ("finalized", "finalised"),
+    ("finalizes", "finalises"),
+    ("finalizing", "finalising"),
+    ("flavor", "flavour"),
+    ("flavors", "flavours"),
+    ("fulfill", "fulfil"),
+    ("fulfillment", "fulfilment"),
+    ("fulfillments", "fulfilments"),
+    ("generalize", "generalise"),
+    ("generalized", "generalised"),
+    ("generalizes", "generalises"),
+    ("generalizing", "generalising"),
+    ("gray", "grey"),
+    ("grayed", "greyed"),
+    ("grayer", "greyer"),
+    ("grayest", "greyest"),
+    ("graying", "greying"),
+    ("grays", "greys"),
+    ("harbor", "harbour"),
+    ("harbored", "harboured"),
+    ("harboring", "harbouring"),
+    ("harbors", "harbours"),
+    ("harmonize", "harmonise"),
+    ("harmonized", "harmonised"),
+    ("harmonizes", "harmonises"),
+    ("harmonizing", "harmonising"),
+    ("honor", "honour"),
+    ("honored", "honoured"),
+    ("honoring", "honouring"),
+    ("honors", "honours"),
+    ("humor", "humour"),
+    ("humors", "humours"),
+    ("initialize", "initialise"),
+    ("initialized", "initialised"),
+    ("initializes", "initialises"),
+    ("initializing", "initialising"),
+    ("installment", "instalment"),
+    ("installments", "instalments"),
+    ("jewelry", "jewellery"),
+    ("judgment", "judgement"),
+    ("judgments", "judgements"),
+    ("labeled", "labelled"),
+    ("labeler", "labeller"),
+    ("labelers", "labellers"),
+    ("labeling", "labelling"),
+    ("labor", "labour"),
+    ("labored", "laboured"),
+    ("laboring", "labouring"),
+    ("labors", "labours"),
+    ("legalize", "legalise"),
+    ("legalized", "legalised"),
+    ("legalizes", "legalises"),
+    ("legalizing", "legalising"),
+    ("maneuver", "manoeuvre"),
+    ("maneuvered", "manoeuvred"),
+    ("maneuvering", "manoeuvring"),
+    ("maneuvers", "manoeuvres"),
+    ("maximize", "maximise"),
+    ("maximized", "maximised"),
+    ("maximizes", "maximises"),
+    ("maximizing", "maximising"),
+    ("memorize", "memorise"),
+    ("memorized", "memorised"),
+    ("memorizes", "memorises"),
+    ("memorizing", "memorising"),
+    ("minimize", "minimise"),
+    ("minimized", "minimised"),
+    ("minimizes", "minimises"),
+    ("minimizing", "minimising"),
+    ("mobilize", "mobilise"),
+    ("mobilized", "mobilised"),
+    ("mobilizes", "mobilises"),
+    ("mobilizing", "mobilising"),
+    ("modernize", "modernise"),
+    ("modernized", "modernised"),
+    ("modernizes", "modernises"),
+    ("modernizing", "modernising"),
+    ("mold", "mould"),
+    ("molded", "moulded"),
+    ("molding", "moulding"),
+    ("molds", "moulds"),
+    ("moldy", "mouldy"),
+    ("mustache", "moustache"),
+    ("mustaches", "moustaches"),
+    ("neighbor", "neighbour"),
+    ("neighbors", "neighbours"),
+    ("normalize", "normalise"),
+    ("normalized", "normalised"),
+    ("normalizes", "normalises"),
+    ("normalizing", "normalising"),
+    ("odor", "odour"),
+    ("odors", "odours"),
+    ("offense", "offence"),
+    ("offenses", "offences"),
+    ("optimize", "optimise"),
+    ("optimized", "optimised"),
+    ("optimizes", "optimises"),
+    ("optimizing", "optimising"),
+    ("organize", "organise"),
+    ("organized", "organised"),
+    ("organizes", "organises"),
+    ("organizing", "organising"),
+    ("pajamas", "pyjamas"),
+    ("pediatric", "paediatric"),
+    ("pediatrician", "paediatrician"),
+    ("pediatricians", "paediatricians"),
+    ("pediatrics", "paediatrics"),
+    ("personalize", "personalise"),
+    ("personalized", "personalised"),
+    ("personalizes", "personalises"),
+    ("personalizing", "personalising"),
+    ("plow", "plough"),
+    ("plowed", "ploughed"),
+    ("plowing", "ploughing"),
+    ("plows", "ploughs"),
+    ("prioritize", "prioritise"),
+    ("prioritized", "prioritised"),
+    ("prioritizes", "prioritises"),
+    ("prioritizing", "prioritising"),
+    ("publicize", "publicise"),
+    ("publicized", "publicised"),
+    ("publicizes", "publicises"),
+    ("publicizing", "publicising"),
+    ("realize", "realise"),
+    ("realized", "realised"),
+    ("realizes", "realises"),
+    ("realizing", "realising"),
+    ("recognize", "recognise"),
+    ("recognized", "recognised"),
+    ("recognizes", "recognises"),
+    ("recognizing", "recognising"),
+    ("rumor", "rumour"),
+    ("rumors", "rumours"),
+    ("savior", "saviour"),
+    ("saviors", "saviours"),
+    ("savor", "savour"),
+    ("savored", "savoured"),
+    ("savoring", "savouring"),
+    ("savors", "savours"),
+    ("skeptic", "sceptic"),
+    ("skeptical", "sceptical"),
+    ("skeptics", "sceptics"),
+    ("skillful", "skilful"),
+    ("skillfully", "skilfully"),
+    ("smolder", "smoulder"),
+    ("smoldered", "smouldered"),
+    ("smoldering", "smouldering"),
+    ("smolders", "smoulders"),
+    ("socialize", "socialise"),
+    ("socialized", "socialised"),
+    ("socializes", "socialises"),
+    ("socializing", "socialising"),
+    ("specialize", "specialise"),
+    ("specialized", "specialised"),
+    ("specializes", "specialises"),
+    ("specializing", "specialising"),
+    ("splendor", "splendour"),
+    ("stabilize", "stabilise"),
+    ("stabilized", "stabilised"),
+    ("stabilizes", "stabilises"),
+    ("stabilizing", "stabilising"),
+    ("standardize", "standardise"),
+    ("standardized", "standardised"),
+    ("standardizes", "standardises"),
+    ("standardizing", "standardising"),
+    ("summarize", "summarise"),
+    ("summarized", "summarised"),
+    ("summarizes", "summarises"),
+    ("summarizing", "summarising"),
+    ("symbolize", "symbolise"),
+    ("symbolized", "symbolised"),
+    ("symbolizes", "symbolises"),
+    ("symbolizing", "symbolising"),
+    ("theater", "theatre"),
+    ("theaters", "theatres"),
+    ("tire", "tyre"),
+    ("tires", "tyres"),
+    ("traveled", "travelled"),
+    ("traveler", "traveller"),
+    ("travelers", "travellers"),
+    ("traveling", "travelling"),
+    ("utilize", "utilise"),
+    ("utilized", "utilised"),
+    ("utilizes", "utilises"),
+    ("utilizing", "utilising"),
+    ("valor", "valour"),
+    ("vapor", "vapour"),
+    ("vapors", "vapours"),
+    ("vigor", "vigour"),
+    ("visualize", "visualise"),
+    ("visualized", "visualised"),
+    ("visualizes", "visualises"),
+    ("visualizing", "visualising"),
+    ("vocalize", "vocalise"),
+    ("vocalized", "vocalised"),
+    ("vocalizes", "vocalises"),
+    ("vocalizing", "vocalising"),
+    ("woolen", "woollen"),
+    ("worshiped", "worshipped"),
+    ("worshiper", "worshipper"),
+    ("worshipers", "worshippers"),
+    ("worshiping", "worshipping"),
+    ("yogurt", "yoghurt"),
+];
+
+static AMERICAN_SPELLING_PATTERN: Lazy<Regex> = Lazy::new(|| {
+    let pattern_len = AMERICAN_TO_BRITISH_SPELLINGS
+        .iter()
+        .map(|(american, _)| american.len() + 1)
+        .sum::<usize>()
+        + r"(?i)\b(?:)\b".len();
+    let mut pattern = String::with_capacity(pattern_len);
+    pattern.push_str(r"(?i)\b(?:");
+    for (index, (american, _)) in AMERICAN_TO_BRITISH_SPELLINGS.iter().enumerate() {
+        if index > 0 {
+            pattern.push('|');
+        }
+        // Every table key is an ASCII word, so it is regex-safe as-is.
+        pattern.push_str(american);
+    }
+    pattern.push_str(r")\b");
+    // PANIC: the fixed table is verified by the table-driven spelling tests.
+    Regex::new(&pattern).expect("American spelling pattern is valid")
+});
+
+fn british_spelling(word: &str) -> Option<&'static str> {
+    let index = AMERICAN_TO_BRITISH_SPELLINGS
+        .binary_search_by(|(american, _)| american.cmp(&word))
+        .ok()?;
+    Some(AMERICAN_TO_BRITISH_SPELLINGS[index].1)
+}
+
+fn preserve_ascii_case(source: &str, replacement: &str) -> String {
+    if source.bytes().all(|byte| byte.is_ascii_lowercase()) {
+        return replacement.to_string();
+    }
+    if source.bytes().all(|byte| !byte.is_ascii_lowercase()) {
+        return replacement.to_ascii_uppercase();
+    }
+    let is_title_case = source
+        .bytes()
+        .next()
+        .is_some_and(|first| first.is_ascii_uppercase())
+        && source.bytes().skip(1).all(|byte| byte.is_ascii_lowercase());
+    if !is_title_case {
+        return source.to_string();
+    }
+
+    let mut chars = replacement.chars();
+    let Some(first) = chars.next() else {
+        return String::new();
+    };
+    let mut result = String::with_capacity(replacement.len());
+    result.extend(first.to_uppercase());
+    result.push_str(chars.as_str());
+    result
+}
+
+/// Applies the user's global British spelling choice when trustworthy English
+/// output evidence exists. A matching vocabulary spoken form suppresses this
+/// transform so the user's written replacement remains the final authority.
+pub fn apply_british_spelling(
+    text: &str,
+    language: &OutputLanguageEvidence,
+    spelling: EnglishSpelling,
+    vocabulary: &[VocabularyEntry],
+) -> String {
+    if spelling != EnglishSpelling::British || !language.is_english() {
+        return text.to_string();
+    }
+
+    AMERICAN_SPELLING_PATTERN
+        .replace_all(text, |captures: &regex::Captures<'_>| {
+            // PANIC: regex replace callbacks always contain capture group zero.
+            let source = captures.get(0).expect("spelling match has text").as_str();
+            if vocabulary_reserves_phrase(vocabulary, source) {
+                return source.to_string();
+            }
+            let lower = source.to_ascii_lowercase();
+            british_spelling(&lower)
+                .map(|replacement| preserve_ascii_case(source, replacement))
+                .unwrap_or_else(|| source.to_string())
+        })
+        .into_owned()
+}
+
+fn vocabulary_reserves_phrase(entries: &[VocabularyEntry], phrase: &str) -> bool {
+    entries
+        .iter()
+        .any(|entry| entry.is_usable() && entry.spoken.trim().eq_ignore_ascii_case(phrase))
+}
+
+fn append_literal_word(output: &mut String, word: &str) {
+    if !output.is_empty() && !output.ends_with('\n') {
+        output.push(' ');
+    }
+    output.push_str(word);
+}
+
+fn spoken_punctuation_at(
+    words: &[&str],
+    index: usize,
+) -> Option<(&'static str, usize, &'static str)> {
+    let current = words[index];
+    if current.eq_ignore_ascii_case("comma") {
+        Some(("comma", 1, ","))
+    } else if current.eq_ignore_ascii_case("period") {
+        Some(("period", 1, "."))
+    } else if current.eq_ignore_ascii_case("full")
+        && words
+            .get(index + 1)
+            .is_some_and(|word| word.eq_ignore_ascii_case("stop"))
+    {
+        Some(("full stop", 2, "."))
+    } else if current.eq_ignore_ascii_case("question")
+        && words
+            .get(index + 1)
+            .is_some_and(|word| word.eq_ignore_ascii_case("mark"))
+    {
+        Some(("question mark", 2, "?"))
+    } else if current.eq_ignore_ascii_case("exclamation")
+        && words
+            .get(index + 1)
+            .is_some_and(|word| word.eq_ignore_ascii_case("mark"))
+    {
+        Some(("exclamation mark", 2, "!"))
+    } else if current.eq_ignore_ascii_case("new")
+        && words
+            .get(index + 1)
+            .is_some_and(|word| word.eq_ignore_ascii_case("line"))
+    {
+        Some(("new line", 2, "\n"))
+    } else {
+        None
+    }
+}
+
+/// Converts a conservative English spoken-punctuation table before vocabulary
+/// correction. A user vocabulary phrase reserves its own words, and a literal
+/// mention such as "the word comma itself" remains text.
+pub fn apply_literal_punctuation(
+    text: &str,
+    language: &OutputLanguageEvidence,
+    enabled: bool,
+    vocabulary: &[VocabularyEntry],
+) -> String {
+    if !enabled || !language.is_english() {
+        return text.to_string();
+    }
+
+    let words: Vec<&str> = text.split_whitespace().collect();
+    if words.is_empty() {
+        return text.to_string();
+    }
+
+    let mut output = String::with_capacity(text.len());
+    let mut index = 0;
+    while index < words.len() {
+        let mention = index > 0 && words[index - 1].eq_ignore_ascii_case("word");
+        if let Some((phrase, consumed, replacement)) = spoken_punctuation_at(&words, index) {
+            if !mention && !vocabulary_reserves_phrase(vocabulary, phrase) {
+                while output.ends_with(' ') {
+                    output.pop();
+                }
+                if replacement == "\n" {
+                    if !output.is_empty() && !output.ends_with('\n') {
+                        output.push('\n');
+                    }
+                } else {
+                    output.push_str(replacement);
+                }
+                index += consumed;
+                continue;
+            }
+        }
+        append_literal_word(&mut output, words[index]);
+        index += 1;
+    }
+    output
+}
+
+/// Filler tokens that are not lexical words in any language Sona's models can
 /// output, so removing them cannot corrupt text regardless of the (possibly
 /// unknown) output language. Kept deliberately conservative: anything that is a
 /// real word somewhere ("um" pt/de, "ha" es, "ah"/"eh" interjections, "mm"
@@ -404,7 +946,11 @@ pub fn remove_filler_words(
                     .map(gated_filler_words_for_language)
                     .unwrap_or_default(),
             )
-            .map(|word| Regex::new(&format!(r"(?i)\b{}\b[,.]?", regex::escape(word))).unwrap())
+            .map(|word| {
+                Regex::new(&format!(r"(?i)\b{}\b[,.]?", regex::escape(word))).unwrap_or_else(
+                    |error| unreachable!("escaped filler-word pattern is valid: {error}"),
+                )
+            })
             .collect(),
     };
 
@@ -422,7 +968,11 @@ pub fn remove_filler_words(
 /// Kept separate from [`remove_filler_words`] so disabling filler deletion
 /// does not also disable the existing repeated-word and whitespace cleanup.
 pub fn normalize_transcription_output(text: &str) -> String {
-    let mut normalized = collapse_stutters(text);
+    let mut normalized = text
+        .split('\n')
+        .map(collapse_stutters)
+        .collect::<Vec<_>>()
+        .join("\n");
 
     // Clean up multiple spaces to single space
     normalized = MULTI_SPACE_PATTERN
@@ -450,11 +1000,29 @@ mod tests {
         normalize_transcription_output(&filtered)
     }
 
+    fn apply_equal_pairs(text: &str, words: &[String], threshold: f64) -> String {
+        let entries: Vec<_> = words
+            .iter()
+            .map(|word| VocabularyEntry {
+                spoken: word.clone(),
+                written: word.clone(),
+            })
+            .collect();
+        apply_vocabulary_entries(text, &entries, threshold)
+    }
+
+    fn pair(spoken: &str, written: &str) -> VocabularyEntry {
+        VocabularyEntry {
+            spoken: spoken.to_string(),
+            written: written.to_string(),
+        }
+    }
+
     #[test]
     fn test_apply_custom_words_exact_match() {
         let text = "hello world";
         let custom_words = vec!["Hello".to_string(), "World".to_string()];
-        let result = apply_custom_words(text, &custom_words, 0.5);
+        let result = apply_equal_pairs(text, &custom_words, 0.5);
         assert_eq!(result, "Hello World");
     }
 
@@ -462,15 +1030,15 @@ mod tests {
     fn test_apply_custom_words_fuzzy_match() {
         let text = "helo wrold";
         let custom_words = vec!["hello".to_string(), "world".to_string()];
-        let result = apply_custom_words(text, &custom_words, 0.5);
+        let result = apply_equal_pairs(text, &custom_words, 0.5);
         assert_eq!(result, "hello world");
     }
 
     #[test]
-    fn test_preserve_case_pattern() {
-        assert_eq!(preserve_case_pattern("HELLO", "world"), "WORLD");
-        assert_eq!(preserve_case_pattern("Hello", "world"), "World");
-        assert_eq!(preserve_case_pattern("hello", "WORLD"), "WORLD");
+    fn vocabulary_writes_the_exact_written_form() {
+        let entries = vec![pair("charge bee", "ChargeBee")];
+        let result = apply_vocabulary_entries("CHARGE BEE", &entries, 0.5);
+        assert_eq!(result, "ChargeBee");
     }
 
     #[test]
@@ -491,7 +1059,7 @@ mod tests {
     fn test_empty_custom_words() {
         let text = "hello world";
         let custom_words = vec![];
-        let result = apply_custom_words(text, &custom_words, 0.5);
+        let result = apply_equal_pairs(text, &custom_words, 0.5);
         assert_eq!(result, "hello world");
     }
 
@@ -733,7 +1301,7 @@ mod tests {
     fn test_apply_custom_words_ngram_two_words() {
         let text = "il cui nome è Charge B, che permette";
         let custom_words = vec!["ChargeBee".to_string()];
-        let result = apply_custom_words(text, &custom_words, 0.5);
+        let result = apply_equal_pairs(text, &custom_words, 0.5);
         assert!(result.contains("ChargeBee,"), "unexpected result: {result}");
         assert!(!result.contains("Charge B"));
     }
@@ -742,7 +1310,7 @@ mod tests {
     fn test_apply_custom_words_ngram_three_words() {
         let text = "use Chat G P T for this";
         let custom_words = vec!["ChatGPT".to_string()];
-        let result = apply_custom_words(text, &custom_words, 0.5);
+        let result = apply_equal_pairs(text, &custom_words, 0.5);
         assert!(result.contains("ChatGPT"));
     }
 
@@ -750,7 +1318,7 @@ mod tests {
     fn test_apply_custom_words_prefers_longer_ngram() {
         let text = "Open AI GPT model";
         let custom_words = vec!["OpenAI".to_string(), "GPT".to_string()];
-        let result = apply_custom_words(text, &custom_words, 0.5);
+        let result = apply_equal_pairs(text, &custom_words, 0.5);
         assert_eq!(result, "OpenAI GPT model");
     }
 
@@ -758,8 +1326,8 @@ mod tests {
     fn test_apply_custom_words_ngram_preserves_case() {
         let text = "CHARGE B is great";
         let custom_words = vec!["ChargeBee".to_string()];
-        let result = apply_custom_words(text, &custom_words, 0.5);
-        assert!(result.contains("CHARGEBEE"));
+        let result = apply_equal_pairs(text, &custom_words, 0.5);
+        assert!(result.contains("ChargeBee"));
     }
 
     #[test]
@@ -767,7 +1335,7 @@ mod tests {
         // Custom word with space should also match against split words
         let text = "using Mac Book Pro";
         let custom_words = vec!["MacBook Pro".to_string()];
-        let result = apply_custom_words(text, &custom_words, 0.5);
+        let result = apply_equal_pairs(text, &custom_words, 0.5);
         assert_eq!(result, "using MacBook Pro");
     }
 
@@ -777,7 +1345,7 @@ mod tests {
         // between build_ngram stripping them and extract_punctuation capturing them
         let text = "use GPT4 for this";
         let custom_words = vec!["GPT-4".to_string()];
-        let result = apply_custom_words(text, &custom_words, 0.5);
+        let result = apply_equal_pairs(text, &custom_words, 0.5);
         // Should NOT produce "GPT-44" (double-counting the trailing 4)
         assert!(
             !result.contains("GPT-44"),
@@ -790,7 +1358,7 @@ mod tests {
     fn test_apply_custom_words_matches_ampersand_word() {
         let text = "send it to RD for review";
         let custom_words = vec!["R&D".to_string()];
-        let result = apply_custom_words(text, &custom_words, 0.18);
+        let result = apply_equal_pairs(text, &custom_words, 0.18);
         assert_eq!(result, "send it to R&D for review");
     }
 
@@ -798,7 +1366,7 @@ mod tests {
     fn test_apply_custom_words_matches_spoken_ampersand_word() {
         let text = "send it to R and D for review";
         let custom_words = vec!["R&D".to_string()];
-        let result = apply_custom_words(text, &custom_words, 0.18);
+        let result = apply_equal_pairs(text, &custom_words, 0.18);
         assert_eq!(result, "send it to R&D for review");
     }
 
@@ -806,23 +1374,189 @@ mod tests {
     fn test_apply_custom_words_preserves_ampersand_word() {
         let text = "send it to R&D for review";
         let custom_words = vec!["R&D".to_string()];
-        let result = apply_custom_words(text, &custom_words, 0.18);
+        let result = apply_equal_pairs(text, &custom_words, 0.18);
         assert_eq!(result, "send it to R&D for review");
     }
 
     #[test]
     fn test_apply_custom_words_handles_unicode_punctuation() {
-        let text = "「Handee。」";
-        let custom_words = vec!["Handy".to_string()];
-        let result = apply_custom_words(text, &custom_words, 0.5);
-        assert_eq!(result, "「Handy。」");
+        let text = "「Sonaa。」";
+        let custom_words = vec!["Sona".to_string()];
+        let result = apply_equal_pairs(text, &custom_words, 0.5);
+        assert_eq!(result, "「Sona。」");
     }
 
     #[test]
     fn test_apply_custom_words_skips_cjk_fuzzy_matching() {
         let text = "你好。";
         let custom_words = vec!["你号".to_string()];
-        let result = apply_custom_words(text, &custom_words, 1.0);
+        let result = apply_equal_pairs(text, &custom_words, 1.0);
         assert_eq!(result, text);
+    }
+
+    #[test]
+    fn deterministic_entity_fixture_has_recall_without_false_positives() {
+        let entries: Vec<_> = (0..50)
+            .map(|id| {
+                pair(
+                    &format!("northstar entity {id}"),
+                    &format!("NorthstarEntity{id}"),
+                )
+            })
+            .collect();
+
+        for id in 0..50 {
+            let written = format!("NorthstarEntity{id}");
+            for (source, expected) in [
+                (format!("northstar entity {id}"), written.clone()),
+                (format!("northstarr entity {id}"), written.clone()),
+                (format!("Northstarr Entity {id}"), written.clone()),
+                (format!("northstarr entity {id},"), format!("{written},")),
+            ] {
+                assert_eq!(apply_vocabulary_entries(&source, &entries, 0.18), expected);
+            }
+        }
+
+        let unrelated = "calendar invoice 42";
+        assert_eq!(
+            apply_vocabulary_entries(unrelated, &entries, 0.18),
+            unrelated
+        );
+    }
+
+    #[test]
+    fn vocabulary_pairs_preserve_multiword_punctuation_and_unicode_boundaries() {
+        let entries = vec![pair("charge bee", "ChargeBee"), pair("open ai", "OpenAI")];
+        assert_eq!(
+            apply_vocabulary_entries("「charge bee, open ai。」", &entries, 0.18),
+            "「ChargeBee, OpenAI。」"
+        );
+    }
+
+    #[test]
+    fn emoji_replacements_are_exact_and_unicode_token_safe() {
+        let replacements = vec![EmojiReplacement {
+            spoken: "smiley face".to_string(),
+            written: "🙂".to_string(),
+        }];
+        assert_eq!(
+            apply_emoji_replacements("smiley face! xsmiley face smiley facey", &replacements,),
+            "🙂! xsmiley face smiley facey"
+        );
+        assert_eq!(
+            apply_emoji_replacements("你好 smiley face。你smiley face", &replacements),
+            "你好 🙂。你smiley face"
+        );
+    }
+    #[test]
+    fn literal_punctuation_is_english_only_opt_in_and_respects_vocabulary() {
+        let english = OutputLanguageEvidence::UserSelected("en-US".to_string());
+        let portuguese = OutputLanguageEvidence::UserSelected("pt-BR".to_string());
+
+        assert_eq!(
+            apply_literal_punctuation("a comma b", &english, true, &[]),
+            "a, b"
+        );
+        assert_eq!(
+            apply_literal_punctuation("the word comma itself", &english, true, &[]),
+            "the word comma itself"
+        );
+        assert_eq!(
+            apply_literal_punctuation("a comma b", &english, false, &[]),
+            "a comma b"
+        );
+        assert_eq!(
+            apply_literal_punctuation("a comma b", &portuguese, true, &[]),
+            "a comma b"
+        );
+
+        let vocabulary = vec![pair("comma", "COMMA")];
+        let literal = apply_literal_punctuation("a comma b", &english, true, &vocabulary);
+        assert_eq!(literal, "a comma b");
+        assert_eq!(
+            apply_vocabulary_entries(&literal, &vocabulary, 0.18),
+            "a COMMA b"
+        );
+    }
+
+    #[test]
+    fn british_spelling_table_is_complete_and_case_preserving() {
+        let english = OutputLanguageEvidence::UserSelected("en-GB".to_string());
+        assert!(AMERICAN_TO_BRITISH_SPELLINGS
+            .windows(2)
+            .all(|pair| pair[0].0 < pair[1].0));
+        for &(american, british) in AMERICAN_TO_BRITISH_SPELLINGS {
+            assert!(!american.is_empty() && american.bytes().all(|byte| byte.is_ascii_lowercase()));
+            assert!(!british.is_empty() && british.bytes().all(|byte| byte.is_ascii_lowercase()));
+            let title_source = format!("{}{}", american[..1].to_ascii_uppercase(), &american[1..]);
+            let title_expected = format!("{}{}", british[..1].to_ascii_uppercase(), &british[1..]);
+            assert_eq!(
+                apply_british_spelling(american, &english, EnglishSpelling::British, &[]),
+                british,
+                "lowercase form for {american}",
+            );
+            assert_eq!(
+                apply_british_spelling(
+                    &american.to_ascii_uppercase(),
+                    &english,
+                    EnglishSpelling::British,
+                    &[],
+                ),
+                british.to_ascii_uppercase(),
+                "uppercase form for {american}",
+            );
+            assert_eq!(
+                apply_british_spelling(&title_source, &english, EnglishSpelling::British, &[],),
+                title_expected,
+                "title case form for {american}",
+            );
+        }
+    }
+
+    #[test]
+    fn british_spelling_covers_common_missing_forms_without_partial_matches() {
+        let english = OutputLanguageEvidence::UserSelected("en".to_string());
+        assert_eq!(
+            apply_british_spelling(
+                "gray traveled canceled labeled mold tire jewelry discoloration",
+                &english,
+                EnglishSpelling::British,
+                &[],
+            ),
+            "grey travelled cancelled labelled mould tyre jewellery discoloration",
+        );
+    }
+
+    #[test]
+    fn british_spelling_preserves_case_and_yields_to_vocabulary() {
+        let english = OutputLanguageEvidence::UserSelected("en".to_string());
+        let portuguese = OutputLanguageEvidence::UserSelected("pt".to_string());
+
+        assert_eq!(
+            apply_british_spelling(
+                "Color colors ORGANIZE",
+                &english,
+                EnglishSpelling::British,
+                &[],
+            ),
+            "Colour colours ORGANISE"
+        );
+        assert_eq!(
+            apply_british_spelling("color", &english, EnglishSpelling::AsSpoken, &[],),
+            "color"
+        );
+        assert_eq!(
+            apply_british_spelling("color", &portuguese, EnglishSpelling::British, &[],),
+            "color"
+        );
+
+        let vocabulary = vec![pair("color", "BrandColor")];
+        let protected =
+            apply_british_spelling("color", &english, EnglishSpelling::British, &vocabulary);
+        assert_eq!(protected, "color");
+        assert_eq!(
+            apply_vocabulary_entries(&protected, &vocabulary, 0.18),
+            "BrandColor"
+        );
     }
 }

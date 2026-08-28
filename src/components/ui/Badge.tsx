@@ -6,20 +6,25 @@ interface BadgeProps {
   className?: string;
 }
 
+const BADGE_VARIANT_CLASSES = {
+  primary: "bg-inverse-background text-inverse-text",
+  success: "border-border bg-transparent text-text-secondary",
+  secondary: "border-border bg-transparent text-text-secondary",
+} as const;
+
+/**
+ * Compact bordered tag, 6px radius, mono 10.5px. The primary variant inverts
+ * (black fill, white text); the others are hairline outlines so the active
+ * model reads at a glance without colored pills.
+ */
 const Badge: React.FC<BadgeProps> = ({
   children,
   variant = "primary",
   className = "",
 }) => {
-  const variantClasses = {
-    primary: "bg-logo-primary",
-    success: "bg-green-500/20 text-green-400",
-    secondary: "bg-mid-gray/20 text-text/70",
-  };
-
   return (
     <span
-      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${variantClasses[variant]} ${className}`}
+      className={`inline-flex h-[22px] items-center rounded-[6px] border px-1.5 font-mono text-[10.5px] font-medium leading-none ${BADGE_VARIANT_CLASSES[variant]} ${className}`}
     >
       {children}
     </span>

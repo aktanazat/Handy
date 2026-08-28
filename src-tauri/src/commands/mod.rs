@@ -1,9 +1,13 @@
 pub mod audio;
+pub mod cloud_sync;
 pub mod history;
+pub mod media_import;
+pub mod meeting;
 pub mod models;
 pub mod transcription;
+pub mod vocabulary;
 
-use crate::settings::{get_settings, write_settings, AppSettings, LogLevel};
+use crate::settings::{get_settings, update_settings, AppSettings, LogLevel};
 use crate::utils::cancel_current_operation;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_opener::OpenerExt;
@@ -57,13 +61,13 @@ pub fn set_log_level(app: AppHandle, level: LogLevel) -> Result<(), String> {
     let log_level: log::Level = tauri_log_level.into();
     // Update the file log level atomic so the filter picks up the new level
     crate::FILE_LOG_LEVEL.store(
-        log_level.to_level_filter() as u8,
+        crate::level_filter_code(log_level.to_level_filter()),
         std::sync::atomic::Ordering::Relaxed,
     );
 
-    let mut settings = get_settings(&app);
-    settings.log_level = level;
-    write_settings(&app, settings);
+    update_settings(&app, |settings| {
+        settings.log_level = level;
+    });
 
     Ok(())
 }
@@ -109,6 +113,25 @@ pub fn open_app_data_dir(app: AppHandle) -> Result<(), String> {
         .open_path(path, None::<String>)
         .map_err(|e| format!("Failed to open app data directory: {}", e))?;
 
+    Ok(())
+}
+
+#[specta::specta]
+#[tauri::command]
+pub fn open_license_notices(app: AppHandle) -> Result<(), String> {
+    let resource_dir = app
+        .path()
+        .resource_dir()
+        .map_err(|error| format!("Failed to locate bundled notices: {error}"))?;
+    for name in ["LICENSE", "NOTICE"] {
+        let path = resource_dir.join(name);
+        if !path.is_file() {
+            return Err(format!("Bundled {name} is unavailable"));
+        }
+        app.opener()
+            .open_path(path.to_string_lossy().into_owned(), None::<String>)
+            .map_err(|error| format!("Failed to open bundled {name}: {error}"))?;
+    }
     Ok(())
 }
 

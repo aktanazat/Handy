@@ -5,6 +5,395 @@
 
 
 export const commands = {
+async getUpstreamImportStatus() : Promise<Result<UpstreamImportStatus, UpstreamImportError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_upstream_import_status") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async importLegacyApp(selection: UpstreamImportSelection) : Promise<Result<UpstreamImportResult, UpstreamImportError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("import_legacy_app", { selection }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async revertUpstreamImportSettings() : Promise<Result<null, UpstreamImportError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("revert_upstream_import_settings") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getIdentityAdoptionStatus() : Promise<Result<IdentityAdoptionReceipt | null, IdentityAdoptionError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_identity_adoption_status") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async revertIdentityAdoption() : Promise<Result<null, IdentityAdoptionError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("revert_identity_adoption") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getAgentBridgeStatus() : Promise<AgentBridgeStatus> {
+    return await TAURI_INVOKE("get_agent_bridge_status");
+},
+async getAgentBridgeSessions() : Promise<AgentBridgeObservedSession[]> {
+    return await TAURI_INVOKE("get_agent_bridge_sessions");
+},
+async getAgentBridgeRequests() : Promise<AgentBridgeObservedRequest[]> {
+    return await TAURI_INVOKE("get_agent_bridge_requests");
+},
+async getAgentBridgePendingMessages() : Promise<AgentBridgePendingMessage[]> {
+    return await TAURI_INVOKE("get_agent_bridge_pending_messages");
+},
+async setAgentBridgeMaster(enabled: boolean) : Promise<Result<AgentBridgeSettings, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_agent_bridge_master", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async setAgentBridgeAgentEnabled(agent: AgentBridgeAgent, enabled: boolean) : Promise<Result<AgentBridgeSettings, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_agent_bridge_agent_enabled", { agent, enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async authorizeAgentBridgeProject(selectedPath: string) : Promise<Result<AgentBridgeSettings, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("authorize_agent_bridge_project", { selectedPath }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async removeAgentBridgeProject(canonicalProjectHash: string) : Promise<Result<AgentBridgeSettings, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("remove_agent_bridge_project", { canonicalProjectHash }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async createAgentBridgeReplyPreview(sessionId: string, text: string) : Promise<Result<AgentBridgePendingMessage, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("create_agent_bridge_reply_preview", { sessionId, text }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async confirmAgentBridgeReply(pendingId: string, sessionId: string, text: string) : Promise<Result<AgentBridgePendingMessage, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("confirm_agent_bridge_reply", { pendingId, sessionId, text }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cancelAgentBridgeMessage(pendingId: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cancel_agent_bridge_message", { pendingId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async dismissAgentBridgeRequest(requestId: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("dismiss_agent_bridge_request", { requestId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async createAgentBridgePermissionRule(requestId: string, decision: AgentBridgePermissionDecision) : Promise<Result<AgentBridgePermissionRule, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("create_agent_bridge_permission_rule", { requestId, decision }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async deleteAgentBridgePermissionRule(ruleId: string) : Promise<Result<AgentBridgeSettings, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("delete_agent_bridge_permission_rule", { ruleId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async respondAgentBridgePermission(requestId: string, ruleId: string, decision: AgentBridgePermissionDecision) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("respond_agent_bridge_permission", { requestId, ruleId, decision }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getAgentBridgeHookSnippet() : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_agent_bridge_hook_snippet") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async agentPanelOpen() : Promise<Result<AgentPanelStatusV1, AgentPanelCommandErrorV1>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("agent_panel_open") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async agentPanelClose() : Promise<Result<AgentPanelStatusV1, AgentPanelCommandErrorV1>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("agent_panel_close") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async agentPanelStatus() : Promise<Result<AgentPanelStatusV1, AgentPanelCommandErrorV1>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("agent_panel_status") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async agentPanelSendTurn(request: AgentPanelSendTurnRequestV1) : Promise<Result<AgentPanelStatusV1, AgentPanelCommandErrorV1>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("agent_panel_send_turn", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async agentPanelCancelTurn(request: AgentPanelCancelTurnRequestV1) : Promise<Result<AgentPanelStatusV1, AgentPanelCommandErrorV1>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("agent_panel_cancel_turn", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async agentPanelApplyChange(request: AgentPanelApplyChangeRequestV1) : Promise<Result<AgentPanelStatusV1, AgentPanelCommandErrorV1>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("agent_panel_apply_change", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async agentPanelUndoChange(request: AgentPanelUndoChangeRequestV1) : Promise<Result<AgentPanelStatusV1, AgentPanelCommandErrorV1>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("agent_panel_undo_change", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async agentPanelPublicIdentity() : Promise<Result<AgentPanelPublicIdentityV1, AgentPanelCommandErrorV1>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("agent_panel_public_identity") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getModes() : Promise<ModeSettingsSnapshot> {
+    return await TAURI_INVOKE("get_modes");
+},
+async setActiveMode(modeId: string) : Promise<Result<ModeSettingsSnapshot, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_active_mode", { modeId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async upsertMode(mode: ModeDefinition, expectedRevision: number) : Promise<Result<ModeSettingsSnapshot, ModeMutationError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("upsert_mode", { mode, expectedRevision }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async deleteMode(modeId: string, expectedRevision: number) : Promise<Result<ModeSettingsSnapshot, ModeMutationError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("delete_mode", { modeId, expectedRevision }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async reorderModes(orderedIds: string[], expectedRevision: number) : Promise<Result<ModeSettingsSnapshot, ModeMutationError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("reorder_modes", { orderedIds, expectedRevision }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async listVocabularyEntries(scope: VocabularyScope) : Promise<Result<VocabularyEntry[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_vocabulary_entries", { scope }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Captures the application that was active immediately before the mode editor
+ * became visible. Hiding the window briefly lets macOS return focus to that
+ * application without reading Accessibility data or a browser URL.
+ */
+async captureModeActivationRule(modeId: string, expectedRevision: number) : Promise<Result<ModeSettingsSnapshot, ModeMutationError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("capture_mode_activation_rule", { modeId, expectedRevision }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async removeModeActivationRule(appId: string, expectedRevision: number) : Promise<Result<ModeSettingsSnapshot, ModeMutationError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("remove_mode_activation_rule", { appId, expectedRevision }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Captures the browser host visible immediately before the editor opens. This
+ * command is gated by the separate browser-URL consent and persists only the
+ * normalized host, never the captured URL.
+ */
+async captureModeWebsiteActivationRule(modeId: string, matchKind: WebsiteHostMatch, expectedRevision: number) : Promise<Result<ModeSettingsSnapshot, ModeMutationError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("capture_mode_website_activation_rule", { modeId, matchKind, expectedRevision }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async removeModeWebsiteActivationRule(host: string, matchKind: WebsiteHostMatch, expectedRevision: number) : Promise<Result<ModeSettingsSnapshot, ModeMutationError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("remove_mode_website_activation_rule", { host, matchKind, expectedRevision }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async updateVocabularyEntries(scope: VocabularyScope, entries: VocabularyEntry[]) : Promise<Result<VocabularyEntry[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_vocabulary_entries", { scope, entries }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async previewVocabularyCsv(scope: VocabularyScope, csvText: string) : Promise<Result<VocabularyCsvPreview, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("preview_vocabulary_csv", { scope, csvText }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async applyVocabularyCsv(scope: VocabularyScope, csvText: string) : Promise<Result<VocabularyEntry[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("apply_vocabulary_csv", { scope, csvText }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async exportVocabularyCsv(scope: VocabularyScope) : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("export_vocabulary_csv", { scope }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async updateEmojiReplacements(replacements: EmojiReplacement[]) : Promise<Result<EmojiReplacement[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_emoji_replacements", { replacements }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async updateEmojiReplacementsEnabled(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_emoji_replacements_enabled", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * The only correction-learning write path. It changes one user-chosen scope
+ * after an explicit history action; no history read, keypress, or background
+ * event calls this helper.
+ */
+async addVocabularyCorrection(spoken: string, written: string, scope: VocabularyScope) : Promise<Result<VocabularyEntry, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("add_vocabulary_correction", { spoken, written, scope }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeContextPolicyCeilingSetting(ceiling: ContextPolicy) : Promise<void> {
+    await TAURI_INVOKE("change_context_policy_ceiling_setting", { ceiling });
+},
+async changeContextUrlCaptureEnabledSetting(enabled: boolean) : Promise<void> {
+    await TAURI_INVOKE("change_context_url_capture_enabled_setting", { enabled });
+},
+/**
+ * Record the complete, versioned cloud-transfer acknowledgement. Declining is
+ * intentionally a frontend no-op, so the mode keeps its prior local engine.
+ */
+async acceptCloudSttProviderConsent(provider: CloudSttProvider) : Promise<Result<CloudSttProviderSettings, CloudSttProviderSettingsError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("accept_cloud_stt_provider_consent", { provider }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Record an explicit acknowledgement for the configured remote LLM endpoint.
+ * The caller never supplies a URL: the stored provider route is validated and
+ * frozen into this content-free receipt.
+ */
+async acceptPostProcessProviderConsent(providerId: string) : Promise<Result<PostProcessProviderConsent, PostProcessProviderConsentError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("accept_post_process_provider_consent", { providerId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async changeBinding(id: string, binding: string) : Promise<Result<BindingResponse, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_binding", { id, binding }) };
@@ -96,6 +485,14 @@ async changeSelectedLanguageSetting(language: string) : Promise<Result<null, str
 async changeOverlayPositionSetting(position: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_overlay_position_setting", { position }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeEnglishSpellingSetting(spelling: EnglishSpelling) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_english_spelling_setting", { spelling }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -232,9 +629,33 @@ async changePostProcessBaseUrlSetting(providerId: string, baseUrl: string) : Pro
     else return { status: "error", error: e  as any };
 }
 },
-async changePostProcessApiKeySetting(providerId: string, apiKey: string) : Promise<Result<null, string>> {
+async getProviderSecretState(kind: SecretKind, providerId: string) : Promise<Result<SecretState, SecretCommandError>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("change_post_process_api_key_setting", { providerId, apiKey }) };
+    return { status: "ok", data: await TAURI_INVOKE("get_provider_secret_state", { kind, providerId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async setProviderSecret(kind: SecretKind, providerId: string, secret: string) : Promise<Result<SecretState, SecretCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_provider_secret", { kind, providerId, secret }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async deleteProviderSecret(kind: SecretKind, providerId: string) : Promise<Result<SecretState, SecretCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("delete_provider_secret", { kind, providerId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async verifySttProviderSecret(provider: CloudSttProvider) : Promise<Result<SecretState, SttSecretVerificationError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("verify_stt_provider_secret", { provider }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -256,7 +677,7 @@ async setPostProcessProvider(providerId: string) : Promise<Result<null, string>>
     else return { status: "error", error: e  as any };
 }
 },
-async fetchPostProcessModels(providerId: string) : Promise<Result<string[], string>> {
+async fetchPostProcessModels(providerId: string) : Promise<Result<string[], SecretCommandError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("fetch_post_process_models", { providerId }) };
 } catch (e) {
@@ -291,14 +712,6 @@ async deletePostProcessPrompt(id: string) : Promise<Result<null, string>> {
 async setPostProcessSelectedPrompt(id: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("set_post_process_selected_prompt", { id }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async updateCustomWords(words: string[]) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("update_custom_words", { words }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -375,14 +788,6 @@ async changeAppLanguageSetting(language: string) : Promise<Result<null, string>>
     else return { status: "error", error: e  as any };
 }
 },
-async changeUpdateChecksSetting(enabled: boolean) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("change_update_checks_setting", { enabled }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async changeShowWhatsNewOnUpdateSetting(enabled: boolean) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_show_whats_new_on_update_setting", { enabled }) };
@@ -453,7 +858,7 @@ async changeTranscribeGpuDevice(device: string | null) : Promise<Result<null, st
 },
 /**
  * Return which accelerators and GPU devices are available for this build.
- * 
+ *
  * First-call cost is dominated by enumerating GPU devices through the
  * transcribe.cpp Metal/Vulkan backend, which loads dynamic libraries and
  * probes hardware. Run it on the blocking pool so the webview thread
@@ -490,14 +895,6 @@ async getSecureInputStatus() : Promise<SecureInputStatus> {
 async runKeyboardDiagnostic(durationSecs: number | null) : Promise<Result<KeyboardDiagnosticReport, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("run_keyboard_diagnostic", { durationSecs }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async triggerUpdateCheck() : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("trigger_update_check") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -541,6 +938,14 @@ async getDefaultSettings() : Promise<Result<AppSettings, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * Reports what context capture could do right now. Read-only and
+ * non-prompting: opening a settings pane must never raise a system permission
+ * dialog.
+ */
+async getContextDiagnostics() : Promise<ContextDiagnostics> {
+    return await TAURI_INVOKE("get_context_diagnostics");
+},
 async getLogDirPath() : Promise<Result<string, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_log_dir_path") };
@@ -576,6 +981,14 @@ async openLogDir() : Promise<Result<null, string>> {
 async openAppDataDir() : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("open_app_data_dir") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async openLicenseNotices() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("open_license_notices") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -832,9 +1245,60 @@ async unloadModelManually() : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async getHistoryEntries(cursor: number | null, limit: number | null) : Promise<Result<PaginatedHistory, string>> {
+async importAudioFile(path: string) : Promise<Result<AudioImportJob, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("import_audio_file", { path }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cancelAudioImport(jobId: number) : Promise<Result<AudioImportJob, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cancel_audio_import", { jobId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async listAudioImportJobs() : Promise<AudioImportJob[]> {
+    return await TAURI_INVOKE("list_audio_import_jobs");
+},
+async getHistoryStats() : Promise<Result<HistoryStats, null>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_history_stats") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getHistoryTrend(request: DashboardTrendRequest) : Promise<Result<HistoryTrendProjection, null>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_history_trend", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getHistoryEntries(cursor: number | null, limit: number | null) : Promise<Result<PaginatedHistory, null>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_history_entries", { cursor, limit }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async searchHistoryEntries(query: string, cursor: number | null, limit: number | null) : Promise<Result<PaginatedHistory, null>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("search_history_entries", { query, cursor, limit }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getHistoryRunReceipts(historyId: number) : Promise<Result<HistoryRunReceipt[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_history_run_receipts", { historyId }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -848,9 +1312,13 @@ async toggleHistoryEntrySaved(id: number) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async getAudioFilePath(fileName: string) : Promise<Result<string, string>> {
+/**
+ * Read a fixed-size media fragment for an existing history row. A caller
+ * cannot choose a path, traversal component, or unbounded byte count.
+ */
+async readHistoryAudioChunk(historyId: number, offset: number) : Promise<Result<HistoryAudioChunk, null>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_audio_file_path", { fileName }) };
+    return { status: "ok", data: await TAURI_INVOKE("read_history_audio_chunk", { historyId, offset }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -888,9 +1356,376 @@ async updateRecordingRetentionPeriod(period: string) : Promise<Result<null, stri
     else return { status: "error", error: e  as any };
 }
 },
+async meetingSuggestionsList() : Promise<MeetingSuggestion[]> {
+    return await TAURI_INVOKE("meeting_suggestions_list");
+},
+async meetingPreflightCreate(request: MeetingPreflightCreateRequest) : Promise<Result<MeetingMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_preflight_create", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingPreflightRefresh(request: MeetingPreflightRefreshRequest) : Promise<Result<MeetingMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_preflight_refresh", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingPreflightCancel(request: MeetingMutationRequest) : Promise<Result<OperationReceipt, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_preflight_cancel", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingStart(request: MeetingStartRequest) : Promise<Result<MeetingMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_start", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingPause(request: MeetingMutationRequest) : Promise<Result<MeetingMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_pause", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingResume(request: MeetingMutationRequest) : Promise<Result<MeetingMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_resume", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingStop(request: MeetingMutationRequest) : Promise<Result<MeetingMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_stop", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingDiscard(request: MeetingMutationRequest) : Promise<Result<MeetingRemovalResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_discard", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingRecoveryList() : Promise<Result<MeetingHistorySummary[], MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_recovery_list") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingRecoveryFinalize(request: MeetingMutationRequest) : Promise<Result<MeetingMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_recovery_finalize", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingList(cursorUtcMs: number | null, limit: number | null) : Promise<Result<PaginatedMeetings, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_list", { cursorUtcMs, limit }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Return a tagged meeting trend. An unavailable result is a normal storage
+ * state and must not be presented as a zero-valued range.
+ */
+async meetingTrend(request: DashboardTrendRequest) : Promise<Result<MeetingTrendProjection, null>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_trend", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingGet(sessionId: MeetingSessionId) : Promise<Result<MeetingReviewSnapshot, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_get", { sessionId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingSearch(request: MeetingSearchRequest) : Promise<Result<MeetingSearchResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_search", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingTitleSet(request: MeetingTitleSetRequest) : Promise<Result<MeetingMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_title_set", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingSpeakerRename(request: MeetingSpeakerRenameRequest) : Promise<Result<MeetingMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_speaker_rename", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingSpeakerMerge(request: MeetingSpeakerMergeRequest) : Promise<Result<MeetingMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_speaker_merge", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingSegmentEdit(request: MeetingSegmentEditRequest) : Promise<Result<MeetingMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_segment_edit", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingNoteCreate(request: MeetingNoteCreateRequest) : Promise<Result<MeetingMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_note_create", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingNoteUpdate(request: MeetingNoteUpdateRequest) : Promise<Result<MeetingMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_note_update", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingNoteDelete(request: MeetingNoteDeleteRequest) : Promise<Result<MeetingMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_note_delete", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingArtifactsRegenerate(request: MeetingMutationRequest) : Promise<Result<MeetingMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_artifacts_regenerate", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingQuestionAsk(request: MeetingQuestionRequest) : Promise<Result<MeetingQuestionResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_question_ask", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingQuestionForget(request: MeetingMutationRequest, questionId: MeetingQuestionId) : Promise<Result<MeetingMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_question_forget", { request, questionId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingExport(request: MeetingExportRequest) : Promise<Result<MeetingExportResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_export", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingDelete(request: MeetingMutationRequest) : Promise<Result<MeetingRemovalResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_delete", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingRetentionGet() : Promise<Result<MeetingRetentionSnapshot, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_retention_get") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingRetentionSet(request: MeetingRetentionSetRequest) : Promise<Result<MeetingRetentionMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_retention_set", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingRemoteCancel(request: MeetingMutationRequest) : Promise<Result<null, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_remote_cancel", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cloudSyncOverviewGet() : Promise<Result<CloudSyncOverview, CloudSyncErrorKind>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cloud_sync_overview_get") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cloudSyncMeetingStatusGet(sessionId: MeetingSessionId) : Promise<Result<CloudMeetingStatus, CloudSyncErrorKind>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cloud_sync_meeting_status_get", { sessionId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cloudSyncMeetingStatusList() : Promise<Result<CloudMeetingStatus[], CloudSyncErrorKind>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cloud_sync_meeting_status_list") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cloudSyncBootstrap(request: CloudSyncBootstrapRequest) : Promise<Result<CloudSyncBootstrapResult, CloudSyncErrorKind>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cloud_sync_bootstrap", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cloudSyncRecover(request: CloudSyncRecoveryRequest) : Promise<Result<CloudSyncOverview, CloudSyncErrorKind>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cloud_sync_recover", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cloudSyncPairingOffer(request: CloudPairingOfferRequest) : Promise<Result<CloudPairingOffer, CloudSyncErrorKind>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cloud_sync_pairing_offer", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cloudSyncPairingApprove(request: CloudPairingApproveRequest) : Promise<Result<CloudSyncOverview, CloudSyncErrorKind>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cloud_sync_pairing_approve", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cloudSyncPairingAccept(request: CloudPairingAcceptRequest) : Promise<Result<CloudSyncOverview, CloudSyncErrorKind>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cloud_sync_pairing_accept", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cloudSyncPause() : Promise<Result<CloudSyncOverview, CloudSyncErrorKind>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cloud_sync_pause") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cloudSyncResume() : Promise<Result<CloudSyncOverview, CloudSyncErrorKind>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cloud_sync_resume") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cloudSyncRetry(sessionId: MeetingSessionId) : Promise<Result<CloudMeetingStatus, CloudSyncErrorKind>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cloud_sync_retry", { sessionId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cloudSyncConflictResolve(request: CloudConflictResolveRequest) : Promise<Result<CloudMeetingStatus, CloudSyncErrorKind>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cloud_sync_conflict_resolve", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cloudShareCreate(request: CloudShareCreateRequest) : Promise<Result<CloudShareResult, CloudSyncErrorKind>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cloud_share_create", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cloudBrowserShareCreate(request: CloudBrowserShareCreateRequest) : Promise<Result<CloudBrowserShareResult, CloudSyncErrorKind>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cloud_browser_share_create", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cloudShareRevoke(request: CloudShareRevokeRequest) : Promise<Result<CloudSyncOverview, CloudSyncErrorKind>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cloud_share_revoke", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cloudShareImportFile(request: CloudShareImportRequest) : Promise<Result<CloudShareImportResult, CloudSyncErrorKind>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cloud_share_import_file", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 /**
  * Checks if the Mac is a laptop by detecting battery presence
- * 
+ *
  * This uses pmset to check for battery information.
  * Returns true if a battery is detected (laptop), false otherwise (desktop)
  */
@@ -908,13 +1743,51 @@ async isLaptop() : Promise<Result<boolean, string>> {
 
 
 export const events = __makeEvents__<{
+agentBridgeUpdateEvent: AgentBridgeUpdateEvent,
+agentPanelGeometryChanged: AgentPanelGeometryChangedEvent,
+agentPanelProposalChanged: AgentPanelProposalChangedEvent,
+agentPanelStatusChanged: AgentPanelStatusChangedEvent,
+agentPanelTurnChanged: AgentPanelTurnChangedEvent,
+audioImportUpdateEvent: AudioImportUpdateEvent,
+cloudSyncChanged: CloudSyncChangedEvent,
 historyUpdatePayload: HistoryUpdatePayload,
+meetingArtifactChanged: MeetingArtifactChangedEvent,
+meetingNavigationRequested: MeetingNavigationRequestedEvent,
+meetingNoteChanged: MeetingNoteChangedEvent,
+meetingRemoteJobChanged: MeetingRemoteJobChangedEvent,
+meetingRemoved: MeetingRemovedEvent,
+meetingSessionChanged: MeetingSessionChangedEvent,
+meetingSourceHealthChanged: MeetingSourceHealthChangedEvent,
+meetingSuggestionChanged: MeetingSuggestionChangedEvent,
+meetingTranscriptChanged: MeetingTranscriptChangedEvent,
+modesChangedEvent: ModesChangedEvent,
+streamEngineEvent: StreamEngineEvent,
 streamPhaseEvent: StreamPhaseEvent,
-streamTextEvent: StreamTextEvent
+streamTextEvent: StreamTextEvent,
+upstreamImportProgressEvent: UpstreamImportProgressEvent
 }>({
+agentBridgeUpdateEvent: "agent-bridge-update-event",
+agentPanelGeometryChanged: "agent-panel://geometry-changed",
+agentPanelProposalChanged: "agent-panel://proposal-changed",
+agentPanelStatusChanged: "agent-panel://status-changed",
+agentPanelTurnChanged: "agent-panel://turn-changed",
+audioImportUpdateEvent: "audio-import-update-event",
+cloudSyncChanged: "cloud-sync:changed",
 historyUpdatePayload: "history-update-payload",
+meetingArtifactChanged: "meeting:artifact-changed",
+meetingNavigationRequested: "meeting:navigation-requested",
+meetingNoteChanged: "meeting:note-changed",
+meetingRemoteJobChanged: "meeting:remote-job-changed",
+meetingRemoved: "meeting:removed",
+meetingSessionChanged: "meeting:session-changed",
+meetingSourceHealthChanged: "meeting:source-health-changed",
+meetingSuggestionChanged: "meeting:suggestion-changed",
+meetingTranscriptChanged: "meeting:transcript-changed",
+modesChangedEvent: "modes-changed-event",
+streamEngineEvent: "stream-engine-event",
 streamPhaseEvent: "stream-phase-event",
-streamTextEvent: "stream-text-event"
+streamTextEvent: "stream-text-event",
+upstreamImportProgressEvent: "upstream-import-progress-event"
 })
 
 /** user-defined constants **/
@@ -924,79 +1797,456 @@ streamTextEvent: "stream-text-event"
 /** user-defined types **/
 
 /**
+ * Whether the platform's accessibility API is usable right now. Determined by
+ * a non-prompting check — Sona never raises a permission dialog on its own.
+ */
+export type AccessibilityAccess = "granted" | "denied" | "unsupported"
+/**
+ * Agents known to the local hook bridge. This is deliberately a closed enum:
+ * settings cannot turn a new provider into an interactive bridge by naming it.
+ */
+export type AgentBridgeAgent = "claude" | "codex" | "grok" | "omp"
+export type AgentBridgeDiagnostic = "disabled" | "runtime_unavailable" | "interactive_unsupported" | "app_lock_held" | "active"
+export type AgentBridgeObservedRequest = { id: string; session_id: string; agent: AgentBridgeAgent; kind: AgentBridgeRequestKind; tool_name: string | null; permission_mode: string | null; expires_at_ms: number; state: AgentBridgeRequestState }
+export type AgentBridgeObservedSession = { id: string; agent: AgentBridgeAgent; canonical_project_hash: string; session_generation: number; policy_generation: number; last_seen_at_ms: number }
+export type AgentBridgePendingMessage = { id: string; agent: AgentBridgeAgent; session_id: string; text: string; expires_at_ms: number; state: AgentBridgePendingState; confirmed: boolean }
+export type AgentBridgePendingState = "held" | "response_written" | "emitted" | "copy_only" | "cancelled"
+/**
+ * A human-selected outcome for a single observed permission request. Neither
+ * variant implies an automatic response: a matching rule only authorizes the
+ * separate explicit action for that request.
+ */
+export type AgentBridgePermissionDecision = "allow" | "deny"
+/**
+ * A user-created, exact permission rule. tool_input_hash is calculated from
+ * the observed request in the bridge, not accepted as arbitrary provider data
+ * from the frontend.
+ */
+export type AgentBridgePermissionRule = { id: string; agent: AgentBridgeAgent; canonical_project_hash: string; tool_name: string; permission_mode: string | null; tool_input_hash: string; decision: AgentBridgePermissionDecision; user_created?: boolean }
+/**
+ * A privacy-preserving exact project scope. The shared hook wire derives this
+ * hash from a canonical path; raw project paths never enter persisted settings.
+ */
+export type AgentBridgeProjectScope = { canonical_project_hash: string }
+export type AgentBridgeRequestKind = "session_start" | "user_prompt_submit" | "permission_request" | "pre_tool_use" | "post_tool_use" | "stop" | "notification"
+export type AgentBridgeRequestState = "observed" | "responded" | "dismissed" | "expired"
+/**
+ * Persisted bridge policy only. User text and observed provider payloads stay
+ * in the in-memory bridge manager and are never serialized here.
+ */
+export type AgentBridgeSettings = { master_enabled: boolean; claude_enabled: boolean; codex_enabled: boolean; grok_enabled: boolean; omp_enabled: boolean; policy_generation?: number; allowed_projects: AgentBridgeProjectScope[]; permission_rules: AgentBridgePermissionRule[] }
+export type AgentBridgeStatus = { running: boolean; diagnostic: AgentBridgeDiagnostic; policy_generation: number; observed_sessions: number; pending_messages: number }
+export type AgentBridgeUpdateEvent = { status: AgentBridgeStatus }
+export type AgentPanelApplyChangeRequestV1 = { proposal_id: string; action_index: number; expected_revision: number; confirmed: boolean }
+export type AgentPanelAttachmentV1 = "right" | "left"
+export type AgentPanelCancelTurnRequestV1 = { turn_id: string }
+export type AgentPanelCommandErrorV1 = "unauthorized_window" | "disabled" | "unpaired" | "offline" | "invalid_configuration" | "secret_unavailable" | "untrusted_response" | "remote_rejected" | "ownership_rejected" | "main_unavailable" | "invalid_request" | "turn_active" | "unknown_turn" | "unknown_proposal" | "confirmation_required" | "stale_proposal" | "invalid_proposal" | "invalid_setting" | "not_undoable" | "native_window_failure"
+export type AgentPanelGeometryChangedEvent = { invalidation_id: number; status: AgentPanelGeometryStatusV1 }
+export type AgentPanelGeometryStatusV1 = "attached" | "hidden"
+export type AgentPanelGeometryV1 = { x: number; y: number; outer_width: number; outer_height: number; attachment: AgentPanelAttachmentV1; compact: boolean }
+export type AgentPanelProposalChangedEvent = { invalidation_id: number; proposal_id: string | null; state: AgentPanelProposalStateV1 | null }
+export type AgentPanelProposalPreviewV1 = { proposal_id: string; summary: string; rationale: string; actions: SonaSettingChangeV1[]; follow_up_question: string | null; source_settings_revision: number; confirmation: SonaConfirmationClassV1; state: AgentPanelProposalStateV1; receipt_id: string | null; applied_revision: number | null }
+export type AgentPanelProposalStateV1 = "pending" | "applied" | "undone" | "rejected"
+export type AgentPanelPublicIdentityV1 = { key_id: string; public_key: string }
+export type AgentPanelRelayStatusV1 = "disabled" | "unpaired" | "ready" | "offline" | "invalid_configuration" | "secret_unavailable" | "untrusted_response" | "remote_rejected" | "ownership_rejected"
+export type AgentPanelSendTurnRequestV1 = { turn_id: string; message: string; locale: string }
+export type AgentPanelStatusChangedEvent = { invalidation_id: number; status: AgentPanelRelayStatusV1 }
+export type AgentPanelStatusV1 = { invalidation_id: number; relay_status: AgentPanelRelayStatusV1; panel_open: boolean; conversation: SonaAgentChatTurnV1[]; turn: AgentPanelTurnStatusV1 | null; proposal: AgentPanelProposalPreviewV1 | null; geometry: AgentPanelGeometryV1 | null }
+export type AgentPanelTurnChangedEvent = { invalidation_id: number; turn_id: string | null; state: AgentPanelTurnStateV1 | null }
+export type AgentPanelTurnStateV1 = "submitting" | "queued" | "leased" | "running" | "waiting_user" | "waiting_approval" | "canceling" | "succeeded" | "failed" | "canceled" | "unverified_external"
+export type AgentPanelTurnStatusV1 = { turn_id: string; state: AgentPanelTurnStateV1; event_cursor: number }
+export type AgentPanelUndoChangeRequestV1 = { receipt_id: string; expected_revision: number }
+export type AllowedMeetingAction = "refresh_preflight" | "cancel_preflight" | "start" | "pause" | "resume" | "stop" | "discard" | "finalize_partial" | "edit" | "regenerate" | "ask_question" | "export" | "delete" | "cancel_remote"
+/**
  * The container-level `serde(default)` (backed by the `Default` impl below)
  * guarantees every field — including ones added in the future — falls back to
  * its `get_default_settings()` value when missing from a stored settings
  * object, so a partial store can never fail the whole load (#1619).
  * Field-level defaults below take precedence where present.
  */
-export type AppSettings = { 
+export type AppSettings = {
 /**
  * Internal settings schema marker for one-time migrations. Fresh installs
  * start at the current version; existing stores missing this key are
  * treated as version 0 and migrated forward.
  */
-settings_schema_version?: number; 
+settings_schema_version?: number;
 /**
- * Defaults to empty on partial stores; the load path merges in the
- * default bindings for any missing keys before the settings are used.
+ * Monotonically advances for every typed settings write. Agent proposals
+ * use it as the compare-and-swap generation for preview, apply, and undo.
  */
-bindings?: Partial<{ [key in string]: ShortcutBinding }>; push_to_talk?: boolean; audio_feedback?: boolean; audio_feedback_volume?: number; sound_theme?: SoundTheme; start_hidden?: boolean; autostart_enabled?: boolean; update_checks_enabled?: boolean; show_whats_new_on_update?: boolean; 
+settings_revision?: number;
+/**
+ * The only persisted owner of shortcut chords. Mode binding IDs are
+ * derived, and missing records are added without replacing this map.
+ */
+bindings?: Partial<{ [key in string]: ShortcutBinding }>;
+/**
+ * Mode definitions persist per-run ASR, language, LLM, prompt, and
+ * delivery behavior; they never persist chord copies.
+ */
+modes?: ModeDefinition[]; active_mode_id?: string;
+/**
+ * Exact frontmost-application identities that select a mode at run start.
+ * Rules never contain URLs or site data.
+ */
+mode_activation_rules?: ModeActivationRule[];
+/**
+ * User-created browser host rules. Hosts are normalized and only used after
+ * explicit browser-URL capture consent.
+ */
+mode_website_activation_rules?: ModeWebsiteActivationRule[]; modes_revision?: number;
+/**
+ * Global privacy ceiling for all target-application context. A mode can
+ * request less, never more. Defaults to None on every fresh install and
+ * upgrade so seeded per-mode Target policies stay dormant until opted in.
+ */
+context_policy_ceiling?: ContextPolicy; push_to_talk?: boolean; audio_feedback?: boolean; audio_feedback_volume?: number; sound_theme?: SoundTheme; start_hidden?: boolean; autostart_enabled?: boolean; show_whats_new_on_update?: boolean;
 /**
  * The app version whose What's New the user has already seen. Fresh installs
  * default to the current version (nothing is "new" to them). Existing users
  * upgrading from before this key existed are blanked by the migration so they
  * see the current release's notes — see `apply_settings_migrations`.
  */
-whats_new_last_seen_version?: string; selected_model?: string; onboarding_completed?: boolean; always_on_microphone?: boolean; selected_microphone?: string | null; 
+whats_new_last_seen_version?: string; selected_model?: string; onboarding_completed?: boolean; always_on_microphone?: boolean; selected_microphone?: string | null;
 /**
  * Which input channel to use on the selected microphone device.
  * None means "average all channels" (original behavior).
  */
-selected_channel?: number | null; clamshell_microphone?: string | null; selected_output_device?: string | null; translate_to_english?: boolean; selected_language?: string; overlay_position?: OverlayPosition; debug_mode?: boolean; log_level?: LogLevel; custom_words?: string[]; model_unload_timeout?: ModelUnloadTimeout; word_correction_threshold?: number; history_limit?: number; recording_retention_period?: RecordingRetentionPeriod; paste_method?: PasteMethod; clipboard_handling?: ClipboardHandling; auto_submit?: boolean; auto_submit_key?: AutoSubmitKey; post_process_enabled?: boolean; post_process_provider_id?: string; post_process_providers?: PostProcessProvider[]; post_process_api_keys?: SecretMap; post_process_models?: Partial<{ [key in string]: string }>; post_process_prompts?: LLMPrompt[]; post_process_selected_prompt_id?: string | null; mute_while_recording?: boolean; append_trailing_space?: boolean; app_language?: string; theme?: Theme; experimental_enabled?: boolean; lazy_stream_close?: boolean; keyboard_implementation?: KeyboardImplementation; show_tray_icon?: boolean; paste_delay_ms?: number; paste_delay_after_ms?: number; 
+selected_channel?: number | null; clamshell_microphone?: string | null; selected_output_device?: string | null; translate_to_english?: boolean; selected_language?: string;
+/**
+ * An explicit, global choice for final English spelling. This belongs to
+ * the user's writing preference rather than a mode or ASR engine.
+ */
+english_spelling?: EnglishSpelling; overlay_position?: OverlayPosition; debug_mode?: boolean; log_level?: LogLevel; custom_words?: VocabularyEntry[]; emoji_replacements?: EmojiReplacement[]; emoji_replacements_enabled?: boolean; model_unload_timeout?: ModelUnloadTimeout; word_correction_threshold?: number; history_limit?: number; recording_retention_period?: RecordingRetentionPeriod; paste_method?: PasteMethod; clipboard_handling?: ClipboardHandling; auto_submit?: boolean; auto_submit_key?: AutoSubmitKey; post_process_enabled?: boolean; post_process_provider_id?: string; post_process_providers?: PostProcessProvider[]; post_process_secret_states?: Partial<{ [key in string]: SecretState }>;
+/**
+ * Exact remote LLM destinations acknowledged by the user. This map never
+ * contains credentials, prompts, transcripts, or provider response bodies.
+ */
+post_process_provider_consents?: Partial<{ [key in string]: PostProcessProviderConsent }>;
+/**
+ * Cloud ASR provider consent and native-secret state. This never contains
+ * a credential or provider response body.
+ */
+cloud_stt_providers?: CloudSttProviderSettings[];
+/**
+ * Cloud-sync intent and consent only. Native SecretManager owns every
+ * cryptographic root; this value has no vault, device, or cursor fields.
+ */
+cloud_sync?: CloudSyncSettings; post_process_models?: Partial<{ [key in string]: string }>; post_process_prompts?: LLMPrompt[]; post_process_selected_prompt_id?: string | null; mute_while_recording?: boolean; append_trailing_space?: boolean; app_language?: string; theme?: Theme; experimental_enabled?: boolean; lazy_stream_close?: boolean; keyboard_implementation?: KeyboardImplementation; show_tray_icon?: boolean; paste_delay_ms?: number; paste_delay_after_ms?: number;
 /**
  * Debug-gated ("beta") receipt-sequenced paste: restore the clipboard only
  * after the target app actually reads the transcript, instead of after a
  * fixed delay. See `paste_tx`. macOS and Windows only.
  */
-reliable_paste?: boolean; typing_tool?: TypingTool; external_script_path?: string | null; filler_word_removal_enabled?: boolean; custom_filler_words?: string[] | null; transcribe_accelerator?: TranscribeAcceleratorSetting; ort_accelerator?: OrtAcceleratorSetting; 
+reliable_paste?: boolean; typing_tool?: TypingTool; external_script_path?: string | null; filler_word_removal_enabled?: boolean; custom_filler_words?: string[] | null; transcribe_accelerator?: TranscribeAcceleratorSetting; ort_accelerator?: OrtAcceleratorSetting;
 /**
  * Stable transcribe.cpp device selector. This is derived from the backend's
  * `device_id` when available (or its name for backends such as Metal),
  * never from the process-local device registry index.
  */
-transcribe_gpu_device?: string | null; extra_recording_buffer_ms?: number; vad_enabled?: boolean; 
+transcribe_gpu_device?: string | null; extra_recording_buffer_ms?: number; vad_enabled?: boolean;
 /**
  * Which recording overlay to show: None / Minimal / Live. Streaming mode is
  * not gated on this — that follows model capability. Migrated from the old
  * `overlay_position` (position `none` → style `None`).
  */
-overlay_style?: OverlayStyle }
+overlay_style?: OverlayStyle;
+/**
+ * Opt-in capture of the frontmost browser's page URL as mode context.
+ * Off by default: a URL is the most identifying thing on screen, so it is
+ * never read until the user asks for it. See crate::context.
+ */
+context_url_capture_enabled?: boolean;
+/**
+ * Default-off local coding-agent bridge policy. It intentionally contains
+ * no user text or provider payloads; those are in-memory only.
+ */
+agent_bridge?: AgentBridgeSettings;
+/**
+ * Attached-panel relay configuration. This contains routing and public-key
+ * material only; the panel signing seed remains in SecretManager.
+ */
+agent_panel_enabled?: boolean; agent_panel_relay_url?: string | null; agent_panel_relay_key_id?: string | null; agent_panel_relay_public_key?: string | null; agent_panel_paired?: boolean; agent_panel_last_successful_connection_at?: number | null; agent_panel_safe_appearance_auto_apply?: boolean }
+export type ArtifactCitation = { segment_id: TranscriptSegmentId; start_offset_ns: number; end_offset_ns: number }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
+export type AudioFormat = { sample_rate_hz: number; channels: number }
+export type AudioImportFailureCode = "invalid_file" | "unsupported_format" | "no_audio" | "decode" | "duration_limit" | "transcription" | "history"
+/**
+ * The complete public state for one GUI import. Source paths remain private;
+ * only the original file name crosses the IPC boundary.
+ */
+export type AudioImportJob = { id: number; file_name: string; status: AudioImportStatus; decoded_samples: number; cancel_requested: boolean; result: AudioImportResult | null }
+export type AudioImportResult = { kind: "done"; history_id: number } | { kind: "cancelled" } | { kind: "failed"; code: AudioImportFailureCode; message: string }
+export type AudioImportStatus = "queued" | "decoding" | "transcribing" | "done" | "cancelled" | "failed"
+export type AudioImportUpdateEvent = { job: AudioImportJob }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }
 export type BindingResponse = { success: boolean; binding: ShortcutBinding | null; error: string | null }
+export type CaptureCompleteness = "not_started" | "complete" | "partial"
+/**
+ * Whether the original microphone capture was complete. This belongs to the
+ * capture run only; retries and imported rows have no capture status.
+ */
+export type CaptureStatus = "complete" | "truncated" | "no_speech_detected"
+export type CitationKind = "transcript" | "manual_note" | "title"
+export type CitedArtifactText = { text: string; citations: ArtifactCitation[] }
 export type ClipboardHandling = "dont_modify" | "copy_to_clipboard"
+export type CloudBrowserShareCreateRequest = { session_id: MeetingSessionId; expires_at_utc_ms: number }
+export type CloudBrowserShareResult = { share_id: string; expires_at_utc_ms: number; share_url: string; trust_disclosure: string }
+export type CloudConflictChoice = "keep_local" | "use_remote"
+export type CloudConflictResolveRequest = { session_id: MeetingSessionId; choice: CloudConflictChoice }
+export type CloudMeetingStatus = { session_id: MeetingSessionId; state: CloudObjectState; remote_revision_id: string | null; retry_at_utc_ms: number | null; share_count: number }
+export type CloudObjectState = "local" | "queued" | "uploading" | "committed" | "conflict" | "pending_deletion" | "deleted" | "paused" | "auth_required" | "quota" | "integrity_failure"
+export type CloudPairingAcceptRequest = { endpoint: string; offer: CloudPairingOffer }
+export type CloudPairingApproveRequest = { offer: CloudPairingOffer }
+export type CloudPairingOffer = { protocol_version: number; vault_id: string; device_id: string; signing_public_key: string; pairing_public_key: string; candidate_proof: string; pairing_nonce: string; expires_at_utc_ms: number; fingerprint: string }
+export type CloudPairingOfferRequest = { endpoint: string; vault_id: string }
+/**
+ * Immutable cloud-only data derived before capture starts. Credentials never
+ * belong here: the worker receives a one-use native secret separately.
+ * Durable cloud outcome attached to the run receipt, never a provider body.
+ */
+export type CloudReceiptStatus = "not_requested" | "final" | "fallback" | "held_cloud_unavailable"
+export type CloudShareCreateRequest = { session_id: MeetingSessionId; expires_at_utc_ms: number; destination_path: string }
+export type CloudShareImportRequest = { path: string }
+export type CloudShareImportResult = { session_id: MeetingSessionId }
+export type CloudShareResult = { share_id: string; expires_at_utc_ms: number; file_path: string }
+export type CloudShareRevokeRequest = { share_id: string }
+/**
+ * The two direct, user-owned speech providers Sona can use. This remains
+ * separate from [`RequestedEngine`] so settings cannot accidentally create a
+ * remote route by naming an arbitrary provider.
+ */
+export type CloudSttProvider = "deepgram_nova_3" | "eleven_labs_scribe_v2"
+/**
+ * One provider card's persisted, content-free cloud permissions. Credentials
+ * stay in the native SecretStore; this only records whether the user accepted
+ * the exact data-transfer contract and the last secret-store state.
+ */
+export type CloudSttProviderSettings = { provider: CloudSttProvider; consent_version?: number; audio_transfer_consent?: boolean; privacy_consent?: boolean; local_fallback_consent?: boolean; secret_state?: SecretState }
+export type CloudSttProviderSettingsError = "unknown_provider"
+export type CloudSyncBootstrapRequest = { endpoint: string; bootstrap_secret: string }
+export type CloudSyncBootstrapResult = { overview: CloudSyncOverview; recovery_code: string }
+export type CloudSyncChangedEvent = CloudSyncChangedPayload
+export type CloudSyncChangedPayload = { event_schema_version: number; session_id: MeetingSessionId | null; state: CloudObjectState | null }
+export type CloudSyncErrorKind = "portable_unavailable" | "secret_unavailable" | "setup_required" | "auth_required" | "quota" | "integrity_failure" | "conflict" | "unsupported_protocol" | "transient"
+export type CloudSyncOverview = { enabled: boolean; portable_mode: boolean; paused: boolean; queued_objects: number; pending_deletions: number; terminal_error: CloudSyncErrorKind | null }
+export type CloudSyncRecoveryRequest = { endpoint: string; recovery_code: string }
+/**
+ * Persisted cloud-sync intent only. Cryptographic material, vault identifiers,
+ * device identifiers, and sync cursors remain outside the settings store.
+ */
+export type CloudSyncSettings = { enabled: boolean; paused: boolean; consent_version: number | null; endpoint: string | null }
+/**
+ * Context sources reachable on this build, for settings and diagnostics.
+ */
+export type ContextDiagnostics = { accessibility: AccessibilityAccess;
+/**
+ * Reading the frontmost application's name and identifier.
+ */
+target_identity: ContextSourceStatus;
+/**
+ * Reading the focused control's contents.
+ */
+focused_field: ContextSourceStatus;
+/**
+ * Reading the current selection.
+ */
+selected_text: ContextSourceStatus;
+/**
+ * Reading the frontmost browser's page URL.
+ */
+browser_url: ContextSourceStatus;
+/**
+ * Reading recently changed clipboard text.
+ */
+clipboard: ContextSourceStatus; url_capture_enabled: boolean }
+/**
+ * How much target-app information a mode may use for one rendering run.
+ */
+export type ContextPolicy = "none" | "target" | "target_and_selection" | "full"
+/**
+ * Content-free record of one capture: which sources participated and why the
+ * others did not. Carries no target values and no user text, so it is safe to
+ * persist next to a history entry and to log.
+ */
+export type ContextReceipt = {
+/**
+ * The policy requested by the selected mode.
+ */
+requested_policy: ContextPolicy;
+/**
+ * The effective requested-policy/global-ceiling minimum, frozen at start.
+ */
+policy: ContextPolicy; accessibility: AccessibilityAccess; sources: ContextSources; captured_at_ms: number }
+/**
+ * Why a context source did or did not contribute to a run. Distinguishing
+ * these is the point: "not supported here", "you have not granted
+ * Accessibility", "you turned this off" and "there was nothing selected" are
+ * four different things a user can act on, and an empty string is none of them.
+ */
+export type ContextSourceStatus =
+/**
+ * The active mode's policy does not ask for this source.
+ */
+"not_requested" |
+/**
+ * Read, and it had a value.
+ */
+"captured" |
+/**
+ * Read successfully; the source currently holds nothing.
+ */
+"empty" |
+/**
+ * This platform offers no way to read the source.
+ */
+"unsupported" |
+/**
+ * The operating system refused: Accessibility access is not granted.
+ */
+"permission_denied" |
+/**
+ * A user setting keeps this source off.
+ */
+"disabled" |
+/**
+ * The mode requested this source, but the frozen global privacy ceiling
+ * disallowed it. No value was read or retained.
+ */
+"disabled_by_ceiling" |
+/**
+ * Deliberately not read: the focused control is a secure text field.
+ */
+"secure_field" |
+/**
+ * Deliberately not read: the clipboard's last change is not provably
+ * inside the recency window.
+ */
+"stale" |
+/**
+ * The platform query failed or did not answer in time.
+ */
+"failed"
+/**
+ * Per-source outcome of one context capture.
+ */
+export type ContextSources = { target: ContextSourceStatus; focused_field: ContextSourceStatus; selected_text: ContextSourceStatus; browser_url: ContextSourceStatus; clipboard: ContextSourceStatus }
 export type CustomSounds = { start: boolean; stop: boolean }
-export type EngineType = 
+/**
+ * The only calendar windows exposed by dashboard trend commands.
+ */
+export type DashboardTrendRange = "days_7" | "days_30" | "days_180"
+/**
+ * Typed input shared by dashboard trend commands.
+ */
+export type DashboardTrendRequest = { range: DashboardTrendRange }
+export type DegradedStartPolicy = "abort_if_required_source_fails" | "continue_and_mark_partial"
+export type DeliveryMethod = "none" | "accessibility_insertion" | "clipboard_paste" | "direct_typing" | "external_script"
+export type DeliveryOutcome =
+/**
+ * The operating system confirmed the Accessibility set operation.
+ */
+"delivered" |
+/**
+ * The selected mechanism did not issue any insertion/paste event.
+ */
+"definitely_not_dispatched" |
+/**
+ * Input was sent or may have reached the target, but the target cannot
+ * confirm it. Never retry this outcome.
+ */
+"dispatched_but_unconfirmed"
+export type DeliveryReceipt = { method: DeliveryMethod; outcome: DeliveryOutcome; dispatched_at_ms: number }
+export type DiarizationStatus = "not_requested" | "model_unavailable" | "downloading" | "running" | "succeeded" | "failed"
+export type EffectiveTranscriptSegment = { base: TranscriptSegment; replacement_text: string | null; removed: boolean; edit_revision: number | null; assigned_speaker_id: SpeakerId; speaker_assignment: SpeakerAssignmentKind }
+/**
+ * An opt-in exact-token replacement applied after vocabulary correction.
+ */
+export type EmojiReplacement = { spoken: string; written: string }
+export type EngineType =
 /**
  * Any GGML/GGUF model loaded through transcribe-cpp (Whisper, Parakeet,
  * Voxtral, Qwen3-ASR, Nemotron, …). The architecture is auto-detected from
  * the file, so this one variant covers the whole transcribe-cpp family.
  */
 "TranscribeCpp" | "Parakeet" | "Moonshine" | "MoonshineStreaming" | "SenseVoice" | "GigaAM" | "Canary" | "Cohere"
+/**
+ * Whether final English output preserves the model's spelling or applies the
+ * user's requested British spelling table.
+ */
+export type EnglishSpelling = "as_spoken" | "british"
+export type GeneratedMeetingArtifacts = { summary: CitedArtifactText; outline: MeetingOutlineTopic[]; decisions: CitedArtifactText[]; action_items: MeetingActionItem[]; key_questions: CitedArtifactText[]; risks: CitedArtifactText[]; follow_up_draft: CitedArtifactText }
 export type GpuDeviceOption = { id: string; name: string; total_vram_mb: number }
-export type HistoryEntry = { id: number; file_name: string; timestamp: number; saved: boolean; title: string; transcription_text: string; post_processed_text: string | null; post_process_prompt: string | null; post_process_requested: boolean }
+/**
+ * One bounded fragment of a history recording. The command identifies media
+ * through a history row and never exposes a filesystem path to the webview.
+ */
+export type HistoryAudioChunk = { bytes: number[]; eof: boolean }
+/**
+ * One immutable delivery observation associated with a persisted run. A
+ * second observation is another row; no outcome is ever overwritten.
+ */
+export type HistoryDeliveryAttempt = { id: number; history_id: number; run_receipt_id: number; delivery: DeliveryReceipt }
+export type HistoryEntry = { id: number; file_name: string; timestamp: number; saved: boolean; title: string; transcription_text: string; post_processed_text: string | null; post_process_requested: boolean }
+export type HistoryItemKind = "meeting"
+/**
+ * One immutable run receipt linked to a recording. Text remains only in the
+ * history entry and FTS table; this table holds content-free provenance.
+ */
+export type HistoryRunReceipt = { id: number; history_id: number; run_id: number; retry_of_run_id: number | null; started_at_ms: number; completed_at_ms: number; mode: ModeReceipt; context: ContextReceipt; duration_ms: number | null; word_count: number | null; source_kind: HistorySourceKind | null; has_audio: boolean; capture_status: CaptureStatus | null; delivery_attempts: HistoryDeliveryAttempt[] }
+/**
+ * Where the captured audio originated. Existing history rows intentionally
+ * retain `NULL`: inventing a source for old data would be false provenance.
+ */
+export type HistorySourceKind = "microphone" | "file"
+/**
+ * Content-free, read-only aggregates over the retained history rows.
+ */
+export type HistoryStats = { entries: number; total_duration_ms: number; total_words: number; by_source: HistoryStatsBySource[] }
+/**
+ * One source-kind subtotal in the all-time history summary. Older rows can
+ * have no source because Sona does not invent provenance during migration.
+ */
+export type HistoryStatsBySource = { source_kind: HistorySourceKind | null; entries: number; total_duration_ms: number; total_words: number }
+/**
+ * One local-calendar day in the history trend. Every requested date is
+ * present, including dates with zero recordings.
+ */
+export type HistoryTrendPoint = { local_date: string; recordings: number; duration_ms: number; words: number; by_source: HistoryTrendSourceTotals[] }
+/**
+ * A bounded local-calendar projection over retained transcription history.
+ * `active_days` and `current_streak_days` are calculated within `range`.
+ */
+export type HistoryTrendProjection = { range: DashboardTrendRange; range_start_local_date: string; range_end_local_date: string; all_time: HistoryTrendTotals; range_total: HistoryTrendTotals; active_days: number; current_streak_days: number; points: HistoryTrendPoint[] }
+/**
+ * One source subtotal in a trend point or aggregate. A `None` source kind
+ * represents retained rows without recognized source provenance.
+ */
+export type HistoryTrendSourceTotals = { source_kind: HistorySourceKind | null; recordings: number; duration_ms: number; words: number }
+/**
+ * Content-free aggregate for either the selected trend range or all retained
+ * history.
+ */
+export type HistoryTrendTotals = { recordings: number; duration_ms: number; words: number; by_source: HistoryTrendSourceTotals[] }
 export type HistoryUpdatePayload = { action: "added"; entry: HistoryEntry } | { action: "updated"; entry: HistoryEntry } | { action: "deleted"; id: number } | { action: "toggled"; id: number }
+export type IdentityAdoptionAction = "renamed" | "copied" | "skipped" | "failed"
+export type IdentityAdoptionEntry = { path: string; action: IdentityAdoptionAction; bytes: number; sha256: string | null }
+export type IdentityAdoptionError = "unavailable" | "legacy_running" | "copy_failed" | "destination_conflict" | "invalid_data" | "secret_migration_failed" | "rollback_unavailable" | "rollback_failed"
+export type IdentityAdoptionMode = "portable" | "nothing_to_adopt" | "skipped_nonvirgin" | "fresh_start" | "completed"
+export type IdentityAdoptionReceipt = { mode: IdentityAdoptionMode; source_identity: string | null; entries: IdentityAdoptionEntry[]; credentials: IdentityCredentialReceipt[]; completed_at_ms: number; app_version: string }
+export type IdentityCredentialReceipt = { account: string; status: IdentityCredentialStatus }
+export type IdentityCredentialStatus = "moved" | "not_found" | "needs_reentry"
 /**
  * Result of changing keyboard implementation
  */
-export type ImplementationChangeResult = { success: boolean; 
+export type ImplementationChangeResult = { success: boolean;
 /**
  * List of binding IDs that were reset to defaults due to incompatibility
  */
 reset_bindings: string[] }
-export type KeyboardDiagnosticReport = { secure_input_enabled: boolean; culprit_pid: number | null; culprit_name: string | null; 
+export type KeyboardDiagnosticReport = { secure_input_enabled: boolean; culprit_pid: number | null; culprit_name: string | null;
 /**
  * Counts only — key identity is deliberately never captured.
  */
@@ -1004,33 +2254,204 @@ key_down: number; key_up: number; flags_changed: number; mouse: number; duration
 export type KeyboardImplementation = "tauri" | "handy_keys"
 export type LLMPrompt = { id: string; name: string; prompt: string }
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
+export type ManualNote = { note_id: ManualNoteId; session_id: MeetingSessionId; start_offset_ns: number | null; end_offset_ns: number | null; body: string; revision: number; created_at_utc_ms: number; updated_at_utc_ms: number }
+export type ManualNoteId = string
+export type MeetingActionItem = { text: CitedArtifactText; owner_text: string | null; due_text: string | null }
+export type MeetingAnswer = { question_id: MeetingQuestionId; session_id: MeetingSessionId; scope: MeetingQuestionScope; question: string | null; state: MeetingAnswerState; answer: string | null; citations: MeetingCitation[]; input_revision: number; revision: number; created_at_utc_ms: number }
+export type MeetingAnswerState = "supported" | "insufficient_evidence" | "unavailable" | "out_of_date" | "forgotten"
+export type MeetingArtifactChangedEvent = MeetingEventPayload
+export type MeetingArtifactId = string
+export type MeetingArtifactRevision = { artifact_id: MeetingArtifactId; session_id: MeetingSessionId; transcript_revision_id: TranscriptRevisionId; input_revision: number; template_id: string; template_version: number; generation_key: string; state: MeetingArtifactState; generated_at_utc_ms: number; content: GeneratedMeetingArtifacts | null }
+export type MeetingArtifactState = "current" | "out_of_date" | "failed"
+export type MeetingCitation = { kind: CitationKind; session_id: MeetingSessionId; entity_id: string; start_offset_ns: number | null; end_offset_ns?: number | null }
+export type MeetingCommandError = "consent_required" | "consent_stale" | "invalid_transition" | "stale_revision" | "capture_lease_busy" | "no_source_started" | "source_unavailable" | "storage_unavailable" | "recovery_required" | "deletion_in_progress" | "not_found" | "invalid_request" | "export_cancelled" | "export_failed" | "local_model_unavailable" | "remote_unavailable"
+export type MeetingCommandKind = "preflight_create" | "preflight_refresh" | "preflight_cancel" | "start" | "pause" | "resume" | "stop" | "discard" | "recovery_finalize" | "title_set" | "speaker_rename" | "speaker_merge" | "segment_edit" | "note_create" | "note_update" | "note_delete" | "artifacts_regenerate" | "question_ask" | "question_forget" | "export" | "delete" | "retention_set" | "remote_cancel"
+export type MeetingConsentInput = { policy_version: number; microphone_acknowledged: boolean; system_audio_acknowledged: boolean; known_missing_sources_acknowledged: SourceKind[]; degraded_start_policy: DegradedStartPolicy; destination: ProcessingDestination; remote_acknowledgement: RemoteAcknowledgement | null }
+export type MeetingDiarizationGenerationId = string
+export type MeetingDiarizationSnapshot = { status: DiarizationStatus; model_id: string; model_version: string; generation_id: MeetingDiarizationGenerationId | null; assigned_segment_count: number }
+export type MeetingEventPayload = { event_schema_version: number; session_id: MeetingSessionId | null; revision: number }
+export type MeetingEvidenceFlags = { appOnly: boolean; axTitle: boolean; axHost: boolean; axUnavailable: boolean }
+export type MeetingExportFormat = "json" | "markdown"
+export type MeetingExportReceipt = { export_receipt_id: MeetingExportReceiptId; session_id: MeetingSessionId; format: MeetingExportFormat; snapshot_revision: number; capture_completeness: CaptureCompleteness; transcript_revision_id: TranscriptRevisionId | null; created_at_utc_ms: number }
+export type MeetingExportReceiptId = string
+export type MeetingExportRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; format: MeetingExportFormat }
+export type MeetingExportResult = { receipt: OperationReceipt; export_receipt: MeetingExportReceipt }
+export type MeetingHistorySummary = { kind: HistoryItemKind; session_id: MeetingSessionId; title: string; phase: MeetingPhase; created_at_utc_ms: number; capture_completeness: CaptureCompleteness; processing_status: ProcessingStatus }
+export type MeetingMutationRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number }
+export type MeetingMutationResult = { receipt: OperationReceipt; snapshot: MeetingSessionSnapshot }
+export type MeetingNavigationDestination = "list" | "preflight" | "session"
+export type MeetingNavigationPayload = { event_schema_version: number; destination: MeetingNavigationDestination; session_id: MeetingSessionId | null; revision: number }
+export type MeetingNavigationRequestedEvent = MeetingNavigationPayload
+export type MeetingNoteChangedEvent = MeetingEventPayload
+export type MeetingNoteCreateRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; start_offset_ns: number | null; end_offset_ns: number | null; body: string }
+export type MeetingNoteDeleteRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; note_id: ManualNoteId; expected_note_revision: number }
+export type MeetingNoteUpdateRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; note_id: ManualNoteId; expected_note_revision: number; start_offset_ns: number | null; end_offset_ns: number | null; body: string }
+export type MeetingOperationId = string
+export type MeetingOrigin = "manual" | "suggestion" | "cli"
+export type MeetingOutlineTopic = { title: CitedArtifactText; detail: CitedArtifactText | null }
+export type MeetingPhase = "preflight" | "starting" | "capturing_recording" | "capturing_pausing" | "capturing_paused" | "capturing_resuming" | "stopping" | "processing" | "review_ready" | "recovery_required" | "deleting"
+export type MeetingPreflightCreateRequest = { operation_id: MeetingOperationId; expected_revision: number; title: string; origin: MeetingOrigin; suggestion_id: MeetingSuggestionId | null; requested_sources: SourceKind[]; required_sources: SourceKind[]; accepted_known_missing_sources: SourceKind[]; degraded_start_policy: DegradedStartPolicy; destination: ProcessingDestination; remote_acknowledgement: RemoteAcknowledgement | null; microphone_device_uid: string | null; frozen_system_audio_application_bundle_ids: string[] }
+export type MeetingPreflightRefreshRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number }
+export type MeetingProvider = "zoom" | "google_meet" | "microsoft_teams" | "webex" | "slack_huddle" | "face_time" | "configured_app"
+export type MeetingQuestionId = string
+export type MeetingQuestionRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; question_id: MeetingQuestionId; question: string; scope?: MeetingQuestionScope; save_history?: boolean }
+export type MeetingQuestionResult = { receipt: OperationReceipt; snapshot: MeetingSessionSnapshot; answer: MeetingAnswer }
+export type MeetingQuestionScope = { kind: "this_meeting" } | { kind: "explicit_series"; session_ids: MeetingSessionId[] }
+export type MeetingReasonCode = "consent_missing" | "consent_stale" | "stale_revision" | "capture_lease_busy" | "source_unavailable" | "source_start_failed" | "source_gap" | "storage_unavailable" | "storage_failure" | "local_model_unavailable" | "recovery_required" | "deleted" | "invalid_transition" | "duplicate_operation"
+export type MeetingRemoteJobChangedEvent = MeetingEventPayload
+export type MeetingRemovalResult = { receipt: OperationReceipt; session_id: MeetingSessionId; removed: boolean }
+export type MeetingRemovedEvent = MeetingEventPayload
+export type MeetingRetentionMutationResult = { receipt: OperationReceipt; snapshot: MeetingRetentionSnapshot }
+export type MeetingRetentionPolicy = { kind: "forever" } | { kind: "delete_after_days"; days: number }
+export type MeetingRetentionSetRequest = { operation_id: MeetingOperationId; expected_revision: number; policy: MeetingRetentionPolicy }
+export type MeetingRetentionSnapshot = { policy: MeetingRetentionPolicy; revision: number }
+export type MeetingReviewSnapshot = { session: MeetingSessionSnapshot; tracks: MeetingTrackSnapshot[]; gaps: SourceGap[]; speakers: MeetingSpeaker[]; transcript: EffectiveTranscriptSegment[]; notes: ManualNote[]; artifacts: MeetingArtifactRevision[]; questions: MeetingAnswer[]; diarization: MeetingDiarizationSnapshot; can_export: boolean; remote_cancellation_pending: boolean }
+export type MeetingSearchHit = { session_id: MeetingSessionId; kind: CitationKind; entity_id: string; start_offset_ns: number | null; end_offset_ns: number | null; excerpt: string }
+export type MeetingSearchRequest = { query: string; session_ids: MeetingSessionId[]; limit: number | null }
+export type MeetingSearchResult = { entries: MeetingSearchHit[] }
+export type MeetingSegmentEditRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; segment_id: TranscriptSegmentId; replacement_text: string; removed: boolean }
+export type MeetingSessionChangedEvent = MeetingEventPayload
+export type MeetingSessionId = string
+export type MeetingSessionSnapshot = { session_id: MeetingSessionId; phase: MeetingPhase; revision: number; title: string; started_at_utc_ms: number | null; elapsed_offset_ns: number | null; sources: MeetingSourceSnapshot[]; open_capture_window_started_at_ns: number | null; capture_completeness: CaptureCompleteness; storage: StorageAvailability; processing_status: ProcessingStatus; retention_deadline_utc_ms: number | null; allowed_actions: AllowedMeetingAction[] }
+export type MeetingSourceHealthChangedEvent = MeetingEventPayload
+export type MeetingSourceSnapshot = { track_id: SourceTrackId | null; source_kind: SourceKind; required: boolean; availability: SourceAvailability; health: SourceHealth; format: AudioFormat | null; last_durable_offset_ns: number | null; gap_count: number }
+export type MeetingSpeaker = { speaker_id: SpeakerId; session_id: MeetingSessionId; source_kind: SourceKind; display_name: string; revision: number }
+export type MeetingSpeakerMergeRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; source_speaker_id: SpeakerId; target_speaker_id: SpeakerId }
+export type MeetingSpeakerRenameRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; speaker_id: SpeakerId; display_name: string }
+export type MeetingStartRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; consent: MeetingConsentInput }
+export type MeetingSuggestion = { offer_id: MeetingSuggestionId; provider: MeetingProvider; app_bundle_id: string; evidence_flags: MeetingEvidenceFlags; observed_at_ns: number; expires_at_ns: number }
+export type MeetingSuggestionChangedEvent = MeetingEventPayload
+export type MeetingSuggestionId = string
+export type MeetingTitleSetRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; title: string }
+export type MeetingTrackSnapshot = { track_id: SourceTrackId; source_kind: SourceKind; format: AudioFormat | null; first_offset_ns: number | null; last_offset_ns: number | null; durable_record_count: number }
+export type MeetingTranscriptChangedEvent = MeetingEventPayload
+/**
+ * One local-calendar day in the meeting trend. Every requested date is
+ * present, including dates with no retained meeting sessions.
+ */
+export type MeetingTrendPoint = { local_date: string; meetings: number; verified_captured_duration_ms: number; transcript_segments: number; generated_action_items: number }
+/**
+ * A bounded meeting projection. Storage failures have no zero-valued data
+ * projection, so callers can distinguish unavailable storage from an empty
+ * range.
+ */
+export type MeetingTrendProjection = { status: "available"; range: DashboardTrendRange; range_start_local_date: string; range_end_local_date: string; all_time: MeetingTrendTotals; range_total: MeetingTrendTotals; points: MeetingTrendPoint[] } | { status: "unavailable"; range: DashboardTrendRange }
+/**
+ * Content-free aggregate for either the selected meeting trend range or all
+ * retained meeting sessions.
+ */
+export type MeetingTrendTotals = { meetings: number; verified_captured_duration_ms: number; transcript_segments: number; generated_action_items: number }
+/**
+ * One exact frontmost-application identity mapped to one mode. Application
+ * bundle identities are the only match keys; URLs and sites never enter this
+ * setting.
+ */
+export type ModeActivationRule = { app_id: string; mode_id: string }
+export type ModeAsrSettings = { model_id: string; language: string; translate_to_english: boolean; custom_words: VocabularyEntry[]; filler_word_removal_enabled: boolean; custom_filler_words: string[] | null;
+/**
+ * Convert supported spoken punctuation terms before vocabulary correction.
+ * Existing modes deserialize with this disabled.
+ */
+literal_punctuation?: boolean; vad_enabled: boolean;
+/**
+ * A closed engine choice. Existing modes deserialize as local.
+ */
+requested_engine?: RequestedEngine;
+/**
+ * Keep complete local PCM useful when the remote session cannot provide a
+ * trustworthy final. New modes opt in to this safety path by default.
+ */
+local_fallback_enabled?: boolean;
+/**
+ * Empty means the mode's local model. This permits a deliberately smaller
+ * fallback without creating a second global model setting.
+ */
+local_fallback_model_id?: string | null;
+/**
+ * Provider vocabulary is sent only in the frozen cloud request.
+ */
+cloud_keyterms?: string[];
+/**
+ * Cloud transports always request word timestamps; turning this off is
+ * rejected before a remote run because an un-timestamped final is not
+ * trustworthy enough to deliver.
+ */
+cloud_timestamps?: boolean }
+/**
+ * Persisted mode behavior. Chords intentionally do not live here: a mode's
+ * binding IDs are derived from its ID and `AppSettings.bindings` owns the keys.
+ */
+export type ModeDefinition = { id: string; name: string; tone: Tone; context_policy: ContextPolicy; asr: ModeAsrSettings; llm: ModeLlmSettings; prompt: ModePromptSettings; delivery: ModeDeliverySettings }
+export type ModeDeliverySettings = { paste_method: PasteMethod; clipboard_handling: ClipboardHandling; auto_submit: boolean; auto_submit_key: AutoSubmitKey; append_trailing_space: boolean; paste_delay_ms: number; paste_delay_after_ms: number; reliable_paste: boolean; typing_tool: TypingTool; external_script_path: string | null }
+export type ModeLlmSettings = { enabled: boolean; provider_id: string; model_id: string }
+export type ModeMutationError = { kind: "stale_revision"; expected_revision: number; actual_revision: number } | { kind: "invalid_mode_id" } | { kind: "empty_name" } | { kind: "cannot_delete_default" } | { kind: "unknown_mode"; mode_id: string } | { kind: "duplicate_mode_id"; mode_id: string } | { kind: "invalid_reorder" } | { kind: "invalid_app_identity" } | { kind: "frontmost_application_unavailable" } | { kind: "invalid_website_host" } | { kind: "website_activation_consent_required" } | { kind: "frontmost_website_unavailable" } | { kind: "website_activation_secure_field" }
+export type ModePromptSettings = { preset: PromptPreset; source_prompt_id: string | null; custom_prompt: string | null }
+export type ModeReceipt = { run_id: number; settings_revision: number; mode_selection_source?: ModeSelectionSource; mode_id: string; tone: Tone; requested_context_policy: ContextPolicy; context_policy_ceiling: ContextPolicy; context_policy: ContextPolicy; prompt_preset: PromptPreset; post_process_requested: boolean; provider_id: string | null; model_id: string | null;
+/**
+ * The route selected at capture start. The former requested_engine field
+ * is accepted as a legacy receipt alias from the earlier plan-only schema.
+ */
+engine_requested?: RequestedEngine;
+/**
+ * None is a held remote recording: no provider final was trusted and no
+ * local fallback was available, so the app must never deliver text.
+ */
+engine_used?: RequestedEngine | null; cloud_fallback?: boolean; cloud_status?: CloudReceiptStatus; local_fallback_model_id?: string | null }
+/**
+ * Which rule selected the mode frozen into a run. The receipt deliberately
+ * records the decision without copying a frontmost application's identity.
+ */
+export type ModeSelectionSource = "active_mode" | "app_activation_rule" | "website_activation_rule" | "explicit_mode_shortcut"
+export type ModeSettingsSnapshot = { modes: ModeView[]; active_mode_id: string; revision: number; mode_activation_rules: ModeActivationRule[]; mode_website_activation_rules: ModeWebsiteActivationRule[] }
+/**
+ * Chords are an IPC-only view over `AppSettings.bindings`; they are never
+ * serialized inside a `ModeDefinition`.
+ */
+export type ModeShortcuts = { transcribe: ShortcutBinding; switch: ShortcutBinding }
+/**
+ * A frontend-facing mode joined with its current persisted chords.
+ */
+export type ModeView = { id: string; name: string; tone: Tone; context_policy: ContextPolicy; asr: ModeAsrSettings; llm: ModeLlmSettings; prompt: ModePromptSettings; delivery: ModeDeliverySettings; shortcuts: ModeShortcuts }
+/**
+ * One normalized website host mapped to one mode. This stores no URL, path,
+ * query, fragment, or page content.
+ */
+export type ModeWebsiteActivationRule = { host: string; match_kind: WebsiteHostMatch; mode_id: string }
 export type ModelInfo = { id: string; name: string; description: string; filename: string; source: ModelSource; size_mb: number; is_downloaded: boolean; is_downloading: boolean; partial_size: number; is_directory: boolean; engine_type: EngineType; accuracy_score: number; speed_score: number; supports_translation: boolean; is_recommended: boolean; supported_languages: string[]; supports_language_selection: boolean; is_custom: boolean; supports_streaming: boolean; supports_language_detection: boolean }
 export type ModelLoadStatus = { is_loaded: boolean; current_model: string | null }
 /**
- * Where a model comes from and how Handy obtains it — the routing discriminant
+ * Where a model comes from and how Sona obtains it — the routing discriminant
  * for downloading and on-disk resolution.
  */
-export type ModelSource = 
+export type ModelSource =
 /**
  * Direct HTTP download from a URL (current blob.handy.computer hosting).
  */
-{ Url: { url: string; 
+{ Url: { url: string;
 /**
  * Expected SHA-256 for integrity verification; `None` skips it.
  */
-sha256: string | null } } | 
+sha256: string | null } } |
 /**
  * A file inside a Hugging Face Hub repo, fetched via hf-hub into the shared
  * HF cache (so other tools reuse it). The file within the repo is
  * [`ModelInfo::filename`].
  */
-{ HuggingFace: { repo_id: string; revision: string } } | 
+{ HuggingFace: { repo_id: string; revision: string } } |
 /**
  * Already present on disk — a user-provided custom model, or one discovered
  * in a shared cache. Nothing to download.
  */
 "Local"
 export type ModelUnloadTimeout = "never" | "immediately" | "min_2" | "min_5" | "min_10" | "min_15" | "hour_1" | "sec_15"
+/**
+ * Full mode state after one committed mutation. Consumers can replace their
+ * cached mode snapshot without reconstructing a delta.
+ */
+export type ModesChangedEvent = ModeSettingsSnapshot
+export type OperationActor = "user" | "system"
+export type OperationReceipt = { schema_version: number; operation_id: MeetingOperationId; session_id: MeetingSessionId | null; actor: OperationActor; command: MeetingCommandKind; expected_revision: number; from_phase: MeetingPhase | null; to_phase: MeetingPhase | null; requested_at_utc_ms: number; committed_at_utc_ms: number | null; result: OperationResult; reason_codes: MeetingReasonCode[]; new_revision: number | null; effect_ids: string[] }
+export type OperationResult = "committed" | "rejected" | "failed"
 export type OrtAcceleratorSetting = "auto" | "cpu" | "cuda" | "directml" | "rocm"
 export type OverlayPosition = "top" | "bottom"
 /**
@@ -1041,37 +2462,54 @@ export type OverlayPosition = "top" | "bottom"
  */
 export type OverlayStyle = "none" | "minimal" | "live"
 export type PaginatedHistory = { entries: HistoryEntry[]; has_more: boolean }
+export type PaginatedMeetings = { entries: MeetingHistorySummary[]; has_more: boolean }
 export type PasteMethod = "ctrl_v" | "direct" | "none" | "shift_insert" | "ctrl_shift_v" | "external_script"
 export type PermissionAccess = "allowed" | "denied" | "unknown"
 export type PostProcessProvider = { id: string; label: string; base_url: string; allow_base_url_edit?: boolean; models_endpoint?: string | null; supports_structured_output?: boolean }
+/**
+ * A content-free acknowledgement for one exact remote LLM route. The base
+ * endpoint and origin both have to match before text or an LLM credential can
+ * leave the device.
+ */
+export type PostProcessProviderConsent = { consent_version: number; endpoint: string; origin: string; text_transfer_consent: boolean }
+export type PostProcessProviderConsentError = "unknown_provider" | "local_provider" | "invalid_destination"
+export type ProcessingDestination = { kind: "local" } | { kind: "remote"; destination_id: string }
+export type ProcessingFailure = "local_model_unavailable" | "remote_unavailable" | "engine_failure" | "cancelled"
+export type ProcessingStatus = { kind: "pending" } | { kind: "running" } | { kind: "succeeded" } | { kind: "failed"; reason: ProcessingFailure } | { kind: "cancelled" }
+export type PromptPreset = "minimalist_cleanup" | "application_context" | "email" | "meeting" | "notes" | "generic"
 export type RecordingRetentionPeriod = "never" | "preserve_limit" | "days_3" | "weeks_2" | "months_3"
-export type SecretMap = Partial<{ [key in string]: string }>
-export type SecureInputStatus = { 
+export type RemoteAcknowledgement = { destination_id: string; policy_version: number; acknowledged_at_utc_ms: number }
+export type RequestedEngine = "local" | "deepgram_nova_3" | "eleven_labs_scribe_v2"
+export type SecretCommandError = "not_found" | "unavailable" | "locked" | "corrupt" | "invalid" | "busy" | "backend" | "consent_required"
+export type SecretErrorKind = "unavailable" | "locked" | "corrupt" | "invalid" | "busy" | "backend"
+export type SecretKind = "llm" | "stt" | "meeting_storage"
+export type SecretState = { configured: boolean; lastVerifiedAt: number | null; lastErrorKind: SecretErrorKind | null }
+export type SecureInputStatus = {
 /**
  * Secure input is currently enabled (live check)
  */
-enabled: boolean; 
+enabled: boolean;
 /**
  * Enabled continuously long enough to be considered stuck (not just a
  * password field gaining momentary focus)
  */
-sustained: boolean; culprit_pid: number | null; culprit_name: string | null; 
+sustained: boolean; culprit_pid: number | null; culprit_name: string | null;
 /**
  * Carbon fallback registrations are currently active
  */
-fallback_active: boolean; 
+fallback_active: boolean;
 /**
  * Binding ids shadow-registered with identical semantics
  */
-covered_bindings: string[]; 
+covered_bindings: string[];
 /**
  * Side-specific binding ids widened to match either side while shadowed
  */
-degraded_bindings: string[]; 
+degraded_bindings: string[];
 /**
  * Binding ids that cannot fire at all (e.g. fn+key, registration failure)
  */
-uncovered_bindings: string[]; 
+uncovered_bindings: string[];
 /**
  * The user tried to record a shortcut while secure input was active.
  * Treated as user impact even when every binding is covered, so the
@@ -1079,17 +2517,38 @@ uncovered_bindings: string[];
  */
 recorder_blocked: boolean }
 export type ShortcutBinding = { id: string; name: string; description: string; default_binding: string; current_binding: string }
+export type SonaAgentChatRoleV1 = "user" | "assistant"
+export type SonaAgentChatTurnV1 = { role: SonaAgentChatRoleV1; message: string }
+export type SonaConfirmationClassV1 = "automatic" | "review" | "explicit"
+export type SonaSettingChangeV1 = { key: "theme"; value: Theme } | { key: "overlay_style"; value: OverlayStyle } | { key: "overlay_position"; value: OverlayPosition } | { key: "audio_feedback"; value: boolean } | { key: "audio_volume"; value: number } | { key: "mute_while_recording"; value: boolean } | { key: "audio_output_device_id"; value: string } | { key: "microphone_id"; value: string } | { key: "default_transcription_model"; value: string } | { key: "language"; value: string } | { key: "spelling_behavior"; value: EnglishSpelling } | { key: "mode_selection"; value: string } | { key: "mode_toggles"; value: Partial<{ [key in string]: boolean }> } | { key: "local_retention_period"; value: number } | { key: "start_hidden"; value: boolean } | { key: "tray_visibility"; value: boolean } | { key: "update_note_visibility"; value: boolean }
 export type SoundTheme = "marimba" | "pop" | "custom"
+export type SourceAvailability = "available" | "permission_required" | "permission_denied" | "device_unavailable" | "unsupported_platform" | "storage_unavailable" | "unknown"
+export type SourceEpoch = number
+export type SourceGap = { track_id: SourceTrackId; epoch: SourceEpoch; start_offset_ns: number | null; end_offset_ns: number | null; reason: SourceGapReason; dropped_frames: number | null }
+export type SourceGapReason = "source_unavailable" | "source_start_failed" | "permission_lost" | "paused" | "packet_dropped" | "writer_pressure" | "storage_failure" | "timestamp_missing" | "timestamp_discontinuity" | "invalid_format" | "source_stopped" | "corrupt_record" | "missing_record" | "recovery_tail" | "system_sleep"
+export type SourceHealth = "not_started" | "starting" | "healthy" | "paused" | "degraded" | "failed" | "stopped"
+export type SourceKind = "microphone" | "system_audio"
+export type SourceTrackId = string
+export type SpeakerAssignmentKind = "local_speaker" | "system_speaker" | "unknown" | "overlap"
+export type SpeakerId = string
+export type StorageAvailability = "available" | "unavailable"
+/**
+ * The source currently shown by the live overlay. Cloud failures switch to
+ * local_fallback before any batch decoding begins; provider partials never
+ * become delivery text.
+ */
+export type StreamEngine = "local" | "cloud" | "local_fallback"
+export type StreamEngineEvent = { engine: StreamEngine }
 /**
  * Phase of the streaming overlay card, emitted to drive its UI state.
  */
-export type StreamPhase = 
+export type StreamPhase =
 /**
  * Receiving audio / live text (or waiting for the stream to begin). Rust
  * does not emit this today; the frontend starts in this phase and Rust only
  * emits transitions away from it.
  */
-"listening" | 
+"listening" |
 /**
  * Finalizing or post-processing — show a spinner.
  */
@@ -1097,7 +2556,7 @@ export type StreamPhase =
 /**
  * Emitted to switch the streaming overlay to a working spinner.
  */
-export type StreamPhaseEvent = { phase: StreamPhase; 
+export type StreamPhaseEvent = { phase: StreamPhase;
 /**
  * Present only when `phase` is `Working`.
  */
@@ -1113,12 +2572,40 @@ export type StreamTextEvent = { committed: string; tentative: string }
  */
 export type StreamWorkKind = "transcribing" | "polishing"
 /**
+ * Typed result for the explicit, user-triggered STT credential handshake.
+ * This deliberately keeps provider failures separate from native-store errors.
+ */
+export type SttSecretVerificationError = "not_configured" | "consent_required" | "unavailable" | "locked" | "corrupt" | "invalid" | "busy" | "backend"
+/**
  * UI appearance mode. `System` follows the OS `prefers-color-scheme`; `Light`
- * and `Dark` force one of the two palettes Handy already ships.
+ * and `Dark` force one of the two palettes Sona already ships.
  */
 export type Theme = "system" | "light" | "dark"
+export type Tone = "casual" | "semi_casual" | "balanced" | "semi_formal" | "formal"
 export type TranscribeAcceleratorSetting = "auto" | "cpu" | "gpu"
+export type TranscriptRevisionId = string
+export type TranscriptSegment = { segment_id: TranscriptSegmentId; transcript_revision_id: TranscriptRevisionId; track_id: SourceTrackId; ordinal: number; start_offset_ns: number; end_offset_ns: number; speaker_id: SpeakerId; text: string; confidence_milli: number | null }
+export type TranscriptSegmentId = string
 export type TypingTool = "auto" | "wtype" | "kwtype" | "dotool" | "ydotool" | "xdotool"
+export type UpstreamAppState = "closed" | "running" | "unverifiable"
+export type UpstreamImportError = "source_unavailable" | "upstream_running" | "app_state_unverifiable" | "invalid_selection" | "settings_unreadable" | "settings_backup_write_failed" | "settings_backup_unreadable" | "settings_not_imported" | "secret_store_unavailable" | "secret_conflict" | "history_unreadable" | "recording_copy_failed" | "receipt_write_failed" | "internal"
+export type UpstreamImportPhase = "settings" | "history" | "recordings"
+export type UpstreamImportProgressEvent = { phase: UpstreamImportPhase; completed: number; total: number }
+export type UpstreamImportResult = { settings_imported: boolean; history_imported: number; history_existing: number; recordings_copied: number; recordings_existing: number }
+export type UpstreamImportSelection = { settings: boolean; history: boolean; recordings: boolean }
+export type UpstreamImportStatus = { available: boolean; app_state: UpstreamAppState; settings_available: boolean; history_entries: number; recording_files: number; recording_bytes: number; settings_imported: boolean; settings_backup_available: boolean; settings_backup_saved_at_ms: number | null; history_imported: number; recordings_imported: number }
+export type VocabularyCsvPreview = { total_rows: number; valid_rows: number; invalid_rows: number; duplicate_rows: number; conflict_rows: number; can_apply: boolean; entries: VocabularyEntry[] }
+/**
+ * A deterministic correction from what the recognizer heard to what should
+ * be written. Legacy string entries deserialize losslessly as equal pairs.
+ */
+export type VocabularyEntry = { spoken: string; written: string }
+export type VocabularyScope = { kind: "global" } | { kind: "current_mode" } | { kind: "mode"; mode_id: string }
+/**
+ * The scope of one website activation rule. Exact rules match only the
+ * normalized host; suffix rules also match its subdomains.
+ */
+export type WebsiteHostMatch = "exact" | "suffix"
 export type WindowsMicrophonePermissionStatus = { supported: boolean; overall_access: PermissionAccess; device_access: PermissionAccess; app_access: PermissionAccess; desktop_app_access: PermissionAccess }
 
 /** tauri-specta globals **/

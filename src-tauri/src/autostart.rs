@@ -41,6 +41,18 @@ pub fn apply_autostart(app: &AppHandle, enabled: bool) {
     }
 }
 
+/// Remove artifacts the legacy fork could leave behind. The legacy macOS
+/// SMAppService item belongs to another bundle and cannot be unregistered by
+/// Sona; the completion prompt tells the user to remove that app instead.
+pub fn remove_legacy_autostart_artifacts(app: &AppHandle) {
+    #[cfg(target_os = "macos")]
+    macos::remove_legacy_fork_launch_agents(app);
+    #[cfg(target_os = "windows")]
+    windows::remove_legacy_run_values();
+    #[cfg(target_os = "linux")]
+    linux::remove_legacy_desktop_entries();
+}
+
 #[cfg(target_os = "macos")]
 mod macos {
     use std::path::{Path, PathBuf};
@@ -61,13 +73,16 @@ mod macos {
     /// the service is already in the requested state (unregistering a
     /// never-registered service returns an error on every launch otherwise).
     pub fn set_login_item(enabled: bool) {
+        // SAFETY: apply_autostart calls this only after the SMAppService runtime-availability gate succeeds.
         let service = unsafe { SMAppService::mainAppService() };
+        // SAFETY: service is the valid main-app SMAppService returned by the documented class method above.
         let status = unsafe { service.status() };
 
         if enabled {
             if status == SMAppServiceStatus::Enabled {
                 return;
             }
+            // SAFETY: the available main-app service supports this registration selector.
             match unsafe { service.registerAndReturnError() } {
                 Ok(()) => log::info!("Registered login item via SMAppService"),
                 // Fails in dev (no signed app bundle) and when the user has
@@ -80,6 +95,7 @@ mod macos {
             {
                 return;
             }
+            // SAFETY: the available main-app service supports this unregistration selector.
             match unsafe { service.unregisterAndReturnError() } {
                 Ok(()) => log::info!("Unregistered login item via SMAppService"),
                 Err(e) => log::warn!("Failed to unregister login item: {}", e),
@@ -114,6 +130,15 @@ mod macos {
         }
     }
 
+    pub fn remove_legacy_fork_launch_agents(app: &AppHandle) {
+        let Ok(home) = app.path().home_dir() else {
+            return;
+        };
+        for name in ["Handy", "Handy Personal"] {
+            remove_launch_agent_file(&plugin_launch_agent_path(&home, name));
+        }
+    }
+
     #[cfg(test)]
     mod tests {
         use super::*;
@@ -129,17 +154,17 @@ mod macos {
 
         #[test]
         fn launch_agent_path_matches_auto_launch_crate() {
-            let path = plugin_launch_agent_path(Path::new("/Users/someone"), "Handy");
+            let path = plugin_launch_agent_path(Path::new("/Users/someone"), "Sona");
             assert_eq!(
                 path,
-                Path::new("/Users/someone/Library/LaunchAgents/Handy.plist")
+                Path::new("/Users/someone/Library/LaunchAgents/Sona.plist")
             );
         }
 
         #[test]
         fn removes_existing_launch_agent() {
             let dir = tempfile::tempdir().unwrap();
-            let plist = dir.path().join("Handy.plist");
+            let plist = dir.path().join("Sona.plist");
             std::fs::write(&plist, "<plist/>").unwrap();
 
             remove_launch_agent_file(&plist);
@@ -149,7 +174,45 @@ mod macos {
         #[test]
         fn missing_launch_agent_is_a_no_op() {
             let dir = tempfile::tempdir().unwrap();
-            remove_launch_agent_file(&dir.path().join("Handy.plist"));
+            remove_launch_agent_file(&dir.path().join("Sona.plist"));
+        }
+    }
+}
+
+#[cfg(target_os = "windows")]
+mod windows {
+    use winreg::enums::{HKEY_CURRENT_USER, KEY_WRITE};
+    use winreg::RegKey;
+
+    pub fn remove_legacy_run_values() {
+        let current_user = RegKey::predef(HKEY_CURRENT_USER);
+        let Ok(run) = current_user.open_subkey_with_flags(
+            "Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+            KEY_WRITE,
+        ) else {
+            return;
+        };
+        for value in ["Handy", "Handy Personal"] {
+            let _ = run.delete_value(value);
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+mod linux {
+    use std::env;
+    use std::fs;
+    use std::path::PathBuf;
+
+    pub fn remove_legacy_desktop_entries() {
+        let Some(config) = env::var_os("XDG_CONFIG_HOME")
+            .map(PathBuf::from)
+            .or_else(|| env::var_os("HOME").map(|home| PathBuf::from(home).join(".config")))
+        else {
+            return;
+        };
+        for file in ["Handy Personal.desktop", "Handy.desktop", "handy.desktop"] {
+            let _ = fs::remove_file(config.join("autostart").join(file));
         }
     }
 }

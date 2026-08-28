@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "WebWorker"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["@cloudflare/workers-types", "@cloudflare/vitest-pool-workers/types", "vitest/globals"]
+  },
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.worker.spec.ts",
+    "test/env.d.ts",
+    "test/helpers.ts",
+    "test/setup.worker.ts",
+    "vitest.config.ts"
+  ]
+}

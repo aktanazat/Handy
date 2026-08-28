@@ -8,8 +8,6 @@ import { useSettings } from "../../hooks/useSettings";
 import { useOsType } from "../../hooks/useOsType";
 import { commands } from "@/bindings";
 import { toast } from "sonner";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { SECURE_INPUT_HELP_URL } from "../SecureInputWarning";
 
 interface HandyKeysShortcutInputProps {
   descriptionMode?: "inline" | "tooltip";
@@ -186,7 +184,6 @@ export const HandyKeysShortcutInput: React.FC<HandyKeysShortcutInputProps> = ({
     shortcutId,
     originalBinding,
     updateBinding,
-    cancelRecording,
     t,
   ]);
 
@@ -222,12 +219,7 @@ export const HandyKeysShortcutInput: React.FC<HandyKeysShortcutInputProps> = ({
       const result = await commands.startHandyKeysRecording(shortcutId);
       if (result.status === "error") {
         if (String(result.error).includes("secure-input-active")) {
-          toast.error(t("secureInput.recorderBlocked"), {
-            action: {
-              label: t("secureInput.learnMore"),
-              onClick: () => openUrl(SECURE_INPUT_HELP_URL),
-            },
-          });
+          toast.error(t("secureInput.recorderBlocked"));
         } else {
           toast.error(
             t("settings.general.shortcut.errors.set", {
@@ -332,12 +324,13 @@ export const HandyKeysShortcutInput: React.FC<HandyKeysShortcutInputProps> = ({
             {formatCurrentKeys()}
           </div>
         ) : (
-          <div
+          <button
             className="px-2 py-1 text-sm font-semibold bg-mid-gray/10 border border-mid-gray/80 hover:bg-logo-primary/10 rounded-md cursor-pointer hover:border-logo-primary"
             onClick={startRecording}
+            type="button"
           >
             {formatKeyCombination(binding.current_binding, osType)}
-          </div>
+          </button>
         )}
         <ResetButton
           onClick={() => resetBinding(shortcutId)}

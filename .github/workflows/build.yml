@@ -13,22 +13,11 @@ on:
         required: false
         type: string
         default: ""
-      release-id:
-        required: false
-        type: string
       asset-prefix:
         required: false
         type: string
-        default: "handy"
-      asset-name-pattern:
-        required: false
-        type: string
-        default: ""
+        default: "sona"
       upload-artifacts:
-        required: false
-        type: boolean
-        default: false
-      sign-binaries:
         required: false
         type: boolean
         default: false
@@ -48,13 +37,11 @@ on:
         type: boolean
         default: false
 
-env:
-  TSC_VERSION: "0.9.0"
 
 jobs:
   build:
     permissions:
-      contents: write
+      contents: read
     runs-on: ${{ inputs.platform }}
     steps:
       # Kept for git checkout and general tooling headroom. The native
@@ -108,7 +95,7 @@ jobs:
           targets: ${{ contains(inputs.platform, 'macos') && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Rust cache
-        # Release builds skip the cache (no-cache: true) so the artifact is
+        # Clean builds skip the cache (no-cache: true) so the artifact is
         # always compiled clean — no risk of a stale cached native lib being
         # linked. PR/test builds keep caching for speed.
         if: ${{ !inputs.no-cache }}
@@ -162,18 +149,6 @@ jobs:
           version: 1.4.309.0
           cache: true
 
-      - name: Cache trusted-signing-cli
-        if: contains(inputs.platform, 'windows') && inputs.sign-binaries
-        id: cache-tsc
-        uses: actions/cache@v5
-        with:
-          path: ~/.cargo/bin/trusted-signing-cli*
-          key: trusted-signing-cli-${{ env.TSC_VERSION }}-${{ runner.os }}-${{ runner.arch }}
-
-      - name: Install trusted-signing-cli
-        if: contains(inputs.platform, 'windows') && inputs.sign-binaries && steps.cache-tsc.outputs.cache-hit != 'true'
-        run: cargo install trusted-signing-cli@${{ env.TSC_VERSION }}
-
       - name: Prepare Vulkan SDK for Ubuntu 24.04
         if: contains(inputs.platform, 'ubuntu-24.04') && !contains(inputs.platform, 'arm')
         run: |
@@ -216,43 +191,6 @@ jobs:
       - name: rustup install target
         if: ${{ inputs.target != '' && !contains(inputs.target, 'x86_64-unknown-linux-gnu') && !contains(inputs.target, 'aarch64-unknown-linux-gnu') && !contains(inputs.target, 'x86_64-pc-windows-msvc') }}
         run: rustup target add ${{ inputs.target }}
-
-      - name: import Apple Developer Certificate
-        if: contains(inputs.platform, 'macos') && inputs.sign-binaries
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-        run: |
-          echo $APPLE_CERTIFICATE | base64 --decode > certificate.p12
-          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security set-keychain-settings -t 3600 -u build.keychain
-          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
-          security find-identity -v -p codesigning build.keychain
-
-      - name: verify certificate
-        if: contains(inputs.platform, 'macos') && inputs.sign-binaries
-        run: |
-          CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application")
-          CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')
-          echo "CERT_ID=$CERT_ID" >> $GITHUB_ENV
-          echo "Certificate imported."
-
-      - name: Patch asset name pattern
-        id: patch-release-name
-        shell: bash
-        if: ${{ inputs.release-id != '' && inputs.asset-name-pattern != '' }}
-        run: |
-          platform="${{ inputs.platform }}"
-          replacement="$(echo ${platform} | sed -E 's/-latest//')"
-          patched_platform=$(echo '${{ inputs.asset-name-pattern }}' | sed -E "s/\[platform\]/${replacement}/")
-          if [[ -n "${{ inputs.asset-prefix }}" ]]; then
-            patched_platform="${{ inputs.asset-prefix }}_${patched_platform}"
-          fi
-          echo "platform=${patched_platform}" >> $GITHUB_OUTPUT
 
       # ggml refuses to build its ARM CPU backend under MSVC (upstream check in
       # ggml/src/ggml-cpu/CMakeLists.txt: "MSVC is not supported for ARM, use
@@ -298,7 +236,7 @@ jobs:
           #     statically linking libomp.
           echo "TRANSCRIBE_CMAKE_ARGS=-DGGML_NATIVE=OFF -DGGML_OPENMP=OFF" >> $env:GITHUB_ENV
 
-      # Bundle the VC++ runtime app-local so Handy starts on machines without a
+      # Bundle the VC++ runtime app-local so Sona starts on machines without a
       # current Microsoft redistributable. build.rs stages DLLs from these dirs
       # into transcribe-libs/, using the same VS install that compiled the code.
       # x64 also needs vcomp140.dll for ggml OpenMP; ARM64 disables OpenMP.
@@ -330,32 +268,8 @@ jobs:
             }
             $dirs = "$($crt.FullName);$($omp.FullName)"
           }
-          Write-Host "HANDY_VC_REDIST_DIRS=$dirs"
-          Add-Content -Path $env:GITHUB_ENV -Value "HANDY_VC_REDIST_DIRS=$dirs"
-
-      # MSI packaging verifies bundled .dll/.exe resources with signtool before
-      # custom signing. Tauri's SDK lookup has no ARM64 host mapping, so pass
-      # the tool explicitly once ARM64 starts bundling runtime DLLs.
-      - name: Point tauri-bundler at signtool.exe (Windows ARM64)
-        if: contains(inputs.platform, 'windows') && contains(inputs.target, 'aarch64')
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $bin = "${env:ProgramFiles(x86)}\Windows Kits\10\bin"
-          $candidates = @(
-            Get-ChildItem "$bin\10.0.*\arm64\signtool.exe" -ErrorAction SilentlyContinue
-            Get-ChildItem "$bin\10.0.*\x64\signtool.exe" -ErrorAction SilentlyContinue
-          ) | Where-Object { $_ }
-          if (-not $candidates) {
-            throw "signtool.exe not found under $bin (is a Windows SDK installed on this runner?)"
-          }
-          # Prefer native arm64 (x64 works too, under emulation); within an
-          # arch, the newest SDK version wins.
-          $signtool = $candidates |
-            Sort-Object { $_.FullName -match '\\arm64\\' }, FullName |
-            Select-Object -Last 1
-          Write-Host "TAURI_WINDOWS_SIGNTOOL_PATH=$($signtool.FullName)"
-          Add-Content -Path $env:GITHUB_ENV -Value "TAURI_WINDOWS_SIGNTOOL_PATH=$($signtool.FullName)"
+          Write-Host "SONA_VC_REDIST_DIRS=$dirs"
+          Add-Content -Path $env:GITHUB_ENV -Value "SONA_VC_REDIST_DIRS=$dirs"
 
       - name: Install ONNX Runtime (x86_64 macOS)
         if: inputs.target == 'x86_64-apple-darwin'
@@ -388,13 +302,13 @@ jobs:
               cp -L "$f" "$f.real" && mv "$f.real" "$f"
             fi
           done
-          # Ship ORT in Handy's private lib dir under its SONAME only — the one
-          # name the loader resolves (handy has NEEDED libonnxruntime.so.1).
+          # Ship ORT in Sona's private lib dir under its SONAME only — the one
+          # name the loader resolves (sona has NEEDED libonnxruntime.so.1).
           # Shipping the .so/.so.x.y.z aliases too would triplicate the lib as
           # real files and draw ldconfig warnings (issue #1639).
           # deb.files key = destination in package, value = source on disk
           jq --arg so1 "$ORT_DIR/lib/libonnxruntime.so.1" \
-            '.bundle.linux.deb.files["/usr/lib/Handy/libonnxruntime.so.1"] = $so1' \
+            '.bundle.linux.deb.files["/usr/lib/sona/libonnxruntime.so.1"] = $so1' \
             src-tauri/tauri.conf.json > tmp.json && mv tmp.json src-tauri/tauri.conf.json
 
       # Windows x64 links a BASELINE ONNX Runtime dynamically instead of statically
@@ -405,7 +319,7 @@ jobs:
       # MLAS runtime CPU dispatch, so it runs everywhere and dispatches to AVX2/AVX-512
       # kernels when present (perf parity on capable CPUs). build.rs stages
       # onnxruntime.dll into transcribe-libs/, which tauri.windows.conf.json bundles
-      # beside Handy.exe. ARM64 is excluded (all modern CPUs; keeps its static
+      # beside Sona.exe. ARM64 is excluded (all modern CPUs; keeps its static
       # ORT posture).
       # NOTE: sourced from Microsoft's GitHub release; can be re-hosted on
       # blob.handy.computer to match the macOS/Linux steps.
@@ -450,9 +364,12 @@ jobs:
       # transcribe-cpp-sys's CMake install during the cargo build, but nothing
       # ships them. Pre-build the app so that install dir exists, then expose it
       # via LD_LIBRARY_PATH so the AppImage's linuxdeploy can resolve
-      # libtranscribe.so (a NEEDED of `handy`) while bundling. tauri-action
+      # libtranscribe.so (a NEEDED of `sona`) while bundling. tauri-action
       # reuses this compile incrementally. build.rs stages the runtime and
       # dlopen'd modules into transcribe-libs/, which tauri.conf.json includes.
+      - name: Prepare bundled agent hook
+        run: bun run prepare:agent-hook -- ${{ inputs.target }}
+
       - name: Pre-build and locate transcribe-cpp backend libs (Linux)
         if: contains(inputs.platform, 'ubuntu')
         shell: bash
@@ -479,7 +396,7 @@ jobs:
           echo "Located transcribe-cpp libs in: $LIBDIR"
           ls -la "$LIBDIR"
           echo "LD_LIBRARY_PATH=$LIBDIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
-          # linuxdeploy resolves `handy`'s NEEDED libs via `ldd` and HARD-FAILS
+          # linuxdeploy resolves `sona`'s NEEDED libs via `ldd` and HARD-FAILS
           # on an unresolved one (it does not warn-and-skip). libtranscribe.so
           # lives only in the cargo build tree, so also publish it (and the ggml
           # libs it pulls in) to the system linker cache — belt-and-suspenders
@@ -514,39 +431,20 @@ jobs:
       - name: Build with Tauri
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_ID: ${{ inputs.sign-binaries && secrets.APPLE_ID || '' }}
-          APPLE_ID_PASSWORD: ${{ inputs.sign-binaries && secrets.APPLE_ID_PASSWORD || '' }}
-          APPLE_PASSWORD: ${{ inputs.sign-binaries && secrets.APPLE_PASSWORD || '' }}
-          APPLE_TEAM_ID: ${{ inputs.sign-binaries && secrets.APPLE_TEAM_ID || '' }}
-          APPLE_CERTIFICATE: ${{ inputs.sign-binaries && secrets.APPLE_CERTIFICATE || '' }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ inputs.sign-binaries && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
-          APPLE_SIGNING_IDENTITY: ${{ inputs.sign-binaries && env.CERT_ID || '' }}
-          AZURE_CLIENT_ID: ${{ inputs.sign-binaries && secrets.AZURE_CLIENT_ID || '' }}
-          AZURE_CLIENT_SECRET: ${{ inputs.sign-binaries && secrets.AZURE_CLIENT_SECRET || '' }}
-          AZURE_TENANT_ID: ${{ inputs.sign-binaries && secrets.AZURE_TENANT_ID || '' }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ inputs.sign-binaries && secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ inputs.sign-binaries && secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || '' }}
           # The Vulkan loader and Wayland client library must come from the host
           # graphics stack. Bundling Ubuntu's copies ahead of the system libraries can
           # prevent a newer distro's Vulkan ICD or Mesa stack from loading.
           # linuxdeploy reads this semicolon-separated glob list before it creates
-          # (and Tauri signs and uploads) the AppImage, so the published artifact
-          # is already clean.
+          # the AppImage, so the packaged artifact is already clean.
           LINUXDEPLOY_EXCLUDED_LIBRARIES: ${{ contains(inputs.platform, 'ubuntu') && 'libvulkan.so*;libwayland-client.so*' || '' }}
           # linuxdeploy passes this to appimagetool, which writes it as
           # X-AppImage-Version for desktop integration tools such as Gear Lever.
           LINUXDEPLOY_OUTPUT_VERSION: ${{ contains(inputs.platform, 'ubuntu') && steps.get-version.outputs.version || '' }}
         with:
-          tagName: ${{ inputs.release-id && format('v{0}', steps.get-version.outputs.version) || '' }}
-          releaseName: ${{ inputs.release-id && format('v{0}', steps.get-version.outputs.version) || '' }}
-          releaseId: ${{ inputs.release-id }}
-          assetNamePattern: ${{ steps.patch-release-name.outputs.platform }}
           args: ${{ inputs.build-args }}
 
-      # tauri-action uploads release assets before returning. All AppImage
-      # filtering therefore happens inside linuxdeploy above; this verifies the
-      # exact artifact Tauri signed and uploaded.
+      # All AppImage filtering happens inside linuxdeploy before it writes the
+      # package; this verifies the exact artifact produced by Tauri.
       - name: Verify AppImage version metadata
         if: contains(inputs.platform, 'ubuntu')
         shell: bash
@@ -586,10 +484,10 @@ jobs:
           echo "=== Frameworks contents ==="
           ls -la "$APP/Contents/Frameworks/" | grep onnx || true
           echo "=== Binary linked libs ==="
-          otool -L "$APP/Contents/MacOS/handy" | grep onnx || true
+          otool -L "$APP/Contents/MacOS/sona" | grep onnx || true
           echo "=== Checking all @rpath deps are satisfied ==="
           # Extract every @rpath lib the binary needs
-          otool -L "$APP/Contents/MacOS/handy" | grep '@rpath/' | awk '{print $1}' | while read dep; do
+          otool -L "$APP/Contents/MacOS/sona" | grep '@rpath/' | awk '{print $1}' | while read dep; do
             libname=$(basename "$dep")
             if [ ! -f "$APP/Contents/Frameworks/$libname" ]; then
               echo "MISSING: $libname not found in Frameworks/"
@@ -598,6 +496,50 @@ jobs:
               echo "OK: $libname"
             fi
           done
+
+      - name: Audit macOS package sidecar
+        if: contains(inputs.platform, 'macos')
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROFILE="${{ steps.build-profile.outputs.profile }}"
+          BUNDLE_DIR="src-tauri/target/${{ inputs.target }}/${PROFILE}/bundle/macos"
+          app="$(find "${BUNDLE_DIR}" -maxdepth 1 -type d -name '*.app' -print -quit)"
+          if [ -z "${app}" ]; then
+            echo "ERROR: no macOS app bundle was produced" >&2
+            exit 1
+          fi
+          sidecar="${app}/Contents/MacOS/sona-agent-hook"
+          if [ ! -f "${sidecar}" ]; then
+            echo "ERROR: macOS package is missing sona-agent-hook beside sona" >&2
+            exit 1
+          fi
+          sidecars="$(find "${app}" -type f -name 'sona-agent-hook*' -print)"
+          sidecar_count="$(printf '%s\n' "$sidecars" | sed '/^$/d' | wc -l | tr -d ' ')"
+          if [ "${sidecar_count}" -ne 1 ]; then
+            echo "ERROR: macOS package must contain exactly one sona-agent-hook, found ${sidecar_count}" >&2
+            exit 1
+          fi
+          hook_stdout="$(mktemp)"
+          hook_stderr="$(mktemp)"
+          if "${sidecar}" >"${hook_stdout}" 2>"${hook_stderr}"; then
+            hook_exit=0
+          else
+            hook_exit=$?
+          fi
+          if [ "${hook_exit}" -ne 64 ]; then
+            echo "ERROR: macOS sona-agent-hook invalid invocation exited ${hook_exit}, expected 64" >&2
+            exit 1
+          fi
+          if [ -s "${hook_stdout}" ]; then
+            echo "ERROR: macOS sona-agent-hook invalid invocation wrote stdout" >&2
+            exit 1
+          fi
+          if [ "$(tr -d '\r' < "${hook_stderr}")" != "usage: sona-agent-hook <claude|codex|grok>" ]; then
+            echo "ERROR: macOS sona-agent-hook usage output changed" >&2
+            exit 1
+          fi
+          rm -f "${hook_stdout}" "${hook_stderr}"
 
       - name: Upload artifacts (macOS)
         if: inputs.upload-artifacts && contains(inputs.platform, 'macos')
@@ -615,7 +557,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          # The runtime smoke test launches the packaged handy binary, which links
+          # The runtime smoke test launches the packaged sona binary, which links
           # GTK (via tao) even for the headless --list-devices path and therefore
           # needs a display to start. CI runners are headless, so provide a virtual
           # X server via xvfb-run.
@@ -648,21 +590,62 @@ jobs:
             fi
           }
 
+          audit_agent_hook() {
+            local root="$1"
+            local label="$2"
+            local sidecar="${root}/usr/bin/sona-agent-hook"
+            if [ ! -f "${sidecar}" ]; then
+              echo "ERROR: ${label} package is missing sona-agent-hook beside sona" >&2
+              exit 1
+            fi
+            local sidecars
+            sidecars="$(find "${root}" -type f -name 'sona-agent-hook*' -print)"
+            local sidecar_count
+            sidecar_count="$(printf '%s\n' "$sidecars" | sed '/^$/d' | wc -l | tr -d ' ')"
+            if [ "${sidecar_count}" -ne 1 ]; then
+              echo "ERROR: ${label} package must contain exactly one sona-agent-hook, found ${sidecar_count}" >&2
+              exit 1
+            fi
+            local hook_stdout
+            local hook_stderr
+            local hook_exit
+            hook_stdout="$(mktemp)"
+            hook_stderr="$(mktemp)"
+            if "${sidecar}" >"${hook_stdout}" 2>"${hook_stderr}"; then
+              hook_exit=0
+            else
+              hook_exit=$?
+            fi
+            if [ "${hook_exit}" -ne 64 ]; then
+              echo "ERROR: ${label} sona-agent-hook invalid invocation exited ${hook_exit}, expected 64" >&2
+              exit 1
+            fi
+            if [ -s "${hook_stdout}" ]; then
+              echo "ERROR: ${label} sona-agent-hook invalid invocation wrote stdout" >&2
+              exit 1
+            fi
+            if [ "$(tr -d '\r' < "${hook_stderr}")" != "usage: sona-agent-hook <claude|codex|grok>" ]; then
+              echo "ERROR: ${label} sona-agent-hook usage output changed" >&2
+              exit 1
+            fi
+            rm -f "${hook_stdout}" "${hook_stderr}"
+          }
+
           smoke_binary() {
             local root="$1"
             local label="$2"
             local vulkan_icd="${3:-}"
-            # Run under a virtual X server: handy initializes GTK on startup even
+            # Run under a virtual X server: sona initializes GTK on startup even
             # on the headless --list-devices path, which fails without a display.
             # An AppImage audit supplies Mesa's software ICD so GPU registration
             # is deterministic even on a runner without physical graphics.
             if [ -n "$vulkan_icd" ]; then
               export VK_ICD_FILENAMES="$vulkan_icd"
             fi
-            HANDY_NO_GTK_LAYER_SHELL=1 \
-            LD_LIBRARY_PATH="${root}/usr/lib/Handy:${root}/usr/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" \
-              xvfb-run -a "${root}/usr/bin/handy" --list-devices \
-                >/tmp/handy-package-smoke.log 2>&1
+            SONA_NO_GTK_LAYER_SHELL=1 \
+            LD_LIBRARY_PATH="${root}/usr/lib/sona:${root}/usr/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" \
+              xvfb-run -a "${root}/usr/bin/sona" --list-devices \
+                >/tmp/sona-package-smoke.log 2>&1
             echo "${label} --list-devices smoke passed"
           }
 
@@ -671,15 +654,15 @@ jobs:
               echo "Auditing deb package: ${deb}"
               listing="$(mktemp)"
               dpkg-deb -c "$deb" > "$listing"
-              require_pattern "$listing" 'usr/bin/handy$' "handy binary"
-              require_pattern "$listing" 'usr/lib/Handy/libtranscribe\.so(\.[0-9]+)+$' "transcribe runtime library (SONAME)"
-              require_pattern "$listing" 'usr/lib/Handy/libggml-cpu.*\.so' "ggml CPU backend module"
+              require_pattern "$listing" 'usr/bin/sona$' "Sona binary"
+              require_pattern "$listing" 'usr/lib/sona/libtranscribe\.so(\.[0-9]+)+$' "transcribe runtime library (SONAME)"
+              require_pattern "$listing" 'usr/lib/sona/libggml-cpu.*\.so' "ggml CPU backend module"
               if [[ "${{ inputs.platform }}" == *"ubuntu-22.04"* && "${{ inputs.target }}" == "x86_64-unknown-linux-gnu" ]]; then
-                require_pattern "$listing" 'usr/lib/Handy/libonnxruntime\.so\.[0-9]+$' "ONNX Runtime library (SONAME)"
+                require_pattern "$listing" 'usr/lib/sona/libonnxruntime\.so\.[0-9]+$' "ONNX Runtime library (SONAME)"
               fi
-              # Handy's libs must stay out of the ldconfig-scanned /usr/lib
-              # (issue #1639): app-private libs belong in /usr/lib/Handy only.
-              # `[^/]+` excludes the Handy/ subdir, so only direct hits match.
+              # Sona's libs must stay out of the ldconfig-scanned /usr/lib
+              # (issue #1639): app-private libs belong in /usr/lib/sona only.
+              # `[^/]+` excludes the sona/ subdir, so only direct hits match.
               if grep -Eq 'usr/lib/[^/]+\.so' "$listing"; then
                 echo "ERROR: libraries installed directly into /usr/lib (issue #1639):" >&2
                 grep -E 'usr/lib/[^/]+\.so' "$listing" >&2
@@ -687,29 +670,34 @@ jobs:
               fi
               root="$(mktemp -d)"
               dpkg-deb -x "$deb" "$root"
+              audit_agent_hook "${root}" "deb"
               smoke_binary "$root" "deb"
               rm -rf "$root" "$listing"
             done
           fi
 
           if compgen -G "${BUNDLE_DIR}/rpm/*.rpm" > /dev/null; then
-            if ! command -v rpm >/dev/null 2>&1; then
+            if ! command -v rpm >/dev/null 2>&1 || ! command -v rpm2cpio >/dev/null 2>&1 || ! command -v cpio >/dev/null 2>&1; then
               sudo apt-get update
-              sudo apt-get install -y rpm
+              sudo apt-get install -y rpm cpio
             fi
             for rpm_pkg in "${BUNDLE_DIR}"/rpm/*.rpm; do
               echo "Auditing rpm package: ${rpm_pkg}"
               listing="$(mktemp)"
               rpm -qpl "$rpm_pkg" > "$listing"
-              require_pattern "$listing" '/usr/bin/handy$' "handy binary"
-              require_pattern "$listing" '/usr/lib/Handy/libtranscribe\.so(\.[0-9]+)+$' "transcribe runtime library (SONAME)"
-              require_pattern "$listing" '/usr/lib/Handy/libggml-cpu.*\.so' "ggml CPU backend module"
+              require_pattern "$listing" '/usr/bin/sona$' "Sona binary"
+              require_pattern "$listing" '/usr/lib/sona/libtranscribe\.so(\.[0-9]+)+$' "transcribe runtime library (SONAME)"
+              require_pattern "$listing" '/usr/lib/sona/libggml-cpu.*\.so' "ggml CPU backend module"
               # Same /usr/lib pollution guard as the deb audit (issue #1639).
               if grep -Eq 'usr/lib/[^/]+\.so' "$listing"; then
                 echo "ERROR: libraries installed directly into /usr/lib (issue #1639):" >&2
                 grep -E 'usr/lib/[^/]+\.so' "$listing" >&2
                 exit 1
               fi
+              root="$(mktemp -d)"
+              rpm2cpio "${rpm_pkg}" | (cd "${root}" && cpio -idm --quiet)
+              audit_agent_hook "${root}" "rpm"
+              rm -rf "${root}"
               rm -f "$listing"
             done
           fi
@@ -718,12 +706,13 @@ jobs:
             for appimage in "${BUNDLE_DIR}"/appimage/*.AppImage; do
               echo "Auditing AppImage package: ${appimage}"
               workdir="$(mktemp -d)"
-              cp "$appimage" "${workdir}/Handy.AppImage"
-              chmod +x "${workdir}/Handy.AppImage"
+              cp "$appimage" "${workdir}/Sona.AppImage"
+              chmod +x "${workdir}/Sona.AppImage"
               (
                 cd "$workdir"
-                ./Handy.AppImage --appimage-extract >/dev/null
-                require_path "squashfs-root/usr/bin/handy" "AppImage handy binary"
+                ./Sona.AppImage --appimage-extract >/dev/null
+                require_path "squashfs-root/usr/bin/sona" "AppImage Sona binary"
+                audit_agent_hook "squashfs-root" "AppImage"
                 # Gear Lever and other integration tools consume the root entry;
                 # appimagetool does not update the copy under usr/share/applications.
                 desktop_file="$(find squashfs-root -maxdepth 1 -type f -name '*.desktop' -print -quit)"
@@ -769,9 +758,9 @@ jobs:
                 # llvmpipe is intentionally not exposed as a compute device by
                 # ggml, but reaching this log proves the module loaded against a
                 # usable system Vulkan loader/ICD instead of failing silently.
-                if ! grep -q 'load_backend: loaded Vulkan backend' /tmp/handy-package-smoke.log; then
+                if ! grep -q 'load_backend: loaded Vulkan backend' /tmp/sona-package-smoke.log; then
                   echo "ERROR: AppImage could not initialize its Vulkan backend with a usable system ICD" >&2
-                  cat /tmp/handy-package-smoke.log >&2
+                  cat /tmp/sona-package-smoke.log >&2
                   exit 1
                 fi
               )
@@ -790,7 +779,7 @@ jobs:
             src-tauri/target/${{ steps.build-profile.outputs.profile }}/bundle/rpm/*.rpm
           retention-days: 30
 
-      # Run on Windows releases too; upload-artifacts only controls retention.
+      # Run on Windows builds too; upload-artifacts only controls retention.
       - name: Audit Windows package runtime contents
         if: contains(inputs.platform, 'windows')
         shell: pwsh
@@ -831,20 +820,51 @@ jobs:
           function Assert-PackageContents {
             param([string]$Root, [string]$Label)
 
-            $handy = Get-ChildItem $Root -Filter "handy.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-            if (-not $handy) {
-              throw "$Label package is missing handy.exe"
+            $sona = Get-ChildItem $Root -Filter "sona.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (-not $sona) {
+              throw "$Label package is missing sona.exe"
             }
+            $agentHooks = @(
+              Get-ChildItem $Root -Filter "sona-agent-hook*.exe" -Recurse -File -ErrorAction SilentlyContinue
+            )
+            if ($agentHooks.Count -ne 1) {
+              throw "$Label package must contain exactly one sona-agent-hook.exe, found $($agentHooks.Count)"
+            }
+            $agentHook = $agentHooks[0]
+            if ($agentHook.Name -ne "sona-agent-hook.exe" -or $agentHook.DirectoryName -ne $sona.DirectoryName) {
+              throw "$Label package did not place sona-agent-hook.exe beside sona.exe"
+            }
+            $hookAuditDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+            New-Item -ItemType Directory -Path $hookAuditDir | Out-Null
+            $hookStdoutPath = Join-Path $hookAuditDir "stdout"
+            $hookStderrPath = Join-Path $hookAuditDir "stderr"
+            try {
+              $hookProcess = Start-Process -FilePath $agentHook.FullName -Wait -PassThru -NoNewWindow -RedirectStandardOutput $hookStdoutPath -RedirectStandardError $hookStderrPath
+              $hookStdout = [System.IO.File]::ReadAllText($hookStdoutPath)
+              $hookStderr = [System.IO.File]::ReadAllText($hookStderrPath)
+              if ($hookProcess.ExitCode -ne 64) {
+                throw "$Label sona-agent-hook.exe invalid invocation exited $($hookProcess.ExitCode), expected 64"
+              }
+              if ($hookStdout.Length -ne 0) {
+                throw "$Label sona-agent-hook.exe invalid invocation wrote stdout"
+              }
+              if ($hookStderr.TrimEnd([char[]]@(13, 10)) -ne "usage: sona-agent-hook <claude|codex|grok>") {
+                throw "$Label sona-agent-hook.exe usage output changed"
+              }
+            } finally {
+              Remove-Item -Recurse -Force $hookAuditDir
+            }
+
             foreach ($dll in $stagedDlls) {
               if (-not (Get-ChildItem $Root -Filter $dll.Name -Recurse -ErrorAction SilentlyContinue)) {
                 throw "$Label package is missing staged runtime DLL $($dll.Name)"
               }
             }
 
-            $deviceOutput = (& $handy.FullName --list-devices | Out-String)
+            $deviceOutput = (& $sona.FullName --list-devices | Out-String)
             $deviceOutput | Write-Host
             if ($LASTEXITCODE -ne 0) {
-              throw "$Label handy.exe --list-devices failed"
+              throw "$Label sona.exe --list-devices failed"
             }
             if ("${{ inputs.target }}" -like "aarch64*" -and $deviceOutput -match "kind=(vulkan|cuda|metal|gpu)") {
               throw "$Label Windows ARM64 package unexpectedly exposed a GPU compute device"

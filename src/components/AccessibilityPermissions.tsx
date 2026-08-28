@@ -53,13 +53,20 @@ const AccessibilityPermissions: React.FC = () => {
   useEffect(() => {
     if (!isMacOS) return;
 
+    let cancelled = false;
+
     const initialSetup = async (): Promise<void> => {
       const hasPermissions: boolean = await checkAccessibilityPermission();
+      if (cancelled) return;
+
       setHasAccessibility(hasPermissions);
       setPermissionState(hasPermissions ? "granted" : "request");
     };
 
-    initialSetup();
+    void initialSetup();
+    return () => {
+      cancelled = true;
+    };
   }, [isMacOS]);
 
   // Skip rendering on non-macOS platforms or if permission is already granted
@@ -72,12 +79,12 @@ const AccessibilityPermissions: React.FC = () => {
     request: {
       text: t("accessibility.openSettings"),
       className:
-        "px-2 py-1 text-sm font-semibold bg-mid-gray/10 border  border-mid-gray/80 hover:bg-logo-primary/10 rounded cursor-pointer hover:border-logo-primary",
+        "liquid-control min-h-8 cursor-pointer border border-border bg-surface px-3 text-sm font-medium text-text-primary hover:border-border-strong hover:bg-hover",
     },
     verify: {
       text: t("accessibility.openSettings"),
       className:
-        "bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-1 px-3 rounded-md text-sm flex items-center justify-center cursor-pointer",
+        "liquid-control min-h-8 cursor-pointer border border-border bg-surface px-3 text-sm font-medium text-text-primary hover:border-border-strong hover:bg-hover",
     },
     granted: null,
   };
@@ -85,16 +92,16 @@ const AccessibilityPermissions: React.FC = () => {
   const config = buttonConfig[permissionState] as ButtonConfig;
 
   return (
-    <div className="p-4 w-full rounded-lg border border-mid-gray">
+    <div role="status" className="w-full rounded-md border border-border bg-surface p-3">
       <div className="flex justify-between items-center gap-2">
         <div className="">
-          <p className="text-sm font-medium">
+          <p className="text-sm font-medium text-text-primary">
             {t("accessibility.permissionsDescription")}
           </p>
         </div>
         <button
           onClick={handleButtonClick}
-          className={`min-h-10 ${config.className}`}
+          className={config.className}
         >
           {config.text}
         </button>

@@ -26,6 +26,14 @@ interface AudioPlayerGroupContextValue {
 const AudioPlayerGroupContext =
   createContext<AudioPlayerGroupContextValue | null>(null);
 
+const formatTime = (time: number): string => {
+  if (!isFinite(time)) return "0:00";
+
+  const minutes = Math.floor(time / 60);
+  const seconds = Math.floor(time % 60);
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+};
+
 export const AudioPlayerGroup: React.FC<React.PropsWithChildren> = ({
   children,
 }) => {
@@ -67,6 +75,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const audioRef = useRef<HTMLAudioElement>(null);
   const src = loadedSrc;
   const animationRef = useRef<number>();
+  const loadRequestIdRef = useRef(0);
   const dragTimeRef = useRef<number>(0);
 
   // Use refs to avoid stale closures in animation loop
@@ -212,28 +221,40 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   const togglePlay = async () => {
     const audio = audioRef.current;
-    if (!audio) return;
-    if (isLoading) return;
+    if (!audio || isLoading) return;
 
-    try {
-      if (isPlaying) {
-        audio.pause();
-      } else {
-        // If no src loaded yet, request it
-        if (!src && onLoadRequest) {
-          setIsLoading(true);
-          const newSrc = await onLoadRequest();
+    if (isPlaying) {
+      audio.pause();
+      return;
+    }
+
+    if (!src && onLoadRequest) {
+      const requestId = loadRequestIdRef.current + 1;
+      loadRequestIdRef.current = requestId;
+      setIsLoading(true);
+
+      try {
+        const newSrc = await onLoadRequest();
+        if (loadRequestIdRef.current === requestId && newSrc) {
+          setLoadedSrc(newSrc);
+        }
+      } catch (error) {
+        console.error("Playback failed:", error);
+      } finally {
+        if (loadRequestIdRef.current === requestId) {
           setIsLoading(false);
-          if (newSrc) {
-            setLoadedSrc(newSrc);
-            // Playback will be triggered by the useEffect watching loadedSrc
-          }
-        } else if (src) {
-          await audio.play();
         }
       }
-    } catch (error) {
-      console.error("Playback failed:", error);
+
+      return;
+    }
+
+    if (src) {
+      try {
+        await audio.play();
+      } catch (error) {
+        console.error("Playback failed:", error);
+      }
     }
   };
 
@@ -255,13 +276,6 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     setIsDragging(true);
   };
 
-  const formatTime = (time: number): string => {
-    if (!isFinite(time)) return "0:00";
-
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-  };
 
   // Fix playhead positioning with better edge case handling
   const getProgressPercent = (): number => {
@@ -300,6 +314,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
         <input
           type="range"
+          aria-label="Playback position"
           min="0"
           max={duration || 0}
           step="0.01"
@@ -307,10 +322,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           onChange={handleSeek}
           onMouseDown={handleSliderMouseDown}
           onTouchStart={handleSliderTouchStart}
-          className={`flex-1 h-1 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-logo-primary ${progressPercent >= 99.5 ? "[&::-webkit-slider-thumb]:translate-x-0.5 [&::-moz-range-thumb]:translate-x-0.5" : ""}`}
-          style={{
-            background: `linear-gradient(to right, #FAA2CA 0%, #FAA2CA ${progressPercent}%, rgba(128, 128, 128, 0.2) ${progressPercent}%, rgba(128, 128, 128, 0.2) 100%)`,
-          }}
+          className={`h-1 flex-1 cursor-pointer appearance-none rounded-lg accent-[var(--color-inverse-background)] ${progressPercent >= 99.5 ? "[&::-webkit-slider-thumb]:translate-x-0.5 [&::-moz-range-thumb]:translate-x-0.5" : ""}`}
+          style={{ accentColor: "var(--color-inverse-background)" }}
         />
 
         <span className="text-xs text-text/60 min-w-[30px] tabular-nums">

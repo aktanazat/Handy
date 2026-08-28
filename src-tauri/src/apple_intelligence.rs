@@ -17,6 +17,7 @@ extern "C" {
 
 // Safe wrapper functions
 pub fn check_apple_intelligence_availability() -> bool {
+    // SAFETY: The Swift bridge exports this no-argument function for the lifetime of the process.
     unsafe { is_apple_intelligence_available() == 1 }
 }
 
@@ -38,6 +39,7 @@ pub fn process_text_with_system_prompt(
     let system_cstr = CString::new(system_prompt).map_err(|e| e.to_string())?;
     let user_cstr = CString::new(user_content).map_err(|e| e.to_string())?;
 
+    // SAFETY: Both C strings stay alive through the synchronous Swift call, and max_tokens is ABI-compatible.
     let response_ptr = unsafe {
         process_text_with_system_prompt_apple(system_cstr.as_ptr(), user_cstr.as_ptr(), max_tokens)
     };
@@ -46,18 +48,21 @@ pub fn process_text_with_system_prompt(
         return Err("Null response from Apple LLM".to_string());
     }
 
+    // SAFETY: The null check above established that the Swift-owned response points to a live AppleLLMResponse.
     let response = unsafe { &*response_ptr };
 
     let result = if response.success == 1 {
         if response.response.is_null() {
             Ok(String::new())
         } else {
+            // SAFETY: A successful non-null response string is NUL-terminated and valid until freed below.
             let c_str = unsafe { CStr::from_ptr(response.response) };
             let rust_str = c_str.to_string_lossy().into_owned();
             Ok(rust_str)
         }
     } else {
         let error_c_str = if !response.error_message.is_null() {
+            // SAFETY: A non-null Swift error string is NUL-terminated and valid until the enclosing response is freed.
             unsafe { CStr::from_ptr(response.error_message) }
         } else {
             c"Unknown error"
@@ -66,7 +71,7 @@ pub fn process_text_with_system_prompt(
         Err(error_msg)
     };
 
-    // Clean up the response
+    // SAFETY: response_ptr came from the paired Swift allocation function and has not been freed on this path.
     unsafe { free_apple_llm_response(response_ptr) };
 
     result

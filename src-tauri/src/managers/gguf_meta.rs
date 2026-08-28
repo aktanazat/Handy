@@ -7,7 +7,7 @@
 //! bytes of a remote file fetched with an HTTP Range request: a too-short
 //! buffer surfaces cleanly as [`GgufError::Truncated`] instead of panicking.
 //!
-//! This is intentionally not a full GGUF library — it reads what Handy needs to
+//! This is intentionally not a full GGUF library — it reads what Sona needs to
 //! display a model's capabilities before download. Format reference: GGUF v2/v3,
 //! little-endian. v1 (32-bit lengths) is not supported; every transcribe-cpp
 //! model is v3.
@@ -40,7 +40,7 @@ const MAX_ARRAY_LEN: u64 = 16 * 1024 * 1024;
 const MAX_STORED_ARRAY_LEN: u64 = 4096;
 const MAX_KV_COUNT: u64 = 1_000_000;
 
-/// A parsed GGUF metadata value. Only the shapes Handy consumes are given
+/// A parsed GGUF metadata value. Only the shapes Sona consumes are given
 /// accessors; unrequested values are skipped without materializing them.
 #[derive(Debug, Clone, PartialEq)]
 pub enum GgufValue {
@@ -96,7 +96,7 @@ impl GgufValue {
 
 /// The parsed front-of-file metadata of a GGUF model. Only the key/value block
 /// is retained — the version is validated during parsing and the tensor count is
-/// skipped, since Handy reads capabilities purely from the KV pairs.
+/// skipped, since Sona reads capabilities purely from the KV pairs.
 #[derive(Debug, Clone)]
 pub struct GgufMetadata {
     /// Requested key/value metadata pairs, keyed by their GGUF key.
@@ -214,7 +214,7 @@ impl<'a> ByteCursor<'a> {
 fn read_value(cur: &mut ByteCursor, value_type: u32) -> Result<GgufValue, GgufError> {
     Ok(match value_type {
         T_UINT8 => GgufValue::U8(cur.take(1)?[0]),
-        T_INT8 => GgufValue::I8(cur.take(1)?[0] as i8),
+        T_INT8 => GgufValue::I8(i8::from_le_bytes([cur.take(1)?[0]])),
         T_UINT16 => {
             let b = cur.take(2)?;
             GgufValue::U16(u16::from_le_bytes([b[0], b[1]]))
@@ -224,12 +224,12 @@ fn read_value(cur: &mut ByteCursor, value_type: u32) -> Result<GgufValue, GgufEr
             GgufValue::I16(i16::from_le_bytes([b[0], b[1]]))
         }
         T_UINT32 => GgufValue::U32(cur.u32()?),
-        T_INT32 => GgufValue::I32(cur.u32()? as i32),
+        T_INT32 => GgufValue::I32(i32::from_le_bytes(cur.u32()?.to_le_bytes())),
         T_FLOAT32 => GgufValue::F32(f32::from_bits(cur.u32()?)),
         T_BOOL => GgufValue::Bool(cur.take(1)?[0] != 0),
         T_STRING => GgufValue::String(cur.string()?),
         T_UINT64 => GgufValue::U64(cur.u64()?),
-        T_INT64 => GgufValue::I64(cur.u64()? as i64),
+        T_INT64 => GgufValue::I64(i64::from_le_bytes(cur.u64()?.to_le_bytes())),
         T_FLOAT64 => GgufValue::F64(f64::from_bits(cur.u64()?)),
         T_ARRAY => {
             let elem_type = cur.u32()?;
@@ -245,7 +245,9 @@ fn read_value(cur: &mut ByteCursor, value_type: u32) -> Result<GgufValue, GgufEr
             }
             // Don't pre-allocate the claimed length: a truncated buffer can
             // advertise a huge array it doesn't actually contain.
-            let mut items = Vec::with_capacity(len.min(1024) as usize);
+            let capacity = usize::try_from(len.min(1024))
+                .map_err(|_| GgufError::Malformed("array capacity too large"))?;
+            let mut items = Vec::with_capacity(capacity);
             for _ in 0..len {
                 items.push(read_value(cur, elem_type)?);
             }
@@ -308,7 +310,7 @@ fn skip_value(cur: &mut ByteCursor, value_type: u32) -> Result<(), GgufError> {
 ///
 /// Only keys listed in `wanted_keys` are materialized. Other values are skipped
 /// with checked cursor movement so large tokenizer metadata arrays do not become
-/// Handy allocations while probing a few capability fields.
+/// Sona allocations while probing a few capability fields.
 pub fn parse_header(bytes: &[u8], wanted_keys: &[&str]) -> Result<GgufMetadata, GgufError> {
     let mut cur = ByteCursor::new(bytes);
 
@@ -350,8 +352,22 @@ pub fn parse_header(bytes: &[u8], wanted_keys: &[&str]) -> Result<GgufMetadata, 
 mod tests {
     use super::*;
 
+    fn test_u64_len(value: usize, field: &str) -> u64 {
+        match u64::try_from(value) {
+            Ok(value) => value,
+            Err(_) => panic!("{field} length does not fit in a GGUF u64"),
+        }
+    }
+
+    fn test_usize_len(value: u64, field: &str) -> usize {
+        match usize::try_from(value) {
+            Ok(value) => value,
+            Err(_) => panic!("{field} length does not fit on this platform"),
+        }
+    }
+
     fn push_str(out: &mut Vec<u8>, s: &str) {
-        out.extend_from_slice(&(s.len() as u64).to_le_bytes());
+        out.extend_from_slice(&test_u64_len(s.len(), "string").to_le_bytes());
         out.extend_from_slice(s.as_bytes());
     }
 
@@ -359,7 +375,7 @@ mod tests {
         match v {
             GgufValue::Bool(b) => {
                 out.extend_from_slice(&T_BOOL.to_le_bytes());
-                out.push(*b as u8);
+                out.push(u8::from(*b));
             }
             GgufValue::String(s) => {
                 out.extend_from_slice(&T_STRING.to_le_bytes());
@@ -373,7 +389,7 @@ mod tests {
                 // Tests only build string arrays.
                 out.extend_from_slice(&T_ARRAY.to_le_bytes());
                 out.extend_from_slice(&T_STRING.to_le_bytes());
-                out.extend_from_slice(&(items.len() as u64).to_le_bytes());
+                out.extend_from_slice(&test_u64_len(items.len(), "array").to_le_bytes());
                 for it in items {
                     if let GgufValue::String(s) = it {
                         push_str(out, s);
@@ -389,7 +405,7 @@ mod tests {
         out.extend_from_slice(&GGUF_MAGIC.to_le_bytes());
         out.extend_from_slice(&3u32.to_le_bytes()); // version
         out.extend_from_slice(&0u64.to_le_bytes()); // tensor_count
-        out.extend_from_slice(&(kvs.len() as u64).to_le_bytes());
+        out.extend_from_slice(&test_u64_len(kvs.len(), "metadata entry count").to_le_bytes());
         for (k, v) in kvs {
             push_str(&mut out, k);
             write_value(&mut out, v);
@@ -481,7 +497,10 @@ mod tests {
         data.extend_from_slice(&T_ARRAY.to_le_bytes());
         data.extend_from_slice(&T_UINT8.to_le_bytes());
         data.extend_from_slice(&(MAX_STORED_ARRAY_LEN + 1).to_le_bytes());
-        data.extend(std::iter::repeat(0).take((MAX_STORED_ARRAY_LEN + 1) as usize));
+        data.extend(std::iter::repeat_n(
+            0,
+            test_usize_len(MAX_STORED_ARRAY_LEN + 1, "stored array"),
+        ));
 
         push_str(&mut data, "general.architecture");
         data.extend_from_slice(&T_STRING.to_le_bytes());

@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "encoding": {
+    "aead": "AES-256-GCM",
+    "hkdf_hash": "SHA-256",
+    "length_prefix": "u32be",
+    "payload_layout": "nonce_12_bytes||ciphertext||tag_16_bytes",
+    "record_fields": "u32be_length_prefixed_utf8_or_raw"
+  },
+  "canonical_request": {
+    "audience": "sona-companion-fixture",
+    "vaultId": "fixture_vault_0001",
+    "deviceId": "fixture_device_001",
+    "method": "POST",
+    "path": "/v1/uploads/fixture_upload_01/commit",
+    "query": [
+      [
+        "limit",
+        "50"
+      ]
+    ],
+    "bodyDigest": "47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU",
+    "contentType": "application/json",
+    "idempotencyKey": "fixture_idempotency_01",
+    "timestamp": 1700000000000,
+    "nonce": "AAECAwQFBgcICQoLDA0ODw",
+    "bytes": "AAAAD3NvbmEtcmVxdWVzdC12MQAAABZzb25hLWNvbXBhbmlvbi1maXh0dXJlAAAAEmZpeHR1cmVfdmF1bHRfMDAwMQAAABJmaXh0dXJlX2RldmljZV8wMDEAAAAEUE9TVAAAACQvdjEvdXBsb2Fkcy9maXh0dXJlX3VwbG9hZF8wMS9jb21taXQAAAATAAAADwAAAAVsaW1pdAAAAAI1MAAAACs0N0RFUXBqOEhCU2EtX1RJbVctNUpDZXVRZVJrbTVOTXBKV1pHM2hTdUZVAAAAEGFwcGxpY2F0aW9uL2pzb24AAAAWZml4dHVyZV9pZGVtcG90ZW5jeV8wMQAAAA0xNzAwMDAwMDAwMDAwAAAAEAABAgMEBQYHCAkKCwwNDg8",
+    "ed25519_public_key": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
+    "signature": "n7lZ4iVCDfB3d2u7CICgPS3Go3fkZIDERSSW3sq6bNps8nGY66yKzaH77e1h6CcujNzbqV7j_ZAiKXgXnQ4EDg"
+  },
+  "upload_envelope": {
+    "vaultId": "fixture_vault_0001",
+    "kind": "object",
+    "objectId": "fixture_object_0001",
+    "revisionId": "fixture_revision_01",
+    "baseRevisionId": null,
+    "shareId": null,
+    "manifestDigest": "AGZnsD3mG0hk9zMuyqs-OFbxcTeBkUMVHVijdT1Xjvs",
+    "cryptoVersion": 1,
+    "totalBytes": 45,
+    "chunks": [
+      {
+        "index": 0,
+        "size": 45,
+        "sha256": "T8pUgTxKXVmy0A-asLSzM7bdweWhqToLZWeaGTYG3_8"
+      }
+    ],
+    "bytes": "AAAAF3NvbmEtdXBsb2FkLWVudmVsb3BlLXYxAAAAEmZpeHR1cmVfdmF1bHRfMDAwMQAAAAZvYmplY3QAAAATZml4dHVyZV9vYmplY3RfMDAwMQAAABNmaXh0dXJlX3JldmlzaW9uXzAxAAAAAAAAAAAAAAArQUdabnNEM21HMGhrOXpNdXlxcy1PRmJ4Y1RlQmtVTVZIVmlqZFQxWGp2cwAAAAExAAAAAjQ1AAAAATEAAAA-AAAAOgAAAAEwAAAAAjQ1AAAAK1Q4cFVnVHhLWFZteTBBLWFzTFN6TTdiZHdlV2hxVG9MWldlYUdUWUczXzg",
+    "ed25519_public_key": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
+    "signature": "foKOGOETslAA_U5nf3hO00nCQQFOtm41nrGj2z9ZMvTyQEhrOgOhalObzYR7J2kSx4UtrApDcsm8uHhI9g90Bg"
+  },
+  "tombstone": {
+    "vaultId": "fixture_vault_0001",
+    "objectId": "fixture_object_0001",
+    "tombstoneRevisionId": "fixture_tombstone_01",
+    "baseRevisionId": "fixture_revision_01",
+    "reason": "user_request",
+    "formatVersion": 1,
+    "bytes": "AAAAEXNvbmEtdG9tYnN0b25lLXYxAAAAEmZpeHR1cmVfdmF1bHRfMDAwMQAAABNmaXh0dXJlX29iamVjdF8wMDAxAAAAFGZpeHR1cmVfdG9tYnN0b25lXzAxAAAAE2ZpeHR1cmVfcmV2aXNpb25fMDEAAAAMdXNlcl9yZXF1ZXN0AAAAATE",
+    "ed25519_public_key": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
+    "signature": "vmyLZut8_Ag7YORtrwjZlHpHQej6MSh6ghvS8ySTwR0F8fqK5vgOVrfQdP2zMhwaBOPyj0hzU389pVMFI4X_AQ"
+  },
+  "object_revision_aes_gcm_hkdf": {
+    "vault_root": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+    "vault_id": "fixture_vault_0001",
+    "object_id": "fixture_object_0001",
+    "revision_id": "fixture_revision_01",
+    "revision_root": "TI9nGWBvaEPDM2cq3gCX9MlUUHmKqJSou5XyRKJRQqs",
+    "root_hkdf_info": "AAAAFXNvbmEtcmV2aXNpb24tcm9vdC12MQAAABJmaXh0dXJlX3ZhdWx0XzAwMDEAAAATZml4dHVyZV9vYmplY3RfMDAwMQAAABNmaXh0dXJlX3JldmlzaW9uXzAx",
+    "manifest": {
+      "index": 0,
+      "total": 1,
+      "content_kind": "manifest",
+      "source_format": "markdown-utf8",
+      "nonce": "YGFiY2RlZmdoaWpr",
+      "key_info": "AAAAEnNvbmEtb2JqZWN0LWtleS12MQAAABJmaXh0dXJlX3ZhdWx0XzAwMDEAAAATZml4dHVyZV9vYmplY3RfMDAwMQAAABNmaXh0dXJlX3JldmlzaW9uXzAxAAAAATAAAAABMQAAAAhtYW5pZmVzdAAAAA1tYXJrZG93bi11dGY4",
+      "aad": "AAAAEnNvbmEtb2JqZWN0LWFhZC12MQAAABJmaXh0dXJlX3ZhdWx0XzAwMDEAAAATZml4dHVyZV9vYmplY3RfMDAwMQAAABNmaXh0dXJlX3JldmlzaW9uXzAxAAAAATAAAAABMQAAAAhtYW5pZmVzdAAAAA1tYXJrZG93bi11dGY4",
+      "plaintext": "eyJ2ZXJzaW9uIjoxLCJraW5kIjoibWFya2Rvd24iLCJzb3VyY2VfZm9ybWF0IjoibWFya2Rvd24tdXRmOCIsInRpdGxlIjoiT2JqZWN0IGZpeHR1cmUifQ",
+      "ciphertext": "YGFiY2RlZmdoaWprFAnTvR5eXiXJzNWeBHzIsm2Do1YdyQVolqdJv5T20rwM1jPKgMa_JCRNcDWm1EUOjxDZh7jTHpe9-I4-p8jWv1JBy98ovDM_QIw5AT7lD0PzmLn5d1YK5U9_Qm7YFfiW0DO-J86WObI"
+    },
+    "chunk": {
+      "index": 0,
+      "total": 1,
+      "content_kind": "chunk",
+      "source_format": "markdown-utf8",
+      "nonce": "cHFyc3R1dnd4eXp7",
+      "key_info": "AAAAEnNvbmEtb2JqZWN0LWtleS12MQAAABJmaXh0dXJlX3ZhdWx0XzAwMDEAAAATZml4dHVyZV9vYmplY3RfMDAwMQAAABNmaXh0dXJlX3JldmlzaW9uXzAxAAAAATAAAAABMQAAAAVjaHVuawAAAA1tYXJrZG93bi11dGY4",
+      "aad": "AAAAEnNvbmEtb2JqZWN0LWFhZC12MQAAABJmaXh0dXJlX3ZhdWx0XzAwMDEAAAATZml4dHVyZV9vYmplY3RfMDAwMQAAABNmaXh0dXJlX3JldmlzaW9uXzAxAAAAATAAAAABMQAAAAVjaHVuawAAAA1tYXJrZG93bi11dGY4",
+      "plaintext": "IyBPYmplY3QgZml4dHVyZQo",
+      "ciphertext": "cHFyc3R1dnd4eXp79AX3ABwOWipMIHBHm6ZxGQeZ9YEdYNeRuX48M5VwBO8r"
+    }
+  },
+  "share_aes_gcm_hkdf": {
+    "root": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+    "share_id": "fixture_share_0001",
+    "hkdf_salt": "sona-share-v1",
+    "manifest": {
+      "index": 0,
+      "total": 1,
+      "domain": "manifest",
+      "nonce": "ICEiIyQlJicoKSor",
+      "key_info": "AAAAEXNvbmEtc2hhcmUta2V5LXYxAAAAEmZpeHR1cmVfc2hhcmVfMDAwMQAAAAEwAAAAATEAAAAIbWFuaWZlc3Q",
+      "aad": "AAAAEXNvbmEtc2hhcmUtYWFkLXYxAAAAEmZpeHR1cmVfc2hhcmVfMDAwMQAAAAEwAAAAATEAAAAIbWFuaWZlc3Q",
+      "plaintext": "eyJ2ZXJzaW9uIjoxLCJraW5kIjoibWFya2Rvd24iLCJzb3VyY2VfZm9ybWF0IjoibWFya2Rvd24tdXRmOCIsInRpdGxlIjoiRml4dHVyZSIsImNodW5rX2NvdW50IjoxLCJwbGFpbnRleHRfYnl0ZXMiOjEwfQ",
+      "ciphertext": "ICEiIyQlJicoKSorsenHqkgPTlhyujpklRGon6CUNM6kzov1i2PKGA_CwmXjlO8DQKk4PONA6mQW889pCvHwLpWQs3-o4SdKwx4jQPCD9oRqfAUANne7E2EaS4rfzRdNHtRTUfBgZtDBHQvsYzFct1ddsbiM18K4BhlbHz8uOimqZvaT5wC74TK3KrDWaB9f-_E"
+    },
+    "chunk": {
+      "index": 0,
+      "total": 1,
+      "domain": "chunk",
+      "nonce": "MDEyMzQ1Njc4OTo7",
+      "key_info": "AAAAEXNvbmEtc2hhcmUta2V5LXYxAAAAEmZpeHR1cmVfc2hhcmVfMDAwMQAAAAEwAAAAATEAAAAFY2h1bms",
+      "aad": "AAAAEXNvbmEtc2hhcmUtYWFkLXYxAAAAEmZpeHR1cmVfc2hhcmVfMDAwMQAAAAEwAAAAATEAAAAFY2h1bms",
+      "plaintext": "IyBGaXh0dXJlCg",
+      "ciphertext": "MDEyMzQ1Njc4OTo7ENN5OEcGAxuWVRk3i3jECOVPHet_mfof6p4"
+    }
+  },
+  "expected_failures": {
+    "canonical_request": {
+      "mutated_field": "method",
+      "signature_valid": false
+    },
+    "upload_envelope": {
+      "mutated_field": "manifestDigest",
+      "signature_valid": false
+    },
+    "tombstone": {
+      "mutated_field": "reason",
+      "signature_valid": false
+    },
+    "object_revision": {
+      "mutated_field": "sourceFormat",
+      "decrypts": false,
+      "truncated_payload_bytes": 27
+    },
+    "share": {
+      "mutated_field": "domain",
+      "decrypts": false,
+      "truncated_payload_bytes": 27
+    }
+  }
+}

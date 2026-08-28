@@ -48,24 +48,32 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
 
   // Check model status when currentModel changes
   useEffect(() => {
+    let cancelled = false;
+
     const checkStatus = async () => {
       if (currentModel) {
         try {
           const statusResult = await commands.getTranscriptionModelStatus();
-          if (statusResult.status === "ok") {
+          if (!cancelled && statusResult.status === "ok") {
             setModelStatus(
               statusResult.data === currentModel ? "ready" : "unloaded",
             );
           }
         } catch {
-          setModelStatus("error");
-          setModelError("Failed to check model status");
+          if (!cancelled) {
+            setModelStatus("error");
+            setModelError("Failed to check model status");
+          }
         }
       } else {
         setModelStatus("none");
       }
     };
-    checkStatus();
+
+    void checkStatus();
+    return () => {
+      cancelled = true;
+    };
   }, [currentModel]);
 
   useEffect(() => {

@@ -1,7 +1,7 @@
 use rubato::{FftFixedIn, Resampler};
+use rustfft::num_traits::ToPrimitive;
 use std::time::Duration;
 
-// Make this a constant you can tweak
 const RESAMPLER_CHUNK_SIZE: usize = 1024;
 
 pub struct FrameResampler {
@@ -14,16 +14,21 @@ pub struct FrameResampler {
 
 impl FrameResampler {
     pub fn new(in_hz: usize, out_hz: usize, frame_dur: Duration) -> Self {
-        let frame_samples = ((out_hz as f64 * frame_dur.as_secs_f64()).round()) as usize;
+        let frame_samples =
+            f64_to_usize_saturating((usize_to_f64(out_hz) * frame_dur.as_secs_f64()).round());
         assert!(frame_samples > 0, "frame duration too short");
 
-        // Use fixed chunk size instead of GCD-based
         let chunk_in = RESAMPLER_CHUNK_SIZE;
-
-        let resampler = (in_hz != out_hz).then(|| {
-            FftFixedIn::<f32>::new(in_hz, out_hz, chunk_in, 1, 1)
-                .expect("Failed to create resampler")
-        });
+        let resampler = if in_hz == out_hz {
+            None
+        } else {
+            // PANIC: construction intentionally rejects an invalid resampling configuration.
+            let resampler = match FftFixedIn::<f32>::new(in_hz, out_hz, chunk_in, 1, 1) {
+                Ok(resampler) => resampler,
+                Err(error) => panic!("failed to create resampler: {error}"),
+            };
+            Some(resampler)
+        };
 
         Self {
             resampler,
@@ -47,15 +52,10 @@ impl FrameResampler {
             src = &src[take..];
 
             if self.in_buf.len() == self.chunk_in {
-                // let start = std::time::Instant::now();
-                if let Ok(out) = self
-                    .resampler
-                    .as_mut()
-                    .unwrap()
-                    .process(&[&self.in_buf[..]], None)
-                {
-                    // let duration = start.elapsed();
-                    // log::debug!("Resampler took: {:?}", duration);
+                let Some(resampler) = self.resampler.as_mut() else {
+                    unreachable!("resampler state cannot change during push");
+                };
+                if let Ok(out) = resampler.process(&[&self.in_buf[..]], None) {
                     self.emit_frames(&out[0], &mut emit);
                 }
                 self.in_buf.clear();
@@ -114,19 +114,24 @@ impl FrameResampler {
     }
 }
 
+fn usize_to_f64(value: usize) -> f64 {
+    let Some(value) = value.to_f64() else {
+        unreachable!("all supported usize values fit within the finite f64 range");
+    };
+    value
+}
+
+fn f64_to_usize_saturating(value: f64) -> usize {
+    match value.to_usize() {
+        Some(value) => value,
+        None if value.is_nan() || value.is_sign_negative() => 0,
+        None => usize::MAX,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// Generate a 1kHz sine wave at the given sample rate and duration.
-    fn sine_wave(sample_rate: usize, freq: f64, duration_secs: f64) -> Vec<f32> {
-        let n = (sample_rate as f64 * duration_secs) as usize;
-        (0..n)
-            .map(|i| {
-                (2.0 * std::f64::consts::PI * freq * i as f64 / sample_rate as f64).sin() as f32
-            })
-            .collect()
-    }
 
     fn collect_output(resampler: &mut FrameResampler, input: &[f32]) -> Vec<f32> {
         let mut out = Vec::new();
@@ -160,9 +165,9 @@ mod tests {
     fn reset_clears_fft_overlap_buffers() {
         let mut r = FrameResampler::new(48000, 16000, Duration::from_millis(30));
 
-        // Push a loud 1kHz sine wave through the resampler (simulates recording 1)
-        let sine = sine_wave(48000, 1000.0, 0.5); // 500ms of audio
-        let _ = collect_output(&mut r, &sine);
+        // Push a loud signal through the resampler (simulates recording 1).
+        let loud = vec![0.5f32; 24_000];
+        let _ = collect_output(&mut r, &loud);
         r.finish(|_| {});
 
         // Reset (simulates new recording starting)
@@ -172,8 +177,8 @@ mod tests {
         let silence = vec![0.0f32; 4096];
         let out = collect_output(&mut r, &silence);
 
-        // The output should be near-zero. If the FFT overlap buffers weren't
-        // cleared, the sine wave's tail would leak into this output.
+        // The output should be near-zero. If the previous recording's tail
+        // was not cleared, it would leak into this output.
         let max_abs = out.iter().map(|s| s.abs()).fold(0.0f32, f32::max);
         assert!(
             max_abs < 0.01,
@@ -187,7 +192,9 @@ mod tests {
         let mut r = FrameResampler::new(48000, 16000, Duration::from_millis(30));
 
         // Recording 1: ascending ramp (distinctive pattern)
-        let ramp: Vec<f32> = (0..48000).map(|i| i as f32 / 48000.0).collect(); // 1 second
+        let ramp: Vec<f32> = (0u16..48_000)
+            .map(|sample| f32::from(sample) / 48_000.0)
+            .collect(); // 1 second
         let out1 = collect_output(&mut r, &ramp);
         r.finish(|_| {});
         assert!(!out1.is_empty(), "Recording 1 should produce output");

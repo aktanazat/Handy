@@ -1,0 +1,2 @@
+[TONE]
+Apply the selected tone rule to the final text while preserving the speaker's meaning and factual limits.

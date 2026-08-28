@@ -46,6 +46,7 @@ pub fn get_tray_translations(locale: Option<String>) -> TrayStrings {
         _ => language,
     };
 
+    // PANIC: build.rs always generates the required English entry from en/translation.json.
     exact_match
         .or_else(|| TRANSLATIONS.get(fallback))
         .or_else(|| TRANSLATIONS.get("en"))
@@ -78,5 +79,85 @@ mod tests {
                 "{locale} should resolve to {expected}"
             );
         }
+    }
+
+    #[test]
+    fn every_locale_has_complete_plain_menu_copy() {
+        for (locale, strings) in TRANSLATIONS.iter() {
+            for (key, value) in tray_values(strings) {
+                assert!(!value.trim().is_empty(), "{locale}.tray.{key} is empty");
+                assert!(
+                    !value.contains('⚠'),
+                    "{locale}.tray.{key} must not use an emoji"
+                );
+            }
+            for (key, status) in [
+                ("statusReady", strings.status_ready.as_str()),
+                ("statusRecording", strings.status_recording.as_str()),
+                ("statusTranscribing", strings.status_transcribing.as_str()),
+                (
+                    "statusMeetingPreflight",
+                    strings.status_meeting_preflight.as_str(),
+                ),
+                (
+                    "statusMeetingStarting",
+                    strings.status_meeting_starting.as_str(),
+                ),
+                (
+                    "statusMeetingRecording",
+                    strings.status_meeting_recording.as_str(),
+                ),
+                (
+                    "statusMeetingPaused",
+                    strings.status_meeting_paused.as_str(),
+                ),
+                (
+                    "statusMeetingProcessing",
+                    strings.status_meeting_processing.as_str(),
+                ),
+                ("statusMeetingReady", strings.status_meeting_ready.as_str()),
+                (
+                    "statusMeetingRecovery",
+                    strings.status_meeting_recovery.as_str(),
+                ),
+            ] {
+                assert!(
+                    status.starts_with("Sona · "),
+                    "{locale}.tray.{key} must retain the Sona status prefix"
+                );
+            }
+        }
+    }
+
+    fn tray_values(strings: &super::TrayStrings) -> [(&'static str, &str); 24] {
+        [
+            ("settings", &strings.settings),
+            ("copyLastTranscript", &strings.copy_last_transcript),
+            ("unloadModel", &strings.unload_model),
+            ("model", &strings.model),
+            ("quit", &strings.quit),
+            ("secureInputWarning", &strings.secure_input_warning),
+            ("openSona", &strings.open_sona),
+            ("startDictation", &strings.start_dictation),
+            ("stopDictation", &strings.stop_dictation),
+            ("cancelTranscription", &strings.cancel_transcription),
+            ("startMeetingNotes", &strings.start_meeting_notes),
+            ("openMeetingNotes", &strings.open_meeting_notes),
+            ("stopMeetingNotes", &strings.stop_meeting_notes),
+            ("cancelMeetingNotes", &strings.cancel_meeting_notes),
+            ("statusReady", &strings.status_ready),
+            ("statusRecording", &strings.status_recording),
+            ("statusTranscribing", &strings.status_transcribing),
+            ("statusMeetingPreflight", &strings.status_meeting_preflight),
+            ("statusMeetingStarting", &strings.status_meeting_starting),
+            ("statusMeetingRecording", &strings.status_meeting_recording),
+            ("statusMeetingPaused", &strings.status_meeting_paused),
+            (
+                "statusMeetingProcessing",
+                &strings.status_meeting_processing,
+            ),
+            ("statusMeetingReady", &strings.status_meeting_ready),
+            ("statusMeetingRecovery", &strings.status_meeting_recovery),
+        ]
     }
 }

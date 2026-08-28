@@ -46,7 +46,7 @@ use super::handler::handle_shortcut_event;
 enum ManagerCommand {
     Register {
         binding_id: String,
-        hotkey_string: String,
+        shortcut: String,
         response: Sender<Result<(), String>>,
     },
     Unregister {
@@ -81,8 +81,10 @@ pub struct FrontendKeyEvent {
     pub key: Option<String>,
     /// Whether this is a key down event
     pub is_key_down: bool,
-    /// The full hotkey string (e.g., "option+space")
-    pub hotkey_string: String,
+    /// Full hotkey chord emitted by the listener.
+    #[serde(rename = "hotkey_string")]
+    #[specta(rename = "hotkey_string")]
+    pub shortcut: String,
 }
 
 impl HandyKeysState {
@@ -119,20 +121,20 @@ impl HandyKeysState {
             }
         };
 
-        // Maps binding IDs to HotkeyIds and hotkey strings
+        // Maps binding IDs to HotkeyIds and their shortcut labels.
         let mut binding_to_hotkey: HashMap<String, HotkeyId> = HashMap::new();
-        let mut hotkey_to_binding: HashMap<HotkeyId, (String, String)> = HashMap::new(); // (binding_id, hotkey_string)
+        let mut hotkey_to_binding: HashMap<HotkeyId, (String, String)> = HashMap::new(); // (binding_id, shortcut)
 
         loop {
             // Check for hotkey events (non-blocking)
             while let Some(event) = manager.try_recv() {
-                if let Some((binding_id, hotkey_string)) = hotkey_to_binding.get(&event.id) {
+                if let Some((binding_id, shortcut)) = hotkey_to_binding.get(&event.id) {
                     debug!(
                         "handy-keys event: binding={}, hotkey={}, state={:?}",
-                        binding_id, hotkey_string, event.state
+                        binding_id, shortcut, event.state
                     );
                     let is_pressed = event.state == HotkeyState::Pressed;
-                    handle_shortcut_event(&app, binding_id, hotkey_string, is_pressed);
+                    handle_shortcut_event(&app, binding_id, shortcut, is_pressed);
                 }
             }
 
@@ -141,7 +143,7 @@ impl HandyKeysState {
                 Ok(cmd) => match cmd {
                     ManagerCommand::Register {
                         binding_id,
-                        hotkey_string,
+                        shortcut,
                         response,
                     } => {
                         let result = Self::do_register(
@@ -149,7 +151,7 @@ impl HandyKeysState {
                             &mut binding_to_hotkey,
                             &mut hotkey_to_binding,
                             &binding_id,
-                            &hotkey_string,
+                            &shortcut,
                         );
                         let _ = response.send(result);
                     }
@@ -189,18 +191,18 @@ impl HandyKeysState {
         binding_to_hotkey: &mut HashMap<String, HotkeyId>,
         hotkey_to_binding: &mut HashMap<HotkeyId, (String, String)>,
         binding_id: &str,
-        hotkey_string: &str,
+        shortcut: &str,
     ) -> Result<(), String> {
-        let hotkey: Hotkey = hotkey_string
+        let hotkey: Hotkey = shortcut
             .parse()
-            .map_err(|e| format!("Failed to parse hotkey '{}': {}", hotkey_string, e))?;
+            .map_err(|e| format!("Failed to parse hotkey '{}': {}", shortcut, e))?;
 
         let id = manager
             .register(hotkey)
             .map_err(|e| format!("Failed to register hotkey: {}", e))?;
 
         binding_to_hotkey.insert(binding_id.to_string(), id);
-        hotkey_to_binding.insert(id, (binding_id.to_string(), hotkey_string.to_string()));
+        hotkey_to_binding.insert(id, (binding_id.to_string(), shortcut.to_string()));
 
         debug!(
             "Registered handy-keys shortcut: {} -> {:?}",
@@ -234,7 +236,7 @@ impl HandyKeysState {
             .map_err(|_| "Failed to lock command_sender")?
             .send(ManagerCommand::Register {
                 binding_id: binding.id.clone(),
-                hotkey_string: binding.current_binding.clone(),
+                shortcut: binding.current_binding.clone(),
                 response: tx,
             })
             .map_err(|_| "Failed to send register command")?;
@@ -316,7 +318,7 @@ impl HandyKeysState {
                     modifiers: modifiers_to_strings(key_event.modifiers),
                     key: key_event.key.map(|k| k.to_string().to_lowercase()),
                     is_key_down: key_event.is_key_down,
-                    hotkey_string: key_event
+                    shortcut: key_event
                         .as_hotkey()
                         .map(|h| h.to_handy_string())
                         .unwrap_or_default(),
@@ -424,31 +426,13 @@ pub fn validate_shortcut(raw: &str) -> Result<(), String> {
 /// Initialize handy-keys shortcuts
 pub fn init_shortcuts(app: &AppHandle) -> Result<(), String> {
     let state = HandyKeysState::new(app.clone())?;
-
-    let default_bindings = settings::get_default_settings().bindings;
     let user_settings = settings::load_or_create_app_settings(app);
 
-    // Register all bindings except cancel (which is dynamic)
-    for (id, default_binding) in default_bindings {
-        if id == "cancel" {
-            continue;
-        }
-        // Skip post-processing shortcut when the feature is disabled
-        if id == "transcribe_with_post_process" && !user_settings.post_process_enabled {
-            continue;
-        }
-
-        let binding = user_settings
-            .bindings
-            .get(&id)
-            .cloned()
-            .unwrap_or(default_binding);
-
+    // Both backends consume the same persisted registration set.
+    for binding in super::bindings_for_registration(&user_settings) {
+        let id = binding.id.clone();
         if let Err(e) = state.register(&binding) {
-            error!(
-                "Failed to register handy-keys shortcut {} during init: {}",
-                id, e
-            );
+            error!("Failed to register handy-keys shortcut {id} during init: {e}");
         }
     }
 
@@ -571,4 +555,29 @@ pub fn stop_handy_keys_recording(app: AppHandle) -> Result<(), String> {
     let result = state.stop_recording();
     super::resume_all_shortcuts(&app);
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::FrontendKeyEvent;
+
+    #[test]
+    fn frontend_key_event_preserves_the_hotkey_string_wire_field() -> Result<(), String> {
+        let event = FrontendKeyEvent {
+            modifiers: vec!["option".to_string()],
+            key: Some("space".to_string()),
+            is_key_down: true,
+            shortcut: "option+space".to_string(),
+        };
+        let payload = serde_json::to_value(event)
+            .map_err(|error| format!("failed to serialize frontend key event: {error}"))?;
+        let shortcut = payload
+            .get("hotkey_string")
+            .and_then(serde_json::Value::as_str)
+            .ok_or("frontend key event lost hotkey_string")?;
+
+        assert_eq!(shortcut, "option+space");
+        assert!(payload.get("shortcut").is_none());
+        Ok(())
+    }
 }

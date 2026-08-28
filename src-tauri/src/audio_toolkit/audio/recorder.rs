@@ -1,15 +1,15 @@
 use std::{
     io::Error,
     sync::{
-        atomic::{AtomicBool, Ordering},
-        mpsc, Arc, Mutex,
+        atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering},
+        mpsc, Arc, Mutex, MutexGuard,
     },
     time::{Duration, Instant},
 };
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
-    Device, Sample, SizedSample,
+    Device, InputCallbackInfo, Sample, SizedSample, StreamInstant,
 };
 
 use crate::audio_toolkit::{
@@ -18,19 +18,338 @@ use crate::audio_toolkit::{
     vad::{self, VadFrame},
     VoiceActivityDetector,
 };
+use crate::meeting::{
+    capture::PacketSink,
+    types::{
+        AudioFormat, CapturedPacket, MeetingCaptureError, PacketDiscontinuityFlags,
+        PacketPushResult, SessionClockAnchor, SourceClockEpoch, SourceEpoch, SourceGap,
+        SourceGapReason, SourceHealth, SourceKind, SourceStartPlan, SourceStartReport,
+        SourceStopReport, TimestampBridge,
+    },
+};
+
+/// The realtime lane carrying mono samples from the device callback to the
+/// recorder's worker thread. Kept behind its producer/consumer halves so the
+/// single-writer discipline that makes it lock-free cannot be broken from here.
+mod capture_lane;
+
+pub use capture_lane::{
+    CaptureConsumer, CaptureDescriptor, CaptureOverrun, CaptureProducer, TimedCaptureOverrun,
+    SOURCE_RESTARTED, TIMESTAMP_DISCONTINUITY, TIMESTAMP_MISSING,
+};
+
+/// How much native-rate mono audio the capture lane holds.
+///
+/// Two seconds absorbs any stall the consumer can plausibly hit — a VAD
+/// inference spike or a scheduler hiccup, against 30 ms frames — and costs
+/// 384 KB at 48 kHz. A deeper lane would only delay reporting a stall that has
+/// already corrupted the recording.
+const LANE_SECONDS: usize = 2;
+
+/// A no-speech history entry keeps at most the first 30 seconds of 16 kHz mono audio.
+const MAX_NO_SPEECH_HISTORY_SAMPLES: usize = 16_000 * 30;
+
+fn lock_recover<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    match mutex.lock() {
+        Ok(guard) => guard,
+        Err(poisoned) => poisoned.into_inner(),
+    }
+}
+
+fn sample_rate_to_usize(sample_rate: u32) -> usize {
+    match usize::try_from(sample_rate) {
+        Ok(sample_rate) => sample_rate,
+        Err(_) => unreachable!("desktop targets represent u32 audio sample rates"),
+    }
+}
+
+fn retain_no_speech_samples(retained: &mut Vec<f32>, samples: &[f32]) {
+    let remaining = MAX_NO_SPEECH_HISTORY_SAMPLES.saturating_sub(retained.len());
+    let accepted = samples.len().min(remaining);
+    retained.extend_from_slice(&samples[..accepted]);
+}
+
+/// How long the consumer sleeps when the capture lane is empty. This bounds both
+/// the command latency on the keypress path and the delay on live streaming
+/// frames, so it is far shorter than the 50 ms channel timeout it replaces; when
+/// the lane has samples the loop never sleeps at all.
+const LANE_POLL_INTERVAL: Duration = Duration::from_millis(5);
+
+/// How long the consumer sleeps while waiting for the device callback to
+/// acknowledge a stop. The real wait is one buffer period (~10 ms built-in,
+/// ~100 ms on Bluetooth), so this only bounds the rounding error on stop.
+const STOP_ACK_POLL_INTERVAL: Duration = Duration::from_millis(1);
+
+/// Give up waiting for the stop acknowledgement after this long: a device that
+/// has stopped delivering callbacks entirely must not wedge `stop()`.
+const STOP_ACK_TIMEOUT: Duration = Duration::from_secs(2);
+
+/// The source-start acknowledgement waits for one timestamped descriptor after
+/// the worker has armed the callback. The timeout is a hardware boundary with a
+/// defined recovery path: the caller aborts the source before returning failure.
+const START_ACK_TIMEOUT: Duration = Duration::from_secs(2);
+
+const MEETING_CALLBACK_IDLE: u8 = 0;
+const MEETING_CALLBACK_CAPTURING: u8 = 1;
+const MEETING_CALLBACK_STOP_REQUESTED: u8 = 2;
+const MEETING_CALLBACK_PAUSED: u8 = 3;
+
+/// Atomics visible to the cpal callback while the recorder worker owns the
+/// meeting packet sink and all lifecycle acknowledgements.
+struct MeetingCallbackControl {
+    mode: AtomicU8,
+    source_epoch: AtomicU64,
+    sequence: AtomicU64,
+    format_epoch: AtomicU64,
+    source_restarted: AtomicBool,
+}
+
+impl MeetingCallbackControl {
+    fn new() -> Self {
+        Self {
+            mode: AtomicU8::new(MEETING_CALLBACK_IDLE),
+            source_epoch: AtomicU64::new(0),
+            sequence: AtomicU64::new(0),
+            format_epoch: AtomicU64::new(0),
+            source_restarted: AtomicBool::new(false),
+        }
+    }
+
+    fn begin(&self, epoch: SourceEpoch) {
+        self.source_epoch.store(epoch.get(), Ordering::Relaxed);
+        self.sequence.store(0, Ordering::Relaxed);
+        self.format_epoch.fetch_add(1, Ordering::Relaxed);
+        self.source_restarted.store(false, Ordering::Relaxed);
+        self.mode
+            .store(MEETING_CALLBACK_CAPTURING, Ordering::Release);
+    }
+
+    fn resume(&self, epoch: SourceEpoch) {
+        self.source_epoch.store(epoch.get(), Ordering::Relaxed);
+        self.source_restarted.store(true, Ordering::Relaxed);
+        self.mode
+            .store(MEETING_CALLBACK_CAPTURING, Ordering::Release);
+    }
+
+    fn request_stop(&self) {
+        self.mode
+            .store(MEETING_CALLBACK_STOP_REQUESTED, Ordering::Release);
+    }
+
+    fn pause(&self) {
+        self.mode.store(MEETING_CALLBACK_PAUSED, Ordering::Release);
+    }
+
+    fn idle(&self) {
+        self.mode.store(MEETING_CALLBACK_IDLE, Ordering::Release);
+    }
+}
 
 enum Cmd {
     /// Begin capturing. Carries the send timestamp so the consumer can log how
     /// long the command sat in the channel, plus a one-shot acknowledgement
-    /// sent only after the first microphone sample chunk is processed.
+    /// sent only after the first microphone samples are processed.
     Start(VadPolicy, Instant, mpsc::Sender<()>),
-    Stop(mpsc::Sender<Vec<f32>>),
+    Stop(mpsc::Sender<Result<RecordedAudio, CaptureError>>),
+    StartMeeting {
+        plan: SourceStartPlan,
+        anchor: SessionClockAnchor,
+        sink: PacketSink,
+        reply: mpsc::Sender<Result<SourceStartReport, MeetingCaptureError>>,
+    },
+    PauseMeeting(mpsc::Sender<Result<(), MeetingCaptureError>>),
+    ResumeMeeting {
+        epoch: SourceEpoch,
+        reply: mpsc::Sender<Result<SourceStartReport, MeetingCaptureError>>,
+    },
+    StopMeeting(mpsc::Sender<Result<SourceStopReport, MeetingCaptureError>>),
+    AbortMeeting(mpsc::Sender<Result<(), MeetingCaptureError>>),
     Shutdown,
 }
 
-enum AudioChunk {
-    Samples(Vec<f32>),
-    EndOfStream,
+struct ActiveMeetingCapture {
+    plan: SourceStartPlan,
+    sink: PacketSink,
+    start_reply: Option<mpsc::Sender<Result<SourceStartReport, MeetingCaptureError>>>,
+    timestamp_bridge: Option<TimestampBridge>,
+    format_epoch: Option<u64>,
+    paused_at_offset_ns: Option<u64>,
+    final_offset_ns: Option<u64>,
+    observed_gaps: Vec<SourceGap>,
+    overrun_reported: bool,
+    paused: bool,
+}
+
+impl ActiveMeetingCapture {
+    fn new(
+        plan: SourceStartPlan,
+        _anchor: SessionClockAnchor,
+        sink: PacketSink,
+        start_reply: mpsc::Sender<Result<SourceStartReport, MeetingCaptureError>>,
+    ) -> Self {
+        Self {
+            plan,
+            sink,
+            start_reply: Some(start_reply),
+            timestamp_bridge: None,
+            format_epoch: None,
+            paused_at_offset_ns: None,
+            final_offset_ns: None,
+            observed_gaps: Vec::with_capacity(4),
+            overrun_reported: false,
+            paused: false,
+        }
+    }
+
+    fn establish_timestamp_bridge(
+        &mut self,
+        native_timestamp: Option<(i64, u32)>,
+        host_monotonic_anchor_ns: Option<u64>,
+    ) -> Option<TimestampBridge> {
+        if self.timestamp_bridge.is_none() {
+            let (native_anchor_value, native_timescale) = native_timestamp?;
+            let host_monotonic_anchor_ns = host_monotonic_anchor_ns?;
+            if native_timescale == 0 {
+                return None;
+            }
+            self.timestamp_bridge = Some(TimestampBridge {
+                native_anchor_value,
+                native_timescale,
+                host_monotonic_anchor_ns,
+                session_offset_ns: 0,
+            });
+        }
+        self.timestamp_bridge
+    }
+
+    fn start_report(
+        &self,
+        format: AudioFormat,
+        format_epoch: u64,
+        timestamp_bridge: TimestampBridge,
+    ) -> SourceStartReport {
+        SourceStartReport {
+            track_id: self.plan.track_id,
+            source_kind: SourceKind::Microphone,
+            format,
+            epoch: self.plan.source_epoch,
+            format_epoch,
+            timestamp_bridge,
+        }
+    }
+
+    fn source_offset(&self, native_timestamp: Option<(i64, u32)>) -> Option<u64> {
+        let (value, timescale) = native_timestamp?;
+        self.timestamp_bridge?.map_native(value, timescale)
+    }
+
+    fn source_end_offset(
+        &self,
+        native_timestamp: Option<(i64, u32)>,
+        sample_rate_hz: u32,
+        frame_count: u32,
+    ) -> Option<u64> {
+        let start = self.source_offset(native_timestamp)?;
+        let duration_ns = u64::from(frame_count)
+            .checked_mul(1_000_000_000)?
+            .checked_div(u64::from(sample_rate_hz))?;
+        start.checked_add(duration_ns)
+    }
+
+    fn report_gap(&mut self, gap: SourceGap) {
+        self.sink.report_gap(gap.clone());
+        self.observed_gaps.push(gap);
+    }
+
+    fn publish_clock_epoch(&mut self, epoch: SourceEpoch) -> Result<(), MeetingCaptureError> {
+        let Some(timestamp_bridge) = self.timestamp_bridge else {
+            return Err(MeetingCaptureError::InvalidState);
+        };
+        let Some(format_epoch) = self.format_epoch else {
+            return Err(MeetingCaptureError::InvalidState);
+        };
+        if self.sink.report_clock_epoch(SourceClockEpoch {
+            track_id: self.plan.track_id,
+            epoch,
+            format_epoch,
+            bridge: timestamp_bridge,
+        }) {
+            return Ok(());
+        }
+        self.report_gap(SourceGap {
+            track_id: self.plan.track_id,
+            epoch,
+            start_offset_ns: self.final_offset_ns,
+            end_offset_ns: None,
+            reason: SourceGapReason::TimestampDiscontinuity,
+            dropped_frames: None,
+        });
+        Err(MeetingCaptureError::StreamFailure)
+    }
+
+    fn complete_start(
+        &mut self,
+        format: AudioFormat,
+        format_epoch: u64,
+        timestamp_bridge: TimestampBridge,
+    ) {
+        self.format_epoch = Some(format_epoch);
+        if let Some(reply) = self.start_reply.take() {
+            let _ = reply.send(Ok(self.start_report(
+                format,
+                format_epoch,
+                timestamp_bridge,
+            )));
+        }
+    }
+
+    fn fail_start(&mut self, error: MeetingCaptureError) {
+        if let Some(reply) = self.start_reply.take() {
+            let _ = reply.send(Err(error));
+        }
+    }
+
+    fn stop_report(&self) -> SourceStopReport {
+        SourceStopReport {
+            track_id: self.plan.track_id,
+            final_offset_ns: self.final_offset_ns,
+            health: SourceHealth::Stopped,
+            observed_gaps: self.observed_gaps.clone(),
+        }
+    }
+}
+
+/// Why a recording could not be delivered.
+#[derive(Debug)]
+pub enum CaptureError {
+    /// The recorder is not open, or its capture worker has already exited.
+    NotCapturing,
+    /// The realtime capture lane overran. `prefix_samples` is the contiguous
+    /// 16 kHz prefix from before the gap. It may be saved and retried by the
+    /// user, but must never be transcribed automatically.
+    Overrun {
+        overrun: CaptureOverrun,
+        prefix_samples: Vec<f32>,
+    },
+}
+
+impl std::fmt::Display for CaptureError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CaptureError::NotCapturing => f.write_str("no capture worker is running"),
+            CaptureError::Overrun { overrun, .. } => overrun.fmt(f),
+        }
+    }
+}
+
+impl std::error::Error for CaptureError {}
+
+/// Audio retained from one complete capture. no_speech_detected means VAD
+/// rejected every frame; samples keeps a bounded prefix of that silence playable.
+#[derive(Debug)]
+pub struct RecordedAudio {
+    pub samples: Vec<f32>,
+    pub no_speech_detected: bool,
 }
 
 /// How 16 kHz mono frames should be filtered for one recording session.
@@ -69,6 +388,25 @@ impl VadConfig {
 /// Callback invoked with each 16 kHz mono frame that passes the active capture
 /// policy while recording. Used to feed a live streaming transcription as audio arrives.
 pub type AudioFrameCallback = Arc<dyn Fn(&[f32]) + Send + Sync + 'static>;
+struct StreamBuildOptions {
+    producer: CaptureProducer,
+    channels: usize,
+    selected_channel: Option<usize>,
+    stream_error: Arc<AtomicBool>,
+    meeting_control: Arc<MeetingCallbackControl>,
+    sample_rate: u32,
+}
+
+struct ConsumerInputs {
+    in_sample_rate: u32,
+    vad: Option<VadConfig>,
+    lane: CaptureConsumer,
+    cmd_rx: mpsc::Receiver<Cmd>,
+    level_cb: Option<Arc<dyn Fn(Vec<f32>) + Send + Sync + 'static>>,
+    audio_cb: Option<AudioFrameCallback>,
+    stream_running_at: Instant,
+    meeting_control: Arc<MeetingCallbackControl>,
+}
 
 pub struct AudioRecorder {
     device: Option<Device>,
@@ -162,7 +500,6 @@ impl AudioRecorder {
 
         self.stream_error.store(false, Ordering::Relaxed);
 
-        let (sample_tx, sample_rx) = mpsc::channel::<AudioChunk>();
         let (cmd_tx, cmd_rx) = mpsc::channel::<Cmd>();
         let (init_tx, init_rx) = mpsc::sync_channel::<Result<(), String>>(1);
 
@@ -185,14 +522,18 @@ impl AudioRecorder {
         let stream_error = Arc::clone(&self.stream_error);
 
         let worker = std::thread::spawn(move || {
-            let stop_flag = Arc::new(AtomicBool::new(false));
-            let stop_flag_for_stream = stop_flag.clone();
-            let init_result = (|| -> Result<(cpal::Stream, u32), String> {
+            let init_result = (|| -> Result<
+                (
+                    cpal::Stream,
+                    u32,
+                    CaptureConsumer,
+                    Arc<MeetingCallbackControl>,
+                ),
+                String,
+            > {
                 let config_started = Instant::now();
                 let device_name = thread_device.name().unwrap_or_default();
-                let cached_config = config_cache
-                    .lock()
-                    .unwrap()
+                let cached_config = lock_recover(&config_cache)
                     .as_ref()
                     .filter(|(name, _)| !device_name.is_empty() && *name == device_name)
                     .map(|(_, cfg)| cfg.clone());
@@ -205,7 +546,7 @@ impl AudioRecorder {
                 let config_elapsed = config_started.elapsed();
 
                 let sample_rate = config.sample_rate().0;
-                let channels = config.channels() as usize;
+                let channels = usize::from(config.channels());
 
                 log::info!(
                     "Using device: {:?}\nSample rate: {}\nChannels: {}\nFormat: {:?}",
@@ -229,62 +570,50 @@ impl AudioRecorder {
                     log::info!("Averaging all {} input channels", channels);
                 }
 
+                // Built here, before play(), so the device callback owns
+                // preallocated storage and never has to touch the heap. The
+                // descriptor sidecar remains dormant for dictation.
+                let sample_capacity = usize::try_from(sample_rate)
+                    .unwrap_or(usize::MAX)
+                    .saturating_mul(LANE_SECONDS);
+                let descriptor_capacity =
+                    AudioRecorder::meeting_descriptor_capacity(&config, sample_capacity);
+                let (producer, consumer) = capture_lane::timed_lane_with_descriptor_capacity(
+                    sample_capacity,
+                    descriptor_capacity,
+                );
+                let meeting_control = Arc::new(MeetingCallbackControl::new());
+
                 let build_started = Instant::now();
+                let stream_options = |producer| StreamBuildOptions {
+                    producer,
+                    channels,
+                    selected_channel,
+                    stream_error: Arc::clone(&stream_error),
+                    meeting_control: Arc::clone(&meeting_control),
+                    sample_rate,
+                };
                 let stream = match config.sample_format() {
-                    cpal::SampleFormat::U8 => AudioRecorder::build_stream::<u8>(
-                        &thread_device,
-                        &config,
-                        sample_tx,
-                        channels,
-                        selected_channel,
-                        stop_flag_for_stream,
-                        Arc::clone(&stream_error),
-                    )
-                    .map_err(|e| format!("Failed to build input stream: {e}"))?,
-                    cpal::SampleFormat::I8 => AudioRecorder::build_stream::<i8>(
-                        &thread_device,
-                        &config,
-                        sample_tx,
-                        channels,
-                        selected_channel,
-                        stop_flag_for_stream,
-                        Arc::clone(&stream_error),
-                    )
-                    .map_err(|e| format!("Failed to build input stream: {e}"))?,
-                    cpal::SampleFormat::I16 => AudioRecorder::build_stream::<i16>(
-                        &thread_device,
-                        &config,
-                        sample_tx,
-                        channels,
-                        selected_channel,
-                        stop_flag_for_stream,
-                        Arc::clone(&stream_error),
-                    )
-                    .map_err(|e| format!("Failed to build input stream: {e}"))?,
-                    cpal::SampleFormat::I32 => AudioRecorder::build_stream::<i32>(
-                        &thread_device,
-                        &config,
-                        sample_tx,
-                        channels,
-                        selected_channel,
-                        stop_flag_for_stream,
-                        Arc::clone(&stream_error),
-                    )
-                    .map_err(|e| format!("Failed to build input stream: {e}"))?,
-                    cpal::SampleFormat::F32 => AudioRecorder::build_stream::<f32>(
-                        &thread_device,
-                        &config,
-                        sample_tx,
-                        channels,
-                        selected_channel,
-                        stop_flag_for_stream,
-                        Arc::clone(&stream_error),
-                    )
-                    .map_err(|e| format!("Failed to build input stream: {e}"))?,
+                    cpal::SampleFormat::U8 => {
+                        AudioRecorder::build_stream::<u8>(&thread_device, &config, stream_options(producer))
+                    }
+                    cpal::SampleFormat::I8 => {
+                        AudioRecorder::build_stream::<i8>(&thread_device, &config, stream_options(producer))
+                    }
+                    cpal::SampleFormat::I16 => {
+                        AudioRecorder::build_stream::<i16>(&thread_device, &config, stream_options(producer))
+                    }
+                    cpal::SampleFormat::I32 => {
+                        AudioRecorder::build_stream::<i32>(&thread_device, &config, stream_options(producer))
+                    }
+                    cpal::SampleFormat::F32 => {
+                        AudioRecorder::build_stream::<f32>(&thread_device, &config, stream_options(producer))
+                    }
                     sample_format => {
                         return Err(format!("Unsupported sample format: {sample_format:?}"));
                     }
-                };
+                }
+                .map_err(|error| format!("Failed to build input stream: {error}"))?;
                 let build_elapsed = build_started.elapsed();
 
                 let play_started = Instant::now();
@@ -302,36 +631,36 @@ impl AudioRecorder {
                 // The device accepted this config; remember it so the next
                 // open skips the HAL property queries entirely.
                 if !config_was_cached && !device_name.is_empty() {
-                    *config_cache.lock().unwrap() = Some((device_name, config));
+                    *lock_recover(&config_cache) = Some((device_name, config));
                 }
 
-                Ok((stream, sample_rate))
+                Ok((stream, sample_rate, consumer, meeting_control))
             })();
 
             match init_result {
-                Ok((stream, sample_rate)) => {
+                Ok((stream, sample_rate, consumer, meeting_control)) => {
                     let _ = init_tx.send(Ok(()));
                     // Timestamp for the play()-returned -> first-samples gap the
                     // init handshake can't see (hardware dependent).
                     let stream_running_at = Instant::now();
                     // Keep the stream alive while we process samples.
-                    run_consumer(
-                        sample_rate,
+                    run_consumer(ConsumerInputs {
+                        in_sample_rate: sample_rate,
                         vad,
-                        sample_rx,
+                        lane: consumer,
                         cmd_rx,
                         level_cb,
                         audio_cb,
-                        stop_flag,
                         stream_running_at,
-                    );
+                        meeting_control,
+                    });
                     drop(stream);
                 }
                 Err(error_message) => {
                     // A failed open may mean the cached config went stale
                     // (device re-plugged, rate/format changed in the OS).
                     // Drop it so the next attempt re-queries the device.
-                    *config_cache.lock().unwrap() = None;
+                    *lock_recover(&config_cache) = None;
                     log::error!("{error_message}");
                     let _ = init_tx.send(Err(error_message));
                 }
@@ -380,12 +709,114 @@ impl AudioRecorder {
         Ok(ready_rx)
     }
 
-    pub fn stop(&self) -> Result<Vec<f32>, Box<dyn std::error::Error>> {
+    /// End the recording and return its 16 kHz mono samples.
+    ///
+    /// [`CaptureError::Overrun`] carries the clean prefix that arrived before
+    /// the sticky capture gap. The caller may persist that prefix for an
+    /// explicit retry, but must not decode or deliver it automatically.
+    pub fn stop(&self) -> Result<RecordedAudio, CaptureError> {
+        let tx = self.cmd_tx.as_ref().ok_or(CaptureError::NotCapturing)?;
         let (resp_tx, resp_rx) = mpsc::channel();
-        if let Some(tx) = &self.cmd_tx {
-            tx.send(Cmd::Stop(resp_tx))?;
+        tx.send(Cmd::Stop(resp_tx))
+            .map_err(|_| CaptureError::NotCapturing)?;
+        resp_rx
+            .recv() // wait for the samples
+            .map_err(|_| CaptureError::NotCapturing)?
+    }
+
+    /// Start timestamped microphone streaming for an already-authorized
+    /// meeting source. The cpal callback does not receive the packet sink;
+    /// the recorder worker drains the preallocated lane and forwards it.
+    pub(crate) fn start_meeting_capture(
+        &self,
+        plan: SourceStartPlan,
+        anchor: SessionClockAnchor,
+        sink: PacketSink,
+    ) -> Result<SourceStartReport, MeetingCaptureError> {
+        let tx = self
+            .cmd_tx
+            .as_ref()
+            .ok_or(MeetingCaptureError::Unavailable)?;
+        let (reply_tx, reply_rx) = mpsc::channel();
+        tx.send(Cmd::StartMeeting {
+            plan,
+            anchor,
+            sink,
+            reply: reply_tx,
+        })
+        .map_err(|_| MeetingCaptureError::StreamFailure)?;
+
+        match reply_rx.recv_timeout(START_ACK_TIMEOUT) {
+            Ok(reply) => reply,
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                let _ = self.abort_meeting_capture();
+                Err(MeetingCaptureError::StreamFailure)
+            }
+            Err(mpsc::RecvTimeoutError::Disconnected) => Err(MeetingCaptureError::StreamFailure),
         }
-        Ok(resp_rx.recv()?) // wait for the samples
+    }
+
+    pub(crate) fn pause_meeting_capture(&self) -> Result<(), MeetingCaptureError> {
+        let tx = self
+            .cmd_tx
+            .as_ref()
+            .ok_or(MeetingCaptureError::Unavailable)?;
+        let (reply_tx, reply_rx) = mpsc::channel();
+        tx.send(Cmd::PauseMeeting(reply_tx))
+            .map_err(|_| MeetingCaptureError::StreamFailure)?;
+        reply_rx
+            .recv_timeout(STOP_ACK_TIMEOUT)
+            .map_err(|_| MeetingCaptureError::StreamFailure)?
+    }
+
+    pub(crate) fn resume_meeting_capture(
+        &self,
+        epoch: SourceEpoch,
+    ) -> Result<SourceStartReport, MeetingCaptureError> {
+        let tx = self
+            .cmd_tx
+            .as_ref()
+            .ok_or(MeetingCaptureError::Unavailable)?;
+        let (reply_tx, reply_rx) = mpsc::channel();
+        tx.send(Cmd::ResumeMeeting {
+            epoch,
+            reply: reply_tx,
+        })
+        .map_err(|_| MeetingCaptureError::StreamFailure)?;
+        match reply_rx.recv_timeout(START_ACK_TIMEOUT) {
+            Ok(reply) => reply,
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                let _ = self.abort_meeting_capture();
+                Err(MeetingCaptureError::StreamFailure)
+            }
+            Err(mpsc::RecvTimeoutError::Disconnected) => Err(MeetingCaptureError::StreamFailure),
+        }
+    }
+
+    pub(crate) fn stop_meeting_capture(&self) -> Result<SourceStopReport, MeetingCaptureError> {
+        let tx = self
+            .cmd_tx
+            .as_ref()
+            .ok_or(MeetingCaptureError::Unavailable)?;
+        let (reply_tx, reply_rx) = mpsc::channel();
+        tx.send(Cmd::StopMeeting(reply_tx))
+            .map_err(|_| MeetingCaptureError::StreamFailure)?;
+        reply_rx
+            .recv_timeout(STOP_ACK_TIMEOUT)
+            .map_err(|_| MeetingCaptureError::StreamFailure)?
+    }
+
+    pub(crate) fn abort_meeting_capture(&self) -> Result<(), MeetingCaptureError> {
+        let tx = self
+            .cmd_tx
+            .as_ref()
+            .ok_or(MeetingCaptureError::Unavailable)?;
+        let (reply_tx, reply_rx) = mpsc::channel();
+        tx.send(Cmd::AbortMeeting(reply_tx))
+            .map_err(|_| MeetingCaptureError::StreamFailure)?;
+        reply_rx
+            .recv_timeout(STOP_ACK_TIMEOUT)
+            .map_err(|_| MeetingCaptureError::StreamFailure)?
     }
 
     /// True when the active capture stream must be rebuilt.
@@ -411,21 +842,36 @@ impl AudioRecorder {
         Ok(())
     }
 
+    fn meeting_descriptor_capacity(
+        config: &cpal::SupportedStreamConfig,
+        sample_capacity: usize,
+    ) -> usize {
+        match config.buffer_size() {
+            cpal::SupportedBufferSize::Range { min, .. } => {
+                let minimum_frames = usize::try_from(*min).unwrap_or(sample_capacity).max(1);
+                sample_capacity.saturating_add(minimum_frames.saturating_sub(1)) / minimum_frames
+            }
+            cpal::SupportedBufferSize::Unknown => sample_capacity,
+        }
+    }
+
     fn build_stream<T>(
         device: &cpal::Device,
         config: &cpal::SupportedStreamConfig,
-        sample_tx: mpsc::Sender<AudioChunk>,
-        channels: usize,
-        selected_channel: Option<usize>,
-        stop_flag: Arc<AtomicBool>,
-        stream_error: Arc<AtomicBool>,
+        options: StreamBuildOptions,
     ) -> Result<cpal::Stream, cpal::BuildStreamError>
     where
         T: Sample + SizedSample + Send + 'static,
         f32: cpal::FromSample<T>,
     {
-        let mut output_buffer = Vec::new();
-        let mut eos_sent = false;
+        let StreamBuildOptions {
+            mut producer,
+            channels,
+            selected_channel,
+            stream_error,
+            meeting_control,
+            sample_rate,
+        } = options;
         // Resolve the effective channel to use. If the selected channel is
         // out of range for this device, fall back to averaging all channels.
         let use_channel: Option<usize> = match selected_channel {
@@ -433,53 +879,32 @@ impl AudioRecorder {
             Some(_) => None, // out of range, fall back to average
             None => None,    // user chose "average all"
         };
-
-        let stream_cb = move |data: &[T], _: &cpal::InputCallbackInfo| {
-            if stop_flag.load(Ordering::Relaxed) {
-                if !eos_sent {
-                    let _ = sample_tx.send(AudioChunk::EndOfStream);
-                    eos_sent = true;
-                }
-                return;
-            }
-            eos_sent = false;
-
-            output_buffer.clear();
-
-            if channels == 1 {
-                output_buffer.extend(data.iter().map(|&sample| sample.to_sample::<f32>()));
-            } else {
-                let frame_count = data.len() / channels;
-                output_buffer.reserve(frame_count);
-
-                if let Some(ch) = use_channel {
-                    for frame in data.chunks_exact(channels) {
-                        let mono_sample = frame[ch].to_sample::<f32>();
-                        output_buffer.push(mono_sample);
-                    }
-                } else {
-                    for frame in data.chunks_exact(channels) {
-                        let mono_sample = frame
-                            .iter()
-                            .map(|&sample| sample.to_sample::<f32>())
-                            .sum::<f32>()
-                            / channels as f32;
-                        output_buffer.push(mono_sample);
-                    }
-                }
-            }
-
-            if sample_tx
-                .send(AudioChunk::Samples(output_buffer.clone()))
-                .is_err()
-            {
-                log::error!("Failed to send samples");
-            }
-        };
+        let mut last_meeting_timestamp_ns = None;
 
         device.build_input_stream(
             &config.clone().into(),
-            stream_cb,
+            move |data: &[T], callback_info: &InputCallbackInfo| match meeting_control
+                .mode
+                .load(Ordering::Acquire)
+            {
+                MEETING_CALLBACK_CAPTURING => capture_into_timed_lane(
+                    data,
+                    callback_info,
+                    TimedCaptureState {
+                        channels,
+                        use_channel,
+                        sample_rate,
+                        meeting_control: &meeting_control,
+                        last_timestamp_value: &mut last_meeting_timestamp_ns,
+                        producer: &mut producer,
+                    },
+                ),
+                MEETING_CALLBACK_STOP_REQUESTED => {
+                    producer.acknowledge_stop();
+                }
+                MEETING_CALLBACK_PAUSED => {}
+                _ => capture_into_lane(data, channels, use_channel, &mut producer),
+            },
             move |err| {
                 log::error!("Stream error: {}", err);
                 stream_error.store(true, Ordering::Relaxed);
@@ -550,6 +975,188 @@ impl AudioRecorder {
     }
 }
 
+/// The entire body of the cpal input callback: downmix one interleaved device
+/// buffer to mono straight into the preallocated capture lane.
+///
+/// Realtime-safe by construction — no allocation, no locking, no logging, no
+/// syscall — and it is the only thing the device callback does, so those are the
+/// stream's properties too. Nothing is copied twice: the mixed samples land
+/// directly in the lane's slots.
+fn capture_into_lane<T>(
+    data: &[T],
+    channels: usize,
+    use_channel: Option<usize>,
+    producer: &mut CaptureProducer,
+) where
+    T: Sample,
+    f32: cpal::FromSample<T>,
+{
+    let frames = data.len() / channels;
+    if frames == 0 {
+        return;
+    }
+
+    producer.commit(frames, |first, second| {
+        if channels == 1 {
+            for (slot, &sample) in first.iter_mut().chain(second.iter_mut()).zip(data) {
+                *slot = sample.to_sample::<f32>();
+            }
+            return;
+        }
+
+        match use_channel {
+            Some(channel) => {
+                for (slot, frame) in first
+                    .iter_mut()
+                    .chain(second.iter_mut())
+                    .zip(data.chunks_exact(channels))
+                {
+                    *slot = frame[channel].to_sample::<f32>();
+                }
+            }
+            None => {
+                let channel_count = u16::try_from(channels).unwrap_or(u16::MAX);
+                for (slot, frame) in first
+                    .iter_mut()
+                    .chain(second.iter_mut())
+                    .zip(data.chunks_exact(channels))
+                {
+                    *slot = frame
+                        .iter()
+                        .map(|&sample| sample.to_sample::<f32>())
+                        .sum::<f32>()
+                        / f32::from(channel_count);
+                }
+            }
+        }
+    });
+}
+
+/// CoreAudio exposes cpal input timestamps from `mach_absolute_time`, which is
+/// the host monotonic clock. Other backends retain their native timestamp but
+/// do not claim a host-clock bridge without an explicit platform adapter.
+#[cfg(target_os = "macos")]
+fn cpal_host_monotonic_anchor_ns(native_timestamp_value: Option<i64>) -> Option<u64> {
+    native_timestamp_value.and_then(|value| u64::try_from(value).ok())
+}
+
+#[cfg(not(target_os = "macos"))]
+fn cpal_host_monotonic_anchor_ns(_native_timestamp_value: Option<i64>) -> Option<u64> {
+    None
+}
+
+struct TimedCaptureState<'a> {
+    channels: usize,
+    use_channel: Option<usize>,
+    sample_rate: u32,
+    meeting_control: &'a MeetingCallbackControl,
+    last_timestamp_value: &'a mut Option<i64>,
+    producer: &'a mut CaptureProducer,
+}
+
+/// Capture the same native-rate mono samples as dictation, paired with the
+/// cpal capture timestamp that belongs to this callback.
+///
+/// This remains a callback-only copy into fixed storage: it does not call the
+/// meeting packet sink, allocate, lock, log, resample, or dispatch UI work.
+fn capture_into_timed_lane<T>(
+    data: &[T],
+    callback_info: &InputCallbackInfo,
+    state: TimedCaptureState<'_>,
+) where
+    T: Sample,
+    f32: cpal::FromSample<T>,
+{
+    let TimedCaptureState {
+        channels,
+        use_channel,
+        sample_rate,
+        meeting_control,
+        last_timestamp_value,
+        producer,
+    } = state;
+    let frames = data.len() / channels;
+    if frames == 0 {
+        return;
+    }
+
+    let native_timestamp_value = callback_info
+        .timestamp()
+        .capture
+        .duration_since(&StreamInstant::new(0, 0))
+        .and_then(|duration| i64::try_from(duration.as_nanos()).ok());
+    let native_timestamp_timescale = native_timestamp_value.map(|_| 1_000_000_000);
+    let host_monotonic_anchor_ns = cpal_host_monotonic_anchor_ns(native_timestamp_value);
+    let mut flags = 0;
+    let source_restarted = meeting_control.source_restarted.load(Ordering::Acquire);
+    if source_restarted {
+        flags |= SOURCE_RESTARTED;
+    }
+    match native_timestamp_value {
+        Some(timestamp) => {
+            if last_timestamp_value.is_some_and(|previous| timestamp <= previous) {
+                flags |= TIMESTAMP_DISCONTINUITY;
+            }
+            *last_timestamp_value = Some(timestamp);
+        }
+        None => flags |= TIMESTAMP_MISSING,
+    }
+    let descriptor = CaptureDescriptor {
+        sequence: meeting_control.sequence.fetch_add(1, Ordering::Relaxed),
+        source_epoch: meeting_control.source_epoch.load(Ordering::Relaxed),
+        native_timestamp_value: native_timestamp_value.unwrap_or_default(),
+        native_timestamp_timescale: native_timestamp_timescale.unwrap_or_default(),
+        host_monotonic_anchor_ns,
+        format_epoch: meeting_control.format_epoch.load(Ordering::Relaxed),
+        frame_start: 0,
+        frame_count: 0,
+        sample_rate,
+        channels: 1,
+        sample_format: capture_lane::CaptureSampleFormat::F32,
+        flags,
+    };
+
+    let accepted = producer.commit_timed(frames, descriptor, |first, second| {
+        if channels == 1 {
+            for (slot, &sample) in first.iter_mut().chain(second.iter_mut()).zip(data) {
+                *slot = sample.to_sample::<f32>();
+            }
+            return;
+        }
+
+        match use_channel {
+            Some(channel) => {
+                for (slot, frame) in first
+                    .iter_mut()
+                    .chain(second.iter_mut())
+                    .zip(data.chunks_exact(channels))
+                {
+                    *slot = frame[channel].to_sample::<f32>();
+                }
+            }
+            None => {
+                let channel_count = u16::try_from(channels).unwrap_or(u16::MAX);
+                for (slot, frame) in first
+                    .iter_mut()
+                    .chain(second.iter_mut())
+                    .zip(data.chunks_exact(channels))
+                {
+                    *slot = frame
+                        .iter()
+                        .map(|&sample| sample.to_sample::<f32>())
+                        .sum::<f32>()
+                        / f32::from(channel_count);
+                }
+            }
+        }
+    });
+    if accepted && source_restarted {
+        meeting_control
+            .source_restarted
+            .store(false, Ordering::Release);
+    }
+}
+
 pub fn is_microphone_access_denied(error_message: &str) -> bool {
     let normalized = error_message.to_lowercase();
     normalized.contains("access is denied")
@@ -564,19 +1171,1098 @@ pub fn is_no_input_device_error(error_message: &str) -> bool {
             && normalized.contains("coreaudio"))
 }
 
+fn descriptor_timestamp(descriptor: CaptureDescriptor) -> Option<(i64, u32)> {
+    (descriptor.flags & TIMESTAMP_MISSING == 0 && descriptor.native_timestamp_timescale > 0)
+        .then_some((
+            descriptor.native_timestamp_value,
+            descriptor.native_timestamp_timescale,
+        ))
+}
+
+fn observe_meeting_packet(
+    capture: &mut ActiveMeetingCapture,
+    descriptor: CaptureDescriptor,
+    samples: &[f32],
+) {
+    let native_timestamp = descriptor_timestamp(descriptor);
+    let timestamp_bridge =
+        capture.establish_timestamp_bridge(native_timestamp, descriptor.host_monotonic_anchor_ns);
+    let packet = CapturedPacket {
+        track_id: capture.plan.track_id,
+        source_epoch: SourceEpoch::new(descriptor.source_epoch),
+        format_epoch: descriptor.format_epoch,
+        sequence: descriptor.sequence,
+        native_timestamp_value: native_timestamp.map(|(value, _)| value),
+        native_timestamp_timescale: native_timestamp.map(|(_, timescale)| timescale),
+        host_monotonic_anchor_ns: descriptor.host_monotonic_anchor_ns,
+        sample_rate_hz: descriptor.sample_rate,
+        channels: descriptor.channels,
+        frame_count: descriptor.frame_count,
+        discontinuity_flags: PacketDiscontinuityFlags {
+            timestamp_reset: descriptor.flags & TIMESTAMP_DISCONTINUITY != 0,
+            route_changed: false,
+            source_restarted: descriptor.flags & SOURCE_RESTARTED != 0,
+        },
+    };
+    let start_offset_ns = capture.source_offset(native_timestamp);
+    let end_offset_ns = capture.source_end_offset(
+        native_timestamp,
+        descriptor.sample_rate,
+        descriptor.frame_count,
+    );
+
+    if native_timestamp.is_none() {
+        capture.report_gap(SourceGap {
+            track_id: capture.plan.track_id,
+            epoch: packet.source_epoch,
+            start_offset_ns: None,
+            end_offset_ns: None,
+            reason: SourceGapReason::TimestampMissing,
+            dropped_frames: None,
+        });
+    }
+    if descriptor.flags & TIMESTAMP_DISCONTINUITY != 0 {
+        capture.report_gap(SourceGap {
+            track_id: capture.plan.track_id,
+            epoch: packet.source_epoch,
+            start_offset_ns,
+            end_offset_ns,
+            reason: SourceGapReason::TimestampDiscontinuity,
+            dropped_frames: None,
+        });
+    }
+    if let (Some(pause_start), Some(pause_end)) = (capture.paused_at_offset_ns, start_offset_ns) {
+        capture.paused_at_offset_ns = None;
+        capture.report_gap(SourceGap {
+            track_id: capture.plan.track_id,
+            epoch: packet.source_epoch,
+            start_offset_ns: Some(pause_start),
+            end_offset_ns: Some(pause_end),
+            reason: SourceGapReason::Paused,
+            dropped_frames: None,
+        });
+    }
+
+    if let PacketPushResult::Dropped { frames } = capture.sink.try_push_interleaved(packet, samples)
+    {
+        capture.observed_gaps.push(SourceGap {
+            track_id: capture.plan.track_id,
+            epoch: packet.source_epoch,
+            start_offset_ns,
+            end_offset_ns,
+            reason: SourceGapReason::PacketDropped,
+            dropped_frames: Some(u64::from(frames)),
+        });
+    }
+    capture.final_offset_ns = end_offset_ns.or(capture.final_offset_ns);
+    if let Some(timestamp_bridge) = timestamp_bridge {
+        capture.complete_start(packet.format(), descriptor.format_epoch, timestamp_bridge);
+    }
+}
+
+fn drain_meeting_lane(
+    lane: &mut CaptureConsumer,
+    capture: &mut ActiveMeetingCapture,
+    wrapped_packet_scratch: &mut Vec<f32>,
+) -> usize {
+    lane.drain_timed(|descriptor, first, second| {
+        if second.is_empty() {
+            observe_meeting_packet(capture, descriptor, first);
+            return;
+        }
+
+        wrapped_packet_scratch.clear();
+        wrapped_packet_scratch.extend_from_slice(first);
+        wrapped_packet_scratch.extend_from_slice(second);
+        observe_meeting_packet(capture, descriptor, wrapped_packet_scratch);
+    })
+}
+
+fn report_meeting_lane_overrun(capture: &mut ActiveMeetingCapture, overrun: TimedCaptureOverrun) {
+    let descriptor = overrun.first_dropped;
+    let native_timestamp = descriptor_timestamp(descriptor);
+    capture.report_gap(SourceGap {
+        track_id: capture.plan.track_id,
+        epoch: SourceEpoch::new(descriptor.source_epoch),
+        start_offset_ns: capture.source_offset(native_timestamp),
+        end_offset_ns: capture.source_end_offset(
+            native_timestamp,
+            descriptor.sample_rate,
+            descriptor.frame_count,
+        ),
+        reason: SourceGapReason::WriterPressure,
+        dropped_frames: Some(u64::try_from(overrun.capture.lost_samples).unwrap_or(u64::MAX)),
+    });
+    capture.overrun_reported = true;
+}
+
+fn observe_meeting_lane_overrun(
+    lane: &CaptureConsumer,
+    capture: &mut ActiveMeetingCapture,
+    sample_rate: u32,
+) {
+    if capture.overrun_reported {
+        return;
+    }
+    if let Some(overrun) = lane.timed_overrun(sample_rate) {
+        report_meeting_lane_overrun(capture, overrun);
+        return;
+    }
+    if let Some(overrun) = lane.overrun(sample_rate) {
+        capture.report_gap(SourceGap {
+            track_id: capture.plan.track_id,
+            epoch: capture.plan.source_epoch,
+            start_offset_ns: capture.final_offset_ns,
+            end_offset_ns: None,
+            reason: SourceGapReason::InvalidFormat,
+            dropped_frames: Some(u64::try_from(overrun.lost_samples).unwrap_or(u64::MAX)),
+        });
+        capture.overrun_reported = true;
+    }
+}
+
+fn close_meeting_callback(
+    lane: &mut CaptureConsumer,
+    capture: &mut ActiveMeetingCapture,
+    wrapped_packet_scratch: &mut Vec<f32>,
+    meeting_control: &MeetingCallbackControl,
+    sample_rate: u32,
+) -> bool {
+    meeting_control.request_stop();
+    let acknowledgements_before = lane.stop_acks();
+    lane.request_stop();
+    let deadline = Instant::now() + STOP_ACK_TIMEOUT;
+
+    loop {
+        let acknowledged = lane.stop_acks() != acknowledgements_before;
+        drain_meeting_lane(lane, capture, wrapped_packet_scratch);
+        observe_meeting_lane_overrun(lane, capture, sample_rate);
+        if acknowledged {
+            return true;
+        }
+        if Instant::now() >= deadline {
+            return false;
+        }
+        std::thread::sleep(STOP_ACK_POLL_INTERVAL);
+    }
+}
+
+fn report_unacknowledged_meeting_stop(capture: &mut ActiveMeetingCapture) {
+    capture.report_gap(SourceGap {
+        track_id: capture.plan.track_id,
+        epoch: capture.plan.source_epoch,
+        start_offset_ns: capture.final_offset_ns,
+        end_offset_ns: None,
+        reason: SourceGapReason::SourceStopped,
+        dropped_frames: None,
+    });
+}
+
+fn run_consumer(inputs: ConsumerInputs) {
+    let ConsumerInputs {
+        in_sample_rate,
+        vad,
+        mut lane,
+        cmd_rx,
+        level_cb,
+        audio_cb,
+        stream_running_at,
+        meeting_control,
+    } = inputs;
+    let mut frame_resampler = FrameResampler::new(
+        sample_rate_to_usize(in_sample_rate),
+        sample_rate_to_usize(constants::WHISPER_SAMPLE_RATE),
+        Duration::from_millis(30),
+    );
+
+    let mut processed_samples = Vec::<f32>::new();
+    // Retain a bounded prefix only until VAD confirms speech. The cap prevents
+    // an all-silent capture from growing without limit while keeping enough
+    // audio to diagnose the source from History.
+    let mut silence_until_speech: Option<Vec<f32>> = None;
+    let mut recording = false;
+    let mut vad_policy = VadPolicy::Offline;
+
+    // ---------- latency instrumentation ---------------------------------- //
+    // First arrival exposes the play()->samples-flowing gap; the first-captured
+    // log confirms capture begins with the audio already in the lane when
+    // Cmd::Start lands.
+    let mut first_samples_logged = false;
+    let mut awaiting_first_captured_chunk: Option<Instant> = None;
+    let mut capture_ready_tx: Option<mpsc::Sender<()>> = None;
+
+    // This buffer is reserved only while a meeting source is active. It bridges
+    // a rare wrap in the existing SPSC ring because PacketSink accepts one
+    // contiguous packet slice; the callback never uses or grows it.
+    let mut wrapped_packet_scratch = Vec::new();
+    let mut active_meeting: Option<ActiveMeetingCapture> = None;
+    // ---------- spectrum visualisation setup ---------------------------- //
+    const BUCKETS: usize = 16;
+    // Scale the FFT window to the device sample rate so the analysis window
+    // (~33 ms) and frequency resolution (~30 Hz/bin) stay roughly constant
+    // across devices. A fixed 512-sample window collapses the low vocal
+    // buckets onto a single bin at 48 kHz (e.g. built-in laptop mics), and
+    // would stutter at ~4-8 updates/sec on an 8-16 kHz Bluetooth headset.
+    // Targets: 48 kHz -> 2048, 16 kHz -> 512, 8 kHz -> 256.
+    let target_window =
+        sample_rate_to_usize(in_sample_rate / 30 + u32::from(in_sample_rate % 30 >= 15));
+    let mut window_size = 256usize;
+    for candidate in [512usize, 1024, 2048] {
+        if candidate.abs_diff(target_window) < window_size.abs_diff(target_window) {
+            window_size = candidate;
+        }
+    }
+    let mut visualizer = AudioVisualiser::new(
+        in_sample_rate,
+        window_size,
+        BUCKETS,
+        400.0,  // vocal_min_hz
+        4000.0, // vocal_max_hz
+    );
+
+    fn handle_frame(
+        samples: &[f32],
+        vad_policy: VadPolicy,
+        vad: &Option<VadConfig>,
+        audio_cb: &Option<AudioFrameCallback>,
+        out_buf: &mut Vec<f32>,
+        silence_until_speech: &mut Option<Vec<f32>>,
+    ) {
+        fn emit_frame(
+            samples: &[f32],
+            audio_cb: &Option<AudioFrameCallback>,
+            out_buf: &mut Vec<f32>,
+            silence_until_speech: &mut Option<Vec<f32>>,
+        ) {
+            *silence_until_speech = None;
+            out_buf.extend_from_slice(samples);
+            if let Some(cb) = audio_cb {
+                cb(samples);
+            }
+        }
+
+        if vad_policy == VadPolicy::Disabled {
+            emit_frame(samples, audio_cb, out_buf, silence_until_speech);
+            return;
+        }
+
+        if let Some(cfg) = vad {
+            let mut det = lock_recover(&cfg.detector);
+            match det.push_frame(samples).unwrap_or(VadFrame::Speech(samples)) {
+                VadFrame::Speech(buf) => emit_frame(buf, audio_cb, out_buf, silence_until_speech),
+                VadFrame::Noise => {
+                    if let Some(silence) = silence_until_speech {
+                        retain_no_speech_samples(silence, samples);
+                    }
+                }
+            }
+        } else {
+            emit_frame(samples, audio_cb, out_buf, silence_until_speech);
+        }
+    }
+
+    /// Feed one contiguous run of native-rate samples into the recording.
+    fn absorb(
+        chunk: &[f32],
+        vad_policy: VadPolicy,
+        vad: &Option<VadConfig>,
+        audio_cb: &Option<AudioFrameCallback>,
+        frame_resampler: &mut FrameResampler,
+        out_buf: &mut Vec<f32>,
+        silence_until_speech: &mut Option<Vec<f32>>,
+    ) {
+        frame_resampler.push(chunk, &mut |frame: &[f32]| {
+            handle_frame(
+                frame,
+                vad_policy,
+                vad,
+                audio_cb,
+                out_buf,
+                silence_until_speech,
+            )
+        });
+    }
+
+    // Poll rather than block: the lane has no blocking primitive by design, and
+    // commands must keep flowing even when a disconnected device stops producing
+    // samples without closing its stream.
+    loop {
+        // Commands come first so a Start claims the samples already sitting in
+        // the lane — the audio the device delivered between the keypress and
+        // this iteration. Draining first would discard one buffer period
+        // (~10 ms built-in, up to ~100 ms on Bluetooth) at every start.
+        loop {
+            let cmd = match cmd_rx.try_recv() {
+                Ok(cmd) => cmd,
+                Err(mpsc::TryRecvError::Empty) => break,
+                // The recorder was dropped without close(); nothing can ever
+                // command this worker again.
+                Err(mpsc::TryRecvError::Disconnected) => return,
+            };
+
+            match cmd {
+                Cmd::Start(policy, sent_at, ready_tx) => {
+                    if active_meeting.is_some() {
+                        drop(ready_tx);
+                        continue;
+                    }
+                    // A poisoned lane here means the consumer stalled while
+                    // idle, so the lane holds stale pre-keypress audio. Drop it
+                    // rather than prepend it to the new recording.
+                    if let Some(stale) = lane.overrun(in_sample_rate) {
+                        log::warn!("Dropping stale capture backlog before recording: {stale}");
+                        lane.clear_overrun();
+                    }
+                    lane.reset_high_water();
+
+                    log::debug!(
+                        "Cmd::Start processed {:?} after send; capture begins with the {} samples already in the lane",
+                        sent_at.elapsed(),
+                        lane.len()
+                    );
+                    awaiting_first_captured_chunk = Some(Instant::now());
+                    capture_ready_tx = Some(ready_tx);
+                    vad_policy = policy;
+                    processed_samples.clear();
+                    silence_until_speech = (policy != VadPolicy::Disabled).then(Vec::new);
+                    recording = true;
+                    visualizer.reset();
+                    frame_resampler.reset();
+                    // Reconfigure the single VAD engine for this session's policy
+                    // and clear its smoothing + recurrent state before it sees
+                    // any frames.
+                    if vad_policy != VadPolicy::Disabled {
+                        if let Some(cfg) = &vad {
+                            let mut det = lock_recover(&cfg.detector);
+                            det.set_hangover_frames(cfg.hangover_for(vad_policy));
+                            det.reset();
+                        }
+                    }
+                }
+                Cmd::Stop(reply_tx) => {
+                    if active_meeting.is_some() {
+                        let _ = reply_tx.send(Err(CaptureError::NotCapturing));
+                        continue;
+                    }
+                    recording = false;
+                    // If Stop was queued before the first samples, dropping this
+                    // sender prevents a stale ready UI event or start chime.
+                    capture_ready_tx = None;
+                    awaiting_first_captured_chunk = None;
+
+                    // Close the lane, then wait for the device callback to
+                    // acknowledge it. That acknowledgement is what guarantees
+                    // every captured sample is already in the lane.
+                    let acks_before = lane.stop_acks();
+                    lane.request_stop();
+
+                    let deadline = Instant::now() + STOP_ACK_TIMEOUT;
+                    loop {
+                        // Check before draining: observing the acknowledgement
+                        // also publishes everything committed ahead of it, so
+                        // the drain below cannot miss a sample.
+                        let acknowledged = lane.stop_acks() != acks_before;
+                        lane.drain(|chunk| {
+                            absorb(
+                                chunk,
+                                vad_policy,
+                                &vad,
+                                &audio_cb,
+                                &mut frame_resampler,
+                                &mut processed_samples,
+                                &mut silence_until_speech,
+                            )
+                        });
+                        if acknowledged {
+                            break;
+                        }
+                        if Instant::now() >= deadline {
+                            log::warn!(
+                                "Timed out waiting for the capture callback to acknowledge stop"
+                            );
+                            break;
+                        }
+                        std::thread::sleep(STOP_ACK_POLL_INTERVAL);
+                    }
+
+                    frame_resampler.finish(&mut |frame: &[f32]| {
+                        handle_frame(
+                            frame,
+                            vad_policy,
+                            &vad,
+                            &audio_cb,
+                            &mut processed_samples,
+                            &mut silence_until_speech,
+                        )
+                    });
+
+                    log::debug!(
+                        "capture lane peak occupancy {} of {} samples",
+                        lane.high_water(),
+                        lane.capacity()
+                    );
+
+                    // A sticky overrun means the device produced audio this
+                    // lane could not take. The drained samples are a contiguous
+                    // prefix before that gap. Return them for WAV persistence,
+                    // but make the gap explicit so no caller can auto-decode
+                    // them into a plausible, incomplete transcript.
+                    let reply = match lane.overrun(in_sample_rate) {
+                        Some(overrun) => {
+                            log::error!("{overrun}");
+                            let prefix_samples = std::mem::take(&mut processed_samples);
+                            silence_until_speech = None;
+                            lane.clear_overrun();
+                            Err(CaptureError::Overrun {
+                                overrun,
+                                prefix_samples,
+                            })
+                        }
+                        None => {
+                            let no_speech_samples = silence_until_speech
+                                .take()
+                                .filter(|samples| !samples.is_empty());
+                            let no_speech_detected = no_speech_samples.is_some();
+                            Ok(RecordedAudio {
+                                samples: no_speech_samples
+                                    .unwrap_or_else(|| std::mem::take(&mut processed_samples)),
+                                no_speech_detected,
+                            })
+                        }
+                    };
+                    let _ = reply_tx.send(reply);
+
+                    // Resume the audio callback so the consumer loop can continue
+                    // receiving samples (important for always-on microphone mode).
+                    lane.resume();
+                }
+                Cmd::StartMeeting {
+                    plan,
+                    anchor,
+                    sink,
+                    reply,
+                } => {
+                    if recording || active_meeting.is_some() {
+                        let _ = reply.send(Err(MeetingCaptureError::InvalidState));
+                        continue;
+                    }
+                    if plan.source_kind != SourceKind::Microphone {
+                        let _ = reply.send(Err(MeetingCaptureError::InvalidFormat));
+                        continue;
+                    }
+                    let required_scratch = lane
+                        .capacity()
+                        .saturating_sub(wrapped_packet_scratch.capacity());
+                    if wrapped_packet_scratch
+                        .try_reserve_exact(required_scratch)
+                        .is_err()
+                    {
+                        let _ = reply.send(Err(MeetingCaptureError::StreamFailure));
+                        continue;
+                    }
+
+                    // Suppress the idle downmix before dropping any pre-start
+                    // samples. The callback observes the release store before it
+                    // can publish a timed descriptor for this capture.
+                    meeting_control.pause();
+                    lane.clear_overrun();
+                    lane.resume();
+                    lane.reset_high_water();
+                    let epoch = plan.source_epoch;
+                    active_meeting = Some(ActiveMeetingCapture::new(plan, anchor, sink, reply));
+                    meeting_control.begin(epoch);
+                }
+                Cmd::PauseMeeting(reply) => {
+                    let Some(capture) = active_meeting.as_mut() else {
+                        let _ = reply.send(Err(MeetingCaptureError::InvalidState));
+                        continue;
+                    };
+                    if capture.paused {
+                        let _ = reply.send(Err(MeetingCaptureError::InvalidState));
+                        continue;
+                    }
+
+                    let acknowledged = close_meeting_callback(
+                        &mut lane,
+                        capture,
+                        &mut wrapped_packet_scratch,
+                        &meeting_control,
+                        in_sample_rate,
+                    );
+                    capture.paused = true;
+                    capture.paused_at_offset_ns = capture.final_offset_ns;
+                    if !acknowledged {
+                        report_unacknowledged_meeting_stop(capture);
+                        capture.fail_start(MeetingCaptureError::StreamFailure);
+                    }
+                    meeting_control.pause();
+                    lane.clear_overrun();
+                    lane.resume();
+                    let _ = reply.send(if acknowledged {
+                        Ok(())
+                    } else {
+                        Err(MeetingCaptureError::StreamFailure)
+                    });
+                }
+                Cmd::ResumeMeeting { epoch, reply } => {
+                    let Some(capture) = active_meeting.as_mut() else {
+                        let _ = reply.send(Err(MeetingCaptureError::InvalidState));
+                        continue;
+                    };
+                    if !capture.paused {
+                        let _ = reply.send(Err(MeetingCaptureError::InvalidState));
+                        continue;
+                    }
+
+                    capture.plan.source_epoch = epoch;
+                    if let Err(error) = capture.publish_clock_epoch(epoch) {
+                        let _ = reply.send(Err(error));
+                        continue;
+                    }
+                    lane.clear_overrun();
+                    lane.resume();
+                    capture.paused = false;
+                    capture.start_reply = Some(reply);
+                    meeting_control.resume(epoch);
+                }
+                Cmd::StopMeeting(reply) => {
+                    let Some(mut capture) = active_meeting.take() else {
+                        let _ = reply.send(Err(MeetingCaptureError::InvalidState));
+                        continue;
+                    };
+                    let acknowledged = close_meeting_callback(
+                        &mut lane,
+                        &mut capture,
+                        &mut wrapped_packet_scratch,
+                        &meeting_control,
+                        in_sample_rate,
+                    );
+                    if !acknowledged {
+                        report_unacknowledged_meeting_stop(&mut capture);
+                        capture.fail_start(MeetingCaptureError::StreamFailure);
+                    }
+                    meeting_control.idle();
+                    lane.clear_overrun();
+                    lane.resume();
+                    let _ = reply.send(if acknowledged {
+                        Ok(capture.stop_report())
+                    } else {
+                        Err(MeetingCaptureError::StreamFailure)
+                    });
+                }
+                Cmd::AbortMeeting(reply) => {
+                    let result = if let Some(mut capture) = active_meeting.take() {
+                        let acknowledged = close_meeting_callback(
+                            &mut lane,
+                            &mut capture,
+                            &mut wrapped_packet_scratch,
+                            &meeting_control,
+                            in_sample_rate,
+                        );
+                        if !acknowledged {
+                            report_unacknowledged_meeting_stop(&mut capture);
+                        }
+                        capture.fail_start(MeetingCaptureError::StreamFailure);
+                        meeting_control.idle();
+                        lane.clear_overrun();
+                        lane.resume();
+                        if acknowledged {
+                            Ok(())
+                        } else {
+                            Err(MeetingCaptureError::StreamFailure)
+                        }
+                    } else {
+                        Ok(())
+                    };
+                    let _ = reply.send(result);
+                }
+                Cmd::Shutdown => {
+                    lane.request_stop();
+                    return;
+                }
+            }
+        }
+
+        // Dictation keeps its existing VAD path. A meeting skips every
+        // resampler, VAD, meter, event, and streaming-ASR callback here; its
+        // worker forwards native-rate descriptor/sample pairs to PacketSink.
+        let drained = if let Some(capture) = active_meeting.as_mut() {
+            let overrun_was_reported = capture.overrun_reported;
+            let drained = drain_meeting_lane(&mut lane, capture, &mut wrapped_packet_scratch);
+            observe_meeting_lane_overrun(&lane, capture, in_sample_rate);
+            if !overrun_was_reported && capture.overrun_reported {
+                // The callback has already stopped accepting after the sticky
+                // overrun. Request its acknowledgement so no later callback can
+                // silently resume past the source gap.
+                meeting_control.request_stop();
+                lane.request_stop();
+            }
+            drained
+        } else if recording {
+            lane.drain(|chunk| {
+                if let Some(buckets) = visualizer.feed(chunk) {
+                    if let Some(cb) = &level_cb {
+                        cb(buckets);
+                    }
+                }
+                absorb(
+                    chunk,
+                    vad_policy,
+                    &vad,
+                    &audio_cb,
+                    &mut frame_resampler,
+                    &mut processed_samples,
+                    &mut silence_until_speech,
+                );
+            })
+        } else {
+            lane.discard()
+        };
+
+        if drained == 0 {
+            std::thread::sleep(LANE_POLL_INTERVAL);
+            continue;
+        }
+
+        let drained_ms = f64::from(u32::try_from(drained).unwrap_or(u32::MAX)) * 1000.0
+            / f64::from(in_sample_rate);
+        if !first_samples_logged {
+            first_samples_logged = true;
+            log::debug!(
+                "first audio arrived {:?} after stream start ({:.1}ms of audio)",
+                stream_running_at.elapsed(),
+                drained_ms
+            );
+        }
+
+        if recording {
+            if let Some(started) = awaiting_first_captured_chunk.take() {
+                log::debug!(
+                    "first captured audio ({:.1}ms) processed {:?} after Cmd::Start",
+                    drained_ms,
+                    started.elapsed()
+                );
+            }
+            if let Some(ready_tx) = capture_ready_tx.take() {
+                // Signal only after these samples have passed through the
+                // visualizer and resampler. Silence still counts: readiness
+                // means the host is delivering samples, not that VAD has
+                // detected speech.
+                let _ = ready_tx.send(());
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        is_microphone_access_denied, is_no_input_device_error, run_consumer, AudioRecorder, Cmd,
+        capture_into_lane, capture_into_timed_lane, capture_lane, is_microphone_access_denied,
+        is_no_input_device_error, retain_no_speech_samples, run_consumer, AudioRecorder,
+        CaptureError, CaptureProducer, Cmd, ConsumerInputs, MeetingCallbackControl, RecordedAudio,
+        TimedCaptureState, VadConfig, VadPolicy, MAX_NO_SPEECH_HISTORY_SAMPLES,
     };
+    use crate::audio_toolkit::vad::{VadFrame, VoiceActivityDetector};
+    use crate::meeting::types::SourceEpoch;
+    use cpal::{InputCallbackInfo, InputStreamTimestamp, StreamInstant};
     use std::{
         sync::{
-            atomic::{AtomicBool, Ordering},
-            mpsc, Arc,
+            atomic::{AtomicUsize, Ordering},
+            mpsc, Arc, Mutex,
         },
         thread,
         time::{Duration, Instant},
     };
+
+    /// Counts heap allocations made by the calling thread only, so the
+    /// realtime-safety assertions below are not perturbed by the other tests
+    /// `cargo test` runs in parallel.
+    mod alloc_probe {
+        use std::alloc::{GlobalAlloc, Layout, System};
+        use std::cell::Cell;
+
+        thread_local! {
+            static COUNT: Cell<usize> = const { Cell::new(0) };
+        }
+
+        pub fn count() -> usize {
+            COUNT.with(|count| count.get())
+        }
+
+        fn bump() {
+            // `try_with`, not `with`: the allocator also runs while a thread's
+            // locals are being destroyed, where `with` would panic.
+            let _ = COUNT.try_with(|count| count.set(count.get() + 1));
+        }
+
+        pub struct Counting;
+
+        // SAFETY: every method forwards to the system allocator unchanged. The
+        // counter is a thread-local `Cell<usize>` with no destructor, so
+        // touching it cannot allocate or recurse.
+        unsafe impl GlobalAlloc for Counting {
+            unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+                bump();
+                System.alloc(layout)
+            }
+
+            unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+                bump();
+                System.alloc_zeroed(layout)
+            }
+
+            unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+                bump();
+                System.realloc(ptr, layout, new_size)
+            }
+
+            unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+                System.dealloc(ptr, layout)
+            }
+        }
+    }
+
+    #[global_allocator]
+    static COUNTING_ALLOCATOR: alloc_probe::Counting = alloc_probe::Counting;
+
+    const NATIVE_RATE: u32 = 48_000;
+
+    fn native_rate_samples() -> usize {
+        match usize::try_from(NATIVE_RATE) {
+            Ok(rate) => rate,
+            Err(_) => panic!("test sample rate does not fit usize"),
+        }
+    }
+
+    #[test]
+    fn no_speech_history_audio_is_bounded_to_its_first_samples() {
+        let mut retained = Vec::new();
+        let mut samples = vec![0.25; MAX_NO_SPEECH_HISTORY_SAMPLES + 512];
+        samples[MAX_NO_SPEECH_HISTORY_SAMPLES] = 0.75;
+        retain_no_speech_samples(&mut retained, &samples);
+        retain_no_speech_samples(&mut retained, &[f32::INFINITY; 512]);
+
+        assert_eq!(retained.len(), MAX_NO_SPEECH_HISTORY_SAMPLES);
+        assert_eq!(retained.first(), Some(&0.25));
+        assert_eq!(retained.last(), Some(&0.25));
+    }
+    struct SpeechAfter {
+        speech_on_frame: usize,
+        frames_seen: usize,
+    }
+
+    impl VoiceActivityDetector for SpeechAfter {
+        fn push_frame<'a>(&'a mut self, frame: &'a [f32]) -> anyhow::Result<VadFrame<'a>> {
+            self.frames_seen += 1;
+            if self.frames_seen >= self.speech_on_frame {
+                Ok(VadFrame::Speech(frame))
+            } else {
+                Ok(VadFrame::Noise)
+            }
+        }
+
+        fn reset(&mut self) {
+            self.frames_seen = 0;
+        }
+    }
+
+    fn deterministic_vad(speech_on_frame: usize) -> VadConfig {
+        VadConfig {
+            detector: Arc::new(Mutex::new(Box::new(SpeechAfter {
+                speech_on_frame,
+                frames_seen: 0,
+            }))),
+            offline_hangover_frames: 0,
+            streaming_hangover_frames: 0,
+        }
+    }
+    /// Reference downmix: the straight-to-`Vec` conversion the capture callback
+    /// used before the lane existed. Equivalence against this is what proves the
+    /// in-place write produces the same audio.
+    fn reference_downmix(data: &[f32], channels: usize, selected: Option<usize>) -> Vec<f32> {
+        if channels == 1 {
+            return data.to_vec();
+        }
+        let use_channel = match selected {
+            Some(ch) if ch < channels => Some(ch),
+            _ => None,
+        };
+        data.chunks_exact(channels)
+            .map(|frame| match use_channel {
+                Some(ch) => frame[ch],
+                None => {
+                    let channels = u16::try_from(channels).unwrap_or(u16::MAX);
+                    frame.iter().sum::<f32>() / f32::from(channels)
+                }
+            })
+            .collect()
+    }
+
+    fn interleaved(frames: usize, channels: usize, offset: usize) -> Vec<f32> {
+        (0..frames * channels)
+            .map(|i| {
+                let sample = u16::try_from((i + offset) % 977).unwrap_or_default();
+                f32::from(sample) / 977.0 - 0.5
+            })
+            .collect()
+    }
+
+    fn callback_info(timestamp_ns: i64) -> InputCallbackInfo {
+        let seconds = timestamp_ns / 1_000_000_000;
+        let nanoseconds = u32::try_from(timestamp_ns % 1_000_000_000).unwrap_or_default();
+        let timestamp = StreamInstant::new(seconds, nanoseconds);
+        InputCallbackInfo::new(InputStreamTimestamp {
+            callback: timestamp,
+            capture: timestamp,
+        })
+    }
+
+    fn start_with_policy(cmd_tx: &mpsc::Sender<Cmd>, policy: VadPolicy) -> mpsc::Receiver<()> {
+        let (ready_tx, ready_rx) = mpsc::channel();
+        cmd_tx
+            .send(Cmd::Start(policy, Instant::now(), ready_tx))
+            .expect("send start");
+        ready_rx
+    }
+
+    fn start(cmd_tx: &mpsc::Sender<Cmd>) -> mpsc::Receiver<()> {
+        start_with_policy(cmd_tx, VadPolicy::Disabled)
+    }
+
+    /// Drives the lane the way a device callback does until the stop reply
+    /// arrives. The callback itself is what acknowledges a stop, so a test that
+    /// blocked on the reply without producing would deadlock.
+    fn stop_and_collect_recording(
+        cmd_tx: &mpsc::Sender<Cmd>,
+        producer: &mut CaptureProducer,
+        buffer: &[f32],
+    ) -> Result<RecordedAudio, CaptureError> {
+        let (reply_tx, reply_rx) = mpsc::channel();
+        cmd_tx.send(Cmd::Stop(reply_tx)).expect("send stop");
+        for _ in 0..200 {
+            capture_into_lane(buffer, 1, None, producer);
+            match reply_rx.recv_timeout(Duration::from_millis(20)) {
+                Ok(reply) => return reply,
+                Err(mpsc::RecvTimeoutError::Timeout) => continue,
+                Err(mpsc::RecvTimeoutError::Disconnected) => panic!("consumer dropped the reply"),
+            }
+        }
+        panic!("stop was never answered");
+    }
+
+    fn stop_and_collect(
+        cmd_tx: &mpsc::Sender<Cmd>,
+        producer: &mut CaptureProducer,
+        buffer: &[f32],
+    ) -> Result<Vec<f32>, CaptureError> {
+        stop_and_collect_recording(cmd_tx, producer, buffer).map(|recording| recording.samples)
+    }
+
+    #[test]
+    fn capture_callback_never_allocates() {
+        // Two seconds at 48 kHz: exactly what open() builds.
+        let (mut producer, mut consumer) =
+            capture_lane::lane(native_rate_samples() * super::LANE_SECONDS);
+        let stereo = interleaved(480, 2, 0);
+
+        let before = alloc_probe::count();
+        // 190 buffers of 480 frames is 91_200 samples: a realistic two seconds
+        // of callbacks that still fits, so this is the accepting path.
+        for _ in 0..190 {
+            capture_into_lane(&stereo, 2, None, &mut producer);
+        }
+        assert_eq!(
+            alloc_probe::count() - before,
+            0,
+            "the device callback allocated"
+        );
+
+        // The refusal path runs inside the same callback, so it has to be
+        // allocation-free too.
+        consumer.discard();
+        let oversized = interleaved(native_rate_samples() * 3, 1, 0);
+        let before = alloc_probe::count();
+        capture_into_lane(&oversized, 1, None, &mut producer);
+        for _ in 0..50 {
+            capture_into_lane(&stereo, 2, None, &mut producer);
+        }
+        assert_eq!(
+            alloc_probe::count() - before,
+            0,
+            "the callback allocated while refusing samples"
+        );
+        assert!(consumer.overrun(48_000).is_some());
+    }
+
+    #[test]
+    fn timed_capture_callback_never_allocates() {
+        let (mut producer, mut consumer) = capture_lane::timed_lane_with_descriptor_capacity(
+            native_rate_samples() * super::LANE_SECONDS,
+            native_rate_samples() * super::LANE_SECONDS,
+        );
+        let control = MeetingCallbackControl::new();
+        control.begin(SourceEpoch::new(1));
+        let callback_info = callback_info(1_000_000);
+        let stereo = interleaved(480, 2, 0);
+
+        let before = alloc_probe::count();
+        for _ in 0..190 {
+            capture_into_timed_lane(
+                &stereo,
+                &callback_info,
+                TimedCaptureState {
+                    channels: 2,
+                    use_channel: None,
+                    sample_rate: NATIVE_RATE,
+                    meeting_control: &control,
+                    last_timestamp_value: &mut None,
+                    producer: &mut producer,
+                },
+            );
+        }
+        assert_eq!(
+            alloc_probe::count() - before,
+            0,
+            "the timed device callback allocated"
+        );
+
+        consumer.discard_timed();
+        let oversized = interleaved(native_rate_samples() * 3, 1, 0);
+        let before = alloc_probe::count();
+        capture_into_timed_lane(
+            &oversized,
+            &callback_info,
+            TimedCaptureState {
+                channels: 1,
+                use_channel: None,
+                sample_rate: NATIVE_RATE,
+                meeting_control: &control,
+                last_timestamp_value: &mut None,
+                producer: &mut producer,
+            },
+        );
+        for _ in 0..50 {
+            capture_into_timed_lane(
+                &stereo,
+                &callback_info,
+                TimedCaptureState {
+                    channels: 2,
+                    use_channel: None,
+                    sample_rate: NATIVE_RATE,
+                    meeting_control: &control,
+                    last_timestamp_value: &mut None,
+                    producer: &mut producer,
+                },
+            );
+        }
+        assert_eq!(
+            alloc_probe::count() - before,
+            0,
+            "the timed callback allocated while refusing samples"
+        );
+        assert!(consumer.timed_overrun(NATIVE_RATE).is_some());
+    }
+
+    #[test]
+    fn lane_capture_matches_the_direct_downmix() {
+        for channels in [1usize, 2, 4] {
+            for selected in [None, Some(1usize), Some(9usize)] {
+                let use_channel = match selected {
+                    Some(ch) if ch < channels => Some(ch),
+                    _ => None,
+                };
+                // Capacity deliberately not a multiple of the buffer size, so
+                // later writes and reads straddle the end of the lane.
+                let (mut producer, mut consumer) = capture_lane::lane(1_000);
+                let mut expected = Vec::new();
+                let mut captured = Vec::new();
+
+                for round in 0..7 {
+                    let data = interleaved(137, channels, round * 31);
+                    expected.extend_from_slice(&reference_downmix(&data, channels, selected));
+                    capture_into_lane(&data, channels, use_channel, &mut producer);
+                    assert!(
+                        consumer.overrun(NATIVE_RATE).is_none(),
+                        "{channels}ch/{selected:?} overran a lane with room to spare"
+                    );
+                    consumer.drain(|chunk| captured.extend_from_slice(chunk));
+                }
+
+                assert_eq!(
+                    captured, expected,
+                    "lane capture diverged from the direct downmix for {channels}ch/{selected:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn lane_capture_matches_the_direct_downmix_across_a_wrap() {
+        // Read and write positions chosen so one drain returns two slices.
+        let (mut producer, mut consumer) = capture_lane::lane(1_000);
+        let warmup = interleaved(900, 1, 0);
+        capture_into_lane(&warmup, 1, None, &mut producer);
+        assert_eq!(consumer.discard(), 900);
+
+        let wrapping = interleaved(300, 2, 5);
+        capture_into_lane(&wrapping, 2, None, &mut producer);
+
+        let mut slices = 0usize;
+        let mut captured = Vec::new();
+        consumer.drain(|chunk| {
+            slices += 1;
+            captured.extend_from_slice(chunk);
+        });
+        assert_eq!(slices, 2, "the drain did not straddle the end of the lane");
+        assert_eq!(captured, reference_downmix(&wrapping, 2, None));
+    }
+
+    #[test]
+    fn lane_overflow_poisons_the_lane_and_reports_the_loss() {
+        let (mut producer, mut consumer) = capture_lane::lane(1_000);
+
+        // Fill it exactly. High-water must see a full lane.
+        let full = interleaved(1_000, 1, 0);
+        capture_into_lane(&full, 1, None, &mut producer);
+        assert!(consumer.overrun(16_000).is_none());
+        assert_eq!(consumer.high_water(), 1_000);
+
+        // The next buffer cannot fit.
+        let refused = interleaved(400, 1, 0);
+        capture_into_lane(&refused, 1, None, &mut producer);
+        let overrun = consumer.overrun(16_000).expect("overrun recorded");
+        assert_eq!(overrun.lost_samples, 400);
+        assert_eq!(overrun.refused_buffers, 1);
+        assert_eq!(overrun.capacity_samples, 1_000);
+        assert_eq!(overrun.sample_rate, 16_000);
+
+        // Sticky: even with the whole lane free again the producer refuses,
+        // rather than resuming mid-recording on the far side of a gap.
+        assert_eq!(consumer.discard(), 1_000);
+        capture_into_lane(&refused, 1, None, &mut producer);
+        let overrun = consumer.overrun(16_000).expect("still poisoned");
+        assert_eq!(overrun.lost_samples, 800);
+        assert_eq!(overrun.refused_buffers, 2);
+        assert_eq!(consumer.len(), 0, "a poisoned lane accepted samples");
+
+        // Clearing it discards the backlog and lets capture resume.
+        consumer.clear_overrun();
+        assert!(consumer.overrun(16_000).is_none());
+        capture_into_lane(&refused, 1, None, &mut producer);
+        assert!(consumer.overrun(16_000).is_none());
+        assert_eq!(consumer.len(), 400);
+    }
+
+    #[test]
+    fn high_water_tracks_the_peak_and_resets() {
+        let (mut producer, consumer) = capture_lane::lane(1_000);
+        capture_into_lane(&interleaved(300, 1, 0), 1, None, &mut producer);
+        assert_eq!(consumer.high_water(), 300);
+        capture_into_lane(&interleaved(120, 1, 0), 1, None, &mut producer);
+        assert_eq!(consumer.high_water(), 420);
+        consumer.reset_high_water();
+        assert_eq!(consumer.high_water(), 0);
+    }
 
     #[test]
     fn unopened_recorder_does_not_need_reopen() {
@@ -596,30 +2282,228 @@ mod tests {
 
     #[test]
     fn shutdown_is_processed_without_audio_samples() {
-        let (sample_tx, sample_rx) = mpsc::channel();
+        let (_producer, consumer) = capture_lane::lane(native_rate_samples());
         let (cmd_tx, cmd_rx) = mpsc::channel();
         let (done_tx, done_rx) = mpsc::channel();
         let worker = thread::spawn(move || {
-            run_consumer(
-                48_000,
-                None,
-                sample_rx,
+            run_consumer(ConsumerInputs {
+                in_sample_rate: NATIVE_RATE,
+                vad: None,
+                lane: consumer,
                 cmd_rx,
-                None,
-                None,
-                Arc::new(AtomicBool::new(false)),
-                Instant::now(),
-            );
+                level_cb: None,
+                audio_cb: None,
+                stream_running_at: Instant::now(),
+                meeting_control: Arc::new(MeetingCallbackControl::new()),
+            });
             let _ = done_tx.send(());
         });
 
         cmd_tx.send(Cmd::Shutdown).expect("send shutdown");
         let stopped = done_rx.recv_timeout(Duration::from_secs(1));
 
-        // Unblock the old implementation so a failing test still exits cleanly.
-        drop(sample_tx);
         worker.join().expect("join consumer");
         assert!(stopped.is_ok(), "shutdown waited for an audio sample");
+    }
+
+    #[test]
+    fn consumer_returns_captured_audio_and_tears_down() {
+        let (mut producer, consumer) =
+            capture_lane::lane(native_rate_samples() * super::LANE_SECONDS);
+        let (cmd_tx, cmd_rx) = mpsc::channel();
+        let worker = thread::spawn(move || {
+            run_consumer(ConsumerInputs {
+                in_sample_rate: NATIVE_RATE,
+                vad: None,
+                lane: consumer,
+                cmd_rx,
+                level_cb: None,
+                audio_cb: None,
+                stream_running_at: Instant::now(),
+                meeting_control: Arc::new(MeetingCallbackControl::new()),
+            });
+        });
+
+        let ready = start(&cmd_tx);
+        // 480 frames is 10 ms at 48 kHz, so 40 buffers is 400 ms of audio.
+        let buffer = interleaved(480, 1, 0);
+        for _ in 0..40 {
+            capture_into_lane(&buffer, 1, None, &mut producer);
+            thread::sleep(Duration::from_millis(2));
+        }
+        assert!(
+            ready.recv_timeout(Duration::from_secs(2)).is_ok(),
+            "readiness was never signalled"
+        );
+
+        let samples = stop_and_collect(&cmd_tx, &mut producer, &buffer).expect("clean capture");
+        // 400 ms at 48 kHz resamples to ~6400 samples at 16 kHz.
+        assert!(
+            samples.len() > 4_000,
+            "expected ~400ms of 16 kHz audio, got {} samples",
+            samples.len()
+        );
+
+        // Teardown: the worker exits on Shutdown even with the producer still
+        // pushing, and it leaves the lane closed.
+        cmd_tx.send(Cmd::Shutdown).expect("send shutdown");
+        worker.join().expect("join consumer");
+        capture_into_lane(&buffer, 1, None, &mut producer);
+    }
+    #[test]
+    fn vad_silence_buffer_does_not_drop_the_detected_speech_onset() {
+        let (mut producer, consumer) = capture_lane::lane(16_000 * super::LANE_SECONDS);
+        let (cmd_tx, cmd_rx) = mpsc::channel();
+        let worker = thread::spawn(move || {
+            run_consumer(ConsumerInputs {
+                in_sample_rate: 16_000,
+                vad: Some(deterministic_vad(2)),
+                lane: consumer,
+                cmd_rx,
+                level_cb: None,
+                audio_cb: None,
+                stream_running_at: Instant::now(),
+                meeting_control: Arc::new(MeetingCallbackControl::new()),
+            });
+        });
+
+        let ready = start_with_policy(&cmd_tx, VadPolicy::Offline);
+        let silence = vec![0.0; 480];
+        capture_into_lane(&silence, 1, None, &mut producer);
+        assert!(
+            ready.recv_timeout(Duration::from_secs(1)).is_ok(),
+            "consumer did not process the initial silent frame"
+        );
+
+        let onset = vec![0.75; 480];
+        capture_into_lane(&onset, 1, None, &mut producer);
+        let recording =
+            stop_and_collect_recording(&cmd_tx, &mut producer, &onset).expect("clean VAD capture");
+
+        assert!(!recording.no_speech_detected);
+        assert!(
+            recording
+                .samples
+                .first()
+                .is_some_and(|sample| *sample > 0.5),
+            "the first emitted sample must be from the detected speech frame"
+        );
+
+        cmd_tx.send(Cmd::Shutdown).expect("send shutdown");
+        worker.join().expect("join consumer");
+    }
+
+    #[test]
+    fn all_silence_returns_a_bounded_no_speech_capture_without_forwarding_engine_audio() {
+        let (mut producer, consumer) = capture_lane::lane(16_000 * super::LANE_SECONDS);
+        let (cmd_tx, cmd_rx) = mpsc::channel();
+        let forwarded = Arc::new(AtomicUsize::new(0));
+        let forwarded_for_callback = Arc::clone(&forwarded);
+        let worker = thread::spawn(move || {
+            run_consumer(ConsumerInputs {
+                in_sample_rate: 16_000,
+                vad: Some(deterministic_vad(usize::MAX)),
+                lane: consumer,
+                cmd_rx,
+                level_cb: None,
+                audio_cb: Some(Arc::new(move |_| {
+                    forwarded_for_callback.fetch_add(1, Ordering::AcqRel);
+                })),
+                stream_running_at: Instant::now(),
+                meeting_control: Arc::new(MeetingCallbackControl::new()),
+            });
+        });
+
+        let ready = start_with_policy(&cmd_tx, VadPolicy::Offline);
+        let silence = vec![0.0; 480];
+        capture_into_lane(&silence, 1, None, &mut producer);
+        assert!(
+            ready.recv_timeout(Duration::from_secs(1)).is_ok(),
+            "consumer did not process the silent frame"
+        );
+
+        let recording = stop_and_collect_recording(&cmd_tx, &mut producer, &silence)
+            .expect("clean silent capture");
+        assert!(recording.no_speech_detected);
+        assert!(!recording.samples.is_empty());
+        assert!(recording.samples.len() <= MAX_NO_SPEECH_HISTORY_SAMPLES);
+        assert_eq!(forwarded.load(Ordering::Acquire), 0);
+
+        cmd_tx.send(Cmd::Shutdown).expect("send shutdown");
+        worker.join().expect("join consumer");
+    }
+    #[test]
+    fn an_overrun_recording_is_reported_and_the_next_one_starts_clean() {
+        // A tenth of a second of lane, so one flood buffer cannot possibly fit.
+        let (mut producer, consumer) = capture_lane::lane(native_rate_samples() / 10);
+        let (cmd_tx, cmd_rx) = mpsc::channel();
+        let worker = thread::spawn(move || {
+            run_consumer(ConsumerInputs {
+                in_sample_rate: NATIVE_RATE,
+                vad: None,
+                lane: consumer,
+                cmd_rx,
+                level_cb: None,
+                audio_cb: None,
+                stream_running_at: Instant::now(),
+                meeting_control: Arc::new(MeetingCallbackControl::new()),
+            });
+        });
+
+        let buffer = interleaved(480, 1, 0);
+        let ready = start(&cmd_tx);
+        for _ in 0..20 {
+            capture_into_lane(&buffer, 1, None, &mut producer);
+            thread::sleep(Duration::from_millis(2));
+        }
+        assert!(
+            ready.recv_timeout(Duration::from_secs(2)).is_ok(),
+            "the prefix capture never became ready"
+        );
+        // One buffer larger than the whole lane: refused outright, so the
+        // outcome does not depend on how fast the consumer drains.
+        let flood = interleaved(native_rate_samples(), 1, 0);
+        capture_into_lane(&flood, 1, None, &mut producer);
+
+        let CaptureError::Overrun {
+            overrun,
+            prefix_samples,
+        } = stop_and_collect(&cmd_tx, &mut producer, &buffer)
+            .expect_err("a lost buffer must report the contiguous prefix")
+        else {
+            panic!("expected capture overrun");
+        };
+        // At least the flood, and possibly the callbacks that land while the
+        // stop is in flight: a poisoned lane keeps counting what it drops.
+        assert!(
+            overrun.lost_samples >= native_rate_samples(),
+            "under-reported the loss: {overrun}"
+        );
+        assert!(overrun.refused_buffers >= 1);
+        assert_eq!(overrun.capacity_samples, native_rate_samples() / 10);
+        assert!(
+            !prefix_samples.is_empty(),
+            "the clean audio before the loss was not preserved"
+        );
+
+        // The failure must not persist: the next recording is delivered.
+        let ready = start(&cmd_tx);
+        for _ in 0..20 {
+            capture_into_lane(&buffer, 1, None, &mut producer);
+            thread::sleep(Duration::from_millis(2));
+        }
+        assert!(
+            ready.recv_timeout(Duration::from_secs(2)).is_ok(),
+            "the recording after an overrun never became ready"
+        );
+        let samples = stop_and_collect(&cmd_tx, &mut producer, &buffer).expect("recovered capture");
+        assert!(
+            !samples.is_empty(),
+            "the recording after an overrun returned nothing"
+        );
+
+        cmd_tx.send(Cmd::Shutdown).expect("send shutdown");
+        worker.join().expect("join consumer");
     }
 
     #[test]
@@ -658,269 +2542,5 @@ mod tests {
     fn does_not_match_other_errors_for_no_device() {
         assert!(!is_no_input_device_error("permission denied"));
         assert!(!is_no_input_device_error("device not found"));
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-fn run_consumer(
-    in_sample_rate: u32,
-    vad: Option<VadConfig>,
-    sample_rx: mpsc::Receiver<AudioChunk>,
-    cmd_rx: mpsc::Receiver<Cmd>,
-    level_cb: Option<Arc<dyn Fn(Vec<f32>) + Send + Sync + 'static>>,
-    audio_cb: Option<AudioFrameCallback>,
-    stop_flag: Arc<AtomicBool>,
-    stream_running_at: Instant,
-) {
-    let mut frame_resampler = FrameResampler::new(
-        in_sample_rate as usize,
-        constants::WHISPER_SAMPLE_RATE as usize,
-        Duration::from_millis(30),
-    );
-
-    let mut processed_samples = Vec::<f32>::new();
-    let mut recording = false;
-    let mut vad_policy = VadPolicy::Offline;
-
-    // ---------- latency instrumentation ---------------------------------- //
-    // First-chunk arrival exposes the play()->samples-flowing gap; the
-    // first-captured log confirms capture begins with the chunk in flight
-    // when Cmd::Start lands.
-    let mut first_chunk_logged = false;
-    let mut awaiting_first_captured_chunk: Option<Instant> = None;
-    let mut capture_ready_tx: Option<mpsc::Sender<()>> = None;
-
-    // ---------- spectrum visualisation setup ---------------------------- //
-    const BUCKETS: usize = 16;
-    // Scale the FFT window to the device sample rate so the analysis window
-    // (~33 ms) and frequency resolution (~30 Hz/bin) stay roughly constant
-    // across devices. A fixed 512-sample window collapses the low vocal
-    // buckets onto a single bin at 48 kHz (e.g. built-in laptop mics), and
-    // would stutter at ~4-8 updates/sec on an 8-16 kHz Bluetooth headset.
-    // Targets: 48 kHz -> 2048, 16 kHz -> 512, 8 kHz -> 256.
-    let target_window = (f64::from(in_sample_rate) / 30.0).round() as usize;
-    let window_size = [256usize, 512, 1024, 2048]
-        .into_iter()
-        .min_by_key(|w| w.abs_diff(target_window))
-        .unwrap();
-    let mut visualizer = AudioVisualiser::new(
-        in_sample_rate,
-        window_size,
-        BUCKETS,
-        400.0,  // vocal_min_hz
-        4000.0, // vocal_max_hz
-    );
-
-    fn handle_frame(
-        samples: &[f32],
-        recording: bool,
-        vad_policy: VadPolicy,
-        vad: &Option<VadConfig>,
-        audio_cb: &Option<AudioFrameCallback>,
-        out_buf: &mut Vec<f32>,
-    ) {
-        if !recording {
-            return;
-        }
-
-        let mut emit = |buf: &[f32]| {
-            out_buf.extend_from_slice(buf);
-            if let Some(cb) = audio_cb {
-                cb(buf);
-            }
-        };
-
-        if vad_policy == VadPolicy::Disabled {
-            emit(samples);
-            return;
-        }
-
-        if let Some(cfg) = vad {
-            let mut det = cfg.detector.lock().unwrap();
-            match det.push_frame(samples).unwrap_or(VadFrame::Speech(samples)) {
-                VadFrame::Speech(buf) => emit(buf),
-                VadFrame::Noise => {}
-            }
-        } else {
-            emit(samples);
-        }
-    }
-
-    // Poll commands even when a disconnected device stops producing samples
-    // without closing its CoreAudio stream.
-    loop {
-        let mut pending = match sample_rx.recv_timeout(Duration::from_millis(50)) {
-            Ok(chunk) => Some(chunk),
-            Err(mpsc::RecvTimeoutError::Timeout) => None,
-            Err(mpsc::RecvTimeoutError::Disconnected) => break,
-        };
-
-        // Handle pending commands BEFORE the in-flight chunk so a Start
-        // captures it. Commands used to be polled after processing, which
-        // silently dropped one buffer period of audio (~10ms built-in, up to
-        // ~100ms on Bluetooth) at every recording start.
-        while let Ok(cmd) = cmd_rx.try_recv() {
-            match cmd {
-                Cmd::Start(policy, sent_at, ready_tx) => {
-                    log::debug!(
-                        "Cmd::Start processed {:?} after send; capture begins with {} chunk",
-                        sent_at.elapsed(),
-                        if pending.is_some() {
-                            "the in-flight"
-                        } else {
-                            "the next available"
-                        }
-                    );
-                    awaiting_first_captured_chunk = Some(Instant::now());
-                    capture_ready_tx = Some(ready_tx);
-                    stop_flag.store(false, Ordering::Relaxed);
-                    vad_policy = policy;
-                    processed_samples.clear();
-                    recording = true;
-                    visualizer.reset();
-                    frame_resampler.reset();
-                    // Reconfigure the single VAD engine for this session's policy
-                    // and clear its smoothing + recurrent state before it sees
-                    // any frames.
-                    if vad_policy != VadPolicy::Disabled {
-                        if let Some(cfg) = &vad {
-                            let mut det = cfg.detector.lock().unwrap();
-                            det.set_hangover_frames(cfg.hangover_for(vad_policy));
-                            det.reset();
-                        }
-                    }
-                }
-                Cmd::Stop(reply_tx) => {
-                    recording = false;
-                    // If Stop was queued before the first chunk, dropping this
-                    // sender prevents a stale ready UI event or start chime.
-                    capture_ready_tx = None;
-                    awaiting_first_captured_chunk = None;
-                    stop_flag.store(true, Ordering::Relaxed);
-
-                    // The chunk in hand arrived before the stop; it belongs to
-                    // the recording, so feed it ahead of the drain below.
-                    if let Some(AudioChunk::Samples(raw)) = pending.take() {
-                        frame_resampler.push(&raw, &mut |frame: &[f32]| {
-                            handle_frame(
-                                frame,
-                                true,
-                                vad_policy,
-                                &vad,
-                                &audio_cb,
-                                &mut processed_samples,
-                            )
-                        });
-                    }
-
-                    // Drain all remaining audio until the producer confirms end-of-stream.
-                    // The cpal callback sees the stop flag, sends EndOfStream, and goes
-                    // silent — guaranteeing every captured sample is in the channel
-                    // ahead of the sentinel.
-                    loop {
-                        match sample_rx.recv_timeout(Duration::from_secs(2)) {
-                            Ok(AudioChunk::Samples(remaining)) => {
-                                frame_resampler.push(&remaining, &mut |frame: &[f32]| {
-                                    handle_frame(
-                                        frame,
-                                        true,
-                                        vad_policy,
-                                        &vad,
-                                        &audio_cb,
-                                        &mut processed_samples,
-                                    )
-                                });
-                            }
-                            Ok(AudioChunk::EndOfStream) => break,
-                            Err(_) => {
-                                log::warn!("Timed out waiting for EndOfStream from audio callback");
-                                break;
-                            }
-                        }
-                    }
-
-                    frame_resampler.finish(&mut |frame: &[f32]| {
-                        handle_frame(
-                            frame,
-                            true,
-                            vad_policy,
-                            &vad,
-                            &audio_cb,
-                            &mut processed_samples,
-                        )
-                    });
-
-                    let _ = reply_tx.send(std::mem::take(&mut processed_samples));
-
-                    // Resume the audio callback so the consumer loop can continue
-                    // receiving chunks (important for always-on microphone mode).
-                    stop_flag.store(false, Ordering::Relaxed);
-                }
-                Cmd::Shutdown => {
-                    stop_flag.store(true, Ordering::Relaxed);
-                    return;
-                }
-            }
-        }
-
-        let raw = match pending.take() {
-            Some(AudioChunk::Samples(s)) => s,
-            // EndOfStream, or the chunk was consumed by a Stop above.
-            _ => continue,
-        };
-
-        let chunk_ms = raw.len() as f64 * 1000.0 / in_sample_rate as f64;
-        if !first_chunk_logged {
-            first_chunk_logged = true;
-            log::debug!(
-                "first audio chunk arrived {:?} after stream start ({:.1}ms of audio)",
-                stream_running_at.elapsed(),
-                chunk_ms
-            );
-        }
-
-        // ---------- recording-time processing ---------------------------- //
-        // In always-on mode the capture stream stays open continuously for
-        // zero-latency start, so while idle (not recording) there is nothing to
-        // do with a chunk: handle_frame returns early when not recording, which
-        // means the resampled output would be discarded, and the level meter has
-        // no idle consumer. Skip both the level-meter FFT and the resampler while
-        // idle to avoid doing unnecessary work whose output is thrown away. Both
-        // are reset on Cmd::Start (visualizer.reset() / frame_resampler.reset()),
-        // so they resume cleanly the moment recording begins.
-        if recording {
-            if let Some(buckets) = visualizer.feed(&raw) {
-                if let Some(cb) = &level_cb {
-                    cb(buckets);
-                }
-            }
-
-            frame_resampler.push(&raw, &mut |frame: &[f32]| {
-                handle_frame(
-                    frame,
-                    recording,
-                    vad_policy,
-                    &vad,
-                    &audio_cb,
-                    &mut processed_samples,
-                )
-            });
-        }
-
-        if recording {
-            if let Some(started) = awaiting_first_captured_chunk.take() {
-                log::debug!(
-                    "first captured chunk ({:.1}ms of audio) processed {:?} after Cmd::Start",
-                    chunk_ms,
-                    started.elapsed()
-                );
-            }
-            if let Some(ready_tx) = capture_ready_tx.take() {
-                // Signal only after this chunk has passed through the visualizer
-                // and resampler. Silence still counts: readiness means the host
-                // is delivering samples, not that VAD has detected speech.
-                let _ = ready_tx.send(());
-            }
-        }
     }
 }

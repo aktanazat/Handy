@@ -1,0 +1,12 @@
+{
+  "id": "onnx-community/wespeaker-voxceleb-resnet34-LM",
+  "revision": "6a61a1833ff2583aabeba044f5c8221f00b67ceb",
+  "filename": "onnx/model_int8.onnx",
+  "local_filename": "wespeaker-voxceleb-resnet34-LM-int8.onnx",
+  "sha256": "6416fae0599c33bdaf7188e99695edc5fafde190a102c511c881245a109de4c3",
+  "size_bytes": 6685123,
+  "license": "CC-BY-4.0",
+  "sample_rate_hz": 16000,
+  "feature_bins": 80,
+  "embedding_dimensions": 256
+}

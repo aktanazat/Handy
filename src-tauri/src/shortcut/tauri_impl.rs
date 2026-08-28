@@ -15,26 +15,13 @@ use super::handler::handle_shortcut_event;
 
 /// Initialize shortcuts using Tauri's global-shortcut plugin
 pub fn init_shortcuts(app: &AppHandle) {
-    let default_bindings = settings::get_default_settings().bindings;
     let user_settings = settings::load_or_create_app_settings(app);
 
-    // Register all default shortcuts, applying user customizations
-    for (id, default_binding) in default_bindings {
-        if id == "cancel" {
-            continue; // Skip cancel shortcut, it will be registered dynamically
-        }
-        // Skip post-processing shortcut when the feature is disabled
-        if id == "transcribe_with_post_process" && !user_settings.post_process_enabled {
-            continue;
-        }
-        let binding = user_settings
-            .bindings
-            .get(&id)
-            .cloned()
-            .unwrap_or(default_binding);
-
+    // Persisted bindings are the single source of truth, including mode keys.
+    for binding in super::bindings_for_registration(&user_settings) {
+        let id = binding.id.clone();
         if let Err(e) = register_shortcut(app, binding) {
-            error!("Failed to register shortcut {} during init: {}", id, e);
+            error!("Failed to register shortcut {id} during init: {e}");
         }
     }
 }
@@ -106,19 +93,19 @@ pub fn register_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<()
     app.global_shortcut()
         .on_shortcut(shortcut, move |app_handle, scut, event| {
             if scut == &shortcut {
-                let shortcut_string = scut.into_string();
+                let shortcut_label = scut.into_string();
                 let is_pressed = event.state == ShortcutState::Pressed;
                 // Mirrors the handy-keys event log line; the distinct prefix
                 // makes it possible to tell which backend fired a shortcut
                 // (e.g. when diagnosing the Secure Input fallback)
                 debug!(
                     "tauri global-shortcut event: binding={}, shortcut={}, state={:?}",
-                    binding_id_for_closure, shortcut_string, event.state
+                    binding_id_for_closure, shortcut_label, event.state
                 );
                 handle_shortcut_event(
                     app_handle,
                     &binding_id_for_closure,
-                    &shortcut_string,
+                    &shortcut_label,
                     is_pressed,
                 );
             }

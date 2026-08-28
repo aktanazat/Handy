@@ -1,5 +1,6 @@
 use super::*;
 use sha2::{Digest, Sha256};
+use std::fmt::Display;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
@@ -9,15 +10,29 @@ use tempfile::TempDir;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
+fn test_ok<T, E: Display>(result: std::result::Result<T, E>, context: &str) -> T {
+    match result {
+        Ok(value) => value,
+        Err(error) => panic!("{context}: {error}"),
+    }
+}
+
+fn test_err<T, E: Display>(result: std::result::Result<T, E>, context: &str) -> E {
+    match result {
+        Ok(_) => panic!("{context}: operation unexpectedly succeeded"),
+        Err(error) => error,
+    }
+}
+
 // ── SHA256 verification tests ─────────────────────────────────────────────
 
 /// Helper: write `data` to a temp file and return (TempDir, path).
 /// TempDir must be kept alive for the duration of the test.
 fn write_temp_file(data: &[u8]) -> (TempDir, std::path::PathBuf) {
-    let dir = TempDir::new().unwrap();
+    let dir = test_ok(TempDir::new(), "create temporary download test directory");
     let path = dir.path().join("model.partial");
-    let mut f = File::create(&path).unwrap();
-    f.write_all(data).unwrap();
+    let mut f = test_ok(File::create(&path), "create temporary partial file");
+    test_ok(f.write_all(data), "write temporary partial bytes");
     (dir, path)
 }
 
@@ -36,7 +51,10 @@ fn test_verify_sha256_skipped_when_none() {
 fn test_verify_sha256_passes_on_correct_hash() {
     // Compute the real hash so the test is self-consistent.
     let (_dir, path) = write_temp_file(b"hello world");
-    let actual = ModelManager::compute_sha256(&path).unwrap();
+    let actual = test_ok(
+        ModelManager::compute_sha256(&path),
+        "compute temporary file SHA-256",
+    );
     assert!(
         ModelManager::verify_sha256(&path, Some(&actual), "test_model").is_ok(),
         "should pass when hash matches"
@@ -56,7 +74,9 @@ fn test_verify_sha256_fails_and_deletes_partial_on_mismatch() {
 
     assert!(result.is_err(), "mismatch must return an error");
     assert!(
-        result.unwrap_err().to_string().contains("corrupt"),
+        test_err(result, "reject a mismatched SHA-256")
+            .to_string()
+            .contains("corrupt"),
         "error message should mention corruption"
     );
     assert!(
@@ -68,7 +88,7 @@ fn test_verify_sha256_fails_and_deletes_partial_on_mismatch() {
 #[test]
 fn test_verify_sha256_fails_and_deletes_partial_when_file_missing() {
     // Simulate a partial file that was already removed (e.g. disk full mid-download).
-    let dir = TempDir::new().unwrap();
+    let dir = test_ok(TempDir::new(), "create temporary download test directory");
     let missing_path = dir.path().join("gone.partial");
     // Don't create the file — it should not exist.
 
@@ -117,10 +137,16 @@ async fn read_request_head(sock: &mut TcpStream) -> String {
 /// `response` verbatim, close. Returns the URL to fetch and a handle
 /// yielding the captured request head (lowercased for header asserts).
 async fn serve_once(response: Vec<u8>) -> (String, tokio::task::JoinHandle<String>) {
-    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let addr = listener.local_addr().unwrap();
+    let listener = test_ok(
+        TcpListener::bind("127.0.0.1:0").await,
+        "bind scripted download server",
+    );
+    let addr = test_ok(
+        listener.local_addr(),
+        "read scripted download server address",
+    );
     let handle = tokio::spawn(async move {
-        let (mut sock, _) = listener.accept().await.unwrap();
+        let (mut sock, _) = test_ok(listener.accept().await, "accept scripted download client");
         let head = read_request_head(&mut sock).await;
         // The client may hang up early (error tests); that's not a
         // server-side failure.
@@ -159,22 +185,27 @@ async fn http_fresh_download_completes_and_verifies() {
         body,
     ))
     .await;
-    let dir = TempDir::new().unwrap();
+    let dir = test_ok(TempDir::new(), "create temporary download test directory");
     let partial = dir.path().join("m.partial");
 
-    let out = run_download(
-        &url,
-        &partial,
-        Some(body.len() as u64),
-        Some(&sha_hex(body)),
-        &CancellationToken::new(),
-    )
-    .await
-    .unwrap();
+    let out = test_ok(
+        run_download(
+            &url,
+            &partial,
+            Some(test_ok(
+                u64::try_from(body.len()),
+                "convert test body length to u64",
+            )),
+            Some(&sha_hex(body)),
+            &CancellationToken::new(),
+        )
+        .await,
+        "complete resumable download",
+    );
 
     assert!(matches!(out, HttpDownloadOutcome::Completed));
-    assert_eq!(fs::read(&partial).unwrap(), body);
-    let head = server.await.unwrap();
+    assert_eq!(test_ok(fs::read(&partial), "read downloaded partial"), body);
+    let head = test_ok(server.await, "wait for scripted download server");
     assert!(
         !head.contains("range:"),
         "fresh download must not send a Range header"
@@ -193,23 +224,25 @@ async fn http_resume_appends_with_valid_content_range() {
         &full[5..],
     ))
     .await;
-    let dir = TempDir::new().unwrap();
+    let dir = test_ok(TempDir::new(), "create temporary download test directory");
     let partial = dir.path().join("m.partial");
-    fs::write(&partial, &full[..5]).unwrap();
+    test_ok(fs::write(&partial, &full[..5]), "write test partial bytes");
 
-    let out = run_download(
-        &url,
-        &partial,
-        Some(10),
-        Some(&sha_hex(full)),
-        &CancellationToken::new(),
-    )
-    .await
-    .unwrap();
+    let out = test_ok(
+        run_download(
+            &url,
+            &partial,
+            Some(10),
+            Some(&sha_hex(full)),
+            &CancellationToken::new(),
+        )
+        .await,
+        "complete resumable download",
+    );
 
     assert!(matches!(out, HttpDownloadOutcome::Completed));
-    assert_eq!(fs::read(&partial).unwrap(), full);
-    let head = server.await.unwrap();
+    assert_eq!(test_ok(fs::read(&partial), "read downloaded partial"), full);
+    let head = test_ok(server.await, "wait for scripted download server");
     assert!(head.contains("range: bytes=5-"), "got request: {head}");
 }
 
@@ -227,19 +260,21 @@ async fn http_wrong_content_range_discards_partial() {
         full,
     ))
     .await;
-    let dir = TempDir::new().unwrap();
+    let dir = test_ok(TempDir::new(), "create temporary download test directory");
     let partial = dir.path().join("m.partial");
-    fs::write(&partial, &full[..5]).unwrap();
+    test_ok(fs::write(&partial, &full[..5]), "write test partial bytes");
 
-    let err = run_download(
-        &url,
-        &partial,
-        Some(10),
-        Some(&sha_hex(full)),
-        &CancellationToken::new(),
-    )
-    .await
-    .unwrap_err();
+    let err = test_err(
+        run_download(
+            &url,
+            &partial,
+            Some(10),
+            Some(&sha_hex(full)),
+            &CancellationToken::new(),
+        )
+        .await,
+        "reject invalid resumable download",
+    );
 
     assert!(err.to_string().contains("Content-Range"), "{err}");
     assert!(!partial.exists(), "corrupt-prone partial must be deleted");
@@ -254,22 +289,27 @@ async fn http_range_ignored_200_restarts_from_zero() {
         body,
     ))
     .await;
-    let dir = TempDir::new().unwrap();
+    let dir = test_ok(TempDir::new(), "create temporary download test directory");
     let partial = dir.path().join("m.partial");
-    fs::write(&partial, b"XXXXX").unwrap(); // stale bytes that must not survive
+    test_ok(fs::write(&partial, b"XXXXX"), "write test partial bytes"); // stale bytes that must not survive
 
-    let out = run_download(
-        &url,
-        &partial,
-        Some(body.len() as u64),
-        Some(&sha_hex(body)),
-        &CancellationToken::new(),
-    )
-    .await
-    .unwrap();
+    let out = test_ok(
+        run_download(
+            &url,
+            &partial,
+            Some(test_ok(
+                u64::try_from(body.len()),
+                "convert test body length to u64",
+            )),
+            Some(&sha_hex(body)),
+            &CancellationToken::new(),
+        )
+        .await,
+        "complete resumable download",
+    );
 
     assert!(matches!(out, HttpDownloadOutcome::Completed));
-    assert_eq!(fs::read(&partial).unwrap(), body);
+    assert_eq!(test_ok(fs::read(&partial), "read downloaded partial"), body);
 }
 
 #[tokio::test]
@@ -278,40 +318,47 @@ async fn http_416_with_hash_finalizes_complete_partial() {
     // 416 may bless the partial, because verification proves it.
     let body = b"the whole file";
     let (url, _server) = serve_once(http_response("416 Range Not Satisfiable", &[], b"")).await;
-    let dir = TempDir::new().unwrap();
+    let dir = test_ok(TempDir::new(), "create temporary download test directory");
     let partial = dir.path().join("m.partial");
-    fs::write(&partial, body).unwrap();
+    test_ok(fs::write(&partial, body), "write test partial bytes");
 
-    let out = run_download(
-        &url,
-        &partial,
-        None,
-        Some(&sha_hex(body)),
-        &CancellationToken::new(),
-    )
-    .await
-    .unwrap();
+    let out = test_ok(
+        run_download(
+            &url,
+            &partial,
+            None,
+            Some(&sha_hex(body)),
+            &CancellationToken::new(),
+        )
+        .await,
+        "complete resumable download",
+    );
 
     assert!(matches!(out, HttpDownloadOutcome::Completed));
-    assert_eq!(fs::read(&partial).unwrap(), body);
+    assert_eq!(test_ok(fs::read(&partial), "read downloaded partial"), body);
 }
 
 #[tokio::test]
 async fn http_416_with_wrong_hash_clears_partial() {
     let (url, _server) = serve_once(http_response("416 Range Not Satisfiable", &[], b"")).await;
-    let dir = TempDir::new().unwrap();
+    let dir = test_ok(TempDir::new(), "create temporary download test directory");
     let partial = dir.path().join("m.partial");
-    fs::write(&partial, b"corrupted bytes").unwrap();
+    test_ok(
+        fs::write(&partial, b"corrupted bytes"),
+        "write test partial bytes",
+    );
 
-    let err = run_download(
-        &url,
-        &partial,
-        None,
-        Some(&sha_hex(b"the real file")),
-        &CancellationToken::new(),
-    )
-    .await
-    .unwrap_err();
+    let err = test_err(
+        run_download(
+            &url,
+            &partial,
+            None,
+            Some(&sha_hex(b"the real file")),
+            &CancellationToken::new(),
+        )
+        .await,
+        "reject invalid resumable download",
+    );
 
     assert!(err.to_string().contains("corrupt"), "{err}");
     assert!(
@@ -326,19 +373,21 @@ async fn http_416_short_of_expected_size_clears_partial() {
     // says our offset is past EOF — its object is smaller than the catalog
     // expects. Never blessed, even with a hash on hand.
     let (url, _server) = serve_once(http_response("416 Range Not Satisfiable", &[], b"")).await;
-    let dir = TempDir::new().unwrap();
+    let dir = test_ok(TempDir::new(), "create temporary download test directory");
     let partial = dir.path().join("m.partial");
-    fs::write(&partial, b"12345").unwrap();
+    test_ok(fs::write(&partial, b"12345"), "write test partial bytes");
 
-    let err = run_download(
-        &url,
-        &partial,
-        Some(10),
-        Some(&sha_hex(b"1234567890")),
-        &CancellationToken::new(),
-    )
-    .await
-    .unwrap_err();
+    let err = test_err(
+        run_download(
+            &url,
+            &partial,
+            Some(10),
+            Some(&sha_hex(b"1234567890")),
+            &CancellationToken::new(),
+        )
+        .await,
+        "reject invalid resumable download",
+    );
 
     assert!(err.to_string().contains("416"), "{err}");
     assert!(!partial.exists());
@@ -349,13 +398,14 @@ async fn http_416_without_trust_signals_clears_partial() {
     // No size, no hash: nothing can prove the partial complete, so a 416
     // must restart clean instead of accepting unverified bytes.
     let (url, _server) = serve_once(http_response("416 Range Not Satisfiable", &[], b"")).await;
-    let dir = TempDir::new().unwrap();
+    let dir = test_ok(TempDir::new(), "create temporary download test directory");
     let partial = dir.path().join("m.partial");
-    fs::write(&partial, b"whatever").unwrap();
+    test_ok(fs::write(&partial, b"whatever"), "write test partial bytes");
 
-    let err = run_download(&url, &partial, None, None, &CancellationToken::new())
-        .await
-        .unwrap_err();
+    let err = test_err(
+        run_download(&url, &partial, None, None, &CancellationToken::new()).await,
+        "reject invalid resumable download",
+    );
 
     assert!(err.to_string().contains("416"), "{err}");
     assert!(!partial.exists());
@@ -367,22 +417,27 @@ async fn http_full_size_partial_verified_without_network() {
     // has every byte, so no request is issued at all (the URL points at a
     // dead port to prove it).
     let body = b"complete content";
-    let dir = TempDir::new().unwrap();
+    let dir = test_ok(TempDir::new(), "create temporary download test directory");
     let partial = dir.path().join("m.partial");
-    fs::write(&partial, body).unwrap();
+    test_ok(fs::write(&partial, body), "write test partial bytes");
 
-    let out = run_download(
-        "http://127.0.0.1:9/unreachable",
-        &partial,
-        Some(body.len() as u64),
-        Some(&sha_hex(body)),
-        &CancellationToken::new(),
-    )
-    .await
-    .unwrap();
+    let out = test_ok(
+        run_download(
+            "http://127.0.0.1:9/unreachable",
+            &partial,
+            Some(test_ok(
+                u64::try_from(body.len()),
+                "convert test body length to u64",
+            )),
+            Some(&sha_hex(body)),
+            &CancellationToken::new(),
+        )
+        .await,
+        "complete resumable download",
+    );
 
     assert!(matches!(out, HttpDownloadOutcome::Completed));
-    assert_eq!(fs::read(&partial).unwrap(), body);
+    assert_eq!(test_ok(fs::read(&partial), "read downloaded partial"), body);
 }
 
 #[tokio::test]
@@ -394,23 +449,31 @@ async fn http_oversized_partial_restarts_clean() {
         body,
     ))
     .await;
-    let dir = TempDir::new().unwrap();
+    let dir = test_ok(TempDir::new(), "create temporary download test directory");
     let partial = dir.path().join("m.partial");
-    fs::write(&partial, b"garbage-beyond-expected").unwrap();
+    test_ok(
+        fs::write(&partial, b"garbage-beyond-expected"),
+        "write test partial bytes",
+    );
 
-    let out = run_download(
-        &url,
-        &partial,
-        Some(body.len() as u64),
-        Some(&sha_hex(body)),
-        &CancellationToken::new(),
-    )
-    .await
-    .unwrap();
+    let out = test_ok(
+        run_download(
+            &url,
+            &partial,
+            Some(test_ok(
+                u64::try_from(body.len()),
+                "convert test body length to u64",
+            )),
+            Some(&sha_hex(body)),
+            &CancellationToken::new(),
+        )
+        .await,
+        "complete resumable download",
+    );
 
     assert!(matches!(out, HttpDownloadOutcome::Completed));
-    assert_eq!(fs::read(&partial).unwrap(), body);
-    let head = server.await.unwrap();
+    assert_eq!(test_ok(fs::read(&partial), "read downloaded partial"), body);
+    let head = test_ok(server.await, "wait for scripted download server");
     assert!(
         !head.contains("range:"),
         "oversized partial must restart, not resume: {head}"
@@ -425,18 +488,20 @@ async fn http_conflicting_content_length_rejected_before_writing() {
         b"0123456789",
     ))
     .await;
-    let dir = TempDir::new().unwrap();
+    let dir = test_ok(TempDir::new(), "create temporary download test directory");
     let partial = dir.path().join("m.partial");
 
-    let err = run_download(
-        &url,
-        &partial,
-        Some(5),
-        Some(&sha_hex(b"01234")),
-        &CancellationToken::new(),
-    )
-    .await
-    .unwrap_err();
+    let err = test_err(
+        run_download(
+            &url,
+            &partial,
+            Some(5),
+            Some(&sha_hex(b"01234")),
+            &CancellationToken::new(),
+        )
+        .await,
+        "reject invalid resumable download",
+    );
 
     assert!(err.to_string().contains("advertises"), "{err}");
     assert!(
@@ -456,18 +521,20 @@ async fn http_body_exceeding_expected_size_aborts_and_clears() {
         b"3\r\nabc\r\n5\r\ndefgh\r\n0\r\n\r\n",
     ))
     .await;
-    let dir = TempDir::new().unwrap();
+    let dir = test_ok(TempDir::new(), "create temporary download test directory");
     let partial = dir.path().join("m.partial");
 
-    let err = run_download(
-        &url,
-        &partial,
-        Some(5),
-        Some(&sha_hex(b"abcde")),
-        &CancellationToken::new(),
-    )
-    .await
-    .unwrap_err();
+    let err = test_err(
+        run_download(
+            &url,
+            &partial,
+            Some(5),
+            Some(&sha_hex(b"abcde")),
+            &CancellationToken::new(),
+        )
+        .await,
+        "reject invalid resumable download",
+    );
 
     assert!(err.to_string().contains("more than"), "{err}");
     assert!(!partial.exists(), "tainted partial must be deleted");
@@ -482,18 +549,23 @@ async fn http_wrong_hash_after_download_clears_partial() {
         body,
     ))
     .await;
-    let dir = TempDir::new().unwrap();
+    let dir = test_ok(TempDir::new(), "create temporary download test directory");
     let partial = dir.path().join("m.partial");
 
-    let err = run_download(
-        &url,
-        &partial,
-        Some(body.len() as u64),
-        Some(&sha_hex(b"the expected bytes")),
-        &CancellationToken::new(),
-    )
-    .await
-    .unwrap_err();
+    let err = test_err(
+        run_download(
+            &url,
+            &partial,
+            Some(test_ok(
+                u64::try_from(body.len()),
+                "convert test body length to u64",
+            )),
+            Some(&sha_hex(b"the expected bytes")),
+            &CancellationToken::new(),
+        )
+        .await,
+        "reject invalid resumable download",
+    );
 
     assert!(err.to_string().contains("corrupt"), "{err}");
     assert!(!partial.exists());
@@ -503,14 +575,20 @@ async fn http_wrong_hash_after_download_clears_partial() {
 async fn http_cancel_while_awaiting_headers() {
     // Server accepts and goes silent. Cancellation must win immediately —
     // not after the stall timeout, and certainly not never.
-    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let addr = listener.local_addr().unwrap();
+    let listener = test_ok(
+        TcpListener::bind("127.0.0.1:0").await,
+        "bind scripted download server",
+    );
+    let addr = test_ok(
+        listener.local_addr(),
+        "read scripted download server address",
+    );
     tokio::spawn(async move {
-        let (mut sock, _) = listener.accept().await.unwrap();
+        let (mut sock, _) = test_ok(listener.accept().await, "accept scripted download client");
         let _ = read_request_head(&mut sock).await;
         tokio::time::sleep(Duration::from_secs(600)).await;
     });
-    let dir = TempDir::new().unwrap();
+    let dir = test_ok(TempDir::new(), "create temporary download test directory");
     let partial = dir.path().join("m.partial");
 
     let cancel = CancellationToken::new();
@@ -521,15 +599,17 @@ async fn http_cancel_while_awaiting_headers() {
     });
 
     let started = Instant::now();
-    let out = run_download(
-        &format!("http://{}/file", addr),
-        &partial,
-        Some(10),
-        Some("00"),
-        &cancel,
-    )
-    .await
-    .unwrap();
+    let out = test_ok(
+        run_download(
+            &format!("http://{}/file", addr),
+            &partial,
+            Some(10),
+            Some("00"),
+            &cancel,
+        )
+        .await,
+        "complete resumable download",
+    );
 
     assert!(matches!(out, HttpDownloadOutcome::Cancelled));
     assert!(
@@ -540,17 +620,23 @@ async fn http_cancel_while_awaiting_headers() {
 
 #[tokio::test]
 async fn http_cancel_during_stalled_body_keeps_partial() {
-    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let addr = listener.local_addr().unwrap();
+    let listener = test_ok(
+        TcpListener::bind("127.0.0.1:0").await,
+        "bind scripted download server",
+    );
+    let addr = test_ok(
+        listener.local_addr(),
+        "read scripted download server address",
+    );
     tokio::spawn(async move {
-        let (mut sock, _) = listener.accept().await.unwrap();
+        let (mut sock, _) = test_ok(listener.accept().await, "accept scripted download client");
         let _ = read_request_head(&mut sock).await;
         let _ = sock
             .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 100\r\n\r\nabc")
             .await;
         tokio::time::sleep(Duration::from_secs(600)).await;
     });
-    let dir = TempDir::new().unwrap();
+    let dir = test_ok(TempDir::new(), "create temporary download test directory");
     let partial = dir.path().join("m.partial");
 
     let cancel = CancellationToken::new();
@@ -560,19 +646,21 @@ async fn http_cancel_during_stalled_body_keeps_partial() {
         trigger.cancel();
     });
 
-    let out = run_download(
-        &format!("http://{}/file", addr),
-        &partial,
-        Some(100),
-        Some("00"),
-        &cancel,
-    )
-    .await
-    .unwrap();
+    let out = test_ok(
+        run_download(
+            &format!("http://{}/file", addr),
+            &partial,
+            Some(100),
+            Some("00"),
+            &cancel,
+        )
+        .await,
+        "complete resumable download",
+    );
 
     assert!(matches!(out, HttpDownloadOutcome::Cancelled));
     assert_eq!(
-        fs::read(&partial).unwrap(),
+        test_ok(fs::read(&partial), "read downloaded partial"),
         b"abc",
         "bytes received before the cancel must be kept for resume"
     );

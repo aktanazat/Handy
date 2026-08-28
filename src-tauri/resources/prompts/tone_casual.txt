@@ -1,0 +1,2 @@
+[TONE_RULE: CASUAL]
+Use relaxed conversational language. Everyday contractions are fine; preserve intentional casing and wording from the transcript.

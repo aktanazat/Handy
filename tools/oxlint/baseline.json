@@ -1,0 +1,323 @@
+{
+  "oxlintVersion": "1.79.0",
+  "entries": [
+    {
+      "file": ".nix/scripts/heal-peer-dep-bins.ts",
+      "rule": "anti-slop(no-runtime-typeof)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": ".nix/scripts/heal-peer-dep-bins.ts",
+      "rule": "anti-slop(require-safety-comment-for-type-assertion)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": ".nix/scripts/heal-peer-dep-bins.ts",
+      "rule": "eslint(no-unused-vars)",
+      "severity": "warning",
+      "count": 1
+    },
+    {
+      "file": "scripts/check-translations.ts",
+      "rule": "anti-slop(no-known-value-widening)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "scripts/check-translations.ts",
+      "rule": "anti-slop(no-runtime-typeof)",
+      "severity": "error",
+      "count": 2
+    },
+    {
+      "file": "scripts/check-translations.ts",
+      "rule": "anti-slop(no-unsafe-dictionary-type)",
+      "severity": "error",
+      "count": 3
+    },
+    {
+      "file": "scripts/check-translations.ts",
+      "rule": "anti-slop(require-safety-comment-for-type-assertion)",
+      "severity": "error",
+      "count": 5
+    },
+    {
+      "file": "scripts/prepare-agent-hook.ts",
+      "rule": "anti-slop(no-unsafe-dictionary-type)",
+      "severity": "error",
+      "count": 2
+    },
+    {
+      "file": "scripts/prepare-agent-hook.ts",
+      "rule": "anti-slop(require-safety-comment-for-type-assertion)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "scripts/prepare-agent-hook.ts",
+      "rule": "unicorn(no-useless-fallback-in-spread)",
+      "severity": "warning",
+      "count": 1
+    },
+    {
+      "file": "src/bindings.ts",
+      "rule": "anti-slop(no-chained-type-assertions)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/bindings.ts",
+      "rule": "anti-slop(no-unsafe-dictionary-type)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/bindings.ts",
+      "rule": "anti-slop(require-safety-comment-for-type-assertion)",
+      "severity": "error",
+      "count": 201
+    },
+    {
+      "file": "src/bindings.ts",
+      "rule": "eslint(no-unused-vars)",
+      "severity": "warning",
+      "count": 1
+    },
+    {
+      "file": "src/bun-test.d.ts",
+      "rule": "anti-slop(no-unknown-parameters)",
+      "severity": "error",
+      "count": 4
+    },
+    {
+      "file": "src/bun-test.d.ts",
+      "rule": "anti-slop(no-unsafe-dictionary-type)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/components/AccessibilityPermissions.tsx",
+      "rule": "anti-slop(no-known-value-widening)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/components/AccessibilityPermissions.tsx",
+      "rule": "anti-slop(require-safety-comment-for-type-assertion)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/components/model-selector/ModelSelector.tsx",
+      "rule": "anti-slop(require-safety-comment-for-type-assertion)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/components/settings/AccelerationSelector.tsx",
+      "rule": "anti-slop(no-known-value-widening)",
+      "severity": "error",
+      "count": 4
+    },
+    {
+      "file": "src/components/settings/AccelerationSelector.tsx",
+      "rule": "anti-slop(require-safety-comment-for-type-assertion)",
+      "severity": "error",
+      "count": 4
+    },
+    {
+      "file": "src/components/settings/AppLanguageSelector.tsx",
+      "rule": "anti-slop(require-safety-comment-for-type-assertion)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/components/settings/AudioFeedback.tsx",
+      "rule": "eslint(no-unused-vars)",
+      "severity": "warning",
+      "count": 2
+    },
+    {
+      "file": "src/components/settings/GlobalShortcutInput.tsx",
+      "rule": "anti-slop(require-safety-comment-for-type-assertion)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/components/settings/HandyKeysShortcutInput.tsx",
+      "rule": "anti-slop(require-safety-comment-for-type-assertion)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/components/settings/ModelUnloadTimeout.tsx",
+      "rule": "anti-slop(require-safety-comment-for-type-assertion)",
+      "severity": "error",
+      "count": 10
+    },
+    {
+      "file": "src/components/settings/ShowOverlay.tsx",
+      "rule": "anti-slop(require-safety-comment-for-type-assertion)",
+      "severity": "error",
+      "count": 3
+    },
+    {
+      "file": "src/components/settings/SoundPicker.tsx",
+      "rule": "anti-slop(require-safety-comment-for-type-assertion)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/components/settings/ThemeSelector.tsx",
+      "rule": "anti-slop(require-safety-comment-for-type-assertion)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/components/settings/debug/LiveLogViewer.tsx",
+      "rule": "anti-slop(no-known-value-widening)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/components/settings/debug/LogDirectory.tsx",
+      "rule": "anti-slop(no-runtime-typeof)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/components/settings/debug/LogLevelSelector.tsx",
+      "rule": "anti-slop(require-safety-comment-for-type-assertion)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/components/settings/history/HistorySettings.tsx",
+      "rule": "eslint(no-unused-vars)",
+      "severity": "warning",
+      "count": 4
+    },
+    {
+      "file": "src/components/ui/Alert.tsx",
+      "rule": "anti-slop(no-known-value-widening)",
+      "severity": "error",
+      "count": 2
+    },
+    {
+      "file": "src/i18n/index.ts",
+      "rule": "anti-slop(no-unsafe-dictionary-type)",
+      "severity": "error",
+      "count": 2
+    },
+    {
+      "file": "src/i18n/languages.ts",
+      "rule": "anti-slop(no-known-value-widening)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/i18n/translations.test.ts",
+      "rule": "anti-slop(no-known-value-widening)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/i18n/translations.test.ts",
+      "rule": "anti-slop(no-runtime-typeof)",
+      "severity": "error",
+      "count": 3
+    },
+    {
+      "file": "src/i18n/translations.test.ts",
+      "rule": "anti-slop(no-unknown-returns)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/i18n/translations.test.ts",
+      "rule": "anti-slop(no-unsafe-dictionary-type)",
+      "severity": "error",
+      "count": 5
+    },
+    {
+      "file": "src/i18n/translations.test.ts",
+      "rule": "anti-slop(require-safety-comment-for-type-assertion)",
+      "severity": "error",
+      "count": 4
+    },
+    {
+      "file": "src/lib/compat.ts",
+      "rule": "anti-slop(no-object-parameters)",
+      "severity": "error",
+      "count": 2
+    },
+    {
+      "file": "src/lib/compat.ts",
+      "rule": "anti-slop(no-runtime-typeof)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/lib/compat.ts",
+      "rule": "anti-slop(require-safety-comment-for-type-assertion)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/lib/utils/keyboard.ts",
+      "rule": "anti-slop(no-known-value-widening)",
+      "severity": "error",
+      "count": 3
+    },
+    {
+      "file": "src/lib/utils/rtl.ts",
+      "rule": "anti-slop(no-runtime-typeof)",
+      "severity": "error",
+      "count": 2
+    },
+    {
+      "file": "src/lib/utils/theme.ts",
+      "rule": "anti-slop(no-unknown-parameters)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/main.tsx",
+      "rule": "anti-slop(require-safety-comment-for-type-assertion)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/overlay/main.tsx",
+      "rule": "anti-slop(require-safety-comment-for-type-assertion)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/stores/settingsStore.ts",
+      "rule": "anti-slop(no-known-value-widening)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/stores/settingsStore.ts",
+      "rule": "anti-slop(no-unknown-parameters)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/stores/settingsStore.ts",
+      "rule": "anti-slop(no-unknown-returns)",
+      "severity": "error",
+      "count": 1
+    },
+    {
+      "file": "src/stores/settingsStore.ts",
+      "rule": "anti-slop(require-safety-comment-for-type-assertion)",
+      "severity": "error",
+      "count": 52
+    }
+  ]
+}

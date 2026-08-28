@@ -1,13 +1,29 @@
 {
   "tray": {
-    "settings": "设置...",
-    "checkUpdates": "检查更新...",
+    "statusReady": "Sona · 已就绪",
+    "statusRecording": "Sona · 正在聆听",
+    "statusTranscribing": "Sona · 正在转写",
+    "statusMeetingPreflight": "Sona · 正在设置会议",
+    "statusMeetingStarting": "Sona · 正在开始会议",
+    "statusMeetingRecording": "Sona · 正在录制会议",
+    "statusMeetingPaused": "Sona · 会议已暂停",
+    "statusMeetingProcessing": "Sona · 正在完成会议",
+    "statusMeetingReady": "Sona · 会议笔记已就绪",
+    "statusMeetingRecovery": "Sona · 会议需要处理",
+    "openSona": "打开 Sona",
+    "startDictation": "开始听写",
+    "stopDictation": "停止听写",
+    "cancelTranscription": "取消转写",
+    "startMeetingNotes": "开始会议笔记",
+    "openMeetingNotes": "打开会议笔记",
+    "stopMeetingNotes": "停止会议笔记",
+    "cancelMeetingNotes": "取消会议笔记",
     "copyLastTranscript": "复制最新转录",
-    "unloadModel": "卸载模型",
     "model": "模型",
+    "unloadModel": "卸载模型",
+    "settings": "设置...",
     "quit": "退出",
-    "cancel": "取消",
-    "secureInputWarning": "⚠ 快捷键被 Secure Input 阻止"
+    "secureInputWarning": "快捷键被 Secure Input 阻止"
   },
   "sidebar": {
     "general": "通用",
@@ -16,7 +32,14 @@
     "postProcessing": "后处理",
     "history": "历史记录",
     "debug": "调试",
-    "about": "关于"
+    "about": "关于",
+    "modes": "Modes",
+    "privacy": "Privacy",
+    "agents": "Agents",
+    "meetings": "Meetings",
+    "navigation": "Main navigation",
+    "overview": "Overview",
+    "settings": "Settings"
   },
   "onboarding": {
     "subtitle": "请选择一个转录模型以开始使用",
@@ -101,7 +124,7 @@
     },
     "permissions": {
       "title": "需要权限",
-      "description": "Handy 需要一些权限才能正常工作。",
+      "description": "Sona 需要一些权限才能正常工作。",
       "microphone": {
         "title": "麦克风访问",
         "description": "需要听取您的语音进行转录。"
@@ -152,7 +175,8 @@
     },
     "cancel": "取消",
     "cancelDownload": "取消下载",
-    "legacy": "旧版"
+    "legacy": "旧版",
+    "model": "模型"
   },
   "settings": {
     "modelSettings": {
@@ -175,13 +199,58 @@
       "searchPlaceholder": "按名称搜索模型…",
       "rescan": {
         "label": "重新扫描",
-        "tooltip": "重新扫描在 Handy 之外添加到模型文件夹或 Hugging Face 缓存中的模型"
+        "tooltip": "重新扫描在 Sona 之外添加到模型文件夹或 Hugging Face 缓存中的模型"
+      },
+      "cloud": {
+        "title": "Cloud transcription",
+        "description": "Save a provider key to make its cloud engine available in a mode.",
+        "providerDescription": "Credentials stay in your operating system's native secure store.",
+        "providers": {
+          "deepgram": "Deepgram Nova-3",
+          "elevenLabs": "ElevenLabs Scribe v2"
+        },
+        "apiKey": {
+          "label": "API key",
+          "description": "A saved key is write-only and never displayed here.",
+          "placeholder": "Paste API key"
+        },
+        "actions": {
+          "save": "Save key",
+          "saving": "Saving…",
+          "remove": "Remove key",
+          "removing": "Removing…",
+          "verify": "Verify",
+          "verifying": "Verifying…"
+        },
+        "status": {
+          "checking": "Checking native key store…",
+          "notSaved": "No API key saved.",
+          "saved": "API key saved. It has not been verified.",
+          "verified": "API key verified.",
+          "verifyRequiresConsent": "Review the transfer disclosure in a mode before verifying this key."
+        },
+        "errors": {
+          "not_found": "No API key is saved for this provider.",
+          "unavailable": "The native secure store is unavailable.",
+          "locked": "The native secure store is locked.",
+          "corrupt": "The saved credential cannot be read safely.",
+          "invalid": "The credential was not accepted by the secure store.",
+          "busy": "The secure store is busy. Try again.",
+          "backend": "The credential operation could not be completed.",
+          "not_configured": "Save an API key before verifying it.",
+          "consent_required": "Accept the provider transfer disclosure before verifying.",
+          "authentication": "The provider rejected this API key.",
+          "quota": "The provider rejected verification because the account is over quota.",
+          "network": "The provider could not be reached for verification.",
+          "protocol": "The provider returned an unexpected verification response.",
+          "unknown_provider": "This cloud provider is not available in this build."
+        }
       }
     },
     "general": {
       "title": "通用",
       "shortcut": {
-        "title": "Handy 快捷键",
+        "title": "Sona 快捷键",
         "description": "配置启动语音转文字录制的键盘快捷键",
         "loading": "加载快捷键中...",
         "none": "未配置快捷键",
@@ -249,6 +318,14 @@
       }
     },
     "advanced": {
+      "englishSpelling": {
+        "label": "英语拼写",
+        "description": "保留语音识别结果的拼写，或将常见的美式拼写转换为英式拼写。",
+        "values": {
+          "as_spoken": "按原样",
+          "british": "英式"
+        }
+      },
       "groups": {
         "app": "应用",
         "output": "输出",
@@ -283,16 +360,16 @@
       },
       "autostart": {
         "label": "开机启动",
-        "description": "登录计算机时自动启动 Handy。"
+        "description": "登录计算机时自动启动 Sona。"
       },
       "showTrayIcon": {
         "label": "显示托盘图标",
-        "description": "在系统托盘中显示 Handy 图标。"
+        "description": "在系统托盘中显示 Sona 图标。"
       },
       "overlay": {
         "style": {
           "title": "悬浮窗",
-          "description": "选择录音悬浮窗的样式：「无」会隐藏悬浮窗，「精简」显示小巧的胶囊状指示，「实时」在您说话时实时显示转录内容（仅限支持流式的模型——请在模型选择器中查找「流式」标签）。在 Linux 上建议选择「无」。",
+          "description": "Choose the recording overlay: None hides it, Minimal shows a compact pill, Live shows transcription in real time while a streaming local model or cloud mode is active. On Linux 'None' is recommended.",
           "options": {
             "none": "无",
             "minimal": "精简",
@@ -366,12 +443,46 @@
         }
       },
       "customWords": {
-        "title": "自定义词汇",
-        "description": "帮助受支持的模型识别名称和专业术语。目前，模糊纠错仅适用于使用 A–Z 字母和数字的词语。",
-        "placeholder": "添加词汇",
-        "add": "添加",
-        "remove": "删除 {{word}}",
-        "duplicate": "\"{{word}}\" 已存在"
+        "title": "词汇",
+        "description": "将说出的短语更正为精确的书面形式。Whisper 将书面形式用作提示；其他模型使用确定性更正。",
+        "spoken": "口述短语",
+        "written": "书面文本",
+        "spokenPlaceholder": "说了什么",
+        "writtenPlaceholder": "要写什么",
+        "add": "添加配对",
+        "save": "保存词汇",
+        "saved": "词汇已保存",
+        "remove": "移除 {{spoken}}",
+        "import": "导入 CSV",
+        "export": "导出 CSV",
+        "importError": "无法导入词汇 CSV。",
+        "exportError": "无法导出词汇 CSV。",
+        "saveError": "无法保存词汇。",
+        "imported": "词汇已导入",
+        "errors": {
+          "incomplete": "请输入口述短语和书面文本。",
+          "duplicate": "该词汇配对已存在。"
+        },
+        "importPreview": {
+          "title": "检查词汇导入",
+          "description": "在应用此预览前，不会发生任何更改。",
+          "valid": "有效配对",
+          "invalid": "无效行",
+          "duplicates": "重复行",
+          "conflicts": "冲突行",
+          "blocked": "应用前请修正所有无效、重复或冲突的行。",
+          "apply": "应用导入",
+          "unsavedWarning": "您有未保存的词汇更改。应用此导入将替换它们。"
+        },
+        "actions": "Vocabulary actions",
+        "audioImport": {
+          "errors": {
+            "start": "Couldn't start the audio import."
+          },
+          "failure": {
+            "history": "Some recordings could not be imported into the vocabulary."
+          }
+        }
       },
       "voiceActivityDetection": {
         "title": "语音活动检测",
@@ -380,6 +491,41 @@
       "fillerWordRemoval": {
         "title": "移除语气词",
         "description": "从转录中移除常见的语气词。关闭此选项即可保留这些词。"
+      },
+      "emoji": {
+        "enabledLabel": "启用表情符号替换",
+        "enabledDescription": "仅在词汇校正后替换完全匹配的口述词元。",
+        "title": "表情符号替换",
+        "description": "将完全匹配的口述短语映射为表情符号文本。不使用模糊匹配。",
+        "offState": "表情符号替换已关闭。Sona 不会针对代码或其他应用自动启用它。",
+        "spoken": "口述短语",
+        "written": "表情符号文本",
+        "spokenPlaceholder": "笑脸",
+        "writtenPlaceholder": "🙂",
+        "add": "添加替换",
+        "save": "保存表情符号替换",
+        "saved": "表情符号替换已保存",
+        "remove": "移除 {{spoken}}",
+        "saveError": "无法保存表情符号替换。",
+        "toggleError": "无法更改表情符号替换。",
+        "errors": {
+          "incomplete": "请输入口述短语和表情符号文本。",
+          "duplicate": "该表情符号替换已存在。"
+        }
+      },
+      "description": "Startup, processing, and experimental behavior.",
+      "disclosures": {
+        "launch": {
+          "title": "Launch",
+          "description": "How Sona starts and what it shows."
+        },
+        "processing": {
+          "title": "Processing",
+          "description": "Engine and model behavior while transcribing."
+        },
+        "experimental": {
+          "description": "Unstable options that can change without notice."
+        }
       }
     },
     "postProcessing": {
@@ -434,9 +580,37 @@
         "cancel": "取消",
         "selectToEdit": "选择上方的提示词以查看和编辑其详细信息。",
         "createFirst": "点击上方的「创建新提示词」来创建您的第一个后处理提示词。"
+      },
+      "remoteConsent": {
+        "title": "Remote text transfer",
+        "description": "Meeting and transcription text may be sent to {{provider}} at {{endpoint}} for post-processing.",
+        "acknowledge": "I acknowledge that text may be sent to this endpoint.",
+        "accept": "Allow text transfer",
+        "cancel": "Cancel",
+        "endpointChanged": "The endpoint changed. Review and acknowledge the new endpoint before text can leave this Mac.",
+        "invalidDestination": "This provider destination is invalid or local-only, so no remote consent can be recorded.",
+        "saveFailed": "Sona could not save this acknowledgement.",
+        "current": "Text transfer is acknowledged for {{endpoint}}.",
+        "review": "Review acknowledgement",
+        "endpointLabel": "Canonical endpoint",
+        "destinationPinned": "Sona pins this exact endpoint and origin for the acknowledgement."
       }
     },
     "history": {
+      "stats": {
+        "title": "累计使用量",
+        "loading": "正在加载使用量...",
+        "unavailable": "无法获取使用统计信息。",
+        "entries": "录音",
+        "duration": "录音时长",
+        "durationValue": "{{hours}}小时 {{minutes}}分钟",
+        "words": "词",
+        "source": {
+          "microphone": "麦克风",
+          "file": "文件",
+          "legacy": "较早的录音"
+        }
+      },
       "title": "历史记录",
       "openFolder": "打开录音文件夹",
       "loading": "加载历史记录中...",
@@ -449,7 +623,155 @@
       "retranscribe": "重新转录",
       "retranscribeError": "重新转录失败。请重试。",
       "transcribing": "转录中...",
-      "transcriptionFailed": "转录失败。您可以使用重试图标重新转录。"
+      "transcriptionFailed": "转录失败。您可以使用重试图标重新转录。",
+      "search": "搜索历史",
+      "searchPlaceholder": "搜索转录...",
+      "noResults": "没有转录与\"{{query}}\"匹配。",
+      "loadError": "无法加载历史。",
+      "retry": "重试",
+      "saveError": "无法更新保存状态。",
+      "postProcessEmpty": "后处理未返回文本。显示原始转录。",
+      "textView": {
+        "label": "转录视图",
+        "processed": "已处理",
+        "raw": "原始"
+      },
+      "receipts": {
+        "showDetails": "Show run details",
+        "hideDetails": "Hide run details",
+        "loading": "Loading run receipts…",
+        "unavailable": "Run receipt data is unavailable for this entry.",
+        "none": "No run receipts were recorded for this entry.",
+        "duration": "{{duration}}",
+        "durationLabel": "Duration",
+        "words": "{{count}} words",
+        "wordsLabel": "Words",
+        "mode": "Mode: {{mode}}",
+        "revision": "Revision {{revision}}",
+        "engine": {
+          "local": "Local",
+          "cloud": "Cloud",
+          "local_fallback": "Local fallback"
+        },
+        "source": {
+          "microphone": "Microphone",
+          "file": "File import",
+          "legacy": "Legacy"
+        },
+        "presetLabel": "Preset",
+        "preset": {
+          "minimalist_cleanup": "Minimal cleanup",
+          "application_context": "Application context",
+          "email": "Email",
+          "meeting": "Meeting",
+          "notes": "Notes",
+          "generic": "General"
+        },
+        "provider": "AI route",
+        "contextPolicy": "Context level",
+        "contextPolicyValues": {
+          "none": "Off",
+          "target": "App",
+          "target_and_selection": "Selection",
+          "full": "Full"
+        },
+        "contextSources": "Context sources",
+        "contextSource": {
+          "target": "App",
+          "focused_field": "Focused field",
+          "selected_text": "Selected text",
+          "browser_url": "Browser URL",
+          "clipboard": "Recent clipboard"
+        },
+        "contextStatus": {
+          "not_requested": "Not requested",
+          "captured": "Captured",
+          "empty": "Empty",
+          "unsupported": "Unsupported",
+          "permission_denied": "Permission denied",
+          "disabled": "Disabled",
+          "disabled_by_ceiling": "Blocked by ceiling",
+          "secure_field": "Secure field",
+          "stale": "Stale",
+          "failed": "Unavailable"
+        },
+        "deliveryAttempts": "Delivery attempts",
+        "noDeliveryAttempts": "No delivery attempt was recorded.",
+        "deliveryMethod": {
+          "none": "No delivery",
+          "accessibility_insertion": "Accessibility insertion",
+          "clipboard_paste": "Clipboard paste",
+          "direct_typing": "Direct typing",
+          "external_script": "External script"
+        },
+        "deliveryOutcome": {
+          "delivered": "Delivered",
+          "definitely_not_dispatched": "Not dispatched",
+          "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        }
+      },
+      "correction": {
+        "add": "Add correction",
+        "title": "Add vocabulary correction",
+        "description": "Enter the exact spoken span and the text Sona should write. Nothing is learned from typing or background activity.",
+        "spoken": "Spoken span",
+        "written": "Written replacement",
+        "spokenPlaceholder": "What Sona heard",
+        "writtenPlaceholder": "What Sona should write",
+        "preview": "{{spoken}} → {{written}}",
+        "scope": "Save to",
+        "currentMode": "Current mode only",
+        "global": "All modes",
+        "save": "Save correction",
+        "saved": "Vocabulary correction saved",
+        "saveError": "Could not save vocabulary correction."
+      },
+      "audioImport": {
+        "start": "转录文件",
+        "fileFilter": "音频和视频文件",
+        "jobs": "文件导入",
+        "status": {
+          "queued": "排队中",
+          "decoding": "正在解码音频",
+          "transcribing": "正在转录",
+          "done": "已保存到历史记录",
+          "cancelled": "已取消",
+          "failed": "失败",
+          "cancelling": "正在取消"
+        },
+        "decodedSamples": "已解码 {{count}} 个样本",
+        "cancel": "取消",
+        "failure": {
+          "invalid_file": "无法读取所选文件。",
+          "unsupported_format": "不支持此音频格式。",
+          "no_audio": "此媒体文件没有音频轨道。",
+          "decode": "无法解码音频文件。",
+          "duration_limit": "导入的音频最长为 30 分钟。",
+          "transcription": "无法转录音频。",
+          "history": "无法将转录内容保存到历史记录。"
+        },
+        "errors": {
+          "start": "无法开始文件导入。",
+          "cancel": "无法取消文件导入。",
+          "load": "无法加载文件导入状态。"
+        }
+      },
+      "trends": {
+        "title": "History trends",
+        "description": "Recordings and words over the selected range.",
+        "loading": "Loading history trends…",
+        "error": "Couldn't load history trends.",
+        "metricLabel": "Metric",
+        "activeDays": "{{active}} of {{total}} days active",
+        "streak_one": "{{count}} day streak",
+        "streak_other": "{{count}} day streak",
+        "metrics": {
+          "recordings": "Recordings",
+          "duration": "Captured time",
+          "words": "Words"
+        },
+        "streak": "{{count}} day streak"
+      }
     },
     "debug": {
       "title": "调试",
@@ -471,10 +793,6 @@
         "copied": "已复制",
         "lineCount": "{{count}} 行",
         "empty": "正在等待日志…… 应用产生日志时将显示在此处。"
-      },
-      "updateChecks": {
-        "label": "检查更新",
-        "description": "自动检查 Handy 的新版本"
       },
       "soundTheme": {
         "label": "声音主题",
@@ -547,7 +865,7 @@
       },
       "keyboardDiagnostic": {
         "title": "键盘诊断",
-        "description": "检查键盘事件是否能到达 Handy。仅记录事件数量，绝不记录您按了哪些键。",
+        "description": "检查键盘事件是否能到达 Sona。仅记录事件数量，绝不记录您按了哪些键。",
         "run": "运行 10 秒诊断",
         "running": "正在监听… 请按几次您的快捷键（例如 Option+Space）",
         "secureInputLabel": "Secure Input",
@@ -561,7 +879,7 @@
         "mouse": "鼠标",
         "verdictBlocked": "Secure Input 正在阻止按键事件——在问题解决前，包含普通按键的快捷键无法工作。",
         "verdictSuspicious": "收到了修饰键事件，但没有按键事件——尽管 Secure Input 报告为已禁用，仍有程序在抑制按键。请在 GitHub 上反馈此问题。",
-        "verdictOk": "按键事件正常到达 Handy。",
+        "verdictOk": "按键事件正常到达 Sona。",
         "verdictNoEvents": "未捕获到任何事件——测试期间您按过键吗？",
         "failed": "诊断失败：{{error}}"
       },
@@ -577,20 +895,20 @@
       "title": "关于",
       "version": {
         "title": "版本",
-        "description": "Handy 的当前版本"
+        "description": "Sona 的当前版本"
       },
       "appDataDirectory": {
         "title": "应用数据目录",
-        "description": "Handy 存储数据的位置"
+        "description": "Sona 存储数据的位置"
       },
       "sourceCode": {
-        "title": "源代码",
-        "description": "查看源代码并贡献",
-        "button": "在 GitHub 上查看"
+        "title": "Open-source licenses",
+        "description": "View the bundled license and notice files.",
+        "button": "Open licenses"
       },
       "supportDevelopment": {
         "title": "支持开发",
-        "description": "帮助我们继续开发 Handy",
+        "description": "帮助我们继续开发 Sona",
         "button": "捐赠"
       },
       "acknowledgments": {
@@ -598,44 +916,635 @@
         "ggml": {
           "title": "ggml",
           "description": "OpenAI Whisper 自动语音识别模型的高性能推理",
-          "details": "Handy 使用 ggml 进行快速的本地语音转文字处理。感谢 Georgi Gerganov 和贡献者们的出色工作。"
+          "details": "Sona 使用 ggml 进行快速的本地语音转文字处理。感谢 Georgi Gerganov 和贡献者们的出色工作。"
         }
       },
       "whatsNewUpdates": {
         "label": "显示新功能",
-        "description": "Handy 更新后显示发行说明"
+        "description": "Sona 更新后显示发行说明"
+      }
+    },
+    "modes": {
+      "activation": {
+        "title": "App activation",
+        "capture": {
+          "label": "Activate in app",
+          "description": "Capture the app currently in front and select this mode when you dictate there.",
+          "action": "Capture current app",
+          "capturing": "Capturing..."
+        },
+        "empty": "No app activates this mode.",
+        "remove": "Remove",
+        "website": {
+          "title": "按网站激活",
+          "scope": {
+            "label": "网站范围",
+            "description": "精确匹配一个主机，或包含其子域名。",
+            "values": {
+              "exact": "精确主机",
+              "suffix": "主机和子域名"
+            }
+          },
+          "capture": {
+            "label": "在网站中激活",
+            "description": "捕获前台浏览器的主机。Sona 仅保存主机，不保存 URL。",
+            "action": "捕获当前网站",
+            "capturing": "正在捕获..."
+          },
+          "empty": "没有网站会激活此模式。"
+        }
+      },
+      "title": "Modes",
+      "description": "Choose what each dictation run recognizes, rewrites, and delivers.",
+      "listTitle": "Your modes",
+      "loading": "Loading modes…",
+      "loadError": "Modes could not be loaded.",
+      "retry": "Retry",
+      "new": "New mode",
+      "active": "Active",
+      "default": "Default",
+      "defaultProtected": "The default mode cannot be deleted.",
+      "activate": "Activate",
+      "edit": "Edit",
+      "duplicate": "Duplicate",
+      "delete": "Delete",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "back": "Back to modes",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "changesNextRun": "Changes apply to your next dictation.",
+      "copySuffix": "copy",
+      "deleteTitle": "Delete mode",
+      "deleteDescription": "Delete {{mode}}?",
+      "deleteBody": "Its mode-only shortcuts will also be removed. This cannot be undone.",
+      "identity": {
+        "title": "Identity",
+        "name": {
+          "label": "Mode name",
+          "description": "A label shown in mode selection and history."
+        }
+      },
+      "writing": {
+        "title": "Writing",
+        "enabled": {
+          "label": "AI cleanup",
+          "description": "Use the selected provider to rewrite the transcript for this mode."
+        },
+        "preset": {
+          "label": "Preset",
+          "description": "Choose behavior by name. Preset instructions are not shown or exported.",
+          "values": {
+            "minimalist_cleanup": "Minimal cleanup",
+            "application_context": "Application context",
+            "email": "Email",
+            "meeting": "Meeting",
+            "notes": "Notes",
+            "generic": "General"
+          }
+        },
+        "tone": {
+          "label": "Tone",
+          "description": "Apply this tone when AI cleanup is enabled.",
+          "values": {
+            "casual": "Casual",
+            "semi_casual": "Semi-casual",
+            "balanced": "Balanced",
+            "semi_formal": "Semi-formal",
+            "formal": "Formal"
+          }
+        },
+        "provider": {
+          "label": "AI provider",
+          "description": "The configured provider used for this mode.",
+          "empty": "No provider configured"
+        },
+        "model": {
+          "label": "AI model",
+          "description": "The provider model identifier for this mode."
+        }
+      },
+      "recognition": {
+        "literalPunctuation": {
+          "label": "Literal punctuation",
+          "description": "Convert spoken punctuation such as comma and question mark before vocabulary corrections."
+        },
+        "title": "Recognition",
+        "noModelSelected": "No model selected",
+        "model": {
+          "label": "Transcription model",
+          "description": "Only downloaded local models are available here."
+        },
+        "language": {
+          "label": "Language",
+          "description": "Set a recognition language or let the model detect it.",
+          "auto": "Auto detect",
+          "cloudDescription": "Choose the language sent with this cloud request."
+        },
+        "translate": {
+          "label": "Translate to English",
+          "description": "Request English output when the selected model supports translation."
+        },
+        "vad": {
+          "label": "Voice activity detection",
+          "description": "Skip silent audio while recording."
+        },
+        "fillerRemoval": {
+          "label": "Remove filler words",
+          "description": "Remove configured filler words from this mode’s transcript."
+        },
+        "vocabulary": {
+          "label": "Mode vocabulary",
+          "description": "Pairs here override the global vocabulary only for this mode.",
+          "spoken": "Spoken phrase",
+          "written": "Written text",
+          "spokenPlaceholder": "What was said",
+          "writtenPlaceholder": "What to write",
+          "add": "Add pair",
+          "remove": "Remove {{spoken}}",
+          "incomplete": "Complete or remove each vocabulary pair before saving this mode."
+        },
+        "engine": {
+          "label": "Transcription engine",
+          "description": "Use a local model or an eligible cloud provider.",
+          "local": "Local",
+          "cloud": "Cloud",
+          "unavailable": "{{provider}} is unavailable"
+        },
+        "cloud": {
+          "setupRequired": "{{provider}} needs a saved native API key and current transfer consent before its cloud controls are available.",
+          "fallback": {
+            "label": "Use local fallback",
+            "description": "If the cloud provider cannot return a trustworthy final, transcribe the captured audio with a local model.",
+            "useModeModel": "Use this mode's local model",
+            "model": {
+              "label": "Fallback model",
+              "description": "Choose a downloaded local model, or use this mode's local model.",
+              "required": "Choose a fallback model or set this mode's local model before saving."
+            }
+          },
+          "keyterms": {
+            "label": "Cloud keyterms",
+            "description": "One term per line. These terms are sent with this cloud request.",
+            "placeholder": "Product name\nPerson name"
+          },
+          "timestamps": {
+            "label": "Word timestamps",
+            "description": "Required for cloud transcription and cannot be disabled."
+          },
+          "consent": {
+            "title": "Use {{provider}} for cloud transcription",
+            "description": "Review how this mode sends audio before enabling {{provider}}.",
+            "intro": "These acknowledgements are fixed for this provider. Declining keeps this mode on its current local engine.",
+            "audioTransfer": {
+              "label": "Audio transfer",
+              "description": "Recorded audio from this mode is sent directly to {{provider}} for transcription."
+            },
+            "privacy": {
+              "label": "Privacy contract",
+              "description": "The provider receives this mode's audio, selected language, and keyterms. Application context and native credentials stay on this device."
+            },
+            "localFallback": {
+              "label": "Local fallback",
+              "description": "If the cloud provider cannot return a trustworthy final, Sona can use your selected local model."
+            },
+            "decline": "Keep local",
+            "accept": "Accept and use cloud",
+            "accepting": "Accepting…",
+            "errors": {
+              "unknown_provider": "This cloud provider is not available in this build.",
+              "backend": "The consent record could not be saved."
+            }
+          }
+        }
+      },
+      "context": {
+        "title": "Context",
+        "policy": {
+          "label": "Context level",
+          "description": "This mode cannot exceed the privacy ceiling.",
+          "limitedByPrivacy": "Privacy currently limits this mode. Raise the ceiling in Privacy to use this level.",
+          "values": {
+            "none": "Off",
+            "target": "App",
+            "target_and_selection": "Selection",
+            "full": "Full"
+          }
+        }
+      },
+      "delivery": {
+        "title": "Delivery",
+        "method": {
+          "label": "Delivery method",
+          "description": "How Sona puts completed text into the target app.",
+          "values": {
+            "ctrl_v": "Paste",
+            "direct": "Type directly",
+            "none": "Do not deliver",
+            "shift_insert": "Shift+Insert",
+            "ctrl_shift_v": "Paste without formatting",
+            "external_script": "External script"
+          }
+        },
+        "clipboard": {
+          "label": "Clipboard",
+          "description": "Choose whether completed text is copied before delivery.",
+          "values": {
+            "copy_to_clipboard": "Copy to clipboard",
+            "dont_modify": "Leave unchanged"
+          }
+        },
+        "autoSubmit": {
+          "label": "Auto-submit",
+          "description": "Submit after delivery using the chosen key."
+        },
+        "autoSubmitKey": {
+          "label": "Submit key",
+          "description": "The key Sona uses when auto-submit is on.",
+          "values": {
+            "enter": "Enter",
+            "ctrl_enter": "Ctrl+Enter",
+            "cmd_enter": "Command+Enter"
+          }
+        },
+        "trailingSpace": {
+          "label": "Append a trailing space",
+          "description": "Add one space after delivered text."
+        },
+        "reliablePaste": {
+          "label": "Reliable paste",
+          "description": "Use receipt-sequenced paste when the platform supports it."
+        },
+        "delay": {
+          "label": "Paste delays",
+          "description": "Milliseconds before and after delivery.",
+          "before": "Before",
+          "after": "After"
+        },
+        "typingTool": {
+          "label": "Typing tool",
+          "description": "Used only with direct typing.",
+          "values": {
+            "auto": "Automatic",
+            "wtype": "wtype",
+            "kwtype": "kwtype",
+            "dotool": "dotool",
+            "ydotool": "ydotool",
+            "xdotool": "xdotool"
+          }
+        },
+        "script": {
+          "label": "External script",
+          "description": "The script path used by the external-script delivery method."
+        }
+      },
+      "shortcuts": {
+        "title": "Shortcuts",
+        "description": "Set a shortcut to transcribe with or switch to this mode.",
+        "manyModes": "New modes may start unbound after the first nine. Set their shortcuts here."
+      },
+      "errors": {
+        "staleRevision": "Settings changed elsewhere. Review the latest mode and save again.",
+        "invalid_mode_id": "This mode ID is invalid.",
+        "empty_name": "A mode name is required.",
+        "cannot_delete_default": "The default mode cannot be deleted.",
+        "unknown_mode": "That mode no longer exists.",
+        "duplicate_mode_id": "A mode with this ID already exists.",
+        "invalid_reorder": "The mode order could not be saved.",
+        "invalid_website_host": "网站主机无效。",
+        "website_activation_consent_required": "添加网站规则前，请在“隐私”中启用浏览器 URL。",
+        "frontmost_website_unavailable": "无法从浏览器捕获网站。",
+        "website_activation_secure_field": "无法从安全字段捕获网站规则。"
+      },
+      "globalVocabulary": {
+        "title": "Global vocabulary",
+        "description": "Vocabulary entries applied across every mode."
+      },
+      "actionsFor": "Actions for {{mode}}",
+      "editorLabel": "Mode editor",
+      "editorTabsLabel": "Mode editor sections",
+      "empty": "Select a mode to edit it.",
+      "viewNavigation": "Mode views",
+      "tabs": {
+        "recognition": "Recognition",
+        "rewrite": "Rewrite",
+        "context": "Context",
+        "delivery": "Delivery",
+        "automation": "Automation"
+      },
+      "views": {
+        "modes": "Modes",
+        "vocabulary": "Vocabulary"
+      }
+    },
+    "privacy": {
+      "title": "Privacy",
+      "description": "Control application context, inspect capture access, and manage data kept on this device.",
+      "context": {
+        "title": "Context for AI cleanup",
+        "description": "The global ceiling limits every mode before context is read.",
+        "ceiling": {
+          "label": "Global context ceiling",
+          "description": "Modes may ask for less context, never more.",
+          "values": {
+            "none": "Off",
+            "target": "App",
+            "target_and_selection": "Selection",
+            "full": "Full"
+          },
+          "error": "The context ceiling could not be saved"
+        },
+        "sources": {
+          "title": "What each level reads",
+          "description": "These are source disclosures, not retained content.",
+          "none": "Reads no application context.",
+          "target": "Reads the frontmost app identity.",
+          "target_and_selection": "Reads the frontmost app identity and selected text when available.",
+          "full": "May also read a permitted browser URL and recently changed clipboard text when available."
+        },
+        "urlCapture": {
+          "label": "Include browser URLs",
+          "description": "Allow a frontmost browser page URL to be captured when a mode and the ceiling allow it.",
+          "error": "Browser URL capture could not be saved."
+        },
+        "cloudRoute": "Enabled cloud modes send allowed context to {{providers}}.",
+        "localRoute": "All your AI processing is local.",
+        "checkingRoute": "Checking configured cloud routes…"
+      },
+      "diagnostics": {
+        "title": "Context diagnostics",
+        "description": "Read-only checks show what this build can access right now.",
+        "refresh": "Refresh",
+        "error": "Diagnostics could not be refreshed",
+        "accessibility": {
+          "label": "Accessibility",
+          "granted": "Accessibility access is granted.",
+          "denied": "Accessibility access is denied.",
+          "unsupported": "Accessibility context is not supported on this platform."
+        },
+        "sources": {
+          "target_identity": "Frontmost app",
+          "focused_field": "Focused field",
+          "selected_text": "Selected text",
+          "browser_url": "Browser URL",
+          "clipboard": "Recent clipboard"
+        }
+      },
+      "status": {
+        "granted": "Granted",
+        "denied": "Denied",
+        "unsupported": "Unsupported",
+        "not_requested": "Not requested",
+        "captured": "Available",
+        "empty": "Empty",
+        "permission_denied": "Permission denied",
+        "disabled": "Disabled",
+        "disabled_by_ceiling": "Blocked by ceiling",
+        "secure_field": "Secure field",
+        "stale": "Stale",
+        "failed": "Unavailable"
+      },
+      "data": {
+        "title": "Data on this device",
+        "credentialStore": "Provider credentials are stored in the native credential store, not in Sona settings.",
+        "locations": "Settings, history, and retained recordings live in Sona’s application data directory. Recordings are kept only for the selected retention period.",
+        "historyLimit": {
+          "label": "History limit",
+          "description": "Keep this many recent history entries. Set 0 to disable saved history."
+        },
+        "retention": {
+          "label": "Recording retention",
+          "description": "Choose how long recording files remain on this device.",
+          "values": {
+            "never": "Do not retain recordings",
+            "preserve_limit": "Keep recordings with history",
+            "days_3": "3 days",
+            "weeks_2": "2 weeks",
+            "months_3": "3 months"
+          }
+        },
+        "error": "Data retention could not be saved"
+      },
+      "cloudTranscription": {
+        "title": "Cloud transcription",
+        "description": "Read-only disclosure of direct cloud speech-to-text routes.",
+        "checking": "Checking cloud transcription setup…",
+        "checkFailed": "Cloud transcription setup could not be checked.",
+        "disclosure": "For a cloud-enabled mode, Sona sends recorded audio, the selected language, and mode keyterms directly to the provider. Application context and native credentials stay on this device.",
+        "providerDetail": "{{provider}} has a saved native API key and current transfer consent.",
+        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent."
+      },
+      "upstreamImport": {
+        "title": "Import from legacy app",
+        "description": "Copy selected personal data from the legacy app. The source remains unchanged.",
+        "source": {
+          "settingsAvailable": "Settings file is available.",
+          "settingsMissing": "No settings file was found.",
+          "history": "{{count}} history entries found.",
+          "recordings": "{{count}} recording files, {{size}}.",
+          "empty": "No settings or history entries are available to import."
+        },
+        "byteCount": "{{value}} {{unit}}",
+        "byteUnits": {
+          "bytes": "B",
+          "kilobytes": "KiB",
+          "megabytes": "MiB",
+          "gigabytes": "GiB"
+        },
+        "modelsNotImported": "Model files are not imported.",
+        "appRunning": "Close the legacy app before importing.",
+        "appUnverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
+        "selection": "Choose data to import",
+        "selectionSettings": "Settings",
+        "selectionHistory": "History",
+        "selectionRecordings": "Recordings",
+        "recordingsRequireHistory": "Recordings are imported only with history.",
+        "selectionRequired": "Choose settings or history to import.",
+        "progress": "{{phase}}: {{completed}} of {{total}}",
+        "phases": {
+          "settings": "Settings",
+          "history": "History",
+          "recordings": "Recordings"
+        },
+        "settingsImported": "Settings imported.",
+        "settingsAlreadyImported": "Settings were already imported.",
+        "result": "{{settings}} Imported {{historyImported}} history entries; {{historyExisting}} already existed. Copied {{recordingsCopied}} recordings; {{recordingsExisting}} already existed.",
+        "refresh": "Check again",
+        "import": "Import selected data",
+        "importing": "Importing",
+        "errors": {
+          "source_unavailable": "The original Sona data folder is unavailable.",
+          "upstream_running": "Close the original Sona app before importing.",
+          "app_state_unverifiable": "Sona cannot verify the original app state on this platform.",
+          "invalid_selection": "Choose settings or history to import.",
+          "settings_unreadable": "The original settings file could not be read.",
+          "secret_store_unavailable": "The native credential store is unavailable, so settings with provider keys were not imported.",
+          "secret_conflict": "A provider key already exists in the native credential store. Resolve it before importing settings.",
+          "history_unreadable": "The original history database could not be read.",
+          "recording_copy_failed": "A recording could not be copied and verified.",
+          "receipt_write_failed": "The import receipt could not be saved.",
+          "internal": "The import did not finish.",
+          "status": "The original Sona data could not be inspected."
+        }
+      }
+    },
+    "agents": {
+      "title": "Agents",
+      "description": "Observe approved local coding-agent sessions. Responses only appear where the installed hook has a fixture-backed wire format.",
+      "controls": {
+        "title": "Bridge controls",
+        "master": {
+          "label": "Enable agent bridge",
+          "description": "Allow Sona to observe configured local agent hooks for authorized projects."
+        },
+        "offState": "The agent bridge is off. No session data or replies are processed.",
+        "status": "Runtime status",
+        "providers": {
+          "claude": {
+            "label": "Claude",
+            "description": "Observe Claude sessions and enable fixture-backed replies where available."
+          },
+          "codex": {
+            "label": "Codex",
+            "description": "Observe sessions only. Replies are read-only until a wire fixture supports them."
+          },
+          "grok": {
+            "label": "Grok",
+            "description": "Observe sessions only. Replies are read-only until a wire fixture supports them."
+          },
+          "omp": {
+            "label": "OMP",
+            "description": "Observe OMP sessions and approval requests. Replies are available only at a supported OMP session stop."
+          }
+        }
+      },
+      "status": {
+        "disabled": "Disabled",
+        "runtime_unavailable": "Runtime unavailable",
+        "interactive_unsupported": "Interactive responses unsupported",
+        "app_lock_held": "Another Sona instance is active",
+        "active": "Active"
+      },
+      "projects": {
+        "title": "Authorized projects",
+        "description": "Choose a project folder with the native picker. Sona persists only its canonical hash.",
+        "hashOnly": "Exact project hashes are the permission boundary; folder paths are not stored here.",
+        "add": "Authorize folder",
+        "remove": "Remove project",
+        "empty": "No projects are authorized."
+      },
+      "hook": {
+        "title": "Hook snippet",
+        "description": "Copy the packaged hook configuration into your agent’s own configuration. Sona never edits agent configuration files.",
+        "copy": "Copy snippet",
+        "error": "Hook snippet unavailable"
+      },
+      "replyQueue": {
+        "title": "Reply preview",
+        "description": "Create a reply preview for a prepared Claude or OMP session. Sona sends it only after you confirm the exact destination and text.",
+        "session": "Reply destination",
+        "noSession": "No observed reply-capable session",
+        "message": "Reply text",
+        "createPreview": "Create preview"
+      },
+      "pending": {
+        "empty": "No pending replies.",
+        "confirm": "Confirm exact reply",
+        "preview": "Review the exact destination and text before confirming",
+        "confirmed": "Confirmed for the next supported Stop event",
+        "cancel": "Cancel",
+        "states": {
+          "held": "Held for the next supported Stop event",
+          "response_written": "Response written",
+          "emitted": "Emitted",
+          "copy_only": "Copy-only",
+          "cancelled": "Cancelled"
+        }
+      },
+      "observed": {
+        "title": "Observed activity",
+        "description": "Sessions and requests include IDs and metadata only; provider payloads are not shown.",
+        "refresh": "Refresh",
+        "sessions": "Sessions",
+        "noSessions": "No sessions observed.",
+        "requests": "Requests",
+        "noRequests": "No requests observed.",
+        "requestKinds": {
+          "session_start": "Session started",
+          "user_prompt_submit": "Prompt submitted",
+          "permission_request": "Permission request",
+          "pre_tool_use": "Before tool use",
+          "post_tool_use": "After tool use",
+          "stop": "Stop",
+          "notification": "Notification"
+        },
+        "expires": "Expires {{time}}",
+        "allowExact": "Allow exactly this request",
+        "denyExact": "Deny exactly this request",
+        "dismiss": "Dismiss",
+        "ompPermissionObserveOnly": "OMP approval requests are observed only. Approve or deny them in OMP."
+      },
+      "rules": {
+        "title": "Exact permission rules",
+        "description": "An allow or deny is stored only for the exact agent, project hash, tool, mode, and input hash that created it.",
+        "empty": "No permission rules.",
+        "remove": "Remove rule",
+        "decisions": {
+          "allow": "Allow",
+          "deny": "Deny"
+        }
+      },
+      "errors": {
+        "load": "Agent bridge data could not be loaded: {{error}}",
+        "operation": "The agent bridge action could not be completed: {{error}}"
+      }
+    },
+    "hub": {
+      "navigation": "Settings sections",
+      "tabs": {
+        "general": "General",
+        "privacy": "Privacy",
+        "agents": "Agents",
+        "advanced": "Advanced",
+        "about": "About",
+        "debug": "Debug"
       }
     }
-  },
-  "footer": {
-    "checkingUpdates": "检查更新中...",
-    "updateAvailableShort": "有可用更新",
-    "upToDate": "已是最新版本",
-    "updateCheckingDisabled": "更新检查已禁用",
-    "downloading": "下载中... {{progress}}%",
-    "installing": "安装中...",
-    "preparing": "准备中...",
-    "checkForUpdates": "检查更新",
-    "portableUpdateTitle": "需要手动更新",
-    "portableUpdateMessage": "便携版无法自动更新。请通过下方按钮下载适用于你的系统的安装程序，运行后安装到同一文件夹，你的 Data/ 文件夹（设置、模型、录音）会保留在原处。",
-    "portableUpdateButton": "下载安装程序",
-    "portableUpdateBrowseMessage": "便携版无法自动更新。请从 GitHub Releases 下载适用于你的系统的最新版本，并安装到同一文件夹，你的 Data/ 文件夹（设置、模型、录音）会保留在原处。",
-    "portableUpdateBrowseButton": "打开 GitHub Releases"
   },
   "common": {
     "loading": "加载中...",
     "delete": "删除",
+    "cancel": "取消",
     "close": "关闭",
     "open": "打开",
     "copy": "复制",
     "clear": "清除",
-    "noOptionsFound": "未找到选项"
+    "noOptionsFound": "未找到选项",
+    "save": "Save",
+    "saving": "Saving…",
+    "retry": "Retry"
+  },
+  "commandPalette": {
+    "open": "搜索",
+    "placeholder": "输入命令或搜索…",
+    "navigation": "导航",
+    "actions": "操作",
+    "noResults": "未找到命令",
+    "navigate": "导航",
+    "select": "选择",
+    "newMeeting": "New meeting",
+    "importAudio": "转录文件",
+    "openRecordings": "打开录音文件夹",
+    "openAgent": "打开智能体",
+    "esc": "esc"
   },
   "accessibility": {
-    "permissionsDescription": "Handy 需要辅助功能权限才能输入转录的文字。",
+    "permissionsDescription": "Sona 需要辅助功能权限才能输入转录的文字。",
     "openSettings": "打开系统设置"
   },
   "errors": {
+    "noSpeechDetectedTitle": "未检测到语音",
+    "noSpeechDetected": "未检测到语音。录音样本已保存到历史记录，以便您检查捕获的音频。",
     "loadDirectory": "加载目录时出错: {{error}}",
     "micPermissionDeniedTitle": "麦克风访问被拒绝",
     "micPermissionDenied": {
@@ -655,11 +1564,11 @@
   },
   "appLanguage": {
     "title": "应用语言",
-    "description": "更改 Handy 界面的语言"
+    "description": "更改 Sona 界面的语言"
   },
   "theme": {
     "title": "应用主题",
-    "description": "选择 Handy 跟随系统主题，还是保持浅色或深色",
+    "description": "选择 Sona 跟随系统主题，还是保持浅色或深色",
     "options": {
       "system": "跟随系统",
       "light": "浅色",
@@ -668,10 +1577,12 @@
   },
   "overlay": {
     "transcribing": "正在转录...",
-    "processing": "处理中..."
+    "processing": "处理中...",
+    "cloud": "Cloud",
+    "localFallback": "Offline, using local model"
   },
   "whatsNew": {
-    "title": "Handy v{{version}} 新功能"
+    "title": "Sona v{{version}} 新功能"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} 可能正在阻止 1 个快捷键",
@@ -683,5 +1594,544 @@
     "learnMore": "如何解决",
     "recorderBlocked": "当前无法录制快捷键——macOS 的 Secure Input 正在阻止按键事件。请先解决 Secure Input 警告。",
     "dismiss": "关闭"
+  },
+  "meetings": {
+    "title": "Meetings",
+    "description": "Capture, recover, and review meeting notes stored on this Mac.",
+    "loading": "Loading meetings…",
+    "providers": {
+      "zoom": "Zoom",
+      "google_meet": "Google Meet",
+      "microsoft_teams": "Microsoft Teams",
+      "webex": "Webex",
+      "slack_huddle": "Slack huddle",
+      "face_time": "FaceTime",
+      "configured_app": "Configured app"
+    },
+    "phases": {
+      "preflight": "Setup",
+      "starting": "Starting",
+      "capturing_recording": "Recording",
+      "capturing_pausing": "Pausing",
+      "capturing_paused": "Paused",
+      "capturing_resuming": "Resuming",
+      "stopping": "Stopping",
+      "processing": "Processing",
+      "review_ready": "Ready for review",
+      "recovery_required": "Recovery needed",
+      "deleting": "Deleting"
+    },
+    "sources": {
+      "microphone": "Microphone",
+      "system_audio": "System audio"
+    },
+    "availability": {
+      "available": "Available",
+      "permission_required": "Permission required",
+      "permission_denied": "Permission denied",
+      "device_unavailable": "Device unavailable",
+      "unsupported_platform": "Unsupported on this Mac",
+      "storage_unavailable": "Storage unavailable",
+      "unknown": "Checking"
+    },
+    "health": {
+      "not_started": "Not started",
+      "starting": "Starting",
+      "healthy": "Healthy",
+      "paused": "Paused",
+      "degraded": "Degraded",
+      "failed": "Failed",
+      "stopped": "Stopped"
+    },
+    "completeness": {
+      "not_started": "Not started",
+      "complete": "Complete",
+      "partial": "Partial"
+    },
+    "processing": {
+      "pending": "Waiting for processing",
+      "running": "Processing",
+      "succeeded": "Ready",
+      "cancelled": "Processing cancelled",
+      "failed": {
+        "local_model_unavailable": "Local model unavailable",
+        "remote_unavailable": "Remote destination unavailable",
+        "engine_failure": "Processing failed",
+        "cancelled": "Processing cancelled"
+      }
+    },
+    "readiness": {
+      "ready": "Ready",
+      "unavailable": "Unavailable",
+      "local": "Local only",
+      "needsAcknowledgement": "Acknowledgement required"
+    },
+    "actions": {
+      "back": "Back",
+      "delete": "Delete meeting",
+      "discard": "Discard",
+      "newMeeting": "New meeting",
+      "pause": "Pause",
+      "refresh": "Refresh",
+      "resume": "Resume",
+      "retry": "Try again",
+      "startLocal": "Start local notes",
+      "stop": "Stop"
+    },
+    "detected": {
+      "title": "Meeting detected",
+      "description": "Sona only offers a setup screen. It is not recording.",
+      "mayBeActive": "A meeting may be active in {{provider}}.",
+      "notRecording": "Sona is not recording."
+    },
+    "setup": {
+      "title": "Start local notes",
+      "suggestedDescription": "Sona detected {{provider}}. Review the capture setup before recording.",
+      "manualDescription": "Set the sources and policy for a new local meeting note.",
+      "identity": "Meeting details",
+      "meetingTitle": "Meeting title",
+      "meetingTitlePlaceholder": "Untitled meeting",
+      "captureSources": "Capture sources",
+      "captureSourcesDescription": "Each source stays separate so missing audio remains visible.",
+      "sourcePolicy": "If a source is unavailable",
+      "sourcePolicyDescription": "Choose whether setup stops or starts with an explicit partial record.",
+      "strict": "Strict: stop setup if a required source is unavailable",
+      "continuePartial": "Continue partial: start only after I acknowledge the missing source",
+      "processing": "Processing route",
+      "localProcessing": "On this Mac",
+      "localProcessingDescription": "Audio, transcript, notes, search, and Q&A stay local.",
+      "selected": "Selected",
+      "remoteDestination": "Remote destination",
+      "remoteNotSelected": "No remote destination selected",
+      "localOnly": "Local only",
+      "check": "Check recording setup",
+      "checking": "Checking setup…",
+      "defaultTitle": "Local notes"
+    },
+    "preflight": {
+      "title": "Check recording setup",
+      "description": "Review each local capability before authorizing capture.",
+      "summary": "Meeting setup summary",
+      "meeting": "Meeting",
+      "changeSetup": "Change setup",
+      "readiness": "Readiness",
+      "readinessDescription": "Each row reports the current backend check.",
+      "storage": "Storage",
+      "storageAvailable": "Encrypted meeting storage is available.",
+      "storageUnavailable": "Encrypted meeting storage is unavailable.",
+      "localModel": "Local model",
+      "localModelDescription": "Processing remains local when a local model is available.",
+      "remoteDestination": "Remote destination",
+      "remoteNotSelected": "No remote destination is selected.",
+      "remoteSelected": "Selected destination: {{destination}}",
+      "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
+      "starting": "Starting visible capture…"
+    },
+    "consent": {
+      "title": "Recording acknowledgement",
+      "description": "Sona will show a visible capture state. Audio, transcript, and notes stay on this Mac unless you explicitly select a remote destination.",
+      "acknowledge": "I have permission to capture this meeting.",
+      "continuePartial": "I want to continue with a partial meeting record.",
+      "acceptMissing": "I understand {{source}} is {{state}} and this meeting will be partial."
+    },
+    "live": {
+      "activeCapture": "Active capture",
+      "elapsed": "Elapsed",
+      "microphoneOnlyPartial": "Microphone only / Partial. System audio is unavailable or degraded.",
+      "partialCapture": "Partial capture. Review the gaps before relying on generated notes.",
+      "inputs": "Inputs",
+      "inputsDescription": "Source health is reported separately. Capture never fills missing intervals.",
+      "signal": "Signal",
+      "signalUnavailable": "{{source}} level is not reported by capture.",
+      "notReported": "Not reported",
+      "durabilityLag": "Durability lag",
+      "behind": "{{duration}} behind",
+      "progress": "Transcript progress",
+      "progressDescription": "Transcript timing is derived from committed segments, not a guessed model state.",
+      "transcript": "Transcript",
+      "transcriptThrough": "Transcript through {{time}}",
+      "noTranscriptCheckpoint": "No transcript checkpoint",
+      "asrLag": "ASR lag",
+      "storage": "Storage",
+      "storageHealthy": "Encrypted local storage is healthy.",
+      "storageUnavailable": "Storage needs attention.",
+      "processing": "Processing",
+      "manualNote": "Manual note",
+      "manualNoteDescription": "A note added now is anchored at {{time}}.",
+      "notePlaceholder": "Write a note for this moment",
+      "timestamp": "Timestamp {{time}}",
+      "addNote": "Add timestamped note"
+    },
+    "recovery": {
+      "title": "Recover partial meetings",
+      "description": "These sessions were interrupted. Sona will not restart capture.",
+      "finalize": "Finalize partial"
+    },
+    "history": {
+      "title": "Meeting history",
+      "description": "Open a local meeting record to inspect its capture coverage and notes.",
+      "loading": "Loading meeting history…",
+      "emptyTitle": "No meetings yet",
+      "emptyDescription": "Start local notes when you are ready to capture a meeting."
+    },
+    "retention": {
+      "title": "Retention",
+      "description": "Sona deletes eligible local meeting records through the same verified deletion path.",
+      "forever": "Keep until I delete it",
+      "days": "Delete after {{days}} days"
+    },
+    "receipts": {
+      "title": "Correction receipt",
+      "saved": "Saved locally.",
+      "savedRevision": "Saved locally. Revision {{revision}}.",
+      "duplicate": "This action was already recorded. Sona refreshed the existing result."
+    },
+    "reasons": {
+      "consent_missing": "Recording acknowledgement is required.",
+      "consent_stale": "Setup changed before this action.",
+      "stale_revision": "This meeting changed in another window.",
+      "capture_lease_busy": "Another meeting capture is active.",
+      "source_unavailable": "A requested source is unavailable.",
+      "source_start_failed": "A source could not start.",
+      "source_gap": "A source reported a gap.",
+      "storage_unavailable": "Encrypted meeting storage is unavailable.",
+      "storage_failure": "Storage could not persist this change.",
+      "local_model_unavailable": "A local model is unavailable.",
+      "recovery_required": "This meeting needs recovery.",
+      "deleted": "This meeting was deleted.",
+      "invalid_transition": "This action is not available in the current phase.",
+      "duplicate_operation": "This action was already recorded."
+    },
+    "gaps": {
+      "source_unavailable": "Source unavailable",
+      "source_start_failed": "Source start failed",
+      "permission_lost": "Permission lost",
+      "paused": "Paused",
+      "packet_dropped": "Audio packet dropped",
+      "writer_pressure": "Storage writer pressure",
+      "storage_failure": "Storage failure",
+      "timestamp_missing": "Timestamp missing",
+      "timestamp_discontinuity": "Timestamp discontinuity",
+      "invalid_format": "Invalid audio format",
+      "source_stopped": "Source stopped",
+      "corrupt_record": "Corrupt record",
+      "missing_record": "Missing record",
+      "recovery_tail": "Recovery tail",
+      "system_sleep": "Mac sleep"
+    },
+    "errors": {
+      "load": "Sona could not load the current meeting data.",
+      "operation": "Sona could not complete that meeting action.",
+      "operationRejected": "The meeting action was rejected.",
+      "consent_required": "Confirm the recording acknowledgement before starting.",
+      "consent_stale": "The setup changed. Review it again before starting.",
+      "invalid_transition": "This action is unavailable in the current meeting phase.",
+      "stale_revision": "This meeting changed in another window. Sona refreshed its snapshot.",
+      "capture_lease_busy": "Another meeting is already capturing audio.",
+      "no_source_started": "No approved audio source started.",
+      "source_unavailable": "A requested audio source is unavailable.",
+      "storage_unavailable": "Encrypted meeting storage is unavailable.",
+      "recovery_required": "This meeting needs recovery before that action.",
+      "deletion_in_progress": "Deletion is already in progress. The meeting remains inaccessible.",
+      "not_found": "This meeting is no longer available.",
+      "invalid_request": "The meeting request was invalid.",
+      "export_cancelled": "Export was cancelled. No completed export was created.",
+      "export_failed": "Export failed. No completed export was created.",
+      "local_model_unavailable": "A local model is unavailable for this meeting.",
+      "remote_unavailable": "The selected remote destination is unavailable."
+    },
+    "discard": {
+      "liveTitle": "Stop and discard this session?",
+      "liveDescription": "Sona will stop capture and delete the local meeting record.",
+      "keepRecording": "Keep recording",
+      "stopAndDiscard": "Stop and discard",
+      "explainsData": "Audio, transcript, manual notes, generated notes, and local answer caches will be deleted. This cannot be undone.",
+      "complete": "Session discarded"
+    },
+    "delete": {
+      "title": "Delete this meeting?",
+      "description": "Sona will delete the local meeting record and its derived data.",
+      "explainsData": "Sona keeps the meeting inaccessible while verified deletion finishes. Exports and remote copies are outside local deletion.",
+      "complete": "Meeting deleted"
+    },
+    "review": {
+      "meetingTitle": "Meeting title",
+      "noStartTime": "This meeting did not record a start time.",
+      "started": "Started {{date}}",
+      "status": "Capture status",
+      "statusDescription": "Coverage, source health, and processing remain separate.",
+      "timeline": "Audio timeline and gaps",
+      "timelineDescription": "Gaps name intervals where no audio was captured.",
+      "gap": "Gap",
+      "timeUnknown": "Unknown time",
+      "noGaps": "No capture gaps were reported.",
+      "transcript": "Transcript",
+      "transcriptDescription": "Edits create a new canonical revision. Derived notes and answers become out of date.",
+      "noTranscript": "No transcript is available.",
+      "transcriptSegment": "Transcript segment",
+      "removeSegment": "Remove segment",
+      "unknownSpeaker": "Unknown speaker",
+      "speakers": "Speakers",
+      "speakersDescription": "Rename or merge local speaker labels without rewriting timing.",
+      "noSpeakers": "No speaker labels are available.",
+      "speakerName": "Speaker name",
+      "mergeSource": "Merge this speaker",
+      "mergeTarget": "Into this speaker",
+      "merge": "Merge speakers",
+      "manualNotes": "Manual notes",
+      "manualNotesDescription": "Manual notes are user-owned and remain separate from generated notes.",
+      "manualNote": "Manual note",
+      "newNote": "New manual note",
+      "notePlaceholder": "Add a manual note",
+      "addNote": "Add note",
+      "noNotes": "No manual notes yet.",
+      "noTimestamp": "No timestamp",
+      "timestamp": "Timestamp {{time}}",
+      "generatedNotes": "Generated notes",
+      "generatedNotesDescription": "Regeneration uses the current canonical revision and does not overwrite manual notes or confirmed corrections.",
+      "regenerate": "Regenerate",
+      "remoteCancellationPending": "Remote cancellation is pending. Local deletion does not claim the remote copy is deleted.",
+      "cancelRemote": "Cancel remote processing",
+      "remoteCancellationRequested": "Remote cancellation requested.",
+      "export": "Export",
+      "exportDescription": "Each export uses an immutable local review snapshot and opens a native save dialog.",
+      "exportMarkdown": "Export Markdown",
+      "exportJson": "Export JSON",
+      "exportComplete": "Export completed.",
+      "citation": "Transcript {{time}}",
+      "noGeneratedNotes": "No generated notes are available yet.",
+      "template": "Template: {{template}}",
+      "artifactRevision": "Template v{{templateVersion}} · source revision {{revision}}",
+      "summary": "Summary",
+      "topics": "Topics",
+      "none": "None",
+      "decisions": "Decisions",
+      "actions": "Action items",
+      "keyQuestions": "Key questions",
+      "risks": "Risks",
+      "followUp": "Follow-up",
+      "artifactUnavailable": "This generated revision is unavailable. The source transcript and manual notes remain local.",
+      "actionMeta": "Owner: {{owner}} · Due: {{due}}",
+      "unassigned": "Unassigned",
+      "noDueDate": "No due date",
+      "questions": "Ask this meeting",
+      "questionsDescription": "Answers use only this local meeting and cite the supporting transcript.",
+      "questionPlaceholder": "Ask a question about this meeting",
+      "ask": "Ask locally",
+      "noQuestions": "No saved local answers.",
+      "question": "Question",
+      "insufficientEvidence": "I couldn’t find support for that in this meeting.",
+      "forget": "Forget this answer",
+      "exactSearch": "Exact search",
+      "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
+      "searchPlaceholder": "Search this meeting",
+      "search": "Search",
+      "noSearchResults": "No exact local matches."
+    },
+    "artifactState": {
+      "current": "Current",
+      "out_of_date": "Out of date",
+      "failed": "Generation failed"
+    },
+    "answerState": {
+      "supported": "Supported",
+      "insufficient_evidence": "Insufficient evidence",
+      "unavailable": "Unavailable",
+      "out_of_date": "Out of date",
+      "forgotten": "Forgotten"
+    },
+    "diarization": {
+      "not_requested": "Diarization not requested",
+      "model_unavailable": "Diarization model unavailable",
+      "downloading": "Downloading diarization model",
+      "running": "Separating speakers",
+      "succeeded": "Speaker assignments current",
+      "failed": "Speaker separation failed"
+    },
+    "trends": {
+      "title": "Meeting activity",
+      "loading": "Loading meeting trends…",
+      "error": "Couldn't load meeting trends.",
+      "unavailable": "Meeting trends are unavailable right now.",
+      "metricLabel": "Metric",
+      "metrics": {
+        "meetings": "Meetings",
+        "duration": "Captured time",
+        "transcript": "Transcript segments",
+        "actions": "Action items"
+      }
+    }
+  },
+  "agentPanel": {
+    "open": "代理",
+    "loading": "连接中…",
+    "retry": "重试",
+    "cancel": "取消",
+    "apply": "应用",
+    "undo": "撤销",
+    "panelToggle": "关闭代理面板",
+    "conversationLabel": "对话",
+    "proposalLabel": "建议的更改",
+    "proposalTitle": "建议的更改",
+    "empty": "询问 Sona 设置。任何更改前，建议都会显示在此处供审阅。",
+    "inputPlaceholder": "询问 Sona…",
+    "inputLabel": "询问 Sona",
+    "send": "发送",
+    "status": {
+      "loading": "连接中…",
+      "disabled": "代理面板已禁用。",
+      "unpaired": "未与中继配对。",
+      "offline": "中继离线。",
+      "idle": "就绪",
+      "running": "处理中…",
+      "proposal": "建议已就绪",
+      "error": "代理面板不可用。"
+    }
+  },
+  "analytics": {
+    "range": {
+      "label": "Range",
+      "days_7": "7 days",
+      "days_30": "30 days",
+      "days_180": "6 months"
+    },
+    "delta": {
+      "new": "New",
+      "flat": "No change",
+      "unavailable": "Unavailable",
+      "change": "{{value}} vs previous period"
+    },
+    "duration": {
+      "minutes": "{{value}} min",
+      "hours": "{{value}} h"
+    },
+    "chart": {
+      "description": "{{metric}} for {{range}}",
+      "empty": "No activity yet"
+    }
+  },
+  "overview": {
+    "sources": {
+      "title": "Sources",
+      "description": "Where the recordings in this range came from.",
+      "microphone": "Microphone",
+      "file": "File import",
+      "legacy": "Legacy",
+      "empty": "No recordings in this range."
+    },
+    "recent": {
+      "title": "Recent activity",
+      "history": "Transcription",
+      "meeting": "Meeting"
+    },
+    "hero": {
+      "ready": "Ready",
+      "recording": "Recording",
+      "instruction": "Press {{shortcut}} to dictate anywhere",
+      "newMeeting": "New meeting",
+      "importAudio": "Import audio"
+    },
+    "actions": {
+      "dictate": "Dictate",
+      "unavailable": "Shortcut unavailable"
+    }
+  },
+  "cloudSync": {
+    "title": "Cloud Sync",
+    "account": {
+      "title": "Cloud Sync",
+      "description": "Keep meetings on this device unless you choose to set up sync.",
+      "status": {
+        "loading": "Checking sync…",
+        "local": "Local only",
+        "ready": "Sync active",
+        "paused": "Sync paused",
+        "attention": "Sync needs attention",
+        "unavailable": "Sync unavailable"
+      },
+      "pending": "{{count}} pending",
+      "pause": "Pause sync",
+      "resume": "Resume sync"
+    },
+    "disclosure": {
+      "title": "Set up or recover sync",
+      "description": "Connect an endpoint or pair another device.",
+      "notice": "Setup is optional. Meeting data stays local until you complete it."
+    },
+    "setup": {
+      "title": "Set up a sync account",
+      "endpoint": "Endpoint",
+      "bootstrapSecret": "Bootstrap secret",
+      "submit": "Set up sync"
+    },
+    "recovery": {
+      "title": "Recover a sync account",
+      "code": "Recovery code",
+      "submit": "Recover account",
+      "generatedCode": "Save this recovery code now",
+      "oneTime": "Sona shows this code once and does not store it."
+    },
+    "pairing": {
+      "title": "Pair a device",
+      "vaultId": "Vault ID",
+      "createOffer": "Create pairing offer",
+      "currentOffer": "Pairing offer",
+      "approve": "Approve this offer",
+      "receivedOffer": "Offer from another device",
+      "accept": "Accept offer"
+    },
+    "errors": {
+      "portable_unavailable": "Cloud Sync is unavailable in portable mode.",
+      "secret_unavailable": "The native secure store is unavailable.",
+      "setup_required": "Set up Cloud Sync before using this action.",
+      "auth_required": "Cloud sign-in is required.",
+      "quota": "Cloud storage quota has been reached.",
+      "integrity_failure": "The cloud operation could not be verified.",
+      "conflict": "This meeting has a sync conflict.",
+      "unsupported_protocol": "This device does not support the cloud protocol.",
+      "transient": "Cloud Sync is temporarily unavailable.",
+      "invalid_expiry": "Choose a future expiry.",
+      "invalid_offer": "The pairing offer is incomplete or invalid.",
+      "unexpected": "The cloud operation failed."
+    },
+    "meeting": {
+      "title": "Cloud Sync",
+      "status": {
+        "loading": "Checking sync…",
+        "local": "Local only",
+        "queued": "Queued",
+        "uploading": "Uploading",
+        "committed": "Synced",
+        "conflict": "Conflict",
+        "pending_deletion": "Removal pending",
+        "deleted": "Removed",
+        "paused": "Paused",
+        "auth_required": "Sign-in required",
+        "quota": "Quota reached",
+        "integrity_failure": "Verification failed",
+        "unavailable": "Sync unavailable"
+      },
+      "shareCount": "{{count}} shares",
+      "retryScheduled": "Retry scheduled",
+      "retry": "Retry sync",
+      "keepLocal": "Keep this device's copy",
+      "useRemote": "Use the cloud copy",
+      "expiresAt": "Share expiry",
+      "bundle": {
+        "fileFilter": "Sona share",
+        "export": "Export .sona file",
+        "import": "Import .sona file",
+        "exported": "Saved to {{path}}",
+        "imported": "Imported meeting {{sessionId}}"
+      },
+      "browser": {
+        "create": "Create browser share",
+        "revoke": "Revoke browser share"
+      }
+    }
+  },
+  "topNav": {
+    "capture": "Capture",
+    "library": "Library"
   }
 }

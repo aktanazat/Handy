@@ -18,27 +18,26 @@ export const GeneralSettings: React.FC = () => {
   const { audioFeedbackEnabled, getSetting } = useSettings();
   const pushToTalk = getSetting("push_to_talk");
   const isLinux = type() === "linux";
+
   return (
-    <div className="max-w-3xl w-full mx-auto space-y-6">
-      <SettingsGroup title={t("settings.general.title")}>
-        <ShortcutInput shortcutId="transcribe" grouped={true} />
-        <PushToTalk descriptionMode="tooltip" grouped={true} />
-        {/* Cancel shortcut is hidden with push-to-talk (release key cancels) and on Linux (dynamic shortcut instability) */}
+    <div className="settings-page space-y-4">
+      <header className="settings-page-header">
+        <h1 className="settings-page-title">{t("settings.general.title")}</h1>
+      </header>
+      <SettingsGroup title={t("settings.general.shortcut.title")}>
+        <ShortcutInput shortcutId="transcribe" grouped />
+        <PushToTalk grouped />
         {!isLinux && !pushToTalk && (
-          <ShortcutInput shortcutId="cancel" grouped={true} />
+          <ShortcutInput shortcutId="cancel" grouped />
         )}
       </SettingsGroup>
       <ModelSettingsCard />
       <SettingsGroup title={t("settings.sound.title")}>
-        <MicrophoneSelector descriptionMode="tooltip" grouped={true} />
-        <ChannelSelector descriptionMode="tooltip" grouped={true} />
-        <MuteWhileRecording descriptionMode="tooltip" grouped={true} />
-        <AudioFeedback descriptionMode="tooltip" grouped={true} />
-        <OutputDeviceSelector
-          descriptionMode="tooltip"
-          grouped={true}
-          disabled={!audioFeedbackEnabled}
-        />
+        <MicrophoneSelector grouped />
+        <ChannelSelector grouped />
+        <MuteWhileRecording grouped />
+        <AudioFeedback grouped />
+        <OutputDeviceSelector grouped disabled={!audioFeedbackEnabled} />
         <VolumeSlider disabled={!audioFeedbackEnabled} />
       </SettingsGroup>
     </div>

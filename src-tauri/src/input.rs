@@ -12,7 +12,7 @@ mod macos {
     type CfDataRef = *const c_void;
     type CfStringRef = *const c_void;
 
-    // kVK_ANSI_V. This is the behavior Handy used before layout-aware
+    // kVK_ANSI_V. This is the behavior Sona used before layout-aware
     // resolution and remains the safest fallback if macOS cannot expose the
     // active layout.
     const ANSI_V_KEYCODE: u16 = 9;
@@ -41,7 +41,7 @@ mod macos {
             dead_key_state: *mut u32,
             max_string_length: usize,
             actual_string_length: *mut usize,
-            unicode_string: *mut u16,
+            utf16_output: *mut u16,
         ) -> i32;
         fn LMGetKbdType() -> u8;
     }
@@ -57,8 +57,7 @@ mod macos {
     impl Drop for InputSource {
         fn drop(&mut self) {
             if !self.0.is_null() {
-                // SAFETY: TISCopyCurrentKeyboardLayoutInputSource returned this
-                // retained reference, so this balances that ownership.
+                // SAFETY: InputSource owns the retained reference returned by TISCopyCurrentKeyboardLayoutInputSource.
                 unsafe { CFRelease(self.0) };
             }
         }
@@ -72,45 +71,39 @@ mod macos {
     /// held. Including Command is important: non-Latin layouts commonly map
     /// Cmd shortcuts to their ANSI equivalents, while standard Dvorak does not.
     ///
-    /// TIS APIs must run on the main thread. Handy's paste path already enters
+    /// TIS APIs must run on the main thread. Sona's paste path already enters
     /// through `AppHandle::run_on_main_thread` before reaching this function.
     fn resolve_command_v_keycode() -> Result<u16, String> {
-        // SAFETY: This function is called on the macOS main thread. The returned
-        // source follows the Create Rule and is released by InputSource::drop.
+        // SAFETY: This main-thread call returns a retained input source released by InputSource::drop.
         let source = InputSource(unsafe { TISCopyCurrentKeyboardLayoutInputSource() });
         if source.0.is_null() {
             return Err("macOS returned no current keyboard layout input source".into());
         }
 
-        // SAFETY: The source remains retained for the duration of the scan and
-        // the property constant is provided by Carbon.
-        let layout_data =
+        // SAFETY: source remains retained for this scan, and Carbon provides the Unicode layout property constant.
+        let keyboard_layout_data =
             unsafe { TISGetInputSourceProperty(source.0, kTISPropertyUnicodeKeyLayoutData) };
-        if layout_data.is_null() {
+        if keyboard_layout_data.is_null() {
             return Err("current macOS keyboard layout has no Unicode layout data".into());
         }
 
-        // SAFETY: layout_data is a CFData owned by the retained input source and
-        // remains valid until source is dropped after the scan.
-        let layout = unsafe { CFDataGetBytePtr(layout_data) };
-        if layout.is_null() {
+        // SAFETY: keyboard_layout_data is owned by the retained input source and remains valid through the scan.
+        let keyboard_layout = unsafe { CFDataGetBytePtr(keyboard_layout_data) };
+        if keyboard_layout.is_null() {
             return Err("current macOS keyboard layout data is empty".into());
         }
 
-        // SAFETY: LMGetKbdType has no arguments and returns the current physical
-        // keyboard type used by UCKeyTranslate.
-        let keyboard_type = unsafe { LMGetKbdType() } as u32;
+        // SAFETY: LMGetKbdType has no arguments and reads the current physical keyboard type.
+        let keyboard_type = unsafe { u32::from(LMGetKbdType()) };
         let keycode = find_keycode(|keycode| {
             let mut dead_key_state = 0;
             let mut chars = [0_u16; 4];
             let mut length = 0_usize;
 
-            // SAFETY: layout points to valid UCKeyboardLayout bytes while source
-            // is retained. All output pointers reference initialized local
-            // storage of the declared sizes.
+            // SAFETY: keyboard_layout remains valid, and each output pointer targets initialized local storage of the declared size.
             let status = unsafe {
                 UCKeyTranslate(
-                    layout,
+                    keyboard_layout,
                     keycode,
                     UC_KEY_ACTION_DISPLAY,
                     COMMAND_MODIFIER_STATE,

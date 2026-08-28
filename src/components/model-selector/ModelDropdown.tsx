@@ -12,6 +12,11 @@ interface ModelDropdownProps {
   onModelSelect: (modelId: string) => void;
 }
 
+/**
+ * Model switcher menu. Anchors below the trigger (the top nav) and opens as
+ * a bordered, opaque popover with the same 6px control language as the rest
+ * of the shell.
+ */
 const ModelDropdown: React.FC<ModelDropdownProps> = ({
   models,
   currentModelId,
@@ -25,7 +30,11 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
   };
 
   return (
-    <div className="absolute bottom-full start-0 mb-2 w-64 max-h-[60vh] overflow-y-auto bg-background border border-mid-gray/20 rounded-lg shadow-lg py-2 z-50">
+    <div
+      role="listbox"
+      aria-label={t("modelSelector.model")}
+      className="absolute left-0 top-full z-50 mt-1 max-h-[60vh] w-72 overflow-y-auto border border-border-strong bg-surface py-1.5 shadow-[var(--shadow-popover)]"
+    >
       {downloadedModels.length > 0 ? (
         <div>
           {downloadedModels.map((model) => (
@@ -39,45 +48,42 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
                 }
               }}
               tabIndex={0}
-              role="button"
-              className={`w-full px-3 py-2 text-start hover:bg-mid-gray/10 transition-colors cursor-pointer focus:outline-none ${
-                currentModelId === model.id
-                  ? "bg-logo-primary/10 text-logo-primary"
-                  : ""
+              role="option"
+              aria-selected={currentModelId === model.id}
+              className={`mx-1.5 cursor-pointer rounded-[6px] px-2.5 py-2 text-start transition-colors hover:bg-hover ${
+                currentModelId === model.id ? "bg-subtle" : ""
               }`}
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm text-text/80">
-                    {getTranslatedModelName(model, t)}
-                    {model.is_custom && (
-                      <span className="ms-1.5 text-[10px] font-medium text-text/40 uppercase">
-                        {t("modelSelector.custom")}
-                      </span>
-                    )}
-                    {model.supports_streaming && (
-                      <span className="ms-1.5 text-[10px] font-medium text-logo-primary/70 uppercase">
-                        {t("modelSelector.streaming")}
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs text-text/40 italic pe-4">
-                    {getTranslatedModelDescription(model, t)}
-                  </div>
-                </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate text-[13px] text-text-primary">
+                  {getTranslatedModelName(model, t)}
+                  {model.is_custom && (
+                    <span className="ms-1.5 font-mono text-[10px] uppercase text-text-tertiary">
+                      {t("modelSelector.custom")}
+                    </span>
+                  )}
+                  {model.supports_streaming && (
+                    <span className="ms-1.5 font-mono text-[10px] uppercase text-text-tertiary">
+                      {t("modelSelector.streaming")}
+                    </span>
+                  )}
+                </span>
                 {currentModelId === model.id && (
-                  <div className="text-xs text-logo-primary">
+                  <span className="shrink-0 font-mono text-[11px] text-text-primary">
                     {t("modelSelector.active")}
-                  </div>
+                  </span>
                 )}
               </div>
+              <p className="mt-0.5 truncate text-xs text-text-tertiary">
+                {getTranslatedModelDescription(model, t)}
+              </p>
             </div>
           ))}
         </div>
       ) : (
-        <div className="px-3 py-2 text-sm text-text/60">
+        <p className="px-3 py-2 text-sm text-text-secondary">
           {t("modelSelector.noModelsAvailable")}
-        </div>
+        </p>
       )}
     </div>
   );
