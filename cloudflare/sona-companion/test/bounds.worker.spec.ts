@@ -27,7 +27,9 @@ describe("bounded upload behavior", () => {
 
     expect(response.status).toBe(400);
     expect((await jsonBody(response)).code).toBe("invalid_request");
-    const count = await env.DB.prepare("SELECT COUNT(*) AS count FROM upload_sessions WHERE vault_id = ?")
+    const count = await env.DB.prepare(
+      "SELECT COUNT(*) AS count FROM upload_sessions WHERE vault_id = ?",
+    )
       .bind(device.vaultId)
       .first<{ count: number }>();
     expect(count?.count).toBe(0);
@@ -47,7 +49,9 @@ describe("bounded upload behavior", () => {
 
     expect(response.status).toBe(400);
     expect((await jsonBody(response)).code).toBe("invalid_request");
-    const count = await env.DB.prepare("SELECT COUNT(*) AS count FROM upload_sessions WHERE vault_id = ?")
+    const count = await env.DB.prepare(
+      "SELECT COUNT(*) AS count FROM upload_sessions WHERE vault_id = ?",
+    )
       .bind(device.vaultId)
       .first<{ count: number }>();
     expect(count?.count).toBe(0);

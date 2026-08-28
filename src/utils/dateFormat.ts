@@ -28,7 +28,6 @@ export const formatDateTime = (timestamp: string, locale: string): string => {
   }
 };
 
-
 /**
  * Format a date string or timestamp to a relative time string (e.g., "2 hours ago")
  * @param timestamp - Unix timestamp in seconds (as string)

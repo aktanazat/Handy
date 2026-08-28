@@ -53,9 +53,15 @@ export function testId(prefix: string): string {
 }
 
 export async function makeDevice(vaultId = testId("vault")): Promise<Device> {
-  const generated = await crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"]);
-  if (!isKeyPair(generated)) throw new Error("Ed25519 did not return a key pair");
-  const signingPublicKey = new Uint8Array(await crypto.subtle.exportKey("raw", generated.publicKey));
+  const generated = await crypto.subtle.generateKey({ name: "Ed25519" }, true, [
+    "sign",
+    "verify",
+  ]);
+  if (!isKeyPair(generated))
+    throw new Error("Ed25519 did not return a key pair");
+  const signingPublicKey = new Uint8Array(
+    await crypto.subtle.exportKey("raw", generated.publicKey),
+  );
   const pairingPublicKey = new Uint8Array(32);
   crypto.getRandomValues(pairingPublicKey);
   return {
@@ -67,7 +73,10 @@ export async function makeDevice(vaultId = testId("vault")): Promise<Device> {
   };
 }
 
-export async function bootstrap(device: Device, idempotencyKey = testId("bootstrap")): Promise<Response> {
+export async function bootstrap(
+  device: Device,
+  idempotencyKey = testId("bootstrap"),
+): Promise<Response> {
   const signature = new Uint8Array(
     await crypto.subtle.sign(
       { name: "Ed25519" },
@@ -124,7 +133,8 @@ export async function signedRequest(
   const nonce = new Uint8Array(16);
   crypto.getRandomValues(nonce);
   const timestamp = input.timestamp ?? Date.now();
-  const contentType = input.contentType ?? (input.body === undefined ? "" : "application/json");
+  const contentType =
+    input.contentType ?? (input.body === undefined ? "" : "application/json");
   const idempotencyKey = input.idempotencyKey ?? "";
   const bodyDigest = await sha256Base64Url(body);
   const signature = new Uint8Array(
@@ -154,8 +164,10 @@ export async function signedRequest(
     "x-sona-signature": base64UrlEncode(signature),
   });
   if (contentType.length > 0) headers.set("content-type", contentType);
-  if (idempotencyKey.length > 0) headers.set("x-sona-idempotency-key", idempotencyKey);
-  if (input.body !== undefined) headers.set("content-length", String(body.length));
+  if (idempotencyKey.length > 0)
+    headers.set("x-sona-idempotency-key", idempotencyKey);
+  if (input.body !== undefined)
+    headers.set("content-length", String(body.length));
   const init: RequestInit = {
     method: input.method,
     headers,
@@ -196,12 +208,20 @@ export async function createUploadPayload(
   const objectMode = input.shareId === undefined;
   const uploadId = input.uploadId ?? testId("upload");
   const objectId = input.objectId ?? (objectMode ? testId("object") : null);
-  const revisionId = input.revisionId ?? (objectMode ? testId("revision") : null);
+  const revisionId =
+    input.revisionId ?? (objectMode ? testId("revision") : null);
   const shareId = input.shareId;
   const plannedChunks = await Promise.all(
-    chunks.map(async (chunk, index) => ({ index, size: chunk.length, sha256: await sha256Base64Url(chunk) })),
+    chunks.map(async (chunk, index) => ({
+      index,
+      size: chunk.length,
+      sha256: await sha256Base64Url(chunk),
+    })),
   );
-  const totalBytes = plannedChunks.reduce((total, chunk) => total + chunk.size, 0);
+  const totalBytes = plannedChunks.reduce(
+    (total, chunk) => total + chunk.size,
+    0,
+  );
   const writerSignature = new Uint8Array(
     await crypto.subtle.sign(
       { name: "Ed25519" },
@@ -259,7 +279,8 @@ export async function uploadAllChunks(
     });
     request.headers.set("x-sona-chunk-sha256", await sha256Base64Url(chunk));
     const response = await SELF.fetch(request);
-    if (!response.ok) throw new Error(`chunk upload failed with ${response.status}`);
+    if (!response.ok)
+      throw new Error(`chunk upload failed with ${response.status}`);
   }
 }
 

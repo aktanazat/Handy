@@ -183,61 +183,144 @@ function capabilities() {
 }
 
 function routeFor(pathname: string): Route {
-  if (pathname.includes("%") || pathname.includes("//")) throw problem("invalid_request");
-  if (pathname === "/healthz") return { name: "health", ids: {}, queryKeys: [] };
-  if (pathname === "/v1/capabilities") return { name: "capabilities", ids: {}, queryKeys: [] };
-  if (pathname === "/v1/bootstrap/device") return { name: "bootstrap", ids: {}, queryKeys: [] };
-  if (pathname === "/v1/devices") return { name: "devices", ids: {}, queryKeys: [] };
-  if (pathname === "/v1/devices/self") return { name: "devices_self", ids: {}, queryKeys: [] };
-  if (pathname === "/v1/devices/pair") return { name: "devices_pair", ids: {}, queryKeys: [] };
-  if (pathname === "/v1/uploads") return { name: "upload_create", ids: {}, queryKeys: [] };
-  if (pathname === "/v1/shares") return { name: "shares", ids: {}, queryKeys: [] };
-  if (pathname === "/v1/changes") return { name: "changes", ids: {}, queryKeys: ["cursor", "limit"] };
-  if (pathname === "/v1/snapshot") return { name: "snapshot", ids: {}, queryKeys: ["after", "highWater", "limit"] };
+  if (pathname.includes("%") || pathname.includes("//"))
+    throw problem("invalid_request");
+  if (pathname === "/healthz")
+    return { name: "health", ids: {}, queryKeys: [] };
+  if (pathname === "/v1/capabilities")
+    return { name: "capabilities", ids: {}, queryKeys: [] };
+  if (pathname === "/v1/bootstrap/device")
+    return { name: "bootstrap", ids: {}, queryKeys: [] };
+  if (pathname === "/v1/devices")
+    return { name: "devices", ids: {}, queryKeys: [] };
+  if (pathname === "/v1/devices/self")
+    return { name: "devices_self", ids: {}, queryKeys: [] };
+  if (pathname === "/v1/devices/pair")
+    return { name: "devices_pair", ids: {}, queryKeys: [] };
+  if (pathname === "/v1/uploads")
+    return { name: "upload_create", ids: {}, queryKeys: [] };
+  if (pathname === "/v1/shares")
+    return { name: "shares", ids: {}, queryKeys: [] };
+  if (pathname === "/v1/changes")
+    return { name: "changes", ids: {}, queryKeys: ["cursor", "limit"] };
+  if (pathname === "/v1/snapshot")
+    return {
+      name: "snapshot",
+      ids: {},
+      queryKeys: ["after", "highWater", "limit"],
+    };
 
   const segments = pathname.split("/");
   if (segments.length === 3 && segments[1] === "s") {
-    return { name: "share_page", ids: { shareId: routeId(segments[2]) }, queryKeys: [] };
-  }
-  if (segments.length === 4 && segments[1] === "v1" && segments[2] === "devices") {
-    return { name: "device_delete", ids: { deviceId: routeId(segments[3]) }, queryKeys: [] };
-  }
-  if (segments.length === 4 && segments[1] === "v1" && segments[2] === "uploads") {
-    return { name: "upload_status", ids: { uploadId: routeId(segments[3]) }, queryKeys: [] };
-  }
-  if (segments.length === 5 && segments[1] === "v1" && segments[2] === "uploads" && segments[4] === "commit") {
-    return { name: "upload_commit", ids: { uploadId: routeId(segments[3]) }, queryKeys: [] };
-  }
-  if (segments.length === 6 && segments[1] === "v1" && segments[2] === "uploads" && segments[4] === "chunks") {
     return {
-      name: "upload_chunk",
-      ids: { uploadId: routeId(segments[3]), index: requiredIndex(segments[5]) },
+      name: "share_page",
+      ids: { shareId: routeId(segments[2]) },
       queryKeys: [],
     };
   }
-  if (segments.length === 5 && segments[1] === "v1" && segments[2] === "shares") {
-    const shareId = routeId(segments[3]);
-    if (segments[4] === "manifest") return { name: "share_manifest", ids: { shareId }, queryKeys: [] };
-    if (segments[4] === "file") return { name: "share_download", ids: { shareId }, queryKeys: [] };
+  if (
+    segments.length === 4 &&
+    segments[1] === "v1" &&
+    segments[2] === "devices"
+  ) {
+    return {
+      name: "device_delete",
+      ids: { deviceId: routeId(segments[3]) },
+      queryKeys: [],
+    };
   }
-  if (segments.length === 6 && segments[1] === "v1" && segments[2] === "shares" && segments[4] === "chunks") {
+  if (
+    segments.length === 4 &&
+    segments[1] === "v1" &&
+    segments[2] === "uploads"
+  ) {
+    return {
+      name: "upload_status",
+      ids: { uploadId: routeId(segments[3]) },
+      queryKeys: [],
+    };
+  }
+  if (
+    segments.length === 5 &&
+    segments[1] === "v1" &&
+    segments[2] === "uploads" &&
+    segments[4] === "commit"
+  ) {
+    return {
+      name: "upload_commit",
+      ids: { uploadId: routeId(segments[3]) },
+      queryKeys: [],
+    };
+  }
+  if (
+    segments.length === 6 &&
+    segments[1] === "v1" &&
+    segments[2] === "uploads" &&
+    segments[4] === "chunks"
+  ) {
+    return {
+      name: "upload_chunk",
+      ids: {
+        uploadId: routeId(segments[3]),
+        index: requiredIndex(segments[5]),
+      },
+      queryKeys: [],
+    };
+  }
+  if (
+    segments.length === 5 &&
+    segments[1] === "v1" &&
+    segments[2] === "shares"
+  ) {
+    const shareId = routeId(segments[3]);
+    if (segments[4] === "manifest")
+      return { name: "share_manifest", ids: { shareId }, queryKeys: [] };
+    if (segments[4] === "file")
+      return { name: "share_download", ids: { shareId }, queryKeys: [] };
+  }
+  if (
+    segments.length === 6 &&
+    segments[1] === "v1" &&
+    segments[2] === "shares" &&
+    segments[4] === "chunks"
+  ) {
     return {
       name: "share_chunk",
       ids: { shareId: routeId(segments[3]), index: requiredIndex(segments[5]) },
       queryKeys: [],
     };
   }
-  if (segments.length === 4 && segments[1] === "v1" && segments[2] === "shares") {
-    return { name: "share_delete", ids: { shareId: routeId(segments[3]) }, queryKeys: [] };
+  if (
+    segments.length === 4 &&
+    segments[1] === "v1" &&
+    segments[2] === "shares"
+  ) {
+    return {
+      name: "share_delete",
+      ids: { shareId: routeId(segments[3]) },
+      queryKeys: [],
+    };
   }
-  if (segments.length === 7 && segments[1] === "v1" && segments[2] === "objects" && segments[4] === "revisions" && segments[6] === "manifest") {
+  if (
+    segments.length === 7 &&
+    segments[1] === "v1" &&
+    segments[2] === "objects" &&
+    segments[4] === "revisions" &&
+    segments[6] === "manifest"
+  ) {
     return {
       name: "object_manifest",
       ids: { objectId: routeId(segments[3]), revisionId: routeId(segments[5]) },
       queryKeys: [],
     };
   }
-  if (segments.length === 8 && segments[1] === "v1" && segments[2] === "objects" && segments[4] === "revisions" && segments[6] === "chunks") {
+  if (
+    segments.length === 8 &&
+    segments[1] === "v1" &&
+    segments[2] === "objects" &&
+    segments[4] === "revisions" &&
+    segments[6] === "chunks"
+  ) {
     return {
       name: "object_chunk",
       ids: {
@@ -248,15 +331,27 @@ function routeFor(pathname: string): Route {
       queryKeys: [],
     };
   }
-  if (segments.length === 4 && segments[1] === "v1" && segments[2] === "objects") {
-    return { name: "object_delete", ids: { objectId: routeId(segments[3]) }, queryKeys: [] };
+  if (
+    segments.length === 4 &&
+    segments[1] === "v1" &&
+    segments[2] === "objects"
+  ) {
+    return {
+      name: "object_delete",
+      ids: { objectId: routeId(segments[3]) },
+      queryKeys: [],
+    };
   }
   if (pathname.startsWith("/v1/")) throw problem("not_found");
   return { name: "assets", ids: {}, queryKeys: [] };
 }
 
 function requiredIndex(value: string | undefined): string {
-  if (value === undefined || !/^(0|[1-9]\d{0,3})$/u.test(value) || Number(value) >= MAX_CHUNKS_PER_UPLOAD) {
+  if (
+    value === undefined ||
+    !/^(0|[1-9]\d{0,3})$/u.test(value) ||
+    Number(value) >= MAX_CHUNKS_PER_UPLOAD
+  ) {
     throw problem("invalid_request");
   }
   return value;
@@ -266,7 +361,11 @@ function methodIs(request: Request, expected: string): void {
   if (request.method !== expected) throw problem("not_found");
 }
 
-function parseLimit(value: string | null, defaultValue: number, maximum: number): number {
+function parseLimit(
+  value: string | null,
+  defaultValue: number,
+  maximum: number,
+): number {
   if (value === null) return defaultValue;
   if (!/^[1-9]\d{0,2}$/u.test(value)) throw problem("invalid_request");
   const limit = Number(value);
@@ -329,7 +428,12 @@ function decodeSnapshotAfter(value: string | null, highWater: number): string {
   try {
     const record = asRecord(JSON.parse(decodeUtf8(bytes)));
     const after = record.a;
-    if (record.v !== 1 || record.w !== highWater || !isJsonString(after) || !isOpaqueId(after)) {
+    if (
+      record.v !== 1 ||
+      record.w !== highWater ||
+      !isJsonString(after) ||
+      !isOpaqueId(after)
+    ) {
       throw problem("invalid_request");
     }
     return after;
@@ -339,7 +443,9 @@ function decodeSnapshotAfter(value: string | null, highWater: number): string {
   }
 }
 
-async function parseStoredResponse(row: IdempotencyRow): Promise<StoredResponse> {
+async function parseStoredResponse(
+  row: IdempotencyRow,
+): Promise<StoredResponse> {
   try {
     return { body: JSON.parse(row.response_json), status: row.status };
   } catch {
@@ -355,9 +461,18 @@ async function existingMutationResponse(
 ): Promise<Response | null> {
   const key = auth.idempotencyKey;
   if (key === undefined) throw problem("invalid_request");
-  const existing = await idempotencyResult(env, auth.vaultId, auth.deviceId, key);
+  const existing = await idempotencyResult(
+    env,
+    auth.vaultId,
+    auth.deviceId,
+    key,
+  );
   if (existing === null) return null;
-  if (existing.operation !== operation || existing.target !== target || existing.body_digest !== auth.bodyDigest) {
+  if (
+    existing.operation !== operation ||
+    existing.target !== target ||
+    existing.body_digest !== auth.bodyDigest
+  ) {
     throw problem("idempotency_conflict");
   }
   const stored = await parseStoredResponse(existing);
@@ -374,15 +489,21 @@ async function authenticateUnclaimed(
 ): Promise<AuthenticatedRequest> {
   const vaultId = request.headers.get("x-sona-vault-id") ?? "";
   const deviceId = request.headers.get("x-sona-device-id") ?? "";
-  if (!isOpaqueId(vaultId) || !isOpaqueId(deviceId)) throw problem("unauthorized");
+  if (!isOpaqueId(vaultId) || !isOpaqueId(deviceId))
+    throw problem("unauthorized");
   const timestampText = request.headers.get("x-sona-timestamp") ?? "";
   if (!/^\d{13}$/u.test(timestampText)) throw problem("invalid_request");
   const timestamp = Number(timestampText);
-  if (Math.abs(now - timestamp) > MAX_CLOCK_SKEW_MS) throw problem("clock_skew");
+  if (Math.abs(now - timestamp) > MAX_CLOCK_SKEW_MS)
+    throw problem("clock_skew");
   const nonce = fixedBase64Url(request.headers.get("x-sona-nonce") ?? "", 16);
-  const signature = fixedBase64Url(request.headers.get("x-sona-signature") ?? "", 64);
+  const signature = fixedBase64Url(
+    request.headers.get("x-sona-signature") ?? "",
+    64,
+  );
   const idempotencyKey = request.headers.get("x-sona-idempotency-key") ?? "";
-  if (mutation && !isIdempotencyKey(idempotencyKey)) throw problem("invalid_request");
+  if (mutation && !isIdempotencyKey(idempotencyKey))
+    throw problem("invalid_request");
   if (!mutation && idempotencyKey.length > 0) throw problem("invalid_request");
   const query = canonicalQuery(new URL(request.url), route.queryKeys);
   const contentType = request.headers.get("content-type") ?? "";
@@ -433,7 +554,14 @@ async function authenticate(
   mutation: boolean,
   now: number,
 ): Promise<AuthenticatedRequest> {
-  const authenticated = await authenticateUnclaimed(request, env, route, body, mutation, now);
+  const authenticated = await authenticateUnclaimed(
+    request,
+    env,
+    route,
+    body,
+    mutation,
+    now,
+  );
   if (mutation) {
     await claimMutationNonce(
       env,
@@ -467,17 +595,35 @@ async function forEachBounded<Value>(
   }
 }
 
-function parseChunks(value: JsonValue | undefined, chunkCount: number): UploadPlanChunk[] {
-  if (!isJsonArray(value) || value.length !== chunkCount) throw problem("invalid_request");
+function parseChunks(
+  value: JsonValue | undefined,
+  chunkCount: number,
+): UploadPlanChunk[] {
+  if (!isJsonArray(value) || value.length !== chunkCount)
+    throw problem("invalid_request");
   const chunks: UploadPlanChunk[] = [];
   for (let index = 0; index < value.length; index += 1) {
     const chunk = asRecord(value[index]);
     assertExactKeys(chunk, ["index", "sha256", "size"]);
-    const chunkIndex = requiredInteger(chunk, "index", 0, MAX_CHUNKS_PER_UPLOAD - 1);
-    const size = requiredInteger(chunk, "size", minimumEncryptedPayloadBytes, MAX_CHUNK_BYTES);
+    const chunkIndex = requiredInteger(
+      chunk,
+      "index",
+      0,
+      MAX_CHUNKS_PER_UPLOAD - 1,
+    );
+    const size = requiredInteger(
+      chunk,
+      "size",
+      minimumEncryptedPayloadBytes,
+      MAX_CHUNK_BYTES,
+    );
     const sha256 = digest(requiredString(chunk, "sha256", 64));
     if (chunkIndex !== index) throw problem("invalid_request");
-    if (chunkCount > 1 && chunkIndex < chunkCount - 1 && size !== MAX_CHUNK_BYTES) {
+    if (
+      chunkCount > 1 &&
+      chunkIndex < chunkCount - 1 &&
+      size !== MAX_CHUNK_BYTES
+    ) {
       throw problem("invalid_request");
     }
     chunks.push({ index: chunkIndex, size, sha256 });
@@ -502,24 +648,55 @@ async function parseUploadPlan(
     "version",
     "writerSignature",
   ];
-  const objectKeys = [...commonKeys, "baseRevisionId", "objectId", "revisionId"];
+  const objectKeys = [
+    ...commonKeys,
+    "baseRevisionId",
+    "objectId",
+    "revisionId",
+  ];
   const shareKeys = [...commonKeys, "expiresAt", "shareId"];
   assertExactKeys(value, kind === "object" ? objectKeys : shareKeys);
-  if (requiredInteger(value, "version", PROTOCOL_VERSION, PROTOCOL_VERSION) !== PROTOCOL_VERSION) {
+  if (
+    requiredInteger(value, "version", PROTOCOL_VERSION, PROTOCOL_VERSION) !==
+    PROTOCOL_VERSION
+  ) {
     throw problem("unsupported_version");
   }
-  const cryptoVersion = requiredInteger(value, "cryptoVersion", CRYPTO_VERSION, CRYPTO_VERSION);
+  const cryptoVersion = requiredInteger(
+    value,
+    "cryptoVersion",
+    CRYPTO_VERSION,
+    CRYPTO_VERSION,
+  );
   if (cryptoVersion !== CRYPTO_VERSION) throw problem("unsupported_version");
   const uploadId = requiredOpaqueId(value, "uploadId");
-  const chunkCount = requiredInteger(value, "chunkCount", 0, MAX_CHUNKS_PER_UPLOAD);
+  const chunkCount = requiredInteger(
+    value,
+    "chunkCount",
+    0,
+    MAX_CHUNKS_PER_UPLOAD,
+  );
   const chunks = parseChunks(value.chunks, chunkCount);
   const totalBytes = requiredInteger(value, "totalBytes", 0, MAX_REMOTE_BYTES);
-  if (chunks.reduce((sum, chunk) => sum + chunk.size, 0) !== totalBytes) throw problem("invalid_request");
-  const manifest = boundedBase64Url(requiredString(value, "manifest", Math.ceil((MAX_MANIFEST_BYTES * 4) / 3) + 4), MAX_MANIFEST_BYTES);
-  if (manifest.length < minimumEncryptedPayloadBytes) throw problem("invalid_request");
+  if (chunks.reduce((sum, chunk) => sum + chunk.size, 0) !== totalBytes)
+    throw problem("invalid_request");
+  const manifest = boundedBase64Url(
+    requiredString(
+      value,
+      "manifest",
+      Math.ceil((MAX_MANIFEST_BYTES * 4) / 3) + 4,
+    ),
+    MAX_MANIFEST_BYTES,
+  );
+  if (manifest.length < minimumEncryptedPayloadBytes)
+    throw problem("invalid_request");
   const manifestDigest = digest(requiredString(value, "manifestSha256", 64));
-  if ((await sha256Base64Url(manifest)) !== manifestDigest) throw problem("integrity_failed");
-  const writerSignature = fixedBase64Url(requiredString(value, "writerSignature", 128), 64);
+  if ((await sha256Base64Url(manifest)) !== manifestDigest)
+    throw problem("integrity_failed");
+  const writerSignature = fixedBase64Url(
+    requiredString(value, "writerSignature", 128),
+    64,
+  );
   if (kind === "object") {
     return {
       uploadId,
@@ -535,7 +712,12 @@ async function parseUploadPlan(
       writerSignature,
     };
   }
-  const shareExpiresAt = requiredInteger(value, "expiresAt", now + 1, now + MAX_SHARE_TTL_MS);
+  const shareExpiresAt = requiredInteger(
+    value,
+    "expiresAt",
+    now + 1,
+    now + MAX_SHARE_TTL_MS,
+  );
   if (totalBytes > MAX_SHARE_BYTES) throw problem("quota_exceeded");
   return {
     uploadId,
@@ -565,32 +747,69 @@ function parsePairing(body: Uint8Array): ParsedPairing {
     "pairingNonce",
     "version",
   ]);
-  if (requiredInteger(value, "version", PROTOCOL_VERSION, PROTOCOL_VERSION) !== PROTOCOL_VERSION) {
+  if (
+    requiredInteger(value, "version", PROTOCOL_VERSION, PROTOCOL_VERSION) !==
+    PROTOCOL_VERSION
+  ) {
     throw problem("unsupported_version");
   }
   return {
     candidateDeviceId: requiredOpaqueId(value, "candidateDeviceId"),
-    candidateSigningPublicKey: fixedBase64Url(requiredString(value, "candidateSigningPublicKey", 64), 32),
-    candidatePairingPublicKey: fixedBase64Url(requiredString(value, "candidatePairingPublicKey", 64), 32),
-    candidateProof: fixedBase64Url(requiredString(value, "candidateProof", 128), 64),
+    candidateSigningPublicKey: fixedBase64Url(
+      requiredString(value, "candidateSigningPublicKey", 64),
+      32,
+    ),
+    candidatePairingPublicKey: fixedBase64Url(
+      requiredString(value, "candidatePairingPublicKey", 64),
+      32,
+    ),
+    candidateProof: fixedBase64Url(
+      requiredString(value, "candidateProof", 128),
+      64,
+    ),
     pairingNonce: fixedBase64Url(requiredString(value, "pairingNonce", 32), 16),
     expiresAt: requiredInteger(value, "expiresAt", 1, Number.MAX_SAFE_INTEGER),
-    envelope: boundedBase64Url(requiredString(value, "envelope", Math.ceil((MAX_MANIFEST_BYTES * 4) / 3) + 4), MAX_MANIFEST_BYTES),
-    approvalSignature: fixedBase64Url(requiredString(value, "approvalSignature", 128), 64),
+    envelope: boundedBase64Url(
+      requiredString(
+        value,
+        "envelope",
+        Math.ceil((MAX_MANIFEST_BYTES * 4) / 3) + 4,
+      ),
+      MAX_MANIFEST_BYTES,
+    ),
+    approvalSignature: fixedBase64Url(
+      requiredString(value, "approvalSignature", 128),
+      64,
+    ),
   };
 }
 
 function parseTombstone(body: Uint8Array): ParsedTombstone {
   const value = parseJsonBody(body);
-  assertExactKeys(value, ["baseRevisionId", "formatVersion", "reason", "tombstoneRevisionId", "writerSignature"]);
+  assertExactKeys(value, [
+    "baseRevisionId",
+    "formatVersion",
+    "reason",
+    "tombstoneRevisionId",
+    "writerSignature",
+  ]);
   const reason = requiredString(value, "reason", 32);
-  if (reason !== "user_request" && reason !== "retention") throw problem("invalid_request");
+  if (reason !== "user_request" && reason !== "retention")
+    throw problem("invalid_request");
   return {
     tombstoneRevisionId: requiredOpaqueId(value, "tombstoneRevisionId"),
     baseRevisionId: requiredOpaqueId(value, "baseRevisionId"),
-    formatVersion: requiredInteger(value, "formatVersion", PROTOCOL_VERSION, PROTOCOL_VERSION),
+    formatVersion: requiredInteger(
+      value,
+      "formatVersion",
+      PROTOCOL_VERSION,
+      PROTOCOL_VERSION,
+    ),
     reason,
-    writerSignature: fixedBase64Url(requiredString(value, "writerSignature", 128), 64),
+    writerSignature: fixedBase64Url(
+      requiredString(value, "writerSignature", 128),
+      64,
+    ),
   };
 }
 
@@ -610,18 +829,31 @@ async function bootstrapDevice(
     "vaultId",
     "version",
   ]);
-  if (requiredInteger(value, "version", PROTOCOL_VERSION, PROTOCOL_VERSION) !== PROTOCOL_VERSION) {
+  if (
+    requiredInteger(value, "version", PROTOCOL_VERSION, PROTOCOL_VERSION) !==
+    PROTOCOL_VERSION
+  ) {
     throw problem("unsupported_version");
   }
   const vaultId = requiredOpaqueId(value, "vaultId");
   const deviceId = requiredOpaqueId(value, "deviceId");
-  const signingPublicKey = fixedBase64Url(requiredString(value, "signingPublicKey", 64), 32);
-  const pairingPublicKey = fixedBase64Url(requiredString(value, "pairingPublicKey", 64), 32);
-  const selfSignature = fixedBase64Url(requiredString(value, "selfSignature", 128), 64);
+  const signingPublicKey = fixedBase64Url(
+    requiredString(value, "signingPublicKey", 64),
+    32,
+  );
+  const pairingPublicKey = fixedBase64Url(
+    requiredString(value, "pairingPublicKey", 64),
+    32,
+  );
+  const selfSignature = fixedBase64Url(
+    requiredString(value, "selfSignature", 128),
+    64,
+  );
   const idempotencyKey = request.headers.get("x-sona-idempotency-key") ?? "";
   if (!isIdempotencyKey(idempotencyKey)) throw problem("invalid_request");
   const providedSecret = request.headers.get("x-sona-bootstrap-secret") ?? "";
-  if (!(await equalSecret(providedSecret, env.BOOTSTRAP_SECRET))) throw problem("unauthorized");
+  if (!(await equalSecret(providedSecret, env.BOOTSTRAP_SECRET)))
+    throw problem("unauthorized");
   const selfSigned = await verifyEd25519(
     signingPublicKey,
     selfSignature,
@@ -636,9 +868,18 @@ async function bootstrapDevice(
   if (!selfSigned) throw problem("unauthorized");
   const bodyDigest = await sha256Base64Url(body);
   const target = `bootstrap:${deviceId}`;
-  const existing = await idempotencyResult(env, vaultId, deviceId, idempotencyKey);
+  const existing = await idempotencyResult(
+    env,
+    vaultId,
+    deviceId,
+    idempotencyKey,
+  );
   if (existing !== null) {
-    if (existing.operation !== "bootstrap" || existing.target !== target || existing.body_digest !== bodyDigest) {
+    if (
+      existing.operation !== "bootstrap" ||
+      existing.target !== target ||
+      existing.body_digest !== bodyDigest
+    ) {
       throw problem("idempotency_conflict");
     }
     const stored = await parseStoredResponse(existing);
@@ -651,31 +892,37 @@ async function bootstrapDevice(
     capabilities: capabilities(),
   };
   const result = await env.DB.batch([
-    env.DB
-      .prepare(
-        "INSERT OR IGNORE INTO vaults (vault_id, byte_cap, created_at) SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM bootstrap_registry)",
-      )
-      .bind(vaultId, MAX_REMOTE_BYTES, now),
-    env.DB
-      .prepare(
-        "INSERT INTO devices (vault_id, device_id, signing_public_key, pairing_public_key, status, created_at) SELECT ?, ?, ?, ?, 'active', ? WHERE EXISTS (SELECT 1 FROM vaults WHERE vault_id = ?) AND NOT EXISTS (SELECT 1 FROM devices WHERE vault_id = ?)",
-      )
-      .bind(vaultId, deviceId, signingPublicKey, pairingPublicKey, now, vaultId, vaultId),
-    env.DB
-      .prepare(
-        "UPDATE vaults SET bootstrap_consumed_at = ? WHERE vault_id = ? AND changes() = 1",
-      )
-      .bind(now, vaultId),
-    env.DB
-      .prepare(
-        "INSERT INTO bootstrap_registry (registry_id, vault_id, consumed_at) SELECT 1, ?, ? WHERE changes() = 1",
-      )
-      .bind(vaultId, now),
-    env.DB
-      .prepare(
-        "INSERT INTO idempotency_results (vault_id, device_id, idempotency_key, operation, target, body_digest, status, response_json, created_at) SELECT ?, ?, ?, 'bootstrap', ?, ?, 201, ?, ? WHERE changes() = 1",
-      )
-      .bind(vaultId, deviceId, idempotencyKey, target, bodyDigest, JSON.stringify(response), now),
+    env.DB.prepare(
+      "INSERT OR IGNORE INTO vaults (vault_id, byte_cap, created_at) SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM bootstrap_registry)",
+    ).bind(vaultId, MAX_REMOTE_BYTES, now),
+    env.DB.prepare(
+      "INSERT INTO devices (vault_id, device_id, signing_public_key, pairing_public_key, status, created_at) SELECT ?, ?, ?, ?, 'active', ? WHERE EXISTS (SELECT 1 FROM vaults WHERE vault_id = ?) AND NOT EXISTS (SELECT 1 FROM devices WHERE vault_id = ?)",
+    ).bind(
+      vaultId,
+      deviceId,
+      signingPublicKey,
+      pairingPublicKey,
+      now,
+      vaultId,
+      vaultId,
+    ),
+    env.DB.prepare(
+      "UPDATE vaults SET bootstrap_consumed_at = ? WHERE vault_id = ? AND changes() = 1",
+    ).bind(now, vaultId),
+    env.DB.prepare(
+      "INSERT INTO bootstrap_registry (registry_id, vault_id, consumed_at) SELECT 1, ?, ? WHERE changes() = 1",
+    ).bind(vaultId, now),
+    env.DB.prepare(
+      "INSERT INTO idempotency_results (vault_id, device_id, idempotency_key, operation, target, body_digest, status, response_json, created_at) SELECT ?, ?, ?, 'bootstrap', ?, ?, 201, ?, ? WHERE changes() = 1",
+    ).bind(
+      vaultId,
+      deviceId,
+      idempotencyKey,
+      target,
+      bodyDigest,
+      JSON.stringify(response),
+      now,
+    ),
   ]);
   if (
     changeCount(batchResult(result, 1)) === 1 &&
@@ -685,8 +932,18 @@ async function bootstrapDevice(
   ) {
     return jsonResponse(response, 201, now);
   }
-  const replay = await idempotencyResult(env, vaultId, deviceId, idempotencyKey);
-  if (replay !== null && replay.operation === "bootstrap" && replay.target === target && replay.body_digest === bodyDigest) {
+  const replay = await idempotencyResult(
+    env,
+    vaultId,
+    deviceId,
+    idempotencyKey,
+  );
+  if (
+    replay !== null &&
+    replay.operation === "bootstrap" &&
+    replay.target === target &&
+    replay.body_digest === bodyDigest
+  ) {
     const stored = await parseStoredResponse(replay);
     return jsonResponse(stored.body, stored.status, now);
   }
@@ -732,55 +989,60 @@ async function pairDevice(
   );
   if (!candidateVerified || !approvalVerified) throw problem("unauthorized");
   const target = `pair:${parsed.candidateDeviceId}`;
-  const replay = await existingMutationResponse(env, auth, "pair_device", target);
+  const replay = await existingMutationResponse(
+    env,
+    auth,
+    "pair_device",
+    target,
+  );
   if (replay !== null) return replay;
   const response = { device_id: parsed.candidateDeviceId, status: "active" };
   const idempotencyKey = auth.idempotencyKey;
   if (idempotencyKey === undefined) throw problem("invalid_request");
   const batch = await env.DB.batch([
-    env.DB
-      .prepare(
-        "INSERT INTO devices (vault_id, device_id, signing_public_key, pairing_public_key, status, created_at) SELECT ?, ?, ?, ?, 'active', ? WHERE NOT EXISTS (SELECT 1 FROM devices WHERE vault_id = ? AND (device_id = ? OR signing_public_key = ? OR pairing_public_key = ?))",
-      )
-      .bind(
-        auth.vaultId,
-        parsed.candidateDeviceId,
-        parsed.candidateSigningPublicKey,
-        parsed.candidatePairingPublicKey,
-        now,
-        auth.vaultId,
-        parsed.candidateDeviceId,
-        parsed.candidateSigningPublicKey,
-        parsed.candidatePairingPublicKey,
-      ),
-    env.DB
-      .prepare(
-        "INSERT INTO device_envelopes (vault_id, device_id, envelope, pairing_nonce, protocol_version, created_at) SELECT ?, ?, ?, ?, ?, ? WHERE changes() = 1",
-      )
-      .bind(
-        auth.vaultId,
-        parsed.candidateDeviceId,
-        parsed.envelope,
-        parsed.pairingNonce,
-        PROTOCOL_VERSION,
-        now,
-      ),
-    env.DB
-      .prepare(
-        "INSERT INTO idempotency_results (vault_id, device_id, idempotency_key, operation, target, body_digest, status, response_json, created_at) SELECT ?, ?, ?, 'pair_device', ?, ?, 201, ?, ? WHERE changes() = 1",
-      )
-      .bind(
-        auth.vaultId,
-        auth.deviceId,
-        idempotencyKey,
-        target,
-        auth.bodyDigest,
-        JSON.stringify(response),
-        now,
-      ),
+    env.DB.prepare(
+      "INSERT INTO devices (vault_id, device_id, signing_public_key, pairing_public_key, status, created_at) SELECT ?, ?, ?, ?, 'active', ? WHERE NOT EXISTS (SELECT 1 FROM devices WHERE vault_id = ? AND (device_id = ? OR signing_public_key = ? OR pairing_public_key = ?))",
+    ).bind(
+      auth.vaultId,
+      parsed.candidateDeviceId,
+      parsed.candidateSigningPublicKey,
+      parsed.candidatePairingPublicKey,
+      now,
+      auth.vaultId,
+      parsed.candidateDeviceId,
+      parsed.candidateSigningPublicKey,
+      parsed.candidatePairingPublicKey,
+    ),
+    env.DB.prepare(
+      "INSERT INTO device_envelopes (vault_id, device_id, envelope, pairing_nonce, protocol_version, created_at) SELECT ?, ?, ?, ?, ?, ? WHERE changes() = 1",
+    ).bind(
+      auth.vaultId,
+      parsed.candidateDeviceId,
+      parsed.envelope,
+      parsed.pairingNonce,
+      PROTOCOL_VERSION,
+      now,
+    ),
+    env.DB.prepare(
+      "INSERT INTO idempotency_results (vault_id, device_id, idempotency_key, operation, target, body_digest, status, response_json, created_at) SELECT ?, ?, ?, 'pair_device', ?, ?, 201, ?, ? WHERE changes() = 1",
+    ).bind(
+      auth.vaultId,
+      auth.deviceId,
+      idempotencyKey,
+      target,
+      auth.bodyDigest,
+      JSON.stringify(response),
+      now,
+    ),
   ]);
-  if (changeCount(batchResult(batch, 0)) === 1) return jsonResponse(response, 201, now);
-  const duplicate = await existingMutationResponse(env, auth, "pair_device", target);
+  if (changeCount(batchResult(batch, 0)) === 1)
+    return jsonResponse(response, 201, now);
+  const duplicate = await existingMutationResponse(
+    env,
+    auth,
+    "pair_device",
+    target,
+  );
   if (duplicate !== null) return duplicate;
   throw problem("invalid_request");
 }
@@ -848,7 +1110,10 @@ async function selfDevice(
       signing_public_key: deviceKeyText(device.signing_public_key),
       pairing_public_key: deviceKeyText(device.pairing_public_key),
       status: device.status,
-      envelope: device.envelope === null ? null : base64UrlEncode(bytesFromDb(device.envelope)),
+      envelope:
+        device.envelope === null
+          ? null
+          : base64UrlEncode(bytesFromDb(device.envelope)),
       protocol_version: device.protocol_version,
     },
     200,
@@ -867,7 +1132,10 @@ async function revokeDevice(
   requireContentType(request, "application/json");
   const value = parseJsonBody(body);
   assertExactKeys(value, ["reason", "version"]);
-  if (requiredInteger(value, "version", PROTOCOL_VERSION, PROTOCOL_VERSION) !== PROTOCOL_VERSION) {
+  if (
+    requiredInteger(value, "version", PROTOCOL_VERSION, PROTOCOL_VERSION) !==
+    PROTOCOL_VERSION
+  ) {
     throw problem("unsupported_version");
   }
   requiredString(value, "reason", 32);
@@ -875,49 +1143,55 @@ async function revokeDevice(
   const deviceId = route.ids.deviceId;
   if (deviceId === undefined) throw problem("invalid_request");
   const target = `device:${deviceId}`;
-  const replay = await existingMutationResponse(env, auth, "revoke_device", target);
+  const replay = await existingMutationResponse(
+    env,
+    auth,
+    "revoke_device",
+    target,
+  );
   if (replay !== null) return replay;
   const [activeCount, targetDevice] = await Promise.all([
-    env.DB
-      .prepare(
-        "SELECT COUNT(*) AS active_count FROM devices WHERE vault_id = ? AND status = 'active'",
-      )
+    env.DB.prepare(
+      "SELECT COUNT(*) AS active_count FROM devices WHERE vault_id = ? AND status = 'active'",
+    )
       .bind(auth.vaultId)
       .first<{ active_count: number }>(),
-    env.DB
-      .prepare(
-        "SELECT status FROM devices WHERE vault_id = ? AND device_id = ?",
-      )
+    env.DB.prepare(
+      "SELECT status FROM devices WHERE vault_id = ? AND device_id = ?",
+    )
       .bind(auth.vaultId, deviceId)
       .first<{ status: string }>(),
   ]);
   if (targetDevice === null) throw problem("not_found");
-  if (targetDevice.status !== "active" || activeCount?.active_count === 1) throw problem("invalid_request");
+  if (targetDevice.status !== "active" || activeCount?.active_count === 1)
+    throw problem("invalid_request");
   const response = { device_id: deviceId, status: "revoked" };
   const idempotencyKey = auth.idempotencyKey;
   if (idempotencyKey === undefined) throw problem("invalid_request");
   const result = await env.DB.batch([
-    env.DB
-      .prepare(
-        "UPDATE devices SET status = 'revoked', revoked_at = ?, revocation_signature = ? WHERE vault_id = ? AND device_id = ? AND status = 'active' AND (SELECT COUNT(*) FROM devices WHERE vault_id = ? AND status = 'active') > 1",
-      )
-      .bind(now, auth.signature, auth.vaultId, deviceId, auth.vaultId),
-    env.DB
-      .prepare(
-        "INSERT INTO idempotency_results (vault_id, device_id, idempotency_key, operation, target, body_digest, status, response_json, created_at) SELECT ?, ?, ?, 'revoke_device', ?, ?, 200, ?, ? WHERE changes() = 1",
-      )
-      .bind(
-        auth.vaultId,
-        auth.deviceId,
-        idempotencyKey,
-        target,
-        auth.bodyDigest,
-        JSON.stringify(response),
-        now,
-      ),
+    env.DB.prepare(
+      "UPDATE devices SET status = 'revoked', revoked_at = ?, revocation_signature = ? WHERE vault_id = ? AND device_id = ? AND status = 'active' AND (SELECT COUNT(*) FROM devices WHERE vault_id = ? AND status = 'active') > 1",
+    ).bind(now, auth.signature, auth.vaultId, deviceId, auth.vaultId),
+    env.DB.prepare(
+      "INSERT INTO idempotency_results (vault_id, device_id, idempotency_key, operation, target, body_digest, status, response_json, created_at) SELECT ?, ?, ?, 'revoke_device', ?, ?, 200, ?, ? WHERE changes() = 1",
+    ).bind(
+      auth.vaultId,
+      auth.deviceId,
+      idempotencyKey,
+      target,
+      auth.bodyDigest,
+      JSON.stringify(response),
+      now,
+    ),
   ]);
-  if (changeCount(batchResult(result, 0)) === 1) return jsonResponse(response, 200, now);
-  const duplicate = await existingMutationResponse(env, auth, "revoke_device", target);
+  if (changeCount(batchResult(result, 0)) === 1)
+    return jsonResponse(response, 200, now);
+  const duplicate = await existingMutationResponse(
+    env,
+    auth,
+    "revoke_device",
+    target,
+  );
   if (duplicate !== null) return duplicate;
   throw problem("invalid_request");
 }
@@ -944,8 +1218,12 @@ async function verifyUploadEnvelope(
     }),
   );
   if (!verified) throw problem("unauthorized");
-  if (kind === "share" && plan.shareId === undefined) throw problem("invalid_request");
-  if (kind === "object" && (plan.objectId === undefined || plan.revisionId === undefined)) {
+  if (kind === "share" && plan.shareId === undefined)
+    throw problem("invalid_request");
+  if (
+    kind === "object" &&
+    (plan.objectId === undefined || plan.revisionId === undefined)
+  ) {
     throw problem("invalid_request");
   }
 }
@@ -969,19 +1247,37 @@ async function createUpload(
   if (authResult.status === "rejected") throw authResult.reason;
   const plan = planResult.value;
   const auth = authResult.value;
-  await claimMutationNonce(env, auth.vaultId, auth.deviceId, auth.nonce, now, now + NONCE_RETENTION_MS);
+  await claimMutationNonce(
+    env,
+    auth.vaultId,
+    auth.deviceId,
+    auth.nonce,
+    now,
+    now + NONCE_RETENTION_MS,
+  );
   await verifyUploadEnvelope(auth, plan, kind);
-  const target = kind === "object" ? `upload:${plan.uploadId}` : `share:${plan.shareId ?? ""}`;
+  const target =
+    kind === "object"
+      ? `upload:${plan.uploadId}`
+      : `share:${plan.shareId ?? ""}`;
   const operation = kind === "object" ? "create_upload" : "create_share";
   const replay = await existingMutationResponse(env, auth, operation, target);
   if (replay !== null) return replay;
   const response =
     kind === "object"
       ? { upload_id: plan.uploadId, state: "active", accepted_indexes: [] }
-      : { upload_id: plan.uploadId, share_id: plan.shareId, state: "pending", accepted_indexes: [] };
+      : {
+          upload_id: plan.uploadId,
+          share_id: plan.shareId,
+          state: "pending",
+          accepted_indexes: [],
+        };
   const idempotencyKey = auth.idempotencyKey;
   if (idempotencyKey === undefined) throw problem("invalid_request");
-  const expiresAt = kind === "share" ? Math.min(now + UPLOAD_TTL_MS, plan.shareExpiresAt ?? now) : now + UPLOAD_TTL_MS;
+  const expiresAt =
+    kind === "share"
+      ? Math.min(now + UPLOAD_TTL_MS, plan.shareExpiresAt ?? now)
+      : now + UPLOAD_TTL_MS;
   const job = newMaintenanceJob({
     vaultId: auth.vaultId,
     targetId: plan.uploadId,
@@ -997,84 +1293,84 @@ async function createUpload(
     kind === "object"
       ? [auth.vaultId, MAX_ACTIVE_UPLOADS]
       : [auth.vaultId, MAX_ACTIVE_UPLOADS, auth.vaultId, MAX_ACTIVE_SHARES];
-  const reserve = env.DB
-    .prepare(
-      `UPDATE vaults SET reserved_bytes = reserved_bytes + ? WHERE vault_id = ? AND used_bytes + reserved_bytes + ? <= byte_cap AND ${capacityCondition}`,
-    )
-    .bind(plan.totalBytes, auth.vaultId, plan.totalBytes, ...capacityBindings);
-  const session = env.DB
-    .prepare(
-      "INSERT INTO upload_sessions (upload_id, vault_id, kind, object_id, revision_id, base_revision_id, share_id, manifest, manifest_digest, chunk_plan, chunk_count, total_bytes, crypto_version, writer_signature, creator_device_id, state, reserved_bytes, expires_at, created_at, updated_at) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ? WHERE changes() = 1",
-    )
-    .bind(
-      plan.uploadId,
-      auth.vaultId,
-      kind,
-      plan.objectId ?? null,
-      plan.revisionId ?? null,
-      plan.baseRevisionId,
-      plan.shareId ?? null,
-      plan.manifest,
-      plan.manifestDigest,
-      planToJson(plan.chunks),
-      plan.chunkCount,
-      plan.totalBytes,
-      plan.cryptoVersion,
-      plan.writerSignature,
-      auth.deviceId,
-      plan.totalBytes,
-      expiresAt,
-      now,
-      now,
-    );
+  const reserve = env.DB.prepare(
+    `UPDATE vaults SET reserved_bytes = reserved_bytes + ? WHERE vault_id = ? AND used_bytes + reserved_bytes + ? <= byte_cap AND ${capacityCondition}`,
+  ).bind(plan.totalBytes, auth.vaultId, plan.totalBytes, ...capacityBindings);
+  const session = env.DB.prepare(
+    "INSERT INTO upload_sessions (upload_id, vault_id, kind, object_id, revision_id, base_revision_id, share_id, manifest, manifest_digest, chunk_plan, chunk_count, total_bytes, crypto_version, writer_signature, creator_device_id, state, reserved_bytes, expires_at, created_at, updated_at) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ? WHERE changes() = 1",
+  ).bind(
+    plan.uploadId,
+    auth.vaultId,
+    kind,
+    plan.objectId ?? null,
+    plan.revisionId ?? null,
+    plan.baseRevisionId,
+    plan.shareId ?? null,
+    plan.manifest,
+    plan.manifestDigest,
+    planToJson(plan.chunks),
+    plan.chunkCount,
+    plan.totalBytes,
+    plan.cryptoVersion,
+    plan.writerSignature,
+    auth.deviceId,
+    plan.totalBytes,
+    expiresAt,
+    now,
+    now,
+  );
   const statements: D1PreparedStatement[] = [reserve, session];
   if (kind === "share") {
     const shareId = plan.shareId;
     const expiresAtValue = plan.shareExpiresAt;
-    if (shareId === undefined || expiresAtValue === undefined) throw problem("invalid_request");
+    if (shareId === undefined || expiresAtValue === undefined)
+      throw problem("invalid_request");
     statements.push(
-      env.DB
-        .prepare(
-          "INSERT INTO shares (vault_id, share_id, upload_id, state, manifest_digest, chunk_count, total_bytes, crypto_version, writer_signature, expires_at, created_at) SELECT ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ? WHERE changes() = 1",
-        )
-        .bind(
-          auth.vaultId,
-          shareId,
-          plan.uploadId,
-          plan.manifestDigest,
-          plan.chunkCount,
-          plan.totalBytes,
-          plan.cryptoVersion,
-          plan.writerSignature,
-          expiresAtValue,
-          now,
-        ),
+      env.DB.prepare(
+        "INSERT INTO shares (vault_id, share_id, upload_id, state, manifest_digest, chunk_count, total_bytes, crypto_version, writer_signature, expires_at, created_at) SELECT ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ? WHERE changes() = 1",
+      ).bind(
+        auth.vaultId,
+        shareId,
+        plan.uploadId,
+        plan.manifestDigest,
+        plan.chunkCount,
+        plan.totalBytes,
+        plan.cryptoVersion,
+        plan.writerSignature,
+        expiresAtValue,
+        now,
+      ),
     );
   }
   statements.push(
-    env.DB
-      .prepare(
-        "INSERT INTO idempotency_results (vault_id, device_id, idempotency_key, operation, target, body_digest, status, response_json, created_at) SELECT ?, ?, ?, ?, ?, ?, 201, ?, ? WHERE EXISTS (SELECT 1 FROM upload_sessions WHERE upload_id = ? AND state = 'active')",
-      )
-      .bind(
-        auth.vaultId,
-        auth.deviceId,
-        idempotencyKey,
-        operation,
-        target,
-        auth.bodyDigest,
-        JSON.stringify(response),
-        now,
-        plan.uploadId,
-      ),
-    env.DB
-      .prepare(
-        "INSERT INTO maintenance_jobs (job_id, vault_id, job_class, target_id, payload_json, state, next_attempt_at, created_at, updated_at) SELECT ?, ?, 'reconcile_upload', ?, '{}', 'queued', ?, ?, ? WHERE EXISTS (SELECT 1 FROM upload_sessions WHERE upload_id = ? AND state = 'active')",
-      )
-      .bind(job.jobId, auth.vaultId, plan.uploadId, now, now, now, plan.uploadId),
+    env.DB.prepare(
+      "INSERT INTO idempotency_results (vault_id, device_id, idempotency_key, operation, target, body_digest, status, response_json, created_at) SELECT ?, ?, ?, ?, ?, ?, 201, ?, ? WHERE EXISTS (SELECT 1 FROM upload_sessions WHERE upload_id = ? AND state = 'active')",
+    ).bind(
+      auth.vaultId,
+      auth.deviceId,
+      idempotencyKey,
+      operation,
+      target,
+      auth.bodyDigest,
+      JSON.stringify(response),
+      now,
+      plan.uploadId,
+    ),
+    env.DB.prepare(
+      "INSERT INTO maintenance_jobs (job_id, vault_id, job_class, target_id, payload_json, state, next_attempt_at, created_at, updated_at) SELECT ?, ?, 'reconcile_upload', ?, '{}', 'queued', ?, ?, ? WHERE EXISTS (SELECT 1 FROM upload_sessions WHERE upload_id = ? AND state = 'active')",
+    ).bind(
+      job.jobId,
+      auth.vaultId,
+      plan.uploadId,
+      now,
+      now,
+      now,
+      plan.uploadId,
+    ),
   );
   const results = await env.DB.batch(statements);
-  if (changeCount(batchResult(results, 0)) === 0) throw problem("quota_exceeded");
+  if (changeCount(batchResult(results, 0)) === 0)
+    throw problem("quota_exceeded");
   scheduleMaintenance(env, context, job.jobId);
   return jsonResponse(response, 201, now);
 }
@@ -1115,15 +1411,21 @@ function activeUploadForWriter(
   now: number,
 ): UploadSessionRow {
   if (session === null) throw problem("not_found");
-  if (session.creator_device_id !== auth.deviceId) throw problem("unauthorized");
-  if (session.state !== "active" || session.expires_at <= now) throw problem("upload_incomplete");
+  if (session.creator_device_id !== auth.deviceId)
+    throw problem("unauthorized");
+  if (session.state !== "active" || session.expires_at <= now)
+    throw problem("upload_incomplete");
   return session;
 }
 
-function expectedChunk(session: UploadSessionRow, index: number): UploadPlanChunk {
+function expectedChunk(
+  session: UploadSessionRow,
+  index: number,
+): UploadPlanChunk {
   const plan = planFromJson(session.chunk_plan);
   const chunk = plan[index];
-  if (chunk === undefined || chunk.index !== index) throw problem("invalid_request");
+  if (chunk === undefined || chunk.index !== index)
+    throw problem("invalid_request");
   return chunk;
 }
 
@@ -1153,16 +1455,36 @@ async function putUploadChunk(
   requireContentType(request, "application/octet-stream");
   const uploadId = route.ids.uploadId;
   const indexText = route.ids.index;
-  if (uploadId === undefined || indexText === undefined) throw problem("invalid_request");
-  const declaredDigest = digest(requiredString({ digest: request.headers.get("x-sona-chunk-sha256") ?? "" }, "digest", 64));
+  if (uploadId === undefined || indexText === undefined)
+    throw problem("invalid_request");
+  const declaredDigest = digest(
+    requiredString(
+      { digest: request.headers.get("x-sona-chunk-sha256") ?? "" },
+      "digest",
+      64,
+    ),
+  );
   const auth = await authenticate(request, env, route, body, true, now);
   const target = `upload_chunk:${uploadId}:${indexText}`;
-  const replay = await existingMutationResponse(env, auth, "put_upload_chunk", target);
+  const replay = await existingMutationResponse(
+    env,
+    auth,
+    "put_upload_chunk",
+    target,
+  );
   if (replay !== null) return replay;
   const index = Number(indexText);
-  const session = activeUploadForWriter(await uploadSession(env, auth.vaultId, uploadId), auth, now);
+  const session = activeUploadForWriter(
+    await uploadSession(env, auth.vaultId, uploadId),
+    auth,
+    now,
+  );
   const expected = expectedChunk(session, index);
-  if (body.length !== expected.size || auth.bodyDigest !== expected.sha256 || declaredDigest !== expected.sha256) {
+  if (
+    body.length !== expected.size ||
+    auth.bodyDigest !== expected.sha256 ||
+    declaredDigest !== expected.sha256
+  ) {
     throw problem("integrity_failed");
   }
   const digestBytes = base64UrlDecode(expected.sha256);
@@ -1180,33 +1502,39 @@ async function putUploadChunk(
   } catch {
     throw dependencyProblem("r2");
   }
-  if (stored === null || !matchingR2Object(stored, expected)) throw problem("chunk_conflict");
+  if (stored === null || !matchingR2Object(stored, expected))
+    throw problem("chunk_conflict");
   const response = { upload_id: uploadId, index, accepted: true };
   const idempotencyKey = auth.idempotencyKey;
   if (idempotencyKey === undefined) throw problem("invalid_request");
   await env.DB.batch([
-    env.DB
-      .prepare(
-        "INSERT OR IGNORE INTO upload_chunks (upload_id, chunk_index, byte_size, digest, r2_key, accepted_at) SELECT ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM upload_sessions WHERE upload_id = ? AND state = 'active' AND expires_at > ?)",
-      )
-      .bind(uploadId, index, expected.size, expected.sha256, key, now, uploadId, now),
-    env.DB
-      .prepare(
-        "INSERT INTO idempotency_results (vault_id, device_id, idempotency_key, operation, target, body_digest, status, response_json, created_at) SELECT ?, ?, ?, 'put_upload_chunk', ?, ?, 200, ?, ? WHERE EXISTS (SELECT 1 FROM upload_chunks WHERE upload_id = ? AND chunk_index = ? AND byte_size = ? AND digest = ?)",
-      )
-      .bind(
-        auth.vaultId,
-        auth.deviceId,
-        idempotencyKey,
-        target,
-        auth.bodyDigest,
-        JSON.stringify(response),
-        now,
-        uploadId,
-        index,
-        expected.size,
-        expected.sha256,
-      ),
+    env.DB.prepare(
+      "INSERT OR IGNORE INTO upload_chunks (upload_id, chunk_index, byte_size, digest, r2_key, accepted_at) SELECT ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM upload_sessions WHERE upload_id = ? AND state = 'active' AND expires_at > ?)",
+    ).bind(
+      uploadId,
+      index,
+      expected.size,
+      expected.sha256,
+      key,
+      now,
+      uploadId,
+      now,
+    ),
+    env.DB.prepare(
+      "INSERT INTO idempotency_results (vault_id, device_id, idempotency_key, operation, target, body_digest, status, response_json, created_at) SELECT ?, ?, ?, 'put_upload_chunk', ?, ?, 200, ?, ? WHERE EXISTS (SELECT 1 FROM upload_chunks WHERE upload_id = ? AND chunk_index = ? AND byte_size = ? AND digest = ?)",
+    ).bind(
+      auth.vaultId,
+      auth.deviceId,
+      idempotencyKey,
+      target,
+      auth.bodyDigest,
+      JSON.stringify(response),
+      now,
+      uploadId,
+      index,
+      expected.size,
+      expected.sha256,
+    ),
   ]);
   const receipt = await env.DB.prepare(
     "SELECT byte_size, digest FROM upload_chunks WHERE upload_id = ? AND chunk_index = ?",
@@ -1214,27 +1542,40 @@ async function putUploadChunk(
     .bind(uploadId, index)
     .first<{ byte_size: number; digest: string }>();
   if (receipt === null) throw problem("upload_incomplete");
-  if (receipt.byte_size !== expected.size || receipt.digest !== expected.sha256) throw problem("chunk_conflict");
+  if (receipt.byte_size !== expected.size || receipt.digest !== expected.sha256)
+    throw problem("chunk_conflict");
   return jsonResponse(response, 200, now);
 }
 
 function parseVersionOnly(body: Uint8Array): void {
   const value = parseJsonBody(body);
   assertExactKeys(value, ["version"]);
-  if (requiredInteger(value, "version", PROTOCOL_VERSION, PROTOCOL_VERSION) !== PROTOCOL_VERSION) {
+  if (
+    requiredInteger(value, "version", PROTOCOL_VERSION, PROTOCOL_VERSION) !==
+    PROTOCOL_VERSION
+  ) {
     throw problem("unsupported_version");
   }
 }
 
-async function assertCompleteUpload(session: UploadSessionRow, env: Env): Promise<UploadPlanChunk[]> {
+async function assertCompleteUpload(
+  session: UploadSessionRow,
+  env: Env,
+): Promise<UploadPlanChunk[]> {
   const plan = planFromJson(session.chunk_plan);
   if (plan.length !== session.chunk_count) throw problem("integrity_failed");
   const receipts = await env.DB.prepare(
     "SELECT chunk_index, byte_size, digest, r2_key FROM upload_chunks WHERE upload_id = ? ORDER BY chunk_index",
   )
     .bind(session.upload_id)
-    .all<{ byte_size: number; chunk_index: number; digest: string; r2_key: string }>();
-  if (receipts.results.length !== plan.length) throw problem("upload_incomplete");
+    .all<{
+      byte_size: number;
+      chunk_index: number;
+      digest: string;
+      r2_key: string;
+    }>();
+  if (receipts.results.length !== plan.length)
+    throw problem("upload_incomplete");
   const verifiedChunks = plan.map((expected, index) => {
     const receipt = receipts.results[index];
     if (
@@ -1247,15 +1588,20 @@ async function assertCompleteUpload(session: UploadSessionRow, env: Env): Promis
     }
     return { expected, receipt };
   });
-  await forEachBounded(verifiedChunks, MAX_CONCURRENT_R2_READS, async ({ expected, receipt }) => {
-    let stored: R2Object | null;
-    try {
-      stored = await env.CIPHERTEXT.head(receipt.r2_key);
-    } catch {
-      throw dependencyProblem("r2");
-    }
-    if (stored === null || !matchingR2Object(stored, expected)) throw problem("integrity_failed");
-  });
+  await forEachBounded(
+    verifiedChunks,
+    MAX_CONCURRENT_R2_READS,
+    async ({ expected, receipt }) => {
+      let stored: R2Object | null;
+      try {
+        stored = await env.CIPHERTEXT.head(receipt.r2_key);
+      } catch {
+        throw dependencyProblem("r2");
+      }
+      if (stored === null || !matchingR2Object(stored, expected))
+        throw problem("integrity_failed");
+    },
+  );
   return plan;
 }
 
@@ -1265,7 +1611,12 @@ async function committedMutationResponse(
 ): Promise<Response> {
   const idempotencyKey = auth.idempotencyKey;
   if (idempotencyKey === undefined) throw problem("invalid_request");
-  const stored = await idempotencyResult(env, auth.vaultId, auth.deviceId, idempotencyKey);
+  const stored = await idempotencyResult(
+    env,
+    auth.vaultId,
+    auth.deviceId,
+    idempotencyKey,
+  );
   if (stored === null) throw problem("integrity_failed");
   const response = await parseStoredResponse(stored);
   return jsonResponse(response.body, response.status);
@@ -1278,74 +1629,62 @@ async function commitObjectUpload(
   target: string,
   now: number,
 ): Promise<Response> {
-  if (session.object_id === null || session.revision_id === null) throw problem("integrity_failed");
+  if (session.object_id === null || session.revision_id === null)
+    throw problem("integrity_failed");
   const plan = await assertCompleteUpload(session, env);
   const idempotencyKey = auth.idempotencyKey;
   if (idempotencyKey === undefined) throw problem("invalid_request");
   const results = await env.DB.batch([
-    env.DB
-      .prepare(
-        "INSERT INTO revisions (vault_id, object_id, revision_id, parent_revision_id, manifest, manifest_digest, manifest_size, chunk_count, total_bytes, crypto_version, writer_signature, writer_device_id, tombstone, tombstone_reason, created_at) SELECT s.vault_id, s.object_id, s.revision_id, s.base_revision_id, s.manifest, s.manifest_digest, length(s.manifest), s.chunk_count, s.total_bytes, s.crypto_version, s.writer_signature, s.creator_device_id, 0, NULL, ? FROM upload_sessions s WHERE s.upload_id = ? AND s.state = 'active' AND ((s.base_revision_id IS NULL AND NOT EXISTS (SELECT 1 FROM object_heads h WHERE h.vault_id = s.vault_id AND h.object_id = s.object_id)) OR (s.base_revision_id IS NOT NULL AND EXISTS (SELECT 1 FROM object_heads h WHERE h.vault_id = s.vault_id AND h.object_id = s.object_id AND h.head_revision_id = s.base_revision_id)))",
-      )
-      .bind(now, session.upload_id),
-    env.DB
-      .prepare(
-        "INSERT INTO revision_chunks (vault_id, object_id, revision_id, chunk_index, r2_key, byte_size, digest) SELECT s.vault_id, s.object_id, s.revision_id, uc.chunk_index, uc.r2_key, uc.byte_size, uc.digest FROM upload_sessions s JOIN upload_chunks uc ON uc.upload_id = s.upload_id WHERE s.upload_id = ? AND s.state = 'active' AND EXISTS (SELECT 1 FROM revisions r WHERE r.vault_id = s.vault_id AND r.object_id = s.object_id AND r.revision_id = s.revision_id)",
-      )
-      .bind(session.upload_id),
-    env.DB
-      .prepare(
-        "INSERT OR IGNORE INTO object_heads (vault_id, object_id, head_revision_id, tombstone, updated_at) SELECT s.vault_id, s.object_id, s.revision_id, 0, ? FROM upload_sessions s WHERE s.upload_id = ? AND s.state = 'active' AND s.base_revision_id IS NULL AND EXISTS (SELECT 1 FROM revisions r WHERE r.vault_id = s.vault_id AND r.object_id = s.object_id AND r.revision_id = s.revision_id)",
-      )
-      .bind(now, session.upload_id),
-    env.DB
-      .prepare(
-        "UPDATE object_heads SET head_revision_id = (SELECT revision_id FROM upload_sessions WHERE upload_id = ?), tombstone = 0, updated_at = ? WHERE vault_id = (SELECT vault_id FROM upload_sessions WHERE upload_id = ?) AND object_id = (SELECT object_id FROM upload_sessions WHERE upload_id = ?) AND head_revision_id = (SELECT base_revision_id FROM upload_sessions WHERE upload_id = ?) AND (SELECT state FROM upload_sessions WHERE upload_id = ?) = 'active' AND EXISTS (SELECT 1 FROM revisions WHERE vault_id = object_heads.vault_id AND object_id = object_heads.object_id AND revision_id = (SELECT revision_id FROM upload_sessions WHERE upload_id = ?))",
-      )
-      .bind(
-        session.upload_id,
-        now,
-        session.upload_id,
-        session.upload_id,
-        session.upload_id,
-        session.upload_id,
-        session.upload_id,
-      ),
-    env.DB
-      .prepare(
-        "UPDATE upload_sessions SET state = 'committed', committed_sequence = (SELECT next_change_sequence FROM vaults WHERE vault_id = ?), updated_at = ? WHERE upload_id = ? AND state = 'active' AND EXISTS (SELECT 1 FROM object_heads WHERE vault_id = ? AND object_id = ? AND head_revision_id = ?)",
-      )
-      .bind(
-        auth.vaultId,
-        now,
-        session.upload_id,
-        auth.vaultId,
-        session.object_id,
-        session.revision_id,
-      ),
-    env.DB
-      .prepare(
-        "UPDATE vaults SET reserved_bytes = reserved_bytes - ?, used_bytes = used_bytes + ? WHERE vault_id = ? AND changes() = 1",
-      )
-      .bind(session.reserved_bytes, session.total_bytes, auth.vaultId),
-    env.DB
-      .prepare(
-        "INSERT INTO idempotency_results (vault_id, device_id, idempotency_key, operation, target, body_digest, status, response_json, created_at) SELECT ?, ?, ?, 'commit_upload', ?, ?, 200, json_object('upload_id', ?, 'state', 'committed', 'revision_id', ?, 'change_sequence', (SELECT next_change_sequence FROM vaults WHERE vault_id = ?)), ? WHERE EXISTS (SELECT 1 FROM upload_sessions WHERE upload_id = ? AND state = 'committed')",
-      )
-      .bind(
-        auth.vaultId,
-        auth.deviceId,
-        idempotencyKey,
-        target,
-        auth.bodyDigest,
-        session.upload_id,
-        session.revision_id,
-        auth.vaultId,
-        now,
-        session.upload_id,
-      ),
+    env.DB.prepare(
+      "INSERT INTO revisions (vault_id, object_id, revision_id, parent_revision_id, manifest, manifest_digest, manifest_size, chunk_count, total_bytes, crypto_version, writer_signature, writer_device_id, tombstone, tombstone_reason, created_at) SELECT s.vault_id, s.object_id, s.revision_id, s.base_revision_id, s.manifest, s.manifest_digest, length(s.manifest), s.chunk_count, s.total_bytes, s.crypto_version, s.writer_signature, s.creator_device_id, 0, NULL, ? FROM upload_sessions s WHERE s.upload_id = ? AND s.state = 'active' AND ((s.base_revision_id IS NULL AND NOT EXISTS (SELECT 1 FROM object_heads h WHERE h.vault_id = s.vault_id AND h.object_id = s.object_id)) OR (s.base_revision_id IS NOT NULL AND EXISTS (SELECT 1 FROM object_heads h WHERE h.vault_id = s.vault_id AND h.object_id = s.object_id AND h.head_revision_id = s.base_revision_id)))",
+    ).bind(now, session.upload_id),
+    env.DB.prepare(
+      "INSERT INTO revision_chunks (vault_id, object_id, revision_id, chunk_index, r2_key, byte_size, digest) SELECT s.vault_id, s.object_id, s.revision_id, uc.chunk_index, uc.r2_key, uc.byte_size, uc.digest FROM upload_sessions s JOIN upload_chunks uc ON uc.upload_id = s.upload_id WHERE s.upload_id = ? AND s.state = 'active' AND EXISTS (SELECT 1 FROM revisions r WHERE r.vault_id = s.vault_id AND r.object_id = s.object_id AND r.revision_id = s.revision_id)",
+    ).bind(session.upload_id),
+    env.DB.prepare(
+      "INSERT OR IGNORE INTO object_heads (vault_id, object_id, head_revision_id, tombstone, updated_at) SELECT s.vault_id, s.object_id, s.revision_id, 0, ? FROM upload_sessions s WHERE s.upload_id = ? AND s.state = 'active' AND s.base_revision_id IS NULL AND EXISTS (SELECT 1 FROM revisions r WHERE r.vault_id = s.vault_id AND r.object_id = s.object_id AND r.revision_id = s.revision_id)",
+    ).bind(now, session.upload_id),
+    env.DB.prepare(
+      "UPDATE object_heads SET head_revision_id = (SELECT revision_id FROM upload_sessions WHERE upload_id = ?), tombstone = 0, updated_at = ? WHERE vault_id = (SELECT vault_id FROM upload_sessions WHERE upload_id = ?) AND object_id = (SELECT object_id FROM upload_sessions WHERE upload_id = ?) AND head_revision_id = (SELECT base_revision_id FROM upload_sessions WHERE upload_id = ?) AND (SELECT state FROM upload_sessions WHERE upload_id = ?) = 'active' AND EXISTS (SELECT 1 FROM revisions WHERE vault_id = object_heads.vault_id AND object_id = object_heads.object_id AND revision_id = (SELECT revision_id FROM upload_sessions WHERE upload_id = ?))",
+    ).bind(
+      session.upload_id,
+      now,
+      session.upload_id,
+      session.upload_id,
+      session.upload_id,
+      session.upload_id,
+      session.upload_id,
+    ),
+    env.DB.prepare(
+      "UPDATE upload_sessions SET state = 'committed', committed_sequence = (SELECT next_change_sequence FROM vaults WHERE vault_id = ?), updated_at = ? WHERE upload_id = ? AND state = 'active' AND EXISTS (SELECT 1 FROM object_heads WHERE vault_id = ? AND object_id = ? AND head_revision_id = ?)",
+    ).bind(
+      auth.vaultId,
+      now,
+      session.upload_id,
+      auth.vaultId,
+      session.object_id,
+      session.revision_id,
+    ),
+    env.DB.prepare(
+      "UPDATE vaults SET reserved_bytes = reserved_bytes - ?, used_bytes = used_bytes + ? WHERE vault_id = ? AND changes() = 1",
+    ).bind(session.reserved_bytes, session.total_bytes, auth.vaultId),
+    env.DB.prepare(
+      "INSERT INTO idempotency_results (vault_id, device_id, idempotency_key, operation, target, body_digest, status, response_json, created_at) SELECT ?, ?, ?, 'commit_upload', ?, ?, 200, json_object('upload_id', ?, 'state', 'committed', 'revision_id', ?, 'change_sequence', (SELECT next_change_sequence FROM vaults WHERE vault_id = ?)), ? WHERE EXISTS (SELECT 1 FROM upload_sessions WHERE upload_id = ? AND state = 'committed')",
+    ).bind(
+      auth.vaultId,
+      auth.deviceId,
+      idempotencyKey,
+      target,
+      auth.bodyDigest,
+      session.upload_id,
+      session.revision_id,
+      auth.vaultId,
+      now,
+      session.upload_id,
+    ),
   ]);
-  const headChanges = changeCount(batchResult(results, 2)) + changeCount(batchResult(results, 3));
+  const headChanges =
+    changeCount(batchResult(results, 2)) + changeCount(batchResult(results, 3));
   if (
     changeCount(batchResult(results, 0)) < 1 ||
     changeCount(batchResult(results, 1)) < plan.length ||
@@ -1373,36 +1712,28 @@ async function commitShareUpload(
   const idempotencyKey = auth.idempotencyKey;
   if (idempotencyKey === undefined) throw problem("invalid_request");
   const results = await env.DB.batch([
-    env.DB
-      .prepare(
-        "UPDATE shares SET state = 'active' WHERE vault_id = ? AND share_id = ? AND state = 'pending' AND expires_at > ? AND EXISTS (SELECT 1 FROM upload_sessions WHERE upload_id = ? AND state = 'active')",
-      )
-      .bind(auth.vaultId, session.share_id, now, session.upload_id),
-    env.DB
-      .prepare(
-        "UPDATE upload_sessions SET state = 'committed', updated_at = ? WHERE upload_id = ? AND state = 'active' AND EXISTS (SELECT 1 FROM shares WHERE vault_id = ? AND share_id = ? AND state = 'active')",
-      )
-      .bind(now, session.upload_id, auth.vaultId, session.share_id),
-    env.DB
-      .prepare(
-        "UPDATE vaults SET reserved_bytes = reserved_bytes - ?, used_bytes = used_bytes + ? WHERE vault_id = ? AND changes() = 1",
-      )
-      .bind(session.reserved_bytes, session.total_bytes, auth.vaultId),
-    env.DB
-      .prepare(
-        "INSERT INTO idempotency_results (vault_id, device_id, idempotency_key, operation, target, body_digest, status, response_json, created_at) SELECT ?, ?, ?, 'commit_upload', ?, ?, 200, json_object('upload_id', ?, 'share_id', ?, 'state', 'active'), ? WHERE EXISTS (SELECT 1 FROM upload_sessions WHERE upload_id = ? AND state = 'committed')",
-      )
-      .bind(
-        auth.vaultId,
-        auth.deviceId,
-        idempotencyKey,
-        target,
-        auth.bodyDigest,
-        session.upload_id,
-        session.share_id,
-        now,
-        session.upload_id,
-      ),
+    env.DB.prepare(
+      "UPDATE shares SET state = 'active' WHERE vault_id = ? AND share_id = ? AND state = 'pending' AND expires_at > ? AND EXISTS (SELECT 1 FROM upload_sessions WHERE upload_id = ? AND state = 'active')",
+    ).bind(auth.vaultId, session.share_id, now, session.upload_id),
+    env.DB.prepare(
+      "UPDATE upload_sessions SET state = 'committed', updated_at = ? WHERE upload_id = ? AND state = 'active' AND EXISTS (SELECT 1 FROM shares WHERE vault_id = ? AND share_id = ? AND state = 'active')",
+    ).bind(now, session.upload_id, auth.vaultId, session.share_id),
+    env.DB.prepare(
+      "UPDATE vaults SET reserved_bytes = reserved_bytes - ?, used_bytes = used_bytes + ? WHERE vault_id = ? AND changes() = 1",
+    ).bind(session.reserved_bytes, session.total_bytes, auth.vaultId),
+    env.DB.prepare(
+      "INSERT INTO idempotency_results (vault_id, device_id, idempotency_key, operation, target, body_digest, status, response_json, created_at) SELECT ?, ?, ?, 'commit_upload', ?, ?, 200, json_object('upload_id', ?, 'share_id', ?, 'state', 'active'), ? WHERE EXISTS (SELECT 1 FROM upload_sessions WHERE upload_id = ? AND state = 'committed')",
+    ).bind(
+      auth.vaultId,
+      auth.deviceId,
+      idempotencyKey,
+      target,
+      auth.bodyDigest,
+      session.upload_id,
+      session.share_id,
+      now,
+      session.upload_id,
+    ),
   ]);
   if (
     changeCount(batchResult(results, 0)) < 1 ||
@@ -1431,10 +1762,20 @@ async function commitUpload(
   const uploadId = route.ids.uploadId;
   if (uploadId === undefined) throw problem("invalid_request");
   const target = `upload:${uploadId}`;
-  const replay = await existingMutationResponse(env, auth, "commit_upload", target);
+  const replay = await existingMutationResponse(
+    env,
+    auth,
+    "commit_upload",
+    target,
+  );
   if (replay !== null) return replay;
-  const session = activeUploadForWriter(await uploadSession(env, auth.vaultId, uploadId), auth, now);
-  if (session.kind === "object") return commitObjectUpload(env, auth, session, target, now);
+  const session = activeUploadForWriter(
+    await uploadSession(env, auth.vaultId, uploadId),
+    auth,
+    now,
+  );
+  if (session.kind === "object")
+    return commitObjectUpload(env, auth, session, target, now);
   return commitShareUpload(env, auth, session, target, now);
 }
 
@@ -1453,9 +1794,18 @@ async function cancelUpload(
   const uploadId = route.ids.uploadId;
   if (uploadId === undefined) throw problem("invalid_request");
   const target = `upload:${uploadId}`;
-  const replay = await existingMutationResponse(env, auth, "cancel_upload", target);
+  const replay = await existingMutationResponse(
+    env,
+    auth,
+    "cancel_upload",
+    target,
+  );
   if (replay !== null) return replay;
-  const session = activeUploadForWriter(await uploadSession(env, auth.vaultId, uploadId), auth, now);
+  const session = activeUploadForWriter(
+    await uploadSession(env, auth.vaultId, uploadId),
+    auth,
+    now,
+  );
   const response = { upload_id: uploadId, state: "cancelled" };
   const idempotencyKey = auth.idempotencyKey;
   if (idempotencyKey === undefined) throw problem("invalid_request");
@@ -1467,35 +1817,30 @@ async function cancelUpload(
     now,
   });
   const results = await env.DB.batch([
-    env.DB
-      .prepare("UPDATE upload_sessions SET state = 'cancelled', updated_at = ? WHERE upload_id = ? AND state = 'active'")
-      .bind(now, uploadId),
-    env.DB
-      .prepare(
-        "UPDATE vaults SET reserved_bytes = reserved_bytes - ?, used_bytes = used_bytes + ? WHERE vault_id = ? AND changes() = 1",
-      )
-      .bind(session.reserved_bytes, session.reserved_bytes, auth.vaultId),
-    env.DB
-      .prepare(
-        "INSERT INTO idempotency_results (vault_id, device_id, idempotency_key, operation, target, body_digest, status, response_json, created_at) SELECT ?, ?, ?, 'cancel_upload', ?, ?, 200, ?, ? WHERE EXISTS (SELECT 1 FROM upload_sessions WHERE upload_id = ? AND state = 'cancelled')",
-      )
-      .bind(
-        auth.vaultId,
-        auth.deviceId,
-        idempotencyKey,
-        target,
-        auth.bodyDigest,
-        JSON.stringify(response),
-        now,
-        uploadId,
-      ),
-    env.DB
-      .prepare(
-        "INSERT INTO maintenance_jobs (job_id, vault_id, job_class, target_id, payload_json, state, next_attempt_at, created_at, updated_at) SELECT ?, ?, 'cleanup_upload', ?, '{}', 'queued', ?, ?, ? WHERE EXISTS (SELECT 1 FROM upload_sessions WHERE upload_id = ? AND state = 'cancelled')",
-      )
-      .bind(job.jobId, auth.vaultId, uploadId, now, now, now, uploadId),
+    env.DB.prepare(
+      "UPDATE upload_sessions SET state = 'cancelled', updated_at = ? WHERE upload_id = ? AND state = 'active'",
+    ).bind(now, uploadId),
+    env.DB.prepare(
+      "UPDATE vaults SET reserved_bytes = reserved_bytes - ?, used_bytes = used_bytes + ? WHERE vault_id = ? AND changes() = 1",
+    ).bind(session.reserved_bytes, session.reserved_bytes, auth.vaultId),
+    env.DB.prepare(
+      "INSERT INTO idempotency_results (vault_id, device_id, idempotency_key, operation, target, body_digest, status, response_json, created_at) SELECT ?, ?, ?, 'cancel_upload', ?, ?, 200, ?, ? WHERE EXISTS (SELECT 1 FROM upload_sessions WHERE upload_id = ? AND state = 'cancelled')",
+    ).bind(
+      auth.vaultId,
+      auth.deviceId,
+      idempotencyKey,
+      target,
+      auth.bodyDigest,
+      JSON.stringify(response),
+      now,
+      uploadId,
+    ),
+    env.DB.prepare(
+      "INSERT INTO maintenance_jobs (job_id, vault_id, job_class, target_id, payload_json, state, next_attempt_at, created_at, updated_at) SELECT ?, ?, 'cleanup_upload', ?, '{}', 'queued', ?, ?, ? WHERE EXISTS (SELECT 1 FROM upload_sessions WHERE upload_id = ? AND state = 'cancelled')",
+    ).bind(job.jobId, auth.vaultId, uploadId, now, now, now, uploadId),
   ]);
-  if (changeCount(batchResult(results, 0)) === 0) throw problem("upload_incomplete");
+  if (changeCount(batchResult(results, 0)) === 0)
+    throw problem("upload_incomplete");
   scheduleMaintenance(env, context, job.jobId);
   return jsonResponse(response, 200, now);
 }
@@ -1522,7 +1867,12 @@ async function changesPage(
     "SELECT sequence, object_id, revision_id, tombstone FROM changes WHERE vault_id = ? AND sequence > ? ORDER BY sequence LIMIT ?",
   )
     .bind(auth.vaultId, after, limit + 1)
-    .all<{ object_id: string; revision_id: string; sequence: number; tombstone: number }>();
+    .all<{
+      object_id: string;
+      revision_id: string;
+      sequence: number;
+      tombstone: number;
+    }>();
   const hasMore = rows.results.length > limit;
   const page = rows.results.slice(0, limit);
   const lastSequence = page.at(-1)?.sequence ?? after;
@@ -1553,7 +1903,8 @@ async function snapshotPage(
   const auth = await authenticate(request, env, route, noBody, false, now);
   const url = new URL(request.url);
   const suppliedHighWater = url.searchParams.get("highWater");
-  if (suppliedHighWater === null && url.searchParams.has("after")) throw problem("invalid_request");
+  if (suppliedHighWater === null && url.searchParams.has("after"))
+    throw problem("invalid_request");
   const vault = await env.DB.prepare(
     "SELECT next_change_sequence FROM vaults WHERE vault_id = ?",
   )
@@ -1566,12 +1917,21 @@ async function snapshotPage(
       : decodeSnapshotHighWater(suppliedHighWater);
   if (highWater > vault.next_change_sequence) throw problem("invalid_request");
   const after = decodeSnapshotAfter(url.searchParams.get("after"), highWater);
-  const limit = parseLimit(url.searchParams.get("limit"), 50, MAX_SNAPSHOT_PAGE);
+  const limit = parseLimit(
+    url.searchParams.get("limit"),
+    50,
+    MAX_SNAPSHOT_PAGE,
+  );
   const rows = await env.DB.prepare(
     "SELECT object_id, head_revision_id, tombstone, head_sequence FROM object_heads WHERE vault_id = ? AND head_sequence <= ? AND object_id > ? ORDER BY object_id LIMIT ?",
   )
     .bind(auth.vaultId, highWater, after, limit + 1)
-    .all<{ head_revision_id: string; head_sequence: number; object_id: string; tombstone: number }>();
+    .all<{
+      head_revision_id: string;
+      head_sequence: number;
+      object_id: string;
+      tombstone: number;
+    }>();
   const hasMore = rows.results.length > limit;
   const page = rows.results.slice(0, limit);
   const lastId = page.at(-1)?.object_id;
@@ -1584,7 +1944,8 @@ async function snapshotPage(
         sequence: head.head_sequence,
       })),
       high_water: encodeSnapshotHighWater(highWater),
-      after: lastId === undefined ? null : encodeSnapshotAfter(highWater, lastId),
+      after:
+        lastId === undefined ? null : encodeSnapshotAfter(highWater, lastId),
       has_more: hasMore,
     },
     200,
@@ -1642,8 +2003,14 @@ async function revisionManifest(
   const auth = await authenticate(request, env, route, noBody, false, now);
   const objectId = route.ids.objectId;
   const revisionId = route.ids.revisionId;
-  if (objectId === undefined || revisionId === undefined) throw problem("invalid_request");
-  const revision = await readableRevision(env, auth.vaultId, objectId, revisionId);
+  if (objectId === undefined || revisionId === undefined)
+    throw problem("invalid_request");
+  const revision = await readableRevision(
+    env,
+    auth.vaultId,
+    objectId,
+    revisionId,
+  );
   return jsonResponse(
     {
       envelope: {
@@ -1655,7 +2022,9 @@ async function revisionManifest(
         total_bytes: revision.total_bytes,
         crypto_version: revision.crypto_version,
         writer_device_id: revision.writer_device_id,
-        writer_signature: base64UrlEncode(bytesFromDb(revision.writer_signature)),
+        writer_signature: base64UrlEncode(
+          bytesFromDb(revision.writer_signature),
+        ),
       },
       manifest: base64UrlEncode(bytesFromDb(revision.manifest)),
     },
@@ -1675,7 +2044,11 @@ async function revisionChunk(
   const objectId = route.ids.objectId;
   const revisionId = route.ids.revisionId;
   const indexText = route.ids.index;
-  if (objectId === undefined || revisionId === undefined || indexText === undefined) {
+  if (
+    objectId === undefined ||
+    revisionId === undefined ||
+    indexText === undefined
+  ) {
     throw problem("invalid_request");
   }
   await readableRevision(env, auth.vaultId, objectId, revisionId);
@@ -1692,9 +2065,18 @@ async function revisionChunk(
     throw dependencyProblem("r2");
   }
   if (stored === null) throw dependencyProblem("r2");
-  const expected: UploadPlanChunk = { index: Number(indexText), size: chunk.byte_size, sha256: chunk.digest };
+  const expected: UploadPlanChunk = {
+    index: Number(indexText),
+    size: chunk.byte_size,
+    sha256: chunk.digest,
+  };
   if (!matchingR2Object(stored, expected)) throw problem("integrity_failed");
-  return bytesResponse(stored.body, 200, { ETag: responseDigestHeader(chunk.digest) }, now);
+  return bytesResponse(
+    stored.body,
+    200,
+    { ETag: responseDigestHeader(chunk.digest) },
+    now,
+  );
 }
 
 async function deleteObject(
@@ -1725,7 +2107,12 @@ async function deleteObject(
   );
   if (!signed) throw problem("unauthorized");
   const target = `object:${objectId}`;
-  const replay = await existingMutationResponse(env, auth, "tombstone_object", target);
+  const replay = await existingMutationResponse(
+    env,
+    auth,
+    "tombstone_object",
+    target,
+  );
   if (replay !== null) return replay;
   const previous = await objectHead(env, auth.vaultId, objectId);
   if (previous === null) throw problem("not_found");
@@ -1745,74 +2132,66 @@ async function deleteObject(
     now,
   });
   const results = await env.DB.batch([
-    env.DB
-      .prepare(
-        "INSERT INTO revisions (vault_id, object_id, revision_id, parent_revision_id, manifest, manifest_digest, manifest_size, chunk_count, total_bytes, crypto_version, writer_signature, writer_device_id, tombstone, tombstone_reason, created_at) SELECT ?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?, ?, 1, ?, ? WHERE EXISTS (SELECT 1 FROM object_heads WHERE vault_id = ? AND object_id = ? AND head_revision_id = ?)",
-      )
-      .bind(
-        auth.vaultId,
-        objectId,
-        parsed.tombstoneRevisionId,
-        parsed.baseRevisionId,
-        noBody,
-        emptyDigest,
-        parsed.formatVersion,
-        parsed.writerSignature,
-        auth.deviceId,
-        parsed.reason,
-        now,
-        auth.vaultId,
-        objectId,
-        parsed.baseRevisionId,
-      ),
-    env.DB
-      .prepare(
-        "UPDATE object_heads SET head_revision_id = ?, tombstone = 1, updated_at = ? WHERE vault_id = ? AND object_id = ? AND head_revision_id = ? AND EXISTS (SELECT 1 FROM revisions WHERE vault_id = ? AND object_id = ? AND revision_id = ? AND tombstone = 1)",
-      )
-      .bind(
-        parsed.tombstoneRevisionId,
-        now,
-        auth.vaultId,
-        objectId,
-        parsed.baseRevisionId,
-        auth.vaultId,
-        objectId,
-        parsed.tombstoneRevisionId,
-      ),
-    env.DB
-      .prepare(
-        "INSERT INTO maintenance_jobs (job_id, vault_id, job_class, target_id, payload_json, state, next_attempt_at, created_at, updated_at) SELECT ?, ?, 'cleanup_object', ?, ?, 'queued', ?, ?, ? WHERE EXISTS (SELECT 1 FROM object_heads WHERE vault_id = ? AND object_id = ? AND head_revision_id = ? AND tombstone = 1)",
-      )
-      .bind(
-        job.jobId,
-        auth.vaultId,
-        objectId,
-        JSON.stringify(job.payload),
-        now,
-        now,
-        now,
-        auth.vaultId,
-        objectId,
-        parsed.tombstoneRevisionId,
-      ),
-    env.DB
-      .prepare(
-        "INSERT INTO idempotency_results (vault_id, device_id, idempotency_key, operation, target, body_digest, status, response_json, created_at) SELECT ?, ?, ?, 'tombstone_object', ?, ?, 200, json_object('object_id', ?, 'revision_id', ?, 'tombstone', json('true'), 'change_sequence', (SELECT next_change_sequence FROM vaults WHERE vault_id = ?)), ? WHERE EXISTS (SELECT 1 FROM object_heads WHERE vault_id = ? AND object_id = ? AND head_revision_id = ? AND tombstone = 1)",
-      )
-      .bind(
-        auth.vaultId,
-        auth.deviceId,
-        idempotencyKey,
-        target,
-        auth.bodyDigest,
-        objectId,
-        parsed.tombstoneRevisionId,
-        auth.vaultId,
-        now,
-        auth.vaultId,
-        objectId,
-        parsed.tombstoneRevisionId,
-      ),
+    env.DB.prepare(
+      "INSERT INTO revisions (vault_id, object_id, revision_id, parent_revision_id, manifest, manifest_digest, manifest_size, chunk_count, total_bytes, crypto_version, writer_signature, writer_device_id, tombstone, tombstone_reason, created_at) SELECT ?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?, ?, 1, ?, ? WHERE EXISTS (SELECT 1 FROM object_heads WHERE vault_id = ? AND object_id = ? AND head_revision_id = ?)",
+    ).bind(
+      auth.vaultId,
+      objectId,
+      parsed.tombstoneRevisionId,
+      parsed.baseRevisionId,
+      noBody,
+      emptyDigest,
+      parsed.formatVersion,
+      parsed.writerSignature,
+      auth.deviceId,
+      parsed.reason,
+      now,
+      auth.vaultId,
+      objectId,
+      parsed.baseRevisionId,
+    ),
+    env.DB.prepare(
+      "UPDATE object_heads SET head_revision_id = ?, tombstone = 1, updated_at = ? WHERE vault_id = ? AND object_id = ? AND head_revision_id = ? AND EXISTS (SELECT 1 FROM revisions WHERE vault_id = ? AND object_id = ? AND revision_id = ? AND tombstone = 1)",
+    ).bind(
+      parsed.tombstoneRevisionId,
+      now,
+      auth.vaultId,
+      objectId,
+      parsed.baseRevisionId,
+      auth.vaultId,
+      objectId,
+      parsed.tombstoneRevisionId,
+    ),
+    env.DB.prepare(
+      "INSERT INTO maintenance_jobs (job_id, vault_id, job_class, target_id, payload_json, state, next_attempt_at, created_at, updated_at) SELECT ?, ?, 'cleanup_object', ?, ?, 'queued', ?, ?, ? WHERE EXISTS (SELECT 1 FROM object_heads WHERE vault_id = ? AND object_id = ? AND head_revision_id = ? AND tombstone = 1)",
+    ).bind(
+      job.jobId,
+      auth.vaultId,
+      objectId,
+      JSON.stringify(job.payload),
+      now,
+      now,
+      now,
+      auth.vaultId,
+      objectId,
+      parsed.tombstoneRevisionId,
+    ),
+    env.DB.prepare(
+      "INSERT INTO idempotency_results (vault_id, device_id, idempotency_key, operation, target, body_digest, status, response_json, created_at) SELECT ?, ?, ?, 'tombstone_object', ?, ?, 200, json_object('object_id', ?, 'revision_id', ?, 'tombstone', json('true'), 'change_sequence', (SELECT next_change_sequence FROM vaults WHERE vault_id = ?)), ? WHERE EXISTS (SELECT 1 FROM object_heads WHERE vault_id = ? AND object_id = ? AND head_revision_id = ? AND tombstone = 1)",
+    ).bind(
+      auth.vaultId,
+      auth.deviceId,
+      idempotencyKey,
+      target,
+      auth.bodyDigest,
+      objectId,
+      parsed.tombstoneRevisionId,
+      auth.vaultId,
+      now,
+      auth.vaultId,
+      objectId,
+      parsed.tombstoneRevisionId,
+    ),
   ]);
   if (
     changeCount(batchResult(results, 0)) < 1 ||
@@ -1823,7 +2202,10 @@ async function deleteObject(
     throw problem("stale_revision");
   }
   const head = await objectHead(env, auth.vaultId, objectId);
-  if (head?.head_revision_id !== parsed.tombstoneRevisionId || head.tombstone !== 1) {
+  if (
+    head?.head_revision_id !== parsed.tombstoneRevisionId ||
+    head.tombstone !== 1
+  ) {
     throw problem("stale_revision");
   }
   scheduleMaintenance(env, context, job.jobId);
@@ -1843,7 +2225,11 @@ interface PublicShare {
   writer_signature: ArrayBuffer;
 }
 
-async function activePublicShare(env: Env, shareId: string, now: number): Promise<PublicShare> {
+async function activePublicShare(
+  env: Env,
+  shareId: string,
+  now: number,
+): Promise<PublicShare> {
   const share = await env.DB.prepare(
     "SELECT s.vault_id, s.share_id, s.upload_id, s.manifest_digest, s.chunk_count, s.total_bytes, s.crypto_version, s.writer_signature, s.expires_at, u.manifest FROM shares s JOIN upload_sessions u ON u.upload_id = s.upload_id WHERE s.share_id = ? AND s.state = 'active' AND s.expires_at > ? AND u.state = 'committed'",
   )
@@ -1894,7 +2280,8 @@ async function shareChunk(
   methodIs(request, "GET");
   const shareId = route.ids.shareId;
   const indexText = route.ids.index;
-  if (shareId === undefined || indexText === undefined) throw problem("not_found");
+  if (shareId === undefined || indexText === undefined)
+    throw problem("not_found");
   const share = await activePublicShare(env, shareId, now);
   const index = Number(indexText);
   const session = await uploadSession(env, share.vault_id, share.upload_id);
@@ -1905,7 +2292,11 @@ async function shareChunk(
   )
     .bind(session.upload_id, index)
     .first<{ byte_size: number; digest: string; r2_key: string }>();
-  if (receipt === null || receipt.byte_size !== expected.size || receipt.digest !== expected.sha256) {
+  if (
+    receipt === null ||
+    receipt.byte_size !== expected.size ||
+    receipt.digest !== expected.sha256
+  ) {
     throw problem("not_found");
   }
   let stored: R2ObjectBody | null;
@@ -1914,8 +2305,14 @@ async function shareChunk(
   } catch {
     throw problem("not_found");
   }
-  if (stored === null || !matchingR2Object(stored, expected)) throw problem("not_found");
-  return bytesResponse(stored.body, 200, { ETag: responseDigestHeader(expected.sha256) }, now);
+  if (stored === null || !matchingR2Object(stored, expected))
+    throw problem("not_found");
+  return bytesResponse(
+    stored.body,
+    200,
+    { ETag: responseDigestHeader(expected.sha256) },
+    now,
+  );
 }
 
 function encryptedShareFile(
@@ -1935,7 +2332,9 @@ function encryptedShareFile(
         manifest_sha256: initial.manifest_digest,
         chunk_count: initial.chunk_count,
         total_bytes: initial.total_bytes,
-        writer_signature: base64UrlEncode(bytesFromDb(initial.writer_signature)),
+        writer_signature: base64UrlEncode(
+          bytesFromDb(initial.writer_signature),
+        ),
       },
       manifest: base64UrlEncode(bytesFromDb(initial.manifest)),
       chunks: plan,
@@ -1979,7 +2378,11 @@ function encryptedShareFile(
         return;
       }
       const currentShare = await activePublicShare(env, shareId, Date.now());
-      const currentSession = await uploadSession(env, currentShare.vault_id, currentShare.upload_id);
+      const currentSession = await uploadSession(
+        env,
+        currentShare.vault_id,
+        currentShare.upload_id,
+      );
       if (currentSession === null) {
         controller.error(problem("not_found"));
         return;
@@ -1989,7 +2392,11 @@ function encryptedShareFile(
       )
         .bind(currentSession.upload_id, current.index)
         .first<{ byte_size: number; digest: string; r2_key: string }>();
-      if (receipt === null || receipt.byte_size !== current.size || receipt.digest !== current.sha256) {
+      if (
+        receipt === null ||
+        receipt.byte_size !== current.size ||
+        receipt.digest !== current.sha256
+      ) {
         controller.error(problem("not_found"));
         return;
       }
@@ -2050,10 +2457,18 @@ async function revokeShare(
   const shareId = route.ids.shareId;
   if (shareId === undefined) throw problem("not_found");
   const target = `share:${shareId}`;
-  const replay = await existingMutationResponse(env, auth, "revoke_share", target);
+  const replay = await existingMutationResponse(
+    env,
+    auth,
+    "revoke_share",
+    target,
+  );
   if (replay !== null) return replay;
   const share = await shareRow(env, auth.vaultId, shareId);
-  if (share === null || (share.state !== "pending" && share.state !== "active")) {
+  if (
+    share === null ||
+    (share.state !== "pending" && share.state !== "active")
+  ) {
     throw problem("not_found");
   }
   const session = await uploadSession(env, auth.vaultId, share.upload_id);
@@ -2069,41 +2484,40 @@ async function revokeShare(
     now,
   });
   await env.DB.batch([
-    env.DB
-      .prepare(
-        "UPDATE shares SET state = 'revoked', revoked_at = ? WHERE vault_id = ? AND share_id = ? AND state IN ('pending', 'active')",
-      )
-      .bind(now, auth.vaultId, shareId),
-    env.DB
-      .prepare(
-        "UPDATE upload_sessions SET state = 'cancelled', updated_at = ? WHERE upload_id = ? AND state = 'active' AND EXISTS (SELECT 1 FROM shares WHERE vault_id = ? AND share_id = ? AND state = 'revoked')",
-      )
-      .bind(now, session.upload_id, auth.vaultId, shareId),
-    env.DB
-      .prepare(
-        "UPDATE vaults SET reserved_bytes = reserved_bytes - ?, used_bytes = used_bytes + ? WHERE vault_id = ? AND changes() = 1",
-      )
-      .bind(session.reserved_bytes, session.reserved_bytes, auth.vaultId),
-    env.DB
-      .prepare(
-        "INSERT INTO idempotency_results (vault_id, device_id, idempotency_key, operation, target, body_digest, status, response_json, created_at) SELECT ?, ?, ?, 'revoke_share', ?, ?, 200, ?, ? WHERE EXISTS (SELECT 1 FROM shares WHERE vault_id = ? AND share_id = ? AND state = 'revoked')",
-      )
-      .bind(
-        auth.vaultId,
-        auth.deviceId,
-        idempotencyKey,
-        target,
-        auth.bodyDigest,
-        JSON.stringify(response),
-        now,
-        auth.vaultId,
-        shareId,
-      ),
-    env.DB
-      .prepare(
-        "INSERT INTO maintenance_jobs (job_id, vault_id, job_class, target_id, payload_json, state, next_attempt_at, created_at, updated_at) SELECT ?, ?, 'cleanup_share', ?, '{}', 'queued', ?, ?, ? WHERE EXISTS (SELECT 1 FROM shares WHERE vault_id = ? AND share_id = ? AND state = 'revoked')",
-      )
-      .bind(job.jobId, auth.vaultId, shareId, now, now, now, auth.vaultId, shareId),
+    env.DB.prepare(
+      "UPDATE shares SET state = 'revoked', revoked_at = ? WHERE vault_id = ? AND share_id = ? AND state IN ('pending', 'active')",
+    ).bind(now, auth.vaultId, shareId),
+    env.DB.prepare(
+      "UPDATE upload_sessions SET state = 'cancelled', updated_at = ? WHERE upload_id = ? AND state = 'active' AND EXISTS (SELECT 1 FROM shares WHERE vault_id = ? AND share_id = ? AND state = 'revoked')",
+    ).bind(now, session.upload_id, auth.vaultId, shareId),
+    env.DB.prepare(
+      "UPDATE vaults SET reserved_bytes = reserved_bytes - ?, used_bytes = used_bytes + ? WHERE vault_id = ? AND changes() = 1",
+    ).bind(session.reserved_bytes, session.reserved_bytes, auth.vaultId),
+    env.DB.prepare(
+      "INSERT INTO idempotency_results (vault_id, device_id, idempotency_key, operation, target, body_digest, status, response_json, created_at) SELECT ?, ?, ?, 'revoke_share', ?, ?, 200, ?, ? WHERE EXISTS (SELECT 1 FROM shares WHERE vault_id = ? AND share_id = ? AND state = 'revoked')",
+    ).bind(
+      auth.vaultId,
+      auth.deviceId,
+      idempotencyKey,
+      target,
+      auth.bodyDigest,
+      JSON.stringify(response),
+      now,
+      auth.vaultId,
+      shareId,
+    ),
+    env.DB.prepare(
+      "INSERT INTO maintenance_jobs (job_id, vault_id, job_class, target_id, payload_json, state, next_attempt_at, created_at, updated_at) SELECT ?, ?, 'cleanup_share', ?, '{}', 'queued', ?, ?, ? WHERE EXISTS (SELECT 1 FROM shares WHERE vault_id = ? AND share_id = ? AND state = 'revoked')",
+    ).bind(
+      job.jobId,
+      auth.vaultId,
+      shareId,
+      now,
+      now,
+      now,
+      auth.vaultId,
+      shareId,
+    ),
   ]);
   scheduleMaintenance(env, context, job.jobId);
   return jsonResponse(response, 200, now);
@@ -2116,10 +2530,16 @@ function publicRouteQuery(request: Request, route: Route): void {
 function noRequestBody(request: Request): void {
   const length = request.headers.get("content-length");
   if (length !== null && length !== "0") throw problem("invalid_request");
-  if (request.headers.get("content-encoding") !== null) throw problem("invalid_request");
+  if (request.headers.get("content-encoding") !== null)
+    throw problem("invalid_request");
 }
 
-async function serveAsset(request: Request, env: Env, viewer: boolean, now: number): Promise<Response> {
+async function serveAsset(
+  request: Request,
+  env: Env,
+  viewer: boolean,
+  now: number,
+): Promise<Response> {
   const assetRequest = viewer
     ? new Request(new URL("/index.html", request.url), { method: "GET" })
     : request;
@@ -2131,7 +2551,10 @@ async function serveAsset(request: Request, env: Env, viewer: boolean, now: numb
     "Content-Security-Policy",
     "default-src 'none'; base-uri 'none'; connect-src 'self'; font-src 'none'; form-action 'none'; frame-ancestors 'none'; frame-src 'none'; img-src 'self' data:; manifest-src 'none'; media-src 'self' blob:; object-src 'none'; script-src 'self'; style-src 'self'; worker-src 'none'",
   );
-  headers.set("Permissions-Policy", "camera=(), geolocation=(), microphone=(), payment=(), usb=()");
+  headers.set(
+    "Permissions-Policy",
+    "camera=(), geolocation=(), microphone=(), payment=(), usb=()",
+  );
   headers.set("Referrer-Policy", "no-referrer");
   headers.set("X-Content-Type-Options", "nosniff");
   return new Response(asset.body, { status: asset.status, headers });
@@ -2179,7 +2602,8 @@ async function dispatch(
     return pairDevice(request, env, route, body, now);
   }
   if (route.name === "devices") return listDevices(request, env, route, now);
-  if (route.name === "devices_self") return selfDevice(request, env, route, now);
+  if (route.name === "devices_self")
+    return selfDevice(request, env, route, now);
   if (route.name === "device_delete") {
     const body = await readLimitedBody(request, MAX_JSON_BYTES, true);
     return revokeDevice(request, env, route, body, now);
@@ -2261,7 +2685,8 @@ const worker: ExportedHandler<Env, unknown, { job_id: string }> = {
       logRequest(env, requestContext, response.status);
       return response;
     } catch (error) {
-      const typed = error instanceof ApiProblem ? error : dependencyProblem("d1");
+      const typed =
+        error instanceof ApiProblem ? error : dependencyProblem("d1");
       const response = errorResponse(typed, requestContext.requestId, now);
       if (typed.dependency === undefined) {
         logRequest(env, requestContext, response.status, { error: typed.code });
@@ -2278,16 +2703,20 @@ const worker: ExportedHandler<Env, unknown, { job_id: string }> = {
     context.waitUntil(runMaintenance(env));
   },
   async queue(batch, env): Promise<void> {
-    await forEachBounded(batch.messages, MAX_CONCURRENT_QUEUE_JOBS, async (message) => {
-      const body = message.body;
-      if (isJsonRecord(body)) {
-        const jobId = body.job_id;
-        if (isJsonString(jobId) && isOpaqueId(jobId)) {
-          await maintenanceQueueMessage(env, { job_id: jobId });
+    await forEachBounded(
+      batch.messages,
+      MAX_CONCURRENT_QUEUE_JOBS,
+      async (message) => {
+        const body = message.body;
+        if (isJsonRecord(body)) {
+          const jobId = body.job_id;
+          if (isJsonString(jobId) && isOpaqueId(jobId)) {
+            await maintenanceQueueMessage(env, { job_id: jobId });
+          }
         }
-      }
-      message.ack();
-    });
+        message.ack();
+      },
+    );
   },
 };
 

@@ -52,16 +52,22 @@ function field(value: number | string | Uint8Array): Uint8Array {
   return utf8(String(value));
 }
 
-function record(...fields: readonly (number | string | Uint8Array)[]): Uint8Array {
+function record(
+  ...fields: readonly (number | string | Uint8Array)[]
+): Uint8Array {
   return lengthPrefixed(fields.map(field));
 }
 
-export function canonicalRequestBytes(input: CanonicalRequestInput): Uint8Array {
-  const sortedQuery = [...input.query].sort(([leftKey, leftValue], [rightKey, rightValue]) => {
-    if (leftKey !== rightKey) return leftKey < rightKey ? -1 : 1;
-    if (leftValue !== rightValue) return leftValue < rightValue ? -1 : 1;
-    return 0;
-  });
+export function canonicalRequestBytes(
+  input: CanonicalRequestInput,
+): Uint8Array {
+  const sortedQuery = [...input.query].sort(
+    ([leftKey, leftValue], [rightKey, rightValue]) => {
+      if (leftKey !== rightKey) return leftKey < rightKey ? -1 : 1;
+      if (leftValue !== rightValue) return leftValue < rightValue ? -1 : 1;
+      return 0;
+    },
+  );
   const queryBytes = lengthPrefixed(
     sortedQuery.map(([key, value]) => record(key, value)),
   );
@@ -134,7 +140,9 @@ export function canonicalPairApprovalBytes(input: {
   );
 }
 
-export function canonicalUploadEnvelopeBytes(input: CanonicalUploadEnvelopeInput): Uint8Array {
+export function canonicalUploadEnvelopeBytes(
+  input: CanonicalUploadEnvelopeInput,
+): Uint8Array {
   const chunkBytes = lengthPrefixed(
     input.chunks.map((chunk) => record(chunk.index, chunk.size, chunk.sha256)),
   );
@@ -215,8 +223,18 @@ function objectRevisionAad(input: ObjectRevisionCryptoContext): Uint8Array {
   );
 }
 
-async function deriveAesGcmKey(material: Uint8Array, salt: Uint8Array, info: Uint8Array): Promise<CryptoKey> {
-  const inputKey = await crypto.subtle.importKey("raw", material, "HKDF", false, ["deriveKey"]);
+async function deriveAesGcmKey(
+  material: Uint8Array,
+  salt: Uint8Array,
+  info: Uint8Array,
+): Promise<CryptoKey> {
+  const inputKey = await crypto.subtle.importKey(
+    "raw",
+    material,
+    "HKDF",
+    false,
+    ["deriveKey"],
+  );
   return crypto.subtle.deriveKey(
     { name: "HKDF", hash: "SHA-256", salt, info },
     inputKey,
@@ -232,14 +250,26 @@ export async function deriveObjectRevisionRoot(input: {
   vaultId: string;
   vaultRoot: Uint8Array;
 }): Promise<Uint8Array> {
-  if (input.vaultRoot.length !== 32) throw new Error("invalid object revision root material");
-  const key = await crypto.subtle.importKey("raw", input.vaultRoot, "HKDF", false, ["deriveBits"]);
+  if (input.vaultRoot.length !== 32)
+    throw new Error("invalid object revision root material");
+  const key = await crypto.subtle.importKey(
+    "raw",
+    input.vaultRoot,
+    "HKDF",
+    false,
+    ["deriveBits"],
+  );
   const bits = await crypto.subtle.deriveBits(
     {
       name: "HKDF",
       hash: "SHA-256",
       salt: utf8("sona-revision-v1"),
-      info: record("sona-revision-root-v1", input.vaultId, input.objectId, input.revisionId),
+      info: record(
+        "sona-revision-root-v1",
+        input.vaultId,
+        input.objectId,
+        input.revisionId,
+      ),
     },
     key,
     256,
@@ -247,7 +277,9 @@ export async function deriveObjectRevisionRoot(input: {
   return new Uint8Array(bits);
 }
 
-async function objectRevisionKey(input: ObjectRevisionCryptoContext & { vaultRoot: Uint8Array }): Promise<CryptoKey> {
+async function objectRevisionKey(
+  input: ObjectRevisionCryptoContext & { vaultRoot: Uint8Array },
+): Promise<CryptoKey> {
   assertObjectRevisionContext(input);
   const revisionRoot = await deriveObjectRevisionRoot(input);
   return deriveAesGcmKey(
@@ -266,11 +298,14 @@ async function objectRevisionKey(input: ObjectRevisionCryptoContext & { vaultRoo
   );
 }
 
-export async function decryptObjectRevisionPayload(input: ObjectRevisionCryptoContext & {
-  ciphertext: Uint8Array;
-  vaultRoot: Uint8Array;
-}): Promise<Uint8Array> {
-  if (input.ciphertext.length < 28) throw new Error("invalid encrypted object revision payload");
+export async function decryptObjectRevisionPayload(
+  input: ObjectRevisionCryptoContext & {
+    ciphertext: Uint8Array;
+    vaultRoot: Uint8Array;
+  },
+): Promise<Uint8Array> {
+  if (input.ciphertext.length < 28)
+    throw new Error("invalid encrypted object revision payload");
   const key = await objectRevisionKey(input);
   const decrypted = await crypto.subtle.decrypt(
     {
@@ -285,12 +320,15 @@ export async function decryptObjectRevisionPayload(input: ObjectRevisionCryptoCo
   return new Uint8Array(decrypted);
 }
 
-export async function encryptObjectRevisionPayload(input: ObjectRevisionCryptoContext & {
-  nonce: Uint8Array;
-  plaintext: Uint8Array;
-  vaultRoot: Uint8Array;
-}): Promise<Uint8Array> {
-  if (input.nonce.length !== 12) throw new Error("invalid object revision encryption material");
+export async function encryptObjectRevisionPayload(
+  input: ObjectRevisionCryptoContext & {
+    nonce: Uint8Array;
+    plaintext: Uint8Array;
+    vaultRoot: Uint8Array;
+  },
+): Promise<Uint8Array> {
+  if (input.nonce.length !== 12)
+    throw new Error("invalid object revision encryption material");
   const key = await objectRevisionKey(input);
   const encrypted = await crypto.subtle.encrypt(
     {
@@ -305,7 +343,12 @@ export async function encryptObjectRevisionPayload(input: ObjectRevisionCryptoCo
   return concatBytes([input.nonce, new Uint8Array(encrypted)]);
 }
 
-function shareAad(shareId: string, index: number, total: number, domain: "manifest" | "chunk"): Uint8Array {
+function shareAad(
+  shareId: string,
+  index: number,
+  total: number,
+  domain: "manifest" | "chunk",
+): Uint8Array {
   return record("sona-share-aad-v1", shareId, index, total, domain);
 }
 
@@ -336,12 +379,23 @@ export async function decryptSharePayload(input: {
   }
   const nonce = input.ciphertext.subarray(0, 12);
   const encrypted = input.ciphertext.subarray(12);
-  const key = await shareKey(input.root, input.shareId, input.index, input.total, input.domain);
+  const key = await shareKey(
+    input.root,
+    input.shareId,
+    input.index,
+    input.total,
+    input.domain,
+  );
   const decrypted = await crypto.subtle.decrypt(
     {
       name: "AES-GCM",
       iv: nonce,
-      additionalData: shareAad(input.shareId, input.index, input.total, input.domain),
+      additionalData: shareAad(
+        input.shareId,
+        input.index,
+        input.total,
+        input.domain,
+      ),
       tagLength: 128,
     },
     key,
@@ -362,12 +416,23 @@ export async function encryptSharePayload(input: {
   if (input.root.length !== 32 || input.nonce.length !== 12) {
     throw new Error("invalid share encryption material");
   }
-  const key = await shareKey(input.root, input.shareId, input.index, input.total, input.domain);
+  const key = await shareKey(
+    input.root,
+    input.shareId,
+    input.index,
+    input.total,
+    input.domain,
+  );
   const encrypted = await crypto.subtle.encrypt(
     {
       name: "AES-GCM",
       iv: input.nonce,
-      additionalData: shareAad(input.shareId, input.index, input.total, input.domain),
+      additionalData: shareAad(
+        input.shareId,
+        input.index,
+        input.total,
+        input.domain,
+      ),
       tagLength: 128,
     },
     key,

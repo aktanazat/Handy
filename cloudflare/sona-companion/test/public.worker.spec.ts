@@ -11,7 +11,9 @@ import {
   type Device,
 } from "./helpers";
 
-async function activeShare(device: Device): Promise<{ shareId: string; uploadId: string }> {
+async function activeShare(
+  device: Device,
+): Promise<{ shareId: string; uploadId: string }> {
   const shareId = testId("share");
   const payload = await createUploadPayload(device, { shareId });
   const created = await signedFetch(device, {
@@ -58,16 +60,29 @@ describe("public encrypted shares", () => {
     expect(viewerScript.status).toBe(200);
     expect(viewerStyle.status).toBe(200);
 
-    const manifest = await SELF.fetch(`https://companion.test/v1/shares/${shareId}/manifest`);
-    const chunk = await SELF.fetch(`https://companion.test/v1/shares/${shareId}/chunks/0`);
-    const file = await SELF.fetch(`https://companion.test/v1/shares/${shareId}/file`);
+    const manifest = await SELF.fetch(
+      `https://companion.test/v1/shares/${shareId}/manifest`,
+    );
+    const chunk = await SELF.fetch(
+      `https://companion.test/v1/shares/${shareId}/chunks/0`,
+    );
+    const file = await SELF.fetch(
+      `https://companion.test/v1/shares/${shareId}/file`,
+    );
     expect(manifest.status).toBe(200);
     expect(chunk.status).toBe(200);
     expect(file.status).toBe(200);
-    expect(file.headers.get("content-type")).toBe("application/vnd.sona.encrypted-share");
+    expect(file.headers.get("content-type")).toBe(
+      "application/vnd.sona.encrypted-share",
+    );
 
-    const query = await SELF.fetch(`https://companion.test/v1/shares/${shareId}/manifest?unexpected=1`);
-    const nonGet = await SELF.fetch(`https://companion.test/v1/shares/${shareId}/manifest`, { method: "POST" });
+    const query = await SELF.fetch(
+      `https://companion.test/v1/shares/${shareId}/manifest?unexpected=1`,
+    );
+    const nonGet = await SELF.fetch(
+      `https://companion.test/v1/shares/${shareId}/manifest`,
+      { method: "POST" },
+    );
     expect(query.status).toBe(400);
     expect(nonGet.status).toBe(404);
   });
@@ -89,6 +104,8 @@ describe("public encrypted shares", () => {
       SELF.fetch(`https://companion.test/v1/shares/${shareId}/chunks/0`),
       SELF.fetch(`https://companion.test/v1/shares/${shareId}/file`),
     ]);
-    expect(responses.map((response) => response.status)).toEqual([404, 404, 404]);
+    expect(responses.map((response) => response.status)).toEqual([
+      404, 404, 404,
+    ]);
   });
 });

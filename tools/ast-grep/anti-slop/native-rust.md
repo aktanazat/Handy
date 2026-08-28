@@ -12,7 +12,7 @@ doesn't need a full `cargo check`.
 
 **Clippy is not currently installed for the stable toolchain on this
 machine.** `rustup component add clippy` installs it — this file documents
-the configuration to add *if and when that is done*; it does not install
+the configuration to add _if and when that is done_; it does not install
 anything itself.
 
 ## `clippy.toml` (repo root)
@@ -57,23 +57,23 @@ on a first pass.
 
 ## Which ast-grep rule each clippy lint supersedes
 
-| ast-grep rule | clippy lint | why clippy wins |
-| --- | --- | --- |
-| `anti-slop-rust-no-dyn-any` | `disallowed-types` (`std::any::Any`) | Resolves `Any` through re-exports/aliases; also catches `TypeId::of::<T>()` comparisons the ast-grep pack doesn't pattern for. |
-| `anti-slop-rust-no-json-value-in-signatures` | `disallowed-types` (`serde_json::Value`) | Same resolution advantage; also catches a local `type Json = serde_json::Value;` alias used in a signature, which the ast-grep rule's text-based `regex` cannot follow. |
-| `anti-slop-rust-no-unsafe-dictionary-type` | `disallowed-types` (transitively, via the `Value`/`Any` entries above) | `HashMap<String, Value>` is disallowed because `Value` itself is disallowed everywhere, not just inside a map — strictly broader coverage than the ast-grep rule's `HashMap`/`BTreeMap`-specific pattern. |
-| `anti-slop-rust-require-safety-comment-for-unsafe` | `undocumented_unsafe_blocks` | Clippy's version understands the safety-comment convention precisely (including `SAFETY:` above the enclosing `impl`/`fn` for a whole unsafe function, and multi-line comment blocks); the ast-grep rule only checks the immediate previous sibling for a single-line comment. |
-| `anti-slop-rust-no-transmute` | `disallowed-methods` (`std::mem::transmute`, `transmute_copy`) + `missing_transmute_annotations` | `disallowed-methods` resolves the call through aliases the way `disallowed-types` does; `missing_transmute_annotations` additionally catches transmutes that *are* kept but have inferred (rather than explicit) generic parameters, which is a real-type-level check the ast-grep rule cannot do at all. |
-| `anti-slop-rust-no-unchecked-unwrap` | `unwrap_used` + `expect_used` | Clippy flags every `.unwrap()`/`.expect()` unconditionally (no comment-based escape hatch), which is stricter. The ast-grep rule's `// SAFETY:`/`// PANIC:` exemption is a deliberate compromise for contexts without clippy: it forces a written justification instead of banning the call outright. Keep the ast-grep rule's test-code exemption behavior in mind — `unwrap_used`/`expect_used` apply to test code too unless scoped with `#[cfg_attr(not(test), warn(clippy::unwrap_used))]` or an `#[allow]` on the test module. |
-| `anti-slop-rust-no-numeric-as-cast` | `as_conversions` | Clippy's lint bans *every* `as` cast (numeric, pointer, enum-to-int, trait-object), not just the nine numeric primitives the ast-grep pattern enumerates; it is a strict superset. |
-| `anti-slop-rust-no-leftover-panic-markers` | `dbg_macro` + `todo` + `unimplemented` | Equivalent coverage; clippy's versions are type-checker-integrated so they also fire inside macro-generated code the ast-grep syntax pass never sees. |
-| `anti-slop-rust-no-shape-in-symbol-names` | none | This is a naming convention, not a type or method identity — clippy has no lint for it and isn't the right tool. The ast-grep rule is the only layer; keep it. |
+| ast-grep rule                                      | clippy lint                                                                                      | why clippy wins                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `anti-slop-rust-no-dyn-any`                        | `disallowed-types` (`std::any::Any`)                                                             | Resolves `Any` through re-exports/aliases; also catches `TypeId::of::<T>()` comparisons the ast-grep pack doesn't pattern for.                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `anti-slop-rust-no-json-value-in-signatures`       | `disallowed-types` (`serde_json::Value`)                                                         | Same resolution advantage; also catches a local `type Json = serde_json::Value;` alias used in a signature, which the ast-grep rule's text-based `regex` cannot follow.                                                                                                                                                                                                                                                                                                                                                              |
+| `anti-slop-rust-no-unsafe-dictionary-type`         | `disallowed-types` (transitively, via the `Value`/`Any` entries above)                           | `HashMap<String, Value>` is disallowed because `Value` itself is disallowed everywhere, not just inside a map — strictly broader coverage than the ast-grep rule's `HashMap`/`BTreeMap`-specific pattern.                                                                                                                                                                                                                                                                                                                            |
+| `anti-slop-rust-require-safety-comment-for-unsafe` | `undocumented_unsafe_blocks`                                                                     | Clippy's version understands the safety-comment convention precisely (including `SAFETY:` above the enclosing `impl`/`fn` for a whole unsafe function, and multi-line comment blocks); the ast-grep rule only checks the immediate previous sibling for a single-line comment.                                                                                                                                                                                                                                                       |
+| `anti-slop-rust-no-transmute`                      | `disallowed-methods` (`std::mem::transmute`, `transmute_copy`) + `missing_transmute_annotations` | `disallowed-methods` resolves the call through aliases the way `disallowed-types` does; `missing_transmute_annotations` additionally catches transmutes that _are_ kept but have inferred (rather than explicit) generic parameters, which is a real-type-level check the ast-grep rule cannot do at all.                                                                                                                                                                                                                            |
+| `anti-slop-rust-no-unchecked-unwrap`               | `unwrap_used` + `expect_used`                                                                    | Clippy flags every `.unwrap()`/`.expect()` unconditionally (no comment-based escape hatch), which is stricter. The ast-grep rule's `// SAFETY:`/`// PANIC:` exemption is a deliberate compromise for contexts without clippy: it forces a written justification instead of banning the call outright. Keep the ast-grep rule's test-code exemption behavior in mind — `unwrap_used`/`expect_used` apply to test code too unless scoped with `#[cfg_attr(not(test), warn(clippy::unwrap_used))]` or an `#[allow]` on the test module. |
+| `anti-slop-rust-no-numeric-as-cast`                | `as_conversions`                                                                                 | Clippy's lint bans _every_ `as` cast (numeric, pointer, enum-to-int, trait-object), not just the nine numeric primitives the ast-grep pattern enumerates; it is a strict superset.                                                                                                                                                                                                                                                                                                                                                   |
+| `anti-slop-rust-no-leftover-panic-markers`         | `dbg_macro` + `todo` + `unimplemented`                                                           | Equivalent coverage; clippy's versions are type-checker-integrated so they also fire inside macro-generated code the ast-grep syntax pass never sees.                                                                                                                                                                                                                                                                                                                                                                                |
+| `anti-slop-rust-no-shape-in-symbol-names`          | none                                                                                             | This is a naming convention, not a type or method identity — clippy has no lint for it and isn't the right tool. The ast-grep rule is the only layer; keep it.                                                                                                                                                                                                                                                                                                                                                                       |
 
 ## Dropped TypeScript families and why they don't port to Rust
 
 - **F4 — runtime type dispatch instead of a typed contract (`typeof` switching).**
   Dropped. Rust has no `typeof`/runtime type-string operator to escape
-  through; `match` over an `enum` *is* the typed contract, not a workaround
+  through; `match` over an `enum` _is_ the typed contract, not a workaround
   for missing one. The only "guess the type at runtime" primitive Rust has
   is `Any::downcast`, which is already covered by `anti-slop-rust-no-dyn-any`.
 
@@ -86,8 +86,8 @@ on a first pass.
 - **F6 — module mocking in tests.** Dropped. Rust has no runtime module
   system to monkey-patch (no `jest.mock`, no prototype swapping). Rust test
   doubles are built by injecting a trait implementation (`impl Storage for
-  FakeStorage`) or `#[cfg(test)]`-gating a real dependency — that's the
-  *correct* pattern here, not an escape hatch to flag.
+FakeStorage`) or `#[cfg(test)]`-gating a real dependency — that's the
+  _correct_ pattern here, not an escape hatch to flag.
 
 - **F8 — inline object-literal parameter types (`{ foo: string }` as a
   parameter type).** Dropped. Rust's type system is nominal: there is no
@@ -103,7 +103,7 @@ on a first pass.
   "nothing," so the TypeScript anti-pattern isn't expressible.
 
 - **F3 (partial) — `no-chained-type-assertions` and `no-widen-then-assert`
-  specifically.** Dropped as *distinct* rules, though the family is not
+  specifically.** Dropped as _distinct_ rules, though the family is not
   dropped overall (see `anti-slop-rust-no-numeric-as-cast`,
   `anti-slop-rust-no-transmute`, and
   `anti-slop-rust-require-safety-comment-for-unsafe`, all F3 ports). The

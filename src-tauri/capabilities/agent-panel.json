@@ -2,10 +2,6 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "agent-panel",
   "description": "Least-privilege capabilities for the attached agent panel",
-  "windows": [
-    "agent-panel"
-  ],
-  "permissions": [
-    "core:default"
-  ]
+  "windows": ["agent-panel"],
+  "permissions": ["core:default"]
 }

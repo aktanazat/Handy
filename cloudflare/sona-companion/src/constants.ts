@@ -41,9 +41,19 @@ export type ApiErrorCode =
 
 export type TombstoneReason = "user_request" | "retention";
 
-export type ShareState = "pending" | "active" | "revoked" | "expired" | "purged";
+export type ShareState =
+  | "pending"
+  | "active"
+  | "revoked"
+  | "expired"
+  | "purged";
 
-export type UploadState = "active" | "committed" | "cancelled" | "expired" | "purged";
+export type UploadState =
+  | "active"
+  | "committed"
+  | "cancelled"
+  | "expired"
+  | "purged";
 
 export type MaintenanceClass =
   | "reconcile_upload"

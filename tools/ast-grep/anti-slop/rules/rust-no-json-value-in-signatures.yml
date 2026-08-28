@@ -12,7 +12,7 @@ rule:
         - any:
             - kind: type_identifier
             - kind: scoped_type_identifier
-        - regex: '(^|::)Value$'
+        - regex: "(^|::)Value$"
         - inside:
             kind: parameter
             field: type
@@ -20,7 +20,7 @@ rule:
         - any:
             - kind: type_identifier
             - kind: scoped_type_identifier
-        - regex: '(^|::)Value$'
+        - regex: "(^|::)Value$"
         - inside:
             kind: function_item
             field: return_type

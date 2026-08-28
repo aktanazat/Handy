@@ -68,11 +68,13 @@ function canonicalRequest(input: {
   timestamp: number;
   vaultId: string;
 }): Buffer {
-  const sortedQuery = [...input.query].sort(([leftKey, leftValue], [rightKey, rightValue]) => {
-    if (leftKey !== rightKey) return leftKey < rightKey ? -1 : 1;
-    if (leftValue !== rightValue) return leftValue < rightValue ? -1 : 1;
-    return 0;
-  });
+  const sortedQuery = [...input.query].sort(
+    ([leftKey, leftValue], [rightKey, rightValue]) => {
+      if (leftKey !== rightKey) return leftKey < rightKey ? -1 : 1;
+      if (leftValue !== rightValue) return leftValue < rightValue ? -1 : 1;
+      return 0;
+    },
+  );
   return record(
     "sona-request-v1",
     input.audience,
@@ -113,7 +115,11 @@ function canonicalUploadEnvelope(input: {
     input.cryptoVersion,
     input.totalBytes,
     input.chunks.length,
-    lengthPrefixed(input.chunks.map((chunk) => record(chunk.index, chunk.size, chunk.sha256))),
+    lengthPrefixed(
+      input.chunks.map((chunk) =>
+        record(chunk.index, chunk.size, chunk.sha256),
+      ),
+    ),
   );
 }
 
@@ -140,10 +146,20 @@ function hkdf(material: Uint8Array, salt: string, info: Uint8Array): Buffer {
   return Buffer.from(hkdfSync("sha256", material, Buffer.from(salt), info, 32));
 }
 
-function aesGcmEncrypt(key: Uint8Array, nonce: Uint8Array, aad: Uint8Array, plaintext: Uint8Array): Buffer {
+function aesGcmEncrypt(
+  key: Uint8Array,
+  nonce: Uint8Array,
+  aad: Uint8Array,
+  plaintext: Uint8Array,
+): Buffer {
   const cipher = createCipheriv("aes-256-gcm", key, nonce);
   cipher.setAAD(aad);
-  return Buffer.concat([Buffer.from(nonce), cipher.update(plaintext), cipher.final(), cipher.getAuthTag()]);
+  return Buffer.concat([
+    Buffer.from(nonce),
+    cipher.update(plaintext),
+    cipher.final(),
+    cipher.getAuthTag(),
+  ]);
 }
 
 function digest(value: Uint8Array): string {
@@ -192,15 +208,27 @@ function objectKeyInfo(input: {
   );
 }
 
-function shareAad(shareId: string, index: number, total: number, domain: "manifest" | "chunk"): Buffer {
+function shareAad(
+  shareId: string,
+  index: number,
+  total: number,
+  domain: "manifest" | "chunk",
+): Buffer {
   return record("sona-share-aad-v1", shareId, index, total, domain);
 }
 
-function shareKeyInfo(shareId: string, index: number, total: number, domain: "manifest" | "chunk"): Buffer {
+function shareKeyInfo(
+  shareId: string,
+  index: number,
+  total: number,
+  domain: "manifest" | "chunk",
+): Buffer {
   return record("sona-share-key-v1", shareId, index, total, domain);
 }
 
-const seed = hexBytes("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60");
+const seed = hexBytes(
+  "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60",
+);
 const privateKey = createPrivateKey({
   key: Buffer.concat([
     Buffer.from("302e020100300506032b657004220420", "hex"),
@@ -209,7 +237,10 @@ const privateKey = createPrivateKey({
   format: "der",
   type: "pkcs8",
 });
-const publicDer = createPublicKey(privateKey).export({ format: "der", type: "spki" });
+const publicDer = createPublicKey(privateKey).export({
+  format: "der",
+  type: "spki",
+});
 const publicKey = new Uint8Array(publicDer.subarray(-32));
 
 const request = {
@@ -231,7 +262,9 @@ const objectRevision = {
   vaultId: "fixture_vault_0001",
   objectId: "fixture_object_0001",
   revisionId: "fixture_revision_01",
-  vaultRoot: hexBytes("404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f"),
+  vaultRoot: hexBytes(
+    "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f",
+  ),
 };
 const revisionRootInfo = record(
   "sona-revision-root-v1",
@@ -239,7 +272,11 @@ const revisionRootInfo = record(
   objectRevision.objectId,
   objectRevision.revisionId,
 );
-const revisionRoot = hkdf(objectRevision.vaultRoot, "sona-revision-v1", revisionRootInfo);
+const revisionRoot = hkdf(
+  objectRevision.vaultRoot,
+  "sona-revision-v1",
+  revisionRootInfo,
+);
 const objectManifest = {
   ...objectRevision,
   contentKind: "manifest" as const,
@@ -247,7 +284,9 @@ const objectManifest = {
   total: 1,
   sourceFormat: "markdown-utf8",
   nonce: hexBytes("606162636465666768696a6b"),
-  plaintext: Buffer.from('{"version":1,"kind":"markdown","source_format":"markdown-utf8","title":"Object fixture"}'),
+  plaintext: Buffer.from(
+    '{"version":1,"kind":"markdown","source_format":"markdown-utf8","title":"Object fixture"}',
+  ),
 };
 const objectChunk = {
   ...objectRevision,
@@ -285,7 +324,13 @@ const uploadEnvelope = {
   manifestDigest: digest(objectManifestCiphertext),
   cryptoVersion: 1,
   totalBytes: objectChunkCiphertext.length,
-  chunks: [{ index: 0, size: objectChunkCiphertext.length, sha256: digest(objectChunkCiphertext) }],
+  chunks: [
+    {
+      index: 0,
+      size: objectChunkCiphertext.length,
+      sha256: digest(objectChunkCiphertext),
+    },
+  ],
 };
 const canonicalUpload = canonicalUploadEnvelope(uploadEnvelope);
 
@@ -299,7 +344,9 @@ const tombstone = {
 };
 const canonicalTombstoneRecord = canonicalTombstone(tombstone);
 
-const shareRoot = hexBytes("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
+const shareRoot = hexBytes(
+  "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+);
 const shareId = "fixture_share_0001";
 const shareManifestPlaintext = Buffer.from(
   JSON.stringify({
@@ -331,7 +378,8 @@ const shareChunkCiphertext = aesGcmEncrypt(
   shareChunkPlaintext,
 );
 
-const signed = (message: Uint8Array): string => base64Url(sign(null, message, privateKey));
+const signed = (message: Uint8Array): string =>
+  base64Url(sign(null, message, privateKey));
 const fixture = {
   version: 1,
   encoding: {
@@ -417,12 +465,25 @@ const fixture = {
   },
   expected_failures: {
     canonical_request: { mutated_field: "method", signature_valid: false },
-    upload_envelope: { mutated_field: "manifestDigest", signature_valid: false },
+    upload_envelope: {
+      mutated_field: "manifestDigest",
+      signature_valid: false,
+    },
     tombstone: { mutated_field: "reason", signature_valid: false },
-    object_revision: { mutated_field: "sourceFormat", decrypts: false, truncated_payload_bytes: 27 },
-    share: { mutated_field: "domain", decrypts: false, truncated_payload_bytes: 27 },
+    object_revision: {
+      mutated_field: "sourceFormat",
+      decrypts: false,
+      truncated_payload_bytes: 27,
+    },
+    share: {
+      mutated_field: "domain",
+      decrypts: false,
+      truncated_payload_bytes: 27,
+    },
   },
 };
 
-const destination = fileURLToPath(new URL("../fixtures/crypto-v1.json", import.meta.url));
+const destination = fileURLToPath(
+  new URL("../fixtures/crypto-v1.json", import.meta.url),
+);
 writeFileSync(destination, `${JSON.stringify(fixture, null, 2)}\n`);

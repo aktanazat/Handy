@@ -18,7 +18,7 @@ rule:
               kind: field_expression
               has:
                 field: field
-                regex: '^(unwrap|expect)$'
+                regex: "^(unwrap|expect)$"
         - not: &has_safety_or_panic_comment
             follows:
               kind: line_comment
@@ -37,7 +37,7 @@ rule:
                           kind: attribute
                           has:
                             kind: identifier
-                            regex: '^test$'
+                            regex: "^test$"
                 - all:
                     - kind: mod_item
                     - follows:
@@ -55,7 +55,7 @@ rule:
             kind: field_expression
             has:
               field: field
-              regex: '^(unwrap|expect)$'
+              regex: "^(unwrap|expect)$"
         - not: *has_safety_or_panic_comment
         - not: *inside_test_code
     - all:

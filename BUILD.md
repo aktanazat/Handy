@@ -52,11 +52,11 @@ Run `bun run prepare:agent-hook` before a Tauri build or package build. The pack
 
 ## Package layout
 
-| Platform | Main executable | Application identity | Private runtime directory |
-| --- | --- | --- | --- |
-| macOS | `Sona.app/Contents/MacOS/sona` | `com.aktanazat.sona` | Inside the app bundle |
-| Windows | `sona.exe` | `com.aktanazat.sona` | Next to the executable |
-| Linux | `sona` | `com.aktanazat.sona` | `/usr/lib/sona` |
+| Platform | Main executable                | Application identity | Private runtime directory |
+| -------- | ------------------------------ | -------------------- | ------------------------- |
+| macOS    | `Sona.app/Contents/MacOS/sona` | `com.aktanazat.sona` | Inside the app bundle     |
+| Windows  | `sona.exe`                     | `com.aktanazat.sona` | Next to the executable    |
+| Linux    | `sona`                         | `com.aktanazat.sona` | `/usr/lib/sona`           |
 
 Sona uses ad-hoc local signing on macOS (`signingIdentity: "-"`). This repository does not provide notarization, automatic updates, SmartScreen reputation, or signed distribution credentials.
 

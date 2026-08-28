@@ -10,4 +10,4 @@ rule:
   kind: call_expression
   has:
     field: function
-    regex: '(^|::)transmute(_copy)?$'
+    regex: "(^|::)transmute(_copy)?$"

@@ -18,15 +18,23 @@ export function base64UrlEncode(value: Uint8Array): string {
   let binary = "";
   const blockSize = 0x8000;
   for (let offset = 0; offset < value.length; offset += blockSize) {
-    const block = value.subarray(offset, Math.min(offset + blockSize, value.length));
+    const block = value.subarray(
+      offset,
+      Math.min(offset + blockSize, value.length),
+    );
     binary += String.fromCharCode(...block);
   }
-  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "");
+  return btoa(binary)
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/u, "");
 }
 
 export function base64UrlDecode(value: string): Uint8Array | null {
   if (!/^[A-Za-z0-9_-]*$/u.test(value) || value.length % 4 === 1) return null;
-  const padded = value.replaceAll("-", "+").replaceAll("_", "/") + "=".repeat((4 - (value.length % 4)) % 4);
+  const padded =
+    value.replaceAll("-", "+").replaceAll("_", "/") +
+    "=".repeat((4 - (value.length % 4)) % 4);
   try {
     const binary = atob(padded);
     const bytes = new Uint8Array(binary.length);
@@ -70,7 +78,10 @@ export function equalBytes(left: Uint8Array, right: Uint8Array): boolean {
   return difference === 0;
 }
 
-export async function equalSecret(left: string, right: string): Promise<boolean> {
+export async function equalSecret(
+  left: string,
+  right: string,
+): Promise<boolean> {
   const [leftDigest, rightDigest] = await Promise.all([
     crypto.subtle.digest("SHA-256", utf8(left)),
     crypto.subtle.digest("SHA-256", utf8(right)),

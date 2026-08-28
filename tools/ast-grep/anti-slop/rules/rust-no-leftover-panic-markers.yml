@@ -11,7 +11,7 @@ rule:
     - kind: macro_invocation
     - has:
         field: macro
-        regex: '^(todo|unimplemented|dbg)$'
+        regex: "^(todo|unimplemented|dbg)$"
     - not:
         inside:
           stopBy: end
@@ -25,7 +25,7 @@ rule:
                       kind: attribute
                       has:
                         kind: identifier
-                        regex: '^test$'
+                        regex: "^test$"
             - all:
                 - kind: mod_item
                 - follows:

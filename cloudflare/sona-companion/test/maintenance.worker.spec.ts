@@ -43,10 +43,14 @@ describe("maintenance", () => {
       const digest = await sha256Base64Url(chunk);
       const digestBytes = base64UrlDecode(digest);
       if (digestBytes === null) throw new Error("test digest decode failed");
-      await env.CIPHERTEXT.put(r2ChunkKey(device.vaultId, uploadId, index), chunk, {
-        customMetadata: { sha256: digest },
-        sha256: digestBytes,
-      });
+      await env.CIPHERTEXT.put(
+        r2ChunkKey(device.vaultId, uploadId, index),
+        chunk,
+        {
+          customMetadata: { sha256: digest },
+          sha256: digestBytes,
+        },
+      );
     }
 
     const now = Date.now();
@@ -56,7 +60,10 @@ describe("maintenance", () => {
     )
       .bind(device.vaultId, uploadId)
       .first<{ progress: number; state: string }>();
-    expect(afterFirstPage).toEqual({ progress: MAINTENANCE_PAGE_SIZE, state: "queued" });
+    expect(afterFirstPage).toEqual({
+      progress: MAINTENANCE_PAGE_SIZE,
+      state: "queued",
+    });
 
     await runMaintenance(env, now + JOB_RETRY_MS);
     const status = await signedFetch(device, {
@@ -64,7 +71,9 @@ describe("maintenance", () => {
       path: "/v1/uploads/" + uploadId,
     });
     expect(status.status).toBe(200);
-    expect((await jsonBody(status)).accepted_indexes).toEqual(chunks.map((_, index) => index));
+    expect((await jsonBody(status)).accepted_indexes).toEqual(
+      chunks.map((_, index) => index),
+    );
   });
 
   it("purges expired mutation nonces in a bounded maintenance pass", async () => {
@@ -74,7 +83,13 @@ describe("maintenance", () => {
     await env.DB.prepare(
       "INSERT INTO mutation_nonces (vault_id, device_id, nonce, expires_at, created_at) VALUES (?, ?, ?, ?, ?)",
     )
-      .bind(device.vaultId, device.deviceId, new Uint8Array(16), now - 1, now - 2)
+      .bind(
+        device.vaultId,
+        device.deviceId,
+        new Uint8Array(16),
+        now - 1,
+        now - 2,
+      )
       .run();
 
     await runMaintenance(env, now);
@@ -99,7 +114,8 @@ describe("maintenance", () => {
 
     const first = await claimJob(env, jobId, now, now + 1);
     const second = await claimJob(env, jobId, now + 2, now + 3);
-    if (first === null || second === null) throw new Error("test job was not claimed");
+    if (first === null || second === null)
+      throw new Error("test job was not claimed");
     expect(second.lease_token).not.toBe(first.lease_token);
 
     const staleCompletion = await env.DB.prepare(
@@ -113,7 +129,10 @@ describe("maintenance", () => {
     )
       .bind(jobId)
       .first<{ lease_token: string; state: string }>();
-    expect(current).toEqual({ lease_token: second.lease_token, state: "running" });
+    expect(current).toEqual({
+      lease_token: second.lease_token,
+      state: "running",
+    });
   });
 
   it("compacts expired changes and makes stale cursors expire", async () => {
@@ -141,18 +160,20 @@ describe("maintenance", () => {
     const revisionId = String(payload.json.revisionId);
     const now = Date.now();
     const expiredAt = now - CHANGE_RETENTION_MS - 1;
-    const statements = Array.from({ length: MAINTENANCE_PAGE_SIZE }, (_, index) =>
-      env.DB
-        .prepare(
+    const statements = Array.from(
+      { length: MAINTENANCE_PAGE_SIZE },
+      (_, index) =>
+        env.DB.prepare(
           "INSERT INTO changes (vault_id, sequence, object_id, revision_id, tombstone, created_at) VALUES (?, ?, ?, ?, 0, ?)",
-        )
-        .bind(device.vaultId, index + 2, objectId, revisionId, expiredAt),
+        ).bind(device.vaultId, index + 2, objectId, revisionId, expiredAt),
     );
     await env.DB.batch([
-      env.DB
-        .prepare("UPDATE vaults SET next_change_sequence = ? WHERE vault_id = ?")
-        .bind(MAINTENANCE_PAGE_SIZE + 1, device.vaultId),
-      env.DB.prepare("UPDATE changes SET created_at = ? WHERE vault_id = ?").bind(expiredAt, device.vaultId),
+      env.DB.prepare(
+        "UPDATE vaults SET next_change_sequence = ? WHERE vault_id = ?",
+      ).bind(MAINTENANCE_PAGE_SIZE + 1, device.vaultId),
+      env.DB.prepare(
+        "UPDATE changes SET created_at = ? WHERE vault_id = ?",
+      ).bind(expiredAt, device.vaultId),
       ...statements,
     ]);
     await runMaintenance(env, now);
@@ -161,7 +182,10 @@ describe("maintenance", () => {
     )
       .bind(device.vaultId)
       .first<{ progress: number; state: string }>();
-    expect(afterFirstPage).toEqual({ progress: MAINTENANCE_PAGE_SIZE, state: "queued" });
+    expect(afterFirstPage).toEqual({
+      progress: MAINTENANCE_PAGE_SIZE,
+      state: "queued",
+    });
     const remainingAfterFirstPage = await env.DB.prepare(
       "SELECT COUNT(*) AS count FROM changes WHERE vault_id = ?",
     )
@@ -182,7 +206,10 @@ describe("maintenance", () => {
     )
       .bind(device.vaultId)
       .first<{ progress: number; state: string }>();
-    expect(afterSecondPage).toEqual({ progress: MAINTENANCE_PAGE_SIZE, state: "done" });
+    expect(afterSecondPage).toEqual({
+      progress: MAINTENANCE_PAGE_SIZE,
+      state: "done",
+    });
     const remainingAfterSecondPage = await env.DB.prepare(
       "SELECT COUNT(*) AS count FROM changes WHERE vault_id = ?",
     )

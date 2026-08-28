@@ -13,19 +13,19 @@ rule:
   any:
     - all:
         - kind: identifier
-        - regex: '_(map|vec|string|obj|arr)$'
+        - regex: "_(map|vec|string|obj|arr)$"
         - inside:
             kind: let_declaration
             field: pattern
     - all:
         - kind: identifier
-        - regex: '_(map|vec|string|obj|arr)$'
+        - regex: "_(map|vec|string|obj|arr)$"
         - inside:
             kind: parameter
             field: pattern
     - all:
         - kind: field_identifier
-        - regex: '_(map|vec|string|obj|arr)$'
+        - regex: "_(map|vec|string|obj|arr)$"
         - inside:
             kind: field_declaration
             field: name

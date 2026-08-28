@@ -1,7 +1,12 @@
 import type { MaintenanceClass } from "./constants";
 import { base64UrlEncode, randomId, toBytes } from "./encoding";
 import { problem } from "./errors";
-import { isJsonArray, isJsonInteger, isJsonRecord, isJsonString } from "./validation";
+import {
+  isJsonArray,
+  isJsonInteger,
+  isJsonRecord,
+  isJsonString,
+} from "./validation";
 import type {
   ActiveDeviceRow,
   Env,
@@ -13,7 +18,11 @@ import type {
   UploadSessionRow,
 } from "./types";
 
-export function r2ChunkKey(vaultId: string, uploadId: string, index: number): string {
+export function r2ChunkKey(
+  vaultId: string,
+  uploadId: string,
+  index: number,
+): string {
   return `v1/${vaultId}/u/${uploadId}/c/${index}`;
 }
 
@@ -21,7 +30,10 @@ export function changeCount(result: D1Result<unknown>): number {
   return result.meta.changes ?? 0;
 }
 
-export function batchResult(results: readonly D1Result<unknown>[], index: number): D1Result<unknown> {
+export function batchResult(
+  results: readonly D1Result<unknown>[],
+  index: number,
+): D1Result<unknown> {
   const result = results[index];
   if (result === undefined) throw problem("integrity_failed");
   return result;
@@ -74,7 +86,9 @@ export async function uploadSession(
   vaultId: string,
   uploadId: string,
 ): Promise<UploadSessionRow | null> {
-  return env.DB.prepare("SELECT * FROM upload_sessions WHERE vault_id = ? AND upload_id = ?")
+  return env.DB.prepare(
+    "SELECT * FROM upload_sessions WHERE vault_id = ? AND upload_id = ?",
+  )
     .bind(vaultId, uploadId)
     .first<UploadSessionRow>();
 }
@@ -96,7 +110,9 @@ export async function shareRow(
   vaultId: string,
   shareId: string,
 ): Promise<ShareRow | null> {
-  return env.DB.prepare("SELECT * FROM shares WHERE vault_id = ? AND share_id = ?")
+  return env.DB.prepare(
+    "SELECT * FROM shares WHERE vault_id = ? AND share_id = ?",
+  )
     .bind(vaultId, shareId)
     .first<ShareRow>();
 }
@@ -145,7 +161,9 @@ export function scheduleMaintenance(
   context: ExecutionContext,
   jobId: string,
 ): void {
-  context.waitUntil(env.MAINTENANCE.send({ job_id: jobId }).catch(() => undefined));
+  context.waitUntil(
+    env.MAINTENANCE.send({ job_id: jobId }).catch(() => undefined),
+  );
 }
 
 export async function claimJob(
@@ -168,7 +186,11 @@ export async function claimJob(
     .first<MaintenanceJobRow>();
 }
 
-export async function dueJobIds(env: Env, now: number, limit: number): Promise<string[]> {
+export async function dueJobIds(
+  env: Env,
+  now: number,
+  limit: number,
+): Promise<string[]> {
   const result = await env.DB.prepare(
     "SELECT job_id FROM maintenance_jobs WHERE (state = 'queued' AND next_attempt_at <= ?) OR (state = 'running' AND lease_until <= ?) ORDER BY next_attempt_at, created_at LIMIT ?",
   )

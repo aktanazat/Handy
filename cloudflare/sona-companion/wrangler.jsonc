@@ -6,43 +6,43 @@
   "workers_dev": true,
   "vars": {
     "AUDIENCE": "sona-companion",
-    "WORKER_VERSION": "local"
+    "WORKER_VERSION": "local",
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "sona-companion",
       "database_id": "00000000-0000-0000-0000-000000000000",
-      "migrations_dir": "migrations"
-    }
+      "migrations_dir": "migrations",
+    },
   ],
   "r2_buckets": [
     {
       "binding": "CIPHERTEXT",
-      "bucket_name": "sona-companion-ciphertext"
-    }
+      "bucket_name": "sona-companion-ciphertext",
+    },
   ],
   "queues": {
     "producers": [
       {
         "binding": "MAINTENANCE",
-        "queue": "sona-companion-maintenance"
-      }
+        "queue": "sona-companion-maintenance",
+      },
     ],
     "consumers": [
       {
         "queue": "sona-companion-maintenance",
         "max_batch_size": 10,
-        "max_batch_timeout": 5
-      }
-    ]
+        "max_batch_timeout": 5,
+      },
+    ],
   },
   "triggers": {
-    "crons": ["*/5 * * * *"]
+    "crons": ["*/5 * * * *"],
   },
   "assets": {
     "directory": "public",
     "binding": "ASSETS",
-    "run_worker_first": true
-  }
+    "run_worker_first": true,
+  },
 }

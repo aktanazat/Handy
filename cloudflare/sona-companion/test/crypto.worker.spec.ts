@@ -42,7 +42,8 @@ describe("frozen crypto fixtures", () => {
       path: request.path,
       query: request.query.map((pair): [string, string] => {
         const [key, value] = pair;
-        if (key === undefined || value === undefined) throw new Error("fixture request query is invalid");
+        if (key === undefined || value === undefined)
+          throw new Error("fixture request query is invalid");
         return [key, value];
       }),
       bodyDigest: request.bodyDigest,
@@ -56,10 +57,16 @@ describe("frozen crypto fixtures", () => {
     const signature = fixtureBytes(request.signature);
 
     expect(base64UrlEncode(bytes)).toBe(request.bytes);
-    await expect(verifyEd25519(publicKey, signature, bytes)).resolves.toBe(true);
-    await expect(verifyEd25519(publicKey, signature, canonicalRequestBytes({ ...input, method: "GET" }))).resolves.toBe(
-      false,
+    await expect(verifyEd25519(publicKey, signature, bytes)).resolves.toBe(
+      true,
     );
+    await expect(
+      verifyEd25519(
+        publicKey,
+        signature,
+        canonicalRequestBytes({ ...input, method: "GET" }),
+      ),
+    ).resolves.toBe(false);
   });
 
   it("matches canonical upload and tombstone signatures and rejects field mutation", async () => {
@@ -84,12 +91,17 @@ describe("frozen crypto fixtures", () => {
     const uploadSignature = fixtureBytes(upload.signature);
 
     expect(base64UrlEncode(uploadBytes)).toBe(upload.bytes);
-    await expect(verifyEd25519(uploadKey, uploadSignature, uploadBytes)).resolves.toBe(true);
+    await expect(
+      verifyEd25519(uploadKey, uploadSignature, uploadBytes),
+    ).resolves.toBe(true);
     await expect(
       verifyEd25519(
         uploadKey,
         uploadSignature,
-        canonicalUploadEnvelopeBytes({ ...uploadInput, manifestDigest: `${upload.manifestDigest}x` }),
+        canonicalUploadEnvelopeBytes({
+          ...uploadInput,
+          manifestDigest: `${upload.manifestDigest}x`,
+        }),
       ),
     ).resolves.toBe(false);
 
@@ -99,7 +111,9 @@ describe("frozen crypto fixtures", () => {
     const tombstoneSignature = fixtureBytes(tombstone.signature);
 
     expect(base64UrlEncode(tombstoneBytes)).toBe(tombstone.bytes);
-    await expect(verifyEd25519(tombstoneKey, tombstoneSignature, tombstoneBytes)).resolves.toBe(true);
+    await expect(
+      verifyEd25519(tombstoneKey, tombstoneSignature, tombstoneBytes),
+    ).resolves.toBe(true);
     await expect(
       verifyEd25519(
         tombstoneKey,
@@ -132,14 +146,25 @@ describe("frozen crypto fixtures", () => {
         sourceFormat: payload.source_format,
       };
       const ciphertext = fixtureBytes(payload.ciphertext);
-      const decrypted = await decryptObjectRevisionPayload({ ...context, ciphertext });
+      const decrypted = await decryptObjectRevisionPayload({
+        ...context,
+        ciphertext,
+      });
 
       expect(base64UrlEncode(decrypted)).toBe(payload.plaintext);
       await expect(
-        encryptObjectRevisionPayload({ ...context, nonce: fixtureBytes(payload.nonce), plaintext: decrypted }),
+        encryptObjectRevisionPayload({
+          ...context,
+          nonce: fixtureBytes(payload.nonce),
+          plaintext: decrypted,
+        }),
       ).resolves.toEqual(ciphertext);
       await expect(
-        decryptObjectRevisionPayload({ ...context, ciphertext, sourceFormat: `${payload.source_format}-altered` }),
+        decryptObjectRevisionPayload({
+          ...context,
+          ciphertext,
+          sourceFormat: `${payload.source_format}-altered`,
+        }),
       ).rejects.toThrow();
     }
 
@@ -154,7 +179,10 @@ describe("frozen crypto fixtures", () => {
         total: manifest.total,
         contentKind: objectContentKind(manifest.content_kind),
         sourceFormat: manifest.source_format,
-        ciphertext: fixtureBytes(manifest.ciphertext).subarray(0, fixture.expected_failures.object_revision.truncated_payload_bytes),
+        ciphertext: fixtureBytes(manifest.ciphertext).subarray(
+          0,
+          fixture.expected_failures.object_revision.truncated_payload_bytes,
+        ),
       }),
     ).rejects.toThrow();
   });
@@ -206,7 +234,10 @@ describe("frozen crypto fixtures", () => {
         index: manifest.index,
         total: manifest.total,
         domain: shareDomain(manifest.domain),
-        ciphertext: fixtureBytes(manifest.ciphertext).subarray(0, fixture.expected_failures.share.truncated_payload_bytes),
+        ciphertext: fixtureBytes(manifest.ciphertext).subarray(
+          0,
+          fixture.expected_failures.share.truncated_payload_bytes,
+        ),
       }),
     ).rejects.toThrow();
   });

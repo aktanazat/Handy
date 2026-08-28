@@ -20,7 +20,6 @@ const statusByCode = {
   cursor_expired: 410,
 } satisfies Record<ApiErrorCode, number>;
 
-
 export class ApiProblem extends Error {
   readonly code: ApiErrorCode;
   readonly dependency: "d1" | "r2" | "queue" | undefined;
@@ -47,21 +46,31 @@ export function problem(code: ApiErrorCode): ApiProblem {
   return new ApiProblem(code);
 }
 
-export function dependencyProblem(dependency: "d1" | "r2" | "queue"): ApiProblem {
-  return new ApiProblem("dependency_unavailable", { dependency, retryAfter: 5 });
+export function dependencyProblem(
+  dependency: "d1" | "r2" | "queue",
+): ApiProblem {
+  return new ApiProblem("dependency_unavailable", {
+    dependency,
+    retryAfter: 5,
+  });
 }
 
 function baseHeaders(now: number): Headers {
   return new Headers({
     "Cache-Control": "no-store",
     Date: new Date(now).toUTCString(),
-    "Permissions-Policy": "camera=(), geolocation=(), microphone=(), payment=(), usb=()",
+    "Permissions-Policy":
+      "camera=(), geolocation=(), microphone=(), payment=(), usb=()",
     "Referrer-Policy": "no-referrer",
     "X-Content-Type-Options": "nosniff",
   });
 }
 
-export function jsonResponse<Value>(value: Value, status = 200, now = Date.now()): Response {
+export function jsonResponse<Value>(
+  value: Value,
+  status = 200,
+  now = Date.now(),
+): Response {
   const headers = baseHeaders(now);
   headers.set("Content-Type", "application/json; charset=utf-8");
   return new Response(JSON.stringify(value), { status, headers });
@@ -81,11 +90,17 @@ export function bytesResponse(
   return new Response(value, { status, headers: responseHeaders });
 }
 
-export function errorResponse(problemValue: ApiProblem, requestId: string, now = Date.now()): Response {
+export function errorResponse(
+  problemValue: ApiProblem,
+  requestId: string,
+  now = Date.now(),
+): Response {
   const body: ApiErrorBody = {
     code: problemValue.code,
     request_id: requestId,
-    retryable: problemValue.code === "dependency_unavailable" || problemValue.code === "rate_limited",
+    retryable:
+      problemValue.code === "dependency_unavailable" ||
+      problemValue.code === "rate_limited",
   };
   const response = jsonResponse(body, problemValue.status, now);
   if (problemValue.retryAfter !== undefined) {

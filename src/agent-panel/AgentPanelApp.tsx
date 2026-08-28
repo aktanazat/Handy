@@ -461,7 +461,9 @@ export const AgentPanelApp: React.FC = () => {
     setSending(true);
     setError(null);
     try {
-      const result = await commands.agentPanelCancelTurn({ turn_id: turn.turn_id });
+      const result = await commands.agentPanelCancelTurn({
+        turn_id: turn.turn_id,
+      });
       if (result.status === "error") {
         setError(result.error);
       } else {

@@ -11,15 +11,15 @@ rule:
     - kind: generic_type
     - has:
         field: type
-        regex: '(^|::)(HashMap|BTreeMap)$'
+        regex: "(^|::)(HashMap|BTreeMap)$"
     - has:
         field: type_arguments
         has:
           stopBy: end
           any:
             - kind: type_identifier
-              regex: '^Value$'
+              regex: "^Value$"
             - kind: scoped_type_identifier
-              regex: '(^|::)Value$'
+              regex: "(^|::)Value$"
             - kind: dynamic_type
-              regex: 'Any'
+              regex: "Any"

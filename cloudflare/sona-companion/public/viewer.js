@@ -16,10 +16,13 @@ function utf8(value) {
 function base64UrlDecode(value) {
   if (!/^[A-Za-z0-9_-]*$/u.test(value) || value.length % 4 === 1) return null;
   try {
-    const padded = value.replaceAll("-", "+").replaceAll("_", "/") + "=".repeat((4 - (value.length % 4)) % 4);
+    const padded =
+      value.replaceAll("-", "+").replaceAll("_", "/") +
+      "=".repeat((4 - (value.length % 4)) % 4);
     const binary = atob(padded);
     const bytes = new Uint8Array(binary.length);
-    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+    for (let index = 0; index < binary.length; index += 1)
+      bytes[index] = binary.charCodeAt(index);
     return bytes;
   } catch {
     return null;
@@ -29,9 +32,14 @@ function base64UrlDecode(value) {
 function base64UrlEncode(value) {
   let binary = "";
   for (let offset = 0; offset < value.length; offset += 0x8000) {
-    binary += String.fromCharCode(...value.subarray(offset, Math.min(offset + 0x8000, value.length)));
+    binary += String.fromCharCode(
+      ...value.subarray(offset, Math.min(offset + 0x8000, value.length)),
+    );
   }
-  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "");
+  return btoa(binary)
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/u, "");
 }
 
 function u32(value) {
@@ -65,11 +73,18 @@ function requireValue(condition) {
   if (!condition) throw new Error("invalid share bundle");
 }
 function isJsonObject(value) {
-  return !Array.isArray(value) && !(value instanceof Function) && Object(value) === value;
+  return (
+    !Array.isArray(value) &&
+    !(value instanceof Function) &&
+    Object(value) === value
+  );
 }
 
 function isJsonString(value) {
-  return Object.prototype.toString.call(value) === "[object String]" && !(value instanceof String);
+  return (
+    Object.prototype.toString.call(value) === "[object String]" &&
+    !(value instanceof String)
+  );
 }
 
 function opaqueId(value) {
@@ -79,7 +94,11 @@ function opaqueId(value) {
 function fixedBase64Url(value, byteLength) {
   if (!isJsonString(value)) return false;
   const bytes = base64UrlDecode(value);
-  return bytes !== null && bytes.length === byteLength && base64UrlEncode(bytes) === value;
+  return (
+    bytes !== null &&
+    bytes.length === byteLength &&
+    base64UrlEncode(bytes) === value
+  );
 }
 
 function fixedDigest(value) {
@@ -91,7 +110,9 @@ function fixedSignature(value) {
 }
 
 async function shareKey(root, shareId, index, total, domain) {
-  const inputKey = await crypto.subtle.importKey("raw", root, "HKDF", false, ["deriveKey"]);
+  const inputKey = await crypto.subtle.importKey("raw", root, "HKDF", false, [
+    "deriveKey",
+  ]);
   return crypto.subtle.deriveKey(
     {
       name: "HKDF",
@@ -106,14 +127,27 @@ async function shareKey(root, shareId, index, total, domain) {
   );
 }
 
-export async function decryptPayload(root, shareId, index, total, domain, payload) {
+export async function decryptPayload(
+  root,
+  shareId,
+  index,
+  total,
+  domain,
+  payload,
+) {
   requireValue(root.length === 32 && payload.length >= 28);
   const key = await shareKey(root, shareId, index, total, domain);
   const decrypted = await crypto.subtle.decrypt(
     {
       name: "AES-GCM",
       iv: payload.subarray(0, 12),
-      additionalData: record("sona-share-aad-v1", shareId, index, total, domain),
+      additionalData: record(
+        "sona-share-aad-v1",
+        shareId,
+        index,
+        total,
+        domain,
+      ),
       tagLength: 128,
     },
     key,
@@ -123,20 +157,37 @@ export async function decryptPayload(root, shareId, index, total, domain, payloa
 }
 
 export function parseFragment(hash) {
-  const params = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash);
+  const params = new URLSearchParams(
+    hash.startsWith("#") ? hash.slice(1) : hash,
+  );
   const seen = new Set();
   params.forEach((_value, key) => seen.add(key));
-  requireValue(seen.size === 2 && seen.has("v") && seen.has("k") && params.getAll("v").length === 1 && params.getAll("k").length === 1);
+  requireValue(
+    seen.size === 2 &&
+      seen.has("v") &&
+      seen.has("k") &&
+      params.getAll("v").length === 1 &&
+      params.getAll("k").length === 1,
+  );
   requireValue(params.get("v") === "1");
   const root = base64UrlDecode(params.get("k"));
-  requireValue(root !== null && root.length === 32 && base64UrlEncode(root) === params.get("k"));
+  requireValue(
+    root !== null &&
+      root.length === 32 &&
+      base64UrlEncode(root) === params.get("k"),
+  );
   return root;
 }
 
 function safeLink(value) {
   try {
     const url = new URL(value);
-    if (url.protocol === "https:" || url.protocol === "http:" || url.protocol === "mailto:") return url.href;
+    if (
+      url.protocol === "https:" ||
+      url.protocol === "http:" ||
+      url.protocol === "mailto:"
+    )
+      return url.href;
   } catch {
     return null;
   }
@@ -144,7 +195,10 @@ function safeLink(value) {
 }
 
 function exactKeys(value, keys) {
-  return Object.keys(value).length === keys.length && keys.every((key) => Object.prototype.hasOwnProperty.call(value, key));
+  return (
+    Object.keys(value).length === keys.length &&
+    keys.every((key) => Object.prototype.hasOwnProperty.call(value, key))
+  );
 }
 
 function assertRenderBounds(source) {
@@ -169,7 +223,8 @@ function appendInline(parent, source) {
   let cursor = 0;
   for (const match of source.matchAll(inlineToken)) {
     const start = match.index ?? cursor;
-    if (start > cursor) parent.append(document.createTextNode(source.slice(cursor, start)));
+    if (start > cursor)
+      parent.append(document.createTextNode(source.slice(cursor, start)));
     if (match[1] !== undefined) {
       const strong = document.createElement("strong");
       strong.textContent = match[1];
@@ -193,7 +248,8 @@ function appendInline(parent, source) {
     }
     cursor = start + match[0].length;
   }
-  if (cursor < source.length) parent.append(document.createTextNode(source.slice(cursor)));
+  if (cursor < source.length)
+    parent.append(document.createTextNode(source.slice(cursor)));
 }
 
 export function renderMarkdown(container, source) {
@@ -286,19 +342,54 @@ function parseManifestResponse(value) {
   requireValue(isJsonObject(value));
   const response = value;
   requireValue(exactKeys(response, ["version", "share", "manifest", "chunks"]));
-  requireValue(response.version === 1 && isJsonString(response.manifest) && isJsonObject(response.share) && Array.isArray(response.chunks));
+  requireValue(
+    response.version === 1 &&
+      isJsonString(response.manifest) &&
+      isJsonObject(response.share) &&
+      Array.isArray(response.chunks),
+  );
   const share = response.share;
-  requireValue(exactKeys(share, ["share_id", "crypto_version", "manifest_sha256", "chunk_count", "total_bytes", "writer_signature"]));
-  requireValue(opaqueId(share.share_id) && share.crypto_version === 1 && fixedDigest(share.manifest_sha256) && fixedSignature(share.writer_signature));
-  requireValue(Number.isSafeInteger(share.chunk_count) && share.chunk_count >= 0 && share.chunk_count <= 4096);
-  requireValue(Number.isSafeInteger(share.total_bytes) && share.total_bytes >= 0 && share.total_bytes <= MAX_VIEWER_SHARE_CIPHERTEXT);
+  requireValue(
+    exactKeys(share, [
+      "share_id",
+      "crypto_version",
+      "manifest_sha256",
+      "chunk_count",
+      "total_bytes",
+      "writer_signature",
+    ]),
+  );
+  requireValue(
+    opaqueId(share.share_id) &&
+      share.crypto_version === 1 &&
+      fixedDigest(share.manifest_sha256) &&
+      fixedSignature(share.writer_signature),
+  );
+  requireValue(
+    Number.isSafeInteger(share.chunk_count) &&
+      share.chunk_count >= 0 &&
+      share.chunk_count <= 4096,
+  );
+  requireValue(
+    Number.isSafeInteger(share.total_bytes) &&
+      share.total_bytes >= 0 &&
+      share.total_bytes <= MAX_VIEWER_SHARE_CIPHERTEXT,
+  );
   requireValue(response.chunks.length === share.chunk_count);
   const manifest = base64UrlDecode(response.manifest);
-  requireValue(manifest !== null && base64UrlEncode(manifest) === response.manifest);
+  requireValue(
+    manifest !== null && base64UrlEncode(manifest) === response.manifest,
+  );
   const chunks = response.chunks.map((candidate, index) => {
     requireValue(isJsonObject(candidate));
     requireValue(exactKeys(candidate, ["index", "size", "sha256"]));
-    requireValue(candidate.index === index && Number.isSafeInteger(candidate.size) && candidate.size >= ENCRYPTED_PAYLOAD_OVERHEAD && candidate.size <= 4 * 1024 * 1024 && fixedDigest(candidate.sha256));
+    requireValue(
+      candidate.index === index &&
+        Number.isSafeInteger(candidate.size) &&
+        candidate.size >= ENCRYPTED_PAYLOAD_OVERHEAD &&
+        candidate.size <= 4 * 1024 * 1024 &&
+        fixedDigest(candidate.sha256),
+    );
     return { index, size: candidate.size, sha256: candidate.sha256 };
   });
   return { manifest, share, chunks };
@@ -307,10 +398,28 @@ function parseManifestResponse(value) {
 function parseViewerManifest(bytes, chunkCount) {
   const value = JSON.parse(decoder.decode(bytes));
   requireValue(isJsonObject(value));
-  requireValue(exactKeys(value, ["version", "kind", "source_format", "title", "chunk_count", "plaintext_bytes"]));
-  requireValue(value.version === 1 && value.kind === "markdown" && value.source_format === "markdown-utf8");
+  requireValue(
+    exactKeys(value, [
+      "version",
+      "kind",
+      "source_format",
+      "title",
+      "chunk_count",
+      "plaintext_bytes",
+    ]),
+  );
+  requireValue(
+    value.version === 1 &&
+      value.kind === "markdown" &&
+      value.source_format === "markdown-utf8",
+  );
   requireValue(isJsonString(value.title) && value.title.length <= 240);
-  requireValue(value.chunk_count === chunkCount && Number.isSafeInteger(value.plaintext_bytes) && value.plaintext_bytes >= 0 && value.plaintext_bytes <= MAX_VIEWER_PLAINTEXT);
+  requireValue(
+    value.chunk_count === chunkCount &&
+      Number.isSafeInteger(value.plaintext_bytes) &&
+      value.plaintext_bytes >= 0 &&
+      value.plaintext_bytes <= MAX_VIEWER_PLAINTEXT,
+  );
   return value;
 }
 
@@ -319,16 +428,29 @@ async function digestMatches(bytes, expected) {
   return base64UrlEncode(digest) === expected;
 }
 async function fetchPlaintextChunk(root, shareId, chunkCount, chunk) {
-  const response = await fetch(`/v1/shares/${encodeURIComponent(shareId)}/chunks/${chunk.index}`, {
-    cache: "no-store",
-    credentials: "omit",
-    referrerPolicy: "no-referrer",
-  });
+  const response = await fetch(
+    `/v1/shares/${encodeURIComponent(shareId)}/chunks/${chunk.index}`,
+    {
+      cache: "no-store",
+      credentials: "omit",
+      referrerPolicy: "no-referrer",
+    },
+  );
   if (!response.ok) throw new Error("share chunk unavailable");
   const ciphertext = new Uint8Array(await response.arrayBuffer());
   try {
-    requireValue(ciphertext.length === chunk.size && (await digestMatches(ciphertext, chunk.sha256)));
-    return await decryptPayload(root, shareId, chunk.index, chunkCount, "chunk", ciphertext);
+    requireValue(
+      ciphertext.length === chunk.size &&
+        (await digestMatches(ciphertext, chunk.sha256)),
+    );
+    return await decryptPayload(
+      root,
+      shareId,
+      chunk.index,
+      chunkCount,
+      "chunk",
+      ciphertext,
+    );
   } finally {
     ciphertext.fill(0);
   }
@@ -347,12 +469,20 @@ async function fetchPlaintextChunks(root, shareId, chunks) {
     const index = nextIndex;
     nextIndex += 1;
     if (index >= chunks.length) return;
-    plaintextChunks[index] = await fetchPlaintextChunk(root, shareId, chunks.length, chunks[index]);
+    plaintextChunks[index] = await fetchPlaintextChunk(
+      root,
+      shareId,
+      chunks.length,
+      chunks[index],
+    );
     return worker();
   };
   try {
     const settled = await Promise.allSettled(
-      Array.from({ length: Math.min(MAX_CONCURRENT_CHUNK_REQUESTS, chunks.length) }, () => worker()),
+      Array.from(
+        { length: Math.min(MAX_CONCURRENT_CHUNK_REQUESTS, chunks.length) },
+        () => worker(),
+      ),
     );
     for (const result of settled) {
       if (result.status === "rejected") throw result.reason;
@@ -373,7 +503,13 @@ async function boot() {
   const status = document.getElementById("status");
   const content = document.getElementById("markdown-content");
   const download = document.getElementById("download-file");
-  if (title === null || status === null || content === null || download === null) return;
+  if (
+    title === null ||
+    status === null ||
+    content === null ||
+    download === null
+  )
+    return;
   const hash = location.hash;
   history.replaceState(null, "", `${location.pathname}${location.search}`);
   let root;
@@ -383,25 +519,47 @@ async function boot() {
     requireValue(parts.length === 3 && parts[1] === "s" && opaqueId(parts[2]));
     const shareId = parts[2];
     download.href = `/v1/shares/${encodeURIComponent(shareId)}/file`;
-    const manifestResponse = await fetch(`/v1/shares/${encodeURIComponent(shareId)}/manifest`, {
-      cache: "no-store",
-      credentials: "omit",
-      referrerPolicy: "no-referrer",
-    });
+    const manifestResponse = await fetch(
+      `/v1/shares/${encodeURIComponent(shareId)}/manifest`,
+      {
+        cache: "no-store",
+        credentials: "omit",
+        referrerPolicy: "no-referrer",
+      },
+    );
     if (!manifestResponse.ok) throw new Error("share manifest unavailable");
     const bundle = parseManifestResponse(await manifestResponse.json());
     requireValue(bundle.share.share_id === shareId);
-    requireValue(await digestMatches(bundle.manifest, bundle.share.manifest_sha256));
-    const decryptedManifest = await decryptPayload(root, shareId, 0, bundle.chunks.length, "manifest", bundle.manifest);
+    requireValue(
+      await digestMatches(bundle.manifest, bundle.share.manifest_sha256),
+    );
+    const decryptedManifest = await decryptPayload(
+      root,
+      shareId,
+      0,
+      bundle.chunks.length,
+      "manifest",
+      bundle.manifest,
+    );
     let viewerManifest;
     try {
-      viewerManifest = parseViewerManifest(decryptedManifest, bundle.chunks.length);
+      viewerManifest = parseViewerManifest(
+        decryptedManifest,
+        bundle.chunks.length,
+      );
     } finally {
       decryptedManifest.fill(0);
     }
-    const plaintextChunks = await fetchPlaintextChunks(root, shareId, bundle.chunks);
+    const plaintextChunks = await fetchPlaintextChunks(
+      root,
+      shareId,
+      bundle.chunks,
+    );
     try {
-      const plaintextLength = plaintextChunks.reduce((total, plaintext) => total + plaintext.length, 0);
+      const plaintextLength = plaintextChunks.reduce(
+        (total, plaintext) => total + plaintext.length,
+        0,
+      );
       requireValue(plaintextLength <= MAX_VIEWER_PLAINTEXT);
       requireValue(plaintextLength === viewerManifest.plaintext_bytes);
       const plaintext = concat(plaintextChunks);
@@ -430,7 +588,9 @@ async function boot() {
 }
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => void boot(), { once: true });
+  document.addEventListener("DOMContentLoaded", () => void boot(), {
+    once: true,
+  });
 } else {
   void boot();
 }

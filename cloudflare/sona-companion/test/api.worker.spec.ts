@@ -52,7 +52,10 @@ describe("Sona companion API", () => {
     expect(replay.status).toBe(201);
     expect(await jsonBody(replay)).toEqual(await jsonBody(first));
     const secondDevice = await makeDevice();
-    const secondBootstrap = await bootstrap(secondDevice, "second_bootstrap_attempt");
+    const secondBootstrap = await bootstrap(
+      secondDevice,
+      "second_bootstrap_attempt",
+    );
     expect(secondBootstrap.status).toBe(401);
     expect((await jsonBody(secondBootstrap)).code).toBe("unauthorized");
 
@@ -151,7 +154,9 @@ describe("Sona companion API", () => {
       path: `/v1/objects/${payload.json.objectId}/revisions/${payload.json.revisionId}/chunks/0`,
     });
     expect(chunk.status).toBe(200);
-    expect(new Uint8Array(await chunk.arrayBuffer())).toEqual(payload.chunks[0]);
+    expect(new Uint8Array(await chunk.arrayBuffer())).toEqual(
+      payload.chunks[0],
+    );
   });
 
   it("allows one simultaneous compare-and-swap winner", async () => {
@@ -168,7 +173,11 @@ describe("Sona companion API", () => {
         idempotencyKey: testId("create_operation"),
       });
       expect(created.status).toBe(201);
-      await uploadAllChunks(device, String(payload.json.uploadId), payload.chunks);
+      await uploadAllChunks(
+        device,
+        String(payload.json.uploadId),
+        payload.chunks,
+      );
     }
     const responses = await Promise.all(
       [first, second].map((payload) =>
@@ -180,7 +189,9 @@ describe("Sona companion API", () => {
         }),
       ),
     );
-    expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
+    expect(responses.map((response) => response.status).sort()).toEqual([
+      200, 409,
+    ]);
     const headCount = await env.DB.prepare(
       "SELECT COUNT(*) AS count FROM object_heads WHERE vault_id = ? AND object_id = ?",
     )
@@ -212,10 +223,14 @@ describe("Sona companion API", () => {
     const digest = await sha256Base64Url(firstChunk);
     const digestBytes = base64UrlDecode(digest);
     if (digestBytes === null) throw new Error("test digest decode failed");
-    await env.CIPHERTEXT.put(r2ChunkKey(device.vaultId, uploadId, 0), firstChunk, {
-      customMetadata: { sha256: digest },
-      sha256: digestBytes,
-    });
+    await env.CIPHERTEXT.put(
+      r2ChunkKey(device.vaultId, uploadId, 0),
+      firstChunk,
+      {
+        customMetadata: { sha256: digest },
+        sha256: digestBytes,
+      },
+    );
     await runMaintenance(env);
     const status = await signedFetch(device, {
       method: "GET",
@@ -243,7 +258,11 @@ describe("Sona companion API", () => {
     const tombstone = await signedFetch(device, {
       method: "DELETE",
       path: `/v1/objects/${committed.objectId}`,
-      body: await tombstonePayload(device, committed.objectId, committed.revisionId),
+      body: await tombstonePayload(
+        device,
+        committed.objectId,
+        committed.revisionId,
+      ),
       idempotencyKey: testId("tombstone"),
     });
     expect(tombstone.status).toBe(200);
@@ -314,7 +333,9 @@ describe("Sona companion API", () => {
     )
       .bind(device.vaultId)
       .first<{ count: number }>();
-    const session = await env.DB.prepare("SELECT state FROM upload_sessions WHERE upload_id = ?")
+    const session = await env.DB.prepare(
+      "SELECT state FROM upload_sessions WHERE upload_id = ?",
+    )
       .bind(uploadId)
       .first<{ state: string }>();
     expect(heads?.count).toBe(0);
