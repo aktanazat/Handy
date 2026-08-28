@@ -13,6 +13,16 @@ Sona is a local-first desktop speech-to-text app for macOS, Windows, and Linux. 
 
 Local runs keep captured audio on the device. Cloud transcription sends audio only after you configure a provider key and accept that provider's transfer notice. Sona does not store provider keys in its settings file.
 
+## Releases and install
+
+Tagged builds are published on the [releases page](https://github.com/aktanazat/Handy/releases). Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds macOS (Apple silicon), Windows, and Linux bundles and attaches them to a draft release for review before publishing.
+
+- macOS: open the `.dmg` and drag Sona to Applications.
+- Windows: run the `.msi` or the NSIS `-setup.exe` installer.
+- Linux: use the `.AppImage`, or install the `.deb` on Debian and Ubuntu.
+
+macOS bundles are signed and notarized only when the repository has the Apple signing secrets configured. Without them the release job still succeeds and produces unsigned bundles, which macOS quarantines on first open; remove the quarantine flag with `xattr -dr com.apple.quarantine /Applications/Sona.app` or build from source instead.
+
 ## Compatibility boundaries
 
 Sona implements its speech, mode, context, delivery, history, import, and agent features with open code and public provider APIs. It does not copy or depend on Superwhisper binaries, services, private assets, licensing systems, or enterprise controls.
@@ -53,11 +63,11 @@ On macOS, the installed binary is:
 
 ## Data locations
 
-| Platform | Default application data directory |
-| --- | --- |
-| macOS | `~/Library/Application Support/com.aktanazat.sona` |
-| Windows | `%APPDATA%\com.aktanazat.sona` |
-| Linux | `$XDG_DATA_HOME/com.aktanazat.sona`, or `~/.local/share/com.aktanazat.sona` |
+| Platform | Default application data directory                                          |
+| -------- | --------------------------------------------------------------------------- |
+| macOS    | `~/Library/Application Support/com.aktanazat.sona`                          |
+| Windows  | `%APPDATA%\com.aktanazat.sona`                                              |
+| Linux    | `$XDG_DATA_HOME/com.aktanazat.sona`, or `~/.local/share/com.aktanazat.sona` |
 
 Sona stores settings in `settings_store.json`, history in `history.db`, recordings in `recordings/`, models in `models/`, and logs in `logs/sona.log`.
 
@@ -69,14 +79,14 @@ Portable mode does not use the native credential store, so provider-backed featu
 
 ## Environment variables
 
-| Variable | Purpose |
-| --- | --- |
-| `SONA_NO_GTK_LAYER_SHELL=1` | Disable the Linux GTK layer-shell overlay. |
-| `SONA_METAL_RESIDENCY=1` | Restore the upstream Metal residency setting. |
-| `SONA_DEBUG_MIC_READY_DELAY_MS` | Add a debug microphone-ready delay. |
-| `SONA_FORCE_TRANSCRIPTION_FAILURE=1` | Force a debug transcription failure. |
-| `SONA_FORCE_AI_STUB=1` | Build the Apple Intelligence stub. |
-| `SONA_VC_REDIST_DIRS` | Set the Windows VC++ runtime staging directories in CI. |
+| Variable                             | Purpose                                                 |
+| ------------------------------------ | ------------------------------------------------------- |
+| `SONA_NO_GTK_LAYER_SHELL=1`          | Disable the Linux GTK layer-shell overlay.              |
+| `SONA_METAL_RESIDENCY=1`             | Restore the upstream Metal residency setting.           |
+| `SONA_DEBUG_MIC_READY_DELAY_MS`      | Add a debug microphone-ready delay.                     |
+| `SONA_FORCE_TRANSCRIPTION_FAILURE=1` | Force a debug transcription failure.                    |
+| `SONA_FORCE_AI_STUB=1`               | Build the Apple Intelligence stub.                      |
+| `SONA_VC_REDIST_DIRS`                | Set the Windows VC++ runtime staging directories in CI. |
 
 ## Build from source
 

@@ -31,6 +31,12 @@
     "handy\\.exe",
     "name\\.trim\\(\\) == \\\"handy\\\"",
     "Handy #",
-    "`handy` ="
+    "`handy` =",
+    "aktanazat/Handy",
+    "cjpais/Handy",
+    "YOUR_USERNAME/Handy",
+    "^\\s*cd Handy\\s*$",
+    "[Bb]uilt on( top of)? Handy",
+    "\"(description|upstream[A-Za-z]*)\": \".*Handy"
   ]
 }
