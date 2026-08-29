@@ -1097,7 +1097,7 @@ pub struct AppSettings {
     /// Debug-gated ("beta") receipt-sequenced paste: restore the clipboard only
     /// after the target app actually reads the transcript, instead of after a
     /// fixed delay. See `paste_tx`. macOS and Windows only.
-    #[serde(default)]
+    #[serde(default = "default_reliable_paste")]
     pub reliable_paste: bool,
     #[serde(default = "default_typing_tool")]
     pub typing_tool: TypingTool,
@@ -1280,7 +1280,15 @@ fn default_agent_panel_enabled() -> bool {
     true
 }
 
-pub(crate) const CURRENT_SETTINGS_SCHEMA_VERSION: u32 = 15;
+/// Receipt-sequenced paste (see `paste_tx`): restore waits for the target's
+/// clipboard read instead of a fixed delay. On when the platform supports it
+/// because the fixed delay measurably loses the race to slow readers; the
+/// path itself falls back to the legacy paste whenever it cannot publish.
+fn default_reliable_paste() -> bool {
+    true
+}
+
+pub(crate) const CURRENT_SETTINGS_SCHEMA_VERSION: u32 = 17;
 
 fn default_settings_schema_version() -> u32 {
     CURRENT_SETTINGS_SCHEMA_VERSION
@@ -1772,7 +1780,7 @@ pub fn get_default_settings() -> AppSettings {
         show_tray_icon: default_show_tray_icon(),
         paste_delay_ms: default_paste_delay_ms(),
         paste_delay_after_ms: default_paste_delay_after_ms(),
-        reliable_paste: false,
+        reliable_paste: default_reliable_paste(),
         typing_tool: default_typing_tool(),
         external_script_path: None,
         filler_word_removal_enabled: default_filler_word_removal_enabled(),
@@ -2283,6 +2291,25 @@ fn apply_settings_migrations(
         // `agent_panel_enabled` stays authoritative: the new default only
         // applies to documents that never recorded the user's choice. This
         // branch only records that the document reached schema 15.
+        updated = true;
+    }
+    if stored_schema_version < 17 {
+        // Receipt-sequenced paste becomes the delivery default. The legacy
+        // fixed-delay path restores the clipboard on a timer, and a target
+        // that reads after that timer pastes the restored clipboard instead
+        // of the transcript — measured live against Ghostty, whose read lost
+        // the race on every attempt. Every store below 17 carries the old
+        // shipped default rather than a choice this build's UI collected —
+        // the toggle only ever wrote the global field, and every mode baked
+        // its copy from that default at creation — so the flip applies to the
+        // global AND to every stored mode; the toggle in Advanced settings
+        // still records an explicit opt-out from here on. (16 stamped the
+        // global flip alone during development; 17 exists so a 16 store also
+        // repairs its modes.)
+        settings.reliable_paste = true;
+        for mode in &mut settings.modes {
+            mode.delivery.reliable_paste = true;
+        }
         updated = true;
     }
     if settings.settings_schema_version < CURRENT_SETTINGS_SCHEMA_VERSION {
@@ -2878,6 +2905,56 @@ mod tests {
         for key in ["vault_root", "device_id", "cursor"] {
             assert!(!cloud_sync.contains_key(key));
         }
+    }
+
+    #[test]
+    fn schema_seventeen_promotes_legacy_paste_to_reliable() {
+        let mut raw = serde_json::Value::Object(default_settings_document().0);
+        raw["settings_schema_version"] = serde_json::json!(15);
+        raw["reliable_paste"] = serde_json::json!(false);
+        let mut migrated: AppSettings =
+            serde_json::from_value(raw.clone()).expect("schema-fifteen settings deserialize");
+
+        assert!(apply_settings_migrations(&mut migrated, &raw));
+        assert!(migrated.reliable_paste);
+        assert_eq!(
+            migrated.settings_schema_version,
+            CURRENT_SETTINGS_SCHEMA_VERSION
+        );
+    }
+
+    #[test]
+    fn half_migrated_sixteen_store_repairs_its_modes() {
+        // A development-era 16 store flipped the global field but left every
+        // mode's baked copy behind; the run freezes its plan from the mode,
+        // so those copies are the ones delivery actually reads.
+        let mut settings = get_default_settings();
+        crate::modes::ensure_mode_settings(&mut settings);
+        settings.reliable_paste = true;
+        for mode in &mut settings.modes {
+            mode.delivery.reliable_paste = false;
+        }
+        settings.settings_schema_version = 16;
+        let raw = serde_json::to_value(&settings).expect("sixteen settings serialize");
+
+        assert!(apply_settings_migrations(&mut settings, &raw));
+        assert!(settings.modes.iter().all(|m| m.delivery.reliable_paste));
+        assert_eq!(
+            settings.settings_schema_version,
+            CURRENT_SETTINGS_SCHEMA_VERSION
+        );
+    }
+
+    #[test]
+    fn reliable_paste_opt_out_survives_at_current_schema() {
+        let mut raw = serde_json::Value::Object(default_settings_document().0);
+        raw["settings_schema_version"] = serde_json::json!(CURRENT_SETTINGS_SCHEMA_VERSION);
+        raw["reliable_paste"] = serde_json::json!(false);
+        let mut settings: AppSettings =
+            serde_json::from_value(raw.clone()).expect("current settings deserialize");
+
+        assert!(!apply_settings_migrations(&mut settings, &raw));
+        assert!(!settings.reliable_paste);
     }
 
     #[test]
