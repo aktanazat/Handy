@@ -3,7 +3,7 @@ use super::analytics::{
     MeetingCatchUpState, MeetingNotesTemplate, CATCH_UP_MAX_BULLETS,
 };
 use super::diarization::{
-    model_manifest, DiarizationError, DiarizedWindow, MeetingDiarizer, OnnxDiarizationSession,
+    model_manifest, DiarizationError, DiarizedWindow, MeetingDiarizationSession, MeetingDiarizer,
 };
 use super::ledger::{
     self, LedgerCommitment, LedgerFirmness, LedgerOpenLoop, LedgerReceipt, LedgerReceiptState,
@@ -18,6 +18,7 @@ use super::types::*;
 use crate::audio_toolkit::vad::{self, VoiceActivityDetector};
 use crate::managers::transcription::TranscriptionManager;
 use crate::modes::AsrPlan;
+use log::info;
 use rustfft::num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -687,8 +688,8 @@ impl MeetingProcessingService {
         };
         let manifest = model_manifest();
         let model_directory = store.diarization_model_directory();
-        let path = match self.diarizer.prepare(&model_directory) {
-            Ok(path) => path,
+        let mut prepared = match self.diarizer.prepare(&model_directory) {
+            Ok(prepared) => prepared,
             Err(DiarizationError::ModelUnavailable) => {
                 let status = self.diarizer.availability(&model_directory).status();
                 let _ = store.set_diarization_status(
@@ -709,7 +710,7 @@ impl MeetingProcessingService {
                 return;
             }
         };
-        let mut diarizer = match self.diarizer.open(&path) {
+        let mut diarizer = match self.diarizer.open(&prepared) {
             Ok(diarizer) => diarizer,
             Err(_) => {
                 let _ = store.set_diarization_status(
@@ -721,6 +722,45 @@ impl MeetingProcessingService {
                 return;
             }
         };
+        // Sortformer scores the whole track in one pass, so it has to see the
+        // track before any window resolves. A track too long to hold, or a run
+        // that fails, degrades to the streaming fallback when its weights are
+        // on disk rather than dropping diarization for this meeting.
+        if diarizer.needs_priming()
+            && prime_diarizer(store, session_id, track.track_id, &mut diarizer).is_err()
+        {
+            match self
+                .diarizer
+                .wespeaker_fallback(&model_directory)
+                .and_then(|fallback| {
+                    self.diarizer
+                        .open(&fallback)
+                        .ok()
+                        .map(|session| (fallback, session))
+                }) {
+                Some((fallback, session)) => {
+                    prepared = fallback;
+                    diarizer = session;
+                }
+                None => {
+                    let _ = store.set_diarization_status(
+                        session_id,
+                        DiarizationStatus::Failed,
+                        &manifest.id,
+                        &manifest.revision,
+                    );
+                    return;
+                }
+            }
+        }
+        let model_id = prepared.model_id();
+        let model_revision = prepared.model_revision();
+        info!(
+            "Meeting diarization running on {} ({}@{})",
+            prepared.engine.label(),
+            model_id,
+            model_revision
+        );
         let input_revision = match store.session_snapshot(session_id) {
             Ok(snapshot) => snapshot.revision,
             Err(_) => return,
@@ -729,8 +769,8 @@ impl MeetingProcessingService {
             session_id,
             transcript_revision_id,
             input_revision,
-            &manifest.id,
-            &manifest.revision,
+            model_id,
+            model_revision,
         ) {
             Ok(generation_id) => generation_id,
             Err(_) => return,
@@ -739,8 +779,8 @@ impl MeetingProcessingService {
             .set_diarization_status(
                 session_id,
                 DiarizationStatus::Running,
-                &manifest.id,
-                &manifest.revision,
+                model_id,
+                model_revision,
             )
             .is_err()
         {
@@ -757,8 +797,8 @@ impl MeetingProcessingService {
                 let _ = store.set_diarization_status(
                     session_id,
                     DiarizationStatus::Failed,
-                    &manifest.id,
-                    &manifest.revision,
+                    model_id,
+                    model_revision,
                 );
                 return;
             }
@@ -807,8 +847,8 @@ impl MeetingProcessingService {
         let _ = store.set_diarization_status(
             session_id,
             DiarizationStatus::Failed,
-            &manifest.id,
-            &manifest.revision,
+            model_id,
+            model_revision,
         );
     }
 
@@ -819,7 +859,7 @@ impl MeetingProcessingService {
         session_id: MeetingSessionId,
         transcript_revision_id: TranscriptRevisionId,
         generation_id: MeetingDiarizationGenerationId,
-        diarizer: &mut OnnxDiarizationSession,
+        diarizer: &mut MeetingDiarizationSession,
         cluster_speakers: &mut HashMap<u32, SpeakerId>,
         window: AudioChunk,
     ) -> Result<(), ProcessingFailure> {
@@ -1346,6 +1386,33 @@ impl FrameConsumer for DiarizationWindower {
         }
         Ok(None)
     }
+}
+
+/// Feed the whole track to a one-pass diarizer, then score it. Runs before the
+/// window pass so speaker ids are resolved once, for the whole track, by the
+/// model's own arrival-order cache instead of being re-derived per window.
+fn prime_diarizer(
+    store: &MeetingStore,
+    session_id: MeetingSessionId,
+    track_id: SourceTrackId,
+    diarizer: &mut MeetingDiarizationSession,
+) -> Result<(), DiarizationError> {
+    let mut push_failure = None;
+    let visited = store.visit_durable_track_records(session_id, track_id, |record| {
+        let samples = downmix_and_resample(&record)?;
+        if let Err(error) = diarizer.push_priming_audio(&samples, record.start_offset_ns) {
+            push_failure = Some(error);
+            return Err(StoreError::Invalid);
+        }
+        Ok(())
+    });
+    if let Some(error) = push_failure {
+        return Err(error);
+    }
+    if visited.is_err() {
+        return Err(DiarizationError::InferenceFailed);
+    }
+    diarizer.prime()
 }
 
 fn process_record_frames<C, F>(
