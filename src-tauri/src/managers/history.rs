@@ -186,6 +186,17 @@ static MIGRATIONS: &[M] = &[
     // A capture overrun keeps a playable prefix, but it must remain visibly
     // distinct from a complete capture. Retries and imported rows stay NULL.
     M::up("ALTER TABLE transcription_runs ADD COLUMN capture_status TEXT;"),
+    // A retry or a reprocess is a new immutable row produced from an existing
+    // recording, so it points back at the row it came from. Original captures,
+    // imported rows, and every row written before this column existed stay
+    // NULL. Deleting a parent orphans rather than deletes the child: the
+    // child's own transcript is still real output.
+    M::up(
+        "ALTER TABLE transcription_history ADD COLUMN parent_id INTEGER;
+         CREATE TRIGGER transcription_history_parent_delete AFTER DELETE ON transcription_history BEGIN
+            UPDATE transcription_history SET parent_id = NULL WHERE parent_id = old.id;
+         END;",
+    ),
 ];
 
 const MAX_HISTORY_PAGE_SIZE: usize = 100;
@@ -220,6 +231,9 @@ pub struct HistoryEntry {
     pub transcription_text: String,
     pub post_processed_text: Option<String>,
     pub post_process_requested: bool,
+    /// The entry this one was reprocessed from, when it was not an original
+    /// capture. `None` for every row written before reprocessing existed.
+    pub parent_id: Option<i64>,
 }
 
 /// Where the captured audio originated. Existing history rows intentionally
@@ -664,6 +678,7 @@ impl HistoryManager {
             transcription_text: row.get("transcription_text")?,
             post_processed_text: row.get("post_processed_text")?,
             post_process_requested: row.get("post_process_requested")?,
+            parent_id: row.get("parent_id")?,
         })
     }
 
@@ -698,6 +713,7 @@ impl HistoryManager {
                 transcription_text: entry.transcription_text.clone(),
                 post_processed_text: entry.post_processed_text.clone(),
                 post_process_requested: entry.post_process_requested,
+                parent_id: None,
             };
             if let Err(error) =
                 (HistoryUpdatePayload::Added { entry: event }).emit(&self.app_handle)
@@ -889,11 +905,12 @@ impl HistoryManager {
         )
     }
 
-    /// A retry creates a new immutable history row and child run receipt. The
-    /// original transcription and its prior receipts remain untouched.
-    pub fn save_retry_entry_with_receipt(
+    /// A retry or a reprocess creates a new immutable history row and child run
+    /// receipt, linked back to the row whose recording it reused. The original
+    /// transcription and its prior receipts remain untouched.
+    pub fn save_derived_entry_with_receipt(
         &self,
-        retry_of_history_id: i64,
+        derived_from_history_id: i64,
         file_name: String,
         transcription_text: String,
         post_process_requested: bool,
@@ -905,7 +922,7 @@ impl HistoryManager {
             transcription_text,
             post_process_requested,
             post_processed_text,
-            Some(retry_of_history_id),
+            Some(derived_from_history_id),
             Some(receipt),
         )
     }
@@ -916,14 +933,14 @@ impl HistoryManager {
         transcription_text: String,
         post_process_requested: bool,
         post_processed_text: Option<String>,
-        retry_of_history_id: Option<i64>,
+        derived_from_history_id: Option<i64>,
         receipt: Option<NewRunReceipt>,
     ) -> Result<HistoryEntry> {
         let timestamp = Utc::now().timestamp();
         let title = self.format_timestamp_title(timestamp);
         let mut conn = self.get_connection()?;
         let transaction = conn.transaction()?;
-        let retry_of_run_id = retry_of_history_id
+        let derived_from_run_id = derived_from_history_id
             .map(|history_id| Self::latest_run_id(&transaction, history_id))
             .transpose()?
             .flatten();
@@ -948,8 +965,9 @@ impl HistoryManager {
                 duration_ms,
                 word_count,
                 source_kind,
-                has_audio
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                has_audio,
+                parent_id
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
             params![
                 &file_name,
                 timestamp,
@@ -962,11 +980,12 @@ impl HistoryManager {
                 word_count,
                 source_kind,
                 has_audio,
+                derived_from_history_id,
             ],
         )?;
         let history_id = transaction.last_insert_rowid();
         if let Some(receipt) = receipt.as_ref() {
-            Self::insert_run_receipt(&transaction, history_id, retry_of_run_id, receipt)?;
+            Self::insert_run_receipt(&transaction, history_id, derived_from_run_id, receipt)?;
         }
         transaction.commit()?;
 
@@ -979,6 +998,7 @@ impl HistoryManager {
             transcription_text,
             post_processed_text,
             post_process_requested,
+            parent_id: derived_from_history_id,
         };
 
         debug!("Saved history entry with id {}", entry.id);
@@ -1547,7 +1567,7 @@ impl HistoryManager {
             (Some(cursor_id), Some(lim)) => {
                 let fetch_count = i64::try_from(lim + 1)?;
                 let mut stmt = conn.prepare(
-                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_requested
+                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_requested, parent_id
                      FROM transcription_history
                      WHERE id < ?1
                      ORDER BY id DESC
@@ -1561,7 +1581,7 @@ impl HistoryManager {
             (None, Some(lim)) => {
                 let fetch_count = i64::try_from(lim + 1)?;
                 let mut stmt = conn.prepare(
-                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_requested
+                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_requested, parent_id
                      FROM transcription_history
                      ORDER BY id DESC
                      LIMIT ?1",
@@ -1573,7 +1593,7 @@ impl HistoryManager {
             }
             (_, None) => {
                 let mut stmt = conn.prepare(
-                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_requested
+                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_requested, parent_id
                      FROM transcription_history
                      ORDER BY id DESC",
                 )?;
@@ -1637,7 +1657,8 @@ impl HistoryManager {
                         h.title,
                         h.transcription_text,
                         h.post_processed_text,
-                        h.post_process_requested
+                        h.post_process_requested,
+                        h.parent_id
                      FROM transcription_history_fts
                      JOIN transcription_history AS h
                        ON h.id = transcription_history_fts.rowid
@@ -1662,7 +1683,8 @@ impl HistoryManager {
                         h.title,
                         h.transcription_text,
                         h.post_processed_text,
-                        h.post_process_requested
+                        h.post_process_requested,
+                        h.parent_id
                      FROM transcription_history_fts
                      JOIN transcription_history AS h
                        ON h.id = transcription_history_fts.rowid
@@ -1695,7 +1717,8 @@ impl HistoryManager {
                 title,
                 transcription_text,
                 post_processed_text,
-                post_process_requested
+                post_process_requested,
+                parent_id
              FROM transcription_history
              ORDER BY timestamp DESC
              LIMIT 1",
@@ -1721,7 +1744,8 @@ impl HistoryManager {
                 title,
                 transcription_text,
                 post_processed_text,
-                post_process_requested
+                post_process_requested,
+                parent_id
              FROM transcription_history
              WHERE transcription_text != ''
              ORDER BY timestamp DESC
@@ -1777,7 +1801,8 @@ impl HistoryManager {
                 title,
                 transcription_text,
                 post_processed_text,
-                post_process_requested
+                post_process_requested,
+                parent_id
              FROM transcription_history
              WHERE id = ?1",
         )?;
@@ -2051,6 +2076,7 @@ mod tests {
                 accessibility: crate::context::AccessibilityAccess::Unsupported,
                 sources: crate::context::ContextSources::default(),
                 captured_at_ms: 10,
+                application_captured_at_ms: None,
             },
             started_at_ms: 10,
             completed_at_ms: 20,
@@ -2595,6 +2621,64 @@ mod tests {
         .expect("insert base history entry");
 
         conn.last_insert_rowid()
+    }
+
+    /// A row written before reprocessing existed has no parent, and the column
+    /// must arrive nullable so the migration cannot fail on a populated store.
+    #[test]
+    fn parent_id_is_added_as_a_nullable_column_and_existing_rows_keep_no_parent() {
+        let mut conn = Connection::open_in_memory().expect("open in-memory db");
+        let head_before_parent = MIGRATIONS.len() - 1;
+        Migrations::new(MIGRATIONS[..head_before_parent].to_vec())
+            .to_latest(&mut conn)
+            .expect("apply migrations up to the parent_id column");
+        assert!(!history_columns(&conn).contains(&"parent_id".to_string()));
+        let existing = insert_base_entry(&conn, 100, "written before reprocessing existed");
+
+        Migrations::new(MIGRATIONS.to_vec())
+            .to_latest(&mut conn)
+            .expect("apply the parent_id migration");
+
+        assert!(history_columns(&conn).contains(&"parent_id".to_string()));
+        let carried: Option<i64> = conn
+            .query_row(
+                "SELECT parent_id FROM transcription_history WHERE id = ?1",
+                params![existing],
+                |row| row.get(0),
+            )
+            .expect("read carried parent_id");
+        assert_eq!(carried, None);
+    }
+
+    /// Deleting the source of a reprocess must not delete the reprocessed
+    /// transcript, which is real output in its own right. It only loses the
+    /// link.
+    #[test]
+    fn deleting_a_parent_orphans_the_child_instead_of_removing_it() {
+        let conn = setup_conn();
+        let parent = insert_base_entry(&conn, 100, "original");
+        let child = insert_base_entry(&conn, 200, "reprocessed");
+        conn.execute(
+            "UPDATE transcription_history SET parent_id = ?1 WHERE id = ?2",
+            params![parent, child],
+        )
+        .expect("link child to parent");
+
+        conn.execute(
+            "DELETE FROM transcription_history WHERE id = ?1",
+            params![parent],
+        )
+        .expect("delete parent");
+
+        let (text, parent_id): (String, Option<i64>) = conn
+            .query_row(
+                "SELECT transcription_text, parent_id FROM transcription_history WHERE id = ?1",
+                params![child],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("child survives");
+        assert_eq!(text, "reprocessed");
+        assert_eq!(parent_id, None);
     }
 
     #[test]

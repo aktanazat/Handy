@@ -1,4 +1,4 @@
-use crate::audio_toolkit::text::has_token_boundaries;
+use crate::audio_toolkit::text::{has_token_boundaries, lowercase_prefix_len};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
@@ -32,23 +32,6 @@ impl Snippet {
 struct PreparedSnippet<'a> {
     lowercase_trigger: String,
     expansion: &'a str,
-}
-
-/// Byte length of the prefix of `text` whose lowercase folding equals
-/// `lowercase_trigger`, or `None` when no whole-character prefix matches.
-fn lowercase_prefix_len(text: &str, lowercase_trigger: &str) -> Option<usize> {
-    let mut expected = lowercase_trigger.chars();
-    for (offset, character) in text.char_indices() {
-        if expected.as_str().is_empty() {
-            return Some(offset);
-        }
-        for lowered in character.to_lowercase() {
-            if expected.next() != Some(lowered) {
-                return None;
-            }
-        }
-    }
-    expected.as_str().is_empty().then_some(text.len())
 }
 
 /// Replaces enabled snippet triggers with their expansions. Matching is

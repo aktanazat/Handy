@@ -1,5 +1,5 @@
 use crate::audio_toolkit::text::vocabulary_spoken_key;
-use crate::settings::{self, AppSettings, EmojiReplacement, VocabularyEntry};
+use crate::settings::{self, AppSettings, EmojiReplacement, ReplacementRule, VocabularyEntry};
 use csv::{ReaderBuilder, StringRecord, WriterBuilder};
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -402,6 +402,65 @@ pub fn add_vocabulary_correction(
         touch_mode_revision(settings, &scope);
         Ok::<_, String>(saved)
     })
+}
+
+/// Normalizes a submitted rule set: outer whitespace trimmed, rules that could
+/// never fire dropped, and the whole list capped so a paste accident cannot
+/// make every transcription pay for thousands of dead rules.
+///
+/// Order is preserved. The matcher already prefers the longest match at a given
+/// position, so list order is presentation, not precedence.
+fn normalize_replacement_rules(rules: Vec<ReplacementRule>) -> Vec<ReplacementRule> {
+    rules
+        .into_iter()
+        .map(ReplacementRule::trim_outer_whitespace)
+        .filter(ReplacementRule::is_usable)
+        .take(MAX_REPLACEMENT_RULES)
+        .collect()
+}
+
+/// A ceiling high enough that no real symbol library reaches it and low enough
+/// that the per-character scan stays cheap.
+const MAX_REPLACEMENT_RULES: usize = 500;
+
+#[tauri::command]
+#[specta::specta]
+pub fn get_text_replacements(app: AppHandle) -> Vec<ReplacementRule> {
+    settings::get_settings(&app).replacements_rules
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn save_text_replacements(
+    app: AppHandle,
+    rules: Vec<ReplacementRule>,
+) -> Result<Vec<ReplacementRule>, String> {
+    let normalized = normalize_replacement_rules(rules);
+    settings::update_settings(&app, |settings| {
+        settings.replacements_rules = normalized.clone();
+    });
+    Ok(normalized)
+}
+
+/// Restores the shipped starter library, discarding user edits. The frontend
+/// confirms first; this command is the destructive half.
+#[tauri::command]
+#[specta::specta]
+pub fn reset_text_replacements(app: AppHandle) -> Result<Vec<ReplacementRule>, String> {
+    let defaults = crate::settings::default_replacement_rules();
+    settings::update_settings(&app, |settings| {
+        settings.replacements_rules = defaults.clone();
+    });
+    Ok(defaults)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn update_text_replacements_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
+    settings::update_settings(&app, |settings| {
+        settings.replacements_enabled = enabled;
+    });
+    Ok(())
 }
 
 #[cfg(test)]

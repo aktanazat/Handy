@@ -2,7 +2,7 @@ use crate::actions::process_transcription_output;
 use crate::analytics::DashboardTrendRequest;
 use crate::managers::{
     history::{
-        HistoryManager, HistorySourceKind, HistoryStats, HistoryStorageStatus,
+        HistoryEntry, HistoryManager, HistorySourceKind, HistoryStats, HistoryStorageStatus,
         HistoryTrendProjection, NewRunReceipt, PaginatedHistory,
     },
     transcription::TranscriptionManager,
@@ -194,23 +194,23 @@ pub async fn delete_history_entry(
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
-#[specta::specta]
-pub async fn retry_history_entry_transcription(
-    app: AppHandle,
-    history_manager: State<'_, Arc<HistoryManager>>,
-    transcription_manager: State<'_, Arc<TranscriptionManager>>,
-    id: i64,
+/// Runs a stored recording through an already-frozen plan and saves the result
+/// as a new history row linked back to `source`.
+///
+/// Retry and reprocess differ only in which plan they freeze, so the replay
+/// itself lives here once. Neither ever delivers the text: the recording is
+/// historical, and pasting it into whatever happens to be focused now would be
+/// a side effect the user did not ask for.
+async fn replay_stored_recording(
+    app: &AppHandle,
+    history_manager: &Arc<HistoryManager>,
+    transcription_manager: &Arc<TranscriptionManager>,
+    source: HistoryEntry,
+    run: crate::modes::RunPlan,
 ) -> Result<(), String> {
-    let entry = history_manager
-        .get_entry_by_id(id)
-        .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| format!("History entry {} not found", id))?;
-
     let audio_path = history_manager
-        .get_audio_file_path(&entry.file_name)
-        .ok_or_else(|| format!("History entry {} has no stored recording", id))?;
+        .get_audio_file_path(&source.file_name)
+        .ok_or_else(|| format!("History entry {} has no stored recording", source.id))?;
     let samples = crate::audio_toolkit::read_wav_samples(&audio_path)
         .map_err(|e| format!("Failed to load audio: {}", e))?;
     if samples.is_empty() {
@@ -221,16 +221,8 @@ pub async fn retry_history_entry_transcription(
         .and_then(|count| count.checked_mul(1_000))
         .map(|count| count / u64::from(crate::audio_toolkit::constants::WHISPER_SAMPLE_RATE));
 
-    // Retries use a new frozen run but deliberately do not capture Sona's
-    // history window as application context.
-    let run = crate::modes::RunPlan::for_retry(
-        &crate::settings::get_settings(&app),
-        entry.post_process_requested,
-    )
-    .map_err(|error| error.to_string())?;
-
     transcription_manager.initiate_model_load(run.asr());
-    let tm = Arc::clone(&transcription_manager);
+    let tm = Arc::clone(transcription_manager);
     let asr = run.asr().clone();
     let transcription =
         tauri::async_runtime::spawn_blocking(move || tm.transcribe_shared(&asr, &samples))
@@ -241,14 +233,14 @@ pub async fn retry_history_entry_transcription(
         return Err("Recording contains no speech".to_string());
     }
 
-    let processed = process_transcription_output(&app, &transcription, &run).await;
+    let processed = process_transcription_output(app, &transcription, &run).await;
     let word_count = u64::try_from(processed.final_text.split_whitespace().count()).ok();
-    let retry = history_manager
-        .save_retry_entry_with_receipt(
-            id,
-            entry.file_name,
+    let saved = history_manager
+        .save_derived_entry_with_receipt(
+            source.id,
+            source.file_name,
             transcription,
-            entry.post_process_requested,
+            run.post_process_requested(),
             processed.post_processed_text,
             NewRunReceipt {
                 run: run.mode_receipt(),
@@ -265,12 +257,60 @@ pub async fn retry_history_entry_transcription(
         .map_err(|error| error.to_string())?;
     history_manager
         .append_delivery_attempt(
-            retry.id,
+            saved.id,
             run.run_id,
             crate::delivery::DeliveryReceipt::not_dispatched(),
         )
         .map_err(|error| error.to_string())?;
     Ok(())
+}
+
+async fn history_entry_or_error(
+    history_manager: &Arc<HistoryManager>,
+    id: i64,
+) -> Result<HistoryEntry, String> {
+    history_manager
+        .get_entry_by_id(id)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("History entry {} not found", id))
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn retry_history_entry_transcription(
+    app: AppHandle,
+    history_manager: State<'_, Arc<HistoryManager>>,
+    transcription_manager: State<'_, Arc<TranscriptionManager>>,
+    id: i64,
+) -> Result<(), String> {
+    let entry = history_entry_or_error(&history_manager, id).await?;
+    // Retries use a new frozen run but deliberately do not capture Sona's
+    // history window as application context.
+    let run = crate::modes::RunPlan::for_retry(
+        &crate::settings::get_settings(&app),
+        entry.post_process_requested,
+    )
+    .map_err(|error| error.to_string())?;
+    replay_stored_recording(&app, &history_manager, &transcription_manager, entry, run).await
+}
+
+/// Runs a stored recording through a different mode than the one that produced
+/// it. The original entry is never mutated; the result is a new entry whose
+/// `parent_id` points back at it.
+#[tauri::command]
+#[specta::specta]
+pub async fn reprocess_history_entry(
+    app: AppHandle,
+    history_manager: State<'_, Arc<HistoryManager>>,
+    transcription_manager: State<'_, Arc<TranscriptionManager>>,
+    id: i64,
+    mode_id: String,
+) -> Result<(), String> {
+    let entry = history_entry_or_error(&history_manager, id).await?;
+    let run = crate::modes::RunPlan::for_reprocess(&crate::settings::get_settings(&app), &mode_id)
+        .map_err(|error| error.to_string())?;
+    replay_stored_recording(&app, &history_manager, &transcription_manager, entry, run).await
 }
 
 fn current_time_ms() -> u64 {

@@ -50,13 +50,54 @@ const OVERLAY_HEIGHT: f64 = 46.0;
 const OVERLAY_STREAM_WIDTH: f64 = 400.0;
 const OVERLAY_STREAM_HEIGHT: f64 = 120.0;
 
+/// The overlay state string for the always-visible idle pill. Unlike the four
+/// transient states, this one is not driven by a dictation: it is what the
+/// overlay falls back to when nothing is happening and the user asked for a
+/// persistent HUD.
+pub const HUD_IDLE_STATE: &str = "idle";
+
+// The idle pill only carries a mode name and a mic glyph, so it is narrower and
+// shorter than the working pill.
+const OVERLAY_IDLE_WIDTH: f64 = 184.0;
+const OVERLAY_IDLE_HEIGHT: f64 = 36.0;
+
 /// Overlay window size (logical) for a given UI state.
 fn overlay_dimensions(state: &str) -> (f64, f64) {
-    if state == "streaming" {
-        (OVERLAY_STREAM_WIDTH, OVERLAY_STREAM_HEIGHT)
-    } else {
-        (OVERLAY_WIDTH, OVERLAY_HEIGHT)
+    match state {
+        "streaming" => (OVERLAY_STREAM_WIDTH, OVERLAY_STREAM_HEIGHT),
+        HUD_IDLE_STATE => (OVERLAY_IDLE_WIDTH, OVERLAY_IDLE_HEIGHT),
+        _ => (OVERLAY_WIDTH, OVERLAY_HEIGHT),
     }
+}
+
+/// Whether the overlay window is currently parked on the idle pill. Tracked
+/// because repositioning happens without a state argument, and the pill anchors
+/// to its own screen edge.
+static OVERLAY_SHOWING_IDLE: AtomicBool = AtomicBool::new(false);
+
+/// Which screen edge a given overlay state anchors to.
+fn overlay_anchor(settings: &settings::AppSettings, state: &str) -> OverlayPosition {
+    if state == HUD_IDLE_STATE {
+        settings.hud_pill_position
+    } else {
+        settings.overlay_position
+    }
+}
+
+/// The state the overlay window is currently displaying, as far as geometry is
+/// concerned.
+fn current_overlay_state() -> &'static str {
+    if OVERLAY_SHOWING_IDLE.load(Ordering::Relaxed) {
+        HUD_IDLE_STATE
+    } else {
+        "recording"
+    }
+}
+
+/// Whether the idle pill should be on screen right now. `OverlayStyle::None`
+/// disables overlay rendering wholesale, so it also suppresses the pill.
+fn hud_pill_visible(settings: &settings::AppSettings) -> bool {
+    settings.hud_pill_enabled && settings.overlay_style != OverlayStyle::None
 }
 
 static LAST_MIC_LEVEL_EMIT: AtomicU64 = AtomicU64::new(0);
@@ -173,7 +214,8 @@ fn init_gtk_layer_shell(overlay_window: &tauri::webview::WebviewWindow) -> bool 
         gtk_window.set_keyboard_mode(KeyboardMode::None);
         gtk_window.set_exclusive_zone(0);
 
-        let overlay_position = settings::get_settings(overlay_window.app_handle()).overlay_position;
+        let settings = settings::get_settings(overlay_window.app_handle());
+        let overlay_position = overlay_anchor(&settings, current_overlay_state());
         configure_layer_shell_surface(&gtk_window, overlay_position, OVERLAY_WIDTH, OVERLAY_HEIGHT);
 
         let initialized = gtk_window.is_layer_window();
@@ -289,6 +331,7 @@ fn calculate_overlay_position(
     app_handle: &AppHandle,
     width: f64,
     height: f64,
+    anchor: OverlayPosition,
 ) -> Option<(f64, f64)> {
     let monitor = get_monitor_with_cursor(app_handle)?;
     let scale = monitor.scale_factor();
@@ -296,10 +339,8 @@ fn calculate_overlay_position(
     let monitor_y = f64::from(monitor.position().y) / scale;
     let monitor_width = f64::from(monitor.size().width) / scale;
 
-    let settings = settings::get_settings(app_handle);
-
     let x = monitor_x + (monitor_width - width) / 2.0;
-    let y = match settings.overlay_position {
+    let y = match anchor {
         OverlayPosition::Top => monitor_y + OVERLAY_TOP_OFFSET,
         OverlayPosition::Bottom => {
             // work_area.position shares monitor.position's global coordinate
@@ -374,6 +415,7 @@ fn place_windows_overlay(
     overlay_window: &tauri::webview::WebviewWindow,
     logical_width: f64,
     logical_height: f64,
+    anchor: OverlayPosition,
 ) -> Result<(), String> {
     use windows::Win32::UI::WindowsAndMessaging::{SetWindowPos, SWP_NOACTIVATE, SWP_NOZORDER};
 
@@ -385,7 +427,7 @@ fn place_windows_overlay(
         monitor.scale_factor(),
         logical_width,
         logical_height,
-        settings::get_settings(app_handle).overlay_position,
+        anchor,
     );
     let hwnd = overlay_window
         .hwnd()
@@ -423,7 +465,12 @@ pub fn create_recording_overlay(app_handle: &AppHandle) {
     // for Layer Shell as we use anchors. On other platforms, we require a monitor.
     #[cfg(not(target_os = "linux"))]
     {
-        let position = calculate_overlay_position(app_handle, OVERLAY_WIDTH, OVERLAY_HEIGHT);
+        let position = calculate_overlay_position(
+            app_handle,
+            OVERLAY_WIDTH,
+            OVERLAY_HEIGHT,
+            settings::get_settings(app_handle).overlay_position,
+        );
         if position.is_none() {
             debug!("Failed to determine overlay position, not creating overlay window");
             return;
@@ -481,7 +528,12 @@ pub fn create_recording_overlay(app_handle: &AppHandle) {
 /// Creates the recording overlay panel and keeps it hidden by default (macOS)
 #[cfg(target_os = "macos")]
 pub fn create_recording_overlay(app_handle: &AppHandle) {
-    if let Some((x, y)) = calculate_overlay_position(app_handle, OVERLAY_WIDTH, OVERLAY_HEIGHT) {
+    if let Some((x, y)) = calculate_overlay_position(
+        app_handle,
+        OVERLAY_WIDTH,
+        OVERLAY_HEIGHT,
+        settings::get_settings(app_handle).overlay_position,
+    ) {
         // PanelBuilder creates a Tauri window then converts it to NSPanel.
         // The window remains registered, so get_webview_window() still works.
         match PanelBuilder::<_, RecordingOverlayPanel>::new(app_handle, "recording_overlay")
@@ -548,7 +600,7 @@ fn show_overlay_state_on_main(app_handle: &AppHandle, state: &str) {
 
         #[cfg(target_os = "linux")]
         let shown_with_layer_shell = if LAYER_SHELL_ACTIVE.load(Ordering::SeqCst) {
-            let position = settings::get_settings(app_handle).overlay_position;
+            let position = overlay_anchor(&settings::get_settings(app_handle), state);
             match overlay_window.gtk_window() {
                 Ok(gtk_window) => {
                     configure_layer_shell_surface(&gtk_window, position, width, height)
@@ -570,25 +622,34 @@ fn show_overlay_state_on_main(app_handle: &AppHandle, state: &str) {
                 overlay_window.set_size(tauri::Size::Logical(tauri::LogicalSize { width, height }));
             #[cfg(target_os = "windows")]
             WINDOWS_OVERLAY_IS_STREAMING.store(state == "streaming", Ordering::Relaxed);
+            OVERLAY_SHOWING_IDLE.store(state == HUD_IDLE_STATE, Ordering::Relaxed);
             let size_elapsed = size_started.elapsed();
 
             let pos_started = std::time::Instant::now();
             #[cfg(not(target_os = "windows"))]
-            let set_pos_elapsed =
-                if let Some((x, y)) = calculate_overlay_position(app_handle, width, height) {
-                    let set_pos_started = std::time::Instant::now();
-                    let _ = overlay_window
-                        .set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
-                    set_pos_started.elapsed()
-                } else {
-                    std::time::Duration::ZERO
-                };
+            let set_pos_elapsed = if let Some((x, y)) = calculate_overlay_position(
+                app_handle,
+                width,
+                height,
+                overlay_anchor(&settings::get_settings(app_handle), state),
+            ) {
+                let set_pos_started = std::time::Instant::now();
+                let _ = overlay_window
+                    .set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
+                set_pos_started.elapsed()
+            } else {
+                std::time::Duration::ZERO
+            };
             #[cfg(target_os = "windows")]
             let set_pos_elapsed = {
                 let set_pos_started = std::time::Instant::now();
-                if let Err(error) =
-                    place_windows_overlay(app_handle, &overlay_window, width, height)
-                {
+                if let Err(error) = place_windows_overlay(
+                    app_handle,
+                    &overlay_window,
+                    width,
+                    height,
+                    overlay_anchor(&settings::get_settings(app_handle), state),
+                ) {
                     log::error!("Failed to place recording overlay: {error}");
                 }
                 set_pos_started.elapsed()
@@ -606,7 +667,13 @@ fn show_overlay_state_on_main(app_handle: &AppHandle, state: &str) {
             // Re-assert bounds after show(): the pre-show move crosses the DPI
             // boundary, and tao's WM_DPICHANGED reflow clobbers the first placement.
             #[cfg(target_os = "windows")]
-            if let Err(error) = place_windows_overlay(app_handle, &overlay_window, width, height) {
+            if let Err(error) = place_windows_overlay(
+                app_handle,
+                &overlay_window,
+                width,
+                height,
+                overlay_anchor(&settings::get_settings(app_handle), state),
+            ) {
                 log::error!("Failed to re-assert recording overlay position: {error}");
             }
 
@@ -673,7 +740,8 @@ fn update_overlay_position_on_main(app_handle: &AppHandle) {
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
         #[cfg(target_os = "linux")]
         if LAYER_SHELL_ACTIVE.load(Ordering::SeqCst) {
-            let position = settings::get_settings(app_handle).overlay_position;
+            let position =
+                overlay_anchor(&settings::get_settings(app_handle), current_overlay_state());
             match overlay_window.gtk_window() {
                 Ok(gtk_window) => configure_layer_shell_position(&gtk_window, position),
                 Err(error) => log::error!("Failed to access GTK overlay window: {error}"),
@@ -686,10 +754,16 @@ fn update_overlay_position_on_main(app_handle: &AppHandle) {
             let state = if WINDOWS_OVERLAY_IS_STREAMING.load(Ordering::Relaxed) {
                 "streaming"
             } else {
-                "recording"
+                current_overlay_state()
             };
             let (width, height) = overlay_dimensions(state);
-            if let Err(error) = place_windows_overlay(app_handle, &overlay_window, width, height) {
+            if let Err(error) = place_windows_overlay(
+                app_handle,
+                &overlay_window,
+                width,
+                height,
+                overlay_anchor(&settings::get_settings(app_handle), state),
+            ) {
                 log::error!("Failed to update recording overlay position: {error}");
             }
         }
@@ -700,7 +774,12 @@ fn update_overlay_position_on_main(app_handle: &AppHandle) {
             // overlay is in compact or streaming layout.
             let (width, height) = current_overlay_logical_size(&overlay_window)
                 .unwrap_or((OVERLAY_WIDTH, OVERLAY_HEIGHT));
-            if let Some((x, y)) = calculate_overlay_position(app_handle, width, height) {
+            if let Some((x, y)) = calculate_overlay_position(
+                app_handle,
+                width,
+                height,
+                overlay_anchor(&settings::get_settings(app_handle), current_overlay_state()),
+            ) {
                 let _ = overlay_window
                     .set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
             }
@@ -716,14 +795,28 @@ fn update_overlay_position_on_main(app_handle: &AppHandle) {
 /// instant it drained, well inside the 300 ms hide delay.
 static OVERLAY_SHOW_GENERATION: AtomicU64 = AtomicU64::new(0);
 
-/// Hides the recording overlay window with fade-out animation
+/// Returns the overlay to rest after a dictation.
+///
+/// When the idle pill is enabled the window is not unmapped: the pill *is* the
+/// resting state, so the overlay transitions to it instead. Every terminal path
+/// in the pipeline already calls this one function, which is why the guard
+/// lives here rather than at each of those call sites.
 pub fn hide_recording_overlay(app_handle: &AppHandle) {
-    // Always hide the overlay regardless of settings - if setting was changed while recording,
-    // we still want to hide it properly
+    if hud_pill_visible(&settings::get_settings(app_handle)) {
+        show_overlay_state(app_handle, HUD_IDLE_STATE);
+        return;
+    }
+    hide_overlay_window(app_handle);
+}
+
+/// Unmaps the overlay window with its fade-out animation, regardless of any
+/// setting. A setting changed mid-recording must still leave the screen clean.
+fn hide_overlay_window(app_handle: &AppHandle) {
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
         // Snapshot before anything observable happens, so any show that lands
         // after this point invalidates the delayed hide below.
         let scheduled_at = OVERLAY_SHOW_GENERATION.load(Ordering::SeqCst);
+        OVERLAY_SHOWING_IDLE.store(false, Ordering::Relaxed);
         // Emit event to trigger fade-out animation
         let _ = overlay_window.emit("hide-overlay", ());
         // Hide the window after a short delay to allow animation to complete,
@@ -737,6 +830,19 @@ pub fn hide_recording_overlay(app_handle: &AppHandle) {
             }
             let _ = window_clone.hide();
         });
+    }
+}
+
+/// Brings the idle pill on or off screen to match the current settings.
+///
+/// Called at startup and whenever a setting that governs the pill changes, so
+/// the window state is always derived from settings rather than accumulated
+/// from past transitions.
+pub fn sync_hud_pill(app_handle: &AppHandle) {
+    if hud_pill_visible(&settings::get_settings(app_handle)) {
+        show_overlay_state(app_handle, HUD_IDLE_STATE);
+    } else if OVERLAY_SHOWING_IDLE.load(Ordering::Relaxed) {
+        hide_overlay_window(app_handle);
     }
 }
 
