@@ -870,11 +870,28 @@ fn initialize_core_logic(app_handle: &AppHandle) -> anyhow::Result<()> {
         tray::update_tray_menu(&app_handle_for_listener);
     });
 
-    // Apply the autostart preference (SMAppService login item on macOS 13+,
-    // tauri-plugin-autostart elsewhere)
-    autostart::apply_autostart(app_handle, settings.autostart_enabled);
+    // Reconcile the autostart preference off the startup path. On macOS 13+ the
+    // SMAppService status query is a synchronous XPC round-trip that measured
+    // ~1.75 s on a cold launch — more than the rest of startup put together —
+    // and the login item it settles only takes effect at the next login, so
+    // nothing before the first paint has any reason to wait for it.
+    // `reconcile_autostart` reads the persisted preference under its own lock,
+    // so a settings change made while this is still in flight wins.
+    let autostart_app = app_handle.clone();
+    std::thread::spawn(move || autostart::reconcile_autostart(&autostart_app));
+    Ok(())
+}
 
-    // Create the recording overlay window (hidden by default)
+/// Create the always-hidden recording overlay window and wire its native mode
+/// menu, then show the idle pill if it is enabled.
+///
+/// Called after the main window is shown: this builds a second webview, which
+/// measured ~43 ms of main-thread time, and every consumer of the overlay
+/// (dictation shortcuts, tray, HUD commands, media import) is reachable only
+/// once the event loop is dispatching, which cannot happen before `setup`
+/// returns. So the overlay is always in place before anything can look for it,
+/// while the main window's first paint no longer queues behind it.
+fn initialize_recording_overlay(app_handle: &AppHandle) {
     utils::create_recording_overlay(app_handle);
     // The idle pill lives in that same window. Its mode menu is a real OS menu,
     // so its selections arrive as menu events rather than through the webview.

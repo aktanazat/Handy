@@ -8,17 +8,56 @@
 //! `SMAppService` login items are attributed to the app bundle itself and
 //! appear under "Open at Login" with the app's name and icon.
 
+use std::sync::{Mutex, MutexGuard};
+
 use tauri::AppHandle;
 use tauri_plugin_autostart::ManagerExt;
 
-/// Apply the user's autostart preference using the best mechanism for the
+/// Serializes login-item application so a status read is never separated from
+/// the register/unregister it decides on. Two unserialized applications can
+/// interleave their check and their act and leave the OS registered against
+/// the older of the two requests.
+static APPLYING: Mutex<()> = Mutex::new(());
+
+fn lock_applying() -> MutexGuard<'static, ()> {
+    APPLYING
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+/// Apply an explicit autostart preference using the best mechanism for the
 /// current platform.
+///
+/// **Blocks.** On macOS 13+ the `SMAppService` status query is a synchronous
+/// XPC round-trip to the background-task management service, measured at
+/// ~1.75 s on a cold launch. Never call this from a path a window paint waits
+/// on; use [`reconcile_autostart`] from a worker thread instead.
 ///
 /// Errors are logged rather than returned: the preference is re-applied on
 /// every launch, so a transient failure self-heals and must not block
 /// startup. This mirrors the pre-existing behavior of ignoring
 /// enable()/disable() results.
 pub fn apply_autostart(app: &AppHandle, enabled: bool) {
+    let _serialized = lock_applying();
+    apply_locked(app, enabled);
+}
+
+/// Bring the OS login item in line with the persisted `autostart_enabled`
+/// preference.
+///
+/// The preference is read *inside* the serialization lock, so this never
+/// applies a value that went stale while it waited: the persisted setting is
+/// the single source of truth, and a concurrent [`apply_autostart`] from a
+/// settings change cannot be overwritten by an older captured value.
+///
+/// **Blocks** for as long as [`apply_autostart`] does.
+pub fn reconcile_autostart(app: &AppHandle) {
+    let _serialized = lock_applying();
+    apply_locked(app, crate::settings::get_settings(app).autostart_enabled);
+}
+
+/// The platform work itself. Callers hold [`APPLYING`].
+fn apply_locked(app: &AppHandle, enabled: bool) {
     #[cfg(target_os = "macos")]
     if macos::login_item_api_available() {
         macos::remove_plugin_launch_agent(app);
