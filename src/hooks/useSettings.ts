@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { useSettingsStore } from "../stores/settingsStore";
+import { useShallow } from "zustand/react/shallow";
+import { useSettingsStore, type SettingsStore } from "../stores/settingsStore";
 import type { AppSettings as Settings, AudioDevice } from "@/bindings";
 
 interface UseSettingsReturn {
@@ -45,8 +46,50 @@ interface UseSettingsReturn {
   fetchPostProcessModels: (providerId: string) => Promise<string[]>;
 }
 
+/* Exactly the slices this hook hands back, named one by one, so the list below
+ * is the whole truth about what wakes a consumer.
+ *
+ * The store also holds `defaultSettings` and `customSounds`, which nothing here
+ * exposes; under the previous whole-store subscription a write to either woke
+ * every consumer to re-read values none of them can see.
+ *
+ * `isUpdating` names the record, not the `isUpdatingKey` getter callers invoke:
+ * the getter reads through `get()`, so the subscription that makes a control's
+ * spinner appear and clear has to name the record it reads.
+ *
+ * Every slice is returned by reference and never mapped, spread or rebuilt, so
+ * `settings` keeps the identity its callers depend on — Overview hangs
+ * `useCallback` deps off `settings.modes` and a listener off that identity. The
+ * actions are created once by `create()` and never replaced, so they sit in the
+ * comparison without ever moving it. */
+const selectExposed = (state: SettingsStore) => ({
+  settings: state.settings,
+  isLoading: state.isLoading,
+  isUpdating: state.isUpdating,
+  audioDevices: state.audioDevices,
+  outputDevices: state.outputDevices,
+  postProcessModelOptions: state.postProcessModelOptions,
+  isUpdatingKey: state.isUpdatingKey,
+  getSetting: state.getSetting,
+  initialize: state.initialize,
+  updateSetting: state.updateSetting,
+  resetSetting: state.resetSetting,
+  refreshSettings: state.refreshSettings,
+  refreshAudioDevices: state.refreshAudioDevices,
+  refreshOutputDevices: state.refreshOutputDevices,
+  updateBinding: state.updateBinding,
+  resetBinding: state.resetBinding,
+  setPostProcessProvider: state.setPostProcessProvider,
+  updatePostProcessBaseUrl: state.updatePostProcessBaseUrl,
+  replacePostProcessSecret: state.replacePostProcessSecret,
+  removePostProcessSecret: state.removePostProcessSecret,
+  refreshPostProcessSecretState: state.refreshPostProcessSecretState,
+  updatePostProcessModel: state.updatePostProcessModel,
+  fetchPostProcessModels: state.fetchPostProcessModels,
+});
+
 export const useSettings = (): UseSettingsReturn => {
-  const store = useSettingsStore();
+  const store = useSettingsStore(useShallow(selectExposed));
 
   // Initialize on first mount
   useEffect(() => {

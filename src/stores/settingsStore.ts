@@ -9,7 +9,7 @@ import {
   type OrtAcceleratorSetting,
 } from "@/bindings";
 
-interface SettingsStore {
+export interface SettingsStore {
   settings: Settings | null;
   defaultSettings: Settings | null;
   isLoading: boolean;
@@ -187,6 +187,10 @@ const settingUpdaters: Partial<Record<keyof Settings, SettingUpdater>> = {
   extra_recording_buffer_ms: (value) =>
     commands.changeExtraRecordingBufferSetting(value as number),
 };
+
+/* The in-flight (then settled) first load. See `initialize` for why the latch
+ * lives beside the store rather than inside its state. */
+let initialization: Promise<void> | null = null;
 
 export const useSettingsStore = create<SettingsStore>()(
   subscribeWithSelector((set, get) => ({
@@ -680,31 +684,51 @@ export const useSettingsStore = create<SettingsStore>()(
       }
     },
 
-    // Initialize everything
+    /* One load per window, however many consumers ask for it.
+     *
+     * Every `useSettings()` consumer arms this from its mount effect while
+     * `isLoading` is still true, and `isLoading` only clears once the first
+     * `refreshSettings()` answers — so on a settings page with eighteen
+     * consumers this ran eighteen times concurrently. That cost eighteen
+     * `get_app_settings`, `get_default_settings` and `check_custom_sounds`
+     * round-trips, and it registered the two backend listeners eighteen times
+     * over, after which a single `settings-changed` emit fanned out into
+     * eighteen refreshes and eighteen store writes.
+     *
+     * The latch is module state rather than store state because it is not
+     * rendered and must not wake a subscriber; the store is a module singleton
+     * already. Callers still await the same completion they always did. The body
+     * cannot reject — each of the three loads catches its own failure — so
+     * there is nothing here to reset and retry. */
     initialize: async () => {
-      const { refreshSettings, checkCustomSounds, loadDefaultSettings } = get();
+      initialization ??= (async () => {
+        const { refreshSettings, checkCustomSounds, loadDefaultSettings } =
+          get();
 
-      // Note: Audio devices are NOT refreshed here. The frontend (App.tsx)
-      // is responsible for calling refreshAudioDevices/refreshOutputDevices
-      // after onboarding completes. This avoids triggering permission dialogs
-      // on macOS before the user is ready.
-      await Promise.all([
-        loadDefaultSettings(),
-        refreshSettings(),
-        checkCustomSounds(),
-      ]);
+        // Note: Audio devices are NOT refreshed here. The frontend (App.tsx)
+        // is responsible for calling refreshAudioDevices/refreshOutputDevices
+        // after onboarding completes. This avoids triggering permission dialogs
+        // on macOS before the user is ready.
+        await Promise.all([
+          loadDefaultSettings(),
+          refreshSettings(),
+          checkCustomSounds(),
+        ]);
 
-      // Re-fetch settings when the backend changes them (e.g. language
-      // reset during model switch). The backend is the source of truth.
-      listen("model-state-changed", () => {
-        get().refreshSettings();
-      });
-      listen<{ setting?: string }>("settings-changed", (event) => {
-        get().refreshSettings();
-        if (event.payload.setting === "selected_microphone") {
-          get().refreshAudioDevices();
-        }
-      });
+        // Re-fetch settings when the backend changes them (e.g. language
+        // reset during model switch). The backend is the source of truth.
+        listen("model-state-changed", () => {
+          get().refreshSettings();
+        });
+        listen<{ setting?: string }>("settings-changed", (event) => {
+          get().refreshSettings();
+          if (event.payload.setting === "selected_microphone") {
+            get().refreshAudioDevices();
+          }
+        });
+      })();
+
+      return initialization;
     },
   })),
 );

@@ -176,7 +176,7 @@ interface HistoryEntryComponentProps {
   retryTranscription: (id: number) => Promise<void>;
 }
 
-export const HistoryEntryComponent: React.FC<HistoryEntryComponentProps> = ({
+const HistoryEntryRow: React.FC<HistoryEntryComponentProps> = ({
   entry,
   receipts,
   view,
@@ -511,6 +511,16 @@ export const HistoryEntryComponent: React.FC<HistoryEntryComponentProps> = ({
     </li>
   );
 };
+
+/* The row is the list's unit of cost, and its props are all identity-stable
+ * while the row's own data is unchanged: `entry` objects come straight out of
+ * the list reducer (which rebuilds only the entry it mutates), `receipts` is one
+ * value out of the receipt record, `view` is a string, and every callback the
+ * owner passes is wrapped in `useCallback`. Without this boundary one keystroke
+ * in the Library search box re-rendered the whole page of rows, because the
+ * search field's state lives in the component that owns the list. Every child
+ * below is a plain component, so this one memo covers the row's whole subtree. */
+export const HistoryEntryComponent = React.memo(HistoryEntryRow);
 
 interface HistoryRowMetaProps {
   entry: HistoryEntry;
