@@ -3,13 +3,13 @@ import { expect, test } from "@playwright/test";
 import { installTauriMock } from "./support/tauri-mock";
 
 test.describe("Meetings", () => {
-  test("a detected meeting reaches explicit consent before capture start", async ({
+  test("one press records, under a disclosure that is on screen first", async ({
     page,
   }) => {
     await installTauriMock(page, {
       responses: {
         // One pending suggestion, so the meetings surface renders the detected
-        // meeting path rather than its empty state.
+        // meeting path alongside its own start block.
         meeting_suggestions_list: [
           {
             offer_id: "offer-1",
@@ -32,30 +32,26 @@ test.describe("Meetings", () => {
     // Meetings is a segment of the Library section, not a top-level nav item.
     await page.getByRole("button", { name: "Library", exact: true }).click();
     await page.getByRole("button", { name: "Meetings", exact: true }).click();
-    await page
-      .getByRole("button", { name: "Start local notes", exact: true })
-      .click();
 
+    const start = page
+      .getByRole("button", { name: "Start recording", exact: true })
+      .first();
+    // The promise the press makes has to be readable before the press:
+    // pressing Start is what the backend records as the acknowledgment.
     await expect(
-      page.getByRole("heading", { name: "Start local notes" }),
+      page
+        .getByText("Records your Mac's audio locally. Nothing joins the call.")
+        .first(),
     ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Check recording setup" }),
-    ).toBeVisible();
+    await expect(start).toBeEnabled();
     await expect
       .poll(() =>
         page.evaluate(() => Number(localStorage.getItem("meeting-started"))),
       )
       .toBe(0);
 
-    await page.getByRole("button", { name: "Check recording setup" }).click();
-    const start = page.getByRole("button", {
-      name: "Start local notes",
-      exact: true,
-    });
-    await expect(start).toBeDisabled();
-    await page.getByLabel("I have permission to capture this meeting.").check();
-    await expect(start).toBeEnabled();
+    // No setup screen in between: this press creates the session and starts
+    // capture in one action.
     await start.click();
 
     await expect(page.getByText("Active capture")).toBeVisible();

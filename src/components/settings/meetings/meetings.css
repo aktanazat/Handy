@@ -1,0 +1,375 @@
+/* Meetings page chrome.
+ *
+ * Everything here is flat: sections are separated by space and hairlines, and
+ * the only boxes are the two things a person actually acts on — a meeting
+ * entry they open, and a prompt they answer. */
+
+/* ------------------------------------------------------------ start block */
+
+/* One control starts a meeting. It sits alone above a hairline with the
+ * assurance sentence beside it, because what the button does to the room is
+ * the part people need to read before pressing it. */
+.meeting-start {
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-bottom: var(--space-5);
+}
+
+.meeting-start-primary {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-4);
+}
+
+.meeting-start-button {
+  min-block-size: 40px;
+  padding-inline: var(--space-5);
+  font-size: var(--fs-label-14);
+}
+
+.meeting-start-assurance {
+  color: var(--text-secondary);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  margin: 0;
+  max-inline-size: 46ch;
+  text-wrap: pretty;
+}
+
+.meeting-start-controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+
+/* A capture source is a two-state control, so it reads as one: hairline when
+ * off, the Geist inversion when on. */
+.meeting-source-chip {
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: var(--fs-label-13);
+  font-weight: var(--fw-button);
+  gap: var(--space-1-5);
+  min-block-size: 28px;
+  padding-inline: var(--space-3);
+  transition:
+    background-color 150ms var(--ease-out),
+    border-color 150ms var(--ease-out),
+    color 150ms var(--ease-out);
+}
+
+.meeting-source-chip:hover:not(:disabled) {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.meeting-source-chip[aria-pressed="true"] {
+  background: var(--invert-bg);
+  border-color: var(--invert-bg);
+  color: var(--invert-fg);
+}
+
+.meeting-source-chip:disabled {
+  cursor: not-allowed;
+  color: var(--text-disabled);
+}
+
+.meeting-start-facts {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+}
+
+/* The microlabel row reads as one sentence of status, so the separators are
+ * drawn rather than typed. */
+.meeting-start-facts > * + *::before {
+  color: var(--text-tertiary);
+  content: "·";
+  margin-inline-end: var(--space-3);
+}
+
+/* -------------------------------------------------------- meeting entries */
+
+/* A meeting is an object you open, which is the one thing on this page that
+ * earns a surface. */
+.meeting-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.meeting-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-panel);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  inline-size: 100%;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  text-align: start;
+}
+
+/* Only the card that is really a control behaves like one. A prompt card
+ * carries its own buttons, so the card itself must not look pressable. */
+button.meeting-card {
+  cursor: pointer;
+  transition:
+    background-color 150ms var(--ease-out),
+    border-color 150ms var(--ease-out);
+}
+
+button.meeting-card:hover {
+  background: var(--wash-hover);
+  border-color: var(--border-hover);
+}
+
+button.meeting-card:active {
+  background: var(--wash-active);
+}
+
+.meeting-card-title {
+  color: var(--text-primary);
+  font-size: var(--type-row-size);
+  font-weight: var(--fw-heading);
+  line-height: var(--type-row-line);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meeting-card-meta {
+  align-items: flex-end;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--space-0-5);
+}
+
+/* ------------------------------------------------------------ flat rows */
+
+/* The shape every non-object row on these pages uses: label left, state
+ * right, hairline between, no box around the set. */
+.meeting-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.meeting-row {
+  align-items: baseline;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  justify-content: space-between;
+  min-block-size: 40px;
+  padding-block: var(--space-2);
+}
+
+.meeting-rows > .meeting-row:last-child,
+.meeting-row:last-child {
+  border-bottom: 0;
+}
+
+/* Same hairline rhythm, but the row's own content stacks: a source reports
+ * more than one fact about itself. */
+.meeting-row-stacked {
+  border-bottom: 1px solid var(--border-subtle);
+  padding-block: var(--space-3);
+}
+
+.meeting-rows > .meeting-row-stacked:last-child {
+  border-bottom: 0;
+}
+
+/* The row's whole body is a control, so the control owns the padding and the
+ * hit target reaches the hairline. */
+.meeting-row-flush {
+  padding-block: 0;
+}
+
+.meeting-row-label {
+  color: var(--text-primary);
+  font-size: var(--type-row-size);
+  font-weight: var(--fw-button);
+  line-height: var(--type-row-line);
+  margin: 0;
+}
+
+.meeting-row-value {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------- numbers */
+
+/* Four facts about the conversation. Tiles, not cards: a hairline between
+ * columns is enough separation for numbers that are read together. */
+.meeting-stats {
+  border-block: 1px solid var(--border-subtle);
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.meeting-stat {
+  border-bottom: 1px solid var(--border-subtle);
+  min-inline-size: 0;
+  padding: var(--space-3) var(--space-4) var(--space-3) 0;
+}
+
+.meeting-stat:nth-child(2n) {
+  border-inline-start: 1px solid var(--border-subtle);
+  padding-inline-start: var(--space-4);
+}
+
+.meeting-stat:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+
+.meeting-stat-value {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--fs-heading-20);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--fw-heading);
+  line-height: var(--lh-heading-20);
+  margin-top: var(--space-1);
+}
+
+@media (min-width: 640px) {
+  .meeting-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .meeting-stat {
+    border-bottom: 0;
+  }
+
+  .meeting-stat:nth-child(2n) {
+    border-inline-start: 0;
+    padding-inline-start: 0;
+  }
+
+  .meeting-stat + .meeting-stat {
+    border-inline-start: 1px solid var(--border-subtle);
+    padding-inline-start: var(--space-4);
+  }
+}
+
+/* ------------------------------------------------------------------ live */
+
+.meeting-live-header {
+  align-items: flex-end;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
+  justify-content: space-between;
+  padding-bottom: var(--space-4);
+}
+
+.meeting-elapsed {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--fs-heading-32);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--fw-heading);
+  letter-spacing: var(--ls-heading-32);
+  line-height: var(--lh-heading-32);
+}
+
+.meeting-transport {
+  align-items: center;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  padding-top: var(--space-4);
+}
+
+/* ---------------------------------------------------------- check + link */
+
+/* One checkbox pattern for the whole feature: the Geist inversion as the
+ * accent, a real focus ring, and a 16px box that lines up with 19px text. */
+.meeting-check {
+  accent-color: var(--invert-bg);
+  block-size: 16px;
+  cursor: pointer;
+  flex: none;
+  inline-size: 16px;
+  margin-block-start: 2px;
+}
+
+.meeting-check:disabled {
+  cursor: not-allowed;
+}
+
+/* A citation is a jump, so it is a link: the accent colour, underlined on
+ * hover, with the timestamp kept monospaced and tabular. */
+.meeting-citation {
+  background: none;
+  border: 0;
+  border-radius: var(--radius-xs);
+  color: var(--accent);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: var(--fs-microlabel);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  padding: 1px 2px;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 2px;
+  transition: text-decoration-color 150ms var(--ease-out);
+}
+
+.meeting-citation:hover {
+  text-decoration-color: currentColor;
+}
+
+.meeting-citation-static {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: var(--fs-microlabel);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  padding: 1px 2px;
+}
+
+/* ------------------------------------------------------------- artifacts */
+
+/* Generated notes are one document, so the blocks inside it are separated by
+ * hairlines and a microlabel, never by nested boxes. */
+.meeting-artifact {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--space-4);
+}
+
+.meeting-artifact-block + .meeting-artifact-block {
+  border-top: 1px solid var(--border-subtle);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+}
+
+.meeting-answer + .meeting-answer {
+  border-top: 1px solid var(--border-subtle);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+}

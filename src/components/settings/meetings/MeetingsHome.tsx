@@ -1,26 +1,30 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type {
   MeetingHistorySummary,
   MeetingRetentionPolicy,
   MeetingSuggestion,
+  SourceKind,
 } from "@/bindings";
-import {
-  Alert,
-  Button,
-  EmptyState,
-  Input,
-  List,
-  Row,
-  Section,
-  Skeleton,
-} from "../../ui";
+import { Alert, Button, EmptyState, Input, Section, Skeleton } from "../../ui";
 import {
   CaptureCompletenessText,
   MeetingPhaseText,
   ProcessingStatusText,
 } from "./MeetingStatus";
-import { formatMeetingDate, meetingProviderKey } from "./meetingUtils";
+import {
+  MEETING_SOURCES,
+  formatMeetingDate,
+  meetingProviderKey,
+  sourceKey,
+} from "./meetingUtils";
+import { MeetingDetectionSettings } from "./MeetingDetectionSettings";
+import { PreMeetingCountdownCard } from "./PreMeetingCountdownCard";
+import { MeetingTrackersSettings } from "./MeetingTrackersSettings";
+
+/** DOM id of the primary Start control, so a deep link can land on it. */
+const START_BUTTON_ID = "meeting-start-button";
 
 interface MeetingsHomeProps {
   suggestions: MeetingSuggestion[];
@@ -32,7 +36,13 @@ interface MeetingsHomeProps {
   /** Read-only echo of the policy owned by Settings, Privacy. */
   retention: MeetingRetentionPolicy | null;
   error: string | null;
-  onStartManual: () => void;
+  /** Sources the next capture will request. */
+  sources: SourceKind[];
+  starting: boolean;
+  /** True when the person arrived here asking to start, so Start takes focus. */
+  focusStart: boolean;
+  onSourcesChange: (sources: SourceKind[]) => void;
+  onStart: () => void;
   onStartSuggestion: (suggestion: MeetingSuggestion) => void;
   onOpenMeeting: (sessionId: string) => void;
   onFinalizeRecovery: (sessionId: string) => void;
@@ -42,15 +52,11 @@ interface MeetingsHomeProps {
 }
 
 const MeetingListSkeleton: React.FC<{ label: string }> = ({ label }) => (
-  <div
-    role="status"
-    aria-label={label}
-    className="divide-y divide-border overflow-hidden rounded-panel border border-border bg-surface"
-  >
+  <div role="status" aria-label={label} className="flex flex-col gap-2">
     {[0, 1, 2].map((row) => (
       <div
         key={row}
-        className="flex min-h-14 items-center justify-between gap-4 px-4 py-3"
+        className="flex min-h-14 items-center justify-between gap-4 rounded-panel border border-border-subtle px-4 py-3"
       >
         <div className="space-y-1.5">
           <Skeleton className="h-3.5 w-48" />
@@ -62,21 +68,162 @@ const MeetingListSkeleton: React.FC<{ label: string }> = ({ label }) => (
   </div>
 );
 
-interface MeetingRowMetaProps {
-  meeting: MeetingHistorySummary;
+interface SourceChipProps {
+  source: SourceKind;
+  selected: boolean;
+  disabled: boolean;
+  onToggle: () => void;
 }
 
-/* State on the right, in words, on two lines: phase first because it decides
- * what the row can do, then how complete the capture was and where
- * processing got to. */
-const MeetingRowMeta: React.FC<MeetingRowMetaProps> = ({ meeting }) => (
-  <span className="flex flex-col items-end gap-0.5">
-    <MeetingPhaseText phase={meeting.phase} />
-    <span className="flex items-center gap-2">
-      <CaptureCompletenessText completeness={meeting.capture_completeness} />
-      <ProcessingStatusText status={meeting.processing_status} />
-    </span>
-  </span>
+/* A capture source is a two-state control, so it is one control with two
+ * states rather than a checkbox pretending to be a setting. */
+const SourceChip: React.FC<SourceChipProps> = ({
+  source,
+  selected,
+  disabled,
+  onToggle,
+}) => {
+  const { t } = useTranslation();
+
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      disabled={disabled}
+      onClick={onToggle}
+      className="meeting-source-chip"
+    >
+      {selected ? <Check size={13} aria-hidden="true" /> : null}
+      {t(sourceKey(source))}
+    </button>
+  );
+};
+
+interface MeetingStartBlockProps {
+  sources: SourceKind[];
+  retention: MeetingRetentionPolicy | null;
+  starting: boolean;
+  focusStart: boolean;
+  onSourcesChange: (sources: SourceKind[]) => void;
+  onStart: () => void;
+}
+
+/* One press records a meeting. Everything else on this block is a state the
+ * press will use, shown inline and changeable in place: never a step, never a
+ * screen. The assurance sentence is beside the button because it is what the
+ * press does to the room, and because pressing it is the acknowledgment the
+ * backend records. */
+const MeetingStartBlock: React.FC<MeetingStartBlockProps> = ({
+  sources,
+  retention,
+  starting,
+  focusStart,
+  onSourcesChange,
+  onStart,
+}) => {
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    if (!focusStart) return;
+    document.getElementById(START_BUTTON_ID)?.focus();
+  }, [focusStart]);
+
+  const toggle = (source: SourceKind) =>
+    onSourcesChange(
+      sources.includes(source)
+        ? sources.filter((candidate) => candidate !== source)
+        : [...sources, source],
+    );
+
+  return (
+    <section
+      className="meeting-start"
+      aria-label={t("meetings.start.label", "Start a meeting")}
+    >
+      <div className="meeting-start-primary">
+        <Button
+          type="button"
+          id={START_BUTTON_ID}
+          className="meeting-start-button"
+          onClick={onStart}
+          disabled={starting || sources.length === 0}
+        >
+          {starting
+            ? t("meetings.start.starting", "Starting…")
+            : t("meetings.start.action", "Start recording")}
+        </Button>
+        <p className="meeting-start-assurance">
+          {t(
+            "meetings.start.assurance",
+            "Records your Mac's audio locally. Nothing joins the call.",
+          )}
+        </p>
+      </div>
+      <div className="meeting-start-controls">
+        <span className="microlabel">
+          {t("meetings.start.capture", "Capture")}
+        </span>
+        {MEETING_SOURCES.map((source) => (
+          <SourceChip
+            key={source}
+            source={source}
+            selected={sources.includes(source)}
+            disabled={starting}
+            onToggle={() => toggle(source)}
+          />
+        ))}
+        <span className="meeting-start-facts ms-auto">
+          <span className="microlabel">
+            {t("meetings.start.localOnly", "Local only")}
+          </span>
+          {retention === null ? null : (
+            <span className="microlabel">
+              {t("meetings.start.retention", "Kept: {{policy}}", {
+                policy:
+                  retention.kind === "forever"
+                    ? t("meetings.retention.forever")
+                    : t("meetings.retention.days", { days: retention.days }),
+              })}
+            </span>
+          )}
+        </span>
+      </div>
+      {sources.length === 0 ? (
+        <p className="text-[12.5px] leading-[18px] text-warning">
+          {t("meetings.start.noSources", "Choose at least one source.")}
+        </p>
+      ) : null}
+    </section>
+  );
+};
+
+interface MeetingCardProps {
+  meeting: MeetingHistorySummary;
+  onOpen: () => void;
+}
+
+/* A meeting is the one thing on this page a person selects and opens, which
+ * is what earns it a surface. Everything else here is a flat row. */
+const MeetingCard: React.FC<MeetingCardProps> = ({ meeting, onOpen }) => (
+  <li>
+    <button type="button" onClick={onOpen} className="meeting-card">
+      <span className="min-w-0">
+        <span className="meeting-card-title block">{meeting.title}</span>
+        <span className="microlabel mt-0.5 block">
+          {formatMeetingDate(meeting.created_at_utc_ms)}
+        </span>
+      </span>
+      <span className="meeting-card-meta">
+        <MeetingPhaseText phase={meeting.phase} />
+        <span className="flex items-center gap-2">
+          <CaptureCompletenessText
+            completeness={meeting.capture_completeness}
+          />
+          <ProcessingStatusText status={meeting.processing_status} />
+        </span>
+      </span>
+    </button>
+  </li>
 );
 
 export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
@@ -88,7 +235,11 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
   hasMore,
   retention,
   error,
-  onStartManual,
+  sources,
+  starting,
+  focusStart,
+  onSourcesChange,
+  onStart,
   onStartSuggestion,
   onOpenMeeting,
   onFinalizeRecovery,
@@ -123,18 +274,9 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
 
   return (
     <div className="settings-page">
-      <header className="settings-page-header data-page-header">
-        <div>
-          <h1 className="settings-page-title">{t("meetings.title")}</h1>
-          <p className="settings-page-description">
-            {t("meetings.description")}
-          </p>
-        </div>
-        <div className="data-page-actions">
-          <Button type="button" onClick={onStartManual}>
-            {t("meetings.actions.newMeeting")}
-          </Button>
-        </div>
+      <header className="settings-page-header">
+        <h1 className="settings-page-title">{t("meetings.title")}</h1>
+        <p className="settings-page-description">{t("meetings.description")}</p>
       </header>
 
       {error ? (
@@ -150,32 +292,48 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
         </Alert>
       ) : null}
 
+      <MeetingStartBlock
+        sources={sources}
+        retention={retention}
+        starting={starting}
+        focusStart={focusStart}
+        onSourcesChange={onSourcesChange}
+        onStart={onStart}
+      />
+
+      <PreMeetingCountdownCard />
+
       {suggestions.length > 0 ? (
         <Section
           title={t("meetings.detected.title")}
-          description={t("meetings.detected.description")}
+          description={t(
+            "meetings.start.assurance",
+            "Records your Mac's audio locally. Nothing joins the call.",
+          )}
         >
-          <List label={t("meetings.detected.title")}>
+          <ul
+            className="meeting-rows"
+            aria-label={t("meetings.detected.title")}
+          >
             {suggestions.map((suggestion) => (
-              <Row
-                key={suggestion.offer_id}
-                title={t("meetings.detected.mayBeActive", {
-                  provider: t(meetingProviderKey(suggestion.provider)),
-                })}
-                description={t(meetingProviderKey(suggestion.provider))}
-                actions={
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => onStartSuggestion(suggestion)}
-                  >
-                    {t("meetings.actions.startLocal")}
-                  </Button>
-                }
-              />
+              <li key={suggestion.offer_id} className="meeting-row">
+                <p className="meeting-row-label">
+                  {t("meetings.detected.mayBeActive", {
+                    provider: t(meetingProviderKey(suggestion.provider)),
+                  })}
+                </p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={starting}
+                  onClick={() => onStartSuggestion(suggestion)}
+                >
+                  {t("meetings.start.action", "Start recording")}
+                </Button>
+              </li>
             ))}
-          </List>
+          </ul>
         </Section>
       ) : null}
 
@@ -184,40 +342,42 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
           title={t("meetings.recovery.title")}
           description={t("meetings.recovery.description")}
         >
-          <List label={t("meetings.recovery.title")}>
+          <ul
+            className="meeting-rows"
+            aria-label={t("meetings.recovery.title")}
+          >
             {recovery.map((meeting) => (
-              <Row
-                key={meeting.session_id}
-                title={meeting.title}
-                description={formatMeetingDate(meeting.created_at_utc_ms)}
-                meta={
+              <li key={meeting.session_id} className="meeting-row">
+                <span className="min-w-0">
+                  <p className="meeting-row-label">{meeting.title}</p>
+                  <span className="microlabel">
+                    {formatMeetingDate(meeting.created_at_utc_ms)}
+                  </span>
+                </span>
+                <span className="flex flex-none items-center gap-2">
                   <CaptureCompletenessText
                     completeness={meeting.capture_completeness}
                   />
-                }
-                actions={
-                  <>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => onFinalizeRecovery(meeting.session_id)}
-                    >
-                      {t("meetings.recovery.finalize")}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="danger-ghost"
-                      size="sm"
-                      onClick={() => onDiscardRecovery(meeting.session_id)}
-                    >
-                      {t("meetings.actions.discard")}
-                    </Button>
-                  </>
-                }
-              />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => onFinalizeRecovery(meeting.session_id)}
+                  >
+                    {t("meetings.recovery.finalize")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="danger-ghost"
+                    size="sm"
+                    onClick={() => onDiscardRecovery(meeting.session_id)}
+                  >
+                    {t("meetings.actions.discard")}
+                  </Button>
+                </span>
+              </li>
             ))}
-          </List>
+          </ul>
         </Section>
       ) : null}
 
@@ -247,16 +407,12 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
           <EmptyState
             title={t("meetings.history.emptyTitle")}
             description={t("meetings.history.emptyDescription")}
-            action={
-              <Button type="button" onClick={onStartManual}>
-                {t("meetings.actions.newMeeting")}
-              </Button>
-            }
           />
         ) : (
           <>
             {visibleMeetings.length === 0 ? (
               <EmptyState
+                variant="no-results"
                 title={t(
                   "meetings.list.noMatches",
                   "No meetings match that search",
@@ -285,17 +441,18 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
                 }
               />
             ) : (
-              <List label={t("meetings.history.title")}>
+              <ul
+                className="meeting-cards"
+                aria-label={t("meetings.history.title")}
+              >
                 {visibleMeetings.map((meeting) => (
-                  <Row
+                  <MeetingCard
                     key={meeting.session_id}
-                    title={meeting.title}
-                    description={formatMeetingDate(meeting.created_at_utc_ms)}
-                    meta={<MeetingRowMeta meeting={meeting} />}
-                    onSelect={() => onOpenMeeting(meeting.session_id)}
+                    meeting={meeting}
+                    onOpen={() => onOpenMeeting(meeting.session_id)}
                   />
                 ))}
-              </List>
+              </ul>
             )}
             {hasMore ? (
               <div className="mt-3">
@@ -315,6 +472,9 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
           </>
         )}
       </Section>
+
+      <MeetingTrackersSettings />
+      <MeetingDetectionSettings />
     </div>
   );
 };

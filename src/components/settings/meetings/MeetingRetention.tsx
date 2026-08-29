@@ -118,7 +118,7 @@ export const MeetingRetentionSettings: React.FC = () => {
       {error ? (
         <div
           role="alert"
-          className="flex flex-wrap items-center justify-end gap-2 px-4 py-2 text-[13px] text-danger-strong"
+          className="flex flex-wrap items-center justify-end gap-2 py-2 text-[13px] leading-5 text-danger-strong"
         >
           <span>{error}</span>
           <Button variant="ghost" size="sm" onClick={() => void load()}>

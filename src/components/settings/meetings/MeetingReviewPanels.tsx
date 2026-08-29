@@ -16,8 +16,6 @@ import {
   Button,
   EmptyState,
   Input,
-  List,
-  Row,
   Section,
   StatusText,
   Textarea,
@@ -25,6 +23,9 @@ import {
 } from "../../ui";
 import { MeetingSourceList, ProcessingStatusText } from "./MeetingStatus";
 import { formatMeetingOffset } from "./meetingUtils";
+import { MeetingAnalyticsStrip } from "./MeetingAnalyticsStrip";
+import { MeetingNotesPane } from "./MeetingNotesPane";
+import { actionItemKey, type MeetingAnalytics } from "./meetingAnalytics";
 
 /* The three panels behind the review tabs. They are separate from the review
  * shell because none of them knows about the others: the shell owns the tab,
@@ -37,8 +38,7 @@ import { formatMeetingOffset } from "./meetingUtils";
 /** DOM id prefix for transcript rows, so a citation can find its segment. */
 const SEGMENT_DOM_PREFIX = "meeting-transcript-segment-";
 
-const CAPTION_CLASSES =
-  "text-[12px] leading-4 font-semibold tracking-[0.045em] text-text-tertiary uppercase";
+const CAPTION_CLASSES = "microlabel";
 
 const ANSWER_STATE_TONES = {
   supported: "muted",
@@ -66,8 +66,10 @@ interface CitationJumpProps {
   onJump: (segmentId: string) => void;
 }
 
-/* A citation is a control when it can move you somewhere, and plain text when
- * it points at a manual note or the title, which have no transcript row. */
+/* A citation is a jump, so it looks like the thing that jumps: a link in the
+ * accent colour with the timestamp kept monospaced and tabular. It degrades to
+ * plain text when it points at a manual note or the title, which have no
+ * transcript row to scroll to. */
 const CitationJump: React.FC<CitationJumpProps> = ({
   startOffsetNs,
   segmentId,
@@ -79,18 +81,14 @@ const CitationJump: React.FC<CitationJumpProps> = ({
   });
 
   if (segmentId === null) {
-    return (
-      <span className="font-mono text-[11px] leading-4 text-text-tertiary tabular-nums">
-        {label}
-      </span>
-    );
+    return <span className="meeting-citation-static">{label}</span>;
   }
 
   return (
     <button
       type="button"
       onClick={() => onJump(segmentId)}
-      className="cursor-pointer rounded-xs border border-transparent px-1.5 py-0.5 font-mono text-[11px] leading-4 text-text-secondary tabular-nums transition-[background-color,border-color,color] duration-150 ease-out outline-offset-1 hover:border-border hover:bg-hover hover:text-text-primary active:bg-pressed"
+      className="meeting-citation"
     >
       {label}
     </button>
@@ -244,7 +242,7 @@ export const TranscriptTab: React.FC<TranscriptTabProps> = ({
           <ul
             role="list"
             aria-label={t("meetings.review.exactSearch")}
-            className="mt-3 divide-y divide-border overflow-hidden rounded-panel border border-border bg-surface"
+            className="meeting-rows mt-3"
           >
             {searchHits.map((hit) => (
               <MeetingSearchHitRow
@@ -270,7 +268,11 @@ export const TranscriptTab: React.FC<TranscriptTabProps> = ({
           </StatusText>
         ) : (
           <>
-            <List label={t("meetings.review.speakers")}>
+            <ul
+              role="list"
+              aria-label={t("meetings.review.speakers")}
+              className="meeting-rows"
+            >
               {snapshot.speakers.map((speaker) => (
                 <SpeakerRow
                   key={`${speaker.speaker_id}:${speaker.revision}:${speaker.display_name}`}
@@ -280,7 +282,7 @@ export const TranscriptTab: React.FC<TranscriptTabProps> = ({
                   onRename={onSpeakerRename}
                 />
               ))}
-            </List>
+            </ul>
             {snapshot.speakers.length > 1 ? (
               <MeetingSpeakerMerge
                 key={snapshot.speakers
@@ -307,7 +309,7 @@ export const TranscriptTab: React.FC<TranscriptTabProps> = ({
           <ol
             role="list"
             aria-label={t("meetings.review.transcript")}
-            className="divide-y divide-border overflow-hidden rounded-panel border border-border bg-surface"
+            className="meeting-rows"
           >
             {snapshot.transcript.map((segment) => {
               const text = segment.replacement_text ?? segment.base.text;
@@ -316,11 +318,11 @@ export const TranscriptTab: React.FC<TranscriptTabProps> = ({
                 <li
                   key={segment.base.segment_id}
                   id={`${SEGMENT_DOM_PREFIX}${segment.base.segment_id}`}
-                  className={`px-4 py-3 ${highlighted ? "bg-subtle" : ""}`}
+                  className={`meeting-row-stacked ${highlighted ? "bg-subtle" : ""}`}
                 >
                   <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                     <p className="flex min-w-0 items-baseline gap-2">
-                      <span className="font-mono text-[11px] leading-4 text-text-secondary tabular-nums">
+                      <span className="microlabel tabular-nums">
                         {formatMeetingOffset(segment.base.start_offset_ns)}
                       </span>
                       <span className="truncate text-[12.5px] leading-[18px] font-medium text-text-secondary">
@@ -386,34 +388,42 @@ export const TranscriptTab: React.FC<TranscriptTabProps> = ({
             {t("meetings.review.noGaps")}
           </StatusText>
         ) : (
-          <List label={t("meetings.review.timeline")}>
+          <ul
+            role="list"
+            aria-label={t("meetings.review.timeline")}
+            className="meeting-rows"
+          >
             {snapshot.gaps.map((gap) => (
-              <Row
+              <li
                 key={`${gap.track_id}:${gap.epoch}:${gap.start_offset_ns ?? "start"}`}
-                title={t(`meetings.gaps.${gap.reason}`)}
-                description={`${
-                  gap.start_offset_ns === null
-                    ? t("meetings.review.timeUnknown")
-                    : formatMeetingOffset(gap.start_offset_ns)
-                } – ${
-                  gap.end_offset_ns === null
-                    ? t("meetings.review.timeUnknown")
-                    : formatMeetingOffset(gap.end_offset_ns)
-                }`}
-                meta={
-                  gap.dropped_frames === null ? undefined : (
-                    <span className="tabular-nums">
-                      {t(
-                        "meetings.review.droppedFrames",
-                        "Dropped frames: {{total}}",
-                        { total: gap.dropped_frames },
-                      )}
-                    </span>
-                  )
-                }
-              />
+                className="meeting-row"
+              >
+                <span className="min-w-0">
+                  <p className="meeting-row-label">
+                    {t(`meetings.gaps.${gap.reason}`)}
+                  </p>
+                  <span className="microlabel tabular-nums">
+                    {gap.start_offset_ns === null
+                      ? t("meetings.review.timeUnknown")
+                      : formatMeetingOffset(gap.start_offset_ns)}
+                    {" – "}
+                    {gap.end_offset_ns === null
+                      ? t("meetings.review.timeUnknown")
+                      : formatMeetingOffset(gap.end_offset_ns)}
+                  </span>
+                </span>
+                {gap.dropped_frames === null ? null : (
+                  <StatusText tone="muted" className="meeting-row-value">
+                    {t(
+                      "meetings.review.droppedFrames",
+                      "Dropped frames: {{total}}",
+                      { total: gap.dropped_frames },
+                    )}
+                  </StatusText>
+                )}
+              </li>
             ))}
-          </List>
+          </ul>
         )}
       </Section>
     </>
@@ -441,12 +451,10 @@ const MeetingSearchHitRow: React.FC<MeetingSearchHitRowProps> = ({
   const body = (
     <>
       <span className="flex items-baseline gap-2">
-        <span className="font-mono text-[11px] leading-4 text-text-secondary tabular-nums">
+        <span className="microlabel tabular-nums">
           {formatMeetingOffset(hit.start_offset_ns)}
         </span>
-        <span className="text-[12px] leading-4 text-text-secondary">
-          {kindLabel}
-        </span>
+        <span className="microlabel">{kindLabel}</span>
       </span>
       <span className="mt-0.5 line-clamp-2 block text-[13px] leading-5 text-text-primary">
         {hit.excerpt}
@@ -455,15 +463,15 @@ const MeetingSearchHitRow: React.FC<MeetingSearchHitRowProps> = ({
   );
 
   if (hit.kind !== "transcript") {
-    return <li className="px-4 py-3">{body}</li>;
+    return <li className="meeting-row-stacked">{body}</li>;
   }
 
   return (
-    <li>
+    <li className="meeting-row-stacked meeting-row-flush">
       <button
         type="button"
         onClick={() => onJump(hit.entity_id)}
-        className="w-full cursor-pointer px-4 py-3 text-start outline-offset-[-2px] transition-[background-color] duration-150 ease-out hover:bg-hover active:bg-pressed"
+        className="w-full cursor-pointer rounded-control px-2 py-3 text-start outline-offset-[-2px] transition-[background-color] duration-150 ease-out hover:bg-hover active:bg-pressed"
       >
         {body}
       </button>
@@ -490,7 +498,7 @@ const SpeakerRow: React.FC<SpeakerRowProps> = ({
   const canSave = trimmedName.length > 0 && trimmedName !== name;
 
   return (
-    <li className="flex flex-wrap items-center gap-2 px-4 py-2.5">
+    <li className="meeting-row-stacked flex flex-wrap items-center gap-2">
       <Input
         variant="compact"
         value={draftName}
@@ -596,13 +604,24 @@ export interface InsightsTabProps {
   editable: boolean;
   canRegenerate: boolean;
   newNote: string;
+  /** Conversation metrics, or null until the first read lands. */
+  analytics: MeetingAnalytics | null;
+  speakerNames: Record<string, string>;
+  /** Ticked action items, keyed by artifact id and index. */
+  doneActionItems: Set<string>;
   onNewNoteChange: (value: string) => void;
   onCreateNote: () => void;
   onNoteUpdate: (note: ManualNote, body: string) => void;
   onNoteDelete: (note: ManualNote) => void;
   onRegenerate: () => void;
   onJumpToSegment: (segmentId: string) => void;
+  onActionItemToggle: (
+    artifactId: string,
+    actionIndex: number,
+    done: boolean,
+  ) => void;
   onRefresh: () => Promise<void>;
+  onAnalyticsRefresh: () => Promise<void>;
 }
 
 export const InsightsTab: React.FC<InsightsTabProps> = ({
@@ -611,13 +630,18 @@ export const InsightsTab: React.FC<InsightsTabProps> = ({
   editable,
   canRegenerate,
   newNote,
+  analytics,
+  speakerNames,
+  doneActionItems,
   onNewNoteChange,
   onCreateNote,
   onNoteUpdate,
   onNoteDelete,
   onRegenerate,
   onJumpToSegment,
+  onActionItemToggle,
   onRefresh,
+  onAnalyticsRefresh,
 }) => {
   const { t } = useTranslation();
   const disabled = busy || !editable;
@@ -633,6 +657,25 @@ export const InsightsTab: React.FC<InsightsTabProps> = ({
 
   return (
     <>
+      {analytics === null ? null : (
+        <MeetingAnalyticsStrip
+          analytics={analytics}
+          speakerNames={speakerNames}
+          onJumpToSegment={onJumpToSegment}
+        />
+      )}
+
+      <MeetingNotesPane
+        sessionId={snapshot.session.session_id}
+        revision={snapshot.session.revision}
+        variant="review"
+        disabled={busy}
+        onEnhanced={async () => {
+          await onRefresh();
+          await onAnalyticsRefresh();
+        }}
+      />
+
       <Section
         title={t("meetings.review.manualNotes")}
         description={t("meetings.review.manualNotesDescription")}
@@ -661,7 +704,11 @@ export const InsightsTab: React.FC<InsightsTabProps> = ({
             {t("meetings.review.noNotes")}
           </StatusText>
         ) : (
-          <List label={t("meetings.review.manualNotes")} className="mt-3">
+          <ul
+            role="list"
+            aria-label={t("meetings.review.manualNotes")}
+            className="meeting-rows mt-3"
+          >
             {snapshot.notes.map((note) => (
               <ManualNoteEditor
                 key={`${note.note_id}:${note.revision}:${note.body}`}
@@ -671,7 +718,7 @@ export const InsightsTab: React.FC<InsightsTabProps> = ({
                 onDelete={onNoteDelete}
               />
             ))}
-          </List>
+          </ul>
         )}
       </Section>
 
@@ -746,7 +793,10 @@ export const InsightsTab: React.FC<InsightsTabProps> = ({
               <MeetingArtifactPanel
                 key={artifact.artifact_id}
                 artifact={artifact}
+                doneActionItems={doneActionItems}
+                actionsDisabled={busy}
                 onJump={onJumpToSegment}
+                onActionItemToggle={onActionItemToggle}
               />
             ))}
           </div>
@@ -775,8 +825,8 @@ const ManualNoteEditor: React.FC<ManualNoteEditorProps> = ({
   const canSave = trimmedBody.length > 0 && trimmedBody !== note.body;
 
   return (
-    <li className="px-4 py-3">
-      <p className="font-mono text-[11px] leading-4 text-text-secondary tabular-nums">
+    <li className="meeting-row-stacked">
+      <p className="microlabel tabular-nums">
         {note.start_offset_ns === null
           ? t("meetings.review.noTimestamp")
           : t("meetings.review.timestamp", {
@@ -817,19 +867,29 @@ const ManualNoteEditor: React.FC<ManualNoteEditorProps> = ({
 
 interface MeetingArtifactPanelProps {
   artifact: MeetingArtifactRevision;
+  doneActionItems: Set<string>;
+  actionsDisabled: boolean;
   onJump: (segmentId: string) => void;
+  onActionItemToggle: (
+    artifactId: string,
+    actionIndex: number,
+    done: boolean,
+  ) => void;
 }
 
 const MeetingArtifactPanel: React.FC<MeetingArtifactPanelProps> = ({
   artifact,
+  doneActionItems,
+  actionsDisabled,
   onJump,
+  onActionItemToggle,
 }) => {
   const { t } = useTranslation();
   const content = artifact.content;
 
   return (
-    <article className="overflow-hidden rounded-panel border border-border bg-surface">
-      <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-border px-4 py-3">
+    <article className="meeting-artifact">
+      <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <div className="min-w-0">
           <h3 className="text-[13px] leading-[19px] font-semibold text-text-primary">
             {t("meetings.review.template", { template: artifact.template_id })}
@@ -849,11 +909,11 @@ const MeetingArtifactPanel: React.FC<MeetingArtifactPanelProps> = ({
         </StatusText>
       </header>
       {content === null ? (
-        <p className="px-4 py-3 text-[12.5px] leading-[18px] text-text-secondary">
+        <p className="mt-2 text-[12.5px] leading-[18px] text-text-secondary">
           {t("meetings.review.artifactUnavailable")}
         </p>
       ) : (
-        <div className="divide-y divide-border">
+        <div className="mt-3">
           <ArtifactBlock title={t("meetings.review.summary")}>
             <CitedText value={content.summary} onJump={onJump} />
           </ArtifactBlock>
@@ -893,18 +953,45 @@ const MeetingArtifactPanel: React.FC<MeetingArtifactPanelProps> = ({
               <StatusText tone="muted">{t("meetings.review.none")}</StatusText>
             ) : (
               <ul className="space-y-2.5">
-                {content.action_items.map((action, index) => (
-                  <li key={`${artifact.artifact_id}:action:${index}`}>
-                    <CitedText value={action.text} onJump={onJump} />
-                    <StatusText tone="muted" className="mt-0.5 block">
-                      {t("meetings.review.actionMeta", {
-                        owner:
-                          action.owner_text ?? t("meetings.review.unassigned"),
-                        due: action.due_text ?? t("meetings.review.noDueDate"),
-                      })}
-                    </StatusText>
-                  </li>
-                ))}
+                {content.action_items.map((action, index) => {
+                  const key = actionItemKey(artifact.artifact_id, index);
+                  const done = doneActionItems.has(key);
+                  return (
+                    <li key={key} className="flex items-start gap-2.5">
+                      <input
+                        type="checkbox"
+                        checked={done}
+                        disabled={actionsDisabled}
+                        onChange={(event) =>
+                          onActionItemToggle(
+                            artifact.artifact_id,
+                            index,
+                            event.target.checked,
+                          )
+                        }
+                        aria-label={t(
+                          "meetings.review.actionDone",
+                          "Mark this action item done",
+                        )}
+                        className="meeting-check"
+                      />
+                      <div
+                        className={`min-w-0 flex-1 ${done ? "line-through opacity-60" : ""}`}
+                      >
+                        <CitedText value={action.text} onJump={onJump} />
+                        <StatusText tone="muted" className="mt-0.5 block">
+                          {t("meetings.review.actionMeta", {
+                            owner:
+                              action.owner_text ??
+                              t("meetings.review.unassigned"),
+                            due:
+                              action.due_text ?? t("meetings.review.noDueDate"),
+                          })}
+                        </StatusText>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </ArtifactBlock>
@@ -949,7 +1036,7 @@ interface ArtifactBlockProps {
 }
 
 const ArtifactBlock: React.FC<ArtifactBlockProps> = ({ title, children }) => (
-  <section className="px-4 py-3">
+  <section className="meeting-artifact-block">
     <h4 className={`mb-1.5 ${CAPTION_CLASSES}`}>{title}</h4>
     {children}
   </section>
@@ -1023,27 +1110,28 @@ export const QuestionsTab: React.FC<QuestionsTabProps> = ({
         <ul
           role="list"
           aria-label={t("meetings.review.questions")}
-          className="mt-3 divide-y divide-border overflow-hidden rounded-panel border border-border bg-surface"
+          className="mt-4"
         >
           {snapshot.questions.map((answer) => (
-            <li key={`${answer.question_id}:${answer.revision}`}>
-              <div className="px-4 py-3">
-                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                  <p className={CAPTION_CLASSES}>
-                    {t("meetings.review.youAsked", "You asked")}
-                  </p>
-                  <StatusText
-                    tone={ANSWER_STATE_TONES[answer.state]}
-                    className="flex-none"
-                  >
-                    {t(`meetings.answerState.${answer.state}`)}
-                  </StatusText>
-                </div>
-                <p className="mt-1 text-[13px] leading-5 font-semibold text-text-primary text-pretty">
-                  {answer.question ?? t("meetings.review.question")}
+            <li
+              key={`${answer.question_id}:${answer.revision}`}
+              className="meeting-answer"
+            >
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <p className={CAPTION_CLASSES}>
+                  {t("meetings.review.youAsked", "You asked")}
                 </p>
+                <StatusText
+                  tone={ANSWER_STATE_TONES[answer.state]}
+                  className="flex-none"
+                >
+                  {t(`meetings.answerState.${answer.state}`)}
+                </StatusText>
               </div>
-              <div className="border-t border-border-subtle px-4 py-3">
+              <p className="mt-1 text-[13px] leading-5 font-semibold text-text-primary text-pretty">
+                {answer.question ?? t("meetings.review.question")}
+              </p>
+              <div className="mt-3">
                 <p className={CAPTION_CLASSES}>
                   {t("meetings.review.sonaAnswered", "Sona answered")}
                 </p>

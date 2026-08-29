@@ -13,14 +13,15 @@ import {
   type MeetingSuggestion,
   type OperationReceipt,
   type Result,
+  type SourceKind,
 } from "@/bindings";
 import { Skeleton } from "../../ui";
-import { MeetingDraftComposer, MeetingPreflight } from "./MeetingPreflight";
+import { MeetingStartGate, consentFor } from "./MeetingStartGate";
 import { MeetingLive } from "./MeetingLive";
 import { MeetingReview } from "./MeetingReview";
 import { MeetingsHome } from "./MeetingsHome";
-import type { MeetingPreflightDraft, MeetingScreen } from "./meetingTypes";
-import "../settings-density.css";
+import type { MeetingScreen, MeetingStartOptions } from "./meetingTypes";
+import "./meetings.css";
 import {
   isActiveMeetingPhase,
   isPreflightMeetingPhase,
@@ -38,7 +39,7 @@ type MeetingMutationInvocation = (
   operationId: string,
 ) => Promise<Result<MeetingMutationResult, MeetingCommandError>>;
 
-const DEFAULT_MEETING_SOURCES = ["microphone", "system_audio"] as const;
+const DEFAULT_MEETING_SOURCES: SourceKind[] = ["microphone", "system_audio"];
 
 /* One screenful of meetings, then an explicit request for older ones. The
  * backend clamps a single page at 100 rows, so paging by cursor is the only
@@ -51,23 +52,10 @@ const useMeetingsController = ({
   startRequest = 0,
 }: MeetingsSettingsProps) => {
   const { t } = useTranslation();
-  const [screen, setScreen] = useState<MeetingScreen>(() => {
-    if (startRequest === 0) return { kind: "home" };
-
-    return {
-      kind: "draft",
-      draft: {
-        title: t("meetings.setup.defaultTitle"),
-        origin: "manual",
-        suggestionId: null,
-        requestedSources: [...DEFAULT_MEETING_SOURCES],
-        requiredSources: [...DEFAULT_MEETING_SOURCES],
-        acceptedKnownMissingSources: [],
-        degradedStartPolicy: "abort_if_required_source_fails",
-        destination: { kind: "local" },
-      },
-    };
-  });
+  const [screen, setScreen] = useState<MeetingScreen>({ kind: "home" });
+  /* What the next press of Start will record. Sources are the only part of
+   * setup a person changes often enough to keep on the page. */
+  const [sources, setSources] = useState<SourceKind[]>(DEFAULT_MEETING_SOURCES);
   const [snapshot, setSnapshot] = useState<MeetingReviewSnapshot | null>(null);
   const [suggestions, setSuggestions] = useState<MeetingSuggestion[]>([]);
   const [recovery, setRecovery] = useState<MeetingHistorySummary[]>([]);
@@ -89,22 +77,20 @@ const useMeetingsController = ({
     screenRef.current = screen;
   }, [screen]);
 
-  const draftFor = useCallback(
+  const startOptions = useCallback(
     (
-      origin: MeetingPreflightDraft["origin"],
-      suggestionId: MeetingPreflightDraft["suggestionId"] = null,
+      origin: MeetingStartOptions["origin"],
+      suggestionId: MeetingStartOptions["suggestionId"] = null,
       title = t("meetings.setup.defaultTitle"),
-    ): MeetingPreflightDraft => ({
+    ): MeetingStartOptions => ({
       title,
       origin,
       suggestionId,
-      requestedSources: [...DEFAULT_MEETING_SOURCES],
-      requiredSources: [...DEFAULT_MEETING_SOURCES],
-      acceptedKnownMissingSources: [],
+      sources,
       degradedStartPolicy: "abort_if_required_source_fails",
       destination: { kind: "local" },
     }),
-    [t],
+    [sources, t],
   );
 
   const refreshHome = useCallback(async () => {
@@ -272,61 +258,144 @@ const useMeetingsController = ({
       const nextSnapshot = await readSnapshot(sessionId);
       if (nextSnapshot && isPreflightMeetingPhase(nextSnapshot.session.phase)) {
         setScreen({
-          kind: "preflight",
+          kind: "gate",
           sessionId,
-          draft: draftFor("manual", null, nextSnapshot.session.title),
+          options: startOptions("manual", null, nextSnapshot.session.title),
         });
       }
     },
-    [draftFor, readSnapshot],
+    [readSnapshot, startOptions],
   );
 
-  const createPreflight = useCallback(async () => {
-    if (screen.kind !== "draft") {
-      return;
-    }
-
-    const { draft } = screen;
-    setPendingAction("preflight_create");
-    try {
-      const result = await commands.meetingPreflightCreate({
+  /* Sends the consent the press expressed. Every caller of this reaches it
+   * from a screen where the assurance sentence — "Records your Mac's audio
+   * locally. Nothing joins the call." — is rendered next to the button that
+   * was pressed: the start block on the meetings list, the detected-meeting
+   * rows under the same sentence, and MeetingStartGate. That press is the
+   * operator's acknowledgment and is what the MeetingConsent row records, so a
+   * fourth caller from a surface without the sentence would make the row
+   * claim an acknowledgment nobody could have made. */
+  const startCapture = useCallback(
+    async (
+      sessionId: string,
+      revision: number,
+      consent: MeetingConsentInput,
+    ) => {
+      const result = await commands.meetingStart({
         operation_id: crypto.randomUUID(),
-        expected_revision: 0,
-        title: draft.title.trim(),
-        origin: draft.origin,
-        suggestion_id: draft.suggestionId,
-        requested_sources: draft.requestedSources,
-        required_sources: draft.requiredSources,
-        accepted_known_missing_sources: draft.acceptedKnownMissingSources,
-        degraded_start_policy: draft.degradedStartPolicy,
-        destination: draft.destination,
-        remote_acknowledgement: null,
-        microphone_device_uid: null,
-        frozen_system_audio_application_bundle_ids: [],
+        session_id: sessionId,
+        expected_revision: revision,
+        consent,
       });
       if (result.status === "error") {
         reportMeetingError(result.error);
-        return;
+        await refreshSessionAndHome(sessionId);
+        return false;
       }
-      if (!receiveReceipt(result.data.receipt)) {
-        return;
+      const committed = receiveReceipt(result.data.receipt);
+      if (committed) {
+        setScreen({ kind: "session", sessionId });
       }
-
-      const sessionId = result.data.snapshot.session_id;
-      setSnapshot(null);
-      setScreen({ kind: "preflight", sessionId, draft });
       await refreshSessionAndHome(sessionId);
-    } catch {
-      toast.error(t("meetings.errors.operation"));
-    } finally {
-      setPendingAction(null);
-    }
-  }, [receiveReceipt, refreshSessionAndHome, reportMeetingError, screen, t]);
+      return committed;
+    },
+    [receiveReceipt, refreshSessionAndHome, reportMeetingError],
+  );
 
-  const cancelPreflight = useCallback(async () => {
-    if (screen.kind !== "preflight" || !snapshot) {
+  /* One press, two commands. The backend needs a preflight row before it will
+   * start capture, so Start creates one and starts it in the same action; the
+   * person never sees a setup step. The only thing that can interrupt this is
+   * a required source the machine cannot open, and that lands on
+   * MeetingStartGate with the blocker named — checking readiness first would
+   * add a round trip to every meeting to catch the rare one. */
+  const startMeeting = useCallback(
+    async (options: MeetingStartOptions) => {
+      if (options.sources.length === 0) return;
+
+      setPendingAction("start");
+      try {
+        const created = await commands.meetingPreflightCreate({
+          operation_id: crypto.randomUUID(),
+          expected_revision: 0,
+          title: options.title.trim(),
+          origin: options.origin,
+          suggestion_id: options.suggestionId,
+          requested_sources: options.sources,
+          required_sources: options.sources,
+          accepted_known_missing_sources: [],
+          degraded_start_policy: options.degradedStartPolicy,
+          destination: options.destination,
+          remote_acknowledgement: null,
+          microphone_device_uid: null,
+          frozen_system_audio_application_bundle_ids: [],
+        });
+        if (created.status === "error") {
+          reportMeetingError(created.error);
+          return;
+        }
+        if (!receiveReceipt(created.data.receipt)) {
+          return;
+        }
+
+        const session = created.data.snapshot;
+        const blocked = session.sources.some(
+          (source) => source.required && source.availability !== "available",
+        );
+        setSnapshot(null);
+        if (blocked) {
+          setScreen({ kind: "gate", sessionId: session.session_id, options });
+          await refreshSessionAndHome(session.session_id);
+          return;
+        }
+
+        await startCapture(
+          session.session_id,
+          session.revision,
+          consentFor(options, [], false),
+        );
+      } catch {
+        toast.error(t("meetings.errors.operation"));
+      } finally {
+        setPendingAction(null);
+      }
+    },
+    [
+      receiveReceipt,
+      refreshSessionAndHome,
+      reportMeetingError,
+      startCapture,
+      t,
+    ],
+  );
+
+  /* The gate's own Start: the session already exists, so only the second
+   * command runs. */
+  const startFromGate = useCallback(
+    async (consent: MeetingConsentInput) => {
+      if (screen.kind !== "gate" || !snapshot) return;
+
+      setPendingAction("start");
+      try {
+        await startCapture(
+          snapshot.session.session_id,
+          snapshot.session.revision,
+          consent,
+        );
+      } catch {
+        toast.error(t("meetings.errors.operation"));
+      } finally {
+        setPendingAction(null);
+      }
+    },
+    [screen, snapshot, startCapture, t],
+  );
+
+  /* Leaving the gate cancels the session it was standing in front of, so an
+   * abandoned attempt does not leave a preflight row in the list. */
+  const cancelGate = useCallback(async () => {
+    if (screen.kind !== "gate" || !snapshot) {
       setScreen({ kind: "home" });
-      return true;
+      return;
     }
 
     setPendingAction("preflight_cancel");
@@ -339,19 +408,17 @@ const useMeetingsController = ({
       if (result.status === "error") {
         reportMeetingError(result.error);
         await refreshSessionAndHome(snapshot.session.session_id);
-        return false;
+        return;
       }
       if (!receiveReceipt(result.data)) {
         await refreshSessionAndHome(snapshot.session.session_id);
-        return false;
+        return;
       }
       setSnapshot(null);
       setScreen({ kind: "home" });
       await refreshHome();
-      return true;
     } catch {
       toast.error(t("meetings.errors.operation"));
-      return false;
     } finally {
       setPendingAction(null);
     }
@@ -365,20 +432,8 @@ const useMeetingsController = ({
     t,
   ]);
 
-  const reconfigurePreflight = useCallback(async () => {
-    if (screen.kind !== "preflight") {
-      return;
-    }
-
-    const draft = screen.draft;
-    const cancelled = await cancelPreflight();
-    if (cancelled) {
-      setScreen({ kind: "draft", draft });
-    }
-  }, [cancelPreflight, screen]);
-
-  const refreshPreflight = useCallback(async () => {
-    if (screen.kind !== "preflight" || !snapshot) {
+  const refreshGate = useCallback(async () => {
+    if (screen.kind !== "gate" || !snapshot) {
       return;
     }
 
@@ -409,52 +464,6 @@ const useMeetingsController = ({
     snapshot,
     t,
   ]);
-
-  const startMeeting = useCallback(
-    async (consent: MeetingConsentInput) => {
-      if (screen.kind !== "preflight" || !snapshot) {
-        return;
-      }
-
-      setPendingAction("start");
-      try {
-        const result = await commands.meetingStart({
-          operation_id: crypto.randomUUID(),
-          session_id: snapshot.session.session_id,
-          expected_revision: snapshot.session.revision,
-          consent,
-        });
-        if (result.status === "error") {
-          reportMeetingError(result.error);
-          if (result.error === "stale_revision") {
-            await refreshSessionAndHome(snapshot.session.session_id);
-          }
-          return;
-        }
-        if (receiveReceipt(result.data.receipt)) {
-          setScreen({
-            kind: "session",
-            sessionId: snapshot.session.session_id,
-          });
-          await refreshSessionAndHome(snapshot.session.session_id);
-        } else {
-          await refreshSessionAndHome(snapshot.session.session_id);
-        }
-      } catch {
-        toast.error(t("meetings.errors.operation"));
-      } finally {
-        setPendingAction(null);
-      }
-    },
-    [
-      receiveReceipt,
-      refreshSessionAndHome,
-      reportMeetingError,
-      screen,
-      snapshot,
-      t,
-    ],
-  );
 
   const mutateSession = useCallback(
     async (
@@ -586,7 +595,7 @@ const useMeetingsController = ({
 
     void refreshHome();
     const activeScreen = screenRef.current;
-    if (activeScreen.kind === "preflight" || activeScreen.kind === "session") {
+    if (activeScreen.kind === "gate" || activeScreen.kind === "session") {
       void readSnapshot(activeScreen.sessionId);
     }
   }, [invalidation, readSnapshot, refreshHome]);
@@ -629,18 +638,23 @@ const useMeetingsController = ({
     homeError,
     pendingAction,
     lastReceipt,
+    sources,
+    /* A start request means the person asked for this page in order to
+     * record, so the Start control takes focus when they land. Starting from
+     * a URL stays a press away: a link is not consent to record a room. */
+    focusStart: startRequest > 0,
     setScreen,
     setSnapshot,
     setPendingAction,
-    draftFor,
+    setSources,
+    startOptions,
     refreshHome,
     loadMoreMeetings,
     openSession,
-    createPreflight,
-    cancelPreflight,
-    reconfigurePreflight,
-    refreshPreflight,
+    cancelGate,
+    refreshGate,
     startMeeting,
+    startFromGate,
     mutateSession,
     discardSession,
     deleteSession,
@@ -682,9 +696,11 @@ const renderMeetingsContent = (
     homeLoading,
     homeError,
     pendingAction,
-    draftFor,
-    setScreen,
-    createPreflight,
+    sources,
+    focusStart,
+    setSources,
+    startOptions,
+    startMeeting,
     openSession,
     finalizeRecovery,
     discardRecovery,
@@ -692,27 +708,7 @@ const renderMeetingsContent = (
     loadMoreMeetings,
   } = controller;
 
-  if (screen.kind === "draft") {
-    const suggestion =
-      screen.draft.suggestionId === null
-        ? null
-        : (suggestions.find(
-            (candidate) => candidate.offer_id === screen.draft.suggestionId,
-          ) ?? null);
-
-    return (
-      <MeetingDraftComposer
-        draft={screen.draft}
-        suggestion={suggestion}
-        submitting={pendingAction === "preflight_create"}
-        onChange={(draft) => setScreen({ kind: "draft", draft })}
-        onCheck={createPreflight}
-        onCancel={() => setScreen({ kind: "home" })}
-      />
-    );
-  }
-
-  if (screen.kind === "preflight" || screen.kind === "session") {
+  if (screen.kind === "gate" || screen.kind === "session") {
     const currentSnapshot =
       snapshot?.session.session_id === screen.sessionId ? snapshot : null;
     return renderMeetingSessionContent(controller, currentSnapshot, t);
@@ -728,14 +724,13 @@ const renderMeetingsContent = (
       hasMore={hasMore}
       retention={retention}
       error={homeError}
-      onStartManual={() =>
-        setScreen({ kind: "draft", draft: draftFor("manual") })
-      }
+      sources={sources}
+      starting={pendingAction === "start"}
+      focusStart={focusStart}
+      onSourcesChange={setSources}
+      onStart={() => void startMeeting(startOptions("manual"))}
       onStartSuggestion={(suggestion) =>
-        setScreen({
-          kind: "draft",
-          draft: draftFor("suggestion", suggestion.offer_id),
-        })
+        void startMeeting(startOptions("suggestion", suggestion.offer_id))
       }
       onOpenMeeting={openSession}
       onFinalizeRecovery={finalizeRecovery}
@@ -775,45 +770,33 @@ const renderMeetingSessionContent = (
   const {
     screen,
     pendingAction,
-    draftFor,
-    setScreen,
-    refreshPreflight,
-    reconfigurePreflight,
-    cancelPreflight,
-    startMeeting,
+    startOptions,
+    refreshGate,
+    cancelGate,
+    startFromGate,
   } = controller;
 
   if (!currentSnapshot) {
     return <MeetingDetailSkeleton label={t("meetings.loading")} />;
   }
 
-  if (screen.kind === "preflight") {
+  if (
+    screen.kind === "gate" ||
+    isPreflightMeetingPhase(currentSnapshot.session.phase)
+  ) {
     return (
-      <MeetingPreflight
+      <MeetingStartGate
         snapshot={currentSnapshot}
-        draft={screen.draft}
+        options={
+          screen.kind === "gate"
+            ? screen.options
+            : startOptions("manual", null, currentSnapshot.session.title)
+        }
         refreshing={pendingAction === "preflight_refresh"}
         starting={pendingAction === "start"}
-        onRefresh={refreshPreflight}
-        onReconfigure={reconfigurePreflight}
-        onCancel={cancelPreflight}
-        onStart={startMeeting}
-      />
-    );
-  }
-
-  if (isPreflightMeetingPhase(currentSnapshot.session.phase)) {
-    const draft = draftFor("manual", null, currentSnapshot.session.title);
-    return (
-      <MeetingPreflight
-        snapshot={currentSnapshot}
-        draft={draft}
-        refreshing={pendingAction === "preflight_refresh"}
-        starting={pendingAction === "start"}
-        onRefresh={refreshPreflight}
-        onReconfigure={() => setScreen({ kind: "draft", draft })}
-        onCancel={() => setScreen({ kind: "home" })}
-        onStart={startMeeting}
+        onRefresh={refreshGate}
+        onCancel={cancelGate}
+        onStart={startFromGate}
       />
     );
   }

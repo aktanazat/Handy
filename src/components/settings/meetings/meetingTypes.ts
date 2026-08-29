@@ -6,23 +6,20 @@ import type {
   SourceKind,
 } from "@/bindings";
 
-export interface MeetingPreflightDraft {
+/** Everything one press of Start needs. There is no setup screen: these are
+ *  the defaults the start block shows inline and can flip in place. */
+export interface MeetingStartOptions {
   title: string;
   origin: MeetingOrigin;
   suggestionId: MeetingSuggestionId | null;
-  requestedSources: SourceKind[];
-  requiredSources: SourceKind[];
-  acceptedKnownMissingSources: SourceKind[];
+  sources: SourceKind[];
   degradedStartPolicy: DegradedStartPolicy;
   destination: ProcessingDestination;
 }
 
 export type MeetingScreen =
   | { kind: "home" }
-  | { kind: "draft"; draft: MeetingPreflightDraft }
-  | {
-      kind: "preflight";
-      sessionId: string;
-      draft: MeetingPreflightDraft;
-    }
+  /** A session exists but capture has not begun: the start attempt hit an
+   *  unavailable source, or a preflight session was opened from elsewhere. */
+  | { kind: "gate"; sessionId: string; options: MeetingStartOptions }
   | { kind: "session"; sessionId: string };

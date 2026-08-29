@@ -12,18 +12,21 @@ import type {
   MeetingSuggestion,
 } from "@/bindings";
 import { MeetingLive } from "./MeetingLive";
-import { MeetingDraftComposer, MeetingPreflight } from "./MeetingPreflight";
+import { MeetingStartGate } from "./MeetingStartGate";
 import { InsightsTab, QuestionsTab } from "./MeetingReviewPanels";
 import { MeetingReview } from "./MeetingReview";
 import { MeetingsHome } from "./MeetingsHome";
 import { MeetingsSettings } from "./MeetingsSettings";
-import type { MeetingPreflightDraft } from "./meetingTypes";
+import type { MeetingStartOptions } from "./meetingTypes";
 
-/* First paint of every meetings surface. The strings asserted here are the
- * ones the Playwright suite, the command palette and the design spec pin:
- * "New meeting", "Start local notes", "Check recording setup", "Active
- * capture" and the consent sentence, which has to stay byte-identical because
- * the end-to-end test checks the box by its label.
+/* First paint of every meetings surface, and the shape of the start flow.
+ *
+ * Recording is one press. The strings pinned here are the ones that make that
+ * true and safe: "Start recording", and the assurance sentence, which has to
+ * be on screen next to the button because pressing the button is what the
+ * backend records as the operator's acknowledgment. There is no setup screen
+ * and no consent checkbox to tick before it; a test that reintroduced either
+ * would be describing a flow the product deliberately removed.
  *
  * Static rendering runs no effects, so these are pure prop-to-markup checks:
  * no Tauri command is reachable from here. */
@@ -62,13 +65,11 @@ const buttonTag = (markup: string, label: string) => {
   return markup.slice(markup.lastIndexOf("<button", labelIndex), labelIndex);
 };
 
-const DRAFT: MeetingPreflightDraft = {
+const START_OPTIONS: MeetingStartOptions = {
   title: "Weekly planning",
   origin: "manual",
   suggestionId: null,
-  requestedSources: ["microphone", "system_audio"],
-  requiredSources: ["microphone", "system_audio"],
-  acceptedKnownMissingSources: [],
+  sources: ["microphone", "system_audio"],
   degradedStartPolicy: "abort_if_required_source_fails",
   destination: { kind: "local" },
 };
@@ -286,6 +287,11 @@ const LIVE_SNAPSHOT: MeetingReviewSnapshot = {
 
 const noop = () => {};
 
+/* The promise that has to be on screen wherever the consent flags can be
+ * sent, in the form the renderer emits it. */
+const ASSURANCE =
+  "Records your Mac&#x27;s audio locally. Nothing joins the call.";
+
 const homeMarkup = (
   overrides: Partial<React.ComponentProps<typeof MeetingsHome>>,
 ) =>
@@ -299,7 +305,11 @@ const homeMarkup = (
       hasMore={false}
       retention={null}
       error={null}
-      onStartManual={noop}
+      sources={["microphone", "system_audio"]}
+      starting={false}
+      focusStart={false}
+      onSourcesChange={noop}
+      onStart={noop}
       onStartSuggestion={noop}
       onOpenMeeting={noop}
       onFinalizeRecovery={noop}
@@ -315,7 +325,35 @@ describe("meetings section", () => {
     const markup = render(<MeetingsSettings />);
     expect(markup).toContain('aria-label="Loading meeting history…"');
     expect(markup).toContain(">Meetings</h1>");
-    expect(markup).toContain(">New meeting<");
+    expect(markup).toContain(">Start recording<");
+  });
+});
+
+describe("starting a meeting", () => {
+  test("one press starts capture, with the assurance beside the button", () => {
+    const markup = homeMarkup({});
+    // Exactly one Start control on an empty page: the block at the top.
+    expect(occurrences(markup, ">Start recording</button>")).toBe(1);
+    expect(markup).toContain(ASSURANCE);
+    // The wizard is gone: no setup screen and no acknowledgement to tick
+    // before the press that is itself the acknowledgement.
+    expect(occurrences(markup, "Check recording setup")).toBe(0);
+    expect(
+      occurrences(markup, "I have permission to capture this meeting."),
+    ).toBe(0);
+  });
+
+  test("both default sources are on and selectable in place", () => {
+    const markup = homeMarkup({});
+    expect(occurrences(markup, 'aria-pressed="true"')).toBe(2);
+    expect(markup).toContain("Microphone");
+    expect(markup).toContain("System audio");
+  });
+
+  test("Start is unavailable, and says why, with no source chosen", () => {
+    const markup = homeMarkup({ sources: [] });
+    expect(buttonTag(markup, "Start recording")).toContain("disabled");
+    expect(markup).toContain("Choose at least one source.");
   });
 });
 
@@ -327,20 +365,24 @@ describe("meetings list", () => {
     expect(occurrences(markup, "No meetings yet")).toBe(0);
   });
 
-  test("empty history offers the New meeting action", () => {
+  test("an empty history is absence, not a second call to action", () => {
     const markup = homeMarkup({});
     expect(markup).toContain("No meetings yet");
     expect(markup).toContain(
       "Start local notes when you are ready to capture a meeting.",
     );
-    // Header action plus the empty-state call to action.
-    expect(occurrences(markup, ">New meeting<")).toBe(2);
+    // The start block above is the only way in, so the empty state repeats
+    // neither the button nor the promise.
+    expect(occurrences(markup, ">Start recording</button>")).toBe(1);
   });
 
-  test("a detected meeting exposes exactly one Start local notes control", () => {
+  test("a detected meeting starts from its own row, under the same promise", () => {
     const markup = homeMarkup({ suggestions: [SUGGESTION] });
     expect(markup).toContain("A meeting may be active in Zoom.");
-    expect(occurrences(markup, ">Start local notes<")).toBe(1);
+    expect(occurrences(markup, ">Start recording</button>")).toBe(2);
+    // The row's Start sends the same consent flags, so the sentence has to be
+    // on screen above it too.
+    expect(occurrences(markup, ASSURANCE)).toBe(2);
   });
 
   test("rows read title, date and state as text, with the retention hint", () => {
@@ -358,53 +400,62 @@ describe("meetings list", () => {
   });
 });
 
-describe("meeting setup", () => {
-  test("the draft composer keeps its heading and the readiness check", () => {
-    const markup = render(
-      <MeetingDraftComposer
-        draft={DRAFT}
-        suggestion={null}
-        submitting={false}
-        onChange={noop}
-        onCheck={noop}
-        onCancel={noop}
-      />,
-    );
-    expect(markup).toContain(">Start local notes</h1>");
-    expect(markup).toContain(">Check recording setup</button>");
-    // The button lives on the next screen, so the flow cannot be skipped.
-    expect(occurrences(markup, ">Start local notes</button>")).toBe(0);
-    expect(markup).toContain(
-      "Remote processing is unavailable in this build, so every meeting is transcribed and summarised on this Mac.",
-    );
-  });
-
-  test("preflight gates capture behind the unchanged consent sentence", () => {
-    const markup = render(
-      <MeetingPreflight
+describe("the start gate", () => {
+  const gateMarkup = (
+    overrides: Partial<React.ComponentProps<typeof MeetingStartGate>> = {},
+  ) =>
+    render(
+      <MeetingStartGate
         snapshot={{
           ...SNAPSHOT,
           session: { ...SNAPSHOT.session, phase: "preflight" },
         }}
-        draft={DRAFT}
+        options={START_OPTIONS}
         refreshing={false}
         starting={false}
         onRefresh={noop}
-        onReconfigure={noop}
         onCancel={noop}
         onStart={noop}
+        {...overrides}
       />,
     );
-    expect(markup).toContain(">Check recording setup</h1>");
-    expect(markup).toContain("I have permission to capture this meeting.");
-    expect(buttonTag(markup, "Start local notes")).toContain("disabled");
-    // System audio needs permission here, so the partial path is offered too.
+
+  test("an unavailable required source names itself and blocks the press", () => {
+    const markup = gateMarkup();
+    expect(markup).toContain(">Recording did not start</h1>");
+    // The fixture's system audio needs permission, so it is the blocker.
+    expect(markup).toContain("System audio");
+    expect(markup).toContain("Permission required");
+    // Recording anyway is a partial record, and says so before the press.
     expect(markup).toContain(
-      "I want to continue with a partial meeting record.",
+      "The record is marked partial and the missing source stays named in it.",
     );
-    expect(markup).toContain(
-      "I understand System audio is Permission required and this meeting will be partial.",
-    );
+    expect(buttonTag(markup, "Record without it")).toContain("disabled");
+  });
+
+  test("the assurance is on screen wherever the consent flags can be sent", () => {
+    expect(gateMarkup()).toContain(ASSURANCE);
+  });
+
+  test("a session with nothing blocking offers the one press directly", () => {
+    const markup = gateMarkup({
+      snapshot: {
+        ...SNAPSHOT,
+        session: {
+          ...SNAPSHOT.session,
+          phase: "preflight",
+          sources: SNAPSHOT.session.sources.map((source) => ({
+            ...source,
+            availability: "available",
+          })),
+        },
+      },
+    });
+    expect(markup).toContain(">Ready to record</h1>");
+    expect(
+      occurrences(buttonTag(markup, "Start recording"), 'disabled=""'),
+    ).toBe(0);
+    expect(occurrences(markup, "Record without it")).toBe(0);
   });
 });
 
@@ -494,13 +545,18 @@ describe("insights panel", () => {
         editable
         canRegenerate
         newNote=""
+        analytics={null}
+        speakerNames={{}}
+        doneActionItems={new Set()}
         onNewNoteChange={noop}
         onCreateNote={noop}
         onNoteUpdate={noop}
         onNoteDelete={noop}
         onRegenerate={noop}
         onJumpToSegment={noop}
+        onActionItemToggle={noop}
         onRefresh={async () => {}}
+        onAnalyticsRefresh={async () => {}}
         {...overrides}
       />,
     );

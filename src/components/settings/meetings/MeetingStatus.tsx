@@ -8,7 +8,7 @@ import type {
   SourceAvailability,
   SourceHealth,
 } from "@/bindings";
-import { List, StatusText, type StatusTone } from "../../ui";
+import { StatusText, type StatusTone } from "../../ui";
 import {
   captureCompletenessKey,
   formatMeetingOffset,
@@ -141,10 +141,15 @@ interface MeetingSourceItemProps {
   showTelemetry: boolean;
 }
 
-/* One capture source per row: name, what the backend reports about it, and
- * its health. Rows, not tiles: two cards side by side implied a comparison
- * that does not exist, and the empty level meter implied a signal reading
- * capture never sends. */
+/* One capture source per row, flat on a hairline: name, what the backend
+ * reports about it, and its health. Rows, not tiles — two cards side by side
+ * implied a comparison that does not exist.
+ *
+ * There is no level meter here and there cannot be one: capture publishes
+ * availability, health, a durable offset and a gap count, and no signal
+ * amplitude at any point in the pipeline. A moving bar would be drawn from
+ * nothing. "Signal — Not reported" is the honest version of that fact and is
+ * why it stays. */
 const MeetingSourceItem: React.FC<MeetingSourceItemProps> = ({
   source,
   elapsedOffsetNs,
@@ -157,26 +162,26 @@ const MeetingSourceItem: React.FC<MeetingSourceItemProps> = ({
       : Math.max(0, elapsedOffsetNs - source.last_durable_offset_ns);
 
   return (
-    <li className="px-4 py-3" data-source={source.source_kind}>
+    <li className="meeting-row-stacked" data-source={source.source_kind}>
       <div className="flex items-baseline justify-between gap-4">
-        <h3 className="text-[13px] leading-[19px] font-medium text-text-primary">
+        <h3 className="meeting-row-label">
           {t(sourceKey(source.source_kind))}
         </h3>
         <StatusText tone={HEALTH_TONES[source.health]} className="flex-none">
           {t(sourceHealthKey(source.health))}
         </StatusText>
       </div>
-      <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+      <p className="mt-0.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
         <StatusText tone={AVAILABILITY_TONES[source.availability]}>
           {t(sourceAvailabilityKey(source.availability))}
         </StatusText>
         {source.required ? (
-          <StatusText tone="muted">
+          <span className="microlabel">
             {t("meetings.status.required", "Required")}
-          </StatusText>
+          </span>
         ) : null}
         {source.gap_count > 0 ? (
-          <StatusText tone="warning">
+          <StatusText tone="warning" className="tabular-nums">
             {t("meetings.status.gapCount", "Gaps: {{total}}", {
               total: source.gap_count,
             })}
@@ -186,18 +191,14 @@ const MeetingSourceItem: React.FC<MeetingSourceItemProps> = ({
       {showTelemetry ? (
         <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
           <div>
-            <dt className="text-[11px] leading-4 text-text-tertiary">
-              {t("meetings.live.signal")}
-            </dt>
-            <dd className="text-[12px] leading-[18px] text-text-secondary">
+            <dt className="microlabel">{t("meetings.live.signal")}</dt>
+            <dd className="text-[12.5px] leading-[18px] text-text-secondary">
               {t("meetings.live.notReported")}
             </dd>
           </div>
           <div>
-            <dt className="text-[11px] leading-4 text-text-tertiary">
-              {t("meetings.live.durabilityLag")}
-            </dt>
-            <dd className="text-[12px] leading-[18px] text-text-secondary tabular-nums">
+            <dt className="microlabel">{t("meetings.live.durabilityLag")}</dt>
+            <dd className="text-[12.5px] leading-[18px] text-text-secondary tabular-nums">
               {durableLagNs === null
                 ? t("meetings.live.notReported")
                 : t("meetings.live.behind", {
@@ -224,7 +225,7 @@ export const MeetingSourceList: React.FC<MeetingSourceListProps> = ({
   elapsedOffsetNs = null,
   showTelemetry = false,
 }) => (
-  <List label={label}>
+  <ul role="list" aria-label={label} className="meeting-rows">
     {sources.map((source) => (
       <MeetingSourceItem
         key={source.source_kind}
@@ -233,5 +234,5 @@ export const MeetingSourceList: React.FC<MeetingSourceListProps> = ({
         showTelemetry={showTelemetry}
       />
     ))}
-  </List>
+  </ul>
 );

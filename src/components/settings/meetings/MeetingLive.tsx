@@ -2,7 +2,15 @@ import React, { useMemo, useState } from "react";
 import { Pause, Play, Square } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { MeetingReviewSnapshot } from "@/bindings";
-import { Alert, Button, Dialog, Section, StatusText, Textarea } from "../../ui";
+import {
+  Alert,
+  Badge,
+  Button,
+  Dialog,
+  Section,
+  StatusText,
+  Textarea,
+} from "../../ui";
 import {
   CaptureCompletenessText,
   MeetingPhaseText,
@@ -10,6 +18,7 @@ import {
   ProcessingStatusText,
 } from "./MeetingStatus";
 import { formatMeetingOffset } from "./meetingUtils";
+import { MeetingNotesPane } from "./MeetingNotesPane";
 
 interface MeetingLiveProps {
   snapshot: MeetingReviewSnapshot;
@@ -21,20 +30,15 @@ interface MeetingLiveProps {
   onCreateNote: (body: string) => void;
 }
 
-const PROGRESS_ROW_CLASSES =
-  "flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2.5";
-
 interface ProgressRowProps {
   label: string;
   children: React.ReactNode;
 }
 
 const ProgressRow: React.FC<ProgressRowProps> = ({ label, children }) => (
-  <div className={PROGRESS_ROW_CLASSES}>
-    <dt className="text-[13px] leading-[19px] font-medium text-text-primary">
-      {label}
-    </dt>
-    <dd className="flex-none text-[12.5px] leading-[18px] text-text-secondary tabular-nums">
+  <div className="meeting-row">
+    <dt className="meeting-row-label">{label}</dt>
+    <dd className="meeting-row-value text-[12.5px] leading-[18px] text-text-secondary">
       {children}
     </dd>
   </div>
@@ -94,14 +98,13 @@ export const MeetingLive: React.FC<MeetingLiveProps> = ({
 
   return (
     <div className="settings-page">
-      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-border pb-4">
+      {/* The one inverted chip in the app. Capture is the state where a
+       * misread costs somebody a meeting, so it gets the highest-contrast
+       * treatment the palette has and nothing else on the page competes. */}
+      <header className="meeting-live-header">
         <div className="min-w-0">
-          <p className="font-mono text-[11px] leading-4 tracking-[0.045em] text-danger-strong uppercase">
-            {t("meetings.live.activeCapture")}
-          </p>
-          <h1 className="settings-page-title mt-0.5">
-            {snapshot.session.title}
-          </h1>
+          <Badge variant="primary">{t("meetings.live.activeCapture")}</Badge>
+          <h1 className="settings-page-title mt-2">{snapshot.session.title}</h1>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
             <MeetingPhaseText phase={snapshot.session.phase} />
             <CaptureCompletenessText
@@ -109,11 +112,9 @@ export const MeetingLive: React.FC<MeetingLiveProps> = ({
             />
           </div>
         </div>
-        <dl className="flex flex-none items-baseline gap-2">
-          <dt className="text-[12px] leading-4 text-text-secondary">
-            {t("meetings.live.elapsed")}
-          </dt>
-          <dd className="font-mono text-[19px] leading-6 font-semibold text-text-primary tabular-nums">
+        <dl className="flex-none">
+          <dt className="microlabel">{t("meetings.live.elapsed")}</dt>
+          <dd className="meeting-elapsed">
             {formatMeetingOffset(elapsedOffsetNs)}
           </dd>
         </dl>
@@ -143,37 +144,35 @@ export const MeetingLive: React.FC<MeetingLiveProps> = ({
         title={t("meetings.live.progress")}
         description={t("meetings.live.progressDescription")}
       >
-        <div className="settings-group-panel">
-          <dl>
-            <ProgressRow label={t("meetings.live.transcript")}>
-              {latestTranscriptOffsetNs === null
-                ? t("meetings.live.noTranscriptCheckpoint")
-                : t("meetings.live.transcriptThrough", {
-                    time: formatMeetingOffset(latestTranscriptOffsetNs),
-                  })}
-            </ProgressRow>
-            <ProgressRow label={t("meetings.live.asrLag")}>
-              {transcriptLagNs === null
-                ? t("meetings.live.notReported")
-                : t("meetings.live.behind", {
-                    duration: formatMeetingOffset(transcriptLagNs),
-                  })}
-            </ProgressRow>
-            <ProgressRow label={t("meetings.live.storage")}>
-              <StatusText tone={storageAvailable ? "muted" : "danger"}>
-                {storageAvailable
-                  ? t("meetings.live.storageHealthy")
-                  : t("meetings.live.storageUnavailable")}
-              </StatusText>
-            </ProgressRow>
-            <ProgressRow label={t("meetings.live.processing")}>
-              <ProcessingStatusText
-                status={snapshot.session.processing_status}
-                live="polite"
-              />
-            </ProgressRow>
-          </dl>
-        </div>
+        <dl className="meeting-rows">
+          <ProgressRow label={t("meetings.live.transcript")}>
+            {latestTranscriptOffsetNs === null
+              ? t("meetings.live.noTranscriptCheckpoint")
+              : t("meetings.live.transcriptThrough", {
+                  time: formatMeetingOffset(latestTranscriptOffsetNs),
+                })}
+          </ProgressRow>
+          <ProgressRow label={t("meetings.live.asrLag")}>
+            {transcriptLagNs === null
+              ? t("meetings.live.notReported")
+              : t("meetings.live.behind", {
+                  duration: formatMeetingOffset(transcriptLagNs),
+                })}
+          </ProgressRow>
+          <ProgressRow label={t("meetings.live.storage")}>
+            <StatusText tone={storageAvailable ? "muted" : "danger"}>
+              {storageAvailable
+                ? t("meetings.live.storageHealthy")
+                : t("meetings.live.storageUnavailable")}
+            </StatusText>
+          </ProgressRow>
+          <ProgressRow label={t("meetings.live.processing")}>
+            <ProcessingStatusText
+              status={snapshot.session.processing_status}
+              live="polite"
+            />
+          </ProgressRow>
+        </dl>
       </Section>
 
       <Section
@@ -191,7 +190,7 @@ export const MeetingLive: React.FC<MeetingLiveProps> = ({
           className="w-full"
         />
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-          <span className="font-mono text-[11px] leading-4 text-text-secondary tabular-nums">
+          <span className="microlabel tabular-nums">
             {t("meetings.live.timestamp", {
               time: formatMeetingOffset(elapsedOffsetNs),
             })}
@@ -207,7 +206,14 @@ export const MeetingLive: React.FC<MeetingLiveProps> = ({
         </div>
       </Section>
 
-      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-4">
+      <MeetingNotesPane
+        sessionId={snapshot.session.session_id}
+        revision={snapshot.session.revision}
+        variant="live"
+        disabled={isMutating}
+      />
+
+      <div className="meeting-transport">
         <Button
           type="button"
           variant="danger-ghost"
@@ -219,7 +225,7 @@ export const MeetingLive: React.FC<MeetingLiveProps> = ({
         {isPaused ? (
           <Button
             type="button"
-            variant="ghost"
+            variant="secondary"
             onClick={onResume}
             disabled={!canResume || isMutating}
           >
@@ -229,7 +235,7 @@ export const MeetingLive: React.FC<MeetingLiveProps> = ({
         ) : (
           <Button
             type="button"
-            variant="ghost"
+            variant="secondary"
             onClick={onPause}
             disabled={!canPause || isMutating}
           >
@@ -239,7 +245,6 @@ export const MeetingLive: React.FC<MeetingLiveProps> = ({
         )}
         <Button
           type="button"
-          variant="danger"
           onClick={onStop}
           disabled={!canStop || isMutating}
         >

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, FileJson, FileText, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -34,6 +34,12 @@ import {
   meetingErrorKey,
   meetingReasonKey,
 } from "./meetingUtils";
+import {
+  actionItemKey,
+  getMeetingAnalytics,
+  setActionItemDone,
+  type MeetingAnalyticsSnapshot,
+} from "./meetingAnalytics";
 
 /* The review surface holds five jobs: read the transcript, fix it, read what
  * was generated from it, ask the meeting a question, and get the record out.
@@ -103,6 +109,9 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
   const [searching, setSearching] = useState(false);
   const [question, setQuestion] = useState("");
   const [askingQuestion, setAskingQuestion] = useState(false);
+  const [analytics, setAnalytics] = useState<MeetingAnalyticsSnapshot | null>(
+    null,
+  );
   const editable = snapshot.session.allowed_actions.includes("edit");
   const canRegenerate = snapshot.session.allowed_actions.includes("regenerate");
   const canAskQuestion =
@@ -118,6 +127,52 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
   for (const speaker of snapshot.speakers) {
     speakerNames[speaker.speaker_id] = speaker.display_name;
   }
+
+  /* Metrics are derived from the transcript, so they are re-read whenever the
+   * transcript could have moved: a new session revision means an edit, a
+   * regeneration or a finished processing pass. */
+  const sessionId = snapshot.session.session_id;
+  const revision = snapshot.session.revision;
+  const loadAnalytics = useCallback(async () => {
+    try {
+      setAnalytics(await getMeetingAnalytics(sessionId));
+    } catch {
+      setAnalytics(null);
+    }
+  }, [sessionId]);
+
+  const analyticsRevision = useRef<number | null>(null);
+  useEffect(() => {
+    if (analyticsRevision.current === revision) return;
+    analyticsRevision.current = revision;
+    void loadAnalytics();
+  }, [loadAnalytics, revision]);
+
+  const doneActionItems = new Set(
+    (analytics?.action_items ?? [])
+      .filter((state) => state.done)
+      .map((state) => actionItemKey(state.artifact_id, state.action_index)),
+  );
+
+  const toggleActionItem = async (
+    artifactId: string,
+    actionIndex: number,
+    done: boolean,
+  ) => {
+    try {
+      const states = await setActionItemDone({
+        session_id: sessionId,
+        artifact_id: artifactId,
+        action_index: actionIndex,
+        done,
+      });
+      setAnalytics((current) =>
+        current === null ? current : { ...current, action_items: states },
+      );
+    } catch {
+      toast.error(t("meetings.errors.operation"));
+    }
+  };
 
   const selectTab = (id: string) => {
     const next = REVIEW_TAB_IDS.find((candidate) => candidate === id);
@@ -269,7 +324,7 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
         </Alert>
       ) : null}
 
-      <div className="border-b border-border pb-1">
+      <div className="pt-1">
         <Tabs
           items={tabItems}
           value={tab}
@@ -309,13 +364,20 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
             editable={editable}
             canRegenerate={canRegenerate}
             newNote={newNote}
+            analytics={analytics?.analytics ?? null}
+            speakerNames={speakerNames}
+            doneActionItems={doneActionItems}
             onNewNoteChange={setNewNote}
             onCreateNote={createNote}
             onNoteUpdate={onNoteUpdate}
             onNoteDelete={onNoteDelete}
             onRegenerate={onRegenerate}
             onJumpToSegment={jumpToSegment}
+            onActionItemToggle={(artifactId, actionIndex, done) =>
+              void toggleActionItem(artifactId, actionIndex, done)
+            }
             onRefresh={onRefresh}
+            onAnalyticsRefresh={loadAnalytics}
           />
         ) : (
           <QuestionsTab
@@ -432,10 +494,7 @@ const MeetingTitleEditor: React.FC<MeetingTitleEditorProps> = ({
   return (
     <div className="flex flex-wrap items-end gap-2">
       <div className="min-w-0 flex-1">
-        <label
-          className="mb-1 block text-[11px] leading-4 font-semibold tracking-[0.03em] text-text-secondary uppercase"
-          htmlFor="meeting-review-title"
-        >
+        <label className="microlabel mb-1 block" htmlFor="meeting-review-title">
           {t("meetings.review.meetingTitle")}
         </label>
         <input
@@ -447,7 +506,7 @@ const MeetingTitleEditor: React.FC<MeetingTitleEditorProps> = ({
             setCanSave(nextTitle.length > 0 && nextTitle !== title);
           }}
           disabled={disabled}
-          className="w-full border-0 border-b border-border-strong bg-transparent pb-1 text-[20px] leading-7 font-semibold tracking-[-0.022em] text-text-primary outline-offset-2 transition-[border-color] duration-150 ease-out enabled:hover:border-text-tertiary disabled:cursor-not-allowed disabled:text-text-disabled"
+          className="w-full border-0 border-b border-border bg-transparent pb-1 text-[20px] leading-7 font-semibold tracking-[-0.022em] text-text-primary outline-offset-2 transition-[border-color] duration-150 ease-out enabled:hover:border-border-strong disabled:cursor-not-allowed disabled:text-text-disabled"
         />
       </div>
       <Button
@@ -515,7 +574,7 @@ const MeetingExportBar: React.FC<MeetingExportBarProps> = ({
     <Section
       title={t("meetings.review.export")}
       description={t("meetings.review.exportDescription")}
-      className="border-t border-border pt-5"
+      className="border-t border-border-subtle pt-6"
     >
       <div className="flex flex-wrap items-center gap-2">
         <Button
