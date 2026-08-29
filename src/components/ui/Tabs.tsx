@@ -58,9 +58,9 @@ const LIST_CLASSES = {
 
 const TAB_CLASSES = {
   default:
-    "relative isolate min-h-9 cursor-pointer px-0.5 text-[13px] whitespace-nowrap transition-colors duration-150 ease-out disabled:cursor-not-allowed disabled:text-text-disabled",
+    "relative isolate min-h-9 cursor-pointer px-0.5 text-[13px] whitespace-nowrap transition-colors duration-[var(--duration-fast)] ease-[var(--ease-in-out)] disabled:cursor-not-allowed disabled:text-text-disabled",
   secondary:
-    "relative isolate min-h-7 cursor-pointer rounded-xs border border-transparent px-3 text-[13px] whitespace-nowrap transition-colors duration-120 ease-in-out disabled:cursor-not-allowed disabled:text-text-disabled",
+    "relative isolate min-h-7 cursor-pointer rounded-xs border border-transparent px-3 text-[13px] whitespace-nowrap transition-colors duration-[var(--duration-fast)] ease-[var(--ease-in-out)] disabled:cursor-not-allowed disabled:text-text-disabled",
 } as const;
 
 const TAB_STATE_CLASSES = {

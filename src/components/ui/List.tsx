@@ -76,13 +76,13 @@ export const Row: React.FC<RowProps> = ({
           {title}
         </span>
         {description && (
-          <span className="block truncate text-[12.5px] leading-[18px] text-text-secondary">
+          <span className="block truncate text-[12px] leading-4 text-text-secondary">
             {description}
           </span>
         )}
       </span>
       {meta && (
-        <span className="flex-none text-[12px] leading-4 text-text-tertiary tabular-nums">
+        <span className="flex-none font-mono text-[12px] leading-4 text-text-tertiary tabular-nums">
           {meta}
         </span>
       )}
@@ -99,7 +99,7 @@ export const Row: React.FC<RowProps> = ({
           type="button"
           disabled={disabled}
           onClick={onSelect}
-          className={`${ROW_BODY_CLASSES} cursor-pointer transition-[background-color] duration-150 ease-out outline-offset-[-2px] enabled:hover:bg-hover enabled:active:bg-pressed disabled:cursor-not-allowed disabled:opacity-60`}
+          className={`${ROW_BODY_CLASSES} cursor-pointer transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-in-out)] outline-offset-[-2px] enabled:hover:bg-hover enabled:active:bg-pressed disabled:cursor-not-allowed disabled:opacity-60`}
         >
           {body}
         </button>

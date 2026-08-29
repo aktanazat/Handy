@@ -337,14 +337,14 @@ const AppEventListeners: React.FC = () => {
         toast.error(
           t(
             "errors.commandNoSelection",
-            "Nothing was selected. Select the text you want to change, then hold the command shortcut and say what to do.",
+            "Select the text you want to change, then hold the command shortcut and say the change.",
           ),
         );
       } else if (error_type === "command_rewrite_unavailable") {
         toast.error(
           t(
             "errors.commandRewriteUnavailable",
-            "The rewrite returned nothing, so your selection was left as it was. Check the rewrite model in Settings > AI and try again.",
+            "The rewrite returned nothing, so your selection was left as it was. Check the provider in Settings > Post-processing and try again.",
           ),
         );
       } else if (error_type === "no_speech_save_failed") {

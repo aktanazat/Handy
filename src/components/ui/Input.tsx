@@ -15,7 +15,7 @@ export interface InputProps
  * next to it read as the same family. Focus moves the border colour and the
  * outline together rather than only drawing a ring outside the box. */
 const INPUT_BASE_CLASSES =
-  "control-surface border text-[13px] font-medium text-text-primary transition-[background-color,border-color] duration-150 ease-out placeholder:text-text-tertiary focus-visible:border-focus-ring";
+  "control-surface border text-[13px] font-medium text-text-primary transition-[background-color,border-color] duration-[var(--duration-fast)] ease-[var(--ease-in-out)] placeholder:text-text-tertiary focus-visible:border-focus-ring";
 
 /* Padding is declared per side, never as the `px-*` shorthand. Tailwind resolves
  * `px-2` against `ps-7` by stylesheet order, not by the order of the class

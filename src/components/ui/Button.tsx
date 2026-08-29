@@ -25,7 +25,7 @@ export interface ButtonProps
  * press walk one and two steps down the same grey ladder rather than fading
  * out with opacity. */
 const BUTTON_BASE_CLASSES =
-  "liquid-control inline-flex cursor-pointer items-center justify-center gap-1.5 border font-medium whitespace-nowrap transition-[background-color,border-color,color] duration-150 ease-out disabled:cursor-not-allowed disabled:border-border disabled:bg-control-disabled disabled:text-text-disabled";
+  "liquid-control inline-flex cursor-pointer items-center justify-center gap-1.5 border font-medium whitespace-nowrap transition-[background-color,border-color,color] duration-[var(--duration-fast)] ease-[var(--ease-in-out)] disabled:cursor-not-allowed disabled:border-border disabled:bg-control-disabled disabled:text-text-disabled";
 
 const BUTTON_VARIANT_CLASSES = {
   primary:

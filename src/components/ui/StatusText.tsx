@@ -37,7 +37,7 @@ export const StatusText: React.FC<StatusTextProps> = ({
     <span
       role={live === "off" ? undefined : "status"}
       aria-live={live === "off" ? undefined : live}
-      className={`text-[12.5px] leading-[18px] ${STATUS_TONE_CLASSES[tone]} ${className}`}
+      className={`text-[12px] leading-4 ${STATUS_TONE_CLASSES[tone]} ${className}`}
     >
       {children}
     </span>

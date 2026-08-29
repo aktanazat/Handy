@@ -164,14 +164,14 @@ export const Dialog: React.FC<DialogProps> = ({
           <div className="min-w-0">
             <h2
               id={titleId}
-              className="text-[20px] leading-[26px] font-semibold tracking-[-0.4px] text-text-primary"
+              className="text-[20px] leading-[26px] font-semibold text-text-primary"
             >
               {title}
             </h2>
             {description && (
               <p
                 id={descriptionId}
-                className="mt-1 text-[13px] leading-[18px] text-text-secondary text-pretty"
+                className="mt-1 text-[13px] leading-[19px] text-text-secondary text-pretty"
               >
                 {description}
               </p>
@@ -182,7 +182,7 @@ export const Dialog: React.FC<DialogProps> = ({
               type="button"
               onClick={() => onOpenChange(false)}
               aria-label={closeLabel}
-              className="shrink-0 cursor-pointer rounded-control border border-transparent p-1 text-text-secondary transition-colors hover:bg-hover hover:text-text-primary"
+              className="shrink-0 cursor-pointer rounded-control border border-transparent p-1 text-text-secondary transition-colors duration-[var(--duration-fast)] ease-[var(--ease-in-out)] hover:bg-hover hover:text-text-primary"
             >
               <X className="h-4 w-4" aria-hidden="true" />
             </button>

@@ -136,7 +136,7 @@
 
 .compact-empty-row strong {
   color: var(--color-text-primary);
-  font-weight: 560;
+  font-weight: var(--fw-button);
 }
 
 /* ------------------------------------------------------------ hub & nav */
@@ -167,10 +167,11 @@
   border: 0;
   color: var(--color-text-secondary);
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--type-row-size);
+  font-weight: var(--type-row-weight);
   padding: 0;
   position: relative;
+  transition: color var(--duration-fast) var(--ease-in-out);
   white-space: nowrap;
 }
 
@@ -180,13 +181,14 @@
 
 .settings-local-nav button[aria-current="page"] {
   color: var(--color-text-primary);
-  font-weight: 620;
+  font-weight: var(--fw-heading);
 }
 
+/* The same 2px mark the Tabs primitive draws: one underline convention. */
 .settings-local-nav button[aria-current="page"]::after {
   background: var(--color-text-primary);
-  block-size: 1px;
-  bottom: 0;
+  block-size: 2px;
+  bottom: -1px;
   content: "";
   inset-inline: 0;
   position: absolute;
@@ -229,226 +231,18 @@
 
 .settings-disclosure > summary > span:first-child {
   color: var(--color-text-primary);
-  font-size: 13.5px;
-  font-weight: 560;
+  font-size: var(--type-row-size);
+  font-weight: var(--type-row-weight);
 }
 
 .settings-disclosure > summary > span:last-child {
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--type-secondary-size);
 }
 
 .settings-disclosure-body {
   border-top: 1px solid var(--color-border);
   padding: var(--space-3) var(--space-4) var(--space-4);
-}
-
-/* ------------------------------------------------------ trends & charts */
-
-.trend-range-control {
-  align-items: center;
-  background: var(--color-control);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-control);
-  display: inline-flex;
-  min-block-size: 30px;
-  padding: 2px;
-}
-
-.trend-range-control button {
-  align-self: stretch;
-  background: transparent;
-  border: 0;
-  border-radius: calc(var(--radius-control) - 2px);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 520;
-  min-inline-size: 44px;
-  padding-inline: var(--space-2);
-  white-space: nowrap;
-}
-
-.trend-range-control button:hover {
-  color: var(--color-text-primary);
-}
-
-.trend-range-control button[aria-pressed="true"] {
-  background: var(--color-inverse-background);
-  box-shadow: none;
-  color: var(--color-inverse-text);
-}
-
-.mode-vocabulary-view {
-  border-top: 1px solid var(--color-border);
-  padding-top: var(--space-4);
-}
-
-.trend-metric-strip {
-  border-block: 1px solid var(--color-border);
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
-  margin-top: var(--space-3);
-}
-
-.trend-metric-strip button {
-  background: transparent;
-  border: 0;
-  border-inline-end: 1px solid var(--color-border);
-  color: var(--color-text-primary);
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  min-block-size: 64px;
-  min-inline-size: 0;
-  padding: var(--space-2) var(--space-3);
-  text-align: start;
-}
-
-.trend-metric-strip button:last-child {
-  border-inline-end: 0;
-}
-
-.trend-metric-strip button:hover {
-  background: var(--color-hover);
-}
-
-.trend-metric-strip button[aria-pressed="true"] {
-  background: var(--color-subtle);
-  box-shadow: inset 0 -2px 0 var(--color-text-primary);
-}
-
-.trend-metric-label,
-.trend-metric-detail {
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  line-height: 16px;
-  overflow-wrap: anywhere;
-}
-
-.trend-metric-detail {
-  font-family: var(--font-geist-mono);
-  font-size: 11px;
-  line-height: 15px;
-}
-
-.trend-metric-strip strong {
-  font-size: 20px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 580;
-  letter-spacing: -0.025em;
-  line-height: 26px;
-  margin-block: var(--space-1) var(--space-0-5);
-  overflow-wrap: anywhere;
-}
-
-.trend-chart {
-  direction: ltr;
-  margin: var(--space-3) 0 0;
-}
-
-.trend-chart svg {
-  block-size: var(--chart-height);
-  display: block;
-  inline-size: 100%;
-  overflow: visible;
-}
-
-.trend-chart-grid {
-  stroke: var(--color-border);
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-}
-
-.trend-chart-line {
-  fill: none;
-  stroke: var(--color-text-primary);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.5;
-  vector-effect: non-scaling-stroke;
-}
-
-.trend-chart-hit {
-  fill: transparent;
-  pointer-events: all;
-}
-
-.trend-chart-dot {
-  fill: var(--color-surface);
-  stroke: var(--color-text-primary);
-  stroke-width: 1.25;
-  vector-effect: non-scaling-stroke;
-}
-
-.trend-chart-point:focus {
-  outline: none;
-}
-
-.trend-chart-point:focus .trend-chart-dot,
-.trend-chart-point:hover .trend-chart-dot {
-  fill: var(--color-text-primary);
-  stroke-width: 3;
-}
-
-.trend-chart-axis {
-  color: var(--color-text-tertiary);
-  display: flex;
-  font-family: var(--font-geist-mono);
-  font-size: 10px;
-  justify-content: space-between;
-  line-height: 16px;
-  margin-top: var(--space-1);
-}
-
-.trend-chart-empty {
-  align-items: center;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-panel);
-  color: var(--color-text-secondary);
-  display: flex;
-  font-size: 13px;
-  justify-content: center;
-  min-block-size: var(--chart-height);
-}
-
-.trend-chart-zero {
-  border-block: 1px solid var(--color-border);
-  margin-top: var(--space-3);
-  padding-block: var(--space-4);
-}
-
-.trend-chart-zero-copy {
-  align-items: flex-start;
-  color: var(--color-text-secondary);
-  display: flex;
-  flex-direction: column;
-  font-size: 13px;
-  gap: var(--space-1);
-  line-height: 19px;
-  padding-block: var(--space-2);
-}
-
-.trend-chart-zero-copy strong {
-  color: var(--color-text-primary);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.trend-chart-zero-copy span {
-  color: var(--color-text-tertiary);
-  font-family: var(--font-geist-mono);
-  font-size: 11px;
-}
-
-.trend-availability,
-.trend-summary-line {
-  color: var(--color-text-secondary);
-  display: flex;
-  flex-wrap: wrap;
-  font-size: 12px;
-  gap: var(--space-2) var(--space-4);
-  margin-top: var(--space-2);
 }
 
 .meeting-choice-row {
@@ -688,15 +482,6 @@
     justify-self: stretch;
     max-inline-size: none;
   }
-
-  .trend-metric-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .trend-metric-strip button:nth-child(2n) {
-    border-inline-end: 0;
-  }
-
   .app-topnav {
     padding-inline-end: var(--space-2);
   }
@@ -780,11 +565,6 @@
   .setting-row {
     min-block-size: 42px;
     padding-block: var(--space-1-5);
-  }
-
-  .trend-metric-strip button {
-    min-block-size: 60px;
-    padding-block: var(--space-2);
   }
 }
 

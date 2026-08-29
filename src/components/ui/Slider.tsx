@@ -36,6 +36,10 @@ export const Slider: React.FC<SliderProps> = ({
   isResetting = false,
 }) => {
   const inputId = useId();
+  /* The track paints its own filled portion: WebKit's native range rendering
+   * (accent-color) left the rail invisible on both themes, so `.ui-range` in
+   * styles/primitives.css draws rail + fill from this one custom property. */
+  const fillPercent = max > min ? ((value - min) / (max - min)) * 100 : 0;
 
   return (
     <SettingContainer
@@ -57,14 +61,16 @@ export const Slider: React.FC<SliderProps> = ({
           value={value}
           disabled={disabled}
           aria-describedby={`${inputId}-description`}
-          className="h-1.5 min-w-32 flex-1 cursor-pointer appearance-none rounded-full accent-[var(--color-inverse-background)] disabled:cursor-not-allowed disabled:opacity-70"
-          style={{ accentColor: "var(--color-inverse-background)" }}
+          className="ui-range min-w-32 flex-1"
+          /* SAFETY: React.CSSProperties has no index for custom properties;
+           * the cast admits the --range-fill variable the track CSS reads. */
+          style={{ "--range-fill": `${fillPercent}%` } as React.CSSProperties}
           onChange={(event) => onChange(Number(event.target.value))}
         />
         {showValue && (
           <output
             htmlFor={inputId}
-            className="w-12 text-end text-sm font-medium tabular-nums text-text-primary"
+            className="w-12 text-end font-mono text-[12px] leading-4 tabular-nums text-text-primary"
           >
             {formatValue(value)}
           </output>

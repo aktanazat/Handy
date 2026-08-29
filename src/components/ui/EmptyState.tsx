@@ -59,7 +59,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
           {title}
         </p>
         {description && (
-          <p className="max-w-[62ch] text-[12.5px] leading-[18px] text-pretty text-text-secondary">
+          <p className="max-w-[62ch] text-[12px] leading-4 text-pretty text-text-secondary">
             {description}
           </p>
         )}

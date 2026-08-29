@@ -8,13 +8,13 @@ export interface BadgeProps {
 
 /* `primary` is Geist's inverted badge: a grey-1000 fill that flips poles with
  * the theme, reserved for "this is the current one". `secondary` is the
- * hairline outline every other categorical chip uses. `success` is the only
- * tinted variant, and it tints all three of fill, border and text off the same
- * family so it stays legible in both themes. */
+ * hairline outline every other categorical chip uses. `success` colours the
+ * WORD, not the container: the semaphore law reserves tinted fills and
+ * borders for status indicators, so a verified/granted state keeps the
+ * hairline chip and carries its meaning in the text. */
 const BADGE_VARIANT_CLASSES = {
   primary: "border-inverse-background bg-inverse-background text-inverse-text",
-  success:
-    "border-[var(--green-400)] bg-[var(--green-100)] text-[var(--green-900)]",
+  success: "border-border bg-transparent text-[var(--green-900)]",
   secondary: "border-border bg-transparent text-text-secondary",
 } as const;
 

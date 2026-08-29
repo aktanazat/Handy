@@ -62,7 +62,7 @@ export const Alert: React.FC<AlertProps> = ({
       className={`flex items-start gap-2.5 border p-3 ${styles.container} ${contained ? "border-x-0 rounded-none" : "rounded-control"} ${className}`}
     >
       <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${styles.icon}`} />
-      <p className={`min-w-0 flex-1 text-[13px] leading-5 ${styles.text}`}>
+      <p className={`min-w-0 flex-1 text-[13px] leading-[19px] ${styles.text}`}>
         {children}
       </p>
       {action && <div className="flex flex-none items-center">{action}</div>}

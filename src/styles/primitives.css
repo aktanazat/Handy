@@ -87,13 +87,13 @@
 .setting-copy h3 {
   font-size: var(--type-row-size);
   font-weight: var(--type-row-weight);
-  letter-spacing: -0.005em;
+  letter-spacing: 0;
   line-height: var(--type-row-line);
 }
 
 .setting-copy p {
   font-size: var(--type-secondary-size);
-  line-height: 17px;
+  line-height: var(--type-secondary-line);
   margin-top: 1px;
   text-wrap: pretty;
 }
@@ -128,65 +128,77 @@
 
 /* ----------------------------------------------------------- controls */
 
-.control-surface,
-.settings-main
-  :is(
-    input[type="text"],
-    input[type="search"],
-    input[type="password"],
-    input[type="url"],
-    textarea,
-    select
-  ) {
-  background: var(--color-control);
-  border-color: var(--color-control-border);
-  box-shadow: none;
-}
+/* This section lives in the `components` cascade layer on purpose. The
+ * primitives in ui/ stack Tailwind state utilities (hover:bg-control-hover,
+ * disabled:bg-control-disabled, …) on top of these boxes, and Tailwind's
+ * utilities layer can only win against a layered rule: an unlayered
+ * declaration outranks every layer, which silently killed hover, active and
+ * disabled feedback on every bordered control. Measured in-browser before
+ * the fix: `.control-surface` + `bg-control-disabled` computed to the plain
+ * control fill. The overlay webview imports this file without Tailwind;
+ * there the layer is simply created on first use and the rules apply as
+ * normal, because nothing in that window competes for these selectors. */
+@layer components {
+  .control-surface,
+  .settings-main
+    :is(
+      input[type="text"],
+      input[type="search"],
+      input[type="password"],
+      input[type="url"],
+      textarea,
+      select
+    ) {
+    background: var(--color-control);
+    border-color: var(--color-control-border);
+    box-shadow: none;
+  }
 
-.liquid-control,
-.control-surface,
-.settings-main :is(input, select, textarea) {
-  border-radius: var(--radius-control);
-}
+  .liquid-control,
+  .control-surface,
+  .settings-main :is(input, select, textarea) {
+    border-radius: var(--radius-control);
+  }
 
-.control-surface:not(textarea),
-.settings-main :is(input:not([type="checkbox"]):not([type="radio"]), select) {
-  min-block-size: var(--control-height);
-}
+  .control-surface:not(textarea),
+  .settings-main :is(input:not([type="checkbox"]):not([type="radio"]), select) {
+    min-block-size: var(--control-height);
+  }
 
-/* Bare fields inside a settings page get their box from here. A field built
- * from the `Input` primitive is excluded: `.control-surface` marks it, and its
- * padding is (inset + slot + gap), which only the primitive knows. This
- * descendant selector outspecifies a Tailwind utility, so without the
- * exclusion it silently reinstated the Library search placeholder under the
- * magnifier no matter what the primitive asked for. */
-.settings-main input[type="text"]:not(.control-surface),
-.settings-main input[type="search"]:not(.control-surface),
-.settings-main input[type="password"]:not(.control-surface),
-.settings-main input[type="url"]:not(.control-surface),
-.settings-main select:not(.control-surface) {
-  border: 1px solid var(--color-control-border);
-  padding-inline: var(--space-2-5);
-}
+  /* Bare fields inside a settings page get their box from here. A field built
+   * from the `Input` primitive is excluded: `.control-surface` marks it, and
+   * its padding is (inset + slot + gap), which only the primitive knows. This
+   * descendant selector outspecifies a Tailwind utility, so without the
+   * exclusion it silently reinstated the Library search placeholder under the
+   * magnifier no matter what the primitive asked for. */
+  .settings-main input[type="text"]:not(.control-surface),
+  .settings-main input[type="search"]:not(.control-surface),
+  .settings-main input[type="password"]:not(.control-surface),
+  .settings-main input[type="url"]:not(.control-surface),
+  .settings-main select:not(.control-surface) {
+    border: 1px solid var(--color-control-border);
+    padding-inline: var(--space-2-5);
+  }
 
-.settings-main input[type="text"]:hover,
-.settings-main input[type="search"]:hover,
-.settings-main input[type="password"]:hover,
-.settings-main input[type="url"]:hover,
-.settings-main select:hover {
-  border-color: var(--color-control-border-hover);
-}
+  .settings-main input[type="text"]:hover,
+  .settings-main input[type="search"]:hover,
+  .settings-main input[type="password"]:hover,
+  .settings-main input[type="url"]:hover,
+  .settings-main select:hover {
+    border-color: var(--color-control-border-hover);
+  }
 
-.settings-main select:hover {
-  background: var(--color-control-hover);
-}
+  .settings-main select:hover {
+    background: var(--color-control-hover);
+  }
 
-.settings-main select:active {
-  background: var(--color-control-active);
-}
+  .settings-main select:active {
+    background: var(--color-control-active);
+  }
 
-.settings-main button {
-  -webkit-tap-highlight-color: transparent;
+  .settings-main button {
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
 /* NAMING TRAP, read before editing: these four `.glass-*` classes are SOLID
@@ -196,14 +208,132 @@
  * "restore" blur here and do not count these against the two-glass-surface
  * budget. Renaming them is a follow-up, not a mid-flight edit: their call sites
  * are spread across pages other slices own right now. */
+/* The Switch primitive's track and knob, owned here end to end: the input is
+ * the state, the span draws it. State selectors live beside the box they
+ * paint instead of as Tailwind peer-variants, because an unlayered class
+ * defeats a layered utility for the same property — the exact bug that had
+ * a checked track rendering in the unchecked fill (measured: peer-checked
+ * bg utility computed to the track's own background). The overlay webview
+ * gets a working switch from this same block, Tailwind or not.
+ *
+ * Engraved, not washed: off is the one recessed surface class cut into the
+ * row with a plain hairline, so it reads as an empty well instead of a grey
+ * blob; on stays the Geist inversion, the app's one selected-state device. */
 .glass-toggle {
-  background: var(--color-pressed);
-  border: 1px solid var(--color-border-strong);
+  background: var(--surface-inset);
+  block-size: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
   box-shadow: none;
+  box-sizing: border-box;
+  display: inline-block;
+  flex: none;
+  inline-size: 36px;
+  position: relative;
+  transition:
+    background-color var(--duration-fast) var(--ease-in-out),
+    border-color var(--duration-fast) var(--ease-in-out);
 }
 
+/* The knob: 16px in an 18px well, one hairline and one tight shadow so it
+ * reads against both the inset track and the inverted one. The travel is a
+ * transform at the standard panel clock — a state change, not a hover. */
 .glass-toggle::after {
-  box-shadow: none;
+  background: var(--color-surface);
+  block-size: 16px;
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 1px 2px var(--gray-a-200);
+  box-sizing: border-box;
+  content: "";
+  inline-size: 16px;
+  inset-block-start: 1px;
+  inset-inline-start: 1px;
+  position: absolute;
+  transition: transform var(--duration-standard) var(--ease-out);
+}
+
+input:checked + .glass-toggle {
+  background: var(--color-inverse-background);
+  border-color: var(--color-inverse-background);
+}
+
+input:checked + .glass-toggle::after {
+  transform: translateX(16px);
+}
+
+[dir="rtl"] input:checked + .glass-toggle::after {
+  transform: translateX(-16px);
+}
+
+input:disabled + .glass-toggle {
+  opacity: 0.5;
+}
+
+input:focus-visible + .glass-toggle {
+  outline: var(--focus-outline);
+  outline-offset: var(--focus-offset);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-toggle,
+  .glass-toggle::after {
+    transition: none;
+  }
+}
+
+/* The Slider primitive's range input. Native rendering left the rail invisible
+ * in both themes (a thumb floating on empty space), so the control draws its
+ * own instrument rail: a 4px hairline-weight track, the filled span in the
+ * achromatic inversion, and a plain circular thumb. The fill boundary comes
+ * from --range-fill, set inline by ui/Slider.tsx from value/min/max — the
+ * fill is a reported value, so it snaps with the input rather than tweening.
+ * WebKit pseudo-elements only: every window this app ships is WebKit. */
+.ui-range {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  block-size: 20px;
+  cursor: pointer;
+  margin: 0;
+  min-inline-size: 0;
+}
+
+.ui-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.ui-range::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    to right,
+    var(--invert-bg) 0 var(--range-fill, 0%),
+    var(--gray-a-300) var(--range-fill, 0%) 100%
+  );
+  block-size: 4px;
+  border-radius: var(--radius-pill);
+}
+
+/* A physical gradient direction cannot follow writing mode, so RTL flips it. */
+[dir="rtl"] .ui-range::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    to left,
+    var(--invert-bg) 0 var(--range-fill, 0%),
+    var(--gray-a-300) var(--range-fill, 0%) 100%
+  );
+}
+
+.ui-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--invert-bg);
+  block-size: 14px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 1px 2px var(--gray-a-200);
+  inline-size: 14px;
+  /* Centre a 14px thumb on the 4px rail: (4 − 14) / 2. */
+  margin-block-start: -5px;
 }
 
 /* Border-colour transparent, not border-width zero: the 1px ring that leads
@@ -403,6 +533,71 @@
   white-space: nowrap;
 }
 
+/* A value chip: the machine's own answer, in the machine's own face. The
+ * shared recipe behind .meeting-preview-chip — mono, microlabel-sized,
+ * tabular, never a capsule (badge-ified metadata is on the reject list). */
+.chip {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--fs-microlabel);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--lh-microlabel);
+  white-space: nowrap;
+}
+
+/* A two-state pill: one control with two states, worn like an instrument
+ * switch. Off is a hairline outline on the page surface; armed is a tinted
+ * wash plus a stronger edge — never the primary inversion, which belongs to
+ * buttons and selected options, and at pill scale reads as a dark blob.
+ * The pill radius is sanctioned here: a toggle track is one of its three
+ * uses. State rides aria-pressed, so the class carries no second channel. */
+.toggle-chip {
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: var(--fs-label-13);
+  font-weight: var(--fw-button);
+  gap: var(--space-1-5);
+  min-block-size: 28px;
+  padding-inline: var(--space-3);
+  transition:
+    background-color var(--duration-fast) var(--ease-in-out),
+    border-color var(--duration-fast) var(--ease-in-out),
+    color var(--duration-fast) var(--ease-in-out);
+}
+
+/* The armed check sits half a pixel high on the flex line; nudge it onto the
+ * label's optical centre instead of letting the glyph float. */
+.toggle-chip svg {
+  flex: none;
+  position: relative;
+  top: 0.5px;
+}
+
+.toggle-chip:hover:not(:disabled) {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.toggle-chip:active:not(:disabled) {
+  background: var(--wash-active);
+}
+
+.toggle-chip[aria-pressed="true"] {
+  background: var(--wash-hover);
+  border-color: var(--border-active);
+  color: var(--text-primary);
+}
+
+.toggle-chip:disabled {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
 /* ---------------------------------------------------------------- glass */
 
 /* The Glass material, live only while the Material setting is Glass AND the
@@ -483,9 +678,12 @@
 .data-table th {
   border-bottom: 1px solid var(--border);
   color: var(--text-secondary);
-  font-size: var(--fs-label-12);
-  font-weight: 500;
-  line-height: var(--lh-label-12);
+  font-family: var(--font-mono);
+  font-size: var(--fs-microlabel);
+  font-weight: var(--fw-heading);
+  letter-spacing: var(--ls-microlabel);
+  line-height: var(--lh-microlabel);
+  text-transform: uppercase;
   white-space: nowrap;
 }
 

@@ -92,7 +92,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
         className={
           variant === "filter"
             ? `meeting-filter-chip ${disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`
-            : `control-surface grid min-h-9 w-full min-w-44 grid-cols-[1fr_auto] items-center gap-2 border px-3 text-start text-sm font-medium text-text-primary transition-colors ${
+            : `control-surface grid w-full min-w-44 grid-cols-[1fr_auto] items-center gap-2 border px-3 text-start text-[13px] font-medium text-text-primary transition-[background-color,border-color] duration-[var(--duration-fast)] ease-[var(--ease-in-out)] ${
                 disabled
                   ? "cursor-not-allowed opacity-70"
                   : "cursor-pointer hover:border-border-strong hover:bg-hover"
@@ -115,7 +115,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
           {selectedLabel}
         </span>
         <svg
-          className={`${variant === "filter" ? "h-3 w-3" : "h-4 w-4"} text-text-secondary transition-transform duration-150 ${
+          className={`${variant === "filter" ? "h-3 w-3" : "h-4 w-4"} text-text-secondary transition-transform duration-[var(--duration-fast)] ease-[var(--ease-out)] ${
             isOpen ? "rotate-180" : ""
           }`}
           fill="none"
@@ -142,7 +142,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
           }`}
         >
           {options.length === 0 ? (
-            <div className="px-2 py-2 text-sm text-text-secondary">
+            <div className="px-2 py-2 text-[13px] text-text-secondary">
               {t("common.noOptionsFound")}
             </div>
           ) : (
@@ -152,7 +152,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                 type="button"
                 role="option"
                 aria-selected={selectedValue === option.value}
-                className={`min-h-8 w-full rounded-md px-2 text-start text-sm text-text-primary transition-colors hover:bg-hover ${
+                className={`min-h-9 w-full rounded-xs px-2 text-start text-[13px] text-text-primary transition-colors duration-[var(--duration-fast)] ease-[var(--ease-in-out)] hover:bg-hover ${
                   selectedValue === option.value
                     ? "bg-inverse-background font-medium text-inverse-text hover:bg-inverse-background"
                     : ""

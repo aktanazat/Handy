@@ -14,7 +14,7 @@ export const ResetButton: React.FC<ResetButtonProps> = React.memo(
     <button
       type="button"
       aria-label={ariaLabel}
-      className={`inline-flex min-h-8 min-w-8 items-center justify-center rounded-md border border-transparent p-1.5 transition-colors ${
+      className={`inline-flex min-h-8 min-w-8 items-center justify-center rounded-control border border-transparent p-1.5 transition-colors duration-[var(--duration-fast)] ease-[var(--ease-in-out)] ${
         disabled
           ? "cursor-not-allowed text-text-tertiary opacity-70"
           : "cursor-pointer text-text-secondary hover:border-border hover:bg-hover hover:text-text-primary active:bg-pressed"

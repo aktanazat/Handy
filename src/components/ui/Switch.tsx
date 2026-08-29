@@ -12,8 +12,10 @@ export interface SwitchProps {
 }
 
 /* A checkbox in a track. The input stays a real checkbox so the label, focus
- * ring, keyboard toggle and form semantics come from the platform; the track
- * and knob are drawn from the peer state. */
+ * ring, keyboard toggle and form semantics come from the platform; the track,
+ * knob and every state paint live on `.glass-toggle` in styles/primitives.css,
+ * keyed off the input's own :checked/:disabled/:focus-visible — CSS the
+ * overlay webview shares, and that no cascade layer can silently defeat. */
 export const Switch: React.FC<SwitchProps> = ({
   checked,
   onChange,
@@ -34,14 +36,14 @@ export const Switch: React.FC<SwitchProps> = ({
       <input
         id={inputId}
         type="checkbox"
-        className="peer sr-only"
+        className="sr-only"
         checked={checked}
         disabled={disabled}
         aria-label={label}
         aria-describedby={describedBy}
         onChange={(event) => onChange(event.target.checked)}
       />
-      <span className="glass-toggle relative h-5 w-9 rounded-full transition-[background-color,border-color] duration-150 ease-out peer-checked:border-inverse-background peer-checked:bg-inverse-background peer-disabled:opacity-50 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus-ring after:absolute after:start-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:border after:border-border after:bg-surface after:transition-transform after:duration-150 after:ease-out peer-checked:after:translate-x-4 rtl:peer-checked:after:-translate-x-4" />
+      <span className="glass-toggle" aria-hidden="true" />
     </label>
   );
 };

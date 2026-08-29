@@ -42,7 +42,7 @@ export type SelectProps = BaseProps & (CreatableProps | NonCreatableProps);
 const selectStyles: StylesConfig<SelectOption, false> = {
   control: (base, state) => ({
     ...base,
-    minHeight: 36,
+    minHeight: 32,
     borderRadius: "var(--radius-control)",
     borderColor: state.isFocused
       ? "var(--color-accent-strong)"
@@ -50,9 +50,9 @@ const selectStyles: StylesConfig<SelectOption, false> = {
     boxShadow: state.isFocused ? "0 0 0 2px var(--color-focus-soft)" : "none",
     backgroundColor: "var(--color-control)",
     color: "var(--color-text-primary)",
-    fontSize: "0.875rem",
+    fontSize: 13,
     transition:
-      "background-color var(--duration-fast) var(--ease-out-quart), border-color var(--duration-fast) var(--ease-out-quart), box-shadow var(--duration-fast) var(--ease-out-quart)",
+      "background-color var(--duration-fast) var(--ease-in-out), border-color var(--duration-fast) var(--ease-in-out), box-shadow var(--duration-fast) var(--ease-in-out)",
     ":hover": {
       borderColor: state.isFocused
         ? "var(--color-accent-strong)"
@@ -90,7 +90,10 @@ const selectStyles: StylesConfig<SelectOption, false> = {
     zIndex: 30,
     backgroundColor: "var(--color-surface)",
     color: "var(--color-text-primary)",
-    border: "1px solid var(--color-border-strong)",
+    /* The 1px ring leading --shadow-popover is the menu's edge; a painted
+       border on top of it would draw a 2px double edge. Width kept so the
+       box does not shift against the glass-popover pattern. */
+    border: "1px solid transparent",
     borderRadius: "var(--radius-panel)",
     boxShadow: "var(--shadow-popover)",
   }),

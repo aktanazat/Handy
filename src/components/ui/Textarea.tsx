@@ -6,7 +6,7 @@ export interface TextareaProps
 }
 
 const TEXTAREA_BASE_CLASSES =
-  "control-surface resize-y border text-start text-sm font-medium text-text-primary transition-[background-color,border-color] hover:border-border-strong disabled:cursor-not-allowed disabled:opacity-65";
+  "control-surface resize-y border text-start text-[13px] font-medium text-text-primary transition-[background-color,border-color] duration-[var(--duration-fast)] ease-[var(--ease-in-out)] hover:border-border-strong disabled:cursor-not-allowed disabled:opacity-65";
 
 const TEXTAREA_VARIANT_CLASSES = {
   default: "min-h-24 px-3 py-2",

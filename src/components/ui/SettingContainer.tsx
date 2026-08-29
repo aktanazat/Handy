@@ -43,7 +43,7 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
   const title = (
     <h3
       id={titleId}
-      className="text-sm font-medium leading-5 text-text-primary"
+      className="text-[13px] leading-[19px] font-medium text-text-primary"
     >
       {controlId ? <label htmlFor={controlId}>{titleText}</label> : titleText}
     </h3>
@@ -51,7 +51,7 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
   const description = (
     <p
       id={descriptionId}
-      className="mt-0.5 text-[13px] leading-[18px] text-text-secondary"
+      className="mt-0.5 text-[12px] leading-4 text-text-secondary"
     >
       {descriptionText}
     </p>
