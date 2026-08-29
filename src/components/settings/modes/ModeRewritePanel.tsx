@@ -68,7 +68,7 @@ export const ModeRewritePanel: React.FC<ModeRewritePanelProps> = ({
           <StatusText>
             {t(
               "settings.modes.writing.disabledNote",
-              "Turn on AI cleanup to use the preset, tone, provider and model below.",
+              "Turn on AI cleanup to use the preset, tone, provider, and model below.",
             )}
           </StatusText>
         </div>

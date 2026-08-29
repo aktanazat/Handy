@@ -42,7 +42,7 @@
     "settings": "Settings"
   },
   "onboarding": {
-    "subtitle": "För att komma igång, välj en transkriptionsmodell",
+    "subtitle": "Modellerna körs på den här datorn och avväger noggrannhet mot hastighet",
     "existingModelsTitle": "Kompatibla modeller",
     "downloadModelsTitle": "Tillgängliga för nedladdning",
     "showAllModels": "Visa alla {{total}} modeller",
@@ -72,7 +72,7 @@
       },
       "parakeet-tdt-0.6b-v2": {
         "name": "Parakeet V2",
-        "description": "Endast engelska. Den bästa modellen för engelsktalande."
+        "description": "Endast engelska. Snabb och noggrann."
       },
       "parakeet-tdt-0.6b-v3": {
         "name": "Parakeet V3",
@@ -116,7 +116,7 @@
       },
       "cohere-int8": {
         "name": "Cohere",
-        "description": "En stor, långsammare, men mycket noggrann flerspråkig modell."
+        "description": "Stor flerspråkig modell. Långsam men noggrann."
       }
     },
     "errors": {
@@ -124,7 +124,7 @@
     },
     "permissions": {
       "title": "Behörigheter krävs",
-      "description": "Sona behöver ett par behörigheter för att fungera korrekt.",
+      "description": "Sona behöver åtkomst till mikrofon och hjälpmedel.",
       "microphone": {
         "title": "Mikrofonåtkomst",
         "description": "Krävs för att höra din röst för transkription."
@@ -135,38 +135,39 @@
       },
       "grant": "Bevilja behörighet",
       "granted": "Beviljad",
-      "waiting": "Väntar...",
-      "allGranted": "Allt klart!",
+      "waiting": "Väntar…",
+      "allGranted": "Båda beviljade",
       "errors": {
         "checkFailed": "Kunde inte kontrollera behörigheterna. Försök igen.",
         "requestFailed": "Kunde inte begära behörigheten. Försök igen."
       },
       "headline": "Engångsinställning",
-      "subhead": "Datorn frågar innan någon app får lyssna eller skriva för dig. Ge dessa behörigheter en gång, sedan frågar Sona inte igen.",
+      "subhead": "Systemet frågar innan någon app får lyssna eller skriva.",
       "checking": "Kontrollerar behörigheter",
       "recheck": "Kontrollera igen"
     },
-    "headline": "Välj en röstmodell"
+    "headline": "Välj en transkriptionsmodell"
   },
   "modelSelector": {
     "custom": "Anpassad",
     "streaming": "Streaming",
     "active": "Aktiv",
-    "switching": "Byter...",
+    "switching": "Byter…",
     "noModelsAvailable": "Inga modeller tillgängliga",
-    "verifying": "Verifierar {{modelName}}...",
-    "verifyingGeneric": "Verifierar...",
-    "extracting": "Extraherar {{modelName}}...",
-    "extractingMultiple": "Extraherar {{count}} modeller...",
-    "extractingGeneric": "Extraherar...",
+    "verifying": "Verifierar {{modelName}}…",
+    "verifyingGeneric": "Verifierar…",
+    "extracting": "Extraherar {{modelName}}…",
+    "extractingMultiple": "Extraherar {{count}} modeller…",
+    "extractingGeneric": "Extraherar…",
     "downloading": "Laddar ner {{percentage}}%",
-    "downloadingMultiple": "Laddar ner {{count}} modeller...",
+    "downloadingMultiple": "Laddar ner {{count}} modeller…",
+    "downloadingGeneric": "Downloading…",
     "modelReady": "Modell klar",
-    "loading": "Laddar {{modelName}}...",
-    "loadingGeneric": "Laddar...",
+    "loading": "Laddar {{modelName}}…",
+    "loadingGeneric": "Laddar…",
     "modelError": "Modellfel",
     "modelUnloaded": "Modell avlastad",
-    "noModelDownloadRequired": "Ingen modell - Nedladdning krävs",
+    "noModelDownloadRequired": "Ingen modell, nedladdning krävs",
     "deleteModel": "Ta bort {{modelName}}",
     "downloadSpeed": "{{speed}} MB/s",
     "cancel": "Avbryt",
@@ -190,9 +191,9 @@
     "general": {
       "title": "Allmänt",
       "shortcut": {
-        "title": "Sona-kortkommandon",
-        "description": "Konfigurera kortkommandon för att starta tal-till-text-inspelning",
-        "loading": "Laddar kortkommandon...",
+        "title": "Kortkommandon",
+        "description": "Kortkommandon för inspelning och omskrivning.",
+        "loading": "Laddar kortkommandon…",
         "none": "Inga kortkommandon konfigurerade",
         "notFound": "Kortkommando hittades inte",
         "pressKeys": "Tryck dina tangenter…",
@@ -207,7 +208,7 @@
           },
           "transcribe_with_post_process": {
             "name": "Snabbkommando för efterbearbetning",
-            "description": "Valfritt: En dedikerad snabbknapp som alltid tillämpar AI-efterbearbetning på din transkription."
+            "description": "Ett valfritt kortkommando som alltid tillämpar AI-rensning på transkriptionen."
           },
           "command": {
             "name": "Kommandogenväg",
@@ -216,7 +217,7 @@
         },
         "errors": {
           "restore": "Kunde inte återställa den ursprungliga genvägen. Försök igen.",
-          "set": "Misslyckades med att ställa in kortkommando: {{error}}",
+          "set": "Kunde inte ställa in kortkommandot: {{error}}",
           "reset": "Kunde inte nollställa genvägen. Försök igen."
         },
         "holdHint": "Tryck för att växla, håll för att tala. Fungerar med vilken genväg som helst.",
@@ -226,8 +227,8 @@
       },
       "language": {
         "title": "Språk",
-        "description": "Välj språk för taligenkänning. Auto kommer automatiskt att bestämma språket, medan val av ett specifikt språk kan förbättra noggrannheten för det språket.",
-        "searchPlaceholder": "Sök språk...",
+        "description": "Språket som används för taligenkänning. Auto identifierar det; att ange ett språk kan förbättra noggrannheten.",
+        "searchPlaceholder": "Sök språk",
         "noResults": "Inga språk hittades",
         "auto": "Automatiskt"
       },
@@ -240,7 +241,7 @@
         "title": "Utseende",
         "material": {
           "title": "Material",
-          "description": "Solid ritar Sonas egna ytor. Glas släpper igenom skrivbordet i toppfältet, kommandopaletten och inspelnings-HUD:en.",
+          "description": "Solid håller Sonas ytor ogenomskinliga. Glas låter skrivbordet synas igenom toppfältet, kommandopaletten och inspelnings-HUD:en.",
           "options": {
             "solid": "Solid",
             "glass": "Glas"
@@ -255,16 +256,16 @@
     },
     "models": {
       "title": "Transkriptionsmodeller",
-      "description": "Välj en transkriptionsmodell eller ladda ner ytterligare modeller. Olika modeller erbjuder varierande nivåer av noggrannhet och hastighet.",
+      "description": "Modellen som omvandlar tal till text. Modeller väger noggrannhet mot hastighet.",
       "yourModels": "Nedladdade modeller",
       "availableModels": "Tillgängliga att ladda ner",
-      "deleteConfirm": "Är du säker på att du vill ta bort {{modelName}}? Du måste ladda ner den igen för att använda den.",
-      "deleteActiveConfirm": "{{modelName}} är din aktiva modell. Om du tar bort den avbryts transkriptioner tills du väljer en ny modell. Är du säker?",
+      "deleteConfirm": "Ta bort {{modelName}}? Att använda den igen innebär att ladda ner den igen.",
+      "deleteActiveConfirm": "{{modelName}} är den aktiva modellen. Om du tar bort den stoppas transkription tills du väljer en annan.",
       "deleteTitle": "Ta bort modell",
       "filters": {
         "allLanguages": "Alla språk",
-        "streaming": "Filtrera modeller som stöder transkription i realtid",
-        "translation": "Filtrera modeller som stöder översättning till engelska",
+        "streaming": "Visa endast modeller med transkription i realtid",
+        "translation": "Visa endast modeller som översätter till engelska",
         "allFamilies": "Alla familjer",
         "clear": "Rensa filter",
         "downloadedOnly": "På disk",
@@ -272,7 +273,7 @@
         "family": "Modellfamilj"
       },
       "noModelsMatch": "Inga modeller matchar detta filter.",
-      "searchPlaceholder": "Sök modeller efter namn…",
+      "searchPlaceholder": "Sök modeller efter namn",
       "rescan": {
         "label": "Skanna om",
         "tooltip": "Skanna om efter modeller som lagts till i modellmappen eller Hugging Face-cachen utanför Sona"
@@ -355,29 +356,29 @@
       "title": "Ljud",
       "microphone": {
         "title": "Mikrofon",
-        "description": "Välj din föredragna mikrofonenhet",
-        "placeholder": "Välj mikrofon...",
-        "loading": "Laddar..."
+        "description": "Mikrofonen som Sona spelar in från.",
+        "placeholder": "Välj mikrofon",
+        "loading": "Laddar…"
       },
       "channel": {
         "title": "Ingångskanal",
-        "description": "Välj vilken ingångskanal du vill spela in från. Använd detta om ditt ljudgränssnitt har flera ingångar.",
+        "description": "Vilken ingångskanal som ska spelas in från, när ett gränssnitt har fler än en.",
         "average": "Medelvärde av alla kanaler",
         "channel": "Kanal {{n}}"
       },
       "audioFeedback": {
         "label": "Ljudåterkoppling",
-        "description": "Spela upp ljud när inspelningen startar och stoppar"
+        "description": "Spela upp ett ljud när inspelningen startar och stoppar."
       },
       "outputDevice": {
         "title": "Utmatningsenhet",
-        "description": "Välj din föredragna ljudutmatningsenhet för återkopplingsljud",
-        "placeholder": "Välj utmatningsenhet...",
-        "loading": "Laddar..."
+        "description": "Var återkopplingsljud spelas upp.",
+        "placeholder": "Välj utmatningsenhet",
+        "loading": "Laddar…"
       },
       "volume": {
         "title": "Volym",
-        "description": "Justera volymen för ljudåterkopplingsljud"
+        "description": "Volym för återkopplingsljuden."
       }
     },
     "advanced": {
@@ -398,11 +399,11 @@
       },
       "experimentalToggle": {
         "label": "Experimentella funktioner",
-        "description": "Aktivera experimentella funktioner som fortfarande är under utveckling."
+        "description": "Visa alternativ som fortfarande är under utveckling."
       },
       "lazyStreamClose": {
         "label": "Håll mikrofonen öppen mellan transkriptioner",
-        "description": "Håller mikrofonströmmen öppen i 30 sekunder efter att inspelningen avslutats, vilket minskar latensen för transkriptioner efter varandra. Kan försämra Bluetooth-ljudkvaliteten medan den är aktiv."
+        "description": "Håller mikrofonströmmen öppen i 30 sekunder efter att inspelningen avslutats, så att transkriptioner efter varandra startar snabbare. Bluetooth-ljudkvaliteten kan försämras medan den är öppen."
       },
       "acceleration": {
         "transcribe": {
@@ -423,7 +424,7 @@
       },
       "autostart": {
         "label": "Starta vid uppstart",
-        "description": "Starta Sona automatiskt när du loggar in på din dator."
+        "description": "Starta Sona när du loggar in."
       },
       "showTrayIcon": {
         "label": "Visa ikon i systemfältet",
@@ -450,7 +451,7 @@
       },
       "pasteMethod": {
         "title": "Klistra-in-metod",
-        "description": "Välj hur text infogas. Direkt: simulerar skrivande via systeminmatning. Ingen: hoppar över klistra in, uppdaterar endast historik/urklipp.",
+        "description": "Hur text infogas. Direkt simulerar skrivande via systeminmatning. Ingen hoppar över klistra in och uppdaterar endast historik och urklipp.",
         "options": {
           "clipboard": "Urklipp ({{modifier}}+V)",
           "clipboardCtrlShiftV": "Urklipp (Ctrl+Shift+V)",
@@ -463,14 +464,14 @@
       },
       "typingTool": {
         "title": "Skrivverktyg",
-        "description": "Välj vilket Linux-skrivverktyg som ska användas för metoden Direkt klistra in. Auto kommer automatiskt att upptäcka och använda det bästa tillgängliga verktyget för ditt system.",
+        "description": "Linux-skrivverktyget som används av metoden Direkt klistra in. Auto upptäcker ett tillgängligt verktyg.",
         "options": {
           "auto": "Auto (Rekommenderas)"
         }
       },
       "clipboardHandling": {
         "title": "Hantering av urklipp",
-        "description": "Ändra inte urklipp bevarar ditt nuvarande urklippsinnehåll efter transkription. Kopiera till urklipp lämnar transkriptionsresultatet i ditt urklipp efter att ha klistrat in.",
+        "description": "Ändra inte urklipp behåller ditt urklippsinnehåll. Kopiera till urklipp lämnar kvar transcript där efter att ha klistrat in.",
         "options": {
           "dontModify": "Ändra inte urklipp",
           "copyToClipboard": "Kopiera till urklipp"
@@ -478,7 +479,7 @@
       },
       "autoSubmit": {
         "title": "Skicka automatiskt",
-        "description": "Skicka automatiskt den valda tangentkombinationen efter textinsättning. Cmd+Enter gäller på macOS, medan Windows/Linux använder Super+Enter.",
+        "description": "Skickar den valda tangentkombinationen efter att text infogats. Cmd+Enter på macOS, Super+Enter på Windows och Linux.",
         "options": {
           "off": "Av",
           "enter": "Enter",
@@ -489,11 +490,11 @@
       },
       "translateToEnglish": {
         "label": "Översätt till engelska",
-        "description": "Översätt automatiskt tal från andra språk till engelska under transkription."
+        "description": "Översätt tal från andra språk till engelska under transkription."
       },
       "modelUnload": {
         "title": "Avlasta modell",
-        "description": "Frigör automatiskt GPU/CPU-minne när modellen inte har använts under den angivna tiden",
+        "description": "Frigör GPU- och CPU-minne när modellen varit inaktiv så här länge.",
         "options": {
           "never": "Aldrig",
           "immediately": "Omedelbart",
@@ -568,7 +569,7 @@
       },
       "fillerWordRemoval": {
         "title": "Ta bort utfyllnadsord",
-        "description": "Tar bort vanliga tvekljud från transkriberingar. Stäng av för att behålla dem."
+        "description": "Tar bort vanliga tvekljud från transcript."
       },
       "emoji": {
         "enabledLabel": "Aktivera emoji-ersättningar",
@@ -689,18 +690,18 @@
         },
         "noPrompts": "Inga prompter tillgängliga",
         "selectPrompt": "Välj en prompt",
-        "createNew": "Skapa ny prompt",
-        "promptLabel": "Prompt-etikett",
-        "promptLabelPlaceholder": "Ange namn på prompt",
-        "promptInstructions": "Prompt-instruktioner",
-        "promptInstructionsPlaceholder": "Skriv instruktionerna som ska köras efter transkription. Exempel: Förbättra grammatik och tydlighet för följande text: ${output}",
-        "promptTip": "Tips: Använd <code>${output}</code> för att infoga den transkriberade texten i din prompt.",
+        "createNew": "Ny prompt",
+        "promptLabel": "Promptnamn",
+        "promptLabelPlaceholder": "Namnge den här prompten",
+        "promptInstructions": "Instruktioner",
+        "promptInstructionsPlaceholder": "Förbättra grammatik och tydlighet för följande text: ${output}",
+        "promptTip": "Skriv <code>${output}</code> där transkriptionen ska infogas.",
         "updatePrompt": "Uppdatera prompt",
         "deletePrompt": "Ta bort prompt",
         "createPrompt": "Skapa prompt",
         "cancel": "Avbryt",
-        "selectToEdit": "Välj en prompt ovan för att visa och redigera dess detaljer.",
-        "createFirst": "Klicka på 'Skapa ny prompt' ovan för att skapa din första prompt för efterbearbetning.",
+        "selectToEdit": "Välj en prompt för att redigera den.",
+        "createFirst": "Skapa en prompt för att efterbearbeta transkriptioner.",
         "empty": {
           "description": "En prompt talar om för modellen vad den ska göra med transkriptet, till exempel: skriv om följande som ett kort meddelande och behåll alla fakta: ${output}"
         },
@@ -740,7 +741,7 @@
     "history": {
       "stats": {
         "title": "Användning genom tiderna",
-        "loading": "Läser in användning...",
+        "loading": "Läser in användning…",
         "unavailable": "Användningsstatistik är inte tillgänglig.",
         "entries": "inspelningar",
         "duration": "inspelningstid",
@@ -753,19 +754,19 @@
       },
       "title": "Historik",
       "openFolder": "Öppna mapp för inspelningar",
-      "loading": "Laddar historik...",
-      "empty": "Inga transkriptioner ännu. Börja spela in för att bygga upp din historik!",
+      "loading": "Laddar historik…",
+      "empty": "Inga inspelningar ännu.",
       "copyToClipboard": "Kopiera transkription till urklipp",
-      "save": "Spara transkription",
+      "save": "Spara post",
       "unsave": "Ta bort från sparade",
       "delete": "Ta bort post",
       "deleteError": "Kunde inte ta bort posten. Försök igen.",
       "retranscribe": "Transkribera igen",
       "retranscribeError": "Kunde inte transkribera om. Försök igen.",
-      "transcribing": "Transkriberar...",
-      "transcriptionFailed": "Transkribering misslyckades. Du kan transkribera igen med hjälp av ikonen för nytt försök.",
+      "transcribing": "Transkriberar…",
+      "transcriptionFailed": "Transkribering misslyckades.",
       "search": "Sök i historik",
-      "searchPlaceholder": "Sök transkriptioner...",
+      "searchPlaceholder": "Sök transkriptioner",
       "noResults": "Inga transkriptioner matchar \"{{query}}\".",
       "loadError": "Kunde inte läsa in historiken.",
       "retry": "Försök igen",
@@ -962,26 +963,27 @@
       "title": "Felsökning",
       "logDirectory": {
         "title": "Loggmapp",
-        "description": "Plats där loggfiler lagras"
+        "description": "Där loggfiler skrivs."
       },
       "logLevel": {
         "title": "Loggnivå",
-        "description": "Ställ in loggningens detaljrikedom"
+        "description": "Hur mycket detaljer loggen registrerar."
       },
       "liveLogs": {
         "title": "Liveloggar",
-        "description": "Strömma programmets loggar i realtid för att diagnostisera problem utan att öppna loggfilen. Endast loggar som skapas medan den här panelen är öppen visas; följer inställningen Loggnivå ovan.",
+        "description": "Strömmar loggrader när de skapas. Endast rader som skapas medan den här panelen är öppen visas här, på loggnivån som ställts in ovan.",
         "live": "Live",
         "paused": "Pausad",
         "pause": "Pausa",
         "resume": "Återuppta",
         "copied": "Kopierad",
         "lineCount": "{{count}} rader",
-        "empty": "Väntar på loggar… Poster visas här när appen skickar dem."
+        "empty": "Väntar på loggar. Rader visas här när appen skickar dem."
       },
       "soundTheme": {
         "label": "Ljudtema",
-        "description": "Välj ett ljudtema för återkoppling vid start och stopp av inspelning"
+        "description": "Vilka ljud som spelas upp när inspelningen startar och stoppar.",
+        "preview": "Preview the start and stop sounds"
       },
       "wordCorrectionThreshold": {
         "title": "Tröskelvärde för ordkorrigering",
@@ -989,30 +991,30 @@
       },
       "historyLimit": {
         "title": "Historikgräns",
-        "description": "Maximalt antal historikposter som ska sparas",
+        "description": "Hur många historikposter som ska sparas.",
         "entries": "poster"
       },
       "recordingRetention": {
         "title": "Radera inspelningar automatiskt",
-        "description": "Radera gamla inspelningar automatiskt för att spara utrymme",
+        "description": "Radera inspelningar efter så här lång tid.",
         "never": "Aldrig",
         "preserveLimit": "Behåll de senaste {{count}}",
         "days3": "Efter 3 dagar",
         "weeks2": "Efter 2 veckor",
         "months3": "Efter 3 månader",
-        "placeholder": "Välj lagringsperiod..."
+        "placeholder": "Välj lagringsperiod"
       },
       "alwaysOnMicrophone": {
         "label": "Alltid påslagen mikrofon",
-        "description": "Håll mikrofonen aktiv för snabbare svar"
+        "description": "Håller mikrofonen öppen så att inspelningen startar snabbare."
       },
       "clamshellMicrophone": {
         "title": "Clamshell-mikrofon",
-        "description": "Mikrofon som ska användas när bärbara datorns lock är stängt"
+        "description": "Mikrofonen som används när bärbara datorns lock är stängt."
       },
       "postProcessingToggle": {
         "label": "Efterbearbetning",
-        "description": "Aktivera AI-driven textförfining efter transkription"
+        "description": "Skriv om transkriptionen med en språkmodell efter transkription."
       },
       "muteWhileRecording": {
         "label": "Ljudlös under inspelning",
@@ -1020,7 +1022,7 @@
       },
       "appendTrailingSpace": {
         "label": "Lägg till avslutande mellanslag",
-        "description": "Lägg till ett mellanslag efter klistrad transkription"
+        "description": "Lägger till ett mellanslag efter inklistrat transcript."
       },
       "keyboardImplementation": {
         "title": "Tangentbordsimplementering",
@@ -1042,7 +1044,7 @@
       },
       "reliablePaste": {
         "title": "Tillförlitlig inklistring (Beta)",
-        "description": "Återställ urklipp först när målappen faktiskt har läst transkriptionen, i stället för efter en fast fördröjning. Avsett att åtgärda att det gamla urklippsinnehållet klistras in när systemet är belastat. Kräver en klistra-in-metod via urklipp; endast macOS och Windows."
+        "description": "Återställ urklipp först när målappen har läst transkriptionen, i stället för efter en fast fördröjning. Avsett att åtgärda att det gamla urklippsinnehållet klistras in när systemet är belastat. Kräver en klistra-in-metod via urklipp; endast macOS och Windows."
       },
       "recordingBuffer": {
         "title": "Extra inspelningsbuffert",
@@ -1050,7 +1052,7 @@
       },
       "keyboardDiagnostic": {
         "title": "Tangentbordsdiagnostik",
-        "description": "Kontrollerar om tangentbordshändelser når Sona. Endast antalet händelser registreras — aldrig vilka tangenter du trycker på.",
+        "description": "Kontrollerar om tangentbordshändelser når Sona. Endast antalet händelser registreras, aldrig vilka tangenter du trycker på.",
         "run": "Kör 10 s diagnostik",
         "running": "Lyssnar… tryck på ditt kortkommando några gånger (t.ex. Option+Space)",
         "secureInputLabel": "Secure Input",
@@ -1062,10 +1064,10 @@
         "keyUp": "Tangent upp",
         "flagsChanged": "Modifierare",
         "mouse": "Mus",
-        "verdictBlocked": "Secure Input blockerar tangenthändelser — kortkommandon med en vanlig tangent kan inte fungera förrän det är löst.",
-        "verdictSuspicious": "Modifierarhändelser kom fram men inga tangenthändelser — något undertrycker tangenter trots att Secure Input rapporteras som inaktiverat. Rapportera gärna detta på GitHub.",
+        "verdictBlocked": "Secure Input blockerar tangenthändelser, så kortkommandon med en vanlig tangent kan inte fungera förrän det är löst.",
+        "verdictSuspicious": "Modifierarhändelser kom fram men inga tangenthändelser. Något undertrycker tangenter trots att Secure Input rapporteras som inaktiverat. Rapportera detta på GitHub.",
         "verdictOk": "Tangenthändelser når Sona som vanligt.",
-        "verdictNoEvents": "Inga händelser fångades — tryckte du på några tangenter under testet?",
+        "verdictNoEvents": "Inga händelser fångades under testet.",
         "failed": "Diagnostiken misslyckades: {{error}}"
       },
       "whatsNewPreview": {
@@ -1087,12 +1089,12 @@
       "title": "Om",
       "version": {
         "title": "Version",
-        "description": "Nuvarande version av Sona",
+        "description": "Versionen som körs nu.",
         "unavailable": "Otillgänglig"
       },
       "appDataDirectory": {
         "title": "Mapp för appdata",
-        "description": "Plats där Sona lagrar sina data"
+        "description": "Plats där Sona lagrar sina data."
       },
       "sourceCode": {
         "title": "Open-source licenses",
@@ -1101,15 +1103,15 @@
       },
       "supportDevelopment": {
         "title": "Stöd utvecklingen",
-        "description": "Hjälp oss att fortsätta bygga Sona",
+        "description": "Donationer finansierar fortsatt arbete med Sona.",
         "button": "Donera"
       },
       "acknowledgments": {
         "title": "Tack till",
         "ggml": {
           "title": "ggml",
-          "description": "Högpresterande inferens av OpenAI:s Whisper-modell för automatisk taligenkänning",
-          "details": "Sona använder ggml för snabb, lokal tal-till-text-behandling. Tack till det fantastiska arbete som utförts av Georgi Gerganov med medarbetare."
+          "description": "Tensorbibliotek för maskininlärningsinferens på enheten",
+          "details": "Sonas lokala tal-till-text bygger på transcribe.cpp och ggml. Tack till Georgi Gerganov med medarbetare."
         }
       },
       "whatsNewUpdates": {
@@ -1154,7 +1156,7 @@
           "label": "Activate in app",
           "description": "Capture the app currently in front and select this mode when you dictate there.",
           "action": "Capture current app",
-          "capturing": "Capturing..."
+          "capturing": "Capturing…"
         },
         "empty": "No app activates this mode.",
         "remove": "Remove",
@@ -1172,7 +1174,7 @@
             "label": "Aktivera på webbplats",
             "description": "Hämta värden från den främsta webbläsaren. Sona sparar värden, inte URL:en.",
             "action": "Hämta aktuell webbplats",
-            "capturing": "Hämtar..."
+            "capturing": "Hämtar…"
           },
           "empty": "Ingen webbplats aktiverar detta läge.",
           "exampleDescription": "En regel lagrar en webbläsarvärd, till exempel mail.google.com."
@@ -1264,8 +1266,8 @@
         "model": {
           "label": "Transcription model",
           "description": "Only downloaded local models are available here.",
-          "inheritGlobal": "Standard – använder den globala modellen",
-          "inheritGlobalNamed": "Standard – använder den globala modellen ({{name}})"
+          "inheritGlobal": "Standard: den globala modellen",
+          "inheritGlobalNamed": "Standard: den globala modellen ({{name}})"
         },
         "language": {
           "label": "Language",
@@ -1422,7 +1424,7 @@
           "label": "Typing tool",
           "description": "Used only with direct typing.",
           "values": {
-            "auto": "Automatic",
+            "auto": "Auto",
             "wtype": "wtype",
             "kwtype": "kwtype",
             "dotool": "dotool",
@@ -1532,7 +1534,7 @@
           "error": "Browser URL capture could not be saved."
         },
         "cloudRoute": "Enabled cloud modes send allowed context to {{providers}}.",
-        "localRoute": "All your AI processing is local.",
+        "localRoute": "AI processing runs on this Mac.",
         "checkingRoute": "Checking configured cloud routes…"
       },
       "diagnostics": {
@@ -1599,7 +1601,7 @@
             "key_rejected": "Den sparade nyckeln öppnar inte den krypterade databasen, så historiken kan inte läsas.",
             "key_unavailable": "Systemets nyckellagring returnerade ingen användbar nyckel, så historiken lagras okrypterad.",
             "migration_failed": "Kryptering av den befintliga databasen misslyckades. Den okrypterade databasen är intakt och används fortfarande.",
-            "unlocking": "Öppnar den krypterade databasen. Detta försvinner strax efter start."
+            "unlocking": "Öppnar den krypterade databasen. Detta försvinner när starten är klar."
           },
           "unknown": "Sona kunde inte läsa hur historiken lagras.",
           "unlocking": "Låser upp",
@@ -1655,18 +1657,18 @@
         "import": "Import selected data",
         "importing": "Importing",
         "errors": {
-          "source_unavailable": "The original Sona data folder is unavailable.",
-          "upstream_running": "Close the original Sona app before importing.",
-          "app_state_unverifiable": "Sona cannot verify the original app state on this platform.",
+          "source_unavailable": "The legacy app's data folder is unavailable.",
+          "upstream_running": "Close the legacy app before importing.",
+          "app_state_unverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
           "invalid_selection": "Choose settings or history to import.",
-          "settings_unreadable": "The original settings file could not be read.",
+          "settings_unreadable": "The legacy settings file could not be read.",
           "secret_store_unavailable": "The native credential store is unavailable, so settings with provider keys were not imported.",
           "secret_conflict": "A provider key already exists in the native credential store. Resolve it before importing settings.",
-          "history_unreadable": "The original history database could not be read.",
+          "history_unreadable": "The legacy history database could not be read.",
           "recording_copy_failed": "A recording could not be copied and verified.",
           "receipt_write_failed": "The import receipt could not be saved.",
           "internal": "The import did not finish.",
-          "status": "The original Sona data could not be inspected."
+          "status": "The legacy app's data could not be inspected."
         }
       },
       "cloudSync": {
@@ -1854,7 +1856,7 @@
     "prompts": {
       "samples": {
         "title": "Skrivexempel",
-        "description": "Exempel på ditt eget skrivande. Varje läge som skriver om en transkribering matchar den tonen.",
+        "description": "Exempel på ditt eget skrivande. Lägen som skriver om en transkribering matchar den tonen.",
         "placeholder": "Klistra in ett stycke du skrivit själv.",
         "sampleLabel": "Skrivexempel {{number}}",
         "delete": "Ta bort exempel {{number}}",
@@ -1881,7 +1883,7 @@
     }
   },
   "common": {
-    "loading": "Laddar...",
+    "loading": "Laddar…",
     "delete": "Ta bort",
     "cancel": "Avbryt",
     "close": "Stäng",
@@ -1898,7 +1900,7 @@
   },
   "commandPalette": {
     "open": "Sök",
-    "placeholder": "Skriv ett kommando eller sök…",
+    "placeholder": "Skriv ett kommando eller sök",
     "navigation": "Navigering",
     "actions": "Åtgärder",
     "noResults": "Inga kommandon hittades",
@@ -1916,11 +1918,11 @@
   },
   "errors": {
     "noSpeechDetectedTitle": "Inget tal upptäcktes",
-    "noSpeechDetected": "Inget tal upptäcktes. Ett utdrag av inspelningen sparades i Historik så att du kan kontrollera det inspelade ljudet.",
-    "loadDirectory": "Fel vid laddning av mapp: {{error}}",
+    "noSpeechDetected": "Inget tal upptäcktes. Ett utdrag av inspelningen sparades i Historik.",
+    "loadDirectory": "Kunde inte läsa in mappen: {{error}}",
     "micPermissionDeniedTitle": "Mikrofonåtkomst nekad",
     "micPermissionDenied": {
-      "generic": "Mikrofonåtkomst nekades av operativsystemet. Bevilja mikrofonbehörighet i dina systeminställningar.",
+      "generic": "Operativsystemet nekade mikrofonåtkomst. Bevilja mikrofonåtkomst i dina systeminställningar.",
       "windows": "Aktivera mikrofonåtkomst i Inställningar → Integritet och säkerhet → Mikrofon (inklusive åtkomst till skrivbordsappar).",
       "macos": "Bevilja mikrofonåtkomst i Systeminställningar → Integritet och säkerhet → Mikrofon.",
       "linux": "Bevilja mikrofonåtkomst i systemets ljud- eller integritetsinställningar."
@@ -1929,13 +1931,13 @@
     "modelLoadFailed": "Kunde inte läsa in {{model}}. Försök igen.",
     "modelLoadFailedUnknown": "okänd modell",
     "noInputDeviceTitle": "Ingen mikrofon hittades",
-    "noInputDevice": "Ingen ljudenhet hittades. Anslut en mikrofon eller ett headset och försök igen.",
+    "noInputDevice": "Ingen ljudenhet hittades. Anslut en mikrofon och försök igen.",
     "pasteFailedTitle": "Kunde inte klistra in transkriberingen",
-    "pasteFailed": "Texten kunde inte klistras in i den aktiva appen. Sätt markören i ett textfält och försök igen.",
+    "pasteFailed": "Transcript kunde inte klistras in i den aktiva appen. Sätt markören i ett textfält och försök igen.",
     "transcriptionFailedTitle": "Kunde inte transkribera",
-    "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
-    "commandNoSelection": "Inget var markerat. Markera texten du vill ändra, håll sedan ned kommandogenvägen och säg vad som ska göras.",
-    "commandRewriteUnavailable": "Omskrivningen gav inget tillbaka, så din markering lämnades som den var. Kontrollera omskrivningsmodellen under Inställningar > AI och försök igen.",
+    "noModelSelected": "Ingen transkriberingsmodell vald. Välj en under Settings > Models.",
+    "commandNoSelection": "Markera texten du vill ändra, håll sedan ned kommandogenvägen och säg ändringen.",
+    "commandRewriteUnavailable": "Omskrivningen gav inget tillbaka, så din markering lämnades som den var. Kontrollera leverantören under Settings > Post-processing och försök igen.",
     "noModelSelectedTitle": "Ingen modell valdes",
     "noSpeechSaveFailedTitle": "Provet sparades inte",
     "captureOverrunTitle": "Inspelningen överfylldes",
@@ -1987,7 +1989,7 @@
     "recorderBlockedWithCulprit": "{{name}} kanske blockerar ändringar av kortkommandon",
     "recorderBlockedNoCulprit": "macOS blockerar tillfälligt ändringar av kortkommandon",
     "learnMore": "Så här löser du det",
-    "recorderBlocked": "Det går inte att spela in kortkommandon just nu — macOS Secure Input blockerar tangenthändelser. Lös varningen om Secure Input först.",
+    "recorderBlocked": "macOS Secure Input blockerar tangenthändelser, så kortkommandon kan inte spelas in. Lös varningen om Secure Input först.",
     "dismiss": "Avfärda"
   },
   "meetings": {
@@ -2067,6 +2069,7 @@
     },
     "detected": {
       "title": "Meeting detected",
+      "description": "Sona har märkt att en mötesapp används.",
       "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
@@ -2277,7 +2280,7 @@
       "ask": "Ask locally",
       "noQuestions": "No saved local answers.",
       "question": "Question",
-      "insufficientEvidence": "I couldn’t find support for that in this meeting.",
+      "insufficientEvidence": "No supporting passage was found in this meeting.",
       "forget": "Forget this answer",
       "exactSearch": "Exact search",
       "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
@@ -2382,7 +2385,7 @@
       "title": "Meeting activity",
       "loading": "Loading meeting trends…",
       "error": "Couldn't load meeting trends.",
-      "unavailable": "Meeting trends are unavailable right now.",
+      "unavailable": "Meeting trends are unavailable.",
       "metricLabel": "Metric",
       "metrics": {
         "meetings": "Meetings",
@@ -2392,7 +2395,7 @@
       }
     },
     "list": {
-      "retentionHint": "Lagring: {{policy}}. Ändra i Inställningar, Privacy.",
+      "retentionHint": "Lagring: {{policy}}. Ändra i Settings > Privacy.",
       "searchLabel": "Sök möten",
       "searchPlaceholder": "Sök efter titel",
       "clearFilters": "Rensa filter",
@@ -2482,13 +2485,13 @@
       "trackerName": "Namn",
       "trackerPatterns": "rabatt, bästa pris, för dyrt",
       "trackerPatternsLabel": "Fraser, separerade med kommatecken",
-      "trackersSaveFailed": "Sona kunde inte spara bevakningarna. Ändra en och försök igen."
+      "trackersSaveFailed": "Sona kunde inte spara bevakningarna. Försök igen."
     },
     "notes": {
       "title": "Mina anteckningar",
       "liveDescription": "Skriv hur grovt du vill. Dessa anteckningar stannar på den här Macen och styr de anteckningar Sona skapar när mötet slutar.",
       "reviewDescription": "Dina egna anteckningar styr vad de skapade anteckningarna lyfter fram. De citeras eller refereras aldrig.",
-      "placeholder": "Allt värt att minnas – namn, tal, vad som ska följas upp",
+      "placeholder": "Allt värt att minnas: namn, tal, vad som ska följas upp",
       "unsaved": "Inte sparat än",
       "saving": "Sparar…",
       "saved": "Anteckningar sparade",
@@ -2502,7 +2505,7 @@
       "catchUpTitle": "Så här långt",
       "catchUpNoTranscript": "Inget att sammanfatta än. Sona transkriberar efter att du stoppat inspelningen, så en sammanfattning finns när transkriberingen börjar komma in.",
       "catchUpUnavailable": "Modellen på enheten är inte tillgänglig, så ingen sammanfattning skrevs.",
-      "catchUpFailed": "Sona kunde inte bygga en sammanfattning. Försök igen om ett ögonblick.",
+      "catchUpFailed": "Sona kunde inte bygga en sammanfattning. Försök igen.",
       "templates": {
         "general": "Allmänt möte",
         "one_on_one": "Ett-till-ett",
@@ -2521,6 +2524,8 @@
         "huddle": "{{app}}-huddle upptäckt",
         "browser": "Samtal upptäckt i {{app}}",
         "unknown": "Mikrofonaktivitet upptäckt",
+        "calendarUntitled": "Kalenderhändelse börjar",
+        "generic": "Möte upptäckt",
         "body": "Sona kan föra lokala anteckningar för det här samtalet."
       },
       "actions": {
@@ -2608,6 +2613,10 @@
         "more": "Mer",
         "less": "Mindre"
       },
+      "untitled": {
+        "calendar": "Kalenderhändelse",
+        "app": "Mikrofonen används"
+      },
       "actions": {
         "skip": "Hoppa över"
       },
@@ -2676,7 +2685,7 @@
     },
     "recent": {
       "title": "Recent activity",
-      "history": "Transcription",
+      "history": "Dictation",
       "meeting": "Meeting",
       "viewAll": "Visa alla",
       "words": "{{count}} ord",
@@ -2686,30 +2695,30 @@
     },
     "hero": {
       "ready": "Ready",
-      "recording": "Recording",
+      "recording": "Listening",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Läge: {{name}}",
       "setShortcut": "Ange ett dikteringskortkommando i Inställningar för att diktera från valfri app.",
       "setShortcutAction": "Ange en genväg",
       "shortcutAction": "Ändra dikteringsgenvägen",
-      "gestureTapHold": "Tryck för att växla, håll för att tala — var som helst.",
-      "gestureTapOnly": "Tryck för att växla — var som helst."
+      "gestureTapHold": "Tryck för att växla, håll för att tala.",
+      "gestureTapOnly": "Tryck för att växla."
     },
     "actions": {
       "dictate": "Dictate",
       "unavailable": "Shortcut unavailable"
     },
     "chart": {
-      "day": "{{date}} \\u00b7 dikteringar {{dictations}}",
-      "dayWithMeetings": "{{date}} \\u00b7 dikteringar {{dictations}} \\u00b7 möten {{meetings}}",
+      "day": "{{date}} · dikteringar {{dictations}}",
+      "dayWithMeetings": "{{date}} · dikteringar {{dictations}} · möten {{meetings}}",
       "legend": "Dikteringar per dag",
       "peak": "Mest aktiva dag {{peak}}",
       "summary": "Dikteringar per dag från {{from}} till {{to}}. Totalt {{total}}, mest aktiva dag {{peak}}."
     },
     "empty": {
       "action": "Öppna biblioteket",
-      "description": "Håll in ditt dikteringskortkommando i valfri app så skriver Sona det du säger. Din användningsstatistik och senaste inspelningar visas här efter den första.",
+      "description": "Håll in ditt dikteringskortkommando i valfri app så skriver Sona det du säger. Din användningsstatistik och senaste inspelningar visas här efter den första dikteringen.",
       "title": "Inga inspelningar ännu"
     },
     "stats": {
@@ -2717,7 +2726,7 @@
       "allTime": "{{total}} totalt",
       "dictations": "Dikteringar",
       "dictationsAllTime": "Dikteringar, totalt",
-      "error": "Sona kunde inte läsa din användningshistorik just nu.",
+      "error": "Sona kunde inte läsa din användningshistorik.",
       "range": "{{from}} till {{to}}",
       "rangeUnavailable": "De senaste 30 dagarna kunde inte läsas, så detta är totalsummor för all tid.",
       "speaking": "Taltid",
@@ -2758,7 +2767,7 @@
     "title": "Cloud Sync",
     "account": {
       "title": "Cloud Sync",
-      "description": "Keep meetings on this device unless you choose to set up sync.",
+      "description": "Meetings stay on this device until you set up sync.",
       "status": {
         "loading": "Checking sync…",
         "local": "Local only",

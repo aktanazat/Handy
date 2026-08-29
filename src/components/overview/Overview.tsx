@@ -783,7 +783,7 @@ export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
           title={t("overview.empty.title", "No captures yet")}
           description={t(
             "overview.empty.description",
-            "Hold your dictation shortcut in any app and Sona types what you say. Your usage stats and recent captures appear here after the first one.",
+            "Hold your dictation shortcut in any app and Sona types what you say. Your usage stats and recent captures appear here after the first dictation.",
           )}
           action={
             <Button

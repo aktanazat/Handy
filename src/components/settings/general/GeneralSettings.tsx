@@ -67,7 +67,7 @@ export const GeneralSettings: React.FC = () => {
         title={t("settings.general.appearance.title", "Appearance")}
         description={t(
           "settings.general.appearance.description",
-          "Interface language and colour scheme. Both apply immediately.",
+          "Interface language and color scheme. Both apply immediately.",
         )}
       >
         <AppLanguageSelector grouped />

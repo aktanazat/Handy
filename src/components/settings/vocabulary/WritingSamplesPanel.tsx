@@ -249,7 +249,7 @@ export const WritingSamplesPanel: React.FC<WritingSamplesPanelProps> = ({
       title={t("settings.prompts.samples.title", "Writing samples")}
       description={t(
         "settings.prompts.samples.description",
-        "Examples of your own writing. Every mode that rewrites a transcript matches their voice.",
+        "Examples of your own writing. Modes that rewrite a transcript match this voice.",
       )}
       descriptionMode={descriptionMode}
       grouped={grouped}

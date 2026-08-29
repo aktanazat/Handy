@@ -87,7 +87,7 @@ export const OverviewAnalytics: React.FC<OverviewAnalyticsProps> = ({
           variant="error"
           title={t(
             "overview.stats.error",
-            "Sona could not read your usage history just now.",
+            "Sona could not read your usage history.",
           )}
           action={
             <Button

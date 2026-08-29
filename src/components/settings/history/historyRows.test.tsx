@@ -284,7 +284,7 @@ describe("library row, actions", () => {
   });
 
   test("names the star action by what pressing it does", () => {
-    expect(markup).toContain("Save transcription");
+    expect(markup).toContain("Save entry");
     expect(row({ entry: { saved: true } })).toContain("Remove from saved");
   });
 

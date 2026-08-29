@@ -98,9 +98,9 @@ describe("ModelCatalogRow status text", () => {
       ["not-downloaded", "Not downloaded"],
       ["downloaded", "Downloaded"],
       ["active", "Active"],
-      ["verifying", "Verifying..."],
-      ["extracting", "Extracting..."],
-      ["loading", "Loading..."],
+      ["verifying", "Verifying…"],
+      ["extracting", "Extracting…"],
+      ["loading", "Loading…"],
     ];
     for (const [state, text] of expected) {
       expect(render({ state })).toContain(text);

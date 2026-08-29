@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 export interface ProgressData {
   id: string;
@@ -28,6 +29,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   showSpeed = false,
   showLabel = false,
 }) => {
+  const { t } = useTranslation();
   const progressClasses = SIZE_CLASSES[size];
 
   if (progress.length === 0) {
@@ -55,7 +57,9 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
               // eslint-disable-next-line i18next/no-literal-string
               <span>{item.speed.toFixed(1)}MB/s</span>
             ) : showSpeed ? (
-              <span>Downloading...</span>
+              <span>
+                {t("modelSelector.downloadingGeneric", "Downloading…")}
+              </span>
             ) : null}
           </div>
         )}
@@ -81,7 +85,13 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
         })}
       </div>
       <div className="text-xs text-text/60 min-w-fit">
-        {progress.length} downloading...
+        {t(
+          "modelSelector.downloadingMultiple",
+          "Downloading {{count}} models…",
+          {
+            count: progress.length,
+          },
+        )}
       </div>
     </div>
   );

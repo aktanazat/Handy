@@ -197,7 +197,7 @@ const PermissionOnboardingContent: React.FC<
         <p className="ob-subhead">
           {t(
             "onboarding.permissions.subhead",
-            "Your computer asks before any app can listen or type for you. Grant these once and Sona won't ask again.",
+            "Your system asks before any app can listen or type.",
           )}
         </p>
 

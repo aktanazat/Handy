@@ -42,7 +42,7 @@
     "settings": "Settings"
   },
   "onboarding": {
-    "subtitle": "请选择一个转录模型以开始使用",
+    "subtitle": "模型在这台 Mac 上运行，需要在准确度和速度之间取舍",
     "existingModelsTitle": "兼容的模型",
     "downloadModelsTitle": "可供下载",
     "showAllModels": "显示全部 {{total}} 个模型",
@@ -72,7 +72,7 @@
       },
       "parakeet-tdt-0.6b-v2": {
         "name": "Parakeet V2",
-        "description": "仅支持英语。英语用户的最佳模型。"
+        "description": "仅支持英语。快速且准确。"
       },
       "parakeet-tdt-0.6b-v3": {
         "name": "Parakeet V3",
@@ -116,7 +116,7 @@
       },
       "cohere-int8": {
         "name": "Cohere",
-        "description": "大型模型，速度较慢，但多语言识别非常准确。"
+        "description": "大型多语言模型。速度慢但准确。"
       }
     },
     "errors": {
@@ -124,7 +124,7 @@
     },
     "permissions": {
       "title": "需要权限",
-      "description": "Sona 需要一些权限才能正常工作。",
+      "description": "Sona 需要麦克风和辅助功能访问权限。",
       "microphone": {
         "title": "麦克风访问",
         "description": "需要听取您的语音进行转录。"
@@ -135,38 +135,39 @@
       },
       "grant": "授予权限",
       "granted": "已授予",
-      "waiting": "等待中...",
-      "allGranted": "全部完成！",
+      "waiting": "等待中…",
+      "allGranted": "两项均已授予",
       "errors": {
         "checkFailed": "无法检查权限。请重试。",
         "requestFailed": "无法请求权限。请重试。"
       },
       "headline": "一次性设置",
-      "subhead": "任何应用要听你说话或替你打字之前，电脑都会先询问。授予一次，Sona 就不会再问。",
+      "subhead": "任何应用要听你说话或替你打字之前，系统都会先询问。",
       "checking": "正在检查权限",
       "recheck": "重新检查"
     },
-    "headline": "选择一个语音模型"
+    "headline": "选择转录模型"
   },
   "modelSelector": {
     "custom": "自定义",
     "streaming": "流式",
     "active": "活跃",
-    "switching": "切换中...",
+    "switching": "切换中…",
     "noModelsAvailable": "没有可用的模型",
-    "verifying": "正在验证 {{modelName}}...",
-    "verifyingGeneric": "正在验证...",
-    "extracting": "正在解压 {{modelName}}...",
-    "extractingMultiple": "正在解压 {{count}} 个模型...",
-    "extractingGeneric": "解压中...",
+    "verifying": "正在验证 {{modelName}}…",
+    "verifyingGeneric": "正在验证…",
+    "extracting": "正在解压 {{modelName}}…",
+    "extractingMultiple": "正在解压 {{count}} 个模型…",
+    "extractingGeneric": "解压中…",
     "downloading": "下载中 {{percentage}}%",
-    "downloadingMultiple": "正在下载 {{count}} 个模型...",
+    "downloadingMultiple": "正在下载 {{count}} 个模型…",
+    "downloadingGeneric": "Downloading…",
     "modelReady": "模型已就绪",
-    "loading": "正在加载 {{modelName}}...",
-    "loadingGeneric": "加载中...",
+    "loading": "正在加载 {{modelName}}…",
+    "loadingGeneric": "加载中…",
     "modelError": "模型错误",
     "modelUnloaded": "模型已卸载",
-    "noModelDownloadRequired": "无模型 - 需要下载",
+    "noModelDownloadRequired": "无模型，需要下载",
     "deleteModel": "删除 {{modelName}}",
     "downloadSpeed": "{{speed}} MB/s",
     "capabilities": {
@@ -189,14 +190,14 @@
     },
     "models": {
       "title": "转录模型",
-      "description": "选择转录模型或下载其他模型。不同模型提供不同的准确度和速度。",
-      "deleteConfirm": "确定要删除 {{modelName}} 吗？您需要重新下载才能使用。",
-      "deleteActiveConfirm": "{{modelName}} 是您当前使用的模型。删除后将停止转录，直到您选择新的模型。确定要删除吗？",
+      "description": "将语音转换为文本的模型。不同模型在准确度和速度之间取舍。",
+      "deleteConfirm": "删除 {{modelName}}？再次使用需要重新下载。",
+      "deleteActiveConfirm": "{{modelName}} 是当前使用的模型。删除后将停止转录，直到您选择其他模型。",
       "deleteTitle": "删除模型",
       "filters": {
         "allLanguages": "所有语言",
-        "streaming": "筛选支持实时转录的模型",
-        "translation": "筛选支持翻译为英语的模型",
+        "streaming": "仅显示支持实时转录的模型",
+        "translation": "仅显示支持翻译为英语的模型",
         "allFamilies": "所有系列",
         "clear": "清除筛选",
         "downloadedOnly": "已在磁盘",
@@ -206,7 +207,7 @@
       "noModelsMatch": "没有符合此筛选条件的模型。",
       "yourModels": "已下载的模型",
       "availableModels": "可供下载",
-      "searchPlaceholder": "按名称搜索模型…",
+      "searchPlaceholder": "按名称搜索模型",
       "rescan": {
         "label": "重新扫描",
         "tooltip": "重新扫描在 Sona 之外添加到模型文件夹或 Hugging Face 缓存中的模型"
@@ -288,9 +289,9 @@
     "general": {
       "title": "通用",
       "shortcut": {
-        "title": "Sona 快捷键",
-        "description": "配置启动语音转文字录制的键盘快捷键",
-        "loading": "加载快捷键中...",
+        "title": "快捷键",
+        "description": "用于录制和改写的键盘快捷键。",
+        "loading": "加载快捷键中…",
         "none": "未配置快捷键",
         "notFound": "未找到快捷键",
         "pressKeys": "按下你的按键…",
@@ -305,7 +306,7 @@
           },
           "transcribe_with_post_process": {
             "name": "后处理快捷键",
-            "description": "可选：一个专用快捷键，始终对您的转录应用 AI 后处理。"
+            "description": "可选快捷键，始终对转录文本应用 AI 清理。"
           },
           "command": {
             "name": "命令快捷键",
@@ -324,8 +325,8 @@
       },
       "language": {
         "title": "语言",
-        "description": "选择语音识别的语言。自动将自动确定语言，选择特定语言可以提高该语言的准确度。",
-        "searchPlaceholder": "搜索语言...",
+        "description": "用于语音识别的语言。自动会检测语言；指定语言可以提高准确度。",
+        "searchPlaceholder": "搜索语言",
         "noResults": "未找到语言",
         "auto": "自动"
       },
@@ -338,7 +339,7 @@
         "title": "外观",
         "material": {
           "title": "材质",
-          "description": "实色绘制 Sona 自身的表面。玻璃让桌面透过顶栏、命令面板和录音 HUD 显示出来。",
+          "description": "实色让 Sona 的表面保持不透明。玻璃让桌面透过顶栏、命令面板和录音 HUD 显示出来。",
           "options": {
             "solid": "实色",
             "glass": "玻璃"
@@ -355,29 +356,29 @@
       "title": "声音",
       "microphone": {
         "title": "麦克风",
-        "description": "选择您偏好的麦克风设备",
-        "placeholder": "选择麦克风...",
-        "loading": "加载中..."
+        "description": "Sona 录音使用的麦克风。",
+        "placeholder": "选择麦克风",
+        "loading": "加载中…"
       },
       "channel": {
         "title": "输入通道",
-        "description": "选择要录制的输入通道。如果您的音频接口有多个输入，请使用此选项。",
+        "description": "当接口有多个输入时，要录制的输入通道。",
         "average": "所有通道的平均值",
         "channel": "通道 {{n}}"
       },
       "audioFeedback": {
         "label": "音频反馈",
-        "description": "录制开始和停止时播放声音"
+        "description": "录制开始和停止时播放声音。"
       },
       "outputDevice": {
         "title": "输出设备",
-        "description": "选择用于反馈声音的音频输出设备",
-        "placeholder": "选择输出设备...",
-        "loading": "加载中..."
+        "description": "反馈声音的播放位置。",
+        "placeholder": "选择输出设备",
+        "loading": "加载中…"
       },
       "volume": {
         "title": "音量",
-        "description": "调整音频反馈的音量"
+        "description": "反馈声音的音量。"
       }
     },
     "advanced": {
@@ -398,11 +399,11 @@
       },
       "experimentalToggle": {
         "label": "实验性功能",
-        "description": "启用仍在开发中的实验性功能。"
+        "description": "显示仍在开发中的选项。"
       },
       "lazyStreamClose": {
         "label": "在转录之间保持麦克风开启",
-        "description": "录音停止后保持麦克风流开启30秒，减少连续转录时的延迟。激活时可能会降低蓝牙音频质量。"
+        "description": "录音停止后保持麦克风流开启 30 秒，使连续转录启动更快。开启期间蓝牙音频质量可能下降。"
       },
       "acceleration": {
         "transcribe": {
@@ -423,7 +424,7 @@
       },
       "autostart": {
         "label": "开机启动",
-        "description": "登录计算机时自动启动 Sona。"
+        "description": "登录时启动 Sona。"
       },
       "showTrayIcon": {
         "label": "显示托盘图标",
@@ -450,7 +451,7 @@
       },
       "pasteMethod": {
         "title": "粘贴方式",
-        "description": "选择文字插入方式。直接：通过系统输入模拟打字。无：跳过粘贴，仅更新历史记录/剪贴板。",
+        "description": "文字插入方式。直接：通过系统输入模拟打字。无：跳过粘贴，仅更新历史记录和剪贴板。",
         "options": {
           "clipboard": "剪贴板 ({{modifier}}+V)",
           "clipboardCtrlShiftV": "剪贴板 (Ctrl+Shift+V)",
@@ -463,14 +464,14 @@
       },
       "typingTool": {
         "title": "输入工具",
-        "description": "选择在直接粘贴方式下使用的 Linux 输入工具。Auto 会自动检测并使用系统中可用的最佳工具。",
+        "description": "直接粘贴方式使用的 Linux 输入工具。Auto 会检测可用的工具。",
         "options": {
           "auto": "Auto（推荐）"
         }
       },
       "clipboardHandling": {
         "title": "剪贴板处理",
-        "description": "不修改剪贴板将在转录后保留当前剪贴板内容。复制到剪贴板将在粘贴后将转录结果留在剪贴板中。",
+        "description": "不修改剪贴板会保留你的剪贴板内容。复制到剪贴板会在粘贴后将 transcript 留在剪贴板中。",
         "options": {
           "dontModify": "不修改剪贴板",
           "copyToClipboard": "复制到剪贴板"
@@ -478,7 +479,7 @@
       },
       "autoSubmit": {
         "title": "自动提交",
-        "description": "在文本插入后自动发送所选的按键组合。macOS 上使用 Cmd+Enter，Windows/Linux 上使用 Super+Enter。",
+        "description": "在文本插入后发送所选的按键组合。macOS 上为 Cmd+Enter，Windows 和 Linux 上为 Super+Enter。",
         "options": {
           "off": "关闭",
           "enter": "回车",
@@ -489,11 +490,11 @@
       },
       "translateToEnglish": {
         "label": "翻译为英语",
-        "description": "在转录过程中自动将其他语言的语音翻译为英语。"
+        "description": "在转录时将其他语言的语音翻译为英语。"
       },
       "modelUnload": {
         "title": "卸载模型",
-        "description": "当模型在指定时间内未使用时自动释放 GPU/CPU 内存",
+        "description": "模型闲置达到该时长后释放 GPU 和 CPU 内存。",
         "options": {
           "never": "从不",
           "immediately": "立即",
@@ -568,7 +569,7 @@
       },
       "fillerWordRemoval": {
         "title": "移除语气词",
-        "description": "从转录中移除常见的语气词。关闭此选项即可保留这些词。"
+        "description": "从 transcript 中移除常见的语气词。"
       },
       "emoji": {
         "enabledLabel": "启用表情符号替换",
@@ -689,18 +690,18 @@
         },
         "noPrompts": "没有可用的提示词",
         "selectPrompt": "选择提示词",
-        "createNew": "创建新提示词",
+        "createNew": "新建提示词",
         "promptLabel": "提示词名称",
-        "promptLabelPlaceholder": "输入提示词名称",
-        "promptInstructions": "提示词指令",
-        "promptInstructionsPlaceholder": "编写转录后要执行的指令。示例：改进以下文本的语法和清晰度: ${output}",
-        "promptTip": "提示：使用 <code>${output}</code> 将转录文本插入到您的提示词中。",
+        "promptLabelPlaceholder": "为此提示词命名",
+        "promptInstructions": "指令",
+        "promptInstructionsPlaceholder": "改进以下文本的语法和清晰度: ${output}",
+        "promptTip": "在需要插入转录文本的位置写上 <code>${output}</code>。",
         "updatePrompt": "更新提示词",
         "deletePrompt": "删除提示词",
         "createPrompt": "创建提示词",
         "cancel": "取消",
-        "selectToEdit": "选择上方的提示词以查看和编辑其详细信息。",
-        "createFirst": "点击上方的「创建新提示词」来创建您的第一个后处理提示词。",
+        "selectToEdit": "选择提示词以进行编辑。",
+        "createFirst": "创建提示词以对转录文本进行后处理。",
         "empty": {
           "description": "提示词告诉模型如何处理转录，例如：将以下内容改写为一条简短消息，保留所有事实：${output}"
         },
@@ -740,7 +741,7 @@
     "history": {
       "stats": {
         "title": "累计使用量",
-        "loading": "正在加载使用量...",
+        "loading": "正在加载使用量…",
         "unavailable": "无法获取使用统计信息。",
         "entries": "录音",
         "duration": "录音时长",
@@ -753,20 +754,20 @@
       },
       "title": "历史记录",
       "openFolder": "打开录音文件夹",
-      "loading": "加载历史记录中...",
-      "empty": "还没有转录记录。开始录制以建立您的历史记录！",
+      "loading": "加载历史记录中…",
+      "empty": "还没有录音。",
       "copyToClipboard": "复制转录到剪贴板",
-      "save": "保存转录",
+      "save": "保存条目",
       "unsave": "从已保存中移除",
       "delete": "删除条目",
       "deleteError": "无法删除该条目。请重试。",
       "retranscribe": "重新转录",
       "retranscribeError": "无法重新转写。请重试。",
-      "transcribing": "转录中...",
-      "transcriptionFailed": "转录失败。您可以使用重试图标重新转录。",
+      "transcribing": "转录中…",
+      "transcriptionFailed": "转录失败。",
       "search": "搜索历史",
-      "searchPlaceholder": "搜索转录...",
-      "noResults": "没有转录与\"{{query}}\"匹配。",
+      "searchPlaceholder": "搜索转录",
+      "noResults": "没有转录与“{{query}}”匹配。",
       "loadError": "无法加载历史。",
       "retry": "重试",
       "saveError": "无法更新保存状态。请重试。",
@@ -962,26 +963,27 @@
       "title": "调试",
       "logDirectory": {
         "title": "日志目录",
-        "description": "日志文件的存储位置"
+        "description": "日志文件的写入位置。"
       },
       "logLevel": {
         "title": "日志级别",
-        "description": "设置日志的详细程度"
+        "description": "日志记录的详细程度。"
       },
       "liveLogs": {
         "title": "实时日志",
-        "description": "实时传输应用程序日志，无需打开日志文件即可诊断问题。仅显示此面板打开期间产生的日志；遵循上方的“日志级别”设置。",
+        "description": "实时输出产生的日志行。仅显示此面板打开期间产生的日志行，按上方设置的日志级别显示。",
         "live": "实时",
         "paused": "已暂停",
         "pause": "暂停",
         "resume": "继续",
         "copied": "已复制",
         "lineCount": "{{count}} 行",
-        "empty": "正在等待日志…… 应用产生日志时将显示在此处。"
+        "empty": "正在等待日志。应用产生日志行时将显示在此处。"
       },
       "soundTheme": {
         "label": "声音主题",
-        "description": "选择录制开始和停止反馈的声音主题"
+        "description": "录制开始和停止时播放哪些声音。",
+        "preview": "Preview the start and stop sounds"
       },
       "wordCorrectionThreshold": {
         "title": "词汇修正阈值",
@@ -989,30 +991,30 @@
       },
       "historyLimit": {
         "title": "历史记录上限",
-        "description": "保留的最大历史条目数",
+        "description": "保留的历史条目数量。",
         "entries": "条"
       },
       "recordingRetention": {
         "title": "自动删除录音",
-        "description": "自动删除旧录音以节省空间",
+        "description": "超过此时长后删除录音。",
         "never": "从不",
         "preserveLimit": "保留最新 {{count}} 条",
         "days3": "3 天后",
         "weeks2": "2 周后",
         "months3": "3 个月后",
-        "placeholder": "选择保留期限..."
+        "placeholder": "选择保留期限"
       },
       "alwaysOnMicrophone": {
         "label": "麦克风常开",
-        "description": "保持麦克风活跃以获得更快的响应"
+        "description": "保持麦克风开启，使录制启动更快。"
       },
       "clamshellMicrophone": {
         "title": "合盖麦克风",
-        "description": "笔记本电脑盖子关闭时使用的麦克风"
+        "description": "笔记本电脑盖子关闭时使用的麦克风。"
       },
       "postProcessingToggle": {
         "label": "后处理",
-        "description": "启用转录后的 AI 文本优化"
+        "description": "转录后使用语言模型改写转录文本。"
       },
       "muteWhileRecording": {
         "label": "录制时静音",
@@ -1020,7 +1022,7 @@
       },
       "appendTrailingSpace": {
         "label": "追加尾部空格",
-        "description": "在粘贴的转录后添加空格"
+        "description": "在粘贴的 transcript 后添加一个空格。"
       },
       "keyboardImplementation": {
         "title": "键盘实现",
@@ -1042,7 +1044,7 @@
       },
       "reliablePaste": {
         "title": "可靠粘贴（Beta）",
-        "description": "在目标应用程序真正读取转录文本之后再恢复剪贴板，而不是等待固定延迟。用于解决系统负载较高时粘贴旧剪贴板内容的问题。需要使用剪贴板类的粘贴方式；仅支持 macOS 和 Windows。"
+        "description": "在目标应用程序读取转录文本之后再恢复剪贴板，而不是等待固定延迟。用于解决系统负载较高时粘贴旧剪贴板内容的问题。需要使用剪贴板类的粘贴方式；仅支持 macOS 和 Windows。"
       },
       "recordingBuffer": {
         "title": "额外录音缓冲",
@@ -1062,10 +1064,10 @@
         "keyUp": "按键释放",
         "flagsChanged": "修饰键",
         "mouse": "鼠标",
-        "verdictBlocked": "Secure Input 正在阻止按键事件——在问题解决前，包含普通按键的快捷键无法工作。",
-        "verdictSuspicious": "收到了修饰键事件，但没有按键事件——尽管 Secure Input 报告为已禁用，仍有程序在抑制按键。请在 GitHub 上反馈此问题。",
+        "verdictBlocked": "Secure Input 正在阻止按键事件，在问题解决前，包含普通按键的快捷键无法工作。",
+        "verdictSuspicious": "收到了修饰键事件，但没有按键事件。尽管 Secure Input 报告为已禁用，仍有程序在抑制按键。请在 GitHub 上反馈此问题。",
         "verdictOk": "按键事件正常到达 Sona。",
-        "verdictNoEvents": "未捕获到任何事件——测试期间您按过键吗？",
+        "verdictNoEvents": "测试期间未捕获到任何事件。",
         "failed": "诊断失败：{{error}}"
       },
       "whatsNewPreview": {
@@ -1087,12 +1089,12 @@
       "title": "关于",
       "version": {
         "title": "版本",
-        "description": "Sona 的当前版本",
+        "description": "当前运行的版本。",
         "unavailable": "不可用"
       },
       "appDataDirectory": {
         "title": "应用数据目录",
-        "description": "Sona 存储数据的位置"
+        "description": "Sona 存储数据的位置。"
       },
       "sourceCode": {
         "title": "Open-source licenses",
@@ -1101,15 +1103,15 @@
       },
       "supportDevelopment": {
         "title": "支持开发",
-        "description": "帮助我们继续开发 Sona",
+        "description": "捐赠用于支持 Sona 的后续开发。",
         "button": "捐赠"
       },
       "acknowledgments": {
         "title": "致谢",
         "ggml": {
           "title": "ggml",
-          "description": "OpenAI Whisper 自动语音识别模型的高性能推理",
-          "details": "Sona 使用 ggml 进行快速的本地语音转文字处理。感谢 Georgi Gerganov 和贡献者们的出色工作。"
+          "description": "用于设备端机器学习推理的张量库",
+          "details": "Sona 的本地语音转文字基于 transcribe.cpp 和 ggml。感谢 Georgi Gerganov 和贡献者们。"
         }
       },
       "whatsNewUpdates": {
@@ -1154,7 +1156,7 @@
           "label": "Activate in app",
           "description": "Capture the app currently in front and select this mode when you dictate there.",
           "action": "Capture current app",
-          "capturing": "Capturing..."
+          "capturing": "Capturing…"
         },
         "empty": "No app activates this mode.",
         "remove": "Remove",
@@ -1172,7 +1174,7 @@
             "label": "在网站中激活",
             "description": "捕获前台浏览器的主机。Sona 仅保存主机，不保存 URL。",
             "action": "捕获当前网站",
-            "capturing": "正在捕获..."
+            "capturing": "正在捕获…"
           },
           "empty": "没有网站会激活此模式。",
           "exampleDescription": "每条规则存储一个浏览器主机名，例如 mail.google.com。"
@@ -1264,8 +1266,8 @@
         "model": {
           "label": "Transcription model",
           "description": "Only downloaded local models are available here.",
-          "inheritGlobal": "默认 — 使用全局模型",
-          "inheritGlobalNamed": "默认 — 使用全局模型（{{name}}）"
+          "inheritGlobal": "默认：全局模型",
+          "inheritGlobalNamed": "默认：全局模型（{{name}}）"
         },
         "language": {
           "label": "Language",
@@ -1422,7 +1424,7 @@
           "label": "Typing tool",
           "description": "Used only with direct typing.",
           "values": {
-            "auto": "Automatic",
+            "auto": "Auto",
             "wtype": "wtype",
             "kwtype": "kwtype",
             "dotool": "dotool",
@@ -1532,7 +1534,7 @@
           "error": "Browser URL capture could not be saved."
         },
         "cloudRoute": "Enabled cloud modes send allowed context to {{providers}}.",
-        "localRoute": "All your AI processing is local.",
+        "localRoute": "AI processing runs on this Mac.",
         "checkingRoute": "Checking configured cloud routes…"
       },
       "diagnostics": {
@@ -1599,7 +1601,7 @@
             "key_rejected": "存储的密钥无法打开加密数据库，因此无法读取历史。",
             "key_unavailable": "系统凭据存储未返回可用密钥，因此历史以未加密方式存储。",
             "migration_failed": "加密现有数据库失败。未加密的数据库完好无损且仍在使用。",
-            "unlocking": "正在打开加密数据库。启动后片刻即会消失。"
+            "unlocking": "正在打开加密数据库。启动完成后即会消失。"
           },
           "unknown": "Sona 无法读取历史的存储方式。",
           "unlocking": "正在解锁",
@@ -1655,18 +1657,18 @@
         "import": "Import selected data",
         "importing": "Importing",
         "errors": {
-          "source_unavailable": "The original Sona data folder is unavailable.",
-          "upstream_running": "Close the original Sona app before importing.",
-          "app_state_unverifiable": "Sona cannot verify the original app state on this platform.",
+          "source_unavailable": "The legacy app's data folder is unavailable.",
+          "upstream_running": "Close the legacy app before importing.",
+          "app_state_unverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
           "invalid_selection": "Choose settings or history to import.",
-          "settings_unreadable": "The original settings file could not be read.",
+          "settings_unreadable": "The legacy settings file could not be read.",
           "secret_store_unavailable": "The native credential store is unavailable, so settings with provider keys were not imported.",
           "secret_conflict": "A provider key already exists in the native credential store. Resolve it before importing settings.",
-          "history_unreadable": "The original history database could not be read.",
+          "history_unreadable": "The legacy history database could not be read.",
           "recording_copy_failed": "A recording could not be copied and verified.",
           "receipt_write_failed": "The import receipt could not be saved.",
           "internal": "The import did not finish.",
-          "status": "The original Sona data could not be inspected."
+          "status": "The legacy app's data could not be inspected."
         }
       },
       "cloudSync": {
@@ -1854,7 +1856,7 @@
     "prompts": {
       "samples": {
         "title": "写作样例",
-        "description": "你自己写的文字样例。每个改写转写的模式都会贴合它们的语气。",
+        "description": "你自己写的文字样例。改写转写的模式会贴合这种语气。",
         "placeholder": "粘贴一段你自己写的文字。",
         "sampleLabel": "写作样例 {{number}}",
         "delete": "删除样例 {{number}}",
@@ -1881,7 +1883,7 @@
     }
   },
   "common": {
-    "loading": "加载中...",
+    "loading": "加载中…",
     "delete": "删除",
     "cancel": "取消",
     "close": "关闭",
@@ -1898,7 +1900,7 @@
   },
   "commandPalette": {
     "open": "搜索",
-    "placeholder": "输入命令或搜索…",
+    "placeholder": "输入命令或搜索",
     "navigation": "导航",
     "actions": "操作",
     "noResults": "未找到命令",
@@ -1916,26 +1918,26 @@
   },
   "errors": {
     "noSpeechDetectedTitle": "未检测到语音",
-    "noSpeechDetected": "未检测到语音。录音样本已保存到历史记录，以便您检查捕获的音频。",
-    "loadDirectory": "加载目录时出错: {{error}}",
+    "noSpeechDetected": "未检测到语音。录音样本已保存到历史记录。",
+    "loadDirectory": "无法加载目录：{{error}}",
     "micPermissionDeniedTitle": "麦克风访问被拒绝",
     "micPermissionDenied": {
-      "generic": "操作系统拒绝了麦克风访问。请在系统设置中授予麦克风权限。",
+      "generic": "操作系统拒绝了麦克风访问。请在系统设置中授予麦克风访问权限。",
       "windows": "在设置 → 隐私和安全性 → 麦克风（包括桌面应用访问）中启用麦克风访问。",
       "macos": "在系统设置 → 隐私与安全性 → 麦克风中授予麦克风访问权限。",
       "linux": "在系统的声音或隐私设置中授予麦克风访问权限。"
     },
     "noInputDeviceTitle": "未找到麦克风",
-    "noInputDevice": "未检测到音频输入设备。请连接麦克风或耳机后重试。",
+    "noInputDevice": "未检测到音频输入设备。请连接麦克风后重试。",
     "recordingFailed": "无法开始录音：{{error}}。请重试。",
     "modelLoadFailed": "无法加载 {{model}}。请重试。",
     "modelLoadFailedUnknown": "未知模型",
     "pasteFailedTitle": "无法粘贴转写文本",
-    "pasteFailed": "文本无法粘贴到当前应用。请把光标放到文本框中再重试。",
+    "pasteFailed": "Transcript 无法粘贴到当前应用。请把光标放到文本框中再重试。",
     "transcriptionFailedTitle": "无法转写",
-    "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
-    "commandNoSelection": "当时没有选中任何内容。选中你要修改的文本，然后按住命令快捷键，说出要做什么。",
-    "commandRewriteUnavailable": "改写没有返回任何内容，所选文本保持原样。请在「设置 > AI」中检查改写模型后重试。",
+    "noModelSelected": "未选择转录模型。请在 Settings > Models 中选择。",
+    "commandNoSelection": "选中你要修改的文本，然后按住命令快捷键，说出修改内容。",
+    "commandRewriteUnavailable": "改写没有返回任何内容，所选文本保持原样。请在 Settings > Post-processing 中检查改写模型后重试。",
     "noModelSelectedTitle": "未选择模型",
     "noSpeechSaveFailedTitle": "样本未保存",
     "captureOverrunTitle": "录音超出上限",
@@ -1987,7 +1989,7 @@
     "recorderBlockedWithCulprit": "{{name}} 可能正在阻止快捷键更改",
     "recorderBlockedNoCulprit": "macOS 正在暂时阻止快捷键更改",
     "learnMore": "如何解决",
-    "recorderBlocked": "当前无法录制快捷键——macOS 的 Secure Input 正在阻止按键事件。请先解决 Secure Input 警告。",
+    "recorderBlocked": "macOS 的 Secure Input 正在阻止按键事件，因此无法录制快捷键。请先解决 Secure Input 警告。",
     "dismiss": "关闭"
   },
   "meetings": {
@@ -2067,6 +2069,7 @@
     },
     "detected": {
       "title": "Meeting detected",
+      "description": "Sona 注意到有会议应用正在使用。",
       "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
@@ -2277,7 +2280,7 @@
       "ask": "Ask locally",
       "noQuestions": "No saved local answers.",
       "question": "Question",
-      "insufficientEvidence": "I couldn’t find support for that in this meeting.",
+      "insufficientEvidence": "No supporting passage was found in this meeting.",
       "forget": "Forget this answer",
       "exactSearch": "Exact search",
       "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
@@ -2382,7 +2385,7 @@
       "title": "Meeting activity",
       "loading": "Loading meeting trends…",
       "error": "Couldn't load meeting trends.",
-      "unavailable": "Meeting trends are unavailable right now.",
+      "unavailable": "Meeting trends are unavailable.",
       "metricLabel": "Metric",
       "metrics": {
         "meetings": "Meetings",
@@ -2392,7 +2395,7 @@
       }
     },
     "list": {
-      "retentionHint": "保留策略：{{policy}}。可在设置的 Privacy 中更改。",
+      "retentionHint": "保留策略：{{policy}}。可在 Settings > Privacy 中更改。",
       "searchLabel": "搜索会议",
       "searchPlaceholder": "按标题搜索",
       "clearFilters": "清除筛选",
@@ -2482,13 +2485,13 @@
       "trackerName": "名称",
       "trackerPatterns": "折扣、最优价格、太贵了",
       "trackerPatternsLabel": "用逗号分隔的短语",
-      "trackersSaveFailed": "Sona 无法保存追踪词。改动其中一个后重试。"
+      "trackersSaveFailed": "Sona 无法保存追踪词。请重试。"
     },
     "notes": {
       "title": "我的笔记",
       "liveDescription": "想写得多粗略都行。这些笔记留在这台 Mac 上，并会引导会议结束时 Sona 生成的笔记。",
       "reviewDescription": "你自己的笔记会引导生成的笔记强调什么。它们绝不会被引用或作为出处列出。",
-      "placeholder": "任何值得记下的东西 — 名字、数字、需要跟进的事",
+      "placeholder": "任何值得记下的东西：名字、数字、需要跟进的事",
       "unsaved": "尚未保存",
       "saving": "正在保存…",
       "saved": "笔记已保存",
@@ -2502,7 +2505,7 @@
       "catchUpTitle": "目前为止",
       "catchUpNoTranscript": "暂时没有可回顾的内容。Sona 在你停止录制之后才转写，所以转写开始到达时就会有回顾。",
       "catchUpUnavailable": "设备端模型不可用，因此没有写出回顾。",
-      "catchUpFailed": "Sona 无法生成回顾。请稍后重试。",
+      "catchUpFailed": "Sona 无法生成回顾。请重试。",
       "templates": {
         "general": "一般会议",
         "one_on_one": "一对一",
@@ -2521,6 +2524,8 @@
         "huddle": "检测到 {{app}} 快聊",
         "browser": "在 {{app}} 中检测到通话",
         "unknown": "检测到麦克风活动",
+        "calendarUntitled": "日历日程即将开始",
+        "generic": "检测到会议",
         "body": "Sona 可以为这次通话在本地做笔记。"
       },
       "actions": {
@@ -2608,6 +2613,10 @@
         "more": "展开",
         "less": "收起"
       },
+      "untitled": {
+        "calendar": "日历日程",
+        "app": "麦克风使用中"
+      },
       "actions": {
         "skip": "跳过"
       },
@@ -2676,7 +2685,7 @@
     },
     "recent": {
       "title": "Recent activity",
-      "history": "Transcription",
+      "history": "Dictation",
       "meeting": "Meeting",
       "viewAll": "查看全部",
       "words": "{{count}} 词",
@@ -2686,30 +2695,30 @@
     },
     "hero": {
       "ready": "Ready",
-      "recording": "Recording",
+      "recording": "Listening",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "模式：{{name}}",
       "setShortcut": "在设置中设定听写快捷键，即可在任意应用中录入。",
       "setShortcutAction": "设置一个快捷键",
       "shortcutAction": "修改口述快捷键",
-      "gestureTapHold": "轻按切换，长按说话，任何应用中都可用。",
-      "gestureTapOnly": "轻按切换，任何应用中都可用。"
+      "gestureTapHold": "轻按切换，长按说话。",
+      "gestureTapOnly": "轻按切换。"
     },
     "actions": {
       "dictate": "Dictate",
       "unavailable": "Shortcut unavailable"
     },
     "chart": {
-      "day": "{{date}} \\u00b7 听写 {{dictations}}",
-      "dayWithMeetings": "{{date}} \\u00b7 听写 {{dictations}} \\u00b7 会议 {{meetings}}",
+      "day": "{{date}} · 听写 {{dictations}}",
+      "dayWithMeetings": "{{date}} · 听写 {{dictations}} · 会议 {{meetings}}",
       "legend": "每日听写次数",
       "peak": "最繁忙的一天 {{peak}}",
       "summary": "{{from}} 至 {{to}} 的每日听写次数。共 {{total}} 次，最繁忙的一天 {{peak}}。"
     },
     "empty": {
       "action": "打开资料库",
-      "description": "在任意应用中按住听写快捷键，Sona 会输入你所说的内容。完成第一次后，使用统计和最近记录会显示在这里。",
+      "description": "在任意应用中按住听写快捷键，Sona 会输入你所说的内容。完成第一次听写后，使用统计和最近记录会显示在这里。",
       "title": "暂无记录"
     },
     "stats": {
@@ -2717,7 +2726,7 @@
       "allTime": "累计 {{total}}",
       "dictations": "听写",
       "dictationsAllTime": "听写，累计",
-      "error": "Sona 目前无法读取你的使用历史。",
+      "error": "Sona 无法读取你的使用历史。",
       "range": "{{from}} 至 {{to}}",
       "rangeUnavailable": "无法读取最近 30 天的数据，因此这里显示的是累计总量。",
       "speaking": "讲话时长",
@@ -2758,7 +2767,7 @@
     "title": "Cloud Sync",
     "account": {
       "title": "Cloud Sync",
-      "description": "Keep meetings on this device unless you choose to set up sync.",
+      "description": "Meetings stay on this device until you set up sync.",
       "status": {
         "loading": "Checking sync…",
         "local": "Local only",

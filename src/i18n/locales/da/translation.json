@@ -42,7 +42,7 @@
     "settings": "Settings"
   },
   "onboarding": {
-    "subtitle": "For at komme i gang skal du vælge en transskriptionsmodel",
+    "subtitle": "Modellerne kører på denne Mac og afvejer nøjagtighed mod hastighed",
     "existingModelsTitle": "Kompatible modeller",
     "downloadModelsTitle": "Tilgængelig til download",
     "showAllModels": "Vis alle {{total}} modeller",
@@ -72,7 +72,7 @@
       },
       "parakeet-tdt-0.6b-v2": {
         "name": "Parakeet V2",
-        "description": "Kun engelsk. Den bedste model for engelsktalende."
+        "description": "Kun engelsk. Hurtig og nøjagtig."
       },
       "parakeet-tdt-0.6b-v3": {
         "name": "Parakeet V3",
@@ -116,7 +116,7 @@
       },
       "cohere-int8": {
         "name": "Cohere",
-        "description": "En stor, langsommere, men meget nøjagtig flersproget model."
+        "description": "Stor flersproget model. Langsom, men nøjagtig."
       }
     },
     "errors": {
@@ -124,7 +124,7 @@
     },
     "permissions": {
       "title": "Tilladelser påkrævet",
-      "description": "Sona har brug for et par tilladelser for at fungere korrekt.",
+      "description": "Sona har brug for adgang til mikrofon og tilgængelighed.",
       "microphone": {
         "title": "Mikrofonadgang",
         "description": "Påkrævet for at høre din stemme til transskription."
@@ -135,39 +135,40 @@
       },
       "grant": "Giv tilladelse",
       "granted": "Givet",
-      "waiting": "Venter...",
-      "allGranted": "Alt er klar!",
+      "waiting": "Venter…",
+      "allGranted": "Begge givet",
       "errors": {
         "checkFailed": "Kunne ikke kontrollere tilladelserne. Prøv igen.",
         "requestFailed": "Kunne ikke anmode om tilladelsen. Prøv igen."
       },
       "headline": "Engangsopsætning",
-      "subhead": "Din computer spørger, før nogen app må lytte eller skrive for dig. Giv disse tilladelser én gang, så spørger Sona ikke igen.",
+      "subhead": "Dit system spørger, før nogen app må lytte eller skrive.",
       "checking": "Kontrollerer tilladelser",
       "recheck": "Kontrollér igen"
     },
-    "headline": "Vælg en stemmemodel"
+    "headline": "Vælg en transskriptionsmodel"
   },
   "modelSelector": {
     "custom": "Brugerdefineret",
     "legacy": "Forældet",
     "streaming": "Streaming",
     "active": "Aktiv",
-    "switching": "Skifter...",
+    "switching": "Skifter…",
     "noModelsAvailable": "Ingen modeller tilgængelige",
-    "verifying": "Verificerer {{modelName}}...",
-    "verifyingGeneric": "Verificerer...",
-    "extracting": "Udpakker {{modelName}}...",
-    "extractingMultiple": "Udpakker {{count}} modeller...",
-    "extractingGeneric": "Udpakker...",
+    "verifying": "Verificerer {{modelName}}…",
+    "verifyingGeneric": "Verificerer…",
+    "extracting": "Udpakker {{modelName}}…",
+    "extractingMultiple": "Udpakker {{count}} modeller…",
+    "extractingGeneric": "Udpakker…",
     "downloading": "Downloader {{percentage}}%",
-    "downloadingMultiple": "Downloader {{count}} modeller...",
+    "downloadingMultiple": "Downloader {{count}} modeller…",
+    "downloadingGeneric": "Downloading…",
     "modelReady": "Model klar",
-    "loading": "Indlæser {{modelName}}...",
-    "loadingGeneric": "Indlæser...",
+    "loading": "Indlæser {{modelName}}…",
+    "loadingGeneric": "Indlæser…",
     "modelError": "Modelfejl",
     "modelUnloaded": "Model frigjort",
-    "noModelDownloadRequired": "Ingen model - download påkrævet",
+    "noModelDownloadRequired": "Ingen model, download påkrævet",
     "deleteModel": "Slet {{modelName}}",
     "downloadSpeed": "{{speed}} MB/s",
     "cancel": "Annuller",
@@ -190,9 +191,9 @@
     "general": {
       "title": "Generelt",
       "shortcut": {
-        "title": "Sona-genveje",
-        "description": "Konfigurer tastaturgenveje til at udløse tale-til-tekst-optagelse",
-        "loading": "Indlæser genveje...",
+        "title": "Genveje",
+        "description": "Tastaturgenveje til optagelse og omskrivning.",
+        "loading": "Indlæser genveje…",
         "none": "Ingen genveje konfigureret",
         "notFound": "Genvej ikke fundet",
         "pressKeys": "Tryk på dine taster…",
@@ -207,7 +208,7 @@
           },
           "transcribe_with_post_process": {
             "name": "Genvej til efterbehandling",
-            "description": "Valgfrit: En dedikeret genvej, der altid anvender AI-efterbehandling på din transskription."
+            "description": "En valgfri genvej, der altid anvender AI-oprydning på transskriptionen."
           },
           "command": {
             "name": "Kommandogenvej",
@@ -226,8 +227,8 @@
       },
       "language": {
         "title": "Sprog",
-        "description": "Vælg sproget til talegenkendelse. Auto tyder automatisk sproget, mens valg af et specifikt sprog kan forbedre nøjagtigheden for det pågældende sprog.",
-        "searchPlaceholder": "Søg efter sprog...",
+        "description": "Sproget der bruges til talegenkendelse. Auto tyder det automatisk; angivelse af et sprog kan forbedre nøjagtigheden.",
+        "searchPlaceholder": "Søg efter sprog",
         "noResults": "Ingen sprog fundet",
         "auto": "Automatisk"
       },
@@ -240,7 +241,7 @@
         "title": "Udseende",
         "material": {
           "title": "Materiale",
-          "description": "Massiv tegner Sonas egne flader. Glas lader skrivebordet skinne gennem topbjælken, kommandopaletten og optage-HUD'en.",
+          "description": "Massiv holder Sonas flader uigennemsigtige. Glas lader skrivebordet skinne gennem topbjælken, kommandopaletten og optage-HUD'en.",
           "options": {
             "solid": "Massiv",
             "glass": "Glas"
@@ -255,17 +256,17 @@
     },
     "models": {
       "title": "Transskriptionsmodeller",
-      "description": "Vælg en transskriptionsmodel, eller download flere modeller. Forskellige modeller tilbyder varierende niveauer af nøjagtighed og hastighed.",
-      "searchPlaceholder": "Søg efter modeller ved navn…",
+      "description": "Modellen der omdanner tale til tekst. Modeller afvejer nøjagtighed mod hastighed.",
+      "searchPlaceholder": "Søg efter modeller ved navn",
       "yourModels": "Downloadede modeller",
       "availableModels": "Tilgængelig til download",
-      "deleteConfirm": "Er du sikker på, at du vil slette {{modelName}}? Du skal downloade den igen for at bruge den.",
-      "deleteActiveConfirm": "{{modelName}} er din aktive model. Sletning af den vil stoppe transskriptioner, indtil du vælger en ny model. Er du sikker?",
+      "deleteConfirm": "Slet {{modelName}}? Hvis du vil bruge den igen, skal den downloades igen.",
+      "deleteActiveConfirm": "{{modelName}} er den aktive model. Sletning af den stopper transskription, indtil du vælger en anden.",
       "deleteTitle": "Slet model",
       "filters": {
         "allLanguages": "Alle sprog",
-        "streaming": "Filtrer modeller, der understøtter live transskription",
-        "translation": "Filtrer modeller, der understøtter oversættelse til engelsk",
+        "streaming": "Vis kun modeller med live transskription",
+        "translation": "Vis kun modeller, der oversætter til engelsk",
         "allFamilies": "Alle familier",
         "clear": "Ryd filtre",
         "downloadedOnly": "På disk",
@@ -355,29 +356,29 @@
       "title": "Lyd",
       "microphone": {
         "title": "Mikrofon",
-        "description": "Vælg din foretrukne mikrofonenhed",
-        "placeholder": "Vælg mikrofon...",
-        "loading": "Indlæser..."
+        "description": "Mikrofonen som Sona optager fra.",
+        "placeholder": "Vælg mikrofon",
+        "loading": "Indlæser…"
       },
       "channel": {
         "title": "Inputkanal",
-        "description": "Vælg, hvilken inputkanal der skal optages fra. Brug dette, hvis din lydgrænseflade har flere indgange.",
+        "description": "Hvilken inputkanal der optages fra, når en grænseflade har flere end én.",
         "average": "Gennemsnit af alle kanaler",
         "channel": "Kanal {{n}}"
       },
       "audioFeedback": {
         "label": "Lydfeedback",
-        "description": "Afspil lyd, når optagelse starter og stopper"
+        "description": "Afspil en lyd, når optagelse starter og stopper."
       },
       "outputDevice": {
         "title": "Outputenhed",
-        "description": "Vælg din foretrukne lydoutputenhed til feedbacklyde",
-        "placeholder": "Vælg outputenhed...",
-        "loading": "Indlæser..."
+        "description": "Hvor feedbacklyde afspilles.",
+        "placeholder": "Vælg outputenhed",
+        "loading": "Indlæser…"
       },
       "volume": {
         "title": "Lydstyrke",
-        "description": "Juster lydstyrken for lydfeedback"
+        "description": "Lydstyrken for feedbacklydene."
       }
     },
     "advanced": {
@@ -398,11 +399,11 @@
       },
       "experimentalToggle": {
         "label": "Eksperimentelle funktioner",
-        "description": "Aktivér eksperimentelle funktioner, der stadig er under udvikling."
+        "description": "Vis indstillinger, der stadig er under udvikling."
       },
       "lazyStreamClose": {
         "label": "Hold mikrofon åben mellem transskriptioner",
-        "description": "Holder mikrofonstrømmen åben i 30 sekunder, efter at optagelsen stopper, hvilket reducerer ventetid ved transskriptioner lige efter hinanden. Kan forringe Bluetooth-lydkvaliteten, mens den er aktiv."
+        "description": "Holder mikrofonstrømmen åben i 30 sekunder, efter at optagelsen stopper, så transskriptioner lige efter hinanden starter hurtigere. Bluetooth-lydkvaliteten kan blive forringet, mens den er åben."
       },
       "acceleration": {
         "transcribe": {
@@ -423,7 +424,7 @@
       },
       "autostart": {
         "label": "Start ved opstart",
-        "description": "Start Sona automatisk, når du logger ind på din computer."
+        "description": "Start Sona, når du logger ind."
       },
       "showTrayIcon": {
         "label": "Vis proceslinjeikon",
@@ -450,7 +451,7 @@
       },
       "pasteMethod": {
         "title": "Indsætningsmetode",
-        "description": "Vælg, hvordan tekst indsættes. Direkte: simulerer tastetryk via systeminput. Ingen: springer indsætning over, opdaterer kun historik/udklipsholder.",
+        "description": "Hvordan tekst indsættes. Direkte simulerer tastetryk via systeminput. Ingen springer indsætning over og opdaterer kun historik og udklipsholder.",
         "options": {
           "clipboard": "Udklipsholder ({{modifier}}+V)",
           "clipboardCtrlShiftV": "Udklipsholder (Ctrl+Shift+V)",
@@ -463,14 +464,14 @@
       },
       "typingTool": {
         "title": "Skriveværktøj",
-        "description": "Vælg hvilket Linux-skriveværktøj der skal bruges til Direkte indsætningsmetode. Auto registrerer og bruger automatisk det bedste tilgængelige værktøj til dit system.",
+        "description": "Det Linux-skriveværktøj, som Direkte indsætningsmetode bruger. Auto registrerer et tilgængeligt værktøj.",
         "options": {
           "auto": "Auto (anbefalet)"
         }
       },
       "clipboardHandling": {
         "title": "Håndtering af udklipsholder",
-        "description": "Rør ikke ved udklipsholder bevarer dit nuværende udklipsholderindhold efter transskription. Kopiér til udklipsholder efterlader transskriptionsresultatet i din udklipsholder efter indsætning.",
+        "description": "Rør ikke ved udklipsholder bevarer dit udklipsholderindhold. Kopiér til udklipsholder efterlader transskriptionen der efter indsætning.",
         "options": {
           "dontModify": "Rør ikke ved udklipsholder",
           "copyToClipboard": "Kopiér til udklipsholder"
@@ -478,7 +479,7 @@
       },
       "autoSubmit": {
         "title": "Automatisk indsendelse",
-        "description": "Send automatisk den valgte tastekombination efter tekstindsættelse. Cmd+Enter gælder på macOS, mens Windows/Linux bruger Super+Enter.",
+        "description": "Sender den valgte tastekombination, efter at tekst er indsat. Cmd+Enter på macOS, Super+Enter på Windows og Linux.",
         "options": {
           "off": "Fra",
           "enter": "Enter",
@@ -489,11 +490,11 @@
       },
       "translateToEnglish": {
         "label": "Oversæt til engelsk",
-        "description": "Oversæt automatisk tale fra andre sprog til engelsk under transskription."
+        "description": "Oversæt tale fra andre sprog til engelsk under transskription."
       },
       "modelUnload": {
         "title": "Frigør model",
-        "description": "Frigør automatisk GPU-/CPU-hukommelse, når modellen ikke har været brugt i den angivne tid",
+        "description": "Frigør GPU- og CPU-hukommelse, når modellen har været inaktiv så længe.",
         "options": {
           "never": "Aldrig",
           "immediately": "Med det samme",
@@ -568,7 +569,7 @@
       },
       "fillerWordRemoval": {
         "title": "Fjern fyldord",
-        "description": "Fjerner almindelige tøveord fra transskriptioner. Slå fra for at beholde dem."
+        "description": "Fjerner almindelige tøveord fra transskriptionen."
       },
       "emoji": {
         "enabledLabel": "Aktivér emoji-erstatninger",
@@ -651,7 +652,7 @@
     },
     "postProcessing": {
       "hotkey": {
-        "title": "Genvejstast"
+        "title": "Genvej"
       },
       "api": {
         "title": "API (OpenAI-kompatibel)",
@@ -689,18 +690,18 @@
         },
         "noPrompts": "Ingen prompts tilgængelige",
         "selectPrompt": "Vælg en prompt",
-        "createNew": "Opret ny prompt",
+        "createNew": "Ny prompt",
         "promptLabel": "Promptnavn",
-        "promptLabelPlaceholder": "Indtast promptnavn",
-        "promptInstructions": "Promptinstruktioner",
-        "promptInstructionsPlaceholder": "Skriv de instruktioner, der skal køres efter transskription. Eksempel: Forbedr grammatik og klarhed for følgende tekst: ${output}",
-        "promptTip": "Tip: Brug <code>${output}</code> til at indsætte den transskriberede tekst i din prompt.",
+        "promptLabelPlaceholder": "Navngiv denne prompt",
+        "promptInstructions": "Instruktioner",
+        "promptInstructionsPlaceholder": "Forbedr grammatik og klarhed for følgende tekst: ${output}",
+        "promptTip": "Skriv <code>${output}</code>, hvor transskriptionen skal indsættes.",
         "updatePrompt": "Opdater prompt",
         "deletePrompt": "Slet prompt",
         "createPrompt": "Opret prompt",
         "cancel": "Annuller",
-        "selectToEdit": "Vælg en prompt ovenfor for at se og redigere dens detaljer.",
-        "createFirst": "Klik på 'Opret ny prompt' ovenfor for at oprette din første efterbehandlingsprompt.",
+        "selectToEdit": "Vælg en prompt for at redigere den.",
+        "createFirst": "Opret en prompt til efterbehandling af transskriptioner.",
         "empty": {
           "description": "En prompt fortæller modellen, hvad den skal gøre med transskriptionen, for eksempel: omskriv følgende som en kort besked og behold alle fakta: ${output}"
         },
@@ -740,7 +741,7 @@
     "history": {
       "stats": {
         "title": "Samlet brug",
-        "loading": "Indlæser brug...",
+        "loading": "Indlæser brug…",
         "unavailable": "Brugsstatistik er ikke tilgængelig.",
         "entries": "optagelser",
         "duration": "optagelsestid",
@@ -753,19 +754,19 @@
       },
       "title": "Historik",
       "openFolder": "Åbn optagelsesmappe",
-      "loading": "Indlæser historik...",
-      "empty": "Ingen transskriptioner endnu. Start optagelse for at opbygge din historik!",
+      "loading": "Indlæser historik…",
+      "empty": "Ingen optagelser endnu.",
       "copyToClipboard": "Kopiér transskription til udklipsholder",
-      "save": "Gem transskription",
+      "save": "Gem post",
       "unsave": "Fjern fra gemte",
       "delete": "Slet post",
       "deleteError": "Kunne ikke slette posten. Prøv igen.",
       "retranscribe": "Transskribér igen",
       "retranscribeError": "Kunne ikke transkribere igen. Prøv igen.",
-      "transcribing": "Transskriberer...",
-      "transcriptionFailed": "Transskription mislykkedes. Du kan transskribere igen ved hjælp af genforsøgsikonet.",
+      "transcribing": "Transskriberer…",
+      "transcriptionFailed": "Transskription mislykkedes.",
       "search": "Søg i historik",
-      "searchPlaceholder": "Søg i transskriptioner...",
+      "searchPlaceholder": "Søg i transskriptioner",
       "noResults": "Ingen transskriptioner matcher \"{{query}}\".",
       "loadError": "Kunne ikke indlæse historik.",
       "retry": "Prøv igen",
@@ -962,22 +963,22 @@
       "title": "Fejlfinding",
       "logDirectory": {
         "title": "Logmappe",
-        "description": "Placering af logfiler"
+        "description": "Hvor logfiler skrives."
       },
       "logLevel": {
         "title": "Logniveau",
-        "description": "Detaljeringsgrad for logning"
+        "description": "Hvor mange detaljer loggen registrerer."
       },
       "liveLogs": {
         "title": "Live logs",
-        "description": "Stream applikationslogs i realtid for at diagnosticere problemer uden at åbne logfilen. Kun logs udsendt, mens dette panel er åbent, vises; respekterer indstillingen Logniveau ovenfor.",
+        "description": "Streamer loglinjer, efterhånden som de udsendes. Kun linjer udsendt, mens dette panel er åbent, vises her, på det logniveau der er valgt ovenfor.",
         "live": "Live",
         "paused": "På pause",
         "pause": "Pause",
         "resume": "Genoptag",
         "copied": "Kopieret",
         "lineCount": "{{count}} linjer",
-        "empty": "Venter på logs… Poster vises her, når appen udsender dem."
+        "empty": "Venter på logs. Linjer vises her, når appen udsender dem."
       },
       "whatsNewPreview": {
         "title": "Forhåndsvisning af nyheder",
@@ -988,7 +989,8 @@
       },
       "soundTheme": {
         "label": "Lydtema",
-        "description": "Vælg et lydtema til feedback ved start og stop af optagelse"
+        "description": "Hvilke lyde der afspilles, når optagelse starter og stopper.",
+        "preview": "Preview the start and stop sounds"
       },
       "wordCorrectionThreshold": {
         "title": "Tærskel for ordkorrektion",
@@ -996,30 +998,30 @@
       },
       "historyLimit": {
         "title": "Historikgrænse",
-        "description": "Maksimalt antal historikposter, der skal beholdes",
+        "description": "Hvor mange historikposter der skal beholdes.",
         "entries": "poster"
       },
       "recordingRetention": {
         "title": "Automatisk sletning af optagelser",
-        "description": "Slet automatisk gamle optagelser for at spare plads",
+        "description": "Slet optagelser efter dette tidsrum.",
         "never": "Aldrig",
         "preserveLimit": "Behold de seneste {{count}}",
         "days3": "Efter 3 dage",
         "weeks2": "Efter 2 uger",
         "months3": "Efter 3 måneder",
-        "placeholder": "Vælg opbevaringsperiode..."
+        "placeholder": "Vælg opbevaringsperiode"
       },
       "alwaysOnMicrophone": {
         "label": "Altid aktiv mikrofon",
-        "description": "Hold mikrofonen aktiv for hurtigere reaktion"
+        "description": "Holder mikrofonen åben, så optagelsen starter hurtigere."
       },
       "clamshellMicrophone": {
         "title": "Clamshell-mikrofon",
-        "description": "Mikrofon, der skal bruges, når den bærbares låg er lukket"
+        "description": "Den mikrofon, der bruges, når den bærbares låg er lukket."
       },
       "postProcessingToggle": {
         "label": "Efterbehandling",
-        "description": "Aktivér AI-drevet tekstforbedring efter transskription"
+        "description": "Omskriv transskriptionen med en sprogmodel efter transskription."
       },
       "muteWhileRecording": {
         "label": "Mute under optagelse",
@@ -1027,7 +1029,7 @@
       },
       "appendTrailingSpace": {
         "label": "Tilføj efterfølgende mellemrum",
-        "description": "Tilføj et mellemrum efter indsat transskription"
+        "description": "Tilføjer ét mellemrum efter den indsatte transskription."
       },
       "keyboardImplementation": {
         "title": "Tastaturimplementering",
@@ -1049,7 +1051,7 @@
       },
       "reliablePaste": {
         "title": "Pålidelig indsættelse (Beta)",
-        "description": "Gendan først din udklipsholder, når målappen faktisk har læst transskriptionen, i stedet for efter en fast forsinkelse. Skal afhjælpe, at gammelt udklipsholderindhold indsættes, når systemet er belastet. Kræver en indsætningsmetode via udklipsholderen; kun macOS og Windows."
+        "description": "Gendan først din udklipsholder, når målappen har læst transskriptionen, i stedet for efter en fast forsinkelse. Skal afhjælpe, at gammelt udklipsholderindhold indsættes, når systemet er belastet. Kræver en indsætningsmetode via udklipsholderen; kun macOS og Windows."
       },
       "recordingBuffer": {
         "title": "Ekstra optagelsesbuffer",
@@ -1057,7 +1059,7 @@
       },
       "keyboardDiagnostic": {
         "title": "Tastaturdiagnostik",
-        "description": "Kontrollerer, om tastaturhændelser når frem til Sona. Kun antallet af hændelser registreres — aldrig hvilke taster du trykker på.",
+        "description": "Kontrollerer, om tastaturhændelser når frem til Sona. Kun antallet af hændelser registreres, aldrig hvilke taster du trykker på.",
         "run": "Kør 10 s diagnostik",
         "running": "Lytter… tryk på din genvej et par gange (f.eks. Option+Space)",
         "secureInputLabel": "Secure Input",
@@ -1069,10 +1071,10 @@
         "keyUp": "Tast op",
         "flagsChanged": "Modifikatorer",
         "mouse": "Mus",
-        "verdictBlocked": "Secure Input blokerer tastehændelser — genveje med en almindelig tast kan ikke fungere, før det er løst.",
-        "verdictSuspicious": "Der kom modifikatorhændelser, men ingen tastehændelser — noget undertrykker taster, selvom Secure Input rapporteres som deaktiveret. Rapportér det gerne på GitHub.",
+        "verdictBlocked": "Secure Input blokerer tastehændelser, så genveje med en almindelig tast kan ikke fungere, før det er løst.",
+        "verdictSuspicious": "Der kom modifikatorhændelser, men ingen tastehændelser. Noget undertrykker taster, selvom Secure Input rapporteres som deaktiveret. Rapportér det på GitHub.",
         "verdictOk": "Tastehændelser når frem til Sona som normalt.",
-        "verdictNoEvents": "Ingen hændelser registreret — trykkede du på nogen taster under testen?",
+        "verdictNoEvents": "Der blev ikke registreret nogen hændelser under testen.",
         "failed": "Diagnostik mislykkedes: {{error}}"
       },
       "description": "Instrumentering og ikke-understøttede indstillinger. Synlig, fordi fejlfindingstilstand er slået til.",
@@ -1087,7 +1089,7 @@
       "title": "Om",
       "version": {
         "title": "Version",
-        "description": "Nuværende version af Sona",
+        "description": "Den version, der kører nu.",
         "unavailable": "Ikke tilgængelig"
       },
       "whatsNewUpdates": {
@@ -1096,7 +1098,7 @@
       },
       "appDataDirectory": {
         "title": "Appdatamappe",
-        "description": "Placering, hvor Sona gemmer sine data"
+        "description": "Hvor Sona gemmer sine data."
       },
       "sourceCode": {
         "title": "Open-source licenses",
@@ -1105,15 +1107,15 @@
       },
       "supportDevelopment": {
         "title": "Støt udviklingen",
-        "description": "Hjælp os med at fortsætte udviklingen af Sona",
+        "description": "Donationer finansierer det fortsatte arbejde med Sona.",
         "button": "Donér"
       },
       "acknowledgments": {
         "title": "Anerkendelser",
         "ggml": {
           "title": "ggml",
-          "description": "Højtydende tensor-bibliotek til maskinlæringsinferens på enheden",
-          "details": "Sonas lokale tale-til-tekst funktionalitet er bygget på transcribe.cpp og ggml. Tak for det fantastiske arbejde af Georgi Gerganov og bidragyderne."
+          "description": "Tensor-bibliotek til maskinlæringsinferens på enheden",
+          "details": "Sonas lokale tale-til-tekst funktionalitet er bygget på transcribe.cpp og ggml. Tak til Georgi Gerganov og bidragyderne."
         }
       },
       "description": "Hvilken build du kører, hvor den kommer fra, og hvor den gemmer dine filer.",
@@ -1154,7 +1156,7 @@
           "label": "Activate in app",
           "description": "Capture the app currently in front and select this mode when you dictate there.",
           "action": "Capture current app",
-          "capturing": "Capturing..."
+          "capturing": "Capturing…"
         },
         "empty": "No app activates this mode.",
         "remove": "Remove",
@@ -1172,7 +1174,7 @@
             "label": "Aktivér på website",
             "description": "Indfang browserens forreste vært. Sona gemmer værten, ikke URL'en.",
             "action": "Indfang aktuelt website",
-            "capturing": "Indfanger..."
+            "capturing": "Indfanger…"
           },
           "empty": "Intet website aktiverer denne tilstand.",
           "exampleDescription": "En regel gemmer én browservært, for eksempel mail.google.com."
@@ -1264,8 +1266,8 @@
         "model": {
           "label": "Transcription model",
           "description": "Only downloaded local models are available here.",
-          "inheritGlobal": "Standard – bruger den globale model",
-          "inheritGlobalNamed": "Standard – bruger den globale model ({{name}})"
+          "inheritGlobal": "Standard: den globale model",
+          "inheritGlobalNamed": "Standard: den globale model ({{name}})"
         },
         "language": {
           "label": "Language",
@@ -1422,7 +1424,7 @@
           "label": "Typing tool",
           "description": "Used only with direct typing.",
           "values": {
-            "auto": "Automatic",
+            "auto": "Auto",
             "wtype": "wtype",
             "kwtype": "kwtype",
             "dotool": "dotool",
@@ -1532,7 +1534,7 @@
           "error": "Browser URL capture could not be saved."
         },
         "cloudRoute": "Enabled cloud modes send allowed context to {{providers}}.",
-        "localRoute": "All your AI processing is local.",
+        "localRoute": "AI processing runs on this Mac.",
         "checkingRoute": "Checking configured cloud routes…"
       },
       "diagnostics": {
@@ -1599,7 +1601,7 @@
             "key_rejected": "Den gemte nøgle åbner ikke den krypterede database, så historikken kan ikke læses.",
             "key_unavailable": "Systemets legitimationslager returnerede ingen brugbar nøgle, så historikken gemmes ukrypteret.",
             "migration_failed": "Kryptering af den eksisterende database mislykkedes. Den ukrypterede database er intakt og stadig i brug.",
-            "unlocking": "Åbner den krypterede database. Dette forsvinder kort efter opstart."
+            "unlocking": "Åbner den krypterede database. Dette forsvinder, når opstarten er færdig."
           },
           "unknown": "Sona kunne ikke læse, hvordan historikken er gemt.",
           "unlocking": "Låser op",
@@ -1655,18 +1657,18 @@
         "import": "Import selected data",
         "importing": "Importing",
         "errors": {
-          "source_unavailable": "The original Sona data folder is unavailable.",
-          "upstream_running": "Close the original Sona app before importing.",
-          "app_state_unverifiable": "Sona cannot verify the original app state on this platform.",
+          "source_unavailable": "The legacy app's data folder is unavailable.",
+          "upstream_running": "Close the legacy app before importing.",
+          "app_state_unverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
           "invalid_selection": "Choose settings or history to import.",
-          "settings_unreadable": "The original settings file could not be read.",
+          "settings_unreadable": "The legacy settings file could not be read.",
           "secret_store_unavailable": "The native credential store is unavailable, so settings with provider keys were not imported.",
           "secret_conflict": "A provider key already exists in the native credential store. Resolve it before importing settings.",
-          "history_unreadable": "The original history database could not be read.",
+          "history_unreadable": "The legacy history database could not be read.",
           "recording_copy_failed": "A recording could not be copied and verified.",
           "receipt_write_failed": "The import receipt could not be saved.",
           "internal": "The import did not finish.",
-          "status": "The original Sona data could not be inspected."
+          "status": "The legacy app's data could not be inspected."
         }
       },
       "cloudSync": {
@@ -1854,7 +1856,7 @@
     "prompts": {
       "samples": {
         "title": "Skriveeksempler",
-        "description": "Eksempler på din egen skrivning. Hver tilstand, der omskriver en transkription, følger den tone.",
+        "description": "Eksempler på din egen skrivning. Tilstande, der omskriver en transkription, følger den tone.",
         "placeholder": "Indsæt et afsnit du selv har skrevet.",
         "sampleLabel": "Skriveeksempel {{number}}",
         "delete": "Slet eksempel {{number}}",
@@ -1884,7 +1886,7 @@
     "title": "Nyt i Sona v{{version}}"
   },
   "common": {
-    "loading": "Indlæser...",
+    "loading": "Indlæser…",
     "delete": "Slet",
     "cancel": "Annuller",
     "close": "Luk",
@@ -1901,7 +1903,7 @@
   },
   "commandPalette": {
     "open": "Søg",
-    "placeholder": "Skriv en kommando eller søg…",
+    "placeholder": "Skriv en kommando eller søg",
     "navigation": "Navigation",
     "actions": "Handlinger",
     "noResults": "Ingen kommandoer fundet",
@@ -1919,26 +1921,26 @@
   },
   "errors": {
     "noSpeechDetectedTitle": "Ingen tale registreret",
-    "noSpeechDetected": "Der blev ikke registreret tale. Et uddrag af optagelsen blev gemt i Historik, så du kan kontrollere den optagede lyd.",
-    "loadDirectory": "Fejl ved indlæsning af mappe: {{error}}",
+    "noSpeechDetected": "Der blev ikke registreret tale. Et uddrag af optagelsen blev gemt i Historik.",
+    "loadDirectory": "Kunne ikke indlæse mappen: {{error}}",
     "micPermissionDeniedTitle": "Mikrofonadgang nægtet",
     "micPermissionDenied": {
-      "generic": "Mikrofonadgang blev nægtet af operativsystemet. Giv venligst mikrofontilladelse i dine systemindstillinger.",
+      "generic": "Operativsystemet nægtede mikrofonadgang. Giv mikrofonadgang i dine systemindstillinger.",
       "windows": "Aktivér mikrofonadgang under Indstillinger → Privatliv og sikkerhed → Mikrofon (inklusive adgang for skrivebordsapps).",
       "macos": "Giv mikrofonadgang under Systemindstillinger → Privatliv og sikkerhed → Mikrofon.",
       "linux": "Giv mikrofonadgang i dit systems lyd- eller privatlivsindstillinger."
     },
     "noInputDeviceTitle": "Ingen mikrofon fundet",
-    "noInputDevice": "Ingen lydinputenhed blev registreret. Tilslut en mikrofon eller et headset, og prøv igen.",
+    "noInputDevice": "Ingen lydinputenhed blev registreret. Tilslut en mikrofon, og prøv igen.",
     "recordingFailed": "Kunne ikke starte optagelsen: {{error}}. Prøv igen.",
     "modelLoadFailed": "Kunne ikke indlæse {{model}}. Prøv igen.",
     "modelLoadFailedUnknown": "ukendt model",
     "pasteFailedTitle": "Kunne ikke indsætte transkriptionen",
-    "pasteFailed": "Teksten kunne ikke indsættes i den aktive app. Sæt fokus i et tekstfelt og prøv igen.",
+    "pasteFailed": "Transkriptionen kunne ikke indsættes i den aktive app. Sæt fokus i et tekstfelt og prøv igen.",
     "transcriptionFailedTitle": "Kunne ikke transkribere",
-    "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
-    "commandNoSelection": "Der var intet markeret. Markér den tekst du vil ændre, hold så kommandogenvejen nede og sig, hvad der skal gøres.",
-    "commandRewriteUnavailable": "Omskrivningen returnerede intet, så din markering blev efterladt som den var. Kontrollér omskrivningsmodellen under Indstillinger > AI og prøv igen.",
+    "noModelSelected": "Ingen transskriptionsmodel er valgt. Vælg en under Settings > Models.",
+    "commandNoSelection": "Markér den tekst du vil ændre, hold så kommandogenvejen nede og sig ændringen.",
+    "commandRewriteUnavailable": "Omskrivningen returnerede intet, så din markering blev efterladt som den var. Kontrollér udbyderen under Settings > Post-processing og prøv igen.",
     "noModelSelectedTitle": "Ingen model valgt",
     "noSpeechSaveFailedTitle": "Prøven blev ikke gemt",
     "captureOverrunTitle": "Optagelsen løb over",
@@ -1987,7 +1989,7 @@
     "recorderBlockedWithCulprit": "{{name}} blokerer muligvis ændringer af genveje",
     "recorderBlockedNoCulprit": "macOS blokerer midlertidigt ændringer af genveje",
     "learnMore": "Sådan løser du det",
-    "recorderBlocked": "Genveje kan ikke optages lige nu — macOS Secure Input blokerer tastehændelser. Løs advarslen om Secure Input først.",
+    "recorderBlocked": "macOS Secure Input blokerer tastehændelser, så genveje kan ikke optages. Løs advarslen om Secure Input først.",
     "dismiss": "Afvis"
   },
   "meetings": {
@@ -2067,6 +2069,7 @@
     },
     "detected": {
       "title": "Meeting detected",
+      "description": "Sona har bemærket, at en mødeapp er i brug.",
       "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
@@ -2277,7 +2280,7 @@
       "ask": "Ask locally",
       "noQuestions": "No saved local answers.",
       "question": "Question",
-      "insufficientEvidence": "I couldn’t find support for that in this meeting.",
+      "insufficientEvidence": "No supporting passage was found in this meeting.",
       "forget": "Forget this answer",
       "exactSearch": "Exact search",
       "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
@@ -2382,7 +2385,7 @@
       "title": "Meeting activity",
       "loading": "Loading meeting trends…",
       "error": "Couldn't load meeting trends.",
-      "unavailable": "Meeting trends are unavailable right now.",
+      "unavailable": "Meeting trends are unavailable.",
       "metricLabel": "Metric",
       "metrics": {
         "meetings": "Meetings",
@@ -2392,7 +2395,7 @@
       }
     },
     "list": {
-      "retentionHint": "Opbevaring: {{policy}}. Skift den i Indstillinger, Privacy.",
+      "retentionHint": "Opbevaring: {{policy}}. Skift den i Settings > Privacy.",
       "searchLabel": "Søg i møder",
       "searchPlaceholder": "Søg efter titel",
       "clearFilters": "Ryd filtre",
@@ -2482,13 +2485,13 @@
       "trackerName": "Navn",
       "trackerPatterns": "rabat, bedste pris, for dyrt",
       "trackerPatternsLabel": "Vendinger adskilt af kommaer",
-      "trackersSaveFailed": "Sona kunne ikke gemme sporingerne. Ret en af dem og prøv igen."
+      "trackersSaveFailed": "Sona kunne ikke gemme sporingerne. Prøv igen."
     },
     "notes": {
       "title": "Mine noter",
       "liveDescription": "Skriv så råt du vil. Disse noter bliver på denne Mac og styrer de noter, Sona laver, når mødet slutter.",
       "reviewDescription": "Dine egne noter styrer, hvad de genererede noter fremhæver. De bliver aldrig citeret eller henvist til.",
-      "placeholder": "Alt der er værd at huske – navne, tal, hvad der skal følges op på",
+      "placeholder": "Alt der er værd at huske: navne, tal, hvad der skal følges op på",
       "unsaved": "Ikke gemt endnu",
       "saving": "Gemmer…",
       "saved": "Noter gemt",
@@ -2502,7 +2505,7 @@
       "catchUpTitle": "Indtil nu",
       "catchUpNoTranscript": "Der er intet at resumere endnu. Sona transkriberer efter du stopper optagelsen, så et resumé er klar, når transkriptionen begynder at komme ind.",
       "catchUpUnavailable": "Modellen på enheden er utilgængelig, så der blev ikke skrevet noget resumé.",
-      "catchUpFailed": "Sona kunne ikke lave et resumé. Prøv igen om et øjeblik.",
+      "catchUpFailed": "Sona kunne ikke lave et resumé. Prøv igen.",
       "templates": {
         "general": "Almindeligt møde",
         "one_on_one": "En-til-en",
@@ -2521,6 +2524,8 @@
         "huddle": "{{app}}-huddle registreret",
         "browser": "Opkald registreret i {{app}}",
         "unknown": "Mikrofonaktivitet registreret",
+        "calendarUntitled": "Kalenderbegivenhed begynder",
+        "generic": "Møde registreret",
         "body": "Sona kan tage lokale noter til dette opkald."
       },
       "actions": {
@@ -2608,6 +2613,10 @@
         "more": "Mere",
         "less": "Mindre"
       },
+      "untitled": {
+        "calendar": "Kalenderbegivenhed",
+        "app": "Mikrofonen er i brug"
+      },
       "actions": {
         "skip": "Spring over"
       },
@@ -2676,7 +2685,7 @@
     },
     "recent": {
       "title": "Recent activity",
-      "history": "Transcription",
+      "history": "Dictation",
       "meeting": "Meeting",
       "viewAll": "Se alle",
       "words": "{{count}} ord",
@@ -2686,30 +2695,30 @@
     },
     "hero": {
       "ready": "Ready",
-      "recording": "Recording",
+      "recording": "Listening",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Tilstand: {{name}}",
       "setShortcut": "Angiv en dikteringsgenvej i Indstillinger for at optage fra enhver app.",
       "setShortcutAction": "Angiv en genvej",
       "shortcutAction": "Ændr dikteringsgenvejen",
-      "gestureTapHold": "Tryk for at skifte, hold for at tale — overalt.",
-      "gestureTapOnly": "Tryk for at skifte — overalt."
+      "gestureTapHold": "Tryk for at skifte, hold for at tale.",
+      "gestureTapOnly": "Tryk for at skifte."
     },
     "actions": {
       "dictate": "Dictate",
       "unavailable": "Shortcut unavailable"
     },
     "chart": {
-      "day": "{{date}} \\u00b7 dikteringer {{dictations}}",
-      "dayWithMeetings": "{{date}} \\u00b7 dikteringer {{dictations}} \\u00b7 møder {{meetings}}",
+      "day": "{{date}} · dikteringer {{dictations}}",
+      "dayWithMeetings": "{{date}} · dikteringer {{dictations}} · møder {{meetings}}",
       "legend": "Dikteringer pr. dag",
       "peak": "Travleste dag {{peak}}",
       "summary": "Dikteringer pr. dag fra {{from}} til {{to}}. I alt {{total}}, travleste dag {{peak}}."
     },
     "empty": {
       "action": "Åbn bibliotek",
-      "description": "Hold din dikteringsgenvej nede i en hvilken som helst app, og Sona skriver det, du siger. Din brugsstatistik og seneste optagelser vises her efter den første.",
+      "description": "Hold din dikteringsgenvej nede i en hvilken som helst app, og Sona skriver det, du siger. Din brugsstatistik og seneste optagelser vises her efter den første diktering.",
       "title": "Ingen optagelser endnu"
     },
     "stats": {
@@ -2717,7 +2726,7 @@
       "allTime": "{{total}} i alt",
       "dictations": "Dikteringer",
       "dictationsAllTime": "Dikteringer, samlet",
-      "error": "Sona kunne ikke læse din brugshistorik lige nu.",
+      "error": "Sona kunne ikke læse din brugshistorik.",
       "range": "{{from}} til {{to}}",
       "rangeUnavailable": "De sidste 30 dage kunne ikke læses, så dette er samlede totaler.",
       "speaking": "Taletid",
@@ -2758,7 +2767,7 @@
     "title": "Cloud Sync",
     "account": {
       "title": "Cloud Sync",
-      "description": "Keep meetings on this device unless you choose to set up sync.",
+      "description": "Meetings stay on this device until you set up sync.",
       "status": {
         "loading": "Checking sync…",
         "local": "Local only",

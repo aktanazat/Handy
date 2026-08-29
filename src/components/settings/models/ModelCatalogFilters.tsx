@@ -62,11 +62,11 @@ export const ModelCatalogFilters: React.FC<ModelCatalogFiltersProps> = ({
           }
           placeholder={t(
             "settings.models.searchByAnything",
-            "Search by name, language or capability",
+            "Search by name, language, or capability",
           )}
           aria-label={t(
             "settings.models.searchByAnything",
-            "Search by name, language or capability",
+            "Search by name, language, or capability",
           )}
           className="models-filter-search"
         />

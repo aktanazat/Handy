@@ -29,7 +29,7 @@
     "general": "सामान्य",
     "models": "मॉडल",
     "advanced": "ऐडवांस",
-    "postProcessing": "पोस्ट प्रोसेस",
+    "postProcessing": "पोस्ट-प्रोसेसिंग",
     "history": "इतिहास",
     "debug": "डिबग",
     "about": "के बारे में",
@@ -42,7 +42,7 @@
     "settings": "Settings"
   },
   "onboarding": {
-    "subtitle": "शुरू करने के लिए, एक ट्रांसक्रिप्शन मॉडल चुनें",
+    "subtitle": "मॉडल इसी Mac पर चलते हैं और सटीकता व रफ़्तार के बीच संतुलन बनाते हैं",
     "existingModelsTitle": "संगत मॉडल",
     "downloadModelsTitle": "डाउनलोड के लिए उपलब्ध",
     "showAllModels": "सभी {{total}} मॉडल दिखाएं",
@@ -72,7 +72,7 @@
       },
       "parakeet-tdt-0.6b-v2": {
         "name": "Parakeet V2",
-        "description": "केवल अंग्रेज़ी. अंग्रेज़ी बोलने वालों के लिए सबसे अच्छा मॉडल."
+        "description": "केवल अंग्रेज़ी. तेज़ और सटीक."
       },
       "parakeet-tdt-0.6b-v3": {
         "name": "Parakeet V3",
@@ -116,7 +116,7 @@
       },
       "cohere-int8": {
         "name": "Cohere",
-        "description": "बड़ा और थोड़ा धीमा, लेकिन बहुत सटीक बहुभाषी मॉडल."
+        "description": "बड़ा बहुभाषी मॉडल. धीमा, लेकिन सटीक."
       }
     },
     "errors": {
@@ -124,7 +124,7 @@
     },
     "permissions": {
       "title": "अनुमतियों की ज़रूरत है",
-      "description": "Sona को ठीक से काम करने के लिए कुछ अनुमतियों की ज़रूरत है.",
+      "description": "Sona को माइक्रोफ़ोन और ऐक्सेसिबिलिटी का ऐक्सेस चाहिए.",
       "microphone": {
         "title": "माइक्रोफ़ोन ऐक्सेस",
         "description": "आपकी आवाज़ सुनकर ट्रांसक्रिप्शन करने के लिए ज़रूरी."
@@ -135,39 +135,40 @@
       },
       "grant": "अनुमति दें",
       "granted": "अनुमति मिल गई",
-      "waiting": "इंतज़ार किया जा रहा है...",
-      "allGranted": "सब तैयार!",
+      "waiting": "इंतज़ार किया जा रहा है…",
+      "allGranted": "दोनों अनुमतियाँ मिल गईं",
       "errors": {
         "checkFailed": "अनुमतियाँ जाँची नहीं जा सकीं। फिर कोशिश करें।",
         "requestFailed": "अनुमति माँगी नहीं जा सकी। फिर कोशिश करें।"
       },
       "headline": "एक बार का सेटअप",
-      "subhead": "कोई भी ऐप आपकी बात सुनने या आपके लिए टाइप करने से पहले, आपका कंप्यूटर पूछता है। ये अनुमतियाँ एक बार दे दें, फिर Sona दोबारा नहीं पूछेगा।",
+      "subhead": "कोई भी ऐप आपकी बात सुनने या टाइप करने से पहले, आपका सिस्टम पूछता है।",
       "checking": "अनुमतियाँ जाँची जा रही हैं",
       "recheck": "फिर जाँचें"
     },
-    "headline": "एक आवाज़ मॉडल चुनें"
+    "headline": "एक ट्रांसक्रिप्शन मॉडल चुनें"
   },
   "modelSelector": {
     "custom": "कस्टम",
     "legacy": "लीगेसी",
     "streaming": "स्ट्रीमिंग",
     "active": "इस्तेमाल में",
-    "switching": "बदला जा रहा है...",
+    "switching": "बदला जा रहा है…",
     "noModelsAvailable": "कोई मॉडल उपलब्ध नहीं है",
-    "verifying": "{{modelName}} की पुष्टि हो रही है...",
-    "verifyingGeneric": "पुष्टि हो रही है...",
-    "extracting": "{{modelName}} एक्सट्रैक्ट हो रहा है...",
-    "extractingMultiple": "{{count}} मॉडल एक्सट्रैक्ट हो रहे हैं...",
-    "extractingGeneric": "एक्सट्रैक्ट हो रहा है...",
+    "verifying": "{{modelName}} की पुष्टि हो रही है…",
+    "verifyingGeneric": "पुष्टि हो रही है…",
+    "extracting": "{{modelName}} एक्सट्रैक्ट हो रहा है…",
+    "extractingMultiple": "{{count}} मॉडल एक्सट्रैक्ट हो रहे हैं…",
+    "extractingGeneric": "एक्सट्रैक्ट हो रहा है…",
     "downloading": "{{percentage}}% डाउनलोड हो रहा है",
-    "downloadingMultiple": "{{count}} मॉडल डाउनलोड हो रहे हैं...",
+    "downloadingMultiple": "{{count}} मॉडल डाउनलोड हो रहे हैं…",
+    "downloadingGeneric": "Downloading…",
     "modelReady": "मॉडल तैयार है",
-    "loading": "{{modelName}} लोड हो रहा है...",
-    "loadingGeneric": "लोड हो रहा है...",
+    "loading": "{{modelName}} लोड हो रहा है…",
+    "loadingGeneric": "लोड हो रहा है…",
     "modelError": "मॉडल में गड़बड़ी",
     "modelUnloaded": "मॉडल अनलोड किया गया",
-    "noModelDownloadRequired": "कोई मॉडल नहीं - डाउनलोड करना ज़रूरी है",
+    "noModelDownloadRequired": "कोई मॉडल नहीं, डाउनलोड करना ज़रूरी है",
     "deleteModel": "{{modelName}} हटाएं",
     "downloadSpeed": "{{speed}} MB/s",
     "cancel": "रद्द करें",
@@ -190,9 +191,9 @@
     "general": {
       "title": "सामान्य",
       "shortcut": {
-        "title": "Sona शॉर्टकट",
-        "description": "स्पीच-टू-टेक्स्ट रिकॉर्डिंग शुरू करने के लिए कीबोर्ड शॉर्टकट सेट करें",
-        "loading": "शॉर्टकट लोड हो रहे हैं...",
+        "title": "शॉर्टकट",
+        "description": "रिकॉर्डिंग और फिर से लिखने के लिए कीबोर्ड शॉर्टकट.",
+        "loading": "शॉर्टकट लोड हो रहे हैं…",
         "none": "कोई शॉर्टकट सेट नहीं है",
         "notFound": "शॉर्टकट नहीं मिला",
         "pressKeys": "अपनी कुंजियाँ दबाएँ…",
@@ -206,8 +207,8 @@
             "description": "मौजूदा रिकॉर्डिंग रद्द करने के लिए कीबोर्ड शॉर्टकट."
           },
           "transcribe_with_post_process": {
-            "name": "पोस्ट-प्रोसेसिंग हॉटकी",
-            "description": "वैकल्पिक: एक अलग हॉटकी जो आपके ट्रांसक्रिप्शन पर हमेशा AI पोस्ट-प्रोसेसिंग लागू करती है."
+            "name": "पोस्ट-प्रोसेसिंग शॉर्टकट",
+            "description": "एक वैकल्पिक शॉर्टकट जो Transcript पर हमेशा AI क्लीनअप लागू करता है."
           },
           "command": {
             "name": "कमांड शॉर्टकट",
@@ -226,8 +227,8 @@
       },
       "language": {
         "title": "भाषा",
-        "description": "बोली पहचानने के लिए भाषा चुनें. 'ऑटो' अपने आप भाषा पहचान लेता है, जबकि कोई खास भाषा चुनने से उस भाषा की सटीकता बेहतर हो सकती है.",
-        "searchPlaceholder": "भाषाएं खोजें...",
+        "description": "बोली पहचानने के लिए इस्तेमाल होने वाली भाषा. 'ऑटो' इसे अपने आप पहचान लेता है; कोई भाषा बताने से सटीकता बेहतर हो सकती है.",
+        "searchPlaceholder": "भाषाएं खोजें",
         "noResults": "कोई भाषा नहीं मिली",
         "auto": "ऑटो"
       },
@@ -240,7 +241,7 @@
         "title": "रूप-रंग",
         "material": {
           "title": "मटीरियल",
-          "description": "सॉलिड Sona की अपनी सतहें रंगता है। ग्लास टॉप बार, कमांड पैलेट और रिकॉर्डिंग HUD के पीछे से डेस्कटॉप दिखाता है।",
+          "description": "सॉलिड Sona की सतहों को अपारदर्शी रखता है। ग्लास टॉप बार, कमांड पैलेट और रिकॉर्डिंग HUD के पीछे से डेस्कटॉप दिखाता है।",
           "options": {
             "solid": "सॉलिड",
             "glass": "ग्लास"
@@ -255,17 +256,17 @@
     },
     "models": {
       "title": "ट्रांसक्रिप्शन मॉडल",
-      "description": "कोई ट्रांसक्रिप्शन मॉडल चुनें या दूसरे मॉडल डाउनलोड करें. अलग-अलग मॉडल की सटीकता और स्पीड अलग-अलग होती है.",
-      "searchPlaceholder": "नाम से मॉडल खोजें…",
+      "description": "वह मॉडल जो बोली को टेक्स्ट में बदलता है. मॉडल सटीकता और स्पीड के बीच संतुलन बनाते हैं.",
+      "searchPlaceholder": "नाम से मॉडल खोजें",
       "yourModels": "डाउनलोड किए गए मॉडल",
       "availableModels": "डाउनलोड के लिए उपलब्ध",
-      "deleteConfirm": "क्या आप वाकई {{modelName}} को हटाना चाहते हैं? इसे फिर से इस्तेमाल करने के लिए आपको इसे दोबारा डाउनलोड करना होगा.",
-      "deleteActiveConfirm": "{{modelName}} अभी इस्तेमाल में है. इसे हटाने पर ट्रांसक्रिप्शन तब तक रुका रहेगा, जब तक आप कोई नया मॉडल नहीं चुन लेते. क्या आप वाकई हटाना चाहते हैं?",
+      "deleteConfirm": "{{modelName}} को हटाएं? इसे फिर से इस्तेमाल करने का मतलब है इसे दोबारा डाउनलोड करना.",
+      "deleteActiveConfirm": "{{modelName}} अभी सक्रिय मॉडल है. इसे हटाने पर ट्रांसक्रिप्शन तब तक रुका रहेगा, जब तक आप कोई दूसरा मॉडल नहीं चुन लेते.",
       "deleteTitle": "मॉडल हटाएं",
       "filters": {
         "allLanguages": "सभी भाषाएं",
-        "streaming": "लाइव ट्रांसक्रिप्शन का समर्थन करने वाले मॉडल फ़िल्टर करें",
-        "translation": "अंग्रेज़ी में अनुवाद का समर्थन करने वाले मॉडल फ़िल्टर करें",
+        "streaming": "सिर्फ़ लाइव स्ट्रीमिंग वाले मॉडल दिखाएं",
+        "translation": "सिर्फ़ अंग्रेज़ी में अनुवाद करने वाले मॉडल दिखाएं",
         "allFamilies": "सभी परिवार",
         "clear": "फ़िल्टर साफ़ करें",
         "downloadedOnly": "डिस्क पर",
@@ -355,29 +356,29 @@
       "title": "आवाज़",
       "microphone": {
         "title": "माइक्रोफ़ोन",
-        "description": "अपना पसंदीदा माइक्रोफ़ोन डिवाइस चुनें",
-        "placeholder": "माइक्रोफ़ोन चुनें...",
-        "loading": "लोड हो रहा है..."
+        "description": "वह माइक्रोफ़ोन जिससे Sona रिकॉर्ड करता है.",
+        "placeholder": "कोई माइक्रोफ़ोन चुनें",
+        "loading": "लोड हो रहा है…"
       },
       "channel": {
         "title": "इनपुट चैनल",
-        "description": "रिकॉर्ड करने के लिए इनपुट चैनल चुनें। यदि आपके ऑडियो इंटरफ़ेस में कई इनपुट हैं, तो इसका उपयोग करें।",
+        "description": "जब इंटरफ़ेस में एक से ज़्यादा इनपुट हों, तो किस इनपुट चैनल से रिकॉर्ड करना है।",
         "average": "सभी चैनलों का औसत",
         "channel": "चैनल {{n}}"
       },
       "audioFeedback": {
         "label": "ऑडियो फ़ीडबैक",
-        "description": "रिकॉर्डिंग शुरू और बंद होने पर साउंड चलाएं"
+        "description": "रिकॉर्डिंग शुरू और बंद होने पर साउंड चलाएं."
       },
       "outputDevice": {
         "title": "आउटपुट डिवाइस",
-        "description": "फ़ीडबैक साउंड के लिए अपना पसंदीदा ऑडियो आउटपुट डिवाइस चुनें",
-        "placeholder": "आउटपुट डिवाइस चुनें...",
-        "loading": "लोड हो रहा है..."
+        "description": "फ़ीडबैक साउंड कहां चलते हैं.",
+        "placeholder": "कोई आउटपुट डिवाइस चुनें",
+        "loading": "लोड हो रहा है…"
       },
       "volume": {
         "title": "वॉल्यूम",
-        "description": "ऑडियो फ़ीडबैक साउंड का वॉल्यूम सेट करें"
+        "description": "फ़ीडबैक साउंड का वॉल्यूम."
       }
     },
     "advanced": {
@@ -398,11 +399,11 @@
       },
       "experimentalToggle": {
         "label": "प्रायोगिक सुविधाएं",
-        "description": "ऐसी प्रायोगिक सुविधाएं चालू करें जो अभी बन रही हैं."
+        "description": "ऐसे विकल्प दिखाएं जो अभी बन रहे हैं."
       },
       "lazyStreamClose": {
         "label": "ट्रांसक्रिप्शन के बीच माइक खुला रखें",
-        "description": "रिकॉर्डिंग रुकने के बाद माइक्रोफ़ोन स्ट्रीम को 30 सेकंड तक खुला रखता है, जिससे लगातार ट्रांसक्रिप्शन के बीच देरी कम होती है. चालू रहने के दौरान Bluetooth ऑडियो की क्वालिटी पर असर पड़ सकता है."
+        "description": "रिकॉर्डिंग रुकने के बाद माइक्रोफ़ोन स्ट्रीम को 30 सेकंड तक खुला रखता है, जिससे लगातार ट्रांसक्रिप्शन तेज़ी से शुरू होते हैं. खुला रहने के दौरान Bluetooth ऑडियो की क्वालिटी गिर सकती है."
       },
       "acceleration": {
         "transcribe": {
@@ -423,7 +424,7 @@
       },
       "autostart": {
         "label": "स्टार्टअप पर लॉन्च करें",
-        "description": "कंप्यूटर में लॉग इन करने पर Sona अपने आप शुरू हो जाए."
+        "description": "लॉग इन करने पर Sona शुरू करें."
       },
       "showTrayIcon": {
         "label": "ट्रे आइकन दिखाएं",
@@ -450,7 +451,7 @@
       },
       "pasteMethod": {
         "title": "पेस्ट करने का तरीका",
-        "description": "चुनें कि टेक्स्ट कैसे डाला जाए. 'डायरेक्ट': सिस्टम इनपुट के ज़रिए सीधे टाइप करता है. 'कोई नहीं': पेस्ट नहीं करता, केवल इतिहास/क्लिपबोर्ड अपडेट करता है.",
+        "description": "टेक्स्ट कैसे डाला जाए. 'डायरेक्ट' सिस्टम इनपुट के ज़रिए टाइप करने जैसा काम करता है. 'कोई नहीं' पेस्ट नहीं करता और केवल इतिहास और क्लिपबोर्ड अपडेट करता है.",
         "options": {
           "clipboard": "क्लिपबोर्ड ({{modifier}}+V)",
           "clipboardCtrlShiftV": "क्लिपबोर्ड (Ctrl+Shift+V)",
@@ -463,14 +464,14 @@
       },
       "typingTool": {
         "title": "टाइपिंग टूल",
-        "description": "चुनें कि 'डायरेक्ट' पेस्ट के लिए कौन सा Linux टाइपिंग टूल इस्तेमाल किया जाए. 'ऑटो' आपके सिस्टम के लिए सबसे अच्छा उपलब्ध टूल अपने आप चुन लेता है.",
+        "description": "'डायरेक्ट' पेस्ट में इस्तेमाल होने वाला Linux टाइपिंग टूल. 'ऑटो' उपलब्ध टूल अपने आप पहचान लेता है.",
         "options": {
           "auto": "ऑटो (सुझाया गया)"
         }
       },
       "clipboardHandling": {
         "title": "क्लिपबोर्ड मैनेजमेंट",
-        "description": "'क्लिपबोर्ड न बदलें' ट्रांसक्रिप्शन के बाद आपके क्लिपबोर्ड का मौजूदा कॉन्टेंट सुरक्षित रखता है. 'क्लिपबोर्ड पर कॉपी करें' पेस्ट करने के बाद ट्रांसक्रिप्शन का नतीजा आपके क्लिपबोर्ड में छोड़ देता है.",
+        "description": "'क्लिपबोर्ड न बदलें' आपके क्लिपबोर्ड का कॉन्टेंट बनाए रखता है. 'क्लिपबोर्ड पर कॉपी करें' पेस्ट करने के बाद Transcript वहीं छोड़ देता है.",
         "options": {
           "dontModify": "क्लिपबोर्ड न बदलें",
           "copyToClipboard": "क्लिपबोर्ड पर कॉपी करें"
@@ -478,7 +479,7 @@
       },
       "autoSubmit": {
         "title": "ऑटो सबमिट",
-        "description": "टेक्स्ट डालने के बाद, चुना गया बटन कॉम्बिनेशन अपने आप भेजें. macOS पर Cmd+Enter लागू होता है, जबकि Windows/Linux पर Super+Enter इस्तेमाल होता है.",
+        "description": "टेक्स्ट डालने के बाद चुना गया बटन कॉम्बिनेशन भेजता है. macOS पर Cmd+Enter, Windows और Linux पर Super+Enter.",
         "options": {
           "off": "बंद",
           "enter": "Enter",
@@ -489,11 +490,11 @@
       },
       "translateToEnglish": {
         "label": "अंग्रेज़ी में अनुवाद करें",
-        "description": "ट्रांसक्रिप्शन के दौरान, दूसरी भाषाओं में बोली गई बात का अंग्रेज़ी में अपने आप अनुवाद करें."
+        "description": "ट्रांसक्रिप्शन के दौरान दूसरी भाषाओं में बोली गई बात का अंग्रेज़ी में अनुवाद करें."
       },
       "modelUnload": {
         "title": "मॉडल अनलोड करें",
-        "description": "तय समय तक मॉडल का इस्तेमाल न होने पर GPU/CPU मेमोरी अपने आप खाली करें",
+        "description": "मॉडल इतने समय तक निष्क्रिय रहने पर GPU और CPU मेमोरी खाली करें.",
         "options": {
           "never": "कभी नहीं",
           "immediately": "तुरंत",
@@ -568,7 +569,7 @@
       },
       "fillerWordRemoval": {
         "title": "फिलर शब्द हटाएं",
-        "description": "ट्रांसक्रिप्शन से आम हिचकिचाहट वाले शब्द हटाता है। उन्हें बनाए रखने के लिए इसे बंद करें।"
+        "description": "Transcript से आम हिचकिचाहट वाले शब्द हटाता है।"
       },
       "emoji": {
         "enabledLabel": "इमोजी रिप्लेसमेंट चालू करें",
@@ -651,7 +652,7 @@
     },
     "postProcessing": {
       "hotkey": {
-        "title": "हॉटकी"
+        "title": "शॉर्टकट"
       },
       "api": {
         "title": "API (OpenAI संगत)",
@@ -689,18 +690,18 @@
         },
         "noPrompts": "कोई प्रॉम्प्ट उपलब्ध नहीं है",
         "selectPrompt": "कोई प्रॉम्प्ट चुनें",
-        "createNew": "नया प्रॉम्प्ट बनाएं",
-        "promptLabel": "प्रॉम्प्ट का लेबल",
-        "promptLabelPlaceholder": "प्रॉम्प्ट का नाम डालें",
-        "promptInstructions": "प्रॉम्प्ट के निर्देश",
-        "promptInstructionsPlaceholder": "ट्रांसक्रिप्शन के बाद चलाने के लिए निर्देश लिखें. उदाहरण: इस टेक्स्ट का व्याकरण और स्पष्टता सुधारें: ${output}",
-        "promptTip": "सुझाव: अपने प्रॉम्प्ट में ट्रांसक्राइब किया गया टेक्स्ट डालने के लिए <code>${output}</code> का इस्तेमाल करें.",
+        "createNew": "नया प्रॉम्प्ट",
+        "promptLabel": "प्रॉम्प्ट का नाम",
+        "promptLabelPlaceholder": "इस प्रॉम्प्ट का नाम रखें",
+        "promptInstructions": "निर्देश",
+        "promptInstructionsPlaceholder": "इस टेक्स्ट का व्याकरण और स्पष्टता सुधारें: ${output}",
+        "promptTip": "जहां Transcript डाला जाना चाहिए, वहां <code>${output}</code> लिखें.",
         "updatePrompt": "प्रॉम्प्ट अपडेट करें",
         "deletePrompt": "प्रॉम्प्ट हटाएं",
         "createPrompt": "प्रॉम्प्ट बनाएं",
         "cancel": "रद्द करें",
-        "selectToEdit": "जानकारी देखने और बदलाव करने के लिए, ऊपर कोई प्रॉम्प्ट चुनें.",
-        "createFirst": "अपना पहला पोस्ट-प्रोसेसिंग प्रॉम्प्ट बनाने के लिए, ऊपर 'नया प्रॉम्प्ट बनाएं' पर क्लिक करें.",
+        "selectToEdit": "बदलाव करने के लिए कोई प्रॉम्प्ट चुनें.",
+        "createFirst": "Transcript को पोस्ट-प्रोसेस करने के लिए कोई प्रॉम्प्ट बनाएं.",
         "empty": {
           "description": "प्रॉम्प्ट मॉडल को बताता है कि ट्रांसक्रिप्ट के साथ क्या करना है, उदाहरण के लिए: निम्नलिखित को हर तथ्य रखते हुए एक छोटे संदेश के रूप में फिर से लिखें: ${output}"
         },
@@ -740,7 +741,7 @@
     "history": {
       "stats": {
         "title": "अब तक का उपयोग",
-        "loading": "उपयोग लोड हो रहा है...",
+        "loading": "उपयोग लोड हो रहा है…",
         "unavailable": "उपयोग के आंकड़े उपलब्ध नहीं हैं.",
         "entries": "रिकॉर्डिंग",
         "duration": "रिकॉर्डिंग का समय",
@@ -753,24 +754,24 @@
       },
       "title": "इतिहास",
       "openFolder": "रिकॉर्डिंग फ़ोल्डर खोलें",
-      "loading": "इतिहास लोड हो रहा है...",
-      "empty": "अभी तक कोई ट्रांसक्रिप्शन नहीं है. अपना इतिहास बनाने के लिए रिकॉर्डिंग शुरू करें!",
-      "copyToClipboard": "ट्रांसक्रिप्शन क्लिपबोर्ड पर कॉपी करें",
-      "save": "ट्रांसक्रिप्शन सेव करें",
+      "loading": "इतिहास लोड हो रहा है…",
+      "empty": "अभी तक कोई रिकॉर्डिंग नहीं है.",
+      "copyToClipboard": "Transcript क्लिपबोर्ड पर कॉपी करें",
+      "save": "एंट्री सेव करें",
       "unsave": "सेव किए गए से हटाएं",
       "delete": "एंट्री हटाएं",
       "deleteError": "प्रविष्टि मिटाई नहीं जा सकी। फिर कोशिश करें।",
       "retranscribe": "फिर से ट्रांसक्राइब करें",
       "retranscribeError": "दोबारा प्रतिलेखन नहीं हो सका। फिर कोशिश करें।",
-      "transcribing": "ट्रांसक्राइब हो रहा है...",
-      "transcriptionFailed": "ट्रांसक्रिप्शन नहीं हो सका. आप रीट्राई आइकन से फिर से ट्रांसक्राइब कर सकते हैं.",
+      "transcribing": "ट्रांसक्राइब हो रहा है…",
+      "transcriptionFailed": "प्रतिलेखन नहीं हो सका.",
       "search": "इतिहास खोजें",
-      "searchPlaceholder": "ट्रांसक्रिप्शन खोजें...",
-      "noResults": "\"{{query}}\" से मेल खाने वाली कोई ट्रांसक्रिप्शन नहीं।",
+      "searchPlaceholder": "Transcript खोजें",
+      "noResults": "\"{{query}}\" से मेल खाने वाला कोई Transcript नहीं।",
       "loadError": "इतिहास लोड नहीं किया जा सका।",
       "retry": "फिर से कोशिश करें",
       "saveError": "सहेजी गई स्थिति अपडेट नहीं हो सकी। फिर कोशिश करें।",
-      "postProcessEmpty": "पोस्ट-प्रोसेसिंग ने कोई टेक्स्ट नहीं दिया। कच्ची ट्रांसक्रिप्शन दिखाई जा रही है।",
+      "postProcessEmpty": "पोस्ट-प्रोसेसिंग ने कोई टेक्स्ट नहीं दिया। कच्चा Transcript दिखाया जा रहा है।",
       "textView": {
         "label": "ट्रांसक्रिप्ट दृश्य",
         "processed": "प्रोसेस किया गया",
@@ -962,22 +963,22 @@
       "title": "डिबग",
       "logDirectory": {
         "title": "लॉग फ़ोल्डर",
-        "description": "वह जगह जहां लॉग फ़ाइलें सेव होती हैं"
+        "description": "वह जगह जहां लॉग फ़ाइलें लिखी जाती हैं."
       },
       "logLevel": {
         "title": "लॉग लेवल",
-        "description": "लॉगिंग कितनी डिटेल में हो, यह सेट करें"
+        "description": "लॉग कितनी डिटेल रिकॉर्ड करता है."
       },
       "liveLogs": {
         "title": "लाइव लॉग",
-        "description": "लॉग फ़ाइल खोले बिना समस्याओं का पता लगाने के लिए, ऐप्लिकेशन लॉग रीयल टाइम में स्ट्रीम करें. केवल वही लॉग दिखते हैं जो यह पैनल खुला होने के दौरान बनते हैं; यह ऊपर दी गई लॉग लेवल सेटिंग के हिसाब से काम करता है.",
+        "description": "लॉग लाइनें बनते ही स्ट्रीम करता है. सिर्फ़ वही लाइनें यहां दिखती हैं जो यह पैनल खुला होने के दौरान बनती हैं, ऊपर सेट किए गए लॉग लेवल पर.",
         "live": "लाइव",
         "paused": "रोका गया",
         "pause": "रोकें",
         "resume": "फिर से शुरू करें",
         "copied": "कॉपी हो गया",
         "lineCount": "{{count}} लाइनें",
-        "empty": "लॉग का इंतज़ार है… ऐप से लॉग आते ही एंट्री यहां दिखेंगी."
+        "empty": "लॉग का इंतज़ार है. ऐप से लॉग आते ही लाइनें यहां दिखेंगी."
       },
       "whatsNewPreview": {
         "title": "'नया क्या है' की झलक देखें",
@@ -988,7 +989,8 @@
       },
       "soundTheme": {
         "label": "साउंड थीम",
-        "description": "रिकॉर्डिंग शुरू और बंद होने के फ़ीडबैक के लिए कोई साउंड थीम चुनें"
+        "description": "रिकॉर्डिंग शुरू और बंद होने पर कौन-से साउंड चलते हैं.",
+        "preview": "Preview the start and stop sounds"
       },
       "wordCorrectionThreshold": {
         "title": "शब्द सुधार की सीमा",
@@ -996,38 +998,38 @@
       },
       "historyLimit": {
         "title": "इतिहास की सीमा",
-        "description": "ज़्यादा से ज़्यादा कितनी इतिहास एंट्री रखी जाएं",
+        "description": "कितनी इतिहास एंट्री रखी जाएं.",
         "entries": "एंट्री"
       },
       "recordingRetention": {
         "title": "रिकॉर्डिंग अपने आप हटाएं",
-        "description": "जगह बचाने के लिए पुरानी रिकॉर्डिंग अपने आप हटाएं",
+        "description": "इतने समय बाद रिकॉर्डिंग हटाएं.",
         "never": "कभी नहीं",
         "preserveLimit": "सबसे नई {{count}} रखें",
         "days3": "3 दिन बाद",
         "weeks2": "2 हफ़्ते बाद",
         "months3": "3 महीने बाद",
-        "placeholder": "कितने समय तक रखें, यह चुनें..."
+        "placeholder": "कोई रिटेंशन अवधि चुनें"
       },
       "alwaysOnMicrophone": {
         "label": "हमेशा चालू माइक्रोफ़ोन",
-        "description": "तेज़ी से काम करने के लिए माइक्रोफ़ोन चालू रखें"
+        "description": "माइक्रोफ़ोन खुला रखता है, जिससे रिकॉर्डिंग तेज़ी से शुरू होती है."
       },
       "clamshellMicrophone": {
         "title": "क्लैमशेल माइक्रोफ़ोन",
-        "description": "लैपटॉप का ढक्कन बंद होने पर इस्तेमाल होने वाला माइक्रोफ़ोन"
+        "description": "लैपटॉप का ढक्कन बंद होने पर इस्तेमाल होने वाला माइक्रोफ़ोन."
       },
       "postProcessingToggle": {
         "label": "पोस्ट प्रोसेसिंग",
-        "description": "ट्रांसक्रिप्शन के बाद AI की मदद से टेक्स्ट सुधारने की सुविधा चालू करें"
+        "description": "ट्रांसक्रिप्शन के बाद Transcript को भाषा मॉडल से फिर से लिखें."
       },
       "muteWhileRecording": {
         "label": "रिकॉर्डिंग के दौरान म्यूट करें",
         "description": "रिकॉर्डिंग के दौरान सिस्टम ऑडियो म्यूट करें"
       },
       "appendTrailingSpace": {
-        "label": "आखिर में स्पेस जोड़ें",
-        "description": "पेस्ट किए गए ट्रांसक्रिप्शन के बाद एक स्पेस जोड़ें"
+        "label": "आखिर में एक स्पेस जोड़ें",
+        "description": "पेस्ट किए गए Transcript के बाद एक स्पेस जोड़ता है."
       },
       "keyboardImplementation": {
         "title": "कीबोर्ड बैकएंड",
@@ -1049,7 +1051,7 @@
       },
       "reliablePaste": {
         "title": "भरोसेमंद पेस्ट (Beta)",
-        "description": "क्लिपबोर्ड को तय देरी के बाद नहीं, बल्कि टारगेट ऐप असल में ट्रांसक्रिप्शन पढ़ लेने के बाद ही वापस लाएं. यह सिस्टम पर लोड होने के दौरान पुराना क्लिपबोर्ड कॉन्टेंट पेस्ट होने की समस्या ठीक करने के लिए है. इसके लिए क्लिपबोर्ड वाला पेस्ट तरीका ज़रूरी है; सिर्फ़ macOS और Windows पर."
+        "description": "क्लिपबोर्ड को तय देरी के बाद नहीं, बल्कि टारगेट ऐप के Transcript पढ़ लेने के बाद ही वापस लाएं. यह सिस्टम पर लोड होने के दौरान पुराना क्लिपबोर्ड कॉन्टेंट पेस्ट होने की समस्या ठीक करने के लिए है. इसके लिए क्लिपबोर्ड वाला पेस्ट तरीका ज़रूरी है; सिर्फ़ macOS और Windows पर."
       },
       "recordingBuffer": {
         "title": "अतिरिक्त रिकॉर्डिंग बफ़र",
@@ -1057,7 +1059,7 @@
       },
       "keyboardDiagnostic": {
         "title": "कीबोर्ड डायग्नोस्टिक",
-        "description": "जाँचता है कि कीबोर्ड इवेंट Sona तक पहुँच रहे हैं या नहीं. सिर्फ़ इवेंट की गिनती रिकॉर्ड होती है — कभी नहीं कि आपने कौन-सी कुंजियाँ दबाईं.",
+        "description": "जाँचता है कि कीबोर्ड इवेंट Sona तक पहुँच रहे हैं या नहीं. सिर्फ़ इवेंट की गिनती रिकॉर्ड होती है, कभी नहीं कि आपने कौन-सी कुंजियाँ दबाईं.",
         "run": "10 सेकंड का डायग्नोस्टिक चलाएँ",
         "running": "सुन रहे हैं… अपना शॉर्टकट कुछ बार दबाएँ (जैसे Option+Space)",
         "secureInputLabel": "Secure Input",
@@ -1069,10 +1071,10 @@
         "keyUp": "कुंजी छोड़ी",
         "flagsChanged": "मॉडिफ़ायर",
         "mouse": "माउस",
-        "verdictBlocked": "Secure Input कुंजी इवेंट ब्लॉक कर रहा है — जब तक यह हल नहीं होता, सामान्य कुंजी वाले शॉर्टकट काम नहीं कर सकते.",
-        "verdictSuspicious": "मॉडिफ़ायर इवेंट आए, लेकिन कोई कुंजी इवेंट नहीं — Secure Input के बंद दिखने के बावजूद कुछ कुंजियों को दबा रहा है. कृपया इसकी रिपोर्ट GitHub पर करें.",
+        "verdictBlocked": "Secure Input कुंजी इवेंट ब्लॉक कर रहा है, इसलिए जब तक यह हल नहीं होता, कुंजी वाले शॉर्टकट काम नहीं कर सकते.",
+        "verdictSuspicious": "मॉडिफ़ायर इवेंट आए, लेकिन कोई कुंजी इवेंट नहीं. Secure Input के बंद दिखने के बावजूद कुछ कुंजियों को दबा रहा है. इसकी रिपोर्ट GitHub पर करें.",
         "verdictOk": "कुंजी इवेंट Sona तक सामान्य रूप से पहुँच रहे हैं.",
-        "verdictNoEvents": "कोई इवेंट कैप्चर नहीं हुआ — क्या आपने टेस्ट के दौरान कोई कुंजी दबाई थी?",
+        "verdictNoEvents": "टेस्ट के दौरान कोई इवेंट कैप्चर नहीं हुआ.",
         "failed": "डायग्नोस्टिक विफल: {{error}}"
       },
       "description": "इंस्ट्रुमेंटेशन और असमर्थित नियंत्रण। डिबग मोड चालू होने के कारण दिख रहा है।",
@@ -1087,7 +1089,7 @@
       "title": "के बारे में",
       "version": {
         "title": "वर्शन",
-        "description": "Sona का मौजूदा वर्शन",
+        "description": "अभी चल रहा वर्शन.",
         "unavailable": "उपलब्ध नहीं"
       },
       "whatsNewUpdates": {
@@ -1096,7 +1098,7 @@
       },
       "appDataDirectory": {
         "title": "ऐप डेटा फ़ोल्डर",
-        "description": "वह जगह जहां Sona अपना डेटा सेव करता है"
+        "description": "वह जगह जहां Sona अपना डेटा सेव करता है."
       },
       "sourceCode": {
         "title": "Open-source licenses",
@@ -1105,15 +1107,15 @@
       },
       "supportDevelopment": {
         "title": "डेवलपमेंट में सहयोग करें",
-        "description": "Sona को आगे बढ़ाने में हमारी मदद करें",
+        "description": "दान से Sona पर आगे का काम चलता है.",
         "button": "दान करें"
       },
       "acknowledgments": {
         "title": "आभार",
         "ggml": {
           "title": "ggml",
-          "description": "डिवाइस पर ही मशीन लर्निंग इन्फ़रेंस के लिए हाई-परफ़ॉर्मेंस टेंसर लाइब्रेरी",
-          "details": "Sona का लोकल स्पीच-टू-टेक्स्ट transcribe.cpp और ggml पर आधारित है. Georgi Gerganov और योगदान देने वालों के शानदार काम के लिए धन्यवाद."
+          "description": "डिवाइस पर ही मशीन लर्निंग इन्फ़रेंस के लिए टेंसर लाइब्रेरी",
+          "details": "Sona का लोकल स्पीच-टू-टेक्स्ट transcribe.cpp और ggml पर आधारित है. Georgi Gerganov और योगदान देने वालों को धन्यवाद."
         }
       },
       "description": "आप कौन सा बिल्ड चला रहे हैं, वह कहाँ से आया, और वह आपकी फ़ाइलें कहाँ रखता है।",
@@ -1154,7 +1156,7 @@
           "label": "Activate in app",
           "description": "Capture the app currently in front and select this mode when you dictate there.",
           "action": "Capture current app",
-          "capturing": "Capturing..."
+          "capturing": "Capturing…"
         },
         "empty": "No app activates this mode.",
         "remove": "Remove",
@@ -1172,7 +1174,7 @@
             "label": "वेबसाइट पर सक्रिय करें",
             "description": "सामने वाले ब्राउज़र का होस्ट कैप्चर करें। Sona होस्ट सहेजता है, URL नहीं।",
             "action": "वर्तमान वेबसाइट कैप्चर करें",
-            "capturing": "कैप्चर हो रहा है..."
+            "capturing": "कैप्चर हो रहा है…"
           },
           "empty": "कोई वेबसाइट इस मोड को सक्रिय नहीं करती।",
           "exampleDescription": "एक नियम एक ब्राउज़र होस्ट संग्रहीत करता है, उदाहरण के लिए mail.google.com।"
@@ -1264,8 +1266,8 @@
         "model": {
           "label": "Transcription model",
           "description": "Only downloaded local models are available here.",
-          "inheritGlobal": "डिफ़ॉल्ट — वैश्विक मॉडल इस्तेमाल करता है",
-          "inheritGlobalNamed": "डिफ़ॉल्ट — वैश्विक मॉडल इस्तेमाल करता है ({{name}})"
+          "inheritGlobal": "डिफ़ॉल्ट: वैश्विक मॉडल",
+          "inheritGlobalNamed": "डिफ़ॉल्ट: वैश्विक मॉडल ({{name}})"
         },
         "language": {
           "label": "Language",
@@ -1422,7 +1424,7 @@
           "label": "Typing tool",
           "description": "Used only with direct typing.",
           "values": {
-            "auto": "Automatic",
+            "auto": "Auto",
             "wtype": "wtype",
             "kwtype": "kwtype",
             "dotool": "dotool",
@@ -1532,7 +1534,7 @@
           "error": "Browser URL capture could not be saved."
         },
         "cloudRoute": "Enabled cloud modes send allowed context to {{providers}}.",
-        "localRoute": "All your AI processing is local.",
+        "localRoute": "AI processing runs on this Mac.",
         "checkingRoute": "Checking configured cloud routes…"
       },
       "diagnostics": {
@@ -1599,7 +1601,7 @@
             "key_rejected": "संग्रहीत कुंजी एन्क्रिप्टेड डेटाबेस नहीं खोलती, इसलिए इतिहास पढ़ा नहीं जा सकता।",
             "key_unavailable": "सिस्टम क्रेडेंशियल स्टोर से कोई उपयोगी कुंजी नहीं मिली, इसलिए इतिहास बिना एन्क्रिप्शन के संग्रहीत है।",
             "migration_failed": "मौजूदा डेटाबेस को एन्क्रिप्ट करना विफल रहा। बिना एन्क्रिप्शन वाला डेटाबेस सुरक्षित है और अभी भी उपयोग में है।",
-            "unlocking": "एन्क्रिप्टेड डेटाबेस खोला जा रहा है। यह स्टार्टअप के कुछ ही क्षण बाद हट जाता है।"
+            "unlocking": "एन्क्रिप्टेड डेटाबेस खोला जा रहा है। स्टार्टअप पूरा होते ही यह हट जाता है।"
           },
           "unknown": "Sona यह नहीं पढ़ सका कि इतिहास कैसे संग्रहीत है।",
           "unlocking": "अनलॉक हो रहा है",
@@ -1655,18 +1657,18 @@
         "import": "Import selected data",
         "importing": "Importing",
         "errors": {
-          "source_unavailable": "The original Sona data folder is unavailable.",
-          "upstream_running": "Close the original Sona app before importing.",
-          "app_state_unverifiable": "Sona cannot verify the original app state on this platform.",
+          "source_unavailable": "The legacy app's data folder is unavailable.",
+          "upstream_running": "Close the legacy app before importing.",
+          "app_state_unverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
           "invalid_selection": "Choose settings or history to import.",
-          "settings_unreadable": "The original settings file could not be read.",
+          "settings_unreadable": "The legacy settings file could not be read.",
           "secret_store_unavailable": "The native credential store is unavailable, so settings with provider keys were not imported.",
           "secret_conflict": "A provider key already exists in the native credential store. Resolve it before importing settings.",
-          "history_unreadable": "The original history database could not be read.",
+          "history_unreadable": "The legacy history database could not be read.",
           "recording_copy_failed": "A recording could not be copied and verified.",
           "receipt_write_failed": "The import receipt could not be saved.",
           "internal": "The import did not finish.",
-          "status": "The original Sona data could not be inspected."
+          "status": "The legacy app's data could not be inspected."
         }
       },
       "cloudSync": {
@@ -1854,7 +1856,7 @@
     "prompts": {
       "samples": {
         "title": "लेखन के नमूने",
-        "description": "आपके अपने लेखन के उदाहरण। प्रतिलेख को फिर से लिखने वाला हर मोड उनकी शैली से मेल खाता है।",
+        "description": "आपके अपने लेखन के उदाहरण। Transcript को फिर से लिखने वाले मोड इसी शैली से मेल खाते हैं।",
         "placeholder": "अपना लिखा एक अनुच्छेद चिपकाएँ।",
         "sampleLabel": "लेखन नमूना {{number}}",
         "delete": "नमूना {{number}} मिटाएँ",
@@ -1884,7 +1886,7 @@
     "title": "Sona v{{version}} में नया क्या है"
   },
   "common": {
-    "loading": "लोड हो रहा है...",
+    "loading": "लोड हो रहा है…",
     "delete": "हटाएं",
     "cancel": "रद्द करें",
     "close": "बंद करें",
@@ -1901,7 +1903,7 @@
   },
   "commandPalette": {
     "open": "खोजें",
-    "placeholder": "कोई कमांड टाइप करें या खोजें…",
+    "placeholder": "कोई कमांड टाइप करें या खोजें",
     "navigation": "नेविगेशन",
     "actions": "कार्रवाइयाँ",
     "noResults": "कोई कमांड नहीं मिली",
@@ -1919,26 +1921,26 @@
   },
   "errors": {
     "noSpeechDetectedTitle": "बोलने की आवाज़ नहीं मिली",
-    "noSpeechDetected": "बोलने की आवाज़ नहीं मिली. रिकॉर्डिंग का एक नमूना इतिहास में सहेज दिया गया है, ताकि आप कैप्चर किया गया ऑडियो जांच सकें.",
-    "loadDirectory": "फ़ोल्डर लोड करने में गड़बड़ी: {{error}}",
+    "noSpeechDetected": "बोलने की आवाज़ नहीं मिली. रिकॉर्डिंग का एक नमूना इतिहास में सहेज दिया गया है.",
+    "loadDirectory": "फ़ोल्डर लोड नहीं हो सका: {{error}}",
     "micPermissionDeniedTitle": "माइक्रोफ़ोन तक पहुँच मना कर दी गई",
     "micPermissionDenied": {
-      "generic": "ऑपरेटिंग सिस्टम ने माइक्रोफ़ोन का ऐक्सेस नहीं दिया. कृपया अपनी सिस्टम सेटिंग में जाकर माइक्रोफ़ोन की अनुमति दें.",
+      "generic": "ऑपरेटिंग सिस्टम ने माइक्रोफ़ोन का ऐक्सेस नहीं दिया. अपनी सिस्टम सेटिंग में माइक्रोफ़ोन का ऐक्सेस दें.",
       "windows": "Settings → Privacy & security → Microphone में माइक्रोफ़ोन ऐक्सेस चालू करें (डेस्कटॉप ऐप ऐक्सेस समेत).",
       "macos": "System Settings → Privacy & Security → Microphone में माइक्रोफ़ोन का ऐक्सेस दें.",
       "linux": "अपने सिस्टम की साउंड या प्राइवेसी सेटिंग में माइक्रोफ़ोन का ऐक्सेस दें."
     },
     "noInputDeviceTitle": "कोई माइक्रोफ़ोन नहीं मिला",
-    "noInputDevice": "कोई ऑडियो इनपुट डिवाइस नहीं मिला. कृपया माइक्रोफ़ोन या हेडसेट कनेक्ट करके फिर से कोशिश करें.",
+    "noInputDevice": "कोई ऑडियो इनपुट डिवाइस नहीं मिला. माइक्रोफ़ोन कनेक्ट करके फिर से कोशिश करें.",
     "recordingFailed": "रिकॉर्डिंग शुरू नहीं हो सकी: {{error}}। फिर कोशिश करें।",
     "modelLoadFailed": "{{model}} लोड नहीं हो सका। फिर कोशिश करें।",
     "modelLoadFailedUnknown": "अज्ञात मॉडल",
     "pasteFailedTitle": "प्रतिलेख चिपकाया नहीं जा सका",
-    "pasteFailed": "टेक्स्ट सक्रिय ऐप में चिपकाया नहीं जा सका। किसी टेक्स्ट फ़ील्ड पर फ़ोकस करें और फिर कोशिश करें।",
+    "pasteFailed": "Transcript सक्रिय ऐप में चिपकाया नहीं जा सका। किसी टेक्स्ट फ़ील्ड पर फ़ोकस करें और फिर कोशिश करें।",
     "transcriptionFailedTitle": "प्रतिलेखन नहीं हो सका",
-    "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
-    "commandNoSelection": "कुछ भी चुना नहीं गया था। जिस टेक्स्ट को बदलना है उसे चुनें, फिर कमांड शॉर्टकट दबाए रखें और बोलें कि क्या करना है।",
-    "commandRewriteUnavailable": "फिर से लिखने से कुछ नहीं मिला, इसलिए आपका चुना हुआ हिस्सा जैसा था वैसा ही रहा। सेटिंग्स > AI में फिर-से-लिखने वाला मॉडल जाँचें और फिर कोशिश करें।",
+    "noModelSelected": "कोई ट्रांसक्रिप्शन मॉडल नहीं चुना गया है। Settings > Models में एक चुनें।",
+    "commandNoSelection": "जिस टेक्स्ट को बदलना है उसे चुनें, फिर कमांड शॉर्टकट दबाए रखें और बदलाव बोलें।",
+    "commandRewriteUnavailable": "फिर से लिखने से कुछ नहीं मिला, इसलिए आपका चुना हुआ हिस्सा जैसा था वैसा ही रहा। Settings > Post-processing में प्रोवाइडर जाँचें और फिर कोशिश करें।",
     "noModelSelectedTitle": "कोई मॉडल नहीं चुना",
     "noSpeechSaveFailedTitle": "नमूना सहेजा नहीं गया",
     "captureOverrunTitle": "कैप्चर सीमा पार",
@@ -1987,7 +1989,7 @@
     "recorderBlockedWithCulprit": "{{name}} शायद शॉर्टकट में बदलाव को ब्लॉक कर रहा है",
     "recorderBlockedNoCulprit": "macOS अस्थायी रूप से शॉर्टकट में बदलाव को ब्लॉक कर रहा है",
     "learnMore": "इसे कैसे ठीक करें",
-    "recorderBlocked": "अभी शॉर्टकट रिकॉर्ड नहीं किए जा सकते — macOS Secure Input कुंजी इवेंट ब्लॉक कर रहा है. पहले Secure Input चेतावनी हल करें.",
+    "recorderBlocked": "macOS Secure Input कुंजी इवेंट ब्लॉक कर रहा है, इसलिए शॉर्टकट रिकॉर्ड नहीं किए जा सकते. पहले Secure Input चेतावनी हल करें.",
     "dismiss": "खारिज करें"
   },
   "meetings": {
@@ -2067,6 +2069,7 @@
     },
     "detected": {
       "title": "Meeting detected",
+      "description": "Sona ने देखा कि एक मीटिंग ऐप उपयोग में है।",
       "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
@@ -2277,7 +2280,7 @@
       "ask": "Ask locally",
       "noQuestions": "No saved local answers.",
       "question": "Question",
-      "insufficientEvidence": "I couldn’t find support for that in this meeting.",
+      "insufficientEvidence": "No supporting passage was found in this meeting.",
       "forget": "Forget this answer",
       "exactSearch": "Exact search",
       "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
@@ -2382,7 +2385,7 @@
       "title": "Meeting activity",
       "loading": "Loading meeting trends…",
       "error": "Couldn't load meeting trends.",
-      "unavailable": "Meeting trends are unavailable right now.",
+      "unavailable": "Meeting trends are unavailable.",
       "metricLabel": "Metric",
       "metrics": {
         "meetings": "Meetings",
@@ -2392,7 +2395,7 @@
       }
     },
     "list": {
-      "retentionHint": "रिटेंशन: {{policy}}। इसे Settings, Privacy में बदलें।",
+      "retentionHint": "रिटेंशन: {{policy}}। इसे Settings > Privacy में बदलें।",
       "searchLabel": "मीटिंग खोजें",
       "searchPlaceholder": "शीर्षक से खोजें",
       "clearFilters": "फ़िल्टर साफ़ करें",
@@ -2482,13 +2485,13 @@
       "trackerName": "नाम",
       "trackerPatterns": "छूट, सबसे अच्छी कीमत, बहुत महँगा",
       "trackerPatternsLabel": "वाक्यांश, कॉमा से अलग किए हुए",
-      "trackersSaveFailed": "Sona ट्रैकर सहेज नहीं सका। एक बदलें और फिर कोशिश करें।"
+      "trackersSaveFailed": "Sona ट्रैकर सहेज नहीं सका। फिर कोशिश करें।"
     },
     "notes": {
       "title": "मेरे नोट्स",
       "liveDescription": "जितना कच्चा चाहें उतना लिखें। ये नोट्स इसी Mac पर रहते हैं और मीटिंग खत्म होने पर Sona जो नोट्स बनाता है उन्हें दिशा देते हैं।",
       "reviewDescription": "आपके अपने नोट्स तय करते हैं कि बनाए गए नोट्स किस पर ज़ोर देंगे। उन्हें कभी उद्धृत या संदर्भित नहीं किया जाता।",
-      "placeholder": "जो कुछ याद रखने लायक हो — नाम, आँकड़े, आगे क्या करना है",
+      "placeholder": "जो कुछ याद रखने लायक हो: नाम, आँकड़े, आगे क्या करना है",
       "unsaved": "अभी सहेजा नहीं गया",
       "saving": "सहेजा जा रहा है…",
       "saved": "नोट्स सहेजे गए",
@@ -2502,7 +2505,7 @@
       "catchUpTitle": "अब तक",
       "catchUpNoTranscript": "अभी बताने लायक कुछ नहीं है। Sona रिकॉर्डिंग रोकने के बाद प्रतिलेखन करता है, इसलिए प्रतिलेख आने लगते ही सार उपलब्ध होगा।",
       "catchUpUnavailable": "डिवाइस पर मौजूद मॉडल उपलब्ध नहीं है, इसलिए कोई सार नहीं लिखा गया।",
-      "catchUpFailed": "Sona सार नहीं बना सका। एक पल बाद फिर कोशिश करें।",
+      "catchUpFailed": "Sona सार नहीं बना सका। फिर कोशिश करें।",
       "templates": {
         "general": "सामान्य मीटिंग",
         "one_on_one": "आमने-सामने",
@@ -2521,6 +2524,8 @@
         "huddle": "{{app}} हडल पहचाना गया",
         "browser": "{{app}} में कॉल पहचानी गई",
         "unknown": "माइक्रोफ़ोन गतिविधि पहचानी गई",
+        "calendarUntitled": "कैलेंडर इवेंट शुरू हो रहा है",
+        "generic": "मीटिंग पहचानी गई",
         "body": "Sona इस कॉल के नोट्स इसी मशीन पर ले सकता है।"
       },
       "actions": {
@@ -2608,6 +2613,10 @@
         "more": "और",
         "less": "कम"
       },
+      "untitled": {
+        "calendar": "कैलेंडर इवेंट",
+        "app": "माइक्रोफ़ोन उपयोग में है"
+      },
       "actions": {
         "skip": "छोड़ें"
       },
@@ -2676,7 +2685,7 @@
     },
     "recent": {
       "title": "Recent activity",
-      "history": "Transcription",
+      "history": "Dictation",
       "meeting": "Meeting",
       "viewAll": "सभी देखें",
       "words": "{{count}} शब्द",
@@ -2686,30 +2695,30 @@
     },
     "hero": {
       "ready": "Ready",
-      "recording": "Recording",
+      "recording": "Listening",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "मोड: {{name}}",
       "setShortcut": "किसी भी ऐप से कैप्चर करने के लिए Settings में डिक्टेशन शॉर्टकट सेट करें।",
       "setShortcutAction": "एक शॉर्टकट सेट करें",
       "shortcutAction": "बोलने का शॉर्टकट बदलें",
-      "gestureTapHold": "बदलने के लिए दबाएँ, बोलने के लिए दबाए रखें — कहीं भी।",
-      "gestureTapOnly": "बदलने के लिए दबाएँ — कहीं भी।"
+      "gestureTapHold": "बदलने के लिए दबाएँ, बोलने के लिए दबाए रखें।",
+      "gestureTapOnly": "बदलने के लिए दबाएँ।"
     },
     "actions": {
       "dictate": "Dictate",
       "unavailable": "Shortcut unavailable"
     },
     "chart": {
-      "day": "{{date}} \\u00b7 डिक्टेशन {{dictations}}",
-      "dayWithMeetings": "{{date}} \\u00b7 डिक्टेशन {{dictations}} \\u00b7 मीटिंग {{meetings}}",
+      "day": "{{date}} · डिक्टेशन {{dictations}}",
+      "dayWithMeetings": "{{date}} · डिक्टेशन {{dictations}} · मीटिंग {{meetings}}",
       "legend": "प्रति दिन डिक्टेशन",
       "peak": "सबसे व्यस्त दिन {{peak}}",
       "summary": "{{from}} से {{to}} तक प्रति दिन डिक्टेशन। कुल {{total}}, सबसे व्यस्त दिन {{peak}}।"
     },
     "empty": {
       "action": "Library खोलें",
-      "description": "किसी भी ऐप में अपना डिक्टेशन शॉर्टकट दबाए रखें और Sona आपकी बोली टाइप करता है। पहले कैप्चर के बाद आपके उपयोग के आँकड़े और हालिया कैप्चर यहाँ दिखते हैं।",
+      "description": "किसी भी ऐप में अपना डिक्टेशन शॉर्टकट दबाए रखें और Sona आपकी बोली टाइप करता है। पहले डिक्टेशन के बाद आपके उपयोग के आँकड़े और हालिया कैप्चर यहाँ दिखते हैं।",
       "title": "अभी कोई कैप्चर नहीं"
     },
     "stats": {
@@ -2717,7 +2726,7 @@
       "allTime": "कुल मिलाकर {{total}}",
       "dictations": "डिक्टेशन",
       "dictationsAllTime": "डिक्टेशन, कुल मिलाकर",
-      "error": "Sona अभी आपका उपयोग इतिहास नहीं पढ़ सका।",
+      "error": "Sona आपका उपयोग इतिहास नहीं पढ़ सका।",
       "range": "{{from}} से {{to}}",
       "rangeUnavailable": "पिछले 30 दिन पढ़े नहीं जा सके, इसलिए ये कुल मिलाकर के योग हैं।",
       "speaking": "बोलने का समय",
@@ -2758,7 +2767,7 @@
     "title": "Cloud Sync",
     "account": {
       "title": "Cloud Sync",
-      "description": "Keep meetings on this device unless you choose to set up sync.",
+      "description": "Meetings stay on this device until you set up sync.",
       "status": {
         "loading": "Checking sync…",
         "local": "Local only",

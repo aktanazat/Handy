@@ -48,7 +48,7 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = React.memo(
         title={t("settings.general.appearance.material.title", "Material")}
         description={t(
           "settings.general.appearance.material.description",
-          "Solid paints Sona's own surfaces. Glass lets the desktop through the top bar, the command palette and the recording HUD.",
+          "Solid keeps Sona's surfaces opaque. Glass lets the desktop show through the top bar, the command palette, and the recording HUD.",
         )}
         descriptionMode={descriptionMode}
         grouped={grouped}

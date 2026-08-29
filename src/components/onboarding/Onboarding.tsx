@@ -164,7 +164,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
             <SonaWordmark className="text-[14px]" />
           </div>
           <h1 className="ob-headline">
-            {t("onboarding.headline", "Pick a voice model")}
+            {t("onboarding.headline", "Pick a transcription model")}
           </h1>
           <p className="ob-subhead">{t("onboarding.subtitle")}</p>
         </div>

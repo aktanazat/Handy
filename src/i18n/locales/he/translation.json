@@ -42,7 +42,7 @@
     "settings": "Settings"
   },
   "onboarding": {
-    "subtitle": "כדי להתחיל, בחר מודל תמלול",
+    "subtitle": "המודלים פועלים במחשב Mac זה ומאזנים בין דיוק למהירות",
     "existingModelsTitle": "מודלים תואמים",
     "downloadModelsTitle": "זמינים להורדה",
     "showAllModels": "הצג את כל {{total}} המודלים",
@@ -72,7 +72,7 @@
       },
       "parakeet-tdt-0.6b-v2": {
         "name": "Parakeet V2",
-        "description": "אנגלית בלבד. המודל הטוב ביותר לדוברי אנגלית."
+        "description": "אנגלית בלבד. מהיר ומדויק."
       },
       "parakeet-tdt-0.6b-v3": {
         "name": "Parakeet V3",
@@ -116,7 +116,7 @@
       },
       "cohere-int8": {
         "name": "Cohere",
-        "description": "מודל גדול, איטי יותר, אך מדויק מאוד ורב-לשוני."
+        "description": "מודל רב-לשוני גדול. איטי אך מדויק."
       }
     },
     "errors": {
@@ -124,7 +124,7 @@
     },
     "permissions": {
       "title": "נדרשות הרשאות",
-      "description": "Sona צריך כמה הרשאות כדי לעבוד כמו שצריך.",
+      "description": "Sona צריך גישה למיקרופון ולנגישות.",
       "microphone": {
         "title": "גישה למיקרופון",
         "description": "נדרש כדי לשמוע את הקול שלך לצורך תמלול."
@@ -135,35 +135,36 @@
       },
       "grant": "תן הרשאה",
       "granted": "ניתנה",
-      "waiting": "ממתין...",
-      "allGranted": "הכול מוכן!",
+      "waiting": "ממתין…",
+      "allGranted": "שתי ההרשאות ניתנו",
       "errors": {
         "checkFailed": "לא ניתן לבדוק את ההרשאות. נסה שוב.",
         "requestFailed": "לא ניתן לבקש את ההרשאה. נסה שוב."
       },
       "headline": "הגדרה חד-פעמית",
-      "subhead": "המחשב שואל לפני שאפליקציה כלשהי יכולה להאזין או להקליד בשמך. תן את ההרשאות האלה פעם אחת ו-Sona לא ישאל שוב.",
+      "subhead": "המערכת שואלת לפני שאפליקציה כלשהי יכולה להאזין או להקליד.",
       "checking": "בודק הרשאות",
       "recheck": "בדוק שוב"
     },
-    "headline": "בחר דגם קול"
+    "headline": "בחר מודל תמלול"
   },
   "modelSelector": {
     "custom": "מותאם אישית",
     "streaming": "סטרימינג",
     "active": "פעיל",
-    "switching": "מחליף...",
+    "switching": "מחליף…",
     "noModelsAvailable": "אין מודלים זמינים",
-    "verifying": "מאמת את {{modelName}}...",
-    "verifyingGeneric": "מאמת...",
-    "extracting": "מחלץ את {{modelName}}...",
-    "extractingMultiple": "מחלץ {{count}} מודלים...",
-    "extractingGeneric": "מחלץ...",
+    "verifying": "מאמת את {{modelName}}…",
+    "verifyingGeneric": "מאמת…",
+    "extracting": "מחלץ את {{modelName}}…",
+    "extractingMultiple": "מחלץ {{count}} מודלים…",
+    "extractingGeneric": "מחלץ…",
     "downloading": "מוריד {{percentage}}%",
-    "downloadingMultiple": "מוריד {{count}} מודלים...",
+    "downloadingMultiple": "מוריד {{count}} מודלים…",
+    "downloadingGeneric": "Downloading…",
     "modelReady": "המודל מוכן",
-    "loading": "טוען את {{modelName}}...",
-    "loadingGeneric": "טוען...",
+    "loading": "טוען את {{modelName}}…",
+    "loadingGeneric": "טוען…",
     "modelError": "שגיאת מודל",
     "modelUnloaded": "המודל נפרק",
     "noModelDownloadRequired": "אין מודל, נדרשת הורדה",
@@ -190,9 +191,9 @@
     "general": {
       "title": "כללי",
       "shortcut": {
-        "title": "קיצורי מקשים של Sona",
-        "description": "הגדר קיצורי מקשים כדי להפעיל הקלטה ותמלול דיבור",
-        "loading": "טוען קיצורי מקשים...",
+        "title": "קיצורי מקשים",
+        "description": "קיצורי מקשים להקלטה ולניסוח מחדש.",
+        "loading": "טוען קיצורי מקשים…",
         "none": "לא הוגדרו קיצורי מקשים",
         "notFound": "קיצור הדרך לא נמצא",
         "pressKeys": "הקש על המקשים שלך…",
@@ -207,7 +208,7 @@
           },
           "transcribe_with_post_process": {
             "name": "קיצור לעיבוד משלים",
-            "description": "אופציונלי: קיצור מקשים ייעודי שתמיד מפעיל עיבוד AI על התמלול."
+            "description": "קיצור אופציונלי שתמיד מפעיל ניקוי AI על התמלול."
           },
           "command": {
             "name": "קיצור הפקודה",
@@ -216,7 +217,7 @@
         },
         "errors": {
           "restore": "לא ניתן לשחזר את הקיצור המקורי. נסה שוב.",
-          "set": "הגדרת קיצור הדרך נכשלה: {{error}}",
+          "set": "לא ניתן להגדיר את קיצור הדרך: {{error}}",
           "reset": "לא ניתן לאפס את הקיצור. נסה שוב."
         },
         "holdHint": "הקש כדי להחליף, החזק כדי לדבר. עובד עם כל קיצור.",
@@ -226,8 +227,8 @@
       },
       "language": {
         "title": "שפה",
-        "description": "בחר את שפת זיהוי הדיבור. מצב אוטומטי יזהה את השפה לבד, בעוד שבחירת שפה מסוימת יכולה לשפר את הדיוק עבורה.",
-        "searchPlaceholder": "חפש שפות...",
+        "description": "השפה המשמשת לזיהוי הדיבור. מצב אוטומטי מזהה אותה; ציון שפה מסוימת יכול לשפר את הדיוק.",
+        "searchPlaceholder": "חפש שפות",
         "noResults": "לא נמצאו שפות",
         "auto": "אוטומטי"
       },
@@ -240,7 +241,7 @@
         "title": "מראה",
         "material": {
           "title": "חומר",
-          "description": "אטום מצייר את המשטחים של Sona עצמה. זכוכית מאפשרת לשולחן העבודה להיראות דרך הסרגל העליון, לוח הפקודות ותצוגת ההקלטה.",
+          "description": "אטום משאיר את המשטחים של Sona אטומים. זכוכית מאפשרת לשולחן העבודה להיראות דרך הסרגל העליון, לוח הפקודות ותצוגת ההקלטה.",
           "options": {
             "solid": "אטום",
             "glass": "זכוכית"
@@ -255,16 +256,16 @@
     },
     "models": {
       "title": "מודלי תמלול",
-      "description": "בחר מודל תמלול או הורד מודלים נוספים. מודלים שונים מציעים רמות שונות של דיוק ומהירות.",
+      "description": "המודל שהופך דיבור לטקסט. מודלים מאזנים בין דיוק למהירות.",
       "yourModels": "מודלים שהורדו",
       "availableModels": "זמינים להורדה",
-      "deleteConfirm": "האם למחוק את {{modelName}}? יהיה צורך להוריד אותו שוב כדי להשתמש בו.",
-      "deleteActiveConfirm": "{{modelName}} הוא המודל הפעיל שלך כרגע. מחיקה שלו תעצור את התמלול עד שתבחר מודל חדש. להמשיך?",
+      "deleteConfirm": "למחוק את {{modelName}}? שימוש בו שוב מחייב הורדה מחדש.",
+      "deleteActiveConfirm": "{{modelName}} הוא המודל הפעיל. מחיקה שלו תעצור את התמלול עד שתבחר מודל אחר.",
       "deleteTitle": "מחיקת מודל",
       "filters": {
         "allLanguages": "כל השפות",
-        "streaming": "סינון דגמים התומכים בתמלול חי",
-        "translation": "סינון דגמים התומכים בתרגום לאנגלית",
+        "streaming": "הצג רק דגמים עם תמלול חי",
+        "translation": "הצג רק דגמים שמתרגמים לאנגלית",
         "allFamilies": "כל המשפחות",
         "clear": "נקה מסננים",
         "downloadedOnly": "בדיסק",
@@ -272,7 +273,7 @@
         "family": "משפחת מודלים"
       },
       "noModelsMatch": "אין מודלים שמתאימים לסינון הזה.",
-      "searchPlaceholder": "חיפוש מודלים לפי שם…",
+      "searchPlaceholder": "חיפוש מודלים לפי שם",
       "rescan": {
         "label": "סריקה מחדש",
         "tooltip": "סריקה מחדש לאיתור מודלים שנוספו לתיקיית המודלים או למטמון של Hugging Face מחוץ ל-Sona"
@@ -355,29 +356,29 @@
       "title": "שמע",
       "microphone": {
         "title": "מיקרופון",
-        "description": "בחר את המיקרופון המועדף עליך",
-        "placeholder": "בחר מיקרופון...",
-        "loading": "טוען..."
+        "description": "המיקרופון ש-Sona מקליטה ממנו.",
+        "placeholder": "בחר מיקרופון",
+        "loading": "טוען…"
       },
       "channel": {
         "title": "ערוץ קלט",
-        "description": "בחרו את ערוץ הקלט שממנו תתבצע ההקלטה. השתמשו באפשרות זו אם לממשק השמע שלכם יש מספר כניסות.",
+        "description": "ערוץ הקלט שממנו תתבצע ההקלטה, כשלממשק יש יותר מאחד.",
         "average": "ממוצע של כל הערוצים",
         "channel": "ערוץ {{n}}"
       },
       "audioFeedback": {
         "label": "משוב קולי",
-        "description": "נגן צליל כשההקלטה מתחילה ומסתיימת"
+        "description": "נגן צליל כשההקלטה מתחילה ומסתיימת."
       },
       "outputDevice": {
         "title": "התקן פלט",
-        "description": "בחר את התקן השמע המועדף עליך עבור צלילי המשוב",
-        "placeholder": "בחר התקן פלט...",
-        "loading": "טוען..."
+        "description": "היכן מושמעים צלילי המשוב.",
+        "placeholder": "בחר התקן פלט",
+        "loading": "טוען…"
       },
       "volume": {
         "title": "עוצמת קול",
-        "description": "כוונן את עוצמת צלילי המשוב"
+        "description": "עוצמת צלילי המשוב."
       }
     },
     "advanced": {
@@ -398,11 +399,11 @@
       },
       "experimentalToggle": {
         "label": "תכונות ניסיוניות",
-        "description": "הפעל תכונות ניסיוניות שעדיין נמצאות בפיתוח."
+        "description": "הצג אפשרויות שעדיין נמצאות בפיתוח."
       },
       "lazyStreamClose": {
         "label": "השאר את המיקרופון פתוח בין תמלולים",
-        "description": "משאיר את זרם המיקרופון פתוח למשך 30 שניות אחרי סיום ההקלטה, וכך מפחית השהיה בתמלולים רצופים. עשוי לפגוע באיכות שמע Bluetooth בזמן שהאפשרות פעילה."
+        "description": "משאיר את זרם המיקרופון פתוח למשך 30 שניות אחרי סיום ההקלטה, כך שתמלולים רצופים מתחילים מהר יותר. איכות שמע Bluetooth עלולה לרדת בזמן שהזרם פתוח."
       },
       "acceleration": {
         "transcribe": {
@@ -423,7 +424,7 @@
       },
       "autostart": {
         "label": "הפעל עם עליית המערכת",
-        "description": "הפעל את Sona אוטומטית כשאתה מתחבר למחשב."
+        "description": "הפעל את Sona כשאתה מתחבר."
       },
       "showTrayIcon": {
         "label": "הצג אייקון במגש",
@@ -450,7 +451,7 @@
       },
       "pasteMethod": {
         "title": "שיטת הדבקה",
-        "description": "בחר איך הטקסט יוכנס. ישיר: מדמה הקלדה דרך קלט המערכת. ללא: מדלג על הדבקה ומעדכן רק היסטוריה/לוח.",
+        "description": "איך הטקסט מוכנס. ישיר מדמה הקלדה דרך קלט המערכת. ללא מדלג על ההדבקה ומעדכן רק את ההיסטוריה ואת הלוח.",
         "options": {
           "clipboard": "לוח ({{modifier}}+V)",
           "clipboardCtrlShiftV": "לוח (Ctrl+Shift+V)",
@@ -463,14 +464,14 @@
       },
       "typingTool": {
         "title": "כלי הקלדה",
-        "description": "בחר איזה כלי הקלדה בלינוקס ישמש עבור הדבקה ישירה. מצב אוטומטי יזהה וישתמש בכלי המתאים ביותר למערכת שלך.",
+        "description": "כלי ההקלדה בלינוקס שמשמש את שיטת ההדבקה הישירה. מצב אוטומטי מזהה כלי זמין.",
         "options": {
           "auto": "אוטומטי (מומלץ)"
         }
       },
       "clipboardHandling": {
         "title": "התנהגות הלוח",
-        "description": "אל תשנה את הלוח ישמור על תוכן הלוח הנוכחי שלך אחרי התמלול. העתק ללוח ישאיר את תוצאת התמלול בלוח אחרי ההדבקה.",
+        "description": "אל תשנה את הלוח שומר על תוכן הלוח שלך. העתק ללוח משאיר בו את התמלול אחרי ההדבקה.",
         "options": {
           "dontModify": "אל תשנה את הלוח",
           "copyToClipboard": "העתק ללוח"
@@ -478,7 +479,7 @@
       },
       "autoSubmit": {
         "title": "שליחה אוטומטית",
-        "description": "שלח אוטומטית את צירוף המקשים שנבחר אחרי הכנסת הטקסט. ב-macOS יופעל Cmd+Enter, וב-Windows/Linux יופעל Super+Enter.",
+        "description": "שולח את צירוף המקשים שנבחר אחרי הכנסת הטקסט. Cmd+Enter ב-macOS, Super+Enter ב-Windows וב-Linux.",
         "options": {
           "off": "כבוי",
           "enter": "Enter",
@@ -489,11 +490,11 @@
       },
       "translateToEnglish": {
         "label": "תרגם לאנגלית",
-        "description": "תרגם אוטומטית דיבור משפות אחרות לאנגלית בזמן התמלול."
+        "description": "תרגם דיבור משפות אחרות לאנגלית בזמן התמלול."
       },
       "modelUnload": {
         "title": "פרוק מודל",
-        "description": "שחרר אוטומטית זיכרון GPU/CPU כשהמודל לא היה בשימוש במשך הזמן שנבחר",
+        "description": "שחרר זיכרון GPU ו-CPU אחרי שהמודל לא היה בשימוש למשך הזמן הזה.",
         "options": {
           "never": "אף פעם",
           "immediately": "מיידית",
@@ -568,7 +569,7 @@
       },
       "fillerWordRemoval": {
         "title": "הסרת מילות מילוי",
-        "description": "מסיר מילות היסוס נפוצות מתמלולים. השבת כדי להשאיר אותן."
+        "description": "מסיר מילות היסוס נפוצות מהתמלול."
       },
       "emoji": {
         "enabledLabel": "אפשר החלפות אימוג'י",
@@ -689,18 +690,18 @@
         },
         "noPrompts": "אין פרומפטים זמינים",
         "selectPrompt": "בחר פרומפט",
-        "createNew": "צור פרומפט חדש",
+        "createNew": "פרומפט חדש",
         "promptLabel": "שם הפרומפט",
-        "promptLabelPlaceholder": "הזן שם לפרומפט",
-        "promptInstructions": "הוראות לפרומפט",
-        "promptInstructionsPlaceholder": "כתוב את ההוראות שירוצו אחרי התמלול. לדוגמה: שפר דקדוק ובהירות עבור הטקסט הבא: ${output}",
-        "promptTip": "טיפ: השתמש ב-<code>${output}</code> כדי להכניס את הטקסט המתומלל לפרומפט שלך.",
+        "promptLabelPlaceholder": "תן שם לפרומפט",
+        "promptInstructions": "הוראות",
+        "promptInstructionsPlaceholder": "שפר דקדוק ובהירות עבור הטקסט הבא: ${output}",
+        "promptTip": "כתוב <code>${output}</code> במקום שבו יש להכניס את התמלול.",
         "updatePrompt": "עדכן פרומפט",
         "deletePrompt": "מחק פרומפט",
         "createPrompt": "צור פרומפט",
         "cancel": "ביטול",
-        "selectToEdit": "בחר פרומפט למעלה כדי לצפות בפרטים שלו ולערוך אותם.",
-        "createFirst": "לחץ על 'צור פרומפט חדש' למעלה כדי ליצור את פרומפט העיבוד הראשון שלך.",
+        "selectToEdit": "בחר פרומפט כדי לערוך אותו.",
+        "createFirst": "צור פרומפט לעיבוד משלים של תמלולים.",
         "empty": {
           "description": "הנחיה אומרת למודל מה לעשות עם התמלול, לדוגמה: שכתב את הטקסט הבא כהודעה קצרה תוך שמירה על כל עובדה: ${output}"
         },
@@ -740,7 +741,7 @@
     "history": {
       "stats": {
         "title": "שימוש מצטבר",
-        "loading": "טוען נתוני שימוש...",
+        "loading": "טוען נתוני שימוש…",
         "unavailable": "נתוני השימוש אינם זמינים.",
         "entries": "הקלטות",
         "duration": "זמן הקלטה",
@@ -753,24 +754,24 @@
       },
       "title": "היסטוריה",
       "openFolder": "פתח את תיקיית ההקלטות",
-      "loading": "טוען היסטוריה...",
-      "empty": "עדיין אין תמלולים. התחל להקליט כדי לבנות את ההיסטוריה שלך!",
+      "loading": "טוען היסטוריה…",
+      "empty": "עדיין אין הקלטות.",
       "copyToClipboard": "העתק תמלול ללוח",
-      "save": "שמור תמלול",
+      "save": "שמור רשומה",
       "unsave": "הסר משמורים",
       "delete": "מחק רשומה",
       "deleteError": "לא ניתן למחוק את הרשומה. נסה שוב.",
       "retranscribe": "תמלל מחדש",
       "retranscribeError": "לא ניתן לתמלל שוב. נסה שוב.",
-      "transcribing": "מתמלל...",
-      "transcriptionFailed": "התמלול נכשל. אפשר לתמלל מחדש באמצעות אייקון הניסיון החוזר.",
+      "transcribing": "מתמלל…",
+      "transcriptionFailed": "התמלול נכשל.",
       "search": "חיפוש בהיסטוריה",
-      "searchPlaceholder": "חיפוש בתמלילים...",
+      "searchPlaceholder": "חיפוש בתמלילים",
       "noResults": "אין תמלילים התואמים ל\"{{query}}\".",
       "loadError": "לא היה ניתן לטעון את ההיסטוריה.",
       "retry": "נסה שוב",
       "saveError": "לא ניתן לעדכן את מצב השמירה. נסה שוב.",
-      "postProcessEmpty": "עיבוד הבא לא החזיר טקסט. מוצגת התמלול הגולמי.",
+      "postProcessEmpty": "עיבוד הבא לא החזיר טקסט. מוצג התמלול הגולמי.",
       "textView": {
         "label": "תצוגת תמליל",
         "processed": "מעובד",
@@ -962,26 +963,27 @@
       "title": "ניפוי שגיאות",
       "logDirectory": {
         "title": "תיקיית לוגים",
-        "description": "המיקום שבו נשמרים קבצי הלוג"
+        "description": "המיקום שבו נכתבים קבצי הלוג."
       },
       "logLevel": {
         "title": "רמת לוג",
-        "description": "הגדר את רמת הפירוט של הלוגים"
+        "description": "כמות הפירוט שהלוג מתעד."
       },
       "liveLogs": {
         "title": "לוגים בזמן אמת",
-        "description": "הצג את לוגי האפליקציה בזמן אמת כדי לאבחן בעיות בלי לפתוח את קובץ הלוג. מוצגים רק לוגים שנוצרו בזמן שחלונית זו פתוחה; מתחשב בהגדרת «רמת לוג» שלמעלה.",
+        "description": "משדר שורות לוג ברגע שהן נוצרות. מוצגות כאן רק שורות שנוצרו בזמן שחלונית זו פתוחה, ברמת הלוג שנקבעה למעלה.",
         "live": "בזמן אמת",
         "paused": "מושהה",
         "pause": "השהה",
         "resume": "המשך",
         "copied": "הועתק",
         "lineCount": "{{count}} שורות",
-        "empty": "ממתין ללוגים… רשומות יופיעו כאן כשהאפליקציה תפיק אותן."
+        "empty": "ממתין ללוגים. שורות יופיעו כאן כשהאפליקציה תפיק אותן."
       },
       "soundTheme": {
         "label": "ערכת צלילים",
-        "description": "בחר ערכת צלילים להתחלה ולסיום ההקלטה"
+        "description": "אילו צלילים מושמעים כשההקלטה מתחילה ומסתיימת.",
+        "preview": "Preview the start and stop sounds"
       },
       "wordCorrectionThreshold": {
         "title": "סף תיקון מילים",
@@ -989,30 +991,30 @@
       },
       "historyLimit": {
         "title": "מגבלת היסטוריה",
-        "description": "המספר המרבי של רשומות היסטוריה לשמירה",
+        "description": "כמה רשומות היסטוריה לשמור.",
         "entries": "רשומות"
       },
       "recordingRetention": {
         "title": "מחיקה אוטומטית של הקלטות",
-        "description": "מחק הקלטות ישנות אוטומטית כדי לחסוך מקום",
+        "description": "מחיקת הקלטות לאחר פרק זמן זה.",
         "never": "אף פעם",
         "preserveLimit": "שמור את {{count}} האחרונות",
         "days3": "אחרי 3 ימים",
         "weeks2": "אחרי שבועיים",
         "months3": "אחרי 3 חודשים",
-        "placeholder": "בחר משך שמירה..."
+        "placeholder": "בחר משך שמירה"
       },
       "alwaysOnMicrophone": {
         "label": "מיקרופון תמיד פעיל",
-        "description": "השאר את המיקרופון פעיל לתגובה מהירה יותר"
+        "description": "משאיר את המיקרופון פתוח כך שההקלטה מתחילה מהר יותר."
       },
       "clamshellMicrophone": {
         "title": "מיקרופון במצב clamshell",
-        "description": "המיקרופון שישמש כשהמחשב הנייד סגור"
+        "description": "המיקרופון שמשמש כשמכסה המחשב הנייד סגור."
       },
       "postProcessingToggle": {
         "label": "עיבוד משלים",
-        "description": "הפעל שיפור טקסט מבוסס AI אחרי התמלול"
+        "description": "ניסוח מחדש של התמלול באמצעות מודל שפה אחרי התמלול."
       },
       "muteWhileRecording": {
         "label": "השתק בזמן הקלטה",
@@ -1020,7 +1022,7 @@
       },
       "appendTrailingSpace": {
         "label": "הוסף רווח בסוף",
-        "description": "הוסף רווח אחרי התמלול המודבק"
+        "description": "מוסיף רווח אחד אחרי התמלול המודבק."
       },
       "keyboardImplementation": {
         "title": "מימוש מקלדת",
@@ -1042,7 +1044,7 @@
       },
       "reliablePaste": {
         "title": "הדבקה אמינה (Beta)",
-        "description": "שחזור הלוח רק אחרי שאפליקציית היעד קוראת בפועל את התמלול, במקום אחרי השהיה קבועה. נועד לתקן הדבקה של תוכן לוח ישן כשהמערכת עמוסה. דורש שיטת הדבקה דרך הלוח; ב-macOS וב-Windows בלבד."
+        "description": "שחזור הלוח רק אחרי שאפליקציית היעד קוראת את התמלול, במקום אחרי השהיה קבועה. נועד לתקן הדבקה של תוכן לוח ישן כשהמערכת עמוסה. דורש שיטת הדבקה דרך הלוח; ב-macOS וב-Windows בלבד."
       },
       "recordingBuffer": {
         "title": "באפר הקלטה נוסף",
@@ -1050,7 +1052,7 @@
       },
       "keyboardDiagnostic": {
         "title": "אבחון מקלדת",
-        "description": "בודק אם אירועי מקלדת מגיעים ל-Sona. נרשם רק מספר האירועים — לעולם לא אילו מקשים הקשת.",
+        "description": "בודק אם אירועי מקלדת מגיעים ל-Sona. נרשם רק מספר האירועים, לעולם לא אילו מקשים הקשת.",
         "run": "הרצת אבחון של 10 שניות",
         "running": "מאזין… הקש על קיצור המקשים שלך כמה פעמים (למשל Option+Space)",
         "secureInputLabel": "Secure Input",
@@ -1062,10 +1064,10 @@
         "keyUp": "שחרור מקש",
         "flagsChanged": "מקשי החלפה",
         "mouse": "עכבר",
-        "verdictBlocked": "Secure Input חוסם אירועי מקשים — קיצורים הכוללים מקש רגיל לא יוכלו לפעול עד שהבעיה תיפתר.",
-        "verdictSuspicious": "הגיעו אירועים של מקשי החלפה אך לא אירועי מקשים — משהו מדכא מקשים למרות ש-Secure Input מדווח כמושבת. אנא דווח על כך ב-GitHub.",
+        "verdictBlocked": "Secure Input חוסם אירועי מקשים, ולכן קיצורים הכוללים מקש רגיל לא יוכלו לפעול עד שהבעיה תיפתר.",
+        "verdictSuspicious": "הגיעו אירועים של מקשי החלפה אך לא אירועי מקשים. משהו מדכא מקשים למרות ש-Secure Input מדווח כמושבת. דווח על כך ב-GitHub.",
         "verdictOk": "אירועי מקשים מגיעים ל-Sona כרגיל.",
-        "verdictNoEvents": "לא נקלטו אירועים — האם הקשת על מקשים במהלך הבדיקה?",
+        "verdictNoEvents": "לא נקלטו אירועים במהלך הבדיקה.",
         "failed": "האבחון נכשל: {{error}}"
       },
       "whatsNewPreview": {
@@ -1087,12 +1089,12 @@
       "title": "אודות",
       "version": {
         "title": "גרסה",
-        "description": "הגרסה הנוכחית של Sona",
+        "description": "הגרסה שפועלת כעת.",
         "unavailable": "לא זמין"
       },
       "appDataDirectory": {
         "title": "תיקיית נתוני אפליקציה",
-        "description": "המיקום שבו Sona שומר את הנתונים שלו"
+        "description": "המיקום שבו Sona שומר את הנתונים שלו."
       },
       "sourceCode": {
         "title": "Open-source licenses",
@@ -1101,15 +1103,15 @@
       },
       "supportDevelopment": {
         "title": "תמיכה בפיתוח",
-        "description": "עזור לנו להמשיך לבנות את Sona",
+        "description": "התרומות מממנות את המשך העבודה על Sona.",
         "button": "תרומה"
       },
       "acknowledgments": {
         "title": "תודות",
         "ggml": {
           "title": "ggml",
-          "description": "הסקה מהירה לביצועים גבוהים עבור מודל זיהוי הדיבור Whisper של OpenAI",
-          "details": "Sona משתמש ב-ggml לתמלול מהיר ומקומי. תודה לעבודה המדהימה של Georgi Gerganov וכל התורמים."
+          "description": "ספריית טנזורים להסקת למידת מכונה במכשיר",
+          "details": "התמלול המקומי של Sona בנוי על transcribe.cpp ו-ggml. תודה ל-Georgi Gerganov ולתורמים."
         }
       },
       "whatsNewUpdates": {
@@ -1154,7 +1156,7 @@
           "label": "Activate in app",
           "description": "Capture the app currently in front and select this mode when you dictate there.",
           "action": "Capture current app",
-          "capturing": "Capturing..."
+          "capturing": "Capturing…"
         },
         "empty": "No app activates this mode.",
         "remove": "Remove",
@@ -1172,7 +1174,7 @@
             "label": "הפעלה באתר",
             "description": "לכידת מארח הדפדפן שבחזית. Sona שומרת את המארח, לא את כתובת ה-URL.",
             "action": "לכידת האתר הנוכחי",
-            "capturing": "מתבצעת לכידה..."
+            "capturing": "מתבצעת לכידה…"
           },
           "empty": "אף אתר לא מפעיל מצב זה.",
           "exampleDescription": "כלל שומר מארח דפדפן אחד, לדוגמה mail.google.com."
@@ -1264,8 +1266,8 @@
         "model": {
           "label": "Transcription model",
           "description": "Only downloaded local models are available here.",
-          "inheritGlobal": "ברירת מחדל — משתמש בדגם הגלובלי",
-          "inheritGlobalNamed": "ברירת מחדל — משתמש בדגם הגלובלי ({{name}})"
+          "inheritGlobal": "ברירת מחדל: הדגם הגלובלי",
+          "inheritGlobalNamed": "ברירת מחדל: הדגם הגלובלי ({{name}})"
         },
         "language": {
           "label": "Language",
@@ -1422,7 +1424,7 @@
           "label": "Typing tool",
           "description": "Used only with direct typing.",
           "values": {
-            "auto": "Automatic",
+            "auto": "Auto",
             "wtype": "wtype",
             "kwtype": "kwtype",
             "dotool": "dotool",
@@ -1532,7 +1534,7 @@
           "error": "Browser URL capture could not be saved."
         },
         "cloudRoute": "Enabled cloud modes send allowed context to {{providers}}.",
-        "localRoute": "All your AI processing is local.",
+        "localRoute": "AI processing runs on this Mac.",
         "checkingRoute": "Checking configured cloud routes…"
       },
       "diagnostics": {
@@ -1599,7 +1601,7 @@
             "key_rejected": "המפתח השמור אינו פותח את מסד הנתונים המוצפן, ולכן לא ניתן לקרוא את ההיסטוריה.",
             "key_unavailable": "מאגר האישורים של המערכת לא החזיר מפתח שמיש, ולכן ההיסטוריה נשמרת ללא הצפנה.",
             "migration_failed": "הצפנת מסד הנתונים הקיים נכשלה. מסד הנתונים הלא מוצפן שלם ועדיין בשימוש.",
-            "unlocking": "פותח את מסד הנתונים המוצפן. הודעה זו נעלמת רגעים לאחר ההפעלה."
+            "unlocking": "פותח את מסד הנתונים המוצפן. הודעה זו נעלמת עם סיום ההפעלה."
           },
           "unknown": "Sona לא הצליח לקרוא כיצד ההיסטוריה נשמרת.",
           "unlocking": "פותח נעילה",
@@ -1655,18 +1657,18 @@
         "import": "Import selected data",
         "importing": "Importing",
         "errors": {
-          "source_unavailable": "The original Sona data folder is unavailable.",
-          "upstream_running": "Close the original Sona app before importing.",
-          "app_state_unverifiable": "Sona cannot verify the original app state on this platform.",
+          "source_unavailable": "The legacy app's data folder is unavailable.",
+          "upstream_running": "Close the legacy app before importing.",
+          "app_state_unverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
           "invalid_selection": "Choose settings or history to import.",
-          "settings_unreadable": "The original settings file could not be read.",
+          "settings_unreadable": "The legacy settings file could not be read.",
           "secret_store_unavailable": "The native credential store is unavailable, so settings with provider keys were not imported.",
           "secret_conflict": "A provider key already exists in the native credential store. Resolve it before importing settings.",
-          "history_unreadable": "The original history database could not be read.",
+          "history_unreadable": "The legacy history database could not be read.",
           "recording_copy_failed": "A recording could not be copied and verified.",
           "receipt_write_failed": "The import receipt could not be saved.",
           "internal": "The import did not finish.",
-          "status": "The original Sona data could not be inspected."
+          "status": "The legacy app's data could not be inspected."
         }
       },
       "cloudSync": {
@@ -1854,7 +1856,7 @@
     "prompts": {
       "samples": {
         "title": "דוגמאות כתיבה",
-        "description": "דוגמאות מהכתיבה שלך. כל מצב שמנסח תמלול מחדש הולך לפי הסגנון שלהן.",
+        "description": "דוגמאות מהכתיבה שלך. מצבים שמנסחים תמלול מחדש הולכים לפי הסגנון הזה.",
         "placeholder": "הדבק פסקה שכתבת בעצמך.",
         "sampleLabel": "דוגמת כתיבה {{number}}",
         "delete": "מחק את דוגמה {{number}}",
@@ -1881,7 +1883,7 @@
     }
   },
   "common": {
-    "loading": "טוען...",
+    "loading": "טוען…",
     "delete": "מחק",
     "cancel": "ביטול",
     "close": "סגור",
@@ -1898,7 +1900,7 @@
   },
   "commandPalette": {
     "open": "חיפוש",
-    "placeholder": "הקלד פקודה או חפש…",
+    "placeholder": "הקלד פקודה או חפש",
     "navigation": "ניווט",
     "actions": "פעולות",
     "noResults": "לא נמצאו פקודות",
@@ -1916,26 +1918,26 @@
   },
   "errors": {
     "noSpeechDetectedTitle": "לא זוהה דיבור",
-    "noSpeechDetected": "לא זוהה דיבור. דגימה מההקלטה נשמרה בהיסטוריה כדי לבדוק את השמע שנקלט.",
-    "loadDirectory": "שגיאה בטעינת תיקייה: {{error}}",
+    "noSpeechDetected": "לא זוהה דיבור. דגימה מההקלטה נשמרה בהיסטוריה.",
+    "loadDirectory": "לא ניתן לטעון את התיקייה: {{error}}",
     "micPermissionDeniedTitle": "הגישה למיקרופון נדחתה",
     "micPermissionDenied": {
-      "generic": "מערכת ההפעלה חסמה את הגישה למיקרופון. תן הרשאת מיקרופון בהגדרות המערכת.",
+      "generic": "מערכת ההפעלה חסמה את הגישה למיקרופון. תן גישה למיקרופון בהגדרות המערכת.",
       "windows": "הפעל גישה למיקרופון ב-Settings > Privacy & security > Microphone, כולל גישה לאפליקציות שולחן עבודה.",
       "macos": "תן גישה למיקרופון ב-System Settings > Privacy & Security > Microphone.",
       "linux": "תן גישה למיקרופון דרך הגדרות השמע או הפרטיות במערכת שלך."
     },
     "noInputDeviceTitle": "לא נמצא מיקרופון",
-    "noInputDevice": "לא זוהה התקן קלט שמע. חבר מיקרופון או אוזנייה ונסה שוב.",
+    "noInputDevice": "לא זוהה התקן קלט שמע. חבר מיקרופון ונסה שוב.",
     "recordingFailed": "לא ניתן להתחיל את ההקלטה: {{error}}. נסה שוב.",
     "modelLoadFailed": "לא ניתן לטעון את {{model}}. נסה שוב.",
     "modelLoadFailedUnknown": "מודל לא ידוע",
     "pasteFailedTitle": "לא ניתן להדביק את התמלול",
-    "pasteFailed": "הטקסט לא הודבק באפליקציה הפעילה. מקד את הסמן בשדה טקסט ונסה שוב.",
+    "pasteFailed": "התמלול לא הודבק באפליקציה הפעילה. מקד את הסמן בשדה טקסט ונסה שוב.",
     "transcriptionFailedTitle": "לא ניתן לתמלל",
-    "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
-    "commandNoSelection": "לא היה שום דבר מסומן. סמן את הטקסט שברצונך לשנות, אחר כך החזק את קיצור הפקודה ואמור מה לעשות.",
-    "commandRewriteUnavailable": "הניסוח מחדש לא החזיר שום דבר, כך שהסימון שלך נשאר כפי שהיה. בדוק את דגם הניסוח מחדש בהגדרות > בינה מלאכותית ונסה שוב.",
+    "noModelSelected": "לא נבחר דגם תמלול. בחר אחד ב־Settings > Models.",
+    "commandNoSelection": "סמן את הטקסט שברצונך לשנות, אחר כך החזק את קיצור הפקודה ואמור את השינוי.",
+    "commandRewriteUnavailable": "הניסוח מחדש לא החזיר שום דבר, כך שהסימון שלך נשאר כפי שהיה. בדוק את הספק ב־Settings > Post-processing ונסה שוב.",
     "noModelSelectedTitle": "לא נבחר דגם",
     "noSpeechSaveFailedTitle": "הדגימה לא נשמרה",
     "captureOverrunTitle": "גדילת הקלטה מעבר לגבול",
@@ -1987,7 +1989,7 @@
     "recorderBlockedWithCulprit": "ייתכן ש-{{name}} חוסם שינויים בקיצורי דרך",
     "recorderBlockedNoCulprit": "macOS חוסם זמנית שינויים בקיצורי דרך",
     "learnMore": "איך לתקן את זה",
-    "recorderBlocked": "לא ניתן להקליט קיצורים כרגע — Secure Input של macOS חוסם אירועי מקשים. פתור תחילה את אזהרת Secure Input.",
+    "recorderBlocked": "Secure Input של macOS חוסם אירועי מקשים, ולכן לא ניתן להקליט קיצורים. פתור תחילה את אזהרת Secure Input.",
     "dismiss": "התעלם"
   },
   "meetings": {
@@ -2067,6 +2069,7 @@
     },
     "detected": {
       "title": "Meeting detected",
+      "description": "Sona הבחינה שאפליקציית פגישות בשימוש.",
       "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
@@ -2277,7 +2280,7 @@
       "ask": "Ask locally",
       "noQuestions": "No saved local answers.",
       "question": "Question",
-      "insufficientEvidence": "I couldn’t find support for that in this meeting.",
+      "insufficientEvidence": "No supporting passage was found in this meeting.",
       "forget": "Forget this answer",
       "exactSearch": "Exact search",
       "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
@@ -2382,7 +2385,7 @@
       "title": "Meeting activity",
       "loading": "Loading meeting trends…",
       "error": "Couldn't load meeting trends.",
-      "unavailable": "Meeting trends are unavailable right now.",
+      "unavailable": "Meeting trends are unavailable.",
       "metricLabel": "Metric",
       "metrics": {
         "meetings": "Meetings",
@@ -2392,7 +2395,7 @@
       }
     },
     "list": {
-      "retentionHint": "שמירה: {{policy}}. ניתן לשנות זאת ב־Settings, Privacy.",
+      "retentionHint": "שמירה: {{policy}}. ניתן לשנות זאת ב־Settings > Privacy.",
       "searchLabel": "חיפוש פגישות",
       "searchPlaceholder": "חיפוש לפי כותרת",
       "clearFilters": "נקה מסננים",
@@ -2482,13 +2485,13 @@
       "trackerName": "שם",
       "trackerPatterns": "הנחה, המחיר הטוב ביותר, יקר מדי",
       "trackerPatternsLabel": "ביטויים מופרדים בפסיקים",
-      "trackersSaveFailed": "Sona לא הצליח לשמור את המעקבים. שנה אחד ונסה שוב."
+      "trackersSaveFailed": "Sona לא הצליח לשמור את המעקבים. נסה שוב."
     },
     "notes": {
       "title": "ההערות שלי",
       "liveDescription": "כתוב גס כמה שתרצה. ההערות האלה נשארות על ה-Mac הזה ומכוונות את ההערות ש-Sona מייצר בסוף הפגישה.",
       "reviewDescription": "ההערות שלך מכוונות את מה שההערות המיוצרות מדגישות. הן לעולם אינן מצוטטות או מובאות כמקור.",
-      "placeholder": "כל מה שכדאי לזכור — שמות, מספרים, מה צריך להמשיך",
+      "placeholder": "כל מה שכדאי לזכור: שמות, מספרים, מה צריך להמשיך",
       "unsaved": "עדיין לא נשמר",
       "saving": "שומר…",
       "saved": "ההערות נשמרו",
@@ -2502,7 +2505,7 @@
       "catchUpTitle": "עד כאן",
       "catchUpNoTranscript": "אין עוד מה לסכם. Sona מתמלל אחרי שאתה עוצר את ההקלטה, כך שסיכום יהיה זמין ברגע שהתמלול יתחיל להגיע.",
       "catchUpUnavailable": "הדגם שעל המכשיר אינו זמין, כך שלא נכתב שום סיכום.",
-      "catchUpFailed": "Sona לא הצליח לבנות סיכום. נסה שוב בעוד רגע.",
+      "catchUpFailed": "Sona לא הצליח לבנות סיכום. נסה שוב.",
       "templates": {
         "general": "פגישה כללית",
         "one_on_one": "אחד על אחד",
@@ -2521,6 +2524,8 @@
         "huddle": "זוהה האדל ב-{{app}}",
         "browser": "זוהתה שיחה ב-{{app}}",
         "unknown": "זוהתה פעילות מיקרופון",
+        "calendarUntitled": "אירוע בלוח השנה מתחיל",
+        "generic": "זוהתה פגישה",
         "body": "Sona יכול לרשום הערות מקומיות לשיחה הזאת."
       },
       "actions": {
@@ -2608,6 +2613,10 @@
         "more": "עוד",
         "less": "פחות"
       },
+      "untitled": {
+        "calendar": "אירוע יומן",
+        "app": "המיקרופון בשימוש"
+      },
       "actions": {
         "skip": "דלג"
       },
@@ -2676,7 +2685,7 @@
     },
     "recent": {
       "title": "Recent activity",
-      "history": "Transcription",
+      "history": "Dictation",
       "meeting": "Meeting",
       "viewAll": "הצג הכול",
       "words": "{{count}} מילים",
@@ -2686,30 +2695,30 @@
     },
     "hero": {
       "ready": "Ready",
-      "recording": "Recording",
+      "recording": "Listening",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "מצב: {{name}}",
       "setShortcut": "הגדר קיצור הכתבה ב־Settings כדי לקלוט מכל אפליקציה.",
       "setShortcutAction": "הגדר קיצור",
       "shortcutAction": "שנה את קיצור ההכתבה",
-      "gestureTapHold": "הקש כדי להחליף, החזק כדי לדבר, מכל מקום.",
-      "gestureTapOnly": "הקש כדי להחליף, מכל מקום."
+      "gestureTapHold": "הקש כדי להחליף, החזק כדי לדבר.",
+      "gestureTapOnly": "הקש כדי להחליף."
     },
     "actions": {
       "dictate": "Dictate",
       "unavailable": "Shortcut unavailable"
     },
     "chart": {
-      "day": "{{date}} \\u00b7 הכתבות {{dictations}}",
-      "dayWithMeetings": "{{date}} \\u00b7 הכתבות {{dictations}} \\u00b7 פגישות {{meetings}}",
+      "day": "{{date}} · הכתבות {{dictations}}",
+      "dayWithMeetings": "{{date}} · הכתבות {{dictations}} · פגישות {{meetings}}",
       "legend": "הכתבות ליום",
       "peak": "היום העמוס ביותר {{peak}}",
       "summary": "הכתבות ליום מ־{{from}} עד {{to}}. סך הכול {{total}}, היום העמוס ביותר {{peak}}."
     },
     "empty": {
       "action": "פתח את הספרייה",
-      "description": "החזק את קיצור ההכתבה בכל אפליקציה ו־Sona יקליד את מה שאתה אומר. נתוני השימוש והקליטות האחרונות יופיעו כאן לאחר הראשונה.",
+      "description": "החזק את קיצור ההכתבה בכל אפליקציה ו־Sona יקליד את מה שאתה אומר. נתוני השימוש והקליטות האחרונות יופיעו כאן לאחר ההכתבה הראשונה.",
       "title": "אין קליטות עדיין"
     },
     "stats": {
@@ -2717,7 +2726,7 @@
       "allTime": "{{total}} מאז ומעולם",
       "dictations": "הכתבות",
       "dictationsAllTime": "הכתבות, כל הזמן",
-      "error": "Sona לא הצליח לקרוא כעת את היסטוריית השימוש שלך.",
+      "error": "Sona לא הצליח לקרוא את היסטוריית השימוש שלך.",
       "range": "{{from}} עד {{to}}",
       "rangeUnavailable": "לא ניתן היה לקרוא את 30 הימים האחרונים, ולכן אלה סיכומים מכל הזמנים.",
       "speaking": "זמן דיבור",
@@ -2758,7 +2767,7 @@
     "title": "Cloud Sync",
     "account": {
       "title": "Cloud Sync",
-      "description": "Keep meetings on this device unless you choose to set up sync.",
+      "description": "Meetings stay on this device until you set up sync.",
       "status": {
         "loading": "Checking sync…",
         "local": "Local only",

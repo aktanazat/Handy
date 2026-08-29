@@ -42,7 +42,7 @@
     "settings": "Settings"
   },
   "onboarding": {
-    "subtitle": "Pro začátek vyberte model pro přepis",
+    "subtitle": "Modely běží na tomto Macu a volí kompromis mezi přesností a rychlostí",
     "existingModelsTitle": "Kompatibilní modely",
     "downloadModelsTitle": "Dostupné ke stažení",
     "showAllModels": "Zobrazit všech {{total}} modelů",
@@ -72,7 +72,7 @@
       },
       "parakeet-tdt-0.6b-v2": {
         "name": "Parakeet V2",
-        "description": "Pouze angličtina. Nejlepší model pro anglicky mluvící."
+        "description": "Pouze angličtina. Rychlý a přesný."
       },
       "parakeet-tdt-0.6b-v3": {
         "name": "Parakeet V3",
@@ -116,7 +116,7 @@
       },
       "cohere-int8": {
         "name": "Cohere",
-        "description": "Velký, pomalejší, ale velmi přesný vícejazyčný model."
+        "description": "Velký vícejazyčný model. Pomalý, ale přesný."
       }
     },
     "errors": {
@@ -124,7 +124,7 @@
     },
     "permissions": {
       "title": "Vyžadována oprávnění",
-      "description": "Sona potřebuje několik oprávnění pro správné fungování.",
+      "description": "Sona potřebuje přístup k mikrofonu a zpřístupnění.",
       "microphone": {
         "title": "Přístup k mikrofonu",
         "description": "Potřebný pro zachycení vašeho hlasu k přepisu."
@@ -135,39 +135,40 @@
       },
       "grant": "Udělit oprávnění",
       "granted": "Uděleno",
-      "waiting": "Čekání...",
-      "allGranted": "Vše připraveno!",
+      "waiting": "Čekání…",
+      "allGranted": "Obě udělena",
       "errors": {
         "checkFailed": "Oprávnění se nepodařilo zkontrolovat. Zkuste to znovu.",
         "requestFailed": "Oprávnění se nepodařilo vyžádat. Zkuste to znovu."
       },
       "headline": "Jednorázové nastavení",
-      "subhead": "Počítač se zeptá, než smí jakákoli aplikace poslouchat nebo za vás psát. Udělte tato oprávnění jednou a Sona se už znovu nezeptá.",
+      "subhead": "Systém se zeptá, než smí jakákoli aplikace poslouchat nebo psát.",
       "checking": "Kontrola oprávnění",
       "recheck": "Zkontrolovat znovu"
     },
-    "headline": "Vyberte hlasový model"
+    "headline": "Vyberte model přepisu"
   },
   "modelSelector": {
     "custom": "Vlastní",
     "streaming": "Streaming",
     "active": "Aktivní",
     "noModelsAvailable": "Nejsou dostupné žádné modely",
-    "verifying": "Ověřování {{modelName}}...",
-    "verifyingGeneric": "Ověřování...",
-    "extracting": "Rozbaluji {{modelName}}...",
-    "extractingMultiple": "Rozbaluji {{count}} modelů...",
-    "extractingGeneric": "Rozbalování...",
+    "verifying": "Ověřování {{modelName}}…",
+    "verifyingGeneric": "Ověřování…",
+    "extracting": "Rozbaluji {{modelName}}…",
+    "extractingMultiple": "Rozbaluji {{count}} modelů…",
+    "extractingGeneric": "Rozbalování…",
     "downloading": "Stahování {{percentage}}%",
-    "downloadingMultiple": "Stahování {{count}} modelů...",
+    "downloadingMultiple": "Stahování {{count}} modelů…",
+    "downloadingGeneric": "Downloading…",
     "modelReady": "Model připraven",
-    "loading": "Načítám {{modelName}}...",
-    "loadingGeneric": "Načítání...",
+    "loading": "Načítám {{modelName}}…",
+    "loadingGeneric": "Načítání…",
     "modelError": "Chyba modelu",
     "modelUnloaded": "Model uvolněn",
-    "noModelDownloadRequired": "Žádný model - je nutné stáhnout",
+    "noModelDownloadRequired": "Žádný model, je nutné stáhnout",
     "deleteModel": "Smazat {{modelName}}",
-    "switching": "Přepínání...",
+    "switching": "Přepínání…",
     "downloadSpeed": "{{speed}} MB/s",
     "capabilities": {
       "languageSelection": "Podporuje více vstupních jazyků",
@@ -189,14 +190,14 @@
     },
     "models": {
       "title": "Modely přepisu",
-      "description": "Vyberte model přepisu nebo stáhněte další modely. Různé modely nabízejí různé úrovně přesnosti a rychlosti.",
-      "deleteConfirm": "Opravdu chcete smazat {{modelName}}? Pro opětovné použití jej budete muset znovu stáhnout.",
-      "deleteActiveConfirm": "{{modelName}} je váš aktivní model. Jeho smazáním se zastaví přepisy, dokud nevyberete nový model. Opravdu chcete pokračovat?",
+      "description": "Model, který převádí řeč na text. Modely volí kompromis mezi přesností a rychlostí.",
+      "deleteConfirm": "Smazat {{modelName}}? Pro opětovné použití jej budete muset znovu stáhnout.",
+      "deleteActiveConfirm": "{{modelName}} je aktivní model. Jeho smazáním se přepis zastaví, dokud nevyberete jiný.",
       "deleteTitle": "Smazat model",
       "filters": {
         "allLanguages": "Všechny jazyky",
-        "streaming": "Filtrovat modely podporující živý přepis",
-        "translation": "Filtrovat modely podporující překlad do angličtiny",
+        "streaming": "Zobrazit pouze modely s živým přepisem",
+        "translation": "Zobrazit pouze modely, které překládají do angličtiny",
         "allFamilies": "Všechny rodiny",
         "clear": "Vymazat filtry",
         "downloadedOnly": "Na disku",
@@ -206,7 +207,7 @@
       "noModelsMatch": "Tomuto filtru neodpovídají žádné modely.",
       "yourModels": "Stažené modely",
       "availableModels": "Dostupné ke stažení",
-      "searchPlaceholder": "Hledat modely podle názvu…",
+      "searchPlaceholder": "Hledat modely podle názvu",
       "rescan": {
         "label": "Znovu prohledat",
         "tooltip": "Znovu prohledat modely přidané do složky modelů nebo mezipaměti Hugging Face mimo Sona"
@@ -288,9 +289,9 @@
     "general": {
       "title": "Obecné",
       "shortcut": {
-        "title": "Zkratky Sona",
-        "description": "Nastavte klávesové zkratky pro spuštění nahrávání řeči na text",
-        "loading": "Načítám zkratky...",
+        "title": "Zkratky",
+        "description": "Klávesové zkratky pro nahrávání a přepisování.",
+        "loading": "Načítám zkratky…",
         "none": "Žádné zkratky nejsou nastavené",
         "notFound": "Zkratka nenalezena",
         "pressKeys": "Stiskněte své klávesy…",
@@ -304,8 +305,8 @@
             "description": "Klávesová zkratka pro zrušení aktuálního nahrávání."
           },
           "transcribe_with_post_process": {
-            "name": "Klávesa pro následné zpracování",
-            "description": "Volitelné: Vyhrazená klávesová zkratka, která vždy použije AI následné zpracování na váš přepis."
+            "name": "Zkratka pro následné zpracování",
+            "description": "Volitelná zkratka, která vždy použije na přepis AI vyčištění."
           },
           "command": {
             "name": "Zkratka pro příkaz",
@@ -324,8 +325,8 @@
       },
       "language": {
         "title": "Jazyk",
-        "description": "Vyberte jazyk rozpoznávání řeči. Auto jazyk určí automaticky, zatímco výběr konkrétního jazyka může zlepšit přesnost.",
-        "searchPlaceholder": "Hledat jazyky...",
+        "description": "Jazyk používaný pro rozpoznávání řeči. Auto jej rozpozná; uvedení konkrétního jazyka může zlepšit přesnost.",
+        "searchPlaceholder": "Hledat jazyky",
         "noResults": "Žádné jazyky nenalezeny",
         "auto": "Automaticky"
       },
@@ -338,7 +339,7 @@
         "title": "Vzhled",
         "material": {
           "title": "Materiál",
-          "description": "Plný vykresluje vlastní plochy Sony. Sklo nechá plochu prosvítat horní lištou, paletou příkazů a HUD nahrávání.",
+          "description": "Plný ponechá plochy Sony neprůhledné. Sklo nechá plochu prosvítat horní lištou, paletou příkazů a HUD nahrávání.",
           "options": {
             "solid": "Plný",
             "glass": "Sklo"
@@ -355,29 +356,29 @@
       "title": "Zvuk",
       "microphone": {
         "title": "Mikrofon",
-        "description": "Vyberte preferované zařízení mikrofonu",
-        "placeholder": "Vyberte mikrofon...",
-        "loading": "Načítání..."
+        "description": "Mikrofon, ze kterého Sona nahrává.",
+        "placeholder": "Vyberte mikrofon",
+        "loading": "Načítání…"
       },
       "channel": {
         "title": "Vstupní kanál",
-        "description": "Vyberte vstupní kanál, ze kterého se má nahrávat. Tuto možnost použijte, pokud má vaše zvukové rozhraní více vstupů.",
+        "description": "Ze kterého vstupního kanálu nahrávat, pokud jich má rozhraní více.",
         "average": "Průměr všech kanálů",
         "channel": "Kanál {{n}}"
       },
       "audioFeedback": {
         "label": "Zvuková odezva",
-        "description": "Přehrát zvuk při zahájení a ukončení nahrávání"
+        "description": "Přehrát zvuk při zahájení a ukončení nahrávání."
       },
       "outputDevice": {
         "title": "Výstupní zařízení",
-        "description": "Vyberte preferované výstupní zařízení pro zvuky odezvy",
-        "placeholder": "Vyberte výstupní zařízení...",
-        "loading": "Načítání..."
+        "description": "Kde se přehrávají zvuky odezvy.",
+        "placeholder": "Vyberte výstupní zařízení",
+        "loading": "Načítání…"
       },
       "volume": {
         "title": "Hlasitost",
-        "description": "Upravte hlasitost zvukové odezvy"
+        "description": "Hlasitost zvuků odezvy."
       }
     },
     "advanced": {
@@ -398,11 +399,11 @@
       },
       "experimentalToggle": {
         "label": "Experimentální funkce",
-        "description": "Povolit experimentální funkce, které jsou stále ve vývoji."
+        "description": "Zobrazit možnosti, které jsou stále ve vývoji."
       },
       "lazyStreamClose": {
         "label": "Ponechat mikrofon zapnutý mezi přepisy",
-        "description": "Ponechá stream mikrofonu otevřený po dobu 30 sekund po zastavení nahrávání, čímž se sníží latence při opakovaném přepisu. Může zhoršit kvalitu zvuku Bluetooth."
+        "description": "Ponechá stream mikrofonu otevřený po dobu 30 sekund po zastavení nahrávání, takže opakované přepisy začínají rychleji. Kvalita zvuku Bluetooth se může po tuto dobu zhoršit."
       },
       "acceleration": {
         "transcribe": {
@@ -423,7 +424,7 @@
       },
       "autostart": {
         "label": "Spouštět při startu",
-        "description": "Automaticky spustit Sona po přihlášení do počítače."
+        "description": "Spustit Sona po přihlášení."
       },
       "showTrayIcon": {
         "label": "Zobrazit ikonu v systémové liště",
@@ -450,7 +451,7 @@
       },
       "pasteMethod": {
         "title": "Způsob vložení",
-        "description": "Vyberte, jak se text vkládá. Přímé: simuluje psaní přes systémový vstup. Žádné: přeskočí vložení a aktualizuje pouze historii/schránku.",
+        "description": "Jak se text vkládá. Přímé simuluje psaní přes systémový vstup. Žádné přeskočí vložení a aktualizuje pouze historii a schránku.",
         "options": {
           "clipboard": "Schránka ({{modifier}}+V)",
           "clipboardCtrlShiftV": "Schránka (Ctrl+Shift+V)",
@@ -463,14 +464,14 @@
       },
       "typingTool": {
         "title": "Nástroj pro psaní",
-        "description": "Vyberte, který linuxový nástroj pro psaní použít pro metodu přímého vložení. Auto automaticky zjistí a použije nejlepší dostupný nástroj pro váš systém.",
+        "description": "Linuxový nástroj pro psaní použitý metodou přímého vložení. Auto zjistí dostupný nástroj.",
         "options": {
           "auto": "Auto (Doporučeno)"
         }
       },
       "clipboardHandling": {
         "title": "Práce se schránkou",
-        "description": "'Neměnit schránku' zachová po přepisu aktuální obsah schránky. 'Kopírovat do schránky' ponechá po vložení výsledek přepisu ve schránce.",
+        "description": "'Neměnit schránku' zachová obsah vaší schránky. 'Kopírovat do schránky' v ní po vložení ponechá transcript.",
         "options": {
           "dontModify": "Neměnit schránku",
           "copyToClipboard": "Kopírovat do schránky"
@@ -478,7 +479,7 @@
       },
       "autoSubmit": {
         "title": "Automatické odeslání",
-        "description": "Automaticky odešle vybranou kombinaci kláves po vložení textu. Cmd+Enter platí pro macOS, zatímco Windows/Linux používají Super+Enter.",
+        "description": "Odešle vybranou kombinaci kláves po vložení textu. Cmd+Enter na macOS, Super+Enter na Windows a Linuxu.",
         "options": {
           "off": "Vypnuto",
           "enter": "Enter",
@@ -489,11 +490,11 @@
       },
       "translateToEnglish": {
         "label": "Překládat do angličtiny",
-        "description": "Během přepisu automaticky překládat řeč z jiných jazyků do angličtiny."
+        "description": "Během přepisu překládat řeč z jiných jazyků do angličtiny."
       },
       "modelUnload": {
         "title": "Uvolnění modelu",
-        "description": "Automaticky uvolnit paměť GPU/CPU, když model nebyl použit po zadanou dobu",
+        "description": "Uvolnit paměť GPU a CPU poté, co je model takto dlouho nečinný.",
         "options": {
           "never": "Nikdy",
           "immediately": "Okamžitě",
@@ -568,7 +569,7 @@
       },
       "fillerWordRemoval": {
         "title": "Odstranit výplňová slova",
-        "description": "Odstraňuje běžná slova vyjadřující váhání z přepisů. Vypnutím je zachováte."
+        "description": "Odstraňuje z transcriptu běžná slova vyjadřující váhání."
       },
       "emoji": {
         "enabledLabel": "Povolit náhrady emoji",
@@ -651,7 +652,7 @@
     },
     "postProcessing": {
       "hotkey": {
-        "title": "Klávesová zkratka"
+        "title": "Zkratka"
       },
       "api": {
         "title": "API (kompatibilní s OpenAI)",
@@ -689,18 +690,18 @@
         },
         "noPrompts": "Nejsou k dispozici žádné prompty",
         "selectPrompt": "Vyberte prompt",
-        "createNew": "Vytvořit nový prompt",
+        "createNew": "Nový prompt",
         "promptLabel": "Název promptu",
-        "promptLabelPlaceholder": "Zadejte název promptu",
-        "promptInstructions": "Instrukce promptu",
-        "promptInstructionsPlaceholder": "Napište instrukce, které se mají spustit po přepisu. Příklad: Zlepšete gramatiku a srozumitelnost následujícího textu: ${output}",
-        "promptTip": "Tip: Použijte <code>${output}</code> pro vložení přepsaného textu do promptu.",
+        "promptLabelPlaceholder": "Pojmenujte tento prompt",
+        "promptInstructions": "Instrukce",
+        "promptInstructionsPlaceholder": "Zlepšete gramatiku a srozumitelnost následujícího textu: ${output}",
+        "promptTip": "Napište <code>${output}</code> tam, kam se má vložit přepis.",
         "updatePrompt": "Aktualizovat prompt",
         "deletePrompt": "Smazat prompt",
         "createPrompt": "Vytvořit prompt",
         "cancel": "Zrušit",
-        "selectToEdit": "Vyberte výše prompt, abyste zobrazili a upravili jeho podrobnosti.",
-        "createFirst": "Klikněte nahoře na 'Vytvořit nový prompt' a vytvořte svůj první prompt pro následné zpracování.",
+        "selectToEdit": "Vyberte prompt, který chcete upravit.",
+        "createFirst": "Vytvořte prompt pro následné zpracování přepisů.",
         "empty": {
           "description": "Prompt říká modelu, co má s přepisem udělat, například: přepiš následující text jako krátkou zprávu a zachovej všechna fakta: ${output}"
         },
@@ -740,7 +741,7 @@
     "history": {
       "stats": {
         "title": "Celkové využití",
-        "loading": "Načítání statistik...",
+        "loading": "Načítání statistik…",
         "unavailable": "Statistiky využití nejsou k dispozici.",
         "entries": "nahrávek",
         "duration": "doba nahrávání",
@@ -753,19 +754,19 @@
       },
       "title": "Historie",
       "openFolder": "Otevřít složku nahrávek",
-      "loading": "Načítám historii...",
-      "empty": "Zatím žádné přepisy. Začněte nahrávat a vytvořte si historii!",
+      "loading": "Načítám historii…",
+      "empty": "Zatím žádné nahrávky.",
       "copyToClipboard": "Kopírovat přepis do schránky",
-      "save": "Uložit přepis",
+      "save": "Uložit záznam",
       "unsave": "Odebrat z uložených",
       "delete": "Smazat záznam",
       "deleteError": "Záznam se nepodařilo smazat. Zkuste to znovu.",
       "retranscribe": "Přepsat znovu",
       "retranscribeError": "Znovu přepsat se nepodařilo. Zkuste to znovu.",
-      "transcribing": "Přepisuji...",
-      "transcriptionFailed": "Přepis selhal. Můžete zkusit přepis znovu pomocí ikony opakování.",
+      "transcribing": "Přepisuji…",
+      "transcriptionFailed": "Přepis selhal.",
       "search": "Prohledat historii",
-      "searchPlaceholder": "Prohledávejte přepisy...",
+      "searchPlaceholder": "Prohledávejte přepisy",
       "noResults": "Žádné přepisy neodpovídají \"{{query}}\".",
       "loadError": "Nelze načíst historii.",
       "retry": "Zkusit znovu",
@@ -962,26 +963,27 @@
       "title": "Ladění",
       "logDirectory": {
         "title": "Složka protokolů",
-        "description": "Umístění, kde jsou uloženy soubory protokolu"
+        "description": "Kam se zapisují soubory logu."
       },
       "logLevel": {
         "title": "Úroveň logování",
-        "description": "Nastavte úroveň podrobnosti logování"
+        "description": "Jak podrobně se log zaznamenává."
       },
       "liveLogs": {
         "title": "Živé logy",
-        "description": "Sledujte logy aplikace v reálném čase a diagnostikujte problémy bez otevírání souboru logu. Zobrazují se pouze logy vytvořené, když je tento panel otevřený; respektuje nastavení Úroveň logování výše.",
+        "description": "Streamuje řádky logu, jakmile vzniknou. Zobrazují se pouze řádky vytvořené, když je tento panel otevřený, v úrovni logování nastavené výše.",
         "live": "Živě",
         "paused": "Pozastaveno",
         "pause": "Pozastavit",
         "resume": "Pokračovat",
         "copied": "Zkopírováno",
         "lineCount": "Řádků: {{count}}",
-        "empty": "Čekání na logy… Záznamy se zde zobrazí, jakmile je aplikace vygeneruje."
+        "empty": "Čekání na logy. Řádky se zde zobrazí, jakmile je aplikace vygeneruje."
       },
       "soundTheme": {
         "label": "Zvukový motiv",
-        "description": "Vyberte zvukový motiv pro odezvu při startu a ukončení nahrávání"
+        "description": "Které zvuky se přehrají při zahájení a ukončení nahrávání.",
+        "preview": "Preview the start and stop sounds"
       },
       "wordCorrectionThreshold": {
         "title": "Práh korekce slov",
@@ -989,30 +991,30 @@
       },
       "historyLimit": {
         "title": "Limit historie",
-        "description": "Maximální počet záznamů historie k uchování",
+        "description": "Kolik záznamů historie uchovat.",
         "entries": "záznamů"
       },
       "recordingRetention": {
         "title": "Automatické mazání nahrávek",
-        "description": "Automaticky mazat staré nahrávky pro úsporu místa",
+        "description": "Smazat nahrávky po uplynutí této doby.",
         "never": "Nikdy",
         "preserveLimit": "Ponechat posledních {{count}}",
         "days3": "Po 3 dnech",
         "weeks2": "Po 2 týdnech",
         "months3": "Po 3 měsících",
-        "placeholder": "Vyberte dobu uchování..."
+        "placeholder": "Vyberte dobu uchování"
       },
       "alwaysOnMicrophone": {
         "label": "Vždy zapnutý mikrofon",
-        "description": "Udržovat mikrofon aktivní pro rychlejší odezvu"
+        "description": "Ponechá mikrofon otevřený, takže nahrávání začne rychleji."
       },
       "clamshellMicrophone": {
         "title": "Mikrofon při zavřeném víku",
-        "description": "Mikrofon, který se použije při zavřeném víku notebooku"
+        "description": "Mikrofon použitý při zavřeném víku notebooku."
       },
       "postProcessingToggle": {
         "label": "Následné zpracování",
-        "description": "Povolit AI vylepšení textu po přepisu"
+        "description": "Po přepisu přepíše text jazykovým modelem."
       },
       "muteWhileRecording": {
         "label": "Ztlumit při nahrávání",
@@ -1020,7 +1022,7 @@
       },
       "appendTrailingSpace": {
         "label": "Přidat koncovou mezeru",
-        "description": "Přidat mezeru po vloženém přepisu"
+        "description": "Přidá jednu mezeru po vloženém transcriptu."
       },
       "keyboardImplementation": {
         "title": "Implementace klávesnice",
@@ -1042,7 +1044,7 @@
       },
       "reliablePaste": {
         "title": "Spolehlivé vložení (Beta)",
-        "description": "Obnoví schránku teprve poté, co cílová aplikace skutečně přečte přepis, místo po pevně daném zpoždění. Má odstranit vkládání starého obsahu schránky při zatížení systému. Vyžaduje způsob vložení přes schránku; pouze macOS a Windows."
+        "description": "Obnoví schránku teprve poté, co cílová aplikace přečte přepis, místo po pevně daném zpoždění. Má odstranit vkládání starého obsahu schránky při zatížení systému. Vyžaduje způsob vložení přes schránku; pouze macOS a Windows."
       },
       "recordingBuffer": {
         "title": "Extra vyrovnávací paměť nahrávání",
@@ -1050,7 +1052,7 @@
       },
       "keyboardDiagnostic": {
         "title": "Diagnostika klávesnice",
-        "description": "Ověří, zda události klávesnice dorazí do Sona. Zaznamenává se pouze počet událostí — nikdy to, které klávesy stisknete.",
+        "description": "Ověří, zda události klávesnice dorazí do Sona. Zaznamenává se pouze počet událostí, nikdy to, které klávesy stisknete.",
         "run": "Spustit 10s diagnostiku",
         "running": "Naslouchání… několikrát stiskněte svou zkratku (např. Option+Space)",
         "secureInputLabel": "Secure Input",
@@ -1062,10 +1064,10 @@
         "keyUp": "Uvolnění klávesy",
         "flagsChanged": "Modifikátory",
         "mouse": "Myš",
-        "verdictBlocked": "Secure Input blokuje události kláves — zkratky obsahující běžnou klávesu nemohou fungovat, dokud se to nevyřeší.",
-        "verdictSuspicious": "Dorazily události modifikátorů, ale žádné události kláves — něco klávesy potlačuje, přestože Secure Input hlásí, že je vypnutý. Nahlaste to prosím na GitHubu.",
+        "verdictBlocked": "Secure Input blokuje události kláves, takže zkratky obsahující běžnou klávesu nemohou fungovat, dokud se to nevyřeší.",
+        "verdictSuspicious": "Dorazily události modifikátorů, ale žádné události kláves. Něco klávesy potlačuje, přestože Secure Input hlásí, že je vypnutý. Nahlaste to na GitHubu.",
         "verdictOk": "Události kláves dorazí do Sona normálně.",
-        "verdictNoEvents": "Nebyly zachyceny žádné události — stiskli jste během testu nějaké klávesy?",
+        "verdictNoEvents": "Během testu nebyly zachyceny žádné události.",
         "failed": "Diagnostika selhala: {{error}}"
       },
       "whatsNewPreview": {
@@ -1087,12 +1089,12 @@
       "title": "O aplikaci",
       "version": {
         "title": "Verze",
-        "description": "Aktuální verze Sona",
+        "description": "Verze, která nyní běží.",
         "unavailable": "Nedostupné"
       },
       "appDataDirectory": {
         "title": "Adresář dat aplikace",
-        "description": "Umístění, kde Sona ukládá data"
+        "description": "Kde Sona ukládá data."
       },
       "sourceCode": {
         "title": "Open-source licenses",
@@ -1101,15 +1103,15 @@
       },
       "supportDevelopment": {
         "title": "Podpořte vývoj",
-        "description": "Pomozte nám pokračovat ve vývoji Sona",
+        "description": "Dary financují další práci na Sona.",
         "button": "Přispět"
       },
       "acknowledgments": {
         "title": "Poděkování",
         "ggml": {
           "title": "ggml",
-          "description": "Vysoce výkonné inferenční zpracování modelu automatického rozpoznávání řeči Whisper od OpenAI",
-          "details": "Sona používá ggml pro rychlé lokální zpracování řeči na text. Díky skvělé práci Georgiho Gerganova a přispěvatelů."
+          "description": "Tenzorová knihovna pro inferenci strojového učení přímo na zařízení",
+          "details": "Lokální přepis řeči na text v Sona je postaven na transcribe.cpp a ggml. Díky Georgimu Gerganovovi a přispěvatelům."
         }
       },
       "whatsNewUpdates": {
@@ -1154,7 +1156,7 @@
           "label": "Activate in app",
           "description": "Capture the app currently in front and select this mode when you dictate there.",
           "action": "Capture current app",
-          "capturing": "Capturing..."
+          "capturing": "Capturing…"
         },
         "empty": "No app activates this mode.",
         "remove": "Remove",
@@ -1172,7 +1174,7 @@
             "label": "Aktivovat na webu",
             "description": "Zachyťte hostitele prohlížeče v popředí. Sona ukládá hostitele, ne adresu URL.",
             "action": "Zachytit aktuální web",
-            "capturing": "Zachytávání..."
+            "capturing": "Zachytávání…"
           },
           "empty": "Tento režim neaktivuje žádný web.",
           "exampleDescription": "Pravidlo ukládá jednoho hostitele prohlížeče, například mail.google.com."
@@ -1264,8 +1266,8 @@
         "model": {
           "label": "Transcription model",
           "description": "Only downloaded local models are available here.",
-          "inheritGlobal": "Výchozí – použije globální model",
-          "inheritGlobalNamed": "Výchozí – použije globální model ({{name}})"
+          "inheritGlobal": "Výchozí: globální model",
+          "inheritGlobalNamed": "Výchozí: globální model ({{name}})"
         },
         "language": {
           "label": "Language",
@@ -1422,7 +1424,7 @@
           "label": "Typing tool",
           "description": "Used only with direct typing.",
           "values": {
-            "auto": "Automatic",
+            "auto": "Auto",
             "wtype": "wtype",
             "kwtype": "kwtype",
             "dotool": "dotool",
@@ -1532,7 +1534,7 @@
           "error": "Browser URL capture could not be saved."
         },
         "cloudRoute": "Enabled cloud modes send allowed context to {{providers}}.",
-        "localRoute": "All your AI processing is local.",
+        "localRoute": "AI processing runs on this Mac.",
         "checkingRoute": "Checking configured cloud routes…"
       },
       "diagnostics": {
@@ -1599,7 +1601,7 @@
             "key_rejected": "Uložený klíč šifrovanou databázi neotevře, takže historii nelze číst.",
             "key_unavailable": "Systémové úložiště pověření nevrátilo použitelný klíč, takže historie je uložena nešifrovaně.",
             "migration_failed": "Šifrování stávající databáze selhalo. Nešifrovaná databáze je neporušená a stále se používá.",
-            "unlocking": "Otevírání šifrované databáze. Tato zpráva zmizí chvíli po spuštění."
+            "unlocking": "Otevírání šifrované databáze. Tato zpráva zmizí po dokončení spuštění."
           },
           "unknown": "Sona nemohla zjistit, jak je historie uložena.",
           "unlocking": "Odemykání",
@@ -1655,18 +1657,18 @@
         "import": "Import selected data",
         "importing": "Importing",
         "errors": {
-          "source_unavailable": "The original Sona data folder is unavailable.",
-          "upstream_running": "Close the original Sona app before importing.",
-          "app_state_unverifiable": "Sona cannot verify the original app state on this platform.",
+          "source_unavailable": "The legacy app's data folder is unavailable.",
+          "upstream_running": "Close the legacy app before importing.",
+          "app_state_unverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
           "invalid_selection": "Choose settings or history to import.",
-          "settings_unreadable": "The original settings file could not be read.",
+          "settings_unreadable": "The legacy settings file could not be read.",
           "secret_store_unavailable": "The native credential store is unavailable, so settings with provider keys were not imported.",
           "secret_conflict": "A provider key already exists in the native credential store. Resolve it before importing settings.",
-          "history_unreadable": "The original history database could not be read.",
+          "history_unreadable": "The legacy history database could not be read.",
           "recording_copy_failed": "A recording could not be copied and verified.",
           "receipt_write_failed": "The import receipt could not be saved.",
           "internal": "The import did not finish.",
-          "status": "The original Sona data could not be inspected."
+          "status": "The legacy app's data could not be inspected."
         }
       },
       "cloudSync": {
@@ -1854,7 +1856,7 @@
     "prompts": {
       "samples": {
         "title": "Ukázky psaní",
-        "description": "Ukázky vašeho vlastního psaní. Každý režim, který přepisuje přepis, se drží jejich tónu.",
+        "description": "Ukázky vašeho vlastního psaní. Režimy, které přepisují přepis, se drží tohoto tónu.",
         "placeholder": "Vložte odstavec, který jste napsali sami.",
         "sampleLabel": "Ukázka psaní {{number}}",
         "delete": "Smazat ukázku {{number}}",
@@ -1881,7 +1883,7 @@
     }
   },
   "common": {
-    "loading": "Načítání...",
+    "loading": "Načítání…",
     "delete": "Smazat",
     "cancel": "Zrušit",
     "close": "Zavřít",
@@ -1898,7 +1900,7 @@
   },
   "commandPalette": {
     "open": "Hledat",
-    "placeholder": "Napište příkaz nebo hledejte…",
+    "placeholder": "Napište příkaz nebo hledejte",
     "navigation": "Navigace",
     "actions": "Akce",
     "noResults": "Žádné příkazy nenalezeny",
@@ -1916,26 +1918,26 @@
   },
   "errors": {
     "noSpeechDetectedTitle": "Řeč nebyla rozpoznána",
-    "noSpeechDetected": "Řeč nebyla rozpoznána. Ukázka nahrávky byla uložena do Historie, abyste mohli zkontrolovat zaznamenaný zvuk.",
-    "loadDirectory": "Chyba při načítání adresáře: {{error}}",
+    "noSpeechDetected": "Řeč nebyla rozpoznána. Ukázka nahrávky byla uložena do Historie.",
+    "loadDirectory": "Adresář se nepodařilo načíst: {{error}}",
     "micPermissionDeniedTitle": "Přístup k mikrofonu odepřen",
     "micPermissionDenied": {
-      "generic": "Přístup k mikrofonu byl odepřen operačním systémem. Povolte prosím přístup k mikrofonu v nastavení systému.",
+      "generic": "Operační systém odepřel přístup k mikrofonu. Povolte přístup k mikrofonu v nastavení systému.",
       "windows": "Povolte přístup k mikrofonu v Nastavení → Soukromí a zabezpečení → Mikrofon (včetně přístupu desktopových aplikací).",
       "macos": "Povolte přístup k mikrofonu v Nastavení systému → Soukromí a zabezpečení → Mikrofon.",
       "linux": "Povolte přístup k mikrofonu v nastavení zvuku nebo soukromí vašeho systému."
     },
     "noInputDeviceTitle": "Nenalezen žádný mikrofon",
-    "noInputDevice": "Nebylo detekováno žádné zvukové vstupní zařízení. Připojte mikrofon nebo sluchátka a zkuste to znovu.",
+    "noInputDevice": "Nebylo detekováno žádné zvukové vstupní zařízení. Připojte mikrofon a zkuste to znovu.",
     "recordingFailed": "Nahrávání se nepodařilo spustit: {{error}}. Zkuste to znovu.",
     "modelLoadFailed": "{{model}} se nepodařilo načíst. Zkuste to znovu.",
     "modelLoadFailedUnknown": "neznámý model",
     "pasteFailedTitle": "Přepis se nepodařilo vložit",
-    "pasteFailed": "Text se nepodařilo vložit do aktivní aplikace. Klikněte do textového pole a zkuste to znovu.",
+    "pasteFailed": "Transcript se nepodařilo vložit do aktivní aplikace. Klikněte do textového pole a zkuste to znovu.",
     "transcriptionFailedTitle": "Přepsat se nepodařilo",
-    "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
-    "commandNoSelection": "Nebylo nic označeno. Označte text, který chcete změnit, pak přidržte zkratku pro příkaz a řekněte, co se má stát.",
-    "commandRewriteUnavailable": "Přepsání nic nevrátilo, takže označený text zůstal, jak byl. Zkontrolujte model pro přepisování v Nastavení > AI a zkuste to znovu.",
+    "noModelSelected": "Není vybrán žádný přepisovací model. Vyberte jej v Settings > Models.",
+    "commandNoSelection": "Označte text, který chcete změnit, pak přidržte zkratku pro příkaz a řekněte změnu.",
+    "commandRewriteUnavailable": "Přepsání nic nevrátilo, takže označený text zůstal, jak byl. Zkontrolujte poskytovatele v Settings > Post-processing a zkuste to znovu.",
     "noModelSelectedTitle": "Není vybrán model",
     "noSpeechSaveFailedTitle": "Vzorek neuložen",
     "captureOverrunTitle": "Přetečení záznamu",
@@ -1987,7 +1989,7 @@
     "recorderBlockedWithCulprit": "{{name}} může blokovat změny zkratek",
     "recorderBlockedNoCulprit": "macOS dočasně blokuje změny zkratek",
     "learnMore": "Jak to vyřešit",
-    "recorderBlocked": "Zkratky teď nelze nahrát — Secure Input v macOS blokuje události kláves. Nejprve vyřešte upozornění na Secure Input.",
+    "recorderBlocked": "Secure Input v macOS blokuje události kláves, takže zkratky nelze nahrát. Nejprve vyřešte upozornění na Secure Input.",
     "dismiss": "Zavřít"
   },
   "meetings": {
@@ -2067,6 +2069,7 @@
     },
     "detected": {
       "title": "Meeting detected",
+      "description": "Sona si všimla, že se používá aplikace pro schůzky.",
       "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
@@ -2277,7 +2280,7 @@
       "ask": "Ask locally",
       "noQuestions": "No saved local answers.",
       "question": "Question",
-      "insufficientEvidence": "I couldn’t find support for that in this meeting.",
+      "insufficientEvidence": "No supporting passage was found in this meeting.",
       "forget": "Forget this answer",
       "exactSearch": "Exact search",
       "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
@@ -2382,7 +2385,7 @@
       "title": "Meeting activity",
       "loading": "Loading meeting trends…",
       "error": "Couldn't load meeting trends.",
-      "unavailable": "Meeting trends are unavailable right now.",
+      "unavailable": "Meeting trends are unavailable.",
       "metricLabel": "Metric",
       "metrics": {
         "meetings": "Meetings",
@@ -2392,7 +2395,7 @@
       }
     },
     "list": {
-      "retentionHint": "Uchovávání: {{policy}}. Změníte je v Nastavení, Privacy.",
+      "retentionHint": "Uchovávání: {{policy}}. Změníte je v Settings > Privacy.",
       "searchLabel": "Hledat schůzky",
       "searchPlaceholder": "Hledat podle názvu",
       "clearFilters": "Vymazat filtry",
@@ -2482,13 +2485,13 @@
       "trackerName": "Název",
       "trackerPatterns": "sleva, nejlepší cena, příliš drahé",
       "trackerPatternsLabel": "Fráze oddělené čárkami",
-      "trackersSaveFailed": "Sona nemohla sledování uložit. Změňte jedno a zkuste to znovu."
+      "trackersSaveFailed": "Sona nemohla sledování uložit. Zkuste to znovu."
     },
     "notes": {
       "title": "Moje poznámky",
       "liveDescription": "Pište tak nahrubo, jak chcete. Tyto poznámky zůstávají na tomto Macu a určují poznámky, které Sona vytvoří po skončení schůzky.",
       "reviewDescription": "Vaše vlastní poznámky určují, co vygenerované poznámky zdůrazní. Nikdy se necitují ani neodkazují.",
-      "placeholder": "Cokoli, co stojí za zapamatování – jména, čísla, co dořešit",
+      "placeholder": "Cokoli, co stojí za zapamatování: jména, čísla, co dořešit",
       "unsaved": "Zatím neuloženo",
       "saving": "Ukládání…",
       "saved": "Poznámky uloženy",
@@ -2502,7 +2505,7 @@
       "catchUpTitle": "Zatím",
       "catchUpNoTranscript": "Zatím není co shrnout. Sona přepisuje po zastavení nahrávání, takže shrnutí bude, jakmile začne přepis přicházet.",
       "catchUpUnavailable": "Model v zařízení není dostupný, takže se žádné shrnutí nenapsalo.",
-      "catchUpFailed": "Sona nemohla shrnutí vytvořit. Zkuste to za chvíli znovu.",
+      "catchUpFailed": "Sona nemohla shrnutí vytvořit. Zkuste to znovu.",
       "templates": {
         "general": "Obecná schůzka",
         "one_on_one": "Jeden na jednoho",
@@ -2521,6 +2524,8 @@
         "huddle": "Rozpoznán huddle v {{app}}",
         "browser": "Rozpoznán hovor v {{app}}",
         "unknown": "Rozpoznána aktivita mikrofonu",
+        "calendarUntitled": "Začíná událost z kalendáře",
+        "generic": "Rozpoznána schůzka",
         "body": "Sona může pro tento hovor psát lokální poznámky."
       },
       "actions": {
@@ -2608,6 +2613,10 @@
         "more": "Více",
         "less": "Méně"
       },
+      "untitled": {
+        "calendar": "Událost v kalendáři",
+        "app": "Mikrofon se používá"
+      },
       "actions": {
         "skip": "Přeskočit"
       },
@@ -2676,7 +2685,7 @@
     },
     "recent": {
       "title": "Recent activity",
-      "history": "Transcription",
+      "history": "Dictation",
       "meeting": "Meeting",
       "viewAll": "Zobrazit vše",
       "words": "{{count}} slov",
@@ -2686,30 +2695,30 @@
     },
     "hero": {
       "ready": "Ready",
-      "recording": "Recording",
+      "recording": "Listening",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Režim: {{name}}",
       "setShortcut": "Nastavte zkratku pro diktování v Nastavení a zaznamenávejte z jakékoli aplikace.",
       "setShortcutAction": "Nastavit zkratku",
       "shortcutAction": "Změnit zkratku pro diktování",
-      "gestureTapHold": "Klepnutím přepnete, přidržením mluvíte, odkudkoli.",
-      "gestureTapOnly": "Klepnutím přepnete, odkudkoli."
+      "gestureTapHold": "Klepnutím přepnete, přidržením mluvíte.",
+      "gestureTapOnly": "Klepnutím přepnete."
     },
     "actions": {
       "dictate": "Dictate",
       "unavailable": "Shortcut unavailable"
     },
     "chart": {
-      "day": "{{date}} \\u00b7 diktáty {{dictations}}",
-      "dayWithMeetings": "{{date}} \\u00b7 diktáty {{dictations}} \\u00b7 schůzky {{meetings}}",
+      "day": "{{date}} · diktáty {{dictations}}",
+      "dayWithMeetings": "{{date}} · diktáty {{dictations}} · schůzky {{meetings}}",
       "legend": "Diktáty za den",
       "peak": "Nejrušnější den {{peak}}",
       "summary": "Diktáty za den od {{from}} do {{to}}. Celkem {{total}}, nejrušnější den {{peak}}."
     },
     "empty": {
       "action": "Otevřít knihovnu",
-      "description": "Podržte zkratku pro diktování v jakékoli aplikaci a Sona napíše, co říkáte. Statistiky používání a nedávné záznamy se zde zobrazí po prvním z nich.",
+      "description": "Podržte zkratku pro diktování v jakékoli aplikaci a Sona napíše, co říkáte. Statistiky používání a nedávné záznamy se zde zobrazí po prvním diktátu.",
       "title": "Zatím žádné záznamy"
     },
     "stats": {
@@ -2717,7 +2726,7 @@
       "allTime": "{{total}} celkem",
       "dictations": "Diktáty",
       "dictationsAllTime": "Diktáty, celkem",
-      "error": "Sona nyní nemohla načíst historii vašeho používání.",
+      "error": "Sona nemohla načíst historii vašeho používání.",
       "range": "{{from}} až {{to}}",
       "rangeUnavailable": "Posledních 30 dnů se nepodařilo načíst, takže jde o celkové součty.",
       "speaking": "Doba mluvení",
@@ -2758,7 +2767,7 @@
     "title": "Cloud Sync",
     "account": {
       "title": "Cloud Sync",
-      "description": "Keep meetings on this device unless you choose to set up sync.",
+      "description": "Meetings stay on this device until you set up sync.",
       "status": {
         "loading": "Checking sync…",
         "local": "Local only",

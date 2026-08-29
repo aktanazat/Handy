@@ -71,12 +71,12 @@ export const ModeRecognitionPanel: React.FC<ModeRecognitionPanelProps> = ({
     return globalModel
       ? t(
           "settings.modes.recognition.model.inheritGlobalNamed",
-          "Default \u2014 uses the global model ({{name}})",
+          "Default: the global model ({{name}})",
           { name: getTranslatedModelName(globalModel, t) },
         )
       : t(
           "settings.modes.recognition.model.inheritGlobal",
-          "Default \u2014 uses the global model",
+          "Default: the global model",
         );
   }, [globalModelId, models, t]);
 

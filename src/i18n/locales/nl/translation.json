@@ -42,7 +42,7 @@
     "settings": "Settings"
   },
   "onboarding": {
-    "subtitle": "Kies een transcriptiemodel om aan de slag te gaan",
+    "subtitle": "Modellen draaien op deze Mac en wegen nauwkeurigheid af tegen snelheid",
     "existingModelsTitle": "Compatibele modellen",
     "downloadModelsTitle": "Beschikbaar voor download",
     "showAllModels": "Toon alle {{total}} modellen",
@@ -72,7 +72,7 @@
       },
       "parakeet-tdt-0.6b-v2": {
         "name": "Parakeet V2",
-        "description": "Alleen Engels. Het beste model voor Engelstaligen."
+        "description": "Alleen Engels. Snel en nauwkeurig."
       },
       "parakeet-tdt-0.6b-v3": {
         "name": "Parakeet V3",
@@ -116,7 +116,7 @@
       },
       "cohere-int8": {
         "name": "Cohere",
-        "description": "Een groot, trager, maar zeer nauwkeurig meertalig model."
+        "description": "Groot meertalig model. Traag maar nauwkeurig."
       }
     },
     "errors": {
@@ -124,7 +124,7 @@
     },
     "permissions": {
       "title": "Machtigingen vereist",
-      "description": "Sona heeft een aantal machtigingen nodig om goed te kunnen werken.",
+      "description": "Sona heeft toegang tot de microfoon en toegankelijkheid nodig.",
       "microphone": {
         "title": "Microfoontoegang",
         "description": "Vereist om je stem op te nemen voor transcriptie."
@@ -135,39 +135,40 @@
       },
       "grant": "Machtiging verlenen",
       "granted": "Verleend",
-      "waiting": "Wachten...",
-      "allGranted": "Alles ingesteld!",
+      "waiting": "Wachten…",
+      "allGranted": "Beide verleend",
       "errors": {
         "checkFailed": "Kon de rechten niet controleren. Probeer het opnieuw.",
         "requestFailed": "Kon de toestemming niet aanvragen. Probeer het opnieuw."
       },
       "headline": "Eenmalige installatie",
-      "subhead": "Je computer vraagt het eerst voordat een app kan meeluisteren of voor je kan typen. Geef deze rechten één keer en Sona vraagt het niet meer.",
+      "subhead": "Je systeem vraagt het eerst voordat een app kan meeluisteren of typen.",
       "checking": "Rechten worden gecontroleerd",
       "recheck": "Opnieuw controleren"
     },
-    "headline": "Kies een spraakmodel"
+    "headline": "Kies een transcriptiemodel"
   },
   "modelSelector": {
     "custom": "Aangepast",
     "legacy": "Klassiek",
     "streaming": "Streaming",
     "active": "Actief",
-    "switching": "Wisselen...",
+    "switching": "Wisselen…",
     "noModelsAvailable": "Geen modellen beschikbaar",
-    "verifying": "Verifiëren van {{modelName}}...",
-    "verifyingGeneric": "Verifiëren...",
-    "extracting": "Uitpakken van {{modelName}}...",
-    "extractingMultiple": "Uitpakken van {{count}} modellen...",
-    "extractingGeneric": "Uitpakken...",
+    "verifying": "Verifiëren van {{modelName}}…",
+    "verifyingGeneric": "Verifiëren…",
+    "extracting": "Uitpakken van {{modelName}}…",
+    "extractingMultiple": "Uitpakken van {{count}} modellen…",
+    "extractingGeneric": "Uitpakken…",
     "downloading": "Downloaden {{percentage}}%",
-    "downloadingMultiple": "Downloaden van {{count}} modellen...",
+    "downloadingMultiple": "Downloaden van {{count}} modellen…",
+    "downloadingGeneric": "Downloading…",
     "modelReady": "Model gereed",
-    "loading": "Laden van {{modelName}}...",
-    "loadingGeneric": "Laden...",
+    "loading": "Laden van {{modelName}}…",
+    "loadingGeneric": "Laden…",
     "modelError": "Modelfout",
     "modelUnloaded": "Model ontladen",
-    "noModelDownloadRequired": "Geen model - Download vereist",
+    "noModelDownloadRequired": "Geen model, download vereist",
     "deleteModel": "{{modelName}} verwijderen",
     "downloadSpeed": "{{speed}} MB/s",
     "cancel": "Annuleren",
@@ -191,8 +192,8 @@
       "title": "Algemeen",
       "shortcut": {
         "title": "Sneltoetsen",
-        "description": "Configureer sneltoetsen om spraak-naar-tekst-opnames te starten",
-        "loading": "Sneltoetsen laden...",
+        "description": "Sneltoetsen voor opnemen en herschrijven.",
+        "loading": "Sneltoetsen laden…",
         "none": "Geen sneltoetsen geconfigureerd",
         "notFound": "Sneltoets niet gevonden",
         "pressKeys": "Druk je toetsen in…",
@@ -207,7 +208,7 @@
           },
           "transcribe_with_post_process": {
             "name": "Sneltoets voor naverwerking",
-            "description": "Optioneel: Een specifieke sneltoets die altijd AI-naverwerking toepast op je transcriptie."
+            "description": "Een optionele sneltoets die altijd AI-opschoning toepast op de transcriptie."
           },
           "command": {
             "name": "Opdrachtsneltoets",
@@ -216,7 +217,7 @@
         },
         "errors": {
           "restore": "Kon de oorspronkelijke sneltoets niet herstellen. Probeer het opnieuw.",
-          "set": "Instellen van sneltoets mislukt: {{error}}",
+          "set": "Kon de sneltoets niet instellen: {{error}}",
           "reset": "Kon de sneltoets niet terugzetten. Probeer het opnieuw."
         },
         "holdHint": "Tik om te wisselen, houd vast om te praten. Werkt met elke sneltoets.",
@@ -226,8 +227,8 @@
       },
       "language": {
         "title": "Taal",
-        "description": "Selecteer de taal voor spraakherkenning. 'Automatisch' detecteert de taal vanzelf, terwijl het kiezen van een specifieke taal de nauwkeurigheid voor die taal kan verbeteren.",
-        "searchPlaceholder": "Talen zoeken...",
+        "description": "De taal die voor spraakherkenning wordt gebruikt. 'Automatisch' detecteert de taal; een taal opgeven kan de nauwkeurigheid verbeteren.",
+        "searchPlaceholder": "Talen zoeken",
         "noResults": "Geen talen gevonden",
         "auto": "Automatisch"
       },
@@ -240,7 +241,7 @@
         "title": "Weergave",
         "material": {
           "title": "Materiaal",
-          "description": "Vast tekent Sona's eigen oppervlakken. Glas laat het bureaublad door de bovenbalk, het opdrachtenpalet en de opname-HUD zien.",
+          "description": "Vast houdt Sona's oppervlakken ondoorzichtig. Glas laat het bureaublad doorschijnen in de bovenbalk, het opdrachtenpalet en de opname-HUD.",
           "options": {
             "solid": "Vast",
             "glass": "Glas"
@@ -255,17 +256,17 @@
     },
     "models": {
       "title": "Transcriptiemodellen",
-      "description": "Selecteer een transcriptiemodel of download extra modellen. Verschillende modellen bieden variërende niveaus van nauwkeurigheid en snelheid.",
-      "searchPlaceholder": "Modellen zoeken op naam...",
+      "description": "Het model dat spraak omzet in tekst. Modellen wegen nauwkeurigheid af tegen snelheid.",
+      "searchPlaceholder": "Modellen zoeken op naam",
       "yourModels": "Gedownloade modellen",
       "availableModels": "Beschikbaar voor download",
-      "deleteConfirm": "Weet je zeker dat je {{modelName}} wilt verwijderen? Je moet het model opnieuw downloaden om het weer te gebruiken.",
-      "deleteActiveConfirm": "{{modelName}} is je actieve model. Als je dit verwijdert, stoppen de transcripties totdat je een nieuw model selecteert. Weet je het zeker?",
+      "deleteConfirm": "{{modelName}} verwijderen? Om het weer te gebruiken moet je het opnieuw downloaden.",
+      "deleteActiveConfirm": "{{modelName}} is het actieve model. Als je het verwijdert, stopt de transcriptie totdat je een ander model selecteert.",
       "deleteTitle": "Model verwijderen",
       "filters": {
         "allLanguages": "Alle talen",
-        "streaming": "Filter modellen die live transcriptie ondersteunen",
-        "translation": "Filter modellen die vertaling naar het Engels ondersteunen",
+        "streaming": "Toon alleen modellen met live transcriptie",
+        "translation": "Toon alleen modellen die naar het Engels vertalen",
         "allFamilies": "Alle families",
         "clear": "Filters wissen",
         "downloadedOnly": "Op schijf",
@@ -355,29 +356,29 @@
       "title": "Geluid",
       "microphone": {
         "title": "Microfoon",
-        "description": "Selecteer de gewenste microfoon",
-        "placeholder": "Microfoon selecteren...",
-        "loading": "Laden..."
+        "description": "De microfoon waarvan Sona opneemt.",
+        "placeholder": "Selecteer een microfoon",
+        "loading": "Laden…"
       },
       "channel": {
         "title": "Ingangskanaal",
-        "description": "Selecteer het ingangskanaal waarvan moet worden opgenomen. Gebruik dit als je audio-interface meerdere ingangen heeft.",
+        "description": "Van welk ingangskanaal wordt opgenomen, als een interface er meer dan één heeft.",
         "average": "Gemiddelde van alle kanalen",
         "channel": "Kanaal {{n}}"
       },
       "audioFeedback": {
         "label": "Geluidsfeedback",
-        "description": "Geluid afspelen wanneer de opname start en stopt"
+        "description": "Geluid afspelen wanneer de opname start en stopt."
       },
       "outputDevice": {
         "title": "Afspeelapparaat",
-        "description": "Selecteer het gewenste audioapparaat voor feedbackgeluiden",
-        "placeholder": "Afspeelapparaat selecteren...",
-        "loading": "Laden..."
+        "description": "Waar feedbackgeluiden worden afgespeeld.",
+        "placeholder": "Selecteer een afspeelapparaat",
+        "loading": "Laden…"
       },
       "volume": {
         "title": "Volume",
-        "description": "Pas het volume van de geluidsfeedback aan"
+        "description": "Volume van de feedbackgeluiden."
       }
     },
     "advanced": {
@@ -398,11 +399,11 @@
       },
       "experimentalToggle": {
         "label": "Experimentele functies",
-        "description": "Schakel experimentele functies in die nog in ontwikkeling zijn."
+        "description": "Toont opties die nog in ontwikkeling zijn."
       },
       "lazyStreamClose": {
         "label": "Microfoon openhouden tussen transcripties",
-        "description": "Houdt de microfoonstream tot 30 seconden open nadat een opname stopt. Dit vermindert de vertraging bij opeenvolgende opnames, maar kan de Bluetooth-audiokwaliteit tijdelijk verminderen."
+        "description": "Houdt de microfoonstream 30 seconden open nadat een opname stopt, zodat opeenvolgende transcripties sneller starten. De Bluetooth-audiokwaliteit kan intussen afnemen."
       },
       "acceleration": {
         "transcribe": {
@@ -423,7 +424,7 @@
       },
       "autostart": {
         "label": "Starten bij opstarten",
-        "description": "Sona automatisch starten zodra je inlogt op je computer."
+        "description": "Start Sona zodra je inlogt."
       },
       "showTrayIcon": {
         "label": "Pictogram in systeemvak tonen",
@@ -450,7 +451,7 @@
       },
       "pasteMethod": {
         "title": "Plakmethode",
-        "description": "Kies hoe tekst wordt ingevoegd. 'Direct' simuleert typen via het systeem. 'Geen' slaat het plakken over en werkt alleen de geschiedenis en het klembord bij.",
+        "description": "Hoe tekst wordt ingevoegd. 'Direct' simuleert typen via het systeem. 'Geen' slaat het plakken over en werkt alleen de geschiedenis en het klembord bij.",
         "options": {
           "clipboard": "Klembord ({{modifier}}+V)",
           "clipboardCtrlShiftV": "Klembord (Ctrl+Shift+V)",
@@ -463,14 +464,14 @@
       },
       "typingTool": {
         "title": "Typgereedschap",
-        "description": "Kies welke Linux-typtool gebruikt moet worden voor de 'Directe' plakmethode. 'Automatisch' detecteert zelf de beste optie voor jouw systeem.",
+        "description": "De Linux-typtool die de 'Directe' plakmethode gebruikt. 'Automatisch' detecteert een beschikbare tool.",
         "options": {
           "auto": "Automatisch (Aanbevolen)"
         }
       },
       "clipboardHandling": {
         "title": "Klembordbeheer",
-        "description": "'Klembord niet aanpassen' behoudt je huidige klembordinhoud na een transcriptie. 'Kopiëren naar klembord' laat de getranscribeerde tekst achter op je klembord.",
+        "description": "'Klembord niet aanpassen' behoudt je klembordinhoud. 'Kopiëren naar klembord' laat het transcript daar achter na het plakken.",
         "options": {
           "dontModify": "Klembord niet aanpassen",
           "copyToClipboard": "Kopiëren naar klembord"
@@ -478,7 +479,7 @@
       },
       "autoSubmit": {
         "title": "Automatisch verzenden",
-        "description": "Verzend automatisch de geselecteerde toetsencombinatie na het invoegen van de tekst. Cmd+Enter geldt voor macOS, Windows/Linux gebruiken Super+Enter.",
+        "description": "Verzendt de geselecteerde toetsencombinatie nadat de tekst is ingevoegd. Cmd+Enter op macOS, Super+Enter op Windows en Linux.",
         "options": {
           "off": "Uit",
           "enter": "Enter",
@@ -489,11 +490,11 @@
       },
       "translateToEnglish": {
         "label": "Vertalen naar het Engels",
-        "description": "Vertaal spraak uit andere talen tijdens het transcriberen automatisch naar het Engels."
+        "description": "Vertaal spraak uit andere talen tijdens het transcriberen naar het Engels."
       },
       "modelUnload": {
         "title": "Model ontladen",
-        "description": "Geheugen (GPU/CPU) automatisch vrijmaken wanneer het model voor de opgegeven tijd niet is gebruikt",
+        "description": "Maakt GPU- en CPU-geheugen vrij nadat het model zo lang niet is gebruikt.",
         "options": {
           "never": "Nooit",
           "immediately": "Direct",
@@ -568,7 +569,7 @@
       },
       "fillerWordRemoval": {
         "title": "Opvulwoorden verwijderen",
-        "description": "Verwijdert veelvoorkomende aarzelwoorden uit transcripties. Schakel dit uit om ze te behouden."
+        "description": "Verwijdert veelvoorkomende aarzelwoorden uit het transcript."
       },
       "emoji": {
         "enabledLabel": "Emoji-vervangingen inschakelen",
@@ -689,18 +690,18 @@
         },
         "noPrompts": "Geen prompts beschikbaar",
         "selectPrompt": "Selecteer een prompt",
-        "createNew": "Nieuwe prompt maken",
+        "createNew": "Nieuwe prompt",
         "promptLabel": "Promptnaam",
-        "promptLabelPlaceholder": "Voer promptnaam in",
-        "promptInstructions": "Prompt-instructies",
-        "promptInstructionsPlaceholder": "Schrijf de instructies die na de transcriptie moeten worden uitgevoerd. Voorbeeld: Verbeter de grammatica en helderheid van de volgende tekst: ${output}",
-        "promptTip": "Tip: Gebruik <code>${output}</code> om de getranscribeerde tekst in je prompt in te voegen.",
+        "promptLabelPlaceholder": "Geef deze prompt een naam",
+        "promptInstructions": "Instructies",
+        "promptInstructionsPlaceholder": "Verbeter de grammatica en helderheid van de volgende tekst: ${output}",
+        "promptTip": "Schrijf <code>${output}</code> waar de transcriptie moet worden ingevoegd.",
         "updatePrompt": "Prompt bijwerken",
         "deletePrompt": "Prompt verwijderen",
         "createPrompt": "Prompt maken",
         "cancel": "Annuleren",
-        "selectToEdit": "Selecteer hierboven een prompt om de details te bekijken en te bewerken.",
-        "createFirst": "Klik hierboven op 'Nieuwe prompt maken' om je eerste naverwerkingsprompt aan te maken.",
+        "selectToEdit": "Selecteer een prompt om te bewerken.",
+        "createFirst": "Maak een prompt om transcripties na te verwerken.",
         "empty": {
           "description": "Een prompt vertelt het model wat het met het transcript moet doen, bijvoorbeeld: herschrijf het volgende als een kort bericht en behoud elk feit: ${output}"
         },
@@ -740,7 +741,7 @@
     "history": {
       "stats": {
         "title": "Gebruik in totaal",
-        "loading": "Gebruik laden...",
+        "loading": "Gebruik laden…",
         "unavailable": "Gebruiksstatistieken zijn niet beschikbaar.",
         "entries": "opnamen",
         "duration": "opnametijd",
@@ -753,24 +754,24 @@
       },
       "title": "Geschiedenis",
       "openFolder": "Opnamemap openen",
-      "loading": "Geschiedenis laden...",
-      "empty": "Nog geen transcripties. Start met opnemen om je geschiedenis op te bouwen!",
+      "loading": "Geschiedenis laden…",
+      "empty": "Nog geen opnames.",
       "copyToClipboard": "Transcriptie naar klembord kopiëren",
-      "save": "Transcriptie opslaan",
+      "save": "Item opslaan",
       "unsave": "Verwijderen uit opgeslagen",
       "delete": "Item verwijderen",
       "deleteError": "Kon het item niet verwijderen. Probeer het opnieuw.",
       "retranscribe": "Opnieuw transcriberen",
       "retranscribeError": "Kon niet opnieuw transcriberen. Probeer het opnieuw.",
-      "transcribing": "Transcriberen...",
-      "transcriptionFailed": "Transcriptie mislukt. Je kunt het opnieuw proberen via het herlaad-pictogram.",
+      "transcribing": "Transcriberen…",
+      "transcriptionFailed": "Transcriptie mislukt.",
       "search": "Zoeken in geschiedenis",
-      "searchPlaceholder": "Transcripties zoeken...",
+      "searchPlaceholder": "Transcripties zoeken",
       "noResults": "Geen transcripties komen overeen met \"{{query}}\".",
       "loadError": "Geschiedenis kon niet worden geladen.",
       "retry": "Opnieuw proberen",
       "saveError": "Kon de bewaarstatus niet bijwerken. Probeer het opnieuw.",
-      "postProcessEmpty": "Nabewerking heeft geen tekst opgeleverd. De originele transcriptie wordt weergegeven.",
+      "postProcessEmpty": "Naverwerking heeft geen tekst opgeleverd. De originele transcriptie wordt weergegeven.",
       "textView": {
         "label": "Transcriptieweergave",
         "processed": "Verwerkt",
@@ -962,22 +963,22 @@
       "title": "Probleemoplossing",
       "logDirectory": {
         "title": "Logboekmap",
-        "description": "Locatie waar logbestanden worden opgeslagen"
+        "description": "Waar logbestanden worden weggeschreven."
       },
       "logLevel": {
         "title": "Logboekniveau",
-        "description": "Stel de gedetailleerdheid van de logboeken in"
+        "description": "Hoeveel detail het logboek vastlegt."
       },
       "liveLogs": {
         "title": "Live logboeken",
-        "description": "Streamt applicatielogs in realtime om problemen te diagnosticeren zonder het logbestand te openen. Alleen logs die worden gegenereerd terwijl dit paneel open is worden getoond; dit respecteert het bovenstaande logboekniveau.",
+        "description": "Streamt logregels zodra ze worden gegenereerd. Alleen regels die worden gegenereerd terwijl dit paneel open is verschijnen hier, op het hierboven ingestelde logboekniveau.",
         "live": "Live",
         "paused": "Gepauzeerd",
         "pause": "Pauzeren",
         "resume": "Hervatten",
         "copied": "Gekopieerd",
         "lineCount": "{{count}} regels",
-        "empty": "Wachten op logboeken... Meldingen verschijnen hier zodra de app ze genereert."
+        "empty": "Wachten op logboeken. Regels verschijnen hier zodra de app ze genereert."
       },
       "whatsNewPreview": {
         "title": "Voorbeeld van release-notes",
@@ -988,7 +989,8 @@
       },
       "soundTheme": {
         "label": "Geluidsthema",
-        "description": "Kies een geluidsthema voor feedback bij het starten en stoppen van opnames"
+        "description": "Welke geluiden worden afgespeeld wanneer de opname start en stopt.",
+        "preview": "Preview the start and stop sounds"
       },
       "wordCorrectionThreshold": {
         "title": "Drempelwaarde woordcorrectie",
@@ -996,30 +998,30 @@
       },
       "historyLimit": {
         "title": "Geschiedenislimiet",
-        "description": "Maximum aantal te bewaren geschiedenisitems",
+        "description": "Hoeveel geschiedenisitems worden bewaard.",
         "entries": "items"
       },
       "recordingRetention": {
         "title": "Opnames automatisch verwijderen",
-        "description": "Oude opnames automatisch verwijderen om ruimte te besparen",
+        "description": "Opnames na deze periode verwijderen.",
         "never": "Nooit",
         "preserveLimit": "Bewaar de nieuwste {{count}}",
         "days3": "Na 3 dagen",
         "weeks2": "Na 2 weken",
         "months3": "Na 3 maanden",
-        "placeholder": "Selecteer bewaarperiode..."
+        "placeholder": "Selecteer een bewaarperiode"
       },
       "alwaysOnMicrophone": {
         "label": "Microfoon altijd aan",
-        "description": "Houd de microfoon actief voor een snellere reactietijd"
+        "description": "Houdt de microfoon open zodat een opname sneller start."
       },
       "clamshellMicrophone": {
         "title": "Clamshell-microfoon",
-        "description": "Microfoon die gebruikt moet worden wanneer het laptopscherm gesloten is"
+        "description": "De microfoon die wordt gebruikt wanneer het laptopscherm gesloten is."
       },
       "postProcessingToggle": {
         "label": "Naverwerking",
-        "description": "Schakel AI-gestuurde tekstverfijning in na transcriptie"
+        "description": "Herschrijf de transcriptie met een taalmodel na de transcriptie."
       },
       "muteWhileRecording": {
         "label": "Dempen tijdens opname",
@@ -1027,7 +1029,7 @@
       },
       "appendTrailingSpace": {
         "label": "Spatie achteraan toevoegen",
-        "description": "Voeg een spatie toe na de geplakte transcriptie"
+        "description": "Voegt één spatie toe na het geplakte transcript."
       },
       "keyboardImplementation": {
         "title": "Toetsenbord-implementatie",
@@ -1049,7 +1051,7 @@
       },
       "reliablePaste": {
         "title": "Betrouwbaar plakken (Beta)",
-        "description": "Herstel het klembord pas nadat de doelapp de transcriptie daadwerkelijk heeft gelezen, in plaats van na een vaste vertraging. Bedoeld om te verhelpen dat bij systeembelasting de oude klembordinhoud wordt geplakt. Vereist een plakmethode via het klembord; alleen macOS en Windows."
+        "description": "Herstel het klembord pas nadat de doelapp de transcriptie heeft gelezen, in plaats van na een vaste vertraging. Bedoeld om te verhelpen dat bij systeembelasting de oude klembordinhoud wordt geplakt. Vereist een plakmethode via het klembord; alleen macOS en Windows."
       },
       "recordingBuffer": {
         "title": "Extra opnamebuffer",
@@ -1057,7 +1059,7 @@
       },
       "keyboardDiagnostic": {
         "title": "Toetsenborddiagnose",
-        "description": "Controleert of toetsenbordgebeurtenissen Sona bereiken. Alleen het aantal gebeurtenissen wordt vastgelegd — nooit welke toetsen je indrukt.",
+        "description": "Controleert of toetsenbordgebeurtenissen Sona bereiken. Alleen het aantal gebeurtenissen wordt vastgelegd, nooit welke toetsen je indrukt.",
         "run": "Diagnose van 10 s uitvoeren",
         "running": "Luisteren… druk je sneltoets een paar keer in (bijv. Option+Space)",
         "secureInputLabel": "Secure Input",
@@ -1069,10 +1071,10 @@
         "keyUp": "Toets losgelaten",
         "flagsChanged": "Modificatietoetsen",
         "mouse": "Muis",
-        "verdictBlocked": "Secure Input blokkeert toetsgebeurtenissen — sneltoetsen met een gewone toets kunnen pas weer werken als dit is opgelost.",
-        "verdictSuspicious": "Er kwamen wel modificatiegebeurtenissen binnen, maar geen toetsgebeurtenissen — iets onderdrukt toetsen terwijl Secure Input als uitgeschakeld wordt gemeld. Meld dit op GitHub.",
+        "verdictBlocked": "Secure Input blokkeert toetsgebeurtenissen, dus sneltoetsen met een gewone toets kunnen pas weer werken als dit is opgelost.",
+        "verdictSuspicious": "Er kwamen wel modificatiegebeurtenissen binnen, maar geen toetsgebeurtenissen. Iets onderdrukt toetsen terwijl Secure Input als uitgeschakeld wordt gemeld. Meld dit op GitHub.",
         "verdictOk": "Toetsgebeurtenissen bereiken Sona normaal.",
-        "verdictNoEvents": "Geen gebeurtenissen vastgelegd — heb je tijdens de test toetsen ingedrukt?",
+        "verdictNoEvents": "Er zijn tijdens de test geen gebeurtenissen vastgelegd.",
         "failed": "Diagnose mislukt: {{error}}"
       },
       "description": "Instrumentatie en niet-ondersteunde knoppen. Zichtbaar omdat debugmodus aan staat.",
@@ -1087,7 +1089,7 @@
       "title": "Over Sona",
       "version": {
         "title": "Versie",
-        "description": "Huidige versie van Sona",
+        "description": "De versie die nu draait.",
         "unavailable": "Niet beschikbaar"
       },
       "whatsNewUpdates": {
@@ -1096,7 +1098,7 @@
       },
       "appDataDirectory": {
         "title": "App-datamap",
-        "description": "Locatie waar Sona de gegevens opslaat"
+        "description": "Waar Sona de gegevens opslaat."
       },
       "sourceCode": {
         "title": "Open-source licenses",
@@ -1105,15 +1107,15 @@
       },
       "supportDevelopment": {
         "title": "Ontwikkeling ondersteunen",
-        "description": "Help ons om te blijven bouwen aan Sona",
+        "description": "Donaties financieren het verdere werk aan Sona.",
         "button": "Doneren"
       },
       "acknowledgments": {
         "title": "Dankbetuigingen",
         "ggml": {
           "title": "ggml",
-          "description": "Krachtige tensorbibliotheek voor lokale AI-verwerking",
-          "details": "Sona's lokale spraak-naar-tekst is gebouwd op transcribe.cpp en ggml. Met dank aan het geweldige werk van Georgi Gerganov en alle bijdragers."
+          "description": "Tensorbibliotheek voor lokale AI-verwerking",
+          "details": "Sona's lokale spraak-naar-tekst is gebouwd op transcribe.cpp en ggml. Met dank aan Georgi Gerganov en alle bijdragers."
         }
       },
       "description": "Welke build je draait, waar die vandaan komt en waar je bestanden worden bewaard.",
@@ -1154,7 +1156,7 @@
           "label": "Activate in app",
           "description": "Capture the app currently in front and select this mode when you dictate there.",
           "action": "Capture current app",
-          "capturing": "Capturing..."
+          "capturing": "Capturing…"
         },
         "empty": "No app activates this mode.",
         "remove": "Remove",
@@ -1172,7 +1174,7 @@
             "label": "Activeren op website",
             "description": "Leg de host van de voorste browser vast. Sona bewaart de host, niet de URL.",
             "action": "Huidige website vastleggen",
-            "capturing": "Vastleggen..."
+            "capturing": "Vastleggen…"
           },
           "empty": "Geen website activeert deze modus.",
           "exampleDescription": "Een regel bewaart één browserhost, bijvoorbeeld mail.google.com."
@@ -1264,8 +1266,8 @@
         "model": {
           "label": "Transcription model",
           "description": "Only downloaded local models are available here.",
-          "inheritGlobal": "Standaard — gebruikt het globale model",
-          "inheritGlobalNamed": "Standaard — gebruikt het globale model ({{name}})"
+          "inheritGlobal": "Standaard: het globale model",
+          "inheritGlobalNamed": "Standaard: het globale model ({{name}})"
         },
         "language": {
           "label": "Language",
@@ -1422,7 +1424,7 @@
           "label": "Typing tool",
           "description": "Used only with direct typing.",
           "values": {
-            "auto": "Automatic",
+            "auto": "Auto",
             "wtype": "wtype",
             "kwtype": "kwtype",
             "dotool": "dotool",
@@ -1532,7 +1534,7 @@
           "error": "Browser URL capture could not be saved."
         },
         "cloudRoute": "Enabled cloud modes send allowed context to {{providers}}.",
-        "localRoute": "All your AI processing is local.",
+        "localRoute": "AI processing runs on this Mac.",
         "checkingRoute": "Checking configured cloud routes…"
       },
       "diagnostics": {
@@ -1599,7 +1601,7 @@
             "key_rejected": "De opgeslagen sleutel opent de versleutelde database niet, dus de geschiedenis kan niet worden gelezen.",
             "key_unavailable": "De systeemsleutelopslag gaf geen bruikbare sleutel terug, dus de geschiedenis wordt onversleuteld opgeslagen.",
             "migration_failed": "Het versleutelen van de bestaande database is mislukt. De onversleutelde database is intact en nog in gebruik.",
-            "unlocking": "De versleutelde database wordt geopend. Dit verdwijnt kort na het opstarten."
+            "unlocking": "De versleutelde database wordt geopend. Dit verdwijnt zodra het opstarten klaar is."
           },
           "unknown": "Sona kon niet lezen hoe de geschiedenis is opgeslagen.",
           "unlocking": "Ontgrendelen",
@@ -1655,18 +1657,18 @@
         "import": "Import selected data",
         "importing": "Importing",
         "errors": {
-          "source_unavailable": "The original Sona data folder is unavailable.",
-          "upstream_running": "Close the original Sona app before importing.",
-          "app_state_unverifiable": "Sona cannot verify the original app state on this platform.",
+          "source_unavailable": "The legacy app's data folder is unavailable.",
+          "upstream_running": "Close the legacy app before importing.",
+          "app_state_unverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
           "invalid_selection": "Choose settings or history to import.",
-          "settings_unreadable": "The original settings file could not be read.",
+          "settings_unreadable": "The legacy settings file could not be read.",
           "secret_store_unavailable": "The native credential store is unavailable, so settings with provider keys were not imported.",
           "secret_conflict": "A provider key already exists in the native credential store. Resolve it before importing settings.",
-          "history_unreadable": "The original history database could not be read.",
+          "history_unreadable": "The legacy history database could not be read.",
           "recording_copy_failed": "A recording could not be copied and verified.",
           "receipt_write_failed": "The import receipt could not be saved.",
           "internal": "The import did not finish.",
-          "status": "The original Sona data could not be inspected."
+          "status": "The legacy app's data could not be inspected."
         }
       },
       "cloudSync": {
@@ -1854,7 +1856,7 @@
     "prompts": {
       "samples": {
         "title": "Schrijfvoorbeelden",
-        "description": "Voorbeelden van je eigen schrijven. Elke modus die een transcriptie herschrijft neemt die toon over.",
+        "description": "Voorbeelden van je eigen schrijven. Modi die een transcriptie herschrijven nemen deze toon over.",
         "placeholder": "Plak een alinea die je zelf hebt geschreven.",
         "sampleLabel": "Schrijfvoorbeeld {{number}}",
         "delete": "Voorbeeld {{number}} verwijderen",
@@ -1884,7 +1886,7 @@
     "title": "Nieuw in Sona v{{version}}"
   },
   "common": {
-    "loading": "Laden...",
+    "loading": "Laden…",
     "delete": "Verwijderen",
     "cancel": "Annuleren",
     "close": "Sluiten",
@@ -1901,7 +1903,7 @@
   },
   "commandPalette": {
     "open": "Zoeken",
-    "placeholder": "Typ een opdracht of zoek…",
+    "placeholder": "Typ een opdracht of zoek",
     "navigation": "Navigatie",
     "actions": "Acties",
     "noResults": "Geen opdrachten gevonden",
@@ -1919,26 +1921,26 @@
   },
   "errors": {
     "noSpeechDetectedTitle": "Geen spraak gedetecteerd",
-    "noSpeechDetected": "Er is geen spraak gedetecteerd. Een fragment van de opname is opgeslagen in Geschiedenis, zodat je de opgenomen audio kunt controleren.",
-    "loadDirectory": "Fout bij laden van map: {{error}}",
+    "noSpeechDetected": "Er is geen spraak gedetecteerd. Een fragment van de opname is opgeslagen in Geschiedenis.",
+    "loadDirectory": "Kon de map niet laden: {{error}}",
     "micPermissionDeniedTitle": "Microfoontoegang geweigerd",
     "micPermissionDenied": {
-      "generic": "Microfoontoegang is geweigerd door het besturingssysteem. Verleen microfoonmachtiging in je systeeminstellingen.",
+      "generic": "Het besturingssysteem heeft microfoontoegang geweigerd. Verleen microfoontoegang in je systeeminstellingen.",
       "windows": "Schakel microfoontoegang in via Instellingen → Privacy & beveiliging → Microfoon (inclusief toegang voor desktop-apps).",
       "macos": "Verleen microfoontoegang via Systeeminstellingen → Privacy & Beveiliging → Microfoon.",
       "linux": "Verleen microfoontoegang in de geluids- of privacyinstellingen van je systeem."
     },
     "noInputDeviceTitle": "Geen microfoon gevonden",
-    "noInputDevice": "Er is geen audio-invoerapparaat gedetecteerd. Sluit een microfoon of headset aan en probeer het opnieuw.",
+    "noInputDevice": "Er is geen audio-invoerapparaat gedetecteerd. Sluit een microfoon aan en probeer het opnieuw.",
     "recordingFailed": "Kon de opname niet starten: {{error}}. Probeer het opnieuw.",
     "modelLoadFailed": "Kon {{model}} niet laden. Probeer het opnieuw.",
     "modelLoadFailedUnknown": "onbekend model",
     "pasteFailedTitle": "Kon de transcriptie niet plakken",
-    "pasteFailed": "De tekst kon niet in de actieve app worden geplakt. Zet de cursor in een tekstveld en probeer het opnieuw.",
+    "pasteFailed": "Het transcript kon niet in de actieve app worden geplakt. Zet de cursor in een tekstveld en probeer het opnieuw.",
     "transcriptionFailedTitle": "Kon niet transcriberen",
-    "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
-    "commandNoSelection": "Er was niets geselecteerd. Selecteer de tekst die je wilt veranderen, houd dan de opdrachtsneltoets vast en zeg wat er moet gebeuren.",
-    "commandRewriteUnavailable": "De herschrijving gaf niets terug, dus je selectie bleef zoals hij was. Controleer het herschrijfmodel in Instellingen > AI en probeer het opnieuw.",
+    "noModelSelected": "Geen transcriptiemodel geselecteerd. Kies er een in Settings > Models.",
+    "commandNoSelection": "Selecteer de tekst die je wilt veranderen, houd dan de opdrachtsneltoets vast en zeg de wijziging.",
+    "commandRewriteUnavailable": "De herschrijving gaf niets terug, dus je selectie bleef zoals hij was. Controleer de provider in Settings > Post-processing en probeer het opnieuw.",
     "noModelSelectedTitle": "Geen model geselecteerd",
     "noSpeechSaveFailedTitle": "Fragment niet opgeslagen",
     "captureOverrunTitle": "Opname liep over",
@@ -1987,7 +1989,7 @@
     "recorderBlockedWithCulprit": "{{name}} blokkeert mogelijk wijzigingen aan sneltoetsen",
     "recorderBlockedNoCulprit": "macOS blokkeert tijdelijk wijzigingen aan sneltoetsen",
     "learnMore": "Hoe je dit oplost",
-    "recorderBlocked": "Sneltoetsen kunnen nu niet worden opgenomen — Secure Input van macOS blokkeert toetsgebeurtenissen. Los eerst de Secure Input-waarschuwing op.",
+    "recorderBlocked": "Secure Input van macOS blokkeert toetsgebeurtenissen, dus sneltoetsen kunnen niet worden opgenomen. Los eerst de Secure Input-waarschuwing op.",
     "dismiss": "Sluiten"
   },
   "meetings": {
@@ -2067,6 +2069,7 @@
     },
     "detected": {
       "title": "Meeting detected",
+      "description": "Sona heeft gemerkt dat een vergaderapp in gebruik is.",
       "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
@@ -2277,7 +2280,7 @@
       "ask": "Ask locally",
       "noQuestions": "No saved local answers.",
       "question": "Question",
-      "insufficientEvidence": "I couldn’t find support for that in this meeting.",
+      "insufficientEvidence": "No supporting passage was found in this meeting.",
       "forget": "Forget this answer",
       "exactSearch": "Exact search",
       "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
@@ -2382,7 +2385,7 @@
       "title": "Meeting activity",
       "loading": "Loading meeting trends…",
       "error": "Couldn't load meeting trends.",
-      "unavailable": "Meeting trends are unavailable right now.",
+      "unavailable": "Meeting trends are unavailable.",
       "metricLabel": "Metric",
       "metrics": {
         "meetings": "Meetings",
@@ -2392,7 +2395,7 @@
       }
     },
     "list": {
-      "retentionHint": "Bewaartermijn: {{policy}}. Wijzig dit in Instellingen, Privacy.",
+      "retentionHint": "Bewaartermijn: {{policy}}. Wijzig dit in Settings > Privacy.",
       "searchLabel": "Vergaderingen zoeken",
       "searchPlaceholder": "Zoeken op titel",
       "clearFilters": "Filters wissen",
@@ -2482,13 +2485,13 @@
       "trackerName": "Naam",
       "trackerPatterns": "korting, beste prijs, te duur",
       "trackerPatternsLabel": "Uitdrukkingen, gescheiden door komma's",
-      "trackersSaveFailed": "Sona kon de trackers niet opslaan. Wijzig er een en probeer het opnieuw."
+      "trackersSaveFailed": "Sona kon de trackers niet opslaan. Probeer het opnieuw."
     },
     "notes": {
       "title": "Mijn aantekeningen",
       "liveDescription": "Schrijf zo grof als je wilt. Deze aantekeningen blijven op deze Mac en sturen de aantekeningen die Sona maakt als de vergadering eindigt.",
       "reviewDescription": "Je eigen aantekeningen bepalen waar de gegenereerde aantekeningen de nadruk leggen. Ze worden nooit geciteerd of aangehaald.",
-      "placeholder": "Alles wat het onthouden waard is — namen, cijfers, wat je moet opvolgen",
+      "placeholder": "Alles wat het onthouden waard is: namen, cijfers, wat je moet opvolgen",
       "unsaved": "Nog niet opgeslagen",
       "saving": "Opslaan…",
       "saved": "Aantekeningen opgeslagen",
@@ -2502,7 +2505,7 @@
       "catchUpTitle": "Tot nu toe",
       "catchUpNoTranscript": "Nog niets om samen te vatten. Sona transcribeert nadat je de opname stopt, dus er is een samenvatting zodra de transcriptie binnenkomt.",
       "catchUpUnavailable": "Het model op het apparaat is niet beschikbaar, dus er is geen samenvatting geschreven.",
-      "catchUpFailed": "Sona kon geen samenvatting maken. Probeer het straks opnieuw.",
+      "catchUpFailed": "Sona kon geen samenvatting maken. Probeer het opnieuw.",
       "templates": {
         "general": "Algemene vergadering",
         "one_on_one": "Eén-op-één",
@@ -2521,6 +2524,8 @@
         "huddle": "{{app}}-huddle gedetecteerd",
         "browser": "Gesprek gedetecteerd in {{app}}",
         "unknown": "Microfoonactiviteit gedetecteerd",
+        "calendarUntitled": "Agenda-item begint",
+        "generic": "Vergadering gedetecteerd",
         "body": "Sona kan voor dit gesprek lokaal aantekeningen maken."
       },
       "actions": {
@@ -2608,6 +2613,10 @@
         "more": "Meer",
         "less": "Minder"
       },
+      "untitled": {
+        "calendar": "Agenda-afspraak",
+        "app": "Microfoon in gebruik"
+      },
       "actions": {
         "skip": "Overslaan"
       },
@@ -2676,7 +2685,7 @@
     },
     "recent": {
       "title": "Recent activity",
-      "history": "Transcription",
+      "history": "Dictation",
       "meeting": "Meeting",
       "viewAll": "Alles bekijken",
       "words": "{{count}} woorden",
@@ -2686,30 +2695,30 @@
     },
     "hero": {
       "ready": "Ready",
-      "recording": "Recording",
+      "recording": "Listening",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Modus: {{name}}",
       "setShortcut": "Stel een dicteersneltoets in bij Instellingen om vanuit elke app op te nemen.",
       "setShortcutAction": "Een sneltoets instellen",
       "shortcutAction": "De dicteersneltoets wijzigen",
-      "gestureTapHold": "Tik om te wisselen, houd vast om te praten — overal.",
-      "gestureTapOnly": "Tik om te wisselen — overal."
+      "gestureTapHold": "Tik om te wisselen, houd vast om te praten.",
+      "gestureTapOnly": "Tik om te wisselen."
     },
     "actions": {
       "dictate": "Dictate",
       "unavailable": "Shortcut unavailable"
     },
     "chart": {
-      "day": "{{date}} \\u00b7 dictaten {{dictations}}",
-      "dayWithMeetings": "{{date}} \\u00b7 dictaten {{dictations}} \\u00b7 vergaderingen {{meetings}}",
+      "day": "{{date}} · dictaten {{dictations}}",
+      "dayWithMeetings": "{{date}} · dictaten {{dictations}} · vergaderingen {{meetings}}",
       "legend": "Dictaten per dag",
       "peak": "Drukste dag {{peak}}",
       "summary": "Dictaten per dag van {{from}} tot {{to}}. Totaal {{total}}, drukste dag {{peak}}."
     },
     "empty": {
       "action": "Bibliotheek openen",
-      "description": "Houd je dicteersneltoets ingedrukt in elke app en Sona typt wat je zegt. Je gebruiksstatistieken en recente opnames verschijnen hier na de eerste.",
+      "description": "Houd je dicteersneltoets ingedrukt in elke app en Sona typt wat je zegt. Je gebruiksstatistieken en recente opnames verschijnen hier na het eerste dictaat.",
       "title": "Nog geen opnames"
     },
     "stats": {
@@ -2717,7 +2726,7 @@
       "allTime": "{{total}} in totaal",
       "dictations": "Dictaten",
       "dictationsAllTime": "Dictaten, in totaal",
-      "error": "Sona kon je gebruiksgeschiedenis nu niet lezen.",
+      "error": "Sona kon je gebruiksgeschiedenis niet lezen.",
       "range": "{{from}} tot {{to}}",
       "rangeUnavailable": "De laatste 30 dagen konden niet worden gelezen, dus dit zijn totalen over de hele periode.",
       "speaking": "Spreektijd",
@@ -2758,7 +2767,7 @@
     "title": "Cloud Sync",
     "account": {
       "title": "Cloud Sync",
-      "description": "Keep meetings on this device unless you choose to set up sync.",
+      "description": "Meetings stay on this device until you set up sync.",
       "status": {
         "loading": "Checking sync…",
         "local": "Local only",

@@ -42,7 +42,7 @@
     "settings": "Settings"
   },
   "onboarding": {
-    "subtitle": "Để bắt đầu, hãy chọn một mô hình chuyển đổi giọng nói",
+    "subtitle": "Các mô hình chạy trên máy Mac này và đánh đổi giữa độ chính xác và tốc độ",
     "existingModelsTitle": "Mô hình tương thích",
     "downloadModelsTitle": "Có sẵn để tải xuống",
     "showAllModels": "Hiển thị tất cả {{total}} mô hình",
@@ -72,7 +72,7 @@
       },
       "parakeet-tdt-0.6b-v2": {
         "name": "Parakeet V2",
-        "description": "Chỉ tiếng Anh. Mô hình tốt nhất cho người nói tiếng Anh."
+        "description": "Chỉ tiếng Anh. Nhanh và chính xác."
       },
       "parakeet-tdt-0.6b-v3": {
         "name": "Parakeet V3",
@@ -116,7 +116,7 @@
       },
       "cohere-int8": {
         "name": "Cohere",
-        "description": "Mô hình lớn, chậm hơn, nhưng rất chính xác và đa ngôn ngữ."
+        "description": "Mô hình đa ngôn ngữ lớn. Chậm nhưng chính xác."
       }
     },
     "errors": {
@@ -124,7 +124,7 @@
     },
     "permissions": {
       "title": "Cần cấp quyền",
-      "description": "Sona cần một số quyền để hoạt động bình thường.",
+      "description": "Sona cần quyền truy cập micrô và trợ năng.",
       "microphone": {
         "title": "Quyền truy cập Micrô",
         "description": "Cần thiết để nghe giọng nói của bạn để chuyển đổi."
@@ -135,38 +135,39 @@
       },
       "grant": "Cấp quyền",
       "granted": "Đã cấp",
-      "waiting": "Đang chờ...",
-      "allGranted": "Hoàn tất!",
+      "waiting": "Đang chờ…",
+      "allGranted": "Đã cấp cả hai quyền",
       "errors": {
         "checkFailed": "Không kiểm tra được quyền. Hãy thử lại.",
         "requestFailed": "Không yêu cầu được quyền. Hãy thử lại."
       },
       "headline": "Thiết lập một lần",
-      "subhead": "Máy tính sẽ hỏi trước khi bất kỳ ứng dụng nào được nghe hoặc gõ thay bạn. Cấp các quyền này một lần và Sona sẽ không hỏi lại.",
+      "subhead": "Hệ thống sẽ hỏi trước khi bất kỳ ứng dụng nào được nghe hoặc gõ.",
       "checking": "Đang kiểm tra quyền",
       "recheck": "Kiểm tra lại"
     },
-    "headline": "Chọn một mô hình giọng nói"
+    "headline": "Chọn một mô hình chuyển đổi"
   },
   "modelSelector": {
     "custom": "Tùy chỉnh",
     "streaming": "Truyền trực tiếp",
     "active": "Đang hoạt động",
-    "switching": "Đang chuyển...",
+    "switching": "Đang chuyển…",
     "noModelsAvailable": "Không có mô hình nào",
-    "verifying": "Đang xác minh {{modelName}}...",
-    "verifyingGeneric": "Đang xác minh...",
-    "extracting": "Đang giải nén {{modelName}}...",
-    "extractingMultiple": "Đang giải nén {{count}} mô hình...",
-    "extractingGeneric": "Đang giải nén...",
+    "verifying": "Đang xác minh {{modelName}}…",
+    "verifyingGeneric": "Đang xác minh…",
+    "extracting": "Đang giải nén {{modelName}}…",
+    "extractingMultiple": "Đang giải nén {{count}} mô hình…",
+    "extractingGeneric": "Đang giải nén…",
     "downloading": "Đang tải xuống {{percentage}}%",
-    "downloadingMultiple": "Đang tải xuống {{count}} mô hình...",
+    "downloadingMultiple": "Đang tải xuống {{count}} mô hình…",
+    "downloadingGeneric": "Downloading…",
     "modelReady": "Mô Hình Sẵn Sàng",
-    "loading": "Đang tải {{modelName}}...",
-    "loadingGeneric": "Đang tải...",
+    "loading": "Đang tải {{modelName}}…",
+    "loadingGeneric": "Đang tải…",
     "modelError": "Lỗi Mô Hình",
     "modelUnloaded": "Mô Hình Đã Gỡ",
-    "noModelDownloadRequired": "Chưa Có Mô Hình - Cần Tải Xuống",
+    "noModelDownloadRequired": "Chưa có mô hình, cần tải xuống",
     "deleteModel": "Xóa {{modelName}}",
     "downloadSpeed": "{{speed}} MB/s",
     "capabilities": {
@@ -189,14 +190,14 @@
     },
     "models": {
       "title": "Mô hình chuyển đổi",
-      "description": "Chọn mô hình chuyển đổi hoặc tải thêm mô hình. Các mô hình khác nhau có mức độ chính xác và tốc độ khác nhau.",
-      "deleteConfirm": "Bạn có chắc chắn muốn xóa {{modelName}}? Bạn sẽ cần tải lại để sử dụng.",
-      "deleteActiveConfirm": "{{modelName}} là mô hình đang hoạt động của bạn. Xóa nó sẽ dừng phiên âm cho đến khi bạn chọn một mô hình mới. Bạn có chắc không?",
+      "description": "Mô hình chuyển đổi giọng nói thành văn bản. Các mô hình đánh đổi độ chính xác lấy tốc độ.",
+      "deleteConfirm": "Xóa {{modelName}}? Muốn dùng lại thì phải tải lại.",
+      "deleteActiveConfirm": "{{modelName}} là mô hình đang hoạt động. Xóa nó sẽ dừng phiên âm cho đến khi bạn chọn mô hình khác.",
       "deleteTitle": "Xóa mô hình",
       "filters": {
         "allLanguages": "Tất cả ngôn ngữ",
-        "streaming": "Lọc các mô hình hỗ trợ phiên âm trực tiếp",
-        "translation": "Lọc các mô hình hỗ trợ dịch sang tiếng Anh",
+        "streaming": "Chỉ hiển thị các mô hình có phiên âm trực tiếp",
+        "translation": "Chỉ hiển thị các mô hình dịch sang tiếng Anh",
         "allFamilies": "Tất cả họ mô hình",
         "clear": "Xóa bộ lọc",
         "downloadedOnly": "Trên đĩa",
@@ -206,7 +207,7 @@
       "noModelsMatch": "Không có mô hình nào khớp với bộ lọc này.",
       "yourModels": "Mô hình đã tải",
       "availableModels": "Có sẵn để tải xuống",
-      "searchPlaceholder": "Tìm mô hình theo tên…",
+      "searchPlaceholder": "Tìm mô hình theo tên",
       "rescan": {
         "label": "Quét lại",
         "tooltip": "Quét lại các mô hình được thêm vào thư mục mô hình hoặc bộ nhớ đệm Hugging Face bên ngoài Sona"
@@ -288,9 +289,9 @@
     "general": {
       "title": "Chung",
       "shortcut": {
-        "title": "Phím tắt Sona",
-        "description": "Cấu hình phím tắt để kích hoạt ghi âm chuyển đổi giọng nói thành văn bản",
-        "loading": "Đang tải phím tắt...",
+        "title": "Phím tắt",
+        "description": "Phím tắt để ghi âm và viết lại.",
+        "loading": "Đang tải phím tắt…",
         "none": "Chưa cấu hình phím tắt",
         "notFound": "Không tìm thấy phím tắt",
         "pressKeys": "Nhấn các phím của bạn…",
@@ -305,7 +306,7 @@
           },
           "transcribe_with_post_process": {
             "name": "Phím tắt xử lý sau",
-            "description": "Tùy chọn: Phím tắt chuyên dụng luôn áp dụng xử lý sau bằng AI cho bản chuyển đổi của bạn."
+            "description": "Phím tắt tùy chọn luôn áp dụng dọn dẹp bằng AI cho bản chuyển đổi."
           },
           "command": {
             "name": "Phím tắt lệnh",
@@ -324,8 +325,8 @@
       },
       "language": {
         "title": "Ngôn ngữ",
-        "description": "Chọn ngôn ngữ để nhận dạng giọng nói. Tự động sẽ tự động xác định ngôn ngữ, trong khi chọn một ngôn ngữ cụ thể có thể cải thiện độ chính xác cho ngôn ngữ đó.",
-        "searchPlaceholder": "Tìm kiếm ngôn ngữ...",
+        "description": "Ngôn ngữ dùng để nhận dạng giọng nói. Tự động sẽ tự phát hiện; chỉ định một ngôn ngữ có thể cải thiện độ chính xác.",
+        "searchPlaceholder": "Tìm kiếm ngôn ngữ",
         "noResults": "Không tìm thấy ngôn ngữ",
         "auto": "Tự động"
       },
@@ -338,7 +339,7 @@
         "title": "Giao diện",
         "material": {
           "title": "Chất liệu",
-          "description": "Đặc vẽ chính các mặt của Sona. Kính để lộ màn hình nền qua thanh trên, bảng lệnh và HUD ghi âm.",
+          "description": "Đặc giữ cho các mặt của Sona không trong suốt. Kính để lộ màn hình nền qua thanh trên, bảng lệnh và HUD ghi âm.",
           "options": {
             "solid": "Đặc",
             "glass": "Kính"
@@ -355,29 +356,29 @@
       "title": "Âm thanh",
       "microphone": {
         "title": "Micrô",
-        "description": "Chọn thiết bị micrô ưa thích của bạn",
-        "placeholder": "Chọn micrô...",
-        "loading": "Đang tải..."
+        "description": "Micrô mà Sona ghi âm.",
+        "placeholder": "Chọn micrô",
+        "loading": "Đang tải…"
       },
       "channel": {
         "title": "Kênh đầu vào",
-        "description": "Chọn kênh đầu vào để ghi âm. Sử dụng tùy chọn này nếu giao diện âm thanh của bạn có nhiều đầu vào.",
+        "description": "Kênh đầu vào để ghi âm, khi giao diện âm thanh có nhiều hơn một kênh.",
         "average": "Trung bình tất cả các kênh",
         "channel": "Kênh {{n}}"
       },
       "audioFeedback": {
         "label": "Phản hồi âm thanh",
-        "description": "Phát âm thanh khi bắt đầu và kết thúc ghi âm"
+        "description": "Phát âm thanh khi bắt đầu và kết thúc ghi âm."
       },
       "outputDevice": {
         "title": "Thiết bị đầu ra",
-        "description": "Chọn thiết bị đầu ra âm thanh ưa thích của bạn cho âm thanh phản hồi",
-        "placeholder": "Chọn thiết bị đầu ra...",
-        "loading": "Đang tải..."
+        "description": "Nơi phát âm thanh phản hồi.",
+        "placeholder": "Chọn thiết bị đầu ra",
+        "loading": "Đang tải…"
       },
       "volume": {
         "title": "Âm lượng",
-        "description": "Điều chỉnh âm lượng của âm thanh phản hồi"
+        "description": "Âm lượng của âm thanh phản hồi."
       }
     },
     "advanced": {
@@ -398,11 +399,11 @@
       },
       "experimentalToggle": {
         "label": "Tính năng thử nghiệm",
-        "description": "Bật các tính năng thử nghiệm đang trong quá trình phát triển."
+        "description": "Hiển thị các tùy chọn đang trong quá trình phát triển."
       },
       "lazyStreamClose": {
         "label": "Giữ micro mở giữa các lần phiên âm",
-        "description": "Giữ luồng micro mở trong 30 giây sau khi dừng ghi âm, giảm độ trễ khi phiên âm liên tiếp. Có thể làm giảm chất lượng âm thanh Bluetooth khi đang hoạt động."
+        "description": "Giữ luồng micro mở trong 30 giây sau khi dừng ghi âm, nên các lần phiên âm liên tiếp bắt đầu nhanh hơn. Chất lượng âm thanh Bluetooth có thể giảm khi luồng đang mở."
       },
       "acceleration": {
         "transcribe": {
@@ -423,7 +424,7 @@
       },
       "autostart": {
         "label": "Khởi động cùng hệ thống",
-        "description": "Tự động khởi động Sona khi bạn đăng nhập vào máy tính."
+        "description": "Khởi động Sona khi bạn đăng nhập."
       },
       "showTrayIcon": {
         "label": "Hiển thị biểu tượng khay",
@@ -450,7 +451,7 @@
       },
       "pasteMethod": {
         "title": "Phương thức dán",
-        "description": "Chọn cách chèn văn bản. Trực tiếp: mô phỏng gõ phím qua đầu vào hệ thống. Không có: bỏ qua dán, chỉ cập nhật lịch sử/clipboard.",
+        "description": "Cách chèn văn bản. Trực tiếp mô phỏng gõ phím qua đầu vào hệ thống. Không có bỏ qua việc dán và chỉ cập nhật lịch sử và clipboard.",
         "options": {
           "clipboard": "Bảng nhớ tạm ({{modifier}}+V)",
           "clipboardCtrlShiftV": "Bảng nhớ tạm (Ctrl+Shift+V)",
@@ -463,22 +464,22 @@
       },
       "typingTool": {
         "title": "Công cụ gõ",
-        "description": "Chọn công cụ gõ trên Linux cho phương thức dán trực tiếp. Auto sẽ tự động phát hiện và dùng công cụ tốt nhất có sẵn cho hệ thống của bạn.",
+        "description": "Công cụ gõ trên Linux được phương thức dán trực tiếp sử dụng. Auto phát hiện một công cụ có sẵn.",
         "options": {
           "auto": "Auto (Khuyến nghị)"
         }
       },
       "clipboardHandling": {
         "title": "Xử lý Clipboard",
-        "description": "Không sửa đổi Clipboard giữ nguyên nội dung clipboard hiện tại sau khi chuyển đổi. Sao chép vào Clipboard để lại kết quả chuyển đổi trong clipboard sau khi dán.",
+        "description": "Không sửa đổi clipboard giữ nguyên nội dung clipboard của bạn. Sao chép vào clipboard để lại Transcript ở đó sau khi dán.",
         "options": {
-          "dontModify": "Không sửa đổi Clipboard",
+          "dontModify": "Không sửa đổi clipboard",
           "copyToClipboard": "Sao chép vào Clipboard"
         }
       },
       "autoSubmit": {
         "title": "Gửi tự động",
-        "description": "Tự động gửi tổ hợp phím đã chọn sau khi chèn văn bản. Cmd+Enter áp dụng trên macOS, còn Windows/Linux dùng Super+Enter.",
+        "description": "Gửi tổ hợp phím đã chọn sau khi chèn văn bản. Cmd+Enter trên macOS, Super+Enter trên Windows và Linux.",
         "options": {
           "off": "Tắt",
           "enter": "Enter",
@@ -489,11 +490,11 @@
       },
       "translateToEnglish": {
         "label": "Dịch sang tiếng Anh",
-        "description": "Tự động dịch giọng nói từ các ngôn ngữ khác sang tiếng Anh trong quá trình chuyển đổi."
+        "description": "Dịch giọng nói từ các ngôn ngữ khác sang tiếng Anh trong khi chuyển đổi."
       },
       "modelUnload": {
         "title": "Giải phóng mô hình",
-        "description": "Tự động giải phóng bộ nhớ GPU/CPU khi mô hình không được sử dụng trong thời gian quy định",
+        "description": "Giải phóng bộ nhớ GPU và CPU sau khi mô hình không được sử dụng trong khoảng thời gian này.",
         "options": {
           "never": "Không bao giờ",
           "immediately": "Ngay lập tức",
@@ -568,7 +569,7 @@
       },
       "fillerWordRemoval": {
         "title": "Loại bỏ từ đệm",
-        "description": "Loại bỏ các từ ngập ngừng phổ biến khỏi bản chép lời. Tắt để giữ lại các từ này."
+        "description": "Loại bỏ các từ ngập ngừng phổ biến khỏi Transcript."
       },
       "emoji": {
         "enabledLabel": "Bật thay thế biểu tượng cảm xúc",
@@ -689,18 +690,18 @@
         },
         "noPrompts": "Không có prompt nào",
         "selectPrompt": "Chọn một prompt",
-        "createNew": "Tạo Prompt mới",
-        "promptLabel": "Nhãn Prompt",
-        "promptLabelPlaceholder": "Nhập tên prompt",
-        "promptInstructions": "Hướng dẫn Prompt",
-        "promptInstructionsPlaceholder": "Viết hướng dẫn để chạy sau khi chuyển đổi. Ví dụ: Cải thiện ngữ pháp và độ rõ ràng cho văn bản sau: ${output}",
-        "promptTip": "Mẹo: Sử dụng <code>${output}</code> để chèn văn bản đã chuyển đổi vào prompt của bạn.",
+        "createNew": "Prompt mới",
+        "promptLabel": "Tên prompt",
+        "promptLabelPlaceholder": "Đặt tên cho prompt này",
+        "promptInstructions": "Hướng dẫn",
+        "promptInstructionsPlaceholder": "Cải thiện ngữ pháp và độ rõ ràng cho văn bản sau: ${output}",
+        "promptTip": "Viết <code>${output}</code> ở nơi cần chèn bản ghi.",
         "updatePrompt": "Cập nhật Prompt",
         "deletePrompt": "Xóa Prompt",
         "createPrompt": "Tạo Prompt",
         "cancel": "Hủy",
-        "selectToEdit": "Chọn một prompt ở trên để xem và chỉnh sửa chi tiết.",
-        "createFirst": "Nhấn 'Tạo Prompt mới' ở trên để tạo prompt xử lý sau đầu tiên của bạn.",
+        "selectToEdit": "Chọn một prompt để chỉnh sửa.",
+        "createFirst": "Tạo một prompt để xử lý sau các bản ghi.",
         "empty": {
           "description": "Prompt cho mô hình biết cần làm gì với bản ghi thoại, ví dụ: viết lại nội dung sau thành một tin nhắn ngắn, giữ nguyên mọi dữ kiện: ${output}"
         },
@@ -740,7 +741,7 @@
     "history": {
       "stats": {
         "title": "Mức sử dụng từ trước đến nay",
-        "loading": "Đang tải mức sử dụng...",
+        "loading": "Đang tải mức sử dụng…",
         "unavailable": "Không có số liệu thống kê về mức sử dụng.",
         "entries": "bản ghi âm",
         "duration": "thời lượng ghi âm",
@@ -753,20 +754,20 @@
       },
       "title": "Lịch sử",
       "openFolder": "Mở thư mục ghi âm",
-      "loading": "Đang tải lịch sử...",
-      "empty": "Chưa có bản ghi nào. Bắt đầu ghi âm để xây dựng lịch sử của bạn!",
+      "loading": "Đang tải lịch sử…",
+      "empty": "Chưa có bản ghi âm nào.",
       "copyToClipboard": "Sao chép bản ghi vào clipboard",
-      "save": "Lưu bản ghi",
+      "save": "Lưu mục",
       "unsave": "Xóa khỏi đã lưu",
       "delete": "Xóa mục",
       "deleteError": "Không xóa được bản ghi. Hãy thử lại.",
       "retranscribe": "Phiên âm lại",
       "retranscribeError": "Không ghi lại được. Hãy thử lại.",
-      "transcribing": "Đang phiên âm...",
-      "transcriptionFailed": "Phiên âm thất bại. Bạn có thể phiên âm lại bằng biểu tượng thử lại.",
+      "transcribing": "Đang phiên âm…",
+      "transcriptionFailed": "Phiên âm thất bại.",
       "search": "Tìm kiếm lịch sử",
-      "searchPlaceholder": "Tìm kiếm bản ghi âm...",
-      "noResults": "Không có bản ghi âm nào khớp với \"{{query}}\".",
+      "searchPlaceholder": "Tìm kiếm bản ghi",
+      "noResults": "Không có bản ghi nào khớp với \"{{query}}\".",
       "loadError": "Không thể tải lịch sử.",
       "retry": "Thử lại",
       "saveError": "Không cập nhật được trạng thái lưu. Hãy thử lại.",
@@ -962,26 +963,27 @@
       "title": "Gỡ lỗi",
       "logDirectory": {
         "title": "Thư mục nhật ký",
-        "description": "Vị trí lưu trữ các tệp nhật ký"
+        "description": "Nơi ghi các tệp nhật ký."
       },
       "logLevel": {
         "title": "Mức nhật ký",
-        "description": "Đặt mức độ chi tiết của nhật ký"
+        "description": "Mức độ chi tiết mà nhật ký ghi lại."
       },
       "liveLogs": {
         "title": "Nhật ký trực tiếp",
-        "description": "Truyền nhật ký ứng dụng theo thời gian thực để chẩn đoán sự cố mà không cần mở tệp nhật ký. Chỉ hiển thị nhật ký được tạo khi bảng này đang mở; tuân theo cài đặt Mức nhật ký ở trên.",
+        "description": "Truyền các dòng nhật ký ngay khi chúng được phát ra. Chỉ các dòng được phát ra khi bảng này đang mở mới xuất hiện ở đây, theo mức nhật ký đặt ở trên.",
         "live": "Trực tiếp",
         "paused": "Đã tạm dừng",
         "pause": "Tạm dừng",
         "resume": "Tiếp tục",
         "copied": "Đã sao chép",
         "lineCount": "{{count}} dòng",
-        "empty": "Đang chờ nhật ký… Các mục sẽ xuất hiện ở đây khi ứng dụng phát ra."
+        "empty": "Đang chờ nhật ký. Các dòng sẽ xuất hiện ở đây khi ứng dụng phát ra."
       },
       "soundTheme": {
         "label": "Chủ đề âm thanh",
-        "description": "Chọn chủ đề âm thanh cho phản hồi bắt đầu và kết thúc ghi âm"
+        "description": "Những âm thanh phát khi bắt đầu và kết thúc ghi âm.",
+        "preview": "Preview the start and stop sounds"
       },
       "wordCorrectionThreshold": {
         "title": "Ngưỡng sửa từ",
@@ -989,30 +991,30 @@
       },
       "historyLimit": {
         "title": "Giới hạn lịch sử",
-        "description": "Số lượng mục lịch sử tối đa cần giữ",
+        "description": "Số mục lịch sử cần giữ.",
         "entries": "mục"
       },
       "recordingRetention": {
         "title": "Tự động xóa ghi âm",
-        "description": "Tự động xóa các bản ghi âm cũ để tiết kiệm dung lượng",
+        "description": "Xóa các bản ghi âm sau khoảng thời gian này.",
         "never": "Không bao giờ",
         "preserveLimit": "Giữ {{count}} bản mới nhất",
         "days3": "Sau 3 ngày",
         "weeks2": "Sau 2 tuần",
         "months3": "Sau 3 tháng",
-        "placeholder": "Chọn thời gian lưu giữ..."
+        "placeholder": "Chọn thời gian lưu giữ"
       },
       "alwaysOnMicrophone": {
         "label": "Micrô luôn bật",
-        "description": "Giữ micrô hoạt động để phản hồi nhanh hơn"
+        "description": "Giữ micrô mở để việc ghi bắt đầu nhanh hơn."
       },
       "clamshellMicrophone": {
         "title": "Micrô chế độ gập",
-        "description": "Micrô sử dụng khi nắp laptop được đóng"
+        "description": "Micrô được sử dụng khi nắp laptop được đóng."
       },
       "postProcessingToggle": {
         "label": "Xử lý sau",
-        "description": "Bật tinh chỉnh văn bản bằng AI sau khi chuyển đổi"
+        "description": "Viết lại bản ghi bằng mô hình ngôn ngữ sau khi chuyển đổi."
       },
       "muteWhileRecording": {
         "label": "Tắt tiếng khi ghi âm",
@@ -1020,7 +1022,7 @@
       },
       "appendTrailingSpace": {
         "label": "Thêm dấu cách cuối",
-        "description": "Thêm một dấu cách sau bản ghi đã dán"
+        "description": "Thêm một dấu cách sau Transcript đã dán."
       },
       "keyboardImplementation": {
         "title": "Triển khai bàn phím",
@@ -1042,7 +1044,7 @@
       },
       "reliablePaste": {
         "title": "Dán đáng tin cậy (Beta)",
-        "description": "Chỉ khôi phục bảng nhớ tạm sau khi ứng dụng đích thực sự đọc bản chép lời, thay vì sau một độ trễ cố định. Nhằm khắc phục việc nội dung bảng nhớ tạm cũ bị dán khi hệ thống bị tải nặng. Cần một phương thức dán qua bảng nhớ tạm; chỉ dành cho macOS và Windows."
+        "description": "Chỉ khôi phục bảng nhớ tạm sau khi ứng dụng đích đọc bản chép lời, thay vì sau một độ trễ cố định. Nhằm khắc phục việc nội dung bảng nhớ tạm cũ bị dán khi hệ thống bị tải nặng. Cần một phương thức dán qua bảng nhớ tạm; chỉ dành cho macOS và Windows."
       },
       "recordingBuffer": {
         "title": "Bộ đệm ghi âm thêm",
@@ -1050,7 +1052,7 @@
       },
       "keyboardDiagnostic": {
         "title": "Chẩn đoán bàn phím",
-        "description": "Kiểm tra xem các sự kiện bàn phím có đến được Sona hay không. Chỉ số lượng sự kiện được ghi lại — không bao giờ ghi lại bạn bấm phím nào.",
+        "description": "Kiểm tra xem các sự kiện bàn phím có đến được Sona hay không. Chỉ số lượng sự kiện được ghi lại, không bao giờ ghi lại bạn bấm phím nào.",
         "run": "Chạy chẩn đoán 10 giây",
         "running": "Đang lắng nghe… hãy bấm phím tắt của bạn vài lần (ví dụ: Option+Space)",
         "secureInputLabel": "Secure Input",
@@ -1062,10 +1064,10 @@
         "keyUp": "Nhả phím",
         "flagsChanged": "Phím bổ trợ",
         "mouse": "Chuột",
-        "verdictBlocked": "Secure Input đang chặn các sự kiện phím — phím tắt có chứa phím thường không thể hoạt động cho đến khi vấn đề này được xử lý.",
-        "verdictSuspicious": "Có sự kiện phím bổ trợ nhưng không có sự kiện phím nào — thứ gì đó đang chặn phím dù Secure Input báo là đang tắt. Vui lòng báo cáo việc này trên GitHub.",
+        "verdictBlocked": "Secure Input đang chặn các sự kiện phím, nên phím tắt có chứa phím thường không thể hoạt động cho đến khi vấn đề này được xử lý.",
+        "verdictSuspicious": "Có sự kiện phím bổ trợ nhưng không có sự kiện phím nào. Thứ gì đó đang chặn phím dù Secure Input báo là đang tắt. Hãy báo cáo việc này trên GitHub.",
         "verdictOk": "Các sự kiện phím đang đến Sona bình thường.",
-        "verdictNoEvents": "Không ghi nhận sự kiện nào — bạn có bấm phím nào trong lúc kiểm tra không?",
+        "verdictNoEvents": "Không ghi nhận sự kiện nào trong lúc kiểm tra.",
         "failed": "Chẩn đoán thất bại: {{error}}"
       },
       "whatsNewPreview": {
@@ -1087,12 +1089,12 @@
       "title": "Giới thiệu",
       "version": {
         "title": "Phiên bản",
-        "description": "Phiên bản hiện tại của Sona",
+        "description": "Phiên bản đang chạy.",
         "unavailable": "Không khả dụng"
       },
       "appDataDirectory": {
         "title": "Thư mục dữ liệu ứng dụng",
-        "description": "Vị trí Sona lưu trữ dữ liệu"
+        "description": "Nơi Sona lưu trữ dữ liệu."
       },
       "sourceCode": {
         "title": "Open-source licenses",
@@ -1101,15 +1103,15 @@
       },
       "supportDevelopment": {
         "title": "Hỗ trợ phát triển",
-        "description": "Giúp chúng tôi tiếp tục xây dựng Sona",
+        "description": "Các khoản đóng góp tài trợ cho việc tiếp tục phát triển Sona.",
         "button": "Quyên góp"
       },
       "acknowledgments": {
         "title": "Lời cảm ơn",
         "ggml": {
           "title": "ggml",
-          "description": "Suy luận hiệu suất cao của mô hình nhận dạng giọng nói tự động Whisper của OpenAI",
-          "details": "Sona sử dụng ggml để xử lý chuyển đổi giọng nói thành văn bản nhanh, cục bộ. Cảm ơn công việc tuyệt vời của Georgi Gerganov và các cộng tác viên."
+          "description": "Thư viện tensor cho suy luận học máy trên thiết bị",
+          "details": "Chuyển đổi giọng nói thành văn bản cục bộ của Sona được xây dựng trên transcribe.cpp và ggml. Cảm ơn Georgi Gerganov và các cộng tác viên."
         }
       },
       "whatsNewUpdates": {
@@ -1154,7 +1156,7 @@
           "label": "Activate in app",
           "description": "Capture the app currently in front and select this mode when you dictate there.",
           "action": "Capture current app",
-          "capturing": "Capturing..."
+          "capturing": "Capturing…"
         },
         "empty": "No app activates this mode.",
         "remove": "Remove",
@@ -1172,7 +1174,7 @@
             "label": "Kích hoạt trên trang web",
             "description": "Chụp máy chủ của trình duyệt ở phía trước. Sona chỉ lưu máy chủ, không lưu URL.",
             "action": "Chụp trang web hiện tại",
-            "capturing": "Đang chụp..."
+            "capturing": "Đang chụp…"
           },
           "empty": "Không có trang web nào kích hoạt chế độ này.",
           "exampleDescription": "Một quy tắc lưu một máy chủ trình duyệt, ví dụ mail.google.com."
@@ -1264,8 +1266,8 @@
         "model": {
           "label": "Transcription model",
           "description": "Only downloaded local models are available here.",
-          "inheritGlobal": "Mặc định — dùng mô hình toàn cục",
-          "inheritGlobalNamed": "Mặc định — dùng mô hình toàn cục ({{name}})"
+          "inheritGlobal": "Mặc định: mô hình toàn cục",
+          "inheritGlobalNamed": "Mặc định: mô hình toàn cục ({{name}})"
         },
         "language": {
           "label": "Language",
@@ -1422,7 +1424,7 @@
           "label": "Typing tool",
           "description": "Used only with direct typing.",
           "values": {
-            "auto": "Automatic",
+            "auto": "Auto",
             "wtype": "wtype",
             "kwtype": "kwtype",
             "dotool": "dotool",
@@ -1532,7 +1534,7 @@
           "error": "Browser URL capture could not be saved."
         },
         "cloudRoute": "Enabled cloud modes send allowed context to {{providers}}.",
-        "localRoute": "All your AI processing is local.",
+        "localRoute": "AI processing runs on this Mac.",
         "checkingRoute": "Checking configured cloud routes…"
       },
       "diagnostics": {
@@ -1599,7 +1601,7 @@
             "key_rejected": "Khóa được lưu không mở được cơ sở dữ liệu mã hóa, nên không thể đọc lịch sử.",
             "key_unavailable": "Kho thông tin xác thực hệ thống không trả về khóa dùng được, nên lịch sử được lưu không mã hóa.",
             "migration_failed": "Mã hóa cơ sở dữ liệu hiện có thất bại. Cơ sở dữ liệu không mã hóa vẫn nguyên vẹn và đang được dùng.",
-            "unlocking": "Đang mở cơ sở dữ liệu mã hóa. Trạng thái này sẽ hết ngay sau khi khởi động."
+            "unlocking": "Đang mở cơ sở dữ liệu mã hóa. Trạng thái này sẽ hết khi khởi động xong."
           },
           "unknown": "Sona không thể đọc cách lịch sử được lưu trữ.",
           "unlocking": "Đang mở khóa",
@@ -1655,18 +1657,18 @@
         "import": "Import selected data",
         "importing": "Importing",
         "errors": {
-          "source_unavailable": "The original Sona data folder is unavailable.",
-          "upstream_running": "Close the original Sona app before importing.",
-          "app_state_unverifiable": "Sona cannot verify the original app state on this platform.",
+          "source_unavailable": "The legacy app's data folder is unavailable.",
+          "upstream_running": "Close the legacy app before importing.",
+          "app_state_unverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
           "invalid_selection": "Choose settings or history to import.",
-          "settings_unreadable": "The original settings file could not be read.",
+          "settings_unreadable": "The legacy settings file could not be read.",
           "secret_store_unavailable": "The native credential store is unavailable, so settings with provider keys were not imported.",
           "secret_conflict": "A provider key already exists in the native credential store. Resolve it before importing settings.",
-          "history_unreadable": "The original history database could not be read.",
+          "history_unreadable": "The legacy history database could not be read.",
           "recording_copy_failed": "A recording could not be copied and verified.",
           "receipt_write_failed": "The import receipt could not be saved.",
           "internal": "The import did not finish.",
-          "status": "The original Sona data could not be inspected."
+          "status": "The legacy app's data could not be inspected."
         }
       },
       "cloudSync": {
@@ -1854,7 +1856,7 @@
     "prompts": {
       "samples": {
         "title": "Mẫu văn bạn viết",
-        "description": "Ví dụ về cách bạn tự viết. Mọi chế độ viết lại bản ghi đều theo giọng văn đó.",
+        "description": "Ví dụ về cách bạn tự viết. Các chế độ viết lại bản ghi sẽ theo giọng văn này.",
         "placeholder": "Dán một đoạn bạn tự viết.",
         "sampleLabel": "Mẫu văn {{number}}",
         "delete": "Xóa mẫu {{number}}",
@@ -1881,7 +1883,7 @@
     }
   },
   "common": {
-    "loading": "Đang tải...",
+    "loading": "Đang tải…",
     "delete": "Xóa",
     "cancel": "Hủy",
     "close": "Đóng",
@@ -1898,7 +1900,7 @@
   },
   "commandPalette": {
     "open": "Tìm kiếm",
-    "placeholder": "Nhập lệnh hoặc tìm kiếm…",
+    "placeholder": "Nhập lệnh hoặc tìm kiếm",
     "navigation": "Điều hướng",
     "actions": "Thao tác",
     "noResults": "Không tìm thấy lệnh nào",
@@ -1916,26 +1918,26 @@
   },
   "errors": {
     "noSpeechDetectedTitle": "Không phát hiện giọng nói",
-    "noSpeechDetected": "Không phát hiện giọng nói. Một mẫu của bản ghi đã được lưu vào Lịch sử để bạn có thể kiểm tra âm thanh đã thu.",
-    "loadDirectory": "Lỗi khi tải thư mục: {{error}}",
+    "noSpeechDetected": "Không phát hiện giọng nói. Một mẫu của bản ghi đã được lưu vào Lịch sử.",
+    "loadDirectory": "Không tải được thư mục: {{error}}",
     "micPermissionDeniedTitle": "Quyền truy cập micrô bị từ chối",
     "micPermissionDenied": {
-      "generic": "Quyền truy cập micrô đã bị hệ điều hành từ chối. Vui lòng cấp quyền micrô trong cài đặt hệ thống.",
+      "generic": "Hệ điều hành đã từ chối quyền truy cập micrô. Hãy cấp quyền micrô trong cài đặt hệ thống.",
       "windows": "Bật quyền truy cập micrô trong Cài đặt → Quyền riêng tư & bảo mật → Micrô (bao gồm quyền truy cập ứng dụng máy tính).",
       "macos": "Cấp quyền truy cập micrô trong Cài đặt hệ thống → Quyền riêng tư & Bảo mật → Micrô.",
       "linux": "Cấp quyền truy cập micrô trong cài đặt âm thanh hoặc quyền riêng tư của hệ thống."
     },
     "noInputDeviceTitle": "Không tìm thấy micrô",
-    "noInputDevice": "Không phát hiện thiết bị đầu vào âm thanh nào. Vui lòng kết nối micrô hoặc tai nghe và thử lại.",
+    "noInputDevice": "Không phát hiện thiết bị đầu vào âm thanh nào. Hãy kết nối micrô và thử lại.",
     "recordingFailed": "Không bắt đầu được ghi âm: {{error}}. Hãy thử lại.",
     "modelLoadFailed": "Không tải được {{model}}. Hãy thử lại.",
     "modelLoadFailedUnknown": "mô hình không xác định",
     "pasteFailedTitle": "Không dán được bản ghi",
-    "pasteFailed": "Không dán được văn bản vào ứng dụng đang hoạt động. Hãy đưa con trỏ vào một ô văn bản rồi thử lại.",
+    "pasteFailed": "Không dán được Transcript vào ứng dụng đang hoạt động. Hãy đưa con trỏ vào một ô văn bản rồi thử lại.",
     "transcriptionFailedTitle": "Không ghi lại được lời nói",
-    "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
-    "commandNoSelection": "Không có gì được chọn. Hãy chọn đoạn văn bản bạn muốn thay đổi, rồi giữ phím tắt lệnh và nói bạn muốn làm gì.",
-    "commandRewriteUnavailable": "Phần viết lại không trả về gì, nên đoạn bạn chọn vẫn nguyên như cũ. Hãy kiểm tra mô hình viết lại trong Cài đặt > AI rồi thử lại.",
+    "noModelSelected": "Chưa chọn mô hình phiên âm. Hãy chọn một mô hình trong Settings > Models.",
+    "commandNoSelection": "Hãy chọn đoạn văn bản bạn muốn thay đổi, rồi giữ phím tắt lệnh và nói thay đổi cần thực hiện.",
+    "commandRewriteUnavailable": "Phần viết lại không trả về gì, nên đoạn bạn chọn vẫn nguyên như cũ. Hãy kiểm tra nhà cung cấp trong Settings > Post-processing rồi thử lại.",
     "noModelSelectedTitle": "Chưa chọn mô hình",
     "noSpeechSaveFailedTitle": "Chưa lưu mẫu",
     "captureOverrunTitle": "Vượt giới hạn thu",
@@ -1987,7 +1989,7 @@
     "recorderBlockedWithCulprit": "{{name}} có thể đang chặn việc thay đổi phím tắt",
     "recorderBlockedNoCulprit": "macOS đang tạm thời chặn việc thay đổi phím tắt",
     "learnMore": "Cách khắc phục",
-    "recorderBlocked": "Hiện không thể ghi phím tắt — Secure Input của macOS đang chặn các sự kiện phím. Hãy xử lý cảnh báo Secure Input trước.",
+    "recorderBlocked": "Secure Input của macOS đang chặn các sự kiện phím, nên không thể ghi phím tắt. Hãy xử lý cảnh báo Secure Input trước.",
     "dismiss": "Bỏ qua"
   },
   "meetings": {
@@ -2067,6 +2069,7 @@
     },
     "detected": {
       "title": "Meeting detected",
+      "description": "Sona nhận thấy một ứng dụng họp đang được sử dụng.",
       "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
@@ -2277,7 +2280,7 @@
       "ask": "Ask locally",
       "noQuestions": "No saved local answers.",
       "question": "Question",
-      "insufficientEvidence": "I couldn’t find support for that in this meeting.",
+      "insufficientEvidence": "No supporting passage was found in this meeting.",
       "forget": "Forget this answer",
       "exactSearch": "Exact search",
       "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
@@ -2382,7 +2385,7 @@
       "title": "Meeting activity",
       "loading": "Loading meeting trends…",
       "error": "Couldn't load meeting trends.",
-      "unavailable": "Meeting trends are unavailable right now.",
+      "unavailable": "Meeting trends are unavailable.",
       "metricLabel": "Metric",
       "metrics": {
         "meetings": "Meetings",
@@ -2392,7 +2395,7 @@
       }
     },
     "list": {
-      "retentionHint": "Lưu giữ: {{policy}}. Thay đổi trong Settings, Privacy.",
+      "retentionHint": "Lưu giữ: {{policy}}. Thay đổi trong Settings > Privacy.",
       "searchLabel": "Tìm kiếm cuộc họp",
       "searchPlaceholder": "Tìm theo tiêu đề",
       "clearFilters": "Xóa bộ lọc",
@@ -2482,13 +2485,13 @@
       "trackerName": "Tên",
       "trackerPatterns": "giảm giá, giá tốt nhất, quá đắt",
       "trackerPatternsLabel": "Các cụm từ, cách nhau bằng dấu phẩy",
-      "trackersSaveFailed": "Sona không lưu được các bộ theo dõi. Hãy sửa một bộ rồi thử lại."
+      "trackersSaveFailed": "Sona không lưu được các bộ theo dõi. Hãy thử lại."
     },
     "notes": {
       "title": "Ghi chú của tôi",
       "liveDescription": "Cứ viết thô đến mức nào bạn muốn. Những ghi chú này ở lại trên chiếc Mac này và định hướng phần ghi chú Sona tạo ra khi buổi họp kết thúc.",
       "reviewDescription": "Ghi chú của riêng bạn định hướng phần ghi chú được tạo sẽ nhấn vào điều gì. Chúng không bao giờ được trích dẫn hay dẫn nguồn.",
-      "placeholder": "Bất cứ điều gì đáng nhớ — tên, số, việc cần theo tiếp",
+      "placeholder": "Bất cứ điều gì đáng nhớ: tên, số, việc cần theo tiếp",
       "unsaved": "Chưa lưu",
       "saving": "Đang lưu…",
       "saved": "Đã lưu ghi chú",
@@ -2502,7 +2505,7 @@
       "catchUpTitle": "Đến giờ",
       "catchUpNoTranscript": "Chưa có gì để tóm lại. Sona ghi lại lời nói sau khi bạn dừng ghi âm, nên sẽ có bản tóm khi bản ghi bắt đầu về.",
       "catchUpUnavailable": "Mô hình trên máy không khả dụng, nên không có bản tóm nào được viết.",
-      "catchUpFailed": "Sona không dựng được bản tóm. Hãy thử lại sau một lát.",
+      "catchUpFailed": "Sona không dựng được bản tóm. Hãy thử lại.",
       "templates": {
         "general": "Buổi họp chung",
         "one_on_one": "Một đối một",
@@ -2521,6 +2524,8 @@
         "huddle": "Phát hiện huddle {{app}}",
         "browser": "Phát hiện cuộc gọi trong {{app}}",
         "unknown": "Phát hiện micrô đang hoạt động",
+        "calendarUntitled": "Sự kiện trên lịch đang bắt đầu",
+        "generic": "Phát hiện buổi họp",
         "body": "Sona có thể ghi chú ngay trên máy cho cuộc gọi này."
       },
       "actions": {
@@ -2608,6 +2613,10 @@
         "more": "Xem thêm",
         "less": "Thu gọn"
       },
+      "untitled": {
+        "calendar": "Sự kiện lịch",
+        "app": "Micrô đang được sử dụng"
+      },
       "actions": {
         "skip": "Bỏ qua"
       },
@@ -2676,7 +2685,7 @@
     },
     "recent": {
       "title": "Recent activity",
-      "history": "Transcription",
+      "history": "Dictation",
       "meeting": "Meeting",
       "viewAll": "Xem tất cả",
       "words": "{{count}} từ",
@@ -2686,30 +2695,30 @@
     },
     "hero": {
       "ready": "Ready",
-      "recording": "Recording",
+      "recording": "Listening",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Chế độ: {{name}}",
       "setShortcut": "Đặt phím tắt đọc chính tả trong Settings để ghi từ bất kỳ ứng dụng nào.",
       "setShortcutAction": "Đặt một phím tắt",
       "shortcutAction": "Đổi phím tắt đọc chính tả",
-      "gestureTapHold": "Chạm để chuyển, giữ để nói, ở bất kỳ đâu.",
-      "gestureTapOnly": "Chạm để chuyển, ở bất kỳ đâu."
+      "gestureTapHold": "Chạm để chuyển, giữ để nói.",
+      "gestureTapOnly": "Chạm để chuyển."
     },
     "actions": {
       "dictate": "Dictate",
       "unavailable": "Shortcut unavailable"
     },
     "chart": {
-      "day": "{{date}} \\u00b7 lần đọc chính tả {{dictations}}",
-      "dayWithMeetings": "{{date}} \\u00b7 lần đọc chính tả {{dictations}} \\u00b7 cuộc họp {{meetings}}",
+      "day": "{{date}} · lần đọc chính tả {{dictations}}",
+      "dayWithMeetings": "{{date}} · lần đọc chính tả {{dictations}} · cuộc họp {{meetings}}",
       "legend": "Số lần đọc chính tả mỗi ngày",
       "peak": "Ngày bận nhất {{peak}}",
       "summary": "Số lần đọc chính tả mỗi ngày từ {{from}} đến {{to}}. Tổng cộng {{total}}, ngày bận nhất {{peak}}."
     },
     "empty": {
       "action": "Mở Thư viện",
-      "description": "Giữ phím tắt đọc chính tả trong bất kỳ ứng dụng nào và Sona sẽ gõ những gì bạn nói. Thống kê sử dụng và các bản ghi gần đây sẽ xuất hiện ở đây sau lần đầu tiên.",
+      "description": "Giữ phím tắt đọc chính tả trong bất kỳ ứng dụng nào và Sona sẽ gõ những gì bạn nói. Thống kê sử dụng và các bản ghi gần đây sẽ xuất hiện ở đây sau lần đọc chính tả đầu tiên.",
       "title": "Chưa có bản ghi nào"
     },
     "stats": {
@@ -2717,7 +2726,7 @@
       "allTime": "{{total}} từ trước đến nay",
       "dictations": "Lần đọc chính tả",
       "dictationsAllTime": "Lần đọc chính tả, từ trước đến nay",
-      "error": "Sona hiện không thể đọc lịch sử sử dụng của bạn.",
+      "error": "Sona không thể đọc lịch sử sử dụng của bạn.",
       "range": "{{from}} đến {{to}}",
       "rangeUnavailable": "Không thể đọc dữ liệu 30 ngày qua, nên đây là tổng từ trước đến nay.",
       "speaking": "Thời gian nói",
@@ -2758,7 +2767,7 @@
     "title": "Cloud Sync",
     "account": {
       "title": "Cloud Sync",
-      "description": "Keep meetings on this device unless you choose to set up sync.",
+      "description": "Meetings stay on this device until you set up sync.",
       "status": {
         "loading": "Checking sync…",
         "local": "Local only",

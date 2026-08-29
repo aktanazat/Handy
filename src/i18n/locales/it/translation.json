@@ -29,7 +29,7 @@
     "general": "Generale",
     "models": "Modelli",
     "advanced": "Avanzate",
-    "postProcessing": "Post-Elaborazione",
+    "postProcessing": "Post-elaborazione",
     "history": "Cronologia",
     "debug": "Debug",
     "about": "Informazioni",
@@ -42,7 +42,7 @@
     "settings": "Settings"
   },
   "onboarding": {
-    "subtitle": "Per cominciare, scegli un modello di riconoscimento vocale",
+    "subtitle": "I modelli funzionano su questo Mac e bilanciano accuratezza e velocità",
     "existingModelsTitle": "Modelli compatibili",
     "downloadModelsTitle": "Disponibile per il download",
     "showAllModels": "Mostra tutti e {{total}} modelli",
@@ -72,7 +72,7 @@
       },
       "parakeet-tdt-0.6b-v2": {
         "name": "Parakeet V2",
-        "description": "Solo inglese. Il miglior modello per chi parla inglese."
+        "description": "Solo inglese. Veloce e accurato."
       },
       "parakeet-tdt-0.6b-v3": {
         "name": "Parakeet V3",
@@ -116,7 +116,7 @@
       },
       "cohere-int8": {
         "name": "Cohere",
-        "description": "Un modello grande, più lento, ma molto accurato e multilingue."
+        "description": "Modello multilingue grande. Lento ma accurato."
       }
     },
     "errors": {
@@ -124,7 +124,7 @@
     },
     "permissions": {
       "title": "Permessi Richiesti",
-      "description": "Sona ha bisogno di alcuni permessi per funzionare correttamente.",
+      "description": "Sona ha bisogno dell'accesso al microfono e all'accessibilità.",
       "microphone": {
         "title": "Accesso al Microfono",
         "description": "Necessario per sentire la tua voce per la trascrizione."
@@ -135,38 +135,39 @@
       },
       "grant": "Concedi Permesso",
       "granted": "Concesso",
-      "waiting": "In attesa...",
-      "allGranted": "Tutto pronto!",
+      "waiting": "In attesa…",
+      "allGranted": "Entrambi concessi",
       "errors": {
         "checkFailed": "Non è stato possibile verificare le autorizzazioni. Riprova.",
         "requestFailed": "Non è stato possibile richiedere l'autorizzazione. Riprova."
       },
       "headline": "Configurazione iniziale",
-      "subhead": "Il computer chiede il permesso prima che un'app possa ascoltare o scrivere per te. Concedi questi permessi una volta e Sona non li chiederà più.",
+      "subhead": "Il sistema chiede il permesso prima che un'app possa ascoltare o scrivere.",
       "checking": "Verifica delle autorizzazioni",
       "recheck": "Verifica di nuovo"
     },
-    "headline": "Scegli un modello vocale"
+    "headline": "Scegli un modello di trascrizione"
   },
   "modelSelector": {
     "custom": "Personalizzato",
     "streaming": "Streaming",
     "active": "Attivo",
-    "switching": "Cambio...",
+    "switching": "Cambio…",
     "noModelsAvailable": "Nessun modello disponibile",
-    "verifying": "Verifica di {{modelName}}...",
-    "verifyingGeneric": "Verifica...",
-    "extracting": "Estrazione di {{modelName}}...",
-    "extractingMultiple": "Estrazione di {{count}} modelli...",
-    "extractingGeneric": "Estrazione...",
+    "verifying": "Verifica di {{modelName}}…",
+    "verifyingGeneric": "Verifica…",
+    "extracting": "Estrazione di {{modelName}}…",
+    "extractingMultiple": "Estrazione di {{count}} modelli…",
+    "extractingGeneric": "Estrazione…",
     "downloading": "Download {{percentage}}%",
-    "downloadingMultiple": "Download di {{count}} modelli...",
+    "downloadingMultiple": "Download di {{count}} modelli…",
+    "downloadingGeneric": "Downloading…",
     "modelReady": "Modello Pronto",
-    "loading": "Caricamento di {{modelName}}...",
-    "loadingGeneric": "Caricamento...",
+    "loading": "Caricamento di {{modelName}}…",
+    "loadingGeneric": "Caricamento…",
     "modelError": "Errore del Modello",
     "modelUnloaded": "Modello Disattivato",
-    "noModelDownloadRequired": "Nessun Modello - Download Richiesto",
+    "noModelDownloadRequired": "Nessun modello, download richiesto",
     "deleteModel": "Elimina {{modelName}}",
     "downloadSpeed": "{{speed}} MB/s",
     "capabilities": {
@@ -189,14 +190,14 @@
     },
     "models": {
       "title": "Modelli di Trascrizione",
-      "description": "Seleziona un modello di trascrizione o scarica modelli aggiuntivi. Diversi modelli offrono diversi livelli di accuratezza e velocità.",
-      "deleteConfirm": "Sei sicuro di voler eliminare {{modelName}}? Dovrai scaricarlo di nuovo per usarlo.",
-      "deleteActiveConfirm": "{{modelName}} è il tuo modello attivo. Eliminarlo interromperà le trascrizioni fino a quando non selezionerai un nuovo modello. Sei sicuro?",
+      "description": "Il modello che trasforma il parlato in testo. I modelli bilanciano accuratezza e velocità.",
+      "deleteConfirm": "Eliminare {{modelName}}? Per usarlo di nuovo dovrai scaricarlo di nuovo.",
+      "deleteActiveConfirm": "{{modelName}} è il modello attivo. Eliminarlo interrompe la trascrizione finché non ne selezioni un altro.",
       "deleteTitle": "Elimina modello",
       "filters": {
         "allLanguages": "Tutte le lingue",
-        "streaming": "Filtra i modelli che supportano la trascrizione in tempo reale",
-        "translation": "Filtra i modelli che supportano la traduzione in inglese",
+        "streaming": "Mostra solo i modelli con trascrizione in tempo reale",
+        "translation": "Mostra solo i modelli che traducono in inglese",
         "allFamilies": "Tutte le famiglie",
         "clear": "Azzera filtri",
         "downloadedOnly": "Su disco",
@@ -206,7 +207,7 @@
       "noModelsMatch": "Nessun modello corrisponde a questo filtro.",
       "yourModels": "Modelli scaricati",
       "availableModels": "Disponibili per il Download",
-      "searchPlaceholder": "Cerca modelli per nome…",
+      "searchPlaceholder": "Cerca modelli per nome",
       "rescan": {
         "label": "Riscansiona",
         "tooltip": "Riscansiona per trovare modelli aggiunti alla cartella dei modelli o alla cache di Hugging Face al di fuori di Sona"
@@ -288,9 +289,9 @@
     "general": {
       "title": "Generale",
       "shortcut": {
-        "title": "Scorciatoie di Sona",
-        "description": "Configura le scorciatoie per attivare la trascrizione vocale",
-        "loading": "Caricamento delle scorciatoie...",
+        "title": "Scorciatoie",
+        "description": "Scorciatoie da tastiera per registrare e riscrivere.",
+        "loading": "Caricamento delle scorciatoie…",
         "none": "Nessuna scorciatoia configurata",
         "notFound": "Scorciatoia non trovata",
         "pressKeys": "Premi i tasti…",
@@ -304,8 +305,8 @@
             "description": "La scorciatoia da tastiera per annullare la registrazione in corso."
           },
           "transcribe_with_post_process": {
-            "name": "Tasto di post-elaborazione",
-            "description": "Facoltativo: Un tasto di scelta rapida dedicato che applica sempre la post-elaborazione IA alla trascrizione."
+            "name": "Scorciatoia di post-elaborazione",
+            "description": "Una scorciatoia facoltativa che applica sempre la pulizia IA alla trascrizione."
           },
           "command": {
             "name": "Scorciatoia comando",
@@ -314,7 +315,7 @@
         },
         "errors": {
           "restore": "Non è stato possibile ripristinare la scorciatoia originale. Riprova.",
-          "set": "Errore nella configurazione della scorciatoia: {{error}}",
+          "set": "Non è stato possibile impostare la scorciatoia: {{error}}",
           "reset": "Non è stato possibile reimpostare la scorciatoia. Riprova."
         },
         "holdHint": "Tocca per attivare, tieni premuto per parlare. Funziona con qualsiasi scorciatoia.",
@@ -324,8 +325,8 @@
       },
       "language": {
         "title": "Lingua",
-        "description": "Scegli la lingua per il riconoscimento vocale. Auto la determinerà automaticamente, mentre scegliere una lingua specifica può migliorare l'accuratezza per quella lingua.",
-        "searchPlaceholder": "Cerca lingue...",
+        "description": "La lingua usata per il riconoscimento vocale. Auto la rileva; indicare una lingua può migliorare l'accuratezza.",
+        "searchPlaceholder": "Cerca lingue",
         "noResults": "Nessuna lingua trovata",
         "auto": "Automatico"
       },
@@ -338,7 +339,7 @@
         "title": "Aspetto",
         "material": {
           "title": "Materiale",
-          "description": "Solido dipinge le superfici di Sona. Vetro lascia trasparire il desktop dalla barra superiore, dalla palette dei comandi e dall'HUD di registrazione.",
+          "description": "Solido mantiene opache le superfici di Sona. Vetro lascia trasparire il desktop dalla barra superiore, dalla palette dei comandi e dall'HUD di registrazione.",
           "options": {
             "solid": "Solido",
             "glass": "Vetro"
@@ -355,29 +356,29 @@
       "title": "Suono",
       "microphone": {
         "title": "Microfono",
-        "description": "Scegli il microfono preferito",
-        "placeholder": "Scegli microfono...",
-        "loading": "Caricamento..."
+        "description": "Il microfono da cui Sona registra.",
+        "placeholder": "Scegli un microfono",
+        "loading": "Caricamento…"
       },
       "channel": {
         "title": "Canale di ingresso",
-        "description": "Seleziona il canale di ingresso da cui registrare. Usa questa opzione se l'interfaccia audio dispone di più ingressi.",
+        "description": "Il canale di ingresso da cui registrare, quando un'interfaccia ne ha più di uno.",
         "average": "Media di tutti i canali",
         "channel": "Canale {{n}}"
       },
       "audioFeedback": {
         "label": "Feedback Audio",
-        "description": "Riproduci un suono quando la registrazione inizia e finisce"
+        "description": "Riproduce un suono quando la registrazione inizia e finisce."
       },
       "outputDevice": {
         "title": "Dispositivo di Output",
-        "description": "Scegli il dispositivo di output per il feedback audio",
-        "placeholder": "Scegli dispositivo di output...",
-        "loading": "Caricamento..."
+        "description": "Dove vengono riprodotti i suoni di feedback.",
+        "placeholder": "Scegli un dispositivo di output",
+        "loading": "Caricamento…"
       },
       "volume": {
         "title": "Volume",
-        "description": "Regola il volume del feedback audio"
+        "description": "Volume dei suoni di feedback."
       }
     },
     "advanced": {
@@ -398,11 +399,11 @@
       },
       "experimentalToggle": {
         "label": "Funzionalità Sperimentali",
-        "description": "Abilita le funzionalità sperimentali ancora in fase di sviluppo."
+        "description": "Mostra le opzioni ancora in fase di sviluppo."
       },
       "lazyStreamClose": {
         "label": "Mantieni il microfono aperto tra le trascrizioni",
-        "description": "Mantiene lo stream del microfono aperto per 30 secondi dopo l'arresto della registrazione, riducendo la latenza per trascrizioni consecutive. Potrebbe degradare la qualità audio Bluetooth."
+        "description": "Mantiene lo stream del microfono aperto per 30 secondi dopo l'arresto della registrazione, così le trascrizioni consecutive iniziano più rapidamente. La qualità audio Bluetooth può calare mentre è aperto."
       },
       "acceleration": {
         "transcribe": {
@@ -423,7 +424,7 @@
       },
       "autostart": {
         "label": "Avvia all'Accensione",
-        "description": "Avvia Sona automaticamente quando accedi al computer."
+        "description": "Avvia Sona quando accedi."
       },
       "showTrayIcon": {
         "label": "Mostra icona nella barra di sistema",
@@ -450,7 +451,7 @@
       },
       "pasteMethod": {
         "title": "Metodo di Incollaggio",
-        "description": "Scegli come viene inserito il testo. Diretto: simula l'input da tastiera. Nessuno: non incolla, aggiorna solo la cronologia/appunti.",
+        "description": "Come viene inserito il testo. Diretto simula la digitazione tramite l'input di sistema. Nessuno non incolla e aggiorna solo la cronologia e gli appunti.",
         "options": {
           "clipboard": "Appunti ({{modifier}}+V)",
           "clipboardCtrlShiftV": "Appunti (Ctrl+Shift+V)",
@@ -463,22 +464,22 @@
       },
       "typingTool": {
         "title": "Strumento di digitazione",
-        "description": "Scegli quale strumento di digitazione Linux usare per il metodo di incolla diretto. Auto rileverà e userà automaticamente lo strumento migliore disponibile per il tuo sistema.",
+        "description": "Lo strumento di digitazione Linux usato dal metodo di incolla diretto. Auto rileva uno strumento disponibile.",
         "options": {
           "auto": "Auto (Consigliato)"
         }
       },
       "clipboardHandling": {
         "title": "Gestione Appunti",
-        "description": "Non Modificare gli Appunti mantiene il contenuto dei tuoi appunti dopo la trascrizione. Copia negli Appunti lascia il risultato della trascrizione negli appunti dopo aver incollato.",
+        "description": "Non modificare gli appunti mantiene il contenuto degli appunti. Copia negli appunti lascia lì il transcript dopo aver incollato.",
         "options": {
-          "dontModify": "Non Modificare gli Appunti",
+          "dontModify": "Non modificare gli appunti",
           "copyToClipboard": "Copia negli Appunti"
         }
       },
       "autoSubmit": {
         "title": "Invio automatico",
-        "description": "Invia automaticamente la combinazione di tasti selezionata dopo l'inserimento del testo. Cmd+Enter si applica su macOS, mentre Windows/Linux usano Super+Enter.",
+        "description": "Invia la combinazione di tasti selezionata dopo l'inserimento del testo. Cmd+Enter su macOS, Super+Enter su Windows e Linux.",
         "options": {
           "off": "Disattivato",
           "enter": "Invio",
@@ -489,11 +490,11 @@
       },
       "translateToEnglish": {
         "label": "Traduci in inglese",
-        "description": "Traduci automaticamente in inglese la voce in altre lingue durante la trascrizione."
+        "description": "Traduci in inglese la voce in altre lingue durante la trascrizione."
       },
       "modelUnload": {
         "title": "Disattiva modello",
-        "description": "Libera automaticamente la memoria della GPU/CPU quando il modello non viene utilizzato per un certo periodo",
+        "description": "Libera la memoria della GPU e della CPU dopo che il modello è rimasto inattivo per questo tempo.",
         "options": {
           "never": "Mai",
           "immediately": "Immediatamente",
@@ -568,7 +569,7 @@
       },
       "fillerWordRemoval": {
         "title": "Rimuovi le parole riempitive",
-        "description": "Rimuove le parole di esitazione più comuni dalle trascrizioni. Disattiva per mantenerle."
+        "description": "Rimuove le parole di esitazione più comuni dal transcript."
       },
       "emoji": {
         "enabledLabel": "Abilita sostituzioni emoji",
@@ -651,7 +652,7 @@
     },
     "postProcessing": {
       "hotkey": {
-        "title": "Tasto di scelta rapida"
+        "title": "Scorciatoia"
       },
       "api": {
         "title": "API (Compatibile con OpenAI)",
@@ -689,18 +690,18 @@
         },
         "noPrompts": "Nessun prompt disponibile",
         "selectPrompt": "Scegli un prompt",
-        "createNew": "Crea un nuovo prompt",
-        "promptLabel": "Etichetta del Prompt",
-        "promptLabelPlaceholder": "Inserisci il nome del prompt",
-        "promptInstructions": "Istruzioni del Prompt",
-        "promptInstructionsPlaceholder": "Scrivi le istruzioni da eseguire dopo la trascrizione. Esempio: Migliora la grammatica e la chiarezza per il seguente testo: ${output}",
-        "promptTip": "Suggerimento: Usa <code>${output}</code> per inserire il testo trascritto nel tuo prompt.",
+        "createNew": "Nuovo prompt",
+        "promptLabel": "Nome del prompt",
+        "promptLabelPlaceholder": "Assegna un nome a questo prompt",
+        "promptInstructions": "Istruzioni",
+        "promptInstructionsPlaceholder": "Migliora la grammatica e la chiarezza per il seguente testo: ${output}",
+        "promptTip": "Scrivi <code>${output}</code> dove deve essere inserita la trascrizione.",
         "updatePrompt": "Aggiorna Prompt",
         "deletePrompt": "Elimina Prompt",
         "createPrompt": "Crea Prompt",
         "cancel": "Annulla",
-        "selectToEdit": "Scegli un prompt qui sopra per visualizzare o modificare i dettagli.",
-        "createFirst": "Clicca 'Crea un nuovo prompt' qui sopra per creare il tuo primo prompt di post-elaborazione.",
+        "selectToEdit": "Scegli un prompt per modificarlo.",
+        "createFirst": "Crea un prompt per post-elaborare le trascrizioni.",
         "empty": {
           "description": "Un prompt dice al modello cosa fare con la trascrizione, per esempio: riscrivi quanto segue come messaggio breve, mantenendo ogni fatto: ${output}"
         },
@@ -740,7 +741,7 @@
     "history": {
       "stats": {
         "title": "Utilizzo totale",
-        "loading": "Caricamento dati di utilizzo...",
+        "loading": "Caricamento dati di utilizzo…",
         "unavailable": "Le statistiche di utilizzo non sono disponibili.",
         "entries": "registrazioni",
         "duration": "tempo di registrazione",
@@ -753,24 +754,24 @@
       },
       "title": "Cronologia",
       "openFolder": "Apri la cartella delle registrazioni",
-      "loading": "Caricamento cronologia...",
-      "empty": "Non ci sono ancora trascrizioni. Comincia a registrare per costruire la tua cronologia!",
+      "loading": "Caricamento cronologia…",
+      "empty": "Nessuna registrazione.",
       "copyToClipboard": "Copia la trascrizione negli appunti",
-      "save": "Salva la trascrizione",
+      "save": "Salva la voce",
       "unsave": "Rimuovi dai salvataggi",
       "delete": "Elimina elemento",
       "deleteError": "Non è stato possibile eliminare la voce. Riprova.",
       "retranscribe": "Ri-trascrivere",
       "retranscribeError": "Non è stato possibile ritrascrivere. Riprova.",
-      "transcribing": "Trascrizione in corso...",
-      "transcriptionFailed": "Trascrizione fallita. Puoi ri-trascrivere usando l'icona di ripetizione.",
+      "transcribing": "Trascrizione in corso…",
+      "transcriptionFailed": "Trascrizione fallita.",
       "search": "Cerca nella cronologia",
-      "searchPlaceholder": "Cerca trascrizioni...",
+      "searchPlaceholder": "Cerca trascrizioni",
       "noResults": "Nessuna trascrizione corrisponde a \"{{query}}\".",
       "loadError": "Impossibile caricare la cronologia.",
       "retry": "Riprova",
       "saveError": "Non è stato possibile aggiornare lo stato di salvataggio. Riprova.",
-      "postProcessEmpty": "L'elaborazione successiva non ha restituito testo. Visualizzazione della trascrizione originale.",
+      "postProcessEmpty": "La post-elaborazione non ha restituito testo. Visualizzazione della trascrizione originale.",
       "textView": {
         "label": "Visualizzazione trascrizione",
         "processed": "Elaborato",
@@ -962,26 +963,27 @@
       "title": "Debug",
       "logDirectory": {
         "title": "Cartella dei Log",
-        "description": "Cartella dove vengono salvati i file di log"
+        "description": "Dove vengono scritti i file di log."
       },
       "logLevel": {
         "title": "Livello di Log",
-        "description": "Scegli il livello di dettaglio dei log"
+        "description": "Quanto dettaglio registra il log."
       },
       "liveLogs": {
         "title": "Log in Tempo Reale",
-        "description": "Trasmetti i log dell'applicazione in tempo reale per diagnosticare i problemi senza aprire il file di log. Vengono mostrati solo i log emessi mentre questo pannello è aperto; rispetta l'impostazione Livello di Log qui sopra.",
+        "description": "Trasmette le righe di log man mano che vengono emesse. Qui appaiono solo le righe emesse mentre questo pannello è aperto, al livello di log impostato sopra.",
         "live": "In Diretta",
         "paused": "In Pausa",
         "pause": "Pausa",
         "resume": "Riprendi",
         "copied": "Copiato",
         "lineCount": "{{count}} righe",
-        "empty": "In attesa di log… Le voci appariranno qui man mano che l'app le emette."
+        "empty": "In attesa di log. Le righe appariranno qui man mano che l'app le emette."
       },
       "soundTheme": {
         "label": "Tema Sonoro",
-        "description": "Scegli un tema sonoro per il feedback di inizio e fine registrazione"
+        "description": "Quali suoni vengono riprodotti all'inizio e alla fine della registrazione.",
+        "preview": "Preview the start and stop sounds"
       },
       "wordCorrectionThreshold": {
         "title": "Soglia di Correzione Parole",
@@ -989,38 +991,38 @@
       },
       "historyLimit": {
         "title": "Limite della Cronologia",
-        "description": "Massimo numero di elementi da conservare nella cronologia",
+        "description": "Quanti elementi conservare nella cronologia.",
         "entries": "elementi"
       },
       "recordingRetention": {
         "title": "Eliminazione Automatica Registrazioni",
-        "description": "Elimina automaticamente le registrazioni vecchie per liberare spazio",
+        "description": "Elimina le registrazioni dopo questo periodo.",
         "never": "Mai",
         "preserveLimit": "Conserva le ultime {{count}}",
         "days3": "Dopo 3 giorni",
         "weeks2": "Dopo 2 settimane",
         "months3": "Dopo 3 mesi",
-        "placeholder": "Seleziona periodo di conservazione..."
+        "placeholder": "Seleziona un periodo di conservazione"
       },
       "alwaysOnMicrophone": {
         "label": "Microfono Sempre Attivo",
-        "description": "Tieni il microfono attivo per una risposta più rapida"
+        "description": "Mantiene il microfono aperto così la registrazione inizia più rapidamente."
       },
       "clamshellMicrophone": {
         "title": "Microfono con coperchio chiuso",
-        "description": "Microfono da usare quando il portatile è chiuso"
+        "description": "Il microfono usato quando il portatile è chiuso."
       },
       "postProcessingToggle": {
         "label": "Post-Elaborazione",
-        "description": "Abilita il miglioramento della trascrizione con IA"
+        "description": "Riscrive la trascrizione con un modello linguistico dopo la trascrizione."
       },
       "muteWhileRecording": {
         "label": "Silenzia durante la registrazione",
         "description": "Silenzia l'audio di sistema durante la registrazione"
       },
       "appendTrailingSpace": {
-        "label": "Aggiungi Spazio Finale",
-        "description": "Aggiungi uno spazio dopo la trascrizione incollata"
+        "label": "Aggiungi uno spazio finale",
+        "description": "Aggiunge uno spazio dopo il transcript incollato."
       },
       "keyboardImplementation": {
         "title": "Implementazione tastiera",
@@ -1042,7 +1044,7 @@
       },
       "reliablePaste": {
         "title": "Incolla affidabile (Beta)",
-        "description": "Ripristina gli appunti solo dopo che l'app di destinazione ha effettivamente letto la trascrizione, anziché dopo un ritardo fisso. Serve a risolvere l'incollaggio del vecchio contenuto degli appunti quando il sistema è sotto carico. Richiede un metodo di incollaggio tramite appunti; solo macOS e Windows."
+        "description": "Ripristina gli appunti solo dopo che l'app di destinazione ha letto la trascrizione, anziché dopo un ritardo fisso. Serve a risolvere l'incollaggio del vecchio contenuto degli appunti quando il sistema è sotto carico. Richiede un metodo di incollaggio tramite appunti; solo macOS e Windows."
       },
       "recordingBuffer": {
         "title": "Buffer di registrazione extra",
@@ -1062,10 +1064,10 @@
         "keyUp": "Tasto rilasciato",
         "flagsChanged": "Modificatori",
         "mouse": "Mouse",
-        "verdictBlocked": "Secure Input sta bloccando gli eventi dei tasti: le scorciatoie che includono un tasto normale non possono funzionare finché non viene risolto.",
-        "verdictSuspicious": "Sono arrivati eventi dei modificatori ma nessun evento dei tasti: qualcosa sta sopprimendo i tasti anche se Secure Input risulta disabilitato. Segnalalo su GitHub.",
+        "verdictBlocked": "Secure Input sta bloccando gli eventi dei tasti, quindi le scorciatoie che includono un tasto normale non possono funzionare finché non viene risolto.",
+        "verdictSuspicious": "Sono arrivati eventi dei modificatori ma nessun evento dei tasti. Qualcosa sta sopprimendo i tasti anche se Secure Input risulta disabilitato. Segnalalo su GitHub.",
         "verdictOk": "Gli eventi dei tasti arrivano a Sona normalmente.",
-        "verdictNoEvents": "Nessun evento rilevato: hai premuto qualche tasto durante il test?",
+        "verdictNoEvents": "Nessun evento rilevato durante il test.",
         "failed": "Diagnostica non riuscita: {{error}}"
       },
       "whatsNewPreview": {
@@ -1087,12 +1089,12 @@
       "title": "Informazioni",
       "version": {
         "title": "Versione",
-        "description": "Versione attuale di Sona",
+        "description": "La versione in esecuzione ora.",
         "unavailable": "Non disponibile"
       },
       "appDataDirectory": {
         "title": "Cartella Dati App",
-        "description": "Cartella in cui Sona salva i dati"
+        "description": "Dove Sona salva i dati."
       },
       "sourceCode": {
         "title": "Open-source licenses",
@@ -1101,15 +1103,15 @@
       },
       "supportDevelopment": {
         "title": "Supporta lo Sviluppo",
-        "description": "Aiutaci a sviluppare Sona",
+        "description": "Le donazioni finanziano il lavoro continuo su Sona.",
         "button": "Dona"
       },
       "acknowledgments": {
         "title": "Ringraziamenti",
         "ggml": {
           "title": "ggml",
-          "description": "Inferenza ad alte prestazioni del modello di riconoscimento vocale automatico Whisper di OpenAI",
-          "details": "Sona usa ggml per il riconoscimento vocale veloce in locale. Grazie a Georgi Gerganov e collaboratori per il fantastico lavoro."
+          "description": "Libreria di tensori per l'inferenza di machine learning sul dispositivo",
+          "details": "Il riconoscimento vocale locale di Sona è basato su transcribe.cpp e ggml. Grazie a Georgi Gerganov e collaboratori."
         }
       },
       "whatsNewUpdates": {
@@ -1154,7 +1156,7 @@
           "label": "Activate in app",
           "description": "Capture the app currently in front and select this mode when you dictate there.",
           "action": "Capture current app",
-          "capturing": "Capturing..."
+          "capturing": "Capturing…"
         },
         "empty": "No app activates this mode.",
         "remove": "Remove",
@@ -1172,7 +1174,7 @@
             "label": "Attiva sul sito web",
             "description": "Acquisisci l'host del browser in primo piano. Sona salva l'host, non l'URL.",
             "action": "Acquisisci il sito web attuale",
-            "capturing": "Acquisizione in corso..."
+            "capturing": "Acquisizione in corso…"
           },
           "empty": "Nessun sito web attiva questa modalità.",
           "exampleDescription": "Una regola memorizza un host del browser, per esempio mail.google.com."
@@ -1264,8 +1266,8 @@
         "model": {
           "label": "Transcription model",
           "description": "Only downloaded local models are available here.",
-          "inheritGlobal": "Predefinito — usa il modello globale",
-          "inheritGlobalNamed": "Predefinito — usa il modello globale ({{name}})"
+          "inheritGlobal": "Predefinito: il modello globale",
+          "inheritGlobalNamed": "Predefinito: il modello globale ({{name}})"
         },
         "language": {
           "label": "Language",
@@ -1422,7 +1424,7 @@
           "label": "Typing tool",
           "description": "Used only with direct typing.",
           "values": {
-            "auto": "Automatic",
+            "auto": "Auto",
             "wtype": "wtype",
             "kwtype": "kwtype",
             "dotool": "dotool",
@@ -1532,7 +1534,7 @@
           "error": "Browser URL capture could not be saved."
         },
         "cloudRoute": "Enabled cloud modes send allowed context to {{providers}}.",
-        "localRoute": "All your AI processing is local.",
+        "localRoute": "AI processing runs on this Mac.",
         "checkingRoute": "Checking configured cloud routes…"
       },
       "diagnostics": {
@@ -1599,7 +1601,7 @@
             "key_rejected": "La chiave memorizzata non apre il database crittografato, quindi la cronologia non può essere letta.",
             "key_unavailable": "L'archivio credenziali di sistema non ha restituito una chiave utilizzabile, quindi la cronologia è archiviata senza crittografia.",
             "migration_failed": "La crittografia del database esistente non è riuscita. Il database non crittografato è intatto e ancora in uso.",
-            "unlocking": "Apertura del database crittografato. Scompare pochi istanti dopo l'avvio."
+            "unlocking": "Apertura del database crittografato. Scompare al termine dell'avvio."
           },
           "unknown": "Sona non è riuscita a leggere come è archiviata la cronologia.",
           "unlocking": "Sblocco in corso",
@@ -1655,18 +1657,18 @@
         "import": "Import selected data",
         "importing": "Importing",
         "errors": {
-          "source_unavailable": "The original Sona data folder is unavailable.",
-          "upstream_running": "Close the original Sona app before importing.",
-          "app_state_unverifiable": "Sona cannot verify the original app state on this platform.",
+          "source_unavailable": "The legacy app's data folder is unavailable.",
+          "upstream_running": "Close the legacy app before importing.",
+          "app_state_unverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
           "invalid_selection": "Choose settings or history to import.",
-          "settings_unreadable": "The original settings file could not be read.",
+          "settings_unreadable": "The legacy settings file could not be read.",
           "secret_store_unavailable": "The native credential store is unavailable, so settings with provider keys were not imported.",
           "secret_conflict": "A provider key already exists in the native credential store. Resolve it before importing settings.",
-          "history_unreadable": "The original history database could not be read.",
+          "history_unreadable": "The legacy history database could not be read.",
           "recording_copy_failed": "A recording could not be copied and verified.",
           "receipt_write_failed": "The import receipt could not be saved.",
           "internal": "The import did not finish.",
-          "status": "The original Sona data could not be inspected."
+          "status": "The legacy app's data could not be inspected."
         }
       },
       "cloudSync": {
@@ -1854,7 +1856,7 @@
     "prompts": {
       "samples": {
         "title": "Esempi di scrittura",
-        "description": "Esempi della tua scrittura. Ogni modalità che riscrive una trascrizione ne riprende il tono.",
+        "description": "Esempi della tua scrittura. Le modalità che riscrivono una trascrizione ne riprendono il tono.",
         "placeholder": "Incolla un paragrafo scritto da te.",
         "sampleLabel": "Esempio di scrittura {{number}}",
         "delete": "Elimina l'esempio {{number}}",
@@ -1881,7 +1883,7 @@
     }
   },
   "common": {
-    "loading": "Caricamento...",
+    "loading": "Caricamento…",
     "delete": "Elimina",
     "cancel": "Annulla",
     "close": "Chiudi",
@@ -1898,7 +1900,7 @@
   },
   "commandPalette": {
     "open": "Cerca",
-    "placeholder": "Digita un comando o cerca…",
+    "placeholder": "Digita un comando o cerca",
     "navigation": "Navigazione",
     "actions": "Azioni",
     "noResults": "Nessun comando trovato",
@@ -1916,26 +1918,26 @@
   },
   "errors": {
     "noSpeechDetectedTitle": "Nessun parlato rilevato",
-    "noSpeechDetected": "Non è stato rilevato alcun parlato. Un campione della registrazione è stato salvato nella cronologia per consentirti di controllare l'audio acquisito.",
-    "loadDirectory": "Errore di caricamento cartella: {{error}}",
+    "noSpeechDetected": "Non è stato rilevato alcun parlato. Un campione della registrazione è stato salvato nella Cronologia.",
+    "loadDirectory": "Non è stato possibile caricare la cartella: {{error}}",
     "micPermissionDeniedTitle": "Accesso al microfono negato",
     "micPermissionDenied": {
-      "generic": "L'accesso al microfono è stato negato dal sistema operativo. Concedi l'autorizzazione al microfono nelle impostazioni di sistema.",
+      "generic": "Il sistema operativo ha negato l'accesso al microfono. Concedi l'accesso al microfono nelle impostazioni di sistema.",
       "windows": "Abilita l'accesso al microfono in Impostazioni → Privacy e sicurezza → Microfono (incluso l'accesso delle app desktop).",
       "macos": "Concedi l'accesso al microfono in Impostazioni di Sistema → Privacy e sicurezza → Microfono.",
       "linux": "Concedi l'accesso al microfono nelle impostazioni audio o sulla privacy del tuo sistema."
     },
     "noInputDeviceTitle": "Nessun microfono trovato",
-    "noInputDevice": "Non è stato rilevato alcun dispositivo di ingresso audio. Collega un microfono o delle cuffie e riprova.",
+    "noInputDevice": "Non è stato rilevato alcun dispositivo di ingresso audio. Collega un microfono e riprova.",
     "recordingFailed": "Non è stato possibile avviare la registrazione: {{error}}. Riprova.",
     "modelLoadFailed": "Non è stato possibile caricare {{model}}. Riprova.",
     "modelLoadFailedUnknown": "modello sconosciuto",
     "pasteFailedTitle": "Non è stato possibile incollare la trascrizione",
-    "pasteFailed": "Il testo non è stato incollato nell'app attiva. Metti il focus su un campo di testo e riprova.",
+    "pasteFailed": "Il transcript non è stato incollato nell'app attiva. Metti il focus su un campo di testo e riprova.",
     "transcriptionFailedTitle": "Non è stato possibile trascrivere",
-    "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
-    "commandNoSelection": "Non c'era nulla di selezionato. Seleziona il testo da cambiare, poi tieni premuta la scorciatoia comando e di' cosa fare.",
-    "commandRewriteUnavailable": "La riscrittura non ha restituito nulla, quindi la selezione è rimasta com'era. Controlla il modello di riscrittura in Impostazioni > IA e riprova.",
+    "noModelSelected": "Nessun modello di trascrizione selezionato. Scegline uno in Settings > Models.",
+    "commandNoSelection": "Seleziona il testo da cambiare, poi tieni premuta la scorciatoia comando e di' la modifica.",
+    "commandRewriteUnavailable": "La riscrittura non ha restituito nulla, quindi la selezione è rimasta com'era. Controlla il provider in Settings > Post-processing e riprova.",
     "noModelSelectedTitle": "Nessun modello selezionato",
     "noSpeechSaveFailedTitle": "Campione non salvato",
     "captureOverrunTitle": "Acquisizione oltre il limite",
@@ -1987,7 +1989,7 @@
     "recorderBlockedWithCulprit": "{{name}} potrebbe bloccare le modifiche alle scorciatoie",
     "recorderBlockedNoCulprit": "macOS sta bloccando temporaneamente le modifiche alle scorciatoie",
     "learnMore": "Come risolvere",
-    "recorderBlocked": "Non è possibile registrare scorciatoie in questo momento: Secure Input di macOS sta bloccando gli eventi dei tasti. Risolvi prima l'avviso di Secure Input.",
+    "recorderBlocked": "Secure Input di macOS sta bloccando gli eventi dei tasti, quindi non è possibile registrare scorciatoie. Risolvi prima l'avviso di Secure Input.",
     "dismiss": "Ignora"
   },
   "meetings": {
@@ -2067,6 +2069,7 @@
     },
     "detected": {
       "title": "Meeting detected",
+      "description": "Sona ha notato un'app per riunioni in uso.",
       "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
@@ -2277,7 +2280,7 @@
       "ask": "Ask locally",
       "noQuestions": "No saved local answers.",
       "question": "Question",
-      "insufficientEvidence": "I couldn’t find support for that in this meeting.",
+      "insufficientEvidence": "No supporting passage was found in this meeting.",
       "forget": "Forget this answer",
       "exactSearch": "Exact search",
       "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
@@ -2382,7 +2385,7 @@
       "title": "Meeting activity",
       "loading": "Loading meeting trends…",
       "error": "Couldn't load meeting trends.",
-      "unavailable": "Meeting trends are unavailable right now.",
+      "unavailable": "Meeting trends are unavailable.",
       "metricLabel": "Metric",
       "metrics": {
         "meetings": "Meetings",
@@ -2392,7 +2395,7 @@
       }
     },
     "list": {
-      "retentionHint": "Conservazione: {{policy}}. Modificala in Impostazioni, Privacy.",
+      "retentionHint": "Conservazione: {{policy}}. Modificala in Settings > Privacy.",
       "searchLabel": "Cerca riunioni",
       "searchPlaceholder": "Cerca per titolo",
       "clearFilters": "Azzera filtri",
@@ -2482,13 +2485,13 @@
       "trackerName": "Nome",
       "trackerPatterns": "sconto, prezzo migliore, troppo caro",
       "trackerPatternsLabel": "Espressioni separate da virgole",
-      "trackersSaveFailed": "Sona non ha potuto salvare i tracker. Modificane uno e riprova."
+      "trackersSaveFailed": "Sona non ha potuto salvare i tracker. Riprova."
     },
     "notes": {
       "title": "Le mie note",
       "liveDescription": "Scrivi in modo tanto approssimativo quanto vuoi. Queste note restano su questo Mac e guidano quelle che Sona genera alla fine della riunione.",
       "reviewDescription": "Le tue note guidano ciò che le note generate mettono in evidenza. Non vengono mai citate né richiamate.",
-      "placeholder": "Tutto ciò che vale la pena ricordare — nomi, numeri, cosa seguire",
+      "placeholder": "Tutto ciò che vale la pena ricordare: nomi, numeri, cosa seguire",
       "unsaved": "Non ancora salvato",
       "saving": "Salvataggio…",
       "saved": "Note salvate",
@@ -2502,7 +2505,7 @@
       "catchUpTitle": "Finora",
       "catchUpNoTranscript": "Non c'è ancora nulla da riassumere. Sona trascrive dopo che fermi la registrazione, quindi un riassunto sarà disponibile appena arriva la trascrizione.",
       "catchUpUnavailable": "Il modello sul dispositivo non è disponibile, quindi non è stato scritto alcun riassunto.",
-      "catchUpFailed": "Sona non ha potuto creare un riassunto. Riprova tra un momento.",
+      "catchUpFailed": "Sona non ha potuto creare un riassunto. Riprova.",
       "templates": {
         "general": "Riunione generica",
         "one_on_one": "Uno a uno",
@@ -2521,6 +2524,8 @@
         "huddle": "Huddle {{app}} rilevato",
         "browser": "Chiamata rilevata in {{app}}",
         "unknown": "Attività del microfono rilevata",
+        "calendarUntitled": "Evento del calendario sta iniziando",
+        "generic": "Riunione rilevata",
         "body": "Sona può prendere appunti in locale per questa chiamata."
       },
       "actions": {
@@ -2608,6 +2613,10 @@
         "more": "Più",
         "less": "Meno"
       },
+      "untitled": {
+        "calendar": "Evento del calendario",
+        "app": "Microfono in uso"
+      },
       "actions": {
         "skip": "Salta"
       },
@@ -2676,7 +2685,7 @@
     },
     "recent": {
       "title": "Recent activity",
-      "history": "Transcription",
+      "history": "Dictation",
       "meeting": "Meeting",
       "viewAll": "Vedi tutto",
       "words": "{{count}} parole",
@@ -2686,30 +2695,30 @@
     },
     "hero": {
       "ready": "Ready",
-      "recording": "Recording",
+      "recording": "Listening",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Modalità: {{name}}",
       "setShortcut": "Imposta una scorciatoia di dettatura in Impostazioni per acquisire da qualsiasi app.",
       "setShortcutAction": "Imposta una scorciatoia",
       "shortcutAction": "Cambia la scorciatoia di dettatura",
-      "gestureTapHold": "Tocca per attivare, tieni premuto per parlare, da qualsiasi app.",
-      "gestureTapOnly": "Tocca per attivare, da qualsiasi app."
+      "gestureTapHold": "Tocca per attivare, tieni premuto per parlare.",
+      "gestureTapOnly": "Tocca per attivare."
     },
     "actions": {
       "dictate": "Dictate",
       "unavailable": "Shortcut unavailable"
     },
     "chart": {
-      "day": "{{date}} \\u00b7 dettature {{dictations}}",
-      "dayWithMeetings": "{{date}} \\u00b7 dettature {{dictations}} \\u00b7 riunioni {{meetings}}",
+      "day": "{{date}} · dettature {{dictations}}",
+      "dayWithMeetings": "{{date}} · dettature {{dictations}} · riunioni {{meetings}}",
       "legend": "Dettature al giorno",
       "peak": "Giorno più attivo {{peak}}",
       "summary": "Dettature al giorno dal {{from}} al {{to}}. Totale {{total}}, giorno più attivo {{peak}}."
     },
     "empty": {
       "action": "Apri Libreria",
-      "description": "Tieni premuta la scorciatoia di dettatura in qualsiasi app e Sona scrive ciò che dici. Le statistiche d'uso e le acquisizioni recenti compaiono qui dopo la prima.",
+      "description": "Tieni premuta la scorciatoia di dettatura in qualsiasi app e Sona scrive ciò che dici. Le statistiche d'uso e le acquisizioni recenti compaiono qui dopo la prima dettatura.",
       "title": "Ancora nessuna acquisizione"
     },
     "stats": {
@@ -2717,7 +2726,7 @@
       "allTime": "{{total}} in totale",
       "dictations": "Dettature",
       "dictationsAllTime": "Dettature, totale complessivo",
-      "error": "Sona non è riuscita a leggere la cronologia d'uso al momento.",
+      "error": "Sona non è riuscita a leggere la cronologia d'uso.",
       "range": "Dal {{from}} al {{to}}",
       "rangeUnavailable": "Impossibile leggere gli ultimi 30 giorni, quindi questi sono i totali complessivi.",
       "speaking": "Tempo di parlato",
@@ -2758,7 +2767,7 @@
     "title": "Cloud Sync",
     "account": {
       "title": "Cloud Sync",
-      "description": "Keep meetings on this device unless you choose to set up sync.",
+      "description": "Meetings stay on this device until you set up sync.",
       "status": {
         "loading": "Checking sync…",
         "local": "Local only",
