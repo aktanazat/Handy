@@ -77,7 +77,7 @@
       "file": "src/bindings.ts",
       "rule": "anti-slop(require-safety-comment-for-type-assertion)",
       "severity": "error",
-      "count": 228
+      "count": 229
     },
     {
       "file": "src/bindings.ts",
