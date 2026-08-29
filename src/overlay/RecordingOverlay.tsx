@@ -2,7 +2,7 @@ import React, { useEffect, useLayoutEffect, useReducer, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import "./RecordingOverlay.css";
 import { syncLanguageFromSettings } from "@/i18n";
-import { getLanguageDirection } from "@/lib/utils/rtl";
+import { getLanguageDirection, initializeRTL } from "@/lib/utils/rtl";
 import { keyCapParts } from "@/lib/utils/keyboard";
 import { useOsType } from "@/hooks/useOsType";
 import { getHudPillState } from "@/lib/powerPackApi";
@@ -54,6 +54,17 @@ const RecordingOverlay: React.FC = () => {
   const pinnedRef = useRef(true);
   const direction = getLanguageDirection(i18n.language);
   const osType = useOsType();
+
+  /* The overlay is its own document and owns its own `lang`/`dir`. `index.html`
+   * ships `lang="en"` and nothing updated it, but CSS `text-transform:
+   * uppercase` — which is how the state word and every microlabel here are
+   * uppercased — follows `lang`: in Turkish `i` uppercases to `İ`, not `I`. So a
+   * Turkish HUD read "LISTENING" where it should read "LİSTENİNG". The main
+   * window already does this via `initializeRTL`; a second webview cannot
+   * inherit it, for the same reason it cannot inherit the theme. */
+  useEffect(() => {
+    initializeRTL(i18n.language);
+  }, [i18n.language]);
 
   useEffect(() => {
     disposedRef.current = false;
