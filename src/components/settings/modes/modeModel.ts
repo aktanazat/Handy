@@ -245,6 +245,29 @@ export const modeConfigSummary = (
     deliverySummary(mode.delivery, t),
   ].join(MODE_SUMMARY_SEPARATOR);
 
+/**
+ * The order the list would have after nudging one mode by one position.
+ *
+ * The list can be reordered two ways — dragging a row, or the move up/down
+ * menu items — and the backend takes only a full ordered ID list. The drag
+ * already produces one; this is what the keyboard path produces, so both
+ * commit through the same command with the same shape. Returns the input
+ * unchanged when the move would leave the list, which is what a disabled
+ * menu item means.
+ */
+export const orderWithMove = (
+  orderedIds: readonly string[],
+  modeId: string,
+  direction: -1 | 1,
+): string[] => {
+  const from = orderedIds.indexOf(modeId);
+  const to = from + direction;
+  if (from < 0 || to < 0 || to >= orderedIds.length) return [...orderedIds];
+  const next = [...orderedIds];
+  [next[from], next[to]] = [next[to], next[from]];
+  return next;
+};
+
 export const modeDefinitionFromView = (mode: ModeView): ModeDefinition => ({
   id: mode.id,
   name: mode.name,

@@ -90,18 +90,19 @@ const strip = (value: string): string =>
     />,
   );
 
-/** The markup of the one segment whose aria-selected is true. */
+/** The whole <button>…</button> of the one segment whose aria-selected is true. */
 const activeSegment = (markup: string): string => {
-  const start = markup.lastIndexOf(
-    "<button",
-    markup.indexOf('aria-selected="true"'),
-  );
-  return markup.slice(
-    start,
-    markup.indexOf(">", markup.indexOf('aria-selected="true"')) + 1,
-  );
+  const selected = markup.indexOf('aria-selected="true"');
+  const start = markup.lastIndexOf("<button", selected);
+  return markup.slice(start, markup.indexOf("</button>", selected));
 };
 
+/* The fill and the border used to be classes on the active button, switched on
+ * and off per segment. They are now one element that Motion moves between
+ * segments, so the assertions follow it there: the contract is still "the
+ * active segment is unmistakably filled and bordered", and it is still one
+ * segment at a time. The slide itself is a browser fact, asserted in
+ * tests/motion.spec.ts. */
 describe("segmented tabs", () => {
   test("the active segment carries a fill and a border, not just a weight", () => {
     const active = activeSegment(strip("history"));
@@ -120,9 +121,29 @@ describe("segmented tabs", () => {
     expect(strip("history")).toContain("bg-surface-sunken");
   });
 
-  test("exactly one segment is selected", () => {
+  test("exactly one segment is selected, and it holds the only mark", () => {
     const markup = strip("meetings");
     expect(markup.split('aria-selected="true"').length - 1).toBe(1);
+    expect(markup.split("bg-surface-raised").length - 1).toBe(1);
     expect(activeSegment(markup)).toContain("bg-surface-raised");
+  });
+
+  test("the mark is decoration, so it stays out of the accessibility tree", () => {
+    const active = activeSegment(strip("history"));
+    const mark = active.slice(active.indexOf("<span"));
+    expect(mark).toContain('aria-hidden="true"');
+  });
+
+  test("the underlined variant marks its active tab too", () => {
+    const markup = renderToStaticMarkup(
+      <Tabs
+        items={ITEMS}
+        value="history"
+        onChange={() => {}}
+        label="Library section"
+      />,
+    );
+    expect(activeSegment(markup)).toContain("bg-text-primary");
+    expect(markup.split("bg-text-primary").length - 1).toBe(1);
   });
 });

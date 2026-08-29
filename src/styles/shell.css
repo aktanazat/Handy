@@ -414,22 +414,15 @@
   overflow: hidden;
   padding: 0;
   position: fixed;
+  /* The pre-script position. Once Motion mounts it owns the transform, because
+     the entrance scales about this same centre and two authors of one property
+     cannot both win. The keyframe animation that used to live here was exactly
+     that collision: a CSS animation outranks an inline style. */
   transform: translateX(-50%);
-}
-
-.command-palette[open] {
-  animation: command-palette-in var(--duration-standard) var(--ease-out);
 }
 
 .command-palette::backdrop {
   background: var(--color-backdrop);
-}
-
-@keyframes command-palette-in {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-4px);
-  }
 }
 
 .command-palette-input-row {

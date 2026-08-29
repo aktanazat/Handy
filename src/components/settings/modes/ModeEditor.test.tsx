@@ -677,6 +677,7 @@ describe("mode list", () => {
         onActivate={noop}
         onDuplicate={noop}
         onMove={noop}
+        onReorder={noop}
         onRequestDelete={noop}
         onReload={noop}
       />,
@@ -771,6 +772,7 @@ describe("mode list", () => {
           onActivate={noop}
           onDuplicate={noop}
           onMove={noop}
+          onReorder={noop}
           onRequestDelete={noop}
           onReload={noop}
         />,
@@ -794,6 +796,7 @@ describe("mode list", () => {
         onActivate={noop}
         onDuplicate={noop}
         onMove={noop}
+        onReorder={noop}
         onRequestDelete={noop}
         onReload={noop}
       />,
@@ -857,6 +860,7 @@ describe("mode list", () => {
         onActivate={noop}
         onDuplicate={noop}
         onMove={noop}
+        onReorder={noop}
         onRequestDelete={noop}
         onReload={noop}
       />,

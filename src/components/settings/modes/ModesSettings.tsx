@@ -27,6 +27,7 @@ import {
   MODE_MUTATION_ERROR_DEFAULTS,
   modeDefinitionFromView,
   modeWithRequiredCloudTimestamps,
+  orderWithMove,
 } from "./modeModel";
 import "../settings-density.css";
 import "./modes.css";
@@ -293,25 +294,15 @@ export const ModesSettings: React.FC = () => {
     [applySnapshot, handleMutationError, snapshot],
   );
 
-  const reorder = useCallback(
-    async (modeIdToMove: string, direction: -1 | 1) => {
+  /* Both reorder routes end here. The drag hands over the order it produced;
+   * the move up/down menu items derive theirs from `orderWithMove`. One
+   * command, one revision check, one snapshot back. */
+  const commitOrder = useCallback(
+    async (orderedIds: string[]) => {
       if (!snapshot) return;
-      const currentIndex = snapshot.modes.findIndex(
-        (mode) => mode.id === modeIdToMove,
-      );
-      const targetIndex = currentIndex + direction;
-      if (
-        currentIndex < 0 ||
-        targetIndex < 0 ||
-        targetIndex >= snapshot.modes.length
-      ) {
-        return;
-      }
-      const orderedIds = snapshot.modes.map((mode) => mode.id);
-      [orderedIds[currentIndex], orderedIds[targetIndex]] = [
-        orderedIds[targetIndex],
-        orderedIds[currentIndex],
-      ];
+      const current = snapshot.modes.map((mode) => mode.id);
+      if (orderedIds.length !== current.length) return;
+      if (orderedIds.every((id, index) => id === current[index])) return;
       setSaving(true);
       setError(null);
       try {
@@ -483,7 +474,16 @@ export const ModesSettings: React.FC = () => {
             }}
             onActivate={(modeId) => void activateMode(modeId)}
             onDuplicate={(mode) => void createMode(mode)}
-            onMove={(modeId, direction) => void reorder(modeId, direction)}
+            onMove={(modeId, direction) =>
+              void commitOrder(
+                orderWithMove(
+                  snapshot.modes.map((mode) => mode.id),
+                  modeId,
+                  direction,
+                ),
+              )
+            }
+            onReorder={(orderedIds) => void commitOrder(orderedIds)}
             onRequestDelete={setPendingDelete}
             onReload={() => void loadModes()}
           />

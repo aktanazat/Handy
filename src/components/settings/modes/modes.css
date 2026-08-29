@@ -111,6 +111,44 @@
   outline-offset: -2px;
 }
 
+/* --------------------------------------------------- reorder by dragging */
+
+/* A row under the pointer is lifted off the list: the ring elevation token,
+   which is the same edge every popover in the app uses, plus the raised fill
+   so the rows it passes over show through underneath rather than behind a
+   transparent hole. Motion owns the row's transform and z-index; CSS owns what
+   the lift looks like. */
+.modes-list-row[data-dragging] {
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-popover);
+}
+
+/* While one row is held, every other row's hover wash is a lie: the pointer is
+   not choosing them, it is passing over them. Both washes go quiet for the
+   duration, and the divider stops brightening with them. */
+.modes-list[data-dragging] .modes-list-row:hover {
+  border-block-start-color: var(--border-hairline);
+}
+
+.modes-list[data-dragging] .modes-list-button:hover,
+.modes-list[data-dragging] .modes-list-button:active {
+  background: transparent;
+}
+
+/* The row is a drag handle, so the pointer says so — and text selection has to
+   stop competing with the gesture for the drag. */
+.modes-list-row[data-reorderable] {
+  touch-action: none;
+}
+
+.modes-list-row[data-reorderable] .modes-list-button {
+  cursor: grab;
+}
+
+.modes-list-row[data-dragging] .modes-list-button {
+  cursor: grabbing;
+}
+
 /* Line 1. The name is the only shrinkable box, so it is the one that
  * ellipses and the caps stay on this line at every width. Clipped rather
  * than wrapped once even the name has run out. */

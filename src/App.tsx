@@ -37,6 +37,7 @@ import {
   type LanguageDirection,
 } from "@/lib/utils/rtl";
 import { runViewTransition } from "@/lib/utils/viewTransition";
+import { MotionProvider } from "@/lib/motion/provider";
 
 type OnboardingStep = "accessibility" | "model" | "done";
 
@@ -711,7 +712,7 @@ function App() {
   });
 
   return (
-    <>
+    <MotionProvider>
       <Toaster />
       <AppEventListeners />
       <DetectionListeners />
@@ -733,7 +734,7 @@ function App() {
         scrollRef={scrollRef}
         onScroll={syncScrolled}
       />
-    </>
+    </MotionProvider>
   );
 }
 
