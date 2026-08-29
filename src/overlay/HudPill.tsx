@@ -1,17 +1,17 @@
-import { useEffect, useState } from "react";
-import { ChevronUp, Mic } from "lucide-react";
+import { ChevronUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { LanguageDirection } from "@/lib/utils/rtl";
 import {
-  getHudPillState,
   hudOpenModeMenu,
   hudToggleRecording,
-  type HudPillState,
+  type OverlayPosition,
 } from "@/lib/powerPackApi";
 
 interface HudPillProps {
-  position: "top" | "bottom";
+  position: OverlayPosition;
   direction: LanguageDirection;
+  /** Null while the backend has not answered; the pill then reads "Ready". */
+  modeName: string | null;
 }
 
 /**
@@ -26,33 +26,18 @@ interface HudPillProps {
  * menu built on the Rust side. Right-clicking anywhere on the pill opens the
  * same menu, which is how the pill shipped and stays the discoverable path for
  * anyone who never hovers the trailing chevron.
+ *
+ * This is the one overlay surface that may take the Glass material: nothing
+ * measured renders here, so a tint cannot contest a reading.
  */
-export const HudPill = ({ position, direction }: HudPillProps) => {
+export const HudPill = ({ position, direction, modeName }: HudPillProps) => {
   const { t } = useTranslation();
-  const [pill, setPill] = useState<HudPillState | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const next = await getHudPillState();
-        if (!cancelled) setPill(next);
-      } catch {
-        // The pill is decoration until the backend answers; a failed read just
-        // leaves the mode name blank rather than tearing the overlay down.
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const label = pill?.mode_name ?? t("overlay.hud.idle", "Ready");
+  const label = modeName ?? t("overlay.hud.idle", "Ready");
 
   return (
     <div dir={direction} className={`ov-stage ${position} ov-fade show`}>
       <div
-        className="scard compact hud-pill"
+        className="scard compact hud-pill glass-surface--tint"
         onContextMenu={(event) => {
           event.preventDefault();
           void hudOpenModeMenu();
@@ -72,8 +57,10 @@ export const HudPill = ({ position, direction }: HudPillProps) => {
             "Click to dictate, right-click for modes",
           )}
         >
-          <Mic aria-hidden="true" width={13} height={13} />
-          <span className="hud-pill-mode">{label}</span>
+          {/* The idle step of the same semaphore the HUD, the menu bar and the
+              Capture strip carry: a ring in --text-tertiary, never a fill. */}
+          <span className="sring" aria-hidden="true" />
+          <span className="hud-pill-mode type-row-title">{label}</span>
         </button>
         <button
           type="button"

@@ -1,163 +1,139 @@
 @import "../styles/theme.css";
 @import "../styles/fonts.css";
+/* The overlay is its own webview and never loads App.css, so it imports the
+   shared component layer directly. That is what makes the type roles, the
+   keycap and .glass-surface--tint resolve here instead of being redefined. */
+@import "../styles/primitives.css";
 
 :root {
-  --s-font: var(--font-geist-sans);
-  --s-surface: var(--color-surface);
-  --s-accent: var(--color-accent);
-  --s-accent-soft: var(--color-accent-soft);
-  --s-muted: var(--color-text-secondary);
-  --s-faint: var(--color-text-tertiary);
-  --s-border: var(--color-border);
-  --s-hair: var(--color-subtle);
+  /* Card geometry. Every value is bounded by a window size in
+     src-tauri/src/overlay.rs::overlay_dimensions — change one and the card is
+     clipped, because the window does not grow to fit CSS.
 
-  /* Card geometry — single source of truth for the visible overlay sizes. */
-  --ov-rest-w: 172px;
-  --ov-pill-w: 184px;
-  --ov-work-w: 216px;
-  --ov-open-w: 392px;
+       compact  OVERLAY_WIDTH/HEIGHT              256 x 46
+       stream   OVERLAY_STREAM_WIDTH/HEIGHT       400 x 120
+       idle     OVERLAY_IDLE_WIDTH/HEIGHT         184 x 36  */
+  --ov-card-max-w: 248px;
+  --ov-stream-w: 392px;
+  /* 40px + the card's 1px border box = 42px inside a 46px window. The 4px of
+     slack is not decoration: --shadow-panel's 1px ring is this card's only
+     edge now, and a card sized to the window clips that ring on every side.
+     Two 16px line boxes need 32px, so 40px is 4px of breathing room per line. */
   --ov-base-h: 40px;
   --ov-cap-max-h: 64px;
+  /* Level-meter bar track. scaleY runs against this, so it is the only place
+     the meter's amplitude is defined. */
+  --ov-meter-h: 18px;
 }
 
 /* ============================================================
-   Unified overlay stage — one fixed, transparent container shared by the compact
-   pill and the Live panel (both render the same `.scard` base). The card is
-   anchored flush to the screen-edge side (bottom by default, top when placed up
-   top) and centered horizontally, so the visible card sits exactly
-   OVERLAY_*_OFFSET from the screen edge regardless of window height — only the
-   offsets in overlay.rs move it. Pops scale from that edge, so the card is never
-   drawn past it (matters for the 4px top offset on Windows/Linux).
+   Unified overlay stage — one fixed, transparent container shared by the
+   compact HUD, the Live panel and the idle pill (all render the same `.scard`
+   base). The card is anchored flush to the screen-edge side (bottom by default,
+   top when placed up top) and centered horizontally, so the visible card sits
+   exactly OVERLAY_*_OFFSET from the screen edge regardless of window height —
+   only the offsets in overlay.rs move it.
    ============================================================ */
 .ov-stage {
   position: fixed;
   inset: 0;
   display: flex;
-  justify-content: center; /* horizontal centering, kept for both forms */
+  justify-content: center; /* horizontal centering, kept for every form */
   align-items: flex-end; /* bottom placement: flush to the bottom edge */
-  font-family: var(--s-font);
+  font-family: var(--font-sans);
 }
 .ov-stage.top {
   align-items: flex-start; /* top placement: flush to the top edge */
 }
 
-/* Compact pill: fade the whole container in/out (the pill itself never pops or
-   morphs). */
+/* Compact forms: fade the whole container in/out. 180ms --ease-out is the
+   panel/overlay class in the motion table; enter and exit are the same. */
 .ov-fade {
   opacity: 0;
-  transition: opacity 200ms ease-out;
+  transition: opacity var(--duration-standard) var(--ease-out);
 }
 .ov-fade.show {
   opacity: 1;
 }
 
-/* Top placement, Live panel: stack the control pill above the text region so the
-   card grows downward from its top edge (oldest line under the pill, newest at
-   the bottom) — mirroring the bottom overlay's upward flow. The compact pill has
-   no flowing text, so this only affects the Live panel. The text region keeps the
-   same fade + scroll-pin; older lines dissolve up under the pill. */
+/* Top placement, Live panel: stack the instrument row above the text region so
+   the card grows downward from its top edge (oldest line under the row, newest
+   at the bottom) — mirroring the bottom overlay's upward flow. */
 .ov-stage.top .scard {
-  /* column-reverse stacks the control pill above the text region. */
   flex-direction: column-reverse;
   transform-origin: top center;
 }
 .ov-stage.top .stext-cap {
-  /* Mirror of the bottom overlay (top: 12 / bottom: 0): the first line sits flush
-     under the pill and the breathing room moves below the text. The top fade is
-     off at rest — at zero top padding it would dim the resting first line — and
-     switches on (below) only once text overflows. */
+  /* Mirror of the bottom overlay (top: 12 / bottom: 0): the first line sits
+     flush under the row and the breathing room moves below the text. */
   padding-top: 0;
   padding-bottom: 12px;
-  -webkit-mask-image: none;
-  mask-image: none;
-}
-.ov-stage.top .stext-cap.overflowing {
-  -webkit-mask-image: none;
-  mask-image: none;
 }
 .ov-stage.top .stext-cap p {
-  /* Top-anchor short text just under the pill; on overflow the cap still pins to
-     the bottom (newest visible) and older lines fade off the top, same as bottom. */
   margin: 0;
 }
 
-/* Shared surface for the compact and live recording cards.
+/* Shared surface for every overlay card.
  *
- * Was translucent glass with a 28px backdrop blur. Now a solid raised token
- * surface with a hairline and the dialog shadow, for three reasons: a real
- * backdrop-filter over an arbitrary desktop is the most expensive thing the
- * overlay does and it runs while ASR is running; the blur made the timer and
- * the waveform legible only over calm wallpaper; and glass is not in the
- * design system. The pill is a floating object, so it keeps its shadow. */
+ * Solid in both materials, by ruling: the level meter's legibility is the whole
+ * job of the recording HUD, and a tint that lets unblurred wallpaper through
+ * contests exactly the reading it exists to show. Glass lives on the idle pill
+ * only (.hud-pill carries .glass-surface--tint), where nothing measured is
+ * rendered. `--shadow-panel` is a 1px ring plus tight layers, and per the
+ * surface model a panel carrying it does not also carry a border: the ring is
+ * the border. Width is never transitioned — it is a layout property, and this
+ * card is on screen while ASR runs. */
 .scard {
-  width: var(--ov-pill-w);
-  border-radius: var(--radius-pill);
+  box-sizing: border-box;
+  max-inline-size: var(--ov-card-max-w);
+  border-radius: var(--radius-panel);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   flex: none;
   transform-origin: bottom center;
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-dialog);
-  animation: scard-pop 460ms cubic-bezier(0.22, 1, 0.36, 1);
-  transition:
-    width 460ms cubic-bezier(0.22, 1, 0.36, 1),
-    border-radius 460ms cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform, width, opacity;
+  /* Kept transparent so nothing shifts a pixel between materials: in Solid the
+     ring in --shadow-panel is the edge, and under Glass .glass-surface--tint
+     replaces that shadow with a ring-less one and colours this box instead. */
+  border: 1px solid transparent;
+  box-shadow: var(--shadow-panel);
+  animation: scard-pop var(--duration-standard) var(--ease-out);
 }
 @keyframes scard-pop {
   from {
     opacity: 0;
     /* Scale from the anchored edge (transform-origin) — never translate past it. */
-    transform: scale(0.92);
+    transform: scale(0.96);
   }
   to {
     opacity: 1;
     transform: none;
   }
 }
-.scard.leaving {
-  opacity: 0;
-  transform: scale(0.96);
-  transition:
-    opacity 240ms ease,
-    transform 300ms ease;
-}
-.scard.open {
-  width: var(--ov-open-w);
-  border-radius: var(--radius-sheet);
-}
-.scard.engine-fallback:not(.open) {
-  width: 292px;
-}
 
-.scard.working {
-  width: var(--ov-work-w);
-  border-radius: var(--radius-pill);
-}
-
-/* Compact form: two fixed widths so the recording→working change is an animatable
-   width transition (intrinsic max-content can't be transitioned, and every label
-   is short enough to fit the resting pill, so content-sizing produced no visible
-   grow). The resting pill hugs the waveform; the working pill is roomy enough to
-   center the longest label — the .swork-label ellipsis is only a safety net past it. */
+/* The compact HUD and the idle pill are the two sanctioned pill radii. */
 .scard.compact {
   animation: none;
-  width: var(--ov-rest-w);
-}
-.scard.compact.cworking {
-  width: var(--ov-work-w);
+  border-radius: var(--radius-pill);
+  inline-size: max-content;
 }
 
-/* text region — auto-height open via grid-rows trick; region fades as a whole */
+/* The Live panel fills its own wider window. */
+.scard:not(.compact) {
+  inline-size: var(--ov-stream-w);
+  max-inline-size: var(--ov-stream-w);
+}
+
+/* ============================================================
+   Live text region. Shown or hidden outright: `grid-template-rows` is a layout
+   property and animating it forced layout on every frame of a 440ms curve while
+   the recorder was running.
+   ============================================================ */
 .stext {
   display: grid;
   grid-template-rows: 0fr;
   opacity: 0;
-  transition:
-    grid-template-rows 440ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 260ms ease;
 }
 .scard.open .stext {
   grid-template-rows: 1fr;
@@ -173,17 +149,8 @@
   overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
-  padding-top: 12px;
-  padding-bottom: 0px;
-  padding-left: 14px;
-  padding-right: 14px;
-  font-size: 15px;
-  font-style: italic;
-  line-height: 1.35;
-  letter-spacing: -0.003em;
+  padding: 12px 14px 0;
   color: var(--color-text-primary);
-  -webkit-mask-image: none;
-  mask-image: none;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* legacy Edge */
 }
@@ -197,7 +164,7 @@
   margin: auto 0 0;
 }
 .stext-cap .tentative {
-  color: inherit;
+  color: var(--color-text-secondary);
 }
 .scaret {
   display: inline-block;
@@ -205,7 +172,7 @@
   height: 1.02em;
   translate: 0 3px;
   margin-left: 1px;
-  background: var(--s-accent);
+  background: var(--color-accent);
   border-radius: 2px;
   animation: scaret-blink 1.05s steps(1) infinite;
 }
@@ -215,150 +182,209 @@
   }
 }
 
-/* base row — dot (left) | waveform (center) | timer + cancel (right).
-   Same structure for pill & panel; the dot stays anchored left in both. */
+/* ============================================================
+   The instrument row. Two dense lines plus a trailing cancel column:
+
+     line 1   semaphore ring · state word · level meter · elapsed
+     line 2   mode name · engine · stop-chord keycaps   (error: the error id)
+
+   16px + 16px of line box inside a 44px row is the two-line geometry from the
+   density spec; the row never changes height between states, so nothing in the
+   HUD reflows as a run moves from starting to delivering.
+   ============================================================ */
 .sbase {
-  height: var(--ov-base-h);
-  padding: 0 10px;
+  block-size: var(--ov-base-h);
   display: grid;
-  /* Equal side columns (min 22px to hold the cancel button) keep the center item
-     — waveform or label — centered whether the pill is at min width or content-
-     sized. */
-  grid-template-columns: minmax(22px, 1fr) auto minmax(22px, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: center;
   align-items: center;
+  column-gap: var(--space-2);
+  padding-inline: var(--space-3) var(--space-1);
 }
-.sbase-l {
-  display: flex;
-  padding-left: 5px;
-  align-items: center;
-  justify-self: start;
-}
-.sbase-r {
+.sline {
+  grid-column: 1;
   display: flex;
   align-items: center;
-  gap: 10px;
-  justify-self: end;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  block-size: var(--lh-microlabel);
 }
-.sengine {
-  max-width: 148px;
+.sline-meta {
+  gap: var(--space-1-5);
+}
+
+/* The semaphore, identical in meaning to the menu-bar dot and the Capture
+   instrument strip. A ring on the leading edge, never a fill: at HUD scale a
+   filled status colour is the one place it could dominate the screen. Colour
+   changes are instant — fading amber into red invents a state between them. */
+.sring {
+  flex: none;
+  inline-size: 9px;
+  block-size: 9px;
+  border: 2px solid var(--hud-semaphore);
+  border-radius: var(--radius-pill);
+  box-sizing: border-box;
+}
+.sstate {
+  flex: none;
+  color: var(--hud-semaphore);
+}
+
+/* The five-value vocabulary of §3.8, reused verbatim across the menu-bar dot,
+   this HUD, the Capture strip, the Library row and the Modes row. It is a
+   four-state vocabulary on purpose: `processing` shares blue with `transcribing`
+   because both are the work phase class, and `error` shares red with
+   `listening` because they can never be reached in the same frame and are
+   structurally distinct (a live meter versus a named error id). Minting a fifth
+   hue for a sub-phase is what stops a red dot from meaning anything.
+
+   The idle step is first so a pill carrying a phase class overrides it. */
+.hud-pill {
+  --hud-semaphore: var(--color-text-tertiary);
+}
+.hud-starting {
+  --hud-semaphore: var(--color-warning);
+}
+.hud-listening {
+  --hud-semaphore: var(--color-error);
+}
+.hud-transcribing,
+.hud-processing {
+  --hud-semaphore: var(--color-info);
+}
+/* Not --color-danger-strong: that token belongs to destructive actions the user
+   presses, and keeping it out of the semaphore is what keeps state meaningful. */
+.hud-error {
+  --hud-semaphore: var(--color-error);
+}
+
+/* Elapsed. Mono tabular by role class, and `.snap-measured` because a tweened
+   clock would display values the recorder never reported. */
+.stimer {
+  flex: none;
+  margin-inline-start: auto;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.smode {
+  min-inline-size: 0;
   overflow: hidden;
-  border: 1px solid var(--s-border);
-  border-radius: 999px;
-  background: var(--s-hair);
-  padding: 2px 5px;
-  color: var(--s-muted);
-  font-size: 10px;
-  line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.sengine.cloud {
-  color: var(--color-info);
-}
-.sengine.fallback {
-  color: var(--s-muted);
-}
 
-.sdot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+/* Engine is a machine identifier, not a status: mono, and never semaphore-coloured. */
+.sengine {
   flex: none;
-  box-sizing: border-box;
-  transition:
-    background-color 180ms ease,
-    opacity 180ms ease;
-}
-.sdot.ready {
-  background: var(--s-accent);
-  opacity: 1;
-  animation: sdot-pulse 1.9s infinite;
-}
-/* A quiet neutral dot while the host has not delivered its first sample yet. */
-.sdot.arming {
-  background: var(--s-muted);
-  opacity: 0.45;
-  animation: none;
-}
-@keyframes sdot-pulse {
-  50% {
-    opacity: 0.55;
-  }
-}
-/* Elapsed time is a technical identifier, so it is set in the mono face with
-   tabular figures: the pill must not reflow as the seconds tick over. */
-.stimer {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--s-faint);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.01em;
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  opacity: 0;
-  transition: opacity 240ms ease 80ms;
-}
-.scard.open .stimer {
-  opacity: 1;
 }
 
-/* Waveform — reactive only after the first microphone callback. While arming,
-   a muted travelling pulse acknowledges the shortcut without pretending that
-   audio levels are already being received. */
+/* Keycaps are right-aligned on the same line as the row they belong to, and
+   never wrap: `.kbd` owns the cap itself. */
+.shint {
+  flex: none;
+  margin-inline-start: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* The failure names itself. `error_type` is the backend's own identifier, so it
+   is mono and verbatim; `detail` follows it when the backend supplied one. */
+.serror {
+  min-inline-size: 0;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   Level meter — the content while audio flows.
+
+   Bars are driven by `transform: scaleY()` from the reported mic-level buckets
+   with NO transition: a measurement snaps or it is not a measurement, and the
+   previous `transition: height 80ms` both tweened a reading and animated a
+   layout property. While the stream is still opening the same 16-bar geometry
+   is dimmed and pulses — transform and opacity only — which acknowledges the
+   keypress without claiming a level exists yet.
+   ============================================================ */
 .swave {
+  flex: 1 1 auto;
+  /* 16 bars at 1px + 15 gaps at 1px. This has to be the floor rather than a
+     comfortable number: the compact card's line 1 has ~200px for ring + state
+     word + meter + clock, which leaves the meter ~44px, and a flex item cannot
+     shrink past its content's own minimum — at 2px bars the bars overflowed the
+     box and painted over the elapsed readout. Every reported bucket is still
+     drawn; none is dropped or clipped to make room. */
+  min-inline-size: 31px;
   display: flex;
   align-items: center;
-  gap: 3px;
-  padding-right: 8px;
-  height: 18px;
-  flex: none;
+  gap: 1px;
+  block-size: var(--ov-meter-h);
 }
 .swave i {
-  width: 4px;
-  min-height: 3px;
-  max-height: 18px;
-  border-radius: 2px;
-  background: var(--s-accent);
-  transition:
-    height 80ms linear,
-    background-color 180ms ease,
-    opacity 180ms ease;
+  flex: 1 1 auto;
+  min-inline-size: 1px;
+  max-inline-size: 3px;
+  block-size: 100%;
+  border-radius: 1px;
+  background: var(--color-accent);
+  transform-origin: center;
+  transition: none;
 }
 .swave.arming i {
-  height: 6px !important;
-  background: var(--s-muted);
+  background: var(--color-text-tertiary);
   opacity: 0.35;
-  animation: swave-arming 900ms ease-in-out infinite;
+  /* The pulse overrides the inline scaleY, which is the resting floor anyway. */
+  animation: swave-arming 900ms var(--ease-in-out) infinite;
 }
-.swave.arming i:nth-child(2),
-.swave.arming i:nth-child(8) {
-  animation-delay: 75ms;
+.swave.arming i:nth-child(3n + 2) {
+  animation-delay: 100ms;
 }
-.swave.arming i:nth-child(3),
-.swave.arming i:nth-child(7) {
-  animation-delay: 150ms;
-}
-.swave.arming i:nth-child(4),
-.swave.arming i:nth-child(6) {
-  animation-delay: 225ms;
-}
-.swave.arming i:nth-child(5) {
-  animation-delay: 300ms;
+.swave.arming i:nth-child(3n) {
+  animation-delay: 200ms;
 }
 @keyframes swave-arming {
   0%,
   100% {
-    transform: scaleY(0.55);
+    transform: scaleY(0.08);
     opacity: 0.25;
   }
   50% {
-    transform: scaleY(1.5);
-    opacity: 0.7;
+    transform: scaleY(0.34);
+    opacity: 0.6;
   }
 }
+
+/* Working states put a spinner where the meter was, so the row's geometry is
+   unchanged and only the content of the slot differs. */
+.sspinner {
+  flex: none;
+  margin-inline-end: auto;
+  inline-size: 13px;
+  block-size: 13px;
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--color-subtle);
+  border-top-color: var(--hud-semaphore);
+  animation: sspin 0.7s linear infinite;
+}
+@keyframes sspin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
 .sx {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  inline-size: 24px;
+  block-size: 24px;
+  border-radius: var(--radius-pill);
   flex: none;
   padding: 0;
   border: 0;
@@ -367,12 +393,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--s-muted);
-  background: var(--s-hair);
+  color: var(--color-text-tertiary);
+  background: transparent;
   cursor: pointer;
   transition:
-    background-color 150ms ease,
-    color 150ms ease;
+    background-color var(--duration-fast) var(--ease-in-out),
+    color var(--duration-fast) var(--ease-in-out);
 }
 .sx svg {
   width: 9px;
@@ -380,60 +406,20 @@
   display: block;
 }
 .sx:hover {
-  background: var(--s-accent-soft);
+  background: var(--color-hover);
   color: var(--color-text-primary);
 }
 .sx:active {
   background: var(--color-pressed);
 }
 
-/* working state (transcribing / polishing) — spinner + label */
-.sspinner {
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  border: 2px solid var(--s-hair);
-  border-top-color: var(--s-accent);
-  animation: sspin 0.7s linear infinite;
-  flex: none;
-}
-@keyframes sspin {
-  to {
-    transform: rotate(1turn);
-  }
-}
-.swork-label {
-  font-size: 12px;
-  color: var(--s-muted);
-  white-space: nowrap;
-  padding: 0 8px; /* breathing room from the spinner / cancel when content-sized */
-  /* Safety net: ellipsize rather than clip if a label exceeds the max pill width. */
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.swork-content {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 6px;
-  justify-self: center;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .ov-fade,
-  .scard,
-  .stext,
-  .stimer,
-  .sdot,
-  .swave i,
   .sx {
     transition-duration: 0.01ms;
   }
 
   .scard,
-  .scard.leaving,
-  .sdot.ready,
   .swave.arming i,
   .sspinner,
   .scaret {
@@ -442,23 +428,33 @@
   }
 }
 
-/* Idle HUD pill. Reuses the compact card shell so it lands on the same anchor
-   as the working pill; unlike every other overlay state it is interactive, so
-   it must not be treated as window chrome.
+/* ============================================================
+   Idle HUD pill. Reuses the compact card shell so it lands on the same anchor;
+   unlike every other overlay state it is interactive, so it must not be treated
+   as window chrome.
 
    Geometry contract: overlay.rs sizes the idle window 184x36
    (OVERLAY_IDLE_WIDTH/HEIGHT) and .ov-stage anchors the card flush to the
    screen-edge side, so the pill stays inside 176x28 and leaves the remaining
-   pixels for its own border and the edge it sits against. Growing it means
-   moving those two constants with it. The selector carries .scard.compact
-   because that rule pins a fixed 172px width the pill has to opt out of.
+   pixels for its ring and the edge it sits against. Growing it means moving
+   those two constants with it. The selector carries .scard.compact because that
+   rule pins the two-line 44px row height the pill has to opt out of.
 
    Two real buttons share the pill: the record area and a trailing mode switch.
-   At rest both sit muted and the pill reads as a label; hover brings the record
-   glyph and the chevron to full contrast, which is the whole "what can I do to
-   this" answer without a tooltip. */
+   At rest both sit muted and the pill reads as a label; hover brings the mode
+   name and the chevron to full contrast, which is the whole "what can I do to
+   this" answer without a tooltip.
+
+   This is the one overlay surface that may take Glass: nothing measured is
+   drawn here, so a tint cannot contest a reading.
+   ============================================================ */
 .scard.compact.hud-pill {
   display: flex;
+  /* `.scard` is a column — every other form stacks a text region over a row.
+     The pill is the one form that is a single line, and without this reset its
+     trailing mode-switch button stacked under the record button and was clipped
+     by the 28px block-size. */
+  flex-direction: row;
   align-items: center;
   block-size: 28px;
   inline-size: max-content;
@@ -468,21 +464,29 @@
   -webkit-app-region: no-drag;
 }
 
+/* A failure that lands after the overlay has already rested to its pill: same
+   shell, same 176x28 the idle window allows, the error id where the mode name
+   was. No buttons — there is nothing to do to a finished run. */
+.hud-pill.hud-error {
+  gap: var(--space-1-5);
+  padding-inline: var(--space-2);
+}
+
 .hud-pill button {
   display: flex;
   align-items: center;
   align-self: stretch;
-  gap: 6px;
+  gap: var(--space-1-5);
   background: transparent;
   border: 0;
   border-radius: var(--radius-pill);
-  color: var(--s-muted);
+  color: var(--color-text-secondary);
   cursor: pointer;
   font: inherit;
-  padding-inline: 8px;
+  padding-inline: var(--space-2);
   transition:
-    background-color 120ms ease,
-    color 120ms ease;
+    background-color var(--duration-fast) var(--ease-in-out),
+    color var(--duration-fast) var(--ease-in-out);
 }
 
 .hud-pill button:hover,
@@ -510,7 +514,6 @@
 }
 
 .hud-pill-mode {
-  font-size: 12px;
   max-inline-size: 96px;
   overflow: hidden;
   text-overflow: ellipsis;

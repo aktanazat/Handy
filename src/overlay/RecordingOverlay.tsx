@@ -1,83 +1,51 @@
 import React, { useEffect, useLayoutEffect, useReducer, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import "./RecordingOverlay.css";
-import { commands } from "@/bindings";
-import type {
-  StreamEngine,
-  StreamPhase,
-  StreamPhaseEvent,
-  StreamTextEvent,
-  StreamWorkKind,
-} from "@/bindings";
 import { syncLanguageFromSettings } from "@/i18n";
 import { getLanguageDirection } from "@/lib/utils/rtl";
-import { subscribeToOverlayEvents, type OverlayState } from "./overlayEvents";
+import { keyCapParts } from "@/lib/utils/keyboard";
+import { useOsType } from "@/hooks/useOsType";
+import { getHudPillState } from "@/lib/powerPackApi";
+import { readOverlayChrome, subscribeToOverlayEvents } from "./overlayEvents";
+import {
+  deriveElapsedSeconds,
+  deriveHudFrame,
+  deriveHudPhase,
+  hudCaptureReady,
+  hudChromeRead,
+  hudFailed,
+  hudHidden,
+  hudRested,
+  hudShown,
+  hudStreamPhaseChanged,
+  INITIAL_HUD_STATE,
+  type HudState,
+} from "./hudMachine";
 import { RecordingOverlayContent } from "./RecordingOverlayContent";
 
-// Number of reactive bars in the waveform (the simple, smoothed style shared by
-// every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
-const WAVE_BARS = 9;
-const INITIAL_SMOOTHED_LEVELS = Array(16).fill(0);
+/**
+ * How long a failure holds the HUD before it rests.
+ *
+ * Only reachable in full when the idle pill is enabled: resting into the pill
+ * bumps `OVERLAY_SHOW_GENERATION` and cancels the pending unmap, so the window
+ * stays on screen. With the pill off (the default) `hide_overlay_window` unmaps
+ * the window 300 ms after `hide-overlay` regardless of what the webview is
+ * painting, and that 300 ms is the hard ceiling — extending it would need a
+ * deferred hide in `overlay.rs`.
+ */
+const ERROR_DWELL_MS = 4000;
 
-interface OverlayViewState {
-  isVisible: boolean;
-  state: OverlayState;
-  captureReady: boolean;
-  levels: number[];
-  streamText: StreamTextEvent;
-  phase: StreamPhase;
-  workKind: StreamWorkKind;
-  engine: StreamEngine;
-  elapsed: number;
-  session: number;
-  position: "top" | "bottom";
-  overflowing: boolean;
-}
+/** Elapsed is whole seconds, so a 250 ms tick keeps the readout inside its own
+ * last digit without pretending to a precision the clock does not have. */
+const ELAPSED_TICK_MS = 250;
 
-type OverlayViewAction = (state: OverlayViewState) => OverlayViewState;
+type HudAction = (state: HudState) => HudState;
 
-const INITIAL_OVERLAY_VIEW_STATE: OverlayViewState = {
-  isVisible: false,
-  state: "recording",
-  captureReady: false,
-  levels: Array(WAVE_BARS).fill(0),
-  streamText: { committed: "", tentative: "" },
-  phase: "listening",
-  workKind: "transcribing",
-  engine: "local",
-  elapsed: 0,
-  session: 0,
-  position: "bottom",
-  overflowing: false,
-};
-
-const overlayViewReducer = (
-  state: OverlayViewState,
-  action: OverlayViewAction,
-) => action(state);
+const hudReducer = (state: HudState, action: HudAction) => action(state);
 
 const RecordingOverlay: React.FC = () => {
   const { i18n } = useTranslation();
-  const [overlay, dispatchOverlay] = useReducer(
-    overlayViewReducer,
-    INITIAL_OVERLAY_VIEW_STATE,
-  );
-  const {
-    isVisible,
-    state,
-    captureReady,
-    levels,
-    streamText,
-    phase,
-    workKind,
-    engine,
-    elapsed,
-    session,
-    position,
-    overflowing,
-  } = overlay;
-
-  const smoothedLevelsRef = useRef<number[]>(INITIAL_SMOOTHED_LEVELS);
+  const [hud, dispatch] = useReducer(hudReducer, INITIAL_HUD_STATE);
   const disposedRef = useRef(false);
   // Live-text scroll-back: the text region "sticks" to the newest line while the
   // user is at the bottom; if they scroll up to read history, auto-follow pauses
@@ -85,106 +53,66 @@ const RecordingOverlay: React.FC = () => {
   const capRef = useRef<HTMLDivElement>(null);
   const pinnedRef = useRef(true);
   const direction = getLanguageDirection(i18n.language);
+  const osType = useOsType();
 
   useEffect(() => {
     disposedRef.current = false;
     const subscriptions = subscribeToOverlayEvents({
       onShow: async (overlayState) => {
         if (disposedRef.current) return;
-        if (overlayState === "recording" || overlayState === "streaming") {
-          dispatchOverlay((current) => ({
-            ...current,
-            captureReady: false,
-            levels: Array(WAVE_BARS).fill(0),
-            streamText: { committed: "", tentative: "" },
-          }));
-          smoothedLevelsRef.current = Array(16).fill(0);
-        }
+        // Paint before the settings reads, not after: the shortcut has already
+        // fired and every millisecond spent here is a millisecond in which the
+        // user has no acknowledgement at all.
+        dispatch((current) => hudShown(current, overlayState));
 
         await syncLanguageFromSettings();
         if (disposedRef.current) return;
 
         try {
-          const settings = await commands.getAppSettings();
-          if (!disposedRef.current && settings.status === "ok") {
-            dispatchOverlay((current) => ({
-              ...current,
-              position:
-                settings.data.overlay_position === "top" ? "top" : "bottom",
-            }));
-          }
+          const chrome = await readOverlayChrome();
+          if (disposedRef.current) return;
+          dispatch((current) => hudChromeRead(current, chrome));
         } catch {
-          // Keep the previous/default placement if settings can't be read.
+          // Keep the previous placement and stop hint if settings can't be read.
         }
 
-        if (disposedRef.current) return;
-        if (overlayState === "streaming") {
-          dispatchOverlay((current) => ({
-            ...current,
-            isVisible: true,
-            state: overlayState,
-            phase: "listening",
-            workKind: "transcribing",
-            engine: "local",
-            elapsed: 0,
-            session: current.session + 1,
-          }));
-        } else {
-          dispatchOverlay((current) => ({
-            ...current,
-            isVisible: true,
-            state: overlayState,
-          }));
+        try {
+          const pill = await getHudPillState();
+          if (disposedRef.current) return;
+          dispatch((current) => ({ ...current, modeName: pill.mode_name }));
+        } catch {
+          // The mode name is omitted rather than guessed.
         }
       },
       onHide: () => {
-        if (disposedRef.current) return;
-        dispatchOverlay((current) => ({
-          ...current,
-          isVisible: false,
-          captureReady: false,
-        }));
+        if (!disposedRef.current) dispatch(hudHidden);
       },
       onRecordingReady: () => {
         if (disposedRef.current) return;
-        dispatchOverlay((current) => ({
-          ...current,
-          elapsed: 0,
-          captureReady: true,
-        }));
+        const readyAtMs = Date.now();
+        dispatch((current) => hudCaptureReady(current, readyAtMs));
       },
-      onMicLevel: (level) => {
+      onMicLevel: (levels) => {
         if (disposedRef.current) return;
-        const smoothed = smoothedLevelsRef.current.map((previous, index) => {
-          const target = level[index] || 0;
-          return previous * 0.7 + target * 0.3;
-        });
-        smoothedLevelsRef.current = smoothed;
-        dispatchOverlay((current) => ({
-          ...current,
-          levels: smoothed.slice(0, WAVE_BARS),
-        }));
+        // Reported values, verbatim. Smoothing them here would be a low-pass
+        // filter on the only measurement the HUD shows at frame rate.
+        dispatch((current) => ({ ...current, levels }));
       },
-      onStreamText: (text) => {
-        if (!disposedRef.current) {
-          dispatchOverlay((current) => ({ ...current, streamText: text }));
-        }
+      onStreamText: (streamText) => {
+        if (!disposedRef.current)
+          dispatch((current) => ({ ...current, streamText }));
       },
-      onStreamPhase: (streamPhase: StreamPhaseEvent) => {
+      onStreamPhase: (event) => {
         if (disposedRef.current) return;
-        dispatchOverlay((current) => ({
-          ...current,
-          phase: streamPhase.phase,
-          workKind: streamPhase.kind ?? current.workKind,
-        }));
+        dispatch((current) => hudStreamPhaseChanged(current, event));
       },
-      onStreamEngine: (streamEngine) => {
-        if (!disposedRef.current) {
-          dispatchOverlay((current) => ({
-            ...current,
-            engine: streamEngine.engine,
-          }));
-        }
+      onStreamEngine: (event) => {
+        if (disposedRef.current) return;
+        dispatch((current) => ({ ...current, engine: event.engine }));
+      },
+      onRecordingError: (error) => {
+        if (disposedRef.current) return;
+        dispatch((current) => hudFailed(current, error));
       },
     });
 
@@ -199,42 +127,39 @@ const RecordingOverlay: React.FC = () => {
     };
   }, []);
 
-  // Elapsed capture timer starts only once microphone samples are flowing.
+  // A latched failure holds the HUD for one dwell, then releases it to whatever
+  // rest the backend asked for while it was being read.
   useEffect(() => {
-    if (state !== "streaming" || !isVisible || !captureReady) return;
+    if (!hud.error || !hud.restAfterError) return;
+    const id = setTimeout(() => dispatch(hudRested), ERROR_DWELL_MS);
+    return () => clearTimeout(id);
+  }, [hud.error, hud.restAfterError]);
+
+  // The elapsed clock runs only while microphone samples are flowing, and is
+  // recomputed from the readiness timestamp rather than accumulated, so it can
+  // never drift away from the capture it reports.
+  useEffect(() => {
+    if (!hud.isVisible || hud.readyAt === null || hud.error) return;
+    if (hud.state !== "recording" && hud.state !== "streaming") return;
+    if (hud.phase === "working") return;
     const id = setInterval(
-      () =>
-        dispatchOverlay((current) => ({
-          ...current,
-          elapsed: current.elapsed + 1,
-        })),
-      1000,
+      () => dispatch((current) => ({ ...current, nowMs: Date.now() })),
+      ELAPSED_TICK_MS,
     );
     return () => clearInterval(id);
-  }, [state, isVisible, captureReady]);
+  }, [hud.isVisible, hud.readyAt, hud.state, hud.phase, hud.error]);
 
-  // Stick to the bottom as text streams in — but only while pinned, so a user who
-  // has scrolled up to read history isn't yanked back down by the next chunk.
+  // Stick to the bottom as text streams in — but only while pinned, so a user
+  // who has scrolled up to read history isn't yanked back down by the next chunk.
   useLayoutEffect(() => {
     const el = capRef.current;
-    if (!el) return;
-    // Fade the top edge only once text actually overflows the cap.
-    const nextOverflowing = el.scrollHeight > el.clientHeight + 1;
-    dispatchOverlay((current) =>
-      current.overflowing === nextOverflowing
-        ? current
-        : { ...current, overflowing: nextOverflowing },
-    );
-    if (pinnedRef.current) el.scrollTop = el.scrollHeight;
-  }, [streamText]);
+    if (el && pinnedRef.current) el.scrollTop = el.scrollHeight;
+  }, [hud.streamText]);
 
-  // Each fresh streaming session starts pinned to the bottom, fade cleared.
+  // Each fresh streaming session starts pinned to the bottom.
   useEffect(() => {
     pinnedRef.current = true;
-    dispatchOverlay((current) =>
-      current.overflowing ? { ...current, overflowing: false } : current,
-    );
-  }, [session]);
+  }, [hud.session]);
 
   // Re-pin when the user is within ~a line of the bottom; unpin otherwise.
   const handleStreamScroll = () => {
@@ -246,18 +171,18 @@ const RecordingOverlay: React.FC = () => {
 
   return (
     <RecordingOverlayContent
-      isVisible={isVisible}
-      state={state}
-      captureReady={captureReady}
-      levels={levels}
-      streamText={streamText}
-      phase={phase}
-      workKind={workKind}
-      engine={engine}
-      elapsed={elapsed}
-      session={session}
-      position={position}
-      overflowing={overflowing}
+      isVisible={hud.isVisible}
+      hud={deriveHudPhase(hud)}
+      frame={deriveHudFrame(hud)}
+      levels={hud.levels}
+      streamText={hud.streamText}
+      engine={hud.engine}
+      elapsedSeconds={deriveElapsedSeconds(hud)}
+      modeName={hud.modeName}
+      stopKeys={keyCapParts(hud.stopChord, osType)}
+      error={hud.error}
+      session={hud.session}
+      position={hud.position}
       direction={direction}
       capRef={capRef}
       onStreamScroll={handleStreamScroll}
