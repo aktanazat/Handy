@@ -1,6 +1,10 @@
 /* Library > History. Page-local rules only: tokens come from styles/theme.css
  * and every shared surface comes from components/ui. Loaded after App.css by
- * the lazy route chunk, so the global reduced-motion kill still wins. */
+ * the lazy route chunk, so the global reduced-motion kill still wins.
+ *
+ * The page is flat: sections are separated by space and hairlines, nothing is
+ * boxed. The feed is the page's body, so it earns no container of its own —
+ * a border around the whole scroll region would just draw the window twice. */
 
 .history-page {
   display: flex;
@@ -29,28 +33,40 @@
   gap: var(--space-2);
 }
 
-/* One honest line of all-time usage. The rich analytics band lives on
- * Capture; this is the number you glance at while scanning transcripts. */
+/* All-time usage as a strip of microlabel-over-figure pairs. Figures are
+ * tabular so the numbers line up between visits and between rows. */
 .history-summary {
-  align-items: baseline;
-  color: var(--color-text-secondary);
   display: flex;
   flex-wrap: wrap;
-  font-size: var(--type-secondary-size);
+  gap: var(--space-2) var(--space-6);
+  margin: var(--space-3) 0 0;
+}
+
+.history-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-inline-size: 0;
+}
+
+.history-stat-value {
+  color: var(--text-primary);
+  font-size: var(--fs-label-16);
   font-variant-numeric: tabular-nums;
+  font-weight: var(--fw-button);
+  line-height: var(--lh-label-16);
+  margin: 0;
+}
+
+/* The strip's own loading and failure line, which is prose rather than
+ * figures and so keeps a single baseline row. */
+.history-summary-state {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
-  line-height: var(--type-secondary-line);
-  margin-block-start: var(--space-1);
-  min-block-size: 18px;
-}
-
-.history-summary strong {
-  color: var(--color-text-primary);
-  font-weight: 560;
-}
-
-.history-summary-sep {
-  color: var(--color-text-tertiary);
+  margin-block-start: var(--space-3);
+  min-block-size: 26px;
 }
 
 /* ------------------------------------------------------------ toolbar */
@@ -70,7 +86,7 @@
 }
 
 .history-search-icon {
-  color: var(--color-text-tertiary);
+  color: var(--text-tertiary);
   inset-block-start: 50%;
   inset-inline-start: var(--space-2-5);
   pointer-events: none;
@@ -103,20 +119,20 @@
 }
 
 .history-result-count {
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   flex: 0 0 auto;
-  font-size: var(--type-caption-size);
+  font-size: var(--fs-label-12);
   font-variant-numeric: tabular-nums;
-  line-height: 16px;
+  line-height: var(--lh-label-12);
 }
 
 /* Always mounted, directly under the page summary, so an import that starts
  * later announces its transitions instead of being swallowed by a mount.
  * Empty it collapses to nothing; it never leaves the accessibility tree. */
 .history-import-live {
-  color: var(--color-text-secondary);
-  font-size: var(--type-caption-size);
-  line-height: 16px;
+  color: var(--text-secondary);
+  font-size: var(--fs-label-12);
+  line-height: var(--lh-label-12);
   margin-block-start: var(--space-1);
   overflow-wrap: anywhere;
 }
@@ -125,15 +141,18 @@
   margin-block-start: 0;
 }
 
-/* Raw versus processed. Radios keep the semantics; the chrome is ours. */
+/* One segmented control, two users: raw versus processed above the feed, and
+ * the correction dialog's scope. Radios keep the semantics; the chrome is
+ * ours, because the platform radio ignores every token in this file. */
 .history-segmented {
   align-items: center;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
   border-radius: var(--radius-control);
   display: flex;
   gap: var(--space-0-5);
   padding: var(--space-0-5);
+  width: fit-content;
 }
 
 .history-segmented-option {
@@ -144,10 +163,10 @@
 .history-segmented-text {
   align-items: center;
   border-radius: var(--radius-in-control);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   display: flex;
-  font-size: var(--type-caption-size);
-  font-weight: 510;
+  font-size: var(--fs-label-12);
+  font-weight: var(--fw-button);
   min-block-size: 26px;
   padding-inline: var(--space-2-5);
   transition-duration: var(--duration-fast);
@@ -156,56 +175,39 @@
 }
 
 .history-segmented-option:hover .history-segmented-text {
-  background: var(--color-hover);
-  color: var(--color-text-primary);
+  background: var(--wash-hover);
+  color: var(--text-primary);
 }
 
 .history-segmented-option:active .history-segmented-text {
-  background: var(--color-pressed);
+  background: var(--wash-active);
 }
 
 .history-segmented input:checked + .history-segmented-text {
-  background: var(--color-subtle);
-  color: var(--color-text-primary);
-  font-weight: 560;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding-inline: calc(var(--space-2-5) - 1px);
 }
 
 .history-segmented input:focus-visible + .history-segmented-text {
-  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline: var(--focus-outline);
   outline-offset: 1px;
 }
 
 .history-segmented input:disabled + .history-segmented-text {
-  color: var(--color-text-disabled);
+  color: var(--text-disabled);
   cursor: not-allowed;
 }
 
 /* ------------------------------------------------------------ imports */
 
+/* A flat section, not a panel: a heading in the microlabel voice over a run
+ * of hairline-separated rows. */
 .history-imports {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-panel);
-  overflow: hidden;
-}
-
-.history-imports-head {
-  align-items: baseline;
-  border-block-end: 1px solid var(--color-border);
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--space-2);
-  justify-content: space-between;
-  padding: var(--space-2) var(--space-4);
-}
-
-.history-imports-title {
-  color: var(--color-text-tertiary);
-  font-size: var(--type-caption-size);
-  font-weight: var(--type-caption-weight);
-  letter-spacing: var(--type-caption-tracking);
-  line-height: 16px;
-  text-transform: uppercase;
 }
 
 .history-import-row {
@@ -214,11 +216,11 @@
   flex-wrap: wrap;
   gap: var(--space-2);
   justify-content: space-between;
-  padding: var(--space-2-5) var(--space-4);
+  padding-block: var(--space-2-5);
 }
 
 .history-import-row + .history-import-row {
-  border-block-start: 1px solid var(--color-border);
+  border-block-start: 1px solid var(--border-subtle);
 }
 
 .history-import-copy {
@@ -227,7 +229,7 @@
 }
 
 .history-import-name {
-  color: var(--color-text-primary);
+  color: var(--text-primary);
   font-size: var(--type-row-size);
   font-weight: var(--type-row-weight);
   line-height: var(--type-row-line);
@@ -237,21 +239,42 @@
 }
 
 .history-import-detail {
-  color: var(--color-text-tertiary);
-  font-size: var(--type-caption-size);
+  color: var(--text-tertiary);
+  font-size: var(--fs-label-12);
   font-variant-numeric: tabular-nums;
-  line-height: 16px;
+  line-height: var(--lh-label-12);
   margin-block-start: 2px;
 }
 
 /* --------------------------------------------------------------- list */
 
+/* The feed. Hairlines between rows and nothing around them; the top rule ties
+ * the run to the toolbar above it. Both the real list and the loading
+ * placeholder use this, so the skeleton occupies the shape it replaces. */
+.history-list {
+  border-block-start: 1px solid var(--border-subtle);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.history-list > * + * {
+  border-block-start: 1px solid var(--border-subtle);
+}
+
 .history-row {
   display: grid;
   grid-template-rows: 1fr;
   transition-duration: var(--duration-standard);
-  transition-property: grid-template-rows, opacity;
+  transition-property: background-color, grid-template-rows, opacity;
   transition-timing-function: var(--ease-out);
+}
+
+/* A row is a live object: six controls, a player and a disclosure all live
+ * inside it. The wash says so on approach without hiding anything until
+ * then, which is the trade the "reveal actions on hover" pattern gets wrong. */
+.history-row:hover {
+  background: var(--wash-hover);
 }
 
 /* A deleted row collapses its own height instead of vanishing and yanking
@@ -272,7 +295,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-2);
 }
 
 .history-row-head {
@@ -287,17 +310,17 @@
 }
 
 .history-row-time {
-  color: var(--color-text-primary);
+  color: var(--text-primary);
   font-size: var(--type-row-size);
   font-weight: var(--type-row-weight);
   line-height: var(--type-row-line);
 }
 
 .history-row-meta {
-  color: var(--color-text-tertiary);
-  font-size: var(--type-caption-size);
+  color: var(--text-tertiary);
+  font-size: var(--fs-label-12);
   font-variant-numeric: tabular-nums;
-  line-height: 16px;
+  line-height: var(--lh-label-12);
   margin-block-start: 2px;
   overflow-wrap: anywhere;
 }
@@ -309,13 +332,13 @@
 }
 
 .history-action-danger:not(:disabled):hover {
-  background: var(--color-danger-soft);
-  border-color: var(--color-danger-border);
-  color: var(--color-danger-strong);
+  background: var(--red-100);
+  border-color: var(--red-400);
+  color: var(--error);
 }
 
 .history-transcript {
-  color: var(--color-text-primary);
+  color: var(--text-primary);
   cursor: text;
   font-size: var(--type-body-size);
   line-height: 20px;
@@ -327,21 +350,65 @@
 /* A missing transcript is a sentence the person has to read and act on, so
  * it stays at secondary contrast. Tertiary is for metadata only. */
 .history-transcript[data-state="missing"] {
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   cursor: default;
   user-select: none;
 }
 
 .history-transcript-note {
-  color: var(--color-text-secondary);
-  font-size: var(--type-caption-size);
-  line-height: 16px;
+  color: var(--text-secondary);
+  font-size: var(--fs-label-12);
+  line-height: var(--lh-label-12);
+}
+
+/* The player sits in the row, not on a surface of its own. Capped so a
+ * 1000px-wide window does not stretch one scrubber across the whole page. */
+.history-audio {
+  max-inline-size: 420px;
+}
+
+/* ------------------------------------------------------------- dialogs */
+
+.history-correction {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.history-field {
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  margin: 0;
+  min-inline-size: 0;
+  padding: 0;
+}
+
+.history-field-label {
+  color: var(--text-primary);
+  font-size: var(--type-row-size);
+  font-weight: var(--type-row-weight);
+  line-height: var(--type-row-line);
+  padding: 0;
+}
+
+.history-correction-preview {
+  color: var(--text-primary);
+  font-size: var(--type-body-size);
+  line-height: 20px;
+  overflow-wrap: anywhere;
+  padding: var(--space-2-5) var(--space-3);
+}
+
+.history-mode-picker {
+  inline-size: 100%;
 }
 
 /* ---------------------------------------------------------- disclosure */
 
 .history-receipts {
-  border-block-start: 1px solid var(--color-border);
+  border-block-start: 1px solid var(--border-subtle);
   padding-block-start: var(--space-2);
 }
 
@@ -350,13 +417,13 @@
   background: transparent;
   border: 0;
   border-radius: var(--radius-control);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
-  font-size: var(--type-caption-size);
-  font-weight: 510;
+  font-size: var(--fs-label-12);
+  font-weight: var(--fw-button);
   gap: var(--space-1);
-  line-height: 16px;
+  line-height: var(--lh-label-12);
   min-block-size: 28px;
   padding-inline: var(--space-1);
   transition-duration: var(--duration-fast);
@@ -365,24 +432,24 @@
 }
 
 .history-receipts-toggle:hover {
-  background: var(--color-hover);
-  color: var(--color-text-primary);
+  background: var(--wash-hover);
+  color: var(--text-primary);
 }
 
 .history-receipts-toggle:active {
-  background: var(--color-pressed);
+  background: var(--wash-active);
 }
 
 .history-receipts-body {
-  border-block-start: 1px solid var(--color-border);
+  border-block-start: 1px solid var(--border-subtle);
   margin-block-start: var(--space-2);
 }
 
 .history-receipt {
-  border-block-start: 1px solid var(--color-border);
+  border-block-start: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
-  gap: var(--space-2-5);
+  gap: var(--space-3);
   padding-block: var(--space-3);
 }
 
@@ -391,72 +458,68 @@
 }
 
 .history-receipt-meta {
-  color: var(--color-text-tertiary);
-  font-size: var(--type-caption-size);
-  line-height: 16px;
+  color: var(--text-tertiary);
+  font-size: var(--fs-label-12);
+  line-height: var(--lh-label-12);
   overflow-wrap: anywhere;
 }
 
 .history-receipt-grid {
   column-gap: var(--space-4);
   display: grid;
-  font-size: var(--type-caption-size);
+  font-size: var(--fs-label-12);
   grid-template-columns: minmax(0, 9rem) minmax(0, 1fr);
-  line-height: 16px;
+  line-height: var(--lh-label-12);
   row-gap: var(--space-1-5);
 }
 
 .history-receipt-grid dt {
-  color: var(--color-text-tertiary);
+  color: var(--text-tertiary);
 }
 
 .history-receipt-grid dd {
-  color: var(--color-text-primary);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
 
 .history-receipt-subtitle {
-  color: var(--color-text-primary);
-  font-size: var(--type-caption-size);
-  font-weight: 560;
-  line-height: 16px;
+  color: var(--text-primary);
+  font-size: var(--fs-label-12);
+  font-weight: var(--fw-button);
+  line-height: var(--lh-label-12);
+  margin-block-end: var(--space-1-5);
 }
 
-.history-receipt-list {
-  display: grid;
-  font-size: var(--type-caption-size);
-  gap: var(--space-1);
-  line-height: 16px;
-  margin-block-start: var(--space-1-5);
+/* The shared data table, at receipt density: this is a nested detail pane,
+ * not a page-level table, so the cells lose the primitive's default padding
+ * and the row header keeps the label voice. */
+.history-receipt-table :is(th, td) {
+  padding: var(--space-1) var(--space-3) var(--space-1) 0;
 }
 
-.history-receipt-list--pairs {
-  grid-template-columns: minmax(0, 1fr);
+.history-receipt-table tbody th {
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: var(--fs-label-12);
+  font-weight: var(--fw-label);
+  line-height: var(--lh-label-12);
+  white-space: normal;
 }
 
-@media (min-width: 640px) {
-  .history-receipt-list--pairs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.history-receipt-table td {
+  font-size: var(--fs-label-12);
+  line-height: var(--lh-label-12);
 }
 
-.history-receipt-list li {
-  color: var(--color-text-secondary);
-  display: flex;
-  gap: var(--space-2);
-  justify-content: space-between;
-}
-
-.history-receipt-list li > :last-child {
-  color: var(--color-text-primary);
-  text-align: end;
+.history-receipt-table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
 }
 
 .history-receipt-empty {
-  color: var(--color-text-secondary);
-  font-size: var(--type-caption-size);
-  line-height: 16px;
-  margin-block-start: var(--space-1);
+  color: var(--text-secondary);
+  font-size: var(--fs-label-12);
+  line-height: var(--lh-label-12);
 }
 
 /* ------------------------------------------------------- list states */
@@ -465,27 +528,22 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-}
-
-.history-skeleton-row + .history-skeleton-row {
-  border-block-start: 1px solid var(--color-border);
+  padding: var(--space-3) var(--space-2);
 }
 
 .history-list-footer {
   align-items: center;
-  border-block-start: 1px solid var(--color-border);
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
   justify-content: center;
-  padding: var(--space-2-5) var(--space-4);
+  padding: var(--space-3) var(--space-2);
 }
 
 .history-list-footer-text {
-  color: var(--color-text-secondary);
-  font-size: var(--type-caption-size);
-  line-height: 16px;
+  color: var(--text-secondary);
+  font-size: var(--fs-label-12);
+  line-height: var(--lh-label-12);
 }
 
 /* The infinite-scroll trip wire. Zero height, never focusable. */
@@ -506,5 +564,11 @@
 
   .history-receipt-grid dt {
     margin-block-start: var(--space-1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .history-row {
+    transition-duration: 1ms;
   }
 }

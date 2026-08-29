@@ -1,80 +1,202 @@
-/* Overview page layout, type scale and the SVG activity chart.
+/* Capture: the hero band, the flat stat tiles and the SVG activity chart.
  *
- * Shared surfaces (cards, lists, alerts, buttons) come from the primitives, so
- * this file only carries what is specific to this page. Every value is a token
- * from styles/theme.css. This file lives beside the page because the page owns
- * it: App.css holds the other sections' CSS. */
+ * Shared surfaces (buttons, lists, empty states, the shader accent and the
+ * grid connector) come from the primitives, so this file only carries what is
+ * specific to this page. Every value is a token from styles/theme.css. */
 
 .ov-page {
   /* --chart-height (160px) is sized for a page whose whole job is one chart.
    * The overview band sits between a hero and a list inside a 570px-tall
    * window, so it gets a shorter band of its own. */
   --ov-chart-height: 84px;
+  /* How much of the band's width the dispersion is allowed to keep to itself.
+   * The prism in ShaderHero's fragment shader sits at 66% across and fans to
+   * the right, so the text column stops before it instead of being read
+   * against it. */
+  --ov-hero-glow-share: 38%;
 }
 
 /* ------------------------------------------------------------------ hero */
 
+/* The band is tall enough for the fan to open: the shader masks itself out
+ * near the top and bottom edges, so a short band clips the dispersion into a
+ * smear. Sized in svh so a tall window gets a taller hero without the band
+ * ever growing past the fold on a small one. */
+.ov-hero-band {
+  /* The two accent layers are absolutely positioned, so turning the band
+   * into a flex container only affects the content slot: it stretches to the
+   * band's height instead of collapsing to the text and leaving the
+   * dispersion to fill the gap on its own. */
+  display: flex;
+  min-block-size: clamp(228px, 34svh, 320px);
+}
+
+.ov-hero-band .shader-hero-content {
+  display: flex;
+  flex: 1;
+  padding: var(--space-8);
+}
+
 .ov-hero {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
+  flex: 1;
+  /* Content left, dispersion right. */
+  padding-inline-end: var(--ov-hero-glow-share);
 }
 
 .ov-hero-text {
+  align-self: center;
   display: flex;
   flex-direction: column;
-  gap: var(--space-1-5);
+  gap: var(--space-3);
+  min-inline-size: 0;
 }
 
-.ov-hero-title {
-  color: var(--color-text-primary);
-  font-size: var(--type-title-size);
-  font-weight: var(--type-title-weight);
-  letter-spacing: var(--type-title-tracking);
-  line-height: var(--type-title-line);
+/* mode · model · engine, in the one type flourish this design carries. The
+ * separator is drawn rather than typed so it never lands in the accessible
+ * name or in a translation. */
+.ov-hero-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2-5);
   margin: 0;
+}
+
+.ov-hero-fact {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2-5);
+  min-inline-size: 0;
+}
+
+.ov-hero-fact + .ov-hero-fact::before {
+  background: var(--border-hover);
+  block-size: 3px;
+  border-radius: var(--radius-pill);
+  content: "";
+  flex: none;
+  inline-size: 3px;
+}
+
+.ov-hero-fact dd {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The display line. Heading-32 is the largest step in the scale and this is
+ * the only place in the app that earns it. */
+.ov-hero-title {
+  color: var(--text-primary);
+  font-size: var(--fs-heading-32);
+  font-weight: var(--fw-heading);
+  letter-spacing: var(--ls-heading-32);
+  line-height: var(--lh-heading-32);
+  margin: 0;
+  text-wrap: balance;
 }
 
 /* Recording is the one state allowed to use the identity red. */
 .ov-hero-title[data-recording="true"] {
-  color: var(--color-danger-strong);
+  color: var(--error);
 }
 
 .ov-hero-instruction {
   align-items: center;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   display: flex;
   flex-wrap: wrap;
-  font-size: var(--type-body-size);
-  gap: var(--space-1);
-  line-height: var(--type-body-line);
+  font-size: var(--fs-label-14);
+  gap: var(--space-2);
+  line-height: var(--lh-label-14);
   margin: 0;
 }
 
+/* The keycaps are the control that changes them. It has to read as pressable
+ * before it is hovered, so the caps sit in a hit target with its own hairline
+ * rather than looking like decoration that happens to respond. */
 .ov-keys {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  cursor: pointer;
   display: inline-flex;
-  gap: 3px;
+  gap: var(--space-1);
+  margin-inline: calc(var(--space-1) * -1);
+  padding: var(--space-0-5) var(--space-1);
+  transition-duration: var(--duration-fast);
+  transition-property: background-color, border-color;
+  transition-timing-function: var(--ease-out);
 }
 
-.ov-hero-meta {
-  color: var(--color-text-tertiary);
-  font-size: var(--type-caption-size);
-  line-height: var(--type-caption-line);
+.ov-keys:hover {
+  background: var(--wash-hover);
+  border-color: var(--border);
+}
+
+.ov-keys:active {
+  background: var(--wash-active);
+}
+
+.ov-hero-hint,
+.ov-hero-assurance {
+  color: var(--text-tertiary);
+  font-size: var(--fs-label-12);
+  line-height: var(--lh-label-12);
   margin: 0;
+}
+
+.ov-hero-hint {
+  margin-block-start: calc(var(--space-2) * -1);
 }
 
 .ov-hero-actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+  margin-block-start: var(--space-1);
+}
+
+.ov-hero-assurance {
+  margin-block-start: calc(var(--space-2) * -1);
+  max-inline-size: 46ch;
+  text-wrap: pretty;
+}
+
+/* Narrow: the dispersion goes behind the text instead of beside it, and the
+ * band shortens so the hero never eats the whole window. */
+@media (max-width: 720px) {
+  .ov-page {
+    --ov-hero-glow-share: 0px;
+  }
+
+  .ov-hero-band {
+    min-block-size: 0;
+  }
+
+  .ov-hero-band .shader-hero-content {
+    padding: var(--space-5);
+  }
+
+  .ov-hero-title {
+    font-size: var(--fs-heading-24);
+    letter-spacing: var(--ls-heading-24);
+    line-height: var(--lh-heading-24);
+  }
 }
 
 /* ------------------------------------------------------------- stat band */
 
+/* One row of flat tiles on a wide window, so the four numbers line up and
+ * read as one comparison. The column count is explicit rather than auto-fit
+ * because the guide line between tiles has to know which tile starts a row. */
 .ov-stat-grid {
   display: grid;
-  gap: var(--space-2);
-  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: var(--space-3) var(--space-6);
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -83,29 +205,63 @@
 .ov-stat {
   display: flex;
   flex-direction: column;
-  gap: var(--space-0-5);
+  gap: var(--space-1);
+  min-inline-size: 0;
+  position: relative;
+}
+
+/* The Geist guide line, sitting in the gutter it divides. */
+.ov-stat-rule {
+  inset-block: var(--space-0-5);
+  inset-inline-start: calc(var(--space-3) * -1);
+  position: absolute;
+}
+
+.ov-stat:first-child .ov-stat-rule {
+  display: none;
 }
 
 .ov-stat-label {
-  color: var(--color-text-secondary);
-  font-size: var(--type-caption-size);
-  line-height: var(--type-caption-line);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ov-stat-value {
-  color: var(--color-text-primary);
-  font-size: var(--type-metric-size);
+  color: var(--text-primary);
+  font-size: var(--fs-heading-24);
   font-variant-numeric: tabular-nums;
-  font-weight: var(--type-metric-weight);
-  letter-spacing: var(--type-metric-tracking);
-  line-height: var(--type-metric-line);
+  font-weight: var(--fw-heading);
+  letter-spacing: var(--ls-heading-24);
+  line-height: var(--lh-heading-24);
 }
 
 .ov-stat-meta {
-  color: var(--color-text-tertiary);
-  font-size: var(--type-caption-size);
+  color: var(--text-tertiary);
+  font-size: var(--fs-label-12);
   font-variant-numeric: tabular-nums;
-  line-height: var(--type-caption-line);
+  line-height: var(--lh-label-12);
+}
+
+@media (max-width: 860px) {
+  .ov-stat-grid {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ov-stat:nth-child(2n + 1) .ov-stat-rule {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .ov-stat-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ov-stat-rule {
+    display: none;
+  }
 }
 
 /* ----------------------------------------------------------------- chart */
@@ -125,17 +281,17 @@
 }
 
 .ov-chart-legend {
-  color: var(--color-text-secondary);
-  font-size: var(--type-caption-size);
-  line-height: var(--type-caption-line);
+  color: var(--text-secondary);
+  font-size: var(--fs-label-12);
+  line-height: var(--lh-label-12);
 }
 
 .ov-chart-peak,
 .ov-chart-axis {
-  color: var(--color-text-tertiary);
-  font-size: var(--type-caption-size);
+  color: var(--text-tertiary);
+  font-size: var(--fs-label-12);
   font-variant-numeric: tabular-nums;
-  line-height: var(--type-caption-line);
+  line-height: var(--lh-label-12);
 }
 
 .ov-chart {
@@ -149,12 +305,9 @@
   margin-top: var(--space-5);
 }
 
+/* Monochrome bars: the chart is one series, so hue would be decoration. */
 .ov-chart-bar {
-  fill: color-mix(
-    in oklab,
-    var(--color-accent-strong) 72%,
-    var(--color-surface)
-  );
+  fill: color-mix(in oklab, var(--text-primary) 66%, var(--surface-1));
   transition-duration: var(--duration-fast);
   transition-property: fill;
   transition-timing-function: var(--ease-out);
@@ -163,11 +316,11 @@
 /* A day with nothing in it keeps a hairline stub, which is what makes the
  * baseline readable without drawing an axis. */
 .ov-chart-bar[data-empty="true"] {
-  fill: var(--color-border-strong);
+  fill: var(--border-hover);
 }
 
 .ov-chart-bar:hover {
-  fill: var(--color-accent-strong);
+  fill: var(--text-primary);
 }
 
 /* ---------------------------------------------------------------- source */
@@ -180,10 +333,10 @@
 }
 
 .ov-source-line {
-  color: var(--color-text-secondary);
-  font-size: var(--type-secondary-size);
+  color: var(--text-secondary);
+  font-size: var(--fs-label-13);
   font-variant-numeric: tabular-nums;
-  line-height: var(--type-secondary-line);
+  line-height: var(--lh-label-13);
   margin: 0;
 }
 
@@ -197,7 +350,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ov-chart-bar {
+  .ov-chart-bar,
+  .ov-keys {
     transition-duration: 1ms;
   }
 }

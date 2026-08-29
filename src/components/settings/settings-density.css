@@ -1,3 +1,7 @@
+/* Density overrides for the Modes page, the one surface that sets
+ * `.density-page`. Everything a settings group looks like now lives in
+ * primitives.css; this file is spacing and the two-pane workspace geometry. */
+
 .density-page {
   gap: var(--space-3);
 }
@@ -6,23 +10,17 @@
   margin-bottom: var(--space-1);
 }
 
-.density-page .settings-group-panel {
-  border-radius: var(--radius-control);
-}
-
+/* Denser rows, still flush with their own section title: the flat treatment
+ * exists so a label lines up with the heading above it. */
 .density-page .setting-row {
   gap: var(--space-3);
   min-block-size: 40px;
   padding-block: var(--space-1-5);
-  padding-inline: var(--space-3);
+  padding-inline: 0;
 }
 
 .density-page .setting-copy p {
   line-height: 16px;
-}
-
-.density-page .setting-panel {
-  border-radius: var(--radius-control);
 }
 
 .modes-page.density-page {
@@ -42,7 +40,7 @@
 }
 
 .modes-page .modes-master {
-  border-inline-end: 1px solid var(--color-border);
+  border-inline-end: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   min-block-size: 0;
@@ -61,9 +59,8 @@
 }
 
 .modes-page .modes-master-actions > span {
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   font-size: 12px;
-  font-variant-numeric: tabular-nums;
 }
 
 .modes-page .modes-add-button {
@@ -93,8 +90,8 @@
 
 .modes-page .mode-detail-header {
   align-items: center;
-  background: var(--color-canvas);
-  border-bottom: 1px solid var(--color-border);
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border-subtle);
   min-block-size: 38px;
   padding-block-end: var(--space-1);
   position: sticky;
@@ -110,18 +107,10 @@
 
 .modes-page .mode-editor-panel {
   flex: 1;
-  gap: var(--space-3);
+  gap: var(--space-5);
   min-block-size: 0;
   overflow-y: auto;
   padding: var(--space-3) 0 var(--space-5);
-}
-
-.modes-page .mode-editor-panel .settings-group-panel,
-.modes-page .mode-editor-panel .setting-panel {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  overflow: visible;
 }
 
 .modes-page .mode-editor-panel .settings-group > div:first-child {
@@ -130,29 +119,6 @@
 
 .modes-page .mode-editor-panel .setting-row {
   min-block-size: 38px;
-  padding-inline: 0;
-}
-
-.modes-page
-  .mode-editor-panel
-  .settings-group-panel
-  > .divide-y
-  > :not(:last-child) {
-  border-bottom-color: var(--color-border);
-}
-
-.history-page.density-page > .space-y-2 {
-  gap: var(--space-2);
-}
-
-.history-page.density-page .history-stats,
-.history-page.density-page .history-audio-import-section {
-  margin: 0;
-}
-
-.history-page.density-page .divide-y > .flex.flex-col {
-  min-block-size: 40px;
-  padding-block: var(--space-2);
 }
 
 @media (max-width: 760px) {
@@ -162,7 +128,7 @@
   }
 
   .modes-page .modes-master {
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--border-subtle);
     border-inline-end: 0;
     padding: 0 0 var(--space-2);
   }

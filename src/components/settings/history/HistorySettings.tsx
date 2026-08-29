@@ -28,7 +28,6 @@ import {
   EmptyState,
   IconButton,
   Input,
-  List,
   Skeleton,
   StatusText,
 } from "../../ui";
@@ -640,8 +639,10 @@ interface HistorySummaryProps {
   onRetry: () => void;
 }
 
-/* One line under the title: how much has been captured, all time. The full
- * analytics band lives on Capture; this is the glanceable version. */
+/* The all-time totals under the page title. The rich analytics band lives on
+ * Capture; this is the number you glance at while scanning transcripts, so
+ * it is a strip of microlabel-over-figure pairs rather than a sentence: the
+ * figures line up, they are tabular, and the labels stay out of the way. */
 const HistorySummary: React.FC<HistorySummaryProps> = ({
   stats,
   loading,
@@ -652,7 +653,7 @@ const HistorySummary: React.FC<HistorySummaryProps> = ({
 
   if (error) {
     return (
-      <div className="history-summary">
+      <div className="history-summary-state">
         <StatusText tone="danger">
           {t("settings.history.stats.unavailable")}
         </StatusText>
@@ -665,9 +666,9 @@ const HistorySummary: React.FC<HistorySummaryProps> = ({
 
   if (stats === null) {
     return (
-      <div className="history-summary">
+      <div className="history-summary-state">
         {loading ? (
-          <Skeleton className="h-[14px] w-64" />
+          <Skeleton className="h-[26px] w-64" />
         ) : (
           <StatusText>{t("settings.history.stats.unavailable")}</StatusText>
         )}
@@ -676,35 +677,45 @@ const HistorySummary: React.FC<HistorySummaryProps> = ({
   }
 
   const totals = [
-    `${NUMBER_FORMATTER.format(stats.entries)} ${t("settings.history.stats.entries")}`,
-    `${t("settings.history.stats.durationValue", {
-      hours: Math.floor(stats.total_duration_ms / 3_600_000),
-      minutes: Math.round((stats.total_duration_ms % 3_600_000) / 60_000),
-    })} ${t("settings.history.stats.duration")}`,
-    `${NUMBER_FORMATTER.format(stats.total_words)} ${t("settings.history.stats.words")}`,
+    {
+      key: "entries",
+      label: t("settings.history.stats.entries"),
+      value: NUMBER_FORMATTER.format(stats.entries),
+    },
+    {
+      key: "duration",
+      label: t("settings.history.stats.duration"),
+      value: t("settings.history.stats.durationValue", {
+        hours: Math.floor(stats.total_duration_ms / 3_600_000),
+        minutes: Math.round((stats.total_duration_ms % 3_600_000) / 60_000),
+      }),
+    },
+    {
+      key: "words",
+      label: t("settings.history.stats.words"),
+      value: NUMBER_FORMATTER.format(stats.total_words),
+    },
+    // The source split only earns its place when provenance is actually mixed.
+    ...(stats.by_source.length > 1
+      ? stats.by_source.map((source) => ({
+          key: `source-${source.source_kind ?? "legacy"}`,
+          label: t(
+            `settings.history.stats.source.${source.source_kind ?? "legacy"}`,
+          ),
+          value: NUMBER_FORMATTER.format(source.entries),
+        }))
+      : []),
   ];
 
-  // The source split only earns its place when provenance is actually mixed.
-  const sources =
-    stats.by_source.length > 1
-      ? stats.by_source.map(
-          (source) =>
-            `${t(`settings.history.stats.source.${source.source_kind ?? "legacy"}`)} ${NUMBER_FORMATTER.format(source.entries)}`,
-        )
-      : [];
-
   return (
-    <div className="history-summary" data-testid="history-summary">
-      <span>{totals.join(" · ")}</span>
-      {sources.length > 0 && (
-        <>
-          <span aria-hidden="true" className="history-summary-sep">
-            ·
-          </span>
-          <span>{sources.join(" · ")}</span>
-        </>
-      )}
-    </div>
+    <dl className="history-summary" data-testid="history-summary">
+      {totals.map((total) => (
+        <div className="history-stat" key={total.key}>
+          <dt className="microlabel">{total.label}</dt>
+          <dd className="history-stat-value">{total.value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 };
 
@@ -769,11 +780,9 @@ const HistoryAudioImportSection: React.FC<HistoryAudioImportSectionProps> = ({
           aria-labelledby="audio-import-jobs-title"
           data-testid="history-imports"
         >
-          <div className="history-imports-head">
-            <h2 id="audio-import-jobs-title" className="history-imports-title">
-              {t("settings.history.audioImport.jobs")}
-            </h2>
-          </div>
+          <h2 id="audio-import-jobs-title" className="microlabel">
+            {t("settings.history.audioImport.jobs")}
+          </h2>
           <ol>
             {jobs.map((job) => {
               const canCancel =
@@ -893,7 +902,7 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
       <div
         role="status"
         aria-label={t("settings.history.loading")}
-        className="rounded-panel border border-border bg-surface"
+        className="history-list"
         data-testid="history-loading"
       >
         {SKELETON_ROWS.map((row) => (
@@ -906,9 +915,13 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
       </div>
     );
   } else if (state.phase === "error") {
+    /* The feed is the page. When it cannot be read there is nothing else to
+     * put a bar above, so the region says why it is empty and carries the
+     * one action that refills it. */
     content = (
-      <Alert
+      <EmptyState
         variant="error"
+        title={t("settings.history.loadError")}
         action={
           <Button
             variant="secondary"
@@ -918,13 +931,12 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
             {t("settings.history.retry")}
           </Button>
         }
-      >
-        {t("settings.history.loadError")}
-      </Alert>
+      />
     );
   } else if (count === 0) {
     content = searching ? (
       <EmptyState
+        variant="no-results"
         title={t("settings.history.noResults", { query: trimmedActiveQuery })}
         description={t(
           "settings.history.noResultsHint",
@@ -943,6 +955,7 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
       />
     ) : (
       <EmptyState
+        variant="informational"
         title={t("settings.history.empty")}
         description={t(
           "settings.history.emptyHint",
@@ -968,7 +981,16 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
       state.phase === "paging-error";
     content = (
       <AudioPlayerGroup>
-        <List label={t("settings.history.title")} data-testid="history-list">
+        {/* The feed is the page's whole body, so it is a flat run of
+         * hairline-separated rows rather than one tall bordered box. The
+         * `List` primitive stays for bounded collections that sit inside a
+         * page next to other content. */}
+        <ul
+          role="list"
+          aria-label={t("settings.history.title")}
+          className="history-list"
+          data-testid="history-list"
+        >
           {state.entries.map((entry) => (
             <HistoryEntryComponent
               key={entry.id}
@@ -1012,7 +1034,7 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
               <div ref={sentinelRef} className="history-sentinel" />
             </li>
           )}
-        </List>
+        </ul>
       </AudioPlayerGroup>
     );
   }

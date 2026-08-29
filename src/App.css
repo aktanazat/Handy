@@ -81,25 +81,6 @@
   padding: var(--space-6) var(--space-4) var(--space-8);
 }
 
-.onboarding-permission-panel {
-  background: var(--color-material-dialog);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-dialog);
-  box-shadow: none;
-  padding: var(--space-5);
-}
-
-.onboarding-permission-card {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-.onboarding-permission-card + .onboarding-permission-card {
-  border-top: 1px solid var(--color-border);
-}
-
 /* -------------------------------------------------------------- states */
 
 .surface-state {
@@ -262,12 +243,6 @@
   padding: var(--space-3) var(--space-4) var(--space-4);
 }
 
-.settings-disclosure-body .settings-group-panel {
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-}
-
 /* ------------------------------------------------------ trends & charts */
 
 .trend-range-control {
@@ -304,10 +279,6 @@
   color: var(--color-inverse-text);
 }
 
-.history-trends,
-.meeting-trends,
-.meeting-recovery-section,
-.meeting-history-section,
 .mode-vocabulary-view {
   border-top: 1px solid var(--color-border);
   padding-top: var(--space-4);
@@ -482,35 +453,6 @@
 
 /* -------------------------------------------------------------- history */
 
-.history-page > .space-y-2 {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.history-page > .space-y-2 > .flex.flex-wrap.items-center {
-  min-block-size: var(--control-height);
-  padding-inline: 0;
-}
-
-.history-page > .space-y-2 > .rounded-lg {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-panel);
-  overflow: hidden;
-}
-
-.history-page .divide-y span.rounded-md.border {
-  background: transparent;
-  border-color: transparent;
-  padding-inline: 0;
-}
-
-.history-page .divide-y > .flex.flex-col {
-  gap: var(--space-2);
-  padding: var(--space-2-5) var(--space-3);
-}
-
 .history-retry-spin {
   animation: spin 1s linear infinite reverse;
 }
@@ -529,17 +471,6 @@
   }
 }
 
-.meeting-form-section input[type="text"],
-.meeting-form-section input[type="url"],
-.meeting-title-editor input,
-.meeting-speaker-row input,
-.meeting-speaker-merge select,
-.meeting-review textarea,
-.meeting-live textarea {
-  box-sizing: border-box;
-  inline-size: 100%;
-}
-
 .meeting-choice-row {
   align-items: center;
   color: var(--color-text-primary);
@@ -554,31 +485,6 @@
   accent-color: var(--color-accent-strong);
   flex: none;
   margin: 0;
-}
-
-.meeting-manual-note textarea,
-.meeting-review textarea {
-  box-sizing: border-box;
-  min-block-size: 86px;
-  padding: 9px 10px;
-  resize: vertical;
-}
-
-.meeting-transcript-segment {
-  border-bottom: 1px solid var(--color-border);
-  display: grid;
-  gap: 8px;
-  grid-template-columns: 112px minmax(0, 1fr) auto;
-  padding: 9px 0;
-}
-
-.meeting-transcript-segment[data-removed] {
-  opacity: 0.56;
-}
-
-.meeting-transcript-segment textarea {
-  min-block-size: 42px;
-  resize: vertical;
 }
 
 /* ----------------------------------------------------------------- modes */
@@ -607,12 +513,6 @@
   display: flex;
   justify-content: space-between;
   min-block-size: var(--control-height);
-}
-
-.modes-master-heading > span {
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
 }
 
 .mode-actions-menu,
@@ -801,16 +701,6 @@
 
   .app-topnav {
     padding-inline-end: var(--space-2);
-  }
-
-  .meeting-history-row {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .meeting-history-row-meta,
-  .meeting-history-row-actions {
-    justify-content: flex-start;
   }
 
   .modes-workspace {

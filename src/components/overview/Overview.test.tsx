@@ -62,6 +62,20 @@ describe("Overview first paint", () => {
     expect(markup).toContain("Shortcut unavailable");
   });
 
+  /* Both sentences are product promises the wave was asked to make
+   * self-evident, so they are asserted as copy, not as markup. */
+  test("states the push-to-talk gesture and what a meeting recording does", () => {
+    expect(markup).toContain("Tap to toggle, hold to talk");
+    expect(markup).toContain(
+      "Records your Mac&#x27;s audio locally. Nothing joins the call.",
+    );
+  });
+
+  test("offers a way to set the missing shortcut rather than only naming it", () => {
+    expect(markup).toContain('data-testid="overview-shortcut"');
+    expect(markup).toContain("Set a shortcut");
+  });
+
   test("loads behind placeholders, with no update banner and no numbers", () => {
     expect(markup).toContain("ui-skeleton");
     expect(markup.includes("is available. This install is on")).toBe(false);

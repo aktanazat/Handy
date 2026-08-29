@@ -15,20 +15,23 @@ import {
   type HistoryStats,
   type HistoryTrendProjection,
   type MeetingHistorySummary,
+  type RequestedEngine,
   type MeetingTrendProjection,
 } from "@/bindings";
 import { formatRelativeTime } from "@/utils/dateFormat";
 import { useSettings } from "@/hooks/useSettings";
 import { useOsType } from "@/hooks/useOsType";
 import { formatKeyCombination } from "@/lib/utils/keyboard";
+import { getTranslatedModelName } from "@/lib/utils/modelTranslation";
+import { useModelStore } from "@/stores/modelStore";
 import {
-  Alert,
   Button,
   EmptyState,
   Kbd,
   List,
   Row,
   Section,
+  ShaderHero,
   Skeleton,
   StatusText,
 } from "@/components/ui";
@@ -53,9 +56,10 @@ type RecentActivity =
     };
 
 interface OverviewProps {
-  /* The shell passes its section setter. Overview only ever sends people to
-   * the two places its own content comes from. */
-  onOpenSection?: (section: "history" | "meetings") => void;
+  /* The shell passes its section setter. Overview sends people to the two
+   * places its own content comes from, plus Settings when the shortcut the
+   * hero draws has to be changed. */
+  onOpenSection?: (section: "history" | "meetings" | "settings") => void;
 }
 
 /* A failed read is a null payload: every one of these commands answers with a
@@ -94,6 +98,15 @@ const MEDIA_IMPORT_EXTENSIONS = [
   "mp4",
   "m4v",
 ];
+
+/* The engine reads as the thing it actually is: the local runtime, or the
+ * named cloud provider. Every label already exists elsewhere in the bundle,
+ * so the hero adds no engine strings of its own. */
+const ENGINE_LABEL_KEY = {
+  local: "settings.modes.recognition.engine.local",
+  deepgram_nova_3: "settings.models.cloud.providers.deepgram",
+  eleven_labs_scribe_v2: "settings.models.cloud.providers.elevenLabs",
+} satisfies Record<RequestedEngine, string>;
 
 const INITIAL_OVERVIEW_STATE: OverviewState = {
   historyTrend: null,
@@ -145,22 +158,30 @@ const mergeRecentActivity = (
   return items.slice(0, 8);
 };
 
+interface HeroFact {
+  key: string;
+  label: string;
+  value: string;
+}
+
 interface OverviewHeroProps {
   isRecording: boolean;
   transcribeBinding: string | null;
-  activeModeName: string | null;
+  facts: HeroFact[];
   startingAudioImport: boolean;
   onStartAudioImport: () => void;
   onOpenMeetings: () => void;
+  onOpenShortcutSettings: () => void;
 }
 
 const OverviewHero: React.FC<OverviewHeroProps> = ({
   isRecording,
   transcribeBinding,
-  activeModeName,
+  facts,
   startingAudioImport,
   onStartAudioImport,
   onOpenMeetings,
+  onOpenShortcutSettings,
 }) => {
   const { t } = useTranslation();
   const osType = useOsType();
@@ -176,58 +197,99 @@ const OverviewHero: React.FC<OverviewHeroProps> = ({
   }).split(SHORTCUT_SLOT);
 
   return (
-    <section className="ov-hero" aria-labelledby="overview-status">
-      <div className="ov-hero-text">
-        <h1
-          className="ov-hero-title"
-          id="overview-status"
-          data-recording={isRecording ? "true" : undefined}
-          aria-live="polite"
-        >
-          {t(isRecording ? "overview.hero.recording" : "overview.hero.ready")}
-        </h1>
-        {keys.length > 0 ? (
-          <p className="ov-hero-instruction">
-            {instruction[0]}
-            <span className="ov-keys">
-              {keys.map((key, index) => (
-                <Kbd key={`${key}-${index}`}>{key}</Kbd>
+    <ShaderHero className="ov-hero-band">
+      <section className="ov-hero" aria-labelledby="overview-status">
+        <div className="ov-hero-text">
+          {facts.length > 0 && (
+            <dl className="ov-hero-facts">
+              {facts.map((fact) => (
+                <div className="ov-hero-fact" key={fact.key}>
+                  <dt className="sr-only">{fact.label}</dt>
+                  <dd className="microlabel">{fact.value}</dd>
+                </div>
               ))}
-            </span>
-            {instruction.length > 1 ? instruction[1] : null}
+            </dl>
+          )}
+          <h1
+            className="ov-hero-title"
+            id="overview-status"
+            data-recording={isRecording ? "true" : undefined}
+            aria-live="polite"
+          >
+            {t(isRecording ? "overview.hero.recording" : "overview.hero.ready")}
+          </h1>
+          {/* The shortcut is the product's whole interface, so it is drawn as
+           * the keys themselves and the keys are the control that goes and
+           * changes them — not a sentence pointing at a settings page. */}
+          {keys.length > 0 ? (
+            <p className="ov-hero-instruction">
+              {instruction[0]}
+              <button
+                type="button"
+                className="ov-keys"
+                onClick={onOpenShortcutSettings}
+                aria-label={t(
+                  "overview.hero.shortcutAction",
+                  "Change dictation shortcut",
+                )}
+                data-testid="overview-shortcut"
+              >
+                {keys.map((key, index) => (
+                  <Kbd key={`${key}-${index}`}>{key}</Kbd>
+                ))}
+              </button>
+              {instruction.length > 1 ? instruction[1] : null}
+            </p>
+          ) : (
+            <p className="ov-hero-instruction">
+              <StatusText tone="warning">
+                {`${t("overview.actions.unavailable")} ${t(
+                  "overview.hero.setShortcut",
+                  "Set a dictation shortcut in Settings to capture from any app.",
+                )}`}
+              </StatusText>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={onOpenShortcutSettings}
+                data-testid="overview-shortcut"
+              >
+                {t("overview.hero.setShortcutAction", "Set a shortcut")}
+              </Button>
+            </p>
+          )}
+          <p className="ov-hero-hint">
+            {t("overview.hero.holdHint", "Tap to toggle, hold to talk")}
           </p>
-        ) : (
-          <StatusText tone="warning">
-            {`${t("overview.actions.unavailable")} ${t(
-              "overview.hero.setShortcut",
-              "Set a dictation shortcut in Settings to capture from any app.",
-            )}`}
-          </StatusText>
-        )}
-        {activeModeName !== null && (
-          <p className="ov-hero-meta">
-            {t("overview.hero.mode", "Mode: {{name}}", {
-              name: activeModeName,
-            })}
+          <div className="ov-hero-actions">
+            <Button type="button" onClick={onOpenMeetings}>
+              <Video aria-hidden="true" className="size-3.5" />
+              {t("overview.hero.newMeeting")}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onStartAudioImport}
+              disabled={startingAudioImport}
+            >
+              <FileAudio aria-hidden="true" className="size-3.5" />
+              {t("overview.hero.importAudio")}
+            </Button>
+          </div>
+          {/* One click starts a meeting, so the reassurance has to sit with
+           * the button rather than behind a wizard step nobody reads. The
+           * key lives in the meetings subtree, which owns this promise's
+           * exact wording in every locale. */}
+          <p className="ov-hero-assurance">
+            {t(
+              "meetings.start.assurance",
+              "Records your Mac's audio locally. Nothing joins the call.",
+            )}
           </p>
-        )}
-      </div>
-      <div className="ov-hero-actions">
-        <Button type="button" onClick={onOpenMeetings}>
-          <Video aria-hidden="true" className="size-3.5" />
-          {t("overview.hero.newMeeting")}
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={onStartAudioImport}
-          disabled={startingAudioImport}
-        >
-          <FileAudio aria-hidden="true" className="size-3.5" />
-          {t("overview.hero.importAudio")}
-        </Button>
-      </div>
-    </section>
+        </div>
+      </section>
+    </ShaderHero>
   );
 };
 
@@ -277,11 +339,20 @@ const RecentActivityList: React.FC<RecentActivityListProps> = ({
     );
   }
 
+  /* A section that failed to load and a section with nothing in it are both
+   * empty regions, so both read as an empty state rather than as an alert
+   * bar: the error one names the failure and carries the retry, the blank
+   * one carries no call to action because the shortcut is the call to
+   * action. */
   if (failed) {
     return (
       <Section title={title}>
-        <Alert
+        <EmptyState
           variant="error"
+          title={t(
+            "overview.recent.error",
+            "Recent captures could not be loaded just now.",
+          )}
           action={
             <Button
               type="button"
@@ -292,12 +363,7 @@ const RecentActivityList: React.FC<RecentActivityListProps> = ({
               {t("common.retry")}
             </Button>
           }
-        >
-          {t(
-            "overview.recent.error",
-            "Recent captures could not be loaded just now.",
-          )}
-        </Alert>
+        />
       </Section>
     );
   }
@@ -311,7 +377,6 @@ const RecentActivityList: React.FC<RecentActivityListProps> = ({
             "overview.recent.emptyDescription",
             "Retained captures show up here as soon as you dictate or record a meeting.",
           )}
-          action={openLibrary}
         />
       </Section>
     );
@@ -346,6 +411,9 @@ const RecentActivityList: React.FC<RecentActivityListProps> = ({
 export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
   const { t } = useTranslation();
   const { settings } = useSettings();
+  /* The catalog is already loaded by the model chip in the top bar, so this
+   * is a read of state the window is holding anyway. */
+  const models = useModelStore((state) => state.models);
   const [overview, dispatch] = useReducer(
     overviewReducer,
     INITIAL_OVERVIEW_STATE,
@@ -503,6 +571,43 @@ export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
     settings?.modes?.find((mode) => mode.id === settings.active_mode_id) ??
     null;
 
+  /* Mode, model and engine, as the three technical identifiers the run will
+   * actually use. Anything the settings document has not answered yet is
+   * left out rather than filled with a placeholder. */
+  const heroFacts: HeroFact[] = [];
+  if (activeMode !== null) {
+    heroFacts.push({
+      key: "mode",
+      label: t("overview.hero.facts.mode", "Mode"),
+      value: activeMode.name,
+    });
+  }
+  const modelId = activeMode?.asr.model_id?.trim() || settings?.selected_model;
+  if (modelId) {
+    const catalogEntry = models.find((model) => model.id === modelId);
+    heroFacts.push({
+      key: "model",
+      label: t("overview.hero.facts.model", "Model"),
+      /* Model ids are repository paths. The catalog holds the product name;
+       * until it loads, the file's own name is the most specific honest
+       * label a 70-character path can be reduced to. */
+      value:
+        catalogEntry === undefined
+          ? (modelId.split("/").pop() ?? modelId).replace(
+              /\.(gguf|bin|safetensors)$/i,
+              "",
+            )
+          : getTranslatedModelName(catalogEntry, t),
+    });
+  }
+  if (activeMode !== null) {
+    heroFacts.push({
+      key: "engine",
+      label: t("overview.hero.facts.engine", "Engine"),
+      value: t(ENGINE_LABEL_KEY[activeMode.asr.requested_engine ?? "local"]),
+    });
+  }
+
   const meetings = summarizeMeetings(overview.meetingTrend);
   const freshInstall =
     !overview.loading &&
@@ -526,14 +631,16 @@ export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
       <OverviewHero
         isRecording={isRecording}
         transcribeBinding={transcribeBinding}
-        activeModeName={activeMode === null ? null : activeMode.name}
+        facts={heroFacts}
         startingAudioImport={startingAudioImport}
         onStartAudioImport={() => void startAudioImport()}
         onOpenMeetings={() => onOpenSection?.("meetings")}
+        onOpenShortcutSettings={() => onOpenSection?.("settings")}
       />
 
       {freshInstall ? (
         <EmptyState
+          variant="informational"
           title={t("overview.empty.title", "No captures yet")}
           description={t(
             "overview.empty.description",

@@ -17,6 +17,7 @@ import {
   type HistoryRunReceipt,
 } from "@/bindings";
 import { formatDateTime } from "@/utils/dateFormat";
+import { ProcessAgainAction } from "./ProcessAgainAction";
 import {
   AudioPlayer,
   Button,
@@ -95,12 +96,9 @@ const HistoryCorrectionDialog = ({
         </>
       }
     >
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor={`${fieldId}-spoken`}
-            className="text-[13px] leading-[19px] font-medium text-text-primary"
-          >
+      <div className="history-correction">
+        <div className="history-field">
+          <label className="history-field-label" htmlFor={`${fieldId}-spoken`}>
             {t("settings.history.correction.spoken")}
           </label>
           <Input
@@ -111,11 +109,8 @@ const HistoryCorrectionDialog = ({
             disabled={saving}
           />
         </div>
-        <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor={`${fieldId}-written`}
-            className="text-[13px] leading-[19px] font-medium text-text-primary"
-          >
+        <div className="history-field">
+          <label className="history-field-label" htmlFor={`${fieldId}-written`}>
             {t("settings.history.correction.written")}
           </label>
           <Input
@@ -126,38 +121,50 @@ const HistoryCorrectionDialog = ({
             disabled={saving}
           />
         </div>
+        {/* The rule that is about to be written, quoted back. An inset panel
+         * rather than a card: it belongs to the form around it. */}
         {ready && (
-          <p className="rounded-control border border-border bg-subtle px-3 py-2 text-[13px] leading-5 text-text-primary">
+          <p className="inset-panel history-correction-preview">
             {t("settings.history.correction.preview", {
               spoken: spoken.trim(),
               written: written.trim(),
             })}
           </p>
         )}
-        <fieldset className="flex flex-col gap-2">
-          <legend className="text-[13px] leading-[19px] font-medium text-text-primary">
+        <fieldset className="history-field">
+          <legend className="history-field-label">
             {t("settings.history.correction.scope")}
           </legend>
-          <label className="flex items-center gap-2 text-[13px] leading-[19px] text-text-secondary">
-            <input
-              type="radio"
-              name={`history-correction-scope-${entryId}`}
-              checked={scope === "current_mode"}
-              onChange={() => onScopeChange("current_mode")}
-              disabled={saving}
-            />
-            {t("settings.history.correction.currentMode")}
-          </label>
-          <label className="flex items-center gap-2 text-[13px] leading-[19px] text-text-secondary">
-            <input
-              type="radio"
-              name={`history-correction-scope-${entryId}`}
-              checked={scope === "global"}
-              onChange={() => onScopeChange("global")}
-              disabled={saving}
-            />
-            {t("settings.history.correction.global")}
-          </label>
+          {/* Two mutually exclusive choices, so the same segmented control
+           * the transcript toggle uses — radios underneath, chrome ours. */}
+          <div className="history-segmented">
+            <label className="history-segmented-option">
+              <input
+                type="radio"
+                name={`history-correction-scope-${entryId}`}
+                checked={scope === "current_mode"}
+                onChange={() => onScopeChange("current_mode")}
+                disabled={saving}
+                className="sr-only"
+              />
+              <span className="history-segmented-text">
+                {t("settings.history.correction.currentMode")}
+              </span>
+            </label>
+            <label className="history-segmented-option">
+              <input
+                type="radio"
+                name={`history-correction-scope-${entryId}`}
+                checked={scope === "global"}
+                onChange={() => onScopeChange("global")}
+                disabled={saving}
+                className="sr-only"
+              />
+              <span className="history-segmented-text">
+                {t("settings.history.correction.global")}
+              </span>
+            </label>
+          </div>
         </fieldset>
       </div>
     </Dialog>
@@ -393,6 +400,13 @@ const HistoryEntrySummary: React.FC<HistoryEntrySummaryProps> = ({
   // Provenance reads as one sentence of text. Chips and colored dots would
   // say the same thing louder and survive greyscale worse.
   const metaParts: string[] = [];
+  /* A reprocess and a retry both write a new row pointing at the one they
+   * came from, so an entry that appears twice in the feed says why. */
+  if (entry.parent_id !== null) {
+    metaParts.push(
+      t("settings.history.derivedFrom", "From an earlier recording"),
+    );
+  }
   if (latestReceipt) {
     if (noSpeechCaptured) metaParts.push(t("errors.noSpeechDetectedTitle"));
     if (duration) {
@@ -487,6 +501,7 @@ const HistoryEntrySummary: React.FC<HistoryEntrySummaryProps> = ({
             />
           }
         />
+        <ProcessAgainAction historyId={entry.id} disabled={busy} />
         <IconButton
           size="sm"
           className="history-action-danger"
@@ -630,7 +645,7 @@ const HistoryAudioPlayer: React.FC<HistoryAudioPlayerProps> = ({
     return url;
   };
 
-  return <AudioPlayer onLoadRequest={loadAudio} className="w-full" />;
+  return <AudioPlayer onLoadRequest={loadAudio} className="history-audio" />;
 };
 
 interface HistoryReceiptDetailsProps {
@@ -776,24 +791,41 @@ const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({ receipt }) => {
         ) : null}
       </dl>
 
+      {/* Both of these were a list of two spans pushed apart, which is a
+       * table drawn by hand and reads to a screen reader as pairs of
+       * floating words. On the real primitive each column is named once. */}
       <div>
         <h4 className="history-receipt-subtitle">
           {t("settings.history.receipts.contextSources")}
         </h4>
-        <ul className="history-receipt-list history-receipt-list--pairs">
-          {Object.entries(receipt.context.sources).map(
-            ([source, sourceStatus]) => (
-              <li key={source}>
-                <span>
-                  {t("settings.history.receipts.contextSource." + source)}
-                </span>
-                <span>
-                  {t("settings.history.receipts.contextStatus." + sourceStatus)}
-                </span>
-              </li>
-            ),
-          )}
-        </ul>
+        <table className="data-table history-receipt-table">
+          <thead>
+            <tr>
+              <th scope="col">
+                {t("settings.history.receipts.columns.source", "Source")}
+              </th>
+              <th scope="col">
+                {t("settings.history.receipts.columns.status", "Status")}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.entries(receipt.context.sources).map(
+              ([source, sourceStatus]) => (
+                <tr key={source}>
+                  <th scope="row">
+                    {t("settings.history.receipts.contextSource." + source)}
+                  </th>
+                  <td>
+                    {t(
+                      "settings.history.receipts.contextStatus." + sourceStatus,
+                    )}
+                  </td>
+                </tr>
+              ),
+            )}
+          </tbody>
+        </table>
       </div>
 
       <div>
@@ -805,24 +837,36 @@ const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({ receipt }) => {
             {t("settings.history.receipts.noDeliveryAttempts")}
           </p>
         ) : (
-          <ul className="history-receipt-list">
-            {receipt.delivery_attempts.map((attempt) => (
-              <li key={attempt.id}>
-                <span>
-                  {t(
-                    "settings.history.receipts.deliveryMethod." +
-                      attempt.delivery.method,
-                  )}
-                </span>
-                <span>
-                  {t(
-                    "settings.history.receipts.deliveryOutcome." +
-                      attempt.delivery.outcome,
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <table className="data-table history-receipt-table">
+            <thead>
+              <tr>
+                <th scope="col">
+                  {t("settings.history.receipts.columns.method", "Method")}
+                </th>
+                <th scope="col">
+                  {t("settings.history.receipts.columns.outcome", "Outcome")}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {receipt.delivery_attempts.map((attempt) => (
+                <tr key={attempt.id}>
+                  <th scope="row">
+                    {t(
+                      "settings.history.receipts.deliveryMethod." +
+                        attempt.delivery.method,
+                    )}
+                  </th>
+                  <td>
+                    {t(
+                      "settings.history.receipts.deliveryOutcome." +
+                        attempt.delivery.outcome,
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
     </section>

@@ -7,9 +7,9 @@ import type {
   MeetingTrendProjection,
 } from "@/bindings";
 import {
-  Alert,
   Button,
-  Card,
+  EmptyState,
+  GridConnector,
   Section,
   Skeleton,
   StatusText,
@@ -78,11 +78,18 @@ export const OverviewAnalytics: React.FC<OverviewAnalyticsProps> = ({
     );
   }
 
+  /* Both reads failed, so the band has no content at all: an empty region
+   * that names why it is empty and carries the one action that fixes it,
+   * rather than a tinted bar sitting above an equally empty band. */
   if (trend === null && stats === null) {
     return (
       <Section title={title}>
-        <Alert
+        <EmptyState
           variant="error"
+          title={t(
+            "overview.stats.error",
+            "Sona could not read your usage history just now.",
+          )}
           action={
             <Button
               type="button"
@@ -93,12 +100,7 @@ export const OverviewAnalytics: React.FC<OverviewAnalyticsProps> = ({
               {t("common.retry")}
             </Button>
           }
-        >
-          {t(
-            "overview.stats.error",
-            "Sona could not read your usage history just now.",
-          )}
-        </Alert>
+        />
       </Section>
     );
   }
@@ -227,18 +229,22 @@ export const OverviewAnalytics: React.FC<OverviewAnalyticsProps> = ({
 
   return (
     <Section title={title} description={description}>
+      {/* Flat tiles, not cards. Four numbers side by side are a comparison,
+       * and a comparison is expressed by alignment and a guide line — the
+       * Geist grid motif — rather than by four boxes. */}
       <ul
         className="ov-stat-grid"
         aria-label={t("overview.stats.tiles", "Usage summary")}
       >
         {tiles.map((tile) => (
-          <Card as="li" padding="sm" key={tile.key} className="ov-stat">
-            <span className="ov-stat-label">{tile.label}</span>
+          <li key={tile.key} className="ov-stat">
+            <GridConnector orientation="vertical" className="ov-stat-rule" />
+            <span className="ov-stat-label microlabel">{tile.label}</span>
             <span className="ov-stat-value">{tile.value}</span>
             {tile.meta !== null && (
               <span className="ov-stat-meta">{tile.meta}</span>
             )}
-          </Card>
+          </li>
         ))}
       </ul>
 
