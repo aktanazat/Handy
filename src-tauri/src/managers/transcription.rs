@@ -782,14 +782,26 @@ pub struct TranscriptionManager {
 /// a stand-in zero.
 #[derive(Clone, Debug, PartialEq)]
 pub struct BatchDecode {
+    /// What the caller delivers: the model's output after Sona's own
+    /// post-processing (vocabulary correction, filler removal, spoken edits).
     pub text: String,
     pub realtime_factor: Option<f32>,
+    /// Whether the *model* produced any text for this audio, measured before
+    /// post-processing ran.
+    ///
+    /// This is the only honest answer to "did the microphone capture speech",
+    /// and it is not recoverable from `text`: filler removal (on by default)
+    /// and spoken edits both empty a real transcript on purpose, so an empty
+    /// `text` means either "nothing was said" or "everything said was
+    /// removed", and those are different outcomes for the capture receipt.
+    pub model_produced_text: bool,
 }
 
 impl BatchDecode {
     /// A transcript that no timed decode produced.
     fn untimed(text: String) -> Self {
         Self {
+            model_produced_text: !text.trim().is_empty(),
             text,
             realtime_factor: None,
         }
@@ -1926,13 +1938,18 @@ impl TranscriptionManager {
         }
     }
 
-    /// Flush the active stream and return its final, post-filtered text.
+    /// Flush the active stream and return its final, post-filtered text
+    /// alongside whether the model produced anything before post-processing.
     ///
     /// `Ok(None)` means no usable stream was active and the caller may fall back
     /// to batch transcription. `Err` means finalize itself failed or timed out.
     /// A timeout may still leave the worker holding the engine, so callers
     /// should surface it instead of immediately starting a batch fallback.
-    pub fn finalize_stream(&self, asr: &AsrPlan) -> Result<Option<String>> {
+    ///
+    /// The [`BatchDecode`] shape is shared with the batch path so callers pick
+    /// between the two without a second vocabulary of outcomes. A stream times
+    /// no batch decode, so its `realtime_factor` is always `None`.
+    pub fn finalize_stream(&self, asr: &AsrPlan) -> Result<Option<BatchDecode>> {
         let Some(route) = self.router.take() else {
             return Ok(None);
         };
@@ -1959,6 +1976,7 @@ impl TranscriptionManager {
 
         // Streaming models do not receive a decode prompt, so custom words
         // always go through the shared fuzzy post-correction path.
+        let model_produced_text = !finalized.text.trim().is_empty();
         let filtered = post_process_transcription_text(
             finalized.text,
             asr,
@@ -1968,7 +1986,11 @@ impl TranscriptionManager {
         );
 
         self.maybe_unload_immediately("streaming transcription");
-        Ok(Some(filtered))
+        Ok(Some(BatchDecode {
+            text: filtered,
+            realtime_factor: None,
+            model_produced_text,
+        }))
     }
 
     /// Abandon any active stream without producing text (e.g. on cancel).
@@ -2119,12 +2141,7 @@ impl TranscriptionManager {
                             .then(|| vocabulary_initial_prompt(&asr.custom_words))
                             .flatten();
                         vocabulary_prompted = initial_prompt.is_some();
-                        let family = initial_prompt.map(|initial_prompt| {
-                            RunExtension::Whisper(WhisperRunOptions {
-                                initial_prompt: Some(initial_prompt),
-                                ..Default::default()
-                            })
-                        });
+                        let family = whisper_run_extension(initial_prompt);
                         let run_plan = transcribe_cpp_run_plan(
                             asr.translate_to_english,
                             &validated_language,
@@ -2288,6 +2305,12 @@ impl TranscriptionManager {
         // Prompted Whisper runs retain exact spoken-form correction, while
         // non-Whisper runs use fuzzy correction because they receive no decode
         // prompt. The post-processor owns that distinction for every engine.
+        //
+        // Whether the model produced anything is read here, before the
+        // post-processor runs, because filler removal and spoken edits can
+        // empty a real transcript and the capture receipt must not read that as
+        // a silent microphone.
+        let model_produced_text = !result.trim().is_empty();
         let filtered_result = post_process_transcription_text(
             result,
             asr,
@@ -2317,10 +2340,12 @@ impl TranscriptionManager {
 
         let final_result = filtered_result;
 
-        if final_result.is_empty() {
-            info!("Transcription result is empty");
-        } else {
+        if !final_result.is_empty() {
             info!("Transcription completed");
+        } else if model_produced_text {
+            info!("Transcription result was emptied by post-processing");
+        } else {
+            info!("Transcription result is empty");
         }
 
         self.maybe_unload_immediately("transcription");
@@ -2328,6 +2353,7 @@ impl TranscriptionManager {
         Ok(BatchDecode {
             text: final_result,
             realtime_factor: finite_realtime_factor(speedup),
+            model_produced_text,
         })
     }
 }
@@ -2795,6 +2821,50 @@ fn with_model_detected_language(
         }
         (evidence, _) => evidence,
     }
+}
+
+/// Build the whisper run extension for one decode: the vocabulary prompt, and
+/// nothing else.
+///
+/// `None` — no extension at all — when there is no prompt to carry, which is
+/// also the whole answer for non-whisper archs, since the caller only resolves
+/// a prompt for whisper-family sessions.
+///
+/// The five hallucination-suppression knobs `WhisperRunOptions` also exposes
+/// (`no_speech_thold`, `logprob_thold`, `compression_ratio_thold`,
+/// `temperature`, `temperature_inc`) are deliberately left unset, which reads
+/// like an oversight and is not:
+///
+/// 1. Setting them to Whisper's published values would change nothing.
+///    `transcribe_whisper_run_ext_init()` (transcribe-cpp-sys 0.2.2,
+///    `src/arch/whisper/public.cpp:58-75`) already initializes them to exactly
+///    0.6 / -1.0 / 2.4 / 0.0 / 0.2, `materialize()` applies only `Some` fields
+///    over that init, and the native run uses the same init when no extension
+///    is attached (`src/arch/whisper/model.cpp:1492-1496`). Measured: 27
+///    fixture decodes across whisper-tiny.en, small.en and large-v3-turbo were
+///    byte-identical with the values pinned explicitly and left unset.
+/// 2. Tuning them cannot suppress silence hallucination, which is what the
+///    knobs get nominated for. The gate is a conjunction —
+///    `no_speech_prob > no_speech_thold && avg_logprob < logprob_thold`
+///    (`model.cpp:2370`) — and `logprob_thold` is simultaneously the
+///    tier-acceptance dial (`model.cpp:2363`). Measured on real captures with
+///    whisper-small.en: true silence scores no_speech_prob 0.92 but avg_logprob
+///    only -0.83, so the second conjunct is false and the gate never fires;
+///    raising `logprob_thold` far enough to fire it also drops real quiet
+///    speech (-0.30) into the temperature ladder. On large-v3-turbo the first
+///    conjunct is dead outright: no_speech_prob reads 0.001 for every input
+///    including digital silence, at both Q4_K_M and Q8_0.
+///
+/// So a phantom "Thank you." on a silent capture is a real defect, but not one
+/// these five fields can fix. It is caught downstream instead, where
+/// `capture_verdict` weighs the transcript against what VAD forwarded.
+fn whisper_run_extension(initial_prompt: Option<String>) -> Option<RunExtension> {
+    initial_prompt.map(|initial_prompt| {
+        RunExtension::Whisper(WhisperRunOptions {
+            initial_prompt: Some(initial_prompt),
+            ..Default::default()
+        })
+    })
 }
 
 struct TranscribeCppRunPlan {
@@ -4209,6 +4279,69 @@ mod tests {
         );
 
         assert_eq!(evidence, OutputLanguageEvidence::TranslatedToEnglish);
+    }
+
+    /// The reason `BatchDecode::model_produced_text` has to exist: on a stock
+    /// install (filler removal defaults on) a real one-word utterance
+    /// post-processes to nothing, so an empty delivered transcript cannot tell
+    /// a silent microphone from a filtered one. Both halves are asserted, so
+    /// this fails if the pipeline stops emptying it *or* if the flag stops
+    /// being read from the raw text.
+    #[test]
+    fn a_filtered_away_utterance_still_reports_that_the_model_produced_text() {
+        let settings = AppSettings::default();
+        assert!(
+            settings.filler_word_removal_enabled,
+            "this test is about the stock install"
+        );
+        let asr = AsrPlan::from_settings(&settings);
+        let english = OutputLanguageEvidence::UserSelected("en-US".to_string());
+
+        let raw = "Um.".to_string();
+        let model_produced_text = !raw.trim().is_empty();
+        let delivered =
+            post_process_transcription_text(raw, &asr, false, &english, &languages(&["en"]));
+
+        assert_eq!(delivered, "", "filler removal empties a bare hesitation");
+        assert!(model_produced_text);
+
+        let decode = BatchDecode {
+            text: delivered,
+            realtime_factor: None,
+            model_produced_text,
+        };
+        assert!(decode.text.is_empty() && decode.model_produced_text);
+    }
+
+    /// `BatchDecode::untimed` never sees post-processing, so its flag is just
+    /// the emptiness of the text it carries.
+    #[test]
+    fn an_untimed_decode_reports_whether_it_carries_text() {
+        assert!(!BatchDecode::untimed(String::new()).model_produced_text);
+        assert!(!BatchDecode::untimed("  \t\n".to_string()).model_produced_text);
+        assert!(BatchDecode::untimed("Test.".to_string()).model_produced_text);
+    }
+
+    /// Sona sets exactly one whisper decode field — the vocabulary prompt — and
+    /// defers every threshold to transcribe-cpp's own recipe. See
+    /// `whisper_run_extension` for the measurements behind that; this pins the
+    /// decision so a future edit has to argue with the evidence rather than
+    /// quietly re-tune the decoder.
+    #[test]
+    fn the_whisper_extension_carries_only_the_vocabulary_prompt() {
+        assert_eq!(whisper_run_extension(None), None);
+
+        let Some(RunExtension::Whisper(options)) =
+            whisper_run_extension(Some("Sona, Tauri.".to_string()))
+        else {
+            panic!("a prompt must produce a whisper run extension");
+        };
+        assert_eq!(options.initial_prompt.as_deref(), Some("Sona, Tauri."));
+        assert_eq!(options.no_speech_thold, None);
+        assert_eq!(options.logprob_thold, None);
+        assert_eq!(options.compression_ratio_thold, None);
+        assert_eq!(options.temperature, None);
+        assert_eq!(options.temperature_inc, None);
     }
 
     #[test]

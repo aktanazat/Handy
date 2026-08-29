@@ -299,17 +299,26 @@ enum CaptureVerdict {
     NoSpeech,
 }
 
-/// Settle whether a capture had speech, given what VAD forwarded and what the
-/// model returned for it.
+/// Settle whether a capture had speech, given what VAD forwarded and whether
+/// the model produced any text for it.
 ///
 /// VAD is an optimizer, not a gatekeeper. When it forwards speech its answer is
 /// already confirmed by the audio the engine received. When it forwards nothing
 /// the capture layer hands the model the raw clip anyway (short captures only),
-/// so an empty transcript — not VAD's silence — is what makes no-speech a fact.
-/// Post-processing runs after this point and can legitimately empty real text,
-/// so the raw model transcript is the only honest input here.
-fn capture_verdict(vad_forwarded_speech: bool, model_text: &str) -> CaptureVerdict {
-    if vad_forwarded_speech || !is_blank_transcription(model_text) {
+/// so an empty decode — not VAD's silence — is what makes no-speech a fact.
+///
+/// The second argument is what the *model* produced, not what survived Sona's
+/// post-processing, because two post-processing stages empty a non-empty
+/// transcript by design: `apply_spoken_edits`, where deleting the only clause
+/// is the correct answer to "scratch that", and `remove_filler_words`, which is
+/// on by default and empties a capture whose whole output is one hesitation
+/// token. Either coinciding with `vad_forwarded_speech == false` would mislabel
+/// a heard capture as no-speech, and the two correlate: a clip too quiet for VAD
+/// is also the clip most likely to decode to a bare "Um.". Such a capture is
+/// `Transcribed` with an empty delivery — the same outcome the filters already
+/// produce when VAD did forward speech, so the two stay consistent.
+fn capture_verdict(vad_forwarded_speech: bool, model_produced_text: bool) -> CaptureVerdict {
+    if vad_forwarded_speech || model_produced_text {
         CaptureVerdict::Transcribed
     } else {
         CaptureVerdict::NoSpeech
@@ -323,11 +332,17 @@ fn share_completed_pcm(samples: Vec<f32>) -> Arc<Vec<f32>> {
 /// Pick the transcript that will be delivered: the streamed text when the
 /// stream produced one, otherwise a batch decode of the whole capture.
 ///
+/// "Produced one" means the model emitted text, not that text survived
+/// post-processing. A stream whose transcript was legitimately emptied — a
+/// spoken "scratch that", or a filler-only capture — has already answered the
+/// question, and re-decoding the whole clip would spend a full batch decode to
+/// arrive at the same empty string.
+///
 /// Streamed text carries no realtime factor because no batch decode happened,
 /// which is why the return type is the batch shape either way — the caller
 /// records what was measured, and a stream measures nothing here.
 fn select_final_transcription<F>(
-    stream_result: anyhow::Result<Option<String>>,
+    stream_result: anyhow::Result<Option<BatchDecode>>,
     samples: &[f32],
     batch: F,
 ) -> anyhow::Result<BatchDecode>
@@ -335,10 +350,7 @@ where
     F: FnOnce(&[f32]) -> anyhow::Result<BatchDecode>,
 {
     match stream_result {
-        Ok(Some(text)) if !text.trim().is_empty() => Ok(BatchDecode {
-            text,
-            realtime_factor: None,
-        }),
+        Ok(Some(decode)) if decode.model_produced_text => Ok(decode),
         Ok(_) => batch(samples),
         Err(err) => Err(err),
     }
@@ -353,6 +365,10 @@ enum FrozenTranscript {
         /// The local batch decode's realtime factor, when one produced this
         /// text. A provider final and a streamed transcript both leave it None.
         realtime_factor: Option<f32>,
+        /// Whether the engine produced any text before Sona's post-processing.
+        /// `text` can be empty while this is true, which is a delivered-nothing
+        /// run and not a silent capture.
+        model_produced_text: bool,
     },
     HeldCloudUnavailable,
 }
@@ -369,6 +385,9 @@ where
 {
     match finalization {
         CloudStreamFinalization::Final(text) => Ok(FrozenTranscript::Final {
+            // Provider finals never pass through post_process_transcription_text,
+            // so the text is the provider's own output.
+            model_produced_text: !text.trim().is_empty(),
             text,
             engine_used: run.requested_engine(),
             cloud_status: CloudReceiptStatus::Final,
@@ -386,6 +405,7 @@ where
                 engine_used: RequestedEngine::Local,
                 cloud_status: CloudReceiptStatus::Fallback,
                 realtime_factor: decode.realtime_factor,
+                model_produced_text: decode.model_produced_text,
             })
         }
     }
@@ -420,6 +440,7 @@ fn transcribe_frozen_run(
             engine_used: RequestedEngine::Local,
             cloud_status: CloudReceiptStatus::NotRequested,
             realtime_factor: decode.realtime_factor,
+            model_produced_text: decode.model_produced_text,
         })
     }
 }
@@ -442,6 +463,7 @@ fn transcribe_frozen_run(
             engine_used: RequestedEngine::Local,
             cloud_status: CloudReceiptStatus::NotRequested,
             realtime_factor: decode.realtime_factor,
+            model_produced_text: decode.model_produced_text,
         })
     }
 }
@@ -1633,6 +1655,7 @@ impl TranscribeAction {
                                 engine_used,
                                 cloud_status,
                                 realtime_factor,
+                                model_produced_text,
                             }) => {
                                 debug!(
                                     "Transcription completed in {:?}",
@@ -1641,11 +1664,11 @@ impl TranscribeAction {
 
                                 // VAD rejected every frame of this capture, so
                                 // the model was handed the raw clip to settle
-                                // it. Only now, with an empty transcript, is
-                                // "no speech" a fact rather than a guess. The
-                                // WAV above is this capture's one recording;
-                                // the receipt reuses it.
-                                if capture_verdict(vad_forwarded_speech, &transcription)
+                                // it. Only now, with the model having produced
+                                // nothing either, is "no speech" a fact rather
+                                // than a guess. The WAV above is this capture's
+                                // one recording; the receipt reuses it.
+                                if capture_verdict(vad_forwarded_speech, model_produced_text)
                                     == CaptureVerdict::NoSpeech
                                 {
                                     debug!("Model confirmed the VAD-silent capture had no speech");
@@ -1906,21 +1929,38 @@ mod tests {
     /// produce a no-speech receipt.
     #[test]
     fn a_vad_silent_capture_is_only_no_speech_once_the_model_returns_nothing() {
-        for (vad_forwarded_speech, model_text, expected) in [
+        for (vad_forwarded_speech, model_produced_text, expected) in [
             // VAD found nothing, but the model read the raw clip: real speech.
-            (false, "Test.", CaptureVerdict::Transcribed),
-            // Whitespace-only output is still nothing, whatever its length.
-            (false, "", CaptureVerdict::NoSpeech),
-            (false, "   \t\n", CaptureVerdict::NoSpeech),
+            (false, true, CaptureVerdict::Transcribed),
             // VAD forwarded speech: the engine already received real audio, so
             // an empty transcript is a failed decode, never a silent capture.
-            (true, "Test.", CaptureVerdict::Transcribed),
-            (true, "", CaptureVerdict::Transcribed),
+            (true, true, CaptureVerdict::Transcribed),
+            (true, false, CaptureVerdict::Transcribed),
+            // Nothing heard by either: the only no-speech receipt.
+            (false, false, CaptureVerdict::NoSpeech),
         ] {
             assert_eq!(
-                capture_verdict(vad_forwarded_speech, model_text),
+                capture_verdict(vad_forwarded_speech, model_produced_text),
                 expected,
-                "vad_forwarded_speech={vad_forwarded_speech} model_text={model_text:?}"
+                "vad_forwarded_speech={vad_forwarded_speech} model_produced_text={model_produced_text}"
+            );
+        }
+    }
+
+    /// A capture whose transcript post-processing legitimately emptied — a
+    /// spoken "scratch that", or a bare "Um." with filler removal on — is a
+    /// delivered-nothing run, not a silent microphone. It reads as
+    /// `Transcribed` on both VAD paths, so the two stay consistent: the same
+    /// audio cannot earn a different capture status because Silero happened to
+    /// fire.
+    #[test]
+    fn a_transcript_emptied_by_post_processing_is_never_a_no_speech_receipt() {
+        let emptied_by_post_processing = true;
+        for vad_forwarded_speech in [false, true] {
+            assert_eq!(
+                capture_verdict(vad_forwarded_speech, emptied_by_post_processing),
+                CaptureVerdict::Transcribed,
+                "vad_forwarded_speech={vad_forwarded_speech}"
             );
         }
     }
@@ -2073,6 +2113,7 @@ mod tests {
             Ok(BatchDecode {
                 text: "batch result".to_string(),
                 realtime_factor: Some(13.8),
+                model_produced_text: true,
             })
         });
 
@@ -2086,7 +2127,11 @@ mod tests {
         // The stream produced the text, so no batch decode was timed. The
         // receipt must not inherit a factor from anywhere else.
         let decode = select_final_transcription(
-            Ok(Some("streamed text".to_string())),
+            Ok(Some(BatchDecode {
+                text: "streamed text".to_string(),
+                realtime_factor: None,
+                model_produced_text: true,
+            })),
             &[0.25, -0.5],
             |_| panic!("a usable stream final must not batch-decode"),
         )
@@ -2094,6 +2139,52 @@ mod tests {
 
         assert_eq!(decode.text, "streamed text");
         assert_eq!(decode.realtime_factor, None);
+    }
+
+    /// A stream that decoded speech and then had it filtered away has already
+    /// answered the question. Re-decoding the whole clip would spend a full
+    /// batch decode to reach the same empty string, so the empty stream final
+    /// stands.
+    #[test]
+    fn an_emptied_stream_final_is_not_re_decoded() {
+        let decode = select_final_transcription(
+            Ok(Some(BatchDecode {
+                text: String::new(),
+                realtime_factor: None,
+                model_produced_text: true,
+            })),
+            &[0.25, -0.5],
+            |_| panic!("a stream that produced text must not batch-decode again"),
+        )
+        .expect("streamed transcription");
+
+        assert_eq!(decode.text, "");
+        assert!(decode.model_produced_text);
+    }
+
+    /// A stream that produced nothing at all is a different case: the batch
+    /// decode of the whole clip is the only remaining chance at the transcript.
+    #[test]
+    fn a_stream_that_produced_nothing_falls_back_to_the_batch_decode() {
+        let decode = select_final_transcription(
+            Ok(Some(BatchDecode {
+                text: String::new(),
+                realtime_factor: None,
+                model_produced_text: false,
+            })),
+            &[0.25, -0.5],
+            |_| {
+                Ok(BatchDecode {
+                    text: "batch recovered it".to_string(),
+                    realtime_factor: Some(9.0),
+                    model_produced_text: true,
+                })
+            },
+        )
+        .expect("batch transcription");
+
+        assert_eq!(decode.text, "batch recovered it");
+        assert_eq!(decode.realtime_factor, Some(9.0));
     }
 
     #[test]
@@ -2181,7 +2272,9 @@ mod tests {
                 engine_used,
                 cloud_status,
                 realtime_factor,
+                model_produced_text,
             } => {
+                assert!(model_produced_text);
                 assert_eq!(text, "provider final");
                 assert_eq!(engine_used, RequestedEngine::DeepgramNova3);
                 assert_eq!(cloud_status, CloudReceiptStatus::Final);
@@ -2218,6 +2311,7 @@ mod tests {
                 Ok(BatchDecode {
                     text: "local fallback transcript".to_string(),
                     realtime_factor: Some(12.5),
+                    model_produced_text: true,
                 })
             },
         )
@@ -2230,7 +2324,9 @@ mod tests {
                 engine_used,
                 cloud_status,
                 realtime_factor,
+                model_produced_text,
             } => {
+                assert!(model_produced_text);
                 assert_eq!(text, "local fallback transcript");
                 assert_eq!(engine_used, RequestedEngine::Local);
                 assert_eq!(cloud_status, CloudReceiptStatus::Fallback);
@@ -2262,6 +2358,7 @@ mod tests {
                 Ok(BatchDecode {
                     text: "must not be delivered".to_string(),
                     realtime_factor: Some(9.0),
+                    model_produced_text: true,
                 })
             },
         )
