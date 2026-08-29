@@ -262,11 +262,16 @@ export const ModeEditor: React.FC<ModeEditorProps> = ({
       ),
   };
 
+  /* An empty mode model inherits the globally selected one, so it only leaves
+   * the cloud route without a local fallback when nothing is selected there
+   * either. Blocking Save on an empty field alone would be a false alarm. */
+  const globalModelId = settings?.selected_model ?? "";
   const missingLocalFallbackModel =
     cloudControlsAvailable &&
     (mode.asr.local_fallback_enabled ?? true) &&
     !mode.asr.model_id.trim() &&
-    !mode.asr.local_fallback_model_id?.trim();
+    !mode.asr.local_fallback_model_id?.trim() &&
+    globalModelId.trim() === "";
 
   const nameMissing = mode.name.trim() === "";
   const blockingReason = nameMissing
@@ -374,6 +379,7 @@ export const ModeEditor: React.FC<ModeEditorProps> = ({
               mode={mode}
               updaters={updaters}
               models={models}
+              globalModelId={globalModelId}
               cloud={cloud}
               vocabulary={vocabulary}
               missingFallbackModel={missingLocalFallbackModel}

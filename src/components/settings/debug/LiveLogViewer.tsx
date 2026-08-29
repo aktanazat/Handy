@@ -25,43 +25,44 @@ interface LogLine {
   message: string;
 }
 
-// Level accents carry a light-theme color plus a brighter `dark:` variant, so
-// they read on both the light code-block surface and the dark console surface.
+/* Level accents on semantic tokens only. The tag is a mono microlabel, the
+ * message carries the contrast: an ERROR line has to be findable while
+ * scrolling, and TRACE has to stay out of the way. */
 const LEVEL_META: Record<
   number,
   { tag: string; tagClass: string; msgClass: string }
 > = {
   1: {
     tag: "TRACE",
-    tagClass: "text-mid-gray",
-    msgClass: "text-mid-gray",
+    tagClass: "text-text-tertiary",
+    msgClass: "text-text-tertiary",
   },
   2: {
     tag: "DEBUG",
     tagClass: "text-text-tertiary",
-    msgClass: "text-text/80",
+    msgClass: "text-text-secondary",
   },
   3: {
     tag: "INFO",
     tagClass: "text-text-secondary",
-    msgClass: "text-text",
+    msgClass: "text-text-primary",
   },
   4: {
     tag: "WARN",
-    tagClass: "text-text-secondary",
-    msgClass: "text-text-secondary",
+    tagClass: "text-warning",
+    msgClass: "text-text-primary",
   },
   5: {
     tag: "ERROR",
-    tagClass: "text-danger",
-    msgClass: "text-danger",
+    tagClass: "text-error",
+    msgClass: "text-error",
   },
 };
 
 const UNKNOWN_META = {
   tag: "LOG",
-  tagClass: "text-mid-gray",
-  msgClass: "text-text",
+  tagClass: "text-text-tertiary",
+  msgClass: "text-text-primary",
 };
 
 const metaFor = (level: number) => LEVEL_META[level] ?? UNKNOWN_META;
@@ -177,20 +178,22 @@ export const LiveLogViewer: React.FC<LiveLogViewerProps> = ({
       grouped={grouped}
       layout="stacked"
     >
-      <div className="flex items-center justify-between mb-2 gap-2">
-        <div className="flex items-center gap-2 text-xs text-mid-gray min-w-0">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        {/* The dot never carries the state on its own — the word beside it
+         * does, so the header still reads in greyscale. */}
+        <div className="flex min-w-0 items-center gap-2">
           <span
-            className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${
-              paused ? "bg-mid-gray" : "bg-danger animate-pulse"
+            aria-hidden="true"
+            className={`inline-block size-1.5 shrink-0 rounded-full ${
+              paused ? "bg-text-tertiary" : "animate-pulse bg-danger"
             }`}
           />
-          <span className="shrink-0">
+          <span className="microlabel shrink-0">
             {paused
               ? t("settings.debug.liveLogs.paused")
               : t("settings.debug.liveLogs.live")}
           </span>
-          <span className="shrink-0">·</span>
-          <span className="truncate">
+          <span className="truncate font-mono text-[11px] text-text-tertiary tabular-nums">
             {t("settings.debug.liveLogs.lineCount", { count: logs.length })}
           </span>
         </div>
@@ -226,10 +229,10 @@ export const LiveLogViewer: React.FC<LiveLogViewerProps> = ({
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="h-72 overflow-y-auto rounded-lg border border-mid-gray/30 bg-[var(--color-log-surface)] p-3 font-mono text-xs leading-relaxed select-text"
+        className="inset-panel h-72 overflow-y-auto font-mono text-xs leading-relaxed select-text"
       >
         {logs.length === 0 ? (
-          <div className="text-mid-gray select-none">
+          <div className="text-text-tertiary select-none">
             {t("settings.debug.liveLogs.empty")}
           </div>
         ) : (
@@ -237,16 +240,16 @@ export const LiveLogViewer: React.FC<LiveLogViewerProps> = ({
             const meta = metaFor(line.level);
             return (
               <div key={line.id} className="flex gap-2">
-                <span className="text-mid-gray/80 shrink-0 select-none tabular-nums">
+                <span className="shrink-0 text-text-tertiary tabular-nums select-none">
                   {line.time}
                 </span>
                 <span
-                  className={`${meta.tagClass} shrink-0 select-none w-[3.5rem]`}
+                  className={`${meta.tagClass} w-[3.5rem] shrink-0 tracking-[0.08em] select-none`}
                 >
                   {meta.tag}
                 </span>
                 <span
-                  className={`${meta.msgClass} min-w-0 whitespace-pre-wrap break-words`}
+                  className={`${meta.msgClass} min-w-0 break-words whitespace-pre-wrap`}
                 >
                   {line.message}
                 </span>

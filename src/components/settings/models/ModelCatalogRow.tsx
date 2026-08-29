@@ -2,7 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import type { ModelInfo } from "@/bindings";
-import { Button, ProgressBar, StatusText } from "@/components/ui";
+import { Badge, Button, ProgressBar, StatusText } from "@/components/ui";
 import { formatModelSize } from "@/lib/utils/format";
 import {
   getTranslatedModelDescription,
@@ -156,10 +156,13 @@ export const ModelCatalogRow: React.FC<ModelCatalogRowProps> = ({
         <div className="models-row-identity">
           <div className="models-row-name">
             <h3>{displayName}</h3>
+            {/* Provenance and quantization are categorical facts about the
+             * build, so they earn a chip. Size, language reach and capability
+             * are ordinary metadata and stay plain mono text below. */}
             {tags.map((tag) => (
-              <span key={tag} className="models-row-tag">
+              <Badge key={tag} variant="secondary">
                 {tag}
-              </span>
+              </Badge>
             ))}
           </div>
           {displayDescription && (
@@ -169,10 +172,17 @@ export const ModelCatalogRow: React.FC<ModelCatalogRowProps> = ({
         </div>
 
         <div className="models-row-actions">
-          <StatusText tone={status.tone} live={announce ? "polite" : "off"}>
-            {status.text}
-          </StatusText>
-
+          <span className="models-row-status">
+            {state === "active" ? (
+              /* Exactly one row in the catalog is the current model, which is
+               * what Geist's inverted badge is for. */
+              <Badge>{status.text}</Badge>
+            ) : (
+              <StatusText tone={status.tone} live={announce ? "polite" : "off"}>
+                {status.text}
+              </StatusText>
+            )}
+          </span>
           {/* Every row shows the same three words, so each control carries the
            * model name in its accessible name. The visible label stays a
            * subset of it, which is what WCAG 2.5.3 asks for. */}
@@ -240,9 +250,11 @@ export const ModelCatalogRow: React.FC<ModelCatalogRowProps> = ({
             className="models-row-progress-bar"
           />
           {speed !== undefined && speed > 0 && (
-            <StatusText>
-              {t("modelSelector.downloadSpeed", { speed: speed.toFixed(1) })}
-            </StatusText>
+            <span className="models-row-speed numeric">
+              <StatusText>
+                {t("modelSelector.downloadSpeed", { speed: speed.toFixed(1) })}
+              </StatusText>
+            </span>
           )}
         </div>
       )}

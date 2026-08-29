@@ -2,7 +2,7 @@ import React from "react";
 import { Ellipsis, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { ModeView } from "@/bindings";
-import { Button, EmptyState, IconButton } from "@/components/ui";
+import { Badge, Button, EmptyState, IconButton } from "@/components/ui";
 import type { OSType } from "@/lib/utils/keyboard";
 import { ShortcutChord } from "./ModeControls";
 import { DEFAULT_MODE_ID } from "./modeModel";
@@ -51,7 +51,7 @@ export const ModesList: React.FC<ModesListProps> = ({
       <div className="modes-master-heading">
         <h2 id="modes-list-heading">{t("settings.modes.listTitle")}</h2>
         <div className="modes-master-actions">
-          <span>{modes.length}</span>
+          <span className="numeric">{modes.length}</span>
           <IconButton
             size="sm"
             className="modes-add-button"
@@ -64,7 +64,11 @@ export const ModesList: React.FC<ModesListProps> = ({
       </div>
 
       {modes.length === 0 ? (
+        /* Sona keeps one mode at all times, so an empty list is a read
+         * failure rather than a blank slate: the error variant says so and
+         * pairs the sentence with the reload that fixes it. */
         <EmptyState
+          variant="error"
           title={t("settings.modes.listEmpty", "No modes are configured.")}
           description={t(
             "settings.modes.listEmptyHint",
@@ -101,9 +105,12 @@ export const ModesList: React.FC<ModesListProps> = ({
                   <span className="modes-list-name">{mode.name}</span>
                   <span className="modes-list-meta">
                     {isActive ? (
-                      <span className="modes-list-active">
+                      /* Geist's inverted badge is the "this is the current
+                       * one" chip. It still reads as the word "Active", so
+                       * the cue survives greyscale and forced colours. */
+                      <Badge className="modes-list-active">
                         {t("settings.modes.active")}
-                      </span>
+                      </Badge>
                     ) : null}
                     <ShortcutChord
                       chord={mode.shortcuts.transcribe.current_binding}

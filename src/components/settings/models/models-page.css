@@ -1,24 +1,45 @@
 /* Models page. Only rules this page needs; the shell, the primitives and the
- * tokens live in src/styles. Sticky behaviour copies the modes page: opaque
- * canvas plus one hairline, so rows scroll under it without a blur layer. */
+ * tokens live in src/styles. The catalog is a flat list of rows on hairlines,
+ * not a stack of boxed panels: a family is a heading plus spacing, and the one
+ * surface a row can earn is the danger strip a failed download brings with it. */
 
 .models-page .models-storage-summary {
-  align-items: baseline;
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1) var(--space-3);
-  margin-top: var(--space-1-5);
+  gap: var(--space-3) var(--space-8);
+  margin: 0;
+  margin-top: var(--space-3);
+}
+
+.models-page .models-storage-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-inline-size: 0;
+}
+
+.models-page .models-storage-stat dd {
+  color: var(--text-primary);
+  font-size: var(--fs-label-13);
+  font-weight: var(--fw-label);
+  line-height: var(--lh-label-13);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .models-catalog {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-6);
 }
 
+/* Opaque page fill plus one hairline, so rows scroll under it without a blur
+ * layer paying for a backdrop filter on every frame. */
 .models-filter-bar {
-  background: var(--color-canvas);
-  border-bottom: 1px solid var(--color-border);
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -57,7 +78,7 @@
 .models-family {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 .models-family-header {
@@ -65,26 +86,44 @@
   display: flex;
   gap: var(--space-2);
   justify-content: space-between;
+  padding-block-end: var(--space-1);
 }
 
 .models-family-header h2 {
-  color: var(--color-text-primary);
-  font-size: var(--type-section-size);
-  font-weight: var(--type-section-weight);
-  letter-spacing: var(--type-section-tracking);
-  line-height: var(--type-section-line);
+  color: var(--text-primary);
+  font-size: var(--fs-heading-16);
+  font-weight: var(--fw-heading);
+  letter-spacing: var(--ls-heading-16);
+  line-height: var(--lh-heading-16);
   margin: 0;
 }
 
+/* Colour, size and tracking come from `.microlabel`; this only stops the count
+ * from being squeezed by a long family name. */
 .models-family-count {
-  color: var(--color-text-secondary);
   flex: none;
-  font-size: var(--type-caption-size);
-  font-variant-numeric: tabular-nums;
-  line-height: var(--type-caption-line);
 }
 
 /* ----------------------------------------------------------------- rows */
+
+.models-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+/* The row itself is not a link — its controls are. The wash on hover and on
+ * focus-within says "this is the row you are acting on" without pretending the
+ * whole strip is clickable. */
+.models-rows > li {
+  transition-duration: var(--duration-fast);
+  transition-property: background-color;
+  transition-timing-function: var(--ease-out);
+}
+
+.models-rows > li:hover,
+.models-rows > li:focus-within {
+  background: var(--wash-hover);
+}
 
 .models-row {
   display: flex;
@@ -95,45 +134,35 @@
   align-items: flex-start;
   display: flex;
   gap: var(--space-4);
-  padding: var(--space-2-5) var(--space-4);
+  padding: var(--space-2-5) var(--space-3);
 }
 
 .models-row-identity {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 2px;
   min-inline-size: 0;
-  flex: 1;
 }
 
 .models-row-name {
-  align-items: baseline;
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1) var(--space-2);
 }
 
 .models-row-name h3 {
-  color: var(--color-text-primary);
+  color: var(--text-primary);
   font-size: var(--type-row-size);
   font-weight: var(--type-row-weight);
   line-height: var(--type-row-line);
   margin: 0;
 }
 
-/* A word, not a colored block: "Recommended" reads the same in greyscale. */
-.models-row-tag {
-  color: var(--color-text-secondary);
-  font-size: var(--type-caption-size);
-  font-weight: var(--type-caption-weight);
-  letter-spacing: var(--type-caption-tracking);
-  line-height: var(--type-caption-line);
-  text-transform: uppercase;
-}
-
 .models-row-description,
 .models-row-meta {
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   font-size: var(--type-secondary-size);
   line-height: var(--type-secondary-line);
   margin: 0;
@@ -151,16 +180,17 @@
   gap: var(--space-2);
 }
 
-.models-row-actions > span:first-child {
+.models-row-status {
+  display: inline-flex;
+  justify-content: flex-end;
   min-inline-size: 96px;
-  text-align: end;
 }
 
 .models-row-progress {
   align-items: center;
   display: flex;
   gap: var(--space-3);
-  padding: 0 var(--space-4) var(--space-2-5);
+  padding: 0 var(--space-3) var(--space-2-5);
 }
 
 .models-row-progress-bar {
@@ -168,36 +198,55 @@
   min-inline-size: 0;
 }
 
+/* The shared ProgressBar carries the pre-token colours as utilities; a rule on
+ * the element beats them, so the track and the fill follow the theme here
+ * rather than every caller learning about the pseudo-elements. */
 .models-row-progress-bar progress {
+  block-size: 4px;
+  border: 0;
+  border-radius: var(--radius-pill);
   inline-size: 100%;
+  overflow: hidden;
 }
 
+.models-row-progress-bar progress::-webkit-progress-bar {
+  background: var(--gray-a-300);
+  border-radius: var(--radius-pill);
+}
+
+.models-row-progress-bar progress::-webkit-progress-value {
+  background: var(--invert-bg);
+  border-radius: var(--radius-pill);
+}
+
+.models-row-speed {
+  flex: none;
+}
+
+/* A failed transfer is the one thing on this page that earns a surface: it
+ * needs to survive being scrolled past, which spacing alone cannot do. */
 .models-row-error {
   align-items: center;
   background: var(--color-danger-soft);
+  border-radius: var(--radius-control);
   display: flex;
   gap: var(--space-3);
   justify-content: space-between;
-  padding: var(--space-2) var(--space-4);
+  margin-inline: var(--space-3);
+  padding: var(--space-2) var(--space-3);
 }
 
 /* --------------------------------------------------------- loading state */
-
-.models-skeleton-list {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-panel);
-}
 
 .models-skeleton-row {
   display: flex;
   flex-direction: column;
   gap: var(--space-1-5);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3);
 }
 
 .models-skeleton-row + .models-skeleton-row {
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .models-spin {
@@ -229,9 +278,9 @@
     justify-content: flex-start;
   }
 
-  .models-row-actions > span:first-child {
+  .models-row-status {
+    justify-content: flex-start;
     min-inline-size: 0;
-    text-align: start;
   }
 
   .models-filter-family {

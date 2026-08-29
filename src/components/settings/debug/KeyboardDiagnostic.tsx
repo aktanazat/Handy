@@ -109,7 +109,7 @@ export const KeyboardDiagnostic: React.FC = () => {
         </Button>
       </SettingContainer>
       {running ? (
-        <div className="px-4 py-3">
+        <div className="py-3">
           <StatusText live="polite">
             {t("settings.debug.keyboardDiagnostic.running")}
           </StatusText>
@@ -133,7 +133,7 @@ export const KeyboardDiagnostic: React.FC = () => {
         </Alert>
       )}
       {report === null ? null : (
-        <div className="space-y-1.5 px-4 py-3">
+        <div className="space-y-1.5 py-3">
           <StatusText tone={verdict(report).tone} live="polite">
             {verdict(report).text}
           </StatusText>

@@ -4,6 +4,7 @@ import { type } from "@tauri-apps/plugin-os";
 import { SettingsGroup } from "@/components/ui";
 import { useSettings } from "../../../hooks/useSettings";
 import { AppLanguageSelector } from "../AppLanguageSelector";
+import { CommandMode } from "../CommandMode";
 import { AudioFeedback } from "../AudioFeedback";
 import { ChannelSelector } from "../ChannelSelector";
 import { MicrophoneSelector } from "../MicrophoneSelector";
@@ -19,6 +20,9 @@ export const GeneralSettings: React.FC = () => {
   const { t } = useTranslation();
   const { audioFeedbackEnabled, getSetting } = useSettings();
   const pushToTalk = getSetting("push_to_talk");
+  /* Defaults on, matching the backend, so the chord's row does not blink out
+   * on first paint while the store is still loading. */
+  const commandModeEnabled = getSetting("command_mode_enabled") ?? true;
   // Linux has no separate cancel chord: the platform reports the release of a
   // held key differently, so push to talk is the only cancel path there.
   const isLinux = type() === "linux";
@@ -35,12 +39,16 @@ export const GeneralSettings: React.FC = () => {
         </p>
       </header>
 
+      {/* The command chord sits with the switch that registers it, so turning
+       * the feature off visibly takes its shortcut row with it. */}
       <SettingsGroup title={t("settings.general.shortcut.title")}>
         <ShortcutInput shortcutId="transcribe" grouped />
         <PushToTalk grouped />
         {!isLinux && !pushToTalk && (
           <ShortcutInput shortcutId="cancel" grouped />
         )}
+        <CommandMode grouped />
+        {commandModeEnabled && <ShortcutInput shortcutId="command" grouped />}
       </SettingsGroup>
 
       <ModelSettingsCard />

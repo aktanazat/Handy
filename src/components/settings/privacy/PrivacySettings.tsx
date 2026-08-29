@@ -590,7 +590,9 @@ const PrivacyContextSettings: React.FC<{
                 disabled={model.ceilingUpdating}
                 className="peer sr-only"
               />
-              <span className="flex min-h-8 items-center justify-center rounded-md border border-border px-2 text-center text-xs font-medium text-text-secondary transition-colors peer-checked:border-border-strong peer-checked:bg-subtle peer-checked:text-text-primary peer-disabled:cursor-not-allowed peer-disabled:opacity-50 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-strong">
+              {/* The selected step is Geist's inverted "current" chip, and
+               * disabled is a colour change rather than a fade. */}
+              <span className="flex min-h-8 items-center justify-center rounded-control border border-border px-2 text-center text-xs font-medium text-text-secondary transition-colors peer-hover:border-border-strong peer-checked:border-inverse-background peer-checked:bg-inverse-background peer-checked:text-inverse-text peer-disabled:cursor-not-allowed peer-disabled:border-border peer-disabled:bg-control-disabled peer-disabled:text-text-disabled peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus-ring">
                 {t("settings.privacy.context.ceiling.values." + policy)}
               </span>
             </label>
@@ -634,7 +636,7 @@ const PrivacyContextSettings: React.FC<{
           {t("settings.privacy.context.ceiling.error")}: {model.ceilingError}
         </Alert>
       ) : null}
-      <div className="px-4 py-3">
+      <div className="py-3">
         <StatusText live="polite">
           {model.cloudRoutePending
             ? t("settings.privacy.context.checkingRoute")
@@ -660,7 +662,7 @@ const PrivacyCloudTranscription: React.FC<{
       description={t("settings.privacy.cloudTranscription.description")}
     >
       {model.checkingCloudSttRoutes ? (
-        <div className="px-4 py-3">
+        <div className="py-3">
           <StatusText live="polite">
             {t("settings.privacy.cloudTranscription.checking")}
           </StatusText>
@@ -683,7 +685,7 @@ const PrivacyCloudTranscription: React.FC<{
         </Alert>
       ) : model.cloudSttDisclosureProviders.length > 0 ? (
         <>
-          <div className="px-4 py-3">
+          <div className="py-3">
             <p className="text-[13px] leading-5 text-text-secondary">
               {t("settings.privacy.cloudTranscription.disclosure")}
             </p>
@@ -705,7 +707,7 @@ const PrivacyCloudTranscription: React.FC<{
           ))}
         </>
       ) : (
-        <div className="px-4 py-3">
+        <div className="py-3">
           <StatusText>
             {t("settings.privacy.cloudTranscription.localOnly")}
           </StatusText>
@@ -745,7 +747,7 @@ const PrivacyDiagnostics: React.FC<{
 
   return (
     <SettingsGroup title={t("settings.privacy.diagnostics.title")}>
-      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 py-3">
         <p className="min-w-0 text-[13px] leading-5 text-text-secondary">
           {t("settings.privacy.diagnostics.description")}
         </p>
@@ -784,7 +786,7 @@ const PrivacyDiagnostics: React.FC<{
         </Alert>
       ) : null}
       {model.loadingDiagnostics && !diagnostics ? (
-        <div className="px-4 pb-3">
+        <div className="pb-3">
           <StatusText live="polite">{t("common.loading")}</StatusText>
         </div>
       ) : diagnostics ? (
@@ -876,7 +878,7 @@ const PrivacyDataSettings: React.FC<{
       </SettingContainer>
       <MeetingRetentionSettings />
       <AppDataDirectory grouped />
-      <div className="space-y-1 px-4 py-3 text-xs leading-4 text-text-secondary">
+      <div className="space-y-1 py-3 text-xs leading-4 text-text-secondary">
         <p>{t("settings.privacy.data.credentialStore")}</p>
         <p>{t("settings.privacy.data.locations")}</p>
       </div>
@@ -1050,7 +1052,7 @@ const PrivacyCloudSync: React.FC = () => {
             {service.error === null ? "" : ` ${service.error}`}
           </Alert>
         ) : status === null ? (
-          <div className="px-4 py-3">
+          <div className="py-3">
             <StatusText live="polite">{t("common.loading")}</StatusText>
           </div>
         ) : (
@@ -1105,7 +1107,7 @@ const PrivacyUpstreamImport: React.FC<{
         title={t("settings.privacy.upstreamImport.title")}
         description={t("settings.privacy.upstreamImport.description")}
       >
-        <div className="space-y-1 px-4 py-3 text-sm text-text-secondary">
+        <div className="space-y-1 py-3 text-sm text-text-secondary">
           <p>
             {status.settings_available
               ? t("settings.privacy.upstreamImport.source.settingsAvailable")
@@ -1133,13 +1135,13 @@ const PrivacyUpstreamImport: React.FC<{
           <p>{t("settings.privacy.upstreamImport.modelsNotImported")}</p>
         </div>
         {!model.upstreamSourceHasImportableData ? (
-          <div className="px-4 pb-3">
+          <div className="pb-3">
             <StatusText live="polite">
               {t("settings.privacy.upstreamImport.source.empty")}
             </StatusText>
           </div>
         ) : !model.upstreamSelectionValid ? (
-          <div className="px-4 pb-3">
+          <div className="pb-3">
             <StatusText live="polite">
               {t("settings.privacy.upstreamImport.selectionRequired")}
             </StatusText>
@@ -1156,7 +1158,7 @@ const PrivacyUpstreamImport: React.FC<{
           </Alert>
         ) : null}
         <fieldset
-          className="space-y-2 border-t border-border px-4 py-3"
+          className="space-y-2 border-t border-border py-3"
           disabled={model.upstreamImporting}
         >
           <legend className="sr-only">
@@ -1223,7 +1225,7 @@ const PrivacyUpstreamImport: React.FC<{
           </p>
         </fieldset>
         {model.upstreamProgress ? (
-          <div className="px-4 pb-3">
+          <div className="pb-3">
             <StatusText live="polite">
               {t("settings.privacy.upstreamImport.progress", {
                 phase: t(
@@ -1237,7 +1239,7 @@ const PrivacyUpstreamImport: React.FC<{
           </div>
         ) : null}
         {model.upstreamResult ? (
-          <div className="px-4 pb-3">
+          <div className="pb-3">
             <StatusText tone="success" live="polite">
               {t("settings.privacy.upstreamImport.result", {
                 settings: model.upstreamResult.settings_imported
@@ -1258,7 +1260,7 @@ const PrivacyUpstreamImport: React.FC<{
             {t("settings.privacy.upstreamImport.errors." + model.upstreamError)}
           </Alert>
         ) : null}
-        <div className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2 border-t border-border py-3">
           <Button
             variant="secondary"
             size="sm"

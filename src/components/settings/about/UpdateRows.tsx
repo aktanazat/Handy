@@ -206,7 +206,7 @@ const UpdateVerdict: React.FC<UpdateVerdictProps> = ({
 
   if (result.status === "disabled") {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 py-3">
         <StatusText live="polite">
           {t(
             "settings.about.updates.disabled",
@@ -248,7 +248,7 @@ const UpdateVerdict: React.FC<UpdateVerdictProps> = ({
           );
 
     return (
-      <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
+      <div className="flex flex-wrap items-start justify-between gap-3 py-3">
         <div className="min-w-0 space-y-1">
           <StatusText tone="info" live="polite">
             {t("settings.about.updates.available", {
@@ -291,7 +291,7 @@ const UpdateVerdict: React.FC<UpdateVerdictProps> = ({
   }
 
   return (
-    <div className="px-4 py-3">
+    <div className="py-3">
       <StatusText tone={checking ? "muted" : "success"} live="polite">
         {t("settings.about.updates.upToDate", {
           defaultValue: "Sona {{version}} is the latest release.",

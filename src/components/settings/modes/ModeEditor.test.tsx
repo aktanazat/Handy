@@ -295,6 +295,7 @@ describe("recognition panel", () => {
         mode={mode}
         updaters={updatersFor(mode)}
         models={MODELS}
+        globalModelId="whisper-large-v3-turbo"
         cloud={localCloud}
         vocabulary={vocabularyEditor}
         missingFallbackModel={false}
@@ -322,6 +323,7 @@ describe("recognition panel", () => {
         mode={mode}
         updaters={updatersFor(mode)}
         models={MODELS}
+        globalModelId="whisper-large-v3-turbo"
         cloud={{
           ...localCloud,
           isConfigured: (provider) => provider === "deepgram_nova_3",
@@ -345,6 +347,7 @@ describe("recognition panel", () => {
         mode={mode}
         updaters={updatersFor(mode)}
         models={MODELS}
+        globalModelId="whisper-large-v3-turbo"
         cloud={{
           requestedEngine: "deepgram_nova_3",
           selectedProvider: {
@@ -379,6 +382,7 @@ describe("recognition panel", () => {
         mode={mode}
         updaters={updatersFor(mode)}
         models={MODELS}
+        globalModelId="whisper-large-v3-turbo"
         cloud={{
           requestedEngine: "eleven_labs_scribe_v2",
           selectedProvider: {
@@ -405,6 +409,7 @@ describe("recognition panel", () => {
         mode={mode}
         updaters={updatersFor(mode)}
         models={MODELS}
+        globalModelId="whisper-large-v3-turbo"
         cloud={localCloud}
         vocabulary={vocabularyEditor}
         missingFallbackModel={false}

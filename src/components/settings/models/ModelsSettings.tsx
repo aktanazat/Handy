@@ -6,9 +6,7 @@ import {
   Alert,
   Button,
   EmptyState,
-  List,
   Skeleton,
-  StatusText,
   type DropdownOption,
 } from "@/components/ui";
 import { useModelStore } from "@/stores/modelStore";
@@ -17,6 +15,8 @@ import { formatModelSize } from "@/lib/utils/format";
 import { getTranslatedModelName } from "@/lib/utils/modelTranslation";
 import { PostProcessingSettingsApi } from "../PostProcessingSettingsApi";
 import { PromptLibrary } from "../vocabulary/PromptLibrary";
+import { WritingSamplesPanel } from "../vocabulary/WritingSamplesPanel";
+import { RuleList } from "../vocabulary/PanelParts";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { CloudSttProviderSettings } from "./CloudSttProviderSettings";
 import { ModelCatalogFilters } from "./ModelCatalogFilters";
@@ -205,7 +205,7 @@ export const ModelsSettings: React.FC = () => {
               <div className="models-family-header">
                 <Skeleton className="h-5 w-28" />
               </div>
-              <div className="models-skeleton-list">
+              <div>
                 {Array.from({ length: rows }, (_row, rowIndex) => (
                   <div key={rowIndex} className="models-skeleton-row">
                     <Skeleton className="h-4 w-52" />
@@ -229,23 +229,31 @@ export const ModelsSettings: React.FC = () => {
         <p className="settings-page-description">
           {t("settings.models.description")}
         </p>
-        <p className="models-storage-summary">
-          <StatusText tone="neutral">
-            {activeModel
-              ? t("settings.models.summary.active", "Active: {{name}}", {
-                  name: getTranslatedModelName(activeModel, t),
-                })
-              : t("settings.models.summary.noActive", "No model selected")}
-          </StatusText>
-          <StatusText>
-            {t("settings.models.summary.onDisk", "{{total}} on disk", {
-              total: onDisk.count,
-            })}
-            {onDisk.count > 0
-              ? ` \u00b7 ${formatModelSize(onDisk.sizeMb)}`
-              : ""}
-          </StatusText>
-        </p>
+        <dl className="models-storage-summary">
+          <div className="models-storage-stat">
+            <dt className="microlabel">
+              {t("settings.models.summary.activeLabel", "Active model")}
+            </dt>
+            <dd>
+              {activeModel
+                ? getTranslatedModelName(activeModel, t)
+                : t("settings.models.summary.noActive", "No model selected")}
+            </dd>
+          </div>
+          <div className="models-storage-stat">
+            <dt className="microlabel">
+              {t("settings.models.summary.onDiskLabel", "On disk")}
+            </dt>
+            <dd className="numeric">
+              {t("settings.models.familyCount", "{{total}} models", {
+                total: onDisk.count,
+              })}
+              {onDisk.count > 0
+                ? ` \u00b7 ${formatModelSize(onDisk.sizeMb)}`
+                : ""}
+            </dd>
+          </div>
+        </dl>
       </header>
 
       <section
@@ -281,7 +289,10 @@ export const ModelsSettings: React.FC = () => {
         )}
 
         {catalogModels.length === 0 ? (
+          /* The catalog is shipped with the app, so zero entries means the
+           * read failed rather than that nothing exists yet. */
           <EmptyState
+            variant="error"
             title={t("modelSelector.noModelsAvailable")}
             description={t(
               "settings.models.emptyCatalog",
@@ -299,6 +310,7 @@ export const ModelsSettings: React.FC = () => {
           />
         ) : groups.length === 0 ? (
           <EmptyState
+            variant="no-results"
             title={t("settings.models.noModelsMatch")}
             description={t(
               "settings.models.noModelsMatchHint",
@@ -322,13 +334,13 @@ export const ModelsSettings: React.FC = () => {
             >
               <div className="models-family-header">
                 <h2 id={`model-family-${group.key}`}>{group.label}</h2>
-                <span className="models-family-count">
+                <span className="models-family-count microlabel numeric">
                   {t("settings.models.familyCount", "{{total}} models", {
                     total: group.models.length,
                   })}
                 </span>
               </div>
-              <List label={group.label}>
+              <RuleList label={group.label} className="models-rows">
                 {group.models.map((model) => (
                   <ModelCatalogRow
                     key={model.id}
@@ -346,7 +358,7 @@ export const ModelsSettings: React.FC = () => {
                     onDelete={(modelId) => void handleDelete(modelId)}
                   />
                 ))}
-              </List>
+              </RuleList>
             </section>
           ))
         )}
@@ -356,6 +368,7 @@ export const ModelsSettings: React.FC = () => {
       <SettingsGroup title={t("settings.postProcessing.api.title")}>
         <PostProcessingSettingsApi />
         <PromptLibrary />
+        <WritingSamplesPanel />
       </SettingsGroup>
     </div>
   );

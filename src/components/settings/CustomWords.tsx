@@ -34,6 +34,8 @@ import {
   RuleList,
 } from "./vocabulary/PanelParts";
 import { SnippetsPanel } from "./vocabulary/SnippetsPanel";
+import { ReplacementsPanel } from "./vocabulary/ReplacementsPanel";
+import "./vocabulary/vocabulary.css";
 
 interface CustomWordsProps {
   descriptionMode?: "inline" | "tooltip";
@@ -294,24 +296,23 @@ const PairEditor: React.FC<PairEditorProps> = ({
           </Hint>
         ))}
 
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5">
-            <Button
-              size="sm"
-              onClick={onSave}
-              disabled={saving || !changed || blockers.length > 0}
-              data-testid={`${testId}-save`}
-            >
-              {labels.save}
-            </Button>
-            {changed && blockers.length === 0 && (
-              <Hint>
-                {t("settings.advanced.customWords.unsaved", "Unsaved changes")}
-              </Hint>
-            )}
-          </div>
-          {actions}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Button
+            size="sm"
+            onClick={onSave}
+            disabled={saving || !changed || blockers.length > 0}
+            data-testid={`${testId}-save`}
+          >
+            {labels.save}
+          </Button>
+          {changed && blockers.length === 0 && (
+            <Hint>
+              {t("settings.advanced.customWords.unsaved", "Unsaved changes")}
+            </Hint>
+          )}
         </div>
+
+        {actions}
 
         {footnote}
       </div>
@@ -436,9 +437,7 @@ const ImportPreviewDialog: React.FC<ImportPreviewDialogProps> = ({
                 {counts.map((count) => (
                   <React.Fragment key={count.label}>
                     <dt className="text-text-secondary">{count.label}</dt>
-                    <dd className="text-end tabular-nums text-text-primary">
-                      {count.value}
-                    </dd>
+                    <dd className="numeric text-text-primary">{count.value}</dd>
                   </React.Fragment>
                 ))}
               </dl>
@@ -451,30 +450,22 @@ const ImportPreviewDialog: React.FC<ImportPreviewDialogProps> = ({
 
               {preview.entries.length > 0 && (
                 <div className="max-h-56 overflow-y-auto">
-                  <table className="w-full table-fixed border-collapse">
+                  <table className="data-table import-preview-table">
                     <thead>
                       <tr>
-                        <th
-                          scope="col"
-                          className="py-1 pe-2 text-start text-[11px] leading-4 font-semibold tracking-[0.04em] text-text-tertiary uppercase"
-                        >
+                        <th scope="col">
                           {t("settings.advanced.customWords.spoken")}
                         </th>
-                        <th
-                          scope="col"
-                          className="py-1 text-start text-[11px] leading-4 font-semibold tracking-[0.04em] text-text-tertiary uppercase"
-                        >
+                        <th scope="col">
                           {t("settings.advanced.customWords.written")}
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-border">
+                    <tbody>
                       {preview.entries.map((entry) => (
                         <tr key={`${entry.spoken}\u0000${entry.written}`}>
-                          <td className="truncate py-1.5 pe-2 text-[12.5px] leading-[18px] text-text-primary">
-                            {entry.spoken}
-                          </td>
-                          <td className="truncate py-1.5 text-[12.5px] leading-[18px] text-text-secondary">
+                          <td className="truncate">{entry.spoken}</td>
+                          <td className="truncate text-text-secondary">
                             {entry.written}
                           </td>
                         </tr>
@@ -868,28 +859,33 @@ export const CustomWords: React.FC<CustomWordsProps> = ({
           <div
             role="group"
             aria-label={t("settings.advanced.customWords.actions")}
-            className="flex items-center gap-1.5"
+            className="vocabulary-csv-bar"
           >
-            <Button
-              size="sm"
-              variant="secondary"
-              className="gap-1"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={saving}
-            >
-              <Upload aria-hidden="true" className="h-4 w-4" />
-              {t("settings.advanced.customWords.import")}
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              className="gap-1"
-              onClick={() => void exportCsv()}
-              disabled={saving || savedEntries.length === 0}
-            >
-              <Download aria-hidden="true" className="h-4 w-4" />
-              {t("settings.advanced.customWords.export")}
-            </Button>
+            <span className="microlabel">
+              {t("settings.advanced.customWords.csvLabel", "CSV")}
+            </span>
+            <span className="flex flex-wrap items-center gap-1.5">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="gap-1"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={saving}
+              >
+                <Upload aria-hidden="true" className="h-4 w-4" />
+                {t("settings.advanced.customWords.import")}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="gap-1"
+                onClick={() => void exportCsv()}
+                disabled={saving || savedEntries.length === 0}
+              >
+                <Download aria-hidden="true" className="h-4 w-4" />
+                {t("settings.advanced.customWords.export")}
+              </Button>
+            </span>
             <input
               ref={fileInputRef}
               type="file"
@@ -934,6 +930,8 @@ export const CustomWords: React.FC<CustomWordsProps> = ({
       )}
 
       <SnippetsPanel descriptionMode={descriptionMode} grouped={grouped} />
+
+      <ReplacementsPanel descriptionMode={descriptionMode} grouped={grouped} />
 
       <ToggleSwitch
         grouped={grouped}
@@ -1001,7 +999,7 @@ export const CustomWords: React.FC<CustomWordsProps> = ({
           onSave={() => void saveEmojiReplacements()}
         />
       ) : (
-        <div className="p-3">
+        <div className="py-2">
           <Hint>{t("settings.advanced.emoji.offState")}</Hint>
         </div>
       )}

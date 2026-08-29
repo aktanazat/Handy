@@ -12,6 +12,7 @@ import {
   type CloudSttProviderMetadata,
 } from "@/lib/cloudStt";
 import { useSettings } from "@/hooks/useSettings";
+import Badge from "../../ui/Badge";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
 import { SettingContainer } from "../../ui/SettingContainer";
@@ -138,12 +139,21 @@ const CloudSttProviderCard: React.FC<CloudSttProviderCardProps> = ({
   const displayedError = error ?? secretState?.lastErrorKind ?? null;
 
   return (
-    <div className="border-b border-border last:border-b-0">
-      <div className="px-4 pb-2 pt-4">
-        <h3 className="text-sm font-medium text-text-primary">
+    <div className="border-b border-border-subtle px-0 last:border-b-0">
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 pt-4 pb-2">
+        <h3 className="text-sm leading-5 font-medium text-text-primary">
           {t(provider.labelKey)}
         </h3>
-        <p className="mt-1 text-[13px] leading-[18px] text-text-secondary">
+        {/* Key state is categorical, so it reads as a chip rather than as a
+         * fourth grey sentence competing with the description. */}
+        {!checking && keySaved && (
+          <Badge variant={verified ? "success" : "secondary"}>
+            {verified
+              ? t("settings.models.cloud.status.verified")
+              : t("settings.models.cloud.status.saved")}
+          </Badge>
+        )}
+        <p className="basis-full text-[13px] leading-[18px] text-text-secondary">
           {t("settings.models.cloud.providerDescription")}
         </p>
       </div>
@@ -184,7 +194,7 @@ const CloudSttProviderCard: React.FC<CloudSttProviderCardProps> = ({
         </form>
       </SettingContainer>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-4 pt-1">
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 pb-4">
         <div aria-live="polite" className="text-xs text-text-secondary">
           {checking
             ? t("settings.models.cloud.status.checking")
@@ -229,7 +239,7 @@ const CloudSttProviderCard: React.FC<CloudSttProviderCardProps> = ({
       </div>
 
       {displayedError && (
-        <p role="alert" className="px-4 pb-4 text-sm text-danger">
+        <p role="alert" className="pb-4 text-sm text-danger-strong">
           {t("settings.models.cloud.errors." + displayedError)}
         </p>
       )}

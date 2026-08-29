@@ -4,12 +4,12 @@ import { useTranslation } from "react-i18next";
 import { commands, type LLMPrompt, type Result } from "@/bindings";
 import {
   Alert,
+  Badge,
   Button,
   Dialog,
   IconButton,
   Input,
   SettingContainer,
-  StatusText,
   Textarea,
 } from "../../ui";
 import { useSettings } from "../../../hooks/useSettings";
@@ -159,9 +159,11 @@ export const PromptLibrary: React.FC<PromptLibraryProps> = ({
                     {prompt.name}
                   </span>
                   {selected && (
-                    <StatusText tone="neutral" className="flex-none">
+                    /* One prompt in the library is the one modes start from,
+                     * which is exactly Geist's inverted "current" chip. */
+                    <Badge className="flex-none">
                       {t("settings.postProcessing.prompts.inUse", "In use")}
-                    </StatusText>
+                    </Badge>
                   )}
                 </span>
                 <span className="mt-0.5 block line-clamp-2 text-[12.5px] leading-[18px] text-text-secondary">

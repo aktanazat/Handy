@@ -2,11 +2,13 @@ import React from "react";
 import { Skeleton, StatusText, type StatusTone } from "../../ui";
 
 /**
- * Pieces for content that lives *inside* a settings group panel.
+ * Pieces for content that lives *inside* a flat settings section.
  *
  * `List`, `EmptyState` and `Card` each draw their own hairline panel, which
- * inside a settings group would be a panel within a panel. These keep the
+ * inside a settings section would be a box within a box. These keep the
  * dividers, the type scale and the empty-state shape, and drop the chrome.
+ * Used across the vocabulary panels, the modes editor and the model catalog:
+ * one flat-list convention, not one per page.
  */
 
 export interface RuleListProps {
@@ -39,17 +41,15 @@ export interface ColumnHeaderProps {
   end: string;
 }
 
-/* Column names for a two-field row. Hidden from assistive tech because every
+/* Column names for a two-field row, on the uppercase mono microlabel the rest
+ * of the app uses for a category. Hidden from assistive tech because every
  * field below carries its own label; this is a visual alignment cue. */
 export const ColumnHeader: React.FC<ColumnHeaderProps> = ({
   gridClassName,
   start,
   end,
 }) => (
-  <div
-    aria-hidden="true"
-    className={`${gridClassName} px-0.5 text-[11px] leading-4 font-semibold tracking-[0.04em] text-text-tertiary uppercase`}
-  >
+  <div aria-hidden="true" className={`${gridClassName} microlabel px-0.5`}>
     <span className="truncate">{start}</span>
     <span className="truncate">{end}</span>
   </div>

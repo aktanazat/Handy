@@ -1,11 +1,14 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
-import { formatKeyCombination } from "../../lib/utils/keyboard";
 import { ResetButton } from "../ui/ResetButton";
 import { SettingContainer } from "../ui/SettingContainer";
+import { StatusText } from "../ui/StatusText";
+import {
+  ShortcutHoldHint,
+  ShortcutRecorderField,
+} from "./ShortcutRecorderField";
 import { useSettings } from "../../hooks/useSettings";
-import { useOsType } from "../../hooks/useOsType";
 import { commands } from "@/bindings";
 import { toast } from "sonner";
 
@@ -46,7 +49,6 @@ export const HandyKeysShortcutInput: React.FC<HandyKeysShortcutInputProps> = ({
   // arrived — e.g. while macOS Secure Input is active (issue #1578).
   const keyedShortcutRef = useRef<string>("");
   const modifierOnlyShortcutRef = useRef<string>("");
-  const osType = useOsType();
 
   const bindings = getSetting("bindings") || {};
 
@@ -236,12 +238,6 @@ export const HandyKeysShortcutInput: React.FC<HandyKeysShortcutInputProps> = ({
     }
   };
 
-  // Format the current shortcut keys being recorded
-  const formatCurrentKeys = (): string => {
-    if (!currentKeys) return t("settings.general.shortcut.pressKeys");
-    return formatKeyCombination(currentKeys, osType);
-  };
-
   // If still loading, show loading state
   if (isLoading) {
     return (
@@ -251,9 +247,7 @@ export const HandyKeysShortcutInput: React.FC<HandyKeysShortcutInputProps> = ({
         descriptionMode={descriptionMode}
         grouped={grouped}
       >
-        <div className="text-sm text-mid-gray">
-          {t("settings.general.shortcut.loading")}
-        </div>
+        <StatusText>{t("settings.general.shortcut.loading")}</StatusText>
       </SettingContainer>
     );
   }
@@ -267,9 +261,7 @@ export const HandyKeysShortcutInput: React.FC<HandyKeysShortcutInputProps> = ({
         descriptionMode={descriptionMode}
         grouped={grouped}
       >
-        <div className="text-sm text-mid-gray">
-          {t("settings.general.shortcut.none")}
-        </div>
+        <StatusText>{t("settings.general.shortcut.none")}</StatusText>
       </SettingContainer>
     );
   }
@@ -283,9 +275,7 @@ export const HandyKeysShortcutInput: React.FC<HandyKeysShortcutInputProps> = ({
         descriptionMode={descriptionMode}
         grouped={grouped}
       >
-        <div className="text-sm text-mid-gray">
-          {t("settings.general.shortcut.none")}
-        </div>
+        <StatusText>{t("settings.general.shortcut.none")}</StatusText>
       </SettingContainer>
     );
   }
@@ -304,28 +294,24 @@ export const HandyKeysShortcutInput: React.FC<HandyKeysShortcutInputProps> = ({
     <SettingContainer
       title={translatedName}
       description={translatedDescription}
+      hint={shortcutId === "transcribe" ? <ShortcutHoldHint /> : undefined}
       descriptionMode={descriptionMode}
       grouped={grouped}
       disabled={disabled}
       layout="horizontal"
     >
-      <div className="flex items-center space-x-1">
-        {isRecording ? (
-          <div
-            ref={shortcutRef}
-            className="px-2 py-1 text-sm font-semibold border border-logo-primary bg-logo-primary/30 rounded-md"
-          >
-            {formatCurrentKeys()}
-          </div>
-        ) : (
-          <button
-            className="px-2 py-1 text-sm font-semibold bg-mid-gray/10 border border-mid-gray/80 hover:bg-logo-primary/10 rounded-md cursor-pointer hover:border-logo-primary"
-            onClick={startRecording}
-            type="button"
-          >
-            {formatKeyCombination(binding.current_binding, osType)}
-          </button>
-        )}
+      <div className="flex items-center gap-1">
+        <ShortcutRecorderField
+          chord={binding.current_binding}
+          recording={isRecording}
+          captured={currentKeys}
+          onStartRecording={() => void startRecording()}
+          disabled={disabled}
+          recordingRef={(node) => {
+            shortcutRef.current = node;
+          }}
+          bindingName={translatedName}
+        />
         <ResetButton
           onClick={() => resetBinding(shortcutId)}
           disabled={isUpdating(`binding_${shortcutId}`)}

@@ -8,6 +8,7 @@ import { ExperimentalToggle } from "../ExperimentalToggle";
 import { LazyStreamClose } from "../LazyStreamClose";
 import { ModelUnloadTimeoutSetting } from "../ModelUnloadTimeout";
 import { ShowOverlay } from "../ShowOverlay";
+import { HudPillSettings } from "../HudPillSettings";
 import { ShowTrayIcon } from "../ShowTrayIcon";
 import { StartHidden } from "../StartHidden";
 import { KeyboardImplementationSelector } from "../debug/KeyboardImplementationSelector";
@@ -38,6 +39,7 @@ export const AdvancedSettings: React.FC = () => {
         <AutostartToggle grouped />
         <ShowTrayIcon grouped />
         <ShowOverlay grouped />
+        <HudPillSettings grouped />
       </SettingsGroup>
 
       <SettingsGroup

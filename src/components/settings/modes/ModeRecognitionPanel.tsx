@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { ModelInfo, VocabularyEntry } from "@/bindings";
 import { CLOUD_STT_PROVIDERS } from "@/lib/cloudStt";
 import { SELECTABLE_LANGUAGES } from "@/lib/constants/languages";
+import { getTranslatedModelName } from "@/lib/utils/modelTranslation";
 import {
   Button,
   Dropdown,
@@ -23,6 +24,7 @@ import {
   type ModeCloudState,
   type ModePanelProps,
 } from "./modeModel";
+import { ColumnHeader, Hint, RuleList } from "../vocabulary/PanelParts";
 
 export interface ModeVocabularyEditor {
   /** Stable key per entry object, so editing one row never remounts another. */
@@ -35,16 +37,24 @@ export interface ModeVocabularyEditor {
 
 export interface ModeRecognitionPanelProps extends ModePanelProps {
   models: ModelInfo[];
+  /** The globally selected model an empty per-mode model inherits. */
+  globalModelId: string;
   cloud: ModeCloudState;
   vocabulary: ModeVocabularyEditor;
   /** Cloud fallback is on but neither this mode nor the fallback names a model. */
   missingFallbackModel: boolean;
 }
 
+/* Shared by the column header and every row, so the two fields line up and
+ * the trailing column stays wide enough for the 28px remove button. */
+const VOCABULARY_GRID =
+  "grid items-center gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.5rem]";
+
 export const ModeRecognitionPanel: React.FC<ModeRecognitionPanelProps> = ({
   mode,
   updaters,
   models,
+  globalModelId,
   cloud,
   vocabulary,
   missingFallbackModel,
@@ -52,17 +62,37 @@ export const ModeRecognitionPanel: React.FC<ModeRecognitionPanelProps> = ({
   const { t } = useTranslation();
   const { updateAsr } = updaters;
 
+  /* An empty per-mode model is not "unset", it means "use whatever the app is
+   * set to", which the backend resolves when it builds the plan. Naming the
+   * model that will actually run is the difference between a default and a
+   * gap. */
+  const inheritGlobalLabel = useMemo(() => {
+    const globalModel = models.find((model) => model.id === globalModelId);
+    return globalModel
+      ? t(
+          "settings.modes.recognition.model.inheritGlobalNamed",
+          "Default \u2014 uses the global model ({{name}})",
+          { name: getTranslatedModelName(globalModel, t) },
+        )
+      : t(
+          "settings.modes.recognition.model.inheritGlobal",
+          "Default \u2014 uses the global model",
+        );
+  }, [globalModelId, models, t]);
+
   const localModelOptions = useMemo<DropdownOption[]>(() => {
     const options = downloadedModelOptions(models);
-    if (!options.some((option) => option.value === mode.asr.model_id)) {
-      options.unshift({
-        value: mode.asr.model_id,
-        label:
-          mode.asr.model_id || t("settings.modes.recognition.noModelSelected"),
-      });
+    // A mode can name a model this install no longer has. Keep it selectable
+    // so opening the editor never silently rewrites the saved choice.
+    if (
+      mode.asr.model_id !== "" &&
+      !options.some((option) => option.value === mode.asr.model_id)
+    ) {
+      options.unshift({ value: mode.asr.model_id, label: mode.asr.model_id });
     }
+    options.unshift({ value: "", label: inheritGlobalLabel });
     return options;
-  }, [mode.asr.model_id, models, t]);
+  }, [inheritGlobalLabel, mode.asr.model_id, models]);
 
   const fallbackModelOptions = useMemo<DropdownOption[]>(() => {
     const options = downloadedModelOptions(models);
@@ -110,7 +140,10 @@ export const ModeRecognitionPanel: React.FC<ModeRecognitionPanelProps> = ({
               );
               if (next) cloud.selectEngine(next);
             }}
-            className="min-h-9 min-w-0 rounded-control border border-border bg-control px-2.5 text-[13px] font-medium text-text-primary transition-[background-color,border-color] duration-150 ease-out hover:border-border-strong hover:bg-control-hover"
+            /* Fill, border, radius, height, padding and hover all come from
+             * `.settings-main select` in primitives.css. Only the type scale
+             * and the flex sizing are this control's own. */
+            className="min-w-0 text-[13px] font-medium text-text-primary"
           >
             <option value="local">
               {t("settings.modes.recognition.engine.local")}
@@ -146,7 +179,7 @@ export const ModeRecognitionPanel: React.FC<ModeRecognitionPanelProps> = ({
               selectedValue={mode.asr.model_id}
               options={localModelOptions}
               onSelect={(modelId) => updateAsr("model_id", modelId)}
-              placeholder={t("settings.modes.recognition.noModelSelected")}
+              placeholder={inheritGlobalLabel}
             />
           </SettingContainer>
         )}
@@ -307,52 +340,75 @@ export const ModeRecognitionPanel: React.FC<ModeRecognitionPanelProps> = ({
         title={t("settings.modes.recognition.vocabulary.label")}
         description={t("settings.modes.recognition.vocabulary.description")}
       >
-        <div className="flex flex-col gap-2 py-3">
+        <div className="flex flex-col gap-3 py-3">
           {mode.asr.custom_words.length === 0 ? (
-            <StatusText>
+            <Hint>
               {t(
                 "settings.modes.recognition.vocabulary.empty",
                 "This mode has no vocabulary of its own. Global vocabulary still applies.",
               )}
-            </StatusText>
+            </Hint>
           ) : (
-            mode.asr.custom_words.map((entry, index) => (
-              <div
-                key={vocabulary.rowKey(entry)}
-                className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
+            <>
+              <ColumnHeader
+                gridClassName={VOCABULARY_GRID}
+                start={t("settings.modes.recognition.vocabulary.spoken")}
+                end={t("settings.modes.recognition.vocabulary.written")}
+              />
+              <RuleList
+                label={t("settings.modes.recognition.vocabulary.label")}
               >
-                <Input
-                  value={entry.spoken}
-                  onChange={(event) =>
-                    vocabulary.setField(index, "spoken", event.target.value)
-                  }
-                  placeholder={t(
-                    "settings.modes.recognition.vocabulary.spokenPlaceholder",
-                  )}
-                  aria-label={t("settings.modes.recognition.vocabulary.spoken")}
-                />
-                <Input
-                  value={entry.written}
-                  onChange={(event) =>
-                    vocabulary.setField(index, "written", event.target.value)
-                  }
-                  placeholder={t(
-                    "settings.modes.recognition.vocabulary.writtenPlaceholder",
-                  )}
-                  aria-label={t(
-                    "settings.modes.recognition.vocabulary.written",
-                  )}
-                />
-                <IconButton
-                  size="sm"
-                  icon={<Trash2 aria-hidden="true" className="h-4 w-4" />}
-                  label={t("settings.modes.recognition.vocabulary.remove", {
-                    spoken: entry.spoken,
-                  })}
-                  onClick={() => vocabulary.remove(index)}
-                />
-              </div>
-            ))
+                {mode.asr.custom_words.map((entry, index) => (
+                  <li
+                    key={vocabulary.rowKey(entry)}
+                    className={`${VOCABULARY_GRID} py-2`}
+                  >
+                    <Input
+                      variant="compact"
+                      value={entry.spoken}
+                      onChange={(event) =>
+                        vocabulary.setField(index, "spoken", event.target.value)
+                      }
+                      placeholder={t(
+                        "settings.modes.recognition.vocabulary.spokenPlaceholder",
+                      )}
+                      aria-label={t(
+                        "settings.modes.recognition.vocabulary.spoken",
+                      )}
+                      invalid={entry.spoken.trim() === ""}
+                    />
+                    <Input
+                      variant="compact"
+                      value={entry.written}
+                      onChange={(event) =>
+                        vocabulary.setField(
+                          index,
+                          "written",
+                          event.target.value,
+                        )
+                      }
+                      placeholder={t(
+                        "settings.modes.recognition.vocabulary.writtenPlaceholder",
+                      )}
+                      aria-label={t(
+                        "settings.modes.recognition.vocabulary.written",
+                      )}
+                      invalid={entry.written.trim() === ""}
+                    />
+                    <IconButton
+                      size="sm"
+                      variant="danger-ghost"
+                      className="justify-self-end"
+                      icon={<Trash2 aria-hidden="true" className="h-4 w-4" />}
+                      label={t("settings.modes.recognition.vocabulary.remove", {
+                        spoken: entry.spoken,
+                      })}
+                      onClick={() => vocabulary.remove(index)}
+                    />
+                  </li>
+                ))}
+              </RuleList>
+            </>
           )}
           <div className="flex flex-wrap items-center gap-2">
             <Button

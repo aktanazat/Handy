@@ -40,15 +40,15 @@
 }
 
 .modes-list-row:not(:last-child) {
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 /* Selected is the mode open in the editor. Active is the mode a dictation
- * would use: that one reads from the word "Active" and a heavier name, never
- * from color alone. */
+ * would use: that one reads from the inverted "Active" badge and a heavier
+ * name, never from color alone. */
 .modes-list-row[data-selected] {
-  background: var(--color-subtle);
-  box-shadow: inset 2px 0 0 var(--color-text-primary);
+  background: var(--wash-hover);
+  box-shadow: inset 2px 0 0 var(--text-primary);
 }
 
 .modes-list-button {
@@ -69,29 +69,29 @@
 }
 
 .modes-list-button:hover {
-  background: var(--color-hover);
+  background: var(--wash-hover);
 }
 
 .modes-list-button:active {
-  background: var(--color-pressed);
+  background: var(--wash-active);
 }
 
 .modes-list-name {
-  color: var(--color-text-primary);
+  color: var(--text-primary);
   font-size: 12.5px;
-  font-weight: 510;
+  font-weight: var(--fw-label);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .modes-list-row[data-active] .modes-list-name {
-  font-weight: 620;
+  font-weight: var(--fw-heading);
 }
 
 .modes-list-meta {
   align-items: center;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   display: flex;
   font-size: 11px;
   gap: var(--space-1);
@@ -103,14 +103,14 @@
   display: none;
 }
 
+/* The chord caps beside it are already 20px, so the badge adds no height. */
 .modes-list-active {
   flex: none;
-  font-weight: 560;
 }
 
 .mode-chord {
   display: inline-flex;
-  gap: 2px;
+  gap: var(--space-1);
   min-inline-size: 0;
   overflow: hidden;
 }
@@ -134,7 +134,6 @@
 
 .mode-tabstrip {
   align-items: center;
-  border-bottom: 1px solid var(--color-border);
   display: flex;
   min-block-size: 36px;
   overflow-x: auto;
@@ -154,11 +153,18 @@
 
 /* --------------------------------------------------------- segmented set */
 
+/* A preset, a tone or a context level is one of N values on a form, so the
+ * markup stays a radio group: `role="tab"` without a panel would be a lie,
+ * and Geist's own tab rules say a tab has to survive a refresh in the route.
+ * The LOOK is `Tabs variant="secondary"` to the pixel — same 32px cap, same
+ * 6px radius, same recessed fill and weight jump on the chosen segment — so
+ * the page carries one segmented language whatever the semantics underneath. */
+
 .mode-segment {
   border: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1);
+  gap: var(--space-0-5);
   margin: 0;
   min-inline-size: 0;
   padding: 0;
@@ -182,52 +188,49 @@
 
 .mode-segment-option > span {
   align-items: center;
-  background: var(--color-control);
-  border: 1px solid var(--color-control-border);
+  background: transparent;
   border-radius: var(--radius-control);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   display: flex;
-  font-size: 12px;
-  font-weight: 510;
+  font-size: var(--fs-label-13);
+  font-weight: var(--fw-label);
   justify-content: center;
-  min-block-size: var(--control-height-sm);
+  min-block-size: var(--control-height);
   overflow: hidden;
-  padding-inline: var(--space-2);
+  padding-inline: var(--space-3);
   text-align: center;
   text-overflow: ellipsis;
   transition-duration: var(--duration-fast);
-  transition-property: background-color, border-color, box-shadow, color;
+  transition-property: background-color, color;
   transition-timing-function: var(--ease-out);
   white-space: nowrap;
 }
 
 .mode-segment-option > input:enabled:hover + span,
 .mode-segment-option > input:enabled + span:hover {
-  background: var(--color-control-hover);
-  border-color: var(--color-control-border-hover);
-  color: var(--color-text-primary);
+  background: var(--wash-hover);
+  color: var(--text-primary);
 }
 
 .mode-segment-option > input:enabled:active + span {
-  background: var(--color-control-active);
+  background: var(--wash-active);
 }
 
-/* Selection is weight plus a rule under the label, so it survives greyscale
- * and forced-colors rendering. */
+/* Selection is a recessed fill plus a weight jump. The weight is the channel
+ * that survives greyscale and forced-colors rendering. */
 .mode-segment-option > input:checked + span {
-  border-color: var(--color-border-strong);
-  box-shadow: inset 0 -2px 0 var(--color-text-primary);
-  color: var(--color-text-primary);
-  font-weight: 620;
+  background: var(--gray-100);
+  color: var(--text-primary);
+  font-weight: var(--fw-heading);
 }
 
 .mode-segment-option > input:focus-visible + span {
-  outline: var(--focus-ring-width) solid var(--color-focus-ring);
-  outline-offset: var(--focus-ring-offset);
+  outline: var(--focus-outline);
+  outline-offset: var(--focus-offset);
 }
 
 .mode-segment-option > input:disabled + span {
-  color: var(--color-text-disabled);
+  color: var(--text-disabled);
   cursor: not-allowed;
 }
 

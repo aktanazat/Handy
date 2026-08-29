@@ -1,6 +1,7 @@
 import React from "react";
-import { Button, EmptyState, Kbd, List, Row } from "@/components/ui";
+import { Button, EmptyState, Kbd } from "@/components/ui";
 import { formatKeyCombination, type OSType } from "@/lib/utils/keyboard";
+import { Hint, RuleList } from "../vocabulary/PanelParts";
 
 /* Pieces the design system does not carry, composed here rather than added to
  * src/components/ui: a segmented picker and the two list shapes the modes page
@@ -86,6 +87,8 @@ export const ShortcutChord: React.FC<ShortcutChordProps> = ({
   }
   if (keys.length === 0) return null;
 
+  /* The wrapper owns the tooltip and the truncation the narrow list column
+   * needs, so the caps stay `Kbd` rather than `KbdChord`. */
   return (
     <span className={`mode-chord ${className}`} title={keys.join(" + ")}>
       {keys.map((key, index) => (
@@ -127,8 +130,13 @@ export const ActivationRuleList: React.FC<ActivationRuleListProps> = ({
   disabled = false,
 }) => {
   if (items.length === 0) {
+    /* A rule list that has never been filled is absence, not an object: the
+     * blank variant states what is missing and carries the capture control,
+     * and drawing a box around it would only add a second empty rectangle
+     * inside the flat section. */
     return (
       <EmptyState
+        variant="blank"
         title={emptyTitle}
         description={emptyDescription}
         action={action}
@@ -139,29 +147,29 @@ export const ActivationRuleList: React.FC<ActivationRuleListProps> = ({
   return (
     <div className="flex flex-col gap-2">
       {action}
-      <List label={label}>
+      <RuleList label={label}>
         {items.map((item) => (
-          <Row
-            key={item.id}
-            title={
-              <code className="font-mono text-[12.5px]">{item.target}</code>
-            }
-            description={item.detail}
-            actions={
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                aria-label={item.removeLabel}
-                disabled={disabled}
-                onClick={item.onRemove}
-              >
-                {removeText}
-              </Button>
-            }
-          />
+          <li key={item.id} className="flex min-h-9 items-center gap-3 py-1.5">
+            <span className="min-w-0 flex-1">
+              <code className="block truncate font-mono text-[12.5px] leading-[18px] text-text-primary">
+                {item.target}
+              </code>
+              {item.detail ? <Hint>{item.detail}</Hint> : null}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="flex-none"
+              aria-label={item.removeLabel}
+              disabled={disabled}
+              onClick={item.onRemove}
+            >
+              {removeText}
+            </Button>
+          </li>
         ))}
-      </List>
+      </RuleList>
     </div>
   );
 };

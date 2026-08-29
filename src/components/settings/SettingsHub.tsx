@@ -61,7 +61,7 @@ export const SettingsHub: React.FC = () => {
 
   return (
     <div className="settings-hub">
-      <div className="border-b border-border pb-2">
+      <div className="pb-2">
         <Tabs
           items={items}
           value={visibleTab}

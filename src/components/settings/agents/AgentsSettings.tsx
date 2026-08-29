@@ -578,7 +578,7 @@ const AgentBridgeControls: React.FC<{
         description={t("settings.agents.controls.master.description")}
       />
       {!bridge.master_enabled ? (
-        <div className="px-4 py-3">
+        <div className="py-3">
           <StatusText live="polite">
             {t("settings.agents.controls.offState")}
           </StatusText>
@@ -602,7 +602,7 @@ const AgentBridgeControls: React.FC<{
         />
       ))}
       {status ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 py-3">
           <span className="text-[13px] leading-5 text-text-secondary">
             {t("settings.agents.controls.status")}
           </span>
@@ -626,7 +626,7 @@ const AgentBridgeProjects: React.FC<{
       title={t("settings.agents.projects.title")}
       description={t("settings.agents.projects.description")}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 py-3">
         <p className="min-w-0 text-[13px] leading-5 text-text-secondary">
           {t("settings.agents.projects.hashOnly")}
         </p>
@@ -642,14 +642,14 @@ const AgentBridgeProjects: React.FC<{
         </Button>
       </div>
       {bridge.allowed_projects.length === 0 ? (
-        <div className="px-4 py-3">
+        <div className="py-3">
           <StatusText>{t("settings.agents.projects.empty")}</StatusText>
         </div>
       ) : (
         bridge.allowed_projects.map((project) => (
           <div
             key={project.canonical_project_hash}
-            className="flex min-w-0 items-center justify-between gap-3 px-4 py-3"
+            className="flex min-w-0 items-center justify-between gap-3 py-3"
           >
             <code className="min-w-0 font-mono text-xs break-all text-text-primary">
               {project.canonical_project_hash}
@@ -684,7 +684,7 @@ const AgentBridgeHook: React.FC<{
 
   return (
     <SettingsGroup title={t("settings.agents.hook.title")}>
-      <div className="space-y-3 px-4 py-3">
+      <div className="space-y-3 py-3">
         <p className="text-sm text-text-secondary">
           {t("settings.agents.hook.description")}
         </p>
@@ -735,7 +735,7 @@ const AgentBridgeReplyQueue: React.FC<{
       title={t("settings.agents.replyQueue.title")}
       description={t("settings.agents.replyQueue.description")}
     >
-      <div className="space-y-3 px-4 py-3">
+      <div className="space-y-3 py-3">
         {interactiveReady ? null : (
           <StatusText live="polite">
             {t(
@@ -801,14 +801,14 @@ const AgentBridgeReplyQueue: React.FC<{
         </Button>
       </div>
       {pendingMessages.length === 0 ? (
-        <div className="px-4 py-3">
+        <div className="py-3">
           <StatusText>{t("settings.agents.pending.empty")}</StatusText>
         </div>
       ) : (
         pendingMessages.map((pending) => (
           <div
             key={pending.id}
-            className="flex min-w-0 flex-wrap items-center justify-between gap-2 px-4 py-3"
+            className="flex min-w-0 flex-wrap items-center justify-between gap-2 py-3"
           >
             <div className="min-w-0">
               <p className="text-[12px] leading-4 text-text-secondary">
@@ -879,7 +879,7 @@ const AgentBridgeObservations: React.FC<{
 
   return (
     <SettingsGroup title={t("settings.agents.observed.title")}>
-      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 py-3">
         <p className="min-w-0 text-[13px] leading-5 text-text-secondary">
           {t("settings.agents.observed.description")}
         </p>
@@ -897,7 +897,7 @@ const AgentBridgeObservations: React.FC<{
           {t("settings.agents.observed.refresh")}
         </Button>
       </div>
-      <div className="px-4 py-3">
+      <div className="py-3">
         <h3 className="text-[13px] leading-5 font-semibold text-text-primary">
           {t("settings.agents.observed.sessions")}
         </h3>
@@ -932,7 +932,7 @@ const AgentBridgeObservations: React.FC<{
           </ul>
         )}
       </div>
-      <div className="px-4 py-3">
+      <div className="py-3">
         <h3 className="text-[13px] leading-5 font-semibold text-text-primary">
           {t("settings.agents.observed.requests")}
         </h3>
@@ -1036,18 +1036,18 @@ const AgentBridgeRules: React.FC<{
 
   return (
     <SettingsGroup title={t("settings.agents.rules.title")}>
-      <p className="px-4 py-3 text-[13px] leading-5 text-text-secondary">
+      <p className="py-3 text-[13px] leading-5 text-text-secondary">
         {t("settings.agents.rules.description")}
       </p>
       {bridge.permission_rules.length === 0 ? (
-        <div className="px-4 pb-3">
+        <div className="pb-3">
           <StatusText>{t("settings.agents.rules.empty")}</StatusText>
         </div>
       ) : (
         bridge.permission_rules.map((rule) => (
           <div
             key={rule.id}
-            className="flex min-w-0 flex-wrap items-center justify-between gap-3 px-4 py-3"
+            className="flex min-w-0 flex-wrap items-center justify-between gap-3 py-3"
           >
             <div className="min-w-0 text-[13px] leading-5 text-text-secondary">
               <p className="break-words text-text-primary">
