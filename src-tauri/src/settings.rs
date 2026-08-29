@@ -1,4 +1,5 @@
 use crate::context::ContextPolicy;
+use crate::meeting::analytics::{KeywordTracker, MeetingNotesTemplate};
 use crate::modes::{
     default_modes, ensure_mode_settings, switch_binding_id, transcribe_binding_id,
     CloudSttProvider, ModeActivationRule, ModeDefinition, ModeWebsiteActivationRule,
@@ -748,6 +749,95 @@ impl EmojiReplacement {
     }
 }
 
+/// A deterministic spoken-phrase rewrite applied before vocabulary
+/// correction. This is a distinct mechanism from the ASR vocabulary: a
+/// vocabulary entry biases what the recognizer hears, whereas a replacement
+/// rewrites what it already heard. Matching is case-insensitive and respects
+/// whole-token boundaries, so a rule never fires inside a longer word.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Type)]
+pub struct ReplacementRule {
+    pub spoken: String,
+    pub written: String,
+    pub enabled: bool,
+}
+
+impl ReplacementRule {
+    pub fn trim_outer_whitespace(mut self) -> Self {
+        self.spoken = self.spoken.trim().to_string();
+        self.written = self.written.trim().to_string();
+        self
+    }
+
+    /// A rule with an empty spoken form can never match, and one with an empty
+    /// written form would silently delete speech. Both stay persisted so an
+    /// in-progress edit is not discarded, but neither is ever applied.
+    pub fn is_usable(&self) -> bool {
+        !self.spoken.trim().is_empty() && !self.written.is_empty()
+    }
+}
+
+/// The symbol-dictation starter library. These are the phrases users expect to
+/// be able to speak on day one; every one of them is a multi-word phrase or an
+/// unambiguous noun, so none fires inside ordinary prose.
+///
+/// Spoken line-break phrases are deliberately absent. `new line` and `new
+/// paragraph` belong to the literal-punctuation table, which is the one owner
+/// of spoken punctuation and is gated on the per-mode `literal_punctuation`
+/// choice. Shipping them here as well would both duplicate that responsibility
+/// and quietly override a user who turned that choice off. A user who wants a
+/// break phrase without literal punctuation can still add the rule by hand,
+/// and this stage preserves the newlines it produces.
+pub fn default_replacement_rules() -> Vec<ReplacementRule> {
+    [
+        ("at sign", "@"),
+        ("dot com", ".com"),
+        ("hashtag", "#"),
+        ("ellipsis", "…"),
+        ("em dash", "—"),
+        ("en dash", "–"),
+        ("open quote", "“"),
+        ("close quote", "”"),
+    ]
+    .into_iter()
+    .map(|(spoken, written)| ReplacementRule {
+        spoken: spoken.to_string(),
+        written: written.to_string(),
+        enabled: true,
+    })
+    .collect()
+}
+
+/// One paragraph of the user's own writing, injected into the rewrite prompt as
+/// a voice-matching example. Samples are the user's text, so they are never
+/// sent anywhere the transcript itself would not already go.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Type)]
+pub struct PersonaSample {
+    pub id: String,
+    pub text: String,
+}
+
+/// Few-shot prompting degrades rather than improves once the examples crowd out
+/// the transcript, so the persisted set is bounded on both axes.
+pub const PERSONA_SAMPLES_MAX: usize = 5;
+pub const PERSONA_SAMPLE_MAX_WORDS: usize = 500;
+
+impl PersonaSample {
+    /// Truncates to [`PERSONA_SAMPLE_MAX_WORDS`] on whole words. Returns `None`
+    /// when nothing but whitespace remains, so blank rows never persist.
+    pub fn normalized(&self) -> Option<Self> {
+        let mut words = self.text.split_whitespace();
+        let text = words
+            .by_ref()
+            .take(PERSONA_SAMPLE_MAX_WORDS)
+            .collect::<Vec<_>>()
+            .join(" ");
+        (!text.is_empty()).then(|| Self {
+            id: self.id.clone(),
+            text,
+        })
+    }
+}
+
 /// Written vocabulary forms are the only text handed to Whisper's decode
 /// prompt. Empty legacy entries remain persisted but never become a prompt.
 pub fn vocabulary_initial_prompt(entries: &[VocabularyEntry]) -> Option<String> {
@@ -1004,6 +1094,18 @@ pub struct AppSettings {
     /// never read until the user asks for it. See crate::context.
     #[serde(default)]
     pub context_url_capture_enabled: bool,
+    /// How long before record-start a clipboard copy still counts as part of
+    /// the dictation. Clipboard context is read only when the copy is provably
+    /// inside this window, so an unrelated copy from earlier in the session
+    /// never reaches a prompt. See crate::context.
+    #[serde(default = "default_context_capture_clipboard_preroll_ms")]
+    pub context_capture_clipboard_preroll_ms: u64,
+    /// Whether the voice command chord is registered. Command mode rewrites the
+    /// current OS text selection from a spoken instruction; turning it off
+    /// releases the chord back to the rest of the system rather than swallowing
+    /// it. See crate::command_mode.
+    #[serde(default = "default_command_mode_enabled")]
+    pub command_mode_enabled: bool,
     /// Default-off local coding-agent bridge policy. It intentionally contains
     /// no user text or provider payloads; those are in-memory only.
     #[serde(default)]
@@ -1033,6 +1135,67 @@ pub struct AppSettings {
     pub agent_panel_last_successful_connection_at: Option<i64>,
     #[serde(default)]
     pub agent_panel_safe_appearance_auto_apply: bool,
+    /// Literal phrase lists scanned against every finished meeting transcript.
+    /// Empty means no tracker is watching, which is the shipped state.
+    #[serde(default)]
+    pub trackers_list: Vec<KeywordTracker>,
+    /// The shape generated meeting notes take when a meeting has no template
+    /// of its own.
+    #[serde(default)]
+    pub meeting_notes_template: MeetingNotesTemplate,
+    /// Whether the deterministic replacement stage runs at all. The starter
+    /// library ships enabled, so this is the single switch that turns symbol
+    /// dictation off without discarding the user's rules.
+    #[serde(default = "default_replacements_enabled")]
+    pub replacements_enabled: bool,
+    /// Ordered spoken-phrase rewrites applied before vocabulary correction.
+    #[serde(default = "default_replacement_rules")]
+    pub replacements_rules: Vec<ReplacementRule>,
+    /// Samples of the user's own writing, injected into every rewrite prompt as
+    /// voice-matching examples. Empty means the rewrite behaves exactly as it
+    /// did before, which is the shipped state.
+    #[serde(default)]
+    pub persona_samples: Vec<PersonaSample>,
+    /// Whether the recording overlay also shows an always-visible idle pill
+    /// between dictations. Default off: an extra persistent window on every
+    /// screen is opt-in.
+    #[serde(default)]
+    pub hud_pill_enabled: bool,
+    /// Which screen edge the idle pill sits on. Shares `OverlayPosition` with
+    /// the recording overlay because it is the same window and the same anchor
+    /// arithmetic.
+    #[serde(default = "default_hud_pill_position")]
+    pub hud_pill_position: OverlayPosition,
+    /// Whether automatic meeting detection runs at all. On by default, because
+    /// on its own it only ever raises a prompt: no path below it starts a
+    /// capture without an explicit click through the consent screen.
+    #[serde(default = "default_detection_enabled")]
+    pub detection_enabled: bool,
+    /// Whether the calendar path is active. Off until the operator turns it on,
+    /// which is also what triggers the EventKit full-access request — reading
+    /// events requires full access, and that is too heavy to ask for at launch.
+    #[serde(default)]
+    pub detection_calendar_enabled: bool,
+    /// Whether microphone activity with no identifiable meeting application
+    /// still prompts. Off by default: voice memos, music production, and every
+    /// other audio app land in this case.
+    #[serde(default)]
+    pub detection_any_mic_activity: bool,
+    /// Whether reaching a calendar event's start with its pre-meeting card
+    /// already open opens the capture without waiting for a notification click.
+    /// Off by default; a new install prompts for everything.
+    #[serde(default)]
+    pub detection_auto_start_on_open_pane: bool,
+    /// Minutes without transcript-worthy audio before a detected capture stops
+    /// itself. Zero leaves manual stop as the only timer.
+    #[serde(default = "default_detection_silence_stop_minutes")]
+    pub detection_silence_stop_minutes: u32,
+    /// Bundle IDs treated as meeting applications. Seeded from the known set and
+    /// editable, because vendors rename these: Microsoft has already renamed
+    /// Teams's bundle ID once. An entry only becomes a signal when a process
+    /// with that ID is actually running.
+    #[serde(default = "default_detection_meeting_apps")]
+    pub detection_meeting_apps: Vec<String>,
 }
 
 fn default_model() -> String {
@@ -1041,6 +1204,26 @@ fn default_model() -> String {
 
 fn default_snippets_enabled() -> bool {
     true
+}
+
+fn default_replacements_enabled() -> bool {
+    true
+}
+
+fn default_hud_pill_position() -> OverlayPosition {
+    OverlayPosition::Bottom
+}
+
+fn default_detection_enabled() -> bool {
+    true
+}
+
+fn default_detection_silence_stop_minutes() -> u32 {
+    15
+}
+
+fn default_detection_meeting_apps() -> Vec<String> {
+    crate::meeting::detection::apps::default_meeting_app_bundle_ids()
 }
 
 fn default_update_check_enabled() -> bool {
@@ -1113,6 +1296,16 @@ fn default_overlay_style() -> OverlayStyle {
 }
 
 fn default_vad_enabled() -> bool {
+    true
+}
+
+/// The pre-roll window is owned by the capture module; settings only persists
+/// the user's override of it.
+fn default_context_capture_clipboard_preroll_ms() -> u64 {
+    crate::context::DEFAULT_CLIPBOARD_PREROLL_MS
+}
+
+fn default_command_mode_enabled() -> bool {
     true
 }
 
@@ -1427,6 +1620,12 @@ pub fn get_default_settings() -> AppSettings {
     let default_shortcut = "ctrl+space";
     #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
     let default_shortcut = "alt+space";
+    // Command mode's chord sits one modifier away from dictation: the gesture is
+    // the same, only the operand differs.
+    #[cfg(target_os = "macos")]
+    let default_command_shortcut = "option+shift+space";
+    #[cfg(not(target_os = "macos"))]
+    let default_command_shortcut = "ctrl+shift+space";
 
     let mut bindings = HashMap::new();
     bindings.insert(
@@ -1447,6 +1646,17 @@ pub fn get_default_settings() -> AppSettings {
             description: "Cancels the current recording.".to_string(),
             default_binding: "escape".to_string(),
             current_binding: "escape".to_string(),
+        },
+    );
+    bindings.insert(
+        crate::command_mode::COMMAND_BINDING_ID.to_string(),
+        ShortcutBinding {
+            id: crate::command_mode::COMMAND_BINDING_ID.to_string(),
+            name: "Command".to_string(),
+            description: "Rewrites the text you have selected from a spoken instruction."
+                .to_string(),
+            default_binding: default_command_shortcut.to_string(),
+            current_binding: default_command_shortcut.to_string(),
         },
     );
 
@@ -1527,6 +1737,8 @@ pub fn get_default_settings() -> AppSettings {
         vad_enabled: default_vad_enabled(),
         overlay_style: default_overlay_style(),
         context_url_capture_enabled: false,
+        context_capture_clipboard_preroll_ms: default_context_capture_clipboard_preroll_ms(),
+        command_mode_enabled: default_command_mode_enabled(),
         agent_bridge: AgentBridgeSettings::default(),
         snippets: Vec::new(),
         snippets_enabled: default_snippets_enabled(),
@@ -1538,6 +1750,19 @@ pub fn get_default_settings() -> AppSettings {
         agent_panel_paired: false,
         agent_panel_last_successful_connection_at: None,
         agent_panel_safe_appearance_auto_apply: false,
+        trackers_list: Vec::new(),
+        meeting_notes_template: MeetingNotesTemplate::General,
+        replacements_enabled: default_replacements_enabled(),
+        replacements_rules: default_replacement_rules(),
+        persona_samples: Vec::new(),
+        hud_pill_enabled: false,
+        hud_pill_position: default_hud_pill_position(),
+        detection_enabled: default_detection_enabled(),
+        detection_calendar_enabled: false,
+        detection_any_mic_activity: false,
+        detection_auto_start_on_open_pane: false,
+        detection_silence_stop_minutes: default_detection_silence_stop_minutes(),
+        detection_meeting_apps: default_detection_meeting_apps(),
     };
     settings.modes = default_modes(&settings);
     ensure_mode_settings(&mut settings);

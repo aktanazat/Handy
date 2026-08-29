@@ -11,17 +11,56 @@ use tauri::{AppHandle, Manager};
 const DEBOUNCE: Duration = Duration::from_millis(30);
 const RELEASE_GRACE: Duration = Duration::from_millis(50);
 
+/// A physical tap runs 80-150 ms from key-down to key-up, while deliberate
+/// hold-to-talk stays down well past this before releasing. A release this
+/// soon after its press is therefore a tap, and a tap has to latch the
+/// recording open: stopping at key-up captures 30-60 ms of audio, which the
+/// no-speech path then discards.
+const TAP_LATCH_THRESHOLD: Duration = Duration::from_millis(400);
+
+/// What a push-to-talk edge does to the release-grace machinery.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum PttAction {
+    /// Not a grace-window decision: the stage logic in
+    /// [`CoordinatorState::on_input`] decides.
     Passthrough,
-    DeferRelease,
+    /// Arm the grace window; the outcome is what its expiry means.
+    Defer(GraceOutcome),
     CancelRelease,
+    /// The key is up, but this release cannot end the recording.
+    IgnoreRelease,
+}
+
+/// What an expired grace window does to the recording it was armed for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum GraceOutcome {
+    /// The chord was held past [`TAP_LATCH_THRESHOLD`]: hold-to-talk, so the
+    /// release ends the recording.
+    Stop,
+    /// The chord was tapped: keep recording and let the next press end it.
+    Latch,
+}
+
+/// The recording in flight, as the edge being classified sees it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ActiveRecording {
+    /// Nothing is recording this edge's intent: idle, busy, or another intent.
+    Unrelated,
+    /// Recording this intent with releases disarmed; the next press stops it.
+    Latched,
+    /// Recording this intent while its press is still logically down.
+    Held {
+        /// The press edge is younger than [`TAP_LATCH_THRESHOLD`], so a
+        /// release now is a tap rather than the end of a hold.
+        tapped: bool,
+    },
 }
 
 struct PendingRelease {
     intent: TranscriptionIntent,
     shortcut_label: String,
     deadline: Instant,
+    outcome: GraceOutcome,
 }
 
 /// A press that arrived while the pipeline was still processing the previous
@@ -31,6 +70,8 @@ struct PendingRelease {
 struct PendingPress {
     intent: TranscriptionIntent,
     shortcut_label: String,
+    /// Whether the start it eventually produces latches; see [`start_effect`].
+    latched: bool,
 }
 
 /// What to do with an input that arrives while the pipeline is busy.
@@ -86,6 +127,10 @@ enum Stage {
     Recording {
         intent: TranscriptionIntent,
         run_plan: Box<RunPlan>,
+        /// When the press that opened this recording was processed.
+        pressed_at: Instant,
+        /// Releases no longer stop this recording; the next press does.
+        latched: bool,
     },
     Processing,
 }
@@ -96,6 +141,11 @@ enum Effect {
     Start {
         intent: TranscriptionIntent,
         shortcut_label: String,
+        /// Press provenance for the recording this opens, threaded back
+        /// through [`CoordinatorState::on_started`] so a recording always
+        /// knows whether a release can stop it.
+        pressed_at: Instant,
+        latched: bool,
     },
     Stop {
         intent: TranscriptionIntent,
@@ -104,12 +154,24 @@ enum Effect {
     },
 }
 
+/// Turn a press edge into the start it triggers. Signals and CLI toggles have
+/// no key to release, so the recording they open latches at once: only their
+/// next edge can stop it.
+fn start_effect(input: InputEvent, pressed_at: Instant) -> Effect {
+    Effect::Start {
+        intent: input.intent,
+        shortcut_label: input.shortcut_label,
+        pressed_at,
+        latched: input.external,
+    }
+}
+
 fn classify_ptt_event(
     pending_release_intent: Option<&TranscriptionIntent>,
     is_pressed: bool,
     push_to_talk: bool,
     intent: &TranscriptionIntent,
-    recording_intent: Option<&TranscriptionIntent>,
+    recording: ActiveRecording,
 ) -> PttAction {
     if !push_to_talk {
         return PttAction::Passthrough;
@@ -121,10 +183,19 @@ fn classify_ptt_event(
         } else {
             PttAction::Passthrough
         }
-    } else if recording_intent == Some(intent) && pending_release_intent.is_none() {
-        PttAction::DeferRelease
     } else {
-        PttAction::Passthrough
+        match recording {
+            ActiveRecording::Unrelated => PttAction::Passthrough,
+            // A latched recording outlives its key.
+            ActiveRecording::Latched => PttAction::IgnoreRelease,
+            // The armed window already owns this release; letting a repeat of
+            // it through would stop a recording the window is about to latch.
+            ActiveRecording::Held { .. } if pending_release_intent == Some(intent) => {
+                PttAction::IgnoreRelease
+            }
+            ActiveRecording::Held { tapped: true } => PttAction::Defer(GraceOutcome::Latch),
+            ActiveRecording::Held { tapped: false } => PttAction::Defer(GraceOutcome::Stop),
+        }
     }
 }
 
@@ -156,32 +227,52 @@ impl CoordinatorState {
             .map(|pending| pending.deadline)
     }
 
+    /// How the recording in flight relates to `intent` at `now`.
+    fn active_recording(&self, intent: &TranscriptionIntent, now: Instant) -> ActiveRecording {
+        match &self.stage {
+            Stage::Recording {
+                intent: active,
+                pressed_at,
+                latched,
+                ..
+            } if active == intent => {
+                if *latched {
+                    ActiveRecording::Latched
+                } else {
+                    ActiveRecording::Held {
+                        tapped: now.duration_since(*pressed_at) < TAP_LATCH_THRESHOLD,
+                    }
+                }
+            }
+            _ => ActiveRecording::Unrelated,
+        }
+    }
+
     fn on_input(&mut self, input: InputEvent, now: Instant) -> Option<Effect> {
         let pending_release_intent = self.pending_release.as_ref().map(|pending| &pending.intent);
-        let recording_intent = match &self.stage {
-            Stage::Recording { intent, .. } => Some(intent),
-            _ => None,
-        };
+        let recording = self.active_recording(&input.intent, now);
 
         match classify_ptt_event(
             pending_release_intent,
             input.is_pressed,
             input.push_to_talk,
             &input.intent,
-            recording_intent,
+            recording,
         ) {
             PttAction::CancelRelease => {
                 self.pending_release = None;
                 return None;
             }
-            PttAction::DeferRelease => {
+            PttAction::Defer(outcome) => {
                 self.pending_release = Some(PendingRelease {
                     intent: input.intent,
                     shortcut_label: input.shortcut_label,
                     deadline: now + RELEASE_GRACE,
+                    outcome,
                 });
                 return None;
             }
+            PttAction::IgnoreRelease => return None,
             PttAction::Passthrough => {}
         }
 
@@ -205,36 +296,41 @@ impl CoordinatorState {
             return None;
         }
 
-        let recording_this_intent =
-            matches!(&self.stage, Stage::Recording { intent, .. } if intent == &input.intent);
-
-        if input.push_to_talk {
-            if input.is_pressed {
-                if matches!(self.stage, Stage::Idle) {
-                    return Some(Effect::Start {
-                        intent: input.intent,
-                        shortcut_label: input.shortcut_label,
-                    });
+        match (input.push_to_talk, input.is_pressed) {
+            // Push-to-talk: hold to talk, or tap to latch and press again to stop.
+            (true, true) => match recording {
+                // The tap that latched this recording is over; this press ends it.
+                ActiveRecording::Latched => {
+                    self.stop_recording(&input.intent, input.shortcut_label)
                 }
-            } else if recording_this_intent {
-                return self.stop_recording(&input.intent, input.shortcut_label);
-            }
-        } else if input.is_pressed {
-            if matches!(self.stage, Stage::Idle) {
-                return Some(Effect::Start {
-                    intent: input.intent,
-                    shortcut_label: input.shortcut_label,
-                });
-            }
-            if recording_this_intent {
-                return self.stop_recording(&input.intent, input.shortcut_label);
-            }
-            debug!(
-                "Ignoring transcription intent {:?}: another intent is recording",
-                input.intent
-            );
+                // The chord is still down, so the OS is repeating it, not the user.
+                ActiveRecording::Held { .. } => None,
+                ActiveRecording::Unrelated if matches!(self.stage, Stage::Idle) => {
+                    Some(start_effect(input, now))
+                }
+                ActiveRecording::Unrelated => None,
+            },
+            // Every push-to-talk release is decided by the grace window above.
+            (true, false) => None,
+            (false, true) => match recording {
+                // Toggle: pressing the recording intent again stops it.
+                ActiveRecording::Latched | ActiveRecording::Held { .. } => {
+                    self.stop_recording(&input.intent, input.shortcut_label)
+                }
+                ActiveRecording::Unrelated if matches!(self.stage, Stage::Idle) => {
+                    Some(start_effect(input, now))
+                }
+                ActiveRecording::Unrelated => {
+                    debug!(
+                        "Ignoring transcription intent {:?}: another intent is recording",
+                        input.intent
+                    );
+                    None
+                }
+            },
+            // Toggle mode ignores releases.
+            (false, false) => None,
         }
-        None
     }
 
     /// A busy pipeline cannot change lifecycle now, so classify the input
@@ -264,6 +360,7 @@ impl CoordinatorState {
                 self.pending_press = Some(PendingPress {
                     intent: input.intent,
                     shortcut_label: input.shortcut_label,
+                    latched: input.external,
                 });
             }
             BusyAction::Forget => {
@@ -279,11 +376,34 @@ impl CoordinatorState {
         }
     }
 
-    /// The `RELEASE_GRACE` window elapsed with no cancelling press: fire the
-    /// deferred release if that intent is still the one recording.
+    /// The `RELEASE_GRACE` window elapsed with no cancelling press, so the
+    /// release was genuine rather than auto-repeat: end a hold, or hold a tap
+    /// open until the next press.
     fn on_grace_expired(&mut self) -> Option<Effect> {
         let pending = self.pending_release.take()?;
-        self.stop_recording(&pending.intent, pending.shortcut_label)
+        match pending.outcome {
+            GraceOutcome::Stop => self.stop_recording(&pending.intent, pending.shortcut_label),
+            GraceOutcome::Latch => {
+                self.latch(&pending.intent);
+                None
+            }
+        }
+    }
+
+    /// Keep `intent`'s recording open past its key-up, so a 100 ms chord still
+    /// captures a whole utterance.
+    fn latch(&mut self, intent: &TranscriptionIntent) {
+        match &mut self.stage {
+            Stage::Recording {
+                intent: active,
+                latched,
+                ..
+            } if active == intent => {
+                debug!("Tap latch: recording continues until next press");
+                *latched = true;
+            }
+            _ => {}
+        }
     }
 
     fn on_cancel(&mut self, recording_was_active: bool) {
@@ -299,7 +419,7 @@ impl CoordinatorState {
         }
     }
 
-    fn on_processing_finished(&mut self) -> Option<Effect> {
+    fn on_processing_finished(&mut self, now: Instant) -> Option<Effect> {
         self.stage = Stage::Idle;
         let pending = self.pending_press.take()?;
         debug!(
@@ -309,13 +429,28 @@ impl CoordinatorState {
         Some(Effect::Start {
             intent: pending.intent,
             shortcut_label: pending.shortcut_label,
+            // The drain is this recording's press edge: the key has been down
+            // since before the pipeline finished, so the tap window opens now.
+            pressed_at: now,
+            latched: pending.latched,
         })
     }
 
     /// Reconcile with the executor: recording began only if it produced a plan.
-    fn on_started(&mut self, intent: TranscriptionIntent, run_plan: Option<Box<RunPlan>>) {
+    fn on_started(
+        &mut self,
+        intent: TranscriptionIntent,
+        pressed_at: Instant,
+        latched: bool,
+        run_plan: Option<Box<RunPlan>>,
+    ) {
         if let Some(run_plan) = run_plan {
-            self.stage = Stage::Recording { intent, run_plan };
+            self.stage = Stage::Recording {
+                intent,
+                run_plan,
+                pressed_at,
+                latched,
+            };
         }
     }
 
@@ -330,7 +465,9 @@ impl CoordinatorState {
             return None;
         }
         match std::mem::replace(&mut self.stage, Stage::Processing) {
-            Stage::Recording { intent, run_plan } => Some(Effect::Stop {
+            Stage::Recording {
+                intent, run_plan, ..
+            } => Some(Effect::Stop {
                 intent,
                 shortcut_label,
                 run_plan,
@@ -388,7 +525,7 @@ impl TranscriptionCoordinator {
                             state.on_cancel(recording_was_active);
                             None
                         }
-                        Command::ProcessingFinished => state.on_processing_finished(),
+                        Command::ProcessingFinished => state.on_processing_finished(Instant::now()),
                     };
 
                     if let Some(effect) = effect {
@@ -468,9 +605,11 @@ fn execute(app: &AppHandle, state: &mut CoordinatorState, effect: Effect) {
         Effect::Start {
             intent,
             shortcut_label,
+            pressed_at,
+            latched,
         } => {
             let run_plan = start(app, &intent, &shortcut_label);
-            state.on_started(intent, run_plan);
+            state.on_started(intent, pressed_at, latched, run_plan);
         }
         Effect::Stop {
             intent,
@@ -494,6 +633,9 @@ fn start(
         Ok(plan) => plan,
         Err(error) => {
             warn!("Could not build run plan for {intent:?}: {error}");
+            // A refusal the user caused deliberately deserves an answer rather
+            // than a silent no-op; every other rejection stays a log line.
+            crate::command_mode::report_refused_run(app, intent, &error);
             return None;
         }
     };
@@ -522,8 +664,51 @@ mod tests {
     fn push_to_talk_release_while_recording_defers_release() {
         let intent = active_mode();
         assert_eq!(
-            classify_ptt_event(None, false, true, &intent, Some(&intent)),
-            PttAction::DeferRelease
+            classify_ptt_event(
+                None,
+                false,
+                true,
+                &intent,
+                ActiveRecording::Held { tapped: false }
+            ),
+            PttAction::Defer(GraceOutcome::Stop)
+        );
+    }
+
+    #[test]
+    fn push_to_talk_release_classification_covers_every_recording_state() {
+        let intent = active_mode();
+        // A tap defers into a latch, so the recording survives its key-up.
+        assert_eq!(
+            classify_ptt_event(
+                None,
+                false,
+                true,
+                &intent,
+                ActiveRecording::Held { tapped: true }
+            ),
+            PttAction::Defer(GraceOutcome::Latch)
+        );
+        // A latched recording ignores releases; only the next press ends it.
+        assert_eq!(
+            classify_ptt_event(None, false, true, &intent, ActiveRecording::Latched),
+            PttAction::IgnoreRelease
+        );
+        // An armed window owns the release: a duplicate must not shortcut it.
+        assert_eq!(
+            classify_ptt_event(
+                Some(&intent),
+                false,
+                true,
+                &intent,
+                ActiveRecording::Held { tapped: true }
+            ),
+            PttAction::IgnoreRelease
+        );
+        // Nothing is recording this intent: the stage logic decides.
+        assert_eq!(
+            classify_ptt_event(None, false, true, &intent, ActiveRecording::Unrelated),
+            PttAction::Passthrough
         );
     }
 
@@ -531,7 +716,13 @@ mod tests {
     fn push_to_talk_press_matching_pending_release_cancels_release() {
         let intent = active_mode();
         assert_eq!(
-            classify_ptt_event(Some(&intent), true, true, &intent, Some(&intent)),
+            classify_ptt_event(
+                Some(&intent),
+                true,
+                true,
+                &intent,
+                ActiveRecording::Held { tapped: false }
+            ),
             PttAction::CancelRelease
         );
     }
@@ -540,11 +731,17 @@ mod tests {
     fn toggle_mode_press_and_release_pass_through() {
         let intent = active_mode();
         assert_eq!(
-            classify_ptt_event(Some(&intent), true, false, &intent, Some(&intent)),
+            classify_ptt_event(
+                Some(&intent),
+                true,
+                false,
+                &intent,
+                ActiveRecording::Held { tapped: false }
+            ),
             PttAction::Passthrough
         );
         assert_eq!(
-            classify_ptt_event(None, false, false, &intent, Some(&intent)),
+            classify_ptt_event(None, false, false, &intent, ActiveRecording::Latched),
             PttAction::Passthrough
         );
     }
@@ -554,7 +751,13 @@ mod tests {
         let active = active_mode();
         let post_process = TranscriptionIntent::ActiveModeWithPostProcess;
         assert_eq!(
-            classify_ptt_event(Some(&active), true, true, &post_process, Some(&active)),
+            classify_ptt_event(
+                Some(&active),
+                true,
+                true,
+                &post_process,
+                ActiveRecording::Unrelated
+            ),
             PttAction::Passthrough
         );
     }
@@ -569,6 +772,82 @@ mod tests {
             TranscriptionIntent::from_binding("transcribe"),
             Some(TranscriptionIntent::ActiveMode)
         );
+    }
+
+    /// The command chord is a first-class intent, so the hybrid tap/hold rules
+    /// have to apply to it byte-for-byte. A command that stopped at key-up
+    /// would capture 30-60 ms of audio and refuse for no speech.
+    #[test]
+    fn the_command_intent_follows_the_same_tap_and_hold_rules() {
+        let command = TranscriptionIntent::Command;
+        assert_eq!(
+            classify_ptt_event(
+                None,
+                false,
+                true,
+                &command,
+                ActiveRecording::Held { tapped: true }
+            ),
+            PttAction::Defer(GraceOutcome::Latch)
+        );
+        assert_eq!(
+            classify_ptt_event(
+                None,
+                false,
+                true,
+                &command,
+                ActiveRecording::Held { tapped: false }
+            ),
+            PttAction::Defer(GraceOutcome::Stop)
+        );
+        assert_eq!(
+            classify_ptt_event(None, false, true, &command, ActiveRecording::Latched),
+            PttAction::IgnoreRelease
+        );
+    }
+
+    /// Dictation and command are separate recordings. Releasing one must never
+    /// end the other, or the command chord would stop a dictation mid-sentence.
+    #[test]
+    fn a_command_edge_never_touches_a_dictation_recording() {
+        let command = TranscriptionIntent::Command;
+        assert_eq!(
+            classify_ptt_event(
+                Some(&active_mode()),
+                true,
+                true,
+                &command,
+                ActiveRecording::Unrelated
+            ),
+            PttAction::Passthrough
+        );
+
+        let mut harness = Harness::new();
+        press_and_hold(&mut harness);
+        harness.advance(Duration::from_millis(800));
+        harness.input(command, false, true);
+        assert!(
+            harness.state.grace_deadline().is_none(),
+            "a command release must not arm the dictation's release"
+        );
+        assert_eq!((harness.starts, harness.stops), (1, 0));
+        assert!(harness.is_recording());
+    }
+
+    #[test]
+    fn a_command_hold_records_and_stops_on_release() {
+        let mut harness = Harness::new();
+        harness.input(TranscriptionIntent::Command, true, true);
+        assert!(harness.is_recording());
+
+        harness.advance(Duration::from_millis(800));
+        harness.input(TranscriptionIntent::Command, false, true);
+        assert_eq!(harness.stops, 0, "the grace window owns the stop");
+
+        harness.advance(RELEASE_GRACE);
+        harness.grace_expired();
+        assert_eq!((harness.starts, harness.stops), (1, 1));
+        assert!(harness.is_processing());
     }
 
     /// Drives the production state machine. The executor is stubbed by
@@ -603,10 +882,15 @@ mod tests {
 
         fn apply(&mut self, effect: Option<Effect>) {
             match effect {
-                Some(Effect::Start { intent, .. }) => {
+                Some(Effect::Start {
+                    intent,
+                    pressed_at,
+                    latched,
+                    ..
+                }) => {
                     self.starts += 1;
                     let plan = self.microphone_opens.then(Self::run_plan);
-                    self.state.on_started(intent, plan);
+                    self.state.on_started(intent, pressed_at, latched, plan);
                 }
                 Some(Effect::Stop { .. }) => self.stops += 1,
                 None => {}
@@ -628,14 +912,14 @@ mod tests {
             self.apply(effect);
         }
 
-        fn external_press(&mut self, intent: TranscriptionIntent) {
+        fn external_press(&mut self, intent: TranscriptionIntent, push_to_talk: bool) {
             self.advance(Duration::from_millis(5));
             let effect = self.state.on_input(
                 InputEvent {
                     intent,
                     shortcut_label: "signal".to_string(),
                     is_pressed: true,
-                    push_to_talk: false,
+                    push_to_talk,
                     external: true,
                 },
                 self.clock,
@@ -649,7 +933,7 @@ mod tests {
         }
 
         fn processing_finished(&mut self) {
-            let effect = self.state.on_processing_finished();
+            let effect = self.state.on_processing_finished(self.clock);
             self.apply(effect);
         }
 
@@ -689,14 +973,137 @@ mod tests {
         autorepeat_burst(&mut harness);
         assert_eq!((harness.starts, harness.stops), (1, 0));
         assert!(harness.is_recording());
+        // Each repeat press cancels the release before its grace window
+        // expires, so the burst never latches. A latch here would hand the
+        // stop to the very next repeat press.
+        assert_eq!(
+            harness
+                .state
+                .active_recording(&active_mode(), harness.clock),
+            ActiveRecording::Held { tapped: true }
+        );
     }
 
     #[test]
     fn genuine_release_after_grace_stops_recording_once() {
         let mut harness = Harness::new();
         autorepeat_burst(&mut harness);
+        // A deliberate hold outlives the tap window, so its release stops.
+        harness.advance(TAP_LATCH_THRESHOLD);
         harness.input(active_mode(), false, true);
         harness.grace_expired();
+        assert_eq!((harness.starts, harness.stops), (1, 1));
+        assert!(harness.is_processing());
+    }
+
+    #[test]
+    fn push_to_talk_tap_latches_the_recording_open() {
+        let mut harness = Harness::new();
+        press_and_hold(&mut harness);
+        harness.advance(Duration::from_millis(100));
+        harness.input(active_mode(), false, true);
+        assert!(
+            harness.is_recording(),
+            "a tap must not stop the recording at key-up"
+        );
+
+        harness.advance(RELEASE_GRACE);
+        harness.grace_expired();
+        assert_eq!((harness.starts, harness.stops), (1, 0));
+        assert!(harness.is_recording(), "the tap latched the recording open");
+
+        // The latch hands the stop to the next press.
+        harness.input(active_mode(), true, true);
+        assert_eq!((harness.starts, harness.stops), (1, 1));
+        assert!(harness.is_processing());
+    }
+
+    #[test]
+    fn push_to_talk_hold_release_stops_at_grace_expiry() {
+        let mut harness = Harness::new();
+        press_and_hold(&mut harness);
+        harness.advance(Duration::from_millis(800));
+        harness.input(active_mode(), false, true);
+        assert!(
+            harness.state.grace_deadline().is_some(),
+            "a hold-release waits out the grace window before stopping"
+        );
+        assert_eq!(harness.stops, 0);
+
+        harness.advance(RELEASE_GRACE);
+        harness.grace_expired();
+        assert_eq!((harness.starts, harness.stops), (1, 1));
+        assert!(harness.is_processing());
+    }
+
+    #[test]
+    fn a_release_at_the_latch_threshold_is_a_hold() {
+        let mut harness = Harness::new();
+        press_and_hold(&mut harness);
+        let pressed_at = harness.clock;
+        assert_eq!(
+            harness
+                .state
+                .active_recording(&active_mode(), pressed_at + TAP_LATCH_THRESHOLD),
+            ActiveRecording::Held { tapped: false }
+        );
+        assert_eq!(
+            harness.state.active_recording(
+                &active_mode(),
+                pressed_at + TAP_LATCH_THRESHOLD - Duration::from_millis(1)
+            ),
+            ActiveRecording::Held { tapped: true }
+        );
+    }
+
+    #[test]
+    fn repeat_presses_of_a_held_chord_produce_no_effect() {
+        let mut harness = Harness::new();
+        press_and_hold(&mut harness);
+        // macOS repeats key-down with no intervening key-up, far enough apart
+        // to clear DEBOUNCE.
+        for _ in 0..4 {
+            harness.advance(DEBOUNCE);
+            harness.input(active_mode(), true, true);
+        }
+        assert_eq!((harness.starts, harness.stops), (1, 0));
+        assert!(harness.is_recording());
+        assert!(
+            harness.state.grace_deadline().is_none(),
+            "a repeat press must not arm a release"
+        );
+    }
+
+    #[test]
+    fn a_release_after_a_tap_stop_is_ignored_by_the_busy_pipeline() {
+        let mut harness = Harness::new();
+        press_and_hold(&mut harness);
+        harness.advance(Duration::from_millis(100));
+        harness.input(active_mode(), false, true);
+        harness.advance(RELEASE_GRACE);
+        harness.grace_expired();
+        harness.input(active_mode(), true, true);
+        assert!(harness.is_processing());
+
+        // The key-up of the press that stopped the tap lands mid-pipeline.
+        harness.input(active_mode(), false, true);
+        assert_eq!((harness.starts, harness.stops), (1, 1));
+        assert!(harness.is_processing());
+
+        harness.processing_finished();
+        assert_eq!(harness.starts, 1, "a bare release must not arm a start");
+        assert!(harness.is_idle());
+    }
+
+    #[test]
+    fn external_edges_toggle_under_push_to_talk() {
+        let mut harness = Harness::new();
+        harness.external_press(active_mode(), true);
+        assert!(harness.is_recording());
+
+        // A signal has no key to release, so it latches on the press edge and
+        // the next edge stops it, debounce window or not.
+        harness.external_press(active_mode(), true);
         assert_eq!((harness.starts, harness.stops), (1, 1));
         assert!(harness.is_processing());
     }
@@ -758,6 +1165,8 @@ mod tests {
     fn a_push_to_talk_release_during_the_busy_window_forgets_the_press() {
         let mut harness = Harness::new();
         press_and_hold(&mut harness);
+        // A hold, so its release stops the recording instead of latching it.
+        harness.advance(TAP_LATCH_THRESHOLD);
         harness.input(active_mode(), false, true);
         harness.grace_expired();
         assert!(harness.is_processing());
@@ -814,12 +1223,12 @@ mod tests {
     #[test]
     fn external_toggles_keep_parity_inside_the_debounce_window() {
         let mut harness = Harness::new();
-        harness.external_press(active_mode());
+        harness.external_press(active_mode(), false);
         assert!(harness.is_recording());
 
         // 5 ms later, well inside DEBOUNCE: a keyboard repeat would be dropped,
         // but a signal or CLI edge is deliberate and must still toggle.
-        harness.external_press(active_mode());
+        harness.external_press(active_mode(), false);
         assert_eq!((harness.starts, harness.stops), (1, 1));
         assert!(harness.is_processing());
     }

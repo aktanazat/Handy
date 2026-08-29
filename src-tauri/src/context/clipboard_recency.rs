@@ -4,13 +4,17 @@
 //! primitive is its monotonically changing `changeCount`, so this module samples
 //! that cheap generation number once per second while a Full-context mode exists.
 //! A text value is read only by the run that needs it, and only when a generation
-//! change is known to have happened in the preceding three seconds.
+//! change is known to have happened inside that run's pre-roll window.
 
 use std::sync::{Condvar, LazyLock, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 const POLL_INTERVAL: Duration = Duration::from_secs(1);
-const RECENCY_WINDOW_MS: u64 = 3_000;
+/// How long before record-start a copy still counts as part of the dictation,
+/// unless the user has narrowed or widened it. Superwhisper's Super Mode uses
+/// the same three seconds, and it is short enough that an unrelated copy from
+/// earlier in the session never reaches a prompt.
+pub const DEFAULT_CLIPBOARD_PREROLL_MS: u64 = 3_000;
 /// A changed count is fresh only when the observer checked often enough to put
 /// an honest upper bound on its age. This lets scheduling hiccups degrade to
 /// `Stale` rather than claiming an old clipboard is recent.
@@ -23,11 +27,13 @@ pub(crate) struct Generation {
 }
 
 impl Generation {
-    pub(crate) fn is_fresh(self, now_ms: u64) -> bool {
+    /// Whether the last observed change is provably inside `preroll_ms` of
+    /// `now_ms`. An unknown change time is never treated as recent.
+    pub(crate) fn is_fresh(self, now_ms: u64, preroll_ms: u64) -> bool {
         self.count.is_some()
             && self
                 .changed_at_ms
-                .is_some_and(|changed_at| now_ms.saturating_sub(changed_at) <= RECENCY_WINDOW_MS)
+                .is_some_and(|changed_at| now_ms.saturating_sub(changed_at) <= preroll_ms)
     }
 
     pub(crate) fn matches_current(self) -> bool {
@@ -191,7 +197,7 @@ mod tests {
     }
 
     #[test]
-    fn closely_observed_change_is_fresh() {
+    fn closely_observed_change_is_fresh_inside_the_preroll() {
         let mut state = State {
             last_count: Some(8),
             last_observed_at_ms: Some(1_000),
@@ -202,8 +208,28 @@ mod tests {
             count: state.last_count,
             changed_at_ms: state.changed_at_ms,
         };
-        assert!(generation.is_fresh(4_999));
-        assert!(!generation.is_fresh(5_001));
+        assert!(generation.is_fresh(4_999, DEFAULT_CLIPBOARD_PREROLL_MS));
+        assert!(!generation.is_fresh(5_001, DEFAULT_CLIPBOARD_PREROLL_MS));
+    }
+
+    /// The window is the run's frozen setting, not a module constant: a copy
+    /// older than the configured pre-roll is excluded even when it would have
+    /// passed the default.
+    #[test]
+    fn a_copy_older_than_the_configured_preroll_is_excluded() {
+        let mut state = State {
+            last_count: Some(8),
+            last_observed_at_ms: Some(1_000),
+            ..State::default()
+        };
+        observe_locked(&mut state, 2_000, Some(9));
+        let generation = Generation {
+            count: state.last_count,
+            changed_at_ms: state.changed_at_ms,
+        };
+        assert!(generation.is_fresh(2_500, 1_000));
+        assert!(!generation.is_fresh(3_500, 1_000));
+        assert!(generation.is_fresh(3_500, 5_000));
     }
 
     #[test]

@@ -1,16 +1,17 @@
 //! macOS Accessibility-backed context capture.
 //!
 //! AX calls cross into a different application process. This module is called
-//! only from the capture worker, and every read is bounded twice: by its own
-//! message timeout, and by the capture's remaining budget
-//! ([`super::deadline::CaptureDeadline`]). An unresponsive target therefore
-//! degrades the sources it owns instead of starving the whole capture or
-//! delaying the recording hotkey.
+//! only from a capture worker or from the thread about to consume the context,
+//! and every read is bounded twice: by its own message timeout, and by the
+//! stage's remaining budget ([`super::deadline::CaptureDeadline`]). An
+//! unresponsive target therefore degrades the sources it owns instead of
+//! starving the whole capture or delaying the recording hotkey.
 
 use super::deadline::{CaptureDeadline, ReadBudget};
 use super::{
-    clipboard_recency, website_host_from_url, AccessibilityAccess, CaptureOptions, ContextPolicy,
-    ContextSourceStatus, RawCapture, SourceOutcome, WebsiteHostCapture,
+    clipboard_recency, website_host_from_url, AccessibilityAccess, ApplicationCapture,
+    CaptureOptions, ContextPolicy, ContextSourceStatus, SelectionCapture, SourceOutcome,
+    StartCapture, WebsiteHostCapture,
 };
 use objc2_app_kit::{NSPasteboard, NSPasteboardTypeString, NSWorkspace};
 use objc2_application_services::{AXError, AXIsProcessTrusted, AXUIElement};
@@ -72,107 +73,165 @@ pub(crate) fn accessibility_access() -> AccessibilityAccess {
     }
 }
 
-pub(crate) fn read(
+/// Reads the sources whose value is only true at record start: the selection the
+/// user is looking at, and a clipboard copy inside the pre-roll window.
+pub(crate) fn read_start(
     policy: ContextPolicy,
     options: CaptureOptions,
     clipboard_generation: clipboard_recency::Generation,
     deadline: CaptureDeadline,
-) -> RawCapture {
+) -> StartCapture {
+    let accessibility = accessibility_access();
+    let mut start = StartCapture {
+        accessibility,
+        ..StartCapture::default()
+    };
+
+    if policy.wants_clipboard() {
+        start.clipboard = read_recent_clipboard(clipboard_generation, options.clipboard_preroll_ms);
+    }
+
+    if !policy.wants_selection() {
+        return start;
+    }
+
+    if accessibility != AccessibilityAccess::Granted {
+        start.selected_text = SourceOutcome::Unavailable(ContextSourceStatus::PermissionDenied);
+        return start;
+    }
+
+    start.selected_text = match focused_element(deadline) {
+        Ok(element) => read_selection(&element, deadline),
+        Err(status) => SourceOutcome::Unavailable(status),
+    };
+    start
+}
+
+/// Reads the frontmost application and the control the text is about to land in.
+/// Called immediately before the step that consumes the context: switching
+/// windows between record start and this read deliberately changes the answer.
+pub(crate) fn read_application(
+    policy: ContextPolicy,
+    options: CaptureOptions,
+    captured_at_ms: u64,
+    deadline: CaptureDeadline,
+) -> ApplicationCapture {
     let (application_name, application_identifier) = frontmost_application();
     let target = SourceOutcome::read(
         application_identifier
             .clone()
             .or_else(|| application_name.clone()),
     );
-    let accessibility = accessibility_access();
-    let mut raw = RawCapture {
-        accessibility,
+    let mut capture = ApplicationCapture {
+        captured_at_ms: Some(captured_at_ms),
         application_name,
         application_identifier,
         target,
-        ..RawCapture::default()
+        ..ApplicationCapture::default()
     };
 
-    if policy.wants_clipboard() {
-        raw.clipboard = read_recent_clipboard(clipboard_generation);
+    // Opting out of URL capture is a user setting, not an absent source, and it
+    // is reported that way on every exit below.
+    if !options.url_capture_enabled {
+        capture.browser_url = SourceOutcome::Unavailable(ContextSourceStatus::Disabled);
+        if !policy.wants_focused_field() {
+            return capture;
+        }
     }
 
-    if !policy.wants_selection() && !policy.wants_focused_field() && !options.url_capture_enabled {
-        return raw;
-    }
-
-    if accessibility != AccessibilityAccess::Granted {
+    if accessibility_access() != AccessibilityAccess::Granted {
         assign_ax_unavailable(
-            &mut raw,
+            &mut capture,
             policy,
             options,
             ContextSourceStatus::PermissionDenied,
         );
-        return raw;
+        return capture;
     }
 
     let focused_application = match focused_application(deadline) {
-        Ok(application) => application,
+        Ok(element) => element,
         Err(status) => {
-            assign_ax_unavailable(&mut raw, policy, options, status);
-            return raw;
+            assign_ax_unavailable(&mut capture, policy, options, status);
+            return capture;
         }
     };
     let focused_element =
         match attribute_element(&focused_application, AX_FOCUSED_UI_ELEMENT, deadline) {
             Ok(element) => element,
             Err(status) => {
-                assign_ax_unavailable(&mut raw, policy, options, status);
-                return raw;
+                assign_ax_unavailable(&mut capture, policy, options, status);
+                return capture;
             }
         };
 
     let secure_field = is_secure_field(&focused_element, deadline);
     if secure_field {
-        // Do not ask a secure control for its value or selection. Accessibility
-        // can expose those values to a trusted client, but Sona never does.
+        // Do not ask a secure control for its value. Accessibility can expose
+        // that value to a trusted client, but Sona never does.
         if policy.wants_focused_field() {
-            raw.focused_field = SourceOutcome::Unavailable(ContextSourceStatus::SecureField);
+            capture.focused_field = SourceOutcome::Unavailable(ContextSourceStatus::SecureField);
         }
-        if policy.wants_selection() {
-            raw.selected_text = SourceOutcome::Unavailable(ContextSourceStatus::SecureField);
-        }
-    } else {
-        if policy.wants_focused_field() {
-            raw.focused_field_name = attribute_string(&focused_element, AX_TITLE, deadline)
-                .ok()
-                .flatten()
-                .or_else(|| {
-                    attribute_string(&focused_element, AX_DESCRIPTION, deadline)
-                        .ok()
-                        .flatten()
-                });
-            raw.focused_field = attribute_string(&focused_element, AX_VALUE, deadline)
-                .map(SourceOutcome::read)
-                .unwrap_or_else(SourceOutcome::Unavailable);
-        }
-        if policy.wants_selection() {
-            raw.selected_text = attribute_string(&focused_element, AX_SELECTED_TEXT, deadline)
-                .map(SourceOutcome::read)
-                .unwrap_or_else(SourceOutcome::Unavailable);
-        }
+    } else if policy.wants_focused_field() {
+        capture.focused_field_name = attribute_string(&focused_element, AX_TITLE, deadline)
+            .ok()
+            .flatten()
+            .or_else(|| {
+                attribute_string(&focused_element, AX_DESCRIPTION, deadline)
+                    .ok()
+                    .flatten()
+            });
+        capture.focused_field = attribute_string(&focused_element, AX_VALUE, deadline)
+            .map(SourceOutcome::read)
+            .unwrap_or_else(SourceOutcome::Unavailable);
     }
 
-    raw.browser_url = if policy.wants_target() {
-        if !options.url_capture_enabled {
-            SourceOutcome::Unavailable(ContextSourceStatus::Disabled)
-        } else if secure_field {
+    if options.url_capture_enabled {
+        capture.browser_url = if secure_field {
             // A browser URL identifies the same private interaction as the
             // focused secure control, so it is excluded with that control.
             SourceOutcome::Unavailable(ContextSourceStatus::SecureField)
         } else {
             find_url(&focused_element, &focused_application, deadline)
-        }
-    } else {
-        SourceOutcome::Unavailable(ContextSourceStatus::NotRequested)
-    };
+        };
+    }
 
-    raw
+    capture
+}
+
+/// Reads the current selection for an explicit user action. Independent of the
+/// ambient policy: the caller's shortcut is the request.
+pub(crate) fn capture_selected_text() -> SelectionCapture {
+    if accessibility_access() != AccessibilityAccess::Granted {
+        return SelectionCapture::Unavailable(ContextSourceStatus::PermissionDenied);
+    }
+
+    let deadline = CaptureDeadline::starting_now();
+    match focused_element(deadline).map(|element| read_selection(&element, deadline)) {
+        Ok(SourceOutcome::Captured(text)) => SelectionCapture::Captured(text),
+        Ok(SourceOutcome::Unavailable(status)) => SelectionCapture::Unavailable(status),
+        Err(status) => SelectionCapture::Unavailable(status),
+    }
+}
+
+/// The focused control of the frontmost application, or the reason it could not
+/// be reached. Both selection readers start here.
+fn focused_element(
+    deadline: CaptureDeadline,
+) -> Result<CFRetained<AXUIElement>, ContextSourceStatus> {
+    let focused_application = focused_application(deadline)?;
+    attribute_element(&focused_application, AX_FOCUSED_UI_ELEMENT, deadline)
+}
+
+/// A secure control's selection is never read, even though Accessibility would
+/// hand it over.
+fn read_selection(element: &AXUIElement, deadline: CaptureDeadline) -> SourceOutcome {
+    if is_secure_field(element, deadline) {
+        return SourceOutcome::Unavailable(ContextSourceStatus::SecureField);
+    }
+    attribute_string(element, AX_SELECTED_TEXT, deadline)
+        .map(SourceOutcome::read)
+        .unwrap_or_else(SourceOutcome::Unavailable)
 }
 
 pub(crate) fn frontmost_application_identifier() -> Option<String> {
@@ -225,8 +284,14 @@ fn frontmost_application() -> (Option<String>, Option<String>) {
     (name, identifier)
 }
 
-fn read_recent_clipboard(generation: clipboard_recency::Generation) -> SourceOutcome {
-    if !generation.is_fresh(super::now_ms()) || !generation.matches_current() {
+/// Reads clipboard text only when its last change is provably inside the
+/// caller's pre-roll window. `preroll_ms` is the run's frozen setting, so a
+/// mid-run edit cannot widen what this run may read.
+fn read_recent_clipboard(
+    generation: clipboard_recency::Generation,
+    preroll_ms: u64,
+) -> SourceOutcome {
+    if !generation.is_fresh(super::now_ms(), preroll_ms) || !generation.matches_current() {
         return SourceOutcome::Unavailable(ContextSourceStatus::Stale);
     }
     // This runs on the per-run capture worker, a thread with no pool of its own.
@@ -296,25 +361,23 @@ fn is_secure_field(element: &AXUIElement, deadline: CaptureDeadline) -> bool {
     })
 }
 
+/// Reports one Accessibility failure against every source of the application
+/// stage that asked for it. The selection is not one of them: it belongs to the
+/// record-start stage and reports its own reason there.
 fn assign_ax_unavailable(
-    raw: &mut RawCapture,
+    capture: &mut ApplicationCapture,
     policy: ContextPolicy,
     options: CaptureOptions,
     status: ContextSourceStatus,
 ) {
     if policy.wants_focused_field() {
-        raw.focused_field = SourceOutcome::Unavailable(status);
+        capture.focused_field = SourceOutcome::Unavailable(status);
     }
-    if policy.wants_selection() {
-        raw.selected_text = SourceOutcome::Unavailable(status);
-    }
-    if policy.wants_target() {
-        raw.browser_url = SourceOutcome::Unavailable(if options.url_capture_enabled {
-            status
-        } else {
-            ContextSourceStatus::Disabled
-        });
-    }
+    capture.browser_url = SourceOutcome::Unavailable(if options.url_capture_enabled {
+        status
+    } else {
+        ContextSourceStatus::Disabled
+    });
 }
 
 fn set_timeout(element: &AXUIElement, timeout: Duration) -> Result<(), ContextSourceStatus> {

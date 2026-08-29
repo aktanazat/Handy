@@ -100,12 +100,17 @@ pub fn unregister_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<
 }
 
 /// Return the full persisted registration set in a deterministic order. The
-/// cancel key is registered only while a recording is active.
+/// cancel key is registered only while a recording is active, and the command
+/// chord only while command mode is on — a disabled feature must release its
+/// chord to the rest of the system rather than swallow it.
 pub(crate) fn bindings_for_registration(settings: &AppSettings) -> Vec<ShortcutBinding> {
     let mut bindings: Vec<_> = settings
         .bindings
         .iter()
         .filter(|(id, _)| id.as_str() != "cancel")
+        .filter(|(id, _)| {
+            settings.command_mode_enabled || id.as_str() != crate::command_mode::COMMAND_BINDING_ID
+        })
         .map(|(_, binding)| binding.clone())
         .collect();
     bindings.sort_by(|left, right| left.id.cmp(&right.id));

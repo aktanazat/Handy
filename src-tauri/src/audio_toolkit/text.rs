@@ -1,4 +1,4 @@
-use crate::settings::{EmojiReplacement, EnglishSpelling, VocabularyEntry};
+use crate::settings::{EmojiReplacement, EnglishSpelling, ReplacementRule, VocabularyEntry};
 use natural::phonetics::soundex;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -144,6 +144,14 @@ fn find_best_vocabulary_match<'a>(
 /// Applies deterministic fuzzy corrections from spoken forms to written forms.
 /// The existing threshold, three-token n-gram ceiling, punctuation boundary,
 /// and length guards remain the sole fuzzy matching policy.
+///
+/// Correction runs per line. Stages before this one legitimately emit line
+/// breaks (spoken punctuation writes `\n` and `\n\n`, and so can a user
+/// replacement rule), and this stage rebuilds its output from whitespace-split
+/// tokens, so without the split it would silently rejoin those breaks as
+/// spaces. Confining a match to one line is also correct on its own terms: a
+/// line end is at least as strong a phrase boundary as a space, so an n-gram
+/// should never span one.
 pub fn apply_vocabulary_entries(text: &str, entries: &[VocabularyEntry], threshold: f64) -> String {
     if entries.is_empty() {
         return text.to_string();
@@ -159,7 +167,21 @@ pub fn apply_vocabulary_entries(text: &str, entries: &[VocabularyEntry], thresho
         return text.to_string();
     }
 
-    let words: Vec<&str> = text.split_whitespace().collect();
+    text.split('\n')
+        .map(|line| apply_vocabulary_entries_to_line(line, entries, &match_keys, threshold))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// One line of [`apply_vocabulary_entries`]. Split out only so the match keys
+/// are built once for the whole text rather than once per line.
+fn apply_vocabulary_entries_to_line(
+    line: &str,
+    entries: &[VocabularyEntry],
+    match_keys: &[VocabularyMatchKey],
+    threshold: f64,
+) -> String {
+    let words: Vec<&str> = line.split_whitespace().collect();
     let mut result = Vec::with_capacity(words.len());
     let mut index = 0;
 
@@ -179,7 +201,7 @@ pub fn apply_vocabulary_entries(text: &str, entries: &[VocabularyEntry], thresho
             }
             let candidate = build_ngram(ngram_words);
             if let Some((entry, score)) =
-                find_best_vocabulary_match(&candidate, entries, &match_keys, threshold)
+                find_best_vocabulary_match(&candidate, entries, match_keys, threshold)
             {
                 if ngram_len > 1 && !starts_with_spoken_character(&candidate, entry) {
                     continue;
@@ -223,6 +245,90 @@ pub(crate) fn has_token_boundaries(text: &str, start: usize, end: usize) -> bool
     let after = text[end..].chars().next();
     before.is_none_or(|character| !is_token_character(character))
         && after.is_none_or(|character| !is_token_character(character))
+}
+
+/// Byte length of the prefix of `text` whose lowercase folding equals
+/// `lowercase_phrase`, or `None` when no whole-character prefix matches.
+///
+/// Case-insensitive phrase matching is done by folding rather than by regex so
+/// user-authored phrase text can never be read as pattern syntax.
+pub(crate) fn lowercase_prefix_len(text: &str, lowercase_phrase: &str) -> Option<usize> {
+    let mut expected = lowercase_phrase.chars();
+    for (offset, character) in text.char_indices() {
+        if expected.as_str().is_empty() {
+            return Some(offset);
+        }
+        for lowered in character.to_lowercase() {
+            if expected.next() != Some(lowered) {
+                return None;
+            }
+        }
+    }
+    expected.as_str().is_empty().then_some(text.len())
+}
+
+/// One rule prepared for matching, with its spoken form folded once instead of
+/// once per candidate position.
+struct PreparedReplacement<'a> {
+    lowercase_spoken: String,
+    written: &'a str,
+}
+
+/// Applies the user's deterministic replacement rules.
+///
+/// Runs before vocabulary correction so a rewritten phrase is never also fuzzy
+/// matched. Matching is case-insensitive, respects Unicode token boundaries, and
+/// prefers the longest rule when several match at one position, so `dot com`
+/// wins over a `dot` rule at the same offset. Written forms are inserted
+/// verbatim and are never rescanned, which makes the pass idempotent.
+pub fn apply_text_replacements(text: &str, rules: &[ReplacementRule]) -> String {
+    if text.is_empty() {
+        return text.to_string();
+    }
+    let prepared: Vec<PreparedReplacement<'_>> = rules
+        .iter()
+        .filter(|rule| rule.enabled && rule.is_usable())
+        .map(|rule| PreparedReplacement {
+            lowercase_spoken: rule.spoken.trim().to_lowercase(),
+            written: rule.written.as_str(),
+        })
+        .collect();
+    if prepared.is_empty() {
+        return text.to_string();
+    }
+
+    let mut result = String::with_capacity(text.len());
+    let mut cursor = 0;
+
+    for (start, _) in text.char_indices() {
+        if start < cursor {
+            continue;
+        }
+        let mut selected: Option<(usize, &str)> = None;
+        for rule in &prepared {
+            let Some(length) = lowercase_prefix_len(&text[start..], &rule.lowercase_spoken) else {
+                continue;
+            };
+            let end = start + length;
+            if has_token_boundaries(text, start, end)
+                && selected.is_none_or(|(current, _)| length > current)
+            {
+                selected = Some((length, rule.written));
+            }
+        }
+
+        if let Some((length, written)) = selected {
+            result.push_str(&text[cursor..start]);
+            result.push_str(written);
+            cursor = start + length;
+        }
+    }
+
+    if cursor == 0 {
+        return text.to_string();
+    }
+    result.push_str(&text[cursor..]);
+    result
 }
 
 /// Applies exact phrase replacements while respecting Unicode token boundaries.
@@ -787,6 +893,12 @@ fn spoken_punctuation_at(
     } else if current.eq_ignore_ascii_case("new")
         && words
             .get(index + 1)
+            .is_some_and(|word| word.eq_ignore_ascii_case("paragraph"))
+    {
+        Some(("new paragraph", 2, "\n\n"))
+    } else if current.eq_ignore_ascii_case("new")
+        && words
+            .get(index + 1)
             .is_some_and(|word| word.eq_ignore_ascii_case("line"))
     {
         Some(("new line", 2, "\n"))
@@ -822,9 +934,14 @@ pub fn apply_literal_punctuation(
                 while output.ends_with(' ') {
                     output.pop();
                 }
-                if replacement == "\n" {
-                    if !output.is_empty() && !output.ends_with('\n') {
-                        output.push('\n');
+                if replacement.starts_with('\n') {
+                    // A break before any text has nothing to separate, and two
+                    // adjacent break phrases widen to the larger break rather
+                    // than stacking into arbitrary vertical space.
+                    let trailing = output.len() - output.trim_end_matches('\n').len();
+                    if !output.is_empty() && replacement.len() > trailing {
+                        output.truncate(output.len() - trailing);
+                        output.push_str(replacement);
                     }
                 } else {
                     output.push_str(replacement);
@@ -862,7 +979,15 @@ fn gated_filler_words_for_language(lang: &str) -> &'static [&'static str] {
     }
 }
 
-static MULTI_SPACE_PATTERN: Lazy<Regex> = Lazy::new(|| Regex::new(r"\s{2,}").unwrap());
+/// Runs of two or more spaces/tabs on one line. Deliberately excludes newlines:
+/// collapsing every whitespace run with a single `\s{2,}` pass would erase any
+/// line break an earlier stage produced, which is why line breaks get their own
+/// pattern below instead of being folded in here.
+static MULTI_SPACE_PATTERN: Lazy<Regex> = Lazy::new(|| Regex::new(r"[^\S\n]{2,}").unwrap());
+
+/// A whitespace run containing at least one line break, together with the
+/// horizontal padding on either side of it.
+static LINE_BREAK_RUN_PATTERN: Lazy<Regex> = Lazy::new(|| Regex::new(r"\s*\n\s*").unwrap());
 
 /// Collapses repeated words (3+ repetitions) to a single instance.
 /// E.g., "wh wh wh wh" -> "wh", "I I I I" -> "I"
@@ -967,19 +1092,32 @@ pub fn remove_filler_words(
 ///
 /// Kept separate from [`remove_filler_words`] so disabling filler deletion
 /// does not also disable the existing repeated-word and whitespace cleanup.
+///
+/// Line breaks survive. Earlier stages legitimately emit them — the spoken
+/// punctuation table writes `\n` and `\n\n`, and a user replacement rule or an
+/// LLM rewrite can emit either — so this stage normalizes vertical whitespace
+/// (one break stays one break, several collapse to a paragraph break) instead
+/// of flattening it into a space.
 pub fn normalize_transcription_output(text: &str) -> String {
-    let mut normalized = text
+    let normalized = text
         .split('\n')
         .map(collapse_stutters)
         .collect::<Vec<_>>()
         .join("\n");
 
-    // Clean up multiple spaces to single space
-    normalized = MULTI_SPACE_PATTERN
-        .replace_all(&normalized, " ")
-        .to_string();
+    let normalized =
+        LINE_BREAK_RUN_PATTERN.replace_all(&normalized, |captures: &regex::Captures<'_>| {
+            // PANIC: regex replace callbacks always contain capture group zero.
+            let run = captures.get(0).expect("line break run has text").as_str();
+            if run.bytes().filter(|byte| *byte == b'\n').count() > 1 {
+                "\n\n"
+            } else {
+                "\n"
+            }
+        });
 
-    // Trim leading/trailing whitespace
+    let normalized = MULTI_SPACE_PATTERN.replace_all(&normalized, " ");
+
     normalized.trim().to_string()
 }
 
@@ -1016,6 +1154,168 @@ mod tests {
             spoken: spoken.to_string(),
             written: written.to_string(),
         }
+    }
+
+    fn rule(spoken: &str, written: &str) -> ReplacementRule {
+        ReplacementRule {
+            spoken: spoken.to_string(),
+            written: written.to_string(),
+            enabled: true,
+        }
+    }
+
+    /// The starter library, as a fixture, so these tests exercise what ships.
+    fn starter_rules() -> Vec<ReplacementRule> {
+        crate::settings::default_replacement_rules()
+    }
+
+    #[test]
+    fn replacements_rewrite_whole_phrases_case_insensitively() {
+        let rules = starter_rules();
+        assert_eq!(
+            apply_text_replacements("email me at sign example dot com", &rules),
+            "email me @ example .com"
+        );
+        assert_eq!(apply_text_replacements("At Sign", &rules), "@");
+        assert_eq!(apply_text_replacements("HASHTAG", &rules), "#");
+    }
+
+    #[test]
+    fn a_longer_rule_wins_over_a_shorter_one_at_the_same_position() {
+        let rules = vec![rule("dot", "."), rule("dot com", ".com")];
+        assert_eq!(apply_text_replacements("dot com", &rules), ".com");
+        // Order in the list must not decide the outcome.
+        let reversed = vec![rule("dot com", ".com"), rule("dot", ".")];
+        assert_eq!(apply_text_replacements("dot com", &reversed), ".com");
+        // The shorter rule still fires where the longer one cannot match.
+        assert_eq!(apply_text_replacements("dot net", &rules), ". net");
+    }
+
+    #[test]
+    fn replacements_never_fire_inside_a_longer_word() {
+        let rules = vec![rule("at sign", "@"), rule("hashtag", "#")];
+        assert_eq!(
+            apply_text_replacements("hashtagged posts", &rules),
+            "hashtagged posts"
+        );
+        assert_eq!(
+            apply_text_replacements("format sign here", &rules),
+            "format sign here"
+        );
+    }
+
+    #[test]
+    fn applying_replacements_twice_changes_nothing_the_second_time() {
+        let rules = starter_rules();
+        let once = apply_text_replacements("say at sign then new paragraph please", &rules);
+        assert_eq!(apply_text_replacements(&once, &rules), once);
+    }
+
+    #[test]
+    fn written_output_is_never_rescanned_as_input() {
+        // Without the single-pass cursor this would loop or double-apply.
+        let rules = vec![rule("alpha", "alpha beta"), rule("beta", "gamma")];
+        assert_eq!(
+            apply_text_replacements("alpha", &rules),
+            "alpha beta".to_string()
+        );
+    }
+
+    #[test]
+    fn disabled_and_unusable_rules_are_skipped() {
+        let mut disabled = rule("at sign", "@");
+        disabled.enabled = false;
+        assert_eq!(
+            apply_text_replacements("at sign", &[disabled]),
+            "at sign".to_string()
+        );
+        assert_eq!(
+            apply_text_replacements("at sign", &[rule("at sign", "")]),
+            "at sign".to_string()
+        );
+        assert_eq!(
+            apply_text_replacements("at sign", &[rule("   ", "@")]),
+            "at sign".to_string()
+        );
+    }
+
+    #[test]
+    fn an_empty_rule_set_returns_the_text_untouched() {
+        assert_eq!(apply_text_replacements("unchanged", &[]), "unchanged");
+        assert_eq!(apply_text_replacements("", &starter_rules()), "");
+    }
+
+    #[test]
+    fn the_starter_library_leaves_spoken_line_breaks_to_the_punctuation_table() {
+        // Owning "new line" in two places would let the replacements stage
+        // override a user who turned literal punctuation off.
+        let owns_a_break_phrase = starter_rules()
+            .iter()
+            .any(|rule| rule.spoken == "new line" || rule.spoken == "new paragraph");
+        assert!(!owns_a_break_phrase);
+    }
+
+    #[test]
+    fn normalization_preserves_a_paragraph_break() {
+        assert_eq!(
+            normalize_transcription_output("first\n\nsecond"),
+            "first\n\nsecond"
+        );
+        assert_eq!(
+            normalize_transcription_output("first\nsecond"),
+            "first\nsecond"
+        );
+    }
+
+    #[test]
+    fn normalization_tidies_whitespace_around_a_break_without_erasing_it() {
+        assert_eq!(
+            normalize_transcription_output("first  \n   second"),
+            "first\nsecond"
+        );
+        assert_eq!(
+            normalize_transcription_output("first \n \n \n second"),
+            "first\n\nsecond"
+        );
+    }
+
+    #[test]
+    fn normalization_still_collapses_runs_of_spaces_on_one_line() {
+        assert_eq!(
+            normalize_transcription_output("  too    many   spaces  "),
+            "too many spaces"
+        );
+        assert_eq!(
+            normalize_transcription_output("\n\n only line \n\n"),
+            "only line"
+        );
+    }
+
+    #[test]
+    fn spoken_punctuation_produces_both_break_widths() {
+        let english = OutputLanguageEvidence::UserSelected("en-US".to_string());
+        assert_eq!(
+            apply_literal_punctuation("one new line two", &english, true, &[]),
+            "one\ntwo"
+        );
+        assert_eq!(
+            apply_literal_punctuation("one new paragraph two", &english, true, &[]),
+            "one\n\ntwo"
+        );
+        // A leading break has nothing to separate, and adjacent break phrases
+        // widen rather than stack.
+        assert_eq!(
+            apply_literal_punctuation("new paragraph one", &english, true, &[]),
+            "one"
+        );
+        assert_eq!(
+            apply_literal_punctuation("one new line new paragraph two", &english, true, &[]),
+            "one\n\ntwo"
+        );
+        assert_eq!(
+            apply_literal_punctuation("one new paragraph new line two", &english, true, &[]),
+            "one\n\ntwo"
+        );
     }
 
     #[test]

@@ -2,8 +2,8 @@ use crate::audio_toolkit::text::vocabulary_spoken_key;
 use crate::context::{self, CaptureOptions, ContextPolicy, ContextSnapshot, PendingContext};
 use crate::settings::{
     self, AppSettings, AutoSubmitKey, ClipboardHandling, EmojiReplacement, EnglishSpelling,
-    OrtAcceleratorSetting, PasteMethod, PostProcessEndpoint, PostProcessProvider, ShortcutBinding,
-    TranscribeAcceleratorSetting, TypingTool, VocabularyEntry,
+    OrtAcceleratorSetting, PasteMethod, PersonaSample, PostProcessEndpoint, PostProcessProvider,
+    ReplacementRule, ShortcutBinding, TranscribeAcceleratorSetting, TypingTool, VocabularyEntry,
 };
 use crate::snippets::Snippet;
 use serde::{Deserialize, Serialize};
@@ -77,6 +77,7 @@ fn default_cloud_timestamps() -> bool {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize, Type)]
 pub struct ModeAsrSettings {
+    /// Empty inherits the globally selected model at plan-build time.
     pub model_id: String,
     pub language: String,
     pub translate_to_english: bool,
@@ -332,12 +333,18 @@ pub enum TranscriptionIntent {
     ActiveModeWithPostProcess,
     /// Start or stop one explicitly addressed mode.
     Mode { mode_id: String },
+    /// Start or stop a voice command run: the transcript is an instruction, and
+    /// the text selected when the chord was pressed is what it edits.
+    Command,
 }
 
 impl TranscriptionIntent {
     pub fn from_binding(binding_id: &str) -> Option<Self> {
         if binding_id == "transcribe" {
             return Some(Self::ActiveMode);
+        }
+        if binding_id == crate::command_mode::COMMAND_BINDING_ID {
+            return Some(Self::Command);
         }
 
         match parse_mode_shortcut_id(binding_id) {
@@ -351,6 +358,7 @@ impl TranscriptionIntent {
             Self::ActiveMode => "transcribe".to_string(),
             Self::ActiveModeWithPostProcess => "intent/active-mode/post-process".to_string(),
             Self::Mode { mode_id } => transcribe_binding_id(mode_id),
+            Self::Command => crate::command_mode::COMMAND_BINDING_ID.to_string(),
         }
     }
 }
@@ -1114,12 +1122,23 @@ pub struct AsrPlan {
     pub transcribe_accelerator: TranscribeAcceleratorSetting,
     pub transcribe_gpu_device: Option<String>,
     pub ort_accelerator: OrtAcceleratorSetting,
+    pub replacements_rules: Vec<ReplacementRule>,
+    pub replacements_enabled: bool,
 }
 
 impl AsrPlan {
     fn from_mode(settings: &AppSettings, mode: &ModeAsrSettings) -> Self {
+        // An empty per-mode model means "inherit the globally selected model".
+        // The default modes are created before onboarding has picked a model,
+        // so they persist an empty id; resolving the inheritance here keeps
+        // settings.selected_model the single source of truth for it.
+        let model_id = if mode.model_id.trim().is_empty() {
+            settings.selected_model.clone()
+        } else {
+            mode.model_id.clone()
+        };
         Self {
-            model_id: mode.model_id.clone(),
+            model_id,
             language: mode.language.clone(),
             translate_to_english: mode.translate_to_english,
             custom_words: effective_vocabulary(&settings.custom_words, &mode.custom_words),
@@ -1136,6 +1155,8 @@ impl AsrPlan {
             transcribe_accelerator: settings.transcribe_accelerator,
             transcribe_gpu_device: settings.transcribe_gpu_device.clone(),
             ort_accelerator: settings.ort_accelerator,
+            replacements_rules: settings.replacements_rules.clone(),
+            replacements_enabled: settings.replacements_enabled,
         }
     }
 
@@ -1158,6 +1179,8 @@ impl AsrPlan {
             transcribe_accelerator: settings.transcribe_accelerator,
             transcribe_gpu_device: settings.transcribe_gpu_device.clone(),
             ort_accelerator: settings.ort_accelerator,
+            replacements_rules: settings.replacements_rules.clone(),
+            replacements_enabled: settings.replacements_enabled,
         }
     }
 }
@@ -1176,6 +1199,9 @@ pub struct PromptPlan {
     pub custom_prompt: Option<String>,
     pub llm: Option<ResolvedLlmSettings>,
     pub post_process_requested: bool,
+    /// Samples of the user's own writing, frozen at run start like every other
+    /// plan field so a mid-run settings edit cannot change the prompt.
+    pub persona_samples: Vec<PersonaSample>,
 }
 
 #[derive(Clone, Debug)]
@@ -1211,6 +1237,29 @@ impl ContextPlan {
         )));
     }
 }
+
+/// The frozen operand of a voice command run: the text that was selected when
+/// the user pressed the command chord.
+///
+/// The selection is captured before the microphone opens, so the rewrite edits
+/// what the user was looking at when they started speaking even if the screen
+/// changes while they speak. Its presence on a [`RunPlan`] is what makes the run
+/// a command; there is no second flag to keep in step.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CommandPlan {
+    selection: String,
+}
+
+impl CommandPlan {
+    pub(crate) fn new(selection: String) -> Self {
+        Self { selection }
+    }
+
+    pub fn selection(&self) -> &str {
+        &self.selection
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Eq, Serialize, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum RequestedEngine {
@@ -1308,10 +1357,21 @@ pub enum RunPlanError {
     MissingPostProcessProvider,
     InvalidPostProcessDestination,
     PostProcessConsentRequired,
-    CloudConsentRequired { provider: CloudSttProvider },
-    CloudPrivacyConsentRequired { provider: CloudSttProvider },
-    CloudTimestampsRequired { provider: CloudSttProvider },
-    CloudFallbackModelRequired { provider: CloudSttProvider },
+    CloudConsentRequired {
+        provider: CloudSttProvider,
+    },
+    CloudPrivacyConsentRequired {
+        provider: CloudSttProvider,
+    },
+    CloudTimestampsRequired {
+        provider: CloudSttProvider,
+    },
+    CloudFallbackModelRequired {
+        provider: CloudSttProvider,
+    },
+    /// The command chord was pressed with nothing selected. Nothing was
+    /// recorded: a command needs an operand before it needs audio.
+    CommandWithoutSelection,
 }
 
 impl fmt::Display for RunPlanError {
@@ -1340,6 +1400,9 @@ impl fmt::Display for RunPlanError {
             Self::CloudFallbackModelRequired { .. } => {
                 formatter.write_str("Cloud transcription requires a local fallback model")
             }
+            Self::CommandWithoutSelection => {
+                formatter.write_str("Voice command mode needs text selected before you speak")
+            }
         }
     }
 }
@@ -1362,6 +1425,9 @@ pub struct RunPlan {
     local_fallback: Option<AsrPlan>,
     cloud: Option<CloudRunPlan>,
     mode_selection_source: ModeSelectionSource,
+    /// Present exactly for a voice command run, carrying the selection it
+    /// rewrites. See [`CommandPlan`].
+    command: Option<CommandPlan>,
 }
 
 fn matching_app_activation_mode<'a>(
@@ -1454,6 +1520,9 @@ impl RunPlan {
         website_host: Option<&str>,
     ) -> Result<Self, RunPlanError> {
         let (mode, post_process_override, mode_selection_source) = match intent {
+            // A command run resolves its own plan: the text it edits has to be
+            // captured before any mode, rule, or website is considered.
+            TranscriptionIntent::Command => return Self::for_command(settings),
             TranscriptionIntent::Mode { mode_id } => (
                 settings.modes.iter().find(|mode| mode.id == *mode_id),
                 None,
@@ -1506,6 +1575,7 @@ impl RunPlan {
                 custom_prompt: None,
                 llm: None,
                 post_process_requested: false,
+                persona_samples: Vec::new(),
             },
             context: ContextPlan {
                 requested_policy,
@@ -1522,6 +1592,7 @@ impl RunPlan {
             local_fallback: None,
             mode_selection_source: ModeSelectionSource::ActiveMode,
             cloud: None,
+            command: None,
         })
     }
 
@@ -1621,6 +1692,7 @@ impl RunPlan {
                 ceiling,
                 CaptureOptions {
                     url_capture_enabled: settings.context_url_capture_enabled,
+                    clipboard_preroll_ms: settings.context_capture_clipboard_preroll_ms,
                 },
             )),
         };
@@ -1637,6 +1709,7 @@ impl RunPlan {
                 custom_prompt: mode.prompt.custom_prompt,
                 llm,
                 post_process_requested,
+                persona_samples: settings.persona_samples.clone(),
             },
             context,
             delivery: DeliveryPlan::from(&mode.delivery),
@@ -1644,6 +1717,7 @@ impl RunPlan {
             local_fallback,
             cloud,
             mode_selection_source,
+            command: None,
         })
     }
 
@@ -1663,6 +1737,59 @@ impl RunPlan {
             mode,
             Some(post_process_requested),
             ModeSelectionSource::ActiveMode,
+        )?;
+        run.context.without_live_capture();
+        Ok(run)
+    }
+
+    /// Freeze a voice command run: the text selected right now becomes the
+    /// operand, and the active mode supplies the audio and rewrite settings.
+    ///
+    /// The selection is read before the microphone opens, so a chord pressed
+    /// with nothing selected costs the user nothing. Command mode always
+    /// rewrites, so the mode's own post-processing switch is overridden — the
+    /// spoken words are an instruction, and pasting them over the selection is
+    /// never what was asked for.
+    pub fn for_command(settings: &AppSettings) -> Result<Self, RunPlanError> {
+        let selection = match context::capture_selected_text() {
+            context::SelectionCapture::Captured(selection) => selection,
+            context::SelectionCapture::Unavailable(reason) => {
+                log::debug!("Refusing a command run: no usable selection ({reason:?})");
+                return Err(RunPlanError::CommandWithoutSelection);
+            }
+        };
+        let mode = active_mode(settings)
+            .cloned()
+            .ok_or(RunPlanError::NoMatchingMode)?;
+        let mut run = Self::for_mode(settings, mode, Some(true), ModeSelectionSource::ActiveMode)?;
+        // A rewritten selection is a replacement, not an insertion: a trailing
+        // space or a submit key would corrupt the text it replaced.
+        run.delivery.append_trailing_space = false;
+        run.delivery.auto_submit = false;
+        run.command = Some(CommandPlan::new(selection));
+        Ok(run)
+    }
+
+    /// Freeze a stored recording for reprocessing under an explicitly chosen
+    /// mode. Unlike [`Self::for_retry`], which repeats the original run under
+    /// whatever mode is active now, this exists to run the same audio through a
+    /// *different* mode, so the target mode's own rewrite decision applies
+    /// rather than the source entry's. Replay never reaches a cloud engine and
+    /// never captures live selection or application context: the recording
+    /// already happened, so anything captured now describes the wrong moment.
+    pub fn for_reprocess(settings: &AppSettings, mode_id: &str) -> Result<Self, RunPlanError> {
+        let mut mode = settings
+            .modes
+            .iter()
+            .find(|mode| mode.id == mode_id)
+            .cloned()
+            .ok_or(RunPlanError::NoMatchingMode)?;
+        mode.asr.requested_engine = RequestedEngine::Local;
+        let mut run = Self::for_mode(
+            settings,
+            mode,
+            None,
+            ModeSelectionSource::ExplicitModeShortcut,
         )?;
         run.context.without_live_capture();
         Ok(run)
@@ -1711,6 +1838,12 @@ impl RunPlan {
 
     pub fn context_plan(&self) -> &ContextPlan {
         &self.context
+    }
+
+    /// The selection this run rewrites, for a voice command run only. `None` is
+    /// what makes every other run a dictation.
+    pub fn command(&self) -> Option<&CommandPlan> {
+        self.command.as_ref()
     }
 
     pub fn mode_receipt(&self) -> ModeReceipt {
@@ -1839,6 +1972,107 @@ mod tests {
             provider_id.to_string(),
             crate::settings::PostProcessProviderConsent::for_endpoint(&endpoint),
         );
+    }
+
+    /// Reprocessing exists to run stored audio through a *different* mode, so
+    /// the plan must come from the named mode rather than the active one, and
+    /// must carry that mode's own rewrite decision.
+    #[test]
+    fn for_reprocess_freezes_the_named_mode_not_the_active_one() {
+        let mut settings = configured_settings();
+        let mut second = settings.modes[0].clone();
+        second.id = "mode_reprocess_target".to_string();
+        second.name = "Target".to_string();
+        second.tone = Tone::Formal;
+        second.prompt.preset = PromptPreset::Email;
+        settings.modes.push(second);
+        let active_id = settings.active_mode_id.clone();
+        assert_ne!(active_id, "mode_reprocess_target");
+
+        let run = RunPlan::for_reprocess(&settings, "mode_reprocess_target")
+            .expect("named mode resolves");
+
+        assert_eq!(run.mode_id, "mode_reprocess_target");
+        assert_eq!(run.prompt().preset, PromptPreset::Email);
+        assert_eq!(run.prompt().tone, Tone::Formal);
+        // Choosing a mode to reprocess with must not change what the next
+        // dictation uses.
+        assert_eq!(settings.active_mode_id, active_id);
+    }
+
+    #[test]
+    fn for_reprocess_rejects_an_unknown_mode() {
+        let settings = configured_settings();
+        assert!(matches!(
+            RunPlan::for_reprocess(&settings, "mode_does_not_exist"),
+            Err(RunPlanError::NoMatchingMode)
+        ));
+    }
+
+    #[test]
+    fn an_empty_mode_model_inherits_the_global_selection() {
+        let mut settings = configured_settings();
+        settings.selected_model = "globally-chosen-model".to_string();
+        settings.modes[0].asr.model_id.clear();
+        settings.active_mode_id = settings.modes[0].id.clone();
+
+        let run = RunPlan::for_intent(&settings, &TranscriptionIntent::ActiveMode)
+            .expect("active mode resolves");
+        assert_eq!(run.asr().model_id, "globally-chosen-model");
+
+        // A mode that names its own model keeps it.
+        settings.modes[0].asr.model_id = "mode-specific".to_string();
+        let run = RunPlan::for_intent(&settings, &TranscriptionIntent::ActiveMode)
+            .expect("active mode resolves");
+        assert_eq!(run.asr().model_id, "mode-specific");
+    }
+
+    /// The recording already happened. Capturing the selection or frontmost app
+    /// now would describe the wrong moment, and a stored WAV must never be
+    /// re-uploaded to a cloud engine on the user's behalf.
+    #[test]
+    fn for_reprocess_replays_locally_without_live_context() {
+        let settings = configured_settings();
+        let mode_id = settings.active_mode_id.clone();
+
+        let run = RunPlan::for_reprocess(&settings, &mode_id).expect("active mode resolves");
+
+        assert_eq!(run.asr().model_id, settings.modes[0].asr.model_id);
+        assert!(run.cloud().is_none());
+        // No live selection, clipboard, or application context is read for a
+        // replay: the receipt records a capture that was never requested rather
+        // than an empty one that was.
+        let receipt = run.context().receipt().clone();
+        assert_eq!(receipt.policy, ContextPolicy::None);
+        let sources = receipt.sources;
+        for status in [
+            sources.target,
+            sources.focused_field,
+            sources.selected_text,
+            sources.browser_url,
+            sources.clipboard,
+        ] {
+            assert_ne!(
+                status,
+                crate::context::ContextSourceStatus::Captured,
+                "a replay must not claim to have read anything"
+            );
+        }
+        assert_eq!(receipt.application_captured_at_ms, None);
+    }
+
+    #[test]
+    fn every_run_plan_carries_the_users_writing_samples() {
+        let mut settings = configured_settings();
+        settings.persona_samples = vec![crate::settings::PersonaSample {
+            id: "sample_1".to_string(),
+            text: "Short, plain sentences. No throat clearing.".to_string(),
+        }];
+        let mode_id = settings.active_mode_id.clone();
+
+        let run = RunPlan::for_reprocess(&settings, &mode_id).expect("active mode resolves");
+
+        assert_eq!(run.prompt().persona_samples, settings.persona_samples);
     }
 
     #[test]
