@@ -469,6 +469,7 @@ export const ModesSettings: React.FC = () => {
         <div className="modes-workspace">
           <ModesList
             modes={snapshot.modes}
+            models={models}
             activeModeId={snapshot.active_mode_id}
             selectedModeId={selectedEditor?.id ?? null}
             busy={saving}

@@ -31,10 +31,26 @@
   min-block-size: 32px;
 }
 
+/* The list column is sized by line 2, which spells out engine, model,
+ * language and delivery at 12px mono. That line is arithmetic, not taste.
+ *
+ * `ui-monospace` resolves to SF Mono on WKWebView at a 0.618em advance, so a
+ * character costs 7.42px and the column carries 59px of chrome around the
+ * text box. The model cell is the mode's model resolved to its catalog
+ * display name, whose lengths across the shipped catalog's 68 names run
+ * 6/21/42 (min/median/max) plus up to 9 for a non-default quant suffix. So a
+ * median configuration — `Local · <21ch name> · Auto · Paste`, 44ch — wants a
+ * 385px column, and the longest name pushes past 600px.
+ *
+ * No single width serves both that line and the editor beside it, so the
+ * column is fluid: a wide window carries the median configuration whole, a
+ * narrow one protects the editor, and the line truncates with an ellipsis
+ * rather than wrapping in either case, with the full string in the row's
+ * title. 200px, the old value, truncated every row including the shortest. */
 .modes-page .modes-workspace {
   align-items: stretch;
   gap: 0;
-  grid-template-columns: 200px minmax(0, 1fr);
+  grid-template-columns: clamp(288px, 40.5%, 400px) minmax(0, 1fr);
   min-block-size: 320px;
   block-size: min(560px, calc(100dvh - 152px));
 }
@@ -49,24 +65,48 @@
 
 .modes-page .modes-master-heading {
   min-block-size: 34px;
-  padding-inline: var(--space-1);
+  padding-inline: var(--space-2);
 }
 
 .modes-page .modes-master-actions {
   align-items: center;
   display: flex;
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
-.modes-page .modes-master-actions > span {
-  color: var(--text-secondary);
-  font-size: 12px;
+/* The count is a measurement, so it reads as one: mono microlabel, tabular,
+ * beside the control that changes it. */
+.modes-page .modes-master-count {
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
 }
 
 .modes-page .modes-add-button {
   min-block-size: 28px;
   min-inline-size: 28px;
   padding: 0;
+}
+
+/* The icon button's own wash is nearly invisible against the page, and this
+ * one is the only way to create a mode. Give it a hairline that fills in on
+ * hover so the affordance is legible before it is pointed at. */
+.modes-page .modes-add-button {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  transition-duration: var(--duration-fast);
+  transition-property: background-color, border-color, color;
+  transition-timing-function: var(--ease-in-out);
+}
+
+.modes-page .modes-add-button:enabled:hover {
+  background: var(--wash-hover);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.modes-page .modes-add-button:enabled:active {
+  background: var(--wash-active);
 }
 
 .modes-page .mode-actions-menu > summary {

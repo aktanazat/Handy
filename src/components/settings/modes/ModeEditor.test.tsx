@@ -76,7 +76,12 @@ const MODE_VIEW: ModeView = {
   tone: "semi_formal",
   context_policy: "target",
   asr: {
-    model_id: "whisper-small",
+    /* The real shape. `ModelInfo.id` for a catalog model is
+     * `repo_id/filename` (managers/model.rs:210-213), not a short slug, and
+     * the row has to survive that. Verbatim from
+     * src-tauri/src/catalog/catalog.json. */
+    model_id:
+      "handy-computer/parakeet-tdt-0.6b-v3-gguf/parakeet-tdt-0.6b-v3-Q4_K_M.gguf",
     language: "auto",
     translate_to_english: false,
     custom_words: [{ spoken: "sona", written: "Sona" }],
@@ -631,10 +636,38 @@ describe("automation panel", () => {
 });
 
 describe("mode list", () => {
+  /* One real catalog entry, so the model cell is exercised against the id the
+   * app actually stores rather than a remembered slug. */
+  const LIST_MODELS: ModelInfo[] = [
+    {
+      id: "handy-computer/parakeet-tdt-0.6b-v3-gguf/parakeet-tdt-0.6b-v3-Q4_K_M.gguf",
+      name: "Parakeet TDT 0.6B v3",
+      description: "Fast and accurate. Supports 25 European languages",
+      filename: "parakeet-tdt-0.6b-v3-Q4_K_M.gguf",
+      source: "Local",
+      size_mb: 455,
+      is_downloaded: true,
+      is_downloading: false,
+      partial_size: 0,
+      is_directory: false,
+      engine_type: "TranscribeCpp",
+      accuracy_score: 90,
+      speed_score: 79,
+      supports_translation: false,
+      is_recommended: true,
+      supported_languages: ["en"],
+      supports_language_selection: true,
+      is_custom: false,
+      supports_streaming: true,
+      supports_language_detection: false,
+    },
+  ];
+
   const list = (selectedModeId: string | null = "email") =>
     render(
       <ModesList
         modes={[MESSAGE_VIEW, MODE_VIEW]}
+        models={LIST_MODELS}
         activeModeId="message"
         selectedModeId={selectedModeId}
         busy={false}
@@ -649,20 +682,144 @@ describe("mode list", () => {
       />,
     );
 
-  test("marks the active mode with words and weight, not a dot", () => {
+  /* A mode whose every summary cell differs from the fixture's, so the config
+   * line cannot pass by rendering constants. */
+  const CLOUD_VIEW: ModeView = {
+    ...MODE_VIEW,
+    id: "cloud",
+    name: "Cloud dictation with a deliberately long name",
+    asr: {
+      ...MODE_VIEW.asr,
+      model_id: "",
+      language: "de",
+      requested_engine: "deepgram_nova_3",
+    },
+    delivery: { ...MODE_VIEW.delivery, paste_method: "ctrl_shift_v" },
+  };
+
+  test("marks the active mode with a microlabel chip, not a filled pill", () => {
     const html = list();
+    expect(html).toContain('class="microlabel modes-list-active"');
     expect(html).toContain("Active");
     expect(html).toContain('data-active="true"');
     expect(html).toContain('data-selected="true"');
-    // A round colored status dot is the pattern this list must not use.
+    // A round colored status dot is the pattern this list must not use, and
+    // the Badge primitive's inverted fill is the pill it must not wear.
     expect(html.includes("rounded-full")).toBe(false);
+    expect(html.includes("bg-inverse-background")).toBe(false);
   });
 
-  test("shows each mode's dictation chord as keycaps", () => {
+  test("shows each mode's dictation chord as engraved caps", () => {
     const html = list();
     expect(html).toContain("<kbd");
-    expectLabels(html, ["Left Option", "Shift", "Option", "Space"]);
+    // One cap per physical key, in the form macOS engraves.
+    expectLabels(html, ["⌥", "⇧", "Space"]);
     expect(html.match(/<kbd/g)?.length).toBe(5);
+    // The qualified form is not lost: it is the chord's tooltip.
+    expect(html).toContain('title="Left Option + Shift + 2"');
+    expect(html).toContain('title="Option + Space"');
+  });
+
+  test("exposes engine, model, language and delivery on every row", () => {
+    const html = list();
+    // Once as the row's second line, once as its title, per row.
+    expect(
+      html.match(/Local · Parakeet TDT 0\.6B v3 · Auto · Paste/g)?.length,
+    ).toBe(4);
+  });
+
+  test("names the model rather than printing its repo path", () => {
+    const html = list();
+    // `ModelInfo.id` is `repo_id/filename`: 65 characters at the median across
+    // the shipped catalog and 116 at the longest. Printed raw it would eat the
+    // row and push language and delivery off the end.
+    expect(html.includes("handy-computer/")).toBe(false);
+    expect(html.includes(".gguf")).toBe(false);
+    expect(html.includes(".bin")).toBe(false);
+  });
+
+  test("falls back to the filename when the id resolves to nothing", () => {
+    // The model was deleted, or the catalog has not loaded yet. The row still
+    // has to say something bounded and true rather than a 73-character path.
+    // Every shape `managers/model.rs` can put in `ModelInfo.id` is here: a
+    // catalog composite, a legacy `.bin` file, a directory model with no
+    // extension at all, and a bare stem.
+    const unresolvableIds: [string, string][] = [
+      [
+        "handy-computer/parakeet-tdt-0.6b-v3-gguf/parakeet-tdt-0.6b-v3-Q4_K_M.gguf",
+        "parakeet-tdt-0.6b-v3-Q4_K_M",
+      ],
+      ["whisper-small.bin", "whisper-small"],
+      // Dots in the version, no extension: chopping any trailing dot-segment
+      // would render this as "parakeet-tdt-0".
+      ["parakeet-tdt-0.6b-v2", "parakeet-tdt-0.6b-v2"],
+      ["moonshine-tiny-streaming-en", "moonshine-tiny-streaming-en"],
+    ];
+    for (const [modelId, expected] of unresolvableIds) {
+      const html = render(
+        <ModesList
+          modes={[
+            { ...MODE_VIEW, asr: { ...MODE_VIEW.asr, model_id: modelId } },
+          ]}
+          models={[]}
+          activeModeId="message"
+          selectedModeId={null}
+          busy={false}
+          osType="macos"
+          onSelect={noop}
+          onCreate={noop}
+          onActivate={noop}
+          onDuplicate={noop}
+          onMove={noop}
+          onRequestDelete={noop}
+          onReload={noop}
+        />,
+      );
+      expect(html).toContain(`Local · ${expected} · Auto · Paste`);
+      expect(html.includes("handy-computer/")).toBe(false);
+    }
+  });
+
+  test("reads each summary cell from the mode rather than from a default", () => {
+    const html = render(
+      <ModesList
+        modes={[CLOUD_VIEW]}
+        models={LIST_MODELS}
+        activeModeId="message"
+        selectedModeId={null}
+        busy={false}
+        osType="macos"
+        onSelect={noop}
+        onCreate={noop}
+        onActivate={noop}
+        onDuplicate={noop}
+        onMove={noop}
+        onRequestDelete={noop}
+        onReload={noop}
+      />,
+    );
+    // Cloud engine, no per-mode model, an explicit language tag, and the
+    // plain-text paste variant — none of them the fixture's values.
+    expect(html).toContain("Deepgram · Global model · de · Paste plain");
+  });
+
+  test("keeps the name, the active chip and the keycaps on one line", () => {
+    const html = list();
+    const headlines = html
+      .split('class="modes-list-headline"')
+      .slice(1)
+      .map((rest) => rest.slice(0, rest.indexOf('class="modes-list-config')));
+    expect(headlines.length).toBe(2);
+    // The defect this replaces put the chip and the caps in a second element
+    // under the title, which then wrapped. Both now live inside line 1.
+    for (const headline of headlines) expect(headline).toContain("<kbd");
+    // MESSAGE_VIEW is the active mode and renders first.
+    expect(headlines[0]).toContain("modes-list-active");
+  });
+
+  test("counts the modes as a mono microlabel beside the create button", () => {
+    const html = list();
+    expect(html).toContain('class="microlabel modes-master-count">2<');
   });
 
   test("keeps every revisioned action reachable per mode", () => {
@@ -690,6 +847,7 @@ describe("mode list", () => {
     const html = render(
       <ModesList
         modes={[]}
+        models={LIST_MODELS}
         activeModeId="message"
         selectedModeId={null}
         busy={false}

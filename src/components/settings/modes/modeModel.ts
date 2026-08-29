@@ -144,6 +144,107 @@ export const downloadedModelOptions = (
   return options;
 };
 
+/**
+ * `t` narrowed to the two arguments this module uses. Taking the translator
+ * instead of exporting a table keeps the mapping total and testable while
+ * leaving i18n to the caller.
+ */
+export type ModeTranslate = (key: string, fallback: string) => string;
+
+const engineSummary = (asr: ModeAsrSettings, t: ModeTranslate): string => {
+  /* Absent deserializes as local: an older mode predates the engine choice. */
+  switch (asr.requested_engine ?? "local") {
+    case "deepgram_nova_3":
+      return t("settings.modes.summary.engine.deepgram_nova_3", "Deepgram");
+    case "eleven_labs_scribe_v2":
+      return t(
+        "settings.modes.summary.engine.eleven_labs_scribe_v2",
+        "ElevenLabs",
+      );
+    default:
+      return t("settings.modes.summary.engine.local", "Local");
+  }
+};
+
+/**
+ * `ModeAsrSettings.model_id` is `ModelInfo.id`, and for anything from the
+ * catalog that is `repo_id/filename` (`managers/model.rs:210-213`) — 65
+ * characters at the median across the shipped catalog's 367 files and 116 at
+ * the longest. Printing it raw would eat the row and push engine, language and
+ * delivery off the end, so the row shows the model's display name, which the
+ * same catalog caps at 42 characters plus a quant suffix.
+ *
+ * When the id resolves to nothing — the model was deleted, or the list has not
+ * loaded yet — the fallback is its last path segment with a model extension
+ * removed. That is not a second naming scheme: it is the filename, and the
+ * filename stem is exactly the id the backend gives a locally discovered model
+ * (`managers/model.rs:1959-1965`, then `:2039-2043`).
+ *
+ * Only `.bin` and `.gguf` come off, which is the same pair the backend strips.
+ * Chopping any trailing dot-segment instead would turn the directory-based id
+ * `parakeet-tdt-0.6b-v2` — which has no extension at all — into
+ * `parakeet-tdt-0`.
+ */
+const MODEL_FILE_EXTENSIONS = [".bin", ".gguf"] as const;
+
+const modelSummary = (
+  asr: ModeAsrSettings,
+  t: ModeTranslate,
+  models: readonly ModelInfo[],
+): string => {
+  if (asr.model_id.length === 0)
+    return t("settings.modes.summary.modelInherited", "Global model");
+  const known = models.find((model) => model.id === asr.model_id);
+  if (known) return known.name;
+  const file = asr.model_id.slice(asr.model_id.lastIndexOf("/") + 1);
+  const extension = MODEL_FILE_EXTENSIONS.find((candidate) =>
+    file.endsWith(candidate),
+  );
+  return extension ? file.slice(0, -extension.length) : file;
+};
+
+const languageSummary = (asr: ModeAsrSettings, t: ModeTranslate): string =>
+  asr.language === "auto" || asr.language.length === 0
+    ? t("settings.modes.summary.languageAuto", "Auto")
+    : asr.language;
+
+const DELIVERY_SUMMARY_DEFAULTS = {
+  ctrl_v: "Paste",
+  direct: "Type",
+  none: "No delivery",
+  shift_insert: "Shift+Insert",
+  ctrl_shift_v: "Paste plain",
+  external_script: "Script",
+} as const satisfies Record<PasteMethod, string>;
+
+const deliverySummary = (
+  delivery: ModeDeliverySettings,
+  t: ModeTranslate,
+): string =>
+  t(
+    `settings.modes.summary.delivery.${delivery.paste_method}`,
+    DELIVERY_SUMMARY_DEFAULTS[delivery.paste_method],
+  );
+
+export const MODE_SUMMARY_SEPARATOR = " · ";
+
+/**
+ * The four values that decide what a dictation run in this mode will do:
+ * `engine · model · language · delivery`. One line, so the list row can expose
+ * a mode's whole configuration without opening the editor.
+ */
+export const modeConfigSummary = (
+  mode: ModeDefinition | ModeView,
+  t: ModeTranslate,
+  models: readonly ModelInfo[],
+): string =>
+  [
+    engineSummary(mode.asr, t),
+    modelSummary(mode.asr, t, models),
+    languageSummary(mode.asr, t),
+    deliverySummary(mode.delivery, t),
+  ].join(MODE_SUMMARY_SEPARATOR);
+
 export const modeDefinitionFromView = (mode: ModeView): ModeDefinition => ({
   id: mode.id,
   name: mode.name,

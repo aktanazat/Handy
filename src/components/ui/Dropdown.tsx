@@ -49,6 +49,17 @@ export const Dropdown: React.FC<DropdownProps> = ({
   const selectedOption = options.find(
     (option) => option.value === selectedValue,
   );
+  /* A stored value with no matching option is still the chosen value: a
+   * microphone that got unplugged, a model that was deleted, a list that has
+   * not enumerated yet. Falling back to the placeholder there tells the user
+   * nothing is selected, which is a lie about state — show the stored value.
+   * The placeholder then means what it says: nothing is selected.
+   *
+   * It deliberately stops there and does not call the value unavailable. This
+   * layer sees an option list, so it cannot tell a device that enumeration
+   * confirmed gone from one whose enumeration failed, was denied, or is still
+   * in flight; only the owner of the enumeration knows that. */
+  const selectedLabel = selectedOption?.label || selectedValue || placeholder;
 
   const handleSelect = (value: string) => {
     onSelect(value);
@@ -73,13 +84,17 @@ export const Dropdown: React.FC<DropdownProps> = ({
             ? "cursor-not-allowed opacity-70"
             : "cursor-pointer hover:border-border-strong hover:bg-hover"
         }`}
+        /* The label truncates, and a device name is exactly the kind of long
+         * string a narrow settings column clips. Keep the whole value one
+         * hover away rather than losing it to an ellipsis. */
+        title={selectedLabel}
         onClick={handleToggle}
         onKeyDown={(event) => {
           if (event.key === "Escape") setIsOpen(false);
         }}
         disabled={disabled}
       >
-        <span className="truncate">{selectedOption?.label || placeholder}</span>
+        <span className="truncate">{selectedLabel}</span>
         <svg
           className={`h-4 w-4 text-text-secondary transition-transform duration-150 ${
             isOpen ? "rotate-180" : ""

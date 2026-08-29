@@ -212,6 +212,62 @@ export const formatKeyCombination = (
   _osType: OSType,
 ): string => keyCombinationParts(combination).join(" + ");
 
+/* macOS engraves its modifiers on the physical key and prints the same glyphs
+ * in every native menu, so a row too narrow for "Left Option" is not losing
+ * information by showing ⌥ — it is showing what the keyboard shows. Every
+ * other platform spells its modifiers short already and keeps the word.
+ *
+ * Maps rather than object literals because the key is one part of a chord
+ * string and is therefore `string`: an annotated `Record<string, string>` is
+ * the open dictionary the repo's anti-slop rule rejects, and a closed key
+ * union needs a cast or a guard per table to index. `.get` is the total
+ * lookup both tables actually want. */
+const MAC_MODIFIER_GLYPHS = new Map([
+  ["command", "⌘"],
+  ["option", "⌥"],
+  ["alt", "⌥"],
+  ["shift", "⇧"],
+  ["ctrl", "⌃"],
+]);
+
+/* Keys whose engraving is a glyph on every platform Sona ships to. */
+const COMPACT_KEY_GLYPHS = new Map([
+  ["enter", "↩"],
+  ["tab", "⇥"],
+  ["backspace", "⌫"],
+  ["delete", "⌦"],
+  ["esc", "⎋"],
+  ["caps lock", "⇪"],
+  ["up", "↑"],
+  ["down", "↓"],
+  ["left", "←"],
+  ["right", "→"],
+]);
+
+/**
+ * One short cap per physical key, for rows too dense for the spelled-out form.
+ * "option_left+shift+2" -> ["⌥", "⇧", "2"] on macOS, ["Option", "Shift", "2"]
+ * elsewhere.
+ *
+ * The left/right qualifier is dropped because both sides carry the same
+ * engraving; callers pair this with `formatKeyCombination` as the row's title
+ * so the qualified form stays one hover away. Naming still comes from
+ * `capitalizeKey`, so there is no second key vocabulary.
+ */
+export const keyCapParts = (combination: string, osType: OSType): string[] => {
+  if (!combination) return [];
+  const caps: string[] = [];
+  for (const raw of combination.split("+")) {
+    const key = raw.trim().replace(/_(?:left|right)$/, "");
+    if (!key) continue;
+    const glyph =
+      (osType === "macos" ? MAC_MODIFIER_GLYPHS.get(key) : undefined) ??
+      COMPACT_KEY_GLYPHS.get(key);
+    caps.push(glyph ?? capitalizeKey(key));
+  }
+  return caps;
+};
+
 /**
  * Normalize modifier keys to handle left/right variants
  */

@@ -1,14 +1,16 @@
 import React from "react";
 import { Ellipsis, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { ModeView } from "@/bindings";
-import { Badge, Button, EmptyState, IconButton } from "@/components/ui";
+import type { ModelInfo, ModeView } from "@/bindings";
+import { Button, EmptyState, IconButton } from "@/components/ui";
 import type { OSType } from "@/lib/utils/keyboard";
 import { ShortcutChord } from "./ModeControls";
-import { DEFAULT_MODE_ID } from "./modeModel";
+import { DEFAULT_MODE_ID, modeConfigSummary } from "./modeModel";
 
 export interface ModesListProps {
   modes: readonly ModeView[];
+  /** Resolves each mode's `model_id`, which is a repo path, to a name. */
+  models: readonly ModelInfo[];
   activeModeId: string;
   selectedModeId: string | null;
   /** A mutation is in flight: every revisioned action has to wait for it. */
@@ -32,6 +34,7 @@ const closeMenu = (target: HTMLElement) => {
 
 export const ModesList: React.FC<ModesListProps> = ({
   modes,
+  models,
   activeModeId,
   selectedModeId,
   busy,
@@ -51,7 +54,7 @@ export const ModesList: React.FC<ModesListProps> = ({
       <div className="modes-master-heading">
         <h2 id="modes-list-heading">{t("settings.modes.listTitle")}</h2>
         <div className="modes-master-actions">
-          <span className="numeric">{modes.length}</span>
+          <span className="microlabel modes-master-count">{modes.length}</span>
           <IconButton
             size="sm"
             className="modes-add-button"
@@ -89,6 +92,10 @@ export const ModesList: React.FC<ModesListProps> = ({
             const actionsLabel = t("settings.modes.actionsFor", {
               mode: mode.name,
             });
+            /* engine · model · language · delivery, on one truncating line:
+             * the row exposes what a run in this mode will actually do
+             * without anyone opening the editor. */
+            const config = modeConfigSummary(mode, t, models);
             return (
               <li
                 key={mode.id}
@@ -102,20 +109,27 @@ export const ModesList: React.FC<ModesListProps> = ({
                   aria-current={isSelected ? "true" : undefined}
                   onClick={() => onSelect(mode)}
                 >
-                  <span className="modes-list-name">{mode.name}</span>
-                  <span className="modes-list-meta">
+                  <span className="modes-list-headline">
+                    <span className="modes-list-name type-row-title">
+                      {mode.name}
+                    </span>
                     {isActive ? (
-                      /* Geist's inverted badge is the "this is the current
-                       * one" chip. It still reads as the word "Active", so
-                       * the cue survives greyscale and forced colours. */
-                      <Badge className="modes-list-active">
+                      /* A word, in the microlabel the rest of the page uses
+                       * for state. It survives greyscale and forced colours,
+                       * and it sits beside the name rather than pushing a
+                       * second line under it. */
+                      <span className="microlabel modes-list-active">
                         {t("settings.modes.active")}
-                      </Badge>
+                      </span>
                     ) : null}
                     <ShortcutChord
+                      compact
                       chord={mode.shortcuts.transcribe.current_binding}
                       osType={osType}
                     />
+                  </span>
+                  <span className="modes-list-config type-data" title={config}>
+                    {config}
                   </span>
                 </button>
                 <details className="mode-actions-menu">

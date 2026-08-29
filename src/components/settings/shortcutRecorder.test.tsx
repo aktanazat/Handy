@@ -10,7 +10,7 @@ import {
   ShortcutHoldHint,
   ShortcutRecorderField,
 } from "./ShortcutRecorderField";
-import { keyCombinationParts } from "@/lib/utils/keyboard";
+import { keyCapParts, keyCombinationParts } from "@/lib/utils/keyboard";
 
 /* What this file defends, none of which a type-check reaches:
  *
@@ -66,6 +66,34 @@ describe("chord parsing", () => {
 
   test("an unset chord is no keys rather than one empty key", () => {
     expect(keyCombinationParts("")).toEqual([]);
+  });
+
+  /* The compact form the Modes list, the Capture strip and the HUD share.
+   * It has to stay one cap per physical key, or a chord silently becomes a
+   * single wide chip and the rows it feeds start wrapping. */
+  test("engraved caps on macOS, one per physical key", () => {
+    expect(keyCapParts("option_left+shift+space", "macos")).toEqual([
+      "⌥",
+      "⇧",
+      "Space",
+    ]);
+    expect(keyCapParts("command+ctrl+enter", "macos")).toEqual([
+      "⌘",
+      "⌃",
+      "↩",
+    ]);
+  });
+
+  test("the spelled-out modifier survives off macOS", () => {
+    expect(keyCapParts("alt+shift_right+f5", "windows")).toEqual([
+      "Alt",
+      "Shift",
+      "F5",
+    ]);
+  });
+
+  test("an unset chord is no caps rather than one empty cap", () => {
+    expect(keyCapParts("", "macos")).toEqual([]);
   });
 });
 

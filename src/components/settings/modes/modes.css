@@ -31,24 +31,53 @@
   padding: 0;
 }
 
+/* 44px = headline 19px + config 16px + 4px top and bottom. A grid, so the
+ * overflow menu centres on the pair of lines instead of on the first one.
+ * `relative` carries the active bar. */
 .modes-list-row {
   align-items: center;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  min-block-size: 38px;
+  min-block-size: 44px;
+  min-inline-size: 0;
   padding-inline-end: var(--space-0-5);
+  position: relative;
+  transition-duration: var(--duration-fast);
+  transition-property: background-color, border-color;
+  transition-timing-function: var(--ease-in-out);
 }
 
-.modes-list-row:not(:last-child) {
-  border-bottom: 1px solid var(--border-subtle);
+/* The divider is the row's own top rule, so hover brightens it: an
+ * instrument row lighting up, for one property. Hairline rather than
+ * --border, which bands visibly down a column at 44px pitch. */
+.modes-list-row + .modes-list-row {
+  border-block-start: 1px solid var(--border-hairline);
 }
 
-/* Selected is the mode open in the editor. Active is the mode a dictation
- * would use: that one reads from the inverted "Active" badge and a heavier
- * name, never from color alone. */
-.modes-list-row[data-selected] {
+.modes-list-row:hover {
+  border-block-start-color: var(--border-hover);
+}
+
+/* Active is the mode a dictation would use: a 2px bar in the achromatic
+ * accent plus a row tint. Selected is the mode open in the editor and reads
+ * from the heavier wash, so a row can be both at once and still say which is
+ * which. Neither is colour alone — active also spells the word in its chip. */
+.modes-list-row[data-active] {
   background: var(--wash-hover);
-  box-shadow: inset 2px 0 0 var(--text-primary);
+}
+
+.modes-list-row[data-active]::before {
+  background: var(--color-accent);
+  content: "";
+  inline-size: 2px;
+  inset-block: 0;
+  inset-inline-start: 0;
+  position: absolute;
+  z-index: 1;
+}
+
+.modes-list-row[data-selected] {
+  background: var(--wash-active);
 }
 
 .modes-list-button {
@@ -59,13 +88,13 @@
   flex-direction: column;
   gap: 1px;
   justify-content: center;
-  min-block-size: 38px;
+  min-block-size: 44px;
   min-inline-size: 0;
   padding: var(--space-1) var(--space-2);
   text-align: start;
   transition-duration: var(--duration-fast);
   transition-property: background-color;
-  transition-timing-function: var(--ease-out);
+  transition-timing-function: var(--ease-in-out);
 }
 
 .modes-list-button:hover {
@@ -76,10 +105,27 @@
   background: var(--wash-active);
 }
 
+/* Pulled inside the row: at this pitch an outset ring would sit on the
+ * neighbour's divider. */
+.modes-list-button:focus-visible {
+  outline-offset: -2px;
+}
+
+/* Line 1. The name is the only shrinkable box, so it is the one that
+ * ellipses and the caps stay on this line at every width. Clipped rather
+ * than wrapped once even the name has run out. */
+.modes-list-headline {
+  align-items: center;
+  display: flex;
+  gap: var(--space-1-5);
+  min-inline-size: 0;
+  overflow: hidden;
+}
+
 .modes-list-name {
   color: var(--text-primary);
-  font-size: 12.5px;
-  font-weight: var(--fw-label);
+  flex: 0 1 auto;
+  min-inline-size: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -89,30 +135,36 @@
   font-weight: var(--fw-heading);
 }
 
-.modes-list-meta {
-  align-items: center;
-  color: var(--text-secondary);
-  display: flex;
-  font-size: 11px;
-  gap: var(--space-1);
-  min-inline-size: 0;
-  overflow: hidden;
-}
-
-.modes-list-meta:empty {
-  display: none;
-}
-
-/* The chord caps beside it are already 20px, so the badge adds no height. */
+/* A microlabel in a hairline box, not a filled pill: the pill radius is
+ * reserved for status shapes and a metadata chip is not one. */
 .modes-list-active {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text-secondary);
   flex: none;
+  padding-inline: var(--space-1);
+}
+
+/* Right-aligned on line 1. Never wrapped, never shrunk. */
+.modes-list-headline .mode-chord {
+  flex: none;
+  margin-inline-start: auto;
+}
+
+/* Line 2: the whole configuration, truncated rather than wrapped at any
+ * width. The untruncated string is the element's title. */
+.modes-list-config {
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mode-chord {
   display: inline-flex;
+  flex-wrap: nowrap;
   gap: var(--space-1);
   min-inline-size: 0;
-  overflow: hidden;
 }
 
 /* ----------------------------------------------------------- mode editor */
