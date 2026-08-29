@@ -16,8 +16,10 @@ mod clipboard;
 #[cfg(feature = "cloud-realtime")]
 pub mod cloud_stt;
 mod cloud_sync;
+mod command_mode;
 mod commands;
 mod context;
+mod deeplink;
 mod delivery;
 mod fs_util;
 mod helpers;
@@ -137,7 +139,7 @@ fn build_console_filter() -> env_filter::Filter {
     builder.build()
 }
 
-fn show_main_window(app: &AppHandle) {
+pub(crate) fn show_main_window(app: &AppHandle) {
     if let Some(main_window) = app.get_webview_window("main") {
         if let Err(e) = main_window.unminimize() {
             log::error!("Failed to unminimize webview window: {}", e);
@@ -166,7 +168,7 @@ fn show_main_window(app: &AppHandle) {
         webview_labels
     );
 }
-fn show_meeting_destination(
+pub(crate) fn show_meeting_destination(
     app: &AppHandle,
     destination: MeetingNavigationDestination,
     snapshot: Option<&MeetingSessionSnapshot>,
@@ -185,6 +187,139 @@ fn show_meeting_destination(
         },
     );
 }
+
+/// Routes one `sona://` URL, returning whether it was ours.
+///
+/// Every arm reuses an entry point the tray, CLI, or a command already calls;
+/// a deep link is another trigger, never a private path into the app. Callers
+/// use the return value to decide whether the string still needs their own
+/// handling, which is how file:// opens and sona:// links share one event.
+fn dispatch_deep_link(app: &AppHandle, raw: &str) -> bool {
+    let Some(action) = deeplink::parse_deep_link(raw) else {
+        return false;
+    };
+    log::info!("Handling deep link: {action:?}");
+    match action {
+        deeplink::DeepLinkAction::ToggleRecording => {
+            signal_handle::send_transcription_intent(
+                app,
+                modes::TranscriptionIntent::ActiveMode,
+                "deep-link",
+            );
+        }
+        deeplink::DeepLinkAction::RecordWithMode(mode_id) => {
+            signal_handle::send_transcription_intent(
+                app,
+                modes::TranscriptionIntent::Mode { mode_id },
+                "deep-link",
+            );
+        }
+        deeplink::DeepLinkAction::SetActiveMode(mode_id) => {
+            if let Err(error) = modes::set_active_mode(app.clone(), mode_id) {
+                log::warn!("Deep link could not switch mode: {error}");
+            }
+        }
+        deeplink::DeepLinkAction::StartMeeting => {
+            // Surfaces the meeting screen rather than starting capture. A URL
+            // is not consent to record a room, and meetings are prompt-only.
+            show_meeting_destination(app, MeetingNavigationDestination::Preflight, None);
+        }
+    }
+    true
+}
+
+/// Assembles the meeting-detection runtime and starts its loop.
+///
+/// Every platform observer is optional. A missing input device, an unbundled
+/// build, or a denied grant degrades detection to the paths that still work
+/// rather than failing startup, and `DetectionStatus` names which paths those
+/// are. The loop never blocks the window paint: it runs on its own thread, and
+/// its idle tick touches no database — a settings read, an atomic load, and the
+/// running-application list, which is what keeps the allowlist honest while
+/// nothing is happening.
+fn start_meeting_detection(app_handle: &AppHandle, meetings: Arc<MeetingSessionManager>) {
+    use meeting::detection::input_device::{InputDeviceLevel, SelfInputDeviceLease};
+    use meeting::detection::machine::ScreenRecordingPermission;
+    use meeting::detection::{apps, calendar, notify, DetectionRuntime};
+
+    // The delegate must be registered before the runtime exists, and its target
+    // is the runtime. One cell, bound once, below.
+    let responder = Arc::new(notify::ResponderCell::default());
+    // Shared with the CoreAudio listener, which the detection thread starts.
+    let level = Arc::new(InputDeviceLevel::default());
+
+    #[cfg(target_os = "macos")]
+    let (running_apps, calendar_source, prompts, screen_recording_probe) = {
+        let prompts: Arc<dyn notify::PromptPresenter> =
+            match notify::UserNotificationPrompts::start(Arc::clone(&responder) as Arc<_>) {
+                Some(prompts) => Arc::new(prompts),
+                None => {
+                    log::info!(
+                        "Meeting detection prompts are in-app only: this build has no \
+                         notification center"
+                    );
+                    Arc::new(notify::NoPrompts)
+                }
+            };
+        (
+            Arc::new(apps::WorkspaceApps) as Arc<dyn apps::RunningAppsSource>,
+            Arc::new(calendar::EventKitCalendar::new()) as Arc<dyn calendar::CalendarSource>,
+            prompts,
+            probe_screen_recording as fn() -> ScreenRecordingPermission,
+        )
+    };
+    #[cfg(not(target_os = "macos"))]
+    let (running_apps, calendar_source, prompts, screen_recording_probe) = (
+        Arc::new(apps::NoRunningApps) as Arc<dyn apps::RunningAppsSource>,
+        Arc::new(calendar::NoCalendar) as Arc<dyn calendar::CalendarSource>,
+        Arc::new(notify::NoPrompts) as Arc<dyn notify::PromptPresenter>,
+        (|| ScreenRecordingPermission::NotGranted) as fn() -> ScreenRecordingPermission,
+    );
+
+    let runtime = Arc::new(DetectionRuntime::with_parts(
+        app_handle.clone(),
+        meetings,
+        Arc::new(SelfInputDeviceLease::default()),
+        calendar_source,
+        running_apps,
+        Arc::clone(&level) as Arc<_>,
+        prompts,
+        screen_recording_probe,
+    ));
+    responder.bind(runtime.prompt_responder());
+
+    // The CoreAudio listener is registered by the loop itself, on its own
+    // thread. Nothing above this line touches a platform framework: every one of
+    // them — the notification center, the EventKit store, the Screen Recording
+    // probe, and the input-device monitor — is now created on first use, because
+    // doing any of it here means doing it during `setup`, before the window and
+    // its webview exist.
+    runtime.spawn_loop(level);
+    app_handle.manage(runtime);
+}
+
+/// Probes Screen Recording through ScreenCaptureKit's own preflight.
+///
+/// Reached from the detection thread on first use, never from `setup`: this is a
+/// ScreenCaptureKit query, and the point of deferring it is that no platform
+/// framework is touched while the window is still coming up.
+#[cfg(target_os = "macos")]
+fn probe_screen_recording() -> meeting::detection::machine::ScreenRecordingPermission {
+    use meeting::capture::MeetingCaptureSource;
+    use meeting::detection::machine::ScreenRecordingPermission;
+    use meeting::types::SourceAvailability;
+
+    if meeting_macos::MacosSystemAudioCapture::new()
+        .probe()
+        .availability
+        == SourceAvailability::Available
+    {
+        ScreenRecordingPermission::Granted
+    } else {
+        ScreenRecordingPermission::NotGranted
+    }
+}
+
 fn refresh_meeting_tray(app: AppHandle, manager: Arc<MeetingSessionManager>) {
     tauri::async_runtime::spawn(async move {
         if let Ok(snapshot) = manager.tray_snapshot().await {
@@ -478,6 +613,7 @@ fn initialize_core_logic(app_handle: &AppHandle) -> anyhow::Result<()> {
             }
         }
     }
+    start_meeting_detection(app_handle, Arc::clone(&meeting_manager));
 
     // Note: Shortcuts are NOT initialized here.
     // The frontend is responsible for calling the `initialize_shortcuts` command
@@ -729,6 +865,25 @@ fn initialize_core_logic(app_handle: &AppHandle) -> anyhow::Result<()> {
 
     // Create the recording overlay window (hidden by default)
     utils::create_recording_overlay(app_handle);
+    // The idle pill lives in that same window. Its mode menu is a real OS menu,
+    // so its selections arrive as menu events rather than through the webview.
+    if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
+        overlay_window.on_menu_event(|window, event| {
+            let Some(mode_id) = event
+                .id()
+                .as_ref()
+                .strip_prefix(commands::hud::HUD_MODE_MENU_PREFIX)
+            else {
+                return;
+            };
+            if let Err(error) =
+                modes::set_active_mode(window.app_handle().clone(), mode_id.to_string())
+            {
+                log::warn!("HUD mode menu could not switch mode: {error}");
+            }
+        });
+    }
+    overlay::sync_hud_pill(app_handle);
     Ok(())
 }
 
@@ -1058,6 +1213,17 @@ pub fn run(cli_args: CliArgs) {
             commands::vocabulary::update_emoji_replacements,
             commands::vocabulary::update_emoji_replacements_enabled,
             commands::vocabulary::add_vocabulary_correction,
+            commands::vocabulary::get_text_replacements,
+            commands::vocabulary::save_text_replacements,
+            commands::vocabulary::reset_text_replacements,
+            commands::vocabulary::update_text_replacements_enabled,
+            commands::hud::hud_pill_state,
+            commands::hud::set_hud_pill_enabled,
+            commands::hud::set_hud_pill_position,
+            commands::hud::hud_toggle_recording,
+            commands::hud::hud_open_mode_menu,
+            commands::persona::get_persona_samples,
+            commands::persona::save_persona_samples,
             commands::snippets::list_snippets,
             commands::snippets::upsert_snippet,
             commands::snippets::delete_snippet,
@@ -1067,6 +1233,7 @@ pub fn run(cli_args: CliArgs) {
             settings::change_context_url_capture_enabled_setting,
             settings::accept_cloud_stt_provider_consent,
             settings::accept_post_process_provider_consent,
+            command_mode::change_command_mode_enabled_setting,
             shortcut::change_binding,
             shortcut::reset_binding,
             shortcut::change_ptt_setting,
@@ -1187,6 +1354,7 @@ pub fn run(cli_args: CliArgs) {
             commands::history::read_history_audio_chunk,
             commands::history::delete_history_entry,
             commands::history::retry_history_entry_transcription,
+            commands::history::reprocess_history_entry,
             commands::history::update_history_limit,
             commands::history::update_recording_retention_period,
             commands::history::history_storage_status,
@@ -1220,6 +1388,14 @@ pub fn run(cli_args: CliArgs) {
             commands::meeting::meeting_retention_get,
             commands::meeting::meeting_retention_set,
             commands::meeting::meeting_remote_cancel,
+            commands::meeting::get_meeting_analytics,
+            commands::meeting::list_keyword_trackers,
+            commands::meeting::save_keyword_trackers,
+            commands::meeting::set_action_item_done,
+            commands::meeting::get_meeting_user_notes,
+            commands::meeting::save_meeting_user_notes,
+            commands::meeting::reenhance_meeting_with_notes,
+            commands::meeting::meeting_catch_up,
             commands::cloud_sync::cloud_sync_overview_get,
             commands::cloud_sync::cloud_sync_meeting_status_get,
             commands::cloud_sync::cloud_sync_meeting_status_list,
@@ -1240,6 +1416,12 @@ pub fn run(cli_args: CliArgs) {
             commands::updates::check_for_updates,
             commands::updates::change_update_check_enabled_setting,
             helpers::clamshell::is_laptop,
+            commands::detection::detection_status_get,
+            commands::detection::detection_calendar_access_request,
+            commands::detection::detection_notification_access_request,
+            commands::detection::detection_prompt_respond,
+            commands::detection::detection_running_meeting_apps,
+            commands::detection::detection_settings_set,
         ])
         .events(collect_events![
             upstream_import::UpstreamImportProgressEvent,
@@ -1373,6 +1555,13 @@ pub fn run(cli_args: CliArgs) {
                     modes::TranscriptionIntent::ActiveModeWithPostProcess,
                     "CLI",
                 );
+            } else if args
+                .iter()
+                .any(|argument| dispatch_deep_link(app, argument))
+            {
+                // Windows and Linux deliver a registered protocol URL as argv to
+                // a second process, which this plugin forwards here. macOS uses
+                // RunEvent::Opened instead.
             } else if args.iter().any(|a| a == "--cancel") {
                 crate::utils::cancel_current_operation(app);
             } else if opened_audio_queued {
@@ -1687,7 +1876,16 @@ pub fn run(cli_args: CliArgs) {
     app.run(|app, event| match &event {
         #[cfg(target_os = "macos")]
         tauri::RunEvent::Opened { urls } => {
-            let opened_audio_queued = enqueue_opened_paths(app, macos_opened_audio_paths(urls));
+            // The same slice carries file:// opens and sona:// deep links, so
+            // each URL is offered to the deep-link router first and only then
+            // treated as an audio file.
+            let unrouted: Vec<tauri::Url> = urls
+                .iter()
+                .filter(|url| !dispatch_deep_link(app, url.as_str()))
+                .cloned()
+                .collect();
+            let opened_audio_queued =
+                enqueue_opened_paths(app, macos_opened_audio_paths(&unrouted));
             if opened_audio_queued {
                 show_main_window(app);
             }

@@ -4,5 +4,22 @@
 <dict>
   <key>NSMicrophoneUsageDescription</key>
   <string>Request microphone access to transcribe audio locally</string>
+  <key>NSCalendarsFullAccessUsageDescription</key>
+  <string>Read upcoming events on this Mac to offer local meeting notes before a call starts</string>
+  <key>NSCalendarsUsageDescription</key>
+  <string>Read upcoming events on this Mac to offer local meeting notes before a call starts</string>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key>
+      <string>com.aktanazat.sona</string>
+      <key>CFBundleTypeRole</key>
+      <string>Viewer</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>sona</string>
+      </array>
+    </dict>
+  </array>
 </dict>
 </plist>

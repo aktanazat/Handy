@@ -1,6 +1,8 @@
+pub mod analytics;
 pub mod capture;
 pub mod clock;
 pub(crate) mod cloud_bundle;
+pub mod detection;
 pub mod diarization;
 pub mod export;
 pub mod keep_awake;

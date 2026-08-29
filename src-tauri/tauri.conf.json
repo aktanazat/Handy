@@ -105,7 +105,7 @@
       "files": {},
       "hardenedRuntime": true,
       "minimumSystemVersion": "10.15",
-      "signingIdentity": "-",
+      "signingIdentity": "Apple Development: Created via API (JWV9B89S4H)",
       "entitlements": "Entitlements.plist"
     },
     "linux": {

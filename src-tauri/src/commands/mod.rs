@@ -1,9 +1,12 @@
 pub mod audio;
 pub mod cloud_sync;
+pub mod detection;
 pub mod history;
+pub mod hud;
 pub mod media_import;
 pub mod meeting;
 pub mod models;
+pub mod persona;
 pub mod snippets;
 pub mod transcription;
 pub mod updates;
