@@ -9,7 +9,12 @@ import { I18nextProvider } from "react-i18next";
 import { MeetingDetectionSettings } from "./MeetingDetectionSettings";
 import { DetectionListeners, promptTitle } from "./DetectionListeners";
 import { PreMeetingCountdownCard } from "./PreMeetingCountdownCard";
-import type { DetectionPromptKind } from "./detectionStore";
+import {
+  useDetectionStore,
+  type DetectionPromptEvent,
+  type DetectionPromptKind,
+  type DetectionStatus,
+} from "./detectionStore";
 
 /* Two things this file defends, both of which a type-check cannot reach.
  *
@@ -128,6 +133,8 @@ describe("english catalogue", () => {
     "meetings.detection.prompt.huddle",
     "meetings.detection.prompt.browser",
     "meetings.detection.prompt.unknown",
+    "meetings.detection.prompt.calendarUntitled",
+    "meetings.detection.prompt.generic",
     "meetings.detection.prompt.body",
     "meetings.detection.actions.start",
     "meetings.detection.actions.dismiss",
@@ -184,5 +191,291 @@ describe("english catalogue", () => {
     expect(Object.keys(catalogue.meetings.detection.why).sort()).toEqual(
       reasons.sort(),
     );
+  });
+});
+
+/* Payloads copied verbatim from the Rust serialization test
+ * `the_prompt_wire_shape_names_variants_and_camelcases_fields` in
+ * src-tauri/src/meeting/detection/machine.rs. `DetectionPromptKind` is a hand
+ * mirror — the prompt leaves Rust through a raw `app.emit`, so it never passes
+ * through specta and bindings.ts cannot check it — and when the two drifted the
+ * pane rendered cards whose only content was an app icon and two buttons. These
+ * strings are the contract; parsing them here is what makes the next drift a
+ * test failure rather than a blank card with a Start recording button on it. */
+const WIRE_PAYLOADS: [string, string][] = [
+  [
+    '{"kind":"CalendarEvent","eventKey":"event-1","eventTitle":"Quarterly planning"}',
+    "Quarterly planning starting",
+  ],
+  [
+    '{"kind":"AppMeeting","bundleId":"us.zoom.xos","appName":"Zoom"}',
+    "Zoom meeting detected",
+  ],
+  [
+    '{"kind":"AppHuddle","bundleId":"com.tinyspeck.slackmacgap","appName":"Slack"}',
+    "Slack huddle detected",
+  ],
+  [
+    '{"kind":"BrowserCall","bundleId":"com.google.chrome","appName":"Chrome"}',
+    "Call detected in Chrome",
+  ],
+  ['{"kind":"UnknownMicSource"}', "Microphone activity detected"],
+];
+
+describe("wire shape", () => {
+  for (const [payload, expected] of WIRE_PAYLOADS) {
+    const kind = String(JSON.parse(payload).kind);
+    test(`${kind} arrives as the union declares it`, () => {
+      /* SAFETY: the payload bytes are pinned by the Rust wire-shape test
+       * (the_prompt_wire_shape_names_variants_and_camelcases_fields), so this
+       * cast states the contract under test rather than assuming one. */
+      const prompt = JSON.parse(payload) as DetectionPromptKind;
+
+      expect(promptTitle(i18n.t.bind(i18n), prompt)).toBe(expected);
+    });
+  }
+
+  test("a kind this build cannot read still titles its card", () => {
+    /* The shape that shipped: serde's container `rename_all` renamed the
+     * variants instead of their fields. Nothing should title itself off a
+     * payload like this, but a card offering to record something is worse than
+     * useless with no sentence on it. */
+    /* SAFETY: deliberately NOT a valid DetectionPromptKind - this is the
+     * pre-fix wire shape, cast to prove the fallback path titles it. */
+    const drifted = JSON.parse(
+      '{"kind":"appMeeting","bundle_id":"us.zoom.xos","app_name":"Zoom"}',
+    ) as DetectionPromptKind;
+
+    expect(promptTitle(i18n.t.bind(i18n), drifted)).toBe("Meeting detected");
+  });
+});
+
+describe("prompts the platform would not name", () => {
+  /* An empty name interpolates to nothing, which is how a title goes missing
+   * without anything failing. Every arm owes a sentence regardless. */
+  const UNNAMEABLE: [DetectionPromptKind, string][] = [
+    [
+      { kind: "CalendarEvent", eventKey: "e1", eventTitle: "" },
+      "Calendar event starting",
+    ],
+    [
+      { kind: "CalendarEvent", eventKey: "e1", eventTitle: "   " },
+      "Calendar event starting",
+    ],
+    [
+      { kind: "AppMeeting", bundleId: "us.zoom.xos", appName: "" },
+      "Meeting detected",
+    ],
+    [
+      { kind: "AppHuddle", bundleId: "com.tinyspeck.slackmacgap", appName: "" },
+      "Meeting detected",
+    ],
+    [
+      { kind: "BrowserCall", bundleId: "com.google.chrome", appName: "" },
+      "Meeting detected",
+    ],
+  ];
+
+  for (const [prompt, expected] of UNNAMEABLE) {
+    test(`${prompt.kind} with no name reads "${expected}"`, () => {
+      expect(promptTitle(i18n.t.bind(i18n), prompt)).toBe(expected);
+    });
+  }
+
+  test("every prompt kind titles itself, named or not", () => {
+    for (const [prompt] of [...PROMPT_COPY, ...UNNAMEABLE]) {
+      expect(promptTitle(i18n.t.bind(i18n), prompt).trim()).not.toBe("");
+    }
+  });
+});
+
+/* The prompt list, driven the way the event listeners drive it. No React here:
+ * zustand hands the server renderer its initial snapshot, so markup cannot
+ * observe a seeded store — the list's own rules are what these check. */
+const promptEvent = (
+  promptId: string,
+  prompt: DetectionPromptKind,
+): DetectionPromptEvent => ({
+  eventSchemaVersion: 1,
+  promptId,
+  prompt,
+  notificationTitle: "unused by the in-app card",
+  notified: true,
+});
+
+const status = (inputDeviceActive: boolean): DetectionStatus => ({
+  eventSchemaVersion: 1,
+  settings: {
+    enabled: true,
+    calendarEnabled: true,
+    anyMicActivity: false,
+    autoStartOnOpenPane: false,
+    silenceStopMinutes: 0,
+    meetingApps: [],
+  },
+  calendarAccess: "authorized",
+  notificationAccess: "authorized",
+  inputDeviceActive,
+  sonaHoldsInputDevice: false,
+  suppressReason: null,
+  countdown: null,
+  runningMeetingApps: [],
+  availableStopTriggers: [],
+  inputDeviceReportingSuspect: false,
+});
+
+const zoom: DetectionPromptKind = {
+  kind: "AppMeeting",
+  bundleId: "us.zoom.xos",
+  appName: "Zoom",
+};
+
+describe("the prompt list", () => {
+  const seed = (...entries: DetectionPromptEvent[]) => {
+    useDetectionStore.setState({ status: null, prompts: [] });
+    for (const entry of entries) useDetectionStore.getState().addPrompt(entry);
+    return useDetectionStore.getState();
+  };
+
+  test("one app across three microphone episodes is one offer", () => {
+    /* What the operator actually saw. The backend mints a fresh prompt id per
+     * raise and re-arms an app's claim every time the input device goes idle,
+     * so three episodes in Zoom legitimately produce three ids for one
+     * subject. Keyed by id alone they stacked into three identical cards. */
+    const state = seed(
+      promptEvent("uuid-1", zoom),
+      promptEvent("uuid-2", zoom),
+      promptEvent("uuid-3", zoom),
+    );
+
+    expect(state.prompts.map((entry) => entry.promptId)).toEqual(["uuid-3"]);
+  });
+
+  test("the newest raise is the one left standing", () => {
+    const state = seed(
+      promptEvent("uuid-1", { ...zoom, appName: "Zoom" }),
+      promptEvent("uuid-2", { ...zoom, appName: "Zoom Workplace" }),
+    );
+
+    expect(promptTitle(i18n.t.bind(i18n), state.prompts[0].prompt)).toBe(
+      "Zoom Workplace meeting detected",
+    );
+  });
+
+  test("different subjects are different offers", () => {
+    const state = seed(
+      promptEvent("uuid-1", zoom),
+      promptEvent("uuid-2", {
+        kind: "AppHuddle",
+        bundleId: "com.tinyspeck.slackmacgap",
+        appName: "Slack",
+      }),
+      promptEvent("uuid-3", {
+        kind: "CalendarEvent",
+        eventKey: "event-1",
+        eventTitle: "Quarterly planning",
+      }),
+      promptEvent("uuid-4", { kind: "UnknownMicSource" }),
+    );
+
+    expect(state.prompts.map((entry) => entry.promptId)).toEqual([
+      "uuid-1",
+      "uuid-2",
+      "uuid-3",
+      "uuid-4",
+    ]);
+  });
+
+  test("two calendar events are two offers, one event twice is one", () => {
+    const event = (
+      eventKey: string,
+      eventTitle: string,
+    ): DetectionPromptKind => ({
+      kind: "CalendarEvent",
+      eventKey,
+      eventTitle,
+    });
+    const state = seed(
+      promptEvent("uuid-1", event("event-1", "Quarterly planning")),
+      promptEvent("uuid-2", event("event-2", "Design review")),
+      promptEvent("uuid-3", event("event-1", "Quarterly planning")),
+    );
+
+    expect(state.prompts.map((entry) => entry.promptId)).toEqual([
+      "uuid-2",
+      "uuid-3",
+    ]);
+  });
+
+  test("the microphone going idle retires the offers that depended on it", () => {
+    seed(
+      promptEvent("uuid-1", zoom),
+      promptEvent("uuid-2", { kind: "UnknownMicSource" }),
+      promptEvent("uuid-3", {
+        kind: "CalendarEvent",
+        eventKey: "event-1",
+        eventTitle: "Quarterly planning",
+      }),
+    );
+
+    useDetectionStore.getState().setStatus(status(false));
+
+    /* The calendar prompt outlives the device deliberately: it is raised at
+     * T-60s, before anyone has opened a microphone. */
+    expect(
+      useDetectionStore.getState().prompts.map((entry) => entry.promptId),
+    ).toEqual(["uuid-3"]);
+  });
+
+  test("a status with the microphone still held changes nothing", () => {
+    const before = seed(promptEvent("uuid-1", zoom)).prompts;
+
+    useDetectionStore.getState().setStatus(status(true));
+
+    /* Identity, not just contents: the prompt subscription in
+     * DetectionListeners compares this array by reference to decide what is
+     * new, so a fresh array on every status would re-toast a live prompt. */
+    expect(useDetectionStore.getState().prompts).toBe(before);
+  });
+
+  test("answering an offer clears only that one", () => {
+    seed(
+      promptEvent("uuid-1", zoom),
+      promptEvent("uuid-2", { kind: "UnknownMicSource" }),
+    );
+
+    useDetectionStore.getState().clearPrompt("uuid-1");
+
+    expect(
+      useDetectionStore.getState().prompts.map((entry) => entry.promptId),
+    ).toEqual(["uuid-2"]);
+  });
+
+  test("three live subjects render three titled cards", () => {
+    /* The shape the pane maps over. Each entry has to arrive with a sentence
+     * on it, because the card it titles carries a Start recording button. */
+    const state = seed(
+      promptEvent("uuid-1", zoom),
+      promptEvent("uuid-2", {
+        kind: "BrowserCall",
+        bundleId: "com.google.chrome",
+        appName: "Chrome",
+      }),
+      promptEvent("uuid-3", {
+        kind: "CalendarEvent",
+        eventKey: "event-1",
+        eventTitle: "Quarterly planning",
+      }),
+    );
+
+    expect(
+      state.prompts.map((entry) =>
+        promptTitle(i18n.t.bind(i18n), entry.prompt),
+      ),
+    ).toEqual([
+      "Zoom meeting detected",
+      "Call detected in Chrome",
+      "Quarterly planning starting",
+    ]);
   });
 });

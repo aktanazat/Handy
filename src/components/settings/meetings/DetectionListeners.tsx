@@ -66,37 +66,82 @@ export const DetectionListeners: React.FC = () => {
   return null;
 };
 
+/* A name the payload actually supplied.
+ *
+ * The parameter admits `undefined` because the wire once disagreed with the
+ * hand-written union: interpolating a missing name produced a card whose only
+ * content was an app icon and two buttons, and reading `.trim()` off an
+ * absent field would have turned that blank card into a render crash. */
+const named = (value: string | undefined): string | null =>
+  value === undefined || value.trim() === "" ? null : value;
+
 /* The §5.4 copy pattern, localized. The native notification carries the same
- * sentences in English; this is the in-app rendering of the same decision. */
+ * sentences in English; this is the in-app rendering of the same decision.
+ *
+ * Total by construction: every arm returns a sentence even when the name it
+ * would interpolate is missing, because the card this titles carries a Start
+ * recording button and an untitled offer to record is not an offer. */
 export const promptTitle = (
   t: TFunction,
   prompt: DetectionPromptKind,
 ): string => {
   switch (prompt.kind) {
-    case "CalendarEvent":
-      return t("meetings.detection.prompt.calendar", "{{title}} starting", {
-        title: prompt.eventTitle,
-      });
-    case "AppMeeting":
-      return t("meetings.detection.prompt.app", "{{app}} meeting detected", {
-        app: prompt.appName,
-      });
-    case "AppHuddle":
-      return t("meetings.detection.prompt.huddle", "{{app}} huddle detected", {
-        app: prompt.appName,
-      });
-    case "BrowserCall":
+    case "CalendarEvent": {
+      const title = named(prompt.eventTitle);
+      if (title !== null) {
+        return t("meetings.detection.prompt.calendar", "{{title}} starting", {
+          title,
+        });
+      }
+      /* The calendar is still the honest attribution even with no title on the
+       * event, so this one names its source rather than falling through. */
       return t(
-        "meetings.detection.prompt.browser",
-        "Call detected in {{app}}",
-        {
-          app: prompt.appName,
-        },
+        "meetings.detection.prompt.calendarUntitled",
+        "Calendar event starting",
       );
+    }
+    case "AppMeeting": {
+      const app = named(prompt.appName);
+      if (app !== null) {
+        return t("meetings.detection.prompt.app", "{{app}} meeting detected", {
+          app,
+        });
+      }
+      break;
+    }
+    case "AppHuddle": {
+      const app = named(prompt.appName);
+      if (app !== null) {
+        return t(
+          "meetings.detection.prompt.huddle",
+          "{{app}} huddle detected",
+          { app },
+        );
+      }
+      break;
+    }
+    case "BrowserCall": {
+      const app = named(prompt.appName);
+      if (app !== null) {
+        return t(
+          "meetings.detection.prompt.browser",
+          "Call detected in {{app}}",
+          { app },
+        );
+      }
+      break;
+    }
     case "UnknownMicSource":
       return t(
         "meetings.detection.prompt.unknown",
         "Microphone activity detected",
       );
   }
+  /* One sentence for both ways a prompt can arrive unnameable: an app the
+   * platform would not name, and — once, in the field — a `kind` this build
+   * could not read after the Rust enum's serde tagging drifted from the union
+   * above. Either way the detection was real, so it gets a sentence rather
+   * than a blank header: silent detection is indistinguishable from broken
+   * detection, and this card carries a Start recording button. */
+  return t("meetings.detection.prompt.generic", "Meeting detected");
 };

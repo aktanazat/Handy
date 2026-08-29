@@ -113,11 +113,35 @@ export interface DetectionPromptEvent {
   notified: boolean;
 }
 
+/* What an offer is *about*, as opposed to which delivery of it this is.
+ *
+ * The backend mints a fresh prompt id on every raise
+ * (detection.rs `raise`) and re-arms an application's claim every time the
+ * input device goes idle (detection.rs `publish_status`), so the same app
+ * across three microphone episodes legitimately produces three prompt ids for
+ * one subject. Keyed by id alone, all three stacked into three identical
+ * cards that nothing ever removed. */
+const promptSubject = (entry: DetectionPromptEvent): string => {
+  const prompt = entry.prompt;
+  switch (prompt.kind) {
+    case "CalendarEvent":
+      return `event:${prompt.eventKey}`;
+    case "AppMeeting":
+    case "AppHuddle":
+    case "BrowserCall":
+      return `app:${prompt.bundleId}`;
+    case "UnknownMicSource":
+      return "mic";
+  }
+  /* A kind this build does not know is no evidence that two prompts are the
+   * same offer, so key it by id, which never merges two distinct ones. */
+  return entry.promptId;
+};
+
 interface DetectionStore {
   status: DetectionStatus | null;
-  /* Prompts still waiting for an answer, oldest first. The backend is the only
-   * authority on whether a prompt is still live; this list is a mirror that a
-   * click or a dismissal clears. */
+  /* Prompts still waiting for an answer, oldest first. One entry per subject:
+   * a re-raise supersedes the earlier offer rather than joining it. */
   prompts: DetectionPromptEvent[];
   setStatus: (status: DetectionStatus) => void;
   addPrompt: (prompt: DetectionPromptEvent) => void;
@@ -132,23 +156,44 @@ interface DetectionStore {
 export const useDetectionStore = create<DetectionStore>()((set, get) => ({
   status: null,
   prompts: [],
-  setStatus: (status) => set({ status }),
-  addPrompt: (prompt) =>
+  setStatus: (status) =>
     set((state) => ({
-      /* Replacing by id keeps a re-delivered notification from stacking. */
-      prompts: [
-        ...state.prompts.filter((entry) => entry.promptId !== prompt.promptId),
-        prompt,
-      ],
+      status,
+      /* An offer to record a call is live only while something holds the
+       * microphone. The device going idle is the same signal detection's own
+       * auto-stop reads as `input_device_idle` and the same moment the backend
+       * re-arms the app's claim, so an unanswered ad-hoc prompt from that
+       * episode is a stale offer rather than a pending one. Calendar prompts
+       * outlive the device deliberately: they are raised at T-60s, before
+       * anyone has opened a microphone. Statuses arrive on change only, so
+       * this is one prune per episode, and the untouched case keeps the array
+       * identity the prompt subscription compares on. */
+      prompts: status.inputDeviceActive
+        ? state.prompts
+        : state.prompts.filter(
+            (entry) => entry.prompt.kind === "CalendarEvent",
+          ),
     })),
+  addPrompt: (prompt) =>
+    set((state) => {
+      const subject = promptSubject(prompt);
+      return {
+        prompts: [
+          ...state.prompts.filter((entry) => promptSubject(entry) !== subject),
+          prompt,
+        ],
+      };
+    }),
   clearPrompt: (promptId) =>
     set((state) => ({
       prompts: state.prompts.filter((entry) => entry.promptId !== promptId),
     })),
 
+  /* Both status paths go through `setStatus`, so the rule about which prompts a
+   * status leaves standing lives in exactly one place. */
   refresh: async () => {
     const status = await invoke<DetectionStatus>("detection_status_get");
-    set({ status });
+    get().setStatus(status);
   },
 
   answer: async (promptId, accepted) => {
@@ -162,7 +207,7 @@ export const useDetectionStore = create<DetectionStore>()((set, get) => ({
     const status = await invoke<DetectionStatus>("detection_settings_set", {
       settings,
     });
-    set({ status });
+    get().setStatus(status);
   },
 
   requestCalendarAccess: async () => {

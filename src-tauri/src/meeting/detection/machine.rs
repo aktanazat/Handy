@@ -230,19 +230,32 @@ impl Default for DetectionPolicy {
 /// Which prompt to raise, carrying the fields the copy pattern interpolates.
 /// The frontend localizes from these fields; the native notification uses the
 /// English copy pattern from §5.4 verbatim.
+///
+/// The `rename_all` sits on each variant rather than on the enum. On an enum,
+/// a container-level `rename_all` renames the *variants* and leaves their
+/// fields alone — so writing it there emitted `{"kind":"appMeeting",
+/// "app_name":…}` while the frontend's mirror in detectionStore.ts read
+/// `{"kind":"AppMeeting","appName":…}`, matched no arm, and rendered a prompt
+/// card with no title on it. Per-variant is the placement that renames fields,
+/// which is what the rest of this module's camelCase wire shape needs. Pinned
+/// by `the_prompt_wire_shape_names_variants_and_camelcases_fields`.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
-#[serde(rename_all = "camelCase", tag = "kind")]
+#[serde(tag = "kind")]
 pub enum PromptKind {
     /// §5.3 case 3 — "{Event title} starting".
+    #[serde(rename_all = "camelCase")]
     CalendarEvent {
         event_key: String,
         event_title: String,
     },
     /// §5.3 case 5 — "{App} meeting detected".
+    #[serde(rename_all = "camelCase")]
     AppMeeting { bundle_id: String, app_name: String },
     /// §5.3 case 5, Slack flavor — "{App} huddle detected".
+    #[serde(rename_all = "camelCase")]
     AppHuddle { bundle_id: String, app_name: String },
     /// §5.3 case 7 — "Call detected in {Browser}".
+    #[serde(rename_all = "camelCase")]
     BrowserCall { bundle_id: String, app_name: String },
     /// §5.3 case 6, behind the opt-in toggle — no app identity to name.
     UnknownMicSource,
@@ -716,6 +729,67 @@ mod tests {
             bundle_id: "com.google.chrome".to_string(),
             display_name: "Chrome".to_string(),
         }
+    }
+
+    /* The frontend mirrors this enum by hand in
+     * src/components/settings/meetings/detectionStore.ts, because the prompt
+     * leaves through a raw `app.emit` rather than a tauri_specta Event and so
+     * never reaches bindings.ts. That hand mirror is only as good as this
+     * shape, and when the two drifted the pane rendered prompt cards with no
+     * title on them — a card offering to record something it could not name.
+     * Pinning the bytes is what makes the next drift a test failure. */
+    #[test]
+    fn the_prompt_wire_shape_names_variants_and_camelcases_fields() {
+        let wire = |prompt: &PromptKind| serde_json::to_value(prompt).expect("prompt serializes");
+
+        assert_eq!(
+            wire(&PromptKind::CalendarEvent {
+                event_key: "event-1".to_string(),
+                event_title: "Quarterly planning".to_string(),
+            }),
+            serde_json::json!({
+                "kind": "CalendarEvent",
+                "eventKey": "event-1",
+                "eventTitle": "Quarterly planning",
+            })
+        );
+        assert_eq!(
+            wire(&PromptKind::AppMeeting {
+                bundle_id: "us.zoom.xos".to_string(),
+                app_name: "Zoom".to_string(),
+            }),
+            serde_json::json!({
+                "kind": "AppMeeting",
+                "bundleId": "us.zoom.xos",
+                "appName": "Zoom",
+            })
+        );
+        assert_eq!(
+            wire(&PromptKind::AppHuddle {
+                bundle_id: "com.tinyspeck.slackmacgap".to_string(),
+                app_name: "Slack".to_string(),
+            }),
+            serde_json::json!({
+                "kind": "AppHuddle",
+                "bundleId": "com.tinyspeck.slackmacgap",
+                "appName": "Slack",
+            })
+        );
+        assert_eq!(
+            wire(&PromptKind::BrowserCall {
+                bundle_id: "com.google.chrome".to_string(),
+                app_name: "Chrome".to_string(),
+            }),
+            serde_json::json!({
+                "kind": "BrowserCall",
+                "bundleId": "com.google.chrome",
+                "appName": "Chrome",
+            })
+        );
+        assert_eq!(
+            wire(&PromptKind::UnknownMicSource),
+            serde_json::json!({ "kind": "UnknownMicSource" })
+        );
     }
 
     /* §5.3 case 1 — event within T-60s, >=2 attendees: countdown, no capture. */
