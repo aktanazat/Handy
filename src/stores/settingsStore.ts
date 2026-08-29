@@ -88,6 +88,11 @@ const settingUpdaters: Partial<Record<keyof Settings, SettingUpdater>> = {
   whats_new_last_seen_version: (value) =>
     commands.changeWhatsNewLastSeenVersionSetting(value as string),
   push_to_talk: (value) => commands.changePttSetting(value as boolean),
+  /* SAFETY: `updateSetting` only ever calls the updater registered under the
+   * key whose value it was given, so `value` is this field's own `boolean`;
+   * `SettingUpdater` erases that to `unknown` because one map holds them all. */
+  command_mode_enabled: (value) =>
+    commands.changeCommandModeEnabledSetting(value as boolean),
   selected_microphone: (value) =>
     commands.setSelectedMicrophone(
       (value as string) === "Default" || value === null

@@ -376,6 +376,90 @@ async addVocabularyCorrection(spoken: string, written: string, scope: Vocabulary
     else return { status: "error", error: e  as any };
 }
 },
+async getTextReplacements() : Promise<ReplacementRule[]> {
+    return await TAURI_INVOKE("get_text_replacements");
+},
+async saveTextReplacements(rules: ReplacementRule[]) : Promise<Result<ReplacementRule[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("save_text_replacements", { rules }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Restores the shipped starter library, discarding user edits. The frontend
+ * confirms first; this command is the destructive half.
+ */
+async resetTextReplacements() : Promise<Result<ReplacementRule[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("reset_text_replacements") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async updateTextReplacementsEnabled(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_text_replacements_enabled", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async hudPillState() : Promise<HudPillState> {
+    return await TAURI_INVOKE("hud_pill_state");
+},
+async setHudPillEnabled(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_hud_pill_enabled", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async setHudPillPosition(position: OverlayPosition) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_hud_pill_position", { position }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * A click on the pill. Routed through the same intent channel as the tray, the
+ * CLI, and the global shortcut, so the pill cannot start a recording by a path
+ * the rest of the app does not already have.
+ */
+async hudToggleRecording() : Promise<void> {
+    await TAURI_INVOKE("hud_toggle_recording");
+},
+/**
+ * A right-click on the pill: pick the active mode from a native menu.
+ *
+ * Building the menu here rather than in the webview keeps it a real OS menu,
+ * which is what a persistent desktop affordance should have, and avoids giving
+ * the non-activating overlay panel a focusable popup it cannot host.
+ */
+async hudOpenModeMenu() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("hud_open_mode_menu") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getPersonaSamples() : Promise<PersonaSample[]> {
+    return await TAURI_INVOKE("get_persona_samples");
+},
+async savePersonaSamples(samples: PersonaSample[]) : Promise<Result<PersonaSample[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("save_persona_samples", { samples }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async listSnippets() : Promise<Result<Snippet[], string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("list_snippets") };
@@ -448,6 +532,24 @@ async acceptCloudSttProviderConsent(provider: CloudSttProvider) : Promise<Result
 async acceptPostProcessProviderConsent(providerId: string) : Promise<Result<PostProcessProviderConsent, PostProcessProviderConsentError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("accept_post_process_provider_consent", { providerId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Turn the command chord on or off.
+ *
+ * Shaped like every other `change_*_setting` command so the regenerated
+ * binding drops straight into `settingUpdaters` in `settingsStore.ts`. The
+ * re-registration is the point: [`crate::shortcut::bindings_for_registration`]
+ * filters this binding out while the flag is false, so without resuming here
+ * the chord would keep firing until the next launch (or stay dead after being
+ * switched back on).
+ */
+async changeCommandModeEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_command_mode_enabled_setting", { enabled }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -1399,6 +1501,19 @@ async retryHistoryEntryTranscription(id: number) : Promise<Result<null, string>>
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * Runs a stored recording through a different mode than the one that produced
+ * it. The original entry is never mutated; the result is a new entry whose
+ * `parent_id` points back at it.
+ */
+async reprocessHistoryEntry(id: number, modeId: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("reprocess_history_entry", { id, modeId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async updateHistoryLimit(limit: number) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("update_history_limit", { limit }) };
@@ -1661,6 +1776,75 @@ async meetingRemoteCancel(request: MeetingMutationRequest) : Promise<Result<null
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * Conversation metrics, tracker hits, action-item ticks and the user's notes
+ * for one meeting. Metrics are derived from the transcript on every call, so
+ * the answer always matches the transcript the caller can see.
+ */
+async getMeetingAnalytics(sessionId: MeetingSessionId) : Promise<Result<MeetingAnalyticsSnapshot, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_meeting_analytics", { sessionId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async listKeywordTrackers() : Promise<KeywordTracker[]> {
+    return await TAURI_INVOKE("list_keyword_trackers");
+},
+/**
+ * Replace the tracker list. Blank names and blank patterns are dropped here
+ * rather than stored, so the scan never has to defend against them.
+ */
+async saveKeywordTrackers(trackers: KeywordTracker[]) : Promise<KeywordTracker[]> {
+    return await TAURI_INVOKE("save_keyword_trackers", { trackers });
+},
+async setActionItemDone(request: MeetingActionItemDoneRequest) : Promise<Result<MeetingActionItemState[], MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_action_item_done", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getMeetingUserNotes(sessionId: MeetingSessionId) : Promise<Result<MeetingUserNotes, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_meeting_user_notes", { sessionId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async saveMeetingUserNotes(request: MeetingUserNotesSaveRequest) : Promise<Result<MeetingUserNotes, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("save_meeting_user_notes", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Save the notes layer and rebuild the generated notes from it.
+ */
+async reenhanceMeetingWithNotes(request: MeetingReenhanceRequest) : Promise<Result<MeetingMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("reenhance_meeting_with_notes", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Recap the transcript captured so far in at most six bullets.
+ */
+async meetingCatchUp(sessionId: MeetingSessionId) : Promise<Result<MeetingCatchUp, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_catch_up", { sessionId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async cloudSyncOverviewGet() : Promise<Result<CloudSyncOverview, CloudSyncErrorKind>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("cloud_sync_overview_get") };
@@ -1827,6 +2011,62 @@ async isLaptop() : Promise<Result<boolean, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+/**
+ * Everything the operator can see about detection right now. The frontend reads
+ * this on mount and then follows the `detection-status` event.
+ */
+async detectionStatusGet() : Promise<DetectionStatus> {
+    return await TAURI_INVOKE("detection_status_get");
+},
+/**
+ * Asks for EventKit full access. Reading events needs full access — Apple
+ * provides no read-only grant — so this only runs when the operator turns the
+ * calendar sub-toggle on, never at launch.
+ */
+async detectionCalendarAccessRequest() : Promise<Result<CalendarAccess, null>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("detection_calendar_access_request") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Asks for notification authorization. Separate from the calendar grant because
+ * detection is still useful without notifications: the pre-meeting card and the
+ * meetings list remain.
+ */
+async detectionNotificationAccessRequest() : Promise<Result<NotificationAccess, null>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("detection_notification_access_request") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Answers a prompt from inside the app. Identical in effect to clicking the
+ * notification's own buttons: accepting opens the preflight consent screen, and
+ * nothing here starts a capture.
+ */
+async detectionPromptRespond(promptId: string, accepted: boolean) : Promise<void> {
+    await TAURI_INVOKE("detection_prompt_respond", { promptId, accepted });
+},
+/**
+ * Allowlisted bundle IDs whose application is running right now. The settings UI
+ * uses this to show an operator whether an entry they typed is real, which is
+ * the runtime validation the allowlist needs to stay honest as vendors rename.
+ */
+async detectionRunningMeetingApps() : Promise<string[]> {
+    return await TAURI_INVOKE("detection_running_meeting_apps");
+},
+/**
+ * Writes the operator's detection policy and returns the status it produces, so
+ * the caller never has to re-read to see the effect of its own write.
+ */
+async detectionSettingsSet(settings: DetectionSettings) : Promise<DetectionStatus> {
+    return await TAURI_INVOKE("detection_settings_set", { settings });
 }
 }
 
@@ -2050,6 +2290,20 @@ overlay_style?: OverlayStyle;
  */
 context_url_capture_enabled?: boolean;
 /**
+ * How long before record-start a clipboard copy still counts as part of
+ * the dictation. Clipboard context is read only when the copy is provably
+ * inside this window, so an unrelated copy from earlier in the session
+ * never reaches a prompt. See crate::context.
+ */
+context_capture_clipboard_preroll_ms?: number;
+/**
+ * Whether the voice command chord is registered. Command mode rewrites the
+ * current OS text selection from a spoken instruction; turning it off
+ * releases the chord back to the rest of the system rather than swallowing
+ * it. See crate::command_mode.
+ */
+command_mode_enabled?: boolean;
+/**
  * Default-off local coding-agent bridge policy. It intentionally contains
  * no user text or provider payloads; those are in-memory only.
  */
@@ -2067,7 +2321,81 @@ update_check_enabled?: boolean;
  * Attached-panel relay configuration. This contains routing and public-key
  * material only; the panel signing seed remains in SecretManager.
  */
-agent_panel_enabled?: boolean; agent_panel_relay_url?: string | null; agent_panel_relay_key_id?: string | null; agent_panel_relay_public_key?: string | null; agent_panel_paired?: boolean; agent_panel_last_successful_connection_at?: number | null; agent_panel_safe_appearance_auto_apply?: boolean }
+agent_panel_enabled?: boolean; agent_panel_relay_url?: string | null; agent_panel_relay_key_id?: string | null; agent_panel_relay_public_key?: string | null; agent_panel_paired?: boolean; agent_panel_last_successful_connection_at?: number | null; agent_panel_safe_appearance_auto_apply?: boolean;
+/**
+ * Literal phrase lists scanned against every finished meeting transcript.
+ * Empty means no tracker is watching, which is the shipped state.
+ */
+trackers_list?: KeywordTracker[];
+/**
+ * The shape generated meeting notes take when a meeting has no template
+ * of its own.
+ */
+meeting_notes_template?: MeetingNotesTemplate;
+/**
+ * Whether the deterministic replacement stage runs at all. The starter
+ * library ships enabled, so this is the single switch that turns symbol
+ * dictation off without discarding the user's rules.
+ */
+replacements_enabled?: boolean;
+/**
+ * Ordered spoken-phrase rewrites applied before vocabulary correction.
+ */
+replacements_rules?: ReplacementRule[];
+/**
+ * Samples of the user's own writing, injected into every rewrite prompt as
+ * voice-matching examples. Empty means the rewrite behaves exactly as it
+ * did before, which is the shipped state.
+ */
+persona_samples?: PersonaSample[];
+/**
+ * Whether the recording overlay also shows an always-visible idle pill
+ * between dictations. Default off: an extra persistent window on every
+ * screen is opt-in.
+ */
+hud_pill_enabled?: boolean;
+/**
+ * Which screen edge the idle pill sits on. Shares `OverlayPosition` with
+ * the recording overlay because it is the same window and the same anchor
+ * arithmetic.
+ */
+hud_pill_position?: OverlayPosition;
+/**
+ * Whether automatic meeting detection runs at all. On by default, because
+ * on its own it only ever raises a prompt: no path below it starts a
+ * capture without an explicit click through the consent screen.
+ */
+detection_enabled?: boolean;
+/**
+ * Whether the calendar path is active. Off until the operator turns it on,
+ * which is also what triggers the EventKit full-access request — reading
+ * events requires full access, and that is too heavy to ask for at launch.
+ */
+detection_calendar_enabled?: boolean;
+/**
+ * Whether microphone activity with no identifiable meeting application
+ * still prompts. Off by default: voice memos, music production, and every
+ * other audio app land in this case.
+ */
+detection_any_mic_activity?: boolean;
+/**
+ * Whether reaching a calendar event's start with its pre-meeting card
+ * already open opens the capture without waiting for a notification click.
+ * Off by default; a new install prompts for everything.
+ */
+detection_auto_start_on_open_pane?: boolean;
+/**
+ * Minutes without transcript-worthy audio before a detected capture stops
+ * itself. Zero leaves manual stop as the only timer.
+ */
+detection_silence_stop_minutes?: number;
+/**
+ * Bundle IDs treated as meeting applications. Seeded from the known set and
+ * editable, because vendors rename these: Microsoft has already renamed
+ * Teams's bundle ID once. An entry only becomes a signal when a process
+ * with that ID is actually running.
+ */
+detection_meeting_apps?: string[] }
 export type ArtifactCitation = { segment_id: TranscriptSegmentId; start_offset_ns: number; end_offset_ns: number }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AudioFormat = { sample_rate_hz: number; channels: number }
@@ -2083,6 +2411,27 @@ export type AudioImportUpdateEvent = { job: AudioImportJob }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }
 export type BindingResponse = { success: boolean; binding: ShortcutBinding | null; error: string | null }
+/**
+ * Authorization for reading events, as the operator would recognize it.
+ */
+export type CalendarAccess =
+/**
+ * Never asked. The sub-toggle has not been turned on.
+ */
+"not_determined" |
+/**
+ * Full access granted: events are readable.
+ */
+"authorized" |
+/**
+ * Denied, restricted, or downgraded to write-only. Detection continues on
+ * the ad-hoc path alone and says so in its status.
+ */
+"denied" |
+/**
+ * No EventKit on this platform.
+ */
+"unavailable"
 export type CaptureCompleteness = "not_started" | "complete" | "partial"
 /**
  * Whether the original microphone capture was complete. This belongs to the
@@ -2186,7 +2535,20 @@ requested_policy: ContextPolicy;
 /**
  * The effective requested-policy/global-ceiling minimum, frozen at start.
  */
-policy: ContextPolicy; accessibility: AccessibilityAccess; sources: ContextSources; captured_at_ms: number }
+policy: ContextPolicy; accessibility: AccessibilityAccess; sources: ContextSources;
+/**
+ * When the record-start sources were read: the selection the user had and
+ * a clipboard copy inside the pre-roll window.
+ */
+captured_at_ms: number;
+/**
+ * When the application context was read. It is deliberately later than
+ * `captured_at_ms`: the frontmost application and its focused control are
+ * read immediately before the step that consumes them, so they describe
+ * where the text is about to land. `None` means the effective policy asked
+ * for no application context at all.
+ */
+application_captured_at_ms?: number | null }
 /**
  * Why a context source did or did not contribute to a run. Distinguishing
  * these is the point: "not supported here", "you have not granted
@@ -2266,6 +2628,53 @@ export type DeliveryOutcome =
  */
 "dispatched_but_unconfirmed"
 export type DeliveryReceipt = { method: DeliveryMethod; outcome: DeliveryOutcome; dispatched_at_ms: number }
+/**
+ * The countdown half of §5.3 case 1.
+ */
+export type DetectionCountdown = { eventKey: string; eventTitle: string; secondsToStart: number }
+/**
+ * The operator-editable half of detection, read and written as one unit.
+ *
+ * One value rather than six independent setters: these fields only make sense
+ * together — turning the calendar path on while detection itself is off is not
+ * a state the UI should be able to produce halfway through.
+ */
+export type DetectionSettings = { enabled: boolean; calendarEnabled: boolean; anyMicActivity: boolean; autoStartOnOpenPane: boolean; silenceStopMinutes: number; meetingApps: string[] }
+/**
+ * Everything the operator can see about what detection is doing. Emitted on
+ * change, and readable on demand through `detection_status_get`.
+ *
+ * This exists because silent detection is indistinguishable from broken
+ * detection. Every suppression reason and every unavailable signal is named
+ * here so the failure modes above are visible rather than inferred.
+ */
+export type DetectionStatus = { eventSchemaVersion: number; settings: DetectionSettings; calendarAccess: CalendarAccess; notificationAccess: NotificationAccess;
+/**
+ * True when some process holds the default input device.
+ */
+inputDeviceActive: boolean;
+/**
+ * True when that process is Sona itself.
+ */
+sonaHoldsInputDevice: boolean;
+/**
+ * Why detection is quiet, when it is.
+ */
+suppressReason: SuppressReason | null; countdown: DetectionCountdown | null;
+/**
+ * Allowlisted bundle IDs whose application is running right now. Empty is a
+ * legitimate answer and the settings UI shows it as such.
+ */
+runningMeetingApps: string[];
+/**
+ * Which auto-stop triggers can actually fire, given what is observable.
+ */
+availableStopTriggers: StopTrigger[];
+/**
+ * True when the Bluetooth-microphone false negative applies: nothing is
+ * reported as holding the input device while a meeting app is frontmost.
+ */
+inputDeviceReportingSuspect: boolean }
 export type DiarizationStatus = "not_requested" | "model_unavailable" | "downloading" | "running" | "succeeded" | "failed"
 export type EffectiveTranscriptSegment = { base: TranscriptSegment; replacement_text: string | null; removed: boolean; edit_revision: number | null; assigned_speaker_id: SpeakerId; speaker_assignment: SpeakerAssignmentKind }
 /**
@@ -2296,7 +2705,12 @@ export type HistoryAudioChunk = { bytes: number[]; eof: boolean }
  * second observation is another row; no outcome is ever overwritten.
  */
 export type HistoryDeliveryAttempt = { id: number; history_id: number; run_receipt_id: number; delivery: DeliveryReceipt }
-export type HistoryEntry = { id: number; file_name: string; timestamp: number; saved: boolean; title: string; transcription_text: string; post_processed_text: string | null; post_process_requested: boolean }
+export type HistoryEntry = { id: number; file_name: string; timestamp: number; saved: boolean; title: string; transcription_text: string; post_processed_text: string | null; post_process_requested: boolean;
+/**
+ * The entry this one was reprocessed from, when it was not an original
+ * capture. `None` for every row written before reprocessing existed.
+ */
+parent_id: number | null }
 export type HistoryItemKind = "meeting"
 /**
  * One immutable run receipt linked to a recording. Text remains only in the
@@ -2343,6 +2757,19 @@ export type HistoryTrendSourceTotals = { source_kind: HistorySourceKind | null; 
  */
 export type HistoryTrendTotals = { recordings: number; duration_ms: number; words: number; by_source: HistoryTrendSourceTotals[] }
 export type HistoryUpdatePayload = { action: "added"; entry: HistoryEntry } | { action: "updated"; entry: HistoryEntry } | { action: "deleted"; id: number } | { action: "toggled"; id: number }
+/**
+ * Everything the idle pill needs to render itself.
+ *
+ * The pill runs in the overlay webview, which has no settings store of its own,
+ * so it asks for this once on mount and again whenever the backend tells it the
+ * mode changed.
+ */
+export type HudPillState = { enabled: boolean; position: OverlayPosition;
+/**
+ * Name of the mode a click would record under. `None` when no mode
+ * resolves, which is also the state in which a click does nothing.
+ */
+mode_name: string | null; mode_id: string | null }
 export type IdentityAdoptionAction = "renamed" | "copied" | "skipped" | "failed"
 export type IdentityAdoptionEntry = { path: string; action: IdentityAdoptionAction; bytes: number; sha256: string | null }
 export type IdentityAdoptionError = "unavailable" | "legacy_running" | "copy_failed" | "destination_conflict" | "invalid_data" | "secret_migration_failed" | "rollback_unavailable" | "rollback_failed"
@@ -2364,17 +2791,49 @@ export type KeyboardDiagnosticReport = { secure_input_enabled: boolean; culprit_
  */
 key_down: number; key_up: number; flags_changed: number; mouse: number; duration_ms: number }
 export type KeyboardImplementation = "tauri" | "handy_keys"
+/**
+ * A user-authored watch list. Patterns are literal phrases, matched
+ * case-insensitively; they are never compiled as regular expressions, so a
+ * stray bracket in a phrase can neither fail nor match something surprising.
+ */
+export type KeywordTracker = { name: string; patterns: string[] }
 export type LLMPrompt = { id: string; name: string; prompt: string }
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
 export type ManualNote = { note_id: ManualNoteId; session_id: MeetingSessionId; start_offset_ns: number | null; end_offset_ns: number | null; body: string; revision: number; created_at_utc_ms: number; updated_at_utc_ms: number }
 export type ManualNoteId = string
 export type MeetingActionItem = { text: CitedArtifactText; owner_text: string | null; due_text: string | null }
+export type MeetingActionItemDoneRequest = { session_id: MeetingSessionId; artifact_id: MeetingArtifactId; action_index: number; done: boolean }
+/**
+ * Whether one extracted action item has been ticked off. State belongs to the
+ * generated revision that produced the item, so regenerating notes starts a
+ * fresh list rather than carrying ticks onto text nobody checked.
+ */
+export type MeetingActionItemState = { artifact_id: MeetingArtifactId; action_index: number; done: boolean }
+/**
+ * The derived, disposable part of a meeting's analytics: everything that can
+ * be rebuilt from the transcript alone.
+ */
+export type MeetingAnalytics = { talk: MeetingTalkMetrics; trackers: TrackerResult[] }
+/**
+ * Everything the meeting review surface needs from this module in one read.
+ */
+export type MeetingAnalyticsSnapshot = { session_id: MeetingSessionId; input_revision: number; computed_at_utc_ms: number; analytics: MeetingAnalytics; action_items: MeetingActionItemState[]; notes: MeetingUserNotes }
 export type MeetingAnswer = { question_id: MeetingQuestionId; session_id: MeetingSessionId; scope: MeetingQuestionScope; question: string | null; state: MeetingAnswerState; answer: string | null; citations: MeetingCitation[]; input_revision: number; revision: number; created_at_utc_ms: number }
 export type MeetingAnswerState = "supported" | "insufficient_evidence" | "unavailable" | "out_of_date" | "forgotten"
 export type MeetingArtifactChangedEvent = MeetingEventPayload
 export type MeetingArtifactId = string
 export type MeetingArtifactRevision = { artifact_id: MeetingArtifactId; session_id: MeetingSessionId; transcript_revision_id: TranscriptRevisionId; input_revision: number; template_id: string; template_version: number; generation_key: string; state: MeetingArtifactState; generated_at_utc_ms: number; content: GeneratedMeetingArtifacts | null }
 export type MeetingArtifactState = "current" | "out_of_date" | "failed"
+/**
+ * A short recap of the transcript captured so far.
+ */
+export type MeetingCatchUp = { state: MeetingCatchUpState; bullets: string[]; through_offset_ns: number | null; segment_count: number }
+/**
+ * Why a catch-up request produced what it did. `NoTranscriptYet` is the
+ * normal answer while audio is still being captured: this app transcribes
+ * after capture stops, so there is nothing to summarize until then.
+ */
+export type MeetingCatchUpState = "ready" | "no_transcript_yet" | "model_unavailable" | "failed"
 export type MeetingCitation = { kind: CitationKind; session_id: MeetingSessionId; entity_id: string; start_offset_ns: number | null; end_offset_ns?: number | null }
 export type MeetingCommandError = "consent_required" | "consent_stale" | "invalid_transition" | "stale_revision" | "capture_lease_busy" | "no_source_started" | "source_unavailable" | "storage_unavailable" | "recovery_required" | "deletion_in_progress" | "not_found" | "invalid_request" | "export_cancelled" | "export_failed" | "local_model_unavailable" | "remote_unavailable"
 export type MeetingCommandKind = "preflight_create" | "preflight_refresh" | "preflight_cancel" | "start" | "pause" | "resume" | "stop" | "discard" | "recovery_finalize" | "title_set" | "speaker_rename" | "speaker_merge" | "segment_edit" | "note_create" | "note_update" | "note_delete" | "artifacts_regenerate" | "question_ask" | "question_forget" | "export" | "delete" | "retention_set" | "remote_cancel"
@@ -2398,6 +2857,12 @@ export type MeetingNoteChangedEvent = MeetingEventPayload
 export type MeetingNoteCreateRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; start_offset_ns: number | null; end_offset_ns: number | null; body: string }
 export type MeetingNoteDeleteRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; note_id: ManualNoteId; expected_note_revision: number }
 export type MeetingNoteUpdateRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; note_id: ManualNoteId; expected_note_revision: number; start_offset_ns: number | null; end_offset_ns: number | null; body: string }
+/**
+ * Which shape the generated notes should take. The stored id is stable
+ * because it is hashed into an artifact's generation key; `General` keeps the
+ * original `meeting-review` id so pre-template artifacts stay addressable.
+ */
+export type MeetingNotesTemplate = "general" | "one_on_one" | "interview" | "sales_call" | "standup"
 export type MeetingOperationId = string
 export type MeetingOrigin = "manual" | "suggestion" | "cli"
 export type MeetingOutlineTopic = { title: CitedArtifactText; detail: CitedArtifactText | null }
@@ -2410,6 +2875,11 @@ export type MeetingQuestionRequest = { operation_id: MeetingOperationId; session
 export type MeetingQuestionResult = { receipt: OperationReceipt; snapshot: MeetingSessionSnapshot; answer: MeetingAnswer }
 export type MeetingQuestionScope = { kind: "this_meeting" } | { kind: "explicit_series"; session_ids: MeetingSessionId[] }
 export type MeetingReasonCode = "consent_missing" | "consent_stale" | "stale_revision" | "capture_lease_busy" | "source_unavailable" | "source_start_failed" | "source_gap" | "storage_unavailable" | "storage_failure" | "local_model_unavailable" | "recovery_required" | "deleted" | "invalid_transition" | "duplicate_operation"
+/**
+ * Save the notes layer and regenerate the meeting's notes from it in one
+ * step, so the user cannot end up regenerating against a stale draft.
+ */
+export type MeetingReenhanceRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; body: string; template: MeetingNotesTemplate; expected_note_revision: number }
 export type MeetingRemoteJobChangedEvent = MeetingEventPayload
 export type MeetingRemovalResult = { receipt: OperationReceipt; session_id: MeetingSessionId; removed: boolean }
 export type MeetingRemovedEvent = MeetingEventPayload
@@ -2434,6 +2904,20 @@ export type MeetingStartRequest = { operation_id: MeetingOperationId; session_id
 export type MeetingSuggestion = { offer_id: MeetingSuggestionId; provider: MeetingProvider; app_bundle_id: string; evidence_flags: MeetingEvidenceFlags; observed_at_ns: number; expires_at_ns: number }
 export type MeetingSuggestionChangedEvent = MeetingEventPayload
 export type MeetingSuggestionId = string
+/**
+ * Per-meeting conversation shape. Empty transcripts produce zeros and `None`
+ * medians rather than invented values.
+ */
+export type MeetingTalkMetrics = { segment_count: number; turn_count: number;
+/**
+ * Adjacent turns whose speaker differs: how often the floor changed hands.
+ */
+interaction_count: number; total_speaking_ns: number; speakers: SpeakerTalkShare[]; longest_monologue_ns: number; longest_monologue_speaker_id: SpeakerId | null;
+/**
+ * Median silence left between one speaker finishing and the next starting.
+ * `None` when the floor never changed hands.
+ */
+median_switch_gap_ms: number | null }
 export type MeetingTitleSetRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; title: string }
 export type MeetingTrackSnapshot = { track_id: SourceTrackId; source_kind: SourceKind; format: AudioFormat | null; first_offset_ns: number | null; last_offset_ns: number | null; durable_record_count: number }
 export type MeetingTranscriptChangedEvent = MeetingEventPayload
@@ -2454,12 +2938,31 @@ export type MeetingTrendProjection = { status: "available"; range: DashboardTren
  */
 export type MeetingTrendTotals = { meetings: number; verified_captured_duration_ms: number; transcript_segments: number; generated_action_items: number }
 /**
+ * The user's own layer on a meeting: rough notes typed while it runs and the
+ * template those notes should be shaped into.
+ */
+export type MeetingUserNotes = { session_id: MeetingSessionId; body: string; template: MeetingNotesTemplate;
+/**
+ * Bumped on every save; a save must supply the revision it is replacing.
+ */
+revision: number; updated_at_utc_ms: number }
+/**
+ * A save of the user's own notes layer. `expected_note_revision` guards the
+ * notes row alone: this path never touches the session revision, because it
+ * runs on an autosave timer while other edits may be in flight.
+ */
+export type MeetingUserNotesSaveRequest = { session_id: MeetingSessionId; body: string; template: MeetingNotesTemplate; expected_note_revision: number }
+/**
  * One exact frontmost-application identity mapped to one mode. Application
  * bundle identities are the only match keys; URLs and sites never enter this
  * setting.
  */
 export type ModeActivationRule = { app_id: string; mode_id: string }
-export type ModeAsrSettings = { model_id: string; language: string; translate_to_english: boolean; custom_words: VocabularyEntry[]; filler_word_removal_enabled: boolean; custom_filler_words: string[] | null;
+export type ModeAsrSettings = {
+/**
+ * Empty inherits the globally selected model at plan-build time.
+ */
+model_id: string; language: string; translate_to_english: boolean; custom_words: VocabularyEntry[]; filler_word_removal_enabled: boolean; custom_filler_words: string[] | null;
 /**
  * Convert supported spoken punctuation terms before vocabulary correction.
  * Existing modes deserialize with this disabled.
@@ -2561,6 +3064,15 @@ export type ModelUnloadTimeout = "never" | "immediately" | "min_2" | "min_5" | "
  * cached mode snapshot without reconstructing a delta.
  */
 export type ModesChangedEvent = ModeSettingsSnapshot
+/**
+ * Whether the operator has allowed notifications.
+ */
+export type NotificationAccess = "not_determined" | "authorized" | "denied" |
+/**
+ * No notification center reachable — an unbundled build, or a non-macOS
+ * target.
+ */
+"unavailable"
 export type OperationActor = "user" | "system"
 export type OperationReceipt = { schema_version: number; operation_id: MeetingOperationId; session_id: MeetingSessionId | null; actor: OperationActor; command: MeetingCommandKind; expected_revision: number; from_phase: MeetingPhase | null; to_phase: MeetingPhase | null; requested_at_utc_ms: number; committed_at_utc_ms: number | null; result: OperationResult; reason_codes: MeetingReasonCode[]; new_revision: number | null; effect_ids: string[] }
 export type OperationResult = "committed" | "rejected" | "failed"
@@ -2577,6 +3089,12 @@ export type PaginatedHistory = { entries: HistoryEntry[]; has_more: boolean }
 export type PaginatedMeetings = { entries: MeetingHistorySummary[]; has_more: boolean }
 export type PasteMethod = "ctrl_v" | "direct" | "none" | "shift_insert" | "ctrl_shift_v" | "external_script"
 export type PermissionAccess = "allowed" | "denied" | "unknown"
+/**
+ * One paragraph of the user's own writing, injected into the rewrite prompt as
+ * a voice-matching example. Samples are the user's text, so they are never
+ * sent anywhere the transcript itself would not already go.
+ */
+export type PersonaSample = { id: string; text: string }
 export type PostProcessProvider = { id: string; label: string; base_url: string; allow_base_url_edit?: boolean; models_endpoint?: string | null; supports_structured_output?: boolean }
 /**
  * A content-free acknowledgement for one exact remote LLM route. The base
@@ -2591,6 +3109,14 @@ export type ProcessingStatus = { kind: "pending" } | { kind: "running" } | { kin
 export type PromptPreset = "minimalist_cleanup" | "application_context" | "email" | "meeting" | "notes" | "generic"
 export type RecordingRetentionPeriod = "never" | "preserve_limit" | "days_3" | "weeks_2" | "months_3"
 export type RemoteAcknowledgement = { destination_id: string; policy_version: number; acknowledged_at_utc_ms: number }
+/**
+ * A deterministic spoken-phrase rewrite applied before vocabulary
+ * correction. This is a distinct mechanism from the ASR vocabulary: a
+ * vocabulary entry biases what the recognizer hears, whereas a replacement
+ * rewrites what it already heard. Matching is case-insensitive and respects
+ * whole-token boundaries, so a rule never fires inside a longer word.
+ */
+export type ReplacementRule = { spoken: string; written: string; enabled: boolean }
 export type RequestedEngine = "local" | "deepgram_nova_3" | "eleven_labs_scribe_v2"
 export type SecretCommandError = "not_found" | "unavailable" | "locked" | "corrupt" | "invalid" | "busy" | "backend" | "consent_required"
 export type SecretErrorKind = "unavailable" | "locked" | "corrupt" | "invalid" | "busy" | "backend"
@@ -2648,6 +3174,37 @@ export type SourceKind = "microphone" | "system_audio"
 export type SourceTrackId = string
 export type SpeakerAssignmentKind = "local_speaker" | "system_speaker" | "unknown" | "overlap"
 export type SpeakerId = string
+/**
+ * One speaker's airtime. `share_permille` is apportioned by largest remainder
+ * so the displayed shares always add up to 100%.
+ */
+export type SpeakerTalkShare = { speaker_id: SpeakerId; speaking_ns: number; share_permille: number; turn_count: number; longest_monologue_ns: number }
+/**
+ * Why a capture ended by itself. Manual stop is not in this list: it stays the
+ * primary path and does not go through the heuristic at all.
+ */
+export type StopTrigger =
+/**
+ * §5.5 condition 4.
+ */
+"sleep_boundary" |
+/**
+ * §5.5 condition 1.
+ */
+"event_end" |
+/**
+ * §5.5 condition 3, observable variant: the triggering app quit.
+ */
+"trigger_app_exited" |
+/**
+ * §5.5 condition 3 proper: the input device went idle. Only meaningful when
+ * Sona is not itself the process holding the device.
+ */
+"input_device_idle" |
+/**
+ * §5.5 condition 2.
+ */
+"silence"
 export type StorageAvailability = "available" | "unavailable"
 /**
  * The source currently shown by the live overlay. Cloud failures switch to
@@ -2694,11 +3251,52 @@ export type StreamWorkKind = "transcribing" | "polishing"
  */
 export type SttSecretVerificationError = "not_configured" | "consent_required" | "unavailable" | "locked" | "corrupt" | "invalid" | "busy" | "backend"
 /**
+ * Why detection stayed quiet. Carried into the status event so the operator can
+ * see what detection is doing instead of guessing at silence.
+ */
+export type SuppressReason =
+/**
+ * Master toggle is off.
+ */
+"detection_disabled" |
+/**
+ * Sona's own microphone is what went active.
+ */
+"sona_holds_input_device" |
+/**
+ * A capture is already running and nothing needs cross-linking.
+ */
+"capture_already_active" |
+/**
+ * §5.3 case 4 — an app is open but nothing is listening yet.
+ */
+"no_qualifying_signal" |
+/**
+ * §5.3 case 9 — solo focus block, or an event with no attendee list.
+ */
+"attendee_floor_not_met" |
+/**
+ * §5.3 case 6 — mic active with no identifiable meeting app.
+ */
+"unknown_mic_source" |
+/**
+ * §5.3 case 7b — a browser is in front but its title cannot be read.
+ */
+"browser_title_unreadable" |
+/**
+ * §5.3 case 7 — a browser is in front and its title is not a meeting.
+ */
+"browser_title_not_meeting"
+/**
  * UI appearance mode. `System` follows the OS `prefers-color-scheme`; `Light`
  * and `Dark` force one of the two palettes Sona already ships.
  */
 export type Theme = "system" | "light" | "dark"
 export type Tone = "casual" | "semi_casual" | "balanced" | "semi_formal" | "formal"
+/**
+ * What one tracker found, with the segments that carry the evidence.
+ */
+export type TrackerResult = { name: string; hit_count: number; segment_ids: TranscriptSegmentId[] }
 export type TranscribeAcceleratorSetting = "auto" | "cpu" | "gpu"
 export type TranscriptRevisionId = string
 export type TranscriptSegment = { segment_id: TranscriptSegmentId; transcript_revision_id: TranscriptRevisionId; track_id: SourceTrackId; ordinal: number; start_offset_ns: number; end_offset_ns: number; speaker_id: SpeakerId; text: string; confidence_milli: number | null }

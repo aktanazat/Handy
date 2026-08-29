@@ -44,8 +44,11 @@ type MockPayload = {
 /**
  * Runs in the browser, so it may not close over anything outside its argument:
  * Playwright serializes the function and passes `payload` as JSON.
+ *
+ * Exported so a screenshot harness can serialize the same runtime into a plain
+ * `<script>` ahead of the app bundle. One owner for what the browser sees.
  */
-function installMockedRuntime(payload: MockPayload): void {
+export function installMockedRuntime(payload: MockPayload): void {
   const state = { phase: "preflight", started: 0 };
   localStorage.setItem("meeting-started", "0");
 
@@ -107,6 +110,72 @@ function installMockedRuntime(payload: MockPayload): void {
     reason_codes: [],
     new_revision: capturing() ? 2 : 1,
     effect_ids: [],
+  });
+
+  /* Detection never fires a prompt in E2E: the ad-hoc path needs a real
+   * CoreAudio transition and the calendar path a granted TCC scope, so the
+   * quiet-but-healthy status below is the only one a browser can reach. */
+  const detectionStatus = () => ({
+    eventSchemaVersion: 1,
+    settings: {
+      enabled: true,
+      calendarEnabled: false,
+      anyMicActivity: false,
+      autoStartOnOpenPane: false,
+      silenceStopMinutes: 15,
+      meetingApps: [
+        "us.zoom.xos",
+        "com.microsoft.teams2",
+        "com.microsoft.teams",
+        "com.tinyspeck.slackmacgap",
+        "com.webex.meetingmanager",
+      ],
+    },
+    calendarAccess: "not_determined",
+    notificationAccess: "not_determined",
+    inputDeviceActive: false,
+    sonaHoldsInputDevice: false,
+    suppressReason: "no_qualifying_signal",
+    countdown: null,
+    runningMeetingApps: [],
+    availableStopTriggers: [
+      "sleep_boundary",
+      "event_end",
+      "trigger_app_exited",
+      "input_device_idle",
+    ],
+    inputDeviceReportingSuspect: false,
+  });
+
+  const userNotes = () => ({
+    session_id: "meeting-1",
+    body: "",
+    template: "general",
+    revision: 0,
+    updated_at_utc_ms: 1_756_136_400_000,
+  });
+
+  /* The zero-valued snapshot the analytics strip renders its "nothing to
+   * measure" state from. */
+  const analyticsSnapshot = () => ({
+    session_id: "meeting-1",
+    input_revision: 1,
+    computed_at_utc_ms: 1_756_136_400_000,
+    analytics: {
+      talk: {
+        segment_count: 0,
+        turn_count: 0,
+        interaction_count: 0,
+        total_speaking_ns: 0,
+        speakers: [],
+        longest_monologue_ns: 0,
+        longest_monologue_speaker_id: null,
+        median_switch_gap_ms: null,
+      },
+      trackers: [],
+    },
+    action_items: [],
+    notes: userNotes(),
   });
 
   const defaults = new Map<string, JsonValue>([
@@ -178,6 +247,56 @@ function installMockedRuntime(payload: MockPayload): void {
     ["meeting_recovery_list", []],
     ["meeting_retention_get", { policy: { kind: "forever" }, revision: 1 }],
     ["meeting_trend", null],
+
+    // Meeting detection (MeetingDetect). No `detection-prompt` event is ever
+    // emitted here, so the countdown card and the toast path stay unmounted.
+    ["detection_status_get", detectionStatus()],
+    ["detection_settings_set", detectionStatus()],
+    ["detection_calendar_access_request", "not_determined"],
+    ["detection_notification_access_request", "not_determined"],
+    ["detection_prompt_respond", null],
+    ["detection_running_meeting_apps", []],
+
+    // Meeting analytics + notes (MeetingAnalyticsNotes).
+    ["get_meeting_analytics", analyticsSnapshot()],
+    ["list_keyword_trackers", []],
+    ["save_keyword_trackers", []],
+    ["set_action_item_done", []],
+    ["get_meeting_user_notes", userNotes()],
+    ["save_meeting_user_notes", userNotes()],
+    [
+      "reenhance_meeting_with_notes",
+      { receipt: receipt(), snapshot: session() },
+    ],
+    [
+      "meeting_catch_up",
+      {
+        state: "no_transcript_yet",
+        bullets: [],
+        through_offset_ns: null,
+        segment_count: 0,
+      },
+    ],
+
+    // History power pack (HistoryPowerPackV2).
+    ["reprocess_history_entry", null],
+    ["get_text_replacements", []],
+    ["save_text_replacements", []],
+    ["reset_text_replacements", []],
+    ["update_text_replacements_enabled", null],
+    ["get_persona_samples", []],
+    ["save_persona_samples", []],
+    [
+      "hud_pill_state",
+      { enabled: false, position: "bottom", mode_name: null, mode_id: null },
+    ],
+    ["set_hud_pill_enabled", null],
+    ["set_hud_pill_position", null],
+    ["hud_toggle_recording", null],
+    ["hud_open_mode_menu", null],
+
+    // Command mode (CommandModeContext / SettingsOnboardingRestyle).
+    ["change_command_mode_enabled_setting", null],
   ]);
 
   const invoke = async (command: string): Promise<JsonValue> => {

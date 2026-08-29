@@ -17,6 +17,7 @@ import AccessibilityOnboarding from "./components/onboarding/AccessibilityOnboar
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { TopNav } from "./components/TopNav";
 import { CommandPalette } from "./components/CommandPalette";
+import { DetectionListeners } from "./components/settings/meetings/DetectionListeners";
 import { RouteSkeleton, Toaster } from "./components/ui";
 import {
   commandActionIcons,
@@ -128,6 +129,8 @@ interface AppContentProps {
   commandActions: CommandPaletteAction[];
   onCommandClose: () => void;
   onCommandOpen: () => void;
+  scrollRef: React.RefObject<HTMLDivElement>;
+  onScroll: () => void;
 }
 
 const AppContent = ({
@@ -145,6 +148,8 @@ const AppContent = ({
   commandActions,
   onCommandClose,
   onCommandOpen,
+  scrollRef,
+  onScroll,
 }: AppContentProps) => {
   if (onboardingStep === null) return null;
   if (onboardingStep === "accessibility") {
@@ -168,7 +173,11 @@ const AppContent = ({
         onOpenCommand={onCommandOpen}
       />
       <main className="settings-main flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="settings-scroll flex-1 overflow-y-auto">
+        <div
+          ref={scrollRef}
+          onScroll={onScroll}
+          className="settings-scroll flex-1 overflow-y-auto"
+        >
           <div className="settings-content flex w-full flex-col items-stretch">
             <AccessibilityPermissions />
             <SecureInputWarning />
@@ -315,6 +324,27 @@ const AppEventListeners: React.FC = () => {
         toast.info(t("errors.noSpeechDetectedTitle"), {
           description: t("errors.noSpeechDetected"),
         });
+      } else if (error_type === "no_model_selected") {
+        toast.error(
+          t(
+            "errors.noModelSelected",
+            "No transcription model selected. Choose one in Settings > Models.",
+          ),
+        );
+      } else if (error_type === "command_no_selection") {
+        toast.error(
+          t(
+            "errors.commandNoSelection",
+            "Nothing was selected. Select the text you want to change, then hold the command shortcut and say what to do.",
+          ),
+        );
+      } else if (error_type === "command_rewrite_unavailable") {
+        toast.error(
+          t(
+            "errors.commandRewriteUnavailable",
+            "The rewrite returned nothing, so your selection was left as it was. Check the rewrite model in Settings > AI and try again.",
+          ),
+        );
       } else if (error_type === "no_speech_save_failed") {
         toast.error(
           t("errors.recordingFailed", {
@@ -430,6 +460,20 @@ function App() {
   );
   const hasCompletedPostOnboardingInit = useRef(false);
 
+  /* The top bar only goes solid once page content passes under it. The flag
+   * lives on the document root, the way Vercel's own chrome tracks it, so the
+   * bar can react in CSS without this component re-rendering on every scroll
+   * event. Re-synced per route because a shorter page can leave the pane
+   * clamped back at the top without emitting a scroll. */
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const syncScrolled = useCallback(() => {
+    document.documentElement.toggleAttribute(
+      "data-scrolled",
+      (scrollRef.current?.scrollTop ?? 0) > 4,
+    );
+  }, []);
+  useEffect(syncScrolled, [currentSection, syncScrolled]);
+
   useEffect(() => {
     let disposed = false;
     let unsubscribe: (() => Promise<void>) | null = null;
@@ -441,6 +485,11 @@ function App() {
 
     void subscribeToMeetingEvents(invalidateMeetings, (payload) => {
       setMeetingNavigationRequest(payload);
+      // sona://meeting/start asks for the start surface and carries no session
+      // (lib.rs dispatch_deep_link); every other preflight payload names one.
+      if (payload.destination === "preflight" && payload.session_id === null) {
+        setMeetingStartRequest((current) => current + 1);
+      }
       setCurrentSection("meetings");
     }).then((cleanup) => {
       if (disposed) {
@@ -656,6 +705,7 @@ function App() {
     <>
       <Toaster />
       <AppEventListeners />
+      <DetectionListeners />
       <AppContent
         onboardingStep={onboardingStep}
         onAccessibilityComplete={handleAccessibilityComplete}
@@ -671,6 +721,8 @@ function App() {
         commandActions={commandActions}
         onCommandClose={() => setCommandOpen(false)}
         onCommandOpen={() => setCommandOpen(true)}
+        scrollRef={scrollRef}
+        onScroll={syncScrolled}
       />
     </>
   );
