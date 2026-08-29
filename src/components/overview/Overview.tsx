@@ -10,6 +10,7 @@ import { FileAudio, Video } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import {
   commands,
+  events,
   type DashboardTrendRange,
   type HistoryRunReceipt,
   type HistoryStats,
@@ -172,6 +173,26 @@ const loadReceipts = async (
   );
   return new Map(settled);
 };
+
+/**
+ * Mirrors the transcription pipeline's history writes onto this page. This page
+ * reads history once per mount — the trend, the recent lists, the all-time
+ * stats and the newest run's receipt — so a write that lands while it is open
+ * has to re-run that read or the measured cells keep reporting the capture
+ * before it. `reload` is the mount read itself, so a live dictation and a fresh
+ * mount arrive at the same state by the same path.
+ *
+ * A row arriving, changing or leaving moves all four reads. Starring one moves
+ * none of them: this page never draws the star, and its counters do not
+ * distinguish a starred row from a plain one. Meeting notes are not history —
+ * they keep their own store and their own events — so a note save never
+ * reaches here.
+ */
+export const subscribeToHistoryWrites = (reload: () => void) =>
+  events.historyUpdatePayload.listen((event) => {
+    if (event.payload.action === "toggled") return;
+    reload();
+  });
 
 interface OverviewHeroProps {
   isRecording: boolean;
@@ -546,6 +567,19 @@ export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
 
   useEffect(() => {
     void loadOverview();
+  }, [loadOverview]);
+
+  /* `loadOverview` already discards a superseded wave, so re-reading on a
+   * write costs reads rather than a wrong number, and at dictation cadence
+   * that is one wave per capture. */
+  useEffect(() => {
+    const subscription = subscribeToHistoryWrites(() => void loadOverview());
+    return () => {
+      void subscription.then(
+        (unlisten) => unlisten(),
+        (error) => console.error("History event subscription failed:", error),
+      );
+    };
   }, [loadOverview]);
 
   useEffect(() => {

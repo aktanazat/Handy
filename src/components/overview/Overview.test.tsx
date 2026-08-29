@@ -6,7 +6,8 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInstance } from "i18next";
 import { I18nextProvider } from "react-i18next";
-import { Overview } from "./Overview";
+import type { HistoryUpdatePayload } from "@/bindings";
+import { Overview, subscribeToHistoryWrites } from "./Overview";
 
 /* First paint of the page, before any effect has run: what someone sees in the
  * moment between opening Capture and the history reads landing. The names
@@ -28,10 +29,44 @@ const localeRoot = path.join(
 
 /* @tauri-apps/plugin-os reads its platform off a window global that the Tauri
  * runtime injects. Static rendering has no window, so the hero's keycap
- * formatting would throw before it could be inspected. */
+ * formatting would throw before it could be inspected. The event globals beside
+ * it are the ones `@tauri-apps/api` calls through when this page subscribes:
+ * `transformCallback` hands the page's own handler straight back, so the
+ * `listen` invoke carries it and the test can deliver a write the way the
+ * webview does. */
+const listens: {
+  event: string;
+  handler: (message: { payload: HistoryUpdatePayload }) => void;
+}[] = [];
+const unlistens: string[] = [];
+
 Object.defineProperty(globalThis, "window", {
   configurable: true,
-  value: { __TAURI_OS_PLUGIN_INTERNALS__: { os_type: "macos" } },
+  value: {
+    __TAURI_OS_PLUGIN_INTERNALS__: { os_type: "macos" },
+    __TAURI_EVENT_PLUGIN_INTERNALS__: { unregisterListener: () => {} },
+    __TAURI_INTERNALS__: {
+      transformCallback: (
+        handler: (message: { payload: HistoryUpdatePayload }) => void,
+      ) => handler,
+      invoke: async (
+        command: string,
+        args: {
+          event: string;
+          handler: (message: { payload: HistoryUpdatePayload }) => void;
+        },
+      ) => {
+        if (command === "plugin:event|listen") {
+          listens.push({ event: args.event, handler: args.handler });
+          return listens.length;
+        }
+        if (command === "plugin:event|unlisten") {
+          unlistens.push(args.event);
+        }
+        return null;
+      },
+    },
+  },
 });
 
 const i18n = createInstance();
@@ -127,5 +162,54 @@ describe("Overview first paint", () => {
     expect(markup.includes("could not be loaded just now")).toBe(false);
     expect(markup.includes("Nothing recent")).toBe(false);
     expect(markup.includes("ov-hero-facts")).toBe(false);
+  });
+});
+
+/* The page's measured cells — decode throughput, input amplitudes, dictation
+ * counters — all come from one read wave per mount, so before this subscription
+ * a dictation that landed while Capture was open kept reporting the capture
+ * before it until someone left the page and came back. The `listen` call goes
+ * through the real `@tauri-apps/api` path here, so the event name asserted is
+ * the generated one the Rust emit publishes and not a string this test made up.
+ */
+const entry = {
+  id: 7,
+  file_name: "sona-1.wav",
+  timestamp: 1,
+  saved: false,
+  title: "Recording 1",
+  transcription_text: "hello",
+  post_processed_text: null,
+  post_process_requested: false,
+  parent_id: null,
+};
+
+describe("Capture stays live while it is open", () => {
+  test("re-reads on a saved capture and on a removal, never on a star", async () => {
+    let reads = 0;
+    const unlisten = await subscribeToHistoryWrites(() => {
+      reads += 1;
+    });
+    expect(listens.map((listener) => listener.event)).toEqual([
+      "history-update-payload",
+    ]);
+
+    const deliver = (payload: HistoryUpdatePayload) =>
+      listens[0].handler({ payload });
+
+    deliver({ action: "added", entry });
+    expect(reads).toBe(1);
+    deliver({ action: "updated", entry });
+    expect(reads).toBe(2);
+    deliver({ action: "deleted", id: entry.id });
+    expect(reads).toBe(3);
+
+    /* Capture never draws the saved star and its counters do not distinguish a
+     * starred row, so a toggle must not cost a read wave. */
+    deliver({ action: "toggled", id: entry.id });
+    expect(reads).toBe(3);
+
+    await unlisten();
+    expect(unlistens).toEqual(["history-update-payload"]);
   });
 });
