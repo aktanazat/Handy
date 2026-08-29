@@ -326,6 +326,48 @@ const HistoryEntryRow: React.FC<HistoryEntryComponentProps> = ({
    * concluded. */
   const showsTranscript = retrying || !noSpeechCaptured;
 
+  /* Why an empty transcript is empty. The copy that used to sit here called
+   * every case a failure and told the reader to press a retry icon that no
+   * longer exists — retry is a named item in this row's menu now.
+   *
+   * The gate is `capture_status === "complete"`, and it is load-bearing rather
+   * than incidental. Only three run outcomes reach Complete with no text, and
+   * they are the only three worth distinguishing. Everything else that lands
+   * here also carries no `engine_used` and would otherwise be misread as a
+   * failure: all three no-speech provenances, a truncated capture (whose prefix
+   * is forbidden from being auto-transcribed, so there was never a
+   * transcription to fail), and every legacy row, since `capture_status`
+   * arrived in a later migration and retries and imports keep it NULL. Those
+   * all get the neutral statement, which is true for each of them.
+   *
+   * Within Complete, the discriminators are already on the receipt (actions.rs,
+   * verified by DictationTrust): the held path sets `cloud_status` explicitly,
+   * and the failure path builds its receipt from `mode_receipt()` and so
+   * carries no `engine_used`, while a real decode always names the engine it
+   * ran on. The held case ALSO has no `engine_used`, so the order of these two
+   * branches is the thing that keeps a held run off the failure line. Anything
+   * else is a run the model heard and post-processing then emptied — "scratch
+   * that", or a filler-only clip with filler removal on, which is the default.
+   * Nothing in the schema keeps the pre-post-processing output, so for that
+   * last case the app states what it can observe instead of guessing. */
+  let emptyTextLine = t(
+    "settings.history.noTextRecorded",
+    "No text was recorded for this entry.",
+  );
+  if (latestReceipt?.capture_status === "complete") {
+    if (latestReceipt.mode.cloud_status === "held_cloud_unavailable") {
+      emptyTextLine = t(
+        "settings.history.cloudHeld",
+        "The cloud run was held: no trustworthy result arrived and no local model was available.",
+      );
+    } else if (latestReceipt.mode.engine_used == null) {
+      emptyTextLine = t(
+        "settings.history.transcriptionEngineFailed",
+        "Transcription failed, so nothing was recorded.",
+      );
+    }
+  }
+
   return (
     <li
       className="history-row"
@@ -352,9 +394,7 @@ const HistoryEntryRow: React.FC<HistoryEntryComponentProps> = ({
                     data-state={hasText ? "text" : "missing"}
                     data-expanded={expanded ? "true" : undefined}
                   >
-                    {hasText
-                      ? shownText
-                      : t("settings.history.transcriptionFailed")}
+                    {hasText ? shownText : emptyTextLine}
                   </p>
                 ))}
             </div>
@@ -577,10 +617,12 @@ const HistoryRowMeta: React.FC<HistoryRowMetaProps> = ({
   }
 
   /* The two numbers that separate a dead input from a quiet room: 0.0119 peak
-   * over 1.14 s of room noise against 0.1456 over a real utterance. Absent
-   * means the run never measured them — imports, reprocesses, truncated
-   * captures and every row older than this field — so the cell disappears
-   * rather than printing a zero nobody recorded. */
+   * over 1.14 s of room noise against 0.1456 over a real utterance. Every
+   * receipt written from a measured microphone capture carries them, including
+   * a truncated overrun. Absent means the run never measured them — a file
+   * import, a reprocess or retry off a stored WAV, and every row older than the
+   * field — so the cell disappears rather than printing a zero nobody
+   * recorded. */
   if (receipt?.mode.input_peak != null) {
     cells.push({
       id: "peak",

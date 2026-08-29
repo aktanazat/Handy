@@ -1025,7 +1025,10 @@
       "level": {
         "peak": "peak",
         "rms": "rms"
-      }
+      },
+      "noTextRecorded": "No text was recorded for this entry.",
+      "cloudHeld": "The cloud run was held: no trustworthy result arrived and no local model was available.",
+      "transcriptionEngineFailed": "Transcription failed, so nothing was recorded."
     },
     "debug": {
       "title": "Debug",

@@ -84,6 +84,9 @@ const MODE: ModeReceipt = {
   provider_id: null,
   model_id: null,
   engine_requested: "local",
+  /* A real decode always names the engine it ran on; only the failure path
+   * leaves this unset. It is the discriminator the empty-text line reads. */
+  engine_used: "local",
 };
 
 const ENTRY: HistoryEntryRow = {
@@ -292,6 +295,71 @@ describe("library row, actions", () => {
       empty.indexOf("history-entry-copy"),
     );
     expect(copy).toContain("disabled");
+  });
+});
+
+describe("library row, empty transcript", () => {
+  const empty = { transcription_text: "" };
+  const markup = row({ entry: empty });
+
+  test("a run the model heard and post-processing emptied is not a failure", () => {
+    expect(markup).toContain("No text was recorded for this entry.");
+    expect(markup).not.toContain("Transcription failed");
+  });
+
+  test("a run whose engine never reported still says the engine failed", () => {
+    const failed = row({
+      entry: empty,
+      receipts: [receipt({ mode: { ...MODE, engine_used: null } })],
+    });
+    expect(failed).toContain("Transcription failed, so nothing was recorded.");
+    expect(failed).not.toContain("No text was recorded for this entry.");
+  });
+
+  test("a held cloud run says what was held and why", () => {
+    const held = row({
+      entry: empty,
+      receipts: [
+        receipt({
+          mode: { ...MODE, cloud_status: "held_cloud_unavailable" },
+        }),
+      ],
+    });
+    expect(held).toContain("The cloud run was held");
+    expect(held).not.toContain("Transcription failed");
+  });
+
+  test("a truncated capture is not called a transcription failure", () => {
+    // A truncated prefix is never auto-transcribed, so there was no
+    // transcription to fail — and its receipt carries no engine either.
+    const truncated = row({
+      entry: empty,
+      receipts: [
+        receipt({
+          capture_status: "truncated",
+          mode: { ...MODE, engine_used: null },
+        }),
+      ],
+    });
+    expect(truncated).toContain("No text was recorded for this entry.");
+    expect(truncated).not.toContain("Transcription failed");
+  });
+
+  test("a row from before capture_status existed is not accused of failing", () => {
+    const legacy = row({
+      entry: empty,
+      receipts: [
+        receipt({ capture_status: null, mode: { ...MODE, engine_used: null } }),
+      ],
+    });
+    expect(legacy).toContain("No text was recorded for this entry.");
+    expect(legacy).not.toContain("Transcription failed");
+  });
+
+  test("no line points at a control the row no longer has", () => {
+    // Retry is a named item in the overflow menu; there is no retry icon.
+    expect(markup).not.toContain("retry icon");
+    expect(markup).toContain('data-testid="history-entry-retry"');
   });
 });
 
