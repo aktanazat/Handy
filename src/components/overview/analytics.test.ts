@@ -8,7 +8,6 @@ import {
   buildActivityDays,
   buildSourceShares,
   formatDayLabel,
-  formatDurationCompact,
   isFreshInstall,
   peakDictations,
   summarizeMeetings,
@@ -188,16 +187,8 @@ describe("isFreshInstall", () => {
   });
 });
 
-describe("formatDurationCompact", () => {
-  test("picks the coarsest honest unit", () => {
-    expect(formatDurationCompact(0, "en")).toBe("0 sec");
-    expect(formatDurationCompact(45_000, "en")).toBe("45 sec");
-    expect(formatDurationCompact(600_000, "en")).toBe("10 min");
-    expect(formatDurationCompact(89 * 60_000, "en")).toBe("89 min");
-    expect(formatDurationCompact(90 * 60_000, "en")).toBe("1.5 hr");
-    expect(formatDurationCompact(-5, "en")).toBe("0 sec");
-  });
-});
+/* Speaking time is rendered by formatDurationShort now, whose own tests live
+ * with it in src/lib/utils. Directive §3: one duration renderer, one owner. */
 
 describe("formatDayLabel", () => {
   test("reads a local calendar date without shifting it", () => {

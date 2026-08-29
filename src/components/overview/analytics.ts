@@ -122,41 +122,6 @@ export const formatCount = (value: number, locale: string): string =>
     maximumFractionDigits: value >= 100_000 ? 1 : 0,
   }).format(value);
 
-/** Speaking time at the coarsest honest unit: seconds below a minute,
- * minutes up to an hour and a half, hours after that. */
-export const formatDurationCompact = (
-  durationMs: number,
-  locale: string,
-): string => {
-  const safeMs = durationMs > 0 ? durationMs : 0;
-  const minutes = safeMs / 60_000;
-
-  if (minutes < 1) {
-    return new Intl.NumberFormat(locale, {
-      style: "unit",
-      unit: "second",
-      unitDisplay: "short",
-      maximumFractionDigits: 0,
-    }).format(Math.round(safeMs / 1_000));
-  }
-
-  if (minutes < 90) {
-    return new Intl.NumberFormat(locale, {
-      style: "unit",
-      unit: "minute",
-      unitDisplay: "short",
-      maximumFractionDigits: 0,
-    }).format(Math.round(minutes));
-  }
-
-  return new Intl.NumberFormat(locale, {
-    style: "unit",
-    unit: "hour",
-    unitDisplay: "short",
-    maximumFractionDigits: 1,
-  }).format(minutes / 60);
-};
-
 /** "2026-08-28" is a local calendar date, not an instant: parsing it through
  * Date.parse would shift it by the UTC offset. */
 export const formatDayLabel = (localDate: string, locale: string): string => {

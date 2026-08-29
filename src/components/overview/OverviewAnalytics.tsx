@@ -9,18 +9,17 @@ import type {
 import {
   Button,
   EmptyState,
-  GridConnector,
   Section,
   Skeleton,
   StatusText,
 } from "@/components/ui";
+import { formatDurationShort } from "@/lib/utils/format";
 import { ActivityChart } from "./ActivityChart";
 import {
   buildActivityDays,
   buildSourceShares,
   formatCount,
   formatDayLabel,
-  formatDurationCompact,
   peakDictations,
   summarizeMeetings,
   totalDictations,
@@ -146,9 +145,8 @@ export const OverviewAnalytics: React.FC<OverviewAnalyticsProps> = ({
               "overview.stats.speakingAllTime",
               "Speaking time, all time",
             ),
-            value: formatDurationCompact(
-              stats === null ? 0 : stats.total_duration_ms,
-              locale,
+            value: formatDurationShort(
+              (stats === null ? 0 : stats.total_duration_ms) / 1000,
             ),
             meta: null,
           },
@@ -173,21 +171,22 @@ export const OverviewAnalytics: React.FC<OverviewAnalyticsProps> = ({
           {
             key: "duration",
             label: t("overview.stats.speaking", "Speaking time"),
-            value: formatDurationCompact(trend.range_total.duration_ms, locale),
+            value: formatDurationShort(trend.range_total.duration_ms / 1000),
             meta: allTimeMeta(
-              formatDurationCompact(
-                stats === null ? 0 : stats.total_duration_ms,
-                locale,
+              formatDurationShort(
+                (stats === null ? 0 : stats.total_duration_ms) / 1000,
               ),
             ),
           },
           {
             key: "streak",
             label: t("overview.stats.streak", "Current streak"),
+            /* Narrow, so the unit sits inside the value the way every other
+             * tile's does: "3d", not "3 days". */
             value: new Intl.NumberFormat(locale, {
               style: "unit",
               unit: "day",
-              unitDisplay: "long",
+              unitDisplay: "narrow",
               maximumFractionDigits: 0,
             }).format(trend.current_streak_days),
             meta: t(
@@ -229,20 +228,25 @@ export const OverviewAnalytics: React.FC<OverviewAnalyticsProps> = ({
 
   return (
     <Section title={title} description={description}>
-      {/* Flat tiles, not cards. Four numbers side by side are a comparison,
-       * and a comparison is expressed by alignment and a guide line — the
-       * Geist grid motif — rather than by four boxes. */}
+      {/* Flat sections, not cards. The numbers are a comparison, and a
+       * comparison is expressed by alignment: one continuous hairline baseline
+       * above the row, the metric first, its unit-bearing name under it. No
+       * per-tile tick — four floating rules in four gutters would be four
+       * objects where the page has one. */}
       <ul
         className="ov-stat-grid"
         aria-label={t("overview.stats.tiles", "Usage summary")}
       >
         {tiles.map((tile) => (
           <li key={tile.key} className="ov-stat">
-            <GridConnector orientation="vertical" className="ov-stat-rule" />
+            <span className="ov-stat-value type-metric snap-measured">
+              {tile.value}
+            </span>
             <span className="ov-stat-label microlabel">{tile.label}</span>
-            <span className="ov-stat-value">{tile.value}</span>
             {tile.meta !== null && (
-              <span className="ov-stat-meta">{tile.meta}</span>
+              <span className="ov-stat-meta type-data snap-measured">
+                {tile.meta}
+              </span>
             )}
           </li>
         ))}
@@ -251,10 +255,10 @@ export const OverviewAnalytics: React.FC<OverviewAnalyticsProps> = ({
       {trend !== null && days.length > 0 && (
         <div className="ov-chart-block">
           <div className="ov-chart-head">
-            <span className="ov-chart-legend">
+            <span className="ov-chart-legend type-secondary">
               {t("overview.chart.legend", "Dictations per day")}
             </span>
-            <span className="ov-chart-peak">
+            <span className="ov-chart-peak type-data snap-measured">
               {t("overview.chart.peak", "Busiest day {{peak}}", { peak })}
             </span>
           </div>
@@ -291,7 +295,7 @@ export const OverviewAnalytics: React.FC<OverviewAnalyticsProps> = ({
                   )
             }
           />
-          <div className="ov-chart-axis">
+          <div className="ov-chart-axis type-data">
             <span>{formatDayLabel(trend.range_start_local_date, locale)}</span>
             <span>{formatDayLabel(trend.range_end_local_date, locale)}</span>
           </div>
@@ -299,7 +303,7 @@ export const OverviewAnalytics: React.FC<OverviewAnalyticsProps> = ({
       )}
 
       <div className="ov-source-block">
-        <p className="ov-source-line">{sourceLine}</p>
+        <p className="ov-source-line type-data snap-measured">{sourceLine}</p>
         {!meetings.available && (
           <StatusText tone="muted">
             {t(

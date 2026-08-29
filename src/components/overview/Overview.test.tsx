@@ -62,18 +62,55 @@ describe("Overview first paint", () => {
     expect(markup).toContain("Shortcut unavailable");
   });
 
-  /* Both sentences are product promises the wave was asked to make
-   * self-evident, so they are asserted as copy, not as markup. */
-  test("states the push-to-talk gesture and what a meeting recording does", () => {
-    expect(markup).toContain("Tap to toggle, hold to talk");
+  /* The meeting promise is a product commitment the wave was asked to make
+   * self-evident, so it is asserted as copy rather than as markup. */
+  test("states what a meeting recording does, beside the button that does it", () => {
+    expect(markup).toContain("ov-hero-action");
     expect(markup).toContain(
       "Records your Mac&#x27;s audio locally. Nothing joins the call.",
     );
   });
 
-  test("offers a way to set the missing shortcut rather than only naming it", () => {
-    expect(markup).toContain('data-testid="overview-shortcut"');
+  /* The gesture sentence describes the chord. With no chord bound there is no
+   * gesture to describe, and printing one would claim a capability the install
+   * does not have — the same class of lie as the old unconditional hint line. */
+  test("claims no gesture while no shortcut is bound", () => {
+    expect(markup.includes("Tap to toggle")).toBe(false);
     expect(markup).toContain("Set a shortcut");
+    expect(markup).toContain('data-testid="overview-shortcut"');
+  });
+
+  test("renders the instrument strip with all four labelled cells", () => {
+    expect(markup).toContain('aria-label="Capture instrument"');
+    for (const cell of ["engine", "input", "shortcut", "mode"]) {
+      expect(markup).toContain(`data-cell="${cell}"`);
+    }
+    expect(markup).toContain(">Engine</dt>");
+    expect(markup).toContain(">Input</dt>");
+    expect(markup).toContain(">Shortcut</dt>");
+    expect(markup).toContain(">Mode</dt>");
+  });
+
+  /* Every value in the strip is a measurement, and a measurement snaps: a
+   * transition on one of these would paint numbers the backend never sent. */
+  test("marks every strip value as never-animated", () => {
+    expect(markup).toContain("ov-strip-datum type-data snap-measured");
+  });
+
+  test("names an unmeasured input level rather than printing a zero", () => {
+    expect(markup).toContain("not measured");
+    expect(markup).toContain('data-absent="true"');
+    expect(markup).toContain("16 kHz");
+  });
+
+  test("reports an unbound chord as unset, in the strip and not as a blank", () => {
+    expect(markup).toContain(">not set<");
+  });
+
+  /* The accent's containment boundary and the text column's reserved width are
+   * the same number, published once so they cannot drift apart. */
+  test("publishes one containment share for the accent and the layout", () => {
+    expect(markup).toContain("--shader-hero-clear:62%");
   });
 
   test("loads behind placeholders, with no update banner and no numbers", () => {
@@ -81,5 +118,14 @@ describe("Overview first paint", () => {
     expect(markup.includes("is available. This install is on")).toBe(false);
     expect(markup.includes("Could not check for updates")).toBe(false);
     expect(markup.includes("ov-stat-value")).toBe(false);
+  });
+
+  /* The banned copy: an empty region used to apologise for a query that had
+   * actually succeeded. Neither the apology nor the old separate hint line may
+   * come back. */
+  test("carries no apology copy and no orphaned hint line", () => {
+    expect(markup.includes("could not be loaded just now")).toBe(false);
+    expect(markup.includes("Nothing recent")).toBe(false);
+    expect(markup.includes("ov-hero-facts")).toBe(false);
   });
 });

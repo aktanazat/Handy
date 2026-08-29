@@ -146,8 +146,11 @@ describe("OverviewAnalytics", () => {
     expect(rangeRecordings).toBe(60);
     expect(markup).toContain(">60<");
     expect(markup).toContain(">12,000<");
-    expect(markup).toContain(">60 min<");
-    expect(markup).toContain(">4 days<");
+    /* One duration renderer, one unit style: formatDurationShort's "1h", not
+     * Intl's "60 min", and the day unit narrow so it matches. */
+    expect(markup).toContain(">1h<");
+    expect(markup).toContain(">1h 30m all time<");
+    expect(markup).toContain(">4d<");
     expect(markup).toContain("96 all time");
     expect(markup).toContain("18,240 all time");
     expect(markup).toContain("17 of 30 days active");

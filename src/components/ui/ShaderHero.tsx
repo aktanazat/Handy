@@ -4,7 +4,19 @@ export interface ShaderHeroProps {
   /** Laid over the accent. The accent itself is decorative and unlabelled. */
   children?: React.ReactNode;
   className?: string;
+  /**
+   * Fraction of the band's width, measured from the leading edge, that the
+   * content column owns. The accent paints nothing there — no beam, no prism,
+   * no fan — so a caller that reserves the same fraction in CSS can never end
+   * up with the accent drawn across its own text. One number owns the
+   * boundary; see `--ov-hero-glow-share` in overview.css for the pairing.
+   */
+  clear?: number;
 }
+
+/* Content owns the leading 62% of the band by default, the accent the trailing
+ * 38%. Callers that lay out differently pass their own share. */
+const DEFAULT_CLEAR_SHARE = 0.62;
 
 /* Fraction of the device pixel ratio the canvas actually renders at. The
  * effect is all soft gradients, so half-resolution upscaled by the compositor
@@ -29,6 +41,7 @@ precision mediump float;
 uniform vec2 u_res;
 uniform float u_time;
 uniform float u_dark;
+uniform float u_clear;
 
 out vec4 fragColor;
 
@@ -79,13 +92,21 @@ void main() {
   vec2 p = (uv - 0.5) * vec2(aspect, 1.0);
   p.y = -p.y;
 
-  // The prism sits right of centre, where the reference puts it, so the beam
-  // has room to arrive and the fan has room to open.
-  vec2 apex = vec2(aspect * 0.16, 0.02);
+  // Containment: every optical term is multiplied by this, so nothing the
+  // shader draws reaches the content column. Without it the beam is an
+  // unbounded segment and paints a 1px line across the card behind the copy.
+  float inside = smoothstep(u_clear, u_clear + 0.05, uv.x);
+  float span = (1.0 - u_clear) * aspect;
+
+  // Prism inside the reserved region: room to its left for the beam to arrive,
+  // to its right for the fan to open.
+  vec2 apex = vec2((u_clear - 0.5) * aspect + span * 0.42, 0.02);
   float drift = sin(u_time * 0.18) * 0.012;
 
-  // Incoming beam: one thin line from off the left edge into the near face.
-  vec2 entry = apex + vec2(-aspect, 0.30 + drift);
+  // Beam: a finite segment ending on the near face, its length a fraction of
+  // the reserved region. That is what makes it a beam and not a streak.
+  float reach = span * 0.44;
+  vec2 entry = apex + vec2(-reach, reach * 0.72 + drift);
   float beamDistance = segment(p, entry, apex);
   float beam = pow(0.0045 / (beamDistance + 0.0045), 1.7);
   beam *= smoothstep(0.0, 0.18, apex.x - p.x + 0.05);
@@ -109,22 +130,22 @@ void main() {
   float fan = pow(max(across, 0.0) * radial, 1.35);
   float hue = clamp((angle - centre + spread) / (2.0 * spread), 0.0, 1.0);
 
-  // Two masks, faded the same way: the specular glint (beam + prism edges) and
-  // the dispersion band itself.
-  float mask = 0.55 + 0.45 * smoothstep(-0.12, 0.30, p.x);   // calm on the left,
+  // Glint (beam + prism edges) and the dispersion band, both inheriting the
+  // containment window, so the leading edge needs no fade of its own.
+  float mask = inside;
   mask *= smoothstep(0.0, 0.10, uv.y) * smoothstep(1.0, 0.90, uv.y);
-  mask *= smoothstep(0.0, 0.06, uv.x) * smoothstep(1.0, 0.94, uv.x);
+  mask *= smoothstep(1.0, 0.94, uv.x);
   float glint = (beam * 0.9 + prism * 0.35) * mask;
   float band = clamp(fan, 0.0, 1.0) * mask;
 
-  // Warm paper in light, near-black in dark. On paper there is no headroom to
-  // add colour into — adding would just clip to white — so the dispersion is
-  // composited as a tint the paper takes on, and only the specular glint is
-  // additive. In dark it does both, which is what makes dark carry the effect.
+  // Warm paper in light, near-black in dark. On paper the spectrum has to
+  // DARKEN the sheet to be seen: adding near-white light to a near-white
+  // surface is what read as a smudge. Dark adds both, which is what makes dark
+  // carry the effect.
   vec3 backdrop = mix(vec3(0.902, 0.890, 0.874), vec3(0.035, 0.035, 0.039), u_dark);
-  vec3 tint = spectrum(hue) * mix(0.94, 1.30, u_dark);
-  vec3 colour = mix(backdrop, tint, band * mix(0.85, 1.0, u_dark));
-  colour += glint * mix(0.28, 1.0, u_dark);
+  vec3 tint = spectrum(hue) * mix(0.72, 1.30, u_dark);
+  vec3 colour = mix(backdrop, tint, band * mix(0.95, 1.0, u_dark));
+  colour += glint * mix(0.45, 1.0, u_dark);
 
   colour += (hash(gl_FragCoord.xy + fract(u_time) * 331.0) - 0.5) * 0.014;
   fragColor = vec4(clamp(colour, 0.0, 1.0), 1.0);
@@ -162,6 +183,7 @@ const compile = (
 export const ShaderHero: React.FC<ShaderHeroProps> = ({
   children,
   className = "",
+  clear = DEFAULT_CLEAR_SHARE,
 }) => {
   const hostRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -201,6 +223,7 @@ export const ShaderHero: React.FC<ShaderHeroProps> = ({
     const uResolution = gl.getUniformLocation(program, "u_res");
     const uTime = gl.getUniformLocation(program, "u_time");
     const uDark = gl.getUniformLocation(program, "u_dark");
+    const uClear = gl.getUniformLocation(program, "u_clear");
 
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     let elapsed = 0;
@@ -216,6 +239,7 @@ export const ShaderHero: React.FC<ShaderHeroProps> = ({
         uDark,
         document.documentElement.dataset.theme === "light" ? 0 : 1,
       );
+      gl.uniform1f(uClear, clear);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       canvas.dataset.ready = "true";
     };
@@ -305,10 +329,21 @@ export const ShaderHero: React.FC<ShaderHeroProps> = ({
        * reference is enough; the context dies with its canvas. */
       gl.deleteProgram(program);
     };
-  }, []);
+  }, [clear]);
 
   return (
-    <div ref={hostRef} className={`shader-hero ${className}`}>
+    <div
+      ref={hostRef}
+      className={`shader-hero ${className}`}
+      /* The same fraction the shader clamps itself to, published as a custom
+       * property so a caller's padding and the accent's containment cannot
+       * drift apart. */
+      /* SAFETY: a custom property is a valid inline style, but
+         React.CSSProperties only indexes the known property names. */
+      style={
+        { "--shader-hero-clear": `${clear * 100}%` } as React.CSSProperties
+      }
+    >
       <div
         className="shader-hero-layer shader-hero-placeholder"
         aria-hidden="true"

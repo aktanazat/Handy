@@ -11,49 +11,43 @@ import { open } from "@tauri-apps/plugin-dialog";
 import {
   commands,
   type DashboardTrendRange,
-  type HistoryEntry,
+  type HistoryRunReceipt,
   type HistoryStats,
   type HistoryTrendProjection,
-  type MeetingHistorySummary,
+  type ModelLoadStatus,
   type RequestedEngine,
   type MeetingTrendProjection,
 } from "@/bindings";
-import { formatRelativeTime } from "@/utils/dateFormat";
 import { useSettings } from "@/hooks/useSettings";
 import { useOsType } from "@/hooks/useOsType";
-import { formatKeyCombination } from "@/lib/utils/keyboard";
+import { formatKeyCombination, keyCapParts } from "@/lib/utils/keyboard";
 import { getTranslatedModelName } from "@/lib/utils/modelTranslation";
 import { useModelStore } from "@/stores/modelStore";
 import {
   Button,
   EmptyState,
   Kbd,
-  List,
-  Row,
   Section,
   ShaderHero,
   Skeleton,
   StatusText,
 } from "@/components/ui";
 import { isFreshInstall, summarizeMeetings } from "./analytics";
+import {
+  buildInstrumentCells,
+  buildRecentActivity,
+  newestReceipt,
+  readFailure,
+  shortenModelId,
+  type InstrumentCell,
+  type ReadFailure,
+  type RecentActivityRow,
+} from "./instrument";
+import { InstrumentStrip } from "./InstrumentStrip";
 import { OverviewAnalytics } from "./OverviewAnalytics";
 import { UpdateBanner, UpdateCheckFailure } from "./UpdateNotice";
 import { checkForUpdates, type UpdateCheckResult } from "@/lib/updateCheck";
 import "./overview.css";
-
-type RecentActivity =
-  | {
-      kind: "history";
-      id: string;
-      title: string;
-      timestampMs: number;
-    }
-  | {
-      kind: "meeting";
-      id: string;
-      title: string;
-      timestampMs: number;
-    };
 
 interface OverviewProps {
   /* The shell passes its section setter. Overview sends people to the two
@@ -62,18 +56,25 @@ interface OverviewProps {
   onOpenSection?: (section: "history" | "meetings" | "settings") => void;
 }
 
-/* A failed read is a null payload: every one of these commands answers with a
- * zero-filled projection when there is simply nothing yet, so null and empty
- * are already distinguishable without a parallel set of error booleans.
- * `activityError` is the exception, because an empty recent list and a failed
- * one are both an empty array. */
+/* A failed read is a null payload for the projections: every one of those
+ * commands answers with a zero-filled projection when there is simply nothing
+ * yet, so null and empty are already distinguishable. The recent list is the
+ * exception, because a successful empty range and a failed query are both an
+ * empty array — so its failures are carried as the commands that failed and
+ * whatever they said, and rendered verbatim. */
 interface OverviewState {
   historyTrend: HistoryTrendProjection | null;
   meetingTrend: MeetingTrendProjection | null;
-  recentActivity: RecentActivity[];
+  recentActivity: RecentActivityRow[];
   historyStats: HistoryStats | null;
+  /** Amplitudes off the newest run receipt; null when it did not measure. */
+  inputPeak: number | null;
+  inputRms: number | null;
+  /** Realtime factor of the newest run's local decode; null when that run had
+   * none to report. */
+  realtimeFactor: number | null;
   loading: boolean;
-  activityError: boolean;
+  activityFailures: ReadFailure[];
 }
 
 type OverviewAction =
@@ -83,10 +84,14 @@ type OverviewAction =
 
 const DEFAULT_TREND_RANGE: DashboardTrendRange = "days_30";
 const RECENT_ACTIVITY_ROWS = 5;
-/* Interpolated into the translated instruction, then split back out, so the
- * shortcut can be rendered as keycaps without hard-coding word order for the
- * 24 locales that already translate this sentence. */
-const SHORTCUT_SLOT = "\u0000";
+/* One page of each source. Both lists are merged and cut to
+ * RECENT_ACTIVITY_ROWS, so fetching more would be receipts read for rows that
+ * never render. */
+const RECENT_SOURCE_PAGE = 5;
+/* Fraction of the hero band the text column owns. The prism accent clamps
+ * itself to the remainder — one number, two consumers, so the accent can never
+ * be drawn across the copy. */
+const HERO_CONTENT_SHARE = 0.62;
 const MEDIA_IMPORT_EXTENSIONS = [
   "wav",
   "mp3",
@@ -99,9 +104,21 @@ const MEDIA_IMPORT_EXTENSIONS = [
   "m4v",
 ];
 
+/**
+ * Whether no explicit input device is chosen.
+ *
+ * `settingsStore.ts` substitutes the literal `"Default"` for an unset
+ * `selected_microphone`, because that is the name the backend's own device list
+ * gives its default entry and the Microphone dropdown has to be able to select
+ * it. The instrument strip is a label, not that list, so it reports the
+ * condition in the user's language instead of echoing the store's sentinel.
+ */
+const isDefaultMicrophone = (device: string | null): boolean =>
+  device === null || device.length === 0 || device === "Default";
+
 /* The engine reads as the thing it actually is: the local runtime, or the
  * named cloud provider. Every label already exists elsewhere in the bundle,
- * so the hero adds no engine strings of its own. */
+ * so this page adds no engine strings of its own. */
 const ENGINE_LABEL_KEY = {
   local: "settings.modes.recognition.engine.local",
   deepgram_nova_3: "settings.models.cloud.providers.deepgram",
@@ -113,8 +130,11 @@ const INITIAL_OVERVIEW_STATE: OverviewState = {
   meetingTrend: null,
   recentActivity: [],
   historyStats: null,
+  inputPeak: null,
+  inputRms: null,
+  realtimeFactor: null,
   loading: true,
-  activityError: false,
+  activityFailures: [],
 };
 
 const overviewReducer = (
@@ -123,7 +143,7 @@ const overviewReducer = (
 ): OverviewState => {
   switch (action.type) {
     case "load-start":
-      return { ...state, loading: true, activityError: false };
+      return { ...state, loading: true, activityFailures: [] };
     case "load-settled":
       return { ...state, ...action.data };
     case "load-finished":
@@ -133,41 +153,30 @@ const overviewReducer = (
   }
 };
 
-const mergeRecentActivity = (
-  history: HistoryEntry[],
-  meetings: MeetingHistorySummary[],
-): RecentActivity[] => {
-  const items: RecentActivity[] = [];
-  for (const entry of history) {
-    items.push({
-      kind: "history",
-      id: `history-${entry.id}`,
-      title: entry.title || entry.file_name,
-      timestampMs: entry.timestamp * 1000,
-    });
-  }
-  for (const meeting of meetings) {
-    items.push({
-      kind: "meeting",
-      id: `meeting-${meeting.session_id}`,
-      title: meeting.title,
-      timestampMs: meeting.created_at_utc_ms,
-    });
-  }
-  items.sort((left, right) => right.timestampMs - left.timestampMs);
-  return items.slice(0, 8);
+/** One receipt read per row, in one wave: five rows is five short queries. */
+const loadReceipts = async (
+  historyIds: number[],
+): Promise<Map<number, HistoryRunReceipt[] | null>> => {
+  const settled = await Promise.all(
+    historyIds.map(async (historyId) => {
+      try {
+        const result = await commands.getHistoryRunReceipts(historyId);
+        return [
+          historyId,
+          result.status === "ok" ? result.data : null,
+        ] as const;
+      } catch {
+        return [historyId, null] as const;
+      }
+    }),
+  );
+  return new Map(settled);
 };
-
-interface HeroFact {
-  key: string;
-  label: string;
-  value: string;
-}
 
 interface OverviewHeroProps {
   isRecording: boolean;
   transcribeBinding: string | null;
-  facts: HeroFact[];
+  pushToTalk: boolean;
   startingAudioImport: boolean;
   onStartAudioImport: () => void;
   onOpenMeetings: () => void;
@@ -177,7 +186,7 @@ interface OverviewHeroProps {
 const OverviewHero: React.FC<OverviewHeroProps> = ({
   isRecording,
   transcribeBinding,
-  facts,
+  pushToTalk,
   startingAudioImport,
   onStartAudioImport,
   onOpenMeetings,
@@ -189,45 +198,46 @@ const OverviewHero: React.FC<OverviewHeroProps> = ({
   const keys =
     transcribeBinding === null
       ? []
-      : formatKeyCombination(transcribeBinding, osType)
-          .split(" + ")
-          .filter((key) => key.length > 0);
-  const instruction = t("overview.hero.instruction", {
-    shortcut: SHORTCUT_SLOT,
-  }).split(SHORTCUT_SLOT);
+      : keyCapParts(transcribeBinding, osType).filter((key) => key.length > 0);
+  /* One muted sentence, not two: the chord and the gesture are one fact about
+   * one control. Push-to-talk off means the chord only toggles, so the
+   * sentence has to stop claiming a hold that does nothing. */
+  const gesture = t(
+    pushToTalk
+      ? "overview.hero.gestureTapHold"
+      : "overview.hero.gestureTapOnly",
+    pushToTalk
+      ? "Tap to toggle, hold to talk, anywhere."
+      : "Tap to toggle, anywhere.",
+  );
 
   return (
-    <ShaderHero className="ov-hero-band">
+    <ShaderHero className="ov-hero-band" clear={HERO_CONTENT_SHARE}>
       <section className="ov-hero" aria-labelledby="overview-status">
         <div className="ov-hero-text">
-          {facts.length > 0 && (
-            <dl className="ov-hero-facts">
-              {facts.map((fact) => (
-                <div className="ov-hero-fact" key={fact.key}>
-                  <dt className="sr-only">{fact.label}</dt>
-                  <dd className="microlabel">{fact.value}</dd>
-                </div>
-              ))}
-            </dl>
-          )}
           <h1
-            className="ov-hero-title"
+            className="ov-hero-title type-display snap-measured"
             id="overview-status"
             data-recording={isRecording ? "true" : undefined}
             aria-live="polite"
           >
+            <span aria-hidden="true" className="ov-hero-dot" />
             {t(isRecording ? "overview.hero.recording" : "overview.hero.ready")}
           </h1>
           {/* The shortcut is the product's whole interface, so it is drawn as
            * the keys themselves and the keys are the control that goes and
            * changes them — not a sentence pointing at a settings page. */}
           {keys.length > 0 ? (
-            <p className="ov-hero-instruction">
-              {instruction[0]}
+            <p className="ov-hero-instruction type-secondary">
               <button
                 type="button"
                 className="ov-keys"
                 onClick={onOpenShortcutSettings}
+                title={
+                  transcribeBinding === null
+                    ? undefined
+                    : formatKeyCombination(transcribeBinding, osType)
+                }
                 aria-label={t(
                   "overview.hero.shortcutAction",
                   "Change dictation shortcut",
@@ -238,10 +248,10 @@ const OverviewHero: React.FC<OverviewHeroProps> = ({
                   <Kbd key={`${key}-${index}`}>{key}</Kbd>
                 ))}
               </button>
-              {instruction.length > 1 ? instruction[1] : null}
+              {gesture}
             </p>
           ) : (
-            <p className="ov-hero-instruction">
+            <p className="ov-hero-instruction type-secondary">
               <StatusText tone="warning">
                 {`${t("overview.actions.unavailable")} ${t(
                   "overview.hero.setShortcut",
@@ -259,14 +269,23 @@ const OverviewHero: React.FC<OverviewHeroProps> = ({
               </Button>
             </p>
           )}
-          <p className="ov-hero-hint">
-            {t("overview.hero.holdHint", "Tap to toggle, hold to talk")}
-          </p>
           <div className="ov-hero-actions">
-            <Button type="button" onClick={onOpenMeetings}>
-              <Video aria-hidden="true" className="size-3.5" />
-              {t("overview.hero.newMeeting")}
-            </Button>
+            {/* One click starts a meeting, so the reassurance sits with the
+             * button rather than behind a wizard step nobody reads. The key
+             * lives in the meetings subtree, which owns this promise's exact
+             * wording in every locale. */}
+            <span className="ov-hero-action">
+              <Button type="button" onClick={onOpenMeetings}>
+                <Video aria-hidden="true" className="size-3.5" />
+                {t("overview.hero.newMeeting")}
+              </Button>
+              <span className="ov-hero-assurance type-secondary">
+                {t(
+                  "meetings.start.assurance",
+                  "Records your Mac's audio locally. Nothing joins the call.",
+                )}
+              </span>
+            </span>
             <Button
               type="button"
               variant="secondary"
@@ -277,16 +296,6 @@ const OverviewHero: React.FC<OverviewHeroProps> = ({
               {t("overview.hero.importAudio")}
             </Button>
           </div>
-          {/* One click starts a meeting, so the reassurance has to sit with
-           * the button rather than behind a wizard step nobody reads. The
-           * key lives in the meetings subtree, which owns this promise's
-           * exact wording in every locale. */}
-          <p className="ov-hero-assurance">
-            {t(
-              "meetings.start.assurance",
-              "Records your Mac's audio locally. Nothing joins the call.",
-            )}
-          </p>
         </div>
       </section>
     </ShaderHero>
@@ -294,34 +303,23 @@ const OverviewHero: React.FC<OverviewHeroProps> = ({
 };
 
 interface RecentActivityListProps {
-  items: RecentActivity[];
+  rows: RecentActivityRow[];
   loading: boolean;
-  failed: boolean;
+  failures: ReadFailure[];
   onRetry: () => void;
   onOpen: (section: "history" | "meetings") => void;
 }
 
 const RecentActivityList: React.FC<RecentActivityListProps> = ({
-  items,
+  rows,
   loading,
-  failed,
+  failures,
   onRetry,
   onOpen,
 }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const title = t("overview.recent.title");
-  const rows = items.slice(0, RECENT_ACTIVITY_ROWS);
-
-  const openLibrary = (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      onClick={() => onOpen("history")}
-    >
-      {t("overview.recent.viewAll", "See all")}
-    </Button>
-  );
+  const visible = rows.slice(0, RECENT_ACTIVITY_ROWS);
 
   if (loading) {
     return (
@@ -329,81 +327,95 @@ const RecentActivityList: React.FC<RecentActivityListProps> = ({
         <div
           role="status"
           aria-label={t("common.loading")}
-          className="space-y-2"
+          className="ov-activity"
         >
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
+          <Skeleton className="ov-activity-placeholder" />
+          <Skeleton className="ov-activity-placeholder" />
+          <Skeleton className="ov-activity-placeholder" />
         </div>
       </Section>
     );
   }
 
-  /* A section that failed to load and a section with nothing in it are both
-   * empty regions, so both read as an empty state rather than as an alert
-   * bar: the error one names the failure and carries the retry, the blank
-   * one carries no call to action because the shortcut is the call to
-   * action. */
-  if (failed) {
+  /* A read that failed says which command failed and exactly what it said.
+   * A read that succeeded and found nothing is not a failure and never says
+   * one: on a healthy install these queries succeed, so the old "could not be
+   * loaded" line on an empty range was a false alarm. */
+  if (failures.length > 0) {
     return (
       <Section title={title}>
-        <EmptyState
-          variant="error"
-          title={t(
-            "overview.recent.error",
-            "Recent captures could not be loaded just now.",
-          )}
-          action={
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={onRetry}
-            >
-              {t("common.retry")}
-            </Button>
-          }
-        />
+        <div className="ov-activity-failure">
+          {failures.map((failure) => (
+            <p className="type-data" key={failure.command}>
+              {failure.detail === null
+                ? t("overview.recent.failedCommand", "{{command}} failed", {
+                    command: failure.command,
+                  })
+                : t(
+                    "overview.recent.failedCommandWithDetail",
+                    "{{command}} failed: {{detail}}",
+                    { command: failure.command, detail: failure.detail },
+                  )}
+            </p>
+          ))}
+          <Button type="button" variant="secondary" size="sm" onClick={onRetry}>
+            {t("common.retry")}
+          </Button>
+        </div>
       </Section>
     );
   }
 
-  if (rows.length === 0) {
+  if (visible.length === 0) {
     return (
       <Section title={title}>
-        <EmptyState
-          title={t("overview.recent.emptyTitle", "Nothing recent")}
-          description={t(
-            "overview.recent.emptyDescription",
-            "Retained captures show up here as soon as you dictate or record a meeting.",
+        <p className="ov-activity-empty type-body">
+          {t(
+            "overview.recent.emptyRange",
+            "No dictations or meetings in the last 30 days.",
           )}
-        />
+        </p>
       </Section>
     );
   }
 
   return (
-    <Section title={title} actions={openLibrary}>
-      <List label={title}>
-        {rows.map((item) => (
-          <Row
-            key={item.id}
-            title={item.title}
-            description={t(`overview.recent.${item.kind}`)}
-            meta={
-              <time dateTime={new Date(item.timestampMs).toISOString()}>
-                {formatRelativeTime(
-                  String(Math.floor(item.timestampMs / 1000)),
-                  i18n.language,
-                )}
-              </time>
-            }
-            onSelect={() =>
-              onOpen(item.kind === "meeting" ? "meetings" : "history")
-            }
-          />
+    <Section
+      title={title}
+      actions={
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => onOpen("history")}
+        >
+          {t("overview.recent.viewAll", "See all")}
+        </Button>
+      }
+    >
+      <ul className="ov-activity" aria-label={title}>
+        {visible.map((row) => (
+          <li className="ov-activity-row" key={row.key}>
+            <button
+              type="button"
+              className="ov-activity-open"
+              onClick={() => onOpen(row.section)}
+              title={row.reading}
+            >
+              <span className="ov-activity-facts type-data snap-measured">
+                {row.facts.map((fact, index) => (
+                  <span className="ov-activity-fact" key={`${fact}-${index}`}>
+                    {fact}
+                  </span>
+                ))}
+              </span>
+              <span className="ov-activity-snippet type-body">
+                {row.snippet}
+              </span>
+            </button>
+          </li>
         ))}
-      </List>
+      </ul>
     </Section>
   );
 };
@@ -411,6 +423,7 @@ const RecentActivityList: React.FC<RecentActivityListProps> = ({
 export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
   const { t } = useTranslation();
   const { settings } = useSettings();
+  const osType = useOsType();
   /* The catalog is already loaded by the model chip in the top bar, so this
    * is a read of state the window is holding anyway. */
   const models = useModelStore((state) => state.models);
@@ -420,6 +433,8 @@ export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
   );
   const [startingAudioImport, setStartingAudioImport] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [modelStatus, setModelStatus] = useState<ModelLoadStatus | null>(null);
+  const [deviceChannels, setDeviceChannels] = useState<number | null>(null);
   const [updateResult, setUpdateResult] = useState<UpdateCheckResult | null>(
     null,
   );
@@ -442,8 +457,8 @@ export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
       ] = await Promise.allSettled([
         commands.getHistoryTrend({ range: DEFAULT_TREND_RANGE }),
         commands.meetingTrend({ range: DEFAULT_TREND_RANGE }),
-        commands.getHistoryEntries(null, 4),
-        commands.meetingList(null, 4),
+        commands.getHistoryEntries(null, RECENT_SOURCE_PAGE),
+        commands.meetingList(null, RECENT_SOURCE_PAGE),
         commands.getHistoryStats(),
       ]);
 
@@ -459,10 +474,19 @@ export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
         meetingListResult.value.status === "ok"
           ? meetingListResult.value.data.entries
           : [];
-      const historyStats =
-        statsResult.status === "fulfilled" && statsResult.value.status === "ok"
-          ? statsResult.value.data
-          : null;
+
+      const receipts = await loadReceipts(
+        historyEntries.map((entry) => entry.id),
+      );
+      if (requestRef.current !== requestId) return;
+
+      /* The newest run of the newest entry is the last thing the microphone
+       * actually delivered, so its amplitudes and its decode throughput are
+       * what INPUT and ENGINE report. */
+      const latestReceipt =
+        historyEntries.length === 0
+          ? null
+          : newestReceipt(receipts.get(historyEntries[0].id));
 
       dispatch({
         type: "load-settled",
@@ -477,15 +501,39 @@ export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
             meetingResult.value.status === "ok"
               ? meetingResult.value.data
               : null,
-          recentActivity: mergeRecentActivity(historyEntries, meetingEntries),
-          historyStats,
-          activityError:
-            historyListResult.status === "rejected" ||
-            meetingListResult.status === "rejected" ||
-            (historyListResult.status === "fulfilled" &&
-              historyListResult.value.status === "error") ||
-            (meetingListResult.status === "fulfilled" &&
-              meetingListResult.value.status === "error"),
+          recentActivity: buildRecentActivity(
+            historyEntries,
+            receipts,
+            meetingEntries,
+            settings?.modes ?? [],
+            {
+              meeting: t("overview.recent.meeting"),
+              words: (count) =>
+                t("overview.recent.words", "{{count}} words", { count }),
+              /* SAFETY: `engine_used` is `RequestedEngine` on the receipt, and
+                 the map is keyed by that exact union; the `??` covers a receipt
+                 written by a newer build with a route this one does not know. */
+              engine: (engine) =>
+                t(
+                  ENGINE_LABEL_KEY[engine as RequestedEngine] ??
+                    ENGINE_LABEL_KEY.local,
+                ),
+              phase: (phase) => t(`meetings.phases.${phase}`, phase),
+            },
+            Date.now(),
+          ),
+          historyStats:
+            statsResult.status === "fulfilled" &&
+            statsResult.value.status === "ok"
+              ? statsResult.value.data
+              : null,
+          inputPeak: latestReceipt?.mode.input_peak ?? null,
+          inputRms: latestReceipt?.mode.input_rms ?? null,
+          realtimeFactor: latestReceipt?.mode.realtime_factor ?? null,
+          activityFailures: [
+            readFailure("get_history_entries", historyListResult),
+            readFailure("meeting_list", meetingListResult),
+          ].filter((failure): failure is ReadFailure => failure !== null),
         },
       });
     } finally {
@@ -493,7 +541,7 @@ export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
         dispatch({ type: "load-finished" });
       }
     }
-  }, []);
+  }, [settings?.modes, t]);
 
   useEffect(() => {
     void loadOverview();
@@ -501,25 +549,56 @@ export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
 
   useEffect(() => {
     let active = true;
-    const refreshRecordingState = async () => {
+    /* Recording state and engine binding are both polled: the backend loads
+     * and unloads the model on its own schedule, so a cached answer would
+     * report a binding that is no longer there. */
+    const refresh = async () => {
       try {
-        const nextState = await commands.isRecording();
-        if (active) setIsRecording(nextState);
+        const recording = await commands.isRecording();
+        if (active) setIsRecording(recording);
       } catch {
         if (active) setIsRecording(false);
       }
+      try {
+        const status = await commands.getModelLoadStatus();
+        if (active && status.status === "ok") {
+          setModelStatus(status.data);
+        }
+      } catch {
+        if (active) setModelStatus(null);
+      }
     };
 
-    void refreshRecordingState();
-    const interval = window.setInterval(
-      () => void refreshRecordingState(),
-      1000,
-    );
+    void refresh();
+    const interval = window.setInterval(() => void refresh(), 1000);
     return () => {
       active = false;
       window.clearInterval(interval);
     };
   }, []);
+
+  const selectedMicrophone = settings?.selected_microphone ?? null;
+  useEffect(() => {
+    let active = true;
+    /* The channel count is a property of the device, so it is re-read when the
+     * device changes and not on a timer. "default" resolves to whatever the OS
+     * currently calls the default input. */
+    const readChannels = async () => {
+      try {
+        const result = await commands.getMicrophoneChannels(
+          selectedMicrophone ?? "default",
+        );
+        if (active)
+          setDeviceChannels(result.status === "ok" ? result.data : null);
+      } catch {
+        if (active) setDeviceChannels(null);
+      }
+    };
+    void readChannels();
+    return () => {
+      active = false;
+    };
+  }, [selectedMicrophone]);
 
   const runUpdateCheck = useCallback(async () => {
     setCheckingUpdate(true);
@@ -570,43 +649,60 @@ export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
   const activeMode =
     settings?.modes?.find((mode) => mode.id === settings.active_mode_id) ??
     null;
-
-  /* Mode, model and engine, as the three technical identifiers the run will
-   * actually use. Anything the settings document has not answered yet is
-   * left out rather than filled with a placeholder. */
-  const heroFacts: HeroFact[] = [];
-  if (activeMode !== null) {
-    heroFacts.push({
-      key: "mode",
-      label: t("overview.hero.facts.mode", "Mode"),
-      value: activeMode.name,
-    });
-  }
+  const requestedEngine: RequestedEngine =
+    activeMode?.asr.requested_engine ?? "local";
   const modelId = activeMode?.asr.model_id?.trim() || settings?.selected_model;
-  if (modelId) {
-    const catalogEntry = models.find((model) => model.id === modelId);
-    heroFacts.push({
-      key: "model",
-      label: t("overview.hero.facts.model", "Model"),
-      /* Model ids are repository paths. The catalog holds the product name;
-       * until it loads, the file's own name is the most specific honest
-       * label a 70-character path can be reduced to. */
-      value:
-        catalogEntry === undefined
-          ? (modelId.split("/").pop() ?? modelId).replace(
-              /\.(gguf|bin|safetensors)$/i,
-              "",
-            )
-          : getTranslatedModelName(catalogEntry, t),
-    });
-  }
-  if (activeMode !== null) {
-    heroFacts.push({
-      key: "engine",
-      label: t("overview.hero.facts.engine", "Engine"),
-      value: t(ENGINE_LABEL_KEY[activeMode.asr.requested_engine ?? "local"]),
-    });
-  }
+  const catalogEntry =
+    modelId === undefined ? undefined : models.find((m) => m.id === modelId);
+
+  const instrumentCells: InstrumentCell[] = buildInstrumentCells(
+    {
+      modeName: activeMode?.name ?? null,
+      modelName:
+        modelId === undefined || modelId.length === 0
+          ? null
+          : catalogEntry === undefined
+            ? shortenModelId(modelId)
+            : getTranslatedModelName(catalogEntry, t),
+      engineLabel: t(ENGINE_LABEL_KEY[requestedEngine]),
+      engineIsLocal: requestedEngine === "local",
+      backend: modelStatus?.backend ?? null,
+      modelLoaded: modelStatus === null ? null : modelStatus.is_loaded,
+      deviceName: isDefaultMicrophone(selectedMicrophone)
+        ? t("overview.instrument.systemDefault", "System default")
+        : selectedMicrophone,
+      deviceChannels,
+      selectedChannel: settings?.selected_channel ?? null,
+      inputPeak: overview.inputPeak,
+      inputRms: overview.inputRms,
+      realtimeFactor: overview.realtimeFactor,
+      keys:
+        transcribeBinding === null
+          ? []
+          : keyCapParts(transcribeBinding, osType).filter(
+              (key) => key.length > 0,
+            ),
+      pushToTalk: settings === null ? null : (settings.push_to_talk ?? true),
+    },
+    {
+      engine: t("overview.instrument.engine", "Engine"),
+      input: t("overview.instrument.input", "Input"),
+      shortcut: t("overview.instrument.shortcut", "Shortcut"),
+      mode: t("overview.instrument.mode", "Mode"),
+      loaded: t("overview.instrument.loaded", "loaded"),
+      unloaded: t("overview.instrument.unloaded", "unloaded"),
+      notMeasured: t("overview.instrument.notMeasured", "not measured"),
+      unbound: t("overview.instrument.unbound", "not set"),
+      gestureTapHold: t("overview.instrument.gestureTapHold", "tap · hold"),
+      gestureTap: t("overview.instrument.gestureTap", "tap"),
+      channel: (channel) =>
+        t("overview.instrument.channel", "ch {{channel}}", { channel }),
+      channels: (count) =>
+        t("overview.instrument.channels", "{{count}} ch", { count }),
+      sampleRate: (kilohertz) =>
+        t("overview.instrument.rate", "{{kilohertz}} kHz", { kilohertz }),
+    },
+  );
 
   const meetings = summarizeMeetings(overview.meetingTrend);
   const freshInstall =
@@ -628,15 +724,21 @@ export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
           />
         )}
 
-      <OverviewHero
-        isRecording={isRecording}
-        transcribeBinding={transcribeBinding}
-        facts={heroFacts}
-        startingAudioImport={startingAudioImport}
-        onStartAudioImport={() => void startAudioImport()}
-        onOpenMeetings={() => onOpenSection?.("meetings")}
-        onOpenShortcutSettings={() => onOpenSection?.("settings")}
-      />
+      <div className="ov-capture">
+        <OverviewHero
+          isRecording={isRecording}
+          transcribeBinding={transcribeBinding}
+          pushToTalk={settings?.push_to_talk ?? true}
+          startingAudioImport={startingAudioImport}
+          onStartAudioImport={() => void startAudioImport()}
+          onOpenMeetings={() => onOpenSection?.("meetings")}
+          onOpenShortcutSettings={() => onOpenSection?.("settings")}
+        />
+        <InstrumentStrip
+          cells={instrumentCells}
+          label={t("overview.instrument.label", "Capture instrument")}
+        />
+      </div>
 
       {freshInstall ? (
         <EmptyState
@@ -666,11 +768,11 @@ export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
             onRetry={() => void loadOverview()}
           />
           <RecentActivityList
-            items={overview.recentActivity}
+            rows={overview.recentActivity}
             loading={overview.loading}
-            failed={overview.activityError}
+            failures={overview.activityFailures}
             onRetry={() => void loadOverview()}
-            onOpen={(kind) => onOpenSection?.(kind)}
+            onOpen={(section) => onOpenSection?.(section)}
           />
         </>
       )}
