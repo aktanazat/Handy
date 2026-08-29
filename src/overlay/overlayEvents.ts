@@ -6,7 +6,13 @@ import type {
   StreamTextEvent,
 } from "@/bindings";
 
+/**
+ * `idle` is the always-visible HUD pill: unlike the four transient states it is
+ * not driven by a dictation, and the backend returns the overlay to it instead
+ * of hiding when the pill is enabled.
+ */
 export type OverlayState =
+  | "idle"
   | "recording"
   | "streaming"
   | "transcribing"

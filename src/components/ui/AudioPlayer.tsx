@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { Play, Pause } from "lucide-react";
 
 export interface AudioPlayerProps {
@@ -64,6 +65,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   className = "",
   autoPlay = false,
 }) => {
+  const { t } = useTranslation();
   const group = useContext(AudioPlayerGroupContext);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -294,26 +296,29 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       <audio ref={audioRef} src={src ?? undefined} preload="metadata" />
 
       <button
+        type="button"
         onClick={togglePlay}
         disabled={isLoading}
-        className="transition-colors cursor-pointer text-text hover:text-logo-primary disabled:opacity-50"
-        aria-label={isPlaying ? "Pause" : "Play"}
+        className="flex size-7 flex-none cursor-pointer items-center justify-center rounded-control text-text-secondary transition-colors outline-offset-[-2px] enabled:hover:bg-hover enabled:hover:text-text-primary enabled:active:bg-pressed disabled:cursor-not-allowed disabled:text-text-disabled"
+        aria-label={
+          isPlaying ? t("common.pause", "Pause") : t("common.play", "Play")
+        }
       >
         {isPlaying ? (
-          <Pause width={20} height={20} fill="currentColor" />
+          <Pause width={16} height={16} fill="currentColor" />
         ) : (
-          <Play width={20} height={20} fill="currentColor" />
+          <Play width={16} height={16} fill="currentColor" />
         )}
       </button>
 
-      <div className="flex-1 flex items-center gap-2">
-        <span className="text-xs text-text/60 min-w-[30px] tabular-nums">
+      <div className="flex flex-1 items-center gap-2">
+        <span className="min-w-[34px] text-[12px] leading-4 text-text-tertiary tabular-nums">
           {formatTime(currentTime)}
         </span>
 
         <input
           type="range"
-          aria-label="Playback position"
+          aria-label={t("common.seek", "Playback position")}
           min="0"
           max={duration || 0}
           step="0.01"
@@ -321,11 +326,11 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           onChange={handleSeek}
           onMouseDown={handleSliderMouseDown}
           onTouchStart={handleSliderTouchStart}
-          className={`h-1 flex-1 cursor-pointer appearance-none rounded-lg accent-[var(--color-inverse-background)] ${progressPercent >= 99.5 ? "[&::-webkit-slider-thumb]:translate-x-0.5 [&::-moz-range-thumb]:translate-x-0.5" : ""}`}
-          style={{ accentColor: "var(--color-inverse-background)" }}
+          className={`h-1 flex-1 cursor-pointer appearance-none rounded-pill ${progressPercent >= 99.5 ? "[&::-webkit-slider-thumb]:translate-x-0.5 [&::-moz-range-thumb]:translate-x-0.5" : ""}`}
+          style={{ accentColor: "var(--invert-bg)" }}
         />
 
-        <span className="text-xs text-text/60 min-w-[30px] tabular-nums">
+        <span className="min-w-[34px] text-end text-[12px] leading-4 text-text-tertiary tabular-nums">
           {formatTime(duration)}
         </span>
       </div>

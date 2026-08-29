@@ -4,6 +4,8 @@ import { Search, Settings } from "lucide-react";
 import { SonaMark } from "./icons/SonaMark";
 import { SECTIONS_CONFIG, type SidebarSection } from "./sidebarSections";
 import ModelSelector from "./model-selector/ModelSelector";
+import { KbdChord } from "./ui";
+import { useOsType } from "@/hooks/useOsType";
 
 export interface TopNavProps {
   activeSection: SidebarSection;
@@ -81,12 +83,13 @@ export const TopNav: React.FC<TopNavProps> = ({
   const { t } = useTranslation();
   const routes = useArrowNavigation();
   const subsections = subsectionsFor(activeSection);
+  const commandKeys = useOsType() === "macos" ? ["\u2318", "K"] : ["Ctrl", "K"];
 
   return (
     <>
       <header className="app-topnav" data-tauri-drag-region>
         <div className="app-topnav-mark" data-tauri-drag-region>
-          <SonaMark width={14} height={14} />
+          <SonaMark width={16} height={16} />
           {/* eslint-disable-next-line i18next/no-literal-string */}
           <span className="app-topnav-wordmark" data-tauri-drag-region>
             Sona
@@ -123,12 +126,15 @@ export const TopNav: React.FC<TopNavProps> = ({
           </div>
           <button
             type="button"
-            className="app-topnav-icon-button"
+            className="app-topnav-search"
             aria-label={t("commandPalette.open")}
-            title={t("commandPalette.open")}
             onClick={onOpenCommand}
           >
             <Search aria-hidden="true" />
+            <span className="app-topnav-search-label">
+              {t("commandPalette.open")}
+            </span>
+            <KbdChord keys={commandKeys} className="app-topnav-search-keys" />
           </button>
           <button
             type="button"

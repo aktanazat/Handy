@@ -14,6 +14,8 @@ export interface TabsProps {
   onChange: (id: string) => void;
   /** Accessible name for the tab strip. */
   label: string;
+  /** `default` is the underlined strip; `secondary` is the segmented pill. */
+  variant?: "default" | "secondary";
   className?: string;
 }
 
@@ -30,6 +32,33 @@ const nextEnabledIndex = (
   return from;
 };
 
+/* The underlined strip owns its own rail, because an underline that marks the
+ * active tab needs a line to sit on. The 2px marker is drawn by a
+ * pseudo-element pulled one pixel down so it covers the rail instead of
+ * stacking above it. */
+const LIST_CLASSES = {
+  default: "flex items-stretch gap-4 border-b border-border",
+  secondary: "inline-flex items-center gap-0.5",
+} as const;
+
+const TAB_CLASSES = {
+  default:
+    "relative min-h-9 cursor-pointer px-0.5 text-[13px] whitespace-nowrap transition-colors duration-150 ease-out after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:origin-center after:scale-x-0 after:bg-text-primary after:transition-transform after:duration-180 after:ease-out disabled:cursor-not-allowed disabled:text-text-disabled",
+  secondary:
+    "min-h-8 cursor-pointer rounded-control px-3 text-[13px] whitespace-nowrap transition-[background-color,color] duration-150 ease-out disabled:cursor-not-allowed disabled:text-text-disabled",
+} as const;
+
+const TAB_STATE_CLASSES = {
+  default: {
+    active: "font-semibold text-text-primary after:scale-x-100",
+    idle: "font-medium text-text-secondary enabled:hover:text-text-primary",
+  },
+  secondary: {
+    active: "bg-subtle font-semibold text-text-primary",
+    idle: "font-medium text-text-secondary enabled:hover:bg-hover enabled:hover:text-text-primary enabled:active:bg-pressed",
+  },
+} as const;
+
 /* Roving tabindex: one stop in the Tab order, arrows move between tabs.
  * Selection follows focus, which is the expected behaviour when switching
  * panels is cheap. */
@@ -38,6 +67,7 @@ export const Tabs: React.FC<TabsProps> = ({
   value,
   onChange,
   label,
+  variant = "default",
   className = "",
 }) => {
   const listRef = useRef<HTMLDivElement>(null);
@@ -74,10 +104,11 @@ export const Tabs: React.FC<TabsProps> = ({
       role="tablist"
       aria-label={label}
       onKeyDown={handleKeyDown}
-      className={`inline-flex items-center gap-0.5 ${className}`}
+      className={`${LIST_CLASSES[variant]} ${className}`}
     >
       {items.map((item) => {
         const active = item.id === value;
+        const state = TAB_STATE_CLASSES[variant];
         return (
           <button
             key={item.id}
@@ -89,11 +120,7 @@ export const Tabs: React.FC<TabsProps> = ({
             tabIndex={active ? 0 : -1}
             disabled={item.disabled}
             onClick={() => onChange(item.id)}
-            className={`min-h-8 cursor-pointer rounded-control px-3 text-[13px] whitespace-nowrap transition-[background-color,color] duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-60 ${
-              active
-                ? "bg-subtle font-semibold text-text-primary"
-                : "font-medium text-text-secondary enabled:hover:bg-hover enabled:hover:text-text-primary enabled:active:bg-pressed"
-            }`}
+            className={`${TAB_CLASSES[variant]} ${active ? state.active : state.idle}`}
           >
             {item.label}
           </button>

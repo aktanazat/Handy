@@ -81,24 +81,25 @@
   margin: 0;
 }
 
-/* Shared liquid material for the compact and live recording surfaces. */
+/* Shared surface for the compact and live recording cards.
+ *
+ * Was translucent glass with a 28px backdrop blur. Now a solid raised token
+ * surface with a hairline and the dialog shadow, for three reasons: a real
+ * backdrop-filter over an arbitrary desktop is the most expensive thing the
+ * overlay does and it runs while ASR is running; the blur made the timer and
+ * the waveform legible only over calm wallpaper; and glass is not in the
+ * design system. The pill is a floating object, so it keeps its shadow. */
 .scard {
   width: var(--ov-pill-w);
-  border-radius: 24px;
+  border-radius: var(--radius-pill);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   flex: none;
   transform-origin: bottom center;
-  background: color-mix(in srgb, var(--s-surface) 82%, transparent);
-  border: 1px solid
-    color-mix(in srgb, var(--color-text-primary) 14%, transparent);
-  box-shadow:
-    0 16px 48px rgb(0 0 0 / 30%),
-    0 3px 12px rgb(0 0 0 / 18%),
-    inset 0 1px 0 rgb(255 255 255 / 20%);
-  backdrop-filter: blur(28px) saturate(155%);
-  -webkit-backdrop-filter: blur(28px) saturate(155%);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-dialog);
   animation: scard-pop 460ms cubic-bezier(0.22, 1, 0.36, 1);
   transition:
     width 460ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -125,7 +126,7 @@
 }
 .scard.open {
   width: var(--ov-open-w);
-  border-radius: 16px;
+  border-radius: var(--radius-sheet);
 }
 .scard.engine-fallback:not(.open) {
   width: 292px;
@@ -133,7 +134,7 @@
 
 .scard.working {
   width: var(--ov-work-w);
-  border-radius: 18px;
+  border-radius: var(--radius-pill);
 }
 
 /* Compact form: two fixed widths so the recording→working change is an animatable
@@ -284,10 +285,14 @@
     opacity: 0.55;
   }
 }
+/* Elapsed time is a technical identifier, so it is set in the mono face with
+   tabular figures: the pill must not reflow as the seconds tick over. */
 .stimer {
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
   color: var(--s-faint);
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
   white-space: nowrap;
   opacity: 0;
   transition: opacity 240ms ease 80ms;
@@ -434,5 +439,86 @@
   .scaret {
     animation: none;
     transform: none;
+  }
+}
+
+/* Idle HUD pill. Reuses the compact card shell so it lands on the same anchor
+   as the working pill; unlike every other overlay state it is interactive, so
+   it must not be treated as window chrome.
+
+   Geometry contract: overlay.rs sizes the idle window 184x36
+   (OVERLAY_IDLE_WIDTH/HEIGHT) and .ov-stage anchors the card flush to the
+   screen-edge side, so the pill stays inside 176x28 and leaves the remaining
+   pixels for its own border and the edge it sits against. Growing it means
+   moving those two constants with it. The selector carries .scard.compact
+   because that rule pins a fixed 172px width the pill has to opt out of.
+
+   Two real buttons share the pill: the record area and a trailing mode switch.
+   At rest both sit muted and the pill reads as a label; hover brings the record
+   glyph and the chevron to full contrast, which is the whole "what can I do to
+   this" answer without a tooltip. */
+.scard.compact.hud-pill {
+  display: flex;
+  align-items: center;
+  block-size: 28px;
+  inline-size: max-content;
+  max-inline-size: 176px;
+  padding-inline: 3px;
+  border-radius: var(--radius-pill);
+  -webkit-app-region: no-drag;
+}
+
+.hud-pill button {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  gap: 6px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--s-muted);
+  cursor: pointer;
+  font: inherit;
+  padding-inline: 8px;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.hud-pill button:hover,
+.hud-pill:hover button {
+  color: var(--color-text-primary);
+}
+
+.hud-pill button:hover {
+  background: var(--color-hover);
+}
+
+.hud-pill button:active {
+  background: var(--color-pressed);
+}
+
+/* The pill is inside a panel that never takes focus, so :focus-visible would
+   never fire; hover is the only state channel available here. */
+.hud-pill-record {
+  min-inline-size: 0;
+}
+
+.hud-pill-switch {
+  flex: none;
+  padding-inline: 5px;
+}
+
+.hud-pill-mode {
+  font-size: 12px;
+  max-inline-size: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-pill button {
+    transition-duration: 0.01ms;
   }
 }

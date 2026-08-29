@@ -29,7 +29,7 @@ export type {
 } from "./Button";
 
 export { Card, Section } from "./Card";
-export type { CardPadding, CardProps, SectionProps } from "./Card";
+export type { CardPadding, CardProps, CardTone, SectionProps } from "./Card";
 
 export { Dialog } from "./Dialog";
 export type { DialogProps } from "./Dialog";
@@ -38,13 +38,16 @@ export { Dropdown } from "./Dropdown";
 export type { DropdownOption, DropdownProps } from "./Dropdown";
 
 export { EmptyState } from "./EmptyState";
-export type { EmptyStateProps } from "./EmptyState";
+export type { EmptyStateProps, EmptyStateVariant } from "./EmptyState";
+
+export { GridConnector } from "./GridConnector";
+export type { GridConnectorProps } from "./GridConnector";
 
 export { Input } from "./Input";
 export type { InputProps } from "./Input";
 
-export { Kbd } from "./Kbd";
-export type { KbdProps } from "./Kbd";
+export { Kbd, KbdChord } from "./Kbd";
+export type { KbdChordProps, KbdProps } from "./Kbd";
 
 export { List, Row } from "./List";
 export type { ListProps, RowProps } from "./List";
@@ -60,6 +63,9 @@ export type { SelectOption, SelectProps } from "./Select";
 
 export { SettingContainer } from "./SettingContainer";
 export type { SettingContainerProps } from "./SettingContainer";
+
+export { ShaderHero } from "./ShaderHero";
+export type { ShaderHeroProps } from "./ShaderHero";
 
 export { SettingsGroup } from "./SettingsGroup";
 export type { SettingsGroupProps } from "./SettingsGroup";

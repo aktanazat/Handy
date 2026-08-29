@@ -1,11 +1,20 @@
 /* Geist Sans and Geist Mono, bundled locally.
    Copyright (c) 2023 Vercel, in collaboration with basement.studio.
    Licensed under the SIL Open Font License 1.1 — full text in
-   ../assets/fonts/OFL.txt. The OFL permits bundling and redistribution with
-   the software, so Sona ships the fonts instead of fetching them at runtime.
+   ../assets/fonts/OFL.txt, byte-identical to the LICENSE.txt shipped in the
+   `geist` npm package. The OFL permits bundling and redistribution with the
+   software, so Sona ships the fonts instead of fetching them at runtime.
 
-   Both files are the variable cuts (one axis, wght 100-900), 72 KB each, so the
-   whole type system costs two requests against the app's own asset protocol.
+   Both files are the variable cuts (one axis, wght 100-900) and are
+   byte-identical to geist@1.7.2's
+   dist/fonts/geist-{sans,mono}/{Geist,GeistMono}-Variable.woff2 (verified by
+   md5). Refresh by re-copying from a `bun add -D geist` install; the package
+   itself is not a dependency, since its only other export is a next/font
+   wrapper that a Vite build cannot use.
+
+   Vite fingerprints and emits them from the relative url() below, which is how
+   every other static asset in the app ships. 70 KB each, so the whole type
+   system costs two requests against the app's own asset protocol.
    `font-synthesis: none` in App.css keeps the browser from faking weights the
    axis already covers. */
 
@@ -27,12 +36,17 @@
 }
 
 :root {
-  /* System stacks stay behind Geist so a failed font decode degrades to the
+  /* The two type primitives. Nothing else in the app names a font file.
+     System stacks stay behind Geist so a failed font decode degrades to the
      platform UI face instead of Times. */
-  --font-geist-sans:
+  --font-sans:
     "Geist Sans", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  --font-geist-mono:
+  --font-mono:
     "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
     "Liberation Mono", monospace;
+
+  /* Compat: the names the pages and the Tailwind theme were written against. */
+  --font-geist-sans: var(--font-sans);
+  --font-geist-mono: var(--font-mono);
 }

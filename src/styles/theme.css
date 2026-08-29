@@ -1,184 +1,204 @@
-/* Sona design tokens.
+/* Sona design tokens, derived from the Vercel Geist design system.
  *
- * The product is a near-monochrome macOS utility window. Light and dark are
- * structural inversions of one another: the same ladder, opposite poles.
+ * Three layers, in the order a component should reach for them:
  *
- * Neutral steps sit on an even OKLCH lightness ladder (values in the comments
- * are the OKLCH L of that sRGB grey), so every step is perceptually spaced
- * rather than spaced in sRGB bytes. The tokens themselves stay hex/rgba for
- * the widest webview support; the derived washes mix in oklab, which is where
- * srgb mixing actually goes muddy.
+ *   1. Primitives  two background steps, a 10-step opaque grey ladder, a
+ *                  parallel grey-ALPHA ladder (black wash in light, white wash
+ *                  in dark) and four accent families. No meaning attached.
+ *   2. Semantics   surface / border / text / accent / invert. This is the only
+ *                  layer component rules may name. The indirection is what
+ *                  makes the primary button's black-white inversion free:
+ *                  --invert-bg is always grey-1000, and grey-1000 itself flips
+ *                  poles between the two blocks, so no component branches on
+ *                  the theme.
+ *   3. Compat      the --color-* names the pages already consume, re-pointed
+ *                  at layer 2. Kept so this file can land before the page
+ *                  restyle; the restyle wave should migrate to layer 2 and
+ *                  then this block shrinks to nothing.
  *
- * Progressions, in the order a component should reach for them:
- *   text     primary -> secondary -> tertiary -> disabled
- *   surface  canvas -> surface -> raised (dark only) -> subtle -> sunken
- *   border   subtle -> border -> strong
- *   control  control -> hover -> active -> disabled, plus its own border pair
- *   accent   accent -> hover -> pressed (monochrome: black in light, white in dark)
- *   danger   danger -> hover -> pressed, plus soft fill and border
+ * Dark is written as the attribute-less base and light as the only override,
+ * mirroring vgpu.sh's own cascade: an unstyled first paint, or a theme script
+ * that failed to run, still renders the intended dark identity instead of
+ * flashing white.
  *
- * Danger is the only strong chroma in the product UI. info/success/warning
- * carry meaning in status copy only and never fill a surface.
+ * Grey step 400 repeating step 200 in light, and steps 700/800 dipping below
+ * 600/900 in dark, are deliberate non-monotonicity in Geist's own scale and
+ * are preserved rather than "fixed".
  *
  * Tokens live here and nowhere else. Extend this file; do not rename.
  */
 
+/* ==================================================== dark (the base) === */
+
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* -- backgrounds. Note bg-2 is DARKER than bg-1: it reads as recessed
+     chrome (nav, hero), not as a raised surface. Raised uses the grey ladder. */
+  --bg-1: #0a0a0a;
+  --bg-2: #000000;
+
+  /* -- grey primitives 100-1000 */
+  --gray-100: #1a1a1a;
+  --gray-200: #1f1f1f;
+  --gray-300: #292929;
+  --gray-400: #2e2e2e;
+  --gray-500: #454545;
+  --gray-600: #878787;
+  --gray-700: #8f8f8f;
+  --gray-800: #7d7d7d;
+  --gray-900: #a1a1a1;
+  --gray-1000: #ededed;
+
+  /* -- grey-alpha: every hairline in the product. An opaque line would read
+     wrong over one surface or the other; an alpha wash self-adjusts. */
+  --gray-a-100: rgba(255, 255, 255, 0.07);
+  --gray-a-200: rgba(255, 255, 255, 0.09);
+  --gray-a-300: rgba(255, 255, 255, 0.13);
+  --gray-a-400: rgba(255, 255, 255, 0.14);
+  --gray-a-500: rgba(255, 255, 255, 0.24);
+  --gray-a-600: rgba(255, 255, 255, 0.51);
+  --gray-a-700: rgba(255, 255, 255, 0.54);
+  --gray-a-900: rgba(255, 255, 255, 0.61);
+
+  /* -- accents. Step 700 is a brand constant shared by both themes; 100/400/900
+     are the theme-tuned subtle / border / high-contrast-text steps. */
+  --blue-100: hsl(216 50% 12%);
+  --blue-400: hsl(212 78% 23%);
+  --blue-700: #0070f3;
+  --blue-900: hsl(210 100% 66%);
+  --green-100: hsl(136 50% 9%);
+  --green-400: hsl(135 70% 16%);
+  --green-700: #46a758;
+  --green-900: hsl(131 43% 57%);
+  --red-100: hsl(357 37% 12%);
+  --red-400: hsl(357 55% 26%);
+  --red-700: #e5484d;
+  --red-900: hsl(358 100% 69%);
+  --amber-100: hsl(35 100% 8%);
+  --amber-400: hsl(35 100% 17%);
+  --amber-700: #ffb224;
+  --amber-900: hsl(35 100% 52%);
+
+  /* -- semantic aliases */
+  --surface-1: var(--bg-1);
+  --surface-2: var(--bg-2);
+  --surface-raised: var(--gray-100);
+  --border-subtle: var(--gray-a-300);
+  --border: var(--gray-a-400);
+  --border-hover: var(--gray-a-500);
+  --border-active: var(--gray-a-600);
+  --wash-hover: var(--gray-a-200);
+  --wash-active: var(--gray-a-300);
+  --text-primary: var(--gray-1000);
+  --text-secondary: var(--gray-900);
+  --text-tertiary: var(--gray-800);
+  --text-disabled: var(--gray-700);
+  --accent: var(--blue-700);
+  --focus-ring: var(--blue-900);
+  --info: var(--blue-900);
+  --success: var(--green-900);
+  --warning: var(--amber-900);
+  --error: var(--red-900);
+  --invert-bg: var(--gray-1000);
+  --invert-fg: var(--bg-1);
+  /* A scrim darkens in both themes: an inverted (white) scrim would light the
+     window up instead of pushing it back. */
+  --scrim: rgba(0, 0, 0, 0.72);
+
+  /* Backdrop of the decorative hero band. Duplicated as a literal inside
+     ShaderHero's fragment shader, which cannot read a custom property; the two
+     must be changed together, and the CSS one is what paints first. */
+  --hero-paper: #09090a;
+
+  /* -- elevation. Against #0a0a0a a 12%-black shadow is invisible, so dark
+     leans on the raised grey fill plus the alpha-white hairline and raises the
+     shadow alpha so it still contributes on OLED black. */
+  --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --shadow-panel: 0 24px 64px rgba(0, 0, 0, 0.4);
+  --shadow-dialog: 0 32px 100px rgba(0, 0, 0, 0.45);
+}
+
+/* ====================================================== light override === */
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg-1: #ffffff;
+  --bg-2: #fafafa;
+
+  --gray-100: #f2f2f2;
+  --gray-200: #ebebeb;
+  --gray-300: #e6e6e6;
+  --gray-400: #ebebeb;
+  --gray-500: #c9c9c9;
+  --gray-600: #a8a8a8;
+  --gray-700: #8f8f8f;
+  --gray-800: #7d7d7d;
+  --gray-900: #666666;
+  --gray-1000: #171717;
+
+  --gray-a-100: rgba(0, 0, 0, 0.05);
+  --gray-a-200: rgba(0, 0, 0, 0.081);
+  --gray-a-300: rgba(0, 0, 0, 0.1);
+  --gray-a-400: rgba(0, 0, 0, 0.08);
+  --gray-a-500: rgba(0, 0, 0, 0.21);
+  --gray-a-600: rgba(0, 0, 0, 0.24);
+  --gray-a-700: rgba(0, 0, 0, 0.44);
+  --gray-a-900: rgba(0, 0, 0, 0.7);
+
+  --blue-100: hsl(212 100% 97%);
+  --blue-400: hsl(209 100% 90%);
+  --blue-700: #0070f3;
+  --blue-900: hsl(211 100% 42%);
+  --green-100: hsl(120 60% 96%);
+  --green-400: hsl(122 60% 86%);
+  --green-700: #46a758;
+  --green-900: hsl(133 50% 32%);
+  --red-100: hsl(0 100% 97%);
+  --red-400: hsl(0 90% 92%);
+  --red-700: #e5484d;
+  --red-900: hsl(358 66% 48%);
+  --amber-100: hsl(39 100% 95%);
+  --amber-400: hsl(42 100% 78%);
+  --amber-700: #ffb224;
+  --amber-900: hsl(30 100% 32%);
+
+  /* Nothing sits above white, so a raised surface in light earns its lift from
+     the hairline and the shadow, not from a lighter fill. */
+  --surface-raised: var(--bg-1);
+  --focus-ring: var(--blue-700);
+  --scrim: rgba(0, 0, 0, 0.36);
+  --hero-paper: #e6e3df;
+
+  --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.1);
+  --shadow-panel: 0 24px 64px rgba(0, 0, 0, 0.12);
+  --shadow-dialog: 0 32px 100px rgba(0, 0, 0, 0.12);
+}
+
+/* ===================================== scales that do not follow a theme === */
+
 :root {
-  /* Light: #000 on #fafafa, hairlines at 8% black. */
-  --light-color-canvas: #fafafa; /* L 0.985 */
-  --light-color-surface: #ffffff; /* L 1.000 */
-  --light-color-surface-raised: #ffffff; /* light cannot go above white; raise with shadow */
-  --light-color-subtle: #f4f4f4; /* L 0.967 */
-  --light-color-surface-sunken: #ebebeb; /* L 0.940 */
-  --light-color-hover: rgba(0, 0, 0, 0.05);
-  --light-color-pressed: rgba(0, 0, 0, 0.09);
-  --light-color-text-primary: #000000; /* L 0.000 */
-  --light-color-text-secondary: #5c5c5c; /* L 0.475, 7.0:1 on white */
-  --light-color-text-tertiary: #8f8f8f; /* L 0.650, metadata only */
-  --light-color-text-disabled: #b7b7b7; /* L 0.780 */
-  --light-color-border-subtle: rgba(0, 0, 0, 0.05);
-  --light-color-border: rgba(0, 0, 0, 0.08);
-  --light-color-border-strong: rgba(0, 0, 0, 0.18);
-  --light-color-inverse-background: #000000;
-  --light-color-inverse-text: #ffffff;
-  --light-color-accent: #000000;
-  --light-color-accent-strong: #000000;
-  --light-color-accent-soft: #ededed;
-  --light-color-info: #2563eb;
-  --light-color-success: #18794e;
-  --light-color-warning: #9a6700;
-  --light-color-danger: #e5484d; /* identity red: graphics, borders, fills */
-  --light-color-danger-strong: #d32f35; /* 4.97:1 on white, 4.97:1 under white */
+  /* -- radii. Geist's product ("materials") scale, not its editorial one:
+     6px for a control, 12px for a card or modal, 16px for a full-bleed sheet.
+     Names stay the app's own so Tailwind's rounded-md/-lg utilities keep their
+     default values instead of silently inheriting a product tier. */
+  --radius-xs: 4px; /* key cap */
+  --radius-control: 6px; /* button, input, select, tooltip */
+  --radius-panel: 12px; /* card, menu, popover */
+  --radius-dialog: 12px; /* modal */
+  --radius-sheet: 16px; /* full-bleed panel */
+  --radius-pill: 999px;
+  /* Concentric nesting: an inner surface inset by P from a radius-R parent
+   * gets R - P, so the two curves stay parallel. */
+  --radius-in-control: calc(var(--radius-control) - var(--space-1));
 
-  /* Dark: #fafafa on #000, hairlines at 14% white. */
-  --dark-color-canvas: #000000; /* L 0.000 */
-  --dark-color-surface: #0d0d0d; /* L 0.159 */
-  --dark-color-surface-raised: #161616; /* L 0.200 */
-  --dark-color-subtle: #1a1a1a; /* L 0.218 */
-  --dark-color-surface-sunken: #050505; /* L 0.115 */
-  --dark-color-hover: rgba(255, 255, 255, 0.08);
-  --dark-color-pressed: rgba(255, 255, 255, 0.13);
-  --dark-color-text-primary: #fafafa; /* L 0.985 */
-  --dark-color-text-secondary: #a0a0a0; /* L 0.706, 6.4:1 on #0d0d0d */
-  --dark-color-text-tertiary: #6f6f6f; /* L 0.542, metadata only */
-  --dark-color-text-disabled: #525252; /* L 0.440 */
-  --dark-color-border-subtle: rgba(255, 255, 255, 0.09);
-  --dark-color-border: rgba(255, 255, 255, 0.14);
-  --dark-color-border-strong: rgba(255, 255, 255, 0.26);
-  --dark-color-inverse-background: #fafafa;
-  --dark-color-inverse-text: #000000;
-  --dark-color-accent: #fafafa;
-  --dark-color-accent-strong: #fafafa;
-  --dark-color-accent-soft: #262626;
-  --dark-color-info: #60a5fa;
-  --dark-color-success: #3dd68c;
-  --dark-color-warning: #e3a008;
-  --dark-color-danger: #ff6369; /* identity red: graphics, borders, fills */
-  --dark-color-danger-strong: #ff6369; /* 6.7:1 on #0d0d0d, 7.2:1 under black */
-
-  --color-canvas: var(--light-color-canvas);
-  --color-surface: var(--light-color-surface);
-  --color-surface-raised: var(--light-color-surface-raised);
-  --color-subtle: var(--light-color-subtle);
-  --color-surface-sunken: var(--light-color-surface-sunken);
-  --color-hover: var(--light-color-hover);
-  --color-pressed: var(--light-color-pressed);
-  --color-text-primary: var(--light-color-text-primary);
-  --color-text-secondary: var(--light-color-text-secondary);
-  --color-text-tertiary: var(--light-color-text-tertiary);
-  --color-text-disabled: var(--light-color-text-disabled);
-  --color-border-subtle: var(--light-color-border-subtle);
-  --color-border: var(--light-color-border);
-  --color-border-strong: var(--light-color-border-strong);
-  --color-inverse-background: var(--light-color-inverse-background);
-  --color-inverse-text: var(--light-color-inverse-text);
-  --color-accent: var(--light-color-accent);
-  --color-accent-strong: var(--light-color-accent-strong);
-  --color-accent-soft: var(--light-color-accent-soft);
-  --color-info: var(--light-color-info);
-  --color-success: var(--light-color-success);
-  --color-warning: var(--light-color-warning);
-  --color-danger: var(--light-color-danger);
-  --color-danger-strong: var(--light-color-danger-strong);
-
-  /* Material aliases stay opaque — the desktop shell never blurs. */
-  --color-material-sidebar: var(--color-surface);
-  --color-material-content: var(--color-surface);
-  --color-material-dialog: var(--color-surface);
-  --color-backdrop: color-mix(
-    in oklab,
-    var(--color-inverse-background) 34%,
-    transparent
-  );
-
-  /* Controls: one fill ladder shared by buttons, inputs and selects. */
-  --color-control: color-mix(
-    in oklab,
-    var(--color-surface) 60%,
-    var(--color-canvas)
-  );
-  --color-control-hover: color-mix(
-    in oklab,
-    var(--color-inverse-background) 5%,
-    var(--color-control)
-  );
-  --color-control-active: color-mix(
-    in oklab,
-    var(--color-inverse-background) 9%,
-    var(--color-control)
-  );
-  --color-control-disabled: var(--color-subtle);
-  --color-control-border: var(--color-border);
-  --color-control-border-hover: var(--color-border-strong);
-
-  /* Accent recedes toward the canvas when pressed, in both themes. */
-  --color-accent-hover: color-mix(
-    in oklab,
-    var(--color-accent-strong) 86%,
-    var(--color-canvas)
-  );
-  --color-accent-pressed: color-mix(
-    in oklab,
-    var(--color-accent-strong) 74%,
-    var(--color-canvas)
-  );
-
-  /* --color-danger is the identity red and misses AA as text on white, so
-   * danger *type* and solid destructive fills use --color-danger-strong: it
-   * clears 4.5:1 against the surface in light and against --color-inverse-text
-   * when filled, in both themes. Danger gains contrast when pressed. */
-  --color-danger-hover: color-mix(
-    in oklab,
-    var(--color-danger-strong) 86%,
-    var(--color-inverse-background)
-  );
-  --color-danger-pressed: color-mix(
-    in oklab,
-    var(--color-danger-strong) 74%,
-    var(--color-inverse-background)
-  );
-  --color-danger-soft: color-mix(
-    in oklab,
-    var(--color-danger) 12%,
-    var(--color-surface)
-  );
-  --color-danger-border: color-mix(
-    in oklab,
-    var(--color-danger) 40%,
-    transparent
-  );
-
-  /* Focus is a solid accent ring (>= 3:1 against every surface) plus a soft
-   * halo. Never replace the ring with the halo alone: 20% alpha fails AA. */
-  --color-focus-ring: var(--color-accent-strong);
-  --color-focus-soft: color-mix(
-    in oklab,
-    var(--color-accent-strong) 20%,
-    transparent
-  );
+  /* -- focus. A real outline, not a box-shadow glow. */
   --focus-ring-width: 2px;
   --focus-ring-offset: 2px;
-  --shadow-focus: 0 0 0 var(--focus-ring-width) var(--color-focus-soft);
+  --focus-outline: var(--focus-ring-width) solid var(--focus-ring);
+  --focus-offset: var(--focus-ring-offset);
 
   --space-0-5: 2px;
   --space-1: 4px;
@@ -194,25 +214,11 @@
 
   --control-height-sm: 28px;
   --control-height: 32px;
-  --control-height-lg: 36px;
   --touch-target: 44px;
-  --topnav-height: 44px;
-  --list-row-height: 40px;
+  --topnav-height: 64px;
   --settings-row-height: 44px;
   --page-max-width: 1040px;
   --chart-height: 160px;
-
-  --radius-xs: 4px;
-  --radius-control: 6px;
-  --radius-panel: 8px;
-  --radius-dialog: 10px;
-  --radius-pill: 999px;
-  /* Concentric nesting: an inner surface inset by P from a radius-R parent
-   * gets R - P, so the two curves stay parallel. */
-  --radius-in-control: calc(var(--radius-control) - var(--space-1));
-  --radius-in-panel: calc(var(--radius-panel) - var(--space-1));
-  --radius-in-dialog: calc(var(--radius-dialog) - var(--space-1));
-  --radius-around-control: calc(var(--radius-control) + var(--space-2));
 
   --duration-instant: 80ms;
   --duration-fast: 120ms;
@@ -222,148 +228,143 @@
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Type scale. Hierarchy comes from size, weight and tracking only: one
-   * system stack, no display face, no italics. */
-  --type-title-size: 20px;
-  --type-title-line: 28px;
-  --type-title-weight: 620;
-  --type-title-tracking: -0.022em;
-  --type-section-size: 15px;
-  --type-section-line: 21px;
-  --type-section-weight: 600;
-  --type-section-tracking: -0.014em;
-  --type-row-size: 13px;
+  /* -- type. Geist's product scale: headings at weight 600 (the editorial 450
+     belongs to Vercel's report skin, not to an app), labels at 400-500, and
+     tracking that tightens as size grows. */
+  --fw-heading: 600;
+  --fw-button: 500;
+  --fw-label: 400;
+  --fs-heading-32: 32px;
+  --lh-heading-32: 40px;
+  --ls-heading-32: -1.28px;
+  --fs-heading-24: 24px;
+  --lh-heading-24: 32px;
+  --ls-heading-24: -0.96px;
+  --fs-heading-20: 20px;
+  --lh-heading-20: 26px;
+  --ls-heading-20: -0.4px;
+  --fs-heading-16: 16px;
+  --lh-heading-16: 24px;
+  --ls-heading-16: -0.32px;
+  --fs-heading-14: 14px;
+  --lh-heading-14: 20px;
+  --ls-heading-14: -0.28px;
+  --fs-label-16: 16px;
+  --lh-label-16: 20px;
+  --fs-label-14: 14px;
+  --lh-label-14: 20px;
+  --fs-label-13: 13px;
+  --lh-label-13: 16px;
+  --fs-label-12: 12px;
+  --lh-label-12: 16px;
+  /* The vgpu.sh signature: a short uppercase mono label, tracked wide and set
+     in a muted grey. Opt in with .microlabel. */
+  --fs-microlabel: 11px;
+  --ls-microlabel: 0.14em;
+
+  /* The app's compact desktop rhythm, expressed on the Geist scale where the
+     two agree. Row and body keep a 19px line so a 44px settings row still
+     breathes; the headings move onto Geist's own metrics. */
+  --type-title-size: var(--fs-heading-20);
+  --type-title-line: var(--lh-heading-20);
+  --type-title-weight: var(--fw-heading);
+  --type-title-tracking: var(--ls-heading-20);
+  --type-section-size: var(--fs-heading-16);
+  --type-section-line: var(--lh-heading-16);
+  --type-section-weight: var(--fw-heading);
+  --type-section-tracking: var(--ls-heading-16);
+  --type-metric-size: var(--fs-heading-24);
+  --type-metric-line: var(--lh-heading-24);
+  --type-metric-weight: var(--fw-heading);
+  --type-metric-tracking: var(--ls-heading-24);
+  --type-row-size: var(--fs-label-13);
   --type-row-line: 19px;
-  --type-row-weight: 510;
-  --type-body-size: 13px;
+  --type-row-weight: var(--fw-button);
+  --type-body-size: var(--fs-label-13);
   --type-body-line: 19px;
   --type-secondary-size: 12.5px;
   --type-secondary-line: 18px;
-  --type-caption-size: 12px;
-  --type-caption-line: 16px;
-  --type-caption-weight: 600;
+  --type-caption-size: var(--fs-label-12);
+  --type-caption-line: var(--lh-label-12);
+  --type-caption-weight: var(--fw-heading);
   --type-caption-tracking: 0.045em;
-  --type-metric-size: 24px;
-  --type-metric-line: 30px;
-  --type-metric-weight: 620;
-  --type-metric-tracking: -0.02em;
+}
 
-  /* Shadows only on things that float. One sharp layer, never a blur stack. */
-  --shadow-popover:
-    0 0 0 1px var(--color-border-strong),
-    0 4px 14px -4px
-      color-mix(in oklab, var(--color-inverse-background) 12%, transparent);
-  --shadow-dialog:
-    0 0 0 1px var(--color-border-strong),
-    0 8px 24px -6px
-      color-mix(in oklab, var(--color-inverse-background) 16%, transparent);
+/* ============================================================== compat === */
 
-  /* Compatibility aliases for existing feature components. */
-  --color-background: var(--color-canvas);
-  --color-text: var(--color-text-primary);
-  --color-background-ui: var(--color-inverse-background);
-  --color-logo-primary: var(--color-text-primary);
-  --color-logo-stroke: var(--color-text-secondary);
-  --color-text-stroke: var(--color-canvas);
-  --color-mid-gray: var(--color-text-secondary);
-  --color-error: var(--color-danger);
-  --color-glass-panel: var(--color-material-content);
-  --color-glass-panel-strong: var(--color-subtle);
-  --color-glass-control: var(--color-control);
-  --color-glass-border: var(--color-border);
-  --color-glass-border-soft: var(--color-border);
-  --color-glass-highlight: transparent;
-  --shadow-glass: none;
-  --shadow-glass-soft: none;
-  --color-meeting-recording: var(--color-danger);
-  --color-meeting-recording-soft: var(--color-danger-soft);
-  --color-meeting-safe: var(--color-success);
-  --color-meeting-warning-soft: color-mix(
+/* The --color-* vocabulary the pages were written against, re-pointed at the
+ * semantic layer above. Every entry resolves lazily, so both themes come out
+ * of one declaration. Migrating a page means deleting its entry's last user. */
+
+:root {
+  --color-canvas: var(--surface-1);
+  --color-surface: var(--surface-raised);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-2);
+  --color-subtle: var(--gray-100);
+  --color-hover: var(--wash-hover);
+  --color-pressed: var(--wash-active);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-disabled: var(--text-disabled);
+
+  --color-border-subtle: var(--border-subtle);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-hover);
+
+  --color-inverse-background: var(--invert-bg);
+  --color-inverse-text: var(--invert-fg);
+
+  /* Sona's accent is the monochrome inversion, matching Geist's own primary
+     button (grey-1000 fill, bg-1 text) rather than the blue, which stays a
+     link and focus colour. Hover and press walk down the grey ladder. */
+  --color-accent: var(--invert-bg);
+  --color-accent-strong: var(--invert-bg);
+  --color-accent-hover: var(--gray-900);
+  --color-accent-pressed: var(--gray-800);
+  --color-accent-soft: var(--gray-200);
+
+  /* One control fill ladder shared by buttons, inputs and selects. */
+  --color-control: var(--surface-1);
+  --color-control-hover: var(--wash-hover);
+  --color-control-active: var(--wash-active);
+  --color-control-disabled: var(--gray-100);
+  --color-control-border: var(--border);
+  --color-control-border-hover: var(--border-hover);
+
+  --color-focus-ring: var(--focus-ring);
+  --color-focus-soft: color-mix(in oklab, var(--focus-ring) 24%, transparent);
+
+  --color-info: var(--info);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  /* --color-danger is the identity red: graphics, borders, fills. Danger *type*
+     and solid destructive fills use --color-danger-strong, the 900 step, which
+     is the one that clears 4.5:1 against the surface in both themes. */
+  --color-danger: var(--red-700);
+  --color-danger-strong: var(--error);
+  --color-danger-hover: color-mix(in oklab, var(--error) 86%, var(--invert-bg));
+  --color-danger-pressed: color-mix(
     in oklab,
-    var(--color-warning) 11%,
-    var(--color-surface)
+    var(--error) 74%,
+    var(--invert-bg)
   );
-}
+  --color-danger-soft: var(--red-100);
+  --color-danger-border: var(--red-400);
+  --color-error: var(--error);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-canvas: var(--dark-color-canvas);
-    --color-surface: var(--dark-color-surface);
-    --color-surface-raised: var(--dark-color-surface-raised);
-    --color-subtle: var(--dark-color-subtle);
-    --color-surface-sunken: var(--dark-color-surface-sunken);
-    --color-hover: var(--dark-color-hover);
-    --color-pressed: var(--dark-color-pressed);
-    --color-text-primary: var(--dark-color-text-primary);
-    --color-text-secondary: var(--dark-color-text-secondary);
-    --color-text-tertiary: var(--dark-color-text-tertiary);
-    --color-text-disabled: var(--dark-color-text-disabled);
-    --color-border-subtle: var(--dark-color-border-subtle);
-    --color-border: var(--dark-color-border);
-    --color-border-strong: var(--dark-color-border-strong);
-    --color-inverse-background: var(--dark-color-inverse-background);
-    --color-inverse-text: var(--dark-color-inverse-text);
-    --color-accent: var(--dark-color-accent);
-    --color-accent-strong: var(--dark-color-accent-strong);
-    --color-accent-soft: var(--dark-color-accent-soft);
-    --color-info: var(--dark-color-info);
-    --color-success: var(--dark-color-success);
-    --color-warning: var(--dark-color-warning);
-    --color-danger: var(--dark-color-danger);
-    --color-danger-strong: var(--dark-color-danger-strong);
-  }
-}
+  --color-material-content: var(--surface-raised);
+  --color-material-dialog: var(--surface-raised);
+  --color-backdrop: var(--scrim);
 
-:root[data-theme="light"] {
-  --color-canvas: var(--light-color-canvas);
-  --color-surface: var(--light-color-surface);
-  --color-surface-raised: var(--light-color-surface-raised);
-  --color-subtle: var(--light-color-subtle);
-  --color-surface-sunken: var(--light-color-surface-sunken);
-  --color-hover: var(--light-color-hover);
-  --color-pressed: var(--light-color-pressed);
-  --color-text-primary: var(--light-color-text-primary);
-  --color-text-secondary: var(--light-color-text-secondary);
-  --color-text-tertiary: var(--light-color-text-tertiary);
-  --color-text-disabled: var(--light-color-text-disabled);
-  --color-border-subtle: var(--light-color-border-subtle);
-  --color-border: var(--light-color-border);
-  --color-border-strong: var(--light-color-border-strong);
-  --color-inverse-background: var(--light-color-inverse-background);
-  --color-inverse-text: var(--light-color-inverse-text);
-  --color-accent: var(--light-color-accent);
-  --color-accent-strong: var(--light-color-accent-strong);
-  --color-accent-soft: var(--light-color-accent-soft);
-  --color-info: var(--light-color-info);
-  --color-success: var(--light-color-success);
-  --color-warning: var(--light-color-warning);
-  --color-danger: var(--light-color-danger);
-  --color-danger-strong: var(--light-color-danger-strong);
-}
-
-:root[data-theme="dark"] {
-  --color-canvas: var(--dark-color-canvas);
-  --color-surface: var(--dark-color-surface);
-  --color-surface-raised: var(--dark-color-surface-raised);
-  --color-subtle: var(--dark-color-subtle);
-  --color-surface-sunken: var(--dark-color-surface-sunken);
-  --color-hover: var(--dark-color-hover);
-  --color-pressed: var(--dark-color-pressed);
-  --color-text-primary: var(--dark-color-text-primary);
-  --color-text-secondary: var(--dark-color-text-secondary);
-  --color-text-tertiary: var(--dark-color-text-tertiary);
-  --color-text-disabled: var(--dark-color-text-disabled);
-  --color-border-subtle: var(--dark-color-border-subtle);
-  --color-border: var(--dark-color-border);
-  --color-border-strong: var(--dark-color-border-strong);
-  --color-inverse-background: var(--dark-color-inverse-background);
-  --color-inverse-text: var(--dark-color-inverse-text);
-  --color-accent: var(--dark-color-accent);
-  --color-accent-strong: var(--dark-color-accent-strong);
-  --color-accent-soft: var(--dark-color-accent-soft);
-  --color-info: var(--dark-color-info);
-  --color-success: var(--dark-color-success);
-  --color-warning: var(--dark-color-warning);
-  --color-danger: var(--dark-color-danger);
-  --color-danger-strong: var(--dark-color-danger-strong);
+  --color-background: var(--surface-1);
+  --color-text: var(--text-primary);
+  --color-background-ui: var(--invert-bg);
+  --color-logo-primary: var(--text-primary);
+  --color-logo-stroke: var(--text-secondary);
+  --color-text-stroke: var(--surface-1);
+  --color-mid-gray: var(--text-secondary);
 }

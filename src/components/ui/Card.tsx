@@ -2,9 +2,14 @@ import React from "react";
 
 export type CardPadding = "none" | "sm" | "md";
 
+/** `raised` is an object you select, drag or open. `inset` is a quoted block
+ *  that belongs to the section around it and must not compete with a card. */
+export type CardTone = "raised" | "inset";
+
 export interface CardProps extends React.HTMLAttributes<HTMLElement> {
   as?: "div" | "article" | "li";
   padding?: CardPadding;
+  tone?: CardTone;
 }
 
 const CARD_PADDING_CLASSES = {
@@ -13,12 +18,23 @@ const CARD_PADDING_CLASSES = {
   md: "p-4",
 } as const;
 
-/* A flat hairline surface. Cards are for content that is genuinely
- * card-shaped: a stat tile, a model entry. Lists of rows want List and Row.
- * A card never contains another card; nest with spacing and dividers. */
+/* The two tones differ in exactly one token, and in dark mode that difference
+ * is the whole point: a raised card is LIGHTER than the page (grey-100) while
+ * an inset panel is DARKER (bg-2). In light mode nothing goes above white, so
+ * raised earns its lift from the hairline alone. */
+const CARD_TONE_CLASSES = {
+  raised: "border-border-subtle bg-surface",
+  inset: "border-border-subtle bg-surface-sunken",
+} as const;
+
+/* Earn a surface: a card is for content that is genuinely card-shaped — a
+ * stat tile, a model entry, something selectable. A settings group is not a
+ * card; it is a heading and some spacing. A card never contains another card;
+ * nest with spacing and dividers. */
 export const Card: React.FC<CardProps> = ({
   as = "div",
   padding = "md",
+  tone = "raised",
   className = "",
   children,
   ...props
@@ -26,7 +42,7 @@ export const Card: React.FC<CardProps> = ({
   const Element = as;
   return (
     <Element
-      className={`rounded-panel border border-border bg-surface ${CARD_PADDING_CLASSES[padding]} ${className}`}
+      className={`rounded-panel border ${CARD_TONE_CLASSES[tone]} ${CARD_PADDING_CLASSES[padding]} ${className}`}
       {...props}
     >
       {children}

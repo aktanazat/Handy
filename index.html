@@ -1,9 +1,32 @@
 <!doctype html>
-<html lang="en" dir="ltr">
+<html lang="en" dir="ltr" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sona</title>
+    <!--
+      Resolve the palette before first paint. styles/theme.css is dark-as-base,
+      so the attribute above is the correct fallback if this ever fails to run;
+      the script only has to move the root to light when it should be light.
+      Must stay in agreement with resolveTheme() in src/lib/utils/theme.ts.
+    -->
+    <script>
+      (function () {
+        var stored;
+        try {
+          stored = localStorage.getItem("sona.theme");
+        } catch (e) {
+          stored = null;
+        }
+        var resolved =
+          stored === "light" || stored === "dark"
+            ? stored
+            : window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+        document.documentElement.dataset.theme = resolved;
+      })();
+    </script>
   </head>
 
   <body>

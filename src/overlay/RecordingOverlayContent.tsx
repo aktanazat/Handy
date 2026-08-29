@@ -9,6 +9,7 @@ import type {
 } from "@/bindings";
 import type { LanguageDirection } from "@/lib/utils/rtl";
 import type { OverlayState } from "./overlayEvents";
+import { HudPill } from "./HudPill";
 
 interface RecordingOverlayContentProps {
   isVisible: boolean;
@@ -51,6 +52,10 @@ export const RecordingOverlayContent = ({
   const { t } = useTranslation();
 
   if (!isVisible) return null;
+
+  if (state === "idle") {
+    return <HudPill position={position} direction={direction} />;
+  }
 
   const waveform = (
     <div className={`swave ${captureReady ? "ready" : "arming"}`}>

@@ -190,6 +190,19 @@ const formatKeyPart = (part: string): string => {
 };
 
 /**
+ * Split a raw hotkey string into one display label per physical key.
+ * "option_left+shift+space" -> ["Left Option", "Shift", "Space"]
+ *
+ * Each entry is one keycap: Vercel's product kbd spec gives every physical key
+ * its own chip and never puts a "+" inside one, so a chip row needs the parts,
+ * not the joined string.
+ */
+export const keyCombinationParts = (combination: string): string[] => {
+  if (!combination) return [];
+  return combination.split("+").map(formatKeyPart).filter(Boolean);
+};
+
+/**
  * Get display-friendly key combination string for the current OS
  * Formats raw hotkey strings like "option_left+shift+space" into
  * human-readable form like "Left Option + Shift + Space"
@@ -197,10 +210,7 @@ const formatKeyPart = (part: string): string => {
 export const formatKeyCombination = (
   combination: string,
   _osType: OSType,
-): string => {
-  if (!combination) return "";
-  return combination.split("+").map(formatKeyPart).join(" + ");
-};
+): string => keyCombinationParts(combination).join(" + ");
 
 /**
  * Normalize modifier keys to handle left/right variants

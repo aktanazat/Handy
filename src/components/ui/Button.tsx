@@ -17,9 +17,15 @@ export interface ButtonProps
 
 /* One primary per view, everything else secondary or ghost. Destructive work
  * is ghost-red by default; the filled danger variant is for the confirming
- * button inside a dialog, where the action is already the point. */
+ * button inside a dialog, where the action is already the point.
+ *
+ * Primary is a pure inversion: fill is grey-1000 and text is bg-1, both of
+ * which flip poles between the themes, so the button reads black-on-white in
+ * light and white-on-black in dark without branching on the theme. Hover and
+ * press walk one and two steps down the same grey ladder rather than fading
+ * out with opacity. */
 const BUTTON_BASE_CLASSES =
-  "liquid-control inline-flex cursor-pointer items-center justify-center gap-1.5 border font-medium whitespace-nowrap transition-[background-color,border-color,color] duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-60";
+  "liquid-control inline-flex cursor-pointer items-center justify-center gap-1.5 border font-medium whitespace-nowrap transition-[background-color,border-color,color] duration-150 ease-out disabled:cursor-not-allowed disabled:border-border disabled:bg-control-disabled disabled:text-text-disabled";
 
 const BUTTON_VARIANT_CLASSES = {
   primary:
@@ -27,17 +33,19 @@ const BUTTON_VARIANT_CLASSES = {
   secondary:
     "control-surface border-border text-text-primary enabled:hover:border-border-strong enabled:hover:bg-control-hover enabled:active:bg-control-active",
   ghost:
-    "border-transparent bg-transparent text-text-primary enabled:hover:border-border enabled:hover:bg-hover enabled:active:bg-pressed",
+    "border-transparent bg-transparent text-text-primary enabled:hover:bg-hover enabled:active:bg-pressed",
   danger:
     "border-danger-strong bg-danger-strong text-inverse-text enabled:hover:border-danger-hover enabled:hover:bg-danger-hover enabled:active:border-danger-pressed enabled:active:bg-danger-pressed",
   "danger-ghost":
     "border-transparent bg-transparent text-danger-strong enabled:hover:border-danger-border enabled:hover:bg-danger-soft enabled:active:bg-danger-soft enabled:active:text-danger-pressed",
 } as const;
 
+/* Heights match the control ladder so a button and the input beside it line
+ * up. Horizontal padding is Geist's 16px at the default size. */
 const BUTTON_SIZE_CLASSES = {
-  sm: "min-h-8 px-2.5 text-[13px]",
-  md: "min-h-9 px-3 text-[13px]",
-  lg: "min-h-10 px-4 text-[13px]",
+  sm: "min-h-7 px-2.5 text-[13px]",
+  md: "min-h-8 px-4 text-[13px]",
+  lg: "min-h-9 px-5 text-[13px]",
 } as const;
 
 export const Button: React.FC<ButtonProps> = ({
@@ -70,8 +78,8 @@ export interface IconButtonProps
 }
 
 const ICON_BUTTON_SIZE_CLASSES = {
-  sm: "size-8",
-  md: "size-9",
+  sm: "size-7",
+  md: "size-8",
 } as const;
 
 export const IconButton: React.FC<IconButtonProps> = ({

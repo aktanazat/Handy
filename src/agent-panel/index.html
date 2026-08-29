@@ -1,9 +1,26 @@
 <!doctype html>
-<html lang="en" dir="ltr">
+<html lang="en" dir="ltr" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sona Agent</title>
+    <!-- Same pre-paint resolution as the main window; see ../../index.html. -->
+    <script>
+      (function () {
+        var stored;
+        try {
+          stored = localStorage.getItem("sona.theme");
+        } catch (e) {
+          stored = null;
+        }
+        document.documentElement.dataset.theme =
+          stored === "light" || stored === "dark"
+            ? stored
+            : window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+      })();
+    </script>
   </head>
 
   <body>

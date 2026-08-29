@@ -9,7 +9,8 @@ import React, {
 import { useTranslation } from "react-i18next";
 import { getVersion } from "@tauri-apps/api/app";
 import { Search } from "lucide-react";
-import { Kbd } from "./ui/Kbd";
+import { useOsType } from "@/hooks/useOsType";
+import { Kbd, KbdChord } from "./ui/Kbd";
 import type { CommandPaletteAction } from "./commandPaletteActions";
 
 export interface CommandPaletteProps {
@@ -70,6 +71,10 @@ const CommandPaletteDialog: React.FC<CommandPaletteDialogProps> = ({
   version,
 }) => {
   const { t } = useTranslation();
+  /* Same caps as the nav chip that opens this, so the field the chip becomes
+   * still shows the chord that summoned it. */
+  const paletteChord =
+    useOsType() === "macos" ? ["\u2318", "K"] : ["Ctrl", "K"];
   const [query, setQuery] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -213,6 +218,13 @@ const CommandPaletteDialog: React.FC<CommandPaletteDialogProps> = ({
           autoFocus
           spellCheck={false}
         />
+        <span className="command-palette-input-cap" aria-hidden="true">
+          {query === "" ? (
+            <KbdChord keys={paletteChord} />
+          ) : (
+            <Kbd>{t("commandPalette.esc")}</Kbd>
+          )}
+        </span>
       </div>
       <div ref={listRef} className="command-palette-list">
         {grouped.length === 0 ? (

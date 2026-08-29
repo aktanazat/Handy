@@ -3,6 +3,16 @@ import React, { useId } from "react";
 export interface SettingContainerProps {
   title: string;
   description: string;
+  /**
+   * One extra line under the description, at caption weight: static copy about
+   * how to *use* the control, like the tap/hold gesture on a dictation chord.
+   *
+   * Not a general hint slot. Anything field-adjacent — toned, `aria-live`, or
+   * pointed at by a control's `aria-describedby` — belongs in
+   * `vocabulary/PanelParts.Hint`, rendered as a child so it sits under the
+   * field it describes rather than beside the title.
+   */
+  hint?: React.ReactNode;
   children: React.ReactNode;
   descriptionMode?: "inline" | "tooltip";
   grouped?: boolean;
@@ -15,6 +25,7 @@ export interface SettingContainerProps {
 export const SettingContainer: React.FC<SettingContainerProps> = ({
   title: titleText,
   description: descriptionText,
+  hint,
   children,
   grouped = false,
   layout = "horizontal",
@@ -26,11 +37,13 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
   const descriptionId = controlId
     ? `${controlId}-description`
     : generatedDescriptionId;
-  const copyClasses = disabled ? "opacity-75" : "";
+  /* Disabled copy is dimmed by colour in primitives.css (`.setting-row-disabled`),
+   * not by opacity: Geist never fades a control out, and opacity would also dim
+   * the keycaps and badges a row may hold. */
   const title = (
     <h3
       id={titleId}
-      className={`text-sm font-medium leading-5 text-text-primary ${copyClasses}`}
+      className="text-sm font-medium leading-5 text-text-primary"
     >
       {controlId ? <label htmlFor={controlId}>{titleText}</label> : titleText}
     </h3>
@@ -38,11 +51,12 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
   const description = (
     <p
       id={descriptionId}
-      className={`mt-0.5 text-[13px] leading-[18px] text-text-secondary ${copyClasses}`}
+      className="mt-0.5 text-[13px] leading-[18px] text-text-secondary"
     >
       {descriptionText}
     </p>
   );
+  const hintLine = hint ? <p className="setting-hint">{hint}</p> : null;
 
   if (layout === "stacked") {
     return (
@@ -51,10 +65,11 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
         aria-disabled={disabled || undefined}
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className={`${grouped ? "p-3" : "setting-panel p-3"} ${disabled ? "setting-panel-disabled" : ""}`}
+        className={`${grouped ? "py-3" : "setting-panel py-3"} ${disabled ? "setting-panel-disabled" : ""}`}
       >
         {title}
         {description}
+        {hintLine}
         <div className="mt-3 min-w-0">{children}</div>
       </div>
     );
@@ -71,6 +86,7 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
       <div className="setting-copy">
         {title}
         {description}
+        {hintLine}
       </div>
       <div className="setting-control relative">{children}</div>
     </div>

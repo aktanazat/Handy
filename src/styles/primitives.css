@@ -13,8 +13,10 @@
   position: relative;
 }
 
+/* A flat section leans on the gap between its title and its rows to read as a
+ * group at all, so this is deliberately wider than the old in-panel spacing. */
 .settings-group > div:first-child {
-  margin-bottom: var(--space-2-5);
+  margin-bottom: var(--space-3);
   padding-inline: 0;
 }
 
@@ -40,13 +42,18 @@
   text-wrap: pretty;
 }
 
+/* Flat sections, not nested panels. The governing rule from vercel.com/design.md:
+ * a surface has to be earned by selection, interaction, warning or contrast, and
+ * a settings group is none of those — it is a heading plus spacing. The class
+ * names stay so every call site keeps working; only the box is gone. Reach for
+ * `.card` when something really is a selectable object. */
 .settings-group-panel,
 .setting-panel {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-panel);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   box-shadow: none;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .settings-group-panel > .divide-y {
@@ -54,22 +61,23 @@
   display: block;
 }
 
+/* The hairline now sits on the page rather than inside a box, so it drops to the
+ * subtle step: at --color-border strength it reads as a table, not a rhythm. */
 .settings-group-panel > .divide-y > :not(:last-child),
 .settings-group-panel > div > :not(:last-child) {
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
-.setting-panel {
-  border-radius: var(--radius-panel);
-}
-
+/* Inline padding is zero so a row's label aligns with its own section title.
+ * Pages that want denser, inset rows re-assert padding-inline themselves
+ * (settings-density.css owns that for .density-page). */
 .setting-row {
   align-items: center;
   display: grid;
   gap: var(--space-4);
   grid-template-columns: minmax(180px, 1fr) minmax(160px, 280px);
   min-block-size: var(--settings-row-height);
-  padding: var(--space-2-5) var(--space-4);
+  padding: var(--space-2-5) 0;
 }
 
 .setting-copy {
@@ -90,6 +98,18 @@
   text-wrap: pretty;
 }
 
+/* Third line in a row's copy column: how to *use* the control, not what it
+ * does. Caption size, tertiary colour, so it never competes with the
+ * description above it. */
+.setting-copy .setting-hint,
+.setting-hint {
+  color: var(--color-text-tertiary);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line);
+  margin-top: var(--space-1);
+  text-wrap: pretty;
+}
+
 .setting-control {
   inline-size: 100%;
   justify-self: end;
@@ -97,9 +117,13 @@
   min-inline-size: 0;
 }
 
-.setting-row-disabled,
-.setting-panel-disabled {
-  background: var(--color-subtle);
+/* Geist disables with colour, never with a fill or opacity. A grey slab behind a
+ * flat row would read as a selected row instead of a dead one. */
+.setting-row-disabled .setting-copy h3,
+.setting-row-disabled .setting-copy p,
+.setting-panel-disabled h3,
+.setting-panel-disabled p {
+  color: var(--color-text-disabled);
 }
 
 /* ----------------------------------------------------------- controls */
@@ -172,7 +196,7 @@
 .glass-popover {
   background: var(--color-material-dialog);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-panel);
   box-shadow: var(--shadow-popover);
 }
 
@@ -206,5 +230,213 @@
 @keyframes ui-skeleton-pulse {
   50% {
     opacity: 0.55;
+  }
+}
+
+/* -------------------------------------------------- surfaces & labels */
+
+/* Earn a surface. `.card` is a discrete object the person selects, drags or
+ * opens; `.inset-panel` is a quoted excerpt or config block that belongs to
+ * the flat section around it. They differ in one token, and in dark that
+ * difference carries the whole meaning: raised is LIGHTER than the page,
+ * recessed is DARKER. Everything else — a settings group, a metric, a
+ * comparison — is spacing and typography, not a box. */
+.card {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-panel);
+  padding: var(--space-6);
+}
+
+.inset-panel {
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-panel);
+  padding: var(--space-4);
+}
+
+/* The one type flourish carried over from vgpu.sh: a short uppercase mono
+ * label, tracked wide, in a muted grey. For a category or a status, never for
+ * a sentence. */
+.microlabel {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--fs-microlabel);
+  font-weight: 400;
+  letter-spacing: var(--ls-microlabel);
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------- data table */
+
+/* A numeric cell under a left-aligned header is a defect, so alignment is a
+ * property of the column and both the th and the td opt in together. */
+.data-table {
+  border-collapse: collapse;
+  inline-size: 100%;
+}
+
+.data-table th,
+.data-table td {
+  padding: var(--space-2) var(--space-3);
+  text-align: start;
+  vertical-align: baseline;
+}
+
+.data-table th {
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: var(--fs-label-12);
+  font-weight: 500;
+  line-height: var(--lh-label-12);
+  white-space: nowrap;
+}
+
+.data-table td {
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: var(--type-row-size);
+  line-height: var(--type-row-line);
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.data-table[data-striped="true"] tbody tr:nth-child(even) {
+  background: var(--gray-a-100);
+}
+
+.data-table[data-interactive="true"] tbody tr:hover {
+  background: var(--wash-hover);
+}
+
+.data-table :is(th, td).numeric,
+.numeric {
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+/* A sticky first column separates with an inset shadow rather than a border,
+ * so the divider only appears once the body has actually scrolled under it. */
+.data-table [data-sticky="true"] {
+  background: var(--surface-1);
+  box-shadow: inset -1px 0 var(--border-subtle);
+  inset-inline-start: 0;
+  position: sticky;
+}
+
+/* ------------------------------------------------------ grid connector */
+
+/* Geist's Grid/GridCross motif reduced to what a section connector needs: a
+ * 1px guide line with a dot marker at each end. Vector-drawn structure, not a
+ * tiled graph-paper texture. */
+.grid-connector {
+  --grid-connector-line: var(--gray-a-300);
+  --grid-connector-marker: var(--gray-a-500);
+  background: var(--grid-connector-line);
+  block-size: 1px;
+  inline-size: 100%;
+  position: relative;
+}
+
+.grid-connector[data-orientation="vertical"] {
+  block-size: 100%;
+  inline-size: 1px;
+}
+
+.grid-connector[data-dashed="true"] {
+  background: repeating-linear-gradient(
+    to right,
+    var(--grid-connector-line) 0 4px,
+    transparent 4px 8px
+  );
+}
+
+.grid-connector[data-dashed="true"][data-orientation="vertical"] {
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--grid-connector-line) 0 4px,
+    transparent 4px 8px
+  );
+}
+
+.grid-connector::before,
+.grid-connector::after {
+  background: var(--grid-connector-marker);
+  block-size: 3px;
+  border-radius: var(--radius-pill);
+  content: "";
+  inline-size: 3px;
+  position: absolute;
+}
+
+.grid-connector::before {
+  inset-block-start: -1px;
+  inset-inline-start: -1px;
+}
+
+.grid-connector::after {
+  inset-block-end: -1px;
+  inset-inline-end: -1px;
+}
+
+/* --------------------------------------------------------- shader hero */
+
+/* Two independently swappable layers over one container: a conic-gradient
+ * that paints on the first frame, and a WebGL2 canvas that fades in over it
+ * once its shader has compiled. Deleting either one leaves a working hero. */
+.shader-hero {
+  background: var(--hero-paper);
+  border-radius: var(--radius-panel);
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
+}
+
+.shader-hero-layer {
+  inset: 0;
+  position: absolute;
+}
+
+/* The placeholder is the same light-through-glass idea a gradient can express:
+ * one narrow spectral sweep smeared across the band, masked to a soft wedge so
+ * it reads as a beam rather than as a blob. */
+.shader-hero-placeholder {
+  background: conic-gradient(
+    from 200deg at 22% 18%,
+    transparent 0deg 26deg,
+    color-mix(in oklab, var(--amber-700) 26%, transparent) 34deg,
+    color-mix(in oklab, var(--text-primary) 22%, transparent) 40deg,
+    color-mix(in oklab, var(--blue-700) 20%, transparent) 47deg,
+    transparent 56deg 360deg
+  );
+  filter: blur(18px);
+}
+
+.shader-hero-canvas {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-out);
+}
+
+.shader-hero-canvas[data-ready="true"] {
+  opacity: 1;
+}
+
+/* Content flush against a rounded band always looks like a mistake, so the
+ * inset is the default rather than something every caller has to remember. */
+.shader-hero-content {
+  padding: var(--space-6);
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shader-hero-canvas {
+    transition: none;
   }
 }
