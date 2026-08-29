@@ -120,7 +120,7 @@
       }
     },
     "errors": {
-      "selectModel": "Model seçilemedi"
+      "selectModel": "Model seçilemedi. Yeniden deneyin."
     },
     "permissions": {
       "title": "İzinler Gerekli",
@@ -138,10 +138,15 @@
       "waiting": "Bekleniyor...",
       "allGranted": "Her şey hazır!",
       "errors": {
-        "checkFailed": "İzinler kontrol edilemedi. Lütfen tekrar deneyin.",
-        "requestFailed": "İzin isteği başarısız oldu. Lütfen tekrar deneyin."
-      }
-    }
+        "checkFailed": "İzinler denetlenemedi. Yeniden deneyin.",
+        "requestFailed": "İzin istenemedi. Yeniden deneyin."
+      },
+      "headline": "Tek seferlik kurulum",
+      "subhead": "Bilgisayarınız, herhangi bir uygulama sizi dinleyip sizin için yazabilmeden önce izin ister. Bu izinleri bir kez verin, Sona bir daha sormaz.",
+      "checking": "İzinler denetleniyor",
+      "recheck": "Yeniden denetle"
+    },
+    "headline": "Bir ses modeli seçin"
   },
   "modelSelector": {
     "custom": "Özel",
@@ -275,9 +280,9 @@
         "notDownloaded": "İndirilmedi"
       },
       "summary": {
-        "active": "Aktif: {{name}}",
         "noActive": "Model seçilmedi",
-        "onDisk": "{{total}} diskte"
+        "activeLabel": "Etkin model",
+        "onDiskLabel": "Diskte"
       }
     },
     "general": {
@@ -288,7 +293,7 @@
         "loading": "Kısayollar yükleniyor...",
         "none": "Kısayol yapılandırılmadı",
         "notFound": "Kısayol bulunamadı",
-        "pressKeys": "Tuşlara basın...",
+        "pressKeys": "Tuşlarınıza basın…",
         "bindings": {
           "transcribe": {
             "name": "Transkripsiyon Kısayolu",
@@ -301,13 +306,21 @@
           "transcribe_with_post_process": {
             "name": "Son İşlem Kısayolu",
             "description": "İsteğe bağlı: Transkripsiyonunuza her zaman yapay zekâ ile son işlem uygulayan özel bir kısayol tuşu."
+          },
+          "command": {
+            "name": "Komut kısayolu",
+            "description": "Seçtiğiniz metni sesli bir yönergeye göre yeniden yazan klavye kısayolu."
           }
         },
         "errors": {
-          "restore": "Orijinal kısayol geri yüklenemedi",
+          "restore": "Özgün kısayol geri getirilemedi. Yeniden deneyin.",
           "set": "Kısayol ayarlanamadı: {{error}}",
-          "reset": "Kısayol orijinal değerine sıfırlanamadı"
-        }
+          "reset": "Kısayol sıfırlanamadı. Yeniden deneyin."
+        },
+        "holdHint": "Değiştirmek için dokunun, konuşmak için basılı tutun. Her kısayolla çalışır.",
+        "recordAction": "{{binding}} için yeni bir kısayol kaydet",
+        "recordHint": "Kaydetmek için tıklayın",
+        "unset": "Ayarlanmadı"
       },
       "language": {
         "title": "Dil",
@@ -324,7 +337,11 @@
         "description": "Arayüz dili ve renk şeması. İkisi de hemen uygulanır.",
         "title": "Görünüm"
       },
-      "description": "Bastığınız tuşlar, Sona'nın dinlediği mikrofon ve uygulamanın görünümü."
+      "description": "Bastığınız tuşlar, Sona'nın dinlediği mikrofon ve uygulamanın görünümü.",
+      "commandMode": {
+        "label": "Sesli komut kipi",
+        "description": "Komut kısayolunu basılı tutun ve seçtiğiniz metinde ne değişeceğini söyleyin."
+      }
     },
     "sound": {
       "title": "Ses",
@@ -493,9 +510,9 @@
         "remove": "{{spoken}} öğesini kaldır",
         "import": "CSV içe aktar",
         "export": "CSV dışa aktar",
-        "importError": "Sözcük dağarcığı CSV dosyası içe aktarılamadı.",
-        "exportError": "Sözcük dağarcığı CSV dosyası dışa aktarılamadı.",
-        "saveError": "Sözcük dağarcığı kaydedilemedi.",
+        "importError": "Sözlük CSV'si içe aktarılamadı. Dosyayı denetleyip yeniden deneyin.",
+        "exportError": "Sözlük CSV'si dışa aktarılamadı. Yeniden deneyin.",
+        "saveError": "Sözlük kaydedilemedi. Yeniden deneyin.",
         "imported": "Sözcük dağarcığı içe aktarıldı",
         "errors": {
           "incomplete": "Hem söylenen ifadeyi hem de yazılı metni girin.",
@@ -523,7 +540,7 @@
         "actions": "Vocabulary actions",
         "audioImport": {
           "errors": {
-            "start": "Couldn't start the audio import."
+            "start": "Ses içe aktarma başlatılamadı. Yeniden deneyin."
           },
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
@@ -534,7 +551,8 @@
           "title": "Henüz sözcük kuralı yok"
         },
         "sources": "Kitaplıktaki bir transkriptten kaydettiğiniz düzeltmeler bu listeye gelir. Tek bir moda özgü kurallar o modun kendi sözlüğünde yer alır.",
-        "unsaved": "Kaydedilmemiş değişiklikler"
+        "unsaved": "Kaydedilmemiş değişiklikler",
+        "csvLabel": "CSV"
       },
       "voiceActivityDetection": {
         "title": "Ses Etkinliği Algılama",
@@ -558,8 +576,8 @@
         "save": "Emoji değiştirmelerini kaydet",
         "saved": "Emoji değiştirmeleri kaydedildi",
         "remove": "{{spoken}} öğesini kaldır",
-        "saveError": "Emoji değiştirmeleri kaydedilemedi.",
-        "toggleError": "Emoji değiştirmeleri değiştirilemedi.",
+        "saveError": "Emoji değiştirmeleri kaydedilemedi. Yeniden deneyin.",
+        "toggleError": "Emoji değiştirmeleri değiştirilemedi. Yeniden deneyin.",
         "errors": {
           "incomplete": "Hem söylenen ifadeyi hem de emoji metnini girin.",
           "duplicate": "Bu emoji değiştirmesi zaten var.",
@@ -729,9 +747,9 @@
       "save": "Transkripsiyonu kaydet",
       "unsave": "Kaydedilenlerden kaldır",
       "delete": "Kaydı sil",
-      "deleteError": "Kayıt silinemedi. Lütfen tekrar deneyin.",
+      "deleteError": "Kayıt silinemedi. Yeniden deneyin.",
       "retranscribe": "Yeniden transkribe et",
-      "retranscribeError": "Yeniden transkripsiyon başarısız oldu. Lütfen tekrar deneyin.",
+      "retranscribeError": "Yeniden dökümlenemedi. Yeniden deneyin.",
       "transcribing": "Transkribe ediliyor...",
       "transcriptionFailed": "Transkripsiyon başarısız oldu. Yeniden deneme simgesini kullanarak tekrar transkribe edebilirsiniz.",
       "search": "Geçmişte ara",
@@ -739,7 +757,7 @@
       "noResults": "\"{{query}}\" ile eşleşen transkript yok.",
       "loadError": "Geçmiş yüklenemedi.",
       "retry": "Tekrar dene",
-      "saveError": "Kayıt durumu güncellenemedi.",
+      "saveError": "Kaydetme durumu güncellenemedi. Yeniden deneyin.",
       "postProcessEmpty": "Son işleme metin döndürmedi. Ham transkript gösteriliyor.",
       "textView": {
         "label": "Transkript görünümü",
@@ -818,6 +836,12 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "columns": {
+          "source": "Kaynak",
+          "status": "Durum",
+          "method": "Yöntem",
+          "outcome": "Sonuç"
         }
       },
       "correction": {
@@ -834,7 +858,7 @@
         "global": "All modes",
         "save": "Save correction",
         "saved": "Vocabulary correction saved",
-        "saveError": "Could not save vocabulary correction."
+        "saveError": "Düzeltme kaydedilemedi. Yeniden deneyin."
       },
       "audioImport": {
         "start": "Dosyayı transkribe et",
@@ -861,7 +885,7 @@
           "history": "Transkript geçmişe kaydedilemedi."
         },
         "errors": {
-          "start": "Dosya içe aktarma başlatılamadı.",
+          "start": "Dosya içe aktarma başlatılamadı. Yeniden deneyin.",
           "cancel": "Dosya içe aktarma iptal edilemedi.",
           "load": "Dosya içe aktarma durumu yüklenemedi."
         },
@@ -889,7 +913,17 @@
       "noResultsHint": "Arama, hem ham hem de işlenmiş transkriptteki tam kelimelerle eşleşir.",
       "results": "{{count}} eşleşme",
       "resultsMore": "{{count}}+ eşleşme",
-      "resultsNone": "Eşleşme yok"
+      "resultsNone": "Eşleşme yok",
+      "processAgain": {
+        "action": "Yeniden işle",
+        "title": "Yeniden işle",
+        "description": "Bu kaydı başka bir kipten geçirin. Özgün kayıt korunur ve sonuç yeni bir kayıt olarak saklanır.",
+        "placeholder": "Bir kip seçin",
+        "confirm": "İşle",
+        "started": "Yeniden işleme başladı",
+        "modeLabel": "Kip"
+      },
+      "derivedFrom": "Daha eski bir kayıttan"
     },
     "debug": {
       "title": "Hata Ayıklama",
@@ -1006,7 +1040,7 @@
         "description": "En son paketlenmiş sürüm notunu görüldü olarak işaretlemeden aç",
         "button": "Önizle",
         "noNotes": "Paketlenmiş sürüm notu bulunamadı",
-        "error": "Sürüm notları önizlenemedi"
+        "error": "Sürüm notları önizlenemedi. Yeniden deneyin."
       },
       "description": "Enstrümantasyon ve desteklenmeyen ayarlar. Hata ayıklama modu açık olduğu için görünür.",
       "groups": {
@@ -1196,7 +1230,9 @@
         "noModelSelected": "No model selected",
         "model": {
           "label": "Transcription model",
-          "description": "Only downloaded local models are available here."
+          "description": "Only downloaded local models are available here.",
+          "inheritGlobal": "Varsayılan — genel modeli kullanır",
+          "inheritGlobalNamed": "Varsayılan — genel modeli kullanır ({{name}})"
         },
         "language": {
           "label": "Language",
@@ -1724,6 +1760,74 @@
         "about": "About",
         "debug": "Debug"
       }
+    },
+    "vocabulary": {
+      "replacements": {
+        "title": "Sesli değiştirmeler",
+        "description": "Sona'nın tam metne çevirdiği ifadeler. Buradaki değişiklikler yalnızca gelecek dökümleri etkiler, önceden yazılmış metni asla.",
+        "enabledLabel": "Sesli değiştirmeleri aç",
+        "enabledDescription": "Sözlük düzeltmesi çalışmadan önce, et işareti gibi sesli ifadeleri simgelere çevir.",
+        "offState": "Sesli değiştirmeler kapalı. Kurallar kayıtlı kalır ve bunu geri açtığınız anda yeniden geçerli olur.",
+        "spoken": "Siz derseniz",
+        "written": "Sona şunu yazar",
+        "applyColumn": "Uygula",
+        "actionsColumn": "Eylemler",
+        "spokenPlaceholder": "et işareti",
+        "writtenPlaceholder": "@",
+        "add": "Kural ekle",
+        "reset": "Varsayılanları geri getir",
+        "ruleEnabled": "{{spoken}} uygula",
+        "delete": "{{spoken}} sil",
+        "loading": "Değiştirmeler yükleniyor",
+        "loadError": "Değiştirmeler yüklenemedi.",
+        "matching": "İfadeler tam sözcüklerle eşleşir ve büyük küçük harf ayırmaz. İki kural aynı yere uyduğunda uzun olan kazanır ve değiştirme, sözlük düzeltmesinden önce çalışır.",
+        "errors": {
+          "duplicate": "Başka bir kural bu ifadeyi zaten kullanıyor.",
+          "incomplete": "Hem sesli ifadeyi hem de karşılığını girin."
+        },
+        "empty": {
+          "title": "Değiştirme yok",
+          "description": "Et işareti gibi bir ifade ekleyin, siz söyledikçe Sona her seferinde @ yazar.",
+          "action": "Başlangıç kurallarını geri getir"
+        },
+        "confirmDelete": {
+          "title": "{{spoken}} silinsin mi?",
+          "description": "İfade gelecek dökümlerde artık çevrilmez. Önceden yazılmış metin değişmez.",
+          "body": "{{spoken}} şu anda {{written}} oluyor."
+        },
+        "confirmReset": {
+          "title": "Varsayılan kurallar geri getirilsin mi?",
+          "description": "Eklediğiniz veya düzenlediğiniz her kural atılır ve ürünle gelen başlangıç kümesi geri döner."
+        }
+      }
+    },
+    "prompts": {
+      "samples": {
+        "title": "Yazı örnekleri",
+        "description": "Kendi yazınızdan örnekler. Bir dökümü yeniden yazan her kip bu üsluba uyar.",
+        "placeholder": "Kendi yazdığınız bir paragrafı yapıştırın.",
+        "sampleLabel": "Yazı örneği {{number}}",
+        "delete": "{{number}} numaralı örneği sil",
+        "add": "Örnek ekle",
+        "wordCount": "{{max}} sözcüğün {{words}} tanesi",
+        "overLimit": "{{words}} sözcük. Yalnızca ilk {{max}} tanesi kullanılır.",
+        "privacy": "Örnekler yalnızca dökümün kendisinin zaten gittiği yere gider, başka hiçbir yere. En çok {{max}} örnek kullanılır.",
+        "loading": "Örnekler yükleniyor",
+        "loadError": "Örnekler yüklenemedi.",
+        "empty": {
+          "title": "Henüz örnek yok",
+          "description": "Kendi yazdığınız birkaç paragrafı yapıştırın; yeniden yazımlar sözcük dağarcığınızı, cümle uzunluğunuzu ve resmiyet düzeyinizi izler.",
+          "action": "Bir örnek ekle"
+        }
+      }
+    },
+    "hud": {
+      "enabledLabel": "Bekleme kapsülünü göster",
+      "enabledDescription": "Dikte aralarında ekranda küçük bir kapsül tutun. Başlamak için tıklayın, kip değiştirmek için sağ tıklayın.",
+      "positionLabel": "Bekleme kapsülünün konumu",
+      "positionDescription": "Bekleme kapsülünün ekranın hangi kenarında durduğu.",
+      "positionTop": "Üst",
+      "positionBottom": "Alt"
     }
   },
   "common": {
@@ -1737,7 +1841,10 @@
     "noOptionsFound": "Seçenek bulunamadı",
     "save": "Save",
     "saving": "Saving…",
-    "retry": "Retry"
+    "retry": "Retry",
+    "play": "Oynat",
+    "pause": "Duraklat",
+    "seek": "Oynatma konumu"
   },
   "commandPalette": {
     "open": "Ara",
@@ -1770,12 +1877,15 @@
     },
     "noInputDeviceTitle": "Mikrofon bulunamadı",
     "noInputDevice": "Ses giriş aygıtı algılanamadı. Lütfen bir mikrofon veya kulaklık bağlayın ve tekrar deneyin.",
-    "recordingFailed": "Kayıt başlatılamadı: {{error}}",
-    "modelLoadFailed": "Model yüklenemedi: {{model}}",
+    "recordingFailed": "Kayıt başlatılamadı: {{error}}. Yeniden deneyin.",
+    "modelLoadFailed": "{{model}} yüklenemedi. Yeniden deneyin.",
     "modelLoadFailedUnknown": "bilinmeyen model",
-    "pasteFailedTitle": "Metin yapıştırılamadı",
-    "pasteFailed": "Metin etkin uygulamaya yapıştırılamadı.",
-    "transcriptionFailedTitle": "Transkripsiyon başarısız oldu"
+    "pasteFailedTitle": "Döküm yapıştırılamadı",
+    "pasteFailed": "Metin etkin uygulamaya yapıştırılamadı. Bir metin alanına odaklanıp yeniden deneyin.",
+    "transcriptionFailedTitle": "Dökümlenemedi",
+    "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
+    "commandNoSelection": "Hiçbir şey seçilmemişti. Değiştirmek istediğiniz metni seçin, sonra komut kısayolunu basılı tutup ne yapılacağını söyleyin.",
+    "commandRewriteUnavailable": "Yeniden yazım hiçbir şey döndürmedi, seçiminiz olduğu gibi kaldı. Ayarlar > YZ altındaki yeniden yazım modelini denetleyip yeniden deneyin."
   },
   "appLanguage": {
     "title": "Uygulama Dili",
@@ -1794,7 +1904,13 @@
     "transcribing": "Transkribe ediliyor...",
     "processing": "İşleniyor...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model"
+    "localFallback": "Offline, using local model",
+    "hud": {
+      "idle": "Hazır",
+      "toggle": "{{mode}} kipinde dikteyi başlat",
+      "hint": "Dikte için tıklayın, kipler için sağ tıklayın",
+      "modes": "Kip değiştir"
+    }
   },
   "whatsNew": {
     "title": "Sona v{{version}} yenilikleri"
@@ -1875,79 +1991,38 @@
         "cancelled": "Processing cancelled"
       }
     },
-    "readiness": {
-      "ready": "Ready",
-      "unavailable": "Unavailable",
-      "local": "Local only",
-      "needsAcknowledgement": "Acknowledgement required"
-    },
     "actions": {
       "back": "Back",
       "delete": "Delete meeting",
       "discard": "Discard",
-      "newMeeting": "New meeting",
       "pause": "Pause",
       "refresh": "Refresh",
       "resume": "Resume",
       "retry": "Try again",
-      "startLocal": "Start local notes",
       "stop": "Stop"
     },
     "detected": {
       "title": "Meeting detected",
-      "description": "Sona only offers a setup screen. It is not recording.",
-      "mayBeActive": "A meeting may be active in {{provider}}.",
-      "notRecording": "Sona is not recording."
+      "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
-      "title": "Start local notes",
-      "suggestedDescription": "Sona detected {{provider}}. Review the capture setup before recording.",
-      "manualDescription": "Set the sources and policy for a new local meeting note.",
-      "identity": "Meeting details",
-      "meetingTitle": "Meeting title",
-      "meetingTitlePlaceholder": "Untitled meeting",
       "captureSources": "Capture sources",
       "captureSourcesDescription": "Each source stays separate so missing audio remains visible.",
-      "sourcePolicy": "If a source is unavailable",
-      "sourcePolicyDescription": "Choose whether setup stops or starts with an explicit partial record.",
-      "strict": "Strict: stop setup if a required source is unavailable",
-      "continuePartial": "Continue partial: start only after I acknowledge the missing source",
       "processing": "Processing route",
-      "localProcessing": "On this Mac",
-      "localProcessingDescription": "Audio, transcript, notes, search, and Q&A stay local.",
-      "selected": "Selected",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination selected",
       "localOnly": "Local only",
-      "check": "Check recording setup",
-      "checking": "Checking setup…",
       "defaultTitle": "Local notes",
       "remoteUnavailable": "Bu sürümde uzaktan işleme kullanılamaz, bu yüzden her toplantı bu Mac üzerinde çevriliyor ve özetleniyor."
     },
     "preflight": {
-      "title": "Check recording setup",
-      "description": "Review each local capability before authorizing capture.",
-      "summary": "Meeting setup summary",
-      "meeting": "Meeting",
-      "changeSetup": "Change setup",
-      "readiness": "Readiness",
-      "readinessDescription": "Each row reports the current backend check.",
       "storage": "Storage",
       "storageAvailable": "Encrypted meeting storage is available.",
       "storageUnavailable": "Encrypted meeting storage is unavailable.",
       "localModel": "Local model",
       "localModelDescription": "Processing remains local when a local model is available.",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination is selected.",
-      "remoteSelected": "Selected destination: {{destination}}",
-      "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
       "starting": "Starting visible capture…",
       "refreshing": "Kontrol ediliyor…"
     },
     "consent": {
-      "title": "Recording acknowledgement",
-      "description": "Sona will show a visible capture state. Audio, transcript, and notes stay on this Mac unless you explicitly select a remote destination.",
-      "acknowledge": "I have permission to capture this meeting.",
       "continuePartial": "I want to continue with a partial meeting record.",
       "acceptMissing": "I understand {{source}} is {{state}} and this meeting will be partial."
     },
@@ -2039,7 +2114,7 @@
     },
     "errors": {
       "load": "Sona could not load the current meeting data.",
-      "operation": "Sona could not complete that meeting action.",
+      "operation": "Bu toplantı eylemi tamamlanamadı. Yeniden deneyin.",
       "operationRejected": "The meeting action was rejected.",
       "consent_required": "Confirm the recording acknowledgement before starting.",
       "consent_stale": "The setup changed. Review it again before starting.",
@@ -2110,12 +2185,12 @@
       "regenerate": "Regenerate",
       "remoteCancellationPending": "Remote cancellation is pending. Local deletion does not claim the remote copy is deleted.",
       "cancelRemote": "Cancel remote processing",
-      "remoteCancellationRequested": "Remote cancellation requested.",
+      "remoteCancellationRequested": "İptal istendi",
       "export": "Export",
       "exportDescription": "Each export uses an immutable local review snapshot and opens a native save dialog.",
       "exportMarkdown": "Export Markdown",
       "exportJson": "Export JSON",
-      "exportComplete": "Export completed.",
+      "exportComplete": "Toplantı dışa aktarıldı",
       "citation": "Transcript {{time}}",
       "noGeneratedNotes": "No generated notes are available yet.",
       "template": "Template: {{template}}",
@@ -2166,7 +2241,8 @@
         "transcript": "Transkript"
       },
       "tabsLabel": "Toplantı inceleme bölümleri",
-      "youAsked": "Siz sordunuz"
+      "youAsked": "Siz sordunuz",
+      "actionDone": "Bu maddeyi yapıldı olarak işaretle"
     },
     "artifactState": {
       "current": "Current",
@@ -2215,6 +2291,138 @@
     "status": {
       "gapCount": "Boşluklar: {{total}}",
       "required": "Gerekli"
+    },
+    "start": {
+      "label": "Bir toplantı başlat",
+      "action": "Kaydı başlat",
+      "starting": "Başlatılıyor…",
+      "assurance": "Mac'inizin sesini yerel olarak kaydeder. Görüşmeye hiçbir şey katılmaz.",
+      "capture": "Yakalama",
+      "noSources": "En az bir kaynak seçin.",
+      "localOnly": "Yalnızca yerel",
+      "retention": "Saklanıyor: {{policy}}"
+    },
+    "gate": {
+      "title": "Kayıt başlamadı",
+      "description": "Sona toplantıyı oluşturdu, ancak kaydetmesi istenen bir kaynak kullanılamıyor.",
+      "readyTitle": "Kayda hazır",
+      "readyDescription": "Bu toplantının yakalanmasını hiçbir şey engellemiyor.",
+      "recordAnyway": "Onsuz kaydet",
+      "recordAnywayHint": "Kayıt kısmi olarak işaretlenir ve eksik kaynak kayıtta adıyla anılmaya devam eder."
+    },
+    "analytics": {
+      "title": "Konuşma",
+      "description": "Bu Mac'te, konuşmacılara ayrılmış dökümden hesaplandı. Hiçbir şey hiçbir yere gönderilmez.",
+      "noSpeech": "Hiç konuşma dökümlenmedi, dolayısıyla ölçülecek bir şey yok.",
+      "talkShare": "En çok konuşan",
+      "longestMonologue": "En uzun monolog",
+      "patience": "Sabır",
+      "patienceDetail": "Yanıt öncesi ortanca duraklama",
+      "interactions": "Söz devirleri",
+      "turns": "{{count}} söz sırası",
+      "turns_one": "{{count}} söz sırası",
+      "speakerDetail": "{{time}} · {{turns}}",
+      "unknownSpeaker": "Bilinmeyen konuşmacı",
+      "trackers": "İzleyiciler",
+      "hits": "{{count}} anma",
+      "hits_one": "{{count}} anma",
+      "noHits": "Anılmadı",
+      "jumpToFirst": "İlkini göster",
+      "trackersTitle": "Anahtar sözcük izleyicileri",
+      "trackersDescription": "Her toplantı dökümünde aranacak ifadeler. Eşleşme birebirdir ve büyük küçük harf ayırmaz, her tarama bu Mac'te çalışır.",
+      "addTracker": "İzleyici ekle",
+      "removeTracker": "İzleyiciyi kaldır",
+      "noTrackers": "Henüz izleyici yok. Bir ifadenin ne sıklıkta geçtiğini saymaya başlamak için bir tane ekleyin.",
+      "trackerName": "Ad",
+      "trackerPatterns": "indirim, en iyi fiyat, çok pahalı",
+      "trackerPatternsLabel": "Virgülle ayrılmış ifadeler",
+      "trackersSaveFailed": "Sona izleyicileri kaydedemedi. Birini değiştirip yeniden deneyin."
+    },
+    "notes": {
+      "title": "Notlarım",
+      "liveDescription": "İstediğiniz kadar dağınık yazın. Bu notlar bu Mac'te kalır ve toplantı bittiğinde Sona'nın ürettiği notları yönlendirir.",
+      "reviewDescription": "Kendi notlarınız, üretilen notların neyi öne çıkardığını yönlendirir. Asla alıntılanmaz veya kaynak gösterilmez.",
+      "placeholder": "Hatırlanmaya değer her şey — adlar, sayılar, takip edilecekler",
+      "unsaved": "Henüz kaydedilmedi",
+      "saving": "Kaydediliyor…",
+      "saved": "Notlar kaydedildi",
+      "conflict": "Bu notlar başka bir yerde değişti. Geçerli sürümü yüklemek için toplantıyı yeniden açın.",
+      "reenhance": "Notlarımla yeniden zenginleştir",
+      "enhancing": "Yeniden kuruluyor…",
+      "enhanced": "Notlar yeniden kuruldu.",
+      "enhanceFailed": "Sona notları yeniden kuramadı. Toplantıyı yeniden açıp tekrar deneyin.",
+      "catchUp": "Beni durumdan haberdar et",
+      "catchingUp": "Özetleniyor…",
+      "catchUpTitle": "Şimdiye dek",
+      "catchUpNoTranscript": "Henüz özetlenecek bir şey yok. Sona, kaydı durdurduktan sonra döküm çıkarır; döküm gelmeye başladığında özet hazır olur.",
+      "catchUpUnavailable": "Aygıttaki model kullanılamıyor, bu yüzden özet yazılmadı.",
+      "catchUpFailed": "Sona bir özet oluşturamadı. Biraz sonra yeniden deneyin.",
+      "templates": {
+        "general": "Genel toplantı",
+        "one_on_one": "Bire bir",
+        "interview": "Görüşme",
+        "sales_call": "Satış görüşmesi",
+        "standup": "Standup"
+      }
+    },
+    "detection": {
+      "title": "Toplantıları algıla",
+      "description": "Sona görüşmeleri gözler ve not tutmayı önerir. Kendi başına asla kayıt yapmaz.",
+      "loading": "Algılama durumu okunuyor…",
+      "prompt": {
+        "calendar": "{{title}} başlıyor",
+        "app": "{{app}} toplantısı algılandı",
+        "huddle": "{{app}} huddle'ı algılandı",
+        "browser": "{{app}} içinde görüşme algılandı",
+        "unknown": "Mikrofon etkinliği algılandı",
+        "body": "Sona bu görüşme için yerel notlar tutabilir."
+      },
+      "actions": {
+        "start": "Dökümlemeye başla",
+        "dismiss": "Kapat"
+      },
+      "pane": {
+        "title": "Yakında başlıyor",
+        "description": "Siz burada başlatana kadar Sona kayıt yapmaz.",
+        "countdown": "{{seconds}} sn içinde başlıyor",
+        "notYetRecording": "Kayıt yapmıyor"
+      },
+      "calendar": {
+        "label": "Takvimimi kullan",
+        "description": "İki veya daha fazla katılımcısı olan etkinliklerden bir dakika önce geri sayım gösterir. Apple yalnızca okuma izni sunmadığından, macOS ilk seferde tam takvim erişimi ister."
+      },
+      "anyMic": {
+        "label": "Her mikrofon kullanımında sor",
+        "description": "Sesli notları, müzik uygulamalarını ve mikrofonu açan her şeyi kapsar. Kapalıyken uyarılar bilinen toplantı uygulamalarıyla sınırlı kalır."
+      },
+      "autoStart": {
+        "label": "Geri sayımı görünürken toplantıyı aç",
+        "description": "Bir etkinlik, siz zaten geri sayımına bakarken başladığında bildirimi atlar. Neyin kaydedileceğini yine siz onaylarsınız."
+      },
+      "apps": {
+        "label": "Toplantı uygulamaları",
+        "description": "Satır başına bir paket tanımlayıcısı. Bir girdi yalnızca o uygulama çalışırken sayılır; adı değişmiş bir tanımlayıcı yanlış olmaktan çok etkisiz kalır.",
+        "running": "Şimdi çalışıyor: {{apps}}",
+        "noneRunning": "Bunlardan hiçbiri şu anda çalışmıyor."
+      },
+      "state": {
+        "title": "Algılamanın görebildikleri",
+        "description": "Algılama zamanın büyük bölümünde sessizdir. Nedeni şu.",
+        "calendarDenied": "Takvim erişimi verilmedi, bu yüzden yalnızca mikrofon yolu çalışıyor.",
+        "notificationsDenied": "Sona için bildirimler kapalı, bu yüzden uyarılar yalnızca uygulamada görünür.",
+        "bluetoothCaveat": "Bir toplantı uygulaması açık ama hiçbir şey mikrofon kullanımı bildirmiyor. Bluetooth kulaklıklar bunu sık sık bildirmez; bir toplantı sürüyorsa kaydı kendiniz başlatın.",
+        "noSilenceStop": "Yakalamalar etkinliğin bitiminde, uygulama kapandığında, uykuda ya da siz durdurduğunuzda durur. Sessizlik sayacı canlı döküm gerektirir; o da ancak bir toplantı bittikten sonra çalışır."
+      },
+      "why": {
+        "disabled": "Algılama kapalı.",
+        "sonaHoldsMic": "Sona mikrofonu kullanıyor, bu yüzden şu anda başka bir şey belirlenemiyor.",
+        "captureActive": "Bir toplantı hâlihazırda yakalanıyor.",
+        "noSignal": "Henüz hiçbir şey mikrofonu kullanmıyor.",
+        "soloEvent": "Sıradaki etkinliğin ikiden az katılımcısı var, bu yüzden bloke edilmiş zaman olarak okunuyor.",
+        "unknownApp": "Bir şey mikrofonu kullanıyor ama bilinen bir toplantı uygulaması değil.",
+        "browserUnreadable": "Önde bir tarayıcı var ama sekmesinin başlığı okunamıyor.",
+        "browserNotMeeting": "Önde bir tarayıcı var ve sekmesi bir görüşme değil."
+      }
     }
   },
   "agentPanel": {
@@ -2292,7 +2500,15 @@
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Mod: {{name}}",
-      "setShortcut": "Her uygulamadan kayıt yapmak için Settings'te bir dikte kısayolu ayarlayın."
+      "setShortcut": "Her uygulamadan kayıt yapmak için Settings'te bir dikte kısayolu ayarlayın.",
+      "setShortcutAction": "Bir kısayol ayarla",
+      "shortcutAction": "Dikte kısayolunu değiştir",
+      "holdHint": "Değiştirmek için dokunun, konuşmak için basılı tutun",
+      "facts": {
+        "mode": "Kip",
+        "model": "Model",
+        "engine": "Motor"
+      }
     },
     "actions": {
       "dictate": "Dictate",

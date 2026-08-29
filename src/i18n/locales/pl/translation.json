@@ -120,7 +120,7 @@
       }
     },
     "errors": {
-      "selectModel": "Nie udało się wybrać modelu"
+      "selectModel": "Nie udało się wybrać modelu. Spróbuj ponownie."
     },
     "permissions": {
       "title": "Wymagane uprawnienia",
@@ -140,8 +140,13 @@
       "errors": {
         "checkFailed": "Nie udało się sprawdzić uprawnień. Spróbuj ponownie.",
         "requestFailed": "Nie udało się poprosić o uprawnienie. Spróbuj ponownie."
-      }
-    }
+      },
+      "headline": "Jednorazowa konfiguracja",
+      "subhead": "Komputer pyta, zanim jakakolwiek aplikacja będzie mogła słuchać lub pisać za Ciebie. Nadaj te uprawnienia raz, a Sona nie zapyta ponownie.",
+      "checking": "Sprawdzanie uprawnień",
+      "recheck": "Sprawdź ponownie"
+    },
+    "headline": "Wybierz model głosu"
   },
   "modelSelector": {
     "custom": "Własny",
@@ -275,9 +280,9 @@
         "notDownloaded": "Niepobrany"
       },
       "summary": {
-        "active": "Aktywny: {{name}}",
         "noActive": "Nie wybrano modelu",
-        "onDisk": "{{total}} na dysku"
+        "activeLabel": "Aktywny model",
+        "onDiskLabel": "Na dysku"
       }
     },
     "general": {
@@ -288,7 +293,7 @@
         "loading": "Wczytywanie skrótów...",
         "none": "Brak skonfigurowanych skrótów",
         "notFound": "Nie znaleziono skrótu",
-        "pressKeys": "Naciśnij klawisze...",
+        "pressKeys": "Naciśnij swoje klawisze…",
         "bindings": {
           "transcribe": {
             "name": "Skrót transkrypcji",
@@ -301,13 +306,21 @@
           "transcribe_with_post_process": {
             "name": "Skrót postprocessingu",
             "description": "Opcjonalnie: Dedykowany skrót klawiszowy, który zawsze stosuje postprocessing AI do transkrypcji."
+          },
+          "command": {
+            "name": "Skrót polecenia",
+            "description": "Skrót klawiaturowy, który przepisuje zaznaczony tekst na podstawie wypowiedzianej instrukcji."
           }
         },
         "errors": {
-          "restore": "Nie udało się przywrócić oryginalnego skrótu",
+          "restore": "Nie udało się przywrócić pierwotnego skrótu. Spróbuj ponownie.",
           "set": "Nie udało się ustawić skrótu: {{error}}",
-          "reset": "Nie udało się zresetować skrótu do wartości domyślnej"
-        }
+          "reset": "Nie udało się zresetować skrótu. Spróbuj ponownie."
+        },
+        "holdHint": "Dotknij, aby przełączyć, przytrzymaj, aby mówić. Działa z każdym skrótem.",
+        "recordAction": "Nagraj nowy skrót dla {{binding}}",
+        "recordHint": "Kliknij, aby nagrać",
+        "unset": "Nie ustawiono"
       },
       "language": {
         "title": "Język",
@@ -324,7 +337,11 @@
         "description": "Język interfejsu i schemat kolorów. Oba stosowane są natychmiast.",
         "title": "Wygląd"
       },
-      "description": "Klawisze, które naciskasz, mikrofon, którego słucha Sona, i wygląd aplikacji."
+      "description": "Klawisze, które naciskasz, mikrofon, którego słucha Sona, i wygląd aplikacji.",
+      "commandMode": {
+        "label": "Tryb poleceń głosowych",
+        "description": "Przytrzymaj skrót polecenia i powiedz, co zmienić w zaznaczonym tekście."
+      }
     },
     "sound": {
       "title": "Dźwięk",
@@ -493,9 +510,9 @@
         "remove": "Usuń {{spoken}}",
         "import": "Importuj CSV",
         "export": "Eksportuj CSV",
-        "importError": "Nie udało się zaimportować CSV słownika.",
-        "exportError": "Nie udało się wyeksportować CSV słownika.",
-        "saveError": "Nie udało się zapisać słownika.",
+        "importError": "Nie udało się zaimportować pliku CSV ze słownikiem. Sprawdź plik i spróbuj ponownie.",
+        "exportError": "Nie udało się wyeksportować pliku CSV ze słownikiem. Spróbuj ponownie.",
+        "saveError": "Nie udało się zapisać słownika. Spróbuj ponownie.",
         "imported": "Słownik zaimportowany",
         "errors": {
           "incomplete": "Wpisz wypowiedzianą frazę i tekst do zapisania.",
@@ -523,7 +540,7 @@
         "actions": "Vocabulary actions",
         "audioImport": {
           "errors": {
-            "start": "Couldn't start the audio import."
+            "start": "Nie udało się rozpocząć importu audio. Spróbuj ponownie."
           },
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
@@ -534,7 +551,8 @@
           "title": "Brak reguł słownictwa"
         },
         "sources": "Poprawki zapisane z transkrypcji w bibliotece trafiają na tę listę. Reguły dla pojedynczego trybu znajdują się we własnym słownictwie tego trybu.",
-        "unsaved": "Niezapisane zmiany"
+        "unsaved": "Niezapisane zmiany",
+        "csvLabel": "CSV"
       },
       "voiceActivityDetection": {
         "title": "Wykrywanie aktywności głosowej",
@@ -558,8 +576,8 @@
         "save": "Zapisz zamienniki emoji",
         "saved": "Zamienniki emoji zapisane",
         "remove": "Usuń {{spoken}}",
-        "saveError": "Nie udało się zapisać zamienników emoji.",
-        "toggleError": "Nie udało się zmienić zamienników emoji.",
+        "saveError": "Nie udało się zapisać zamian emoji. Spróbuj ponownie.",
+        "toggleError": "Nie udało się zmienić zamian emoji. Spróbuj ponownie.",
         "errors": {
           "incomplete": "Wpisz wypowiedzianą frazę i tekst emoji.",
           "duplicate": "Ten zamiennik emoji już istnieje.",
@@ -739,7 +757,7 @@
       "noResults": "Brak transkrypcji pasujących do \"{{query}}\".",
       "loadError": "Nie można załadować historii.",
       "retry": "Spróbuj ponownie",
-      "saveError": "Nie można zaktualizować statusu.",
+      "saveError": "Nie udało się zaktualizować stanu zapisu. Spróbuj ponownie.",
       "postProcessEmpty": "Przetwarzanie końcowe nie zwróciło tekstu. Wyświetlanie surowej transkrypcji.",
       "textView": {
         "label": "Widok transkrypcji",
@@ -818,6 +836,12 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "columns": {
+          "source": "Źródło",
+          "status": "Stan",
+          "method": "Metoda",
+          "outcome": "Wynik"
         }
       },
       "correction": {
@@ -834,7 +858,7 @@
         "global": "All modes",
         "save": "Save correction",
         "saved": "Vocabulary correction saved",
-        "saveError": "Could not save vocabulary correction."
+        "saveError": "Nie udało się zapisać poprawki. Spróbuj ponownie."
       },
       "audioImport": {
         "start": "Transkrybuj plik",
@@ -861,7 +885,7 @@
           "history": "Nie udało się zapisać transkrypcji w historii."
         },
         "errors": {
-          "start": "Nie udało się rozpocząć importu pliku.",
+          "start": "Nie udało się rozpocząć importu pliku. Spróbuj ponownie.",
           "cancel": "Nie udało się anulować importu pliku.",
           "load": "Nie udało się wczytać stanu importu pliku."
         },
@@ -889,7 +913,17 @@
       "noResultsHint": "Wyszukiwanie dopasowuje całe słowa zarówno w surowej, jak i przetworzonej transkrypcji.",
       "results": "Dopasowania: {{count}}",
       "resultsMore": "Dopasowania: {{count}}+",
-      "resultsNone": "Brak dopasowań"
+      "resultsNone": "Brak dopasowań",
+      "processAgain": {
+        "action": "Przetwórz ponownie",
+        "title": "Przetwórz ponownie",
+        "description": "Przepuść to nagranie przez inny tryb. Pierwotny wpis zostaje zachowany, a wynik zapisany jako nowy.",
+        "placeholder": "Wybierz tryb",
+        "confirm": "Przetwórz",
+        "started": "Ponowne przetwarzanie rozpoczęte",
+        "modeLabel": "Tryb"
+      },
+      "derivedFrom": "Z wcześniejszego nagrania"
     },
     "debug": {
       "title": "Debugowanie",
@@ -1006,7 +1040,7 @@
         "description": "Otwórz najnowsze dołączone informacje o wydaniu bez oznaczania ich jako wyświetlone",
         "button": "Podgląd",
         "noNotes": "Nie znaleziono dołączonych informacji o wydaniu",
-        "error": "Nie udało się wyświetlić podglądu informacji o wydaniu"
+        "error": "Nie udało się wyświetlić informacji o wydaniu. Spróbuj ponownie."
       },
       "description": "Instrumentacja i niewspierane pokrętła. Widoczne, ponieważ tryb debugowania jest włączony.",
       "groups": {
@@ -1196,7 +1230,9 @@
         "noModelSelected": "No model selected",
         "model": {
           "label": "Transcription model",
-          "description": "Only downloaded local models are available here."
+          "description": "Only downloaded local models are available here.",
+          "inheritGlobal": "Domyślnie — używa modelu globalnego",
+          "inheritGlobalNamed": "Domyślnie — używa modelu globalnego ({{name}})"
         },
         "language": {
           "label": "Language",
@@ -1724,6 +1760,74 @@
         "about": "About",
         "debug": "Debug"
       }
+    },
+    "vocabulary": {
+      "replacements": {
+        "title": "Zamiany mówione",
+        "description": "Wyrażenia, które Sona przepisuje na dokładny tekst. Zmiany tutaj dotyczą tylko przyszłych transkrypcji, nigdy tekstu już napisanego.",
+        "enabledLabel": "Włącz zamiany mówione",
+        "enabledDescription": "Przepisuj wyrażenia mówione, takie jak małpa, na symbole, zanim uruchomi się korekta słownikowa.",
+        "offState": "Zamiany mówione są wyłączone. Reguły pozostają zapisane i zadziałają ponownie, gdy to włączysz.",
+        "spoken": "Mówisz",
+        "written": "Sona pisze",
+        "applyColumn": "Zastosuj",
+        "actionsColumn": "Działania",
+        "spokenPlaceholder": "małpa",
+        "writtenPlaceholder": "@",
+        "add": "Dodaj regułę",
+        "reset": "Przywróć domyślne",
+        "ruleEnabled": "Zastosuj {{spoken}}",
+        "delete": "Usuń {{spoken}}",
+        "loading": "Wczytywanie zamian",
+        "loadError": "Nie udało się wczytać zamian.",
+        "matching": "Wyrażenia dopasowują się do całych słów i ignorują wielkość liter. Gdy dwie reguły pasują do tego samego miejsca, wygrywa dłuższa, a zamiana działa przed korektą słownikową.",
+        "errors": {
+          "duplicate": "Inna reguła już używa tego wyrażenia.",
+          "incomplete": "Podaj zarówno wyrażenie mówione, jak i jego zamiennik."
+        },
+        "empty": {
+          "title": "Brak zamian",
+          "description": "Dodaj wyrażenie takie jak małpa, a Sona napisze @ za każdym razem, gdy je powiesz.",
+          "action": "Przywróć reguły początkowe"
+        },
+        "confirmDelete": {
+          "title": "Usunąć {{spoken}}?",
+          "description": "Wyrażenie przestanie być przepisywane w przyszłych transkrypcjach. Tekst już napisany pozostaje bez zmian.",
+          "body": "{{spoken}} zamienia się obecnie w {{written}}."
+        },
+        "confirmReset": {
+          "title": "Przywrócić domyślne reguły?",
+          "description": "Każda dodana lub zmieniona przez Ciebie reguła zostanie odrzucona, a wróci dostarczony zestaw początkowy."
+        }
+      }
+    },
+    "prompts": {
+      "samples": {
+        "title": "Próbki pisania",
+        "description": "Przykłady Twojego własnego pisania. Każdy tryb, który przepisuje transkrypcję, dopasowuje się do tego stylu.",
+        "placeholder": "Wklej akapit, który napisałeś sam.",
+        "sampleLabel": "Próbka pisania {{number}}",
+        "delete": "Usuń próbkę {{number}}",
+        "add": "Dodaj próbkę",
+        "wordCount": "{{words}} z {{max}} słów",
+        "overLimit": "{{words}} słów. Używane są tylko pierwsze {{max}}.",
+        "privacy": "Próbki trafiają tylko tam, gdzie już trafia sama transkrypcja, i nigdzie więcej. Używanych jest do {{max}} próbek.",
+        "loading": "Wczytywanie próbek",
+        "loadError": "Nie udało się wczytać próbek.",
+        "empty": {
+          "title": "Jeszcze brak próbek",
+          "description": "Wklej kilka akapitów, które napisałeś sam, a przepisania pójdą za Twoim słownictwem, długością zdań i poziomem formalności.",
+          "action": "Dodaj próbkę"
+        }
+      }
+    },
+    "hud": {
+      "enabledLabel": "Pokaż pigułkę w stanie spoczynku",
+      "enabledDescription": "Trzymaj małą pigułkę na ekranie między dyktowaniami. Kliknij, aby zacząć, kliknij prawym, aby zmienić tryb.",
+      "positionLabel": "Położenie pigułki spoczynkowej",
+      "positionDescription": "Przy której krawędzi ekranu siedzi pigułka spoczynkowa.",
+      "positionTop": "Górna",
+      "positionBottom": "Dolna"
     }
   },
   "common": {
@@ -1737,7 +1841,10 @@
     "noOptionsFound": "Nie znaleziono opcji",
     "save": "Save",
     "saving": "Saving…",
-    "retry": "Retry"
+    "retry": "Retry",
+    "play": "Odtwórz",
+    "pause": "Pauza",
+    "seek": "Pozycja odtwarzania"
   },
   "commandPalette": {
     "open": "Szukaj",
@@ -1761,7 +1868,7 @@
     "noSpeechDetectedTitle": "Nie wykryto mowy",
     "noSpeechDetected": "Nie wykryto mowy. Próbkę nagrania zapisano w Historii, aby można było sprawdzić przechwycone audio.",
     "loadDirectory": "Błąd wczytywania katalogu: {{error}}",
-    "micPermissionDeniedTitle": "Odmowa dostępu do mikrofonu",
+    "micPermissionDeniedTitle": "Odmówiono dostępu do mikrofonu",
     "micPermissionDenied": {
       "generic": "System operacyjny odmówił dostępu do mikrofonu. Przyznaj uprawnienia do mikrofonu w ustawieniach systemowych.",
       "windows": "Włącz dostęp do mikrofonu w Ustawienia → Prywatność i zabezpieczenia → Mikrofon (w tym dostęp aplikacji klasycznych).",
@@ -1770,12 +1877,15 @@
     },
     "noInputDeviceTitle": "Nie znaleziono mikrofonu",
     "noInputDevice": "Nie wykryto żadnego urządzenia wejściowego audio. Podłącz mikrofon lub słuchawki i spróbuj ponownie.",
-    "recordingFailed": "Nie udało się rozpocząć nagrywania: {{error}}",
-    "modelLoadFailed": "Nie udało się załadować modelu: {{model}}",
+    "recordingFailed": "Nie udało się rozpocząć nagrywania: {{error}}. Spróbuj ponownie.",
+    "modelLoadFailed": "Nie udało się wczytać {{model}}. Spróbuj ponownie.",
     "modelLoadFailedUnknown": "nieznany model",
-    "pasteFailedTitle": "Nie udało się wkleić tekstu",
-    "pasteFailed": "Nie można było wkleić tekstu do aktywnej aplikacji.",
-    "transcriptionFailedTitle": "Transkrypcja nie powiodła się"
+    "pasteFailedTitle": "Nie udało się wkleić transkrypcji",
+    "pasteFailed": "Tekstu nie udało się wkleić do aktywnej aplikacji. Ustaw kursor w polu tekstowym i spróbuj ponownie.",
+    "transcriptionFailedTitle": "Nie udało się transkrybować",
+    "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
+    "commandNoSelection": "Nic nie było zaznaczone. Zaznacz tekst, który chcesz zmienić, następnie przytrzymaj skrót polecenia i powiedz, co zrobić.",
+    "commandRewriteUnavailable": "Przepisanie nie zwróciło niczego, więc zaznaczenie pozostało bez zmian. Sprawdź model przepisywania w Ustawieniach > AI i spróbuj ponownie."
   },
   "appLanguage": {
     "title": "Język aplikacji",
@@ -1794,7 +1904,13 @@
     "transcribing": "Transkrypcja...",
     "processing": "Przetwarzanie...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model"
+    "localFallback": "Offline, using local model",
+    "hud": {
+      "idle": "Gotowe",
+      "toggle": "Rozpocznij dyktowanie w trybie {{mode}}",
+      "hint": "Kliknij, aby dyktować, kliknij prawym, aby wybrać tryb",
+      "modes": "Zmień tryb"
+    }
   },
   "whatsNew": {
     "title": "Nowości w Sona v{{version}}"
@@ -1875,79 +1991,38 @@
         "cancelled": "Processing cancelled"
       }
     },
-    "readiness": {
-      "ready": "Ready",
-      "unavailable": "Unavailable",
-      "local": "Local only",
-      "needsAcknowledgement": "Acknowledgement required"
-    },
     "actions": {
       "back": "Back",
       "delete": "Delete meeting",
       "discard": "Discard",
-      "newMeeting": "New meeting",
       "pause": "Pause",
       "refresh": "Refresh",
       "resume": "Resume",
       "retry": "Try again",
-      "startLocal": "Start local notes",
       "stop": "Stop"
     },
     "detected": {
       "title": "Meeting detected",
-      "description": "Sona only offers a setup screen. It is not recording.",
-      "mayBeActive": "A meeting may be active in {{provider}}.",
-      "notRecording": "Sona is not recording."
+      "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
-      "title": "Start local notes",
-      "suggestedDescription": "Sona detected {{provider}}. Review the capture setup before recording.",
-      "manualDescription": "Set the sources and policy for a new local meeting note.",
-      "identity": "Meeting details",
-      "meetingTitle": "Meeting title",
-      "meetingTitlePlaceholder": "Untitled meeting",
       "captureSources": "Capture sources",
       "captureSourcesDescription": "Each source stays separate so missing audio remains visible.",
-      "sourcePolicy": "If a source is unavailable",
-      "sourcePolicyDescription": "Choose whether setup stops or starts with an explicit partial record.",
-      "strict": "Strict: stop setup if a required source is unavailable",
-      "continuePartial": "Continue partial: start only after I acknowledge the missing source",
       "processing": "Processing route",
-      "localProcessing": "On this Mac",
-      "localProcessingDescription": "Audio, transcript, notes, search, and Q&A stay local.",
-      "selected": "Selected",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination selected",
       "localOnly": "Local only",
-      "check": "Check recording setup",
-      "checking": "Checking setup…",
       "defaultTitle": "Local notes",
       "remoteUnavailable": "Zdalne przetwarzanie jest niedostępne w tej kompilacji, więc każde spotkanie jest transkrybowane i podsumowywane na tym Macu."
     },
     "preflight": {
-      "title": "Check recording setup",
-      "description": "Review each local capability before authorizing capture.",
-      "summary": "Meeting setup summary",
-      "meeting": "Meeting",
-      "changeSetup": "Change setup",
-      "readiness": "Readiness",
-      "readinessDescription": "Each row reports the current backend check.",
       "storage": "Storage",
       "storageAvailable": "Encrypted meeting storage is available.",
       "storageUnavailable": "Encrypted meeting storage is unavailable.",
       "localModel": "Local model",
       "localModelDescription": "Processing remains local when a local model is available.",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination is selected.",
-      "remoteSelected": "Selected destination: {{destination}}",
-      "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
       "starting": "Starting visible capture…",
       "refreshing": "Sprawdzanie…"
     },
     "consent": {
-      "title": "Recording acknowledgement",
-      "description": "Sona will show a visible capture state. Audio, transcript, and notes stay on this Mac unless you explicitly select a remote destination.",
-      "acknowledge": "I have permission to capture this meeting.",
       "continuePartial": "I want to continue with a partial meeting record.",
       "acceptMissing": "I understand {{source}} is {{state}} and this meeting will be partial."
     },
@@ -2039,7 +2114,7 @@
     },
     "errors": {
       "load": "Sona could not load the current meeting data.",
-      "operation": "Sona could not complete that meeting action.",
+      "operation": "Nie udało się wykonać tej akcji spotkania. Spróbuj ponownie.",
       "operationRejected": "The meeting action was rejected.",
       "consent_required": "Confirm the recording acknowledgement before starting.",
       "consent_stale": "The setup changed. Review it again before starting.",
@@ -2110,12 +2185,12 @@
       "regenerate": "Regenerate",
       "remoteCancellationPending": "Remote cancellation is pending. Local deletion does not claim the remote copy is deleted.",
       "cancelRemote": "Cancel remote processing",
-      "remoteCancellationRequested": "Remote cancellation requested.",
+      "remoteCancellationRequested": "Zażądano anulowania",
       "export": "Export",
       "exportDescription": "Each export uses an immutable local review snapshot and opens a native save dialog.",
       "exportMarkdown": "Export Markdown",
       "exportJson": "Export JSON",
-      "exportComplete": "Export completed.",
+      "exportComplete": "Spotkanie wyeksportowane",
       "citation": "Transcript {{time}}",
       "noGeneratedNotes": "No generated notes are available yet.",
       "template": "Template: {{template}}",
@@ -2166,7 +2241,8 @@
         "transcript": "Transkrypcja"
       },
       "tabsLabel": "Sekcje przeglądu spotkania",
-      "youAsked": "Twoje pytanie"
+      "youAsked": "Twoje pytanie",
+      "actionDone": "Oznacz to zadanie jako wykonane"
     },
     "artifactState": {
       "current": "Current",
@@ -2215,6 +2291,138 @@
     "status": {
       "gapCount": "Luki: {{total}}",
       "required": "Wymagane"
+    },
+    "start": {
+      "label": "Rozpocznij spotkanie",
+      "action": "Rozpocznij nagrywanie",
+      "starting": "Uruchamianie…",
+      "assurance": "Nagrywa dźwięk Twojego Maca lokalnie. Nic nie dołącza do rozmowy.",
+      "capture": "Przechwytywanie",
+      "noSources": "Wybierz co najmniej jedno źródło.",
+      "localOnly": "Tylko lokalnie",
+      "retention": "Przechowywane: {{policy}}"
+    },
+    "gate": {
+      "title": "Nagrywanie nie rozpoczęło się",
+      "description": "Sona utworzyła spotkanie, ale źródło, które miało być nagrywane, jest niedostępne.",
+      "readyTitle": "Gotowe do nagrywania",
+      "readyDescription": "Nic nie blokuje przechwytywania tego spotkania.",
+      "recordAnyway": "Nagraj bez niego",
+      "recordAnywayHint": "Zapis zostanie oznaczony jako częściowy, a brakujące źródło pozostanie w nim wymienione."
+    },
+    "analytics": {
+      "title": "Rozmowa",
+      "description": "Zmierzone na tym Macu na podstawie transkrypcji z rozdzieleniem mówiących. Nic nie jest nigdzie wysyłane.",
+      "noSpeech": "Nie transkrybowano żadnej mowy, więc nie ma czego mierzyć.",
+      "talkShare": "Najwięcej mówi",
+      "longestMonologue": "Najdłuższy monolog",
+      "patience": "Cierpliwość",
+      "patienceDetail": "Mediana pauzy przed odpowiedzią",
+      "interactions": "Przekazania głosu",
+      "turns": "{{count}} wypowiedzi",
+      "turns_one": "{{count}} wypowiedź",
+      "speakerDetail": "{{time}} · {{turns}}",
+      "unknownSpeaker": "Nieznany mówiący",
+      "trackers": "Trackery",
+      "hits": "{{count}} wzmianek",
+      "hits_one": "{{count}} wzmianka",
+      "noHits": "Nie wspomniano",
+      "jumpToFirst": "Pokaż pierwszą",
+      "trackersTitle": "Trackery słów kluczowych",
+      "trackersDescription": "Wyrażenia, których szuka się w każdej transkrypcji spotkania. Dopasowanie jest dosłowne i ignoruje wielkość liter, a każde skanowanie działa na tym Macu.",
+      "addTracker": "Dodaj tracker",
+      "removeTracker": "Usuń tracker",
+      "noTrackers": "Jeszcze brak trackerów. Dodaj jeden, aby zacząć liczyć, jak często pojawia się dane wyrażenie.",
+      "trackerName": "Nazwa",
+      "trackerPatterns": "rabat, najlepsza cena, za drogo",
+      "trackerPatternsLabel": "Wyrażenia rozdzielone przecinkami",
+      "trackersSaveFailed": "Sona nie mogła zapisać trackerów. Zmień jeden i spróbuj ponownie."
+    },
+    "notes": {
+      "title": "Moje notatki",
+      "liveDescription": "Pisz tak zgrubnie, jak chcesz. Te notatki zostają na tym Macu i kierują notatkami, które Sona tworzy po zakończeniu spotkania.",
+      "reviewDescription": "Twoje własne notatki kierują tym, co podkreślają notatki wygenerowane. Nigdy nie są cytowane ani przywoływane.",
+      "placeholder": "Wszystko, co warto zapamiętać — nazwiska, liczby, co trzeba dopilnować",
+      "unsaved": "Jeszcze nie zapisano",
+      "saving": "Zapisywanie…",
+      "saved": "Notatki zapisane",
+      "conflict": "Te notatki zmieniły się w innym miejscu. Otwórz spotkanie ponownie, aby wczytać aktualną wersję.",
+      "reenhance": "Ulepsz ponownie moimi notatkami",
+      "enhancing": "Odbudowywanie…",
+      "enhanced": "Notatki odbudowane.",
+      "enhanceFailed": "Sona nie mogła odbudować notatek. Otwórz spotkanie ponownie i spróbuj jeszcze raz.",
+      "catchUp": "Podsumuj mi to",
+      "catchingUp": "Podsumowywanie…",
+      "catchUpTitle": "Dotychczas",
+      "catchUpNoTranscript": "Nie ma jeszcze czego podsumować. Sona transkrybuje po zatrzymaniu nagrywania, więc podsumowanie będzie dostępne, gdy zacznie przychodzić transkrypcja.",
+      "catchUpUnavailable": "Model na urządzeniu jest niedostępny, więc nie napisano żadnego podsumowania.",
+      "catchUpFailed": "Sona nie mogła zbudować podsumowania. Spróbuj ponownie za chwilę.",
+      "templates": {
+        "general": "Spotkanie ogólne",
+        "one_on_one": "Jeden na jeden",
+        "interview": "Rozmowa kwalifikacyjna",
+        "sales_call": "Rozmowa sprzedażowa",
+        "standup": "Standup"
+      }
+    },
+    "detection": {
+      "title": "Wykrywaj spotkania",
+      "description": "Sona wypatruje rozmów i proponuje robienie notatek. Nigdy nie nagrywa sama z siebie.",
+      "loading": "Odczytywanie stanu wykrywania…",
+      "prompt": {
+        "calendar": "{{title}} się rozpoczyna",
+        "app": "Wykryto spotkanie w {{app}}",
+        "huddle": "Wykryto huddle w {{app}}",
+        "browser": "Wykryto rozmowę w {{app}}",
+        "unknown": "Wykryto aktywność mikrofonu",
+        "body": "Sona może robić lokalne notatki z tej rozmowy."
+      },
+      "actions": {
+        "start": "Zacznij transkrybować",
+        "dismiss": "Odrzuć"
+      },
+      "pane": {
+        "title": "Wkrótce się zaczyna",
+        "description": "Sona nie nagrywa, dopóki nie zaczniesz tutaj.",
+        "countdown": "Zaczyna się za {{seconds}} s",
+        "notYetRecording": "Nie nagrywa"
+      },
+      "calendar": {
+        "label": "Używaj mojego kalendarza",
+        "description": "Pokazuje odliczanie minutę przed wydarzeniami z dwoma lub więcej uczestnikami. macOS prosi o pełny dostęp do kalendarza za pierwszym razem, bo Apple nie oferuje uprawnienia tylko do odczytu."
+      },
+      "anyMic": {
+        "label": "Pytaj przy każdym użyciu mikrofonu",
+        "description": "Obejmuje notatki głosowe, aplikacje muzyczne i wszystko inne, co otwiera mikrofon. Wyłączone ogranicza pytania do znanych aplikacji do spotkań."
+      },
+      "autoStart": {
+        "label": "Otwórz spotkanie, gdy widoczne jest jego odliczanie",
+        "description": "Pomija powiadomienie, gdy wydarzenie zaczyna się, kiedy już patrzysz na jego odliczanie. Nadal potwierdzasz, co jest nagrywane."
+      },
+      "apps": {
+        "label": "Aplikacje do spotkań",
+        "description": "Jeden identyfikator pakietu na wiersz. Wpis liczy się tylko wtedy, gdy ta aplikacja działa, więc zmieniony identyfikator jest bezczynny, a nie błędny.",
+        "running": "Teraz działa: {{apps}}",
+        "noneRunning": "Żadna z nich nie działa w tej chwili."
+      },
+      "state": {
+        "title": "Co widzi wykrywanie",
+        "description": "Wykrywanie przez większość czasu milczy. Oto dlaczego.",
+        "calendarDenied": "Nie udzielono dostępu do kalendarza, więc działa tylko ścieżka mikrofonu.",
+        "notificationsDenied": "Powiadomienia dla Sona są wyłączone, więc komunikaty pojawiają się tylko w aplikacji.",
+        "bluetoothCaveat": "Aplikacja do spotkań jest otwarta, ale nic nie zgłasza użycia mikrofonu. Zestawy Bluetooth często tego nie robią, więc zacznij spotkanie samodzielnie, jeśli jakieś trwa.",
+        "noSilenceStop": "Przechwytywanie kończy się na koniec wydarzenia, przy zamknięciu aplikacji, przy uśpieniu lub gdy sam je zatrzymasz. Licznik ciszy wymaga transkrypcji na żywo, która działa dopiero po zakończeniu spotkania."
+      },
+      "why": {
+        "disabled": "Wykrywanie jest wyłączone.",
+        "sonaHoldsMic": "Sona używa mikrofonu, więc w tej chwili nie da się rozpoznać nic innego.",
+        "captureActive": "Spotkanie jest już przechwytywane.",
+        "noSignal": "Nic jeszcze nie używa mikrofonu.",
+        "soloEvent": "Najbliższe wydarzenie ma mniej niż dwóch uczestników, więc czyta się jako zablokowany czas.",
+        "unknownApp": "Coś używa mikrofonu, ale nie jest to znana aplikacja do spotkań.",
+        "browserUnreadable": "Przeglądarka jest na pierwszym planie, ale nie da się odczytać tytułu jej karty.",
+        "browserNotMeeting": "Przeglądarka jest na pierwszym planie, a jej karta nie jest rozmową."
+      }
     }
   },
   "agentPanel": {
@@ -2292,7 +2500,15 @@
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Tryb: {{name}}",
-      "setShortcut": "Ustaw skrót dyktowania w Ustawieniach, aby dyktować w dowolnej aplikacji."
+      "setShortcut": "Ustaw skrót dyktowania w Ustawieniach, aby dyktować w dowolnej aplikacji.",
+      "setShortcutAction": "Ustaw skrót",
+      "shortcutAction": "Zmień skrót dyktowania",
+      "holdHint": "Dotknij, aby przełączyć, przytrzymaj, aby mówić",
+      "facts": {
+        "mode": "Tryb",
+        "model": "Model",
+        "engine": "Silnik"
+      }
     },
     "actions": {
       "dictate": "Dictate",

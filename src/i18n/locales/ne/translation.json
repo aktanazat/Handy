@@ -120,7 +120,7 @@
       }
     },
     "errors": {
-      "selectModel": "मोडेल चयन गर्न सकिएन"
+      "selectModel": "मोडेल छान्न सकिएन। फेरि प्रयास गर्नुहोस्।"
     },
     "permissions": {
       "title": "अनुमतिहरू आवश्यक छन्",
@@ -138,10 +138,15 @@
       "waiting": "प्रतीक्षा गरिँदैछ...",
       "allGranted": "सबै तयार!",
       "errors": {
-        "checkFailed": "अनुमतिहरू जाँच गर्न सकिएन। कृपया फेरि प्रयास गर्नुहोस्।",
-        "requestFailed": "अनुमति अनुरोध गर्न सकिएन। कृपया फेरि प्रयास गर्नुहोस्।"
-      }
-    }
+        "checkFailed": "अनुमतिहरू जाँच्न सकिएन। फेरि प्रयास गर्नुहोस्।",
+        "requestFailed": "अनुमति माग्न सकिएन। फेरि प्रयास गर्नुहोस्।"
+      },
+      "headline": "एक पटकको सेटअप",
+      "subhead": "कुनै पनि एपले तपाईंको कुरा सुन्न वा तपाईंको लागि टाइप गर्न पाउनु अघि, कम्प्युटरले सोध्छ। यी अनुमति एक पटक दिनुहोस्, Sona फेरि सोध्दैन।",
+      "checking": "अनुमतिहरू जाँचिँदै",
+      "recheck": "फेरि जाँच्नुहोस्"
+    },
+    "headline": "एउटा आवाज मोडेल छान्नुहोस्"
   },
   "modelSelector": {
     "custom": "कस्टम",
@@ -190,7 +195,7 @@
         "loading": "सर्टकटहरू लोड गरिँदैछन्...",
         "none": "कुनै सर्टकट सेट गरिएको छैन",
         "notFound": "सर्टकट भेटिएन",
-        "pressKeys": "किहरू थिच्नुहोस्...",
+        "pressKeys": "आफ्ना कुञ्जी थिच्नुहोस्…",
         "bindings": {
           "transcribe": {
             "name": "ट्रान्सक्राइब सर्टकट",
@@ -203,13 +208,21 @@
           "transcribe_with_post_process": {
             "name": "पोस्ट-प्रोसेसिङ हटकी",
             "description": "वैकल्पिक: तपाईंको ट्रान्सक्रिप्सनमा सधैँ AI पोस्ट-प्रोसेसिङ लागू गर्ने छुट्टै हटकी।"
+          },
+          "command": {
+            "name": "कमाण्ड सर्टकट",
+            "description": "बोलेको निर्देशन अनुसार तपाईंले छानेको पाठ पुनर्लेखन गर्ने किबोर्ड सर्टकट।"
           }
         },
         "errors": {
-          "restore": "मूल सर्टकट पुनर्स्थापना गर्न सकिएन",
+          "restore": "मूल सर्टकट फर्काउन सकिएन। फेरि प्रयास गर्नुहोस्।",
           "set": "सर्टकट सेट गर्न सकिएन: {{error}}",
-          "reset": "सर्टकटलाई मूल मानमा रिसेट गर्न सकिएन"
-        }
+          "reset": "सर्टकट रिसेट गर्न सकिएन। फेरि प्रयास गर्नुहोस्।"
+        },
+        "holdHint": "बदल्न थिच्नुहोस्, बोल्न थिचिराख्नुहोस्। कुनै पनि सर्टकटसँग चल्छ।",
+        "recordAction": "{{binding}} को लागि नयाँ सर्टकट रेकर्ड गर्नुहोस्",
+        "recordHint": "रेकर्ड गर्न क्लिक गर्नुहोस्",
+        "unset": "सेट गरिएको छैन"
       },
       "language": {
         "title": "भाषा",
@@ -226,7 +239,11 @@
         "description": "इन्टरफेस भाषा र रङ योजना। दुवै तुरुन्तै लागू हुन्छन्।",
         "title": "रूपरङ"
       },
-      "description": "तपाईंले थिच्ने कीहरू, Sona ले सुन्ने माइक्रोफोन, र एप कस्तो देखिन्छ।"
+      "description": "तपाईंले थिच्ने कीहरू, Sona ले सुन्ने माइक्रोफोन, र एप कस्तो देखिन्छ।",
+      "commandMode": {
+        "label": "आवाज कमाण्ड मोड",
+        "description": "कमाण्ड सर्टकट थिचिराखी, छानेको पाठमा के बदल्ने हो भन्नुहोस्।"
+      }
     },
     "models": {
       "title": "ट्रान्सक्रिप्सन मोडेलहरू",
@@ -321,9 +338,9 @@
         "notDownloaded": "डाउनलोड नभएको"
       },
       "summary": {
-        "active": "सक्रिय: {{name}}",
         "noActive": "कुनै मोडेल चयन गरिएको छैन",
-        "onDisk": "डिस्कमा {{total}}"
+        "activeLabel": "सक्रिय मोडेल",
+        "onDiskLabel": "डिस्कमा"
       }
     },
     "sound": {
@@ -493,9 +510,9 @@
         "remove": "{{spoken}} हटाउनुहोस्",
         "import": "CSV आयात गर्नुहोस्",
         "export": "CSV निर्यात गर्नुहोस्",
-        "importError": "शब्दावली CSV आयात गर्न सकिएन।",
-        "exportError": "शब्दावली CSV निर्यात गर्न सकिएन।",
-        "saveError": "शब्दावली बचत गर्न सकिएन।",
+        "importError": "शब्दावली CSV आयात गर्न सकिएन। फाइल जाँचेर फेरि प्रयास गर्नुहोस्।",
+        "exportError": "शब्दावली CSV निर्यात गर्न सकिएन। फेरि प्रयास गर्नुहोस्।",
+        "saveError": "शब्दावली सुरक्षित गर्न सकिएन। फेरि प्रयास गर्नुहोस्।",
         "imported": "शब्दावली आयात गरियो",
         "errors": {
           "incomplete": "बोलिएको वाक्यांश र लिखित पाठ दुवै प्रविष्ट गर्नुहोस्।",
@@ -523,7 +540,7 @@
         "actions": "Vocabulary actions",
         "audioImport": {
           "errors": {
-            "start": "Couldn't start the audio import."
+            "start": "अडियो आयात सुरु गर्न सकिएन। फेरि प्रयास गर्नुहोस्।"
           },
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
@@ -534,7 +551,8 @@
           "title": "अहिलेसम्म कुनै शब्दावली नियम छैन"
         },
         "sources": "Library को ट्रान्सक्रिप्टबाट सुरक्षित गरेका सुधारहरू यही सूचीमा आउँछन्। एउटै मोडका नियमहरू त्यही मोडको आफ्नै शब्दावलीमा रहन्छन्।",
-        "unsaved": "सुरक्षित नगरिएका परिवर्तनहरू"
+        "unsaved": "सुरक्षित नगरिएका परिवर्तनहरू",
+        "csvLabel": "CSV"
       },
       "voiceActivityDetection": {
         "title": "भ्वाइस एक्टिभिटी डिटेक्सन",
@@ -558,8 +576,8 @@
         "save": "इमोजी प्रतिस्थापनहरू बचत गर्नुहोस्",
         "saved": "इमोजी प्रतिस्थापनहरू बचत गरियो",
         "remove": "{{spoken}} हटाउनुहोस्",
-        "saveError": "इमोजी प्रतिस्थापनहरू बचत गर्न सकिएन।",
-        "toggleError": "इमोजी प्रतिस्थापनहरू परिवर्तन गर्न सकिएन।",
+        "saveError": "इमोजी प्रतिस्थापन सुरक्षित गर्न सकिएन। फेरि प्रयास गर्नुहोस्।",
+        "toggleError": "इमोजी प्रतिस्थापन बदल्न सकिएन। फेरि प्रयास गर्नुहोस्।",
         "errors": {
           "incomplete": "बोलिएको वाक्यांश र इमोजी पाठ दुवै प्रविष्ट गर्नुहोस्।",
           "duplicate": "यो इमोजी प्रतिस्थापन पहिले नै अवस्थित छ।",
@@ -729,9 +747,9 @@
       "save": "ट्रान्सक्रिप्सन सेभ गर्नुहोस्",
       "unsave": "सेभ गरिएकाबाट हटाउनुहोस्",
       "delete": "प्रविष्टि मेटाउनुहोस्",
-      "deleteError": "प्रविष्टि मेटाउन सकिएन। कृपया फेरि प्रयास गर्नुहोस्।",
+      "deleteError": "प्रविष्टि मेट्न सकिएन। फेरि प्रयास गर्नुहोस्।",
       "retranscribe": "फेरि ट्रान्सक्राइब गर्नुहोस्",
-      "retranscribeError": "फेरि ट्रान्सक्राइब गर्न सकिएन। कृपया फेरि प्रयास गर्नुहोस्।",
+      "retranscribeError": "फेरि प्रतिलेखन गर्न सकिएन। फेरि प्रयास गर्नुहोस्।",
       "transcribing": "ट्रान्सक्राइब गरिँदैछ...",
       "transcriptionFailed": "ट्रान्सक्रिप्सन गर्न सकिएन। रिट्राई आइकन प्रयोग गरेर फेरि ट्रान्सक्राइब गर्न सक्नुहुन्छ।",
       "search": "इतिहास खोज्नुहोस्",
@@ -739,7 +757,7 @@
       "noResults": "\"{{query}}\" सँग मेल खाने कुनै ट्रान्सक्रिप्शन छैन।",
       "loadError": "इतिहास लोड गर्न सकिएन।",
       "retry": "फेरि प्रयास गर्नुहोस्",
-      "saveError": "बचत स्थिति अपडेट गर्न सकिएन।",
+      "saveError": "सुरक्षित अवस्था अद्यावधिक गर्न सकिएन। फेरि प्रयास गर्नुहोस्।",
       "postProcessEmpty": "पोस्ट-प्रोसेसिङले पाठ फिर्ता गरेन। कच्चो ट्रान्सक्रिप्शन देखाइँदैछ।",
       "textView": {
         "label": "ट्रान्सक्रिप्ट दृश्य",
@@ -818,6 +836,12 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "columns": {
+          "source": "स्रोत",
+          "status": "अवस्था",
+          "method": "तरिका",
+          "outcome": "नतिजा"
         }
       },
       "correction": {
@@ -834,7 +858,7 @@
         "global": "All modes",
         "save": "Save correction",
         "saved": "Vocabulary correction saved",
-        "saveError": "Could not save vocabulary correction."
+        "saveError": "सुधार सुरक्षित गर्न सकिएन। फेरि प्रयास गर्नुहोस्।"
       },
       "audioImport": {
         "start": "फाइल ट्रान्सक्राइब गर्नुहोस्",
@@ -861,7 +885,7 @@
           "history": "ट्रान्सक्रिप्ट इतिहासमा बचत गर्न सकिएन।"
         },
         "errors": {
-          "start": "फाइल आयात सुरु गर्न सकिएन।",
+          "start": "फाइल आयात सुरु गर्न सकिएन। फेरि प्रयास गर्नुहोस्।",
           "cancel": "फाइल आयात रद्द गर्न सकिएन।",
           "load": "फाइल आयातको स्थिति लोड गर्न सकिएन।"
         },
@@ -889,7 +913,17 @@
       "noResultsHint": "खोजले कच्चा र प्रशोधित दुवै ट्रान्सक्रिप्टका पूरा शब्दहरू मिलाउँछ।",
       "results": "{{count}} मिल्दा",
       "resultsMore": "{{count}}+ मिल्दा",
-      "resultsNone": "कुनै मिल्दो छैन"
+      "resultsNone": "कुनै मिल्दो छैन",
+      "processAgain": {
+        "action": "फेरि प्रक्रिया गर्नुहोस्",
+        "title": "फेरि प्रक्रिया गर्नुहोस्",
+        "description": "यो रेकर्डिङलाई अर्को मोडबाट चलाउनुहोस्। मूल प्रविष्टि रहन्छ र नतिजा नयाँ प्रविष्टिको रूपमा सुरक्षित हुन्छ।",
+        "placeholder": "एउटा मोड छान्नुहोस्",
+        "confirm": "प्रक्रिया गर्नुहोस्",
+        "started": "पुनःप्रक्रिया सुरु भयो",
+        "modeLabel": "मोड"
+      },
+      "derivedFrom": "अघिल्लो रेकर्डिङबाट"
     },
     "debug": {
       "title": "डिबग",
@@ -917,7 +951,7 @@
         "description": "पछिल्लो बन्डल गरिएको रिलिज नोट हेरिएको चिन्ह नलगाई खोल्नुहोस्",
         "button": "पूर्वावलोकन",
         "noNotes": "कुनै बन्डल गरिएको रिलिज नोट भेटिएन",
-        "error": "रिलिज नोट पूर्वावलोकन गर्न सकिएन"
+        "error": "रिलिज नोट पूर्वावलोकन गर्न सकिएन। फेरि प्रयास गर्नुहोस्।"
       },
       "soundTheme": {
         "label": "साउन्ड थिम",
@@ -1196,7 +1230,9 @@
         "noModelSelected": "No model selected",
         "model": {
           "label": "Transcription model",
-          "description": "Only downloaded local models are available here."
+          "description": "Only downloaded local models are available here.",
+          "inheritGlobal": "पूर्वनिर्धारित — विश्वव्यापी मोडेल प्रयोग गर्छ",
+          "inheritGlobalNamed": "पूर्वनिर्धारित — विश्वव्यापी मोडेल प्रयोग गर्छ ({{name}})"
         },
         "language": {
           "label": "Language",
@@ -1724,6 +1760,74 @@
         "about": "About",
         "debug": "Debug"
       }
+    },
+    "vocabulary": {
+      "replacements": {
+        "title": "बोलिने प्रतिस्थापन",
+        "description": "Sona ले ठ्याक्कै पाठमा पुनर्लेखन गर्ने वाक्यांश। यहाँका परिवर्तन आगामी प्रतिलेखमा मात्र लागू हुन्छन्, पहिले लेखिएको पाठमा कहिल्यै हुँदैन।",
+        "enabledLabel": "बोलिने प्रतिस्थापन सक्षम गर्नुहोस्",
+        "enabledDescription": "शब्दावली सुधार चल्नु अघि, एट साइन जस्ता बोलिने वाक्यांशलाई चिह्नमा पुनर्लेखन गर्नुहोस्।",
+        "offState": "बोलिने प्रतिस्थापन बन्द छ। नियम सुरक्षित रहन्छन् र तपाईंले यो फेरि खोल्नेबित्तिकै लागू हुन्छन्।",
+        "spoken": "तपाईं भन्नुहुन्छ",
+        "written": "Sona लेख्छ",
+        "applyColumn": "लागू गर्नुहोस्",
+        "actionsColumn": "कार्यहरू",
+        "spokenPlaceholder": "एट साइन",
+        "writtenPlaceholder": "@",
+        "add": "नियम थप्नुहोस्",
+        "reset": "पूर्वनिर्धारित फर्काउनुहोस्",
+        "ruleEnabled": "{{spoken}} लागू गर्नुहोस्",
+        "delete": "{{spoken}} मेट्नुहोस्",
+        "loading": "प्रतिस्थापन लोड हुँदै",
+        "loadError": "प्रतिस्थापन लोड गर्न सकिएन।",
+        "matching": "वाक्यांश पूरा शब्दसँग मिल्छन् र सानो-ठूलो अक्षर छुट्याउँदैनन्। दुई नियम एउटै ठाउँमा मिल्दा लामो नियम जित्छ, र प्रतिस्थापन शब्दावली सुधार अघि चल्छ।",
+        "errors": {
+          "duplicate": "अर्को नियमले यो वाक्यांश पहिले नै प्रयोग गरिरहेको छ।",
+          "incomplete": "बोलिने वाक्यांश र त्यसको प्रतिस्थापन दुवै भर्नुहोस्।"
+        },
+        "empty": {
+          "title": "कुनै प्रतिस्थापन छैन",
+          "description": "एट साइन जस्तो वाक्यांश थप्नुहोस्, तपाईं जति बेला त्यो भन्नुहुन्छ Sona ले @ लेख्छ।",
+          "action": "सुरुका नियम फर्काउनुहोस्"
+        },
+        "confirmDelete": {
+          "title": "{{spoken}} मेट्ने?",
+          "description": "यो वाक्यांश आगामी प्रतिलेखमा फेरि पुनर्लेखन हुँदैन। पहिले लेखिएको पाठ अपरिवर्तित रहन्छ।",
+          "body": "{{spoken}} अहिले {{written}} बन्छ।"
+        },
+        "confirmReset": {
+          "title": "पूर्वनिर्धारित नियम फर्काउने?",
+          "description": "तपाईंले थपेको वा सम्पादन गरेको हरेक नियम हटाइन्छ र सँगै आएको सुरुको सेट फर्किन्छ।"
+        }
+      }
+    },
+    "prompts": {
+      "samples": {
+        "title": "लेखनका नमुना",
+        "description": "तपाईंको आफ्नै लेखनका उदाहरण। प्रतिलेख पुनर्लेखन गर्ने हरेक मोड त्यही शैलीमा मिल्छ।",
+        "placeholder": "तपाईंले आफै लेखेको एक अनुच्छेद टाँस्नुहोस्।",
+        "sampleLabel": "लेखन नमुना {{number}}",
+        "delete": "नमुना {{number}} मेट्नुहोस्",
+        "add": "नमुना थप्नुहोस्",
+        "wordCount": "{{max}} शब्दमध्ये {{words}}",
+        "overLimit": "{{words}} शब्द। पहिलो {{max}} मात्र प्रयोग हुन्छन्।",
+        "privacy": "नमुना प्रतिलेख आफै पहिले नै जाने ठाउँमा मात्र जान्छन्, अन्त कतै जाँदैनन्। {{max}} सम्म नमुना प्रयोग हुन्छन्।",
+        "loading": "नमुना लोड हुँदै",
+        "loadError": "नमुना लोड गर्न सकिएन।",
+        "empty": {
+          "title": "अझै कुनै नमुना छैन",
+          "description": "तपाईंले आफै लेखेका केही अनुच्छेद टाँस्नुहोस्, पुनर्लेखनले तपाईंको शब्दचयन, वाक्यको लम्बाइ र औपचारिकता पछ्याउनेछ।",
+          "action": "एउटा नमुना थप्नुहोस्"
+        }
+      }
+    },
+    "hud": {
+      "enabledLabel": "निष्क्रिय पिल देखाउनुहोस्",
+      "enabledDescription": "बोलाइका बीचमा पर्दामा सानो पिल राख्नुहोस्। सुरु गर्न क्लिक गर्नुहोस्, मोड बदल्न दायाँ क्लिक गर्नुहोस्।",
+      "positionLabel": "निष्क्रिय पिलको स्थान",
+      "positionDescription": "निष्क्रिय पिल पर्दाको कुन किनारमा बस्छ।",
+      "positionTop": "माथि",
+      "positionBottom": "तल"
     }
   },
   "whatsNew": {
@@ -1740,7 +1844,10 @@
     "noOptionsFound": "कुनै विकल्प भेटिएन",
     "save": "Save",
     "saving": "Saving…",
-    "retry": "Retry"
+    "retry": "Retry",
+    "play": "बजाउनुहोस्",
+    "pause": "रोक्नुहोस्",
+    "seek": "प्लेब्याकको स्थान"
   },
   "commandPalette": {
     "open": "खोज्नुहोस्",
@@ -1764,7 +1871,7 @@
     "noSpeechDetectedTitle": "कुनै बोली पत्ता लागेन",
     "noSpeechDetected": "कुनै बोली पत्ता लागेन। क्याप्चर गरिएको अडियो जाँच्न सकियोस् भनेर रेकर्डिङको एउटा नमुना इतिहासमा बचत गरियो।",
     "loadDirectory": "डाइरेक्टरी लोड गर्दा त्रुटि: {{error}}",
-    "micPermissionDeniedTitle": "माइक्रोफोन पहुँच अस्वीकृत गरियो",
+    "micPermissionDeniedTitle": "माइक्रोफोनको पहुँच अस्वीकृत भयो",
     "micPermissionDenied": {
       "generic": "अपरेटिङ सिस्टमले माइक्रोफोन पहुँच अस्वीकार गर्‍यो। कृपया सिस्टम सेटिङहरूमा माइक्रोफोन अनुमति दिनुहोस्।",
       "windows": "Settings → Privacy & security → Microphone मा माइक्रोफोन पहुँच अन गर्नुहोस् (डेस्कटप एप पहुँचसहित)।",
@@ -1773,12 +1880,15 @@
     },
     "noInputDeviceTitle": "कुनै माइक्रोफोन भेटिएन",
     "noInputDevice": "कुनै अडियो इनपुट डिभाइस भेटिएन। कृपया माइक्रोफोन वा हेडसेट जोडेर फेरि प्रयास गर्नुहोस्।",
-    "recordingFailed": "रेकर्डिङ सुरु गर्न सकिएन: {{error}}",
-    "modelLoadFailed": "मोडेल लोड गर्न सकिएन: {{model}}",
+    "recordingFailed": "रेकर्डिङ सुरु गर्न सकिएन: {{error}}। फेरि प्रयास गर्नुहोस्।",
+    "modelLoadFailed": "{{model}} लोड गर्न सकिएन। फेरि प्रयास गर्नुहोस्।",
     "modelLoadFailedUnknown": "अज्ञात मोडेल",
-    "pasteFailedTitle": "टेक्स्ट पेस्ट गर्न सकिएन",
-    "pasteFailed": "सक्रिय एपमा टेक्स्ट पेस्ट गर्न सकिएन।",
-    "transcriptionFailedTitle": "ट्रान्सक्रिप्सन गर्न सकिएन"
+    "pasteFailedTitle": "प्रतिलेख टाँस्न सकिएन",
+    "pasteFailed": "पाठ सक्रिय एपमा टाँस्न सकिएन। कुनै पाठ फिल्डमा फोकस गरेर फेरि प्रयास गर्नुहोस्।",
+    "transcriptionFailedTitle": "प्रतिलेखन गर्न सकिएन",
+    "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
+    "commandNoSelection": "केही पनि छानिएको थिएन। बदल्न चाहेको पाठ छान्नुहोस्, त्यसपछि कमाण्ड सर्टकट थिचिराखी के गर्ने हो भन्नुहोस्।",
+    "commandRewriteUnavailable": "पुनर्लेखनले केही फर्काएन, त्यसैले तपाईंको छनोट जस्तो थियो त्यस्तै रह्यो। सेटिङ > AI मा पुनर्लेखन मोडेल जाँचेर फेरि प्रयास गर्नुहोस्।"
   },
   "appLanguage": {
     "title": "एपको भाषा",
@@ -1797,7 +1907,13 @@
     "transcribing": "ट्रान्सक्राइब गरिँदैछ...",
     "processing": "प्रशोधन गरिँदैछ...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model"
+    "localFallback": "Offline, using local model",
+    "hud": {
+      "idle": "तयार",
+      "toggle": "{{mode}} मा बोलाइ सुरु गर्नुहोस्",
+      "hint": "बोल्न क्लिक गर्नुहोस्, मोडका लागि दायाँ क्लिक",
+      "modes": "मोड बदल्नुहोस्"
+    }
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} ले 1 सर्टकट रोकिरहेको हुन सक्छ",
@@ -1875,79 +1991,38 @@
         "cancelled": "Processing cancelled"
       }
     },
-    "readiness": {
-      "ready": "Ready",
-      "unavailable": "Unavailable",
-      "local": "Local only",
-      "needsAcknowledgement": "Acknowledgement required"
-    },
     "actions": {
       "back": "Back",
       "delete": "Delete meeting",
       "discard": "Discard",
-      "newMeeting": "New meeting",
       "pause": "Pause",
       "refresh": "Refresh",
       "resume": "Resume",
       "retry": "Try again",
-      "startLocal": "Start local notes",
       "stop": "Stop"
     },
     "detected": {
       "title": "Meeting detected",
-      "description": "Sona only offers a setup screen. It is not recording.",
-      "mayBeActive": "A meeting may be active in {{provider}}.",
-      "notRecording": "Sona is not recording."
+      "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
-      "title": "Start local notes",
-      "suggestedDescription": "Sona detected {{provider}}. Review the capture setup before recording.",
-      "manualDescription": "Set the sources and policy for a new local meeting note.",
-      "identity": "Meeting details",
-      "meetingTitle": "Meeting title",
-      "meetingTitlePlaceholder": "Untitled meeting",
       "captureSources": "Capture sources",
       "captureSourcesDescription": "Each source stays separate so missing audio remains visible.",
-      "sourcePolicy": "If a source is unavailable",
-      "sourcePolicyDescription": "Choose whether setup stops or starts with an explicit partial record.",
-      "strict": "Strict: stop setup if a required source is unavailable",
-      "continuePartial": "Continue partial: start only after I acknowledge the missing source",
       "processing": "Processing route",
-      "localProcessing": "On this Mac",
-      "localProcessingDescription": "Audio, transcript, notes, search, and Q&A stay local.",
-      "selected": "Selected",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination selected",
       "localOnly": "Local only",
-      "check": "Check recording setup",
-      "checking": "Checking setup…",
       "defaultTitle": "Local notes",
       "remoteUnavailable": "यस बिल्डमा रिमोट प्रशोधन उपलब्ध छैन, त्यसैले हरेक बैठक यही Mac मा ट्रान्सक्राइब र सारांश गरिन्छ।"
     },
     "preflight": {
-      "title": "Check recording setup",
-      "description": "Review each local capability before authorizing capture.",
-      "summary": "Meeting setup summary",
-      "meeting": "Meeting",
-      "changeSetup": "Change setup",
-      "readiness": "Readiness",
-      "readinessDescription": "Each row reports the current backend check.",
       "storage": "Storage",
       "storageAvailable": "Encrypted meeting storage is available.",
       "storageUnavailable": "Encrypted meeting storage is unavailable.",
       "localModel": "Local model",
       "localModelDescription": "Processing remains local when a local model is available.",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination is selected.",
-      "remoteSelected": "Selected destination: {{destination}}",
-      "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
       "starting": "Starting visible capture…",
       "refreshing": "जाँच गर्दै…"
     },
     "consent": {
-      "title": "Recording acknowledgement",
-      "description": "Sona will show a visible capture state. Audio, transcript, and notes stay on this Mac unless you explicitly select a remote destination.",
-      "acknowledge": "I have permission to capture this meeting.",
       "continuePartial": "I want to continue with a partial meeting record.",
       "acceptMissing": "I understand {{source}} is {{state}} and this meeting will be partial."
     },
@@ -2039,7 +2114,7 @@
     },
     "errors": {
       "load": "Sona could not load the current meeting data.",
-      "operation": "Sona could not complete that meeting action.",
+      "operation": "त्यो बैठक कार्य पूरा गर्न सकिएन। फेरि प्रयास गर्नुहोस्।",
       "operationRejected": "The meeting action was rejected.",
       "consent_required": "Confirm the recording acknowledgement before starting.",
       "consent_stale": "The setup changed. Review it again before starting.",
@@ -2110,12 +2185,12 @@
       "regenerate": "Regenerate",
       "remoteCancellationPending": "Remote cancellation is pending. Local deletion does not claim the remote copy is deleted.",
       "cancelRemote": "Cancel remote processing",
-      "remoteCancellationRequested": "Remote cancellation requested.",
+      "remoteCancellationRequested": "रद्द गर्न अनुरोध गरियो",
       "export": "Export",
       "exportDescription": "Each export uses an immutable local review snapshot and opens a native save dialog.",
       "exportMarkdown": "Export Markdown",
       "exportJson": "Export JSON",
-      "exportComplete": "Export completed.",
+      "exportComplete": "बैठक निर्यात भयो",
       "citation": "Transcript {{time}}",
       "noGeneratedNotes": "No generated notes are available yet.",
       "template": "Template: {{template}}",
@@ -2166,7 +2241,8 @@
         "transcript": "ट्रान्सक्रिप्ट"
       },
       "tabsLabel": "बैठक समीक्षा खण्डहरू",
-      "youAsked": "तपाईंले सोध्नुभयो"
+      "youAsked": "तपाईंले सोध्नुभयो",
+      "actionDone": "यो कार्य सम्पन्न चिह्नित गर्नुहोस्"
     },
     "artifactState": {
       "current": "Current",
@@ -2215,6 +2291,138 @@
     "status": {
       "gapCount": "खाली अन्तरहरू: {{total}}",
       "required": "आवश्यक"
+    },
+    "start": {
+      "label": "एउटा बैठक सुरु गर्नुहोस्",
+      "action": "रेकर्डिङ सुरु गर्नुहोस्",
+      "starting": "सुरु हुँदै…",
+      "assurance": "तपाईंको Mac को आवाज यहीँ रेकर्ड गर्छ। कलमा कुनै पनि चीज सामेल हुँदैन।",
+      "capture": "क्याप्चर",
+      "noSources": "कम्तीमा एउटा स्रोत छान्नुहोस्।",
+      "localOnly": "स्थानीय मात्र",
+      "retention": "राखिएको: {{policy}}"
+    },
+    "gate": {
+      "title": "रेकर्डिङ सुरु भएन",
+      "description": "Sona ले बैठक बनायो, तर रेकर्ड गर्नुपर्ने एउटा स्रोत उपलब्ध छैन।",
+      "readyTitle": "रेकर्ड गर्न तयार",
+      "readyDescription": "यो बैठकको क्याप्चरमा कुनै बाधा छैन।",
+      "recordAnyway": "त्यो बिना रेकर्ड गर्नुहोस्",
+      "recordAnywayHint": "रेकर्ड आंशिक चिह्नित हुन्छ र छुटेको स्रोत त्यसमा नाम सहित रहन्छ।"
+    },
+    "analytics": {
+      "title": "कुराकानी",
+      "description": "यही Mac मा, वक्ता छुट्याइएको प्रतिलेखबाट नापिएको। कतै पनि केही पठाइँदैन।",
+      "noSpeech": "कुनै बोली प्रतिलेखन भएन, त्यसैले नाप्ने कुरा छैन।",
+      "talkShare": "सबैभन्दा धेरै बोल्ने",
+      "longestMonologue": "सबैभन्दा लामो एकालाप",
+      "patience": "धैर्य",
+      "patienceDetail": "जवाफ दिनु अघिको मध्य विश्राम",
+      "interactions": "बोल्ने पालो हस्तान्तरण",
+      "turns": "{{count}} पटक बोलेको",
+      "turns_one": "{{count}} पटक बोलेको",
+      "speakerDetail": "{{time}} · {{turns}}",
+      "unknownSpeaker": "अज्ञात वक्ता",
+      "trackers": "ट्रयाकर",
+      "hits": "{{count}} पटक उल्लेख",
+      "hits_one": "{{count}} पटक उल्लेख",
+      "noHits": "उल्लेख भएन",
+      "jumpToFirst": "पहिलो देखाउनुहोस्",
+      "trackersTitle": "कुञ्जीशब्द ट्रयाकर",
+      "trackersDescription": "हरेक बैठक प्रतिलेखमा हेर्ने वाक्यांश। मिलान अक्षरशः हुन्छ र सानो-ठूलो अक्षर छुट्याउँदैन, र हरेक स्क्यान यही Mac मा चल्छ।",
+      "addTracker": "ट्रयाकर थप्नुहोस्",
+      "removeTracker": "ट्रयाकर हटाउनुहोस्",
+      "noTrackers": "अझै कुनै ट्रयाकर छैन। एउटा थप्नुहोस् र कुनै वाक्यांश कति पटक आउँछ गन्न सुरु गर्नुहोस्।",
+      "trackerName": "नाम",
+      "trackerPatterns": "छुट, उत्तम मूल्य, धेरै महँगो",
+      "trackerPatternsLabel": "अल्पविरामले छुट्याइएका वाक्यांश",
+      "trackersSaveFailed": "Sona ले ट्रयाकर सुरक्षित गर्न सकेन। एउटा बदलेर फेरि प्रयास गर्नुहोस्।"
+    },
+    "notes": {
+      "title": "मेरा टिप्पणी",
+      "liveDescription": "जति कच्चा लेख्न चाहनुहुन्छ लेख्नुहोस्। यी टिप्पणी यही Mac मा रहन्छन् र बैठक सकिँदा Sona बनाउने टिप्पणीलाई दिशा दिन्छन्।",
+      "reviewDescription": "तपाईंका आफ्नै टिप्पणीले बनाइएका टिप्पणी कसमा जोर दिने भन्ने निर्धारण गर्छन्। उनीहरूलाई कहिल्यै उद्धृत वा सन्दर्भ गरिँदैन।",
+      "placeholder": "सम्झनलायक सबै कुरा — नाम, अंक, पछि गर्नुपर्ने काम",
+      "unsaved": "अझै सुरक्षित भएको छैन",
+      "saving": "सुरक्षित हुँदै…",
+      "saved": "टिप्पणी सुरक्षित भयो",
+      "conflict": "यी टिप्पणी अन्यत्र बदलिएका छन्। हालको संस्करण लोड गर्न बैठक फेरि खोल्नुहोस्।",
+      "reenhance": "मेरा टिप्पणीले फेरि सुधार गर्नुहोस्",
+      "enhancing": "फेरि बनाइँदै…",
+      "enhanced": "टिप्पणी फेरि बनाइयो।",
+      "enhanceFailed": "Sona ले टिप्पणी फेरि बनाउन सकेन। बैठक फेरि खोलेर पुनः प्रयास गर्नुहोस्।",
+      "catchUp": "अहिलेसम्मको सार दिनुहोस्",
+      "catchingUp": "सार बनाइँदै…",
+      "catchUpTitle": "अहिलेसम्म",
+      "catchUpNoTranscript": "अझै सार बनाउने कुरा छैन। Sona तपाईंले रेकर्डिङ रोकेपछि प्रतिलेखन गर्छ, त्यसैले प्रतिलेख आउन सुरु भएपछि सार उपलब्ध हुन्छ।",
+      "catchUpUnavailable": "उपकरणमा रहेको मोडेल उपलब्ध छैन, त्यसैले कुनै सार लेखिएन।",
+      "catchUpFailed": "Sona ले सार बनाउन सकेन। एक क्षणपछि फेरि प्रयास गर्नुहोस्।",
+      "templates": {
+        "general": "सामान्य बैठक",
+        "one_on_one": "एक-एक",
+        "interview": "अन्तर्वार्ता",
+        "sales_call": "बिक्री कल",
+        "standup": "स्ट्यान्डअप"
+      }
+    },
+    "detection": {
+      "title": "बैठक पहिचान गर्नुहोस्",
+      "description": "Sona कलमा नजर राख्छ र टिप्पणी लिने प्रस्ताव गर्छ। यो आफै कहिल्यै रेकर्ड गर्दैन।",
+      "loading": "पहिचानको अवस्था पढिँदै…",
+      "prompt": {
+        "calendar": "{{title}} सुरु हुँदै",
+        "app": "{{app}} बैठक पहिचान भयो",
+        "huddle": "{{app}} हडल पहिचान भयो",
+        "browser": "{{app}} मा कल पहिचान भयो",
+        "unknown": "माइक्रोफोन गतिविधि पहिचान भयो",
+        "body": "Sona यो कलको टिप्पणी यहीँ लिन सक्छ।"
+      },
+      "actions": {
+        "start": "प्रतिलेखन सुरु गर्नुहोस्",
+        "dismiss": "हटाउनुहोस्"
+      },
+      "pane": {
+        "title": "चाँडै सुरु हुँदै",
+        "description": "तपाईंले यहाँबाट सुरु नगरेसम्म Sona रेकर्ड गर्दैन।",
+        "countdown": "{{seconds}} सेकेन्डमा सुरु",
+        "notYetRecording": "रेकर्ड हुँदै छैन"
+      },
+      "calendar": {
+        "label": "मेरो पात्रो प्रयोग गर्नुहोस्",
+        "description": "दुई वा अधिक सहभागी भएका कार्यक्रम सुरु हुनु एक मिनेट अघि उल्टो गणना देखाउँछ। Apple ले पढ्ने-मात्र अनुमति दिँदैन, त्यसैले macOS पहिलो पटक पूरा पात्रो पहुँच माग्छ।"
+      },
+      "anyMic": {
+        "label": "माइक्रोफोनको हरेक प्रयोगमा सोध्नुहोस्",
+        "description": "यसमा भ्वाइस मेमो, म्युजिक एप र माइक्रोफोन खोल्ने अन्य सबै पर्छन्। बन्द राख्दा सूचना चिनिएका बैठक एपमा मात्र सीमित रहन्छ।"
+      },
+      "autoStart": {
+        "label": "उल्टो गणना देखिँदा बैठक खोल्नुहोस्",
+        "description": "तपाईं पहिले नै उल्टो गणना हेर्दै हुनुहुन्छ र कार्यक्रम सुरु हुँदा सूचना छोड्छ। के रेकर्ड हुने हो, त्यो तपाईंले नै पुष्टि गर्नुहुन्छ।"
+      },
+      "apps": {
+        "label": "बैठक एपहरू",
+        "description": "प्रत्येक लाइनमा एक बन्डल पहिचानकर्ता। कुनै प्रविष्टि त्यो एप चलिरहेको बेला मात्र गनिन्छ, त्यसैले नाम बदलिएको पहिचानकर्ता गलत हुनुभन्दा निष्क्रिय हुन्छ।",
+        "running": "अहिले चलिरहेको: {{apps}}",
+        "noneRunning": "यीमध्ये कुनै पनि अहिले चलिरहेको छैन।"
+      },
+      "state": {
+        "title": "पहिचानले के देख्न सक्छ",
+        "description": "पहिचान धेरैजसो समय चुप रहन्छ। कारण यो हो।",
+        "calendarDenied": "पात्रो पहुँच दिइएन, त्यसैले माइक्रोफोनको बाटो मात्र चल्दै छ।",
+        "notificationsDenied": "Sona का सूचना बन्द छन्, त्यसैले संकेत एपभित्र मात्र देखिन्छन्।",
+        "bluetoothCaveat": "बैठक एप खुला छ तर माइक्रोफोन प्रयोगको जानकारी कसैले दिँदैन। ब्लुटुथ हेडसेट प्रायः दिँदैनन्, त्यसैले कुनै बैठक चलिरहेको भए आफै सुरु गर्नुहोस्।",
+        "noSilenceStop": "क्याप्चर कार्यक्रमको अन्त्य, एप बन्द हुँदा, स्लिप हुँदा, वा तपाईं आफै रोक्दा रोकिन्छ। मौन टाइमरलाई चलिरहेको प्रतिलेखन चाहिन्छ, र त्यो बैठक सकिएपछि मात्र चल्छ।"
+      },
+      "why": {
+        "disabled": "पहिचान बन्द छ।",
+        "sonaHoldsMic": "Sona माइक्रोफोन प्रयोग गरिरहेको छ, त्यसैले अहिले अरु केही पहिचान गर्न सकिँदैन।",
+        "captureActive": "एउटा बैठक पहिले नै क्याप्चर हुँदै छ।",
+        "noSignal": "अझै कुनै पनि चीजले माइक्रोफोन प्रयोग गरिरहेको छैन।",
+        "soloEvent": "अर्को कार्यक्रममा दुईभन्दा कम सहभागी छन्, त्यसैले त्यो रोकिएको समय जस्तो पढिन्छ।",
+        "unknownApp": "कुनै चीजले माइक्रोफोन प्रयोग गरिरहेको छ, तर त्यो चिनिएको बैठक एप होइन।",
+        "browserUnreadable": "अगाडि ब्राउजर छ, तर त्यसको ट्याबको शीर्षक पढ्न सकिँदैन।",
+        "browserNotMeeting": "अगाडि ब्राउजर छ र त्यसको ट्याब कल होइन।"
+      }
     }
   },
   "agentPanel": {
@@ -2292,7 +2500,15 @@
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "मोड: {{name}}",
-      "setShortcut": "कुनै पनि एपबाट क्याप्चर गर्न Settings मा डिक्टेसन सर्टकट सेट गर्नुहोस्।"
+      "setShortcut": "कुनै पनि एपबाट क्याप्चर गर्न Settings मा डिक्टेसन सर्टकट सेट गर्नुहोस्।",
+      "setShortcutAction": "एउटा सर्टकट सेट गर्नुहोस्",
+      "shortcutAction": "बोलाइको सर्टकट बदल्नुहोस्",
+      "holdHint": "बदल्न थिच्नुहोस्, बोल्न थिचिराख्नुहोस्",
+      "facts": {
+        "mode": "मोड",
+        "model": "मोडेल",
+        "engine": "इन्जिन"
+      }
     },
     "actions": {
       "dictate": "Dictate",

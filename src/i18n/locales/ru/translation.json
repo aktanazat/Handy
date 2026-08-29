@@ -120,7 +120,7 @@
       }
     },
     "errors": {
-      "selectModel": "Не удалось выбрать модель"
+      "selectModel": "Не удалось выбрать модель. Попробуйте снова."
     },
     "permissions": {
       "title": "Требуются разрешения",
@@ -138,10 +138,15 @@
       "waiting": "Ожидание...",
       "allGranted": "Всё готово!",
       "errors": {
-        "checkFailed": "Не удалось проверить разрешения. Пожалуйста, попробуйте снова.",
-        "requestFailed": "Не удалось запросить разрешение. Пожалуйста, попробуйте снова."
-      }
-    }
+        "checkFailed": "Не удалось проверить разрешения. Попробуйте снова.",
+        "requestFailed": "Не удалось запросить разрешение. Попробуйте снова."
+      },
+      "headline": "Разовая настройка",
+      "subhead": "Компьютер спрашивает разрешение, прежде чем приложение сможет слушать или печатать за вас. Выдайте эти разрешения один раз, и Sona больше не спросит.",
+      "checking": "Проверка разрешений",
+      "recheck": "Проверить снова"
+    },
+    "headline": "Выберите голосовую модель"
   },
   "modelSelector": {
     "custom": "Пользовательская",
@@ -275,9 +280,9 @@
         "notDownloaded": "Не скачана"
       },
       "summary": {
-        "active": "Активна: {{name}}",
         "noActive": "Модель не выбрана",
-        "onDisk": "На диске: {{total}}"
+        "activeLabel": "Активная модель",
+        "onDiskLabel": "На диске"
       }
     },
     "general": {
@@ -288,7 +293,7 @@
         "loading": "Загрузка ярлыков...",
         "none": "Ярлыки не настроены",
         "notFound": "Ярлык не найден",
-        "pressKeys": "Нажимайте клавиши...",
+        "pressKeys": "Нажмите свои клавиши…",
         "bindings": {
           "transcribe": {
             "name": "Горячая клавиша транскрипции",
@@ -301,13 +306,21 @@
           "transcribe_with_post_process": {
             "name": "Горячая клавиша постобработки",
             "description": "Специальное сочетание клавиш для ИИ-постобработки вашей транскрипции."
+          },
+          "command": {
+            "name": "Сочетание для команды",
+            "description": "Сочетание клавиш, которое перезаписывает выделенный текст по произнесённой инструкции."
           }
         },
         "errors": {
-          "restore": "Не удалось восстановить исходный ярлык",
+          "restore": "Не удалось вернуть исходное сочетание. Попробуйте снова.",
           "set": "Не удалось установить ярлык: {{error}}",
-          "reset": "Не удалось сбросить ярлык до исходного значения"
-        }
+          "reset": "Не удалось сбросить сочетание. Попробуйте снова."
+        },
+        "holdHint": "Нажмите, чтобы переключить, удерживайте, чтобы говорить. Работает с любым сочетанием.",
+        "recordAction": "Записать новое сочетание для {{binding}}",
+        "recordHint": "Нажмите, чтобы записать",
+        "unset": "Не задано"
       },
       "language": {
         "title": "Язык",
@@ -324,7 +337,11 @@
         "description": "Язык интерфейса и цветовая схема. Оба применяются сразу.",
         "title": "Внешний вид"
       },
-      "description": "Клавиши, которые вы нажимаете, микрофон, который слушает Sona, и внешний вид приложения."
+      "description": "Клавиши, которые вы нажимаете, микрофон, который слушает Sona, и внешний вид приложения.",
+      "commandMode": {
+        "label": "Режим голосовых команд",
+        "description": "Удерживайте сочетание для команды и скажите, что изменить в выделенном тексте."
+      }
     },
     "sound": {
       "title": "Звук",
@@ -493,9 +510,9 @@
         "remove": "Удалить {{spoken}}",
         "import": "Импортировать CSV",
         "export": "Экспортировать CSV",
-        "importError": "Не удалось импортировать CSV словаря.",
-        "exportError": "Не удалось экспортировать CSV словаря.",
-        "saveError": "Не удалось сохранить словарь.",
+        "importError": "Не удалось импортировать CSV со словарём. Проверьте файл и попробуйте снова.",
+        "exportError": "Не удалось экспортировать CSV со словарём. Попробуйте снова.",
+        "saveError": "Не удалось сохранить словарь. Попробуйте снова.",
         "imported": "Словарь импортирован",
         "errors": {
           "incomplete": "Введите произнесённую фразу и текст для записи.",
@@ -523,7 +540,7 @@
         "actions": "Vocabulary actions",
         "audioImport": {
           "errors": {
-            "start": "Couldn't start the audio import."
+            "start": "Не удалось начать импорт аудио. Попробуйте снова."
           },
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
@@ -534,7 +551,8 @@
           "title": "Правил словаря пока нет"
         },
         "sources": "Исправления, сохранённые из расшифровки в библиотеке, попадают в этот список. Правила для отдельного режима хранятся в словаре самого режима.",
-        "unsaved": "Несохранённые изменения"
+        "unsaved": "Несохранённые изменения",
+        "csvLabel": "CSV"
       },
       "voiceActivityDetection": {
         "title": "Определение голосовой активности",
@@ -558,8 +576,8 @@
         "save": "Сохранить замены эмодзи",
         "saved": "Замены эмодзи сохранены",
         "remove": "Удалить {{spoken}}",
-        "saveError": "Не удалось сохранить замены эмодзи.",
-        "toggleError": "Не удалось изменить замены эмодзи.",
+        "saveError": "Не удалось сохранить замены эмодзи. Попробуйте снова.",
+        "toggleError": "Не удалось изменить замены эмодзи. Попробуйте снова.",
         "errors": {
           "incomplete": "Введите произнесённую фразу и текст эмодзи.",
           "duplicate": "Такая замена эмодзи уже существует.",
@@ -729,9 +747,9 @@
       "save": "Сохранить транскрипцию",
       "unsave": "Удалить из сохраненных",
       "delete": "Удалить запись",
-      "deleteError": "Не удалось удалить запись. Пожалуйста, попробуйте еще раз.",
+      "deleteError": "Не удалось удалить запись. Попробуйте снова.",
       "retranscribe": "Перетранскрибировать",
-      "retranscribeError": "Не удалось перетранскрибировать. Пожалуйста, попробуйте снова.",
+      "retranscribeError": "Не удалось расшифровать повторно. Попробуйте снова.",
       "transcribing": "Транскрибирование...",
       "transcriptionFailed": "Транскрипция не удалась. Вы можете перетранскрибировать, используя значок повтора.",
       "search": "Поиск в истории",
@@ -739,7 +757,7 @@
       "noResults": "Нет транскрипций, совпадающих с \"{{query}}\".",
       "loadError": "Не удалось загрузить историю.",
       "retry": "Попробовать снова",
-      "saveError": "Не удалось обновить статус.",
+      "saveError": "Не удалось обновить состояние сохранения. Попробуйте снова.",
       "postProcessEmpty": "Постобработка не вернула текст. Отображение исходной транскрипции.",
       "textView": {
         "label": "Просмотр транскрипции",
@@ -818,6 +836,12 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "columns": {
+          "source": "Источник",
+          "status": "Состояние",
+          "method": "Метод",
+          "outcome": "Итог"
         }
       },
       "correction": {
@@ -834,7 +858,7 @@
         "global": "All modes",
         "save": "Save correction",
         "saved": "Vocabulary correction saved",
-        "saveError": "Could not save vocabulary correction."
+        "saveError": "Не удалось сохранить исправление. Попробуйте снова."
       },
       "audioImport": {
         "start": "Транскрибировать файл",
@@ -861,7 +885,7 @@
           "history": "Не удалось сохранить расшифровку в историю."
         },
         "errors": {
-          "start": "Не удалось начать импорт файла.",
+          "start": "Не удалось начать импорт файла. Попробуйте снова.",
           "cancel": "Не удалось отменить импорт файла.",
           "load": "Не удалось загрузить статус импорта файла."
         },
@@ -889,7 +913,17 @@
       "noResultsHint": "Поиск сопоставляет целые слова и в исходной, и в обработанной расшифровке.",
       "results": "Совпадений: {{count}}",
       "resultsMore": "Совпадений: {{count}}+",
-      "resultsNone": "Совпадений нет"
+      "resultsNone": "Совпадений нет",
+      "processAgain": {
+        "action": "Обработать снова",
+        "title": "Обработать снова",
+        "description": "Прогнать эту запись через другой режим. Исходная запись сохраняется, а результат сохраняется как новая.",
+        "placeholder": "Выберите режим",
+        "confirm": "Обработать",
+        "started": "Повторная обработка начата",
+        "modeLabel": "Режим"
+      },
+      "derivedFrom": "Из более ранней записи"
     },
     "debug": {
       "title": "Отлаживать",
@@ -1006,7 +1040,7 @@
         "description": "Открыть последние встроенные примечания к выпуску, не отмечая их как просмотренные",
         "button": "Предпросмотр",
         "noNotes": "Встроенные примечания к выпуску не найдены",
-        "error": "Не удалось показать предварительный просмотр примечаний к выпуску"
+        "error": "Не удалось показать заметки о выпуске. Попробуйте снова."
       },
       "description": "Инструментирование и неподдерживаемые настройки. Видимы, потому что включён режим отладки.",
       "groups": {
@@ -1196,7 +1230,9 @@
         "noModelSelected": "No model selected",
         "model": {
           "label": "Transcription model",
-          "description": "Only downloaded local models are available here."
+          "description": "Only downloaded local models are available here.",
+          "inheritGlobal": "По умолчанию — использует глобальную модель",
+          "inheritGlobalNamed": "По умолчанию — использует глобальную модель ({{name}})"
         },
         "language": {
           "label": "Language",
@@ -1724,6 +1760,74 @@
         "about": "About",
         "debug": "Debug"
       }
+    },
+    "vocabulary": {
+      "replacements": {
+        "title": "Произносимые замены",
+        "description": "Фразы, которые Sona переписывает в точный текст. Изменения здесь влияют только на будущие расшифровки и никогда на уже написанный текст.",
+        "enabledLabel": "Включить произносимые замены",
+        "enabledDescription": "Переписывать произносимые фразы вроде «собака» в символы, до того как сработает исправление по словарю.",
+        "offState": "Произносимые замены выключены. Правила остаются сохранёнными и снова заработают, как только вы включите это.",
+        "spoken": "Вы говорите",
+        "written": "Sona пишет",
+        "applyColumn": "Применять",
+        "actionsColumn": "Действия",
+        "spokenPlaceholder": "собака",
+        "writtenPlaceholder": "@",
+        "add": "Добавить правило",
+        "reset": "Вернуть значения по умолчанию",
+        "ruleEnabled": "Применять {{spoken}}",
+        "delete": "Удалить {{spoken}}",
+        "loading": "Загрузка замен",
+        "loadError": "Не удалось загрузить замены.",
+        "matching": "Фразы совпадают по целым словам и не учитывают регистр. Если два правила подходят к одному месту, побеждает более длинное, а замена срабатывает до исправления по словарю.",
+        "errors": {
+          "duplicate": "Другое правило уже использует эту фразу.",
+          "incomplete": "Введите и произносимую фразу, и её замену."
+        },
+        "empty": {
+          "title": "Замен нет",
+          "description": "Добавьте фразу вроде «собака», и Sona будет писать @ каждый раз, когда вы её произнесёте.",
+          "action": "Вернуть начальные правила"
+        },
+        "confirmDelete": {
+          "title": "Удалить {{spoken}}?",
+          "description": "Фраза больше не будет переписываться в будущих расшифровках. Уже написанный текст не меняется.",
+          "body": "{{spoken}} сейчас превращается в {{written}}."
+        },
+        "confirmReset": {
+          "title": "Вернуть правила по умолчанию?",
+          "description": "Каждое добавленное или изменённое вами правило отбрасывается, и возвращается поставляемый начальный набор."
+        }
+      }
+    },
+    "prompts": {
+      "samples": {
+        "title": "Образцы письма",
+        "description": "Примеры вашего собственного письма. Каждый режим, переписывающий расшифровку, следует их тону.",
+        "placeholder": "Вставьте абзац, написанный вами.",
+        "sampleLabel": "Образец письма {{number}}",
+        "delete": "Удалить образец {{number}}",
+        "add": "Добавить образец",
+        "wordCount": "{{words}} из {{max}} слов",
+        "overLimit": "{{words}} слов. Используются только первые {{max}}.",
+        "privacy": "Образцы уходят только туда, куда уже уходит сама расшифровка, и больше никуда. Используется до {{max}} образцов.",
+        "loading": "Загрузка образцов",
+        "loadError": "Не удалось загрузить образцы.",
+        "empty": {
+          "title": "Образцов пока нет",
+          "description": "Вставьте несколько написанных вами абзацев, и перезаписи будут следовать вашей лексике, длине фраз и уровню формальности.",
+          "action": "Добавить образец"
+        }
+      }
+    },
+    "hud": {
+      "enabledLabel": "Показывать пилюлю в покое",
+      "enabledDescription": "Оставлять между диктовками небольшую пилюлю на экране. Нажмите, чтобы начать, правой кнопкой — чтобы сменить режим.",
+      "positionLabel": "Положение пилюли в покое",
+      "positionDescription": "У какого края экрана находится пилюля в покое.",
+      "positionTop": "Сверху",
+      "positionBottom": "Снизу"
     }
   },
   "common": {
@@ -1737,7 +1841,10 @@
     "noOptionsFound": "Вариантов не найдено",
     "save": "Save",
     "saving": "Saving…",
-    "retry": "Retry"
+    "retry": "Retry",
+    "play": "Воспроизвести",
+    "pause": "Пауза",
+    "seek": "Позиция воспроизведения"
   },
   "commandPalette": {
     "open": "Поиск",
@@ -1770,12 +1877,15 @@
     },
     "noInputDeviceTitle": "Микрофон не найден",
     "noInputDevice": "Аудиоустройство ввода не обнаружено. Подключите микрофон или гарнитуру и попробуйте снова.",
-    "recordingFailed": "Не удалось начать запись: {{error}}",
-    "modelLoadFailed": "Не удалось загрузить модель: {{model}}",
+    "recordingFailed": "Не удалось начать запись: {{error}}. Попробуйте снова.",
+    "modelLoadFailed": "Не удалось загрузить {{model}}. Попробуйте снова.",
     "modelLoadFailedUnknown": "неизвестная модель",
-    "pasteFailedTitle": "Не удалось вставить текст",
-    "pasteFailed": "Не удалось вставить текст в активное приложение.",
-    "transcriptionFailedTitle": "Ошибка транскрипции"
+    "pasteFailedTitle": "Не удалось вставить расшифровку",
+    "pasteFailed": "Текст не удалось вставить в активное приложение. Поставьте курсор в текстовое поле и попробуйте снова.",
+    "transcriptionFailedTitle": "Не удалось расшифровать",
+    "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
+    "commandNoSelection": "Ничего не было выделено. Выделите текст, который хотите изменить, затем удерживайте сочетание для команды и скажите, что сделать.",
+    "commandRewriteUnavailable": "Перезапись ничего не вернула, поэтому выделение осталось как было. Проверьте модель перезаписи в «Настройки > ИИ» и попробуйте снова."
   },
   "appLanguage": {
     "title": "Язык приложения",
@@ -1794,7 +1904,13 @@
     "transcribing": "Расшифровка...",
     "processing": "Обработка...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model"
+    "localFallback": "Offline, using local model",
+    "hud": {
+      "idle": "Готово",
+      "toggle": "Начать диктовку в режиме {{mode}}",
+      "hint": "Нажмите, чтобы диктовать, правой кнопкой — для режимов",
+      "modes": "Сменить режим"
+    }
   },
   "whatsNew": {
     "title": "Новое в Sona v{{version}}"
@@ -1875,79 +1991,38 @@
         "cancelled": "Processing cancelled"
       }
     },
-    "readiness": {
-      "ready": "Ready",
-      "unavailable": "Unavailable",
-      "local": "Local only",
-      "needsAcknowledgement": "Acknowledgement required"
-    },
     "actions": {
       "back": "Back",
       "delete": "Delete meeting",
       "discard": "Discard",
-      "newMeeting": "New meeting",
       "pause": "Pause",
       "refresh": "Refresh",
       "resume": "Resume",
       "retry": "Try again",
-      "startLocal": "Start local notes",
       "stop": "Stop"
     },
     "detected": {
       "title": "Meeting detected",
-      "description": "Sona only offers a setup screen. It is not recording.",
-      "mayBeActive": "A meeting may be active in {{provider}}.",
-      "notRecording": "Sona is not recording."
+      "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
-      "title": "Start local notes",
-      "suggestedDescription": "Sona detected {{provider}}. Review the capture setup before recording.",
-      "manualDescription": "Set the sources and policy for a new local meeting note.",
-      "identity": "Meeting details",
-      "meetingTitle": "Meeting title",
-      "meetingTitlePlaceholder": "Untitled meeting",
       "captureSources": "Capture sources",
       "captureSourcesDescription": "Each source stays separate so missing audio remains visible.",
-      "sourcePolicy": "If a source is unavailable",
-      "sourcePolicyDescription": "Choose whether setup stops or starts with an explicit partial record.",
-      "strict": "Strict: stop setup if a required source is unavailable",
-      "continuePartial": "Continue partial: start only after I acknowledge the missing source",
       "processing": "Processing route",
-      "localProcessing": "On this Mac",
-      "localProcessingDescription": "Audio, transcript, notes, search, and Q&A stay local.",
-      "selected": "Selected",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination selected",
       "localOnly": "Local only",
-      "check": "Check recording setup",
-      "checking": "Checking setup…",
       "defaultTitle": "Local notes",
       "remoteUnavailable": "Удалённая обработка недоступна в этой сборке, поэтому каждая встреча расшифровывается и суммируется на этом Mac."
     },
     "preflight": {
-      "title": "Check recording setup",
-      "description": "Review each local capability before authorizing capture.",
-      "summary": "Meeting setup summary",
-      "meeting": "Meeting",
-      "changeSetup": "Change setup",
-      "readiness": "Readiness",
-      "readinessDescription": "Each row reports the current backend check.",
       "storage": "Storage",
       "storageAvailable": "Encrypted meeting storage is available.",
       "storageUnavailable": "Encrypted meeting storage is unavailable.",
       "localModel": "Local model",
       "localModelDescription": "Processing remains local when a local model is available.",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination is selected.",
-      "remoteSelected": "Selected destination: {{destination}}",
-      "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
       "starting": "Starting visible capture…",
       "refreshing": "Проверка…"
     },
     "consent": {
-      "title": "Recording acknowledgement",
-      "description": "Sona will show a visible capture state. Audio, transcript, and notes stay on this Mac unless you explicitly select a remote destination.",
-      "acknowledge": "I have permission to capture this meeting.",
       "continuePartial": "I want to continue with a partial meeting record.",
       "acceptMissing": "I understand {{source}} is {{state}} and this meeting will be partial."
     },
@@ -2039,7 +2114,7 @@
     },
     "errors": {
       "load": "Sona could not load the current meeting data.",
-      "operation": "Sona could not complete that meeting action.",
+      "operation": "Не удалось выполнить это действие со встречей. Попробуйте снова.",
       "operationRejected": "The meeting action was rejected.",
       "consent_required": "Confirm the recording acknowledgement before starting.",
       "consent_stale": "The setup changed. Review it again before starting.",
@@ -2110,12 +2185,12 @@
       "regenerate": "Regenerate",
       "remoteCancellationPending": "Remote cancellation is pending. Local deletion does not claim the remote copy is deleted.",
       "cancelRemote": "Cancel remote processing",
-      "remoteCancellationRequested": "Remote cancellation requested.",
+      "remoteCancellationRequested": "Отмена запрошена",
       "export": "Export",
       "exportDescription": "Each export uses an immutable local review snapshot and opens a native save dialog.",
       "exportMarkdown": "Export Markdown",
       "exportJson": "Export JSON",
-      "exportComplete": "Export completed.",
+      "exportComplete": "Встреча экспортирована",
       "citation": "Transcript {{time}}",
       "noGeneratedNotes": "No generated notes are available yet.",
       "template": "Template: {{template}}",
@@ -2166,7 +2241,8 @@
         "transcript": "Расшифровка"
       },
       "tabsLabel": "Разделы обзора встречи",
-      "youAsked": "Вы спросили"
+      "youAsked": "Вы спросили",
+      "actionDone": "Отметить эту задачу выполненной"
     },
     "artifactState": {
       "current": "Current",
@@ -2215,6 +2291,138 @@
     "status": {
       "gapCount": "Пропуски: {{total}}",
       "required": "Обязательно"
+    },
+    "start": {
+      "label": "Начать встречу",
+      "action": "Начать запись",
+      "starting": "Запуск…",
+      "assurance": "Записывает звук вашего Mac локально. Ничто не подключается к звонку.",
+      "capture": "Захват",
+      "noSources": "Выберите хотя бы один источник.",
+      "localOnly": "Только локально",
+      "retention": "Хранится: {{policy}}"
+    },
+    "gate": {
+      "title": "Запись не началась",
+      "description": "Sona создала встречу, но источник, который требовалось записывать, недоступен.",
+      "readyTitle": "Готово к записи",
+      "readyDescription": "Ничто не мешает записи этой встречи.",
+      "recordAnyway": "Записать без него",
+      "recordAnywayHint": "Запись помечается как неполная, а отсутствующий источник остаётся названным в ней."
+    },
+    "analytics": {
+      "title": "Разговор",
+      "description": "Подсчитано на этом Mac по расшифровке с разделением говорящих. Ничего никуда не отправляется.",
+      "noSpeech": "Речь не была расшифрована, поэтому измерять нечего.",
+      "talkShare": "Говорит больше всех",
+      "longestMonologue": "Самый долгий монолог",
+      "patience": "Терпение",
+      "patienceDetail": "Медианная пауза перед ответом",
+      "interactions": "Передачи слова",
+      "turns": "{{count}} реплик",
+      "turns_one": "{{count}} реплика",
+      "speakerDetail": "{{time}} · {{turns}}",
+      "unknownSpeaker": "Неизвестный говорящий",
+      "trackers": "Отслеживания",
+      "hits": "{{count}} упоминаний",
+      "hits_one": "{{count}} упоминание",
+      "noHits": "Не упоминалось",
+      "jumpToFirst": "Показать первое",
+      "trackersTitle": "Отслеживание ключевых слов",
+      "trackersDescription": "Фразы, которые ищутся в каждой расшифровке встречи. Сопоставление буквальное и без учёта регистра, и каждый проход выполняется на этом Mac.",
+      "addTracker": "Добавить отслеживание",
+      "removeTracker": "Удалить отслеживание",
+      "noTrackers": "Отслеживаний пока нет. Добавьте одно, чтобы начать считать, как часто встречается фраза.",
+      "trackerName": "Название",
+      "trackerPatterns": "скидка, лучшая цена, слишком дорого",
+      "trackerPatternsLabel": "Фразы, разделённые запятыми",
+      "trackersSaveFailed": "Sona не смогла сохранить отслеживания. Измените одно и попробуйте снова."
+    },
+    "notes": {
+      "title": "Мои заметки",
+      "liveDescription": "Пишите настолько черново, насколько хотите. Эти заметки остаются на этом Mac и направляют заметки, которые Sona создаёт по окончании встречи.",
+      "reviewDescription": "Ваши собственные заметки направляют то, что подчёркивают созданные заметки. Их никогда не цитируют и не приводят как ссылку.",
+      "placeholder": "Всё, что стоит запомнить, — имена, числа, что нужно отследить",
+      "unsaved": "Ещё не сохранено",
+      "saving": "Сохранение…",
+      "saved": "Заметки сохранены",
+      "conflict": "Эти заметки изменились в другом месте. Откройте встречу заново, чтобы загрузить актуальную версию.",
+      "reenhance": "Улучшить заново с моими заметками",
+      "enhancing": "Пересборка…",
+      "enhanced": "Заметки пересобраны.",
+      "enhanceFailed": "Sona не смогла пересобрать заметки. Откройте встречу заново и повторите.",
+      "catchUp": "Кратко перескажи",
+      "catchingUp": "Пересказываю…",
+      "catchUpTitle": "Пока что",
+      "catchUpNoTranscript": "Пересказывать пока нечего. Sona расшифровывает после того, как вы остановите запись, поэтому пересказ появится, как только начнёт приходить расшифровка.",
+      "catchUpUnavailable": "Модель на устройстве недоступна, поэтому пересказ не был написан.",
+      "catchUpFailed": "Sona не смогла составить пересказ. Попробуйте снова через мгновение.",
+      "templates": {
+        "general": "Обычная встреча",
+        "one_on_one": "Один на один",
+        "interview": "Интервью",
+        "sales_call": "Звонок по продажам",
+        "standup": "Стендап"
+      }
+    },
+    "detection": {
+      "title": "Определять встречи",
+      "description": "Sona следит за звонками и предлагает вести заметки. Она никогда не записывает сама.",
+      "loading": "Чтение состояния определения…",
+      "prompt": {
+        "calendar": "{{title}} начинается",
+        "app": "Обнаружена встреча в {{app}}",
+        "huddle": "Обнаружен huddle в {{app}}",
+        "browser": "Обнаружен звонок в {{app}}",
+        "unknown": "Обнаружена активность микрофона",
+        "body": "Sona может вести локальные заметки для этого звонка."
+      },
+      "actions": {
+        "start": "Начать расшифровку",
+        "dismiss": "Скрыть"
+      },
+      "pane": {
+        "title": "Скоро начнётся",
+        "description": "Sona не записывает, пока вы не начнёте здесь.",
+        "countdown": "Начнётся через {{seconds}} с",
+        "notYetRecording": "Запись не идёт"
+      },
+      "calendar": {
+        "label": "Использовать мой календарь",
+        "description": "Показывает отсчёт за минуту до событий с двумя или более участниками. macOS в первый раз запрашивает полный доступ к календарю, потому что Apple не предлагает доступ только для чтения."
+      },
+      "anyMic": {
+        "label": "Спрашивать при любом использовании микрофона",
+        "description": "Включает голосовые заметки, музыкальные приложения и всё остальное, что открывает микрофон. Выключено — подсказки остаются только для известных приложений для встреч."
+      },
+      "autoStart": {
+        "label": "Открывать встречу, когда виден её отсчёт",
+        "description": "Пропускает уведомление, когда событие начинается, пока вы уже смотрите на его отсчёт. Вы всё равно подтверждаете, что записывается."
+      },
+      "apps": {
+        "label": "Приложения для встреч",
+        "description": "По одному идентификатору бандла на строку. Запись учитывается только пока это приложение запущено, поэтому переименованный идентификатор просто не работает, а не работает неверно.",
+        "running": "Сейчас запущено: {{apps}}",
+        "noneRunning": "Ни одно из них сейчас не запущено."
+      },
+      "state": {
+        "title": "Что видит определение",
+        "description": "Определение большую часть времени молчит. Вот почему.",
+        "calendarDenied": "Доступ к календарю не выдан, поэтому работает только путь через микрофон.",
+        "notificationsDenied": "Уведомления для Sona выключены, поэтому подсказки появляются только в приложении.",
+        "bluetoothCaveat": "Приложение для встреч открыто, но ничто не сообщает об использовании микрофона. Bluetooth-гарнитуры часто не сообщают, поэтому начните встречу сами, если она идёт.",
+        "noSilenceStop": "Захват останавливается в конце события, при выходе из приложения, при уходе в сон или когда вы остановите его сами. Таймеру тишины нужна расшифровка на ходу, а она выполняется только после окончания встречи."
+      },
+      "why": {
+        "disabled": "Определение выключено.",
+        "sonaHoldsMic": "Sona использует микрофон, поэтому сейчас ничего другого определить нельзя.",
+        "captureActive": "Одна встреча уже записывается.",
+        "noSignal": "Микрофон пока никто не использует.",
+        "soloEvent": "В ближайшем событии меньше двух участников, поэтому оно читается как заблокированное время.",
+        "unknownApp": "Что-то использует микрофон, но это не известное приложение для встреч.",
+        "browserUnreadable": "Впереди браузер, но заголовок его вкладки прочитать нельзя.",
+        "browserNotMeeting": "Впереди браузер, и его вкладка — не звонок."
+      }
     }
   },
   "agentPanel": {
@@ -2292,7 +2500,15 @@
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Режим: {{name}}",
-      "setShortcut": "Задайте сочетание клавиш для диктовки в настройках, чтобы записывать из любого приложения."
+      "setShortcut": "Задайте сочетание клавиш для диктовки в настройках, чтобы записывать из любого приложения.",
+      "setShortcutAction": "Задать сочетание",
+      "shortcutAction": "Изменить сочетание для диктовки",
+      "holdHint": "Нажмите, чтобы переключить, удерживайте, чтобы говорить",
+      "facts": {
+        "mode": "Режим",
+        "model": "Модель",
+        "engine": "Движок"
+      }
     },
     "actions": {
       "dictate": "Dictate",

@@ -120,7 +120,7 @@
       }
     },
     "errors": {
-      "selectModel": "모델을 선택하지 못했습니다"
+      "selectModel": "모델을 선택할 수 없습니다. 다시 시도하세요."
     },
     "permissions": {
       "title": "권한 필요",
@@ -138,10 +138,15 @@
       "waiting": "대기 중...",
       "allGranted": "모두 설정 완료!",
       "errors": {
-        "checkFailed": "권한 확인에 실패했습니다. 다시 시도해주세요.",
-        "requestFailed": "권한 요청에 실패했습니다. 다시 시도해주세요."
-      }
-    }
+        "checkFailed": "권한을 확인할 수 없습니다. 다시 시도하세요.",
+        "requestFailed": "권한을 요청할 수 없습니다. 다시 시도하세요."
+      },
+      "headline": "한 번만 하는 설정",
+      "subhead": "어떤 앱이든 듣거나 대신 입력하려면 컴퓨터가 먼저 묻습니다. 한 번 허용하면 Sona는 다시 묻지 않습니다.",
+      "checking": "권한 확인 중",
+      "recheck": "다시 확인"
+    },
+    "headline": "음성 모델을 선택하세요"
   },
   "modelSelector": {
     "custom": "사용자 정의",
@@ -190,7 +195,7 @@
         "loading": "단축키 로딩 중...",
         "none": "설정된 단축키 없음",
         "notFound": "단축키를 찾을 수 없음",
-        "pressKeys": "키를 눌러주세요...",
+        "pressKeys": "키를 누르세요…",
         "bindings": {
           "transcribe": {
             "name": "음성 텍스트 변환 단축키",
@@ -203,13 +208,21 @@
           "transcribe_with_post_process": {
             "name": "후처리 단축키",
             "description": "선택 사항: 항상 AI 후처리를 적용하는 전용 단축키입니다."
+          },
+          "command": {
+            "name": "명령 단축키",
+            "description": "선택한 텍스트를 말한 지시대로 다시 쓰는 키보드 단축키입니다."
           }
         },
         "errors": {
-          "restore": "원래 단축키 복원에 실패했습니다",
+          "restore": "원래 단축키를 되돌릴 수 없습니다. 다시 시도하세요.",
           "set": "단축키 설정 실패: {{error}}",
-          "reset": "단축키를 원래 값으로 재설정하는데 실패했습니다"
-        }
+          "reset": "단축키를 초기화할 수 없습니다. 다시 시도하세요."
+        },
+        "holdHint": "눌러서 전환, 누른 채로 말하기. 어떤 단축키에서도 작동합니다.",
+        "recordAction": "{{binding}}에 새 단축키 기록",
+        "recordHint": "클릭해서 기록",
+        "unset": "설정되지 않음"
       },
       "language": {
         "title": "언어",
@@ -226,7 +239,11 @@
         "description": "인터페이스 언어와 색상 테마입니다. 둘 다 즉시 적용됩니다.",
         "title": "모양"
       },
-      "description": "누르는 키, Sona가 듣는 마이크, 앱의 모양을 설정합니다."
+      "description": "누르는 키, Sona가 듣는 마이크, 앱의 모양을 설정합니다.",
+      "commandMode": {
+        "label": "음성 명령 모드",
+        "description": "명령 단축키를 누른 채로, 선택한 텍스트를 어떻게 바꿀지 말하세요."
+      }
     },
     "sound": {
       "title": "사운드",
@@ -350,9 +367,9 @@
         "notDownloaded": "다운로드되지 않음"
       },
       "summary": {
-        "active": "활성: {{name}}",
         "noActive": "선택된 모델 없음",
-        "onDisk": "디스크에 {{total}}개"
+        "activeLabel": "사용 중인 모델",
+        "onDiskLabel": "디스크에"
       }
     },
     "advanced": {
@@ -493,9 +510,9 @@
         "remove": "{{spoken}} 삭제",
         "import": "CSV 가져오기",
         "export": "CSV 내보내기",
-        "importError": "어휘 CSV를 가져올 수 없습니다.",
-        "exportError": "어휘 CSV를 내보낼 수 없습니다.",
-        "saveError": "어휘를 저장할 수 없습니다.",
+        "importError": "어휘 CSV를 가져올 수 없습니다. 파일을 확인하고 다시 시도하세요.",
+        "exportError": "어휘 CSV를 내보낼 수 없습니다. 다시 시도하세요.",
+        "saveError": "어휘를 저장할 수 없습니다. 다시 시도하세요.",
         "imported": "어휘를 가져왔습니다",
         "errors": {
           "incomplete": "발화 문구와 표기 텍스트를 모두 입력하세요.",
@@ -523,7 +540,7 @@
         "actions": "Vocabulary actions",
         "audioImport": {
           "errors": {
-            "start": "Couldn't start the audio import."
+            "start": "오디오 가져오기를 시작할 수 없습니다. 다시 시도하세요."
           },
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
@@ -534,7 +551,8 @@
           "title": "아직 어휘 규칙이 없습니다"
         },
         "sources": "라이브러리의 전사에서 저장한 교정이 이 목록에 추가됩니다. 특정 모드 전용 규칙은 해당 모드의 어휘에 있습니다.",
-        "unsaved": "저장되지 않은 변경 사항"
+        "unsaved": "저장되지 않은 변경 사항",
+        "csvLabel": "CSV"
       },
       "voiceActivityDetection": {
         "title": "음성 활동 감지",
@@ -558,8 +576,8 @@
         "save": "이모지 대체 저장",
         "saved": "이모지 대체를 저장했습니다",
         "remove": "{{spoken}} 삭제",
-        "saveError": "이모지 대체를 저장할 수 없습니다.",
-        "toggleError": "이모지 대체를 변경할 수 없습니다.",
+        "saveError": "이모지 치환을 저장할 수 없습니다. 다시 시도하세요.",
+        "toggleError": "이모지 치환을 변경할 수 없습니다. 다시 시도하세요.",
         "errors": {
           "incomplete": "발화 문구와 이모지 텍스트를 모두 입력하세요.",
           "duplicate": "이 이모지 대체는 이미 있습니다.",
@@ -729,9 +747,9 @@
       "save": "변환된 텍스트 저장",
       "unsave": "저장에서 제거",
       "delete": "항목 삭제",
-      "deleteError": "항목 삭제에 실패했습니다. 다시 시도해주세요.",
+      "deleteError": "항목을 삭제할 수 없습니다. 다시 시도하세요.",
       "retranscribe": "다시 전사",
-      "retranscribeError": "다시 전사에 실패했습니다. 다시 시도해주세요.",
+      "retranscribeError": "다시 기록할 수 없습니다. 다시 시도하세요.",
       "transcribing": "전사 중...",
       "transcriptionFailed": "전사에 실패했습니다. 재시도 아이콘을 사용하여 다시 전사할 수 있습니다.",
       "search": "기록 검색",
@@ -739,7 +757,7 @@
       "noResults": "\"{{query}}\"와(과) 일치하는 필사본이 없습니다.",
       "loadError": "기록을 불러올 수 없습니다.",
       "retry": "다시 시도",
-      "saveError": "저장 상태를 업데이트할 수 없습니다.",
+      "saveError": "저장 상태를 갱신할 수 없습니다. 다시 시도하세요.",
       "postProcessEmpty": "후처리에서 텍스트를 반환하지 않았습니다. 원본 필사본을 표시하고 있습니다.",
       "textView": {
         "label": "필사본 보기",
@@ -818,6 +836,12 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "columns": {
+          "source": "소스",
+          "status": "상태",
+          "method": "방식",
+          "outcome": "결과"
         }
       },
       "correction": {
@@ -834,7 +858,7 @@
         "global": "All modes",
         "save": "Save correction",
         "saved": "Vocabulary correction saved",
-        "saveError": "Could not save vocabulary correction."
+        "saveError": "교정을 저장할 수 없습니다. 다시 시도하세요."
       },
       "audioImport": {
         "start": "파일 전사",
@@ -861,7 +885,7 @@
           "history": "전사본을 히스토리에 저장할 수 없습니다."
         },
         "errors": {
-          "start": "파일 가져오기를 시작할 수 없습니다.",
+          "start": "파일 가져오기를 시작할 수 없습니다. 다시 시도하세요.",
           "cancel": "파일 가져오기를 취소할 수 없습니다.",
           "load": "파일 가져오기 상태를 불러올 수 없습니다."
         },
@@ -889,7 +913,17 @@
       "noResultsHint": "검색은 원본 전사와 처리된 전사 모두에서 전체 단어와 일치합니다.",
       "results": "일치 {{count}}건",
       "resultsMore": "일치 {{count}}+건",
-      "resultsNone": "일치 없음"
+      "resultsNone": "일치 없음",
+      "processAgain": {
+        "action": "다시 처리",
+        "title": "다시 처리",
+        "description": "이 녹음을 다른 모드로 한 번 더 통과시킵니다. 원래 항목은 그대로 남고 결과는 새 항목으로 저장됩니다.",
+        "placeholder": "모드 선택",
+        "confirm": "처리",
+        "started": "재처리를 시작했습니다",
+        "modeLabel": "모드"
+      },
+      "derivedFrom": "이전 녹음에서"
     },
     "debug": {
       "title": "디버그",
@@ -1006,7 +1040,7 @@
         "description": "최신 내장 릴리스 노트를 본 것으로 표시하지 않고 엽니다",
         "button": "미리보기",
         "noNotes": "내장 릴리스 노트를 찾을 수 없습니다",
-        "error": "릴리스 노트를 미리 볼 수 없습니다"
+        "error": "릴리스 노트를 미리 볼 수 없습니다. 다시 시도하세요."
       },
       "description": "계측 및 지원되지 않는 설정입니다. 디버그 모드가 켜져 있어 표시됩니다.",
       "groups": {
@@ -1196,7 +1230,9 @@
         "noModelSelected": "No model selected",
         "model": {
           "label": "Transcription model",
-          "description": "Only downloaded local models are available here."
+          "description": "Only downloaded local models are available here.",
+          "inheritGlobal": "기본값 — 전역 모델 사용",
+          "inheritGlobalNamed": "기본값 — 전역 모델 사용 ({{name}})"
         },
         "language": {
           "label": "Language",
@@ -1724,6 +1760,74 @@
         "about": "About",
         "debug": "Debug"
       }
+    },
+    "vocabulary": {
+      "replacements": {
+        "title": "말한 치환",
+        "description": "Sona가 정확한 텍스트로 바꿔 쓰는 표현입니다. 여기서의 변경은 앞으로의 기록에만 적용되고, 이미 쓴 텍스트에는 결코 적용되지 않습니다.",
+        "enabledLabel": "말한 치환 사용",
+        "enabledDescription": "어휘 교정이 실행되기 전에, 골뱅이 같은 말한 표현을 기호로 바꿔 씁니다.",
+        "offState": "말한 치환이 꺼져 있습니다. 규칙은 저장된 채로 남고, 다시 켜면 곧바로 적용됩니다.",
+        "spoken": "이렇게 말하면",
+        "written": "Sona는 이렇게 씁니다",
+        "applyColumn": "적용",
+        "actionsColumn": "작업",
+        "spokenPlaceholder": "골뱅이",
+        "writtenPlaceholder": "@",
+        "add": "규칙 추가",
+        "reset": "기본값 복원",
+        "ruleEnabled": "{{spoken}} 적용",
+        "delete": "{{spoken}} 삭제",
+        "loading": "치환 불러오는 중",
+        "loadError": "치환을 불러올 수 없습니다.",
+        "matching": "표현은 단어 전체로 일치하고 대소문자를 구분하지 않습니다. 두 규칙이 같은 자리에 맞으면 더 긴 쪽이 이기고, 치환은 어휘 교정보다 먼저 실행됩니다.",
+        "errors": {
+          "duplicate": "다른 규칙이 이미 이 표현을 쓰고 있습니다.",
+          "incomplete": "말한 표현과 바꿀 텍스트를 모두 입력하세요."
+        },
+        "empty": {
+          "title": "치환 없음",
+          "description": "골뱅이 같은 표현을 추가하면, 그렇게 말할 때마다 Sona가 @를 씁니다.",
+          "action": "기본 규칙 복원"
+        },
+        "confirmDelete": {
+          "title": "{{spoken}}을 삭제할까요?",
+          "description": "이 표현은 앞으로의 기록에서 더 이상 바뀌지 않습니다. 이미 쓴 텍스트는 그대로입니다.",
+          "body": "{{spoken}}은 현재 {{written}}이(가) 됩니다."
+        },
+        "confirmReset": {
+          "title": "기본 규칙을 복원할까요?",
+          "description": "추가하거나 수정한 규칙은 모두 버려지고, 함께 제공된 기본 세트가 돌아옵니다."
+        }
+      }
+    },
+    "prompts": {
+      "samples": {
+        "title": "글 샘플",
+        "description": "직접 쓴 글의 예시입니다. 기록을 다시 쓰는 모든 모드가 그 어조를 따릅니다.",
+        "placeholder": "직접 쓴 문단을 붙여 넣으세요.",
+        "sampleLabel": "글 샘플 {{number}}",
+        "delete": "샘플 {{number}} 삭제",
+        "add": "샘플 추가",
+        "wordCount": "{{max}}개 단어 중 {{words}}개",
+        "overLimit": "{{words}}개 단어. 처음 {{max}}개만 사용됩니다.",
+        "privacy": "샘플은 기록 자체가 이미 가는 곳으로만 가고, 다른 어디로도 가지 않습니다. 최대 {{max}}개의 샘플이 사용됩니다.",
+        "loading": "샘플 불러오는 중",
+        "loadError": "샘플을 불러올 수 없습니다.",
+        "empty": {
+          "title": "아직 샘플이 없습니다",
+          "description": "직접 쓴 문단 몇 개를 붙여 넣으면, 다시 쓸 때 당신의 어휘와 문장 길이, 격식 수준을 따릅니다.",
+          "action": "샘플 추가"
+        }
+      }
+    },
+    "hud": {
+      "enabledLabel": "대기 알약 표시",
+      "enabledDescription": "받아쓰기 사이에 화면에 작은 알약을 남깁니다. 클릭하면 시작하고, 우클릭하면 모드를 바꿉니다.",
+      "positionLabel": "대기 알약 위치",
+      "positionDescription": "대기 알약이 화면의 어느 가장자리에 놓이는지.",
+      "positionTop": "위",
+      "positionBottom": "아래"
     }
   },
   "common": {
@@ -1737,7 +1841,10 @@
     "noOptionsFound": "옵션을 찾을 수 없습니다",
     "save": "Save",
     "saving": "Saving…",
-    "retry": "Retry"
+    "retry": "Retry",
+    "play": "재생",
+    "pause": "일시정지",
+    "seek": "재생 위치"
   },
   "commandPalette": {
     "open": "검색",
@@ -1768,14 +1875,17 @@
       "macos": "시스템 설정 → 개인 정보 보호 및 보안 → 마이크에서 마이크 접근을 허용하세요.",
       "linux": "시스템의 소리 또는 개인 정보 설정에서 마이크 접근을 허용하세요."
     },
-    "noInputDeviceTitle": "마이크를 찾을 수 없음",
+    "noInputDeviceTitle": "마이크를 찾을 수 없습니다",
     "noInputDevice": "오디오 입력 장치가 감지되지 않았습니다. 마이크 또는 헤드셋을 연결한 후 다시 시도해 주세요.",
-    "recordingFailed": "녹음을 시작하지 못했습니다: {{error}}",
-    "modelLoadFailed": "모델을 불러오지 못했습니다: {{model}}",
+    "recordingFailed": "녹음을 시작할 수 없습니다: {{error}}. 다시 시도하세요.",
+    "modelLoadFailed": "{{model}}을 불러올 수 없습니다. 다시 시도하세요.",
     "modelLoadFailedUnknown": "알 수 없는 모델",
-    "pasteFailedTitle": "텍스트 붙여넣기 실패",
-    "pasteFailed": "활성 애플리케이션에 텍스트를 붙여넣을 수 없습니다.",
-    "transcriptionFailedTitle": "음성 인식 실패"
+    "pasteFailedTitle": "기록을 붙여 넣을 수 없습니다",
+    "pasteFailed": "텍스트를 활성 앱에 붙여 넣을 수 없습니다. 텍스트 입력란에 초점을 두고 다시 시도하세요.",
+    "transcriptionFailedTitle": "기록할 수 없습니다",
+    "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
+    "commandNoSelection": "아무것도 선택되지 않았습니다. 바꾸고 싶은 텍스트를 선택한 다음, 명령 단축키를 누른 채로 무엇을 할지 말하세요.",
+    "commandRewriteUnavailable": "다시 쓰기가 아무것도 돌려주지 않아 선택 영역은 그대로 남았습니다. 설정 > AI에서 다시 쓰기 모델을 확인하고 다시 시도하세요."
   },
   "appLanguage": {
     "title": "애플리케이션 언어",
@@ -1794,7 +1904,13 @@
     "transcribing": "텍스트로 변환 중...",
     "processing": "처리 중...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model"
+    "localFallback": "Offline, using local model",
+    "hud": {
+      "idle": "준비됨",
+      "toggle": "{{mode}}에서 받아쓰기 시작",
+      "hint": "클릭하면 받아쓰기, 우클릭하면 모드",
+      "modes": "모드 전환"
+    }
   },
   "whatsNew": {
     "title": "Sona v{{version}}의 새 소식"
@@ -1875,79 +1991,38 @@
         "cancelled": "Processing cancelled"
       }
     },
-    "readiness": {
-      "ready": "Ready",
-      "unavailable": "Unavailable",
-      "local": "Local only",
-      "needsAcknowledgement": "Acknowledgement required"
-    },
     "actions": {
       "back": "Back",
       "delete": "Delete meeting",
       "discard": "Discard",
-      "newMeeting": "New meeting",
       "pause": "Pause",
       "refresh": "Refresh",
       "resume": "Resume",
       "retry": "Try again",
-      "startLocal": "Start local notes",
       "stop": "Stop"
     },
     "detected": {
       "title": "Meeting detected",
-      "description": "Sona only offers a setup screen. It is not recording.",
-      "mayBeActive": "A meeting may be active in {{provider}}.",
-      "notRecording": "Sona is not recording."
+      "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
-      "title": "Start local notes",
-      "suggestedDescription": "Sona detected {{provider}}. Review the capture setup before recording.",
-      "manualDescription": "Set the sources and policy for a new local meeting note.",
-      "identity": "Meeting details",
-      "meetingTitle": "Meeting title",
-      "meetingTitlePlaceholder": "Untitled meeting",
       "captureSources": "Capture sources",
       "captureSourcesDescription": "Each source stays separate so missing audio remains visible.",
-      "sourcePolicy": "If a source is unavailable",
-      "sourcePolicyDescription": "Choose whether setup stops or starts with an explicit partial record.",
-      "strict": "Strict: stop setup if a required source is unavailable",
-      "continuePartial": "Continue partial: start only after I acknowledge the missing source",
       "processing": "Processing route",
-      "localProcessing": "On this Mac",
-      "localProcessingDescription": "Audio, transcript, notes, search, and Q&A stay local.",
-      "selected": "Selected",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination selected",
       "localOnly": "Local only",
-      "check": "Check recording setup",
-      "checking": "Checking setup…",
       "defaultTitle": "Local notes",
       "remoteUnavailable": "이 빌드에서는 원격 처리를 사용할 수 없으므로 모든 회의가 이 Mac에서 전사되고 요약됩니다."
     },
     "preflight": {
-      "title": "Check recording setup",
-      "description": "Review each local capability before authorizing capture.",
-      "summary": "Meeting setup summary",
-      "meeting": "Meeting",
-      "changeSetup": "Change setup",
-      "readiness": "Readiness",
-      "readinessDescription": "Each row reports the current backend check.",
       "storage": "Storage",
       "storageAvailable": "Encrypted meeting storage is available.",
       "storageUnavailable": "Encrypted meeting storage is unavailable.",
       "localModel": "Local model",
       "localModelDescription": "Processing remains local when a local model is available.",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination is selected.",
-      "remoteSelected": "Selected destination: {{destination}}",
-      "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
       "starting": "Starting visible capture…",
       "refreshing": "확인 중…"
     },
     "consent": {
-      "title": "Recording acknowledgement",
-      "description": "Sona will show a visible capture state. Audio, transcript, and notes stay on this Mac unless you explicitly select a remote destination.",
-      "acknowledge": "I have permission to capture this meeting.",
       "continuePartial": "I want to continue with a partial meeting record.",
       "acceptMissing": "I understand {{source}} is {{state}} and this meeting will be partial."
     },
@@ -2039,7 +2114,7 @@
     },
     "errors": {
       "load": "Sona could not load the current meeting data.",
-      "operation": "Sona could not complete that meeting action.",
+      "operation": "그 미팅 작업을 완료할 수 없습니다. 다시 시도하세요.",
       "operationRejected": "The meeting action was rejected.",
       "consent_required": "Confirm the recording acknowledgement before starting.",
       "consent_stale": "The setup changed. Review it again before starting.",
@@ -2110,12 +2185,12 @@
       "regenerate": "Regenerate",
       "remoteCancellationPending": "Remote cancellation is pending. Local deletion does not claim the remote copy is deleted.",
       "cancelRemote": "Cancel remote processing",
-      "remoteCancellationRequested": "Remote cancellation requested.",
+      "remoteCancellationRequested": "취소를 요청했습니다",
       "export": "Export",
       "exportDescription": "Each export uses an immutable local review snapshot and opens a native save dialog.",
       "exportMarkdown": "Export Markdown",
       "exportJson": "Export JSON",
-      "exportComplete": "Export completed.",
+      "exportComplete": "미팅을 내보냈습니다",
       "citation": "Transcript {{time}}",
       "noGeneratedNotes": "No generated notes are available yet.",
       "template": "Template: {{template}}",
@@ -2166,7 +2241,8 @@
         "transcript": "전사"
       },
       "tabsLabel": "회의 검토 섹션",
-      "youAsked": "내 질문"
+      "youAsked": "내 질문",
+      "actionDone": "이 실행 항목을 완료로 표시"
     },
     "artifactState": {
       "current": "Current",
@@ -2215,6 +2291,138 @@
     "status": {
       "gapCount": "공백: {{total}}",
       "required": "필수"
+    },
+    "start": {
+      "label": "미팅 시작",
+      "action": "녹음 시작",
+      "starting": "시작 중…",
+      "assurance": "Mac의 소리를 로컬에 기록합니다. 통화에 참여하는 것은 없습니다.",
+      "capture": "수집",
+      "noSources": "소스를 하나 이상 선택하세요.",
+      "localOnly": "로컬 전용",
+      "retention": "보관: {{policy}}"
+    },
+    "gate": {
+      "title": "녹음이 시작되지 않았습니다",
+      "description": "Sona가 미팅을 만들었지만, 기록하도록 지정된 소스를 쓸 수 없습니다.",
+      "readyTitle": "녹음 준비 완료",
+      "readyDescription": "이 미팅을 수집하는 데 막는 것이 없습니다.",
+      "recordAnyway": "그것 없이 녹음",
+      "recordAnywayHint": "기록은 부분적이라고 표시되고, 빠진 소스는 기록 안에 이름으로 남습니다."
+    },
+    "analytics": {
+      "title": "대화",
+      "description": "이 Mac에서 화자를 나눈 기록으로 계산했습니다. 어디로도 전송되지 않습니다.",
+      "noSpeech": "기록된 발화가 없어 측정할 것이 없습니다.",
+      "talkShare": "가장 많이 말한 사람",
+      "longestMonologue": "가장 긴 독백",
+      "patience": "여유",
+      "patienceDetail": "답하기 전 멈춤의 중앙값",
+      "interactions": "발언 넘김",
+      "turns": "{{count}}번의 발언",
+      "turns_one": "{{count}}번의 발언",
+      "speakerDetail": "{{time}} · {{turns}}",
+      "unknownSpeaker": "알 수 없는 화자",
+      "trackers": "트래커",
+      "hits": "{{count}}번 언급",
+      "hits_one": "{{count}}번 언급",
+      "noHits": "언급되지 않음",
+      "jumpToFirst": "첫 번째 보기",
+      "trackersTitle": "키워드 트래커",
+      "trackersDescription": "모든 미팅 기록에서 지켜볼 표현입니다. 일치는 글자 그대로이고 대소문자를 구분하지 않으며, 모든 검사는 이 Mac에서 실행됩니다.",
+      "addTracker": "트래커 추가",
+      "removeTracker": "트래커 제거",
+      "noTrackers": "아직 트래커가 없습니다. 하나 추가하면 표현이 얼마나 자주 나오는지 세기 시작합니다.",
+      "trackerName": "이름",
+      "trackerPatterns": "할인, 최저가, 너무 비싸다",
+      "trackerPatternsLabel": "쉼표로 구분한 표현",
+      "trackersSaveFailed": "Sona가 트래커를 저장할 수 없었습니다. 하나를 바꾸고 다시 시도하세요."
+    },
+    "notes": {
+      "title": "내 메모",
+      "liveDescription": "원하는 만큼 거칠게 쓰세요. 이 메모는 이 Mac에 남고, 미팅이 끝날 때 Sona가 만드는 메모를 이끕니다.",
+      "reviewDescription": "당신의 메모가 생성된 메모의 강조점을 이끕니다. 인용되거나 출처로 제시되는 일은 없습니다.",
+      "placeholder": "기억해 둘 만한 모든 것 — 이름, 숫자, 이어서 챙길 일",
+      "unsaved": "아직 저장되지 않음",
+      "saving": "저장 중…",
+      "saved": "메모를 저장했습니다",
+      "conflict": "이 메모는 다른 곳에서 바뀌었습니다. 미팅을 다시 열어 현재 버전을 불러오세요.",
+      "reenhance": "내 메모로 다시 다듬기",
+      "enhancing": "다시 만드는 중…",
+      "enhanced": "메모를 다시 만들었습니다.",
+      "enhanceFailed": "Sona가 메모를 다시 만들 수 없었습니다. 미팅을 다시 열고 재시도하세요.",
+      "catchUp": "지금까지 정리해 줘",
+      "catchingUp": "정리 중…",
+      "catchUpTitle": "지금까지",
+      "catchUpNoTranscript": "아직 정리할 것이 없습니다. Sona는 녹음을 멈춘 뒤에 기록하므로, 기록이 도착하기 시작하면 정리를 쓸 수 있습니다.",
+      "catchUpUnavailable": "기기 내 모델을 쓸 수 없어 정리가 작성되지 않았습니다.",
+      "catchUpFailed": "Sona가 정리를 만들 수 없었습니다. 잠시 후 다시 시도하세요.",
+      "templates": {
+        "general": "일반 미팅",
+        "one_on_one": "일대일",
+        "interview": "면접",
+        "sales_call": "영업 통화",
+        "standup": "스탠드업"
+      }
+    },
+    "detection": {
+      "title": "미팅 감지",
+      "description": "Sona는 통화를 살피고 메모를 대신 쓰겠다고 제안합니다. 스스로 녹음하는 일은 결코 없습니다.",
+      "loading": "감지 상태를 읽는 중…",
+      "prompt": {
+        "calendar": "{{title}} 시작",
+        "app": "{{app}} 미팅을 감지했습니다",
+        "huddle": "{{app}} 허들을 감지했습니다",
+        "browser": "{{app}}에서 통화를 감지했습니다",
+        "unknown": "마이크 활동을 감지했습니다",
+        "body": "Sona가 이 통화의 메모를 로컬에 쓸 수 있습니다."
+      },
+      "actions": {
+        "start": "기록 시작",
+        "dismiss": "닫기"
+      },
+      "pane": {
+        "title": "곧 시작",
+        "description": "여기서 시작하기 전까지 Sona는 녹음하지 않습니다.",
+        "countdown": "{{seconds}}초 후 시작",
+        "notYetRecording": "녹음하지 않음"
+      },
+      "calendar": {
+        "label": "내 캘린더 사용",
+        "description": "참석자가 두 명 이상인 일정 1분 전에 카운트다운을 보여 줍니다. Apple이 읽기 전용 권한을 제공하지 않으므로, macOS는 처음에 캘린더 전체 접근을 요청합니다."
+      },
+      "anyMic": {
+        "label": "마이크를 쓸 때마다 묻기",
+        "description": "음성 메모, 음악 앱, 그 밖에 마이크를 여는 모든 것을 포함합니다. 끄면 알림이 알려진 미팅 앱으로만 제한됩니다."
+      },
+      "autoStart": {
+        "label": "카운트다운이 보일 때 미팅 열기",
+        "description": "이미 카운트다운을 보고 있는 동안 일정이 시작되면 알림을 건너뜁니다. 무엇을 녹음할지는 여전히 당신이 확인합니다."
+      },
+      "apps": {
+        "label": "미팅 앱",
+        "description": "한 줄에 번들 식별자 하나. 항목은 그 앱이 실행 중일 때만 세어지므로, 이름이 바뀐 식별자는 틀린 것이 아니라 무효가 됩니다.",
+        "running": "지금 실행 중: {{apps}}",
+        "noneRunning": "지금은 이 중 아무것도 실행되지 않습니다."
+      },
+      "state": {
+        "title": "감지가 볼 수 있는 것",
+        "description": "감지는 대부분의 시간 조용합니다. 그 이유입니다.",
+        "calendarDenied": "캘린더 접근이 허용되지 않아 마이크 경로만 작동합니다.",
+        "notificationsDenied": "Sona의 알림이 꺼져 있어 안내가 앱 안에만 표시됩니다.",
+        "bluetoothCaveat": "미팅 앱이 열려 있지만 마이크 사용을 알리는 것이 없습니다. Bluetooth 헤드셋은 흔히 알리지 않으니, 진행 중이라면 직접 미팅을 시작하세요.",
+        "noSilenceStop": "수집은 일정 종료, 앱 종료, 잠자기, 또는 당신이 멈출 때 끝납니다. 무음 타이머에는 진행 중 기록이 필요하고, 그것은 미팅이 끝난 뒤에 실행됩니다."
+      },
+      "why": {
+        "disabled": "감지가 꺼져 있습니다.",
+        "sonaHoldsMic": "Sona가 마이크를 쓰고 있어 지금은 다른 것을 알아낼 수 없습니다.",
+        "captureActive": "이미 미팅을 수집하고 있습니다.",
+        "noSignal": "아직 마이크를 쓰는 것이 없습니다.",
+        "soloEvent": "다음 일정의 참석자가 두 명 미만이어서 확보한 시간으로 읽힙니다.",
+        "unknownApp": "무언가 마이크를 쓰고 있지만, 알려진 미팅 앱은 아닙니다.",
+        "browserUnreadable": "브라우저가 앞에 있지만 탭 제목을 읽을 수 없습니다.",
+        "browserNotMeeting": "브라우저가 앞에 있고 그 탭은 통화가 아닙니다."
+      }
     }
   },
   "agentPanel": {
@@ -2292,7 +2500,15 @@
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "모드: {{name}}",
-      "setShortcut": "설정에서 받아쓰기 단축키를 지정하면 어느 앱에서든 캡처할 수 있습니다."
+      "setShortcut": "설정에서 받아쓰기 단축키를 지정하면 어느 앱에서든 캡처할 수 있습니다.",
+      "setShortcutAction": "단축키 설정",
+      "shortcutAction": "받아쓰기 단축키 변경",
+      "holdHint": "눌러서 전환, 누른 채로 말하기",
+      "facts": {
+        "mode": "모드",
+        "model": "모델",
+        "engine": "엔진"
+      }
     },
     "actions": {
       "dictate": "Dictate",

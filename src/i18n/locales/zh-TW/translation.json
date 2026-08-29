@@ -120,7 +120,7 @@
       }
     },
     "errors": {
-      "selectModel": "選擇模型失敗"
+      "selectModel": "無法選擇模型。請重試。"
     },
     "permissions": {
       "title": "需要權限",
@@ -138,10 +138,15 @@
       "waiting": "等待中...",
       "allGranted": "全部完成！",
       "errors": {
-        "checkFailed": "檢查權限失敗，請重試",
-        "requestFailed": "請求權限失敗，請重試"
-      }
-    }
+        "checkFailed": "無法檢查權限。請重試。",
+        "requestFailed": "無法請求權限。請重試。"
+      },
+      "headline": "一次性設定",
+      "subhead": "任何應用程式要聽你說話或替你輸入之前，電腦都會先詢問。授予一次，Sona 就不會再問。",
+      "checking": "正在檢查權限",
+      "recheck": "重新檢查"
+    },
+    "headline": "選擇一個語音模型"
   },
   "modelSelector": {
     "custom": "自訂",
@@ -190,7 +195,7 @@
         "loading": "載入快捷鍵中...",
         "none": "未設定快捷鍵",
         "notFound": "未找到快捷鍵",
-        "pressKeys": "請按鍵...",
+        "pressKeys": "按下你的按鍵…",
         "bindings": {
           "transcribe": {
             "name": "轉錄快捷鍵",
@@ -203,13 +208,21 @@
           "transcribe_with_post_process": {
             "name": "後處理快捷鍵",
             "description": "可選：專用快捷鍵，使用時一律對轉錄結果套用 AI 後處理"
+          },
+          "command": {
+            "name": "命令快速鍵",
+            "description": "依照口述指令改寫所選文字的鍵盤快速鍵。"
           }
         },
         "errors": {
-          "restore": "無法還原原始快捷鍵",
+          "restore": "無法還原原本的快速鍵。請重試。",
           "set": "無法設定快捷鍵: {{error}}",
-          "reset": "無法將快捷鍵重設為原始值"
-        }
+          "reset": "無法重設快速鍵。請重試。"
+        },
+        "holdHint": "輕按切換，長按說話。適用於任何快速鍵。",
+        "recordAction": "為 {{binding}} 錄製新的快速鍵",
+        "recordHint": "點按開始錄製",
+        "unset": "未設定"
       },
       "language": {
         "title": "語言",
@@ -226,7 +239,11 @@
         "description": "介面語言與色彩配置。兩者皆立即生效。",
         "title": "外觀"
       },
-      "description": "你按的按鍵、Sona 聆聽的麥克風，以及 App 的外觀。"
+      "description": "你按的按鍵、Sona 聆聽的麥克風，以及 App 的外觀。",
+      "commandMode": {
+        "label": "語音命令模式",
+        "description": "按住命令快速鍵，說出所選文字要如何修改。"
+      }
     },
     "models": {
       "title": "轉錄模型",
@@ -321,9 +338,9 @@
         "notDownloaded": "未下載"
       },
       "summary": {
-        "active": "使用中：{{name}}",
         "noActive": "未選取模型",
-        "onDisk": "磁碟上有 {{total}} 個"
+        "activeLabel": "目前模型",
+        "onDiskLabel": "已在磁碟"
       }
     },
     "sound": {
@@ -493,9 +510,9 @@
         "remove": "移除 {{spoken}}",
         "import": "匯入 CSV",
         "export": "匯出 CSV",
-        "importError": "無法匯入詞彙 CSV。",
-        "exportError": "無法匯出詞彙 CSV。",
-        "saveError": "無法儲存詞彙。",
+        "importError": "無法匯入詞彙 CSV。請檢查檔案後重試。",
+        "exportError": "無法匯出詞彙 CSV。請重試。",
+        "saveError": "無法儲存詞彙。請重試。",
         "imported": "詞彙已匯入",
         "errors": {
           "incomplete": "請同時輸入口述片語和書面文字。",
@@ -523,7 +540,7 @@
         "actions": "Vocabulary actions",
         "audioImport": {
           "errors": {
-            "start": "Couldn't start the audio import."
+            "start": "無法開始匯入音訊。請重試。"
           },
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
@@ -534,7 +551,8 @@
           "title": "尚無詞彙規則"
         },
         "sources": "你在資料庫中從逐字稿儲存的更正會加入此列表。單一模式的規則存放在該模式自己的詞彙中。",
-        "unsaved": "未儲存的變更"
+        "unsaved": "未儲存的變更",
+        "csvLabel": "CSV"
       },
       "voiceActivityDetection": {
         "title": "語音活動偵測",
@@ -558,8 +576,8 @@
         "save": "儲存表情符號替換",
         "saved": "表情符號替換已儲存",
         "remove": "移除 {{spoken}}",
-        "saveError": "無法儲存表情符號替換。",
-        "toggleError": "無法變更表情符號替換。",
+        "saveError": "無法儲存表情符號替換。請重試。",
+        "toggleError": "無法修改表情符號替換。請重試。",
         "errors": {
           "incomplete": "請同時輸入口述片語和表情符號文字。",
           "duplicate": "這個表情符號替換已存在。",
@@ -729,9 +747,9 @@
       "save": "儲存轉錄",
       "unsave": "從已儲存中移除",
       "delete": "刪除條目",
-      "deleteError": "刪除條目失敗，請重試",
+      "deleteError": "無法刪除該項目。請重試。",
       "retranscribe": "重新轉錄",
-      "retranscribeError": "重新轉錄失敗，請重試。",
+      "retranscribeError": "無法重新轉錄。請重試。",
       "transcribing": "轉錄中...",
       "transcriptionFailed": "轉錄失敗。您可以使用重試圖示重新轉錄。",
       "search": "搜尋歷史",
@@ -739,7 +757,7 @@
       "noResults": "沒有轉錄與\"{{query}}\"相符。",
       "loadError": "無法載入歷史。",
       "retry": "重試",
-      "saveError": "無法更新保存狀態。",
+      "saveError": "無法更新儲存狀態。請重試。",
       "postProcessEmpty": "後處理未返回文字。顯示原始轉錄。",
       "textView": {
         "label": "轉錄檢視",
@@ -818,6 +836,12 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "columns": {
+          "source": "來源",
+          "status": "狀態",
+          "method": "方式",
+          "outcome": "結果"
         }
       },
       "correction": {
@@ -834,7 +858,7 @@
         "global": "All modes",
         "save": "Save correction",
         "saved": "Vocabulary correction saved",
-        "saveError": "Could not save vocabulary correction."
+        "saveError": "無法儲存校正。請重試。"
       },
       "audioImport": {
         "start": "轉錄檔案",
@@ -861,7 +885,7 @@
           "history": "無法將轉錄內容儲存到歷史紀錄。"
         },
         "errors": {
-          "start": "無法開始檔案匯入。",
+          "start": "無法開始匯入檔案。請重試。",
           "cancel": "無法取消檔案匯入。",
           "load": "無法載入檔案匯入狀態。"
         },
@@ -889,7 +913,17 @@
       "noResultsHint": "搜尋會比對原始與處理後逐字稿中的完整單字。",
       "results": "{{count}} 個符合項目",
       "resultsMore": "{{count}}+ 個符合項目",
-      "resultsNone": "沒有符合項目"
+      "resultsNone": "沒有符合項目",
+      "processAgain": {
+        "action": "再處理一次",
+        "title": "再處理一次",
+        "description": "用另一個模式重新跑一次這段錄音。原項目保留，結果另存為新項目。",
+        "placeholder": "選擇一個模式",
+        "confirm": "處理",
+        "started": "已開始重新處理",
+        "modeLabel": "模式"
+      },
+      "derivedFrom": "來自更早的一次錄音"
     },
     "debug": {
       "title": "偵錯",
@@ -1006,7 +1040,7 @@
         "description": "開啟最新內建版本資訊，且不標記為已看過",
         "button": "預覽",
         "noNotes": "找不到內建版本資訊",
-        "error": "無法預覽版本資訊"
+        "error": "無法預覽發行說明。請重試。"
       },
       "description": "檢測工具與不受支援的選項。因偵錯模式已開啟而顯示。",
       "groups": {
@@ -1196,7 +1230,9 @@
         "noModelSelected": "No model selected",
         "model": {
           "label": "Transcription model",
-          "description": "Only downloaded local models are available here."
+          "description": "Only downloaded local models are available here.",
+          "inheritGlobal": "預設 — 使用全域模型",
+          "inheritGlobalNamed": "預設 — 使用全域模型（{{name}}）"
         },
         "language": {
           "label": "Language",
@@ -1724,6 +1760,74 @@
         "about": "About",
         "debug": "Debug"
       }
+    },
+    "vocabulary": {
+      "replacements": {
+        "title": "口述替換",
+        "description": "Sona 會改寫成精確文字的詞語。這裡的修改只影響之後的轉錄，絕不影響已寫出的文字。",
+        "enabledLabel": "啟用口述替換",
+        "enabledDescription": "在詞彙校正執行之前，把「小老鼠」這類口述詞語改寫成符號。",
+        "offState": "口述替換已關閉。規則仍然保存著，一旦重新開啟就會再次生效。",
+        "spoken": "你說",
+        "written": "Sona 寫",
+        "applyColumn": "套用",
+        "actionsColumn": "動作",
+        "spokenPlaceholder": "小老鼠",
+        "writtenPlaceholder": "@",
+        "add": "新增規則",
+        "reset": "還原預設值",
+        "ruleEnabled": "套用 {{spoken}}",
+        "delete": "刪除 {{spoken}}",
+        "loading": "正在載入替換",
+        "loadError": "無法載入替換。",
+        "matching": "詞語以整詞比對且不分大小寫。當兩條規則命中同一處時較長者勝出，替換在詞彙校正之前執行。",
+        "errors": {
+          "duplicate": "另一條規則已經使用這個詞語。",
+          "incomplete": "請同時填寫口述詞語和它的替換文字。"
+        },
+        "empty": {
+          "title": "沒有替換",
+          "description": "新增一個像「小老鼠」這樣的詞語，你每次這樣說，Sona 就寫出 @。",
+          "action": "還原初始規則"
+        },
+        "confirmDelete": {
+          "title": "要刪除 {{spoken}} 嗎？",
+          "description": "該詞語在之後的轉錄中不再被改寫。已寫出的文字不變。",
+          "body": "{{spoken}} 目前會變成 {{written}}。"
+        },
+        "confirmReset": {
+          "title": "要還原預設規則嗎？",
+          "description": "你新增或編輯的每條規則都會被丟棄，隨附的初始規則組會回來。"
+        }
+      }
+    },
+    "prompts": {
+      "samples": {
+        "title": "書寫範例",
+        "description": "你自己寫的文字範例。每個會改寫轉錄的模式都會貼合它們的語氣。",
+        "placeholder": "貼上一段你自己寫的文字。",
+        "sampleLabel": "書寫範例 {{number}}",
+        "delete": "刪除範例 {{number}}",
+        "add": "新增範例",
+        "wordCount": "{{max}} 個字中的 {{words}} 個",
+        "overLimit": "{{words}} 個字。只使用前 {{max}} 個。",
+        "privacy": "範例只會去轉錄本身已經會去的地方，不會去任何別處。最多使用 {{max}} 個範例。",
+        "loading": "正在載入範例",
+        "loadError": "無法載入範例。",
+        "empty": {
+          "title": "還沒有範例",
+          "description": "貼上幾段你自己寫的文字，改寫就會跟隨你的用詞、句子長度和正式程度。",
+          "action": "新增範例"
+        }
+      }
+    },
+    "hud": {
+      "enabledLabel": "顯示待機藥丸",
+      "enabledDescription": "在兩次口述之間，在螢幕上保留一個小藥丸。點按開始，按右鍵切換模式。",
+      "positionLabel": "待機藥丸位置",
+      "positionDescription": "待機藥丸停在螢幕的哪一邊。",
+      "positionTop": "上方",
+      "positionBottom": "下方"
     }
   },
   "common": {
@@ -1737,7 +1841,10 @@
     "noOptionsFound": "未找到選項",
     "save": "Save",
     "saving": "Saving…",
-    "retry": "Retry"
+    "retry": "Retry",
+    "play": "播放",
+    "pause": "暫停",
+    "seek": "播放位置"
   },
   "commandPalette": {
     "open": "搜尋",
@@ -1770,12 +1877,15 @@
     },
     "noInputDeviceTitle": "找不到麥克風",
     "noInputDevice": "未偵測到音訊輸入裝置。請連接麥克風或耳機後重試。",
-    "recordingFailed": "錄音啟動失敗: {{error}}",
-    "modelLoadFailed": "載入模型失敗: {{model}}",
+    "recordingFailed": "無法開始錄音：{{error}}。請重試。",
+    "modelLoadFailed": "無法載入 {{model}}。請重試。",
     "modelLoadFailedUnknown": "未知模型",
-    "pasteFailedTitle": "貼上文字失敗",
-    "pasteFailed": "無法將文字貼上至目前作用中的應用程式。",
-    "transcriptionFailedTitle": "轉錄失敗"
+    "pasteFailedTitle": "無法貼上轉錄文字",
+    "pasteFailed": "文字無法貼到目前的應用程式。請把游標放到文字欄位中再重試。",
+    "transcriptionFailedTitle": "無法轉錄",
+    "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
+    "commandNoSelection": "當時沒有選取任何內容。選取你要修改的文字，然後按住命令快速鍵，說出要做什麼。",
+    "commandRewriteUnavailable": "改寫沒有回傳任何內容，所選文字保持原樣。請在「設定 > AI」中檢查改寫模型後重試。"
   },
   "appLanguage": {
     "title": "應用程式語言",
@@ -1794,7 +1904,13 @@
     "transcribing": "正在轉錄...",
     "processing": "處理中...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model"
+    "localFallback": "Offline, using local model",
+    "hud": {
+      "idle": "就緒",
+      "toggle": "以 {{mode}} 開始口述",
+      "hint": "點按開始口述，按右鍵選擇模式",
+      "modes": "切換模式"
+    }
   },
   "whatsNew": {
     "title": "Sona v{{version}} 新功能"
@@ -1875,79 +1991,38 @@
         "cancelled": "Processing cancelled"
       }
     },
-    "readiness": {
-      "ready": "Ready",
-      "unavailable": "Unavailable",
-      "local": "Local only",
-      "needsAcknowledgement": "Acknowledgement required"
-    },
     "actions": {
       "back": "Back",
       "delete": "Delete meeting",
       "discard": "Discard",
-      "newMeeting": "New meeting",
       "pause": "Pause",
       "refresh": "Refresh",
       "resume": "Resume",
       "retry": "Try again",
-      "startLocal": "Start local notes",
       "stop": "Stop"
     },
     "detected": {
       "title": "Meeting detected",
-      "description": "Sona only offers a setup screen. It is not recording.",
-      "mayBeActive": "A meeting may be active in {{provider}}.",
-      "notRecording": "Sona is not recording."
+      "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
-      "title": "Start local notes",
-      "suggestedDescription": "Sona detected {{provider}}. Review the capture setup before recording.",
-      "manualDescription": "Set the sources and policy for a new local meeting note.",
-      "identity": "Meeting details",
-      "meetingTitle": "Meeting title",
-      "meetingTitlePlaceholder": "Untitled meeting",
       "captureSources": "Capture sources",
       "captureSourcesDescription": "Each source stays separate so missing audio remains visible.",
-      "sourcePolicy": "If a source is unavailable",
-      "sourcePolicyDescription": "Choose whether setup stops or starts with an explicit partial record.",
-      "strict": "Strict: stop setup if a required source is unavailable",
-      "continuePartial": "Continue partial: start only after I acknowledge the missing source",
       "processing": "Processing route",
-      "localProcessing": "On this Mac",
-      "localProcessingDescription": "Audio, transcript, notes, search, and Q&A stay local.",
-      "selected": "Selected",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination selected",
       "localOnly": "Local only",
-      "check": "Check recording setup",
-      "checking": "Checking setup…",
       "defaultTitle": "Local notes",
       "remoteUnavailable": "此版本無法使用遠端處理，因此每場會議都在這台 Mac 上轉錄與摘要。"
     },
     "preflight": {
-      "title": "Check recording setup",
-      "description": "Review each local capability before authorizing capture.",
-      "summary": "Meeting setup summary",
-      "meeting": "Meeting",
-      "changeSetup": "Change setup",
-      "readiness": "Readiness",
-      "readinessDescription": "Each row reports the current backend check.",
       "storage": "Storage",
       "storageAvailable": "Encrypted meeting storage is available.",
       "storageUnavailable": "Encrypted meeting storage is unavailable.",
       "localModel": "Local model",
       "localModelDescription": "Processing remains local when a local model is available.",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination is selected.",
-      "remoteSelected": "Selected destination: {{destination}}",
-      "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
       "starting": "Starting visible capture…",
       "refreshing": "正在檢查…"
     },
     "consent": {
-      "title": "Recording acknowledgement",
-      "description": "Sona will show a visible capture state. Audio, transcript, and notes stay on this Mac unless you explicitly select a remote destination.",
-      "acknowledge": "I have permission to capture this meeting.",
       "continuePartial": "I want to continue with a partial meeting record.",
       "acceptMissing": "I understand {{source}} is {{state}} and this meeting will be partial."
     },
@@ -2039,7 +2114,7 @@
     },
     "errors": {
       "load": "Sona could not load the current meeting data.",
-      "operation": "Sona could not complete that meeting action.",
+      "operation": "無法完成該會議動作。請重試。",
       "operationRejected": "The meeting action was rejected.",
       "consent_required": "Confirm the recording acknowledgement before starting.",
       "consent_stale": "The setup changed. Review it again before starting.",
@@ -2110,12 +2185,12 @@
       "regenerate": "Regenerate",
       "remoteCancellationPending": "Remote cancellation is pending. Local deletion does not claim the remote copy is deleted.",
       "cancelRemote": "Cancel remote processing",
-      "remoteCancellationRequested": "Remote cancellation requested.",
+      "remoteCancellationRequested": "已請求取消",
       "export": "Export",
       "exportDescription": "Each export uses an immutable local review snapshot and opens a native save dialog.",
       "exportMarkdown": "Export Markdown",
       "exportJson": "Export JSON",
-      "exportComplete": "Export completed.",
+      "exportComplete": "會議已匯出",
       "citation": "Transcript {{time}}",
       "noGeneratedNotes": "No generated notes are available yet.",
       "template": "Template: {{template}}",
@@ -2166,7 +2241,8 @@
         "transcript": "逐字稿"
       },
       "tabsLabel": "會議回顧區段",
-      "youAsked": "你的提問"
+      "youAsked": "你的提問",
+      "actionDone": "把這條行動項目標記為完成"
     },
     "artifactState": {
       "current": "Current",
@@ -2215,6 +2291,138 @@
     "status": {
       "gapCount": "間隔：{{total}}",
       "required": "必要"
+    },
+    "start": {
+      "label": "開始一場會議",
+      "action": "開始錄製",
+      "starting": "正在啟動…",
+      "assurance": "在本機錄製你 Mac 的聲音。沒有任何東西加入通話。",
+      "capture": "擷取",
+      "noSources": "請至少選擇一個來源。",
+      "localOnly": "僅本機",
+      "retention": "保留：{{policy}}"
+    },
+    "gate": {
+      "title": "錄製沒有開始",
+      "description": "Sona 已建立會議，但一個指定要錄製的來源無法使用。",
+      "readyTitle": "可以開始錄製",
+      "readyDescription": "沒有任何東西阻礙這場會議的擷取。",
+      "recordAnyway": "不用它也錄製",
+      "recordAnywayHint": "該紀錄會被標記為部分完整，缺少的來源仍會在紀錄中被點名。"
+    },
+    "analytics": {
+      "title": "對話",
+      "description": "在這台 Mac 上，依據區分說話者的轉錄計算得出。沒有任何東西被送出去。",
+      "noSpeech": "沒有轉錄到任何語音，因此沒有可衡量的內容。",
+      "talkShare": "說得最多",
+      "longestMonologue": "最長的獨白",
+      "patience": "耐心",
+      "patienceDetail": "回話前停頓的中位數",
+      "interactions": "話輪交接",
+      "turns": "{{count}} 次發言",
+      "turns_one": "{{count}} 次發言",
+      "speakerDetail": "{{time}} · {{turns}}",
+      "unknownSpeaker": "未知說話者",
+      "trackers": "追蹤詞",
+      "hits": "{{count}} 次提及",
+      "hits_one": "{{count}} 次提及",
+      "noHits": "未被提及",
+      "jumpToFirst": "查看第一次",
+      "trackersTitle": "關鍵詞追蹤",
+      "trackersDescription": "在每一份會議轉錄中留意的詞語。比對是逐字的且不分大小寫，每次掃描都在這台 Mac 上執行。",
+      "addTracker": "新增追蹤詞",
+      "removeTracker": "移除追蹤詞",
+      "noTrackers": "還沒有追蹤詞。新增一個，開始統計某個詞語出現的頻率。",
+      "trackerName": "名稱",
+      "trackerPatterns": "折扣、最優價格、太貴了",
+      "trackerPatternsLabel": "以逗號分隔的詞語",
+      "trackersSaveFailed": "Sona 無法儲存追蹤詞。改動其中一個後重試。"
+    },
+    "notes": {
+      "title": "我的筆記",
+      "liveDescription": "想寫得多粗略都行。這些筆記留在這台 Mac 上，並會引導會議結束時 Sona 產生的筆記。",
+      "reviewDescription": "你自己的筆記會引導產生的筆記強調什麼。它們絕不會被引用或作為出處列出。",
+      "placeholder": "任何值得記下的東西 — 名字、數字、需要跟進的事",
+      "unsaved": "尚未儲存",
+      "saving": "正在儲存…",
+      "saved": "筆記已儲存",
+      "conflict": "這些筆記在別處被改動過。請重新開啟會議以載入目前版本。",
+      "reenhance": "用我的筆記再潤飾一次",
+      "enhancing": "正在重建…",
+      "enhanced": "筆記已重建。",
+      "enhanceFailed": "Sona 無法重建筆記。請重新開啟會議後再試。",
+      "catchUp": "幫我快速回顧",
+      "catchingUp": "正在回顧…",
+      "catchUpTitle": "目前為止",
+      "catchUpNoTranscript": "暫時沒有可回顧的內容。Sona 在你停止錄製之後才轉錄，所以轉錄開始送達時就會有回顧。",
+      "catchUpUnavailable": "裝置端模型無法使用，因此沒有寫出回顧。",
+      "catchUpFailed": "Sona 無法產生回顧。請稍後重試。",
+      "templates": {
+        "general": "一般會議",
+        "one_on_one": "一對一",
+        "interview": "面試",
+        "sales_call": "銷售通話",
+        "standup": "站立會議"
+      }
+    },
+    "detection": {
+      "title": "偵測會議",
+      "description": "Sona 會留意通話，並提議替你做筆記。它絕不會自己開始錄製。",
+      "loading": "正在讀取偵測狀態…",
+      "prompt": {
+        "calendar": "{{title}} 即將開始",
+        "app": "偵測到 {{app}} 會議",
+        "huddle": "偵測到 {{app}} 快聊",
+        "browser": "在 {{app}} 中偵測到通話",
+        "unknown": "偵測到麥克風活動",
+        "body": "Sona 可以為這次通話在本機做筆記。"
+      },
+      "actions": {
+        "start": "開始轉錄",
+        "dismiss": "忽略"
+      },
+      "pane": {
+        "title": "即將開始",
+        "description": "在你從這裡開始之前，Sona 不會錄製。",
+        "countdown": "{{seconds}} 秒後開始",
+        "notYetRecording": "未在錄製"
+      },
+      "calendar": {
+        "label": "使用我的行事曆",
+        "description": "在有兩位或更多參與者的行程開始前一分鐘顯示倒數。由於 Apple 不提供唯讀授權，macOS 首次會請求完整行事曆存取權限。"
+      },
+      "anyMic": {
+        "label": "任何使用麥克風時都詢問",
+        "description": "包括語音備忘錄、音樂應用程式，以及其他任何開啟麥克風的東西。關閉後，提示只限於已知的會議應用程式。"
+      },
+      "autoStart": {
+        "label": "倒數顯示時開啟會議",
+        "description": "當行程開始而你已經在看它的倒數時，跳過通知。要錄製什麼仍由你確認。"
+      },
+      "apps": {
+        "label": "會議應用程式",
+        "description": "每行一個 bundle 識別碼。項目只在那個應用程式執行時才計入，因此被改名的識別碼是失效而不是出錯。",
+        "running": "正在執行：{{apps}}",
+        "noneRunning": "這些現在都沒有執行。"
+      },
+      "state": {
+        "title": "偵測能看到什麼",
+        "description": "偵測大部分時間都很安靜。原因如下。",
+        "calendarDenied": "未授予行事曆存取權限，因此只有麥克風這條路徑在運作。",
+        "notificationsDenied": "Sona 的通知已關閉，因此提示只出現在應用程式內。",
+        "bluetoothCaveat": "會議應用程式已開啟，但沒有任何東西報告正在使用麥克風。藍牙耳機常常不報告，所以如果有會議正在進行，請自己開始錄製。",
+        "noSilenceStop": "擷取會在行程結束、應用程式結束、睡眠或你自己停止時結束。靜音計時器需要即時轉錄，而它只在會議結束之後執行。"
+      },
+      "why": {
+        "disabled": "偵測已關閉。",
+        "sonaHoldsMic": "Sona 正在使用麥克風，因此現在無法辨別其他任何東西。",
+        "captureActive": "已經在擷取一場會議。",
+        "noSignal": "還沒有任何東西在使用麥克風。",
+        "soloEvent": "下一個行程的參與者少於兩位，因此被讀作佔位時間。",
+        "unknownApp": "有東西在使用麥克風，但不是已知的會議應用程式。",
+        "browserUnreadable": "前景是瀏覽器，但無法讀取它的標籤頁標題。",
+        "browserNotMeeting": "前景是瀏覽器，且它的標籤頁不是通話。"
+      }
     }
   },
   "agentPanel": {
@@ -2292,7 +2500,15 @@
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "模式：{{name}}",
-      "setShortcut": "在「設定」中設定聽寫快捷鍵，即可從任何 App 擷取。"
+      "setShortcut": "在「設定」中設定聽寫快捷鍵，即可從任何 App 擷取。",
+      "setShortcutAction": "設定一個快速鍵",
+      "shortcutAction": "修改口述快速鍵",
+      "holdHint": "輕按切換，長按說話",
+      "facts": {
+        "mode": "模式",
+        "model": "模型",
+        "engine": "引擎"
+      }
     },
     "actions": {
       "dictate": "Dictate",

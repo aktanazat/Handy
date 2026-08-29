@@ -120,7 +120,7 @@
       }
     },
     "errors": {
-      "selectModel": "Kunne ikke vælge model"
+      "selectModel": "Kunne ikke vælge modellen. Prøv igen."
     },
     "permissions": {
       "title": "Tilladelser påkrævet",
@@ -138,10 +138,15 @@
       "waiting": "Venter...",
       "allGranted": "Alt er klar!",
       "errors": {
-        "checkFailed": "Kunne ikke tjekke tilladelser. Prøv igen.",
-        "requestFailed": "Kunne ikke anmode om tilladelse. Prøv igen."
-      }
-    }
+        "checkFailed": "Kunne ikke kontrollere tilladelserne. Prøv igen.",
+        "requestFailed": "Kunne ikke anmode om tilladelsen. Prøv igen."
+      },
+      "headline": "Engangsopsætning",
+      "subhead": "Din computer spørger, før nogen app må lytte eller skrive for dig. Giv disse tilladelser én gang, så spørger Sona ikke igen.",
+      "checking": "Kontrollerer tilladelser",
+      "recheck": "Kontrollér igen"
+    },
+    "headline": "Vælg en stemmemodel"
   },
   "modelSelector": {
     "custom": "Brugerdefineret",
@@ -190,7 +195,7 @@
         "loading": "Indlæser genveje...",
         "none": "Ingen genveje konfigureret",
         "notFound": "Genvej ikke fundet",
-        "pressKeys": "Tryk på ønskede taster...",
+        "pressKeys": "Tryk på dine taster…",
         "bindings": {
           "transcribe": {
             "name": "Transskriptionsgenvej",
@@ -203,13 +208,21 @@
           "transcribe_with_post_process": {
             "name": "Genvej til efterbehandling",
             "description": "Valgfrit: En dedikeret genvej, der altid anvender AI-efterbehandling på din transskription."
+          },
+          "command": {
+            "name": "Kommandogenvej",
+            "description": "Tastaturgenvejen, der omskriver den markerede tekst ud fra en talt instruktion."
           }
         },
         "errors": {
-          "restore": "Kunne ikke gendanne den oprindelige genvej",
+          "restore": "Kunne ikke gendanne den oprindelige genvej. Prøv igen.",
           "set": "Kunne ikke indstille genvej: {{error}}",
-          "reset": "Kunne ikke nulstille genvej til oprindelig indstilling"
-        }
+          "reset": "Kunne ikke nulstille genvejen. Prøv igen."
+        },
+        "holdHint": "Tryk for at skifte, hold for at tale. Virker med enhver genvej.",
+        "recordAction": "Optag en ny genvej til {{binding}}",
+        "recordHint": "Klik for at optage",
+        "unset": "Ikke angivet"
       },
       "language": {
         "title": "Sprog",
@@ -226,7 +239,11 @@
         "description": "Grænsefladens sprog og farveskema. Begge gælder med det samme.",
         "title": "Udseende"
       },
-      "description": "De taster du trykker på, den mikrofon Sona lytter til, og hvordan appen ser ud."
+      "description": "De taster du trykker på, den mikrofon Sona lytter til, og hvordan appen ser ud.",
+      "commandMode": {
+        "label": "Stemmekommandotilstand",
+        "description": "Hold kommandogenvejen nede og sig, hvad der skal ændres i den tekst, du har markeret."
+      }
     },
     "models": {
       "title": "Transskriptionsmodeller",
@@ -321,9 +338,9 @@
         "notDownloaded": "Ikke hentet"
       },
       "summary": {
-        "active": "Aktiv: {{name}}",
         "noActive": "Ingen model valgt",
-        "onDisk": "{{total}} på disk"
+        "activeLabel": "Aktiv model",
+        "onDiskLabel": "På disken"
       }
     },
     "sound": {
@@ -493,9 +510,9 @@
         "remove": "Fjern {{spoken}}",
         "import": "Importér CSV",
         "export": "Eksportér CSV",
-        "importError": "Kunne ikke importere CSV med ordforråd.",
-        "exportError": "Kunne ikke eksportere CSV med ordforråd.",
-        "saveError": "Kunne ikke gemme ordforråd.",
+        "importError": "Kunne ikke importere ordforråds-CSV'en. Kontrollér filen og prøv igen.",
+        "exportError": "Kunne ikke eksportere ordforråds-CSV'en. Prøv igen.",
+        "saveError": "Kunne ikke gemme ordforrådet. Prøv igen.",
         "imported": "Ordforråd importeret",
         "errors": {
           "incomplete": "Angiv både et talt udtryk og skrevet tekst.",
@@ -523,7 +540,7 @@
         "actions": "Vocabulary actions",
         "audioImport": {
           "errors": {
-            "start": "Couldn't start the audio import."
+            "start": "Kunne ikke starte lydimporten. Prøv igen."
           },
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
@@ -534,7 +551,8 @@
           "title": "Ingen ordforrådsregler endnu"
         },
         "sources": "Rettelser, du gemmer fra en transskription i biblioteket, havner på denne liste. Regler for en enkelt tilstand ligger i den tilstands eget ordforråd.",
-        "unsaved": "Ugemte ændringer"
+        "unsaved": "Ugemte ændringer",
+        "csvLabel": "CSV"
       },
       "voiceActivityDetection": {
         "title": "Stemmeaktivitetsdetektion",
@@ -558,8 +576,8 @@
         "save": "Gem emoji-erstatninger",
         "saved": "Emoji-erstatninger gemt",
         "remove": "Fjern {{spoken}}",
-        "saveError": "Kunne ikke gemme emoji-erstatninger.",
-        "toggleError": "Kunne ikke ændre emoji-erstatninger.",
+        "saveError": "Kunne ikke gemme emoji-erstatningerne. Prøv igen.",
+        "toggleError": "Kunne ikke ændre emoji-erstatningerne. Prøv igen.",
         "errors": {
           "incomplete": "Angiv både et talt udtryk og emojitekst.",
           "duplicate": "Denne emoji-erstatning findes allerede.",
@@ -731,7 +749,7 @@
       "delete": "Slet post",
       "deleteError": "Kunne ikke slette posten. Prøv igen.",
       "retranscribe": "Transskribér igen",
-      "retranscribeError": "Kunne ikke transskribere igen. Prøv igen.",
+      "retranscribeError": "Kunne ikke transkribere igen. Prøv igen.",
       "transcribing": "Transskriberer...",
       "transcriptionFailed": "Transskription mislykkedes. Du kan transskribere igen ved hjælp af genforsøgsikonet.",
       "search": "Søg i historik",
@@ -739,7 +757,7 @@
       "noResults": "Ingen transskriptioner matcher \"{{query}}\".",
       "loadError": "Kunne ikke indlæse historik.",
       "retry": "Prøv igen",
-      "saveError": "Kunne ikke opdatere gemt status.",
+      "saveError": "Kunne ikke opdatere gemt-status. Prøv igen.",
       "postProcessEmpty": "Efterbehandling returnerede ingen tekst. Viser den oprindelige transskription.",
       "textView": {
         "label": "Transskriptionsvisning",
@@ -818,6 +836,12 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "columns": {
+          "source": "Kilde",
+          "status": "Status",
+          "method": "Metode",
+          "outcome": "Resultat"
         }
       },
       "correction": {
@@ -834,7 +858,7 @@
         "global": "All modes",
         "save": "Save correction",
         "saved": "Vocabulary correction saved",
-        "saveError": "Could not save vocabulary correction."
+        "saveError": "Kunne ikke gemme korrektionen. Prøv igen."
       },
       "audioImport": {
         "start": "Transskriber fil",
@@ -861,7 +885,7 @@
           "history": "Transskriptionen kunne ikke gemmes i historikken."
         },
         "errors": {
-          "start": "Kunne ikke starte filimporten.",
+          "start": "Kunne ikke starte filimporten. Prøv igen.",
           "cancel": "Kunne ikke annullere filimporten.",
           "load": "Kunne ikke indlæse status for filimporten."
         },
@@ -889,7 +913,17 @@
       "noResultsHint": "Søgningen matcher hele ord i både den rå og den behandlede transskription.",
       "results": "{{count}} resultater",
       "resultsMore": "{{count}}+ resultater",
-      "resultsNone": "Ingen resultater"
+      "resultsNone": "Ingen resultater",
+      "processAgain": {
+        "action": "Behandl igen",
+        "title": "Behandl igen",
+        "description": "Kør denne optagelse gennem en anden tilstand. Den oprindelige post beholdes, og resultatet gemmes som en ny.",
+        "placeholder": "Vælg en tilstand",
+        "confirm": "Behandl",
+        "started": "Genbehandling startet",
+        "modeLabel": "Tilstand"
+      },
+      "derivedFrom": "Fra en tidligere optagelse"
     },
     "debug": {
       "title": "Fejlfinding",
@@ -917,7 +951,7 @@
         "description": "Åbn de seneste medfølgende udgivelsesnoter uden at markere dem som set",
         "button": "Forhåndsvisning",
         "noNotes": "Ingen medfølgende udgivelsesnoter fundet",
-        "error": "Kunne ikke forhåndsvise udgivelsesnoter"
+        "error": "Kunne ikke forhåndsvise udgivelsesnoterne. Prøv igen."
       },
       "soundTheme": {
         "label": "Lydtema",
@@ -1196,7 +1230,9 @@
         "noModelSelected": "No model selected",
         "model": {
           "label": "Transcription model",
-          "description": "Only downloaded local models are available here."
+          "description": "Only downloaded local models are available here.",
+          "inheritGlobal": "Standard – bruger den globale model",
+          "inheritGlobalNamed": "Standard – bruger den globale model ({{name}})"
         },
         "language": {
           "label": "Language",
@@ -1724,6 +1760,74 @@
         "about": "About",
         "debug": "Debug"
       }
+    },
+    "vocabulary": {
+      "replacements": {
+        "title": "Talte erstatninger",
+        "description": "Vendinger, som Sona omskriver til præcis tekst. Ændringer her gælder kun fremtidige transkriptioner, aldrig tekst der allerede er skrevet.",
+        "enabledLabel": "Aktivér talte erstatninger",
+        "enabledDescription": "Omskriv talte vendinger som snabel-a til symboler, før ordforrådskorrektionen kører.",
+        "offState": "Talte erstatninger er slået fra. Reglerne bliver gemt og gælder igen, så snart du slår dette til.",
+        "spoken": "Du siger",
+        "written": "Sona skriver",
+        "applyColumn": "Anvend",
+        "actionsColumn": "Handlinger",
+        "spokenPlaceholder": "snabel-a",
+        "writtenPlaceholder": "@",
+        "add": "Tilføj regel",
+        "reset": "Gendan standarder",
+        "ruleEnabled": "Anvend {{spoken}}",
+        "delete": "Slet {{spoken}}",
+        "loading": "Indlæser erstatninger",
+        "loadError": "Kunne ikke indlæse erstatningerne.",
+        "matching": "Vendinger matcher hele ord og ser bort fra store og små bogstaver. Når to regler passer på samme sted, vinder den længste, og erstatning kører før ordforrådskorrektionen.",
+        "errors": {
+          "duplicate": "En anden regel bruger allerede denne vending.",
+          "incomplete": "Angiv både en talt vending og dens erstatning."
+        },
+        "empty": {
+          "title": "Ingen erstatninger",
+          "description": "Tilføj en vending som snabel-a, så skriver Sona @ hver gang du siger den.",
+          "action": "Gendan startreglerne"
+        },
+        "confirmDelete": {
+          "title": "Slet {{spoken}}?",
+          "description": "Vendingen bliver ikke længere omskrevet i fremtidige transkriptioner. Tekst der allerede er skrevet, ændres ikke.",
+          "body": "{{spoken}} bliver lige nu {{written}}."
+        },
+        "confirmReset": {
+          "title": "Gendan standardreglerne?",
+          "description": "Hver regel du har tilføjet eller redigeret forkastes, og det medfølgende startsæt kommer tilbage."
+        }
+      }
+    },
+    "prompts": {
+      "samples": {
+        "title": "Skriveeksempler",
+        "description": "Eksempler på din egen skrivning. Hver tilstand, der omskriver en transkription, følger den tone.",
+        "placeholder": "Indsæt et afsnit du selv har skrevet.",
+        "sampleLabel": "Skriveeksempel {{number}}",
+        "delete": "Slet eksempel {{number}}",
+        "add": "Tilføj eksempel",
+        "wordCount": "{{words}} af {{max}} ord",
+        "overLimit": "{{words}} ord. Kun de første {{max}} bruges.",
+        "privacy": "Eksempler sendes kun derhen, hvor transkriptionen selv allerede går, og ingen andre steder. Der bruges op til {{max}} eksempler.",
+        "loading": "Indlæser eksempler",
+        "loadError": "Kunne ikke indlæse eksemplerne.",
+        "empty": {
+          "title": "Ingen eksempler endnu",
+          "description": "Indsæt et par afsnit du selv har skrevet, så følger omskrivningerne dit ordvalg, dine sætningslængder og din formalitet.",
+          "action": "Tilføj et eksempel"
+        }
+      }
+    },
+    "hud": {
+      "enabledLabel": "Vis hvilepillen",
+      "enabledDescription": "Behold en lille pille på skærmen mellem diktater. Klik for at starte, højreklik for at skifte tilstand.",
+      "positionLabel": "Hvilepillens placering",
+      "positionDescription": "Hvilken skærmkant hvilepillen sidder ved.",
+      "positionTop": "Øverst",
+      "positionBottom": "Nederst"
     }
   },
   "whatsNew": {
@@ -1740,7 +1844,10 @@
     "noOptionsFound": "Ingen muligheder fundet",
     "save": "Save",
     "saving": "Saving…",
-    "retry": "Retry"
+    "retry": "Retry",
+    "play": "Afspil",
+    "pause": "Pause",
+    "seek": "Afspilningsposition"
   },
   "commandPalette": {
     "open": "Søg",
@@ -1773,12 +1880,15 @@
     },
     "noInputDeviceTitle": "Ingen mikrofon fundet",
     "noInputDevice": "Ingen lydinputenhed blev registreret. Tilslut en mikrofon eller et headset, og prøv igen.",
-    "recordingFailed": "Kunne ikke starte optagelse: {{error}}",
-    "modelLoadFailed": "Kunne ikke indlæse model: {{model}}",
+    "recordingFailed": "Kunne ikke starte optagelsen: {{error}}. Prøv igen.",
+    "modelLoadFailed": "Kunne ikke indlæse {{model}}. Prøv igen.",
     "modelLoadFailedUnknown": "ukendt model",
-    "pasteFailedTitle": "Kunne ikke indsætte tekst",
-    "pasteFailed": "Teksten kunne ikke indsættes i det aktive program.",
-    "transcriptionFailedTitle": "Transskription mislykkedes"
+    "pasteFailedTitle": "Kunne ikke indsætte transkriptionen",
+    "pasteFailed": "Teksten kunne ikke indsættes i den aktive app. Sæt fokus i et tekstfelt og prøv igen.",
+    "transcriptionFailedTitle": "Kunne ikke transkribere",
+    "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
+    "commandNoSelection": "Der var intet markeret. Markér den tekst du vil ændre, hold så kommandogenvejen nede og sig, hvad der skal gøres.",
+    "commandRewriteUnavailable": "Omskrivningen returnerede intet, så din markering blev efterladt som den var. Kontrollér omskrivningsmodellen under Indstillinger > AI og prøv igen."
   },
   "appLanguage": {
     "title": "Applikationssprog",
@@ -1797,7 +1907,13 @@
     "transcribing": "Transskriberer...",
     "processing": "Behandler...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model"
+    "localFallback": "Offline, using local model",
+    "hud": {
+      "idle": "Klar",
+      "toggle": "Start diktering i {{mode}}",
+      "hint": "Klik for at diktere, højreklik for tilstande",
+      "modes": "Skift tilstand"
+    }
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} blokerer muligvis 1 genvej",
@@ -1875,79 +1991,38 @@
         "cancelled": "Processing cancelled"
       }
     },
-    "readiness": {
-      "ready": "Ready",
-      "unavailable": "Unavailable",
-      "local": "Local only",
-      "needsAcknowledgement": "Acknowledgement required"
-    },
     "actions": {
       "back": "Back",
       "delete": "Delete meeting",
       "discard": "Discard",
-      "newMeeting": "New meeting",
       "pause": "Pause",
       "refresh": "Refresh",
       "resume": "Resume",
       "retry": "Try again",
-      "startLocal": "Start local notes",
       "stop": "Stop"
     },
     "detected": {
       "title": "Meeting detected",
-      "description": "Sona only offers a setup screen. It is not recording.",
-      "mayBeActive": "A meeting may be active in {{provider}}.",
-      "notRecording": "Sona is not recording."
+      "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
-      "title": "Start local notes",
-      "suggestedDescription": "Sona detected {{provider}}. Review the capture setup before recording.",
-      "manualDescription": "Set the sources and policy for a new local meeting note.",
-      "identity": "Meeting details",
-      "meetingTitle": "Meeting title",
-      "meetingTitlePlaceholder": "Untitled meeting",
       "captureSources": "Capture sources",
       "captureSourcesDescription": "Each source stays separate so missing audio remains visible.",
-      "sourcePolicy": "If a source is unavailable",
-      "sourcePolicyDescription": "Choose whether setup stops or starts with an explicit partial record.",
-      "strict": "Strict: stop setup if a required source is unavailable",
-      "continuePartial": "Continue partial: start only after I acknowledge the missing source",
       "processing": "Processing route",
-      "localProcessing": "On this Mac",
-      "localProcessingDescription": "Audio, transcript, notes, search, and Q&A stay local.",
-      "selected": "Selected",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination selected",
       "localOnly": "Local only",
-      "check": "Check recording setup",
-      "checking": "Checking setup…",
       "defaultTitle": "Local notes",
       "remoteUnavailable": "Fjernbehandling er ikke tilgængelig i denne build, så alle møder transskriberes og opsummeres på denne Mac."
     },
     "preflight": {
-      "title": "Check recording setup",
-      "description": "Review each local capability before authorizing capture.",
-      "summary": "Meeting setup summary",
-      "meeting": "Meeting",
-      "changeSetup": "Change setup",
-      "readiness": "Readiness",
-      "readinessDescription": "Each row reports the current backend check.",
       "storage": "Storage",
       "storageAvailable": "Encrypted meeting storage is available.",
       "storageUnavailable": "Encrypted meeting storage is unavailable.",
       "localModel": "Local model",
       "localModelDescription": "Processing remains local when a local model is available.",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination is selected.",
-      "remoteSelected": "Selected destination: {{destination}}",
-      "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
       "starting": "Starting visible capture…",
       "refreshing": "Kontrollerer…"
     },
     "consent": {
-      "title": "Recording acknowledgement",
-      "description": "Sona will show a visible capture state. Audio, transcript, and notes stay on this Mac unless you explicitly select a remote destination.",
-      "acknowledge": "I have permission to capture this meeting.",
       "continuePartial": "I want to continue with a partial meeting record.",
       "acceptMissing": "I understand {{source}} is {{state}} and this meeting will be partial."
     },
@@ -2039,7 +2114,7 @@
     },
     "errors": {
       "load": "Sona could not load the current meeting data.",
-      "operation": "Sona could not complete that meeting action.",
+      "operation": "Kunne ikke gennemføre den mødehandling. Prøv igen.",
       "operationRejected": "The meeting action was rejected.",
       "consent_required": "Confirm the recording acknowledgement before starting.",
       "consent_stale": "The setup changed. Review it again before starting.",
@@ -2110,12 +2185,12 @@
       "regenerate": "Regenerate",
       "remoteCancellationPending": "Remote cancellation is pending. Local deletion does not claim the remote copy is deleted.",
       "cancelRemote": "Cancel remote processing",
-      "remoteCancellationRequested": "Remote cancellation requested.",
+      "remoteCancellationRequested": "Annullering anmodet",
       "export": "Export",
       "exportDescription": "Each export uses an immutable local review snapshot and opens a native save dialog.",
       "exportMarkdown": "Export Markdown",
       "exportJson": "Export JSON",
-      "exportComplete": "Export completed.",
+      "exportComplete": "Mødet eksporteret",
       "citation": "Transcript {{time}}",
       "noGeneratedNotes": "No generated notes are available yet.",
       "template": "Template: {{template}}",
@@ -2166,7 +2241,8 @@
         "transcript": "Transskription"
       },
       "tabsLabel": "Sektioner til mødegennemgang",
-      "youAsked": "Du spurgte"
+      "youAsked": "Du spurgte",
+      "actionDone": "Markér denne handling som udført"
     },
     "artifactState": {
       "current": "Current",
@@ -2215,6 +2291,138 @@
     "status": {
       "gapCount": "Huller: {{total}}",
       "required": "Påkrævet"
+    },
+    "start": {
+      "label": "Start et møde",
+      "action": "Start optagelse",
+      "starting": "Starter…",
+      "assurance": "Optager din Macs lyd lokalt. Intet deltager i opkaldet.",
+      "capture": "Optagelse",
+      "noSources": "Vælg mindst én kilde.",
+      "localOnly": "Kun lokalt",
+      "retention": "Gemt: {{policy}}"
+    },
+    "gate": {
+      "title": "Optagelsen startede ikke",
+      "description": "Sona oprettede mødet, men en kilde den skulle optage er utilgængelig.",
+      "readyTitle": "Klar til optagelse",
+      "readyDescription": "Intet blokerer optagelsen af dette møde.",
+      "recordAnyway": "Optag uden den",
+      "recordAnywayHint": "Optagelsen markeres som delvis, og den manglende kilde står stadig nævnt i den."
+    },
+    "analytics": {
+      "title": "Samtale",
+      "description": "Målt på denne Mac ud fra transkriptionen med taleradskillelse. Intet sendes nogen steder.",
+      "noSpeech": "Der blev ikke transkriberet nogen tale, så der er intet at måle.",
+      "talkShare": "Taler mest",
+      "longestMonologue": "Længste monolog",
+      "patience": "Tålmodighed",
+      "patienceDetail": "Medianpausen før svar",
+      "interactions": "Ordskifter",
+      "turns": "{{count}} indlæg",
+      "turns_one": "{{count}} indlæg",
+      "speakerDetail": "{{time}} · {{turns}}",
+      "unknownSpeaker": "Ukendt taler",
+      "trackers": "Sporinger",
+      "hits": "{{count}} omtaler",
+      "hits_one": "{{count}} omtale",
+      "noHits": "Ikke omtalt",
+      "jumpToFirst": "Vis første",
+      "trackersTitle": "Nøgleordssporinger",
+      "trackersDescription": "Vendinger, der holdes øje med i hver mødetranskription. Matchningen er ordret og ser bort fra store og små bogstaver, og hver gennemgang kører på denne Mac.",
+      "addTracker": "Tilføj sporing",
+      "removeTracker": "Fjern sporing",
+      "noTrackers": "Ingen sporinger endnu. Tilføj en for at begynde at tælle, hvor ofte en vending optræder.",
+      "trackerName": "Navn",
+      "trackerPatterns": "rabat, bedste pris, for dyrt",
+      "trackerPatternsLabel": "Vendinger adskilt af kommaer",
+      "trackersSaveFailed": "Sona kunne ikke gemme sporingerne. Ret en af dem og prøv igen."
+    },
+    "notes": {
+      "title": "Mine noter",
+      "liveDescription": "Skriv så råt du vil. Disse noter bliver på denne Mac og styrer de noter, Sona laver, når mødet slutter.",
+      "reviewDescription": "Dine egne noter styrer, hvad de genererede noter fremhæver. De bliver aldrig citeret eller henvist til.",
+      "placeholder": "Alt der er værd at huske – navne, tal, hvad der skal følges op på",
+      "unsaved": "Ikke gemt endnu",
+      "saving": "Gemmer…",
+      "saved": "Noter gemt",
+      "conflict": "Disse noter blev ændret et andet sted. Åbn mødet igen for at indlæse den aktuelle version.",
+      "reenhance": "Forbedr igen med mine noter",
+      "enhancing": "Genopbygger…",
+      "enhanced": "Noterne genopbygget.",
+      "enhanceFailed": "Sona kunne ikke genopbygge noterne. Åbn mødet igen og prøv forfra.",
+      "catchUp": "Giv mig et resumé",
+      "catchingUp": "Laver resumé…",
+      "catchUpTitle": "Indtil nu",
+      "catchUpNoTranscript": "Der er intet at resumere endnu. Sona transkriberer efter du stopper optagelsen, så et resumé er klar, når transkriptionen begynder at komme ind.",
+      "catchUpUnavailable": "Modellen på enheden er utilgængelig, så der blev ikke skrevet noget resumé.",
+      "catchUpFailed": "Sona kunne ikke lave et resumé. Prøv igen om et øjeblik.",
+      "templates": {
+        "general": "Almindeligt møde",
+        "one_on_one": "En-til-en",
+        "interview": "Jobsamtale",
+        "sales_call": "Salgsopkald",
+        "standup": "Standup"
+      }
+    },
+    "detection": {
+      "title": "Registrér møder",
+      "description": "Sona holder øje med opkald og tilbyder at tage noter. Den optager aldrig af sig selv.",
+      "loading": "Læser registreringstilstand…",
+      "prompt": {
+        "calendar": "{{title}} begynder",
+        "app": "{{app}}-møde registreret",
+        "huddle": "{{app}}-huddle registreret",
+        "browser": "Opkald registreret i {{app}}",
+        "unknown": "Mikrofonaktivitet registreret",
+        "body": "Sona kan tage lokale noter til dette opkald."
+      },
+      "actions": {
+        "start": "Begynd at transkribere",
+        "dismiss": "Afvis"
+      },
+      "pane": {
+        "title": "Begynder snart",
+        "description": "Sona optager ikke, før du starter det her.",
+        "countdown": "Begynder om {{seconds}} s",
+        "notYetRecording": "Optager ikke"
+      },
+      "calendar": {
+        "label": "Brug min kalender",
+        "description": "Viser en nedtælling et minut før begivenheder med to eller flere deltagere. macOS beder om fuld kalenderadgang første gang, fordi Apple ikke tilbyder en læseadgang alene."
+      },
+      "anyMic": {
+        "label": "Spørg ved al mikrofonbrug",
+        "description": "Omfatter talememoer, musikapps og alt andet, der åbner mikrofonen. Slået fra holder beskederne til kendte mødeapps."
+      },
+      "autoStart": {
+        "label": "Åbn mødet, når dets nedtælling vises",
+        "description": "Springer notifikationen over, når en begivenhed begynder, mens du allerede ser på dens nedtælling. Du bekræfter stadig, hvad der optages."
+      },
+      "apps": {
+        "label": "Mødeapps",
+        "description": "Én bundle-identifikator per linje. En post tæller kun, mens den app kører, så en omdøbt identifikator er uvirksom snarere end forkert.",
+        "running": "Kører nu: {{apps}}",
+        "noneRunning": "Ingen af disse kører lige nu."
+      },
+      "state": {
+        "title": "Hvad registreringen kan se",
+        "description": "Registreringen er stille det meste af tiden. Det er derfor.",
+        "calendarDenied": "Kalenderadgang blev ikke givet, så kun mikrofonvejen kører.",
+        "notificationsDenied": "Notifikationer er slået fra for Sona, så beskeder vises kun i appen.",
+        "bluetoothCaveat": "En mødeapp er åben, men intet melder om mikrofonbrug. Bluetooth-headset gør ofte ikke det, så start mødet selv, hvis et er i gang.",
+        "noSilenceStop": "Optagelser stopper ved begivenhedens slutning, når appen lukkes, ved dvale, eller når du selv stopper. Stilhedstimeren kræver løbende transkription, som først kører efter et møde er slut."
+      },
+      "why": {
+        "disabled": "Registreringen er slået fra.",
+        "sonaHoldsMic": "Sona bruger mikrofonen, så intet andet kan bestemmes lige nu.",
+        "captureActive": "Et møde bliver allerede optaget.",
+        "noSignal": "Intet bruger mikrofonen endnu.",
+        "soloEvent": "Den næste begivenhed har under to deltagere, så den læses som blokeret tid.",
+        "unknownApp": "Noget bruger mikrofonen, men det er ikke en kendt mødeapp.",
+        "browserUnreadable": "En browser er forrest, men dens fanetitel kan ikke læses.",
+        "browserNotMeeting": "En browser er forrest, og dens fane er ikke et opkald."
+      }
     }
   },
   "agentPanel": {
@@ -2292,7 +2500,15 @@
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Tilstand: {{name}}",
-      "setShortcut": "Angiv en dikteringsgenvej i Indstillinger for at optage fra enhver app."
+      "setShortcut": "Angiv en dikteringsgenvej i Indstillinger for at optage fra enhver app.",
+      "setShortcutAction": "Angiv en genvej",
+      "shortcutAction": "Ændr dikteringsgenvejen",
+      "holdHint": "Tryk for at skifte, hold for at tale",
+      "facts": {
+        "mode": "Tilstand",
+        "model": "Model",
+        "engine": "Motor"
+      }
     },
     "actions": {
       "dictate": "Dictate",

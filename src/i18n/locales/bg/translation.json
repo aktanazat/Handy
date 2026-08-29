@@ -120,7 +120,7 @@
       }
     },
     "errors": {
-      "selectModel": "Неуспешно избиране на модел"
+      "selectModel": "Моделът не можа да бъде избран. Опитайте отново."
     },
     "permissions": {
       "title": "Необходими разрешения",
@@ -138,10 +138,15 @@
       "waiting": "Изчакване...",
       "allGranted": "Готово!",
       "errors": {
-        "checkFailed": "Проверката на разрешенията не бе успешна. Опитайте отново.",
-        "requestFailed": "Заявката за разрешение не бе успешна. Опитайте отново."
-      }
-    }
+        "checkFailed": "Разрешенията не можаха да бъдат проверени. Опитайте отново.",
+        "requestFailed": "Разрешението не можа да бъде поискано. Опитайте отново."
+      },
+      "headline": "Еднократна настройка",
+      "subhead": "Компютърът пита, преди някое приложение да може да слуша или да пише вместо вас. Дайте тези разрешения веднъж и Sona няма да попита пак.",
+      "checking": "Проверка на разрешенията",
+      "recheck": "Провери отново"
+    },
+    "headline": "Изберете гласов модел"
   },
   "modelSelector": {
     "custom": "Персонализиран",
@@ -190,7 +195,7 @@
         "loading": "Зареждане на бързите клавиши...",
         "none": "Няма настроени бързи клавиши",
         "notFound": "Бързият клавиш не е намерен",
-        "pressKeys": "Натиснете клавишите...",
+        "pressKeys": "Натиснете своите клавиши…",
         "bindings": {
           "transcribe": {
             "name": "Бърз клавиш за транскрипция",
@@ -203,13 +208,21 @@
           "transcribe_with_post_process": {
             "name": "Бърз клавиш за постобработка",
             "description": "По избор: отделна комбинация, която винаги прилага ИИ постобработка върху транскрипцията."
+          },
+          "command": {
+            "name": "Пряк път за команда",
+            "description": "Клавишната комбинация, която преписва избрания текст по изговорена инструкция."
           }
         },
         "errors": {
-          "restore": "Неуспешно възстановяване на оригиналния бърз клавиш",
+          "restore": "Първоначалният пряк път не можа да бъде възстановен. Опитайте отново.",
           "set": "Неуспешно задаване на бързия клавиш: {{error}}",
-          "reset": "Неуспешно нулиране на бързия клавиш към първоначалната стойност"
-        }
+          "reset": "Прекият път не можа да бъде занулен. Опитайте отново."
+        },
+        "holdHint": "Докоснете за превключване, задръжте, за да говорите. Работи с всеки пряк път.",
+        "recordAction": "Запис на нов пряк път за {{binding}}",
+        "recordHint": "Щракнете, за да запишете",
+        "unset": "Не е зададен"
       },
       "language": {
         "title": "Език",
@@ -226,7 +239,11 @@
         "description": "Език на интерфейса и цветова схема. И двете се прилагат веднага.",
         "title": "Външен вид"
       },
-      "description": "Клавишите, които натискате, микрофонът, който Sona слуша, и как изглежда приложението."
+      "description": "Клавишите, които натискате, микрофонът, който Sona слуша, и как изглежда приложението.",
+      "commandMode": {
+        "label": "Режим на гласови команди",
+        "description": "Задръжте прекия път за команда и кажете какво да се промени в избрания текст."
+      }
     },
     "models": {
       "title": "Модели за транскрипция",
@@ -321,9 +338,9 @@
         "notDownloaded": "Не е изтеглен"
       },
       "summary": {
-        "active": "Активен: {{name}}",
         "noActive": "Не е избран модел",
-        "onDisk": "{{total}} на диска"
+        "activeLabel": "Активен модел",
+        "onDiskLabel": "На диска"
       }
     },
     "sound": {
@@ -493,9 +510,9 @@
         "remove": "Премахване на {{spoken}}",
         "import": "Импортиране на CSV",
         "export": "Експортиране на CSV",
-        "importError": "Неуспешно импортиране на CSV за речника.",
-        "exportError": "Неуспешно експортиране на CSV за речника.",
-        "saveError": "Неуспешно запазване на речника.",
+        "importError": "CSV файлът с речника не можа да бъде внесен. Проверете файла и опитайте отново.",
+        "exportError": "CSV файлът с речника не можа да бъде изнесен. Опитайте отново.",
+        "saveError": "Речникът не можа да бъде запазен. Опитайте отново.",
         "imported": "Речникът е импортиран",
         "errors": {
           "incomplete": "Въведете изговорена фраза и текст за изписване.",
@@ -523,7 +540,7 @@
         "actions": "Vocabulary actions",
         "audioImport": {
           "errors": {
-            "start": "Couldn't start the audio import."
+            "start": "Внасянето на звук не можа да започне. Опитайте отново."
           },
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
@@ -534,7 +551,8 @@
           "title": "Все още няма речникови правила"
         },
         "sources": "Корекциите, които запазвате от транскрипт в библиотеката, попадат в този списък. Правилата за отделен режим са в собствения речник на този режим.",
-        "unsaved": "Незапазени промени"
+        "unsaved": "Незапазени промени",
+        "csvLabel": "CSV"
       },
       "voiceActivityDetection": {
         "title": "Откриване на гласова активност",
@@ -558,8 +576,8 @@
         "save": "Запазване на замените с емоджита",
         "saved": "Замените с емоджита са запазени",
         "remove": "Премахване на {{spoken}}",
-        "saveError": "Неуспешно запазване на замените с емоджита.",
-        "toggleError": "Неуспешна промяна на замените с емоджита.",
+        "saveError": "Замените на емоджи не можаха да бъдат запазени. Опитайте отново.",
+        "toggleError": "Замените на емоджи не можаха да бъдат променени. Опитайте отново.",
         "errors": {
           "incomplete": "Въведете изговорена фраза и текст на емоджи.",
           "duplicate": "Тази замяна с емоджи вече съществува.",
@@ -729,9 +747,9 @@
       "save": "Запазване на транскрипцията",
       "unsave": "Премахване от запазените",
       "delete": "Изтриване на записа",
-      "deleteError": "Изтриването на записа не бе успешно. Опитайте отново.",
+      "deleteError": "Записът не можа да бъде изтрит. Опитайте отново.",
       "retranscribe": "Повторна транскрипция",
-      "retranscribeError": "Повторната транскрипция не бе успешна. Опитайте отново.",
+      "retranscribeError": "Повторният препис не бе възможен. Опитайте отново.",
       "transcribing": "Транскрибиране...",
       "transcriptionFailed": "Транскрипцията не бе успешна. Можете да опитате отново с иконата за повторен опит.",
       "search": "Търсене в историята",
@@ -739,7 +757,7 @@
       "noResults": "Няма транскрипции, които да съответстват на \"{{query}}\".",
       "loadError": "Не можа да се зареди историята.",
       "retry": "Опитайте отново",
-      "saveError": "Не можа да се актуализира статусът.",
+      "saveError": "Състоянието на запазване не можа да бъде обновено. Опитайте отново.",
       "postProcessEmpty": "Постпроцесирането не върна текст. Показване на сурова транскрипция.",
       "textView": {
         "label": "Изглед на транскрипцията",
@@ -818,6 +836,12 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "columns": {
+          "source": "Източник",
+          "status": "Състояние",
+          "method": "Метод",
+          "outcome": "Резултат"
         }
       },
       "correction": {
@@ -834,7 +858,7 @@
         "global": "All modes",
         "save": "Save correction",
         "saved": "Vocabulary correction saved",
-        "saveError": "Could not save vocabulary correction."
+        "saveError": "Поправката не можа да бъде запазена. Опитайте отново."
       },
       "audioImport": {
         "start": "Транскрибиране на файл",
@@ -861,7 +885,7 @@
           "history": "Транскрипцията не можа да бъде запазена в историята."
         },
         "errors": {
-          "start": "Неуспешно стартиране на импортирането на файла.",
+          "start": "Внасянето на файла не можа да започне. Опитайте отново.",
           "cancel": "Неуспешен отказ на импортирането на файла.",
           "load": "Неуспешно зареждане на състоянието на импортирането на файла."
         },
@@ -889,7 +913,17 @@
       "noResultsHint": "Търсенето съвпада с цели думи както в суровия, така и в обработения транскрипт.",
       "results": "{{count}} съвпадения",
       "resultsMore": "{{count}}+ съвпадения",
-      "resultsNone": "Няма съвпадения"
+      "resultsNone": "Няма съвпадения",
+      "processAgain": {
+        "action": "Обработи отново",
+        "title": "Обработи отново",
+        "description": "Прекарайте този запис през друг режим. Първоначалният запис се запазва, а резултатът се записва като нов.",
+        "placeholder": "Изберете режим",
+        "confirm": "Обработи",
+        "started": "Повторната обработка започна",
+        "modeLabel": "Режим"
+      },
+      "derivedFrom": "От по-ранен запис"
     },
     "debug": {
       "title": "Отстраняване",
@@ -1006,7 +1040,7 @@
         "description": "Отваря последните включени бележки към изданието, без да ги маркира като видени",
         "button": "Преглед",
         "noNotes": "Не са намерени включени бележки към изданието",
-        "error": "Неуспешен преглед на бележките към изданието"
+        "error": "Бележките към изданието не можаха да бъдат показани. Опитайте отново."
       },
       "description": "Инструментиране и неподдържани настройки. Видимо, защото режимът за отстраняване на грешки е включен.",
       "groups": {
@@ -1196,7 +1230,9 @@
         "noModelSelected": "No model selected",
         "model": {
           "label": "Transcription model",
-          "description": "Only downloaded local models are available here."
+          "description": "Only downloaded local models are available here.",
+          "inheritGlobal": "По подразбиране — използва глобалния модел",
+          "inheritGlobalNamed": "По подразбиране — използва глобалния модел ({{name}})"
         },
         "language": {
           "label": "Language",
@@ -1724,6 +1760,74 @@
         "about": "About",
         "debug": "Debug"
       }
+    },
+    "vocabulary": {
+      "replacements": {
+        "title": "Изговорени замени",
+        "description": "Изрази, които Sona преписва в точен текст. Промените тук важат само за бъдещи преписи, никога за вече написан текст.",
+        "enabledLabel": "Включи изговорените замени",
+        "enabledDescription": "Преписвай изговорени изрази като кльомба в символи, преди да се изпълни поправката по речник.",
+        "offState": "Изговорените замени са изключени. Правилата остават запазени и важат отново, щом включите това.",
+        "spoken": "Вие казвате",
+        "written": "Sona пише",
+        "applyColumn": "Прилагане",
+        "actionsColumn": "Действия",
+        "spokenPlaceholder": "кльомба",
+        "writtenPlaceholder": "@",
+        "add": "Добави правило",
+        "reset": "Възстанови по подразбиране",
+        "ruleEnabled": "Прилагай {{spoken}}",
+        "delete": "Изтрий {{spoken}}",
+        "loading": "Зареждане на замените",
+        "loadError": "Замените не можаха да бъдат заредени.",
+        "matching": "Изразите съвпадат по цели думи и не различават малки и главни букви. Когато две правила пасват на едно и също място, печели по-дългото, а замяната се прилага преди поправката по речник.",
+        "errors": {
+          "duplicate": "Друго правило вече използва този израз.",
+          "incomplete": "Въведете както изговорения израз, така и неговата замяна."
+        },
+        "empty": {
+          "title": "Няма замени",
+          "description": "Добавете израз като кльомба и Sona ще пише @ всеки път, когато го кажете.",
+          "action": "Възстанови началните правила"
+        },
+        "confirmDelete": {
+          "title": "Да се изтрие ли {{spoken}}?",
+          "description": "Изразът вече няма да се преписва в бъдещи преписи. Вече написаният текст не се променя.",
+          "body": "{{spoken}} в момента става {{written}}."
+        },
+        "confirmReset": {
+          "title": "Да се възстановят ли правилата по подразбиране?",
+          "description": "Всяко правило, което сте добавили или променили, се отхвърля и се връща доставеният начален набор."
+        }
+      }
+    },
+    "prompts": {
+      "samples": {
+        "title": "Примери за писане",
+        "description": "Примери от собственото ви писане. Всеки режим, който преписва препис, следва техния тон.",
+        "placeholder": "Поставете абзац, който сте написали сами.",
+        "sampleLabel": "Пример за писане {{number}}",
+        "delete": "Изтрий пример {{number}}",
+        "add": "Добави пример",
+        "wordCount": "{{words}} от {{max}} думи",
+        "overLimit": "{{words}} думи. Използват се само първите {{max}}.",
+        "privacy": "Примерите отиват само там, където вече отива самият препис, и никъде другаде. Използват се до {{max}} примера.",
+        "loading": "Зареждане на примерите",
+        "loadError": "Примерите не можаха да бъдат заредени.",
+        "empty": {
+          "title": "Още няма примери",
+          "description": "Поставете няколко абзаца, написани от вас, и преписването ще следва вашата лексика, дължина на изреченията и ниво на официалност.",
+          "action": "Добави пример"
+        }
+      }
+    },
+    "hud": {
+      "enabledLabel": "Показвай хапчето в покой",
+      "enabledDescription": "Дръжте между диктовките малко хапче на екрана. Щракнете, за да започнете, щракнете с десен бутон, за да смените режима.",
+      "positionLabel": "Позиция на хапчето в покой",
+      "positionDescription": "До кой ръб на екрана стои хапчето в покой.",
+      "positionTop": "Горе",
+      "positionBottom": "Долу"
     }
   },
   "common": {
@@ -1737,7 +1841,10 @@
     "noOptionsFound": "Няма намерени опции",
     "save": "Save",
     "saving": "Saving…",
-    "retry": "Retry"
+    "retry": "Retry",
+    "play": "Възпроизвеждане",
+    "pause": "Пауза",
+    "seek": "Позиция на възпроизвеждане"
   },
   "commandPalette": {
     "open": "Търсене",
@@ -1770,12 +1877,15 @@
     },
     "noInputDeviceTitle": "Не е намерен микрофон",
     "noInputDevice": "Не е открито аудио входно устройство. Свържете микрофон или слушалки и опитайте отново.",
-    "recordingFailed": "Стартирането на записа не бе успешно: {{error}}",
-    "modelLoadFailed": "Зареждането на модела не бе успешно: {{model}}",
+    "recordingFailed": "Записът не можа да започне: {{error}}. Опитайте отново.",
+    "modelLoadFailed": "{{model}} не можа да бъде зареден. Опитайте отново.",
     "modelLoadFailedUnknown": "неизвестен модел",
-    "pasteFailedTitle": "Неуспешно поставяне на текст",
-    "pasteFailed": "Текстът не можа да бъде поставен в активното приложение.",
-    "transcriptionFailedTitle": "Неуспешна транскрипция"
+    "pasteFailedTitle": "Преписът не можа да бъде поставен",
+    "pasteFailed": "Текстът не можа да бъде поставен в активното приложение. Поставете курсора в текстово поле и опитайте отново.",
+    "transcriptionFailedTitle": "Преписът не бе възможен",
+    "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
+    "commandNoSelection": "Нищо не беше избрано. Изберете текста, който искате да промените, после задръжте прекия път за команда и кажете какво да се направи.",
+    "commandRewriteUnavailable": "Преписването не върна нищо, така че избраното остана каквото беше. Проверете модела за преписване в „Настройки > ИИ“ и опитайте отново."
   },
   "appLanguage": {
     "title": "Език на приложението",
@@ -1794,7 +1904,13 @@
     "transcribing": "Транскрибиране...",
     "processing": "Обработка...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model"
+    "localFallback": "Offline, using local model",
+    "hud": {
+      "idle": "Готово",
+      "toggle": "Започни диктовка в режим {{mode}}",
+      "hint": "Щракнете, за да диктувате, десен бутон за режимите",
+      "modes": "Смени режима"
+    }
   },
   "whatsNew": {
     "title": "Ново в Sona v{{version}}"
@@ -1875,79 +1991,38 @@
         "cancelled": "Processing cancelled"
       }
     },
-    "readiness": {
-      "ready": "Ready",
-      "unavailable": "Unavailable",
-      "local": "Local only",
-      "needsAcknowledgement": "Acknowledgement required"
-    },
     "actions": {
       "back": "Back",
       "delete": "Delete meeting",
       "discard": "Discard",
-      "newMeeting": "New meeting",
       "pause": "Pause",
       "refresh": "Refresh",
       "resume": "Resume",
       "retry": "Try again",
-      "startLocal": "Start local notes",
       "stop": "Stop"
     },
     "detected": {
       "title": "Meeting detected",
-      "description": "Sona only offers a setup screen. It is not recording.",
-      "mayBeActive": "A meeting may be active in {{provider}}.",
-      "notRecording": "Sona is not recording."
+      "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
-      "title": "Start local notes",
-      "suggestedDescription": "Sona detected {{provider}}. Review the capture setup before recording.",
-      "manualDescription": "Set the sources and policy for a new local meeting note.",
-      "identity": "Meeting details",
-      "meetingTitle": "Meeting title",
-      "meetingTitlePlaceholder": "Untitled meeting",
       "captureSources": "Capture sources",
       "captureSourcesDescription": "Each source stays separate so missing audio remains visible.",
-      "sourcePolicy": "If a source is unavailable",
-      "sourcePolicyDescription": "Choose whether setup stops or starts with an explicit partial record.",
-      "strict": "Strict: stop setup if a required source is unavailable",
-      "continuePartial": "Continue partial: start only after I acknowledge the missing source",
       "processing": "Processing route",
-      "localProcessing": "On this Mac",
-      "localProcessingDescription": "Audio, transcript, notes, search, and Q&A stay local.",
-      "selected": "Selected",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination selected",
       "localOnly": "Local only",
-      "check": "Check recording setup",
-      "checking": "Checking setup…",
       "defaultTitle": "Local notes",
       "remoteUnavailable": "Отдалечената обработка не е налична в тази версия, така че всяка среща се транскрибира и обобщава на този Mac."
     },
     "preflight": {
-      "title": "Check recording setup",
-      "description": "Review each local capability before authorizing capture.",
-      "summary": "Meeting setup summary",
-      "meeting": "Meeting",
-      "changeSetup": "Change setup",
-      "readiness": "Readiness",
-      "readinessDescription": "Each row reports the current backend check.",
       "storage": "Storage",
       "storageAvailable": "Encrypted meeting storage is available.",
       "storageUnavailable": "Encrypted meeting storage is unavailable.",
       "localModel": "Local model",
       "localModelDescription": "Processing remains local when a local model is available.",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination is selected.",
-      "remoteSelected": "Selected destination: {{destination}}",
-      "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
       "starting": "Starting visible capture…",
       "refreshing": "Проверка…"
     },
     "consent": {
-      "title": "Recording acknowledgement",
-      "description": "Sona will show a visible capture state. Audio, transcript, and notes stay on this Mac unless you explicitly select a remote destination.",
-      "acknowledge": "I have permission to capture this meeting.",
       "continuePartial": "I want to continue with a partial meeting record.",
       "acceptMissing": "I understand {{source}} is {{state}} and this meeting will be partial."
     },
@@ -2039,7 +2114,7 @@
     },
     "errors": {
       "load": "Sona could not load the current meeting data.",
-      "operation": "Sona could not complete that meeting action.",
+      "operation": "Това действие по срещата не можа да завърши. Опитайте отново.",
       "operationRejected": "The meeting action was rejected.",
       "consent_required": "Confirm the recording acknowledgement before starting.",
       "consent_stale": "The setup changed. Review it again before starting.",
@@ -2110,12 +2185,12 @@
       "regenerate": "Regenerate",
       "remoteCancellationPending": "Remote cancellation is pending. Local deletion does not claim the remote copy is deleted.",
       "cancelRemote": "Cancel remote processing",
-      "remoteCancellationRequested": "Remote cancellation requested.",
+      "remoteCancellationRequested": "Заявено е отменяне",
       "export": "Export",
       "exportDescription": "Each export uses an immutable local review snapshot and opens a native save dialog.",
       "exportMarkdown": "Export Markdown",
       "exportJson": "Export JSON",
-      "exportComplete": "Export completed.",
+      "exportComplete": "Срещата е изнесена",
       "citation": "Transcript {{time}}",
       "noGeneratedNotes": "No generated notes are available yet.",
       "template": "Template: {{template}}",
@@ -2166,7 +2241,8 @@
         "transcript": "Транскрипт"
       },
       "tabsLabel": "Раздели за преглед на срещата",
-      "youAsked": "Вие попитахте"
+      "youAsked": "Вие попитахте",
+      "actionDone": "Отбележи тази задача като готова"
     },
     "artifactState": {
       "current": "Current",
@@ -2215,6 +2291,138 @@
     "status": {
       "gapCount": "Пропуски: {{total}}",
       "required": "Задължително"
+    },
+    "start": {
+      "label": "Започни среща",
+      "action": "Започни запис",
+      "starting": "Стартиране…",
+      "assurance": "Записва звука на вашия Mac локално. Нищо не се включва в разговора.",
+      "capture": "Заснемане",
+      "noSources": "Изберете поне един източник.",
+      "localOnly": "Само локално",
+      "retention": "Пази се: {{policy}}"
+    },
+    "gate": {
+      "title": "Записът не започна",
+      "description": "Sona създаде срещата, но източник, който трябваше да се записва, не е наличен.",
+      "readyTitle": "Готово за запис",
+      "readyDescription": "Нищо не пречи на заснемането на тази среща.",
+      "recordAnyway": "Запиши без него",
+      "recordAnywayHint": "Записът се отбелязва като частичен, а липсващият източник остава назован в него."
+    },
+    "analytics": {
+      "title": "Разговор",
+      "description": "Изчислено на този Mac от преписа с разделени говорители. Нищо не се изпраща никъде.",
+      "noSpeech": "Не бе преписана реч, така че няма какво да се измери.",
+      "talkShare": "Говори най-много",
+      "longestMonologue": "Най-дълъг монолог",
+      "patience": "Търпение",
+      "patienceDetail": "Медианна пауза преди отговор",
+      "interactions": "Предавания на думата",
+      "turns": "{{count}} изказвания",
+      "turns_one": "{{count}} изказване",
+      "speakerDetail": "{{time}} · {{turns}}",
+      "unknownSpeaker": "Неизвестен говорител",
+      "trackers": "Следени изрази",
+      "hits": "{{count}} споменавания",
+      "hits_one": "{{count}} споменаване",
+      "noHits": "Не е споменато",
+      "jumpToFirst": "Покажи първото",
+      "trackersTitle": "Следене на ключови думи",
+      "trackersDescription": "Изрази, които се търсят във всеки препис на среща. Съвпадението е буквално и не различава малки и главни букви, а всяко търсене се изпълнява на този Mac.",
+      "addTracker": "Добави следен израз",
+      "removeTracker": "Премахни следения израз",
+      "noTrackers": "Още няма следени изрази. Добавете един, за да започнете да броите колко често се появява израз.",
+      "trackerName": "Име",
+      "trackerPatterns": "отстъпка, най-добра цена, твърде скъпо",
+      "trackerPatternsLabel": "Изрази, разделени със запетаи",
+      "trackersSaveFailed": "Sona не можа да запази следените изрази. Променете един и опитайте отново."
+    },
+    "notes": {
+      "title": "Моите бележки",
+      "liveDescription": "Пишете колкото грубо искате. Тези бележки остават на този Mac и насочват бележките, които Sona създава, когато срещата свърши.",
+      "reviewDescription": "Вашите собствени бележки насочват какво подчертават създадените бележки. Те никога не се цитират и не се посочват.",
+      "placeholder": "Всичко, което си струва да се запомни — имена, числа, какво да се проследи",
+      "unsaved": "Още не е запазено",
+      "saving": "Запазване…",
+      "saved": "Бележките са запазени",
+      "conflict": "Тези бележки се промениха другаде. Отворете срещата отново, за да заредите текущата версия.",
+      "reenhance": "Подобри отново с моите бележки",
+      "enhancing": "Пресъздаване…",
+      "enhanced": "Бележките са пресъздадени.",
+      "enhanceFailed": "Sona не можа да пресъздаде бележките. Отворете срещата отново и опитайте пак.",
+      "catchUp": "Обобщи ми",
+      "catchingUp": "Обобщаване…",
+      "catchUpTitle": "Досега",
+      "catchUpNoTranscript": "Още няма какво да се обобщи. Sona преписва след като спрете записа, така че обобщение има, щом преписът започне да идва.",
+      "catchUpUnavailable": "Моделът на устройството не е наличен, така че не бе написано обобщение.",
+      "catchUpFailed": "Sona не можа да състави обобщение. Опитайте отново след малко.",
+      "templates": {
+        "general": "Обща среща",
+        "one_on_one": "Един на един",
+        "interview": "Интервю",
+        "sales_call": "Търговски разговор",
+        "standup": "Стендъп"
+      }
+    },
+    "detection": {
+      "title": "Откривай срещи",
+      "description": "Sona следи за разговори и предлага да води бележки. Тя никога не записва сама.",
+      "loading": "Четене на състоянието на откриването…",
+      "prompt": {
+        "calendar": "{{title}} започва",
+        "app": "Открита среща в {{app}}",
+        "huddle": "Открит huddle в {{app}}",
+        "browser": "Открит разговор в {{app}}",
+        "unknown": "Открита активност на микрофона",
+        "body": "Sona може да води локални бележки за този разговор."
+      },
+      "actions": {
+        "start": "Започни преписване",
+        "dismiss": "Отхвърли"
+      },
+      "pane": {
+        "title": "Започва скоро",
+        "description": "Sona не записва, докато не започнете тук.",
+        "countdown": "Започва след {{seconds}} с",
+        "notYetRecording": "Не записва"
+      },
+      "calendar": {
+        "label": "Използвай моя календар",
+        "description": "Показва отброяване минута преди събития с двама или повече участници. macOS иска пълен достъп до календара първия път, защото Apple не предлага разрешение само за четене."
+      },
+      "anyMic": {
+        "label": "Питай при всяко използване на микрофона",
+        "description": "Включва гласови бележки, музикални приложения и всичко друго, което отваря микрофона. Изключено, подканите остават само за познати приложения за срещи."
+      },
+      "autoStart": {
+        "label": "Отвори срещата, когато нейното отброяване се вижда",
+        "description": "Пропуска известието, когато събитие започне, докато вече гледате неговото отброяване. Пак вие потвърждавате какво се записва."
+      },
+      "apps": {
+        "label": "Приложения за срещи",
+        "description": "По един идентификатор на пакет на ред. Записът важи само докато това приложение работи, така че преименуван идентификатор е бездеен, а не грешен.",
+        "running": "Работи сега: {{apps}}",
+        "noneRunning": "Никое от тях не работи в момента."
+      },
+      "state": {
+        "title": "Какво вижда откриването",
+        "description": "Откриването мълчи през по-голямата част от времето. Ето защо.",
+        "calendarDenied": "Достъп до календара не бе даден, така че работи само пътят през микрофона.",
+        "notificationsDenied": "Известията за Sona са изключени, така че подканите се появяват само в приложението.",
+        "bluetoothCaveat": "Приложение за срещи е отворено, но нищо не отчита използване на микрофона. Bluetooth слушалките често не отчитат, така че започнете срещата сами, ако тече такава.",
+        "noSilenceStop": "Заснемането спира в края на събитието, при затваряне на приложението, при заспиване или когато вие го спрете. Таймерът за тишина изисква препис в движение, а той се изпълнява само след като срещата свърши."
+      },
+      "why": {
+        "disabled": "Откриването е изключено.",
+        "sonaHoldsMic": "Sona използва микрофона, така че в момента нищо друго не може да бъде разпознато.",
+        "captureActive": "Една среща вече се заснема.",
+        "noSignal": "Още нищо не използва микрофона.",
+        "soloEvent": "Следващото събитие има по-малко от двама участници, така че се чете като блокирано време.",
+        "unknownApp": "Нещо използва микрофона, но не е познато приложение за срещи.",
+        "browserUnreadable": "Отпред има браузър, но заглавието на неговия раздел не може да бъде прочетено.",
+        "browserNotMeeting": "Отпред има браузър и неговият раздел не е разговор."
+      }
     }
   },
   "agentPanel": {
@@ -2292,7 +2500,15 @@
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Режим: {{name}}",
-      "setShortcut": "Задайте пряк път за диктовка в Settings, за да записвате от всяко приложение."
+      "setShortcut": "Задайте пряк път за диктовка в Settings, за да записвате от всяко приложение.",
+      "setShortcutAction": "Задай пряк път",
+      "shortcutAction": "Смени прекия път за диктовка",
+      "holdHint": "Докоснете за превключване, задръжте, за да говорите",
+      "facts": {
+        "mode": "Режим",
+        "model": "Модел",
+        "engine": "Двигател"
+      }
     },
     "actions": {
       "dictate": "Dictate",

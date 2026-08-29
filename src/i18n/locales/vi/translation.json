@@ -120,7 +120,7 @@
       }
     },
     "errors": {
-      "selectModel": "Không thể chọn mô hình"
+      "selectModel": "Không chọn được mô hình. Hãy thử lại."
     },
     "permissions": {
       "title": "Cần cấp quyền",
@@ -138,10 +138,15 @@
       "waiting": "Đang chờ...",
       "allGranted": "Hoàn tất!",
       "errors": {
-        "checkFailed": "Không thể kiểm tra quyền. Vui lòng thử lại.",
-        "requestFailed": "Không thể yêu cầu quyền. Vui lòng thử lại."
-      }
-    }
+        "checkFailed": "Không kiểm tra được quyền. Hãy thử lại.",
+        "requestFailed": "Không yêu cầu được quyền. Hãy thử lại."
+      },
+      "headline": "Thiết lập một lần",
+      "subhead": "Máy tính sẽ hỏi trước khi bất kỳ ứng dụng nào được nghe hoặc gõ thay bạn. Cấp các quyền này một lần và Sona sẽ không hỏi lại.",
+      "checking": "Đang kiểm tra quyền",
+      "recheck": "Kiểm tra lại"
+    },
+    "headline": "Chọn một mô hình giọng nói"
   },
   "modelSelector": {
     "custom": "Tùy chỉnh",
@@ -275,9 +280,9 @@
         "notDownloaded": "Chưa tải xuống"
       },
       "summary": {
-        "active": "Đang hoạt động: {{name}}",
         "noActive": "Chưa chọn mô hình nào",
-        "onDisk": "{{total}} trên đĩa"
+        "activeLabel": "Mô hình đang dùng",
+        "onDiskLabel": "Trên đĩa"
       }
     },
     "general": {
@@ -288,7 +293,7 @@
         "loading": "Đang tải phím tắt...",
         "none": "Chưa cấu hình phím tắt",
         "notFound": "Không tìm thấy phím tắt",
-        "pressKeys": "Nhấn phím...",
+        "pressKeys": "Nhấn các phím của bạn…",
         "bindings": {
           "transcribe": {
             "name": "Phím tắt chuyển đổi",
@@ -301,13 +306,21 @@
           "transcribe_with_post_process": {
             "name": "Phím tắt xử lý sau",
             "description": "Tùy chọn: Phím tắt chuyên dụng luôn áp dụng xử lý sau bằng AI cho bản chuyển đổi của bạn."
+          },
+          "command": {
+            "name": "Phím tắt lệnh",
+            "description": "Phím tắt viết lại đoạn văn bản bạn đang chọn theo một hướng dẫn nói."
           }
         },
         "errors": {
-          "restore": "Không thể khôi phục phím tắt gốc",
+          "restore": "Không phục hồi được phím tắt ban đầu. Hãy thử lại.",
           "set": "Không thể đặt phím tắt: {{error}}",
-          "reset": "Không thể đặt lại phím tắt về giá trị gốc"
-        }
+          "reset": "Không đặt lại được phím tắt. Hãy thử lại."
+        },
+        "holdHint": "Chạm để chuyển, giữ để nói. Hoạt động với mọi phím tắt.",
+        "recordAction": "Ghi phím tắt mới cho {{binding}}",
+        "recordHint": "Bấm để ghi",
+        "unset": "Chưa đặt"
       },
       "language": {
         "title": "Ngôn ngữ",
@@ -324,7 +337,11 @@
         "description": "Ngôn ngữ giao diện và bảng màu. Cả hai áp dụng ngay lập tức.",
         "title": "Giao diện"
       },
-      "description": "Các phím bạn nhấn, micrô mà Sona lắng nghe và giao diện của ứng dụng."
+      "description": "Các phím bạn nhấn, micrô mà Sona lắng nghe và giao diện của ứng dụng.",
+      "commandMode": {
+        "label": "Chế độ lệnh bằng giọng nói",
+        "description": "Giữ phím tắt lệnh và nói bạn muốn thay đổi gì trong đoạn văn bản đang chọn."
+      }
     },
     "sound": {
       "title": "Âm thanh",
@@ -493,9 +510,9 @@
         "remove": "Xóa {{spoken}}",
         "import": "Nhập CSV",
         "export": "Xuất CSV",
-        "importError": "Không thể nhập CSV từ vựng.",
-        "exportError": "Không thể xuất CSV từ vựng.",
-        "saveError": "Không thể lưu từ vựng.",
+        "importError": "Không nhập được tệp CSV từ vựng. Hãy kiểm tra tệp rồi thử lại.",
+        "exportError": "Không xuất được tệp CSV từ vựng. Hãy thử lại.",
+        "saveError": "Không lưu được từ vựng. Hãy thử lại.",
         "imported": "Đã nhập từ vựng",
         "errors": {
           "incomplete": "Nhập cả cụm từ đã nói và văn bản viết.",
@@ -523,7 +540,7 @@
         "actions": "Vocabulary actions",
         "audioImport": {
           "errors": {
-            "start": "Couldn't start the audio import."
+            "start": "Không bắt đầu được việc nhập âm thanh. Hãy thử lại."
           },
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
@@ -534,7 +551,8 @@
           "title": "Chưa có quy tắc từ vựng nào"
         },
         "sources": "Các sửa lỗi bạn lưu từ bản ghi thoại trong Thư viện sẽ nằm trong danh sách này. Quy tắc cho một chế độ riêng nằm trong từ vựng của chế độ đó.",
-        "unsaved": "Thay đổi chưa lưu"
+        "unsaved": "Thay đổi chưa lưu",
+        "csvLabel": "CSV"
       },
       "voiceActivityDetection": {
         "title": "Phát hiện hoạt động giọng nói",
@@ -558,8 +576,8 @@
         "save": "Lưu thay thế biểu tượng cảm xúc",
         "saved": "Đã lưu thay thế biểu tượng cảm xúc",
         "remove": "Xóa {{spoken}}",
-        "saveError": "Không thể lưu các thay thế biểu tượng cảm xúc.",
-        "toggleError": "Không thể thay đổi các thay thế biểu tượng cảm xúc.",
+        "saveError": "Không lưu được các thay thế emoji. Hãy thử lại.",
+        "toggleError": "Không đổi được các thay thế emoji. Hãy thử lại.",
         "errors": {
           "incomplete": "Nhập cả cụm từ đã nói và văn bản biểu tượng cảm xúc.",
           "duplicate": "Thay thế biểu tượng cảm xúc này đã tồn tại.",
@@ -729,9 +747,9 @@
       "save": "Lưu bản ghi",
       "unsave": "Xóa khỏi đã lưu",
       "delete": "Xóa mục",
-      "deleteError": "Không thể xóa mục. Vui lòng thử lại.",
+      "deleteError": "Không xóa được bản ghi. Hãy thử lại.",
       "retranscribe": "Phiên âm lại",
-      "retranscribeError": "Không thể phiên âm lại. Vui lòng thử lại.",
+      "retranscribeError": "Không ghi lại được. Hãy thử lại.",
       "transcribing": "Đang phiên âm...",
       "transcriptionFailed": "Phiên âm thất bại. Bạn có thể phiên âm lại bằng biểu tượng thử lại.",
       "search": "Tìm kiếm lịch sử",
@@ -739,7 +757,7 @@
       "noResults": "Không có bản ghi âm nào khớp với \"{{query}}\".",
       "loadError": "Không thể tải lịch sử.",
       "retry": "Thử lại",
-      "saveError": "Không thể cập nhật trạng thái đã lưu.",
+      "saveError": "Không cập nhật được trạng thái lưu. Hãy thử lại.",
       "postProcessEmpty": "Xử lý sau không trả về văn bản. Đang hiển thị bản ghi âm gốc.",
       "textView": {
         "label": "Xem bản ghi âm",
@@ -818,6 +836,12 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "columns": {
+          "source": "Nguồn",
+          "status": "Trạng thái",
+          "method": "Cách thức",
+          "outcome": "Kết quả"
         }
       },
       "correction": {
@@ -834,7 +858,7 @@
         "global": "All modes",
         "save": "Save correction",
         "saved": "Vocabulary correction saved",
-        "saveError": "Could not save vocabulary correction."
+        "saveError": "Không lưu được phần chỉnh sửa. Hãy thử lại."
       },
       "audioImport": {
         "start": "Chuyển tệp thành văn bản",
@@ -861,7 +885,7 @@
           "history": "Không thể lưu bản ghi âm vào Lịch sử."
         },
         "errors": {
-          "start": "Không thể bắt đầu nhập tệp.",
+          "start": "Không bắt đầu được việc nhập tệp. Hãy thử lại.",
           "cancel": "Không thể hủy việc nhập tệp.",
           "load": "Không thể tải trạng thái nhập tệp."
         },
@@ -889,7 +913,17 @@
       "noResultsHint": "Tìm kiếm khớp nguyên từ trong cả bản ghi thoại thô và bản đã xử lý.",
       "results": "{{count}} kết quả khớp",
       "resultsMore": "{{count}}+ kết quả khớp",
-      "resultsNone": "Không có kết quả khớp"
+      "resultsNone": "Không có kết quả khớp",
+      "processAgain": {
+        "action": "Xử lý lại",
+        "title": "Xử lý lại",
+        "description": "Chạy bản ghi âm này qua một chế độ khác. Bản gốc được giữ nguyên và kết quả được lưu thành bản mới.",
+        "placeholder": "Chọn một chế độ",
+        "confirm": "Xử lý",
+        "started": "Đã bắt đầu xử lý lại",
+        "modeLabel": "Chế độ"
+      },
+      "derivedFrom": "Từ một bản ghi âm trước đó"
     },
     "debug": {
       "title": "Gỡ lỗi",
@@ -1006,7 +1040,7 @@
         "description": "Mở ghi chú phát hành mới nhất được đóng gói mà không đánh dấu là đã xem",
         "button": "Xem trước",
         "noNotes": "Không tìm thấy ghi chú phát hành được đóng gói",
-        "error": "Không thể xem trước ghi chú phát hành"
+        "error": "Không xem trước được ghi chú phát hành. Hãy thử lại."
       },
       "description": "Công cụ đo lường và các nút không được hỗ trợ. Hiển thị vì chế độ gỡ lỗi đang bật.",
       "groups": {
@@ -1196,7 +1230,9 @@
         "noModelSelected": "No model selected",
         "model": {
           "label": "Transcription model",
-          "description": "Only downloaded local models are available here."
+          "description": "Only downloaded local models are available here.",
+          "inheritGlobal": "Mặc định — dùng mô hình toàn cục",
+          "inheritGlobalNamed": "Mặc định — dùng mô hình toàn cục ({{name}})"
         },
         "language": {
           "label": "Language",
@@ -1724,6 +1760,74 @@
         "about": "About",
         "debug": "Debug"
       }
+    },
+    "vocabulary": {
+      "replacements": {
+        "title": "Thay thế khi nói",
+        "description": "Những cụm từ Sona viết lại thành văn bản chính xác. Thay đổi ở đây chỉ ảnh hưởng đến các bản ghi sau này, không bao giờ ảnh hưởng đến văn bản đã viết.",
+        "enabledLabel": "Bật thay thế khi nói",
+        "enabledDescription": "Viết lại các cụm từ nói như a móc thành ký hiệu, trước khi việc chỉnh từ vựng chạy.",
+        "offState": "Thay thế khi nói đang tắt. Các quy tắc vẫn được lưu và sẽ áp dụng lại ngay khi bạn bật lên.",
+        "spoken": "Bạn nói",
+        "written": "Sona viết",
+        "applyColumn": "Áp dụng",
+        "actionsColumn": "Hành động",
+        "spokenPlaceholder": "a móc",
+        "writtenPlaceholder": "@",
+        "add": "Thêm quy tắc",
+        "reset": "Phục hồi mặc định",
+        "ruleEnabled": "Áp dụng {{spoken}}",
+        "delete": "Xóa {{spoken}}",
+        "loading": "Đang tải các thay thế",
+        "loadError": "Không tải được các thay thế.",
+        "matching": "Các cụm từ khớp theo trọn từ và không phân biệt chữ hoa chữ thường. Khi hai quy tắc khớp cùng một chỗ thì quy tắc dài hơn thắng, và việc thay thế chạy trước khi chỉnh từ vựng.",
+        "errors": {
+          "duplicate": "Một quy tắc khác đã dùng cụm từ này.",
+          "incomplete": "Hãy nhập cả cụm từ nói và phần thay thế của nó."
+        },
+        "empty": {
+          "title": "Không có thay thế",
+          "description": "Thêm một cụm từ như a móc và Sona sẽ viết @ mỗi lần bạn nói cụm đó.",
+          "action": "Phục hồi các quy tắc ban đầu"
+        },
+        "confirmDelete": {
+          "title": "Xóa {{spoken}}?",
+          "description": "Cụm từ sẽ không còn được viết lại trong các bản ghi sau này. Văn bản đã viết không thay đổi.",
+          "body": "{{spoken}} hiện trở thành {{written}}."
+        },
+        "confirmReset": {
+          "title": "Phục hồi các quy tắc mặc định?",
+          "description": "Mọi quy tắc bạn đã thêm hoặc sửa sẽ bị loại bỏ và bộ quy tắc ban đầu đi kèm sẽ trở lại."
+        }
+      }
+    },
+    "prompts": {
+      "samples": {
+        "title": "Mẫu văn bạn viết",
+        "description": "Ví dụ về cách bạn tự viết. Mọi chế độ viết lại bản ghi đều theo giọng văn đó.",
+        "placeholder": "Dán một đoạn bạn tự viết.",
+        "sampleLabel": "Mẫu văn {{number}}",
+        "delete": "Xóa mẫu {{number}}",
+        "add": "Thêm mẫu",
+        "wordCount": "{{words}} trên {{max}} từ",
+        "overLimit": "{{words}} từ. Chỉ {{max}} từ đầu được dùng.",
+        "privacy": "Các mẫu chỉ đi tới nơi mà bản ghi vốn đã đi tới, và không đi đâu khác. Tối đa {{max}} mẫu được dùng.",
+        "loading": "Đang tải các mẫu",
+        "loadError": "Không tải được các mẫu.",
+        "empty": {
+          "title": "Chưa có mẫu nào",
+          "description": "Dán vài đoạn bạn tự viết, phần viết lại sẽ theo từ vựng, độ dài câu và mức trang trọng của bạn.",
+          "action": "Thêm một mẫu"
+        }
+      }
+    },
+    "hud": {
+      "enabledLabel": "Hiện viên thuốc chờ",
+      "enabledDescription": "Giữ một viên thuốc nhỏ trên màn hình giữa các lần đọc. Bấm để bắt đầu, bấm chuột phải để đổi chế độ.",
+      "positionLabel": "Vị trí viên thuốc chờ",
+      "positionDescription": "Viên thuốc chờ nằm ở cạnh nào của màn hình.",
+      "positionTop": "Trên",
+      "positionBottom": "Dưới"
     }
   },
   "common": {
@@ -1737,7 +1841,10 @@
     "noOptionsFound": "Không tìm thấy tùy chọn",
     "save": "Save",
     "saving": "Saving…",
-    "retry": "Retry"
+    "retry": "Retry",
+    "play": "Phát",
+    "pause": "Tạm dừng",
+    "seek": "Vị trí phát"
   },
   "commandPalette": {
     "open": "Tìm kiếm",
@@ -1770,12 +1877,15 @@
     },
     "noInputDeviceTitle": "Không tìm thấy micrô",
     "noInputDevice": "Không phát hiện thiết bị đầu vào âm thanh nào. Vui lòng kết nối micrô hoặc tai nghe và thử lại.",
-    "recordingFailed": "Không thể bắt đầu ghi âm: {{error}}",
-    "modelLoadFailed": "Không thể tải mô hình: {{model}}",
+    "recordingFailed": "Không bắt đầu được ghi âm: {{error}}. Hãy thử lại.",
+    "modelLoadFailed": "Không tải được {{model}}. Hãy thử lại.",
     "modelLoadFailedUnknown": "mô hình không xác định",
-    "pasteFailedTitle": "Không thể dán văn bản",
-    "pasteFailed": "Không thể dán văn bản vào ứng dụng đang hoạt động.",
-    "transcriptionFailedTitle": "Phiên âm thất bại"
+    "pasteFailedTitle": "Không dán được bản ghi",
+    "pasteFailed": "Không dán được văn bản vào ứng dụng đang hoạt động. Hãy đưa con trỏ vào một ô văn bản rồi thử lại.",
+    "transcriptionFailedTitle": "Không ghi lại được lời nói",
+    "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
+    "commandNoSelection": "Không có gì được chọn. Hãy chọn đoạn văn bản bạn muốn thay đổi, rồi giữ phím tắt lệnh và nói bạn muốn làm gì.",
+    "commandRewriteUnavailable": "Phần viết lại không trả về gì, nên đoạn bạn chọn vẫn nguyên như cũ. Hãy kiểm tra mô hình viết lại trong Cài đặt > AI rồi thử lại."
   },
   "appLanguage": {
     "title": "Ngôn ngữ ứng dụng",
@@ -1794,7 +1904,13 @@
     "transcribing": "Đang chuyển đổi...",
     "processing": "Đang xử lý...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model"
+    "localFallback": "Offline, using local model",
+    "hud": {
+      "idle": "Sẵn sàng",
+      "toggle": "Bắt đầu đọc ở chế độ {{mode}}",
+      "hint": "Bấm để đọc, bấm chuột phải để chọn chế độ",
+      "modes": "Đổi chế độ"
+    }
   },
   "whatsNew": {
     "title": "Điểm mới trong Sona v{{version}}"
@@ -1875,79 +1991,38 @@
         "cancelled": "Processing cancelled"
       }
     },
-    "readiness": {
-      "ready": "Ready",
-      "unavailable": "Unavailable",
-      "local": "Local only",
-      "needsAcknowledgement": "Acknowledgement required"
-    },
     "actions": {
       "back": "Back",
       "delete": "Delete meeting",
       "discard": "Discard",
-      "newMeeting": "New meeting",
       "pause": "Pause",
       "refresh": "Refresh",
       "resume": "Resume",
       "retry": "Try again",
-      "startLocal": "Start local notes",
       "stop": "Stop"
     },
     "detected": {
       "title": "Meeting detected",
-      "description": "Sona only offers a setup screen. It is not recording.",
-      "mayBeActive": "A meeting may be active in {{provider}}.",
-      "notRecording": "Sona is not recording."
+      "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
-      "title": "Start local notes",
-      "suggestedDescription": "Sona detected {{provider}}. Review the capture setup before recording.",
-      "manualDescription": "Set the sources and policy for a new local meeting note.",
-      "identity": "Meeting details",
-      "meetingTitle": "Meeting title",
-      "meetingTitlePlaceholder": "Untitled meeting",
       "captureSources": "Capture sources",
       "captureSourcesDescription": "Each source stays separate so missing audio remains visible.",
-      "sourcePolicy": "If a source is unavailable",
-      "sourcePolicyDescription": "Choose whether setup stops or starts with an explicit partial record.",
-      "strict": "Strict: stop setup if a required source is unavailable",
-      "continuePartial": "Continue partial: start only after I acknowledge the missing source",
       "processing": "Processing route",
-      "localProcessing": "On this Mac",
-      "localProcessingDescription": "Audio, transcript, notes, search, and Q&A stay local.",
-      "selected": "Selected",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination selected",
       "localOnly": "Local only",
-      "check": "Check recording setup",
-      "checking": "Checking setup…",
       "defaultTitle": "Local notes",
       "remoteUnavailable": "Xử lý từ xa không khả dụng trong bản dựng này, nên mọi cuộc họp đều được chuyển thành văn bản và tóm tắt trên máy Mac này."
     },
     "preflight": {
-      "title": "Check recording setup",
-      "description": "Review each local capability before authorizing capture.",
-      "summary": "Meeting setup summary",
-      "meeting": "Meeting",
-      "changeSetup": "Change setup",
-      "readiness": "Readiness",
-      "readinessDescription": "Each row reports the current backend check.",
       "storage": "Storage",
       "storageAvailable": "Encrypted meeting storage is available.",
       "storageUnavailable": "Encrypted meeting storage is unavailable.",
       "localModel": "Local model",
       "localModelDescription": "Processing remains local when a local model is available.",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination is selected.",
-      "remoteSelected": "Selected destination: {{destination}}",
-      "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
       "starting": "Starting visible capture…",
       "refreshing": "Đang kiểm tra…"
     },
     "consent": {
-      "title": "Recording acknowledgement",
-      "description": "Sona will show a visible capture state. Audio, transcript, and notes stay on this Mac unless you explicitly select a remote destination.",
-      "acknowledge": "I have permission to capture this meeting.",
       "continuePartial": "I want to continue with a partial meeting record.",
       "acceptMissing": "I understand {{source}} is {{state}} and this meeting will be partial."
     },
@@ -2039,7 +2114,7 @@
     },
     "errors": {
       "load": "Sona could not load the current meeting data.",
-      "operation": "Sona could not complete that meeting action.",
+      "operation": "Không hoàn tất được hành động họp đó. Hãy thử lại.",
       "operationRejected": "The meeting action was rejected.",
       "consent_required": "Confirm the recording acknowledgement before starting.",
       "consent_stale": "The setup changed. Review it again before starting.",
@@ -2110,12 +2185,12 @@
       "regenerate": "Regenerate",
       "remoteCancellationPending": "Remote cancellation is pending. Local deletion does not claim the remote copy is deleted.",
       "cancelRemote": "Cancel remote processing",
-      "remoteCancellationRequested": "Remote cancellation requested.",
+      "remoteCancellationRequested": "Đã yêu cầu hủy",
       "export": "Export",
       "exportDescription": "Each export uses an immutable local review snapshot and opens a native save dialog.",
       "exportMarkdown": "Export Markdown",
       "exportJson": "Export JSON",
-      "exportComplete": "Export completed.",
+      "exportComplete": "Đã xuất buổi họp",
       "citation": "Transcript {{time}}",
       "noGeneratedNotes": "No generated notes are available yet.",
       "template": "Template: {{template}}",
@@ -2166,7 +2241,8 @@
         "transcript": "Bản ghi thoại"
       },
       "tabsLabel": "Các phần xem lại cuộc họp",
-      "youAsked": "Bạn đã hỏi"
+      "youAsked": "Bạn đã hỏi",
+      "actionDone": "Đánh dấu việc cần làm này là đã xong"
     },
     "artifactState": {
       "current": "Current",
@@ -2215,6 +2291,138 @@
     "status": {
       "gapCount": "Khoảng trống: {{total}}",
       "required": "Bắt buộc"
+    },
+    "start": {
+      "label": "Bắt đầu một buổi họp",
+      "action": "Bắt đầu ghi",
+      "starting": "Đang bắt đầu…",
+      "assurance": "Ghi âm thanh của Mac ngay trên máy. Không có gì tham gia vào cuộc gọi.",
+      "capture": "Thu",
+      "noSources": "Hãy chọn ít nhất một nguồn.",
+      "localOnly": "Chỉ trên máy",
+      "retention": "Được giữ: {{policy}}"
+    },
+    "gate": {
+      "title": "Việc ghi đã không bắt đầu",
+      "description": "Sona đã tạo buổi họp, nhưng một nguồn cần ghi lại không khả dụng.",
+      "readyTitle": "Sẵn sàng ghi",
+      "readyDescription": "Không có gì cản việc thu buổi họp này.",
+      "recordAnyway": "Ghi mà không có nguồn đó",
+      "recordAnywayHint": "Bản ghi được đánh dấu là chưa đầy đủ và nguồn còn thiếu vẫn được nêu tên trong đó."
+    },
+    "analytics": {
+      "title": "Cuộc hội thoại",
+      "description": "Được tính trên chiếc Mac này từ bản ghi có phân tách người nói. Không có gì được gửi đi đâu.",
+      "noSpeech": "Không có lời nói nào được ghi lại, nên không có gì để đo.",
+      "talkShare": "Nói nhiều nhất",
+      "longestMonologue": "Đoạn độc thoại dài nhất",
+      "patience": "Sự kiên nhẫn",
+      "patienceDetail": "Khoảng lặng trung vị trước khi đáp",
+      "interactions": "Lần chuyển lượt",
+      "turns": "{{count}} lượt nói",
+      "turns_one": "{{count}} lượt nói",
+      "speakerDetail": "{{time}} · {{turns}}",
+      "unknownSpeaker": "Người nói không rõ",
+      "trackers": "Bộ theo dõi",
+      "hits": "{{count}} lần nhắc",
+      "hits_one": "{{count}} lần nhắc",
+      "noHits": "Không được nhắc tới",
+      "jumpToFirst": "Xem lần đầu",
+      "trackersTitle": "Bộ theo dõi từ khóa",
+      "trackersDescription": "Các cụm từ cần để ý trong mọi bản ghi buổi họp. Việc khớp là theo đúng chữ và không phân biệt chữ hoa chữ thường, và mọi lần quét đều chạy trên chiếc Mac này.",
+      "addTracker": "Thêm bộ theo dõi",
+      "removeTracker": "Bỏ bộ theo dõi",
+      "noTrackers": "Chưa có bộ theo dõi nào. Thêm một bộ để bắt đầu đếm một cụm từ xuất hiện bao nhiêu lần.",
+      "trackerName": "Tên",
+      "trackerPatterns": "giảm giá, giá tốt nhất, quá đắt",
+      "trackerPatternsLabel": "Các cụm từ, cách nhau bằng dấu phẩy",
+      "trackersSaveFailed": "Sona không lưu được các bộ theo dõi. Hãy sửa một bộ rồi thử lại."
+    },
+    "notes": {
+      "title": "Ghi chú của tôi",
+      "liveDescription": "Cứ viết thô đến mức nào bạn muốn. Những ghi chú này ở lại trên chiếc Mac này và định hướng phần ghi chú Sona tạo ra khi buổi họp kết thúc.",
+      "reviewDescription": "Ghi chú của riêng bạn định hướng phần ghi chú được tạo sẽ nhấn vào điều gì. Chúng không bao giờ được trích dẫn hay dẫn nguồn.",
+      "placeholder": "Bất cứ điều gì đáng nhớ — tên, số, việc cần theo tiếp",
+      "unsaved": "Chưa lưu",
+      "saving": "Đang lưu…",
+      "saved": "Đã lưu ghi chú",
+      "conflict": "Những ghi chú này đã thay đổi ở nơi khác. Hãy mở lại buổi họp để tải bản hiện tại.",
+      "reenhance": "Làm tốt hơn lần nữa với ghi chú của tôi",
+      "enhancing": "Đang dựng lại…",
+      "enhanced": "Đã dựng lại ghi chú.",
+      "enhanceFailed": "Sona không dựng lại được ghi chú. Hãy mở lại buổi họp và thử lần nữa.",
+      "catchUp": "Cập nhật nhanh cho tôi",
+      "catchingUp": "Đang cập nhật…",
+      "catchUpTitle": "Đến giờ",
+      "catchUpNoTranscript": "Chưa có gì để tóm lại. Sona ghi lại lời nói sau khi bạn dừng ghi âm, nên sẽ có bản tóm khi bản ghi bắt đầu về.",
+      "catchUpUnavailable": "Mô hình trên máy không khả dụng, nên không có bản tóm nào được viết.",
+      "catchUpFailed": "Sona không dựng được bản tóm. Hãy thử lại sau một lát.",
+      "templates": {
+        "general": "Buổi họp chung",
+        "one_on_one": "Một đối một",
+        "interview": "Phỏng vấn",
+        "sales_call": "Cuộc gọi bán hàng",
+        "standup": "Họp nhanh đầu ngày"
+      }
+    },
+    "detection": {
+      "title": "Phát hiện buổi họp",
+      "description": "Sona để ý các cuộc gọi và đề nghị ghi chú giúp bạn. Nó không bao giờ tự ghi.",
+      "loading": "Đang đọc trạng thái phát hiện…",
+      "prompt": {
+        "calendar": "{{title}} đang bắt đầu",
+        "app": "Phát hiện buổi họp {{app}}",
+        "huddle": "Phát hiện huddle {{app}}",
+        "browser": "Phát hiện cuộc gọi trong {{app}}",
+        "unknown": "Phát hiện micrô đang hoạt động",
+        "body": "Sona có thể ghi chú ngay trên máy cho cuộc gọi này."
+      },
+      "actions": {
+        "start": "Bắt đầu ghi lại lời nói",
+        "dismiss": "Bỏ qua"
+      },
+      "pane": {
+        "title": "Sắp bắt đầu",
+        "description": "Sona không ghi cho đến khi bạn bắt đầu ở đây.",
+        "countdown": "Bắt đầu sau {{seconds}} giây",
+        "notYetRecording": "Không ghi"
+      },
+      "calendar": {
+        "label": "Dùng lịch của tôi",
+        "description": "Hiện đồng hồ đếm ngược một phút trước các sự kiện có hai người tham dự trở lên. macOS xin quyền truy cập lịch đầy đủ lần đầu, vì Apple không cấp quyền chỉ đọc."
+      },
+      "anyMic": {
+        "label": "Hỏi mỗi khi micrô được dùng",
+        "description": "Bao gồm ghi âm giọng nói, ứng dụng nhạc, và mọi thứ khác mở micrô. Tắt thì các lời nhắc chỉ giới hạn ở những ứng dụng họp đã biết."
+      },
+      "autoStart": {
+        "label": "Mở buổi họp khi đồng hồ đếm ngược của nó đang hiện",
+        "description": "Bỏ qua thông báo khi một sự kiện bắt đầu trong lúc bạn vốn đã nhìn đồng hồ đếm ngược của nó. Bạn vẫn xác nhận những gì được ghi."
+      },
+      "apps": {
+        "label": "Ứng dụng họp",
+        "description": "Mỗi dòng một định danh bundle. Một mục chỉ được tính khi ứng dụng đó đang chạy, nên một định danh bị đổi tên là vô hiệu chứ không phải sai.",
+        "running": "Đang chạy: {{apps}}",
+        "noneRunning": "Hiện không có mục nào đang chạy."
+      },
+      "state": {
+        "title": "Việc phát hiện thấy được gì",
+        "description": "Việc phát hiện im lặng phần lớn thời gian. Đây là lý do.",
+        "calendarDenied": "Quyền truy cập lịch chưa được cấp, nên chỉ có đường qua micrô hoạt động.",
+        "notificationsDenied": "Thông báo của Sona đang tắt, nên các lời nhắc chỉ hiện trong ứng dụng.",
+        "bluetoothCaveat": "Một ứng dụng họp đang mở nhưng không có gì báo là đang dùng micrô. Tai nghe Bluetooth thường không báo, nên hãy tự bắt đầu buổi họp nếu đang có một buổi.",
+        "noSilenceStop": "Việc thu dừng khi sự kiện kết thúc, khi ứng dụng thoát, khi máy ngủ, hoặc khi bạn tự dừng. Đồng hồ đo im lặng cần bản ghi theo thời gian thực, mà việc đó chỉ chạy sau khi buổi họp kết thúc."
+      },
+      "why": {
+        "disabled": "Việc phát hiện đang tắt.",
+        "sonaHoldsMic": "Sona đang dùng micrô, nên hiện không thể nhận ra thứ gì khác.",
+        "captureActive": "Đã có một buổi họp đang được thu.",
+        "noSignal": "Chưa có gì đang dùng micrô.",
+        "soloEvent": "Sự kiện tới có ít hơn hai người tham dự, nên nó được đọc như thời gian chặn lịch.",
+        "unknownApp": "Có thứ gì đang dùng micrô, nhưng đó không phải ứng dụng họp đã biết.",
+        "browserUnreadable": "Một trình duyệt đang ở trước, nhưng không đọc được tiêu đề thẻ của nó.",
+        "browserNotMeeting": "Một trình duyệt đang ở trước và thẻ của nó không phải một cuộc gọi."
+      }
     }
   },
   "agentPanel": {
@@ -2292,7 +2500,15 @@
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Chế độ: {{name}}",
-      "setShortcut": "Đặt phím tắt đọc chính tả trong Settings để ghi từ bất kỳ ứng dụng nào."
+      "setShortcut": "Đặt phím tắt đọc chính tả trong Settings để ghi từ bất kỳ ứng dụng nào.",
+      "setShortcutAction": "Đặt một phím tắt",
+      "shortcutAction": "Đổi phím tắt đọc chính tả",
+      "holdHint": "Chạm để chuyển, giữ để nói",
+      "facts": {
+        "mode": "Chế độ",
+        "model": "Mô hình",
+        "engine": "Bộ máy"
+      }
     },
     "actions": {
       "dictate": "Dictate",

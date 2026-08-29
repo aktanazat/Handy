@@ -124,7 +124,7 @@
       }
     },
     "errors": {
-      "selectModel": "Failed to select model"
+      "selectModel": "Couldn't select the model. Try again."
     },
     "permissions": {
       "title": "Permissions Required",
@@ -142,10 +142,15 @@
       "waiting": "Waiting...",
       "allGranted": "All set!",
       "errors": {
-        "checkFailed": "Failed to check permissions. Please try again.",
-        "requestFailed": "Failed to request permission. Please try again."
-      }
-    }
+        "checkFailed": "Couldn't check permissions. Try again.",
+        "requestFailed": "Couldn't request permission. Try again."
+      },
+      "headline": "One-time setup",
+      "subhead": "Your computer asks before any app can listen or type for you. Grant these once and Sona won't ask again.",
+      "checking": "Checking permissions",
+      "recheck": "Re-check"
+    },
+    "headline": "Pick a voice model"
   },
   "modelSelector": {
     "custom": "Custom",
@@ -194,7 +199,7 @@
         "loading": "Loading shortcuts...",
         "none": "No shortcuts configured",
         "notFound": "Shortcut not found",
-        "pressKeys": "Press keys...",
+        "pressKeys": "Press your keys…",
         "bindings": {
           "transcribe": {
             "name": "Transcribe Shortcut",
@@ -204,16 +209,24 @@
             "name": "Cancel Shortcut",
             "description": "The keyboard shortcut to cancel the current recording."
           },
+          "command": {
+            "name": "Command Shortcut",
+            "description": "The keyboard shortcut to rewrite the text you have selected from a spoken instruction."
+          },
           "transcribe_with_post_process": {
             "name": "Post-Processing Hotkey",
             "description": "Optional: A dedicated hotkey that always applies AI post-processing to your transcription."
           }
         },
         "errors": {
-          "restore": "Failed to restore original shortcut",
+          "restore": "Couldn't restore the original shortcut. Try again.",
           "set": "Failed to set shortcut: {{error}}",
-          "reset": "Failed to reset shortcut to original value"
-        }
+          "reset": "Couldn't reset the shortcut. Try again."
+        },
+        "holdHint": "Tap to toggle, hold to talk. Works with any shortcut.",
+        "recordAction": "Record a new shortcut for {{binding}}",
+        "recordHint": "Click to record",
+        "unset": "Not set"
       },
       "language": {
         "title": "Language",
@@ -230,7 +243,11 @@
         "description": "Interface language and colour scheme. Both apply immediately.",
         "title": "Appearance"
       },
-      "description": "The keys you press, the microphone Sona listens to, and how the app looks."
+      "description": "The keys you press, the microphone Sona listens to, and how the app looks.",
+      "commandMode": {
+        "label": "Voice command mode",
+        "description": "Hold the command shortcut and say what to change about the text you have selected."
+      }
     },
     "models": {
       "title": "Transcription Models",
@@ -325,9 +342,9 @@
         "notDownloaded": "Not downloaded"
       },
       "summary": {
-        "active": "Active: {{name}}",
+        "activeLabel": "Active model",
         "noActive": "No model selected",
-        "onDisk": "{{total}} on disk"
+        "onDiskLabel": "On disk"
       }
     },
     "sound": {
@@ -497,9 +514,10 @@
         "remove": "Remove {{spoken}}",
         "import": "Import CSV",
         "export": "Export CSV",
-        "importError": "Could not import vocabulary CSV.",
-        "exportError": "Could not export vocabulary CSV.",
-        "saveError": "Could not save vocabulary.",
+        "csvLabel": "CSV",
+        "importError": "Couldn't import the vocabulary CSV. Check the file and try again.",
+        "exportError": "Couldn't export the vocabulary CSV. Try again.",
+        "saveError": "Couldn't save the vocabulary. Try again.",
         "imported": "Vocabulary imported",
         "errors": {
           "incomplete": "Enter both a spoken phrase and written text.",
@@ -527,7 +545,7 @@
         "actions": "Vocabulary actions",
         "audioImport": {
           "errors": {
-            "start": "Couldn't start the audio import."
+            "start": "Couldn't start the audio import. Try again."
           },
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
@@ -562,8 +580,8 @@
         "save": "Save emoji replacements",
         "saved": "Emoji replacements saved",
         "remove": "Remove {{spoken}}",
-        "saveError": "Could not save emoji replacements.",
-        "toggleError": "Could not change emoji replacements.",
+        "saveError": "Couldn't save the emoji replacements. Try again.",
+        "toggleError": "Couldn't change the emoji replacements. Try again.",
         "errors": {
           "incomplete": "Enter both a spoken phrase and emoji text.",
           "duplicate": "This emoji replacement already exists.",
@@ -710,6 +728,74 @@
         "destinationPinned": "Sona pins this exact endpoint and origin for the acknowledgement."
       }
     },
+    "vocabulary": {
+      "replacements": {
+        "title": "Spoken replacements",
+        "description": "Phrases Sona rewrites into exact text. Changes here affect future transcripts only, never text already written.",
+        "enabledLabel": "Enable spoken replacements",
+        "enabledDescription": "Rewrite spoken phrases such as at sign into symbols, before vocabulary correction runs.",
+        "offState": "Spoken replacements are off. Rules stay saved and apply again as soon as you turn this back on.",
+        "spoken": "You say",
+        "written": "Sona writes",
+        "applyColumn": "Apply",
+        "actionsColumn": "Actions",
+        "spokenPlaceholder": "at sign",
+        "writtenPlaceholder": "@",
+        "add": "Add rule",
+        "reset": "Restore defaults",
+        "ruleEnabled": "Apply {{spoken}}",
+        "delete": "Delete {{spoken}}",
+        "loading": "Loading replacements",
+        "loadError": "Could not load replacements.",
+        "matching": "Phrases match whole words and ignore case. When two rules fit the same spot the longer one wins, and replacement runs before vocabulary correction.",
+        "errors": {
+          "duplicate": "Another rule already uses this phrase.",
+          "incomplete": "Enter both a spoken phrase and its replacement."
+        },
+        "empty": {
+          "title": "No replacements",
+          "description": "Add a phrase such as at sign and Sona writes @ every time you say it.",
+          "action": "Restore the starter rules"
+        },
+        "confirmDelete": {
+          "title": "Delete {{spoken}}?",
+          "description": "The phrase stops being rewritten in future transcripts. Text already written is unchanged.",
+          "body": "{{spoken}} currently becomes {{written}}."
+        },
+        "confirmReset": {
+          "title": "Restore the default rules?",
+          "description": "Every rule you added or edited is discarded and the shipped starter set comes back."
+        }
+      }
+    },
+    "prompts": {
+      "samples": {
+        "title": "Writing samples",
+        "description": "Examples of your own writing. Every mode that rewrites a transcript matches their voice.",
+        "placeholder": "Paste a paragraph you wrote.",
+        "sampleLabel": "Writing sample {{number}}",
+        "delete": "Delete sample {{number}}",
+        "add": "Add sample",
+        "wordCount": "{{words}} of {{max}} words",
+        "overLimit": "{{words}} words. Only the first {{max}} are used.",
+        "privacy": "Samples are sent wherever the transcript itself already goes, and nowhere else. Up to {{max}} samples are used.",
+        "loading": "Loading samples",
+        "loadError": "Could not load samples.",
+        "empty": {
+          "title": "No samples yet",
+          "description": "Paste a few paragraphs you wrote yourself and rewrites will follow your vocabulary, sentence length, and formality.",
+          "action": "Add a sample"
+        }
+      }
+    },
+    "hud": {
+      "enabledLabel": "Show the idle pill",
+      "enabledDescription": "Keep a small pill on screen between dictations. Click it to start, right-click it to switch modes.",
+      "positionLabel": "Idle pill position",
+      "positionDescription": "Which screen edge the idle pill sits on.",
+      "positionTop": "Top",
+      "positionBottom": "Bottom"
+    },
     "history": {
       "stats": {
         "title": "All-time usage",
@@ -725,7 +811,17 @@
           "legacy": "Older recordings"
         }
       },
+      "processAgain": {
+        "action": "Process again",
+        "title": "Process again",
+        "description": "Run this recording through another mode. The original entry is kept and the result is saved as a new one.",
+        "placeholder": "Choose a mode",
+        "confirm": "Process",
+        "started": "Reprocessing started",
+        "modeLabel": "Mode"
+      },
       "title": "History",
+      "derivedFrom": "From an earlier recording",
       "openFolder": "Open Recordings Folder",
       "loading": "Loading history...",
       "empty": "No transcriptions yet. Start recording to build your history!",
@@ -733,9 +829,9 @@
       "save": "Save transcription",
       "unsave": "Remove from saved",
       "delete": "Delete entry",
-      "deleteError": "Failed to delete entry. Please try again.",
+      "deleteError": "Couldn't delete the entry. Try again.",
       "retranscribe": "Re-transcribe",
-      "retranscribeError": "Failed to re-transcribe. Please try again.",
+      "retranscribeError": "Couldn't re-transcribe. Try again.",
       "transcribing": "Transcribing...",
       "transcriptionFailed": "Transcription failed. You can re-transcribe using the retry icon.",
       "search": "Search history",
@@ -743,7 +839,7 @@
       "noResults": "No transcriptions match “{{query}}”.",
       "loadError": "Couldn’t load history.",
       "retry": "Try again",
-      "saveError": "Couldn’t update saved status.",
+      "saveError": "Couldn't update the saved status. Try again.",
       "postProcessEmpty": "Post-processing did not return text. Showing the raw transcription.",
       "textView": {
         "label": "Transcript view",
@@ -790,6 +886,12 @@
           "full": "Full"
         },
         "contextSources": "Context sources",
+        "columns": {
+          "source": "Source",
+          "status": "Status",
+          "method": "Method",
+          "outcome": "Outcome"
+        },
         "contextSource": {
           "target": "App",
           "focused_field": "Focused field",
@@ -838,7 +940,7 @@
         "global": "All modes",
         "save": "Save correction",
         "saved": "Vocabulary correction saved",
-        "saveError": "Could not save vocabulary correction."
+        "saveError": "Couldn't save the correction. Try again."
       },
       "audioImport": {
         "start": "Transcribe file",
@@ -865,7 +967,7 @@
           "history": "The transcript could not be saved to history."
         },
         "errors": {
-          "start": "Could not start the file import.",
+          "start": "Couldn't start the file import. Try again.",
           "cancel": "Could not cancel the file import.",
           "load": "Could not load file import status."
         },
@@ -921,7 +1023,7 @@
         "description": "Open the latest bundled release note without marking it as seen",
         "button": "Preview",
         "noNotes": "No bundled release notes found",
-        "error": "Failed to preview release notes"
+        "error": "Couldn't preview the release notes. Try again."
       },
       "soundTheme": {
         "label": "Sound Theme",
@@ -1200,7 +1302,9 @@
         "noModelSelected": "No model selected",
         "model": {
           "label": "Transcription model",
-          "description": "Only downloaded local models are available here."
+          "description": "Only downloaded local models are available here.",
+          "inheritGlobal": "Default — uses the global model",
+          "inheritGlobalNamed": "Default — uses the global model ({{name}})"
         },
         "language": {
           "label": "Language",
@@ -1744,7 +1848,10 @@
     "noOptionsFound": "No options found",
     "save": "Save",
     "saving": "Saving…",
-    "retry": "Retry"
+    "retry": "Retry",
+    "play": "Play",
+    "pause": "Pause",
+    "seek": "Playback position"
   },
   "commandPalette": {
     "open": "Search",
@@ -1768,21 +1875,24 @@
     "noSpeechDetectedTitle": "No speech detected",
     "noSpeechDetected": "No speech was detected. A sample of the recording was saved to History so you can check the captured audio.",
     "loadDirectory": "Error loading directory: {{error}}",
-    "micPermissionDeniedTitle": "Microphone Access Denied",
+    "micPermissionDeniedTitle": "Microphone access denied",
     "micPermissionDenied": {
       "generic": "Microphone access was denied by the operating system. Please grant microphone permission in your system settings.",
       "windows": "Enable microphone access in Settings → Privacy & security → Microphone (including desktop app access).",
       "macos": "Grant microphone access in System Settings → Privacy & Security → Microphone.",
       "linux": "Grant microphone access in your system's sound or privacy settings."
     },
-    "noInputDeviceTitle": "No Microphone Found",
+    "noInputDeviceTitle": "No microphone found",
     "noInputDevice": "No audio input device was detected. Please connect a microphone or headset and try again.",
-    "recordingFailed": "Failed to start recording: {{error}}",
-    "modelLoadFailed": "Failed to load model: {{model}}",
+    "recordingFailed": "Couldn't start recording: {{error}}. Try again.",
+    "modelLoadFailed": "Couldn't load {{model}}. Try again.",
     "modelLoadFailedUnknown": "unknown model",
-    "pasteFailedTitle": "Failed to Paste Text",
-    "pasteFailed": "Text could not be pasted into the active application.",
-    "transcriptionFailedTitle": "Transcription Failed"
+    "pasteFailedTitle": "Couldn't paste the transcript",
+    "pasteFailed": "The text could not be pasted into the active app. Focus a text field and try again.",
+    "transcriptionFailedTitle": "Couldn't transcribe",
+    "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
+    "commandNoSelection": "Nothing was selected. Select the text you want to change, then hold the command shortcut and say what to do.",
+    "commandRewriteUnavailable": "The rewrite returned nothing, so your selection was left as it was. Check the rewrite model in Settings > AI and try again."
   },
   "appLanguage": {
     "title": "Application Language",
@@ -1801,7 +1911,13 @@
     "transcribing": "Transcribing...",
     "processing": "Processing...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model"
+    "localFallback": "Offline, using local model",
+    "hud": {
+      "idle": "Ready",
+      "toggle": "Start dictation in {{mode}}",
+      "hint": "Click to dictate, right-click for modes",
+      "modes": "Switch mode"
+    }
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} may be blocking 1 shortcut",
@@ -1879,79 +1995,56 @@
         "cancelled": "Processing cancelled"
       }
     },
-    "readiness": {
-      "ready": "Ready",
-      "unavailable": "Unavailable",
-      "local": "Local only",
-      "needsAcknowledgement": "Acknowledgement required"
+    "start": {
+      "label": "Start a meeting",
+      "action": "Start recording",
+      "starting": "Starting…",
+      "assurance": "Records your Mac's audio locally. Nothing joins the call.",
+      "capture": "Capture",
+      "noSources": "Choose at least one source.",
+      "localOnly": "Local only",
+      "retention": "Kept: {{policy}}"
+    },
+    "gate": {
+      "title": "Recording did not start",
+      "description": "Sona created the meeting, but a source it was told to record is unavailable.",
+      "readyTitle": "Ready to record",
+      "readyDescription": "Nothing is blocking capture for this meeting.",
+      "recordAnyway": "Record without it",
+      "recordAnywayHint": "The record is marked partial and the missing source stays named in it."
     },
     "actions": {
       "back": "Back",
       "delete": "Delete meeting",
       "discard": "Discard",
-      "newMeeting": "New meeting",
       "pause": "Pause",
       "refresh": "Refresh",
       "resume": "Resume",
       "retry": "Try again",
-      "startLocal": "Start local notes",
       "stop": "Stop"
     },
     "detected": {
       "title": "Meeting detected",
-      "description": "Sona only offers a setup screen. It is not recording.",
-      "mayBeActive": "A meeting may be active in {{provider}}.",
-      "notRecording": "Sona is not recording."
+      "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
-      "title": "Start local notes",
-      "suggestedDescription": "Sona detected {{provider}}. Review the capture setup before recording.",
-      "manualDescription": "Set the sources and policy for a new local meeting note.",
-      "identity": "Meeting details",
-      "meetingTitle": "Meeting title",
-      "meetingTitlePlaceholder": "Untitled meeting",
       "captureSources": "Capture sources",
       "captureSourcesDescription": "Each source stays separate so missing audio remains visible.",
-      "sourcePolicy": "If a source is unavailable",
-      "sourcePolicyDescription": "Choose whether setup stops or starts with an explicit partial record.",
-      "strict": "Strict: stop setup if a required source is unavailable",
-      "continuePartial": "Continue partial: start only after I acknowledge the missing source",
       "processing": "Processing route",
-      "localProcessing": "On this Mac",
-      "localProcessingDescription": "Audio, transcript, notes, search, and Q&A stay local.",
-      "selected": "Selected",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination selected",
       "localOnly": "Local only",
-      "check": "Check recording setup",
-      "checking": "Checking setup…",
       "defaultTitle": "Local notes",
       "remoteUnavailable": "Remote processing is unavailable in this build, so every meeting is transcribed and summarised on this Mac."
     },
     "preflight": {
-      "title": "Check recording setup",
-      "description": "Review each local capability before authorizing capture.",
-      "summary": "Meeting setup summary",
-      "meeting": "Meeting",
-      "changeSetup": "Change setup",
-      "readiness": "Readiness",
-      "readinessDescription": "Each row reports the current backend check.",
       "storage": "Storage",
       "storageAvailable": "Encrypted meeting storage is available.",
       "storageUnavailable": "Encrypted meeting storage is unavailable.",
       "localModel": "Local model",
       "localModelDescription": "Processing remains local when a local model is available.",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination is selected.",
-      "remoteSelected": "Selected destination: {{destination}}",
-      "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
       "starting": "Starting visible capture…",
       "refreshing": "Checking…"
     },
     "consent": {
-      "title": "Recording acknowledgement",
-      "description": "Sona will show a visible capture state. Audio, transcript, and notes stay on this Mac unless you explicitly select a remote destination.",
-      "acknowledge": "I have permission to capture this meeting.",
       "continuePartial": "I want to continue with a partial meeting record.",
       "acceptMissing": "I understand {{source}} is {{state}} and this meeting will be partial."
     },
@@ -2043,7 +2136,7 @@
     },
     "errors": {
       "load": "Sona could not load the current meeting data.",
-      "operation": "Sona could not complete that meeting action.",
+      "operation": "Couldn't complete that meeting action. Try again.",
       "operationRejected": "The meeting action was rejected.",
       "consent_required": "Confirm the recording acknowledgement before starting.",
       "consent_stale": "The setup changed. Review it again before starting.",
@@ -2114,12 +2207,12 @@
       "regenerate": "Regenerate",
       "remoteCancellationPending": "Remote cancellation is pending. Local deletion does not claim the remote copy is deleted.",
       "cancelRemote": "Cancel remote processing",
-      "remoteCancellationRequested": "Remote cancellation requested.",
+      "remoteCancellationRequested": "Cancellation requested",
       "export": "Export",
       "exportDescription": "Each export uses an immutable local review snapshot and opens a native save dialog.",
       "exportMarkdown": "Export Markdown",
       "exportJson": "Export JSON",
-      "exportComplete": "Export completed.",
+      "exportComplete": "Meeting exported",
       "citation": "Transcript {{time}}",
       "noGeneratedNotes": "No generated notes are available yet.",
       "template": "Template: {{template}}",
@@ -2134,6 +2227,7 @@
       "followUp": "Follow-up",
       "artifactUnavailable": "This generated revision is unavailable. The source transcript and manual notes remain local.",
       "actionMeta": "Owner: {{owner}} · Due: {{due}}",
+      "actionDone": "Mark this action item done",
       "unassigned": "Unassigned",
       "noDueDate": "No due date",
       "questions": "Ask this meeting",
@@ -2219,6 +2313,120 @@
     "status": {
       "gapCount": "Gaps: {{total}}",
       "required": "Required"
+    },
+    "analytics": {
+      "title": "Conversation",
+      "description": "Measured on this Mac from the diarized transcript. Nothing is sent anywhere.",
+      "noSpeech": "No speech was transcribed, so there is nothing to measure.",
+      "talkShare": "Top talker",
+      "longestMonologue": "Longest monologue",
+      "patience": "Patience",
+      "patienceDetail": "Median pause before replying",
+      "interactions": "Handovers",
+      "turns": "{{count}} turns",
+      "turns_one": "{{count}} turn",
+      "speakerDetail": "{{time}} · {{turns}}",
+      "unknownSpeaker": "Unknown speaker",
+      "trackers": "Trackers",
+      "hits": "{{count}} mentions",
+      "hits_one": "{{count}} mention",
+      "noHits": "Not mentioned",
+      "jumpToFirst": "Show first",
+      "trackersTitle": "Keyword trackers",
+      "trackersDescription": "Phrases to watch for in every meeting transcript. Matching is literal and ignores case, and every scan runs on this Mac.",
+      "addTracker": "Add tracker",
+      "removeTracker": "Remove tracker",
+      "noTrackers": "No trackers yet. Add one to start counting how often a phrase comes up.",
+      "trackerName": "Name",
+      "trackerPatterns": "discount, best price, too expensive",
+      "trackerPatternsLabel": "Phrases, separated by commas",
+      "trackersSaveFailed": "Sona could not save the trackers. Change one and try again."
+    },
+    "notes": {
+      "title": "My notes",
+      "liveDescription": "Type as roughly as you like. These notes stay on this Mac and steer the notes Sona generates when the meeting ends.",
+      "reviewDescription": "Your own notes steer what the generated notes emphasize. They are never quoted or cited.",
+      "placeholder": "Anything worth remembering — names, numbers, what to follow up on",
+      "unsaved": "Not saved yet",
+      "saving": "Saving…",
+      "saved": "Notes saved",
+      "conflict": "These notes changed somewhere else. Reopen the meeting to load the current version.",
+      "reenhance": "Re-enhance with my notes",
+      "enhancing": "Rebuilding…",
+      "enhanced": "Notes rebuilt.",
+      "enhanceFailed": "Sona could not rebuild the notes. Open the meeting again and retry.",
+      "catchUp": "Catch me up",
+      "catchingUp": "Catching up…",
+      "catchUpTitle": "So far",
+      "catchUpNoTranscript": "Nothing to recap yet. Sona transcribes after you stop recording, so a recap is available once the transcript starts arriving.",
+      "catchUpUnavailable": "The on-device model is unavailable, so no recap was written.",
+      "catchUpFailed": "Sona could not build a recap. Try again in a moment.",
+      "templates": {
+        "general": "General meeting",
+        "one_on_one": "One-to-one",
+        "interview": "Interview",
+        "sales_call": "Sales call",
+        "standup": "Standup"
+      }
+    },
+    "detection": {
+      "title": "Detect meetings",
+      "description": "Sona watches for calls and offers to take notes. It never records on its own.",
+      "loading": "Reading detection state…",
+      "prompt": {
+        "calendar": "{{title}} starting",
+        "app": "{{app}} meeting detected",
+        "huddle": "{{app}} huddle detected",
+        "browser": "Call detected in {{app}}",
+        "unknown": "Microphone activity detected",
+        "body": "Sona can take local notes for this call."
+      },
+      "actions": {
+        "start": "Start transcribing",
+        "dismiss": "Dismiss"
+      },
+      "pane": {
+        "title": "Starting soon",
+        "description": "Sona never records until you start it here.",
+        "countdown": "Starts in {{seconds}}s",
+        "notYetRecording": "Not recording"
+      },
+      "calendar": {
+        "label": "Use my calendar",
+        "description": "Shows a countdown a minute before events with two or more attendees. macOS asks for full calendar access the first time, because Apple offers no read-only grant."
+      },
+      "anyMic": {
+        "label": "Ask on any microphone use",
+        "description": "Includes voice memos, music apps, and anything else that opens the microphone. Off keeps prompts to known meeting apps."
+      },
+      "autoStart": {
+        "label": "Open the meeting when its countdown is showing",
+        "description": "Skips the notification when an event starts while you are already looking at its countdown. You still confirm what gets recorded."
+      },
+      "apps": {
+        "label": "Meeting apps",
+        "description": "One bundle identifier per line. An entry only counts while that app is running, so a renamed identifier is inert rather than wrong.",
+        "running": "Running now: {{apps}}",
+        "noneRunning": "None of these are running right now."
+      },
+      "state": {
+        "title": "What detection can see",
+        "description": "Detection is quiet most of the time. This is why.",
+        "calendarDenied": "Calendar access was not granted, so only the microphone path runs.",
+        "notificationsDenied": "Notifications are off for Sona, so prompts appear in the app only.",
+        "bluetoothCaveat": "A meeting app is open but nothing reports using the microphone. Bluetooth headsets often do not, so start the meeting yourself if one is running.",
+        "noSilenceStop": "Captures stop on the event end, the app quitting, sleep, or your own stop. The silence timer needs live transcription, which runs after a meeting ends."
+      },
+      "why": {
+        "disabled": "Detection is off.",
+        "sonaHoldsMic": "Sona is using the microphone, so nothing else can be identified right now.",
+        "captureActive": "A meeting is already being captured.",
+        "noSignal": "Nothing is using the microphone yet.",
+        "soloEvent": "The next event has fewer than two attendees, so it reads as blocked time.",
+        "unknownApp": "Something is using the microphone, but it is not a known meeting app.",
+        "browserUnreadable": "A browser is in front, but its tab title cannot be read.",
+        "browserNotMeeting": "A browser is in front and its tab is not a call."
+      }
     }
   },
   "agentPanel": {
@@ -2287,7 +2495,15 @@
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Mode: {{name}}",
-      "setShortcut": "Set a dictation shortcut in Settings to capture from any app."
+      "setShortcut": "Set a dictation shortcut in Settings to capture from any app.",
+      "setShortcutAction": "Set a shortcut",
+      "shortcutAction": "Change dictation shortcut",
+      "holdHint": "Tap to toggle, hold to talk",
+      "facts": {
+        "mode": "Mode",
+        "model": "Model",
+        "engine": "Engine"
+      }
     },
     "actions": {
       "dictate": "Dictate",

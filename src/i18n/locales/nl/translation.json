@@ -120,7 +120,7 @@
       }
     },
     "errors": {
-      "selectModel": "Model selecteren mislukt"
+      "selectModel": "Kon het model niet selecteren. Probeer het opnieuw."
     },
     "permissions": {
       "title": "Machtigingen vereist",
@@ -138,10 +138,15 @@
       "waiting": "Wachten...",
       "allGranted": "Alles ingesteld!",
       "errors": {
-        "checkFailed": "Machtigingen controleren mislukt. Probeer het opnieuw.",
-        "requestFailed": "Machtiging aanvragen mislukt. Probeer het opnieuw."
-      }
-    }
+        "checkFailed": "Kon de rechten niet controleren. Probeer het opnieuw.",
+        "requestFailed": "Kon de toestemming niet aanvragen. Probeer het opnieuw."
+      },
+      "headline": "Eenmalige installatie",
+      "subhead": "Je computer vraagt het eerst voordat een app kan meeluisteren of voor je kan typen. Geef deze rechten één keer en Sona vraagt het niet meer.",
+      "checking": "Rechten worden gecontroleerd",
+      "recheck": "Opnieuw controleren"
+    },
+    "headline": "Kies een spraakmodel"
   },
   "modelSelector": {
     "custom": "Aangepast",
@@ -190,7 +195,7 @@
         "loading": "Sneltoetsen laden...",
         "none": "Geen sneltoetsen geconfigureerd",
         "notFound": "Sneltoets niet gevonden",
-        "pressKeys": "Druk op toetsen...",
+        "pressKeys": "Druk je toetsen in…",
         "bindings": {
           "transcribe": {
             "name": "Sneltoets voor dicteren",
@@ -203,13 +208,21 @@
           "transcribe_with_post_process": {
             "name": "Sneltoets voor naverwerking",
             "description": "Optioneel: Een specifieke sneltoets die altijd AI-naverwerking toepast op je transcriptie."
+          },
+          "command": {
+            "name": "Opdrachtsneltoets",
+            "description": "De sneltoets die de tekst die je hebt geselecteerd herschrijft op basis van een gesproken instructie."
           }
         },
         "errors": {
-          "restore": "Herstellen van originele sneltoets mislukt",
+          "restore": "Kon de oorspronkelijke sneltoets niet herstellen. Probeer het opnieuw.",
           "set": "Instellen van sneltoets mislukt: {{error}}",
-          "reset": "Sneltoets terugzetten naar standaardwaarde mislukt"
-        }
+          "reset": "Kon de sneltoets niet terugzetten. Probeer het opnieuw."
+        },
+        "holdHint": "Tik om te wisselen, houd vast om te praten. Werkt met elke sneltoets.",
+        "recordAction": "Een nieuwe sneltoets voor {{binding}} opnemen",
+        "recordHint": "Klik om op te nemen",
+        "unset": "Niet ingesteld"
       },
       "language": {
         "title": "Taal",
@@ -226,7 +239,11 @@
         "description": "Taal van de interface en kleurenschema. Beide gelden direct.",
         "title": "Weergave"
       },
-      "description": "De toetsen die je indrukt, de microfoon waarnaar Sona luistert en hoe de app eruitziet."
+      "description": "De toetsen die je indrukt, de microfoon waarnaar Sona luistert en hoe de app eruitziet.",
+      "commandMode": {
+        "label": "Spraakopdrachtmodus",
+        "description": "Houd de opdrachtsneltoets vast en zeg wat er aan de geselecteerde tekst moet veranderen."
+      }
     },
     "models": {
       "title": "Transcriptiemodellen",
@@ -321,9 +338,9 @@
         "notDownloaded": "Niet gedownload"
       },
       "summary": {
-        "active": "Actief: {{name}}",
         "noActive": "Geen model geselecteerd",
-        "onDisk": "{{total}} op schijf"
+        "activeLabel": "Actief model",
+        "onDiskLabel": "Op schijf"
       }
     },
     "sound": {
@@ -493,9 +510,9 @@
         "remove": "Verwijder {{spoken}}",
         "import": "CSV importeren",
         "export": "CSV exporteren",
-        "importError": "Kan CSV met woordenschat niet importeren.",
-        "exportError": "Kan CSV met woordenschat niet exporteren.",
-        "saveError": "Kan woordenschat niet opslaan.",
+        "importError": "Kon de vocabulaire-CSV niet importeren. Controleer het bestand en probeer het opnieuw.",
+        "exportError": "Kon de vocabulaire-CSV niet exporteren. Probeer het opnieuw.",
+        "saveError": "Kon de vocabulaire niet opslaan. Probeer het opnieuw.",
         "imported": "Woordenschat geïmporteerd",
         "errors": {
           "incomplete": "Voer zowel een gesproken zin als geschreven tekst in.",
@@ -523,7 +540,7 @@
         "actions": "Vocabulary actions",
         "audioImport": {
           "errors": {
-            "start": "Couldn't start the audio import."
+            "start": "Kon de audio-import niet starten. Probeer het opnieuw."
           },
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
@@ -534,7 +551,8 @@
           "title": "Nog geen woordenschatregels"
         },
         "sources": "Correcties die je opslaat vanuit een transcript in Bibliotheek komen in deze lijst terecht. Regels voor één modus staan in de eigen woordenschat van die modus.",
-        "unsaved": "Niet-opgeslagen wijzigingen"
+        "unsaved": "Niet-opgeslagen wijzigingen",
+        "csvLabel": "CSV"
       },
       "voiceActivityDetection": {
         "title": "Spraakactiviteitsdetectie (VAD)",
@@ -558,8 +576,8 @@
         "save": "Emoji-vervangingen opslaan",
         "saved": "Emoji-vervangingen opgeslagen",
         "remove": "Verwijder {{spoken}}",
-        "saveError": "Kan emoji-vervangingen niet opslaan.",
-        "toggleError": "Kan emoji-vervangingen niet wijzigen.",
+        "saveError": "Kon de emoji-vervangingen niet opslaan. Probeer het opnieuw.",
+        "toggleError": "Kon de emoji-vervangingen niet wijzigen. Probeer het opnieuw.",
         "errors": {
           "incomplete": "Voer zowel een gesproken zin als emojitekst in.",
           "duplicate": "Deze emoji-vervanging bestaat al.",
@@ -729,9 +747,9 @@
       "save": "Transcriptie opslaan",
       "unsave": "Verwijderen uit opgeslagen",
       "delete": "Item verwijderen",
-      "deleteError": "Item verwijderen mislukt. Probeer het opnieuw.",
+      "deleteError": "Kon het item niet verwijderen. Probeer het opnieuw.",
       "retranscribe": "Opnieuw transcriberen",
-      "retranscribeError": "Opnieuw transcriberen mislukt. Probeer het opnieuw.",
+      "retranscribeError": "Kon niet opnieuw transcriberen. Probeer het opnieuw.",
       "transcribing": "Transcriberen...",
       "transcriptionFailed": "Transcriptie mislukt. Je kunt het opnieuw proberen via het herlaad-pictogram.",
       "search": "Zoeken in geschiedenis",
@@ -739,7 +757,7 @@
       "noResults": "Geen transcripties komen overeen met \"{{query}}\".",
       "loadError": "Geschiedenis kon niet worden geladen.",
       "retry": "Opnieuw proberen",
-      "saveError": "Opgeslagen status kon niet worden bijgewerkt.",
+      "saveError": "Kon de bewaarstatus niet bijwerken. Probeer het opnieuw.",
       "postProcessEmpty": "Nabewerking heeft geen tekst opgeleverd. De originele transcriptie wordt weergegeven.",
       "textView": {
         "label": "Transcriptieweergave",
@@ -818,6 +836,12 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "columns": {
+          "source": "Bron",
+          "status": "Status",
+          "method": "Methode",
+          "outcome": "Uitkomst"
         }
       },
       "correction": {
@@ -834,7 +858,7 @@
         "global": "All modes",
         "save": "Save correction",
         "saved": "Vocabulary correction saved",
-        "saveError": "Could not save vocabulary correction."
+        "saveError": "Kon de correctie niet opslaan. Probeer het opnieuw."
       },
       "audioImport": {
         "start": "Bestand transcriberen",
@@ -861,7 +885,7 @@
           "history": "Het transcript kon niet worden opgeslagen in de geschiedenis."
         },
         "errors": {
-          "start": "Kan de bestandsimport niet starten.",
+          "start": "Kon de bestandsimport niet starten. Probeer het opnieuw.",
           "cancel": "Kan de bestandsimport niet annuleren.",
           "load": "Kan de status van de bestandsimport niet laden."
         },
@@ -889,7 +913,17 @@
       "noResultsHint": "Zoeken matcht hele woorden in zowel het ruwe als het verwerkte transcript.",
       "results": "{{count}} resultaten",
       "resultsMore": "{{count}}+ resultaten",
-      "resultsNone": "Geen resultaten"
+      "resultsNone": "Geen resultaten",
+      "processAgain": {
+        "action": "Opnieuw verwerken",
+        "title": "Opnieuw verwerken",
+        "description": "Laat deze opname door een andere modus lopen. Het oorspronkelijke item blijft bewaard en het resultaat wordt als nieuw item opgeslagen.",
+        "placeholder": "Kies een modus",
+        "confirm": "Verwerken",
+        "started": "Herverwerking gestart",
+        "modeLabel": "Modus"
+      },
+      "derivedFrom": "Uit een eerdere opname"
     },
     "debug": {
       "title": "Probleemoplossing",
@@ -917,7 +951,7 @@
         "description": "Open de nieuwste meegeleverde release-notes zonder deze als gelezen te markeren",
         "button": "Voorbeeld",
         "noNotes": "Geen meegeleverde release-notes gevonden",
-        "error": "Voorbeeld van release-notes laden mislukt"
+        "error": "Kon de releasenotes niet weergeven. Probeer het opnieuw."
       },
       "soundTheme": {
         "label": "Geluidsthema",
@@ -1196,7 +1230,9 @@
         "noModelSelected": "No model selected",
         "model": {
           "label": "Transcription model",
-          "description": "Only downloaded local models are available here."
+          "description": "Only downloaded local models are available here.",
+          "inheritGlobal": "Standaard — gebruikt het globale model",
+          "inheritGlobalNamed": "Standaard — gebruikt het globale model ({{name}})"
         },
         "language": {
           "label": "Language",
@@ -1724,6 +1760,74 @@
         "about": "About",
         "debug": "Debug"
       }
+    },
+    "vocabulary": {
+      "replacements": {
+        "title": "Gesproken vervangingen",
+        "description": "Uitdrukkingen die Sona omzet in exacte tekst. Wijzigingen hier gelden alleen voor toekomstige transcripties, nooit voor tekst die al is geschreven.",
+        "enabledLabel": "Gesproken vervangingen aanzetten",
+        "enabledDescription": "Gesproken uitdrukkingen zoals apenstaartje omzetten in symbolen, voordat de vocabulairecorrectie loopt.",
+        "offState": "Gesproken vervangingen staan uit. De regels blijven bewaard en gelden weer zodra je dit weer aanzet.",
+        "spoken": "Jij zegt",
+        "written": "Sona schrijft",
+        "applyColumn": "Toepassen",
+        "actionsColumn": "Acties",
+        "spokenPlaceholder": "apenstaartje",
+        "writtenPlaceholder": "@",
+        "add": "Regel toevoegen",
+        "reset": "Standaardwaarden herstellen",
+        "ruleEnabled": "{{spoken}} toepassen",
+        "delete": "{{spoken}} verwijderen",
+        "loading": "Vervangingen worden geladen",
+        "loadError": "Kon de vervangingen niet laden.",
+        "matching": "Uitdrukkingen passen op hele woorden en negeren hoofdletters. Als twee regels op dezelfde plek passen wint de langste, en vervanging gebeurt vóór de vocabulairecorrectie.",
+        "errors": {
+          "duplicate": "Een andere regel gebruikt deze uitdrukking al.",
+          "incomplete": "Vul zowel een gesproken uitdrukking als de vervanging in."
+        },
+        "empty": {
+          "title": "Geen vervangingen",
+          "description": "Voeg een uitdrukking zoals apenstaartje toe en Sona schrijft @ elke keer dat je die zegt.",
+          "action": "De startregels herstellen"
+        },
+        "confirmDelete": {
+          "title": "{{spoken}} verwijderen?",
+          "description": "De uitdrukking wordt in toekomstige transcripties niet meer omgezet. Tekst die al geschreven is blijft ongewijzigd.",
+          "body": "{{spoken}} wordt nu {{written}}."
+        },
+        "confirmReset": {
+          "title": "De standaardregels herstellen?",
+          "description": "Elke regel die je hebt toegevoegd of aangepast wordt weggegooid en de meegeleverde startset komt terug."
+        }
+      }
+    },
+    "prompts": {
+      "samples": {
+        "title": "Schrijfvoorbeelden",
+        "description": "Voorbeelden van je eigen schrijven. Elke modus die een transcriptie herschrijft neemt die toon over.",
+        "placeholder": "Plak een alinea die je zelf hebt geschreven.",
+        "sampleLabel": "Schrijfvoorbeeld {{number}}",
+        "delete": "Voorbeeld {{number}} verwijderen",
+        "add": "Voorbeeld toevoegen",
+        "wordCount": "{{words}} van {{max}} woorden",
+        "overLimit": "{{words}} woorden. Alleen de eerste {{max}} worden gebruikt.",
+        "privacy": "Voorbeelden gaan alleen daarheen waar de transcriptie zelf al gaat, en nergens anders. Er worden tot {{max}} voorbeelden gebruikt.",
+        "loading": "Voorbeelden worden geladen",
+        "loadError": "Kon de voorbeelden niet laden.",
+        "empty": {
+          "title": "Nog geen voorbeelden",
+          "description": "Plak een paar alinea's die je zelf hebt geschreven, dan volgen herschrijvingen je woordkeuze, zinslengte en toon.",
+          "action": "Een voorbeeld toevoegen"
+        }
+      }
+    },
+    "hud": {
+      "enabledLabel": "De rustpil weergeven",
+      "enabledDescription": "Houd tussen dictaten een kleine pil op het scherm. Klik om te starten, rechtsklik om van modus te wisselen.",
+      "positionLabel": "Positie van de rustpil",
+      "positionDescription": "Aan welke schermrand de rustpil staat.",
+      "positionTop": "Boven",
+      "positionBottom": "Onder"
     }
   },
   "whatsNew": {
@@ -1740,7 +1844,10 @@
     "noOptionsFound": "Geen opties gevonden",
     "save": "Save",
     "saving": "Saving…",
-    "retry": "Retry"
+    "retry": "Retry",
+    "play": "Afspelen",
+    "pause": "Pauzeren",
+    "seek": "Weergavepositie"
   },
   "commandPalette": {
     "open": "Zoeken",
@@ -1773,12 +1880,15 @@
     },
     "noInputDeviceTitle": "Geen microfoon gevonden",
     "noInputDevice": "Er is geen audio-invoerapparaat gedetecteerd. Sluit een microfoon of headset aan en probeer het opnieuw.",
-    "recordingFailed": "Opname starten mislukt: {{error}}",
-    "modelLoadFailed": "Model laden mislukt: {{model}}",
+    "recordingFailed": "Kon de opname niet starten: {{error}}. Probeer het opnieuw.",
+    "modelLoadFailed": "Kon {{model}} niet laden. Probeer het opnieuw.",
     "modelLoadFailedUnknown": "onbekend model",
-    "pasteFailedTitle": "Tekst plakken mislukt",
-    "pasteFailed": "Tekst kon niet worden geplakt in de actieve applicatie.",
-    "transcriptionFailedTitle": "Transcriptie mislukt"
+    "pasteFailedTitle": "Kon de transcriptie niet plakken",
+    "pasteFailed": "De tekst kon niet in de actieve app worden geplakt. Zet de cursor in een tekstveld en probeer het opnieuw.",
+    "transcriptionFailedTitle": "Kon niet transcriberen",
+    "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
+    "commandNoSelection": "Er was niets geselecteerd. Selecteer de tekst die je wilt veranderen, houd dan de opdrachtsneltoets vast en zeg wat er moet gebeuren.",
+    "commandRewriteUnavailable": "De herschrijving gaf niets terug, dus je selectie bleef zoals hij was. Controleer het herschrijfmodel in Instellingen > AI en probeer het opnieuw."
   },
   "appLanguage": {
     "title": "Interfacetaal",
@@ -1797,7 +1907,13 @@
     "transcribing": "Transcriberen...",
     "processing": "Verwerken...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model"
+    "localFallback": "Offline, using local model",
+    "hud": {
+      "idle": "Gereed",
+      "toggle": "Dicteren starten in {{mode}}",
+      "hint": "Klik om te dicteren, rechtsklik voor de modi",
+      "modes": "Van modus wisselen"
+    }
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} blokkeert mogelijk 1 sneltoets",
@@ -1875,79 +1991,38 @@
         "cancelled": "Processing cancelled"
       }
     },
-    "readiness": {
-      "ready": "Ready",
-      "unavailable": "Unavailable",
-      "local": "Local only",
-      "needsAcknowledgement": "Acknowledgement required"
-    },
     "actions": {
       "back": "Back",
       "delete": "Delete meeting",
       "discard": "Discard",
-      "newMeeting": "New meeting",
       "pause": "Pause",
       "refresh": "Refresh",
       "resume": "Resume",
       "retry": "Try again",
-      "startLocal": "Start local notes",
       "stop": "Stop"
     },
     "detected": {
       "title": "Meeting detected",
-      "description": "Sona only offers a setup screen. It is not recording.",
-      "mayBeActive": "A meeting may be active in {{provider}}.",
-      "notRecording": "Sona is not recording."
+      "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
-      "title": "Start local notes",
-      "suggestedDescription": "Sona detected {{provider}}. Review the capture setup before recording.",
-      "manualDescription": "Set the sources and policy for a new local meeting note.",
-      "identity": "Meeting details",
-      "meetingTitle": "Meeting title",
-      "meetingTitlePlaceholder": "Untitled meeting",
       "captureSources": "Capture sources",
       "captureSourcesDescription": "Each source stays separate so missing audio remains visible.",
-      "sourcePolicy": "If a source is unavailable",
-      "sourcePolicyDescription": "Choose whether setup stops or starts with an explicit partial record.",
-      "strict": "Strict: stop setup if a required source is unavailable",
-      "continuePartial": "Continue partial: start only after I acknowledge the missing source",
       "processing": "Processing route",
-      "localProcessing": "On this Mac",
-      "localProcessingDescription": "Audio, transcript, notes, search, and Q&A stay local.",
-      "selected": "Selected",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination selected",
       "localOnly": "Local only",
-      "check": "Check recording setup",
-      "checking": "Checking setup…",
       "defaultTitle": "Local notes",
       "remoteUnavailable": "Externe verwerking is niet beschikbaar in deze build, dus elke vergadering wordt op deze Mac getranscribeerd en samengevat."
     },
     "preflight": {
-      "title": "Check recording setup",
-      "description": "Review each local capability before authorizing capture.",
-      "summary": "Meeting setup summary",
-      "meeting": "Meeting",
-      "changeSetup": "Change setup",
-      "readiness": "Readiness",
-      "readinessDescription": "Each row reports the current backend check.",
       "storage": "Storage",
       "storageAvailable": "Encrypted meeting storage is available.",
       "storageUnavailable": "Encrypted meeting storage is unavailable.",
       "localModel": "Local model",
       "localModelDescription": "Processing remains local when a local model is available.",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination is selected.",
-      "remoteSelected": "Selected destination: {{destination}}",
-      "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
       "starting": "Starting visible capture…",
       "refreshing": "Controleren…"
     },
     "consent": {
-      "title": "Recording acknowledgement",
-      "description": "Sona will show a visible capture state. Audio, transcript, and notes stay on this Mac unless you explicitly select a remote destination.",
-      "acknowledge": "I have permission to capture this meeting.",
       "continuePartial": "I want to continue with a partial meeting record.",
       "acceptMissing": "I understand {{source}} is {{state}} and this meeting will be partial."
     },
@@ -2039,7 +2114,7 @@
     },
     "errors": {
       "load": "Sona could not load the current meeting data.",
-      "operation": "Sona could not complete that meeting action.",
+      "operation": "Kon die vergaderactie niet uitvoeren. Probeer het opnieuw.",
       "operationRejected": "The meeting action was rejected.",
       "consent_required": "Confirm the recording acknowledgement before starting.",
       "consent_stale": "The setup changed. Review it again before starting.",
@@ -2110,12 +2185,12 @@
       "regenerate": "Regenerate",
       "remoteCancellationPending": "Remote cancellation is pending. Local deletion does not claim the remote copy is deleted.",
       "cancelRemote": "Cancel remote processing",
-      "remoteCancellationRequested": "Remote cancellation requested.",
+      "remoteCancellationRequested": "Annulering aangevraagd",
       "export": "Export",
       "exportDescription": "Each export uses an immutable local review snapshot and opens a native save dialog.",
       "exportMarkdown": "Export Markdown",
       "exportJson": "Export JSON",
-      "exportComplete": "Export completed.",
+      "exportComplete": "Vergadering geëxporteerd",
       "citation": "Transcript {{time}}",
       "noGeneratedNotes": "No generated notes are available yet.",
       "template": "Template: {{template}}",
@@ -2166,7 +2241,8 @@
         "transcript": "Transcript"
       },
       "tabsLabel": "Secties vergaderoverzicht",
-      "youAsked": "Je vroeg"
+      "youAsked": "Je vroeg",
+      "actionDone": "Deze actie als gedaan markeren"
     },
     "artifactState": {
       "current": "Current",
@@ -2215,6 +2291,138 @@
     "status": {
       "gapCount": "Hiaten: {{total}}",
       "required": "Vereist"
+    },
+    "start": {
+      "label": "Een vergadering starten",
+      "action": "Opname starten",
+      "starting": "Starten…",
+      "assurance": "Neemt de audio van je Mac lokaal op. Er neemt niets deel aan het gesprek.",
+      "capture": "Opname",
+      "noSources": "Kies minstens één bron.",
+      "localOnly": "Alleen lokaal",
+      "retention": "Bewaard: {{policy}}"
+    },
+    "gate": {
+      "title": "De opname is niet gestart",
+      "description": "Sona heeft de vergadering aangemaakt, maar een bron die opgenomen moest worden is niet beschikbaar.",
+      "readyTitle": "Klaar om op te nemen",
+      "readyDescription": "Niets blokkeert de opname van deze vergadering.",
+      "recordAnyway": "Zonder die bron opnemen",
+      "recordAnywayHint": "De vastlegging wordt als gedeeltelijk gemarkeerd en de ontbrekende bron blijft erin benoemd."
+    },
+    "analytics": {
+      "title": "Gesprek",
+      "description": "Op deze Mac berekend uit de transcriptie met sprekerscheiding. Er wordt niets ergens naartoe verstuurd.",
+      "noSpeech": "Er is geen spraak getranscribeerd, dus er valt niets te meten.",
+      "talkShare": "Meest aan het woord",
+      "longestMonologue": "Langste monoloog",
+      "patience": "Geduld",
+      "patienceDetail": "Mediane pauze voor het antwoord",
+      "interactions": "Wisselingen",
+      "turns": "{{count}} spreekbeurten",
+      "turns_one": "{{count}} spreekbeurt",
+      "speakerDetail": "{{time}} · {{turns}}",
+      "unknownSpeaker": "Onbekende spreker",
+      "trackers": "Trackers",
+      "hits": "{{count}} vermeldingen",
+      "hits_one": "{{count}} vermelding",
+      "noHits": "Niet vermeld",
+      "jumpToFirst": "Eerste tonen",
+      "trackersTitle": "Trefwoordtrackers",
+      "trackersDescription": "Uitdrukkingen om in elke vergadertranscriptie op te letten. De vergelijking is letterlijk en negeert hoofdletters, en elke scan loopt op deze Mac.",
+      "addTracker": "Tracker toevoegen",
+      "removeTracker": "Tracker verwijderen",
+      "noTrackers": "Nog geen trackers. Voeg er een toe om te gaan tellen hoe vaak een uitdrukking voorkomt.",
+      "trackerName": "Naam",
+      "trackerPatterns": "korting, beste prijs, te duur",
+      "trackerPatternsLabel": "Uitdrukkingen, gescheiden door komma's",
+      "trackersSaveFailed": "Sona kon de trackers niet opslaan. Wijzig er een en probeer het opnieuw."
+    },
+    "notes": {
+      "title": "Mijn aantekeningen",
+      "liveDescription": "Schrijf zo grof als je wilt. Deze aantekeningen blijven op deze Mac en sturen de aantekeningen die Sona maakt als de vergadering eindigt.",
+      "reviewDescription": "Je eigen aantekeningen bepalen waar de gegenereerde aantekeningen de nadruk leggen. Ze worden nooit geciteerd of aangehaald.",
+      "placeholder": "Alles wat het onthouden waard is — namen, cijfers, wat je moet opvolgen",
+      "unsaved": "Nog niet opgeslagen",
+      "saving": "Opslaan…",
+      "saved": "Aantekeningen opgeslagen",
+      "conflict": "Deze aantekeningen zijn elders gewijzigd. Open de vergadering opnieuw om de huidige versie te laden.",
+      "reenhance": "Opnieuw verrijken met mijn aantekeningen",
+      "enhancing": "Opnieuw opbouwen…",
+      "enhanced": "Aantekeningen opnieuw opgebouwd.",
+      "enhanceFailed": "Sona kon de aantekeningen niet opnieuw opbouwen. Open de vergadering opnieuw en probeer het nog eens.",
+      "catchUp": "Praat me bij",
+      "catchingUp": "Bijpraten…",
+      "catchUpTitle": "Tot nu toe",
+      "catchUpNoTranscript": "Nog niets om samen te vatten. Sona transcribeert nadat je de opname stopt, dus er is een samenvatting zodra de transcriptie binnenkomt.",
+      "catchUpUnavailable": "Het model op het apparaat is niet beschikbaar, dus er is geen samenvatting geschreven.",
+      "catchUpFailed": "Sona kon geen samenvatting maken. Probeer het straks opnieuw.",
+      "templates": {
+        "general": "Algemene vergadering",
+        "one_on_one": "Eén-op-één",
+        "interview": "Sollicitatiegesprek",
+        "sales_call": "Verkoopgesprek",
+        "standup": "Standup"
+      }
+    },
+    "detection": {
+      "title": "Vergaderingen detecteren",
+      "description": "Sona let op gesprekken en biedt aan aantekeningen te maken. Het neemt nooit op eigen initiatief op.",
+      "loading": "Detectiestatus wordt gelezen…",
+      "prompt": {
+        "calendar": "{{title}} begint",
+        "app": "{{app}}-vergadering gedetecteerd",
+        "huddle": "{{app}}-huddle gedetecteerd",
+        "browser": "Gesprek gedetecteerd in {{app}}",
+        "unknown": "Microfoonactiviteit gedetecteerd",
+        "body": "Sona kan voor dit gesprek lokaal aantekeningen maken."
+      },
+      "actions": {
+        "start": "Beginnen met transcriberen",
+        "dismiss": "Negeren"
+      },
+      "pane": {
+        "title": "Begint binnenkort",
+        "description": "Sona neemt niets op totdat je het hier start.",
+        "countdown": "Begint in {{seconds}} s",
+        "notYetRecording": "Niet aan het opnemen"
+      },
+      "calendar": {
+        "label": "Mijn agenda gebruiken",
+        "description": "Toont een aftelling een minuut voor afspraken met twee of meer deelnemers. macOS vraagt de eerste keer om volledige agendatoegang, omdat Apple geen alleen-lezen recht aanbiedt."
+      },
+      "anyMic": {
+        "label": "Vragen bij elk microfoongebruik",
+        "description": "Omvat spraakmemo's, muziekapps en al het andere dat de microfoon opent. Uit houdt meldingen beperkt tot bekende vergaderapps."
+      },
+      "autoStart": {
+        "label": "De vergadering openen zodra de aftelling in beeld staat",
+        "description": "Slaat de melding over als een afspraak begint terwijl je al naar de aftelling kijkt. Je bevestigt nog steeds wat er wordt opgenomen."
+      },
+      "apps": {
+        "label": "Vergaderapps",
+        "description": "Eén bundle-identifier per regel. Een regel telt alleen zolang die app draait, dus een hernoemde identifier is inert in plaats van verkeerd.",
+        "running": "Nu actief: {{apps}}",
+        "noneRunning": "Hiervan draait er nu geen enkele."
+      },
+      "state": {
+        "title": "Wat detectie kan zien",
+        "description": "Detectie is de meeste tijd stil. Dit is waarom.",
+        "calendarDenied": "Agendatoegang is niet gegeven, dus alleen de microfoonroute loopt.",
+        "notificationsDenied": "Meldingen staan uit voor Sona, dus meldingen verschijnen alleen in de app.",
+        "bluetoothCaveat": "Er staat een vergaderapp open maar niets meldt microfoongebruik. Bluetooth-headsets doen dat vaak niet, dus start de vergadering zelf als er een loopt.",
+        "noSilenceStop": "Opnames stoppen aan het einde van de afspraak, als de app afsluit, bij sluimeren, of als je zelf stopt. De stiltetimer heeft live transcriptie nodig, en die loopt pas nadat een vergadering is afgelopen."
+      },
+      "why": {
+        "disabled": "Detectie staat uit.",
+        "sonaHoldsMic": "Sona gebruikt de microfoon, dus er kan nu niets anders worden vastgesteld.",
+        "captureActive": "Er wordt al een vergadering opgenomen.",
+        "noSignal": "Nog niets gebruikt de microfoon.",
+        "soloEvent": "De volgende afspraak heeft minder dan twee deelnemers, dus die leest als geblokkeerde tijd.",
+        "unknownApp": "Iets gebruikt de microfoon, maar het is geen bekende vergaderapp.",
+        "browserUnreadable": "Er staat een browser op de voorgrond, maar de titel van het tabblad is niet leesbaar.",
+        "browserNotMeeting": "Er staat een browser op de voorgrond en het tabblad is geen gesprek."
+      }
     }
   },
   "agentPanel": {
@@ -2292,7 +2500,15 @@
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Modus: {{name}}",
-      "setShortcut": "Stel een dicteersneltoets in bij Instellingen om vanuit elke app op te nemen."
+      "setShortcut": "Stel een dicteersneltoets in bij Instellingen om vanuit elke app op te nemen.",
+      "setShortcutAction": "Een sneltoets instellen",
+      "shortcutAction": "De dicteersneltoets wijzigen",
+      "holdHint": "Tik om te wisselen, houd vast om te praten",
+      "facts": {
+        "mode": "Modus",
+        "model": "Model",
+        "engine": "Engine"
+      }
     },
     "actions": {
       "dictate": "Dictate",

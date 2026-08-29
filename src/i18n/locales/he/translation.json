@@ -120,7 +120,7 @@
       }
     },
     "errors": {
-      "selectModel": "בחירת המודל נכשלה"
+      "selectModel": "לא ניתן לבחור את הדגם. נסה שוב."
     },
     "permissions": {
       "title": "נדרשות הרשאות",
@@ -138,10 +138,15 @@
       "waiting": "ממתין...",
       "allGranted": "הכול מוכן!",
       "errors": {
-        "checkFailed": "בדיקת ההרשאות נכשלה. נסה שוב.",
-        "requestFailed": "בקשת ההרשאה נכשלה. נסה שוב."
-      }
-    }
+        "checkFailed": "לא ניתן לבדוק את ההרשאות. נסה שוב.",
+        "requestFailed": "לא ניתן לבקש את ההרשאה. נסה שוב."
+      },
+      "headline": "הגדרה חד-פעמית",
+      "subhead": "המחשב שואל לפני שאפליקציה כלשהי יכולה להאזין או להקליד בשמך. תן את ההרשאות האלה פעם אחת ו-Sona לא ישאל שוב.",
+      "checking": "בודק הרשאות",
+      "recheck": "בדוק שוב"
+    },
+    "headline": "בחר דגם קול"
   },
   "modelSelector": {
     "custom": "מותאם אישית",
@@ -190,7 +195,7 @@
         "loading": "טוען קיצורי מקשים...",
         "none": "לא הוגדרו קיצורי מקשים",
         "notFound": "קיצור הדרך לא נמצא",
-        "pressKeys": "לחץ על המקשים...",
+        "pressKeys": "הקש על המקשים שלך…",
         "bindings": {
           "transcribe": {
             "name": "קיצור מקשים לתמלול",
@@ -203,13 +208,21 @@
           "transcribe_with_post_process": {
             "name": "קיצור לעיבוד משלים",
             "description": "אופציונלי: קיצור מקשים ייעודי שתמיד מפעיל עיבוד AI על התמלול."
+          },
+          "command": {
+            "name": "קיצור הפקודה",
+            "description": "קיצור המקלדת שמנסח מחדש את הטקסט שסימנת לפי הוראה מדוברת."
           }
         },
         "errors": {
-          "restore": "שחזור קיצור הדרך המקורי נכשל",
+          "restore": "לא ניתן לשחזר את הקיצור המקורי. נסה שוב.",
           "set": "הגדרת קיצור הדרך נכשלה: {{error}}",
-          "reset": "איפוס קיצור הדרך לערך המקורי נכשל"
-        }
+          "reset": "לא ניתן לאפס את הקיצור. נסה שוב."
+        },
+        "holdHint": "הקש כדי להחליף, החזק כדי לדבר. עובד עם כל קיצור.",
+        "recordAction": "הקלט קיצור חדש עבור {{binding}}",
+        "recordHint": "לחץ כדי להקליט",
+        "unset": "לא הוגדר"
       },
       "language": {
         "title": "שפה",
@@ -226,7 +239,11 @@
         "description": "שפת הממשק וערכת הצבעים. שניהם חלים מיד.",
         "title": "מראה"
       },
-      "description": "המקשים שאתה לוחץ, המיקרופון ש־Sona מאזין לו, ואיך האפליקציה נראית."
+      "description": "המקשים שאתה לוחץ, המיקרופון ש־Sona מאזין לו, ואיך האפליקציה נראית.",
+      "commandMode": {
+        "label": "מצב פקודות קוליות",
+        "description": "החזק את קיצור הפקודה ואמור מה לשנות בטקסט שסימנת."
+      }
     },
     "models": {
       "title": "מודלי תמלול",
@@ -321,9 +338,9 @@
         "notDownloaded": "לא הורד"
       },
       "summary": {
-        "active": "פעיל: {{name}}",
         "noActive": "לא נבחר מודל",
-        "onDisk": "{{total}} בדיסק"
+        "activeLabel": "דגם פעיל",
+        "onDiskLabel": "בדיסק"
       }
     },
     "sound": {
@@ -493,9 +510,9 @@
         "remove": "הסר {{spoken}}",
         "import": "ייבוא CSV",
         "export": "ייצוא CSV",
-        "importError": "לא ניתן לייבא קובץ CSV של אוצר מילים.",
-        "exportError": "לא ניתן לייצא קובץ CSV של אוצר מילים.",
-        "saveError": "לא ניתן לשמור את אוצר המילים.",
+        "importError": "לא ניתן לייבא את קובץ ה-CSV של אוצר המילים. בדוק את הקובץ ונסה שוב.",
+        "exportError": "לא ניתן לייצא את קובץ ה-CSV של אוצר המילים. נסה שוב.",
+        "saveError": "לא ניתן לשמור את אוצר המילים. נסה שוב.",
         "imported": "אוצר המילים יובא",
         "errors": {
           "incomplete": "הזן גם ביטוי מדובר וגם טקסט כתוב.",
@@ -523,7 +540,7 @@
         "actions": "Vocabulary actions",
         "audioImport": {
           "errors": {
-            "start": "Couldn't start the audio import."
+            "start": "לא ניתן להתחיל את ייבוא האודיו. נסה שוב."
           },
           "failure": {
             "history": "Some recordings could not be imported into the vocabulary."
@@ -534,7 +551,8 @@
           "title": "אין כללי אוצר מילים עדיין"
         },
         "sources": "תיקונים שאתה שומר מתוך תמלול בספרייה נכנסים לרשימה הזו. כללים למצב יחיד נמצאים באוצר המילים של אותו מצב.",
-        "unsaved": "שינויים שלא נשמרו"
+        "unsaved": "שינויים שלא נשמרו",
+        "csvLabel": "CSV"
       },
       "voiceActivityDetection": {
         "title": "זיהוי פעילות קולית",
@@ -558,8 +576,8 @@
         "save": "שמור החלפות אימוג'י",
         "saved": "החלפות האימוג'י נשמרו",
         "remove": "הסר {{spoken}}",
-        "saveError": "לא ניתן לשמור החלפות אימוג'י.",
-        "toggleError": "לא ניתן לשנות החלפות אימוג'י.",
+        "saveError": "לא ניתן לשמור את החלפות האימוג'י. נסה שוב.",
+        "toggleError": "לא ניתן לשנות את החלפות האימוג'י. נסה שוב.",
         "errors": {
           "incomplete": "הזן גם ביטוי מדובר וגם טקסט אימוג'י.",
           "duplicate": "החלפת אימוג'י זו כבר קיימת.",
@@ -729,9 +747,9 @@
       "save": "שמור תמלול",
       "unsave": "הסר משמורים",
       "delete": "מחק רשומה",
-      "deleteError": "מחיקת הרשומה נכשלה. נסה שוב.",
+      "deleteError": "לא ניתן למחוק את הרשומה. נסה שוב.",
       "retranscribe": "תמלל מחדש",
-      "retranscribeError": "תמלול מחדש נכשל. נסה שוב.",
+      "retranscribeError": "לא ניתן לתמלל שוב. נסה שוב.",
       "transcribing": "מתמלל...",
       "transcriptionFailed": "התמלול נכשל. אפשר לתמלל מחדש באמצעות אייקון הניסיון החוזר.",
       "search": "חיפוש בהיסטוריה",
@@ -739,7 +757,7 @@
       "noResults": "אין תמלילים התואמים ל\"{{query}}\".",
       "loadError": "לא היה ניתן לטעון את ההיסטוריה.",
       "retry": "נסה שוב",
-      "saveError": "לא היה ניתן לעדכן את מצב השמירה.",
+      "saveError": "לא ניתן לעדכן את מצב השמירה. נסה שוב.",
       "postProcessEmpty": "עיבוד הבא לא החזיר טקסט. מוצגת התמלול הגולמי.",
       "textView": {
         "label": "תצוגת תמליל",
@@ -818,6 +836,12 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "columns": {
+          "source": "מקור",
+          "status": "מצב",
+          "method": "שיטה",
+          "outcome": "תוצאה"
         }
       },
       "correction": {
@@ -834,7 +858,7 @@
         "global": "All modes",
         "save": "Save correction",
         "saved": "Vocabulary correction saved",
-        "saveError": "Could not save vocabulary correction."
+        "saveError": "לא ניתן לשמור את התיקון. נסה שוב."
       },
       "audioImport": {
         "start": "תמלול קובץ",
@@ -861,7 +885,7 @@
           "history": "לא ניתן לשמור את התמלול בהיסטוריה."
         },
         "errors": {
-          "start": "לא ניתן להתחיל בייבוא הקובץ.",
+          "start": "לא ניתן להתחיל את ייבוא הקובץ. נסה שוב.",
           "cancel": "לא ניתן לבטל את ייבוא הקובץ.",
           "load": "לא ניתן לטעון את מצב ייבוא הקובץ."
         },
@@ -889,7 +913,17 @@
       "noResultsHint": "החיפוש תואם מילים שלמות הן בתמלול הגולמי והן בתמלול המעובד.",
       "results": "{{count}} התאמות",
       "resultsMore": "{{count}}+ התאמות",
-      "resultsNone": "אין התאמות"
+      "resultsNone": "אין התאמות",
+      "processAgain": {
+        "action": "עבד שוב",
+        "title": "עבד שוב",
+        "description": "העבר את ההקלטה הזאת דרך מצב אחר. הרשומה המקורית נשמרת והתוצאה נשמרת כרשומה חדשה.",
+        "placeholder": "בחר מצב",
+        "confirm": "עבד",
+        "started": "העיבוד מחדש התחיל",
+        "modeLabel": "מצב"
+      },
+      "derivedFrom": "מהקלטה מוקדמת יותר"
     },
     "debug": {
       "title": "ניפוי שגיאות",
@@ -1006,7 +1040,7 @@
         "description": "פתח את הערת הגרסה המצורפת האחרונה בלי לסמן אותה כנצפתה",
         "button": "תצוגה מקדימה",
         "noNotes": "לא נמצאו הערות גרסה מצורפות",
-        "error": "הצגת התצוגה המקדימה של הערות הגרסה נכשלה"
+        "error": "לא ניתן להציג תצוגה מקדימה של הערות השחרור. נסה שוב."
       },
       "description": "מכשור ובקרות שאינן נתמכות. מוצג מכיוון שמצב ניפוי באגים מופעל.",
       "groups": {
@@ -1196,7 +1230,9 @@
         "noModelSelected": "No model selected",
         "model": {
           "label": "Transcription model",
-          "description": "Only downloaded local models are available here."
+          "description": "Only downloaded local models are available here.",
+          "inheritGlobal": "ברירת מחדל — משתמש בדגם הגלובלי",
+          "inheritGlobalNamed": "ברירת מחדל — משתמש בדגם הגלובלי ({{name}})"
         },
         "language": {
           "label": "Language",
@@ -1724,6 +1760,74 @@
         "about": "About",
         "debug": "Debug"
       }
+    },
+    "vocabulary": {
+      "replacements": {
+        "title": "החלפות מדוברות",
+        "description": "ביטויים ש-Sona מנסח מחדש לטקסט מדויק. שינויים כאן משפיעים רק על תמלולים עתידיים, ולעולם לא על טקסט שנכתב כבר.",
+        "enabledLabel": "הפעל החלפות מדוברות",
+        "enabledDescription": "נסח מחדש ביטויים מדוברים כמו \"שטרודל\" לסימנים, לפני שתיקון אוצר המילים רץ.",
+        "offState": "ההחלפות המדוברות כבויות. הכללים נשמרים וחוזרים לפעול ברגע שתפעיל את זה מחדש.",
+        "spoken": "אתה אומר",
+        "written": "Sona כותב",
+        "applyColumn": "החל",
+        "actionsColumn": "פעולות",
+        "spokenPlaceholder": "שטרודל",
+        "writtenPlaceholder": "@",
+        "add": "הוסף כלל",
+        "reset": "שחזר ברירות מחדל",
+        "ruleEnabled": "החל {{spoken}}",
+        "delete": "מחק {{spoken}}",
+        "loading": "טוען החלפות",
+        "loadError": "לא ניתן לטעון את ההחלפות.",
+        "matching": "ביטויים מותאמים למילים שלמות ואינם מבדילים בין אותיות גדולות לקטנות. כששני כללים מתאימים לאותו מקום, הארוך מנצח, וההחלפה רצה לפני תיקון אוצר המילים.",
+        "errors": {
+          "duplicate": "כלל אחר כבר משתמש בביטוי הזה.",
+          "incomplete": "הזן גם ביטוי מדובר וגם את הטקסט שיחליף אותו."
+        },
+        "empty": {
+          "title": "אין החלפות",
+          "description": "הוסף ביטוי כמו \"שטרודל\", ו-Sona יכתוב @ בכל פעם שתאמר אותו.",
+          "action": "שחזר את כללי ההתחלה"
+        },
+        "confirmDelete": {
+          "title": "למחוק את {{spoken}}?",
+          "description": "הביטוי לא ינוסח מחדש בתמלולים עתידיים. טקסט שנכתב כבר אינו משתנה.",
+          "body": "{{spoken}} הופך כרגע ל-{{written}}."
+        },
+        "confirmReset": {
+          "title": "לשחזר את כללי ברירת המחדל?",
+          "description": "כל כלל שהוספת או ערכת נזרק, וערכת ההתחלה המצורפת חוזרת."
+        }
+      }
+    },
+    "prompts": {
+      "samples": {
+        "title": "דוגמאות כתיבה",
+        "description": "דוגמאות מהכתיבה שלך. כל מצב שמנסח תמלול מחדש הולך לפי הסגנון שלהן.",
+        "placeholder": "הדבק פסקה שכתבת בעצמך.",
+        "sampleLabel": "דוגמת כתיבה {{number}}",
+        "delete": "מחק את דוגמה {{number}}",
+        "add": "הוסף דוגמה",
+        "wordCount": "{{words}} מתוך {{max}} מילים",
+        "overLimit": "{{words}} מילים. רק {{max}} הראשונות בשימוש.",
+        "privacy": "הדוגמאות נשלחות רק לאן שהתמלול עצמו נשלח כבר, ולשום מקום אחר. נעשה שימוש בעד {{max}} דוגמאות.",
+        "loading": "טוען דוגמאות",
+        "loadError": "לא ניתן לטעון את הדוגמאות.",
+        "empty": {
+          "title": "אין עוד דוגמאות",
+          "description": "הדבק כמה פסקאות שכתבת בעצמך, והניסוח מחדש יילך לפי אוצר המילים שלך, אורך המשפטים ומידת הרשמיות.",
+          "action": "הוסף דוגמה"
+        }
+      }
+    },
+    "hud": {
+      "enabledLabel": "הצג את הכפתור במצב המתנה",
+      "enabledDescription": "השאר כפתור קטן על המסך בין הכתבות. לחץ כדי להתחיל, לחץ לחיצה ימנית כדי להחליף מצב.",
+      "positionLabel": "מקום הכפתור במצב המתנה",
+      "positionDescription": "באיזה קצה של המסך יושב הכפתור במצב המתנה.",
+      "positionTop": "למעלה",
+      "positionBottom": "למטה"
     }
   },
   "common": {
@@ -1737,7 +1841,10 @@
     "noOptionsFound": "לא נמצאו אפשרויות",
     "save": "Save",
     "saving": "Saving…",
-    "retry": "Retry"
+    "retry": "Retry",
+    "play": "נגן",
+    "pause": "השהה",
+    "seek": "מקום הנגינה"
   },
   "commandPalette": {
     "open": "חיפוש",
@@ -1770,12 +1877,15 @@
     },
     "noInputDeviceTitle": "לא נמצא מיקרופון",
     "noInputDevice": "לא זוהה התקן קלט שמע. חבר מיקרופון או אוזנייה ונסה שוב.",
-    "recordingFailed": "הפעלת ההקלטה נכשלה: {{error}}",
-    "modelLoadFailed": "טעינת המודל נכשלה: {{model}}",
+    "recordingFailed": "לא ניתן להתחיל את ההקלטה: {{error}}. נסה שוב.",
+    "modelLoadFailed": "לא ניתן לטעון את {{model}}. נסה שוב.",
     "modelLoadFailedUnknown": "מודל לא ידוע",
-    "pasteFailedTitle": "ההדבקה נכשלה",
-    "pasteFailed": "לא ניתן היה להדביק את הטקסט ביישום הפעיל.",
-    "transcriptionFailedTitle": "התמלול נכשל"
+    "pasteFailedTitle": "לא ניתן להדביק את התמלול",
+    "pasteFailed": "הטקסט לא הודבק באפליקציה הפעילה. מקד את הסמן בשדה טקסט ונסה שוב.",
+    "transcriptionFailedTitle": "לא ניתן לתמלל",
+    "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
+    "commandNoSelection": "לא היה שום דבר מסומן. סמן את הטקסט שברצונך לשנות, אחר כך החזק את קיצור הפקודה ואמור מה לעשות.",
+    "commandRewriteUnavailable": "הניסוח מחדש לא החזיר שום דבר, כך שהסימון שלך נשאר כפי שהיה. בדוק את דגם הניסוח מחדש בהגדרות > בינה מלאכותית ונסה שוב."
   },
   "appLanguage": {
     "title": "שפת האפליקציה",
@@ -1794,7 +1904,13 @@
     "transcribing": "מתמלל...",
     "processing": "מעבד...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model"
+    "localFallback": "Offline, using local model",
+    "hud": {
+      "idle": "מוכן",
+      "toggle": "התחל הכתבה במצב {{mode}}",
+      "hint": "לחץ כדי להכתיב, לחיצה ימנית למצבים",
+      "modes": "החלף מצב"
+    }
   },
   "whatsNew": {
     "title": "חדש ב-Sona v{{version}}"
@@ -1875,79 +1991,38 @@
         "cancelled": "Processing cancelled"
       }
     },
-    "readiness": {
-      "ready": "Ready",
-      "unavailable": "Unavailable",
-      "local": "Local only",
-      "needsAcknowledgement": "Acknowledgement required"
-    },
     "actions": {
       "back": "Back",
       "delete": "Delete meeting",
       "discard": "Discard",
-      "newMeeting": "New meeting",
       "pause": "Pause",
       "refresh": "Refresh",
       "resume": "Resume",
       "retry": "Try again",
-      "startLocal": "Start local notes",
       "stop": "Stop"
     },
     "detected": {
       "title": "Meeting detected",
-      "description": "Sona only offers a setup screen. It is not recording.",
-      "mayBeActive": "A meeting may be active in {{provider}}.",
-      "notRecording": "Sona is not recording."
+      "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
-      "title": "Start local notes",
-      "suggestedDescription": "Sona detected {{provider}}. Review the capture setup before recording.",
-      "manualDescription": "Set the sources and policy for a new local meeting note.",
-      "identity": "Meeting details",
-      "meetingTitle": "Meeting title",
-      "meetingTitlePlaceholder": "Untitled meeting",
       "captureSources": "Capture sources",
       "captureSourcesDescription": "Each source stays separate so missing audio remains visible.",
-      "sourcePolicy": "If a source is unavailable",
-      "sourcePolicyDescription": "Choose whether setup stops or starts with an explicit partial record.",
-      "strict": "Strict: stop setup if a required source is unavailable",
-      "continuePartial": "Continue partial: start only after I acknowledge the missing source",
       "processing": "Processing route",
-      "localProcessing": "On this Mac",
-      "localProcessingDescription": "Audio, transcript, notes, search, and Q&A stay local.",
-      "selected": "Selected",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination selected",
       "localOnly": "Local only",
-      "check": "Check recording setup",
-      "checking": "Checking setup…",
       "defaultTitle": "Local notes",
       "remoteUnavailable": "עיבוד מרוחק אינו זמין בגרסה זו, ולכן כל פגישה מתומללת ומסוכמת במחשב Mac זה."
     },
     "preflight": {
-      "title": "Check recording setup",
-      "description": "Review each local capability before authorizing capture.",
-      "summary": "Meeting setup summary",
-      "meeting": "Meeting",
-      "changeSetup": "Change setup",
-      "readiness": "Readiness",
-      "readinessDescription": "Each row reports the current backend check.",
       "storage": "Storage",
       "storageAvailable": "Encrypted meeting storage is available.",
       "storageUnavailable": "Encrypted meeting storage is unavailable.",
       "localModel": "Local model",
       "localModelDescription": "Processing remains local when a local model is available.",
-      "remoteDestination": "Remote destination",
-      "remoteNotSelected": "No remote destination is selected.",
-      "remoteSelected": "Selected destination: {{destination}}",
-      "partialWarning": "One or more required sources are unavailable. A partial session stays marked partial.",
       "starting": "Starting visible capture…",
       "refreshing": "בודק…"
     },
     "consent": {
-      "title": "Recording acknowledgement",
-      "description": "Sona will show a visible capture state. Audio, transcript, and notes stay on this Mac unless you explicitly select a remote destination.",
-      "acknowledge": "I have permission to capture this meeting.",
       "continuePartial": "I want to continue with a partial meeting record.",
       "acceptMissing": "I understand {{source}} is {{state}} and this meeting will be partial."
     },
@@ -2039,7 +2114,7 @@
     },
     "errors": {
       "load": "Sona could not load the current meeting data.",
-      "operation": "Sona could not complete that meeting action.",
+      "operation": "לא ניתן להשלים את פעולת הפגישה הזאת. נסה שוב.",
       "operationRejected": "The meeting action was rejected.",
       "consent_required": "Confirm the recording acknowledgement before starting.",
       "consent_stale": "The setup changed. Review it again before starting.",
@@ -2110,12 +2185,12 @@
       "regenerate": "Regenerate",
       "remoteCancellationPending": "Remote cancellation is pending. Local deletion does not claim the remote copy is deleted.",
       "cancelRemote": "Cancel remote processing",
-      "remoteCancellationRequested": "Remote cancellation requested.",
+      "remoteCancellationRequested": "התבקש ביטול",
       "export": "Export",
       "exportDescription": "Each export uses an immutable local review snapshot and opens a native save dialog.",
       "exportMarkdown": "Export Markdown",
       "exportJson": "Export JSON",
-      "exportComplete": "Export completed.",
+      "exportComplete": "הפגישה יוצאה",
       "citation": "Transcript {{time}}",
       "noGeneratedNotes": "No generated notes are available yet.",
       "template": "Template: {{template}}",
@@ -2166,7 +2241,8 @@
         "transcript": "תמלול"
       },
       "tabsLabel": "מקטעי סקירת פגישה",
-      "youAsked": "שאלת"
+      "youAsked": "שאלת",
+      "actionDone": "סמן את הפעולה הזאת כבוצעה"
     },
     "artifactState": {
       "current": "Current",
@@ -2215,6 +2291,138 @@
     "status": {
       "gapCount": "פערים: {{total}}",
       "required": "נדרש"
+    },
+    "start": {
+      "label": "התחל פגישה",
+      "action": "התחל הקלטה",
+      "starting": "מתחיל…",
+      "assurance": "מקליט את הקול של ה-Mac שלך מקומית. שום דבר לא מצטרף לשיחה.",
+      "capture": "לכידה",
+      "noSources": "בחר מקור אחד לפחות.",
+      "localOnly": "מקומי בלבד",
+      "retention": "נשמר: {{policy}}"
+    },
+    "gate": {
+      "title": "ההקלטה לא התחילה",
+      "description": "Sona יצר את הפגישה, אבל מקור שהיה אמור להיקלט אינו זמין.",
+      "readyTitle": "מוכן להקלטה",
+      "readyDescription": "שום דבר לא חוסם את לכידת הפגישה הזאת.",
+      "recordAnyway": "הקלט בלעדיו",
+      "recordAnywayHint": "הרשומה מסומנת כחלקית והמקור החסר נשאר נקוב בשמו בתוכה."
+    },
+    "analytics": {
+      "title": "שיחה",
+      "description": "נמדד על ה-Mac הזה מתוך התמלול המופרד לדוברים. שום דבר לא נשלח לשום מקום.",
+      "noSpeech": "לא תומלל שום דיבור, כך שאין מה למדוד.",
+      "talkShare": "מדבר הכי הרבה",
+      "longestMonologue": "המונולוג הארוך ביותר",
+      "patience": "סבלנות",
+      "patienceDetail": "חציון ההשתקה לפני תשובה",
+      "interactions": "העברות רשות דיבור",
+      "turns": "{{count}} תורות דיבור",
+      "turns_one": "{{count}} תור דיבור",
+      "speakerDetail": "{{time}} · {{turns}}",
+      "unknownSpeaker": "דובר לא ידוע",
+      "trackers": "מעקבים",
+      "hits": "{{count}} אזכורים",
+      "hits_one": "{{count}} אזכור",
+      "noHits": "לא הוזכר",
+      "jumpToFirst": "הצג את הראשון",
+      "trackersTitle": "מעקב מילות מפתח",
+      "trackersDescription": "ביטויים שכדאי לשים אליהם לב בכל תמלול פגישה. ההתאמה מילולית ואינה מבדילה בין אותיות גדולות לקטנות, וכל סריקה רצה על ה-Mac הזה.",
+      "addTracker": "הוסף מעקב",
+      "removeTracker": "הסר מעקב",
+      "noTrackers": "אין עוד מעקבים. הוסף אחד כדי להתחיל לספור כמה פעמים ביטוי עולה.",
+      "trackerName": "שם",
+      "trackerPatterns": "הנחה, המחיר הטוב ביותר, יקר מדי",
+      "trackerPatternsLabel": "ביטויים מופרדים בפסיקים",
+      "trackersSaveFailed": "Sona לא הצליח לשמור את המעקבים. שנה אחד ונסה שוב."
+    },
+    "notes": {
+      "title": "ההערות שלי",
+      "liveDescription": "כתוב גס כמה שתרצה. ההערות האלה נשארות על ה-Mac הזה ומכוונות את ההערות ש-Sona מייצר בסוף הפגישה.",
+      "reviewDescription": "ההערות שלך מכוונות את מה שההערות המיוצרות מדגישות. הן לעולם אינן מצוטטות או מובאות כמקור.",
+      "placeholder": "כל מה שכדאי לזכור — שמות, מספרים, מה צריך להמשיך",
+      "unsaved": "עדיין לא נשמר",
+      "saving": "שומר…",
+      "saved": "ההערות נשמרו",
+      "conflict": "ההערות האלה שונו במקום אחר. פתח את הפגישה מחדש כדי לטעון את הגרסה הנוכחית.",
+      "reenhance": "שפר מחדש עם ההערות שלי",
+      "enhancing": "בונה מחדש…",
+      "enhanced": "ההערות נבנו מחדש.",
+      "enhanceFailed": "Sona לא הצליח לבנות מחדש את ההערות. פתח את הפגישה מחדש ונסה שוב.",
+      "catchUp": "עדכן אותי במה שהיה",
+      "catchingUp": "מעדכן…",
+      "catchUpTitle": "עד כאן",
+      "catchUpNoTranscript": "אין עוד מה לסכם. Sona מתמלל אחרי שאתה עוצר את ההקלטה, כך שסיכום יהיה זמין ברגע שהתמלול יתחיל להגיע.",
+      "catchUpUnavailable": "הדגם שעל המכשיר אינו זמין, כך שלא נכתב שום סיכום.",
+      "catchUpFailed": "Sona לא הצליח לבנות סיכום. נסה שוב בעוד רגע.",
+      "templates": {
+        "general": "פגישה כללית",
+        "one_on_one": "אחד על אחד",
+        "interview": "ראיון",
+        "sales_call": "שיחת מכירה",
+        "standup": "סטנדאפ"
+      }
+    },
+    "detection": {
+      "title": "זהה פגישות",
+      "description": "Sona שם עין על שיחות ומציע לרשום הערות. הוא לעולם אינו מקליט מעצמו.",
+      "loading": "קורא את מצב הזיהוי…",
+      "prompt": {
+        "calendar": "{{title}} מתחיל",
+        "app": "זוהתה פגישה ב-{{app}}",
+        "huddle": "זוהה האדל ב-{{app}}",
+        "browser": "זוהתה שיחה ב-{{app}}",
+        "unknown": "זוהתה פעילות מיקרופון",
+        "body": "Sona יכול לרשום הערות מקומיות לשיחה הזאת."
+      },
+      "actions": {
+        "start": "התחל לתמלל",
+        "dismiss": "התעלם"
+      },
+      "pane": {
+        "title": "מתחיל בקרוב",
+        "description": "Sona אינו מקליט עד שתתחיל כאן.",
+        "countdown": "מתחיל בעוד {{seconds}} שנ׳",
+        "notYetRecording": "לא מקליט"
+      },
+      "calendar": {
+        "label": "השתמש בלוח השנה שלי",
+        "description": "מציג ספירה לאחור דקה לפני אירועים עם שני משתתפים או יותר. macOS מבקש גישה מלאה ללוח השנה בפעם הראשונה, כי Apple אינה מציעה הרשאת קריאה בלבד."
+      },
+      "anyMic": {
+        "label": "שאל בכל שימוש במיקרופון",
+        "description": "כולל הקלטות קוליות, אפליקציות מוזיקה וכל דבר אחר שפותח את המיקרופון. כיבוי משאיר את ההתראות לאפליקציות פגישה מוכרות."
+      },
+      "autoStart": {
+        "label": "פתח את הפגישה כשהספירה לאחור שלה מוצגת",
+        "description": "מדלג על ההתראה כשאירוע מתחיל בזמן שאתה כבר מסתכל על הספירה לאחור שלו. אתה עדיין מאשר מה נקלט."
+      },
+      "apps": {
+        "label": "אפליקציות פגישה",
+        "description": "מזהה חבילה אחד בכל שורה. רשומה נחשבת רק בזמן שהאפליקציה הזאת רצה, כך שמזהה ששמו שונה הופך ללא פעיל ולא לשגוי.",
+        "running": "רץ עכשיו: {{apps}}",
+        "noneRunning": "אף אחת מאלה אינה רצה כרגע."
+      },
+      "state": {
+        "title": "מה הזיהוי יכול לראות",
+        "description": "הזיהוי שקט רוב הזמן. זאת הסיבה.",
+        "calendarDenied": "גישה ללוח השנה לא ניתנה, כך שרק מסלול המיקרופון רץ.",
+        "notificationsDenied": "ההתראות של Sona כבויות, כך שההתראות מופיעות רק בתוך האפליקציה.",
+        "bluetoothCaveat": "אפליקציית פגישה פתוחה אבל שום דבר לא מדווח על שימוש במיקרופון. אוזניות Bluetooth לעיתים קרובות אינן מדווחות, כך שאם פגישה מתנהלת התחל אותה בעצמך.",
+        "noSilenceStop": "הלכידה נעצרת בסוף האירוע, ביציאה מהאפליקציה, במצב שינה, או כשאתה עוצר בעצמך. טיימר השקט זקוק לתמלול תוך כדי, וזה רץ רק לאחר שפגישה מסתיימת."
+      },
+      "why": {
+        "disabled": "הזיהוי כבוי.",
+        "sonaHoldsMic": "Sona משתמש במיקרופון, כך שכרגע לא ניתן לזהות שום דבר אחר.",
+        "captureActive": "פגישה כבר נלכדת.",
+        "noSignal": "שום דבר עדיין לא משתמש במיקרופון.",
+        "soloEvent": "באירוע הבא פחות משני משתתפים, כך שהוא נקרא כזמן חסום.",
+        "unknownApp": "משהו משתמש במיקרופון, אבל זאת לא אפליקציית פגישה מוכרת.",
+        "browserUnreadable": "דפדפן נמצא בחזית, אבל לא ניתן לקרוא את כותרת הכרטיסייה שלו.",
+        "browserNotMeeting": "דפדפן נמצא בחזית והכרטיסייה שלו אינה שיחה."
+      }
     }
   },
   "agentPanel": {
@@ -2292,7 +2500,15 @@
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "מצב: {{name}}",
-      "setShortcut": "הגדר קיצור הכתבה ב־Settings כדי לקלוט מכל אפליקציה."
+      "setShortcut": "הגדר קיצור הכתבה ב־Settings כדי לקלוט מכל אפליקציה.",
+      "setShortcutAction": "הגדר קיצור",
+      "shortcutAction": "שנה את קיצור ההכתבה",
+      "holdHint": "הקש כדי להחליף, החזק כדי לדבר",
+      "facts": {
+        "mode": "מצב",
+        "model": "דגם",
+        "engine": "מנוע"
+      }
     },
     "actions": {
       "dictate": "Dictate",
