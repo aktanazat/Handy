@@ -912,7 +912,6 @@ fn initialize_recording_overlay(app_handle: &AppHandle) {
         });
     }
     overlay::sync_hud_pill(app_handle);
-    Ok(())
 }
 
 #[tauri::command]
@@ -1812,6 +1811,8 @@ pub fn run(cli_args: CliArgs) {
             if should_force_show || !should_hide || !tray_available || opened_audio_queued {
                 show_main_window(&app_handle);
             }
+
+            initialize_recording_overlay(&app_handle);
 
             // Last, and only now: the dictation history database resolves its
             // encryption key. The read can surface an OS credential prompt, and

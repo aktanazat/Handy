@@ -2,7 +2,8 @@ use crate::input;
 use crate::settings;
 use crate::settings::{OverlayPosition, OverlayStyle};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::LazyLock;
+use std::time::Instant;
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize};
 
 #[cfg(not(target_os = "macos"))]
@@ -101,7 +102,43 @@ fn hud_pill_visible(settings: &settings::AppSettings) -> bool {
 }
 
 static LAST_MIC_LEVEL_EMIT: AtomicU64 = AtomicU64::new(0);
-const EMIT_THROTTLE_MS: u64 = 33; // ~30 FPS
+
+/// Ceiling on how often the overlay is handed a new level frame: one per
+/// display frame at 60 Hz.
+///
+/// This is a ceiling, not a target. The levels come from the recorder's FFT
+/// visualiser, one bucket set per analysis window, so the source period is
+/// `window_size / sample_rate`: 42.7 ms at 48 kHz (2048), 23.2 ms at 44.1 kHz
+/// (1024), 32 ms at 16 and 8 kHz (512 / 256). Every one of those is longer than
+/// a frame, so no measurement is dropped on any real device — which is the
+/// point. The previous 33 ms interval was *shorter* than three of those four
+/// periods and aliased them into an uneven half-rate stream (43.1 Hz to
+/// ~21.5 Hz, 31.3 Hz to ~15.6 Hz) while doing nothing at all at 48 kHz.
+const EMIT_THROTTLE_MS: u64 = 16;
+
+/// Monotonic milliseconds for the emission gate. `SystemTime` is not
+/// monotonic: a clock step backwards makes the elapsed-since-last-emit
+/// comparison saturate to zero and stalls the overlay's meter for as long as
+/// the jump, which is exactly when the user is watching it.
+fn emit_clock_millis() -> u64 {
+    static EPOCH: LazyLock<Instant> = LazyLock::new(Instant::now);
+    u64::try_from(EPOCH.elapsed().as_millis()).unwrap_or(u64::MAX)
+}
+
+/// Whether `now_ms` is far enough past the last emission to hand the overlay
+/// another frame, recording it as the new last emission when it is.
+///
+/// Latest-value-wins: the caller emits the frame it is holding, unchanged. A
+/// frame that arrives inside the interval is dropped, never blended into its
+/// successor and never queued behind it — a level meter that shows an average
+/// of two windows is showing a number the microphone never reported.
+fn level_emit_due(now_ms: u64, last: &AtomicU64, interval_ms: u64) -> bool {
+    if now_ms.saturating_sub(last.load(Ordering::Relaxed)) < interval_ms {
+        return false;
+    }
+    last.store(now_ms, Ordering::Relaxed);
+    true
+}
 
 #[cfg(target_os = "macos")]
 const OVERLAY_TOP_OFFSET: f64 = 46.0;
@@ -877,22 +914,13 @@ pub fn emit_levels(app_handle: &AppHandle, levels: &[f32]) {
         return;
     }
 
-    // Throttle to ~30 FPS. Even with the overlay enabled, the raw audio
-    // callback fires far faster than the UI needs; capping emission rate
-    // cuts the per-frame `eval_script`/IPC volume that drives the wry
-    // memory growth in issue #1279 (upstream tauri-apps/wry#1489).
-    let now = u64::try_from(
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis(),
-    )
-    .unwrap_or(u64::MAX);
-    let last = LAST_MIC_LEVEL_EMIT.load(Ordering::Relaxed);
-    if now.saturating_sub(last) < EMIT_THROTTLE_MS {
+    // Cap the handoff at one frame per display frame. The overlay's meter
+    // cannot show more than that, and every event past it is pure
+    // `eval_script`/IPC volume, which is what drives the wry memory growth in
+    // issue #1279 (upstream tauri-apps/wry#1489).
+    if !level_emit_due(emit_clock_millis(), &LAST_MIC_LEVEL_EMIT, EMIT_THROTTLE_MS) {
         return;
     }
-    LAST_MIC_LEVEL_EMIT.store(now, Ordering::Relaxed);
 
     // Target only the overlay window. In Tauri 2 both `AppHandle::emit`
     // and `WebviewWindow::emit` broadcast to all webviews; Tauri's
@@ -992,5 +1020,87 @@ mod tests {
             ),
             (-1530, 1040, 500, 150)
         );
+    }
+
+    /// `(label, sample_rate, fft_window)` for every level cadence the recorder
+    /// can produce. The visualiser emits one bucket set per window, so the
+    /// period is `window / sample_rate`
+    /// (`audio_toolkit/audio/recorder.rs`, `target_window`).
+    const LEVEL_SOURCE_CADENCES: [(&str, u64, u64); 4] = [
+        ("48 kHz", 48_000, 2048),
+        ("44.1 kHz", 44_100, 1024),
+        ("16 kHz", 16_000, 512),
+        ("8 kHz", 8_000, 256),
+    ];
+
+    /// Level frames delivered out of `frames` produced `period_us` apart. The
+    /// first frame is not at process start: a recording begins seconds in, and
+    /// the gate reads a process-relative clock.
+    fn delivered_frames(period_us: u64, frames: u64, interval_ms: u64) -> u64 {
+        let last = AtomicU64::new(0);
+        (0..frames)
+            .filter(|frame| {
+                level_emit_due((5_000_000 + frame * period_us) / 1_000, &last, interval_ms)
+            })
+            .count() as u64
+    }
+
+    #[test]
+    fn every_device_level_cadence_reaches_the_overlay_whole() {
+        for (label, sample_rate, window) in LEVEL_SOURCE_CADENCES {
+            let period_us = window * 1_000_000 / sample_rate;
+            assert_eq!(
+                delivered_frames(period_us, 240, EMIT_THROTTLE_MS),
+                240,
+                "{label}: a {}ms source period must clear a {EMIT_THROTTLE_MS}ms gate",
+                period_us / 1_000
+            );
+        }
+    }
+
+    #[test]
+    fn a_gate_slower_than_a_display_frame_aliases_the_faster_cadences() {
+        // Why the gate is one display frame and not the 33ms it used to be:
+        // three of the four device periods are shorter than 33ms, so that gate
+        // dropped every other measurement instead of capping a rate the
+        // overlay could not show.
+        let mut aliased = 0;
+        for (label, sample_rate, window) in LEVEL_SOURCE_CADENCES {
+            let period_us = window * 1_000_000 / sample_rate;
+            if period_us / 1_000 >= 33 {
+                continue;
+            }
+            aliased += 1;
+            let delivered = delivered_frames(period_us, 240, 33);
+            assert!(
+                delivered <= 121,
+                "{label}: expected the 33ms gate to halve 240 frames, got {delivered}"
+            );
+        }
+        assert_eq!(aliased, 3);
+    }
+
+    #[test]
+    fn a_burst_faster_than_a_frame_delivers_reported_readings_not_blends() {
+        let last = AtomicU64::new(0);
+        // 200 Hz, four readings inside every display frame.
+        let reported: Vec<(u64, u64)> = (0..40).map(|frame| (5_000 + frame * 5, frame)).collect();
+        let delivered: Vec<(u64, u64)> = reported
+            .iter()
+            .copied()
+            .filter(|(now_ms, _)| level_emit_due(*now_ms, &last, EMIT_THROTTLE_MS))
+            .collect();
+
+        // Every delivered reading is one the recorder actually reported, so
+        // nothing was averaged into anything else.
+        for reading in &delivered {
+            assert!(reported.contains(reading), "{reading:?} was never reported");
+        }
+        // Each is the newest reading at the moment the gate opened, and the
+        // readings between are dropped rather than queued up behind it.
+        for pair in delivered.windows(2) {
+            assert!(pair[1].0 - pair[0].0 >= EMIT_THROTTLE_MS);
+        }
+        assert_eq!(delivered.len(), 10);
     }
 }

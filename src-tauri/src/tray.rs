@@ -257,11 +257,16 @@ fn menu_rows(
 
 /// Everything the tray *menu* (and tooltip) depends on. When two snapshots
 /// compare equal the menu is not rebuilt.
+///
+/// The key is the *rendered* row description, not the activity and meeting
+/// state that produced it. Several distinct states render an identical menu —
+/// a dictation start, stop or cancel while a meeting owns the tray, or a
+/// meeting phase that shares its status line and allowed actions with the
+/// phase before it — and keying on the raw state rebuilt the whole native menu
+/// for each of them.
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct MenuInputs {
-    icon_state: TrayIconState,
-    meeting: Option<MeetingMenuState>,
-    warning: bool,
+    rows: Vec<MenuRow>,
     model_loaded: bool,
     selected_model: String,
     /// `(id, name)` of downloaded models, sorted by name.
@@ -273,6 +278,9 @@ struct MenuInputs {
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct TrayDesired {
     icon_path: &'static str,
+    /// Dictation activity, for the apply log only. What the menu shows for it
+    /// is already in `menu.rows`.
+    activity: TrayIconState,
     menu: MenuInputs,
 }
 
@@ -299,6 +307,16 @@ struct TrayInner {
     next_seq: u64,
     /// Sequence number of the request that produced `desired`.
     desired_seq: u64,
+}
+
+impl TrayInner {
+    /// Whether the native menu has to be rebuilt for `desired` to be on
+    /// screen. The single apply-time gate on menu work: everything the menu
+    /// renders lives in [`MenuInputs`], so an equal snapshot means the menu
+    /// already displayed is the one wanted.
+    fn menu_needs_rebuild(&self, desired: &MenuInputs) -> bool {
+        self.applied_menu.as_ref() != Some(desired)
+    }
 }
 
 /// Tauri managed state owning the tray's desired/applied snapshots.
@@ -539,24 +557,16 @@ fn compute_desired(
     let warning = crate::secure_input::tray_warning_active(app);
     let model_loaded = app.state::<Arc<TranscriptionManager>>().is_model_loaded();
 
-    let mut downloaded_models: Vec<(String, String)> = app
-        .state::<Arc<ModelManager>>()
-        .get_available_models()
-        .into_iter()
-        .filter(|m| m.is_downloaded)
-        .map(|m| (m.id, m.name))
-        .collect();
-    downloaded_models.sort_by(|a, b| a.1.cmp(&b.1));
+    let downloaded_models = app.state::<Arc<ModelManager>>().downloaded_model_labels();
     let visible_icon_state = meeting
         .map(MeetingMenuState::icon_state)
         .unwrap_or(icon_state);
 
     TrayDesired {
         icon_path: get_icon_path(theme, visible_icon_state, warning),
+        activity: icon_state,
         menu: MenuInputs {
-            icon_state,
-            meeting,
-            warning,
+            rows: menu_rows(icon_state, warning, meeting),
             model_loaded,
             selected_model: settings.selected_model,
             downloaded_models,
@@ -594,7 +604,7 @@ fn apply_on_main(app: &AppHandle) {
             return;
         };
         let icon_changed = inner.applied_icon != Some(desired.icon_path);
-        let menu_changed = inner.applied_menu.as_ref() != Some(&desired.menu);
+        let menu_changed = inner.menu_needs_rebuild(&desired.menu);
         if !icon_changed && !menu_changed {
             trace!("tray apply: nothing changed");
             return;
@@ -656,7 +666,7 @@ fn apply_on_main(app: &AppHandle) {
             "unchanged"
         },
         if menu_changed { "rebuilt" } else { "unchanged" },
-        desired.menu.icon_state,
+        desired.activity,
         started.elapsed()
     );
 }
@@ -813,26 +823,34 @@ fn build_model_submenu(
 /// Builds the native tray menu from the pure row description.
 fn build_menu(app: &AppHandle, inputs: &MenuInputs) -> tauri::Result<(Menu<tauri::Wry>, String)> {
     let strings = get_tray_translations(Some(inputs.locale.clone()));
-    let rows = menu_rows(inputs.icon_state, inputs.warning, inputs.meeting);
     let menu = Menu::new(app)?;
-    let status = menu_status(inputs.icon_state, inputs.meeting);
+    // The tooltip says the same two things the first rows do, read off those
+    // rows so there is one description of the menu, not two.
+    let mut tooltip_status = None;
+    let mut tooltip_warning = false;
 
-    for row in rows {
-        match row {
-            MenuRow::Status(status) => menu.append(&MenuItem::with_id(
-                app,
-                TRAY_STATUS_MENU_ID,
-                menu_status_text(status, &strings),
-                false,
-                None::<&str>,
-            )?)?,
-            MenuRow::SecureInputWarning => menu.append(&MenuItem::with_id(
-                app,
-                "secure_input_warning",
-                &strings.secure_input_warning,
-                true,
-                None::<&str>,
-            )?)?,
+    for row in &inputs.rows {
+        match *row {
+            MenuRow::Status(status) => {
+                tooltip_status = Some(status);
+                menu.append(&MenuItem::with_id(
+                    app,
+                    TRAY_STATUS_MENU_ID,
+                    menu_status_text(status, &strings),
+                    false,
+                    None::<&str>,
+                )?)?;
+            }
+            MenuRow::SecureInputWarning => {
+                tooltip_warning = true;
+                menu.append(&MenuItem::with_id(
+                    app,
+                    "secure_input_warning",
+                    &strings.secure_input_warning,
+                    true,
+                    None::<&str>,
+                )?)?;
+            }
             MenuRow::Separator => menu.append(&PredefinedMenuItem::separator(app)?)?,
             MenuRow::Action { action, enabled } => menu.append(&MenuItem::with_id(
                 app,
@@ -847,12 +865,15 @@ fn build_menu(app: &AppHandle, inputs: &MenuInputs) -> tauri::Result<(Menu<tauri
         }
     }
 
-    let mut tooltip = format!(
-        "{}: {}",
-        version_label(),
-        menu_status_text(status, &strings)
-    );
-    if inputs.warning {
+    let mut tooltip = match tooltip_status {
+        Some(status) => format!(
+            "{}: {}",
+            version_label(),
+            menu_status_text(status, &strings)
+        ),
+        None => version_label(),
+    };
+    if tooltip_warning {
         tooltip.push_str(": ");
         tooltip.push_str(&strings.secure_input_warning);
     }
@@ -953,7 +974,7 @@ mod tests {
     use super::{
         bundled_idle_tray_icon, last_transcript_text, load_tray_icon_from_path,
         load_tray_icon_or_fallback, menu_rows, set_tray_visibility_with, MeetingMenuState,
-        MenuAction, MenuInputs, MenuRow, MenuStatus, TrayIconState,
+        MenuAction, MenuInputs, MenuRow, MenuStatus, TrayIconState, TrayState,
     };
     use crate::managers::history::HistoryEntry;
     use crate::meeting::types::{AllowedMeetingAction, MeetingPhase};
@@ -974,15 +995,32 @@ mod tests {
     }
 
     fn inputs(icon_state: TrayIconState) -> MenuInputs {
+        menu_inputs(icon_state, None)
+    }
+
+    fn menu_inputs(icon_state: TrayIconState, meeting: Option<MeetingMenuState>) -> MenuInputs {
         MenuInputs {
-            icon_state,
-            meeting: None,
-            warning: false,
+            rows: menu_rows(icon_state, false, meeting),
             model_loaded: true,
             selected_model: "small".to_string(),
             downloaded_models: vec![("small".to_string(), "Small".to_string())],
             locale: "en".to_string(),
         }
+    }
+
+    /// Runs a scripted sequence of desired menu snapshots through the real
+    /// apply-time gate and returns how many steps rebuilt the native menu.
+    fn rebuilds(script: &[MenuInputs]) -> usize {
+        let state = TrayState::new();
+        let mut rebuilt = 0;
+        for desired in script {
+            let mut inner = state.lock();
+            if inner.menu_needs_rebuild(desired) {
+                rebuilt += 1;
+                inner.applied_menu = Some(desired.clone());
+            }
+        }
+        rebuilt
     }
 
     fn actions(icon_state: TrayIconState) -> Vec<(MenuAction, bool)> {
@@ -1264,6 +1302,45 @@ mod tests {
             inputs(TrayIconState::Recording),
             inputs(TrayIconState::Transcribing)
         );
+    }
+
+    #[test]
+    fn dictation_cycle_rebuilds_once_per_visible_menu_change() {
+        let script = [
+            inputs(TrayIconState::Idle),
+            inputs(TrayIconState::Recording),
+            inputs(TrayIconState::Recording),
+            inputs(TrayIconState::Transcribing),
+            inputs(TrayIconState::Idle),
+        ];
+
+        assert_eq!(rebuilds(&script), 4);
+    }
+
+    #[test]
+    fn dictation_activity_flips_during_a_meeting_do_not_rebuild_the_menu() {
+        let meeting = Some(meeting_state(MeetingPhase::CapturingRecording, true, true));
+        let script = [
+            menu_inputs(TrayIconState::Idle, meeting),
+            menu_inputs(TrayIconState::Recording, meeting),
+            menu_inputs(TrayIconState::Transcribing, meeting),
+            menu_inputs(TrayIconState::Idle, meeting),
+        ];
+
+        assert_eq!(rebuilds(&script), 1);
+    }
+
+    #[test]
+    fn meeting_phases_that_share_every_row_do_not_rebuild_the_menu() {
+        let script = [
+            MeetingPhase::CapturingRecording,
+            MeetingPhase::CapturingPausing,
+            MeetingPhase::CapturingResuming,
+            MeetingPhase::CapturingRecording,
+        ]
+        .map(|phase| menu_inputs(TrayIconState::Idle, Some(meeting_state(phase, true, true))));
+
+        assert_eq!(rebuilds(&script), 1);
     }
 
     #[test]
