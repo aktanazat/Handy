@@ -43,6 +43,12 @@ const ENCRYPTED_AT_KEY: &str = "encrypted_at_utc_ms";
 /// answered yet, which is milliseconds unless it is prompting the user.
 const UNLOCK_WAIT: Duration = Duration::from_secs(5);
 
+/// How long the query connection waits out a locked file before reporting the
+/// error. SQLite's default is to fail instantly, which turns the moments the
+/// unlock path's own connections or a write-ahead-log checkpoint hold the file
+/// into a failed history read.
+const BUSY_TIMEOUT: Duration = Duration::from_secs(5);
+
 /// Why the history database is not encrypted at rest right now.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum HistoryStorageReason {
@@ -85,13 +91,26 @@ pub struct HistoryStorageStatus {
 /// and never formatted or logged.
 type DatabaseKey = Zeroizing<[u8; 32]>;
 
+/// The published storage state, and with it the one connection every history
+/// query runs on.
+///
+/// The connection lives inside the state that authorizes it, so replacing the
+/// state drops the connection that belonged to it. Locking, relocking, and the
+/// plaintext to encrypted migration cannot leave a connection open against a
+/// file the published key no longer describes, because there is no way to
+/// publish a new state and keep the old connection.
 enum State {
     /// The file is plaintext and serves reads and writes without a key.
-    Plaintext(HistoryStorageReason),
-    /// The file is encrypted and serves reads and writes with `key`.
+    Plaintext {
+        reason: HistoryStorageReason,
+        connection: Option<Connection>,
+    },
+    /// The file is encrypted and serves reads and writes on a connection keyed
+    /// with `key`, opened on first use.
     Encrypted {
         key: DatabaseKey,
         encrypted_at_utc_ms: Option<i64>,
+        connection: Option<Connection>,
     },
     /// The file is encrypted, or has yet to be created, and no key is available.
     Locked(HistoryStorageReason),
@@ -121,7 +140,10 @@ impl HistoryStorage {
             FileState::Absent | FileState::Encrypted => {
                 State::Locked(HistoryStorageReason::Unlocking)
             }
-            FileState::Plaintext => State::Plaintext(HistoryStorageReason::Unlocking),
+            FileState::Plaintext => State::Plaintext {
+                reason: HistoryStorageReason::Unlocking,
+                connection: None,
+            },
         };
         Self {
             path,
@@ -140,17 +162,51 @@ impl HistoryStorage {
         !matches!(&*self.lock_state(), State::Locked(_))
     }
 
-    /// Open one connection in the current state. Blocks while another caller
-    /// opens one, for the duration of the one time migration, and for at most
-    /// [`UNLOCK_WAIT`] while the startup unlock is still running.
-    pub(crate) fn connect(&self) -> Result<Connection> {
-        match &*self.wait_for_unlock() {
-            State::Plaintext(_) => Connection::open(&self.path).map_err(Into::into),
-            State::Encrypted { key, .. } => open_keyed(&self.path, key),
+    /// Run one action on the single history connection.
+    ///
+    /// The connection is opened on first use and reused afterwards, so
+    /// `PRAGMA key` and the schema read that proves it cost once per published
+    /// state instead of once per query. Blocks while another caller is using
+    /// the connection, for the duration of the one time migration, and for at
+    /// most [`UNLOCK_WAIT`] while the startup unlock is still running.
+    ///
+    /// `action` is the only thing that ever sees the connection, so it cannot
+    /// be held across an `emit`, an `.await`, or a second history query. One
+    /// connection behind one lock is not reentrant, and a caller that nested
+    /// two of them would deadlock rather than open a second connection.
+    pub(crate) fn with_connection<T>(
+        &self,
+        action: impl FnOnce(&mut Connection) -> Result<T>,
+    ) -> Result<T> {
+        let mut state = self.wait_for_unlock();
+        let (slot, key) = match &mut *state {
+            State::Plaintext { connection, .. } => (connection, None),
+            State::Encrypted {
+                key, connection, ..
+            } => (connection, Some(&*key)),
             State::Locked(reason) => {
-                Err(anyhow!("history database is locked ({})", reason.as_str()))
+                return Err(anyhow!("history database is locked ({})", reason.as_str()))
             }
-        }
+        };
+        // Taking the connection out ends the slot's borrow, so the open path
+        // needs no second lookup into a slot it just filled.
+        let mut connection = match slot.take() {
+            Some(connection) => connection,
+            None => {
+                let connection = match key {
+                    Some(key) => open_keyed(&self.path, key)?,
+                    None => Connection::open(&self.path)?,
+                };
+                connection.busy_timeout(BUSY_TIMEOUT)?;
+                connection
+            }
+        };
+        let outcome = action(&mut connection);
+        // Kept even when the action failed: a statement error leaves the
+        // connection itself usable, and reopening on every constraint
+        // violation would reintroduce the per-query open this replaces.
+        *slot = Some(connection);
+        outcome
     }
 
     pub(crate) fn status(&self) -> HistoryStorageStatus {
@@ -198,6 +254,15 @@ impl HistoryStorage {
         if matches!(&*state, State::Encrypted { .. }) {
             return status_of(&state);
         }
+        // Release the pre-unlock connection before the file is rewritten. The
+        // migration renames an encrypted copy over the original and truncates
+        // its write-ahead log, and a connection still holding the plaintext file
+        // would keep the log from folding into it. Only the plaintext state can
+        // be holding one here, since an encrypted state returned above and a
+        // locked one never opened anything.
+        if let State::Plaintext { connection, .. } = &mut *state {
+            connection.take();
+        }
 
         let on_disk = file_state(&self.path);
         if !cipher_available() {
@@ -228,6 +293,7 @@ impl HistoryStorage {
                     State::Encrypted {
                         key,
                         encrypted_at_utc_ms,
+                        connection: None,
                     },
                 )
             }
@@ -274,13 +340,16 @@ impl HistoryStorage {
 fn degraded(on_disk: FileState, reason: HistoryStorageReason) -> State {
     match on_disk {
         FileState::Encrypted => State::Locked(reason),
-        FileState::Absent | FileState::Plaintext => State::Plaintext(reason),
+        FileState::Absent | FileState::Plaintext => State::Plaintext {
+            reason,
+            connection: None,
+        },
     }
 }
 
 fn status_of(state: &State) -> HistoryStorageStatus {
     match state {
-        State::Plaintext(reason) => HistoryStorageStatus {
+        State::Plaintext { reason, .. } => HistoryStorageStatus {
             encrypted: false,
             migrated_at: None,
             reason: Some(reason.as_str().to_string()),
@@ -346,8 +415,15 @@ fn open_keyed(path: &Path, key: &DatabaseKey) -> Result<Connection> {
 }
 
 /// Create the database encrypted, for an install with no history file yet.
+///
+/// A database SQLCipher creates starts in SQLite's rollback journal mode, so
+/// this is the one place a fresh install can be given the write-ahead log.
+/// [`restore_journal_mode`] does the same for an upgraded database; between
+/// them, every encrypted history file ends up with the reader/writer
+/// concurrency that the persistent journal mode then keeps.
 fn create_encrypted(path: &Path, key: &DatabaseKey, now_utc_ms: i64) -> Result<i64> {
     let connection = open_keyed(path, key)?;
+    connection.pragma_update_and_check(None, "journal_mode", "WAL", |_| Ok(()))?;
     write_encrypted_at(&connection, now_utc_ms)?;
     Ok(now_utc_ms)
 }
@@ -588,6 +664,13 @@ mod tests {
             .expect("rows")
     }
 
+    /// The rows the storage hands back through whatever state it published.
+    fn stored_texts(storage: &HistoryStorage) -> Vec<String> {
+        storage
+            .with_connection(|connection| Ok(transcription_texts(connection)))
+            .expect("connection")
+    }
+
     /// Every schema object except the storage-owned metadata table and the
     /// implicit index its text primary key creates.
     fn app_schema_names(connection: &Connection) -> Vec<String> {
@@ -651,13 +734,17 @@ mod tests {
                 .get::<_, i64>(0))
             .is_err());
 
-        let connection = storage.connect().expect("keyed connection");
-        assert_eq!(transcription_texts(&connection), vec!["hello world"]);
-        let after = schema_fingerprint(&connection).expect("fingerprint");
-        assert_eq!(after.user_version, before.user_version);
-        // Tables, the FTS5 virtual table, its shadow tables, indexes, and
-        // triggers all have to survive the copy.
-        assert_eq!(app_schema_names(&connection), before_names);
+        storage
+            .with_connection(|connection| {
+                assert_eq!(transcription_texts(connection), vec!["hello world"]);
+                let after = schema_fingerprint(connection).expect("fingerprint");
+                assert_eq!(after.user_version, before.user_version);
+                // Tables, the FTS5 virtual table, its shadow tables, indexes, and
+                // triggers all have to survive the copy.
+                assert_eq!(app_schema_names(connection), before_names);
+                Ok(())
+            })
+            .expect("keyed connection");
         assert!(before_names
             .iter()
             .any(|name| name == "transcription_history_fts"));
@@ -691,15 +778,19 @@ mod tests {
         assert!(storage.apply_key(key(), 8).encrypted);
         drop(writer);
 
-        let connection = storage.connect().expect("keyed connection");
-        assert_eq!(
-            transcription_texts(&connection),
-            vec!["hello world", "in the log"]
-        );
-        let journal: String = connection
-            .pragma_query_value(None, "journal_mode", |row| row.get(0))
-            .expect("journal mode");
-        assert_eq!(journal.to_lowercase(), "wal");
+        storage
+            .with_connection(|connection| {
+                assert_eq!(
+                    transcription_texts(connection),
+                    vec!["hello world", "in the log"]
+                );
+                let journal: String = connection
+                    .pragma_query_value(None, "journal_mode", |row| row.get(0))
+                    .expect("journal mode");
+                assert_eq!(journal.to_lowercase(), "wal");
+                Ok(())
+            })
+            .expect("keyed connection");
 
         let backup = Connection::open(sibling(&path, ".plaintext-backup-8")).expect("open backup");
         assert_eq!(
@@ -734,10 +825,7 @@ mod tests {
         let next_launch = HistoryStorage::at_startup(path.clone());
         let reopened = tauri::async_runtime::block_on(next_launch.unlock(&secrets, 5_678));
         assert_eq!(reopened.migrated_at, Some(1_234));
-        assert_eq!(
-            transcription_texts(&next_launch.connect().expect("keyed connection")),
-            vec!["hello world"]
-        );
+        assert_eq!(stored_texts(&next_launch), vec!["hello world"]);
     }
 
     #[test]
@@ -769,10 +857,7 @@ mod tests {
             }
         );
         assert!(next_launch.is_ready());
-        assert_eq!(
-            transcription_texts(&next_launch.connect().expect("keyed connection")),
-            vec!["hello world"]
-        );
+        assert_eq!(stored_texts(&next_launch), vec!["hello world"]);
     }
 
     #[test]
@@ -788,6 +873,135 @@ mod tests {
         assert_eq!(status.migrated_at, Some(7));
         assert_eq!(file_state(&path), FileState::Encrypted);
         assert!(!sibling(&path, ".plaintext-backup-7").exists());
+    }
+
+    /// A temporary table lives and dies with the connection that created it, so
+    /// finding it again is proof the second query ran on the first query's
+    /// connection instead of a fresh one.
+    fn marked(storage: &HistoryStorage) -> bool {
+        storage
+            .with_connection(|connection| {
+                Ok(connection
+                    .query_row(
+                        "SELECT count(*) FROM sqlite_temp_master WHERE name = 'connection_marker'",
+                        [],
+                        |row| row.get::<_, i64>(0),
+                    )
+                    .expect("read temp schema")
+                    > 0)
+            })
+            .expect("connection")
+    }
+
+    fn mark(storage: &HistoryStorage) {
+        storage
+            .with_connection(|connection| {
+                connection
+                    .execute_batch("CREATE TEMP TABLE connection_marker (id INTEGER)")
+                    .expect("create marker");
+                Ok(())
+            })
+            .expect("connection");
+    }
+
+    #[test]
+    fn every_query_runs_on_one_retained_connection() {
+        let directory = temp_dir();
+        let path = directory.path().join("history.db");
+        seed_plaintext(&path);
+        let storage = HistoryStorage::at_startup(path);
+        assert!(storage.apply_key(key(), 21).encrypted);
+
+        assert!(!marked(&storage));
+        mark(&storage);
+        assert!(marked(&storage), "a second query opened its own connection");
+        assert!(
+            marked(&storage),
+            "the connection was not kept across queries"
+        );
+    }
+
+    #[test]
+    fn a_failed_query_keeps_the_connection() {
+        let directory = temp_dir();
+        let path = directory.path().join("history.db");
+        seed_plaintext(&path);
+        let storage = HistoryStorage::at_startup(path);
+        assert!(storage.apply_key(key(), 22).encrypted);
+        mark(&storage);
+
+        let failed: Result<()> = storage.with_connection(|connection| {
+            connection.execute_batch("SELECT * FROM no_such_table")?;
+            Ok(())
+        });
+        assert!(failed.is_err());
+
+        // A statement error says nothing about the connection, so throwing it
+        // away would reintroduce the per-query open this design removes.
+        assert!(marked(&storage));
+    }
+
+    #[test]
+    fn relocking_drops_the_connection_the_old_state_owned() {
+        let directory = temp_dir();
+        let path = directory.path().join("history.db");
+        seed_plaintext(&path);
+        let storage = HistoryStorage::at_startup(path.clone());
+
+        // Serve the plaintext file, then encrypt it underneath. The connection
+        // opened against the plaintext file must not survive the rename.
+        mark(&storage);
+        assert!(marked(&storage));
+
+        assert!(storage.apply_key(key(), 23).encrypted);
+        assert_eq!(file_state(&path), FileState::Encrypted);
+        assert!(
+            !marked(&storage),
+            "the pre-migration connection outlived the state that authorized it"
+        );
+        assert_eq!(stored_texts(&storage), vec!["hello world"]);
+    }
+
+    #[test]
+    fn the_query_connection_waits_out_a_locked_file() {
+        let directory = temp_dir();
+        let path = directory.path().join("history.db");
+        seed_plaintext(&path);
+        let storage = HistoryStorage::at_startup(path);
+        assert!(storage.apply_key(key(), 24).encrypted);
+
+        let timeout: i64 = storage
+            .with_connection(|connection| {
+                Ok(connection
+                    .query_row("PRAGMA busy_timeout", [], |row| row.get(0))
+                    .expect("read busy timeout"))
+            })
+            .expect("connection");
+        assert_eq!(
+            timeout,
+            i64::try_from(BUSY_TIMEOUT.as_millis()).expect("timeout fits")
+        );
+    }
+
+    #[test]
+    fn a_database_created_encrypted_uses_the_write_ahead_log() {
+        let directory = temp_dir();
+        let path = directory.path().join("history.db");
+
+        let storage = HistoryStorage::at_startup(path.clone());
+        assert!(storage.apply_key(key(), 25).encrypted);
+
+        // A fresh SQLCipher database starts in rollback mode; only
+        // `create_encrypted` can give a new install the log that
+        // `restore_journal_mode` gives an upgraded one.
+        let journal: String = storage
+            .with_connection(|connection| {
+                Ok(connection
+                    .pragma_query_value(None, "journal_mode", |row| row.get(0))
+                    .expect("journal mode"))
+            })
+            .expect("connection");
+        assert_eq!(journal.to_lowercase(), "wal");
     }
 
     #[test]
@@ -809,10 +1023,7 @@ mod tests {
         );
         assert!(storage.is_ready());
         assert_eq!(file_state(&path), FileState::Plaintext);
-        assert_eq!(
-            transcription_texts(&storage.connect().expect("plaintext connection")),
-            vec!["hello world"]
-        );
+        assert_eq!(stored_texts(&storage), vec!["hello world"]);
     }
 
     #[test]
@@ -836,10 +1047,7 @@ mod tests {
             }
         );
         assert_eq!(file_state(&path), FileState::Plaintext);
-        assert_eq!(
-            transcription_texts(&storage.connect().expect("plaintext connection")),
-            vec!["hello world"]
-        );
+        assert_eq!(stored_texts(&storage), vec!["hello world"]);
         // A failed attempt must not leave a redundant backup behind on every
         // launch.
         assert!(!sibling(&path, ".plaintext-backup-11").exists());
@@ -863,7 +1071,7 @@ mod tests {
             }
         );
         assert!(!storage.is_ready());
-        assert!(storage.connect().is_err());
+        assert!(storage.with_connection(|_| Ok(())).is_err());
         assert_eq!(file_state(&path), FileState::Encrypted);
     }
 }

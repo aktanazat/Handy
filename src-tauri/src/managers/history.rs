@@ -568,43 +568,44 @@ impl HistoryManager {
     fn init_database(&self) -> Result<()> {
         info!("Initializing database at {:?}", self.storage.path());
 
-        let mut conn = self.storage.connect()?;
+        self.storage.with_connection(|conn| {
+            // Handle migration from tauri-plugin-sql to rusqlite_migration
+            // tauri-plugin-sql used _sqlx_migrations table, rusqlite_migration uses user_version pragma
+            self.migrate_from_tauri_plugin_sql(conn)?;
 
-        // Handle migration from tauri-plugin-sql to rusqlite_migration
-        // tauri-plugin-sql used _sqlx_migrations table, rusqlite_migration uses user_version pragma
-        self.migrate_from_tauri_plugin_sql(&conn)?;
+            // Create migrations object and run to latest version
+            let migrations = Migrations::new(MIGRATIONS.to_vec());
 
-        // Create migrations object and run to latest version
-        let migrations = Migrations::new(MIGRATIONS.to_vec());
+            // Validate migrations in debug builds without turning a malformed
+            // checked-in migration into an unexplained process panic.
+            #[cfg(debug_assertions)]
+            migrations
+                .validate()
+                .map_err(|error| anyhow!("Invalid migrations: {error}"))?;
 
-        // Validate migrations in debug builds without turning a malformed
-        // checked-in migration into an unexplained process panic.
-        #[cfg(debug_assertions)]
-        migrations
-            .validate()
-            .map_err(|error| anyhow!("Invalid migrations: {error}"))?;
+            // Get current version before migration
+            let version_before: i32 =
+                conn.pragma_query_value(None, "user_version", |row| row.get(0))?;
+            debug!("Database version before migration: {}", version_before);
 
-        // Get current version before migration
-        let version_before: i32 =
-            conn.pragma_query_value(None, "user_version", |row| row.get(0))?;
-        debug!("Database version before migration: {}", version_before);
+            // Apply any pending migrations
+            migrations.to_latest(conn)?;
 
-        // Apply any pending migrations
-        migrations.to_latest(&mut conn)?;
+            // Get version after migration
+            let version_after: i32 =
+                conn.pragma_query_value(None, "user_version", |row| row.get(0))?;
 
-        // Get version after migration
-        let version_after: i32 = conn.pragma_query_value(None, "user_version", |row| row.get(0))?;
+            if version_after > version_before {
+                info!(
+                    "Database migrated from version {} to {}",
+                    version_before, version_after
+                );
+            } else {
+                debug!("Database already at latest version {}", version_after);
+            }
 
-        if version_after > version_before {
-            info!(
-                "Database migrated from version {} to {}",
-                version_before, version_after
-            );
-        } else {
-            debug!("Database already at latest version {}", version_after);
-        }
-
-        Ok(())
+            Ok(())
+        })
     }
 
     /// Migrate from tauri-plugin-sql's migration tracking to rusqlite_migration's.
@@ -664,10 +665,6 @@ impl HistoryManager {
         Ok(())
     }
 
-    fn get_connection(&self) -> Result<Connection> {
-        self.storage.connect()
-    }
-
     fn map_history_entry(row: &rusqlite::Row<'_>) -> rusqlite::Result<HistoryEntry> {
         Ok(HistoryEntry {
             id: row.get("id")?,
@@ -695,14 +692,17 @@ impl HistoryManager {
         file_name: &str,
         has_audio: bool,
     ) -> Result<UpstreamHistoryImportOutcome> {
-        let mut conn = self.get_connection()?;
-        let outcome = Self::import_upstream_entry_with_connection(
-            &mut conn,
-            source_identity,
-            entry,
-            file_name,
-            has_audio,
-        )?;
+        // The connection is released before the event: the emit is the one part
+        // of this that does not touch the database.
+        let outcome = self.storage.with_connection(|conn| {
+            Self::import_upstream_entry_with_connection(
+                conn,
+                source_identity,
+                entry,
+                file_name,
+                has_audio,
+            )
+        })?;
         if let UpstreamHistoryImportOutcome::Inserted { history_id } = outcome {
             let event = HistoryEntry {
                 id: history_id,
@@ -938,56 +938,61 @@ impl HistoryManager {
     ) -> Result<HistoryEntry> {
         let timestamp = Utc::now().timestamp();
         let title = self.format_timestamp_title(timestamp);
-        let mut conn = self.get_connection()?;
-        let transaction = conn.transaction()?;
-        let derived_from_run_id = derived_from_history_id
-            .map(|history_id| Self::latest_run_id(&transaction, history_id))
-            .transpose()?
-            .flatten();
-        let (duration_ms, word_count, source_kind, has_audio) = match receipt.as_ref() {
-            Some(receipt) => (
-                receipt.duration_ms.map(as_sql_i64).transpose()?,
-                receipt.word_count.map(as_sql_i64).transpose()?,
-                Some(receipt.source_kind.as_str()),
-                receipt.has_audio,
-            ),
-            None => (None, None, None, true),
-        };
-        transaction.execute(
-            "INSERT INTO transcription_history (
-                file_name,
-                timestamp,
-                saved,
-                title,
-                transcription_text,
-                post_processed_text,
-                post_process_requested,
-                duration_ms,
-                word_count,
-                source_kind,
-                has_audio,
-                parent_id
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
-            params![
-                &file_name,
-                timestamp,
-                false,
-                &title,
-                &transcription_text,
-                &post_processed_text,
-                post_process_requested,
-                duration_ms,
-                word_count,
-                source_kind,
-                has_audio,
-                derived_from_history_id,
-            ],
-        )?;
-        let history_id = transaction.last_insert_rowid();
-        if let Some(receipt) = receipt.as_ref() {
-            Self::insert_run_receipt(&transaction, history_id, derived_from_run_id, receipt)?;
-        }
-        transaction.commit()?;
+        // The insert owns the connection only until it commits. `cleanup_old_entries`
+        // below takes the same single connection, and the emit after it must not
+        // run while a database lock is held.
+        let history_id = self.storage.with_connection(|conn| {
+            let transaction = conn.transaction()?;
+            let derived_from_run_id = derived_from_history_id
+                .map(|history_id| Self::latest_run_id(&transaction, history_id))
+                .transpose()?
+                .flatten();
+            let (duration_ms, word_count, source_kind, has_audio) = match receipt.as_ref() {
+                Some(receipt) => (
+                    receipt.duration_ms.map(as_sql_i64).transpose()?,
+                    receipt.word_count.map(as_sql_i64).transpose()?,
+                    Some(receipt.source_kind.as_str()),
+                    receipt.has_audio,
+                ),
+                None => (None, None, None, true),
+            };
+            transaction.execute(
+                "INSERT INTO transcription_history (
+                    file_name,
+                    timestamp,
+                    saved,
+                    title,
+                    transcription_text,
+                    post_processed_text,
+                    post_process_requested,
+                    duration_ms,
+                    word_count,
+                    source_kind,
+                    has_audio,
+                    parent_id
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+                params![
+                    &file_name,
+                    timestamp,
+                    false,
+                    &title,
+                    &transcription_text,
+                    &post_processed_text,
+                    post_process_requested,
+                    duration_ms,
+                    word_count,
+                    source_kind,
+                    has_audio,
+                    derived_from_history_id,
+                ],
+            )?;
+            let history_id = transaction.last_insert_rowid();
+            if let Some(receipt) = receipt.as_ref() {
+                Self::insert_run_receipt(&transaction, history_id, derived_from_run_id, receipt)?;
+            }
+            transaction.commit()?;
+            Ok(history_id)
+        })?;
 
         let entry = HistoryEntry {
             id: history_id,
@@ -1021,21 +1026,25 @@ impl HistoryManager {
         run_id: u64,
         delivery: DeliveryReceipt,
     ) -> Result<HistoryDeliveryAttempt> {
-        let mut conn = self.get_connection()?;
-        let transaction = conn.transaction()?;
-        let run_receipt_id = transaction
-            .query_row(
-                "SELECT id FROM transcription_runs
-                 WHERE history_id = ?1 AND run_id = ?2
-                 ORDER BY id DESC LIMIT 1",
-                params![history_id, as_sql_i64(run_id)?],
-                |row| row.get(0),
-            )
-            .optional()?
-            .ok_or_else(|| anyhow!("Run {} for history entry {} not found", run_id, history_id))?;
-        let id =
-            Self::insert_delivery_attempt(&transaction, history_id, run_receipt_id, &delivery)?;
-        transaction.commit()?;
+        let (id, run_receipt_id) = self.storage.with_connection(|conn| {
+            let transaction = conn.transaction()?;
+            let run_receipt_id: i64 = transaction
+                .query_row(
+                    "SELECT id FROM transcription_runs
+                     WHERE history_id = ?1 AND run_id = ?2
+                     ORDER BY id DESC LIMIT 1",
+                    params![history_id, as_sql_i64(run_id)?],
+                    |row| row.get(0),
+                )
+                .optional()?
+                .ok_or_else(|| {
+                    anyhow!("Run {} for history entry {} not found", run_id, history_id)
+                })?;
+            let id =
+                Self::insert_delivery_attempt(&transaction, history_id, run_receipt_id, &delivery)?;
+            transaction.commit()?;
+            Ok((id, run_receipt_id))
+        })?;
         Ok(HistoryDeliveryAttempt {
             id,
             history_id,
@@ -1117,35 +1126,36 @@ impl HistoryManager {
     }
 
     pub async fn get_run_receipts(&self, history_id: i64) -> Result<Vec<HistoryRunReceipt>> {
-        let conn = self.get_connection()?;
-        let mut statement = conn.prepare(
-            "SELECT
-                r.id,
-                r.history_id,
-                r.run_id,
-                r.retry_of_run_id,
-                r.started_at_ms,
-                r.completed_at_ms,
-                r.mode_receipt_json,
-                r.context_receipt_json,
-                h.duration_ms,
-                h.word_count,
-                h.source_kind,
-                h.has_audio,
-                r.capture_status
-             FROM transcription_runs AS r
-             JOIN transcription_history AS h ON h.id = r.history_id
-             WHERE r.history_id = ?1
-             ORDER BY r.id ASC",
-        )?;
-        let rows = statement.query_map(params![history_id], map_run_receipt)?;
-        let mut receipts = rows.collect::<std::result::Result<Vec<_>, _>>()?;
-        drop(statement);
-        for receipt in &mut receipts {
-            receipt.delivery_attempts =
-                Self::get_delivery_attempts_with_connection(&conn, receipt.id)?;
-        }
-        Ok(receipts)
+        self.storage.with_connection(|conn| {
+            let mut statement = conn.prepare(
+                "SELECT
+                    r.id,
+                    r.history_id,
+                    r.run_id,
+                    r.retry_of_run_id,
+                    r.started_at_ms,
+                    r.completed_at_ms,
+                    r.mode_receipt_json,
+                    r.context_receipt_json,
+                    h.duration_ms,
+                    h.word_count,
+                    h.source_kind,
+                    h.has_audio,
+                    r.capture_status
+                 FROM transcription_runs AS r
+                 JOIN transcription_history AS h ON h.id = r.history_id
+                 WHERE r.history_id = ?1
+                 ORDER BY r.id ASC",
+            )?;
+            let rows = statement.query_map(params![history_id], map_run_receipt)?;
+            let mut receipts = rows.collect::<std::result::Result<Vec<_>, _>>()?;
+            drop(statement);
+            for receipt in &mut receipts {
+                receipt.delivery_attempts =
+                    Self::get_delivery_attempts_with_connection(conn, receipt.id)?;
+            }
+            Ok(receipts)
+        })
     }
 
     fn get_delivery_attempts_with_connection(
@@ -1252,35 +1262,36 @@ impl HistoryManager {
         Ok(deleted_count)
     }
 
-    fn delete_entries_and_files(&self, entries: &[(i64, String)]) -> Result<usize> {
-        let conn = self.get_connection()?;
-        Self::delete_entries_and_files_with_connection(&conn, &self.recordings_dir, entries)
-    }
-
+    /// Delete the oldest unsaved entries beyond `limit`.
+    ///
+    /// The selection and the deletion share one connection, so the rows that
+    /// get deleted are exactly the rows that were selected. Reading them on one
+    /// connection and deleting them on another let a row change in between.
     fn cleanup_by_count(&self, limit: usize) -> Result<()> {
-        let conn = self.get_connection()?;
+        let deleted_count = self.storage.with_connection(|conn| {
+            // Get all entries that are not saved, ordered by timestamp desc
+            let entries: Vec<(i64, String)> = {
+                let mut stmt = conn.prepare(
+                    "SELECT id, file_name FROM transcription_history WHERE saved = 0 ORDER BY timestamp DESC"
+                )?;
+                let rows = stmt.query_map([], |row| {
+                    Ok((row.get::<_, i64>("id")?, row.get::<_, String>("file_name")?))
+                })?;
+                rows.collect::<rusqlite::Result<Vec<_>>>()?
+            };
 
-        // Get all entries that are not saved, ordered by timestamp desc
-        let mut stmt = conn.prepare(
-            "SELECT id, file_name FROM transcription_history WHERE saved = 0 ORDER BY timestamp DESC"
-        )?;
-
-        let rows = stmt.query_map([], |row| {
-            Ok((row.get::<_, i64>("id")?, row.get::<_, String>("file_name")?))
+            if entries.len() <= limit {
+                return Ok(0);
+            }
+            Self::delete_entries_and_files_with_connection(
+                conn,
+                &self.recordings_dir,
+                &entries[limit..],
+            )
         })?;
 
-        let mut entries: Vec<(i64, String)> = Vec::new();
-        for row in rows {
-            entries.push(row?);
-        }
-
-        if entries.len() > limit {
-            let entries_to_delete = &entries[limit..];
-            let deleted_count = self.delete_entries_and_files(entries_to_delete)?;
-
-            if deleted_count > 0 {
-                debug!("Cleaned up {} old history entries by count", deleted_count);
-            }
+        if deleted_count > 0 {
+            debug!("Cleaned up {} old history entries by count", deleted_count);
         }
 
         Ok(())
@@ -1290,8 +1301,6 @@ impl HistoryManager {
         &self,
         retention_period: crate::settings::RecordingRetentionPeriod,
     ) -> Result<()> {
-        let conn = self.get_connection()?;
-
         // Calculate cutoff timestamp (current time minus retention period)
         let now = Utc::now().timestamp();
         let cutoff_timestamp = match retention_period {
@@ -1301,21 +1310,24 @@ impl HistoryManager {
             _ => unreachable!("Should not reach here"),
         };
 
-        // Get all unsaved entries older than the cutoff timestamp
-        let mut stmt = conn.prepare(
-            "SELECT id, file_name FROM transcription_history WHERE saved = 0 AND timestamp < ?1",
-        )?;
+        let deleted_count = self.storage.with_connection(|conn| {
+            // Get all unsaved entries older than the cutoff timestamp
+            let entries_to_delete: Vec<(i64, String)> = {
+                let mut stmt = conn.prepare(
+                    "SELECT id, file_name FROM transcription_history WHERE saved = 0 AND timestamp < ?1",
+                )?;
+                let rows = stmt.query_map(params![cutoff_timestamp], |row| {
+                    Ok((row.get::<_, i64>("id")?, row.get::<_, String>("file_name")?))
+                })?;
+                rows.collect::<rusqlite::Result<Vec<_>>>()?
+            };
 
-        let rows = stmt.query_map(params![cutoff_timestamp], |row| {
-            Ok((row.get::<_, i64>("id")?, row.get::<_, String>("file_name")?))
+            Self::delete_entries_and_files_with_connection(
+                conn,
+                &self.recordings_dir,
+                &entries_to_delete,
+            )
         })?;
-
-        let mut entries_to_delete: Vec<(i64, String)> = Vec::new();
-        for row in rows {
-            entries_to_delete.push(row?);
-        }
-
-        let deleted_count = self.delete_entries_and_files(&entries_to_delete)?;
 
         if deleted_count > 0 {
             debug!(
@@ -1330,8 +1342,8 @@ impl HistoryManager {
     /// Read all-time aggregates from the retained history rows. The one grouped
     /// query keeps totals and source subtotals on the same snapshot.
     pub async fn get_history_stats(&self) -> Result<HistoryStats> {
-        let conn = self.get_connection()?;
-        Self::get_history_stats_with_connection(&conn)
+        self.storage
+            .with_connection(|conn| Self::get_history_stats_with_connection(conn))
     }
 
     fn get_history_stats_with_connection(conn: &Connection) -> Result<HistoryStats> {
@@ -1393,8 +1405,9 @@ impl HistoryManager {
         &self,
         request: DashboardTrendRequest,
     ) -> Result<HistoryTrendProjection> {
-        let mut connection = self.get_connection()?;
-        Self::get_history_trend_with_connection_at(&mut connection, request, Local::now())
+        self.storage.with_connection(|conn| {
+            Self::get_history_trend_with_connection_at(conn, request, Local::now())
+        })
     }
 
     fn get_history_trend_with_connection_at(
@@ -1560,56 +1573,57 @@ impl HistoryManager {
         cursor: Option<i64>,
         limit: Option<usize>,
     ) -> Result<PaginatedHistory> {
-        let conn = self.get_connection()?;
         let limit = limit.map(|l| l.min(MAX_HISTORY_PAGE_SIZE));
 
-        let mut entries: Vec<HistoryEntry> = match (cursor, limit) {
-            (Some(cursor_id), Some(lim)) => {
-                let fetch_count = i64::try_from(lim + 1)?;
-                let mut stmt = conn.prepare(
-                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_requested, parent_id
-                     FROM transcription_history
-                     WHERE id < ?1
-                     ORDER BY id DESC
-                     LIMIT ?2",
-                )?;
-                let result = stmt
-                    .query_map(params![cursor_id, fetch_count], Self::map_history_entry)?
-                    .collect::<std::result::Result<Vec<_>, _>>()?;
-                result
-            }
-            (None, Some(lim)) => {
-                let fetch_count = i64::try_from(lim + 1)?;
-                let mut stmt = conn.prepare(
-                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_requested, parent_id
-                     FROM transcription_history
-                     ORDER BY id DESC
-                     LIMIT ?1",
-                )?;
-                let result = stmt
-                    .query_map(params![fetch_count], Self::map_history_entry)?
-                    .collect::<std::result::Result<Vec<_>, _>>()?;
-                result
-            }
-            (_, None) => {
-                let mut stmt = conn.prepare(
-                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_requested, parent_id
-                     FROM transcription_history
-                     ORDER BY id DESC",
-                )?;
-                let result = stmt
-                    .query_map([], Self::map_history_entry)?
-                    .collect::<std::result::Result<Vec<_>, _>>()?;
-                result
-            }
-        };
+        self.storage.with_connection(|conn| {
+            let mut entries: Vec<HistoryEntry> = match (cursor, limit) {
+                (Some(cursor_id), Some(lim)) => {
+                    let fetch_count = i64::try_from(lim + 1)?;
+                    let mut stmt = conn.prepare(
+                        "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_requested, parent_id
+                         FROM transcription_history
+                         WHERE id < ?1
+                         ORDER BY id DESC
+                         LIMIT ?2",
+                    )?;
+                    let result = stmt
+                        .query_map(params![cursor_id, fetch_count], Self::map_history_entry)?
+                        .collect::<std::result::Result<Vec<_>, _>>()?;
+                    result
+                }
+                (None, Some(lim)) => {
+                    let fetch_count = i64::try_from(lim + 1)?;
+                    let mut stmt = conn.prepare(
+                        "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_requested, parent_id
+                         FROM transcription_history
+                         ORDER BY id DESC
+                         LIMIT ?1",
+                    )?;
+                    let result = stmt
+                        .query_map(params![fetch_count], Self::map_history_entry)?
+                        .collect::<std::result::Result<Vec<_>, _>>()?;
+                    result
+                }
+                (_, None) => {
+                    let mut stmt = conn.prepare(
+                        "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_requested, parent_id
+                         FROM transcription_history
+                         ORDER BY id DESC",
+                    )?;
+                    let result = stmt
+                        .query_map([], Self::map_history_entry)?
+                        .collect::<std::result::Result<Vec<_>, _>>()?;
+                    result
+                }
+            };
 
-        let has_more = limit.is_some_and(|lim| entries.len() > lim);
-        if has_more {
-            entries.pop();
-        }
+            let has_more = limit.is_some_and(|lim| entries.len() > lim);
+            if has_more {
+                entries.pop();
+            }
 
-        Ok(PaginatedHistory { entries, has_more })
+            Ok(PaginatedHistory { entries, has_more })
+        })
     }
 
     /// Search transcription history by raw or post-processed text.
@@ -1625,8 +1639,9 @@ impl HistoryManager {
         cursor: Option<i64>,
         limit: Option<usize>,
     ) -> Result<PaginatedHistory> {
-        let conn = self.get_connection()?;
-        Self::search_history_entries_with_connection(&conn, query, cursor, limit)
+        self.storage.with_connection(|conn| {
+            Self::search_history_entries_with_connection(conn, query, cursor, limit)
+        })
     }
 
     fn search_history_entries_with_connection(
@@ -1730,8 +1745,8 @@ impl HistoryManager {
 
     /// Get the latest entry with non-empty transcription text.
     pub fn get_latest_completed_entry(&self) -> Result<Option<HistoryEntry>> {
-        let conn = self.get_connection()?;
-        Self::get_latest_completed_entry_with_conn(&conn)
+        self.storage
+            .with_connection(|conn| Self::get_latest_completed_entry_with_conn(conn))
     }
 
     fn get_latest_completed_entry_with_conn(conn: &Connection) -> Result<Option<HistoryEntry>> {
@@ -1757,21 +1772,24 @@ impl HistoryManager {
     }
 
     pub async fn toggle_saved_status(&self, id: i64) -> Result<()> {
-        let conn = self.get_connection()?;
+        // The event is emitted after the connection is released; nothing in the
+        // emit path reads the database.
+        let new_saved = self.storage.with_connection(|conn| {
+            // Get current saved status
+            let current_saved: bool = conn.query_row(
+                "SELECT saved FROM transcription_history WHERE id = ?1",
+                params![id],
+                |row| row.get("saved"),
+            )?;
 
-        // Get current saved status
-        let current_saved: bool = conn.query_row(
-            "SELECT saved FROM transcription_history WHERE id = ?1",
-            params![id],
-            |row| row.get("saved"),
-        )?;
+            let new_saved = !current_saved;
 
-        let new_saved = !current_saved;
-
-        conn.execute(
-            "UPDATE transcription_history SET saved = ?1 WHERE id = ?2",
-            params![new_saved, id],
-        )?;
+            conn.execute(
+                "UPDATE transcription_history SET saved = ?1 WHERE id = ?2",
+                params![new_saved, id],
+            )?;
+            Ok(new_saved)
+        })?;
 
         debug!("Toggled saved status for entry {}: {}", id, new_saved);
 
@@ -1791,7 +1809,11 @@ impl HistoryManager {
     }
 
     pub async fn get_entry_by_id(&self, id: i64) -> Result<Option<HistoryEntry>> {
-        let conn = self.get_connection()?;
+        self.storage
+            .with_connection(|conn| Self::entry_by_id_with_connection(conn, id))
+    }
+
+    fn entry_by_id_with_connection(conn: &Connection, id: i64) -> Result<Option<HistoryEntry>> {
         let mut stmt = conn.prepare(
             "SELECT
                 id,
@@ -1813,21 +1835,26 @@ impl HistoryManager {
     }
 
     pub async fn delete_entry(&self, id: i64) -> Result<()> {
-        let conn = self.get_connection()?;
-
-        // Keep the database record when deleting its final WAV reference fails
-        // so cleanup can retry it later. Retry rows share the original WAV and
-        // therefore must not delete it while another row still references it.
-        if let Some(entry) = self.get_entry_by_id(id).await? {
-            if !Self::has_other_recording_reference(&conn, id, &entry.file_name)? {
-                Self::remove_recording_file(&self.recordings_dir, &entry.file_name)?;
+        // The row is read, its recording is resolved, and the row is deleted on
+        // one connection. Reading the entry on a second connection made the
+        // reference check decide on a row that the delete no longer had to
+        // match.
+        self.storage.with_connection(|conn| {
+            // Keep the database record when deleting its final WAV reference fails
+            // so cleanup can retry it later. Retry rows share the original WAV and
+            // therefore must not delete it while another row still references it.
+            if let Some(entry) = Self::entry_by_id_with_connection(conn, id)? {
+                if !Self::has_other_recording_reference(conn, id, &entry.file_name)? {
+                    Self::remove_recording_file(&self.recordings_dir, &entry.file_name)?;
+                }
             }
-        }
 
-        conn.execute(
-            "DELETE FROM transcription_history WHERE id = ?1",
-            params![id],
-        )?;
+            conn.execute(
+                "DELETE FROM transcription_history WHERE id = ?1",
+                params![id],
+            )?;
+            Ok(())
+        })?;
 
         debug!("Deleted history entry with id: {}", id);
 
