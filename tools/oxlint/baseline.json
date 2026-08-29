@@ -77,7 +77,7 @@
       "file": "src/bindings.ts",
       "rule": "anti-slop(require-safety-comment-for-type-assertion)",
       "severity": "error",
-      "count": 226
+      "count": 227
     },
     {
       "file": "src/bindings.ts",
@@ -90,12 +90,6 @@
       "rule": "anti-slop(no-unknown-parameters)",
       "severity": "error",
       "count": 4
-    },
-    {
-      "file": "src/bun-test.d.ts",
-      "rule": "anti-slop(no-unsafe-dictionary-type)",
-      "severity": "error",
-      "count": 1
     },
     {
       "file": "src/components/AccessibilityPermissions.tsx",
