@@ -241,7 +241,15 @@
       },
       "appearance": {
         "description": "Interface language and colour scheme. Both apply immediately.",
-        "title": "Appearance"
+        "title": "Appearance",
+        "material": {
+          "title": "Material",
+          "description": "Solid paints Sona's own surfaces. Glass lets the desktop through the top bar, the command palette and the recording HUD.",
+          "options": {
+            "solid": "Solid",
+            "glass": "Glass"
+          }
+        }
       },
       "description": "The keys you press, the microphone Sona listens to, and how the app looks.",
       "commandMode": {
@@ -803,7 +811,6 @@
         "unavailable": "Usage statistics are unavailable.",
         "entries": "recordings",
         "duration": "recording time",
-        "durationValue": "{{hours}}h {{minutes}}m",
         "words": "words",
         "source": {
           "microphone": "Microphone",
@@ -821,7 +828,6 @@
         "modeLabel": "Mode"
       },
       "title": "History",
-      "derivedFrom": "From an earlier recording",
       "openFolder": "Open Recordings Folder",
       "loading": "Loading history...",
       "empty": "No transcriptions yet. Start recording to build your history!",
@@ -856,8 +862,6 @@
         "durationLabel": "Duration",
         "words": "{{count}} words",
         "wordsLabel": "Words",
-        "mode": "Mode: {{mode}}",
-        "revision": "Revision {{revision}}",
         "engine": {
           "local": "Local",
           "cloud": "Cloud",
@@ -924,6 +928,17 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "modeLabel": "Mode",
+        "revisionLabel": "Revision",
+        "engineLabel": "Engine",
+        "sourceLabel": "Source",
+        "captureStatusLabel": "Capture",
+        "completedLabel": "Completed",
+        "captureStatus": {
+          "complete": "Complete",
+          "truncated": "Truncated",
+          "no_speech_detected": "No speech detected"
         }
       },
       "correction": {
@@ -995,7 +1010,15 @@
       "noResultsHint": "Search matches whole words in both the raw and the processed transcript.",
       "results": "{{count}} matches",
       "resultsMore": "{{count}}+ matches",
-      "resultsNone": "No matches"
+      "resultsNone": "No matches",
+      "moreActions": "More actions",
+      "expandEntry": "Show full entry",
+      "collapseEntry": "Hide full entry",
+      "derivedFromId": "from #{{id}}",
+      "level": {
+        "peak": "peak",
+        "rms": "rms"
+      }
     },
     "debug": {
       "title": "Debug",
@@ -1521,7 +1544,24 @@
       "listEmpty": "No modes are configured.",
       "listEmptyHint": "Sona always keeps one mode. Reload to fetch the current list.",
       "unsavedChanges": "Unsaved changes",
-      "untitled": "Untitled mode"
+      "untitled": "Untitled mode",
+      "summary": {
+        "engine": {
+          "local": "Local",
+          "deepgram_nova_3": "Deepgram",
+          "eleven_labs_scribe_v2": "ElevenLabs"
+        },
+        "modelInherited": "Global model",
+        "languageAuto": "Auto",
+        "delivery": {
+          "ctrl_v": "Paste",
+          "direct": "Type",
+          "none": "No delivery",
+          "shift_insert": "Shift+Insert",
+          "ctrl_shift_v": "Paste plain",
+          "external_script": "Script"
+        }
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -1892,7 +1932,14 @@
     "transcriptionFailedTitle": "Couldn't transcribe",
     "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
     "commandNoSelection": "Nothing was selected. Select the text you want to change, then hold the command shortcut and say what to do.",
-    "commandRewriteUnavailable": "The rewrite returned nothing, so your selection was left as it was. Check the rewrite model in Settings > AI and try again."
+    "commandRewriteUnavailable": "The rewrite returned nothing, so your selection was left as it was. Check the rewrite model in Settings > AI and try again.",
+    "noModelSelectedTitle": "No model selected",
+    "noSpeechSaveFailedTitle": "Sample not saved",
+    "captureOverrunTitle": "Capture overrun",
+    "cloudUnavailableTitle": "Cloud unavailable",
+    "cloudTranscriptionHeldTitle": "Cloud run held",
+    "commandNoSelectionTitle": "Nothing selected",
+    "commandRewriteUnavailableTitle": "Rewrite unavailable"
   },
   "appLanguage": {
     "title": "Application Language",
@@ -1908,10 +1955,17 @@
     }
   },
   "overlay": {
-    "transcribing": "Transcribing...",
-    "processing": "Processing...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model",
+    "engineFallbackShort": "Local fallback",
+    "inputLevel": "Input level",
+    "stopHint": "Press {{keys}} to stop",
+    "state": {
+      "starting": "Starting",
+      "listening": "Listening",
+      "transcribing": "Transcribing",
+      "processing": "Processing",
+      "failed": "Failed"
+    },
     "hud": {
       "idle": "Ready",
       "toggle": "Start dictation in {{mode}}",
@@ -2491,19 +2545,14 @@
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
-      "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Mode: {{name}}",
       "setShortcut": "Set a dictation shortcut in Settings to capture from any app.",
       "setShortcutAction": "Set a shortcut",
       "shortcutAction": "Change dictation shortcut",
-      "holdHint": "Tap to toggle, hold to talk",
-      "facts": {
-        "mode": "Mode",
-        "model": "Model",
-        "engine": "Engine"
-      }
+      "gestureTapHold": "Tap to toggle, hold to talk, anywhere.",
+      "gestureTapOnly": "Tap to toggle, anywhere."
     },
     "actions": {
       "dictate": "Dictate",
@@ -2513,10 +2562,11 @@
       "title": "Recent activity",
       "history": "Transcription",
       "meeting": "Meeting",
-      "emptyDescription": "Retained captures show up here as soon as you dictate or record a meeting.",
-      "emptyTitle": "Nothing recent",
-      "error": "Recent captures could not be loaded just now.",
-      "viewAll": "See all"
+      "viewAll": "See all",
+      "words": "{{count}} words",
+      "emptyRange": "No dictations or meetings in the last 30 days.",
+      "failedCommand": "{{command}} failed",
+      "failedCommandWithDetail": "{{command}} failed: {{detail}}"
     },
     "chart": {
       "day": "{{date}} \\u00b7 dictations {{dictations}}",
@@ -2552,6 +2602,23 @@
       "failed": "Could not check for updates.",
       "failedWithReason": "Could not check for updates: {{reason}}",
       "view": "View release"
+    },
+    "instrument": {
+      "label": "Capture instrument",
+      "engine": "Engine",
+      "input": "Input",
+      "shortcut": "Shortcut",
+      "mode": "Mode",
+      "loaded": "loaded",
+      "unloaded": "unloaded",
+      "notMeasured": "not measured",
+      "unbound": "not set",
+      "gestureTapHold": "tap · hold",
+      "gestureTap": "tap",
+      "channel": "ch {{channel}}",
+      "channels": "{{count}} ch",
+      "rate": "{{kilohertz}} kHz",
+      "systemDefault": "System default"
     }
   },
   "cloudSync": {

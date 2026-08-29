@@ -237,7 +237,15 @@
       },
       "appearance": {
         "description": "Gränssnittsspråk och färgschema. Båda gäller omedelbart.",
-        "title": "Utseende"
+        "title": "Utseende",
+        "material": {
+          "title": "Material",
+          "description": "Solid ritar Sonas egna ytor. Glas släpper igenom skrivbordet i toppfältet, kommandopaletten och inspelnings-HUD:en.",
+          "options": {
+            "solid": "Solid",
+            "glass": "Glas"
+          }
+        }
       },
       "description": "Tangenterna du trycker på, mikrofonen Sona lyssnar på och hur appen ser ut.",
       "commandMode": {
@@ -731,7 +739,6 @@
         "unavailable": "Användningsstatistik är inte tillgänglig.",
         "entries": "inspelningar",
         "duration": "inspelningstid",
-        "durationValue": "{{hours}} h {{minutes}} min",
         "words": "ord",
         "source": {
           "microphone": "Mikrofon",
@@ -774,8 +781,6 @@
         "durationLabel": "Duration",
         "words": "{{count}} words",
         "wordsLabel": "Words",
-        "mode": "Mode: {{mode}}",
-        "revision": "Revision {{revision}}",
         "engine": {
           "local": "Local",
           "cloud": "Cloud",
@@ -836,6 +841,17 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "modeLabel": "Läge",
+        "revisionLabel": "Revision",
+        "engineLabel": "Motor",
+        "sourceLabel": "Källa",
+        "captureStatusLabel": "Inspelning",
+        "completedLabel": "Slutfört",
+        "captureStatus": {
+          "complete": "Fullständig",
+          "truncated": "Avkortad",
+          "no_speech_detected": "Inget tal upptäcktes"
         },
         "columns": {
           "source": "Källa",
@@ -914,6 +930,14 @@
       "results": "{{count}} träffar",
       "resultsMore": "{{count}}+ träffar",
       "resultsNone": "Inga träffar",
+      "moreActions": "Fler åtgärder",
+      "expandEntry": "Visa hela posten",
+      "collapseEntry": "Dölj hela posten",
+      "derivedFromId": "från #{{id}}",
+      "level": {
+        "peak": "peak",
+        "rms": "rms"
+      },
       "processAgain": {
         "action": "Bearbeta igen",
         "title": "Bearbeta igen",
@@ -922,8 +946,7 @@
         "confirm": "Bearbeta",
         "started": "Ombearbetning startad",
         "modeLabel": "Läge"
-      },
-      "derivedFrom": "Från en tidigare inspelning"
+      }
     },
     "debug": {
       "title": "Felsökning",
@@ -1449,7 +1472,24 @@
       "listEmpty": "Inga lägen är konfigurerade.",
       "listEmptyHint": "Sona behåller alltid ett läge. Läs om för att hämta den aktuella listan.",
       "unsavedChanges": "Osparade ändringar",
-      "untitled": "Namnlöst läge"
+      "untitled": "Namnlöst läge",
+      "summary": {
+        "engine": {
+          "local": "Lokal",
+          "deepgram_nova_3": "Deepgram",
+          "eleven_labs_scribe_v2": "ElevenLabs"
+        },
+        "modelInherited": "Global modell",
+        "languageAuto": "Auto",
+        "delivery": {
+          "ctrl_v": "Klistra in",
+          "direct": "Skriv",
+          "none": "Ingen leverans",
+          "shift_insert": "Shift+Insert",
+          "ctrl_shift_v": "Klistra in oformaterat",
+          "external_script": "Skript"
+        }
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -1885,7 +1925,14 @@
     "transcriptionFailedTitle": "Kunde inte transkribera",
     "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
     "commandNoSelection": "Inget var markerat. Markera texten du vill ändra, håll sedan ned kommandogenvägen och säg vad som ska göras.",
-    "commandRewriteUnavailable": "Omskrivningen gav inget tillbaka, så din markering lämnades som den var. Kontrollera omskrivningsmodellen under Inställningar > AI och försök igen."
+    "commandRewriteUnavailable": "Omskrivningen gav inget tillbaka, så din markering lämnades som den var. Kontrollera omskrivningsmodellen under Inställningar > AI och försök igen.",
+    "noModelSelectedTitle": "Ingen modell valdes",
+    "noSpeechSaveFailedTitle": "Provet sparades inte",
+    "captureOverrunTitle": "Inspelningen överfylldes",
+    "cloudUnavailableTitle": "Molnet är inte tillgängligt",
+    "cloudTranscriptionHeldTitle": "Molnkörning hålls kvar",
+    "commandNoSelectionTitle": "Inget är markerat",
+    "commandRewriteUnavailableTitle": "Omskrivning är inte tillgänglig"
   },
   "appLanguage": {
     "title": "Applikationsspråk",
@@ -1901,10 +1948,17 @@
     }
   },
   "overlay": {
-    "transcribing": "Transkriberar...",
-    "processing": "Bearbetar...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model",
+    "engineFallbackShort": "Lokal reserv",
+    "inputLevel": "Ingångsnivå",
+    "stopHint": "Tryck på {{keys}} för att stoppa",
+    "state": {
+      "starting": "Startar",
+      "listening": "Lyssnar",
+      "transcribing": "Transkriberar",
+      "processing": "Bearbetar",
+      "failed": "Misslyckades"
+    },
     "hud": {
       "idle": "Klar",
       "toggle": "Starta diktering i {{mode}}",
@@ -2488,27 +2542,23 @@
       "title": "Recent activity",
       "history": "Transcription",
       "meeting": "Meeting",
-      "emptyDescription": "Sparade inspelningar visas här så snart du dikterar eller spelar in ett möte.",
-      "emptyTitle": "Inget nyligt",
-      "error": "De senaste inspelningarna kunde inte läsas in just nu.",
-      "viewAll": "Visa alla"
+      "viewAll": "Visa alla",
+      "words": "{{count}} ord",
+      "emptyRange": "Inga dikteringar eller möten de senaste 30 dagarna.",
+      "failedCommand": "{{command}} misslyckades",
+      "failedCommandWithDetail": "{{command}} misslyckades: {{detail}}"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
-      "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Läge: {{name}}",
       "setShortcut": "Ange ett dikteringskortkommando i Inställningar för att diktera från valfri app.",
       "setShortcutAction": "Ange en genväg",
       "shortcutAction": "Ändra dikteringsgenvägen",
-      "holdHint": "Tryck för att växla, håll för att tala",
-      "facts": {
-        "mode": "Läge",
-        "model": "Modell",
-        "engine": "Motor"
-      }
+      "gestureTapHold": "Tryck för att växla, håll för att tala — var som helst.",
+      "gestureTapOnly": "Tryck för att växla — var som helst."
     },
     "actions": {
       "dictate": "Dictate",
@@ -2548,6 +2598,23 @@
       "failed": "Kunde inte söka efter uppdateringar.",
       "failedWithReason": "Kunde inte söka efter uppdateringar: {{reason}}",
       "view": "Visa version"
+    },
+    "instrument": {
+      "label": "Inspelningsinstrument",
+      "engine": "Motor",
+      "input": "Ingång",
+      "shortcut": "Genväg",
+      "mode": "Läge",
+      "loaded": "inläst",
+      "unloaded": "inte inläst",
+      "notMeasured": "inte mätt",
+      "unbound": "inte angiven",
+      "gestureTapHold": "tryck · håll",
+      "gestureTap": "tryck",
+      "channel": "ch {{channel}}",
+      "channels": "{{count}} ch",
+      "rate": "{{kilohertz}} kHz",
+      "systemDefault": "Systemstandard"
     }
   },
   "cloudSync": {

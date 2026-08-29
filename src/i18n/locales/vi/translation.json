@@ -335,7 +335,15 @@
       },
       "appearance": {
         "description": "Ngôn ngữ giao diện và bảng màu. Cả hai áp dụng ngay lập tức.",
-        "title": "Giao diện"
+        "title": "Giao diện",
+        "material": {
+          "title": "Chất liệu",
+          "description": "Đặc vẽ chính các mặt của Sona. Kính để lộ màn hình nền qua thanh trên, bảng lệnh và HUD ghi âm.",
+          "options": {
+            "solid": "Đặc",
+            "glass": "Kính"
+          }
+        }
       },
       "description": "Các phím bạn nhấn, micrô mà Sona lắng nghe và giao diện của ứng dụng.",
       "commandMode": {
@@ -731,7 +739,6 @@
         "unavailable": "Không có số liệu thống kê về mức sử dụng.",
         "entries": "bản ghi âm",
         "duration": "thời lượng ghi âm",
-        "durationValue": "{{hours}} giờ {{minutes}} phút",
         "words": "từ",
         "source": {
           "microphone": "Micrô",
@@ -774,8 +781,6 @@
         "durationLabel": "Duration",
         "words": "{{count}} words",
         "wordsLabel": "Words",
-        "mode": "Mode: {{mode}}",
-        "revision": "Revision {{revision}}",
         "engine": {
           "local": "Local",
           "cloud": "Cloud",
@@ -836,6 +841,17 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "modeLabel": "Chế độ",
+        "revisionLabel": "Bản sửa",
+        "engineLabel": "Bộ máy",
+        "sourceLabel": "Nguồn",
+        "captureStatusLabel": "Bản thu",
+        "completedLabel": "Hoàn tất",
+        "captureStatus": {
+          "complete": "Đầy đủ",
+          "truncated": "Bị cắt",
+          "no_speech_detected": "Không phát hiện giọng nói"
         },
         "columns": {
           "source": "Nguồn",
@@ -914,6 +930,14 @@
       "results": "{{count}} kết quả khớp",
       "resultsMore": "{{count}}+ kết quả khớp",
       "resultsNone": "Không có kết quả khớp",
+      "moreActions": "Thêm hành động",
+      "expandEntry": "Hiện toàn bộ mục",
+      "collapseEntry": "Ẩn toàn bộ mục",
+      "derivedFromId": "từ #{{id}}",
+      "level": {
+        "peak": "peak",
+        "rms": "rms"
+      },
       "processAgain": {
         "action": "Xử lý lại",
         "title": "Xử lý lại",
@@ -922,8 +946,7 @@
         "confirm": "Xử lý",
         "started": "Đã bắt đầu xử lý lại",
         "modeLabel": "Chế độ"
-      },
-      "derivedFrom": "Từ một bản ghi âm trước đó"
+      }
     },
     "debug": {
       "title": "Gỡ lỗi",
@@ -1449,7 +1472,24 @@
       "listEmpty": "Chưa cấu hình chế độ nào.",
       "listEmptyHint": "Sona luôn giữ một chế độ. Tải lại để lấy danh sách hiện tại.",
       "unsavedChanges": "Thay đổi chưa lưu",
-      "untitled": "Chế độ chưa đặt tên"
+      "untitled": "Chế độ chưa đặt tên",
+      "summary": {
+        "engine": {
+          "local": "Cục bộ",
+          "deepgram_nova_3": "Deepgram",
+          "eleven_labs_scribe_v2": "ElevenLabs"
+        },
+        "modelInherited": "Mô hình chung",
+        "languageAuto": "Tự động",
+        "delivery": {
+          "ctrl_v": "Dán",
+          "direct": "Nhập",
+          "none": "Không chuyển",
+          "shift_insert": "Shift+Insert",
+          "ctrl_shift_v": "Dán không định dạng",
+          "external_script": "Tập lệnh"
+        }
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -1885,7 +1925,14 @@
     "transcriptionFailedTitle": "Không ghi lại được lời nói",
     "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
     "commandNoSelection": "Không có gì được chọn. Hãy chọn đoạn văn bản bạn muốn thay đổi, rồi giữ phím tắt lệnh và nói bạn muốn làm gì.",
-    "commandRewriteUnavailable": "Phần viết lại không trả về gì, nên đoạn bạn chọn vẫn nguyên như cũ. Hãy kiểm tra mô hình viết lại trong Cài đặt > AI rồi thử lại."
+    "commandRewriteUnavailable": "Phần viết lại không trả về gì, nên đoạn bạn chọn vẫn nguyên như cũ. Hãy kiểm tra mô hình viết lại trong Cài đặt > AI rồi thử lại.",
+    "noModelSelectedTitle": "Chưa chọn mô hình",
+    "noSpeechSaveFailedTitle": "Chưa lưu mẫu",
+    "captureOverrunTitle": "Vượt giới hạn thu",
+    "cloudUnavailableTitle": "Đám mây không khả dụng",
+    "cloudTranscriptionHeldTitle": "Đã giữ lượt chạy trên đám mây",
+    "commandNoSelectionTitle": "Chưa chọn nội dung",
+    "commandRewriteUnavailableTitle": "Không thể viết lại"
   },
   "appLanguage": {
     "title": "Ngôn ngữ ứng dụng",
@@ -1901,10 +1948,17 @@
     }
   },
   "overlay": {
-    "transcribing": "Đang chuyển đổi...",
-    "processing": "Đang xử lý...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model",
+    "engineFallbackShort": "Dự phòng cục bộ",
+    "inputLevel": "Mức đầu vào",
+    "stopHint": "Nhấn {{keys}} để dừng",
+    "state": {
+      "starting": "Đang bắt đầu",
+      "listening": "Đang nghe",
+      "transcribing": "Đang chuyển đổi",
+      "processing": "Đang xử lý",
+      "failed": "Thất bại"
+    },
     "hud": {
       "idle": "Sẵn sàng",
       "toggle": "Bắt đầu đọc ở chế độ {{mode}}",
@@ -2488,27 +2542,23 @@
       "title": "Recent activity",
       "history": "Transcription",
       "meeting": "Meeting",
-      "emptyDescription": "Các bản ghi được lưu giữ sẽ hiển thị ở đây ngay khi bạn đọc chính tả hoặc ghi lại một cuộc họp.",
-      "emptyTitle": "Không có gì gần đây",
-      "error": "Hiện không thể tải các bản ghi gần đây.",
-      "viewAll": "Xem tất cả"
+      "viewAll": "Xem tất cả",
+      "words": "{{count}} từ",
+      "emptyRange": "Không có bản đọc hay cuộc họp nào trong 30 ngày qua.",
+      "failedCommand": "{{command}} thất bại",
+      "failedCommandWithDetail": "{{command}} thất bại: {{detail}}"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
-      "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Chế độ: {{name}}",
       "setShortcut": "Đặt phím tắt đọc chính tả trong Settings để ghi từ bất kỳ ứng dụng nào.",
       "setShortcutAction": "Đặt một phím tắt",
       "shortcutAction": "Đổi phím tắt đọc chính tả",
-      "holdHint": "Chạm để chuyển, giữ để nói",
-      "facts": {
-        "mode": "Chế độ",
-        "model": "Mô hình",
-        "engine": "Bộ máy"
-      }
+      "gestureTapHold": "Chạm để chuyển, giữ để nói, ở bất kỳ đâu.",
+      "gestureTapOnly": "Chạm để chuyển, ở bất kỳ đâu."
     },
     "actions": {
       "dictate": "Dictate",
@@ -2548,6 +2598,23 @@
       "failed": "Không thể kiểm tra bản cập nhật.",
       "failedWithReason": "Không thể kiểm tra bản cập nhật: {{reason}}",
       "view": "Xem bản phát hành"
+    },
+    "instrument": {
+      "label": "Bảng đo khi thu",
+      "engine": "Bộ máy",
+      "input": "Đầu vào",
+      "shortcut": "Lối tắt",
+      "mode": "Chế độ",
+      "loaded": "đã nạp",
+      "unloaded": "chưa nạp",
+      "notMeasured": "chưa đo",
+      "unbound": "chưa đặt",
+      "gestureTapHold": "chạm · giữ",
+      "gestureTap": "chạm",
+      "channel": "ch {{channel}}",
+      "channels": "{{count}} ch",
+      "rate": "{{kilohertz}} kHz",
+      "systemDefault": "Mặc định hệ thống"
     }
   },
   "cloudSync": {

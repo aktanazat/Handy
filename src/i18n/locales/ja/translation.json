@@ -335,7 +335,15 @@
       },
       "appearance": {
         "description": "インターフェイスの言語とカラースキーム。どちらも即座に適用されます。",
-        "title": "外観"
+        "title": "外観",
+        "material": {
+          "title": "マテリアル",
+          "description": "ソリッドは Sona 自身の面を描画します。グラスは上部バー、コマンドパレット、録音 HUD からデスクトップを透かします。",
+          "options": {
+            "solid": "ソリッド",
+            "glass": "グラス"
+          }
+        }
       },
       "description": "押すキー、Sona が聞くマイク、アプリの外観。",
       "commandMode": {
@@ -731,7 +739,6 @@
         "unavailable": "使用統計は利用できません。",
         "entries": "録音",
         "duration": "録音時間",
-        "durationValue": "{{hours}}時間{{minutes}}分",
         "words": "単語",
         "source": {
           "microphone": "マイク",
@@ -774,8 +781,6 @@
         "durationLabel": "Duration",
         "words": "{{count}} words",
         "wordsLabel": "Words",
-        "mode": "Mode: {{mode}}",
-        "revision": "Revision {{revision}}",
         "engine": {
           "local": "Local",
           "cloud": "Cloud",
@@ -836,6 +841,17 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "modeLabel": "モード",
+        "revisionLabel": "リビジョン",
+        "engineLabel": "エンジン",
+        "sourceLabel": "ソース",
+        "captureStatusLabel": "録音",
+        "completedLabel": "完了",
+        "captureStatus": {
+          "complete": "完全",
+          "truncated": "途中で終了",
+          "no_speech_detected": "音声が検出されません"
         },
         "columns": {
           "source": "ソース",
@@ -914,6 +930,14 @@
       "results": "{{count}} 件の一致",
       "resultsMore": "{{count}}+ 件の一致",
       "resultsNone": "一致なし",
+      "moreActions": "その他の操作",
+      "expandEntry": "項目全体を表示",
+      "collapseEntry": "項目全体を隠す",
+      "derivedFromId": "#{{id}} から",
+      "level": {
+        "peak": "peak",
+        "rms": "rms"
+      },
       "processAgain": {
         "action": "もう一度処理",
         "title": "もう一度処理",
@@ -922,8 +946,7 @@
         "confirm": "処理",
         "started": "再処理を開始しました",
         "modeLabel": "モード"
-      },
-      "derivedFrom": "以前の録音から"
+      }
     },
     "debug": {
       "title": "デバッグ",
@@ -1449,7 +1472,24 @@
       "listEmpty": "モードが設定されていません。",
       "listEmptyHint": "Sona は常に1つのモードを保持します。再読み込みして最新のリストを取得してください。",
       "unsavedChanges": "未保存の変更",
-      "untitled": "名称未設定のモード"
+      "untitled": "名称未設定のモード",
+      "summary": {
+        "engine": {
+          "local": "ローカル",
+          "deepgram_nova_3": "Deepgram",
+          "eleven_labs_scribe_v2": "ElevenLabs"
+        },
+        "modelInherited": "全体のモデル",
+        "languageAuto": "自動",
+        "delivery": {
+          "ctrl_v": "貼り付け",
+          "direct": "直接入力",
+          "none": "出力なし",
+          "shift_insert": "Shift+Insert",
+          "ctrl_shift_v": "書式なし貼り付け",
+          "external_script": "スクリプト"
+        }
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -1885,7 +1925,14 @@
     "transcriptionFailedTitle": "書き起こしできませんでした",
     "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
     "commandNoSelection": "何も選択されていませんでした。変えたいテキストを選択し、コマンドのショートカットを押したまま、どうするか話してください。",
-    "commandRewriteUnavailable": "書き換えが何も返さなかったため、選択範囲はそのまま残りました。設定 > AI で書き換えモデルを確認して、もう一度お試しください。"
+    "commandRewriteUnavailable": "書き換えが何も返さなかったため、選択範囲はそのまま残りました。設定 > AI で書き換えモデルを確認して、もう一度お試しください。",
+    "noModelSelectedTitle": "モデルが選択されていません",
+    "noSpeechSaveFailedTitle": "サンプルを保存できません",
+    "captureOverrunTitle": "録音容量オーバー",
+    "cloudUnavailableTitle": "クラウドを利用できません",
+    "cloudTranscriptionHeldTitle": "クラウド処理を保留",
+    "commandNoSelectionTitle": "選択範囲がありません",
+    "commandRewriteUnavailableTitle": "書き換えを利用できません"
   },
   "appLanguage": {
     "title": "アプリの言語",
@@ -1901,10 +1948,17 @@
     }
   },
   "overlay": {
-    "transcribing": "文字起こし中…",
-    "processing": "処理中…",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model",
+    "engineFallbackShort": "ローカル代替",
+    "inputLevel": "入力レベル",
+    "stopHint": "{{keys}} で停止",
+    "state": {
+      "starting": "起動中",
+      "listening": "聴取中",
+      "transcribing": "文字起こし中",
+      "processing": "処理中",
+      "failed": "失敗"
+    },
     "hud": {
       "idle": "準備完了",
       "toggle": "{{mode}} で口述を開始",
@@ -2488,27 +2542,23 @@
       "title": "Recent activity",
       "history": "Transcription",
       "meeting": "Meeting",
-      "emptyDescription": "ディクテーションやミーティングの録音を行うと、保持されたキャプチャがここに表示されます。",
-      "emptyTitle": "最近の項目はありません",
-      "error": "最近のキャプチャを現在読み込めませんでした。",
-      "viewAll": "すべて表示"
+      "viewAll": "すべて表示",
+      "words": "{{count}} 単語",
+      "emptyRange": "過去 30 日間に口述もミーティングもありません。",
+      "failedCommand": "{{command}} が失敗しました",
+      "failedCommandWithDetail": "{{command}} が失敗しました: {{detail}}"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
-      "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "モード: {{name}}",
       "setShortcut": "設定でディクテーションショートカットを設定すると、どのアプリからでもキャプチャできます。",
       "setShortcutAction": "ショートカットを設定",
       "shortcutAction": "口述のショートカットを変更",
-      "holdHint": "タップで切り替え、押したままで発話",
-      "facts": {
-        "mode": "モード",
-        "model": "モデル",
-        "engine": "エンジン"
-      }
+      "gestureTapHold": "タップで切り替え、押したままで発話。どこでも使えます。",
+      "gestureTapOnly": "タップで切り替え。どこでも使えます。"
     },
     "actions": {
       "dictate": "Dictate",
@@ -2548,6 +2598,23 @@
       "failed": "アップデートを確認できませんでした。",
       "failedWithReason": "アップデートを確認できませんでした: {{reason}}",
       "view": "リリースを表示"
+    },
+    "instrument": {
+      "label": "録音インストゥルメント",
+      "engine": "エンジン",
+      "input": "入力",
+      "shortcut": "ショートカット",
+      "mode": "モード",
+      "loaded": "読み込み済み",
+      "unloaded": "未読み込み",
+      "notMeasured": "未計測",
+      "unbound": "未設定",
+      "gestureTapHold": "タップ · 長押し",
+      "gestureTap": "タップ",
+      "channel": "ch {{channel}}",
+      "channels": "{{count}} ch",
+      "rate": "{{kilohertz}} kHz",
+      "systemDefault": "システムの既定"
     }
   },
   "cloudSync": {

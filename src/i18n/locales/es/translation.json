@@ -335,7 +335,15 @@
       },
       "appearance": {
         "description": "Idioma de la interfaz y esquema de color. Ambos se aplican de inmediato.",
-        "title": "Apariencia"
+        "title": "Apariencia",
+        "material": {
+          "title": "Material",
+          "description": "Sólido pinta las superficies propias de Sona. Vidrio deja pasar el escritorio por la barra superior, la paleta de comandos y el HUD de grabación.",
+          "options": {
+            "solid": "Sólido",
+            "glass": "Vidrio"
+          }
+        }
       },
       "description": "Las teclas que pulsas, el micrófono que Sona escucha y el aspecto de la app.",
       "commandMode": {
@@ -731,7 +739,6 @@
         "unavailable": "Las estadísticas de uso no están disponibles.",
         "entries": "grabaciones",
         "duration": "tiempo de grabación",
-        "durationValue": "{{hours}} h {{minutes}} min",
         "words": "palabras",
         "source": {
           "microphone": "Micrófono",
@@ -774,8 +781,6 @@
         "durationLabel": "Duration",
         "words": "{{count}} words",
         "wordsLabel": "Words",
-        "mode": "Mode: {{mode}}",
-        "revision": "Revision {{revision}}",
         "engine": {
           "local": "Local",
           "cloud": "Cloud",
@@ -836,6 +841,17 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "modeLabel": "Modo",
+        "revisionLabel": "Revisión",
+        "engineLabel": "Motor",
+        "sourceLabel": "Origen",
+        "captureStatusLabel": "Captura",
+        "completedLabel": "Completado",
+        "captureStatus": {
+          "complete": "Completa",
+          "truncated": "Truncada",
+          "no_speech_detected": "No se detectó voz"
         },
         "columns": {
           "source": "Origen",
@@ -914,6 +930,14 @@
       "results": "{{count}} coincidencias",
       "resultsMore": "{{count}}+ coincidencias",
       "resultsNone": "Sin coincidencias",
+      "moreActions": "Más acciones",
+      "expandEntry": "Mostrar la entrada completa",
+      "collapseEntry": "Ocultar la entrada completa",
+      "derivedFromId": "de #{{id}}",
+      "level": {
+        "peak": "peak",
+        "rms": "rms"
+      },
       "processAgain": {
         "action": "Procesar de nuevo",
         "title": "Procesar de nuevo",
@@ -922,8 +946,7 @@
         "confirm": "Procesar",
         "started": "Reprocesamiento iniciado",
         "modeLabel": "Modo"
-      },
-      "derivedFrom": "De una grabación anterior"
+      }
     },
     "debug": {
       "title": "Depuración",
@@ -1449,7 +1472,24 @@
       "listEmpty": "No hay modos configurados.",
       "listEmptyHint": "Sona siempre conserva un modo. Recarga para obtener la lista actual.",
       "unsavedChanges": "Cambios sin guardar",
-      "untitled": "Modo sin título"
+      "untitled": "Modo sin título",
+      "summary": {
+        "engine": {
+          "local": "Local",
+          "deepgram_nova_3": "Deepgram",
+          "eleven_labs_scribe_v2": "ElevenLabs"
+        },
+        "modelInherited": "Modelo global",
+        "languageAuto": "Auto",
+        "delivery": {
+          "ctrl_v": "Pegar",
+          "direct": "Escribir",
+          "none": "Sin entrega",
+          "shift_insert": "Shift+Insert",
+          "ctrl_shift_v": "Pegar sin formato",
+          "external_script": "Script"
+        }
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -1885,7 +1925,14 @@
     "transcriptionFailedTitle": "No se pudo transcribir",
     "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
     "commandNoSelection": "No había nada seleccionado. Selecciona el texto que quieras cambiar, mantén el atajo de comando y di qué hacer.",
-    "commandRewriteUnavailable": "La reescritura no devolvió nada, así que tu selección quedó como estaba. Revisa el modelo de reescritura en Ajustes > IA e inténtalo de nuevo."
+    "commandRewriteUnavailable": "La reescritura no devolvió nada, así que tu selección quedó como estaba. Revisa el modelo de reescritura en Ajustes > IA e inténtalo de nuevo.",
+    "noModelSelectedTitle": "Ningún modelo seleccionado",
+    "noSpeechSaveFailedTitle": "Muestra no guardada",
+    "captureOverrunTitle": "Desbordamiento de captura",
+    "cloudUnavailableTitle": "Nube no disponible",
+    "cloudTranscriptionHeldTitle": "Ejecución en la nube retenida",
+    "commandNoSelectionTitle": "Nada seleccionado",
+    "commandRewriteUnavailableTitle": "Reescritura no disponible"
   },
   "appLanguage": {
     "title": "Idioma de la aplicación",
@@ -1901,10 +1948,17 @@
     }
   },
   "overlay": {
-    "transcribing": "Transcribiendo...",
-    "processing": "Procesando...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model",
+    "engineFallbackShort": "Respaldo local",
+    "inputLevel": "Nivel de entrada",
+    "stopHint": "Pulsa {{keys}} para detener",
+    "state": {
+      "starting": "Iniciando",
+      "listening": "Escuchando",
+      "transcribing": "Transcribiendo",
+      "processing": "Procesando",
+      "failed": "Falló"
+    },
     "hud": {
       "idle": "Listo",
       "toggle": "Iniciar dictado en {{mode}}",
@@ -2488,27 +2542,23 @@
       "title": "Recent activity",
       "history": "Transcription",
       "meeting": "Meeting",
-      "emptyDescription": "Las capturas conservadas aparecen aquí en cuanto dictas o grabas una reunión.",
-      "emptyTitle": "Nada reciente",
-      "error": "Las capturas recientes no se pudieron cargar en este momento.",
-      "viewAll": "Ver todo"
+      "viewAll": "Ver todo",
+      "words": "{{count}} palabras",
+      "emptyRange": "Sin dictados ni reuniones en los últimos 30 días.",
+      "failedCommand": "{{command}} falló",
+      "failedCommandWithDetail": "{{command}} falló: {{detail}}"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
-      "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Modo: {{name}}",
       "setShortcut": "Configura un atajo de dictado en Ajustes para capturar desde cualquier app.",
       "setShortcutAction": "Definir un atajo",
       "shortcutAction": "Cambiar el atajo de dictado",
-      "holdHint": "Toca para alternar, mantén para hablar",
-      "facts": {
-        "mode": "Modo",
-        "model": "Modelo",
-        "engine": "Motor"
-      }
+      "gestureTapHold": "Toca para alternar, mantén para hablar, en cualquier app.",
+      "gestureTapOnly": "Toca para alternar, en cualquier app."
     },
     "actions": {
       "dictate": "Dictate",
@@ -2548,6 +2598,23 @@
       "failed": "No se pudo comprobar si hay actualizaciones.",
       "failedWithReason": "No se pudo comprobar si hay actualizaciones: {{reason}}",
       "view": "Ver versión"
+    },
+    "instrument": {
+      "label": "Instrumentos de captura",
+      "engine": "Motor",
+      "input": "Entrada",
+      "shortcut": "Atajo",
+      "mode": "Modo",
+      "loaded": "cargado",
+      "unloaded": "no cargado",
+      "notMeasured": "sin medir",
+      "unbound": "sin definir",
+      "gestureTapHold": "toque · mantener",
+      "gestureTap": "toque",
+      "channel": "ch {{channel}}",
+      "channels": "{{count}} ch",
+      "rate": "{{kilohertz}} kHz",
+      "systemDefault": "Predeterminado del sistema"
     }
   },
   "cloudSync": {

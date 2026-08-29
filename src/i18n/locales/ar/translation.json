@@ -234,7 +234,15 @@
       },
       "appearance": {
         "description": "لغة الواجهة ونظام الألوان. كلاهما يُطبّق فورًا.",
-        "title": "المظهر"
+        "title": "المظهر",
+        "material": {
+          "title": "المادة",
+          "description": "«صلب» يرسم أسطح Sona نفسها. «زجاج» يُظهر سطح المكتب عبر الشريط العلوي ولوحة الأوامر وواجهة التسجيل.",
+          "options": {
+            "solid": "صلب",
+            "glass": "زجاج"
+          }
+        }
       },
       "description": "المفاتيح التي تضغطها، والميكروفون الذي يستمع إليه Sona، ومظهر التطبيق.",
       "commandMode": {
@@ -630,7 +638,6 @@
         "unavailable": "إحصاءات الاستخدام غير متاحة.",
         "entries": "تسجيلات",
         "duration": "مدة التسجيل",
-        "durationValue": "{{hours}} س {{minutes}} د",
         "words": "كلمات",
         "source": {
           "microphone": "الميكروفون",
@@ -673,8 +680,6 @@
         "durationLabel": "Duration",
         "words": "{{count}} words",
         "wordsLabel": "Words",
-        "mode": "Mode: {{mode}}",
-        "revision": "Revision {{revision}}",
         "engine": {
           "local": "Local",
           "cloud": "Cloud",
@@ -735,6 +740,17 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "modeLabel": "الوضع",
+        "revisionLabel": "المراجعة",
+        "engineLabel": "المحرك",
+        "sourceLabel": "المصدر",
+        "captureStatusLabel": "الالتقاط",
+        "completedLabel": "اكتمل في",
+        "captureStatus": {
+          "complete": "كامل",
+          "truncated": "مقطوع",
+          "no_speech_detected": "لم يُكتشف كلام"
         },
         "columns": {
           "source": "المصدر",
@@ -813,6 +829,14 @@
       "results": "{{count}} نتيجة مطابقة",
       "resultsMore": "{{count}}+ نتيجة مطابقة",
       "resultsNone": "لا توجد نتائج مطابقة",
+      "moreActions": "إجراءات أخرى",
+      "expandEntry": "إظهار الإدخال كاملًا",
+      "collapseEntry": "إخفاء الإدخال كاملًا",
+      "derivedFromId": "من #{{id}}",
+      "level": {
+        "peak": "peak",
+        "rms": "rms"
+      },
       "processAgain": {
         "action": "معالجة مرة أخرى",
         "title": "معالجة مرة أخرى",
@@ -821,8 +845,7 @@
         "confirm": "معالجة",
         "started": "بدأت إعادة المعالجة",
         "modeLabel": "الوضع"
-      },
-      "derivedFrom": "من تسجيل سابق"
+      }
     },
     "debug": {
       "title": "تصحيح الأخطاء",
@@ -1449,7 +1472,24 @@
       "listEmpty": "لم يتم تكوين أي أوضاع.",
       "listEmptyHint": "يحتفظ Sona دائمًا بوضع واحد. أعد التحميل لجلب القائمة الحالية.",
       "unsavedChanges": "تغييرات غير محفوظة",
-      "untitled": "وضع بلا عنوان"
+      "untitled": "وضع بلا عنوان",
+      "summary": {
+        "engine": {
+          "local": "محلي",
+          "deepgram_nova_3": "Deepgram",
+          "eleven_labs_scribe_v2": "ElevenLabs"
+        },
+        "modelInherited": "النموذج العام",
+        "languageAuto": "تلقائي",
+        "delivery": {
+          "ctrl_v": "لصق",
+          "direct": "كتابة",
+          "none": "بلا تسليم",
+          "shift_insert": "Shift+Insert",
+          "ctrl_shift_v": "لصق بلا تنسيق",
+          "external_script": "برنامج نصي"
+        }
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -1885,7 +1925,14 @@
     "transcriptionFailedTitle": "لم يتم التحويل إلى نص",
     "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
     "commandNoSelection": "لم يكن هناك شيء محدد. حدد النص الذي تريد تغييره، ثم استمر بالضغط على اختصار الأمر وقل ما تريد فعله.",
-    "commandRewriteUnavailable": "لم تُرجع إعادة الكتابة شيئًا، فبقي تحديدك كما هو. تحقق من نموذج إعادة الكتابة في الإعدادات > الذكاء الاصطناعي وحاول مرة أخرى."
+    "commandRewriteUnavailable": "لم تُرجع إعادة الكتابة شيئًا، فبقي تحديدك كما هو. تحقق من نموذج إعادة الكتابة في الإعدادات > الذكاء الاصطناعي وحاول مرة أخرى.",
+    "noModelSelectedTitle": "لم يُحدد نموذج",
+    "noSpeechSaveFailedTitle": "لم تُحفظ العينة",
+    "captureOverrunTitle": "تجاوز سعة التسجيل",
+    "cloudUnavailableTitle": "السحابة غير متاحة",
+    "cloudTranscriptionHeldTitle": "تم حجز التشغيل السحابي",
+    "commandNoSelectionTitle": "لا شيء محدد",
+    "commandRewriteUnavailableTitle": "إعادة الصياغة غير متاحة"
   },
   "appLanguage": {
     "title": "لغة التطبيق",
@@ -1901,10 +1948,17 @@
     }
   },
   "overlay": {
-    "transcribing": "...جاري التفريغ",
-    "processing": "...جاري المعالجة",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model",
+    "engineFallbackShort": "بديل محلي",
+    "inputLevel": "مستوى الإدخال",
+    "stopHint": "اضغط {{keys}} للإيقاف",
+    "state": {
+      "starting": "جاري البدء",
+      "listening": "يستمع",
+      "transcribing": "جاري التفريغ",
+      "processing": "جاري المعالجة",
+      "failed": "فشل"
+    },
     "hud": {
       "idle": "جاهز",
       "toggle": "ابدأ الإملاء في وضع {{mode}}",
@@ -2488,27 +2542,23 @@
       "title": "Recent activity",
       "history": "Transcription",
       "meeting": "Meeting",
-      "emptyDescription": "تظهر الالتقاطات المحفوظة هنا بمجرد أن تملي أو تسجل اجتماعًا.",
-      "emptyTitle": "لا شيء حديث",
-      "error": "تعذر تحميل الالتقاطات الأخيرة الآن.",
-      "viewAll": "عرض الكل"
+      "viewAll": "عرض الكل",
+      "words": "{{count}} كلمة",
+      "emptyRange": "لا توجد إملاءات أو اجتماعات في آخر 30 يومًا.",
+      "failedCommand": "فشل {{command}}",
+      "failedCommandWithDetail": "فشل {{command}}: {{detail}}"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
-      "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "الوضع: {{name}}",
       "setShortcut": "عيّن اختصار إملاء في الإعدادات للالتقاط من أي تطبيق.",
       "setShortcutAction": "حدّد اختصارًا",
       "shortcutAction": "غيّر اختصار الإملاء",
-      "holdHint": "اضغط للتبديل، واستمر بالضغط للتحدث",
-      "facts": {
-        "mode": "الوضع",
-        "model": "النموذج",
-        "engine": "المحرك"
-      }
+      "gestureTapHold": "اضغط للتبديل، واستمر بالضغط للتحدث، من أي مكان.",
+      "gestureTapOnly": "اضغط للتبديل، من أي مكان."
     },
     "actions": {
       "dictate": "Dictate",
@@ -2548,6 +2598,23 @@
       "failed": "تعذر التحقق من التحديثات.",
       "failedWithReason": "تعذر التحقق من التحديثات: {{reason}}",
       "view": "عرض الإصدار"
+    },
+    "instrument": {
+      "label": "أدوات قياس الالتقاط",
+      "engine": "المحرك",
+      "input": "الإدخال",
+      "shortcut": "الاختصار",
+      "mode": "الوضع",
+      "loaded": "محمّل",
+      "unloaded": "غير محمّل",
+      "notMeasured": "غير مقيس",
+      "unbound": "غير محدد",
+      "gestureTapHold": "ضغطة · استمرار",
+      "gestureTap": "ضغطة",
+      "channel": "ch {{channel}}",
+      "channels": "{{count}} ch",
+      "rate": "{{kilohertz}} kHz",
+      "systemDefault": "الافتراضي للنظام"
     }
   },
   "cloudSync": {

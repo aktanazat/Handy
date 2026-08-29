@@ -335,7 +335,15 @@
       },
       "appearance": {
         "description": "Język interfejsu i schemat kolorów. Oba stosowane są natychmiast.",
-        "title": "Wygląd"
+        "title": "Wygląd",
+        "material": {
+          "title": "Materiał",
+          "description": "Pełny rysuje własne powierzchnie Sony. Szkło przepuszcza pulpit przez górny pasek, paletę poleceń i HUD nagrywania.",
+          "options": {
+            "solid": "Pełny",
+            "glass": "Szkło"
+          }
+        }
       },
       "description": "Klawisze, które naciskasz, mikrofon, którego słucha Sona, i wygląd aplikacji.",
       "commandMode": {
@@ -731,7 +739,6 @@
         "unavailable": "Statystyki użycia są niedostępne.",
         "entries": "nagrań",
         "duration": "czas nagrań",
-        "durationValue": "{{hours}} godz. {{minutes}} min",
         "words": "wyrazów",
         "source": {
           "microphone": "Mikrofon",
@@ -774,8 +781,6 @@
         "durationLabel": "Duration",
         "words": "{{count}} words",
         "wordsLabel": "Words",
-        "mode": "Mode: {{mode}}",
-        "revision": "Revision {{revision}}",
         "engine": {
           "local": "Local",
           "cloud": "Cloud",
@@ -836,6 +841,17 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "modeLabel": "Tryb",
+        "revisionLabel": "Rewizja",
+        "engineLabel": "Silnik",
+        "sourceLabel": "Źródło",
+        "captureStatusLabel": "Nagranie",
+        "completedLabel": "Zakończono",
+        "captureStatus": {
+          "complete": "Pełne",
+          "truncated": "Obcięte",
+          "no_speech_detected": "Nie wykryto mowy"
         },
         "columns": {
           "source": "Źródło",
@@ -914,6 +930,14 @@
       "results": "Dopasowania: {{count}}",
       "resultsMore": "Dopasowania: {{count}}+",
       "resultsNone": "Brak dopasowań",
+      "moreActions": "Więcej działań",
+      "expandEntry": "Pokaż cały wpis",
+      "collapseEntry": "Ukryj cały wpis",
+      "derivedFromId": "z #{{id}}",
+      "level": {
+        "peak": "peak",
+        "rms": "rms"
+      },
       "processAgain": {
         "action": "Przetwórz ponownie",
         "title": "Przetwórz ponownie",
@@ -922,8 +946,7 @@
         "confirm": "Przetwórz",
         "started": "Ponowne przetwarzanie rozpoczęte",
         "modeLabel": "Tryb"
-      },
-      "derivedFrom": "Z wcześniejszego nagrania"
+      }
     },
     "debug": {
       "title": "Debugowanie",
@@ -1449,7 +1472,24 @@
       "listEmpty": "Nie skonfigurowano żadnych trybów.",
       "listEmptyHint": "Sona zawsze zachowuje jeden tryb. Odśwież, aby pobrać bieżącą listę.",
       "unsavedChanges": "Niezapisane zmiany",
-      "untitled": "Tryb bez nazwy"
+      "untitled": "Tryb bez nazwy",
+      "summary": {
+        "engine": {
+          "local": "Lokalny",
+          "deepgram_nova_3": "Deepgram",
+          "eleven_labs_scribe_v2": "ElevenLabs"
+        },
+        "modelInherited": "Model globalny",
+        "languageAuto": "Auto",
+        "delivery": {
+          "ctrl_v": "Wklej",
+          "direct": "Wpisz",
+          "none": "Bez dostarczania",
+          "shift_insert": "Shift+Insert",
+          "ctrl_shift_v": "Wklej bez formatu",
+          "external_script": "Skrypt"
+        }
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -1885,7 +1925,14 @@
     "transcriptionFailedTitle": "Nie udało się transkrybować",
     "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
     "commandNoSelection": "Nic nie było zaznaczone. Zaznacz tekst, który chcesz zmienić, następnie przytrzymaj skrót polecenia i powiedz, co zrobić.",
-    "commandRewriteUnavailable": "Przepisanie nie zwróciło niczego, więc zaznaczenie pozostało bez zmian. Sprawdź model przepisywania w Ustawieniach > AI i spróbuj ponownie."
+    "commandRewriteUnavailable": "Przepisanie nie zwróciło niczego, więc zaznaczenie pozostało bez zmian. Sprawdź model przepisywania w Ustawieniach > AI i spróbuj ponownie.",
+    "noModelSelectedTitle": "Nie wybrano modelu",
+    "noSpeechSaveFailedTitle": "Próbka nie zapisana",
+    "captureOverrunTitle": "Przepełnienie nagrania",
+    "cloudUnavailableTitle": "Chmura niedostępna",
+    "cloudTranscriptionHeldTitle": "Przebieg w chmurze wstrzymany",
+    "commandNoSelectionTitle": "Nic nie wybrano",
+    "commandRewriteUnavailableTitle": "Przepisywanie niedostępne"
   },
   "appLanguage": {
     "title": "Język aplikacji",
@@ -1901,10 +1948,17 @@
     }
   },
   "overlay": {
-    "transcribing": "Transkrypcja...",
-    "processing": "Przetwarzanie...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model",
+    "engineFallbackShort": "Rezerwa lokalna",
+    "inputLevel": "Poziom wejścia",
+    "stopHint": "Naciśnij {{keys}}, aby zatrzymać",
+    "state": {
+      "starting": "Uruchamianie",
+      "listening": "Nasłuchuje",
+      "transcribing": "Transkrypcja",
+      "processing": "Przetwarzanie",
+      "failed": "Niepowodzenie"
+    },
     "hud": {
       "idle": "Gotowe",
       "toggle": "Rozpocznij dyktowanie w trybie {{mode}}",
@@ -2488,27 +2542,23 @@
       "title": "Recent activity",
       "history": "Transcription",
       "meeting": "Meeting",
-      "emptyDescription": "Zachowane nagrania pojawią się tutaj, gdy tylko podyktujesz coś lub nagrasz spotkanie.",
-      "emptyTitle": "Brak ostatnich pozycji",
-      "error": "Nie udało się teraz wczytać ostatnich nagrań.",
-      "viewAll": "Zobacz wszystkie"
+      "viewAll": "Zobacz wszystkie",
+      "words": "{{count}} wyrazów",
+      "emptyRange": "Brak dyktowań i spotkań w ostatnich 30 dniach.",
+      "failedCommand": "{{command}} nie powiodło się",
+      "failedCommandWithDetail": "{{command}} nie powiodło się: {{detail}}"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
-      "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Tryb: {{name}}",
       "setShortcut": "Ustaw skrót dyktowania w Ustawieniach, aby dyktować w dowolnej aplikacji.",
       "setShortcutAction": "Ustaw skrót",
       "shortcutAction": "Zmień skrót dyktowania",
-      "holdHint": "Dotknij, aby przełączyć, przytrzymaj, aby mówić",
-      "facts": {
-        "mode": "Tryb",
-        "model": "Model",
-        "engine": "Silnik"
-      }
+      "gestureTapHold": "Dotknij, aby przełączyć, przytrzymaj, aby mówić — wszędzie.",
+      "gestureTapOnly": "Dotknij, aby przełączyć — wszędzie."
     },
     "actions": {
       "dictate": "Dictate",
@@ -2548,6 +2598,23 @@
       "failed": "Nie udało się sprawdzić aktualizacji.",
       "failedWithReason": "Nie udało się sprawdzić aktualizacji: {{reason}}",
       "view": "Zobacz wydanie"
+    },
+    "instrument": {
+      "label": "Przyrządy nagrywania",
+      "engine": "Silnik",
+      "input": "Wejście",
+      "shortcut": "Skrót",
+      "mode": "Tryb",
+      "loaded": "wczytany",
+      "unloaded": "niewczytany",
+      "notMeasured": "niezmierzone",
+      "unbound": "nieustawiony",
+      "gestureTapHold": "dotknięcie · przytrzymanie",
+      "gestureTap": "dotknięcie",
+      "channel": "ch {{channel}}",
+      "channels": "{{count}} ch",
+      "rate": "{{kilohertz}} kHz",
+      "systemDefault": "Domyślne systemowe"
     }
   },
   "cloudSync": {

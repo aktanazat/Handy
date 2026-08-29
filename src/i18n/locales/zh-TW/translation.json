@@ -237,7 +237,15 @@
       },
       "appearance": {
         "description": "介面語言與色彩配置。兩者皆立即生效。",
-        "title": "外觀"
+        "title": "外觀",
+        "material": {
+          "title": "材質",
+          "description": "實色繪製 Sona 自身的表面。玻璃讓桌面透過頂列、命令面板和錄音 HUD 顯示出來。",
+          "options": {
+            "solid": "實色",
+            "glass": "玻璃"
+          }
+        }
       },
       "description": "你按的按鍵、Sona 聆聽的麥克風，以及 App 的外觀。",
       "commandMode": {
@@ -731,7 +739,6 @@
         "unavailable": "無法取得使用統計資料。",
         "entries": "錄音",
         "duration": "錄音時間",
-        "durationValue": "{{hours}}小時 {{minutes}}分鐘",
         "words": "字詞",
         "source": {
           "microphone": "麥克風",
@@ -774,8 +781,6 @@
         "durationLabel": "Duration",
         "words": "{{count}} words",
         "wordsLabel": "Words",
-        "mode": "Mode: {{mode}}",
-        "revision": "Revision {{revision}}",
         "engine": {
           "local": "Local",
           "cloud": "Cloud",
@@ -836,6 +841,17 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "modeLabel": "模式",
+        "revisionLabel": "修訂號",
+        "engineLabel": "引擎",
+        "sourceLabel": "來源",
+        "captureStatusLabel": "錄音",
+        "completedLabel": "完成時間",
+        "captureStatus": {
+          "complete": "完整",
+          "truncated": "被截斷",
+          "no_speech_detected": "未偵測到語音"
         },
         "columns": {
           "source": "來源",
@@ -914,6 +930,14 @@
       "results": "{{count}} 個符合項目",
       "resultsMore": "{{count}}+ 個符合項目",
       "resultsNone": "沒有符合項目",
+      "moreActions": "更多操作",
+      "expandEntry": "顯示完整項目",
+      "collapseEntry": "隱藏完整項目",
+      "derivedFromId": "來自 #{{id}}",
+      "level": {
+        "peak": "peak",
+        "rms": "rms"
+      },
       "processAgain": {
         "action": "再處理一次",
         "title": "再處理一次",
@@ -922,8 +946,7 @@
         "confirm": "處理",
         "started": "已開始重新處理",
         "modeLabel": "模式"
-      },
-      "derivedFrom": "來自更早的一次錄音"
+      }
     },
     "debug": {
       "title": "偵錯",
@@ -1449,7 +1472,24 @@
       "listEmpty": "未設定任何模式。",
       "listEmptyHint": "Sona 一律保留一個模式。重新載入以取得目前列表。",
       "unsavedChanges": "未儲存的變更",
-      "untitled": "未命名模式"
+      "untitled": "未命名模式",
+      "summary": {
+        "engine": {
+          "local": "本機",
+          "deepgram_nova_3": "Deepgram",
+          "eleven_labs_scribe_v2": "ElevenLabs"
+        },
+        "modelInherited": "全域模型",
+        "languageAuto": "自動",
+        "delivery": {
+          "ctrl_v": "貼上",
+          "direct": "直接輸入",
+          "none": "不輸出",
+          "shift_insert": "Shift+Insert",
+          "ctrl_shift_v": "貼上純文字",
+          "external_script": "腳本"
+        }
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -1885,7 +1925,14 @@
     "transcriptionFailedTitle": "無法轉錄",
     "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
     "commandNoSelection": "當時沒有選取任何內容。選取你要修改的文字，然後按住命令快速鍵，說出要做什麼。",
-    "commandRewriteUnavailable": "改寫沒有回傳任何內容，所選文字保持原樣。請在「設定 > AI」中檢查改寫模型後重試。"
+    "commandRewriteUnavailable": "改寫沒有回傳任何內容，所選文字保持原樣。請在「設定 > AI」中檢查改寫模型後重試。",
+    "noModelSelectedTitle": "未選擇模型",
+    "noSpeechSaveFailedTitle": "樣本未儲存",
+    "captureOverrunTitle": "錄音超出上限",
+    "cloudUnavailableTitle": "雲端不可用",
+    "cloudTranscriptionHeldTitle": "雲端執行已保留",
+    "commandNoSelectionTitle": "未選取內容",
+    "commandRewriteUnavailableTitle": "改寫不可用"
   },
   "appLanguage": {
     "title": "應用程式語言",
@@ -1901,10 +1948,17 @@
     }
   },
   "overlay": {
-    "transcribing": "正在轉錄...",
-    "processing": "處理中...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model",
+    "engineFallbackShort": "本機回退",
+    "inputLevel": "輸入電平",
+    "stopHint": "按 {{keys}} 停止",
+    "state": {
+      "starting": "正在啟動",
+      "listening": "正在聆聽",
+      "transcribing": "正在轉錄",
+      "processing": "處理中",
+      "failed": "失敗"
+    },
     "hud": {
       "idle": "就緒",
       "toggle": "以 {{mode}} 開始口述",
@@ -2488,27 +2542,23 @@
       "title": "Recent activity",
       "history": "Transcription",
       "meeting": "Meeting",
-      "emptyDescription": "你聽寫或錄製會議後，保留的擷取會立即顯示在這裡。",
-      "emptyTitle": "最近沒有內容",
-      "error": "目前無法載入最近的擷取。",
-      "viewAll": "查看全部"
+      "viewAll": "查看全部",
+      "words": "{{count}} 字詞",
+      "emptyRange": "最近 30 天沒有口述或會議。",
+      "failedCommand": "{{command}} 失敗",
+      "failedCommandWithDetail": "{{command}} 失敗：{{detail}}"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
-      "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "模式：{{name}}",
       "setShortcut": "在「設定」中設定聽寫快捷鍵，即可從任何 App 擷取。",
       "setShortcutAction": "設定一個快速鍵",
       "shortcutAction": "修改口述快速鍵",
-      "holdHint": "輕按切換，長按說話",
-      "facts": {
-        "mode": "模式",
-        "model": "模型",
-        "engine": "引擎"
-      }
+      "gestureTapHold": "輕按切換，長按說話，任何應用程式都可用。",
+      "gestureTapOnly": "輕按切換，任何應用程式都可用。"
     },
     "actions": {
       "dictate": "Dictate",
@@ -2548,6 +2598,23 @@
       "failed": "無法檢查更新。",
       "failedWithReason": "無法檢查更新：{{reason}}",
       "view": "查看版本資訊"
+    },
+    "instrument": {
+      "label": "錄音儀表板",
+      "engine": "引擎",
+      "input": "輸入",
+      "shortcut": "快速鍵",
+      "mode": "模式",
+      "loaded": "已載入",
+      "unloaded": "未載入",
+      "notMeasured": "未量測",
+      "unbound": "未設定",
+      "gestureTapHold": "輕按 · 長按",
+      "gestureTap": "輕按",
+      "channel": "ch {{channel}}",
+      "channels": "{{count}} ch",
+      "rate": "{{kilohertz}} kHz",
+      "systemDefault": "系統預設"
     }
   },
   "cloudSync": {

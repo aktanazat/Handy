@@ -237,7 +237,15 @@
       },
       "appearance": {
         "description": "인터페이스 언어와 색상 테마입니다. 둘 다 즉시 적용됩니다.",
-        "title": "모양"
+        "title": "모양",
+        "material": {
+          "title": "머티리얼",
+          "description": "솔리드는 Sona 자체 표면을 그립니다. 글래스는 상단 바, 명령 팔레트, 녹음 HUD를 통해 데스크톱이 비치게 합니다.",
+          "options": {
+            "solid": "솔리드",
+            "glass": "글래스"
+          }
+        }
       },
       "description": "누르는 키, Sona가 듣는 마이크, 앱의 모양을 설정합니다.",
       "commandMode": {
@@ -731,7 +739,6 @@
         "unavailable": "사용 통계를 사용할 수 없습니다.",
         "entries": "녹음",
         "duration": "녹음 시간",
-        "durationValue": "{{hours}}시간 {{minutes}}분",
         "words": "단어",
         "source": {
           "microphone": "마이크",
@@ -774,8 +781,6 @@
         "durationLabel": "Duration",
         "words": "{{count}} words",
         "wordsLabel": "Words",
-        "mode": "Mode: {{mode}}",
-        "revision": "Revision {{revision}}",
         "engine": {
           "local": "Local",
           "cloud": "Cloud",
@@ -836,6 +841,17 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "modeLabel": "모드",
+        "revisionLabel": "리비전",
+        "engineLabel": "엔진",
+        "sourceLabel": "소스",
+        "captureStatusLabel": "녹음",
+        "completedLabel": "완료",
+        "captureStatus": {
+          "complete": "완전",
+          "truncated": "중간에 끊김",
+          "no_speech_detected": "음성이 감지되지 않음"
         },
         "columns": {
           "source": "소스",
@@ -914,6 +930,14 @@
       "results": "일치 {{count}}건",
       "resultsMore": "일치 {{count}}+건",
       "resultsNone": "일치 없음",
+      "moreActions": "추가 작업",
+      "expandEntry": "항목 전체 보기",
+      "collapseEntry": "항목 전체 숨기기",
+      "derivedFromId": "#{{id}} 에서",
+      "level": {
+        "peak": "peak",
+        "rms": "rms"
+      },
       "processAgain": {
         "action": "다시 처리",
         "title": "다시 처리",
@@ -922,8 +946,7 @@
         "confirm": "처리",
         "started": "재처리를 시작했습니다",
         "modeLabel": "모드"
-      },
-      "derivedFrom": "이전 녹음에서"
+      }
     },
     "debug": {
       "title": "디버그",
@@ -1449,7 +1472,24 @@
       "listEmpty": "구성된 모드가 없습니다.",
       "listEmptyHint": "Sona는 항상 모드 하나를 유지합니다. 새로 고침해 현재 목록을 가져오세요.",
       "unsavedChanges": "저장되지 않은 변경 사항",
-      "untitled": "제목 없는 모드"
+      "untitled": "제목 없는 모드",
+      "summary": {
+        "engine": {
+          "local": "로컬",
+          "deepgram_nova_3": "Deepgram",
+          "eleven_labs_scribe_v2": "ElevenLabs"
+        },
+        "modelInherited": "전역 모델",
+        "languageAuto": "자동",
+        "delivery": {
+          "ctrl_v": "붙여넣기",
+          "direct": "직접 입력",
+          "none": "전달 없음",
+          "shift_insert": "Shift+Insert",
+          "ctrl_shift_v": "서식 없이 붙여넣기",
+          "external_script": "스크립트"
+        }
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -1885,7 +1925,14 @@
     "transcriptionFailedTitle": "기록할 수 없습니다",
     "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
     "commandNoSelection": "아무것도 선택되지 않았습니다. 바꾸고 싶은 텍스트를 선택한 다음, 명령 단축키를 누른 채로 무엇을 할지 말하세요.",
-    "commandRewriteUnavailable": "다시 쓰기가 아무것도 돌려주지 않아 선택 영역은 그대로 남았습니다. 설정 > AI에서 다시 쓰기 모델을 확인하고 다시 시도하세요."
+    "commandRewriteUnavailable": "다시 쓰기가 아무것도 돌려주지 않아 선택 영역은 그대로 남았습니다. 설정 > AI에서 다시 쓰기 모델을 확인하고 다시 시도하세요.",
+    "noModelSelectedTitle": "선택된 모델 없음",
+    "noSpeechSaveFailedTitle": "샘플 저장 실패",
+    "captureOverrunTitle": "녹음 용량 초과",
+    "cloudUnavailableTitle": "클라우드 사용 불가",
+    "cloudTranscriptionHeldTitle": "클라우드 실행 보류",
+    "commandNoSelectionTitle": "선택된 항목 없음",
+    "commandRewriteUnavailableTitle": "다시 쓰기 사용 불가"
   },
   "appLanguage": {
     "title": "애플리케이션 언어",
@@ -1901,10 +1948,17 @@
     }
   },
   "overlay": {
-    "transcribing": "텍스트로 변환 중...",
-    "processing": "처리 중...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model",
+    "engineFallbackShort": "로컬 대체",
+    "inputLevel": "입력 레벨",
+    "stopHint": "{{keys}} 를 눌러 중지",
+    "state": {
+      "starting": "시작 중",
+      "listening": "듣는 중",
+      "transcribing": "변환 중",
+      "processing": "처리 중",
+      "failed": "실패"
+    },
     "hud": {
       "idle": "준비됨",
       "toggle": "{{mode}}에서 받아쓰기 시작",
@@ -2488,27 +2542,23 @@
       "title": "Recent activity",
       "history": "Transcription",
       "meeting": "Meeting",
-      "emptyDescription": "받아쓰기하거나 회의를 녹음하면 보존된 캡처가 여기에 표시됩니다.",
-      "emptyTitle": "최근 항목 없음",
-      "error": "지금은 최근 캡처를 불러올 수 없습니다.",
-      "viewAll": "모두 보기"
+      "viewAll": "모두 보기",
+      "words": "{{count}} 단어",
+      "emptyRange": "지난 30일 동안 구술이나 회의가 없습니다.",
+      "failedCommand": "{{command}} 실패",
+      "failedCommandWithDetail": "{{command}} 실패: {{detail}}"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
-      "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "모드: {{name}}",
       "setShortcut": "설정에서 받아쓰기 단축키를 지정하면 어느 앱에서든 캡처할 수 있습니다.",
       "setShortcutAction": "단축키 설정",
       "shortcutAction": "받아쓰기 단축키 변경",
-      "holdHint": "눌러서 전환, 누른 채로 말하기",
-      "facts": {
-        "mode": "모드",
-        "model": "모델",
-        "engine": "엔진"
-      }
+      "gestureTapHold": "눌러서 전환, 누른 채로 말하기. 어디서나 됩니다.",
+      "gestureTapOnly": "눌러서 전환. 어디서나 됩니다."
     },
     "actions": {
       "dictate": "Dictate",
@@ -2548,6 +2598,23 @@
       "failed": "업데이트를 확인할 수 없습니다.",
       "failedWithReason": "업데이트를 확인할 수 없습니다: {{reason}}",
       "view": "릴리스 보기"
+    },
+    "instrument": {
+      "label": "녹음 계측 패널",
+      "engine": "엔진",
+      "input": "입력",
+      "shortcut": "단축키",
+      "mode": "모드",
+      "loaded": "로드됨",
+      "unloaded": "로드되지 않음",
+      "notMeasured": "측정되지 않음",
+      "unbound": "설정 안 됨",
+      "gestureTapHold": "탭 · 길게",
+      "gestureTap": "탭",
+      "channel": "ch {{channel}}",
+      "channels": "{{count}} ch",
+      "rate": "{{kilohertz}} kHz",
+      "systemDefault": "시스템 기본값"
     }
   },
   "cloudSync": {

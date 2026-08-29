@@ -237,7 +237,15 @@
       },
       "appearance": {
         "description": "Език на интерфейса и цветова схема. И двете се прилагат веднага.",
-        "title": "Външен вид"
+        "title": "Външен вид",
+        "material": {
+          "title": "Материал",
+          "description": "„Плътен“ рисува собствените повърхности на Sona. „Стъкло“ пропуска работния плот през горната лента, командната палитра и HUD на записа.",
+          "options": {
+            "solid": "Плътен",
+            "glass": "Стъкло"
+          }
+        }
       },
       "description": "Клавишите, които натискате, микрофонът, който Sona слуша, и как изглежда приложението.",
       "commandMode": {
@@ -731,7 +739,6 @@
         "unavailable": "Статистиката за използването не е налична.",
         "entries": "записа",
         "duration": "време за запис",
-        "durationValue": "{{hours}} ч {{minutes}} мин",
         "words": "думи",
         "source": {
           "microphone": "Микрофон",
@@ -774,8 +781,6 @@
         "durationLabel": "Duration",
         "words": "{{count}} words",
         "wordsLabel": "Words",
-        "mode": "Mode: {{mode}}",
-        "revision": "Revision {{revision}}",
         "engine": {
           "local": "Local",
           "cloud": "Cloud",
@@ -836,6 +841,17 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "modeLabel": "Режим",
+        "revisionLabel": "Ревизия",
+        "engineLabel": "Двигател",
+        "sourceLabel": "Източник",
+        "captureStatusLabel": "Запис",
+        "completedLabel": "Завършено",
+        "captureStatus": {
+          "complete": "Пълен",
+          "truncated": "Отрязан",
+          "no_speech_detected": "Не е открита реч"
         },
         "columns": {
           "source": "Източник",
@@ -914,6 +930,14 @@
       "results": "{{count}} съвпадения",
       "resultsMore": "{{count}}+ съвпадения",
       "resultsNone": "Няма съвпадения",
+      "moreActions": "Още действия",
+      "expandEntry": "Показване на целия запис",
+      "collapseEntry": "Скриване на целия запис",
+      "derivedFromId": "от #{{id}}",
+      "level": {
+        "peak": "peak",
+        "rms": "rms"
+      },
       "processAgain": {
         "action": "Обработи отново",
         "title": "Обработи отново",
@@ -922,8 +946,7 @@
         "confirm": "Обработи",
         "started": "Повторната обработка започна",
         "modeLabel": "Режим"
-      },
-      "derivedFrom": "От по-ранен запис"
+      }
     },
     "debug": {
       "title": "Отстраняване",
@@ -1449,7 +1472,24 @@
       "listEmpty": "Няма конфигурирани режими.",
       "listEmptyHint": "Sona винаги пази поне един режим. Презаредете, за да получите текущия списък.",
       "unsavedChanges": "Незапазени промени",
-      "untitled": "Режим без име"
+      "untitled": "Режим без име",
+      "summary": {
+        "engine": {
+          "local": "Локален",
+          "deepgram_nova_3": "Deepgram",
+          "eleven_labs_scribe_v2": "ElevenLabs"
+        },
+        "modelInherited": "Общ модел",
+        "languageAuto": "Авто",
+        "delivery": {
+          "ctrl_v": "Поставяне",
+          "direct": "Въвеждане",
+          "none": "Без доставяне",
+          "shift_insert": "Shift+Insert",
+          "ctrl_shift_v": "Поставяне без формат",
+          "external_script": "Скрипт"
+        }
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -1885,7 +1925,14 @@
     "transcriptionFailedTitle": "Преписът не бе възможен",
     "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
     "commandNoSelection": "Нищо не беше избрано. Изберете текста, който искате да промените, после задръжте прекия път за команда и кажете какво да се направи.",
-    "commandRewriteUnavailable": "Преписването не върна нищо, така че избраното остана каквото беше. Проверете модела за преписване в „Настройки > ИИ“ и опитайте отново."
+    "commandRewriteUnavailable": "Преписването не върна нищо, така че избраното остана каквото беше. Проверете модела за преписване в „Настройки > ИИ“ и опитайте отново.",
+    "noModelSelectedTitle": "Няма избран модел",
+    "noSpeechSaveFailedTitle": "Извадката не е запазена",
+    "captureOverrunTitle": "Препълване на записа",
+    "cloudUnavailableTitle": "Облакът е недостъпен",
+    "cloudTranscriptionHeldTitle": "Облачното изпълнение е задържано",
+    "commandNoSelectionTitle": "Няма избрано",
+    "commandRewriteUnavailableTitle": "Пренаписването е недостъпно"
   },
   "appLanguage": {
     "title": "Език на приложението",
@@ -1901,10 +1948,17 @@
     }
   },
   "overlay": {
-    "transcribing": "Транскрибиране...",
-    "processing": "Обработка...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model",
+    "engineFallbackShort": "Локален резерв",
+    "inputLevel": "Ниво на входа",
+    "stopHint": "Натиснете {{keys}} за спиране",
+    "state": {
+      "starting": "Стартира",
+      "listening": "Слуша",
+      "transcribing": "Транскрибиране",
+      "processing": "Обработка",
+      "failed": "Неуспешно"
+    },
     "hud": {
       "idle": "Готово",
       "toggle": "Започни диктовка в режим {{mode}}",
@@ -2488,27 +2542,23 @@
       "title": "Recent activity",
       "history": "Transcription",
       "meeting": "Meeting",
-      "emptyDescription": "Съхранените записи се появяват тук веднага щом продиктувате или запишете среща.",
-      "emptyTitle": "Няма нищо скорошно",
-      "error": "Последните записи не можаха да бъдат заредени в момента.",
-      "viewAll": "Виж всички"
+      "viewAll": "Виж всички",
+      "words": "{{count}} думи",
+      "emptyRange": "Няма диктовки или срещи през последните 30 дни.",
+      "failedCommand": "{{command}} се провали",
+      "failedCommandWithDetail": "{{command}} се провали: {{detail}}"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
-      "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Режим: {{name}}",
       "setShortcut": "Задайте пряк път за диктовка в Settings, за да записвате от всяко приложение.",
       "setShortcutAction": "Задай пряк път",
       "shortcutAction": "Смени прекия път за диктовка",
-      "holdHint": "Докоснете за превключване, задръжте, за да говорите",
-      "facts": {
-        "mode": "Режим",
-        "model": "Модел",
-        "engine": "Двигател"
-      }
+      "gestureTapHold": "Докоснете за превключване, задръжте, за да говорите — отвсякъде.",
+      "gestureTapOnly": "Докоснете за превключване — отвсякъде."
     },
     "actions": {
       "dictate": "Dictate",
@@ -2548,6 +2598,23 @@
       "failed": "Проверката за обновления не успя.",
       "failedWithReason": "Проверката за обновления не успя: {{reason}}",
       "view": "Виж изданието"
+    },
+    "instrument": {
+      "label": "Уреди на записа",
+      "engine": "Двигател",
+      "input": "Вход",
+      "shortcut": "Пряк път",
+      "mode": "Режим",
+      "loaded": "заредено",
+      "unloaded": "незаредено",
+      "notMeasured": "не е измерено",
+      "unbound": "не е зададен",
+      "gestureTapHold": "докосване · задържане",
+      "gestureTap": "докосване",
+      "channel": "ch {{channel}}",
+      "channels": "{{count}} ch",
+      "rate": "{{kilohertz}} kHz",
+      "systemDefault": "Системно по подразбиране"
     }
   },
   "cloudSync": {

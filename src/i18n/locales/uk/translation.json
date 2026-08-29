@@ -237,7 +237,15 @@
       },
       "appearance": {
         "description": "Мова інтерфейсу та колірна схема. Обидві застосовуються негайно.",
-        "title": "Вигляд"
+        "title": "Вигляд",
+        "material": {
+          "title": "Матеріал",
+          "description": "«Щільний» малює власні поверхні Sona. «Скло» пропускає робочий стіл крізь верхню панель, палітру команд і HUD запису.",
+          "options": {
+            "solid": "Щільний",
+            "glass": "Скло"
+          }
+        }
       },
       "description": "Клавіші, які ви натискаєте, мікрофон, який слухає Sona, і вигляд програми.",
       "commandMode": {
@@ -731,7 +739,6 @@
         "unavailable": "Статистика використання недоступна.",
         "entries": "записів",
         "duration": "час запису",
-        "durationValue": "{{hours}} год {{minutes}} хв",
         "words": "слів",
         "source": {
           "microphone": "Мікрофон",
@@ -774,8 +781,6 @@
         "durationLabel": "Duration",
         "words": "{{count}} words",
         "wordsLabel": "Words",
-        "mode": "Mode: {{mode}}",
-        "revision": "Revision {{revision}}",
         "engine": {
           "local": "Local",
           "cloud": "Cloud",
@@ -836,6 +841,17 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "modeLabel": "Режим",
+        "revisionLabel": "Ревізія",
+        "engineLabel": "Рушій",
+        "sourceLabel": "Джерело",
+        "captureStatusLabel": "Запис",
+        "completedLabel": "Завершено",
+        "captureStatus": {
+          "complete": "Повна",
+          "truncated": "Обрізана",
+          "no_speech_detected": "Мовлення не виявлено"
         },
         "columns": {
           "source": "Джерело",
@@ -914,6 +930,14 @@
       "results": "Збігів: {{count}}",
       "resultsMore": "Збігів: {{count}}+",
       "resultsNone": "Немає збігів",
+      "moreActions": "Інші дії",
+      "expandEntry": "Показати запис повністю",
+      "collapseEntry": "Сховати запис повністю",
+      "derivedFromId": "з #{{id}}",
+      "level": {
+        "peak": "peak",
+        "rms": "rms"
+      },
       "processAgain": {
         "action": "Обробити знову",
         "title": "Обробити знову",
@@ -922,8 +946,7 @@
         "confirm": "Обробити",
         "started": "Повторну обробку розпочато",
         "modeLabel": "Режим"
-      },
-      "derivedFrom": "З попереднього запису"
+      }
     },
     "debug": {
       "title": "Дебаг",
@@ -1449,7 +1472,24 @@
       "listEmpty": "Жодного режиму не налаштовано.",
       "listEmptyHint": "Sona завжди зберігає один режим. Перезавантажте, щоб отримати поточний список.",
       "unsavedChanges": "Незбережені зміни",
-      "untitled": "Режим без назви"
+      "untitled": "Режим без назви",
+      "summary": {
+        "engine": {
+          "local": "Локальний",
+          "deepgram_nova_3": "Deepgram",
+          "eleven_labs_scribe_v2": "ElevenLabs"
+        },
+        "modelInherited": "Загальна модель",
+        "languageAuto": "Авто",
+        "delivery": {
+          "ctrl_v": "Вставка",
+          "direct": "Набір",
+          "none": "Без виведення",
+          "shift_insert": "Shift+Insert",
+          "ctrl_shift_v": "Вставка без формату",
+          "external_script": "Скрипт"
+        }
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -1885,7 +1925,14 @@
     "transcriptionFailedTitle": "Не вдалося розшифрувати",
     "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
     "commandNoSelection": "Нічого не було виділено. Виділіть текст, який хочете змінити, тоді утримуйте скорочення для команди й скажіть, що зробити.",
-    "commandRewriteUnavailable": "Переписування нічого не повернуло, тож виділення залишилося як було. Перевірте модель переписування в «Налаштування > ШІ» і спробуйте ще раз."
+    "commandRewriteUnavailable": "Переписування нічого не повернуло, тож виділення залишилося як було. Перевірте модель переписування в «Налаштування > ШІ» і спробуйте ще раз.",
+    "noModelSelectedTitle": "Модель не вибрано",
+    "noSpeechSaveFailedTitle": "Зразок не збережено",
+    "captureOverrunTitle": "Переповнення запису",
+    "cloudUnavailableTitle": "Хмара недоступна",
+    "cloudTranscriptionHeldTitle": "Облачний запуск затримано",
+    "commandNoSelectionTitle": "Нічого не вибрано",
+    "commandRewriteUnavailableTitle": "Перезапис недоступний"
   },
   "appLanguage": {
     "title": "Мова інтерфейсу",
@@ -1901,10 +1948,17 @@
     }
   },
   "overlay": {
-    "transcribing": "Обробка...",
-    "processing": "Постобробка...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model",
+    "engineFallbackShort": "Локальний резерв",
+    "inputLevel": "Рівень входу",
+    "stopHint": "Натисніть {{keys}}, щоб зупинити",
+    "state": {
+      "starting": "Запуск",
+      "listening": "Слухає",
+      "transcribing": "Обробка",
+      "processing": "Постобробка",
+      "failed": "Збій"
+    },
     "hud": {
       "idle": "Готово",
       "toggle": "Почати диктування в режимі {{mode}}",
@@ -2488,27 +2542,23 @@
       "title": "Recent activity",
       "history": "Transcription",
       "meeting": "Meeting",
-      "emptyDescription": "Збережені записи з'являться тут, щойно ви продиктуєте щось або запишете зустріч.",
-      "emptyTitle": "Немає нещодавніх",
-      "error": "Не вдалося завантажити нещодавні записи.",
-      "viewAll": "Переглянути всі"
+      "viewAll": "Переглянути всі",
+      "words": "{{count}} слів",
+      "emptyRange": "За останні 30 днів немає диктувань і зустрічей.",
+      "failedCommand": "{{command}} завершився збоєм",
+      "failedCommandWithDetail": "{{command}} завершився збоєм: {{detail}}"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
-      "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Режим: {{name}}",
       "setShortcut": "Задайте комбінацію диктування в Параметрах, щоб записувати з будь-якої програми.",
       "setShortcutAction": "Задати скорочення",
       "shortcutAction": "Змінити скорочення для диктування",
-      "holdHint": "Торкніться, щоб перемкнути, утримуйте, щоб говорити",
-      "facts": {
-        "mode": "Режим",
-        "model": "Модель",
-        "engine": "Рушій"
-      }
+      "gestureTapHold": "Торкніться, щоб перемкнути, утримуйте, щоб говорити — будь-де.",
+      "gestureTapOnly": "Торкніться, щоб перемкнути — будь-де."
     },
     "actions": {
       "dictate": "Dictate",
@@ -2548,6 +2598,23 @@
       "failed": "Не вдалося перевірити оновлення.",
       "failedWithReason": "Не вдалося перевірити оновлення: {{reason}}",
       "view": "Переглянути реліз"
+    },
+    "instrument": {
+      "label": "Прилади запису",
+      "engine": "Рушій",
+      "input": "Вхід",
+      "shortcut": "Скорочення",
+      "mode": "Режим",
+      "loaded": "завантажено",
+      "unloaded": "не завантажено",
+      "notMeasured": "не виміряно",
+      "unbound": "не задано",
+      "gestureTapHold": "дотик · утримання",
+      "gestureTap": "дотик",
+      "channel": "ch {{channel}}",
+      "channels": "{{count}} ch",
+      "rate": "{{kilohertz}} kHz",
+      "systemDefault": "Системний типовий"
     }
   },
   "cloudSync": {

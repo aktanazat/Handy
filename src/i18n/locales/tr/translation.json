@@ -335,7 +335,15 @@
       },
       "appearance": {
         "description": "Arayüz dili ve renk şeması. İkisi de hemen uygulanır.",
-        "title": "Görünüm"
+        "title": "Görünüm",
+        "material": {
+          "title": "Malzeme",
+          "description": "Katı, Sona'nın kendi yüzeylerini boyar. Cam, masaüstünün üst çubuk, komut paleti ve kayıt HUD'undan görünmesini sağlar.",
+          "options": {
+            "solid": "Katı",
+            "glass": "Cam"
+          }
+        }
       },
       "description": "Bastığınız tuşlar, Sona'nın dinlediği mikrofon ve uygulamanın görünümü.",
       "commandMode": {
@@ -731,7 +739,6 @@
         "unavailable": "Kullanım istatistikleri kullanılamıyor.",
         "entries": "kayıt",
         "duration": "kayıt süresi",
-        "durationValue": "{{hours}} sa {{minutes}} dk",
         "words": "sözcük",
         "source": {
           "microphone": "Mikrofon",
@@ -774,8 +781,6 @@
         "durationLabel": "Duration",
         "words": "{{count}} words",
         "wordsLabel": "Words",
-        "mode": "Mode: {{mode}}",
-        "revision": "Revision {{revision}}",
         "engine": {
           "local": "Local",
           "cloud": "Cloud",
@@ -836,6 +841,17 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "modeLabel": "Kip",
+        "revisionLabel": "Revizyon",
+        "engineLabel": "Motor",
+        "sourceLabel": "Kaynak",
+        "captureStatusLabel": "Kayıt",
+        "completedLabel": "Tamamlandı",
+        "captureStatus": {
+          "complete": "Tam",
+          "truncated": "Kesildi",
+          "no_speech_detected": "Konuşma algılanmadı"
         },
         "columns": {
           "source": "Kaynak",
@@ -914,6 +930,14 @@
       "results": "{{count}} eşleşme",
       "resultsMore": "{{count}}+ eşleşme",
       "resultsNone": "Eşleşme yok",
+      "moreActions": "Diğer eylemler",
+      "expandEntry": "Kaydın tamamını göster",
+      "collapseEntry": "Kaydın tamamını gizle",
+      "derivedFromId": "#{{id}} kaydından",
+      "level": {
+        "peak": "peak",
+        "rms": "rms"
+      },
       "processAgain": {
         "action": "Yeniden işle",
         "title": "Yeniden işle",
@@ -922,8 +946,7 @@
         "confirm": "İşle",
         "started": "Yeniden işleme başladı",
         "modeLabel": "Kip"
-      },
-      "derivedFrom": "Daha eski bir kayıttan"
+      }
     },
     "debug": {
       "title": "Hata Ayıklama",
@@ -1449,7 +1472,24 @@
       "listEmpty": "Yapılandırılmış mod yok.",
       "listEmptyHint": "Sona her zaman bir mod tutar. Geçerli listeyi almak için yeniden yükleyin.",
       "unsavedChanges": "Kaydedilmemiş değişiklikler",
-      "untitled": "Adsız mod"
+      "untitled": "Adsız mod",
+      "summary": {
+        "engine": {
+          "local": "Yerel",
+          "deepgram_nova_3": "Deepgram",
+          "eleven_labs_scribe_v2": "ElevenLabs"
+        },
+        "modelInherited": "Genel model",
+        "languageAuto": "Oto",
+        "delivery": {
+          "ctrl_v": "Yapıştır",
+          "direct": "Yaz",
+          "none": "Teslim yok",
+          "shift_insert": "Shift+Insert",
+          "ctrl_shift_v": "Biçimsiz yapıştır",
+          "external_script": "Betik"
+        }
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -1885,7 +1925,14 @@
     "transcriptionFailedTitle": "Dökümlenemedi",
     "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
     "commandNoSelection": "Hiçbir şey seçilmemişti. Değiştirmek istediğiniz metni seçin, sonra komut kısayolunu basılı tutup ne yapılacağını söyleyin.",
-    "commandRewriteUnavailable": "Yeniden yazım hiçbir şey döndürmedi, seçiminiz olduğu gibi kaldı. Ayarlar > YZ altındaki yeniden yazım modelini denetleyip yeniden deneyin."
+    "commandRewriteUnavailable": "Yeniden yazım hiçbir şey döndürmedi, seçiminiz olduğu gibi kaldı. Ayarlar > YZ altındaki yeniden yazım modelini denetleyip yeniden deneyin.",
+    "noModelSelectedTitle": "Model seçilmedi",
+    "noSpeechSaveFailedTitle": "Örnek kaydedilmedi",
+    "captureOverrunTitle": "Kayıt taştı",
+    "cloudUnavailableTitle": "Bulut kullanılamıyor",
+    "cloudTranscriptionHeldTitle": "Bulut çalışması tutuldu",
+    "commandNoSelectionTitle": "Hiçbir şey seçili değil",
+    "commandRewriteUnavailableTitle": "Yeniden yazma kullanılamıyor"
   },
   "appLanguage": {
     "title": "Uygulama Dili",
@@ -1901,10 +1948,17 @@
     }
   },
   "overlay": {
-    "transcribing": "Transkribe ediliyor...",
-    "processing": "İşleniyor...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model",
+    "engineFallbackShort": "Yerel yedek",
+    "inputLevel": "Giriş düzeyi",
+    "stopHint": "Durdurmak için {{keys}} tuşlarına basın",
+    "state": {
+      "starting": "Başlatılıyor",
+      "listening": "Dinliyor",
+      "transcribing": "Transkribe ediliyor",
+      "processing": "İşleniyor",
+      "failed": "Başarısız"
+    },
     "hud": {
       "idle": "Hazır",
       "toggle": "{{mode}} kipinde dikteyi başlat",
@@ -2488,27 +2542,23 @@
       "title": "Recent activity",
       "history": "Transcription",
       "meeting": "Meeting",
-      "emptyDescription": "Saklanan kayıtlar, dikte yaptığınız veya bir toplantı kaydettiğiniz anda burada görünür.",
-      "emptyTitle": "Yakın zamanda bir şey yok",
-      "error": "Son kayıtlar şu anda yüklenemedi.",
-      "viewAll": "Tümünü gör"
+      "viewAll": "Tümünü gör",
+      "words": "{{count}} sözcük",
+      "emptyRange": "Son 30 günde dikte veya toplantı yok.",
+      "failedCommand": "{{command}} başarısız oldu",
+      "failedCommandWithDetail": "{{command}} başarısız oldu: {{detail}}"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
-      "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Mod: {{name}}",
       "setShortcut": "Her uygulamadan kayıt yapmak için Settings'te bir dikte kısayolu ayarlayın.",
       "setShortcutAction": "Bir kısayol ayarla",
       "shortcutAction": "Dikte kısayolunu değiştir",
-      "holdHint": "Değiştirmek için dokunun, konuşmak için basılı tutun",
-      "facts": {
-        "mode": "Kip",
-        "model": "Model",
-        "engine": "Motor"
-      }
+      "gestureTapHold": "Değiştirmek için dokunun, konuşmak için basılı tutun — her yerde.",
+      "gestureTapOnly": "Değiştirmek için dokunun — her yerde."
     },
     "actions": {
       "dictate": "Dictate",
@@ -2548,6 +2598,23 @@
       "failed": "Güncellemeler denetlenemedi.",
       "failedWithReason": "Güncellemeler denetlenemedi: {{reason}}",
       "view": "Sürümü görüntüle"
+    },
+    "instrument": {
+      "label": "Kayıt göstergeleri",
+      "engine": "Motor",
+      "input": "Giriş",
+      "shortcut": "Kısayol",
+      "mode": "Kip",
+      "loaded": "yüklendi",
+      "unloaded": "yüklenmedi",
+      "notMeasured": "ölçülmedi",
+      "unbound": "atanmadı",
+      "gestureTapHold": "dokunma · basılı tutma",
+      "gestureTap": "dokunma",
+      "channel": "ch {{channel}}",
+      "channels": "{{count}} ch",
+      "rate": "{{kilohertz}} kHz",
+      "systemDefault": "Sistem varsayılanı"
     }
   },
   "cloudSync": {

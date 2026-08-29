@@ -237,7 +237,15 @@
       },
       "appearance": {
         "description": "इंटरफ़ेस भाषा और रंग योजना। दोनों तुरंत लागू होते हैं।",
-        "title": "रूप-रंग"
+        "title": "रूप-रंग",
+        "material": {
+          "title": "मटीरियल",
+          "description": "सॉलिड Sona की अपनी सतहें रंगता है। ग्लास टॉप बार, कमांड पैलेट और रिकॉर्डिंग HUD के पीछे से डेस्कटॉप दिखाता है।",
+          "options": {
+            "solid": "सॉलिड",
+            "glass": "ग्लास"
+          }
+        }
       },
       "description": "आप जो कुंजियाँ दबाते हैं, Sona जिस माइक्रोफ़ोन को सुनता है, और ऐप कैसा दिखता है।",
       "commandMode": {
@@ -731,7 +739,6 @@
         "unavailable": "उपयोग के आंकड़े उपलब्ध नहीं हैं.",
         "entries": "रिकॉर्डिंग",
         "duration": "रिकॉर्डिंग का समय",
-        "durationValue": "{{hours}} घं {{minutes}} मि",
         "words": "शब्द",
         "source": {
           "microphone": "माइक्रोफ़ोन",
@@ -774,8 +781,6 @@
         "durationLabel": "Duration",
         "words": "{{count}} words",
         "wordsLabel": "Words",
-        "mode": "Mode: {{mode}}",
-        "revision": "Revision {{revision}}",
         "engine": {
           "local": "Local",
           "cloud": "Cloud",
@@ -836,6 +841,17 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "modeLabel": "मोड",
+        "revisionLabel": "संशोधन",
+        "engineLabel": "इंजन",
+        "sourceLabel": "स्रोत",
+        "captureStatusLabel": "कैप्चर",
+        "completedLabel": "पूर्ण हुआ",
+        "captureStatus": {
+          "complete": "पूर्ण",
+          "truncated": "कटा हुआ",
+          "no_speech_detected": "कोई वाणी नहीं मिली"
         },
         "columns": {
           "source": "स्रोत",
@@ -914,6 +930,14 @@
       "results": "{{count}} मिलान",
       "resultsMore": "{{count}}+ मिलान",
       "resultsNone": "कोई मिलान नहीं",
+      "moreActions": "अन्य क्रियाएँ",
+      "expandEntry": "पूरी प्रविष्टि दिखाएँ",
+      "collapseEntry": "पूरी प्रविष्टि छिपाएँ",
+      "derivedFromId": "#{{id}} से",
+      "level": {
+        "peak": "peak",
+        "rms": "rms"
+      },
       "processAgain": {
         "action": "दोबारा प्रोसेस करें",
         "title": "दोबारा प्रोसेस करें",
@@ -922,8 +946,7 @@
         "confirm": "प्रोसेस करें",
         "started": "दोबारा प्रोसेसिंग शुरू हुई",
         "modeLabel": "मोड"
-      },
-      "derivedFrom": "पहले की एक रिकॉर्डिंग से"
+      }
     },
     "debug": {
       "title": "डिबग",
@@ -1449,7 +1472,24 @@
       "listEmpty": "कोई मोड कॉन्फ़िगर नहीं है।",
       "listEmptyHint": "Sona हमेशा एक मोड रखता है। वर्तमान सूची लाने के लिए फिर से लोड करें।",
       "unsavedChanges": "बिना सहेजे बदलाव",
-      "untitled": "बिना शीर्षक मोड"
+      "untitled": "बिना शीर्षक मोड",
+      "summary": {
+        "engine": {
+          "local": "स्थानीय",
+          "deepgram_nova_3": "Deepgram",
+          "eleven_labs_scribe_v2": "ElevenLabs"
+        },
+        "modelInherited": "ग्लोबल मॉडल",
+        "languageAuto": "ऑटो",
+        "delivery": {
+          "ctrl_v": "पेस्ट",
+          "direct": "टाइप",
+          "none": "कोई डिलीवरी नहीं",
+          "shift_insert": "Shift+Insert",
+          "ctrl_shift_v": "बिना फ़ॉर्मेट पेस्ट",
+          "external_script": "स्क्रिप्ट"
+        }
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -1888,7 +1928,14 @@
     "transcriptionFailedTitle": "प्रतिलेखन नहीं हो सका",
     "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
     "commandNoSelection": "कुछ भी चुना नहीं गया था। जिस टेक्स्ट को बदलना है उसे चुनें, फिर कमांड शॉर्टकट दबाए रखें और बोलें कि क्या करना है।",
-    "commandRewriteUnavailable": "फिर से लिखने से कुछ नहीं मिला, इसलिए आपका चुना हुआ हिस्सा जैसा था वैसा ही रहा। सेटिंग्स > AI में फिर-से-लिखने वाला मॉडल जाँचें और फिर कोशिश करें।"
+    "commandRewriteUnavailable": "फिर से लिखने से कुछ नहीं मिला, इसलिए आपका चुना हुआ हिस्सा जैसा था वैसा ही रहा। सेटिंग्स > AI में फिर-से-लिखने वाला मॉडल जाँचें और फिर कोशिश करें।",
+    "noModelSelectedTitle": "कोई मॉडल नहीं चुना",
+    "noSpeechSaveFailedTitle": "नमूना सहेजा नहीं गया",
+    "captureOverrunTitle": "कैप्चर सीमा पार",
+    "cloudUnavailableTitle": "क्लाउड अनुपलब्ध",
+    "cloudTranscriptionHeldTitle": "क्लाउड रन रोका गया",
+    "commandNoSelectionTitle": "कुछ चुना नहीं गया",
+    "commandRewriteUnavailableTitle": "पुनर्लेखन अनुपलब्ध"
   },
   "appLanguage": {
     "title": "ऐप्लिकेशन की भाषा",
@@ -1904,10 +1951,17 @@
     }
   },
   "overlay": {
-    "transcribing": "ट्रांसक्राइब हो रहा है...",
-    "processing": "प्रोसेस हो रहा है...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model",
+    "engineFallbackShort": "स्थानीय विकल्प",
+    "inputLevel": "इनपुट स्तर",
+    "stopHint": "रोकने के लिए {{keys}} दबाएँ",
+    "state": {
+      "starting": "शुरू हो रहा है",
+      "listening": "सुन रहा है",
+      "transcribing": "ट्रांसक्राइब हो रहा है",
+      "processing": "प्रोसेस हो रहा है",
+      "failed": "विफल"
+    },
     "hud": {
       "idle": "तैयार",
       "toggle": "{{mode}} में बोलना शुरू करें",
@@ -2488,27 +2542,23 @@
       "title": "Recent activity",
       "history": "Transcription",
       "meeting": "Meeting",
-      "emptyDescription": "जैसे ही आप डिक्टेट करते हैं या मीटिंग रिकॉर्ड करते हैं, रखे गए कैप्चर यहाँ दिखते हैं।",
-      "emptyTitle": "हाल का कुछ नहीं",
-      "error": "हालिया कैप्चर अभी लोड नहीं हो सके।",
-      "viewAll": "सभी देखें"
+      "viewAll": "सभी देखें",
+      "words": "{{count}} शब्द",
+      "emptyRange": "पिछले 30 दिनों में कोई डिक्टेशन या मीटिंग नहीं।",
+      "failedCommand": "{{command}} विफल",
+      "failedCommandWithDetail": "{{command}} विफल: {{detail}}"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
-      "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "मोड: {{name}}",
       "setShortcut": "किसी भी ऐप से कैप्चर करने के लिए Settings में डिक्टेशन शॉर्टकट सेट करें।",
       "setShortcutAction": "एक शॉर्टकट सेट करें",
       "shortcutAction": "बोलने का शॉर्टकट बदलें",
-      "holdHint": "बदलने के लिए दबाएँ, बोलने के लिए दबाए रखें",
-      "facts": {
-        "mode": "मोड",
-        "model": "मॉडल",
-        "engine": "इंजन"
-      }
+      "gestureTapHold": "बदलने के लिए दबाएँ, बोलने के लिए दबाए रखें — कहीं भी।",
+      "gestureTapOnly": "बदलने के लिए दबाएँ — कहीं भी।"
     },
     "actions": {
       "dictate": "Dictate",
@@ -2548,6 +2598,23 @@
       "failed": "अपडेट की जाँच नहीं हो सकी।",
       "failedWithReason": "अपडेट की जाँच नहीं हो सकी: {{reason}}",
       "view": "रिलीज़ देखें"
+    },
+    "instrument": {
+      "label": "कैप्चर उपकरण",
+      "engine": "इंजन",
+      "input": "इनपुट",
+      "shortcut": "शॉर्टकट",
+      "mode": "मोड",
+      "loaded": "लोड है",
+      "unloaded": "लोड नहीं है",
+      "notMeasured": "मापा नहीं गया",
+      "unbound": "सेट नहीं",
+      "gestureTapHold": "टैप · होल्ड",
+      "gestureTap": "टैप",
+      "channel": "ch {{channel}}",
+      "channels": "{{count}} ch",
+      "rate": "{{kilohertz}} kHz",
+      "systemDefault": "सिस्टम डिफ़ॉल्ट"
     }
   },
   "cloudSync": {

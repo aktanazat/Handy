@@ -335,7 +335,15 @@
       },
       "appearance": {
         "description": "界面语言和配色方案。两者都会立即生效。",
-        "title": "外观"
+        "title": "外观",
+        "material": {
+          "title": "材质",
+          "description": "实色绘制 Sona 自身的表面。玻璃让桌面透过顶栏、命令面板和录音 HUD 显示出来。",
+          "options": {
+            "solid": "实色",
+            "glass": "玻璃"
+          }
+        }
       },
       "description": "你按下的按键、Sona 监听的麦克风，以及应用的外观。",
       "commandMode": {
@@ -731,7 +739,6 @@
         "unavailable": "无法获取使用统计信息。",
         "entries": "录音",
         "duration": "录音时长",
-        "durationValue": "{{hours}}小时 {{minutes}}分钟",
         "words": "词",
         "source": {
           "microphone": "麦克风",
@@ -774,8 +781,6 @@
         "durationLabel": "Duration",
         "words": "{{count}} words",
         "wordsLabel": "Words",
-        "mode": "Mode: {{mode}}",
-        "revision": "Revision {{revision}}",
         "engine": {
           "local": "Local",
           "cloud": "Cloud",
@@ -836,6 +841,17 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "modeLabel": "模式",
+        "revisionLabel": "修订号",
+        "engineLabel": "引擎",
+        "sourceLabel": "来源",
+        "captureStatusLabel": "录音",
+        "completedLabel": "完成时间",
+        "captureStatus": {
+          "complete": "完整",
+          "truncated": "被截断",
+          "no_speech_detected": "未检测到语音"
         },
         "columns": {
           "source": "来源",
@@ -914,6 +930,14 @@
       "results": "{{count}} 个匹配",
       "resultsMore": "{{count}}+ 个匹配",
       "resultsNone": "无匹配",
+      "moreActions": "更多操作",
+      "expandEntry": "显示完整条目",
+      "collapseEntry": "隐藏完整条目",
+      "derivedFromId": "来自 #{{id}}",
+      "level": {
+        "peak": "peak",
+        "rms": "rms"
+      },
       "processAgain": {
         "action": "再处理一次",
         "title": "再处理一次",
@@ -922,8 +946,7 @@
         "confirm": "处理",
         "started": "已开始重新处理",
         "modeLabel": "模式"
-      },
-      "derivedFrom": "来自更早的一次录音"
+      }
     },
     "debug": {
       "title": "调试",
@@ -1449,7 +1472,24 @@
       "listEmpty": "尚未配置任何模式。",
       "listEmptyHint": "Sona 始终保留一个模式。重新加载以获取当前列表。",
       "unsavedChanges": "有未保存的更改",
-      "untitled": "未命名模式"
+      "untitled": "未命名模式",
+      "summary": {
+        "engine": {
+          "local": "本地",
+          "deepgram_nova_3": "Deepgram",
+          "eleven_labs_scribe_v2": "ElevenLabs"
+        },
+        "modelInherited": "全局模型",
+        "languageAuto": "自动",
+        "delivery": {
+          "ctrl_v": "粘贴",
+          "direct": "直接输入",
+          "none": "不输出",
+          "shift_insert": "Shift+Insert",
+          "ctrl_shift_v": "粘贴纯文本",
+          "external_script": "脚本"
+        }
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -1885,7 +1925,14 @@
     "transcriptionFailedTitle": "无法转写",
     "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
     "commandNoSelection": "当时没有选中任何内容。选中你要修改的文本，然后按住命令快捷键，说出要做什么。",
-    "commandRewriteUnavailable": "改写没有返回任何内容，所选文本保持原样。请在「设置 > AI」中检查改写模型后重试。"
+    "commandRewriteUnavailable": "改写没有返回任何内容，所选文本保持原样。请在「设置 > AI」中检查改写模型后重试。",
+    "noModelSelectedTitle": "未选择模型",
+    "noSpeechSaveFailedTitle": "样本未保存",
+    "captureOverrunTitle": "录音超出上限",
+    "cloudUnavailableTitle": "云端不可用",
+    "cloudTranscriptionHeldTitle": "云端运行已保留",
+    "commandNoSelectionTitle": "未选中内容",
+    "commandRewriteUnavailableTitle": "改写不可用"
   },
   "appLanguage": {
     "title": "应用语言",
@@ -1901,10 +1948,17 @@
     }
   },
   "overlay": {
-    "transcribing": "正在转录...",
-    "processing": "处理中...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model",
+    "engineFallbackShort": "本地回退",
+    "inputLevel": "输入电平",
+    "stopHint": "按 {{keys}} 停止",
+    "state": {
+      "starting": "正在启动",
+      "listening": "正在聆听",
+      "transcribing": "正在转录",
+      "processing": "处理中",
+      "failed": "失败"
+    },
     "hud": {
       "idle": "就绪",
       "toggle": "以 {{mode}} 开始口述",
@@ -2488,27 +2542,23 @@
       "title": "Recent activity",
       "history": "Transcription",
       "meeting": "Meeting",
-      "emptyDescription": "只要进行听写或录制会议，保留的记录就会显示在这里。",
-      "emptyTitle": "暂无最近记录",
-      "error": "目前无法加载最近的记录。",
-      "viewAll": "查看全部"
+      "viewAll": "查看全部",
+      "words": "{{count}} 词",
+      "emptyRange": "最近 30 天没有口述或会议。",
+      "failedCommand": "{{command}} 失败",
+      "failedCommandWithDetail": "{{command}} 失败：{{detail}}"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
-      "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "模式：{{name}}",
       "setShortcut": "在设置中设定听写快捷键，即可在任意应用中录入。",
       "setShortcutAction": "设置一个快捷键",
       "shortcutAction": "修改口述快捷键",
-      "holdHint": "轻按切换，长按说话",
-      "facts": {
-        "mode": "模式",
-        "model": "模型",
-        "engine": "引擎"
-      }
+      "gestureTapHold": "轻按切换，长按说话，任何应用中都可用。",
+      "gestureTapOnly": "轻按切换，任何应用中都可用。"
     },
     "actions": {
       "dictate": "Dictate",
@@ -2548,6 +2598,23 @@
       "failed": "无法检查更新。",
       "failedWithReason": "无法检查更新：{{reason}}",
       "view": "查看发布"
+    },
+    "instrument": {
+      "label": "录音仪表盘",
+      "engine": "引擎",
+      "input": "输入",
+      "shortcut": "快捷键",
+      "mode": "模式",
+      "loaded": "已加载",
+      "unloaded": "未加载",
+      "notMeasured": "未测量",
+      "unbound": "未设置",
+      "gestureTapHold": "轻按 · 长按",
+      "gestureTap": "轻按",
+      "channel": "ch {{channel}}",
+      "channels": "{{count}} ch",
+      "rate": "{{kilohertz}} kHz",
+      "systemDefault": "系统默认"
     }
   },
   "cloudSync": {

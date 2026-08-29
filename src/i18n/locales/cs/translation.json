@@ -335,7 +335,15 @@
       },
       "appearance": {
         "description": "Jazyk rozhraní a barevné schéma. Obojí se projeví okamžitě.",
-        "title": "Vzhled"
+        "title": "Vzhled",
+        "material": {
+          "title": "Materiál",
+          "description": "Plný vykresluje vlastní plochy Sony. Sklo nechá plochu prosvítat horní lištou, paletou příkazů a HUD nahrávání.",
+          "options": {
+            "solid": "Plný",
+            "glass": "Sklo"
+          }
+        }
       },
       "description": "Klávesy, které stisknete, mikrofon, kterému Sona naslouchá, a vzhled aplikace.",
       "commandMode": {
@@ -731,7 +739,6 @@
         "unavailable": "Statistiky využití nejsou k dispozici.",
         "entries": "nahrávek",
         "duration": "doba nahrávání",
-        "durationValue": "{{hours}} h {{minutes}} min",
         "words": "slov",
         "source": {
           "microphone": "Mikrofon",
@@ -774,8 +781,6 @@
         "durationLabel": "Duration",
         "words": "{{count}} words",
         "wordsLabel": "Words",
-        "mode": "Mode: {{mode}}",
-        "revision": "Revision {{revision}}",
         "engine": {
           "local": "Local",
           "cloud": "Cloud",
@@ -836,6 +841,17 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "modeLabel": "Režim",
+        "revisionLabel": "Revize",
+        "engineLabel": "Engine",
+        "sourceLabel": "Zdroj",
+        "captureStatusLabel": "Záznam",
+        "completedLabel": "Dokončeno",
+        "captureStatus": {
+          "complete": "Úplný",
+          "truncated": "Zkrácený",
+          "no_speech_detected": "Nezjištěna žádná řeč"
         },
         "columns": {
           "source": "Zdroj",
@@ -914,6 +930,14 @@
       "results": "Shod: {{count}}",
       "resultsMore": "Shod: {{count}}+",
       "resultsNone": "Žádné shody",
+      "moreActions": "Další akce",
+      "expandEntry": "Zobrazit celý záznam",
+      "collapseEntry": "Skrýt celý záznam",
+      "derivedFromId": "z #{{id}}",
+      "level": {
+        "peak": "peak",
+        "rms": "rms"
+      },
       "processAgain": {
         "action": "Zpracovat znovu",
         "title": "Zpracovat znovu",
@@ -922,8 +946,7 @@
         "confirm": "Zpracovat",
         "started": "Opakované zpracování spuštěno",
         "modeLabel": "Režim"
-      },
-      "derivedFrom": "Z dřívější nahrávky"
+      }
     },
     "debug": {
       "title": "Ladění",
@@ -1449,7 +1472,24 @@
       "listEmpty": "Nejsou nakonfigurovány žádné režimy.",
       "listEmptyHint": "Sona vždy zachovává jeden režim. Znovu načtěte aktuální seznam.",
       "unsavedChanges": "Neuložené změny",
-      "untitled": "Režim bez názvu"
+      "untitled": "Režim bez názvu",
+      "summary": {
+        "engine": {
+          "local": "Místní",
+          "deepgram_nova_3": "Deepgram",
+          "eleven_labs_scribe_v2": "ElevenLabs"
+        },
+        "modelInherited": "Globální model",
+        "languageAuto": "Auto",
+        "delivery": {
+          "ctrl_v": "Vložit",
+          "direct": "Psát",
+          "none": "Bez doručení",
+          "shift_insert": "Shift+Insert",
+          "ctrl_shift_v": "Vložit bez formátu",
+          "external_script": "Skript"
+        }
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -1885,7 +1925,14 @@
     "transcriptionFailedTitle": "Přepsat se nepodařilo",
     "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
     "commandNoSelection": "Nebylo nic označeno. Označte text, který chcete změnit, pak přidržte zkratku pro příkaz a řekněte, co se má stát.",
-    "commandRewriteUnavailable": "Přepsání nic nevrátilo, takže označený text zůstal, jak byl. Zkontrolujte model pro přepisování v Nastavení > AI a zkuste to znovu."
+    "commandRewriteUnavailable": "Přepsání nic nevrátilo, takže označený text zůstal, jak byl. Zkontrolujte model pro přepisování v Nastavení > AI a zkuste to znovu.",
+    "noModelSelectedTitle": "Není vybrán model",
+    "noSpeechSaveFailedTitle": "Vzorek neuložen",
+    "captureOverrunTitle": "Přetečení záznamu",
+    "cloudUnavailableTitle": "Cloud není dostupný",
+    "cloudTranscriptionHeldTitle": "Cloudový běh pozastaven",
+    "commandNoSelectionTitle": "Nic není vybráno",
+    "commandRewriteUnavailableTitle": "Přepis není dostupný"
   },
   "appLanguage": {
     "title": "Jazyk aplikace",
@@ -1901,10 +1948,17 @@
     }
   },
   "overlay": {
-    "transcribing": "Přepisuji...",
-    "processing": "Zpracovávám...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model",
+    "engineFallbackShort": "Místní záloha",
+    "inputLevel": "Úroveň vstupu",
+    "stopHint": "Zastavíte stisknutím {{keys}}",
+    "state": {
+      "starting": "Startuji",
+      "listening": "Poslouchá",
+      "transcribing": "Přepisuji",
+      "processing": "Zpracovávám",
+      "failed": "Selhalo"
+    },
     "hud": {
       "idle": "Připraveno",
       "toggle": "Spustit diktování v režimu {{mode}}",
@@ -2488,27 +2542,23 @@
       "title": "Recent activity",
       "history": "Transcription",
       "meeting": "Meeting",
-      "emptyDescription": "Uchované záznamy se zde zobrazí, jakmile nadiktujete text nebo nahrajete schůzku.",
-      "emptyTitle": "Nic nedávného",
-      "error": "Nedávné záznamy se nyní nepodařilo načíst.",
-      "viewAll": "Zobrazit vše"
+      "viewAll": "Zobrazit vše",
+      "words": "{{count}} slov",
+      "emptyRange": "Za posledních 30 dní žádné diktáty ani schůzky.",
+      "failedCommand": "{{command}} selhal",
+      "failedCommandWithDetail": "{{command}} selhal: {{detail}}"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
-      "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Režim: {{name}}",
       "setShortcut": "Nastavte zkratku pro diktování v Nastavení a zaznamenávejte z jakékoli aplikace.",
       "setShortcutAction": "Nastavit zkratku",
       "shortcutAction": "Změnit zkratku pro diktování",
-      "holdHint": "Klepnutím přepnete, přidržením mluvíte",
-      "facts": {
-        "mode": "Režim",
-        "model": "Model",
-        "engine": "Engine"
-      }
+      "gestureTapHold": "Klepnutím přepnete, přidržením mluvíte, odkudkoli.",
+      "gestureTapOnly": "Klepnutím přepnete, odkudkoli."
     },
     "actions": {
       "dictate": "Dictate",
@@ -2548,6 +2598,23 @@
       "failed": "Nepodařilo se zkontrolovat aktualizace.",
       "failedWithReason": "Nepodařilo se zkontrolovat aktualizace: {{reason}}",
       "view": "Zobrazit vydání"
+    },
+    "instrument": {
+      "label": "Přístroje záznamu",
+      "engine": "Engine",
+      "input": "Vstup",
+      "shortcut": "Zkratka",
+      "mode": "Režim",
+      "loaded": "načteno",
+      "unloaded": "nenačteno",
+      "notMeasured": "neměřeno",
+      "unbound": "nenastaveno",
+      "gestureTapHold": "klepnutí · přidržení",
+      "gestureTap": "klepnutí",
+      "channel": "ch {{channel}}",
+      "channels": "{{count}} ch",
+      "rate": "{{kilohertz}} kHz",
+      "systemDefault": "Systémové výchozí"
     }
   },
   "cloudSync": {

@@ -335,7 +335,15 @@
       },
       "appearance": {
         "description": "Язык интерфейса и цветовая схема. Оба применяются сразу.",
-        "title": "Внешний вид"
+        "title": "Внешний вид",
+        "material": {
+          "title": "Материал",
+          "description": "«Плотный» рисует собственные поверхности Sona. «Стекло» пропускает рабочий стол через верхнюю панель, палитру команд и HUD записи.",
+          "options": {
+            "solid": "Плотный",
+            "glass": "Стекло"
+          }
+        }
       },
       "description": "Клавиши, которые вы нажимаете, микрофон, который слушает Sona, и внешний вид приложения.",
       "commandMode": {
@@ -731,7 +739,6 @@
         "unavailable": "Статистика использования недоступна.",
         "entries": "записей",
         "duration": "время записи",
-        "durationValue": "{{hours}} ч {{minutes}} мин",
         "words": "слов",
         "source": {
           "microphone": "Микрофон",
@@ -774,8 +781,6 @@
         "durationLabel": "Duration",
         "words": "{{count}} words",
         "wordsLabel": "Words",
-        "mode": "Mode: {{mode}}",
-        "revision": "Revision {{revision}}",
         "engine": {
           "local": "Local",
           "cloud": "Cloud",
@@ -836,6 +841,17 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "modeLabel": "Режим",
+        "revisionLabel": "Ревизия",
+        "engineLabel": "Движок",
+        "sourceLabel": "Источник",
+        "captureStatusLabel": "Запись",
+        "completedLabel": "Завершено",
+        "captureStatus": {
+          "complete": "Полная",
+          "truncated": "Обрезана",
+          "no_speech_detected": "Речь не обнаружена"
         },
         "columns": {
           "source": "Источник",
@@ -914,6 +930,14 @@
       "results": "Совпадений: {{count}}",
       "resultsMore": "Совпадений: {{count}}+",
       "resultsNone": "Совпадений нет",
+      "moreActions": "Другие действия",
+      "expandEntry": "Показать запись целиком",
+      "collapseEntry": "Скрыть запись целиком",
+      "derivedFromId": "из #{{id}}",
+      "level": {
+        "peak": "peak",
+        "rms": "rms"
+      },
       "processAgain": {
         "action": "Обработать снова",
         "title": "Обработать снова",
@@ -922,8 +946,7 @@
         "confirm": "Обработать",
         "started": "Повторная обработка начата",
         "modeLabel": "Режим"
-      },
-      "derivedFrom": "Из более ранней записи"
+      }
     },
     "debug": {
       "title": "Отлаживать",
@@ -1449,7 +1472,24 @@
       "listEmpty": "Режимы не настроены.",
       "listEmptyHint": "Sona всегда сохраняет один режим. Перезагрузите, чтобы получить текущий список.",
       "unsavedChanges": "Несохранённые изменения",
-      "untitled": "Режим без названия"
+      "untitled": "Режим без названия",
+      "summary": {
+        "engine": {
+          "local": "Локальный",
+          "deepgram_nova_3": "Deepgram",
+          "eleven_labs_scribe_v2": "ElevenLabs"
+        },
+        "modelInherited": "Общая модель",
+        "languageAuto": "Авто",
+        "delivery": {
+          "ctrl_v": "Вставка",
+          "direct": "Набор",
+          "none": "Без вывода",
+          "shift_insert": "Shift+Insert",
+          "ctrl_shift_v": "Вставка без формата",
+          "external_script": "Скрипт"
+        }
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -1885,7 +1925,14 @@
     "transcriptionFailedTitle": "Не удалось расшифровать",
     "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
     "commandNoSelection": "Ничего не было выделено. Выделите текст, который хотите изменить, затем удерживайте сочетание для команды и скажите, что сделать.",
-    "commandRewriteUnavailable": "Перезапись ничего не вернула, поэтому выделение осталось как было. Проверьте модель перезаписи в «Настройки > ИИ» и попробуйте снова."
+    "commandRewriteUnavailable": "Перезапись ничего не вернула, поэтому выделение осталось как было. Проверьте модель перезаписи в «Настройки > ИИ» и попробуйте снова.",
+    "noModelSelectedTitle": "Модель не выбрана",
+    "noSpeechSaveFailedTitle": "Образец не сохранён",
+    "captureOverrunTitle": "Переполнение записи",
+    "cloudUnavailableTitle": "Облако недоступно",
+    "cloudTranscriptionHeldTitle": "Облачный запуск отложен",
+    "commandNoSelectionTitle": "Ничего не выделено",
+    "commandRewriteUnavailableTitle": "Переписывание недоступно"
   },
   "appLanguage": {
     "title": "Язык приложения",
@@ -1901,10 +1948,17 @@
     }
   },
   "overlay": {
-    "transcribing": "Расшифровка...",
-    "processing": "Обработка...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model",
+    "engineFallbackShort": "Локальный резерв",
+    "inputLevel": "Уровень входа",
+    "stopHint": "Нажмите {{keys}}, чтобы остановить",
+    "state": {
+      "starting": "Запуск",
+      "listening": "Слушает",
+      "transcribing": "Расшифровка",
+      "processing": "Обработка",
+      "failed": "Сбой"
+    },
     "hud": {
       "idle": "Готово",
       "toggle": "Начать диктовку в режиме {{mode}}",
@@ -2488,27 +2542,23 @@
       "title": "Recent activity",
       "history": "Transcription",
       "meeting": "Meeting",
-      "emptyDescription": "Сохранённые записи появятся здесь, как только вы продиктуете или запишете встречу.",
-      "emptyTitle": "Ничего недавнего",
-      "error": "Не удалось загрузить недавние записи.",
-      "viewAll": "Показать все"
+      "viewAll": "Показать все",
+      "words": "{{count}} слов",
+      "emptyRange": "За последние 30 дней нет диктовок и встреч.",
+      "failedCommand": "{{command}} завершился сбоем",
+      "failedCommandWithDetail": "{{command}} завершился сбоем: {{detail}}"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
-      "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Режим: {{name}}",
       "setShortcut": "Задайте сочетание клавиш для диктовки в настройках, чтобы записывать из любого приложения.",
       "setShortcutAction": "Задать сочетание",
       "shortcutAction": "Изменить сочетание для диктовки",
-      "holdHint": "Нажмите, чтобы переключить, удерживайте, чтобы говорить",
-      "facts": {
-        "mode": "Режим",
-        "model": "Модель",
-        "engine": "Движок"
-      }
+      "gestureTapHold": "Нажмите, чтобы переключить, удерживайте, чтобы говорить — в любом приложении.",
+      "gestureTapOnly": "Нажмите, чтобы переключить — в любом приложении."
     },
     "actions": {
       "dictate": "Dictate",
@@ -2548,6 +2598,23 @@
       "failed": "Не удалось проверить обновления.",
       "failedWithReason": "Не удалось проверить обновления: {{reason}}",
       "view": "Открыть релиз"
+    },
+    "instrument": {
+      "label": "Приборы записи",
+      "engine": "Движок",
+      "input": "Вход",
+      "shortcut": "Ярлык",
+      "mode": "Режим",
+      "loaded": "загружена",
+      "unloaded": "не загружена",
+      "notMeasured": "не измерено",
+      "unbound": "не задан",
+      "gestureTapHold": "нажатие · удержание",
+      "gestureTap": "нажатие",
+      "channel": "ch {{channel}}",
+      "channels": "{{count}} ch",
+      "rate": "{{kilohertz}} kHz",
+      "systemDefault": "Системное по умолчанию"
     }
   },
   "cloudSync": {

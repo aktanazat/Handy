@@ -335,7 +335,15 @@
       },
       "appearance": {
         "description": "Langue de l'interface et thème de couleurs. Les deux s'appliquent immédiatement.",
-        "title": "Apparence"
+        "title": "Apparence",
+        "material": {
+          "title": "Matière",
+          "description": "Opaque peint les surfaces propres de Sona. Verre laisse voir le bureau à travers la barre supérieure, la palette de commandes et le HUD d'enregistrement.",
+          "options": {
+            "solid": "Opaque",
+            "glass": "Verre"
+          }
+        }
       },
       "description": "Les touches que vous pressez, le microphone que Sona écoute et l'apparence de l'app.",
       "commandMode": {
@@ -731,7 +739,6 @@
         "unavailable": "Les statistiques d'utilisation ne sont pas disponibles.",
         "entries": "enregistrements",
         "duration": "temps d'enregistrement",
-        "durationValue": "{{hours}} h {{minutes}} min",
         "words": "mots",
         "source": {
           "microphone": "Microphone",
@@ -774,8 +781,6 @@
         "durationLabel": "Duration",
         "words": "{{count}} words",
         "wordsLabel": "Words",
-        "mode": "Mode: {{mode}}",
-        "revision": "Revision {{revision}}",
         "engine": {
           "local": "Local",
           "cloud": "Cloud",
@@ -836,6 +841,17 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "modeLabel": "Mode",
+        "revisionLabel": "Révision",
+        "engineLabel": "Moteur",
+        "sourceLabel": "Source",
+        "captureStatusLabel": "Capture",
+        "completedLabel": "Terminé",
+        "captureStatus": {
+          "complete": "Complète",
+          "truncated": "Tronquée",
+          "no_speech_detected": "Aucune parole détectée"
         },
         "columns": {
           "source": "Source",
@@ -914,6 +930,14 @@
       "results": "{{count}} résultats",
       "resultsMore": "{{count}}+ résultats",
       "resultsNone": "Aucun résultat",
+      "moreActions": "Autres actions",
+      "expandEntry": "Afficher l'entrée complète",
+      "collapseEntry": "Masquer l'entrée complète",
+      "derivedFromId": "de #{{id}}",
+      "level": {
+        "peak": "peak",
+        "rms": "rms"
+      },
       "processAgain": {
         "action": "Retraiter",
         "title": "Retraiter",
@@ -922,8 +946,7 @@
         "confirm": "Traiter",
         "started": "Retraitement lancé",
         "modeLabel": "Mode"
-      },
-      "derivedFrom": "Issu d'un enregistrement précédent"
+      }
     },
     "debug": {
       "title": "Débogage",
@@ -1449,7 +1472,24 @@
       "listEmpty": "Aucun mode n'est configuré.",
       "listEmptyHint": "Sona conserve toujours un mode. Rechargez pour récupérer la liste actuelle.",
       "unsavedChanges": "Modifications non enregistrées",
-      "untitled": "Mode sans titre"
+      "untitled": "Mode sans titre",
+      "summary": {
+        "engine": {
+          "local": "Local",
+          "deepgram_nova_3": "Deepgram",
+          "eleven_labs_scribe_v2": "ElevenLabs"
+        },
+        "modelInherited": "Modèle global",
+        "languageAuto": "Auto",
+        "delivery": {
+          "ctrl_v": "Coller",
+          "direct": "Saisir",
+          "none": "Aucune remise",
+          "shift_insert": "Shift+Insert",
+          "ctrl_shift_v": "Coller sans format",
+          "external_script": "Script"
+        }
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -1885,7 +1925,14 @@
     "transcriptionFailedTitle": "Impossible de transcrire",
     "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
     "commandNoSelection": "Rien n'était sélectionné. Sélectionnez le texte à modifier, puis maintenez le raccourci de commande et dites quoi faire.",
-    "commandRewriteUnavailable": "La réécriture n'a rien renvoyé, votre sélection est donc restée telle quelle. Vérifiez le modèle de réécriture dans Réglages > IA et réessayez."
+    "commandRewriteUnavailable": "La réécriture n'a rien renvoyé, votre sélection est donc restée telle quelle. Vérifiez le modèle de réécriture dans Réglages > IA et réessayez.",
+    "noModelSelectedTitle": "Aucun modèle sélectionné",
+    "noSpeechSaveFailedTitle": "Échantillon non enregistré",
+    "captureOverrunTitle": "Dépassement de capture",
+    "cloudUnavailableTitle": "Cloud indisponible",
+    "cloudTranscriptionHeldTitle": "Exécution cloud retenue",
+    "commandNoSelectionTitle": "Rien de sélectionné",
+    "commandRewriteUnavailableTitle": "Réécriture indisponible"
   },
   "appLanguage": {
     "title": "Langue de l'application",
@@ -1901,10 +1948,17 @@
     }
   },
   "overlay": {
-    "transcribing": "Transcription...",
-    "processing": "Traitement...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model",
+    "engineFallbackShort": "Repli local",
+    "inputLevel": "Niveau d'entrée",
+    "stopHint": "Appuyez sur {{keys}} pour arrêter",
+    "state": {
+      "starting": "Démarrage",
+      "listening": "À l'écoute",
+      "transcribing": "Transcription",
+      "processing": "Traitement",
+      "failed": "Échec"
+    },
     "hud": {
       "idle": "Prêt",
       "toggle": "Démarrer la dictée en {{mode}}",
@@ -2488,27 +2542,23 @@
       "title": "Recent activity",
       "history": "Transcription",
       "meeting": "Meeting",
-      "emptyDescription": "Les captures conservées apparaissent ici dès que vous dictez ou enregistrez une réunion.",
-      "emptyTitle": "Rien de récent",
-      "error": "Les captures récentes n'ont pas pu être chargées pour le moment.",
-      "viewAll": "Tout voir"
+      "viewAll": "Tout voir",
+      "words": "{{count}} mots",
+      "emptyRange": "Aucune dictée ni réunion au cours des 30 derniers jours.",
+      "failedCommand": "{{command}} a échoué",
+      "failedCommandWithDetail": "{{command}} a échoué : {{detail}}"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
-      "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Mode : {{name}}",
       "setShortcut": "Définissez un raccourci de dictée dans Réglages pour capturer depuis n'importe quelle app.",
       "setShortcutAction": "Définir un raccourci",
       "shortcutAction": "Changer le raccourci de dictée",
-      "holdHint": "Appuyez pour basculer, maintenez pour parler",
-      "facts": {
-        "mode": "Mode",
-        "model": "Modèle",
-        "engine": "Moteur"
-      }
+      "gestureTapHold": "Appuyez pour basculer, maintenez pour parler, partout.",
+      "gestureTapOnly": "Appuyez pour basculer, partout."
     },
     "actions": {
       "dictate": "Dictate",
@@ -2548,6 +2598,23 @@
       "failed": "Impossible de vérifier les mises à jour.",
       "failedWithReason": "Impossible de vérifier les mises à jour : {{reason}}",
       "view": "Voir la version"
+    },
+    "instrument": {
+      "label": "Instruments de capture",
+      "engine": "Moteur",
+      "input": "Entrée",
+      "shortcut": "Raccourci",
+      "mode": "Mode",
+      "loaded": "chargé",
+      "unloaded": "non chargé",
+      "notMeasured": "non mesuré",
+      "unbound": "non défini",
+      "gestureTapHold": "appui · maintien",
+      "gestureTap": "appui",
+      "channel": "ch {{channel}}",
+      "channels": "{{count}} ch",
+      "rate": "{{kilohertz}} kHz",
+      "systemDefault": "Par défaut du système"
     }
   },
   "cloudSync": {

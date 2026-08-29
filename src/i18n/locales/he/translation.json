@@ -237,7 +237,15 @@
       },
       "appearance": {
         "description": "שפת הממשק וערכת הצבעים. שניהם חלים מיד.",
-        "title": "מראה"
+        "title": "מראה",
+        "material": {
+          "title": "חומר",
+          "description": "אטום מצייר את המשטחים של Sona עצמה. זכוכית מאפשרת לשולחן העבודה להיראות דרך הסרגל העליון, לוח הפקודות ותצוגת ההקלטה.",
+          "options": {
+            "solid": "אטום",
+            "glass": "זכוכית"
+          }
+        }
       },
       "description": "המקשים שאתה לוחץ, המיקרופון ש־Sona מאזין לו, ואיך האפליקציה נראית.",
       "commandMode": {
@@ -731,7 +739,6 @@
         "unavailable": "נתוני השימוש אינם זמינים.",
         "entries": "הקלטות",
         "duration": "זמן הקלטה",
-        "durationValue": "{{hours}} שעות {{minutes}} דקות",
         "words": "מילים",
         "source": {
           "microphone": "מיקרופון",
@@ -774,8 +781,6 @@
         "durationLabel": "Duration",
         "words": "{{count}} words",
         "wordsLabel": "Words",
-        "mode": "Mode: {{mode}}",
-        "revision": "Revision {{revision}}",
         "engine": {
           "local": "Local",
           "cloud": "Cloud",
@@ -836,6 +841,17 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "modeLabel": "מצב",
+        "revisionLabel": "גרסה",
+        "engineLabel": "מנוע",
+        "sourceLabel": "מקור",
+        "captureStatusLabel": "הקלטה",
+        "completedLabel": "הושלם",
+        "captureStatus": {
+          "complete": "שלמה",
+          "truncated": "נקטעה",
+          "no_speech_detected": "לא זוהה דיבור"
         },
         "columns": {
           "source": "מקור",
@@ -914,6 +930,14 @@
       "results": "{{count}} התאמות",
       "resultsMore": "{{count}}+ התאמות",
       "resultsNone": "אין התאמות",
+      "moreActions": "פעולות נוספות",
+      "expandEntry": "הצג את הרשומה במלואה",
+      "collapseEntry": "הסתר את הרשומה במלואה",
+      "derivedFromId": "מתוך #{{id}}",
+      "level": {
+        "peak": "peak",
+        "rms": "rms"
+      },
       "processAgain": {
         "action": "עבד שוב",
         "title": "עבד שוב",
@@ -922,8 +946,7 @@
         "confirm": "עבד",
         "started": "העיבוד מחדש התחיל",
         "modeLabel": "מצב"
-      },
-      "derivedFrom": "מהקלטה מוקדמת יותר"
+      }
     },
     "debug": {
       "title": "ניפוי שגיאות",
@@ -1449,7 +1472,24 @@
       "listEmpty": "לא הוגדרו מצבים.",
       "listEmptyHint": "Sona תמיד שומר מצב אחד. טען מחדש כדי לקבל את הרשימה הנוכחית.",
       "unsavedChanges": "שינויים שלא נשמרו",
-      "untitled": "מצב ללא שם"
+      "untitled": "מצב ללא שם",
+      "summary": {
+        "engine": {
+          "local": "מקומי",
+          "deepgram_nova_3": "Deepgram",
+          "eleven_labs_scribe_v2": "ElevenLabs"
+        },
+        "modelInherited": "דגם גלובלי",
+        "languageAuto": "אוטומטי",
+        "delivery": {
+          "ctrl_v": "הדבקה",
+          "direct": "הקלדה",
+          "none": "בלי מסירה",
+          "shift_insert": "Shift+Insert",
+          "ctrl_shift_v": "הדבקה ללא עיצוב",
+          "external_script": "סקריפט"
+        }
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -1885,7 +1925,14 @@
     "transcriptionFailedTitle": "לא ניתן לתמלל",
     "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
     "commandNoSelection": "לא היה שום דבר מסומן. סמן את הטקסט שברצונך לשנות, אחר כך החזק את קיצור הפקודה ואמור מה לעשות.",
-    "commandRewriteUnavailable": "הניסוח מחדש לא החזיר שום דבר, כך שהסימון שלך נשאר כפי שהיה. בדוק את דגם הניסוח מחדש בהגדרות > בינה מלאכותית ונסה שוב."
+    "commandRewriteUnavailable": "הניסוח מחדש לא החזיר שום דבר, כך שהסימון שלך נשאר כפי שהיה. בדוק את דגם הניסוח מחדש בהגדרות > בינה מלאכותית ונסה שוב.",
+    "noModelSelectedTitle": "לא נבחר דגם",
+    "noSpeechSaveFailedTitle": "הדגימה לא נשמרה",
+    "captureOverrunTitle": "גדילת הקלטה מעבר לגבול",
+    "cloudUnavailableTitle": "הענן אינו זמין",
+    "cloudTranscriptionHeldTitle": "הרצת ענן מוחזקת",
+    "commandNoSelectionTitle": "אין בחירה",
+    "commandRewriteUnavailableTitle": "שכתוב אינו זמין"
   },
   "appLanguage": {
     "title": "שפת האפליקציה",
@@ -1901,10 +1948,17 @@
     }
   },
   "overlay": {
-    "transcribing": "מתמלל...",
-    "processing": "מעבד...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model",
+    "engineFallbackShort": "גיבוי מקומי",
+    "inputLevel": "עוצמת הקלט",
+    "stopHint": "הקש {{keys}} לעצירה",
+    "state": {
+      "starting": "מתחיל",
+      "listening": "מקשיב",
+      "transcribing": "מתמלל",
+      "processing": "מעבד",
+      "failed": "נכשל"
+    },
     "hud": {
       "idle": "מוכן",
       "toggle": "התחל הכתבה במצב {{mode}}",
@@ -2488,27 +2542,23 @@
       "title": "Recent activity",
       "history": "Transcription",
       "meeting": "Meeting",
-      "emptyDescription": "קליטות שנשמרו יופיעו כאן ברגע שתכתיב או תקליט פגישה.",
-      "emptyTitle": "אין פריטים אחרונים",
-      "error": "לא ניתן היה לטעון כעת את הקליטות האחרונות.",
-      "viewAll": "הצג הכול"
+      "viewAll": "הצג הכול",
+      "words": "{{count}} מילים",
+      "emptyRange": "אין הכתבות או פגישות ב-30 הימים האחרונים.",
+      "failedCommand": "{{command}} נכשל",
+      "failedCommandWithDetail": "{{command}} נכשל: {{detail}}"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
-      "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "מצב: {{name}}",
       "setShortcut": "הגדר קיצור הכתבה ב־Settings כדי לקלוט מכל אפליקציה.",
       "setShortcutAction": "הגדר קיצור",
       "shortcutAction": "שנה את קיצור ההכתבה",
-      "holdHint": "הקש כדי להחליף, החזק כדי לדבר",
-      "facts": {
-        "mode": "מצב",
-        "model": "דגם",
-        "engine": "מנוע"
-      }
+      "gestureTapHold": "הקש כדי להחליף, החזק כדי לדבר, מכל מקום.",
+      "gestureTapOnly": "הקש כדי להחליף, מכל מקום."
     },
     "actions": {
       "dictate": "Dictate",
@@ -2548,6 +2598,23 @@
       "failed": "לא ניתן היה לבדוק עדכונים.",
       "failedWithReason": "לא ניתן היה לבדוק עדכונים: {{reason}}",
       "view": "הצג גרסה"
+    },
+    "instrument": {
+      "label": "מחווני הקלטה",
+      "engine": "מנוע",
+      "input": "קלט",
+      "shortcut": "קיצור",
+      "mode": "מצב",
+      "loaded": "נטען",
+      "unloaded": "לא נטען",
+      "notMeasured": "לא נמדד",
+      "unbound": "לא הוגדר",
+      "gestureTapHold": "הקשה · החזקה",
+      "gestureTap": "הקשה",
+      "channel": "ch {{channel}}",
+      "channels": "{{count}} ch",
+      "rate": "{{kilohertz}} kHz",
+      "systemDefault": "ברירת המחדל של המערכת"
     }
   },
   "cloudSync": {

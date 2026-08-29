@@ -237,7 +237,15 @@
       },
       "appearance": {
         "description": "Taal van de interface en kleurenschema. Beide gelden direct.",
-        "title": "Weergave"
+        "title": "Weergave",
+        "material": {
+          "title": "Materiaal",
+          "description": "Vast tekent Sona's eigen oppervlakken. Glas laat het bureaublad door de bovenbalk, het opdrachtenpalet en de opname-HUD zien.",
+          "options": {
+            "solid": "Vast",
+            "glass": "Glas"
+          }
+        }
       },
       "description": "De toetsen die je indrukt, de microfoon waarnaar Sona luistert en hoe de app eruitziet.",
       "commandMode": {
@@ -731,7 +739,6 @@
         "unavailable": "Gebruiksstatistieken zijn niet beschikbaar.",
         "entries": "opnamen",
         "duration": "opnametijd",
-        "durationValue": "{{hours}} u {{minutes}} min",
         "words": "woorden",
         "source": {
           "microphone": "Microfoon",
@@ -774,8 +781,6 @@
         "durationLabel": "Duration",
         "words": "{{count}} words",
         "wordsLabel": "Words",
-        "mode": "Mode: {{mode}}",
-        "revision": "Revision {{revision}}",
         "engine": {
           "local": "Local",
           "cloud": "Cloud",
@@ -836,6 +841,17 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "modeLabel": "Modus",
+        "revisionLabel": "Revisie",
+        "engineLabel": "Engine",
+        "sourceLabel": "Bron",
+        "captureStatusLabel": "Opname",
+        "completedLabel": "Voltooid",
+        "captureStatus": {
+          "complete": "Volledig",
+          "truncated": "Afgekapt",
+          "no_speech_detected": "Geen spraak gedetecteerd"
         },
         "columns": {
           "source": "Bron",
@@ -914,6 +930,14 @@
       "results": "{{count}} resultaten",
       "resultsMore": "{{count}}+ resultaten",
       "resultsNone": "Geen resultaten",
+      "moreActions": "Meer acties",
+      "expandEntry": "Volledige vermelding tonen",
+      "collapseEntry": "Volledige vermelding verbergen",
+      "derivedFromId": "uit #{{id}}",
+      "level": {
+        "peak": "peak",
+        "rms": "rms"
+      },
       "processAgain": {
         "action": "Opnieuw verwerken",
         "title": "Opnieuw verwerken",
@@ -922,8 +946,7 @@
         "confirm": "Verwerken",
         "started": "Herverwerking gestart",
         "modeLabel": "Modus"
-      },
-      "derivedFrom": "Uit een eerdere opname"
+      }
     },
     "debug": {
       "title": "Probleemoplossing",
@@ -1449,7 +1472,24 @@
       "listEmpty": "Er zijn geen modi geconfigureerd.",
       "listEmptyHint": "Sona houdt altijd één modus. Herlaad om de huidige lijst op te halen.",
       "unsavedChanges": "Niet-opgeslagen wijzigingen",
-      "untitled": "Naamloze modus"
+      "untitled": "Naamloze modus",
+      "summary": {
+        "engine": {
+          "local": "Lokaal",
+          "deepgram_nova_3": "Deepgram",
+          "eleven_labs_scribe_v2": "ElevenLabs"
+        },
+        "modelInherited": "Globaal model",
+        "languageAuto": "Auto",
+        "delivery": {
+          "ctrl_v": "Plakken",
+          "direct": "Typen",
+          "none": "Geen aflevering",
+          "shift_insert": "Shift+Insert",
+          "ctrl_shift_v": "Plakken zonder opmaak",
+          "external_script": "Script"
+        }
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -1888,7 +1928,14 @@
     "transcriptionFailedTitle": "Kon niet transcriberen",
     "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
     "commandNoSelection": "Er was niets geselecteerd. Selecteer de tekst die je wilt veranderen, houd dan de opdrachtsneltoets vast en zeg wat er moet gebeuren.",
-    "commandRewriteUnavailable": "De herschrijving gaf niets terug, dus je selectie bleef zoals hij was. Controleer het herschrijfmodel in Instellingen > AI en probeer het opnieuw."
+    "commandRewriteUnavailable": "De herschrijving gaf niets terug, dus je selectie bleef zoals hij was. Controleer het herschrijfmodel in Instellingen > AI en probeer het opnieuw.",
+    "noModelSelectedTitle": "Geen model geselecteerd",
+    "noSpeechSaveFailedTitle": "Fragment niet opgeslagen",
+    "captureOverrunTitle": "Opname liep over",
+    "cloudUnavailableTitle": "Cloud niet beschikbaar",
+    "cloudTranscriptionHeldTitle": "Cloudrun vastgehouden",
+    "commandNoSelectionTitle": "Niets geselecteerd",
+    "commandRewriteUnavailableTitle": "Herschrijven niet beschikbaar"
   },
   "appLanguage": {
     "title": "Interfacetaal",
@@ -1904,10 +1951,17 @@
     }
   },
   "overlay": {
-    "transcribing": "Transcriberen...",
-    "processing": "Verwerken...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model",
+    "engineFallbackShort": "Lokale terugval",
+    "inputLevel": "Ingangsniveau",
+    "stopHint": "Druk op {{keys}} om te stoppen",
+    "state": {
+      "starting": "Starten",
+      "listening": "Luistert",
+      "transcribing": "Transcriberen",
+      "processing": "Verwerken",
+      "failed": "Mislukt"
+    },
     "hud": {
       "idle": "Gereed",
       "toggle": "Dicteren starten in {{mode}}",
@@ -2488,27 +2542,23 @@
       "title": "Recent activity",
       "history": "Transcription",
       "meeting": "Meeting",
-      "emptyDescription": "Bewaarde opnames verschijnen hier zodra je dicteert of een vergadering opneemt.",
-      "emptyTitle": "Niets recents",
-      "error": "Recente opnames konden nu niet worden geladen.",
-      "viewAll": "Alles bekijken"
+      "viewAll": "Alles bekijken",
+      "words": "{{count}} woorden",
+      "emptyRange": "Geen dictaten of vergaderingen in de laatste 30 dagen.",
+      "failedCommand": "{{command}} is mislukt",
+      "failedCommandWithDetail": "{{command}} is mislukt: {{detail}}"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
-      "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Modus: {{name}}",
       "setShortcut": "Stel een dicteersneltoets in bij Instellingen om vanuit elke app op te nemen.",
       "setShortcutAction": "Een sneltoets instellen",
       "shortcutAction": "De dicteersneltoets wijzigen",
-      "holdHint": "Tik om te wisselen, houd vast om te praten",
-      "facts": {
-        "mode": "Modus",
-        "model": "Model",
-        "engine": "Engine"
-      }
+      "gestureTapHold": "Tik om te wisselen, houd vast om te praten — overal.",
+      "gestureTapOnly": "Tik om te wisselen — overal."
     },
     "actions": {
       "dictate": "Dictate",
@@ -2548,6 +2598,23 @@
       "failed": "Kon niet op updates controleren.",
       "failedWithReason": "Kon niet op updates controleren: {{reason}}",
       "view": "Release bekijken"
+    },
+    "instrument": {
+      "label": "Opname-instrumenten",
+      "engine": "Engine",
+      "input": "Ingang",
+      "shortcut": "Sneltoets",
+      "mode": "Modus",
+      "loaded": "geladen",
+      "unloaded": "niet geladen",
+      "notMeasured": "niet gemeten",
+      "unbound": "niet ingesteld",
+      "gestureTapHold": "tik · vasthouden",
+      "gestureTap": "tik",
+      "channel": "ch {{channel}}",
+      "channels": "{{count}} ch",
+      "rate": "{{kilohertz}} kHz",
+      "systemDefault": "Systeemstandaard"
     }
   },
   "cloudSync": {

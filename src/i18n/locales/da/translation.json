@@ -237,7 +237,15 @@
       },
       "appearance": {
         "description": "Grænsefladens sprog og farveskema. Begge gælder med det samme.",
-        "title": "Udseende"
+        "title": "Udseende",
+        "material": {
+          "title": "Materiale",
+          "description": "Massiv tegner Sonas egne flader. Glas lader skrivebordet skinne gennem topbjælken, kommandopaletten og optage-HUD'en.",
+          "options": {
+            "solid": "Massiv",
+            "glass": "Glas"
+          }
+        }
       },
       "description": "De taster du trykker på, den mikrofon Sona lytter til, og hvordan appen ser ud.",
       "commandMode": {
@@ -731,7 +739,6 @@
         "unavailable": "Brugsstatistik er ikke tilgængelig.",
         "entries": "optagelser",
         "duration": "optagelsestid",
-        "durationValue": "{{hours}} t {{minutes}} min",
         "words": "ord",
         "source": {
           "microphone": "Mikrofon",
@@ -774,8 +781,6 @@
         "durationLabel": "Duration",
         "words": "{{count}} words",
         "wordsLabel": "Words",
-        "mode": "Mode: {{mode}}",
-        "revision": "Revision {{revision}}",
         "engine": {
           "local": "Local",
           "cloud": "Cloud",
@@ -836,6 +841,17 @@
           "delivered": "Delivered",
           "definitely_not_dispatched": "Not dispatched",
           "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+        },
+        "modeLabel": "Tilstand",
+        "revisionLabel": "Revision",
+        "engineLabel": "Motor",
+        "sourceLabel": "Kilde",
+        "captureStatusLabel": "Optagelse",
+        "completedLabel": "Fuldført",
+        "captureStatus": {
+          "complete": "Fuldstændig",
+          "truncated": "Afkortet",
+          "no_speech_detected": "Ingen tale registreret"
         },
         "columns": {
           "source": "Kilde",
@@ -914,6 +930,14 @@
       "results": "{{count}} resultater",
       "resultsMore": "{{count}}+ resultater",
       "resultsNone": "Ingen resultater",
+      "moreActions": "Flere handlinger",
+      "expandEntry": "Vis hele posten",
+      "collapseEntry": "Skjul hele posten",
+      "derivedFromId": "fra #{{id}}",
+      "level": {
+        "peak": "peak",
+        "rms": "rms"
+      },
       "processAgain": {
         "action": "Behandl igen",
         "title": "Behandl igen",
@@ -922,8 +946,7 @@
         "confirm": "Behandl",
         "started": "Genbehandling startet",
         "modeLabel": "Tilstand"
-      },
-      "derivedFrom": "Fra en tidligere optagelse"
+      }
     },
     "debug": {
       "title": "Fejlfinding",
@@ -1449,7 +1472,24 @@
       "listEmpty": "Ingen tilstande er konfigureret.",
       "listEmptyHint": "Sona beholder altid én tilstand. Genindlæs for at hente den aktuelle liste.",
       "unsavedChanges": "Ugemte ændringer",
-      "untitled": "Unavngiven tilstand"
+      "untitled": "Unavngiven tilstand",
+      "summary": {
+        "engine": {
+          "local": "Lokal",
+          "deepgram_nova_3": "Deepgram",
+          "eleven_labs_scribe_v2": "ElevenLabs"
+        },
+        "modelInherited": "Global model",
+        "languageAuto": "Auto",
+        "delivery": {
+          "ctrl_v": "Indsæt",
+          "direct": "Skriv",
+          "none": "Ingen levering",
+          "shift_insert": "Shift+Insert",
+          "ctrl_shift_v": "Indsæt uformateret",
+          "external_script": "Script"
+        }
+      }
     },
     "privacy": {
       "title": "Privacy",
@@ -1888,7 +1928,14 @@
     "transcriptionFailedTitle": "Kunne ikke transkribere",
     "noModelSelected": "No transcription model selected. Choose one in Settings > Models.",
     "commandNoSelection": "Der var intet markeret. Markér den tekst du vil ændre, hold så kommandogenvejen nede og sig, hvad der skal gøres.",
-    "commandRewriteUnavailable": "Omskrivningen returnerede intet, så din markering blev efterladt som den var. Kontrollér omskrivningsmodellen under Indstillinger > AI og prøv igen."
+    "commandRewriteUnavailable": "Omskrivningen returnerede intet, så din markering blev efterladt som den var. Kontrollér omskrivningsmodellen under Indstillinger > AI og prøv igen.",
+    "noModelSelectedTitle": "Ingen model valgt",
+    "noSpeechSaveFailedTitle": "Prøven blev ikke gemt",
+    "captureOverrunTitle": "Optagelsen løb over",
+    "cloudUnavailableTitle": "Cloud utilgængelig",
+    "cloudTranscriptionHeldTitle": "Cloud-kørsel tilbageholdt",
+    "commandNoSelectionTitle": "Intet er markeret",
+    "commandRewriteUnavailableTitle": "Omskrivning utilgængelig"
   },
   "appLanguage": {
     "title": "Applikationssprog",
@@ -1904,10 +1951,17 @@
     }
   },
   "overlay": {
-    "transcribing": "Transskriberer...",
-    "processing": "Behandler...",
     "cloud": "Cloud",
-    "localFallback": "Offline, using local model",
+    "engineFallbackShort": "Lokal reserve",
+    "inputLevel": "Indgangsniveau",
+    "stopHint": "Tryk på {{keys}} for at stoppe",
+    "state": {
+      "starting": "Starter",
+      "listening": "Lytter",
+      "transcribing": "Transskriberer",
+      "processing": "Behandler",
+      "failed": "Mislykkedes"
+    },
     "hud": {
       "idle": "Klar",
       "toggle": "Start diktering i {{mode}}",
@@ -2488,27 +2542,23 @@
       "title": "Recent activity",
       "history": "Transcription",
       "meeting": "Meeting",
-      "emptyDescription": "Gemte optagelser vises her, så snart du dikterer eller optager et møde.",
-      "emptyTitle": "Intet nyligt",
-      "error": "Seneste optagelser kunne ikke indlæses lige nu.",
-      "viewAll": "Se alle"
+      "viewAll": "Se alle",
+      "words": "{{count}} ord",
+      "emptyRange": "Ingen dikteringer eller møder i de seneste 30 dage.",
+      "failedCommand": "{{command}} mislykkedes",
+      "failedCommandWithDetail": "{{command}} mislykkedes: {{detail}}"
     },
     "hero": {
       "ready": "Ready",
       "recording": "Recording",
-      "instruction": "Press {{shortcut}} to dictate anywhere",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
       "mode": "Tilstand: {{name}}",
       "setShortcut": "Angiv en dikteringsgenvej i Indstillinger for at optage fra enhver app.",
       "setShortcutAction": "Angiv en genvej",
       "shortcutAction": "Ændr dikteringsgenvejen",
-      "holdHint": "Tryk for at skifte, hold for at tale",
-      "facts": {
-        "mode": "Tilstand",
-        "model": "Model",
-        "engine": "Motor"
-      }
+      "gestureTapHold": "Tryk for at skifte, hold for at tale — overalt.",
+      "gestureTapOnly": "Tryk for at skifte — overalt."
     },
     "actions": {
       "dictate": "Dictate",
@@ -2548,6 +2598,23 @@
       "failed": "Kunne ikke søge efter opdateringer.",
       "failedWithReason": "Kunne ikke søge efter opdateringer: {{reason}}",
       "view": "Se udgivelse"
+    },
+    "instrument": {
+      "label": "Optageinstrumenter",
+      "engine": "Motor",
+      "input": "Indgang",
+      "shortcut": "Genvej",
+      "mode": "Tilstand",
+      "loaded": "indlæst",
+      "unloaded": "ikke indlæst",
+      "notMeasured": "ikke målt",
+      "unbound": "ikke angivet",
+      "gestureTapHold": "tryk · hold",
+      "gestureTap": "tryk",
+      "channel": "ch {{channel}}",
+      "channels": "{{count}} ch",
+      "rate": "{{kilohertz}} kHz",
+      "systemDefault": "Systemstandard"
     }
   },
   "cloudSync": {
