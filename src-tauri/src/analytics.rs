@@ -4,11 +4,19 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 /// The only calendar windows exposed by dashboard trend commands.
+///
+/// Each variant names its wire string outright. `rename_all = "snake_case"`
+/// cannot be trusted here: serde leaves a digit attached to the preceding word
+/// (`days30`) while specta splits it off (`days_30`), so the generated bindings
+/// published one spelling to the webview while the command deserializer only
+/// accepted the other, and every trend request failed on arrival.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
-#[serde(rename_all = "snake_case")]
 pub enum DashboardTrendRange {
+    #[serde(rename = "days_7")]
     Days7,
+    #[serde(rename = "days_30")]
     Days30,
+    #[serde(rename = "days_180")]
     Days180,
 }
 
@@ -132,17 +140,38 @@ mod tests {
         assert_eq!(DashboardTrendRange::Days7.days(), 7);
         assert_eq!(DashboardTrendRange::Days30.days(), 30);
         assert_eq!(DashboardTrendRange::Days180.days(), 180);
-        assert_eq!(
-            serde_json::to_string(&DashboardTrendRange::Days7).expect("serialize range"),
-            r#""days7""#
-        );
-        assert_eq!(
-            serde_json::from_str::<DashboardTrendRequest>(r#"{"range":"days7"}"#)
-                .expect("deserialize range")
-                .range,
-            DashboardTrendRange::Days7
-        );
         assert!(serde_json::from_str::<DashboardTrendRequest>(r#"{"range":"days_14"}"#).is_err());
+    }
+
+    /// The webview only ever sends the strings the generated bindings declare,
+    /// so a range this deserializer rejects is a trend command that always
+    /// fails and a Capture page that always apologizes. Asserting the two
+    /// spellings against each other is the only check that catches a case-rule
+    /// disagreement between serde and specta.
+    #[test]
+    fn every_trend_range_deserializes_from_the_string_the_bindings_publish() {
+        let bindings = specta_typescript::export::<DashboardTrendRange>(
+            &specta_typescript::Typescript::default(),
+        )
+        .expect("export the trend range binding");
+
+        for range in [
+            DashboardTrendRange::Days7,
+            DashboardTrendRange::Days30,
+            DashboardTrendRange::Days180,
+        ] {
+            let wire = serde_json::to_string(&range).expect("serialize range");
+            assert!(
+                bindings.contains(&wire),
+                "{wire} is missing from the generated binding {bindings}"
+            );
+            assert_eq!(
+                serde_json::from_str::<DashboardTrendRequest>(&format!(r#"{{"range":{wire}}}"#))
+                    .expect("deserialize the published range string")
+                    .range,
+                range
+            );
+        }
     }
 
     #[test]

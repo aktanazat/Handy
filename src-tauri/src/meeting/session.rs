@@ -1857,6 +1857,16 @@ impl MeetingSessionManager {
         self.actor_lock().active.is_some()
     }
 
+    /// Mount the encrypted meeting store, or hand back the mount that already
+    /// exists.
+    ///
+    /// The key is resolved before the state lock is taken, so nothing waits on
+    /// the credential store while holding it. The database is then opened
+    /// *under* that lock: startup recovery and Capture's first count read are
+    /// dispatched in the same instant, and two callers opening the file at once
+    /// run its migrations concurrently against one database, which fails one of
+    /// them with `StorageUnavailable` and makes Capture report that meeting
+    /// storage is gone on a healthy install.
     async fn store(&self) -> Result<Arc<MeetingStore>, MeetingCommandError> {
         if let Some(store) = self.store_lock().clone() {
             return Ok(store);
@@ -1870,9 +1880,12 @@ impl MeetingSessionManager {
             .meeting_storage_key()
             .await
             .map_err(map_secret_error)?;
-        let opened = MeetingStore::open(root, key).map_err(map_store_error)?;
         let mut cached = self.store_lock();
-        Ok(cached.get_or_insert(opened).clone())
+        if let Some(store) = cached.clone() {
+            return Ok(store);
+        }
+        let opened = MeetingStore::open(root, key).map_err(map_store_error)?;
+        Ok(cached.insert(opened).clone())
     }
 
     fn build_preflight_snapshot(
@@ -2503,6 +2516,88 @@ mod tests {
             MeetingTrendProjection::Unavailable {
                 range: crate::analytics::DashboardTrendRange::Days7
             }
+        );
+    }
+
+    /// The provisioned credential-store key and an existing meetings root, the
+    /// shape of every launch after the first.
+    fn mounted_manager() -> (
+        TempDir,
+        Arc<MeetingSessionManager>,
+        Arc<MemorySecretBackend>,
+    ) {
+        let directory = TempDir::new().unwrap();
+        let backend = Arc::new(MemorySecretBackend::new());
+        backend.insert("meeting_storage/database-key-v1", &"11".repeat(32));
+        let secrets = Arc::new(SecretManager::with_backend(backend.clone()));
+        let manager = Arc::new(MeetingSessionManager::with_parts(
+            None,
+            Some(directory.path().join("meetings")),
+            secrets,
+            Arc::new(NoCaptureSources),
+        ));
+        (directory, manager, backend)
+    }
+
+    /// Capture asks for meeting counts as the window paints, and it must not
+    /// have to wait for a visit to the meetings surface. Startup recovery owns
+    /// the mount; the count read reuses it rather than resolving the
+    /// credential-store key again, so one launch is one credential-store read.
+    #[test]
+    fn startup_recovery_mounts_meeting_storage_for_capture_counts() {
+        let (_directory, manager, backend) = mounted_manager();
+        let request = DashboardTrendRequest {
+            range: crate::analytics::DashboardTrendRange::Days30,
+        };
+        assert_eq!(backend.operation_count(), 0);
+
+        let recovered = tauri::async_runtime::block_on(manager.recover_at_startup_at(0))
+            .expect("startup recovery mounts meeting storage");
+        assert!(recovered.is_empty());
+        assert_eq!(
+            backend.operation_count(),
+            1,
+            "startup mount reads the one provisioned key entry once"
+        );
+
+        let projection = tauri::async_runtime::block_on(manager.trend_projection(request));
+        assert!(
+            matches!(projection, MeetingTrendProjection::Available { .. }),
+            "counts must be available without visiting the meetings surface, got {projection:?}"
+        );
+        assert_eq!(
+            backend.operation_count(),
+            1,
+            "the count read reuses the startup mount instead of resolving another key"
+        );
+    }
+
+    /// Startup recovery and Capture's first count read are dispatched in the
+    /// same instant, so both reach an unmounted store. Opening the SQLCipher
+    /// database twice would run its migrations concurrently against one file;
+    /// every caller has to come back with the single mounted store.
+    #[test]
+    fn racing_first_callers_share_one_meeting_store_mount() {
+        let (_directory, manager, _backend) = mounted_manager();
+        let threads: Vec<_> = (0..8)
+            .map(|_| {
+                let manager = Arc::clone(&manager);
+                thread::spawn(move || {
+                    tauri::async_runtime::block_on(manager.store())
+                        .map(|store| Arc::as_ptr(&store) as usize)
+                })
+            })
+            .collect();
+
+        let mounts = threads
+            .into_iter()
+            .map(|handle| handle.join().expect("mount thread"))
+            .collect::<Result<Vec<_>, _>>()
+            .expect("every racing caller mounts meeting storage");
+        let first = mounts[0];
+        assert!(
+            mounts.iter().all(|mount| *mount == first),
+            "racing callers opened more than one store: {mounts:?}"
         );
     }
 
