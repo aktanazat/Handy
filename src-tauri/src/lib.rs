@@ -1782,6 +1782,19 @@ pub fn run(cli_args: CliArgs) {
                 let _ = crate::managers::transcription::get_available_accelerators();
             });
 
+            // Pre-warm the microphone start path on its own thread: the VAD
+            // session, the named-device lookup, and the device's supported
+            // stream configs. All three are one-time costs that otherwise land
+            // between the first shortcut press and the first captured sample.
+            // No stream is opened and the device is never started, so this does
+            // not raise the OS microphone indicator.
+            let prewarm_audio = app_handle.clone();
+            std::thread::spawn(move || {
+                if let Some(manager) = prewarm_audio.try_state::<Arc<AudioRecordingManager>>() {
+                    manager.prewarm();
+                }
+            });
+
             // Hide tray icon if --no-tray was passed
             if cli_args.no_tray {
                 tray::set_tray_visibility(&app_handle, false);

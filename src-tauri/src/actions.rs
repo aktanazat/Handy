@@ -1230,15 +1230,6 @@ impl TranscribeAction {
         }
         let cloud_requested = self.run.cloud().is_some();
 
-        let vad_preload_started = Instant::now();
-        let rm_clone = Arc::clone(&rm);
-        std::thread::spawn(move || {
-            if let Err(e) = rm_clone.preload_vad() {
-                debug!("VAD pre-load failed: {}", e);
-            }
-        });
-        let vad_preload_elapsed = vad_preload_started.elapsed();
-
         let binding_id = binding_id.to_string();
 
         let plan_started = Instant::now();
@@ -1260,26 +1251,34 @@ impl TranscribeAction {
         } else {
             VadPolicy::Offline
         };
-        // ASR work starts on the recorder's first VAD-forwarded speech frame.
-        // A no-speech capture must keep its WAV and receipt without loading a
-        // local model or opening a cloud session.
+        // The local engine is warmed now, not on the first VAD-forwarded speech
+        // frame. Deferring it was correct while a VAD-silent capture skipped the
+        // model entirely; it no longer does — a silent capture short enough to
+        // arbitrate is handed to the model precisely because VAD's verdict is
+        // not trusted on quiet speech. So VAD no longer decides *whether* the
+        // load happens, only *when*, and waiting moved it to the worst moment:
+        // serially inside stop->transcript, where it was measured at 221ms of a
+        // 384ms transcription. Starting it here overlaps it with the recording.
+        //
+        // `initiate_model_load` is non-blocking, is a no-op when this plan's
+        // model is already resident, and serializes on the engine's existing
+        // load scope, so it neither adds a lock nor fights a pending
+        // accelerator reload.
+        if let Some(local_asr) = self.run.local_asr() {
+            tm.initiate_model_load(local_asr);
+        }
+        // What still waits for speech is only the work that is wasted outright
+        // on a silent capture: a remote session (credentials plus a network
+        // round trip) and a live streaming worker.
         #[cfg(feature = "cloud-realtime")]
         if let Some(cloud) = self.run.cloud() {
-            tm.arm_cloud_stream_on_first_speech(
-                cloud,
-                cloud_key_source(app, cloud.provider()),
-                self.run.local_asr(),
-            );
+            tm.arm_cloud_stream_on_first_speech(cloud, cloud_key_source(app, cloud.provider()));
         } else if model_supports_streaming {
             tm.arm_stream_on_first_speech(asr);
-        } else if let Some(local_asr) = self.run.local_asr() {
-            tm.arm_model_load_on_first_speech(local_asr);
         }
         #[cfg(not(feature = "cloud-realtime"))]
         if model_supports_streaming {
             tm.arm_stream_on_first_speech(asr);
-        } else if let Some(local_asr) = self.run.local_asr() {
-            tm.arm_model_load_on_first_speech(local_asr);
         }
         let plan_elapsed = plan_started.elapsed();
 
@@ -1294,11 +1293,11 @@ impl TranscribeAction {
             OverlayStyle::Live | OverlayStyle::Minimal => show_recording_overlay(app),
             OverlayStyle::None => {} // show_overlay_state no-ops on None anyway
         }
-        // The VAD preload above is the only pre-capture inference work. ASR
-        // model loading and remote connections wait for actual speech.
+        // The VAD session is warmed at startup, so nothing here loads a model
+        // synchronously: `settings+stream_plan` covers the plan, the engine
+        // warm hand-off, and any first-speech arming.
         debug!(
-            "start-path pre-recording steps: vad_preload={:?} settings+stream_plan={:?} overlay={:?}",
-            vad_preload_elapsed,
+            "start-path pre-recording steps: settings+stream_plan={:?} overlay={:?}",
             plan_elapsed,
             overlay_started.elapsed()
         );

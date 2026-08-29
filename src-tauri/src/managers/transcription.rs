@@ -1438,43 +1438,34 @@ impl TranscriptionManager {
         Arc::clone(&self.router)
     }
 
-    /// Start loading a local model only once VAD has forwarded speech. A silent
-    /// run keeps its audio/receipt without paying a model-load cost.
-    pub fn arm_model_load_on_first_speech(&self, asr: &AsrPlan) {
-        let manager = self.clone();
-        let asr = asr.clone();
-        self.router.arm_on_first_speech(move || {
-            manager.initiate_model_load(&asr);
-        });
-    }
-
-    /// Start a local streaming worker only after VAD has forwarded speech.
+    /// Start a local streaming worker once VAD has forwarded speech.
+    ///
+    /// The model itself is warmed at recording start, not here: a capture that
+    /// reaches the model pays the load either way, so gating it on speech only
+    /// chose a later moment. What is gated is the worker, which decodes nothing
+    /// on a silent capture. It waits out any in-flight warm load on the engine's
+    /// existing load scope (see `run_stream_worker`).
     pub fn arm_stream_on_first_speech(&self, asr: &AsrPlan) {
         let manager = self.clone();
         let asr = asr.clone();
         self.router.arm_on_first_speech(move || {
-            manager.initiate_model_load(&asr);
             manager.start_stream(&asr);
         });
     }
 
     /// Resolve the native key and open a remote session only after VAD has
-    /// forwarded speech. The optional local model still warms at that same
-    /// boundary so an eligible fallback does not add avoidable delay.
+    /// forwarded speech. Unlike a local load, a silent capture wastes this
+    /// outright: it costs a credential read and a network round trip and
+    /// produces nothing reusable.
     #[cfg(feature = "cloud-realtime")]
     pub fn arm_cloud_stream_on_first_speech(
         &self,
         plan: &CloudRunPlan,
         key_source: CloudKeySource,
-        local_fallback: Option<&AsrPlan>,
     ) {
         let manager = self.clone();
         let plan = plan.clone();
-        let local_fallback = local_fallback.cloned();
         self.router.arm_on_first_speech(move || {
-            if let Some(fallback) = local_fallback.as_ref() {
-                manager.initiate_model_load(fallback);
-            }
             if !manager.start_cloud_stream(&plan, key_source) {
                 warn!("cloud stream could not start after speech was detected");
             }

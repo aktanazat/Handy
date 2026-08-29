@@ -1527,6 +1527,24 @@ impl ModelManager {
         list
     }
 
+    /// The `(id, name)` pairs of every downloaded model, ordered by name.
+    ///
+    /// The tray menu needs nothing else, and getting these from
+    /// [`Self::get_available_models`] costs a deep clone of the whole registry:
+    /// every model's description, source URLs, and up-to-99-entry
+    /// `supported_languages` are copied on every tray sync only to be dropped.
+    /// Ties on name are broken by id so the menu order stays deterministic
+    /// despite the registry being a `HashMap`.
+    pub fn downloaded_model_labels(&self) -> Vec<(String, String)> {
+        let mut labels: Vec<(String, String)> = lock_model_state(&self.available_models)
+            .values()
+            .filter(|model| model.is_downloaded)
+            .map(|model| (model.id.clone(), model.name.clone()))
+            .collect();
+        labels.sort_by(|a, b| a.1.cmp(&b.1).then_with(|| a.0.cmp(&b.0)));
+        labels
+    }
+
     /// Seed the bundled catalog ([`crate::catalog::CATALOG`]) into the registry,
     /// inserting each model whose id isn't already present (additive).
     ///

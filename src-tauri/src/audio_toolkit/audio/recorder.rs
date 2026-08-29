@@ -56,6 +56,35 @@ fn lock_recover<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     }
 }
 
+/// The device-config cache shared by [`AudioRecorder::open`] and
+/// [`AudioRecorder::prewarm_config`]. Keyed by device name so a system-default
+/// change misses naturally.
+type ConfigCache = Mutex<Option<(String, cpal::SupportedStreamConfig)>>;
+
+/// The cached config for `device_name`, if this cache holds one for it.
+///
+/// An empty name never matches: cpal reports one for devices whose name query
+/// fails, and treating those as a single cache key would hand one device's
+/// rate and format to another.
+fn cached_config_for(
+    cache: &ConfigCache,
+    device_name: &str,
+) -> Option<cpal::SupportedStreamConfig> {
+    lock_recover(cache)
+        .as_ref()
+        .filter(|(name, _)| !device_name.is_empty() && name == device_name)
+        .map(|(_, config)| config.clone())
+}
+
+/// Remember the config this device reported, so the next open skips the HAL
+/// property queries. Unnamed devices are not cached, for the reason above.
+fn store_config(cache: &ConfigCache, device_name: String, config: cpal::SupportedStreamConfig) {
+    if device_name.is_empty() {
+        return;
+    }
+    *lock_recover(cache) = Some((device_name, config));
+}
+
 fn sample_rate_to_usize(sample_rate: u32) -> usize {
     match usize::try_from(sample_rate) {
         Ok(sample_rate) => sample_rate,
@@ -425,12 +454,12 @@ pub struct AudioRecorder {
     /// Which input channel to use. None = average all (original behavior).
     selected_channel: Option<usize>,
     /// Preferred stream config cached per device name. The two HAL property
-    /// queries in `get_preferred_config` cost ~40-85ms per open (worse on
+    /// queries in `get_preferred_config` cost ~26-44ms per open (worse on
     /// USB/Bluetooth), which lands on the keypress->capture path in on-demand
-    /// mode. Keyed by name so a system-default change misses naturally;
-    /// cleared whenever an open fails so a stale rate/format self-heals on the
-    /// caller's retry.
-    config_cache: Arc<Mutex<Option<(String, cpal::SupportedStreamConfig)>>>,
+    /// mode. Filled by the first successful open, or ahead of it by
+    /// [`prewarm_config`](Self::prewarm_config); cleared whenever an open fails
+    /// so a stale rate/format self-heals on the caller's retry.
+    config_cache: Arc<ConfigCache>,
     /// Set by cpal when the active input stream can no longer capture.
     stream_error: Arc<AtomicBool>,
 }
@@ -540,10 +569,7 @@ impl AudioRecorder {
             > {
                 let config_started = Instant::now();
                 let device_name = thread_device.name().unwrap_or_default();
-                let cached_config = lock_recover(&config_cache)
-                    .as_ref()
-                    .filter(|(name, _)| !device_name.is_empty() && *name == device_name)
-                    .map(|(_, cfg)| cfg.clone());
+                let cached_config = cached_config_for(&config_cache, &device_name);
                 let config_was_cached = cached_config.is_some();
                 let config = match cached_config {
                     Some(cfg) => cfg,
@@ -637,8 +663,8 @@ impl AudioRecorder {
 
                 // The device accepted this config; remember it so the next
                 // open skips the HAL property queries entirely.
-                if !config_was_cached && !device_name.is_empty() {
-                    *lock_recover(&config_cache) = Some((device_name, config));
+                if !config_was_cached {
+                    store_config(&config_cache, device_name, config);
                 }
 
                 Ok((stream, sample_rate, consumer, meeting_control))
@@ -697,6 +723,50 @@ impl AudioRecorder {
                 ))))
             }
         }
+    }
+
+    /// Resolve and cache this device's preferred stream config without opening
+    /// a stream, so the first `open()` skips the HAL property queries that
+    /// otherwise land between the keypress and the first captured sample.
+    ///
+    /// Measured on an M4 Pro: `default_input_config` + `supported_input_configs`
+    /// cost 44ms on the first call and ~26ms on later ones for an LG UltraFine
+    /// display-audio input, and CoreAudio does not cache them for us — which is
+    /// why this cache exists at all.
+    ///
+    /// These are property reads: no AudioUnit is constructed and the device is
+    /// never started, so this does not raise the OS microphone indicator.
+    /// Verified on macOS 26.6 by polling
+    /// `kAudioDevicePropertyDeviceIsRunningSomewhere` (stayed 0) and by
+    /// counting orange menu-bar pixels across the call (stayed 0).
+    ///
+    /// A config cached here is a claim about what the device reports, not that
+    /// an open succeeded with it. `open()` already clears the cache and
+    /// re-queries when a build fails, which is the same self-healing path a
+    /// re-plugged device takes.
+    pub fn prewarm_config(&self, device: Option<Device>) -> Result<(), Box<dyn std::error::Error>> {
+        let device = match device {
+            Some(device) => device,
+            None => crate::audio_toolkit::get_cpal_host()
+                .default_input_device()
+                .ok_or_else(|| Error::new(std::io::ErrorKind::NotFound, "No input device found"))?,
+        };
+        let device_name = device.name().unwrap_or_default();
+        if cached_config_for(&self.config_cache, &device_name).is_some() {
+            return Ok(());
+        }
+        let started = Instant::now();
+        let config = Self::get_preferred_config(&device)?;
+        log::debug!(
+            "prewarmed input config for {:?} in {:?}: {} Hz, {} ch, {:?}",
+            device_name,
+            started.elapsed(),
+            config.sample_rate().0,
+            config.channels(),
+            config.sample_format()
+        );
+        store_config(&self.config_cache, device_name, config);
+        Ok(())
     }
 
     /// Queue a recording start and return a one-shot receiver that resolves only
@@ -1871,10 +1941,11 @@ fn run_consumer(inputs: ConsumerInputs) {
 #[cfg(test)]
 mod tests {
     use super::{
-        capture_into_lane, capture_into_timed_lane, capture_lane, is_microphone_access_denied,
-        is_no_input_device_error, retain_no_speech_samples, run_consumer, AudioRecorder,
-        CaptureError, CaptureProducer, Cmd, ConsumerInputs, MeetingCallbackControl, RecordedAudio,
-        TimedCaptureState, VadConfig, VadPolicy, MAX_NO_SPEECH_HISTORY_SAMPLES,
+        cached_config_for, capture_into_lane, capture_into_timed_lane, capture_lane,
+        is_microphone_access_denied, is_no_input_device_error, retain_no_speech_samples,
+        run_consumer, store_config, AudioRecorder, CaptureError, CaptureProducer, Cmd,
+        ConsumerInputs, MeetingCallbackControl, RecordedAudio, TimedCaptureState, VadConfig,
+        VadPolicy, MAX_NO_SPEECH_HISTORY_SAMPLES,
     };
     use crate::audio_toolkit::vad::{VadFrame, VoiceActivityDetector};
     use crate::meeting::types::SourceEpoch;
@@ -2292,6 +2363,67 @@ mod tests {
         let recorder = AudioRecorder::new().expect("recorder");
         recorder.stream_error.store(true, Ordering::Relaxed);
         assert!(recorder.needs_reopen());
+    }
+
+    fn test_config(sample_rate: u32) -> cpal::SupportedStreamConfig {
+        cpal::SupportedStreamConfig::new(
+            1,
+            cpal::SampleRate(sample_rate),
+            cpal::SupportedBufferSize::Range { min: 15, max: 4096 },
+            cpal::SampleFormat::F32,
+        )
+    }
+
+    /// The cache is keyed by device name, and the prewarm now writes it before
+    /// any open has confirmed the config, so a wrong hit is no longer caught by
+    /// a failed build on the same device.
+    #[test]
+    fn a_cached_config_is_reused_only_for_the_device_that_reported_it() {
+        let cache = Mutex::new(None);
+        store_config(&cache, "LG UltraFine".to_string(), test_config(48_000));
+
+        assert_eq!(
+            cached_config_for(&cache, "LG UltraFine").map(|c| c.sample_rate().0),
+            Some(48_000)
+        );
+        assert!(cached_config_for(&cache, "MacBook Pro Microphone").is_none());
+    }
+
+    /// cpal reports an empty name for a device whose name query fails. Caching
+    /// under it would make every such device share one rate and format, so an
+    /// unnamed device must neither fill the cache nor read from it.
+    #[test]
+    fn an_unnamed_device_neither_fills_nor_reads_the_config_cache() {
+        let cache = Mutex::new(None);
+        store_config(&cache, String::new(), test_config(44_100));
+        assert!(cached_config_for(&cache, "").is_none());
+
+        store_config(&cache, "LG UltraFine".to_string(), test_config(48_000));
+        assert!(
+            cached_config_for(&cache, "").is_none(),
+            "an unnamed device matched another device's cached config"
+        );
+    }
+
+    /// A prewarmed config makes the next open cheaper; it must never be
+    /// mistaken for an open stream. Readiness, the start chime, and the forced
+    /// mute all hang off a capture session, and there is no session to start
+    /// until `open()` has actually built one.
+    #[test]
+    fn a_prewarmed_config_does_not_make_the_recorder_capturable() {
+        let recorder = AudioRecorder::new().expect("recorder");
+        store_config(
+            &recorder.config_cache,
+            "LG UltraFine".to_string(),
+            test_config(48_000),
+        );
+
+        assert!(
+            recorder.start(VadPolicy::Offline).is_err(),
+            "a prewarmed config was treated as an open capture stream"
+        );
+        assert!(matches!(recorder.stop(), Err(CaptureError::NotCapturing)));
+        assert!(!recorder.needs_reopen());
     }
 
     #[test]

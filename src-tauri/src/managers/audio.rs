@@ -25,6 +25,23 @@ use std::sync::{mpsc, Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 use tauri::{Emitter, Manager};
 
+/// How long an on-demand stream stays open after a recording stops, when
+/// `lazy_stream_close` is on. The stream stays *playing* for this long, which is
+/// the whole point — a follow-up dictation inside the window skips the device
+/// start entirely — and also the whole cost.
+///
+/// Measured on an M4 Pro (macOS 26.6, LG UltraFine display-audio input): a
+/// playing cpal input stream holds `kAudioDevicePropertyDeviceIsRunningSomewhere`
+/// at 1 and keeps the orange menu-bar microphone indicator lit, so this window
+/// tells the user their microphone is live for 30 s after they stopped talking.
+/// Pausing the stream instead does clear both (verified: property 0, zero orange
+/// menu-bar pixels at 3 s, 8 s and 18 s into the pause) but forfeits the
+/// benefit: `AudioOutputUnitStart` on a stopped device measured 130-143 ms,
+/// against 155-169 ms to build a stream from scratch. The device-running bit is
+/// simultaneously the privacy indicator and the warm/cold bit, so a window that
+/// hides the indicator is a window that saves nothing but the ~27 ms of
+/// AudioUnit construction. That is why this setting is an explicit opt-in
+/// rather than the default, and why there is no third "warm but dark" mode.
 const STREAM_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// The terminal result of one microphone capture. An overrun keeps only the
@@ -812,6 +829,51 @@ impl AudioRecordingManager {
             )?);
         }
         Ok(())
+    }
+
+    /// Pay the first recording's one-time costs at startup instead of on the
+    /// keypress path.
+    ///
+    /// Three steps sit between a shortcut press and the first captured sample
+    /// that are only expensive once: enumerating devices to resolve a named
+    /// microphone, loading the Silero VAD session, and querying the device's
+    /// supported stream configs. Measured on an M4 Pro from Sona's own
+    /// `mic stream breakdown` lines, the first dictation of a session paid
+    /// `vad_ensure=32-38ms` and `fetch_config=26-29ms` that every later one
+    /// paid in microseconds — a ~60ms penalty falling entirely on the first
+    /// dictation, which is exactly the press that feels slowest.
+    ///
+    /// None of this opens a stream or starts the device, so it does not raise
+    /// the OS microphone indicator (see [`AudioRecorder::prewarm_config`] for
+    /// how that was verified). Always-on mode has already opened a stream by
+    /// the time this runs, so every step below is a cache hit there.
+    pub fn prewarm(&self) {
+        let vad_started = Instant::now();
+        if let Err(error) = self.preload_vad() {
+            debug!("Microphone prewarm: VAD preload failed: {error}");
+            return;
+        }
+        let vad_elapsed = vad_started.elapsed();
+
+        let settings = get_settings(&self.app_handle);
+        let resolve_started = Instant::now();
+        let resolution = self.resolve_microphone_device(&settings);
+        let resolve_elapsed = resolve_started.elapsed();
+
+        let config_started = Instant::now();
+        let config_result = lock_recover(&self.recorder)
+            .as_ref()
+            .map(|recorder| recorder.prewarm_config(resolution.device));
+        match config_result {
+            Some(Err(error)) => debug!("Microphone prewarm: config query failed: {error}"),
+            Some(Ok(())) | None => {}
+        }
+        debug!(
+            "mic prewarm: vad_load={:?} device_resolve={:?} fetch_config={:?}",
+            vad_elapsed,
+            resolve_elapsed,
+            config_started.elapsed()
+        );
     }
 
     pub fn start_microphone_stream(&self) -> Result<(), anyhow::Error> {
