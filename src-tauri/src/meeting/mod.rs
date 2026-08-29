@@ -6,6 +6,7 @@ pub mod detection;
 pub mod diarization;
 pub mod export;
 pub mod keep_awake;
+pub mod ledger;
 pub mod processing;
 pub mod session;
 pub mod store;

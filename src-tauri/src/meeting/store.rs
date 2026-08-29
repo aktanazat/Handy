@@ -5,7 +5,7 @@ use super::analytics::{
 use super::capture::SessionClock;
 use super::cloud_bundle;
 use super::types::*;
-use crate::analytics::{DashboardTrendRequest, LocalCalendarRange};
+use crate::analytics::{local_days_start_utc_ms, DashboardTrendRequest, LocalCalendarRange};
 use crate::secrets::MeetingStorageKey;
 use aes_gcm::aead::{Aead, KeyInit, Payload};
 use aes_gcm::{Aes256Gcm, Nonce};
@@ -2812,52 +2812,96 @@ impl MeetingStore {
         decode_json(&row.preflight_json)
     }
 
+    /// One page of retained meetings, newest first, narrowed by `filter`.
+    ///
+    /// Every row carries what the list actually renders — the recorded
+    /// duration, the sources that opened, the diarized speaker labels, and the
+    /// one line a reader gets before opening the meeting — so the page is one
+    /// read rather than a request per row from the webview.
     pub fn list_sessions(
         &self,
         cursor_utc_ms: Option<i64>,
         limit: usize,
+        filter: &MeetingListFilter,
     ) -> Result<PaginatedMeetings, StoreError> {
         let page_size = limit.clamp(1, 100);
         let connection = self.connection()?;
-        let mut statement = connection.prepare(
-            "SELECT id, title, phase, created_at_utc_ms, processing_status
-             FROM meeting_sessions
-             WHERE phase != 'deleting' AND (?1 IS NULL OR created_at_utc_ms < ?1)
-             ORDER BY created_at_utc_ms DESC LIMIT ?2",
-        )?;
+        let window_start_utc_ms = match filter.window.days() {
+            None => None,
+            Some(days) => {
+                Some(local_days_start_utc_ms(Local::now(), days).map_err(|_| StoreError::Invalid)?)
+            }
+        };
+        let title_pattern = match filter.title_query.trim() {
+            "" => None,
+            needle => Some(like_contains(needle)),
+        };
+        let mut statement = connection.prepare(&format!(
+            "SELECT m.id, m.title, m.phase, m.created_at_utc_ms, m.processing_status,
+                    (SELECT SUM(w.end_offset_ns - w.start_offset_ns)
+                       FROM meeting_capture_windows w
+                      WHERE w.session_id = m.id AND w.end_offset_ns IS NOT NULL),
+                    json_extract(({CURRENT_ARTIFACT_CONTENT}), '$.ledger.headline'),
+                    json_extract(({CURRENT_ARTIFACT_CONTENT}), '$.summary.text'),
+                    m.current_transcript_revision_id IS NOT NULL
+             FROM meeting_sessions m
+             WHERE m.phase != 'deleting'
+               AND (?1 IS NULL OR m.created_at_utc_ms < ?1)
+               AND (?3 IS NULL OR m.created_at_utc_ms >= ?3)
+               AND (?4 IS NULL OR m.title LIKE ?4 ESCAPE '\\')
+               AND ({status})
+             ORDER BY m.created_at_utc_ms DESC LIMIT ?2",
+            status = status_predicate(filter.status),
+        ))?;
         let rows = statement.query_map(
             params![
                 cursor_utc_ms,
-                i64::try_from(page_size + 1).map_err(|_| StoreError::Invalid)?
+                i64::try_from(page_size + 1).map_err(|_| StoreError::Invalid)?,
+                window_start_utc_ms,
+                title_pattern,
             ],
             |row| {
-                let id_value: String = row.get(0)?;
-                let phase_value: String = row.get(2)?;
-                Ok((
-                    id_value,
-                    row.get::<_, String>(1)?,
-                    phase_value,
-                    row.get::<_, i64>(3)?,
-                    row.get::<_, String>(4)?,
-                ))
+                Ok(ListedSessionRow {
+                    session: row.get::<_, String>(0)?,
+                    title: row.get::<_, String>(1)?,
+                    phase: row.get::<_, String>(2)?,
+                    created_at_utc_ms: row.get::<_, i64>(3)?,
+                    processing_status: row.get::<_, String>(4)?,
+                    recorded_duration_ns: row.get::<_, Option<i64>>(5)?,
+                    ledger_headline: row.get::<_, Option<String>>(6)?,
+                    summary_text: row.get::<_, Option<String>>(7)?,
+                    has_transcript: row.get::<_, i64>(8)? != 0,
+                })
             },
         )?;
         let mut entries = Vec::new();
         for row in rows {
-            let (session, title, phase, created_at_utc_ms, processing_status) = row?;
-            let session_id = MeetingSessionId::from_uuid(parse_uuid(&session)?);
+            let row = row?;
+            let session_id = MeetingSessionId::from_uuid(parse_uuid(&row.session)?);
+            let sources = source_snapshots(&connection, session_id)?;
             entries.push(MeetingHistorySummary {
                 kind: HistoryItemKind::Meeting,
                 session_id,
-                title,
-                phase: phase_from_db(&phase)?,
-                created_at_utc_ms,
-                capture_completeness: derive_completeness(
+                title: row.title,
+                phase: phase_from_db(&row.phase)?,
+                created_at_utc_ms: row.created_at_utc_ms,
+                capture_completeness: derive_completeness(&connection, session_id, &sources)?,
+                processing_status: decode_json(&row.processing_status)?,
+                recorded_duration_ms: row
+                    .recorded_duration_ns
+                    .map(|duration| duration / 1_000_000),
+                /* `meeting_source_tracks` is UNIQUE per (session, source_kind)
+                 * and read back ORDER BY source_kind, so the track list is
+                 * already the deduplicated microphone-then-system-audio run. */
+                sources: sources.iter().map(|source| source.source_kind).collect(),
+                speaker_labels: speaker_labels_for_session(&connection, session_id)?,
+                headline: row_headline(
                     &connection,
                     session_id,
-                    &source_snapshots(&connection, session_id)?,
+                    row.ledger_headline.as_deref(),
+                    row.summary_text.as_deref(),
+                    row.has_transcript,
                 )?,
-                processing_status: decode_json(&processing_status)?,
             });
         }
         let has_more = entries.len() > page_size;
@@ -5552,6 +5596,172 @@ fn append_event(
         ],
     )?;
     Ok(())
+}
+
+/* --------------------------------------------------- meetings-list helpers */
+
+/// The newest current artifact revision that carries content: the only
+/// revision a list row is allowed to quote. Written once and interpolated at
+/// both JSON paths, so the ledger headline and the notes summary on one row can
+/// never come from two different revisions.
+const CURRENT_ARTIFACT_CONTENT: &str = "SELECT a.content_json
+                       FROM meeting_artifact_revisions a
+                      WHERE a.session_id = m.id
+                        AND a.state = 'current'
+                        AND a.content_json IS NOT NULL
+                      ORDER BY a.generated_at_utc_ms DESC LIMIT 1";
+
+/// What one page row reads back before the per-session facts are attached.
+struct ListedSessionRow {
+    session: String,
+    title: String,
+    phase: String,
+    created_at_utc_ms: i64,
+    processing_status: String,
+    recorded_duration_ns: Option<i64>,
+    ledger_headline: Option<String>,
+    summary_text: Option<String>,
+    has_transcript: bool,
+}
+
+/// The stored state each list filter selects. `processing_status` holds the
+/// serde JSON of `ProcessingStatus`, so its tag is read with `json_extract`
+/// rather than matched as a bare string. Interpolated inside parentheses by the
+/// caller, which is what keeps the `OR` arms from swallowing the cursor bound.
+const fn status_predicate(filter: MeetingStatusFilter) -> &'static str {
+    match filter {
+        MeetingStatusFilter::Any => "1",
+        MeetingStatusFilter::Ready => {
+            "m.phase = 'review_ready'
+                 AND json_extract(m.processing_status, '$.kind') = 'succeeded'"
+        }
+        MeetingStatusFilter::Processing => {
+            "m.phase IN ('processing', 'stopping')
+                 OR json_extract(m.processing_status, '$.kind') IN ('pending', 'running')"
+        }
+        MeetingStatusFilter::Failed => {
+            "m.phase = 'recovery_required'
+                 OR json_extract(m.processing_status, '$.kind') IN ('failed', 'cancelled')"
+        }
+    }
+}
+
+/// `needle` as a LIKE substring pattern, with the wildcards a title may
+/// legitimately contain escaped so a typed `%` matches a literal `%`.
+/// SQLite's LIKE folds case for ASCII only; a non-ASCII title matches on the
+/// characters as typed.
+fn like_contains(needle: &str) -> String {
+    let mut pattern = String::with_capacity(needle.len() + 2);
+    pattern.push('%');
+    for character in needle.chars() {
+        if matches!(character, '\\' | '%' | '_') {
+            pattern.push('\\');
+        }
+        pattern.push(character);
+    }
+    pattern.push('%');
+    pattern
+}
+
+/// Diarized speaker labels for one meeting, merged-away speakers excluded
+/// because a merged speaker is no longer a person in the room.
+fn speaker_labels_for_session(
+    connection: &Connection,
+    session_id: MeetingSessionId,
+) -> Result<Vec<String>, StoreError> {
+    let mut statement = connection.prepare(
+        "SELECT display_name FROM meeting_speakers
+         WHERE session_id = ?1 AND merged_into_speaker_id IS NULL
+         ORDER BY display_name",
+    )?;
+    let rows = statement.query_map(params![id(session_id)], |row| row.get::<_, String>(0))?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(Into::into)
+}
+
+/// The one line a list row shows under the title, and which of the three real
+/// sources it came from. The ledger headline is the news of the meeting, so it
+/// wins; the notes summary's first sentence is the next best; a transcript with
+/// no prose yet reports its own size rather than nothing.
+fn row_headline(
+    connection: &Connection,
+    session_id: MeetingSessionId,
+    ledger_headline: Option<&str>,
+    summary_text: Option<&str>,
+    has_transcript: bool,
+) -> Result<MeetingHistoryHeadline, StoreError> {
+    if let Some(text) = ledger_headline
+        .map(str::trim)
+        .filter(|text| !text.is_empty())
+    {
+        return Ok(MeetingHistoryHeadline::Ledger {
+            text: text.to_string(),
+        });
+    }
+    if let Some(text) = summary_text
+        .map(first_sentence)
+        .filter(|text| !text.is_empty())
+    {
+        return Ok(MeetingHistoryHeadline::Summary { text });
+    }
+    if !has_transcript {
+        return Ok(MeetingHistoryHeadline::None);
+    }
+    let words = transcript_word_count(connection, session_id)?;
+    Ok(if words == 0 {
+        MeetingHistoryHeadline::None
+    } else {
+        MeetingHistoryHeadline::Words { words }
+    })
+}
+
+/// The summary's first sentence, which is all of it a one-line row can carry.
+/// Cuts after the first `.`, `!` or `?` that whitespace follows, keeping the
+/// terminator; a summary written as one unpunctuated line comes back whole.
+/// Slicing on those ASCII bytes is always a char boundary.
+fn first_sentence(text: &str) -> String {
+    let trimmed = text.trim();
+    let bytes = trimmed.as_bytes();
+    for (index, byte) in bytes.iter().enumerate() {
+        if !matches!(byte, b'.' | b'!' | b'?') {
+            continue;
+        }
+        match bytes.get(index + 1) {
+            None => break,
+            Some(next) if next.is_ascii_whitespace() => return trimmed[..=index].to_string(),
+            Some(_) => {}
+        }
+    }
+    trimmed.to_string()
+}
+
+/// Words in the current transcript, whitespace-delimited, with editor
+/// replacements applied and removed segments dropped. Runs only for a row whose
+/// line two has no generated prose to show, so a page of finished meetings
+/// never reads a transcript at all.
+fn transcript_word_count(
+    connection: &Connection,
+    session_id: MeetingSessionId,
+) -> Result<u32, StoreError> {
+    let mut statement = connection.prepare(
+        "SELECT COALESCE((SELECT e.replacement_text FROM meeting_segment_edits e
+                           WHERE e.segment_id = s.segment_id
+                           ORDER BY e.edit_sequence DESC LIMIT 1), s.base_text)
+         FROM meeting_sessions m
+         JOIN meeting_transcript_segments s
+           ON s.transcript_revision_id = m.current_transcript_revision_id
+         WHERE m.id = ?1
+           AND COALESCE((SELECT e.removed FROM meeting_segment_edits e
+                          WHERE e.segment_id = s.segment_id
+                          ORDER BY e.edit_sequence DESC LIMIT 1), 0) = 0",
+    )?;
+    let mut rows = statement.query(params![id(session_id)])?;
+    let mut words: u32 = 0;
+    while let Some(row) = rows.next()? {
+        let text: String = row.get(0)?;
+        words = words
+            .saturating_add(u32::try_from(text.split_whitespace().count()).unwrap_or(u32::MAX));
+    }
+    Ok(words)
 }
 
 fn source_snapshots(
@@ -8489,6 +8699,7 @@ mod tests {
             key_questions: Vec::new(),
             risks: Vec::new(),
             follow_up_draft: text,
+            ledger: None,
         }
     }
 
@@ -8891,7 +9102,14 @@ mod tests {
             )
             .unwrap();
         assert_eq!(receipt, duplicate);
-        assert_eq!(store.list_sessions(None, 10).unwrap().entries.len(), 1);
+        assert_eq!(
+            store
+                .list_sessions(None, 10, &MeetingListFilter::default())
+                .unwrap()
+                .entries
+                .len(),
+            1
+        );
     }
 
     #[test]
@@ -9468,5 +9686,507 @@ mod tests {
             .cloud_conflict(object_id)
             .expect("conflict lookup")
             .is_none());
+    }
+
+    /// Seed one listable session: created at `created_at_utc_ms`, in `phase`,
+    /// with `processing_status` as the stored JSON tag, one closed capture
+    /// window of `capture_ms`, both source tracks, and the named speakers.
+    fn list_session(
+        store: &MeetingStore,
+        created_at_utc_ms: i64,
+        phase: MeetingPhase,
+        processing_status: &str,
+        capture_ms: i64,
+        speakers: &[&str],
+    ) -> MeetingSessionId {
+        let session_id = MeetingSessionId::new();
+        review_ready_session(store, session_id);
+        let plan_id = MeetingPlanId::new();
+        let connection = store.connection().expect("store connection");
+        connection
+            .execute(
+                "UPDATE meeting_sessions
+                 SET created_at_utc_ms = ?1, phase = ?2, processing_status = ?3
+                 WHERE id = ?4",
+                params![
+                    created_at_utc_ms,
+                    phase_db(phase),
+                    processing_status,
+                    id(session_id)
+                ],
+            )
+            .expect("set listed session state");
+        connection
+            .execute(
+                "INSERT INTO meeting_run_plans (
+                    plan_id, session_id, attempt_number, schema_version, consent_id,
+                    canonical_plan_json, created_at_utc_ms
+                 ) VALUES (?1, ?2, 1, 1, ?3, '{}', 1)",
+                params![id(plan_id), id(session_id), id(ConsentId::new())],
+            )
+            .expect("insert listed plan");
+        for source_kind in ["microphone", "system_audio"] {
+            connection
+                .execute(
+                    "INSERT INTO meeting_source_tracks (
+                        track_id, session_id, plan_id, source_kind, required, requested,
+                        descriptor_json, timestamp_bridge_json, health
+                     ) VALUES (?1, ?2, ?3, ?4, 1, 1, '{}', '{}', '\"healthy\"')",
+                    params![
+                        id(SourceTrackId::new()),
+                        id(session_id),
+                        id(plan_id),
+                        source_kind
+                    ],
+                )
+                .expect("insert listed track");
+        }
+        // Two windows, one still open: only the closed one is recorded time,
+        // which is what a paused-then-abandoned session really has.
+        connection
+            .execute(
+                "INSERT INTO meeting_capture_windows (
+                    session_id, sequence, start_offset_ns, end_offset_ns, close_reason
+                 ) VALUES (?1, 0, 0, ?2, 'paused'), (?1, 1, ?2, NULL, NULL)",
+                params![id(session_id), capture_ms * 1_000_000],
+            )
+            .expect("insert listed capture windows");
+        for name in speakers {
+            connection
+                .execute(
+                    "INSERT INTO meeting_speakers (
+                        speaker_id, session_id, source_kind, display_name, revision
+                     ) VALUES (?1, ?2, 'microphone', ?3, 0)",
+                    params![id(SpeakerId::new()), id(session_id), name],
+                )
+                .expect("insert listed speaker");
+        }
+        session_id
+    }
+
+    /// Attach one current artifact revision carrying `summary` and `ledger`.
+    fn list_artifact(
+        store: &MeetingStore,
+        session_id: MeetingSessionId,
+        summary: &str,
+        ledger_headline: Option<&str>,
+    ) {
+        let mut artifacts = trend_artifacts(0);
+        artifacts.summary = CitedArtifactText {
+            text: summary.to_string(),
+            citations: Vec::new(),
+        };
+        artifacts.ledger = ledger_headline.map(|headline| crate::meeting::ledger::MeetingLedger {
+            headline: headline.to_string(),
+            threads: Vec::new(),
+            open_loops: Vec::new(),
+            commitments: Vec::new(),
+            stances: Vec::new(),
+            caveats: Vec::new(),
+            receipts: crate::meeting::ledger::LedgerReceiptState::Verified,
+        });
+        /* A meeting with generated prose always has a transcript behind it, so
+         * the fixture builds one and makes it current. That also proves the
+         * artifact path short-circuits before the word count. */
+        let transcript_revision_id = TranscriptRevisionId::new();
+        let connection = store.connection().expect("store connection");
+        connection
+            .execute(
+                "INSERT INTO meeting_transcript_revisions (
+                    transcript_revision_id, session_id, engine_id, destination_json,
+                    source_set_json, language, state, created_at_utc_ms, completed_at_utc_ms
+                 ) VALUES (?1, ?2, 'test', '{}', '[]', 'en', 'completed', 1, 1)",
+                params![id(transcript_revision_id), id(session_id)],
+            )
+            .expect("insert artifact transcript revision");
+        connection
+            .execute(
+                "UPDATE meeting_sessions SET current_transcript_revision_id = ?1 WHERE id = ?2",
+                params![id(transcript_revision_id), id(session_id)],
+            )
+            .expect("set artifact current transcript");
+        connection
+            .execute(
+                "INSERT INTO meeting_artifact_revisions (
+                    artifact_id, session_id, transcript_revision_id, input_revision, template_id,
+                    template_version, generation_key, state, content_json, generated_at_utc_ms
+                 ) VALUES (?1, ?2, ?3, 0, 'test', 1, ?4, 'current', ?5, 1)",
+                params![
+                    id(MeetingArtifactId::new()),
+                    id(session_id),
+                    id(transcript_revision_id),
+                    format!("key-{}", id(session_id)),
+                    serde_json::to_string(&artifacts).expect("encode listed artifacts"),
+                ],
+            )
+            .expect("insert listed artifact");
+    }
+
+    /// Give `session_id` a current transcript of `texts` and no artifacts, so
+    /// its row has to fall back to counting words.
+    fn list_transcript(store: &MeetingStore, session_id: MeetingSessionId, texts: &[&str]) {
+        let transcript_revision_id = TranscriptRevisionId::new();
+        let speaker_id = SpeakerId::new();
+        let connection = store.connection().expect("store connection");
+        let track_id: String = connection
+            .query_row(
+                "SELECT track_id FROM meeting_source_tracks WHERE session_id = ?1 LIMIT 1",
+                params![id(session_id)],
+                |row| row.get(0),
+            )
+            .expect("listed track");
+        connection
+            .execute(
+                "INSERT INTO meeting_transcript_revisions (
+                    transcript_revision_id, session_id, engine_id, destination_json,
+                    source_set_json, language, state, created_at_utc_ms, completed_at_utc_ms
+                 ) VALUES (?1, ?2, 'test', '{}', '[]', 'en', 'completed', 1, 1)",
+                params![id(transcript_revision_id), id(session_id)],
+            )
+            .expect("insert listed transcript revision");
+        connection
+            .execute(
+                "UPDATE meeting_sessions SET current_transcript_revision_id = ?1 WHERE id = ?2",
+                params![id(transcript_revision_id), id(session_id)],
+            )
+            .expect("set listed current transcript");
+        connection
+            .execute(
+                "INSERT INTO meeting_speakers (
+                    speaker_id, session_id, source_kind, display_name, revision
+                 ) VALUES (?1, ?2, 'microphone', 'Transcript speaker', 0)",
+                params![id(speaker_id), id(session_id)],
+            )
+            .expect("insert listed transcript speaker");
+        for (ordinal, text) in texts.iter().enumerate() {
+            connection
+                .execute(
+                    "INSERT INTO meeting_transcript_segments (
+                        segment_id, transcript_revision_id, track_id, ordinal, start_offset_ns,
+                        end_offset_ns, speaker_id, base_text, confidence_milli
+                     ) VALUES (?1, ?2, ?3, ?4, 0, 1000000000, ?5, ?6, NULL)",
+                    params![
+                        id(TranscriptSegmentId::new()),
+                        id(transcript_revision_id),
+                        track_id,
+                        i64::try_from(ordinal).expect("segment ordinal"),
+                        id(speaker_id),
+                        text
+                    ],
+                )
+                .expect("insert listed transcript segment");
+        }
+    }
+
+    fn listed(store: &MeetingStore, filter: &MeetingListFilter) -> Vec<MeetingHistorySummary> {
+        store
+            .list_sessions(None, 50, filter)
+            .expect("meeting list page")
+            .entries
+    }
+
+    #[test]
+    fn listed_rows_carry_recorded_capture_sources_and_speaker_labels() {
+        let (_directory, store) = store();
+        let session_id = list_session(
+            &store,
+            local_noon_ms(Local::now().date_naive()),
+            MeetingPhase::ReviewReady,
+            r#"{"kind":"succeeded"}"#,
+            192_000,
+            &["Ada", "Grace"],
+        );
+        list_artifact(&store, session_id, "Shipped the parser.", None);
+
+        let entries = listed(&store, &MeetingListFilter::default());
+        assert_eq!(entries.len(), 1);
+        let row = &entries[0];
+        // The open second window contributes nothing: only closed capture is
+        // time this meeting can prove it recorded.
+        assert_eq!(row.recorded_duration_ms, Some(192_000));
+        assert_eq!(
+            row.sources,
+            vec![SourceKind::Microphone, SourceKind::SystemAudio]
+        );
+        assert_eq!(row.speaker_labels, vec!["Ada", "Grace"]);
+    }
+
+    #[test]
+    fn listed_headline_prefers_the_ledger_then_one_summary_sentence_then_words() {
+        let (_directory, store) = store();
+        let today = local_noon_ms(Local::now().date_naive());
+        let ledger = list_session(
+            &store,
+            today,
+            MeetingPhase::ReviewReady,
+            r#"{"kind":"succeeded"}"#,
+            1_000,
+            &[],
+        );
+        list_artifact(
+            &store,
+            ledger,
+            "Summary that must lose to the ledger.",
+            Some("Pricing came back at the end and is open again."),
+        );
+        let summary = list_session(
+            &store,
+            today - 1,
+            MeetingPhase::ReviewReady,
+            r#"{"kind":"succeeded"}"#,
+            1_000,
+            &[],
+        );
+        list_artifact(
+            &store,
+            summary,
+            "First sentence stands alone. Second sentence must not reach the row.",
+            None,
+        );
+        let words = list_session(
+            &store,
+            today - 2,
+            MeetingPhase::ReviewReady,
+            r#"{"kind":"succeeded"}"#,
+            1_000,
+            &[],
+        );
+        list_transcript(&store, words, &["one two three", "four five"]);
+        let silent = list_session(
+            &store,
+            today - 3,
+            MeetingPhase::Processing,
+            r#"{"kind":"running"}"#,
+            1_000,
+            &[],
+        );
+
+        let entries = listed(&store, &MeetingListFilter::default());
+        let headline = |session_id: MeetingSessionId| {
+            entries
+                .iter()
+                .find(|row| row.session_id == session_id)
+                .map(|row| row.headline.clone())
+                .expect("listed session")
+        };
+        assert_eq!(
+            headline(ledger),
+            MeetingHistoryHeadline::Ledger {
+                text: "Pricing came back at the end and is open again.".to_string()
+            }
+        );
+        assert_eq!(
+            headline(summary),
+            MeetingHistoryHeadline::Summary {
+                text: "First sentence stands alone.".to_string()
+            }
+        );
+        assert_eq!(headline(words), MeetingHistoryHeadline::Words { words: 5 });
+        // Nothing generated and nothing transcribed is not a zero word count.
+        assert_eq!(headline(silent), MeetingHistoryHeadline::None);
+    }
+
+    #[test]
+    fn listed_status_filter_reads_stored_phase_and_processing_status() {
+        let (_directory, store) = store();
+        let today = local_noon_ms(Local::now().date_naive());
+        let ready = list_session(
+            &store,
+            today,
+            MeetingPhase::ReviewReady,
+            r#"{"kind":"succeeded"}"#,
+            1_000,
+            &[],
+        );
+        let processing = list_session(
+            &store,
+            today - 1,
+            MeetingPhase::Processing,
+            r#"{"kind":"running"}"#,
+            1_000,
+            &[],
+        );
+        let failed = list_session(
+            &store,
+            today - 2,
+            MeetingPhase::ReviewReady,
+            r#"{"kind":"failed","reason":"engine_failure"}"#,
+            1_000,
+            &[],
+        );
+        let recovery = list_session(
+            &store,
+            today - 3,
+            MeetingPhase::RecoveryRequired,
+            r#"{"kind":"pending"}"#,
+            1_000,
+            &[],
+        );
+
+        let ids = |status| {
+            listed(
+                &store,
+                &MeetingListFilter {
+                    status,
+                    ..MeetingListFilter::default()
+                },
+            )
+            .into_iter()
+            .map(|row| row.session_id)
+            .collect::<Vec<_>>()
+        };
+        assert_eq!(ids(MeetingStatusFilter::Any).len(), 4);
+        assert_eq!(ids(MeetingStatusFilter::Ready), vec![ready]);
+        // Recovery is pending processing, so it answers both questions a
+        // person can ask about it: it is not finished, and it needs a hand.
+        assert_eq!(
+            ids(MeetingStatusFilter::Processing),
+            vec![processing, recovery]
+        );
+        assert_eq!(ids(MeetingStatusFilter::Failed), vec![failed, recovery]);
+    }
+
+    #[test]
+    fn listed_time_window_counts_local_calendar_days_including_today() {
+        let (_directory, store) = store();
+        let today = Local::now().date_naive();
+        let day = |back: u64| {
+            local_noon_ms(
+                today
+                    .checked_sub_days(chrono::Days::new(back))
+                    .expect("representable past day"),
+            )
+        };
+        for back in [0_u64, 3, 12, 40] {
+            list_session(
+                &store,
+                day(back),
+                MeetingPhase::ReviewReady,
+                r#"{"kind":"succeeded"}"#,
+                1_000,
+                &[],
+            );
+        }
+
+        let count = |window| {
+            listed(
+                &store,
+                &MeetingListFilter {
+                    window,
+                    ..MeetingListFilter::default()
+                },
+            )
+            .len()
+        };
+        assert_eq!(count(MeetingTimeWindow::Any), 4);
+        assert_eq!(count(MeetingTimeWindow::Today), 1);
+        assert_eq!(count(MeetingTimeWindow::Last7Days), 2);
+        assert_eq!(count(MeetingTimeWindow::Last30Days), 3);
+    }
+
+    #[test]
+    fn listed_title_query_matches_a_substring_and_treats_wildcards_literally() {
+        let (_directory, store) = store();
+        let today = local_noon_ms(Local::now().date_naive());
+        let plain = list_session(
+            &store,
+            today,
+            MeetingPhase::ReviewReady,
+            r#"{"kind":"succeeded"}"#,
+            1_000,
+            &[],
+        );
+        let percent = list_session(
+            &store,
+            today - 1,
+            MeetingPhase::ReviewReady,
+            r#"{"kind":"succeeded"}"#,
+            1_000,
+            &[],
+        );
+        let connection = store.connection().expect("store connection");
+        connection
+            .execute(
+                "UPDATE meeting_sessions SET title = 'Pricing review' WHERE id = ?1",
+                params![id(plain)],
+            )
+            .expect("set plain title");
+        connection
+            .execute(
+                "UPDATE meeting_sessions SET title = '100% done' WHERE id = ?1",
+                params![id(percent)],
+            )
+            .expect("set wildcard title");
+        drop(connection);
+
+        let ids = |query: &str| {
+            listed(
+                &store,
+                &MeetingListFilter {
+                    title_query: query.to_string(),
+                    ..MeetingListFilter::default()
+                },
+            )
+            .into_iter()
+            .map(|row| row.session_id)
+            .collect::<Vec<_>>()
+        };
+        // A substring, case-folded, and blank means no constraint.
+        assert_eq!(ids("ricing"), vec![plain]);
+        assert_eq!(ids("PRICING"), vec![plain]);
+        assert_eq!(ids("   ").len(), 2);
+        // A typed `%` is a per-cent sign, not "match anything".
+        assert_eq!(ids("100%"), vec![percent]);
+        assert!(ids("%done%").is_empty());
+    }
+
+    #[test]
+    fn listed_pages_apply_the_filter_to_every_page_and_report_more() {
+        let (_directory, store) = store();
+        let today = local_noon_ms(Local::now().date_naive());
+        for offset in 0..3_i64 {
+            list_session(
+                &store,
+                today - offset,
+                MeetingPhase::ReviewReady,
+                r#"{"kind":"succeeded"}"#,
+                1_000,
+                &[],
+            );
+            list_session(
+                &store,
+                today - offset,
+                MeetingPhase::Processing,
+                r#"{"kind":"running"}"#,
+                1_000,
+                &[],
+            );
+        }
+        let filter = MeetingListFilter {
+            status: MeetingStatusFilter::Ready,
+            ..MeetingListFilter::default()
+        };
+
+        let first = store
+            .list_sessions(None, 2, &filter)
+            .expect("first filtered page");
+        assert_eq!(first.entries.len(), 2);
+        assert!(first.has_more);
+        let cursor = first
+            .entries
+            .last()
+            .expect("first page has a last row")
+            .created_at_utc_ms;
+        let second = store
+            .list_sessions(Some(cursor), 2, &filter)
+            .expect("second filtered page");
+        assert_eq!(second.entries.len(), 1);
+        assert!(!second.has_more);
+        // Page two obeys the same filter, so a Processing row can never appear
+        // in a Ready list just because the cursor moved.
+        assert!(second
+            .entries
+            .iter()
+            .all(|row| row.phase == MeetingPhase::ReviewReady));
     }
 }

@@ -1,3 +1,4 @@
+use super::ledger::MeetingLedger;
 use crate::analytics::DashboardTrendRange;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -781,6 +782,25 @@ pub enum HistoryItemKind {
     Meeting,
 }
 
+/// Which of the three real sources line two of a meetings-list row came from.
+/// The row states this on itself, so a reader can tell the news a model wrote
+/// from a count the store measured, and never has to guess which one they are
+/// looking at.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum MeetingHistoryHeadline {
+    /// No generated prose and no transcript: there is nothing true to say yet.
+    #[default]
+    None,
+    /// `MeetingLedger::headline` from the current artifact revision.
+    Ledger { text: String },
+    /// First sentence of the current revision's generated notes summary.
+    Summary { text: String },
+    /// A transcript exists and prose does not, so the row reports how much was
+    /// said instead of nothing.
+    Words { words: u32 },
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 pub struct MeetingHistorySummary {
     pub kind: HistoryItemKind,
@@ -790,12 +810,81 @@ pub struct MeetingHistorySummary {
     pub created_at_utc_ms: i64,
     pub capture_completeness: CaptureCompleteness,
     pub processing_status: ProcessingStatus,
+    /// Capture time this meeting actually recorded, pauses excluded, summed
+    /// over its closed capture windows. `None` until one window has closed,
+    /// which is the state a session abandoned mid-capture is really in.
+    #[serde(default)]
+    pub recorded_duration_ms: Option<i64>,
+    /// Sources that really opened a track, in `SourceKind::ALL` order. Empty
+    /// before the first track exists.
+    #[serde(default)]
+    pub sources: Vec<SourceKind>,
+    /// Diarized speaker labels, merged-away speakers excluded, in the order
+    /// the store assigned them.
+    #[serde(default)]
+    pub speaker_labels: Vec<String>,
+    #[serde(default)]
+    pub headline: MeetingHistoryHeadline,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 pub struct PaginatedMeetings {
     pub entries: Vec<MeetingHistorySummary>,
     pub has_more: bool,
+}
+
+/// Which retained meetings one list page should contain. Every field defaults
+/// to "no constraint", so a caller that sends no filter still gets the whole
+/// list and an older caller keeps working unchanged.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingListFilter {
+    #[serde(default)]
+    pub status: MeetingStatusFilter,
+    #[serde(default)]
+    pub window: MeetingTimeWindow,
+    /// Case-insensitive substring of the title. Blank means no constraint.
+    #[serde(default)]
+    pub title_query: String,
+}
+
+/// The four states a person actually sorts a meeting list by. Each maps onto
+/// the stored phase and processing status rather than onto a label, so the
+/// filter and the row's own status chip can never disagree.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum MeetingStatusFilter {
+    #[default]
+    Any,
+    /// Processing succeeded and the meeting is waiting to be read.
+    Ready,
+    /// Capture has stopped and the artifacts are not finished.
+    Processing,
+    /// Processing failed or was cancelled, or capture needs recovery.
+    Failed,
+}
+
+/// A window of local calendar days, today included. `Any` is unbounded.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum MeetingTimeWindow {
+    #[default]
+    Any,
+    Today,
+    Last7Days,
+    Last30Days,
+}
+
+impl MeetingTimeWindow {
+    /// How many local calendar days the window spans, today included, or
+    /// `None` when it is unbounded.
+    pub const fn days(self) -> Option<u32> {
+        match self {
+            Self::Any => None,
+            Self::Today => Some(1),
+            Self::Last7Days => Some(7),
+            Self::Last30Days => Some(30),
+        }
+    }
 }
 
 /// Content-free aggregate for either the selected meeting trend range or all
@@ -906,6 +995,12 @@ pub struct GeneratedMeetingArtifacts {
     pub key_questions: Vec<CitedArtifactText>,
     pub risks: Vec<CitedArtifactText>,
     pub follow_up_draft: CitedArtifactText,
+    /// The where-did-we-land ledger for this meeting: threads, where each one
+    /// landed, and the receipt each state was read from. Defaulted rather than
+    /// required, so a revision generated before ledgers existed still reads
+    /// back; a `TEMPLATE_VERSION` bump is what retires those.
+    #[serde(default)]
+    pub ledger: Option<MeetingLedger>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]

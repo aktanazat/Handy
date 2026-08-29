@@ -115,14 +115,24 @@ pub async fn meeting_recovery_finalize(
     manager.recovery_finalize(request).await
 }
 
+/// One page of retained meetings. `filter` is optional and every field inside
+/// it defaults to "no constraint", so a caller that sends nothing still gets
+/// the whole list newest-first.
 #[tauri::command]
 #[specta::specta]
 pub async fn meeting_list(
     manager: State<'_, Arc<MeetingSessionManager>>,
     cursor_utc_ms: Option<i64>,
     limit: Option<usize>,
+    filter: Option<MeetingListFilter>,
 ) -> Result<PaginatedMeetings, MeetingCommandError> {
-    manager.list(cursor_utc_ms, limit.unwrap_or(50)).await
+    manager
+        .list(
+            cursor_utc_ms,
+            limit.unwrap_or(50),
+            filter.unwrap_or_default(),
+        )
+        .await
 }
 
 /// Return a tagged meeting trend. An unavailable result is a normal storage
@@ -252,6 +262,17 @@ pub async fn meeting_export(
     request: MeetingExportRequest,
 ) -> Result<MeetingExportResult, MeetingCommandError> {
     manager.export(request).await
+}
+
+/// Write the meeting's where-did-we-land ledger to a single self-contained
+/// HTML file and answer with the path it was written to.
+#[tauri::command]
+#[specta::specta]
+pub async fn produce_ledger_html(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    session_id: MeetingSessionId,
+) -> Result<String, MeetingCommandError> {
+    manager.produce_ledger_html(session_id).await
 }
 
 #[tauri::command]

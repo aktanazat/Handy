@@ -1,0 +1,1048 @@
+<!doctype html>
+<!--
+  Sona meeting ledger — a single self-contained page. No script fetch, no font
+  fetch, no network of any kind: it renders identically on a laptop in a tunnel.
+
+  Adapted from `template.html` in the where-did-we-land skill by gnurio
+  (MIT licence, https://github.com/gnurio/where-did-we-land). Kept from
+  upstream: the #convo data block, the schema its reader parses, the
+  textContent-only DOM construction (a transcript cannot inject markup), the
+  nine-state vocabulary and its glyphs, the section order, and the 4.5:1
+  contrast floor for body text. Changed for Sona: the Google Fonts import is
+  gone in favour of the system stacks, the palette is Sona's light theme with
+  each text colour's measured ratio recorded beside it, talk share is the
+  measured share of speech time rather than a share recomputed from word
+  counts, thread spans come from cited transcript stretches, and each section
+  carries a fixed caption instead of authored prose.
+
+  The privacy design is upstream's and it is unchanged: `turns` carries
+  [speakerIndex, secondsFromStart, wordCount]. Word counts, not words. The only
+  verbatim speech on this page is the receipt quotes.
+-->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Meeting ledger</title>
+
+<script type="application/json" id="convo">
+  { "REPLACE_THIS": "Sona replaces this block with the ledger JSON at export." }
+</script>
+
+<style>
+  /* Contrast measured against --bg (#ffffff), sRGB, WCAG 2.1 formula. Anything
+   below the 4.5:1 body floor is a non-text mark and is labelled as one. */
+  :root {
+    --bg: #ffffff;
+    --inset: #f2f2f2; /* recessed fill; 13/255 from the page, visible */
+    --ink: #171717; /* 17.9:1  body + headings */
+    --ink2: #666666; /*  5.74:1 secondary text */
+    --mark: #8f8f8f; /*  3.71:1 NON-TEXT marks only: rules, ticks */
+    --line: rgba(0, 0, 0, 0.1);
+    --accent: #0070f3; /*  4.55:1 links and focus */
+    --landed: #297a3b; /*  5.30:1 */
+    --open: #a35200; /*  5.59:1 */
+    --dropped: #cb292f; /*  5.37:1 */
+
+    /* The two type primitives, same stacks as the app: SF Pro and SF Mono via
+     the system aliases, Geist as the bundled cross-platform fallback. Named,
+     never fetched. */
+    --sans: system-ui, -apple-system, "Geist Sans", sans-serif;
+    --mono: ui-monospace, "Geist Mono", monospace;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    font-optical-sizing: auto;
+    font-synthesis: none;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 14px/1.55 var(--sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 28px 72px;
+  }
+
+  /* microlabel: the app's data label — mono, uppercase, tracked. */
+  .ml {
+    font: 500 10.5px/1.4 var(--mono);
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink2);
+  }
+
+  /* ── hero ─────────────────────────────────────────────── */
+  .hero {
+    padding: 40px 0 0;
+  }
+  .eyebrow {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: baseline;
+    font: 400 11px/1.4 var(--mono);
+    letter-spacing: 0.04em;
+    color: var(--ink2);
+  }
+  .eyebrow span::after {
+    content: "·";
+    margin-left: 10px;
+    color: var(--mark);
+  }
+  .eyebrow span:last-child::after {
+    content: "";
+  }
+  h1 {
+    font: 600 clamp(26px, 3.4vw, 34px) / 1.14 var(--sans);
+    letter-spacing: -0.022em;
+    margin: 14px 0 0;
+    max-width: 22ch;
+    text-wrap: balance;
+  }
+  .lede-hero {
+    font: 400 15.5px/1.6 var(--sans);
+    color: var(--ink2);
+    max-width: 66ch;
+    margin: 12px 0 0;
+    text-wrap: pretty;
+  }
+  .key {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin: 18px 0 0;
+    font: 400 12px/1.4 var(--mono);
+    color: var(--ink);
+  }
+  .key i {
+    display: inline-block;
+    width: 18px;
+    height: 4px;
+    border-radius: 2px;
+    margin-right: 8px;
+    vertical-align: 2px;
+  }
+
+  /* ── stat band ────────────────────────────────────────── */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    margin: 32px 0 0;
+    border-top: 1px solid var(--line);
+  }
+  .stat {
+    padding: 14px 20px 16px;
+    border-left: 1px solid var(--line);
+    min-width: 0;
+  }
+  .stat:first-child {
+    border-left: none;
+    padding-left: 0;
+  }
+  .stat .v {
+    font: 600 27px/1.05 var(--sans);
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin: 8px 0 5px;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat .n {
+    font: 400 11.5px/1.45 var(--mono);
+    color: var(--ink2);
+    text-wrap: pretty;
+  }
+
+  /* ── sections ─────────────────────────────────────────── */
+  section {
+    margin-top: 44px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+  h2 {
+    margin: 0;
+    font: 600 17px/1.3 var(--sans);
+    letter-spacing: -0.014em;
+    max-width: 44ch;
+  }
+  .lede {
+    font: 400 13px/1.6 var(--sans);
+    color: var(--ink2);
+    max-width: 76ch;
+    margin: 7px 0 0;
+    text-wrap: pretty;
+  }
+
+  .plot {
+    margin-top: 18px;
+    overflow-x: auto;
+  }
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    min-width: 820px;
+  }
+  .rowlab {
+    font: 400 11.5px var(--sans);
+    fill: var(--ink);
+  }
+  .rowid {
+    font: 400 10px var(--mono);
+    fill: var(--ink2);
+    letter-spacing: 0.06em;
+  }
+  .tick {
+    font: 400 10px var(--mono);
+    fill: var(--ink2);
+  }
+  .grid {
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+  .rule {
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+  .axis {
+    stroke: var(--mark);
+    stroke-width: 1;
+  }
+  .seg {
+    shape-rendering: crispEdges;
+    transition: opacity 0.14s var(--ease);
+  }
+  svg:hover .seg {
+    opacity: 0.4;
+  }
+  svg .seg:hover {
+    opacity: 1;
+  }
+  .tag {
+    font: 400 11px var(--mono);
+  }
+  .f-landed {
+    fill: var(--landed);
+  }
+  .f-open {
+    fill: var(--open);
+  }
+  .f-dropped {
+    fill: var(--dropped);
+  }
+
+  /* ── tables ───────────────────────────────────────────── */
+  .tbl {
+    margin-top: 14px;
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 720px;
+  }
+  th {
+    text-align: left;
+    font: 500 10.5px/1.4 var(--mono);
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink2);
+    padding: 0 18px 8px 0;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  th:last-child {
+    padding-right: 0;
+  }
+  td {
+    padding: 11px 18px 11px 0;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+    font: 400 13px/1.5 var(--sans);
+    color: var(--ink);
+    text-wrap: pretty;
+  }
+  td:last-child {
+    padding-right: 0;
+  }
+  tr:last-child td {
+    border-bottom: none;
+  }
+  tbody tr {
+    transition: background-color 0.14s var(--ease);
+  }
+  tbody tr:hover {
+    background: var(--inset);
+  }
+  .tnum {
+    font: 400 11.5px var(--mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink2);
+    white-space: nowrap;
+  }
+  .rid {
+    font: 400 10.5px var(--mono);
+    color: var(--ink2);
+    white-space: nowrap;
+  }
+  .hd {
+    font-weight: 500;
+  }
+  q {
+    quotes: "\201C" "\201D";
+    display: block;
+    color: var(--ink);
+  }
+  .attr {
+    display: block;
+    margin-top: 4px;
+    font: 400 11px/1.4 var(--mono);
+    color: var(--ink2);
+  }
+  .tg {
+    white-space: nowrap;
+    font: 400 12px/1.4 var(--mono);
+  }
+  .tg .dot {
+    margin-right: 7px;
+  }
+  .tg.landed {
+    color: var(--landed);
+  }
+  .tg.open {
+    color: var(--open);
+  }
+  .tg.dropped {
+    color: var(--dropped);
+  }
+
+  /* ── airtime ──────────────────────────────────────────── */
+  .share {
+    display: flex;
+    height: 6px;
+    overflow: hidden;
+    margin: 12px 0 0;
+    gap: 2px;
+  }
+  .share div {
+    height: 100%;
+  }
+  .sharekey {
+    display: flex;
+    gap: 26px;
+    flex-wrap: wrap;
+    margin: 20px 0 0;
+    font: 400 11.5px/1.5 var(--mono);
+    color: var(--ink2);
+  }
+  .sharekey b {
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .plotcap {
+    margin: 18px 0 0;
+  }
+
+  /* ── trust ────────────────────────────────────────────── */
+  .trust {
+    margin-top: 12px;
+    max-width: 78ch;
+  }
+  .trust p {
+    margin: 0;
+    font: 400 13px/1.6 var(--sans);
+    color: var(--ink2);
+    text-wrap: pretty;
+  }
+  .trust .hdl {
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .trust ul {
+    margin: 14px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .trust li {
+    padding: 10px 0 10px 18px;
+    border-top: 1px solid var(--line);
+    position: relative;
+    font: 400 12.5px/1.55 var(--sans);
+    color: var(--ink2);
+  }
+  .trust li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 18px;
+    width: 9px;
+    height: 1px;
+    background: var(--mark);
+  }
+
+  footer {
+    margin-top: 44px;
+    padding: 14px 0 0;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    font: 400 11px/1.5 var(--mono);
+    color: var(--ink2);
+  }
+  .err {
+    color: var(--dropped);
+    padding: 20px 0;
+    font: 500 14px var(--sans);
+  }
+
+  .plot:focus-visible,
+  .tbl:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+    svg:hover .seg {
+      opacity: 1;
+    }
+  }
+</style>
+
+<div class="wrap" id="root"></div>
+
+<script>
+  (function () {
+    var root = document.getElementById("root");
+    var SVGNS = "http://www.w3.org/2000/svg";
+
+    /* Every value from the JSON reaches the page as a text node or an attribute,
+     never as parsed markup — a transcript cannot inject HTML. */
+    function el(tag, cls, txt, parent) {
+      var e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (txt !== undefined && txt !== null) e.textContent = String(txt);
+      if (parent) parent.appendChild(e);
+      return e;
+    }
+    function sv(tag, attrs, parent) {
+      var e = document.createElementNS(SVGNS, tag);
+      for (var k in attrs) e.setAttribute(k, attrs[k]);
+      if (parent) parent.appendChild(e);
+      return e;
+    }
+    function fail(msg) {
+      el("div", "err", msg, root);
+    }
+
+    var D;
+    try {
+      D = JSON.parse(document.getElementById("convo").textContent);
+    } catch (e) {
+      return fail("Bad JSON in the #convo block: " + e.message);
+    }
+    if (!D || D.REPLACE_THIS)
+      return fail("Template not filled in — replace the #convo JSON block.");
+
+    /* state → [label, glyph]. The tone comes from `outcome`, which the exporter
+     already rolled up, so the page and the app agree on what "landed" means. */
+    var STATE = {
+      decided: ["Decided", "\u25CF"],
+      agreed: ["Agreed", "\u25CF"],
+      action: ["Action owned", "\u25CF"],
+      closed: ["Closed", "\u25CF"],
+      open: ["Open", "\u25CB"],
+      partial: ["Half-decided", "\u25D0"],
+      ambiguous: ["No explicit answer", "\u25D0"],
+      unanswered: ["No reply", "\u2715"],
+      dropped: ["Dropped", "\u2715"],
+    };
+    var st_of = function (k) {
+      return STATE[k] || ["Unclassified", "\u25CB"];
+    };
+    var mmss = function (s) {
+      return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+    };
+    var pad2 = function (n) {
+      return String(n).padStart(2, "0");
+    };
+    var pct = function (permille) {
+      return Math.round(permille / 10) + "%";
+    };
+    /* Flat monochrome first, accent second: the ramp is the app's, not a
+     decorative palette. Indices follow `participants`. */
+    var RAMP = [
+      "#171717",
+      "#0070f3",
+      "#666666",
+      "#297a3b",
+      "#a35200",
+      "#cb292f",
+      "#8f8f8f",
+      "#c9c9c9",
+    ];
+    var scol = function (i) {
+      return i < 0 ? "#c9c9c9" : RAMP[i % RAMP.length];
+    };
+
+    var P = D.participants,
+      T0 = D.meta.start,
+      T1 = D.meta.end,
+      SPAN = Math.max(1, T1 - T0);
+
+    /* ---------- measured, copied ---------- */
+    /* turn[2] is a word count. The exporter writes three integers per turn, so
+     there is nothing here to coerce and nothing to guess. */
+    var words = P.map(function () {
+      return 0;
+    });
+    D.turns.forEach(function (t) {
+      if (t[0] < 0 || t[0] >= P.length) return;
+      words[t[0]] += t[2];
+    });
+    var totW = words.reduce(function (a, w) {
+      return a + w;
+    }, 0);
+
+    var subst = D.topics.filter(function (t) {
+      return t.substantive;
+    });
+    var scored = subst.length ? subst : D.topics;
+    var count = function (rows, outcome) {
+      return rows.filter(function (t) {
+        return t.outcome === outcome;
+      }).length;
+    };
+    var nLanded = count(scored, "landed"),
+      nOpen = count(scored, "open"),
+      nDropped = count(scored, "dropped");
+    var loopbacks = D.topics.filter(function (t) {
+      return t.segs.length > 1;
+    }).length;
+
+    /* ---------- geometry ---------- */
+    var W = 1120,
+      LBL = 300,
+      PADR = 170,
+      PLOT = W - LBL - PADR,
+      ROW = 24,
+      BAR = 7;
+    var X = function (t) {
+      return LBL + ((t - T0) / SPAN) * PLOT;
+    };
+    var STEP = SPAN > 2400 ? 300 : SPAN > 600 ? 180 : 60;
+    var firstTick = Math.ceil(T0 / STEP) * STEP;
+
+    function section(title, lede) {
+      var s = el("section", null, null, root);
+      el("h2", null, title, s);
+      if (lede) el("p", "lede", lede, s);
+      return s;
+    }
+    function scroller(cls, parent, label) {
+      var d = el("div", cls, null, parent);
+      d.tabIndex = 0;
+      d.setAttribute("role", "region");
+      d.setAttribute("aria-label", label);
+      return d;
+    }
+    // cells: string | {cls,text} | {q,attr} | {tag:{label,glyph,outcome,state}}
+    function table(parent, label, cols, rows) {
+      var box = scroller("tbl", parent, label);
+      var t = el("table", null, null, box);
+      var hr = el("tr", null, null, el("thead", null, null, t));
+      cols.forEach(function (c) {
+        el("th", null, c, hr);
+      });
+      var tb = el("tbody", null, null, t);
+      rows.forEach(function (cells) {
+        var tr = el("tr", null, null, tb);
+        cells.forEach(function (c) {
+          if (c === null || typeof c !== "object") {
+            el("td", null, c === null ? "" : c, tr);
+            return;
+          }
+          var td = el("td", c.cls || null, null, tr);
+          if (c.q !== undefined) {
+            el("q", null, c.q, td);
+            if (c.attr) el("span", "attr", c.attr, td);
+          } else if (c.tag) {
+            var sp = el(
+              "span",
+              "tg " + c.tag.outcome + " s-" + c.tag.state,
+              null,
+              td,
+            );
+            el("span", "dot", c.tag.glyph, sp);
+            sp.appendChild(document.createTextNode(c.tag.label));
+          } else {
+            td.textContent = c.text === undefined ? "" : String(c.text);
+          }
+        });
+      });
+    }
+    function empty(parent, msg) {
+      el("p", "lede", msg, parent);
+    }
+
+    /* ---------- hero ---------- */
+    var hero = el("div", "hero", null, root);
+    var eb = el("div", "eyebrow", null, hero);
+    var kind = D.meta.kind || "Conversation record";
+    el("span", null, kind, eb);
+    el(
+      "span",
+      null,
+      mmss(T0) + "–" + mmss(T1) + ", " + Math.round(SPAN / 60) + " min",
+      eb,
+    );
+    el("span", null, D.meta.source, eb);
+
+    /* Tab title: names | date | kind. meta.date is a plain "YYYY-MM-DD" split on
+     "-", never `new Date(...)` — that path reads a date-only ISO string as UTC
+     midnight and renders the previous day in any timezone behind UTC. */
+    var MONTHS = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    var firstNames = P.map(function (p) {
+      return p.name.split(" ")[0];
+    });
+    var titleParts = [];
+    if (firstNames.length) {
+      titleParts.push(
+        firstNames.length <= 3
+          ? firstNames.join(" & ")
+          : firstNames[0] + " + " + (firstNames.length - 1) + " others",
+      );
+    }
+    if (D.meta.date) {
+      var dp = D.meta.date.split("-");
+      titleParts.push(
+        MONTHS[parseInt(dp[1], 10) - 1] + " " + parseInt(dp[2], 10),
+      );
+    }
+    titleParts.push(kind);
+    document.title = titleParts.join(" | ");
+
+    el("h1", null, D.meta.title, hero);
+    el("p", "lede-hero", D.meta.headline, hero);
+    var key = el("div", "key", null, hero);
+    P.forEach(function (p, i) {
+      var k = el("span", null, null, key);
+      el("i", null, null, k).style.background = scol(i);
+      k.appendChild(document.createTextNode(p.name));
+    });
+
+    var stats = el("div", "stats", null, root);
+    function stile(k, v, n) {
+      var d = el("div", "stat", null, stats);
+      el("div", "ml", k, d);
+      el("div", "v", v, d);
+      el("div", "n", n, d);
+    }
+    stile(
+      "Threads landed",
+      nLanded + "/" + scored.length,
+      nOpen + " open · " + nDropped + " dropped",
+    );
+    stile(
+      "Talk share",
+      D.talkShare
+        .map(function (s) {
+          return pct(s.sharePermille);
+        })
+        .join(" / "),
+      D.talkShare
+        .map(function (s) {
+          return s.turnCount + " turns";
+        })
+        .join(" · "),
+    );
+    stile(
+      "Commitments",
+      String(D.commitments.length),
+      D.commitments.filter(function (c) {
+        return c.firmness === "Firm";
+      }).length + " firm",
+    );
+    stile(
+      "Open loops",
+      String(D.openLoops.length),
+      loopbacks + " threads came back",
+    );
+    stile(
+      "Floor changes",
+      String(D.interactionCount),
+      D.medianSwitchGapMs === undefined
+        ? "no handover measured"
+        : "median gap " + (D.medianSwitchGapMs / 1000).toFixed(1) + "s",
+    );
+    stile(
+      "Turns",
+      String(D.turns.length),
+      totW.toLocaleString() + " words counted",
+    );
+
+    /* ---------- 01 timeline ---------- */
+    var s1sec = section(
+      "Topic timeline",
+      "One row per thread. Two bars mean the subject was left and came back. Each bar is a " +
+        "stretch of transcript the thread was read from, not an estimate of when it was discussed.",
+    );
+    if (!D.topics.length) {
+      empty(s1sec, "No threads were read out of this transcript.");
+    } else {
+      var plot = scroller("plot", s1sec, "Topic occupancy over time");
+      var H = ROW * D.topics.length + 40;
+      var s1 = sv(
+        "svg",
+        {
+          viewBox: "0 0 " + W + " " + H,
+          role: "img",
+          "aria-label": "Topic occupancy over time",
+        },
+        plot,
+      );
+      for (var t = firstTick; t < T1; t += STEP) {
+        sv(
+          "line",
+          {
+            class: "grid",
+            x1: X(t).toFixed(1),
+            x2: X(t).toFixed(1),
+            y1: 6,
+            y2: 16 + ROW * D.topics.length,
+          },
+          s1,
+        );
+        sv(
+          "text",
+          {
+            class: "tick",
+            x: X(t).toFixed(1),
+            y: 32 + ROW * D.topics.length,
+            "text-anchor": "middle",
+          },
+          s1,
+        ).textContent = mmss(t);
+      }
+      D.topics.forEach(function (tp, i) {
+        var y = 16 + i * ROW,
+          cy = y + BAR / 2;
+        sv("text", { class: "rowid", x: 0, y: y + BAR + 1 }, s1).textContent =
+          "T" + pad2(i + 1);
+        sv("text", { class: "rowlab", x: 40, y: y + BAR + 1 }, s1).textContent =
+          tp.label.length > 40 ? tp.label.slice(0, 39) + "\u2026" : tp.label;
+        sv(
+          "line",
+          { class: "rule", x1: LBL, x2: LBL + PLOT, y1: cy, y2: cy },
+          s1,
+        );
+        tp.segs.forEach(function (s) {
+          var w = Math.max(3, X(s[1]) - X(s[0]));
+          var r = sv(
+            "rect",
+            {
+              class: "seg",
+              fill: scol(s[2]),
+              x: X(s[0]).toFixed(1),
+              y: y,
+              width: w.toFixed(1),
+              height: BAR,
+            },
+            s1,
+          );
+          var who =
+            s[2] >= 0 && s[2] < P.length ? P[s[2]].name : "Unattributed";
+          sv("title", {}, r).textContent =
+            tp.label + " — " + mmss(s[0]) + "–" + mmss(s[1]) + ", " + who;
+        });
+        var stt = st_of(tp.state);
+        var g = sv(
+          "text",
+          { class: "tag f-" + tp.outcome, x: LBL + PLOT + 16, y: y + BAR + 1 },
+          s1,
+        );
+        g.textContent = stt[1] + "  " + stt[0];
+      });
+      sv(
+        "line",
+        {
+          class: "axis",
+          x1: LBL,
+          x2: LBL + PLOT,
+          y1: 12 + ROW * D.topics.length,
+          y2: 12 + ROW * D.topics.length,
+        },
+        s1,
+      );
+    }
+
+    /* ---------- 02 ledger ---------- */
+    var s2 = section(
+      "Ledger — every thread, with its receipt",
+      "The state is a judgment; the quote beside it is what the judgment was read from, copied " +
+        "from the transcript character for character and checked against it before this page was written.",
+    );
+    if (!D.topics.length) empty(s2, "No threads carry a receipt.");
+    else
+      table(
+        s2,
+        "Thread ledger",
+        ["", "Raised", "Thread", "State", "Receipt"],
+        D.topics.map(function (tp, i) {
+          var stt = st_of(tp.state);
+          return [
+            { cls: "rid", text: "T" + pad2(i + 1) },
+            { cls: "tnum", text: tp.segs.length ? mmss(tp.segs[0][0]) : tp.ts },
+            { cls: "hd", text: tp.label + (tp.owner ? " — " + tp.owner : "") },
+            {
+              tag: {
+                label: stt[0],
+                glyph: stt[1],
+                outcome: tp.outcome,
+                state: tp.state,
+              },
+            },
+            { q: tp.quote, attr: [tp.who, tp.ts].filter(Boolean).join(", ") },
+          ];
+        }),
+      );
+
+    /* ---------- 03 open loops ---------- */
+    var s3 = section(
+      "Open loops — raised, never closed",
+      "The question as it was asked, and what happened instead of an answer.",
+    );
+    if (!D.openLoops.length)
+      empty(s3, "No question was left without an answer.");
+    else
+      table(
+        s3,
+        "Open loops",
+        ["At", "The question", "What happened instead"],
+        D.openLoops.map(function (o) {
+          return [
+            { cls: "tnum", text: o.at },
+            { cls: "hd", text: o.question },
+            o.instead,
+          ];
+        }),
+      );
+
+    /* ---------- 04 commitments ---------- */
+    var s4 = section(
+      "Commitments",
+      "Owner, what, when, and how firmly it was said. Firmness is read from the language used.",
+    );
+    if (!D.commitments.length)
+      empty(s4, "Nobody committed to anything out loud.");
+    else
+      table(
+        s4,
+        "Commitments",
+        ["Owner", "Commitment", "At", "Firmness", "Receipt"],
+        D.commitments.map(function (c) {
+          return [
+            { cls: "hd", text: c.owner },
+            c.what,
+            { cls: "tnum", text: c.at },
+            { cls: "tnum", text: c.firmness },
+            { q: c.quote },
+          ];
+        }),
+      );
+
+    /* ---------- 05 stances ---------- */
+    var s5 = section(
+      "Stances — who agreed with whom",
+      "A reversal is a finding. So is a conversation with no disagreement in it at all.",
+    );
+    if (!D.stances.length) empty(s5, "No position was taken up or reversed.");
+    else
+      table(
+        s5,
+        "Stances",
+        ["At", "Direction", "What", "How it was taken"],
+        D.stances.map(function (s) {
+          return [
+            { cls: "tnum", text: s.at },
+            { cls: "hd", text: s.from + " \u2192 " + s.to },
+            s.what,
+            s.note,
+          ];
+        }),
+      );
+
+    /* ---------- 06 airtime ---------- */
+    var s6sec = section(
+      "Airtime",
+      "Share is of speech time, measured by Sona and copied here — not recomputed from the " +
+        "word counts below, so this page and the app can never disagree.",
+    );
+    var sk = el("div", "sharekey", null, s6sec);
+    D.talkShare.forEach(function (s, i) {
+      var w = el("span", null, null, sk);
+      el("b", null, s.name, w);
+      w.appendChild(
+        document.createTextNode(
+          " \u2014 " +
+            pct(s.sharePermille) +
+            ", " +
+            mmss(s.speakingSeconds) +
+            " speaking, " +
+            s.turnCount +
+            " turns, longest run " +
+            mmss(s.longestMonologueSeconds) +
+            ", " +
+            words[i].toLocaleString() +
+            " words",
+        ),
+      );
+    });
+    var share = el("div", "share", null, s6sec);
+    D.talkShare.forEach(function (s, i) {
+      var d = el("div", null, null, share);
+      d.style.background = scol(i);
+      d.style.flex = String(Math.max(1, s.sharePermille));
+    });
+    el("p", "ml plotcap", "Words per speaking turn", s6sec);
+    var plot6 = scroller("plot", s6sec, "Words per speaking turn over time");
+    var TH = 112;
+    var maxw = Math.max.apply(
+      null,
+      D.turns
+        .map(function (t) {
+          return t[2];
+        })
+        .concat([1]),
+    );
+    var X2 = function (t) {
+      return ((t - T0) / SPAN) * W;
+    };
+    var s6 = sv(
+      "svg",
+      {
+        viewBox: "0 0 " + W + " " + TH,
+        role: "img",
+        "aria-label": "Words per speaking turn over time",
+      },
+      plot6,
+    );
+    /* This plot runs the full width, so a mark at 0:00 sits on the edge — and
+     every meeting has a turn at 0:00. Clamp the bar and anchor the first and
+     last labels inwards rather than letting either half-render. */
+    for (var t6 = firstTick; t6 < T1; t6 += STEP) {
+      var tx = X2(t6);
+      sv(
+        "line",
+        {
+          class: "grid",
+          x1: tx.toFixed(1),
+          x2: tx.toFixed(1),
+          y1: 4,
+          y2: TH - 24,
+        },
+        s6,
+      );
+      sv(
+        "text",
+        {
+          class: "tick",
+          x: tx.toFixed(1),
+          y: TH - 6,
+          "text-anchor": tx < 20 ? "start" : tx > W - 20 ? "end" : "middle",
+        },
+        s6,
+      ).textContent = mmss(t6);
+    }
+    D.turns.forEach(function (tn) {
+      if (tn[0] < 0 || tn[0] >= P.length) return;
+      var h = Math.max(1.5, (tn[2] / maxw) * (TH - 40));
+      var bx = Math.min(Math.max(0, X2(tn[1]) - 2), W - 4);
+      var r = sv(
+        "rect",
+        {
+          class: "seg",
+          fill: scol(tn[0]),
+          x: bx.toFixed(1),
+          y: (TH - 24 - h).toFixed(1),
+          width: 4,
+          height: h.toFixed(1),
+        },
+        s6,
+      );
+      sv("title", {}, r).textContent =
+        P[tn[0]].name + " at " + mmss(tn[1]) + " \u2014 " + tn[2] + " words";
+    });
+    sv("line", { class: "axis", x1: 0, x2: W, y1: TH - 24, y2: TH - 24 }, s6);
+
+    /* ---------- 07 trust ---------- */
+    var s7 = section("How much of this to trust");
+    var tr = el("div", "trust", null, s7);
+    var p = el("p", null, null, tr);
+    el("span", "hdl", "Counts are measured; states are inferred. ", p);
+    p.appendChild(
+      document.createTextNode(
+        "Turns, timings, word counts and talk share come from the transcript. Every value in the " +
+          "state column is a judgment read out of the quote beside it — check the quote before acting " +
+          "on it. " +
+          (D.meta.receipts === "verified"
+            ? "Every receipt on this page was found in the transcript, character for character."
+            : "The receipt check did not pass on every claim; what was removed is listed below."),
+      ),
+    );
+    var ul = el("ul", null, null, tr);
+    el(
+      "li",
+      null,
+      "Only word counts left the machine: the numbers on this page were computed " +
+        "from the transcript, which stayed local. The quotes above are the only speech on it.",
+      ul,
+    );
+    D.caveats.forEach(function (c) {
+      el("li", null, c, ul);
+    });
+
+    var f = el("footer", null, null, root);
+    el("span", null, D.meta.title, f);
+    el(
+      "span",
+      null,
+      D.turns.length +
+        " turns · " +
+        totW.toLocaleString() +
+        " words · " +
+        D.topics.length +
+        " threads · receipts " +
+        D.meta.receipts,
+      f,
+    );
+  })();
+</script>

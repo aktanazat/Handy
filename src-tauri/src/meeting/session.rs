@@ -1,11 +1,12 @@
 use super::analytics::{
-    MeetingActionItemState, MeetingAnalyticsSnapshot, MeetingCatchUp, MeetingNotesTemplate,
-    MeetingUserNotes,
+    merge_turns, MeetingActionItemState, MeetingAnalyticsSnapshot, MeetingCatchUp,
+    MeetingNotesTemplate, MeetingUserNotes,
 };
 use super::capture::{MeetingCaptureSource, PacketLaneReadError, PacketLaneReader, PacketSink};
 use super::clock::host_monotonic_now_ns;
 use super::export;
 use super::keep_awake::MeetingKeepAwake;
+use super::ledger;
 use super::processing::{MeetingProcessingService, QuestionGenerationRequest};
 use super::store::{
     MeetingStore, MeetingTrackWriter, SegmentEdit, StoreError, StoreMutation, StoreTransition,
@@ -1227,7 +1228,7 @@ impl MeetingSessionManager {
     pub async fn recovery_list(&self) -> Result<Vec<MeetingHistorySummary>, MeetingCommandError> {
         let store = self.store().await?;
         Ok(store
-            .list_sessions(None, 100)
+            .list_sessions(None, 100, &MeetingListFilter::default())
             .map_err(map_store_error)?
             .entries
             .into_iter()
@@ -1262,10 +1263,11 @@ impl MeetingSessionManager {
         &self,
         cursor_utc_ms: Option<i64>,
         limit: usize,
+        filter: MeetingListFilter,
     ) -> Result<PaginatedMeetings, MeetingCommandError> {
         self.store()
             .await?
-            .list_sessions(cursor_utc_ms, limit)
+            .list_sessions(cursor_utc_ms, limit, &filter)
             .map_err(map_store_error)
     }
 
@@ -1574,6 +1576,103 @@ impl MeetingSessionManager {
                 request.format,
             )
             .map_err(map_store_error)
+    }
+
+    /// Write this meeting's ledger as one self-contained HTML page.
+    ///
+    /// The page is a view, not a record. Its inferred half — threads, states,
+    /// receipts — comes from the current artifact revision; its measured half
+    /// — turns, seconds, word counts, talk share — comes from analytics, which
+    /// owns those numbers, and the two are joined only here. Nothing is
+    /// mutated, so this takes no operation id and no expected revision: run it
+    /// again after a transcript edit and the counts on the page move while the
+    /// model's reading of the conversation stays where it was.
+    pub async fn produce_ledger_html(
+        &self,
+        session_id: MeetingSessionId,
+    ) -> Result<String, MeetingCommandError> {
+        let store = self.store().await?;
+        let review = store.review_snapshot(session_id).map_err(map_store_error)?;
+        if !review.can_export {
+            return Err(MeetingCommandError::InvalidTransition);
+        }
+        let (template_id, ledger) = review
+            .artifacts
+            .iter()
+            .filter(|artifact| artifact.state == MeetingArtifactState::Current)
+            .find_map(|artifact| {
+                let ledger = artifact.content.as_ref()?.ledger.as_ref()?;
+                Some((artifact.template_id.clone(), ledger.clone()))
+            })
+            .ok_or(MeetingCommandError::NotFound)?;
+
+        let analytics = self
+            .processing
+            .refresh_analytics(&store, session_id, review.session.revision)
+            .map_err(map_processing_error)?;
+        let segments = store
+            .analytics_segments(session_id)
+            .map_err(map_store_error)?;
+        let turns = merge_turns(&segments);
+        let segment_speakers: HashMap<TranscriptSegmentId, SpeakerId> = segments
+            .iter()
+            .map(|segment| (segment.segment_id, segment.speaker_id))
+            .collect();
+        let speaker_names: HashMap<SpeakerId, String> = review
+            .speakers
+            .iter()
+            .map(|speaker| (speaker.speaker_id, speaker.display_name.clone()))
+            .collect();
+        // The page's time axis has to contain every turn drawn on it, so the
+        // end is whichever is later: the elapsed capture window, or the last
+        // word transcribed.
+        let duration_ns = review.session.elapsed_offset_ns.unwrap_or(0).max(
+            segments
+                .iter()
+                .map(|segment| segment.end_offset_ns)
+                .max()
+                .unwrap_or(0),
+        );
+        let template =
+            MeetingNotesTemplate::from_artifact_template_id(&template_id).unwrap_or_default();
+        let page = ledger::build_page(ledger::LedgerPageInput {
+            title: &review.session.title,
+            kind: template.label(),
+            // Upstream reads a date only out of the transcript's own content,
+            // never a filename or an mtime. Sona recorded this meeting, so its
+            // own capture clock is that content.
+            date: review.session.started_at_utc_ms.and_then(local_iso_date),
+            duration_ns,
+            ledger: &ledger,
+            talk: &analytics.talk,
+            turns: &turns,
+            speaker_names: &speaker_names,
+            segment_speakers: &segment_speakers,
+        });
+        let contents = ledger::render_html(&page)
+            .map_err(|_| MeetingCommandError::ExportFailed)?
+            .into_bytes();
+
+        let app = self.app.clone().ok_or(MeetingCommandError::ExportFailed)?;
+        let selected = tauri::async_runtime::spawn_blocking(move || {
+            app.dialog()
+                .file()
+                .add_filter("HTML", &["html"])
+                .set_file_name("meeting-ledger.html")
+                .blocking_save_file()
+                .map(|path| path.into_path().map_err(|_| ()))
+        })
+        .await
+        .map_err(|_| MeetingCommandError::ExportFailed)?;
+        let path = selected
+            .ok_or(MeetingCommandError::ExportCancelled)?
+            .map_err(|_| MeetingCommandError::ExportFailed)?;
+        let written = path.display().to_string();
+        tauri::async_runtime::spawn_blocking(move || export::write_atomic(&path, &contents))
+            .await
+            .map_err(|_| MeetingCommandError::ExportFailed)?
+            .map_err(|_| MeetingCommandError::ExportFailed)?;
+        Ok(written)
     }
 
     pub async fn question_ask(
@@ -2293,6 +2392,17 @@ fn map_processing_error(error: ProcessingFailure) -> MeetingCommandError {
 
 fn utc_now_ms() -> i64 {
     chrono::Utc::now().timestamp_millis()
+}
+
+/// A capture timestamp as the `YYYY-MM-DD` an exported page parses by
+/// splitting on `-`. Local, because the date a person means by "that meeting"
+/// is the one their own clock showed.
+fn local_iso_date(utc_ms: i64) -> Option<String> {
+    chrono::DateTime::from_timestamp_millis(utc_ms).map(|utc| {
+        utc.with_timezone(&chrono::Local)
+            .format("%Y-%m-%d")
+            .to_string()
+    })
 }
 fn retention_operation_id(session_id: MeetingSessionId) -> MeetingOperationId {
     MeetingOperationId::from_uuid(Uuid::new_v5(

@@ -28,7 +28,8 @@ use crate::{
             CloudShareUpdate, MeetingStore, StoreError,
         },
         types::{
-            MeetingNavigationDestination, MeetingPhase, MeetingReviewSnapshot, MeetingSessionId,
+            MeetingListFilter, MeetingNavigationDestination, MeetingPhase, MeetingReviewSnapshot,
+            MeetingSessionId,
         },
     },
     portable,
@@ -365,7 +366,7 @@ impl CloudSyncRuntime {
             .map_err(|_| CloudRuntimeError::SetupRequired)?;
         let page = self
             .meetings
-            .list(None, 100)
+            .list(None, 100, MeetingListFilter::default())
             .await
             .map_err(|_| CloudRuntimeError::SetupRequired)?;
         page.entries

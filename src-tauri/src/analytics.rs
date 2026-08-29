@@ -131,6 +131,19 @@ fn local_midnight(date: NaiveDate) -> Result<DateTime<Local>> {
     Err(anyhow!("calendar day cannot be represented locally"))
 }
 
+/// The first representable local instant of the day `days - 1` days before
+/// today, in UTC milliseconds: "the last `days` local calendar days, today
+/// included", which is what every range in this product means. The ms-valued
+/// twin of `LocalCalendarRange::at`'s start bound, sharing `local_midnight`
+/// with it so the two can never disagree about where a day begins.
+pub(crate) fn local_days_start_utc_ms(now: DateTime<Local>, days: u32) -> Result<i64> {
+    let first_date = now
+        .date_naive()
+        .checked_sub_days(Days::new(u64::from(days.saturating_sub(1))))
+        .ok_or_else(|| anyhow!("calendar window predates the supported calendar"))?;
+    Ok(local_midnight(first_date)?.timestamp_millis())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

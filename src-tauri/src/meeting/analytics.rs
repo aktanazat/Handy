@@ -121,6 +121,17 @@ impl MeetingNotesTemplate {
             .find(|template| template.artifact_template_id() == value)
     }
 
+    /// The template's name as a reader sees it, on an exported page.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::General => "Meeting",
+            Self::OneOnOne => "One-to-one",
+            Self::Interview => "Interview",
+            Self::SalesCall => "Sales call",
+            Self::Standup => "Standup",
+        }
+    }
+
     /// One sentence appended to the notes system prompt. It only asks for a
     /// different emphasis and section order; the output schema never changes.
     pub const fn steering(self) -> &'static str {
@@ -227,11 +238,62 @@ impl MeetingCatchUp {
 /// for. Anything longer stops being a catch-up.
 pub const CATCH_UP_MAX_BULLETS: usize = 6;
 
-/// One continuous stretch of one speaker holding the floor.
-struct Turn {
-    speaker_id: SpeakerId,
-    start_offset_ns: u64,
-    end_offset_ns: u64,
+/// One continuous stretch of one speaker holding the floor, with the words
+/// spoken in it counted. Every airtime number in the app and on an exported
+/// ledger page is counted from this list, and it is built in exactly one
+/// place — [`merge_turns`] — so the two can never disagree.
+pub(crate) struct Turn {
+    pub speaker_id: SpeakerId,
+    pub start_offset_ns: u64,
+    pub end_offset_ns: u64,
+    pub word_count: u32,
+}
+
+/// Segments in start order. Both readers of the turn list need the same order,
+/// so they sort once and share it.
+fn in_start_order(segments: &[AnalyticsSegment]) -> Vec<&AnalyticsSegment> {
+    let mut ordered: Vec<&AnalyticsSegment> = segments.iter().collect();
+    ordered.sort_by_key(|segment| (segment.start_offset_ns, segment.end_offset_ns));
+    ordered
+}
+
+/// Words in one utterance: whitespace-separated tokens, which is what `awk`
+/// counts and what a reader would count by hand.
+fn word_count(text: &str) -> u32 {
+    u32::try_from(text.split_whitespace().count()).unwrap_or(u32::MAX)
+}
+
+/// Consecutive utterances by one speaker, merged into turns. A silence longer
+/// than [`MONOLOGUE_MAX_GAP_NS`] ends the run even when nobody else speaks, so
+/// a long pause never inflates a monologue into "still talking".
+pub(crate) fn merge_turns(segments: &[AnalyticsSegment]) -> Vec<Turn> {
+    merge_ordered_turns(&in_start_order(segments))
+}
+
+fn merge_ordered_turns(ordered: &[&AnalyticsSegment]) -> Vec<Turn> {
+    let mut turns: Vec<Turn> = Vec::new();
+    for segment in ordered {
+        let end_offset_ns = segment.end_offset_ns.max(segment.start_offset_ns);
+        let words = word_count(&segment.text);
+        let continues = turns.last().is_some_and(|turn| {
+            turn.speaker_id == segment.speaker_id
+                && segment.start_offset_ns
+                    <= turn.end_offset_ns.saturating_add(MONOLOGUE_MAX_GAP_NS)
+        });
+        match turns.last_mut() {
+            Some(turn) if continues => {
+                turn.end_offset_ns = turn.end_offset_ns.max(end_offset_ns);
+                turn.word_count = turn.word_count.saturating_add(words);
+            }
+            _ => turns.push(Turn {
+                speaker_id: segment.speaker_id,
+                start_offset_ns: segment.start_offset_ns,
+                end_offset_ns,
+                word_count: words,
+            }),
+        }
+    }
+    turns
 }
 
 /// Airtime, turn-taking and monologue length over a diarized transcript.
@@ -241,14 +303,12 @@ struct Turn {
 /// duration each, because two people talking at once is two people talking:
 /// shares are of total speech, not of wall-clock time.
 pub fn talk_metrics(segments: &[AnalyticsSegment]) -> MeetingTalkMetrics {
-    let mut ordered: Vec<&AnalyticsSegment> = segments.iter().collect();
-    ordered.sort_by_key(|segment| (segment.start_offset_ns, segment.end_offset_ns));
+    let ordered = in_start_order(segments);
 
     let mut shares: Vec<SpeakerTalkShare> = Vec::new();
-    let mut turns: Vec<Turn> = Vec::new();
     let mut total_speaking_ns = 0_u64;
 
-    for segment in ordered {
+    for segment in &ordered {
         let end_offset_ns = segment.end_offset_ns.max(segment.start_offset_ns);
         let duration_ns = end_offset_ns - segment.start_offset_ns;
         total_speaking_ns = total_speaking_ns.saturating_add(duration_ns);
@@ -266,21 +326,9 @@ pub fn talk_metrics(segments: &[AnalyticsSegment]) -> MeetingTalkMetrics {
                 longest_monologue_ns: 0,
             }),
         }
-
-        let continues = turns.last().is_some_and(|turn| {
-            turn.speaker_id == segment.speaker_id
-                && segment.start_offset_ns
-                    <= turn.end_offset_ns.saturating_add(MONOLOGUE_MAX_GAP_NS)
-        });
-        match turns.last_mut() {
-            Some(turn) if continues => turn.end_offset_ns = turn.end_offset_ns.max(end_offset_ns),
-            _ => turns.push(Turn {
-                speaker_id: segment.speaker_id,
-                start_offset_ns: segment.start_offset_ns,
-                end_offset_ns,
-            }),
-        }
     }
+
+    let turns = merge_ordered_turns(&ordered);
 
     let mut longest_monologue_ns = 0_u64;
     let mut longest_monologue_speaker_id = None;

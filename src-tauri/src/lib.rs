@@ -1412,6 +1412,7 @@ pub fn run(cli_args: CliArgs) {
             commands::meeting::meeting_question_ask,
             commands::meeting::meeting_question_forget,
             commands::meeting::meeting_export,
+            commands::meeting::produce_ledger_html,
             commands::meeting::meeting_delete,
             commands::meeting::meeting_retention_get,
             commands::meeting::meeting_retention_set,
