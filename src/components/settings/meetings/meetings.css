@@ -6,28 +6,38 @@
 
 /* ------------------------------------------------------------ start block */
 
-/* One control starts a meeting. It sits alone above a hairline with the
- * assurance sentence beside it, because what the button does to the room is
- * the part people need to read before pressing it. */
+/* One control starts a meeting. One instrument row above a hairline — the
+ * press, what it captures, where it stays — with the assurance sentence as
+ * the row's caption, because what the button does to the room is the part
+ * people need to read before pressing it. */
 .meeting-start {
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
   padding-bottom: var(--space-5);
 }
 
-.meeting-start-primary {
+.meeting-start-row {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3) var(--space-4);
+  gap: var(--space-2) var(--space-4);
 }
 
 .meeting-start-button {
   min-block-size: 40px;
   padding-inline: var(--space-5);
   font-size: var(--fs-label-14);
+}
+
+/* The capture pair travels as one unit: its microlabel names the chips, so a
+ * wrap may never separate them. */
+.meeting-start-capture {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-2);
 }
 
 .meeting-start-assurance {
@@ -37,13 +47,6 @@
   margin: 0;
   max-inline-size: 46ch;
   text-wrap: pretty;
-}
-
-.meeting-start-controls {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-3);
 }
 
 /* A capture source is a two-state control, so it reads as one: hairline when
@@ -62,9 +65,9 @@
   min-block-size: 28px;
   padding-inline: var(--space-3);
   transition:
-    background-color 150ms var(--ease-out),
-    border-color 150ms var(--ease-out),
-    color 150ms var(--ease-out);
+    background-color var(--duration-fast) var(--ease-in-out),
+    border-color var(--duration-fast) var(--ease-in-out),
+    color var(--duration-fast) var(--ease-in-out);
 }
 
 .meeting-source-chip:hover:not(:disabled) {
@@ -333,20 +336,31 @@
   overflow: hidden;
 }
 
-/* The whole collapsed row is the expander: a chevron alone would be a 14px
- * target beside 400px of dead text. */
+/* One head row is the whole collapsed card: expander, title, fact chips, then
+ * the decision. Zero reserved space below it — a collapsed card is exactly
+ * this row. */
+.meeting-preview-head {
+  align-items: stretch;
+  display: flex;
+  flex-wrap: wrap;
+  min-block-size: 44px;
+}
+
+/* The summary is the expander and takes every pixel the actions leave: the
+ * expand target is the row, not a 14px chevron. */
 .meeting-preview-summary {
   align-items: center;
   background: none;
   border: 0;
   cursor: pointer;
   display: flex;
+  flex: 1 1 auto;
   gap: var(--space-2) var(--space-3);
-  inline-size: 100%;
   min-block-size: 44px;
-  padding: var(--space-2) var(--space-4);
+  min-inline-size: 0;
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
   text-align: start;
-  transition: background-color var(--duration-fast) var(--ease-out);
+  transition: background-color var(--duration-fast) var(--ease-in-out);
 }
 
 .meeting-preview-summary:hover {
@@ -357,6 +371,13 @@
   background: var(--wash-active);
 }
 
+/* The row device: an inset ring, because an outset outline would collide
+ * with the card's own border and the actions' divider. */
+.meeting-preview-summary:focus-visible {
+  box-shadow: var(--focus-ring-inset);
+  outline: none;
+}
+
 .meeting-preview-origin {
   align-items: center;
   color: var(--text-tertiary);
@@ -364,12 +385,10 @@
   flex: none;
 }
 
+/* Type comes from .type-row-title; this rule only owns the layout. */
 .meeting-preview-title {
   color: var(--text-primary);
   flex: 1 1 auto;
-  font-size: var(--type-row-size);
-  font-weight: var(--fw-heading);
-  line-height: var(--type-row-line);
   min-inline-size: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -383,6 +402,15 @@
   flex-wrap: wrap;
   gap: var(--space-1) var(--space-2);
   justify-content: flex-end;
+}
+
+/* The chips read as one mono sentence of measurement, so the separators are
+ * drawn rather than typed — the same device the start block's fact row and
+ * the entry rows use. */
+.meeting-preview-facts > * + *::before {
+  color: var(--text-disabled);
+  content: "·";
+  margin-inline-end: var(--space-2);
 }
 
 /* A value chip: the machine's own answer, in the machine's own face. */
@@ -520,7 +548,7 @@
   text-decoration-color: transparent;
   text-overflow: ellipsis;
   text-underline-offset: 2px;
-  transition: text-decoration-color var(--duration-fast) var(--ease-out);
+  transition: text-decoration-color var(--duration-fast) var(--ease-in-out);
   white-space: nowrap;
 }
 
@@ -557,20 +585,25 @@
   letter-spacing: var(--ls-microlabel);
   line-height: var(--lh-microlabel);
   text-transform: uppercase;
-  transition: color var(--duration-fast) var(--ease-out);
+  transition: color var(--duration-fast) var(--ease-in-out);
 }
 
 .meeting-preview-more:hover {
   color: var(--text-primary);
 }
 
+/* The decision zone: inside the head, behind its own vertical hairline, so
+ * the expander and the buttons read as two instruments on one row and the
+ * card ends where its content does. */
 .meeting-preview-actions {
-  border-block-start: 1px solid var(--border-subtle);
+  align-items: center;
+  align-self: stretch;
+  border-inline-start: 1px solid var(--border-hairline);
   display: flex;
-  flex-wrap: wrap;
+  flex: none;
   gap: var(--space-2);
-  justify-content: flex-end;
-  padding: var(--space-3) var(--space-4);
+  margin-inline-end: var(--space-1);
+  padding-inline: var(--space-3);
 }
 
 @media (prefers-reduced-motion: reduce) {

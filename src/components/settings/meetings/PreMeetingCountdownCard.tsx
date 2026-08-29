@@ -26,9 +26,9 @@ import {
  * real control for that, and it writes the real setting.
  *
  * A prompt is an object with an answer attached, so it gets a surface. The
- * assurance sentence is the section description rather than per-row copy: it
- * is one promise about the whole pane, and it has to be readable before the
- * affirmative button is pressed. */
+ * section description is this pane's own promise — recording starts here and
+ * nowhere else — not the start block's assurance sentence: one sentence never
+ * appears twice on one screen. */
 
 export interface PreMeetingCountdownCardProps {
   /** Sources the next capture will request, owned by the page. */
@@ -99,8 +99,8 @@ export const PreMeetingCountdownCard: React.FC<
     <Section
       title={t("meetings.detection.pane.title", "Starting soon")}
       description={t(
-        "meetings.start.assurance",
-        "Records your Mac's audio locally. Nothing joins the call.",
+        "meetings.detection.pane.description",
+        "Sona never records until you start it here.",
       )}
     >
       <ul
@@ -110,7 +110,7 @@ export const PreMeetingCountdownCard: React.FC<
         {countdown && status ? (
           <MeetingPreviewCard
             key={countdown.event.eventKey}
-            facts={eventFacts(countdown.event)}
+            facts={eventFacts(countdown.event, t)}
             secondsToStart={countdown.secondsToStart}
             /* The countdown is the one card worth opening on arrival: it is on
              * screen because something is about to start, and every row on it
@@ -128,7 +128,7 @@ export const PreMeetingCountdownCard: React.FC<
             recording={recording}
             notesTemplate={notesTemplate}
             starting={starting}
-            onStart={() => onStartEvent(eventFacts(countdown.event))}
+            onStart={() => onStartEvent(eventFacts(countdown.event, t))}
           />
         ) : null}
 

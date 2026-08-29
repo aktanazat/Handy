@@ -389,13 +389,15 @@ describe("meetings list", () => {
     expect(occurrences(markup, ">Start recording</button>")).toBe(1);
   });
 
-  test("a detected meeting starts from its own row, under the same promise", () => {
+  test("a detected meeting starts from its own row, without repeating the promise", () => {
     const markup = homeMarkup({ suggestions: [SUGGESTION] });
     expect(markup).toContain("A meeting may be active in Zoom.");
     expect(occurrences(markup, ">Start recording</button>")).toBe(2);
-    // The row's Start sends the same consent flags, so the sentence has to be
-    // on screen above it too.
-    expect(occurrences(markup, ASSURANCE)).toBe(2);
+    /* The assurance sentence lives beside the page's own Start and nowhere
+     * else: one sentence never appears twice on one screen. The detected
+     * section states its own evidence instead. */
+    expect(occurrences(markup, ASSURANCE)).toBe(1);
+    expect(markup).toContain("Sona noticed a meeting app in use.");
   });
 
   /* The row render matrix: status chip × which of the three real sources line

@@ -17,6 +17,7 @@ import {
   eventFacts,
   suggestionFacts,
   type MeetingPreviewCardProps,
+  type MeetingPreviewFacts,
 } from "./MeetingPreviewCard";
 import { MeetingStartGate } from "./MeetingStartGate";
 import type { CalendarEventSummary } from "./detectionStore";
@@ -62,6 +63,10 @@ const render = (node: React.ReactElement) =>
 
 const occurrences = (markup: string, needle: string) =>
   markup.split(needle).length - 1;
+
+/** The bound t every facts constructor takes, so a fallback title resolves
+ * through the same catalogue the cards render with. */
+const tr = i18n.t.bind(i18n);
 
 const START = Date.UTC(2026, 7, 28, 17, 0);
 const END = Date.UTC(2026, 7, 28, 17, 45);
@@ -114,7 +119,7 @@ const SUGGESTION: MeetingSuggestion = {
 const card = (props: Partial<MeetingPreviewCardProps> = {}) =>
   render(
     <ul>
-      <MeetingPreviewCard facts={eventFacts(EVENT)} {...props} />
+      <MeetingPreviewCard facts={eventFacts(EVENT, tr)} {...props} />
     </ul>,
   );
 
@@ -178,7 +183,7 @@ describe("the collapsed row", () => {
   test("omits the head count for an event with no attendee list", () => {
     const markup = render(
       <ul>
-        <MeetingPreviewCard facts={eventFacts(BARE_EVENT)} />
+        <MeetingPreviewCard facts={eventFacts(BARE_EVENT, tr)} />
       </ul>,
     );
 
@@ -215,7 +220,10 @@ describe("participants", () => {
   test("an event with no named participants has no participants row", () => {
     const markup = render(
       <ul>
-        <MeetingPreviewCard facts={eventFacts(BARE_EVENT)} defaultExpanded />
+        <MeetingPreviewCard
+          facts={eventFacts(BARE_EVENT, tr)}
+          defaultExpanded
+        />
       </ul>,
     );
 
@@ -237,7 +245,10 @@ describe("description", () => {
   test("an event with no notes has no description row", () => {
     const markup = render(
       <ul>
-        <MeetingPreviewCard facts={eventFacts(BARE_EVENT)} defaultExpanded />
+        <MeetingPreviewCard
+          facts={eventFacts(BARE_EVENT, tr)}
+          defaultExpanded
+        />
       </ul>,
     );
 
@@ -366,7 +377,10 @@ describe("no invented rows", () => {
   test("an event that told Sona nothing but a title and a time prints two rows", () => {
     const markup = render(
       <ul>
-        <MeetingPreviewCard facts={eventFacts(BARE_EVENT)} defaultExpanded />
+        <MeetingPreviewCard
+          facts={eventFacts(BARE_EVENT, tr)}
+          defaultExpanded
+        />
       </ul>,
     );
     const printed = ROW_LABELS.filter((label) =>
@@ -381,7 +395,7 @@ describe("no invented rows", () => {
     const markup = render(
       <ul>
         <MeetingPreviewCard
-          facts={suggestionFacts(SUGGESTION, i18n.t.bind(i18n))}
+          facts={suggestionFacts(SUGGESTION, tr)}
           defaultExpanded
         />
       </ul>,
@@ -392,6 +406,58 @@ describe("no invented rows", () => {
 
     expect(printed).toEqual(["App"]);
     expect(markup).toContain("Zoom");
+  });
+});
+
+describe("the head row", () => {
+  test("the decision sits in the head, never in a band below the body", () => {
+    const markup = card({ onStart: () => {}, onSkip: () => {} });
+
+    /* Head first, actions inside it, body after: a collapsed card is exactly
+     * one row, with no reserved blank space under it. */
+    expect(occurrences(markup, "meeting-preview-head")).toBe(1);
+    expect(markup.indexOf("meeting-preview-actions")).toBeGreaterThan(-1);
+    expect(markup.indexOf("meeting-preview-actions")).toBeLessThan(
+      markup.indexOf("meeting-preview-body"),
+    );
+  });
+
+  test("an offer's head carries no chips, because an offer measures nothing", () => {
+    const markup = render(
+      <ul>
+        <MeetingPreviewCard facts={suggestionFacts(SUGGESTION, tr)} />
+      </ul>,
+    );
+
+    expect(occurrences(markup, "meeting-preview-chip")).toBe(0);
+  });
+});
+
+describe("the header never renders blank", () => {
+  const blank = (facts: Partial<MeetingPreviewFacts>) =>
+    render(
+      <ul>
+        <MeetingPreviewCard
+          facts={{ ...eventFacts(BARE_EVENT, tr), title: "", ...facts }}
+        />
+      </ul>,
+    );
+  const heading = (markup: string) =>
+    markup.split('meeting-preview-title">')[1]?.split("</span>")[0];
+
+  test("an untitled calendar event is named for what it is", () => {
+    expect(eventFacts({ ...BARE_EVENT, title: "  " }, tr).title).toBe(
+      "Calendar event",
+    );
+  });
+
+  test("bad facts fall back to the app name before anything generic", () => {
+    expect(heading(blank({ origin: "app", appName: "Zoom" }))).toBe("Zoom");
+  });
+
+  test("bad facts with no app name still name the origin", () => {
+    expect(heading(blank({ origin: "app" }))).toBe("Microphone in use");
+    expect(heading(blank({ origin: "calendar" }))).toBe("Calendar event");
   });
 });
 
@@ -433,7 +499,7 @@ describe("the action bar", () => {
 
 describe("facts from the backend", () => {
   test("a calendar event maps every field the calendar supplied", () => {
-    expect(eventFacts(EVENT)).toEqual({
+    expect(eventFacts(EVENT, tr)).toEqual({
       id: "event-1",
       title: "Quarterly planning",
       origin: "calendar",
@@ -453,7 +519,7 @@ describe("facts from the backend", () => {
   });
 
   test("what the calendar left empty stays empty", () => {
-    const facts = eventFacts(BARE_EVENT);
+    const facts = eventFacts(BARE_EVENT, tr);
 
     expect(facts.calendarName).toBe(null);
     expect(facts.description).toBe(null);
@@ -462,7 +528,7 @@ describe("facts from the backend", () => {
   });
 
   test("an offer carries its app and nothing it never saw", () => {
-    const facts = suggestionFacts(SUGGESTION, i18n.t.bind(i18n));
+    const facts = suggestionFacts(SUGGESTION, tr);
 
     expect(facts.origin).toBe("app");
     expect(facts.appName).toBe("Zoom");
@@ -539,7 +605,7 @@ const GATE_OPTIONS: MeetingStartOptions = {
   sources: ["microphone", "system_audio"],
   degradedStartPolicy: "abort_if_required_source_fails",
   destination: { kind: "local" },
-  preview: eventFacts(EVENT),
+  preview: eventFacts(EVENT, tr),
 };
 
 describe("the preflight", () => {
@@ -618,6 +684,9 @@ describe("english catalogue", () => {
     "meetings.preview.actions.skip",
     "meetings.preview.linkFailed",
     "meetings.preview.skippedNote",
+    "meetings.preview.untitled.calendar",
+    "meetings.preview.untitled.app",
+    "meetings.detected.description",
   ];
 
   for (const key of KEYS) {

@@ -114,9 +114,10 @@ interface MeetingStartBlockProps {
 
 /* One press records a meeting. Everything else on this block is a state the
  * press will use, shown inline and changeable in place: never a step, never a
- * screen. The assurance sentence is beside the button because it is what the
- * press does to the room, and because pressing it is the acknowledgment the
- * backend records. */
+ * screen. One instrument row — the press, what it captures, where it stays —
+ * with the assurance sentence directly beneath the button as its caption,
+ * because what the press does to the room must be readable before the press,
+ * and pressing it is the acknowledgment the backend records. */
 const MeetingStartBlock: React.FC<MeetingStartBlockProps> = ({
   sources,
   retention,
@@ -144,7 +145,7 @@ const MeetingStartBlock: React.FC<MeetingStartBlockProps> = ({
       className="meeting-start"
       aria-label={t("meetings.start.label", "Start a meeting")}
     >
-      <div className="meeting-start-primary">
+      <div className="meeting-start-row">
         <Button
           type="button"
           id={START_BUTTON_ID}
@@ -156,26 +157,20 @@ const MeetingStartBlock: React.FC<MeetingStartBlockProps> = ({
             ? t("meetings.start.starting", "Starting…")
             : t("meetings.start.action", "Start recording")}
         </Button>
-        <p className="meeting-start-assurance">
-          {t(
-            "meetings.start.assurance",
-            "Records your Mac's audio locally. Nothing joins the call.",
-          )}
-        </p>
-      </div>
-      <div className="meeting-start-controls">
-        <span className="microlabel">
-          {t("meetings.start.capture", "Capture")}
+        <span className="meeting-start-capture">
+          <span className="microlabel">
+            {t("meetings.start.capture", "Capture")}
+          </span>
+          {MEETING_SOURCES.map((source) => (
+            <MeetingSourceChip
+              key={source}
+              source={source}
+              selected={sources.includes(source)}
+              disabled={starting}
+              onToggle={() => toggle(source)}
+            />
+          ))}
         </span>
-        {MEETING_SOURCES.map((source) => (
-          <MeetingSourceChip
-            key={source}
-            source={source}
-            selected={sources.includes(source)}
-            disabled={starting}
-            onToggle={() => toggle(source)}
-          />
-        ))}
         <span className="meeting-start-facts ms-auto">
           <span className="microlabel">
             {t("meetings.start.localOnly", "Local only")}
@@ -192,6 +187,12 @@ const MeetingStartBlock: React.FC<MeetingStartBlockProps> = ({
           )}
         </span>
       </div>
+      <p className="meeting-start-assurance">
+        {t(
+          "meetings.start.assurance",
+          "Records your Mac's audio locally. Nothing joins the call.",
+        )}
+      </p>
       {sources.length === 0 ? (
         <p className="text-[12.5px] leading-[18px] text-warning">
           {t("meetings.start.noSources", "Choose at least one source.")}
@@ -357,7 +358,7 @@ const MeetingRow: React.FC<MeetingRowProps> = ({
             className="danger-menu-item"
             onClick={(event) => runAction(event, onDelete)}
           >
-            {t("meetings.actions.delete", "Delete")}
+            {t("meetings.actions.delete", "Delete meeting")}
           </button>
         </div>
       </details>
@@ -415,7 +416,7 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
       ? t("meetings.history.description")
       : t(
           "meetings.list.retentionHint",
-          "Retention: {{policy}}. Change it in Settings, Privacy.",
+          "Retention: {{policy}}. Change it in Settings > Privacy.",
           {
             policy:
               retention.kind === "forever"
@@ -523,7 +524,7 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
         >
           <Dropdown
             variant="filter"
-            filterKey={t("meetings.list.filters.statusKey", "STATUS")}
+            filterKey={t("meetings.list.filters.statusKey", "Status")}
             selectedValue={filter.status ?? "any"}
             options={MEETING_STATUS_FILTERS.map((status) => ({
               value: status,
@@ -541,7 +542,7 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
           />
           <Dropdown
             variant="filter"
-            filterKey={t("meetings.list.filters.timeKey", "TIME")}
+            filterKey={t("meetings.list.filters.timeKey", "Time")}
             selectedValue={filter.window ?? "any"}
             options={MEETING_TIME_WINDOWS.map((window) => ({
               value: window,

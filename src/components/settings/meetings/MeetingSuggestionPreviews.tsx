@@ -59,8 +59,8 @@ export const MeetingSuggestionPreviews: React.FC<
     <Section
       title={t("meetings.detected.title")}
       description={t(
-        "meetings.start.assurance",
-        "Records your Mac's audio locally. Nothing joins the call.",
+        "meetings.detected.description",
+        "Sona noticed a meeting app in use.",
       )}
     >
       <ul

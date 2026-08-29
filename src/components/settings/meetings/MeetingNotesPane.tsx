@@ -156,7 +156,7 @@ export const MeetingNotesPane: React.FC<MeetingNotesPaneProps> = ({
       toast.error(
         t(
           "meetings.notes.catchUpFailed",
-          "Sona could not build a recap. Try again in a moment.",
+          "Sona could not build a recap. Try again.",
         ),
       );
     } finally {
@@ -191,7 +191,7 @@ export const MeetingNotesPane: React.FC<MeetingNotesPaneProps> = ({
         }}
         placeholder={t(
           "meetings.notes.placeholder",
-          "Anything worth remembering — names, numbers, what to follow up on",
+          "Anything worth remembering: names, numbers, what to follow up on",
         )}
         aria-label={t("meetings.notes.title", "My notes")}
         disabled={busy}
@@ -322,7 +322,7 @@ const CatchUpResult: React.FC<CatchUpResultProps> = ({ result }) => {
       <StatusText tone="danger" className="mt-3 block" live="polite">
         {t(
           "meetings.notes.catchUpFailed",
-          "Sona could not build a recap. Try again in a moment.",
+          "Sona could not build a recap. Try again.",
         )}
       </StatusText>
     );

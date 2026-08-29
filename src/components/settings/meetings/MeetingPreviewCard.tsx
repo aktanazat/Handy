@@ -199,6 +199,9 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
     count: named.filter((person) => person.status === status).length,
   })).filter((entry) => entry.count > 0);
 
+  /* The decision lives in the head row, not a footer: it must never sit
+   * behind the disclosure, and a footer band under a collapsed card is a
+   * reserved blank the operator pays for on every card. */
   const actions =
     onStart === null && onSkip === null ? null : (
       <div className="meeting-preview-actions">
@@ -217,62 +220,76 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
       </div>
     );
 
+  /* Facts can arrive with an empty title (an untitled calendar event, a
+   * foreign payload). The header never renders blank: name the origin
+   * honestly instead. */
+  const title =
+    facts.title.trim() ||
+    facts.appName ||
+    (facts.origin === "calendar"
+      ? t("meetings.preview.untitled.calendar", "Calendar event")
+      : t("meetings.preview.untitled.app", "Microphone in use"));
+
   return (
     <li className="meeting-preview">
-      <button
-        type="button"
-        className="meeting-preview-summary"
-        aria-expanded={expanded}
-        aria-controls={bodyId}
-        onClick={() => setExpanded(!expanded)}
-      >
-        <span className="meeting-preview-origin" aria-hidden="true">
-          <OriginIcon size={13} />
-        </span>
-        <span className="meeting-preview-title">{facts.title}</span>
-        <span className="meeting-preview-facts">
-          {facts.startUtcMs === null ? null : (
-            <span className="meeting-preview-chip">
-              {formatEntryTimestamp(facts.startUtcMs)}
-            </span>
-          )}
-          {durationSeconds === null ? null : (
-            <span className="meeting-preview-chip">
-              {formatDurationShort(durationSeconds)}
-            </span>
-          )}
-          {secondsToStart === null ? null : (
-            <span className="meeting-preview-chip">
-              {t(
-                "meetings.detection.pane.countdown",
-                "Starts in {{seconds}}s",
-                {
-                  seconds: Math.max(0, secondsToStart),
-                },
-              )}
-            </span>
-          )}
-          {facts.attendeeCount === null || facts.attendeeCount === 0 ? null : (
-            <span className="meeting-preview-chip">
-              {/* The suffix is picked here, not by i18next: a plural category
-               * i18next resolves (few, many) has no key in any locale file,
-               * and every locale carries exactly _one and _other. Same shape
-               * as SecureInputWarning. */}
-              {t(
-                `meetings.preview.attendees_${
-                  facts.attendeeCount === 1 ? "one" : "other"
-                }`,
-                { count: facts.attendeeCount },
-              )}
-            </span>
-          )}
-        </span>
-        <ChevronDown
-          className="meeting-preview-caret"
-          size={14}
-          aria-hidden="true"
-        />
-      </button>
+      <div className="meeting-preview-head">
+        <button
+          type="button"
+          className="meeting-preview-summary"
+          aria-expanded={expanded}
+          aria-controls={bodyId}
+          onClick={() => setExpanded(!expanded)}
+        >
+          <span className="meeting-preview-origin" aria-hidden="true">
+            <OriginIcon size={13} />
+          </span>
+          <span className="type-row-title meeting-preview-title">{title}</span>
+          <span className="meeting-preview-facts">
+            {facts.startUtcMs === null ? null : (
+              <span className="meeting-preview-chip">
+                {formatEntryTimestamp(facts.startUtcMs)}
+              </span>
+            )}
+            {durationSeconds === null ? null : (
+              <span className="meeting-preview-chip">
+                {formatDurationShort(durationSeconds)}
+              </span>
+            )}
+            {secondsToStart === null ? null : (
+              <span className="meeting-preview-chip">
+                {t(
+                  "meetings.detection.pane.countdown",
+                  "Starts in {{seconds}}s",
+                  {
+                    seconds: Math.max(0, secondsToStart),
+                  },
+                )}
+              </span>
+            )}
+            {facts.attendeeCount === null ||
+            facts.attendeeCount === 0 ? null : (
+              <span className="meeting-preview-chip">
+                {/* The suffix is picked here, not by i18next: a plural
+                 * category i18next resolves (few, many) has no key in any
+                 * locale file, and every locale carries exactly _one and
+                 * _other. Same shape as SecureInputWarning. */}
+                {t(
+                  `meetings.preview.attendees_${
+                    facts.attendeeCount === 1 ? "one" : "other"
+                  }`,
+                  { count: facts.attendeeCount },
+                )}
+              </span>
+            )}
+          </span>
+          <ChevronDown
+            className="meeting-preview-caret"
+            size={14}
+            aria-hidden="true"
+          />
+        </button>
+        {actions}
+      </div>
 
       <div id={bodyId} className="meeting-preview-body" data-open={expanded}>
         <div className="meeting-preview-clip">
@@ -490,23 +507,22 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
           </ul>
         </div>
       </div>
-
-      {/* Outside the collapse on purpose. The rows are detail and may hide;
-       * the decision is why the card exists, and burying the one press that
-       * records a meeting behind a disclosure would contradict the whole
-       * page. */}
-      {actions}
     </li>
   );
 };
 
 /** The facts a calendar event supplies. Everything the calendar left empty
- * stays null here, so the card omits that row rather than inventing it. */
+ * stays null here, so the card omits that row rather than inventing it. The
+ * title is the exception — the header may never be blank — so an untitled
+ * event is named for what it is. */
 export const eventFacts = (
   event: CalendarEventSummary,
+  t: TFunction,
 ): MeetingPreviewFacts => ({
   id: event.eventKey,
-  title: event.title,
+  title:
+    event.title.trim() ||
+    t("meetings.preview.untitled.calendar", "Calendar event"),
   origin: "calendar",
   startUtcMs: event.startUtcMs,
   endUtcMs: event.endUtcMs,

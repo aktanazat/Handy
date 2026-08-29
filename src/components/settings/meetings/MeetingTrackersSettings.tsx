@@ -49,7 +49,7 @@ export const MeetingTrackersSettings: React.FC = () => {
       toast.error(
         t(
           "meetings.analytics.trackersSaveFailed",
-          "Sona could not save the trackers. Change one and try again.",
+          "Sona could not save the trackers. Try again.",
         ),
       );
     } finally {
