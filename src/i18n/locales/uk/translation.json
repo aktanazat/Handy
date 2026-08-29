@@ -2291,12 +2291,62 @@
       "sonaAnswered": "Sona відповіла",
       "tabs": {
         "insights": "Висновки",
+        "ledger": "Журнал",
         "questions": "Питання й відповіді",
         "transcript": "Стенограма"
       },
       "tabsLabel": "Розділи огляду зустрічі",
       "youAsked": "Ви запитали",
       "actionDone": "Позначити це завдання виконаним"
+    },
+    "ledger": {
+      "title": "Журнал",
+      "description": "Кожна тема цієї зустрічі, до чого вона дійшла, і цитата зі стенограми, з якої прочитано стан. Числа виміряні; стани виведені.",
+      "emptyTitle": "Із цієї зустрічі ще не прочитано журнал",
+      "emptyDescription": "Журнал пишеться разом зі згенерованими нотатками. Згенеруйте нотатки заново, щоб прочитати цю розмову за темами.",
+      "exportHtml": "Експортувати сторінку журналу",
+      "exported": "Журнал записано у {{path}}",
+      "exportMissing": "Ця зустріч не має журналу для експорту. Спершу згенеруйте нотатки заново.",
+      "statThreads": "Закриті теми",
+      "statOpen": "Відкриті",
+      "statDropped": "Покинуті",
+      "statCommitments": "Зобов'язання",
+      "statOpenLoops": "Питання без відповіді",
+      "statReceipts": "Цитати",
+      "receiptsVerified": "перевірено",
+      "receiptsDegraded": "Вилучено тем: {{threads}}, зобов'язань: {{commitments}}",
+      "threads": "Теми",
+      "asideThread": "відступ",
+      "openLoops": "Питання без відповіді",
+      "noOpenLoops": "Жодне питання не лишилося без відповіді.",
+      "commitments": "Зобов'язання",
+      "noCommitments": "Ніхто нічого не пообіцяв уголос.",
+      "stances": "Позиції",
+      "noStances": "Ніхто не зайняв і не змінив позицію.",
+      "trust": "Наскільки цьому можна вірити",
+      "trustMeasured": "Репліки, тривалості, кількість слів і частка мовлення взяті зі стенограми. Кожен стан — судження, прочитане з цитати поруч: перевірте цитату, перш ніж діяти.",
+      "unattributed": "Без автора",
+      "columnAt": "Час",
+      "columnQuestion": "Питання",
+      "columnInstead": "Що сталося натомість",
+      "columnDirection": "Напрям",
+      "columnWhat": "Що",
+      "columnTaken": "Як це зрозуміли",
+      "states": {
+        "decided": "Вирішено",
+        "agreed": "Згода",
+        "action": "Завдання з відповідальним",
+        "closed": "Закрито",
+        "open": "Відкрито",
+        "partial": "Вирішено наполовину",
+        "ambiguous": "Немає явної відповіді",
+        "unanswered": "Без відповіді",
+        "dropped": "Покинуто"
+      },
+      "firmness": {
+        "firm": "Твердо",
+        "soft": "М'яко"
+      }
     },
     "artifactState": {
       "current": "Current",
@@ -2332,15 +2382,47 @@
       }
     },
     "list": {
-      "clearSearch": "Очистити пошук",
-      "loadMore": "Завантажити давніші зустрічі",
-      "loadingMore": "Завантаження давніших зустрічей…",
-      "noMatches": "Жодна зустріч не відповідає пошуку",
-      "noMatchesDescription": "Жодна назва зустрічі не містить \"{{query}}\". Очистіть пошук, щоб побачити весь список.",
-      "noMatchesNotLoaded": "Жодна назва завантаженої зустрічі не містить \"{{query}}\". Давніші зустрічі ще на диску: завантажте їх і повторіть пошук.",
       "retentionHint": "Зберігання: {{policy}}. Змініть у Параметрах, розділ Privacy.",
       "searchLabel": "Пошук зустрічей",
-      "searchPlaceholder": "Пошук за назвою"
+      "searchPlaceholder": "Пошук за назвою",
+      "clearFilters": "Скинути фільтри",
+      "noMatchesFiltered": "Немає відповідних зустрічей",
+      "noMatchesFilteredDescription": "Жодна збережена зустріч не відповідає цьому фільтру. Запит іде по всіх зустрічах на диску, а не лише по сторінці на екрані.",
+      "rowActions": "Дії із зустріччю",
+      "exportMarkdown": "Експортувати нотатки (Markdown)",
+      "exportJson": "Експортувати нотатки (JSON)",
+      "exportLedger": "Експортувати сторінку журналу",
+      "pagePosition": "Сторінка {{page}}",
+      "previousPage": "Новіші",
+      "nextPage": "Давніші",
+      "status": {
+        "ready": "Готово",
+        "processing": "Обробка"
+      },
+      "headline": {
+        "words": "Розшифровано слів: {{count}}"
+      },
+      "sourceGlyph": {
+        "microphone": "MIC",
+        "system_audio": "SYS"
+      },
+      "filters": {
+        "label": "Фільтр зустрічей",
+        "statusKey": "Стан",
+        "timeKey": "Період",
+        "status": {
+          "any": "Усі",
+          "ready": "Готово",
+          "processing": "Обробка",
+          "failed": "Не вдалося"
+        },
+        "time": {
+          "any": "Усі",
+          "today": "Сьогодні",
+          "last_7_days": "7 днів",
+          "last_30_days": "30 днів"
+        }
+      }
     },
     "status": {
       "gapCount": "Прогалини: {{total}}",
@@ -2477,6 +2559,50 @@
         "browserUnreadable": "Спереду браузер, але заголовок його вкладки прочитати не можна.",
         "browserNotMeeting": "Спереду браузер, і його вкладка — не дзвінок."
       }
+    },
+    "preview": {
+      "rows": {
+        "time": "Час",
+        "calendar": "Календар",
+        "app": "Додаток",
+        "notify": "Сповіщення",
+        "recording": "Запис",
+        "notes": "Нотатки",
+        "participants": "Учасники",
+        "link": "Посилання",
+        "description": "Опис"
+      },
+      "attendees_one": "{{count}} особа",
+      "attendees_other": "{{count}} осіб",
+      "notify": {
+        "delivered": "Сповіщення надіслано",
+        "willNotify": "Нагадає на початку",
+        "inApp": "Видно лише в Sona: сповіщення вимкнені",
+        "autoOpen": "Відкривати цю зустріч на початку"
+      },
+      "recording": {
+        "none": "Джерело не готове"
+      },
+      "participation": {
+        "accepted": "Прийнято",
+        "declined": "Відхилено",
+        "tentative": "Можливо",
+        "pending": "Відповіді ще немає",
+        "unknown": "Відповідь не записана",
+        "you": "Ви",
+        "tally": "{{label}} {{count}}",
+        "unnamed_one": "ще {{count}}, без імені",
+        "unnamed_other": "ще {{count}}, без імен"
+      },
+      "description": {
+        "more": "Ще",
+        "less": "Згорнути"
+      },
+      "actions": {
+        "skip": "Пропустити"
+      },
+      "linkFailed": "Sona не змогла відкрити це посилання.",
+      "skippedNote": "Пропуск ховає пропозицію тут. Sona далі бачить дзвінок, доки пропозиція не завершиться."
     }
   },
   "agentPanel": {

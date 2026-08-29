@@ -2291,12 +2291,62 @@
       "sonaAnswered": "Sona a répondu",
       "tabs": {
         "insights": "Analyses",
+        "ledger": "Registre",
         "questions": "Q&R",
         "transcript": "Transcription"
       },
       "tabsLabel": "Sections de revue de réunion",
       "youAsked": "Vous avez demandé",
       "actionDone": "Marquer cette action comme faite"
+    },
+    "ledger": {
+      "title": "Registre",
+      "description": "Chaque fil de cette réunion, où il a abouti, et la citation de la transcription dont son état a été tiré. Les décomptes sont mesurés ; les états sont déduits.",
+      "emptyTitle": "Aucun registre n'a encore été tiré de cette réunion",
+      "emptyDescription": "Le registre s'écrit en même temps que les notes générées. Régénérez les notes pour relire cette conversation par fils.",
+      "exportHtml": "Exporter la page du registre",
+      "exported": "Registre écrit dans {{path}}",
+      "exportMissing": "Cette réunion n'a pas de registre à exporter. Régénérez d'abord les notes.",
+      "statThreads": "Fils aboutis",
+      "statOpen": "Ouverts",
+      "statDropped": "Abandonnés",
+      "statCommitments": "Engagements",
+      "statOpenLoops": "Questions en suspens",
+      "statReceipts": "Citations",
+      "receiptsVerified": "vérifiées",
+      "receiptsDegraded": "{{threads}} fils et {{commitments}} engagements retirés",
+      "threads": "Fils",
+      "asideThread": "aparté",
+      "openLoops": "Questions en suspens",
+      "noOpenLoops": "Aucune question n'est restée sans réponse.",
+      "commitments": "Engagements",
+      "noCommitments": "Personne ne s'est engagé à voix haute.",
+      "stances": "Positions",
+      "noStances": "Aucune position n'a été prise ni abandonnée.",
+      "trust": "Ce à quoi se fier ici",
+      "trustMeasured": "Les tours de parole, les durées, le nombre de mots et la part de parole viennent de la transcription. Chaque état est un jugement tiré de la citation qui l'accompagne : vérifiez la citation avant d'agir en conséquence.",
+      "unattributed": "Non attribué",
+      "columnAt": "À",
+      "columnQuestion": "La question",
+      "columnInstead": "Ce qui s'est passé à la place",
+      "columnDirection": "Sens",
+      "columnWhat": "Quoi",
+      "columnTaken": "Comment il a été pris",
+      "states": {
+        "decided": "Décidé",
+        "agreed": "Accord",
+        "action": "Action avec responsable",
+        "closed": "Clos",
+        "open": "Ouvert",
+        "partial": "À moitié décidé",
+        "ambiguous": "Pas de réponse explicite",
+        "unanswered": "Sans réponse",
+        "dropped": "Abandonné"
+      },
+      "firmness": {
+        "firm": "Ferme",
+        "soft": "Souple"
+      }
     },
     "artifactState": {
       "current": "Current",
@@ -2332,15 +2382,47 @@
       }
     },
     "list": {
-      "clearSearch": "Effacer la recherche",
-      "loadMore": "Charger les réunions plus anciennes",
-      "loadingMore": "Chargement des réunions plus anciennes…",
-      "noMatches": "Aucune réunion ne correspond à cette recherche",
-      "noMatchesDescription": "Aucun titre de réunion ne contient « {{query}} ». Effacez la recherche pour voir la liste complète.",
-      "noMatchesNotLoaded": "Aucun titre de réunion chargée ne contient « {{query}} ». Des réunions plus anciennes sont encore sur le disque : chargez-les et relancez la recherche.",
       "retentionHint": "Conservation : {{policy}}. Modifiez-la dans Réglages, Confidentialité.",
       "searchLabel": "Rechercher des réunions",
-      "searchPlaceholder": "Rechercher par titre"
+      "searchPlaceholder": "Rechercher par titre",
+      "clearFilters": "Effacer les filtres",
+      "noMatchesFiltered": "Aucune réunion ne correspond",
+      "noMatchesFilteredDescription": "Aucune réunion conservée ne correspond à ce filtre. La requête porte sur toutes les réunions sur le disque, pas seulement sur la page affichée.",
+      "rowActions": "Actions de la réunion",
+      "exportMarkdown": "Exporter les notes (Markdown)",
+      "exportJson": "Exporter les notes (JSON)",
+      "exportLedger": "Exporter la page du registre",
+      "pagePosition": "Page {{page}}",
+      "previousPage": "Plus récentes",
+      "nextPage": "Plus anciennes",
+      "status": {
+        "ready": "Prête",
+        "processing": "En traitement"
+      },
+      "headline": {
+        "words": "{{count}} mots transcrits"
+      },
+      "sourceGlyph": {
+        "microphone": "MIC",
+        "system_audio": "SYS"
+      },
+      "filters": {
+        "label": "Filtrer les réunions",
+        "statusKey": "État",
+        "timeKey": "Période",
+        "status": {
+          "any": "Toutes",
+          "ready": "Prête",
+          "processing": "En traitement",
+          "failed": "En échec"
+        },
+        "time": {
+          "any": "Toutes",
+          "today": "Aujourd'hui",
+          "last_7_days": "7 jours",
+          "last_30_days": "30 jours"
+        }
+      }
     },
     "status": {
       "gapCount": "Lacunes : {{total}}",
@@ -2477,6 +2559,50 @@
         "browserUnreadable": "Un navigateur est au premier plan, mais le titre de son onglet est illisible.",
         "browserNotMeeting": "Un navigateur est au premier plan et son onglet n'est pas un appel."
       }
+    },
+    "preview": {
+      "rows": {
+        "time": "Heure",
+        "calendar": "Calendrier",
+        "app": "Application",
+        "notify": "Alerte",
+        "recording": "Enregistrement",
+        "notes": "Notes",
+        "participants": "Participants",
+        "link": "Lien",
+        "description": "Description"
+      },
+      "attendees_one": "{{count}} personne",
+      "attendees_other": "{{count}} personnes",
+      "notify": {
+        "delivered": "Notification envoyée",
+        "willNotify": "Vous prévient au début",
+        "inApp": "Affiché seulement dans Sona : les notifications sont désactivées",
+        "autoOpen": "Ouvrir cette réunion à son début"
+      },
+      "recording": {
+        "none": "Aucune source armée"
+      },
+      "participation": {
+        "accepted": "Accepté",
+        "declined": "Refusé",
+        "tentative": "Peut-être",
+        "pending": "Pas encore de réponse",
+        "unknown": "Aucune réponse enregistrée",
+        "you": "Vous",
+        "tally": "{{label}} {{count}}",
+        "unnamed_one": "{{count}} autre, sans nom",
+        "unnamed_other": "{{count}} autres, sans nom"
+      },
+      "description": {
+        "more": "Plus",
+        "less": "Moins"
+      },
+      "actions": {
+        "skip": "Ignorer"
+      },
+      "linkFailed": "Sona n'a pas pu ouvrir ce lien.",
+      "skippedNote": "Ignorer masque la proposition ici. Sona continue de voir l'appel jusqu'à l'expiration de la proposition."
     }
   },
   "agentPanel": {

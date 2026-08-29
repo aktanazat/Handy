@@ -2291,12 +2291,62 @@
       "sonaAnswered": "Sona yanıtladı",
       "tabs": {
         "insights": "İçgörüler",
+        "ledger": "Kayıt defteri",
         "questions": "Soru-Cevap",
         "transcript": "Transkript"
       },
       "tabsLabel": "Toplantı inceleme bölümleri",
       "youAsked": "Siz sordunuz",
       "actionDone": "Bu maddeyi yapıldı olarak işaretle"
+    },
+    "ledger": {
+      "title": "Kayıt defteri",
+      "description": "Bu toplantıdaki her konu, nereye vardığı ve durumun okunduğu transkript alıntısı. Sayımlar ölçüldü; durumlar çıkarım.",
+      "emptyTitle": "Bu toplantıdan henüz bir kayıt defteri okunmadı",
+      "emptyDescription": "Kayıt defteri, üretilen notlarla birlikte yazılır. Bu konuşmayı konu konu okumak için notları yeniden üretin.",
+      "exportHtml": "Kayıt defteri sayfasını dışa aktar",
+      "exported": "Kayıt defteri {{path}} konumuna yazıldı",
+      "exportMissing": "Bu toplantının dışa aktarılacak kayıt defteri yok. Önce notları yeniden üretin.",
+      "statThreads": "Kapanan konular",
+      "statOpen": "Açık",
+      "statDropped": "Bırakılan",
+      "statCommitments": "Taahhütler",
+      "statOpenLoops": "Yanıtsız sorular",
+      "statReceipts": "Alıntılar",
+      "receiptsVerified": "doğrulandı",
+      "receiptsDegraded": "{{threads}} konu ve {{commitments}} taahhüt kaldırıldı",
+      "threads": "Konular",
+      "asideThread": "ara konu",
+      "openLoops": "Yanıtsız sorular",
+      "noOpenLoops": "Yanıtsız kalan soru yok.",
+      "commitments": "Taahhütler",
+      "noCommitments": "Kimse sesli olarak söz vermedi.",
+      "stances": "Tutumlar",
+      "noStances": "Hiçbir tutum alınmadı ya da geri çekilmedi.",
+      "trust": "Buna ne kadar güvenilir",
+      "trustMeasured": "Söz sırası, süreler, sözcük sayıları ve konuşma payı transkriptten gelir. Her durum, yanındaki alıntıdan okunmuş bir yargıdır: harekete geçmeden önce alıntıyı kontrol edin.",
+      "unattributed": "Kime ait olduğu belirsiz",
+      "columnAt": "Zaman",
+      "columnQuestion": "Soru",
+      "columnInstead": "Onun yerine ne oldu",
+      "columnDirection": "Yön",
+      "columnWhat": "Ne",
+      "columnTaken": "Nasıl anlaşıldı",
+      "states": {
+        "decided": "Karara bağlandı",
+        "agreed": "Anlaşıldı",
+        "action": "Sahibi olan iş",
+        "closed": "Kapandı",
+        "open": "Açık",
+        "partial": "Yarım karar",
+        "ambiguous": "Açık bir yanıt yok",
+        "unanswered": "Yanıt yok",
+        "dropped": "Bırakıldı"
+      },
+      "firmness": {
+        "firm": "Kesin",
+        "soft": "Gevşek"
+      }
     },
     "artifactState": {
       "current": "Current",
@@ -2332,15 +2382,47 @@
       }
     },
     "list": {
-      "clearSearch": "Aramayı temizle",
-      "loadMore": "Daha eski toplantıları yükle",
-      "loadingMore": "Daha eski toplantılar yükleniyor…",
-      "noMatches": "Bu aramayla eşleşen toplantı yok",
-      "noMatchesDescription": "Hiçbir toplantı başlığı \"{{query}}\" içermiyor. Tüm listeyi görmek için aramayı temizleyin.",
-      "noMatchesNotLoaded": "Yüklenen hiçbir toplantı başlığı \"{{query}}\" içermiyor. Daha eski toplantılar hâlâ diskte: onları yükleyip tekrar arayın.",
       "retentionHint": "Saklama: {{policy}}. Settings, Privacy bölümünden değiştirin.",
       "searchLabel": "Toplantılarda ara",
-      "searchPlaceholder": "Başlığa göre ara"
+      "searchPlaceholder": "Başlığa göre ara",
+      "clearFilters": "Filtreleri temizle",
+      "noMatchesFiltered": "Eşleşen toplantı yok",
+      "noMatchesFilteredDescription": "Bu filtreye uyan saklanmış toplantı yok. Sorgu ekrandaki sayfayla sınırlı değil, diskteki tüm toplantılarda çalışır.",
+      "rowActions": "Toplantı işlemleri",
+      "exportMarkdown": "Notları dışa aktar (Markdown)",
+      "exportJson": "Notları dışa aktar (JSON)",
+      "exportLedger": "Kayıt defteri sayfasını dışa aktar",
+      "pagePosition": "Sayfa {{page}}",
+      "previousPage": "Daha yeni",
+      "nextPage": "Daha eski",
+      "status": {
+        "ready": "Hazır",
+        "processing": "İşleniyor"
+      },
+      "headline": {
+        "words": "{{count}} sözcük yazıya döküldü"
+      },
+      "sourceGlyph": {
+        "microphone": "MIC",
+        "system_audio": "SYS"
+      },
+      "filters": {
+        "label": "Toplantıları filtrele",
+        "statusKey": "Durum",
+        "timeKey": "Zaman",
+        "status": {
+          "any": "Tümü",
+          "ready": "Hazır",
+          "processing": "İşleniyor",
+          "failed": "Başarısız"
+        },
+        "time": {
+          "any": "Tümü",
+          "today": "Bugün",
+          "last_7_days": "7 gün",
+          "last_30_days": "30 gün"
+        }
+      }
     },
     "status": {
       "gapCount": "Boşluklar: {{total}}",
@@ -2477,6 +2559,50 @@
         "browserUnreadable": "Önde bir tarayıcı var ama sekmesinin başlığı okunamıyor.",
         "browserNotMeeting": "Önde bir tarayıcı var ve sekmesi bir görüşme değil."
       }
+    },
+    "preview": {
+      "rows": {
+        "time": "Saat",
+        "calendar": "Takvim",
+        "app": "Uygulama",
+        "notify": "Bildirim",
+        "recording": "Kayıt",
+        "notes": "Notlar",
+        "participants": "Katılımcılar",
+        "link": "Bağlantı",
+        "description": "Açıklama"
+      },
+      "attendees_one": "{{count}} kişi",
+      "attendees_other": "{{count}} kişi",
+      "notify": {
+        "delivered": "Bildirim gönderildi",
+        "willNotify": "Başlangıçta haber verir",
+        "inApp": "Yalnızca Sona içinde görünür: bildirimler kapalı",
+        "autoOpen": "Bu toplantı başlayınca aç"
+      },
+      "recording": {
+        "none": "Hazır kaynak yok"
+      },
+      "participation": {
+        "accepted": "Kabul edildi",
+        "declined": "Reddedildi",
+        "tentative": "Belki",
+        "pending": "Henüz yanıt yok",
+        "unknown": "Kayıtlı yanıt yok",
+        "you": "Siz",
+        "tally": "{{label}} {{count}}",
+        "unnamed_one": "{{count}} kişi daha, adsız",
+        "unnamed_other": "{{count}} kişi daha, adsız"
+      },
+      "description": {
+        "more": "Daha fazla",
+        "less": "Daha az"
+      },
+      "actions": {
+        "skip": "Atla"
+      },
+      "linkFailed": "Sona o bağlantıyı açamadı.",
+      "skippedNote": "Atlamak buradaki öneriyi gizler. Öneri sona erene kadar Sona o görüşmeyi görmeye devam eder."
     }
   },
   "agentPanel": {

@@ -2291,12 +2291,62 @@
       "sonaAnswered": "Sona svarade",
       "tabs": {
         "insights": "Insikter",
+        "ledger": "Register",
         "questions": "Frågor och svar",
         "transcript": "Transkript"
       },
       "tabsLabel": "Sektioner för mötesgenomgång",
       "youAsked": "Du frågade",
       "actionDone": "Markera den här punkten som klar"
+    },
+    "ledger": {
+      "title": "Register",
+      "description": "Varje tråd i det här mötet, var den landade, och transkriptcitatet som läget lästes ur. Antalen är mätta; lägena är tolkade.",
+      "emptyTitle": "Inget register har ännu lästs ur det här mötet",
+      "emptyDescription": "Registret skrivs tillsammans med de genererade anteckningarna. Generera om anteckningarna för att läsa samtalet som trådar.",
+      "exportHtml": "Exportera registersida",
+      "exported": "Registret skrevs till {{path}}",
+      "exportMissing": "Det här mötet har inget register att exportera. Generera om anteckningarna först.",
+      "statThreads": "Avslutade trådar",
+      "statOpen": "Öppna",
+      "statDropped": "Släppta",
+      "statCommitments": "Åtaganden",
+      "statOpenLoops": "Öppna frågor",
+      "statReceipts": "Citat",
+      "receiptsVerified": "kontrollerat",
+      "receiptsDegraded": "{{threads}} trådar och {{commitments}} åtaganden borttagna",
+      "threads": "Trådar",
+      "asideThread": "sidospår",
+      "openLoops": "Öppna frågor",
+      "noOpenLoops": "Ingen fråga blev utan svar.",
+      "commitments": "Åtaganden",
+      "noCommitments": "Ingen lovade något högt.",
+      "stances": "Ståndpunkter",
+      "noStances": "Ingen ståndpunkt togs eller övergavs.",
+      "trust": "Hur mycket av det här som går att lita på",
+      "trustMeasured": "Turtagning, tider, ordantal och taltid kommer från transkriptet. Varje läge är en bedömning läst ur citatet bredvid: kontrollera citatet innan du agerar på det.",
+      "unattributed": "Utan avsändare",
+      "columnAt": "Vid",
+      "columnQuestion": "Frågan",
+      "columnInstead": "Vad som hände i stället",
+      "columnDirection": "Riktning",
+      "columnWhat": "Vad",
+      "columnTaken": "Hur den togs emot",
+      "states": {
+        "decided": "Beslutad",
+        "agreed": "Överens",
+        "action": "Uppgift med ägare",
+        "closed": "Avslutad",
+        "open": "Öppen",
+        "partial": "Halvt beslutad",
+        "ambiguous": "Inget uttryckligt svar",
+        "unanswered": "Obesvarad",
+        "dropped": "Släppt"
+      },
+      "firmness": {
+        "firm": "Fast",
+        "soft": "Mjuk"
+      }
     },
     "artifactState": {
       "current": "Current",
@@ -2332,15 +2382,47 @@
       }
     },
     "list": {
-      "clearSearch": "Rensa sökning",
-      "loadMore": "Läs in äldre möten",
-      "loadingMore": "Läser in äldre möten…",
-      "noMatches": "Inga möten matchar sökningen",
-      "noMatchesDescription": "Ingen mötestitel innehåller \"{{query}}\". Rensa sökningen för att se hela listan.",
-      "noMatchesNotLoaded": "Ingen inläst mötestitel innehåller \"{{query}}\". Äldre möten finns kvar på disken: läs in dem och sök igen.",
       "retentionHint": "Lagring: {{policy}}. Ändra i Inställningar, Privacy.",
       "searchLabel": "Sök möten",
-      "searchPlaceholder": "Sök efter titel"
+      "searchPlaceholder": "Sök efter titel",
+      "clearFilters": "Rensa filter",
+      "noMatchesFiltered": "Inga möten matchar",
+      "noMatchesFilteredDescription": "Inget sparat möte matchar det här filtret. Frågan körs mot alla möten på disken, inte bara sidan på skärmen.",
+      "rowActions": "Mötesåtgärder",
+      "exportMarkdown": "Exportera anteckningar (Markdown)",
+      "exportJson": "Exportera anteckningar (JSON)",
+      "exportLedger": "Exportera registersida",
+      "pagePosition": "Sida {{page}}",
+      "previousPage": "Nyare",
+      "nextPage": "Äldre",
+      "status": {
+        "ready": "Klart",
+        "processing": "Bearbetas"
+      },
+      "headline": {
+        "words": "{{count}} ord transkriberade"
+      },
+      "sourceGlyph": {
+        "microphone": "MIC",
+        "system_audio": "SYS"
+      },
+      "filters": {
+        "label": "Filtrera möten",
+        "statusKey": "Status",
+        "timeKey": "Tid",
+        "status": {
+          "any": "Alla",
+          "ready": "Klart",
+          "processing": "Bearbetas",
+          "failed": "Misslyckades"
+        },
+        "time": {
+          "any": "Alla",
+          "today": "I dag",
+          "last_7_days": "7 dagar",
+          "last_30_days": "30 dagar"
+        }
+      }
     },
     "status": {
       "gapCount": "Luckor: {{total}}",
@@ -2477,6 +2559,50 @@
         "browserUnreadable": "En webbläsare ligger främst, men dess fliktitel går inte att läsa.",
         "browserNotMeeting": "En webbläsare ligger främst och dess flik är inte ett samtal."
       }
+    },
+    "preview": {
+      "rows": {
+        "time": "Tid",
+        "calendar": "Kalender",
+        "app": "App",
+        "notify": "Avisering",
+        "recording": "Inspelning",
+        "notes": "Anteckningar",
+        "participants": "Deltagare",
+        "link": "Länk",
+        "description": "Beskrivning"
+      },
+      "attendees_one": "{{count}} person",
+      "attendees_other": "{{count}} personer",
+      "notify": {
+        "delivered": "Avisering skickad",
+        "willNotify": "Säger till vid start",
+        "inApp": "Syns bara i Sona: aviseringar är av",
+        "autoOpen": "Öppna det här mötet när det börjar"
+      },
+      "recording": {
+        "none": "Ingen källa redo"
+      },
+      "participation": {
+        "accepted": "Tackat ja",
+        "declined": "Tackat nej",
+        "tentative": "Kanske",
+        "pending": "Inget svar än",
+        "unknown": "Inget svar registrerat",
+        "you": "Du",
+        "tally": "{{label}} {{count}}",
+        "unnamed_one": "{{count}} till, utan namn",
+        "unnamed_other": "{{count}} till, utan namn"
+      },
+      "description": {
+        "more": "Mer",
+        "less": "Mindre"
+      },
+      "actions": {
+        "skip": "Hoppa över"
+      },
+      "linkFailed": "Sona kunde inte öppna den länken.",
+      "skippedNote": "Att hoppa över döljer erbjudandet här. Sona fortsätter se samtalet tills erbjudandet går ut."
     }
   },
   "agentPanel": {

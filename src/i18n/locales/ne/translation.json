@@ -2291,12 +2291,62 @@
       "sonaAnswered": "Sona ले जवाफ दियो",
       "tabs": {
         "insights": "अन्तर्दृष्टि",
+        "ledger": "अभिलेख",
         "questions": "प्रश्नोत्तर",
         "transcript": "ट्रान्सक्रिप्ट"
       },
       "tabsLabel": "बैठक समीक्षा खण्डहरू",
       "youAsked": "तपाईंले सोध्नुभयो",
       "actionDone": "यो कार्य सम्पन्न चिह्नित गर्नुहोस्"
+    },
+    "ledger": {
+      "title": "अभिलेख",
+      "description": "यो बैठकको हरेक विषय, त्यो कहाँ पुग्यो, र अवस्था पढिएको ट्रान्सक्रिप्टको उद्धरण। गणना मापन गरिएका हुन्; अवस्थाहरू अनुमान हुन्।",
+      "emptyTitle": "यो बैठकबाट अझै कुनै अभिलेख पढिएको छैन",
+      "emptyDescription": "अभिलेख उत्पन्न गरिएका नोटहरूसँगै लेखिन्छ। यो कुराकानी विषय अनुसार पढ्न नोटहरू पुन: उत्पन्न गर्नुहोस्।",
+      "exportHtml": "अभिलेख पृष्ठ निर्यात गर्नुहोस्",
+      "exported": "अभिलेख {{path}} मा लेखियो",
+      "exportMissing": "यो बैठकमा निर्यात गर्न मिल्ने अभिलेख छैन। पहिले नोटहरू पुन: उत्पन्न गर्नुहोस्।",
+      "statThreads": "टुंगिएका विषय",
+      "statOpen": "खुला",
+      "statDropped": "छाडिएका",
+      "statCommitments": "प्रतिबद्धता",
+      "statOpenLoops": "उत्तर नपाएका प्रश्न",
+      "statReceipts": "उद्धरण",
+      "receiptsVerified": "प्रमाणित",
+      "receiptsDegraded": "{{threads}} विषय र {{commitments}} प्रतिबद्धता हटाइयो",
+      "threads": "विषयहरू",
+      "asideThread": "प्रसंगबाहिर",
+      "openLoops": "उत्तर नपाएका प्रश्न",
+      "noOpenLoops": "कुनै प्रश्न उत्तरविहीन रहेन।",
+      "commitments": "प्रतिबद्धताहरू",
+      "noCommitments": "कसैले पनि बोलेरै प्रतिबद्धता जनाएन।",
+      "stances": "अडानहरू",
+      "noStances": "कुनै अडान लिइएन वा फिर्ता लिइएन।",
+      "trust": "यसलाई कति भर पर्ने",
+      "trustMeasured": "पालो, समय, शब्द गणना र बोल्ने हिस्सा ट्रान्सक्रिप्टबाट आउँछन्। हरेक अवस्था छेउको उद्धरणबाट पढिएको निर्णय हो: काम गर्नु अघि उद्धरण जाँच्नुहोस्।",
+      "unattributed": "श्रेय नखुलेको",
+      "columnAt": "समय",
+      "columnQuestion": "प्रश्न",
+      "columnInstead": "बदलामा के भयो",
+      "columnDirection": "दिशा",
+      "columnWhat": "के",
+      "columnTaken": "कसरी लिइयो",
+      "states": {
+        "decided": "निर्णय भयो",
+        "agreed": "सहमत",
+        "action": "जिम्मेवारसहितको काम",
+        "closed": "बन्द",
+        "open": "खुला",
+        "partial": "आधा निर्णय",
+        "ambiguous": "स्पष्ट उत्तर छैन",
+        "unanswered": "उत्तर छैन",
+        "dropped": "छाडियो"
+      },
+      "firmness": {
+        "firm": "पक्का",
+        "soft": "कमजोर"
+      }
     },
     "artifactState": {
       "current": "Current",
@@ -2332,15 +2382,47 @@
       }
     },
     "list": {
-      "clearSearch": "खोज हटाउनुहोस्",
-      "loadMore": "पुराना बैठकहरू लोड गर्नुहोस्",
-      "loadingMore": "पुराना बैठकहरू लोड हुँदै…",
-      "noMatches": "त्यो खोजसँग मिल्ने कुनै बैठक छैन",
-      "noMatchesDescription": "कुनै पनि बैठकको शीर्षकमा \"{{query}}\" छैन। पूरै सूची हेर्न खोज हटाउनुहोस्।",
-      "noMatchesNotLoaded": "लोड भएका बैठकहरूको शीर्षकमा \"{{query}}\" छैन। पुराना बैठकहरू अझै डिस्कमा छन्: तिनलाई लोड गरेर फेरि खोज्नुहोस्।",
       "retentionHint": "भण्डारण अवधि: {{policy}}। Settings, Privacy मा परिवर्तन गर्नुहोस्।",
       "searchLabel": "बैठकहरू खोज्नुहोस्",
-      "searchPlaceholder": "शीर्षकबाट खोज्नुहोस्"
+      "searchPlaceholder": "शीर्षकबाट खोज्नुहोस्",
+      "clearFilters": "फिल्टरहरू हटाउनुहोस्",
+      "noMatchesFiltered": "कुनै बैठक मिल्दैन",
+      "noMatchesFilteredDescription": "यो फिल्टरसँग मिल्ने कुनै राखिएको बैठक छैन। खोजी पर्दामा देखिने पृष्ठमा मात्र नभई डिस्कमा भएका सबै बैठकमा चल्छ।",
+      "rowActions": "बैठकका कार्यहरू",
+      "exportMarkdown": "नोटहरू निर्यात गर्नुहोस् (Markdown)",
+      "exportJson": "नोटहरू निर्यात गर्नुहोस् (JSON)",
+      "exportLedger": "अभिलेख पृष्ठ निर्यात गर्नुहोस्",
+      "pagePosition": "पृष्ठ {{page}}",
+      "previousPage": "नयाँ",
+      "nextPage": "पुरानो",
+      "status": {
+        "ready": "तयार",
+        "processing": "प्रक्रियामा"
+      },
+      "headline": {
+        "words": "{{count}} शब्द ट्रान्सक्राइब गरियो"
+      },
+      "sourceGlyph": {
+        "microphone": "MIC",
+        "system_audio": "SYS"
+      },
+      "filters": {
+        "label": "बैठकहरू छान्नुहोस्",
+        "statusKey": "अवस्था",
+        "timeKey": "समय",
+        "status": {
+          "any": "कुनै पनि",
+          "ready": "तयार",
+          "processing": "प्रक्रियामा",
+          "failed": "असफल"
+        },
+        "time": {
+          "any": "कुनै पनि",
+          "today": "आज",
+          "last_7_days": "७ दिन",
+          "last_30_days": "३० दिन"
+        }
+      }
     },
     "status": {
       "gapCount": "खाली अन्तरहरू: {{total}}",
@@ -2477,6 +2559,50 @@
         "browserUnreadable": "अगाडि ब्राउजर छ, तर त्यसको ट्याबको शीर्षक पढ्न सकिँदैन।",
         "browserNotMeeting": "अगाडि ब्राउजर छ र त्यसको ट्याब कल होइन।"
       }
+    },
+    "preview": {
+      "rows": {
+        "time": "समय",
+        "calendar": "पात्रो",
+        "app": "एप",
+        "notify": "सूचना",
+        "recording": "रेकर्डिङ",
+        "notes": "नोटहरू",
+        "participants": "सहभागीहरू",
+        "link": "लिंक",
+        "description": "विवरण"
+      },
+      "attendees_one": "{{count}} व्यक्ति",
+      "attendees_other": "{{count}} व्यक्ति",
+      "notify": {
+        "delivered": "सूचना पठाइयो",
+        "willNotify": "सुरुमा जानकारी दिन्छ",
+        "inApp": "Sona भित्र मात्र देखिन्छ: सूचनाहरू बन्द छन्",
+        "autoOpen": "यो बैठक सुरु हुँदा खोल्नुहोस्"
+      },
+      "recording": {
+        "none": "कुनै स्रोत तयार छैन"
+      },
+      "participation": {
+        "accepted": "स्वीकृत",
+        "declined": "अस्वीकृत",
+        "tentative": "सायद",
+        "pending": "अझै जवाफ छैन",
+        "unknown": "कुनै जवाफ अभिलेख भएको छैन",
+        "you": "तपाईं",
+        "tally": "{{label}} {{count}}",
+        "unnamed_one": "{{count}} अरू, नाम नखुलेको",
+        "unnamed_other": "{{count}} अरू, नाम नखुलेका"
+      },
+      "description": {
+        "more": "थप",
+        "less": "थोरै"
+      },
+      "actions": {
+        "skip": "छाड्नुहोस्"
+      },
+      "linkFailed": "Sona ले त्यो लिंक खोल्न सकेन।",
+      "skippedNote": "छाड्दा यहाँको प्रस्ताव लुक्छ। प्रस्तावको अवधि सकिँदासम्म Sona त्यो कलमा नजर राख्छ।"
     }
   },
   "agentPanel": {

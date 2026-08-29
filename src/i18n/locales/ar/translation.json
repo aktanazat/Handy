@@ -2291,12 +2291,62 @@
       "sonaAnswered": "أجاب Sona",
       "tabs": {
         "insights": "الرؤى",
+        "ledger": "السجل",
         "questions": "أسئلة وأجوبة",
         "transcript": "النص"
       },
       "tabsLabel": "أقسام مراجعة الاجتماع",
       "youAsked": "سألت",
       "actionDone": "وسم هذا البند بأنه منجز"
+    },
+    "ledger": {
+      "title": "السجل",
+      "description": "كل موضوع في هذا الاجتماع، وأين انتهى، والاقتباس من النص الذي قُرئت منه الحالة. الأعداد مقيسة؛ الحالات مستنتجة.",
+      "emptyTitle": "لم يُقرأ أي سجل من هذا الاجتماع بعد",
+      "emptyDescription": "يُكتب السجل جنبًا إلى جنب مع الملاحظات المولّدة. أعد توليد الملاحظات لقراءة هذا الحديث على شكل مواضيع.",
+      "exportHtml": "تصدير صفحة السجل",
+      "exported": "تم كتابة السجل في {{path}}",
+      "exportMissing": "لا يوجد سجل لهذا الاجتماع لتصديره. أعد توليد الملاحظات أولًا.",
+      "statThreads": "مواضيع محسومة",
+      "statOpen": "مفتوحة",
+      "statDropped": "متروكة",
+      "statCommitments": "التزامات",
+      "statOpenLoops": "أسئلة معلّقة",
+      "statReceipts": "الإسنادات",
+      "receiptsVerified": "مُتحقَّق منها",
+      "receiptsDegraded": "تم حذف {{threads}} موضوعًا و{{commitments}} التزامًا",
+      "threads": "المواضيع",
+      "asideThread": "استطراد",
+      "openLoops": "الأسئلة المعلّقة",
+      "noOpenLoops": "لم يبق سؤال بلا جواب.",
+      "commitments": "الالتزامات",
+      "noCommitments": "لم يلتزم أحد بشيء بصوت مسموع.",
+      "stances": "المواقف",
+      "noStances": "لم يُتخذ موقف ولم يُعكس أي موقف.",
+      "trust": "إلى أي حد يمكن الاعتماد على هذا",
+      "trustMeasured": "الأدوار والتوقيتات وأعداد الكلمات ونصيب الكلام كلها من النص. أما كل حالة فهي حكم قُرئ من الاقتباس المجاور لها: راجع الاقتباس قبل التصرف بناءً عليه.",
+      "unattributed": "غير منسوب",
+      "columnAt": "عند",
+      "columnQuestion": "السؤال",
+      "columnInstead": "ما حدث بدلًا من ذلك",
+      "columnDirection": "الاتجاه",
+      "columnWhat": "ماذا",
+      "columnTaken": "كيف أُخذ",
+      "states": {
+        "decided": "محسوم",
+        "agreed": "متفق عليه",
+        "action": "مهمة لها مسؤول",
+        "closed": "مُغلق",
+        "open": "مفتوح",
+        "partial": "محسوم جزئيًا",
+        "ambiguous": "بلا جواب صريح",
+        "unanswered": "بلا رد",
+        "dropped": "متروك"
+      },
+      "firmness": {
+        "firm": "حازم",
+        "soft": "مرن"
+      }
     },
     "artifactState": {
       "current": "Current",
@@ -2332,15 +2382,47 @@
       }
     },
     "list": {
-      "clearSearch": "مسح البحث",
-      "loadMore": "تحميل الاجتماعات الأقدم",
-      "loadingMore": "جارٍ تحميل الاجتماعات الأقدم…",
-      "noMatches": "لا توجد اجتماعات مطابقة لهذا البحث",
-      "noMatchesDescription": "لا يحتوي أي عنوان اجتماع على \"{{query}}\". امسح البحث لرؤية القائمة كاملة.",
-      "noMatchesNotLoaded": "لا يحتوي أي عنوان اجتماع محمّل على \"{{query}}\". الاجتماعات الأقدم ما زالت على القرص: حمّلها وابحث مجددًا.",
       "retentionHint": "الاحتفاظ: {{policy}}. يمكنك تغييره في الإعدادات، Privacy.",
       "searchLabel": "البحث في الاجتماعات",
-      "searchPlaceholder": "البحث حسب العنوان"
+      "searchPlaceholder": "البحث حسب العنوان",
+      "clearFilters": "مسح عوامل التصفية",
+      "noMatchesFiltered": "لا توجد اجتماعات مطابقة",
+      "noMatchesFilteredDescription": "لا يطابق أي اجتماع محفوظ عوامل التصفية هذه. يجري البحث على كل اجتماع على القرص، وليس على الصفحة المعروضة فقط.",
+      "rowActions": "إجراءات الاجتماع",
+      "exportMarkdown": "تصدير الملاحظات (Markdown)",
+      "exportJson": "تصدير الملاحظات (JSON)",
+      "exportLedger": "تصدير صفحة السجل",
+      "pagePosition": "صفحة {{page}}",
+      "previousPage": "أحدث",
+      "nextPage": "أقدم",
+      "status": {
+        "ready": "جاهز",
+        "processing": "قيد المعالجة"
+      },
+      "headline": {
+        "words": "{{count}} كلمة مُنسوخة"
+      },
+      "sourceGlyph": {
+        "microphone": "MIC",
+        "system_audio": "SYS"
+      },
+      "filters": {
+        "label": "تصفية الاجتماعات",
+        "statusKey": "الحالة",
+        "timeKey": "الوقت",
+        "status": {
+          "any": "أي",
+          "ready": "جاهز",
+          "processing": "قيد المعالجة",
+          "failed": "فاشل"
+        },
+        "time": {
+          "any": "أي",
+          "today": "اليوم",
+          "last_7_days": "7 أيام",
+          "last_30_days": "30 يومًا"
+        }
+      }
     },
     "status": {
       "gapCount": "الفجوات: {{total}}",
@@ -2477,6 +2559,50 @@
         "browserUnreadable": "هناك متصفح في المقدمة، لكن عنوان تبويبه غير قابل للقراءة.",
         "browserNotMeeting": "هناك متصفح في المقدمة وتبويبه ليس مكالمة."
       }
+    },
+    "preview": {
+      "rows": {
+        "time": "الوقت",
+        "calendar": "التقويم",
+        "app": "التطبيق",
+        "notify": "التنبيه",
+        "recording": "التسجيل",
+        "notes": "الملاحظات",
+        "participants": "المشاركون",
+        "link": "الرابط",
+        "description": "الوصف"
+      },
+      "attendees_one": "شخص واحد",
+      "attendees_other": "{{count}} أشخاص",
+      "notify": {
+        "delivered": "تم إرسال الإشعار",
+        "willNotify": "سيُنبّهك عند البداية",
+        "inApp": "يظهر داخل Sona فقط: الإشعارات معطّلة",
+        "autoOpen": "افتح هذا الاجتماع عند بدايته"
+      },
+      "recording": {
+        "none": "لا مصدر مهيّأ"
+      },
+      "participation": {
+        "accepted": "قبل",
+        "declined": "رفض",
+        "tentative": "ربما",
+        "pending": "لا رد بعد",
+        "unknown": "لا جواب مسجّل",
+        "you": "أنت",
+        "tally": "{{label}} {{count}}",
+        "unnamed_one": "واحد آخر، بلا اسم",
+        "unnamed_other": "{{count}} آخرون، بلا أسماء"
+      },
+      "description": {
+        "more": "المزيد",
+        "less": "أقل"
+      },
+      "actions": {
+        "skip": "تخطٍ"
+      },
+      "linkFailed": "لم تستطع Sona فتح هذا الرابط.",
+      "skippedNote": "التخطي يخفي العرض من هنا. تبقى Sona ترى المكالمة حتى تنتهي صلاحية العرض."
     }
   },
   "agentPanel": {

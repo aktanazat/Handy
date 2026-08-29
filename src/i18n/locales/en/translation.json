@@ -2314,11 +2314,61 @@
       "sonaAnswered": "Sona answered",
       "tabs": {
         "insights": "Insights",
+        "ledger": "Ledger",
         "questions": "Q&A",
         "transcript": "Transcript"
       },
       "tabsLabel": "Meeting review sections",
       "youAsked": "You asked"
+    },
+    "ledger": {
+      "title": "Ledger",
+      "description": "Every thread in this meeting, where it landed, and the transcript quote the state was read from. Counts are measured; states are inferred.",
+      "emptyTitle": "No ledger has been read from this meeting yet",
+      "emptyDescription": "A ledger is written alongside the generated notes. Regenerate the notes to read this conversation as threads.",
+      "exportHtml": "Export ledger page",
+      "exported": "Ledger written to {{path}}",
+      "exportMissing": "This meeting has no ledger to export. Regenerate the notes first.",
+      "statThreads": "Threads landed",
+      "statOpen": "Open",
+      "statDropped": "Dropped",
+      "statCommitments": "Commitments",
+      "statOpenLoops": "Open loops",
+      "statReceipts": "Receipts",
+      "receiptsVerified": "verified",
+      "receiptsDegraded": "{{threads}} threads, {{commitments}} commitments removed",
+      "threads": "Threads",
+      "asideThread": "aside",
+      "openLoops": "Open loops",
+      "noOpenLoops": "No question was left without an answer.",
+      "commitments": "Commitments",
+      "noCommitments": "Nobody committed to anything out loud.",
+      "stances": "Stances",
+      "noStances": "No position was taken up or reversed.",
+      "trust": "How much of this to trust",
+      "trustMeasured": "Turns, timings, word counts and talk share come from the transcript. Every state is a judgment read out of the quote beside it: check the quote before acting on it.",
+      "unattributed": "Unattributed",
+      "columnAt": "At",
+      "columnQuestion": "The question",
+      "columnInstead": "What happened instead",
+      "columnDirection": "Direction",
+      "columnWhat": "What",
+      "columnTaken": "How it was taken",
+      "states": {
+        "decided": "Decided",
+        "agreed": "Agreed",
+        "action": "Action owned",
+        "closed": "Closed",
+        "open": "Open",
+        "partial": "Half-decided",
+        "ambiguous": "No explicit answer",
+        "unanswered": "No reply",
+        "dropped": "Dropped"
+      },
+      "firmness": {
+        "firm": "Firm",
+        "soft": "Soft"
+      }
     },
     "artifactState": {
       "current": "Current",
@@ -2354,15 +2404,47 @@
       }
     },
     "list": {
-      "clearSearch": "Clear search",
-      "loadMore": "Load older meetings",
-      "loadingMore": "Loading older meetings…",
-      "noMatches": "No meetings match that search",
-      "noMatchesDescription": "No meeting title contains \"{{query}}\". Clear the search to see the whole list.",
-      "noMatchesNotLoaded": "No loaded meeting title contains \"{{query}}\". Older meetings are still on disk: load them and search again.",
       "retentionHint": "Retention: {{policy}}. Change it in Settings, Privacy.",
       "searchLabel": "Search meetings",
-      "searchPlaceholder": "Search by title"
+      "searchPlaceholder": "Search by title",
+      "clearFilters": "Clear filters",
+      "noMatchesFiltered": "No meetings match",
+      "noMatchesFilteredDescription": "No retained meeting matches this filter. The query runs against every meeting on disk, not just the page on screen.",
+      "rowActions": "Meeting actions",
+      "exportMarkdown": "Export notes (Markdown)",
+      "exportJson": "Export notes (JSON)",
+      "exportLedger": "Export ledger page",
+      "pagePosition": "Page {{page}}",
+      "previousPage": "Newer",
+      "nextPage": "Older",
+      "status": {
+        "ready": "Ready",
+        "processing": "Processing"
+      },
+      "headline": {
+        "words": "{{count}} words transcribed"
+      },
+      "sourceGlyph": {
+        "microphone": "MIC",
+        "system_audio": "SYS"
+      },
+      "filters": {
+        "label": "Filter meetings",
+        "statusKey": "Status",
+        "timeKey": "Time",
+        "status": {
+          "any": "Any",
+          "ready": "Ready",
+          "processing": "Processing",
+          "failed": "Failed"
+        },
+        "time": {
+          "any": "Any",
+          "today": "Today",
+          "last_7_days": "7 days",
+          "last_30_days": "30 days"
+        }
+      }
     },
     "status": {
       "gapCount": "Gaps: {{total}}",
@@ -2481,6 +2563,50 @@
         "browserUnreadable": "A browser is in front, but its tab title cannot be read.",
         "browserNotMeeting": "A browser is in front and its tab is not a call."
       }
+    },
+    "preview": {
+      "rows": {
+        "time": "Time",
+        "calendar": "Calendar",
+        "app": "App",
+        "notify": "Notify",
+        "recording": "Recording",
+        "notes": "Notes",
+        "participants": "Participants",
+        "link": "Link",
+        "description": "Description"
+      },
+      "attendees_one": "{{count}} person",
+      "attendees_other": "{{count}} people",
+      "notify": {
+        "delivered": "Notification sent",
+        "willNotify": "Notifies you at the start",
+        "inApp": "Shown in Sona only: notifications are off",
+        "autoOpen": "Open this meeting when it starts"
+      },
+      "recording": {
+        "none": "No source armed"
+      },
+      "participation": {
+        "accepted": "Accepted",
+        "declined": "Declined",
+        "tentative": "Maybe",
+        "pending": "No reply yet",
+        "unknown": "No answer recorded",
+        "you": "You",
+        "tally": "{{label}} {{count}}",
+        "unnamed_one": "{{count}} more, not named",
+        "unnamed_other": "{{count}} more, not named"
+      },
+      "description": {
+        "more": "More",
+        "less": "Less"
+      },
+      "actions": {
+        "skip": "Skip"
+      },
+      "linkFailed": "Sona could not open that link.",
+      "skippedNote": "Skipping hides an offer here. Sona keeps seeing the call until the offer expires."
     }
   },
   "agentPanel": {

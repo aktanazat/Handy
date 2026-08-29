@@ -2291,12 +2291,62 @@
       "sonaAnswered": "Sona 的回答",
       "tabs": {
         "insights": "洞察",
+        "ledger": "台账",
         "questions": "问答",
         "transcript": "转录"
       },
       "tabsLabel": "会议回顾栏目",
       "youAsked": "你的提问",
       "actionDone": "把这条行动项标记为完成"
+    },
+    "ledger": {
+      "title": "台账",
+      "description": "这场会议的每条议题、它最后落到哪里，以及读出该状态所依据的转录引文。计数是测量得到的；状态是推断的。",
+      "emptyTitle": "还没有从这场会议中读出台账",
+      "emptyDescription": "台账与生成的笔记一同写出。重新生成笔记，即可按议题阅读这场对话。",
+      "exportHtml": "导出台账页面",
+      "exported": "台账已写入 {{path}}",
+      "exportMissing": "这场会议没有可导出的台账。请先重新生成笔记。",
+      "statThreads": "已了结的议题",
+      "statOpen": "未决",
+      "statDropped": "搁置",
+      "statCommitments": "承诺",
+      "statOpenLoops": "未答的问题",
+      "statReceipts": "引文",
+      "receiptsVerified": "已核对",
+      "receiptsDegraded": "已移除 {{threads}} 条议题和 {{commitments}} 条承诺",
+      "threads": "议题",
+      "asideThread": "题外话",
+      "openLoops": "未答的问题",
+      "noOpenLoops": "没有问题被留着没答。",
+      "commitments": "承诺",
+      "noCommitments": "没有人当场做出承诺。",
+      "stances": "立场",
+      "noStances": "没有人表明或改变过立场。",
+      "trust": "这些内容能信到什么程度",
+      "trustMeasured": "轮次、时长、词数和发言占比来自转录。每个状态都是从旁边那条引文读出的判断：照做之前请先核对引文。",
+      "unattributed": "未标明发言人",
+      "columnAt": "时间点",
+      "columnQuestion": "问题",
+      "columnInstead": "实际发生了什么",
+      "columnDirection": "方向",
+      "columnWhat": "内容",
+      "columnTaken": "被如何理解",
+      "states": {
+        "decided": "已决定",
+        "agreed": "达成一致",
+        "action": "有人负责的行动",
+        "closed": "已结束",
+        "open": "未决",
+        "partial": "只决定了一半",
+        "ambiguous": "没有明确答复",
+        "unanswered": "无人答复",
+        "dropped": "已搁置"
+      },
+      "firmness": {
+        "firm": "确定",
+        "soft": "松动"
+      }
     },
     "artifactState": {
       "current": "Current",
@@ -2332,15 +2382,47 @@
       }
     },
     "list": {
-      "clearSearch": "清除搜索",
-      "loadMore": "加载更早的会议",
-      "loadingMore": "正在加载更早的会议…",
-      "noMatches": "没有与该搜索匹配的会议",
-      "noMatchesDescription": "没有会议标题包含“{{query}}”。清除搜索即可查看完整列表。",
-      "noMatchesNotLoaded": "已加载的会议标题中没有包含“{{query}}”的。更早的会议仍在磁盘上：加载后再搜索一次。",
       "retentionHint": "保留策略：{{policy}}。可在设置的 Privacy 中更改。",
       "searchLabel": "搜索会议",
-      "searchPlaceholder": "按标题搜索"
+      "searchPlaceholder": "按标题搜索",
+      "clearFilters": "清除筛选",
+      "noMatchesFiltered": "没有会议符合条件",
+      "noMatchesFilteredDescription": "没有保留的会议符合这个筛选条件。查询会覆盖磁盘上的所有会议，而不只是屏幕上这一页。",
+      "rowActions": "会议操作",
+      "exportMarkdown": "导出笔记（Markdown）",
+      "exportJson": "导出笔记（JSON）",
+      "exportLedger": "导出台账页面",
+      "pagePosition": "第 {{page}} 页",
+      "previousPage": "更近",
+      "nextPage": "更早",
+      "status": {
+        "ready": "已完成",
+        "processing": "处理中"
+      },
+      "headline": {
+        "words": "已转录 {{count}} 个词"
+      },
+      "sourceGlyph": {
+        "microphone": "MIC",
+        "system_audio": "SYS"
+      },
+      "filters": {
+        "label": "筛选会议",
+        "statusKey": "状态",
+        "timeKey": "时间",
+        "status": {
+          "any": "全部",
+          "ready": "已完成",
+          "processing": "处理中",
+          "failed": "失败"
+        },
+        "time": {
+          "any": "全部",
+          "today": "今天",
+          "last_7_days": "7 天",
+          "last_30_days": "30 天"
+        }
+      }
     },
     "status": {
       "gapCount": "间隙：{{total}}",
@@ -2477,6 +2559,50 @@
         "browserUnreadable": "前台是浏览器，但无法读取它的标签页标题。",
         "browserNotMeeting": "前台是浏览器，且它的标签页不是通话。"
       }
+    },
+    "preview": {
+      "rows": {
+        "time": "时间",
+        "calendar": "日历",
+        "app": "应用",
+        "notify": "通知",
+        "recording": "录制",
+        "notes": "笔记",
+        "participants": "参与者",
+        "link": "链接",
+        "description": "描述"
+      },
+      "attendees_one": "{{count}} 人",
+      "attendees_other": "{{count}} 人",
+      "notify": {
+        "delivered": "已发送通知",
+        "willNotify": "开始时会提醒你",
+        "inApp": "仅在 Sona 内显示：通知已关闭",
+        "autoOpen": "会议开始时打开它"
+      },
+      "recording": {
+        "none": "没有就绪的音源"
+      },
+      "participation": {
+        "accepted": "已接受",
+        "declined": "已拒绝",
+        "tentative": "待定",
+        "pending": "尚未答复",
+        "unknown": "未记录答复",
+        "you": "你",
+        "tally": "{{label}} {{count}}",
+        "unnamed_one": "另有 {{count}} 人，未具名",
+        "unnamed_other": "另有 {{count}} 人，未具名"
+      },
+      "description": {
+        "more": "展开",
+        "less": "收起"
+      },
+      "actions": {
+        "skip": "跳过"
+      },
+      "linkFailed": "Sona 打不开该链接。",
+      "skippedNote": "跳过会在这里隐藏该提议。在提议过期之前，Sona 仍会看到这通通话。"
     }
   },
   "agentPanel": {

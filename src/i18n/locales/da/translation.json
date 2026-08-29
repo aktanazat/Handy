@@ -2291,12 +2291,62 @@
       "sonaAnswered": "Sona svarede",
       "tabs": {
         "insights": "Indsigter",
+        "ledger": "Register",
         "questions": "Spørgsmål og svar",
         "transcript": "Transskription"
       },
       "tabsLabel": "Sektioner til mødegennemgang",
       "youAsked": "Du spurgte",
       "actionDone": "Markér denne handling som udført"
+    },
+    "ledger": {
+      "title": "Register",
+      "description": "Hvert emne i dette møde, hvor det landede, og det citat fra transskriptionen, tilstanden blev læst ud af. Tal er målt; tilstande er udledt.",
+      "emptyTitle": "Der er endnu ikke læst et register ud af dette møde",
+      "emptyDescription": "Registeret skrives sammen med de genererede noter. Generér noterne igen for at læse denne samtale som emner.",
+      "exportHtml": "Eksportér registerside",
+      "exported": "Register skrevet til {{path}}",
+      "exportMissing": "Dette møde har intet register at eksportere. Generér noterne igen først.",
+      "statThreads": "Emner afklaret",
+      "statOpen": "Åbne",
+      "statDropped": "Droppede",
+      "statCommitments": "Tilsagn",
+      "statOpenLoops": "Åbne spørgsmål",
+      "statReceipts": "Citater",
+      "receiptsVerified": "verificeret",
+      "receiptsDegraded": "{{threads}} emner og {{commitments}} tilsagn fjernet",
+      "threads": "Emner",
+      "asideThread": "sidespor",
+      "openLoops": "Åbne spørgsmål",
+      "noOpenLoops": "Intet spørgsmål blev efterladt ubesvaret.",
+      "commitments": "Tilsagn",
+      "noCommitments": "Ingen gav et tilsagn højt.",
+      "stances": "Standpunkter",
+      "noStances": "Der blev ikke indtaget eller forladt et standpunkt.",
+      "trust": "Hvor meget af dette kan man stole på",
+      "trustMeasured": "Taleture, tider, ordtal og taletid kommer fra transskriptionen. Hver tilstand er et skøn læst ud af citatet ved siden af: kontrollér citatet, før du handler på det.",
+      "unattributed": "Uden afsender",
+      "columnAt": "Ved",
+      "columnQuestion": "Spørgsmålet",
+      "columnInstead": "Hvad der skete i stedet",
+      "columnDirection": "Retning",
+      "columnWhat": "Hvad",
+      "columnTaken": "Hvordan det blev givet",
+      "states": {
+        "decided": "Besluttet",
+        "agreed": "Enige",
+        "action": "Opgave med ejer",
+        "closed": "Lukket",
+        "open": "Åbent",
+        "partial": "Halvt besluttet",
+        "ambiguous": "Intet udtrykkeligt svar",
+        "unanswered": "Ubesvaret",
+        "dropped": "Droppet"
+      },
+      "firmness": {
+        "firm": "Fast",
+        "soft": "Løst"
+      }
     },
     "artifactState": {
       "current": "Current",
@@ -2332,15 +2382,47 @@
       }
     },
     "list": {
-      "clearSearch": "Ryd søgning",
-      "loadMore": "Indlæs ældre møder",
-      "loadingMore": "Indlæser ældre møder…",
-      "noMatches": "Ingen møder matcher den søgning",
-      "noMatchesDescription": "Ingen mødetitel indeholder \"{{query}}\". Ryd søgningen for at se hele listen.",
-      "noMatchesNotLoaded": "Ingen indlæst mødetitel indeholder \"{{query}}\". Ældre møder ligger stadig på disken: indlæs dem og søg igen.",
       "retentionHint": "Opbevaring: {{policy}}. Skift den i Indstillinger, Privacy.",
       "searchLabel": "Søg i møder",
-      "searchPlaceholder": "Søg efter titel"
+      "searchPlaceholder": "Søg efter titel",
+      "clearFilters": "Ryd filtre",
+      "noMatchesFiltered": "Ingen møder matcher",
+      "noMatchesFilteredDescription": "Intet bevaret møde matcher dette filter. Forespørgslen kører mod alle møder på disken, ikke kun siden på skærmen.",
+      "rowActions": "Mødehandlinger",
+      "exportMarkdown": "Eksportér noter (Markdown)",
+      "exportJson": "Eksportér noter (JSON)",
+      "exportLedger": "Eksportér registerside",
+      "pagePosition": "Side {{page}}",
+      "previousPage": "Nyere",
+      "nextPage": "Ældre",
+      "status": {
+        "ready": "Klar",
+        "processing": "Behandles"
+      },
+      "headline": {
+        "words": "{{count}} ord transskriberet"
+      },
+      "sourceGlyph": {
+        "microphone": "MIC",
+        "system_audio": "SYS"
+      },
+      "filters": {
+        "label": "Filtrér møder",
+        "statusKey": "Status",
+        "timeKey": "Tid",
+        "status": {
+          "any": "Alle",
+          "ready": "Klar",
+          "processing": "Behandles",
+          "failed": "Mislykket"
+        },
+        "time": {
+          "any": "Alle",
+          "today": "I dag",
+          "last_7_days": "7 dage",
+          "last_30_days": "30 dage"
+        }
+      }
     },
     "status": {
       "gapCount": "Huller: {{total}}",
@@ -2477,6 +2559,50 @@
         "browserUnreadable": "En browser er forrest, men dens fanetitel kan ikke læses.",
         "browserNotMeeting": "En browser er forrest, og dens fane er ikke et opkald."
       }
+    },
+    "preview": {
+      "rows": {
+        "time": "Tid",
+        "calendar": "Kalender",
+        "app": "App",
+        "notify": "Besked",
+        "recording": "Optagelse",
+        "notes": "Noter",
+        "participants": "Deltagere",
+        "link": "Link",
+        "description": "Beskrivelse"
+      },
+      "attendees_one": "{{count}} person",
+      "attendees_other": "{{count}} personer",
+      "notify": {
+        "delivered": "Notifikation sendt",
+        "willNotify": "Giver dig besked ved starten",
+        "inApp": "Vises kun i Sona: notifikationer er slået fra",
+        "autoOpen": "Åbn dette møde, når det begynder"
+      },
+      "recording": {
+        "none": "Ingen kilde klargjort"
+      },
+      "participation": {
+        "accepted": "Accepteret",
+        "declined": "Afslået",
+        "tentative": "Måske",
+        "pending": "Intet svar endnu",
+        "unknown": "Intet svar registreret",
+        "you": "Dig",
+        "tally": "{{label}} {{count}}",
+        "unnamed_one": "{{count}} mere, uden navn",
+        "unnamed_other": "{{count}} flere, uden navn"
+      },
+      "description": {
+        "more": "Mere",
+        "less": "Mindre"
+      },
+      "actions": {
+        "skip": "Spring over"
+      },
+      "linkFailed": "Sona kunne ikke åbne det link.",
+      "skippedNote": "Springer du over, skjules tilbuddet her. Sona ser fortsat opkaldet, indtil tilbuddet udløber."
     }
   },
   "agentPanel": {

@@ -2291,12 +2291,62 @@
       "sonaAnswered": "Sona の回答",
       "tabs": {
         "insights": "インサイト",
+        "ledger": "台帳",
         "questions": "Q&A",
         "transcript": "文字起こし"
       },
       "tabsLabel": "ミーティングレビューのセクション",
       "youAsked": "あなたの質問",
       "actionDone": "このアクション項目を完了にする"
+    },
+    "ledger": {
+      "title": "台帳",
+      "description": "このミーティングの各スレッドと、その落ち着いた先、そして状態を読み取った文字起こしの引用。件数は計測値、状態は推定です。",
+      "emptyTitle": "このミーティングからはまだ台帳が読み取られていません",
+      "emptyDescription": "台帳は生成されたメモと一緒に書かれます。メモを再生成すると、この会話をスレッドとして読めます。",
+      "exportHtml": "台帳ページを書き出す",
+      "exported": "台帳を {{path}} に書き出しました",
+      "exportMissing": "このミーティングには書き出せる台帳がありません。先にメモを再生成してください。",
+      "statThreads": "決着したスレッド",
+      "statOpen": "未決",
+      "statDropped": "流れた",
+      "statCommitments": "約束",
+      "statOpenLoops": "未回答の問い",
+      "statReceipts": "引用",
+      "receiptsVerified": "照合済み",
+      "receiptsDegraded": "スレッド {{threads}} 件、約束 {{commitments}} 件を削除しました",
+      "threads": "スレッド",
+      "asideThread": "余談",
+      "openLoops": "未回答の問い",
+      "noOpenLoops": "答えのないまま残った問いはありません。",
+      "commitments": "約束",
+      "noCommitments": "口に出して約束した人はいません。",
+      "stances": "立場",
+      "noStances": "立場を取ったり覆したりした発言はありません。",
+      "trust": "どこまで信じられるか",
+      "trustMeasured": "ターン数、時間、単語数、発話比率は文字起こしから出ています。状態はすべて隣の引用から読み取った判断です。行動する前に引用を確認してください。",
+      "unattributed": "話者不明",
+      "columnAt": "時点",
+      "columnQuestion": "問い",
+      "columnInstead": "代わりに起きたこと",
+      "columnDirection": "向き",
+      "columnWhat": "内容",
+      "columnTaken": "どう受け取られたか",
+      "states": {
+        "decided": "決定",
+        "agreed": "合意",
+        "action": "担当者つきの作業",
+        "closed": "決着",
+        "open": "未決",
+        "partial": "半分決定",
+        "ambiguous": "明確な答えなし",
+        "unanswered": "返答なし",
+        "dropped": "流れた"
+      },
+      "firmness": {
+        "firm": "固い",
+        "soft": "緩い"
+      }
     },
     "artifactState": {
       "current": "Current",
@@ -2332,15 +2382,47 @@
       }
     },
     "list": {
-      "clearSearch": "検索をクリア",
-      "loadMore": "古いミーティングを読み込む",
-      "loadingMore": "古いミーティングを読み込み中…",
-      "noMatches": "検索に一致するミーティングはありません",
-      "noMatchesDescription": "「{{query}}」を含むミーティングタイトルはありません。検索をクリアすると全リストが表示されます。",
-      "noMatchesNotLoaded": "読み込み済みのミーティングタイトルに「{{query}}」を含むものはありません。古いミーティングはまだディスク上にあります。読み込んでから再度検索してください。",
       "retentionHint": "保持期間: {{policy}}。設定の Privacy で変更できます。",
       "searchLabel": "ミーティングを検索",
-      "searchPlaceholder": "タイトルで検索"
+      "searchPlaceholder": "タイトルで検索",
+      "clearFilters": "フィルターをクリア",
+      "noMatchesFiltered": "該当するミーティングはありません",
+      "noMatchesFilteredDescription": "この条件に合う保存済みミーティングはありません。検索は画面のページだけでなく、ディスク上のすべてのミーティングを対象にしています。",
+      "rowActions": "ミーティングの操作",
+      "exportMarkdown": "メモを書き出す (Markdown)",
+      "exportJson": "メモを書き出す (JSON)",
+      "exportLedger": "台帳ページを書き出す",
+      "pagePosition": "{{page}} ページ",
+      "previousPage": "新しい",
+      "nextPage": "古い",
+      "status": {
+        "ready": "完了",
+        "processing": "処理中"
+      },
+      "headline": {
+        "words": "{{count}} 単語を文字起こし"
+      },
+      "sourceGlyph": {
+        "microphone": "MIC",
+        "system_audio": "SYS"
+      },
+      "filters": {
+        "label": "ミーティングを絞り込む",
+        "statusKey": "状態",
+        "timeKey": "期間",
+        "status": {
+          "any": "すべて",
+          "ready": "完了",
+          "processing": "処理中",
+          "failed": "失敗"
+        },
+        "time": {
+          "any": "すべて",
+          "today": "今日",
+          "last_7_days": "7日",
+          "last_30_days": "30日"
+        }
+      }
     },
     "status": {
       "gapCount": "欠落: {{total}}",
@@ -2477,6 +2559,50 @@
         "browserUnreadable": "ブラウザが前面にありますが、タブのタイトルを読み取れません。",
         "browserNotMeeting": "ブラウザが前面にあり、そのタブは通話ではありません。"
       }
+    },
+    "preview": {
+      "rows": {
+        "time": "時間",
+        "calendar": "カレンダー",
+        "app": "アプリ",
+        "notify": "通知",
+        "recording": "録音",
+        "notes": "メモ",
+        "participants": "参加者",
+        "link": "リンク",
+        "description": "説明"
+      },
+      "attendees_one": "{{count}} 人",
+      "attendees_other": "{{count}} 人",
+      "notify": {
+        "delivered": "通知を送信しました",
+        "willNotify": "開始時に知らせます",
+        "inApp": "Sona 内だけに表示: 通知はオフです",
+        "autoOpen": "開始時にこのミーティングを開く"
+      },
+      "recording": {
+        "none": "音源が用意されていません"
+      },
+      "participation": {
+        "accepted": "参加",
+        "declined": "欠席",
+        "tentative": "未定",
+        "pending": "まだ返答なし",
+        "unknown": "返答の記録なし",
+        "you": "自分",
+        "tally": "{{label}} {{count}}",
+        "unnamed_one": "他 {{count}} 名、名前なし",
+        "unnamed_other": "他 {{count}} 名、名前なし"
+      },
+      "description": {
+        "more": "もっと見る",
+        "less": "折りたたむ"
+      },
+      "actions": {
+        "skip": "スキップ"
+      },
+      "linkFailed": "Sona はそのリンクを開けませんでした。",
+      "skippedNote": "スキップするとここでの提案は隠れます。提案が期限切れになるまで、Sona はその通話を見続けます。"
     }
   },
   "agentPanel": {

@@ -2291,12 +2291,62 @@
       "sonaAnswered": "Sona antwoordde",
       "tabs": {
         "insights": "Inzichten",
+        "ledger": "Register",
         "questions": "Q&A",
         "transcript": "Transcript"
       },
       "tabsLabel": "Secties vergaderoverzicht",
       "youAsked": "Je vroeg",
       "actionDone": "Deze actie als gedaan markeren"
+    },
+    "ledger": {
+      "title": "Register",
+      "description": "Elk onderwerp uit deze vergadering, waar het is geland, en het transcriptcitaat waaruit de stand is gelezen. Aantallen zijn gemeten; standen zijn afgeleid.",
+      "emptyTitle": "Uit deze vergadering is nog geen register gelezen",
+      "emptyDescription": "Het register wordt samen met de gegenereerde notities geschreven. Genereer de notities opnieuw om dit gesprek per onderwerp te lezen.",
+      "exportHtml": "Registerpagina exporteren",
+      "exported": "Register geschreven naar {{path}}",
+      "exportMissing": "Deze vergadering heeft geen register om te exporteren. Genereer eerst de notities opnieuw.",
+      "statThreads": "Afgeronde onderwerpen",
+      "statOpen": "Open",
+      "statDropped": "Laten vallen",
+      "statCommitments": "Toezeggingen",
+      "statOpenLoops": "Open vragen",
+      "statReceipts": "Citaten",
+      "receiptsVerified": "gecontroleerd",
+      "receiptsDegraded": "{{threads}} onderwerpen en {{commitments}} toezeggingen verwijderd",
+      "threads": "Onderwerpen",
+      "asideThread": "zijspoor",
+      "openLoops": "Open vragen",
+      "noOpenLoops": "Geen vraag bleef zonder antwoord.",
+      "commitments": "Toezeggingen",
+      "noCommitments": "Niemand heeft hardop iets toegezegd.",
+      "stances": "Standpunten",
+      "noStances": "Er is geen standpunt ingenomen of verlaten.",
+      "trust": "Hoeveel hiervan te vertrouwen is",
+      "trustMeasured": "Spreekbeurten, tijden, woordaantallen en spreektijdverdeling komen uit het transcript. Elke stand is een oordeel dat uit het citaat ernaast is gelezen: controleer het citaat voordat je erop handelt.",
+      "unattributed": "Zonder toeschrijving",
+      "columnAt": "Op",
+      "columnQuestion": "De vraag",
+      "columnInstead": "Wat er in plaats daarvan gebeurde",
+      "columnDirection": "Richting",
+      "columnWhat": "Wat",
+      "columnTaken": "Hoe het bedoeld was",
+      "states": {
+        "decided": "Besloten",
+        "agreed": "Eens",
+        "action": "Taak met eigenaar",
+        "closed": "Afgesloten",
+        "open": "Open",
+        "partial": "Half besloten",
+        "ambiguous": "Geen uitdrukkelijk antwoord",
+        "unanswered": "Onbeantwoord",
+        "dropped": "Laten vallen"
+      },
+      "firmness": {
+        "firm": "Hard",
+        "soft": "Zacht"
+      }
     },
     "artifactState": {
       "current": "Current",
@@ -2332,15 +2382,47 @@
       }
     },
     "list": {
-      "clearSearch": "Zoekopdracht wissen",
-      "loadMore": "Oudere vergaderingen laden",
-      "loadingMore": "Oudere vergaderingen laden…",
-      "noMatches": "Geen vergaderingen komen overeen met die zoekopdracht",
-      "noMatchesDescription": "Geen vergadertitel bevat \"{{query}}\". Wis de zoekopdracht om de hele lijst te zien.",
-      "noMatchesNotLoaded": "Geen geladen vergadertitel bevat \"{{query}}\". Oudere vergaderingen staan nog op schijf: laad ze en zoek opnieuw.",
       "retentionHint": "Bewaartermijn: {{policy}}. Wijzig dit in Instellingen, Privacy.",
       "searchLabel": "Vergaderingen zoeken",
-      "searchPlaceholder": "Zoeken op titel"
+      "searchPlaceholder": "Zoeken op titel",
+      "clearFilters": "Filters wissen",
+      "noMatchesFiltered": "Geen vergaderingen komen overeen",
+      "noMatchesFilteredDescription": "Geen bewaarde vergadering past bij dit filter. De zoekopdracht loopt over alle vergaderingen op schijf, niet alleen over de pagina op het scherm.",
+      "rowActions": "Vergaderacties",
+      "exportMarkdown": "Notities exporteren (Markdown)",
+      "exportJson": "Notities exporteren (JSON)",
+      "exportLedger": "Registerpagina exporteren",
+      "pagePosition": "Pagina {{page}}",
+      "previousPage": "Nieuwer",
+      "nextPage": "Ouder",
+      "status": {
+        "ready": "Klaar",
+        "processing": "In behandeling"
+      },
+      "headline": {
+        "words": "{{count}} woorden getranscribeerd"
+      },
+      "sourceGlyph": {
+        "microphone": "MIC",
+        "system_audio": "SYS"
+      },
+      "filters": {
+        "label": "Vergaderingen filteren",
+        "statusKey": "Status",
+        "timeKey": "Tijd",
+        "status": {
+          "any": "Alle",
+          "ready": "Klaar",
+          "processing": "In behandeling",
+          "failed": "Mislukt"
+        },
+        "time": {
+          "any": "Alle",
+          "today": "Vandaag",
+          "last_7_days": "7 dagen",
+          "last_30_days": "30 dagen"
+        }
+      }
     },
     "status": {
       "gapCount": "Hiaten: {{total}}",
@@ -2477,6 +2559,50 @@
         "browserUnreadable": "Er staat een browser op de voorgrond, maar de titel van het tabblad is niet leesbaar.",
         "browserNotMeeting": "Er staat een browser op de voorgrond en het tabblad is geen gesprek."
       }
+    },
+    "preview": {
+      "rows": {
+        "time": "Tijd",
+        "calendar": "Agenda",
+        "app": "App",
+        "notify": "Melding",
+        "recording": "Opname",
+        "notes": "Notities",
+        "participants": "Deelnemers",
+        "link": "Link",
+        "description": "Beschrijving"
+      },
+      "attendees_one": "{{count}} persoon",
+      "attendees_other": "{{count}} personen",
+      "notify": {
+        "delivered": "Melding verstuurd",
+        "willNotify": "Waarschuwt je bij de start",
+        "inApp": "Alleen in Sona te zien: meldingen staan uit",
+        "autoOpen": "Deze vergadering openen wanneer ze begint"
+      },
+      "recording": {
+        "none": "Geen bron gereed"
+      },
+      "participation": {
+        "accepted": "Geaccepteerd",
+        "declined": "Geweigerd",
+        "tentative": "Misschien",
+        "pending": "Nog geen antwoord",
+        "unknown": "Geen antwoord vastgelegd",
+        "you": "Jij",
+        "tally": "{{label}} {{count}}",
+        "unnamed_one": "{{count}} meer, zonder naam",
+        "unnamed_other": "{{count}} meer, zonder naam"
+      },
+      "description": {
+        "more": "Meer",
+        "less": "Minder"
+      },
+      "actions": {
+        "skip": "Overslaan"
+      },
+      "linkFailed": "Sona kon die link niet openen.",
+      "skippedNote": "Overslaan verbergt het aanbod hier. Sona blijft het gesprek zien tot het aanbod verloopt."
     }
   },
   "agentPanel": {

@@ -2291,12 +2291,62 @@
       "sonaAnswered": "Sona ענה",
       "tabs": {
         "insights": "תובנות",
+        "ledger": "רישום",
         "questions": "שאלות ותשובות",
         "transcript": "תמלול"
       },
       "tabsLabel": "מקטעי סקירת פגישה",
       "youAsked": "שאלת",
       "actionDone": "סמן את הפעולה הזאת כבוצעה"
+    },
+    "ledger": {
+      "title": "רישום",
+      "description": "כל נושא בפגישה הזו, לאן הגיע, והציטוט מהתמלול שממנו נקרא המצב. הספירות נמדדו; המצבים הוסקו.",
+      "emptyTitle": "עדיין לא נקרא רישום מהפגישה הזו",
+      "emptyDescription": "הרישום נכתב יחד עם הסיכום שנוצר. צור את הסיכום מחדש כדי לקרוא את השיחה הזו לפי נושאים.",
+      "exportHtml": "ייצוא עמוד הרישום",
+      "exported": "הרישום נכתב אל {{path}}",
+      "exportMissing": "לפגישה הזו אין רישום לייצוא. צור קודם את הסיכום מחדש.",
+      "statThreads": "נושאים שהוכרעו",
+      "statOpen": "פתוחים",
+      "statDropped": "נזנחו",
+      "statCommitments": "התחייבויות",
+      "statOpenLoops": "שאלות פתוחות",
+      "statReceipts": "ציטוטים",
+      "receiptsVerified": "אומתו",
+      "receiptsDegraded": "הוסרו {{threads}} נושאים ו־{{commitments}} התחייבויות",
+      "threads": "נושאים",
+      "asideThread": "הערת אגב",
+      "openLoops": "שאלות פתוחות",
+      "noOpenLoops": "לא נשארה שאלה בלי תשובה.",
+      "commitments": "התחייבויות",
+      "noCommitments": "אף אחד לא התחייב לשום דבר בקול.",
+      "stances": "עמדות",
+      "noStances": "לא נתפסה ולא נזנחה שום עמדה.",
+      "trust": "עד כמה אפשר לסמוך על זה",
+      "trustMeasured": "התורים, הזמנים, ספירות המילים וחלוקת זמן הדיבור באים מהתמלול. כל מצב הוא שיקול דעת שנקרא מהציטוט שלידו: בדוק את הציטוט לפני שאתה פועל לפיו.",
+      "unattributed": "בלי שיוך",
+      "columnAt": "בזמן",
+      "columnQuestion": "השאלה",
+      "columnInstead": "מה קרה במקום",
+      "columnDirection": "כיוון",
+      "columnWhat": "מה",
+      "columnTaken": "איך היא נלקחה",
+      "states": {
+        "decided": "הוכרע",
+        "agreed": "הוסכם",
+        "action": "משימה עם אחראי",
+        "closed": "נסגר",
+        "open": "פתוח",
+        "partial": "הוכרע חלקית",
+        "ambiguous": "בלי תשובה מפורשת",
+        "unanswered": "בלי מענה",
+        "dropped": "נזנח"
+      },
+      "firmness": {
+        "firm": "מחייב",
+        "soft": "רופף"
+      }
     },
     "artifactState": {
       "current": "Current",
@@ -2332,15 +2382,47 @@
       }
     },
     "list": {
-      "clearSearch": "נקה חיפוש",
-      "loadMore": "טען פגישות ישנות יותר",
-      "loadingMore": "טוען פגישות ישנות יותר…",
-      "noMatches": "אין פגישות התואמות לחיפוש",
-      "noMatchesDescription": "אין כותרת פגישה המכילה \"{{query}}\". נקה את החיפוש כדי לראות את הרשימה המלאה.",
-      "noMatchesNotLoaded": "אין כותרת פגישה טעונה המכילה \"{{query}}\". פגישות ישנות יותר עדיין בדיסק: טען אותן וחפש שוב.",
       "retentionHint": "שמירה: {{policy}}. ניתן לשנות זאת ב־Settings, Privacy.",
       "searchLabel": "חיפוש פגישות",
-      "searchPlaceholder": "חיפוש לפי כותרת"
+      "searchPlaceholder": "חיפוש לפי כותרת",
+      "clearFilters": "נקה מסננים",
+      "noMatchesFiltered": "אין פגישות מתאימות",
+      "noMatchesFilteredDescription": "אין פגישה שנשמרה שמתאימה למסנן הזה. השאילתה רצה על כל הפגישות בדיסק, לא רק על העמוד שעל המסך.",
+      "rowActions": "פעולות לפגישה",
+      "exportMarkdown": "ייצוא סיכום (Markdown)",
+      "exportJson": "ייצוא סיכום (JSON)",
+      "exportLedger": "ייצוא עמוד הרישום",
+      "pagePosition": "עמוד {{page}}",
+      "previousPage": "חדשות יותר",
+      "nextPage": "ישנות יותר",
+      "status": {
+        "ready": "מוכן",
+        "processing": "בעיבוד"
+      },
+      "headline": {
+        "words": "{{count}} מילים תומללו"
+      },
+      "sourceGlyph": {
+        "microphone": "MIC",
+        "system_audio": "SYS"
+      },
+      "filters": {
+        "label": "סינון פגישות",
+        "statusKey": "מצב",
+        "timeKey": "זמן",
+        "status": {
+          "any": "הכול",
+          "ready": "מוכן",
+          "processing": "בעיבוד",
+          "failed": "נכשל"
+        },
+        "time": {
+          "any": "הכול",
+          "today": "היום",
+          "last_7_days": "7 ימים",
+          "last_30_days": "30 יום"
+        }
+      }
     },
     "status": {
       "gapCount": "פערים: {{total}}",
@@ -2477,6 +2559,50 @@
         "browserUnreadable": "דפדפן נמצא בחזית, אבל לא ניתן לקרוא את כותרת הכרטיסייה שלו.",
         "browserNotMeeting": "דפדפן נמצא בחזית והכרטיסייה שלו אינה שיחה."
       }
+    },
+    "preview": {
+      "rows": {
+        "time": "שעה",
+        "calendar": "לוח שנה",
+        "app": "אפליקציה",
+        "notify": "התראה",
+        "recording": "הקלטה",
+        "notes": "סיכום",
+        "participants": "משתתפים",
+        "link": "קישור",
+        "description": "תיאור"
+      },
+      "attendees_one": "אדם אחד",
+      "attendees_other": "{{count}} אנשים",
+      "notify": {
+        "delivered": "ההתראה נשלחה",
+        "willNotify": "יודיע לך בהתחלה",
+        "inApp": "מוצג ב־Sona בלבד: ההתראות כבויות",
+        "autoOpen": "פתח את הפגישה הזו כשהיא מתחילה"
+      },
+      "recording": {
+        "none": "אין מקור מוכן"
+      },
+      "participation": {
+        "accepted": "אישר",
+        "declined": "סירב",
+        "tentative": "אולי",
+        "pending": "עדיין בלי תשובה",
+        "unknown": "לא נרשמה תשובה",
+        "you": "אתה",
+        "tally": "{{label}} {{count}}",
+        "unnamed_one": "עוד אחד, בלי שם",
+        "unnamed_other": "עוד {{count}}, בלי שמות"
+      },
+      "description": {
+        "more": "עוד",
+        "less": "פחות"
+      },
+      "actions": {
+        "skip": "דלג"
+      },
+      "linkFailed": "Sona לא הצליחה לפתוח את הקישור.",
+      "skippedNote": "דילוג מסתיר את ההצעה מכאן. Sona ממשיכה לראות את השיחה עד שההצעה תפוג."
     }
   },
   "agentPanel": {

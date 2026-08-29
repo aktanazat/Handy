@@ -2291,12 +2291,62 @@
       "sonaAnswered": "Sona 的回答",
       "tabs": {
         "insights": "洞察",
+        "ledger": "紀錄簿",
         "questions": "問答",
         "transcript": "逐字稿"
       },
       "tabsLabel": "會議回顧區段",
       "youAsked": "你的提問",
       "actionDone": "把這條行動項目標記為完成"
+    },
+    "ledger": {
+      "title": "紀錄簿",
+      "description": "這場會議的每條議題、最後落在哪裡，以及讀出該狀態所依據的逐字稿引文。計數是量測得到的；狀態是推論的。",
+      "emptyTitle": "還沒有從這場會議讀出紀錄簿",
+      "emptyDescription": "紀錄簿會與產生的筆記一起寫出。重新產生筆記，就能依議題閱讀這場對話。",
+      "exportHtml": "匯出紀錄簿頁面",
+      "exported": "紀錄簿已寫入 {{path}}",
+      "exportMissing": "這場會議沒有可匯出的紀錄簿。請先重新產生筆記。",
+      "statThreads": "已了結的議題",
+      "statOpen": "未決",
+      "statDropped": "擱置",
+      "statCommitments": "承諾",
+      "statOpenLoops": "未答的問題",
+      "statReceipts": "引文",
+      "receiptsVerified": "已核對",
+      "receiptsDegraded": "已移除 {{threads}} 條議題與 {{commitments}} 條承諾",
+      "threads": "議題",
+      "asideThread": "題外話",
+      "openLoops": "未答的問題",
+      "noOpenLoops": "沒有問題被留著沒答。",
+      "commitments": "承諾",
+      "noCommitments": "沒有人當場做出承諾。",
+      "stances": "立場",
+      "noStances": "沒有人表明或改變過立場。",
+      "trust": "這些內容能信到什麼程度",
+      "trustMeasured": "輪次、時長、字詞數與發言占比來自逐字稿。每個狀態都是從旁邊那條引文讀出的判斷：照做之前請先核對引文。",
+      "unattributed": "未標明發言者",
+      "columnAt": "時間點",
+      "columnQuestion": "問題",
+      "columnInstead": "實際發生了什麼",
+      "columnDirection": "方向",
+      "columnWhat": "內容",
+      "columnTaken": "被如何理解",
+      "states": {
+        "decided": "已決定",
+        "agreed": "達成一致",
+        "action": "有人負責的行動",
+        "closed": "已結束",
+        "open": "未決",
+        "partial": "只決定了一半",
+        "ambiguous": "沒有明確答覆",
+        "unanswered": "無人答覆",
+        "dropped": "已擱置"
+      },
+      "firmness": {
+        "firm": "確定",
+        "soft": "鬆動"
+      }
     },
     "artifactState": {
       "current": "Current",
@@ -2332,15 +2382,47 @@
       }
     },
     "list": {
-      "clearSearch": "清除搜尋",
-      "loadMore": "載入較舊的會議",
-      "loadingMore": "正在載入較舊的會議…",
-      "noMatches": "沒有符合該搜尋的會議",
-      "noMatchesDescription": "沒有會議標題包含「{{query}}」。清除搜尋即可查看完整列表。",
-      "noMatchesNotLoaded": "已載入的會議標題中沒有包含「{{query}}」的項目。較舊的會議仍在磁碟上：載入後再搜尋一次。",
       "retentionHint": "保留政策：{{policy}}。可在「設定」的「Privacy」中變更。",
       "searchLabel": "搜尋會議",
-      "searchPlaceholder": "依標題搜尋"
+      "searchPlaceholder": "依標題搜尋",
+      "clearFilters": "清除篩選",
+      "noMatchesFiltered": "沒有會議符合條件",
+      "noMatchesFilteredDescription": "沒有保留的會議符合這個篩選條件。查詢會涵蓋磁碟上的所有會議，而不只是畫面上這一頁。",
+      "rowActions": "會議操作",
+      "exportMarkdown": "匯出筆記（Markdown）",
+      "exportJson": "匯出筆記（JSON）",
+      "exportLedger": "匯出紀錄簿頁面",
+      "pagePosition": "第 {{page}} 頁",
+      "previousPage": "較新",
+      "nextPage": "較早",
+      "status": {
+        "ready": "已完成",
+        "processing": "處理中"
+      },
+      "headline": {
+        "words": "已轉錄 {{count}} 個字詞"
+      },
+      "sourceGlyph": {
+        "microphone": "MIC",
+        "system_audio": "SYS"
+      },
+      "filters": {
+        "label": "篩選會議",
+        "statusKey": "狀態",
+        "timeKey": "時間",
+        "status": {
+          "any": "全部",
+          "ready": "已完成",
+          "processing": "處理中",
+          "failed": "失敗"
+        },
+        "time": {
+          "any": "全部",
+          "today": "今天",
+          "last_7_days": "7 天",
+          "last_30_days": "30 天"
+        }
+      }
     },
     "status": {
       "gapCount": "間隔：{{total}}",
@@ -2477,6 +2559,50 @@
         "browserUnreadable": "前景是瀏覽器，但無法讀取它的標籤頁標題。",
         "browserNotMeeting": "前景是瀏覽器，且它的標籤頁不是通話。"
       }
+    },
+    "preview": {
+      "rows": {
+        "time": "時間",
+        "calendar": "行事曆",
+        "app": "應用程式",
+        "notify": "通知",
+        "recording": "錄製",
+        "notes": "筆記",
+        "participants": "參與者",
+        "link": "連結",
+        "description": "描述"
+      },
+      "attendees_one": "{{count}} 人",
+      "attendees_other": "{{count}} 人",
+      "notify": {
+        "delivered": "已送出通知",
+        "willNotify": "開始時會提醒你",
+        "inApp": "僅在 Sona 內顯示：通知已關閉",
+        "autoOpen": "會議開始時開啟它"
+      },
+      "recording": {
+        "none": "沒有就緒的音源"
+      },
+      "participation": {
+        "accepted": "已接受",
+        "declined": "已婉拒",
+        "tentative": "待定",
+        "pending": "尚未答覆",
+        "unknown": "未記錄答覆",
+        "you": "你",
+        "tally": "{{label}} {{count}}",
+        "unnamed_one": "另有 {{count}} 人，未具名",
+        "unnamed_other": "另有 {{count}} 人，未具名"
+      },
+      "description": {
+        "more": "展開",
+        "less": "收合"
+      },
+      "actions": {
+        "skip": "略過"
+      },
+      "linkFailed": "Sona 無法開啟該連結。",
+      "skippedNote": "略過會在這裡隱藏該提議。在提議過期之前，Sona 仍會看到這通通話。"
     }
   },
   "agentPanel": {

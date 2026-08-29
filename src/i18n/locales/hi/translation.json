@@ -2291,12 +2291,62 @@
       "sonaAnswered": "Sona ने उत्तर दिया",
       "tabs": {
         "insights": "इनसाइट्स",
+        "ledger": "रजिस्टर",
         "questions": "प्रश्नोत्तर",
         "transcript": "ट्रांसक्रिप्ट"
       },
       "tabsLabel": "मीटिंग समीक्षा अनुभाग",
       "youAsked": "आपने पूछा",
       "actionDone": "इस कार्य को पूरा चिह्नित करें"
+    },
+    "ledger": {
+      "title": "रजिस्टर",
+      "description": "इस मीटिंग का हर विषय, वह कहाँ पहुँचा, और ट्रांसक्रिप्ट का वह उद्धरण जिससे उसकी स्थिति पढ़ी गई। गिनतियाँ मापी गई हैं; स्थितियाँ अनुमानित हैं।",
+      "emptyTitle": "इस मीटिंग से अभी कोई रजिस्टर नहीं पढ़ा गया",
+      "emptyDescription": "रजिस्टर तैयार किए गए नोट्स के साथ ही लिखा जाता है। इस बातचीत को विषयों के रूप में पढ़ने के लिए नोट्स फिर से तैयार करें।",
+      "exportHtml": "रजिस्टर पेज एक्सपोर्ट करें",
+      "exported": "रजिस्टर {{path}} में लिखा गया",
+      "exportMissing": "इस मीटिंग का कोई रजिस्टर एक्सपोर्ट करने के लिए नहीं है। पहले नोट्स फिर से तैयार करें।",
+      "statThreads": "तय हुए विषय",
+      "statOpen": "खुले",
+      "statDropped": "छोड़े गए",
+      "statCommitments": "वादे",
+      "statOpenLoops": "अनुत्तरित सवाल",
+      "statReceipts": "उद्धरण",
+      "receiptsVerified": "सत्यापित",
+      "receiptsDegraded": "{{threads}} विषय और {{commitments}} वादे हटाए गए",
+      "threads": "विषय",
+      "asideThread": "अलग बात",
+      "openLoops": "अनुत्तरित सवाल",
+      "noOpenLoops": "कोई सवाल बिना जवाब नहीं रहा।",
+      "commitments": "वादे",
+      "noCommitments": "किसी ने खुलकर कोई वादा नहीं किया।",
+      "stances": "रुख",
+      "noStances": "किसी ने कोई रुख अपनाया या बदला नहीं।",
+      "trust": "इस पर कितना भरोसा करें",
+      "trustMeasured": "बारी, समय, शब्दों की गिनती और बोलने का हिस्सा ट्रांसक्रिप्ट से आते हैं। हर स्थिति उसके साथ दिए उद्धरण से पढ़ा गया आकलन है: उस पर काम करने से पहले उद्धरण जाँच लें।",
+      "unattributed": "बिना श्रेय",
+      "columnAt": "समय",
+      "columnQuestion": "सवाल",
+      "columnInstead": "उसके बजाय क्या हुआ",
+      "columnDirection": "दिशा",
+      "columnWhat": "क्या",
+      "columnTaken": "कैसे लिया गया",
+      "states": {
+        "decided": "तय",
+        "agreed": "सहमति",
+        "action": "जिम्मेदार तय काम",
+        "closed": "बंद",
+        "open": "खुला",
+        "partial": "आधा तय",
+        "ambiguous": "कोई साफ़ जवाब नहीं",
+        "unanswered": "जवाब नहीं",
+        "dropped": "छोड़ा गया"
+      },
+      "firmness": {
+        "firm": "पक्का",
+        "soft": "ढीला"
+      }
     },
     "artifactState": {
       "current": "Current",
@@ -2332,15 +2382,47 @@
       }
     },
     "list": {
-      "clearSearch": "खोज साफ़ करें",
-      "loadMore": "पुरानी मीटिंग लोड करें",
-      "loadingMore": "पुरानी मीटिंग लोड हो रही हैं…",
-      "noMatches": "इस खोज से कोई मीटिंग मेल नहीं खाती",
-      "noMatchesDescription": "किसी मीटिंग शीर्षक में \"{{query}}\" नहीं है। पूरी सूची देखने के लिए खोज साफ़ करें।",
-      "noMatchesNotLoaded": "लोड किए गए किसी मीटिंग शीर्षक में \"{{query}}\" नहीं है। पुरानी मीटिंग अभी भी डिस्क पर हैं: उन्हें लोड करके फिर से खोजें।",
       "retentionHint": "रिटेंशन: {{policy}}। इसे Settings, Privacy में बदलें।",
       "searchLabel": "मीटिंग खोजें",
-      "searchPlaceholder": "शीर्षक से खोजें"
+      "searchPlaceholder": "शीर्षक से खोजें",
+      "clearFilters": "फ़िल्टर साफ़ करें",
+      "noMatchesFiltered": "कोई मीटिंग मेल नहीं खाती",
+      "noMatchesFilteredDescription": "इस फ़िल्टर से कोई रखी गई मीटिंग मेल नहीं खाती। खोज डिस्क पर मौजूद हर मीटिंग पर चलती है, सिर्फ़ स्क्रीन पर दिखे पेज पर नहीं।",
+      "rowActions": "मीटिंग की कार्रवाइयाँ",
+      "exportMarkdown": "नोट्स एक्सपोर्ट करें (Markdown)",
+      "exportJson": "नोट्स एक्सपोर्ट करें (JSON)",
+      "exportLedger": "रजिस्टर पेज एक्सपोर्ट करें",
+      "pagePosition": "पेज {{page}}",
+      "previousPage": "नई",
+      "nextPage": "पुरानी",
+      "status": {
+        "ready": "तैयार",
+        "processing": "प्रोसेस हो रही"
+      },
+      "headline": {
+        "words": "{{count}} शब्द ट्रांसक्राइब हुए"
+      },
+      "sourceGlyph": {
+        "microphone": "MIC",
+        "system_audio": "SYS"
+      },
+      "filters": {
+        "label": "मीटिंग फ़िल्टर करें",
+        "statusKey": "स्थिति",
+        "timeKey": "समय",
+        "status": {
+          "any": "कोई भी",
+          "ready": "तैयार",
+          "processing": "प्रोसेस हो रही",
+          "failed": "असफल"
+        },
+        "time": {
+          "any": "कोई भी",
+          "today": "आज",
+          "last_7_days": "7 दिन",
+          "last_30_days": "30 दिन"
+        }
+      }
     },
     "status": {
       "gapCount": "गैप: {{total}}",
@@ -2477,6 +2559,50 @@
         "browserUnreadable": "सामने एक ब्राउज़र है, पर उसके टैब का शीर्षक पढ़ा नहीं जा सकता।",
         "browserNotMeeting": "सामने एक ब्राउज़र है और उसका टैब कोई कॉल नहीं है।"
       }
+    },
+    "preview": {
+      "rows": {
+        "time": "समय",
+        "calendar": "कैलेंडर",
+        "app": "ऐप",
+        "notify": "सूचना",
+        "recording": "रिकॉर्डिंग",
+        "notes": "नोट्स",
+        "participants": "प्रतिभागी",
+        "link": "लिंक",
+        "description": "विवरण"
+      },
+      "attendees_one": "{{count}} व्यक्ति",
+      "attendees_other": "{{count}} लोग",
+      "notify": {
+        "delivered": "सूचना भेजी गई",
+        "willNotify": "शुरू होने पर बताएगा",
+        "inApp": "सिर्फ़ Sona में दिखेगा: सूचनाएँ बंद हैं",
+        "autoOpen": "यह मीटिंग शुरू होते ही खोलें"
+      },
+      "recording": {
+        "none": "कोई स्रोत तैयार नहीं"
+      },
+      "participation": {
+        "accepted": "स्वीकार",
+        "declined": "अस्वीकार",
+        "tentative": "हो सकता है",
+        "pending": "अभी जवाब नहीं",
+        "unknown": "कोई जवाब दर्ज नहीं",
+        "you": "आप",
+        "tally": "{{label}} {{count}}",
+        "unnamed_one": "{{count}} और, नाम नहीं",
+        "unnamed_other": "{{count}} और, नाम नहीं"
+      },
+      "description": {
+        "more": "और",
+        "less": "कम"
+      },
+      "actions": {
+        "skip": "छोड़ें"
+      },
+      "linkFailed": "Sona वह लिंक नहीं खोल सकी।",
+      "skippedNote": "छोड़ने पर यह पेशकश यहाँ से छिप जाती है। पेशकश की अवधि खत्म होने तक Sona उस कॉल को देखती रहती है।"
     }
   },
   "agentPanel": {

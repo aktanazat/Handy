@@ -2291,12 +2291,62 @@
       "sonaAnswered": "Sona odpowiedziała",
       "tabs": {
         "insights": "Wnioski",
+        "ledger": "Rejestr",
         "questions": "Pytania i odpowiedzi",
         "transcript": "Transkrypcja"
       },
       "tabsLabel": "Sekcje przeglądu spotkania",
       "youAsked": "Twoje pytanie",
       "actionDone": "Oznacz to zadanie jako wykonane"
+    },
+    "ledger": {
+      "title": "Rejestr",
+      "description": "Każdy wątek tego spotkania, gdzie wylądował, i cytat z transkrypcji, z którego odczytano stan. Liczby są zmierzone; stany są wywnioskowane.",
+      "emptyTitle": "Z tego spotkania nie odczytano jeszcze żadnego rejestru",
+      "emptyDescription": "Rejestr powstaje razem z wygenerowanymi notatkami. Wygeneruj notatki ponownie, aby czytać tę rozmowę wątkami.",
+      "exportHtml": "Eksportuj stronę rejestru",
+      "exported": "Rejestr zapisany w {{path}}",
+      "exportMissing": "To spotkanie nie ma rejestru do eksportu. Najpierw wygeneruj notatki ponownie.",
+      "statThreads": "Zamknięte wątki",
+      "statOpen": "Otwarte",
+      "statDropped": "Porzucone",
+      "statCommitments": "Zobowiązania",
+      "statOpenLoops": "Pytania bez odpowiedzi",
+      "statReceipts": "Cytaty",
+      "receiptsVerified": "sprawdzone",
+      "receiptsDegraded": "Usunięto {{threads}} wątków i {{commitments}} zobowiązań",
+      "threads": "Wątki",
+      "asideThread": "dygresja",
+      "openLoops": "Pytania bez odpowiedzi",
+      "noOpenLoops": "Żadne pytanie nie zostało bez odpowiedzi.",
+      "commitments": "Zobowiązania",
+      "noCommitments": "Nikt nie zobowiązał się na głos.",
+      "stances": "Stanowiska",
+      "noStances": "Nikt nie zajął ani nie zmienił stanowiska.",
+      "trust": "Na ile temu wierzyć",
+      "trustMeasured": "Kolejki, czasy, liczby wyrazów i udział w rozmowie pochodzą z transkrypcji. Każdy stan to ocena odczytana z cytatu obok: sprawdź cytat, zanim na nim oprzesz decyzję.",
+      "unattributed": "Bez przypisania",
+      "columnAt": "Czas",
+      "columnQuestion": "Pytanie",
+      "columnInstead": "Co stało się zamiast tego",
+      "columnDirection": "Kierunek",
+      "columnWhat": "Co",
+      "columnTaken": "Jak to zrozumiano",
+      "states": {
+        "decided": "Zdecydowane",
+        "agreed": "Zgoda",
+        "action": "Zadanie z właścicielem",
+        "closed": "Zamknięte",
+        "open": "Otwarte",
+        "partial": "Zdecydowane połowicznie",
+        "ambiguous": "Brak wyraźnej odpowiedzi",
+        "unanswered": "Bez odpowiedzi",
+        "dropped": "Porzucone"
+      },
+      "firmness": {
+        "firm": "Twarde",
+        "soft": "Miękkie"
+      }
     },
     "artifactState": {
       "current": "Current",
@@ -2332,15 +2382,47 @@
       }
     },
     "list": {
-      "clearSearch": "Wyczyść wyszukiwanie",
-      "loadMore": "Wczytaj starsze spotkania",
-      "loadingMore": "Wczytywanie starszych spotkań…",
-      "noMatches": "Żadne spotkanie nie pasuje do tego wyszukiwania",
-      "noMatchesDescription": "Żaden tytuł spotkania nie zawiera „{{query}}”. Wyczyść wyszukiwanie, aby zobaczyć całą listę.",
-      "noMatchesNotLoaded": "Żaden wczytany tytuł spotkania nie zawiera „{{query}}”. Starsze spotkania są nadal na dysku: wczytaj je i wyszukaj ponownie.",
       "retentionHint": "Przechowywanie: {{policy}}. Zmień to w Ustawieniach, Privacy.",
       "searchLabel": "Szukaj spotkań",
-      "searchPlaceholder": "Szukaj po tytule"
+      "searchPlaceholder": "Szukaj po tytule",
+      "clearFilters": "Wyczyść filtry",
+      "noMatchesFiltered": "Żadne spotkanie nie pasuje",
+      "noMatchesFilteredDescription": "Żadne zachowane spotkanie nie pasuje do tego filtra. Zapytanie działa na wszystkich spotkaniach na dysku, nie tylko na stronie widocznej na ekranie.",
+      "rowActions": "Akcje spotkania",
+      "exportMarkdown": "Eksportuj notatki (Markdown)",
+      "exportJson": "Eksportuj notatki (JSON)",
+      "exportLedger": "Eksportuj stronę rejestru",
+      "pagePosition": "Strona {{page}}",
+      "previousPage": "Nowsze",
+      "nextPage": "Starsze",
+      "status": {
+        "ready": "Gotowe",
+        "processing": "W trakcie"
+      },
+      "headline": {
+        "words": "{{count}} wyrazów w transkrypcji"
+      },
+      "sourceGlyph": {
+        "microphone": "MIC",
+        "system_audio": "SYS"
+      },
+      "filters": {
+        "label": "Filtruj spotkania",
+        "statusKey": "Stan",
+        "timeKey": "Czas",
+        "status": {
+          "any": "Wszystkie",
+          "ready": "Gotowe",
+          "processing": "W trakcie",
+          "failed": "Nieudane"
+        },
+        "time": {
+          "any": "Wszystkie",
+          "today": "Dziś",
+          "last_7_days": "7 dni",
+          "last_30_days": "30 dni"
+        }
+      }
     },
     "status": {
       "gapCount": "Luki: {{total}}",
@@ -2477,6 +2559,50 @@
         "browserUnreadable": "Przeglądarka jest na pierwszym planie, ale nie da się odczytać tytułu jej karty.",
         "browserNotMeeting": "Przeglądarka jest na pierwszym planie, a jej karta nie jest rozmową."
       }
+    },
+    "preview": {
+      "rows": {
+        "time": "Czas",
+        "calendar": "Kalendarz",
+        "app": "Aplikacja",
+        "notify": "Powiadomienie",
+        "recording": "Nagranie",
+        "notes": "Notatki",
+        "participants": "Uczestnicy",
+        "link": "Odnośnik",
+        "description": "Opis"
+      },
+      "attendees_one": "{{count}} osoba",
+      "attendees_other": "{{count}} osób",
+      "notify": {
+        "delivered": "Powiadomienie wysłane",
+        "willNotify": "Powiadomi na starcie",
+        "inApp": "Widoczne tylko w Sonie: powiadomienia są wyłączone",
+        "autoOpen": "Otwórz to spotkanie, gdy się zacznie"
+      },
+      "recording": {
+        "none": "Brak gotowego źródła"
+      },
+      "participation": {
+        "accepted": "Przyjęte",
+        "declined": "Odrzucone",
+        "tentative": "Może",
+        "pending": "Jeszcze bez odpowiedzi",
+        "unknown": "Brak zapisanej odpowiedzi",
+        "you": "Ty",
+        "tally": "{{label}} {{count}}",
+        "unnamed_one": "jeszcze {{count}}, bez nazwiska",
+        "unnamed_other": "jeszcze {{count}}, bez nazwisk"
+      },
+      "description": {
+        "more": "Więcej",
+        "less": "Mniej"
+      },
+      "actions": {
+        "skip": "Pomiń"
+      },
+      "linkFailed": "Sona nie mogła otworzyć tego odnośnika.",
+      "skippedNote": "Pominięcie ukrywa tutaj propozycję. Sona nadal widzi to połączenie, dopóki propozycja nie wygaśnie."
     }
   },
   "agentPanel": {

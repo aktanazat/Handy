@@ -2291,12 +2291,62 @@
       "sonaAnswered": "Sona hat geantwortet",
       "tabs": {
         "insights": "Einblicke",
+        "ledger": "Register",
         "questions": "Fragen &amp; Antworten",
         "transcript": "Transkript"
       },
       "tabsLabel": "Abschnitte der Meeting-Übersicht",
       "youAsked": "Du hast gefragt",
       "actionDone": "Diese Aufgabe als erledigt markieren"
+    },
+    "ledger": {
+      "title": "Register",
+      "description": "Jedes Thema dieses Meetings, wo es gelandet ist, und das Transkriptzitat, aus dem der Stand gelesen wurde. Zahlen sind gemessen, Zustände abgeleitet.",
+      "emptyTitle": "Aus diesem Meeting wurde noch kein Register gelesen",
+      "emptyDescription": "Das Register entsteht zusammen mit den generierten Notizen. Generiere die Notizen neu, um dieses Gespräch nach Themen zu lesen.",
+      "exportHtml": "Registerseite exportieren",
+      "exported": "Register geschrieben nach {{path}}",
+      "exportMissing": "Dieses Meeting hat kein Register zum Exportieren. Generiere zuerst die Notizen neu.",
+      "statThreads": "Themen geklärt",
+      "statOpen": "Offen",
+      "statDropped": "Fallengelassen",
+      "statCommitments": "Zusagen",
+      "statOpenLoops": "Offene Fragen",
+      "statReceipts": "Zitate",
+      "receiptsVerified": "geprüft",
+      "receiptsDegraded": "{{threads}} Themen und {{commitments}} Zusagen entfernt",
+      "threads": "Themen",
+      "asideThread": "Nebenstrang",
+      "openLoops": "Offene Fragen",
+      "noOpenLoops": "Keine Frage blieb ohne Antwort.",
+      "commitments": "Zusagen",
+      "noCommitments": "Niemand hat laut etwas zugesagt.",
+      "stances": "Positionen",
+      "noStances": "Es wurde keine Position eingenommen oder verlassen.",
+      "trust": "Wie viel davon zu trauen ist",
+      "trustMeasured": "Redebeiträge, Zeiten, Wortzahlen und Redeanteil kommen aus dem Transkript. Jeder Zustand ist ein Urteil, das aus dem Zitat daneben gelesen wurde: prüfe das Zitat, bevor du danach handelst.",
+      "unattributed": "Ohne Zuordnung",
+      "columnAt": "Bei",
+      "columnQuestion": "Die Frage",
+      "columnInstead": "Was stattdessen geschah",
+      "columnDirection": "Richtung",
+      "columnWhat": "Was",
+      "columnTaken": "Wie sie gemeint war",
+      "states": {
+        "decided": "Entschieden",
+        "agreed": "Einig",
+        "action": "Aufgabe mit Verantwortlichem",
+        "closed": "Abgeschlossen",
+        "open": "Offen",
+        "partial": "Halb entschieden",
+        "ambiguous": "Keine ausdrückliche Antwort",
+        "unanswered": "Unbeantwortet",
+        "dropped": "Fallengelassen"
+      },
+      "firmness": {
+        "firm": "Fest",
+        "soft": "Weich"
+      }
     },
     "artifactState": {
       "current": "Current",
@@ -2332,15 +2382,47 @@
       }
     },
     "list": {
-      "clearSearch": "Suche löschen",
-      "loadMore": "Ältere Meetings laden",
-      "loadingMore": "Ältere Meetings werden geladen…",
-      "noMatches": "Keine Meetings entsprechen dieser Suche",
-      "noMatchesDescription": "Kein Meeting-Titel enthält \\\"{{query}}\\\". Lösche die Suche, um die gesamte Liste zu sehen.",
-      "noMatchesNotLoaded": "Kein geladener Meeting-Titel enthält \\\"{{query}}\\\". Ältere Meetings sind noch auf der Festplatte: Lade sie und suche erneut.",
       "retentionHint": "Aufbewahrung: {{policy}}. Ändere sie in den Einstellungen unter Privacy.",
       "searchLabel": "Meetings durchsuchen",
-      "searchPlaceholder": "Nach Titel suchen"
+      "searchPlaceholder": "Nach Titel suchen",
+      "clearFilters": "Filter löschen",
+      "noMatchesFiltered": "Keine Meetings entsprechen",
+      "noMatchesFilteredDescription": "Kein aufbewahrtes Meeting entspricht diesem Filter. Die Abfrage läuft über alle Meetings auf der Festplatte, nicht nur über die Seite auf dem Bildschirm.",
+      "rowActions": "Meeting-Aktionen",
+      "exportMarkdown": "Notizen exportieren (Markdown)",
+      "exportJson": "Notizen exportieren (JSON)",
+      "exportLedger": "Registerseite exportieren",
+      "pagePosition": "Seite {{page}}",
+      "previousPage": "Neuer",
+      "nextPage": "Älter",
+      "status": {
+        "ready": "Fertig",
+        "processing": "In Bearbeitung"
+      },
+      "headline": {
+        "words": "{{count}} Wörter transkribiert"
+      },
+      "sourceGlyph": {
+        "microphone": "MIC",
+        "system_audio": "SYS"
+      },
+      "filters": {
+        "label": "Meetings filtern",
+        "statusKey": "Status",
+        "timeKey": "Zeit",
+        "status": {
+          "any": "Alle",
+          "ready": "Fertig",
+          "processing": "In Bearbeitung",
+          "failed": "Fehlgeschlagen"
+        },
+        "time": {
+          "any": "Alle",
+          "today": "Heute",
+          "last_7_days": "7 Tage",
+          "last_30_days": "30 Tage"
+        }
+      }
     },
     "status": {
       "gapCount": "Lücken: {{total}}",
@@ -2477,6 +2559,50 @@
         "browserUnreadable": "Ein Browser ist im Vordergrund, aber sein Tab-Titel ist nicht lesbar.",
         "browserNotMeeting": "Ein Browser ist im Vordergrund und sein Tab ist kein Anruf."
       }
+    },
+    "preview": {
+      "rows": {
+        "time": "Zeit",
+        "calendar": "Kalender",
+        "app": "App",
+        "notify": "Hinweis",
+        "recording": "Aufnahme",
+        "notes": "Notizen",
+        "participants": "Teilnehmende",
+        "link": "Link",
+        "description": "Beschreibung"
+      },
+      "attendees_one": "{{count}} Person",
+      "attendees_other": "{{count}} Personen",
+      "notify": {
+        "delivered": "Benachrichtigung gesendet",
+        "willNotify": "Meldet sich zum Start",
+        "inApp": "Nur in Sona sichtbar: Benachrichtigungen sind aus",
+        "autoOpen": "Dieses Meeting öffnen, wenn es beginnt"
+      },
+      "recording": {
+        "none": "Keine Quelle bereit"
+      },
+      "participation": {
+        "accepted": "Angenommen",
+        "declined": "Abgelehnt",
+        "tentative": "Vielleicht",
+        "pending": "Noch keine Antwort",
+        "unknown": "Keine Antwort erfasst",
+        "you": "Du",
+        "tally": "{{label}} {{count}}",
+        "unnamed_one": "{{count}} weitere, ohne Namen",
+        "unnamed_other": "{{count}} weitere, ohne Namen"
+      },
+      "description": {
+        "more": "Mehr",
+        "less": "Weniger"
+      },
+      "actions": {
+        "skip": "Überspringen"
+      },
+      "linkFailed": "Sona konnte diesen Link nicht öffnen.",
+      "skippedNote": "Überspringen verbirgt das Angebot hier. Sona sieht den Anruf weiter, bis das Angebot abläuft."
     }
   },
   "agentPanel": {

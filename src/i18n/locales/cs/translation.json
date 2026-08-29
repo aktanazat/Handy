@@ -2291,12 +2291,62 @@
       "sonaAnswered": "Sona odpověděla",
       "tabs": {
         "insights": "Postřehy",
+        "ledger": "Registr",
         "questions": "Otázky a odpovědi",
         "transcript": "Přepis"
       },
       "tabsLabel": "Sekce přehledu schůzky",
       "youAsked": "Zeptali jste se",
       "actionDone": "Označit tento úkol jako hotový"
+    },
+    "ledger": {
+      "title": "Registr",
+      "description": "Každé téma této schůzky, kde skončilo, a citace z přepisu, ze které byl stav vyčten. Počty jsou měřené; stavy jsou odvozené.",
+      "emptyTitle": "Z této schůzky ještě nebyl vyčten žádný registr",
+      "emptyDescription": "Registr se píše společně s generovanými poznámkami. Vygenerujte poznámky znovu, abyste si tento rozhovor přečetli po tématech.",
+      "exportHtml": "Exportovat stránku registru",
+      "exported": "Registr zapsán do {{path}}",
+      "exportMissing": "Tato schůzka nemá registr k exportu. Nejprve vygenerujte poznámky znovu.",
+      "statThreads": "Uzavřená témata",
+      "statOpen": "Otevřená",
+      "statDropped": "Opuštěná",
+      "statCommitments": "Přislíbeno",
+      "statOpenLoops": "Otevřené otázky",
+      "statReceipts": "Citace",
+      "receiptsVerified": "ověřeno",
+      "receiptsDegraded": "odebráno {{threads}} témat a {{commitments}} příslibů",
+      "threads": "Témata",
+      "asideThread": "odbočka",
+      "openLoops": "Otevřené otázky",
+      "noOpenLoops": "Žádná otázka nezůstala bez odpovědi.",
+      "commitments": "Přísliby",
+      "noCommitments": "Nikdo nahlas nic nepřislíbil.",
+      "stances": "Postoje",
+      "noStances": "Nikdo nezaujal ani neopustil žádný postoj.",
+      "trust": "Nakolik tomu věřit",
+      "trustMeasured": "Promluvy, časy, počty slov a podíl na hovoru pocházejí z přepisu. Každý stav je úsudek vyčtený z citace vedle něj: než podle něj začnete jednat, ověřte citaci.",
+      "unattributed": "Bez autora",
+      "columnAt": "V",
+      "columnQuestion": "Otázka",
+      "columnInstead": "Co se stalo místo toho",
+      "columnDirection": "Směr",
+      "columnWhat": "Co",
+      "columnTaken": "Jak byl přijat",
+      "states": {
+        "decided": "Rozhodnuto",
+        "agreed": "Dohodnuto",
+        "action": "Úkol s vlastníkem",
+        "closed": "Uzavřeno",
+        "open": "Otevřeno",
+        "partial": "Rozhodnuto zpola",
+        "ambiguous": "Bez výslovné odpovědi",
+        "unanswered": "Bez odpovědi",
+        "dropped": "Opuštěno"
+      },
+      "firmness": {
+        "firm": "Pevný",
+        "soft": "Volný"
+      }
     },
     "artifactState": {
       "current": "Current",
@@ -2332,15 +2382,47 @@
       }
     },
     "list": {
-      "clearSearch": "Vymazat hledání",
-      "loadMore": "Načíst starší schůzky",
-      "loadingMore": "Načítání starších schůzek…",
-      "noMatches": "Žádné schůzky neodpovídají tomuto hledání",
-      "noMatchesDescription": "Žádný název schůzky neobsahuje „{{query}}“. Vymažte hledání a zobrazí se celý seznam.",
-      "noMatchesNotLoaded": "Žádný název načtené schůzky neobsahuje „{{query}}“. Starší schůzky jsou stále na disku: načtěte je a hledejte znovu.",
       "retentionHint": "Uchovávání: {{policy}}. Změníte je v Nastavení, Privacy.",
       "searchLabel": "Hledat schůzky",
-      "searchPlaceholder": "Hledat podle názvu"
+      "searchPlaceholder": "Hledat podle názvu",
+      "clearFilters": "Vymazat filtry",
+      "noMatchesFiltered": "Žádné schůzky neodpovídají",
+      "noMatchesFilteredDescription": "Tomuto filtru neodpovídá žádná uchovaná schůzka. Dotaz běží nad všemi schůzkami na disku, nejen nad stránkou na obrazovce.",
+      "rowActions": "Akce schůzky",
+      "exportMarkdown": "Exportovat poznámky (Markdown)",
+      "exportJson": "Exportovat poznámky (JSON)",
+      "exportLedger": "Exportovat stránku registru",
+      "pagePosition": "Strana {{page}}",
+      "previousPage": "Novější",
+      "nextPage": "Starší",
+      "status": {
+        "ready": "Hotovo",
+        "processing": "Zpracovává se"
+      },
+      "headline": {
+        "words": "přepsáno {{count}} slov"
+      },
+      "sourceGlyph": {
+        "microphone": "MIC",
+        "system_audio": "SYS"
+      },
+      "filters": {
+        "label": "Filtrovat schůzky",
+        "statusKey": "Stav",
+        "timeKey": "Čas",
+        "status": {
+          "any": "Vše",
+          "ready": "Hotovo",
+          "processing": "Zpracovává se",
+          "failed": "Selhalo"
+        },
+        "time": {
+          "any": "Vše",
+          "today": "Dnes",
+          "last_7_days": "7 dní",
+          "last_30_days": "30 dní"
+        }
+      }
     },
     "status": {
       "gapCount": "Mezery: {{total}}",
@@ -2477,6 +2559,50 @@
         "browserUnreadable": "V popředí je prohlížeč, ale název jeho panelu nelze přečíst.",
         "browserNotMeeting": "V popředí je prohlížeč a jeho panel není hovor."
       }
+    },
+    "preview": {
+      "rows": {
+        "time": "Čas",
+        "calendar": "Kalendář",
+        "app": "Aplikace",
+        "notify": "Upozornění",
+        "recording": "Nahrávání",
+        "notes": "Poznámky",
+        "participants": "Účastníci",
+        "link": "Odkaz",
+        "description": "Popis"
+      },
+      "attendees_one": "{{count}} člověk",
+      "attendees_other": "{{count}} lidí",
+      "notify": {
+        "delivered": "Oznámení odesláno",
+        "willNotify": "Ozve se vám na začátku",
+        "inApp": "Zobrazuje se jen v Soně: oznámení jsou vypnutá",
+        "autoOpen": "Otevřít tuto schůzku, až začne"
+      },
+      "recording": {
+        "none": "Není připraven žádný zdroj"
+      },
+      "participation": {
+        "accepted": "Přijal",
+        "declined": "Odmítl",
+        "tentative": "Snad",
+        "pending": "Zatím bez odpovědi",
+        "unknown": "Odpověď není zaznamenána",
+        "you": "Vy",
+        "tally": "{{label}} {{count}}",
+        "unnamed_one": "ještě {{count}}, bez jména",
+        "unnamed_other": "ještě {{count}}, bez jmen"
+      },
+      "description": {
+        "more": "Více",
+        "less": "Méně"
+      },
+      "actions": {
+        "skip": "Přeskočit"
+      },
+      "linkFailed": "Sona nedokázala ten odkaz otevřít.",
+      "skippedNote": "Přeskočením se nabídka odsud skryje. Sona vidí ten hovor dál, dokud nabídka nevyprší."
     }
   },
   "agentPanel": {

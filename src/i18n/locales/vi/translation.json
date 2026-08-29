@@ -2291,12 +2291,62 @@
       "sonaAnswered": "Sona đã trả lời",
       "tabs": {
         "insights": "Thông tin chuyên sâu",
+        "ledger": "Sổ ghi",
         "questions": "Hỏi đáp",
         "transcript": "Bản ghi thoại"
       },
       "tabsLabel": "Các phần xem lại cuộc họp",
       "youAsked": "Bạn đã hỏi",
       "actionDone": "Đánh dấu việc cần làm này là đã xong"
+    },
+    "ledger": {
+      "title": "Sổ ghi",
+      "description": "Mọi mạch thảo luận trong cuộc họp này, nơi nó dừng lại, và trích dẫn bản ghi thoại mà trạng thái được đọc ra. Các con số là đo được; trạng thái là suy luận.",
+      "emptyTitle": "Chưa có sổ ghi nào được đọc ra từ cuộc họp này",
+      "emptyDescription": "Sổ ghi được viết cùng với ghi chú được tạo. Hãy tạo lại ghi chú để đọc cuộc trò chuyện này theo từng mạch.",
+      "exportHtml": "Xuất trang sổ ghi",
+      "exported": "Đã ghi sổ ghi vào {{path}}",
+      "exportMissing": "Cuộc họp này không có sổ ghi để xuất. Hãy tạo lại ghi chú trước.",
+      "statThreads": "Mạch đã chốt",
+      "statOpen": "Còn mở",
+      "statDropped": "Bỏ dở",
+      "statCommitments": "Cam kết",
+      "statOpenLoops": "Câu hỏi chưa được trả lời",
+      "statReceipts": "Trích dẫn",
+      "receiptsVerified": "đã đối chiếu",
+      "receiptsDegraded": "Đã bỏ {{threads}} mạch và {{commitments}} cam kết",
+      "threads": "Mạch thảo luận",
+      "asideThread": "lạc đề",
+      "openLoops": "Câu hỏi chưa được trả lời",
+      "noOpenLoops": "Không câu hỏi nào bị bỏ lại không có câu trả lời.",
+      "commitments": "Cam kết",
+      "noCommitments": "Không ai cam kết điều gì thành lời.",
+      "stances": "Lập trường",
+      "noStances": "Không có lập trường nào được nêu ra hay rút lại.",
+      "trust": "Nên tin đến đâu",
+      "trustMeasured": "Số lượt nói, thời lượng, số từ và tỷ lệ nói đến từ bản ghi thoại. Mỗi trạng thái là một phán đoán đọc ra từ trích dẫn bên cạnh: hãy kiểm tra trích dẫn trước khi hành động.",
+      "unattributed": "Không rõ người nói",
+      "columnAt": "Lúc",
+      "columnQuestion": "Câu hỏi",
+      "columnInstead": "Điều đã xảy ra thay vào đó",
+      "columnDirection": "Hướng",
+      "columnWhat": "Nội dung",
+      "columnTaken": "Được hiểu thế nào",
+      "states": {
+        "decided": "Đã quyết",
+        "agreed": "Đồng ý",
+        "action": "Việc đã có người nhận",
+        "closed": "Đã khép lại",
+        "open": "Còn mở",
+        "partial": "Quyết một nửa",
+        "ambiguous": "Không có câu trả lời rõ ràng",
+        "unanswered": "Không có hồi đáp",
+        "dropped": "Bỏ dở"
+      },
+      "firmness": {
+        "firm": "Chắc",
+        "soft": "Lỏng"
+      }
     },
     "artifactState": {
       "current": "Current",
@@ -2332,15 +2382,47 @@
       }
     },
     "list": {
-      "clearSearch": "Xóa tìm kiếm",
-      "loadMore": "Tải các cuộc họp cũ hơn",
-      "loadingMore": "Đang tải các cuộc họp cũ hơn…",
-      "noMatches": "Không có cuộc họp nào khớp với tìm kiếm đó",
-      "noMatchesDescription": "Không có tiêu đề cuộc họp nào chứa \"{{query}}\". Xóa tìm kiếm để xem toàn bộ danh sách.",
-      "noMatchesNotLoaded": "Không có tiêu đề cuộc họp đã tải nào chứa \"{{query}}\". Các cuộc họp cũ hơn vẫn còn trên đĩa: hãy tải chúng và tìm kiếm lại.",
       "retentionHint": "Lưu giữ: {{policy}}. Thay đổi trong Settings, Privacy.",
       "searchLabel": "Tìm kiếm cuộc họp",
-      "searchPlaceholder": "Tìm theo tiêu đề"
+      "searchPlaceholder": "Tìm theo tiêu đề",
+      "clearFilters": "Xóa bộ lọc",
+      "noMatchesFiltered": "Không có cuộc họp nào khớp",
+      "noMatchesFilteredDescription": "Không có cuộc họp nào được giữ lại khớp với bộ lọc này. Truy vấn chạy trên mọi cuộc họp trên đĩa, không chỉ trang đang hiển thị.",
+      "rowActions": "Thao tác cuộc họp",
+      "exportMarkdown": "Xuất ghi chú (Markdown)",
+      "exportJson": "Xuất ghi chú (JSON)",
+      "exportLedger": "Xuất trang sổ ghi",
+      "pagePosition": "Trang {{page}}",
+      "previousPage": "Mới hơn",
+      "nextPage": "Cũ hơn",
+      "status": {
+        "ready": "Sẵn sàng",
+        "processing": "Đang xử lý"
+      },
+      "headline": {
+        "words": "Đã chuyển {{count}} từ thành văn bản"
+      },
+      "sourceGlyph": {
+        "microphone": "MIC",
+        "system_audio": "SYS"
+      },
+      "filters": {
+        "label": "Lọc cuộc họp",
+        "statusKey": "Trạng thái",
+        "timeKey": "Thời gian",
+        "status": {
+          "any": "Tất cả",
+          "ready": "Sẵn sàng",
+          "processing": "Đang xử lý",
+          "failed": "Thất bại"
+        },
+        "time": {
+          "any": "Tất cả",
+          "today": "Hôm nay",
+          "last_7_days": "7 ngày",
+          "last_30_days": "30 ngày"
+        }
+      }
     },
     "status": {
       "gapCount": "Khoảng trống: {{total}}",
@@ -2477,6 +2559,50 @@
         "browserUnreadable": "Một trình duyệt đang ở trước, nhưng không đọc được tiêu đề thẻ của nó.",
         "browserNotMeeting": "Một trình duyệt đang ở trước và thẻ của nó không phải một cuộc gọi."
       }
+    },
+    "preview": {
+      "rows": {
+        "time": "Thời gian",
+        "calendar": "Lịch",
+        "app": "Ứng dụng",
+        "notify": "Thông báo",
+        "recording": "Ghi âm",
+        "notes": "Ghi chú",
+        "participants": "Người tham dự",
+        "link": "Liên kết",
+        "description": "Mô tả"
+      },
+      "attendees_one": "{{count}} người",
+      "attendees_other": "{{count}} người",
+      "notify": {
+        "delivered": "Đã gửi thông báo",
+        "willNotify": "Sẽ báo khi bắt đầu",
+        "inApp": "Chỉ hiện trong Sona: thông báo đang tắt",
+        "autoOpen": "Mở cuộc họp này khi bắt đầu"
+      },
+      "recording": {
+        "none": "Chưa có nguồn nào sẵn sàng"
+      },
+      "participation": {
+        "accepted": "Đã nhận lời",
+        "declined": "Đã từ chối",
+        "tentative": "Có thể",
+        "pending": "Chưa trả lời",
+        "unknown": "Không ghi nhận câu trả lời",
+        "you": "Bạn",
+        "tally": "{{label}} {{count}}",
+        "unnamed_one": "{{count}} người nữa, không rõ tên",
+        "unnamed_other": "{{count}} người nữa, không rõ tên"
+      },
+      "description": {
+        "more": "Xem thêm",
+        "less": "Thu gọn"
+      },
+      "actions": {
+        "skip": "Bỏ qua"
+      },
+      "linkFailed": "Sona không mở được liên kết đó.",
+      "skippedNote": "Bỏ qua sẽ ẩn lời mời ở đây. Sona vẫn thấy cuộc gọi cho đến khi lời mời hết hạn."
     }
   },
   "agentPanel": {
