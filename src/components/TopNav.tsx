@@ -4,7 +4,7 @@ import { Search, Settings } from "lucide-react";
 import { SonaMark } from "./icons/SonaMark";
 import { SECTIONS_CONFIG, type SidebarSection } from "./sidebarSections";
 import ModelSelector from "./model-selector/ModelSelector";
-import { KbdChord } from "./ui";
+import { KbdChord, Tabs } from "./ui";
 import { useOsType } from "@/hooks/useOsType";
 
 export interface TopNavProps {
@@ -87,7 +87,11 @@ export const TopNav: React.FC<TopNavProps> = ({
 
   return (
     <>
-      <header className="app-topnav" data-tauri-drag-region>
+      {/* `glass-surface` is inert until the Material setting is Glass and the
+          native vibrancy view is actually behind the window; see
+          styles/primitives.css. The nav is one of the two surfaces that get the
+          real backdrop-filter, because app content genuinely scrolls under it. */}
+      <header className="app-topnav glass-surface" data-tauri-drag-region>
         <div className="app-topnav-mark" data-tauri-drag-region>
           <SonaMark width={16} height={16} />
           {/* eslint-disable-next-line i18next/no-literal-string */}
@@ -166,34 +170,34 @@ interface SectionNavProps {
   onSectionChange: (section: SidebarSection) => void;
 }
 
+/* The Library strip is the same segmented primitive as Processed/Raw inside the
+ * page, so the active section is filled and bordered rather than carried by a
+ * 4/255 wash: two words with no visible difference between them is not a state
+ * readout. Tabs brings its own roving tabindex, which is why this strip does
+ * not use the route row's arrow-key helper. */
 const SectionNav: React.FC<SectionNavProps> = ({
   sections,
   activeSection,
   onSectionChange,
 }) => {
   const { t } = useTranslation();
-  const group = useArrowNavigation();
 
   return (
-    <nav
-      className="app-subnav"
-      aria-label={t("topNav.library")}
-      ref={group.groupRef}
-      onKeyDown={group.onKeyDown}
-    >
-      <div className="app-subnav-inner">
-        {sections.map((section) => (
-          <button
-            key={section}
-            type="button"
-            aria-current={section === activeSection ? "page" : undefined}
-            className="app-subnav-item"
-            onClick={() => onSectionChange(section)}
-          >
-            <span>{t(SECTIONS_CONFIG[section].labelKey)}</span>
-          </button>
-        ))}
-      </div>
-    </nav>
+    <div className="app-subnav">
+      <Tabs
+        variant="secondary"
+        className="app-subnav-inner"
+        label={t("topNav.library")}
+        value={activeSection}
+        onChange={(id) => {
+          const next = sections.find((section) => section === id);
+          if (next) onSectionChange(next);
+        }}
+        items={sections.map((section) => ({
+          id: section,
+          label: t(SECTIONS_CONFIG[section].labelKey),
+        }))}
+      />
+    </div>
   );
 };

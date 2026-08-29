@@ -4,7 +4,11 @@
  *
  * The page is flat: sections are separated by space and hairlines, nothing is
  * boxed. The feed is the page's body, so it earns no container of its own —
- * a border around the whole scroll region would just draw the window twice. */
+ * a border around the whole scroll region would just draw the window twice.
+ *
+ * Type roles (.type-data, .type-body, .microlabel, .type-metric) come from
+ * styles/primitives.css. Nothing here sets font-size or letter-spacing for
+ * text that has a role; the rules below place things and colour them. */
 
 .history-page {
   display: flex;
@@ -33,8 +37,9 @@
   gap: var(--space-2);
 }
 
-/* All-time usage as a strip of microlabel-over-figure pairs. Figures are
- * tabular so the numbers line up between visits and between rows. */
+/* All-time usage: RECORDINGS · RECORDING TIME · WORDS as microlabel over
+ * figure, aligned on one baseline. Figures are tabular so the numbers line up
+ * between visits and between rows. */
 .history-summary {
   display: flex;
   flex-wrap: wrap;
@@ -45,28 +50,25 @@
 .history-stat {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: var(--space-0-5);
   min-inline-size: 0;
 }
 
 .history-stat-value {
   color: var(--text-primary);
-  font-size: var(--fs-label-16);
-  font-variant-numeric: tabular-nums;
-  font-weight: var(--fw-button);
-  line-height: var(--lh-label-16);
   margin: 0;
 }
 
 /* The strip's own loading and failure line, which is prose rather than
- * figures and so keeps a single baseline row. */
+ * figures. Reserves the strip's height so the header does not jump when the
+ * figures arrive. */
 .history-summary-state {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
   margin-block-start: var(--space-3);
-  min-block-size: 26px;
+  min-block-size: 48px;
 }
 
 /* ------------------------------------------------------------ toolbar */
@@ -79,51 +81,16 @@
   row-gap: var(--space-1-5);
 }
 
+/* The field is the Input primitive, icon and clear button included. The page
+ * only says how much room it takes. */
 .history-search {
   flex: 1 1 220px;
   min-inline-size: 180px;
-  position: relative;
-}
-
-.history-search-icon {
-  color: var(--text-tertiary);
-  inset-block-start: 50%;
-  inset-inline-start: var(--space-2-5);
-  pointer-events: none;
-  position: absolute;
-  translate: 0 -50%;
-}
-
-.history-search input {
-  inline-size: 100%;
-  padding-inline: var(--space-8) var(--space-8);
-}
-
-/* WebKit draws its own clear affordance that ignores our focus and hover
- * language. Ours is a real button, so the native one goes. */
-.history-search input::-webkit-search-cancel-button,
-.history-search input::-webkit-search-decoration {
-  appearance: none;
-  display: none;
-}
-
-/* Sits inside a 32px compact field, so it shrinks below the 32px icon
- * button default rather than filling the whole control. */
-.history-search-clear {
-  block-size: 24px;
-  inline-size: 24px;
-  inset-block-start: 50%;
-  inset-inline-end: var(--space-1);
-  position: absolute;
-  translate: 0 -50%;
 }
 
 .history-result-count {
   color: var(--text-secondary);
   flex: 0 0 auto;
-  font-size: var(--fs-label-12);
-  font-variant-numeric: tabular-nums;
-  line-height: var(--lh-label-12);
 }
 
 /* Always mounted, directly under the page summary, so an import that starts
@@ -139,65 +106,6 @@
 
 .history-import-live:empty {
   margin-block-start: 0;
-}
-
-/* One segmented control, two users: raw versus processed above the feed, and
- * the correction dialog's scope. Radios keep the semantics; the chrome is
- * ours, because the platform radio ignores every token in this file. */
-.history-segmented {
-  align-items: center;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-  display: flex;
-  gap: var(--space-0-5);
-  padding: var(--space-0-5);
-  width: fit-content;
-}
-
-.history-segmented-option {
-  cursor: pointer;
-  display: block;
-}
-
-.history-segmented-text {
-  align-items: center;
-  border-radius: var(--radius-in-control);
-  color: var(--text-secondary);
-  display: flex;
-  font-size: var(--fs-label-12);
-  font-weight: var(--fw-button);
-  min-block-size: 26px;
-  padding-inline: var(--space-2-5);
-  transition-duration: var(--duration-fast);
-  transition-property: background-color, color;
-  transition-timing-function: var(--ease-out);
-}
-
-.history-segmented-option:hover .history-segmented-text {
-  background: var(--wash-hover);
-  color: var(--text-primary);
-}
-
-.history-segmented-option:active .history-segmented-text {
-  background: var(--wash-active);
-}
-
-.history-segmented input:checked + .history-segmented-text {
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  padding-inline: calc(var(--space-2-5) - 1px);
-}
-
-.history-segmented input:focus-visible + .history-segmented-text {
-  outline: var(--focus-outline);
-  outline-offset: 1px;
-}
-
-.history-segmented input:disabled + .history-segmented-text {
-  color: var(--text-disabled);
-  cursor: not-allowed;
 }
 
 /* ------------------------------------------------------------ imports */
@@ -220,7 +128,7 @@
 }
 
 .history-import-row + .history-import-row {
-  border-block-start: 1px solid var(--border-subtle);
+  border-block-start: 1px solid var(--border-hairline);
 }
 
 .history-import-copy {
@@ -252,29 +160,32 @@
  * the run to the toolbar above it. Both the real list and the loading
  * placeholder use this, so the skeleton occupies the shape it replaces. */
 .history-list {
-  border-block-start: 1px solid var(--border-subtle);
+  border-block-start: 1px solid var(--border-hairline);
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
 .history-list > * + * {
-  border-block-start: 1px solid var(--border-subtle);
+  border-block-start: 1px solid var(--border-hairline);
 }
 
 .history-row {
   display: grid;
   grid-template-rows: 1fr;
   transition-duration: var(--duration-standard);
-  transition-property: background-color, grid-template-rows, opacity;
+  transition-property:
+    background-color, border-color, grid-template-rows, opacity;
   transition-timing-function: var(--ease-out);
 }
 
-/* A row is a live object: six controls, a player and a disclosure all live
- * inside it. The wash says so on approach without hiding anything until
- * then, which is the trade the "reveal actions on hover" pattern gets wrong. */
+/* A row is a live object: two icon buttons, a menu, a player and an expander
+ * live inside it. The wash says so on approach without hiding anything until
+ * then, which is the trade the "reveal actions on hover" pattern gets wrong.
+ * The row's own top rule brightens with it — an instrument row lighting up. */
 .history-row:hover {
   background: var(--wash-hover);
+  border-block-start-color: var(--border);
 }
 
 /* A deleted row collapses its own height instead of vanishing and yanking
@@ -291,59 +202,89 @@
   overflow: hidden;
 }
 
+/* Row geometry, derived rather than picked. Line 1 is mono at 16px leading,
+ * line 2 is body at 19px, 4px between them: 39px of content, 10px above and
+ * below, so a standard row lands on --row-h-entry. A no-speech row drops line
+ * 2 and settles at the 28px action cluster plus the same padding — 48px, not
+ * the theoretical 36px, because copy, expand and the menu are real controls
+ * that a row with no speech still needs. */
 .history-row-body {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-2);
+  gap: var(--space-1-5);
+  padding: var(--space-2-5) var(--space-4);
 }
 
+/* The cluster is centred against the lines rather than pinned to the first, so
+ * a two-line row and a one-line row put their controls in the same place. */
 .history-row-head {
-  align-items: flex-start;
+  align-items: center;
   display: flex;
   gap: var(--space-2);
   justify-content: space-between;
 }
 
-.history-row-heading {
+.history-row-lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
   min-inline-size: 0;
 }
 
-.history-row-time {
-  color: var(--text-primary);
-  font-size: var(--type-row-size);
-  font-weight: var(--type-row-weight);
-  line-height: var(--type-row-line);
+/* Line 1: one mono run of measured values. It truncates rather than wrapping,
+ * because a metadata line that wraps changes the row's height and the list
+ * stops being a grid. */
+.history-row-meta {
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.history-row-meta {
+.history-meta-sep {
   color: var(--text-tertiary);
-  font-size: var(--fs-label-12);
-  font-variant-numeric: tabular-nums;
-  line-height: var(--lh-label-12);
-  margin-block-start: 2px;
-  overflow-wrap: anywhere;
+  padding-inline: var(--space-1);
+}
+
+/* The one part of line 1 that is a sentence in English rather than a machine
+ * value, so it keeps the body face and the reading colour. */
+.history-meta-reason {
+  color: var(--text-primary);
+  font-family: var(--font-sans);
 }
 
 .history-row-actions {
+  align-items: center;
   display: flex;
   flex: none;
   gap: var(--space-0-5);
 }
 
-.history-action-danger:not(:disabled):hover {
-  background: var(--red-100);
-  border-color: var(--red-400);
-  color: var(--error);
+/* Inside a dense list an outset focus ring lands on the neighbouring row's
+ * divider. The inset form draws inside the control instead. The transparent
+ * outline is what forced-colours mode repaints, since it cannot see a
+ * box-shadow. */
+.history-row :is(button, summary):focus-visible {
+  border-radius: var(--radius-control);
+  box-shadow: var(--focus-ring-inset);
+  outline: 2px solid transparent;
+  outline-offset: 0;
 }
 
+/* Line 2: the transcript, one line until the row is expanded. */
 .history-transcript {
   color: var(--text-primary);
   cursor: text;
-  font-size: var(--type-body-size);
-  line-height: 20px;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
   user-select: text;
+  white-space: nowrap;
+}
+
+.history-transcript[data-expanded="true"] {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
   white-space: pre-wrap;
 }
 
@@ -357,12 +298,11 @@
 
 .history-transcript-note {
   color: var(--text-secondary);
-  font-size: var(--fs-label-12);
-  line-height: var(--lh-label-12);
 }
 
-/* The player sits in the row, not on a surface of its own. Capped so a
- * 1000px-wide window does not stretch one scrubber across the whole page. */
+/* The player sits in the row, not on a surface of its own, and only for a
+ * recording a receipt says has audio with a length. Capped so a 1000px-wide
+ * window does not stretch one scrubber across the whole page. */
 .history-audio {
   max-inline-size: 420px;
 }
@@ -405,89 +345,85 @@
   inline-size: 100%;
 }
 
-/* ---------------------------------------------------------- disclosure */
+/* ---------------------------------------------------- row action menu */
 
+/* The chrome is App.css's one menu primitive, shared with Modes and
+ * Vocabulary. Only the trigger's size is local, so it matches the row's
+ * 28px icon buttons instead of the 30px default. */
+.history-actions-menu > summary {
+  block-size: 28px;
+  inline-size: 28px;
+}
+
+/* ------------------------------------------------------------ receipt */
+
+/* The full run receipt: quoted machine output, so an inset panel rather than
+ * a card, and no second disclosure inside it. Fill, hairline, radius and
+ * interior padding are the primitive's. */
 .history-receipts {
-  border-block-start: 1px solid var(--border-subtle);
-  padding-block-start: var(--space-2);
-}
-
-.history-receipts-toggle {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  border-radius: var(--radius-control);
-  color: var(--text-secondary);
-  cursor: pointer;
   display: flex;
-  font-size: var(--fs-label-12);
-  font-weight: var(--fw-button);
-  gap: var(--space-1);
-  line-height: var(--lh-label-12);
-  min-block-size: 28px;
-  padding-inline: var(--space-1);
-  transition-duration: var(--duration-fast);
-  transition-property: background-color, color;
-  transition-timing-function: var(--ease-out);
-}
-
-.history-receipts-toggle:hover {
-  background: var(--wash-hover);
-  color: var(--text-primary);
-}
-
-.history-receipts-toggle:active {
-  background: var(--wash-active);
-}
-
-.history-receipts-body {
-  border-block-start: 1px solid var(--border-subtle);
-  margin-block-start: var(--space-2);
+  flex-direction: column;
 }
 
 .history-receipt {
-  border-block-start: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding-block: var(--space-3);
 }
 
-.history-receipt:first-child {
-  border-block-start: 0;
+.history-receipt + .history-receipt {
+  border-block-start: 1px solid var(--border-hairline);
+  margin-block-start: var(--space-3);
+  padding-block-start: var(--space-3);
 }
 
-.history-receipt-meta {
-  color: var(--text-tertiary);
-  font-size: var(--fs-label-12);
-  line-height: var(--lh-label-12);
-  overflow-wrap: anywhere;
-}
-
+/* Two columns sharing one hairline per pair: microlabel key left, measured
+ * value right. The key/value inspector, not a paragraph of provenance. */
 .history-receipt-grid {
   column-gap: var(--space-4);
   display: grid;
-  font-size: var(--fs-label-12);
-  grid-template-columns: minmax(0, 9rem) minmax(0, 1fr);
-  line-height: var(--lh-label-12);
-  row-gap: var(--space-1-5);
+  grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);
+  margin: 0;
 }
 
-.history-receipt-grid dt {
+.history-receipt-grid > dt {
   color: var(--text-tertiary);
 }
 
-.history-receipt-grid dd {
+.history-receipt-grid > dd {
   color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
+  margin: 0;
   overflow-wrap: anywhere;
+  text-align: end;
+}
+
+.history-receipt-grid > :is(dt, dd) {
+  border-block-start: 1px solid var(--border-hairline);
+  padding-block: var(--space-1);
+}
+
+.history-receipt-grid > :is(dt:first-of-type, dd:first-of-type) {
+  border-block-start: 0;
+}
+
+/* The four-state semaphore, on the state word and nowhere else. A no-speech
+ * capture is the semaphore's idle colour, not its red: the recording happened,
+ * it held no speech, and dressing a real outcome as a failure would claim one
+ * the app cannot name. The peak/rms rows above are the evidence. */
+.history-receipt-grid > dd[data-status="complete"] {
+  color: var(--success);
+}
+
+.history-receipt-grid > dd[data-status="truncated"] {
+  color: var(--warning);
+}
+
+.history-receipt-grid > dd[data-status="no_speech_detected"] {
+  color: var(--text-tertiary);
 }
 
 .history-receipt-subtitle {
-  color: var(--text-primary);
-  font-size: var(--fs-label-12);
-  font-weight: var(--fw-button);
-  line-height: var(--lh-label-12);
+  color: var(--text-tertiary);
   margin-block-end: var(--space-1-5);
 }
 
@@ -499,7 +435,7 @@
 }
 
 .history-receipt-table tbody th {
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-hairline);
   color: var(--text-secondary);
   font-size: var(--fs-label-12);
   font-weight: var(--fw-label);
@@ -518,17 +454,17 @@
 
 .history-receipt-empty {
   color: var(--text-secondary);
-  font-size: var(--fs-label-12);
-  line-height: var(--lh-label-12);
 }
 
 /* ------------------------------------------------------- list states */
 
+/* Same padding and gap as a real row, so five of these occupy exactly the
+ * space the five rows they stand in for will occupy. */
 .history-skeleton-row {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-2);
+  gap: var(--space-1);
+  padding: var(--space-2-5) var(--space-4);
 }
 
 .history-list-footer {
@@ -537,7 +473,7 @@
   flex-wrap: wrap;
   gap: var(--space-2);
   justify-content: center;
-  padding: var(--space-3) var(--space-2);
+  padding: var(--space-3) var(--space-4);
 }
 
 .history-list-footer-text {
@@ -559,11 +495,20 @@
 
   .history-receipt-grid {
     grid-template-columns: minmax(0, 1fr);
-    row-gap: 2px;
   }
 
-  .history-receipt-grid dt {
-    margin-block-start: var(--space-1);
+  .history-receipt-grid > dd {
+    text-align: start;
+  }
+
+  .history-receipt-grid > :is(dt, dd) {
+    border-block-start: 0;
+    padding-block: 0;
+  }
+
+  .history-receipt-grid > dt {
+    border-block-start: 1px solid var(--border-hairline);
+    padding-block-start: var(--space-1);
   }
 }
 

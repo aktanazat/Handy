@@ -9,12 +9,21 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { Play, Pause } from "lucide-react";
+import { formatDurationShort } from "@/lib/utils/format";
 
 export interface AudioPlayerProps {
   /** Audio source URL. If not provided, onLoadRequest must be provided. */
   src?: string;
   /** Called when play is clicked and no src is loaded yet. Should return the audio URL. */
   onLoadRequest?: () => Promise<string | null>;
+  /**
+   * Length the caller already knows, in seconds, before the media element has
+   * read its own metadata. Without it the total reads 0s next to an elapsed
+   * 0s — one measurement printed twice, neither of them true. A caller that
+   * genuinely does not know the length omits it and the total reads as
+   * unknown until the file loads.
+   */
+  totalSeconds?: number;
   className?: string;
   autoPlay?: boolean;
 }
@@ -27,13 +36,11 @@ interface AudioPlayerGroupContextValue {
 const AudioPlayerGroupContext =
   createContext<AudioPlayerGroupContextValue | null>(null);
 
-const formatTime = (time: number): string => {
-  if (!isFinite(time)) return "0:00";
-
-  const minutes = Math.floor(time / 60);
-  const seconds = Math.floor(time % 60);
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-};
+/* The scrubber's two readouts go through the app's one duration renderer, so
+ * "3m 12s" here and "3m 12s" on the row above it are the same string produced
+ * by the same function. */
+const readout = (seconds: number): string =>
+  Number.isFinite(seconds) ? formatDurationShort(seconds) : "—";
 
 export const AudioPlayerGroup: React.FC<React.PropsWithChildren> = ({
   children,
@@ -62,6 +69,7 @@ export const AudioPlayerGroup: React.FC<React.PropsWithChildren> = ({
 export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   src: initialSrc,
   onLoadRequest,
+  totalSeconds,
   className = "",
   autoPlay = false,
 }) => {
@@ -133,15 +141,18 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     const audio = audioRef.current;
     if (!audio) return;
 
+    /* A stream whose length the decoder cannot state reports Infinity. Left
+     * in place it becomes the scrubber's `max` and the track stops meaning
+     * anything, so an unmeasurable file keeps the caller's declared length. */
     const handleLoadedMetadata = () => {
-      setDuration(audio.duration || 0);
+      setDuration(Number.isFinite(audio.duration) ? audio.duration : 0);
       setCurrentTime(0);
     };
 
     const handleEnded = () => {
       group?.releasePlayback(audio);
       setIsPlaying(false);
-      setCurrentTime(audio.duration || 0);
+      setCurrentTime(Number.isFinite(audio.duration) ? audio.duration : 0);
     };
 
     const handlePlay = () => {
@@ -278,31 +289,25 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     setIsDragging(true);
   };
 
-  // Fix playhead positioning with better edge case handling
-  const getProgressPercent = (): number => {
-    if (duration <= 0) return 0;
-
-    // Handle the end case - if we're within 0.1 seconds of the end, show 100%
-    if (duration - currentTime < 0.1) return 100;
-
-    const percent = (currentTime / duration) * 100;
-    return Math.min(100, Math.max(0, percent));
-  };
-
-  const progressPercent = getProgressPercent();
+  /* The length the scrubber spans. Before the media element has read its own
+   * metadata that is whatever the caller measured; a caller with nothing to
+   * declare gets a track it cannot drag, which is the truth. */
+  const total = duration > 0 ? duration : (totalSeconds ?? 0);
+  const seekable = duration > 0;
 
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
+    <div className={`flex items-center gap-2 ${className}`}>
       <audio ref={audioRef} src={src ?? undefined} preload="metadata" />
 
       <button
         type="button"
         onClick={togglePlay}
         disabled={isLoading}
-        className="flex size-7 flex-none cursor-pointer items-center justify-center rounded-control text-text-secondary transition-colors outline-offset-[-2px] enabled:hover:bg-hover enabled:hover:text-text-primary enabled:active:bg-pressed disabled:cursor-not-allowed disabled:text-text-disabled"
+        className="flex size-7 flex-none cursor-pointer items-center justify-center rounded-control text-text-secondary transition-[background-color,color] duration-[var(--duration-fast)] ease-[var(--ease-in-out)] outline-offset-[-2px] enabled:hover:bg-hover enabled:hover:text-text-primary enabled:active:bg-pressed disabled:cursor-not-allowed disabled:text-text-disabled"
         aria-label={
           isPlaying ? t("common.pause", "Pause") : t("common.play", "Play")
         }
+        data-testid="audio-player-toggle"
       >
         {isPlaying ? (
           <Pause width={16} height={16} fill="currentColor" />
@@ -311,29 +316,39 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         )}
       </button>
 
-      <div className="flex flex-1 items-center gap-2">
-        <span className="min-w-[34px] text-[12px] leading-4 text-text-tertiary tabular-nums">
-          {formatTime(currentTime)}
-        </span>
+      {/* Elapsed left, total right, one pair, both through the shared duration
+       * renderer. The cells are wide enough for the longest string the
+       * renderer produces ("10m 30s") so the track between them keeps its
+       * width as the digits change instead of shifting under the pointer. */}
+      <span className="type-data w-14 flex-none text-text-tertiary">
+        {readout(currentTime)}
+      </span>
 
-        <input
-          type="range"
-          aria-label={t("common.seek", "Playback position")}
-          min="0"
-          max={duration || 0}
-          step="0.01"
-          value={currentTime}
-          onChange={handleSeek}
-          onMouseDown={handleSliderMouseDown}
-          onTouchStart={handleSliderTouchStart}
-          className={`h-1 flex-1 cursor-pointer appearance-none rounded-pill ${progressPercent >= 99.5 ? "[&::-webkit-slider-thumb]:translate-x-0.5 [&::-moz-range-thumb]:translate-x-0.5" : ""}`}
-          style={{ accentColor: "var(--invert-bg)" }}
-        />
+      {/* A native range, deliberately: `appearance: none` without replacement
+       * track and thumb rules is what reduced this control to a bare nub, and
+       * the platform slider already carries keyboard stepping, Home/End and
+       * the drag behaviour. `accent-color` paints it in the app's own
+       * inversion, so it is monochrome in both themes. */}
+      <input
+        type="range"
+        aria-label={t("common.seek", "Playback position")}
+        aria-valuetext={readout(currentTime)}
+        min="0"
+        max={total}
+        step="0.01"
+        value={currentTime}
+        disabled={!seekable}
+        onChange={handleSeek}
+        onMouseDown={handleSliderMouseDown}
+        onTouchStart={handleSliderTouchStart}
+        className="h-5 min-w-0 flex-1 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+        style={{ accentColor: "var(--invert-bg)" }}
+        data-testid="audio-player-seek"
+      />
 
-        <span className="min-w-[34px] text-end text-[12px] leading-4 text-text-tertiary tabular-nums">
-          {formatTime(duration)}
-        </span>
-      </div>
+      <span className="type-data w-14 flex-none text-end text-text-tertiary">
+        {total > 0 ? readout(total) : "—"}
+      </span>
     </div>
   );
 };

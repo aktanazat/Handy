@@ -1,27 +1,20 @@
 import React, { useEffect, useId, useRef, useState } from "react";
-import {
-  Check,
-  ChevronDown,
-  ChevronUp,
-  Copy,
-  Pencil,
-  RotateCcw,
-  Star,
-  Trash2,
-} from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Copy, Ellipsis } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
   commands,
+  type CaptureStatus,
   type HistoryEntry,
   type HistoryRunReceipt,
 } from "@/bindings";
-import { formatDateTime } from "@/utils/dateFormat";
-import { ProcessAgainAction } from "./ProcessAgainAction";
+import { formatDurationShort, formatEntryTimestamp } from "@/lib/utils/format";
+import { ProcessAgainDialog } from "./ProcessAgainDialog";
 import {
   AudioPlayer,
   Button,
   Dialog,
+  Dropdown,
   IconButton,
   Input,
   StatusText,
@@ -34,10 +27,23 @@ export type HistoryTextView = "processed" | "raw";
  * pause before the delete call. */
 const ROW_COLLAPSE_MS = 180;
 
+/* The precision the backend itself reports on its capture-level log receipt
+ * (`peak={:.4} rms={:.4}`). Fewer digits turn a dead input (0.0119) and a
+ * quiet room (0.0024) into the same printed number. */
+const AMPLITUDE_DIGITS = 4;
+
 type CorrectionScope = "global" | "current_mode";
 
+const SCOPE_VALUES = ["current_mode", "global"] as const;
+
+/* Every row action lives in one `details` menu, so closing it after a choice
+ * is the same two lines at five call sites. */
+const closeMenu = (target: HTMLElement) => {
+  const menu = target.closest("details");
+  if (menu) menu.open = false;
+};
+
 interface HistoryCorrectionDialogProps {
-  entryId: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   spoken: string;
@@ -52,7 +58,6 @@ interface HistoryCorrectionDialogProps {
 }
 
 const HistoryCorrectionDialog = ({
-  entryId,
   open,
   onOpenChange,
   spoken,
@@ -131,41 +136,30 @@ const HistoryCorrectionDialog = ({
             })}
           </p>
         )}
-        <fieldset className="history-field">
-          <legend className="history-field-label">
+        {/* One value, shown as text. The segmented control this used to draw
+         * was a third copy of the Processed/Raw chrome for something that is
+         * a form field, not a view switch. */}
+        <div className="history-field" role="group" aria-labelledby={fieldId}>
+          <span className="history-field-label" id={fieldId}>
             {t("settings.history.correction.scope")}
-          </legend>
-          {/* Two mutually exclusive choices, so the same segmented control
-           * the transcript toggle uses — radios underneath, chrome ours. */}
-          <div className="history-segmented">
-            <label className="history-segmented-option">
-              <input
-                type="radio"
-                name={`history-correction-scope-${entryId}`}
-                checked={scope === "current_mode"}
-                onChange={() => onScopeChange("current_mode")}
-                disabled={saving}
-                className="sr-only"
-              />
-              <span className="history-segmented-text">
-                {t("settings.history.correction.currentMode")}
-              </span>
-            </label>
-            <label className="history-segmented-option">
-              <input
-                type="radio"
-                name={`history-correction-scope-${entryId}`}
-                checked={scope === "global"}
-                onChange={() => onScopeChange("global")}
-                disabled={saving}
-                className="sr-only"
-              />
-              <span className="history-segmented-text">
-                {t("settings.history.correction.global")}
-              </span>
-            </label>
-          </div>
-        </fieldset>
+          </span>
+          <Dropdown
+            options={SCOPE_VALUES.map((value) => ({
+              value,
+              label: t(
+                value === "global"
+                  ? "settings.history.correction.global"
+                  : "settings.history.correction.currentMode",
+              ),
+            }))}
+            selectedValue={scope}
+            onSelect={(value) =>
+              onScopeChange(value === "global" ? "global" : "current_mode")
+            }
+            disabled={saving}
+            className="history-mode-picker"
+          />
+        </div>
       </div>
     </Dialog>
   );
@@ -193,10 +187,13 @@ export const HistoryEntryComponent: React.FC<HistoryEntryComponentProps> = ({
   retryTranscription,
 }) => {
   const { t } = useTranslation();
+  const detailsId = useId();
+  const [expanded, setExpanded] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [correctionOpen, setCorrectionOpen] = useState(false);
+  const [processAgainOpen, setProcessAgainOpen] = useState(false);
   const [correctionSpoken, setCorrectionSpoken] = useState("");
   const [correctionWritten, setCorrectionWritten] = useState("");
   const [correctionScope, setCorrectionScope] =
@@ -233,14 +230,19 @@ export const HistoryEntryComponent: React.FC<HistoryEntryComponentProps> = ({
   const noSpeechCaptured =
     latestReceipt?.capture_status === "no_speech_detected";
 
-  let duration: string | null = null;
-  if (
-    latestReceipt?.duration_ms !== null &&
-    latestReceipt?.duration_ms !== undefined
-  ) {
-    const seconds = Math.floor(latestReceipt.duration_ms / 1000);
-    duration = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-  }
+  /* A receipt is the only thing that can prove a recording holds audio worth
+   * playing, and a no-speech capture retains a sample that is worth hearing —
+   * it is how you tell a dead microphone from a quiet room. So the player is
+   * suppressed only when a receipt states there is nothing there: no audio, or
+   * zero length. Rows written before receipts existed keep it, because taking
+   * playback away from them on a guess is the larger error. */
+  const playable = latestReceipt
+    ? latestReceipt.has_audio && (latestReceipt.duration_ms ?? 0) > 0
+    : true;
+  const totalSeconds =
+    latestReceipt?.duration_ms != null
+      ? latestReceipt.duration_ms / 1000
+      : undefined;
 
   const handleCopyText = async () => {
     if (!hasText) return;
@@ -313,6 +315,13 @@ export const HistoryEntryComponent: React.FC<HistoryEntryComponentProps> = ({
     }
   };
 
+  const busy = retrying || removing;
+  /* A no-speech capture has no transcript to truncate, so the row stops at
+   * its one metadata line rather than spending a second line on the absence
+   * of text. A retry in flight always gets its line, whatever the last run
+   * concluded. */
+  const showsTranscript = retrying || !noSpeechCaptured;
+
   return (
     <li
       className="history-row"
@@ -321,296 +330,331 @@ export const HistoryEntryComponent: React.FC<HistoryEntryComponentProps> = ({
     >
       <div className="history-row-clip">
         <div className="history-row-body">
-          <HistoryEntrySummary
-            entry={entry}
-            latestReceipt={latestReceipt}
-            duration={duration}
-            noSpeechCaptured={noSpeechCaptured}
-            hasText={hasText}
-            busy={retrying || removing}
-            retrying={retrying}
-            showCopied={showCopied}
-            onCopy={() => void handleCopyText()}
-            onOpenCorrection={() => setCorrectionOpen(true)}
-            onToggleSaved={() => void onToggleSaved(entry.id)}
-            onRetry={() => void handleRetranscribe()}
-            onDelete={handleDeleteEntry}
-          />
-          <HistoryEntryContent
-            entry={entry}
-            shownText={shownText}
-            hasText={hasText}
-            retrying={retrying}
-            noSpeechCaptured={noSpeechCaptured}
-            processedTextMissing={processedTextMissing}
-            getAudioBlob={getAudioBlob}
-            correctionOpen={correctionOpen}
-            correctionSpoken={correctionSpoken}
-            correctionWritten={correctionWritten}
-            correctionScope={correctionScope}
-            savingCorrection={savingCorrection}
-            correctionReady={correctionReady}
-            onCorrectionOpenChange={setCorrectionOpen}
+          <div className="history-row-head">
+            <div className="history-row-lines">
+              <HistoryRowMeta
+                entry={entry}
+                receipt={latestReceipt}
+                noSpeechCaptured={noSpeechCaptured}
+              />
+              {showsTranscript &&
+                (retrying ? (
+                  <p className="history-transcript type-body" role="status">
+                    {t("settings.history.transcribing")}
+                  </p>
+                ) : (
+                  <p
+                    className="history-transcript type-body"
+                    data-state={hasText ? "text" : "missing"}
+                    data-expanded={expanded ? "true" : undefined}
+                  >
+                    {hasText
+                      ? shownText
+                      : t("settings.history.transcriptionFailed")}
+                  </p>
+                ))}
+            </div>
+
+            <div className="history-row-actions">
+              <IconButton
+                size="sm"
+                label={t("settings.history.copyToClipboard")}
+                onClick={() => void handleCopyText()}
+                disabled={!hasText || busy}
+                data-testid="history-entry-copy"
+                icon={
+                  showCopied ? (
+                    <Check aria-hidden="true" width={16} height={16} />
+                  ) : (
+                    <Copy aria-hidden="true" width={16} height={16} />
+                  )
+                }
+              />
+              <IconButton
+                size="sm"
+                label={
+                  expanded
+                    ? t("settings.history.collapseEntry", "Hide full entry")
+                    : t("settings.history.expandEntry", "Show full entry")
+                }
+                onClick={() => setExpanded((current) => !current)}
+                aria-expanded={expanded}
+                aria-controls={expanded ? detailsId : undefined}
+                data-testid="history-entry-expand"
+                icon={
+                  expanded ? (
+                    <ChevronUp aria-hidden="true" width={16} height={16} />
+                  ) : (
+                    <ChevronDown aria-hidden="true" width={16} height={16} />
+                  )
+                }
+              />
+              {/* Everything that changes or destroys the entry sits behind one
+               * summary, so the row carries two icon buttons and a menu
+               * instead of six controls of three different weights. */}
+              <details className="history-actions-menu">
+                <summary
+                  aria-label={t("settings.history.moreActions", "More actions")}
+                  title={t("settings.history.moreActions", "More actions")}
+                  data-testid="history-entry-actions"
+                >
+                  <Ellipsis aria-hidden="true" width={16} height={16} />
+                </summary>
+                <div role="menu">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={!hasText || busy}
+                    onClick={(event) => {
+                      setCorrectionOpen(true);
+                      closeMenu(event.currentTarget);
+                    }}
+                    data-testid="history-entry-correct"
+                  >
+                    {t("settings.history.correction.add")}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={busy}
+                    aria-pressed={entry.saved}
+                    onClick={(event) => {
+                      void onToggleSaved(entry.id);
+                      closeMenu(event.currentTarget);
+                    }}
+                    data-testid="history-entry-save"
+                  >
+                    {entry.saved
+                      ? t("settings.history.unsave")
+                      : t("settings.history.save")}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={busy}
+                    onClick={(event) => {
+                      void handleRetranscribe();
+                      closeMenu(event.currentTarget);
+                    }}
+                    data-testid="history-entry-retry"
+                  >
+                    {t("settings.history.retranscribe")}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={busy}
+                    onClick={(event) => {
+                      setProcessAgainOpen(true);
+                      closeMenu(event.currentTarget);
+                    }}
+                    data-testid="history-entry-process-again"
+                  >
+                    {t("settings.history.processAgain.action", "Process again")}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="danger-menu-item"
+                    disabled={busy}
+                    onClick={(event) => {
+                      handleDeleteEntry();
+                      closeMenu(event.currentTarget);
+                    }}
+                    data-testid="history-entry-delete"
+                  >
+                    {t("settings.history.delete")}
+                  </button>
+                </div>
+              </details>
+            </div>
+          </div>
+
+          {processedTextMissing && !retrying ? (
+            <p className="history-transcript-note type-secondary">
+              {t("settings.history.postProcessEmpty")}
+            </p>
+          ) : null}
+
+          {playable ? (
+            <HistoryAudioPlayer
+              historyId={entry.id}
+              totalSeconds={totalSeconds}
+              getAudioBlob={getAudioBlob}
+            />
+          ) : null}
+
+          {expanded ? (
+            <HistoryReceiptInspector id={detailsId} receipts={receipts} />
+          ) : null}
+
+          <HistoryCorrectionDialog
+            open={correctionOpen}
+            onOpenChange={setCorrectionOpen}
+            spoken={correctionSpoken}
+            written={correctionWritten}
+            scope={correctionScope}
+            saving={savingCorrection}
+            ready={correctionReady}
             onSpokenChange={setCorrectionSpoken}
             onWrittenChange={setCorrectionWritten}
             onScopeChange={setCorrectionScope}
-            onSaveCorrection={() => void saveCorrection()}
+            onSave={() => void saveCorrection()}
           />
-          <HistoryReceiptDetails receipts={receipts} />
+          <ProcessAgainDialog
+            historyId={entry.id}
+            open={processAgainOpen}
+            onOpenChange={setProcessAgainOpen}
+          />
         </div>
       </div>
     </li>
   );
 };
 
-interface HistoryEntrySummaryProps {
+interface HistoryRowMetaProps {
   entry: HistoryEntry;
-  latestReceipt: HistoryRunReceipt | null;
-  duration: string | null;
+  receipt: HistoryRunReceipt | null;
   noSpeechCaptured: boolean;
-  hasText: boolean;
-  busy: boolean;
-  retrying: boolean;
-  showCopied: boolean;
-  onCopy: () => void;
-  onOpenCorrection: () => void;
-  onToggleSaved: () => void;
-  onRetry: () => void;
-  onDelete: () => void;
 }
 
-const HistoryEntrySummary: React.FC<HistoryEntrySummaryProps> = ({
+/* Line 1 of the row: one mono run of measured values, separated by middots,
+ * no badges. Word count, duration, mode and engine are numbers and
+ * identifiers, so they read as text at data weight; a pill around each would
+ * add five borders and no information. */
+const HistoryRowMeta: React.FC<HistoryRowMetaProps> = ({
   entry,
-  latestReceipt,
-  duration,
+  receipt,
   noSpeechCaptured,
-  hasText,
-  busy,
-  retrying,
-  showCopied,
-  onCopy,
-  onOpenCorrection,
-  onToggleSaved,
-  onRetry,
-  onDelete,
-}) => {
-  const { t, i18n } = useTranslation();
-  const formattedDate = formatDateTime(String(entry.timestamp), i18n.language);
-
-  // Provenance reads as one sentence of text. Chips and colored dots would
-  // say the same thing louder and survive greyscale worse.
-  const metaParts: string[] = [];
-  /* A reprocess and a retry both write a new row pointing at the one they
-   * came from, so an entry that appears twice in the feed says why. */
-  if (entry.parent_id !== null) {
-    metaParts.push(
-      t("settings.history.derivedFrom", "From an earlier recording"),
-    );
-  }
-  if (latestReceipt) {
-    if (noSpeechCaptured) metaParts.push(t("errors.noSpeechDetectedTitle"));
-    if (duration) {
-      metaParts.push(t("settings.history.receipts.duration", { duration }));
-    }
-    if (latestReceipt.word_count !== null) {
-      metaParts.push(
-        t("settings.history.receipts.words", {
-          count: latestReceipt.word_count,
-        }),
-      );
-    }
-    if (latestReceipt.source_kind) {
-      metaParts.push(
-        t("settings.history.receipts.source." + latestReceipt.source_kind),
-      );
-    }
-    metaParts.push(
-      t("settings.history.receipts.mode", {
-        mode: latestReceipt.mode.mode_id,
-      }),
-      t(
-        "settings.history.receipts.engine." +
-          latestReceipt.mode.engine_requested,
-      ),
-    );
-  }
-
-  return (
-    <div className="history-row-head">
-      <div className="history-row-heading">
-        <p className="history-row-time">{formattedDate}</p>
-        {metaParts.length > 0 && (
-          <p className="history-row-meta">{metaParts.join(" · ")}</p>
-        )}
-      </div>
-      <div className="history-row-actions">
-        <IconButton
-          size="sm"
-          label={t("settings.history.copyToClipboard")}
-          onClick={onCopy}
-          disabled={!hasText || busy}
-          data-testid="history-entry-copy"
-          icon={
-            showCopied ? (
-              <Check aria-hidden="true" width={16} height={16} />
-            ) : (
-              <Copy aria-hidden="true" width={16} height={16} />
-            )
-          }
-        />
-        <IconButton
-          size="sm"
-          label={t("settings.history.correction.add")}
-          onClick={onOpenCorrection}
-          disabled={!hasText || busy}
-          data-testid="history-entry-correct"
-          icon={<Pencil aria-hidden="true" width={16} height={16} />}
-        />
-        <IconButton
-          size="sm"
-          label={
-            entry.saved
-              ? t("settings.history.unsave")
-              : t("settings.history.save")
-          }
-          onClick={onToggleSaved}
-          disabled={busy}
-          aria-pressed={entry.saved}
-          data-testid="history-entry-save"
-          icon={
-            <Star
-              aria-hidden="true"
-              width={16}
-              height={16}
-              fill={entry.saved ? "currentColor" : "none"}
-            />
-          }
-        />
-        <IconButton
-          size="sm"
-          label={t("settings.history.retranscribe")}
-          onClick={onRetry}
-          disabled={busy}
-          data-testid="history-entry-retry"
-          icon={
-            <RotateCcw
-              aria-hidden="true"
-              width={16}
-              height={16}
-              className={retrying ? "history-retry-spin" : undefined}
-            />
-          }
-        />
-        <ProcessAgainAction historyId={entry.id} disabled={busy} />
-        <IconButton
-          size="sm"
-          className="history-action-danger"
-          label={t("settings.history.delete")}
-          onClick={onDelete}
-          disabled={busy}
-          data-testid="history-entry-delete"
-          icon={<Trash2 aria-hidden="true" width={16} height={16} />}
-        />
-      </div>
-    </div>
-  );
-};
-
-interface HistoryEntryContentProps {
-  entry: HistoryEntry;
-  shownText: string;
-  hasText: boolean;
-  retrying: boolean;
-  noSpeechCaptured: boolean;
-  processedTextMissing: boolean;
-  getAudioBlob: (historyId: number) => Promise<Blob | null>;
-  correctionOpen: boolean;
-  correctionSpoken: string;
-  correctionWritten: string;
-  correctionScope: CorrectionScope;
-  savingCorrection: boolean;
-  correctionReady: boolean;
-  onCorrectionOpenChange: (open: boolean) => void;
-  onSpokenChange: (value: string) => void;
-  onWrittenChange: (value: string) => void;
-  onScopeChange: (scope: CorrectionScope) => void;
-  onSaveCorrection: () => void;
-}
-
-const HistoryEntryContent: React.FC<HistoryEntryContentProps> = ({
-  entry,
-  shownText,
-  hasText,
-  retrying,
-  noSpeechCaptured,
-  processedTextMissing,
-  getAudioBlob,
-  correctionOpen,
-  correctionSpoken,
-  correctionWritten,
-  correctionScope,
-  savingCorrection,
-  correctionReady,
-  onCorrectionOpenChange,
-  onSpokenChange,
-  onWrittenChange,
-  onScopeChange,
-  onSaveCorrection,
 }) => {
   const { t } = useTranslation();
 
+  const cells: Array<{ id: string; content: React.ReactNode }> = [
+    {
+      id: "time",
+      content: formatEntryTimestamp(entry.timestamp * 1000),
+    },
+  ];
+
+  if (noSpeechCaptured) {
+    /* True for all three ways a run reaches this state: the model examined the
+     * clip and returned nothing, or the clip ran long enough that the voice
+     * detector's answer stands, or no local decoder existed to ask. The claim
+     * is about the recording, not about who checked it.
+     *
+     * No length here on purpose. A silent capture is zero-padded before it is
+     * saved, so its stored length describes the padded clip while peak and rms
+     * describe what the microphone actually delivered; printing both in one run
+     * of middots would assert they measure the same window. The saved clip's
+     * length is stated by the thing it belongs to — the player's total. */
+    cells.push({
+      id: "reason",
+      content: (
+        <span className="history-meta-reason">
+          {t("errors.noSpeechDetectedTitle")}
+        </span>
+      ),
+    });
+  } else if (receipt?.duration_ms != null) {
+    cells.push({
+      id: "duration",
+      content: formatDurationShort(receipt.duration_ms / 1000),
+    });
+  }
+
+  /* The two numbers that separate a dead input from a quiet room: 0.0119 peak
+   * over 1.14 s of room noise against 0.1456 over a real utterance. Absent
+   * means the run never measured them — imports, reprocesses, truncated
+   * captures and every row older than this field — so the cell disappears
+   * rather than printing a zero nobody recorded. */
+  if (receipt?.mode.input_peak != null) {
+    cells.push({
+      id: "peak",
+      content: (
+        <>
+          <span className="microlabel">
+            {t("settings.history.level.peak", "peak")}
+          </span>
+          {` ${receipt.mode.input_peak.toFixed(AMPLITUDE_DIGITS)}`}
+        </>
+      ),
+    });
+  }
+  if (receipt?.mode.input_rms != null) {
+    cells.push({
+      id: "rms",
+      content: (
+        <>
+          <span className="microlabel">
+            {t("settings.history.level.rms", "rms")}
+          </span>
+          {` ${receipt.mode.input_rms.toFixed(AMPLITUDE_DIGITS)}`}
+        </>
+      ),
+    });
+  }
+
+  if (receipt) {
+    if (!noSpeechCaptured && receipt.word_count !== null) {
+      cells.push({
+        id: "words",
+        content: t("settings.history.receipts.words", {
+          count: receipt.word_count,
+        }),
+      });
+    }
+    cells.push({ id: "mode", content: receipt.mode.mode_id });
+    cells.push({
+      id: "engine",
+      content: t(
+        "settings.history.receipts.engine." + receipt.mode.engine_requested,
+      ),
+    });
+    if (receipt.source_kind) {
+      cells.push({
+        id: "source",
+        content: t("settings.history.receipts.source." + receipt.source_kind),
+      });
+    }
+  }
+
+  /* A reprocess and a retry both write a new row pointing at the one they came
+   * from. Naming the id says which row, which is what someone looking at two
+   * near-identical transcripts actually needs. */
+  if (entry.parent_id !== null) {
+    cells.push({
+      id: "parent",
+      content: t("settings.history.derivedFromId", "from #{{id}}", {
+        id: entry.parent_id,
+      }),
+    });
+  }
+
   return (
-    <>
-      {retrying ? (
-        <p className="history-transcript history-transcribing" role="status">
-          {t("settings.history.transcribing")}
-        </p>
-      ) : (
-        <p
-          className="history-transcript"
-          data-state={hasText ? "text" : "missing"}
-        >
-          {hasText
-            ? shownText
-            : noSpeechCaptured
-              ? t("errors.noSpeechDetected")
-              : t("settings.history.transcriptionFailed")}
-        </p>
-      )}
-
-      {processedTextMissing && !retrying ? (
-        <p className="history-transcript-note">
-          {t("settings.history.postProcessEmpty")}
-        </p>
-      ) : null}
-
-      <HistoryAudioPlayer historyId={entry.id} getAudioBlob={getAudioBlob} />
-
-      <HistoryCorrectionDialog
-        entryId={entry.id}
-        open={correctionOpen}
-        onOpenChange={onCorrectionOpenChange}
-        spoken={correctionSpoken}
-        written={correctionWritten}
-        scope={correctionScope}
-        saving={savingCorrection}
-        ready={correctionReady}
-        onSpokenChange={onSpokenChange}
-        onWrittenChange={onWrittenChange}
-        onScopeChange={onScopeChange}
-        onSave={onSaveCorrection}
-      />
-    </>
+    <p className="history-row-meta type-data" data-testid="history-entry-meta">
+      {cells.map((cell, index) => (
+        <React.Fragment key={cell.id}>
+          {index > 0 ? (
+            <span aria-hidden="true" className="history-meta-sep">
+              ·
+            </span>
+          ) : null}
+          {cell.content}
+        </React.Fragment>
+      ))}
+    </p>
   );
 };
 
 interface HistoryAudioPlayerProps {
   historyId: number;
+  totalSeconds: number | undefined;
   getAudioBlob: (historyId: number) => Promise<Blob | null>;
 }
 
 const HistoryAudioPlayer: React.FC<HistoryAudioPlayerProps> = ({
   historyId,
+  totalSeconds,
   getAudioBlob,
 }) => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -645,81 +689,62 @@ const HistoryAudioPlayer: React.FC<HistoryAudioPlayerProps> = ({
     return url;
   };
 
-  return <AudioPlayer onLoadRequest={loadAudio} className="history-audio" />;
-};
-
-interface HistoryReceiptDetailsProps {
-  receipts: HistoryRunReceipt[] | null | undefined;
-}
-
-const HistoryReceiptDetails: React.FC<HistoryReceiptDetailsProps> = ({
-  receipts,
-}) => {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-
   return (
-    <div className="history-receipts">
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
-        className="history-receipts-toggle"
-        data-testid="history-receipts-toggle"
-      >
-        {open ? (
-          <ChevronUp aria-hidden="true" className="h-4 w-4" />
-        ) : (
-          <ChevronDown aria-hidden="true" className="h-4 w-4" />
-        )}
-        {open
-          ? t("settings.history.receipts.hideDetails")
-          : t("settings.history.receipts.showDetails")}
-      </button>
-      {open ? <HistoryReceiptList receipts={receipts} /> : null}
-    </div>
+    <AudioPlayer
+      onLoadRequest={loadAudio}
+      totalSeconds={totalSeconds}
+      className="history-audio"
+    />
   );
 };
 
-const HistoryReceiptList: React.FC<HistoryReceiptDetailsProps> = ({
+interface HistoryReceiptInspectorProps {
+  id: string;
+  receipts: HistoryRunReceipt[] | null | undefined;
+}
+
+/* The full receipt, as an inset panel of key/value pairs: quoted machine
+ * output, not a card. There is no second disclosure inside it — the row's own
+ * expander is the only toggle, and everything the run recorded is plain text
+ * underneath it. */
+const HistoryReceiptInspector: React.FC<HistoryReceiptInspectorProps> = ({
+  id,
   receipts,
 }) => {
   const { t } = useTranslation();
 
+  /* Three ways to have no receipt to show, and they are not the same thing:
+   * the read is still running, the read failed, or the run genuinely recorded
+   * none. The panel says which. */
+  let body: React.ReactNode;
   if (receipts === undefined) {
-    return (
-      <div className="history-receipts-body py-3">
-        <StatusText live="polite">
-          {t("settings.history.receipts.loading")}
-        </StatusText>
-      </div>
+    body = (
+      <StatusText live="polite">
+        {t("settings.history.receipts.loading")}
+      </StatusText>
     );
-  }
-
-  if (receipts === null) {
-    return (
-      <div className="history-receipts-body py-3">
-        <StatusText>{t("settings.history.receipts.unavailable")}</StatusText>
-      </div>
+  } else if (receipts === null) {
+    body = (
+      <StatusText>{t("settings.history.receipts.unavailable")}</StatusText>
     );
-  }
-
-  if (receipts.length === 0) {
-    return (
-      <div className="history-receipts-body py-3">
-        <StatusText>{t("settings.history.receipts.none")}</StatusText>
-      </div>
-    );
+  } else if (receipts.length === 0) {
+    body = <StatusText>{t("settings.history.receipts.none")}</StatusText>;
+  } else {
+    body = receipts
+      .slice()
+      .sort((left, right) => right.completed_at_ms - left.completed_at_ms)
+      .map((receipt) => (
+        <HistoryReceiptCard key={receipt.id} receipt={receipt} />
+      ));
   }
 
   return (
-    <div className="history-receipts-body">
-      {receipts
-        .slice()
-        .sort((left, right) => right.completed_at_ms - left.completed_at_ms)
-        .map((receipt) => (
-          <HistoryReceiptCard key={receipt.id} receipt={receipt} />
-        ))}
+    <div
+      id={id}
+      className="inset-panel history-receipts"
+      data-testid="history-receipts"
+    >
+      {body}
     </div>
   );
 };
@@ -731,71 +756,130 @@ interface HistoryReceiptCardProps {
 const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({ receipt }) => {
   const { t } = useTranslation();
 
-  const headline = [
-    t("settings.history.receipts.mode", { mode: receipt.mode.mode_id }),
-    t("settings.history.receipts.revision", {
-      revision: receipt.mode.settings_revision,
-    }),
-    t("settings.history.receipts.engine." + receipt.mode.engine_requested),
+  /* `status` paints the state word itself and nothing else: the one place in
+   * Library the four-state semaphore is allowed. `no_speech_detected` is
+   * deliberately not red or amber — it is a real outcome of a real capture,
+   * and colouring it as a failure would claim one the app cannot name. */
+  const pairs: Array<{
+    id: string;
+    label: string;
+    value: React.ReactNode;
+    status?: CaptureStatus;
+  }> = [
+    {
+      id: "mode",
+      label: t("settings.history.receipts.modeLabel", "Mode"),
+      value: receipt.mode.mode_id,
+    },
+    {
+      id: "revision",
+      label: t("settings.history.receipts.revisionLabel", "Revision"),
+      value: receipt.mode.settings_revision,
+    },
+    {
+      id: "engine",
+      label: t("settings.history.receipts.engineLabel", "Engine"),
+      value: t(
+        "settings.history.receipts.engine." + receipt.mode.engine_requested,
+      ),
+    },
   ];
+
   if (receipt.source_kind) {
-    headline.push(t("settings.history.receipts.source." + receipt.source_kind));
+    pairs.push({
+      id: "source",
+      label: t("settings.history.receipts.sourceLabel", "Source"),
+      value: t("settings.history.receipts.source." + receipt.source_kind),
+    });
+  }
+  if (receipt.capture_status) {
+    pairs.push({
+      id: "capture",
+      label: t("settings.history.receipts.captureStatusLabel", "Capture"),
+      value: t(
+        "settings.history.receipts.captureStatus." + receipt.capture_status,
+      ),
+      status: receipt.capture_status,
+    });
+  }
+  if (receipt.duration_ms !== null) {
+    pairs.push({
+      id: "duration",
+      label: t("settings.history.receipts.durationLabel"),
+      value: formatDurationShort(receipt.duration_ms / 1000),
+    });
+  }
+  if (receipt.word_count !== null) {
+    pairs.push({
+      id: "words",
+      label: t("settings.history.receipts.wordsLabel"),
+      value: receipt.word_count,
+    });
+  }
+  if (receipt.mode.input_peak != null) {
+    pairs.push({
+      id: "peak",
+      label: t("settings.history.level.peak", "peak"),
+      value: receipt.mode.input_peak.toFixed(AMPLITUDE_DIGITS),
+    });
+  }
+  if (receipt.mode.input_rms != null) {
+    pairs.push({
+      id: "rms",
+      label: t("settings.history.level.rms", "rms"),
+      value: receipt.mode.input_rms.toFixed(AMPLITUDE_DIGITS),
+    });
+  }
+  pairs.push(
+    {
+      id: "preset",
+      label: t("settings.history.receipts.presetLabel"),
+      value: t(
+        "settings.history.receipts.preset." + receipt.mode.prompt_preset,
+      ),
+    },
+    {
+      id: "context",
+      label: t("settings.history.receipts.contextPolicy"),
+      value: t(
+        "settings.history.receipts.contextPolicyValues." +
+          receipt.mode.context_policy,
+      ),
+    },
+    {
+      id: "completed",
+      label: t("settings.history.receipts.completedLabel", "Completed"),
+      value: formatEntryTimestamp(receipt.completed_at_ms),
+    },
+  );
+  if (receipt.mode.provider_id) {
+    pairs.push({
+      id: "provider",
+      label: t("settings.history.receipts.provider"),
+      value:
+        receipt.mode.provider_id +
+        (receipt.mode.model_id ? " · " + receipt.mode.model_id : ""),
+    });
   }
 
   return (
     <section className="history-receipt">
-      <p className="history-receipt-meta">{headline.join(" · ")}</p>
-
       <dl className="history-receipt-grid">
-        {receipt.duration_ms !== null ? (
-          <>
-            <dt>{t("settings.history.receipts.durationLabel")}</dt>
-            <dd>
-              {t("settings.history.receipts.duration", {
-                duration:
-                  Math.floor(receipt.duration_ms / 60000) +
-                  ":" +
-                  String(Math.floor(receipt.duration_ms / 1000) % 60).padStart(
-                    2,
-                    "0",
-                  ),
-              })}
+        {pairs.map((pair) => (
+          <React.Fragment key={pair.id}>
+            <dt className="microlabel">{pair.label}</dt>
+            <dd className="type-data" data-status={pair.status}>
+              {pair.value}
             </dd>
-          </>
-        ) : null}
-        {receipt.word_count !== null ? (
-          <>
-            <dt>{t("settings.history.receipts.wordsLabel")}</dt>
-            <dd>{receipt.word_count}</dd>
-          </>
-        ) : null}
-        <dt>{t("settings.history.receipts.presetLabel")}</dt>
-        <dd>
-          {t("settings.history.receipts.preset." + receipt.mode.prompt_preset)}
-        </dd>
-        <dt>{t("settings.history.receipts.contextPolicy")}</dt>
-        <dd>
-          {t(
-            "settings.history.receipts.contextPolicyValues." +
-              receipt.mode.context_policy,
-          )}
-        </dd>
-        {receipt.mode.provider_id ? (
-          <>
-            <dt>{t("settings.history.receipts.provider")}</dt>
-            <dd>
-              {receipt.mode.provider_id}
-              {receipt.mode.model_id ? " · " + receipt.mode.model_id : ""}
-            </dd>
-          </>
-        ) : null}
+          </React.Fragment>
+        ))}
       </dl>
 
       {/* Both of these were a list of two spans pushed apart, which is a
        * table drawn by hand and reads to a screen reader as pairs of
        * floating words. On the real primitive each column is named once. */}
       <div>
-        <h4 className="history-receipt-subtitle">
+        <h4 className="history-receipt-subtitle microlabel">
           {t("settings.history.receipts.contextSources")}
         </h4>
         <table className="data-table history-receipt-table">
@@ -829,11 +913,11 @@ const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({ receipt }) => {
       </div>
 
       <div>
-        <h4 className="history-receipt-subtitle">
+        <h4 className="history-receipt-subtitle microlabel">
           {t("settings.history.receipts.deliveryAttempts")}
         </h4>
         {receipt.delivery_attempts.length === 0 ? (
-          <p className="history-receipt-empty">
+          <p className="history-receipt-empty type-secondary">
             {t("settings.history.receipts.noDeliveryAttempts")}
           </p>
         ) : (

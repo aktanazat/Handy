@@ -30,7 +30,10 @@ import {
   Input,
   Skeleton,
   StatusText,
+  Tabs,
+  type TabItem,
 } from "../../ui";
+import { formatDurationShort } from "@/lib/utils/format";
 import "./history.css";
 import { HistoryEntryComponent, type HistoryTextView } from "./HistoryEntry";
 
@@ -642,8 +645,11 @@ interface HistorySummaryProps {
 /* The all-time totals under the page title. The rich analytics band lives on
  * Capture; this is the number you glance at while scanning transcripts, so
  * it is a strip of microlabel-over-figure pairs rather than a sentence: the
- * figures line up, they are tabular, and the labels stay out of the way. */
-const HistorySummary: React.FC<HistorySummaryProps> = ({
+ * figures line up, they are tabular, and the labels stay out of the way.
+ *
+ * Exported because the strip is the page's one derived readout and the whole
+ * page cannot be rendered without its data effects. */
+export const HistorySummary: React.FC<HistorySummaryProps> = ({
   stats,
   loading,
   error,
@@ -668,7 +674,7 @@ const HistorySummary: React.FC<HistorySummaryProps> = ({
     return (
       <div className="history-summary-state">
         {loading ? (
-          <Skeleton className="h-[26px] w-64" />
+          <Skeleton className="h-[48px] w-64" />
         ) : (
           <StatusText>{t("settings.history.stats.unavailable")}</StatusText>
         )}
@@ -676,6 +682,10 @@ const HistorySummary: React.FC<HistorySummaryProps> = ({
     );
   }
 
+  /* RECORDINGS · RECORDING TIME · WORDS, microlabel over figure. The duration
+   * goes through the shared renderer: the hand-rolled "{{hours}}h {{minutes}}m"
+   * this replaced printed "0h 0m" for every library under half a minute, which
+   * is a total that reports zero for recordings that exist. */
   const totals = [
     {
       key: "entries",
@@ -685,10 +695,7 @@ const HistorySummary: React.FC<HistorySummaryProps> = ({
     {
       key: "duration",
       label: t("settings.history.stats.duration"),
-      value: t("settings.history.stats.durationValue", {
-        hours: Math.floor(stats.total_duration_ms / 3_600_000),
-        minutes: Math.round((stats.total_duration_ms % 3_600_000) / 60_000),
-      }),
+      value: formatDurationShort(stats.total_duration_ms / 1000),
     },
     {
       key: "words",
@@ -712,7 +719,7 @@ const HistorySummary: React.FC<HistorySummaryProps> = ({
       {totals.map((total) => (
         <div className="history-stat" key={total.key}>
           <dt className="microlabel">{total.label}</dt>
-          <dd className="history-stat-value">{total.value}</dd>
+          <dd className="history-stat-value type-metric">{total.value}</dd>
         </div>
       ))}
     </dl>
@@ -880,6 +887,15 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
   const settled = state.phase !== "loading" && state.phase !== "error";
   const count = state.entries.length;
 
+  const textViewTabs = useMemo<TabItem[]>(
+    () =>
+      TEXT_VIEWS.map((option) => ({
+        id: option.value,
+        label: t(option.labelKey),
+      })),
+    [t],
+  );
+
   const loadNextPage = () => {
     const last = state.entries[state.entries.length - 1];
     if (last) void fetchPage(activeQuery, last.id);
@@ -907,9 +923,8 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
       >
         {SKELETON_ROWS.map((row) => (
           <div key={row} className="history-skeleton-row">
-            <Skeleton className="h-[19px] w-44" />
-            <Skeleton className="h-[14px] w-full" />
-            <Skeleton className="h-[14px] w-3/5" />
+            <Skeleton className="h-[16px] w-64" />
+            <Skeleton className="h-[19px] w-full" />
           </div>
         ))}
       </div>
@@ -1042,8 +1057,11 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
   return (
     <div className="flex flex-col gap-3">
       <div className="history-toolbar">
+        {/* Icon and clear button are the primitive's slots, so the field's
+         * own padding accounts for both and the placeholder can no longer
+         * start underneath the magnifier. The wrapper only says how much of
+         * the toolbar row the field is allowed to take. */}
         <div className="history-search">
-          <Search aria-hidden="true" className="history-search-icon h-4 w-4" />
           <Input
             type="search"
             variant="compact"
@@ -1053,48 +1071,37 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
             aria-label={t("settings.history.search")}
             aria-describedby={countId}
             data-testid="history-search"
+            icon={<Search aria-hidden="true" />}
+            trailing={
+              query === "" ? null : (
+                <IconButton
+                  size="sm"
+                  label={t("settings.history.clearSearch", "Clear search")}
+                  onClick={() => setQuery("")}
+                  icon={<X aria-hidden="true" width={16} height={16} />}
+                  data-testid="history-search-clear"
+                />
+              )
+            }
           />
-          {query !== "" && (
-            <IconButton
-              size="sm"
-              className="history-search-clear"
-              label={t("settings.history.clearSearch", "Clear search")}
-              onClick={() => setQuery("")}
-              icon={<X aria-hidden="true" className="h-4 w-4" />}
-              data-testid="history-search-clear"
-            />
-          )}
         </div>
 
         <p
           id={countId}
-          className="history-result-count"
+          className="history-result-count type-data"
           aria-live="polite"
           data-testid="history-result-count"
         >
           {resultCount}
         </p>
 
-        <fieldset className="history-segmented">
-          <legend className="sr-only">
-            {t("settings.history.textView.label")}
-          </legend>
-          {TEXT_VIEWS.map((option) => (
-            <label key={option.value} className="history-segmented-option">
-              <input
-                type="radio"
-                name="history-text-view"
-                value={option.value}
-                checked={view === option.value}
-                onChange={() => setView(option.value)}
-                className="sr-only"
-              />
-              <span className="history-segmented-text">
-                {t(option.labelKey)}
-              </span>
-            </label>
-          ))}
-        </fieldset>
+        <Tabs
+          variant="secondary"
+          items={textViewTabs}
+          value={view}
+          onChange={(id) => setView(id === "raw" ? "raw" : "processed")}
+          label={t("settings.history.textView.label")}
+        />
       </div>
 
       {content}
