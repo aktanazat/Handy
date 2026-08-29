@@ -611,6 +611,14 @@ async changeThemeSetting(theme: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async changeAppearanceMaterialSetting(material: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_appearance_material_setting", { material }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async changeStartHiddenSetting(enabled: boolean) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_start_hidden_setting", { enabled }) };
@@ -2264,7 +2272,7 @@ cloud_stt_providers?: CloudSttProviderSettings[];
  * Cloud-sync intent and consent only. Native SecretManager owns every
  * cryptographic root; this value has no vault, device, or cursor fields.
  */
-cloud_sync?: CloudSyncSettings; post_process_models?: Partial<{ [key in string]: string }>; post_process_prompts?: LLMPrompt[]; post_process_selected_prompt_id?: string | null; mute_while_recording?: boolean; append_trailing_space?: boolean; app_language?: string; theme?: Theme; experimental_enabled?: boolean; lazy_stream_close?: boolean; keyboard_implementation?: KeyboardImplementation; show_tray_icon?: boolean; paste_delay_ms?: number; paste_delay_after_ms?: number;
+cloud_sync?: CloudSyncSettings; post_process_models?: Partial<{ [key in string]: string }>; post_process_prompts?: LLMPrompt[]; post_process_selected_prompt_id?: string | null; mute_while_recording?: boolean; append_trailing_space?: boolean; app_language?: string; theme?: Theme; appearance_material?: AppearanceMaterial; experimental_enabled?: boolean; lazy_stream_close?: boolean; keyboard_implementation?: KeyboardImplementation; show_tray_icon?: boolean; paste_delay_ms?: number; paste_delay_after_ms?: number;
 /**
  * Debug-gated ("beta") receipt-sequenced paste: restore the clipboard only
  * after the target app actually reads the transcript, instead of after a
@@ -2396,6 +2404,17 @@ detection_silence_stop_minutes?: number;
  * with that ID is actually running.
  */
 detection_meeting_apps?: string[] }
+/**
+ * Window material. `Solid` paints Sona's own surfaces edge to edge; `Glass`
+ * makes the window background transparent so the native vibrancy view shows
+ * through the three chrome surfaces (top nav, command palette, HUD).
+ *
+ * This is the user's *intent*. The material actually in force is this AND
+ * vibrancy having applied — vibrancy is macOS-only and can fail, and a failed
+ * apply means Solid, not a half-transparent window. `shortcut::apply_window_material`
+ * resolves the two and is the only writer of the webview's `data-material`.
+ */
+export type AppearanceMaterial = "solid" | "glass"
 export type ArtifactCitation = { segment_id: TranscriptSegmentId; start_offset_ns: number; end_offset_ns: number }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AudioFormat = { sample_rate_hz: number; channels: number }
@@ -2605,6 +2624,12 @@ export type ContextSources = { target: ContextSourceStatus; focused_field: Conte
 export type CustomSounds = { start: boolean; stop: boolean }
 /**
  * The only calendar windows exposed by dashboard trend commands.
+ *
+ * Each variant names its wire string outright. `rename_all = "snake_case"`
+ * cannot be trusted here: serde leaves a digit attached to the preceding word
+ * (`days30`) while specta splits it off (`days_30`), so the generated bindings
+ * published one spelling to the webview while the command deserializer only
+ * accepted the other, and every trend request failed on arrival.
  */
 export type DashboardTrendRange = "days_7" | "days_30" | "days_180"
 /**
@@ -3001,6 +3026,10 @@ export type ModeDeliverySettings = { paste_method: PasteMethod; clipboard_handli
 export type ModeLlmSettings = { enabled: boolean; provider_id: string; model_id: string }
 export type ModeMutationError = { kind: "stale_revision"; expected_revision: number; actual_revision: number } | { kind: "invalid_mode_id" } | { kind: "empty_name" } | { kind: "cannot_delete_default" } | { kind: "unknown_mode"; mode_id: string } | { kind: "duplicate_mode_id"; mode_id: string } | { kind: "invalid_reorder" } | { kind: "invalid_app_identity" } | { kind: "frontmost_application_unavailable" } | { kind: "invalid_website_host" } | { kind: "website_activation_consent_required" } | { kind: "frontmost_website_unavailable" } | { kind: "website_activation_secure_field" }
 export type ModePromptSettings = { preset: PromptPreset; source_prompt_id: string | null; custom_prompt: string | null }
+/**
+ * `Eq` is deliberately absent: the measured amplitudes below are floats, and a
+ * measurement is compared for equality only in tests, never keyed on.
+ */
 export type ModeReceipt = { run_id: number; settings_revision: number; mode_selection_source?: ModeSelectionSource; mode_id: string; tone: Tone; requested_context_policy: ContextPolicy; context_policy_ceiling: ContextPolicy; context_policy: ContextPolicy; prompt_preset: PromptPreset; post_process_requested: boolean; provider_id: string | null; model_id: string | null;
 /**
  * The route selected at capture start. The former requested_engine field
@@ -3011,7 +3040,22 @@ engine_requested?: RequestedEngine;
  * None is a held remote recording: no provider final was trusted and no
  * local fallback was available, so the app must never deliver text.
  */
-engine_used?: RequestedEngine | null; cloud_fallback?: boolean; cloud_status?: CloudReceiptStatus; local_fallback_model_id?: string | null }
+engine_used?: RequestedEngine | null; cloud_fallback?: boolean; cloud_status?: CloudReceiptStatus; local_fallback_model_id?: string | null;
+/**
+ * Peak and RMS amplitude of this capture's audio, normalized to full
+ * scale, exactly as `measure_input_level` reported them. Absent means the
+ * audio was never measured, which is the distinction that separates a dead
+ * input stream from a quiet but real utterance on a no-speech receipt.
+ */
+input_peak?: number | null; input_rms?: number | null;
+/**
+ * Audio seconds per decode second for the local batch decode that produced
+ * this receipt's text — 13.8 means 1.05 s of audio decoded in 76 ms. This
+ * is the engine's measured throughput on this machine, which is the only
+ * version of it worth showing. Absent means no timed local batch decode
+ * was involved.
+ */
+realtime_factor?: number | null }
 /**
  * Which rule selected the mode frozen into a run. The receipt deliberately
  * records the decision without copying a frontmost application's identity.
@@ -3033,7 +3077,15 @@ export type ModeView = { id: string; name: string; tone: Tone; context_policy: C
  */
 export type ModeWebsiteActivationRule = { host: string; match_kind: WebsiteHostMatch; mode_id: string }
 export type ModelInfo = { id: string; name: string; description: string; filename: string; source: ModelSource; size_mb: number; is_downloaded: boolean; is_downloading: boolean; partial_size: number; is_directory: boolean; engine_type: EngineType; accuracy_score: number; speed_score: number; supports_translation: boolean; is_recommended: boolean; supported_languages: string[]; supports_language_selection: boolean; is_custom: boolean; supports_streaming: boolean; supports_language_detection: boolean }
-export type ModelLoadStatus = { is_loaded: boolean; current_model: string | null }
+export type ModelLoadStatus = { is_loaded: boolean; current_model: string | null;
+/**
+ * The compute backend the loaded engine actually bound to — "MTL0" for a
+ * Metal GPU, "onnx" for an ONNX engine, a CPU string when Auto fell back.
+ * `None` when no model is loaded, because there is nothing bound to name.
+ * This is the requested accelerator's *outcome*, which is the only version
+ * of it worth showing: Auto reports what it chose.
+ */
+backend: string | null }
 /**
  * Where a model comes from and how Sona obtains it — the routing discriminant
  * for downloading and on-disk resolution.

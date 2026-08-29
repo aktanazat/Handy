@@ -7,6 +7,7 @@ import { AppLanguageSelector } from "../AppLanguageSelector";
 import { CommandMode } from "../CommandMode";
 import { AudioFeedback } from "../AudioFeedback";
 import { ChannelSelector } from "../ChannelSelector";
+import { MaterialSelector } from "../MaterialSelector";
 import { MicrophoneSelector } from "../MicrophoneSelector";
 import { MuteWhileRecording } from "../MuteWhileRecording";
 import { OutputDeviceSelector } from "../OutputDeviceSelector";
@@ -71,6 +72,7 @@ export const GeneralSettings: React.FC = () => {
       >
         <AppLanguageSelector grouped />
         <ThemeSelector grouped />
+        <MaterialSelector grouped />
       </SettingsGroup>
     </div>
   );

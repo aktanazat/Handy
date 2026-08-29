@@ -175,7 +175,7 @@ const CommandPaletteDialog: React.FC<CommandPaletteDialogProps> = ({
   return (
     <dialog
       ref={dialogRef}
-      className="command-palette"
+      className="command-palette glass-surface"
       aria-label={t("commandPalette.open")}
       onCancel={(event) => {
         event.preventDefault();

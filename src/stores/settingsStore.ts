@@ -161,6 +161,11 @@ const settingUpdaters: Partial<Record<keyof Settings, SettingUpdater>> = {
   log_level: (value) => commands.setLogLevel(value as any),
   app_language: (value) => commands.changeAppLanguageSetting(value as string),
   theme: (value) => commands.changeThemeSetting(value as string),
+  /* The Rust side resolves intent against whether native vibrancy actually
+   * applied and writes the resulting `data-material` into every webview
+   * itself, so there is nothing to do here with the return value. */
+  appearance_material: (value) =>
+    commands.changeAppearanceMaterialSetting(String(value)),
   experimental_enabled: (value) =>
     commands.changeExperimentalEnabledSetting(value as boolean),
   lazy_stream_close: (value) =>
