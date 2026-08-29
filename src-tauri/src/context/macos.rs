@@ -503,6 +503,17 @@ pub(crate) fn insert_into_focused_editable(text: &str) -> AccessibilityInsertion
     if set_timeout(&element, timeout).is_err() {
         return AccessibilityInsertion::NotDispatched;
     }
+    // A focused editable role is not always an input path: terminals
+    // (Ghostty, Terminal.app) publish the screen grid as an AXTextArea for
+    // screen readers, and Ghostty answers `AXSelectedText` writes with
+    // Success without feeding the pty, so the text vanishes while the
+    // receipt claims Delivered. Writability is the platform's own signal
+    // for the difference — the grid reports non-settable — and nothing has
+    // been dispatched yet, so refusing here safely falls back to the real
+    // paste chord.
+    if !selected_text_is_settable(&element) {
+        return AccessibilityInsertion::NotDispatched;
+    }
     let attribute = CFString::from_static_str(AX_SELECTED_TEXT);
     let replacement = CFString::from_str(text);
     // SAFETY: element is the currently focused editable AX element, and both attribute values remain valid for this call.
@@ -515,6 +526,19 @@ pub(crate) fn insert_into_focused_editable(text: &str) -> AccessibilityInsertion
         }
         _ => AccessibilityInsertion::NotDispatched,
     }
+}
+
+/// Asks the target process whether `AXSelectedText` accepts writes. Any
+/// error counts as non-settable: a blind write into a target that cannot
+/// answer is exactly what this gate exists to prevent.
+fn selected_text_is_settable(element: &AXUIElement) -> bool {
+    let attribute = CFString::from_static_str(AX_SELECTED_TEXT);
+    // `Boolean` in the AX signature is MacTypes' `u8` alias, private in the
+    // binding crate; the alias is transparent so `u8` is the same type.
+    let mut settable: u8 = 0;
+    // SAFETY: `settable` points to a live stack slot for the whole call.
+    let error = unsafe { element.is_attribute_settable(&attribute, NonNull::from(&mut settable)) };
+    error == AXError::Success && settable != 0
 }
 
 fn is_editable_role(element: &AXUIElement, deadline: CaptureDeadline) -> bool {
