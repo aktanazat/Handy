@@ -7,6 +7,8 @@ import type {
   SourceKind,
 } from "@/bindings";
 import { Button, Section, StatusText } from "../../ui";
+import { useSettingsStore } from "@/stores/settingsStore";
+import { MeetingPreviewCard } from "./MeetingPreviewCard";
 import { MeetingSourceList, ProcessingStatusText } from "./MeetingStatus";
 import type { MeetingStartOptions } from "./meetingTypes";
 import { sourceAvailabilityKey, sourceKey } from "./meetingUtils";
@@ -43,6 +45,9 @@ export const MeetingStartGate: React.FC<MeetingStartGateProps> = ({
 }) => {
   const { t } = useTranslation();
   const [partialAccepted, setPartialAccepted] = useState(false);
+  const notesTemplate = useSettingsStore(
+    (state) => state.settings?.meeting_notes_template ?? null,
+  );
   const blockedSources = useMemo(
     () =>
       snapshot.session.sources.filter(
@@ -110,6 +115,23 @@ export const MeetingStartGate: React.FC<MeetingStartGateProps> = ({
               )}
         </p>
       </header>
+
+      {/* What is about to be recorded, when the operator got here from a
+       * meeting Sona had already identified. The card carries no Start of its
+       * own: this screen's action row below is the consent act, and a second
+       * affirmative button would make it ambiguous which press was recorded
+       * as the acknowledgment. Sources read as settled text here because the
+       * session already exists with them. */}
+      {options.preview === null ? null : (
+        <ul className="meeting-previews">
+          <MeetingPreviewCard
+            facts={options.preview}
+            defaultExpanded
+            recording={{ armed: options.sources }}
+            notesTemplate={notesTemplate}
+          />
+        </ul>
+      )}
 
       {blocked ? (
         <ul

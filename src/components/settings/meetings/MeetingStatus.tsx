@@ -13,6 +13,8 @@ import {
   captureCompletenessKey,
   formatMeetingOffset,
   meetingPhaseKey,
+  meetingRowStatus,
+  meetingRowStatusKey,
   processingStatusKey,
   sourceAvailabilityKey,
   sourceHealthKey,
@@ -236,3 +238,35 @@ export const MeetingSourceList: React.FC<MeetingSourceListProps> = ({
     ))}
   </ul>
 );
+
+/* The one chip a meetings-list row carries. Four of the five states get a
+ * semaphore colour because each one changes what a person does next: live
+ * capture is the only state where walking away loses the meeting, a failed run
+ * is the only state that needs a decision, a running one is the only state
+ * worth waiting on, and ready is the only state worth opening. The fifth,
+ * `pending`, is a phase nobody acts on from a list, so it stays greyscale.
+ *
+ * Recording is filled, the rest are outlined: a filled chip on every row would
+ * make a page of finished meetings read as urgent. */
+export interface MeetingStatusChipProps {
+  phase: MeetingPhase;
+  processing: ProcessingStatus;
+}
+
+export const MeetingStatusChip: React.FC<MeetingStatusChipProps> = ({
+  phase,
+  processing,
+}) => {
+  const { t } = useTranslation();
+  const status = meetingRowStatus(phase, processing);
+
+  return (
+    <span
+      className="meeting-status-chip"
+      data-status={status}
+      data-fill={status === "recording" ? "solid" : "outline"}
+    >
+      {t(meetingRowStatusKey(status, phase, processing))}
+    </span>
+  );
+};

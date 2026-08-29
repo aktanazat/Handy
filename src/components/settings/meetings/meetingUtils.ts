@@ -1,9 +1,12 @@
 import type {
   CaptureCompleteness,
   MeetingCommandError,
+  MeetingListFilter,
   MeetingPhase,
   MeetingProvider,
   MeetingReasonCode,
+  MeetingStatusFilter,
+  MeetingTimeWindow,
   ProcessingStatus,
   SourceAvailability,
   SourceHealth,
@@ -112,3 +115,106 @@ export const isActiveMeetingPhase = (phase: MeetingPhase) =>
 
 export const isPreflightMeetingPhase = (phase: MeetingPhase) =>
   phase === "preflight";
+
+/* ------------------------------------------------------- meetings list row */
+
+/** The one state a list row's chip reports, and the semaphore it reads in. */
+export type MeetingRowStatus =
+  | "recording"
+  | "processing"
+  | "ready"
+  | "failed"
+  | "pending";
+
+/* A row carries one chip, so the chip has to answer the one question a reader
+ * is asking: can I read this meeting yet? Precedence runs from the state that
+ * costs most to misread down to the state that costs least — live capture,
+ * then a run that needs a hand, then a run still going. A partial capture is
+ * NOT in here: it is a fact about the sources, and it rides beside them on the
+ * row's own source run rather than displacing the chip. */
+export const meetingRowStatus = (
+  phase: MeetingPhase,
+  processing: ProcessingStatus,
+): MeetingRowStatus => {
+  if (
+    phase === "capturing_recording" ||
+    phase === "capturing_pausing" ||
+    phase === "capturing_paused" ||
+    phase === "capturing_resuming"
+  ) {
+    return "recording";
+  }
+  if (
+    phase === "recovery_required" ||
+    processing.kind === "failed" ||
+    processing.kind === "cancelled"
+  ) {
+    return "failed";
+  }
+  if (
+    phase === "processing" ||
+    phase === "stopping" ||
+    processing.kind === "pending" ||
+    processing.kind === "running"
+  ) {
+    return "processing";
+  }
+  if (phase === "review_ready") {
+    return "ready";
+  }
+  return "pending";
+};
+
+/* The chip's word comes from the state the chip is reading, not from a second
+ * label table: a failed run says which failure, and recovery says recovery. */
+export const meetingRowStatusKey = (
+  status: MeetingRowStatus,
+  phase: MeetingPhase,
+  processing: ProcessingStatus,
+) => {
+  if (status === "failed") {
+    return phase === "recovery_required"
+      ? meetingPhaseKey(phase)
+      : processingStatusKey(processing);
+  }
+  if (status === "recording" || status === "pending") {
+    return meetingPhaseKey(phase);
+  }
+  return `meetings.list.status.${status}`;
+};
+
+/** Every status a list filter can ask the store for, in menu order. */
+export const MEETING_STATUS_FILTERS: MeetingStatusFilter[] = [
+  "any",
+  "ready",
+  "processing",
+  "failed",
+];
+
+/** Every window a list filter can ask the store for, in menu order. */
+export const MEETING_TIME_WINDOWS: MeetingTimeWindow[] = [
+  "any",
+  "today",
+  "last_7_days",
+  "last_30_days",
+];
+
+export const meetingStatusFilterKey = (status: MeetingStatusFilter) =>
+  `meetings.list.filters.status.${status}`;
+
+export const meetingTimeWindowKey = (window: MeetingTimeWindow) =>
+  `meetings.list.filters.time.${window}`;
+
+/** No filter at all: the whole list, newest first. */
+export const NO_MEETING_FILTER: MeetingListFilter = {
+  status: "any",
+  window: "any",
+  title_query: "",
+};
+
+/** True when `filter` narrows nothing, which is what the Clear control needs
+ *  to know and what an empty result has to explain. */
+export const isUnfilteredMeetingList = (filter: MeetingListFilter) =>
+  (filter.status ?? "any") === "any" &&
+  (filter.window ?? "any") === "any" &&
+  (filter.title_query ?? "").trim().length === 0;

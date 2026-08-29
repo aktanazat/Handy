@@ -60,7 +60,7 @@ export interface SegmentJump {
   nonce: number;
 }
 
-interface CitationJumpProps {
+export interface CitationJumpProps {
   startOffsetNs: number | null;
   segmentId: string | null;
   onJump: (segmentId: string) => void;
@@ -70,7 +70,7 @@ interface CitationJumpProps {
  * accent colour with the timestamp kept monospaced and tabular. It degrades to
  * plain text when it points at a manual note or the title, which have no
  * transcript row to scroll to. */
-const CitationJump: React.FC<CitationJumpProps> = ({
+export const CitationJump: React.FC<CitationJumpProps> = ({
   startOffsetNs,
   segmentId,
   onJump,

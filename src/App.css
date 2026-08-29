@@ -495,12 +495,14 @@
   min-block-size: var(--control-height);
 }
 
+.meeting-actions-menu,
 .mode-actions-menu,
 .vocabulary-actions-menu,
 .history-actions-menu {
   position: relative;
 }
 
+.meeting-actions-menu > summary,
 .mode-actions-menu > summary,
 .vocabulary-actions-menu > summary,
 .history-actions-menu > summary {
@@ -517,18 +519,21 @@
   inline-size: 30px;
 }
 
+.meeting-actions-menu > summary:hover,
 .mode-actions-menu > summary:hover,
 .vocabulary-actions-menu > summary:hover,
 .history-actions-menu > summary:hover {
   background: var(--color-hover);
 }
 
+.meeting-actions-menu > summary::-webkit-details-marker,
 .mode-actions-menu > summary::-webkit-details-marker,
 .vocabulary-actions-menu > summary::-webkit-details-marker,
 .history-actions-menu > summary::-webkit-details-marker {
   display: none;
 }
 
+.meeting-actions-menu > div,
 .mode-actions-menu > div,
 .history-actions-menu > div,
 .vocabulary-actions-popover {
@@ -544,6 +549,7 @@
   z-index: 20;
 }
 
+.meeting-actions-menu > div > button,
 .mode-actions-menu > div > button,
 .history-actions-menu > div > button,
 .vocabulary-actions-popover > button {
@@ -561,12 +567,14 @@
   white-space: nowrap;
 }
 
+.meeting-actions-menu > div > button:hover,
 .mode-actions-menu > div > button:hover,
 .history-actions-menu > div > button:hover,
 .vocabulary-actions-popover > button:hover {
   background: var(--color-hover);
 }
 
+.meeting-actions-menu > div > button:disabled,
 .mode-actions-menu > div > button:disabled,
 .history-actions-menu > div > button:disabled,
 .vocabulary-actions-popover > button:disabled {
@@ -574,6 +582,7 @@
   opacity: 0.55;
 }
 
+.meeting-actions-menu .danger-menu-item,
 .mode-actions-menu .danger-menu-item,
 .history-actions-menu .danger-menu-item {
   color: var(--color-danger);

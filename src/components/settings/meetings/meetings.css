@@ -98,68 +98,6 @@
   margin-inline-end: var(--space-3);
 }
 
-/* -------------------------------------------------------- meeting entries */
-
-/* A meeting is an object you open, which is the one thing on this page that
- * earns a surface. */
-.meeting-cards {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.meeting-card {
-  background: var(--surface-raised);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-panel);
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
-  inline-size: 100%;
-  justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
-  text-align: start;
-}
-
-/* Only the card that is really a control behaves like one. A prompt card
- * carries its own buttons, so the card itself must not look pressable. */
-button.meeting-card {
-  cursor: pointer;
-  transition:
-    background-color 150ms var(--ease-out),
-    border-color 150ms var(--ease-out);
-}
-
-button.meeting-card:hover {
-  background: var(--wash-hover);
-  border-color: var(--border-hover);
-}
-
-button.meeting-card:active {
-  background: var(--wash-active);
-}
-
-.meeting-card-title {
-  color: var(--text-primary);
-  font-size: var(--type-row-size);
-  font-weight: var(--fw-heading);
-  line-height: var(--type-row-line);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.meeting-card-meta {
-  align-items: flex-end;
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  gap: var(--space-0-5);
-}
-
 /* ------------------------------------------------------------ flat rows */
 
 /* The shape every non-object row on these pages uses: label left, state
@@ -372,4 +310,530 @@ button.meeting-card:active {
   border-top: 1px solid var(--border-subtle);
   margin-top: var(--space-4);
   padding-top: var(--space-4);
+}
+
+/* -------------------------------------------------------- preview cards */
+
+/* A meeting that has not started yet is an object with a decision attached,
+ * so it earns a surface — the same surface a finished meeting gets, because
+ * they are the same object at two moments. */
+.meeting-previews {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.meeting-preview {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+}
+
+/* The whole collapsed row is the expander: a chevron alone would be a 14px
+ * target beside 400px of dead text. */
+.meeting-preview-summary {
+  align-items: center;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  gap: var(--space-2) var(--space-3);
+  inline-size: 100%;
+  min-block-size: 44px;
+  padding: var(--space-2) var(--space-4);
+  text-align: start;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.meeting-preview-summary:hover {
+  background: var(--wash-hover);
+}
+
+.meeting-preview-summary:active {
+  background: var(--wash-active);
+}
+
+.meeting-preview-origin {
+  align-items: center;
+  color: var(--text-tertiary);
+  display: inline-flex;
+  flex: none;
+}
+
+.meeting-preview-title {
+  color: var(--text-primary);
+  flex: 1 1 auto;
+  font-size: var(--type-row-size);
+  font-weight: var(--fw-heading);
+  line-height: var(--type-row-line);
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meeting-preview-facts {
+  align-items: center;
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  justify-content: flex-end;
+}
+
+/* A value chip: the machine's own answer, in the machine's own face. */
+.meeting-preview-chip {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--fs-microlabel);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--lh-microlabel);
+  white-space: nowrap;
+}
+
+.meeting-preview-caret {
+  color: var(--text-tertiary);
+  flex: none;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.meeting-preview-summary[aria-expanded="true"] .meeting-preview-caret {
+  transform: rotate(180deg);
+}
+
+/* The body collapses by row track, not by display, so its content is on
+ * screen for every frame of the transition instead of appearing at the end.
+ * `visibility` is what takes it out of the tab order and the accessibility
+ * tree, and it is delayed by exactly the collapse duration so it lands after
+ * the animation rather than during it. Under reduced motion the durations
+ * collapse to 1ms and the delay goes with them. */
+.meeting-preview-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows var(--duration-fast) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out),
+    visibility 0s linear var(--duration-fast);
+  visibility: hidden;
+}
+
+.meeting-preview-body[data-open="true"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows var(--duration-fast) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out),
+    visibility 0s linear;
+  visibility: visible;
+}
+
+.meeting-preview-clip {
+  min-block-size: 0;
+  overflow: hidden;
+}
+
+.meeting-preview-rows {
+  border-block-start: 1px solid var(--border-subtle);
+  padding: 0 var(--space-4);
+}
+
+/* An instrument row: icon and mono label left, the value and its control
+ * right. The label column is fixed so nine rows read as one table. */
+.meeting-preview-key {
+  align-items: center;
+  color: var(--text-tertiary);
+  display: inline-flex;
+  flex: none;
+  gap: var(--space-2);
+  inline-size: 108px;
+}
+
+.meeting-preview-value {
+  align-items: center;
+  color: var(--text-primary);
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  font-size: var(--fs-label-13);
+  gap: var(--space-1) var(--space-2);
+  justify-content: flex-end;
+  line-height: var(--lh-label-13);
+  min-inline-size: 0;
+  text-align: end;
+}
+
+.meeting-preview-people {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.meeting-preview-tally,
+.meeting-preview-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  justify-content: flex-end;
+}
+
+/* One person, one chip. The glyph carries the answer at a glance and the
+ * tally above carries it in words, so nothing here depends on shape alone. */
+.meeting-preview-person {
+  align-items: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  display: inline-flex;
+  font-size: var(--fs-label-12);
+  gap: var(--space-1);
+  line-height: var(--lh-label-12);
+  padding: 1px var(--space-1-5);
+}
+
+.meeting-preview-person[data-status="declined"] {
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+}
+
+.meeting-preview-person[data-status="accepted"] {
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+.meeting-preview-link {
+  background: none;
+  border: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: var(--fs-label-12);
+  line-height: var(--lh-label-12);
+  overflow: hidden;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-overflow: ellipsis;
+  text-underline-offset: 2px;
+  transition: text-decoration-color var(--duration-fast) var(--ease-out);
+  white-space: nowrap;
+}
+
+.meeting-preview-link:hover {
+  text-decoration-color: currentColor;
+}
+
+/* An agenda is a document pasted into a calendar field. One line of it is a
+ * reminder of which meeting this is; the rest is on request. */
+.meeting-preview-description {
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-align: start;
+  white-space: pre-line;
+}
+
+.meeting-preview-description[data-open="true"] {
+  -webkit-line-clamp: unset;
+  display: block;
+}
+
+.meeting-preview-more {
+  background: none;
+  border: 0;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: var(--fs-microlabel);
+  letter-spacing: var(--ls-microlabel);
+  line-height: var(--lh-microlabel);
+  text-transform: uppercase;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.meeting-preview-more:hover {
+  color: var(--text-primary);
+}
+
+.meeting-preview-actions {
+  border-block-start: 1px solid var(--border-subtle);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  padding: var(--space-3) var(--space-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meeting-preview-body,
+  .meeting-preview-body[data-open="true"],
+  .meeting-preview-caret,
+  .meeting-preview-summary {
+    transition-duration: 1ms;
+  }
+
+  .meeting-preview-body {
+    transition-delay: 1ms;
+  }
+}
+
+/* ================================================ meetings list panel === */
+
+/* The list is one surface and the rows are its rules. No card per meeting:
+ * thirty boxes stacked down a page is thirty borders competing with the thirty
+ * titles a person came to read, and a hairline separates a row from its
+ * neighbour just as well. */
+
+.meeting-entries {
+  border-block-start: 1px solid var(--border-hairline);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* 67px, derived not picked: row title 19 + summary 16 + microtext 16, plus
+ * 8 above and below. A type-scale change moves the row with it. The overflow
+ * menu is the second grid column so it centres on the three lines rather than
+ * on the first one. */
+.meeting-entry {
+  align-items: center;
+  border-block-end: 1px solid var(--border-hairline);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-block-size: calc(
+    var(--type-row-line) + var(--lh-label-13) + var(--lh-microlabel) + 2 *
+      var(--space-2)
+  );
+  padding-inline-end: var(--space-1);
+}
+
+/* The row's whole body opens the meeting, so the control owns the padding and
+ * the hit target reaches both hairlines. */
+.meeting-entry-open {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: grid;
+  gap: var(--space-0-5);
+  min-inline-size: 0;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-1);
+  text-align: start;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.meeting-entry:hover {
+  background: var(--wash-hover);
+}
+
+.meeting-entry-open:active {
+  background: var(--wash-active);
+}
+
+.meeting-entry-open:focus-visible {
+  box-shadow: var(--focus-ring-inset);
+  outline: none;
+}
+
+/* Line 1. The title takes what is left after the chip, because a chip that
+ * moves as titles change length is a chip you have to hunt for. */
+.meeting-entry-head {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+  justify-content: space-between;
+  min-inline-size: 0;
+}
+
+.meeting-entry-name {
+  color: var(--text-primary);
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Line 2. One line, never two: the second line of a summary in a list is a
+ * paragraph nobody reads on the way past. The whole sentence stays one hover
+ * away on the row's title attribute. */
+.meeting-entry-line {
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--fs-label-13);
+  line-height: var(--lh-label-13);
+  min-block-size: var(--lh-label-13);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Line 3. Who was in it on the left, what the capture was on the right. */
+.meeting-entry-foot {
+  align-items: baseline;
+  display: flex;
+  gap: var(--space-4);
+  justify-content: space-between;
+  min-block-size: var(--lh-microlabel);
+  min-inline-size: 0;
+}
+
+.meeting-entry-speakers {
+  color: var(--text-tertiary);
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meeting-entry-facts {
+  align-items: baseline;
+  display: flex;
+  flex: none;
+  gap: var(--space-2);
+}
+
+/* The mono run reads as one sentence of measurement, so the separators are
+ * drawn rather than typed — the same device the start block's fact row uses. */
+.meeting-entry-facts > * + *::before {
+  color: var(--text-disabled);
+  content: "/";
+  margin-inline-end: var(--space-2);
+}
+
+.meeting-actions-menu > summary {
+  block-size: 28px;
+  color: var(--text-tertiary);
+  inline-size: 28px;
+}
+
+/* ------------------------------------------------------------ status chip */
+
+/* Four states earn a colour because each one changes what a person does next.
+ * The chip is a word first: the colour is the second channel, never the only
+ * one, so the row still reads in greyscale and at any contrast setting. */
+.meeting-status-chip {
+  border: 1px solid currentColor;
+  border-radius: var(--radius-xs);
+  color: var(--text-secondary);
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: var(--fs-microlabel);
+  font-weight: var(--fw-heading);
+  letter-spacing: var(--ls-microlabel);
+  line-height: var(--lh-microlabel);
+  padding-inline: var(--space-1);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.meeting-status-chip[data-status="recording"] {
+  color: var(--error);
+}
+
+.meeting-status-chip[data-status="processing"] {
+  color: var(--info);
+}
+
+.meeting-status-chip[data-status="ready"] {
+  color: var(--success);
+}
+
+.meeting-status-chip[data-status="failed"] {
+  color: var(--error);
+}
+
+/* Only live capture is filled. A filled chip on every row would make a page of
+ * finished meetings read as urgent, which is the opposite of true. */
+.meeting-status-chip[data-fill="solid"] {
+  background: var(--error);
+  border-color: var(--error);
+  color: var(--invert-fg);
+}
+
+/* ------------------------------------------------------------ filter bar */
+
+/* KEY then VALUE, in mono, because the bar is the query and a query is a
+ * machine-readable string. Every control here reaches the store. */
+.meeting-filter-bar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-block-end: var(--space-3);
+}
+
+.meeting-filter-chip {
+  align-items: baseline;
+  background: var(--surface-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  display: flex;
+  font-family: var(--font-mono);
+  font-size: var(--fs-microlabel);
+  font-weight: var(--fw-heading);
+  gap: var(--space-1-5);
+  letter-spacing: var(--ls-microlabel);
+  line-height: var(--lh-microlabel);
+  min-block-size: var(--control-height-sm);
+  padding-inline: var(--space-2);
+  text-transform: uppercase;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+  white-space: nowrap;
+}
+
+.meeting-filter-chip:hover:not(:disabled) {
+  background: var(--wash-hover);
+  border-color: var(--border-hover);
+}
+
+.meeting-filter-chip:focus-visible {
+  outline: var(--focus-outline);
+  outline-offset: var(--focus-offset);
+}
+
+/* The KEY half is the label, the VALUE half is the answer: the value carries
+ * the primary colour so the eye lands on what was chosen, not on the word
+ * that never changes. No accent — this is a segmented control's filled state,
+ * and an accent on a filter bar competes with the list it filters. */
+.filter-chip-key {
+  color: var(--text-tertiary);
+}
+
+.filter-chip-key::after {
+  content: ":";
+}
+
+.meeting-filter-search {
+  inline-size: 224px;
+}
+
+/* ---------------------------------------------------------------- pager */
+
+/* Cursor paging knows where it has been and whether anything is ahead. It does
+ * not know a total, so the footer says which page and offers the two moves it
+ * can actually make. */
+.meeting-list-footer {
+  align-items: center;
+  border-block-start: 1px solid var(--border-hairline);
+  display: flex;
+  gap: var(--space-4);
+  justify-content: space-between;
+  margin-block-start: var(--space-3);
+  padding-block-start: var(--space-3);
+}
+
+.meeting-list-pager {
+  display: flex;
+  gap: var(--space-2);
 }

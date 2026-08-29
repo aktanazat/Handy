@@ -5,7 +5,9 @@ import {
   commands,
   type MeetingCommandError,
   type MeetingConsentInput,
+  type MeetingExportFormat,
   type MeetingHistorySummary,
+  type MeetingListFilter,
   type MeetingMutationResult,
   type MeetingNavigationPayload,
   type MeetingRetentionPolicy,
@@ -20,9 +22,11 @@ import { MeetingStartGate, consentFor } from "./MeetingStartGate";
 import { MeetingLive } from "./MeetingLive";
 import { MeetingReview } from "./MeetingReview";
 import { MeetingsHome } from "./MeetingsHome";
+import { suggestionFacts } from "./MeetingPreviewCard";
 import type { MeetingScreen, MeetingStartOptions } from "./meetingTypes";
 import "./meetings.css";
 import {
+  NO_MEETING_FILTER,
   isActiveMeetingPhase,
   isPreflightMeetingPhase,
   meetingErrorKey,
@@ -61,15 +65,24 @@ const useMeetingsController = ({
   const [recovery, setRecovery] = useState<MeetingHistorySummary[]>([]);
   const [meetings, setMeetings] = useState<MeetingHistorySummary[]>([]);
   const [hasMore, setHasMore] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
+  /* The cursor each page past the first was fetched with, oldest-created-at
+   * per step. Cursor paging has no page numbers of its own: this stack IS the
+   * position, so its length is the page the person is looking at, and Newer is
+   * a pop rather than a second query direction. */
+  const [pageCursors, setPageCursors] = useState<number[]>([]);
+  /* One truth about the list read, viewed two ways: with no rows yet it is the
+   * skeleton, with rows on screen it is what disables the pager. */
+  const [listLoading, setListLoading] = useState(true);
+  const [listRevision, setListRevision] = useState(0);
+  const [filter, setFilter] = useState<MeetingListFilter>(NO_MEETING_FILTER);
   const [retention, setRetention] = useState<MeetingRetentionPolicy | null>(
     null,
   );
-  const [homeLoading, setHomeLoading] = useState(true);
   const [homeError, setHomeError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [lastReceipt, setLastReceipt] = useState<OperationReceipt | null>(null);
   const homeRequestRef = useRef(0);
+  const listRequestRef = useRef(0);
   const snapshotRequestRef = useRef(0);
   const screenRef = useRef<MeetingScreen>(screen);
   const handledNavigationRef = useRef<MeetingNavigationPayload | null>(null);
@@ -82,6 +95,7 @@ const useMeetingsController = ({
       origin: MeetingStartOptions["origin"],
       suggestionId: MeetingStartOptions["suggestionId"] = null,
       title = t("meetings.setup.defaultTitle"),
+      preview: MeetingStartOptions["preview"] = null,
     ): MeetingStartOptions => ({
       title,
       origin,
@@ -89,19 +103,82 @@ const useMeetingsController = ({
       sources,
       degradedStartPolicy: "abort_if_required_source_fails",
       destination: { kind: "local" },
+      preview,
     }),
     [sources, t],
   );
 
+  /* One owner of "which page is on screen": the cursor stack and the filter
+   * are the position, an effect below turns that position into a request, and
+   * these handlers only move the position. Nothing is merged, because a page
+   * is not an accumulation — each answer contains exactly the rows that match
+   * the query, and the previous page's rows are not among them. */
+  const loadMeetingPage = useCallback(
+    async (cursors: number[], nextFilter: MeetingListFilter) => {
+      const requestId = listRequestRef.current + 1;
+      listRequestRef.current = requestId;
+      setListLoading(true);
+      try {
+        const result = await commands.meetingList(
+          cursors.length === 0 ? null : cursors[cursors.length - 1],
+          MEETING_PAGE_SIZE,
+          nextFilter,
+        );
+        if (listRequestRef.current !== requestId) return;
+        if (result.status === "error") {
+          setHomeError(t(meetingErrorKey(result.error)));
+          return;
+        }
+        setMeetings(result.data.entries);
+        setHasMore(result.data.has_more);
+        setHomeError(null);
+      } catch {
+        if (listRequestRef.current === requestId) {
+          setHomeError(t("meetings.errors.load"));
+        }
+      } finally {
+        setListLoading((current) =>
+          listRequestRef.current === requestId ? false : current,
+        );
+      }
+    },
+    [t],
+  );
+
+  useEffect(() => {
+    void loadMeetingPage(pageCursors, filter);
+  }, [filter, listRevision, loadMeetingPage, pageCursors]);
+
+  /* A new filter is a new list, so it always lands on page one: keeping the
+   * cursor would ask the store for rows older than a row the filter may have
+   * just excluded. */
+  const applyMeetingFilter = useCallback((nextFilter: MeetingListFilter) => {
+    setFilter(nextFilter);
+    setPageCursors([]);
+  }, []);
+
+  const nextMeetingPage = useCallback(() => {
+    const oldest = meetings[meetings.length - 1];
+    if (oldest === undefined || !hasMore) return;
+    setPageCursors((current) => [...current, oldest.created_at_utc_ms]);
+  }, [hasMore, meetings]);
+
+  const previousMeetingPage = useCallback(() => {
+    setPageCursors((current) => current.slice(0, -1));
+  }, []);
+
+  /* Everything on this page that is not the meetings list: what needs
+   * recovering, what is being offered, and the retention policy the list
+   * echoes. The list itself belongs to the position effect above, so a refresh
+   * bumps `listRevision` and lets that one owner re-read it. */
   const refreshHome = useCallback(async () => {
     const requestId = homeRequestRef.current + 1;
     homeRequestRef.current = requestId;
-    setHomeLoading(true);
+    setListRevision((current) => current + 1);
 
     try {
-      const [listResult, recoveryResult, suggestionsResult, retentionResult] =
+      const [recoveryResult, suggestionsResult, retentionResult] =
         await Promise.allSettled([
-          commands.meetingList(null, MEETING_PAGE_SIZE),
           commands.meetingRecoveryList(),
           commands.meetingSuggestionsList(),
           commands.meetingRetentionGet(),
@@ -110,14 +187,6 @@ const useMeetingsController = ({
       if (homeRequestRef.current !== requestId) return;
 
       const errors: MeetingCommandError[] = [];
-      if (listResult.status === "fulfilled") {
-        if (listResult.value.status === "ok") {
-          setMeetings(listResult.value.data.entries);
-          setHasMore(listResult.value.data.has_more);
-        } else {
-          errors.push(listResult.value.error);
-        }
-      }
       if (recoveryResult.status === "fulfilled") {
         if (recoveryResult.value.status === "ok") {
           setRecovery(recoveryResult.value.data);
@@ -137,50 +206,20 @@ const useMeetingsController = ({
           : null,
       );
 
-      setHomeError(
-        errors.length > 0
-          ? t(meetingErrorKey(errors[0]))
-          : listResult.status === "rejected" ||
-              recoveryResult.status === "rejected" ||
-              suggestionsResult.status === "rejected"
-            ? t("meetings.errors.load")
-            : null,
-      );
+      if (errors.length > 0) {
+        setHomeError(t(meetingErrorKey(errors[0])));
+      } else if (
+        recoveryResult.status === "rejected" ||
+        suggestionsResult.status === "rejected"
+      ) {
+        setHomeError(t("meetings.errors.load"));
+      }
     } catch {
       if (homeRequestRef.current === requestId) {
         setHomeError(t("meetings.errors.load"));
       }
-    } finally {
-      setHomeLoading((current) =>
-        homeRequestRef.current === requestId ? false : current,
-      );
     }
   }, [t]);
-
-  /* Older meetings are appended, never merged: every page comes back strictly
-   * older than the cursor, so there is nothing to reconcile. */
-  const loadMoreMeetings = useCallback(async () => {
-    const oldest = meetings[meetings.length - 1];
-    if (oldest === undefined) return;
-
-    setLoadingMore(true);
-    try {
-      const result = await commands.meetingList(
-        oldest.created_at_utc_ms,
-        MEETING_PAGE_SIZE,
-      );
-      if (result.status === "error") {
-        setHomeError(t(meetingErrorKey(result.error)));
-        return;
-      }
-      setMeetings((current) => [...current, ...result.data.entries]);
-      setHasMore(result.data.has_more);
-    } catch {
-      setHomeError(t("meetings.errors.load"));
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [meetings, t]);
 
   const reportMeetingError = useCallback(
     (error: MeetingCommandError) => {
@@ -586,6 +625,75 @@ const useMeetingsController = ({
     [discardSession, readSnapshot],
   );
 
+  /* A list row acts on a meeting it has not opened, and export and delete both
+   * need the revision they are acting against. The list summary does not carry
+   * one — deliberately, it is a projection — so the row reads the snapshot
+   * first, exactly as the recovery prompt does. A stale revision then fails
+   * loudly at the store instead of silently overwriting someone. */
+  const exportMeeting = useCallback(
+    async (sessionId: string, format: MeetingExportFormat) => {
+      const current = await readSnapshot(sessionId);
+      if (!current) return;
+      setPendingAction("export_" + format);
+      try {
+        const result = await commands.meetingExport({
+          operation_id: crypto.randomUUID(),
+          session_id: sessionId,
+          expected_revision: current.session.revision,
+          format,
+        });
+        if (result.status === "error") {
+          reportMeetingError(result.error);
+          return;
+        }
+        if (receiveReceipt(result.data.receipt)) {
+          toast.success(t("meetings.review.exportComplete"));
+        }
+      } catch {
+        toast.error(t("meetings.errors.operation"));
+      } finally {
+        setPendingAction(null);
+      }
+    },
+    [readSnapshot, receiveReceipt, reportMeetingError, t],
+  );
+
+  /* The ledger page is written from an already-recorded revision, so it takes
+   * no operation id and no expected revision: it mutates nothing. */
+  const exportMeetingLedger = useCallback(
+    async (sessionId: string) => {
+      setPendingAction("export_ledger");
+      try {
+        const result = await commands.produceLedgerHtml(sessionId);
+        if (result.status === "error") {
+          // A cancelled save dialog is the person changing their mind.
+          if (result.error === "export_cancelled") return;
+          toast.error(
+            result.error === "not_found"
+              ? t("meetings.ledger.exportMissing")
+              : t(meetingErrorKey(result.error)),
+          );
+          return;
+        }
+        toast.success(t("meetings.ledger.exported", { path: result.data }));
+      } catch {
+        toast.error(t("meetings.errors.operation"));
+      } finally {
+        setPendingAction(null);
+      }
+    },
+    [t],
+  );
+
+  const deleteMeetingFromList = useCallback(
+    async (sessionId: string) => {
+      const current = await readSnapshot(sessionId);
+      if (!current) return;
+      await deleteSession(sessionId, current.session.revision);
+    },
+    [deleteSession, readSnapshot],
+  );
+
   useEffect(() => {
     void refreshHome();
   }, [refreshHome]);
@@ -632,9 +740,10 @@ const useMeetingsController = ({
     recovery,
     meetings,
     hasMore,
-    loadingMore,
+    listLoading,
+    page: pageCursors.length + 1,
+    filter,
     retention,
-    homeLoading,
     homeError,
     pendingAction,
     lastReceipt,
@@ -649,7 +758,12 @@ const useMeetingsController = ({
     setSources,
     startOptions,
     refreshHome,
-    loadMoreMeetings,
+    applyMeetingFilter,
+    nextMeetingPage,
+    previousMeetingPage,
+    exportMeeting,
+    exportMeetingLedger,
+    deleteMeetingFromList,
     openSession,
     cancelGate,
     refreshGate,
@@ -691,9 +805,10 @@ const renderMeetingsContent = (
     recovery,
     meetings,
     hasMore,
-    loadingMore,
+    listLoading,
+    page,
+    filter,
     retention,
-    homeLoading,
     homeError,
     pendingAction,
     sources,
@@ -705,7 +820,12 @@ const renderMeetingsContent = (
     finalizeRecovery,
     discardRecovery,
     refreshHome,
-    loadMoreMeetings,
+    applyMeetingFilter,
+    nextMeetingPage,
+    previousMeetingPage,
+    exportMeeting,
+    exportMeetingLedger,
+    deleteMeetingFromList,
   } = controller;
 
   if (screen.kind === "gate" || screen.kind === "session") {
@@ -719,9 +839,13 @@ const renderMeetingsContent = (
       suggestions={suggestions}
       recovery={recovery}
       meetings={meetings}
-      loading={homeLoading}
-      loadingMore={loadingMore}
+      /* One read in flight, two views of it: with nothing on screen it is the
+       * skeleton, with rows on screen it is what disables the pager. */
+      loading={listLoading && meetings.length === 0}
+      paging={listLoading}
       hasMore={hasMore}
+      page={page}
+      filter={filter}
       retention={retention}
       error={homeError}
       sources={sources}
@@ -730,12 +854,32 @@ const renderMeetingsContent = (
       onSourcesChange={setSources}
       onStart={() => void startMeeting(startOptions("manual"))}
       onStartSuggestion={(suggestion) =>
-        void startMeeting(startOptions("suggestion", suggestion.offer_id))
+        void startMeeting(
+          startOptions(
+            "suggestion",
+            suggestion.offer_id,
+            undefined,
+            suggestionFacts(suggestion, t),
+          ),
+        )
+      }
+      /* A detected event is still the operator's own press: it takes the
+       * manual origin and the same preflight, and carries the event so the
+       * consent screen shows the meeting they were looking at. */
+      onStartEvent={(facts) =>
+        void startMeeting(startOptions("manual", null, facts.title, facts))
       }
       onOpenMeeting={openSession}
       onFinalizeRecovery={finalizeRecovery}
       onDiscardRecovery={discardRecovery}
-      onLoadMore={() => void loadMoreMeetings()}
+      onFilterChange={applyMeetingFilter}
+      onNextPage={nextMeetingPage}
+      onPreviousPage={previousMeetingPage}
+      onExportMeeting={(sessionId, format) =>
+        void exportMeeting(sessionId, format)
+      }
+      onExportLedger={(sessionId) => void exportMeetingLedger(sessionId)}
+      onDeleteMeeting={(sessionId) => void deleteMeetingFromList(sessionId)}
       onRetry={() => void refreshHome()}
     />
   );

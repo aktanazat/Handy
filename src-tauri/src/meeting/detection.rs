@@ -57,9 +57,9 @@ use apps::{RunningApp, RunningAppsSource};
 use calendar::{CalendarAccess, CalendarSource};
 use input_device::{InputDeviceLevel, InputDeviceObserver, InputDeviceState, SelfInputDeviceLease};
 use machine::{
-    evaluate, evaluate_stop, CalendarSignal, DetectionInputs, DetectionOutcome, DetectionPolicy,
-    MicSignal, PromptKind, RecentCapture, ScreenRecordingPermission, StopInputs, StopPolicy,
-    StopTrigger, SuppressReason,
+    evaluate, evaluate_stop, CalendarEventSummary, CalendarSignal, DetectionInputs,
+    DetectionOutcome, DetectionPolicy, MicSignal, PromptKind, RecentCapture,
+    ScreenRecordingPermission, StopInputs, StopPolicy, StopTrigger, SuppressReason,
 };
 use notify::{NotificationAccess, PromptPresenter, PromptResponder, PromptResponse};
 
@@ -94,12 +94,16 @@ pub struct DetectionPromptEvent {
     pub notified: bool,
 }
 
-/// The countdown half of §5.3 case 1.
+/// The countdown half of §5.3 case 1, and everything the pre-meeting card
+/// renders about the event it is counting down to.
+///
+/// The event is carried whole rather than flattened into a copy of two of its
+/// fields: the card shows the calendar's own facts, and a second copy of them
+/// here would be a second place for them to go stale.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct DetectionCountdown {
-    pub event_key: String,
-    pub event_title: String,
+    pub event: CalendarEventSummary,
     pub seconds_to_start: i64,
 }
 
@@ -567,14 +571,12 @@ impl DetectionRuntime {
         match outcome {
             DetectionOutcome::Suppress(reason) => (Some(reason), None),
             DetectionOutcome::Countdown {
-                event_key,
-                event_title,
+                event,
                 seconds_to_start,
             } => (
                 None,
                 Some(DetectionCountdown {
-                    event_key,
-                    event_title,
+                    event,
                     seconds_to_start,
                 }),
             ),
@@ -642,7 +644,7 @@ impl DetectionRuntime {
             .last_status
             .as_ref()
             .and_then(|status| status.countdown.as_ref())
-            .is_some_and(|countdown| countdown.event_key == event_key)
+            .is_some_and(|countdown| countdown.event.event_key == event_key)
     }
 
     fn raise(&self, prompt: PromptKind, event_end_utc_ms: Option<i64>) {

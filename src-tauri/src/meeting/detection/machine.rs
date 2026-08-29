@@ -41,19 +41,73 @@ pub const MERGE_PROMPT_WINDOW_MS: i64 = 2 * 60 * 1000;
 /// Default silence window before auto-stop, in minutes (§5.5 condition 2).
 pub const DEFAULT_SILENCE_STOP_MINUTES: u32 = 15;
 
-/// One calendar event, reduced to the fields the decision table reads. No
-/// location, notes, organizer, or attendee identities cross this boundary.
+/// How one participant answered the invitation, as EventKit reports it.
+///
+/// `EKParticipantStatus` also carries `Delegated`, `Completed` and
+/// `InProcess`, which describe reminders and task assignments rather than an
+/// answer to a meeting invitation. They collapse into `Unknown` here: the card
+/// renders "no answer", which is the true statement, instead of inventing an
+/// attendance claim from a task state.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum ParticipationStatus {
+    /// EventKit has no answer for this participant.
+    #[default]
+    Unknown,
+    Pending,
+    Accepted,
+    Declined,
+    Tentative,
+}
+
+/// One named participant on a calendar event.
+///
+/// Only participants EventKit names reach this type. An unnamed participant is
+/// a row that could say nothing but "someone", so it is dropped at the
+/// EventKit boundary and counted in `attendee_count` alone.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct CalendarAttendee {
+    pub name: String,
+    pub status: ParticipationStatus,
+    /// True for the account that owns the calendar this event lives on.
+    pub is_self: bool,
+}
+
+/// One calendar event, reduced to the fields the pre-meeting surfaces read.
+///
+/// The content fields below (`attendees`, `notes`, `calendar_name`, `url`) are
+/// read for the one nearest event only and are never persisted: they live in
+/// the in-memory status the pre-meeting card renders and are dropped when the
+/// event passes. The decision table itself still reads nothing but
+/// `attendee_count` and the two instants.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CalendarEventSummary {
     /// Stable per-occurrence identity, used to avoid re-prompting for one event.
     pub event_key: String,
     pub title: String,
-    /// Participant count including the organizer. Zero means the event carries
-    /// no attendee list at all, which §5.3 case 9 treats the same as solo.
+    /// Participant count including the organizer, and including participants
+    /// EventKit refused to name. Zero means the event carries no attendee list
+    /// at all, which §5.3 case 9 treats the same as solo.
     pub attendee_count: usize,
     pub start_utc_ms: i64,
     pub end_utc_ms: i64,
+    /// The participants EventKit named. Shorter than `attendee_count` when the
+    /// event carries anonymous participants, and empty when it names none.
+    #[serde(default)]
+    pub attendees: Vec<CalendarAttendee>,
+    /// The event's own notes, trimmed. `None` when the event carries none.
+    #[serde(default)]
+    pub notes: Option<String>,
+    /// Title of the calendar the event sits on. `None` when EventKit does not
+    /// report one.
+    #[serde(default)]
+    pub calendar_name: Option<String>,
+    /// The URL attached to the event, which for a scheduled call is the join
+    /// link. `None` when the event carries none.
+    #[serde(default)]
+    pub url: Option<String>,
 }
 
 /// Where the nearest calendar event sits relative to now.
@@ -259,9 +313,12 @@ pub enum SuppressReason {
 pub enum DetectionOutcome {
     Suppress(SuppressReason),
     /// §5.3 case 1 — countdown only, no capture and no notification.
+    ///
+    /// Carries the whole event rather than a copy of two of its fields: the
+    /// pre-meeting card renders every fact the calendar supplied, and a
+    /// flattened copy here would be a second place for those facts to drift.
     Countdown {
-        event_key: String,
-        event_title: String,
+        event: CalendarEventSummary,
         seconds_to_start: i64,
     },
     /// §5.3 case 2 — the pre-opened-pane carve-out. Still routes through the
@@ -348,8 +405,7 @@ fn calendar_path(inputs: &DetectionInputs, policy: &DetectionPolicy) -> Calendar
         // Case 1. Countdown only, no capture.
         Some(seconds) if seconds <= policy.lead_seconds => {
             CalendarPath::Decided(DetectionOutcome::Countdown {
-                event_key: event.event_key.clone(),
-                event_title: event.title.clone(),
+                event: event.clone(),
                 seconds_to_start: seconds,
             })
         }
@@ -618,6 +674,10 @@ mod tests {
             attendee_count,
             start_utc_ms: NOW,
             end_utc_ms: NOW + 30 * 60_000,
+            attendees: Vec::new(),
+            notes: None,
+            calendar_name: None,
+            url: None,
         }
     }
 
@@ -675,8 +735,7 @@ mod tests {
         assert_eq!(
             outcome,
             DetectionOutcome::Countdown {
-                event_key: "event-1".to_string(),
-                event_title: "Quarterly planning".to_string(),
+                event: event(4),
                 seconds_to_start: 45,
             }
         );

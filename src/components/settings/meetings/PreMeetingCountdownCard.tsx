@@ -1,8 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Section, StatusText } from "../../ui";
+import type { SourceKind } from "@/bindings";
+import { Section } from "../../ui";
+import { useSettingsStore } from "@/stores/settingsStore";
 import { promptTitle } from "./DetectionListeners";
-import { useDetectionStore } from "./detectionStore";
+import { useDetectionStore, type DetectionPromptKind } from "./detectionStore";
+import {
+  MeetingPreviewCard,
+  eventFacts,
+  type MeetingPreviewFacts,
+} from "./MeetingPreviewCard";
 
 /* The pre-meeting pane from §5.3 case 1, plus any prompt still waiting.
  *
@@ -12,20 +19,81 @@ import { useDetectionStore } from "./detectionStore";
  * them would put two competing affordances on the same screen.
  *
  * Having this card open for an event is also what §5.3 case 2 reads as prior
- * opt-in, so its visibility is load-bearing, not decorative.
+ * opt-in, so its visibility is load-bearing, not decorative. That is also why
+ * the countdown carries no Skip: the backend reads "we published a countdown
+ * for this event", not "the card is on screen", so a local dismiss would hide
+ * the card while leaving the carve-out armed. The NOTIFY row's switch is the
+ * real control for that, and it writes the real setting.
  *
  * A prompt is an object with an answer attached, so it gets a surface. The
  * assurance sentence is the section description rather than per-row copy: it
  * is one promise about the whole pane, and it has to be readable before the
  * affirmative button is pressed. */
-export const PreMeetingCountdownCard: React.FC = () => {
+
+export interface PreMeetingCountdownCardProps {
+  /** Sources the next capture will request, owned by the page. */
+  sources: SourceKind[];
+  starting: boolean;
+  onSourcesChange: (sources: SourceKind[]) => void;
+  /** Routes a calendar event into the page's existing start path, which
+   * creates a preflight and puts the consent screen in front of the
+   * operator. */
+  onStartEvent: (facts: MeetingPreviewFacts) => void;
+}
+
+/** The application a prompt names, for prompts that name one. A calendar
+ * prompt names an event instead, and an unknown microphone source names
+ * nothing at all — both leave the APP row off the card. */
+const promptAppName = (prompt: DetectionPromptKind): string | null => {
+  switch (prompt.kind) {
+    case "AppMeeting":
+    case "AppHuddle":
+    case "BrowserCall":
+      return prompt.appName;
+    case "CalendarEvent":
+    case "UnknownMicSource":
+      return null;
+  }
+};
+
+export const PreMeetingCountdownCard: React.FC<
+  PreMeetingCountdownCardProps
+> = ({ sources, starting, onSourcesChange, onStartEvent }) => {
   const { t } = useTranslation();
   const status = useDetectionStore((state) => state.status);
   const prompts = useDetectionStore((state) => state.prompts);
   const answer = useDetectionStore((state) => state.answer);
+  const save = useDetectionStore((state) => state.save);
+  const notesTemplate = useSettingsStore(
+    (state) => state.settings?.meeting_notes_template ?? null,
+  );
+  const [savingAutoOpen, setSavingAutoOpen] = useState(false);
 
   const countdown = status?.countdown ?? null;
   if (countdown === null && prompts.length === 0) return null;
+
+  const toggleSource = (source: SourceKind) =>
+    onSourcesChange(
+      sources.includes(source)
+        ? sources.filter((candidate) => candidate !== source)
+        : [...sources, source],
+    );
+
+  const recording = {
+    armed: sources,
+    onToggle: toggleSource,
+    disabled: starting,
+  };
+
+  const setAutoOpen = async (next: boolean) => {
+    if (status === null) return;
+    setSavingAutoOpen(true);
+    try {
+      await save({ ...status.settings, autoStartOnOpenPane: next });
+    } finally {
+      setSavingAutoOpen(false);
+    }
+  };
 
   return (
     <Section
@@ -36,60 +104,66 @@ export const PreMeetingCountdownCard: React.FC = () => {
       )}
     >
       <ul
-        className="meeting-cards"
+        className="meeting-previews"
         aria-label={t("meetings.detection.pane.title", "Starting soon")}
       >
-        {countdown ? (
-          <li className="meeting-card">
-            <span className="min-w-0">
-              <span className="meeting-card-title block">
-                {countdown.eventTitle}
-              </span>
-              <span className="microlabel mt-0.5 block tabular-nums">
-                {t(
-                  "meetings.detection.pane.countdown",
-                  "Starts in {{seconds}}s",
-                  { seconds: Math.max(0, countdown.secondsToStart) },
-                )}
-              </span>
-            </span>
-            <StatusText tone="muted" className="flex-none self-center">
-              {t("meetings.detection.pane.notYetRecording", "Not recording")}
-            </StatusText>
-          </li>
+        {countdown && status ? (
+          <MeetingPreviewCard
+            key={countdown.event.eventKey}
+            facts={eventFacts(countdown.event)}
+            secondsToStart={countdown.secondsToStart}
+            /* The countdown is the one card worth opening on arrival: it is on
+             * screen because something is about to start, and every row on it
+             * is a decision that expires. */
+            defaultExpanded
+            notify={{
+              access: status.notificationAccess,
+              delivered: null,
+              autoOpen: {
+                checked: status.settings.autoStartOnOpenPane,
+                onChange: (next) => void setAutoOpen(next),
+                disabled: savingAutoOpen,
+              },
+            }}
+            recording={recording}
+            notesTemplate={notesTemplate}
+            starting={starting}
+            onStart={() => onStartEvent(eventFacts(countdown.event))}
+          />
         ) : null}
 
         {prompts.map((prompt) => (
-          <li key={prompt.promptId} className="meeting-card">
-            <span className="min-w-0">
-              <span className="meeting-card-title block">
-                {promptTitle(t, prompt.prompt)}
-              </span>
-              <span className="mt-0.5 block text-[12.5px] leading-[18px] text-text-secondary">
-                {t(
-                  "meetings.detection.prompt.body",
-                  "Sona can take local notes for this call.",
-                )}
-              </span>
-            </span>
-            <span className="flex flex-none items-center gap-2 self-center">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => void answer(prompt.promptId, false)}
-              >
-                {t("meetings.detection.actions.dismiss", "Dismiss")}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => void answer(prompt.promptId, true)}
-              >
-                {t("meetings.detection.actions.start", "Start transcribing")}
-              </Button>
-            </span>
-          </li>
+          <MeetingPreviewCard
+            key={prompt.promptId}
+            facts={{
+              id: prompt.promptId,
+              title: promptTitle(t, prompt.prompt),
+              origin:
+                prompt.prompt.kind === "CalendarEvent" ? "calendar" : "app",
+              startUtcMs: null,
+              endUtcMs: null,
+              calendarName: null,
+              appName: promptAppName(prompt.prompt),
+              attendeeCount: null,
+              participants: [],
+              description: null,
+              url: null,
+            }}
+            notify={
+              status === null
+                ? null
+                : {
+                    access: status.notificationAccess,
+                    delivered: prompt.notified,
+                    autoOpen: null,
+                  }
+            }
+            recording={recording}
+            notesTemplate={notesTemplate}
+            starting={starting}
+            onStart={() => void answer(prompt.promptId, true)}
+            onSkip={() => void answer(prompt.promptId, false)}
+          />
         ))}
       </ul>
     </Section>

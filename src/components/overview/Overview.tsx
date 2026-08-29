@@ -458,7 +458,8 @@ export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
         commands.getHistoryTrend({ range: DEFAULT_TREND_RANGE }),
         commands.meetingTrend({ range: DEFAULT_TREND_RANGE }),
         commands.getHistoryEntries(null, RECENT_SOURCE_PAGE),
-        commands.meetingList(null, RECENT_SOURCE_PAGE),
+        // Recent activity wants the newest meetings, unnarrowed.
+        commands.meetingList(null, RECENT_SOURCE_PAGE, null),
         commands.getHistoryStats(),
       ]);
 

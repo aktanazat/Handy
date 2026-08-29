@@ -8,6 +8,7 @@ import { createInstance } from "i18next";
 import { I18nextProvider } from "react-i18next";
 import type {
   MeetingHistorySummary,
+  MeetingLedger,
   MeetingReviewSnapshot,
   MeetingSuggestion,
 } from "@/bindings";
@@ -16,7 +17,10 @@ import { MeetingStartGate } from "./MeetingStartGate";
 import { InsightsTab, QuestionsTab } from "./MeetingReviewPanels";
 import { MeetingReview } from "./MeetingReview";
 import { MeetingsHome } from "./MeetingsHome";
+import { MeetingLedgerSection } from "./MeetingLedgerSection";
+import { currentLedger } from "./meetingLedger";
 import { MeetingsSettings } from "./MeetingsSettings";
+import { NO_MEETING_FILTER } from "./meetingUtils";
 import type { MeetingStartOptions } from "./meetingTypes";
 
 /* First paint of every meetings surface, and the shape of the start flow.
@@ -72,6 +76,7 @@ const START_OPTIONS: MeetingStartOptions = {
   sources: ["microphone", "system_audio"],
   degradedStartPolicy: "abort_if_required_source_fails",
   destination: { kind: "local" },
+  preview: null,
 };
 
 const SUGGESTION: MeetingSuggestion = {
@@ -301,8 +306,10 @@ const homeMarkup = (
       recovery={[]}
       meetings={[]}
       loading={false}
-      loadingMore={false}
+      paging={false}
       hasMore={false}
+      page={1}
+      filter={NO_MEETING_FILTER}
       retention={null}
       error={null}
       sources={["microphone", "system_audio"]}
@@ -311,10 +318,16 @@ const homeMarkup = (
       onSourcesChange={noop}
       onStart={noop}
       onStartSuggestion={noop}
+      onStartEvent={noop}
       onOpenMeeting={noop}
       onFinalizeRecovery={noop}
       onDiscardRecovery={noop}
-      onLoadMore={noop}
+      onFilterChange={noop}
+      onNextPage={noop}
+      onPreviousPage={noop}
+      onExportMeeting={noop}
+      onExportLedger={noop}
+      onDeleteMeeting={noop}
       onRetry={noop}
       {...overrides}
     />,
@@ -385,18 +398,193 @@ describe("meetings list", () => {
     expect(occurrences(markup, ASSURANCE)).toBe(2);
   });
 
-  test("rows read title, date and state as text, with the retention hint", () => {
+  /* The row render matrix: status chip × which of the three real sources line
+   * two came from × what the capture actually was. `data-headline` is the row
+   * stating its own provenance, which is what makes these assertions about
+   * behaviour rather than about prose. */
+  const row = (overrides: Partial<MeetingHistorySummary>) =>
+    homeMarkup({ meetings: [{ ...SUMMARY, ...overrides }] });
+
+  test("a ready row reads title, one summary line, speakers and the capture", () => {
+    const markup = row({
+      headline: { kind: "ledger", text: "Pricing is open again." },
+      speaker_labels: ["Ada", "Grace"],
+      sources: ["microphone", "system_audio"],
+      recorded_duration_ms: 192_000,
+    });
+    expect(markup).toContain("Weekly planning");
+    expect(markup).toContain('data-headline="ledger"');
+    expect(markup).toContain("Pricing is open again.");
+    expect(markup).toContain("Ada, Grace");
+    expect(markup).toContain("MIC SYS");
+    expect(markup).toContain("3m 12s");
+    // One chip, and it is the state that decides whether the row can be read.
+    expect(markup).toContain('data-status="ready"');
+    expect(occurrences(markup, "meeting-status-chip")).toBe(1);
+  });
+
+  test("each status maps to its own semaphore, recording alone filled", () => {
+    const chip = (overrides: Partial<MeetingHistorySummary>) => {
+      const markup = row(overrides);
+      const at = markup.indexOf("meeting-status-chip");
+      return markup.slice(at, markup.indexOf("</span>", at));
+    };
+    expect(
+      chip({
+        phase: "capturing_recording",
+        processing_status: { kind: "pending" },
+      }),
+    ).toContain('data-status="recording"');
+    expect(
+      chip({
+        phase: "capturing_recording",
+        processing_status: { kind: "pending" },
+      }),
+    ).toContain('data-fill="solid"');
+    expect(
+      chip({ phase: "processing", processing_status: { kind: "running" } }),
+    ).toContain('data-status="processing"');
+    expect(chip({})).toContain('data-status="ready"');
+    expect(chip({})).toContain('data-fill="outline"');
+    expect(
+      chip({
+        processing_status: { kind: "failed", reason: "engine_failure" },
+      }),
+    ).toContain('data-status="failed"');
+    // Recovery is a failure a person has to act on, not a phase word.
+    expect(
+      chip({
+        phase: "recovery_required",
+        processing_status: { kind: "pending" },
+      }),
+    ).toContain('data-status="failed"');
+  });
+
+  test("line two falls back from ledger to summary to a word count to nothing", () => {
+    expect(
+      row({ headline: { kind: "summary", text: "We picked Postgres." } }),
+    ).toContain('data-headline="summary"');
+    const words = row({ headline: { kind: "words", words: 1_284 } });
+    expect(words).toContain('data-headline="words"');
+    expect(words).toContain("1284 words transcribed");
+    // Nothing generated and nothing transcribed prints no line, not "0 words".
+    const silent = row({ headline: { kind: "none" } });
+    expect(silent).toContain('data-headline="none"');
+    expect(occurrences(silent, "words transcribed")).toBe(0);
+  });
+
+  test("a capture with nothing to report reports nothing, never a zero", () => {
+    const markup = row({
+      recorded_duration_ms: null,
+      sources: [],
+      speaker_labels: [],
+    });
+    expect(occurrences(markup, "0s")).toBe(0);
+    expect(occurrences(markup, "MIC")).toBe(0);
+    // The timestamp is the one fact every meeting has.
+    expect(markup).toContain("meeting-entry-facts");
+  });
+
+  test("a partial capture says so beside the sources it is missing one of", () => {
+    const markup = row({
+      capture_completeness: "partial",
+      sources: ["microphone"],
+    });
+    expect(markup).toContain("Partial");
+    // Still one chip: completeness is a fact about the sources, not the state
+    // that decides whether the meeting can be read.
+    expect(occurrences(markup, "meeting-status-chip")).toBe(1);
+  });
+
+  test("the ledger page is offered only where a ledger exists", () => {
+    expect(
+      row({ headline: { kind: "ledger", text: "Pricing is open again." } }),
+    ).toContain("Export ledger page");
+    expect(
+      occurrences(
+        row({ headline: { kind: "words", words: 12 } }),
+        "Export ledger page",
+      ),
+    ).toBe(0);
+  });
+
+  test("the filter bar states the whole query in KEY VALUE pairs", () => {
     const markup = homeMarkup({
       meetings: [SUMMARY],
       retention: { kind: "delete_after_days", days: 30 },
+      filter: { status: "failed", window: "last_7_days", title_query: "sync" },
+    });
+    expect(markup).toContain("Retention: Delete after 30 days.");
+    expect(markup).toContain('aria-label="Search meetings"');
+    expect(markup).toContain("Status");
+    expect(markup).toContain("Failed");
+    expect(markup).toContain("Time");
+    expect(markup).toContain("7 days");
+    // A narrowed list offers the way back out.
+    expect(markup).toContain("Clear filters");
+  });
+
+  test("an unfiltered list offers no Clear, and a filtered empty one explains", () => {
+    expect(occurrences(homeMarkup({}), "Clear filters")).toBe(0);
+    const empty = homeMarkup({
+      filter: { ...NO_MEETING_FILTER, status: "failed" },
+    });
+    expect(empty).toContain("No meetings match");
+    expect(empty).toContain("not just the page on screen");
+    expect(occurrences(empty, "No meetings yet")).toBe(0);
+  });
+
+  /* `disabled=""` and not "disabled": the Button primitive carries
+   * `disabled:`-prefixed utility classes, so the loose substring matches every
+   * button ever rendered and proves nothing. */
+  test("the pager states the page it is on and nothing it cannot know", () => {
+    const first = homeMarkup({ meetings: [SUMMARY], hasMore: true });
+    expect(first).toContain("Page 1");
+    expect(buttonTag(first, "Newer")).toContain('disabled=""');
+    expect(buttonTag(first, "Older")).not.toContain('disabled=""');
+
+    const third = homeMarkup({ meetings: [SUMMARY], hasMore: false, page: 3 });
+    expect(third).toContain("Page 3");
+    expect(buttonTag(third, "Newer")).not.toContain('disabled=""');
+    expect(buttonTag(third, "Older")).toContain('disabled=""');
+    // No total exists behind a cursor, so no total is claimed.
+    expect(occurrences(third, "of 3")).toBe(0);
+
+    // One page and nothing after it needs no pager at all.
+    const only = homeMarkup({ meetings: [SUMMARY] });
+    expect(occurrences(only, "Page 1")).toBe(0);
+  });
+
+  test("a page in flight disables both moves rather than queueing them", () => {
+    const markup = homeMarkup({
+      meetings: [SUMMARY],
       hasMore: true,
+      page: 2,
+      paging: true,
+    });
+    expect(buttonTag(markup, "Newer")).toContain('disabled=""');
+    expect(buttonTag(markup, "Older")).toContain('disabled=""');
+  });
+
+  /* The filters are the store's, not the view's. A row the current filter text
+   * would exclude still renders, because the page on screen is exactly what
+   * `meeting_list` answered with — this is the assertion that fails the moment
+   * anyone reintroduces client-side filtering over an already-fetched page.
+   * That the store honours each filter value is proved in Rust:
+   * meeting::store::tests::listed_status_filter_reads_stored_phase_and_processing_status,
+   * listed_time_window_counts_local_calendar_days_including_today, and
+   * listed_title_query_matches_a_substring_and_treats_wildcards_literally. */
+  test("the page on screen is the store's answer, not a view over it", () => {
+    const markup = homeMarkup({
+      meetings: [SUMMARY],
+      filter: {
+        status: "failed",
+        window: "today",
+        title_query: "nothing in this title",
+      },
     });
     expect(markup).toContain("Weekly planning");
-    expect(markup).toContain("Ready for review");
-    expect(markup).toContain("Complete");
-    expect(markup).toContain("Retention: Delete after 30 days.");
-    expect(markup).toContain("Load older meetings");
-    expect(markup).toContain('aria-label="Search meetings"');
+    expect(occurrences(markup, "No meetings match")).toBe(0);
   });
 });
 
@@ -505,10 +693,11 @@ describe("meeting review", () => {
     />,
   );
 
-  test("opens on the transcript tab with all three panels reachable", () => {
+  test("opens on the transcript tab with all four panels reachable", () => {
     expect(markup).toContain('aria-label="Meeting review sections"');
     expect(markup).toContain('id="tab-transcript"');
     expect(markup).toContain('id="tab-insights"');
+    expect(markup).toContain('id="tab-ledger"');
     expect(markup).toContain('id="tab-questions"');
     expect(markup).toContain('aria-labelledby="tab-transcript"');
   });
@@ -654,5 +843,185 @@ describe("question panel", () => {
     expect(markup).toContain("Asking needs a finished local transcript.");
     expect(markup).toContain("No saved local answers.");
     expect(buttonTag(markup, "Ask locally")).toContain("disabled");
+  });
+});
+
+/* The ledger is the one surface where an inferred claim and the quote it was
+ * read from have to stay side by side. These pin that: a state never renders
+ * without its receipt, the receipt jumps to the transcript, and a failed
+ * receipt check is named with counts rather than softened. */
+
+const RECEIPT_CITATIONS = [
+  {
+    segment_id: "segment-1",
+    start_offset_ns: 12_000_000_000,
+    end_offset_ns: 14_000_000_000,
+  },
+];
+
+const LEDGER: MeetingLedger = {
+  headline: "Pricing came back at the end and nobody closed it.",
+  threads: [
+    {
+      topic: "Pricing tiers",
+      state: "unanswered",
+      substantive: true,
+      receipt: {
+        quote: "We never actually said which tier the trial converts into.",
+        speaker: "Dana",
+        t_ms: 12_000,
+        citations: RECEIPT_CITATIONS,
+      },
+      owner: null,
+    },
+    {
+      topic: "Sign-off",
+      state: "closed",
+      substantive: false,
+      receipt: {
+        quote: "Right, that is everyone, thanks all.",
+        speaker: "Amir",
+        t_ms: 12_000,
+        citations: RECEIPT_CITATIONS,
+      },
+      owner: "Amir",
+    },
+  ],
+  open_loops: [
+    {
+      question: "Which tier does the trial convert into?",
+      instead: "Amir answered the discount question instead.",
+      at_ms: 12_000,
+      citations: RECEIPT_CITATIONS,
+    },
+  ],
+  commitments: [
+    {
+      who: "Amir",
+      what: "Draft the tier comparison",
+      firmness: "firm",
+      receipt: {
+        quote: "I will draft the tier comparison by Friday.",
+        speaker: "Amir",
+        t_ms: 12_000,
+        citations: RECEIPT_CITATIONS,
+      },
+    },
+  ],
+  stances: [
+    {
+      from: "Amir",
+      to: "Dana",
+      what: "Ship the annual plan first",
+      note: "Dana agreed without pushback.",
+      at_ms: 12_000,
+      citations: RECEIPT_CITATIONS,
+    },
+  ],
+  caveats: [
+    "Speaker labels came from diarization, not from names anyone said.",
+  ],
+  receipts: { status: "verified" },
+};
+
+/* bindings.ts is regenerated at integration, so a fixture attaches the ledger
+ * the same way the app reads it: through one cast at the seam. */
+const ledgerSnapshot = (ledger: MeetingLedger): MeetingReviewSnapshot => {
+  const [artifact] = SNAPSHOT.artifacts;
+  return {
+    ...SNAPSHOT,
+    artifacts: [
+      {
+        ...artifact,
+        content: artifact.content && { ...artifact.content, ledger },
+      },
+    ],
+  };
+};
+
+describe("meeting ledger", () => {
+  const ledgerMarkup = (
+    overrides: Partial<React.ComponentProps<typeof MeetingLedgerSection>>,
+  ) =>
+    render(
+      <MeetingLedgerSection
+        snapshot={ledgerSnapshot(LEDGER)}
+        busy={false}
+        canExport
+        onJumpToSegment={noop}
+        onExportLedger={noop}
+        {...overrides}
+      />,
+    );
+
+  test("states each thread beside the quote it was read from, and jumps to it", () => {
+    const markup = ledgerMarkup({});
+    expect(markup).toContain("Pricing tiers");
+    expect(markup).toContain("No reply");
+    expect(markup).toContain(
+      "We never actually said which tier the trial converts into.",
+    );
+    // The receipt is a citation, and a citation is a jump.
+    expect(markup).toContain(">Transcript 0:12</button>");
+    // Small talk stays on the record and out of the score: the sign-off is
+    // `closed`, which is a landed state, and the score is still 0 of 1 — one
+    // substantive thread, unanswered — rather than 1 of 2.
+    expect(markup).toContain("Sign-off");
+    expect(markup).toContain(">aside<");
+    expect(markup).toContain(">0/1<");
+  });
+
+  test("carries the four registers and the receipt verdict", () => {
+    const markup = ledgerMarkup({});
+    expect(markup).toContain("Which tier does the trial convert into?");
+    expect(markup).toContain("Amir answered the discount question instead.");
+    expect(markup).toContain("Draft the tier comparison");
+    expect(markup).toContain(">Firm<");
+    expect(markup).toContain("Amir → Dana");
+    expect(markup).toContain("Ship the annual plan first");
+    expect(markup).toContain(
+      "Speaker labels came from diarization, not from names anyone said.",
+    );
+    expect(markup).toContain(">verified<");
+  });
+
+  test("names what a failed receipt check removed, with counts", () => {
+    const markup = ledgerMarkup({
+      snapshot: ledgerSnapshot({
+        ...LEDGER,
+        receipts: {
+          status: "degraded",
+          dropped_threads: 2,
+          dropped_commitments: 1,
+        },
+      }),
+    });
+    expect(markup).toContain("2 threads, 1 commitments removed");
+  });
+
+  test("offers the export, and no dead control when there is nothing to export", () => {
+    expect(ledgerMarkup({})).toContain(">Export ledger page<");
+    expect(
+      buttonTag(ledgerMarkup({ canExport: false }), "Export ledger page"),
+    ).toContain("disabled");
+
+    const withoutLedger = ledgerMarkup({
+      snapshot: { ...SNAPSHOT, artifacts: [] },
+    });
+    expect(withoutLedger).toContain(
+      "No ledger has been read from this meeting yet",
+    );
+    expect(withoutLedger).not.toContain("Export ledger page");
+  });
+
+  test("reads the ledger off the newest current revision that carries one", () => {
+    const [artifact] = ledgerSnapshot(LEDGER).artifacts;
+    const stale = { ...artifact, state: "out_of_date" as const };
+    const ledgerless = { ...SNAPSHOT.artifacts[0], artifact_id: "artifact-0" };
+    expect(currentLedger([stale])).toBeNull();
+    expect(currentLedger([ledgerless])).toBeNull();
+    expect(currentLedger([ledgerless, artifact])?.ledger.headline).toBe(
+      LEDGER.headline,
+    );
   });
 });

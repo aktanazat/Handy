@@ -27,6 +27,7 @@ import {
   TranscriptTab,
   type SegmentJump,
 } from "./MeetingReviewPanels";
+import { MeetingLedgerSection } from "./MeetingLedgerSection";
 import { CaptureCompletenessText, MeetingPhaseText } from "./MeetingStatus";
 import {
   formatMeetingDate,
@@ -50,7 +51,12 @@ import {
  * that points at a transcript segment scrolls that segment into view and
  * marks it, which is the whole reason citations exist. */
 
-const REVIEW_TAB_IDS = ["transcript", "insights", "questions"] as const;
+const REVIEW_TAB_IDS = [
+  "transcript",
+  "insights",
+  "ledger",
+  "questions",
+] as const;
 
 type ReviewTab = (typeof REVIEW_TAB_IDS)[number];
 
@@ -109,6 +115,7 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
   const [searching, setSearching] = useState(false);
   const [question, setQuestion] = useState("");
   const [askingQuestion, setAskingQuestion] = useState(false);
+  const [exportingLedger, setExportingLedger] = useState(false);
   const [analytics, setAnalytics] = useState<MeetingAnalyticsSnapshot | null>(
     null,
   );
@@ -276,6 +283,34 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
     }
   };
 
+  /* The ledger page is written from an already-recorded revision, so it takes
+   * no operation id and no expected revision: it mutates nothing. A cancelled
+   * save dialog is the person changing their mind, not a failure, so it says
+   * nothing. */
+  const exportLedger = async () => {
+    setExportingLedger(true);
+    try {
+      const result = await commands.produceLedgerHtml(
+        snapshot.session.session_id,
+      );
+      if (result.status === "error") {
+        // A cancelled save dialog is the person changing their mind.
+        if (result.error === "export_cancelled") return;
+        toast.error(
+          result.error === "not_found"
+            ? t("meetings.ledger.exportMissing")
+            : t(meetingErrorKey(result.error)),
+        );
+        return;
+      }
+      toast.success(t("meetings.ledger.exported", { path: result.data }));
+    } catch {
+      toast.error(t("meetings.errors.operation"));
+    } finally {
+      setExportingLedger(false);
+    }
+  };
+
   const tabItems: TabItem[] = [
     {
       id: "transcript",
@@ -285,6 +320,11 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
     {
       id: "insights",
       label: t("meetings.review.tabs.insights", "Insights"),
+      panelId: REVIEW_PANEL_ID,
+    },
+    {
+      id: "ledger",
+      label: t("meetings.review.tabs.ledger", "Ledger"),
       panelId: REVIEW_PANEL_ID,
     },
     {
@@ -378,6 +418,14 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
             }
             onRefresh={onRefresh}
             onAnalyticsRefresh={loadAnalytics}
+          />
+        ) : tab === "ledger" ? (
+          <MeetingLedgerSection
+            snapshot={snapshot}
+            busy={busy || exportingLedger}
+            canExport={canExport}
+            onJumpToSegment={jumpToSegment}
+            onExportLedger={() => void exportLedger()}
           />
         ) : (
           <QuestionsTab

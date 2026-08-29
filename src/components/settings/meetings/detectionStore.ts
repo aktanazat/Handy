@@ -54,9 +54,40 @@ export interface DetectionSettings {
   meetingApps: string[];
 }
 
-export interface DetectionCountdown {
+/** How one participant answered, when EventKit reports an answer at all. */
+export type ParticipationStatus =
+  | "unknown"
+  | "pending"
+  | "accepted"
+  | "declined"
+  | "tentative";
+
+export interface CalendarAttendee {
+  name: string;
+  status: ParticipationStatus;
+  isSelf: boolean;
+}
+
+/* Mirrors machine::CalendarEventSummary. Every field below `endUtcMs` is
+ * serde-defaulted on the Rust side and absent whenever the calendar did not
+ * supply it, which is what lets the pre-meeting card omit a row instead of
+ * rendering an empty one. */
+export interface CalendarEventSummary {
   eventKey: string;
-  eventTitle: string;
+  title: string;
+  /** Includes participants EventKit refused to name, so it can exceed
+   * `attendees.length`. */
+  attendeeCount: number;
+  startUtcMs: number;
+  endUtcMs: number;
+  attendees: CalendarAttendee[];
+  notes: string | null;
+  calendarName: string | null;
+  url: string | null;
+}
+
+export interface DetectionCountdown {
+  event: CalendarEventSummary;
   secondsToStart: number;
 }
 

@@ -15,6 +15,14 @@ export interface DropdownProps {
   placeholder?: string;
   disabled?: boolean;
   onRefresh?: () => void;
+  /** `filter` is the compact mono KEY: VALUE chip a filter bar reads in: it
+   *  sizes to its own value instead of to a settings column, and its selected
+   *  value is filled rather than accented, matching the segmented controls it
+   *  sits beside. */
+  variant?: "default" | "filter";
+  /** The KEY half of a filter chip, rendered as a mono microlabel before the
+   *  value. Without one the chip is value-only. */
+  filterKey?: string;
 }
 
 export const Dropdown: React.FC<DropdownProps> = ({
@@ -25,6 +33,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
   placeholder = "Select an option...",
   disabled = false,
   onRefresh,
+  variant = "default",
+  filterKey,
 }) => {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
@@ -79,11 +89,15 @@ export const Dropdown: React.FC<DropdownProps> = ({
         aria-controls={listboxId}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
-        className={`control-surface grid min-h-9 w-full min-w-44 grid-cols-[1fr_auto] items-center gap-2 border px-3 text-start text-sm font-medium text-text-primary transition-colors ${
-          disabled
-            ? "cursor-not-allowed opacity-70"
-            : "cursor-pointer hover:border-border-strong hover:bg-hover"
-        }`}
+        className={
+          variant === "filter"
+            ? `meeting-filter-chip ${disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`
+            : `control-surface grid min-h-9 w-full min-w-44 grid-cols-[1fr_auto] items-center gap-2 border px-3 text-start text-sm font-medium text-text-primary transition-colors ${
+                disabled
+                  ? "cursor-not-allowed opacity-70"
+                  : "cursor-pointer hover:border-border-strong hover:bg-hover"
+              }`
+        }
         /* The label truncates, and a device name is exactly the kind of long
          * string a narrow settings column clips. Keep the whole value one
          * hover away rather than losing it to an ellipsis. */
@@ -94,9 +108,14 @@ export const Dropdown: React.FC<DropdownProps> = ({
         }}
         disabled={disabled}
       >
-        <span className="truncate">{selectedLabel}</span>
+        {variant === "filter" && filterKey !== undefined ? (
+          <span className="filter-chip-key">{filterKey}</span>
+        ) : null}
+        <span className={variant === "filter" ? "" : "truncate"}>
+          {selectedLabel}
+        </span>
         <svg
-          className={`h-4 w-4 text-text-secondary transition-transform duration-150 ${
+          className={`${variant === "filter" ? "h-3 w-3" : "h-4 w-4"} text-text-secondary transition-transform duration-150 ${
             isOpen ? "rotate-180" : ""
           }`}
           fill="none"
@@ -116,7 +135,11 @@ export const Dropdown: React.FC<DropdownProps> = ({
         <div
           id={listboxId}
           role="listbox"
-          className="glass-popover absolute inset-x-0 top-full z-50 mt-1 max-h-60 overflow-y-auto border p-1"
+          /* A filter chip is as narrow as its own value, so its menu sizes to
+           * the longest option instead of to the chip. */
+          className={`glass-popover absolute top-full z-50 mt-1 max-h-60 overflow-y-auto border p-1 ${
+            variant === "filter" ? "start-0 min-w-max" : "inset-x-0"
+          }`}
         >
           {options.length === 0 ? (
             <div className="px-2 py-2 text-sm text-text-secondary">

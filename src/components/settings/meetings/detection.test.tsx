@@ -91,7 +91,16 @@ describe("prompt copy", () => {
 
 describe("first paint", () => {
   test("the pre-meeting card costs the page nothing when idle", () => {
-    expect(paint(<PreMeetingCountdownCard />)).toBe("");
+    expect(
+      paint(
+        <PreMeetingCountdownCard
+          sources={["microphone"]}
+          starting={false}
+          onSourcesChange={() => {}}
+          onStartEvent={() => {}}
+        />,
+      ),
+    ).toBe("");
   });
 
   test("the app-level listener renders nothing", () => {

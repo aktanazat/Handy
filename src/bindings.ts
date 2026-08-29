@@ -1628,9 +1628,14 @@ async meetingRecoveryFinalize(request: MeetingMutationRequest) : Promise<Result<
     else return { status: "error", error: e  as any };
 }
 },
-async meetingList(cursorUtcMs: number | null, limit: number | null) : Promise<Result<PaginatedMeetings, MeetingCommandError>> {
+/**
+ * One page of retained meetings. `filter` is optional and every field inside
+ * it defaults to "no constraint", so a caller that sends nothing still gets
+ * the whole list newest-first.
+ */
+async meetingList(cursorUtcMs: number | null, limit: number | null, filter: MeetingListFilter | null) : Promise<Result<PaginatedMeetings, MeetingCommandError>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("meeting_list", { cursorUtcMs, limit }) };
+    return { status: "ok", data: await TAURI_INVOKE("meeting_list", { cursorUtcMs, limit, filter }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -1747,6 +1752,18 @@ async meetingQuestionForget(request: MeetingMutationRequest, questionId: Meeting
 async meetingExport(request: MeetingExportRequest) : Promise<Result<MeetingExportResult, MeetingCommandError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("meeting_export", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Write the meeting's where-did-we-land ledger to a single self-contained
+ * HTML file and answer with the path it was written to.
+ */
+async produceLedgerHtml(sessionId: MeetingSessionId) : Promise<Result<string, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("produce_ledger_html", { sessionId }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -2451,6 +2468,57 @@ export type CalendarAccess =
  * No EventKit on this platform.
  */
 "unavailable"
+/**
+ * One named participant on a calendar event.
+ *
+ * Only participants EventKit names reach this type. An unnamed participant is
+ * a row that could say nothing but "someone", so it is dropped at the
+ * EventKit boundary and counted in `attendee_count` alone.
+ */
+export type CalendarAttendee = { name: string; status: ParticipationStatus;
+/**
+ * True for the account that owns the calendar this event lives on.
+ */
+isSelf: boolean }
+/**
+ * One calendar event, reduced to the fields the pre-meeting surfaces read.
+ *
+ * The content fields below (`attendees`, `notes`, `calendar_name`, `url`) are
+ * read for the one nearest event only and are never persisted: they live in
+ * the in-memory status the pre-meeting card renders and are dropped when the
+ * event passes. The decision table itself still reads nothing but
+ * `attendee_count` and the two instants.
+ */
+export type CalendarEventSummary = {
+/**
+ * Stable per-occurrence identity, used to avoid re-prompting for one event.
+ */
+eventKey: string; title: string;
+/**
+ * Participant count including the organizer, and including participants
+ * EventKit refused to name. Zero means the event carries no attendee list
+ * at all, which §5.3 case 9 treats the same as solo.
+ */
+attendeeCount: number; startUtcMs: number; endUtcMs: number;
+/**
+ * The participants EventKit named. Shorter than `attendee_count` when the
+ * event carries anonymous participants, and empty when it names none.
+ */
+attendees?: CalendarAttendee[];
+/**
+ * The event's own notes, trimmed. `None` when the event carries none.
+ */
+notes?: string | null;
+/**
+ * Title of the calendar the event sits on. `None` when EventKit does not
+ * report one.
+ */
+calendarName?: string | null;
+/**
+ * The URL attached to the event, which for a scheduled call is the join
+ * link. `None` when the event carries none.
+ */
+url?: string | null }
 export type CaptureCompleteness = "not_started" | "complete" | "partial"
 /**
  * Whether the original microphone capture was complete. This belongs to the
@@ -2654,9 +2722,14 @@ export type DeliveryOutcome =
 "dispatched_but_unconfirmed"
 export type DeliveryReceipt = { method: DeliveryMethod; outcome: DeliveryOutcome; dispatched_at_ms: number }
 /**
- * The countdown half of §5.3 case 1.
+ * The countdown half of §5.3 case 1, and everything the pre-meeting card
+ * renders about the event it is counting down to.
+ *
+ * The event is carried whole rather than flattened into a copy of two of its
+ * fields: the card shows the calendar's own facts, and a second copy of them
+ * here would be a second place for them to go stale.
  */
-export type DetectionCountdown = { eventKey: string; eventTitle: string; secondsToStart: number }
+export type DetectionCountdown = { event: CalendarEventSummary; secondsToStart: number }
 /**
  * The operator-editable half of detection, read and written as one unit.
  *
@@ -2718,7 +2791,14 @@ export type EngineType =
  * user's requested British spelling table.
  */
 export type EnglishSpelling = "as_spoken" | "british"
-export type GeneratedMeetingArtifacts = { summary: CitedArtifactText; outline: MeetingOutlineTopic[]; decisions: CitedArtifactText[]; action_items: MeetingActionItem[]; key_questions: CitedArtifactText[]; risks: CitedArtifactText[]; follow_up_draft: CitedArtifactText }
+export type GeneratedMeetingArtifacts = { summary: CitedArtifactText; outline: MeetingOutlineTopic[]; decisions: CitedArtifactText[]; action_items: MeetingActionItem[]; key_questions: CitedArtifactText[]; risks: CitedArtifactText[]; follow_up_draft: CitedArtifactText;
+/**
+ * The where-did-we-land ledger for this meeting: threads, where each one
+ * landed, and the receipt each state was read from. Defaulted rather than
+ * required, so a revision generated before ledgers existed still reads
+ * back; a `TEMPLATE_VERSION` bump is what retires those.
+ */
+ledger?: MeetingLedger | null }
 export type GpuDeviceOption = { id: string; name: string; total_vram_mb: number }
 /**
  * One bounded fragment of a history recording. The command identifies media
@@ -2823,6 +2903,82 @@ export type KeyboardImplementation = "tauri" | "handy_keys"
  */
 export type KeywordTracker = { name: string; patterns: string[] }
 export type LLMPrompt = { id: string; name: string; prompt: string }
+export type LedgerCommitment = { who: string; what: string; firmness: LedgerFirmness; receipt: LedgerReceipt }
+/**
+ * How firmly a commitment was made, read off the language used: "I'll do X"
+ * is firm, "we should probably" is not.
+ */
+export type LedgerFirmness = "firm" | "soft"
+/**
+ * A question that was asked out loud, and what happened instead of an answer.
+ */
+export type LedgerOpenLoop = { question: string; instead: string; at_ms: number; citations: ArtifactCitation[] }
+/**
+ * The quote a state was read from. `quote` is checked against the transcript
+ * mechanically; `t_ms` and `citations` are derived from the cited segment, so
+ * a model cannot move a receipt in time.
+ */
+export type LedgerReceipt = { quote: string; speaker: string | null; t_ms: number; citations: ArtifactCitation[] }
+/**
+ * Whether every receipt in this ledger was found in the transcript. A ledger
+ * only reaches `Degraded` after a regeneration also failed the check, and it
+ * then carries the counts of what was removed rather than a softer word for
+ * it.
+ */
+export type LedgerReceiptState = { status: "verified" } | { status: "degraded"; dropped_threads: number; dropped_commitments: number }
+/**
+ * Who took up whose position. A reversal is a finding; so is a meeting with
+ * no disagreement in it at all.
+ */
+export type LedgerStance = { from: string; to: string; what: string; note: string | null; at_ms: number; citations: ArtifactCitation[] }
+export type LedgerThread = { topic: string; state: LedgerThreadState;
+/**
+ * Small talk, agenda-setting and sign-off stay on the timeline and drop
+ * out of the landed score.
+ */
+substantive: boolean; receipt: LedgerReceipt; owner: string | null }
+/**
+ * Where a thread ended up. Upstream's nine-state vocabulary, unchanged: the
+ * states a reader can check a receipt against are the states a model is
+ * allowed to pick from.
+ */
+export type LedgerThreadState =
+/**
+ * A choice was made and said out loud.
+ */
+"decided" |
+/**
+ * One party's position was taken up by the other.
+ */
+"agreed" |
+/**
+ * A named person owns a next step.
+ */
+"action" |
+/**
+ * A social or admin thread that ran its course.
+ */
+"closed" |
+/**
+ * Live, and explicitly unresolved.
+ */
+"open" |
+/**
+ * Direction set, specifics missing.
+ */
+"partial" |
+/**
+ * Addressed sideways; the question itself never got answered.
+ */
+"ambiguous" |
+/**
+ * Raised out loud, no response.
+ */
+"unanswered" |
+/**
+ * Died mid-thread on a topic switch.
+ */
+"dropped"
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
 export type ManualNote = { note_id: ManualNoteId; session_id: MeetingSessionId; start_offset_ns: number | null; end_offset_ns: number | null; body: string; revision: number; created_at_utc_ms: number; updated_at_utc_ms: number }
 export type ManualNoteId = string
@@ -2872,7 +3028,66 @@ export type MeetingExportReceipt = { export_receipt_id: MeetingExportReceiptId; 
 export type MeetingExportReceiptId = string
 export type MeetingExportRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; format: MeetingExportFormat }
 export type MeetingExportResult = { receipt: OperationReceipt; export_receipt: MeetingExportReceipt }
-export type MeetingHistorySummary = { kind: HistoryItemKind; session_id: MeetingSessionId; title: string; phase: MeetingPhase; created_at_utc_ms: number; capture_completeness: CaptureCompleteness; processing_status: ProcessingStatus }
+/**
+ * Which of the three real sources line two of a meetings-list row came from.
+ * The row states this on itself, so a reader can tell the news a model wrote
+ * from a count the store measured, and never has to guess which one they are
+ * looking at.
+ */
+export type MeetingHistoryHeadline =
+/**
+ * No generated prose and no transcript: there is nothing true to say yet.
+ */
+{ kind: "none" } |
+/**
+ * `MeetingLedger::headline` from the current artifact revision.
+ */
+{ kind: "ledger"; text: string } |
+/**
+ * First sentence of the current revision's generated notes summary.
+ */
+{ kind: "summary"; text: string } |
+/**
+ * A transcript exists and prose does not, so the row reports how much was
+ * said instead of nothing.
+ */
+{ kind: "words"; words: number }
+export type MeetingHistorySummary = { kind: HistoryItemKind; session_id: MeetingSessionId; title: string; phase: MeetingPhase; created_at_utc_ms: number; capture_completeness: CaptureCompleteness; processing_status: ProcessingStatus;
+/**
+ * Capture time this meeting actually recorded, pauses excluded, summed
+ * over its closed capture windows. `None` until one window has closed,
+ * which is the state a session abandoned mid-capture is really in.
+ */
+recorded_duration_ms?: number | null;
+/**
+ * Sources that really opened a track, in `SourceKind::ALL` order. Empty
+ * before the first track exists.
+ */
+sources?: SourceKind[];
+/**
+ * Diarized speaker labels, merged-away speakers excluded, in the order
+ * the store assigned them.
+ */
+speaker_labels?: string[]; headline?: MeetingHistoryHeadline }
+export type MeetingLedger = {
+/**
+ * What someone who read every row knows and the score cannot show.
+ */
+headline: string; threads: LedgerThread[]; open_loops: LedgerOpenLoop[]; commitments: LedgerCommitment[]; stances: LedgerStance[];
+/**
+ * What would make a reader wrong to trust this ledger.
+ */
+caveats: string[]; receipts: LedgerReceiptState }
+/**
+ * Which retained meetings one list page should contain. Every field defaults
+ * to "no constraint", so a caller that sends no filter still gets the whole
+ * list and an older caller keeps working unchanged.
+ */
+export type MeetingListFilter = { status?: MeetingStatusFilter; window?: MeetingTimeWindow;
+/**
+ * Case-insensitive substring of the title. Blank means no constraint.
+ */
+title_query?: string }
 export type MeetingMutationRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number }
 export type MeetingMutationResult = { receipt: OperationReceipt; snapshot: MeetingSessionSnapshot }
 export type MeetingNavigationDestination = "list" | "preflight" | "session"
@@ -2926,6 +3141,24 @@ export type MeetingSpeaker = { speaker_id: SpeakerId; session_id: MeetingSession
 export type MeetingSpeakerMergeRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; source_speaker_id: SpeakerId; target_speaker_id: SpeakerId }
 export type MeetingSpeakerRenameRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; speaker_id: SpeakerId; display_name: string }
 export type MeetingStartRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; consent: MeetingConsentInput }
+/**
+ * The four states a person actually sorts a meeting list by. Each maps onto
+ * the stored phase and processing status rather than onto a label, so the
+ * filter and the row's own status chip can never disagree.
+ */
+export type MeetingStatusFilter = "any" |
+/**
+ * Processing succeeded and the meeting is waiting to be read.
+ */
+"ready" |
+/**
+ * Capture has stopped and the artifacts are not finished.
+ */
+"processing" |
+/**
+ * Processing failed or was cancelled, or capture needs recovery.
+ */
+"failed"
 export type MeetingSuggestion = { offer_id: MeetingSuggestionId; provider: MeetingProvider; app_bundle_id: string; evidence_flags: MeetingEvidenceFlags; observed_at_ns: number; expires_at_ns: number }
 export type MeetingSuggestionChangedEvent = MeetingEventPayload
 export type MeetingSuggestionId = string
@@ -2943,6 +3176,10 @@ interaction_count: number; total_speaking_ns: number; speakers: SpeakerTalkShare
  * `None` when the floor never changed hands.
  */
 median_switch_gap_ms: number | null }
+/**
+ * A window of local calendar days, today included. `Any` is unbounded.
+ */
+export type MeetingTimeWindow = "any" | "today" | "last_7_days" | "last_30_days"
 export type MeetingTitleSetRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; title: string }
 export type MeetingTrackSnapshot = { track_id: SourceTrackId; source_kind: SourceKind; format: AudioFormat | null; first_offset_ns: number | null; last_offset_ns: number | null; durable_record_count: number }
 export type MeetingTranscriptChangedEvent = MeetingEventPayload
@@ -3139,6 +3376,20 @@ export type OverlayPosition = "top" | "bottom"
 export type OverlayStyle = "none" | "minimal" | "live"
 export type PaginatedHistory = { entries: HistoryEntry[]; has_more: boolean }
 export type PaginatedMeetings = { entries: MeetingHistorySummary[]; has_more: boolean }
+/**
+ * How one participant answered the invitation, as EventKit reports it.
+ *
+ * `EKParticipantStatus` also carries `Delegated`, `Completed` and
+ * `InProcess`, which describe reminders and task assignments rather than an
+ * answer to a meeting invitation. They collapse into `Unknown` here: the card
+ * renders "no answer", which is the true statement, instead of inventing an
+ * attendance claim from a task state.
+ */
+export type ParticipationStatus =
+/**
+ * EventKit has no answer for this participant.
+ */
+"unknown" | "pending" | "accepted" | "declined" | "tentative"
 export type PasteMethod = "ctrl_v" | "direct" | "none" | "shift_insert" | "ctrl_shift_v" | "external_script"
 export type PermissionAccess = "allowed" | "denied" | "unknown"
 /**

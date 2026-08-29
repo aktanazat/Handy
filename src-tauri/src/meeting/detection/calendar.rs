@@ -7,11 +7,17 @@
 //! calendar sub-toggle on, never at launch and never as a side effect of the
 //! master detection toggle.
 //!
-//! No event content is retained. `CalendarEventSummary` carries a per-occurrence
-//! key, a title, a participant count, and two instants; location, notes,
-//! organizer, and attendee identities are read and dropped inside `next_event`.
+//! No event content is persisted, and only the one nearest event is read in
+//! full. Every event in the lookahead window is reduced to a key, a title, a
+//! participant count and two instants; the event the tick actually selects is
+//! then read a second time for the facts the pre-meeting card shows — named
+//! attendees with their answers, the event's notes, its calendar's title, and
+//! the URL attached to it. Those live in the in-memory detection status until
+//! the event passes. Nothing on this path writes to disk, and nothing writes
+//! back to the Calendar store: Sona records meetings, it does not answer
+//! invitations.
 
-use super::machine::{CalendarEventSummary, CalendarSignal};
+use super::machine::{CalendarAttendee, CalendarEventSummary, CalendarSignal, ParticipationStatus};
 
 /// How far ahead to look for the next event. Wide enough that a tick can never
 /// step over an event's start, narrow enough that the query stays trivial.
@@ -91,12 +97,63 @@ pub fn lookahead_ms() -> i64 {
     LOOKAHEAD_MS
 }
 
+/// Maps `EKParticipantStatus`'s raw value onto the answer a person recognizes.
+///
+/// Keyed on the raw integer, and living outside the macOS module, so the one
+/// rule that turns a framework constant into something a card renders is
+/// testable without a Calendar database or a TCC prompt.
+pub fn participation_status(raw: isize) -> ParticipationStatus {
+    match raw {
+        1 => ParticipationStatus::Pending,
+        2 => ParticipationStatus::Accepted,
+        3 => ParticipationStatus::Declined,
+        4 => ParticipationStatus::Tentative,
+        // 0 is Unknown. 5 Delegated, 6 Completed and 7 InProcess describe
+        // reminders and task assignments, not an answer to an invitation, so
+        // they report "no answer" rather than a fabricated attendance claim.
+        _ => ParticipationStatus::Unknown,
+    }
+}
+
+/// Reduces one raw participant to an attendee a card can name, or nothing.
+///
+/// A participant EventKit will not name is a chip that could say only
+/// "someone". It is dropped here and survives in `attendee_count` alone, which
+/// is the honest split: the event has N participants, and these are the ones
+/// with names.
+pub fn named_attendee(
+    name: Option<&str>,
+    status_raw: isize,
+    is_self: bool,
+) -> Option<CalendarAttendee> {
+    let name = name?.trim();
+    if name.is_empty() {
+        return None;
+    }
+    Some(CalendarAttendee {
+        name: name.to_string(),
+        status: participation_status(status_raw),
+        is_self,
+    })
+}
+
+/// Trims one optional event string and treats an empty result as absent, so a
+/// row is omitted rather than rendered blank.
+pub fn event_text(value: Option<String>) -> Option<String> {
+    let trimmed = value?.trim().to_string();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed)
+    }
+}
+
 #[cfg(target_os = "macos")]
 pub use macos::EventKitCalendar;
 
 #[cfg(target_os = "macos")]
 mod macos {
-    use super::{CalendarAccess, CalendarEventSummary, CalendarSource};
+    use super::{event_text, named_attendee, CalendarAccess, CalendarEventSummary, CalendarSource};
     use block2::RcBlock;
     use objc2::rc::Retained;
     use objc2::runtime::Bool;
@@ -223,18 +280,30 @@ mod macos {
                     };
                     // SAFETY: the predicate came from this same store.
                     let events = unsafe { store.eventsMatchingPredicate(&predicate) };
+                    // Two passes on purpose. The cheap summary runs over every
+                    // event in the window; the content read — notes, attendee
+                    // names, calendar title, URL — runs once, on the one event
+                    // that won. An agenda pasted into a recurring event is
+                    // kilobytes of string, and reading it for a dozen events
+                    // every fifteen seconds to throw eleven away is the kind of
+                    // waste that never shows up in a profile and never stops
+                    // costing.
                     events
                         .iter()
-                        .filter_map(|event| summarize(&event))
-                        .filter(|summary| summary.end_utc_ms > now_utc_ms)
-                        .min_by_key(|summary| (summary.start_utc_ms - now_utc_ms).abs())
+                        .filter_map(|event| summarize(&event).map(|summary| (event, summary)))
+                        .filter(|(_, summary)| summary.end_utc_ms > now_utc_ms)
+                        .min_by_key(|(_, summary)| (summary.start_utc_ms - now_utc_ms).abs())
+                        .map(|(event, mut summary)| {
+                            enrich(&event, &mut summary);
+                            summary
+                        })
                 })
             })
         }
     }
 
-    /// Reduces an `EKEvent` to the fields the decision table reads. Everything
-    /// else the event carries is dropped here and never reaches another module.
+    /// Reduces an `EKEvent` to the fields the decision table reads, and nothing
+    /// more. `enrich` adds the rest, for the one event that is selected.
     fn summarize(event: &EKEvent) -> Option<CalendarEventSummary> {
         // SAFETY: plain property reads on a live event.
         let (start, end, all_day) =
@@ -270,7 +339,52 @@ mod macos {
             attendee_count: attendees.map_or(0, |attendees| attendees.len()),
             start_utc_ms,
             end_utc_ms,
+            // Filled by `enrich`, for the selected event only.
+            attendees: Vec::new(),
+            notes: None,
+            calendar_name: None,
+            url: None,
         })
+    }
+
+    /// Adds the facts the pre-meeting card renders to an already-selected
+    /// event. Every one of them stays absent when EventKit reports nothing, so
+    /// a card omits the row rather than showing an empty one.
+    fn enrich(event: &EKEvent, summary: &mut CalendarEventSummary) {
+        // SAFETY: plain property reads on a live event.
+        let (attendees, notes, calendar, url) = unsafe {
+            (
+                event.attendees(),
+                event.notes(),
+                event.calendar(),
+                event.URL(),
+            )
+        };
+        if let Some(attendees) = attendees {
+            summary.attendees = attendees
+                .iter()
+                .filter_map(|participant| {
+                    // SAFETY: plain property reads on a live participant.
+                    let (name, status, is_self) = unsafe {
+                        (
+                            participant.name(),
+                            participant.participantStatus(),
+                            participant.isCurrentUser(),
+                        )
+                    };
+                    let name = name.map(|name| name.to_string());
+                    named_attendee(name.as_deref(), status.0, is_self)
+                })
+                .collect();
+        }
+        summary.notes = event_text(notes.map(|notes| notes.to_string()));
+        // SAFETY: `title` is a plain property read on a live calendar.
+        summary.calendar_name =
+            event_text(calendar.map(|calendar| unsafe { calendar.title() }.to_string()));
+        summary.url = event_text(
+            url.and_then(|url| url.absoluteString())
+                .map(|absolute| absolute.to_string()),
+        );
     }
 
     fn instant_ms(date: &NSDate) -> i64 {
@@ -291,6 +405,10 @@ mod tests {
             attendee_count: 3,
             start_utc_ms: NOW + start_offset_ms,
             end_utc_ms: NOW + start_offset_ms + duration_ms,
+            attendees: Vec::new(),
+            notes: None,
+            calendar_name: None,
+            url: None,
         }
     }
 
@@ -351,5 +469,81 @@ mod tests {
     fn an_absent_calendar_never_produces_an_event() {
         assert_eq!(NoCalendar.access(), CalendarAccess::Unavailable);
         assert_eq!(NoCalendar.next_event(NOW, lookahead_ms()), None);
+    }
+
+    /* EKParticipantStatus's raw values, as the framework defines them. Written
+     * out rather than imported so the test still fails if the mapping is
+     * silently re-pointed at some other integer. */
+    const RAW_UNKNOWN: isize = 0;
+    const RAW_PENDING: isize = 1;
+    const RAW_ACCEPTED: isize = 2;
+    const RAW_DECLINED: isize = 3;
+    const RAW_TENTATIVE: isize = 4;
+    const RAW_DELEGATED: isize = 5;
+    const RAW_COMPLETED: isize = 6;
+    const RAW_IN_PROCESS: isize = 7;
+
+    #[test]
+    fn every_answer_a_person_can_give_maps_to_its_own_state() {
+        assert_eq!(
+            participation_status(RAW_PENDING),
+            ParticipationStatus::Pending
+        );
+        assert_eq!(
+            participation_status(RAW_ACCEPTED),
+            ParticipationStatus::Accepted
+        );
+        assert_eq!(
+            participation_status(RAW_DECLINED),
+            ParticipationStatus::Declined
+        );
+        assert_eq!(
+            participation_status(RAW_TENTATIVE),
+            ParticipationStatus::Tentative
+        );
+    }
+
+    #[test]
+    fn task_states_report_no_answer_rather_than_an_invented_one() {
+        for raw in [RAW_UNKNOWN, RAW_DELEGATED, RAW_COMPLETED, RAW_IN_PROCESS] {
+            assert_eq!(
+                participation_status(raw),
+                ParticipationStatus::Unknown,
+                "raw status {raw} is not an answer to an invitation"
+            );
+        }
+    }
+
+    #[test]
+    fn an_unknown_future_status_reports_no_answer() {
+        assert_eq!(participation_status(99), ParticipationStatus::Unknown);
+    }
+
+    #[test]
+    fn a_named_participant_carries_their_answer_and_whether_they_are_you() {
+        assert_eq!(
+            named_attendee(Some("  Aktan Azat  "), RAW_ACCEPTED, true),
+            Some(CalendarAttendee {
+                name: "Aktan Azat".to_string(),
+                status: ParticipationStatus::Accepted,
+                is_self: true,
+            })
+        );
+    }
+
+    #[test]
+    fn a_participant_eventkit_will_not_name_is_dropped() {
+        assert_eq!(named_attendee(None, RAW_ACCEPTED, false), None);
+        assert_eq!(named_attendee(Some("   "), RAW_ACCEPTED, false), None);
+    }
+
+    #[test]
+    fn blank_event_text_reads_as_absent_so_its_row_is_omitted() {
+        assert_eq!(event_text(None), None);
+        assert_eq!(event_text(Some("   \n ".to_string())), None);
+        assert_eq!(
+            event_text(Some("  Agenda: ship the card  ".to_string())),
+            Some("Agenda: ship the card".to_string())
+        );
     }
 }
