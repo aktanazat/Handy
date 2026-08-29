@@ -15,7 +15,7 @@ use super::store::{
     TranscriptSegmentInput,
 };
 use super::types::*;
-use crate::audio_toolkit::vad::{SileroVad, VoiceActivityDetector};
+use crate::audio_toolkit::vad::{self, VoiceActivityDetector};
 use crate::managers::transcription::TranscriptionManager;
 use crate::modes::AsrPlan;
 use rustfft::num_traits::ToPrimitive;
@@ -97,15 +97,23 @@ pub trait MeetingVadFactory: Send + Sync {
     fn open(&self, source_kind: SourceKind) -> Result<Box<dyn MeetingVad>, ProcessingFailure>;
 }
 
-struct SileroVadFactory {
+/// TEN-VAD's operating point. This path does NOT inherit
+/// `managers::audio::TEN_VAD_THRESHOLD` — it never inherited Silero's either,
+/// and it was hardcoded at 0.5 before the swap. Both numbers happen to be near
+/// each other; that is a coincidence, not a link. Do not "fix" this to track
+/// `managers::audio`.
+const MEETING_VAD_THRESHOLD: f32 = 0.55;
+const MEETING_SILERO_FALLBACK_THRESHOLD: f32 = 0.5;
+
+struct BundledVadFactory {
     app: Option<AppHandle>,
 }
 
-struct SileroMeetingVad {
-    inner: SileroVad,
+struct BundledMeetingVad {
+    inner: Box<dyn VoiceActivityDetector>,
 }
 
-impl MeetingVad for SileroMeetingVad {
+impl MeetingVad for BundledMeetingVad {
     fn is_voice(&mut self, frame: &[f32]) -> Result<bool, ProcessingFailure> {
         self.inner
             .is_voice(frame)
@@ -113,22 +121,25 @@ impl MeetingVad for SileroMeetingVad {
     }
 }
 
-impl MeetingVadFactory for SileroVadFactory {
+impl MeetingVadFactory for BundledVadFactory {
     fn open(&self, _source_kind: SourceKind) -> Result<Box<dyn MeetingVad>, ProcessingFailure> {
         let app = self
             .app
             .as_ref()
             .ok_or(ProcessingFailure::LocalModelUnavailable)?;
-        let path = app
-            .path()
-            .resolve(
-                "resources/models/silero_vad_v4.onnx",
-                tauri::path::BaseDirectory::Resource,
-            )
-            .map_err(|_| ProcessingFailure::LocalModelUnavailable)?;
-        let vad =
-            SileroVad::new(path, 0.5).map_err(|_| ProcessingFailure::LocalModelUnavailable)?;
-        Ok(Box::new(SileroMeetingVad { inner: vad }))
+        let resolve = |name: &str| {
+            app.path()
+                .resolve(name, tauri::path::BaseDirectory::Resource)
+                .map_err(|_| ProcessingFailure::LocalModelUnavailable)
+        };
+        let inner = vad::open_detector(
+            &resolve("resources/models/ten-vad.onnx")?,
+            MEETING_VAD_THRESHOLD,
+            &resolve("resources/models/silero_vad_v4.onnx")?,
+            MEETING_SILERO_FALLBACK_THRESHOLD,
+        )
+        .map_err(|_| ProcessingFailure::LocalModelUnavailable)?;
+        Ok(Box::new(BundledMeetingVad { inner }))
     }
 }
 
@@ -221,7 +232,7 @@ impl MeetingProcessingService {
         Self {
             app: app.clone(),
             transcript_engine: Arc::new(Mutex::new(None)),
-            vad_factory: Arc::new(Mutex::new(Arc::new(SileroVadFactory { app }))),
+            vad_factory: Arc::new(Mutex::new(Arc::new(BundledVadFactory { app }))),
             text_generator: Arc::new(Mutex::new(Arc::new(AppleIntelligenceGenerator))),
             diarizer: MeetingDiarizer::new(),
             capture_active: Arc::new(AtomicBool::new(false)),

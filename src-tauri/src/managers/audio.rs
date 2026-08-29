@@ -1,10 +1,10 @@
 use crate::audio_toolkit::{
     is_microphone_access_denied, is_no_input_device_error, list_input_devices,
     vad::{
-        SmoothedVad, VAD_OFFLINE_HANGOVER_FRAMES, VAD_ONSET_FRAMES, VAD_PREFILL_FRAMES,
+        self, SmoothedVad, VAD_OFFLINE_HANGOVER_FRAMES, VAD_ONSET_FRAMES, VAD_PREFILL_FRAMES,
         VAD_STREAMING_HANGOVER_FRAMES,
     },
-    AudioRecorder, CaptureError, CaptureOverrun, RecordedAudio, SileroVad, VadPolicy,
+    AudioRecorder, CaptureError, CaptureOverrun, RecordedAudio, VadPolicy,
 };
 use crate::helpers::clamshell;
 use crate::managers::transcription::StreamRouter;
@@ -73,7 +73,17 @@ pub enum RecordingStop {
         level: InputLevel,
     },
 }
-const VAD_THRESHOLD: f32 = 0.3;
+
+/// TEN-VAD's operating point: the lowest threshold that flags nothing on a
+/// silence set that includes a 20 s amplified-room-noise bed. Its documented
+/// default of 0.50 looked clean on short negatives and fired twice on that bed.
+const TEN_VAD_THRESHOLD: f32 = 0.55;
+
+/// Silero's own operating point, unchanged. It is not interchangeable with
+/// [`TEN_VAD_THRESHOLD`]: the two engines sit on different precision-recall
+/// curves, and opening Silero at 0.55 would ship a strictly more conservative,
+/// unmeasured detector on exactly the machines where TEN-VAD's weights failed.
+const SILERO_VAD_THRESHOLD: f32 = 0.3;
 
 /// Longest VAD-silent capture Sona still hands to the model before accepting
 /// VAD's answer.
@@ -388,18 +398,24 @@ struct MicrophoneResolution {
 /* ──────────────────────────────────────────────────────────────── */
 
 fn create_audio_recorder(
-    vad_path: &Path,
+    ten_vad_path: &Path,
+    silero_vad_path: &Path,
     app_handle: &tauri::AppHandle,
     selected_channel: Option<u16>,
     stream_router: Arc<StreamRouter>,
 ) -> Result<AudioRecorder, anyhow::Error> {
-    // A single Silero engine covers both the offline and streaming policies (never
+    // A single engine covers both the offline and streaming policies (never
     // active at once within a recording), so the recorder reconfigures its
     // hangover tail per session rather than keeping two ONNX sessions resident.
-    let silero = SileroVad::new(vad_path, VAD_THRESHOLD)
-        .map_err(|e| anyhow::anyhow!("Failed to create SileroVad: {}", e))?;
+    let detector = vad::open_detector(
+        ten_vad_path,
+        TEN_VAD_THRESHOLD,
+        silero_vad_path,
+        SILERO_VAD_THRESHOLD,
+    )
+    .map_err(|e| anyhow::anyhow!("Failed to create voice activity detector: {}", e))?;
     let smoothed_vad = SmoothedVad::new(
-        Box::new(silero),
+        detector,
         VAD_PREFILL_FRAMES,
         VAD_OFFLINE_HANGOVER_FRAMES,
         VAD_ONSET_FRAMES,
@@ -812,17 +828,18 @@ impl AudioRecordingManager {
     pub fn preload_vad(&self) -> Result<(), anyhow::Error> {
         let mut recorder_opt = lock_recover(&self.recorder);
         if recorder_opt.is_none() {
-            let vad_path = self
-                .app_handle
-                .path()
-                .resolve(
-                    "resources/models/silero_vad_v4.onnx",
-                    tauri::path::BaseDirectory::Resource,
-                )
-                .map_err(|e| anyhow::anyhow!("Failed to resolve VAD path: {}", e))?;
+            let resolve = |name: &str| {
+                self.app_handle
+                    .path()
+                    .resolve(name, tauri::path::BaseDirectory::Resource)
+                    .map_err(|e| anyhow::anyhow!("Failed to resolve {name}: {e}"))
+            };
+            let ten_vad_path = resolve("resources/models/ten-vad.onnx")?;
+            let silero_vad_path = resolve("resources/models/silero_vad_v4.onnx")?;
             let settings = get_settings(&self.app_handle);
             *recorder_opt = Some(create_audio_recorder(
-                &vad_path,
+                &ten_vad_path,
+                &silero_vad_path,
                 &self.app_handle,
                 settings.selected_channel,
                 Arc::clone(&self.stream_router),
