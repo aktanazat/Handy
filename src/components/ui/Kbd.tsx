@@ -5,16 +5,17 @@ export interface KbdProps {
   className?: string;
 }
 
-/* One physical key, drawn the way Vercel's own product chrome draws it: a
- * 20px cap on the page fill with a hairline border, set in the SANS face at
- * 12px/500 — mono here reads as code, not as hardware. A chord is several
- * caps side by side; nothing ever puts "Cmd+K" inside one cap. */
+/* One physical key. The 11px mono cap in an 18px box is the keycap role from
+ * the type ramp — mono because a key glyph is a machine string, 18px because a
+ * chip row has to fit inside a 36px dense row without pushing it taller. A
+ * chord is several caps side by side; nothing ever puts "Cmd+K" inside one cap.
+ *
+ * The look lives in `.kbd` (styles/primitives.css) rather than in utilities
+ * here, because <Kbd> also renders in the recording-overlay webview, which
+ * loads the token and primitive stylesheets but not Tailwind. Utilities there
+ * are inert and the cap would ship unstyled. */
 export const Kbd: React.FC<KbdProps> = ({ children, className = "" }) => (
-  <kbd
-    className={`inline-flex h-5 min-w-5 items-center justify-center rounded-xs border border-border bg-canvas px-1 font-sans text-[12px] leading-none font-medium text-text-tertiary ${className}`}
-  >
-    {children}
-  </kbd>
+  <kbd className={`kbd ${className}`}>{children}</kbd>
 );
 
 export interface KbdChordProps {

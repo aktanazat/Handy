@@ -154,11 +154,17 @@
   min-block-size: var(--control-height);
 }
 
-.settings-main input[type="text"],
-.settings-main input[type="search"],
-.settings-main input[type="password"],
-.settings-main input[type="url"],
-.settings-main select {
+/* Bare fields inside a settings page get their box from here. A field built
+ * from the `Input` primitive is excluded: `.control-surface` marks it, and its
+ * padding is (inset + slot + gap), which only the primitive knows. This
+ * descendant selector outspecifies a Tailwind utility, so without the
+ * exclusion it silently reinstated the Library search placeholder under the
+ * magnifier no matter what the primitive asked for. */
+.settings-main input[type="text"]:not(.control-surface),
+.settings-main input[type="search"]:not(.control-surface),
+.settings-main input[type="password"]:not(.control-surface),
+.settings-main input[type="url"]:not(.control-surface),
+.settings-main select:not(.control-surface) {
   border: 1px solid var(--color-control-border);
   padding-inline: var(--space-2-5);
 }
@@ -183,6 +189,13 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* NAMING TRAP, read before editing: these four `.glass-*` classes are SOLID
+ * surfaces. The name is left over from an earlier era and predates the Material
+ * setting; the only class in this file that carries an actual backdrop-filter
+ * is `.glass-surface` (and its tint-only variant), further down. Do not
+ * "restore" blur here and do not count these against the two-glass-surface
+ * budget. Renaming them is a follow-up, not a mid-flight edit: their call sites
+ * are spread across pages other slices own right now. */
 .glass-toggle {
   background: var(--color-pressed);
   border: 1px solid var(--color-border-strong);
@@ -193,9 +206,12 @@
   box-shadow: none;
 }
 
+/* Border-colour transparent, not border-width zero: the 1px ring that leads
+ * --shadow-popover IS this popover's edge, and keeping the border box means the
+ * layout does not shift by a pixel. Same for the dialog below. */
 .glass-popover {
   background: var(--color-material-dialog);
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid transparent;
   border-radius: var(--radius-panel);
   box-shadow: var(--shadow-popover);
 }
@@ -211,7 +227,7 @@
 
 .glass-dialog {
   background: var(--color-material-dialog);
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid transparent;
   border-radius: var(--radius-dialog);
   box-shadow: var(--shadow-dialog);
 }
@@ -236,36 +252,216 @@
 /* -------------------------------------------------- surfaces & labels */
 
 /* Earn a surface. `.card` is a discrete object the person selects, drags or
- * opens; `.inset-panel` is a quoted excerpt or config block that belongs to
- * the flat section around it. They differ in one token, and in dark that
- * difference carries the whole meaning: raised is LIGHTER than the page,
- * recessed is DARKER. Everything else — a settings group, a metric, a
- * comparison — is spacing and typography, not a box. */
+ * opens; `.inset-panel` is quoted machine output — a transcript excerpt, a raw
+ * prompt, a receipt, a config dump — that belongs to the flat section around
+ * it. They differ in one token, and in dark that difference carries the whole
+ * meaning: raised is LIGHTER than the page, recessed is DARKER. Everything
+ * else — a settings group, a metric, a comparison — is spacing and typography,
+ * not a box. Nesting is one level deep: a card may hold an inset panel, an
+ * inset panel holds only text, a card never holds a card. */
 .card {
   background: var(--surface-raised);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-panel);
-  padding: var(--space-6);
-}
-
-.inset-panel {
-  background: var(--surface-2);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-panel);
   padding: var(--space-4);
 }
 
-/* The one type flourish carried over from vgpu.sh: a short uppercase mono
- * label, tracked wide, in a muted grey. For a category or a status, never for
- * a sentence. */
+/* A floating card takes the ring in --shadow-panel INSTEAD of its border: the
+ * ring is the border, and carrying both draws a double edge. */
+.card--floating {
+  border-color: transparent;
+  box-shadow: var(--shadow-panel);
+}
+
+.inset-panel {
+  background: var(--surface-inset);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-panel);
+  padding: var(--space-3);
+}
+
+/* ------------------------------------------------------------ type ramp */
+
+/* The eleven roles from the art direction, and the only place they are set.
+ * Plain rules, no Tailwind layer: the overlay and agent-panel webviews import
+ * this file without Tailwind, and a role that only works in one window is not
+ * a role. Tracking is 0 everywhere except .microlabel — see theme.css.
+ *
+ * Mono marks a string a machine produced or consumes: device names, sample
+ * rates, channel counts, realtime factor, peak/rms, latencies, model and
+ * engine ids, backends, paths, durations, timestamps, counts, keycaps, raw
+ * prompt text. Prose, titles and helper sentences are sans. */
+.type-display {
+  font-family: var(--font-sans);
+  font-size: var(--type-display-size);
+  font-weight: var(--type-display-weight);
+  letter-spacing: 0;
+  line-height: var(--type-display-line);
+}
+
+.type-metric {
+  font-family: var(--font-sans);
+  font-size: var(--type-metric-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--type-metric-weight);
+  letter-spacing: var(--type-metric-tracking);
+  line-height: var(--type-metric-line);
+}
+
+.type-title {
+  font-family: var(--font-sans);
+  font-size: var(--type-title-size);
+  font-weight: var(--type-title-weight);
+  letter-spacing: var(--type-title-tracking);
+  line-height: var(--type-title-line);
+}
+
+.type-section {
+  font-family: var(--font-sans);
+  font-size: var(--type-section-size);
+  font-weight: var(--type-section-weight);
+  letter-spacing: var(--type-section-tracking);
+  line-height: var(--type-section-line);
+}
+
+.type-row-title {
+  font-family: var(--font-sans);
+  font-size: var(--type-row-size);
+  font-weight: var(--type-row-weight);
+  letter-spacing: 0;
+  line-height: var(--type-row-line);
+}
+
+.type-body {
+  font-family: var(--font-sans);
+  font-size: var(--type-body-size);
+  font-weight: var(--fw-label);
+  letter-spacing: 0;
+  line-height: var(--type-body-line);
+}
+
+.type-secondary {
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--type-secondary-size);
+  font-weight: var(--fw-label);
+  letter-spacing: 0;
+  line-height: var(--type-secondary-line);
+}
+
+/* Every measured value. tabular-nums is required, not decorative: a readout
+ * that reflows its own column width as digits change is a lie about
+ * stability. */
+.type-data {
+  font-family: var(--font-mono);
+  font-size: var(--type-data-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--fw-label);
+  letter-spacing: 0;
+  line-height: var(--type-data-line);
+}
+
+.type-code {
+  font-family: var(--font-mono);
+  font-size: var(--type-code-size);
+  font-weight: var(--fw-label);
+  letter-spacing: 0;
+  line-height: var(--type-code-line);
+}
+
+/* The one uppercase role: instrument-strip labels, column headers, stat
+ * labels. For a category or a status, never for a sentence. */
 .microlabel {
   color: var(--text-secondary);
   font-family: var(--font-mono);
   font-size: var(--fs-microlabel);
-  font-weight: 400;
+  font-weight: var(--fw-heading);
   letter-spacing: var(--ls-microlabel);
-  line-height: 1.4;
+  line-height: var(--lh-microlabel);
   text-transform: uppercase;
+}
+
+/* One keycap per physical key, inline on its row's line. The box is 18px so a
+ * chip row fits inside a 36px dense row without pushing it taller. Backed by a
+ * class rather than utilities because <Kbd> also renders in the overlay
+ * webview, which has no Tailwind. */
+.kbd {
+  align-items: center;
+  background: var(--color-canvas);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  block-size: var(--keycap-h);
+  color: var(--text-tertiary);
+  display: inline-flex;
+  font-family: var(--font-mono);
+  font-size: var(--type-keycap-size);
+  font-weight: var(--fw-button);
+  justify-content: center;
+  line-height: 1;
+  min-inline-size: var(--keycap-h);
+  padding-inline: var(--space-1);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- glass */
+
+/* The Glass material, live only while the Material setting is Glass AND the
+ * native vibrancy view actually applied — Rust owns `data-material` and only
+ * writes "glass" when both hold, so these rules never fire on a window that
+ * cannot back them.
+ *
+ * Two variants, because the two window kinds are not the same problem:
+ *
+ *   .glass-surface        top nav + command palette, inside the main window.
+ *                         Content genuinely scrolls beneath them, so a
+ *                         backdrop-filter samples app content: cheap, bounded,
+ *                         and the effect is visible.
+ *   .glass-surface--tint  the recording HUD, a transparent NSPanel over an
+ *                         arbitrary desktop. Tint, border and specular only.
+ *                         A blur there has to sample the screen behind the
+ *                         window, during live ASR, for an effect the 0.85 tint
+ *                         mostly hides — this app shipped that once (a 28px
+ *                         backdrop blur, see overlay/RecordingOverlay.css) and
+ *                         reverted it for cost and legibility. Not repeated.
+ *
+ * No saturate(): Apple's shipped value is a plain blur and a monochrome UI has
+ * no saturation to boost. No --shadow-panel: its 1px ring would double the
+ * --glass-border edge, so glass takes the ring-less --glass-shadow. No
+ * `contain`: `layout` would make the surface an independent formatting context
+ * (the overlay card's flush-to-edge anchoring depends on not being one) and
+ * `paint` would clip the model dropdown that opens out of the nav. Three glass
+ * surfaces total is inside budget without it. Never nest two, and never
+ * animate the blur radius. */
+:root[data-material="glass"] .glass-surface {
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+}
+
+:root[data-material="glass"] .glass-surface,
+:root[data-material="glass"] .glass-surface--tint {
+  background: var(--glass-tint);
+  /* Colour only, never the shorthand: the consumer owns which edges it draws.
+     The nav wants a bottom rule, the palette and the HUD card want all four. */
+  border-color: var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 var(--glass-specular-top),
+    var(--glass-shadow);
+}
+
+/* Reduce Transparency is not readable from a WKWebView today — WebKit does not
+ * implement the query, which is why the in-app Material setting is the real
+ * gate. The rule is written anyway: it is inert until WebKit ships support and
+ * costs nothing. Increase Contrast IS supported, and flattens glass to a
+ * bordered solid, which is what the system does natively. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  :root[data-material="glass"] .glass-surface,
+  :root[data-material="glass"] .glass-surface--tint {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--surface-raised);
+    border-color: var(--border);
+    box-shadow: none;
+  }
 }
 
 /* ---------------------------------------------------------- data table */
@@ -402,10 +598,16 @@
 
 /* The placeholder is the same light-through-glass idea a gradient can express:
  * one narrow spectral sweep smeared across the band, masked to a soft wedge so
- * it reads as a beam rather than as a blob. */
+ * it reads as a beam rather than as a blob.
+ *
+ * Its origin sits inside the region the accent owns, past --shader-hero-clear,
+ * for the same reason the fragment shader clamps itself there: this layer
+ * paints on the first frame, before the shader compiles, and an origin inside
+ * the content column would put a smear across the copy for exactly as long as
+ * the shader takes to link. */
 .shader-hero-placeholder {
   background: conic-gradient(
-    from 200deg at 22% 18%,
+    from 200deg at calc(var(--shader-hero-clear, 62%) + 14%) 30%,
     transparent 0deg 26deg,
     color-mix(in oklab, var(--amber-700) 26%, transparent) 34deg,
     color-mix(in oklab, var(--text-primary) 22%, transparent) 40deg,

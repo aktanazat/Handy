@@ -451,26 +451,6 @@
   margin-top: var(--space-2);
 }
 
-/* -------------------------------------------------------------- history */
-
-.history-retry-spin {
-  animation: spin 1s linear infinite reverse;
-}
-
-.history-transcribing {
-  animation: history-transcribing 3s ease-in-out infinite;
-}
-
-@keyframes history-transcribing {
-  0%,
-  100% {
-    color: var(--color-text-tertiary);
-  }
-  50% {
-    color: var(--color-text-primary);
-  }
-}
-
 .meeting-choice-row {
   align-items: center;
   color: var(--color-text-primary);
@@ -516,12 +496,14 @@
 }
 
 .mode-actions-menu,
-.vocabulary-actions-menu {
+.vocabulary-actions-menu,
+.history-actions-menu {
   position: relative;
 }
 
 .mode-actions-menu > summary,
-.vocabulary-actions-menu > summary {
+.vocabulary-actions-menu > summary,
+.history-actions-menu > summary {
   align-items: center;
   border-radius: var(--radius-control);
   cursor: pointer;
@@ -536,16 +518,19 @@
 }
 
 .mode-actions-menu > summary:hover,
-.vocabulary-actions-menu > summary:hover {
+.vocabulary-actions-menu > summary:hover,
+.history-actions-menu > summary:hover {
   background: var(--color-hover);
 }
 
 .mode-actions-menu > summary::-webkit-details-marker,
-.vocabulary-actions-menu > summary::-webkit-details-marker {
+.vocabulary-actions-menu > summary::-webkit-details-marker,
+.history-actions-menu > summary::-webkit-details-marker {
   display: none;
 }
 
 .mode-actions-menu > div,
+.history-actions-menu > div,
 .vocabulary-actions-popover {
   background: var(--color-surface);
   border: 1px solid var(--color-border-strong);
@@ -560,6 +545,7 @@
 }
 
 .mode-actions-menu > div > button,
+.history-actions-menu > div > button,
 .vocabulary-actions-popover > button {
   background: transparent;
   border: 0;
@@ -576,17 +562,20 @@
 }
 
 .mode-actions-menu > div > button:hover,
+.history-actions-menu > div > button:hover,
 .vocabulary-actions-popover > button:hover {
   background: var(--color-hover);
 }
 
 .mode-actions-menu > div > button:disabled,
+.history-actions-menu > div > button:disabled,
 .vocabulary-actions-popover > button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
 
-.mode-actions-menu .danger-menu-item {
+.mode-actions-menu .danger-menu-item,
+.history-actions-menu .danger-menu-item {
   color: var(--color-danger);
 }
 
@@ -787,22 +776,6 @@
   .trend-metric-strip button {
     min-block-size: 60px;
     padding-block: var(--space-2);
-  }
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  :root[data-material="glass"] .app-sidebar,
-  :root[data-material="glass"] .settings-main {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-
-  :root[data-material="glass"] .app-sidebar {
-    background: var(--color-canvas);
-  }
-
-  :root[data-material="glass"] .settings-main {
-    background: var(--color-surface);
   }
 }
 

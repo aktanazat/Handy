@@ -5,11 +5,11 @@
  * compiler, which never executes them.
  */
 declare module "bun:test" {
-  export function describe(name: string, fn: () => void): void;
-  export function test(name: string, fn: () => void | Promise<void>): void;
-  export function expect<T = unknown>(
-    value: T,
-  ): {
+  /* `not` carries the same matchers as the positive form, so it is one named
+   * shape rather than a bag of unknowns. Typed as `Record<string, unknown>` it
+   * compiled to "Object is of type 'unknown'" at every `.not.toContain(...)`,
+   * which is the assertion a test reaches for to pin a defect dead. */
+  interface Matchers {
     toBe(expected: unknown): void;
     toEqual(expected: unknown): void;
     toContain(expected: unknown): void;
@@ -25,6 +25,9 @@ declare module "bun:test" {
     toThrow(error?: unknown): void;
     toHaveBeenCalled(): void;
     toHaveBeenCalledWith(...args: unknown[]): void;
-    not: Record<string, unknown>;
-  };
+  }
+
+  export function describe(name: string, fn: () => void): void;
+  export function test(name: string, fn: () => void | Promise<void>): void;
+  export function expect<T = unknown>(value: T): Matchers & { not: Matchers };
 }

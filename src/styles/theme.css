@@ -85,6 +85,11 @@
   --surface-1: var(--bg-1);
   --surface-2: var(--bg-2);
   --surface-raised: var(--gray-100);
+  /* The single owner of "recessed". Three surfaces, three owners: recessed is
+     --surface-inset, chrome is --surface-2, raised is --surface-raised. In dark
+     recessed is DARKER than the page; in light it is the third Apple step
+     (#f2f2f2), which is the one that actually separates from white. */
+  --surface-inset: var(--bg-2);
   --border-subtle: var(--gray-a-300);
   --border: var(--gray-a-400);
   --border-hover: var(--gray-a-500);
@@ -112,12 +117,34 @@
      must be changed together, and the CSS one is what paints first. */
   --hero-paper: #09090a;
 
-  /* -- elevation. Against #0a0a0a a 12%-black shadow is invisible, so dark
-     leans on the raised grey fill plus the alpha-white hairline and raises the
-     shadow alpha so it still contributes on OLED black. */
-  --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.45);
-  --shadow-panel: 0 24px 64px rgba(0, 0, 0, 0.4);
-  --shadow-dialog: 0 32px 100px rgba(0, 0, 0, 0.45);
+  /* -- elevation. A 1px ring plus tight low-alpha layers, which is Geist's real
+     product elevation: on dark the ring is what separates a panel at all, and
+     the layers only keep it from looking pasted on. A panel carrying
+     --shadow-panel must NOT also carry a border — the ring is the border. */
+  --shadow-popover:
+    0 0 0 1px rgba(255, 255, 255, 0.145), 0 1px 1px rgba(0, 0, 0, 0.08),
+    0 4px 8px -4px rgba(0, 0, 0, 0.16), 0 16px 24px -8px rgba(0, 0, 0, 0.24);
+  --shadow-panel:
+    0 0 0 1px rgba(255, 255, 255, 0.145), 0 2px 2px rgba(0, 0, 0, 0.32),
+    0 8px 8px -8px rgba(0, 0, 0, 0.16);
+  --shadow-dialog:
+    0 0 0 1px rgba(255, 255, 255, 0.145), 0 1px 1px rgba(0, 0, 0, 0.08),
+    0 8px 16px -4px rgba(0, 0, 0, 0.16), 0 24px 32px -8px rgba(0, 0, 0, 0.24);
+
+  /* -- glass. Only the three chrome surfaces read these, and only while the
+     Material setting is Glass; see .glass-surface in primitives.css. The tint
+     is x.ai's measured header value (0.85) rather than a thinner one, because
+     a chrome surface carrying this much text does not hold legibility below it.
+     No saturate(): Apple's own shipped value is a plain blur, and on a
+     monochrome UI a saturation boost has nothing to boost. */
+  --glass-tint: rgba(10, 10, 10, 0.85);
+  --glass-tint-clear: rgba(10, 10, 10, 0.28);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-specular-top: rgba(255, 255, 255, 0.22);
+  /* Ring-less: a glass surface already draws its own edge with --glass-border
+     and the specular top, so it takes an ambient shadow instead of the ringed
+     --shadow-panel, which would double the edge. */
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
 }
 
 /* ====================================================== light override === */
@@ -166,39 +193,71 @@
   --amber-900: hsl(30 100% 32%);
 
   /* Nothing sits above white, so a raised surface in light earns its lift from
-     the hairline and the shadow, not from a lighter fill. */
+     the hairline and the shadow, not from a lighter fill. Recessed, though, has
+     to move: --bg-2 (#fafafa) is 5/255 from the page and reads as a smudge, so
+     light's inset takes Apple's third step, which Geist already ships as
+     --gray-100 (#f2f2f2) — 13/255, a separation you can actually see. */
   --surface-raised: var(--bg-1);
+  --surface-inset: var(--gray-100);
   --focus-ring: var(--blue-700);
   --scrim: rgba(0, 0, 0, 0.36);
   --hero-paper: #e6e3df;
 
-  --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.1);
-  --shadow-panel: 0 24px 64px rgba(0, 0, 0, 0.12);
-  --shadow-dialog: 0 32px 100px rgba(0, 0, 0, 0.12);
+  --shadow-popover:
+    0 0 0 1px rgba(0, 0, 0, 0.078), 0 1px 1px rgba(0, 0, 0, 0.02),
+    0 4px 8px -4px rgba(0, 0, 0, 0.04), 0 16px 24px -8px rgba(0, 0, 0, 0.06);
+  --shadow-panel:
+    0 0 0 1px rgba(0, 0, 0, 0.078), 0 2px 2px rgba(0, 0, 0, 0.04),
+    0 8px 8px -8px rgba(0, 0, 0, 0.04);
+  --shadow-dialog:
+    0 0 0 1px rgba(0, 0, 0, 0.078), 0 1px 1px rgba(0, 0, 0, 0.02),
+    0 8px 16px -4px rgba(0, 0, 0, 0.04), 0 24px 32px -8px rgba(0, 0, 0, 0.06);
+
+  --glass-tint: rgba(255, 255, 255, 0.85);
+  --glass-tint-clear: rgba(255, 255, 255, 0.32);
+  --glass-border: rgba(255, 255, 255, 0.6);
+  --glass-specular-top: rgba(255, 255, 255, 0.85);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
 }
 
 /* ===================================== scales that do not follow a theme === */
 
 :root {
   /* -- radii. Geist's product ("materials") scale, not its editorial one:
-     6px for a control, 12px for a card or modal, 16px for a full-bleed sheet.
-     Names stay the app's own so Tailwind's rounded-md/-lg utilities keep their
-     default values instead of silently inheriting a product tier. */
+     6px for a control, 8px for a panel, 12px for a modal, 16px for a
+     full-bleed sheet. Names stay the app's own so Tailwind's rounded-md/-lg
+     utilities keep their default values instead of silently inheriting a
+     product tier. The panel step is 8px, not 12: 12px on a data panel reads
+     consumer-soft, and 8px is x.ai's authored base, Cursor's panel radius and
+     one step above Apple's 5px. A dialog is larger than a panel and keeps 12. */
   --radius-xs: 4px; /* key cap */
   --radius-control: 6px; /* button, input, select, tooltip */
-  --radius-panel: 12px; /* card, menu, popover */
+  --radius-panel: 8px; /* card, menu, popover */
   --radius-dialog: 12px; /* modal */
   --radius-sheet: 16px; /* full-bleed panel */
+  /* Pills are for status dots, the HUD card and toggle tracks. Never on a badge
+     that carries metadata, never on a button. */
   --radius-pill: 999px;
   /* Concentric nesting: an inner surface inset by P from a radius-R parent
    * gets R - P, so the two curves stay parallel. */
   --radius-in-control: calc(var(--radius-control) - var(--space-1));
 
-  /* -- focus. A real outline, not a box-shadow glow. */
+  /* -- focus. A real outline, not a box-shadow glow. --focus-outline goes on
+     standalone controls; --focus-ring-inset goes on rows, cells and segments
+     inside a dense list, where an outset outline would collide with the
+     neighbouring row's divider. */
   --focus-ring-width: 2px;
   --focus-ring-offset: 2px;
   --focus-outline: var(--focus-ring-width) solid var(--focus-ring);
   --focus-offset: var(--focus-ring-offset);
+  --focus-ring-inset: 0 0 0 2px var(--surface-1), 0 0 0 4px var(--focus-ring);
+
+  /* -- hairline. The repeated divider inside a dense list or an instrument
+     strip, at the faint alpha step: at --border (0.14) a divider every 36-60px
+     bands the whole column. --border stays the outline of a discrete object —
+     card, control, input, segmented track. --gray-a-100 already flips poles
+     between the two theme blocks, so one declaration serves both. */
+  --border-hairline: var(--gray-a-100);
 
   --space-0-5: 2px;
   --space-1: 4px;
@@ -215,10 +274,26 @@
   --control-height-sm: 28px;
   --control-height: 32px;
   --touch-target: 44px;
-  --topnav-height: 64px;
+  /* 52px, not 64: Cursor's app header and Apple's local-nav/ribbon are both
+     52px, while 64 is a marketing-site nav. 12px per screen is real vertical
+     budget in a dense instrument. */
+  --topnav-height: 52px;
   --settings-row-height: 44px;
   --page-max-width: 1040px;
   --chart-height: 160px;
+
+  /* -- row geometry, each derived from its own content. Between rows the
+     separator is a --border-hairline divider, never a gap. */
+  --row-h-strip: 44px; /* instrument-strip cell: microlabel 16 + data 16 + 12 */
+  --row-h-single: 36px; /* single-line dense row: row-title 19 + 8/8, gridded */
+  --row-h-entry: 60px; /* two-line Library entry; centre the lines, don't pad */
+  --row-h-settings: var(--settings-row-height);
+  --keycap-h: 18px;
+
+  /* -- glass, read only by .glass-surface under [data-material="glass"]. The
+     per-theme tint/border/specular/shadow live in the two theme blocks. */
+  --glass-blur: 20px; /* Apple's shipped web value */
+  --glass-scrim: rgba(0, 0, 0, 0.35); /* HIG's stated dimming layer */
 
   --duration-instant: 80ms;
   --duration-fast: 120ms;
@@ -228,27 +303,41 @@
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* -- type. Geist's product scale: headings at weight 600 (the editorial 450
-     belongs to Vercel's report skin, not to an app), labels at 400-500, and
-     tracking that tightens as size grows. */
+  /* -- type. Weights are 400/500/600 only — SF's own guidance rules out
+     Ultralight/Thin/Light for UI, and the editorial 450 belongs to Vercel's
+     report skin, not to an app.
+
+     TRACKING IS ZERO AT EVERY UI SIZE. Measured off Apple's live SF rendering:
+     SF's own tracking never exceeds ±0.012em between 19 and 80px, it crosses
+     zero at 40px, and below that it is positive. The old −0.02/−0.04em values
+     were three to four times SF's magnitude and pointed the wrong way. SF also
+     ships a real optical-size axis (see fonts.css), so per-size tracking is
+     re-solving a problem the font already solves. The --ls-* names stay so no
+     consumer breaks; they are all zero now, and one owner beats eleven.
+     Above 40px, if a surface ever needs it, use Apple's curve directly:
+     −0.003em @48, −0.005em @56, −0.009em @64, −0.015em @80. Sona stops at 40. */
   --fw-heading: 600;
   --fw-button: 500;
   --fw-label: 400;
+  --fs-display-40: 40px;
+  --lh-display-40: 44px;
   --fs-heading-32: 32px;
   --lh-heading-32: 40px;
-  --ls-heading-32: -1.28px;
+  --ls-heading-32: 0;
+  --fs-heading-28: 28px;
+  --lh-heading-28: 32px;
   --fs-heading-24: 24px;
   --lh-heading-24: 32px;
-  --ls-heading-24: -0.96px;
+  --ls-heading-24: 0;
   --fs-heading-20: 20px;
   --lh-heading-20: 26px;
-  --ls-heading-20: -0.4px;
+  --ls-heading-20: 0;
   --fs-heading-16: 16px;
   --lh-heading-16: 24px;
-  --ls-heading-16: -0.32px;
+  --ls-heading-16: 0;
   --fs-heading-14: 14px;
   --lh-heading-14: 20px;
-  --ls-heading-14: -0.28px;
+  --ls-heading-14: 0;
   --fs-label-16: 16px;
   --lh-label-16: 20px;
   --fs-label-14: 14px;
@@ -257,37 +346,109 @@
   --lh-label-13: 16px;
   --fs-label-12: 12px;
   --lh-label-12: 16px;
-  /* The vgpu.sh signature: a short uppercase mono label, tracked wide and set
-     in a muted grey. Opt in with .microlabel. */
+  /* The one uppercase role: a short mono label, tracked, in a muted grey. Opt
+     in with .microlabel. 0.09em, not 0.14: at 11px, 0.14em adds 1.54px per pair
+     and visibly fragments a two-word label like SAMPLE RATE, while 0.09em sits
+     inside the measured aerospace band (SpaceX runs +0.09em at 13px) and buys
+     back horizontal room in a four-cell instrument strip. */
   --fs-microlabel: 11px;
-  --ls-microlabel: 0.14em;
+  --lh-microlabel: 16px;
+  --ls-microlabel: 0.09em;
 
-  /* The app's compact desktop rhythm, expressed on the Geist scale where the
-     two agree. Row and body keep a 19px line so a 44px settings row still
-     breathes; the headings move onto Geist's own metrics. */
+  /* The eleven roles of the ramp. Nothing outside these sets font-size,
+     font-weight, letter-spacing or text-transform directly; the classes that
+     apply them live in primitives.css. */
+  --type-display-size: var(--fs-display-40);
+  --type-display-line: var(--lh-display-40);
+  --type-display-weight: var(--fw-heading);
   --type-title-size: var(--fs-heading-20);
   --type-title-line: var(--lh-heading-20);
   --type-title-weight: var(--fw-heading);
   --type-title-tracking: var(--ls-heading-20);
-  --type-section-size: var(--fs-heading-16);
-  --type-section-line: var(--lh-heading-16);
+  /* A group heading is 14px, not 16: it reuses the existing 14/20 primitive,
+     it is x.ai's own measured workhorse UI size, and it saves 4px of leading
+     per heading on screens that stack many. */
+  --type-section-size: var(--fs-heading-14);
+  --type-section-line: var(--lh-heading-14);
   --type-section-weight: var(--fw-heading);
-  --type-section-tracking: var(--ls-heading-16);
-  --type-metric-size: var(--fs-heading-24);
-  --type-metric-line: var(--lh-heading-24);
+  --type-section-tracking: var(--ls-heading-14);
+  --type-metric-size: var(--fs-heading-28);
+  --type-metric-line: var(--lh-heading-28);
   --type-metric-weight: var(--fw-heading);
-  --type-metric-tracking: var(--ls-heading-24);
+  --type-metric-tracking: 0;
   --type-row-size: var(--fs-label-13);
   --type-row-line: 19px;
   --type-row-weight: var(--fw-button);
   --type-body-size: var(--fs-label-13);
   --type-body-line: 19px;
-  --type-secondary-size: 12.5px;
-  --type-secondary-line: 18px;
-  --type-caption-size: var(--fs-label-12);
-  --type-caption-line: var(--lh-label-12);
+  --type-secondary-size: var(--fs-label-12);
+  --type-secondary-line: var(--lh-label-12);
+  --type-data-size: var(--fs-label-12);
+  --type-data-line: var(--lh-label-12);
+  --type-code-size: var(--fs-label-13);
+  --type-code-line: 20px;
+  --type-keycap-size: var(--fs-microlabel);
+  --type-caption-size: var(--fs-microlabel);
+  --type-caption-line: var(--lh-microlabel);
   --type-caption-weight: var(--fw-heading);
-  --type-caption-tracking: 0.045em;
+  /* One owner for the uppercase-label tracking; this used to disagree with
+     --ls-microlabel by 0.095em. */
+  --type-caption-tracking: var(--ls-microlabel);
+}
+
+/* ============================================================== motion === */
+
+/* The per-class assignment for the timing tokens above. Every measured
+ * reference clusters hover at 120-150ms and panel motion at 140-240ms, so the
+ * ladder needs no new values — only one owner per interaction class.
+ *
+ *   hover / active on anything interactive  120ms --ease-in-out, on
+ *                                           background-color, border-color, color
+ *   dense-list row hover                    120ms --ease-in-out, wash + border-top-color
+ *   segmented-control active indicator      180ms --ease-out, transform only
+ *   panel / popover / menu / palette        180ms --ease-out, opacity + transform
+ *   focus ring                              80ms or none, linear
+ *   whole-view swap                         180ms --ease-out, View Transitions
+ *   list reorder                            180ms --ease-out, transform via FLIP
+ *
+ * `cubic-bezier(0.4,0,0.2,1)` is the curve measured as dominant on both x.ai
+ * and Cursor. 120ms rather than their 150ms: it is inside Apple's own measured
+ * 120ms colour transition, and performance is design. No springs, no bounce.
+ *
+ * WHAT NEVER ANIMATES — this is a correctness rule, not a taste one:
+ *   1. Any numeric value that reports a MEASUREMENT: realtime factor, input
+ *      peak/rms, elapsed time, latency, model-load ms, word counts. A tweened
+ *      number displays intermediate values the backend never reported. A
+ *      measurement snaps, or it is not a measurement. Use .snap-measured on the
+ *      element that holds it to make the rule enforceable rather than folklore.
+ *   2. The live waveform and the input-level meter — data at frame rate.
+ *   3. `backdrop-filter` blur radius: re-rasterises the sampled backdrop every
+ *      frame. Cross-fade opacity instead.
+ *   4. Layout properties (width, height, top, left, margin, padding, gap).
+ *   5. Theme and Material switches. Both instant.
+ *   6. First paint. No entrance animation on initial mount, ever.
+ *   7. Status-semaphore colour changes: amber -> red is a state transition, and
+ *      fading through orange invents a state that does not exist.
+ *   8. Row reflow when a list filters or sorts. Rows may FLIP position; they
+ *      may not animate height. */
+
+.hover-fast {
+  transition:
+    background-color var(--duration-fast) var(--ease-in-out),
+    border-color var(--duration-fast) var(--ease-in-out),
+    color var(--duration-fast) var(--ease-in-out);
+}
+
+/* Put this on the SPAN THAT HOLDS THE NUMBER, not on the cell or row around it.
+ * It is deliberately blanket and deliberately unoverridable — a measurement
+ * that tweens is reporting values the backend never produced, which is a
+ * correctness bug, not a style preference — and that same property will freeze
+ * any CSS-animated descendant, silently and undebuggably. A cell holding a live
+ * level meter or a spinner is exactly the wrong attachment point. */
+.snap-measured,
+.snap-measured * {
+  transition: none !important;
+  animation: none !important;
 }
 
 /* ============================================================== compat === */
@@ -300,7 +461,7 @@
   --color-canvas: var(--surface-1);
   --color-surface: var(--surface-raised);
   --color-surface-raised: var(--surface-raised);
-  --color-surface-sunken: var(--surface-2);
+  --color-surface-sunken: var(--surface-inset);
   --color-subtle: var(--gray-100);
   --color-hover: var(--wash-hover);
   --color-pressed: var(--wash-active);

@@ -35,17 +35,25 @@ const nextEnabledIndex = (
 /* The underlined strip owns its own rail, because an underline that marks the
  * active tab needs a line to sit on. The 2px marker is drawn by a
  * pseudo-element pulled one pixel down so it covers the rail instead of
- * stacking above it. */
+ * stacking above it.
+ *
+ * The segmented strip is a real track: a hairline box holding the segments, so
+ * the control reads as a switch before you know which segment is on. The active
+ * segment is then unmistakable — raised fill AND its own border AND the weight
+ * jump. `bg-subtle` alone was none of those in light, where subtle sits 4/255
+ * off the page and the strip read as three plain words. Segments are concentric
+ * with the track: 6px outer, 2px padding, 4px inner. */
 const LIST_CLASSES = {
   default: "flex items-stretch gap-4 border-b border-border",
-  secondary: "inline-flex items-center gap-0.5",
+  secondary:
+    "inline-flex items-center gap-0.5 rounded-control border border-border bg-surface-sunken p-0.5",
 } as const;
 
 const TAB_CLASSES = {
   default:
     "relative min-h-9 cursor-pointer px-0.5 text-[13px] whitespace-nowrap transition-colors duration-150 ease-out after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:origin-center after:scale-x-0 after:bg-text-primary after:transition-transform after:duration-180 after:ease-out disabled:cursor-not-allowed disabled:text-text-disabled",
   secondary:
-    "min-h-8 cursor-pointer rounded-control px-3 text-[13px] whitespace-nowrap transition-[background-color,color] duration-150 ease-out disabled:cursor-not-allowed disabled:text-text-disabled",
+    "min-h-7 cursor-pointer rounded-xs border border-transparent px-3 text-[13px] whitespace-nowrap transition-[background-color,border-color,color] duration-120 ease-in-out disabled:cursor-not-allowed disabled:text-text-disabled",
 } as const;
 
 const TAB_STATE_CLASSES = {
@@ -54,7 +62,7 @@ const TAB_STATE_CLASSES = {
     idle: "font-medium text-text-secondary enabled:hover:text-text-primary",
   },
   secondary: {
-    active: "bg-subtle font-semibold text-text-primary",
+    active: "border-border bg-surface-raised font-semibold text-text-primary",
     idle: "font-medium text-text-secondary enabled:hover:bg-hover enabled:hover:text-text-primary enabled:active:bg-pressed",
   },
 } as const;

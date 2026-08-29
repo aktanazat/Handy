@@ -688,6 +688,43 @@ pub enum Theme {
     Light,
     Dark,
 }
+
+/// Window material. `Solid` paints Sona's own surfaces edge to edge; `Glass`
+/// makes the window background transparent so the native vibrancy view shows
+/// through the three chrome surfaces (top nav, command palette, HUD).
+///
+/// This is the user's *intent*. The material actually in force is this AND
+/// vibrancy having applied — vibrancy is macOS-only and can fail, and a failed
+/// apply means Solid, not a half-transparent window. `shortcut::apply_window_material`
+/// resolves the two and is the only writer of the webview's `data-material`.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, Default, PartialEq, Eq, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum AppearanceMaterial {
+    #[default]
+    Solid,
+    Glass,
+}
+
+impl AppearanceMaterial {
+    /// The value written to `document.documentElement.dataset.material`, and the
+    /// string the frontend sends back to `change_appearance_material_setting`.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            AppearanceMaterial::Solid => "solid",
+            AppearanceMaterial::Glass => "glass",
+        }
+    }
+
+    /// Unknown strings resolve to Solid: an appearance is not worth failing a
+    /// command over, and Solid is the material that always renders.
+    pub fn from_str_or_solid(value: &str) -> Self {
+        match value {
+            "glass" => AppearanceMaterial::Glass,
+            _ => AppearanceMaterial::Solid,
+        }
+    }
+}
+
 /// A deterministic correction from what the recognizer heard to what should
 /// be written. Legacy string entries deserialize losslessly as equal pairs.
 #[derive(Serialize, Debug, Clone, PartialEq, Eq, Type)]
@@ -1043,6 +1080,8 @@ pub struct AppSettings {
     pub app_language: String,
     #[serde(default = "default_theme")]
     pub theme: Theme,
+    #[serde(default)]
+    pub appearance_material: AppearanceMaterial,
     #[serde(default)]
     pub experimental_enabled: bool,
     #[serde(default)]
@@ -1719,6 +1758,7 @@ pub fn get_default_settings() -> AppSettings {
         append_trailing_space: false,
         app_language: default_app_language(),
         theme: default_theme(),
+        appearance_material: AppearanceMaterial::default(),
         experimental_enabled: false,
         lazy_stream_close: false,
         keyboard_implementation: KeyboardImplementation::default(),
@@ -2397,6 +2437,7 @@ pub(crate) fn merge_upstream_import_settings(
     merged.append_trailing_space = imported.append_trailing_space;
     merged.app_language = imported.app_language;
     merged.theme = imported.theme;
+    merged.appearance_material = imported.appearance_material;
     merged.filler_word_removal_enabled = imported.filler_word_removal_enabled;
     merged.custom_filler_words = imported.custom_filler_words;
     merged.vad_enabled = imported.vad_enabled;

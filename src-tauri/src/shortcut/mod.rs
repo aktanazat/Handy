@@ -16,6 +16,7 @@ pub mod tauri_impl;
 use log::{debug, error, info, warn};
 use serde::Serialize;
 use specta::Type;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -23,9 +24,9 @@ use crate::secrets::{SecretAccount, SecretCommandError, SecretManager, SecretRea
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 use crate::settings::APPLE_INTELLIGENCE_DEFAULT_MODEL_ID;
 use crate::settings::{
-    self, get_settings, AppSettings, AutoSubmitKey, ClipboardHandling, EnglishSpelling,
-    KeyboardImplementation, LLMPrompt, OverlayPosition, OverlayStyle, PasteMethod, ShortcutBinding,
-    SoundTheme, Theme, TypingTool, APPLE_INTELLIGENCE_PROVIDER_ID,
+    self, get_settings, AppSettings, AppearanceMaterial, AutoSubmitKey, ClipboardHandling,
+    EnglishSpelling, KeyboardImplementation, LLMPrompt, OverlayPosition, OverlayStyle, PasteMethod,
+    ShortcutBinding, SoundTheme, Theme, TypingTool, APPLE_INTELLIGENCE_PROVIDER_ID,
 };
 use crate::tray;
 
@@ -658,6 +659,138 @@ pub fn apply_window_theme(app: &AppHandle, theme: Theme) {
             warn!("Failed to apply window theme: {}", e);
         }
     }
+}
+
+/// Windows whose document follows the Material setting. The agent panel is
+/// deliberately absent: it is built opaque (`agent_panel::window`), so a
+/// transparent document there would paint over nothing.
+const MATERIAL_WINDOWS: [&str; 2] = ["main", "recording_overlay"];
+
+/// The material actually in force — intent AND a live vibrancy view. Cached so
+/// a document that loads later (a reload, or the overlay window being created
+/// after startup) can be told the truth without re-running the native apply.
+/// Written only by `apply_window_material`.
+static GLASS_IN_FORCE: AtomicBool = AtomicBool::new(false);
+
+fn material_in_force() -> AppearanceMaterial {
+    if GLASS_IN_FORCE.load(Ordering::Relaxed) {
+        AppearanceMaterial::Glass
+    } else {
+        AppearanceMaterial::Solid
+    }
+}
+
+fn material_script(material: AppearanceMaterial) -> String {
+    format!(
+        "document.documentElement.dataset.material = '{}';",
+        material.as_str()
+    )
+}
+
+/// Re-applies the material to a document that has just loaded. Every window
+/// starts from an initialization script that writes the conservative `solid`,
+/// so without this a reload would silently drop Glass; and the attribute is
+/// never allowed to claim Glass that the native layer is not backing, which is
+/// why this reads the cached truth rather than the setting.
+pub fn reassert_window_material(webview: &tauri::Webview) {
+    if !MATERIAL_WINDOWS.contains(&webview.label()) {
+        return;
+    }
+    if let Err(error) = webview.eval(&material_script(material_in_force())) {
+        warn!(
+            "Could not restore the {} window material: {error}",
+            webview.label()
+        );
+    }
+}
+
+/// Puts the Material setting into force and returns what is actually in force.
+///
+/// Glass needs a native vibrancy view behind the transparent webview; that is
+/// macOS-only and can fail, and a webview left transparent over nothing is a
+/// blank window. So intent and reality are resolved here, once, and the result
+/// is written to every relevant webview's `data-material` — which makes this
+/// the single owner of that attribute. The frontend never sets it.
+///
+/// Vibrancy is applied to the main window only. The recording overlay is a
+/// transparent panel sized larger than the card it draws (256x46 around a
+/// 184x40 pill, and the card animates its own width), so a window-scoped
+/// NSVisualEffectView would paint a frosted rectangle around the pill; its card
+/// takes the tint-only glass class instead.
+pub fn apply_window_material(app: &AppHandle, material: AppearanceMaterial) -> AppearanceMaterial {
+    let effective = resolve_window_material(app, material);
+    GLASS_IN_FORCE.store(effective == AppearanceMaterial::Glass, Ordering::Relaxed);
+    let script = material_script(effective);
+    for label in MATERIAL_WINDOWS {
+        if let Some(window) = app.get_webview_window(label) {
+            if let Err(error) = window.eval(&script) {
+                warn!("Could not set the {label} window material: {error}");
+            }
+        }
+    }
+    effective
+}
+
+#[cfg(target_os = "macos")]
+fn resolve_window_material(app: &AppHandle, material: AppearanceMaterial) -> AppearanceMaterial {
+    use window_vibrancy::{
+        apply_vibrancy, clear_vibrancy, NSVisualEffectMaterial, NSVisualEffectState,
+    };
+
+    let Some(window) = app.get_webview_window("main") else {
+        return AppearanceMaterial::Solid;
+    };
+    match material {
+        AppearanceMaterial::Solid => {
+            if let Err(error) = clear_vibrancy(&window) {
+                warn!("Could not clear Sona window vibrancy: {error}");
+            }
+            AppearanceMaterial::Solid
+        }
+        AppearanceMaterial::Glass => match apply_vibrancy(
+            &window,
+            NSVisualEffectMaterial::UnderWindowBackground,
+            Some(NSVisualEffectState::FollowsWindowActiveState),
+            None,
+        ) {
+            Ok(()) => AppearanceMaterial::Glass,
+            Err(error) => {
+                warn!("Could not apply Sona window vibrancy; using the solid material: {error}");
+                AppearanceMaterial::Solid
+            }
+        },
+    }
+}
+
+/// Glass is a macOS vibrancy effect and nothing else implements it, so every
+/// other platform is Solid regardless of the stored intent.
+#[cfg(not(target_os = "macos"))]
+fn resolve_window_material(_app: &AppHandle, _material: AppearanceMaterial) -> AppearanceMaterial {
+    AppearanceMaterial::Solid
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_appearance_material_setting(app: AppHandle, material: String) -> Result<(), String> {
+    let parsed = AppearanceMaterial::from_str_or_solid(&material);
+    if material != parsed.as_str() {
+        warn!("Invalid appearance material '{material}', using solid");
+    }
+    settings::update_settings(&app, |settings| {
+        settings.appearance_material = parsed;
+    });
+    let effective = apply_window_material(&app, parsed);
+    // The overlay and agent-panel webviews cannot see this window's store, and
+    // the effective material is not always the stored one, so the event carries
+    // what is actually in force rather than what was asked for.
+    let _ = app.emit(
+        "settings-changed",
+        serde_json::json!({
+            "setting": "appearance_material",
+            "value": effective.as_str()
+        }),
+    );
+    Ok(())
 }
 
 #[tauri::command]

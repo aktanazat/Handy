@@ -36,6 +36,7 @@ import {
   initializeRTL,
   type LanguageDirection,
 } from "@/lib/utils/rtl";
+import { runViewTransition } from "@/lib/utils/viewTransition";
 
 type OnboardingStep = "accessibility" | "model" | "done";
 
@@ -474,6 +475,14 @@ function App() {
   }, []);
   useEffect(syncScrolled, [currentSection, syncScrolled]);
 
+  /* A route change swaps the whole view, which is the one case the View
+   * Transitions API is for. The deep-link handler below deliberately keeps the
+   * raw setter: it moves three pieces of state at once, and snapshotting a
+   * partial update would tear. */
+  const navigateToSection = useCallback((section: SidebarSection) => {
+    runViewTransition(() => setCurrentSection(section));
+  }, []);
+
   useEffect(() => {
     let disposed = false;
     let unsubscribe: (() => Promise<void>) | null = null;
@@ -712,7 +721,7 @@ function App() {
         onModelSelected={handleModelSelected}
         direction={direction}
         currentSection={currentSection}
-        onSectionChange={setCurrentSection}
+        onSectionChange={navigateToSection}
         loadingLabel={t("common.loading")}
         meetingInvalidation={meetingInvalidation}
         meetingNavigationRequest={meetingNavigationRequest}

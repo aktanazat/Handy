@@ -3,11 +3,14 @@
  *
  * The top bar is the whole navigation model: three text routes on the left,
  * model state, a command-palette chip and one utility on the right. It is
- * 64px, it does not scroll, and it starts transparent — the page reads as one
- * surface until content actually passes underneath, at which point
- * :root[data-scrolled] gives the bar the recessed fill and its hairline. The
- * routes carry no pill or underline chrome of their own; the active one is
- * named by aria-current and shown by a jump in both weight and contrast. */
+ * 52px, it does not scroll, and in the Solid material it starts transparent —
+ * the page reads as one surface until content actually passes underneath, at
+ * which point :root[data-scrolled] gives the bar the recessed fill and its
+ * hairline. Under Glass it carries the tint from the first frame instead:
+ * behind it is the desktop, not the page, and nav text floating on wallpaper
+ * is not legible. The routes carry no pill or underline chrome of their own;
+ * the active one is named by aria-current and shown by a jump in both weight
+ * and contrast. */
 
 /* ---------------------------------------------------------------- shell */
 
@@ -19,6 +22,10 @@
   position: relative;
 }
 
+/* Under Glass the shell is transparent so the native vibrancy view shows
+ * through the chrome. The CONTENT region is re-solidified below: HIG is
+ * explicit that glass belongs to the navigation layer and not to the content
+ * layer, and a vibrant page behind a dense table costs legibility for nothing. */
 :root[data-material="glass"] .app-shell,
 :root[data-material="glass"] .onboarding-shell {
   background: transparent;
@@ -359,71 +366,32 @@
 
 /* ---------------------------------------------------------- section nav */
 
+/* The bar and its rail. The segments themselves are the shared `secondary`
+ * Tabs primitive (ui/Tabs.tsx), which brings its own track, active treatment
+ * and roving tabindex — the twelve `.app-subnav-item*` rules that used to draw
+ * a bespoke unbordered strip here are gone with it. The rail keeps the page's
+ * own gutter and max width so the strip lines up with the content below it. */
 .app-subnav {
   background: var(--color-canvas);
-  border-bottom: 1px solid var(--color-border);
-  flex: none;
-}
-
-.app-subnav-inner {
+  border-bottom: 1px solid var(--border-hairline);
   display: flex;
-  gap: var(--space-0-5);
-  margin-inline: auto;
-  max-inline-size: var(--page-max-width);
-  padding-inline: var(--space-6);
+  flex: none;
+  padding-block: var(--space-1-5);
+  /* The strip starts where the page's content column starts: the page gutter
+     on a narrow window, and the gutter plus the centring offset once the window
+     is wider than --page-max-width. Centring the bar itself is wrong — the bar
+     spans the window because its hairline does. */
+  padding-inline: max(
+    var(--space-6),
+    calc((100% - var(--page-max-width)) / 2 + var(--space-6))
+  );
 }
 
-.app-subnav-item {
-  background: transparent;
-  border: 0;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  font-size: var(--type-row-size);
-  font-weight: var(--type-row-weight);
-  min-block-size: var(--touch-target);
-  min-inline-size: var(--touch-target);
-  padding-inline: var(--space-3);
-  position: relative;
-  transition: color var(--duration-fast) var(--ease-out);
-  white-space: nowrap;
-}
-
-.app-subnav-item::before {
-  background: transparent;
-  border-radius: var(--radius-control);
-  content: "";
-  inset: var(--space-1-5) 0;
-  position: absolute;
-  transition: background-color var(--duration-fast) var(--ease-out);
-}
-
-.app-subnav-item > span {
-  position: relative;
-}
-
-.app-subnav-item:hover {
-  color: var(--color-text-primary);
-}
-
-.app-subnav-item:hover::before {
-  background: var(--color-hover);
-}
-
-.app-subnav-item:active::before {
-  background: var(--color-pressed);
-}
-
-.app-subnav-item:focus-visible {
-  outline-offset: calc(var(--space-1-5) * -1);
-}
-
-.app-subnav-item[aria-current="page"] {
-  color: var(--color-text-primary);
-  font-weight: 600;
-}
-
-.app-subnav-item[aria-current="page"]::before {
-  background: var(--color-subtle);
+/* The Tabs track. Its own classes carry the box; this only keeps a long strip
+   from pushing the bar wider than the window. */
+.app-subnav-inner {
+  max-inline-size: 100%;
+  min-inline-size: 0;
 }
 
 /* -------------------------------------------------------- command palette */
@@ -614,10 +582,13 @@
   min-inline-size: 0;
 }
 
+/* The content region is the one place the Glass material does NOT reach. It
+ * used to carry its own blur(24px) — a fourth glass surface, on the content
+ * layer, under the three sanctioned ones — which HIG rules out and which put a
+ * nested backdrop-filter behind every scrolling table. It stays opaque in both
+ * materials; only the chrome above it is glass. */
 :root[data-material="glass"] .settings-main {
-  -webkit-backdrop-filter: blur(24px) saturate(104%);
-  backdrop-filter: blur(24px) saturate(104%);
-  background: var(--color-material-content);
+  background: var(--color-canvas);
 }
 
 .settings-scroll {
@@ -690,4 +661,28 @@
   gap: var(--space-5);
   inline-size: 100%;
   padding-block-start: var(--space-1);
+}
+
+/* ------------------------------------------------------ view transitions */
+
+/* A top-level route swap, and nothing else, crosses through the View
+ * Transitions API (lib/utils/viewTransition.ts feature-detects it and falls
+ * through to a plain update when the engine or the motion preference says no).
+ * The default root cross-fade is exactly the wanted effect, so this only puts
+ * it on the app's own clock instead of the UA's 250ms.
+ *
+ * Reduced motion is handled in the helper, which never starts a transition at
+ * all; the rule below is the belt for a transition started anywhere else. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--duration-standard);
+  animation-timing-function: var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }

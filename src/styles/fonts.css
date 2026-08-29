@@ -37,16 +37,37 @@
 
 :root {
   /* The two type primitives. Nothing else in the app names a font file.
-     System stacks stay behind Geist so a failed font decode degrades to the
-     platform UI face instead of Times. */
-  --font-sans:
-    "Geist Sans", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
-  --font-mono:
-    "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
-    "Liberation Mono", monospace;
+
+     San Francisco first, via the two system aliases, because Sona is a macOS
+     instrument and SF is the face the rest of the desktop is set in. Geist
+     stays as the bundled cross-platform fallback, which is its stated role.
+
+     Measured inside a real WKWebView on macOS 26.6.2 (2026-08-28, canvas
+     rasterisation + advance comparison against known AppKit faces):
+       system-ui    -> .AppleSystemUIFont            (SF Pro)
+       ui-monospace -> .AppleSystemUIFontMonospaced  (SF Mono, 0.618em advance)
+     Menlo (0.602em) and Monaco/Courier (0.600em) each rasterise differently, so
+     the Chromium result where `ui-monospace` lands on Menlo does NOT reproduce
+     on the engine Sona ships. Naming "SF Mono" ahead of the alias would be dead
+     weight: WebKit hides the system families from web content, so a quoted
+     "SF Mono" resolves to Times New Roman and the stack falls through to
+     `ui-monospace` anyway — verified, identical rasterisation with and without.
+     Keep the aliases; do not name the face. */
+  --font-sans: system-ui, -apple-system, "Geist Sans", sans-serif;
+  --font-mono: ui-monospace, "Geist Mono", monospace;
 
   /* Compat: the names the pages and the Tailwind theme were written against. */
   --font-geist-sans: var(--font-sans);
   --font-geist-mono: var(--font-mono);
+}
+
+/* SF is a variable font with a real optical-size axis, so let the engine pick
+ * the optical size per used size instead of asking for a discrete Text/Display
+ * cut. `font-synthesis: none` keeps it from faking weights the axis covers; it
+ * also lives in base.css for the main window, and is repeated here so the
+ * overlay and agent-panel webviews (which import only theme.css + fonts.css)
+ * get the same treatment. */
+html {
+  font-optical-sizing: auto;
+  font-synthesis: none;
 }
