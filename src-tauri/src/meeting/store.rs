@@ -1,3 +1,7 @@
+use super::analytics::{
+    AnalyticsSegment, MeetingActionItemState, MeetingAnalytics, MeetingNotesTemplate,
+    MeetingUserNotes,
+};
 use super::capture::SessionClock;
 use super::cloud_bundle;
 use super::types::*;
@@ -482,6 +486,33 @@ static MIGRATIONS: &[M] = &[
         BEGIN SELECT RAISE(ABORT, 'meeting cloud chunk acceptance is monotonic'); END;
         ",
     ),
+    M::up(
+        "
+        CREATE TABLE meeting_user_notes (
+            session_id TEXT PRIMARY KEY NOT NULL REFERENCES meeting_sessions(id) ON DELETE CASCADE,
+            body TEXT NOT NULL,
+            template_id TEXT NOT NULL,
+            note_revision INTEGER NOT NULL CHECK (note_revision >= 0),
+            updated_at_utc_ms INTEGER NOT NULL
+        );
+        CREATE TABLE meeting_action_item_states (
+            artifact_id TEXT NOT NULL REFERENCES meeting_artifact_revisions(artifact_id) ON DELETE CASCADE,
+            action_index INTEGER NOT NULL CHECK (action_index >= 0),
+            session_id TEXT NOT NULL REFERENCES meeting_sessions(id) ON DELETE CASCADE,
+            done INTEGER NOT NULL CHECK (done IN (0, 1)),
+            updated_at_utc_ms INTEGER NOT NULL,
+            PRIMARY KEY (artifact_id, action_index)
+        );
+        CREATE TABLE meeting_conversation_metrics (
+            session_id TEXT PRIMARY KEY NOT NULL REFERENCES meeting_sessions(id) ON DELETE CASCADE,
+            input_revision INTEGER NOT NULL,
+            metrics_json TEXT NOT NULL,
+            computed_at_utc_ms INTEGER NOT NULL
+        );
+        CREATE INDEX meeting_action_item_states_session_idx
+            ON meeting_action_item_states(session_id, artifact_id, action_index);
+        ",
+    ),
 
 ];
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -768,6 +799,10 @@ pub(crate) struct MeetingEvidence {
 pub(crate) struct ArtifactEvidence {
     pub transcript: Vec<MeetingEvidence>,
     pub manual_notes: Vec<MeetingEvidence>,
+    /// The rough notes the user typed for this meeting. They steer the shape
+    /// of the generated notes; they are never citable evidence.
+    pub user_notes: String,
+    pub template: MeetingNotesTemplate,
 }
 
 impl From<rusqlite::Error> for StoreError {
@@ -4046,12 +4081,17 @@ impl MeetingStore {
         &self,
         session_id: MeetingSessionId,
         max_bytes: usize,
+        default_template: MeetingNotesTemplate,
     ) -> Result<ArtifactEvidence, StoreError> {
         if max_bytes == 0 {
             return Err(StoreError::Invalid);
         }
         let connection = self.connection()?;
-        let mut used = 0_usize;
+        // The user's own notes are read first and capped well below the total
+        // budget, so a long note can never displace the transcript it steers.
+        let notes = user_notes_row(&connection, session_id, default_template)?;
+        let user_notes = bounded_text(notes.body.trim(), max_bytes / 8);
+        let mut used = user_notes.len();
         let mut transcript = Vec::new();
         let mut segments = connection.prepare(
             "SELECT s.segment_id, s.start_offset_ns, s.end_offset_ns,
@@ -4126,7 +4166,243 @@ impl MeetingStore {
         Ok(ArtifactEvidence {
             transcript,
             manual_notes,
+            user_notes,
+            template: notes.template,
         })
+    }
+
+    /// The diarized transcript reduced to what conversation metrics and
+    /// trackers need. Removed segments are excluded because they are not part
+    /// of the meeting any more.
+    pub(crate) fn analytics_segments(
+        &self,
+        session_id: MeetingSessionId,
+    ) -> Result<Vec<AnalyticsSegment>, StoreError> {
+        let connection = self.connection()?;
+        analytics_segments_in(&connection, session_id)
+    }
+
+    /// The transcript captured so far, from the newest revision whether or not
+    /// it has finished. Transcription runs after capture stops and appends
+    /// segments as it goes, so this is the rolling buffer a catch-up reads.
+    pub(crate) fn pending_transcript_evidence(
+        &self,
+        session_id: MeetingSessionId,
+        max_bytes: usize,
+    ) -> Result<Vec<MeetingEvidence>, StoreError> {
+        if max_bytes == 0 {
+            return Err(StoreError::Invalid);
+        }
+        let connection = self.connection()?;
+        let mut statement = connection.prepare(
+            "SELECT s.segment_id, s.start_offset_ns, s.end_offset_ns,
+                    COALESCE((SELECT e.replacement_text FROM meeting_segment_edits e
+                              WHERE e.segment_id = s.segment_id
+                              ORDER BY e.edit_sequence DESC LIMIT 1), s.base_text)
+             FROM meeting_transcript_segments s
+             WHERE s.transcript_revision_id = (
+                     SELECT r.transcript_revision_id FROM meeting_transcript_revisions r
+                     WHERE r.session_id = ?1 ORDER BY r.created_at_utc_ms DESC LIMIT 1)
+               AND COALESCE((SELECT e.removed FROM meeting_segment_edits e
+                             WHERE e.segment_id = s.segment_id
+                             ORDER BY e.edit_sequence DESC LIMIT 1), 0) = 0
+             ORDER BY s.start_offset_ns, s.ordinal",
+        )?;
+        let mut rows = statement.query(params![id(session_id)])?;
+        let mut evidence = Vec::new();
+        let mut used = 0_usize;
+        while let Some(row) = rows.next()? {
+            if used >= max_bytes {
+                break;
+            }
+            let text: String = row.get(3)?;
+            if text.trim().is_empty() {
+                continue;
+            }
+            let text = bounded_text(&text, max_bytes - used);
+            used = used.saturating_add(text.len());
+            evidence.push(MeetingEvidence {
+                citation: MeetingCitation {
+                    kind: CitationKind::Transcript,
+                    session_id,
+                    entity_id: row.get(0)?,
+                    start_offset_ns: Some(from_i64(row.get(1)?)?),
+                    end_offset_ns: Some(from_i64(row.get(2)?)?),
+                },
+                text,
+            });
+        }
+        Ok(evidence)
+    }
+
+    /// Replace the derived metrics for a meeting. This is a disposable cache
+    /// over the transcript, so an overwrite never needs an operation receipt.
+    pub(crate) fn store_conversation_metrics(
+        &self,
+        session_id: MeetingSessionId,
+        input_revision: u64,
+        metrics: &MeetingAnalytics,
+    ) -> Result<(), StoreError> {
+        let connection = self.connection()?;
+        connection.execute(
+            "INSERT INTO meeting_conversation_metrics (
+                session_id, input_revision, metrics_json, computed_at_utc_ms
+             ) VALUES (?1, ?2, ?3, ?4)
+             ON CONFLICT(session_id) DO UPDATE SET
+                input_revision = excluded.input_revision,
+                metrics_json = excluded.metrics_json,
+                computed_at_utc_ms = excluded.computed_at_utc_ms",
+            params![
+                id(session_id),
+                to_i64(input_revision)?,
+                encode_json(metrics)?,
+                utc_now_ms(),
+            ],
+        )?;
+        Ok(())
+    }
+
+    /// When the metrics were last derived, so a caller can tell a cached read
+    /// from a fresh one.
+    pub(crate) fn conversation_metrics_computed_at(
+        &self,
+        session_id: MeetingSessionId,
+    ) -> Result<Option<i64>, StoreError> {
+        let connection = self.connection()?;
+        connection
+            .query_row(
+                "SELECT computed_at_utc_ms FROM meeting_conversation_metrics WHERE session_id = ?1",
+                params![id(session_id)],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(Into::into)
+    }
+
+    pub(crate) fn user_notes(
+        &self,
+        session_id: MeetingSessionId,
+        default_template: MeetingNotesTemplate,
+    ) -> Result<MeetingUserNotes, StoreError> {
+        let connection = self.connection()?;
+        user_notes_row(&connection, session_id, default_template)
+    }
+
+    /// Save the user's own notes layer. This deliberately bypasses the audited
+    /// session-mutation path: notes autosave while a person types, and bumping
+    /// the session revision on every keystroke burst would invalidate every
+    /// other in-flight edit. Concurrency is guarded by the note revision alone.
+    pub(crate) fn save_user_notes(
+        &self,
+        session_id: MeetingSessionId,
+        body: &str,
+        template: MeetingNotesTemplate,
+        expected_revision: u64,
+    ) -> Result<MeetingUserNotes, StoreError> {
+        let mut connection = self.connection()?;
+        let transaction = connection.transaction()?;
+        session_row(&transaction, session_id)?;
+        let current: Option<i64> = transaction
+            .query_row(
+                "SELECT note_revision FROM meeting_user_notes WHERE session_id = ?1",
+                params![id(session_id)],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let current_revision = current.map(from_i64).transpose()?.unwrap_or(0);
+        if current_revision != expected_revision {
+            return Err(StoreError::Conflict);
+        }
+        let next_revision = current_revision.checked_add(1).ok_or(StoreError::Corrupt)?;
+        let updated_at_utc_ms = utc_now_ms();
+        transaction.execute(
+            "INSERT INTO meeting_user_notes (
+                session_id, body, template_id, note_revision, updated_at_utc_ms
+             ) VALUES (?1, ?2, ?3, ?4, ?5)
+             ON CONFLICT(session_id) DO UPDATE SET
+                body = excluded.body,
+                template_id = excluded.template_id,
+                note_revision = excluded.note_revision,
+                updated_at_utc_ms = excluded.updated_at_utc_ms",
+            params![
+                id(session_id),
+                body,
+                template.artifact_template_id(),
+                to_i64(next_revision)?,
+                updated_at_utc_ms,
+            ],
+        )?;
+        transaction.commit()?;
+        Ok(MeetingUserNotes {
+            session_id,
+            body: body.to_string(),
+            template,
+            revision: next_revision,
+            updated_at_utc_ms,
+        })
+    }
+
+    pub(crate) fn action_item_states(
+        &self,
+        session_id: MeetingSessionId,
+    ) -> Result<Vec<MeetingActionItemState>, StoreError> {
+        let connection = self.connection()?;
+        let mut statement = connection.prepare(
+            "SELECT artifact_id, action_index, done FROM meeting_action_item_states
+             WHERE session_id = ?1 ORDER BY artifact_id, action_index",
+        )?;
+        let rows = statement.query_map(params![id(session_id)], |row| {
+            let action_index: i64 = row.get(1)?;
+            Ok(MeetingActionItemState {
+                artifact_id: MeetingArtifactId::from_uuid(
+                    parse_uuid(&row.get::<_, String>(0)?).map_err(to_sql_error)?,
+                ),
+                action_index: u32::try_from(action_index)
+                    .map_err(|_| to_sql_error(StoreError::Corrupt))?,
+                done: row.get::<_, i64>(2)? != 0,
+            })
+        })?;
+        rows.collect::<Result<Vec<_>, _>>().map_err(Into::into)
+    }
+
+    /// Tick or untick one extracted action item. The state belongs to the
+    /// generated revision that produced the item, which is why the artifact id
+    /// is part of the key: regenerated notes start from an unticked list.
+    pub(crate) fn set_action_item_done(
+        &self,
+        session_id: MeetingSessionId,
+        artifact_id: MeetingArtifactId,
+        action_index: u32,
+        done: bool,
+    ) -> Result<(), StoreError> {
+        let mut connection = self.connection()?;
+        let transaction = connection.transaction()?;
+        let action_count: i64 = transaction.query_row(
+            "SELECT COALESCE(json_array_length(content_json, '$.action_items'), 0)
+             FROM meeting_artifact_revisions WHERE artifact_id = ?1 AND session_id = ?2",
+            params![id(artifact_id), id(session_id)],
+            |row| row.get(0),
+        )?;
+        if i64::from(action_index) >= action_count {
+            return Err(StoreError::Invalid);
+        }
+        transaction.execute(
+            "INSERT INTO meeting_action_item_states (
+                artifact_id, action_index, session_id, done, updated_at_utc_ms
+             ) VALUES (?1, ?2, ?3, ?4, ?5)
+             ON CONFLICT(artifact_id, action_index) DO UPDATE SET
+                done = excluded.done,
+                updated_at_utc_ms = excluded.updated_at_utc_ms",
+            params![
+                id(artifact_id),
+                i64::from(action_index),
+                id(session_id),
+                i64::from(done),
+                utc_now_ms(),
+            ],
+        )?;
+        transaction.commit()?;
+        Ok(())
     }
 
     pub(crate) fn fallback_system_speaker(
@@ -5533,6 +5809,74 @@ fn effective_segments_for_session(
         })
     })?;
     rows.collect::<Result<Vec<_>, _>>().map_err(Into::into)
+}
+
+/// The canonical transcript as speaker-attributed utterances. Speaker identity
+/// follows the current diarization assignment, and edited text replaces the
+/// recognizer's, so metrics describe the transcript a person actually reads.
+fn analytics_segments_in(
+    connection: &Connection,
+    session_id: MeetingSessionId,
+) -> Result<Vec<AnalyticsSegment>, StoreError> {
+    let mut statement = connection.prepare(
+        "SELECT s.segment_id, s.start_offset_ns, s.end_offset_ns,
+                COALESCE(a.speaker_id, s.speaker_id),
+                COALESCE(e.replacement_text, s.base_text)
+         FROM meeting_sessions m
+         JOIN meeting_transcript_segments s
+           ON s.transcript_revision_id = m.current_transcript_revision_id
+         LEFT JOIN meeting_diarization_assignments a
+           ON a.generation_id = m.current_diarization_generation_id AND a.segment_id = s.segment_id
+         LEFT JOIN meeting_segment_edits e ON e.segment_id = s.segment_id
+             AND e.edit_sequence = (SELECT MAX(edit_sequence) FROM meeting_segment_edits WHERE segment_id = s.segment_id)
+         WHERE m.id = ?1 AND COALESCE(e.removed, 0) = 0
+         ORDER BY s.start_offset_ns, s.ordinal",
+    )?;
+    let rows = statement.query_map(params![id(session_id)], |row| {
+        let start: i64 = row.get(1)?;
+        let end: i64 = row.get(2)?;
+        Ok(AnalyticsSegment {
+            segment_id: TranscriptSegmentId::from_uuid(
+                parse_uuid(&row.get::<_, String>(0)?).map_err(to_sql_error)?,
+            ),
+            speaker_id: SpeakerId::from_uuid(
+                parse_uuid(&row.get::<_, String>(3)?).map_err(to_sql_error)?,
+            ),
+            start_offset_ns: from_i64(start).map_err(to_sql_error)?,
+            end_offset_ns: from_i64(end).map_err(to_sql_error)?,
+            text: row.get(4)?,
+        })
+    })?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(Into::into)
+}
+
+/// A meeting with no saved notes still has a notes layer: an empty body under
+/// the caller's default template. An unrecognized stored template id falls
+/// back the same way rather than failing the read.
+fn user_notes_row(
+    connection: &Connection,
+    session_id: MeetingSessionId,
+    default_template: MeetingNotesTemplate,
+) -> Result<MeetingUserNotes, StoreError> {
+    let row: Option<(String, String, i64, i64)> = connection
+        .query_row(
+            "SELECT body, template_id, note_revision, updated_at_utc_ms
+             FROM meeting_user_notes WHERE session_id = ?1",
+            params![id(session_id)],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .optional()?;
+    let Some((body, template_id, note_revision, updated_at_utc_ms)) = row else {
+        return Ok(MeetingUserNotes::empty(session_id, default_template));
+    };
+    Ok(MeetingUserNotes {
+        session_id,
+        body,
+        template: MeetingNotesTemplate::from_artifact_template_id(&template_id)
+            .unwrap_or(default_template),
+        revision: from_i64(note_revision)?,
+        updated_at_utc_ms,
+    })
 }
 
 fn notes_for_session(

@@ -1,12 +1,17 @@
 use crate::analytics::DashboardTrendRequest;
+use crate::meeting::analytics::{
+    KeywordTracker, MeetingActionItemState, MeetingAnalyticsSnapshot, MeetingCatchUp,
+    MeetingUserNotes,
+};
 use crate::meeting::clock::host_monotonic_now_ns;
 use crate::meeting::session::{
-    MeetingMutationRequest, MeetingMutationResult, MeetingNoteCreateRequest,
-    MeetingNoteDeleteRequest, MeetingNoteUpdateRequest, MeetingPreflightCreateRequest,
-    MeetingPreflightRefreshRequest, MeetingQuestionRequest, MeetingQuestionResult,
-    MeetingRemovalResult, MeetingSegmentEditRequest, MeetingSessionManager,
-    MeetingSpeakerMergeRequest, MeetingSpeakerRenameRequest, MeetingStartRequest,
-    MeetingTitleSetRequest,
+    MeetingActionItemDoneRequest, MeetingMutationRequest, MeetingMutationResult,
+    MeetingNoteCreateRequest, MeetingNoteDeleteRequest, MeetingNoteUpdateRequest,
+    MeetingPreflightCreateRequest, MeetingPreflightRefreshRequest, MeetingQuestionRequest,
+    MeetingQuestionResult, MeetingReenhanceRequest, MeetingRemovalResult,
+    MeetingSegmentEditRequest, MeetingSessionManager, MeetingSpeakerMergeRequest,
+    MeetingSpeakerRenameRequest, MeetingStartRequest, MeetingTitleSetRequest,
+    MeetingUserNotesSaveRequest,
 };
 use crate::meeting::suggestions::MeetingSuggestion;
 use crate::meeting::types::*;
@@ -282,4 +287,99 @@ pub async fn meeting_remote_cancel(
     request: MeetingMutationRequest,
 ) -> Result<(), MeetingCommandError> {
     manager.remote_cancel(request).await
+}
+
+/// Conversation metrics, tracker hits, action-item ticks and the user's notes
+/// for one meeting. Metrics are derived from the transcript on every call, so
+/// the answer always matches the transcript the caller can see.
+#[tauri::command]
+#[specta::specta]
+pub async fn get_meeting_analytics(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    session_id: MeetingSessionId,
+) -> Result<MeetingAnalyticsSnapshot, MeetingCommandError> {
+    manager.analytics_get(session_id).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn list_keyword_trackers(app: tauri::AppHandle) -> Vec<KeywordTracker> {
+    crate::settings::get_settings(&app).trackers_list
+}
+
+/// Replace the tracker list. Blank names and blank patterns are dropped here
+/// rather than stored, so the scan never has to defend against them.
+#[tauri::command]
+#[specta::specta]
+pub fn save_keyword_trackers(
+    app: tauri::AppHandle,
+    trackers: Vec<KeywordTracker>,
+) -> Vec<KeywordTracker> {
+    let cleaned: Vec<KeywordTracker> = trackers
+        .into_iter()
+        .filter_map(|tracker| {
+            let name = tracker.name.trim().to_string();
+            if name.is_empty() {
+                return None;
+            }
+            let patterns: Vec<String> = tracker
+                .patterns
+                .into_iter()
+                .map(|pattern| pattern.trim().to_string())
+                .filter(|pattern| !pattern.is_empty())
+                .collect();
+            Some(KeywordTracker { name, patterns })
+        })
+        .collect();
+    crate::settings::update_settings(&app, |settings| {
+        settings.trackers_list = cleaned.clone();
+    });
+    cleaned
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn set_action_item_done(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    request: MeetingActionItemDoneRequest,
+) -> Result<Vec<MeetingActionItemState>, MeetingCommandError> {
+    manager.action_item_done_set(request).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_meeting_user_notes(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    session_id: MeetingSessionId,
+) -> Result<MeetingUserNotes, MeetingCommandError> {
+    manager.user_notes_get(session_id).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn save_meeting_user_notes(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    request: MeetingUserNotesSaveRequest,
+) -> Result<MeetingUserNotes, MeetingCommandError> {
+    manager.user_notes_save(request).await
+}
+
+/// Save the notes layer and rebuild the generated notes from it.
+#[tauri::command]
+#[specta::specta]
+pub async fn reenhance_meeting_with_notes(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    request: MeetingReenhanceRequest,
+) -> Result<MeetingMutationResult, MeetingCommandError> {
+    manager.artifacts_reenhance(request).await
+}
+
+/// Recap the transcript captured so far in at most six bullets.
+#[tauri::command]
+#[specta::specta]
+pub async fn meeting_catch_up(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    session_id: MeetingSessionId,
+) -> Result<MeetingCatchUp, MeetingCommandError> {
+    manager.catch_up(session_id).await
 }

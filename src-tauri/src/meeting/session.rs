@@ -1,3 +1,7 @@
+use super::analytics::{
+    MeetingActionItemState, MeetingAnalyticsSnapshot, MeetingCatchUp, MeetingNotesTemplate,
+    MeetingUserNotes,
+};
 use super::capture::{MeetingCaptureSource, PacketLaneReadError, PacketLaneReader, PacketSink};
 use super::clock::host_monotonic_now_ns;
 use super::export;
@@ -259,6 +263,37 @@ pub struct MeetingQuestionRequest {
     pub scope: MeetingQuestionScope,
     #[serde(default)]
     pub save_history: bool,
+}
+
+/// A save of the user's own notes layer. `expected_note_revision` guards the
+/// notes row alone: this path never touches the session revision, because it
+/// runs on an autosave timer while other edits may be in flight.
+#[derive(Clone, Debug, Deserialize, Serialize, Type)]
+pub struct MeetingUserNotesSaveRequest {
+    pub session_id: MeetingSessionId,
+    pub body: String,
+    pub template: MeetingNotesTemplate,
+    pub expected_note_revision: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, Type)]
+pub struct MeetingActionItemDoneRequest {
+    pub session_id: MeetingSessionId,
+    pub artifact_id: MeetingArtifactId,
+    pub action_index: u32,
+    pub done: bool,
+}
+
+/// Save the notes layer and regenerate the meeting's notes from it in one
+/// step, so the user cannot end up regenerating against a stale draft.
+#[derive(Clone, Debug, Deserialize, Serialize, Type)]
+pub struct MeetingReenhanceRequest {
+    pub operation_id: MeetingOperationId,
+    pub session_id: MeetingSessionId,
+    pub expected_revision: u64,
+    pub body: String,
+    pub template: MeetingNotesTemplate,
+    pub expected_note_revision: u64,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, Type)]
@@ -1616,6 +1651,127 @@ impl MeetingSessionManager {
         let result = self.result_for_receipt(store, receipt, request.session_id)?;
         self.emit_session_changed(&result.snapshot);
         Ok(result)
+    }
+
+    /// Conversation metrics, tracker hits, action-item ticks and the user's
+    /// own notes for one meeting, derived fresh from the current transcript.
+    /// The stored copy is refreshed as a side effect so a later read of a
+    /// deleted-transcript meeting still has something to show.
+    pub async fn analytics_get(
+        &self,
+        session_id: MeetingSessionId,
+    ) -> Result<MeetingAnalyticsSnapshot, MeetingCommandError> {
+        let store = self.store().await?;
+        let snapshot = store
+            .session_snapshot(session_id)
+            .map_err(map_store_error)?;
+        let analytics = self
+            .processing
+            .refresh_analytics(&store, session_id, snapshot.revision)
+            .map_err(map_processing_error)?;
+        Ok(MeetingAnalyticsSnapshot {
+            session_id,
+            input_revision: snapshot.revision,
+            computed_at_utc_ms: store
+                .conversation_metrics_computed_at(session_id)
+                .map_err(map_store_error)?
+                .unwrap_or_default(),
+            analytics,
+            action_items: store
+                .action_item_states(session_id)
+                .map_err(map_store_error)?,
+            notes: store
+                .user_notes(session_id, self.default_notes_template())
+                .map_err(map_store_error)?,
+        })
+    }
+
+    pub async fn user_notes_get(
+        &self,
+        session_id: MeetingSessionId,
+    ) -> Result<MeetingUserNotes, MeetingCommandError> {
+        self.store()
+            .await?
+            .user_notes(session_id, self.default_notes_template())
+            .map_err(map_store_error)
+    }
+
+    /// Save the user's notes and chosen template. This is autosaved while a
+    /// person types, so it carries its own note revision instead of the
+    /// session revision every audited mutation uses.
+    pub async fn user_notes_save(
+        &self,
+        request: MeetingUserNotesSaveRequest,
+    ) -> Result<MeetingUserNotes, MeetingCommandError> {
+        self.store()
+            .await?
+            .save_user_notes(
+                request.session_id,
+                &request.body,
+                request.template,
+                request.expected_note_revision,
+            )
+            .map_err(map_store_error)
+    }
+
+    pub async fn action_item_done_set(
+        &self,
+        request: MeetingActionItemDoneRequest,
+    ) -> Result<Vec<MeetingActionItemState>, MeetingCommandError> {
+        let store = self.store().await?;
+        store
+            .set_action_item_done(
+                request.session_id,
+                request.artifact_id,
+                request.action_index,
+                request.done,
+            )
+            .map_err(map_store_error)?;
+        store
+            .action_item_states(request.session_id)
+            .map_err(map_store_error)
+    }
+
+    /// Regenerate the notes for a meeting with the user's notes and template
+    /// included. This is `artifacts_regenerate` with the notes layer already
+    /// saved, so it shares that path rather than duplicating it.
+    pub async fn artifacts_reenhance(
+        &self,
+        request: MeetingReenhanceRequest,
+    ) -> Result<MeetingMutationResult, MeetingCommandError> {
+        let store = self.store().await?;
+        store
+            .save_user_notes(
+                request.session_id,
+                &request.body,
+                request.template,
+                request.expected_note_revision,
+            )
+            .map_err(map_store_error)?;
+        drop(store);
+        self.artifacts_regenerate(MeetingMutationRequest {
+            operation_id: request.operation_id,
+            session_id: request.session_id,
+            expected_revision: request.expected_revision,
+        })
+        .await
+    }
+
+    pub async fn catch_up(
+        &self,
+        session_id: MeetingSessionId,
+    ) -> Result<MeetingCatchUp, MeetingCommandError> {
+        let store = self.store().await?;
+        self.processing
+            .catch_up(&store, session_id)
+            .map_err(map_processing_error)
+    }
+
+    fn default_notes_template(&self) -> MeetingNotesTemplate {
+        self.app
+            .as_ref()
+            .map(|app| crate::settings::get_settings(app).meeting_notes_template)
+            .unwrap_or_default()
     }
 
     pub async fn retention_get(&self) -> Result<MeetingRetentionSnapshot, MeetingCommandError> {
