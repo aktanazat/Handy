@@ -1,7 +1,8 @@
 use crate::audio_toolkit::{
     apply_british_spelling, apply_emoji_replacements, apply_exact_vocabulary_entries,
-    apply_literal_punctuation, apply_vocabulary_entries, detect_output_language,
-    normalize_transcription_output, remove_filler_words, OutputLanguageEvidence,
+    apply_literal_punctuation, apply_text_replacements, apply_vocabulary_entries,
+    detect_output_language, normalize_transcription_output, remove_filler_words,
+    OutputLanguageEvidence,
 };
 use crate::managers::audio::AudioRecordingManager;
 use crate::managers::model::{EngineType, ModelManager};
@@ -1092,10 +1093,13 @@ impl TranscriptionManager {
             },
         );
 
-        let model_info = self
-            .model_manager
-            .get_model_info(model_id)
-            .ok_or_else(|| anyhow::anyhow!("Model not found: {}", model_id))?;
+        let model_info = self.model_manager.get_model_info(model_id).ok_or_else(|| {
+            if model_id.trim().is_empty() {
+                anyhow::anyhow!("No transcription model is selected")
+            } else {
+                anyhow::anyhow!("Model not found: {model_id}")
+            }
+        })?;
 
         if !model_info.is_downloaded {
             let error_msg = "Model not downloaded";
@@ -2816,6 +2820,11 @@ fn post_process_transcription_text(
             asr.english_spelling,
             &asr.custom_words,
         );
+        let corrected = if asr.replacements_enabled {
+            apply_text_replacements(&corrected, &asr.replacements_rules)
+        } else {
+            corrected
+        };
         let corrected = if asr.custom_words.is_empty() {
             corrected
         } else if vocabulary_already_prompted {
@@ -3243,7 +3252,9 @@ impl Drop for TranscriptionManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::settings::{AppSettings, EmojiReplacement, EnglishSpelling, VocabularyEntry};
+    use crate::settings::{
+        AppSettings, EmojiReplacement, EnglishSpelling, ReplacementRule, VocabularyEntry,
+    };
     #[cfg(feature = "cloud-realtime")]
     use std::collections::VecDeque;
     #[cfg(feature = "cloud-realtime")]
@@ -3252,6 +3263,133 @@ mod tests {
 
     fn languages(codes: &[&str]) -> Vec<String> {
         codes.iter().map(|code| (*code).to_string()).collect()
+    }
+
+    /// The whole point of the deterministic-replacement stage is that the text
+    /// it produces survives every later stage. `normalize_transcription_output`
+    /// used to collapse any run of two or more whitespace characters into one
+    /// space, which silently flattened a paragraph break back into a space, so
+    /// these assertions run the real pipeline rather than the stage alone.
+    #[test]
+    fn a_replacement_paragraph_break_survives_the_whole_pipeline() {
+        let settings = AppSettings {
+            replacements_rules: vec![ReplacementRule {
+                spoken: "new paragraph".to_string(),
+                written: "\n\n".to_string(),
+                enabled: true,
+            }],
+            filler_word_removal_enabled: false,
+            ..Default::default()
+        };
+        let asr = AsrPlan::from_settings(&settings);
+        let english = OutputLanguageEvidence::UserSelected("en-US".to_string());
+
+        assert_eq!(
+            post_process_transcription_text(
+                "first thought new paragraph second thought".to_string(),
+                &asr,
+                false,
+                &english,
+                &[],
+            ),
+            "first thought\n\nsecond thought"
+        );
+    }
+
+    #[test]
+    fn a_spoken_paragraph_break_survives_the_whole_pipeline() {
+        let settings = AppSettings {
+            filler_word_removal_enabled: false,
+            ..Default::default()
+        };
+        let mut asr = AsrPlan::from_settings(&settings);
+        asr.literal_punctuation = true;
+        let english = OutputLanguageEvidence::UserSelected("en-US".to_string());
+
+        assert_eq!(
+            post_process_transcription_text(
+                "first thought new paragraph second thought new line third".to_string(),
+                &asr,
+                false,
+                &english,
+                &[],
+            ),
+            "first thought\n\nsecond thought\nthird"
+        );
+    }
+
+    #[test]
+    fn the_shipped_starter_replacements_run_in_the_pipeline() {
+        let settings = AppSettings {
+            filler_word_removal_enabled: false,
+            ..Default::default()
+        };
+        let asr = AsrPlan::from_settings(&settings);
+        let english = OutputLanguageEvidence::UserSelected("en-US".to_string());
+
+        assert!(asr.replacements_enabled);
+        assert_eq!(
+            post_process_transcription_text(
+                "write to me at sign example dot com".to_string(),
+                &asr,
+                false,
+                &english,
+                &[],
+            ),
+            "write to me @ example .com"
+        );
+    }
+
+    #[test]
+    fn replacements_run_before_vocabulary_so_a_rewritten_phrase_is_not_also_corrected() {
+        let settings = AppSettings {
+            replacements_rules: vec![ReplacementRule {
+                spoken: "dot com".to_string(),
+                written: ".com".to_string(),
+                enabled: true,
+            }],
+            custom_words: vec![VocabularyEntry {
+                spoken: "dot com".to_string(),
+                written: "DotCom".to_string(),
+            }],
+            filler_word_removal_enabled: false,
+            ..Default::default()
+        };
+        let asr = AsrPlan::from_settings(&settings);
+        let english = OutputLanguageEvidence::UserSelected("en-US".to_string());
+
+        assert_eq!(
+            post_process_transcription_text(
+                "example dot com".to_string(),
+                &asr,
+                false,
+                &english,
+                &[],
+            ),
+            "example .com"
+        );
+    }
+
+    #[test]
+    fn disabling_replacements_leaves_the_transcript_alone() {
+        let settings = AppSettings {
+            replacements_enabled: false,
+            filler_word_removal_enabled: false,
+            ..Default::default()
+        };
+        let asr = AsrPlan::from_settings(&settings);
+        let english = OutputLanguageEvidence::UserSelected("en-US".to_string());
+
+        assert_eq!(
+            post_process_transcription_text(
+                "write to me at sign example dot com".to_string(),
+                &asr,
+                false,
+                &english,
+                &[],
+            ),
+            "write to me at sign example dot com"
+        );
     }
 
     #[test]

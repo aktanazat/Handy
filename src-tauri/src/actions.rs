@@ -191,6 +191,17 @@ fn check_cloud_preconditions(
     }
 }
 
+/// Whether this run would open the microphone for a decode that cannot happen:
+/// a local run with no model selected. Cloud runs answer for their own frozen
+/// fallback in the cloud preflight, and a cloud run without a fallback still
+/// has a provider to transcribe with.
+fn local_model_is_missing(run: &RunPlan) -> bool {
+    run.cloud().is_none()
+        && run
+            .local_asr()
+            .is_none_or(|local| local.model_id.trim().is_empty())
+}
+
 /// Code on the coordinator thread must not perform keychain, network, or other
 /// unbounded-blocking I/O: it also has to service the next keypress, including
 /// cancel. Reading the in-memory settings cache is the ceiling.
@@ -425,7 +436,10 @@ fn provider_allows_unauthenticated_request(
     provider.id == "custom" && !endpoint.is_remote()
 }
 
-async fn post_process_transcription(
+/// Runs the frozen rewrite provider over an already-rendered prompt. Voice
+/// command mode renders a different prompt but must not fork the provider,
+/// credential, structured-output, and fallback handling below.
+pub(crate) async fn post_process_transcription(
     app: &AppHandle,
     run: &RunPlan,
     rendered: &RenderedPrompt,
@@ -1023,12 +1037,26 @@ pub(crate) async fn process_transcription_output(
     run: &RunPlan,
 ) -> ProcessedTranscription {
     let asr = run.asr();
-    let mut final_text = transcription.to_string();
-    let mut post_processed_text: Option<String> = None;
-
     // Resolve the language from the frozen ASR plan rather than a later
     // settings write.
     let effective_language = resolve_effective_language(app, asr);
+
+    // A command run's transcript is an instruction, not text to clean up: it is
+    // never delivered, so no variant conversion or preset rewrite applies to it.
+    if let Some(command) = run.command() {
+        return crate::command_mode::rewrite_selection(
+            app,
+            run,
+            command,
+            transcription,
+            &effective_language,
+        )
+        .await;
+    }
+
+    let mut final_text = transcription.to_string();
+    let mut post_processed_text: Option<String> = None;
+
     if let Some(converted_text) =
         maybe_convert_chinese_variant(&effective_language, transcription).await
     {
@@ -1075,6 +1103,14 @@ impl TranscribeAction {
         let rm = app.state::<Arc<AudioRecordingManager>>();
         if let Err(error) = cloud_preflight(app, &self.run) {
             emit_cloud_run_error(app, error);
+            return;
+        }
+        if local_model_is_missing(&self.run) {
+            warn!("Refusing to record: no local transcription model is selected");
+            let _ = app.emit(
+                "recording-error",
+                RecordingErrorEvent::typed("no_model_selected"),
+            );
             return;
         }
         let cloud_requested = self.run.cloud().is_some();
@@ -1285,10 +1321,17 @@ impl TranscribeAction {
         let post_process = self.run.post_process_requested();
         let run = self.run.clone();
         // Content-free receipts: identifiers, policy, and source decisions only.
+        // This deliberately logs the context *policy* rather than the snapshot:
+        // reading the snapshot here would complete the capture at stop, and the
+        // application context has to be read immediately before the step that
+        // consumes it. The full context receipt reaches the log through history.
+        let context_plan = run.context_plan();
         debug!(
-            "Run receipt {:?} context {:?}",
+            "Run receipt {:?} context policy requested {:?} ceiling {:?} effective {:?}",
             run.mode_receipt(),
-            run.context().receipt()
+            context_plan.requested_policy(),
+            context_plan.ceiling(),
+            context_plan.effective_policy()
         );
         let cancel_generation = rm.cancel_generation();
 
@@ -1803,6 +1846,37 @@ mod tests {
         RunPlan::for_intent(&settings, &TranscriptionIntent::ActiveMode).expect("valid cloud run")
     }
 
+    /// A local run with no model selected can only fail after the microphone
+    /// has opened and the user has already spoken, so it is refused before
+    /// capture instead.
+    #[test]
+    fn a_local_run_without_a_selected_model_is_refused() {
+        use super::local_model_is_missing;
+        use crate::modes::{RunPlan, TranscriptionIntent};
+
+        let mut settings = crate::settings::get_default_settings();
+        settings
+            .modes
+            .first_mut()
+            .expect("default mode")
+            .asr
+            .model_id
+            .clear();
+        let without_model = RunPlan::for_intent(&settings, &TranscriptionIntent::ActiveMode)
+            .expect("local run without a model");
+        assert!(local_model_is_missing(&without_model));
+
+        settings
+            .modes
+            .first_mut()
+            .expect("default mode")
+            .asr
+            .model_id = "parakeet-tdt-0.6b-v3".to_string();
+        let with_model = RunPlan::for_intent(&settings, &TranscriptionIntent::ActiveMode)
+            .expect("local run with a model");
+        assert!(!local_model_is_missing(&with_model));
+    }
+
     #[cfg(feature = "cloud-realtime")]
     #[test]
     fn cloud_final_keeps_provider_text_without_local_decode() {
@@ -1997,6 +2071,13 @@ mod tests {
         assert_eq!(
             no_speech,
             serde_json::json!({ "error_type": "no_speech_detected" })
+        );
+
+        let no_model = serde_json::to_value(RecordingErrorEvent::typed("no_model_selected"))
+            .expect("no-model payload");
+        assert_eq!(
+            no_model,
+            serde_json::json!({ "error_type": "no_model_selected" })
         );
 
         let denied =

@@ -1840,10 +1840,22 @@ impl ModelManager {
         fs::remove_file(&pointer).is_ok()
     }
 
+    /// The model an empty selection heals to: the first downloaded model in
+    /// preference order, or `None` when the user already has a selection or
+    /// nothing is installed yet. Onboarding progress is deliberately not an
+    /// input — an empty selection cannot transcribe at any stage, and a fresh
+    /// install that downloads a model before finishing onboarding would
+    /// otherwise start every run against no model at all.
+    fn model_to_auto_select(selected_model: &str, available: Vec<ModelInfo>) -> Option<ModelInfo> {
+        if !selected_model.is_empty() {
+            return None;
+        }
+        available.into_iter().find(|model| model.is_downloaded)
+    }
+
     fn auto_select_model_if_needed(&self) -> Result<()> {
         let settings = get_settings(&self.app_handle);
         let mut selected_model = settings.selected_model.clone();
-        let mut onboarding_completed = settings.onboarding_completed;
 
         if !selected_model.is_empty() {
             let models = lock_model_state(&self.available_models);
@@ -1856,47 +1868,39 @@ impl ModelManager {
                     selected_model
                 );
                 let stale_selection = selected_model.clone();
-                (selected_model, onboarding_completed) =
-                    update_settings(&self.app_handle, |settings| {
-                        if settings.selected_model == stale_selection {
-                            settings.selected_model.clear();
-                        }
-                        (
-                            settings.selected_model.clone(),
-                            settings.onboarding_completed,
-                        )
-                    });
-            }
-        }
-
-        if !onboarding_completed {
-            debug!("Skipping model auto-selection until onboarding is complete");
-            return Ok(());
-        }
-
-        if selected_model.is_empty() {
-            if let Some(available_model) = self
-                .get_available_models()
-                .into_iter()
-                .find(|model| model.is_downloaded)
-            {
-                info!(
-                    "Auto-selecting model: {} ({})",
-                    available_model.id, available_model.name
-                );
-
-                let model_id = available_model.id.clone();
-                let selected = update_settings(&self.app_handle, |settings| {
-                    if !settings.onboarding_completed || !settings.selected_model.is_empty() {
-                        return false;
+                selected_model = update_settings(&self.app_handle, |settings| {
+                    if settings.selected_model == stale_selection {
+                        settings.selected_model.clear();
                     }
-                    settings.selected_model = model_id.clone();
-                    true
+                    settings.selected_model.clone()
                 });
-                if selected {
-                    info!("Successfully auto-selected model: {}", available_model.id);
-                }
             }
+        }
+
+        let Some(available_model) =
+            Self::model_to_auto_select(&selected_model, self.get_available_models())
+        else {
+            return Ok(());
+        };
+
+        info!(
+            "Auto-selecting model: {} ({})",
+            available_model.id, available_model.name
+        );
+
+        let model_id = available_model.id.clone();
+        // Re-checked under the settings lock: a selection made between the read
+        // above and here wins. Onboarding progress is left exactly as it was —
+        // selecting a model is not finishing onboarding.
+        let selected = update_settings(&self.app_handle, |settings| {
+            if !settings.selected_model.is_empty() {
+                return false;
+            }
+            settings.selected_model = model_id.clone();
+            true
+        });
+        if selected {
+            info!("Successfully auto-selected model: {}", available_model.id);
         }
 
         Ok(())
@@ -3244,6 +3248,61 @@ mod tests {
         );
         assert!(!InstallReceipts::receipt_path(temp_dir.path()).exists());
         Ok(())
+    }
+
+    fn installed_model(id: &str, is_downloaded: bool) -> ModelInfo {
+        ModelInfo {
+            id: id.to_string(),
+            name: id.to_string(),
+            description: String::new(),
+            filename: format!("{id}.gguf"),
+            source: ModelSource::Local,
+            size_mb: 0,
+            is_downloaded,
+            is_downloading: false,
+            partial_size: 0,
+            is_directory: false,
+            engine_type: EngineType::TranscribeCpp,
+            accuracy_score: 0.0,
+            speed_score: 0.0,
+            supports_translation: false,
+            is_recommended: false,
+            supported_languages: Vec::new(),
+            supports_language_selection: false,
+            is_custom: false,
+            supports_streaming: false,
+            supports_language_detection: false,
+        }
+    }
+
+    /// A fresh install that downloads a model during onboarding must not be
+    /// left with an empty selection: every run against it fails before it can
+    /// produce a single word.
+    #[test]
+    fn an_empty_selection_heals_to_the_preferred_downloaded_model() {
+        let available = vec![
+            installed_model("not-on-disk", false),
+            installed_model("preferred", true),
+            installed_model("also-on-disk", true),
+        ];
+
+        let healed = ModelManager::model_to_auto_select("", available)
+            .expect("an installed model heals the empty selection");
+        assert_eq!(healed.id, "preferred");
+    }
+
+    #[test]
+    fn an_existing_selection_is_never_replaced() {
+        let available = vec![installed_model("preferred", true)];
+
+        assert!(ModelManager::model_to_auto_select("chosen-by-user", available).is_none());
+    }
+
+    #[test]
+    fn nothing_is_selected_while_no_model_is_on_disk() {
+        let available = vec![installed_model("still-downloading", false)];
+
+        assert!(ModelManager::model_to_auto_select("", available).is_none());
     }
 
     #[test]
