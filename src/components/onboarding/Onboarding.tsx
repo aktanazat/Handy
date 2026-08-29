@@ -9,6 +9,7 @@ import { isLegacySource } from "./modelSource";
 import { SonaMark } from "../icons/SonaMark";
 import { SonaWordmark } from "../icons/SonaWordmark";
 import { useModelStore } from "../../stores/modelStore";
+import "./onboarding.css";
 
 interface OnboardingProps {
   onModelSelected: () => void;
@@ -155,97 +156,63 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
   };
 
   return (
-    <div className="onboarding-shell h-screen w-screen flex flex-col p-6 gap-4 inset-0">
-      <div className="flex shrink-0 flex-col items-center gap-3 text-text-primary">
-        <SonaMark width={36} height={36} />
-        <SonaWordmark className="text-2xl" />
-        <p className="mx-auto max-w-md font-medium text-text-secondary">
-          {t("onboarding.subtitle")}
-        </p>
-      </div>
+    <div className="onboarding-shell ob-stage">
+      <div className="ob-column h-full">
+        <div className="shrink-0">
+          <div className="ob-brand">
+            <SonaMark width={22} height={22} />
+            <SonaWordmark className="text-[14px]" />
+          </div>
+          <h1 className="ob-headline">
+            {t("onboarding.headline", "Pick a voice model")}
+          </h1>
+          <p className="ob-subhead">{t("onboarding.subtitle")}</p>
+        </div>
 
-      <div className="onboarding-panel max-w-[600px] w-full mx-auto text-center flex-1 flex flex-col min-h-0">
-        <div className="space-y-6 pb-6">
+        <div className="onboarding-panel ob-scroll min-h-0 flex-1">
           {downloadedModels.length > 0 && (
-            <div className="space-y-3">
-              <div className="text-left">
-                <h2 className="text-sm font-medium text-text/60">
-                  {t("onboarding.existingModelsTitle")}
-                </h2>
+            <section className="ob-group">
+              <h2 className="ob-group-label">
+                {t("onboarding.existingModelsTitle")}
+              </h2>
+              <div className="ob-group-items">
+                {downloadedModels.map((model: ModelInfo) => (
+                  <ModelCard
+                    key={model.id}
+                    model={model}
+                    status={getExistingModelStatus(model.id)}
+                    disabled={isBusy}
+                    onSelect={handleSelectExistingModel}
+                    showRecommended={false}
+                  />
+                ))}
               </div>
-              {downloadedModels.map((model: ModelInfo) => (
-                <ModelCard
-                  key={model.id}
-                  model={model}
-                  status={getExistingModelStatus(model.id)}
-                  disabled={isBusy}
-                  onSelect={handleSelectExistingModel}
-                  showRecommended={false}
-                />
-              ))}
-            </div>
+            </section>
           )}
 
           {downloadable.length > 0 && (
-            <div className="space-y-3">
-              <div className="text-left">
-                <h2 className="text-sm font-medium text-text/60">
-                  {t("onboarding.downloadModelsTitle")}
-                </h2>
-              </div>
-
-              {topPicks.map((model: ModelInfo) => (
-                <ModelCard
-                  key={model.id}
-                  model={model}
-                  variant="featured"
-                  status={getModelStatus(model.id)}
-                  disabled={isBusy}
-                  onSelect={handleDownloadModel}
-                  onDownload={handleDownloadModel}
-                  onCancel={handleCancelDownload}
-                  downloadProgress={getModelDownloadProgress(model.id)}
-                  downloadSpeed={getModelDownloadSpeed(model.id)}
-                  showRecommended={false}
-                />
-              ))}
-
-              {otherRecommended.map((model: ModelInfo) => (
-                <ModelCard
-                  key={model.id}
-                  model={model}
-                  status={getModelStatus(model.id)}
-                  disabled={isBusy}
-                  onSelect={handleDownloadModel}
-                  onDownload={handleDownloadModel}
-                  onCancel={handleCancelDownload}
-                  downloadProgress={getModelDownloadProgress(model.id)}
-                  downloadSpeed={getModelDownloadSpeed(model.id)}
-                  showRecommended={false}
-                />
-              ))}
-
-              {hasRecommended && rest.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setShowAll((v) => !v)}
-                  className="flex items-center justify-center gap-1.5 mx-auto py-1 text-sm font-medium text-text/60 hover:text-text transition-colors"
-                >
-                  {showAll
-                    ? t("onboarding.showFewerModels")
-                    : t("onboarding.showAllModels", {
-                        total: downloadable.length,
-                      })}
-                  <ChevronDown
-                    className={`w-4 h-4 transition-transform duration-200 ${
-                      showAll ? "rotate-180" : ""
-                    }`}
+            <section className="ob-group">
+              <h2 className="ob-group-label">
+                {t("onboarding.downloadModelsTitle")}
+              </h2>
+              <div className="ob-group-items">
+                {topPicks.map((model: ModelInfo) => (
+                  <ModelCard
+                    key={model.id}
+                    model={model}
+                    variant="featured"
+                    status={getModelStatus(model.id)}
+                    disabled={isBusy}
+                    onSelect={handleDownloadModel}
+                    onDownload={handleDownloadModel}
+                    onCancel={handleCancelDownload}
+                    downloadProgress={getModelDownloadProgress(model.id)}
+                    downloadSpeed={getModelDownloadSpeed(model.id)}
+                    showRecommended={false}
                   />
-                </button>
-              )}
+                ))}
 
-              {showRest &&
-                rest.map((model: ModelInfo) => (
+                {otherRecommended.map((model: ModelInfo) => (
                   <ModelCard
                     key={model.id}
                     model={model}
@@ -259,7 +226,40 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
                     showRecommended={false}
                   />
                 ))}
-            </div>
+
+                {showRest &&
+                  rest.map((model: ModelInfo) => (
+                    <ModelCard
+                      key={model.id}
+                      model={model}
+                      status={getModelStatus(model.id)}
+                      disabled={isBusy}
+                      onSelect={handleDownloadModel}
+                      onDownload={handleDownloadModel}
+                      onCancel={handleCancelDownload}
+                      downloadProgress={getModelDownloadProgress(model.id)}
+                      downloadSpeed={getModelDownloadSpeed(model.id)}
+                      showRecommended={false}
+                    />
+                  ))}
+              </div>
+
+              {hasRecommended && rest.length > 0 && (
+                <button
+                  type="button"
+                  className="ob-more"
+                  aria-expanded={showAll}
+                  onClick={() => setShowAll((v) => !v)}
+                >
+                  {showAll
+                    ? t("onboarding.showFewerModels")
+                    : t("onboarding.showAllModels", {
+                        total: downloadable.length,
+                      })}
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              )}
+            </section>
           )}
         </div>
       </div>

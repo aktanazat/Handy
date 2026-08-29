@@ -1,0 +1,202 @@
+/* First-run surfaces: permissions and model choice.
+ *
+ * Both are one column, left-aligned, on the page surface — no panel, no card.
+ * A permission is not a selectable object, so it is a flat section with a
+ * hairline above it, per vercel.com/design.md. The only boxed thing on either
+ * screen is a model, which really is selectable. */
+
+.ob-stage {
+  align-items: center;
+  block-size: 100vh;
+  display: flex;
+  inline-size: 100vw;
+  justify-content: center;
+  padding: var(--space-6);
+}
+
+.ob-column {
+  display: flex;
+  flex-direction: column;
+  inline-size: 100%;
+  max-inline-size: 460px;
+  min-inline-size: 0;
+}
+
+/* Identity, then the display moment. Deliberately Geist Sans at the 32px
+ * heading step rather than a display serif: the reference site's serif
+ * wordmark is a one-off marketing flourish and a second face would cost
+ * another font file for four words. Scale and tracking carry it instead. */
+.ob-brand {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-7);
+}
+
+.ob-headline {
+  color: var(--color-text-primary);
+  font-size: var(--fs-heading-32);
+  font-weight: var(--fw-heading);
+  letter-spacing: var(--ls-heading-32);
+  line-height: var(--lh-heading-32);
+  text-wrap: balance;
+}
+
+.ob-subhead {
+  color: var(--color-text-secondary);
+  font-size: var(--fs-label-14);
+  line-height: 21px;
+  margin-top: var(--space-3);
+  max-inline-size: 46ch;
+  text-wrap: pretty;
+}
+
+.ob-rows {
+  margin-top: var(--space-8);
+}
+
+/* One flat section per permission, separated by a hairline. The last row keeps
+ * its bottom rule so the list reads as a closed set rather than trailing off. */
+.ob-row {
+  border-top: 1px solid var(--color-border-subtle);
+  padding-block: var(--space-4);
+}
+
+.ob-row:last-child {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.ob-row-head {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+}
+
+.ob-row-title {
+  color: var(--color-text-primary);
+  font-size: var(--fs-label-14);
+  font-weight: var(--fw-button);
+  line-height: 20px;
+  min-inline-size: 0;
+}
+
+.ob-row-description {
+  color: var(--color-text-secondary);
+  font-size: var(--type-secondary-size);
+  line-height: var(--type-secondary-line);
+  margin-top: var(--space-0-5);
+  max-inline-size: 48ch;
+  text-wrap: pretty;
+}
+
+.ob-row-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+/* The waiting line. It never stands alone: the buttons beside it are what
+ * makes a stalled grant recoverable, so a spinner is never the whole row. */
+.ob-waiting {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: var(--type-secondary-size);
+  gap: var(--space-2);
+  line-height: var(--type-secondary-line);
+}
+
+.ob-spinner {
+  animation: ob-spin 800ms linear infinite;
+  block-size: 13px;
+  border: 2px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  border-top-color: var(--color-text-primary);
+  flex: none;
+  inline-size: 13px;
+}
+
+@keyframes ob-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ob-checking {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+}
+
+/* Model choice keeps the same column, but its list scrolls and its rows are
+ * real cards, because a model is a thing you pick. */
+.ob-scroll {
+  margin-top: var(--space-6);
+  min-block-size: 0;
+  overflow-y: auto;
+  padding-bottom: var(--space-2);
+}
+
+.ob-group + .ob-group {
+  margin-top: var(--space-6);
+}
+
+.ob-group-label {
+  color: var(--color-text-tertiary);
+  font-family: var(--font-mono);
+  font-size: var(--fs-microlabel);
+  font-weight: 500;
+  letter-spacing: var(--ls-microlabel);
+  line-height: 16px;
+  text-transform: uppercase;
+}
+
+.ob-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.ob-more {
+  align-items: center;
+  align-self: start;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: var(--type-secondary-size);
+  font-weight: var(--fw-button);
+  gap: var(--space-1-5);
+  margin-top: var(--space-3);
+  padding: var(--space-1) 0;
+}
+
+.ob-more:hover {
+  color: var(--color-text-primary);
+}
+
+.ob-more svg {
+  transition: transform var(--duration-standard) var(--ease-out);
+}
+
+.ob-more[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ob-spinner {
+    animation-duration: 2s;
+  }
+
+  .ob-more svg {
+    transition: none;
+  }
+}

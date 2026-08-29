@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { platform } from "@tauri-apps/plugin-os";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import {
   checkAccessibilityPermission,
   requestAccessibilityPermission,
@@ -10,9 +11,10 @@ import {
 import { toast } from "sonner";
 import { commands } from "@/bindings";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { Badge, Button } from "@/components/ui";
 import { SonaMark } from "../icons/SonaMark";
 import { SonaWordmark } from "../icons/SonaWordmark";
-import { Keyboard, Mic, Check, Loader2 } from "lucide-react";
+import "./onboarding.css";
 
 interface AccessibilityOnboardingProps {
   onComplete: () => void;
@@ -26,53 +28,87 @@ interface PermissionsState {
   microphone: PermissionStatus;
 }
 
-interface PermissionCardProps {
-  icon: React.ReactNode;
+/**
+ * The exact System Settings pane for each permission.
+ *
+ * macOS shows the microphone consent dialog once, ever. After a denial
+ * `requestMicrophonePermission()` resolves silently and the row would sit on a
+ * spinner with no way out, which is the failure this screen was reported for.
+ * Deep-linking the pane is the escape hatch; the two URLs are the entire
+ * `opener` scope added in capabilities/default.json.
+ */
+const MACOS_SETTINGS_PANE = {
+  microphone:
+    "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone",
+  accessibility:
+    "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
+} as const;
+
+interface PermissionRowProps {
   title: string;
   description: string;
   status: PermissionStatus;
   grantLabel: string;
   onGrant: () => void;
+  onOpenSettings: () => void;
+  onRecheck: () => void;
 }
 
-const PermissionCard: React.FC<PermissionCardProps> = ({
-  icon,
+/**
+ * One permission, as a flat section.
+ *
+ * `waiting` is the state this screen used to get stuck in: a spinner with
+ * nothing to click. It now always carries two live affordances — the exact
+ * System Settings pane, and a re-check that restarts the poll — so the row is
+ * never a dead end.
+ */
+const PermissionRow: React.FC<PermissionRowProps> = ({
   title,
   description,
   status,
   grantLabel,
   onGrant,
+  onOpenSettings,
+  onRecheck,
 }) => {
   const { t } = useTranslation();
+  const granted = status === "granted";
 
   return (
-    <div className="onboarding-permission-card w-full p-4">
-      <div className="flex items-center gap-3">
-        {icon}
-        <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-text">{title}</h3>
-          <p className="text-sm text-text/60 mb-3">{description}</p>
-          {status === "granted" ? (
-            <div className="flex items-center gap-2 text-sm text-text-secondary">
-              <Check className="w-4 h-4" />
-              {t("onboarding.permissions.granted")}
-            </div>
-          ) : status === "waiting" ? (
-            <div className="flex items-center gap-2 text-text/50 text-sm">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              {t("onboarding.permissions.waiting")}
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={onGrant}
-              className="liquid-control min-h-8 bg-inverse-background px-3 text-sm font-medium text-inverse-text transition-colors hover:bg-text-primary"
-            >
-              {grantLabel}
-            </button>
-          )}
-        </div>
+    <div className="ob-row">
+      <div className="ob-row-head">
+        <h3 className="ob-row-title">{title}</h3>
+        <Badge variant={granted ? "success" : "secondary"}>
+          {granted
+            ? t("onboarding.permissions.granted")
+            : t("onboarding.permissions.waiting")}
+        </Badge>
       </div>
+      <p className="ob-row-description">{description}</p>
+      {granted ? null : status === "waiting" ? (
+        <>
+          <div className="ob-row-actions">
+            <Button variant="secondary" size="sm" onClick={onOpenSettings}>
+              {t("accessibility.openSettings")}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onRecheck}>
+              {t("onboarding.permissions.recheck", "Re-check")}
+            </Button>
+          </div>
+          <div className="ob-row-actions">
+            <span className="ob-waiting" role="status">
+              <span className="ob-spinner" aria-hidden="true" />
+              {t("onboarding.permissions.waiting")}
+            </span>
+          </div>
+        </>
+      ) : (
+        <div className="ob-row-actions">
+          <Button size="sm" onClick={onGrant}>
+            {grantLabel}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
@@ -91,7 +127,17 @@ interface PermissionOnboardingContentProps {
   accessibilityStatus: PermissionStatus;
   onGrantMicrophone: () => void;
   onGrantAccessibility: () => void;
+  onOpenMicrophoneSettings: () => void;
+  onOpenAccessibilitySettings: () => void;
+  onRecheck: () => void;
 }
+
+const OnboardingBrand: React.FC = () => (
+  <div className="ob-brand">
+    <SonaMark width={22} height={22} />
+    <SonaWordmark className="text-[14px]" />
+  </div>
+);
 
 const PermissionOnboardingContent: React.FC<
   PermissionOnboardingContentProps
@@ -101,6 +147,9 @@ const PermissionOnboardingContent: React.FC<
   accessibilityStatus,
   onGrantMicrophone,
   onGrantAccessibility,
+  onOpenMicrophoneSettings,
+  onOpenAccessibilitySettings,
+  onRecheck,
 }) => {
   const {
     isChecking,
@@ -113,77 +162,76 @@ const PermissionOnboardingContent: React.FC<
 
   if (isChecking) {
     return (
-      <div className="onboarding-shell h-screen w-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-text/50" />
+      <div className="onboarding-shell ob-stage">
+        <div className="ob-column">
+          <OnboardingBrand />
+          <span className="ob-checking" role="status">
+            <span className="ob-spinner" aria-hidden="true" />
+            {t("onboarding.permissions.checking", "Checking permissions")}
+          </span>
+        </div>
       </div>
     );
   }
 
   if (allGranted) {
     return (
-      <div className="onboarding-shell h-screen w-screen flex flex-col items-center justify-center gap-4">
-        <div className="rounded-md border border-border bg-surface p-3">
-          <Check className="h-8 w-8 text-text-primary" />
+      <div className="onboarding-shell ob-stage">
+        <div className="ob-column">
+          <OnboardingBrand />
+          <h1 className="ob-headline">
+            {t("onboarding.permissions.allGranted")}
+          </h1>
         </div>
-        <p className="text-lg font-medium text-text">
-          {t("onboarding.permissions.allGranted")}
-        </p>
       </div>
     );
   }
 
   return (
-    <div className="onboarding-shell h-screen w-screen flex flex-col p-6 gap-6 items-center justify-center">
-      <div className="flex flex-col items-center gap-3 text-text-primary">
-        <SonaMark width={36} height={36} />
-        <SonaWordmark className="text-2xl" />
-      </div>
+    <div className="onboarding-shell ob-stage">
+      <div className="ob-column">
+        <OnboardingBrand />
+        <h1 className="ob-headline">
+          {t("onboarding.permissions.headline", "One-time setup")}
+        </h1>
+        <p className="ob-subhead">
+          {t(
+            "onboarding.permissions.subhead",
+            "Your computer asks before any app can listen or type for you. Grant these once and Sona won't ask again.",
+          )}
+        </p>
 
-      <div className="onboarding-permission-panel max-w-md w-full flex flex-col items-center gap-4">
-        <div className="text-center mb-2">
-          <h2 className="text-xl font-semibold text-text mb-2">
-            {t("onboarding.permissions.title")}
-          </h2>
-          <p className="text-text/70">
-            {t("onboarding.permissions.description")}
-          </p>
+        <div className="ob-rows">
+          {showMicrophonePermission && (
+            <PermissionRow
+              title={t("onboarding.permissions.microphone.title")}
+              description={t("onboarding.permissions.microphone.description")}
+              status={microphoneStatus}
+              grantLabel={
+                isWindows
+                  ? t("accessibility.openSettings")
+                  : t("onboarding.permissions.grant")
+              }
+              onGrant={onGrantMicrophone}
+              onOpenSettings={onOpenMicrophoneSettings}
+              onRecheck={onRecheck}
+            />
+          )}
+
+          {showAccessibilityPermission && (
+            <PermissionRow
+              title={t("onboarding.permissions.accessibility.title")}
+              description={t(
+                "onboarding.permissions.accessibility.description",
+              )}
+              status={accessibilityStatus}
+              grantLabel={t("onboarding.permissions.grant")}
+              onGrant={onGrantAccessibility}
+              onOpenSettings={onOpenAccessibilitySettings}
+              onRecheck={onRecheck}
+            />
+          )}
         </div>
-
-        {showMicrophonePermission && (
-          <PermissionCard
-            icon={
-              <Mic
-                className="h-4 w-4 shrink-0 text-text-secondary"
-                aria-hidden="true"
-              />
-            }
-            title={t("onboarding.permissions.microphone.title")}
-            description={t("onboarding.permissions.microphone.description")}
-            status={microphoneStatus}
-            grantLabel={
-              isWindows
-                ? t("accessibility.openSettings")
-                : t("onboarding.permissions.grant")
-            }
-            onGrant={onGrantMicrophone}
-          />
-        )}
-
-        {showAccessibilityPermission && (
-          <PermissionCard
-            icon={
-              <Keyboard
-                className="h-4 w-4 shrink-0 text-text-secondary"
-                aria-hidden="true"
-              />
-            }
-            title={t("onboarding.permissions.accessibility.title")}
-            description={t("onboarding.permissions.accessibility.description")}
-            status={accessibilityStatus}
-            grantLabel={t("onboarding.permissions.grant")}
-            onGrant={onGrantAccessibility}
-          />
-        )}
       </div>
     </div>
   );
@@ -208,6 +256,7 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const errorCountRef = useRef<number>(0);
+  const accessibilityGrantedRef = useRef(false);
   const MAX_POLLING_ERRORS = 3;
 
   const isMacOS = permissionPlatform === "macos";
@@ -238,6 +287,29 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
     return microphoneStatus.overall_access !== "denied";
   }, []);
 
+  // Enigo and the global shortcut listener are initialized exactly once per
+  // accessibility grant, and the polled permission value is the only
+  // transition source. This must stay outside every setState updater: React
+  // may replay an updater, and replaying it once fired hundreds of IPC calls
+  // in a second.
+  const syncAccessibilityGrant = useCallback(
+    async (granted: boolean): Promise<void> => {
+      const wasGranted = accessibilityGrantedRef.current;
+      accessibilityGrantedRef.current = granted;
+      if (!granted || wasGranted) return;
+
+      try {
+        await Promise.all([
+          commands.initializeEnigo(),
+          commands.initializeShortcuts(),
+        ]);
+      } catch (e) {
+        console.warn("Failed to initialize after permission grant:", e);
+      }
+    },
+    [],
+  );
+
   // Check platform and permission status on mount
   useEffect(() => {
     let cancelled = false;
@@ -266,17 +338,8 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
           ]);
           if (cancelled) return;
 
-          // If accessibility is granted, initialize Enigo and shortcuts
-          if (accessibilityGranted) {
-            try {
-              await Promise.all([
-                commands.initializeEnigo(),
-                commands.initializeShortcuts(),
-              ]);
-            } catch (e) {
-              console.warn("Failed to initialize after permission grant:", e);
-            }
-          }
+          // Initialize Enigo and shortcuts when accessibility is granted
+          await syncAccessibilityGrant(accessibilityGranted);
 
           if (cancelled) return;
           const newState: PermissionsState = {
@@ -329,7 +392,13 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [completeOnboarding, hasWindowsMicrophoneAccess, onComplete, t]);
+  }, [
+    completeOnboarding,
+    hasWindowsMicrophoneAccess,
+    onComplete,
+    syncAccessibilityGrant,
+    t,
+  ]);
 
   // Polling for permissions after user clicks a button
   const startPolling = useCallback(() => {
@@ -360,26 +429,12 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
           checkMicrophonePermission(),
         ]);
 
-        setPermissions((prev) => {
-          const newState = { ...prev };
+        await syncAccessibilityGrant(accessibilityGranted);
 
-          if (accessibilityGranted && prev.accessibility !== "granted") {
-            newState.accessibility = "granted";
-            // Initialize Enigo and shortcuts when accessibility is granted
-            Promise.all([
-              commands.initializeEnigo(),
-              commands.initializeShortcuts(),
-            ]).catch((e) => {
-              console.warn("Failed to initialize after permission grant:", e);
-            });
-          }
-
-          if (microphoneGranted && prev.microphone !== "granted") {
-            newState.microphone = "granted";
-          }
-
-          return newState;
-        });
+        setPermissions((prev) => ({
+          accessibility: accessibilityGranted ? "granted" : prev.accessibility,
+          microphone: microphoneGranted ? "granted" : prev.microphone,
+        }));
 
         // If both granted, stop polling, refresh audio devices, and proceed
         if (accessibilityGranted && microphoneGranted) {
@@ -406,7 +461,13 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
         }
       }
     }, 1000);
-  }, [completeOnboarding, hasWindowsMicrophoneAccess, permissionPlatform, t]);
+  }, [
+    completeOnboarding,
+    hasWindowsMicrophoneAccess,
+    permissionPlatform,
+    syncAccessibilityGrant,
+    t,
+  ]);
 
   // Cleanup polling and timeouts on unmount
   useEffect(() => {
@@ -447,6 +508,36 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
     }
   };
 
+  /* Restart the poll with a fresh error budget. The interval body above is
+   * reused verbatim: this only guarantees a live poll, which matters because
+   * MAX_POLLING_ERRORS consecutive failures stop it for good and leave the row
+   * waiting on a check that will never run again. */
+  const handleRecheck = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+    errorCountRef.current = 0;
+    startPolling();
+  }, [startPolling]);
+
+  const openSettingsPane = async (
+    pane: keyof typeof MACOS_SETTINGS_PANE,
+  ): Promise<void> => {
+    try {
+      if (isWindows) {
+        await commands.openMicrophonePrivacySettings();
+      } else {
+        await openUrl(MACOS_SETTINGS_PANE[pane]);
+      }
+      // Settings is open; make sure something is watching for the flip.
+      handleRecheck();
+    } catch (error) {
+      console.error("Failed to open the permission settings pane:", error);
+      toast.error(t("onboarding.permissions.errors.requestFailed"));
+    }
+  };
+
   const isChecking =
     permissionPlatform === null ||
     (isMacOS &&
@@ -467,6 +558,9 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
       accessibilityStatus={permissions.accessibility}
       onGrantMicrophone={handleGrantMicrophone}
       onGrantAccessibility={handleGrantAccessibility}
+      onOpenMicrophoneSettings={() => void openSettingsPane("microphone")}
+      onOpenAccessibilitySettings={() => void openSettingsPane("accessibility")}
+      onRecheck={handleRecheck}
     />
   );
 };
