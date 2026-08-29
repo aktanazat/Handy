@@ -8,7 +8,6 @@ import {
   buildInstrumentCells,
   buildRecentActivity,
   formatInputLevel,
-  formatRealtimeFactor,
   newestReceipt,
   readFailure,
   shortenModelId,
@@ -33,6 +32,7 @@ const labels: InstrumentLabels = {
   channel: (channel) => `ch ${channel}`,
   channels: (count) => `${count} ch`,
   sampleRate: (kilohertz) => `${kilohertz} kHz`,
+  decode: (factor) => `decode ${factor}`,
 };
 
 const readings: InstrumentReadings = {
@@ -68,7 +68,7 @@ describe("instrument strip mapping", () => {
       "Parakeet TDT 0.6b",
       "MTL0",
       "loaded",
-      "13.8x",
+      "decode 13.8x",
     ]);
     expect(texts(cells, "input")).toEqual([
       "MacBook Pro Microphone",
@@ -122,10 +122,57 @@ describe("instrument strip mapping", () => {
         ...readings,
         engineIsLocal: false,
         engineLabel: "Deepgram Nova 3",
+        /* A provider actually transcribed the last run, so the backend never
+         * set a factor for it. */
+        realtimeFactor: null,
       },
       labels,
     );
     expect(texts(cells, "engine")).toEqual(["Deepgram Nova 3"]);
+  });
+
+  /* The one case where "cloud route" and "no local decode" come apart, and the
+   * case that matters most: the provider failed, local picked up, and the figure
+   * is a real local decode correctly attributable to the local engine. Gating
+   * the throughput on the configured route instead of on the receipt's own
+   * provenance would hide a measurement exactly when someone wants it. */
+  test("a cloud run that fell back to local still reports its decode speed", () => {
+    const cells = buildInstrumentCells(
+      {
+        ...readings,
+        engineIsLocal: false,
+        engineLabel: "Deepgram Nova 3",
+        realtimeFactor: 12.5,
+      },
+      labels,
+    );
+    expect(texts(cells, "engine")).toEqual(["Deepgram Nova 3", "decode 12.5x"]);
+  });
+
+  /* Two conditions, two treatments. A local route with no timed decode yet can
+   * supply the figure and has not, so it is named. A provider route has no
+   * local decode to time at all, so implying one was due would be the lie. */
+  test("an absent factor is named on a local route and omitted on a cloud one", () => {
+    expect(
+      texts(
+        buildInstrumentCells({ ...readings, realtimeFactor: null }, labels),
+        "engine",
+      ),
+    ).toEqual(["Parakeet TDT 0.6b", "MTL0", "loaded", "not measured"]);
+    expect(
+      texts(
+        buildInstrumentCells(
+          {
+            ...readings,
+            engineIsLocal: false,
+            engineLabel: "Deepgram Nova 3",
+            realtimeFactor: null,
+          },
+          labels,
+        ),
+        "engine",
+      ),
+    ).toEqual(["Deepgram Nova 3"]);
   });
 
   test("omits the load state until the status has been read once", () => {
@@ -133,7 +180,10 @@ describe("instrument strip mapping", () => {
       { ...readings, modelLoaded: null, backend: null },
       labels,
     );
-    expect(texts(cells, "engine")).toEqual(["Parakeet TDT 0.6b", "13.8x"]);
+    expect(texts(cells, "engine")).toEqual([
+      "Parakeet TDT 0.6b",
+      "decode 13.8x",
+    ]);
   });
 
   test("an unloaded engine says so rather than omitting the cell", () => {
@@ -144,8 +194,22 @@ describe("instrument strip mapping", () => {
     expect(texts(cells, "engine")).toEqual([
       "Parakeet TDT 0.6b",
       "unloaded",
-      "13.8x",
+      "decode 13.8x",
     ]);
+  });
+
+  /* The figure times the batch decode only and excludes model load, so on a
+   * cold start it runs about 4x the end-to-end rate. Unqualified, beside a load
+   * state, it reads as end-to-end — the one misreading this cell must not
+   * invite. Library labels the same field "Decode"; both surfaces have to make
+   * the same claim about the same number. */
+  test("qualifies the throughput figure as decode speed, never as bare xN", () => {
+    const rtf = buildInstrumentCells(readings, labels)
+      .find((cell) => cell.key === "engine")
+      ?.data.find((datum) => datum.key === "rtf");
+    expect(rtf?.text).toBe("decode 13.8x");
+    expect(rtf?.text.startsWith("13.8")).toBe(false);
+    expect(rtf?.absent).toBe(undefined);
   });
 
   test("push-to-talk off stops the strip claiming a hold gesture", () => {
@@ -204,20 +268,6 @@ describe("instrument strip mapping", () => {
       ?.data.find((datum) => datum.key === "rtf");
     expect(rtf?.text).toBe("not measured");
     expect(rtf?.absent).toBe(true);
-  });
-
-  test("throughput keeps enough precision that a slow decode is not a zero", () => {
-    // Faster than realtime, which is the ordinary case on this hardware.
-    expect(formatRealtimeFactor(13.82)).toBe("13.8x");
-    expect(formatRealtimeFactor(1.9412)).toBe("1.94x");
-    // Slower than realtime: the digits follow the number down rather than
-    // collapsing it to 0.0x, which would read as a stalled engine.
-    expect(formatRealtimeFactor(0.0432)).toBe("0.043x");
-    expect(formatRealtimeFactor(0.00041)).toBe("0.00041x");
-    // Nothing measured, or an unmeasurable span the backend logged as zero.
-    expect(formatRealtimeFactor(null)).toBe(null);
-    expect(formatRealtimeFactor(0)).toBe(null);
-    expect(formatRealtimeFactor(Number.POSITIVE_INFINITY)).toBe(null);
   });
 });
 

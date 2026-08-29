@@ -944,7 +944,8 @@
           "complete": "Complete",
           "truncated": "Truncated",
           "no_speech_detected": "No speech detected"
-        }
+        },
+        "realtimeFactorLabel": "Decode"
       },
       "correction": {
         "add": "Add correction",
@@ -2750,7 +2751,8 @@
       "channel": "ch {{channel}}",
       "channels": "{{count}} ch",
       "rate": "{{kilohertz}} kHz",
-      "systemDefault": "System default"
+      "systemDefault": "System default",
+      "decode": "decode {{factor}}"
     }
   },
   "cloudSync": {

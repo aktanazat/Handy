@@ -736,6 +736,8 @@ export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
         t("overview.instrument.channels", "{{count}} ch", { count }),
       sampleRate: (kilohertz) =>
         t("overview.instrument.rate", "{{kilohertz}} kHz", { kilohertz }),
+      decode: (factor) =>
+        t("overview.instrument.decode", "decode {{factor}}", { factor }),
     },
   );
 

@@ -82,3 +82,18 @@ export const formatRelativeTime = (
   }
   return formatEntryTimestamp(timestampMs, new Date(nowMs));
 };
+
+/**
+ * Decode throughput as audio seconds per decode second, or null when no timed
+ * local batch decode produced the run.
+ *
+ * Precision is chosen so a slow decode can never round to a lying `0.0x`:
+ * anything at or above realtime carries one or two decimals (13.8x, 1.94x), and
+ * anything below it carries two significant digits (0.043x).
+ */
+export const formatRealtimeFactor = (factor: number | null): string | null => {
+  if (factor === null || !Number.isFinite(factor) || factor <= 0) return null;
+  const digits =
+    factor < 1 ? factor.toPrecision(2) : factor.toFixed(factor >= 10 ? 1 : 2);
+  return `${digits}x`;
+};

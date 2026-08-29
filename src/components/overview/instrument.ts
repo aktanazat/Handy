@@ -4,7 +4,11 @@ import type {
   MeetingHistorySummary,
 } from "@/bindings";
 import { z } from "zod";
-import { formatDurationShort, formatRelativeTime } from "@/lib/utils/format";
+import {
+  formatDurationShort,
+  formatRealtimeFactor,
+  formatRelativeTime,
+} from "@/lib/utils/format";
 
 /* Live readouts for the Capture page: the instrument strip and the recent
  * activity rows.
@@ -109,6 +113,16 @@ export interface InstrumentLabels {
   channel: (channel: number) => string;
   channels: (count: number) => string;
   sampleRate: (kilohertz: number) => string;
+  /**
+   * Qualifies the throughput figure as *decode* speed. It has to say so: the
+   * number times the engine's batch decode only and excludes model load, so on
+   * a cold start it runs about 4x the end-to-end rate (1.05 s of audio decoded
+   * in 76 ms is 13.8x, but 362 ms of wall clock after a 286 ms load is 2.9x).
+   * An unqualified "13.8x" beside a load state reads as end-to-end, which is
+   * the one misreading this cell must not invite. Library says "Decode" for the
+   * same field, so both surfaces make the same claim about the same number.
+   */
+  decode: (factor: string) => string;
 }
 
 /**
@@ -127,21 +141,6 @@ export const formatInputLevel = (
   if (peak === null || rms === null) return null;
   if (!Number.isFinite(peak) || !Number.isFinite(rms)) return null;
   return `${peak.toFixed(4)} / ${rms.toFixed(4)}`;
-};
-
-/**
- * Decode throughput as audio seconds per decode second, or null when no timed
- * local batch decode produced the run.
- *
- * Precision is chosen so a slow decode can never round to a lying `0.0x`:
- * anything at or above realtime carries one or two decimals (13.8x, 1.94x), and
- * anything below it carries two significant digits (0.043x).
- */
-export const formatRealtimeFactor = (factor: number | null): string | null => {
-  if (factor === null || !Number.isFinite(factor) || factor <= 0) return null;
-  const digits =
-    factor < 1 ? factor.toPrecision(2) : factor.toFixed(factor >= 10 ? 1 : 2);
-  return `${digits}x`;
 };
 
 /** A model id is a repository path. The catalog owns the product name; until it
@@ -179,11 +178,11 @@ export const buildInstrumentCells = (
     readings.engineIsLocal ? readings.modelName : readings.engineLabel,
     { identity: true },
   );
+  /* The trio below is forward-looking: it says what will transcribe the NEXT
+   * capture. A cloud route has no local binding to report, so a loaded local
+   * model and its backend are omitted rather than shown as state that will not
+   * run this capture. */
   if (readings.engineIsLocal) {
-    /* A cloud route has no local binding to report, so these are omitted
-     * rather than shown as a state that will not run this capture. The
-     * throughput goes with them: it measures a local decode, and attributing
-     * one to a provider route would be a misreading of the same number. */
     push(engine, "backend", readings.backend);
     if (readings.modelLoaded !== null) {
       push(
@@ -192,13 +191,27 @@ export const buildInstrumentCells = (
         readings.modelLoaded ? labels.loaded : labels.unloaded,
       );
     }
-    const throughput = formatRealtimeFactor(readings.realtimeFactor);
-    push(
-      engine,
-      "rtf",
-      throughput ?? labels.notMeasured,
-      throughput === null ? { absent: true } : undefined,
-    );
+  }
+
+  /* The throughput is backward-looking: it is the LAST run's measurement, so it
+   * is gated on that run's provenance rather than on the configured route. The
+   * two come apart on exactly one case, and it is the case that matters most:
+   * a cloud run that fell back to local produces a genuine local decode with a
+   * genuine figure, and that is precisely when someone wants to know the local
+   * engine's speed. Route-gating would have hidden it. No misattribution is
+   * possible either — the backend sets `realtime_factor` if and only if a timed
+   * local batch decode produced the receipt, so a provider-transcribed run
+   * arrives here already absent.
+   *
+   * Absent splits by route, which is the "cannot supply" vs "has not supplied"
+   * distinction: on a local route a missing figure means no timed decode has
+   * happened yet and is named; on a provider route there is no local decode to
+   * time at all, so the datum is omitted rather than implying one was due. */
+  const throughput = formatRealtimeFactor(readings.realtimeFactor);
+  if (throughput !== null) {
+    push(engine, "rtf", labels.decode(throughput));
+  } else if (readings.engineIsLocal) {
+    push(engine, "rtf", labels.notMeasured, { absent: true });
   }
 
   const input: InstrumentDatum[] = [];

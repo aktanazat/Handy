@@ -3,6 +3,7 @@ import {
   formatDurationShort,
   formatEntryTimestamp,
   formatModelSize,
+  formatRealtimeFactor,
   formatRelativeTime,
 } from "./format";
 
@@ -55,5 +56,21 @@ describe("formatRelativeTime", () => {
     expect(minutesAgo).toContain("minute");
     const old = formatRelativeTime(now - 86400_000 * 30, now);
     expect(old.includes("ago")).toBe(false);
+  });
+});
+
+describe("formatRealtimeFactor", () => {
+  test("keeps enough precision that a slow decode is never a zero", () => {
+    // Faster than realtime, which is the ordinary case on this hardware.
+    expect(formatRealtimeFactor(13.82)).toBe("13.8x");
+    expect(formatRealtimeFactor(1.9412)).toBe("1.94x");
+    // Slower than realtime: the digits follow the number down rather than
+    // collapsing it to 0.0x, which would read as a stalled engine.
+    expect(formatRealtimeFactor(0.0432)).toBe("0.043x");
+    expect(formatRealtimeFactor(0.00041)).toBe("0.00041x");
+    // Nothing measured, or an unmeasurable span the backend logged as zero.
+    expect(formatRealtimeFactor(null)).toBe(null);
+    expect(formatRealtimeFactor(0)).toBe(null);
+    expect(formatRealtimeFactor(Number.POSITIVE_INFINITY)).toBe(null);
   });
 });

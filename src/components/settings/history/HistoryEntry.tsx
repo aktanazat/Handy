@@ -8,7 +8,11 @@ import {
   type HistoryEntry,
   type HistoryRunReceipt,
 } from "@/bindings";
-import { formatDurationShort, formatEntryTimestamp } from "@/lib/utils/format";
+import {
+  formatDurationShort,
+  formatEntryTimestamp,
+  formatRealtimeFactor,
+} from "@/lib/utils/format";
 import { ProcessAgainDialog } from "./ProcessAgainDialog";
 import {
   AudioPlayer,
@@ -850,6 +854,25 @@ const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({ receipt }) => {
       id: "rms",
       label: t("settings.history.level.rms", "rms"),
       value: receipt.mode.input_rms.toFixed(AMPLITUDE_DIGITS),
+    });
+  }
+  /* The engine's throughput on this machine for this decode. The label says
+   * DECODE rather than "realtime" on purpose: the field is audio ÷ decode span
+   * and excludes model load. The measurement behind the doc comment's 13.8 was
+   * 1.05 s of audio in 76 ms of decode after 286 ms of load — 2.9x by wall
+   * clock. Labelled "Realtime" a reader takes it for how fast the dictation
+   * was; labelled "Decode" it says the thing it measured.
+   *
+   * The figure itself goes through Capture's formatter, which is the only one:
+   * a fixed one decimal here would print a 0.043x decode as `0.0x`, which is a
+   * measurement rounded to a lying zero. Absent means no timed local batch
+   * decode was involved. */
+  const throughput = formatRealtimeFactor(receipt.mode.realtime_factor ?? null);
+  if (throughput !== null) {
+    pairs.push({
+      id: "rtf",
+      label: t("settings.history.receipts.realtimeFactorLabel", "Decode"),
+      value: throughput,
     });
   }
   pairs.push(
