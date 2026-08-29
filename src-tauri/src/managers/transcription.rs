@@ -1,8 +1,8 @@
 use crate::audio_toolkit::{
     apply_british_spelling, apply_emoji_replacements, apply_exact_vocabulary_entries,
-    apply_literal_punctuation, apply_text_replacements, apply_vocabulary_entries,
-    detect_output_language, normalize_transcription_output, remove_filler_words,
-    OutputLanguageEvidence,
+    apply_literal_punctuation, apply_spoken_edits, apply_text_replacements,
+    apply_vocabulary_entries, detect_output_language, normalize_transcription_output,
+    remove_filler_words, OutputLanguageEvidence,
 };
 use crate::managers::audio::AudioRecordingManager;
 use crate::managers::model::{EngineType, ModelManager};
@@ -2935,6 +2935,14 @@ fn post_process_transcription_text(
         } else {
             apply_vocabulary_entries(&corrected, &asr.custom_words, asr.correction_threshold)
         };
+        // After vocabulary correction, before snippets. Correction can *create*
+        // the command phrase (a misheard "scratch back" becomes "scratch that"
+        // through a vocabulary entry, and the literal-punctuation stage above
+        // supplies the pause boundary the matcher needs), so running earlier
+        // would miss those. Snippets must not see it: a deleted clause could
+        // otherwise leave a half-expanded trigger, and a command phrase is not
+        // text the user asked to expand.
+        let corrected = apply_spoken_edits(&corrected, output_language, asr.spoken_edits_enabled);
         let corrected = if asr.snippets_enabled {
             apply_snippets(&corrected, &asr.snippets)
         } else {
@@ -4049,6 +4057,71 @@ mod tests {
                 &[],
             ),
             "Northstar"
+        );
+    }
+
+    #[test]
+    fn spoken_edits_run_after_vocabulary_correction_and_before_snippets() {
+        // The vocabulary entry is what turns the misheard phrase into the
+        // command, so the command can only fire if spoken edits run after
+        // correction. The snippet trigger is the command's own word, so it can
+        // only stay unexpanded if spoken edits run before expansion.
+        let settings = AppSettings {
+            custom_words: vec![VocabularyEntry {
+                spoken: "scratch back".to_string(),
+                written: "scratch that".to_string(),
+            }],
+            snippets: vec![crate::snippets::Snippet {
+                id: "one".to_string(),
+                trigger: "that".to_string(),
+                expansion: "THAT".to_string(),
+                enabled: true,
+                created_at: 0,
+                updated_at: 0,
+            }],
+            spoken_edits_enabled: true,
+            filler_word_removal_enabled: false,
+            ..Default::default()
+        };
+        let english = OutputLanguageEvidence::UserSelected("en-US".to_string());
+
+        assert_eq!(
+            post_process_transcription_text(
+                "Keep this. Drop this. Scratch back.".to_string(),
+                &AsrPlan::from_settings(&settings),
+                false,
+                &english,
+                &[],
+            ),
+            "Keep this."
+        );
+
+        // The roadmap's named false positive, through the whole pipeline.
+        assert_eq!(
+            post_process_transcription_text(
+                "We should scratch that plan.".to_string(),
+                &AsrPlan::from_settings(&settings),
+                false,
+                &english,
+                &[],
+            ),
+            "We should scratch THAT plan."
+        );
+
+        // Gate off: the phrase is transcribed, and the snippet then expands the
+        // word the command would have consumed — visible proof the stage was
+        // skipped rather than reordered.
+        let mut disabled = settings;
+        disabled.spoken_edits_enabled = false;
+        assert_eq!(
+            post_process_transcription_text(
+                "Keep this. Drop this. Scratch back.".to_string(),
+                &AsrPlan::from_settings(&disabled),
+                false,
+                &english,
+                &[],
+            ),
+            "Keep this. Drop this. scratch THAT."
         );
     }
 

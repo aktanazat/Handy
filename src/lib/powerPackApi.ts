@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 /**
  * Power-pack commands invoked by name rather than through `commands.*`.
  *
- * The generated wrappers exist, but these twelve calls declare their payload
+ * The generated wrappers exist, but these thirteen calls declare their payload
  * shapes locally and go through `invoke` exactly like `read_history_audio_chunk`
  * already does in `HistorySettings.tsx`. Keeping one accessor per command here
  * means the panels below never import a second settings surface.
@@ -54,6 +54,9 @@ export const resetTextReplacements = (): Promise<ReplacementRule[]> =>
 
 export const setTextReplacementsEnabled = (enabled: boolean): Promise<void> =>
   invoke<void>("update_text_replacements_enabled", { enabled });
+
+export const setSpokenEditsEnabled = (enabled: boolean): Promise<void> =>
+  invoke<void>("update_spoken_edits_enabled", { enabled });
 
 export const getPersonaSamples = (): Promise<PersonaSample[]> =>
   invoke<PersonaSample[]>("get_persona_samples");

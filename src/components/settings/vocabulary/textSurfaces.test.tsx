@@ -1,4 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { z } from "zod";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInstance } from "i18next";
@@ -72,5 +76,66 @@ describe("CustomWords", () => {
 
     expect(markup).toContain('role="group"');
     expect(markup).toContain('accept=".csv,text/csv"');
+  });
+});
+
+/**
+ * A locale catalogue as i18next reads it: a sentence, or a group of them.
+ * Stated as a schema so a nested object where a sentence belongs, or a number
+ * that slipped into a translation file, fails at the read instead of rendering
+ * as `[object Object]` in an assertion nobody re-checks.
+ */
+type LocaleNode = string | { [key: string]: LocaleNode };
+
+const localeCatalogue: z.ZodType<LocaleNode> = z.lazy(() =>
+  z.union([z.string(), z.record(localeCatalogue)]),
+);
+
+/**
+ * The rows whose copy lives only in the locale files render with the real
+ * English resources instead, so the assertion proves the key is wired rather
+ * than that an inline default exists.
+ */
+const renderWithEnglishCopy = async (
+  node: React.ReactElement,
+): Promise<string> => {
+  const translation = localeCatalogue.parse(
+    JSON.parse(
+      fs.readFileSync(
+        path.join(
+          path.dirname(fileURLToPath(import.meta.url)),
+          "..",
+          "..",
+          "..",
+          "i18n",
+          "locales",
+          "en",
+          "translation.json",
+        ),
+        "utf8",
+      ),
+    ),
+  );
+  const i18n = createInstance();
+  await i18n.init({
+    lng: "en",
+    fallbackLng: "en",
+    resources: { en: { translation } },
+    interpolation: { escapeValue: false },
+  });
+  return renderToStaticMarkup(
+    <I18nextProvider i18n={i18n}>{node}</I18nextProvider>,
+  );
+};
+
+describe("spoken editing commands row", () => {
+  test("states which phrases fire and which stay as text", async () => {
+    const markup = await renderWithEnglishCopy(<CustomWords />);
+
+    expect(markup).toContain("Obey spoken editing commands");
+    expect(markup).toContain("delete the last word");
+    // The row names its own limits rather than promising general editing.
+    expect(markup).toContain("English only");
+    expect(markup).toContain("scratch that plan");
   });
 });

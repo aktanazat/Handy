@@ -646,6 +646,11 @@
         "enableRow": "Enable {{trigger}}",
         "remove": "Delete {{trigger}}",
         "saveRow": "Save {{trigger}}"
+      },
+      "spokenEdits": {
+        "enabledLabel": "Obey spoken editing commands",
+        "enabledDescription": "Act on \"scratch that\", \"delete last word\" and \"delete the last word\" instead of writing them. English only, and only when the phrase stands alone between two pauses: \"scratch that plan\" and \"we should scratch that\" stay as text.",
+        "toggleError": "Couldn't change spoken editing commands. Try again."
       }
     },
     "postProcessing": {

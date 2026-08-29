@@ -407,6 +407,14 @@ async updateTextReplacementsEnabled(enabled: boolean) : Promise<Result<null, str
     else return { status: "error", error: e  as any };
 }
 },
+async updateSpokenEditsEnabled(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_spoken_edits_enabled", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async hudPillState() : Promise<HudPillState> {
     return await TAURI_INVOKE("hud_pill_state");
 },
@@ -2367,6 +2375,14 @@ replacements_enabled?: boolean;
  * Ordered spoken-phrase rewrites applied before vocabulary correction.
  */
 replacements_rules?: ReplacementRule[];
+/**
+ * Whether spoken editing commands ("scratch that", "delete last word")
+ * are obeyed instead of transcribed. Off by default: obeying is
+ * destructive, and a speaker who utters a command phrase as a whole clause
+ * is indistinguishable from one issuing the command. English only. See
+ * [`crate::audio_toolkit::apply_spoken_edits`].
+ */
+spoken_edits_enabled?: boolean;
 /**
  * Samples of the user's own writing, injected into every rewrite prompt as
  * voice-matching examples. Empty means the rewrite behaves exactly as it

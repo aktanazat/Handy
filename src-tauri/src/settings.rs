@@ -1190,6 +1190,13 @@ pub struct AppSettings {
     /// Ordered spoken-phrase rewrites applied before vocabulary correction.
     #[serde(default = "default_replacement_rules")]
     pub replacements_rules: Vec<ReplacementRule>,
+    /// Whether spoken editing commands ("scratch that", "delete last word")
+    /// are obeyed instead of transcribed. Off by default: obeying is
+    /// destructive, and a speaker who utters a command phrase as a whole clause
+    /// is indistinguishable from one issuing the command. English only. See
+    /// [`crate::audio_toolkit::apply_spoken_edits`].
+    #[serde(default)]
+    pub spoken_edits_enabled: bool,
     /// Samples of the user's own writing, injected into every rewrite prompt as
     /// voice-matching examples. Empty means the rewrite behaves exactly as it
     /// did before, which is the shipped state.
@@ -1794,6 +1801,7 @@ pub fn get_default_settings() -> AppSettings {
         meeting_notes_template: MeetingNotesTemplate::General,
         replacements_enabled: default_replacements_enabled(),
         replacements_rules: default_replacement_rules(),
+        spoken_edits_enabled: false,
         persona_samples: Vec::new(),
         hud_pill_enabled: false,
         hud_pill_position: default_hud_pill_position(),

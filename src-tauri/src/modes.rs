@@ -1124,6 +1124,7 @@ pub struct AsrPlan {
     pub ort_accelerator: OrtAcceleratorSetting,
     pub replacements_rules: Vec<ReplacementRule>,
     pub replacements_enabled: bool,
+    pub spoken_edits_enabled: bool,
 }
 
 impl AsrPlan {
@@ -1157,6 +1158,7 @@ impl AsrPlan {
             ort_accelerator: settings.ort_accelerator,
             replacements_rules: settings.replacements_rules.clone(),
             replacements_enabled: settings.replacements_enabled,
+            spoken_edits_enabled: settings.spoken_edits_enabled,
         }
     }
 
@@ -1181,6 +1183,7 @@ impl AsrPlan {
             ort_accelerator: settings.ort_accelerator,
             replacements_rules: settings.replacements_rules.clone(),
             replacements_enabled: settings.replacements_enabled,
+            spoken_edits_enabled: settings.spoken_edits_enabled,
         }
     }
 }

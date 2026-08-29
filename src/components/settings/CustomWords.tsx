@@ -35,6 +35,7 @@ import {
 } from "./vocabulary/PanelParts";
 import { SnippetsPanel } from "./vocabulary/SnippetsPanel";
 import { ReplacementsPanel } from "./vocabulary/ReplacementsPanel";
+import { setSpokenEditsEnabled } from "../../lib/powerPackApi";
 import "./vocabulary/vocabulary.css";
 
 interface CustomWordsProps {
@@ -666,12 +667,30 @@ export const CustomWords: React.FC<CustomWordsProps> = ({
     }
   };
 
+  const toggleSpokenEdits = async (enabled: boolean) => {
+    setSaving(true);
+    setFailure(null);
+    try {
+      await setSpokenEditsEnabled(enabled);
+      await refreshSettings();
+    } catch (toggleError) {
+      setFailure({
+        message: String(toggleError),
+        retry: () => void toggleSpokenEdits(enabled),
+      });
+      toast.error(t("settings.advanced.spokenEdits.toggleError"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const vocabularyChanged = !samePairEntries(entries, savedEntries);
   const emojiChanged = !samePairEntries(
     emojiReplacements,
     savedEmojiReplacements,
   );
   const emojiEnabled = settings?.emoji_replacements_enabled ?? false;
+  const spokenEditsEnabled = settings?.spoken_edits_enabled ?? false;
 
   /* The backend normalizes and validates the whole list on save. Naming the
    * same rules here means a rejected write becomes a hint on the row instead
@@ -932,6 +951,16 @@ export const CustomWords: React.FC<CustomWordsProps> = ({
       <SnippetsPanel descriptionMode={descriptionMode} grouped={grouped} />
 
       <ReplacementsPanel descriptionMode={descriptionMode} grouped={grouped} />
+
+      <ToggleSwitch
+        grouped={grouped}
+        descriptionMode={descriptionMode}
+        checked={spokenEditsEnabled}
+        onChange={(enabled) => void toggleSpokenEdits(enabled)}
+        isUpdating={saving}
+        label={t("settings.advanced.spokenEdits.enabledLabel")}
+        description={t("settings.advanced.spokenEdits.enabledDescription")}
+      />
 
       <ToggleSwitch
         grouped={grouped}
