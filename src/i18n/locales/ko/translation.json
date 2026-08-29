@@ -642,6 +642,11 @@
         "enableRow": "{{trigger}} 사용",
         "remove": "{{trigger}} 삭제",
         "saveRow": "{{trigger}} 저장"
+      },
+      "spokenEdits": {
+        "enabledLabel": "말한 편집 명령 실행",
+        "enabledDescription": "\"scratch that\", \"delete last word\", \"delete the last word\"를 적는 대신 실행합니다. 영어에서만, 그리고 해당 표현이 두 쉼 사이에 단독으로 놓일 때만 적용됩니다. \"scratch that plan\"과 \"we should scratch that\"은 그대로 글로 남습니다.",
+        "toggleError": "말한 편집 명령을 변경할 수 없습니다. 다시 시도하세요."
       }
     },
     "postProcessing": {
@@ -853,6 +858,7 @@
           "truncated": "중간에 끊김",
           "no_speech_detected": "음성이 감지되지 않음"
         },
+        "realtimeFactorLabel": "디코딩",
         "columns": {
           "source": "소스",
           "status": "상태",
@@ -934,10 +940,14 @@
       "expandEntry": "항목 전체 보기",
       "collapseEntry": "항목 전체 숨기기",
       "derivedFromId": "#{{id}} 에서",
+      "recalledByMeaning": "의미 일치",
       "level": {
         "peak": "peak",
         "rms": "rms"
       },
+      "noTextRecorded": "이 항목에는 텍스트가 기록되지 않았습니다.",
+      "cloudHeld": "Cloud 실행이 보류되었습니다. 신뢰할 수 있는 결과가 오지 않았고 사용할 수 있는 로컬 모델도 없었습니다.",
+      "transcriptionEngineFailed": "전사에 실패했으므로 아무것도 기록되지 않았습니다.",
       "processAgain": {
         "action": "다시 처리",
         "title": "다시 처리",
@@ -2740,7 +2750,8 @@
       "channel": "ch {{channel}}",
       "channels": "{{count}} ch",
       "rate": "{{kilohertz}} kHz",
-      "systemDefault": "시스템 기본값"
+      "systemDefault": "시스템 기본값",
+      "decode": "디코딩 {{factor}}"
     }
   },
   "cloudSync": {

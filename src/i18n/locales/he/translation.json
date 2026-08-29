@@ -642,6 +642,11 @@
         "enableRow": "הפעל את {{trigger}}",
         "remove": "מחק את {{trigger}}",
         "saveRow": "שמור את {{trigger}}"
+      },
+      "spokenEdits": {
+        "enabledLabel": "בצע פקודות עריכה מדוברות",
+        "enabledDescription": "מבצע \"scratch that\", \"delete last word\" ו-\"delete the last word\" במקום לכתוב אותן. באנגלית בלבד, ורק כאשר הביטוי מופיע לבדו בין שתי הפסקות: \"scratch that plan\" ו-\"we should scratch that\" יישארו טקסט.",
+        "toggleError": "לא ניתן לשנות את פקודות העריכה המדוברות. נסה שוב."
       }
     },
     "postProcessing": {
@@ -853,6 +858,7 @@
           "truncated": "נקטעה",
           "no_speech_detected": "לא זוהה דיבור"
         },
+        "realtimeFactorLabel": "פענוח",
         "columns": {
           "source": "מקור",
           "status": "מצב",
@@ -934,10 +940,14 @@
       "expandEntry": "הצג את הרשומה במלואה",
       "collapseEntry": "הסתר את הרשומה במלואה",
       "derivedFromId": "מתוך #{{id}}",
+      "recalledByMeaning": "לפי משמעות",
       "level": {
         "peak": "peak",
         "rms": "rms"
       },
+      "noTextRecorded": "לא נשמר טקסט עבור רשומה זו.",
+      "cloudHeld": "הריצה ב-Cloud נעצרה: לא הגיעה תוצאה מהימנה ולא היה מודל מקומי זמין.",
+      "transcriptionEngineFailed": "התמלול נכשל, ולכן לא נשמר דבר.",
       "processAgain": {
         "action": "עבד שוב",
         "title": "עבד שוב",
@@ -2740,7 +2750,8 @@
       "channel": "ch {{channel}}",
       "channels": "{{count}} ch",
       "rate": "{{kilohertz}} kHz",
-      "systemDefault": "ברירת המחדל של המערכת"
+      "systemDefault": "ברירת המחדל של המערכת",
+      "decode": "פענוח {{factor}}"
     }
   },
   "cloudSync": {

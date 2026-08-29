@@ -642,6 +642,11 @@
         "enableRow": "Activer {{trigger}}",
         "remove": "Supprimer {{trigger}}",
         "saveRow": "Enregistrer {{trigger}}"
+      },
+      "spokenEdits": {
+        "enabledLabel": "Obéir aux commandes d'édition dictées",
+        "enabledDescription": "Exécute « scratch that », « delete last word » et « delete the last word » au lieu de les écrire. En anglais uniquement, et seulement quand la formule est seule entre deux pauses : « scratch that plan » et « we should scratch that » restent du texte.",
+        "toggleError": "Impossible de modifier les commandes d'édition dictées. Réessayez."
       }
     },
     "postProcessing": {
@@ -853,6 +858,7 @@
           "truncated": "Tronquée",
           "no_speech_detected": "Aucune parole détectée"
         },
+        "realtimeFactorLabel": "Décodage",
         "columns": {
           "source": "Source",
           "status": "État",
@@ -934,10 +940,14 @@
       "expandEntry": "Afficher l'entrée complète",
       "collapseEntry": "Masquer l'entrée complète",
       "derivedFromId": "de #{{id}}",
+      "recalledByMeaning": "par le sens",
       "level": {
         "peak": "peak",
         "rms": "rms"
       },
+      "noTextRecorded": "Aucun texte n'a été enregistré pour cette entrée.",
+      "cloudHeld": "L'exécution Cloud a été retenue : aucun résultat fiable n'est arrivé et aucun modèle local n'était disponible.",
+      "transcriptionEngineFailed": "La transcription a échoué, donc rien n'a été enregistré.",
       "processAgain": {
         "action": "Retraiter",
         "title": "Retraiter",
@@ -2740,7 +2750,8 @@
       "channel": "ch {{channel}}",
       "channels": "{{count}} ch",
       "rate": "{{kilohertz}} kHz",
-      "systemDefault": "Par défaut du système"
+      "systemDefault": "Par défaut du système",
+      "decode": "décodage {{factor}}"
     }
   },
   "cloudSync": {

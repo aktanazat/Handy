@@ -642,6 +642,11 @@
         "enableRow": "Bật {{trigger}}",
         "remove": "Xóa {{trigger}}",
         "saveRow": "Lưu {{trigger}}"
+      },
+      "spokenEdits": {
+        "enabledLabel": "Thực hiện lệnh chỉnh sửa khi nói",
+        "enabledDescription": "Thực hiện \"scratch that\", \"delete last word\" và \"delete the last word\" thay vì viết chúng ra. Chỉ với tiếng Anh, và chỉ khi cụm từ đứng riêng giữa hai lần ngừng: \"scratch that plan\" và \"we should scratch that\" vẫn là văn bản.",
+        "toggleError": "Không đổi được các lệnh chỉnh sửa khi nói. Hãy thử lại."
       }
     },
     "postProcessing": {
@@ -853,6 +858,7 @@
           "truncated": "Bị cắt",
           "no_speech_detected": "Không phát hiện giọng nói"
         },
+        "realtimeFactorLabel": "Giải mã",
         "columns": {
           "source": "Nguồn",
           "status": "Trạng thái",
@@ -934,10 +940,14 @@
       "expandEntry": "Hiện toàn bộ mục",
       "collapseEntry": "Ẩn toàn bộ mục",
       "derivedFromId": "từ #{{id}}",
+      "recalledByMeaning": "theo ý nghĩa",
       "level": {
         "peak": "peak",
         "rms": "rms"
       },
+      "noTextRecorded": "Không có văn bản nào được ghi cho mục này.",
+      "cloudHeld": "Lượt chạy Cloud đã bị giữ lại: không có kết quả đáng tin cậy nào đến và không có mô hình cục bộ nào khả dụng.",
+      "transcriptionEngineFailed": "Phiên âm thất bại, nên không có gì được ghi lại.",
       "processAgain": {
         "action": "Xử lý lại",
         "title": "Xử lý lại",
@@ -2740,7 +2750,8 @@
       "channel": "ch {{channel}}",
       "channels": "{{count}} ch",
       "rate": "{{kilohertz}} kHz",
-      "systemDefault": "Mặc định hệ thống"
+      "systemDefault": "Mặc định hệ thống",
+      "decode": "giải mã {{factor}}"
     }
   },
   "cloudSync": {

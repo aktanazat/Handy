@@ -642,6 +642,11 @@
         "enableRow": "{{trigger}} を有効にする",
         "remove": "{{trigger}} を削除",
         "saveRow": "{{trigger}} を保存"
+      },
+      "spokenEdits": {
+        "enabledLabel": "話した編集コマンドを実行する",
+        "enabledDescription": "「scratch that」「delete last word」「delete the last word」を書き出す代わりに実行します。英語のみ、かつフレーズが前後の区切りの間で単独になっている場合だけです。「scratch that plan」や「we should scratch that」は文字のまま残ります。",
+        "toggleError": "話した編集コマンドを変更できませんでした。もう一度お試しください。"
       }
     },
     "postProcessing": {
@@ -853,6 +858,7 @@
           "truncated": "途中で終了",
           "no_speech_detected": "音声が検出されません"
         },
+        "realtimeFactorLabel": "デコード",
         "columns": {
           "source": "ソース",
           "status": "状態",
@@ -934,10 +940,14 @@
       "expandEntry": "項目全体を表示",
       "collapseEntry": "項目全体を隠す",
       "derivedFromId": "#{{id}} から",
+      "recalledByMeaning": "意味一致",
       "level": {
         "peak": "peak",
         "rms": "rms"
       },
+      "noTextRecorded": "このエントリではテキストが記録されませんでした。",
+      "cloudHeld": "Cloud の実行は保留されました。信頼できる結果が届かず、利用できるローカルモデルもありませんでした。",
+      "transcriptionEngineFailed": "文字起こしに失敗したため、何も記録されませんでした。",
       "processAgain": {
         "action": "もう一度処理",
         "title": "もう一度処理",
@@ -2740,7 +2750,8 @@
       "channel": "ch {{channel}}",
       "channels": "{{count}} ch",
       "rate": "{{kilohertz}} kHz",
-      "systemDefault": "システムの既定"
+      "systemDefault": "システムの既定",
+      "decode": "デコード {{factor}}"
     }
   },
   "cloudSync": {

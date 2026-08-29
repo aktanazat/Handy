@@ -642,6 +642,11 @@
         "enableRow": "{{trigger}} सक्षम गर्नुहोस्",
         "remove": "{{trigger}} मेटाउनुहोस्",
         "saveRow": "{{trigger}} सुरक्षित गर्नुहोस्"
+      },
+      "spokenEdits": {
+        "enabledLabel": "बोलिने सम्पादन आदेश पालना गर्नुहोस्",
+        "enabledDescription": "\"scratch that\", \"delete last word\" र \"delete the last word\" लेख्नुको साटो कार्यान्वयन गर्छ। अंग्रेजीमा मात्र, र वाक्यांश दुई विरामबीच एकल रूपमा आएको बेला मात्र: \"scratch that plan\" र \"we should scratch that\" पाठकै रूपमा रहन्छन्।",
+        "toggleError": "बोलिने सम्पादन आदेश बदल्न सकिएन। फेरि प्रयास गर्नुहोस्।"
       }
     },
     "postProcessing": {
@@ -853,6 +858,7 @@
           "truncated": "काटिएको",
           "no_speech_detected": "कुनै बोली पाइएन"
         },
+        "realtimeFactorLabel": "डिकोडिङ",
         "columns": {
           "source": "स्रोत",
           "status": "अवस्था",
@@ -934,10 +940,14 @@
       "expandEntry": "पूरा प्रविष्टि देखाउनुहोस्",
       "collapseEntry": "पूरा प्रविष्टि लुकाउनुहोस्",
       "derivedFromId": "#{{id}} बाट",
+      "recalledByMeaning": "अर्थबाट",
       "level": {
         "peak": "peak",
         "rms": "rms"
       },
+      "noTextRecorded": "यो प्रविष्टिको लागि कुनै पाठ अभिलेख भएन।",
+      "cloudHeld": "Cloud रन रोकियो: कुनै भरपर्दो नतिजा आएन र कुनै स्थानीय मोडेल उपलब्ध थिएन।",
+      "transcriptionEngineFailed": "ट्रान्सक्रिप्सन गर्न सकिएन, त्यसैले कुनै पनि पाठ अभिलेख भएन।",
       "processAgain": {
         "action": "फेरि प्रक्रिया गर्नुहोस्",
         "title": "फेरि प्रक्रिया गर्नुहोस्",
@@ -2740,7 +2750,8 @@
       "channel": "ch {{channel}}",
       "channels": "{{count}} ch",
       "rate": "{{kilohertz}} kHz",
-      "systemDefault": "प्रणाली पूर्वनिर्धारित"
+      "systemDefault": "प्रणाली पूर्वनिर्धारित",
+      "decode": "डिकोडिङ {{factor}}"
     }
   },
   "cloudSync": {

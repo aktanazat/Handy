@@ -642,6 +642,11 @@
         "enableRow": "Povolit {{trigger}}",
         "remove": "Smazat {{trigger}}",
         "saveRow": "Uložit {{trigger}}"
+      },
+      "spokenEdits": {
+        "enabledLabel": "Provádět vyslovené příkazy pro úpravy",
+        "enabledDescription": "Provede „scratch that“, „delete last word“ a „delete the last word“ místo jejich zapsání. Pouze v angličtině a jen když fráze stojí samostatně mezi dvěma pauzami: „scratch that plan“ a „we should scratch that“ zůstanou textem.",
+        "toggleError": "Vyslovené příkazy pro úpravy se nepodařilo změnit. Zkuste to znovu."
       }
     },
     "postProcessing": {
@@ -853,6 +858,7 @@
           "truncated": "Zkrácený",
           "no_speech_detected": "Nezjištěna žádná řeč"
         },
+        "realtimeFactorLabel": "Dekódování",
         "columns": {
           "source": "Zdroj",
           "status": "Stav",
@@ -934,10 +940,14 @@
       "expandEntry": "Zobrazit celý záznam",
       "collapseEntry": "Skrýt celý záznam",
       "derivedFromId": "z #{{id}}",
+      "recalledByMeaning": "podle významu",
       "level": {
         "peak": "peak",
         "rms": "rms"
       },
+      "noTextRecorded": "Pro tento záznam nebyl zaznamenán žádný text.",
+      "cloudHeld": "Spuštění v Cloudu bylo zadrženo: nepřišel žádný důvěryhodný výsledek a nebyl dostupný žádný místní model.",
+      "transcriptionEngineFailed": "Přepis selhal, takže se nic nezaznamenalo.",
       "processAgain": {
         "action": "Zpracovat znovu",
         "title": "Zpracovat znovu",
@@ -2740,7 +2750,8 @@
       "channel": "ch {{channel}}",
       "channels": "{{count}} ch",
       "rate": "{{kilohertz}} kHz",
-      "systemDefault": "Systémové výchozí"
+      "systemDefault": "Systémové výchozí",
+      "decode": "dekódování {{factor}}"
     }
   },
   "cloudSync": {

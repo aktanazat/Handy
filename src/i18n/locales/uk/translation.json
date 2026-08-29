@@ -642,6 +642,11 @@
         "enableRow": "Увімкнути {{trigger}}",
         "remove": "Видалити {{trigger}}",
         "saveRow": "Зберегти {{trigger}}"
+      },
+      "spokenEdits": {
+        "enabledLabel": "Виконувати промовлені команди редагування",
+        "enabledDescription": "Виконує «scratch that», «delete last word» і «delete the last word» замість того, щоб їх записувати. Лише для англійської та лише коли фраза стоїть окремо між двома паузами: «scratch that plan» і «we should scratch that» залишаються текстом.",
+        "toggleError": "Не вдалося змінити промовлені команди редагування. Спробуйте ще раз."
       }
     },
     "postProcessing": {
@@ -853,6 +858,7 @@
           "truncated": "Обрізана",
           "no_speech_detected": "Мовлення не виявлено"
         },
+        "realtimeFactorLabel": "Декодування",
         "columns": {
           "source": "Джерело",
           "status": "Стан",
@@ -934,10 +940,14 @@
       "expandEntry": "Показати запис повністю",
       "collapseEntry": "Сховати запис повністю",
       "derivedFromId": "з #{{id}}",
+      "recalledByMeaning": "за змістом",
       "level": {
         "peak": "peak",
         "rms": "rms"
       },
+      "noTextRecorded": "Для цього запису текст не збережено.",
+      "cloudHeld": "Запуск у Cloud було затримано: надійний результат не надійшов, а локальна модель була недоступна.",
+      "transcriptionEngineFailed": "Транскрипція не вдалася, тому нічого не збережено.",
       "processAgain": {
         "action": "Обробити знову",
         "title": "Обробити знову",
@@ -2740,7 +2750,8 @@
       "channel": "ch {{channel}}",
       "channels": "{{count}} ch",
       "rate": "{{kilohertz}} kHz",
-      "systemDefault": "Системний типовий"
+      "systemDefault": "Системний типовий",
+      "decode": "декодування {{factor}}"
     }
   },
   "cloudSync": {

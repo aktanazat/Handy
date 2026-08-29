@@ -642,6 +642,11 @@
         "enableRow": "Activar {{trigger}}",
         "remove": "Eliminar {{trigger}}",
         "saveRow": "Guardar {{trigger}}"
+      },
+      "spokenEdits": {
+        "enabledLabel": "Obedecer los comandos de edición hablados",
+        "enabledDescription": "Ejecuta «scratch that», «delete last word» y «delete the last word» en lugar de escribirlos. Solo en inglés y solo cuando la frase queda sola entre dos pausas: «scratch that plan» y «we should scratch that» se mantienen como texto.",
+        "toggleError": "No se pudieron cambiar los comandos de edición hablados. Inténtalo de nuevo."
       }
     },
     "postProcessing": {
@@ -853,6 +858,7 @@
           "truncated": "Truncada",
           "no_speech_detected": "No se detectó voz"
         },
+        "realtimeFactorLabel": "Decodificación",
         "columns": {
           "source": "Origen",
           "status": "Estado",
@@ -934,10 +940,14 @@
       "expandEntry": "Mostrar la entrada completa",
       "collapseEntry": "Ocultar la entrada completa",
       "derivedFromId": "de #{{id}}",
+      "recalledByMeaning": "por significado",
       "level": {
         "peak": "peak",
         "rms": "rms"
       },
+      "noTextRecorded": "No se registró texto para esta entrada.",
+      "cloudHeld": "La ejecución en Cloud se retuvo: no llegó ningún resultado confiable y no había ningún modelo local disponible.",
+      "transcriptionEngineFailed": "La transcripción falló, por lo que no se registró nada.",
       "processAgain": {
         "action": "Procesar de nuevo",
         "title": "Procesar de nuevo",
@@ -2740,7 +2750,8 @@
       "channel": "ch {{channel}}",
       "channels": "{{count}} ch",
       "rate": "{{kilohertz}} kHz",
-      "systemDefault": "Predeterminado del sistema"
+      "systemDefault": "Predeterminado del sistema",
+      "decode": "decodificación {{factor}}"
     }
   },
   "cloudSync": {

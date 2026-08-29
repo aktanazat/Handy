@@ -642,6 +642,11 @@
         "enableRow": "启用 {{trigger}}",
         "remove": "删除 {{trigger}}",
         "saveRow": "保存 {{trigger}}"
+      },
+      "spokenEdits": {
+        "enabledLabel": "执行口述编辑命令",
+        "enabledDescription": "执行“scratch that”“delete last word”和“delete the last word”，而不是把它们写出来。仅限英语，且仅当该短语单独位于两次停顿之间时生效：“scratch that plan”和“we should scratch that”仍按文字保留。",
+        "toggleError": "无法修改口述编辑命令。请重试。"
       }
     },
     "postProcessing": {
@@ -853,6 +858,7 @@
           "truncated": "被截断",
           "no_speech_detected": "未检测到语音"
         },
+        "realtimeFactorLabel": "解码",
         "columns": {
           "source": "来源",
           "status": "状态",
@@ -934,10 +940,14 @@
       "expandEntry": "显示完整条目",
       "collapseEntry": "隐藏完整条目",
       "derivedFromId": "来自 #{{id}}",
+      "recalledByMeaning": "按含义",
       "level": {
         "peak": "peak",
         "rms": "rms"
       },
+      "noTextRecorded": "此条目未记录任何文本。",
+      "cloudHeld": "已扣下此次 Cloud 运行：没有收到可信结果，也没有可用的本地模型。",
+      "transcriptionEngineFailed": "转录失败，因此未记录任何内容。",
       "processAgain": {
         "action": "再处理一次",
         "title": "再处理一次",
@@ -2740,7 +2750,8 @@
       "channel": "ch {{channel}}",
       "channels": "{{count}} ch",
       "rate": "{{kilohertz}} kHz",
-      "systemDefault": "系统默认"
+      "systemDefault": "系统默认",
+      "decode": "解码 {{factor}}"
     }
   },
   "cloudSync": {

@@ -642,6 +642,11 @@
         "enableRow": "Включи {{trigger}}",
         "remove": "Изтрий {{trigger}}",
         "saveRow": "Запази {{trigger}}"
+      },
+      "spokenEdits": {
+        "enabledLabel": "Изпълнявай изговорените команди за редактиране",
+        "enabledDescription": "Изпълнява „scratch that“, „delete last word“ и „delete the last word“, вместо да ги записва. Само на английски и само когато фразата стои сама между две паузи: „scratch that plan“ и „we should scratch that“ остават текст.",
+        "toggleError": "Изговорените команди за редактиране не можаха да бъдат променени. Опитайте отново."
       }
     },
     "postProcessing": {
@@ -853,6 +858,7 @@
           "truncated": "Отрязан",
           "no_speech_detected": "Не е открита реч"
         },
+        "realtimeFactorLabel": "Декодиране",
         "columns": {
           "source": "Източник",
           "status": "Състояние",
@@ -934,10 +940,14 @@
       "expandEntry": "Показване на целия запис",
       "collapseEntry": "Скриване на целия запис",
       "derivedFromId": "от #{{id}}",
+      "recalledByMeaning": "по смисъл",
       "level": {
         "peak": "peak",
         "rms": "rms"
       },
+      "noTextRecorded": "За този запис не е записан текст.",
+      "cloudHeld": "Изпълнението в Cloud беше задържано: не постъпи надежден резултат и нямаше наличен локален модел.",
+      "transcriptionEngineFailed": "Транскрипцията не бе успешна, затова не беше записано нищо.",
       "processAgain": {
         "action": "Обработи отново",
         "title": "Обработи отново",
@@ -2740,7 +2750,8 @@
       "channel": "ch {{channel}}",
       "channels": "{{count}} ch",
       "rate": "{{kilohertz}} kHz",
-      "systemDefault": "Системно по подразбиране"
+      "systemDefault": "Системно по подразбиране",
+      "decode": "декодиране {{factor}}"
     }
   },
   "cloudSync": {

@@ -642,6 +642,11 @@
         "enableRow": "Aktivér {{trigger}}",
         "remove": "Slet {{trigger}}",
         "saveRow": "Gem {{trigger}}"
+      },
+      "spokenEdits": {
+        "enabledLabel": "Følg talte redigeringskommandoer",
+        "enabledDescription": "Udfører \"scratch that\", \"delete last word\" og \"delete the last word\" i stedet for at skrive dem. Kun på engelsk og kun når vendingen står alene mellem to pauser: \"scratch that plan\" og \"we should scratch that\" forbliver tekst.",
+        "toggleError": "Kunne ikke ændre de talte redigeringskommandoer. Prøv igen."
       }
     },
     "postProcessing": {
@@ -853,6 +858,7 @@
           "truncated": "Afkortet",
           "no_speech_detected": "Ingen tale registreret"
         },
+        "realtimeFactorLabel": "Afkodning",
         "columns": {
           "source": "Kilde",
           "status": "Status",
@@ -934,10 +940,14 @@
       "expandEntry": "Vis hele posten",
       "collapseEntry": "Skjul hele posten",
       "derivedFromId": "fra #{{id}}",
+      "recalledByMeaning": "via betydning",
       "level": {
         "peak": "peak",
         "rms": "rms"
       },
+      "noTextRecorded": "Der blev ikke registreret nogen tekst for denne post.",
+      "cloudHeld": "Cloud-kørslen blev holdt tilbage: der kom intet troværdigt resultat, og ingen lokal model var tilgængelig.",
+      "transcriptionEngineFailed": "Transskription mislykkedes, så der blev ikke registreret noget.",
       "processAgain": {
         "action": "Behandl igen",
         "title": "Behandl igen",
@@ -2740,7 +2750,8 @@
       "channel": "ch {{channel}}",
       "channels": "{{count}} ch",
       "rate": "{{kilohertz}} kHz",
-      "systemDefault": "Systemstandard"
+      "systemDefault": "Systemstandard",
+      "decode": "afkodning {{factor}}"
     }
   },
   "cloudSync": {

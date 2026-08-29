@@ -642,6 +642,11 @@
         "enableRow": "{{trigger}} inschakelen",
         "remove": "{{trigger}} verwijderen",
         "saveRow": "{{trigger}} opslaan"
+      },
+      "spokenEdits": {
+        "enabledLabel": "Gesproken bewerkopdrachten uitvoeren",
+        "enabledDescription": "Voert \"scratch that\", \"delete last word\" en \"delete the last word\" uit in plaats van ze te schrijven. Alleen in het Engels en alleen als de zinsnede los tussen twee pauzes staat: \"scratch that plan\" en \"we should scratch that\" blijven tekst.",
+        "toggleError": "Kon de gesproken bewerkopdrachten niet wijzigen. Probeer het opnieuw."
       }
     },
     "postProcessing": {
@@ -853,6 +858,7 @@
           "truncated": "Afgekapt",
           "no_speech_detected": "Geen spraak gedetecteerd"
         },
+        "realtimeFactorLabel": "Decodering",
         "columns": {
           "source": "Bron",
           "status": "Status",
@@ -934,10 +940,14 @@
       "expandEntry": "Volledige vermelding tonen",
       "collapseEntry": "Volledige vermelding verbergen",
       "derivedFromId": "uit #{{id}}",
+      "recalledByMeaning": "op betekenis",
       "level": {
         "peak": "peak",
         "rms": "rms"
       },
+      "noTextRecorded": "Voor dit item is geen tekst vastgelegd.",
+      "cloudHeld": "De Cloud-run is tegengehouden: er kwam geen betrouwbaar resultaat en er was geen lokaal model beschikbaar.",
+      "transcriptionEngineFailed": "Transcriptie mislukt, dus er is niets vastgelegd.",
       "processAgain": {
         "action": "Opnieuw verwerken",
         "title": "Opnieuw verwerken",
@@ -2740,7 +2750,8 @@
       "channel": "ch {{channel}}",
       "channels": "{{count}} ch",
       "rate": "{{kilohertz}} kHz",
-      "systemDefault": "Systeemstandaard"
+      "systemDefault": "Systeemstandaard",
+      "decode": "decodering {{factor}}"
     }
   },
   "cloudSync": {

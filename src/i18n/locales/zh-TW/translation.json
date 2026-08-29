@@ -642,6 +642,11 @@
         "enableRow": "啟用 {{trigger}}",
         "remove": "刪除 {{trigger}}",
         "saveRow": "儲存 {{trigger}}"
+      },
+      "spokenEdits": {
+        "enabledLabel": "執行口述編輯指令",
+        "enabledDescription": "執行「scratch that」、「delete last word」與「delete the last word」，而不是把它們寫出來。僅限英文，且僅在該片語單獨位於兩次停頓之間時生效：「scratch that plan」與「we should scratch that」仍以文字保留。",
+        "toggleError": "無法修改口述編輯指令。請重試。"
       }
     },
     "postProcessing": {
@@ -853,6 +858,7 @@
           "truncated": "被截斷",
           "no_speech_detected": "未偵測到語音"
         },
+        "realtimeFactorLabel": "解碼",
         "columns": {
           "source": "來源",
           "status": "狀態",
@@ -934,10 +940,14 @@
       "expandEntry": "顯示完整項目",
       "collapseEntry": "隱藏完整項目",
       "derivedFromId": "來自 #{{id}}",
+      "recalledByMeaning": "依語意",
       "level": {
         "peak": "peak",
         "rms": "rms"
       },
+      "noTextRecorded": "此項目未記錄任何文字。",
+      "cloudHeld": "已扣下此次 Cloud 執行：未收到可信結果，也沒有可用的本機模型。",
+      "transcriptionEngineFailed": "轉錄失敗，因此未記錄任何內容。",
       "processAgain": {
         "action": "再處理一次",
         "title": "再處理一次",
@@ -2740,7 +2750,8 @@
       "channel": "ch {{channel}}",
       "channels": "{{count}} ch",
       "rate": "{{kilohertz}} kHz",
-      "systemDefault": "系統預設"
+      "systemDefault": "系統預設",
+      "decode": "解碼 {{factor}}"
     }
   },
   "cloudSync": {

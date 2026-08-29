@@ -642,6 +642,11 @@
         "enableRow": "Aktivera {{trigger}}",
         "remove": "Radera {{trigger}}",
         "saveRow": "Spara {{trigger}}"
+      },
+      "spokenEdits": {
+        "enabledLabel": "Följ talade redigeringskommandon",
+        "enabledDescription": "Utför \"scratch that\", \"delete last word\" och \"delete the last word\" i stället för att skriva dem. Endast på engelska och bara när frasen står ensam mellan två pauser: \"scratch that plan\" och \"we should scratch that\" förblir text.",
+        "toggleError": "Kunde inte ändra de talade redigeringskommandona. Försök igen."
       }
     },
     "postProcessing": {
@@ -853,6 +858,7 @@
           "truncated": "Avkortad",
           "no_speech_detected": "Inget tal upptäcktes"
         },
+        "realtimeFactorLabel": "Avkodning",
         "columns": {
           "source": "Källa",
           "status": "Status",
@@ -934,10 +940,14 @@
       "expandEntry": "Visa hela posten",
       "collapseEntry": "Dölj hela posten",
       "derivedFromId": "från #{{id}}",
+      "recalledByMeaning": "via betydelse",
       "level": {
         "peak": "peak",
         "rms": "rms"
       },
+      "noTextRecorded": "Ingen text registrerades för den här posten.",
+      "cloudHeld": "Cloud-körningen hölls tillbaka: inget tillförlitligt resultat kom in och ingen lokal modell var tillgänglig.",
+      "transcriptionEngineFailed": "Transkribering misslyckades, så ingenting registrerades.",
       "processAgain": {
         "action": "Bearbeta igen",
         "title": "Bearbeta igen",
@@ -2740,7 +2750,8 @@
       "channel": "ch {{channel}}",
       "channels": "{{count}} ch",
       "rate": "{{kilohertz}} kHz",
-      "systemDefault": "Systemstandard"
+      "systemDefault": "Systemstandard",
+      "decode": "avkodning {{factor}}"
     }
   },
   "cloudSync": {

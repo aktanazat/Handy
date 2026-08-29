@@ -642,6 +642,11 @@
         "enableRow": "{{trigger}} सक्षम करें",
         "remove": "{{trigger}} हटाएँ",
         "saveRow": "{{trigger}} सहेजें"
+      },
+      "spokenEdits": {
+        "enabledLabel": "बोले गए संपादन आदेश लागू करें",
+        "enabledDescription": "\"scratch that\", \"delete last word\" और \"delete the last word\" को लिखने के बजाय उन पर अमल करता है। केवल अंग्रेज़ी में, और केवल जब वाक्यांश दो विरामों के बीच अकेला हो: \"scratch that plan\" और \"we should scratch that\" पाठ के रूप में ही रहेंगे।",
+        "toggleError": "बोले गए संपादन आदेश बदले नहीं जा सके। फिर कोशिश करें।"
       }
     },
     "postProcessing": {
@@ -853,6 +858,7 @@
           "truncated": "कटा हुआ",
           "no_speech_detected": "कोई वाणी नहीं मिली"
         },
+        "realtimeFactorLabel": "डिकोडिंग",
         "columns": {
           "source": "स्रोत",
           "status": "स्थिति",
@@ -934,10 +940,14 @@
       "expandEntry": "पूरी प्रविष्टि दिखाएँ",
       "collapseEntry": "पूरी प्रविष्टि छिपाएँ",
       "derivedFromId": "#{{id}} से",
+      "recalledByMeaning": "अर्थ से",
       "level": {
         "peak": "peak",
         "rms": "rms"
       },
+      "noTextRecorded": "इस प्रविष्टि के लिए कोई टेक्स्ट दर्ज नहीं हुआ।",
+      "cloudHeld": "Cloud रन रोक दिया गया: कोई भरोसेमंद परिणाम नहीं आया और कोई स्थानीय मॉडल उपलब्ध नहीं था।",
+      "transcriptionEngineFailed": "ट्रांसक्रिप्शन नहीं हो सका, इसलिए कुछ भी दर्ज नहीं हुआ।",
       "processAgain": {
         "action": "दोबारा प्रोसेस करें",
         "title": "दोबारा प्रोसेस करें",
@@ -2740,7 +2750,8 @@
       "channel": "ch {{channel}}",
       "channels": "{{count}} ch",
       "rate": "{{kilohertz}} kHz",
-      "systemDefault": "सिस्टम डिफ़ॉल्ट"
+      "systemDefault": "सिस्टम डिफ़ॉल्ट",
+      "decode": "डिकोडिंग {{factor}}"
     }
   },
   "cloudSync": {

@@ -541,6 +541,11 @@
         "enableRow": "تمكين {{trigger}}",
         "remove": "حذف {{trigger}}",
         "saveRow": "حفظ {{trigger}}"
+      },
+      "spokenEdits": {
+        "enabledLabel": "تنفيذ أوامر التحرير المنطوقة",
+        "enabledDescription": "ينفّذ \"scratch that\" و\"delete last word\" و\"delete the last word\" بدلاً من كتابتها. بالإنجليزية فقط، وفقط عندما تأتي العبارة وحدها بين وقفتين: \"scratch that plan\" و\"we should scratch that\" تبقى نصًا.",
+        "toggleError": "لم يتم تغيير أوامر التحرير المنطوقة. حاول مرة أخرى."
       }
     },
     "postProcessing": {
@@ -752,6 +757,7 @@
           "truncated": "مقطوع",
           "no_speech_detected": "لم يُكتشف كلام"
         },
+        "realtimeFactorLabel": "فك الترميز",
         "columns": {
           "source": "المصدر",
           "status": "الحالة",
@@ -833,10 +839,14 @@
       "expandEntry": "إظهار الإدخال كاملًا",
       "collapseEntry": "إخفاء الإدخال كاملًا",
       "derivedFromId": "من #{{id}}",
+      "recalledByMeaning": "بالمعنى",
       "level": {
         "peak": "peak",
         "rms": "rms"
       },
+      "noTextRecorded": "لم يُسجَّل أي نص لهذا العنصر.",
+      "cloudHeld": "تم حجب تشغيل Cloud: لم تصل نتيجة موثوقة ولم يتوفّر أي نموذج محلي.",
+      "transcriptionEngineFailed": "فشل النسخ، لذلك لم يُسجَّل أي شيء.",
       "processAgain": {
         "action": "معالجة مرة أخرى",
         "title": "معالجة مرة أخرى",
@@ -2740,7 +2750,8 @@
       "channel": "ch {{channel}}",
       "channels": "{{count}} ch",
       "rate": "{{kilohertz}} kHz",
-      "systemDefault": "الافتراضي للنظام"
+      "systemDefault": "الافتراضي للنظام",
+      "decode": "فك الترميز {{factor}}"
     }
   },
   "cloudSync": {

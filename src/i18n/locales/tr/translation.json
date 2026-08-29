@@ -642,6 +642,11 @@
         "enableRow": "{{trigger}} etkinleştir",
         "remove": "{{trigger}} sil",
         "saveRow": "{{trigger}} kaydet"
+      },
+      "spokenEdits": {
+        "enabledLabel": "Sesli düzenleme komutlarını uygula",
+        "enabledDescription": "\"scratch that\", \"delete last word\" ve \"delete the last word\" ifadelerini yazmak yerine uygular. Yalnızca İngilizce ve yalnızca ifade iki duraklama arasında tek başına geçtiğinde: \"scratch that plan\" ve \"we should scratch that\" metin olarak kalır.",
+        "toggleError": "Sesli düzenleme komutları değiştirilemedi. Yeniden deneyin."
       }
     },
     "postProcessing": {
@@ -853,6 +858,7 @@
           "truncated": "Kesildi",
           "no_speech_detected": "Konuşma algılanmadı"
         },
+        "realtimeFactorLabel": "Kod çözme",
         "columns": {
           "source": "Kaynak",
           "status": "Durum",
@@ -934,10 +940,14 @@
       "expandEntry": "Kaydın tamamını göster",
       "collapseEntry": "Kaydın tamamını gizle",
       "derivedFromId": "#{{id}} kaydından",
+      "recalledByMeaning": "anlama göre",
       "level": {
         "peak": "peak",
         "rms": "rms"
       },
+      "noTextRecorded": "Bu kayıt için metin kaydedilmedi.",
+      "cloudHeld": "Cloud çalıştırması alıkonuldu: güvenilir bir sonuç gelmedi ve kullanılabilir yerel model yoktu.",
+      "transcriptionEngineFailed": "Transkripsiyon başarısız oldu, bu yüzden hiçbir şey kaydedilmedi.",
       "processAgain": {
         "action": "Yeniden işle",
         "title": "Yeniden işle",
@@ -2740,7 +2750,8 @@
       "channel": "ch {{channel}}",
       "channels": "{{count}} ch",
       "rate": "{{kilohertz}} kHz",
-      "systemDefault": "Sistem varsayılanı"
+      "systemDefault": "Sistem varsayılanı",
+      "decode": "kod çözme {{factor}}"
     }
   },
   "cloudSync": {

@@ -642,6 +642,11 @@
         "enableRow": "{{trigger}} aktivieren",
         "remove": "{{trigger}} löschen",
         "saveRow": "{{trigger}} speichern"
+      },
+      "spokenEdits": {
+        "enabledLabel": "Gesprochene Bearbeitungsbefehle befolgen",
+        "enabledDescription": "Führt \"scratch that\", \"delete last word\" und \"delete the last word\" aus, statt sie zu schreiben. Nur auf Englisch und nur, wenn die Wendung allein zwischen zwei Pausen steht: \"scratch that plan\" und \"we should scratch that\" bleiben Text.",
+        "toggleError": "Gesprochene Bearbeitungsbefehle konnten nicht geändert werden. Versuchen Sie es erneut."
       }
     },
     "postProcessing": {
@@ -853,6 +858,7 @@
           "truncated": "Abgeschnitten",
           "no_speech_detected": "Keine Sprache erkannt"
         },
+        "realtimeFactorLabel": "Dekodierung",
         "columns": {
           "source": "Quelle",
           "status": "Status",
@@ -934,10 +940,14 @@
       "expandEntry": "Ganzen Eintrag zeigen",
       "collapseEntry": "Ganzen Eintrag verbergen",
       "derivedFromId": "aus #{{id}}",
+      "recalledByMeaning": "per Bedeutung",
       "level": {
         "peak": "peak",
         "rms": "rms"
       },
+      "noTextRecorded": "Für diesen Eintrag wurde kein Text aufgezeichnet.",
+      "cloudHeld": "Der Cloud-Lauf wurde zurückgehalten: es kam kein verlässliches Ergebnis, und es war kein lokales Modell verfügbar.",
+      "transcriptionEngineFailed": "Transkription fehlgeschlagen, daher wurde nichts aufgezeichnet.",
       "processAgain": {
         "action": "Erneut verarbeiten",
         "title": "Erneut verarbeiten",
@@ -2740,7 +2750,8 @@
       "channel": "ch {{channel}}",
       "channels": "{{count}} ch",
       "rate": "{{kilohertz}} kHz",
-      "systemDefault": "Systemstandard"
+      "systemDefault": "Systemstandard",
+      "decode": "Dekodierung {{factor}}"
     }
   },
   "cloudSync": {
