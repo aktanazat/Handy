@@ -214,6 +214,15 @@ export function installMockedRuntime(payload: MockPayload): void {
     ["get_history_stats", null],
     ["get_history_trend", null],
     ["get_history_run_receipts", []],
+    /* Capture's instrument strip: the engine's real binding and the device's
+     * real channel count. `backend` is the field `ModelLoadStatus` gained this
+     * wave — the compute backend the loaded engine bound to, not the requested
+     * accelerator. */
+    [
+      "get_model_load_status",
+      { is_loaded: false, current_model: null, backend: null },
+    ],
+    ["get_microphone_channels", 1],
     ["list_vocabulary_entries", []],
     ["list_audio_import_jobs", []],
     ["list_snippets", []],
@@ -297,6 +306,11 @@ export function installMockedRuntime(payload: MockPayload): void {
 
     // Command mode (CommandModeContext / SettingsOnboardingRestyle).
     ["change_command_mode_enabled_setting", null],
+
+    /* Appearance material (TokensTypeFoundation). Rust resolves intent against
+     * whether native vibrancy applied and writes `data-material` itself, so the
+     * command answers with nothing. */
+    ["change_appearance_material_setting", null],
   ]);
 
   const invoke = async (command: string): Promise<JsonValue> => {

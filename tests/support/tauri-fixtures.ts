@@ -25,6 +25,7 @@ export const APP_SETTINGS = {
   always_on_microphone: false,
   app_language: "en-US",
   append_trailing_space: false,
+  appearance_material: "solid",
   audio_feedback: false,
   audio_feedback_volume: 1,
   auto_submit: false,
@@ -829,4 +830,151 @@ export const MODES_SNAPSHOT = {
   revision: 1,
   mode_activation_rules: [],
   mode_website_activation_rules: [],
+};
+
+/**
+ * A populated Library / Capture dataset. The shared mock keeps history empty so
+ * the existing specs stay deterministic; the screenshot harness layers these in
+ * through `responses`, because a dense list and a measured instrument strip are
+ * exactly what the after set has to show.
+ *
+ * `input_peak` / `input_rms` / `realtime_factor` are the three measured fields
+ * `ModeReceipt` gained this wave. Values are the real ones from the wave's
+ * acceptance replay: a quiet real utterance (0.1456 / 0.0110) and a dead input
+ * (0.0119 / 0.0024), decoded at 13.82x realtime.
+ */
+const MODE_RECEIPT = {
+  run_id: 11,
+  settings_revision: 154,
+  mode_selection_source: "active_mode",
+  mode_id: "message",
+  tone: "balanced",
+  requested_context_policy: "target",
+  context_policy_ceiling: "none",
+  context_policy: "none",
+  prompt_preset: "minimalist_cleanup",
+  post_process_requested: false,
+  provider_id: null,
+  model_id: null,
+  engine_requested: "local",
+  engine_used: "local",
+  cloud_fallback: false,
+  cloud_status: "not_requested",
+  local_fallback_model_id: null,
+  input_peak: 0.1456,
+  input_rms: 0.011,
+  realtime_factor: 13.82,
+};
+
+const CONTEXT_RECEIPT = {
+  requested_policy: "target",
+  policy: "none",
+  accessibility: "unsupported",
+  sources: {},
+  captured_at_ms: 1_756_136_400_000,
+  application_captured_at_ms: null,
+};
+
+export const HISTORY_ENTRIES = {
+  entries: [
+    {
+      id: 13,
+      file_name: "sona-1787979738.wav",
+      timestamp: 1_787_979_738,
+      saved: false,
+      title: "Test.",
+      transcription_text:
+        "The instrument strip reads the newest receipt, so every number on it belongs to a run that actually happened.",
+      post_processed_text: null,
+      post_process_requested: false,
+      parent_id: null,
+      has_audio: true,
+    },
+    {
+      id: 12,
+      file_name: "sona-1787979736.wav",
+      timestamp: 1_787_979_736,
+      saved: false,
+      title: "",
+      transcription_text: "",
+      post_processed_text: null,
+      post_process_requested: false,
+      parent_id: null,
+      has_audio: true,
+    },
+    {
+      id: 11,
+      file_name: "sona-1787971834.wav",
+      timestamp: 1_787_971_834,
+      saved: true,
+      title: "Ship the wave",
+      transcription_text:
+        "Every value on this row came off the run receipt: duration, words, mode, engine, source.",
+      post_processed_text:
+        "Every value on this row came off the run receipt: duration, words, mode, engine and source.",
+      post_process_requested: true,
+      parent_id: null,
+      has_audio: true,
+    },
+  ],
+  has_more: false,
+  total: 3,
+  total_count: 3,
+};
+
+export const HISTORY_RECEIPTS = [
+  {
+    id: 3,
+    history_id: 13,
+    run_id: 11,
+    retry_of_run_id: null,
+    started_at_ms: 1_787_979_737_000,
+    completed_at_ms: 1_787_979_738_050,
+    duration_ms: 1_050,
+    word_count: 18,
+    source_kind: "microphone",
+    has_audio: true,
+    capture_status: "complete",
+    delivery_attempts: [],
+    context: CONTEXT_RECEIPT,
+    mode: MODE_RECEIPT,
+  },
+];
+
+/** The no-speech row: a real capture the model confirmed held no speech. Its
+ * amplitudes are the whole point of the row, and it carries no decode
+ * throughput because no transcript came out of it. */
+export const NO_SPEECH_RECEIPTS = [
+  {
+    ...HISTORY_RECEIPTS[0],
+    id: 2,
+    history_id: 12,
+    run_id: 10,
+    duration_ms: 1_140,
+    word_count: 0,
+    capture_status: "no_speech_detected",
+    completed_at_ms: 1_787_979_736_140,
+    mode: {
+      ...MODE_RECEIPT,
+      run_id: 10,
+      engine_used: null,
+      input_peak: 0.0119,
+      input_rms: 0.0024,
+      realtime_factor: null,
+    },
+  },
+];
+
+export const HISTORY_STATS = {
+  total_entries: 3,
+  total_duration_ms: 9_270,
+  total_words: 36,
+  by_source: { microphone: 3, file: 0, unknown: 0 },
+};
+
+export const MODEL_LOAD_STATUS = {
+  is_loaded: true,
+  current_model:
+    "handy-computer/parakeet-tdt-0.6b-v2-gguf/parakeet-tdt-0.6b-v2-Q8_0.gguf",
+  backend: "MTL0",
 };
