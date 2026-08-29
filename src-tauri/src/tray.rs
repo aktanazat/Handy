@@ -991,6 +991,7 @@ mod tests {
             post_processed_text: post_processed.map(|text| text.to_string()),
             post_process_requested: false,
             parent_id: None,
+            match_kind: None,
         }
     }
 

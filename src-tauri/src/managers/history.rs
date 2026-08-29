@@ -4,19 +4,23 @@ use crate::delivery::{DeliveryMethod, DeliveryOutcome, DeliveryReceipt};
 use crate::modes::ModeReceipt;
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Local, Utc};
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 use rusqlite_migration::{Migrations, M};
 use serde::{Deserialize, Serialize};
 use specta::Type;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::mpsc::{Receiver, Sender};
+use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
 use tauri_specta::Event;
 
+mod semantic;
 mod storage;
 
+use semantic::{SemanticModel, SemanticModelSlot};
 use storage::HistoryStorage;
 pub use storage::HistoryStorageStatus;
 
@@ -197,6 +201,25 @@ static MIGRATIONS: &[M] = &[
             UPDATE transcription_history SET parent_id = NULL WHERE parent_id = old.id;
          END;",
     ),
+    // Semantic recall stores one unit vector per row beside the FTS5 index.
+    // Both columns are nullable and nothing backfills them here: the vectors
+    // need a model that may not be on disk yet, so filling them is a resumable
+    // pass (`backfill_semantic_chunk_with_connection`) rather than migration
+    // SQL that would have to either block startup or invent data.
+    //
+    // `semantic_model_revision` records which model considered the row.
+    // Together the two columns distinguish the three real states: never
+    // considered (both NULL), considered and embedded (both set), and
+    // considered but unembeddable — whitespace, emoji — (revision set,
+    // embedding NULL). The third is why the backfill terminates instead of
+    // reselecting the same rows forever.
+    //
+    // The FTS5 triggers fire `AFTER UPDATE OF transcription_text,
+    // post_processed_text`, so writing a vector does not touch the index.
+    M::up(
+        "ALTER TABLE transcription_history ADD COLUMN semantic_embedding BLOB;
+         ALTER TABLE transcription_history ADD COLUMN semantic_model_revision TEXT;",
+    ),
 ];
 
 const MAX_HISTORY_PAGE_SIZE: usize = 100;
@@ -221,6 +244,20 @@ pub enum HistoryUpdatePayload {
     Toggled { id: i64 },
 }
 
+/// Why a row is in a search result.
+///
+/// `Text` means FTS5 matched the row's own words. `Semantic` means it did not,
+/// and the row was recalled by embedding similarity instead. A row FTS5
+/// matched is always `Text`, even when its embedding also clears the floor:
+/// lexical evidence is the stronger claim and never gets overwritten by the
+/// weaker one.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum HistoryMatchKind {
+    Text,
+    Semantic,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, Type)]
 pub struct HistoryEntry {
     pub id: i64,
@@ -234,6 +271,11 @@ pub struct HistoryEntry {
     /// The entry this one was reprocessed from, when it was not an original
     /// capture. `None` for every row written before reprocessing existed.
     pub parent_id: Option<i64>,
+    /// Why this row was returned, on rows that came from a search. `None`
+    /// everywhere else — a plain listing, an added-entry event, or a lookup by
+    /// id has no match to explain, and claiming one would be false.
+    #[serde(default)]
+    pub match_kind: Option<HistoryMatchKind>,
 }
 
 /// Where the captured audio originated. Existing history rows intentionally
@@ -508,10 +550,23 @@ pub(crate) enum UpstreamHistoryImportOutcome {
     Inserted { history_id: i64 },
     Existing { history_id: i64 },
 }
+/// One row queued for embedding, carrying the text so the worker never has to
+/// read it back out of the database it is about to write to.
+struct SemanticWork {
+    history_id: i64,
+    text: String,
+}
+
 pub struct HistoryManager {
     app_handle: AppHandle,
     recordings_dir: PathBuf,
-    storage: HistoryStorage,
+    /// Shared with the semantic worker thread, which takes the same single
+    /// connection through `with_connection` rather than opening a second one.
+    storage: Arc<HistoryStorage>,
+    semantic: Arc<SemanticModelSlot>,
+    /// Dropped with the manager, which is what stops the worker: its `recv`
+    /// fails once no sender remains.
+    semantic_work: Sender<SemanticWork>,
 }
 
 impl HistoryManager {
@@ -519,7 +574,8 @@ impl HistoryManager {
         // Create recordings directory in app data dir
         let app_data_dir = crate::portable::app_data_dir(app_handle)?;
         let recordings_dir = app_data_dir.join("recordings");
-        let storage = HistoryStorage::at_startup(app_data_dir.join("history.db"));
+        let storage = Arc::new(HistoryStorage::at_startup(app_data_dir.join("history.db")));
+        let semantic = Arc::new(SemanticModelSlot::new(app_data_dir.join("semantic-recall")));
 
         // Ensure recordings directory exists
         if !recordings_dir.exists() {
@@ -527,11 +583,15 @@ impl HistoryManager {
             debug!("Created recordings directory: {:?}", recordings_dir);
         }
 
+        let (semantic_work, semantic_inbox) = std::sync::mpsc::channel();
         let manager = Self {
             app_handle: app_handle.clone(),
             recordings_dir,
-            storage,
+            storage: Arc::clone(&storage),
+            semantic: Arc::clone(&semantic),
+            semantic_work,
         };
+        Self::spawn_semantic_worker(storage, semantic, semantic_inbox);
 
         // Initialize database and run migrations synchronously, unless the file
         // is encrypted and still waiting for its key. `unlock_storage` runs
@@ -541,6 +601,105 @@ impl HistoryManager {
         }
 
         Ok(manager)
+    }
+
+    /// The one thread that writes embeddings.
+    ///
+    /// It exists so the save path can hand off a row and return: embedding is
+    /// pure CPU work on a 30 MB table, and a receipt write must not wait for
+    /// it. Serializing every vector write onto one thread also means the
+    /// backfill and the per-save embeddings cannot interleave into the same
+    /// connection from two directions.
+    ///
+    /// The worker blocks on the channel, so it costs nothing while idle, and
+    /// exits when the manager drops the sender.
+    fn spawn_semantic_worker(
+        storage: Arc<HistoryStorage>,
+        semantic: Arc<SemanticModelSlot>,
+        inbox: Receiver<SemanticWork>,
+    ) {
+        std::thread::Builder::new()
+            .name("sona-history-semantic".to_string())
+            .spawn(move || {
+                while let Ok(work) = inbox.recv() {
+                    // Checked per item, not once: the model can appear between
+                    // two saves, and when it does the very next row is embedded
+                    // and the backfill catches up the rest.
+                    let Some(model) = semantic.model() else {
+                        continue;
+                    };
+                    if let Err(error) = Self::embed_queued_row(&storage, &model, &work) {
+                        warn!(
+                            "History entry {} was not embedded: {error:#}",
+                            work.history_id
+                        );
+                    }
+                    Self::run_semantic_backfill(&storage, &model);
+                }
+                debug!("History semantic worker stopped");
+            })
+            // PANIC: failing to spawn a thread at manager construction means the
+            // process cannot create threads at all; nothing here can recover.
+            .expect("spawn history semantic worker");
+    }
+
+    fn embed_queued_row(
+        storage: &HistoryStorage,
+        model: &SemanticModel,
+        work: &SemanticWork,
+    ) -> Result<()> {
+        let vector = model.encode(&work.text);
+        storage.with_connection(|conn| {
+            store_semantic_vector_with_connection(
+                conn,
+                work.history_id,
+                vector.as_deref(),
+                model.revision(),
+            )
+        })
+    }
+
+    /// Bring every row up to the loaded model, one bounded chunk per
+    /// connection acquisition.
+    ///
+    /// Resumability needs no bookkeeping: the selection predicate is the
+    /// progress marker. A row is done when its `semantic_model_revision`
+    /// equals the model's, whether it produced a vector or not, so an
+    /// interrupted pass simply resumes where the rows say it stopped, and a
+    /// model change re-enters every row exactly once.
+    fn run_semantic_backfill(storage: &HistoryStorage, model: &SemanticModel) {
+        loop {
+            let outcome = storage.with_connection(|conn| {
+                backfill_semantic_chunk_with_connection(conn, model, semantic::BACKFILL_CHUNK_ROWS)
+            });
+            match outcome {
+                Ok(0) => return,
+                Ok(rows) => debug!("Embedded {rows} history rows"),
+                Err(error) => {
+                    warn!("History semantic backfill stopped: {error:#}");
+                    return;
+                }
+            }
+        }
+    }
+
+    /// Queue one row for embedding. Never blocks and never fails the caller:
+    /// the send is a pointer handoff, and a dead worker only means this row
+    /// waits for the backfill.
+    fn queue_semantic_embedding(&self, history_id: i64, text: &str) {
+        if text.trim().is_empty() {
+            return;
+        }
+        if self
+            .semantic_work
+            .send(SemanticWork {
+                history_id,
+                text: text.to_string(),
+            })
+            .is_err()
+        {
+            debug!("History semantic worker is gone; entry {history_id} awaits backfill");
+        }
     }
 
     /// Resolve the storage key, encrypt the database if it is still plaintext,
@@ -676,6 +835,7 @@ impl HistoryManager {
             post_processed_text: row.get("post_processed_text")?,
             post_process_requested: row.get("post_process_requested")?,
             parent_id: row.get("parent_id")?,
+            match_kind: None,
         })
     }
 
@@ -714,7 +874,15 @@ impl HistoryManager {
                 post_processed_text: entry.post_processed_text.clone(),
                 post_process_requested: entry.post_process_requested,
                 parent_id: None,
+                match_kind: None,
             };
+            self.queue_semantic_embedding(
+                history_id,
+                semantic::embeddable_text(
+                    &entry.transcription_text,
+                    entry.post_processed_text.as_deref(),
+                ),
+            );
             if let Err(error) =
                 (HistoryUpdatePayload::Added { entry: event }).emit(&self.app_handle)
             {
@@ -1004,9 +1172,19 @@ impl HistoryManager {
             post_processed_text,
             post_process_requested,
             parent_id: derived_from_history_id,
+            match_kind: None,
         };
 
         debug!("Saved history entry with id {}", entry.id);
+        // After the commit, before the emit: the receipt is already durable, and
+        // this is a channel send, not a database write.
+        self.queue_semantic_embedding(
+            entry.id,
+            semantic::embeddable_text(
+                &entry.transcription_text,
+                entry.post_processed_text.as_deref(),
+            ),
+        );
         self.cleanup_old_entries()?;
         if let Err(error) = (HistoryUpdatePayload::Added {
             entry: entry.clone(),
@@ -1626,29 +1804,72 @@ impl HistoryManager {
         })
     }
 
-    /// Search transcription history by raw or post-processed text.
+    /// Search transcription history by raw or post-processed text, with
+    /// semantic recall filling the space lexical search leaves.
     ///
     /// The caller passes raw user text. `fts_match_query` turns it into a
     /// quoted FTS5 expression, so search input is always data and never query
     /// syntax. Search pages are bounded even when the caller omits a limit. The
     /// cursor is the last returned history entry id and preserves the existing
     /// newest-first pagination convention.
+    ///
+    /// The semantic half is skipped entirely when the model is not on disk, and
+    /// the first search that could have used it starts the one fetch. A search
+    /// run before the model arrives, or over rows the backfill has not reached,
+    /// returns exactly the lexical result it always did.
     pub async fn search_history_entries(
         &self,
         query: &str,
         cursor: Option<i64>,
         limit: Option<usize>,
     ) -> Result<PaginatedHistory> {
-        self.storage.with_connection(|conn| {
-            Self::search_history_entries_with_connection(conn, query, cursor, limit)
-        })
+        let model = self.semantic.model();
+        let page = self.storage.with_connection(|conn| {
+            Self::search_history_entries_with_connection(
+                conn,
+                query,
+                cursor,
+                limit,
+                model.as_deref(),
+            )
+        })?;
+        // Demand-driven: only a search that ran out of lexical matches is
+        // evidence that this user would benefit from the recall model.
+        if model.is_none() && page.entries.is_empty() {
+            self.semantic.ensure_fetch_started();
+        }
+        Ok(page)
     }
 
+    /// FTS5 first, then semantic, merged into one newest-first list.
+    ///
+    /// Three rules make the blend safe rather than clever:
+    ///
+    /// 1. **One order, not two.** The merged list stays strictly `id DESC`, the
+    ///    order this search already had, so `cursor` (the last returned id)
+    ///    keeps its exact meaning and the next page can neither repeat nor skip
+    ///    a row. Ranking a semantic tail by similarity instead would need a
+    ///    compound cursor — a wire change — and `similarity_floor`, not
+    ///    position, is what keeps weak matches out.
+    /// 2. **Lexical wins the row.** A row FTS5 matched is reported as
+    ///    [`HistoryMatchKind::Text`] even when its embedding also clears the
+    ///    floor, and is excluded from the semantic candidate set, so the two
+    ///    halves can neither double-count a row nor disagree about it.
+    /// 3. **A page FTS5 fills on its own is left alone.** When lexical alone
+    ///    overflows the page there is no query embedding and no scan: a query
+    ///    with a full page of literal matches pays nothing.
+    ///
+    /// Rules 1 and 3 have one honest consequence worth naming: a semantic hit
+    /// newer than an overflowing page's last id is not shown for that query,
+    /// because the cursor has already moved past it. Recency is the list's only
+    /// order, and a query that already returns a full page of literal matches
+    /// is not the query this feature exists for.
     fn search_history_entries_with_connection(
         conn: &Connection,
         query: &str,
         cursor: Option<i64>,
         limit: Option<usize>,
+        semantic_model: Option<&SemanticModel>,
     ) -> Result<PaginatedHistory> {
         let Some(match_query) = fts_match_query(query) else {
             return Ok(PaginatedHistory {
@@ -1712,6 +1933,26 @@ impl HistoryManager {
                 rows.collect::<std::result::Result<Vec<_>, _>>()?
             }
         };
+        for entry in &mut entries {
+            entry.match_kind = Some(HistoryMatchKind::Text);
+        }
+
+        // A full lexical page means there is no room to fill, and the next page
+        // will re-decide with its own cursor.
+        let lexical_filled_the_page = entries.len() > limit;
+        if let (Some(model), false) = (semantic_model, lexical_filled_the_page) {
+            let matched: HashSet<i64> = entries.iter().map(|entry| entry.id).collect();
+            if let Some(vector) = model.encode(query) {
+                let recalled = semantic_candidates_with_connection(
+                    conn, model, &vector, cursor, limit, &matched,
+                )?;
+                if !recalled.is_empty() {
+                    entries.extend(recalled);
+                    entries.sort_unstable_by(|left, right| right.id.cmp(&left.id));
+                    entries.truncate(limit + 1);
+                }
+            }
+        }
 
         let has_more = entries.len() > limit;
         if has_more {
@@ -1913,6 +2154,199 @@ fn fts_match_query(user_text: &str) -> Option<String> {
     }
 
     (!expression.is_empty()).then_some(expression)
+}
+
+/// The rows semantic recall contributes to one search page, newest first and
+/// already stamped [`HistoryMatchKind::Semantic`].
+///
+/// A store with no comparable vector at all — every row still awaiting the
+/// backfill, or every stored vector written by a different model revision — is
+/// reported once as a fact and then ignored. The search returns its lexical
+/// result unchanged; a half-built index is a normal state during backfill, not
+/// an error, and it is not the user's problem to see.
+fn semantic_candidates_with_connection(
+    conn: &Connection,
+    model: &SemanticModel,
+    query_vector: &[f32],
+    cursor: Option<i64>,
+    limit: usize,
+    lexically_matched: &HashSet<i64>,
+) -> Result<Vec<HistoryEntry>> {
+    let (ids, compared) = semantic_candidate_ids_with_connection(
+        conn,
+        model,
+        query_vector,
+        cursor,
+        limit + 1,
+        lexically_matched,
+    )?;
+    if compared == 0 {
+        debug!(
+            "Semantic recall compared no rows for model {}; results are lexical-only",
+            model.revision()
+        );
+    }
+    if ids.is_empty() {
+        return Ok(Vec::new());
+    }
+    let mut entries = entries_by_ids_with_connection(conn, &ids)?;
+    for entry in &mut entries {
+        entry.match_kind = Some(HistoryMatchKind::Semantic);
+    }
+    Ok(entries)
+}
+
+/// Ids of the newest rows whose stored vector clears [`SIMILARITY_FLOOR`], and
+/// how many rows were actually compared.
+///
+/// The scan reads `id` and the vector and nothing else. It walks `id DESC` and
+/// stops once it holds `wanted` candidates, because the merged page is ordered
+/// by id: no row it has not reached can outrank one it already has.
+///
+/// `semantic_model_revision = ?` is not decoration. Two models produce vectors
+/// of the same width and no shared meaning, so a vector written by a different
+/// revision is skipped rather than compared.
+///
+/// The compared count is the difference between "nothing was similar enough"
+/// and "nothing was comparable", which the caller needs to say something true.
+fn semantic_candidate_ids_with_connection(
+    conn: &Connection,
+    model: &SemanticModel,
+    query_vector: &[f32],
+    cursor: Option<i64>,
+    wanted: usize,
+    lexically_matched: &HashSet<i64>,
+) -> Result<(Vec<i64>, usize)> {
+    let mut statement = conn.prepare(
+        "SELECT id, semantic_embedding
+         FROM transcription_history
+         WHERE semantic_embedding IS NOT NULL
+           AND semantic_model_revision = ?1
+           AND (?2 IS NULL OR id < ?2)
+         ORDER BY id DESC",
+    )?;
+    let mut rows = statement.query(params![model.revision(), cursor])?;
+    let mut ids = Vec::with_capacity(wanted);
+    let mut compared = 0_usize;
+    while let Some(row) = rows.next()? {
+        let id: i64 = row.get(0)?;
+        if lexically_matched.contains(&id) {
+            continue;
+        }
+        let stored: &[u8] = row.get_ref(1)?.as_blob()?;
+        let Some(similarity) = semantic::cosine_similarity(stored, query_vector) else {
+            continue;
+        };
+        compared += 1;
+        if similarity < semantic::SIMILARITY_FLOOR {
+            continue;
+        }
+        ids.push(id);
+        if ids.len() == wanted {
+            break;
+        }
+    }
+    Ok((ids, compared))
+}
+
+/// Load full history rows for an explicit id list, newest first.
+fn entries_by_ids_with_connection(conn: &Connection, ids: &[i64]) -> Result<Vec<HistoryEntry>> {
+    let placeholders = vec!["?"; ids.len()].join(",");
+    let mut statement = conn.prepare(&format!(
+        "SELECT
+            id,
+            file_name,
+            timestamp,
+            saved,
+            title,
+            transcription_text,
+            post_processed_text,
+            post_process_requested,
+            parent_id
+         FROM transcription_history
+         WHERE id IN ({placeholders})
+         ORDER BY id DESC"
+    ))?;
+    let rows = statement.query_map(
+        rusqlite::params_from_iter(ids.iter()),
+        HistoryManager::map_history_entry,
+    )?;
+    Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
+}
+
+/// Record what the model concluded about one row.
+///
+/// A `None` vector is stored as a NULL embedding with the revision set: the
+/// model did look at this row and found nothing embeddable. That is the state
+/// that lets the backfill terminate, and it is also the honest record — the
+/// alternative, leaving the row untouched, claims it was never considered.
+///
+/// The FTS5 triggers fire `AFTER UPDATE OF transcription_text,
+/// post_processed_text`, and this statement names neither, so writing a vector
+/// does not re-index the row.
+fn store_semantic_vector_with_connection(
+    conn: &Connection,
+    history_id: i64,
+    vector: Option<&[f32]>,
+    revision: &str,
+) -> Result<()> {
+    let blob = vector.map(semantic::encode_vector);
+    conn.execute(
+        "UPDATE transcription_history
+         SET semantic_embedding = ?1, semantic_model_revision = ?2
+         WHERE id = ?3",
+        params![blob, revision, history_id],
+    )?;
+    Ok(())
+}
+
+/// Embed up to `chunk` rows the current model has not considered yet.
+///
+/// Returns the number of rows written, so the caller loops until it gets zero.
+/// The selection predicate — `semantic_model_revision IS NOT ?` — is the whole
+/// progress record: null-safe, so it covers both "never embedded" and
+/// "embedded by an older model", and self-clearing, so there is no separate
+/// cursor or progress table to keep in sync with the rows.
+fn backfill_semantic_chunk_with_connection(
+    conn: &mut Connection,
+    model: &SemanticModel,
+    chunk: usize,
+) -> Result<usize> {
+    let pending: Vec<(i64, String, Option<String>)> = {
+        let mut statement = conn.prepare(
+            "SELECT id, transcription_text, post_processed_text
+             FROM transcription_history
+             WHERE semantic_model_revision IS NOT ?1
+             ORDER BY id DESC
+             LIMIT ?2",
+        )?;
+        let rows = statement
+            .query_map(params![model.revision(), i64::try_from(chunk)?], |row| {
+                Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+            })?;
+        rows.collect::<std::result::Result<Vec<_>, _>>()?
+    };
+    if pending.is_empty() {
+        return Ok(0);
+    }
+
+    // One transaction per chunk: a chunk either advances entirely or not at
+    // all, so an interrupted backfill leaves no row half-marked.
+    let transaction = conn.transaction()?;
+    for (id, transcription_text, post_processed_text) in &pending {
+        let vector = model.encode(semantic::embeddable_text(
+            transcription_text,
+            post_processed_text.as_deref(),
+        ));
+        store_semantic_vector_with_connection(
+            &transaction,
+            *id,
+            vector.as_deref(),
+            model.revision(),
+        )?;
+    }
+    transaction.commit()?;
+    Ok(pending.len())
 }
 
 /// The single owner of the recordings-directory join.
@@ -2172,6 +2606,7 @@ mod tests {
             "microphone",
             None,
             Some(10),
+            None,
         )
         .expect("FTS search");
         assert_eq!(page.entries.len(), 1);
@@ -2424,6 +2859,7 @@ mod tests {
             "visible",
             None,
             Some(10),
+            None,
         )
         .expect("filtered history search");
         assert_eq!(search.entries.len(), 1);
@@ -2660,9 +3096,14 @@ mod tests {
         assert_eq!((row.2, row.3, row.4), (None, None, None));
         assert!(row.5);
 
-        let page =
-            HistoryManager::search_history_entries_with_connection(&conn, "raw", None, Some(5))
-                .expect("search after column removal");
+        let page = HistoryManager::search_history_entries_with_connection(
+            &conn,
+            "raw",
+            None,
+            Some(5),
+            None,
+        )
+        .expect("search after column removal");
         assert_eq!(
             page.entries
                 .iter()
@@ -2701,8 +3142,11 @@ mod tests {
     #[test]
     fn parent_id_is_added_as_a_nullable_column_and_existing_rows_keep_no_parent() {
         let mut conn = Connection::open_in_memory().expect("open in-memory db");
-        let head_before_parent = MIGRATIONS.len() - 1;
-        Migrations::new(MIGRATIONS[..head_before_parent].to_vec())
+        // Absolute, not `MIGRATIONS.len() - 1`: this prefix means "the schema
+        // just before `parent_id` arrived", a fixed point in history, and a
+        // relative index silently retargets it every time a migration is added.
+        const MIGRATIONS_BEFORE_PARENT_ID: usize = 10;
+        Migrations::new(MIGRATIONS[..MIGRATIONS_BEFORE_PARENT_ID].to_vec())
             .to_latest(&mut conn)
             .expect("apply migrations up to the parent_id column");
         assert!(!history_columns(&conn).contains(&"parent_id".to_string()));
@@ -2787,6 +3231,7 @@ mod tests {
                     "carried",
                     None,
                     Some(5),
+                    None,
                 )
                 .expect("search carried entry");
                 assert_eq!(page.entries.len(), 1);
@@ -2909,9 +3354,14 @@ mod tests {
         );
         let latest_raw_id = insert_entry(&conn, 300, "lantern action items", None);
 
-        let first_page =
-            HistoryManager::search_history_entries_with_connection(&conn, "lantern", None, Some(2))
-                .expect("search first page");
+        let first_page = HistoryManager::search_history_entries_with_connection(
+            &conn,
+            "lantern",
+            None,
+            Some(2),
+            None,
+        )
+        .expect("search first page");
 
         assert_eq!(
             first_page
@@ -2928,6 +3378,7 @@ mod tests {
             "lantern",
             first_page.entries.last().map(|entry| entry.id),
             Some(2),
+            None,
         )
         .expect("search second page");
 
@@ -2946,6 +3397,7 @@ mod tests {
             "polished",
             None,
             Some(2),
+            None,
         )
         .expect("search post-processed text");
         assert_eq!(post_processed_only.entries[0].id, post_processed_id);
@@ -3003,9 +3455,14 @@ mod tests {
             ("\" OR transcription_text MATCH \"lantern", vec![]),
             ("lantern' OR 1=1 --", vec![]),
         ] {
-            let page =
-                HistoryManager::search_history_entries_with_connection(&conn, query, None, Some(5))
-                    .unwrap_or_else(|error| panic!("search {query:?} must not fail: {error}"));
+            let page = HistoryManager::search_history_entries_with_connection(
+                &conn,
+                query,
+                None,
+                Some(5),
+                None,
+            )
+            .unwrap_or_else(|error| panic!("search {query:?} must not fail: {error}"));
             assert_eq!(
                 page.entries
                     .iter()
@@ -3023,9 +3480,14 @@ mod tests {
         let entry_id = insert_entry(&conn, 100, "project lantern notes", None);
 
         for query in ["lant", "lantern not", "notes lant"] {
-            let page =
-                HistoryManager::search_history_entries_with_connection(&conn, query, None, Some(5))
-                    .unwrap_or_else(|error| panic!("search {query:?}: {error}"));
+            let page = HistoryManager::search_history_entries_with_connection(
+                &conn,
+                query,
+                None,
+                Some(5),
+                None,
+            )
+            .unwrap_or_else(|error| panic!("search {query:?}: {error}"));
             assert_eq!(
                 page.entries
                     .iter()
@@ -3041,6 +3503,7 @@ mod tests {
             "lantern zebra",
             None,
             Some(5),
+            None,
         )
         .expect("search with one absent token");
         assert!(missing_token.entries.is_empty());
@@ -3056,16 +3519,27 @@ mod tests {
             .expect("drop search index");
 
         for query in ["", "   ", "🎉", "--"] {
-            let page =
-                HistoryManager::search_history_entries_with_connection(&conn, query, None, Some(5))
-                    .unwrap_or_else(|error| panic!("search {query:?} must not query FTS: {error}"));
+            let page = HistoryManager::search_history_entries_with_connection(
+                &conn,
+                query,
+                None,
+                Some(5),
+                None,
+            )
+            .unwrap_or_else(|error| panic!("search {query:?} must not query FTS: {error}"));
             assert!(page.entries.is_empty());
             assert!(!page.has_more);
         }
 
         assert!(
-            HistoryManager::search_history_entries_with_connection(&conn, "lantern", None, Some(5))
-                .is_err(),
+            HistoryManager::search_history_entries_with_connection(
+                &conn,
+                "lantern",
+                None,
+                Some(5),
+                None
+            )
+            .is_err(),
             "a real token must still reach the (now missing) index"
         );
     }
@@ -3114,6 +3588,7 @@ mod tests {
             "bounded",
             None,
             Some(MAX_HISTORY_PAGE_SIZE + 1),
+            None,
         )
         .expect("search bounded page");
 
@@ -3133,9 +3608,14 @@ mod tests {
             .to_latest(&mut conn)
             .expect("apply search migration");
 
-        let page =
-            HistoryManager::search_history_entries_with_connection(&conn, "legacy", None, Some(1))
-                .expect("search migrated entry");
+        let page = HistoryManager::search_history_entries_with_connection(
+            &conn,
+            "legacy",
+            None,
+            Some(1),
+            None,
+        )
+        .expect("search migrated entry");
 
         assert_eq!(page.entries[0].id, entry_id);
     }
@@ -3152,9 +3632,14 @@ mod tests {
         )
         .expect("update history entry");
 
-        let page =
-            HistoryManager::search_history_entries_with_connection(&conn, "revised", None, Some(1))
-                .expect("search updated post-processed text");
+        let page = HistoryManager::search_history_entries_with_connection(
+            &conn,
+            "revised",
+            None,
+            Some(1),
+            None,
+        )
+        .expect("search updated post-processed text");
         assert_eq!(page.entries[0].id, entry_id);
 
         let stale = HistoryManager::search_history_entries_with_connection(
@@ -3162,6 +3647,7 @@ mod tests {
             "original",
             None,
             Some(1),
+            None,
         )
         .expect("search stale transcription text");
         assert!(stale.entries.is_empty());
@@ -3268,5 +3754,515 @@ mod tests {
         assert!(!wav_path.exists());
 
         std::fs::remove_dir_all(recordings_dir).expect("remove recordings directory");
+    }
+
+    /// The pinned model, or `None` when it has not been fetched here.
+    fn semantic_fixture_model() -> Option<semantic::SemanticModel> {
+        semantic::tests::fixture_model()
+    }
+
+    fn embed_all(conn: &mut Connection, model: &semantic::SemanticModel) -> usize {
+        let mut total = 0;
+        loop {
+            let written =
+                backfill_semantic_chunk_with_connection(conn, model, semantic::BACKFILL_CHUNK_ROWS)
+                    .expect("backfill chunk");
+            if written == 0 {
+                return total;
+            }
+            total += written;
+        }
+    }
+
+    /// The whole reason this slice exists, in one test.
+    ///
+    /// A transcript that says "the budget for August" is unreachable by the
+    /// query "spending plan" through FTS5: the two share no token, and FTS5
+    /// joins query tokens with implicit AND, so the miss is structural rather
+    /// than a stale index. The first assertion proves that miss on the real
+    /// index instead of assuming it. The second proves the embedding closes it.
+    #[test]
+    fn a_paraphrase_is_recalled_where_fts_structurally_cannot_match() {
+        let Some(model) = semantic_fixture_model() else {
+            eprintln!("skipped: pinned semantic model not present");
+            return;
+        };
+        let mut conn = setup_conn();
+        let budget_id = insert_entry(&conn, 100, "the budget for August", None);
+        insert_entry(&conn, 101, "sourdough starter feeding schedule", None);
+        insert_entry(
+            &conn,
+            102,
+            "guitar amplifier settings for the small room",
+            None,
+        );
+        assert_eq!(embed_all(&mut conn, &model), 3);
+
+        // The FTS miss, proven: the row exists, the index is current (the same
+        // query finds it by a literal word), and "spending plan" still cannot
+        // reach it.
+        let literal = HistoryManager::search_history_entries_with_connection(
+            &conn,
+            "budget",
+            None,
+            Some(5),
+            None,
+        )
+        .expect("literal search");
+        assert_eq!(
+            literal.entries.iter().map(|e| e.id).collect::<Vec<_>>(),
+            vec![budget_id],
+            "the index must be current for the miss below to mean anything"
+        );
+        let lexical_only = HistoryManager::search_history_entries_with_connection(
+            &conn,
+            "spending plan",
+            None,
+            Some(5),
+            None,
+        )
+        .expect("lexical search");
+        assert!(
+            lexical_only.entries.is_empty(),
+            "FTS5 must miss the paraphrase, but returned {:?}",
+            lexical_only
+                .entries
+                .iter()
+                .map(|e| e.id)
+                .collect::<Vec<_>>()
+        );
+
+        let blended = HistoryManager::search_history_entries_with_connection(
+            &conn,
+            "spending plan",
+            None,
+            Some(5),
+            Some(&model),
+        )
+        .expect("blended search");
+        assert_eq!(
+            blended.entries.iter().map(|e| e.id).collect::<Vec<_>>(),
+            vec![budget_id],
+            "semantic recall must find the paraphrase, and only it"
+        );
+        assert_eq!(
+            blended.entries[0].match_kind,
+            Some(HistoryMatchKind::Semantic),
+            "a row FTS did not match must be labelled semantic"
+        );
+    }
+
+    /// Lexical evidence outranks embedding similarity for the same row: a row
+    /// FTS5 matched is reported as `Text` and is not also emitted as a semantic
+    /// candidate, even though its own embedding trivially clears the floor
+    /// against its own words.
+    #[test]
+    fn a_row_fts_matched_is_labelled_text_and_never_duplicated() {
+        let Some(model) = semantic_fixture_model() else {
+            eprintln!("skipped: pinned semantic model not present");
+            return;
+        };
+        let mut conn = setup_conn();
+        let id = insert_entry(&conn, 100, "the budget for August", None);
+        embed_all(&mut conn, &model);
+
+        let page = HistoryManager::search_history_entries_with_connection(
+            &conn,
+            "budget",
+            None,
+            Some(5),
+            Some(&model),
+        )
+        .expect("blended search");
+        assert_eq!(page.entries.len(), 1, "the row must appear exactly once");
+        assert_eq!(page.entries[0].id, id);
+        assert_eq!(page.entries[0].match_kind, Some(HistoryMatchKind::Text));
+    }
+
+    /// A row the model has not reached, and a search with no model at all, both
+    /// degrade to exactly the lexical result — no error, no empty page, no
+    /// invented match.
+    #[test]
+    fn an_unembedded_row_and_an_absent_model_both_degrade_to_lexical() {
+        let conn = setup_conn();
+        let id = insert_entry(&conn, 100, "the budget for August", None);
+
+        for model in [None, semantic_fixture_model().as_ref()] {
+            let page = HistoryManager::search_history_entries_with_connection(
+                &conn,
+                "budget",
+                None,
+                Some(5),
+                model,
+            )
+            .expect("search must not fail without embeddings");
+            assert_eq!(
+                page.entries.iter().map(|e| e.id).collect::<Vec<_>>(),
+                vec![id]
+            );
+            assert_eq!(page.entries[0].match_kind, Some(HistoryMatchKind::Text));
+
+            let paraphrase = HistoryManager::search_history_entries_with_connection(
+                &conn,
+                "spending plan",
+                None,
+                Some(5),
+                model,
+            )
+            .expect("paraphrase search must not fail without embeddings");
+            assert!(
+                paraphrase.entries.is_empty(),
+                "an unembedded row must not be recalled"
+            );
+        }
+    }
+
+    /// The backfill is resumable because its selection predicate is its
+    /// progress record, and it terminates because an unembeddable row is still
+    /// marked as considered.
+    #[test]
+    fn the_backfill_resumes_in_chunks_and_terminates_on_unembeddable_rows() {
+        let Some(model) = semantic_fixture_model() else {
+            eprintln!("skipped: pinned semantic model not present");
+            return;
+        };
+        let mut conn = setup_conn();
+        for index in 0..5_i64 {
+            insert_entry(&conn, index, &format!("meeting notes number {index}"), None);
+        }
+        // A row with nothing to embed: whitespace tokenizes to no term.
+        let blank_id = insert_entry(&conn, 5, "   ", None);
+
+        // Chunked: two rows at a time, and the pass advances every time.
+        assert_eq!(
+            backfill_semantic_chunk_with_connection(&mut conn, &model, 2).expect("chunk one"),
+            2
+        );
+        assert_eq!(
+            backfill_semantic_chunk_with_connection(&mut conn, &model, 2).expect("chunk two"),
+            2
+        );
+        assert_eq!(
+            backfill_semantic_chunk_with_connection(&mut conn, &model, 2).expect("chunk three"),
+            2
+        );
+        // Terminates: nothing is left, including the blank row.
+        assert_eq!(
+            backfill_semantic_chunk_with_connection(&mut conn, &model, 2).expect("chunk four"),
+            0
+        );
+
+        let (embedded, considered): (i64, i64) = conn
+            .query_row(
+                "SELECT
+                    COUNT(semantic_embedding),
+                    COUNT(semantic_model_revision)
+                 FROM transcription_history",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("count embeddings");
+        assert_eq!(considered, 6, "every row must be marked as considered");
+        assert_eq!(embedded, 5, "the unembeddable row must hold no vector");
+
+        let blank: Option<Vec<u8>> = conn
+            .query_row(
+                "SELECT semantic_embedding FROM transcription_history WHERE id = ?1",
+                params![blank_id],
+                |row| row.get(0),
+            )
+            .expect("read blank row");
+        assert!(blank.is_none(), "honest absence, not a zero vector");
+    }
+
+    /// A vector round-trips through the BLOB column, survives the migration
+    /// path that created the column, and writing it does not disturb the FTS5
+    /// index (the triggers name only the two text columns).
+    #[test]
+    fn a_vector_round_trips_through_the_migrated_column_without_touching_fts() {
+        let mut conn = Connection::open_in_memory().expect("open in-memory db");
+        // Absolute for the same reason as `MIGRATIONS_BEFORE_PARENT_ID` above:
+        // this is the schema an existing install has before the embedding
+        // columns arrive, not "whatever the second-to-last migration is".
+        const MIGRATIONS_BEFORE_SEMANTIC: usize = 11;
+        Migrations::new(MIGRATIONS[..MIGRATIONS_BEFORE_SEMANTIC].to_vec())
+            .to_latest(&mut conn)
+            .expect("apply pre-semantic migrations");
+        let id = insert_entry(&conn, 100, "quarterly planning notes", None);
+        Migrations::new(MIGRATIONS.to_vec())
+            .to_latest(&mut conn)
+            .expect("apply semantic migration");
+
+        let fts_rows_before: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM transcription_history_fts",
+                [],
+                |row| row.get(0),
+            )
+            .expect("count fts rows");
+
+        let vector: Vec<f32> = (0..256).map(|lane| (lane as f32 - 128.0) / 256.0).collect();
+        store_semantic_vector_with_connection(&conn, id, Some(&vector), "test-revision")
+            .expect("store vector");
+
+        let (stored, revision): (Vec<u8>, String) = conn
+            .query_row(
+                "SELECT semantic_embedding, semantic_model_revision
+                 FROM transcription_history WHERE id = ?1",
+                params![id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("read back vector");
+        assert_eq!(revision, "test-revision");
+        assert_eq!(stored, semantic::encode_vector(&vector));
+        assert_eq!(
+            semantic::cosine_similarity(&stored, &vector),
+            Some(vector.iter().map(|v| v * v).sum::<f32>()),
+            "the round-tripped lanes must reproduce the exact dot product"
+        );
+
+        let fts_rows_after: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM transcription_history_fts",
+                [],
+                |row| row.get(0),
+            )
+            .expect("count fts rows");
+        assert_eq!(
+            fts_rows_before, fts_rows_after,
+            "writing a vector must not re-index the row"
+        );
+        let page = HistoryManager::search_history_entries_with_connection(
+            &conn,
+            "quarterly",
+            None,
+            Some(5),
+            None,
+        )
+        .expect("lexical search after vector write");
+        assert_eq!(
+            page.entries.iter().map(|e| e.id).collect::<Vec<_>>(),
+            vec![id]
+        );
+    }
+
+    /// A vector written by a different model revision is skipped, not compared:
+    /// same width, no shared meaning.
+    #[test]
+    fn a_vector_from_another_model_revision_is_not_compared() {
+        let Some(model) = semantic_fixture_model() else {
+            eprintln!("skipped: pinned semantic model not present");
+            return;
+        };
+        let mut conn = setup_conn();
+        let id = insert_entry(&conn, 100, "the budget for August", None);
+        embed_all(&mut conn, &model);
+        let found = HistoryManager::search_history_entries_with_connection(
+            &conn,
+            "spending plan",
+            None,
+            Some(5),
+            Some(&model),
+        )
+        .expect("blended search");
+        assert_eq!(
+            found.entries.iter().map(|e| e.id).collect::<Vec<_>>(),
+            vec![id]
+        );
+
+        conn.execute(
+            "UPDATE transcription_history SET semantic_model_revision = 'some-other-revision'",
+            [],
+        )
+        .expect("restamp the vector");
+        let stale = HistoryManager::search_history_entries_with_connection(
+            &conn,
+            "spending plan",
+            None,
+            Some(5),
+            Some(&model),
+        )
+        .expect("blended search over stale vectors");
+        assert!(
+            stale.entries.is_empty(),
+            "a vector from another revision must be skipped"
+        );
+    }
+
+    /// The blend is deterministic and paginates: repeated identical calls give
+    /// byte-identical pages, and walking the cursor visits every matching row
+    /// exactly once with no repeats and no gaps, across the lexical/semantic
+    /// boundary.
+    #[test]
+    fn the_blend_is_deterministic_and_paginates_without_repeats_or_gaps() {
+        let Some(model) = semantic_fixture_model() else {
+            eprintln!("skipped: pinned semantic model not present");
+            return;
+        };
+        let mut conn = setup_conn();
+        // Two rows the query reaches lexically, three only by paraphrase, and
+        // two that must never appear. Interleaved ids so a merge that sorted by
+        // anything other than id would show up as a different order.
+        let mut expected = Vec::new();
+        expected.push(insert_entry(&conn, 1, "the budget for August", None));
+        insert_entry(&conn, 2, "sourdough starter feeding schedule", None);
+        expected.push(insert_entry(
+            &conn,
+            3,
+            "spending plan for the quarter",
+            None,
+        ));
+        expected.push(insert_entry(&conn, 4, "the budget for September", None));
+        insert_entry(&conn, 5, "guitar amplifier settings", None);
+        expected.push(insert_entry(
+            &conn,
+            6,
+            "how much we can spend next month",
+            None,
+        ));
+        embed_all(&mut conn, &model);
+
+        let page_of = |cursor: Option<i64>| {
+            HistoryManager::search_history_entries_with_connection(
+                &conn,
+                "spending plan",
+                cursor,
+                Some(2),
+                Some(&model),
+            )
+            .expect("blended page")
+        };
+
+        // Deterministic: the same inputs give the same ids, order, and labels.
+        let first = page_of(None);
+        for _ in 0..4 {
+            let again = page_of(None);
+            assert_eq!(
+                again
+                    .entries
+                    .iter()
+                    .map(|e| (e.id, e.match_kind))
+                    .collect::<Vec<_>>(),
+                first
+                    .entries
+                    .iter()
+                    .map(|e| (e.id, e.match_kind))
+                    .collect::<Vec<_>>()
+            );
+            assert_eq!(again.has_more, first.has_more);
+        }
+
+        // Paginates: walk to exhaustion and check the whole walk.
+        let mut seen = Vec::new();
+        let mut cursor = None;
+        for _ in 0..8 {
+            let page = page_of(cursor);
+            assert!(page.entries.len() <= 2, "page size must be honored");
+            for entry in &page.entries {
+                seen.push(entry.id);
+            }
+            if !page.has_more {
+                break;
+            }
+            cursor = page.entries.last().map(|entry| entry.id);
+        }
+
+        let mut sorted = seen.clone();
+        sorted.sort_unstable();
+        sorted.dedup();
+        assert_eq!(
+            sorted.len(),
+            seen.len(),
+            "a row was returned twice: {seen:?}"
+        );
+        assert!(
+            seen.windows(2).all(|pair| pair[0] > pair[1]),
+            "the merged walk must stay strictly newest-first: {seen:?}"
+        );
+        expected.sort_unstable();
+        let mut found = seen.clone();
+        found.sort_unstable();
+        assert_eq!(found, expected, "every matching row must be visited once");
+    }
+
+    /// When FTS5 alone overflows the page, the semantic half is not consulted
+    /// at all: no query embedding, no scan, no row.
+    ///
+    /// This is what "lexical wins" costs and buys. A query with a full page of
+    /// literal matches pays nothing for semantic recall — and, as the second
+    /// half of this test pins, a semantic hit newer than the page's last id is
+    /// then never shown for that query. That is deliberate: the merged list is
+    /// strictly newest-first so the single-id cursor stays sound, and a user
+    /// whose query already returns a full page of literal matches is not the
+    /// user this feature exists for.
+    #[test]
+    fn a_lexically_overflowing_page_skips_the_semantic_half_entirely() {
+        let Some(model) = semantic_fixture_model() else {
+            eprintln!("skipped: pinned semantic model not present");
+            return;
+        };
+        let mut conn = setup_conn();
+        let lexical = [
+            insert_entry(&conn, 1, "spending plan review", None),
+            insert_entry(&conn, 2, "spending plan draft", None),
+            insert_entry(&conn, 3, "spending plan final", None),
+        ];
+        // Newer than every lexical row, and reachable only by meaning.
+        let semantic_row = insert_entry(&conn, 4, "the budget for August", None);
+        embed_all(&mut conn, &model);
+
+        let page = HistoryManager::search_history_entries_with_connection(
+            &conn,
+            "spending plan",
+            None,
+            Some(2),
+            Some(&model),
+        )
+        .expect("blended search");
+        assert_eq!(
+            page.entries.iter().map(|e| e.id).collect::<Vec<_>>(),
+            vec![lexical[2], lexical[1]],
+            "an overflowing lexical page must be returned exactly as FTS ranked it"
+        );
+        assert!(page.has_more);
+        assert!(
+            page.entries
+                .iter()
+                .all(|entry| entry.match_kind == Some(HistoryMatchKind::Text)),
+            "no semantic row may enter a page FTS already filled"
+        );
+
+        // Walking to exhaustion: every lexical row is reached, and the newer
+        // semantic row stays out because the cursor has already passed it.
+        let mut seen = Vec::new();
+        let mut cursor = None;
+        for _ in 0..6 {
+            let next = HistoryManager::search_history_entries_with_connection(
+                &conn,
+                "spending plan",
+                cursor,
+                Some(2),
+                Some(&model),
+            )
+            .expect("blended page");
+            seen.extend(next.entries.iter().map(|entry| entry.id));
+            if !next.has_more {
+                break;
+            }
+            cursor = next.entries.last().map(|entry| entry.id);
+        }
+        let mut reached = seen.clone();
+        reached.sort_unstable();
+        reached.dedup();
+        assert_eq!(reached.len(), seen.len(), "no row may repeat: {seen:?}");
+        assert_eq!(
+            reached,
+            lexical.to_vec(),
+            "every lexical row is reached, and only those"
+        );
+        assert!(
+            !seen.contains(&semantic_row),
+            "a semantic hit newer than the first page's cursor is not resurfaced"
+        );
     }
 }

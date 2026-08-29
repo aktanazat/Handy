@@ -295,6 +295,21 @@ describe("library row, actions", () => {
   });
 });
 
+describe("library row, search provenance", () => {
+  test("marks only the row whose meaning matched, and keeps it in the mono run", () => {
+    const semantic = row({ entry: { match_kind: "semantic" } });
+    expect(semantic).toContain("by meaning");
+    // A derived classification like the mode or the engine, so it stays at data
+    // weight rather than taking the sans reason span.
+    expect(semantic).not.toContain(
+      '<span class="history-meta-reason">by meaning',
+    );
+
+    expect(row({ entry: { match_kind: "text" } })).not.toContain("by meaning");
+    expect(row()).not.toContain("by meaning");
+  });
+});
+
 describe("library row, receipt inspector", () => {
   test("stays closed until the row is expanded", () => {
     const markup = row();

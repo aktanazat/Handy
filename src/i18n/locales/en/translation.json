@@ -1015,6 +1015,7 @@
       "expandEntry": "Show full entry",
       "collapseEntry": "Hide full entry",
       "derivedFromId": "from #{{id}}",
+      "recalledByMeaning": "by meaning",
       "level": {
         "peak": "peak",
         "rms": "rms"

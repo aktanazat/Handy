@@ -640,6 +640,18 @@ const HistoryRowMeta: React.FC<HistoryRowMetaProps> = ({
     });
   }
 
+  /* Only the semantic case is marked. Every row in a search result matched
+   * somehow, so "matched by text" on all of them is chrome; the one fact worth
+   * a cell is that this row's own words do NOT contain the query and it is here
+   * because its meaning does. Outside a search `match_kind` is null and no cell
+   * appears at all. */
+  if (entry.match_kind === "semantic") {
+    cells.push({
+      id: "match",
+      content: t("settings.history.recalledByMeaning", "by meaning"),
+    });
+  }
+
   return (
     <p className="history-row-meta type-data" data-testid="history-entry-meta">
       {cells.map((cell, index) => (

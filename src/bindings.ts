@@ -2815,8 +2815,24 @@ export type HistoryEntry = { id: number; file_name: string; timestamp: number; s
  * The entry this one was reprocessed from, when it was not an original
  * capture. `None` for every row written before reprocessing existed.
  */
-parent_id: number | null }
+parent_id: number | null;
+/**
+ * Why this row was returned, on rows that came from a search. `None`
+ * everywhere else — a plain listing, an added-entry event, or a lookup by
+ * id has no match to explain, and claiming one would be false.
+ */
+match_kind?: HistoryMatchKind | null }
 export type HistoryItemKind = "meeting"
+/**
+ * Why a row is in a search result.
+ *
+ * `Text` means FTS5 matched the row's own words. `Semantic` means it did not,
+ * and the row was recalled by embedding similarity instead. A row FTS5
+ * matched is always `Text`, even when its embedding also clears the floor:
+ * lexical evidence is the stronger claim and never gets overwritten by the
+ * weaker one.
+ */
+export type HistoryMatchKind = "text" | "semantic"
 /**
  * One immutable run receipt linked to a recording. Text remains only in the
  * history entry and FTS table; this table holds content-free provenance.

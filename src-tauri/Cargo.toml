@@ -117,6 +117,15 @@ hex = "0.4"
 hkdf = "0.12"
 rtrb = "0.3"
 uuid = { version = "1", features = ["v4", "v5", "serde"] }
+# Static (bag-of-token) sentence embeddings for history semantic recall. Pure
+# Rust: safetensors + a tokenizer, no ONNX session, no GPU, no ANE.
+# `local-only` compiles out the crate's hf-hub/ureq downloader so this
+# dependency can never open a socket even if feature unification turns the
+# crate's default features back on — the model arrives through Sona's own
+# pinned-revision + sha256 path (managers/history/semantic.rs). `fancy-regex`
+# selects the tokenizer's pure-Rust regex engine instead of building
+# oniguruma's C library.
+model2vec-rs = { version = "0.2.1", default-features = false, features = ["local-only", "fancy-regex"] }
 
 [target.'cfg(unix)'.dependencies]
 signal-hook = "0.3"
