@@ -767,6 +767,35 @@ pub struct TranscriptionManager {
     cloud_finalization: Arc<Mutex<Option<mpsc::Receiver<CloudStreamFinalization>>>>,
 }
 
+/// One batch decode's transcript and the speed the engine achieved on it.
+///
+/// The realtime factor is audio seconds per decode second — 13.8 means the
+/// model consumed 1.05 s of audio in 76 ms — and it is the only measurement of
+/// this engine's actual throughput on this machine's hardware. It is carried
+/// back to the caller rather than stashed on the manager because the receipt
+/// that records it belongs to one run, and a shared slot would let a meeting
+/// chunk's decode be filed under a dictation.
+///
+/// `None` means the decode was not timed: empty audio never reached the engine,
+/// or the elapsed span rounded to zero, or the sample count did not fit the
+/// arithmetic. A ratio nobody could compute is absent, never infinite and never
+/// a stand-in zero.
+#[derive(Clone, Debug, PartialEq)]
+pub struct BatchDecode {
+    pub text: String,
+    pub realtime_factor: Option<f32>,
+}
+
+impl BatchDecode {
+    /// A transcript that no timed decode produced.
+    fn untimed(text: String) -> Self {
+        Self {
+            text,
+            realtime_factor: None,
+        }
+    }
+}
+
 fn lock_recover<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     match mutex.lock() {
         Ok(guard) => guard,
@@ -1988,7 +2017,7 @@ impl TranscriptionManager {
         self.emit_stream_text("", "");
     }
     /// Batch-transcribe shared completed PCM without copying it.
-    pub fn transcribe_shared(&self, asr: &AsrPlan, audio: &[f32]) -> Result<String> {
+    pub fn transcribe_shared(&self, asr: &AsrPlan, audio: &[f32]) -> Result<BatchDecode> {
         #[cfg(debug_assertions)]
         if std::env::var("SONA_FORCE_TRANSCRIPTION_FAILURE").is_ok() {
             return Err(anyhow::anyhow!(
@@ -2007,7 +2036,7 @@ impl TranscriptionManager {
         if audio.is_empty() {
             debug!("Empty audio vector");
             self.maybe_unload_immediately("empty audio");
-            return Ok(String::new());
+            return Ok(BatchDecode::untimed(String::new()));
         }
 
         // The native engine has one owner. Wait without holding the loading
@@ -2305,7 +2334,10 @@ impl TranscriptionManager {
 
         self.maybe_unload_immediately("transcription");
 
-        Ok(final_result)
+        Ok(BatchDecode {
+            text: final_result,
+            realtime_factor: finite_realtime_factor(speedup),
+        })
     }
 }
 
@@ -2687,6 +2719,16 @@ fn real_time_factor(audio_secs: f64, compute_secs: f64) -> f64 {
     } else {
         0.0
     }
+}
+
+/// Narrow a logged realtime factor to the one a receipt may claim.
+///
+/// `real_time_factor` reports 0.0 when the decode was too fast to time, and
+/// infinity when the sample count overflowed the seconds arithmetic. Neither is
+/// a throughput anybody measured, so both become absent instead of being
+/// persisted as a number a reader would believe.
+fn finite_realtime_factor(factor: f64) -> Option<f32> {
+    (factor.is_finite() && factor > 0.0).then_some(factor as f32)
 }
 
 fn normalize_cjk_language(language: &str) -> &str {

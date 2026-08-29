@@ -344,12 +344,19 @@ impl std::fmt::Display for CaptureError {
 
 impl std::error::Error for CaptureError {}
 
-/// Audio retained from one complete capture. no_speech_detected means VAD
-/// rejected every frame; samples keeps a bounded prefix of that silence playable.
+/// Audio retained from one complete capture.
+///
+/// The recorder reports what VAD observed, never a verdict on whether the user
+/// spoke: VAD is an optimizer that keeps silence off the ASR engine, and it is
+/// wrong often enough on quiet speech that only the model may conclude a
+/// capture was silent. When `vad_forwarded_speech` is false, `samples` is the
+/// raw unfiltered clip (bounded by [`MAX_NO_SPEECH_HISTORY_SAMPLES`]) precisely
+/// so a caller can still decode it; otherwise it is the VAD-selected audio that
+/// was also forwarded to any live stream.
 #[derive(Debug)]
 pub struct RecordedAudio {
     pub samples: Vec<f32>,
-    pub no_speech_detected: bool,
+    pub vad_forwarded_speech: bool,
 }
 
 /// How 16 kHz mono frames should be filtered for one recording session.
@@ -1623,14 +1630,17 @@ fn run_consumer(inputs: ConsumerInputs) {
                             })
                         }
                         None => {
-                            let no_speech_samples = silence_until_speech
+                            // `silence_until_speech` is live only until VAD
+                            // forwards its first speech frame, so a non-empty
+                            // buffer here *is* the whole raw clip.
+                            let raw_clip = silence_until_speech
                                 .take()
                                 .filter(|samples| !samples.is_empty());
-                            let no_speech_detected = no_speech_samples.is_some();
+                            let vad_forwarded_speech = raw_clip.is_none();
                             Ok(RecordedAudio {
-                                samples: no_speech_samples
+                                samples: raw_clip
                                     .unwrap_or_else(|| std::mem::take(&mut processed_samples)),
-                                no_speech_detected,
+                                vad_forwarded_speech,
                             })
                         }
                     };
@@ -2354,6 +2364,47 @@ mod tests {
         worker.join().expect("join consumer");
         capture_into_lane(&buffer, 1, None, &mut producer);
     }
+
+    /// The overlay's listening state, the start chime, and the forced mute all
+    /// hang off this one signal, so an early send would tell the user to speak
+    /// into a stream that is not yet delivering audio — exactly the head-loss
+    /// this gate exists to prevent.
+    #[test]
+    fn readiness_is_withheld_until_the_input_stream_delivers_its_first_buffer() {
+        let (mut producer, consumer) =
+            capture_lane::lane(native_rate_samples() * super::LANE_SECONDS);
+        let (cmd_tx, cmd_rx) = mpsc::channel();
+        let worker = thread::spawn(move || {
+            run_consumer(ConsumerInputs {
+                in_sample_rate: NATIVE_RATE,
+                vad: None,
+                lane: consumer,
+                cmd_rx,
+                level_cb: None,
+                audio_cb: None,
+                stream_running_at: Instant::now(),
+                meeting_control: Arc::new(MeetingCallbackControl::new()),
+            });
+        });
+
+        let ready = start(&cmd_tx);
+        // Cmd::Start has been accepted and the consumer is polling, but the
+        // device callback has not produced anything yet.
+        assert_eq!(
+            ready.recv_timeout(Duration::from_millis(200)),
+            Err(mpsc::RecvTimeoutError::Timeout),
+            "readiness was asserted before the input stream delivered a buffer"
+        );
+
+        capture_into_lane(&interleaved(480, 1, 0), 1, None, &mut producer);
+        assert!(
+            ready.recv_timeout(Duration::from_secs(2)).is_ok(),
+            "readiness was not asserted once the first buffer arrived"
+        );
+
+        cmd_tx.send(Cmd::Shutdown).expect("send shutdown");
+        worker.join().expect("join consumer");
+    }
     #[test]
     fn vad_silence_buffer_does_not_drop_the_detected_speech_onset() {
         let (mut producer, consumer) = capture_lane::lane(16_000 * super::LANE_SECONDS);
@@ -2384,7 +2435,7 @@ mod tests {
         let recording =
             stop_and_collect_recording(&cmd_tx, &mut producer, &onset).expect("clean VAD capture");
 
-        assert!(!recording.no_speech_detected);
+        assert!(recording.vad_forwarded_speech);
         assert!(
             recording
                 .samples
@@ -2398,7 +2449,7 @@ mod tests {
     }
 
     #[test]
-    fn all_silence_returns_a_bounded_no_speech_capture_without_forwarding_engine_audio() {
+    fn all_silence_returns_the_bounded_raw_clip_without_forwarding_engine_audio() {
         let (mut producer, consumer) = capture_lane::lane(16_000 * super::LANE_SECONDS);
         let (cmd_tx, cmd_rx) = mpsc::channel();
         let forwarded = Arc::new(AtomicUsize::new(0));
@@ -2428,7 +2479,7 @@ mod tests {
 
         let recording = stop_and_collect_recording(&cmd_tx, &mut producer, &silence)
             .expect("clean silent capture");
-        assert!(recording.no_speech_detected);
+        assert!(!recording.vad_forwarded_speech);
         assert!(!recording.samples.is_empty());
         assert!(recording.samples.len() <= MAX_NO_SPEECH_HISTORY_SAMPLES);
         assert_eq!(forwarded.load(Ordering::Acquire), 0);

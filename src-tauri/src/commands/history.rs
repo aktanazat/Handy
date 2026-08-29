@@ -224,11 +224,11 @@ async fn replay_stored_recording(
     transcription_manager.initiate_model_load(run.asr());
     let tm = Arc::clone(transcription_manager);
     let asr = run.asr().clone();
-    let transcription =
-        tauri::async_runtime::spawn_blocking(move || tm.transcribe_shared(&asr, &samples))
-            .await
-            .map_err(|error| format!("Transcription task panicked: {error}"))?
-            .map_err(|error| error.to_string())?;
+    let decode = tauri::async_runtime::spawn_blocking(move || tm.transcribe_shared(&asr, &samples))
+        .await
+        .map_err(|error| format!("Transcription task panicked: {error}"))?
+        .map_err(|error| error.to_string())?;
+    let transcription = decode.text;
     if transcription.is_empty() {
         return Err("Recording contains no speech".to_string());
     }
@@ -243,7 +243,9 @@ async fn replay_stored_recording(
             run.post_process_requested(),
             processed.post_processed_text,
             NewRunReceipt {
-                run: run.mode_receipt(),
+                run: run
+                    .mode_receipt()
+                    .with_realtime_factor(decode.realtime_factor),
                 context: run.context().receipt().clone(),
                 started_at_ms: run.run_started_at_ms,
                 completed_at_ms: current_time_ms(),

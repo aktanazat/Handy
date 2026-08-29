@@ -3,14 +3,14 @@ use crate::apple_intelligence;
 use crate::audio_feedback::{play_feedback_sound, play_feedback_sound_blocking, SoundType};
 use crate::audio_toolkit::{is_microphone_access_denied, is_no_input_device_error, VadPolicy};
 use crate::delivery::{self, DeliveryOutcome, DeliveryReceipt};
-use crate::managers::audio::{AudioRecordingManager, RecordingStop};
+use crate::managers::audio::{AudioRecordingManager, InputLevel, RecordingStop};
 use crate::managers::history::{CaptureStatus, HistoryManager, NewRunReceipt};
 use crate::managers::model::ModelManager;
 #[cfg(feature = "cloud-realtime")]
 use crate::managers::transcription::CloudStreamFinalization;
 #[cfg(feature = "cloud-realtime")]
 use crate::managers::transcription::StreamEngine;
-use crate::managers::transcription::{StreamWorkKind, TranscriptionManager};
+use crate::managers::transcription::{BatchDecode, StreamWorkKind, TranscriptionManager};
 use crate::modes::{AsrPlan, CloudReceiptStatus, RequestedEngine, RunPlan};
 use crate::prompt_renderer::RenderedPrompt;
 use crate::secrets::{SecretAccount, SecretManager, SecretResolveError};
@@ -292,20 +292,53 @@ fn is_blank_transcription(transcription: &str) -> bool {
     transcription.trim().is_empty()
 }
 
+/// Whether one capture produced usable speech.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum CaptureVerdict {
+    Transcribed,
+    NoSpeech,
+}
+
+/// Settle whether a capture had speech, given what VAD forwarded and what the
+/// model returned for it.
+///
+/// VAD is an optimizer, not a gatekeeper. When it forwards speech its answer is
+/// already confirmed by the audio the engine received. When it forwards nothing
+/// the capture layer hands the model the raw clip anyway (short captures only),
+/// so an empty transcript — not VAD's silence — is what makes no-speech a fact.
+/// Post-processing runs after this point and can legitimately empty real text,
+/// so the raw model transcript is the only honest input here.
+fn capture_verdict(vad_forwarded_speech: bool, model_text: &str) -> CaptureVerdict {
+    if vad_forwarded_speech || !is_blank_transcription(model_text) {
+        CaptureVerdict::Transcribed
+    } else {
+        CaptureVerdict::NoSpeech
+    }
+}
+
 fn share_completed_pcm(samples: Vec<f32>) -> Arc<Vec<f32>> {
     Arc::new(samples)
 }
 
+/// Pick the transcript that will be delivered: the streamed text when the
+/// stream produced one, otherwise a batch decode of the whole capture.
+///
+/// Streamed text carries no realtime factor because no batch decode happened,
+/// which is why the return type is the batch shape either way — the caller
+/// records what was measured, and a stream measures nothing here.
 fn select_final_transcription<F>(
     stream_result: anyhow::Result<Option<String>>,
     samples: &[f32],
     batch: F,
-) -> anyhow::Result<String>
+) -> anyhow::Result<BatchDecode>
 where
-    F: FnOnce(&[f32]) -> anyhow::Result<String>,
+    F: FnOnce(&[f32]) -> anyhow::Result<BatchDecode>,
 {
     match stream_result {
-        Ok(Some(text)) if !text.trim().is_empty() => Ok(text),
+        Ok(Some(text)) if !text.trim().is_empty() => Ok(BatchDecode {
+            text,
+            realtime_factor: None,
+        }),
         Ok(_) => batch(samples),
         Err(err) => Err(err),
     }
@@ -317,6 +350,9 @@ enum FrozenTranscript {
         text: String,
         engine_used: RequestedEngine,
         cloud_status: CloudReceiptStatus,
+        /// The local batch decode's realtime factor, when one produced this
+        /// text. A provider final and a streamed transcript both leave it None.
+        realtime_factor: Option<f32>,
     },
     HeldCloudUnavailable,
 }
@@ -329,13 +365,14 @@ fn resolve_cloud_finalization<F>(
     decode_fallback: F,
 ) -> anyhow::Result<FrozenTranscript>
 where
-    F: FnOnce(&AsrPlan, &[f32]) -> anyhow::Result<String>,
+    F: FnOnce(&AsrPlan, &[f32]) -> anyhow::Result<BatchDecode>,
 {
     match finalization {
         CloudStreamFinalization::Final(text) => Ok(FrozenTranscript::Final {
             text,
             engine_used: run.requested_engine(),
             cloud_status: CloudReceiptStatus::Final,
+            realtime_factor: None,
         }),
         CloudStreamFinalization::Failed { failure, .. } => {
             let Some(fallback) = run.local_asr() else {
@@ -343,10 +380,12 @@ where
                 return Ok(FrozenTranscript::HeldCloudUnavailable);
             };
 
+            let decode = decode_fallback(fallback, samples)?;
             Ok(FrozenTranscript::Final {
-                text: decode_fallback(fallback, samples)?,
+                text: decode.text,
                 engine_used: RequestedEngine::Local,
                 cloud_status: CloudReceiptStatus::Fallback,
+                realtime_factor: decode.realtime_factor,
             })
         }
     }
@@ -372,14 +411,15 @@ fn transcribe_frozen_run(
             manager.transcribe_shared(fallback, audio)
         })
     } else {
-        let text =
+        let decode =
             select_final_transcription(manager.finalize_stream(run.asr()), samples, |audio| {
                 manager.transcribe_shared(run.asr(), audio)
             })?;
         Ok(FrozenTranscript::Final {
-            text,
+            text: decode.text,
             engine_used: RequestedEngine::Local,
             cloud_status: CloudReceiptStatus::NotRequested,
+            realtime_factor: decode.realtime_factor,
         })
     }
 }
@@ -393,14 +433,15 @@ fn transcribe_frozen_run(
     if run.cloud().is_some() {
         Ok(FrozenTranscript::HeldCloudUnavailable)
     } else {
-        let text =
+        let decode =
             select_final_transcription(manager.finalize_stream(run.asr()), samples, |audio| {
                 manager.transcribe_shared(run.asr(), audio)
             })?;
         Ok(FrozenTranscript::Final {
-            text,
+            text: decode.text,
             engine_used: RequestedEngine::Local,
             cloud_status: CloudReceiptStatus::NotRequested,
+            realtime_factor: decode.realtime_factor,
         })
     }
 }
@@ -658,9 +699,13 @@ pub(crate) struct ProcessedTranscription {
     pub post_processed_text: Option<String>,
 }
 
+/// The measured facts about one capture that reached the engine. Every receipt
+/// written on this path takes the whole struct, so a new receipt kind cannot
+/// silently omit the measurement.
 struct CompletedCapture {
     duration_ms: Option<u64>,
     has_audio: bool,
+    level: InputLevel,
 }
 
 #[derive(Clone)]
@@ -678,14 +723,23 @@ struct PendingHistoryEntry {
     capture_status: Option<CaptureStatus>,
 }
 
+/// What the transcription route actually did for one run: which engine produced
+/// the text, how the cloud attempt ended, and how fast the local batch decode
+/// ran if one did. Grouped like [`CompletedCapture`] so a receipt cannot record
+/// the route without the measurement that came with it.
+struct DecodedRun {
+    engine_used: RequestedEngine,
+    cloud_status: CloudReceiptStatus,
+    realtime_factor: Option<f32>,
+}
+
 impl PendingHistoryEntry {
     fn from_run(
         file_name: String,
         transcription: String,
         processed: &ProcessedTranscription,
         run: &RunPlan,
-        engine_used: RequestedEngine,
-        cloud_status: CloudReceiptStatus,
+        decoded: DecodedRun,
         capture: CompletedCapture,
     ) -> Self {
         Self {
@@ -693,7 +747,10 @@ impl PendingHistoryEntry {
             transcription,
             post_process_requested: run.post_process_requested(),
             post_processed_text: processed.post_processed_text.clone(),
-            run_receipt: run.mode_receipt_with_cloud_status(Some(engine_used), cloud_status),
+            run_receipt: run
+                .mode_receipt_with_cloud_status(Some(decoded.engine_used), decoded.cloud_status)
+                .with_input_level(capture.level.peak, capture.level.rms)
+                .with_realtime_factor(decoded.realtime_factor),
             context_receipt: run.context().receipt().clone(),
             started_at_ms: run.run_started_at_ms,
             duration_ms: capture.duration_ms,
@@ -703,24 +760,20 @@ impl PendingHistoryEntry {
         }
     }
 
-    fn held_cloud_unavailable(
-        file_name: String,
-        run: &RunPlan,
-        duration_ms: Option<u64>,
-        has_audio: bool,
-    ) -> Self {
+    fn held_cloud_unavailable(file_name: String, run: &RunPlan, capture: CompletedCapture) -> Self {
         Self {
             file_name,
             transcription: String::new(),
             post_process_requested: false,
             post_processed_text: None,
             run_receipt: run
-                .mode_receipt_with_cloud_status(None, CloudReceiptStatus::HeldCloudUnavailable),
+                .mode_receipt_with_cloud_status(None, CloudReceiptStatus::HeldCloudUnavailable)
+                .with_input_level(capture.level.peak, capture.level.rms),
             context_receipt: run.context().receipt().clone(),
             started_at_ms: run.run_started_at_ms,
-            duration_ms,
+            duration_ms: capture.duration_ms,
             word_count: Some(0),
-            has_audio,
+            has_audio: capture.has_audio,
             capture_status: Some(CaptureStatus::Complete),
         }
     }
@@ -730,6 +783,7 @@ impl PendingHistoryEntry {
         run: &RunPlan,
         duration_ms: Option<u64>,
         has_audio: bool,
+        level: InputLevel,
     ) -> Self {
         Self {
             file_name,
@@ -737,8 +791,11 @@ impl PendingHistoryEntry {
             post_process_requested: false,
             post_processed_text: None,
             // VAD rejected the full capture, so neither a local model nor a
-            // cloud session supplied text for this receipt.
-            run_receipt: run.mode_receipt_with_cloud_status(None, CloudReceiptStatus::NotRequested),
+            // cloud session supplied text for this receipt. The measured level
+            // is what separates a dead input from a quiet room afterwards.
+            run_receipt: run
+                .mode_receipt_with_cloud_status(None, CloudReceiptStatus::NotRequested)
+                .with_input_level(level.peak, level.rms),
             context_receipt: run.context().receipt().clone(),
             started_at_ms: run.run_started_at_ms,
             duration_ms,
@@ -750,24 +807,23 @@ impl PendingHistoryEntry {
 
     /// Persist a capture prefix without a transcript. The original run is
     /// permanently marked truncated; only an explicit history retry may decode
-    /// the WAV.
-    fn truncated_capture(
-        file_name: String,
-        run: &RunPlan,
-        duration_ms: Option<u64>,
-        has_audio: bool,
-    ) -> Self {
+    /// the WAV. The prefix is real microphone audio, so it carries its measured
+    /// amplitude like any other capture: on a truncated row, whether the
+    /// retained prefix was audible at all is what decides a retry.
+    fn truncated_capture(file_name: String, run: &RunPlan, capture: CompletedCapture) -> Self {
         Self {
             file_name,
             transcription: String::new(),
             post_process_requested: false,
             post_processed_text: None,
-            run_receipt: run.mode_receipt(),
+            run_receipt: run
+                .mode_receipt()
+                .with_input_level(capture.level.peak, capture.level.rms),
             context_receipt: run.context().receipt().clone(),
             started_at_ms: run.run_started_at_ms,
-            duration_ms,
+            duration_ms: capture.duration_ms,
             word_count: Some(0),
-            has_audio,
+            has_audio: capture.has_audio,
             capture_status: Some(CaptureStatus::Truncated),
         }
     }
@@ -776,20 +832,21 @@ impl PendingHistoryEntry {
         file_name: String,
         post_process_requested: bool,
         run: &RunPlan,
-        duration_ms: Option<u64>,
-        has_audio: bool,
+        capture: CompletedCapture,
     ) -> Self {
         Self {
             file_name,
             transcription: String::new(),
             post_process_requested,
             post_processed_text: None,
-            run_receipt: run.mode_receipt(),
+            run_receipt: run
+                .mode_receipt()
+                .with_input_level(capture.level.peak, capture.level.rms),
             context_receipt: run.context().receipt().clone(),
             started_at_ms: run.run_started_at_ms,
-            duration_ms,
+            duration_ms: capture.duration_ms,
             word_count: Some(0),
-            has_audio,
+            has_audio: capture.has_audio,
             capture_status: Some(CaptureStatus::Complete),
         }
     }
@@ -862,6 +919,7 @@ async fn persist_truncated_capture(
     history: &HistoryManager,
     run: &RunPlan,
     prefix_samples: Vec<f32>,
+    level: InputLevel,
 ) {
     let history_id = if prefix_samples.is_empty() {
         warn!("Capture overran before a usable audio prefix reached Sona");
@@ -896,7 +954,16 @@ async fn persist_truncated_capture(
                 false
             }
         };
-        PendingHistoryEntry::truncated_capture(file_name, run, duration_ms, wav_saved).save(history)
+        PendingHistoryEntry::truncated_capture(
+            file_name,
+            run,
+            CompletedCapture {
+                duration_ms,
+                has_audio: wav_saved,
+                level,
+            },
+        )
+        .save(history)
     };
 
     persist_delivery_attempt(
@@ -941,6 +1008,7 @@ async fn persist_no_speech_capture(
     cancel_generation: u64,
     run: &RunPlan,
     samples: Vec<f32>,
+    level: InputLevel,
 ) -> NoSpeechPersistence {
     let sample_count = samples.len();
     let duration_ms = duration_ms(sample_count);
@@ -978,6 +1046,53 @@ async fn persist_no_speech_capture(
         }
     };
 
+    persist_no_speech_receipt(
+        history,
+        recording,
+        cancel_generation,
+        run,
+        SavedNoSpeechCapture {
+            file_name,
+            wav_path,
+            duration_ms,
+            wav_saved,
+            level,
+        },
+    )
+    .await
+}
+
+/// One capture that reached a no-speech verdict, with its WAV already written
+/// and its amplitude already measured.
+struct SavedNoSpeechCapture {
+    file_name: String,
+    wav_path: std::path::PathBuf,
+    duration_ms: Option<u64>,
+    wav_saved: bool,
+    level: InputLevel,
+}
+
+/// Write the no-speech receipt for a capture whose WAV is already on disk.
+///
+/// Two paths reach a no-speech verdict and both arrive here with a written WAV:
+/// a capture too long for the model to arbitrate (written just above), and one
+/// the model was handed and returned nothing for, whose WAV the transcribe path
+/// already saved. Neither may write a second recording for the same audio.
+async fn persist_no_speech_receipt(
+    history: &HistoryManager,
+    recording: &AudioRecordingManager,
+    cancel_generation: u64,
+    run: &RunPlan,
+    capture: SavedNoSpeechCapture,
+) -> NoSpeechPersistence {
+    let SavedNoSpeechCapture {
+        file_name,
+        wav_path,
+        duration_ms,
+        wav_saved,
+        level,
+    } = capture;
+
     // A cancel can arrive while the blocking write or verification is pending.
     // Remove any partial file before reporting the terminal result.
     if recording.was_cancelled_since(cancel_generation) {
@@ -990,7 +1105,7 @@ async fn persist_no_speech_capture(
     }
 
     let Some(history_id) =
-        PendingHistoryEntry::no_speech(file_name, run, duration_ms, true).save(history)
+        PendingHistoryEntry::no_speech(file_name, run, duration_ms, true, level).save(history)
     else {
         remove_no_speech_wav(&wav_path, "untracked");
         return if recording.was_cancelled_since(cancel_generation) {
@@ -1125,9 +1240,6 @@ impl TranscribeAction {
         let vad_preload_elapsed = vad_preload_started.elapsed();
 
         let binding_id = binding_id.to_string();
-        let tray_started = Instant::now();
-        set_tray_state(app, TrayIconState::Recording);
-        let tray_elapsed = tray_started.elapsed();
 
         let plan_started = Instant::now();
         let ui_settings = get_settings(app);
@@ -1185,13 +1297,19 @@ impl TranscribeAction {
         // The VAD preload above is the only pre-capture inference work. ASR
         // model loading and remote connections wait for actual speech.
         debug!(
-            "start-path pre-recording steps: vad_preload={:?} tray={:?} settings+stream_plan={:?} overlay={:?}",
+            "start-path pre-recording steps: vad_preload={:?} settings+stream_plan={:?} overlay={:?}",
             vad_preload_elapsed,
-            tray_elapsed,
             plan_elapsed,
             overlay_started.elapsed()
         );
         debug!("Microphone mode - always_on: {}", is_always_on);
+        // Opening the input stream is the slowest step on the start path
+        // (~150 ms of cpal stream construction on CoreAudio), and it can also
+        // fail outright on a denied permission or a missing device. Asserting
+        // the recording tray state before it returns would claim a session that
+        // may never exist. The overlay is deliberately not deferred with it: it
+        // appears immediately in its arming state, which acknowledges the
+        // shortcut without claiming the microphone is listening yet.
 
         let mut recording_error: Option<String> = None;
         let recording_start_time = Instant::now();
@@ -1201,12 +1319,17 @@ impl TranscribeAction {
                     "Recording request accepted in {:?}; waiting for first microphone samples",
                     recording_start_time.elapsed()
                 );
+                // The recorder has accepted this session and its state machine
+                // is already Recording, so the tray's Stop action is correct
+                // from here on.
+                set_tray_state(app, TrayIconState::Recording);
                 let generation = readiness.generation();
                 let app_clone = app.clone();
                 let rm_clone = Arc::clone(&rm);
                 std::thread::spawn(move || {
                     if !readiness.wait() {
                         debug!("Microphone readiness wait ended without receiving samples");
+
                         return;
                     }
 
@@ -1344,7 +1467,7 @@ impl TranscribeAction {
 
             let stop_recording_time = Instant::now();
             match rm.stop_recording(&binding_id, cancel_generation) {
-                Some(RecordingStop::NoSpeech { samples }) => {
+                Some(RecordingStop::NoSpeech { samples, level }) => {
                     if rm.was_cancelled_since(cancel_generation) {
                         debug!("No-speech recording was cancelled before persistence");
                         tm.cancel_stream();
@@ -1353,24 +1476,63 @@ impl TranscribeAction {
                         return;
                     }
                     tm.cancel_stream();
-                    let persistence =
-                        persist_no_speech_capture(&hm, &rm, cancel_generation, &run, samples).await;
+                    let persistence = persist_no_speech_capture(
+                        &hm,
+                        &rm,
+                        cancel_generation,
+                        &run,
+                        samples,
+                        level,
+                    )
+                    .await;
                     if let Some(error_type) = persistence.recording_error_type() {
                         let _ = ah.emit("recording-error", RecordingErrorEvent::typed(error_type));
                     }
                     utils::hide_recording_overlay(&ah);
                     set_tray_state(&ah, TrayIconState::Idle);
                 }
-                Some(RecordingStop::Complete(samples)) => {
+                Some(RecordingStop::Complete {
+                    samples,
+                    vad_forwarded_speech,
+                    level,
+                }) => {
                     debug!(
-                        "Recording stopped and samples retrieved in {:?}, sample count: {}",
+                        "Recording stopped and samples retrieved in {:?}, sample count: {}, vad_forwarded_speech: {}",
                         stop_recording_time.elapsed(),
-                        samples.len()
+                        samples.len(),
+                        vad_forwarded_speech
                     );
 
                     if rm.was_cancelled_since(cancel_generation) {
                         debug!("Transcription operation cancelled after recording stop");
                         tm.cancel_stream();
+                        utils::hide_recording_overlay(&ah);
+                        set_tray_state(&ah, TrayIconState::Idle);
+                        return;
+                    }
+
+                    // Only a local decoder can arbitrate a VAD-silent capture:
+                    // no speech frame was forwarded, so no cloud session was
+                    // ever opened, and reporting a remote failure or a held
+                    // cloud run for silence would be a false receipt. Without a
+                    // local model there is no cheap arbiter, so VAD's answer
+                    // stands exactly as it did before.
+                    if !vad_forwarded_speech && run.cloud().is_some() && run.local_asr().is_none() {
+                        debug!("VAD-silent capture has no local decoder to arbitrate it");
+                        tm.cancel_stream();
+                        let persistence = persist_no_speech_capture(
+                            &hm,
+                            &rm,
+                            cancel_generation,
+                            &run,
+                            samples,
+                            level,
+                        )
+                        .await;
+                        if let Some(error_type) = persistence.recording_error_type() {
+                            let _ =
+                                ah.emit("recording-error", RecordingErrorEvent::typed(error_type));
+                        }
                         utils::hide_recording_overlay(&ah);
                         set_tray_state(&ah, TrayIconState::Idle);
                         return;
@@ -1444,8 +1606,11 @@ impl TranscribeAction {
                                 let history_id = PendingHistoryEntry::held_cloud_unavailable(
                                     file_name,
                                     &run,
-                                    duration_ms,
-                                    wav_saved,
+                                    CompletedCapture {
+                                        duration_ms,
+                                        has_audio: wav_saved,
+                                        level,
+                                    },
                                 )
                                 .save(&hm);
                                 persist_delivery_attempt(
@@ -1468,11 +1633,47 @@ impl TranscribeAction {
                                 text: transcription,
                                 engine_used,
                                 cloud_status,
+                                realtime_factor,
                             }) => {
                                 debug!(
                                     "Transcription completed in {:?}",
                                     transcription_time.elapsed()
                                 );
+
+                                // VAD rejected every frame of this capture, so
+                                // the model was handed the raw clip to settle
+                                // it. Only now, with an empty transcript, is
+                                // "no speech" a fact rather than a guess. The
+                                // WAV above is this capture's one recording;
+                                // the receipt reuses it.
+                                if capture_verdict(vad_forwarded_speech, &transcription)
+                                    == CaptureVerdict::NoSpeech
+                                {
+                                    debug!("Model confirmed the VAD-silent capture had no speech");
+                                    let persistence = persist_no_speech_receipt(
+                                        &hm,
+                                        &rm,
+                                        cancel_generation,
+                                        &run,
+                                        SavedNoSpeechCapture {
+                                            file_name,
+                                            wav_path: wav_path_for_verify,
+                                            duration_ms,
+                                            wav_saved,
+                                            level,
+                                        },
+                                    )
+                                    .await;
+                                    if let Some(error_type) = persistence.recording_error_type() {
+                                        let _ = ah.emit(
+                                            "recording-error",
+                                            RecordingErrorEvent::typed(error_type),
+                                        );
+                                    }
+                                    utils::hide_recording_overlay(&ah);
+                                    set_tray_state(&ah, TrayIconState::Idle);
+                                    return;
+                                }
                                 if post_process {
                                     if use_streaming_overlay {
                                         tm.emit_stream_working(StreamWorkKind::Polishing);
@@ -1506,11 +1707,15 @@ impl TranscribeAction {
                                     transcription,
                                     &processed,
                                     &run,
-                                    engine_used,
-                                    cloud_status,
+                                    DecodedRun {
+                                        engine_used,
+                                        cloud_status,
+                                        realtime_factor,
+                                    },
                                     CompletedCapture {
                                         duration_ms,
                                         has_audio: wav_saved,
+                                        level,
                                     },
                                 );
 
@@ -1610,8 +1815,11 @@ impl TranscribeAction {
                                     file_name,
                                     post_process,
                                     &run,
-                                    duration_ms,
-                                    wav_saved,
+                                    CompletedCapture {
+                                        duration_ms,
+                                        has_audio: wav_saved,
+                                        level,
+                                    },
                                 )
                                 .save(&hm);
                                 persist_delivery_attempt(
@@ -1626,7 +1834,10 @@ impl TranscribeAction {
                         }
                     }
                 }
-                Some(RecordingStop::Overrun { prefix_samples }) => {
+                Some(RecordingStop::Overrun {
+                    prefix_samples,
+                    level,
+                }) => {
                     if rm.was_cancelled_since(cancel_generation) {
                         debug!("Capture overrun was cancelled before prefix persistence");
                         tm.cancel_stream();
@@ -1639,7 +1850,7 @@ impl TranscribeAction {
                     // final transcript, so discard them before saving the
                     // clean prefix for an explicit history retry.
                     tm.cancel_stream();
-                    persist_truncated_capture(&ah, &hm, &run, prefix_samples).await;
+                    persist_truncated_capture(&ah, &hm, &run, prefix_samples, level).await;
                     utils::hide_recording_overlay(&ah);
                     set_tray_state(&ah, TrayIconState::Idle);
                 }
@@ -1663,9 +1874,10 @@ impl TranscribeAction {
 #[cfg(test)]
 mod tests {
     use super::{
-        complete_unless_cancelled, is_blank_transcription, select_final_transcription,
-        share_completed_pcm, should_use_streaming_overlay, strip_think_block, CloudRunError,
-        PendingHistoryEntry, TRANSCRIPTION_FAILURE_EVENT_MESSAGE,
+        capture_verdict, complete_unless_cancelled, is_blank_transcription,
+        select_final_transcription, share_completed_pcm, should_use_streaming_overlay,
+        strip_think_block, BatchDecode, CaptureVerdict, CloudRunError, CompletedCapture,
+        InputLevel, PendingHistoryEntry, TRANSCRIPTION_FAILURE_EVENT_MESSAGE,
         TRANSCRIPTION_FAILURE_LOG_MESSAGE,
     };
     #[cfg(feature = "cloud-realtime")]
@@ -1690,6 +1902,30 @@ mod tests {
         assert!(!is_blank_transcription("  hello  "));
     }
 
+    /// The whole point of the change this locks in: a capture VAD called silent
+    /// is not silent until the model agrees. Only the bottom row may ever
+    /// produce a no-speech receipt.
+    #[test]
+    fn a_vad_silent_capture_is_only_no_speech_once_the_model_returns_nothing() {
+        for (vad_forwarded_speech, model_text, expected) in [
+            // VAD found nothing, but the model read the raw clip: real speech.
+            (false, "Test.", CaptureVerdict::Transcribed),
+            // Whitespace-only output is still nothing, whatever its length.
+            (false, "", CaptureVerdict::NoSpeech),
+            (false, "   \t\n", CaptureVerdict::NoSpeech),
+            // VAD forwarded speech: the engine already received real audio, so
+            // an empty transcript is a failed decode, never a silent capture.
+            (true, "Test.", CaptureVerdict::Transcribed),
+            (true, "", CaptureVerdict::Transcribed),
+        ] {
+            assert_eq!(
+                capture_verdict(vad_forwarded_speech, model_text),
+                expected,
+                "vad_forwarded_speech={vad_forwarded_speech} model_text={model_text:?}"
+            );
+        }
+    }
+
     #[test]
     fn truncated_capture_has_no_transcript_or_post_processing_path() {
         let settings = crate::settings::get_default_settings();
@@ -1698,8 +1934,18 @@ mod tests {
             &crate::modes::TranscriptionIntent::ActiveMode,
         )
         .expect("default run");
-        let entry =
-            PendingHistoryEntry::truncated_capture("prefix.wav".to_string(), &run, Some(320), true);
+        let entry = PendingHistoryEntry::truncated_capture(
+            "prefix.wav".to_string(),
+            &run,
+            CompletedCapture {
+                duration_ms: Some(320),
+                has_audio: true,
+                level: InputLevel {
+                    peak: 0.0714,
+                    rms: 0.0153,
+                },
+            },
+        );
 
         assert!(entry.transcription.is_empty());
         assert!(!entry.post_process_requested);
@@ -1710,6 +1956,11 @@ mod tests {
             entry.capture_status,
             Some(crate::managers::history::CaptureStatus::Truncated)
         );
+        // The prefix is real microphone audio, so it carries the measurement:
+        // an absent amplitude on a persisted receipt means no live capture was
+        // involved, never "a capture we happened not to measure".
+        assert_eq!(entry.run_receipt.input_peak, Some(0.0714));
+        assert_eq!(entry.run_receipt.input_rms, Some(0.0153));
     }
 
     #[test]
@@ -1720,7 +1971,16 @@ mod tests {
             &crate::modes::TranscriptionIntent::ActiveMode,
         )
         .expect("default run");
-        let entry = PendingHistoryEntry::no_speech("silent.wav".to_string(), &run, Some(320), true);
+        let entry = PendingHistoryEntry::no_speech(
+            "silent.wav".to_string(),
+            &run,
+            Some(320),
+            true,
+            InputLevel {
+                peak: 0.0119,
+                rms: 0.0024,
+            },
+        );
 
         assert!(entry.transcription.is_empty());
         assert!(!entry.post_process_requested);
@@ -1736,6 +1996,10 @@ mod tests {
             entry.run_receipt.cloud_status,
             crate::modes::CloudReceiptStatus::NotRequested
         );
+        // The measured amplitude is what separates a dead input stream from a
+        // quiet room after the fact, so a no-speech receipt has to carry it.
+        assert_eq!(entry.run_receipt.input_peak, Some(0.0119));
+        assert_eq!(entry.run_receipt.input_rms, Some(0.0024));
     }
 
     #[test]
@@ -1807,10 +2071,30 @@ mod tests {
         let result = select_final_transcription(Ok(None), completed.as_slice(), |audio| {
             assert_eq!(audio, [0.25, -0.5, 0.75]);
             assert_eq!(audio.as_ptr(), pcm_ptr);
-            Ok("batch result".to_string())
+            Ok(BatchDecode {
+                text: "batch result".to_string(),
+                realtime_factor: Some(13.8),
+            })
         });
 
-        assert_eq!(result.expect("batch transcription"), "batch result");
+        let decode = result.expect("batch transcription");
+        assert_eq!(decode.text, "batch result");
+        assert_eq!(decode.realtime_factor, Some(13.8));
+    }
+
+    #[test]
+    fn a_streamed_transcript_claims_no_decode_throughput() {
+        // The stream produced the text, so no batch decode was timed. The
+        // receipt must not inherit a factor from anywhere else.
+        let decode = select_final_transcription(
+            Ok(Some("streamed text".to_string())),
+            &[0.25, -0.5],
+            |_| panic!("a usable stream final must not batch-decode"),
+        )
+        .expect("streamed transcription");
+
+        assert_eq!(decode.text, "streamed text");
+        assert_eq!(decode.realtime_factor, None);
     }
 
     #[test]
@@ -1897,10 +2181,13 @@ mod tests {
                 text,
                 engine_used,
                 cloud_status,
+                realtime_factor,
             } => {
                 assert_eq!(text, "provider final");
                 assert_eq!(engine_used, RequestedEngine::DeepgramNova3);
                 assert_eq!(cloud_status, CloudReceiptStatus::Final);
+                // No local decode ran, so there is no throughput to claim.
+                assert_eq!(realtime_factor, None);
             }
             FrozenTranscript::HeldCloudUnavailable => panic!("provider final was held"),
         }
@@ -1929,7 +2216,10 @@ mod tests {
                 assert_eq!(fallback.model_id, "fallback-model");
                 assert_eq!(audio, [0.25, -0.5, 0.75, -1.0]);
                 assert_eq!(audio.as_ptr(), pcm_ptr);
-                Ok("local fallback transcript".to_string())
+                Ok(BatchDecode {
+                    text: "local fallback transcript".to_string(),
+                    realtime_factor: Some(12.5),
+                })
             },
         )
         .expect("local fallback");
@@ -1940,10 +2230,14 @@ mod tests {
                 text,
                 engine_used,
                 cloud_status,
+                realtime_factor,
             } => {
                 assert_eq!(text, "local fallback transcript");
                 assert_eq!(engine_used, RequestedEngine::Local);
                 assert_eq!(cloud_status, CloudReceiptStatus::Fallback);
+                // The fallback decode is a real local decode, so its measured
+                // throughput reaches the receipt.
+                assert_eq!(realtime_factor, Some(12.5));
             }
             FrozenTranscript::HeldCloudUnavailable => panic!("fallback was held"),
         }
@@ -1966,7 +2260,10 @@ mod tests {
             &[0.25, -0.5],
             |_, _| {
                 decode_calls.set(decode_calls.get() + 1);
-                Ok("must not be delivered".to_string())
+                Ok(BatchDecode {
+                    text: "must not be delivered".to_string(),
+                    realtime_factor: Some(9.0),
+                })
             },
         )
         .expect("held cloud result");

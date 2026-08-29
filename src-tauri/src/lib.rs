@@ -75,14 +75,25 @@ use tauri::{AppHandle, Emitter, Listener, Manager};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_log::{Builder as LogBuilder, RotationStrategy, Target, TargetKind};
 
-#[cfg(target_os = "macos")]
-use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState};
+use crate::settings::{get_settings, AppearanceMaterial};
 
-use crate::settings::get_settings;
+/// The window's material, applied before the first paint so the shell never
+/// flashes the wrong one. This writes the *intent*; `apply_window_material`
+/// corrects it to Solid while the window is still hidden if the native
+/// vibrancy view could not be applied. Off macOS the intent is always Solid,
+/// since vibrancy is the only thing that backs Glass.
+fn main_window_material_init(material: AppearanceMaterial) -> String {
+    let effective = if cfg!(target_os = "macos") {
+        material
+    } else {
+        AppearanceMaterial::Solid
+    };
+    format!(
+        "document.documentElement.dataset.material = '{}';",
+        effective.as_str()
+    )
+}
 
-// The webview starts in the opaque mode. macOS switches it to glass only after
-// its native vibrancy view has been applied while the hidden window is starting.
-const MAIN_WINDOW_MATERIAL_INIT: &str = "document.documentElement.dataset.material = 'opaque';";
 // Global atomic to store the file log level filter
 // We use u8 to store the log::LevelFilter as a number
 pub static FILE_LOG_LEVEL: AtomicU8 = AtomicU8::new(4);
@@ -1073,7 +1084,7 @@ fn run_headless_transcription(app: &AppHandle, args: &CliArgs) -> i32 {
         }
         let t = Instant::now();
         match tm.transcribe_shared(&asr, &samples) {
-            Ok(out) => text = out,
+            Ok(out) => text = out.text,
             Err(e) => {
                 eprintln!("error: transcribe failed: {}", e);
                 return 1;
@@ -1241,6 +1252,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_audio_feedback_volume_setting,
             shortcut::change_sound_theme_setting,
             shortcut::change_theme_setting,
+            shortcut::change_appearance_material_setting,
             shortcut::change_start_hidden_setting,
             shortcut::change_autostart_setting,
             shortcut::change_translate_to_english_setting,
@@ -1477,6 +1489,11 @@ pub fn run(cli_args: CliArgs) {
     #[allow(unused_mut)]
     let mut builder = tauri::Builder::default()
         .device_event_filter(tauri::DeviceEventFilter::Always)
+        // Every webview boots from an initialization script that writes the
+        // conservative `solid` material, so each document has to be told the
+        // material actually in force once it loads — otherwise a reload (or the
+        // overlay window being created long after startup) silently drops Glass.
+        .on_page_load(|webview, _payload| shortcut::reassert_window_material(webview))
         .plugin(tauri_plugin_dialog::init())
         .plugin(
             LogBuilder::new()
@@ -1669,30 +1686,19 @@ pub fn run(cli_args: CliArgs) {
                     .hidden_title(true);
             }
 
-            win_builder = win_builder.initialization_script(MAIN_WINDOW_MATERIAL_INIT);
+            let mut settings = get_settings(app.handle());
+
+            win_builder = win_builder
+                .initialization_script(main_window_material_init(settings.appearance_material));
             let _main_window = win_builder.build()?;
             app.manage(agent_panel::AgentPanelManager::new(app.handle()));
 
-            #[cfg(target_os = "macos")]
-            match apply_vibrancy(
-                &_main_window,
-                NSVisualEffectMaterial::UnderWindowBackground,
-                Some(NSVisualEffectState::FollowsWindowActiveState),
-                None,
-            ) {
-                Ok(()) => {
-                    if let Err(error) =
-                        _main_window.eval("document.documentElement.dataset.material = 'glass';")
-                    {
-                        log::warn!("Could not mark the Sona window as glass: {error}");
-                    }
-                }
-                Err(error) => {
-                    log::warn!("Could not apply Sona window vibrancy; using opaque UI: {error}");
-                }
-            };
+            // Glass is opt-in now, so vibrancy is applied only when the setting
+            // asks for it. This also corrects the initialization script above if
+            // the native view could not be applied — still before the window is
+            // shown, so a failed apply costs a log line and nothing visible.
+            shortcut::apply_window_material(app.handle(), settings.appearance_material);
 
-            let mut settings = get_settings(app.handle());
             modes::refresh_clipboard_context_watcher(&settings);
 
             // Apply the persisted appearance theme to the native title bar before

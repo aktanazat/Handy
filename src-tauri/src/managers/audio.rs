@@ -4,7 +4,7 @@ use crate::audio_toolkit::{
         SmoothedVad, VAD_OFFLINE_HANGOVER_FRAMES, VAD_ONSET_FRAMES, VAD_PREFILL_FRAMES,
         VAD_STREAMING_HANGOVER_FRAMES,
     },
-    AudioRecorder, CaptureError, CaptureOverrun, SileroVad, VadPolicy,
+    AudioRecorder, CaptureError, CaptureOverrun, RecordedAudio, SileroVad, VadPolicy,
 };
 use crate::helpers::clamshell;
 use crate::managers::transcription::StreamRouter;
@@ -30,12 +30,79 @@ const STREAM_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
 /// The terminal result of one microphone capture. An overrun keeps only the
 /// contiguous prefix before the gap; the action owner saves it for an explicit
 /// retry and must never transcribe or deliver it automatically.
+///
+/// All three outcomes carry the capture's measured `level`, because the receipt
+/// the action owner writes has to record what the microphone actually
+/// delivered. Absent amplitudes on a persisted receipt therefore mean no live
+/// capture was involved at all — an import, a reprocess, a retry off a stored
+/// WAV — and never "a capture we happened not to measure".
 pub enum RecordingStop {
-    Complete(Vec<f32>),
-    NoSpeech { samples: Vec<f32> },
-    Overrun { prefix_samples: Vec<f32> },
+    /// Audio to decode. `vad_forwarded_speech` is false when VAD rejected every
+    /// frame and these are the raw samples handed to the model anyway, so the
+    /// action owner knows an empty transcript is the no-speech receipt.
+    Complete {
+        samples: Vec<f32>,
+        vad_forwarded_speech: bool,
+        level: InputLevel,
+    },
+    /// VAD found no speech in a capture too long to re-decode. Its segmentation
+    /// is the answer; the samples exist only for the history receipt.
+    NoSpeech {
+        samples: Vec<f32>,
+        level: InputLevel,
+    },
+    Overrun {
+        prefix_samples: Vec<f32>,
+        level: InputLevel,
+    },
 }
 const VAD_THRESHOLD: f32 = 0.3;
+
+/// Longest VAD-silent capture Sona still hands to the model before accepting
+/// VAD's answer.
+///
+/// Silero misses quiet speech often enough that its verdict alone is not
+/// trustworthy: a real 1.05 s utterance at peak 0.146 / rms 0.011 was rejected
+/// as silence, yet decoded to "Test." in 76 ms (parakeet-tdt-0.6b Q8, Metal).
+/// Checking costs one short decode, so up to this length the model arbitrates.
+/// Past it a decode is no longer free and VAD's segmentation is the better
+/// answer anyway, because a long capture gives it many chances to fire.
+const VAD_SILENCE_ARBITRATION_MAX_SAMPLES: usize = WHISPER_SAMPLE_RATE * 15;
+
+/// Whether a capture VAD judged silent is short enough for the model to
+/// arbitrate. Empty audio has nothing to arbitrate.
+fn model_arbitrates_vad_silence(sample_count: usize) -> bool {
+    sample_count > 0 && sample_count <= VAD_SILENCE_ARBITRATION_MAX_SAMPLES
+}
+
+/// Measured level of one capture's audio, in normalized amplitude.
+///
+/// This is the evidence that separates the two ways a dictation comes back
+/// empty — a dead input stream from a quiet but real utterance — so it is
+/// reported for every capture rather than only for suspicious ones.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct InputLevel {
+    pub peak: f32,
+    pub rms: f32,
+}
+
+fn measure_input_level(samples: &[f32]) -> InputLevel {
+    if samples.is_empty() {
+        return InputLevel::default();
+    }
+    let mut peak = 0.0f32;
+    // f64 accumulation: a 30 s capture is 480k terms, and f32 loses the quiet
+    // tail of exactly the signals this measurement exists to characterize.
+    let mut sum_squares = 0.0f64;
+    for sample in samples {
+        peak = peak.max(sample.abs());
+        sum_squares += f64::from(*sample) * f64::from(*sample);
+    }
+    InputLevel {
+        peak,
+        rms: (sum_squares / samples.len() as f64).sqrt() as f32,
+    }
+}
 
 fn lock_recover<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     match mutex.lock() {
@@ -1120,30 +1187,59 @@ impl AudioRecordingManager {
                         prefix_samples,
                     }) => {
                         self.log_capture_overrun(overrun);
-                        return Some(RecordingStop::Overrun { prefix_samples });
+                        // The prefix is real microphone audio, so it gets the
+                        // same measurement the other two outcomes carry: on a
+                        // truncated row, "was the retained prefix even audible"
+                        // is exactly the question that decides a retry.
+                        let level = measure_input_level(&prefix_samples);
+                        return Some(RecordingStop::Overrun {
+                            prefix_samples,
+                            level,
+                        });
                     }
                     Err(error) => {
                         error!("stop() failed: {error}");
                         return None;
                     }
                 };
-                if capture.no_speech_detected {
-                    return Some(RecordingStop::NoSpeech {
-                        samples: capture.samples,
-                    });
+
+                let RecordedAudio {
+                    samples,
+                    vad_forwarded_speech,
+                } = capture;
+                let level = measure_input_level(&samples);
+                debug!(
+                    "capture level peak={:.4} rms={:.4} over {} samples; vad_forwarded_speech={}",
+                    level.peak,
+                    level.rms,
+                    samples.len(),
+                    vad_forwarded_speech
+                );
+
+                // VAD is an optimizer: it keeps silence off the engine, but only
+                // the model may conclude the user did not speak. Its verdict
+                // stands alone only where re-decoding is no longer cheap.
+                if !vad_forwarded_speech && !model_arbitrates_vad_silence(samples.len()) {
+                    return Some(RecordingStop::NoSpeech { samples, level });
                 }
 
                 // Pad a normal, very short recording for model input. An
-                // overrun prefix stays exact and takes the branch above.
-                let samples = capture.samples;
+                // overrun prefix stays exact and takes the branch above. The
+                // level above describes the unpadded capture, which is the only
+                // honest reading: padding is zeros the microphone never sent.
                 let s_len = samples.len();
-                if s_len < WHISPER_SAMPLE_RATE && s_len > 0 {
+                let samples = if s_len < WHISPER_SAMPLE_RATE && s_len > 0 {
                     let mut padded = samples;
                     padded.resize(WHISPER_SAMPLE_RATE * 5 / 4, 0.0);
-                    Some(RecordingStop::Complete(padded))
+                    padded
                 } else {
-                    Some(RecordingStop::Complete(samples))
-                }
+                    samples
+                };
+                Some(RecordingStop::Complete {
+                    samples,
+                    vad_forwarded_speech,
+                    level,
+                })
             }
             _ => None,
         }
@@ -1414,5 +1510,53 @@ mod meeting_microphone_lease_tests {
         let second = lease.try_acquire().expect("second lease");
         assert_ne!(first, second);
         assert!(lease.release(second));
+    }
+}
+
+#[cfg(test)]
+mod capture_verdict_tests {
+    use super::{
+        measure_input_level, model_arbitrates_vad_silence, VAD_SILENCE_ARBITRATION_MAX_SAMPLES,
+        WHISPER_SAMPLE_RATE,
+    };
+
+    #[test]
+    fn the_model_arbitrates_short_vad_silent_captures_and_not_long_ones() {
+        // The two captures this policy was written against: ~1.1 s each.
+        assert!(model_arbitrates_vad_silence(16_800));
+        assert!(model_arbitrates_vad_silence(18_240));
+
+        // Boundary: fifteen seconds is arbitrated, one sample past it is not.
+        assert!(model_arbitrates_vad_silence(
+            VAD_SILENCE_ARBITRATION_MAX_SAMPLES
+        ));
+        assert!(!model_arbitrates_vad_silence(
+            VAD_SILENCE_ARBITRATION_MAX_SAMPLES + 1
+        ));
+        assert_eq!(
+            VAD_SILENCE_ARBITRATION_MAX_SAMPLES,
+            WHISPER_SAMPLE_RATE * 15
+        );
+
+        // Nothing to decode is nothing to arbitrate.
+        assert!(!model_arbitrates_vad_silence(0));
+    }
+
+    #[test]
+    fn input_level_separates_a_dead_capture_from_a_quiet_utterance() {
+        assert_eq!(measure_input_level(&[]).peak, 0.0);
+        assert_eq!(measure_input_level(&[]).rms, 0.0);
+
+        // A full-scale square wave: peak and rms both reach 1.0.
+        let full = measure_input_level(&[1.0, -1.0, 1.0, -1.0]);
+        assert_eq!(full.peak, 1.0);
+        assert_eq!(full.rms, 1.0);
+
+        // Peak alone cannot tell these apart, which is why rms is reported
+        // beside it: one transient in silence is not a spoken utterance.
+        let transient = measure_input_level(&[0.0, 0.0, 0.0, 0.5]);
+        let sustained = measure_input_level(&[0.5, -0.5, 0.5, -0.5]);
+        assert_eq!(transient.peak, sustained.peak);
+        assert!(transient.rms < sustained.rms);
     }
 }

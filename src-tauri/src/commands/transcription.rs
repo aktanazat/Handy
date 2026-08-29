@@ -8,6 +8,12 @@ use tauri::{AppHandle, State};
 pub struct ModelLoadStatus {
     is_loaded: bool,
     current_model: Option<String>,
+    /// The compute backend the loaded engine actually bound to — "MTL0" for a
+    /// Metal GPU, "onnx" for an ONNX engine, a CPU string when Auto fell back.
+    /// `None` when no model is loaded, because there is nothing bound to name.
+    /// This is the requested accelerator's *outcome*, which is the only version
+    /// of it worth showing: Auto reports what it chose.
+    backend: Option<String>,
 }
 
 #[tauri::command]
@@ -26,6 +32,7 @@ pub fn get_model_load_status(
     Ok(ModelLoadStatus {
         is_loaded: transcription_manager.is_model_loaded(),
         current_model: transcription_manager.get_current_model(),
+        backend: transcription_manager.current_backend(),
     })
 }
 

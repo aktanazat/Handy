@@ -1894,10 +1894,47 @@ impl RunPlan {
                 .local_fallback
                 .as_ref()
                 .map(|fallback| fallback.model_id.clone()),
+            // A plan is frozen before the microphone is read, so it cannot know
+            // the capture's amplitude or how fast the engine will decode it.
+            // The receipt-write seam attaches both.
+            input_peak: None,
+            input_rms: None,
+            realtime_factor: None,
         }
     }
 }
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize, Type)]
+
+impl ModeReceipt {
+    /// Attach the amplitude Sona measured for this capture's audio.
+    ///
+    /// Called at the receipt-write seam, which is the only place that has both
+    /// the frozen plan and the measured samples. A receipt that never reaches
+    /// this call keeps both fields absent, which is the honest claim for audio
+    /// Sona never measured — an imported file, a reprocess of stored text, an
+    /// overrun prefix — and is not the same claim as a measured zero.
+    #[must_use]
+    pub fn with_input_level(mut self, peak: f32, rms: f32) -> Self {
+        self.input_peak = Some(peak);
+        self.input_rms = Some(rms);
+        self
+    }
+
+    /// Attach the realtime factor the local batch decode of this capture
+    /// achieved.
+    ///
+    /// Absent means no timed local batch decode produced this receipt's text: a
+    /// streamed transcript, a cloud final, a capture that never reached the
+    /// engine, or any row written before the field existed. It is never a
+    /// stand-in for a decode that was simply fast.
+    #[must_use]
+    pub fn with_realtime_factor(mut self, factor: Option<f32>) -> Self {
+        self.realtime_factor = factor;
+        self
+    }
+}
+/// `Eq` is deliberately absent: the measured amplitudes below are floats, and a
+/// measurement is compared for equality only in tests, never keyed on.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, Type)]
 pub struct ModeReceipt {
     pub run_id: u64,
     pub settings_revision: u64,
@@ -1926,6 +1963,21 @@ pub struct ModeReceipt {
     pub cloud_status: CloudReceiptStatus,
     #[serde(default)]
     pub local_fallback_model_id: Option<String>,
+    /// Peak and RMS amplitude of this capture's audio, normalized to full
+    /// scale, exactly as `measure_input_level` reported them. Absent means the
+    /// audio was never measured, which is the distinction that separates a dead
+    /// input stream from a quiet but real utterance on a no-speech receipt.
+    #[serde(default)]
+    pub input_peak: Option<f32>,
+    #[serde(default)]
+    pub input_rms: Option<f32>,
+    /// Audio seconds per decode second for the local batch decode that produced
+    /// this receipt's text — 13.8 means 1.05 s of audio decoded in 76 ms. This
+    /// is the engine's measured throughput on this machine, which is the only
+    /// version of it worth showing. Absent means no timed local batch decode
+    /// was involved.
+    #[serde(default)]
+    pub realtime_factor: Option<f32>,
 }
 
 fn run_now_ms() -> u64 {

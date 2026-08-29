@@ -70,6 +70,7 @@ impl MeetingTranscriptEngine for LocalMeetingTranscriptEngine {
     fn transcribe(&self, plan: &AsrPlan, samples: &[f32]) -> Result<String, ProcessingFailure> {
         self.manager
             .transcribe_shared(plan, samples)
+            .map(|decode| decode.text)
             .map_err(|_| ProcessingFailure::EngineFailure)
     }
 }

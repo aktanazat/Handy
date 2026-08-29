@@ -2069,6 +2069,9 @@ mod tests {
                 cloud_fallback: false,
                 cloud_status: crate::modes::CloudReceiptStatus::NotRequested,
                 local_fallback_model_id: None,
+                input_peak: Some(0.1456),
+                input_rms: Some(0.011),
+                realtime_factor: Some(13.82),
             },
             context: ContextReceipt {
                 requested_policy: crate::context::ContextPolicy::None,
@@ -2532,6 +2535,49 @@ mod tests {
             receipts[1].cloud_status,
             crate::modes::CloudReceiptStatus::HeldCloudUnavailable
         );
+    }
+
+    /// The measured amplitude and decode throughput have to survive the
+    /// persisted JSON, and a receipt written before those measurements existed
+    /// has to keep parsing — the two halves of the `#[serde(default)]
+    /// Option<f32>` contract, for all three fields.
+    #[test]
+    fn measured_capture_values_round_trip_and_a_legacy_receipt_reads_as_unmeasured() {
+        const MEASURED: [&str; 3] = ["input_peak", "input_rms", "realtime_factor"];
+
+        let conn = setup_conn();
+        let history_id = insert_entry(&conn, 100, "measured", None);
+
+        let measured = new_run_receipt(51);
+        assert_eq!(measured.run.input_peak, Some(0.1456));
+        HistoryManager::insert_run_receipt(&conn, history_id, None, &measured)
+            .expect("persist measured receipt");
+
+        let stored: String = conn
+            .query_row(
+                "SELECT mode_receipt_json FROM transcription_runs WHERE run_id = 51",
+                [],
+                |row| row.get(0),
+            )
+            .expect("read stored receipt");
+        let reread: ModeReceipt = serde_json::from_str(&stored).expect("parse stored receipt");
+        assert_eq!(reread.input_peak, Some(0.1456));
+        assert_eq!(reread.input_rms, Some(0.011));
+        assert_eq!(reread.realtime_factor, Some(13.82));
+
+        let legacy = serde_json::to_value(&measured.run)
+            .expect("serialize receipt")
+            .as_object()
+            .expect("receipt object")
+            .iter()
+            .filter(|(key, _)| !MEASURED.contains(&key.as_str()))
+            .map(|(key, value)| (key.clone(), value.clone()))
+            .collect::<serde_json::Map<_, _>>();
+        let parsed: ModeReceipt = serde_json::from_value(serde_json::Value::Object(legacy))
+            .expect("parse legacy receipt");
+        assert_eq!(parsed.input_peak, None);
+        assert_eq!(parsed.input_rms, None);
+        assert_eq!(parsed.realtime_factor, None);
     }
 
     fn history_columns(conn: &Connection) -> Vec<String> {

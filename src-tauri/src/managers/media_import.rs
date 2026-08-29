@@ -221,7 +221,9 @@ impl ImportRuntime for AppImportRuntime {
     }
 
     fn transcribe(&self, plan: &AsrPlan, audio: &[f32]) -> AnyResult<String> {
-        self.transcription.transcribe_shared(plan, audio)
+        self.transcription
+            .transcribe_shared(plan, audio)
+            .map(|decode| decode.text)
     }
 
     fn save(&self, record: ImportHistoryRecord) -> AnyResult<i64> {
