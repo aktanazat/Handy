@@ -36,6 +36,7 @@ import {
   SettingContainer,
   SettingsGroup,
   StatusText,
+  Tabs,
   ToggleSwitch,
   type StatusTone,
 } from "@/components/ui";
@@ -575,29 +576,23 @@ const PrivacyContextSettings: React.FC<{
         title={t("settings.privacy.context.ceiling.label")}
         description={t("settings.privacy.context.ceiling.description")}
       >
-        <fieldset className="grid grid-cols-2 gap-1 sm:grid-cols-4">
-          <legend className="sr-only">
-            {t("settings.privacy.context.ceiling.label")}
-          </legend>
-          {CONTEXT_POLICIES.map((policy) => (
-            <label key={policy} className="cursor-pointer">
-              <input
-                type="radio"
-                name="context-policy-ceiling"
-                value={policy}
-                checked={model.contextCeiling === policy}
-                onChange={() => void model.changeContextCeiling(policy)}
-                disabled={model.ceilingUpdating}
-                className="peer sr-only"
-              />
-              {/* The selected step is Geist's inverted "current" chip, and
-               * disabled is a colour change rather than a fade. */}
-              <span className="flex min-h-8 items-center justify-center rounded-control border border-border px-2 text-center text-xs font-medium text-text-secondary transition-colors peer-hover:border-border-strong peer-checked:border-inverse-background peer-checked:bg-inverse-background peer-checked:text-inverse-text peer-disabled:cursor-not-allowed peer-disabled:border-border peer-disabled:bg-control-disabled peer-disabled:text-text-disabled peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus-ring">
-                {t("settings.privacy.context.ceiling.values." + policy)}
-              </span>
-            </label>
-          ))}
-        </fieldset>
+        {/* The one segmented primitive, same as Library's Processed/Raw and
+         * the Material control: a bordered track whose active segment is
+         * filled. Four sibling radio chips were a second convention. */}
+        <Tabs
+          variant="secondary"
+          items={CONTEXT_POLICIES.map((policy) => ({
+            id: policy,
+            label: t("settings.privacy.context.ceiling.values." + policy),
+            disabled: model.ceilingUpdating,
+          }))}
+          value={model.contextCeiling}
+          onChange={(id) =>
+            /* SAFETY: ids are CONTEXT_POLICIES members verbatim. */
+            void model.changeContextCeiling(id as ContextPolicy)
+          }
+          label={t("settings.privacy.context.ceiling.label")}
+        />
       </SettingContainer>
       <SettingContainer
         grouped
@@ -605,10 +600,12 @@ const PrivacyContextSettings: React.FC<{
         title={t("settings.privacy.context.sources.title")}
         description={t("settings.privacy.context.sources.description")}
       >
+        {/* Aligned two-column definition list: ragged terms made the four
+         * disclosures read as prose instead of a table of levels. */}
         <ul className="space-y-1.5 text-sm text-text-secondary">
           {CONTEXT_POLICIES.map((policy) => (
             <li key={policy} className="flex gap-2">
-              <span className="font-medium text-text-primary">
+              <span className="w-20 shrink-0 font-medium text-text-primary">
                 {t("settings.privacy.context.ceiling.values." + policy)}
               </span>
               <span>{t("settings.privacy.context.sources." + policy)}</span>
@@ -636,7 +633,7 @@ const PrivacyContextSettings: React.FC<{
           {t("settings.privacy.context.ceiling.error")}: {model.ceilingError}
         </Alert>
       ) : null}
-      <div className="py-3">
+      <div className="py-1">
         <StatusText live="polite">
           {model.cloudRoutePending
             ? t("settings.privacy.context.checkingRoute")
@@ -907,7 +904,7 @@ const PrivacyHistoryStorage: React.FC = () => {
       case "unlocking":
         return t(
           "settings.privacy.data.historyStorage.reasons.unlocking",
-          "Opening the encrypted database. This clears moments after startup.",
+          "Opening the encrypted database. This clears once startup finishes.",
         );
       case "key_unavailable":
         return t(

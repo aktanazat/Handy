@@ -107,7 +107,10 @@ export const UpdateRows: React.FC<UpdateRowsProps> = ({ version }) => {
         ) : version.kind === "loading" ? (
           <StatusText live="polite">{t("common.loading")}</StatusText>
         ) : (
-          <StatusText tone="danger">
+          /* No value exists yet, so the slot dims — the greyscale text law.
+           * Red is reserved for status indicators and destructive actions; a
+           * missing read is named in words, not dressed as a fault. */
+          <StatusText>
             {t("settings.about.version.unavailable", "Unavailable")}
           </StatusText>
         )}

@@ -270,7 +270,10 @@ export const HandyKeysShortcutInput: React.FC<HandyKeysShortcutInputProps> = ({
   if (!binding) {
     return (
       <SettingContainer
-        title={t("settings.general.shortcut.title")}
+        title={t(
+          `settings.general.shortcut.bindings.${shortcutId}.name`,
+          t("settings.general.shortcut.title"),
+        )}
         description={t("settings.general.shortcut.notFound")}
         descriptionMode={descriptionMode}
         grouped={grouped}

@@ -525,7 +525,7 @@ export const ModesSettings: React.FC = () => {
                 title={t("settings.modes.empty")}
                 description={t(
                   "settings.modes.emptyHint",
-                  "Pick a mode on the left to change what it recognizes, rewrites and delivers.",
+                  "Pick a mode on the left to change what it recognizes, rewrites, and delivers.",
                 )}
               />
             )}

@@ -3,20 +3,9 @@
  * flat settings section — the tokens, `.data-table`, `.inset-panel` and
  * `.microlabel` all live in src/styles. */
 
-/* ------------------------------------------------------ column headers */
-
-/* One column-header treatment across these surfaces: the same uppercase mono
- * microlabel `ColumnHeader` draws over the grid-based rule lists. The doubled
- * class beats `.data-table th` on specificity rather than on import order. */
-.data-table.replacements-table th,
-.data-table.import-preview-table th {
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: var(--fs-microlabel);
-  font-weight: 400;
-  letter-spacing: var(--ls-microlabel);
-  text-transform: uppercase;
-}
+/* Column headers come from the promoted `.data-table th` microlabel role in
+ * src/styles; the old doubled-class override diverged at weight 400 and is
+ * gone. */
 
 /* --------------------------------------------------- replacements table */
 

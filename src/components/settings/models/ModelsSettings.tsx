@@ -334,10 +334,22 @@ export const ModelsSettings: React.FC = () => {
             >
               <div className="models-family-header">
                 <h2 id={`model-family-${group.key}`}>{group.label}</h2>
-                <span className="models-family-count microlabel numeric">
-                  {t("settings.models.familyCount", "{{total}} models", {
-                    total: group.models.length,
-                  })}
+                {/* Visibly a bare count — the Modes master-count convention —
+                 * because "1 models" is a grammar bug and per-locale plural
+                 * keys are barred by strict key parity. The phrase stays in
+                 * the accessible name, where each locale's existing wording
+                 * is already number-agnostic. */}
+                <span
+                  className="models-family-count microlabel numeric"
+                  aria-label={t(
+                    "settings.models.familyCount",
+                    "{{total}} models",
+                    {
+                      total: group.models.length,
+                    },
+                  )}
+                >
+                  {group.models.length}
                 </span>
               </div>
               <RuleList label={group.label} className="models-rows">

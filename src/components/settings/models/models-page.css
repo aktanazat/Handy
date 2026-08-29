@@ -89,12 +89,15 @@
   padding-block-end: var(--space-1);
 }
 
+/* Family names are section headings, not titles: the ramp's 14px/600. The
+ * page has one 20px title; five 16px family heads beside it read as five
+ * competing titles. */
 .models-family-header h2 {
   color: var(--text-primary);
-  font-size: var(--fs-heading-16);
+  font-size: var(--fs-heading-14);
   font-weight: var(--fw-heading);
-  letter-spacing: var(--ls-heading-16);
-  line-height: var(--lh-heading-16);
+  letter-spacing: normal;
+  line-height: var(--lh-heading-14);
   margin: 0;
 }
 

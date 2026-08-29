@@ -231,9 +231,15 @@ export const GlobalShortcutInput: React.FC<GlobalShortcutInputProps> = ({
 
   const binding = bindings[shortcutId];
   if (!binding) {
+    /* The row still names WHICH shortcut is missing: a generic "Shortcuts"
+     * title under the Shortcuts section header was the same word twice with
+     * an unexplained error under it. */
     return (
       <SettingContainer
-        title={t("settings.general.shortcut.title")}
+        title={t(
+          `settings.general.shortcut.bindings.${shortcutId}.name`,
+          t("settings.general.shortcut.title"),
+        )}
         description={t("settings.general.shortcut.notFound")}
         descriptionMode={descriptionMode}
         grouped={grouped}

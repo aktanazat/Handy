@@ -19,15 +19,14 @@
   padding-inline: 0;
 }
 
-.density-page .setting-copy p {
-  line-height: 16px;
-}
-
 .modes-page.density-page {
   gap: var(--space-2);
 }
 
 .modes-page.density-page > .modes-view-nav {
+  /* The nav's bottom hairline is the rail its underline sits on; a rail that
+   * stops at the second word reads as an unfinished rule. Span the column. */
+  align-self: stretch;
   min-block-size: 32px;
 }
 

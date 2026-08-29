@@ -301,10 +301,12 @@
 }
 
 /* The player sits in the row, not on a surface of its own, and only for a
- * recording a receipt says has audio with a length. Capped so a 1000px-wide
- * window does not stretch one scrubber across the whole page. */
+ * recording a receipt says has audio with a length. Full row width, per the
+ * directive's player anatomy: scrubber flex-1, elapsed left, total right on
+ * the row's own right edge. The old 420px cap parked the total mid-row and
+ * left the rest of the line as dead band. */
 .history-audio {
-  max-inline-size: 420px;
+  inline-size: 100%;
 }
 
 /* ------------------------------------------------------------- dialogs */
