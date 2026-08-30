@@ -31,6 +31,7 @@ use tauri::{AppHandle, Emitter, Manager};
 
 const VAD_FRAME_SAMPLES: usize = 480;
 const VAD_FRAME_NS: u64 = 30_000_000;
+const TIMESTAMP_ROUNDING_TOLERANCE_NS: u64 = 1;
 const ASR_MAX_SAMPLES: usize = 15 * 16_000;
 const ASR_OVERLAP_SAMPLES: usize = 8_000;
 const ASR_SILENCE_FRAMES: u32 = 10;
@@ -584,15 +585,14 @@ impl MeetingProcessingService {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .open(source_kind)?;
         let mut chunker = SpeechChunker::new(detector);
+        let mut frames = RecordFrameBuffer::new();
         let mut previous_end = None;
         let mut previous_epoch = None;
         store
             .visit_durable_track_records(session_id, track_id, |record| {
                 self.wait_for_capture(cancelled)
                     .map_err(store_error_from_processing)?;
-                if previous_end.is_some_and(|end| end < record.start_offset_ns)
-                    || previous_epoch.is_some_and(|epoch| epoch != record.source_epoch)
-                {
+                if record_starts_new_span(previous_end, previous_epoch, &record) {
                     if let Some(chunk) = chunker.finish(false) {
                         self.transcribe_chunk(
                             store,
@@ -607,7 +607,7 @@ impl MeetingProcessingService {
                         .map_err(store_error_from_processing)?;
                     }
                 }
-                process_record_frames(&record, &mut chunker, |chunk| {
+                process_record_frames(&record, &mut frames, &mut chunker, |chunk| {
                     self.transcribe_chunk(
                         store,
                         session_id,
@@ -804,11 +804,12 @@ impl MeetingProcessingService {
             }
         };
         let mut windower = DiarizationWindower::new(detector);
+        let mut frames = RecordFrameBuffer::new();
         let mut cluster_speakers = HashMap::new();
         let result = store.visit_durable_track_records(session_id, track.track_id, |record| {
             self.wait_for_capture(cancelled)
                 .map_err(store_error_from_processing)?;
-            process_record_frames(&record, &mut windower, |window| {
+            process_record_frames(&record, &mut frames, &mut windower, |window| {
                 self.assign_diarized_window(
                     store,
                     session_id,
@@ -1233,6 +1234,58 @@ trait FrameConsumer {
     ) -> Result<Option<AudioChunk>, ProcessingFailure>;
 }
 
+struct RecordFrameBuffer {
+    samples: Vec<f32>,
+    start_offset_ns: Option<u64>,
+    previous_end_offset_ns: Option<u64>,
+    previous_epoch: Option<SourceEpoch>,
+}
+
+impl RecordFrameBuffer {
+    fn new() -> Self {
+        Self {
+            samples: Vec::with_capacity(VAD_FRAME_SAMPLES * 2),
+            start_offset_ns: None,
+            previous_end_offset_ns: None,
+            previous_epoch: None,
+        }
+    }
+
+    fn append(&mut self, record: &DurableTrackRecord, samples: &[f32]) -> Result<(), StoreError> {
+        if record_starts_new_span(
+            self.previous_end_offset_ns,
+            self.previous_epoch,
+            record,
+        ) {
+            self.samples.clear();
+            self.start_offset_ns = None;
+        }
+        if self.samples.is_empty() && !samples.is_empty() {
+            self.start_offset_ns = Some(record.start_offset_ns);
+        }
+        self.samples.extend_from_slice(samples);
+        self.previous_end_offset_ns = Some(
+            record
+                .start_offset_ns
+                .checked_add(record.duration_ns)
+                .ok_or(StoreError::Corrupt)?,
+        );
+        self.previous_epoch = Some(record.source_epoch);
+        Ok(())
+    }
+}
+
+fn record_starts_new_span(
+    previous_end_offset_ns: Option<u64>,
+    previous_epoch: Option<SourceEpoch>,
+    record: &DurableTrackRecord,
+) -> bool {
+    previous_epoch.is_some_and(|epoch| epoch != record.source_epoch)
+        || previous_end_offset_ns.is_some_and(|end| {
+            record.start_offset_ns.saturating_sub(end) > TIMESTAMP_ROUNDING_TOLERANCE_NS
+        })
+}
+
 struct SpeechChunker {
     detector: Box<dyn MeetingVad>,
     current: Vec<f32>,
@@ -1417,6 +1470,7 @@ fn prime_diarizer(
 
 fn process_record_frames<C, F>(
     record: &DurableTrackRecord,
+    frames: &mut RecordFrameBuffer,
     consumer: &mut C,
     mut emit: F,
 ) -> Result<(), StoreError>
@@ -1425,10 +1479,20 @@ where
     F: FnMut(AudioChunk) -> Result<(), StoreError>,
 {
     let samples = downmix_and_resample(record)?;
-    let (frames, _) = samples.as_chunks::<VAD_FRAME_SAMPLES>();
-    for (index, frame) in frames.iter().enumerate() {
-        let frame_start = record
-            .start_offset_ns
+    frames.append(record, &samples)?;
+    let complete_frame_count = frames.samples.len() / VAD_FRAME_SAMPLES;
+    if complete_frame_count == 0 {
+        return Ok(());
+    }
+    let complete_sample_count = complete_frame_count
+        .checked_mul(VAD_FRAME_SAMPLES)
+        .ok_or(StoreError::Corrupt)?;
+    let first_frame_start = frames.start_offset_ns.ok_or(StoreError::Corrupt)?;
+    for (index, frame) in frames.samples[..complete_sample_count]
+        .chunks_exact(VAD_FRAME_SAMPLES)
+        .enumerate()
+    {
+        let frame_start = first_frame_start
             .checked_add(
                 u64::try_from(index)
                     .map_err(|_| StoreError::Corrupt)?
@@ -1447,6 +1511,24 @@ where
             emit(chunk)?;
         }
     }
+
+    let remaining = frames.samples.len() - complete_sample_count;
+    frames.samples.copy_within(complete_sample_count.., 0);
+    frames.samples.truncate(remaining);
+    frames.start_offset_ns = if remaining == 0 {
+        None
+    } else {
+        Some(
+            first_frame_start
+                .checked_add(
+                    u64::try_from(complete_frame_count)
+                        .map_err(|_| StoreError::Corrupt)?
+                        .checked_mul(VAD_FRAME_NS)
+                        .ok_or(StoreError::Corrupt)?,
+                )
+                .ok_or(StoreError::Corrupt)?,
+        )
+    };
     Ok(())
 }
 
@@ -2126,6 +2208,49 @@ mod tests {
         fn is_voice(&mut self, frame: &[f32]) -> Result<bool, ProcessingFailure> {
             Ok(frame.iter().any(|sample| sample.abs() > 0.01))
         }
+    }
+
+    struct CountingFrames {
+        count: usize,
+    }
+
+    impl FrameConsumer for CountingFrames {
+        fn is_voice(&mut self, _frame: &[f32]) -> Result<bool, ProcessingFailure> {
+            self.count += 1;
+            Ok(true)
+        }
+
+        fn push(
+            &mut self,
+            _voice: bool,
+            _frame: &[f32],
+            _start_offset_ns: u64,
+        ) -> Result<Option<AudioChunk>, ProcessingFailure> {
+            Ok(None)
+        }
+    }
+
+    #[test]
+    fn callback_sized_records_form_vad_frames_across_boundaries() {
+        let track_id = SourceTrackId::new();
+        let mut consumer = CountingFrames { count: 0 };
+        let mut frames = RecordFrameBuffer::new();
+        for sequence in 0..3 {
+            let record = DurableTrackRecord {
+                track_id,
+                sequence,
+                source_epoch: SourceEpoch::new(0),
+                start_offset_ns: sequence * 512 * 1_000_000_000 / 48_000,
+                duration_ns: 10_666_666,
+                format: AudioFormat {
+                    sample_rate_hz: 48_000,
+                    channels: 1,
+                },
+                samples: vec![0.25; 512],
+            };
+            process_record_frames(&record, &mut frames, &mut consumer, |_| Ok(())).unwrap();
+        }
+        assert_eq!(consumer.count, 1);
     }
 
     #[test]
