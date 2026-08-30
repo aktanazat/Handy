@@ -1252,11 +1252,7 @@ impl RecordFrameBuffer {
     }
 
     fn append(&mut self, record: &DurableTrackRecord, samples: &[f32]) -> Result<(), StoreError> {
-        if record_starts_new_span(
-            self.previous_end_offset_ns,
-            self.previous_epoch,
-            record,
-        ) {
+        if record_starts_new_span(self.previous_end_offset_ns, self.previous_epoch, record) {
             self.samples.clear();
             self.start_offset_ns = None;
         }
