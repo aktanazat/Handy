@@ -24,16 +24,21 @@ const TAB_MARK = `${SUBNAV} [role="tab"] span[aria-hidden="true"]`;
 /**
  * The mark's left edge, waited for rather than asserted non-null.
  *
- * The mark mounts with the tablist but lays out one frame later, so a locator
- * that already resolves can still have no box. Every read goes through here so
- * that wait lives in one place instead of each caller's `!`.
+ * The mark mounts with the tablist but lays out one frame later, and Motion
+ * re-mounts it as the selection moves, so a locator that already resolves can
+ * still report no box — `toBeVisible()` followed by one read is a two-step race
+ * that loses whenever the remount lands between the steps. Retrying the read is
+ * what makes that gap invisible to every caller instead of a `!` in each one.
  */
 const markX = async (page: Page): Promise<number> => {
   const mark = page.locator(TAB_MARK);
-  await expect(mark).toBeVisible();
-  const box = await mark.boundingBox();
-  if (box === null) throw new Error("the tab mark is visible but has no box");
-  return box.x;
+  const measured = { x: 0 };
+  await expect(async () => {
+    const box = await mark.boundingBox();
+    if (box === null) throw new Error("the tab mark has no box yet");
+    measured.x = box.x;
+  }).toPass();
+  return measured.x;
 };
 
 /** MODES_SNAPSHOT reordered, which is what the backend answers a reorder with. */

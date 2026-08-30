@@ -42,7 +42,8 @@ bun run build
 bun run lint
 bun run lint:anti-slop
 bun run check:translations
-bun test scripts
+bun test
+cd cloudflare/sona-companion && bun run typecheck && bun run test
 cd src-tauri && cargo check --all-features
 cd src-tauri && cargo test --lib
 cd src-tauri && cargo test --bin sona-agent-hook

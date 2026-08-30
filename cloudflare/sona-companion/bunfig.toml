@@ -1,0 +1,7 @@
+[test]
+# Every spec in this package runs under vitest (`bun run test`): the worker specs
+# need the @cloudflare/vitest-pool-workers runtime for `cloudflare:test`, and the
+# viewer spec needs jsdom plus vitest's `vi`. `bun test` does not read the root
+# bunfig.toml, so the rule is repeated here to keep a stray `bun test` from
+# sweeping specs it cannot run.
+pathIgnorePatterns = ["**/*.spec.ts"]

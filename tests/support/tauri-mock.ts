@@ -374,6 +374,11 @@ export function installMockedRuntime(payload: MockPayload): void {
   target.isTauri = true;
   target.__TAURI_INTERNALS__ = {
     invoke,
+    /* One constant id for every callback, so no handler is ever kept: the mock
+       answers `plugin:event|listen` with an id and then emits nothing, which
+       means a `listen()` handler in the app never runs under Playwright. Any
+       spec that needs a backend event has to register handlers here first,
+       rather than pass because the event silently never arrived. */
     transformCallback: () => 1,
     convertFileSrc: (path: string) => path,
   };

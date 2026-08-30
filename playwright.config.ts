@@ -2,6 +2,10 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests",
+  // The mirror of bunfig.toml's `pathIgnorePatterns`: Playwright owns `*.spec.ts`
+  // here, `bun test` owns `*.test.ts(x)` everywhere. Without this, Playwright's
+  // default matcher would also claim a `*.test.ts` dropped into tests/.
+  testMatch: "**/*.spec.ts",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
