@@ -36,6 +36,9 @@ declare module "bun:test" {
 
   export function describe(name: string, fn: () => void): void;
   export function test(name: string, fn: () => void | Promise<void>): void;
+  /* File-scoped lifecycle hooks; Bun also accepts async setup functions. */
+  export function beforeAll(fn: () => void | Promise<void>): void;
+  export function afterAll(fn: () => void | Promise<void>): void;
   export function expect<Actual>(
     value: Actual,
   ): Matchers<Actual> & { not: Matchers<Actual> };

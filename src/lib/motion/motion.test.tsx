@@ -327,8 +327,6 @@ const IMPORTS_MOTION =
 const APPLIES_MEASURED_CLASS = /snap-measured/;
 
 const MOTION_SURFACES = [
-  "components/CommandPaletteDialog.tsx",
-  "components/ui/TabsIndicator.tsx",
   "components/settings/modes/ModesReorder.tsx",
   "lib/motion/index.tsx",
   "lib/motion/Disclosure.tsx",
@@ -373,7 +371,6 @@ describe("measured values never tween", () => {
     ...MOTION_SURFACES,
     "components/settings/modes/ModesList.tsx",
     "components/CommandPalette.tsx",
-    "components/ui/Tabs.tsx",
   ]) {
     test(`${relative} carries no measured value`, () => {
       const source = code(fs.readFileSync(path.join(SRC, relative), "utf8"));

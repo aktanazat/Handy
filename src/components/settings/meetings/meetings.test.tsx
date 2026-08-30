@@ -6,6 +6,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInstance } from "i18next";
 import { I18nextProvider } from "react-i18next";
+import { TooltipProvider } from "@/components/vg/tooltip";
 import type {
   MeetingHistorySummary,
   MeetingLedger,
@@ -56,8 +57,14 @@ void i18n.init({
   interpolation: { escapeValue: false },
 });
 
+/* Every window root mounts one `TooltipProvider` and the row primitives assume
+ * it, so this stands in for the root. Context only: no markup of its own. */
 const render = (node: React.ReactElement) =>
-  renderToStaticMarkup(<I18nextProvider i18n={i18n}>{node}</I18nextProvider>);
+  renderToStaticMarkup(
+    <I18nextProvider i18n={i18n}>
+      <TooltipProvider>{node}</TooltipProvider>
+    </I18nextProvider>,
+  );
 
 const occurrences = (markup: string, needle: string) =>
   markup.split(needle).length - 1;
@@ -374,18 +381,17 @@ describe("meetings list", () => {
   test("shows a loading skeleton before the first page lands", () => {
     const markup = homeMarkup({ loading: true });
     expect(markup).toContain('aria-label="Loading meeting history…"');
-    expect(markup).toContain("ui-skeleton");
+    expect(markup).toContain('data-slot="skeleton"');
     expect(occurrences(markup, "No meetings yet")).toBe(0);
   });
 
   test("an empty history is absence, not a second call to action", () => {
     const markup = homeMarkup({});
     expect(markup).toContain("No meetings yet");
-    expect(markup).toContain(
-      "Start local notes when you are ready to capture a meeting.",
-    );
-    // The start block above is the only way in, so the empty state repeats
-    // neither the button nor the promise.
+    /* Absence is the whole message. The state used to add "Start local notes
+     * when you are ready to capture a meeting." under a heading that already
+     * says it, three rows below a Start button that already offers it. */
+    expect(markup).not.toContain("Start local notes when you are ready");
     expect(occurrences(markup, ">Start recording</button>")).toBe(1);
   });
 
@@ -394,10 +400,14 @@ describe("meetings list", () => {
     expect(markup).toContain("A meeting may be active in Zoom.");
     expect(occurrences(markup, ">Start recording</button>")).toBe(2);
     /* The assurance sentence lives beside the page's own Start and nowhere
-     * else: one sentence never appears twice on one screen. The detected
-     * section states its own evidence instead. */
+     * else: one sentence never appears twice on one screen. */
     expect(occurrences(markup, ASSURANCE)).toBe(1);
-    expect(markup).toContain("Sona noticed a meeting app in use.");
+    /* And the evidence is shown as the measurement it is — a mono APP fact
+     * naming the app — rather than as "Sona noticed a meeting app in use.",
+     * which was the section heading written out a second time as prose. */
+    expect(markup).not.toContain("Sona noticed");
+    expect(markup).toContain(">App<");
+    expect(markup).toContain(">Zoom<");
   });
 
   /* The row render matrix: status chip × which of the three real sources line
@@ -418,7 +428,7 @@ describe("meetings list", () => {
     expect(markup).toContain('data-headline="ledger"');
     expect(markup).toContain("Pricing is open again.");
     // One chip per participant, in row order.
-    expect(occurrences(markup, "meeting-entry-person")).toBe(2);
+    expect(occurrences(markup, 'data-slot="meeting-person"')).toBe(2);
     expect(markup).toContain(">Ada<");
     expect(markup).toContain(">Grace<");
     expect(markup.indexOf(">Ada<")).toBeLessThan(markup.indexOf(">Grace<"));
@@ -426,13 +436,13 @@ describe("meetings list", () => {
     expect(markup).toContain("3m 12s");
     // One chip, and it is the state that decides whether the row can be read.
     expect(markup).toContain('data-status="ready"');
-    expect(occurrences(markup, "meeting-status-chip")).toBe(1);
+    expect(occurrences(markup, 'data-slot="meeting-status"')).toBe(1);
   });
 
   test("each status maps to its own semaphore, recording alone filled", () => {
     const chip = (overrides: Partial<MeetingHistorySummary>) => {
       const markup = row(overrides);
-      const at = markup.indexOf("meeting-status-chip");
+      const at = markup.indexOf('data-slot="meeting-status"');
       return markup.slice(at, markup.indexOf("</span>", at));
     };
     expect(
@@ -488,7 +498,7 @@ describe("meetings list", () => {
     expect(occurrences(markup, "0s")).toBe(0);
     expect(occurrences(markup, "MIC")).toBe(0);
     // The timestamp is the one fact every meeting has.
-    expect(markup).toContain("meeting-entry-facts");
+    expect(markup).toContain('data-slot="meeting-facts"');
   });
 
   test("a partial capture says so beside the sources it is missing one of", () => {
@@ -499,7 +509,7 @@ describe("meetings list", () => {
     expect(markup).toContain("Partial");
     // Still one chip: completeness is a fact about the sources, not the state
     // that decides whether the meeting can be read.
-    expect(occurrences(markup, "meeting-status-chip")).toBe(1);
+    expect(occurrences(markup, 'data-slot="meeting-status"')).toBe(1);
   });
 
   test("the ledger page is offered only where a ledger exists", () => {
@@ -520,7 +530,10 @@ describe("meetings list", () => {
       retention: { kind: "delete_after_days", days: 30 },
       filter: { status: "failed", window: "last_7_days", title_query: "sync" },
     });
-    expect(markup).toContain("Retention: Delete after 30 days.");
+    /* The retention policy is a fact of the start card, stated there once as a
+     * mono chip. It used to be repeated here as a sentence under the filters,
+     * which is the same datum twice on one screen. */
+    expect(occurrences(markup, "Delete after 30 days")).toBe(1);
     expect(markup).toContain('aria-label="Search meetings"');
     expect(markup).toContain("Status");
     expect(markup).toContain("Failed");
@@ -666,7 +679,8 @@ describe("live capture", () => {
         onCreateNote={noop}
       />,
     );
-    expect(markup).toContain("Active capture");
+    /* One state word. The surface used to carry a badge reading "Active
+     * capture" beside the phase word, which is the same state said twice. */
     expect(markup).toContain("Recording");
     expect(markup).toContain(">Pause<");
     expect(markup).toContain(">Stop<");
@@ -701,11 +715,19 @@ describe("meeting review", () => {
 
   test("opens on the transcript tab with all four panels reachable", () => {
     expect(markup).toContain('aria-label="Meeting review sections"');
-    expect(markup).toContain('id="tab-transcript"');
-    expect(markup).toContain('id="tab-insights"');
-    expect(markup).toContain('id="tab-ledger"');
-    expect(markup).toContain('id="tab-questions"');
-    expect(markup).toContain('aria-labelledby="tab-transcript"');
+    /* The strip is Radix now, so the ids that wire a tab to its panel are
+     * generated rather than authored — asserting them would pin a detail the
+     * kit owns. The contract is the roles and the selected state. */
+    expect(occurrences(markup, 'role="tab"')).toBe(4);
+    // The questions tab is labelled "Q&A", which arrives HTML-escaped.
+    for (const label of ["Transcript", "Insights", "Ledger", "Q&amp;A"]) {
+      expect(markup).toContain(`>${label}<`);
+    }
+    /* All four panels are rendered so the strip is navigable without JS, but
+     * exactly one is open: the active trigger and the active panel. */
+    expect(occurrences(markup, 'role="tabpanel"')).toBe(4);
+    expect(occurrences(markup, 'data-state="active"')).toBe(2);
+    expect(markup).toContain("We ship the meetings redesign this week.");
   });
 
   test("transcript panel carries speakers, segments, coverage and gaps", () => {
@@ -725,7 +747,10 @@ describe("meeting review", () => {
     expect(markup).toContain(">Export Markdown<");
     expect(markup).toContain(">Export JSON<");
     expect(markup).toContain(">Delete meeting<");
-    expect(markup).toContain("Captured 30:45");
+    /* The capture length is a measurement, so it is set as one: a mono
+     * ELAPSED label and its value, not the sentence "Captured 30:45". */
+    expect(markup).toContain(">Elapsed<");
+    expect(markup).toContain(">30:45<");
   });
 });
 
@@ -767,7 +792,7 @@ describe("insights panel", () => {
       "Risks",
       "Follow-up",
     ]) {
-      expect(markup).toContain(`>${heading}</h4>`);
+      expect(markup).toContain(`>${heading}<`);
     }
     expect(markup).toContain("The team agreed to ship this week.");
     expect(markup).toContain("Owner: Aktan · Due: No due date");
@@ -832,8 +857,8 @@ describe("question panel", () => {
 
   test("separates the question from the answer and cites the transcript", () => {
     const markup = questionsMarkup({});
-    expect(markup).toContain(">You asked</p>");
-    expect(markup).toContain(">Sona answered</p>");
+    expect(markup).toContain(">You asked<");
+    expect(markup).toContain(">Sona answered<");
     expect(markup).toContain("What did we decide about the release?");
     expect(markup).toContain("You agreed to ship on Thursday.");
     expect(markup).toContain(">Transcript 0:12</button>");

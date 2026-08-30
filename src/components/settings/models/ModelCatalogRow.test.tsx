@@ -7,7 +7,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createInstance } from "i18next";
 import { I18nextProvider } from "react-i18next";
 import type { ModelInfo } from "@/bindings";
-import { ModelCatalogRow, type ModelRowState } from "./ModelCatalogRow";
+import {
+  ModelCatalogRow,
+  modelRowActions,
+  type ModelRowActions,
+  type ModelRowState,
+} from "./ModelCatalogRow";
 
 const localeFile = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -65,7 +70,6 @@ interface RenderOptions {
   state: ModelRowState;
   inMemory?: boolean;
   percentage?: number;
-  speed?: number;
   error?: string;
   showQuant?: boolean;
 }
@@ -79,7 +83,6 @@ const render = (options: RenderOptions): string =>
           state={options.state}
           inMemory={options.inMemory ?? false}
           percentage={options.percentage}
-          speed={options.speed}
           error={options.error}
           showQuant={options.showQuant ?? false}
           onDownload={() => undefined}
@@ -120,55 +123,89 @@ describe("ModelCatalogRow status text", () => {
   });
 });
 
+/* Exactly one action is inline per row; delete lives behind the row's
+ * overflow, which Radix mounts only once a pointer has opened it. So the
+ * inline control is asserted on the markup and the whole offer is asserted on
+ * `modelRowActions`, which is what the menu renders. */
+describe("modelRowActions", () => {
+  const offers: [ModelRowState, ModelRowActions][] = [
+    ["not-downloaded", { primary: "download", canDelete: false }],
+    ["downloading", { primary: "cancel", canDelete: false }],
+    ["verifying", { primary: null, canDelete: false }],
+    ["extracting", { primary: null, canDelete: false }],
+    ["downloaded", { primary: "activate", canDelete: true }],
+    ["active", { primary: null, canDelete: true }],
+    ["loading", { primary: null, canDelete: false }],
+  ];
+
+  test("every state offers exactly one inline action, or none", () => {
+    for (const [state, expected] of offers) {
+      expect(modelRowActions(state, false)).toEqual(expected);
+    }
+  });
+
+  test("a failed transfer replaces Download with Retry rather than adding it", () => {
+    expect(modelRowActions("not-downloaded", true).primary).toBe("retry");
+  });
+
+  test("nothing destructive is offered mid-flight or under the engine", () => {
+    const busy: ModelRowState[] = [
+      "downloading",
+      "verifying",
+      "extracting",
+      "loading",
+    ];
+    for (const state of busy) {
+      expect(modelRowActions(state, false).canDelete).toBe(false);
+    }
+  });
+});
+
 describe("ModelCatalogRow actions", () => {
   test("a model not on disk offers exactly one action: download", () => {
     const html = render({ state: "not-downloaded" });
     expect(html).toContain(">Download<");
-    expect(html.includes(">Delete<")).toBe(false);
     expect(html.includes(">Use<")).toBe(false);
+    expect(html.includes('aria-haspopup="menu"')).toBe(false);
   });
 
   test("a download in flight can be cancelled and nothing else", () => {
     const html = render({ state: "downloading", percentage: 10 });
     expect(html).toContain("Cancel download");
     expect(html.includes(">Download<")).toBe(false);
-    expect(html.includes(">Delete<")).toBe(false);
+    expect(html.includes('aria-haspopup="menu"')).toBe(false);
   });
 
-  test("a downloaded model can be activated or deleted", () => {
+  test("a downloaded model can be activated, and reaches delete", () => {
     const html = render({ state: "downloaded" });
     expect(html).toContain(">Use<");
-    expect(html).toContain(">Delete<");
+    expect(html).toContain('aria-haspopup="menu"');
   });
 
-  test("the active model can be deleted but not re-activated", () => {
+  test("the active model reaches delete but cannot be re-activated", () => {
     const html = render({ state: "active" });
-    expect(html).toContain(">Delete<");
+    expect(html).toContain('aria-haspopup="menu"');
     expect(html.includes(">Use<")).toBe(false);
   });
 
-  test("delete is refused while the engine is loading that model", () => {
-    const html = render({ state: "loading" });
-    expect(html).toContain(">Delete<");
-    expect(html).toContain("disabled");
-  });
-
-  test("verifying and extracting offer no destructive action mid-flight", () => {
+  test("verifying and extracting offer nothing at all", () => {
     // SAFETY: both literals are members of the closed ModelRowState union; the
     // assertion only names the array's element type for the loop.
     for (const state of ["verifying", "extracting"] as ModelRowState[]) {
       const html = render({ state });
-      expect(html.includes(">Delete<")).toBe(false);
+      expect(html.includes('aria-haspopup="menu"')).toBe(false);
       expect(html.includes(">Download<")).toBe(false);
     }
   });
 
   test("each control names the model it acts on", () => {
-    // 85 rows all showing "Delete" would be indistinguishable to a screen
+    // 85 rows all showing "Use" would be indistinguishable to a screen
     // reader, so the accessible name carries the model.
     const downloaded = render({ state: "downloaded" });
-    expect(downloaded).toContain('aria-label="Delete Whisper Medium"');
     expect(downloaded).toContain('aria-label="Use Whisper Medium"');
+    expect(downloaded).toContain(
+      'aria-label="More actions for Whisper Medium"',
+    );
     expect(render({ state: "not-downloaded" })).toContain(
       'aria-label="Download Whisper Medium"',
     );
@@ -179,21 +216,29 @@ describe("ModelCatalogRow actions", () => {
 });
 
 describe("ModelCatalogRow download progress", () => {
-  test("the bar is determinate and carries the reported value", () => {
+  test("the bar carries the reported value as its own width", () => {
+    /* A hairline on the row's bottom edge, so a running download never adds a
+     * row of height. The percentage is also spelled out in the status cell,
+     * which is what a screen reader gets. */
     const html = render({ state: "downloading", percentage: 63 });
-    expect(html).toContain('value="63"');
-    expect(html).toContain('max="100"');
+    expect(html).toContain("width:63%");
+    expect(html).toContain("bg-blue-700");
+    expect(html).toContain("Downloading 63%");
   });
 
-  test("speed is shown only once it has been measured", () => {
-    expect(
-      render({ state: "downloading", percentage: 5, speed: 3.25 }),
-    ).toContain("3.3 MB/s");
-    expect(
-      render({ state: "downloading", percentage: 5, speed: 0 }).includes(
-        "MB/s",
-      ),
-    ).toBe(false);
+  test("an out-of-range percentage is clamped rather than drawn", () => {
+    expect(render({ state: "downloading", percentage: 140 })).toContain(
+      "width:100%",
+    );
+    expect(render({ state: "downloading", percentage: -5 })).toContain(
+      "width:0%",
+    );
+  });
+  test("a stalled or fast transfer reads the same: the bar is the rate", () => {
+    /* Speed was a third rendering of "is it moving" beside the bar and the
+     * percentage, and the one that re-rendered several times a second. */
+    const html = render({ state: "downloading", percentage: 5 });
+    expect(html.includes("MB/s")).toBe(false);
   });
 });
 
@@ -213,48 +258,79 @@ describe("ModelCatalogRow failures", () => {
     const html = render({ state: "downloaded", error: "Extraction failed" });
     expect(html).toContain("Extraction failed");
     expect(html).toContain(">Use<");
-    expect(html).toContain(">Delete<");
+    expect(html).toContain('aria-haspopup="menu"');
+    // An extraction failure on a model already on disk is not a transfer
+    // failure, so the row keeps its ordinary action rather than a Retry.
+    expect(modelRowActions("downloaded", true).primary).toBe("activate");
   });
 });
 
+/* The row is a table row — name, size, state, one action. Everything else the
+ * catalog knows rides the name's tooltip, because at the 704px content column
+ * a fifth visible column can only be bought by truncating the name. These
+ * assertions pin WHERE each datum lives, not just that it exists. */
 describe("ModelCatalogRow metadata", () => {
-  test("size, language reach and capabilities are all on the row", () => {
+  const titleOf = (html: string) => {
+    const at = html.indexOf('<h3 title="');
+    return html.slice(at + 11, html.indexOf('"', at + 11));
+  };
+
+  test("size is a column of its own, right-aligned and tabular", () => {
     const html = render({ state: "not-downloaded" });
     expect(html).toContain("1.5 GB");
-    expect(html).toContain("3 languages");
-    expect(html).toContain("Streaming");
-    expect(html).toContain("Translate");
+    expect(html).toContain("tabular-nums");
+    // Not also repeated in the tooltip: one datum, one place.
+    expect(titleOf(html).includes("1.5 GB")).toBe(false);
+  });
+
+  test("reach and capabilities ride the name's tooltip", () => {
+    const title = titleOf(render({ state: "not-downloaded" }));
+    expect(title).toContain("Accurate multilingual transcription.");
+    expect(title).toContain("3 languages");
+    expect(title).toContain("Streaming");
+    expect(title).toContain("Translate");
   });
 
   test("a single-language model names that language", () => {
-    const html = render({
-      state: "not-downloaded",
-      model: { supported_languages: ["en"] },
-    });
-    expect(html).toContain("English only");
+    expect(
+      titleOf(
+        render({
+          state: "not-downloaded",
+          model: { supported_languages: ["en"] },
+        }),
+      ),
+    ).toContain("English only");
   });
 
-  test("editorial and provenance tags render as text", () => {
-    expect(render({ state: "not-downloaded" })).toContain("Recommended");
+  test("Recommended stays visible; other provenance does not", () => {
+    // It is the one datum that changes which row a first-run user picks, so
+    // it earns a cell. Custom and Legacy describe a build already chosen.
+    expect(render({ state: "not-downloaded" })).toContain(">Recommended<");
     expect(
-      render({
-        state: "downloaded",
-        model: {
-          is_custom: true,
-          is_recommended: false,
-          source: "Local",
-          filename: "my-model.gguf",
-        },
-      }),
+      titleOf(
+        render({
+          state: "downloaded",
+          model: {
+            is_custom: true,
+            is_recommended: false,
+            source: "Local",
+            filename: "my-model.gguf",
+          },
+        }),
+      ),
     ).toContain("Custom");
     expect(
-      render({
-        state: "downloaded",
-        model: {
-          is_recommended: false,
-          source: { Url: { url: "https://blob/ggml-small.bin", sha256: null } },
-        },
-      }),
+      titleOf(
+        render({
+          state: "downloaded",
+          model: {
+            is_recommended: false,
+            source: {
+              Url: { url: "https://blob/ggml-small.bin", sha256: null },
+            },
+          },
+        }),
+      ),
     ).toContain("Legacy");
   });
 

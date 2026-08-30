@@ -24,9 +24,9 @@ CMAKE_POLICY_VERSION_MINIMUM=3.5 bun run tauri dev
 bun run tauri build
 
 # Frontend only development
-bun run dev        # Start Vite dev server
-bun run build      # Build frontend (TypeScript + Vite)
-bun run preview    # Preview built frontend
+bun run dev        # Start the Next dev server on :1420 (the port tauri expects)
+bun run build      # Typecheck + static export of the three window routes to out/
+bun run preview    # Serve the exported out/ directory
 ```
 
 **Linting and Formatting (run before committing):**
@@ -76,12 +76,23 @@ Sona is a cross-platform desktop speech-to-text application built with Tauri 2.x
 
 - `App.tsx` - Main component with onboarding flow
 - `components/` - React UI components:
-  - `settings/` - Settings UI
+  - `vg/` - **the primitive kit, and the only place primitives live.** Every
+    button, input, select, dialog, popover, menu, switch, slider, tab and
+    tooltip comes from here: shadcn/ui components, Geist-coloured through the
+    `@theme inline` token bridge in `app/globals.css`. `components.json` points
+    the shadcn CLI at it (`"ui": "@/components/vg"`), so `bunx shadcn add …`
+    lands here. Never hand-roll a control, and never start a second kit.
+  - `ui/` - what is left of the pre-Geist kit: app-specific survivors with no
+    `vg/` counterpart yet (AudioPlayer, RouteSkeleton, Toaster) plus three
+    still used by onboarding and what's-new. Frozen — each retires by moving
+    its consumers onto a `vg/` primitive. Nothing new goes in it.
+  - `settings/` - Settings UI. `settings/rows.tsx` is its composition layer
+    (SettingsPage, SettingsCard, SettingsSurface, SettingsRow, Notice,
+    `PAGE_COLUMN`); pages compose those, they never restate the surface
+    literals.
   - `model-selector/` - Model management interface
   - `onboarding/` - First-run experience
-  - `overlay/` - Recording overlay UI
-  - `update-checker/` - App update notifications
-  - `shared/`, `ui/`, `icons/`, `footer/` - Shared components
+  - `icons/`, `analytics/`, `cloud-sync/`, `whats-new/` - feature-local components
 - `hooks/useSettings.ts` - Settings state management hook
 - `stores/settingsStore.ts` - Zustand store for settings
 - `bindings.ts` - Auto-generated Tauri type bindings (via tauri-specta)
@@ -215,3 +226,13 @@ See the [Troubleshooting](README.md#troubleshooting) section in README.md.
 - **Full contributor workflow:** [CONTRIBUTING.md](CONTRIBUTING.md).
 
 **Commits:** Use conventional commit prefixes (`feat:`, `fix:`, `docs:`, `refactor:`, `chore:`). Focus the message on _why_, not _what_.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

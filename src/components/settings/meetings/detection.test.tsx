@@ -112,11 +112,17 @@ describe("first paint", () => {
     expect(paint(<DetectionListeners />)).toBe("");
   });
 
-  test("the settings section says it is still reading state", () => {
+  test("the settings section says it is still reading state, and nothing else", () => {
     const markup = paint(<MeetingDetectionSettings />);
 
     expect(markup).toContain("Detect meetings");
     expect(markup).toContain("Reading detection state");
+    /* The section heading is the whole header now: the sentence that used to
+     * sit under it said what the switches below say. */
+    expect(markup).not.toContain("It never records on its own");
+    /* "What detection can see" exists only when there is a degraded path to
+     * name, and first paint has read no state at all. */
+    expect(markup).not.toContain("What detection can see");
     expect(markup.includes("__MISSING__")).toBe(false);
   });
 });
@@ -126,7 +132,6 @@ describe("english catalogue", () => {
    * than silently degrading to the inline default at runtime. */
   const KEYS = [
     "meetings.detection.title",
-    "meetings.detection.description",
     "meetings.detection.loading",
     "meetings.detection.prompt.calendar",
     "meetings.detection.prompt.app",
@@ -139,21 +144,16 @@ describe("english catalogue", () => {
     "meetings.detection.actions.start",
     "meetings.detection.actions.dismiss",
     "meetings.detection.pane.title",
-    "meetings.detection.pane.description",
     "meetings.detection.pane.countdown",
-    "meetings.detection.pane.notYetRecording",
     "meetings.detection.calendar.label",
     "meetings.detection.calendar.description",
     "meetings.detection.anyMic.label",
-    "meetings.detection.anyMic.description",
     "meetings.detection.autoStart.label",
-    "meetings.detection.autoStart.description",
     "meetings.detection.apps.label",
     "meetings.detection.apps.description",
     "meetings.detection.apps.running",
     "meetings.detection.apps.noneRunning",
     "meetings.detection.state.title",
-    "meetings.detection.state.description",
     "meetings.detection.state.calendarDenied",
     "meetings.detection.state.notificationsDenied",
     "meetings.detection.state.bluetoothCaveat",

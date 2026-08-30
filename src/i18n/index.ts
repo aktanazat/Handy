@@ -1,7 +1,7 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { locale } from "@tauri-apps/plugin-os";
-import { isLanguageCode, LANGUAGE_METADATA } from "./languages";
+import { LANGUAGE_METADATA, type LanguageCode } from "./languages";
 import type { TranslationTree } from "./translationTree";
 import { commands } from "@/bindings";
 import {
@@ -13,54 +13,52 @@ import enTranslation from "./locales/en/translation.json";
 
 const FALLBACK_LANGUAGE = "en";
 
-// Auto-discover non-English translation files using Vite's glob import. The
-// fallback remains a static import, so it is always ready without also being
-// emitted as a dynamic chunk.
-const localeLoaders = import.meta.glob<{ default: TranslationTree }>([
-  "./locales/*/translation.json",
-  "!./locales/en/translation.json",
-]);
+/* One entry per directory under ./locales, spelled out. Every path is a literal
+ * a bundler can resolve statically — no glob, no template literal — and each
+ * non-English locale stays behind its own `import()` so a launch downloads
+ * English only. Adding a locale means adding its directory, its metadata in
+ * languages.ts, and its line here; the `LanguageCode` key makes the compiler
+ * fail on a missing or extra line, and `bun test src/i18n` checks the
+ * directories. English is the static import above: it must be ready before
+ * the first render, so it is not a chunk. */
+const loaderByCode = {
+  en: async () => ({ default: enTranslation }),
+  ar: () => import("./locales/ar/translation.json"),
+  bg: () => import("./locales/bg/translation.json"),
+  cs: () => import("./locales/cs/translation.json"),
+  da: () => import("./locales/da/translation.json"),
+  de: () => import("./locales/de/translation.json"),
+  es: () => import("./locales/es/translation.json"),
+  fr: () => import("./locales/fr/translation.json"),
+  he: () => import("./locales/he/translation.json"),
+  hi: () => import("./locales/hi/translation.json"),
+  it: () => import("./locales/it/translation.json"),
+  ja: () => import("./locales/ja/translation.json"),
+  ko: () => import("./locales/ko/translation.json"),
+  ne: () => import("./locales/ne/translation.json"),
+  nl: () => import("./locales/nl/translation.json"),
+  pl: () => import("./locales/pl/translation.json"),
+  pt: () => import("./locales/pt/translation.json"),
+  ru: () => import("./locales/ru/translation.json"),
+  sv: () => import("./locales/sv/translation.json"),
+  tr: () => import("./locales/tr/translation.json"),
+  uk: () => import("./locales/uk/translation.json"),
+  vi: () => import("./locales/vi/translation.json"),
+  zh: () => import("./locales/zh/translation.json"),
+  "zh-TW": () => import("./locales/zh-TW/translation.json"),
+} satisfies Record<LanguageCode, () => Promise<{ default: TranslationTree }>>;
 
-// Keyed by locale code, from the glob's build-time keys.
-const loaderByCode: Record<
-  string,
-  () => Promise<{ default: TranslationTree }>
-> = {};
-for (const [path, load] of Object.entries(localeLoaders)) {
-  const langCode = path.match(/\.\/locales\/(.+)\/translation\.json/)?.[1];
-  if (langCode) {
-    loaderByCode[langCode] = load;
-  }
-}
+/* SAFETY: the keys of a Record over the closed `LanguageCode` union are
+ * exactly that union; Object.keys erases it to string[]. */
+const LOCALE_CODES = Object.keys(loaderByCode) as LanguageCode[];
 
-loaderByCode[FALLBACK_LANGUAGE] = async () => ({ default: enTranslation });
+/* Selector order: every locale carries a unique priority in languages.ts. */
+export const SUPPORTED_LANGUAGES = LOCALE_CODES.map((code) => ({
+  code,
+  ...LANGUAGE_METADATA[code],
+})).sort((a, b) => a.priority - b.priority);
 
-// Build supported languages list from discovered locales + metadata
-export const SUPPORTED_LANGUAGES = Object.keys(loaderByCode)
-  .map((code) => {
-    if (!isLanguageCode(code)) {
-      console.warn(`Missing metadata for locale "${code}" in languages.ts`);
-      return { code, name: code, nativeName: code, priority: undefined };
-    }
-    const meta = LANGUAGE_METADATA[code];
-    return {
-      code,
-      name: meta.name,
-      nativeName: meta.nativeName,
-      priority: meta.priority,
-    };
-  })
-  .sort((a, b) => {
-    // Sort by priority first (lower = higher), then alphabetically
-    if (a.priority !== undefined && b.priority !== undefined) {
-      return a.priority - b.priority;
-    }
-    if (a.priority !== undefined) return -1;
-    if (b.priority !== undefined) return 1;
-    return a.name.localeCompare(b.name);
-  });
-
-export type SupportedLanguageCode = string;
+export type SupportedLanguageCode = LanguageCode;
 
 // Check if a language code is supported
 export const getSupportedLanguage = (

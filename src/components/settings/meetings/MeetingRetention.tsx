@@ -5,11 +5,26 @@ import {
   type MeetingRetentionPolicy,
   type MeetingRetentionSnapshot,
 } from "@/bindings";
-import { Button, Dropdown, SettingContainer, StatusText } from "../../ui";
+import { Notice, SettingsRow } from "@/components/settings/rows";
+import { Button } from "@/components/vg/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/vg/select";
 import { meetingErrorKey } from "./meetingUtils";
 
 const RETENTION_DAYS = [7, 30, 90] as const;
 
+/* One setting, so one row: the policy, and the press that writes it.
+ *
+ * It renders as a bare row rather than a section of its own because it is
+ * dropped into the Privacy page's hairline surface, where a heading saying
+ * "Retention" above a row labelled "Retention" would be the same word twice.
+ * The write is explicit because the command carries `expected_revision`: a
+ * select that saved on change would race another window and lose. */
 export const MeetingRetentionSettings: React.FC = () => {
   const { t } = useTranslation();
   const [snapshot, setSnapshot] = useState<MeetingRetentionSnapshot | null>(
@@ -83,45 +98,70 @@ export const MeetingRetentionSettings: React.FC = () => {
       label: t("meetings.retention.days", { days }),
     })),
   ];
+  const blocked = loading || saving || snapshot === null;
 
   return (
     <>
-      <SettingContainer
-        grouped
-        title={t("meetings.retention.title")}
-        description={t("meetings.retention.description")}
+      <SettingsRow
+        label={t("meetings.retention.title")}
+        /* The one thing the control cannot state: what "delete" means here. */
+        hint={t("meetings.retention.description")}
+        controlId="meeting-retention"
+        disabled={loading || snapshot === null}
       >
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {loading ? (
-            <StatusText tone="muted" live="polite">
-              {t("meetings.retention.loading", "Reading the current policy…")}
-            </StatusText>
-          ) : null}
-          <Dropdown
-            selectedValue={selection}
-            options={options}
-            onSelect={setSelection}
-            disabled={loading || saving || snapshot === null}
-            className="min-w-[220px] flex-1 basis-56"
-          />
-          <Button
-            type="button"
-            variant="secondary"
-            size="md"
-            onClick={() => void save()}
-            disabled={loading || saving || snapshot === null}
+        {loading ? (
+          <Notice tone="muted">
+            {t("meetings.retention.loading", "Reading the current policy…")}
+          </Notice>
+        ) : null}
+        <Select
+          value={selection}
+          onValueChange={setSelection}
+          disabled={blocked}
+        >
+          <SelectTrigger
+            id="meeting-retention"
+            size="sm"
+            className="min-w-52 justify-between"
           >
-            {saving ? t("common.saving") : t("common.save")}
-          </Button>
-        </div>
-      </SettingContainer>
+            <SelectValue>
+              {options.find((option) => option.value === selection)?.label}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => void save()}
+          disabled={blocked}
+        >
+          {saving ? t("common.saving") : t("common.save")}
+        </Button>
+      </SettingsRow>
       {error ? (
+        /* `role="alert"` sits on the group, not the sentence, so the failure
+         * and the way out are announced as one thing. */
         <div
           role="alert"
-          className="flex flex-wrap items-center justify-end gap-2 py-2 text-[13px] leading-5 text-danger-strong"
+          className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5"
         >
-          <span>{error}</span>
-          <Button variant="ghost" size="sm" onClick={() => void load()}>
+          <Notice tone="danger" live={false}>
+            {error}
+          </Notice>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void load()}
+          >
             {t("meetings.actions.retry")}
           </Button>
         </div>

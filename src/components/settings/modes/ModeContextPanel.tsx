@@ -1,7 +1,11 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { ContextPolicy } from "@/bindings";
-import { SettingContainer, SettingsGroup, StatusText } from "@/components/ui";
+import {
+  Notice,
+  SettingsField,
+  SettingsSurface,
+} from "@/components/settings/rows";
 import { SegmentedRadioGroup, type SegmentedOption } from "./ModeControls";
 import {
   CONTEXT_POLICIES,
@@ -14,6 +18,8 @@ export interface ModeContextPanelProps extends ModePanelProps {
   ceiling: ContextPolicy;
 }
 
+/* One field, and the tab already reads "Context", so the surface is unlabelled
+ * rather than repeating the tab as a heading. */
 export const ModeContextPanel: React.FC<ModeContextPanelProps> = ({
   mode,
   updaters,
@@ -45,12 +51,12 @@ export const ModeContextPanel: React.FC<ModeContextPanelProps> = ({
     hasHigherPolicy(mode.context_policy, ceiling);
 
   return (
-    <SettingsGroup title={t("settings.modes.context.title")}>
-      <SettingContainer
-        grouped
-        layout="stacked"
-        title={t("settings.modes.context.policy.label")}
-        description={t("settings.modes.context.policy.description")}
+    <SettingsSurface>
+      <SettingsField
+        label={t("settings.modes.context.policy.label")}
+        /* Not inferable from four level names: the ceiling outranks whatever
+         * this mode asks for. */
+        hint={t("settings.modes.context.policy.description")}
       >
         <SegmentedRadioGroup
           layout="grid"
@@ -61,18 +67,20 @@ export const ModeContextPanel: React.FC<ModeContextPanelProps> = ({
           onChange={(policy) => updaters.update("context_policy", policy)}
         />
         {selectionAboveCeiling || anyBlocked ? (
-          <p className="mt-2">
-            <StatusText tone={selectionAboveCeiling ? "warning" : "muted"}>
-              {selectionAboveCeiling
-                ? t("settings.modes.context.policy.limitedByPrivacy")
-                : `${blockedByCeiling} ${t(
-                    "settings.modes.context.policy.raiseCeiling",
-                    "Raise the ceiling in Privacy to use higher levels.",
-                  )}`}
-            </StatusText>
-          </p>
+          <Notice
+            tone={selectionAboveCeiling ? "warning" : "muted"}
+            live={false}
+            className="mt-2"
+          >
+            {selectionAboveCeiling
+              ? t("settings.modes.context.policy.limitedByPrivacy")
+              : `${blockedByCeiling} ${t(
+                  "settings.modes.context.policy.raiseCeiling",
+                  "Raise the ceiling in Privacy to use higher levels.",
+                )}`}
+          </Notice>
         ) : null}
-      </SettingContainer>
-    </SettingsGroup>
+      </SettingsField>
+    </SettingsSurface>
   );
 };

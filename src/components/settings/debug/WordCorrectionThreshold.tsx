@@ -1,35 +1,41 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Slider } from "../../ui/Slider";
+import { RotateCcw } from "lucide-react";
+import { SettingsRow } from "@/components/settings/rows";
+import { Button } from "@/components/vg/button";
+import { Slider } from "@/components/vg/slider";
 import { useSettings } from "../../../hooks/useSettings";
 
-interface WordCorrectionThresholdProps {
-  descriptionMode?: "tooltip" | "inline";
-  grouped?: boolean;
-}
-
-export const WordCorrectionThreshold: React.FC<
-  WordCorrectionThresholdProps
-> = ({ descriptionMode = "tooltip", grouped = false }) => {
+export const WordCorrectionThreshold: React.FC = () => {
   const { t } = useTranslation();
   const { settings, updateSetting, resetSetting, isUpdating } = useSettings();
-
-  const handleThresholdChange = (value: number) => {
-    updateSetting("word_correction_threshold", value);
-  };
+  const label = t("settings.debug.wordCorrectionThreshold.title");
+  const value = settings?.word_correction_threshold ?? 0.18;
+  const busy = isUpdating("word_correction_threshold");
 
   return (
-    <Slider
-      value={settings?.word_correction_threshold ?? 0.18}
-      onChange={handleThresholdChange}
-      onReset={() => resetSetting("word_correction_threshold")}
-      isResetting={isUpdating("word_correction_threshold")}
-      min={0.0}
-      max={1.0}
-      label={t("settings.debug.wordCorrectionThreshold.title")}
-      description={t("settings.debug.wordCorrectionThreshold.description")}
-      descriptionMode={descriptionMode}
-      grouped={grouped}
-    />
+    <SettingsRow label={label} fact={value.toFixed(2)}>
+      <Slider
+        aria-label={label}
+        className="w-40"
+        value={[value]}
+        min={0}
+        max={1}
+        step={0.01}
+        disabled={busy}
+        onValueChange={([next]) =>
+          void updateSetting("word_correction_threshold", next)
+        }
+      />
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        disabled={busy}
+        aria-label={t("common.resetSetting", { name: label })}
+        onClick={() => void resetSetting("word_correction_threshold")}
+      >
+        <RotateCcw aria-hidden="true" />
+      </Button>
+    </SettingsRow>
   );
 };

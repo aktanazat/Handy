@@ -12,14 +12,23 @@ import type {
   SourceKind,
 } from "@/bindings";
 import {
-  Alert,
-  Button,
-  Dropdown,
-  EmptyState,
-  Input,
-  Section,
-  Skeleton,
-} from "../../ui";
+  FactChip,
+  Microlabel,
+  Notice,
+  SettingsCard,
+  SettingsPage,
+  SettingsSection,
+} from "@/components/settings/rows";
+import { Button } from "@/components/vg/button";
+import { Input } from "@/components/vg/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/vg/select";
+import { Skeleton } from "@/components/vg/skeleton";
 import { CaptureCompletenessText, MeetingStatusChip } from "./MeetingStatus";
 import {
   MEETING_SOURCES,
@@ -87,13 +96,14 @@ interface MeetingsHomeProps {
 }
 
 const MeetingListSkeleton: React.FC<{ label: string }> = ({ label }) => (
-  <div role="status" aria-label={label} className="flex flex-col gap-2">
+  <div
+    role="status"
+    aria-label={label}
+    className="divide-y divide-gray-alpha-400"
+  >
     {[0, 1, 2].map((row) => (
-      <div
-        key={row}
-        className="flex min-h-14 items-center justify-between gap-4 rounded-panel border border-border-subtle px-4 py-3"
-      >
-        <div className="space-y-1.5">
+      <div key={row} className="flex items-center gap-4 px-4 py-3.5">
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
           <Skeleton className="h-3.5 w-48" />
           <Skeleton className="h-3 w-32" />
         </div>
@@ -103,7 +113,7 @@ const MeetingListSkeleton: React.FC<{ label: string }> = ({ label }) => (
   </div>
 );
 
-interface MeetingStartBlockProps {
+interface MeetingStartCardProps {
   sources: SourceKind[];
   retention: MeetingRetentionPolicy | null;
   starting: boolean;
@@ -112,13 +122,18 @@ interface MeetingStartBlockProps {
   onStart: () => void;
 }
 
-/* One press records a meeting. Everything else on this block is a state the
+/* One press records a meeting. Everything else on this card is a state the
  * press will use, shown inline and changeable in place: never a step, never a
  * screen. One instrument row — the press, what it captures, where it stays —
  * with the assurance sentence directly beneath the button as its caption,
  * because what the press does to the room must be readable before the press,
- * and pressing it is the acknowledgment the backend records. */
-const MeetingStartBlock: React.FC<MeetingStartBlockProps> = ({
+ * and pressing it is the acknowledgment the backend records.
+ *
+ * That sentence is on the page, not behind an affordance: a keyboard or touch
+ * operator who never hovers must still have read it before pressing, since the
+ * press is what the consent row asserts they read. It is also the surface's
+ * one sentence of prose — every other fact here is set in mono. */
+const MeetingStartCard: React.FC<MeetingStartCardProps> = ({
   sources,
   retention,
   starting,
@@ -141,15 +156,14 @@ const MeetingStartBlock: React.FC<MeetingStartBlockProps> = ({
     );
 
   return (
-    <section
-      className="meeting-start"
+    <SettingsCard
       aria-label={t("meetings.start.label", "Start a meeting")}
+      className="flex flex-col gap-3 p-4"
     >
-      <div className="meeting-start-row">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
         <Button
           type="button"
           id={START_BUTTON_ID}
-          className="meeting-start-button"
           onClick={onStart}
           disabled={starting || sources.length === 0}
         >
@@ -157,10 +171,12 @@ const MeetingStartBlock: React.FC<MeetingStartBlockProps> = ({
             ? t("meetings.start.starting", "Starting…")
             : t("meetings.start.action", "Start recording")}
         </Button>
-        <span className="meeting-start-capture">
-          <span className="microlabel">
-            {t("meetings.start.capture", "Capture")}
-          </span>
+        <span
+          role="group"
+          aria-label={t("meetings.start.capture", "Capture")}
+          className="flex items-center gap-2"
+        >
+          <Microlabel>{t("meetings.start.capture", "Capture")}</Microlabel>
           {MEETING_SOURCES.map((source) => (
             <MeetingSourceChip
               key={source}
@@ -171,36 +187,76 @@ const MeetingStartBlock: React.FC<MeetingStartBlockProps> = ({
             />
           ))}
         </span>
-        <span className="meeting-start-facts ms-auto">
-          <span className="microlabel">
-            {t("meetings.start.localOnly", "Local only")}
-          </span>
+      </div>
+      {/* The caption line: what the press does to the room on the left, what it
+       * does with the result on the right. The facts sit beside the sentence
+       * they qualify rather than orphaned on a rail of their own. */}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+        <p className="text-[13px] leading-5 text-gray-800">
+          {t(
+            "meetings.start.assurance",
+            "Records your Mac's audio locally. Nothing joins the call.",
+          )}
+        </p>
+        <span className="flex flex-none items-baseline gap-4">
+          <Microlabel>{t("meetings.start.localOnly", "Local only")}</Microlabel>
           {retention === null ? null : (
-            <span className="microlabel">
-              {t("meetings.start.retention", "Kept: {{policy}}", {
-                policy:
-                  retention.kind === "forever"
-                    ? t("meetings.retention.forever")
-                    : t("meetings.retention.days", { days: retention.days }),
-              })}
-            </span>
+            <FactChip
+              label={t("meetings.retention.title")}
+              value={
+                retention.kind === "forever"
+                  ? t("meetings.retention.forever")
+                  : t("meetings.retention.days", { days: retention.days })
+              }
+            />
           )}
         </span>
       </div>
-      <p className="meeting-start-assurance">
-        {t(
-          "meetings.start.assurance",
-          "Records your Mac's audio locally. Nothing joins the call.",
-        )}
-      </p>
       {sources.length === 0 ? (
-        <p className="text-[12.5px] leading-[18px] text-warning">
+        <Notice tone="warning">
           {t("meetings.start.noSources", "Choose at least one source.")}
-        </p>
+        </Notice>
       ) : null}
-    </section>
+    </SettingsCard>
   );
 };
+
+interface FilterSelectProps {
+  /** The mono KEY the trigger states before its value. */
+  filterKey: string;
+  value: string;
+  /** The selected option's label, stated on the trigger. */
+  selected: string;
+  options: { value: string; label: string }[];
+  onSelect: (value: string) => void;
+}
+
+/* One filter, stated as KEY then VALUE.
+ *
+ * `SelectValue` is handed its children rather than left to resolve them from
+ * the item collection: the selected value is the whole point of the control,
+ * and Radix cannot name it until that collection has mounted. */
+const FilterSelect: React.FC<FilterSelectProps> = ({
+  filterKey,
+  value,
+  selected,
+  options,
+  onSelect,
+}) => (
+  <Select value={value} onValueChange={onSelect}>
+    <SelectTrigger size="sm" aria-label={filterKey} className="gap-2">
+      <Microlabel>{filterKey}</Microlabel>
+      <SelectValue>{selected}</SelectValue>
+    </SelectTrigger>
+    <SelectContent>
+      {options.map((option) => (
+        <SelectItem key={option.value} value={option.value}>
+          {option.label}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+);
 
 interface MeetingRowProps {
   meeting: MeetingHistorySummary;
@@ -222,8 +278,9 @@ interface MeetingRowProps {
  * whether they are looking at a written headline or a measured count can find
  * out, and a test can assert on it rather than on prose.
  *
- * Nothing here is rounded up. No recorded duration prints no duration, not
- * "0s"; no speakers prints no speaker line, not "Unknown". */
+ * Line 3 is measurement, so line 3 is mono. Nothing here is rounded up: no
+ * recorded duration prints no duration, not "0s"; no speakers prints no
+ * speaker line, not "Unknown". */
 const MeetingRow: React.FC<MeetingRowProps> = ({
   meeting,
   onOpen,
@@ -248,19 +305,23 @@ const MeetingRow: React.FC<MeetingRowProps> = ({
   };
 
   return (
-    <li className="meeting-entry" data-headline={headline.kind}>
+    <li
+      data-slot="meeting-entry"
+      data-headline={headline.kind}
+      className="flex items-start gap-1 px-2 py-1"
+    >
       <button
         type="button"
         onClick={onOpen}
-        className="meeting-entry-open"
+        className="flex min-w-0 flex-1 flex-col gap-1 rounded-md px-2 py-2 text-start transition-colors hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
         title={
           headline.kind === "ledger" || headline.kind === "summary"
             ? `${meeting.title} — ${headline.text}`
             : meeting.title
         }
       >
-        <span className="meeting-entry-head">
-          <span className="type-row-title meeting-entry-name">
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-[13px] text-gray-1000">
             {meeting.title}
           </span>
           <MeetingStatusChip
@@ -271,7 +332,7 @@ const MeetingRow: React.FC<MeetingRowProps> = ({
         {/* The line is always here, even empty. A list whose rows change
          * height depending on whether a model wrote a sentence is harder to
          * read down than a list with a blank line in it. */}
-        <span className="meeting-entry-line">
+        <span className="min-h-[18px] w-full truncate text-[13px] leading-[18px] text-gray-900">
           {headline.kind === "none"
             ? null
             : headline.kind === "words"
@@ -282,26 +343,30 @@ const MeetingRow: React.FC<MeetingRowProps> = ({
                 )
               : headline.text}
         </span>
-        <span className="meeting-entry-foot">
-          {speakers.length === 0 ? (
-            <span className="meeting-entry-speakers" />
-          ) : (
-            <span className="meeting-entry-speakers">
+        <span className="flex w-full flex-wrap items-baseline gap-x-3 gap-y-1">
+          {speakers.length === 0 ? null : (
+            <span className="flex min-w-0 flex-wrap items-baseline gap-1">
               {speakers.map((speaker, index) => (
                 <span
                   key={`${speaker}:${index}`}
-                  className="meeting-entry-person"
+                  data-slot="meeting-person"
+                  className="truncate rounded-md border border-gray-alpha-400 px-1.5 text-[12px] leading-[18px] text-gray-900"
                 >
                   {speaker}
                 </span>
               ))}
             </span>
           )}
-          {/* Measured facts in the machine's own face — .chip, never the
-           * uppercase microlabel: inline metadata does not shout. */}
-          <span className="meeting-entry-facts">
+          {/* Measured facts in the machine's own face. The glyph run is a label
+           * and stays uppercase; a duration and a date are values, so they
+           * drop the microlabel's caps — an all-caps timestamp shouts and is
+           * slower to scan than the thing it is labelling. */}
+          <span
+            data-slot="meeting-facts"
+            className="ms-auto flex flex-none flex-wrap items-baseline gap-x-3"
+          >
             {sources.length === 0 ? null : (
-              <span className="chip">
+              <Microlabel>
                 {sources
                   .map((source) =>
                     source === "microphone"
@@ -309,37 +374,44 @@ const MeetingRow: React.FC<MeetingRowProps> = ({
                       : t("meetings.list.sourceGlyph.system_audio", "SYS"),
                   )
                   .join(" ")}
-              </span>
+              </Microlabel>
             )}
             {meeting.capture_completeness === "partial" ? (
-              <CaptureCompletenessText
-                completeness="partial"
-                className="chip"
-              />
+              <CaptureCompletenessText completeness="partial" />
             ) : null}
             {recordedMs === null ? null : (
-              <span className="chip">
+              <Microlabel className="normal-case tabular-nums text-gray-800">
                 {formatDurationShort(recordedMs / 1000)}
-              </span>
+              </Microlabel>
             )}
-            <span className="chip">
+            <Microlabel className="normal-case tabular-nums text-gray-800">
               {formatEntryTimestamp(meeting.created_at_utc_ms)}
-            </span>
+            </Microlabel>
           </span>
         </span>
       </button>
       {/* Everything that leaves the page or destroys the meeting sits behind
        * one summary, so a list of thirty rows carries thirty controls rather
-       * than a hundred and twenty. */}
-      <details className="meeting-actions-menu">
-        <summary aria-label={actionsLabel} title={actionsLabel}>
-          <Ellipsis aria-hidden="true" width={16} height={16} />
+       * than a hundred and twenty. A `<details>` is the whole menu: thirty
+       * portalled popovers would cost the list more than the disclosure it
+       * replaces. */}
+      <details className="group relative flex-none">
+        <summary
+          aria-label={actionsLabel}
+          title={actionsLabel}
+          className="flex size-8 cursor-pointer list-none items-center justify-center rounded-md text-gray-700 transition-colors hover:bg-gray-alpha-100 hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none [&::-webkit-details-marker]:hidden"
+        >
+          <Ellipsis aria-hidden="true" className="size-4" />
         </summary>
-        <div role="menu">
+        <div
+          role="menu"
+          className="absolute end-0 top-9 z-10 hidden min-w-52 flex-col gap-0.5 rounded-card border border-gray-alpha-400 bg-raised p-1 shadow-md group-open:flex"
+        >
           <button
             type="button"
             role="menuitem"
             onClick={(event) => runAction(event, () => onExport("markdown"))}
+            className="flex w-full items-center rounded-md px-2 py-1.5 text-start text-[13px] text-gray-900 hover:bg-gray-alpha-100 hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
           >
             {t("meetings.list.exportMarkdown", "Export notes (Markdown)")}
           </button>
@@ -347,6 +419,7 @@ const MeetingRow: React.FC<MeetingRowProps> = ({
             type="button"
             role="menuitem"
             onClick={(event) => runAction(event, () => onExport("json"))}
+            className="flex w-full items-center rounded-md px-2 py-1.5 text-start text-[13px] text-gray-900 hover:bg-gray-alpha-100 hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
           >
             {t("meetings.list.exportJson", "Export notes (JSON)")}
           </button>
@@ -357,6 +430,7 @@ const MeetingRow: React.FC<MeetingRowProps> = ({
               type="button"
               role="menuitem"
               onClick={(event) => runAction(event, onExportLedger)}
+              className="flex w-full items-center rounded-md px-2 py-1.5 text-start text-[13px] text-gray-900 hover:bg-gray-alpha-100 hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
             >
               {t("meetings.list.exportLedger", "Export ledger page")}
             </button>
@@ -364,8 +438,8 @@ const MeetingRow: React.FC<MeetingRowProps> = ({
           <button
             type="button"
             role="menuitem"
-            className="danger-menu-item"
             onClick={(event) => runAction(event, onDelete)}
+            className="flex w-full items-center rounded-md px-2 py-1.5 text-start text-[13px] text-red-900 hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
           >
             {t("meetings.actions.delete", "Delete meeting")}
           </button>
@@ -419,42 +493,23 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
   }, [committedQuery, filter, onFilterChange, query]);
 
   const unfiltered = isUnfilteredMeetingList(filter);
-
-  const retentionHint =
-    retention === null
-      ? t("meetings.history.description")
-      : t(
-          "meetings.list.retentionHint",
-          "Retention: {{policy}}. Change it in Settings > Privacy.",
-          {
-            policy:
-              retention.kind === "forever"
-                ? t("meetings.retention.forever")
-                : t("meetings.retention.days", { days: retention.days }),
-          },
-        );
+  const clearFilters = () => {
+    setQuery("");
+    onFilterChange(NO_MEETING_FILTER);
+  };
 
   return (
-    <div className="settings-page">
-      <header className="settings-page-header">
-        <h1 className="settings-page-title">{t("meetings.title")}</h1>
-        <p className="settings-page-description">{t("meetings.description")}</p>
-      </header>
-
+    <SettingsPage title={t("meetings.title")}>
       {error ? (
-        <Alert
-          variant="error"
-          action={
-            <Button type="button" variant="ghost" size="sm" onClick={onRetry}>
-              {t("meetings.actions.retry")}
-            </Button>
-          }
-        >
-          {error}
-        </Alert>
+        <div className="flex flex-wrap items-center gap-3">
+          <Notice tone="danger">{error}</Notice>
+          <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+            {t("meetings.actions.retry")}
+          </Button>
+        </div>
       ) : null}
 
-      <MeetingStartBlock
+      <MeetingStartCard
         sources={sources}
         retention={retention}
         starting={starting}
@@ -479,64 +534,70 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
       />
 
       {recovery.length > 0 ? (
-        <Section
-          title={t("meetings.recovery.title")}
-          description={t("meetings.recovery.description")}
-        >
-          <div className="meeting-card">
-            <ul
-              className="meeting-rows"
-              aria-label={t("meetings.recovery.title")}
-            >
-              {recovery.map((meeting) => (
-                <li key={meeting.session_id} className="meeting-row">
-                  <span className="min-w-0">
-                    <p className="meeting-row-label">{meeting.title}</p>
-                    <span className="chip">
-                      {formatEntryTimestamp(meeting.created_at_utc_ms)}
-                    </span>
+        <SettingsSection label={t("meetings.recovery.title")}>
+          <ul
+            aria-label={t("meetings.recovery.title")}
+            className="divide-y divide-gray-alpha-400"
+          >
+            {recovery.map((meeting) => (
+              <li
+                key={meeting.session_id}
+                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3"
+              >
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="truncate text-[13px] text-gray-1000">
+                    {meeting.title}
                   </span>
-                  <span className="flex flex-none items-center gap-2">
+                  <Microlabel className="normal-case tabular-nums text-gray-800">
+                    {formatEntryTimestamp(meeting.created_at_utc_ms)}
+                  </Microlabel>
+                </span>
+                <span className="flex flex-none items-center gap-2">
+                  {/* "Recover partial meetings", "Partial", "Finalize partial"
+                   * was the same word three times, so the chip only speaks
+                   * when it disagrees with the heading. */}
+                  {meeting.capture_completeness === "partial" ? null : (
                     <CaptureCompletenessText
                       completeness={meeting.capture_completeness}
                     />
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => onFinalizeRecovery(meeting.session_id)}
-                    >
-                      {t("meetings.recovery.finalize")}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="danger-ghost"
-                      size="sm"
-                      onClick={() => onDiscardRecovery(meeting.session_id)}
-                    >
-                      {t("meetings.actions.discard")}
-                    </Button>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </Section>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onFinalizeRecovery(meeting.session_id)}
+                  >
+                    {t("meetings.recovery.finalize")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-900"
+                    onClick={() => onDiscardRecovery(meeting.session_id)}
+                  >
+                    {t("meetings.actions.discard")}
+                  </Button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </SettingsSection>
       ) : null}
 
-      <Section title={t("meetings.history.title")} description={retentionHint}>
+      <SettingsSection label={t("meetings.history.title")}>
         {/* The bar states the whole query in mono, KEY then VALUE, because the
          * query is what decides which rows exist. Every control on it reaches
          * the store: there is no filter here the backend cannot honour. */}
         <div
-          className="meeting-filter-bar"
           role="group"
           aria-label={t("meetings.list.filters.label", "Filter meetings")}
+          className="flex flex-wrap items-center gap-2 px-4 py-3"
         >
-          <Dropdown
-            variant="filter"
+          <FilterSelect
             filterKey={t("meetings.list.filters.statusKey", "Status")}
-            selectedValue={filter.status ?? "any"}
+            value={filter.status ?? "any"}
+            selected={t(meetingStatusFilterKey(filter.status ?? "any"))}
             options={MEETING_STATUS_FILTERS.map((status) => ({
               value: status,
               label: t(meetingStatusFilterKey(status)),
@@ -544,17 +605,17 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
             onSelect={(value) =>
               onFilterChange({
                 ...filter,
-                /* SAFETY: Dropdown echoes back one of the option values it was
-                 * handed, and every option above is a MEETING_STATUS_FILTERS
-                 * member. */
+                /* SAFETY: the select echoes back one of the option values it
+                 * was handed, and every option above is a
+                 * MEETING_STATUS_FILTERS member. */
                 status: value as MeetingStatusFilter,
               })
             }
           />
-          <Dropdown
-            variant="filter"
+          <FilterSelect
             filterKey={t("meetings.list.filters.timeKey", "Time")}
-            selectedValue={filter.window ?? "any"}
+            value={filter.window ?? "any"}
+            selected={t(meetingTimeWindowKey(filter.window ?? "any"))}
             options={MEETING_TIME_WINDOWS.map((window) => ({
               value: window,
               label: t(meetingTimeWindowKey(window)),
@@ -562,7 +623,7 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
             onSelect={(value) =>
               onFilterChange({
                 ...filter,
-                /* SAFETY: same contract as the status dropdown — the value is
+                /* SAFETY: same contract as the status select — the value is
                  * one of the MEETING_TIME_WINDOWS entries passed in above. */
                 window: value as MeetingTimeWindow,
               })
@@ -570,7 +631,6 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
           />
           <Input
             type="search"
-            variant="compact"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             aria-label={t("meetings.list.searchLabel", "Search meetings")}
@@ -578,17 +638,14 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
               "meetings.list.searchPlaceholder",
               "Search by title",
             )}
-            className="meeting-filter-search"
+            className="h-8 min-w-40 flex-1 text-[13px]"
           />
           {unfiltered ? null : (
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="sm"
-              onClick={() => {
-                setQuery("");
-                onFilterChange(NO_MEETING_FILTER);
-              }}
+              onClick={clearFilters}
             >
               {t("meetings.list.clearFilters", "Clear filters")}
             </Button>
@@ -600,38 +657,28 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
         ) : meetings.length === 0 ? (
           /* Two different absences. An unfiltered empty list means this Mac has
            * recorded nothing; a filtered one means this query matched nothing,
-           * and says so with the way out. */
-          unfiltered ? (
-            <EmptyState
-              title={t("meetings.history.emptyTitle")}
-              description={t("meetings.history.emptyDescription")}
-            />
-          ) : (
-            <EmptyState
-              variant="no-results"
-              title={t("meetings.list.noMatchesFiltered", "No meetings match")}
-              description={t(
-                "meetings.list.noMatchesFilteredDescription",
-                "No retained meeting matches this filter. The query runs against every meeting on disk, not just the page on screen.",
-              )}
-              action={
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => {
-                    setQuery("");
-                    onFilterChange(NO_MEETING_FILTER);
-                  }}
-                >
-                  {t("meetings.list.clearFilters", "Clear filters")}
-                </Button>
-              }
-            />
-          )
+           * and says the one thing about the query a reader cannot infer — that
+           * it ran against the disk, not the page. Neither offers a second
+           * Clear: the bar above already carries it. */
+          <div className="flex flex-col items-center gap-2 px-4 py-12 text-center">
+            <p className="text-[13px] text-gray-1000">
+              {unfiltered
+                ? t("meetings.history.emptyTitle")
+                : t("meetings.list.noMatchesFiltered", "No meetings match")}
+            </p>
+            {unfiltered ? null : (
+              <p className="max-w-[52ch] text-[13px] leading-5 text-gray-800">
+                {t(
+                  "meetings.list.noMatchesFilteredDescription",
+                  "No retained meeting matches this filter. The query runs against every meeting on disk, not just the page on screen.",
+                )}
+              </p>
+            )}
+          </div>
         ) : (
           <ul
-            className="meeting-entries"
             aria-label={t("meetings.history.title")}
+            className="divide-y divide-gray-alpha-400"
           >
             {meetings.map((meeting) => (
               <MeetingRow
@@ -652,14 +699,14 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
          * It does not know a total, so this says "Page 3" and nothing more: a
          * "3 of 8" rail would be a number the store never returned. */}
         {loading || (page === 1 && !hasMore) ? null : (
-          <div className="meeting-list-footer">
-            <span className="chip">
+          <div className="flex items-center justify-between gap-4 px-4 py-2.5">
+            <Microlabel className="tabular-nums">
               {t("meetings.list.pagePosition", "Page {{page}}", { page })}
-            </span>
-            <span className="meeting-list-pager">
+            </Microlabel>
+            <span className="flex flex-none items-center gap-2">
               <Button
                 type="button"
-                variant="secondary"
+                variant="outline"
                 size="sm"
                 onClick={onPreviousPage}
                 disabled={page === 1 || paging}
@@ -668,7 +715,7 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
               </Button>
               <Button
                 type="button"
-                variant="secondary"
+                variant="outline"
                 size="sm"
                 onClick={onNextPage}
                 disabled={!hasMore || paging}
@@ -678,10 +725,10 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
             </span>
           </div>
         )}
-      </Section>
+      </SettingsSection>
 
       <MeetingTrackersSettings />
       <MeetingDetectionSettings />
-    </div>
+    </SettingsPage>
   );
 };

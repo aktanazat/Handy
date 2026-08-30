@@ -1,23 +1,33 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/cn";
+import { Button } from "@/components/vg/button";
 import {
-  Alert,
-  Button,
   Dialog,
-  IconButton,
-  Input,
-  SettingContainer,
-  Switch,
-  ToggleSwitch,
-} from "../../ui";
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/vg/dialog";
+import { Input } from "@/components/vg/input";
+import { Switch } from "@/components/vg/switch";
+import {
+  Notice,
+  SettingsField,
+  SettingsSection,
+} from "@/components/settings/rows";
 import { useSettings } from "../../../hooks/useSettings";
 import {
   ColumnHeader,
-  EmptyHint,
+  EmptyLine,
   Hint,
+  literalText,
   LoadingRows,
+  RowActions,
   RuleList,
+  RuleRow,
 } from "./PanelParts";
 import {
   deleteSnippet,
@@ -31,11 +41,6 @@ import {
   type Snippet,
 } from "./snippetsApi";
 
-interface SnippetsPanelProps {
-  descriptionMode?: "inline" | "tooltip";
-  grouped?: boolean;
-}
-
 interface RowDraft {
   trigger: string;
   expansion: string;
@@ -43,20 +48,19 @@ interface RowDraft {
 
 type LoadState = "loading" | "ready" | "failed";
 
-/* One grid template for the column header and every row, so cells line up.
- * The trailing column is a fixed width because its controls come and go. */
+/* One grid template for the column names and every row, so cells line up. The
+ * trailing column is a fixed width because its controls come and go. */
+/* The trailing column is a fixed 133px (9.5rem at this app's 14px root,
+ * written as the px it renders): the toggle plus the row's two icon actions. */
 const ROW_GRID =
-  "grid items-center gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_9.5rem]";
+  "grid items-center gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_133px]";
 
 /**
  * Global text expansion: triggers the transcript pipeline replaces right after
  * vocabulary correction. Every mutating command answers with the whole list,
  * so state comes from the command result and never from a second read.
  */
-export const SnippetsPanel: React.FC<SnippetsPanelProps> = ({
-  descriptionMode = "inline",
-  grouped = false,
-}) => {
+export const SnippetsPanel: React.FC = () => {
   const { t } = useTranslation();
   const { refreshSettings } = useSettings();
   const createRowRef = useRef<HTMLDivElement>(null);
@@ -92,10 +96,6 @@ export const SnippetsPanel: React.FC<SnippetsPanelProps> = ({
   useEffect(() => {
     void load();
   }, [load]);
-
-  const focusNewTrigger = () => {
-    createRowRef.current?.getElementsByTagName("input")[0]?.focus();
-  };
 
   /* Writes are serialized: each command returns the authoritative list, so two
    * in flight at once would let the slower answer overwrite the newer one. */
@@ -142,6 +142,8 @@ export const SnippetsPanel: React.FC<SnippetsPanelProps> = ({
   );
   const triggerLabel = t("settings.advanced.snippets.trigger", "Trigger");
   const expansionLabel = t("settings.advanced.snippets.expansion", "Expansion");
+  const sectionLabel = t("settings.advanced.snippets.title", "Text expansion");
+  const addLabel = t("settings.advanced.snippets.add", "Add snippet");
 
   const trimmedNewTrigger = newTrigger.trim();
   const trimmedNewExpansion = newExpansion.trim();
@@ -165,7 +167,7 @@ export const SnippetsPanel: React.FC<SnippetsPanelProps> = ({
       () => {
         setNewTrigger("");
         setNewExpansion("");
-        focusNewTrigger();
+        createRowRef.current?.getElementsByTagName("input")[0]?.focus();
       },
     );
   };
@@ -221,7 +223,7 @@ export const SnippetsPanel: React.FC<SnippetsPanelProps> = ({
     );
   };
 
-  const editor = () => {
+  const list = () => {
     if (loadState === "loading") {
       return (
         <LoadingRows
@@ -232,308 +234,287 @@ export const SnippetsPanel: React.FC<SnippetsPanelProps> = ({
 
     if (loadState === "failed") {
       return (
-        <Alert
-          variant="error"
-          action={
-            <Button size="sm" variant="secondary" onClick={() => void load()}>
-              {t("common.retry")}
-            </Button>
-          }
-        >
-          {loadError ??
-            t(
-              "settings.advanced.snippets.loadError",
-              "Could not load snippets.",
-            )}
-        </Alert>
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <Notice tone="danger">
+            {loadError ??
+              t(
+                "settings.advanced.snippets.loadError",
+                "Could not load snippets.",
+              )}
+          </Notice>
+          <Button variant="outline" size="sm" onClick={() => void load()}>
+            {t("common.retry")}
+          </Button>
+        </div>
+      );
+    }
+
+    if (snippets.length === 0) {
+      return (
+        <EmptyLine
+          text={t(
+            "settings.advanced.snippets.empty.description",
+            "Add a trigger such as omw and Sona writes on my way every time you say it.",
+          )}
+        />
       );
     }
 
     return (
-      <>
-        <div className={ROW_GRID} ref={createRowRef}>
-          <Input
-            value={newTrigger}
-            onChange={(event) => setNewTrigger(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") createSnippet();
-            }}
-            placeholder={t(
-              "settings.advanced.snippets.triggerPlaceholder",
-              "omw",
-            )}
-            aria-label={triggerLabel}
-            aria-describedby={createHint ? "snippet-create-hint" : undefined}
-            invalid={newTriggerTaken}
-            disabled={busy}
-            data-testid="snippet-new-trigger"
-          />
-          <Input
-            value={newExpansion}
-            onChange={(event) => setNewExpansion(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") createSnippet();
-            }}
-            placeholder={t(
-              "settings.advanced.snippets.expansionPlaceholder",
-              "on my way",
-            )}
-            aria-label={expansionLabel}
-            aria-describedby={createHint ? "snippet-create-hint" : undefined}
-            disabled={busy}
-            data-testid="snippet-new-expansion"
-          />
-          <Button
-            size="sm"
-            className="gap-1 justify-self-start sm:justify-self-end"
-            onClick={createSnippet}
-            disabled={busy || newIncomplete || newTriggerTaken}
-            data-testid="snippet-add"
-          >
-            <Plus aria-hidden="true" className="h-4 w-4" />
-            {t("settings.advanced.snippets.add", "Add snippet")}
-          </Button>
-        </div>
+      <div>
+        <ColumnHeader
+          gridClassName={ROW_GRID}
+          start={triggerLabel}
+          end={expansionLabel}
+        />
+        <RuleList label={sectionLabel}>
+          {snippets.map((snippet) => {
+            const draft = draftFor(snippet);
+            const dirty =
+              draft.trigger.trim() !== snippet.trigger ||
+              draft.expansion.trim() !== snippet.expansion;
+            const problem = dirty ? rowProblem(snippet) : null;
+            const hintId = `snippet-hint-${snippet.id}`;
 
-        {createHint && (
-          <Hint
-            id="snippet-create-hint"
-            tone={newTriggerTaken ? "danger" : "muted"}
-            live={newTriggerTaken ? "polite" : "off"}
-          >
-            {createHint}
-          </Hint>
-        )}
-
-        {snippets.length === 0 ? (
-          <EmptyHint
-            title={t(
-              "settings.advanced.snippets.empty.title",
-              "No snippets yet",
-            )}
-            description={t(
-              "settings.advanced.snippets.empty.description",
-              "Add a trigger such as omw and Sona writes on my way every time you say it.",
-            )}
-            action={
-              <Button size="sm" variant="secondary" onClick={focusNewTrigger}>
-                {t(
-                  "settings.advanced.snippets.empty.action",
-                  "Write your first snippet",
-                )}
-              </Button>
-            }
-          />
-        ) : (
-          <>
-            <ColumnHeader
-              gridClassName={ROW_GRID}
-              start={triggerLabel}
-              end={expansionLabel}
-            />
-            <RuleList
-              label={t("settings.advanced.snippets.title", "Text expansion")}
-            >
-              {snippets.map((snippet) => {
-                const draft = draftFor(snippet);
-                const dirty =
-                  draft.trigger.trim() !== snippet.trigger ||
-                  draft.expansion.trim() !== snippet.expansion;
-                const problem = dirty ? rowProblem(snippet) : null;
-                const hintId = `snippet-hint-${snippet.id}`;
-
-                return (
-                  <li
-                    key={snippet.id}
-                    className="py-2"
-                    data-testid="snippet-row"
-                    data-snippet-id={snippet.id}
-                  >
-                    <div className={ROW_GRID}>
-                      <Input
-                        variant="compact"
-                        value={draft.trigger}
-                        onChange={(event) =>
-                          editRow(snippet, "trigger", event.target.value)
-                        }
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") saveRow(snippet);
-                          if (event.key === "Escape") revertRow(snippet);
-                        }}
-                        aria-label={triggerLabel}
-                        aria-describedby={dirty ? hintId : undefined}
-                        invalid={problem !== null}
-                        disabled={busy}
-                        data-testid="snippet-trigger"
-                      />
-                      <Input
-                        variant="compact"
-                        value={draft.expansion}
-                        onChange={(event) =>
-                          editRow(snippet, "expansion", event.target.value)
-                        }
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") saveRow(snippet);
-                          if (event.key === "Escape") revertRow(snippet);
-                        }}
-                        aria-label={expansionLabel}
-                        aria-describedby={dirty ? hintId : undefined}
-                        disabled={busy}
-                        data-testid="snippet-expansion"
-                      />
-                      <span className="flex items-center justify-end gap-1.5">
-                        {dirty && (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => saveRow(snippet)}
-                            disabled={busy || problem !== null}
-                            aria-label={t(
-                              "settings.advanced.snippets.saveRow",
-                              {
-                                defaultValue: "Save {{trigger}}",
-                                trigger: snippet.trigger,
-                              },
-                            )}
-                            data-testid="snippet-save"
-                          >
-                            {t("common.save")}
-                          </Button>
-                        )}
-                        <Switch
-                          checked={snippet.enabled}
-                          disabled={busy}
-                          onChange={(enabled) =>
-                            void runWrite(() =>
-                              setSnippetEnabled(snippet.id, enabled),
-                            )
-                          }
-                          label={t("settings.advanced.snippets.enableRow", {
-                            defaultValue: "Enable {{trigger}}",
-                            trigger: snippet.trigger,
-                          })}
-                        />
-                        <IconButton
-                          variant="danger-ghost"
-                          size="sm"
-                          disabled={busy}
-                          onClick={() => setPendingDelete(snippet)}
-                          label={t("settings.advanced.snippets.remove", {
-                            defaultValue: "Delete {{trigger}}",
-                            trigger: snippet.trigger,
-                          })}
-                          icon={
-                            <Trash2 aria-hidden="true" className="h-4 w-4" />
-                          }
-                          data-testid="snippet-delete"
-                        />
-                      </span>
-                    </div>
+            return (
+              <RuleRow
+                key={snippet.id}
+                data-testid="snippet-row"
+                data-snippet-id={snippet.id}
+              >
+                <div className={ROW_GRID}>
+                  <Input
+                    className={cn(literalText, "h-8")}
+                    value={draft.trigger}
+                    onChange={(event) =>
+                      editRow(snippet, "trigger", event.target.value)
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") saveRow(snippet);
+                      if (event.key === "Escape") revertRow(snippet);
+                    }}
+                    aria-label={triggerLabel}
+                    aria-describedby={problem ? hintId : undefined}
+                    aria-invalid={problem !== null}
+                    disabled={busy}
+                    data-testid="snippet-trigger"
+                  />
+                  <Input
+                    className={cn(literalText, "h-8")}
+                    value={draft.expansion}
+                    onChange={(event) =>
+                      editRow(snippet, "expansion", event.target.value)
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") saveRow(snippet);
+                      if (event.key === "Escape") revertRow(snippet);
+                    }}
+                    aria-label={expansionLabel}
+                    aria-describedby={problem ? hintId : undefined}
+                    disabled={busy}
+                    data-testid="snippet-expansion"
+                  />
+                  <span className="flex items-center justify-end gap-1.5">
                     {dirty && (
-                      <Hint
-                        id={hintId}
-                        tone={problem ? "danger" : "muted"}
-                        live="polite"
-                        className="mt-1"
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        onClick={() => saveRow(snippet)}
+                        disabled={busy || problem !== null}
+                        aria-label={t("settings.advanced.snippets.saveRow", {
+                          defaultValue: "Save {{trigger}}",
+                          trigger: snippet.trigger,
+                        })}
+                        data-testid="snippet-save"
                       >
-                        {problem ??
-                          t(
-                            "settings.advanced.snippets.unsaved",
-                            "Press Enter or Save to keep this change.",
-                          )}
-                      </Hint>
+                        {t("common.save")}
+                      </Button>
                     )}
-                  </li>
-                );
-              })}
-            </RuleList>
-          </>
-        )}
-
-        {/* While the confirm dialog is up it covers this region, so the
-         * failure is repeated inside the dialog instead. */}
-        {writeError && pendingDelete === null && (
-          <Alert
-            variant="error"
-            action={
-              <Button size="sm" variant="secondary" onClick={() => void load()}>
-                {t("common.retry")}
-              </Button>
-            }
-          >
-            {writeError}
-          </Alert>
-        )}
-
-        <Hint>
-          {t(
-            "settings.advanced.snippets.matching",
-            "Triggers match whole words and ignore case. When two triggers fit the same spot the longer one wins, and expansion runs right after vocabulary corrections.",
-          )}
-        </Hint>
-      </>
+                    {/* The switch is state, not an action: it stays visible
+                     * while the destructive control waits to be asked for. */}
+                    <Switch
+                      size="sm"
+                      checked={snippet.enabled}
+                      disabled={busy}
+                      onCheckedChange={(enabled) =>
+                        void runWrite(() =>
+                          setSnippetEnabled(snippet.id, enabled),
+                        )
+                      }
+                      aria-label={t("settings.advanced.snippets.enableRow", {
+                        defaultValue: "Enable {{trigger}}",
+                        trigger: snippet.trigger,
+                      })}
+                    />
+                    <RowActions>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        className="text-gray-700 hover:text-red-900"
+                        disabled={busy}
+                        onClick={() => setPendingDelete(snippet)}
+                        aria-label={t("settings.advanced.snippets.remove", {
+                          defaultValue: "Delete {{trigger}}",
+                          trigger: snippet.trigger,
+                        })}
+                        data-testid="snippet-delete"
+                      >
+                        <Trash2 aria-hidden="true" />
+                      </Button>
+                    </RowActions>
+                  </span>
+                </div>
+                {problem && (
+                  <Hint
+                    id={hintId}
+                    tone="danger"
+                    live="polite"
+                    className="mt-1"
+                  >
+                    {problem}
+                  </Hint>
+                )}
+              </RuleRow>
+            );
+          })}
+        </RuleList>
+      </div>
     );
   };
 
   return (
     <>
-      <ToggleSwitch
-        grouped={grouped}
-        descriptionMode={descriptionMode}
-        checked={expansionEnabled}
-        isUpdating={togglePending || loadState === "loading"}
-        onChange={(enabled) => void toggleExpansion(enabled)}
-        label={t(
-          "settings.advanced.snippets.enabledLabel",
-          "Enable text expansion",
-        )}
-        description={t(
-          "settings.advanced.snippets.enabledDescription",
-          "Replace snippet triggers in every transcript, immediately after vocabulary corrections.",
-        )}
-      />
-
-      <SettingContainer
-        title={t("settings.advanced.snippets.title", "Text expansion")}
-        description={t(
-          "settings.advanced.snippets.description",
-          "Short triggers Sona expands into longer text. Changes here affect future transcripts only, never text already written.",
-        )}
-        descriptionMode={descriptionMode}
-        grouped={grouped}
-        layout="stacked"
+      <SettingsSection
+        label={sectionLabel}
+        action={
+          <Switch
+            checked={expansionEnabled}
+            disabled={togglePending || loadState === "loading"}
+            onCheckedChange={(enabled) => void toggleExpansion(enabled)}
+            aria-label={t(
+              "settings.advanced.snippets.enabledLabel",
+              "Enable text expansion",
+            )}
+          />
+        }
       >
-        <div className="space-y-3" data-testid="snippets-editor">
-          {!expansionEnabled && (
-            <Hint tone="warning">
-              {t(
-                "settings.advanced.snippets.offState",
-                "Text expansion is off. Snippets stay saved and apply again as soon as you turn it back on.",
-              )}
-            </Hint>
+        <div
+          className="divide-y divide-gray-alpha-400"
+          data-testid="snippets-editor"
+        >
+          <SettingsField label={addLabel}>
+            <div className={ROW_GRID} ref={createRowRef}>
+              <Input
+                className={literalText}
+                value={newTrigger}
+                onChange={(event) => setNewTrigger(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") createSnippet();
+                }}
+                placeholder={t(
+                  "settings.advanced.snippets.triggerPlaceholder",
+                  "omw",
+                )}
+                aria-label={triggerLabel}
+                aria-describedby={
+                  createHint ? "snippet-create-hint" : undefined
+                }
+                aria-invalid={newTriggerTaken}
+                disabled={busy}
+                data-testid="snippet-new-trigger"
+              />
+              <Input
+                className={literalText}
+                value={newExpansion}
+                onChange={(event) => setNewExpansion(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") createSnippet();
+                }}
+                placeholder={t(
+                  "settings.advanced.snippets.expansionPlaceholder",
+                  "on my way",
+                )}
+                aria-label={expansionLabel}
+                aria-describedby={
+                  createHint ? "snippet-create-hint" : undefined
+                }
+                disabled={busy}
+                data-testid="snippet-new-expansion"
+              />
+              {/* The field above is labelled "Add snippet"; a button repeating
+               * that label would be the same words twice, and a fixed grid
+               * column is the wrong place for a string that translates long. */}
+              <Button
+                size="icon-sm"
+                variant="outline"
+                className="justify-self-start sm:justify-self-end"
+                onClick={createSnippet}
+                disabled={busy || newIncomplete || newTriggerTaken}
+                aria-label={addLabel}
+                data-testid="snippet-add"
+              >
+                <Plus aria-hidden="true" />
+              </Button>
+            </div>
+            {createHint && (
+              <Hint
+                id="snippet-create-hint"
+                tone={newTriggerTaken ? "danger" : "muted"}
+                live={newTriggerTaken ? "polite" : "off"}
+                className="mt-2"
+              >
+                {createHint}
+              </Hint>
+            )}
+          </SettingsField>
+
+          {list()}
+
+          {/* While the confirm dialog is up it covers this region, so the
+           * failure is repeated inside the dialog instead. */}
+          {writeError && pendingDelete === null && (
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+              <Notice tone="danger">{writeError}</Notice>
+              <Button variant="outline" size="sm" onClick={() => void load()}>
+                {t("common.retry")}
+              </Button>
+            </div>
           )}
-          {editor()}
+
+          <Notice live={false} className="px-4 py-3">
+            {t(
+              "settings.advanced.snippets.matching",
+              "Triggers match whole words and ignore case. When two triggers fit the same spot the longer one wins, and expansion runs right after vocabulary corrections.",
+            )}
+          </Notice>
         </div>
-      </SettingContainer>
+      </SettingsSection>
 
       <Dialog
         open={pendingDelete !== null}
         onOpenChange={(open) => {
           if (!open) setPendingDelete(null);
         }}
-        title={t("settings.advanced.snippets.confirmDelete.title", {
-          defaultValue: "Delete {{trigger}}?",
-          trigger: pendingDelete?.trigger ?? "",
-        })}
-        description={t(
-          "settings.advanced.snippets.confirmDelete.description",
-          "The trigger stops expanding in future transcripts. Text already written is unchanged.",
-        )}
-        closeLabel={t("common.close")}
-        footer={
-          <>
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {t("settings.advanced.snippets.confirmDelete.title", {
+                defaultValue: "Delete {{trigger}}?",
+                trigger: pendingDelete?.trigger ?? "",
+              })}
+            </DialogTitle>
+            <DialogDescription>
+              {t(
+                "settings.advanced.snippets.confirmDelete.description",
+                "The trigger stops expanding in future transcripts. Text already written is unchanged.",
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          {writeError && <Notice tone="danger">{writeError}</Notice>}
+          <DialogFooter>
             <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
               onClick={() => setPendingDelete(null)}
               disabled={busy}
@@ -541,7 +522,7 @@ export const SnippetsPanel: React.FC<SnippetsPanelProps> = ({
               {t("common.cancel")}
             </Button>
             <Button
-              variant="danger"
+              variant="destructive"
               size="sm"
               disabled={busy}
               onClick={() => {
@@ -559,21 +540,8 @@ export const SnippetsPanel: React.FC<SnippetsPanelProps> = ({
             >
               {t("common.delete")}
             </Button>
-          </>
-        }
-      >
-        {pendingDelete && (
-          <div className="space-y-3">
-            <p className="text-[13px] leading-5 text-text-primary">
-              {t("settings.advanced.snippets.confirmDelete.body", {
-                defaultValue: "{{trigger}} currently expands to {{expansion}}.",
-                trigger: pendingDelete.trigger,
-                expansion: pendingDelete.expansion,
-              })}
-            </p>
-            {writeError && <Alert variant="error">{writeError}</Alert>}
-          </div>
-        )}
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </>
   );

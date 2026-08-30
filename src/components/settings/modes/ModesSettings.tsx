@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   commands,
@@ -11,14 +12,22 @@ import {
 } from "@/bindings";
 import { useSettings } from "@/hooks/useSettings";
 import { useOsType } from "@/hooks/useOsType";
+import { Button } from "@/components/vg/button";
 import {
-  Alert,
-  Button,
   Dialog,
-  EmptyState,
-  Skeleton,
-  StatusText,
-} from "@/components/ui";
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/vg/dialog";
+import { Skeleton } from "@/components/vg/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/vg/tabs";
+import {
+  Notice,
+  SettingsPage,
+  SettingsSurface,
+} from "@/components/settings/rows";
 import { ModeEditor } from "./ModeEditor";
 import { ModesList } from "./ModesList";
 import { ModesVocabularyView } from "./ModesVocabularyView";
@@ -29,8 +38,6 @@ import {
   modeWithRequiredCloudTimestamps,
   orderWithMove,
 } from "./modeModel";
-import "../settings-density.css";
-import "./modes.css";
 
 const WORKSPACE_VIEWS = ["modes", "vocabulary"] as const;
 const SKELETON_ROWS = [0, 1, 2, 3] as const;
@@ -347,60 +354,39 @@ export const ModesSettings: React.FC = () => {
     }
   }, [applySnapshot, editor, handleMutationError, pendingDelete, snapshot]);
 
-  const pageHeader = (
-    <header className="settings-page-header">
-      <h1 className="settings-page-title">{t("settings.modes.title")}</h1>
-      <p className="settings-page-description">
-        {t("settings.modes.description")}
-      </p>
-    </header>
-  );
-
   if (loading) {
     return (
-      <div className="settings-page modes-page density-page">
-        {pageHeader}
+      <SettingsPage title={t("settings.modes.title")}>
         <div
-          className="modes-workspace"
           role="status"
           aria-label={t("settings.modes.loading")}
+          className="flex flex-col gap-10"
         >
-          <div className="modes-master flex flex-col gap-2 pt-2">
+          <SettingsSurface>
             {SKELETON_ROWS.map((row) => (
-              <Skeleton key={row} className="h-9 w-full" />
+              <div key={row} className="px-4 py-3">
+                <Skeleton className="h-5 w-full" />
+              </div>
             ))}
-          </div>
-          <div className="modes-detail-shell flex flex-col gap-3 pt-2">
-            <Skeleton className="h-9 w-1/3" />
-            <Skeleton className="h-9 w-full" />
-            <Skeleton className="h-28 w-full" />
-            <Skeleton className="h-28 w-full" />
-          </div>
+          </SettingsSurface>
+          <Skeleton className="h-9 w-full" />
+          <Skeleton className="h-40 w-full" />
         </div>
-      </div>
+      </SettingsPage>
     );
   }
 
   if (!snapshot) {
     return (
-      <div className="settings-page modes-page density-page">
-        {pageHeader}
-        <Alert
-          variant="error"
-          action={
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => void loadModes()}
-            >
-              {t("settings.modes.retry")}
-            </Button>
-          }
-        >
-          {t("settings.modes.loadError")}
-        </Alert>
-        {error ? <StatusText>{error}</StatusText> : null}
-      </div>
+      <SettingsPage title={t("settings.modes.title")}>
+        <div className="flex flex-col items-start gap-3">
+          <Notice tone="danger">{t("settings.modes.loadError")}</Notice>
+          {error ? <Notice>{error}</Notice> : null}
+          <Button variant="outline" size="sm" onClick={() => void loadModes()}>
+            {t("settings.modes.retry")}
+          </Button>
+        </div>
+      </SettingsPage>
     );
   }
 
@@ -417,50 +403,52 @@ export const ModesSettings: React.FC = () => {
     : undefined;
 
   return (
-    <div className="settings-page modes-page density-page">
-      {pageHeader}
-
-      <nav
-        className="settings-local-nav modes-view-nav"
-        aria-label={t("settings.modes.viewNavigation")}
-      >
-        {WORKSPACE_VIEWS.map((view) => (
-          <button
-            key={view}
-            type="button"
-            aria-current={workspaceView === view ? "page" : undefined}
-            onClick={() => setWorkspaceView(view)}
-          >
-            {t(`settings.modes.views.${view}`)}
-          </button>
-        ))}
-      </nav>
-
-      {error ? (
-        <Alert
-          variant="error"
-          action={
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setError(null)}
-              aria-label={t("settings.modes.dismissError", "Dismiss the error")}
-            >
-              {t("common.close")}
-            </Button>
-          }
+    <SettingsPage
+      title={t("settings.modes.title")}
+      actions={
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={saving || snapshot.modes.length === 0}
+          onClick={() => {
+            if (defaultMode) void createMode(defaultMode);
+          }}
         >
-          {error}
-        </Alert>
-      ) : null}
+          <Plus aria-hidden="true" className="size-4" />
+          {t("settings.modes.new")}
+        </Button>
+      }
+    >
+      <Tabs
+        value={workspaceView}
+        onValueChange={(next) => {
+          const view = WORKSPACE_VIEWS.find((candidate) => candidate === next);
+          if (view) setWorkspaceView(view);
+        }}
+        className="gap-10"
+      >
+        {/* Line variant, matching SettingsHub: tabs that change what the page
+         * shows are navigation; the segmented look stays reserved for value
+         * filters like Library's Processed·Raw. */}
+        <TabsList
+          variant="line"
+          aria-label={t("settings.modes.viewNavigation")}
+        >
+          {WORKSPACE_VIEWS.map((view) => (
+            <TabsTrigger key={view} value={view}>
+              {t(`settings.modes.views.${view}`)}
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
-      {workspaceView === "vocabulary" ? (
-        <ModesVocabularyView />
-      ) : (
-        <div className="modes-workspace">
+        <TabsContent value="modes" className="flex flex-col gap-10">
+          {error ? <Notice tone="danger">{error}</Notice> : null}
+
+          {/* List above the editor rather than beside it: at the 760px column
+           * a master/detail pane squeezes both, and stacking retires the whole
+           * viewport-height calculation the two-pane layout needed. */}
           <ModesList
             modes={snapshot.modes}
-            models={models}
             activeModeId={snapshot.active_mode_id}
             selectedModeId={selectedEditor?.id ?? null}
             busy={saving}
@@ -468,9 +456,6 @@ export const ModesSettings: React.FC = () => {
             onSelect={(mode) => {
               setEditor(modeDefinitionFromView(mode));
               setConflict(false);
-            }}
-            onCreate={() => {
-              if (defaultMode) void createMode(defaultMode);
             }}
             onActivate={(modeId) => void activateMode(modeId)}
             onDuplicate={(mode) => void createMode(mode)}
@@ -488,65 +473,62 @@ export const ModesSettings: React.FC = () => {
             onReload={() => void loadModes()}
           />
 
-          <section
-            className="modes-detail-shell"
-            aria-label={t("settings.modes.editorLabel")}
-          >
-            {selectedEditor ? (
-              <ModeEditor
-                mode={selectedEditor}
-                savedMode={savedSelectedMode}
-                modeCount={snapshot.modes.length}
-                models={models}
-                onChange={setEditor}
-                onSave={() => void saveEditor(selectedEditor)}
-                saving={saving}
-                conflict={conflict}
-                activationRules={snapshot.mode_activation_rules}
-                websiteActivationRules={snapshot.mode_website_activation_rules}
-                activationSupported={osType === "macos"}
-                capturingActivation={capturingActivation}
-                onCaptureActivation={() =>
-                  void captureModeActivation(selectedEditor.id)
-                }
-                onRemoveActivation={(appId) => void removeModeActivation(appId)}
-                onCaptureWebsiteActivation={(matchKind) =>
-                  void captureModeWebsiteActivation(
-                    selectedEditor.id,
-                    matchKind,
-                  )
-                }
-                onRemoveWebsiteActivation={(host, matchKind) =>
-                  void removeModeWebsiteActivation(host, matchKind)
-                }
-              />
-            ) : (
-              <EmptyState
-                title={t("settings.modes.empty")}
-                description={t(
-                  "settings.modes.emptyHint",
-                  "Pick a mode on the left to change what it recognizes, rewrites, and delivers.",
-                )}
-              />
-            )}
-          </section>
-        </div>
-      )}
+          {selectedEditor ? (
+            <ModeEditor
+              mode={selectedEditor}
+              savedMode={savedSelectedMode}
+              modeCount={snapshot.modes.length}
+              models={models}
+              onChange={setEditor}
+              onSave={() => void saveEditor(selectedEditor)}
+              saving={saving}
+              conflict={conflict}
+              activationRules={snapshot.mode_activation_rules}
+              websiteActivationRules={snapshot.mode_website_activation_rules}
+              activationSupported={osType === "macos"}
+              capturingActivation={capturingActivation}
+              onCaptureActivation={() =>
+                void captureModeActivation(selectedEditor.id)
+              }
+              onRemoveActivation={(appId) => void removeModeActivation(appId)}
+              onCaptureWebsiteActivation={(matchKind) =>
+                void captureModeWebsiteActivation(selectedEditor.id, matchKind)
+              }
+              onRemoveWebsiteActivation={(host, matchKind) =>
+                void removeModeWebsiteActivation(host, matchKind)
+              }
+            />
+          ) : (
+            <Notice>{t("settings.modes.empty")}</Notice>
+          )}
+        </TabsContent>
+
+        <TabsContent value="vocabulary">
+          <ModesVocabularyView />
+        </TabsContent>
+      </Tabs>
 
       <Dialog
         open={pendingDelete !== null}
         onOpenChange={(open) => {
           if (!open) setPendingDelete(null);
         }}
-        title={t("settings.modes.deleteTitle")}
-        description={t("settings.modes.deleteDescription", {
-          mode: pendingDelete?.name ?? "",
-        })}
-        closeLabel={t("common.close")}
-        footer={
-          <>
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("settings.modes.deleteTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("settings.modes.deleteDescription", {
+                mode: pendingDelete?.name ?? "",
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <p className="text-sm text-gray-900">
+            {t("settings.modes.deleteBody")}
+          </p>
+          <DialogFooter>
             <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
               onClick={() => setPendingDelete(null)}
               disabled={saving}
@@ -554,20 +536,16 @@ export const ModesSettings: React.FC = () => {
               {t("common.cancel")}
             </Button>
             <Button
-              variant="danger"
+              variant="destructive"
               size="sm"
               onClick={() => void deleteMode()}
               disabled={saving}
             >
               {t("settings.modes.delete")}
             </Button>
-          </>
-        }
-      >
-        <p className="text-sm text-text-secondary">
-          {t("settings.modes.deleteBody")}
-        </p>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
-    </div>
+    </SettingsPage>
   );
 };

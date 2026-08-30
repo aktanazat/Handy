@@ -15,9 +15,6 @@ const EN_MESSAGES = parseTranslationBundle(
 
 /** Keys whose interpolation makes them unusable as static lookups. */
 const DYNAMIC_KEYS = {
-  "overview.recent": ["history", "meeting"],
-  "overview.sources": ["microphone", "file", "legacy"],
-  "settings.history.stats.source": ["microphone", "file", "legacy"],
   "settings.history.receipts.engine": ["local", "cloud", "local_fallback"],
   "settings.history.receipts.source": ["microphone", "file", "legacy"],
   "settings.hub.tabs": [

@@ -13,14 +13,21 @@ import type {
   SpeakerId,
 } from "@/bindings";
 import {
-  Button,
-  EmptyState,
-  Input,
-  Section,
-  StatusText,
-  Textarea,
-  type StatusTone,
-} from "../../ui";
+  Microlabel,
+  Notice,
+  SettingsSection,
+} from "@/components/settings/rows";
+import { Button } from "@/components/vg/button";
+import { Checkbox } from "@/components/vg/checkbox";
+import { Input } from "@/components/vg/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/vg/select";
+import { Textarea } from "@/components/vg/textarea";
 import { MeetingSourceList, ProcessingStatusText } from "./MeetingStatus";
 import { formatMeetingOffset } from "./meetingUtils";
 import { MeetingAnalyticsStrip } from "./MeetingAnalyticsStrip";
@@ -33,26 +40,31 @@ import { actionItemKey, type MeetingAnalytics } from "./meetingAnalytics";
  *
  * A citation is a jump. Anything that points at a transcript segment renders
  * as a control that scrolls that segment into view and marks it, which is the
- * whole reason the backend attaches citations at all. */
+ * whole reason the backend attaches citations at all.
+ *
+ * Every panel is one card of hairline rows under a mono label. The section
+ * descriptions are gone: each of them restated the label above it or the
+ * control below it. */
 
 /** DOM id prefix for transcript rows, so a citation can find its segment. */
 const SEGMENT_DOM_PREFIX = "meeting-transcript-segment-";
 
-const CAPTION_CLASSES = "microlabel";
+/** A measurement inside a row: mono, tabular, quiet. */
+const MONO_FACT = "font-mono text-[11px] tabular-nums text-gray-700";
 
-const ANSWER_STATE_TONES = {
-  supported: "muted",
-  insufficient_evidence: "warning",
-  unavailable: "warning",
-  out_of_date: "warning",
-  forgotten: "muted",
-} as const satisfies Record<MeetingAnswerState, StatusTone>;
+const ANSWER_STATE_CLASSES = {
+  supported: "text-gray-700",
+  insufficient_evidence: "text-amber-900",
+  unavailable: "text-amber-900",
+  out_of_date: "text-amber-900",
+  forgotten: "text-gray-700",
+} as const satisfies Record<MeetingAnswerState, string>;
 
-const ARTIFACT_STATE_TONES = {
-  current: "muted",
-  out_of_date: "warning",
-  failed: "danger",
-} as const satisfies Record<MeetingArtifactState, StatusTone>;
+const ARTIFACT_STATE_CLASSES = {
+  current: "text-gray-700",
+  out_of_date: "text-amber-900",
+  failed: "text-red-900",
+} as const satisfies Record<MeetingArtifactState, string>;
 
 export interface SegmentJump {
   segmentId: string;
@@ -66,10 +78,10 @@ export interface CitationJumpProps {
   onJump: (segmentId: string) => void;
 }
 
-/* A citation is a jump, so it looks like the thing that jumps: a link in the
- * accent colour with the timestamp kept monospaced and tabular. It degrades to
- * plain text when it points at a manual note or the title, which have no
- * transcript row to scroll to. */
+/* A citation is a jump, so it looks like the thing that jumps: the accent
+ * colour with the timestamp kept monospaced and tabular. It degrades to plain
+ * text when it points at a manual note or the title, which have no transcript
+ * row to scroll to. */
 export const CitationJump: React.FC<CitationJumpProps> = ({
   startOffsetNs,
   segmentId,
@@ -81,14 +93,18 @@ export const CitationJump: React.FC<CitationJumpProps> = ({
   });
 
   if (segmentId === null) {
-    return <span className="meeting-citation-static">{label}</span>;
+    return (
+      <span className="px-1.5 py-0.5 font-mono text-[11px] tabular-nums text-gray-700">
+        {label}
+      </span>
+    );
   }
 
   return (
     <button
       type="button"
       onClick={() => onJump(segmentId)}
-      className="meeting-citation"
+      className="rounded-md px-1.5 py-0.5 font-mono text-[11px] tabular-nums text-blue-900 transition-colors hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
     >
       {label}
     </button>
@@ -101,8 +117,8 @@ interface CitedTextProps {
 }
 
 const CitedText: React.FC<CitedTextProps> = ({ value, onJump }) => (
-  <div className="space-y-1">
-    <p className="text-[13px] leading-5 text-text-primary text-pretty">
+  <div className="flex flex-col gap-1">
+    <p className="text-[13px] leading-5 text-pretty text-gray-1000">
       {value.text}
     </p>
     {value.citations.length > 0 ? (
@@ -200,11 +216,8 @@ export const TranscriptTab: React.FC<TranscriptTabProps> = ({
 
   return (
     <>
-      <Section
-        title={t("meetings.review.exactSearch")}
-        description={t("meetings.review.exactSearchDescription")}
-      >
-        <div className="meeting-card">
+      <SettingsSection label={t("meetings.review.exactSearch")}>
+        <div className="flex flex-col gap-3 p-4">
           <form
             className="flex flex-wrap items-center gap-2"
             onSubmit={(event) => {
@@ -218,228 +231,209 @@ export const TranscriptTab: React.FC<TranscriptTabProps> = ({
               onChange={(event) => onSearchQueryChange(event.target.value)}
               placeholder={t("meetings.review.searchPlaceholder")}
               aria-label={t("meetings.review.exactSearch")}
-              className="w-full max-w-[320px]"
+              className="max-w-[320px]"
             />
             <Button
               type="submit"
-              variant="secondary"
+              variant="outline"
               disabled={searching || searchQuery.trim().length === 0}
             >
-              <Search size={14} aria-hidden="true" />
+              <Search aria-hidden="true" className="size-3.5" />
               {searching
                 ? t("meetings.review.searching", "Searching…")
                 : t("meetings.review.search")}
             </Button>
           </form>
-          {searching ? (
-            <StatusText tone="muted" live="polite" className="mt-2 block">
-              {t("meetings.review.searching", "Searching…")}
-            </StatusText>
-          ) : searchHits === null ? null : searchHits.length === 0 ? (
-            <StatusText tone="muted" live="polite" className="mt-2 block">
-              {t("meetings.review.noSearchResults")}
-            </StatusText>
-          ) : (
+          {searchHits !== null && searchHits.length === 0 ? (
+            <Notice tone="muted">{t("meetings.review.noSearchResults")}</Notice>
+          ) : null}
+        </div>
+        {searchHits === null || searchHits.length === 0 ? null : (
+          <ul
+            role="list"
+            aria-label={t("meetings.review.exactSearch")}
+            className="divide-y divide-gray-alpha-400"
+          >
+            {searchHits.map((hit) => (
+              <MeetingSearchHitRow
+                key={`${hit.kind}:${hit.entity_id}:${hit.start_offset_ns ?? "start"}`}
+                hit={hit}
+                onJump={onJumpToSegment}
+              />
+            ))}
+          </ul>
+        )}
+      </SettingsSection>
+
+      <SettingsSection
+        label={t("meetings.review.speakers")}
+        action={
+          <span className="font-mono text-[11px] text-gray-700">
+            {t(`meetings.diarization.${snapshot.diarization.status}`)}
+          </span>
+        }
+      >
+        {snapshot.speakers.length === 0 ? (
+          <div className="px-4 py-3">
+            <Notice tone="muted" live={false}>
+              {t("meetings.review.noSpeakers")}
+            </Notice>
+          </div>
+        ) : (
+          <>
             <ul
               role="list"
-              aria-label={t("meetings.review.exactSearch")}
-              className="meeting-rows mt-3"
+              aria-label={t("meetings.review.speakers")}
+              className="divide-y divide-gray-alpha-400"
             >
-              {searchHits.map((hit) => (
-                <MeetingSearchHitRow
-                  key={`${hit.kind}:${hit.entity_id}:${hit.start_offset_ns ?? "start"}`}
-                  hit={hit}
-                  onJump={onJumpToSegment}
+              {snapshot.speakers.map((speaker) => (
+                <SpeakerRow
+                  key={`${speaker.speaker_id}:${speaker.revision}:${speaker.display_name}`}
+                  speakerId={speaker.speaker_id}
+                  name={speaker.display_name}
+                  disabled={disabled}
+                  onRename={onSpeakerRename}
                 />
               ))}
             </ul>
-          )}
-        </div>
-      </Section>
+            {snapshot.speakers.length > 1 ? (
+              <MeetingSpeakerMerge
+                key={snapshot.speakers
+                  .map((speaker) => `${speaker.speaker_id}:${speaker.revision}`)
+                  .join("|")}
+                speakers={snapshot.speakers}
+                disabled={disabled}
+                onMerge={onSpeakerMerge}
+              />
+            ) : null}
+          </>
+        )}
+      </SettingsSection>
 
-      <Section
-        title={t("meetings.review.speakers")}
-        description={t("meetings.review.speakersDescription")}
-      >
-        <div className="meeting-card">
-          <StatusText tone="muted" className="mb-2 block">
-            {t(`meetings.diarization.${snapshot.diarization.status}`)}
-          </StatusText>
-          {snapshot.speakers.length === 0 ? (
-            <StatusText tone="muted" className="block">
-              {t("meetings.review.noSpeakers")}
-            </StatusText>
-          ) : (
-            <>
-              <ul
-                role="list"
-                aria-label={t("meetings.review.speakers")}
-                className="meeting-rows"
-              >
-                {snapshot.speakers.map((speaker) => (
-                  <SpeakerRow
-                    key={`${speaker.speaker_id}:${speaker.revision}:${speaker.display_name}`}
-                    speakerId={speaker.speaker_id}
-                    name={speaker.display_name}
-                    disabled={disabled}
-                    onRename={onSpeakerRename}
-                  />
-                ))}
-              </ul>
-              {snapshot.speakers.length > 1 ? (
-                <MeetingSpeakerMerge
-                  key={snapshot.speakers
-                    .map(
-                      (speaker) => `${speaker.speaker_id}:${speaker.revision}`,
-                    )
-                    .join("|")}
-                  speakers={snapshot.speakers}
-                  disabled={disabled}
-                  onMerge={onSpeakerMerge}
-                />
-              ) : null}
-            </>
-          )}
-        </div>
-      </Section>
-
-      <Section
-        title={t("meetings.review.transcript")}
-        description={t("meetings.review.transcriptDescription")}
-      >
-        <div className="meeting-card">
-          {snapshot.transcript.length === 0 ? (
-            <StatusText tone="muted" className="block">
+      <SettingsSection label={t("meetings.review.transcript")}>
+        {snapshot.transcript.length === 0 ? (
+          <div className="px-4 py-3">
+            <Notice tone="muted" live={false}>
               {t("meetings.review.noTranscript")}
-            </StatusText>
-          ) : (
-            <ol
-              role="list"
-              aria-label={t("meetings.review.transcript")}
-              className="meeting-rows"
-            >
-              {snapshot.transcript.map((segment) => {
-                const text = segment.replacement_text ?? segment.base.text;
-                const highlighted = jump?.segmentId === segment.base.segment_id;
-                return (
-                  <li
-                    key={segment.base.segment_id}
-                    id={`${SEGMENT_DOM_PREFIX}${segment.base.segment_id}`}
-                    className={`meeting-row-stacked ${highlighted ? "bg-subtle" : ""}`}
-                  >
-                    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                      <p className="flex min-w-0 items-baseline gap-2">
-                        <span className="chip">
-                          {formatMeetingOffset(segment.base.start_offset_ns)}
-                        </span>
-                        <span className="truncate text-[12.5px] leading-[18px] font-medium text-text-secondary">
-                          {speakerNames[segment.assigned_speaker_id] ??
-                            t("meetings.review.unknownSpeaker")}
-                        </span>
-                      </p>
-                      <Button
-                        type="button"
-                        variant="danger-ghost"
-                        size="sm"
-                        onClick={() =>
-                          onSegmentEdit(segment.base.segment_id, text, true)
-                        }
-                        disabled={disabled || segment.removed}
-                      >
-                        {t("meetings.review.removeSegment")}
-                      </Button>
-                    </div>
-                    <Textarea
-                      key={`${segment.base.segment_id}:${segment.edit_revision ?? "base"}`}
-                      variant="compact"
-                      defaultValue={text}
-                      aria-label={t("meetings.review.transcriptSegment")}
-                      disabled={disabled}
-                      onBlur={(event) => {
-                        const nextText = event.target.value.trim();
-                        if (nextText !== text && nextText.length > 0) {
-                          onSegmentEdit(
-                            segment.base.segment_id,
-                            nextText,
-                            false,
-                          );
-                        }
-                      }}
-                      className={`mt-1.5 min-h-[46px] w-full ${segment.removed ? "line-through" : ""}`}
-                    />
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-        </div>
-      </Section>
+            </Notice>
+          </div>
+        ) : (
+          <ol
+            role="list"
+            aria-label={t("meetings.review.transcript")}
+            className="divide-y divide-gray-alpha-400"
+          >
+            {snapshot.transcript.map((segment) => {
+              const text = segment.replacement_text ?? segment.base.text;
+              const highlighted = jump?.segmentId === segment.base.segment_id;
+              return (
+                <li
+                  key={segment.base.segment_id}
+                  id={`${SEGMENT_DOM_PREFIX}${segment.base.segment_id}`}
+                  className={`flex flex-col gap-1.5 px-4 py-3 ${highlighted ? "bg-gray-alpha-100" : ""}`}
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                    <p className="flex min-w-0 items-baseline gap-2">
+                      <span className={MONO_FACT}>
+                        {formatMeetingOffset(segment.base.start_offset_ns)}
+                      </span>
+                      <span className="truncate text-sm text-gray-900">
+                        {speakerNames[segment.assigned_speaker_id] ??
+                          t("meetings.review.unknownSpeaker")}
+                      </span>
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="text-red-900 hover:text-red-900"
+                      onClick={() =>
+                        onSegmentEdit(segment.base.segment_id, text, true)
+                      }
+                      disabled={disabled || segment.removed}
+                    >
+                      {t("meetings.review.removeSegment")}
+                    </Button>
+                  </div>
+                  <Textarea
+                    key={`${segment.base.segment_id}:${segment.edit_revision ?? "base"}`}
+                    defaultValue={text}
+                    aria-label={t("meetings.review.transcriptSegment")}
+                    disabled={disabled}
+                    onBlur={(event) => {
+                      const nextText = event.target.value.trim();
+                      if (nextText !== text && nextText.length > 0) {
+                        onSegmentEdit(segment.base.segment_id, nextText, false);
+                      }
+                    }}
+                    className={`min-h-[46px] resize-none ${segment.removed ? "line-through" : ""}`}
+                  />
+                </li>
+              );
+            })}
+          </ol>
+        )}
+      </SettingsSection>
 
-      <Section
-        title={t("meetings.review.status")}
-        description={t("meetings.review.statusDescription")}
-      >
-        <div className="meeting-card space-y-3">
-          <MeetingSourceList
-            sources={snapshot.session.sources}
-            label={t("meetings.review.status")}
-          />
+      <SettingsSection label={t("meetings.review.status")}>
+        <MeetingSourceList
+          sources={snapshot.session.sources}
+          label={t("meetings.review.status")}
+        />
+        <div className="px-4 py-3">
           <ProcessingStatusText
             status={snapshot.session.processing_status}
             className="block"
           />
         </div>
-      </Section>
+      </SettingsSection>
 
-      <Section
-        title={t("meetings.review.timeline")}
-        description={t("meetings.review.timelineDescription")}
-      >
-        <div className="meeting-card">
-          {snapshot.gaps.length === 0 ? (
-            <StatusText tone="muted" className="block">
+      <SettingsSection label={t("meetings.review.timeline")}>
+        {snapshot.gaps.length === 0 ? (
+          <div className="px-4 py-3">
+            <Notice tone="muted" live={false}>
               {t("meetings.review.noGaps")}
-            </StatusText>
-          ) : (
-            <ul
-              role="list"
-              aria-label={t("meetings.review.timeline")}
-              className="meeting-rows"
-            >
-              {snapshot.gaps.map((gap) => (
-                <li
-                  key={`${gap.track_id}:${gap.epoch}:${gap.start_offset_ns ?? "start"}`}
-                  className="meeting-row"
-                >
-                  <span className="min-w-0">
-                    <p className="meeting-row-label">
-                      {t(`meetings.gaps.${gap.reason}`)}
-                    </p>
-                    <span className="chip">
-                      {gap.start_offset_ns === null
-                        ? t("meetings.review.timeUnknown")
-                        : formatMeetingOffset(gap.start_offset_ns)}
-                      {" – "}
-                      {gap.end_offset_ns === null
-                        ? t("meetings.review.timeUnknown")
-                        : formatMeetingOffset(gap.end_offset_ns)}
-                    </span>
+            </Notice>
+          </div>
+        ) : (
+          <ul
+            role="list"
+            aria-label={t("meetings.review.timeline")}
+            className="divide-y divide-gray-alpha-400"
+          >
+            {snapshot.gaps.map((gap) => (
+              <li
+                key={`${gap.track_id}:${gap.epoch}:${gap.start_offset_ns ?? "start"}`}
+                className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-2.5"
+              >
+                <span className="flex min-w-0 items-baseline gap-2">
+                  <span className="text-[13px] leading-5 text-gray-1000">
+                    {t(`meetings.gaps.${gap.reason}`)}
                   </span>
-                  {gap.dropped_frames === null ? null : (
-                    <StatusText tone="muted" className="meeting-row-value">
-                      {t(
-                        "meetings.review.droppedFrames",
-                        "Dropped frames: {{total}}",
-                        { total: gap.dropped_frames },
-                      )}
-                    </StatusText>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </Section>
+                  <span className={MONO_FACT}>
+                    {gap.start_offset_ns === null
+                      ? t("meetings.review.timeUnknown")
+                      : formatMeetingOffset(gap.start_offset_ns)}
+                    {" – "}
+                    {gap.end_offset_ns === null
+                      ? t("meetings.review.timeUnknown")
+                      : formatMeetingOffset(gap.end_offset_ns)}
+                  </span>
+                </span>
+                {gap.dropped_frames === null ? null : (
+                  <span className={`flex-none ${MONO_FACT}`}>
+                    {t(
+                      "meetings.review.droppedFrames",
+                      "Dropped frames: {{total}}",
+                      { total: gap.dropped_frames },
+                    )}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </SettingsSection>
     </>
   );
 };
@@ -465,25 +459,27 @@ const MeetingSearchHitRow: React.FC<MeetingSearchHitRowProps> = ({
   const body = (
     <>
       <span className="flex items-baseline gap-2">
-        <span className="chip">{formatMeetingOffset(hit.start_offset_ns)}</span>
-        <span className="microlabel">{kindLabel}</span>
+        <span className={MONO_FACT}>
+          {formatMeetingOffset(hit.start_offset_ns)}
+        </span>
+        <Microlabel>{kindLabel}</Microlabel>
       </span>
-      <span className="mt-0.5 line-clamp-2 block text-[13px] leading-5 text-text-primary">
+      <span className="line-clamp-2 block text-[13px] leading-5 text-gray-1000">
         {hit.excerpt}
       </span>
     </>
   );
 
   if (hit.kind !== "transcript") {
-    return <li className="meeting-row-stacked">{body}</li>;
+    return <li className="flex flex-col gap-1 px-4 py-3">{body}</li>;
   }
 
   return (
-    <li className="meeting-row-stacked meeting-row-flush">
+    <li>
       <button
         type="button"
         onClick={() => onJump(hit.entity_id)}
-        className="w-full cursor-pointer rounded-control px-2 py-3 text-start outline-offset-[-2px] transition-[background-color] duration-150 ease-out hover:bg-hover active:bg-pressed"
+        className="flex w-full cursor-pointer flex-col gap-1 px-4 py-3 text-start transition-colors hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
       >
         {body}
       </button>
@@ -510,18 +506,17 @@ const SpeakerRow: React.FC<SpeakerRowProps> = ({
   const canSave = trimmedName.length > 0 && trimmedName !== name;
 
   return (
-    <li className="meeting-row-stacked flex flex-wrap items-center gap-2">
+    <li className="flex flex-wrap items-center gap-2 px-4 py-2.5">
       <Input
-        variant="compact"
         value={draftName}
         onChange={(event) => setDraftName(event.target.value)}
         aria-label={t("meetings.review.speakerName")}
         disabled={disabled}
-        className="min-w-0 flex-1"
+        className="h-8 min-w-0 flex-1"
       />
       <Button
         type="button"
-        variant="secondary"
+        variant="outline"
         size="sm"
         onClick={() => onRename(speakerId, trimmedName)}
         disabled={disabled || !canSave}
@@ -555,52 +550,51 @@ const MeetingSpeakerMerge: React.FC<MeetingSpeakerMergeProps> = ({
     !disabled && source.length > 0 && target.length > 0 && source !== target;
 
   return (
-    <div className="mt-3 flex flex-wrap items-end gap-3">
-      <div className="min-w-0 flex-1 basis-40">
+    <div className="flex flex-wrap items-end gap-3 px-4 py-3">
+      <div className="flex min-w-0 flex-1 basis-40 flex-col gap-1">
         <label
-          className="mb-1 block text-[12px] leading-4 text-text-secondary"
+          className="text-[13px] text-gray-900"
           htmlFor={`${fieldId}-source`}
         >
           {t("meetings.review.mergeSource")}
         </label>
-        <select
-          id={`${fieldId}-source`}
-          value={source}
-          onChange={(event) => setSource(event.target.value)}
-          disabled={disabled}
-          className="w-full"
-        >
-          {speakers.map((speaker) => (
-            <option key={speaker.speaker_id} value={speaker.speaker_id}>
-              {speaker.display_name}
-            </option>
-          ))}
-        </select>
+        <Select value={source} onValueChange={setSource} disabled={disabled}>
+          <SelectTrigger id={`${fieldId}-source`} size="sm" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {speakers.map((speaker) => (
+              <SelectItem key={speaker.speaker_id} value={speaker.speaker_id}>
+                {speaker.display_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
-      <div className="min-w-0 flex-1 basis-40">
+      <div className="flex min-w-0 flex-1 basis-40 flex-col gap-1">
         <label
-          className="mb-1 block text-[12px] leading-4 text-text-secondary"
+          className="text-[13px] text-gray-900"
           htmlFor={`${fieldId}-target`}
         >
           {t("meetings.review.mergeTarget")}
         </label>
-        <select
-          id={`${fieldId}-target`}
-          value={target}
-          onChange={(event) => setTarget(event.target.value)}
-          disabled={disabled}
-          className="w-full"
-        >
-          {speakers.map((speaker) => (
-            <option key={speaker.speaker_id} value={speaker.speaker_id}>
-              {speaker.display_name}
-            </option>
-          ))}
-        </select>
+        <Select value={target} onValueChange={setTarget} disabled={disabled}>
+          <SelectTrigger id={`${fieldId}-target`} size="sm" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {speakers.map((speaker) => (
+              <SelectItem key={speaker.speaker_id} value={speaker.speaker_id}>
+                {speaker.display_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <Button
         type="button"
-        variant="secondary"
+        variant="outline"
+        size="sm"
         onClick={() => onMerge(source, target)}
         disabled={!canMerge}
       >
@@ -688,23 +682,21 @@ export const InsightsTab: React.FC<InsightsTabProps> = ({
         }}
       />
 
-      <Section
-        title={t("meetings.review.manualNotes")}
-        description={t("meetings.review.manualNotesDescription")}
-      >
-        <div className="meeting-card">
+      <SettingsSection label={t("meetings.review.manualNotes")}>
+        <div className="flex flex-col gap-2 p-4">
           <Textarea
             value={newNote}
             onChange={(event) => onNewNoteChange(event.target.value)}
             placeholder={t("meetings.review.notePlaceholder")}
             aria-label={t("meetings.review.newNote")}
             disabled={disabled}
-            className="w-full"
+            rows={3}
+            className="resize-none"
           />
-          <div className="mt-2 flex justify-end">
+          <div className="flex justify-end">
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
               size="sm"
               onClick={onCreateNote}
               disabled={disabled || newNote.trim().length === 0}
@@ -712,110 +704,105 @@ export const InsightsTab: React.FC<InsightsTabProps> = ({
               {t("meetings.review.addNote")}
             </Button>
           </div>
-          {snapshot.notes.length === 0 ? (
-            <StatusText tone="muted" className="mt-2 block">
-              {t("meetings.review.noNotes")}
-            </StatusText>
-          ) : (
-            <ul
-              role="list"
-              aria-label={t("meetings.review.manualNotes")}
-              className="meeting-rows mt-3"
-            >
-              {snapshot.notes.map((note) => (
-                <ManualNoteEditor
-                  key={`${note.note_id}:${note.revision}:${note.body}`}
-                  note={note}
-                  disabled={disabled}
-                  onUpdate={onNoteUpdate}
-                  onDelete={onNoteDelete}
-                />
-              ))}
-            </ul>
-          )}
         </div>
-      </Section>
+        {snapshot.notes.length === 0 ? (
+          <div className="px-4 py-3">
+            <Notice tone="muted" live={false}>
+              {t("meetings.review.noNotes")}
+            </Notice>
+          </div>
+        ) : (
+          <ul
+            role="list"
+            aria-label={t("meetings.review.manualNotes")}
+            className="divide-y divide-gray-alpha-400"
+          >
+            {snapshot.notes.map((note) => (
+              <ManualNoteEditor
+                key={`${note.note_id}:${note.revision}:${note.body}`}
+                note={note}
+                disabled={disabled}
+                onUpdate={onNoteUpdate}
+                onDelete={onNoteDelete}
+              />
+            ))}
+          </ul>
+        )}
+      </SettingsSection>
 
-      <Section
-        title={t("meetings.review.generatedNotes")}
-        description={t("meetings.review.generatedNotesDescription")}
-        actions={
+      <SettingsSection
+        label={t("meetings.review.generatedNotes")}
+        action={
           <Button
             type="button"
-            variant="secondary"
+            variant="outline"
             size="sm"
             onClick={onRegenerate}
             disabled={busy || !canRegenerate}
           >
-            <RefreshCcw size={14} aria-hidden="true" />
+            <RefreshCcw aria-hidden="true" className="size-3.5" />
             {t("meetings.review.regenerate")}
           </Button>
         }
       >
         {remoteUnavailable ? (
-          <StatusText tone="danger" className="mb-2 block">
-            {t(
-              "meetings.review.remoteProcessingUnavailable",
-              "The remote destination never became available, so nothing was generated. Regenerating runs on this Mac.",
-            )}
-          </StatusText>
+          <div className="px-4 py-3">
+            <Notice tone="danger">
+              {t(
+                "meetings.review.remoteProcessingUnavailable",
+                "The remote destination never became available, so nothing was generated. Regenerating runs on this Mac.",
+              )}
+            </Notice>
+          </div>
         ) : null}
         {snapshot.artifacts.length === 0 ? (
-          processing ? (
-            <EmptyState
-              title={t(
-                "meetings.review.processingTitle",
-                "Sona is still processing this meeting",
-              )}
-              description={t(
-                "meetings.review.processingDescription",
-                "Generated notes and local answers appear once the transcript is complete.",
-              )}
-              action={
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => void onRefresh()}
-                  disabled={busy}
-                >
-                  {t("meetings.actions.refresh")}
-                </Button>
-              }
-            />
-          ) : (
-            <EmptyState
-              title={t("meetings.review.noGeneratedNotes")}
-              description={t(
-                "meetings.review.noGeneratedNotesDescription",
-                "Generated notes are derived from the transcript, so they can be rebuilt at any time.",
-              )}
-              action={
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={onRegenerate}
-                  disabled={busy || !canRegenerate}
-                >
-                  {t("meetings.review.regenerate")}
-                </Button>
-              }
-            />
-          )
-        ) : (
-          <div className="space-y-4">
-            {snapshot.artifacts.map((artifact) => (
-              <MeetingArtifactPanel
-                key={artifact.artifact_id}
-                artifact={artifact}
-                doneActionItems={doneActionItems}
-                actionsDisabled={busy}
-                onJump={onJumpToSegment}
-                onActionItemToggle={onActionItemToggle}
-              />
-            ))}
+          <div className="flex flex-col items-start gap-2 px-4 py-6">
+            <h3 className="text-[13px] leading-5 text-gray-1000">
+              {processing
+                ? t(
+                    "meetings.review.processingTitle",
+                    "Sona is still processing this meeting",
+                  )
+                : t("meetings.review.noGeneratedNotes")}
+            </h3>
+            <Notice tone="muted" live={false}>
+              {processing
+                ? t(
+                    "meetings.review.processingDescription",
+                    "Generated notes and local answers appear once the transcript is complete.",
+                  )
+                : t(
+                    "meetings.review.noGeneratedNotesDescription",
+                    "Generated notes are derived from the transcript, so they can be rebuilt at any time.",
+                  )}
+            </Notice>
+            {/* Regenerate is already on the section label line; the wait is
+             * the only state with a control of its own. */}
+            {processing ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void onRefresh()}
+                disabled={busy}
+              >
+                {t("meetings.actions.refresh")}
+              </Button>
+            ) : null}
           </div>
+        ) : (
+          snapshot.artifacts.map((artifact) => (
+            <MeetingArtifactPanel
+              key={artifact.artifact_id}
+              artifact={artifact}
+              doneActionItems={doneActionItems}
+              actionsDisabled={busy}
+              onJump={onJumpToSegment}
+              onActionItemToggle={onActionItemToggle}
+            />
+          ))
         )}
-      </Section>
+      </SettingsSection>
     </>
   );
 };
@@ -839,27 +826,28 @@ const ManualNoteEditor: React.FC<ManualNoteEditorProps> = ({
   const canSave = trimmedBody.length > 0 && trimmedBody !== note.body;
 
   return (
-    <li className="meeting-row-stacked">
-      <p className="chip">
+    <li className="flex flex-col gap-1.5 px-4 py-3">
+      <Microlabel>
         {note.start_offset_ns === null
           ? t("meetings.review.noTimestamp")
           : t("meetings.review.timestamp", {
               time: formatMeetingOffset(note.start_offset_ns),
             })}
-      </p>
+      </Microlabel>
       <Textarea
-        variant="compact"
         value={draftBody}
         onChange={(event) => setDraftBody(event.target.value)}
         aria-label={t("meetings.review.manualNote")}
         disabled={disabled}
-        className="mt-1.5 w-full"
+        rows={2}
+        className="resize-none"
       />
-      <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <Button
           type="button"
-          variant="danger-ghost"
+          variant="outline"
           size="sm"
+          className="text-red-900 hover:text-red-900"
           onClick={() => onDelete(note)}
           disabled={disabled}
         >
@@ -867,7 +855,7 @@ const ManualNoteEditor: React.FC<ManualNoteEditorProps> = ({
         </Button>
         <Button
           type="button"
-          variant="secondary"
+          variant="outline"
           size="sm"
           onClick={() => onUpdate(note, trimmedBody)}
           disabled={disabled || !canSave}
@@ -902,40 +890,34 @@ const MeetingArtifactPanel: React.FC<MeetingArtifactPanelProps> = ({
   const content = artifact.content;
 
   return (
-    <article className="meeting-artifact">
+    <article className="flex flex-col gap-4 px-4 py-4">
+      {/* The template names the artifact; the state word answers the only
+       * question the version and source revision were there to answer, and
+       * answered it in the same breath as a second "Template". */}
       <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <div className="min-w-0">
-          <h3 className="text-[13px] leading-[19px] font-semibold text-text-primary">
-            {t("meetings.review.template", { template: artifact.template_id })}
-          </h3>
-          <StatusText tone="muted" className="block tabular-nums">
-            {t("meetings.review.artifactRevision", {
-              templateVersion: artifact.template_version,
-              revision: artifact.input_revision,
-            })}
-          </StatusText>
-        </div>
-        <StatusText
-          tone={ARTIFACT_STATE_TONES[artifact.state]}
-          className="flex-none font-medium"
+        <h3 className="min-w-0 text-[13px] leading-5 font-medium text-gray-1000">
+          {t("meetings.review.template", { template: artifact.template_id })}
+        </h3>
+        <span
+          className={`flex-none font-mono text-[11px] ${ARTIFACT_STATE_CLASSES[artifact.state]}`}
         >
           {t(`meetings.artifactState.${artifact.state}`)}
-        </StatusText>
+        </span>
       </header>
       {content === null ? (
-        <p className="mt-2 text-[12.5px] leading-[18px] text-text-secondary">
+        <Notice tone="muted" live={false}>
           {t("meetings.review.artifactUnavailable")}
-        </p>
+        </Notice>
       ) : (
-        <div className="mt-3">
+        <>
           <ArtifactBlock title={t("meetings.review.summary")}>
             <CitedText value={content.summary} onJump={onJump} />
           </ArtifactBlock>
           <ArtifactBlock title={t("meetings.review.topics")}>
             {content.outline.length === 0 ? (
-              <StatusText tone="muted">{t("meetings.review.none")}</StatusText>
+              <EmptyBlock />
             ) : (
-              <ul className="space-y-2.5">
+              <ul className="flex flex-col gap-2.5">
                 {content.outline.map((topic, index) => (
                   <li key={`${artifact.artifact_id}:topic:${index}`}>
                     <CitedText value={topic.title} onJump={onJump} />
@@ -951,9 +933,9 @@ const MeetingArtifactPanel: React.FC<MeetingArtifactPanelProps> = ({
           </ArtifactBlock>
           <ArtifactBlock title={t("meetings.review.decisions")}>
             {content.decisions.length === 0 ? (
-              <StatusText tone="muted">{t("meetings.review.none")}</StatusText>
+              <EmptyBlock />
             ) : (
-              <ul className="space-y-2.5">
+              <ul className="flex flex-col gap-2.5">
                 {content.decisions.map((decision, index) => (
                   <li key={`${artifact.artifact_id}:decision:${index}`}>
                     <CitedText value={decision} onJump={onJump} />
@@ -964,36 +946,37 @@ const MeetingArtifactPanel: React.FC<MeetingArtifactPanelProps> = ({
           </ArtifactBlock>
           <ArtifactBlock title={t("meetings.review.actions")}>
             {content.action_items.length === 0 ? (
-              <StatusText tone="muted">{t("meetings.review.none")}</StatusText>
+              <EmptyBlock />
             ) : (
-              <ul className="space-y-2.5">
+              <ul className="flex flex-col gap-2.5">
                 {content.action_items.map((action, index) => {
                   const key = actionItemKey(artifact.artifact_id, index);
                   const done = doneActionItems.has(key);
                   return (
                     <li key={key} className="flex items-start gap-2.5">
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={done}
                         disabled={actionsDisabled}
-                        onChange={(event) =>
+                        onCheckedChange={(checked) =>
                           onActionItemToggle(
                             artifact.artifact_id,
                             index,
-                            event.target.checked,
+                            checked === true,
                           )
                         }
                         aria-label={t(
                           "meetings.review.actionDone",
                           "Mark this action item done",
                         )}
-                        className="meeting-check"
+                        className="mt-1"
                       />
                       <div
                         className={`min-w-0 flex-1 ${done ? "line-through opacity-60" : ""}`}
                       >
                         <CitedText value={action.text} onJump={onJump} />
-                        <StatusText tone="muted" className="mt-0.5 block">
+                        {/* Mono, but not uppercased: the owner is somebody's
+                         * name and a microlabel would shout it. */}
+                        <span className="mt-0.5 block font-mono text-[11px] text-gray-700">
                           {t("meetings.review.actionMeta", {
                             owner:
                               action.owner_text ??
@@ -1001,7 +984,7 @@ const MeetingArtifactPanel: React.FC<MeetingArtifactPanelProps> = ({
                             due:
                               action.due_text ?? t("meetings.review.noDueDate"),
                           })}
-                        </StatusText>
+                        </span>
                       </div>
                     </li>
                   );
@@ -1011,9 +994,9 @@ const MeetingArtifactPanel: React.FC<MeetingArtifactPanelProps> = ({
           </ArtifactBlock>
           <ArtifactBlock title={t("meetings.review.keyQuestions")}>
             {content.key_questions.length === 0 ? (
-              <StatusText tone="muted">{t("meetings.review.none")}</StatusText>
+              <EmptyBlock />
             ) : (
-              <ul className="space-y-2.5">
+              <ul className="flex flex-col gap-2.5">
                 {content.key_questions.map((item, index) => (
                   <li key={`${artifact.artifact_id}:question:${index}`}>
                     <CitedText value={item} onJump={onJump} />
@@ -1024,9 +1007,9 @@ const MeetingArtifactPanel: React.FC<MeetingArtifactPanelProps> = ({
           </ArtifactBlock>
           <ArtifactBlock title={t("meetings.review.risks")}>
             {content.risks.length === 0 ? (
-              <StatusText tone="muted">{t("meetings.review.none")}</StatusText>
+              <EmptyBlock />
             ) : (
-              <ul className="space-y-2.5">
+              <ul className="flex flex-col gap-2.5">
                 {content.risks.map((item, index) => (
                   <li key={`${artifact.artifact_id}:risk:${index}`}>
                     <CitedText value={item} onJump={onJump} />
@@ -1038,9 +1021,18 @@ const MeetingArtifactPanel: React.FC<MeetingArtifactPanelProps> = ({
           <ArtifactBlock title={t("meetings.review.followUp")}>
             <CitedText value={content.follow_up_draft} onJump={onJump} />
           </ArtifactBlock>
-        </div>
+        </>
       )}
     </article>
+  );
+};
+
+/** A generated block the model returned nothing for. */
+const EmptyBlock: React.FC = () => {
+  const { t } = useTranslation();
+
+  return (
+    <span className="text-sm text-gray-700">{t("meetings.review.none")}</span>
   );
 };
 
@@ -1050,8 +1042,10 @@ interface ArtifactBlockProps {
 }
 
 const ArtifactBlock: React.FC<ArtifactBlockProps> = ({ title, children }) => (
-  <section className="meeting-artifact-block">
-    <h4 className={`mb-1.5 ${CAPTION_CLASSES}`}>{title}</h4>
+  <section className="flex flex-col gap-1.5">
+    <h4>
+      <Microlabel>{title}</Microlabel>
+    </h4>
     {children}
   </section>
 );
@@ -1080,22 +1074,24 @@ export const QuestionsTab: React.FC<QuestionsTabProps> = ({
   const { t } = useTranslation();
 
   return (
-    <Section
-      title={t("meetings.review.questions")}
-      description={t("meetings.review.questionsDescription")}
-    >
-      <div className="meeting-card">
+    <SettingsSection label={t("meetings.review.questions")}>
+      <div className="flex flex-col gap-2 p-4">
+        {/* The one sentence this surface keeps: where the answer comes from
+         * is not inferable from a text box and a button. */}
+        <p className="text-sm text-gray-700">
+          {t("meetings.review.questionsDescription")}
+        </p>
         <Textarea
           value={question}
           onChange={(event) => onQuestionChange(event.target.value)}
           placeholder={t("meetings.review.questionPlaceholder")}
           aria-label={t("meetings.review.questions")}
           disabled={!canAskQuestion || askingQuestion}
-          variant="compact"
-          className="w-full"
+          rows={2}
+          className="resize-none"
         />
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-          <StatusText tone="muted" live="polite">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Notice tone="muted">
             {!canAskQuestion
               ? t(
                   "meetings.review.askUnavailable",
@@ -1104,10 +1100,12 @@ export const QuestionsTab: React.FC<QuestionsTabProps> = ({
               : askingQuestion
                 ? t("meetings.review.asking", "Asking this meeting…")
                 : null}
-          </StatusText>
+          </Notice>
           <Button
             type="button"
-            variant="secondary"
+            variant="outline"
+            size="sm"
+            className="ms-auto"
             onClick={onAskQuestion}
             disabled={
               !canAskQuestion || askingQuestion || question.trim().length === 0
@@ -1116,68 +1114,69 @@ export const QuestionsTab: React.FC<QuestionsTabProps> = ({
             {t("meetings.review.ask")}
           </Button>
         </div>
+      </div>
 
-        {snapshot.questions.length === 0 ? (
-          <StatusText tone="muted" className="mt-3 block">
+      {snapshot.questions.length === 0 ? (
+        <div className="px-4 py-3">
+          <Notice tone="muted" live={false}>
             {t("meetings.review.noQuestions")}
-          </StatusText>
-        ) : (
-          <ul
-            role="list"
-            aria-label={t("meetings.review.questions")}
-            className="mt-4"
-          >
-            {snapshot.questions.map((answer) => (
-              <li
-                key={`${answer.question_id}:${answer.revision}`}
-                className="meeting-answer"
-              >
+          </Notice>
+        </div>
+      ) : (
+        <ul
+          role="list"
+          aria-label={t("meetings.review.questions")}
+          className="divide-y divide-gray-alpha-400"
+        >
+          {snapshot.questions.map((answer) => (
+            <li
+              key={`${answer.question_id}:${answer.revision}`}
+              className="flex flex-col gap-3 px-4 py-3"
+            >
+              <div className="flex flex-col gap-1">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                  <p className={CAPTION_CLASSES}>
+                  <Microlabel>
                     {t("meetings.review.youAsked", "You asked")}
-                  </p>
-                  <StatusText
-                    tone={ANSWER_STATE_TONES[answer.state]}
-                    className="flex-none"
+                  </Microlabel>
+                  <span
+                    className={`flex-none font-mono text-[11px] ${ANSWER_STATE_CLASSES[answer.state]}`}
                   >
                     {t(`meetings.answerState.${answer.state}`)}
-                  </StatusText>
+                  </span>
                 </div>
-                <p className="mt-1 text-[13px] leading-5 font-semibold text-text-primary text-pretty">
+                <p className="text-[13px] leading-5 font-medium text-pretty text-gray-1000">
                   {answer.question ?? t("meetings.review.question")}
                 </p>
-                <div className="mt-3">
-                  <p className={CAPTION_CLASSES}>
-                    {t("meetings.review.sonaAnswered", "Sona answered")}
-                  </p>
-                  <p className="mt-1 text-[13px] leading-5 text-text-primary text-pretty">
-                    {answer.answer ?? t("meetings.review.insufficientEvidence")}
-                  </p>
-                  {answer.citations.length > 0 ? (
-                    <div className="mt-1.5">
-                      <AnswerCitations
-                        citations={answer.citations}
-                        onJump={onJumpToSegment}
-                      />
-                    </div>
-                  ) : null}
-                  <div className="mt-2 flex justify-end">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onForgetQuestion(answer.question_id)}
-                      disabled={askingQuestion || answer.state === "forgotten"}
-                    >
-                      {t("meetings.review.forget")}
-                    </Button>
-                  </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Microlabel>
+                  {t("meetings.review.sonaAnswered", "Sona answered")}
+                </Microlabel>
+                <p className="text-[13px] leading-5 text-pretty text-gray-900">
+                  {answer.answer ?? t("meetings.review.insufficientEvidence")}
+                </p>
+                {answer.citations.length > 0 ? (
+                  <AnswerCitations
+                    citations={answer.citations}
+                    onJump={onJumpToSegment}
+                  />
+                ) : null}
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onForgetQuestion(answer.question_id)}
+                    disabled={askingQuestion || answer.state === "forgotten"}
+                  >
+                    {t("meetings.review.forget")}
+                  </Button>
                 </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </Section>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </SettingsSection>
   );
 };

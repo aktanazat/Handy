@@ -2,14 +2,20 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import type { PostProcessProvider, PromptPreset, Tone } from "@/bindings";
 import {
-  Dropdown,
-  Input,
-  SettingContainer,
-  SettingsGroup,
-  StatusText,
-  ToggleSwitch,
-  type DropdownOption,
-} from "@/components/ui";
+  Notice,
+  SettingsField,
+  SettingsRow,
+  SettingsSurface,
+} from "@/components/settings/rows";
+import { Input } from "@/components/vg/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/vg/select";
+import { Switch } from "@/components/vg/switch";
 import { SegmentedRadioGroup, type SegmentedOption } from "./ModeControls";
 import { PROMPT_PRESETS, TONES, type ModePanelProps } from "./modeModel";
 
@@ -17,6 +23,8 @@ export interface ModeRewritePanelProps extends ModePanelProps {
   providers: readonly PostProcessProvider[];
 }
 
+/* The Rewrite tab is one group, and the tab already names it, so the surface
+ * carries no heading of its own. */
 export const ModeRewritePanel: React.FC<ModeRewritePanelProps> = ({
   mode,
   updaters,
@@ -26,10 +34,12 @@ export const ModeRewritePanel: React.FC<ModeRewritePanelProps> = ({
   const { update, updateLlm, updatePrompt } = updaters;
   const enabled = mode.llm.enabled;
 
-  const providerOptions: DropdownOption[] = providers.map((provider) => ({
-    value: provider.id,
-    label: provider.label,
-  }));
+  const providerOptions: { value: string; label: string }[] = providers.map(
+    (provider) => ({
+      value: provider.id,
+      label: provider.label,
+    }),
+  );
   /* A mode can name a provider this install does not have. Keep it selectable
    * so saving the mode never silently rewrites the choice, and explain it. */
   const selectedProviderConfigured = providers.some(
@@ -41,6 +51,12 @@ export const ModeRewritePanel: React.FC<ModeRewritePanelProps> = ({
       label: mode.llm.provider_id,
     });
   }
+  /* Radix reads the trigger's text out of the mounted items, which only exist
+   * once the list has been opened in a browser. Name the selected label here
+   * so the row states its own value the way the old dropdown did. */
+  const selectedProviderLabel = providerOptions.find(
+    (option) => option.value === mode.llm.provider_id,
+  )?.label;
 
   const presetOptions: SegmentedOption<PromptPreset>[] = PROMPT_PRESETS.map(
     (preset) => ({
@@ -55,31 +71,34 @@ export const ModeRewritePanel: React.FC<ModeRewritePanelProps> = ({
   }));
 
   return (
-    <SettingsGroup title={t("settings.modes.writing.title")}>
-      <ToggleSwitch
-        grouped
-        checked={enabled}
-        onChange={(next) => updateLlm("enabled", next)}
+    <SettingsSurface>
+      <SettingsRow
         label={t("settings.modes.writing.enabled.label")}
-        description={t("settings.modes.writing.enabled.description")}
-      />
+        controlId="mode-llm-enabled"
+      >
+        <Switch
+          id="mode-llm-enabled"
+          checked={enabled}
+          onCheckedChange={(next) => updateLlm("enabled", next)}
+        />
+      </SettingsRow>
       {enabled ? null : (
-        <div className="py-3">
-          <StatusText>
+        <div className="px-4 py-3">
+          <Notice live={false}>
             {t(
               "settings.modes.writing.disabledNote",
               "Turn on AI cleanup to use the preset, tone, provider, and model below.",
             )}
-          </StatusText>
+          </Notice>
         </div>
       )}
 
-      <SettingContainer
-        grouped
-        layout="stacked"
+      <SettingsField
         disabled={!enabled}
-        title={t("settings.modes.writing.preset.label")}
-        description={t("settings.modes.writing.preset.description")}
+        label={t("settings.modes.writing.preset.label")}
+        /* The one thing the segments cannot show: what a preset actually
+         * instructs stays hidden and unexportable. */
+        hint={t("settings.modes.writing.preset.description")}
       >
         <SegmentedRadioGroup
           name="mode-prompt-preset"
@@ -89,14 +108,11 @@ export const ModeRewritePanel: React.FC<ModeRewritePanelProps> = ({
           onChange={(preset) => updatePrompt("preset", preset)}
           disabled={!enabled}
         />
-      </SettingContainer>
+      </SettingsField>
 
-      <SettingContainer
-        grouped
-        layout="stacked"
+      <SettingsField
         disabled={!enabled}
-        title={t("settings.modes.writing.tone.label")}
-        description={t("settings.modes.writing.tone.description")}
+        label={t("settings.modes.writing.tone.label")}
       >
         <SegmentedRadioGroup
           name="mode-tone"
@@ -106,46 +122,55 @@ export const ModeRewritePanel: React.FC<ModeRewritePanelProps> = ({
           onChange={(tone) => update("tone", tone)}
           disabled={!enabled}
         />
-      </SettingContainer>
+      </SettingsField>
 
-      <SettingContainer
-        grouped
+      <SettingsRow
         disabled={!enabled}
-        title={t("settings.modes.writing.provider.label")}
-        description={t("settings.modes.writing.provider.description")}
+        label={t("settings.modes.writing.provider.label")}
+        controlId="mode-llm-provider"
       >
         <div className="flex flex-col items-end gap-1">
-          <Dropdown
-            selectedValue={mode.llm.provider_id}
-            options={providerOptions}
-            onSelect={(providerId) => updateLlm("provider_id", providerId)}
+          <Select
+            value={mode.llm.provider_id}
+            onValueChange={(providerId) => updateLlm("provider_id", providerId)}
             disabled={!enabled || providerOptions.length === 0}
-            placeholder={t("settings.modes.writing.provider.empty")}
-          />
+          >
+            <SelectTrigger id="mode-llm-provider" className="w-56">
+              <SelectValue
+                placeholder={t("settings.modes.writing.provider.empty")}
+              >
+                {selectedProviderLabel}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {providerOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {providers.length === 0 ? (
-            <StatusText tone="warning">
+            <Notice tone="warning" live={false}>
               {t(
                 "settings.modes.writing.provider.noneConfigured",
                 "No AI provider is configured yet. Add one in Settings before this mode can rewrite.",
               )}
-            </StatusText>
+            </Notice>
           ) : selectedProviderConfigured ? null : (
-            <StatusText tone="warning">
+            <Notice tone="warning" live={false}>
               {t(
                 "settings.modes.writing.provider.unknownSelected",
                 "This mode names a provider that is not configured on this install.",
               )}
-            </StatusText>
+            </Notice>
           )}
         </div>
-      </SettingContainer>
+      </SettingsRow>
 
-      <SettingContainer
-        grouped
-        layout="stacked"
+      <SettingsField
         disabled={!enabled}
-        title={t("settings.modes.writing.model.label")}
-        description={t("settings.modes.writing.model.description")}
+        label={t("settings.modes.writing.model.label")}
         controlId="mode-llm-model"
       >
         <Input
@@ -155,7 +180,7 @@ export const ModeRewritePanel: React.FC<ModeRewritePanelProps> = ({
           disabled={!enabled}
           className="w-full"
         />
-      </SettingContainer>
-    </SettingsGroup>
+      </SettingsField>
+    </SettingsSurface>
   );
 };

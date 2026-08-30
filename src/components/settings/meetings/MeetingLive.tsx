@@ -1,24 +1,44 @@
-import React, { useMemo, useState } from "react";
+import React, { useId, useMemo, useState } from "react";
 import { Pause, Play, Square } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { MeetingReviewSnapshot } from "@/bindings";
 import {
-  Alert,
-  Badge,
-  Button,
-  Dialog,
-  Section,
-  StatusText,
-  Textarea,
-} from "../../ui";
+  FactChip,
+  Notice,
+  SettingsCard,
+  SettingsField,
+  SettingsPage,
+  SettingsRow,
+  SettingsSection,
+} from "@/components/settings/rows";
+import { Button } from "@/components/vg/button";
 import {
-  CaptureCompletenessText,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/vg/dialog";
+import { Textarea } from "@/components/vg/textarea";
+import {
   MeetingPhaseText,
   MeetingSourceList,
   ProcessingStatusText,
 } from "./MeetingStatus";
 import { formatMeetingOffset } from "./meetingUtils";
 import { MeetingNotesPane } from "./MeetingNotesPane";
+
+/* Capture, while it runs.
+ *
+ * The state is named once — the phase word on the title line — and the clock
+ * is a measurement, not a sentence. Everything the old page said twice (a
+ * badge and a phase word for the same state, the anchor time above the note
+ * box and again on a chip inside it) is gone: what is left is the state, the
+ * clock, what capture is hearing, and the three controls. */
+
+/** Measurements sit in mono so a column of them lines up. */
+const MONO_VALUE = "font-mono text-[12px] tabular-nums text-gray-1000";
 
 interface MeetingLiveProps {
   snapshot: MeetingReviewSnapshot;
@@ -29,20 +49,6 @@ interface MeetingLiveProps {
   onDiscard: () => void;
   onCreateNote: (body: string) => void;
 }
-
-interface ProgressRowProps {
-  label: string;
-  children: React.ReactNode;
-}
-
-const ProgressRow: React.FC<ProgressRowProps> = ({ label, children }) => (
-  <div className="meeting-row">
-    <dt className="meeting-row-label">{label}</dt>
-    <dd className="meeting-row-value text-[12.5px] leading-[18px] text-text-secondary">
-      {children}
-    </dd>
-  </div>
-);
 
 export const MeetingLive: React.FC<MeetingLiveProps> = ({
   snapshot,
@@ -55,6 +61,7 @@ export const MeetingLive: React.FC<MeetingLiveProps> = ({
 }) => {
   const { t } = useTranslation();
   const [noteBody, setNoteBody] = useState("");
+  const noteFieldId = useId();
   const [discardOpen, setDiscardOpen] = useState(false);
   const latestTranscriptOffsetNs = useMemo(() => {
     let latest = 0;
@@ -97,118 +104,105 @@ export const MeetingLive: React.FC<MeetingLiveProps> = ({
   };
 
   return (
-    <div className="settings-page">
-      {/* The one inverted chip in the app. Capture is the state where a
-       * misread costs somebody a meeting, so it gets the highest-contrast
-       * treatment the palette has and nothing else on the page competes. */}
-      <header className="meeting-live-header">
-        <div className="min-w-0">
-          <Badge variant="primary">{t("meetings.live.activeCapture")}</Badge>
-          <h1 className="settings-page-title mt-2">{snapshot.session.title}</h1>
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <MeetingPhaseText phase={snapshot.session.phase} />
-            <CaptureCompletenessText
-              completeness={snapshot.session.capture_completeness}
-            />
-          </div>
-        </div>
-        <dl className="flex-none">
-          <dt className="microlabel">{t("meetings.live.elapsed")}</dt>
-          <dd className="meeting-elapsed">
-            {formatMeetingOffset(elapsedOffsetNs)}
-          </dd>
-        </dl>
-      </header>
-
-      {systemAudioLimited ? (
-        <Alert variant="warning">
-          {t("meetings.live.microphoneOnlyPartial")}
-        </Alert>
-      ) : snapshot.session.capture_completeness === "partial" ? (
-        <Alert variant="warning">{t("meetings.live.partialCapture")}</Alert>
-      ) : null}
-
-      <Section
-        title={t("meetings.live.inputs")}
-        description={t("meetings.live.inputsDescription")}
-      >
-        <div className="meeting-card">
-          <MeetingSourceList
-            sources={snapshot.session.sources}
-            label={t("meetings.live.inputs")}
-            elapsedOffsetNs={elapsedOffsetNs}
-            showTelemetry
+    <SettingsPage
+      title={snapshot.session.title}
+      actions={
+        <div className="flex flex-none items-center gap-4">
+          <MeetingPhaseText phase={snapshot.session.phase} />
+          <FactChip
+            label={t("meetings.live.elapsed")}
+            value={formatMeetingOffset(elapsedOffsetNs)}
           />
         </div>
-      </Section>
+      }
+    >
+      {/* One warning, and it is the consequence of the source state rather
+       * than a second reading of it: the inputs below name the source. */}
+      {systemAudioLimited ? (
+        <Notice tone="warning">
+          {t("meetings.live.microphoneOnlyPartial")}
+        </Notice>
+      ) : snapshot.session.capture_completeness === "partial" ? (
+        <Notice tone="warning">{t("meetings.live.partialCapture")}</Notice>
+      ) : null}
 
-      <Section
-        title={t("meetings.live.progress")}
-        description={t("meetings.live.progressDescription")}
-      >
-        <dl className="meeting-card meeting-rows">
-          <ProgressRow label={t("meetings.live.transcript")}>
+      <SettingsSection label={t("meetings.live.inputs")}>
+        <MeetingSourceList
+          sources={snapshot.session.sources}
+          label={t("meetings.live.inputs")}
+          elapsedOffsetNs={elapsedOffsetNs}
+          showTelemetry
+        />
+      </SettingsSection>
+
+      <SettingsSection label={t("meetings.live.progress")}>
+        <SettingsRow label={t("meetings.live.transcript")}>
+          <span className={MONO_VALUE}>
             {latestTranscriptOffsetNs === null
-              ? t("meetings.live.noTranscriptCheckpoint")
-              : t("meetings.live.transcriptThrough", {
-                  time: formatMeetingOffset(latestTranscriptOffsetNs),
-                })}
-          </ProgressRow>
-          <ProgressRow label={t("meetings.live.asrLag")}>
+              ? t("meetings.live.notReported")
+              : formatMeetingOffset(latestTranscriptOffsetNs)}
+          </span>
+        </SettingsRow>
+        <SettingsRow label={t("meetings.live.asrLag")}>
+          <span className={MONO_VALUE}>
             {transcriptLagNs === null
               ? t("meetings.live.notReported")
-              : t("meetings.live.behind", {
-                  duration: formatMeetingOffset(transcriptLagNs),
-                })}
-          </ProgressRow>
-          <ProgressRow label={t("meetings.live.storage")}>
-            <StatusText tone={storageAvailable ? "muted" : "danger"}>
-              {storageAvailable
-                ? t("meetings.live.storageHealthy")
-                : t("meetings.live.storageUnavailable")}
-            </StatusText>
-          </ProgressRow>
-          <ProgressRow label={t("meetings.live.processing")}>
-            <ProcessingStatusText
-              status={snapshot.session.processing_status}
-              live="polite"
-            />
-          </ProgressRow>
-        </dl>
-      </Section>
+              : formatMeetingOffset(transcriptLagNs)}
+          </span>
+        </SettingsRow>
+        <SettingsRow label={t("meetings.live.storage")}>
+          <span
+            className={
+              storageAvailable
+                ? "text-sm text-gray-900"
+                : "text-sm text-red-900"
+            }
+          >
+            {storageAvailable
+              ? t("meetings.live.storageHealthy")
+              : t("meetings.live.storageUnavailable")}
+          </span>
+        </SettingsRow>
+        <SettingsRow label={t("meetings.live.processing")}>
+          <ProcessingStatusText
+            status={snapshot.session.processing_status}
+            live="polite"
+          />
+        </SettingsRow>
+      </SettingsSection>
 
-      <Section
-        title={t("meetings.live.manualNote")}
-        description={t("meetings.live.manualNoteDescription", {
-          time: formatMeetingOffset(elapsedOffsetNs),
-        })}
-      >
-        <div className="meeting-card">
+      {/* One wide control on its own is a field in a card, not a section: the
+       * note box and the notes pane below it are the same shape. The note is
+       * anchored at the clock on the title line, which is why no timestamp is
+       * printed here — the button says what the press does. */}
+      <SettingsCard>
+        <SettingsField
+          label={t("meetings.live.manualNote")}
+          controlId={noteFieldId}
+          disabled={isMutating}
+        >
           <Textarea
+            id={noteFieldId}
             value={noteBody}
             onChange={(event) => setNoteBody(event.target.value)}
             placeholder={t("meetings.live.notePlaceholder")}
-            aria-label={t("meetings.live.manualNote")}
             disabled={isMutating}
-            className="w-full"
+            rows={3}
+            className="resize-none"
           />
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-            <span className="chip">
-              {t("meetings.live.timestamp", {
-                time: formatMeetingOffset(elapsedOffsetNs),
-              })}
-            </span>
+          <div className="mt-2 flex justify-end">
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
+              size="sm"
               onClick={addNote}
               disabled={noteBody.trim().length === 0 || isMutating}
             >
               {t("meetings.live.addNote")}
             </Button>
           </div>
-        </div>
-      </Section>
+        </SettingsField>
+      </SettingsCard>
 
       <MeetingNotesPane
         sessionId={snapshot.session.session_id}
@@ -217,64 +211,71 @@ export const MeetingLive: React.FC<MeetingLiveProps> = ({
         disabled={isMutating}
       />
 
-      <div className="meeting-transport">
+      {/* Stop is the one filled control on the page. Discard is bordered and
+       * set in red: a text action with no border reads as a caption, and this
+       * one destroys the recording. */}
+      <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
-          variant="danger-ghost"
+          variant="outline"
+          className="text-red-900 hover:text-red-900"
           onClick={() => setDiscardOpen(true)}
           disabled={!canDiscard || isMutating}
         >
           {t("meetings.actions.discard")}
         </Button>
-        {isPaused ? (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onResume}
-            disabled={!canResume || isMutating}
-          >
-            <Play size={14} aria-hidden="true" />
-            {t("meetings.actions.resume")}
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onPause}
-            disabled={!canPause || isMutating}
-          >
-            <Pause size={14} aria-hidden="true" />
-            {t("meetings.actions.pause")}
-          </Button>
-        )}
-        <Button
-          type="button"
-          onClick={onStop}
-          disabled={!canStop || isMutating}
-        >
-          <Square size={13} aria-hidden="true" />
-          {t("meetings.actions.stop")}
-        </Button>
-      </div>
-
-      <Dialog
-        open={discardOpen}
-        title={t("meetings.discard.liveTitle")}
-        description={t("meetings.discard.liveDescription")}
-        closeLabel={t("common.cancel")}
-        onOpenChange={setDiscardOpen}
-        footer={
-          <>
+        <div className="ms-auto flex items-center gap-2">
+          {isPaused ? (
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
+              onClick={onResume}
+              disabled={!canResume || isMutating}
+            >
+              <Play aria-hidden="true" className="size-3.5" />
+              {t("meetings.actions.resume")}
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onPause}
+              disabled={!canPause || isMutating}
+            >
+              <Pause aria-hidden="true" className="size-3.5" />
+              {t("meetings.actions.pause")}
+            </Button>
+          )}
+          <Button
+            type="button"
+            onClick={onStop}
+            disabled={!canStop || isMutating}
+          >
+            <Square aria-hidden="true" className="size-3" />
+            {t("meetings.actions.stop")}
+          </Button>
+        </div>
+      </div>
+
+      <Dialog open={discardOpen} onOpenChange={setDiscardOpen}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>{t("meetings.discard.liveTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("meetings.discard.explainsData")}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => setDiscardOpen(false)}
             >
               {t("meetings.discard.keepRecording")}
             </Button>
             <Button
               type="button"
-              variant="danger"
+              variant="destructive"
               onClick={() => {
                 setDiscardOpen(false);
                 onDiscard();
@@ -282,11 +283,9 @@ export const MeetingLive: React.FC<MeetingLiveProps> = ({
             >
               {t("meetings.discard.stopAndDiscard")}
             </Button>
-          </>
-        }
-      >
-        <p>{t("meetings.discard.explainsData")}</p>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
-    </div>
+    </SettingsPage>
   );
 };

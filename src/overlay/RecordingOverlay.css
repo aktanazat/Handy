@@ -1,9 +1,55 @@
-@import "../styles/theme.css";
-@import "../styles/fonts.css";
-/* The overlay is its own webview and never loads App.css, so it imports the
-   shared component layer directly. That is what makes the type roles, the
-   keycap and .glass-surface--tint resolve here instead of being redefined. */
-@import "../styles/primitives.css";
+/* Recording overlay — its own webview, its own stylesheet.
+ *
+ * Colour comes from ONE place: the Geist token file, keyed on this document's
+ * own `data-theme` (src/app/overlay/page.tsx writes it; a second webview cannot
+ * inherit the settings window's root attribute). Nothing here restates a colour
+ * value.
+ *
+ * No `@import` of its own. Under Next.js every route nests inside
+ * src/app/layout.tsx, which imports app/globals.css, so this document already
+ * has geist.css and fonts.css — and also theme.css, base.css, shell.css and
+ * primitives.css, which an earlier version of this header claimed were
+ * deliberately kept out. They are not kept out any more, and importing
+ * geist.css/fonts.css again here only put a second copy of the token block and
+ * both @font-face rules in the /overlay chunk.
+ *
+ * That shared cascade is safe here, and the reasons are mechanical rather than
+ * a promise, so they can be re-checked:
+ *
+ *   Tokens. Every colour this file reads — --color-background-100, --color-gray-
+ *   {800,900,1000}, --color-gray-alpha-{100,200,400}, --color-blue-700,
+ *   --color-red-900 — is declared in geist.css and NOWHERE else, so theme.css
+ *   cannot repoint one. It never reads a theme.css semantic (--color-accent,
+ *   --color-surface-*, --scrim), which is what the old violet-inheritance worry
+ *   was actually about. The one shared name, --radius-card, is declared by both,
+ *   and geist.css wins twice over: it is imported last AND takes `html:root`
+ *   against theme.css's `:root` (geist.css:122-131). Same 12px either way.
+ *
+ *   Selectors. This file's classes are namespaced — `s*` for the stream card,
+ *   `hud-pill*` for the compact pill, `ov-*` for the stage — and share exactly
+ *   one name with the reachable sheets: `.snap-measured`, whose declaration
+ *   here is byte-identical to theme.css:477-481. The local copy stays: an
+ *   identical rule cannot conflict, and this window must survive theme.css
+ *   being pruned. Same for the type roles baked into `.stext` and the tint-only
+ *   Glass variant on `.hud-pill` — both were copied out of the shared layers on
+ *   purpose and are not re-shared now that those layers are reachable again.
+ *
+ *   Geometry. base.css's `:root { font-size: 14px }` reaches this document but
+ *   cannot move anything in it: every length here is px, pinned to a native
+ *   window size, and the one relative unit is the `1.02em` cap height on
+ *   `.scaret`, which resolves against its own element's font-size.
+ *
+ * base.css's `:root { background-color: var(--color-canvas) }` DOES reach this
+ * document and would paint the transparent HUD window opaque. That one is
+ * defeated deliberately, in src/app/overlay/overlay-window.css, which is where
+ * the document-level rules for this window live.
+ *
+ * What is deliberately NOT ported to Tailwind utilities: everything in this
+ * file. It is four @keyframes, an nth-child animation-delay ladder, a per-bar
+ * `animation-delay: calc(var(--bar-index) * 45ms)`, and geometry every value of
+ * which is pinned to a native window size in src-tauri/src/overlay.rs. As
+ * arbitrary-value utilities that is the same CSS in a worse syntax, minus the
+ * comments that say why each number cannot move. */
 
 :root {
   /* Card geometry. Every value is bounded by a window size in
@@ -17,12 +63,12 @@
   --ov-stream-w: 392px;
   /* The compact HUD is one fixed-width pill: mark, meter, nothing else. 200px
      inside a 256px window leaves 28px of clearance a side, which is what keeps
-     --shadow-panel's ring off the window edge. A failure is the one state
+     the card's shadow throw off the window edge. A failure is the one state
      allowed to grow past it, up to --ov-card-max-w. */
   --ov-pill-w: 200px;
   /* 40px + the card's 1px border box = 42px inside a 46px window. The 4px of
-     slack is not decoration: --shadow-panel's 1px ring is this card's only
-     edge now, and a card sized to the window clips that ring on every side. */
+     slack is not decoration: it is the room the shadow throw needs, and a card
+     sized to the window clips that throw on every side. */
   --ov-base-h: 40px;
   --ov-cap-max-h: 64px;
   /* Level-meter bar track. scaleY runs against this, so it is the only place
@@ -34,6 +80,51 @@
      mark-left / waves-right reading in both windows. */
   --ov-wave-w: 148px;
   --ov-bar-w: 4px;
+
+  /* Spacing and motion, verbatim the values this surface shipped with
+     (theme.css --space-* / --duration-* / --ease-*). They are local ONLY because
+     geist.css carries no spacing or motion vocabulary — if it grows one, these
+     should point at it. The card radius deliberately does NOT live here: 12px is
+     an app-wide decision and geist.css already owns it as --radius-card, so this
+     file reads that rather than restating the number. The pill radius stays
+     local because 999px is this surface's own call, not app vocabulary. */
+  --ov-radius-pill: 999px;
+  --ov-gap-1-5: 6px;
+  --ov-gap-2: 8px;
+  --ov-gap-2-5: 10px;
+  --ov-duration-fast: 120ms;
+  --ov-duration-standard: 180ms;
+  --ov-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ov-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* The card's lift. Geist is flat at rest but keeps a shadow on things that
+     float over other windows, and this card floats over the whole desktop. The
+     throw is unchanged from the ring-and-throw shadow this file used before;
+     only the 1px ring is gone, because the card now draws a real
+     gray-alpha-400 border in the 1px slot it always reserved. */
+  --ov-shadow: 0 16px 40px -20px rgb(0 0 0 / 0.6);
+  /* Glass, on the idle pill only: a translucent Geist surface, no blur. See the
+     pill's own section for why this window gets tint without blur. */
+  --ov-glass-tint: color-mix(
+    in srgb,
+    var(--color-background-100) 85%,
+    transparent
+  );
+}
+
+:root[data-theme="light"] {
+  --ov-shadow: 0 16px 40px -20px rgb(0 0 0 / 0.25);
+}
+
+/* The measurement guard, formerly inherited from theme.css. A transition or a
+   keyframe on a readout renders values the backend never reported, so the
+   element holding one opts out of both — including the bars' resting/hearing
+   colour, which is derived from the same buckets and therefore snaps with
+   them. */
+.snap-measured,
+.snap-measured * {
+  transition: none !important;
+  animation: none !important;
 }
 
 /* ============================================================
@@ -56,11 +147,11 @@
   align-items: flex-start; /* top placement: flush to the top edge */
 }
 
-/* Compact forms: fade the whole container in/out. 180ms --ease-out is the
+/* Compact forms: fade the whole container in/out. 180ms --ov-ease-out is the
    panel/overlay class in the motion table; enter and exit are the same. */
 .ov-fade {
   opacity: 0;
-  transition: opacity var(--duration-standard) var(--ease-out);
+  transition: opacity var(--ov-duration-standard) var(--ov-ease-out);
 }
 .ov-fade.show {
   opacity: 1;
@@ -88,27 +179,28 @@
  * Solid in both materials, by ruling: the level meter's legibility is the whole
  * job of the recording HUD, and a tint that lets unblurred wallpaper through
  * contests exactly the reading it exists to show. Glass lives on the idle pill
- * only (.hud-pill carries .glass-surface--tint), where nothing measured is
- * rendered. `--shadow-panel` is a 1px ring plus tight layers, and per the
- * surface model a panel carrying it does not also carry a border: the ring is
- * the border. Width is never transitioned — it is a layout property, and this
- * card is on screen while ASR runs. */
+ * only, where nothing measured is rendered.
+ *
+ * background-100 is the Geist raised surface (#FFF light, #0A0A0A dark) and the
+ * edge is the product's one hairline, gray-alpha-400 — an alpha wash, so the
+ * same line reads correctly whichever wallpaper the shadow falls on. The 1px
+ * border slot is not new: this card always reserved it (previously transparent,
+ * with the edge drawn by a ring inside the shadow), so making it real moves
+ * nothing. Width is never transitioned — it is a layout property, and this card
+ * is on screen while ASR runs. */
 .scard {
   box-sizing: border-box;
   max-inline-size: var(--ov-card-max-w);
-  border-radius: var(--radius-panel);
+  border-radius: var(--radius-card);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   flex: none;
   transform-origin: bottom center;
-  background: var(--color-surface-raised);
-  /* Kept transparent so nothing shifts a pixel between materials: in Solid the
-     ring in --shadow-panel is the edge, and under Glass .glass-surface--tint
-     replaces that shadow with a ring-less one and colours this box instead. */
-  border: 1px solid transparent;
-  box-shadow: var(--shadow-panel);
-  animation: scard-pop var(--duration-standard) var(--ease-out);
+  background: var(--color-background-100);
+  border: 1px solid var(--color-gray-alpha-400);
+  box-shadow: var(--ov-shadow);
+  animation: scard-pop var(--ov-duration-standard) var(--ov-ease-out);
 }
 @keyframes scard-pop {
   from {
@@ -128,7 +220,7 @@
    the meter would re-space under a value it never reported. */
 .scard.compact {
   animation: none;
-  border-radius: var(--radius-pill);
+  border-radius: var(--ov-radius-pill);
   inline-size: var(--ov-pill-w);
 }
 
@@ -172,7 +264,13 @@
   display: flex;
   flex-direction: column;
   padding: 12px 14px 0;
-  color: var(--color-text-primary);
+  /* The body role, formerly the shared `.type-body` class: 13px on a 19px line
+     at weight 400. Baked in here because the overlay no longer loads the type
+     layer for two rules. */
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 19px;
+  color: var(--color-gray-1000);
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* legacy Edge */
 }
@@ -186,7 +284,7 @@
   margin: auto 0 0;
 }
 .stext-cap .tentative {
-  color: var(--color-text-secondary);
+  color: var(--color-gray-900);
 }
 .scaret {
   display: inline-block;
@@ -194,7 +292,7 @@
   height: 1.02em;
   translate: 0 3px;
   margin-left: 1px;
-  background: var(--color-accent);
+  background: var(--color-blue-700);
   border-radius: 2px;
   animation: scaret-blink 1.05s steps(1) infinite;
 }
@@ -224,7 +322,7 @@
   block-size: var(--ov-base-h);
   display: flex;
   align-items: center;
-  gap: var(--space-2-5);
+  gap: var(--ov-gap-2-5);
   min-inline-size: 0;
   /* 14px leads; 20px trails, because the cancel button parks in that slack and
      an overlap between a control and a measurement is not acceptable. */
@@ -257,14 +355,20 @@
 .smark {
   flex: none;
   display: block;
-  color: var(--color-text-primary);
+  color: var(--color-gray-1000);
 }
 
 /* The failure names its cause, in prose, in the one semantic colour that means
-   a run ended badly. Not mono: `error_type` never reaches the screen. */
+   a run ended badly — red-900, the high-contrast step, because this text sits
+   on a surface and has to be read rather than noticed. Not mono: `error_type`
+   never reaches the screen. Carries the row-title role (13px/19px, weight 500)
+   inline, for the same reason .stext-cap does. */
 .serror {
   min-inline-size: 0;
-  color: var(--color-error);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 19px;
+  color: var(--color-red-900);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -279,9 +383,14 @@
    layout property.
 
    Three appearances, one geometry, so the row never reflows:
-     arming    dim tertiary, pulsing        the stream is still opening
-     ready     accent, snapped to buckets   audio is flowing
-     working   dim tertiary, one travelling highlight across a fixed low scale
+     arming    dim gray-800, pulsing        the stream is still opening
+     ready     gray-900, snapped to buckets audio is flowing
+     working   dim gray-800, one travelling highlight across a fixed low scale
+
+   `ready` carries the one colour event on this surface: while a reported bucket
+   is at the top of the visualiser's calibrated speech range the bars go
+   blue-700 (see .hearing). That is the whole "is it hearing me" answer, and it
+   is why nothing else in this window is allowed an accent colour.
 
    `working` is deliberately unlike `ready`: no bar ever leaves its fixed scale,
    so the row cannot be misread as input while the transcriber runs. Only the
@@ -306,16 +415,25 @@
   min-inline-size: 1px;
   max-inline-size: var(--ov-bar-w);
   block-size: 100%;
-  border-radius: var(--radius-pill);
-  background: var(--color-accent);
+  border-radius: var(--ov-radius-pill);
+  /* Ink, not accent: a meter that is always coloured has no way left to say
+     "this is you talking". gray-900 is the secondary-text step, which is
+     exactly the weight a resting readout wants. */
+  background: var(--color-gray-900);
   transform-origin: center;
   transition: none;
 }
+/* Speech, as reported. Set by the renderer when a bucket reaches the top of the
+   visualiser's speech window; no transition, because the tint is derived from
+   the same measurement the scale is and must snap with it. */
+.swave.hearing i {
+  background: var(--color-blue-700);
+}
 .swave.arming i {
-  background: var(--color-text-tertiary);
+  background: var(--color-gray-800);
   opacity: 0.35;
   /* The pulse overrides the inline scaleY, which is the resting floor anyway. */
-  animation: swave-arming 900ms var(--ease-in-out) infinite;
+  animation: swave-arming 900ms var(--ov-ease-in-out) infinite;
 }
 .swave.arming i:nth-child(3n + 2) {
   animation-delay: 100ms;
@@ -337,11 +455,11 @@
 
 /* Work is not input. No bucket is being reported, so the renderer emits no
    inline transform at all and the scale below is the whole truth of the row:
-   every bar flat, in tertiary ink, with a crest of opacity walking the row once
-   per cycle. `--bar-index` is that bar's position, set by the renderer, so the
-   crest travels rather than blinking in place. */
+   every bar flat, in the dim grey step, with a crest of opacity walking the row
+   once per cycle. `--bar-index` is that bar's position, set by the renderer, so
+   the crest travels rather than blinking in place. */
 .swave.working i {
-  background: var(--color-text-tertiary);
+  background: var(--color-gray-800);
   /* 0.34, not a hairline: at 0.2 a 4px-wide bar renders square and the row
      reads as a row of dots. A third of full scale is unmistakably a bar and
      still nowhere near a level any speech would produce. */
@@ -350,7 +468,7 @@
   /* 45ms per bar spreads the crest over 675ms of a 1100ms cycle, and each bar's
      bump is 58% of that cycle wide — so as the crest leaves the trailing bar it
      is already re-entering the leading one and the row is never fully dark. */
-  animation: swave-working 1100ms var(--ease-in-out) infinite;
+  animation: swave-working 1100ms var(--ov-ease-in-out) infinite;
   animation-delay: calc(var(--bar-index) * 45ms);
 }
 @keyframes swave-working {
@@ -379,7 +497,7 @@
   translate: 0 -50%;
   inline-size: 24px;
   block-size: 24px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--ov-radius-pill);
   padding: 0;
   border: 0;
   -webkit-appearance: none;
@@ -387,23 +505,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-tertiary);
-  background: var(--color-surface-raised);
+  color: var(--color-gray-800);
+  background: var(--color-background-100);
   cursor: pointer;
   opacity: 0;
   /* Invisible and unclickable: a phantom 24px hit target over the meter is
      worse than no control at all. */
   pointer-events: none;
   transition:
-    opacity var(--duration-fast) var(--ease-out),
-    box-shadow var(--duration-fast) var(--ease-in-out),
-    background-color var(--duration-fast) var(--ease-in-out),
-    color var(--duration-fast) var(--ease-in-out);
+    opacity var(--ov-duration-fast) var(--ov-ease-out),
+    box-shadow var(--ov-duration-fast) var(--ov-ease-in-out),
+    background-color var(--ov-duration-fast) var(--ov-ease-in-out),
+    color var(--ov-duration-fast) var(--ov-ease-in-out);
 }
 .sbase:hover .sx,
 .sx:focus-visible {
   opacity: 1;
   pointer-events: auto;
+}
+.sx:focus-visible {
+  outline: 2px solid var(--color-blue-700);
+  outline-offset: 2px;
 }
 .sx svg {
   width: 9px;
@@ -411,12 +533,12 @@
   display: block;
 }
 .sx:hover {
-  color: var(--color-text-primary);
-  box-shadow: inset 0 0 0 1px var(--color-border);
+  color: var(--color-gray-1000);
+  box-shadow: inset 0 0 0 1px var(--color-gray-alpha-400);
 }
 .sx:active {
-  color: var(--color-text-primary);
-  background: var(--color-subtle);
+  color: var(--color-gray-1000);
+  background: var(--color-gray-alpha-200);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -448,10 +570,10 @@
    Geometry contract: overlay.rs sizes the idle window 184x36
    (OVERLAY_IDLE_WIDTH/HEIGHT) and .ov-stage anchors the card flush to the
    screen-edge side, so the pill stays inside 176x28 and leaves the remaining
-   pixels for its shadow ring and the edge it sits against. Growing it means
-   moving those two constants with it. The selector carries .scard.compact
-   because that rule pins the working HUD's fixed --ov-pill-w width and 40px row
-   height, both of which the idle pill has to opt out of.
+   pixels for its shadow and the edge it sits against. Growing it means moving
+   those two constants with it. The selector carries .scard.compact because that
+   rule pins the working HUD's fixed --ov-pill-w width and 40px row height, both
+   of which the idle pill has to opt out of.
 
    Two real buttons share the pill: the record area and a trailing mode switch.
    At rest both sit muted behind the mark and the pill reads as a label; hover
@@ -473,7 +595,7 @@
   inline-size: max-content;
   max-inline-size: 176px;
   padding-inline: 3px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--ov-radius-pill);
   -webkit-app-region: no-drag;
 }
 
@@ -481,38 +603,38 @@
    shell, same mark, same 176x28 the idle window allows, the cause where the
    mode name was. No buttons — there is nothing to do to a finished run. */
 .hud-pill.hud-error {
-  gap: var(--space-1-5);
-  padding-inline: var(--space-2);
+  gap: var(--ov-gap-1-5);
+  padding-inline: var(--ov-gap-2);
 }
 
 .hud-pill button {
   display: flex;
   align-items: center;
   align-self: stretch;
-  gap: var(--space-1-5);
+  gap: var(--ov-gap-1-5);
   background: transparent;
   border: 0;
-  border-radius: var(--radius-pill);
-  color: var(--color-text-secondary);
+  border-radius: var(--ov-radius-pill);
+  color: var(--color-gray-900);
   cursor: pointer;
   font: inherit;
-  padding-inline: var(--space-2);
+  padding-inline: var(--ov-gap-2);
   transition:
-    background-color var(--duration-fast) var(--ease-in-out),
-    color var(--duration-fast) var(--ease-in-out);
+    background-color var(--ov-duration-fast) var(--ov-ease-in-out),
+    color var(--ov-duration-fast) var(--ov-ease-in-out);
 }
 
 .hud-pill button:hover,
 .hud-pill:hover button {
-  color: var(--color-text-primary);
+  color: var(--color-gray-1000);
 }
 
 .hud-pill button:hover {
-  background: var(--color-hover);
+  background: var(--color-gray-alpha-100);
 }
 
 .hud-pill button:active {
-  background: var(--color-pressed);
+  background: var(--color-gray-alpha-200);
 }
 
 /* The pill is inside a panel that never takes focus, so :focus-visible would
@@ -527,10 +649,39 @@
 }
 
 .hud-pill-mode {
+  /* The row-title role, inline — see .serror. */
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 19px;
   max-inline-size: 96px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Glass, formerly `.glass-surface--tint` in primitives.css, now defined where
+   its single consumer lives. Rust owns `data-material` and only writes "glass"
+   when the native vibrancy view actually applied, so this never fires on a
+   window that cannot back it.
+
+   Tint only, no backdrop blur: this is a transparent NSPanel over an arbitrary
+   desktop, and a blur here samples the whole screen for as long as the pill is
+   up — this app shipped that once and reverted it. 85% of the Geist surface is
+   the measured floor at which the pill still holds AA over extreme wallpapers.
+   The specular top highlight the Mercury version drew is gone: Geist surfaces
+   are flat, and the pill already has an edge.
+
+   Scoped away from the failure pill: that one carries prose in red-900 that has
+   to be read, and a tint over unblurred wallpaper is exactly what a legibility
+   requirement cannot take. */
+:root[data-material="glass"] .hud-pill:not(.hud-error) {
+  background: var(--ov-glass-tint);
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  :root[data-material="glass"] .hud-pill:not(.hud-error) {
+    background: var(--color-background-100);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

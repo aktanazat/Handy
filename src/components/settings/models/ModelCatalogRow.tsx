@@ -1,8 +1,16 @@
 import React from "react";
+import { Ellipsis } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import type { ModelInfo } from "@/bindings";
-import { Badge, Button, ProgressBar, StatusText } from "@/components/ui";
+import { Button } from "@/components/vg/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/vg/dropdown-menu";
+import { cn } from "@/lib/cn";
 import { formatModelSize } from "@/lib/utils/format";
 import {
   getTranslatedModelDescription,
@@ -27,6 +35,44 @@ export type ModelRowState =
   | "active"
   | "loading";
 
+export interface ModelRowActions {
+  /** The single control the row shows inline, or none. */
+  primary: "download" | "cancel" | "activate" | "retry" | null;
+  /** Delete is never the row's inline control; it lives in the overflow. */
+  canDelete: boolean;
+}
+
+/**
+ * One action per row, resolved from state.
+ *
+ * A 68-row catalog with three buttons per row is a wall, so the row shows the
+ * one thing to do next and puts the destructive one behind the overflow. A
+ * failed transfer replaces Download with Retry rather than offering both, and
+ * a transfer in flight offers only the way out of it.
+ */
+export const modelRowActions = (
+  state: ModelRowState,
+  hasError: boolean,
+): ModelRowActions => {
+  switch (state) {
+    case "not-downloaded":
+      return { primary: hasError ? "retry" : "download", canDelete: false };
+    case "downloading":
+      return { primary: "cancel", canDelete: false };
+    case "verifying":
+    case "extracting":
+      return { primary: null, canDelete: false };
+    case "downloaded":
+      return { primary: "activate", canDelete: true };
+    case "active":
+      return { primary: null, canDelete: true };
+    case "loading":
+      /* The engine is reading the file: deleting it now would pull it out
+       * from under the load. */
+      return { primary: null, canDelete: false };
+  }
+};
+
 export interface ModelCatalogRowProps {
   model: ModelInfo;
   state: ModelRowState;
@@ -34,8 +80,9 @@ export interface ModelCatalogRowProps {
   inMemory: boolean;
   /** Determinate download percentage, 0-100. */
   percentage?: number;
-  /** Download speed in MB/s. */
-  speed?: number;
+  /* No speed: the bar carries the shape, the percentage carries the number,
+   * and a third figure that re-renders several times a second is the noise
+   * this catalog is being cut down to remove. */
   /** Last download or extraction failure for this model. */
   error?: string;
   /** Reveals the GGUF quantization label, matching the rest of debug mode. */
@@ -69,7 +116,6 @@ export const ModelCatalogRow: React.FC<ModelCatalogRowProps> = ({
   state,
   inMemory,
   percentage,
-  speed,
   error,
   showQuant,
   onDownload,
@@ -80,208 +126,211 @@ export const ModelCatalogRow: React.FC<ModelCatalogRowProps> = ({
 }) => {
   const { t } = useTranslation();
   const displayName = getTranslatedModelName(model, t);
-  const displayDescription = getTranslatedModelDescription(model, t);
   const quant = showQuant ? quantLabelOf(model.filename) : null;
 
-  const tags: string[] = [];
-  if (model.is_recommended) tags.push(t("onboarding.recommended"));
-  if (model.is_custom) tags.push(t("modelSelector.custom"));
-  if (isLegacyModel(model)) tags.push(t("modelSelector.legacy"));
-  if (quant) tags.push(quant);
-
-  const meta = [
-    formatModelSize(Number(model.size_mb)),
+  /* The row is a table row: name, size, state, one action. Everything else
+   * the catalog knows about a build — reach, capabilities, provenance,
+   * quantization — rides the name's tooltip with the description, because at
+   * the 704px content column a fifth column can only be bought by truncating
+   * the name to nothing. `Recommended` is the exception: it is the one datum
+   * that changes which row a first-run user picks. */
+  const detail = [
+    getTranslatedModelDescription(model, t),
     languageSummary(model.supported_languages, t),
     model.supports_streaming ? t("modelSelector.streaming") : null,
     model.supports_translation
       ? t("modelSelector.capabilities.translate")
       : null,
-  ].filter((part): part is string => part !== null);
+    model.is_custom ? t("modelSelector.custom") : null,
+    isLegacyModel(model) ? t("modelSelector.legacy") : null,
+    quant,
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join(" \u00b7 ");
 
-  /* One status line per row. Row actions stay quiet — bordered or ghost, no
-   * filled primary in a 68-row catalog — and delete is the only destructive
-   * control, ghost-red until hovered. The active row carries its state as a
-   * data attribute so the stylesheet can give it the accent-soft fill. */
+  /* One status cell per row, always a word, always the same width, so the
+   * column above and below it starts in the same place. */
   const status = (() => {
     switch (state) {
       case "loading":
-        return {
-          tone: "info" as const,
-          text: t("modelSelector.loadingGeneric"),
-        };
+        return t("modelSelector.loadingGeneric");
       case "active":
-        return {
-          tone: "success" as const,
-          text: inMemory
-            ? t("settings.models.state.activeInMemory", "Active, in memory")
-            : t("modelSelector.active"),
-        };
+        return inMemory
+          ? t("settings.models.state.activeInMemory", "Active, in memory")
+          : t("modelSelector.active");
       case "downloaded":
-        return {
-          tone: "muted" as const,
-          text: t("settings.models.state.downloaded", "Downloaded"),
-        };
+        return t("settings.models.state.downloaded", "Downloaded");
       case "downloading":
-        return {
-          tone: "neutral" as const,
-          text: t("modelSelector.downloading", {
-            percentage: Math.round(percentage ?? 0),
-          }),
-        };
+        return t("modelSelector.downloading", {
+          percentage: Math.round(percentage ?? 0),
+        });
       case "verifying":
-        return {
-          tone: "neutral" as const,
-          text: t("modelSelector.verifyingGeneric"),
-        };
+        return t("modelSelector.verifyingGeneric");
       case "extracting":
-        return {
-          tone: "neutral" as const,
-          text: t("modelSelector.extractingGeneric"),
-        };
+        return t("modelSelector.extractingGeneric");
       case "not-downloaded":
-        return {
-          tone: "muted" as const,
-          text: t("settings.models.state.notDownloaded", "Not downloaded"),
-        };
+        return t("settings.models.state.notDownloaded", "Not downloaded");
     }
   })();
 
   /* Discrete phase changes are worth announcing. A percentage that ticks a
-   * few times a second is not: the <progress> element carries that value for
-   * anyone who asks for it. */
+   * few times a second is not. */
   const announce =
     state === "loading" || state === "verifying" || state === "extracting";
 
-  return (
-    <li className="models-row" data-state={state}>
-      <div className="models-row-main">
-        <div className="models-row-identity">
-          <div className="models-row-name">
-            <h3>{displayName}</h3>
-            {/* Provenance and quantization are categorical facts about the
-             * build, so they earn a chip. Size, language reach and capability
-             * are ordinary metadata and stay plain mono text below. */}
-            {tags.map((tag) => (
-              <Badge key={tag} variant="secondary">
-                {tag}
-              </Badge>
-            ))}
-          </div>
-          {displayDescription && (
-            <p className="models-row-description">{displayDescription}</p>
-          )}
-          <p className="models-row-meta">{meta.join(" \u00b7 ")}</p>
-        </div>
+  const actions = modelRowActions(state, error !== undefined);
+  const download = () => onDownload(model.id);
+  const retry = () => onRetry(model.id);
 
-        <div className="models-row-actions">
-          <span className="models-row-status">
-            {state === "active" ? (
-              /* Exactly one row in the catalog is the current model, which is
-               * what Geist's inverted badge is for. */
-              <Badge>{status.text}</Badge>
-            ) : (
-              <StatusText tone={status.tone} live={announce ? "polite" : "off"}>
-                {status.text}
-              </StatusText>
-            )}
+  const primary = (() => {
+    switch (actions.primary) {
+      case "download":
+        return {
+          label: t("settings.models.actions.download", "Download"),
+          name: t(
+            "settings.models.actions.downloadNamed",
+            "Download {{modelName}}",
+            { modelName: displayName },
+          ),
+          run: download,
+        };
+      case "retry":
+        return {
+          label: t("common.retry"),
+          name: t(
+            "settings.models.actions.retryNamed",
+            "Retry downloading {{modelName}}",
+            { modelName: displayName },
+          ),
+          run: retry,
+        };
+      case "activate":
+        return {
+          label: t("settings.models.actions.activate", "Use"),
+          name: t(
+            "settings.models.actions.activateNamed",
+            "Use {{modelName}}",
+            {
+              modelName: displayName,
+            },
+          ),
+          run: () => onActivate(model.id),
+        };
+      case "cancel":
+        return {
+          label: t("modelSelector.cancel"),
+          name: t("modelSelector.cancelDownload"),
+          run: () => onCancel(model.id),
+        };
+      case null:
+        return null;
+    }
+  })();
+
+  const deleteLabel = t("modelSelector.deleteModel", {
+    modelName: displayName,
+  });
+
+  return (
+    <li
+      data-state={state}
+      className={cn(
+        "relative flex flex-col",
+        "focus-within:bg-gray-alpha-100 hover:bg-gray-alpha-100",
+        state === "active" && "bg-gray-alpha-100",
+      )}
+    >
+      {/* One line, never wrapped: a catalog of 68 rows only reads as a table
+       * if every row is the same height and every column starts where the
+       * one above it did. The name is the only cell allowed to shrink. */}
+      <div className="flex min-h-11 items-center gap-3 px-4 py-2">
+        <h3
+          title={detail}
+          className="min-w-0 flex-1 truncate text-[13px] text-gray-1000"
+        >
+          {displayName}
+        </h3>
+        {model.is_recommended ? (
+          <span className="flex-none font-mono text-[11px] text-gray-800">
+            {t("onboarding.recommended")}
           </span>
-          {/* Every row shows the same three words, so each control carries the
-           * model name in its accessible name. The visible label stays a
-           * subset of it, which is what WCAG 2.5.3 asks for. */}
-          {state === "not-downloaded" && !error && (
-            <Button
-              variant="secondary"
-              size="sm"
-              aria-label={t(
-                "settings.models.actions.downloadNamed",
-                "Download {{modelName}}",
-                { modelName: displayName },
-              )}
-              onClick={() => onDownload(model.id)}
-            >
-              {t("settings.models.actions.download", "Download")}
-            </Button>
+        ) : null}
+        <span className="w-16 flex-none text-right font-mono text-[11px] tabular-nums text-gray-800">
+          {formatModelSize(Number(model.size_mb))}
+        </span>
+        <span
+          aria-live={announce ? "polite" : undefined}
+          className={cn(
+            "w-36 flex-none text-right font-mono text-[11px] whitespace-nowrap tabular-nums",
+            state === "active" ? "text-blue-900" : "text-gray-800",
           )}
-          {state === "downloading" && (
+        >
+          {status}
+        </span>
+
+        <div className="flex min-w-[77px] flex-none items-center justify-end gap-1">
+          {primary ? (
             <Button
-              variant="danger-ghost"
+              variant="outline"
               size="sm"
-              aria-label={t("modelSelector.cancelDownload")}
-              onClick={() => onCancel(model.id)}
+              aria-label={primary.name}
+              onClick={primary.run}
             >
-              {t("modelSelector.cancel")}
+              {primary.label}
             </Button>
-          )}
-          {state === "downloaded" && (
-            <Button
-              variant="secondary"
-              size="sm"
-              aria-label={t(
-                "settings.models.actions.activateNamed",
-                "Use {{modelName}}",
-                { modelName: displayName },
-              )}
-              onClick={() => onActivate(model.id)}
-            >
-              {t("settings.models.actions.activate", "Use")}
-            </Button>
-          )}
-          {(state === "downloaded" ||
-            state === "active" ||
-            state === "loading") && (
-            <Button
-              variant="danger-ghost"
-              size="sm"
-              disabled={state === "loading"}
-              aria-label={t("modelSelector.deleteModel", {
-                modelName: displayName,
-              })}
-              onClick={() => onDelete(model.id)}
-            >
-              {t("common.delete")}
-            </Button>
-          )}
+          ) : null}
+          {actions.canDelete ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 text-gray-800"
+                  aria-label={t("settings.models.actions.moreFor", {
+                    modelName: displayName,
+                  })}
+                >
+                  <Ellipsis aria-hidden="true" className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  variant="destructive"
+                  aria-label={deleteLabel}
+                  onSelect={() => onDelete(model.id)}
+                >
+                  {t("common.delete")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
         </div>
       </div>
 
-      {state === "downloading" && (
-        <div className="models-row-progress">
-          <ProgressBar
-            progress={[
-              { id: model.id, percentage: Math.max(0, percentage ?? 0) },
-            ]}
-            size="small"
-            className="models-row-progress-bar"
-          />
-          {speed !== undefined && speed > 0 && (
-            <span className="models-row-speed numeric">
-              <StatusText>
-                {t("modelSelector.downloadSpeed", { speed: speed.toFixed(1) })}
-              </StatusText>
-            </span>
-          )}
-        </div>
-      )}
+      {error ? (
+        <p
+          role="alert"
+          className="px-4 pb-2 text-[13px] leading-5 text-red-900"
+        >
+          {error}
+        </p>
+      ) : null}
 
-      {error && (
-        <div className="models-row-error">
-          <StatusText tone="danger" live="assertive">
-            {error}
-          </StatusText>
-          <Button
-            variant="secondary"
-            size="sm"
-            aria-label={t(
-              "settings.models.actions.retryNamed",
-              "Retry downloading {{modelName}}",
-              { modelName: displayName },
-            )}
-            onClick={() => onRetry(model.id)}
-          >
-            {t("common.retry")}
-          </Button>
-        </div>
-      )}
+      {/* A transfer in flight is the row's only accent: a hairline on its own
+       * bottom edge, so a running download never adds a row of height. */}
+      {state === "downloading" ? (
+        <span
+          aria-hidden="true"
+          className="absolute inset-x-0 bottom-0 h-0.5 bg-gray-alpha-200"
+        >
+          <span
+            className="block h-full bg-blue-700"
+            style={{
+              width: `${Math.min(100, Math.max(0, percentage ?? 0))}%`,
+            }}
+          />
+        </span>
+      ) : null}
     </li>
   );
 };

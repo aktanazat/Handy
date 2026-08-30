@@ -1,14 +1,17 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
 import { commands } from "@/bindings";
-import { getTranslatedModelName } from "../../lib/utils/modelTranslation";
-import { useModelStore } from "../../stores/modelStore";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/vg/popover";
+import { getTranslatedModelName } from "@/lib/utils/modelTranslation";
+import { useModelStore } from "@/stores/modelStore";
+import type { ModelStateEvent } from "@/lib/types/events";
 import ModelStatusButton, { type ModelStatus } from "./ModelStatusButton";
 import ModelDropdown from "./ModelDropdown";
-import DownloadProgressDisplay from "./DownloadProgressDisplay";
-
-import { ModelStateEvent } from "@/lib/types/events";
 
 export interface ModelSelectorProps {
   onError?: (error: string) => void;
@@ -20,7 +23,6 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
     models,
     currentModel,
     downloadProgress,
-    downloadStats,
     verifyingModels,
     extractingModels,
     selectModel,
@@ -31,8 +33,6 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
   const [showModelDropdown, setShowModelDropdown] = useState(false);
   // Track pending model switch for optimistic display
   const [pendingModelId, setPendingModelId] = useState<string | null>(null);
-
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const displayModelId = pendingModelId || currentModel;
 
@@ -119,22 +119,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
       },
     );
 
-    // Click outside to close dropdown
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target;
-      if (
-        dropdownRef.current &&
-        target instanceof Node &&
-        !dropdownRef.current.contains(target)
-      ) {
-        setShowModelDropdown(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
       modelStateUnlisten.then((fn) => fn());
       downloadCompleteUnlisten.then((fn) => fn());
     };
@@ -250,33 +235,30 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
   };
 
   return (
-    <>
-      {/* Model Status and Switcher */}
-      <div className="model-chip-anchor" ref={dropdownRef}>
+    <Popover open={showModelDropdown} onOpenChange={setShowModelDropdown}>
+      <PopoverTrigger asChild>
         <ModelStatusButton
           status={getDisplayStatus()}
           displayText={getModelDisplayText()}
-          isDropdownOpen={showModelDropdown}
-          onClick={() => setShowModelDropdown(!showModelDropdown)}
           progress={chipProgress()}
         />
-
-        {/* Model Dropdown */}
-        {showModelDropdown && (
-          <ModelDropdown
-            models={models}
-            currentModelId={displayModelId}
-            onModelSelect={handleModelSelect}
-          />
-        )}
-      </div>
-
-      {/* Download Progress Bar for Models */}
-      <DownloadProgressDisplay
-        downloadProgress={downloadProgress}
-        downloadStats={downloadStats}
-      />
-    </>
+      </PopoverTrigger>
+      {/* Grows inline-end from the chip's start edge, out of the rail and
+       * over the content pane: the chip sits against the window's start
+       * edge, where a start-growing menu would leave the window. */}
+      <PopoverContent
+        side="top"
+        align="start"
+        sideOffset={6}
+        className="w-[304px] p-0"
+      >
+        <ModelDropdown
+          models={models}
+          currentModelId={displayModelId}
+          onModelSelect={handleModelSelect}
+        />
+      </PopoverContent>
+    </Popover>
   );
 };
 

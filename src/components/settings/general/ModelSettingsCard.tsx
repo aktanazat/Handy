@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { SettingsGroup } from "../../ui/SettingsGroup";
+import { SettingsSection } from "@/components/settings/rows";
 import { LanguageSelector } from "../LanguageSelector";
 import { TranslateToEnglish } from "../TranslateToEnglish";
 import { useModelStore } from "../../../stores/modelStore";
@@ -10,6 +10,8 @@ import {
   getUniqueCapabilityLanguages,
 } from "@/lib/constants/languages";
 
+/* A section that exists only when the loaded model has something to configure:
+ * an empty "model settings" heading would be a promise the model cannot keep. */
 export const ModelSettingsCard: React.FC = () => {
   const { t } = useTranslation();
   const { currentModel, models } = useModelStore();
@@ -36,21 +38,20 @@ export const ModelSettingsCard: React.FC = () => {
   }
 
   return (
-    <SettingsGroup
-      title={t("settings.modelSettings.title", {
+    <SettingsSection
+      label={t("settings.modelSettings.title", {
         model: currentModelInfo.name,
       })}
     >
       {showLanguageSelector && (
         <LanguageSelector
-          grouped
           supportedLanguages={currentModelInfo.supported_languages}
           supportsLanguageDetection={
             currentModelInfo.supports_language_detection
           }
         />
       )}
-      {supportsTranslation && <TranslateToEnglish grouped />}
-    </SettingsGroup>
+      {supportsTranslation && <TranslateToEnglish />}
+    </SettingsSection>
   );
 };

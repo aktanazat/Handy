@@ -6,11 +6,10 @@ import {
   type PostProcessProviderConsent,
   type SecretState,
 } from "@/bindings";
-import type { ModelOption } from "./types";
-import type { DropdownOption } from "../../ui/Dropdown";
+import type { ModelOption, ProviderOption } from "./types";
 
 type PostProcessProviderState = {
-  providerOptions: DropdownOption[];
+  providerOptions: ProviderOption[];
   selectedProviderId: string;
   selectedProvider: PostProcessProvider | undefined;
   isCustomProvider: boolean;
@@ -82,7 +81,7 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
     }
   }, [isAppleProvider, refreshPostProcessSecretState, selectedProviderId]);
 
-  const providerOptions = useMemo<DropdownOption[]>(
+  const providerOptions = useMemo<ProviderOption[]>(
     () =>
       providers.map((provider) => ({
         value: provider.id,

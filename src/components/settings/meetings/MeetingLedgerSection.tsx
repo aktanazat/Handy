@@ -3,12 +3,12 @@ import { FileCode2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { LedgerReceipt, MeetingReviewSnapshot } from "@/bindings";
 import {
-  Button,
-  EmptyState,
-  Section,
-  StatusText,
-  type StatusTone,
-} from "../../ui";
+  FactChip,
+  Microlabel,
+  Notice,
+  SettingsSection,
+} from "@/components/settings/rows";
+import { Button } from "@/components/vg/button";
 import { CitationJump } from "./MeetingReviewPanels";
 import { formatMeetingOffset } from "./meetingUtils";
 import {
@@ -28,13 +28,18 @@ import {
  * inferred, and an inferred state is only worth reading next to the quote it
  * was read from. So every row carries its receipt, and every receipt carries
  * the citation jump — the same control the rest of the review uses, because a
- * citation is a jump wherever it appears. */
+ * citation is a jump wherever it appears.
+ *
+ * One card, hairline blocks, mono measurements. The only tally left is the
+ * score: counting the commitments and the open loops above lists that print
+ * every one of them was the same number said twice. */
 
-const OUTCOME_TONES = {
-  landed: "success",
-  open: "warning",
-  dropped: "danger",
-} as const satisfies Record<LedgerOutcome, StatusTone>;
+/** Colour is the second channel: the state word carries it either way. */
+const OUTCOME_CLASSES = {
+  landed: "text-gray-1000",
+  open: "text-amber-900",
+  dropped: "text-red-900",
+} as const satisfies Record<LedgerOutcome, string>;
 
 /** Upstream's glyphs. Colour is the second channel, never the only one. */
 const OUTCOME_GLYPHS = {
@@ -43,7 +48,10 @@ const OUTCOME_GLYPHS = {
   dropped: "\u2715",
 } as const satisfies Record<LedgerOutcome, string>;
 
-const CAPTION_CLASSES = "microlabel";
+const COLUMN_CLASSES =
+  "pb-1.5 pe-3 text-start font-mono text-[11px] font-normal uppercase tracking-[0.12em] text-gray-800";
+
+const CELL_CLASSES = "py-1.5 pe-3 align-top";
 
 const offsetOf = (milliseconds: number) =>
   formatMeetingOffset(milliseconds * 1_000_000);
@@ -68,121 +76,103 @@ export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
 
   if (found === null) {
     return (
-      <Section
-        title={t("meetings.ledger.title")}
-        description={t("meetings.ledger.description")}
-      >
-        <EmptyState
-          title={t("meetings.ledger.emptyTitle")}
-          description={t("meetings.ledger.emptyDescription")}
-        />
-      </Section>
+      <SettingsSection label={t("meetings.ledger.title")}>
+        <div className="flex flex-col gap-1 px-4 py-6">
+          <h3 className="text-[13px] leading-5 text-gray-1000">
+            {t("meetings.ledger.emptyTitle")}
+          </h3>
+          <Notice tone="muted" live={false}>
+            {t("meetings.ledger.emptyDescription")}
+          </Notice>
+        </div>
+      </SettingsSection>
     );
   }
 
   const { ledger } = found;
   const substantive = ledger.threads.filter((thread) => thread.substantive);
   const scored = substantive.length > 0 ? substantive : ledger.threads;
-  const tally = (outcome: LedgerOutcome) =>
-    scored.filter((thread) => LEDGER_OUTCOME[thread.state] === outcome).length;
+  const landed = scored.filter(
+    (thread) => LEDGER_OUTCOME[thread.state] === "landed",
+  ).length;
 
   return (
-    <Section
-      title={t("meetings.ledger.title")}
-      description={t("meetings.ledger.description")}
-      actions={
+    <SettingsSection
+      label={t("meetings.ledger.title")}
+      action={
         <Button
           type="button"
-          variant="secondary"
+          variant="outline"
           size="sm"
           onClick={onExportLedger}
           disabled={busy || !canExport}
         >
-          <FileCode2 size={14} aria-hidden="true" />
+          <FileCode2 aria-hidden="true" className="size-3.5" />
           {t("meetings.ledger.exportHtml")}
         </Button>
       }
     >
-      <div className="meeting-card">
-        <dl className="flex flex-wrap items-baseline gap-x-6 gap-y-1.5">
-          <LedgerStat
+      <div className="flex flex-col gap-2 px-4 py-3">
+        <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1.5">
+          <FactChip
             label={t("meetings.ledger.statThreads")}
-            value={`${tally("landed")}/${scored.length}`}
+            value={`${landed}/${scored.length}`}
           />
-          <LedgerStat
-            label={t("meetings.ledger.statOpen")}
-            value={String(tally("open"))}
-          />
-          <LedgerStat
-            label={t("meetings.ledger.statDropped")}
-            value={String(tally("dropped"))}
-          />
-          <LedgerStat
-            label={t("meetings.ledger.statCommitments")}
-            value={String(ledger.commitments.length)}
-          />
-          <LedgerStat
-            label={t("meetings.ledger.statOpenLoops")}
-            value={String(ledger.open_loops.length)}
-          />
-          <LedgerStat
+          <FactChip
             label={t("meetings.ledger.statReceipts")}
             value={
-              ledger.receipts.status === "verified"
-                ? t("meetings.ledger.receiptsVerified")
-                : t("meetings.ledger.receiptsDegraded", {
+              ledger.receipts.status === "verified" ? (
+                t("meetings.ledger.receiptsVerified")
+              ) : (
+                <span className="text-amber-900">
+                  {t("meetings.ledger.receiptsDegraded", {
                     threads: ledger.receipts.dropped_threads,
                     commitments: ledger.receipts.dropped_commitments,
-                  })
+                  })}
+                </span>
+              )
             }
-            tone={ledger.receipts.status === "verified" ? "muted" : "warning"}
           />
-        </dl>
-
-        <p className="mt-3 text-[13px] leading-5 text-text-primary text-pretty">
+        </div>
+        <p className="text-[13px] leading-5 text-pretty text-gray-1000">
           {ledger.headline}
         </p>
+      </div>
 
-        <h4 className={`mt-5 mb-1.5 ${CAPTION_CLASSES}`}>
-          {t("meetings.ledger.threads")}
-        </h4>
+      <LedgerBlock label={t("meetings.ledger.threads")}>
         <ul
           role="list"
           aria-label={t("meetings.ledger.threads")}
-          className="meeting-rows"
+          className="flex flex-col gap-3"
         >
           {ledger.threads.map((thread, index) => {
             const outcome = LEDGER_OUTCOME[thread.state];
             return (
-              <li key={`thread:${index}`} className="meeting-row-stacked">
+              <li key={`thread:${index}`} className="flex flex-col gap-1">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-                  <div className="min-w-0 flex items-baseline gap-2">
-                    <span className="font-mono text-[11px] text-text-tertiary tabular-nums">
+                  <span className="flex min-w-0 items-baseline gap-2">
+                    <span className="font-mono text-[11px] tabular-nums text-gray-700">
                       {`T${String(index + 1).padStart(2, "0")}`}
                     </span>
-                    <span className="text-[13px] leading-5 font-medium text-text-primary">
+                    <span className="text-[13px] leading-5 font-medium text-gray-1000">
                       {thread.topic}
                     </span>
                     {thread.owner ? (
-                      <span className="font-mono text-[11px] text-text-secondary">
+                      <span className="font-mono text-[11px] text-gray-800">
                         {thread.owner}
                       </span>
                     ) : null}
                     {thread.substantive ? null : (
-                      <StatusText
-                        tone="muted"
-                        className="font-mono text-[11px]"
-                      >
+                      <Microlabel>
                         {t("meetings.ledger.asideThread")}
-                      </StatusText>
+                      </Microlabel>
                     )}
-                  </div>
-                  <StatusText
-                    tone={OUTCOME_TONES[outcome]}
-                    className="flex-none font-mono text-[11px] whitespace-nowrap"
+                  </span>
+                  <span
+                    className={`flex-none font-mono text-[11px] whitespace-nowrap ${OUTCOME_CLASSES[outcome]}`}
                   >
                     {`${OUTCOME_GLYPHS[outcome]} ${t(`meetings.ledger.states.${thread.state}`)}`}
-                  </StatusText>
+                  </span>
                 </div>
                 <LedgerReceiptRow
                   receipt={thread.receipt}
@@ -192,58 +182,66 @@ export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
             );
           })}
         </ul>
+      </LedgerBlock>
 
-        <h4 className={`mt-5 mb-1.5 ${CAPTION_CLASSES}`}>
-          {t("meetings.ledger.openLoops")}
-        </h4>
+      <LedgerBlock label={t("meetings.ledger.openLoops")}>
         {ledger.open_loops.length === 0 ? (
-          <StatusText tone="muted" className="block">
+          <Notice tone="muted" live={false}>
             {t("meetings.ledger.noOpenLoops")}
-          </StatusText>
+          </Notice>
         ) : (
-          <table className="data-table w-full">
+          <table className="w-full text-[13px] leading-5 text-gray-900">
             <thead>
               <tr>
-                <th scope="col">{t("meetings.ledger.columnAt")}</th>
-                <th scope="col">{t("meetings.ledger.columnQuestion")}</th>
-                <th scope="col">{t("meetings.ledger.columnInstead")}</th>
+                <th scope="col" className={COLUMN_CLASSES}>
+                  {t("meetings.ledger.columnAt")}
+                </th>
+                <th scope="col" className={COLUMN_CLASSES}>
+                  {t("meetings.ledger.columnQuestion")}
+                </th>
+                <th scope="col" className={COLUMN_CLASSES}>
+                  {t("meetings.ledger.columnInstead")}
+                </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-alpha-400">
               {ledger.open_loops.map((loop, index) => (
                 <tr key={`loop:${index}`}>
-                  <td className="font-mono tabular-nums whitespace-nowrap">
+                  <td
+                    className={`${CELL_CLASSES} font-mono text-[11px] tabular-nums whitespace-nowrap text-gray-700`}
+                  >
                     {offsetOf(loop.at_ms)}
                   </td>
-                  <td>{loop.question}</td>
-                  <td className="text-text-secondary">{loop.instead}</td>
+                  <td className={`${CELL_CLASSES} text-gray-1000`}>
+                    {loop.question}
+                  </td>
+                  <td className={CELL_CLASSES}>{loop.instead}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
+      </LedgerBlock>
 
-        <h4 className={`mt-5 mb-1.5 ${CAPTION_CLASSES}`}>
-          {t("meetings.ledger.commitments")}
-        </h4>
+      <LedgerBlock label={t("meetings.ledger.commitments")}>
         {ledger.commitments.length === 0 ? (
-          <StatusText tone="muted" className="block">
+          <Notice tone="muted" live={false}>
             {t("meetings.ledger.noCommitments")}
-          </StatusText>
+          </Notice>
         ) : (
           <ul
             role="list"
             aria-label={t("meetings.ledger.commitments")}
-            className="meeting-rows"
+            className="flex flex-col gap-3"
           >
             {ledger.commitments.map((commitment, index) => (
-              <li key={`commitment:${index}`} className="meeting-row-stacked">
+              <li key={`commitment:${index}`} className="flex flex-col gap-1">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                  <span className="text-[13px] leading-5 text-text-primary">
+                  <span className="text-[13px] leading-5 text-gray-1000">
                     <span className="font-medium">{commitment.who}</span>
                     {` — ${commitment.what}`}
                   </span>
-                  <span className="flex-none font-mono text-[11px] text-text-secondary whitespace-nowrap">
+                  <span className="flex-none font-mono text-[11px] whitespace-nowrap text-gray-700">
                     {t(`meetings.ledger.firmness.${commitment.firmness}`)}
                   </span>
                 </div>
@@ -255,79 +253,86 @@ export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
             ))}
           </ul>
         )}
+      </LedgerBlock>
 
-        <h4 className={`mt-5 mb-1.5 ${CAPTION_CLASSES}`}>
-          {t("meetings.ledger.stances")}
-        </h4>
+      <LedgerBlock label={t("meetings.ledger.stances")}>
         {ledger.stances.length === 0 ? (
-          <StatusText tone="muted" className="block">
+          <Notice tone="muted" live={false}>
             {t("meetings.ledger.noStances")}
-          </StatusText>
+          </Notice>
         ) : (
-          <table className="data-table w-full">
+          <table className="w-full text-[13px] leading-5 text-gray-900">
             <thead>
               <tr>
-                <th scope="col">{t("meetings.ledger.columnAt")}</th>
-                <th scope="col">{t("meetings.ledger.columnDirection")}</th>
-                <th scope="col">{t("meetings.ledger.columnWhat")}</th>
-                <th scope="col">{t("meetings.ledger.columnTaken")}</th>
+                <th scope="col" className={COLUMN_CLASSES}>
+                  {t("meetings.ledger.columnAt")}
+                </th>
+                <th scope="col" className={COLUMN_CLASSES}>
+                  {t("meetings.ledger.columnDirection")}
+                </th>
+                <th scope="col" className={COLUMN_CLASSES}>
+                  {t("meetings.ledger.columnWhat")}
+                </th>
+                <th scope="col" className={COLUMN_CLASSES}>
+                  {t("meetings.ledger.columnTaken")}
+                </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-alpha-400">
               {ledger.stances.map((stance, index) => (
                 <tr key={`stance:${index}`}>
-                  <td className="font-mono tabular-nums whitespace-nowrap">
+                  <td
+                    className={`${CELL_CLASSES} font-mono text-[11px] tabular-nums whitespace-nowrap text-gray-700`}
+                  >
                     {offsetOf(stance.at_ms)}
                   </td>
-                  <td className="whitespace-nowrap font-medium">
+                  <td
+                    className={`${CELL_CLASSES} font-medium whitespace-nowrap text-gray-1000`}
+                  >
                     {`${stance.from} \u2192 ${stance.to}`}
                   </td>
-                  <td>{stance.what}</td>
-                  <td className="text-text-secondary">{stance.note ?? ""}</td>
+                  <td className={`${CELL_CLASSES} text-gray-1000`}>
+                    {stance.what}
+                  </td>
+                  <td className={CELL_CLASSES}>{stance.note ?? ""}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
+      </LedgerBlock>
 
-        <h4 className={`mt-5 mb-1.5 ${CAPTION_CLASSES}`}>
-          {t("meetings.ledger.trust")}
-        </h4>
-        <ul role="list" className="meeting-rows">
-          <li className="meeting-row-stacked text-[12.5px] leading-[18px] text-text-secondary text-pretty">
+      <LedgerBlock label={t("meetings.ledger.trust")}>
+        <ul role="list" className="flex flex-col gap-1.5">
+          <li className="text-[13px] leading-5 text-pretty text-gray-900">
             {t("meetings.ledger.trustMeasured")}
           </li>
           {ledger.caveats.map((caveat, index) => (
             <li
               key={`caveat:${index}`}
-              className="meeting-row-stacked text-[12.5px] leading-[18px] text-text-secondary text-pretty"
+              className="text-[13px] leading-5 text-pretty text-gray-900"
             >
               {caveat}
             </li>
           ))}
         </ul>
-      </div>
-    </Section>
+      </LedgerBlock>
+    </SettingsSection>
   );
 };
 
-interface LedgerStatProps {
+interface LedgerBlockProps {
   label: string;
-  value: string;
-  tone?: StatusTone;
+  children: React.ReactNode;
 }
 
-const LedgerStat: React.FC<LedgerStatProps> = ({ label, value, tone }) => (
-  <div className="min-w-0">
-    <dt className={CAPTION_CLASSES}>{label}</dt>
-    <dd className="mt-0.5">
-      <StatusText
-        tone={tone ?? "neutral"}
-        className="font-mono text-[12.5px] tabular-nums"
-      >
-        {value}
-      </StatusText>
-    </dd>
+/** One register of the ledger: a mono heading over its rows, on a hairline. */
+const LedgerBlock: React.FC<LedgerBlockProps> = ({ label, children }) => (
+  <div className="flex flex-col gap-2 px-4 py-3">
+    <h3>
+      <Microlabel>{label}</Microlabel>
+    </h3>
+    {children}
   </div>
 );
 
@@ -347,15 +352,15 @@ const LedgerReceiptRow: React.FC<LedgerReceiptRowProps> = ({
     .join(", ");
 
   return (
-    <div className="mt-1">
-      <blockquote className="border-s border-border-subtle ps-2.5 text-[12.5px] leading-[18px] text-text-primary text-pretty">
+    <div className="flex flex-col gap-1">
+      <blockquote className="border-s border-gray-alpha-400 ps-2.5 text-[13px] leading-5 text-pretty text-gray-900">
         {`\u201C${receipt.quote}\u201D`}
       </blockquote>
       {/* The attribution names who said it and when; the jumps go there. They
        * sit on one line, so the citation control keeps its own gap instead of
        * the negative inline start a left-aligned citation row wants. */}
-      <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 ps-2.5">
-        <span className="font-mono text-[11px] text-text-secondary">
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 ps-2.5">
+        <span className="font-mono text-[11px] text-gray-700">
           {attribution || t("meetings.ledger.unattributed")}
         </span>
         <span className="flex flex-wrap items-center gap-1">

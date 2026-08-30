@@ -1,18 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { commands } from "@/bindings";
-import { SettingContainer } from "../../ui/SettingContainer";
-import { PathDisplay } from "../../ui/PathDisplay";
+import { Notice, SettingsField } from "@/components/settings/rows";
+import { Button } from "@/components/vg/button";
 
-interface LogDirectoryProps {
-  descriptionMode?: "tooltip" | "inline";
-  grouped?: boolean;
-}
-
-export const LogDirectory: React.FC<LogDirectoryProps> = ({
-  descriptionMode = "tooltip",
-  grouped = false,
-}) => {
+export const LogDirectory: React.FC = () => {
   const { t } = useTranslation();
   const [logDir, setLogDir] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -52,25 +44,28 @@ export const LogDirectory: React.FC<LogDirectoryProps> = ({
   };
 
   return (
-    <SettingContainer
-      title={t("settings.debug.logDirectory.title")}
-      description={t("settings.debug.logDirectory.description")}
-      descriptionMode={descriptionMode}
-      grouped={grouped}
-      layout="stacked"
-    >
+    <SettingsField label={t("settings.debug.logDirectory.title")}>
       {loading ? (
-        <div role="status" className="surface-state">
-          <span aria-hidden="true" className="surface-state-spinner" />
-          <span>{t("common.loading")}</span>
-        </div>
-      ) : error ? (
-        <div role="alert" className="surface-state">
-          {t("errors.loadDirectory", { error })}
-        </div>
+        <Notice>{t("common.loading")}</Notice>
+      ) : error !== null ? (
+        <Notice tone="danger">{t("errors.loadDirectory", { error })}</Notice>
       ) : (
-        <PathDisplay path={logDir} onOpen={handleOpen} disabled={!logDir} />
+        <div className="flex items-start gap-2">
+          {/* The tail of a path is the part that identifies it, so it wraps
+           * rather than truncating. */}
+          <span className="min-w-0 flex-1 rounded-md border border-gray-alpha-400 bg-background-200 px-2 py-1.5 font-mono text-[12px] break-all text-gray-900 select-text">
+            {logDir}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!logDir}
+            onClick={() => void handleOpen()}
+          >
+            {t("common.open")}
+          </Button>
+        </div>
       )}
-    </SettingContainer>
+    </SettingsField>
   );
 };

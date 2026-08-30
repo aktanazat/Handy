@@ -3,13 +3,9 @@ import { useTranslation } from "react-i18next";
 import { ExternalLink } from "lucide-react";
 import { commands } from "@/bindings";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import {
-  Alert,
-  Button,
-  SettingContainer,
-  StatusText,
-  ToggleSwitch,
-} from "@/components/ui";
+import { Notice, SettingsRow } from "@/components/settings/rows";
+import { Button } from "@/components/vg/button";
+import { Switch } from "@/components/vg/switch";
 import { checkForUpdates, type UpdateCheckResult } from "@/lib/updateCheck";
 
 /** Three real states, so a failed read cannot masquerade as a slow one. */
@@ -22,12 +18,26 @@ interface UpdateRowsProps {
   version: VersionState;
 }
 
-/* Version, the automatic-check preference, and a manual check whose verdict
- * is rendered inline. The backend enforces the preference: with it off,
- * check_for_updates reports "disabled" and makes no network call, so this
- * surface never has to claim a check happened when it did not. */
+const AUTO_CHECK_ID = "about-auto-update-check";
+
+/** Whatever the surface currently has to say, as one line and at most one act. */
+interface Status {
+  text: string;
+  /* A waiting release is `info`, not a fault and not chrome: something arrived
+   * the reader did not ask for. */
+  tone: "muted" | "info" | "danger";
+  action?: React.ReactNode;
+}
+
+/* Version, the automatic-check preference, and a manual check whose verdict is
+ * one line. The backend enforces the preference: with it off, check_for_updates
+ * reports "disabled" and makes no network call, so this surface never has to
+ * claim a check happened when it did not.
+ *
+ * The running version is printed once, as a value, and nowhere else — not in a
+ * sentence under itself, not again in the verdict of a successful check. */
 export const UpdateRows: React.FC<UpdateRowsProps> = ({ version }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [savingPreference, setSavingPreference] = useState(false);
   const [preferenceError, setPreferenceError] = useState<string | null>(null);
@@ -93,214 +103,139 @@ export const UpdateRows: React.FC<UpdateRowsProps> = ({ version }) => {
       ? version.version
       : (result?.current_version ?? null);
 
+  /* Bordered, not ghost: this button sits beside a sentence, and a ghost whose
+   * label carries the whole affordance reads as part of that sentence. Only the
+   * icon-only affordances stay borderless. */
+  const retry = (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => void runCheck()}
+      disabled={checking}
+    >
+      {t("common.retry")}
+    </Button>
+  );
+
+  /* One status line for the whole surface: a failed save and a failed check
+   * cannot both be the most recent thing that happened. */
+  const currentStatus = (): Status | null => {
+    if (preferenceError !== null) {
+      return {
+        text: `${t("settings.about.updates.preferenceError")} ${preferenceError}`,
+        tone: "danger",
+      };
+    }
+    if (checkError !== null) {
+      return {
+        text: `${t("settings.about.updates.failed")} ${checkError}`,
+        tone: "danger",
+        action: retry,
+      };
+    }
+    if (result === null) return null;
+    if (result.status === "disabled") {
+      /* The switch above is the affordance that turns checks back on, so this
+       * line only has to report that nothing was asked of GitHub. */
+      return { text: t("settings.about.updates.disabled"), tone: "muted" };
+    }
+    if (result.status === "check_failed") {
+      return {
+        text:
+          result.error === null
+            ? t("settings.about.updates.failed")
+            : `${t("settings.about.updates.failed")} ${result.error}`,
+        tone: "danger",
+        action: retry,
+      };
+    }
+    if (
+      result.status === "update_available" &&
+      result.latest_version !== null
+    ) {
+      const url = result.url;
+      return {
+        text: t("settings.about.updates.available", {
+          version: result.latest_version,
+        }),
+        tone: "info",
+        action:
+          url === null ? undefined : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                try {
+                  await openUrl(url);
+                } catch (error) {
+                  console.error("Failed to open the release page:", error);
+                }
+              }}
+            >
+              <ExternalLink aria-hidden="true" />
+              {t("settings.about.updates.viewRelease")}
+            </Button>
+          ),
+      };
+    }
+    return { text: t("settings.about.updates.upToDate"), tone: "muted" };
+  };
+
+  const status = currentStatus();
+
   return (
     <>
-      <SettingContainer
-        grouped
-        title={t("settings.about.version.title")}
-        description={t("settings.about.version.description")}
-      >
+      <SettingsRow label={t("settings.about.version.title")}>
         {displayVersion !== null ? (
-          <span className="font-mono text-[13px] text-text-primary tabular-nums">
+          <span className="font-mono text-[13px] tabular-nums text-gray-1000">
             {`v${displayVersion}`}
           </span>
-        ) : version.kind === "loading" ? (
-          <StatusText live="polite">{t("common.loading")}</StatusText>
         ) : (
-          /* No value exists yet, so the slot dims — the greyscale text law.
-           * Red is reserved for status indicators and destructive actions; a
-           * missing read is named in words, not dressed as a fault. */
-          <StatusText>
-            {t("settings.about.version.unavailable", "Unavailable")}
-          </StatusText>
+          /* No value exists yet, so the slot dims. Red is reserved for faults
+           * and destructive acts; a missing read is named in words. */
+          <Notice>
+            {version.kind === "loading"
+              ? t("common.loading")
+              : t("settings.about.version.unavailable")}
+          </Notice>
         )}
-      </SettingContainer>
+      </SettingsRow>
 
-      <ToggleSwitch
-        grouped
-        checked={enabled ?? true}
+      <SettingsRow
+        label={t("settings.about.updates.autoLabel")}
+        hint={t("settings.about.updates.autoDescription")}
+        controlId={AUTO_CHECK_ID}
         disabled={enabled === null}
-        isUpdating={savingPreference}
-        onChange={(next) => void changeEnabled(next)}
-        label={t(
-          "settings.about.updates.autoLabel",
-          "Check for updates automatically",
-        )}
-        description={t(
-          "settings.about.updates.autoDescription",
-          "Asks GitHub for the latest release. Sona never installs anything on its own.",
-        )}
-      />
-
-      <SettingContainer
-        grouped
-        title={t("settings.about.updates.manualTitle", "Manual check")}
-        description={t(
-          "settings.about.updates.manualDescription",
-          "Compare this build against the latest published release.",
-        )}
       >
+        <Switch
+          id={AUTO_CHECK_ID}
+          checked={enabled ?? true}
+          disabled={enabled === null || savingPreference}
+          onCheckedChange={(next) => void changeEnabled(next)}
+        />
+      </SettingsRow>
+
+      <SettingsRow label={t("settings.about.updates.manualTitle")}>
         <Button
-          variant="secondary"
+          variant="outline"
           size="sm"
           onClick={() => void runCheck()}
           disabled={checking}
         >
           {checking
-            ? t("settings.about.updates.checking", "Checking…")
-            : t("settings.about.updates.check", "Check now")}
+            ? t("settings.about.updates.checking")
+            : t("settings.about.updates.check")}
         </Button>
-      </SettingContainer>
+      </SettingsRow>
 
-      {preferenceError === null ? null : (
-        <Alert contained variant="error">
-          {`${t("settings.about.updates.preferenceError", "The update preference could not be saved.")} ${preferenceError}`}
-        </Alert>
-      )}
-
-      {checkError === null ? null : (
-        <Alert
-          contained
-          variant="error"
-          action={
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => void runCheck()}
-              disabled={checking}
-            >
-              {t("common.retry")}
-            </Button>
-          }
-        >
-          {`${t("settings.about.updates.failed", "The update check could not run.")} ${checkError}`}
-        </Alert>
-      )}
-
-      {result === null || checkError !== null ? null : (
-        <UpdateVerdict
-          result={result}
-          checking={checking}
-          onEnable={() => void changeEnabled(true)}
-          savingPreference={savingPreference}
-          language={i18n.language}
-        />
+      {status === null ? null : (
+        <div className="flex min-h-[52px] items-center justify-between gap-6 px-4 py-2.5">
+          <Notice tone={status.tone} className="min-w-0">
+            {status.text}
+          </Notice>
+          {status.action}
+        </div>
       )}
     </>
-  );
-};
-
-interface UpdateVerdictProps {
-  result: UpdateCheckResult;
-  checking: boolean;
-  onEnable: () => void;
-  savingPreference: boolean;
-  language: string;
-}
-
-const UpdateVerdict: React.FC<UpdateVerdictProps> = ({
-  result,
-  checking,
-  onEnable,
-  savingPreference,
-  language,
-}) => {
-  const { t } = useTranslation();
-
-  if (result.status === "disabled") {
-    return (
-      <div className="flex flex-wrap items-center justify-between gap-2 py-3">
-        <StatusText live="polite">
-          {t(
-            "settings.about.updates.disabled",
-            "Automatic checks are off, so Sona did not contact GitHub.",
-          )}
-        </StatusText>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={onEnable}
-          disabled={savingPreference}
-        >
-          {t("settings.about.updates.enable", "Turn checks on")}
-        </Button>
-      </div>
-    );
-  }
-
-  if (result.status === "check_failed") {
-    return (
-      <Alert contained variant="error">
-        {result.error === null
-          ? t(
-              "settings.about.updates.failed",
-              "The update check could not run.",
-            )
-          : `${t("settings.about.updates.failed", "The update check could not run.")} ${result.error}`}
-      </Alert>
-    );
-  }
-
-  if (result.status === "update_available" && result.latest_version !== null) {
-    const url = result.url;
-    const published =
-      result.published_at_utc_ms === null
-        ? null
-        : new Intl.DateTimeFormat(language, { dateStyle: "medium" }).format(
-            new Date(result.published_at_utc_ms),
-          );
-
-    return (
-      <div className="flex flex-wrap items-start justify-between gap-3 py-3">
-        <div className="min-w-0 space-y-1">
-          <StatusText tone="info" live="polite">
-            {t("settings.about.updates.available", {
-              defaultValue: "Sona {{version}} is available.",
-              version: result.latest_version,
-            })}
-          </StatusText>
-          {published === null ? null : (
-            <p className="text-[12px] leading-4 text-text-tertiary">
-              {t("settings.about.updates.published", {
-                defaultValue: "Published {{date}}",
-                date: published,
-              })}
-            </p>
-          )}
-          {result.notes_excerpt === null ? null : (
-            <p className="line-clamp-3 text-[12.5px] leading-[18px] text-text-secondary">
-              {result.notes_excerpt}
-            </p>
-          )}
-        </div>
-        {url === null ? null : (
-          <Button
-            size="sm"
-            className="shrink-0 gap-1.5"
-            onClick={async () => {
-              try {
-                await openUrl(url);
-              } catch (error) {
-                console.error("Failed to open the release page:", error);
-              }
-            }}
-          >
-            <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
-            {t("settings.about.updates.viewRelease", "View release")}
-          </Button>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className="py-3">
-      <StatusText tone={checking ? "muted" : "success"} live="polite">
-        {t("settings.about.updates.upToDate", {
-          defaultValue: "Sona {{version}} is the latest release.",
-          version: result.current_version,
-        })}
-      </StatusText>
-    </div>
   );
 };

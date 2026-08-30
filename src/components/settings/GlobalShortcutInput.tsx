@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { RotateCcw } from "lucide-react";
 import { getKeyName, normalizeKey } from "../../lib/utils/keyboard";
-import { ResetButton } from "../ui/ResetButton";
-import { SettingContainer } from "../ui/SettingContainer";
-import { StatusText } from "../ui/StatusText";
+import { Button } from "@/components/vg/button";
+import { Notice, SettingsRow } from "./rows";
 import {
   ShortcutHoldHint,
   ShortcutRecorderField,
@@ -14,15 +14,11 @@ import { commands } from "@/bindings";
 import { toast } from "sonner";
 
 interface GlobalShortcutInputProps {
-  descriptionMode?: "inline" | "tooltip";
-  grouped?: boolean;
   shortcutId: string;
   disabled?: boolean;
 }
 
 export const GlobalShortcutInput: React.FC<GlobalShortcutInputProps> = ({
-  descriptionMode = "tooltip",
-  grouped = false,
   shortcutId,
   disabled = false,
 }) => {
@@ -209,28 +205,18 @@ export const GlobalShortcutInput: React.FC<GlobalShortcutInputProps> = ({
   // If still loading, show loading state
   if (isLoading) {
     return (
-      <SettingContainer
-        title={t("settings.general.shortcut.title")}
-        description={t("settings.general.shortcut.description")}
-        descriptionMode={descriptionMode}
-        grouped={grouped}
-      >
-        <StatusText>{t("settings.general.shortcut.loading")}</StatusText>
-      </SettingContainer>
+      <SettingsRow label={t("settings.general.shortcut.title")}>
+        <Notice>{t("settings.general.shortcut.loading")}</Notice>
+      </SettingsRow>
     );
   }
 
   // If no bindings are loaded, show empty state
   if (Object.keys(bindings).length === 0) {
     return (
-      <SettingContainer
-        title={t("settings.general.shortcut.title")}
-        description={t("settings.general.shortcut.description")}
-        descriptionMode={descriptionMode}
-        grouped={grouped}
-      >
-        <StatusText>{t("settings.general.shortcut.none")}</StatusText>
-      </SettingContainer>
+      <SettingsRow label={t("settings.general.shortcut.title")}>
+        <Notice>{t("settings.general.shortcut.none")}</Notice>
+      </SettingsRow>
     );
   }
 
@@ -240,55 +226,50 @@ export const GlobalShortcutInput: React.FC<GlobalShortcutInputProps> = ({
      * title under the Shortcuts section header was the same word twice with
      * an unexplained error under it. */
     return (
-      <SettingContainer
-        title={t(
+      <SettingsRow
+        label={t(
           `settings.general.shortcut.bindings.${shortcutId}.name`,
           t("settings.general.shortcut.title"),
         )}
-        description={t("settings.general.shortcut.notFound")}
-        descriptionMode={descriptionMode}
-        grouped={grouped}
       >
-        <StatusText>{t("settings.general.shortcut.none")}</StatusText>
-      </SettingContainer>
+        <Notice tone="danger">{t("settings.general.shortcut.notFound")}</Notice>
+      </SettingsRow>
     );
   }
 
-  // Get translated name and description for the binding
   const translatedName = t(
     `settings.general.shortcut.bindings.${shortcutId}.name`,
     binding.name,
   );
-  const translatedDescription = t(
-    `settings.general.shortcut.bindings.${shortcutId}.description`,
-    binding.description,
-  );
 
+  /* The chord is the row's answer, so the row says its name once and nothing
+   * else. Tap/hold is the one thing the caps cannot show, and it rides on the
+   * dictation binding only — repeating it on cancel and command was the same
+   * sentence three times down one section. */
   return (
-    <SettingContainer
-      title={translatedName}
-      description={translatedDescription}
+    <SettingsRow
+      label={translatedName}
       hint={shortcutId === "transcribe" ? <ShortcutHoldHint /> : undefined}
-      descriptionMode={descriptionMode}
-      grouped={grouped}
       disabled={disabled}
-      layout="horizontal"
     >
-      <div className="flex items-center gap-1">
-        <ShortcutRecorderField
-          chord={binding.current_binding}
-          recording={editingShortcutId === shortcutId}
-          captured={recordedKeys.join("+")}
-          onStartRecording={() => startRecording(shortcutId)}
-          disabled={disabled}
-          recordingRef={(node) => setShortcutRef(shortcutId, node)}
-          bindingName={translatedName}
-        />
-        <ResetButton
-          onClick={() => resetBinding(shortcutId)}
-          disabled={isUpdating(`binding_${shortcutId}`)}
-        />
-      </div>
-    </SettingContainer>
+      <ShortcutRecorderField
+        chord={binding.current_binding}
+        recording={editingShortcutId === shortcutId}
+        captured={recordedKeys.join("+")}
+        onStartRecording={() => startRecording(shortcutId)}
+        disabled={disabled}
+        recordingRef={(node) => setShortcutRef(shortcutId, node)}
+        bindingName={translatedName}
+      />
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label={t("common.resetSetting", { name: translatedName })}
+        onClick={() => resetBinding(shortcutId)}
+        disabled={disabled || isUpdating(`binding_${shortcutId}`)}
+      >
+        <RotateCcw aria-hidden="true" />
+      </Button>
+    </SettingsRow>
   );
 };

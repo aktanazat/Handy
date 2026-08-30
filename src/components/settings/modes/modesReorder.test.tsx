@@ -8,7 +8,11 @@ import { createInstance } from "i18next";
 import { I18nextProvider } from "react-i18next";
 import type { ModeView, ShortcutBinding } from "@/bindings";
 import { ModesList } from "./ModesList";
-import { orderWithMove } from "./modeModel";
+import {
+  modeRowActions,
+  orderWithMove,
+  type ModeRowActionId,
+} from "./modeModel";
 
 /* The mode list can be reordered two ways and both have to land the same value
  * in the same command. The drag is a browser fact and is asserted end to end in
@@ -148,13 +152,11 @@ const list = () =>
     <I18nextProvider i18n={i18n}>
       <ModesList
         modes={MODES}
-        models={[]}
         activeModeId="message"
         selectedModeId="email"
         busy={false}
         osType="macos"
         onSelect={noop}
-        onCreate={noop}
         onActivate={noop}
         onDuplicate={noop}
         onMove={noop}
@@ -178,36 +180,84 @@ describe("the list before the drag code loads", () => {
   });
 
   test("the rows are the same list element the draggable one renders", () => {
-    expect(markup).toContain('<ul class="modes-list">');
-    expect(markup.split('class="modes-list-row"').length - 1).toBe(
-      MODES.length,
-    );
+    /* The heading is not drawn — the page title and the view tab both already
+     * say Modes — so the list carries its name as an accessible one. */
+    expect(markup).toContain('<ul aria-label="Your modes"');
+    expect(markup.split("<li").length - 1).toBe(MODES.length);
   });
 
-  test("active and selected rows still say so", () => {
-    expect(markup).toContain('data-active="true"');
+  test("the selected row still says so", () => {
     expect(markup).toContain('data-selected="true"');
+    expect(markup.split('aria-current="true"').length - 1).toBe(1);
   });
 
-  /* The keyboard route to a reorder. It is the only route without a pointer,
-   * so it survives the drag conversion unchanged. */
-  test("every row keeps its move up and move down items", () => {
-    expect(markup.split("Move up").length - 1).toBe(MODES.length);
-    expect(markup.split("Move down").length - 1).toBe(MODES.length);
+  test("every row reaches its own actions by name", () => {
+    for (const modeView of MODES) {
+      expect(markup).toContain(`aria-label="Actions for ${modeView.name}"`);
+    }
+  });
+});
+
+/* The menu itself is a Radix portal, so what a row offers is proved on the
+ * model the menu renders rather than on markup that only exists once a pointer
+ * has opened it. This is the keyboard route to a reorder — the only route
+ * without a pointer — so it is asserted position by position. */
+describe("modeRowActions", () => {
+  const actionsAt = (index: number, overrides: { busy?: boolean } = {}) =>
+    modeRowActions(MODES[index], {
+      index,
+      count: MODES.length,
+      isActive: MODES[index].id === "message",
+      busy: overrides.busy ?? false,
+      t: (_key, fallback) => fallback,
+    });
+
+  const byId = (index: number, id: ModeRowActionId) =>
+    actionsAt(index).find((action) => action.id === id);
+
+  test("a plain row offers all five actions", () => {
+    expect(actionsAt(1).map((action) => action.id)).toEqual([
+      "activate",
+      "duplicate",
+      "moveUp",
+      "moveDown",
+      "delete",
+    ]);
+  });
+
+  test("the active mode has nothing to activate, so the item is absent", () => {
+    expect(actionsAt(0).some((action) => action.id === "activate")).toBe(false);
   });
 
   test("the first row cannot move up and the last cannot move down", () => {
-    const rows = markup.split('class="modes-list-row"').slice(1);
-    const disabledIn = (row: string, label: string) =>
-      row.slice(0, row.indexOf(label)).lastIndexOf("disabled=") >
-      row.slice(0, row.indexOf(label)).lastIndexOf("<button");
-    expect(disabledIn(rows[0], "Move up")).toBe(true);
-    expect(disabledIn(rows[0], "Move down")).toBe(false);
-    expect(disabledIn(rows[rows.length - 1], "Move down")).toBe(true);
-    expect(disabledIn(rows[rows.length - 1], "Move up")).toBe(false);
+    expect(byId(0, "moveUp")?.disabled).toBe(true);
+    expect(byId(0, "moveDown")?.disabled).toBe(false);
+    const last = MODES.length - 1;
+    expect(byId(last, "moveDown")?.disabled).toBe(true);
+    expect(byId(last, "moveUp")?.disabled).toBe(false);
   });
 
-  test("the row exposes the mode's configuration at a glance", () => {
-    expect(markup).toContain("modes-list-config");
+  test("the default mode refuses deletion and says why", () => {
+    /* `message` is DEFAULT_MODE_ID: the item stays, so the reason is
+     * readable, and it is the label that carries it rather than a tooltip on
+     * a control that has vanished. */
+    const remove = byId(0, "delete");
+    expect(remove?.disabled).toBe(true);
+    expect(remove?.label).toBe("The default mode cannot be deleted.");
+    expect(byId(1, "delete")?.label).toBe("Delete");
+  });
+
+  test("delete is the only destructive item", () => {
+    expect(
+      actionsAt(1)
+        .filter((action) => action.destructive)
+        .map((action) => action.id),
+    ).toEqual(["delete"]);
+  });
+
+  test("a mutation in flight disables every revisioned action", () => {
+    expect(
+      actionsAt(1, { busy: true }).every((action) => action.disabled),
+    ).toBe(true);
   });
 });

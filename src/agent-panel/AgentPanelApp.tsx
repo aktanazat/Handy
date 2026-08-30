@@ -1,24 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Send, X } from "lucide-react";
 import {
   commands,
   events,
-  type AgentPanelProposalPreviewV1,
   type AgentPanelStatusV1,
   type SonaAgentChatTurnV1,
 } from "@/bindings";
 import { useSettings } from "@/hooks/useSettings";
 
-type PanelPhase =
-  | "loading"
-  | "disabled"
-  | "unpaired"
-  | "offline"
-  | "idle"
-  | "running"
-  | "proposal"
-  | "error";
+import { AgentPanelView, type PanelPhase } from "./AgentPanelView";
 
 const EMPTY_CONVERSATION: readonly SonaAgentChatTurnV1[] = [];
 
@@ -50,24 +40,11 @@ const relayStatusToPhase = (
   return "error";
 };
 
-const actionSummary = (proposal: AgentPanelProposalPreviewV1): string =>
-  proposal.actions.map((action) => action.key).join(", ");
-
-const conversationRows = (
-  conversation: readonly SonaAgentChatTurnV1[],
-): Array<{ key: string; turn: SonaAgentChatTurnV1 }> => {
-  const occurrences = new Map<string, number>();
-  return conversation.map((turn) => {
-    const identity = JSON.stringify([turn.role, turn.message]);
-    const occurrence = occurrences.get(identity) ?? 0;
-    occurrences.set(identity, occurrence + 1);
-    return {
-      key: JSON.stringify([turn.role, turn.message, occurrence]),
-      turn,
-    };
-  });
-};
-
+/**
+ * Every relay event the panel cares about, funnelled into one invalidation. The
+ * backend is the source of truth for status, turn, proposal and geometry, so the
+ * panel re-reads rather than patching a local copy per event.
+ */
 const subscribeToAgentPanelEvents = async (
   onInvalidate: () => void,
 ): Promise<() => void> => {
@@ -80,263 +57,6 @@ const subscribeToAgentPanelEvents = async (
   return () => {
     listeners.forEach((listener) => void listener());
   };
-};
-interface AgentPanelHeaderProps {
-  phase: PanelPhase;
-  lastIdentity: string | null;
-  onToggle: () => void;
-}
-
-const AgentPanelHeader: React.FC<AgentPanelHeaderProps> = ({
-  phase,
-  lastIdentity,
-  onToggle,
-}) => {
-  const { t } = useTranslation();
-
-  return (
-    <header className="agent-panel-header">
-      <div className="agent-panel-status">
-        <span
-          className="agent-panel-status-dot"
-          data-phase={phase}
-          aria-hidden="true"
-        />
-        <span role="status">{t(`agentPanel.status.${phase}`)}</span>
-      </div>
-      <div className="agent-panel-header-actions">
-        {lastIdentity && (
-          <span className="agent-panel-identity" title={lastIdentity}>
-            {lastIdentity}
-          </span>
-        )}
-        <button
-          type="button"
-          className="agent-panel-icon-button"
-          onClick={onToggle}
-          title={t("agentPanel.panelToggle")}
-          aria-label={t("agentPanel.panelToggle")}
-          disabled={phase === "disabled" || phase === "loading"}
-        >
-          <X aria-hidden="true" className="h-4 w-4" />
-        </button>
-      </div>
-    </header>
-  );
-};
-
-interface AgentPanelStateProps {
-  phase: PanelPhase;
-  error: string | null;
-  onRefresh: () => void;
-}
-
-const AgentPanelState: React.FC<AgentPanelStateProps> = ({
-  phase,
-  error,
-  onRefresh,
-}) => {
-  const { t } = useTranslation();
-
-  if (phase === "loading") {
-    return (
-      <div className="agent-panel-state" role="status">
-        <Loader2 aria-hidden="true" className="agent-panel-spinner" />
-        <span>{t("agentPanel.loading")}</span>
-      </div>
-    );
-  }
-
-  if (phase === "disabled") {
-    return (
-      <div className="agent-panel-state">
-        <p>{t("agentPanel.status.disabled")}</p>
-      </div>
-    );
-  }
-
-  if (phase === "error") {
-    return (
-      <div className="agent-panel-state" role="alert">
-        <p>{t("agentPanel.status.error")}</p>
-        {error && <p className="agent-panel-error-detail">{error}</p>}
-        <button
-          type="button"
-          className="agent-panel-text-button"
-          onClick={onRefresh}
-        >
-          {t("agentPanel.retry")}
-        </button>
-      </div>
-    );
-  }
-
-  if (phase === "unpaired") {
-    return (
-      <div className="agent-panel-state">
-        <p>{t("agentPanel.status.unpaired")}</p>
-      </div>
-    );
-  }
-
-  if (phase === "offline") {
-    return (
-      <div className="agent-panel-state">
-        <p>{t("agentPanel.status.offline")}</p>
-        <button
-          type="button"
-          className="agent-panel-text-button"
-          onClick={onRefresh}
-        >
-          {t("agentPanel.retry")}
-        </button>
-      </div>
-    );
-  }
-
-  return null;
-};
-
-interface AgentPanelBodyProps {
-  conversation: readonly SonaAgentChatTurnV1[];
-  hasTurn: boolean;
-  proposal: AgentPanelProposalPreviewV1 | null;
-  error: string | null;
-  draft: string;
-  sending: boolean;
-  canSend: boolean;
-  onCancel: () => void;
-  onApply: () => void;
-  onUndo: () => void;
-  onSend: () => void;
-  onDraftChange: (draft: string) => void;
-}
-
-const AgentPanelBody: React.FC<AgentPanelBodyProps> = ({
-  conversation,
-  hasTurn,
-  proposal,
-  error,
-  draft,
-  sending,
-  canSend,
-  onCancel,
-  onApply,
-  onUndo,
-  onSend,
-  onDraftChange,
-}) => {
-  const { t } = useTranslation();
-  const rows = conversationRows(conversation);
-
-  return (
-    <div className="agent-panel-body">
-      <section
-        className="agent-panel-conversation"
-        aria-label={t("agentPanel.conversationLabel")}
-      >
-        {rows.length === 0 ? (
-          <p className="agent-panel-empty">{t("agentPanel.empty")}</p>
-        ) : (
-          <ul className="agent-panel-turn-list">
-            {rows.map(({ key, turn }) => (
-              <li
-                key={key}
-                className={`agent-panel-turn agent-panel-turn-${turn.role}`}
-              >
-                <p>{turn.message}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {hasTurn && (
-        <div className="agent-panel-running" role="status">
-          <Loader2 aria-hidden="true" className="agent-panel-spinner" />
-          <span>{t("agentPanel.status.running")}</span>
-          <button
-            type="button"
-            className="agent-panel-text-button"
-            onClick={onCancel}
-            disabled={sending}
-          >
-            {t("agentPanel.cancel")}
-          </button>
-        </div>
-      )}
-
-      {proposal && (
-        <section
-          className="agent-panel-proposal"
-          aria-label={t("agentPanel.proposalLabel")}
-        >
-          <h2>{t("agentPanel.proposalTitle")}</h2>
-          <p className="agent-panel-proposal-summary">{proposal.summary}</p>
-          <p className="agent-panel-proposal-rationale">{proposal.rationale}</p>
-          <p className="agent-panel-proposal-actions">
-            {actionSummary(proposal)}
-          </p>
-          {proposal.follow_up_question && (
-            <p className="agent-panel-proposal-question">
-              {proposal.follow_up_question}
-            </p>
-          )}
-          <div className="agent-panel-proposal-actions-row">
-            <button
-              type="button"
-              className="agent-panel-primary-button"
-              onClick={onApply}
-              disabled={sending}
-            >
-              {t("agentPanel.apply")}
-            </button>
-            {proposal.receipt_id && (
-              <button
-                type="button"
-                className="agent-panel-secondary-button"
-                onClick={onUndo}
-                disabled={sending}
-              >
-                {t("agentPanel.undo")}
-              </button>
-            )}
-          </div>
-        </section>
-      )}
-
-      {error && (
-        <p className="agent-panel-error" role="alert">
-          {error}
-        </p>
-      )}
-
-      <form
-        className="agent-panel-composer"
-        onSubmit={(event) => {
-          event.preventDefault();
-          onSend();
-        }}
-      >
-        <input
-          type="text"
-          value={draft}
-          onChange={(event) => onDraftChange(event.target.value)}
-          placeholder={t("agentPanel.inputPlaceholder")}
-          aria-label={t("agentPanel.inputLabel")}
-          disabled={!canSend}
-        />
-        <button
-          type="submit"
-          className="agent-panel-send-button"
-          disabled={!canSend || draft.trim() === ""}
-          aria-label={t("agentPanel.send")}
-        >
-          <Send aria-hidden="true" className="h-4 w-4" />
-        </button>
-      </form>
-    </div>
-  );
 };
 
 export const AgentPanelApp: React.FC = () => {
@@ -546,45 +266,24 @@ export const AgentPanelApp: React.FC = () => {
   };
 
   const conversation = status?.conversation ?? EMPTY_CONVERSATION;
-  const turn = status?.turn ?? null;
-  const proposal = status?.proposal ?? null;
-  const canSend =
-    (phase === "idle" || phase === "offline" || phase === "proposal") &&
-    !sending;
-  const shouldShowBody =
-    phase === "idle" ||
-    phase === "running" ||
-    phase === "proposal" ||
-    phase === "offline";
 
   return (
-    <div className="agent-panel-shell">
-      <AgentPanelHeader
-        phase={phase}
-        lastIdentity={lastIdentity}
-        onToggle={() => void togglePanel()}
-      />
-      <AgentPanelState
-        phase={phase}
-        error={error}
-        onRefresh={() => void refresh()}
-      />
-      {shouldShowBody && (
-        <AgentPanelBody
-          conversation={conversation}
-          hasTurn={turn !== null}
-          proposal={proposal}
-          error={error}
-          draft={draft}
-          sending={sending}
-          canSend={canSend}
-          onCancel={() => void cancel()}
-          onApply={() => void apply(false)}
-          onUndo={() => void undo()}
-          onSend={() => void send()}
-          onDraftChange={setDraft}
-        />
-      )}
-    </div>
+    <AgentPanelView
+      phase={phase}
+      lastIdentity={lastIdentity}
+      conversation={conversation}
+      hasTurn={status?.turn != null}
+      proposal={status?.proposal ?? null}
+      error={error}
+      draft={draft}
+      sending={sending}
+      onToggle={() => void togglePanel()}
+      onRefresh={() => void refresh()}
+      onCancel={() => void cancel()}
+      onApply={() => void apply(false)}
+      onUndo={() => void undo()}
+      onSend={() => void send()}
+      onDraftChange={setDraft}
+    />
   );
 };

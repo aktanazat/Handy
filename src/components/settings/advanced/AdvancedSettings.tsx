@@ -1,6 +1,17 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Dropdown, SettingContainer, SettingsGroup } from "@/components/ui";
+import {
+  SettingsPage,
+  SettingsRow,
+  SettingsSection,
+} from "@/components/settings/rows";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/vg/select";
 import { useSettings } from "../../../hooks/useSettings";
 import { AccelerationSelector } from "../AccelerationSelector";
 import { AutostartToggle } from "../AutostartToggle";
@@ -13,83 +24,71 @@ import { ShowTrayIcon } from "../ShowTrayIcon";
 import { StartHidden } from "../StartHidden";
 import { KeyboardImplementationSelector } from "../debug/KeyboardImplementationSelector";
 
+const SPELLING_ID = "advanced-english-spelling";
+
 /* Previously three collapsed <details> disclosures, which hid every advanced
- * setting behind a click and made the page unscannable. The same settings are
- * now plain groups; the disclosure headings became the group headings. */
+ * setting behind a click; then three boxed groups that each explained their own
+ * heading. Now three hairline sections whose headings are the whole label. */
 export const AdvancedSettings: React.FC = () => {
   const { t } = useTranslation();
-  const { getSetting, settings, updateSetting } = useSettings();
-  const experimentalEnabled = getSetting("experimental_enabled") || false;
+  const { settings, updateSetting } = useSettings();
+  const experimentalEnabled = settings?.experimental_enabled ?? false;
   const englishSpelling = settings?.english_spelling ?? "as_spoken";
 
   return (
-    <div className="settings-page advanced-page">
-      <header className="settings-page-header">
-        <h1 className="settings-page-title">{t("sidebar.advanced")}</h1>
-        <p className="settings-page-description">
-          {t("settings.advanced.description")}
-        </p>
-      </header>
+    <SettingsPage title={t("sidebar.advanced")}>
+      <SettingsSection label={t("settings.advanced.disclosures.launch.title")}>
+        <StartHidden />
+        <AutostartToggle />
+        <ShowTrayIcon />
+        <ShowOverlay />
+        <HudPillSettings />
+      </SettingsSection>
 
-      <SettingsGroup
-        title={t("settings.advanced.disclosures.launch.title")}
-        description={t("settings.advanced.disclosures.launch.description")}
+      <SettingsSection
+        label={t("settings.advanced.disclosures.processing.title")}
       >
-        <StartHidden grouped />
-        <AutostartToggle grouped />
-        <ShowTrayIcon grouped />
-        <ShowOverlay grouped />
-        <HudPillSettings grouped />
-      </SettingsGroup>
-
-      <SettingsGroup
-        title={t("settings.advanced.disclosures.processing.title")}
-        description={t("settings.advanced.disclosures.processing.description")}
-      >
-        <ModelUnloadTimeoutSetting grouped />
-        <SettingContainer
-          grouped
-          title={t("settings.advanced.englishSpelling.label")}
-          description={t("settings.advanced.englishSpelling.description")}
+        <ModelUnloadTimeoutSetting />
+        {/* The two option names are the description: "As spoken" or
+         * "British" says everything a sentence under the row would. */}
+        <SettingsRow
+          label={t("settings.advanced.englishSpelling.label")}
+          controlId={SPELLING_ID}
         >
-          <Dropdown
-            selectedValue={englishSpelling}
-            options={[
-              {
-                value: "as_spoken",
-                label: t("settings.advanced.englishSpelling.values.as_spoken"),
-              },
-              {
-                value: "british",
-                label: t("settings.advanced.englishSpelling.values.british"),
-              },
-            ]}
-            onSelect={(value) => {
-              if (value === "as_spoken" || value === "british") {
-                void updateSetting("english_spelling", value);
-              }
+          <Select
+            value={englishSpelling}
+            onValueChange={(value) => {
+              if (value !== "as_spoken" && value !== "british") return;
+              void updateSetting("english_spelling", value);
             }}
-          />
-        </SettingContainer>
-      </SettingsGroup>
+          >
+            <SelectTrigger id={SPELLING_ID} size="sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="as_spoken">
+                {t("settings.advanced.englishSpelling.values.as_spoken")}
+              </SelectItem>
+              <SelectItem value="british">
+                {t("settings.advanced.englishSpelling.values.british")}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </SettingsRow>
+      </SettingsSection>
 
       {/* The switch sits with what it unlocks, so turning it on visibly
-       * extends this group instead of revealing a section elsewhere. */}
-      <SettingsGroup
-        title={t("settings.advanced.groups.experimental")}
-        description={t(
-          "settings.advanced.disclosures.experimental.description",
-        )}
-      >
-        <ExperimentalToggle grouped />
+       * extends this section instead of revealing one elsewhere. */}
+      <SettingsSection label={t("settings.advanced.groups.experimental")}>
+        <ExperimentalToggle />
         {experimentalEnabled ? (
           <>
-            <KeyboardImplementationSelector grouped />
-            <AccelerationSelector grouped />
-            <LazyStreamClose grouped />
+            <KeyboardImplementationSelector />
+            <AccelerationSelector />
+            <LazyStreamClose />
           </>
         ) : null}
-      </SettingsGroup>
-    </div>
+      </SettingsSection>
+    </SettingsPage>
   );
 };

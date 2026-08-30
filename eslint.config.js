@@ -35,4 +35,12 @@ export default [
       ],
     },
   },
+  {
+    /* Test files render probe markup, not UI a user sees; the literal-string
+     * rule exists to catch untranslated product copy, so it does not apply. */
+    files: ["src/**/*.test.{ts,tsx}"],
+    rules: {
+      "i18next/no-literal-string": "off",
+    },
+  },
 ];

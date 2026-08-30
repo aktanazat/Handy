@@ -13,9 +13,9 @@ import { LazyMotion } from "motion/react";
  * Presets and their measured tuning live in ./presets. The app-level policy
  * lives in ./provider, which is the only Motion module the eager chunk
  * contains. Everything that renders a motion element sits behind a dynamic
- * import — ./Disclosure, ui/TabsIndicator, CommandPaletteDialog and
- * settings/modes/ModesReorder — so the measured eager cost of the whole
- * adoption is 0 B gz.
+ * import — ./Disclosure, ui/TabsIndicator and settings/modes/ModesReorder —
+ * so the measured eager cost of the whole adoption is 0 B gz. The command
+ * palette was on that list until it moved to cmdk and a CSS transition.
  *
  * The measured-value law is untouched and is stricter here than in CSS:
  * theme.css kills `transition` and `animation` on a measured value, but Motion

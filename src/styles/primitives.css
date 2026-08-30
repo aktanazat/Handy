@@ -1,143 +1,36 @@
-/* Shared component surfaces: settings groups and rows, the control fill
- * ladder, popovers, dialogs and the loading skeleton.
+/* Shared component surfaces: the control fill ladder, the dialog, the loading
+ * skeleton, the measured-value type role, the Glass material, and nothing
+ * else.
  *
- * These rules back the primitives in src/components/ui. Components carry
- * layout and variant classes with Tailwind utilities; anything that needs a
- * pseudo-element, a keyframe, or a rule that has to reach into third-party
- * markup lives here. */
-
-/* ------------------------------------------------------ groups & rows */
-
-.settings-group {
-  margin: 0;
-  position: relative;
-}
-
-/* A flat section leans on the gap between its title and its rows to read as a
- * group at all, so this is deliberately wider than the old in-panel spacing. */
-.settings-group > div:first-child {
-  margin-bottom: var(--space-3);
-  padding-inline: 0;
-}
-
-.settings-group > div:first-child h2,
-.section-heading-inline h2,
-.modes-master-heading h2,
-.mode-detail-header h2 {
-  color: var(--color-text-primary);
-  font-size: var(--type-section-size);
-  font-weight: var(--type-section-weight);
-  letter-spacing: var(--type-section-tracking);
-  line-height: var(--type-section-line);
-}
-
-.settings-group > div:first-child p,
-.section-heading-inline p,
-.mode-detail-header p {
-  color: var(--color-text-secondary);
-  font-size: var(--type-secondary-size);
-  line-height: var(--type-secondary-line);
-  margin-top: var(--space-0-5);
-  max-inline-size: 68ch;
-  text-wrap: pretty;
-}
-
-/* Content groups are real cards now: the raised step, the card radius and the
- * card shadow, whose 1px ring IS the border (never both). The heading stays
- * OUTSIDE the card — a heading plus spacing above a carded body — so the card
- * holds only rows and never another card. */
-.settings-group-panel,
-.setting-panel {
-  background: var(--color-surface-raised);
-  border: 0;
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  overflow: visible;
-  padding: var(--space-1) var(--space-4);
-}
-
-.settings-group-panel > .divide-y {
-  background: transparent;
-  display: block;
-}
-
-/* The hairline between rows inside a card stays at the subtle step: at
- * --color-border strength it reads as a table, not a rhythm. */
-.settings-group-panel > .divide-y > :not(:last-child),
-.settings-group-panel > div > :not(:last-child) {
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-
-/* Inline padding is zero so a row's label aligns with its own section title.
- * Pages that want denser, inset rows re-assert padding-inline themselves
- * (settings-density.css owns that for .density-page). */
-.setting-row {
-  align-items: center;
-  display: grid;
-  gap: var(--space-4);
-  grid-template-columns: minmax(180px, 1fr) minmax(160px, 280px);
-  min-block-size: var(--settings-row-height);
-  padding: var(--space-2-5) 0;
-}
-
-.setting-copy {
-  min-inline-size: 0;
-}
-
-.setting-copy h3 {
-  font-size: var(--type-row-size);
-  font-weight: var(--type-row-weight);
-  letter-spacing: 0;
-  line-height: var(--type-row-line);
-}
-
-.setting-copy p {
-  font-size: var(--type-secondary-size);
-  line-height: var(--type-secondary-line);
-  margin-top: 1px;
-  text-wrap: pretty;
-}
-
-/* Third line in a row's copy column: how to *use* the control, not what it
- * does. Caption size, tertiary colour, so it never competes with the
- * description above it. */
-.setting-copy .setting-hint,
-.setting-hint {
-  color: var(--color-text-tertiary);
-  font-size: var(--type-caption-size);
-  line-height: var(--type-caption-line);
-  margin-top: var(--space-1);
-  text-wrap: pretty;
-}
-
-.setting-control {
-  inline-size: 100%;
-  justify-self: end;
-  max-inline-size: 280px;
-  min-inline-size: 0;
-}
-
-/* Geist disables with colour, never with a fill or opacity. A grey slab behind a
- * flat row would read as a selected row instead of a dead one. */
-.setting-row-disabled .setting-copy h3,
-.setting-row-disabled .setting-copy p,
-.setting-panel-disabled h3,
-.setting-panel-disabled p {
-  color: var(--color-text-disabled);
-}
+ * These rules back the primitives in src/components/ui that are still
+ * standing. Components carry layout and variant classes with Tailwind
+ * utilities; anything that needs a pseudo-element, a keyframe, or a rule that
+ * has to reach into third-party markup lives here.
+ *
+ * Pruned with the kit it backed: the settings group/row/panel grammar (now
+ * `src/components/settings/rows.tsx`, Tailwind on Geist tokens), the Switch
+ * track, the Slider rail, the popover, the card and inset-panel surfaces, ten
+ * of the eleven type roles, the microlabel pair, the keycap, the value chip,
+ * the toggle pill, the data table and the grid connector. Every one of those
+ * classes had zero references left anywhere in src/, tests/, scripts/ or
+ * src-tauri/. */
 
 /* ----------------------------------------------------------- controls */
 
 /* This section lives in the `components` cascade layer on purpose. The
- * primitives in ui/ stack Tailwind state utilities (hover:bg-control-hover,
+ * surviving controls stack Tailwind state utilities (hover:bg-control-hover,
  * disabled:bg-control-disabled, …) on top of these boxes, and Tailwind's
  * utilities layer can only win against a layered rule: an unlayered
  * declaration outranks every layer, which silently killed hover, active and
  * disabled feedback on every bordered control. Measured in-browser before
  * the fix: `.control-surface` + `bg-control-disabled` computed to the plain
- * control fill. The overlay webview imports this file without Tailwind;
- * there the layer is simply created on first use and the rules apply as
- * normal, because nothing in that window competes for these selectors. */
+ * control fill.
+ *
+ * Every window now carries Tailwind, so the layer is real everywhere: under
+ * Next.js this file is reached only through app/globals.css, which is the
+ * Tailwind entry, and all three routes nest inside src/app/layout.tsx. That was
+ * not true under Vite, where the overlay and agent-panel entries imported this
+ * file as plain CSS and the layer was created on first use. Keep it layered. */
 @layer components {
   .control-surface,
   .settings-main
@@ -165,12 +58,15 @@
     min-block-size: var(--control-height);
   }
 
-  /* Bare fields inside a settings page get their box from here. A field built
-   * from the `Input` primitive is excluded: `.control-surface` marks it, and
-   * its padding is (inset + slot + gap), which only the primitive knows. This
-   * descendant selector outspecifies a Tailwind utility, so without the
-   * exclusion it silently reinstated the Library search placeholder under the
-   * magnifier no matter what the primitive asked for. */
+  /* Bare fields inside a settings page get their box from here — a `<select>`
+   * or an `<input>` that no component wraps. `.control-surface` is the opt-out
+   * for a control that owns its own padding, and its one remaining consumer is
+   * ui/Button's secondary variant, which is a `<button>`: the `:not()` clauses
+   * below can no longer match anything, and are kept only so re-marking a field
+   * with the class still opts it out. They cost one class of specificity each,
+   * which this selector needs anyway to outspecify a Tailwind utility — without
+   * it the rule silently reinstated the Library search placeholder under the
+   * magnifier no matter what the field asked for. */
   .settings-main input[type="text"]:not(.control-surface),
   .settings-main input[type="search"]:not(.control-surface),
   .settings-main input[type="password"]:not(.control-surface),
@@ -201,165 +97,22 @@
   }
 }
 
-/* NAMING TRAP, read before editing: these four `.glass-*` classes are SOLID
- * surfaces. The name is left over from an earlier era and predates the Material
- * setting; the only class in this file that carries an actual backdrop-filter
- * is `.glass-surface` (and its tint-only variant), further down. Do not
- * "restore" blur here and do not count these against the two-glass-surface
- * budget. Renaming them is a follow-up, not a mid-flight edit: their call sites
- * are spread across pages other slices own right now. */
-/* The Switch primitive's track and knob, owned here end to end: the input is
- * the state, the span draws it. State selectors live beside the box they
- * paint instead of as Tailwind peer-variants, because an unlayered class
- * defeats a layered utility for the same property — the exact bug that had
- * a checked track rendering in the unchecked fill (measured: peer-checked
- * bg utility computed to the track's own background). The overlay webview
- * gets a working switch from this same block, Tailwind or not.
- *
- * Engraved, not washed: off is the one recessed surface class cut into the
- * row with a plain hairline, so it reads as an empty well instead of a grey
- * blob; on stays the Geist inversion, the app's one selected-state device. */
-.glass-toggle {
-  background: var(--surface-inset);
-  block-size: 20px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  box-shadow: none;
-  box-sizing: border-box;
-  display: inline-block;
-  flex: none;
-  inline-size: 36px;
-  position: relative;
-  transition:
-    background-color var(--duration-fast) var(--ease-in-out),
-    border-color var(--duration-fast) var(--ease-in-out);
-}
+/* ------------------------------------------------------------- dialog */
 
-/* The knob: 16px in an 18px well, one hairline and one tight shadow so it
- * reads against both the inset track and the inverted one. The travel is a
- * transform at the standard panel clock — a state change, not a hover. */
-.glass-toggle::after {
-  background: var(--color-surface);
-  block-size: 16px;
-  border: 1px solid var(--border-hover);
-  border-radius: var(--radius-pill);
-  box-shadow: 0 1px 2px var(--gray-a-200);
-  box-sizing: border-box;
-  content: "";
-  inline-size: 16px;
-  inset-block-start: 1px;
-  inset-inline-start: 1px;
-  position: absolute;
-  transition: transform var(--duration-standard) var(--ease-out);
-}
-
-input:checked + .glass-toggle {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-}
-
-/* The knob on an accent track is the on-accent ink: white in light,
- * near-black in dark — never a grey mid-step. */
-input:checked + .glass-toggle::after {
-  background: var(--color-on-accent);
-  border-color: transparent;
-  transform: translateX(16px);
-}
-
-[dir="rtl"] input:checked + .glass-toggle::after {
-  transform: translateX(-16px);
-}
-
-input:disabled + .glass-toggle {
-  opacity: 0.5;
-}
-
-input:focus-visible + .glass-toggle {
-  outline: var(--focus-outline);
-  outline-offset: var(--focus-offset);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .glass-toggle,
-  .glass-toggle::after {
-    transition: none;
-  }
-}
-
-/* The Slider primitive's range input. Native rendering left the rail invisible
- * in both themes (a thumb floating on empty space), so the control draws its
- * own instrument rail: a 4px hairline-weight track, the filled span in the
- * accent, and a plain circular thumb. The fill boundary comes from
- * --range-fill, set inline by ui/Slider.tsx from value/min/max — the fill is
- * a reported value, so it snaps with the input rather than tweening.
- * WebKit pseudo-elements only: every window this app ships is WebKit. */
-.ui-range {
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
-  block-size: 20px;
-  cursor: pointer;
-  margin: 0;
-  min-inline-size: 0;
-}
-
-.ui-range:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.ui-range::-webkit-slider-runnable-track {
-  background: linear-gradient(
-    to right,
-    var(--color-accent) 0 var(--range-fill, 0%),
-    var(--gray-a-300) var(--range-fill, 0%) 100%
-  );
-  block-size: 4px;
-  border-radius: var(--radius-pill);
-}
-
-/* A physical gradient direction cannot follow writing mode, so RTL flips it. */
-[dir="rtl"] .ui-range::-webkit-slider-runnable-track {
-  background: linear-gradient(
-    to left,
-    var(--color-accent) 0 var(--range-fill, 0%),
-    var(--gray-a-300) var(--range-fill, 0%) 100%
-  );
-}
-
-.ui-range::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  background: var(--color-surface-raised);
-  block-size: 14px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-pill);
-  box-shadow: 0 1px 2px var(--gray-a-200);
-  box-sizing: border-box;
-  inline-size: 14px;
-  /* Centre a 14px thumb on the 4px rail: (4 − 14) / 2. */
-  margin-block-start: -5px;
-}
-
-/* Border-colour transparent, not border-width zero: the 1px ring that leads
- * --shadow-popover IS this popover's edge, and keeping the border box means the
- * layout does not shift by a pixel. Same for the dialog below. */
-.glass-popover {
-  background: var(--color-material-dialog);
-  border: 1px solid transparent;
-  border-radius: var(--radius-panel);
-  box-shadow: var(--shadow-popover);
-}
-
-.glass-popover [role="option"][aria-selected="true"] {
-  background: var(--color-accent-soft);
-  color: var(--color-text-primary);
-}
+/* NAMING TRAP, read before editing: these two `.glass-*` classes are SOLID
+ * surfaces. The name is left over from an earlier era and predates the
+ * Material setting; the only class in this file that carries an actual
+ * backdrop-filter is `.glass-surface`, further down. Do not "restore" blur
+ * here. Renaming them is a follow-up, not a mid-flight edit: their call sites
+ * are in ui/Dialog.tsx, which another slice owns right now. */
 
 .glass-dialog-backdrop {
   background: var(--color-backdrop);
 }
 
+/* Border-colour transparent, not border-width zero: the 1px ring that leads
+ * --shadow-dialog IS this dialog's edge, and keeping the border box means the
+ * layout does not shift by a pixel. */
 .glass-dialog {
   background: var(--color-material-dialog);
   border: 1px solid transparent;
@@ -384,111 +137,18 @@ input:focus-visible + .glass-toggle {
   }
 }
 
-/* -------------------------------------------------- surfaces & labels */
+/* ---------------------------------------------------------- type role */
 
-/* Earn a surface. `.card` is a discrete object the person selects, drags or
- * opens: the raised fill, the card radius, and the card shadow whose 1px ring
- * IS its border. `.inset-panel` is quoted machine output — a transcript
- * excerpt, a raw prompt, a receipt, a config dump — that belongs to the flat
- * section around it. In dark the difference carries the whole meaning: raised
- * is LIGHTER than the page, recessed is DARKER. Everything else — a metric, a
- * comparison — is spacing and typography, not a box. Nesting is one level
- * deep: a card may hold an inset panel, an inset panel holds only text, a
- * card never holds a card. */
-.card {
-  background: var(--color-surface-raised);
-  border: 1px solid transparent;
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-4);
-}
-
-/* A floating card takes the ring in --shadow-panel INSTEAD of its border: the
- * ring is the border, and carrying both draws a double edge. */
-.card--floating {
-  border-color: transparent;
-  box-shadow: var(--shadow-panel);
-}
-
-.inset-panel {
-  background: var(--surface-inset);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-control);
-  padding: var(--space-3);
-}
-
-/* ------------------------------------------------------------ type ramp */
-
-/* The eleven roles from the art direction, and the only place they are set.
- * Plain rules, no Tailwind layer: the overlay and agent-panel webviews import
- * this file without Tailwind, and a role that only works in one window is not
- * a role. Tracking is 0 everywhere except .microlabel — see theme.css.
+/* Every measured value, and the one type role left in this file: the other ten
+ * moved to utilities with the pages that set them. Unlayered on purpose, so it
+ * beats a Tailwind utility rather than losing to one — a data readout's mono
+ * face and tabular figures are not a preference a page may override with
+ * `font-sans`. (The old reason given here, that the overlay and agent-panel
+ * webviews import this file without Tailwind, stopped being true when the
+ * Next.js root layout made app/globals.css the only path to this file.)
  *
- * Mono marks a string a machine produced or consumes: device names, sample
- * rates, channel counts, realtime factor, peak/rms, latencies, model and
- * engine ids, backends, paths, durations, timestamps, counts, keycaps, raw
- * prompt text. Prose, titles and helper sentences are sans. */
-.type-display {
-  font-family: var(--font-sans);
-  font-size: var(--type-display-size);
-  font-weight: var(--type-display-weight);
-  letter-spacing: 0;
-  line-height: var(--type-display-line);
-}
-
-.type-metric {
-  font-family: var(--font-sans);
-  font-size: var(--type-metric-size);
-  font-variant-numeric: tabular-nums;
-  font-weight: var(--type-metric-weight);
-  letter-spacing: var(--type-metric-tracking);
-  line-height: var(--type-metric-line);
-}
-
-.type-title {
-  font-family: var(--font-sans);
-  font-size: var(--type-title-size);
-  font-weight: var(--type-title-weight);
-  letter-spacing: var(--type-title-tracking);
-  line-height: var(--type-title-line);
-}
-
-.type-section {
-  font-family: var(--font-sans);
-  font-size: var(--type-section-size);
-  font-weight: var(--type-section-weight);
-  letter-spacing: var(--type-section-tracking);
-  line-height: var(--type-section-line);
-}
-
-.type-row-title {
-  font-family: var(--font-sans);
-  font-size: var(--type-row-size);
-  font-weight: var(--type-row-weight);
-  letter-spacing: 0;
-  line-height: var(--type-row-line);
-}
-
-.type-body {
-  font-family: var(--font-sans);
-  font-size: var(--type-body-size);
-  font-weight: var(--fw-label);
-  letter-spacing: 0;
-  line-height: var(--type-body-line);
-}
-
-.type-secondary {
-  color: var(--text-secondary);
-  font-family: var(--font-sans);
-  font-size: var(--type-secondary-size);
-  font-weight: var(--fw-label);
-  letter-spacing: 0;
-  line-height: var(--type-secondary-line);
-}
-
-/* Every measured value. tabular-nums is required, not decorative: a readout
- * that reflows its own column width as digits change is a lie about
- * stability. */
+ * tabular-nums is required, not decorative: a readout that reflows its own
+ * column width as digits change is a lie about stability. */
 .type-data {
   font-family: var(--font-mono);
   font-size: var(--type-data-size);
@@ -496,129 +156,6 @@ input:focus-visible + .glass-toggle {
   font-weight: var(--fw-label);
   letter-spacing: 0;
   line-height: var(--type-data-line);
-}
-
-.type-code {
-  font-family: var(--font-mono);
-  font-size: var(--type-code-size);
-  font-weight: var(--fw-label);
-  letter-spacing: 0;
-  line-height: var(--type-code-line);
-}
-
-/* The one uppercase role: instrument-strip labels, column headers, stat
- * labels. For a category or a status, never for a sentence. */
-.microlabel {
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: var(--fs-microlabel);
-  font-weight: var(--fw-heading);
-  letter-spacing: var(--ls-microlabel);
-  line-height: var(--lh-microlabel);
-  text-transform: uppercase;
-}
-
-/* The vgpu-flavour variant for section, column and stat-card labels: one step
- * quieter than .microlabel (tertiary ink, slightly tighter tracking) and
- * tabular, so a label that carries a count never reflows. Defined once here;
- * pages apply it, they never restyle it. 11px and 0.08em are the sanctioned
- * values for this role — the microlabel tokens stay owned by .microlabel. */
-.microlabel-mono {
-  color: var(--color-text-tertiary);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  font-weight: var(--fw-button);
-  letter-spacing: 0.08em;
-  line-height: var(--lh-microlabel);
-  text-transform: uppercase;
-}
-
-/* One keycap per physical key, inline on its row's line. The box is 18px so a
- * chip row fits inside a 36px dense row without pushing it taller. Backed by a
- * class rather than utilities because <Kbd> also renders in the overlay
- * webview, which has no Tailwind. */
-.kbd {
-  align-items: center;
-  background: var(--color-canvas);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xs);
-  block-size: var(--keycap-h);
-  color: var(--text-tertiary);
-  display: inline-flex;
-  font-family: var(--font-mono);
-  font-size: var(--type-keycap-size);
-  font-weight: var(--fw-button);
-  justify-content: center;
-  line-height: 1;
-  min-inline-size: var(--keycap-h);
-  padding-inline: var(--space-1);
-  white-space: nowrap;
-}
-
-/* A value chip: the machine's own answer, in the machine's own face. The
- * shared recipe behind .meeting-preview-chip — mono, microlabel-sized,
- * tabular, never a capsule (badge-ified metadata is on the reject list). */
-.chip {
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: var(--fs-microlabel);
-  font-variant-numeric: tabular-nums;
-  line-height: var(--lh-microlabel);
-  white-space: nowrap;
-}
-
-/* A two-state pill: one control with two states, worn like an instrument
- * switch. Off is a hairline outline on the page surface; armed is a tinted
- * wash plus a stronger edge — never the primary inversion, which belongs to
- * buttons and selected options, and at pill scale reads as a dark blob.
- * The pill radius is sanctioned here: a toggle track is one of its three
- * uses. State rides aria-pressed, so the class carries no second channel. */
-.toggle-chip {
-  align-items: center;
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  color: var(--text-secondary);
-  cursor: pointer;
-  display: inline-flex;
-  font-size: var(--fs-label-13);
-  font-weight: var(--fw-button);
-  gap: var(--space-1-5);
-  min-block-size: 28px;
-  padding-inline: var(--space-3);
-  transition:
-    background-color var(--duration-fast) var(--ease-in-out),
-    border-color var(--duration-fast) var(--ease-in-out),
-    color var(--duration-fast) var(--ease-in-out);
-}
-
-/* The armed check sits half a pixel high on the flex line; nudge it onto the
- * label's optical centre instead of letting the glyph float. */
-.toggle-chip svg {
-  flex: none;
-  position: relative;
-  top: 0.5px;
-}
-
-.toggle-chip:hover:not(:disabled) {
-  border-color: var(--border-hover);
-  color: var(--text-primary);
-}
-
-.toggle-chip:active:not(:disabled) {
-  background: var(--wash-active);
-}
-
-.toggle-chip[aria-pressed="true"] {
-  background: var(--color-accent-soft);
-  border-color: color-mix(in oklab, var(--color-accent) 32%, transparent);
-  color: var(--color-text-primary);
-}
-
-.toggle-chip:disabled {
-  color: var(--text-disabled);
-  cursor: not-allowed;
 }
 
 /* ---------------------------------------------------------------- glass */
@@ -631,74 +168,34 @@ input:focus-visible + .glass-toggle {
  *
  * The 2026-08 ruling, which replaces the old two-glass-surface budget: under
  * Glass, every CHROME surface goes translucent-raised over the native
- * vibrancy sample — top bar, command palette, section/hub rails, dropdown
- * menus and popovers, and dialog chrome. All are bounded regions, so the
- * blur cost stays bounded. Surfaces that DISPLAY MEASURED DATA (content
- * cards, settings panels, tables, the library list) stay opaque
- * --color-surface-raised in BOTH materials: numbers are never read through
- * wallpaper. Solid is the default cascade — fully opaque, zero
- * backdrop-filter — so [data-material="solid"] needs no rules at all.
+ * vibrancy sample — the sidebar rail, the command palette, and dialog
+ * chrome. All are bounded regions, so the blur cost stays bounded. Surfaces
+ * that DISPLAY MEASURED DATA (content cards, settings panels, tables, the
+ * library list) stay opaque --color-surface-raised in BOTH materials: numbers
+ * are never read through wallpaper. Solid is the default cascade — fully
+ * opaque, zero backdrop-filter — so [data-material="solid"] needs no rules at
+ * all.
  *
- * Two glass variants remain:
- *
- *   blur set               chrome inside the main window. Content genuinely
- *                          sits beneath, so backdrop-filter samples app
- *                          content plus the vibrancy underlay:
- *                          blur(20px) saturate(1.4) — saturate is sanctioned
- *                          by the pivot; the cool palette reads flat through
- *                          a plain blur.
- *   .glass-surface--tint   the recording HUD, a transparent NSPanel over an
- *                          arbitrary desktop. Tint, border and specular only.
- *                          A blur there samples the whole screen during live
- *                          ASR — this app shipped that once and reverted it
- *                          for cost and legibility. Not repeated.
+ * Content genuinely sits beneath these two, so backdrop-filter samples app
+ * content plus the vibrancy underlay: blur(20px) saturate(1.4) — saturate is
+ * sanctioned by the pivot; the cool palette reads flat through a plain blur.
+ * The recording HUD used to take a second, tint-only variant here; it now
+ * defines its own in src/overlay/RecordingOverlay.css, where the surface it
+ * paints lives.
  *
  * No --shadow-panel here: its 1px ring would double the --glass-border edge,
  * so glass takes the ring-less --glass-shadow. Never nest two blurring
  * surfaces, and never animate the blur radius. */
-:root[data-material="glass"]
-  :is(
-    .glass-surface,
-    .glass-popover,
-    .glass-dialog,
-    .settings-local-nav,
-    .meeting-actions-menu > div,
-    .mode-actions-menu > div,
-    .history-actions-menu > div,
-    .vocabulary-actions-popover
-  ) {
+:root[data-material="glass"] :is(.glass-surface, .glass-dialog) {
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
   backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
-}
-
-:root[data-material="glass"]
-  :is(
-    .glass-surface,
-    .glass-popover,
-    .glass-dialog,
-    .settings-local-nav,
-    .meeting-actions-menu > div,
-    .mode-actions-menu > div,
-    .history-actions-menu > div,
-    .vocabulary-actions-popover
-  ),
-:root[data-material="glass"] .glass-surface--tint {
   background: var(--glass-tint);
   /* Colour only, never the shorthand: the consumer owns which edges it draws.
-     The nav and rails want a bottom rule; the palette, menus and the HUD card
-     want all four. */
+     The rail wants an end rule; the palette and dialogs want all four. */
   border-color: var(--glass-border);
   box-shadow:
     inset 0 1px 0 var(--glass-specular-top),
     var(--glass-shadow);
-}
-
-/* The tint-only surface has no blur and no --glass-canvas under it, so the
- * airy tint would let extreme wallpapers swing the plate luminance past AA
- * for the pill's own text (measured on the real HudPill: alpha must clear
- * ~0.78 light / ~0.83 dark). It takes the dense step instead. */
-:root[data-material="glass"] .glass-surface--tint {
-  background: var(--glass-tint-dense);
 }
 
 /* Reduce Transparency is not readable from a WKWebView today — WebKit does not
@@ -707,139 +204,11 @@ input:focus-visible + .glass-toggle {
  * costs nothing. Increase Contrast IS supported, and flattens glass to a
  * bordered solid, which is what the system does natively. */
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  :root[data-material="glass"]
-    :is(
-      .glass-surface,
-      .glass-popover,
-      .glass-dialog,
-      .settings-local-nav,
-      .meeting-actions-menu > div,
-      .mode-actions-menu > div,
-      .history-actions-menu > div,
-      .vocabulary-actions-popover
-    ),
-  :root[data-material="glass"] .glass-surface--tint {
+  :root[data-material="glass"] :is(.glass-surface, .glass-dialog) {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
     background: var(--surface-raised);
     border-color: var(--border);
     box-shadow: none;
   }
-}
-
-/* ---------------------------------------------------------- data table */
-
-/* A numeric cell under a left-aligned header is a defect, so alignment is a
- * property of the column and both the th and the td opt in together. */
-.data-table {
-  border-collapse: collapse;
-  inline-size: 100%;
-}
-
-.data-table th,
-.data-table td {
-  padding: var(--space-2) var(--space-3);
-  text-align: start;
-  vertical-align: baseline;
-}
-
-.data-table th {
-  border-bottom: 1px solid var(--border);
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: var(--fs-microlabel);
-  font-weight: var(--fw-heading);
-  letter-spacing: var(--ls-microlabel);
-  line-height: var(--lh-microlabel);
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.data-table td {
-  border-bottom: 1px solid var(--border-subtle);
-  color: var(--text-primary);
-  font-size: var(--type-row-size);
-  line-height: var(--type-row-line);
-}
-
-.data-table tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.data-table[data-striped="true"] tbody tr:nth-child(even) {
-  background: var(--gray-a-100);
-}
-
-.data-table[data-interactive="true"] tbody tr:hover {
-  background: var(--wash-hover);
-}
-
-.data-table :is(th, td).numeric,
-.numeric {
-  font-variant-numeric: tabular-nums;
-  text-align: end;
-}
-
-/* A sticky first column separates with an inset shadow rather than a border,
- * so the divider only appears once the body has actually scrolled under it. */
-.data-table [data-sticky="true"] {
-  background: var(--surface-1);
-  box-shadow: inset -1px 0 var(--border-subtle);
-  inset-inline-start: 0;
-  position: sticky;
-}
-
-/* ------------------------------------------------------ grid connector */
-
-/* Geist's Grid/GridCross motif reduced to what a section connector needs: a
- * 1px guide line with a dot marker at each end. Vector-drawn structure, not a
- * tiled graph-paper texture. */
-.grid-connector {
-  --grid-connector-line: var(--gray-a-300);
-  --grid-connector-marker: var(--gray-a-500);
-  background: var(--grid-connector-line);
-  block-size: 1px;
-  inline-size: 100%;
-  position: relative;
-}
-
-.grid-connector[data-orientation="vertical"] {
-  block-size: 100%;
-  inline-size: 1px;
-}
-
-.grid-connector[data-dashed="true"] {
-  background: repeating-linear-gradient(
-    to right,
-    var(--grid-connector-line) 0 4px,
-    transparent 4px 8px
-  );
-}
-
-.grid-connector[data-dashed="true"][data-orientation="vertical"] {
-  background: repeating-linear-gradient(
-    to bottom,
-    var(--grid-connector-line) 0 4px,
-    transparent 4px 8px
-  );
-}
-
-.grid-connector::before,
-.grid-connector::after {
-  background: var(--grid-connector-marker);
-  block-size: 3px;
-  border-radius: var(--radius-pill);
-  content: "";
-  inline-size: 3px;
-  position: absolute;
-}
-
-.grid-connector::before {
-  inset-block-start: -1px;
-  inset-inline-start: -1px;
-}
-
-.grid-connector::after {
-  inset-block-end: -1px;
-  inset-inline-end: -1px;
 }

@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { SourceKind } from "@/bindings";
-import { Section } from "../../ui";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { promptTitle } from "./DetectionListeners";
 import { useDetectionStore, type DetectionPromptKind } from "./detectionStore";
 import {
   MeetingPreviewCard,
+  MeetingPreviewList,
   eventFacts,
   type MeetingPreviewFacts,
 } from "./MeetingPreviewCard";
@@ -26,9 +26,9 @@ import {
  * real control for that, and it writes the real setting.
  *
  * A prompt is an object with an answer attached, so it gets a surface. The
- * section description is this pane's own promise — recording starts here and
- * nowhere else — not the start block's assurance sentence: one sentence never
- * appears twice on one screen. */
+ * pane carries no sentence of its own: the countdown chip states when, the
+ * card's own Start states that nothing happens until it is pressed, and the
+ * page's one assurance sentence sits on the start card above. */
 
 export interface PreMeetingCountdownCardProps {
   /** Sources the next capture will request, owned by the page. */
@@ -96,76 +96,66 @@ export const PreMeetingCountdownCard: React.FC<
   };
 
   return (
-    <Section
-      title={t("meetings.detection.pane.title", "Starting soon")}
-      description={t(
-        "meetings.detection.pane.description",
-        "Sona never records until you start it here.",
-      )}
+    <MeetingPreviewList
+      label={t("meetings.detection.pane.title", "Starting soon")}
     >
-      <ul
-        className="meeting-previews"
-        aria-label={t("meetings.detection.pane.title", "Starting soon")}
-      >
-        {countdown && status ? (
-          <MeetingPreviewCard
-            key={countdown.event.eventKey}
-            facts={eventFacts(countdown.event, t)}
-            secondsToStart={countdown.secondsToStart}
-            /* The countdown is the one card worth opening on arrival: it is on
-             * screen because something is about to start, and every row on it
-             * is a decision that expires. */
-            defaultExpanded
-            notify={{
-              access: status.notificationAccess,
-              delivered: null,
-              autoOpen: {
-                checked: status.settings.autoStartOnOpenPane,
-                onChange: (next) => void setAutoOpen(next),
-                disabled: savingAutoOpen,
-              },
-            }}
-            recording={recording}
-            notesTemplate={notesTemplate}
-            starting={starting}
-            onStart={() => onStartEvent(eventFacts(countdown.event, t))}
-          />
-        ) : null}
+      {countdown && status ? (
+        <MeetingPreviewCard
+          key={countdown.event.eventKey}
+          facts={eventFacts(countdown.event, t)}
+          secondsToStart={countdown.secondsToStart}
+          /* The countdown is the one card worth opening on arrival: it is on
+           * screen because something is about to start, and every row on it
+           * is a decision that expires. */
+          defaultExpanded
+          notify={{
+            access: status.notificationAccess,
+            delivered: null,
+            autoOpen: {
+              checked: status.settings.autoStartOnOpenPane,
+              onChange: (next) => void setAutoOpen(next),
+              disabled: savingAutoOpen,
+            },
+          }}
+          recording={recording}
+          notesTemplate={notesTemplate}
+          starting={starting}
+          onStart={() => onStartEvent(eventFacts(countdown.event, t))}
+        />
+      ) : null}
 
-        {prompts.map((prompt) => (
-          <MeetingPreviewCard
-            key={prompt.promptId}
-            facts={{
-              id: prompt.promptId,
-              title: promptTitle(t, prompt.prompt),
-              origin:
-                prompt.prompt.kind === "CalendarEvent" ? "calendar" : "app",
-              startUtcMs: null,
-              endUtcMs: null,
-              calendarName: null,
-              appName: promptAppName(prompt.prompt),
-              attendeeCount: null,
-              participants: [],
-              description: null,
-              url: null,
-            }}
-            notify={
-              status === null
-                ? null
-                : {
-                    access: status.notificationAccess,
-                    delivered: prompt.notified,
-                    autoOpen: null,
-                  }
-            }
-            recording={recording}
-            notesTemplate={notesTemplate}
-            starting={starting}
-            onStart={() => void answer(prompt.promptId, true)}
-            onSkip={() => void answer(prompt.promptId, false)}
-          />
-        ))}
-      </ul>
-    </Section>
+      {prompts.map((prompt) => (
+        <MeetingPreviewCard
+          key={prompt.promptId}
+          facts={{
+            id: prompt.promptId,
+            title: promptTitle(t, prompt.prompt),
+            origin: prompt.prompt.kind === "CalendarEvent" ? "calendar" : "app",
+            startUtcMs: null,
+            endUtcMs: null,
+            calendarName: null,
+            appName: promptAppName(prompt.prompt),
+            attendeeCount: null,
+            participants: [],
+            description: null,
+            url: null,
+          }}
+          notify={
+            status === null
+              ? null
+              : {
+                  access: status.notificationAccess,
+                  delivered: prompt.notified,
+                  autoOpen: null,
+                }
+          }
+          recording={recording}
+          notesTemplate={notesTemplate}
+          starting={starting}
+          onStart={() => void answer(prompt.promptId, true)}
+          onSkip={() => void answer(prompt.promptId, false)}
+        />
+      ))}
+    </MeetingPreviewList>
   );
 };

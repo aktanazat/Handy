@@ -12,11 +12,13 @@ import {
   type CloudSttProviderMetadata,
 } from "@/lib/cloudStt";
 import { useSettings } from "@/hooks/useSettings";
-import Badge from "../../ui/Badge";
-import { Button } from "../../ui/Button";
-import { Input } from "../../ui/Input";
-import { SettingContainer } from "../../ui/SettingContainer";
-import { SettingsGroup } from "../../ui/SettingsGroup";
+import { Button } from "@/components/vg/button";
+import { Input } from "@/components/vg/input";
+import {
+  Notice,
+  SettingsField,
+  SettingsSection,
+} from "@/components/settings/rows";
 
 type CloudProviderError =
   | SecretCommandError
@@ -137,50 +139,32 @@ const CloudSttProviderCard: React.FC<CloudSttProviderCardProps> = ({
   const verified = keySaved && secretState?.lastVerifiedAt !== null;
   const actionPending = pendingAction !== null;
   const displayedError = error ?? secretState?.lastErrorKind ?? null;
+  const keyFieldId = `cloud-stt-key-${provider.secretAccountId}`;
 
   return (
-    <div className="border-b border-border-subtle px-0 last:border-b-0">
-      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 pt-4 pb-2">
-        <h3 className="text-sm leading-5 font-medium text-text-primary">
-          {t(provider.labelKey)}
-        </h3>
-        {/* Key state is categorical, so it reads as a chip rather than as a
-         * fourth grey sentence competing with the description. */}
-        {!checking && keySaved && (
-          <Badge variant={verified ? "success" : "secondary"}>
-            {verified
-              ? t("settings.models.cloud.status.verified")
-              : t("settings.models.cloud.status.saved")}
-          </Badge>
-        )}
-        <p className="basis-full text-[13px] leading-[18px] text-text-secondary">
-          {t("settings.models.cloud.providerDescription")}
-        </p>
-      </div>
-
-      <SettingContainer
-        grouped
-        layout="stacked"
-        title={t("settings.models.cloud.apiKey.label")}
-        description={t("settings.models.cloud.apiKey.description")}
-      >
+    <SettingsField label={t(provider.labelKey)} controlId={keyFieldId}>
+      <div className="flex flex-col gap-2">
         <form
-          className="flex flex-wrap items-center gap-2"
+          className="flex items-center gap-2"
           onSubmit={(event) => {
             event.preventDefault();
             void saveSecret();
           }}
         >
           <Input
+            id={keyFieldId}
             type="password"
             value={secret}
             onChange={(event) => setSecret(event.target.value)}
             autoComplete="new-password"
             spellCheck={false}
             placeholder={t("settings.models.cloud.apiKey.placeholder")}
-            aria-label={t("settings.models.cloud.apiKey.label")}
+            /* No `aria-label`: the field's own label names it. One that said
+             * "API key" would override that label, and both providers' inputs
+             * would then answer to the same name with nothing to tell them
+             * apart. The placeholder still says what to paste. */
             disabled={actionPending}
-            className="min-w-0 flex-1"
+            className="h-8 min-w-0 flex-1"
           />
           <Button
             type="submit"
@@ -191,42 +175,25 @@ const CloudSttProviderCard: React.FC<CloudSttProviderCardProps> = ({
               ? t("settings.models.cloud.actions.saving")
               : t("settings.models.cloud.actions.save")}
           </Button>
-        </form>
-      </SettingContainer>
-
-      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 pb-4">
-        <div aria-live="polite" className="text-xs text-text-secondary">
-          {checking
-            ? t("settings.models.cloud.status.checking")
-            : !keySaved
-              ? t("settings.models.cloud.status.notSaved")
-              : verified
-                ? t("settings.models.cloud.status.verified")
-                : t("settings.models.cloud.status.saved")}
-        </div>
-        {keySaved && !checking && (
-          <div className="flex flex-wrap items-center gap-2">
-            {consentCurrent ? (
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => void verifySecret()}
-                disabled={actionPending}
-              >
-                {pendingAction === "verify"
-                  ? t("settings.models.cloud.actions.verifying")
-                  : t("settings.models.cloud.actions.verify")}
-              </Button>
-            ) : (
-              <span className="text-xs text-text-tertiary">
-                {t("settings.models.cloud.status.verifyRequiresConsent")}
-              </span>
-            )}
+          {keySaved && !checking && consentCurrent && (
             <Button
               type="button"
-              variant="danger-ghost"
+              variant="outline"
               size="sm"
+              onClick={() => void verifySecret()}
+              disabled={actionPending}
+            >
+              {pendingAction === "verify"
+                ? t("settings.models.cloud.actions.verifying")
+                : t("settings.models.cloud.actions.verify")}
+            </Button>
+          )}
+          {keySaved && !checking && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-red-900 hover:text-red-900"
               onClick={() => void removeSecret()}
               disabled={actionPending}
             >
@@ -234,16 +201,32 @@ const CloudSttProviderCard: React.FC<CloudSttProviderCardProps> = ({
                 ? t("settings.models.cloud.actions.removing")
                 : t("settings.models.cloud.actions.remove")}
             </Button>
-          </div>
+          )}
+        </form>
+
+        <Notice>
+          {checking
+            ? t("settings.models.cloud.status.checking")
+            : !keySaved
+              ? t("settings.models.cloud.status.notSaved")
+              : verified
+                ? t("settings.models.cloud.status.verified")
+                : t("settings.models.cloud.status.saved")}
+        </Notice>
+
+        {keySaved && !checking && !consentCurrent && (
+          <Notice tone="warning" live={false}>
+            {t("settings.models.cloud.status.verifyRequiresConsent")}
+          </Notice>
+        )}
+
+        {displayedError && (
+          <Notice tone="danger" assertive>
+            {t("settings.models.cloud.errors." + displayedError)}
+          </Notice>
         )}
       </div>
-
-      {displayedError && (
-        <p role="alert" className="pb-4 text-sm text-danger-strong">
-          {t("settings.models.cloud.errors." + displayedError)}
-        </p>
-      )}
-    </div>
+    </SettingsField>
   );
 };
 
@@ -252,10 +235,15 @@ export const CloudSttProviderSettings: React.FC = () => {
   const { refreshSettings, settings } = useSettings();
 
   return (
-    <SettingsGroup
-      title={t("settings.models.cloud.title")}
-      description={t("settings.models.cloud.description")}
-    >
+    <SettingsSection label={t("settings.models.cloud.title")}>
+      {/* Where the keys live is the one thing a reader cannot infer from a
+       * password field, and it is true of every provider — so it is said once,
+       * for the section, rather than once per provider. */}
+      <div className="px-4 py-3">
+        <Notice live={false}>
+          {t("settings.models.cloud.providerDescription")}
+        </Notice>
+      </div>
       {CLOUD_STT_PROVIDERS.map((provider) => (
         <CloudSttProviderCard
           key={provider.provider}
@@ -267,6 +255,6 @@ export const CloudSttProviderSettings: React.FC = () => {
           onProviderChanged={refreshSettings}
         />
       ))}
-    </SettingsGroup>
+    </SettingsSection>
   );
 };

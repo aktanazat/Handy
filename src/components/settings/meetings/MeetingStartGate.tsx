@@ -6,12 +6,19 @@ import type {
   MeetingReviewSnapshot,
   SourceKind,
 } from "@/bindings";
-import { Button, Section, StatusText } from "../../ui";
+import { cn } from "@/lib/cn";
+import {
+  PageTitle,
+  SettingsPage,
+  SettingsRow,
+  SettingsSection,
+} from "@/components/settings/rows";
+import { Button } from "@/components/vg/button";
+import { Checkbox } from "@/components/vg/checkbox";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { MeetingPreviewCard } from "./MeetingPreviewCard";
 import { MeetingSourceList, ProcessingStatusText } from "./MeetingStatus";
 import type { MeetingStartOptions } from "./meetingTypes";
-import { sourceAvailabilityKey, sourceKey } from "./meetingUtils";
 
 /* The only screen left between pressing Start and recording, and it appears
  * exactly when pressing Start could not work: the session exists but a source
@@ -19,10 +26,15 @@ import { sourceAvailabilityKey, sourceKey } from "./meetingUtils";
  *
  * It is not a wizard step. It names the one thing that is wrong and offers the
  * two honest ways out — fix it and retry, or record without that source and
- * carry the partial mark. The assurance sentence sits directly above the
- * action row here too, because this is one of the three paths that send the
- * consent flags and those flags may only claim what the person could read
- * before pressing. */
+ * carry the partial mark. The wrong source is named once, in the capture-status
+ * rows: those rows already print every source's availability in its own tone,
+ * so the card that used to list the blocked ones above them was the same fact
+ * twice on one screen.
+ *
+ * The assurance sentence sits directly above the action row here too, on the
+ * page rather than behind an affordance, because this is one of the three
+ * paths that send the consent flags and those flags may only claim what the
+ * person could read before pressing. */
 
 interface MeetingStartGateProps {
   snapshot: MeetingReviewSnapshot;
@@ -73,11 +85,11 @@ export const MeetingStartGate: React.FC<MeetingStartGateProps> = ({
   const refresh = (
     <Button
       type="button"
-      variant="ghost"
+      variant="outline"
       onClick={onRefresh}
       disabled={refreshing || starting}
     >
-      <RefreshCcw size={14} aria-hidden="true" />
+      <RefreshCcw aria-hidden="true" />
       {refreshing
         ? t("meetings.preflight.refreshing", "Checking…")
         : t("meetings.actions.refresh")}
@@ -85,37 +97,28 @@ export const MeetingStartGate: React.FC<MeetingStartGateProps> = ({
   );
 
   return (
-    <div className="settings-page">
-      <header className="settings-page-header flex flex-col gap-1">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="-ms-2.5 self-start"
-          onClick={onCancel}
-          disabled={starting}
-        >
-          <ArrowLeft size={14} aria-hidden="true" />
-          {t("meetings.actions.back")}
-        </Button>
-        <h1 className="settings-page-title">
-          {blocked
-            ? t("meetings.gate.title", "Recording did not start")
-            : t("meetings.gate.readyTitle", "Ready to record")}
-        </h1>
-        <p className="settings-page-description">
-          {blocked
-            ? t(
-                "meetings.gate.description",
-                "Sona created the meeting, but a source it was told to record is unavailable.",
-              )
-            : t(
-                "meetings.gate.readyDescription",
-                "Nothing is blocking capture for this meeting.",
-              )}
-        </p>
-      </header>
-
+    <SettingsPage
+      header={
+        <div className="flex flex-col gap-3">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="-ms-2.5 self-start"
+            onClick={onCancel}
+            disabled={starting}
+          >
+            <ArrowLeft aria-hidden="true" />
+            {t("meetings.actions.back")}
+          </Button>
+          <PageTitle>
+            {blocked
+              ? t("meetings.gate.title", "Recording did not start")
+              : t("meetings.gate.readyTitle", "Ready to record")}
+          </PageTitle>
+        </div>
+      }
+    >
       {/* What is about to be recorded, when the operator got here from a
        * meeting Sona had already identified. The card carries no Start of its
        * own: this screen's action row below is the consent act, and a second
@@ -123,7 +126,7 @@ export const MeetingStartGate: React.FC<MeetingStartGateProps> = ({
        * as the acknowledgment. Sources read as settled text here because the
        * session already exists with them. */}
       {options.preview === null ? null : (
-        <ul className="meeting-previews">
+        <ul className="flex flex-col gap-2">
           <MeetingPreviewCard
             facts={options.preview}
             defaultExpanded
@@ -133,96 +136,60 @@ export const MeetingStartGate: React.FC<MeetingStartGateProps> = ({
         </ul>
       )}
 
-      {blocked ? (
-        <div className="meeting-card">
-          <ul
-            className="meeting-rows"
-            aria-label={t("meetings.setup.captureSources")}
+      <SettingsSection label={t("meetings.review.status")}>
+        <MeetingSourceList
+          sources={snapshot.session.sources}
+          label={t("meetings.review.status")}
+        />
+        <SettingsRow label={t("meetings.preflight.storage")}>
+          <span
+            className={cn(
+              "text-[12px] leading-4",
+              storageAvailable ? "text-gray-800" : "text-red-900",
+            )}
           >
-            {blockedSources.map((source) => (
-              <li key={source.source_kind} className="meeting-row">
-                <p className="meeting-row-label">
-                  {t(sourceKey(source.source_kind))}
-                </p>
-                <StatusText tone="warning" className="meeting-row-value">
-                  {t(sourceAvailabilityKey(source.availability))}
-                </StatusText>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+            {storageAvailable
+              ? t("meetings.preflight.storageAvailable")
+              : t("meetings.preflight.storageUnavailable")}
+          </span>
+        </SettingsRow>
+        <SettingsRow label={t("meetings.preflight.localModel")}>
+          <ProcessingStatusText status={snapshot.session.processing_status} />
+        </SettingsRow>
+      </SettingsSection>
 
-      <Section
-        title={t("meetings.review.status")}
-        description={t("meetings.setup.captureSourcesDescription")}
-      >
-        <div className="meeting-card">
-          <MeetingSourceList
-            sources={snapshot.session.sources}
-            label={t("meetings.review.status")}
-          />
-          <ul className="meeting-rows mt-3">
-            <li className="meeting-row">
-              <p className="meeting-row-label">
-                {t("meetings.preflight.storage")}
-              </p>
-              <StatusText
-                tone={storageAvailable ? "muted" : "danger"}
-                className="meeting-row-value"
-              >
-                {storageAvailable
-                  ? t("meetings.preflight.storageAvailable")
-                  : t("meetings.preflight.storageUnavailable")}
-              </StatusText>
-            </li>
-            <li className="meeting-row">
-              <p className="meeting-row-label">
-                {t("meetings.preflight.localModel")}
-              </p>
-              <ProcessingStatusText
-                status={snapshot.session.processing_status}
-                className="meeting-row-value"
-              />
-            </li>
-            <li className="meeting-row">
-              <p className="meeting-row-label">
-                {t("meetings.setup.processing")}
-              </p>
-              <StatusText className="meeting-row-value">
-                {t("meetings.setup.localOnly")}
-              </StatusText>
-            </li>
-          </ul>
-        </div>
-      </Section>
+      <div className="flex flex-col gap-4">
+        <p className="text-[13px] leading-5 text-gray-800">
+          {t(
+            "meetings.start.assurance",
+            "Records your Mac's audio locally. Nothing joins the call.",
+          )}
+        </p>
 
-      <p className="meeting-start-assurance">
-        {t(
-          "meetings.start.assurance",
-          "Records your Mac's audio locally. Nothing joins the call.",
-        )}
-      </p>
-
-      {blocked ? (
-        <div className="flex flex-col gap-3">
-          <label className="flex items-start gap-2.5 text-[13px] leading-[19px] text-text-primary">
-            <input
-              type="checkbox"
-              className="meeting-check"
+        {blocked ? (
+          <div className="flex items-start gap-2.5">
+            <Checkbox
+              id="gate-accept-partial"
+              className="mt-0.5"
               checked={partialAccepted}
               disabled={starting}
-              onChange={() => setPartialAccepted(!partialAccepted)}
+              onCheckedChange={() => setPartialAccepted(!partialAccepted)}
             />
-            <span className="text-pretty">
+            <label
+              htmlFor="gate-accept-partial"
+              className="text-pretty text-[13px] leading-5 text-gray-900"
+            >
               {t(
                 "meetings.gate.recordAnywayHint",
                 "The record is marked partial and the missing source stays named in it.",
               )}
-            </span>
-          </label>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {refresh}
+            </label>
+          </div>
+        ) : null}
+
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {refresh}
+          {blocked ? (
             <Button
               type="button"
               onClick={() => start(true)}
@@ -232,24 +199,20 @@ export const MeetingStartGate: React.FC<MeetingStartGateProps> = ({
                 ? t("meetings.start.starting", "Starting…")
                 : t("meetings.gate.recordAnyway", "Record without it")}
             </Button>
-          </div>
+          ) : (
+            <Button
+              type="button"
+              onClick={() => start(false)}
+              disabled={starting}
+            >
+              {starting
+                ? t("meetings.start.starting", "Starting…")
+                : t("meetings.start.action", "Start recording")}
+            </Button>
+          )}
         </div>
-      ) : (
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {refresh}
-          <Button
-            type="button"
-            className="meeting-start-button"
-            onClick={() => start(false)}
-            disabled={starting}
-          >
-            {starting
-              ? t("meetings.start.starting", "Starting…")
-              : t("meetings.start.action", "Start recording")}
-          </Button>
-        </div>
-      )}
-    </div>
+      </div>
+    </SettingsPage>
   );
 };
 

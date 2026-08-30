@@ -1,7 +1,13 @@
-import { type FC, useEffect, useState } from "react";
+import { type FC, useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SettingContainer } from "../ui/SettingContainer";
-import { Dropdown, type DropdownOption } from "../ui/Dropdown";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/vg/select";
+import { FIELD_MAX_W, SettingsRow } from "./rows";
 import { useSettings } from "../../hooks/useSettings";
 import { commands } from "@/bindings";
 import type {
@@ -16,6 +22,11 @@ const ORT_LABELS = {
   directml: "DirectML",
   rocm: "ROCm",
 } satisfies Record<OrtAcceleratorSetting, string>;
+
+type AcceleratorOption<T extends string = string> = {
+  value: T;
+  label: string;
+};
 
 /* `AvailableAccelerators.ort` is a `Vec<String>` the backend builds by
  * stringifying transcribe_rs's own accelerator enum, so nothing guarantees a
@@ -34,11 +45,6 @@ function decodeOrtAccelerator(value: string): OrtAcceleratorSetting | null {
     default:
       return null;
   }
-}
-
-interface AccelerationSelectorProps {
-  descriptionMode?: "tooltip" | "inline";
-  grouped?: boolean;
 }
 
 /**
@@ -69,24 +75,23 @@ function decodeTranscribeValue(value: string): TranscribeSelection {
   return { accelerator: "auto", gpuDevice: null };
 }
 
-export const AccelerationSelector: FC<AccelerationSelectorProps> = ({
-  descriptionMode = "tooltip",
-  grouped = false,
-}) => {
+export const AccelerationSelector: FC = () => {
   const { t } = useTranslation();
   const { getSetting, updateSetting, isUpdating } = useSettings();
+  const transcribeId = useId();
+  const ortId = useId();
 
-  const [transcribeOptions, setTranscribeOptions] = useState<DropdownOption[]>(
-    [],
-  );
+  const [transcribeOptions, setTranscribeOptions] = useState<
+    AcceleratorOption[]
+  >([]);
   const [ortOptions, setOrtOptions] = useState<
-    DropdownOption<OrtAcceleratorSetting>[]
+    AcceleratorOption<OrtAcceleratorSetting>[]
   >([]);
 
   useEffect(() => {
     commands.getAvailableAccelerators().then((available) => {
       // Build combined transcribe.cpp options: Auto, [GPU devices...], CPU
-      const opts: DropdownOption[] = [];
+      const opts: AcceleratorOption[] = [];
       if (available.transcribe.includes("auto")) {
         opts.push({
           value: "auto",
@@ -139,7 +144,7 @@ export const AccelerationSelector: FC<AccelerationSelectorProps> = ({
     (option) => option.value === currentTranscribe,
   )
     ? currentTranscribe
-    : (transcribeOptions[0]?.value ?? null);
+    : (transcribeOptions[0]?.value ?? "");
   const currentOrt = getSetting("ort_accelerator") ?? "auto";
 
   const handleTranscribeChange = async (value: string) => {
@@ -149,40 +154,80 @@ export const AccelerationSelector: FC<AccelerationSelectorProps> = ({
     await updateSetting("transcribe_accelerator", accelerator);
   };
 
+  const ortLabel = t("settings.advanced.acceleration.ort.title");
+
+  /* No hint on the transcribe row: the options are the device names themselves
+   * — "Apple M4 Pro (16.0 GB)", "CPU" — which is the sentence the description
+   * used to spend on saying the row accelerates transcribe.cpp models. */
   return (
     <>
-      <SettingContainer
-        title={t("settings.advanced.acceleration.transcribe.title")}
-        description={t("settings.advanced.acceleration.transcribe.description")}
-        descriptionMode={descriptionMode}
-        grouped={grouped}
-        layout="horizontal"
+      <SettingsRow
+        label={t("settings.advanced.acceleration.transcribe.title")}
+        controlId={transcribeId}
       >
-        <Dropdown
-          options={transcribeOptions}
-          selectedValue={displayedTranscribe}
-          onSelect={handleTranscribeChange}
+        <Select
+          value={displayedTranscribe}
+          onValueChange={(value) => void handleTranscribeChange(value)}
           disabled={
+            transcribeOptions.length === 0 ||
             isUpdating("transcribe_accelerator") ||
             isUpdating("transcribe_gpu_device")
           }
-        />
-      </SettingContainer>
-      {ortOptions.length > 2 && (
-        <SettingContainer
-          title={t("settings.advanced.acceleration.ort.title")}
-          description={t("settings.advanced.acceleration.ort.description")}
-          descriptionMode={descriptionMode}
-          grouped={grouped}
-          layout="horizontal"
         >
-          <Dropdown<OrtAcceleratorSetting>
-            options={ortOptions}
-            selectedValue={currentOrt}
-            onSelect={(value) => updateSetting("ort_accelerator", value)}
+          <SelectTrigger
+            id={transcribeId}
+            size="sm"
+            className={`w-auto ${FIELD_MAX_W}`}
+          >
+            <SelectValue placeholder={t("common.loading")} />
+          </SelectTrigger>
+          <SelectContent>
+            {transcribeOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </SettingsRow>
+
+      {ortOptions.length > 2 && (
+        <SettingsRow
+          label={ortLabel}
+          /* Kept: DirectML is experimental and can fail to transcribe at all.
+           * That is a warning, not a restatement of the row. */
+          hint={t("settings.advanced.acceleration.ort.description")}
+          hintLabel={ortLabel}
+          controlId={ortId}
+        >
+          <Select
+            value={currentOrt}
+            onValueChange={(value) =>
+              /* SAFETY: every item came through `decodeOrtAccelerator`, so it
+                 is an `OrtAcceleratorSetting`. */
+              void updateSetting(
+                "ort_accelerator",
+                value as OrtAcceleratorSetting,
+              )
+            }
             disabled={isUpdating("ort_accelerator")}
-          />
-        </SettingContainer>
+          >
+            <SelectTrigger
+              id={ortId}
+              size="sm"
+              className={`w-auto ${FIELD_MAX_W}`}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ortOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </SettingsRow>
       )}
     </>
   );

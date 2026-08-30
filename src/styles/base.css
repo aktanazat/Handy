@@ -58,21 +58,27 @@ body {
  *
  * The selector list is wrapped in :where() so it contributes no specificity:
  * a component can then pull the ring tighter with a plain class rule instead
- * of having to out-specify this one. */
-:where(
-  a,
-  button,
-  input,
-  select,
-  textarea,
-  summary,
-  [role="button"],
-  [role="option"],
-  [role="tab"],
-  [tabindex]
-):focus-visible {
-  outline: var(--focus-outline);
-  outline-offset: var(--focus-offset);
+ * of having to out-specify this one. It also sits in the `base` layer, because
+ * layer order beats specificity outright: unlayered, this rule would defeat
+ * every Tailwind `focus-visible:outline-none` in the app and paint a second
+ * indicator next to the component's own ring. The layer name is the one
+ * app/globals.css's Tailwind entry declares. */
+@layer base {
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [role="button"],
+    [role="option"],
+    [role="tab"],
+    [tabindex]
+  ):focus-visible {
+    outline: var(--focus-outline);
+    outline-offset: var(--focus-offset);
+  }
 }
 
 :where(button, input, select, textarea):disabled {

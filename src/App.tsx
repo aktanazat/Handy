@@ -2,7 +2,6 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
-import { open } from "@tauri-apps/plugin-dialog";
 import { platform } from "@tauri-apps/plugin-os";
 import {
   checkAccessibilityPermission,
@@ -18,19 +17,24 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Sidebar } from "./components/Sidebar";
 import { CommandPalette } from "./components/CommandPalette";
 import { DetectionListeners } from "./components/settings/meetings/DetectionListeners";
+import { PAGE_COLUMN } from "./components/settings/rows";
 import { RouteSkeleton, Toaster } from "./components/ui";
 import {
   commandActionIcons,
+  isCommandPaletteChord,
   type CommandPaletteAction,
 } from "./components/commandPaletteActions";
 import {
+  buildNavigationActions,
   SECTIONS_CONFIG,
   type SidebarSection,
 } from "./components/sidebarSections";
 import { WhatsNewGate } from "./components/whats-new";
+import { useAudioImport } from "./hooks/useAudioImport";
 import { useSettings } from "./hooks/useSettings";
 import { useSettingsStore } from "./stores/settingsStore";
 import { commands, events, type MeetingNavigationPayload } from "@/bindings";
+import { cn } from "@/lib/cn";
 import {
   getLanguageDirection,
   initializeRTL,
@@ -40,18 +44,6 @@ import { runViewTransition } from "@/lib/utils/viewTransition";
 import { MotionProvider } from "@/lib/motion/provider";
 
 type OnboardingStep = "accessibility" | "model" | "done";
-
-const MEDIA_IMPORT_EXTENSIONS = [
-  "wav",
-  "mp3",
-  "m4a",
-  "aac",
-  "flac",
-  "ogg",
-  "mov",
-  "mp4",
-  "m4v",
-];
 
 interface SettingsContentProps {
   section: SidebarSection;
@@ -129,7 +121,7 @@ interface AppContentProps {
   meetingStartRequest: number;
   commandOpen: boolean;
   commandActions: CommandPaletteAction[];
-  onCommandClose: () => void;
+  onCommandOpenChange: (open: boolean) => void;
   onCommandOpen: () => void;
 }
 
@@ -146,7 +138,7 @@ const AppContent = ({
   meetingStartRequest,
   commandOpen,
   commandActions,
-  onCommandClose,
+  onCommandOpenChange,
   onCommandOpen,
 }: AppContentProps) => {
   if (onboardingStep === null) return null;
@@ -160,7 +152,11 @@ const AppContent = ({
   return (
     <div
       dir={direction}
-      className="app-shell flex h-screen select-none cursor-default"
+      /* `app-shell` carries no styling of its own any more. It survives as the
+       * hook the one material override in styles/shell.css keys off: a Glass
+       * window has to let the native vibrancy through, and that decision lives
+       * on a root attribute Rust writes, which no utility can read. */
+      className="app-shell flex h-screen cursor-default select-none bg-background-200"
     >
       <ErrorBoundary context="What's New">
         <WhatsNewGate />
@@ -170,31 +166,45 @@ const AppContent = ({
         onSectionChange={onSectionChange}
         onOpenCommand={onCommandOpen}
       />
-      <main className="settings-main flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="settings-scroll flex-1 overflow-y-auto">
-          <div className="settings-content flex w-full flex-col items-stretch">
+      {/* `settings-main` is a hook as well: primitives.css still styles bare
+       * inputs and selects through it for the surfaces that have not moved to
+       * the component kit yet. */}
+      <main className="settings-main flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="flex-1 overflow-x-hidden overflow-y-auto">
+          {/* Every page owns its own column now, so the scroll region is full
+           * width and unpadded. These two are shell banners rather than
+           * pages, so they borrow the pages' column from the primitive that
+           * owns it — and both render nothing on the ordinary path, which is
+           * what collapses the wrapper. */}
+          <div className={cn(PAGE_COLUMN, "pt-8 empty:hidden")}>
             <AccessibilityPermissions />
             <SecureInputWarning />
-            {/* Keyed on the section so switching routes shows the skeleton
-             * again rather than holding the previous page while the next
-             * chunk loads, and so a crashed section resets when you leave. */}
-            <ErrorBoundary key={currentSection} context={currentSection}>
-              <Suspense fallback={<RouteSkeleton label={loadingLabel} />}>
-                {renderSettingsContent({
-                  section: currentSection,
-                  meetingInvalidation,
-                  meetingNavigationRequest,
-                  meetingStartRequest,
-                  onSectionChange,
-                })}
-              </Suspense>
-            </ErrorBoundary>
           </div>
+          {/* Keyed on the section so switching routes shows the skeleton
+           * again rather than holding the previous page while the next
+           * chunk loads, and so a crashed section resets when you leave. */}
+          <ErrorBoundary key={currentSection} context={currentSection}>
+            <Suspense
+              fallback={
+                <div className={cn(PAGE_COLUMN, "py-12")}>
+                  <RouteSkeleton label={loadingLabel} />
+                </div>
+              }
+            >
+              {renderSettingsContent({
+                section: currentSection,
+                meetingInvalidation,
+                meetingNavigationRequest,
+                meetingStartRequest,
+                onSectionChange,
+              })}
+            </Suspense>
+          </ErrorBoundary>
         </div>
       </main>
       <CommandPalette
         open={commandOpen}
-        onClose={onCommandClose}
+        onOpenChange={onCommandOpenChange}
         actions={commandActions}
       />
     </div>
@@ -220,48 +230,11 @@ const buildCommandActions = ({
   onOpenRecordings,
   onOpenAgent,
 }: CommandActionDeps): CommandPaletteAction[] => [
-  {
-    id: "nav-overview",
-    group: "navigation",
-    label: t("sidebar.overview"),
-    icon: commandActionIcons.folder,
-    run: () => onNavigate("overview"),
-  },
-  {
-    id: "nav-meetings",
-    group: "navigation",
-    label: t("sidebar.meetings"),
-    icon: commandActionIcons.video,
-    run: () => onNavigate("meetings"),
-  },
-  {
-    id: "nav-history",
-    group: "navigation",
-    label: t("sidebar.history"),
-    icon: commandActionIcons.file,
-    run: () => onNavigate("history"),
-  },
-  {
-    id: "nav-modes",
-    group: "navigation",
-    label: t("sidebar.modes"),
-    icon: commandActionIcons.mic,
-    run: () => onNavigate("modes"),
-  },
-  {
-    id: "nav-models",
-    group: "navigation",
-    label: t("sidebar.models"),
-    icon: commandActionIcons.mic,
-    run: () => onNavigate("models"),
-  },
-  {
-    id: "nav-settings",
-    group: "navigation",
-    label: t("sidebar.settings"),
-    icon: commandActionIcons.folder,
-    run: () => onNavigate("settings"),
-  },
+  /* The destinations come from the section registry, in the one order it lists
+   * them: the rail takes the same list, so neither surface can rename or
+   * reorder a destination on its own. Models is last because the registry lists
+   * it last, and has no rail row because the registry says `inRail: false`. */
+  ...buildNavigationActions(t, onNavigate),
   {
     id: "action-meeting",
     group: "actions",
@@ -519,15 +492,14 @@ function App() {
     }
   }, [onboardingStep, refreshAudioDevices, refreshOutputDevices]);
 
-  // Global command palette trigger: Cmd+K / Ctrl+K
+  /* The palette's chord, and the reason `isCommandPaletteChord` is a named
+   * predicate: it drops auto-repeats. The chord toggles, and a held key
+   * repeats keydown at the OS repeat rate, so this listener used to flip the
+   * palette open and shut dozens of times a second for as long as the chord
+   * was held. */
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (
-        event.key.toLowerCase() !== "k" ||
-        !(event.metaKey || event.ctrlKey)
-      ) {
-        return;
-      }
+      if (!isCommandPaletteChord(event)) return;
       event.preventDefault();
       setCommandOpen((open) => !open);
     };
@@ -630,27 +602,7 @@ function App() {
     setOnboardingStep("done");
   };
 
-  const startAudioImport = useCallback(async () => {
-    try {
-      const selectedPath = await open({
-        directory: false,
-        multiple: false,
-        filters: [
-          {
-            name: t("settings.history.audioImport.fileFilter"),
-            extensions: MEDIA_IMPORT_EXTENSIONS,
-          },
-        ],
-      });
-      if (selectedPath === null || Array.isArray(selectedPath)) return;
-      const result = await commands.importAudioFile(selectedPath);
-      if (result.status === "error") {
-        toast.error(t("settings.history.audioImport.errors.start"));
-      }
-    } catch {
-      toast.error(t("settings.history.audioImport.errors.start"));
-    }
-  }, [t]);
+  const { start: startAudioImport } = useAudioImport();
 
   const openRecordingsFolder = useCallback(async () => {
     try {
@@ -676,14 +628,20 @@ function App() {
 
   const agentEnabled = settings?.agent_panel_enabled === true;
 
+  const openCommandPalette = useCallback(() => setCommandOpen(true), []);
+
+  /* Route changes go through `navigateToSection` here for the same reason the
+   * sidebar rows do — the palette and the rail reach the same destinations, so
+   * they cannot swap the view two different ways. */
   const commandActions = buildCommandActions({
     t,
     agentEnabled,
-    onNavigate: (section) => setCurrentSection(section),
-    onNewMeeting: () => {
-      setCurrentSection("meetings");
-      setMeetingStartRequest((current) => current + 1);
-    },
+    onNavigate: navigateToSection,
+    onNewMeeting: () =>
+      runViewTransition(() => {
+        setCurrentSection("meetings");
+        setMeetingStartRequest((current) => current + 1);
+      }),
     onImportAudio: () => void startAudioImport(),
     onOpenRecordings: () => void openRecordingsFolder(),
     onOpenAgent: () => void openAgentPanel(),
@@ -707,8 +665,8 @@ function App() {
         meetingStartRequest={meetingStartRequest}
         commandOpen={commandOpen}
         commandActions={commandActions}
-        onCommandClose={() => setCommandOpen(false)}
-        onCommandOpen={() => setCommandOpen(true)}
+        onCommandOpenChange={setCommandOpen}
+        onCommandOpen={openCommandPalette}
       />
     </MotionProvider>
   );

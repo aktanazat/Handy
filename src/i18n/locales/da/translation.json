@@ -30,16 +30,14 @@
     "models": "Modeller",
     "advanced": "Avanceret",
     "postProcessing": "Efterbehandling",
-    "history": "Historik",
     "debug": "Fejlfinding",
     "about": "Om",
-    "modes": "Modes",
+    "modes": "Tilstande",
     "privacy": "Privacy",
     "agents": "Agents",
-    "meetings": "Meetings",
-    "navigation": "Main navigation",
-    "overview": "Overview",
-    "settings": "Settings"
+    "meetings": "Møder",
+    "navigation": "Hovednavigation",
+    "settings": "Indstillinger"
   },
   "onboarding": {
     "subtitle": "Modellerne kører på denne Mac og afvejer nøjagtighed mod hastighed",
@@ -155,6 +153,7 @@
     "active": "Aktiv",
     "switching": "Skifter…",
     "noModelsAvailable": "Ingen modeller tilgængelige",
+    "searchPlaceholder": "Søg i modeller",
     "verifying": "Verificerer {{modelName}}…",
     "verifyingGeneric": "Verificerer…",
     "extracting": "Udpakker {{modelName}}…",
@@ -162,7 +161,7 @@
     "extractingGeneric": "Udpakker…",
     "downloading": "Downloader {{percentage}}%",
     "downloadingMultiple": "Downloader {{count}} modeller…",
-    "downloadingGeneric": "Downloading…",
+    "downloadingGeneric": "Downloader…",
     "modelReady": "Model klar",
     "loading": "Indlæser {{modelName}}…",
     "loadingGeneric": "Indlæser…",
@@ -192,27 +191,22 @@
       "title": "Generelt",
       "shortcut": {
         "title": "Genveje",
-        "description": "Tastaturgenveje til optagelse og omskrivning.",
         "loading": "Indlæser genveje…",
         "none": "Ingen genveje konfigureret",
         "notFound": "Genvej ikke fundet",
         "pressKeys": "Tryk på dine taster…",
         "bindings": {
           "transcribe": {
-            "name": "Transskriptionsgenvej",
-            "description": "Tastaturgenvejen til at optage og transskribere din stemme."
+            "name": "Transskriptionsgenvej"
           },
           "cancel": {
-            "name": "Annulleringsgenvej",
-            "description": "Tastaturgenvejen til at annullere den aktuelle optagelse."
+            "name": "Annulleringsgenvej"
           },
           "transcribe_with_post_process": {
-            "name": "Genvej til efterbehandling",
-            "description": "En valgfri genvej, der altid anvender AI-oprydning på transskriptionen."
+            "name": "Genvej til efterbehandling"
           },
           "command": {
-            "name": "Kommandogenvej",
-            "description": "Tastaturgenvejen, der omskriver den markerede tekst ud fra en talt instruktion."
+            "name": "Kommandogenvej"
           }
         },
         "errors": {
@@ -222,22 +216,18 @@
         },
         "holdHint": "Tryk for at skifte, hold for at tale. Virker med enhver genvej.",
         "recordAction": "Optag en ny genvej til {{binding}}",
-        "recordHint": "Klik for at optage",
         "unset": "Ikke angivet"
       },
       "language": {
         "title": "Sprog",
-        "description": "Sproget der bruges til talegenkendelse. Auto tyder det automatisk; angivelse af et sprog kan forbedre nøjagtigheden.",
         "searchPlaceholder": "Søg efter sprog",
         "noResults": "Ingen sprog fundet",
         "auto": "Automatisk"
       },
       "pushToTalk": {
-        "label": "Tryk-for-at-tale",
-        "description": "Hold nede for at optage, slip for at stoppe"
+        "label": "Tryk-for-at-tale"
       },
       "appearance": {
-        "description": "Grænsefladens sprog og farveskema. Begge gælder med det samme.",
         "title": "Udseende",
         "material": {
           "title": "Materiale",
@@ -248,7 +238,6 @@
           }
         }
       },
-      "description": "De taster du trykker på, den mikrofon Sona lytter til, og hvordan appen ser ud.",
       "commandMode": {
         "label": "Stemmekommandotilstand",
         "description": "Hold kommandogenvejen nede og sig, hvad der skal ændres i den tekst, du har markeret."
@@ -256,15 +245,10 @@
     },
     "models": {
       "title": "Transskriptionsmodeller",
-      "description": "Modellen der omdanner tale til tekst. Modeller afvejer nøjagtighed mod hastighed.",
-      "searchPlaceholder": "Søg efter modeller ved navn",
-      "yourModels": "Downloadede modeller",
-      "availableModels": "Tilgængelig til download",
       "deleteConfirm": "Slet {{modelName}}? Hvis du vil bruge den igen, skal den downloades igen.",
       "deleteActiveConfirm": "{{modelName}} er den aktive model. Sletning af den stopper transskription, indtil du vælger en anden.",
       "deleteTitle": "Slet model",
       "filters": {
-        "allLanguages": "Alle sprog",
         "streaming": "Vis kun modeller med live transskription",
         "translation": "Vis kun modeller, der oversætter til engelsk",
         "allFamilies": "Alle familier",
@@ -279,48 +263,45 @@
       },
       "noModelsMatch": "Ingen modeller matcher dette filter.",
       "cloud": {
-        "title": "Cloud transcription",
-        "description": "Save a provider key to make its cloud engine available in a mode.",
-        "providerDescription": "Credentials stay in your operating system's native secure store.",
+        "title": "Cloud-transskription",
+        "providerDescription": "Loginoplysninger forbliver i dit operativsystems sikre lager.",
         "providers": {
           "deepgram": "Deepgram Nova-3",
           "elevenLabs": "ElevenLabs Scribe v2"
         },
         "apiKey": {
-          "label": "API key",
-          "description": "A saved key is write-only and never displayed here.",
-          "placeholder": "Paste API key"
+          "placeholder": "Indsæt API-nøgle"
         },
         "actions": {
-          "save": "Save key",
-          "saving": "Saving…",
-          "remove": "Remove key",
-          "removing": "Removing…",
-          "verify": "Verify",
-          "verifying": "Verifying…"
+          "save": "Gem nøgle",
+          "saving": "Gemmer…",
+          "remove": "Fjern nøgle",
+          "removing": "Fjerner…",
+          "verify": "Verificér",
+          "verifying": "Verificerer…"
         },
         "status": {
-          "checking": "Checking native key store…",
-          "notSaved": "No API key saved.",
-          "saved": "API key saved. It has not been verified.",
-          "verified": "API key verified.",
-          "verifyRequiresConsent": "Review the transfer disclosure in a mode before verifying this key."
+          "checking": "Kontrollerer systemets nøglering…",
+          "notSaved": "Ingen API-nøgle gemt.",
+          "saved": "API-nøglen er gemt. Den er ikke blevet verificeret.",
+          "verified": "API-nøglen er verificeret.",
+          "verifyRequiresConsent": "Gennemgå overførselsoplysningerne i en tilstand, før du verificerer denne nøgle."
         },
         "errors": {
-          "not_found": "No API key is saved for this provider.",
-          "unavailable": "The native secure store is unavailable.",
-          "locked": "The native secure store is locked.",
-          "corrupt": "The saved credential cannot be read safely.",
-          "invalid": "The credential was not accepted by the secure store.",
-          "busy": "The secure store is busy. Try again.",
-          "backend": "The credential operation could not be completed.",
-          "not_configured": "Save an API key before verifying it.",
-          "consent_required": "Accept the provider transfer disclosure before verifying.",
-          "authentication": "The provider rejected this API key.",
-          "quota": "The provider rejected verification because the account is over quota.",
-          "network": "The provider could not be reached for verification.",
-          "protocol": "The provider returned an unexpected verification response.",
-          "unknown_provider": "This cloud provider is not available in this build."
+          "not_found": "Der er ikke gemt nogen API-nøgle for denne udbyder.",
+          "unavailable": "Systemets sikre lager er utilgængeligt.",
+          "locked": "Systemets sikre lager er låst.",
+          "corrupt": "De gemte loginoplysninger kan ikke læses sikkert.",
+          "invalid": "Loginoplysningerne blev ikke godtaget af det sikre lager.",
+          "busy": "Det sikre lager er optaget. Prøv igen.",
+          "backend": "Handlingen med loginoplysningerne kunne ikke fuldføres.",
+          "not_configured": "Gem en API-nøgle, før du verificerer den.",
+          "consent_required": "Accepter udbyderens overførselsoplysninger, før du verificerer.",
+          "authentication": "Udbyderen afviste denne API-nøgle.",
+          "quota": "Udbyderen afviste verificeringen, fordi kontoen har overskredet sin kvote.",
+          "network": "Udbyderen kunne ikke kontaktes til verificering.",
+          "protocol": "Udbyderen returnerede et uventet verificeringssvar.",
+          "unknown_provider": "Denne cloud-udbyder er ikke tilgængelig i dette build."
         }
       },
       "actions": {
@@ -328,6 +309,7 @@
         "activateNamed": "Brug {{modelName}}",
         "download": "Hent",
         "downloadNamed": "Hent {{modelName}}",
+        "moreFor": "Flere handlinger til {{modelName}}",
         "retryNamed": "Prøv at hente {{modelName}} igen"
       },
       "emptyCatalog": "Sona kunne ikke læse sit modelkatalog. En genscanning finder modeller, der allerede ligger i modelmappen eller Hugging Face-cachen.",
@@ -339,52 +321,37 @@
         "other": "Andre modeller"
       },
       "familyCount": "{{total}} modeller",
-      "noModelsMatchHint": "Intet i kataloget matcher alle filtre på én gang.",
       "searchByAnything": "Søg efter navn, sprog eller funktion",
       "state": {
         "activeInMemory": "Aktiv, i hukommelsen",
         "downloaded": "Hentet",
         "notDownloaded": "Ikke hentet"
-      },
-      "summary": {
-        "noActive": "Ingen model valgt",
-        "activeLabel": "Aktiv model",
-        "onDiskLabel": "På disken"
       }
     },
     "sound": {
       "title": "Lyd",
       "microphone": {
-        "title": "Mikrofon",
-        "description": "Mikrofonen som Sona optager fra.",
-        "placeholder": "Vælg mikrofon",
-        "loading": "Indlæser…"
+        "title": "Mikrofon"
       },
       "channel": {
         "title": "Inputkanal",
-        "description": "Hvilken inputkanal der optages fra, når en grænseflade har flere end én.",
         "average": "Gennemsnit af alle kanaler",
         "channel": "Kanal {{n}}"
       },
       "audioFeedback": {
-        "label": "Lydfeedback",
-        "description": "Afspil en lyd, når optagelse starter og stopper."
+        "label": "Lydfeedback"
       },
       "outputDevice": {
         "title": "Outputenhed",
-        "description": "Hvor feedbacklyde afspilles.",
-        "placeholder": "Vælg outputenhed",
-        "loading": "Indlæser…"
+        "description": "Hvor feedbacklyde afspilles."
       },
       "volume": {
-        "title": "Lydstyrke",
-        "description": "Lydstyrken for feedbacklydene."
+        "title": "Lydstyrke"
       }
     },
     "advanced": {
       "englishSpelling": {
         "label": "Engelsk stavning",
-        "description": "Behold talegenkenderens stavning, eller konvertér almindelige amerikanske former til britisk stavning.",
         "values": {
           "as_spoken": "Som sagt",
           "british": "Britisk"
@@ -398,8 +365,7 @@
         "experimental": "Eksperimentel"
       },
       "experimentalToggle": {
-        "label": "Eksperimentelle funktioner",
-        "description": "Vis indstillinger, der stadig er under udvikling."
+        "label": "Eksperimentelle funktioner"
       },
       "lazyStreamClose": {
         "label": "Hold mikrofon åben mellem transskriptioner",
@@ -407,8 +373,7 @@
       },
       "acceleration": {
         "transcribe": {
-          "title": "transcribe.cpp-acceleration",
-          "description": "Hardwareacceleration til transcribe.cpp-modeller (Whisper-familien). Auto bruger GPU, hvis tilgængelig (Metal på macOS, Vulkan på Windows/Linux)."
+          "title": "transcribe.cpp-acceleration"
         },
         "ort": {
           "title": "ONNX-acceleration",
@@ -423,17 +388,15 @@
         "description": "Vis på meddelelsesområdet uden at åbne vinduet."
       },
       "autostart": {
-        "label": "Start ved opstart",
-        "description": "Start Sona, når du logger ind."
+        "label": "Start ved opstart"
       },
       "showTrayIcon": {
-        "label": "Vis proceslinjeikon",
-        "description": "Vis Sona-ikonet i meddelelsesområdet."
+        "label": "Vis proceslinjeikon"
       },
       "overlay": {
         "style": {
           "title": "Overlay",
-          "description": "Choose the recording overlay: None hides it, Minimal shows a compact pill, Live shows transcription in real time while a streaming local model or cloud mode is active. On Linux 'None' is recommended.",
+          "description": "Vælg optagelsesoverlayet: Ingen skjuler det, Minimal viser en kompakt kapsel, Live viser transskriptionen i realtid, mens en streamende lokal model eller en cloud-tilstand er aktiv. På Linux anbefales 'Ingen'.",
           "options": {
             "none": "Ingen",
             "minimal": "Minimal",
@@ -442,7 +405,6 @@
         },
         "position": {
           "title": "Overlay-placering",
-          "description": "Hvor overlayet vises på skærmen under optagelse og transskription.",
           "options": {
             "bottom": "Bund",
             "top": "Top"
@@ -489,12 +451,10 @@
         }
       },
       "translateToEnglish": {
-        "label": "Oversæt til engelsk",
-        "description": "Oversæt tale fra andre sprog til engelsk under transskription."
+        "label": "Oversæt til engelsk"
       },
       "modelUnload": {
         "title": "Frigør model",
-        "description": "Frigør GPU- og CPU-hukommelse, når modellen har været inaktiv så længe.",
         "options": {
           "never": "Aldrig",
           "immediately": "Med det samme",
@@ -508,7 +468,6 @@
       },
       "customWords": {
         "title": "Ordforråd",
-        "description": "Ret talte udtryk til præcise skrevne former. Whisper bruger skrevne former som prompt; andre modeller bruger deterministisk rettelse.",
         "spoken": "Talt udtryk",
         "written": "Skrevet tekst",
         "spokenPlaceholder": "Hvad der blev sagt",
@@ -542,26 +501,21 @@
           "unsavedWarning": "Du har ugemte ændringer i ordforrådet. Denne import erstatter dem, når den anvendes.",
           "back": "Tilbage",
           "continue": "Fortsæt",
-          "replaceSummary": "Anvendelse erstatter de {{savedCount}} gemte par med de {{importedCount}} par fra denne fil.",
-          "stepConfirm": "Trin 2 af 2: bekræft erstatningen",
-          "stepReview": "Trin 1 af 2: hvad filen indeholder"
+          "replaceSummary": "Anvendelse erstatter de {{savedCount}} gemte par med de {{importedCount}} par fra denne fil."
         },
-        "actions": "Vocabulary actions",
+        "actions": "Handlinger for ordforråd",
         "audioImport": {
           "errors": {
             "start": "Kunne ikke starte lydimporten. Prøv igen."
           },
           "failure": {
-            "history": "Some recordings could not be imported into the vocabulary."
+            "history": "Nogle optagelser kunne ikke importeres til ordforrådet."
           }
         },
         "empty": {
-          "description": "Tilføj et par som open ai og OpenAI, så skriver Sona den præcise form, hver gang den hører frasen.",
-          "title": "Ingen ordforrådsregler endnu"
+          "description": "Tilføj et par som open ai og OpenAI, så skriver Sona den præcise form, hver gang den hører frasen."
         },
-        "sources": "Rettelser, du gemmer fra en transskription i biblioteket, havner på denne liste. Regler for en enkelt tilstand ligger i den tilstands eget ordforråd.",
-        "unsaved": "Ugemte ændringer",
-        "csvLabel": "CSV"
+        "sources": "Rettelser, du gemmer fra en transskription i biblioteket, havner på denne liste. Regler for en enkelt tilstand ligger i den tilstands eget ordforråd."
       },
       "voiceActivityDetection": {
         "title": "Stemmeaktivitetsdetektion",
@@ -575,8 +529,6 @@
         "enabledLabel": "Aktivér emoji-erstatninger",
         "enabledDescription": "Erstat kun nøjagtige talte tokens efter rettelse af ordforråd.",
         "title": "Emoji-erstatninger",
-        "description": "Knyt et nøjagtigt talt udtryk til emojitekst. Der bruges ingen fuzzy matching.",
-        "offState": "Emoji-erstatninger er slået fra. Sona slår dem ikke automatisk til for kode eller andre apps.",
         "spoken": "Talt udtryk",
         "written": "Emojitekst",
         "spokenPlaceholder": "smilende ansigt",
@@ -593,53 +545,39 @@
           "incompleteRow": "Udfyld eller fjern alle rækker, før du gemmer."
         },
         "empty": {
-          "description": "Kobl et præcist udtalt ord som smiley face til den emoji, du vil have skrevet.",
-          "title": "Ingen emoji-erstatninger endnu"
+          "description": "Kobl et præcist udtalt ord som smiley face til den emoji, du vil have skrevet."
         }
       },
-      "description": "Startup, processing, and experimental behavior.",
       "disclosures": {
         "launch": {
-          "title": "Launch",
-          "description": "How Sona starts and what it shows."
+          "title": "Opstart"
         },
         "processing": {
-          "title": "Processing",
-          "description": "Engine and model behavior while transcribing."
-        },
-        "experimental": {
-          "description": "Unstable options that can change without notice."
+          "title": "Behandling"
         }
       },
       "snippets": {
         "add": "Tilføj tekstklip",
         "confirmDelete": {
           "description": "Udløseren stopper med at blive udvidet i fremtidige transskriptioner. Allerede skrevet tekst ændres ikke.",
-          "body": "{{trigger}} udvides i øjeblikket til {{expansion}}.",
           "title": "Slet {{trigger}}?"
         },
-        "description": "Korte udløsere, som Sona udvider til længere tekst. Ændringer her påvirker kun fremtidige transskriptioner, aldrig tekst der allerede er skrevet.",
         "empty": {
-          "action": "Skriv dit første tekstklip",
-          "description": "Tilføj en udløser som omw, så skriver Sona on my way, hver gang du siger det.",
-          "title": "Ingen tekstklip endnu"
+          "description": "Tilføj en udløser som omw, så skriver Sona on my way, hver gang du siger det."
         },
-        "enabledDescription": "Erstat tekstklip-udløsere i alle transskriptioner, umiddelbart efter ordforrådsrettelser.",
         "enabledLabel": "Aktivér tekstudvidelse",
         "errors": {
           "duplicate": "Et andet tekstklip bruger allerede denne udløser.",
           "incomplete": "Angiv både en udløser og en udvidelse."
         },
         "expansion": "Udvidelse",
-        "expansionPlaceholder": "on my way",
+        "expansionPlaceholder": "på vej",
         "loadError": "Kunne ikke indlæse tekstklip.",
         "loading": "Indlæser tekstklip",
         "matching": "Udløsere matcher hele ord og ignorerer store og små bogstaver. Når to udløsere passer samme sted, vinder den længste, og udvidelsen kører lige efter ordforrådsrettelser.",
-        "offState": "Tekstudvidelse er slået fra. Tekstklip forbliver gemt og gælder igen, så snart du slår det til igen.",
         "title": "Tekstudvidelse",
         "trigger": "Udløser",
         "triggerPlaceholder": "omw",
-        "unsaved": "Tryk på Enter eller Gem for at beholde denne ændring.",
         "enableRow": "Aktivér {{trigger}}",
         "remove": "Slet {{trigger}}",
         "saveRow": "Gem {{trigger}}"
@@ -651,62 +589,41 @@
       }
     },
     "postProcessing": {
-      "hotkey": {
-        "title": "Genvej"
-      },
       "api": {
         "title": "API (OpenAI-kompatibel)",
         "provider": {
-          "title": "Udbyder",
-          "description": "Vælg en OpenAI-kompatibel udbyder."
+          "title": "Udbyder"
         },
         "appleIntelligence": {
           "unavailable": "Apple Intelligence er ikke tilgængelig på denne enhed. Kræver en Apple Silicon Mac med macOS Tahoe (26.0) eller nyere med Apple Intelligence aktiveret i Systemindstillinger."
         },
         "baseUrl": {
           "title": "Basis-URL",
-          "description": "API-basis-URL for den valgte udbyder. Kun den brugerdefinerede udbyder kan redigeres.",
           "placeholder": "https://api.openai.com/v1"
         },
         "apiKey": {
           "title": "API-nøgle",
-          "description": "API-nøgle til den valgte udbyder.",
           "placeholder": "sk-..."
         },
         "model": {
           "title": "Model",
           "descriptionCustom": "Angiv den modelidentifikator, som det brugerdefinerede endpoint forventer.",
-          "descriptionDefault": "Vælg en model, der udbydes af den valgte udbyder.",
           "placeholderWithOptions": "Søg eller vælg en model",
           "placeholderNoOptions": "Skriv et modelnavn",
           "refreshModels": "Opdater modeller"
         }
       },
       "prompts": {
-        "title": "Prompt",
-        "selectedPrompt": {
-          "title": "Valgt prompt",
-          "description": "Vælg en skabelon til at forfine transskriptioner, eller opret en ny. Brug ${output} i promptteksten for at referere til den fangede transskription."
-        },
-        "noPrompts": "Ingen prompts tilgængelige",
-        "selectPrompt": "Vælg en prompt",
         "createNew": "Ny prompt",
         "promptLabel": "Promptnavn",
         "promptLabelPlaceholder": "Navngiv denne prompt",
         "promptInstructions": "Instruktioner",
         "promptInstructionsPlaceholder": "Forbedr grammatik og klarhed for følgende tekst: ${output}",
-        "promptTip": "Skriv <code>${output}</code>, hvor transskriptionen skal indsættes.",
         "updatePrompt": "Opdater prompt",
         "deletePrompt": "Slet prompt",
         "createPrompt": "Opret prompt",
-        "cancel": "Annuller",
-        "selectToEdit": "Vælg en prompt for at redigere den.",
-        "createFirst": "Opret en prompt til efterbehandling af transskriptioner.",
         "empty": {
           "description": "En prompt fortæller modellen, hvad den skal gøre med transskriptionen, for eksempel: omskriv følgende som en kort besked og behold alle fakta: ${output}"
-        },
-        "errors": {
-          "incomplete": "Giv prompten et navn og instruktioner, før du gemmer."
         },
         "inUse": "I brug",
         "lastPrompt": "Sona beholder mindst én prompt, så denne kan ikke slettes. Opret først en anden.",
@@ -724,33 +641,26 @@
         "useNamed": "Brug {{name}}"
       },
       "remoteConsent": {
-        "title": "Remote text transfer",
-        "description": "Meeting and transcription text may be sent to {{provider}} at {{endpoint}} for post-processing.",
-        "acknowledge": "I acknowledge that text may be sent to this endpoint.",
-        "accept": "Allow text transfer",
-        "cancel": "Cancel",
-        "endpointChanged": "The endpoint changed. Review and acknowledge the new endpoint before text can leave this Mac.",
-        "invalidDestination": "This provider destination is invalid or local-only, so no remote consent can be recorded.",
-        "saveFailed": "Sona could not save this acknowledgement.",
-        "current": "Text transfer is acknowledged for {{endpoint}}.",
-        "review": "Review acknowledgement",
-        "endpointLabel": "Canonical endpoint",
-        "destinationPinned": "Sona pins this exact endpoint and origin for the acknowledgement."
+        "title": "Ekstern tekstoverførsel",
+        "description": "Møde- og transskriptionstekst kan sendes til {{provider}} på {{endpoint}} til efterbehandling.",
+        "acknowledge": "Jeg er indforstået med, at tekst kan sendes til dette slutpunkt.",
+        "accept": "Tillad tekstoverførsel",
+        "cancel": "Annuller",
+        "endpointChanged": "Slutpunktet er ændret. Gennemgå og bekræft det nye slutpunkt, før tekst kan forlade denne Mac.",
+        "invalidDestination": "Denne udbyderdestination er ugyldig eller kun lokal, så der kan ikke registreres noget fjernsamtykke.",
+        "saveFailed": "Sona kunne ikke gemme denne bekræftelse.",
+        "current": "Tekstoverførsel er bekræftet for {{endpoint}}.",
+        "review": "Gennemgå bekræftelsen",
+        "endpointLabel": "Kanonisk slutpunkt",
+        "destinationPinned": "Sona fastlåser præcis dette slutpunkt og denne oprindelse for bekræftelsen."
       }
     },
     "history": {
       "stats": {
-        "title": "Samlet brug",
-        "loading": "Indlæser brug…",
         "unavailable": "Brugsstatistik er ikke tilgængelig.",
         "entries": "optagelser",
         "duration": "optagelsestid",
-        "words": "ord",
-        "source": {
-          "microphone": "Mikrofon",
-          "file": "Fil",
-          "legacy": "Ældre optagelser"
-        }
+        "words": "ord"
       },
       "title": "Historik",
       "openFolder": "Åbn optagelsesmappe",
@@ -764,7 +674,6 @@
       "retranscribe": "Transskribér igen",
       "retranscribeError": "Kunne ikke transkribere igen. Prøv igen.",
       "transcribing": "Transskriberer…",
-      "transcriptionFailed": "Transskription mislykkedes.",
       "search": "Søg i historik",
       "searchPlaceholder": "Søg i transskriptioner",
       "noResults": "Ingen transskriptioner matcher \"{{query}}\".",
@@ -778,75 +687,75 @@
         "raw": "Rådata"
       },
       "receipts": {
-        "showDetails": "Show run details",
-        "hideDetails": "Hide run details",
-        "loading": "Loading run receipts…",
-        "unavailable": "Run receipt data is unavailable for this entry.",
-        "none": "No run receipts were recorded for this entry.",
+        "showDetails": "Vis kørselsdetaljer",
+        "hideDetails": "Skjul kørselsdetaljer",
+        "loading": "Indlæser kørselskvitteringer…",
+        "unavailable": "Kørselskvitteringer er ikke tilgængelige for denne post.",
+        "none": "Der blev ikke registreret nogen kørselskvitteringer for denne post.",
         "duration": "{{duration}}",
-        "durationLabel": "Duration",
-        "words": "{{count}} words",
-        "wordsLabel": "Words",
+        "durationLabel": "Varighed",
+        "words": "{{count}} ord",
+        "wordsLabel": "Ord",
         "engine": {
-          "local": "Local",
+          "local": "Lokal",
           "cloud": "Cloud",
-          "local_fallback": "Local fallback"
+          "local_fallback": "Lokal reserve"
         },
         "source": {
-          "microphone": "Microphone",
-          "file": "File import",
-          "legacy": "Legacy"
+          "microphone": "Mikrofon",
+          "file": "Filimport",
+          "legacy": "Ældre"
         },
-        "presetLabel": "Preset",
+        "presetLabel": "Forindstilling",
         "preset": {
-          "minimalist_cleanup": "Minimal cleanup",
-          "application_context": "Application context",
+          "minimalist_cleanup": "Minimal oprydning",
+          "application_context": "Appkontekst",
           "email": "Email",
-          "meeting": "Meeting",
-          "notes": "Notes",
-          "generic": "General"
+          "meeting": "Møde",
+          "notes": "Noter",
+          "generic": "Generel"
         },
-        "provider": "AI route",
-        "contextPolicy": "Context level",
+        "provider": "AI-rute",
+        "contextPolicy": "Kontekstniveau",
         "contextPolicyValues": {
-          "none": "Off",
+          "none": "Fra",
           "target": "App",
-          "target_and_selection": "Selection",
-          "full": "Full"
+          "target_and_selection": "Markering",
+          "full": "Fuld"
         },
-        "contextSources": "Context sources",
+        "contextSources": "Kontekstkilder",
         "contextSource": {
           "target": "App",
-          "focused_field": "Focused field",
-          "selected_text": "Selected text",
-          "browser_url": "Browser URL",
-          "clipboard": "Recent clipboard"
+          "focused_field": "Fokuseret felt",
+          "selected_text": "Markeret tekst",
+          "browser_url": "Browser-URL",
+          "clipboard": "Seneste udklipsholder"
         },
         "contextStatus": {
-          "not_requested": "Not requested",
-          "captured": "Captured",
-          "empty": "Empty",
-          "unsupported": "Unsupported",
-          "permission_denied": "Permission denied",
-          "disabled": "Disabled",
-          "disabled_by_ceiling": "Blocked by ceiling",
-          "secure_field": "Secure field",
-          "stale": "Stale",
-          "failed": "Unavailable"
+          "not_requested": "Ikke anmodet",
+          "captured": "Registreret",
+          "empty": "Tom",
+          "unsupported": "Ikke understøttet",
+          "permission_denied": "Adgang nægtet",
+          "disabled": "Deaktiveret",
+          "disabled_by_ceiling": "Blokeret af loft",
+          "secure_field": "Sikkert felt",
+          "stale": "Forældet",
+          "failed": "Utilgængelig"
         },
-        "deliveryAttempts": "Delivery attempts",
-        "noDeliveryAttempts": "No delivery attempt was recorded.",
+        "deliveryAttempts": "Leveringsforsøg",
+        "noDeliveryAttempts": "Der blev ikke registreret noget leveringsforsøg.",
         "deliveryMethod": {
-          "none": "No delivery",
-          "accessibility_insertion": "Accessibility insertion",
-          "clipboard_paste": "Clipboard paste",
-          "direct_typing": "Direct typing",
-          "external_script": "External script"
+          "none": "Ingen levering",
+          "accessibility_insertion": "Indsættelse via tilgængelighed",
+          "clipboard_paste": "Indsæt fra udklipsholder",
+          "direct_typing": "Direkte indtastning",
+          "external_script": "Eksternt script"
         },
         "deliveryOutcome": {
-          "delivered": "Delivered",
-          "definitely_not_dispatched": "Not dispatched",
-          "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+          "delivered": "Leveret",
+          "definitely_not_dispatched": "Ikke afsendt",
+          "dispatched_but_unconfirmed": "Afsendt, ubekræftet"
         },
         "modeLabel": "Tilstand",
         "revisionLabel": "Revision",
@@ -868,19 +777,19 @@
         }
       },
       "correction": {
-        "add": "Add correction",
-        "title": "Add vocabulary correction",
-        "description": "Enter the exact spoken span and the text Sona should write. Nothing is learned from typing or background activity.",
-        "spoken": "Spoken span",
-        "written": "Written replacement",
-        "spokenPlaceholder": "What Sona heard",
-        "writtenPlaceholder": "What Sona should write",
+        "add": "Tilføj rettelse",
+        "title": "Tilføj ordforrådsrettelse",
+        "description": "Indtast det nøjagtige talte udsnit og den tekst, Sona skal skrive. Der læres intet fra indtastning eller baggrundsaktivitet.",
+        "spoken": "Talt udsnit",
+        "written": "Skriftlig erstatning",
+        "spokenPlaceholder": "Hvad Sona hørte",
+        "writtenPlaceholder": "Hvad Sona skal skrive",
         "preview": "{{spoken}} → {{written}}",
-        "scope": "Save to",
-        "currentMode": "Current mode only",
-        "global": "All modes",
-        "save": "Save correction",
-        "saved": "Vocabulary correction saved",
+        "scope": "Gem i",
+        "currentMode": "Kun nuværende tilstand",
+        "global": "Alle tilstande",
+        "save": "Gem rettelse",
+        "saved": "Ordforrådsrettelse gemt",
         "saveError": "Kunne ikke gemme korrektionen. Prøv igen."
       },
       "audioImport": {
@@ -914,22 +823,6 @@
         },
         "running": "Transskriberer {{count}} filer"
       },
-      "trends": {
-        "title": "History trends",
-        "description": "Recordings and words over the selected range.",
-        "loading": "Loading history trends…",
-        "error": "Couldn't load history trends.",
-        "metricLabel": "Metric",
-        "activeDays": "{{active}} of {{total}} days active",
-        "streak_one": "{{count}} day streak",
-        "streak_other": "{{count}} day streak",
-        "metrics": {
-          "recordings": "Recordings",
-          "duration": "Captured time",
-          "words": "Words"
-        },
-        "streak": "{{count}} day streak"
-      },
       "clearSearch": "Ryd søgning",
       "emptyHint": "Du kan også transskribere en eksisterende optagelse: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 eller M4V, op til 30 minutter.",
       "loadMore": "Indlæs flere",
@@ -962,39 +855,32 @@
     "debug": {
       "title": "Fejlfinding",
       "logDirectory": {
-        "title": "Logmappe",
-        "description": "Hvor logfiler skrives."
+        "title": "Logmappe"
       },
       "logLevel": {
-        "title": "Logniveau",
-        "description": "Hvor mange detaljer loggen registrerer."
+        "title": "Logniveau"
       },
       "liveLogs": {
         "title": "Live logs",
-        "description": "Streamer loglinjer, efterhånden som de udsendes. Kun linjer udsendt, mens dette panel er åbent, vises her, på det logniveau der er valgt ovenfor.",
-        "live": "Live",
-        "paused": "På pause",
+        "description": "Kun linjer udsendt, mens dette panel er åbent, vises her, på det logniveau der er valgt ovenfor.",
         "pause": "Pause",
         "resume": "Genoptag",
         "copied": "Kopieret",
         "lineCount": "{{count}} linjer",
-        "empty": "Venter på logs. Linjer vises her, når appen udsender dem."
+        "empty": "Ingen linjer endnu."
       },
       "whatsNewPreview": {
         "title": "Forhåndsvisning af nyheder",
         "description": "Åbn de seneste medfølgende udgivelsesnoter uden at markere dem som set",
-        "button": "Forhåndsvisning",
         "noNotes": "Ingen medfølgende udgivelsesnoter fundet",
         "error": "Kunne ikke forhåndsvise udgivelsesnoterne. Prøv igen."
       },
       "soundTheme": {
         "label": "Lydtema",
-        "description": "Hvilke lyde der afspilles, når optagelse starter og stopper.",
-        "preview": "Preview the start and stop sounds"
+        "preview": "Lyt til start- og stoplydene"
       },
       "wordCorrectionThreshold": {
-        "title": "Tærskel for ordkorrektion",
-        "description": "Følsomhed for brugerdefinerede ordkorrektioner"
+        "title": "Tærskel for ordkorrektion"
       },
       "historyLimit": {
         "title": "Historikgrænse",
@@ -1012,8 +898,7 @@
         "placeholder": "Vælg opbevaringsperiode"
       },
       "alwaysOnMicrophone": {
-        "label": "Altid aktiv mikrofon",
-        "description": "Holder mikrofonen åben, så optagelsen starter hurtigere."
+        "label": "Altid aktiv mikrofon"
       },
       "clamshellMicrophone": {
         "title": "Clamshell-mikrofon",
@@ -1024,8 +909,7 @@
         "description": "Omskriv transskriptionen med en sprogmodel efter transskription."
       },
       "muteWhileRecording": {
-        "label": "Mute under optagelse",
-        "description": "Sluk for systemlyd under optagelse"
+        "label": "Mute under optagelse"
       },
       "appendTrailingSpace": {
         "label": "Tilføj efterfølgende mellemrum",
@@ -1033,7 +917,6 @@
       },
       "keyboardImplementation": {
         "title": "Tastaturimplementering",
-        "description": "Vælg backend til tastaturgenveje.",
         "bindingsReset": "Tastaturgenveje var inkompatible og blev nulstillet til standard"
       },
       "paths": {
@@ -1077,7 +960,6 @@
         "verdictNoEvents": "Der blev ikke registreret nogen hændelser under testen.",
         "failed": "Diagnostik mislykkedes: {{error}}"
       },
-      "description": "Instrumentering og ikke-understøttede indstillinger. Synlig, fordi fejlfindingstilstand er slået til.",
       "groups": {
         "capture": "Optagelse",
         "delivery": "Tekstlevering",
@@ -1089,21 +971,17 @@
       "title": "Om",
       "version": {
         "title": "Version",
-        "description": "Den version, der kører nu.",
         "unavailable": "Ikke tilgængelig"
       },
       "whatsNewUpdates": {
-        "label": "Vis nyheder",
-        "description": "Vis udgivelsesnoter, efter Sona opdateres"
+        "label": "Vis nyheder"
       },
       "appDataDirectory": {
-        "title": "Appdatamappe",
-        "description": "Hvor Sona gemmer sine data."
+        "title": "Appdatamappe"
       },
       "sourceCode": {
-        "title": "Open-source licenses",
-        "description": "View the bundled license and notice files.",
-        "button": "Open licenses"
+        "title": "Open source-licenser",
+        "button": "Åbn licenser"
       },
       "supportDevelopment": {
         "title": "Støt udviklingen",
@@ -1114,22 +992,17 @@
         "title": "Anerkendelser",
         "ggml": {
           "title": "ggml",
-          "description": "Tensor-bibliotek til maskinlæringsinferens på enheden",
           "details": "Sonas lokale tale-til-tekst funktionalitet er bygget på transcribe.cpp og ggml. Tak til Georgi Gerganov og bidragyderne."
         }
       },
-      "description": "Hvilken build du kører, hvor den kommer fra, og hvor den gemmer dine filer.",
       "files": {
         "title": "Filer"
       },
       "source": {
-        "description": "Sona er MIT-licenseret, copyright 2025 CJ Pais, og bygget oven på Handy.",
-        "open": "Åbn på GitHub",
         "repository": "Repositorium",
         "title": "Kildekode",
         "upstream": "Bygget på Handy",
-        "upstreamDescription": "Sona er en fork af cjpais/Handy og følger stadig dens upstream-rettelser.",
-        "upstreamOpen": "cjpais/Handy"
+        "license": "MIT-licenseret. Copyright 2025 CJ Pais."
       },
       "updates": {
         "autoDescription": "Spørger GitHub om den seneste udgivelse. Sona installerer aldrig noget på egen hånd.",
@@ -1137,34 +1010,29 @@
         "check": "Søg nu",
         "checking": "Kontrollerer…",
         "disabled": "Automatiske kontroller er slået fra, så Sona kontaktede ikke GitHub.",
-        "enable": "Slå kontroller til",
         "failed": "Opdateringskontrollen kunne ikke køre.",
-        "manualDescription": "Sammenlign denne build med den seneste udgivne version.",
         "manualTitle": "Manuel kontrol",
         "preferenceError": "Opdateringsindstillingen kunne ikke gemmes.",
         "title": "Version og opdateringer",
         "viewRelease": "Se udgivelse",
         "available": "Sona {{version}} er tilgængelig.",
-        "published": "Udgivet {{date}}",
-        "upToDate": "Sona {{version}} er den seneste udgivelse."
+        "upToDate": "Dette er den seneste udgivelse."
       }
     },
     "modes": {
       "activation": {
-        "title": "App activation",
+        "title": "Appaktivering",
         "capture": {
-          "label": "Activate in app",
-          "description": "Capture the app currently in front and select this mode when you dictate there.",
-          "action": "Capture current app",
-          "capturing": "Capturing…"
+          "label": "Aktivér i app",
+          "action": "Registrér den aktuelle app",
+          "capturing": "Registrerer…"
         },
-        "empty": "No app activates this mode.",
-        "remove": "Remove",
+        "empty": "Ingen app aktiverer denne tilstand.",
+        "remove": "Fjern",
         "website": {
           "title": "Aktivering efter website",
           "scope": {
             "label": "Websiteområde",
-            "description": "Match én vært nøjagtigt, eller medtag dens underdomæner.",
             "values": {
               "exact": "Præcis vært",
               "suffix": "Vært og underdomæner"
@@ -1183,222 +1051,195 @@
         "removeTarget": "Fjern {{target}}",
         "unsupported": "Aktivering pr. app og websted er kun tilgængelig på macOS."
       },
-      "title": "Modes",
-      "description": "Choose what each dictation run recognizes, rewrites, and delivers.",
-      "listTitle": "Your modes",
-      "loading": "Loading modes…",
-      "loadError": "Modes could not be loaded.",
-      "retry": "Retry",
-      "new": "New mode",
-      "active": "Active",
-      "default": "Default",
-      "defaultProtected": "The default mode cannot be deleted.",
-      "activate": "Activate",
-      "edit": "Edit",
-      "duplicate": "Duplicate",
-      "delete": "Delete",
-      "moveUp": "Move up",
-      "moveDown": "Move down",
-      "back": "Back to modes",
-      "save": "Save changes",
-      "saving": "Saving…",
-      "changesNextRun": "Changes apply to your next dictation.",
-      "copySuffix": "copy",
-      "deleteTitle": "Delete mode",
-      "deleteDescription": "Delete {{mode}}?",
-      "deleteBody": "Its mode-only shortcuts will also be removed. This cannot be undone.",
+      "title": "Tilstande",
+      "listTitle": "Dine tilstande",
+      "loading": "Indlæser tilstande…",
+      "loadError": "Tilstandene kunne ikke indlæses.",
+      "retry": "Prøv igen",
+      "new": "Ny tilstand",
+      "active": "Aktiv",
+      "defaultProtected": "Standardtilstanden kan ikke slettes.",
+      "activate": "Aktivér",
+      "duplicate": "Dublér",
+      "delete": "Slet",
+      "moveUp": "Flyt op",
+      "moveDown": "Flyt ned",
+      "save": "Gem ændringer",
+      "saving": "Gemmer…",
+      "changesNextRun": "Ændringerne gælder for din næste diktering.",
+      "copySuffix": "kopi",
+      "deleteTitle": "Slet tilstand",
+      "deleteDescription": "Slet {{mode}}?",
+      "deleteBody": "Genvejene, der kun hører til denne tilstand, fjernes også. Dette kan ikke fortrydes.",
       "identity": {
-        "title": "Identity",
         "name": {
-          "label": "Mode name",
-          "description": "A label shown in mode selection and history."
+          "label": "Tilstandsnavn"
         }
       },
       "writing": {
-        "title": "Writing",
         "enabled": {
-          "label": "AI cleanup",
-          "description": "Use the selected provider to rewrite the transcript for this mode."
+          "label": "AI-oprydning"
         },
         "preset": {
-          "label": "Preset",
-          "description": "Choose behavior by name. Preset instructions are not shown or exported.",
+          "label": "Forindstilling",
+          "description": "Vælg adfærd ud fra navnet. En forindstillings instruktioner vises ikke og eksporteres ikke.",
           "values": {
-            "minimalist_cleanup": "Minimal cleanup",
-            "application_context": "Application context",
+            "minimalist_cleanup": "Minimal oprydning",
+            "application_context": "Appkontekst",
             "email": "Email",
-            "meeting": "Meeting",
-            "notes": "Notes",
-            "generic": "General"
+            "meeting": "Møde",
+            "notes": "Noter",
+            "generic": "Generel"
           }
         },
         "tone": {
           "label": "Tone",
-          "description": "Apply this tone when AI cleanup is enabled.",
           "values": {
-            "casual": "Casual",
-            "semi_casual": "Semi-casual",
-            "balanced": "Balanced",
-            "semi_formal": "Semi-formal",
-            "formal": "Formal"
+            "casual": "Afslappet",
+            "semi_casual": "Ret afslappet",
+            "balanced": "Afbalanceret",
+            "semi_formal": "Ret formel",
+            "formal": "Formel"
           }
         },
         "provider": {
-          "label": "AI provider",
-          "description": "The configured provider used for this mode.",
-          "empty": "No provider configured",
+          "label": "AI-udbyder",
+          "empty": "Ingen udbyder konfigureret",
           "noneConfigured": "Ingen AI-udbyder er konfigureret endnu. Tilføj en i Indstillinger, før denne tilstand kan omskrive.",
           "unknownSelected": "Denne tilstand angiver en udbyder, som ikke er konfigureret på denne installation."
         },
         "model": {
-          "label": "AI model",
-          "description": "The provider model identifier for this mode."
+          "label": "AI-model"
         },
         "disabledNote": "Slå AI-oprydning til for at bruge forudindstillingen, tonen, udbyderen og modellen nedenfor."
       },
       "recognition": {
         "literalPunctuation": {
-          "label": "Literal punctuation",
-          "description": "Convert spoken punctuation such as comma and question mark before vocabulary corrections."
+          "label": "Ordret tegnsætning",
+          "description": "Omsæt dikteret tegnsætning som komma og spørgsmålstegn før ordforrådsrettelserne."
         },
-        "title": "Recognition",
-        "noModelSelected": "No model selected",
         "model": {
-          "label": "Transcription model",
-          "description": "Only downloaded local models are available here.",
+          "label": "Transskriptionsmodel",
           "inheritGlobal": "Standard: den globale model",
           "inheritGlobalNamed": "Standard: den globale model ({{name}})"
         },
         "language": {
-          "label": "Language",
-          "description": "Set a recognition language or let the model detect it.",
-          "auto": "Auto detect",
-          "cloudDescription": "Choose the language sent with this cloud request."
+          "label": "Sprog",
+          "auto": "Automatisk registrering",
+          "cloudDescription": "Vælg det sprog, der sendes med denne cloud-anmodning."
         },
         "translate": {
-          "label": "Translate to English",
-          "description": "Request English output when the selected model supports translation."
+          "label": "Oversæt til engelsk"
         },
         "vad": {
-          "label": "Voice activity detection",
-          "description": "Skip silent audio while recording."
+          "label": "Registrering af taleaktivitet"
         },
         "fillerRemoval": {
-          "label": "Remove filler words",
-          "description": "Remove configured filler words from this mode’s transcript."
+          "label": "Fjern fyldord"
         },
         "vocabulary": {
-          "label": "Mode vocabulary",
-          "description": "Pairs here override the global vocabulary only for this mode.",
-          "spoken": "Spoken phrase",
-          "written": "Written text",
-          "spokenPlaceholder": "What was said",
-          "writtenPlaceholder": "What to write",
-          "add": "Add pair",
-          "remove": "Remove {{spoken}}",
-          "incomplete": "Complete or remove each vocabulary pair before saving this mode.",
+          "label": "Tilstandens ordforråd",
+          "spoken": "Talt udtryk",
+          "written": "Skrevet tekst",
+          "spokenPlaceholder": "Det, der blev sagt",
+          "writtenPlaceholder": "Det, der skal skrives",
+          "add": "Tilføj par",
+          "remove": "Fjern {{spoken}}",
+          "incomplete": "Færdiggør eller fjern hvert ordforrådspar, før du gemmer denne tilstand.",
           "empty": "Denne tilstand har intet eget ordforråd. Det globale ordforråd gælder stadig."
         },
         "engine": {
-          "label": "Transcription engine",
-          "description": "Use a local model or an eligible cloud provider.",
-          "local": "Local",
+          "label": "Transskriptionsmotor",
+          "local": "Lokal",
           "cloud": "Cloud",
-          "unavailable": "{{provider}} is unavailable"
+          "unavailable": "{{provider}} er ikke tilgængelig"
         },
         "cloud": {
-          "setupRequired": "{{provider}} needs a saved native API key and current transfer consent before its cloud controls are available.",
+          "setupRequired": "{{provider}} kræver en gemt egen API-nøgle og aktuelt samtykke til overførsel, før dens cloud-indstillinger er tilgængelige.",
           "fallback": {
-            "label": "Use local fallback",
-            "description": "If the cloud provider cannot return a trustworthy final, transcribe the captured audio with a local model.",
-            "useModeModel": "Use this mode's local model",
+            "label": "Brug lokal reserve",
+            "description": "Hvis cloud-udbyderen ikke kan returnere et troværdigt slutresultat, transskriberes den optagne lyd med en lokal model.",
+            "useModeModel": "Brug denne tilstands lokale model",
             "model": {
-              "label": "Fallback model",
-              "description": "Choose a downloaded local model, or use this mode's local model.",
-              "required": "Choose a fallback model or set this mode's local model before saving."
+              "label": "Reservemodel",
+              "required": "Vælg en reservemodel, eller angiv denne tilstands lokale model, før du gemmer."
             }
           },
           "keyterms": {
-            "label": "Cloud keyterms",
-            "description": "One term per line. These terms are sent with this cloud request.",
-            "placeholder": "Product name\nPerson name"
+            "label": "Cloud-nøgleord",
+            "description": "Ét udtryk pr. linje. Disse udtryk sendes med denne cloud-anmodning.",
+            "placeholder": "Produktnavn\nPersonnavn"
           },
           "timestamps": {
-            "label": "Word timestamps",
-            "description": "Required for cloud transcription and cannot be disabled."
+            "label": "Tidsstempler pr. ord",
+            "description": "Påkrævet til cloud-transskription og kan ikke slås fra."
           },
           "consent": {
-            "title": "Use {{provider}} for cloud transcription",
-            "description": "Review how this mode sends audio before enabling {{provider}}.",
-            "intro": "These acknowledgements are fixed for this provider. Declining keeps this mode on its current local engine.",
+            "title": "Brug {{provider}} til cloud-transskription",
+            "description": "Gennemgå, hvordan denne tilstand sender lyd, før du aktiverer {{provider}}.",
+            "intro": "Disse anerkendelser er faste for denne udbyder. Hvis du afviser, forbliver tilstanden på sin nuværende lokale motor.",
             "audioTransfer": {
-              "label": "Audio transfer",
-              "description": "Recorded audio from this mode is sent directly to {{provider}} for transcription."
+              "label": "Lydoverførsel",
+              "description": "Optaget lyd fra denne tilstand sendes direkte til {{provider}} til transskription."
             },
             "privacy": {
-              "label": "Privacy contract",
-              "description": "The provider receives this mode's audio, selected language, and keyterms. Application context and native credentials stay on this device."
+              "label": "Privatlivskontrakt",
+              "description": "Udbyderen modtager denne tilstands lyd, det valgte sprog og nøgleordene. Appkontekst og egne loginoplysninger forbliver på denne enhed."
             },
             "localFallback": {
-              "label": "Local fallback",
-              "description": "If the cloud provider cannot return a trustworthy final, Sona can use your selected local model."
+              "label": "Lokal reserve",
+              "description": "Hvis cloud-udbyderen ikke kan returnere et troværdigt slutresultat, kan Sona bruge den lokale model, du har valgt."
             },
-            "decline": "Keep local",
-            "accept": "Accept and use cloud",
-            "accepting": "Accepting…",
+            "decline": "Behold lokal",
+            "accept": "Accepter og brug cloud",
+            "accepting": "Accepterer…",
             "errors": {
-              "unknown_provider": "This cloud provider is not available in this build.",
-              "backend": "The consent record could not be saved."
+              "unknown_provider": "Denne cloud-udbyder er ikke tilgængelig i dette build.",
+              "backend": "Samtykkeposten kunne ikke gemmes."
             }
           },
           "title": "Cloud-transport"
         }
       },
       "context": {
-        "title": "Context",
         "policy": {
-          "label": "Context level",
-          "description": "This mode cannot exceed the privacy ceiling.",
-          "limitedByPrivacy": "Privacy currently limits this mode. Raise the ceiling in Privacy to use this level.",
+          "label": "Kontekstniveau",
+          "description": "Denne tilstand kan ikke overskride privatlivsloftet.",
+          "limitedByPrivacy": "Privatlivsindstillingerne begrænser tilstanden lige nu. Hæv loftet i Privacy for at bruge dette niveau.",
           "values": {
-            "none": "Off",
+            "none": "Fra",
             "target": "App",
-            "target_and_selection": "Selection",
-            "full": "Full"
+            "target_and_selection": "Markering",
+            "full": "Fuld"
           },
           "blockedByCeiling": "Privacy begrænser denne tilstand til {{ceiling}}.",
           "raiseCeiling": "Hæv loftet i Privacy for at bruge højere niveauer."
         }
       },
       "delivery": {
-        "title": "Delivery",
         "method": {
-          "label": "Delivery method",
-          "description": "How Sona puts completed text into the target app.",
+          "label": "Leveringsmetode",
           "values": {
-            "ctrl_v": "Paste",
-            "direct": "Type directly",
-            "none": "Do not deliver",
+            "ctrl_v": "Indsæt",
+            "direct": "Skriv direkte",
+            "none": "Lever ikke",
             "shift_insert": "Shift+Insert",
-            "ctrl_shift_v": "Paste without formatting",
-            "external_script": "External script"
+            "ctrl_shift_v": "Indsæt uden formatering",
+            "external_script": "Eksternt script"
           }
         },
         "clipboard": {
-          "label": "Clipboard",
-          "description": "Choose whether completed text is copied before delivery.",
+          "label": "Udklipsholder",
           "values": {
-            "copy_to_clipboard": "Copy to clipboard",
-            "dont_modify": "Leave unchanged"
+            "copy_to_clipboard": "Kopiér til udklipsholder",
+            "dont_modify": "Lad være uændret"
           }
         },
         "autoSubmit": {
-          "label": "Auto-submit",
-          "description": "Submit after delivery using the chosen key."
+          "label": "Automatisk indsendelse"
         },
         "autoSubmitKey": {
-          "label": "Submit key",
-          "description": "The key Sona uses when auto-submit is on.",
+          "label": "Indsendelsestast",
           "values": {
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
@@ -1407,24 +1248,22 @@
           "requiresAutoSubmit": "Slå automatisk indsendelse til for at vælge en tast."
         },
         "trailingSpace": {
-          "label": "Append a trailing space",
-          "description": "Add one space after delivered text."
+          "label": "Tilføj et afsluttende mellemrum"
         },
         "reliablePaste": {
-          "label": "Reliable paste",
-          "description": "Use receipt-sequenced paste when the platform supports it."
+          "label": "Pålidelig indsættelse",
+          "description": "Bruger kvitteringsordnet indsættelse, når platformen understøtter det."
         },
         "delay": {
-          "label": "Paste delays",
-          "description": "Milliseconds before and after delivery.",
-          "before": "Before",
-          "after": "After"
+          "label": "Forsinkelser ved indsættelse",
+          "description": "Millisekunder før og efter leveringen.",
+          "before": "Før",
+          "after": "Efter"
         },
         "typingTool": {
-          "label": "Typing tool",
-          "description": "Used only with direct typing.",
+          "label": "Skriveværktøj",
           "values": {
-            "auto": "Auto",
+            "auto": "Automatisk",
             "wtype": "wtype",
             "kwtype": "kwtype",
             "dotool": "dotool",
@@ -1434,53 +1273,44 @@
           "requiresDirect": "Vælg Skriv direkte som leveringsmetode for at vælge et værktøj."
         },
         "script": {
-          "label": "External script",
-          "description": "The script path used by the external-script delivery method."
+          "label": "Eksternt script"
         }
       },
       "shortcuts": {
-        "title": "Shortcuts",
-        "description": "Set a shortcut to transcribe with or switch to this mode.",
-        "manyModes": "New modes may start unbound after the first nine. Set their shortcuts here."
+        "title": "Genveje",
+        "manyModes": "Nye tilstande kan starte uden tildeling efter de første ni. Angiv deres genveje her."
       },
       "errors": {
-        "staleRevision": "Settings changed elsewhere. Review the latest mode and save again.",
-        "invalid_mode_id": "This mode ID is invalid.",
-        "empty_name": "A mode name is required.",
-        "cannot_delete_default": "The default mode cannot be deleted.",
-        "unknown_mode": "That mode no longer exists.",
-        "duplicate_mode_id": "A mode with this ID already exists.",
-        "invalid_reorder": "The mode order could not be saved.",
+        "staleRevision": "Indstillingerne blev ændret et andet sted. Gennemgå den nyeste tilstand, og gem igen.",
+        "invalid_mode_id": "Dette tilstands-id er ugyldigt.",
+        "empty_name": "Der skal angives et tilstandsnavn.",
+        "cannot_delete_default": "Standardtilstanden kan ikke slettes.",
+        "unknown_mode": "Den tilstand findes ikke længere.",
+        "duplicate_mode_id": "Der findes allerede en tilstand med dette id.",
+        "invalid_reorder": "Rækkefølgen af tilstande kunne ikke gemmes.",
         "invalid_website_host": "Websiteværten er ugyldig.",
         "website_activation_consent_required": "Slå browser-URL'er til under Privatliv, før du tilføjer en websiteregel.",
         "frontmost_website_unavailable": "Der kunne ikke indfanges et website fra browseren.",
         "website_activation_secure_field": "Websiteregler kan ikke indfanges fra et sikkert felt."
       },
-      "globalVocabulary": {
-        "title": "Global vocabulary",
-        "description": "Vocabulary entries applied across every mode."
-      },
-      "actionsFor": "Actions for {{mode}}",
-      "editorLabel": "Mode editor",
-      "editorTabsLabel": "Mode editor sections",
-      "empty": "Select a mode to edit it.",
-      "viewNavigation": "Mode views",
+      "actionsFor": "Handlinger for {{mode}}",
+      "editorTabsLabel": "Afsnit i tilstandseditoren",
+      "empty": "Vælg en tilstand for at redigere den.",
+      "viewNavigation": "Tilstandsvisninger",
       "tabs": {
-        "recognition": "Recognition",
-        "rewrite": "Rewrite",
-        "context": "Context",
-        "delivery": "Delivery",
-        "automation": "Automation"
+        "recognition": "Genkendelse",
+        "rewrite": "Omskrivning",
+        "context": "Kontekst",
+        "delivery": "Levering",
+        "automation": "Automatisering"
       },
       "views": {
-        "modes": "Modes",
-        "vocabulary": "Vocabulary"
+        "modes": "Tilstande",
+        "vocabulary": "Ordforråd"
       },
       "cleanup": {
         "title": "Transskriptionsoprydning"
       },
-      "dismissError": "Afvis fejlen",
-      "emptyHint": "Vælg en tilstand til venstre for at ændre, hvad den genkender, omskriver og leverer.",
       "listEmpty": "Ingen tilstande er konfigureret.",
       "listEmptyHint": "Sona beholder altid én tilstand. Genindlæs for at hente den aktuelle liste.",
       "unsavedChanges": "Ugemte ændringer",
@@ -1490,108 +1320,82 @@
           "local": "Lokal",
           "deepgram_nova_3": "Deepgram",
           "eleven_labs_scribe_v2": "ElevenLabs"
-        },
-        "modelInherited": "Global model",
-        "languageAuto": "Auto",
-        "delivery": {
-          "ctrl_v": "Indsæt",
-          "direct": "Skriv",
-          "none": "Ingen levering",
-          "shift_insert": "Shift+Insert",
-          "ctrl_shift_v": "Indsæt uformateret",
-          "external_script": "Script"
         }
       }
     },
     "privacy": {
       "title": "Privacy",
-      "description": "Control application context, inspect capture access, and manage data kept on this device.",
       "context": {
-        "title": "Context for AI cleanup",
-        "description": "The global ceiling limits every mode before context is read.",
+        "title": "Kontekst til AI-oprydning",
         "ceiling": {
-          "label": "Global context ceiling",
-          "description": "Modes may ask for less context, never more.",
+          "label": "Globalt kontekstloft",
           "values": {
-            "none": "Off",
+            "none": "Fra",
             "target": "App",
-            "target_and_selection": "Selection",
-            "full": "Full"
+            "target_and_selection": "Markering",
+            "full": "Fuld"
           },
-          "error": "The context ceiling could not be saved"
+          "error": "Kontekstloftet kunne ikke gemmes"
         },
         "sources": {
-          "title": "What each level reads",
-          "description": "These are source disclosures, not retained content.",
-          "none": "Reads no application context.",
-          "target": "Reads the frontmost app identity.",
-          "target_and_selection": "Reads the frontmost app identity and selected text when available.",
-          "full": "May also read a permitted browser URL and recently changed clipboard text when available."
+          "none": "Læser ingen appkontekst.",
+          "target": "Læser, hvilken app der er i forgrunden.",
+          "target_and_selection": "Læser, hvilken app der er i forgrunden, og markeret tekst, når den findes.",
+          "full": "Læser også en tilladt browser-URL og nyligt ændret tekst i udklipsholderen, når den findes."
         },
         "urlCapture": {
-          "label": "Include browser URLs",
-          "description": "Allow a frontmost browser page URL to be captured when a mode and the ceiling allow it.",
-          "error": "Browser URL capture could not be saved."
-        },
-        "cloudRoute": "Enabled cloud modes send allowed context to {{providers}}.",
-        "localRoute": "AI processing runs on this Mac.",
-        "checkingRoute": "Checking configured cloud routes…"
+          "label": "Medtag browser-URL'er",
+          "description": "Tillad, at URL'en for browsersiden i forgrunden registreres, når en tilstand og loftet tillader det.",
+          "error": "Registrering af browser-URL kunne ikke gemmes."
+        }
       },
       "diagnostics": {
-        "title": "Context diagnostics",
-        "description": "Read-only checks show what this build can access right now.",
-        "refresh": "Refresh",
-        "error": "Diagnostics could not be refreshed",
+        "title": "Kontekstdiagnostik",
+        "refresh": "Opdater",
+        "error": "Diagnostikken kunne ikke opdateres",
         "accessibility": {
-          "label": "Accessibility",
-          "granted": "Accessibility access is granted.",
-          "denied": "Accessibility access is denied.",
-          "unsupported": "Accessibility context is not supported on this platform."
+          "label": "Tilgængelighed"
         },
         "sources": {
-          "target_identity": "Frontmost app",
-          "focused_field": "Focused field",
-          "selected_text": "Selected text",
-          "browser_url": "Browser URL",
-          "clipboard": "Recent clipboard"
+          "target_identity": "App i forgrunden",
+          "focused_field": "Fokuseret felt",
+          "selected_text": "Markeret tekst",
+          "browser_url": "Browser-URL",
+          "clipboard": "Seneste udklipsholder"
         }
       },
       "status": {
-        "granted": "Granted",
-        "denied": "Denied",
-        "unsupported": "Unsupported",
-        "not_requested": "Not requested",
-        "captured": "Available",
-        "empty": "Empty",
-        "permission_denied": "Permission denied",
-        "disabled": "Disabled",
-        "disabled_by_ceiling": "Blocked by ceiling",
-        "secure_field": "Secure field",
-        "stale": "Stale",
-        "failed": "Unavailable"
+        "granted": "Givet",
+        "denied": "Nægtet",
+        "unsupported": "Ikke understøttet",
+        "not_requested": "Ikke anmodet",
+        "captured": "Tilgængelig",
+        "empty": "Tom",
+        "permission_denied": "Adgang nægtet",
+        "disabled": "Deaktiveret",
+        "disabled_by_ceiling": "Blokeret af loft",
+        "secure_field": "Sikkert felt",
+        "stale": "Forældet",
+        "failed": "Utilgængelig"
       },
       "data": {
-        "title": "Data on this device",
-        "credentialStore": "Provider credentials are stored in the native credential store, not in Sona settings.",
-        "locations": "Settings, history, and retained recordings live in Sona’s application data directory. Recordings are kept only for the selected retention period.",
+        "title": "Data på denne enhed",
         "historyLimit": {
-          "label": "History limit",
-          "description": "Keep this many recent history entries. Set 0 to disable saved history."
+          "label": "Historikgrænse",
+          "description": "Behold så mange seneste historikposter. Angiv 0 for at slå gemt historik fra."
         },
         "retention": {
-          "label": "Recording retention",
-          "description": "Choose how long recording files remain on this device.",
+          "label": "Opbevaring af optagelser",
           "values": {
-            "never": "Do not retain recordings",
-            "preserve_limit": "Keep recordings with history",
-            "days_3": "3 days",
-            "weeks_2": "2 weeks",
-            "months_3": "3 months"
+            "never": "Behold ikke optagelser",
+            "preserve_limit": "Behold optagelser sammen med historikken",
+            "days_3": "3 dage",
+            "weeks_2": "2 uger",
+            "months_3": "3 måneder"
           }
         },
-        "error": "Data retention could not be saved",
+        "error": "Dataopbevaringen kunne ikke gemmes",
         "historyStorage": {
-          "description": "Om dikteringshistorikken er krypteret på denne disk.",
           "encrypted": "Krypteret i hvile",
           "label": "Historiklager",
           "locked": "Låst",
@@ -1600,33 +1404,21 @@
             "encryption_unavailable": "Denne build kan ikke åbne en krypteret database, så historikken gemmes ukrypteret.",
             "key_rejected": "Den gemte nøgle åbner ikke den krypterede database, så historikken kan ikke læses.",
             "key_unavailable": "Systemets legitimationslager returnerede ingen brugbar nøgle, så historikken gemmes ukrypteret.",
-            "migration_failed": "Kryptering af den eksisterende database mislykkedes. Den ukrypterede database er intakt og stadig i brug.",
-            "unlocking": "Åbner den krypterede database. Dette forsvinder, når opstarten er færdig."
+            "migration_failed": "Kryptering af den eksisterende database mislykkedes. Den ukrypterede database er intakt og stadig i brug."
           },
           "unknown": "Sona kunne ikke læse, hvordan historikken er gemt.",
-          "unlocking": "Låser op",
-          "since": "Krypteret siden {{date}}."
+          "unlocking": "Låser op"
         }
       },
       "cloudTranscription": {
-        "title": "Cloud transcription",
-        "description": "Read-only disclosure of direct cloud speech-to-text routes.",
-        "checking": "Checking cloud transcription setup…",
-        "checkFailed": "Cloud transcription setup could not be checked.",
-        "disclosure": "For a cloud-enabled mode, Sona sends recorded audio, the selected language, and mode keyterms directly to the provider. Application context and native credentials stay on this device.",
-        "providerDetail": "{{provider}} has a saved native API key and current transfer consent.",
-        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent.",
-        "inUse": "I brug"
+        "title": "Cloud-transskription",
+        "checkFailed": "Opsætningen af cloud-transskription kunne ikke kontrolleres.",
+        "disclosure": "For en tilstand med cloud aktiveret sender Sona den optagede lyd, det valgte sprog og tilstandens nøgleord direkte til udbyderen. Appkontekst og egne loginoplysninger forbliver på denne enhed."
       },
       "upstreamImport": {
-        "title": "Import from legacy app",
-        "description": "Copy selected personal data from the legacy app. The source remains unchanged.",
+        "title": "Importér fra den gamle app",
         "source": {
-          "settingsAvailable": "Settings file is available.",
-          "settingsMissing": "No settings file was found.",
-          "history": "{{count}} history entries found.",
-          "recordings": "{{count}} recording files, {{size}}.",
-          "empty": "No settings or history entries are available to import."
+          "empty": "Der er ingen indstillinger eller historikposter at importere."
         },
         "byteCount": "{{value}} {{unit}}",
         "byteUnits": {
@@ -1635,166 +1427,161 @@
           "megabytes": "MiB",
           "gigabytes": "GiB"
         },
-        "modelsNotImported": "Model files are not imported.",
-        "appRunning": "Close the legacy app before importing.",
-        "appUnverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
-        "selection": "Choose data to import",
-        "selectionSettings": "Settings",
-        "selectionHistory": "History",
-        "selectionRecordings": "Recordings",
-        "recordingsRequireHistory": "Recordings are imported only with history.",
-        "selectionRequired": "Choose settings or history to import.",
-        "progress": "{{phase}}: {{completed}} of {{total}}",
+        "appRunning": "Luk den gamle app, før du importerer.",
+        "appUnverifiable": "Sona kan ikke bekræfte, at den gamle app er lukket på denne platform.",
+        "selection": "Vælg data, der skal importeres",
+        "selectionSettings": "Indstillinger",
+        "selectionHistory": "Historik",
+        "selectionRecordings": "Optagelser",
+        "recordingsRequireHistory": "Optagelser importeres kun sammen med historikken.",
+        "selectionRequired": "Vælg indstillinger eller historik, der skal importeres.",
+        "progress": "{{phase}}: {{completed}} af {{total}}",
         "phases": {
-          "settings": "Settings",
-          "history": "History",
-          "recordings": "Recordings"
+          "settings": "Indstillinger",
+          "history": "Historik",
+          "recordings": "Optagelser"
         },
-        "settingsImported": "Settings imported.",
-        "settingsAlreadyImported": "Settings were already imported.",
-        "result": "{{settings}} Imported {{historyImported}} history entries; {{historyExisting}} already existed. Copied {{recordingsCopied}} recordings; {{recordingsExisting}} already existed.",
-        "refresh": "Check again",
-        "import": "Import selected data",
-        "importing": "Importing",
+        "settingsImported": "Indstillinger importeret.",
+        "settingsAlreadyImported": "Indstillingerne er allerede importeret.",
+        "result": "{{settings}} {{historyImported}} historikposter blev importeret; {{historyExisting}} fandtes allerede. {{recordingsCopied}} optagelser blev kopieret; {{recordingsExisting}} fandtes allerede.",
+        "refresh": "Kontrollér igen",
+        "import": "Importér valgte data",
+        "importing": "Importerer",
         "errors": {
-          "source_unavailable": "The legacy app's data folder is unavailable.",
-          "upstream_running": "Close the legacy app before importing.",
-          "app_state_unverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
-          "invalid_selection": "Choose settings or history to import.",
-          "settings_unreadable": "The legacy settings file could not be read.",
-          "secret_store_unavailable": "The native credential store is unavailable, so settings with provider keys were not imported.",
-          "secret_conflict": "A provider key already exists in the native credential store. Resolve it before importing settings.",
-          "history_unreadable": "The legacy history database could not be read.",
-          "recording_copy_failed": "A recording could not be copied and verified.",
-          "receipt_write_failed": "The import receipt could not be saved.",
-          "internal": "The import did not finish.",
-          "status": "The legacy app's data could not be inspected."
-        }
+          "source_unavailable": "Den gamle apps datamappe er utilgængelig.",
+          "upstream_running": "Luk den gamle app, før du importerer.",
+          "app_state_unverifiable": "Sona kan ikke bekræfte, at den gamle app er lukket på denne platform.",
+          "invalid_selection": "Vælg indstillinger eller historik, der skal importeres.",
+          "settings_unreadable": "Den gamle indstillingsfil kunne ikke læses.",
+          "secret_store_unavailable": "Systemets nøglering er utilgængelig, så indstillinger med udbydernøgler blev ikke importeret.",
+          "secret_conflict": "Der findes allerede en udbydernøgle i systemets nøglering. Løs det, før du importerer indstillinger.",
+          "history_unreadable": "Den gamle historikdatabase kunne ikke læses.",
+          "recording_copy_failed": "En optagelse kunne ikke kopieres og bekræftes.",
+          "receipt_write_failed": "Importkvitteringen kunne ikke gemmes.",
+          "internal": "Importen blev ikke fuldført.",
+          "status": "Den gamle apps data kunne ikke undersøges."
+        },
+        "scope": "Kilden forbliver uændret, og modelfiler importeres ikke."
       },
       "cloudSync": {
         "checkFailed": "Sona kunne ikke læse konfigurationen for cloud-synkronisering.",
         "configured": "Konfigureret",
-        "description": "Sona kan spejle møder til en server, du selv driver. Intet uploades, før opsætningen er færdig på denne enhed.",
-        "endpoint": "Endpoint",
-        "endpointDescription": "Den server, denne enhed peger på.",
         "notConfigured": "Ikke konfigureret",
-        "service": "Tjeneste",
         "title": "Cloud-synkronisering"
+      },
+      "egress": {
+        "assurance": "Intet forlader denne Mac ud over de ruter, der er vist her, og udbydernøgler forbliver i systemets nøglering – aldrig i Sonas indstillinger.",
+        "thisMac": "Denne Mac",
+        "routes": {
+          "cleanup": "AI-oprydning"
+        }
       }
     },
     "agents": {
       "title": "Agents",
-      "description": "Observe approved local coding-agent sessions. Responses only appear where the installed hook has a fixture-backed wire format.",
       "controls": {
-        "title": "Bridge controls",
+        "title": "Brostyring",
         "master": {
-          "label": "Enable agent bridge",
-          "description": "Allow Sona to observe configured local agent hooks for authorized projects."
+          "label": "Aktivér agentbroen"
         },
-        "offState": "The agent bridge is off. No session data or replies are processed.",
-        "status": "Runtime status",
+        "status": "Runtime-status",
         "providers": {
           "claude": {
             "label": "Claude",
-            "description": "Observe Claude sessions and enable fixture-backed replies where available."
+            "description": "Observer Claude-sessioner og aktivér fixture-baserede svar, hvor de findes."
           },
           "codex": {
             "label": "Codex",
-            "description": "Observe sessions only. Replies are read-only until a wire fixture supports them."
+            "description": "Observer kun sessioner. Svar er skrivebeskyttede, indtil en wire-fixture understøtter dem."
           },
           "grok": {
             "label": "Grok",
-            "description": "Observe sessions only. Replies are read-only until a wire fixture supports them."
+            "description": "Observer kun sessioner. Svar er skrivebeskyttede, indtil en wire-fixture understøtter dem."
           },
           "omp": {
             "label": "OMP",
-            "description": "Observe OMP sessions and approval requests. Replies are available only at a supported OMP session stop."
+            "description": "Observer OMP-sessioner og godkendelsesanmodninger. Svar er kun tilgængelige ved et understøttet OMP-sessionsstop."
           }
         }
       },
       "status": {
-        "disabled": "Disabled",
-        "runtime_unavailable": "Runtime unavailable",
-        "interactive_unsupported": "Interactive responses unsupported",
-        "app_lock_held": "Another Sona instance is active",
-        "active": "Active"
+        "disabled": "Deaktiveret",
+        "runtime_unavailable": "Runtime utilgængelig",
+        "interactive_unsupported": "Interaktive svar understøttes ikke",
+        "app_lock_held": "En anden Sona-instans er aktiv",
+        "active": "Aktiv"
       },
       "projects": {
-        "title": "Authorized projects",
-        "description": "Choose a project folder with the native picker. Sona persists only its canonical hash.",
-        "hashOnly": "Exact project hashes are the permission boundary; folder paths are not stored here.",
-        "add": "Authorize folder",
-        "remove": "Remove project",
-        "empty": "No projects are authorized."
+        "title": "Godkendte projekter",
+        "hashOnly": "Præcise projekt-hashes udgør tilladelsesgrænsen; mappestier gemmes ikke her.",
+        "add": "Godkend mappe",
+        "remove": "Fjern projekt",
+        "empty": "Ingen projekter er godkendt."
       },
       "hook": {
-        "title": "Hook snippet",
-        "description": "Copy the packaged hook configuration into your agent’s own configuration. Sona never edits agent configuration files.",
-        "copy": "Copy snippet",
-        "error": "Hook snippet unavailable"
+        "title": "Hook-kodstykke",
+        "description": "Kopiér den medfølgende hook-konfiguration til din agents egen konfiguration. Sona redigerer aldrig agenters konfigurationsfiler.",
+        "copy": "Kopiér kodstykke",
+        "error": "Hook-kodstykket er utilgængeligt"
       },
       "replyQueue": {
-        "title": "Reply preview",
-        "description": "Create a reply preview for a prepared Claude or OMP session. Sona sends it only after you confirm the exact destination and text.",
-        "session": "Reply destination",
-        "noSession": "No observed reply-capable session",
-        "message": "Reply text",
-        "createPreview": "Create preview",
+        "title": "Forhåndsvisning af svar",
+        "session": "Svardestination",
+        "noSession": "Ingen observeret session, der understøtter svar",
+        "message": "Svartekst",
+        "createPreview": "Opret forhåndsvisning",
         "notReady": "Svar kræver, at broen er slået til, og at mindst én agent er aktiveret."
       },
       "pending": {
-        "empty": "No pending replies.",
-        "confirm": "Confirm exact reply",
-        "preview": "Review the exact destination and text before confirming",
-        "confirmed": "Confirmed for the next supported Stop event",
-        "cancel": "Cancel",
+        "empty": "Ingen ventende svar.",
+        "confirm": "Bekræft præcist svar",
+        "confirmed": "Bekræftet til den næste understøttede Stop-hændelse",
+        "cancel": "Annuller",
         "states": {
-          "held": "Held for the next supported Stop event",
-          "response_written": "Response written",
-          "emitted": "Emitted",
-          "copy_only": "Copy-only",
-          "cancelled": "Cancelled"
-        }
+          "held": "Holdt til den næste understøttede Stop-hændelse",
+          "response_written": "Svar skrevet",
+          "emitted": "Sendt",
+          "copy_only": "Kun kopiering",
+          "cancelled": "Annulleret"
+        },
+        "title": "Ventende svar"
       },
       "observed": {
-        "title": "Observed activity",
-        "description": "Sessions and requests include IDs and metadata only; provider payloads are not shown.",
-        "refresh": "Refresh",
-        "sessions": "Sessions",
-        "noSessions": "No sessions observed.",
-        "requests": "Requests",
-        "noRequests": "No requests observed.",
+        "title": "Observeret aktivitet",
+        "refresh": "Opdater",
+        "sessions": "Sessioner",
+        "noSessions": "Ingen sessioner observeret.",
+        "requests": "Anmodninger",
+        "noRequests": "Ingen anmodninger observeret.",
         "requestKinds": {
-          "session_start": "Session started",
-          "user_prompt_submit": "Prompt submitted",
-          "permission_request": "Permission request",
-          "pre_tool_use": "Before tool use",
-          "post_tool_use": "After tool use",
+          "session_start": "Session startet",
+          "user_prompt_submit": "Prompt sendt",
+          "permission_request": "Tilladelsesanmodning",
+          "pre_tool_use": "Før værktøjsbrug",
+          "post_tool_use": "Efter værktøjsbrug",
           "stop": "Stop",
-          "notification": "Notification"
+          "notification": "Notifikation"
         },
-        "expires": "Expires {{time}}",
-        "allowExact": "Allow exactly this request",
-        "denyExact": "Deny exactly this request",
-        "dismiss": "Dismiss",
-        "ompPermissionObserveOnly": "OMP approval requests are observed only. Approve or deny them in OMP."
+        "expires": "Udløber {{time}}",
+        "allowExact": "Tillad præcis denne anmodning",
+        "denyExact": "Nægt præcis denne anmodning",
+        "dismiss": "Afvis",
+        "ompPermissionObserveOnly": "OMP-godkendelsesanmodninger bliver kun observeret. Godkend eller afvis dem i OMP."
       },
       "rules": {
-        "title": "Exact permission rules",
-        "description": "An allow or deny is stored only for the exact agent, project hash, tool, mode, and input hash that created it.",
-        "empty": "No permission rules.",
-        "remove": "Remove rule",
+        "title": "Præcise tilladelsesregler",
+        "empty": "Ingen tilladelsesregler.",
+        "remove": "Fjern regel",
         "decisions": {
-          "allow": "Allow",
-          "deny": "Deny"
+          "allow": "Tillad",
+          "deny": "Nægt"
         }
       },
       "errors": {
-        "load": "Agent bridge data could not be loaded: {{error}}",
-        "operation": "The agent bridge action could not be completed: {{error}}"
+        "load": "Data for agentbroen kunne ikke indlæses: {{error}}",
+        "operation": "Handlingen for agentbroen kunne ikke fuldføres: {{error}}"
       },
       "panel": {
-        "description": "Det svævende vindue, som agenter skriver til og læser svar fra.",
         "error": "Indstillingen for agentpanelet kunne ikke gemmes.",
         "label": "Aktivér agentpanel",
         "rowDescription": "Slås dette fra, lukkes panelvinduet, og Sona afviser alle anmodninger om at genåbne det.",
@@ -1803,27 +1590,22 @@
       "workspaceNavigation": "Agentbro-visninger"
     },
     "hub": {
-      "navigation": "Settings sections",
+      "navigation": "Indstillingssektioner",
       "tabs": {
-        "general": "General",
-        "privacy": "Privacy",
-        "agents": "Agents",
-        "advanced": "Advanced",
-        "about": "About",
-        "debug": "Debug"
+        "general": "Generelt",
+        "privacy": "Anonymitet",
+        "agents": "Agenter",
+        "advanced": "Avanceret",
+        "about": "Om",
+        "debug": "Fejlfinding"
       }
     },
     "vocabulary": {
       "replacements": {
         "title": "Talte erstatninger",
-        "description": "Vendinger, som Sona omskriver til præcis tekst. Ændringer her gælder kun fremtidige transkriptioner, aldrig tekst der allerede er skrevet.",
         "enabledLabel": "Aktivér talte erstatninger",
-        "enabledDescription": "Omskriv talte vendinger som snabel-a til symboler, før ordforrådskorrektionen kører.",
-        "offState": "Talte erstatninger er slået fra. Reglerne bliver gemt og gælder igen, så snart du slår dette til.",
         "spoken": "Du siger",
         "written": "Sona skriver",
-        "applyColumn": "Anvend",
-        "actionsColumn": "Handlinger",
         "spokenPlaceholder": "snabel-a",
         "writtenPlaceholder": "@",
         "add": "Tilføj regel",
@@ -1838,14 +1620,11 @@
           "incomplete": "Angiv både en talt vending og dens erstatning."
         },
         "empty": {
-          "title": "Ingen erstatninger",
-          "description": "Tilføj en vending som snabel-a, så skriver Sona @ hver gang du siger den.",
-          "action": "Gendan startreglerne"
+          "description": "Tilføj en vending som snabel-a, så skriver Sona @ hver gang du siger den."
         },
         "confirmDelete": {
           "title": "Slet {{spoken}}?",
-          "description": "Vendingen bliver ikke længere omskrevet i fremtidige transkriptioner. Tekst der allerede er skrevet, ændres ikke.",
-          "body": "{{spoken}} bliver lige nu {{written}}."
+          "description": "Vendingen bliver ikke længere omskrevet i fremtidige transkriptioner. Tekst der allerede er skrevet, ændres ikke."
         },
         "confirmReset": {
           "title": "Gendan standardreglerne?",
@@ -1856,20 +1635,17 @@
     "prompts": {
       "samples": {
         "title": "Skriveeksempler",
-        "description": "Eksempler på din egen skrivning. Tilstande, der omskriver en transkription, følger den tone.",
         "placeholder": "Indsæt et afsnit du selv har skrevet.",
         "sampleLabel": "Skriveeksempel {{number}}",
         "delete": "Slet eksempel {{number}}",
         "add": "Tilføj eksempel",
         "wordCount": "{{words}} af {{max}} ord",
         "overLimit": "{{words}} ord. Kun de første {{max}} bruges.",
-        "privacy": "Eksempler sendes kun derhen, hvor transkriptionen selv allerede går, og ingen andre steder. Der bruges op til {{max}} eksempler.",
+        "privacy": "Eksempler sendes kun derhen, hvor transkriptionen selv allerede går, og ingen andre steder.",
         "loading": "Indlæser eksempler",
         "loadError": "Kunne ikke indlæse eksemplerne.",
         "empty": {
-          "title": "Ingen eksempler endnu",
-          "description": "Indsæt et par afsnit du selv har skrevet, så følger omskrivningerne dit ordvalg, dine sætningslængder og din formalitet.",
-          "action": "Tilføj et eksempel"
+          "description": "Indsæt et par afsnit du selv har skrevet, så følger omskrivningerne dit ordvalg, dine sætningslængder og din formalitet."
         }
       }
     },
@@ -1877,7 +1653,6 @@
       "enabledLabel": "Vis hvilepillen",
       "enabledDescription": "Behold en lille pille på skærmen mellem diktater. Klik for at starte, højreklik for at skifte tilstand.",
       "positionLabel": "Hvilepillens placering",
-      "positionDescription": "Hvilken skærmkant hvilepillen sidder ved.",
       "positionTop": "Øverst",
       "positionBottom": "Nederst"
     }
@@ -1894,12 +1669,13 @@
     "copy": "Kopiér",
     "clear": "Ryd",
     "noOptionsFound": "Ingen muligheder fundet",
-    "save": "Save",
-    "saving": "Saving…",
-    "retry": "Retry",
+    "save": "Gem",
+    "saving": "Gemmer…",
+    "retry": "Prøv igen",
     "play": "Afspil",
     "pause": "Pause",
-    "seek": "Afspilningsposition"
+    "seek": "Afspilningsposition",
+    "resetSetting": "Nulstil {{name}}"
   },
   "commandPalette": {
     "open": "Søg",
@@ -1907,9 +1683,7 @@
     "navigation": "Navigation",
     "actions": "Handlinger",
     "noResults": "Ingen kommandoer fundet",
-    "navigate": "navigér",
-    "select": "vælg",
-    "newMeeting": "New meeting",
+    "newMeeting": "Nyt møde",
     "importAudio": "Transskriber fil",
     "openRecordings": "Åbn optagelsesmappe",
     "openAgent": "Åbn agent",
@@ -1950,12 +1724,10 @@
     "commandRewriteUnavailableTitle": "Omskrivning utilgængelig"
   },
   "appLanguage": {
-    "title": "Applikationssprog",
-    "description": "Skift sproget for Sona-grænsefladen"
+    "title": "Applikationssprog"
   },
   "theme": {
     "title": "Applikationstema",
-    "description": "Vælg om Sona skal følge dit systemtema eller forblive lyst eller mørkt",
     "options": {
       "system": "System",
       "light": "Lys",
@@ -1990,303 +1762,274 @@
     "dismiss": "Afvis"
   },
   "meetings": {
-    "title": "Meetings",
-    "description": "Capture, recover, and review meeting notes stored on this Mac.",
-    "loading": "Loading meetings…",
+    "title": "Møder",
+    "loading": "Indlæser møder…",
     "providers": {
       "zoom": "Zoom",
       "google_meet": "Google Meet",
       "microsoft_teams": "Microsoft Teams",
       "webex": "Webex",
-      "slack_huddle": "Slack huddle",
+      "slack_huddle": "Slack-huddle",
       "face_time": "FaceTime",
-      "configured_app": "Configured app"
+      "configured_app": "Konfigureret app"
     },
     "phases": {
-      "preflight": "Setup",
-      "starting": "Starting",
-      "capturing_recording": "Recording",
-      "capturing_pausing": "Pausing",
-      "capturing_paused": "Paused",
-      "capturing_resuming": "Resuming",
-      "stopping": "Stopping",
-      "processing": "Processing",
-      "review_ready": "Ready for review",
-      "recovery_required": "Recovery needed",
-      "deleting": "Deleting"
+      "preflight": "Forberedelse",
+      "starting": "Starter",
+      "capturing_recording": "Optagelse",
+      "capturing_pausing": "Sætter på pause",
+      "capturing_paused": "Sat på pause",
+      "capturing_resuming": "Genoptager",
+      "stopping": "Stopper",
+      "processing": "Behandling",
+      "review_ready": "Klar til gennemgang",
+      "recovery_required": "Gendannelse påkrævet",
+      "deleting": "Sletter"
     },
     "sources": {
-      "microphone": "Microphone",
-      "system_audio": "System audio"
+      "microphone": "Mikrofon",
+      "system_audio": "Systemlyd"
     },
     "availability": {
-      "available": "Available",
-      "permission_required": "Permission required",
-      "permission_denied": "Permission denied",
-      "device_unavailable": "Device unavailable",
-      "unsupported_platform": "Unsupported on this Mac",
-      "storage_unavailable": "Storage unavailable",
-      "unknown": "Checking"
+      "available": "Tilgængelig",
+      "permission_required": "Tilladelse påkrævet",
+      "permission_denied": "Adgang nægtet",
+      "device_unavailable": "Enhed utilgængelig",
+      "unsupported_platform": "Understøttes ikke på denne Mac",
+      "storage_unavailable": "Lager utilgængeligt",
+      "unknown": "Kontrollerer"
     },
     "health": {
-      "not_started": "Not started",
-      "starting": "Starting",
-      "healthy": "Healthy",
-      "paused": "Paused",
-      "degraded": "Degraded",
-      "failed": "Failed",
-      "stopped": "Stopped"
+      "not_started": "Ikke startet",
+      "starting": "Starter",
+      "healthy": "I orden",
+      "paused": "Sat på pause",
+      "degraded": "Forringet",
+      "failed": "Mislykkedes",
+      "stopped": "Stoppet"
     },
     "completeness": {
-      "not_started": "Not started",
-      "complete": "Complete",
-      "partial": "Partial"
+      "not_started": "Ikke startet",
+      "complete": "Fuldstændig",
+      "partial": "Delvis"
     },
     "processing": {
-      "pending": "Waiting for processing",
-      "running": "Processing",
-      "succeeded": "Ready",
-      "cancelled": "Processing cancelled",
+      "pending": "Venter på behandling",
+      "running": "Behandling",
+      "succeeded": "Klar",
+      "cancelled": "Behandlingen blev annulleret",
       "failed": {
-        "local_model_unavailable": "Local model unavailable",
-        "remote_unavailable": "Remote destination unavailable",
-        "engine_failure": "Processing failed",
-        "cancelled": "Processing cancelled"
+        "local_model_unavailable": "Lokal model utilgængelig",
+        "remote_unavailable": "Fjerndestination utilgængelig",
+        "engine_failure": "Behandlingen mislykkedes",
+        "cancelled": "Behandlingen blev annulleret"
       }
     },
     "actions": {
-      "back": "Back",
-      "delete": "Delete meeting",
-      "discard": "Discard",
+      "back": "Tilbage",
+      "delete": "Slet mødet",
+      "discard": "Kassér",
       "pause": "Pause",
-      "refresh": "Refresh",
-      "resume": "Resume",
-      "retry": "Try again",
+      "refresh": "Opdater",
+      "resume": "Genoptag",
+      "retry": "Prøv igen",
       "stop": "Stop"
     },
     "detected": {
-      "title": "Meeting detected",
-      "description": "Sona har bemærket, at en mødeapp er i brug.",
-      "mayBeActive": "A meeting may be active in {{provider}}."
+      "title": "Møde registreret",
+      "mayBeActive": "Der er muligvis et møde i gang i {{provider}}."
     },
     "setup": {
-      "captureSources": "Capture sources",
-      "captureSourcesDescription": "Each source stays separate so missing audio remains visible.",
-      "processing": "Processing route",
-      "localOnly": "Local only",
-      "defaultTitle": "Local notes",
+      "defaultTitle": "Lokale noter",
       "remoteUnavailable": "Fjernbehandling er ikke tilgængelig i denne build, så alle møder transskriberes og opsummeres på denne Mac."
     },
     "preflight": {
-      "storage": "Storage",
-      "storageAvailable": "Encrypted meeting storage is available.",
-      "storageUnavailable": "Encrypted meeting storage is unavailable.",
-      "localModel": "Local model",
-      "localModelDescription": "Processing remains local when a local model is available.",
-      "starting": "Starting visible capture…",
+      "storage": "Lager",
+      "storageAvailable": "Krypteret mødelager er tilgængeligt.",
+      "storageUnavailable": "Krypteret mødelager er ikke tilgængeligt.",
+      "localModel": "Lokal model",
+      "localModelDescription": "Behandlingen forbliver lokal, når en lokal model er tilgængelig.",
+      "starting": "Starter synlig optagelse…",
       "refreshing": "Kontrollerer…"
     },
     "consent": {
-      "continuePartial": "I want to continue with a partial meeting record.",
-      "acceptMissing": "I understand {{source}} is {{state}} and this meeting will be partial."
+      "continuePartial": "Jeg vil fortsætte med en ufuldstændig mødeoptagelse.",
+      "acceptMissing": "Jeg forstår, at {{source}} er {{state}}, og at dette møde bliver ufuldstændigt."
     },
     "live": {
-      "activeCapture": "Active capture",
-      "elapsed": "Elapsed",
-      "microphoneOnlyPartial": "Microphone only / Partial. System audio is unavailable or degraded.",
-      "partialCapture": "Partial capture. Review the gaps before relying on generated notes.",
-      "inputs": "Inputs",
-      "inputsDescription": "Source health is reported separately. Capture never fills missing intervals.",
+      "elapsed": "Forløbet",
+      "microphoneOnlyPartial": "Kun mikrofon / Delvis. Systemlyd er utilgængelig eller forringet.",
+      "partialCapture": "Delvis optagelse. Gennemgå hullerne, før du forlader dig på genererede noter.",
+      "inputs": "Indgange",
       "signal": "Signal",
-      "signalUnavailable": "{{source}} level is not reported by capture.",
-      "notReported": "Not reported",
-      "durabilityLag": "Durability lag",
-      "behind": "{{duration}} behind",
-      "progress": "Transcript progress",
-      "progressDescription": "Transcript timing is derived from committed segments, not a guessed model state.",
-      "transcript": "Transcript",
-      "transcriptThrough": "Transcript through {{time}}",
-      "noTranscriptCheckpoint": "No transcript checkpoint",
-      "asrLag": "ASR lag",
-      "storage": "Storage",
-      "storageHealthy": "Encrypted local storage is healthy.",
-      "storageUnavailable": "Storage needs attention.",
-      "processing": "Processing",
-      "manualNote": "Manual note",
-      "manualNoteDescription": "A note added now is anchored at {{time}}.",
-      "notePlaceholder": "Write a note for this moment",
-      "timestamp": "Timestamp {{time}}",
-      "addNote": "Add timestamped note"
+      "signalUnavailable": "Niveauet for {{source}} rapporteres ikke af optagelsen.",
+      "notReported": "Ikke rapporteret",
+      "durabilityLag": "Forsinkelse på varig lagring",
+      "behind": "{{duration}} bagud",
+      "progress": "Transskriptionens forløb",
+      "transcript": "Transskription",
+      "asrLag": "ASR-forsinkelse",
+      "storage": "Lager",
+      "storageHealthy": "Det krypterede lokale lager er i orden.",
+      "storageUnavailable": "Lageret kræver opmærksomhed.",
+      "processing": "Behandling",
+      "manualNote": "Manuel note",
+      "notePlaceholder": "Skriv en note til dette øjeblik",
+      "addNote": "Tilføj note med tidsstempel"
     },
     "recovery": {
-      "title": "Recover partial meetings",
-      "description": "These sessions were interrupted. Sona will not restart capture.",
-      "finalize": "Finalize partial"
+      "title": "Gendan delvise møder",
+      "finalize": "Færdiggør delvist"
     },
     "history": {
-      "title": "Meeting history",
-      "description": "Open a local meeting record to inspect its capture coverage and notes.",
-      "loading": "Loading meeting history…",
-      "emptyTitle": "No meetings yet",
-      "emptyDescription": "Start local notes when you are ready to capture a meeting."
+      "title": "Mødehistorik",
+      "loading": "Indlæser mødehistorik…",
+      "emptyTitle": "Ingen møder endnu"
     },
     "retention": {
-      "title": "Retention",
-      "description": "Sona deletes eligible local meeting records through the same verified deletion path.",
-      "forever": "Keep until I delete it",
-      "days": "Delete after {{days}} days",
+      "title": "Opbevaring",
+      "description": "Sona sletter de berørte lokale mødeoptegnelser via den samme verificerede sletningssti.",
+      "forever": "Behold, indtil jeg sletter det",
+      "days": "Slet efter {{days}} dage",
       "loading": "Læser den aktuelle politik…"
     },
     "receipts": {
-      "title": "Correction receipt",
-      "saved": "Saved locally.",
-      "savedRevision": "Saved locally. Revision {{revision}}.",
-      "duplicate": "This action was already recorded. Sona refreshed the existing result."
+      "title": "Korrektionskvittering",
+      "saved": "Gemt lokalt.",
+      "savedRevision": "Gemt lokalt. Version {{revision}}.",
+      "duplicate": "Denne handling er allerede registreret. Sona opdaterede det eksisterende resultat."
     },
     "reasons": {
-      "consent_missing": "Recording acknowledgement is required.",
-      "consent_stale": "Setup changed before this action.",
-      "stale_revision": "This meeting changed in another window.",
-      "capture_lease_busy": "Another meeting capture is active.",
-      "source_unavailable": "A requested source is unavailable.",
-      "source_start_failed": "A source could not start.",
-      "source_gap": "A source reported a gap.",
-      "storage_unavailable": "Encrypted meeting storage is unavailable.",
-      "storage_failure": "Storage could not persist this change.",
-      "local_model_unavailable": "A local model is unavailable.",
-      "recovery_required": "This meeting needs recovery.",
-      "deleted": "This meeting was deleted.",
-      "invalid_transition": "This action is not available in the current phase.",
-      "duplicate_operation": "This action was already recorded."
+      "consent_missing": "Optagelsessamtykke er påkrævet.",
+      "consent_stale": "Opsætningen blev ændret før denne handling.",
+      "stale_revision": "Dette møde blev ændret i et andet vindue.",
+      "capture_lease_busy": "En anden mødeoptagelse er aktiv.",
+      "source_unavailable": "En anmodet kilde er utilgængelig.",
+      "source_start_failed": "En kilde kunne ikke starte.",
+      "source_gap": "En kilde rapporterede et hul.",
+      "storage_unavailable": "Krypteret mødelager er ikke tilgængeligt.",
+      "storage_failure": "Lageret kunne ikke gemme denne ændring.",
+      "local_model_unavailable": "Der er ingen lokal model tilgængelig.",
+      "recovery_required": "Dette møde skal gendannes.",
+      "deleted": "Dette møde blev slettet.",
+      "invalid_transition": "Denne handling er ikke tilgængelig i den nuværende fase.",
+      "duplicate_operation": "Denne handling er allerede registreret."
     },
     "gaps": {
-      "source_unavailable": "Source unavailable",
-      "source_start_failed": "Source start failed",
-      "permission_lost": "Permission lost",
-      "paused": "Paused",
-      "packet_dropped": "Audio packet dropped",
-      "writer_pressure": "Storage writer pressure",
-      "storage_failure": "Storage failure",
-      "timestamp_missing": "Timestamp missing",
-      "timestamp_discontinuity": "Timestamp discontinuity",
-      "invalid_format": "Invalid audio format",
-      "source_stopped": "Source stopped",
-      "corrupt_record": "Corrupt record",
-      "missing_record": "Missing record",
-      "recovery_tail": "Recovery tail",
-      "system_sleep": "Mac sleep"
+      "source_unavailable": "Kilden er utilgængelig",
+      "source_start_failed": "Kilden kunne ikke startes",
+      "permission_lost": "Tilladelse mistet",
+      "paused": "Sat på pause",
+      "packet_dropped": "Lydpakke mistet",
+      "writer_pressure": "Skrivepres på lageret",
+      "storage_failure": "Lagerfejl",
+      "timestamp_missing": "Tidsstempel mangler",
+      "timestamp_discontinuity": "Tidsstempelbrud",
+      "invalid_format": "Ugyldigt lydformat",
+      "source_stopped": "Kilden stoppede",
+      "corrupt_record": "Beskadiget post",
+      "missing_record": "Manglende post",
+      "recovery_tail": "Gendannelsesrest",
+      "system_sleep": "Mac på vågeblus"
     },
     "errors": {
-      "load": "Sona could not load the current meeting data.",
+      "load": "Sona kunne ikke indlæse de aktuelle mødedata.",
       "operation": "Kunne ikke gennemføre den mødehandling. Prøv igen.",
-      "operationRejected": "The meeting action was rejected.",
-      "consent_required": "Confirm the recording acknowledgement before starting.",
-      "consent_stale": "The setup changed. Review it again before starting.",
-      "invalid_transition": "This action is unavailable in the current meeting phase.",
-      "stale_revision": "This meeting changed in another window. Sona refreshed its snapshot.",
-      "capture_lease_busy": "Another meeting is already capturing audio.",
-      "no_source_started": "No approved audio source started.",
-      "source_unavailable": "A requested audio source is unavailable.",
-      "storage_unavailable": "Encrypted meeting storage is unavailable.",
-      "recovery_required": "This meeting needs recovery before that action.",
-      "deletion_in_progress": "Deletion is already in progress. The meeting remains inaccessible.",
-      "not_found": "This meeting is no longer available.",
-      "invalid_request": "The meeting request was invalid.",
-      "export_cancelled": "Export was cancelled. No completed export was created.",
-      "export_failed": "Export failed. No completed export was created.",
-      "local_model_unavailable": "A local model is unavailable for this meeting.",
-      "remote_unavailable": "The selected remote destination is unavailable."
+      "operationRejected": "Mødehandlingen blev afvist.",
+      "consent_required": "Bekræft optagelsessamtykket, før du starter.",
+      "consent_stale": "Opsætningen er ændret. Gennemgå den igen, før du starter.",
+      "invalid_transition": "Denne handling er ikke tilgængelig i mødets nuværende fase.",
+      "stale_revision": "Dette møde blev ændret i et andet vindue. Sona opdaterede sit øjebliksbillede.",
+      "capture_lease_busy": "Et andet møde optager allerede lyd.",
+      "no_source_started": "Ingen godkendt lydkilde blev startet.",
+      "source_unavailable": "En anmodet lydkilde er utilgængelig.",
+      "storage_unavailable": "Krypteret mødelager er ikke tilgængeligt.",
+      "recovery_required": "Dette møde skal gendannes før den handling.",
+      "deletion_in_progress": "Sletningen er allerede i gang. Mødet forbliver utilgængeligt.",
+      "not_found": "Dette møde er ikke længere tilgængeligt.",
+      "invalid_request": "Mødeanmodningen var ugyldig.",
+      "export_cancelled": "Eksporten blev annulleret. Der blev ikke oprettet en færdig eksport.",
+      "export_failed": "Eksporten mislykkedes. Der blev ikke oprettet en færdig eksport.",
+      "local_model_unavailable": "Der er ingen lokal model tilgængelig for dette møde.",
+      "remote_unavailable": "Den valgte fjerndestination er utilgængelig."
     },
     "discard": {
-      "liveTitle": "Stop and discard this session?",
-      "liveDescription": "Sona will stop capture and delete the local meeting record.",
-      "keepRecording": "Keep recording",
-      "stopAndDiscard": "Stop and discard",
-      "explainsData": "Audio, transcript, manual notes, generated notes, and local answer caches will be deleted. This cannot be undone.",
-      "complete": "Session discarded"
+      "liveTitle": "Stop og kassér denne session?",
+      "keepRecording": "Behold optagelsen",
+      "stopAndDiscard": "Stop og kassér",
+      "explainsData": "Lyd, transskription, manuelle noter, genererede noter og lokale svarcacher slettes. Dette kan ikke fortrydes.",
+      "complete": "Session kasseret"
     },
     "delete": {
-      "title": "Delete this meeting?",
-      "description": "Sona will delete the local meeting record and its derived data.",
-      "explainsData": "Sona keeps the meeting inaccessible while verified deletion finishes. Exports and remote copies are outside local deletion.",
-      "complete": "Meeting deleted"
+      "title": "Slet dette møde?",
+      "explainsData": "Sona holder mødet utilgængeligt, mens den bekræftede sletning fuldføres. Eksporter og fjernkopier er ikke omfattet af lokal sletning.",
+      "complete": "Mødet blev slettet"
     },
     "review": {
-      "meetingTitle": "Meeting title",
-      "noStartTime": "This meeting did not record a start time.",
-      "started": "Started {{date}}",
-      "status": "Capture status",
-      "statusDescription": "Coverage, source health, and processing remain separate.",
-      "timeline": "Audio timeline and gaps",
-      "timelineDescription": "Gaps name intervals where no audio was captured.",
-      "gap": "Gap",
-      "timeUnknown": "Unknown time",
-      "noGaps": "No capture gaps were reported.",
-      "transcript": "Transcript",
-      "transcriptDescription": "Edits create a new canonical revision. Derived notes and answers become out of date.",
-      "noTranscript": "No transcript is available.",
-      "transcriptSegment": "Transcript segment",
-      "removeSegment": "Remove segment",
-      "unknownSpeaker": "Unknown speaker",
-      "speakers": "Speakers",
-      "speakersDescription": "Rename or merge local speaker labels without rewriting timing.",
-      "noSpeakers": "No speaker labels are available.",
-      "speakerName": "Speaker name",
-      "mergeSource": "Merge this speaker",
-      "mergeTarget": "Into this speaker",
-      "merge": "Merge speakers",
-      "manualNotes": "Manual notes",
-      "manualNotesDescription": "Manual notes are user-owned and remain separate from generated notes.",
-      "manualNote": "Manual note",
-      "newNote": "New manual note",
-      "notePlaceholder": "Add a manual note",
-      "addNote": "Add note",
-      "noNotes": "No manual notes yet.",
-      "noTimestamp": "No timestamp",
-      "timestamp": "Timestamp {{time}}",
-      "generatedNotes": "Generated notes",
-      "generatedNotesDescription": "Regeneration uses the current canonical revision and does not overwrite manual notes or confirmed corrections.",
-      "regenerate": "Regenerate",
-      "remoteCancellationPending": "Remote cancellation is pending. Local deletion does not claim the remote copy is deleted.",
-      "cancelRemote": "Cancel remote processing",
+      "meetingTitle": "Mødetitel",
+      "noStartTime": "Dette møde registrerede ikke et starttidspunkt.",
+      "started": "Startet {{date}}",
+      "status": "Optagelsesstatus",
+      "timeline": "Lydtidslinje og huller",
+      "timeUnknown": "Ukendt tidspunkt",
+      "noGaps": "Der blev ikke rapporteret nogen huller i optagelsen.",
+      "transcript": "Transskription",
+      "noTranscript": "Der er ingen transskription tilgængelig.",
+      "transcriptSegment": "Transskriptionssegment",
+      "removeSegment": "Fjern segment",
+      "unknownSpeaker": "Ukendt taler",
+      "speakers": "Talere",
+      "noSpeakers": "Der er ingen talerbetegnelser tilgængelige.",
+      "speakerName": "Talernavn",
+      "mergeSource": "Flet denne taler",
+      "mergeTarget": "Med denne taler",
+      "merge": "Flet talere sammen",
+      "manualNotes": "Manuelle noter",
+      "manualNote": "Manuel note",
+      "newNote": "Ny manuel note",
+      "notePlaceholder": "Tilføj en manuel note",
+      "addNote": "Tilføj note",
+      "noNotes": "Endnu ingen manuelle noter.",
+      "noTimestamp": "Intet tidsstempel",
+      "timestamp": "Tidsstempel {{time}}",
+      "generatedNotes": "Genererede noter",
+      "regenerate": "Regenerér",
+      "remoteCancellationPending": "Fjernannulleringen afventer stadig. Lokal sletning hævder ikke, at fjernkopien er slettet.",
+      "cancelRemote": "Annuller fjernbehandling",
       "remoteCancellationRequested": "Annullering anmodet",
-      "export": "Export",
-      "exportDescription": "Each export uses an immutable local review snapshot and opens a native save dialog.",
-      "exportMarkdown": "Export Markdown",
-      "exportJson": "Export JSON",
+      "export": "Eksportér",
+      "exportMarkdown": "Eksportér Markdown",
+      "exportJson": "Eksportér JSON",
       "exportComplete": "Mødet eksporteret",
-      "citation": "Transcript {{time}}",
-      "noGeneratedNotes": "No generated notes are available yet.",
-      "template": "Template: {{template}}",
-      "artifactRevision": "Template v{{templateVersion}} · source revision {{revision}}",
-      "summary": "Summary",
-      "topics": "Topics",
-      "none": "None",
-      "decisions": "Decisions",
-      "actions": "Action items",
-      "keyQuestions": "Key questions",
-      "risks": "Risks",
-      "followUp": "Follow-up",
-      "artifactUnavailable": "This generated revision is unavailable. The source transcript and manual notes remain local.",
-      "actionMeta": "Owner: {{owner}} · Due: {{due}}",
-      "unassigned": "Unassigned",
-      "noDueDate": "No due date",
-      "questions": "Ask this meeting",
-      "questionsDescription": "Answers use only this local meeting and cite the supporting transcript.",
-      "questionPlaceholder": "Ask a question about this meeting",
-      "ask": "Ask locally",
-      "noQuestions": "No saved local answers.",
-      "question": "Question",
-      "insufficientEvidence": "No supporting passage was found in this meeting.",
-      "forget": "Forget this answer",
-      "exactSearch": "Exact search",
-      "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
-      "searchPlaceholder": "Search this meeting",
-      "search": "Search",
-      "noSearchResults": "No exact local matches.",
+      "citation": "Transskription {{time}}",
+      "noGeneratedNotes": "Der er endnu ingen genererede noter tilgængelige.",
+      "template": "Skabelon: {{template}}",
+      "summary": "Resumé",
+      "topics": "Emner",
+      "none": "Ingen",
+      "decisions": "Beslutninger",
+      "actions": "Handlingspunkter",
+      "keyQuestions": "Vigtige spørgsmål",
+      "risks": "Risici",
+      "followUp": "Opfølgning",
+      "artifactUnavailable": "Denne genererede version er utilgængelig. Kildetransskriptionen og de manuelle noter forbliver lokale.",
+      "actionMeta": "Ansvarlig: {{owner}} · Frist: {{due}}",
+      "unassigned": "Ikke tildelt",
+      "noDueDate": "Ingen frist",
+      "questions": "Spørg dette møde",
+      "questionsDescription": "Svarene bruger kun dette lokale møde og citerer den understøttende transskription.",
+      "questionPlaceholder": "Stil et spørgsmål om dette møde",
+      "ask": "Spørg lokalt",
+      "noQuestions": "Ingen gemte lokale svar.",
+      "question": "Spørgsmål",
+      "insufficientEvidence": "Der blev ikke fundet nogen understøttende passage i dette møde.",
+      "forget": "Glem dette svar",
+      "exactSearch": "Præcis søgning",
+      "searchPlaceholder": "Søg i dette møde",
+      "search": "Søg",
+      "noSearchResults": "Ingen præcise lokale match.",
       "askUnavailable": "Spørgsmål kræver en færdig lokal transskription.",
       "asking": "Spørger dette møde…",
-      "captured": "Optaget {{time}}",
       "droppedFrames": "Tabte frames: {{total}}",
       "hitKind": {
         "manualNote": "Manuel note",
@@ -2311,17 +2054,12 @@
     },
     "ledger": {
       "title": "Register",
-      "description": "Hvert emne i dette møde, hvor det landede, og det citat fra transskriptionen, tilstanden blev læst ud af. Tal er målt; tilstande er udledt.",
       "emptyTitle": "Der er endnu ikke læst et register ud af dette møde",
       "emptyDescription": "Registeret skrives sammen med de genererede noter. Generér noterne igen for at læse denne samtale som emner.",
       "exportHtml": "Eksportér registerside",
       "exported": "Register skrevet til {{path}}",
       "exportMissing": "Dette møde har intet register at eksportere. Generér noterne igen først.",
       "statThreads": "Emner afklaret",
-      "statOpen": "Åbne",
-      "statDropped": "Droppede",
-      "statCommitments": "Tilsagn",
-      "statOpenLoops": "Åbne spørgsmål",
       "statReceipts": "Citater",
       "receiptsVerified": "verificeret",
       "receiptsDegraded": "{{threads}} emner og {{commitments}} tilsagn fjernet",
@@ -2359,40 +2097,26 @@
       }
     },
     "artifactState": {
-      "current": "Current",
-      "out_of_date": "Out of date",
-      "failed": "Generation failed"
+      "current": "Aktuel",
+      "out_of_date": "Forældet",
+      "failed": "Generering mislykkedes"
     },
     "answerState": {
-      "supported": "Supported",
-      "insufficient_evidence": "Insufficient evidence",
-      "unavailable": "Unavailable",
-      "out_of_date": "Out of date",
-      "forgotten": "Forgotten"
+      "supported": "Underbygget",
+      "insufficient_evidence": "Utilstrækkeligt grundlag",
+      "unavailable": "Utilgængelig",
+      "out_of_date": "Forældet",
+      "forgotten": "Glemt"
     },
     "diarization": {
-      "not_requested": "Diarization not requested",
-      "model_unavailable": "Diarization model unavailable",
-      "downloading": "Downloading diarization model",
-      "running": "Separating speakers",
-      "succeeded": "Speaker assignments current",
-      "failed": "Speaker separation failed"
-    },
-    "trends": {
-      "title": "Meeting activity",
-      "loading": "Loading meeting trends…",
-      "error": "Couldn't load meeting trends.",
-      "unavailable": "Meeting trends are unavailable.",
-      "metricLabel": "Metric",
-      "metrics": {
-        "meetings": "Meetings",
-        "duration": "Captured time",
-        "transcript": "Transcript segments",
-        "actions": "Action items"
-      }
+      "not_requested": "Talerseparering ikke anmodet",
+      "model_unavailable": "Model til talerseparering utilgængelig",
+      "downloading": "Downloader model til talerseparering",
+      "running": "Adskiller talere",
+      "succeeded": "Talertildelinger er aktuelle",
+      "failed": "Talersepareringen mislykkedes"
     },
     "list": {
-      "retentionHint": "Opbevaring: {{policy}}. Skift den i Settings > Privacy.",
       "searchLabel": "Søg i møder",
       "searchPlaceholder": "Søg efter titel",
       "clearFilters": "Ryd filtre",
@@ -2413,7 +2137,7 @@
         "words": "{{count}} ord transskriberet"
       },
       "sourceGlyph": {
-        "microphone": "MIC",
+        "microphone": "MIK",
         "system_audio": "SYS"
       },
       "filters": {
@@ -2450,17 +2174,13 @@
     },
     "gate": {
       "title": "Optagelsen startede ikke",
-      "description": "Sona oprettede mødet, men en kilde den skulle optage er utilgængelig.",
       "readyTitle": "Klar til optagelse",
-      "readyDescription": "Intet blokerer optagelsen af dette møde.",
       "recordAnyway": "Optag uden den",
       "recordAnywayHint": "Optagelsen markeres som delvis, og den manglende kilde står stadig nævnt i den."
     },
     "analytics": {
       "title": "Samtale",
-      "description": "Målt på denne Mac ud fra transkriptionen med taleradskillelse. Intet sendes nogen steder.",
       "noSpeech": "Der blev ikke transkriberet nogen tale, så der er intet at måle.",
-      "talkShare": "Taler mest",
       "longestMonologue": "Længste monolog",
       "patience": "Tålmodighed",
       "patienceDetail": "Medianpausen før svar",
@@ -2475,7 +2195,6 @@
       "noHits": "Ikke omtalt",
       "jumpToFirst": "Vis første",
       "trackersTitle": "Nøgleordssporinger",
-      "trackersDescription": "Vendinger, der holdes øje med i hver mødetranskription. Matchningen er ordret og ser bort fra store og små bogstaver, og hver gennemgang kører på denne Mac.",
       "addTracker": "Tilføj sporing",
       "removeTracker": "Fjern sporing",
       "noTrackers": "Ingen sporinger endnu. Tilføj en for at begynde at tælle, hvor ofte en vending optræder.",
@@ -2487,7 +2206,6 @@
     "notes": {
       "title": "Mine noter",
       "liveDescription": "Skriv så råt du vil. Disse noter bliver på denne Mac og styrer de noter, Sona laver, når mødet slutter.",
-      "reviewDescription": "Dine egne noter styrer, hvad de genererede noter fremhæver. De bliver aldrig citeret eller henvist til.",
       "placeholder": "Alt der er værd at huske: navne, tal, hvad der skal følges op på",
       "unsaved": "Ikke gemt endnu",
       "saving": "Gemmer…",
@@ -2495,7 +2213,6 @@
       "conflict": "Disse noter blev ændret et andet sted. Åbn mødet igen for at indlæse den aktuelle version.",
       "reenhance": "Forbedr igen med mine noter",
       "enhancing": "Genopbygger…",
-      "enhanced": "Noterne genopbygget.",
       "enhanceFailed": "Sona kunne ikke genopbygge noterne. Åbn mødet igen og prøv forfra.",
       "catchUp": "Giv mig et resumé",
       "catchingUp": "Laver resumé…",
@@ -2509,11 +2226,11 @@
         "interview": "Jobsamtale",
         "sales_call": "Salgsopkald",
         "standup": "Standup"
-      }
+      },
+      "template": "Skabelon"
     },
     "detection": {
       "title": "Registrér møder",
-      "description": "Sona holder øje med opkald og tilbyder at tage noter. Den optager aldrig af sig selv.",
       "loading": "Læser registreringstilstand…",
       "prompt": {
         "calendar": "{{title}} begynder",
@@ -2531,21 +2248,17 @@
       },
       "pane": {
         "title": "Begynder snart",
-        "description": "Sona optager ikke, før du starter det her.",
-        "countdown": "Begynder om {{seconds}} s",
-        "notYetRecording": "Optager ikke"
+        "countdown": "Begynder om {{seconds}} s"
       },
       "calendar": {
         "label": "Brug min kalender",
         "description": "Viser en nedtælling et minut før begivenheder med to eller flere deltagere. macOS beder om fuld kalenderadgang første gang, fordi Apple ikke tilbyder en læseadgang alene."
       },
       "anyMic": {
-        "label": "Spørg ved al mikrofonbrug",
-        "description": "Omfatter talememoer, musikapps og alt andet, der åbner mikrofonen. Slået fra holder beskederne til kendte mødeapps."
+        "label": "Spørg ved al mikrofonbrug"
       },
       "autoStart": {
-        "label": "Åbn mødet, når dets nedtælling vises",
-        "description": "Springer notifikationen over, når en begivenhed begynder, mens du allerede ser på dens nedtælling. Du bekræfter stadig, hvad der optages."
+        "label": "Åbn mødet, når dets nedtælling vises"
       },
       "apps": {
         "label": "Mødeapps",
@@ -2555,7 +2268,6 @@
       },
       "state": {
         "title": "Hvad registreringen kan se",
-        "description": "Registreringen er stille det meste af tiden. Det er derfor.",
         "calendarDenied": "Kalenderadgang blev ikke givet, så kun mikrofonvejen kører.",
         "notificationsDenied": "Notifikationer er slået fra for Sona, så beskeder vises kun i appen.",
         "bluetoothCaveat": "En mødeapp er åben, men intet melder om mikrofonbrug. Bluetooth-headset gør ofte ikke det, så start mødet selv, hvis et er i gang.",
@@ -2623,14 +2335,12 @@
   },
   "agentPanel": {
     "open": "Agent",
-    "loading": "Forbinder…",
     "retry": "Prøv igen",
     "cancel": "Annullér",
     "apply": "Anvend",
     "undo": "Fortryd",
     "panelToggle": "Luk agentpanelet",
     "conversationLabel": "Samtale",
-    "proposalLabel": "Foreslåede ændringer",
     "proposalTitle": "Foreslåede ændringer",
     "empty": "Spørg om Sona-indstillinger. Forslag vises her til gennemsyn, før noget ændres.",
     "inputPlaceholder": "Spørg om Sona…",
@@ -2647,92 +2357,16 @@
       "error": "Agentpanelet er utilgængeligt."
     }
   },
-  "analytics": {
-    "range": {
-      "label": "Range",
-      "days_7": "7 days",
-      "days_30": "30 days",
-      "days_180": "6 months"
-    },
-    "delta": {
-      "new": "New",
-      "flat": "No change",
-      "unavailable": "Unavailable",
-      "change": "{{value}} vs previous period"
-    },
-    "duration": {
-      "minutes": "{{value}} min",
-      "hours": "{{value}} h"
-    },
-    "chart": {
-      "description": "{{metric}} for {{range}}",
-      "empty": "No activity yet"
-    }
-  },
   "overview": {
-    "sources": {
-      "title": "Sources",
-      "description": "Where the recordings in this range came from.",
-      "microphone": "Microphone",
-      "file": "File import",
-      "legacy": "Legacy",
-      "empty": "No recordings in this range.",
-      "meetings": "Møder",
-      "meetingsUnavailable": "Mødelageret er ikke tilgængeligt, så møder tælles ikke med her."
-    },
-    "recent": {
-      "title": "Recent activity",
-      "history": "Dictation",
-      "meeting": "Meeting",
-      "viewAll": "Se alle",
-      "words": "{{count}} ord",
-      "emptyRange": "Ingen dikteringer eller møder i de seneste 30 dage.",
-      "failedCommand": "{{command}} mislykkedes",
-      "failedCommandWithDetail": "{{command}} mislykkedes: {{detail}}"
-    },
     "hero": {
-      "ready": "Ready",
-      "recording": "Listening",
-      "newMeeting": "New meeting",
-      "importAudio": "Import audio",
-      "mode": "Tilstand: {{name}}",
-      "setShortcut": "Angiv en dikteringsgenvej i Indstillinger for at optage fra enhver app.",
-      "setShortcutAction": "Angiv en genvej",
+      "ready": "Klar",
+      "recording": "Lytter",
+      "newMeeting": "Nyt møde",
+      "importAudio": "Importér lyd",
+      "gestureTapHold": "tryk for at skifte · hold for at tale",
+      "gestureTapOnly": "tryk for at skifte",
       "shortcutAction": "Ændr dikteringsgenvejen",
-      "gestureTapHold": "Tryk for at skifte, hold for at tale.",
-      "gestureTapOnly": "Tryk for at skifte."
-    },
-    "actions": {
-      "dictate": "Dictate",
-      "unavailable": "Shortcut unavailable"
-    },
-    "chart": {
-      "day": "{{date}} · dikteringer {{dictations}}",
-      "dayWithMeetings": "{{date}} · dikteringer {{dictations}} · møder {{meetings}}",
-      "legend": "Dikteringer pr. dag",
-      "peak": "Travleste dag {{peak}}",
-      "summary": "Dikteringer pr. dag fra {{from}} til {{to}}. I alt {{total}}, travleste dag {{peak}}."
-    },
-    "empty": {
-      "action": "Åbn bibliotek",
-      "description": "Hold din dikteringsgenvej nede i en hvilken som helst app, og Sona skriver det, du siger. Din brugsstatistik og seneste optagelser vises her efter den første diktering.",
-      "title": "Ingen optagelser endnu"
-    },
-    "stats": {
-      "activeDays": "{{active}} af {{total}} dage aktive",
-      "allTime": "{{total}} i alt",
-      "dictations": "Dikteringer",
-      "dictationsAllTime": "Dikteringer, samlet",
-      "error": "Sona kunne ikke læse din brugshistorik.",
-      "range": "{{from}} til {{to}}",
-      "rangeUnavailable": "De sidste 30 dage kunne ikke læses, så dette er samlede totaler.",
-      "speaking": "Taletid",
-      "speakingAllTime": "Taletid, samlet",
-      "streak": "Aktuel stime",
-      "tiles": "Brugsoversigt",
-      "title": "Aktivitet",
-      "words": "Ord",
-      "wordsAllTime": "Ord, samlet"
+      "setShortcutAction": "Angiv en genvej"
     },
     "update": {
       "available": "Sona {{latest}} er tilgængelig. Denne installation kører {{current}}.",
@@ -2740,122 +2374,98 @@
       "failed": "Kunne ikke søge efter opdateringer.",
       "failedWithReason": "Kunne ikke søge efter opdateringer: {{reason}}",
       "view": "Se udgivelse"
-    },
-    "instrument": {
-      "label": "Optageinstrumenter",
-      "engine": "Motor",
-      "input": "Indgang",
-      "shortcut": "Genvej",
-      "mode": "Tilstand",
-      "loaded": "indlæst",
-      "unloaded": "ikke indlæst",
-      "notMeasured": "ikke målt",
-      "unbound": "ikke angivet",
-      "gestureTapHold": "tryk · hold",
-      "gestureTap": "tryk",
-      "channel": "ch {{channel}}",
-      "channels": "{{count}} ch",
-      "rate": "{{kilohertz}} kHz",
-      "systemDefault": "Systemstandard",
-      "decode": "afkodning {{factor}}"
     }
   },
   "cloudSync": {
-    "title": "Cloud Sync",
     "account": {
-      "title": "Cloud Sync",
-      "description": "Meetings stay on this device until you set up sync.",
+      "title": "Cloud-synkronisering",
       "status": {
-        "loading": "Checking sync…",
-        "local": "Local only",
-        "ready": "Sync active",
-        "paused": "Sync paused",
-        "attention": "Sync needs attention",
-        "unavailable": "Sync unavailable"
+        "loading": "Kontrollerer…",
+        "local": "Kun lokalt",
+        "ready": "Aktiv",
+        "paused": "Sat på pause",
+        "attention": "Kræver opmærksomhed",
+        "unavailable": "Utilgængelig"
       },
-      "pending": "{{count}} pending",
-      "pause": "Pause sync",
-      "resume": "Resume sync"
-    },
-    "disclosure": {
-      "title": "Set up or recover sync",
-      "description": "Connect an endpoint or pair another device.",
-      "notice": "Setup is optional. Meeting data stays local until you complete it."
+      "pending": "{{count}} afventer",
+      "pause": "Sæt synkronisering på pause",
+      "resume": "Genoptag synkronisering"
     },
     "setup": {
-      "title": "Set up a sync account",
-      "endpoint": "Endpoint",
-      "bootstrapSecret": "Bootstrap secret",
-      "submit": "Set up sync"
+      "title": "Opsæt en synkroniseringskonto",
+      "endpoint": "Slutpunkt",
+      "bootstrapSecret": "Bootstrap-hemmelighed",
+      "submit": "Opsæt synkronisering"
     },
     "recovery": {
-      "title": "Recover a sync account",
-      "code": "Recovery code",
-      "submit": "Recover account",
-      "generatedCode": "Save this recovery code now",
-      "oneTime": "Sona shows this code once and does not store it."
+      "title": "Gendan en synkroniseringskonto",
+      "code": "Gendannelseskode",
+      "submit": "Gendan konto",
+      "generatedCode": "Gem denne gendannelseskode nu",
+      "oneTime": "Sona viser denne kode én gang og gemmer den ikke."
     },
     "pairing": {
-      "title": "Pair a device",
-      "vaultId": "Vault ID",
-      "createOffer": "Create pairing offer",
-      "currentOffer": "Pairing offer",
-      "approve": "Approve this offer",
-      "receivedOffer": "Offer from another device",
-      "accept": "Accept offer"
+      "title": "Par en enhed",
+      "vaultId": "Boks-ID",
+      "createOffer": "Opret parringstilbud",
+      "currentOffer": "Parringstilbud",
+      "approve": "Godkend dette tilbud",
+      "receivedOffer": "Tilbud fra en anden enhed",
+      "accept": "Accepter tilbud"
     },
     "errors": {
-      "portable_unavailable": "Cloud Sync is unavailable in portable mode.",
-      "secret_unavailable": "The native secure store is unavailable.",
-      "setup_required": "Set up Cloud Sync before using this action.",
-      "auth_required": "Cloud sign-in is required.",
-      "quota": "Cloud storage quota has been reached.",
-      "integrity_failure": "The cloud operation could not be verified.",
-      "conflict": "This meeting has a sync conflict.",
-      "unsupported_protocol": "This device does not support the cloud protocol.",
-      "transient": "Cloud Sync is temporarily unavailable.",
-      "invalid_expiry": "Choose a future expiry.",
-      "invalid_offer": "The pairing offer is incomplete or invalid.",
-      "unexpected": "The cloud operation failed."
+      "portable_unavailable": "Cloud-synkronisering er utilgængelig i portabel tilstand.",
+      "secret_unavailable": "Systemets sikre lager er utilgængeligt.",
+      "setup_required": "Opsæt Cloud-synkronisering, før du bruger denne handling.",
+      "auth_required": "Cloud-login er påkrævet.",
+      "quota": "Kvoten for cloud-lagring er nået.",
+      "integrity_failure": "Cloud-handlingen kunne ikke bekræftes.",
+      "conflict": "Dette møde har en synkroniseringskonflikt.",
+      "unsupported_protocol": "Denne enhed understøtter ikke cloud-protokollen.",
+      "transient": "Cloud-synkronisering er midlertidigt utilgængelig.",
+      "invalid_expiry": "Vælg en udløbsdato i fremtiden.",
+      "invalid_offer": "Parringstilbuddet er ufuldstændigt eller ugyldigt.",
+      "unexpected": "Cloud-handlingen mislykkedes."
     },
     "meeting": {
-      "title": "Cloud Sync",
+      "title": "Cloud-synkronisering",
       "status": {
-        "loading": "Checking sync…",
-        "local": "Local only",
-        "queued": "Queued",
-        "uploading": "Uploading",
-        "committed": "Synced",
-        "conflict": "Conflict",
-        "pending_deletion": "Removal pending",
-        "deleted": "Removed",
-        "paused": "Paused",
-        "auth_required": "Sign-in required",
-        "quota": "Quota reached",
-        "integrity_failure": "Verification failed",
-        "unavailable": "Sync unavailable"
+        "loading": "Kontrollerer synkronisering…",
+        "local": "Kun lokalt",
+        "queued": "I kø",
+        "uploading": "Uploader",
+        "committed": "Synkroniseret",
+        "conflict": "Konflikt",
+        "pending_deletion": "Fjernelse afventer",
+        "deleted": "Fjernet",
+        "paused": "Sat på pause",
+        "auth_required": "Login påkrævet",
+        "quota": "Kvote nået",
+        "integrity_failure": "Bekræftelse mislykkedes",
+        "unavailable": "Synkronisering utilgængelig"
       },
-      "shareCount": "{{count}} shares",
-      "retryScheduled": "Retry scheduled",
-      "retry": "Retry sync",
-      "keepLocal": "Keep this device's copy",
-      "useRemote": "Use the cloud copy",
-      "expiresAt": "Share expiry",
+      "shareCount": "Delinger: {{count}}",
+      "retryScheduled": "Nyt forsøg planlagt",
+      "retry": "Prøv synkronisering igen",
+      "keepLocal": "Behold denne enheds kopi",
+      "useRemote": "Brug cloud-kopien",
+      "expiresAt": "Delingens udløb",
       "bundle": {
-        "fileFilter": "Sona share",
-        "export": "Export .sona file",
-        "import": "Import .sona file",
-        "exported": "Saved to {{path}}",
-        "imported": "Imported meeting {{sessionId}}"
+        "fileFilter": "Sona-deling",
+        "export": "Eksportér .sona-fil",
+        "import": "Importér .sona-fil",
+        "exported": "Gemt i {{path}}",
+        "imported": "Mødet {{sessionId}} blev importeret"
       },
       "browser": {
-        "create": "Create browser share",
-        "revoke": "Revoke browser share"
+        "create": "Opret browserdeling",
+        "revoke": "Tilbagekald browserdeling",
+        "revokeConfirm": "Alle med dette link mister adgang i det øjeblik, du tilbagekalder det."
       }
     }
   },
   "topNav": {
-    "capture": "Capture",
-    "library": "Library"
+    "capture": "Optagelse",
+    "library": "Bibliotek"
   }
 }

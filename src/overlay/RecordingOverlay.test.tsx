@@ -58,6 +58,14 @@ const LEVELS = [
   0.55,
 ];
 
+/* A quiet room, one frame: real reported buckets, every one of them below the
+ * top of the visualiser's calibrated speech window (~0.77 there against ~1.0
+ * clamped for dictation). This is the frame that must NOT read as speech. */
+const ROOM_TONE = [
+  0.31, 0.42, 0.58, 0.55, 0.49, 0.61, 0.44, 0.52, 0.38, 0.47, 0.5, 0.36, 0.29,
+  0.33, 0.27, 0.24,
+];
+
 interface HudCase {
   hud: HudPhase;
   levels?: number[];
@@ -272,6 +280,27 @@ describe("the compact HUD is a mark and a meter, and nothing else", () => {
     const markup = render({ hud: "listening", levels: LEVELS });
     expect(markup).toContain("hud-listening");
     expect(markup).toContain("swave ready snap-measured");
+  });
+
+  /* One colour event on this whole surface. The bars are ink until a reported
+   * bucket reaches the top of the visualiser's calibrated speech range, and
+   * then they are the accent — which is the entire "is it hearing me" answer
+   * the HUD exists to give, and why nothing else here is allowed an accent. */
+  test("the accent means speech, and only a reported bucket can claim it", () => {
+    expect(render({ hud: "listening", levels: LEVELS })).toContain(
+      'class="swave ready snap-measured hearing"',
+    );
+
+    // A humming room reports real buckets the whole time and stays ink.
+    const quiet = render({ hud: "listening", levels: ROOM_TONE });
+    expect(quiet).toContain('class="swave ready snap-measured"');
+    expect(quiet.includes("hearing")).toBe(false);
+
+    // An opening stream has no buckets yet and a running transcriber reports
+    // none at all, so neither can tint the row on a stale frame.
+    for (const hud of ["starting", "transcribing", "processing"] as const) {
+      expect(render({ hud, levels: LEVELS }).includes("hearing")).toBe(false);
+    }
   });
 
   /* The one state that could lie. Working has no reported bucket behind it, so

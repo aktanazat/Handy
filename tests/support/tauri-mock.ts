@@ -178,12 +178,41 @@ export function installMockedRuntime(payload: MockPayload): void {
     notes: userNotes(),
   });
 
+  /* The panel's quiet-but-healthy snapshot: relay paired and reachable, panel
+   * attached, nothing in flight. `relayStatusToPhase` (src/agent-panel/
+   * AgentPanelApp.tsx:24-41) maps ready + no turn + no proposal to the `idle`
+   * phase, which is the only state a browser can reach — the mock answers
+   * `plugin:event|listen` with an id and then emits nothing, so no turn or
+   * proposal lifecycle ever advances on its own. A spec that needs one supplies
+   * it through `responses`. Shapes are AgentPanelStatusV1 in src/bindings.ts. */
+  const agentPanel = () => ({
+    invalidation_id: 1,
+    relay_status: "ready",
+    panel_open: true,
+    conversation: [],
+    turn: null,
+    proposal: null,
+    geometry: {
+      x: 0,
+      y: 0,
+      outer_width: 380,
+      outer_height: 640,
+      attachment: "right",
+      compact: false,
+    },
+  });
+
   const defaults = new Map<string, JsonValue>([
     ["get_app_settings", payload.settings],
     ["get_settings", payload.settings],
     ["get_default_settings", payload.settings],
     ["get_modes", payload.modes],
     ["plugin:os|platform", "macos"],
+    /* getVersion() feeds the What's New gate and the About page. Unanswered it
+       resolves to null, and the gate then logs "Failed to load release notes"
+       from a version parse that never sees a string. Kept in step with
+       src-tauri/tauri.conf.json's version. */
+    ["plugin:app|version", "1.0.0"],
     ["plugin:event|listen", 1],
     ["plugin:event|unlisten", null],
     ["get_available_microphones", []],
@@ -311,6 +340,49 @@ export function installMockedRuntime(payload: MockPayload): void {
      * whether native vibrancy applied and writes `data-material` itself, so the
      * command answers with nothing. */
     ["change_appearance_material_setting", null],
+
+    /* Agent panel (/agent-panel). Every commands.agentPanel* call site branches
+     * on the `{ status: "ok" | "error" }` result shape, so an unmocked command
+     * falling through to `return null` is a crash on `result.data.relay_status`,
+     * not a graceful miss. All seven status commands answer with the same idle
+     * snapshot except for the field each one actually moves. */
+    ["agent_panel_status", agentPanel()],
+    ["agent_panel_open", agentPanel()],
+    ["agent_panel_close", { ...agentPanel(), panel_open: false }],
+    /* Post-enqueue, which is what the backend returns before any turn event:
+     * the panel goes to the `running` phase and stays there, because nothing
+     * here emits agent-panel://turn-changed. */
+    [
+      "agent_panel_send_turn",
+      {
+        ...agentPanel(),
+        turn: {
+          turn_id: "agent-panel-turn-1",
+          state: "queued",
+          event_cursor: 0,
+        },
+      },
+    ],
+    [
+      "agent_panel_cancel_turn",
+      {
+        ...agentPanel(),
+        turn: {
+          turn_id: "agent-panel-turn-1",
+          state: "canceled",
+          event_cursor: 1,
+        },
+      },
+    ],
+    /* Both resolve the pending proposal, so the snapshot comes back with none.
+     * A spec that needs the applied/undone preview — to reach the undo
+     * affordance — supplies its own AgentPanelProposalPreviewV1. */
+    ["agent_panel_apply_change", agentPanel()],
+    ["agent_panel_undo_change", agentPanel()],
+    [
+      "agent_panel_public_identity",
+      { key_id: "agent-panel-key-1", public_key: "0".repeat(64) },
+    ],
   ]);
 
   const invoke = async (command: string): Promise<JsonValue> => {

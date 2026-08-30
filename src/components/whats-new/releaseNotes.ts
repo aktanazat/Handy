@@ -1,3 +1,5 @@
+import { RELEASE_NOTE_MARKDOWN } from "@/content/release-notes";
+
 export interface ReleaseNote {
   version: string;
   markdown: string;
@@ -13,15 +15,6 @@ interface FindReleaseNoteOptions {
   lastSeenVersion: string;
 }
 
-const releaseNoteModules = import.meta.glob<string>(
-  "../../content/release-notes/*.md",
-  {
-    eager: true,
-    import: "default",
-    query: "?raw",
-  },
-);
-
 const releaseNotesByVersion = new Map<string, ReleaseNoteRecord>();
 
 const parseVersion = (version: string): [number, number, number] | null => {
@@ -32,18 +25,12 @@ const parseVersion = (version: string): [number, number, number] | null => {
   return [Number(match[1]), Number(match[2]), Number(match[3])];
 };
 
-for (const [path, markdown] of Object.entries(releaseNoteModules)) {
-  const match = path.match(/release-notes\/([^/]+)\.md$/);
-  if (!match) continue;
-
-  const version = match[1];
-
+/* A version key that is not a semver triple is not a release note — the map is
+ * hand-maintained, so a typo drops the entry instead of reaching the modal. */
+for (const [version, markdown] of Object.entries(RELEASE_NOTE_MARKDOWN)) {
   if (!parseVersion(version)) continue;
 
-  releaseNotesByVersion.set(version, {
-    version,
-    markdown,
-  });
+  releaseNotesByVersion.set(version, { version, markdown });
 }
 
 const compareVersions = (a: string, b: string) => {

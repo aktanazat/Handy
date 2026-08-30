@@ -1,7 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { type } from "@tauri-apps/plugin-os";
-import { SettingsGroup } from "@/components/ui";
+import { SettingsPage, SettingsSection } from "@/components/settings/rows";
 import { useSettings } from "../../../hooks/useSettings";
 import { AppLanguageSelector } from "../AppLanguageSelector";
 import { CommandMode } from "../CommandMode";
@@ -29,51 +29,33 @@ export const GeneralSettings: React.FC = () => {
   const isLinux = type() === "linux";
 
   return (
-    <div className="settings-page">
-      <header className="settings-page-header">
-        <h1 className="settings-page-title">{t("settings.general.title")}</h1>
-        <p className="settings-page-description">
-          {t(
-            "settings.general.description",
-            "The keys you press, the microphone Sona listens to, and how the app looks.",
-          )}
-        </p>
-      </header>
-
+    <SettingsPage title={t("settings.general.title")}>
       {/* The command chord sits with the switch that registers it, so turning
        * the feature off visibly takes its shortcut row with it. */}
-      <SettingsGroup title={t("settings.general.shortcut.title")}>
-        <ShortcutInput shortcutId="transcribe" grouped />
-        <PushToTalk grouped />
-        {!isLinux && !pushToTalk && (
-          <ShortcutInput shortcutId="cancel" grouped />
-        )}
-        <CommandMode grouped />
-        {commandModeEnabled && <ShortcutInput shortcutId="command" grouped />}
-      </SettingsGroup>
+      <SettingsSection label={t("settings.general.shortcut.title")}>
+        <ShortcutInput shortcutId="transcribe" />
+        <PushToTalk />
+        {!isLinux && !pushToTalk && <ShortcutInput shortcutId="cancel" />}
+        <CommandMode />
+        {commandModeEnabled && <ShortcutInput shortcutId="command" />}
+      </SettingsSection>
 
       <ModelSettingsCard />
 
-      <SettingsGroup title={t("settings.sound.title")}>
-        <MicrophoneSelector grouped />
-        <ChannelSelector grouped />
-        <MuteWhileRecording grouped />
-        <AudioFeedback grouped />
-        <OutputDeviceSelector grouped disabled={!audioFeedbackEnabled} />
+      <SettingsSection label={t("settings.sound.title")}>
+        <MicrophoneSelector />
+        <ChannelSelector />
+        <MuteWhileRecording />
+        <AudioFeedback />
+        <OutputDeviceSelector disabled={!audioFeedbackEnabled} />
         <VolumeSlider disabled={!audioFeedbackEnabled} />
-      </SettingsGroup>
+      </SettingsSection>
 
-      <SettingsGroup
-        title={t("settings.general.appearance.title", "Appearance")}
-        description={t(
-          "settings.general.appearance.description",
-          "Interface language and color scheme. Both apply immediately.",
-        )}
-      >
-        <AppLanguageSelector grouped />
-        <ThemeSelector grouped />
-        <MaterialSelector grouped />
-      </SettingsGroup>
-    </div>
+      <SettingsSection label={t("settings.general.appearance.title")}>
+        <AppLanguageSelector />
+        <ThemeSelector />
+        <MaterialSelector />
+      </SettingsSection>
+    </SettingsPage>
   );
 };

@@ -16,7 +16,8 @@ const allowlist = allowlistSchema.parse(
 );
 const ignoredDirectories = [
   ".git/",
-  "dist/",
+  ".next/",
+  "out/",
   "node_modules/",
   "src-tauri/binaries/",
   "src-tauri/target/",

@@ -1,62 +1,27 @@
-import React from "react";
+import React, { useId } from "react";
 import { useTranslation } from "react-i18next";
 import { useSettings } from "../../hooks/useSettings";
 import { commands, type ModelUnloadTimeout } from "@/bindings";
-import { Dropdown, type DropdownOption } from "../ui/Dropdown";
-import { SettingContainer } from "../ui/SettingContainer";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/vg/select";
+import { SettingsRow } from "./rows";
 
-interface ModelUnloadTimeoutProps {
-  descriptionMode?: "tooltip" | "inline";
-  grouped?: boolean;
-}
+type TimeoutOption = { value: ModelUnloadTimeout; label: string };
 
-export const ModelUnloadTimeoutSetting: React.FC<ModelUnloadTimeoutProps> = ({
-  descriptionMode = "inline",
-  grouped = false,
-}) => {
+export const ModelUnloadTimeoutSetting: React.FC = () => {
   const { t } = useTranslation();
   const { settings, getSetting, updateSetting } = useSettings();
+  const id = useId();
 
-  const timeoutOptions: DropdownOption<ModelUnloadTimeout>[] = [
-    {
-      value: "never",
-      label: t("settings.advanced.modelUnload.options.never"),
-    },
-    {
-      value: "immediately",
-      label: t("settings.advanced.modelUnload.options.immediately"),
-    },
-    {
-      value: "min2",
-      label: t("settings.advanced.modelUnload.options.min2"),
-    },
-    {
-      value: "min5",
-      label: t("settings.advanced.modelUnload.options.min5"),
-    },
-    {
-      value: "min10",
-      label: t("settings.advanced.modelUnload.options.min10"),
-    },
-    {
-      value: "min15",
-      label: t("settings.advanced.modelUnload.options.min15"),
-    },
-    {
-      value: "hour1",
-      label: t("settings.advanced.modelUnload.options.hour1"),
-    },
-  ];
-
-  const debugTimeoutOptions: DropdownOption<ModelUnloadTimeout>[] = [
-    ...timeoutOptions,
-    {
-      value: "sec15",
-      label: t("settings.advanced.modelUnload.options.sec15"),
-    },
-  ];
-
-  const handleChange = async (newTimeout: ModelUnloadTimeout) => {
+  const handleChange = async (value: string) => {
+    /* SAFETY: the items below are exactly the ModelUnloadTimeout values, and a
+       Radix select can only report an item's own value. */
+    const newTimeout = value as ModelUnloadTimeout;
     try {
       await commands.setModelUnloadTimeout(newTimeout);
       updateSetting("model_unload_timeout", newTimeout);
@@ -65,24 +30,49 @@ export const ModelUnloadTimeoutSetting: React.FC<ModelUnloadTimeoutProps> = ({
     }
   };
 
-  const currentValue = getSetting("model_unload_timeout") ?? "never";
+  /* Spelled out rather than mapped over the union: a static key per option is
+   * what the en-bundle test can actually see. */
+  const options: TimeoutOption[] = [
+    { value: "never", label: t("settings.advanced.modelUnload.options.never") },
+    {
+      value: "immediately",
+      label: t("settings.advanced.modelUnload.options.immediately"),
+    },
+    { value: "min2", label: t("settings.advanced.modelUnload.options.min2") },
+    { value: "min5", label: t("settings.advanced.modelUnload.options.min5") },
+    { value: "min10", label: t("settings.advanced.modelUnload.options.min10") },
+    { value: "min15", label: t("settings.advanced.modelUnload.options.min15") },
+    { value: "hour1", label: t("settings.advanced.modelUnload.options.hour1") },
+  ];
 
-  const options =
-    settings?.debug_mode === true ? debugTimeoutOptions : timeoutOptions;
+  // 15 seconds is only useful for watching an unload happen.
+  if (settings?.debug_mode === true) {
+    options.push({
+      value: "sec15",
+      label: t("settings.advanced.modelUnload.options.sec15"),
+    });
+  }
 
   return (
-    <SettingContainer
-      title={t("settings.advanced.modelUnload.title")}
-      description={t("settings.advanced.modelUnload.description")}
-      descriptionMode={descriptionMode}
-      grouped={grouped}
+    <SettingsRow
+      label={t("settings.advanced.modelUnload.title")}
+      controlId={id}
     >
-      <Dropdown<ModelUnloadTimeout>
-        options={options}
-        selectedValue={currentValue}
-        onSelect={handleChange}
-        disabled={false}
-      />
-    </SettingContainer>
+      <Select
+        value={getSetting("model_unload_timeout") ?? "never"}
+        onValueChange={(value) => void handleChange(value)}
+      >
+        <SelectTrigger id={id} size="sm" className="w-50">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </SettingsRow>
   );
 };

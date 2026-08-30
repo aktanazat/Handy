@@ -2,7 +2,9 @@ import React, { useMemo, useState } from "react";
 import type { ComponentType } from "react";
 import { useTranslation } from "react-i18next";
 import { useSettings } from "@/hooks/useSettings";
-import { Tabs, type TabItem } from "@/components/ui";
+import { cn } from "@/lib/cn";
+import { PAGE_COLUMN } from "./rows";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/vg/tabs";
 import { GeneralSettings } from "./general/GeneralSettings";
 import { PrivacySettings } from "./privacy/PrivacySettings";
 import { AgentsSettings } from "./agents/AgentsSettings";
@@ -35,10 +37,13 @@ const BASE_TABS: readonly SettingsTab[] = [
   "about",
 ];
 
-/* One panel element is reused across tabs, so every tab points `aria-controls`
- * at the same id and the panel names the tab that filled it. */
-const PANEL_ID = "settings-tabpanel";
-
+/* The strip is a hairline the width of the window with an underline mark under
+ * the active tab. Its labels sit on the same 760px column as the page below,
+ * so the first tab and the page title share a left edge.
+ *
+ * The mark is the kit's own `line` variant, not a hand-rolled bottom border:
+ * that variant parks its bar one pixel under the list, which is exactly where
+ * this container's hairline is, so the mark reads as a break in the rule. */
 export const SettingsHub: React.FC = () => {
   const { t } = useTranslation();
   const { settings } = useSettings();
@@ -48,36 +53,42 @@ export const SettingsHub: React.FC = () => {
     [settings?.debug_mode],
   );
   const visibleTab = tabs.includes(activeTab) ? activeTab : "general";
-  const items = useMemo<TabItem[]>(
-    () =>
-      tabs.map((tab) => ({
-        id: tab,
-        label: t(`settings.hub.tabs.${tab}`),
-        panelId: PANEL_ID,
-      })),
-    [tabs, t],
-  );
-  const ActiveSettings = TAB_COMPONENTS[visibleTab];
 
   return (
-    <div className="settings-hub">
-      <div className="pb-2">
-        <Tabs
-          variant="secondary"
-          items={items}
-          value={visibleTab}
-          onChange={(id) => {
-            const next = tabs.find((tab) => tab === id);
-            if (next) setActiveTab(next);
-          }}
-          label={t("settings.hub.navigation")}
-        />
+    <Tabs
+      data-testid="settings-hub"
+      value={visibleTab}
+      onValueChange={(id) => {
+        const next = tabs.find((tab) => tab === id);
+        if (next) setActiveTab(next);
+      }}
+      className="gap-0"
+    >
+      <div className="border-b border-gray-alpha-400">
+        <TabsList
+          variant="line"
+          aria-label={t("settings.hub.navigation")}
+          className={cn(PAGE_COLUMN, "justify-start gap-6")}
+        >
+          {tabs.map((tab) => (
+            <TabsTrigger
+              key={tab}
+              value={tab}
+              className="flex-none px-0 text-sm font-normal text-gray-900 hover:text-gray-1000 focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none data-[state=active]:text-gray-1000 after:bg-gray-1000"
+            >
+              {t(`settings.hub.tabs.${tab}`)}
+            </TabsTrigger>
+          ))}
+        </TabsList>
       </div>
-      {/* Every panel holds focusable controls, so the panel itself stays out
-       * of the tab order rather than becoming an extra stop. */}
-      <div id={PANEL_ID} role="tabpanel" aria-labelledby={`tab-${visibleTab}`}>
-        <ActiveSettings />
-      </div>
-    </div>
+      {tabs.map((tab) => {
+        const ActiveSettings = TAB_COMPONENTS[tab];
+        return (
+          <TabsContent key={tab} value={tab}>
+            <ActiveSettings />
+          </TabsContent>
+        );
+      })}
+    </Tabs>
   );
 };

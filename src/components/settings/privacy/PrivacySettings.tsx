@@ -26,20 +26,30 @@ import {
   CLOUD_STT_PROVIDERS,
   cloudSttProviderHasCurrentConsent,
 } from "@/lib/cloudStt";
+import { cn } from "@/lib/cn";
+import { Button } from "@/components/vg/button";
+import { Checkbox } from "@/components/vg/checkbox";
+import { Input } from "@/components/vg/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/vg/select";
+import { Switch } from "@/components/vg/switch";
+import { ToggleGroup, ToggleGroupItem } from "@/components/vg/toggle-group";
+import {
+  FactChip,
+  Notice,
+  SettingsCard,
+  SettingsField,
+  SettingsPage,
+  SettingsRow,
+  SettingsSection,
+} from "@/components/settings/rows";
 import { AppDataDirectory } from "../AppDataDirectory";
 import { CloudSyncPanel } from "../../cloud-sync/CloudSyncPanel";
-import {
-  Alert,
-  Button,
-  Dropdown,
-  Input,
-  SettingContainer,
-  SettingsGroup,
-  StatusText,
-  Tabs,
-  ToggleSwitch,
-  type StatusTone,
-} from "@/components/ui";
 import { MeetingRetentionSettings } from "../meetings/MeetingRetention";
 import {
   useCloudSyncServiceStatus,
@@ -53,24 +63,16 @@ const CONTEXT_POLICIES = [
   "full",
 ] as const satisfies readonly ContextPolicy[];
 
-/* The per-source rows in the diagnostics group, in capture order, with the
- * English fallback for each. The keys are harvested at integration; the
- * wording mirrors the Rust doc comments on ContextDiagnostics. */
-const CONTEXT_SOURCE_DETAILS = {
-  target_identity: "The frontmost application's name and identifier.",
-  focused_field: "The contents of the focused control.",
-  selected_text: "The current selection.",
-  browser_url: "The frontmost browser's page URL.",
-  clipboard: "Recently changed clipboard text.",
-} as const;
-
+/* The per-source rows in the diagnostics section, in capture order. Each row
+ * is a name and a status word: the prose that used to restate the name from
+ * the Rust doc comments is gone. */
 const CONTEXT_SOURCES = [
   "target_identity",
   "focused_field",
   "selected_text",
   "browser_url",
   "clipboard",
-] as const satisfies readonly (keyof typeof CONTEXT_SOURCE_DETAILS)[];
+] as const satisfies readonly (keyof ContextDiagnostics)[];
 
 const RETENTION_OPTIONS = [
   "never",
@@ -541,22 +543,156 @@ const PrivacySettingsPage: React.FC<{ model: PrivacySettingsModel }> = ({
   const { t } = useTranslation();
 
   return (
-    <div className="settings-page">
-      <header className="settings-page-header">
-        <h1 className="settings-page-title">{t("settings.privacy.title")}</h1>
-        <p className="settings-page-description">
-          {t("settings.privacy.description")}
-        </p>
-      </header>
-      {/* Ordered by how far the data travels: what Sona reads from other
-       * apps, then what leaves the machine, then what stays on disk. */}
+    <SettingsPage title={t("settings.privacy.title")}>
+      {/* Ordered by how far the data travels: the egress card answers the one
+       * question this page exists for, then what Sona reads from other apps,
+       * then what this build can actually read, then what stays on disk. */}
+      <PrivacyEgress model={model} />
       <PrivacyContextSettings model={model} />
-      <PrivacyCloudTranscription model={model} />
-      <PrivacyCloudSync />
-      <PrivacyDataSettings model={model} />
       <PrivacyDiagnostics model={model} />
+      <PrivacyDataSettings model={model} />
+      {/* Setup, recovery and pairing stay collapsed: they are a one-time
+       * task, and they must not read as a switch that is simply off. */}
+      <CloudSyncPanel />
       <PrivacyUpstreamImport model={model} />
+    </SettingsPage>
+  );
+};
+
+/** A failure and the one control that clears it, on one line — not a box. */
+const FailureNotice: React.FC<{
+  children: React.ReactNode;
+  onRetry?: () => void;
+  retryDisabled?: boolean;
+  className?: string;
+}> = ({ children, onRetry, retryDisabled, className }) => {
+  const { t } = useTranslation();
+
+  return (
+    <div
+      className={cn("flex flex-wrap items-baseline gap-x-3 gap-y-1", className)}
+    >
+      <Notice tone="danger">{children}</Notice>
+      {onRetry ? (
+        <Button
+          variant="link"
+          size="xs"
+          className="h-auto px-0 text-red-900"
+          onClick={onRetry}
+          disabled={retryDisabled}
+        >
+          {t("common.retry")}
+        </Button>
+      ) : null}
     </div>
+  );
+};
+
+/** A status word, in the mono type every measurement on this page is set in. */
+const MonoState: React.FC<{
+  className?: string;
+  live?: boolean;
+  children: React.ReactNode;
+}> = ({ className, live = false, children }) => (
+  <span
+    aria-live={live ? "polite" : undefined}
+    className={cn(
+      "font-mono text-[11px] uppercase tracking-[0.12em]",
+      className,
+    )}
+  >
+    {children}
+  </span>
+);
+
+/* The page in four lines: one sentence that holds regardless of settings, then
+ * one mono fact per route that can carry anything off this Mac. Every other
+ * reassurance paragraph that used to be scattered through the sections below
+ * collapsed into here, and nothing below restates it. */
+const PrivacyEgress: React.FC<{ model: PrivacySettingsModel }> = ({
+  model,
+}) => {
+  const { t } = useTranslation();
+  const service = useCloudSyncServiceStatus();
+  const status = service.value;
+  const thisMac = t("settings.privacy.egress.thisMac");
+
+  return (
+    <SettingsCard className="flex flex-col gap-3 px-4 py-3.5">
+      <p className="text-[13px] leading-5 text-gray-900">
+        {t("settings.privacy.egress.assurance")}
+      </p>
+      {/* A route whose state could not be read shows no fact at all: a chip
+       * reading "this Mac" would be a guess, and this is the one page that
+       * cannot guess. */}
+      <div aria-live="polite" className="flex flex-col gap-1.5">
+        <FactChip
+          label={t("settings.privacy.egress.routes.cleanup")}
+          value={
+            model.cloudRoutePending
+              ? "…"
+              : model.configuredCloudProviders.length > 0
+                ? model.configuredCloudProviders.join(", ")
+                : thisMac
+          }
+        />
+        {model.cloudSttRouteError ? null : (
+          <FactChip
+            label={t("settings.privacy.cloudTranscription.title")}
+            value={
+              model.checkingCloudSttRoutes
+                ? "…"
+                : model.cloudSttDisclosureProviders.length > 0
+                  ? model.cloudSttDisclosureProviders
+                      .map((provider) => t(provider.labelKey))
+                      .join(", ")
+                  : thisMac
+            }
+          />
+        )}
+        {/* The chip names the ROUTE — which provider, or this Mac. This names
+         * the PAYLOAD, and it is the one sentence in the app that itemises
+         * what actually leaves the machine — so while a cloud route exists it
+         * is read, not hovered, the same standing the meetings assurance has.
+         * With no cloud route there is nothing leaving and nothing to say. */}
+        {model.cloudSttRouteError ||
+        model.cloudSttDisclosureProviders.length === 0 ? null : (
+          <p className="text-[13px] leading-5 text-gray-900">
+            {t("settings.privacy.cloudTranscription.disclosure")}
+          </p>
+        )}
+        {service.phase === "failed" ? null : (
+          <FactChip
+            label={t("settings.privacy.cloudSync.title", "Cloud sync")}
+            value={
+              status === null
+                ? "…"
+                : status.configured
+                  ? (status.endpoint ??
+                    t("settings.privacy.cloudSync.configured", "Configured"))
+                  : t(
+                      "settings.privacy.cloudSync.notConfigured",
+                      "Not configured",
+                    )
+            }
+          />
+        )}
+      </div>
+      {model.cloudSttRouteError ? (
+        <FailureNotice onRetry={model.retryCloudSttRoutes}>
+          {t("settings.privacy.cloudTranscription.checkFailed")}
+        </FailureNotice>
+      ) : null}
+      {service.phase === "failed" ? (
+        <FailureNotice onRetry={service.reload}>
+          {t(
+            "settings.privacy.cloudSync.checkFailed",
+            "Sona could not read the cloud sync configuration.",
+          )}
+          {service.error === null ? "" : ` ${service.error}`}
+        </FailureNotice>
+      ) : null}
+    </SettingsCard>
   );
 };
 
@@ -566,173 +702,88 @@ const PrivacyContextSettings: React.FC<{
   const { t } = useTranslation();
 
   return (
-    <SettingsGroup
-      title={t("settings.privacy.context.title")}
-      description={t("settings.privacy.context.description")}
-    >
-      <SettingContainer
-        grouped
-        layout="stacked"
-        title={t("settings.privacy.context.ceiling.label")}
-        description={t("settings.privacy.context.ceiling.description")}
-      >
+    <SettingsSection label={t("settings.privacy.context.title")}>
+      <SettingsField label={t("settings.privacy.context.ceiling.label")}>
         {/* The one segmented primitive, same as Library's Processed/Raw and
          * the Material control: a bordered track whose active segment is
          * filled. Four sibling radio chips were a second convention. */}
-        <Tabs
-          variant="secondary"
-          items={CONTEXT_POLICIES.map((policy) => ({
-            id: policy,
-            label: t("settings.privacy.context.ceiling.values." + policy),
-            disabled: model.ceilingUpdating,
-          }))}
+        <ToggleGroup
+          type="single"
+          variant="outline"
+          size="sm"
           value={model.contextCeiling}
-          onChange={(id) =>
-            /* SAFETY: ids are CONTEXT_POLICIES members verbatim. */
-            void model.changeContextCeiling(id as ContextPolicy)
-          }
-          label={t("settings.privacy.context.ceiling.label")}
-        />
-      </SettingContainer>
-      <SettingContainer
-        grouped
-        layout="stacked"
-        title={t("settings.privacy.context.sources.title")}
-        description={t("settings.privacy.context.sources.description")}
-      >
-        {/* Aligned two-column definition list: ragged terms made the four
-         * disclosures read as prose instead of a table of levels. */}
-        <ul className="space-y-1.5 text-sm text-text-secondary">
-          {CONTEXT_POLICIES.map((policy) => (
-            <li key={policy} className="flex gap-2">
-              <span className="w-20 shrink-0 font-medium text-text-primary">
-                {t("settings.privacy.context.ceiling.values." + policy)}
-              </span>
-              <span>{t("settings.privacy.context.sources." + policy)}</span>
-            </li>
-          ))}
-        </ul>
-      </SettingContainer>
-      <ToggleSwitch
-        grouped
-        checked={model.contextUrlCaptureEnabled}
-        onChange={(enabled) =>
-          void model.changeContextUrlCaptureEnabled(enabled)
-        }
-        isUpdating={model.urlCaptureUpdating}
-        label={t("settings.privacy.context.urlCapture.label")}
-        description={t("settings.privacy.context.urlCapture.description")}
-      />
-      {model.urlCaptureError ? (
-        <Alert contained variant="error">
-          {model.urlCaptureError}
-        </Alert>
-      ) : null}
-      {model.ceilingError ? (
-        <Alert contained variant="error">
-          {t("settings.privacy.context.ceiling.error")}: {model.ceilingError}
-        </Alert>
-      ) : null}
-      <div className="py-1">
-        <StatusText live="polite">
-          {model.cloudRoutePending
-            ? t("settings.privacy.context.checkingRoute")
-            : model.configuredCloudProviders.length > 0
-              ? t("settings.privacy.context.cloudRoute", {
-                  providers: model.configuredCloudProviders.join(", "),
-                })
-              : t("settings.privacy.context.localRoute")}
-        </StatusText>
-      </div>
-    </SettingsGroup>
-  );
-};
-
-const PrivacyCloudTranscription: React.FC<{
-  model: PrivacySettingsModel;
-}> = ({ model }) => {
-  const { t } = useTranslation();
-
-  return (
-    <SettingsGroup
-      title={t("settings.privacy.cloudTranscription.title")}
-      description={t("settings.privacy.cloudTranscription.description")}
-    >
-      {model.checkingCloudSttRoutes ? (
-        <div className="py-3">
-          <StatusText live="polite">
-            {t("settings.privacy.cloudTranscription.checking")}
-          </StatusText>
-        </div>
-      ) : model.cloudSttRouteError ? (
-        <Alert
-          contained
-          variant="error"
-          action={
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={model.retryCloudSttRoutes}
-            >
-              {t("common.retry")}
-            </Button>
-          }
+          aria-label={t("settings.privacy.context.ceiling.label")}
+          onValueChange={(next) => {
+            /* Radix clears the value when the active segment is pressed
+             * again, and a ceiling has no empty state: only a real member
+             * reaches the command. */
+            const ceiling = CONTEXT_POLICIES.find((policy) => policy === next);
+            if (ceiling) void model.changeContextCeiling(ceiling);
+          }}
         >
-          {t("settings.privacy.cloudTranscription.checkFailed")}
-        </Alert>
-      ) : model.cloudSttDisclosureProviders.length > 0 ? (
-        <>
-          <div className="py-3">
-            <p className="text-[13px] leading-5 text-text-secondary">
-              {t("settings.privacy.cloudTranscription.disclosure")}
-            </p>
-          </div>
-          {model.cloudSttDisclosureProviders.map((provider) => (
-            <SettingContainer
-              key={provider.provider}
-              grouped
-              title={t(provider.labelKey)}
-              description={t(
-                "settings.privacy.cloudTranscription.providerDetail",
-                { provider: t(provider.labelKey) },
-              )}
+          {CONTEXT_POLICIES.map((policy) => (
+            <ToggleGroupItem
+              key={policy}
+              value={policy}
+              disabled={model.ceilingUpdating}
             >
-              <StatusText tone="warning">
-                {t("settings.privacy.cloudTranscription.inUse", "In use")}
-              </StatusText>
-            </SettingContainer>
+              {t("settings.privacy.context.ceiling.values." + policy)}
+            </ToggleGroupItem>
           ))}
-        </>
-      ) : (
-        <div className="py-3">
-          <StatusText>
-            {t("settings.privacy.cloudTranscription.localOnly")}
-          </StatusText>
-        </div>
-      )}
-    </SettingsGroup>
+        </ToggleGroup>
+        {/* What the selected level reads: a consequence of the choice above,
+         * where the old four-row table restated all four labels. */}
+        <Notice className="mt-2">
+          {t("settings.privacy.context.sources." + model.contextCeiling)}
+        </Notice>
+      </SettingsField>
+      {model.ceilingError ? (
+        <FailureNotice className="px-4 py-2.5">
+          {`${t("settings.privacy.context.ceiling.error")}: ${model.ceilingError}`}
+        </FailureNotice>
+      ) : null}
+      <SettingsRow
+        label={t("settings.privacy.context.urlCapture.label")}
+        hint={t("settings.privacy.context.urlCapture.description")}
+        controlId="privacy-url-capture"
+      >
+        <Switch
+          id="privacy-url-capture"
+          checked={model.contextUrlCaptureEnabled}
+          disabled={model.urlCaptureUpdating}
+          onCheckedChange={(enabled) =>
+            void model.changeContextUrlCaptureEnabled(enabled)
+          }
+        />
+      </SettingsRow>
+      {model.urlCaptureError ? (
+        <FailureNotice className="px-4 py-2.5">
+          {model.urlCaptureError}
+        </FailureNotice>
+      ) : null}
+    </SettingsSection>
   );
 };
 
 /* Four different reasons a source went unread are four different things the
- * user can act on, so the tone follows the reason rather than flattening
+ * user can act on, so the colour follows the reason rather than flattening
  * everything to "off". The word is always present; colour never carries the
  * meaning alone. */
-const diagnosticTone = (status: string): StatusTone => {
+const diagnosticToneClass = (status: string): string => {
   switch (status) {
     case "granted":
     case "captured":
-      return "success";
+      return "text-gray-1000";
     case "denied":
     case "permission_denied":
     case "failed":
-      return "danger";
+      return "text-red-900";
     case "disabled_by_ceiling":
     case "secure_field":
     case "stale":
-      return "warning";
+      return "text-amber-900";
     default:
-      return "muted";
+      return "text-gray-700";
   }
 };
 
@@ -743,81 +794,56 @@ const PrivacyDiagnostics: React.FC<{
   const { diagnostics } = model;
 
   return (
-    <SettingsGroup title={t("settings.privacy.diagnostics.title")}>
-      <div className="flex flex-wrap items-center justify-between gap-2 py-3">
-        <p className="min-w-0 text-[13px] leading-5 text-text-secondary">
-          {t("settings.privacy.diagnostics.description")}
-        </p>
+    <SettingsSection
+      label={t("settings.privacy.diagnostics.title")}
+      action={
         <Button
-          variant="secondary"
+          variant="outline"
           size="sm"
-          className="gap-1"
           onClick={() => void model.refreshDiagnostics()}
           disabled={model.loadingDiagnostics}
         >
           <RefreshCw
             aria-hidden="true"
-            className={
-              model.loadingDiagnostics ? "h-4 w-4 animate-spin" : "h-4 w-4"
-            }
+            className={model.loadingDiagnostics ? "animate-spin" : undefined}
           />
           {t("settings.privacy.diagnostics.refresh")}
         </Button>
-      </div>
+      }
+    >
       {model.diagnosticsError ? (
-        <Alert
-          contained
-          variant="error"
-          action={
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => void model.refreshDiagnostics()}
-              disabled={model.loadingDiagnostics}
-            >
-              {t("common.retry")}
-            </Button>
-          }
-        >
-          {t("settings.privacy.diagnostics.error")}: {model.diagnosticsError}
-        </Alert>
+        <FailureNotice className="px-4 py-2.5">
+          {`${t("settings.privacy.diagnostics.error")}: ${model.diagnosticsError}`}
+        </FailureNotice>
       ) : null}
-      {model.loadingDiagnostics && !diagnostics ? (
-        <div className="pb-3">
-          <StatusText live="polite">{t("common.loading")}</StatusText>
+      {model.loadingDiagnostics && diagnostics === null ? (
+        <div className="px-4 py-2.5">
+          <Notice>{t("common.loading")}</Notice>
         </div>
-      ) : diagnostics ? (
+      ) : diagnostics === null ? null : (
         <>
-          <SettingContainer
-            grouped
-            title={t("settings.privacy.diagnostics.accessibility.label")}
-            description={t(
-              "settings.privacy.diagnostics.accessibility." +
-                diagnostics.accessibility,
-            )}
+          <SettingsRow
+            label={t("settings.privacy.diagnostics.accessibility.label")}
           >
-            <StatusText tone={diagnosticTone(diagnostics.accessibility)}>
-              {t("settings.privacy.status." + diagnostics.accessibility)}
-            </StatusText>
-          </SettingContainer>
-          {CONTEXT_SOURCES.map((source) => (
-            <SettingContainer
-              key={source}
-              grouped
-              title={t("settings.privacy.diagnostics.sources." + source)}
-              description={t(
-                "settings.privacy.diagnostics.sourceDetail." + source,
-                { defaultValue: CONTEXT_SOURCE_DETAILS[source] },
-              )}
+            <MonoState
+              className={diagnosticToneClass(diagnostics.accessibility)}
             >
-              <StatusText tone={diagnosticTone(diagnostics[source])}>
+              {t("settings.privacy.status." + diagnostics.accessibility)}
+            </MonoState>
+          </SettingsRow>
+          {CONTEXT_SOURCES.map((source) => (
+            <SettingsRow
+              key={source}
+              label={t("settings.privacy.diagnostics.sources." + source)}
+            >
+              <MonoState className={diagnosticToneClass(diagnostics[source])}>
                 {t("settings.privacy.status." + diagnostics[source])}
-              </StatusText>
-            </SettingContainer>
+              </MonoState>
+            </SettingsRow>
           ))}
         </>
-      ) : null}
-    </SettingsGroup>
+      )}
+    </SettingsSection>
   );
 };
 
@@ -827,17 +853,16 @@ const PrivacyDataSettings: React.FC<{
   const { t } = useTranslation();
 
   return (
-    <SettingsGroup title={t("settings.privacy.data.title")}>
+    <SettingsSection label={t("settings.privacy.data.title")}>
       <PrivacyHistoryStorage />
       {model.dataError ? (
-        <Alert contained variant="error">
-          {t("settings.privacy.data.error")}: {model.dataError}
-        </Alert>
+        <FailureNotice className="px-4 py-2.5">
+          {`${t("settings.privacy.data.error")}: ${model.dataError}`}
+        </FailureNotice>
       ) : null}
-      <SettingContainer
-        grouped
-        title={t("settings.privacy.data.historyLimit.label")}
-        description={t("settings.privacy.data.historyLimit.description")}
+      <SettingsRow
+        label={t("settings.privacy.data.historyLimit.label")}
+        hint={t("settings.privacy.data.historyLimit.description")}
         controlId="privacy-history-limit"
       >
         <Input
@@ -852,34 +877,38 @@ const PrivacyDataSettings: React.FC<{
           disabled={model.dataUpdating}
           className="w-20"
         />
-      </SettingContainer>
-      <SettingContainer
-        grouped
-        title={t("settings.privacy.data.retention.label")}
-        description={t("settings.privacy.data.retention.description")}
+      </SettingsRow>
+      <SettingsRow
+        label={t("settings.privacy.data.retention.label")}
+        controlId="privacy-recording-retention"
       >
-        <Dropdown
-          selectedValue={model.retentionPeriod}
-          options={RETENTION_OPTIONS.map((period) => ({
-            value: period,
-            label: t("settings.privacy.data.retention.values." + period),
-          }))}
-          onSelect={(period) => {
+        <Select
+          value={model.retentionPeriod}
+          disabled={model.dataUpdating}
+          onValueChange={(period) => {
             const next = RETENTION_OPTIONS.find(
               (candidate) => candidate === period,
             );
             if (next) void model.updateRetentionPeriod(next);
           }}
-          disabled={model.dataUpdating}
-        />
-      </SettingContainer>
+        >
+          {/* No fixed width: the retention labels are long in several locales
+           * and a Select trigger clips them with no ellipsis. */}
+          <SelectTrigger id="privacy-recording-retention" size="sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {RETENTION_OPTIONS.map((period) => (
+              <SelectItem key={period} value={period}>
+                {t("settings.privacy.data.retention.values." + period)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </SettingsRow>
       <MeetingRetentionSettings />
-      <AppDataDirectory grouped />
-      <div className="space-y-1 py-3 text-xs leading-4 text-text-secondary">
-        <p>{t("settings.privacy.data.credentialStore")}</p>
-        <p>{t("settings.privacy.data.locations")}</p>
-      </div>
-    </SettingsGroup>
+      <AppDataDirectory />
+    </SettingsSection>
   );
 };
 
@@ -899,13 +928,10 @@ const PrivacyHistoryStorage: React.FC = () => {
     [i18n.language],
   );
 
+  /* Only the reasons a reader can act on. "Unlocking" said the same thing as
+   * the status word beside it, so it no longer says it twice. */
   const reasonText = (reason: string): string => {
     switch (reason) {
-      case "unlocking":
-        return t(
-          "settings.privacy.data.historyStorage.reasons.unlocking",
-          "Opening the encrypted database. This clears once startup finishes.",
-        );
       case "key_unavailable":
         return t(
           "settings.privacy.data.historyStorage.reasons.key_unavailable",
@@ -931,7 +957,7 @@ const PrivacyHistoryStorage: React.FC = () => {
     }
   };
 
-  const title = t(
+  const label = t(
     "settings.privacy.data.historyStorage.label",
     "History storage",
   );
@@ -939,155 +965,73 @@ const PrivacyHistoryStorage: React.FC = () => {
 
   if (storage.phase === "failed") {
     return (
-      <SettingContainer
-        grouped
-        title={title}
-        description={
-          storage.error ??
-          t(
-            "settings.privacy.data.historyStorage.unknown",
-            "Sona could not read how history is stored.",
-          )
-        }
-      >
-        <Button variant="secondary" size="sm" onClick={storage.reload}>
-          {t("common.retry")}
-        </Button>
-      </SettingContainer>
+      <SettingsField label={label}>
+        <FailureNotice onRetry={storage.reload}>
+          {storage.error ??
+            t(
+              "settings.privacy.data.historyStorage.unknown",
+              "Sona could not read how history is stored.",
+            )}
+        </FailureNotice>
+      </SettingsField>
     );
   }
 
   if (status === null) {
     return (
-      <SettingContainer
-        grouped
-        title={title}
-        description={t(
-          "settings.privacy.data.historyStorage.description",
-          "Whether dictation history is encrypted on this disk.",
-        )}
-      >
-        <StatusText live="polite">{t("common.loading")}</StatusText>
-      </SettingContainer>
+      <SettingsRow label={label}>
+        <Notice>{t("common.loading")}</Notice>
+      </SettingsRow>
     );
   }
 
   const encryptedAndReadable = status.encrypted && status.reason === null;
-  const description = encryptedAndReadable
-    ? status.migrated_at === null
-      ? t(
-          "settings.privacy.data.historyStorage.description",
-          "Whether dictation history is encrypted on this disk.",
-        )
-      : t("settings.privacy.data.historyStorage.since", {
-          defaultValue: "Encrypted since {{date}}.",
-          date: migratedFormatter.format(new Date(status.migrated_at)),
-        })
-    : reasonText(status.reason ?? "");
-
-  return (
-    <SettingContainer grouped title={title} description={description}>
-      <StatusText
-        tone={
-          encryptedAndReadable
-            ? "success"
-            : status.reason === "unlocking"
-              ? "muted"
-              : "danger"
-        }
-        live="polite"
-      >
-        {encryptedAndReadable
-          ? t(
-              "settings.privacy.data.historyStorage.encrypted",
-              "Encrypted at rest",
-            )
-          : status.reason === "unlocking"
-            ? t("settings.privacy.data.historyStorage.unlocking", "Unlocking")
-            : status.encrypted
-              ? t("settings.privacy.data.historyStorage.locked", "Locked")
-              : t(
-                  "settings.privacy.data.historyStorage.plaintext",
-                  "Not encrypted",
-                )}
-      </StatusText>
-    </SettingContainer>
-  );
-};
-
-/* Availability is derived from stored settings, never guessed, and it is
- * never a switch: bootstrapping is what turns cloud sync on, and that lives
- * in the collapsed panel below. */
-const PrivacyCloudSync: React.FC = () => {
-  const { t } = useTranslation();
-  const service = useCloudSyncServiceStatus();
-  const status = service.value;
+  const unlocking = status.reason === "unlocking";
+  const reason =
+    encryptedAndReadable || status.reason === null || unlocking
+      ? null
+      : reasonText(status.reason);
 
   return (
     <>
-      <SettingsGroup
-        title={t("settings.privacy.cloudSync.title", "Cloud sync")}
-        description={t(
-          "settings.privacy.cloudSync.description",
-          "Sona can mirror meetings to a server you run. Nothing is uploaded until setup finishes on this device.",
-        )}
+      <SettingsRow
+        label={label}
+        fact={
+          encryptedAndReadable && status.migrated_at !== null
+            ? migratedFormatter.format(new Date(status.migrated_at))
+            : undefined
+        }
       >
-        {service.phase === "failed" ? (
-          <Alert
-            contained
-            variant="error"
-            action={
-              <Button variant="secondary" size="sm" onClick={service.reload}>
-                {t("common.retry")}
-              </Button>
-            }
-          >
-            {t(
-              "settings.privacy.cloudSync.checkFailed",
-              "Sona could not read the cloud sync configuration.",
-            )}
-            {service.error === null ? "" : ` ${service.error}`}
-          </Alert>
-        ) : status === null ? (
-          <div className="py-3">
-            <StatusText live="polite">{t("common.loading")}</StatusText>
-          </div>
-        ) : (
-          <>
-            <SettingContainer
-              grouped
-              title={t("settings.privacy.cloudSync.service", "Service")}
-              description={status.reason}
-            >
-              <StatusText tone={status.configured ? "success" : "muted"}>
-                {status.configured
-                  ? t("settings.privacy.cloudSync.configured", "Configured")
-                  : t(
-                      "settings.privacy.cloudSync.notConfigured",
-                      "Not configured",
-                    )}
-              </StatusText>
-            </SettingContainer>
-            {status.endpoint === null ? null : (
-              <SettingContainer
-                grouped
-                title={t("settings.privacy.cloudSync.endpoint", "Endpoint")}
-                description={t(
-                  "settings.privacy.cloudSync.endpointDescription",
-                  "The server this device is pointed at.",
-                )}
-              >
-                <code className="min-w-0 font-mono text-xs break-all text-text-primary">
-                  {status.endpoint}
-                </code>
-              </SettingContainer>
-            )}
-          </>
-        )}
-      </SettingsGroup>
-      {/* Setup, recovery and pairing stay collapsed: they are a one-time
-       * task, and they must not read as a switch that is simply off. */}
-      <CloudSyncPanel />
+        <MonoState
+          live
+          className={
+            encryptedAndReadable
+              ? "text-gray-1000"
+              : unlocking
+                ? "text-gray-700"
+                : "text-red-900"
+          }
+        >
+          {encryptedAndReadable
+            ? t(
+                "settings.privacy.data.historyStorage.encrypted",
+                "Encrypted at rest",
+              )
+            : unlocking
+              ? t("settings.privacy.data.historyStorage.unlocking", "Unlocking")
+              : status.encrypted
+                ? t("settings.privacy.data.historyStorage.locked", "Locked")
+                : t(
+                    "settings.privacy.data.historyStorage.plaintext",
+                    "Not encrypted",
+                  )}
+        </MonoState>
+      </SettingsRow>
+      {reason === null ? null : (
+        <div className="px-4 py-2.5">
+          <Notice tone="danger">{reason}</Notice>
+        </div>
+      )}
     </>
   );
 };
@@ -1099,131 +1043,147 @@ const PrivacyUpstreamImport: React.FC<{
   const status = model.upstreamStatus;
 
   if (status?.available) {
+    const importing = model.upstreamImporting;
+
     return (
-      <SettingsGroup
-        title={t("settings.privacy.upstreamImport.title")}
-        description={t("settings.privacy.upstreamImport.description")}
+      <SettingsSection
+        label={t("settings.privacy.upstreamImport.title")}
+        action={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void model.refreshUpstreamStatus()}
+              disabled={model.loadingUpstreamStatus || importing}
+            >
+              {t("settings.privacy.upstreamImport.refresh")}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => void model.startUpstreamImport()}
+              disabled={
+                !model.upstreamImportAvailable ||
+                !model.upstreamSelectionValid ||
+                importing
+              }
+            >
+              {importing
+                ? t("settings.privacy.upstreamImport.importing")
+                : t("settings.privacy.upstreamImport.import")}
+            </Button>
+          </div>
+        }
       >
-        <div className="space-y-1 py-3 text-sm text-text-secondary">
-          <p>
-            {status.settings_available
-              ? t("settings.privacy.upstreamImport.source.settingsAvailable")
-              : t("settings.privacy.upstreamImport.source.settingsMissing")}
-          </p>
-          <p>
-            {t("settings.privacy.upstreamImport.source.history", {
-              count: status.history_entries,
-            })}
-          </p>
-          <p>
-            {t("settings.privacy.upstreamImport.source.recordings", {
-              count: status.recording_files,
-              size: t("settings.privacy.upstreamImport.byteCount", {
-                value: NUMBER_FORMATTER.format(
-                  model.upstreamRecordingSize.value,
-                ),
-                unit: t(
-                  "settings.privacy.upstreamImport.byteUnits." +
-                    model.upstreamRecordingSize.unit,
-                ),
-              }),
-            })}
-          </p>
-          <p>{t("settings.privacy.upstreamImport.modelsNotImported")}</p>
+        <div className="px-4 py-2.5">
+          <Notice live={false}>
+            {t("settings.privacy.upstreamImport.scope")}
+          </Notice>
         </div>
-        {!model.upstreamSourceHasImportableData ? (
-          <div className="pb-3">
-            <StatusText live="polite">
-              {t("settings.privacy.upstreamImport.source.empty")}
-            </StatusText>
-          </div>
-        ) : !model.upstreamSelectionValid ? (
-          <div className="pb-3">
-            <StatusText live="polite">
-              {t("settings.privacy.upstreamImport.selectionRequired")}
-            </StatusText>
-          </div>
-        ) : null}
-        {status.app_state === "running" ? (
-          <Alert contained variant="error">
-            {t("settings.privacy.upstreamImport.appRunning")}
-          </Alert>
-        ) : null}
-        {status.app_state === "unverifiable" ? (
-          <Alert contained variant="error">
-            {t("settings.privacy.upstreamImport.appUnverifiable")}
-          </Alert>
-        ) : null}
-        <fieldset
-          className="space-y-2 border-t border-border py-3"
-          disabled={model.upstreamImporting}
-        >
+        {/* The counts sit on the rows that import them: three sentences of
+         * inventory above three checkboxes said each number twice. */}
+        <fieldset disabled={importing}>
           <legend className="sr-only">
             {t("settings.privacy.upstreamImport.selection")}
           </legend>
-          <label className="flex cursor-pointer items-start gap-2">
-            <input
-              type="checkbox"
-              className="mt-0.5 h-4 w-4 accent-accent-strong"
-              checked={model.upstreamSelection.settings}
+          <div className="divide-y divide-gray-alpha-400">
+            <SettingsRow
+              label={t("settings.privacy.upstreamImport.selectionSettings")}
+              controlId="privacy-import-settings"
               disabled={!status.settings_available}
-              onChange={(event) =>
-                model.setUpstreamSelection((current) => ({
-                  ...current,
-                  settings: event.target.checked,
-                }))
-              }
-            />
-            <span className="text-sm text-text-primary">
-              {t("settings.privacy.upstreamImport.selectionSettings")}
-            </span>
-          </label>
-          <label className="flex cursor-pointer items-start gap-2">
-            <input
-              type="checkbox"
-              className="mt-0.5 h-4 w-4 accent-accent-strong"
-              checked={model.upstreamSelection.history}
+            >
+              <Checkbox
+                id="privacy-import-settings"
+                checked={model.upstreamSelection.settings}
+                disabled={!status.settings_available || importing}
+                onCheckedChange={(checked) =>
+                  model.setUpstreamSelection((current) => ({
+                    ...current,
+                    settings: checked === true,
+                  }))
+                }
+              />
+            </SettingsRow>
+            <SettingsRow
+              label={t("settings.privacy.upstreamImport.selectionHistory")}
+              fact={NUMBER_FORMATTER.format(status.history_entries)}
+              controlId="privacy-import-history"
               disabled={status.history_entries === 0}
-              onChange={(event) =>
-                model.changeUpstreamHistorySelection(event.target.checked)
+            >
+              <Checkbox
+                id="privacy-import-history"
+                checked={model.upstreamSelection.history}
+                disabled={status.history_entries === 0 || importing}
+                onCheckedChange={(checked) =>
+                  model.changeUpstreamHistorySelection(checked === true)
+                }
+              />
+            </SettingsRow>
+            <SettingsRow
+              label={t("settings.privacy.upstreamImport.selectionRecordings")}
+              hint={t(
+                "settings.privacy.upstreamImport.recordingsRequireHistory",
+              )}
+              /* KiB/MiB carry meaning in their case, and the mono fact type
+               * is uppercase, so the measurement opts out of it. */
+              fact={
+                <span className="normal-case">
+                  {`${NUMBER_FORMATTER.format(status.recording_files)} · ${t(
+                    "settings.privacy.upstreamImport.byteCount",
+                    {
+                      value: NUMBER_FORMATTER.format(
+                        model.upstreamRecordingSize.value,
+                      ),
+                      unit: t(
+                        "settings.privacy.upstreamImport.byteUnits." +
+                          model.upstreamRecordingSize.unit,
+                      ),
+                    },
+                  )}`}
+                </span>
               }
-            />
-            <span className="text-sm text-text-primary">
-              {t("settings.privacy.upstreamImport.selectionHistory")}
-            </span>
-          </label>
-          <label
-            className={
-              model.upstreamSelection.history && status.recording_files > 0
-                ? "flex cursor-pointer items-start gap-2"
-                : "flex cursor-not-allowed items-start gap-2 text-text-tertiary"
-            }
-          >
-            <input
-              type="checkbox"
-              className="mt-0.5 h-4 w-4 accent-accent-strong"
-              checked={model.upstreamSelection.recordings}
+              controlId="privacy-import-recordings"
               disabled={
                 !model.upstreamSelection.history || status.recording_files === 0
               }
-              onChange={(event) =>
-                model.setUpstreamSelection((current) => ({
-                  ...current,
-                  recordings: event.target.checked,
-                }))
-              }
-            />
-            <span className="text-sm">
-              {t("settings.privacy.upstreamImport.selectionRecordings")}
-            </span>
-          </label>
-          <p className="text-xs text-text-secondary">
-            {t("settings.privacy.upstreamImport.recordingsRequireHistory")}
-          </p>
+            >
+              <Checkbox
+                id="privacy-import-recordings"
+                checked={model.upstreamSelection.recordings}
+                disabled={
+                  !model.upstreamSelection.history ||
+                  status.recording_files === 0 ||
+                  importing
+                }
+                onCheckedChange={(checked) =>
+                  model.setUpstreamSelection((current) => ({
+                    ...current,
+                    recordings: checked === true,
+                  }))
+                }
+              />
+            </SettingsRow>
+          </div>
         </fieldset>
-        {model.upstreamProgress ? (
-          <div className="pb-3">
-            <StatusText live="polite">
+        <div className="flex flex-col gap-1.5 px-4 py-2.5 empty:hidden">
+          {status.app_state === "running" ? (
+            <Notice tone="danger">
+              {t("settings.privacy.upstreamImport.appRunning")}
+            </Notice>
+          ) : null}
+          {status.app_state === "unverifiable" ? (
+            <Notice tone="danger">
+              {t("settings.privacy.upstreamImport.appUnverifiable")}
+            </Notice>
+          ) : null}
+          {!model.upstreamSourceHasImportableData ? (
+            <Notice>{t("settings.privacy.upstreamImport.source.empty")}</Notice>
+          ) : !model.upstreamSelectionValid ? (
+            <Notice>
+              {t("settings.privacy.upstreamImport.selectionRequired")}
+            </Notice>
+          ) : null}
+          {model.upstreamProgress ? (
+            <Notice>
               {t("settings.privacy.upstreamImport.progress", {
                 phase: t(
                   "settings.privacy.upstreamImport.phases." +
@@ -1232,12 +1192,10 @@ const PrivacyUpstreamImport: React.FC<{
                 completed: model.upstreamProgress.completed,
                 total: model.upstreamProgress.total,
               })}
-            </StatusText>
-          </div>
-        ) : null}
-        {model.upstreamResult ? (
-          <div className="pb-3">
-            <StatusText tone="success" live="polite">
+            </Notice>
+          ) : null}
+          {model.upstreamResult ? (
+            <Notice>
               {t("settings.privacy.upstreamImport.result", {
                 settings: model.upstreamResult.settings_imported
                   ? t("settings.privacy.upstreamImport.settingsImported")
@@ -1249,61 +1207,31 @@ const PrivacyUpstreamImport: React.FC<{
                 recordingsCopied: model.upstreamResult.recordings_copied,
                 recordingsExisting: model.upstreamResult.recordings_existing,
               })}
-            </StatusText>
-          </div>
-        ) : null}
-        {model.upstreamError ? (
-          <Alert contained variant="error">
-            {t("settings.privacy.upstreamImport.errors." + model.upstreamError)}
-          </Alert>
-        ) : null}
-        <div className="flex flex-wrap items-center gap-2 border-t border-border py-3">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => void model.refreshUpstreamStatus()}
-            disabled={model.loadingUpstreamStatus || model.upstreamImporting}
-          >
-            {t("settings.privacy.upstreamImport.refresh")}
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => void model.startUpstreamImport()}
-            disabled={
-              !model.upstreamImportAvailable ||
-              !model.upstreamSelectionValid ||
-              model.upstreamImporting
-            }
-          >
-            {model.upstreamImporting
-              ? t("settings.privacy.upstreamImport.importing")
-              : t("settings.privacy.upstreamImport.import")}
-          </Button>
+            </Notice>
+          ) : null}
+          {model.upstreamError ? (
+            <Notice tone="danger">
+              {t(
+                "settings.privacy.upstreamImport.errors." + model.upstreamError,
+              )}
+            </Notice>
+          ) : null}
         </div>
-      </SettingsGroup>
+      </SettingsSection>
     );
   }
 
   if (model.upstreamError) {
     return (
-      <SettingsGroup title={t("settings.privacy.upstreamImport.title")}>
-        <Alert
-          contained
-          variant="error"
-          action={
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => void model.refreshUpstreamStatus()}
-              disabled={model.loadingUpstreamStatus}
-            >
-              {t("common.retry")}
-            </Button>
-          }
+      <SettingsSection label={t("settings.privacy.upstreamImport.title")}>
+        <FailureNotice
+          className="px-4 py-2.5"
+          onRetry={() => void model.refreshUpstreamStatus()}
+          retryDisabled={model.loadingUpstreamStatus}
         >
           {t("settings.privacy.upstreamImport.errors." + model.upstreamError)}
-        </Alert>
-      </SettingsGroup>
+        </FailureNotice>
+      </SettingsSection>
     );
   }
 

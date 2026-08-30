@@ -180,6 +180,23 @@ describe("the collapsed row", () => {
     expect(card()).not.toContain("Starts in");
   });
 
+  test("the head stops repeating the rows once the rows are showing", () => {
+    /* Collapsed, the start is in the head chip and in the TIME row the
+     * disclosure is hiding, so it appears twice in the markup. Open, the row
+     * is the only copy: the summary was crowding the title into an ellipsis to
+     * make room for its own echo. */
+    const start = formatEntryTimestamp(START);
+
+    expect(occurrences(card(), start)).toBe(2);
+    expect(occurrences(card({ defaultExpanded: true }), start)).toBe(1);
+  });
+
+  test("the countdown survives the disclosure, because no row carries it", () => {
+    const open = card({ secondsToStart: 45, defaultExpanded: true });
+
+    expect(occurrences(open, "Starts in 45s")).toBe(1);
+  });
+
   test("omits the head count for an event with no attendee list", () => {
     const markup = render(
       <ul>
@@ -238,7 +255,7 @@ describe("description", () => {
 
     expect(markup).toContain(rowLabel("Description"));
     expect(markup).toContain("Agenda: ship the preview card, then the ledger.");
-    expect(markup).toContain("meeting-preview-description");
+    expect(markup).toContain('data-slot="preview-description"');
     expect(markup).toContain(">More</button>");
   });
 
@@ -345,9 +362,16 @@ describe("notify", () => {
       },
     });
 
-    expect(occurrences(on, 'checked=""')).toBe(1);
-    expect(occurrences(off, 'type="checkbox"')).toBe(1);
-    expect(occurrences(off, 'checked=""')).toBe(0);
+    /* Radix's switch is a `role="switch"` button, not a checkbox, and its
+     * accessible name is what a screen reader reports for the setting — so the
+     * name is asserted here rather than left to the visual row label, which
+     * this control does not have. */
+    expect(on).toContain('aria-checked="true"');
+    expect(on).toContain('data-state="checked"');
+    expect(on).toContain('aria-label="Open this meeting when it starts"');
+    expect(off).toContain('aria-checked="false"');
+    expect(off).toContain('data-state="unchecked"');
+    expect(occurrences(off, 'role="switch"')).toBe(1);
   });
 });
 
@@ -415,10 +439,10 @@ describe("the head row", () => {
 
     /* Head first, actions inside it, body after: a collapsed card is exactly
      * one row, with no reserved blank space under it. */
-    expect(occurrences(markup, "meeting-preview-head")).toBe(1);
-    expect(markup.indexOf("meeting-preview-actions")).toBeGreaterThan(-1);
-    expect(markup.indexOf("meeting-preview-actions")).toBeLessThan(
-      markup.indexOf("meeting-preview-body"),
+    expect(occurrences(markup, 'data-slot="preview-head"')).toBe(1);
+    expect(markup.indexOf('data-slot="preview-actions"')).toBeGreaterThan(-1);
+    expect(markup.indexOf('data-slot="preview-actions"')).toBeLessThan(
+      markup.indexOf('data-slot="preview-body"'),
     );
   });
 
@@ -429,7 +453,9 @@ describe("the head row", () => {
       </ul>,
     );
 
-    expect(occurrences(markup, "meeting-preview-chip")).toBe(0);
+    /* No chips means no rail for chips: the container itself is absent rather
+     * than present and empty. */
+    expect(markup).not.toContain('data-slot="preview-facts"');
   });
 });
 
@@ -442,8 +468,12 @@ describe("the header never renders blank", () => {
         />
       </ul>,
     );
-  const heading = (markup: string) =>
-    markup.split('meeting-preview-title">')[1]?.split("</span>")[0];
+  const heading = (markup: string) => {
+    const at = markup.indexOf('data-slot="preview-title"');
+    if (at === -1) return undefined;
+    const open = markup.indexOf(">", at);
+    return markup.slice(open + 1, markup.indexOf("</span>", open));
+  };
 
   test("an untitled calendar event is named for what it is", () => {
     expect(eventFacts({ ...BARE_EVENT, title: "  " }, tr).title).toBe(
@@ -485,7 +515,7 @@ describe("the action bar", () => {
   });
 
   test("a card with no actions renders no action bar", () => {
-    expect(card()).not.toContain("meeting-preview-actions");
+    expect(card()).not.toContain('data-slot="preview-actions"');
   });
 
   test("there is no yes/no/maybe: the card never answers the invitation", () => {
@@ -625,7 +655,7 @@ describe("the preflight", () => {
   test("previews the meeting the operator was looking at", () => {
     const markup = gate(GATE_OPTIONS);
 
-    expect(markup).toContain("meeting-preview-summary");
+    expect(markup).toContain('data-slot="preview-summary"');
     expect(markup).toContain("Quarterly planning");
     expect(markup).toContain("Aktan Azat");
   });
@@ -645,7 +675,7 @@ describe("the preflight", () => {
 
   test("a manual start with nothing to preview shows no card", () => {
     expect(gate({ ...GATE_OPTIONS, preview: null })).not.toContain(
-      "meeting-preview-summary",
+      'data-slot="preview-summary"',
     );
   });
 });
@@ -686,7 +716,6 @@ describe("english catalogue", () => {
     "meetings.preview.skippedNote",
     "meetings.preview.untitled.calendar",
     "meetings.preview.untitled.app",
-    "meetings.detected.description",
   ];
 
   for (const key of KEYS) {

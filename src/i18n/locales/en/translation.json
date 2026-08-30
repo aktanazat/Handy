@@ -30,7 +30,6 @@
     "models": "Models",
     "advanced": "Advanced",
     "postProcessing": "Post-processing",
-    "history": "History",
     "debug": "Debug",
     "about": "About",
     "modes": "Modes",
@@ -38,7 +37,6 @@
     "agents": "Agents",
     "meetings": "Meetings",
     "navigation": "Main navigation",
-    "overview": "Overview",
     "settings": "Settings"
   },
   "topNav": {
@@ -159,6 +157,7 @@
     "active": "Active",
     "switching": "Switching…",
     "noModelsAvailable": "No models available",
+    "searchPlaceholder": "Search models",
     "verifying": "Verifying {{modelName}}…",
     "verifyingGeneric": "Verifying…",
     "extracting": "Extracting {{modelName}}…",
@@ -196,27 +195,22 @@
       "title": "General",
       "shortcut": {
         "title": "Shortcuts",
-        "description": "Keyboard shortcuts for recording and rewriting.",
         "loading": "Loading shortcuts…",
         "none": "No shortcuts configured",
         "notFound": "Shortcut not found",
         "pressKeys": "Press your keys…",
         "bindings": {
           "transcribe": {
-            "name": "Transcribe shortcut",
-            "description": "The keyboard shortcut to record and transcribe your voice."
+            "name": "Transcribe shortcut"
           },
           "cancel": {
-            "name": "Cancel shortcut",
-            "description": "The keyboard shortcut to cancel the current recording."
+            "name": "Cancel shortcut"
           },
           "command": {
-            "name": "Command shortcut",
-            "description": "The keyboard shortcut to rewrite the text you have selected from a spoken instruction."
+            "name": "Command shortcut"
           },
           "transcribe_with_post_process": {
-            "name": "Post-processing shortcut",
-            "description": "An optional shortcut that always applies AI cleanup to the transcript."
+            "name": "Post-processing shortcut"
           }
         },
         "errors": {
@@ -226,22 +220,18 @@
         },
         "holdHint": "Tap to toggle, hold to talk. Works with any shortcut.",
         "recordAction": "Record a new shortcut for {{binding}}",
-        "recordHint": "Click to record",
         "unset": "Not set"
       },
       "language": {
         "title": "Language",
-        "description": "The language used for speech recognition. Auto detects it; naming a language can improve accuracy.",
         "searchPlaceholder": "Search languages",
         "noResults": "No languages found",
         "auto": "Auto"
       },
       "pushToTalk": {
-        "label": "Push to talk",
-        "description": "Hold to record, release to stop"
+        "label": "Push to talk"
       },
       "appearance": {
-        "description": "Interface language and color scheme. Both apply immediately.",
         "title": "Appearance",
         "material": {
           "title": "Material",
@@ -252,7 +242,6 @@
           }
         }
       },
-      "description": "The keys you press, the microphone Sona listens to, and how the app looks.",
       "commandMode": {
         "label": "Voice command mode",
         "description": "Hold the command shortcut and say what to change about the text you have selected."
@@ -260,15 +249,10 @@
     },
     "models": {
       "title": "Transcription models",
-      "description": "The model that turns speech into text. Models trade accuracy against speed.",
-      "searchPlaceholder": "Search models by name",
-      "yourModels": "Downloaded models",
-      "availableModels": "Available to download",
       "deleteConfirm": "Delete {{modelName}}? Using it again means downloading it again.",
       "deleteActiveConfirm": "{{modelName}} is the active model. Deleting it stops transcription until you select another.",
       "deleteTitle": "Delete model",
       "filters": {
-        "allLanguages": "All languages",
         "streaming": "Show only models with live streaming",
         "translation": "Show only models that translate to English",
         "allFamilies": "All families",
@@ -284,15 +268,12 @@
       "noModelsMatch": "No models match this filter.",
       "cloud": {
         "title": "Cloud transcription",
-        "description": "Save a provider key to make its cloud engine available in a mode.",
         "providerDescription": "Credentials stay in your operating system's native secure store.",
         "providers": {
           "deepgram": "Deepgram Nova-3",
           "elevenLabs": "ElevenLabs Scribe v2"
         },
         "apiKey": {
-          "label": "API key",
-          "description": "A saved key is write-only and never displayed here.",
           "placeholder": "Paste API key"
         },
         "actions": {
@@ -332,6 +313,7 @@
         "activateNamed": "Use {{modelName}}",
         "download": "Download",
         "downloadNamed": "Download {{modelName}}",
+        "moreFor": "More actions for {{modelName}}",
         "retryNamed": "Retry downloading {{modelName}}"
       },
       "emptyCatalog": "Sona could not read its model catalog. Rescanning picks up models already in the models folder or the Hugging Face cache.",
@@ -343,52 +325,37 @@
         "other": "Other models"
       },
       "familyCount": "{{total}} models",
-      "noModelsMatchHint": "Nothing in the catalog matches every filter at once.",
       "searchByAnything": "Search by name, language, or capability",
       "state": {
         "activeInMemory": "Active, in memory",
         "downloaded": "Downloaded",
         "notDownloaded": "Not downloaded"
-      },
-      "summary": {
-        "activeLabel": "Active model",
-        "noActive": "No model selected",
-        "onDiskLabel": "On disk"
       }
     },
     "sound": {
       "title": "Sound",
       "microphone": {
-        "title": "Microphone",
-        "description": "The microphone Sona records from.",
-        "placeholder": "Select a microphone",
-        "loading": "Loading…"
+        "title": "Microphone"
       },
       "channel": {
         "title": "Input channel",
-        "description": "Which input channel to record from, when an interface has more than one.",
         "average": "Average all channels",
         "channel": "Channel {{n}}"
       },
       "audioFeedback": {
-        "label": "Audio feedback",
-        "description": "Play a sound when recording starts and stops."
+        "label": "Audio feedback"
       },
       "outputDevice": {
         "title": "Output device",
-        "description": "Where feedback sounds play.",
-        "placeholder": "Select an output device",
-        "loading": "Loading…"
+        "description": "Where feedback sounds play."
       },
       "volume": {
-        "title": "Volume",
-        "description": "Volume of the feedback sounds."
+        "title": "Volume"
       }
     },
     "advanced": {
       "englishSpelling": {
         "label": "English spelling",
-        "description": "Keep the recognizer's spelling or convert common American forms to British spelling.",
         "values": {
           "as_spoken": "As spoken",
           "british": "British"
@@ -402,8 +369,7 @@
         "experimental": "Experimental"
       },
       "experimentalToggle": {
-        "label": "Experimental features",
-        "description": "Show options that are still in development."
+        "label": "Experimental features"
       },
       "lazyStreamClose": {
         "label": "Keep Mic Open Between Transcriptions",
@@ -411,8 +377,7 @@
       },
       "acceleration": {
         "transcribe": {
-          "title": "transcribe.cpp acceleration",
-          "description": "Hardware acceleration for transcribe.cpp (Whisper-family) models. Auto uses GPU if available (Metal on macOS, Vulkan on Windows/Linux)."
+          "title": "transcribe.cpp acceleration"
         },
         "ort": {
           "title": "ONNX acceleration",
@@ -427,12 +392,10 @@
         "description": "Launch to system tray without opening the window."
       },
       "autostart": {
-        "label": "Launch on startup",
-        "description": "Start Sona when you log in."
+        "label": "Launch on startup"
       },
       "showTrayIcon": {
-        "label": "Show tray icon",
-        "description": "Show the Sona icon in the system tray."
+        "label": "Show tray icon"
       },
       "overlay": {
         "style": {
@@ -446,7 +409,6 @@
         },
         "position": {
           "title": "Overlay position",
-          "description": "Where the overlay appears on screen during recording and transcription.",
           "options": {
             "bottom": "Bottom",
             "top": "Top"
@@ -493,12 +455,10 @@
         }
       },
       "translateToEnglish": {
-        "label": "Translate to English",
-        "description": "Translate speech from other languages to English while transcribing."
+        "label": "Translate to English"
       },
       "modelUnload": {
         "title": "Unload model",
-        "description": "Free GPU and CPU memory after the model has been idle this long.",
         "options": {
           "never": "Never",
           "immediately": "Immediately",
@@ -512,7 +472,6 @@
       },
       "customWords": {
         "title": "Vocabulary",
-        "description": "Correct spoken phrases into exact written forms. Whisper uses written forms as a prompt; other models use deterministic correction.",
         "spoken": "Spoken phrase",
         "written": "Written text",
         "spokenPlaceholder": "What was said",
@@ -523,7 +482,6 @@
         "remove": "Remove {{spoken}}",
         "import": "Import CSV",
         "export": "Export CSV",
-        "csvLabel": "CSV",
         "importError": "Couldn't import the vocabulary CSV. Check the file and try again.",
         "exportError": "Couldn't export the vocabulary CSV. Try again.",
         "saveError": "Couldn't save the vocabulary. Try again.",
@@ -547,9 +505,7 @@
           "unsavedWarning": "You have unsaved vocabulary changes. Applying this import replaces them.",
           "back": "Back",
           "continue": "Continue",
-          "replaceSummary": "Applying replaces the {{savedCount}} saved pairs with the {{importedCount}} pairs from this file.",
-          "stepConfirm": "Step 2 of 2: confirm the replacement",
-          "stepReview": "Step 1 of 2: what the file contains"
+          "replaceSummary": "Applying replaces the {{savedCount}} saved pairs with the {{importedCount}} pairs from this file."
         },
         "actions": "Vocabulary actions",
         "audioImport": {
@@ -561,11 +517,9 @@
           }
         },
         "empty": {
-          "description": "Add a pair such as open ai and OpenAI, and Sona writes the exact form every time it hears the phrase.",
-          "title": "No vocabulary rules yet"
+          "description": "Add a pair such as open ai and OpenAI, and Sona writes the exact form every time it hears the phrase."
         },
-        "sources": "Corrections you save from a transcript in Library land in this list. Rules for a single mode live in that mode's own vocabulary.",
-        "unsaved": "Unsaved changes"
+        "sources": "Corrections you save from a transcript in Library land in this list. Rules for a single mode live in that mode's own vocabulary."
       },
       "voiceActivityDetection": {
         "title": "Voice activity detection",
@@ -579,8 +533,6 @@
         "enabledLabel": "Enable emoji replacements",
         "enabledDescription": "Replace only exact spoken tokens after vocabulary correction.",
         "title": "Emoji replacements",
-        "description": "Map an exact spoken phrase to emoji text. No fuzzy matching is used.",
-        "offState": "Emoji replacements are off. Sona does not enable them automatically for code or any other app.",
         "spoken": "Spoken phrase",
         "written": "Emoji text",
         "spokenPlaceholder": "smiley face",
@@ -597,38 +549,26 @@
           "incompleteRow": "Complete or remove every row before saving."
         },
         "empty": {
-          "description": "Map an exact spoken token such as smiley face to the emoji you want written.",
-          "title": "No emoji replacements yet"
+          "description": "Map an exact spoken token such as smiley face to the emoji you want written."
         }
       },
-      "description": "Startup, processing, and experimental behavior.",
       "disclosures": {
         "launch": {
-          "title": "Launch",
-          "description": "How Sona starts and what it shows."
+          "title": "Launch"
         },
         "processing": {
-          "title": "Processing",
-          "description": "Engine and model behavior while transcribing."
-        },
-        "experimental": {
-          "description": "Unstable options that can change without notice."
+          "title": "Processing"
         }
       },
       "snippets": {
         "add": "Add snippet",
         "confirmDelete": {
           "description": "The trigger stops expanding in future transcripts. Text already written is unchanged.",
-          "body": "{{trigger}} currently expands to {{expansion}}.",
           "title": "Delete {{trigger}}?"
         },
-        "description": "Short triggers Sona expands into longer text. Changes here affect future transcripts only, never text already written.",
         "empty": {
-          "action": "Write your first snippet",
-          "description": "Add a trigger such as omw and Sona writes on my way every time you say it.",
-          "title": "No snippets yet"
+          "description": "Add a trigger such as omw and Sona writes on my way every time you say it."
         },
-        "enabledDescription": "Replace snippet triggers in every transcript, immediately after vocabulary corrections.",
         "enabledLabel": "Enable text expansion",
         "errors": {
           "duplicate": "Another snippet already uses this trigger.",
@@ -639,11 +579,9 @@
         "loadError": "Could not load snippets.",
         "loading": "Loading snippets",
         "matching": "Triggers match whole words and ignore case. When two triggers fit the same spot the longer one wins, and expansion runs right after vocabulary corrections.",
-        "offState": "Text expansion is off. Snippets stay saved and apply again as soon as you turn it back on.",
         "title": "Text expansion",
         "trigger": "Trigger",
         "triggerPlaceholder": "omw",
-        "unsaved": "Press Enter or Save to keep this change.",
         "enableRow": "Enable {{trigger}}",
         "remove": "Delete {{trigger}}",
         "saveRow": "Save {{trigger}}"
@@ -655,62 +593,41 @@
       }
     },
     "postProcessing": {
-      "hotkey": {
-        "title": "Shortcut"
-      },
       "api": {
         "title": "API (OpenAI-compatible)",
         "provider": {
-          "title": "Provider",
-          "description": "Select an OpenAI-compatible provider."
+          "title": "Provider"
         },
         "appleIntelligence": {
           "unavailable": "Apple Intelligence is not available on this device. Requires an Apple Silicon Mac running macOS Tahoe (26.0) or later with Apple Intelligence enabled in System Settings."
         },
         "baseUrl": {
           "title": "Base URL",
-          "description": "API base URL for the selected provider. Only the custom provider can be edited.",
           "placeholder": "https://api.openai.com/v1"
         },
         "apiKey": {
           "title": "API key",
-          "description": "API key for the selected provider.",
           "placeholder": "sk-..."
         },
         "model": {
           "title": "Model",
           "descriptionCustom": "Provide the model identifier expected by your custom endpoint.",
-          "descriptionDefault": "Choose a model exposed by the selected provider.",
           "placeholderWithOptions": "Search or select a model",
           "placeholderNoOptions": "Type a model name",
           "refreshModels": "Refresh models"
         }
       },
       "prompts": {
-        "title": "Prompt",
-        "selectedPrompt": {
-          "title": "Selected prompt",
-          "description": "Select a template for refining transcriptions or create a new one. Use ${output} inside the prompt text to reference the captured transcript."
-        },
-        "noPrompts": "No prompts available",
-        "selectPrompt": "Select a prompt",
         "createNew": "New prompt",
         "promptLabel": "Prompt name",
         "promptLabelPlaceholder": "Name this prompt",
         "promptInstructions": "Instructions",
         "promptInstructionsPlaceholder": "Improve grammar and clarity for the following text: ${output}",
-        "promptTip": "Write <code>${output}</code> where the transcript should be inserted.",
         "updatePrompt": "Update prompt",
         "deletePrompt": "Delete prompt",
         "createPrompt": "Create prompt",
-        "cancel": "Cancel",
-        "selectToEdit": "Select a prompt to edit it.",
-        "createFirst": "Create a prompt to post-process transcripts.",
         "empty": {
           "description": "A prompt tells the model what to do with the transcript, for example: rewrite the following as a short message, keeping every fact: ${output}"
-        },
-        "errors": {
-          "incomplete": "Give the prompt a name and instructions before saving."
         },
         "inUse": "In use",
         "lastPrompt": "Sona keeps at least one prompt, so this one cannot be deleted. Create another first.",
@@ -745,14 +662,9 @@
     "vocabulary": {
       "replacements": {
         "title": "Spoken replacements",
-        "description": "Phrases Sona rewrites into exact text. Changes here affect future transcripts only, never text already written.",
         "enabledLabel": "Enable spoken replacements",
-        "enabledDescription": "Rewrite spoken phrases such as at sign into symbols, before vocabulary correction runs.",
-        "offState": "Spoken replacements are off. Rules stay saved and apply again as soon as you turn this back on.",
         "spoken": "You say",
         "written": "Sona writes",
-        "applyColumn": "Apply",
-        "actionsColumn": "Actions",
         "spokenPlaceholder": "at sign",
         "writtenPlaceholder": "@",
         "add": "Add rule",
@@ -767,14 +679,11 @@
           "incomplete": "Enter both a spoken phrase and its replacement."
         },
         "empty": {
-          "title": "No replacements",
-          "description": "Add a phrase such as at sign and Sona writes @ every time you say it.",
-          "action": "Restore the starter rules"
+          "description": "Add a phrase such as at sign and Sona writes @ every time you say it."
         },
         "confirmDelete": {
           "title": "Delete {{spoken}}?",
-          "description": "The phrase stops being rewritten in future transcripts. Text already written is unchanged.",
-          "body": "{{spoken}} currently becomes {{written}}."
+          "description": "The phrase stops being rewritten in future transcripts. Text already written is unchanged."
         },
         "confirmReset": {
           "title": "Restore the default rules?",
@@ -785,20 +694,17 @@
     "prompts": {
       "samples": {
         "title": "Writing samples",
-        "description": "Examples of your own writing. Modes that rewrite a transcript match this voice.",
         "placeholder": "Paste a paragraph you wrote.",
         "sampleLabel": "Writing sample {{number}}",
         "delete": "Delete sample {{number}}",
         "add": "Add sample",
         "wordCount": "{{words}} of {{max}} words",
         "overLimit": "{{words}} words. Only the first {{max}} are used.",
-        "privacy": "Samples are sent wherever the transcript itself already goes, and nowhere else. Up to {{max}} samples are used.",
+        "privacy": "Samples are sent wherever the transcript itself already goes, and nowhere else.",
         "loading": "Loading samples",
         "loadError": "Could not load samples.",
         "empty": {
-          "title": "No samples yet",
-          "description": "Paste a few paragraphs you wrote yourself and rewrites will follow your vocabulary, sentence length, and formality.",
-          "action": "Add a sample"
+          "description": "Paste a few paragraphs you wrote yourself and rewrites will follow your vocabulary, sentence length, and formality."
         }
       }
     },
@@ -806,23 +712,15 @@
       "enabledLabel": "Show the idle pill",
       "enabledDescription": "Keep a small pill on screen between dictations. Click it to start, right-click it to switch modes.",
       "positionLabel": "Idle pill position",
-      "positionDescription": "Which screen edge the idle pill sits on.",
       "positionTop": "Top",
       "positionBottom": "Bottom"
     },
     "history": {
       "stats": {
-        "title": "All-time usage",
-        "loading": "Loading usage…",
         "unavailable": "Usage statistics are unavailable.",
         "entries": "recordings",
         "duration": "recording time",
-        "words": "words",
-        "source": {
-          "microphone": "Microphone",
-          "file": "File",
-          "legacy": "Older recordings"
-        }
+        "words": "words"
       },
       "processAgain": {
         "action": "Process again",
@@ -845,7 +743,6 @@
       "retranscribe": "Re-transcribe",
       "retranscribeError": "Couldn't re-transcribe. Try again.",
       "transcribing": "Transcribing…",
-      "transcriptionFailed": "Transcription failed.",
       "search": "Search history",
       "searchPlaceholder": "Search transcripts",
       "noResults": "No transcripts match “{{query}}”.",
@@ -995,22 +892,6 @@
         },
         "running": "Transcribing {{count}} files"
       },
-      "trends": {
-        "title": "History trends",
-        "description": "Recordings and words over the selected range.",
-        "loading": "Loading history trends…",
-        "error": "Couldn't load history trends.",
-        "metricLabel": "Metric",
-        "activeDays": "{{active}} of {{total}} days active",
-        "streak_one": "{{count}} day streak",
-        "streak_other": "{{count}} day streak",
-        "metrics": {
-          "recordings": "Recordings",
-          "duration": "Captured time",
-          "words": "Words"
-        },
-        "streak": "{{count}} day streak"
-      },
       "clearSearch": "Clear search",
       "emptyHint": "You can also transcribe an existing recording: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 or M4V, up to 30 minutes.",
       "loadMore": "Load more",
@@ -1034,39 +915,32 @@
     "debug": {
       "title": "Debug",
       "logDirectory": {
-        "title": "Log directory",
-        "description": "Where log files are written."
+        "title": "Log directory"
       },
       "logLevel": {
-        "title": "Log level",
-        "description": "How much detail the log records."
+        "title": "Log level"
       },
       "liveLogs": {
         "title": "Live logs",
-        "description": "Streams log lines as they are emitted. Only lines emitted while this panel is open appear here, at the log level set above.",
-        "live": "Live",
-        "paused": "Paused",
+        "description": "Only lines emitted while this panel is open appear here, at the log level set above.",
         "pause": "Pause",
         "resume": "Resume",
         "copied": "Copied",
         "lineCount": "{{count}} lines",
-        "empty": "Waiting for logs. Lines appear here as the app emits them."
+        "empty": "No lines yet."
       },
       "whatsNewPreview": {
         "title": "Preview What's New",
         "description": "Open the latest bundled release note without marking it as seen.",
-        "button": "Preview",
         "noNotes": "No bundled release notes found",
         "error": "Couldn't preview the release notes. Try again."
       },
       "soundTheme": {
         "label": "Sound theme",
-        "description": "Which sounds play when recording starts and stops.",
         "preview": "Preview the start and stop sounds"
       },
       "wordCorrectionThreshold": {
-        "title": "Word correction threshold",
-        "description": "Sensitivity for custom word corrections"
+        "title": "Word correction threshold"
       },
       "historyLimit": {
         "title": "History limit",
@@ -1084,8 +958,7 @@
         "placeholder": "Select a retention period"
       },
       "alwaysOnMicrophone": {
-        "label": "Always-on microphone",
-        "description": "Keeps the microphone open so recording starts faster."
+        "label": "Always-on microphone"
       },
       "clamshellMicrophone": {
         "title": "Clamshell microphone",
@@ -1096,8 +969,7 @@
         "description": "Rewrite the transcript with a language model after transcription."
       },
       "muteWhileRecording": {
-        "label": "Mute while recording",
-        "description": "Mute system audio during recording"
+        "label": "Mute while recording"
       },
       "appendTrailingSpace": {
         "label": "Append a trailing space",
@@ -1105,7 +977,6 @@
       },
       "keyboardImplementation": {
         "title": "Keyboard implementation",
-        "description": "Choose the keyboard shortcut backend.",
         "bindingsReset": "Keyboard shortcuts were incompatible and reset to defaults"
       },
       "paths": {
@@ -1149,7 +1020,6 @@
         "verdictNoEvents": "No events were captured during the test.",
         "failed": "Diagnostic failed: {{error}}"
       },
-      "description": "Instrumentation and unsupported knobs. Visible because debug mode is on.",
       "groups": {
         "capture": "Capture",
         "delivery": "Text delivery",
@@ -1161,20 +1031,16 @@
       "title": "About",
       "version": {
         "title": "Version",
-        "description": "The version running now.",
         "unavailable": "Unavailable"
       },
       "whatsNewUpdates": {
-        "label": "Show what's new",
-        "description": "Show release notes after Sona updates"
+        "label": "Show what's new"
       },
       "appDataDirectory": {
-        "title": "App data directory",
-        "description": "Where Sona stores its data."
+        "title": "App data directory"
       },
       "sourceCode": {
         "title": "Open-source licenses",
-        "description": "View the bundled license and notice files.",
         "button": "Open licenses"
       },
       "supportDevelopment": {
@@ -1186,22 +1052,17 @@
         "title": "Acknowledgments",
         "ggml": {
           "title": "ggml",
-          "description": "Tensor library for on-device machine learning inference",
           "details": "Sona's local speech-to-text is built on transcribe.cpp and ggml. Thanks to Georgi Gerganov and contributors."
         }
       },
-      "description": "Which build you are running, where it came from, and where it keeps your files.",
       "files": {
         "title": "Files"
       },
       "source": {
-        "description": "Sona is MIT licensed, copyright 2025 CJ Pais, and built on top of Handy.",
-        "open": "Open on GitHub",
         "repository": "Repository",
         "title": "Source",
         "upstream": "Built on Handy",
-        "upstreamDescription": "Sona is a fork of cjpais/Handy and still tracks its upstream fixes.",
-        "upstreamOpen": "cjpais/Handy"
+        "license": "MIT licensed. Copyright 2025 CJ Pais."
       },
       "updates": {
         "autoDescription": "Asks GitHub for the latest release. Sona never installs anything on its own.",
@@ -1209,16 +1070,13 @@
         "check": "Check now",
         "checking": "Checking…",
         "disabled": "Automatic checks are off, so Sona did not contact GitHub.",
-        "enable": "Turn checks on",
         "failed": "The update check could not run.",
-        "manualDescription": "Compare this build against the latest published release.",
         "manualTitle": "Manual check",
         "preferenceError": "The update preference could not be saved.",
         "title": "Version and updates",
         "viewRelease": "View release",
         "available": "Sona {{version}} is available.",
-        "published": "Published {{date}}",
-        "upToDate": "Sona {{version}} is the latest release."
+        "upToDate": "This is the latest release."
       }
     },
     "modes": {
@@ -1226,7 +1084,6 @@
         "title": "App activation",
         "capture": {
           "label": "Activate in app",
-          "description": "Capture the app currently in front and select this mode when you dictate there.",
           "action": "Capture current app",
           "capturing": "Capturing…"
         },
@@ -1236,7 +1093,6 @@
           "title": "Website activation",
           "scope": {
             "label": "Website scope",
-            "description": "Match one host exactly or include its subdomains.",
             "values": {
               "exact": "Exact host",
               "suffix": "Host and subdomains"
@@ -1256,22 +1112,18 @@
         "unsupported": "App and website activation are available on macOS only."
       },
       "title": "Modes",
-      "description": "Choose what each dictation run recognizes, rewrites, and delivers.",
       "listTitle": "Your modes",
       "loading": "Loading modes…",
       "loadError": "Modes could not be loaded.",
       "retry": "Retry",
       "new": "New mode",
       "active": "Active",
-      "default": "Default",
       "defaultProtected": "The default mode cannot be deleted.",
       "activate": "Activate",
-      "edit": "Edit",
       "duplicate": "Duplicate",
       "delete": "Delete",
       "moveUp": "Move up",
       "moveDown": "Move down",
-      "back": "Back to modes",
       "save": "Save changes",
       "saving": "Saving…",
       "changesNextRun": "Changes apply to your next dictation.",
@@ -1280,17 +1132,13 @@
       "deleteDescription": "Delete {{mode}}?",
       "deleteBody": "Its mode-only shortcuts will also be removed. This cannot be undone.",
       "identity": {
-        "title": "Identity",
         "name": {
-          "label": "Mode name",
-          "description": "A label shown in mode selection and history."
+          "label": "Mode name"
         }
       },
       "writing": {
-        "title": "Writing",
         "enabled": {
-          "label": "AI cleanup",
-          "description": "Use the selected provider to rewrite the transcript for this mode."
+          "label": "AI cleanup"
         },
         "preset": {
           "label": "Preset",
@@ -1306,7 +1154,6 @@
         },
         "tone": {
           "label": "Tone",
-          "description": "Apply this tone when AI cleanup is enabled.",
           "values": {
             "casual": "Casual",
             "semi_casual": "Semi-casual",
@@ -1317,14 +1164,12 @@
         },
         "provider": {
           "label": "AI provider",
-          "description": "The configured provider used for this mode.",
           "empty": "No provider configured",
           "noneConfigured": "No AI provider is configured yet. Add one in Settings before this mode can rewrite.",
           "unknownSelected": "This mode names a provider that is not configured on this install."
         },
         "model": {
-          "label": "AI model",
-          "description": "The provider model identifier for this mode."
+          "label": "AI model"
         },
         "disabledNote": "Turn on AI cleanup to use the preset, tone, provider, and model below."
       },
@@ -1333,35 +1178,27 @@
           "label": "Literal punctuation",
           "description": "Convert spoken punctuation such as comma and question mark before vocabulary corrections."
         },
-        "title": "Recognition",
-        "noModelSelected": "No model selected",
         "model": {
           "label": "Transcription model",
-          "description": "Only downloaded local models are available here.",
           "inheritGlobal": "Default: the global model",
           "inheritGlobalNamed": "Default: the global model ({{name}})"
         },
         "language": {
           "label": "Language",
-          "description": "Set a recognition language or let the model detect it.",
           "auto": "Auto detect",
           "cloudDescription": "Choose the language sent with this cloud request."
         },
         "translate": {
-          "label": "Translate to English",
-          "description": "Request English output when the selected model supports translation."
+          "label": "Translate to English"
         },
         "vad": {
-          "label": "Voice activity detection",
-          "description": "Skip silent audio while recording."
+          "label": "Voice activity detection"
         },
         "fillerRemoval": {
-          "label": "Remove filler words",
-          "description": "Remove configured filler words from this mode's transcript."
+          "label": "Remove filler words"
         },
         "vocabulary": {
           "label": "Mode vocabulary",
-          "description": "Pairs here override the global vocabulary only for this mode.",
           "spoken": "Spoken phrase",
           "written": "Written text",
           "spokenPlaceholder": "What was said",
@@ -1373,7 +1210,6 @@
         },
         "engine": {
           "label": "Transcription engine",
-          "description": "Use a local model or an eligible cloud provider.",
           "local": "Local",
           "cloud": "Cloud",
           "unavailable": "{{provider}} is unavailable"
@@ -1386,7 +1222,6 @@
             "useModeModel": "Use this mode's local model",
             "model": {
               "label": "Fallback model",
-              "description": "Choose a downloaded local model, or use this mode's local model.",
               "required": "Choose a fallback model or set this mode's local model before saving."
             }
           },
@@ -1427,7 +1262,6 @@
         }
       },
       "context": {
-        "title": "Context",
         "policy": {
           "label": "Context level",
           "description": "This mode cannot exceed the privacy ceiling.",
@@ -1443,10 +1277,8 @@
         }
       },
       "delivery": {
-        "title": "Delivery",
         "method": {
           "label": "Delivery method",
-          "description": "How Sona puts completed text into the target app.",
           "values": {
             "ctrl_v": "Paste",
             "direct": "Type directly",
@@ -1458,19 +1290,16 @@
         },
         "clipboard": {
           "label": "Clipboard",
-          "description": "Choose whether completed text is copied before delivery.",
           "values": {
             "copy_to_clipboard": "Copy to clipboard",
             "dont_modify": "Leave unchanged"
           }
         },
         "autoSubmit": {
-          "label": "Auto-submit",
-          "description": "Submit after delivery using the chosen key."
+          "label": "Auto-submit"
         },
         "autoSubmitKey": {
           "label": "Submit key",
-          "description": "The key Sona uses when auto-submit is on.",
           "values": {
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
@@ -1479,8 +1308,7 @@
           "requiresAutoSubmit": "Turn on auto-submit to choose a key."
         },
         "trailingSpace": {
-          "label": "Append a trailing space",
-          "description": "Add one space after delivered text."
+          "label": "Append a trailing space"
         },
         "reliablePaste": {
           "label": "Reliable paste",
@@ -1494,7 +1322,6 @@
         },
         "typingTool": {
           "label": "Typing tool",
-          "description": "Used only with direct typing.",
           "values": {
             "auto": "Auto",
             "wtype": "wtype",
@@ -1506,13 +1333,11 @@
           "requiresDirect": "Choose Type directly as the delivery method to pick a tool."
         },
         "script": {
-          "label": "External script",
-          "description": "The script path used by the external-script delivery method."
+          "label": "External script"
         }
       },
       "shortcuts": {
         "title": "Shortcuts",
-        "description": "Set a shortcut to transcribe with or switch to this mode.",
         "manyModes": "New modes may start unbound after the first nine. Set their shortcuts here."
       },
       "errors": {
@@ -1528,12 +1353,7 @@
         "frontmost_website_unavailable": "No browser website could be captured.",
         "website_activation_secure_field": "Website rules cannot be captured from a secure field."
       },
-      "globalVocabulary": {
-        "title": "Global vocabulary",
-        "description": "Vocabulary entries applied across every mode."
-      },
       "actionsFor": "Actions for {{mode}}",
-      "editorLabel": "Mode editor",
       "editorTabsLabel": "Mode editor sections",
       "empty": "Select a mode to edit it.",
       "viewNavigation": "Mode views",
@@ -1551,8 +1371,6 @@
       "cleanup": {
         "title": "Transcript cleanup"
       },
-      "dismissError": "Dismiss the error",
-      "emptyHint": "Pick a mode on the left to change what it recognizes, rewrites, and delivers.",
       "listEmpty": "No modes are configured.",
       "listEmptyHint": "Sona always keeps one mode. Reload to fetch the current list.",
       "unsavedChanges": "Unsaved changes",
@@ -1562,28 +1380,15 @@
           "local": "Local",
           "deepgram_nova_3": "Deepgram",
           "eleven_labs_scribe_v2": "ElevenLabs"
-        },
-        "modelInherited": "Global model",
-        "languageAuto": "Auto",
-        "delivery": {
-          "ctrl_v": "Paste",
-          "direct": "Type",
-          "none": "No delivery",
-          "shift_insert": "Shift+Insert",
-          "ctrl_shift_v": "Paste plain",
-          "external_script": "Script"
         }
       }
     },
     "privacy": {
       "title": "Privacy",
-      "description": "Control application context, inspect capture access, and manage data kept on this device.",
       "context": {
         "title": "Context for AI cleanup",
-        "description": "The global ceiling limits every mode before context is read.",
         "ceiling": {
           "label": "Global context ceiling",
-          "description": "Modes may ask for less context, never more.",
           "values": {
             "none": "Off",
             "target": "App",
@@ -1593,8 +1398,6 @@
           "error": "The context ceiling could not be saved"
         },
         "sources": {
-          "title": "What each level reads",
-          "description": "These are source disclosures, not retained content.",
           "none": "Reads no application context.",
           "target": "Reads the frontmost app identity.",
           "target_and_selection": "Reads the frontmost app identity and selected text when available.",
@@ -1604,21 +1407,14 @@
           "label": "Include browser URLs",
           "description": "Allow a frontmost browser page URL to be captured when a mode and the ceiling allow it.",
           "error": "Browser URL capture could not be saved."
-        },
-        "cloudRoute": "Enabled cloud modes send allowed context to {{providers}}.",
-        "localRoute": "AI processing runs on this Mac.",
-        "checkingRoute": "Checking configured cloud routes…"
+        }
       },
       "diagnostics": {
         "title": "Context diagnostics",
-        "description": "Read-only checks show what this build can access right now.",
         "refresh": "Refresh",
         "error": "Diagnostics could not be refreshed",
         "accessibility": {
-          "label": "Accessibility",
-          "granted": "Accessibility access is granted.",
-          "denied": "Accessibility access is denied.",
-          "unsupported": "Accessibility context is not supported on this platform."
+          "label": "Accessibility"
         },
         "sources": {
           "target_identity": "Frontmost app",
@@ -1644,15 +1440,12 @@
       },
       "data": {
         "title": "Data on this device",
-        "credentialStore": "Provider credentials are stored in the native credential store, not in Sona settings.",
-        "locations": "Settings, history, and retained recordings live in Sona's application data directory. Recordings are kept only for the selected retention period.",
         "historyLimit": {
           "label": "History limit",
           "description": "Keep this many recent history entries. Set 0 to disable saved history."
         },
         "retention": {
           "label": "Recording retention",
-          "description": "Choose how long recording files remain on this device.",
           "values": {
             "never": "Do not retain recordings",
             "preserve_limit": "Keep recordings with history",
@@ -1663,7 +1456,6 @@
         },
         "error": "Data retention could not be saved",
         "historyStorage": {
-          "description": "Whether dictation history is encrypted on this disk.",
           "encrypted": "Encrypted at rest",
           "label": "History storage",
           "locked": "Locked",
@@ -1672,32 +1464,20 @@
             "encryption_unavailable": "This build cannot open an encrypted database, so history is stored unencrypted.",
             "key_rejected": "The stored key does not open the encrypted database, so history cannot be read.",
             "key_unavailable": "The system credential store returned no usable key, so history is stored unencrypted.",
-            "migration_failed": "Encrypting the existing database failed. The unencrypted database is intact and still in use.",
-            "unlocking": "Opening the encrypted database. This clears once startup finishes."
+            "migration_failed": "Encrypting the existing database failed. The unencrypted database is intact and still in use."
           },
           "unknown": "Sona could not read how history is stored.",
-          "unlocking": "Unlocking",
-          "since": "Encrypted since {{date}}."
+          "unlocking": "Unlocking"
         }
       },
       "cloudTranscription": {
         "title": "Cloud transcription",
-        "description": "Read-only disclosure of direct cloud speech-to-text routes.",
-        "checking": "Checking cloud transcription setup…",
         "checkFailed": "Cloud transcription setup could not be checked.",
-        "disclosure": "For a cloud-enabled mode, Sona sends recorded audio, the selected language, and mode keyterms directly to the provider. Application context and native credentials stay on this device.",
-        "providerDetail": "{{provider}} has a saved native API key and current transfer consent.",
-        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent.",
-        "inUse": "In use"
+        "disclosure": "For a cloud-enabled mode, Sona sends recorded audio, the selected language, and mode keyterms directly to the provider. Application context and native credentials stay on this device."
       },
       "upstreamImport": {
         "title": "Import from legacy app",
-        "description": "Copy selected personal data from the legacy app. The source remains unchanged.",
         "source": {
-          "settingsAvailable": "Settings file is available.",
-          "settingsMissing": "No settings file was found.",
-          "history": "{{count}} history entries found.",
-          "recordings": "{{count}} recording files, {{size}}.",
           "empty": "No settings or history entries are available to import."
         },
         "byteCount": "{{value}} {{unit}}",
@@ -1707,7 +1487,6 @@
           "megabytes": "MiB",
           "gigabytes": "GiB"
         },
-        "modelsNotImported": "Model files are not imported.",
         "appRunning": "Close the legacy app before importing.",
         "appUnverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
         "selection": "Choose data to import",
@@ -1741,29 +1520,30 @@
           "receipt_write_failed": "The import receipt could not be saved.",
           "internal": "The import did not finish.",
           "status": "The legacy app's data could not be inspected."
-        }
+        },
+        "scope": "The source is left unchanged, and model files are not imported."
       },
       "cloudSync": {
         "checkFailed": "Sona could not read the cloud sync configuration.",
         "configured": "Configured",
-        "description": "Sona can mirror meetings to a server you run. Nothing is uploaded until setup finishes on this device.",
-        "endpoint": "Endpoint",
-        "endpointDescription": "The server this device is pointed at.",
         "notConfigured": "Not configured",
-        "service": "Service",
         "title": "Cloud sync"
+      },
+      "egress": {
+        "assurance": "Nothing leaves this Mac except on the routes listed here, and provider keys stay in the system credential store, never in Sona's settings.",
+        "thisMac": "This Mac",
+        "routes": {
+          "cleanup": "AI cleanup"
+        }
       }
     },
     "agents": {
       "title": "Agents",
-      "description": "Observe approved local coding-agent sessions. Responses only appear where the installed hook has a fixture-backed wire format.",
       "controls": {
         "title": "Bridge controls",
         "master": {
-          "label": "Enable agent bridge",
-          "description": "Allow Sona to observe configured local agent hooks for authorized projects."
+          "label": "Enable agent bridge"
         },
-        "offState": "The agent bridge is off. No session data or replies are processed.",
         "status": "Runtime status",
         "providers": {
           "claude": {
@@ -1793,7 +1573,6 @@
       },
       "projects": {
         "title": "Authorized projects",
-        "description": "Choose a project folder with the native picker. Sona persists only its canonical hash.",
         "hashOnly": "Exact project hashes are the permission boundary; folder paths are not stored here.",
         "add": "Authorize folder",
         "remove": "Remove project",
@@ -1807,7 +1586,6 @@
       },
       "replyQueue": {
         "title": "Reply preview",
-        "description": "Create a reply preview for a prepared Claude or OMP session. Sona sends it only after you confirm the exact destination and text.",
         "session": "Reply destination",
         "noSession": "No observed reply-capable session",
         "message": "Reply text",
@@ -1817,7 +1595,6 @@
       "pending": {
         "empty": "No pending replies.",
         "confirm": "Confirm exact reply",
-        "preview": "Review the exact destination and text before confirming",
         "confirmed": "Confirmed for the next supported Stop event",
         "cancel": "Cancel",
         "states": {
@@ -1826,11 +1603,11 @@
           "emitted": "Emitted",
           "copy_only": "Copy-only",
           "cancelled": "Cancelled"
-        }
+        },
+        "title": "Pending replies"
       },
       "observed": {
         "title": "Observed activity",
-        "description": "Sessions and requests include IDs and metadata only; provider payloads are not shown.",
         "refresh": "Refresh",
         "sessions": "Sessions",
         "noSessions": "No sessions observed.",
@@ -1853,7 +1630,6 @@
       },
       "rules": {
         "title": "Exact permission rules",
-        "description": "An allow or deny is stored only for the exact agent, project hash, tool, mode, and input hash that created it.",
         "empty": "No permission rules.",
         "remove": "Remove rule",
         "decisions": {
@@ -1866,7 +1642,6 @@
         "operation": "The agent bridge action could not be completed: {{error}}"
       },
       "panel": {
-        "description": "The floating window agents post to and read replies from.",
         "error": "The agent panel setting could not be saved.",
         "label": "Enable agent panel",
         "rowDescription": "Turning this off closes the panel window and makes Sona refuse every request to reopen it.",
@@ -1903,7 +1678,8 @@
     "retry": "Retry",
     "play": "Play",
     "pause": "Pause",
-    "seek": "Playback position"
+    "seek": "Playback position",
+    "resetSetting": "Reset {{name}}"
   },
   "commandPalette": {
     "open": "Search",
@@ -1911,8 +1687,6 @@
     "navigation": "Navigation",
     "actions": "Actions",
     "noResults": "No commands found",
-    "navigate": "navigate",
-    "select": "select",
     "newMeeting": "New meeting",
     "importAudio": "Import audio",
     "openRecordings": "Open recordings folder",
@@ -1954,12 +1728,10 @@
     "commandRewriteUnavailableTitle": "Rewrite unavailable"
   },
   "appLanguage": {
-    "title": "Application Language",
-    "description": "Change the language of the Sona interface"
+    "title": "Application Language"
   },
   "theme": {
     "title": "Application Theme",
-    "description": "Choose whether Sona follows your system theme or stays light or dark",
     "options": {
       "system": "System",
       "light": "Light",
@@ -1995,7 +1767,6 @@
   },
   "meetings": {
     "title": "Meetings",
-    "description": "Capture, recover, and review meeting notes stored on this Mac.",
     "loading": "Loading meetings…",
     "providers": {
       "zoom": "Zoom",
@@ -2070,9 +1841,7 @@
     },
     "gate": {
       "title": "Recording did not start",
-      "description": "Sona created the meeting, but a source it was told to record is unavailable.",
       "readyTitle": "Ready to record",
-      "readyDescription": "Nothing is blocking capture for this meeting.",
       "recordAnyway": "Record without it",
       "recordAnywayHint": "The record is marked partial and the missing source stays named in it."
     },
@@ -2088,14 +1857,9 @@
     },
     "detected": {
       "title": "Meeting detected",
-      "description": "Sona noticed a meeting app in use.",
       "mayBeActive": "A meeting may be active in {{provider}}."
     },
     "setup": {
-      "captureSources": "Capture sources",
-      "captureSourcesDescription": "Each source stays separate so missing audio remains visible.",
-      "processing": "Processing route",
-      "localOnly": "Local only",
       "defaultTitle": "Local notes",
       "remoteUnavailable": "Remote processing is unavailable in this build, so every meeting is transcribed and summarized on this Mac."
     },
@@ -2113,44 +1877,34 @@
       "acceptMissing": "I understand {{source}} is {{state}} and this meeting will be partial."
     },
     "live": {
-      "activeCapture": "Active capture",
       "elapsed": "Elapsed",
       "microphoneOnlyPartial": "Microphone only / Partial. System audio is unavailable or degraded.",
       "partialCapture": "Partial capture. Review the gaps before relying on generated notes.",
       "inputs": "Inputs",
-      "inputsDescription": "Source health is reported separately. Capture never fills missing intervals.",
       "signal": "Signal",
       "signalUnavailable": "{{source}} level is not reported by capture.",
       "notReported": "Not reported",
       "durabilityLag": "Durability lag",
       "behind": "{{duration}} behind",
       "progress": "Transcript progress",
-      "progressDescription": "Transcript timing is derived from committed segments, not a guessed model state.",
       "transcript": "Transcript",
-      "transcriptThrough": "Transcript through {{time}}",
-      "noTranscriptCheckpoint": "No transcript checkpoint",
       "asrLag": "ASR lag",
       "storage": "Storage",
       "storageHealthy": "Encrypted local storage is healthy.",
       "storageUnavailable": "Storage needs attention.",
       "processing": "Processing",
       "manualNote": "Manual note",
-      "manualNoteDescription": "A note added now is anchored at {{time}}.",
       "notePlaceholder": "Write a note for this moment",
-      "timestamp": "Timestamp {{time}}",
       "addNote": "Add timestamped note"
     },
     "recovery": {
       "title": "Recover partial meetings",
-      "description": "These sessions were interrupted. Sona will not restart capture.",
       "finalize": "Finalize partial"
     },
     "history": {
       "title": "Meeting history",
-      "description": "Open a local meeting record to inspect its capture coverage and notes.",
       "loading": "Loading meeting history…",
-      "emptyTitle": "No meetings yet",
-      "emptyDescription": "Start local notes when you are ready to capture a meeting."
+      "emptyTitle": "No meetings yet"
     },
     "retention": {
       "title": "Retention",
@@ -2221,7 +1975,6 @@
     },
     "discard": {
       "liveTitle": "Stop and discard this session?",
-      "liveDescription": "Sona will stop capture and delete the local meeting record.",
       "keepRecording": "Keep recording",
       "stopAndDiscard": "Stop and discard",
       "explainsData": "Audio, transcript, manual notes, generated notes, and local answer caches will be deleted. This cannot be undone.",
@@ -2229,7 +1982,6 @@
     },
     "delete": {
       "title": "Delete this meeting?",
-      "description": "Sona will delete the local meeting record and its derived data.",
       "explainsData": "Sona keeps the meeting inaccessible while verified deletion finishes. Exports and remote copies are outside local deletion.",
       "complete": "Meeting deleted"
     },
@@ -2238,27 +1990,21 @@
       "noStartTime": "This meeting did not record a start time.",
       "started": "Started {{date}}",
       "status": "Capture status",
-      "statusDescription": "Coverage, source health, and processing remain separate.",
       "timeline": "Audio timeline and gaps",
-      "timelineDescription": "Gaps name intervals where no audio was captured.",
-      "gap": "Gap",
       "timeUnknown": "Unknown time",
       "noGaps": "No capture gaps were reported.",
       "transcript": "Transcript",
-      "transcriptDescription": "Edits create a new canonical revision. Derived notes and answers become out of date.",
       "noTranscript": "No transcript is available.",
       "transcriptSegment": "Transcript segment",
       "removeSegment": "Remove segment",
       "unknownSpeaker": "Unknown speaker",
       "speakers": "Speakers",
-      "speakersDescription": "Rename or merge local speaker labels without rewriting timing.",
       "noSpeakers": "No speaker labels are available.",
       "speakerName": "Speaker name",
       "mergeSource": "Merge this speaker",
       "mergeTarget": "Into this speaker",
       "merge": "Merge speakers",
       "manualNotes": "Manual notes",
-      "manualNotesDescription": "Manual notes are user-owned and remain separate from generated notes.",
       "manualNote": "Manual note",
       "newNote": "New manual note",
       "notePlaceholder": "Add a manual note",
@@ -2267,20 +2013,17 @@
       "noTimestamp": "No timestamp",
       "timestamp": "Timestamp {{time}}",
       "generatedNotes": "Generated notes",
-      "generatedNotesDescription": "Regeneration uses the current canonical revision and does not overwrite manual notes or confirmed corrections.",
       "regenerate": "Regenerate",
       "remoteCancellationPending": "Remote cancellation is pending. Local deletion does not claim the remote copy is deleted.",
       "cancelRemote": "Cancel remote processing",
       "remoteCancellationRequested": "Cancellation requested",
       "export": "Export",
-      "exportDescription": "Each export uses an immutable local review snapshot and opens a native save dialog.",
       "exportMarkdown": "Export Markdown",
       "exportJson": "Export JSON",
       "exportComplete": "Meeting exported",
       "citation": "Transcript {{time}}",
       "noGeneratedNotes": "No generated notes are available yet.",
       "template": "Template: {{template}}",
-      "artifactRevision": "Template v{{templateVersion}} · source revision {{revision}}",
       "summary": "Summary",
       "topics": "Topics",
       "none": "None",
@@ -2303,13 +2046,11 @@
       "insufficientEvidence": "No supporting passage was found in this meeting.",
       "forget": "Forget this answer",
       "exactSearch": "Exact search",
-      "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
       "searchPlaceholder": "Search this meeting",
       "search": "Search",
       "noSearchResults": "No exact local matches.",
       "askUnavailable": "Asking needs a finished local transcript.",
       "asking": "Asking this meeting…",
-      "captured": "Captured {{time}}",
       "droppedFrames": "Dropped frames: {{total}}",
       "hitKind": {
         "manualNote": "Manual note",
@@ -2333,17 +2074,12 @@
     },
     "ledger": {
       "title": "Ledger",
-      "description": "Every thread in this meeting, where it landed, and the transcript quote the state was read from. Counts are measured; states are inferred.",
       "emptyTitle": "No ledger has been read from this meeting yet",
       "emptyDescription": "A ledger is written alongside the generated notes. Regenerate the notes to read this conversation as threads.",
       "exportHtml": "Export ledger page",
       "exported": "Ledger written to {{path}}",
       "exportMissing": "This meeting has no ledger to export. Regenerate the notes first.",
       "statThreads": "Threads landed",
-      "statOpen": "Open",
-      "statDropped": "Dropped",
-      "statCommitments": "Commitments",
-      "statOpenLoops": "Open loops",
       "statReceipts": "Receipts",
       "receiptsVerified": "verified",
       "receiptsDegraded": "{{threads}} threads, {{commitments}} commitments removed",
@@ -2400,21 +2136,7 @@
       "succeeded": "Speaker assignments current",
       "failed": "Speaker separation failed"
     },
-    "trends": {
-      "title": "Meeting activity",
-      "loading": "Loading meeting trends…",
-      "error": "Couldn't load meeting trends.",
-      "unavailable": "Meeting trends are unavailable.",
-      "metricLabel": "Metric",
-      "metrics": {
-        "meetings": "Meetings",
-        "duration": "Captured time",
-        "transcript": "Transcript segments",
-        "actions": "Action items"
-      }
-    },
     "list": {
-      "retentionHint": "Retention: {{policy}}. Change it in Settings > Privacy.",
       "searchLabel": "Search meetings",
       "searchPlaceholder": "Search by title",
       "clearFilters": "Clear filters",
@@ -2462,9 +2184,7 @@
     },
     "analytics": {
       "title": "Conversation",
-      "description": "Measured on this Mac from the diarized transcript. Nothing is sent anywhere.",
       "noSpeech": "No speech was transcribed, so there is nothing to measure.",
-      "talkShare": "Top talker",
       "longestMonologue": "Longest monologue",
       "patience": "Patience",
       "patienceDetail": "Median pause before replying",
@@ -2479,7 +2199,6 @@
       "noHits": "Not mentioned",
       "jumpToFirst": "Show first",
       "trackersTitle": "Keyword trackers",
-      "trackersDescription": "Phrases to watch for in every meeting transcript. Matching is literal and ignores case, and every scan runs on this Mac.",
       "addTracker": "Add tracker",
       "removeTracker": "Remove tracker",
       "noTrackers": "No trackers yet. Add one to start counting how often a phrase comes up.",
@@ -2491,7 +2210,6 @@
     "notes": {
       "title": "My notes",
       "liveDescription": "Type as roughly as you like. These notes stay on this Mac and steer the notes Sona generates when the meeting ends.",
-      "reviewDescription": "Your own notes steer what the generated notes emphasize. They are never quoted or cited.",
       "placeholder": "Anything worth remembering: names, numbers, what to follow up on",
       "unsaved": "Not saved yet",
       "saving": "Saving…",
@@ -2499,7 +2217,6 @@
       "conflict": "These notes changed somewhere else. Reopen the meeting to load the current version.",
       "reenhance": "Re-enhance with my notes",
       "enhancing": "Rebuilding…",
-      "enhanced": "Notes rebuilt.",
       "enhanceFailed": "Sona could not rebuild the notes. Open the meeting again and retry.",
       "catchUp": "Catch me up",
       "catchingUp": "Catching up…",
@@ -2513,11 +2230,11 @@
         "interview": "Interview",
         "sales_call": "Sales call",
         "standup": "Standup"
-      }
+      },
+      "template": "Template"
     },
     "detection": {
       "title": "Detect meetings",
-      "description": "Sona watches for calls and offers to take notes. It never records on its own.",
       "loading": "Reading detection state…",
       "prompt": {
         "calendar": "{{title}} starting",
@@ -2535,21 +2252,17 @@
       },
       "pane": {
         "title": "Starting soon",
-        "description": "Sona never records until you start it here.",
-        "countdown": "Starts in {{seconds}}s",
-        "notYetRecording": "Not recording"
+        "countdown": "Starts in {{seconds}}s"
       },
       "calendar": {
         "label": "Use my calendar",
         "description": "Shows a countdown a minute before events with two or more attendees. macOS asks for full calendar access the first time, because Apple offers no read-only grant."
       },
       "anyMic": {
-        "label": "Ask on any microphone use",
-        "description": "Includes voice memos, music apps, and anything else that opens the microphone. Off keeps prompts to known meeting apps."
+        "label": "Ask on any microphone use"
       },
       "autoStart": {
-        "label": "Open the meeting when its countdown is showing",
-        "description": "Skips the notification when an event starts while you are already looking at its countdown. You still confirm what gets recorded."
+        "label": "Open the meeting when its countdown is showing"
       },
       "apps": {
         "label": "Meeting apps",
@@ -2559,7 +2272,6 @@
       },
       "state": {
         "title": "What detection can see",
-        "description": "Detection is quiet most of the time. This is why.",
         "calendarDenied": "Calendar access was not granted, so only the microphone path runs.",
         "notificationsDenied": "Notifications are off for Sona, so prompts appear in the app only.",
         "bluetoothCaveat": "A meeting app is open but nothing reports using the microphone. Bluetooth headsets often do not, so start the meeting yourself if one is running.",
@@ -2627,14 +2339,12 @@
   },
   "agentPanel": {
     "open": "Agent",
-    "loading": "Connecting…",
     "retry": "Retry",
     "cancel": "Cancel",
     "apply": "Apply",
     "undo": "Undo",
     "panelToggle": "Close agent panel",
     "conversationLabel": "Conversation",
-    "proposalLabel": "Proposed changes",
     "proposalTitle": "Proposed changes",
     "empty": "Ask about Sona settings. Proposals appear here for review before anything changes.",
     "inputPlaceholder": "Ask about Sona…",
@@ -2651,92 +2361,16 @@
       "error": "Agent panel unavailable."
     }
   },
-  "analytics": {
-    "range": {
-      "label": "Range",
-      "days_7": "7 days",
-      "days_30": "30 days",
-      "days_180": "6 months"
-    },
-    "delta": {
-      "new": "New",
-      "flat": "No change",
-      "unavailable": "Unavailable",
-      "change": "{{value}} vs previous period"
-    },
-    "duration": {
-      "minutes": "{{value}} min",
-      "hours": "{{value}} h"
-    },
-    "chart": {
-      "description": "{{metric}} for {{range}}",
-      "empty": "No activity yet"
-    }
-  },
   "overview": {
-    "sources": {
-      "title": "Sources",
-      "description": "Where the recordings in this range came from.",
-      "microphone": "Microphone",
-      "file": "File import",
-      "legacy": "Legacy",
-      "empty": "No recordings in this range.",
-      "meetings": "Meetings",
-      "meetingsUnavailable": "Meeting storage is unavailable, so meetings are not counted here."
-    },
     "hero": {
       "ready": "Ready",
       "recording": "Listening",
       "newMeeting": "New meeting",
       "importAudio": "Import audio",
-      "mode": "Mode: {{name}}",
-      "setShortcut": "Set a dictation shortcut in Settings to capture from any app.",
-      "setShortcutAction": "Set a shortcut",
+      "gestureTapHold": "tap to toggle · hold to talk",
+      "gestureTapOnly": "tap to toggle",
       "shortcutAction": "Change dictation shortcut",
-      "gestureTapHold": "Tap to toggle, hold to talk.",
-      "gestureTapOnly": "Tap to toggle."
-    },
-    "actions": {
-      "dictate": "Dictate",
-      "unavailable": "Shortcut unavailable"
-    },
-    "recent": {
-      "title": "Recent activity",
-      "history": "Dictation",
-      "meeting": "Meeting",
-      "viewAll": "See all",
-      "words": "{{count}} words",
-      "emptyRange": "No dictations or meetings in the last 30 days.",
-      "failedCommand": "{{command}} failed",
-      "failedCommandWithDetail": "{{command}} failed: {{detail}}"
-    },
-    "chart": {
-      "day": "{{date}} · dictations {{dictations}}",
-      "dayWithMeetings": "{{date}} · dictations {{dictations}} · meetings {{meetings}}",
-      "legend": "Dictations per day",
-      "peak": "Busiest day {{peak}}",
-      "summary": "Dictations per day from {{from}} to {{to}}. Total {{total}}, busiest day {{peak}}."
-    },
-    "empty": {
-      "action": "Open Library",
-      "description": "Hold your dictation shortcut in any app and Sona types what you say. Your usage stats and recent captures appear here after the first dictation.",
-      "title": "No captures yet"
-    },
-    "stats": {
-      "activeDays": "{{active}} of {{total}} days active",
-      "allTime": "{{total}} all time",
-      "dictations": "Dictations",
-      "dictationsAllTime": "Dictations, all time",
-      "error": "Sona could not read your usage history.",
-      "range": "{{from}} to {{to}}",
-      "rangeUnavailable": "The last 30 days could not be read, so these are all-time totals.",
-      "speaking": "Speaking time",
-      "speakingAllTime": "Speaking time, all time",
-      "streak": "Current streak",
-      "tiles": "Usage summary",
-      "title": "Activity",
-      "words": "Words",
-      "wordsAllTime": "Words, all time"
+      "setShortcutAction": "Set a shortcut"
     },
     "update": {
       "available": "Sona {{latest}} is available. This install is on {{current}}.",
@@ -2744,47 +2378,22 @@
       "failed": "Could not check for updates.",
       "failedWithReason": "Could not check for updates: {{reason}}",
       "view": "View release"
-    },
-    "instrument": {
-      "label": "Capture instrument",
-      "engine": "Engine",
-      "input": "Input",
-      "shortcut": "Shortcut",
-      "mode": "Mode",
-      "loaded": "loaded",
-      "unloaded": "unloaded",
-      "notMeasured": "not measured",
-      "unbound": "not set",
-      "gestureTapHold": "tap · hold",
-      "gestureTap": "tap",
-      "channel": "ch {{channel}}",
-      "channels": "{{count}} ch",
-      "rate": "{{kilohertz}} kHz",
-      "systemDefault": "System default",
-      "decode": "decode {{factor}}"
     }
   },
   "cloudSync": {
-    "title": "Cloud Sync",
     "account": {
       "title": "Cloud Sync",
-      "description": "Meetings stay on this device until you set up sync.",
       "status": {
-        "loading": "Checking sync…",
+        "loading": "Checking…",
         "local": "Local only",
-        "ready": "Sync active",
-        "paused": "Sync paused",
-        "attention": "Sync needs attention",
-        "unavailable": "Sync unavailable"
+        "ready": "Active",
+        "paused": "Paused",
+        "attention": "Needs attention",
+        "unavailable": "Unavailable"
       },
       "pending": "{{count}} pending",
       "pause": "Pause sync",
       "resume": "Resume sync"
-    },
-    "disclosure": {
-      "title": "Set up or recover sync",
-      "description": "Connect an endpoint or pair another device.",
-      "notice": "Setup is optional. Meeting data stays local until you complete it."
     },
     "setup": {
       "title": "Set up a sync account",
@@ -2854,7 +2463,8 @@
       },
       "browser": {
         "create": "Create browser share",
-        "revoke": "Revoke browser share"
+        "revoke": "Revoke browser share",
+        "revokeConfirm": "Anyone holding this link loses access the moment you revoke it."
       }
     }
   }

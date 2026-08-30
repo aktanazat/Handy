@@ -1,7 +1,22 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { Button, Section, Select, StatusText, Textarea } from "../../ui";
+import {
+  FIELD_MAX_W,
+  Microlabel,
+  Notice,
+  SettingsCard,
+  SettingsField,
+} from "@/components/settings/rows";
+import { Button } from "@/components/vg/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/vg/select";
+import { Textarea } from "@/components/vg/textarea";
 import {
   MEETING_NOTES_TEMPLATES,
   NOTES_AUTOSAVE_DELAY_MS,
@@ -22,7 +37,10 @@ import {
  * a catch-up, because that is when someone needs one. Afterwards it offers the
  * template picker and a re-enhance, because that is when regeneration means
  * something. The typing and saving behavior is identical in both, which is why
- * this is one component. */
+ * this is one component.
+ *
+ * Saving reports itself once, as a mono microlabel beside the label — never a
+ * sentence and a spinner and a toast for the same keystroke. */
 
 type NotesVariant = "live" | "review";
 
@@ -37,6 +55,11 @@ interface MeetingNotesPaneProps {
 
 type SaveState = "idle" | "unsaved" | "saving" | "saved" | "conflict";
 
+const SAVED_AT_FORMATTER = new Intl.DateTimeFormat(undefined, {
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
 export const MeetingNotesPane: React.FC<MeetingNotesPaneProps> = ({
   sessionId,
   revision,
@@ -45,6 +68,7 @@ export const MeetingNotesPane: React.FC<MeetingNotesPaneProps> = ({
   onEnhanced,
 }) => {
   const { t } = useTranslation();
+  const fieldId = useId();
   const [notes, setNotes] = useState<MeetingUserNotes | null>(null);
   const [body, setBody] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -109,8 +133,8 @@ export const MeetingNotesPane: React.FC<MeetingNotesPaneProps> = ({
     }, NOTES_AUTOSAVE_DELAY_MS);
   };
 
-  const changeTemplate = async (value: string | null) => {
-    if (notes === null || value === null) return;
+  const changeTemplate = async (value: string) => {
+    if (notes === null) return;
     const template = MEETING_NOTES_TEMPLATES.find(
       (candidate) => candidate === value,
     );
@@ -134,7 +158,6 @@ export const MeetingNotesPane: React.FC<MeetingNotesPaneProps> = ({
       });
       savedRevision.current += 1;
       setSaveState("saved");
-      toast.success(t("meetings.notes.enhanced", "Notes rebuilt."));
       await onEnhanced?.();
     } catch {
       toast.error(
@@ -148,41 +171,64 @@ export const MeetingNotesPane: React.FC<MeetingNotesPaneProps> = ({
     }
   };
 
+  /* A failed recap is reported where the recap would have been, so the failure
+   * is not announced twice — once as a toast and once as a panel. */
   const runCatchUp = async () => {
     setCatchingUp(true);
     try {
       setCatchUp(await meetingCatchUp(sessionId));
     } catch {
-      toast.error(
-        t(
-          "meetings.notes.catchUpFailed",
-          "Sona could not build a recap. Try again.",
-        ),
-      );
+      setCatchUp({
+        state: "failed",
+        bullets: [],
+        through_offset_ns: null,
+        segment_count: 0,
+      });
     } finally {
       setCatchingUp(false);
     }
   };
 
   const busy = disabled || notes === null;
+  const savedAtUtcMs = notes?.updated_at_utc_ms ?? null;
+  /* One line for the whole save cycle, and nothing at all before the first
+   * edit. A conflict is not in here: it is a sentence with a recovery in it. */
+  const saveLabel =
+    saveState === "unsaved"
+      ? t("meetings.notes.unsaved", "Not saved yet")
+      : saveState === "saving"
+        ? t("meetings.notes.saving", "Saving…")
+        : saveState === "saved"
+          ? `${t("meetings.notes.saved", "Notes saved")}${savedAtUtcMs === null ? "" : ` ${SAVED_AT_FORMATTER.format(savedAtUtcMs)}`}`
+          : null;
 
   return (
-    <Section
-      title={t("meetings.notes.title", "My notes")}
-      description={
-        variant === "live"
-          ? t(
-              "meetings.notes.liveDescription",
-              "Type as roughly as you like. These notes stay on this Mac and steer the notes Sona generates when the meeting ends.",
-            )
-          : t(
-              "meetings.notes.reviewDescription",
-              "Your own notes steer what the generated notes emphasize. They are never quoted or cited.",
-            )
-      }
-    >
-      <div className="meeting-card">
+    <SettingsCard className="divide-y divide-gray-alpha-400">
+      <SettingsField
+        label={t("meetings.notes.title", "My notes")}
+        /* Only the live variant carries a hint. After the meeting, the
+         * "Re-enhance with my notes" button states the same fact the review
+         * sentence did, and the sentence was the third place it was said. */
+        hint={
+          variant === "live"
+            ? t(
+                "meetings.notes.liveDescription",
+                "Type as roughly as you like. These notes stay on this Mac and steer the notes Sona generates when the meeting ends.",
+              )
+            : undefined
+        }
+        fact={
+          saveLabel === null ? undefined : (
+            <span role="status" aria-live="polite">
+              {saveLabel}
+            </span>
+          )
+        }
+        controlId={fieldId}
+        disabled={busy}
+      >
         <Textarea
+          id={fieldId}
           value={body}
           onChange={(event) => scheduleSave(event.target.value)}
           onBlur={() => {
@@ -194,97 +240,76 @@ export const MeetingNotesPane: React.FC<MeetingNotesPaneProps> = ({
             "meetings.notes.placeholder",
             "Anything worth remembering: names, numbers, what to follow up on",
           )}
-          aria-label={t("meetings.notes.title", "My notes")}
           disabled={busy}
           rows={variant === "live" ? 8 : 5}
-          className="w-full"
+          className="resize-none"
         />
 
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-          <NotesSaveState state={saveState} />
-          <div className="flex flex-wrap items-center gap-2">
-            {variant === "live" ? (
+        <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
+          {variant === "live" ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void runCatchUp()}
+              disabled={catchingUp}
+            >
+              {catchingUp
+                ? t("meetings.notes.catchingUp", "Catching up…")
+                : t("meetings.notes.catchUp", "Catch me up")}
+            </Button>
+          ) : (
+            <>
+              <Select
+                value={notes?.template ?? "general"}
+                onValueChange={(value) => void changeTemplate(value)}
+                disabled={busy || enhancing}
+              >
+                <SelectTrigger
+                  size="sm"
+                  className={`w-auto ${FIELD_MAX_W}`}
+                  aria-label={t("meetings.notes.template", "Template")}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MEETING_NOTES_TEMPLATES.map((template) => (
+                    <SelectItem key={template} value={template}>
+                      {t(`meetings.notes.templates.${template}`)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button
                 type="button"
-                variant="secondary"
-                onClick={runCatchUp}
-                disabled={catchingUp}
+                variant="outline"
+                size="sm"
+                onClick={() => void reenhance()}
+                disabled={busy || enhancing}
               >
-                {catchingUp
-                  ? t("meetings.notes.catchingUp", "Catching up…")
-                  : t("meetings.notes.catchUp", "Catch me up")}
+                {enhancing
+                  ? t("meetings.notes.enhancing", "Rebuilding…")
+                  : t("meetings.notes.reenhance", "Re-enhance with my notes")}
               </Button>
-            ) : (
-              <>
-                <Select
-                  value={notes?.template ?? "general"}
-                  options={MEETING_NOTES_TEMPLATES.map((template) => ({
-                    value: template,
-                    label: t(`meetings.notes.templates.${template}`),
-                  }))}
-                  onChange={(value) => void changeTemplate(value)}
-                  disabled={busy || enhancing}
-                  className="min-w-44"
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={reenhance}
-                  disabled={busy || enhancing}
-                >
-                  {enhancing
-                    ? t("meetings.notes.enhancing", "Rebuilding…")
-                    : t("meetings.notes.reenhance", "Re-enhance with my notes")}
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-
-        {catchUp === null ? null : <CatchUpResult result={catchUp} />}
-      </div>
-    </Section>
-  );
-};
-
-interface NotesSaveStateProps {
-  state: SaveState;
-}
-
-const NotesSaveState: React.FC<NotesSaveStateProps> = ({ state }) => {
-  const { t } = useTranslation();
-
-  switch (state) {
-    case "idle":
-      return null;
-    case "unsaved":
-      return (
-        <StatusText tone="muted">
-          {t("meetings.notes.unsaved", "Not saved yet")}
-        </StatusText>
-      );
-    case "saving":
-      return (
-        <StatusText tone="muted" live="polite">
-          {t("meetings.notes.saving", "Saving…")}
-        </StatusText>
-      );
-    case "saved":
-      return (
-        <StatusText tone="muted" live="polite">
-          {t("meetings.notes.saved", "Notes saved")}
-        </StatusText>
-      );
-    case "conflict":
-      return (
-        <StatusText tone="danger" live="assertive">
-          {t(
-            "meetings.notes.conflict",
-            "These notes changed somewhere else. Reopen the meeting to load the current version.",
+            </>
           )}
-        </StatusText>
-      );
-  }
+        </div>
+      </SettingsField>
+
+      {saveState === "conflict" ? (
+        <div className="px-4 py-3">
+          <Notice tone="danger" assertive>
+            {t(
+              "meetings.notes.conflict",
+              "These notes changed somewhere else. Reopen the meeting to load the current version.",
+            )}
+          </Notice>
+        </div>
+      ) : null}
+
+      {catchUp === null ? null : <CatchUpResult result={catchUp} />}
+    </SettingsCard>
+  );
 };
 
 interface CatchUpResultProps {
@@ -297,52 +322,39 @@ interface CatchUpResultProps {
 const CatchUpResult: React.FC<CatchUpResultProps> = ({ result }) => {
   const { t } = useTranslation();
 
-  if (result.state === "no_transcript_yet") {
+  if (result.state !== "ready") {
     return (
-      <StatusText tone="muted" className="mt-3 block" live="polite">
-        {t(
-          "meetings.notes.catchUpNoTranscript",
-          "Nothing to recap yet. Sona transcribes after you stop recording, so a recap is available once the transcript starts arriving.",
-        )}
-      </StatusText>
-    );
-  }
-
-  if (result.state === "model_unavailable") {
-    return (
-      <StatusText tone="warning" className="mt-3 block" live="polite">
-        {t(
-          "meetings.notes.catchUpUnavailable",
-          "The on-device model is unavailable, so no recap was written.",
-        )}
-      </StatusText>
-    );
-  }
-
-  if (result.state === "failed") {
-    return (
-      <StatusText tone="danger" className="mt-3 block" live="polite">
-        {t(
-          "meetings.notes.catchUpFailed",
-          "Sona could not build a recap. Try again.",
-        )}
-      </StatusText>
+      <div className="px-4 py-3">
+        <Notice
+          tone={result.state === "no_transcript_yet" ? "muted" : "warning"}
+        >
+          {result.state === "no_transcript_yet"
+            ? t(
+                "meetings.notes.catchUpNoTranscript",
+                "Nothing to recap yet. Sona transcribes after you stop recording, so a recap is available once the transcript starts arriving.",
+              )
+            : result.state === "model_unavailable"
+              ? t(
+                  "meetings.notes.catchUpUnavailable",
+                  "The on-device model is unavailable, so no recap was written.",
+                )
+              : t(
+                  "meetings.notes.catchUpFailed",
+                  "Sona could not build a recap. Try again.",
+                )}
+        </Notice>
+      </div>
     );
   }
 
   return (
-    <div className="inset-panel mt-3">
-      <h3 className="microlabel mb-2">
-        {t("meetings.notes.catchUpTitle", "So far")}
+    <div className="flex flex-col gap-2 px-4 py-3">
+      <h3>
+        <Microlabel>{t("meetings.notes.catchUpTitle", "So far")}</Microlabel>
       </h3>
-      <ul className="list-disc space-y-1 ps-4">
+      <ul className="list-disc space-y-1 ps-4 text-sm text-gray-900">
         {result.bullets.map((bullet) => (
-          <li
-            key={bullet}
-            className="text-[12.5px] leading-[18px] text-text-secondary"
-          >
-            {bullet}
-          </li>
+          <li key={bullet}>{bullet}</li>
         ))}
       </ul>
     </div>

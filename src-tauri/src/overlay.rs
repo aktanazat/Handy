@@ -519,7 +519,7 @@ pub fn create_recording_overlay(app_handle: &AppHandle) {
     let mut builder = WebviewWindowBuilder::new(
         app_handle,
         "recording_overlay",
-        tauri::WebviewUrl::App("src/overlay/index.html".into()),
+        tauri::WebviewUrl::App("/overlay".into()),
     )
     .title("Recording")
     .resizable(false)
@@ -574,7 +574,7 @@ pub fn create_recording_overlay(app_handle: &AppHandle) {
         // PanelBuilder creates a Tauri window then converts it to NSPanel.
         // The window remains registered, so get_webview_window() still works.
         match PanelBuilder::<_, RecordingOverlayPanel>::new(app_handle, "recording_overlay")
-            .url(WebviewUrl::App("src/overlay/index.html".into()))
+            .url(WebviewUrl::App("/overlay".into()))
             .title("Recording")
             .position(tauri::Position::Logical(tauri::LogicalPosition { x, y }))
             .level(PanelLevel::Status)

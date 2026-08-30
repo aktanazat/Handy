@@ -1,15 +1,16 @@
 import React, { useCallback, useState } from "react";
-import { Input } from "../../ui/Input";
+import { Input } from "@/components/vg/input";
 
 interface ApiKeyFieldProps {
   onCommit: (value: string) => Promise<boolean>;
   disabled: boolean;
   placeholder?: string;
-  className?: string;
+  /** Ties the input to the field label that names it. */
+  id?: string;
 }
 
 export const ApiKeyField: React.FC<ApiKeyFieldProps> = React.memo(
-  ({ onCommit, disabled, placeholder, className = "" }) => {
+  ({ onCommit, disabled, placeholder, id }) => {
     const [localValue, setLocalValue] = useState("");
 
     const commit = useCallback(async () => {
@@ -23,15 +24,15 @@ export const ApiKeyField: React.FC<ApiKeyFieldProps> = React.memo(
 
     return (
       <Input
+        id={id}
         type="password"
         value={localValue}
         onChange={(event) => setLocalValue(event.target.value)}
         onBlur={() => void commit()}
         autoComplete="new-password"
         placeholder={placeholder}
-        variant="compact"
         disabled={disabled}
-        className={`w-full min-w-0 flex-1 ${className}`}
+        className="h-8 min-w-0 flex-1"
       />
     );
   },

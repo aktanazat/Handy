@@ -2,13 +2,14 @@ import React, { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ask } from "@tauri-apps/plugin-dialog";
 import type { ModelInfo } from "@/bindings";
+import { Button } from "@/components/vg/button";
+import { Skeleton } from "@/components/vg/skeleton";
 import {
-  Alert,
-  Button,
-  EmptyState,
-  Skeleton,
-  type DropdownOption,
-} from "@/components/ui";
+  Notice,
+  SettingsPage,
+  SettingsSection,
+  SettingsSurface,
+} from "@/components/settings/rows";
 import { useModelStore } from "@/stores/modelStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { formatModelSize } from "@/lib/utils/format";
@@ -16,10 +17,11 @@ import { getTranslatedModelName } from "@/lib/utils/modelTranslation";
 import { PostProcessingSettingsApi } from "../PostProcessingSettingsApi";
 import { PromptLibrary } from "../vocabulary/PromptLibrary";
 import { WritingSamplesPanel } from "../vocabulary/WritingSamplesPanel";
-import { RuleList } from "../vocabulary/PanelParts";
-import { SettingsGroup } from "../../ui/SettingsGroup";
 import { CloudSttProviderSettings } from "./CloudSttProviderSettings";
-import { ModelCatalogFilters } from "./ModelCatalogFilters";
+import {
+  ModelCatalogFilters,
+  type ModelFamilyOption,
+} from "./ModelCatalogFilters";
 import { ModelCatalogRow, type ModelRowState } from "./ModelCatalogRow";
 import {
   ALL_FAMILIES,
@@ -32,7 +34,6 @@ import {
 } from "./modelCatalog";
 import { groupModelsByFamily } from "./modelFamily";
 import { useModelEngineState, useModelRowErrors } from "./useModelEngineState";
-import "./models-page.css";
 
 const SKELETON_GROUPS = [3, 4];
 
@@ -44,7 +45,6 @@ export const ModelsSettings: React.FC = () => {
     currentModel,
     downloadingModels,
     downloadProgress,
-    downloadStats,
     verifyingModels,
     extractingModels,
     loading,
@@ -87,7 +87,7 @@ export const ModelsSettings: React.FC = () => {
     [catalogModels, t],
   );
 
-  const familyOptions = useMemo<DropdownOption[]>(
+  const familyOptions = useMemo<ModelFamilyOption[]>(
     () => [
       {
         value: ALL_FAMILIES,
@@ -113,8 +113,6 @@ export const ModelsSettings: React.FC = () => {
   /* Storage already in the payload: size_mb of everything on disk, legacy
    * downloads included, because they occupy the same folder. */
   const onDisk = useMemo(() => diskUsage(models), [models]);
-
-  const activeModel = models.find((model) => model.id === currentModel);
 
   const rowStateOf = useCallback(
     (model: ModelInfo): ModelRowState => {
@@ -175,213 +173,143 @@ export const ModelsSettings: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="settings-page models-page">
-        <header className="settings-page-header">
-          <h1 id="model-catalog-heading" className="settings-page-title">
-            {t("settings.models.title")}
-          </h1>
-          <p className="settings-page-description">
-            {t("settings.models.description")}
-          </p>
-        </header>
+      <SettingsPage title={t("settings.models.title")}>
         <div
           role="status"
           aria-label={t("common.loading")}
-          className="models-catalog"
+          className="flex flex-col gap-8"
         >
-          <div className="models-filter-bar">
-            <div className="models-filter-row">
-              <Skeleton className="h-9 flex-1" />
-              <Skeleton className="h-9 w-24" />
-            </div>
-            <div className="models-filter-row">
-              <Skeleton className="h-9 w-44" />
-              <Skeleton className="h-9 w-20" />
-              <Skeleton className="h-9 w-24" />
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Skeleton className="h-8 flex-1 basis-56" />
+            <Skeleton className="h-8 w-44" />
+            <Skeleton className="h-8 w-56" />
+            <Skeleton className="h-8 w-24" />
           </div>
           {SKELETON_GROUPS.map((rows, groupIndex) => (
-            <section key={groupIndex} className="models-family">
-              <div className="models-family-header">
-                <Skeleton className="h-5 w-28" />
-              </div>
-              <div className="models-rows">
+            <div key={groupIndex} className="flex flex-col gap-3">
+              <Skeleton className="h-4 w-24" />
+              <SettingsSurface>
                 {Array.from({ length: rows }, (_row, rowIndex) => (
-                  <div key={rowIndex} className="models-skeleton-row">
-                    <Skeleton className="h-4 w-52" />
-                    <Skeleton className="h-3.5 w-72" />
+                  <div key={rowIndex} className="px-4 py-3">
+                    <Skeleton className="h-5 w-full" />
                   </div>
                 ))}
-              </div>
-            </section>
+              </SettingsSurface>
+            </div>
           ))}
         </div>
-      </div>
+      </SettingsPage>
     );
   }
 
   return (
-    <div className="settings-page models-page">
-      <header className="settings-page-header">
-        <h1 id="model-catalog-heading" className="settings-page-title">
-          {t("settings.models.title")}
-        </h1>
-        <p className="settings-page-description">
-          {t("settings.models.description")}
-        </p>
-        <dl className="models-storage-summary">
-          <div className="models-storage-stat">
-            <dt className="microlabel">
-              {t("settings.models.summary.activeLabel", "Active model")}
-            </dt>
-            <dd>
-              {activeModel
-                ? getTranslatedModelName(activeModel, t)
-                : t("settings.models.summary.noActive", "No model selected")}
-            </dd>
-          </div>
-          <div className="models-storage-stat">
-            <dt className="microlabel">
-              {t("settings.models.summary.onDiskLabel", "On disk")}
-            </dt>
-            <dd className="numeric">
-              {t("settings.models.familyCount", "{{total}} models", {
-                total: onDisk.count,
-              })}
-              {onDisk.count > 0
-                ? ` \u00b7 ${formatModelSize(onDisk.sizeMb)}`
-                : ""}
-            </dd>
-          </div>
-        </dl>
-      </header>
+    <SettingsPage
+      title={t("settings.models.title")}
+      /* The one measurement the page carries, once: what the catalog costs on
+       * disk. The active model is not repeated here — its own row says so,
+       * and so does the sidebar chip. */
+      actions={
+        onDisk.count > 0 ? (
+          <span className="font-mono text-[11px] tabular-nums text-gray-800">
+            {t("settings.models.familyCount", "{{total}} models", {
+              total: onDisk.count,
+            })}
+            {` \u00b7 ${formatModelSize(onDisk.sizeMb)}`}
+          </span>
+        ) : null
+      }
+    >
+      <ModelCatalogFilters
+        filters={filters}
+        onChange={setFilters}
+        familyOptions={familyOptions}
+        isRescanning={isRescanning}
+        onRescan={() => void rescanLocalModels()}
+      />
 
-      <section
-        aria-labelledby="model-catalog-heading"
-        className="models-catalog"
-      >
-        <ModelCatalogFilters
-          filters={filters}
-          onChange={setFilters}
-          familyOptions={familyOptions}
-          isRescanning={isRescanning}
-          onRescan={() => void rescanLocalModels()}
-        />
-
-        {pageError && (
-          <Alert
-            variant="error"
-            action={
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  setError(null);
-                  void loadModels();
-                }}
-              >
-                {t("common.retry")}
-              </Button>
-            }
+      {pageError ? (
+        <div className="flex flex-col items-start gap-2">
+          <Notice tone="danger">{pageError}</Notice>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setError(null);
+              void loadModels();
+            }}
           >
-            {pageError}
-          </Alert>
-        )}
+            {t("common.retry")}
+          </Button>
+        </div>
+      ) : null}
 
-        {catalogModels.length === 0 ? (
-          /* The catalog is shipped with the app, so zero entries means the
-           * read failed rather than that nothing exists yet. */
-          <EmptyState
-            variant="error"
-            title={t("modelSelector.noModelsAvailable")}
-            description={t(
+      {catalogModels.length === 0 ? (
+        /* The catalog ships with the app, so zero entries means the read
+         * failed rather than that nothing exists yet. */
+        <div className="flex flex-col items-start gap-2">
+          <p className="text-sm text-gray-1000">
+            {t("modelSelector.noModelsAvailable")}
+          </p>
+          <Notice>
+            {t(
               "settings.models.emptyCatalog",
               "Sona could not read its model catalog. Rescanning picks up models already in the models folder or the Hugging Face cache.",
             )}
-            action={
-              <Button
-                variant="secondary"
-                onClick={() => void rescanLocalModels()}
-                disabled={isRescanning}
-              >
-                {t("settings.models.rescan.label")}
-              </Button>
-            }
-          />
-        ) : groups.length === 0 ? (
-          <EmptyState
-            variant="no-results"
-            title={t("settings.models.noModelsMatch")}
-            description={t(
-              "settings.models.noModelsMatchHint",
-              "Nothing in the catalog matches every filter at once.",
-            )}
-            action={
-              <Button
-                variant="secondary"
-                onClick={() => setFilters(NO_FILTERS)}
-              >
-                {t("settings.models.filters.clear", "Clear filters")}
-              </Button>
-            }
-          />
-        ) : (
-          groups.map((group) => (
-            <section
-              key={group.key}
-              aria-labelledby={`model-family-${group.key}`}
-              className="models-family"
-            >
-              <div className="models-family-header">
-                <h2 id={`model-family-${group.key}`}>{group.label}</h2>
-                {/* Visibly a bare count — the Modes master-count convention —
-                 * because "1 models" is a grammar bug and per-locale plural
-                 * keys are barred by strict key parity. The phrase stays in
-                 * the accessible name, where each locale's existing wording
-                 * is already number-agnostic. */}
-                <span
-                  className="models-family-count microlabel numeric"
-                  aria-label={t(
-                    "settings.models.familyCount",
-                    "{{total}} models",
-                    {
-                      total: group.models.length,
-                    },
-                  )}
-                >
-                  {group.models.length}
-                </span>
-              </div>
-              <RuleList label={group.label} className="models-rows">
-                {group.models.map((model) => (
-                  <ModelCatalogRow
-                    key={model.id}
-                    model={model}
-                    state={rowStateOf(model)}
-                    inMemory={engine.loadedModelId === model.id}
-                    percentage={downloadProgress[model.id]?.percentage}
-                    speed={downloadStats[model.id]?.speed}
-                    error={rowErrorMessages[model.id]}
-                    showQuant={debugMode}
-                    onDownload={(modelId) => void startDownload(modelId)}
-                    onRetry={(modelId) => void startDownload(modelId)}
-                    onCancel={(modelId) => void cancelDownload(modelId)}
-                    onActivate={(modelId) => void selectModel(modelId)}
-                    onDelete={(modelId) => void handleDelete(modelId)}
-                  />
-                ))}
-              </RuleList>
-            </section>
-          ))
-        )}
-      </section>
+          </Notice>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void rescanLocalModels()}
+            disabled={isRescanning}
+          >
+            {t("settings.models.rescan.label")}
+          </Button>
+        </div>
+      ) : groups.length === 0 ? (
+        <div className="flex flex-col items-start gap-2">
+          <p className="text-sm text-gray-1000">
+            {t("settings.models.noModelsMatch")}
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setFilters(NO_FILTERS)}
+          >
+            {t("settings.models.filters.clear", "Clear filters")}
+          </Button>
+        </div>
+      ) : (
+        groups.map((group) => (
+          /* One family is one mono microlabel over one hairline-divided
+           * surface. The family's size is the number of rows under it, so it
+           * is not also printed as a count. */
+          <SettingsSection key={group.key} label={group.label}>
+            <ul aria-label={group.label}>
+              {group.models.map((model) => (
+                <ModelCatalogRow
+                  key={model.id}
+                  model={model}
+                  state={rowStateOf(model)}
+                  inMemory={engine.loadedModelId === model.id}
+                  percentage={downloadProgress[model.id]?.percentage}
+                  error={rowErrorMessages[model.id]}
+                  showQuant={debugMode}
+                  onDownload={(modelId) => void startDownload(modelId)}
+                  onRetry={(modelId) => void startDownload(modelId)}
+                  onCancel={(modelId) => void cancelDownload(modelId)}
+                  onActivate={(modelId) => void selectModel(modelId)}
+                  onDelete={(modelId) => void handleDelete(modelId)}
+                />
+              ))}
+            </ul>
+          </SettingsSection>
+        ))
+      )}
 
       <CloudSttProviderSettings />
-      <SettingsGroup title={t("settings.postProcessing.api.title")}>
-        <PostProcessingSettingsApi />
-        <PromptLibrary />
-        <WritingSamplesPanel />
-      </SettingsGroup>
-    </div>
+      <PostProcessingSettingsApi />
+      <PromptLibrary />
+      <WritingSamplesPanel />
+    </SettingsPage>
   );
 };

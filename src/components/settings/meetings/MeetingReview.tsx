@@ -12,14 +12,22 @@ import {
   type SpeakerId,
 } from "@/bindings";
 import {
-  Alert,
-  Button,
+  FactChip,
+  Microlabel,
+  Notice,
+  SettingsPage,
+  SettingsSection,
+} from "@/components/settings/rows";
+import { Button } from "@/components/vg/button";
+import {
   Dialog,
-  Section,
-  StatusText,
-  Tabs,
-  type TabItem,
-} from "../../ui";
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/vg/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/vg/tabs";
 import { CloudMeetingActions } from "../../cloud-sync/CloudMeetingActions";
 import {
   InsightsTab,
@@ -44,8 +52,8 @@ import {
 
 /* The review surface holds five jobs: read the transcript, fix it, read what
  * was generated from it, ask the meeting a question, and get the record out.
- * They are three tabs plus a persistent export bar, because a person doing
- * one of them is never doing the others at the same time.
+ * They are four tabs plus a persistent export bar, because a person doing one
+ * of them is never doing the others at the same time.
  *
  * A citation is a jump: every generated claim, saved answer and search hit
  * that points at a transcript segment scrolls that segment into view and
@@ -60,7 +68,13 @@ const REVIEW_TAB_IDS = [
 
 type ReviewTab = (typeof REVIEW_TAB_IDS)[number];
 
-const REVIEW_PANEL_ID = "meeting-review-panel";
+/* The kit's own `line` variant draws the mark; this only quiets the type and
+ * moves the focus ring onto the accent. */
+const TAB_TRIGGER_CLASSES =
+  "flex-none px-0 text-sm font-normal text-gray-900 hover:text-gray-1000 focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none data-[state=active]:text-gray-1000 after:bg-gray-1000";
+
+/** Every review panel is a column of sections on the page's own rhythm. */
+const TAB_PANEL_CLASSES = "flex flex-col gap-10";
 
 interface MeetingReviewProps {
   snapshot: MeetingReviewSnapshot;
@@ -311,76 +325,65 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
     }
   };
 
-  const tabItems: TabItem[] = [
-    {
-      id: "transcript",
-      label: t("meetings.review.tabs.transcript", "Transcript"),
-      panelId: REVIEW_PANEL_ID,
-    },
-    {
-      id: "insights",
-      label: t("meetings.review.tabs.insights", "Insights"),
-      panelId: REVIEW_PANEL_ID,
-    },
-    {
-      id: "ledger",
-      label: t("meetings.review.tabs.ledger", "Ledger"),
-      panelId: REVIEW_PANEL_ID,
-    },
-    {
-      id: "questions",
-      label: t("meetings.review.tabs.questions", "Q&A"),
-      panelId: REVIEW_PANEL_ID,
-    },
-  ];
+  const tabLabels = {
+    transcript: t("meetings.review.tabs.transcript", "Transcript"),
+    insights: t("meetings.review.tabs.insights", "Insights"),
+    ledger: t("meetings.review.tabs.ledger", "Ledger"),
+    questions: t("meetings.review.tabs.questions", "Q&A"),
+  } satisfies Record<ReviewTab, string>;
 
   return (
-    <div className="settings-page">
-      <MeetingReviewHeader
-        snapshot={snapshot}
-        lastReceipt={lastReceipt}
-        busy={busy}
-        editable={editable}
-        onBack={onBack}
-        onTitleSet={onTitleSet}
-      />
-
+    /* The same column the settings pages are set in — a meeting is read at
+     * the page's own measure. The title is an editable field rather than a
+     * string, so it goes in the page's `header` slot. */
+    <SettingsPage
+      header={
+        <MeetingReviewHeader
+          snapshot={snapshot}
+          lastReceipt={lastReceipt}
+          busy={busy}
+          editable={editable}
+          onBack={onBack}
+          onTitleSet={onTitleSet}
+        />
+      }
+    >
       {snapshot.remote_cancellation_pending ? (
-        <Alert
-          variant="warning"
-          action={
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={onRemoteCancel}
-              disabled={busy || !canCancelRemote}
-            >
-              {t("meetings.review.cancelRemote")}
-            </Button>
-          }
-        >
-          {t("meetings.review.remoteCancellationPending")}
-        </Alert>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Notice tone="warning">
+            {t("meetings.review.remoteCancellationPending")}
+          </Notice>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onRemoteCancel}
+            disabled={busy || !canCancelRemote}
+          >
+            {t("meetings.review.cancelRemote")}
+          </Button>
+        </div>
       ) : null}
 
-      <div className="pt-1">
-        <Tabs
-          items={tabItems}
-          value={tab}
-          onChange={selectTab}
-          label={t("meetings.review.tabsLabel", "Meeting review sections")}
-        />
-      </div>
+      <Tabs value={tab} onValueChange={selectTab} className="gap-8">
+        <div className="-mx-8 border-b border-gray-alpha-400 px-8">
+          <TabsList
+            variant="line"
+            aria-label={t(
+              "meetings.review.tabsLabel",
+              "Meeting review sections",
+            )}
+            className="justify-start gap-6 px-0"
+          >
+            {REVIEW_TAB_IDS.map((id) => (
+              <TabsTrigger key={id} value={id} className={TAB_TRIGGER_CLASSES}>
+                {tabLabels[id]}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
-      <div
-        id={REVIEW_PANEL_ID}
-        role="tabpanel"
-        aria-labelledby={`tab-${tab}`}
-        tabIndex={-1}
-        className="flex flex-col gap-7"
-      >
-        {tab === "transcript" ? (
+        <TabsContent value="transcript" className={TAB_PANEL_CLASSES}>
           <TranscriptTab
             snapshot={snapshot}
             speakerNames={speakerNames}
@@ -397,7 +400,9 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
             onSpeakerRename={onSpeakerRename}
             onSpeakerMerge={onSpeakerMerge}
           />
-        ) : tab === "insights" ? (
+        </TabsContent>
+
+        <TabsContent value="insights" className={TAB_PANEL_CLASSES}>
           <InsightsTab
             snapshot={snapshot}
             busy={busy}
@@ -419,7 +424,9 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
             onRefresh={onRefresh}
             onAnalyticsRefresh={loadAnalytics}
           />
-        ) : tab === "ledger" ? (
+        </TabsContent>
+
+        <TabsContent value="ledger" className={TAB_PANEL_CLASSES}>
           <MeetingLedgerSection
             snapshot={snapshot}
             busy={busy || exportingLedger}
@@ -427,7 +434,9 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
             onJumpToSegment={jumpToSegment}
             onExportLedger={() => void exportLedger()}
           />
-        ) : (
+        </TabsContent>
+
+        <TabsContent value="questions" className={TAB_PANEL_CLASSES}>
           <QuestionsTab
             snapshot={snapshot}
             canAskQuestion={canAskQuestion}
@@ -438,8 +447,8 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
             onForgetQuestion={forgetQuestion}
             onJumpToSegment={jumpToSegment}
           />
-        )}
-      </div>
+        </TabsContent>
+      </Tabs>
 
       <MeetingExportBar
         snapshot={snapshot}
@@ -449,7 +458,7 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
         onExport={onExport}
         onDelete={onDelete}
       />
-    </div>
+    </SettingsPage>
   );
 };
 
@@ -474,15 +483,17 @@ const MeetingReviewHeader: React.FC<MeetingReviewHeaderProps> = ({
   const elapsedOffsetNs = snapshot.session.elapsed_offset_ns;
 
   return (
-    <header className="settings-page-header flex flex-col gap-2">
+    <header className="flex flex-col gap-3">
+      {/* Bordered, not ghost: a lone text action with no box reads as a
+       * caption. A bordered control aligns its box, so no optical nudge. */}
       <Button
         type="button"
-        variant="ghost"
+        variant="outline"
         size="sm"
-        className="-ms-2.5 self-start"
+        className="self-start"
         onClick={onBack}
       >
-        <ArrowLeft size={14} aria-hidden="true" />
+        <ArrowLeft aria-hidden="true" className="size-3.5" />
         {t("meetings.actions.back")}
       </Button>
       <MeetingTitleEditor
@@ -491,24 +502,23 @@ const MeetingReviewHeader: React.FC<MeetingReviewHeaderProps> = ({
         disabled={busy || !editable}
         onTitleSet={onTitleSet}
       />
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <MeetingPhaseText phase={snapshot.session.phase} />
         <CaptureCompletenessText
           completeness={snapshot.session.capture_completeness}
         />
-        <StatusText tone="muted">
+        <span className="text-sm text-gray-700">
           {snapshot.session.started_at_utc_ms === null
             ? t("meetings.review.noStartTime")
             : t("meetings.review.started", {
                 date: formatMeetingDate(snapshot.session.started_at_utc_ms),
               })}
-        </StatusText>
+        </span>
         {elapsedOffsetNs === null ? null : (
-          <StatusText tone="muted" className="tabular-nums">
-            {t("meetings.review.captured", "Captured {{time}}", {
-              time: formatMeetingOffset(elapsedOffsetNs),
-            })}
-          </StatusText>
+          <FactChip
+            label={t("meetings.live.elapsed")}
+            value={formatMeetingOffset(elapsedOffsetNs)}
+          />
         )}
       </div>
       {lastReceipt?.session_id === snapshot.session.session_id ? (
@@ -540,11 +550,13 @@ const MeetingTitleEditor: React.FC<MeetingTitleEditorProps> = ({
   };
 
   return (
-    <div className="flex flex-wrap items-end gap-2">
-      <div className="min-w-0 flex-1">
-        <label className="microlabel mb-1 block" htmlFor="meeting-review-title">
-          {t("meetings.review.meetingTitle")}
+    <div className="flex flex-wrap items-end gap-3">
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <label htmlFor="meeting-review-title">
+          <Microlabel>{t("meetings.review.meetingTitle")}</Microlabel>
         </label>
+        {/* The meeting's title is the page's title, so it is set in the page
+         * title's type and edited in place. */}
         <input
           ref={inputRef}
           id="meeting-review-title"
@@ -554,12 +566,12 @@ const MeetingTitleEditor: React.FC<MeetingTitleEditorProps> = ({
             setCanSave(nextTitle.length > 0 && nextTitle !== title);
           }}
           disabled={disabled}
-          className="w-full border-0 border-b border-border bg-transparent pb-1 text-[20px] leading-7 font-semibold tracking-[-0.022em] text-text-primary outline-offset-2 transition-[border-color] duration-150 ease-out enabled:hover:border-border-strong disabled:cursor-not-allowed disabled:text-text-disabled"
+          className="w-full border-0 border-b border-gray-alpha-400 bg-transparent pb-1 text-2xl font-medium tracking-tight text-gray-1000 outline-none transition-colors enabled:hover:border-gray-alpha-600 focus-visible:border-blue-700 disabled:cursor-not-allowed disabled:text-gray-700"
         />
       </div>
       <Button
         type="button"
-        variant="secondary"
+        variant="outline"
         size="sm"
         onClick={save}
         disabled={disabled || !canSave}
@@ -581,13 +593,8 @@ const MeetingReceipt: React.FC<MeetingReceiptProps> = ({ receipt }) => {
     .join(" · ");
 
   return (
-    <p
-      aria-live="polite"
-      className="text-[12px] leading-[18px] text-text-secondary"
-    >
-      <span className="font-medium text-text-primary">
-        {t("meetings.receipts.title")}
-      </span>{" "}
+    <p aria-live="polite" className="text-sm text-gray-700">
+      <span className="text-gray-900">{t("meetings.receipts.title")}</span>{" "}
       {receipt.new_revision === null
         ? t("meetings.receipts.saved")
         : t("meetings.receipts.savedRevision", {
@@ -619,63 +626,63 @@ const MeetingExportBar: React.FC<MeetingExportBarProps> = ({
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   return (
-    <Section
-      title={t("meetings.review.export")}
-      description={t("meetings.review.exportDescription")}
-      className="border-t border-border-subtle pt-6"
-    >
-      <div className="flex flex-wrap items-center gap-2">
+    <SettingsSection label={t("meetings.review.export")}>
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3">
         <Button
           type="button"
-          variant="secondary"
+          variant="outline"
+          size="sm"
           onClick={() => onExport("markdown")}
           disabled={busy || !canExport}
         >
-          <FileText size={14} aria-hidden="true" />
+          <FileText aria-hidden="true" className="size-3.5" />
           {t("meetings.review.exportMarkdown")}
         </Button>
         <Button
           type="button"
-          variant="secondary"
+          variant="outline"
+          size="sm"
           onClick={() => onExport("json")}
           disabled={busy || !canExport}
         >
-          <FileJson size={14} aria-hidden="true" />
+          <FileJson aria-hidden="true" className="size-3.5" />
           {t("meetings.review.exportJson")}
         </Button>
         <Button
           type="button"
-          variant="danger-ghost"
-          className="ms-auto"
+          variant="outline"
+          size="sm"
+          className="ms-auto text-red-900 hover:text-red-900"
           onClick={() => setDeleteOpen(true)}
           disabled={busy || !canDelete}
         >
-          <Trash2 size={14} aria-hidden="true" />
+          <Trash2 aria-hidden="true" className="size-3.5" />
           {t("meetings.actions.delete")}
         </Button>
       </div>
-      <div className="mt-4">
+      <div className="px-4 py-3">
         <CloudMeetingActions sessionId={snapshot.session.session_id} />
       </div>
 
-      <Dialog
-        open={deleteOpen}
-        title={t("meetings.delete.title")}
-        description={t("meetings.delete.description")}
-        closeLabel={t("common.cancel")}
-        onOpenChange={setDeleteOpen}
-        footer={
-          <>
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>{t("meetings.delete.title")}</DialogTitle>
+            <DialogDescription>
+              {t("meetings.delete.explainsData")}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
               onClick={() => setDeleteOpen(false)}
             >
               {t("common.cancel")}
             </Button>
             <Button
               type="button"
-              variant="danger"
+              variant="destructive"
               onClick={() => {
                 setDeleteOpen(false);
                 onDelete();
@@ -683,11 +690,9 @@ const MeetingExportBar: React.FC<MeetingExportBarProps> = ({
             >
               {t("meetings.actions.delete")}
             </Button>
-          </>
-        }
-      >
-        <p>{t("meetings.delete.explainsData")}</p>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
-    </Section>
+    </SettingsSection>
   );
 };

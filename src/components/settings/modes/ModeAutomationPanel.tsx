@@ -6,12 +6,19 @@ import type {
   WebsiteHostMatch,
 } from "@/bindings";
 import {
-  Button,
-  Dropdown,
-  SettingContainer,
-  SettingsGroup,
-  StatusText,
-} from "@/components/ui";
+  Notice,
+  SettingsField,
+  SettingsRow,
+  SettingsSection,
+} from "@/components/settings/rows";
+import { Button } from "@/components/vg/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/vg/select";
 import { ShortcutInput } from "../ShortcutInput";
 import { ActivationRuleList, type ActivationRuleItem } from "./ModeControls";
 import { WEBSITE_HOST_MATCHES, modeBindingId } from "./modeModel";
@@ -37,6 +44,12 @@ export interface ModeAutomationPanelProps {
     matchKind: WebsiteHostMatch,
   ) => void;
 }
+
+/* The Automation tab. Three named sections — shortcuts, app rules, website
+ * rules — none of which repeats the tab's own word, so all three keep their
+ * microlabel. What each section's rows used to repeat underneath their titles
+ * is gone; the one sentence that is not inferable from a title survives: that
+ * a website rule stores the host and not the URL. */
 
 export const ModeAutomationPanel: React.FC<ModeAutomationPanelProps> = ({
   modeId,
@@ -95,35 +108,29 @@ export const ModeAutomationPanel: React.FC<ModeAutomationPanelProps> = ({
     "App and website activation are available on macOS only.",
   );
 
+  const websiteScopeDisabled = !activationSupported || !websiteCaptureEnabled;
+
   return (
     <>
-      <SettingsGroup
-        title={t("settings.modes.shortcuts.title")}
-        description={
-          modeCount > 9
-            ? t("settings.modes.shortcuts.manyModes")
-            : t("settings.modes.shortcuts.description")
-        }
-      >
-        <ShortcutInput
-          grouped
-          descriptionMode="inline"
-          shortcutId={modeBindingId(modeId, "transcribe")}
-        />
-        <ShortcutInput
-          grouped
-          descriptionMode="inline"
-          shortcutId={modeBindingId(modeId, "switch")}
-        />
-      </SettingsGroup>
+      <SettingsSection label={t("settings.modes.shortcuts.title")}>
+        {/* Past the ninth mode there is no numbered switch chord left to
+         * assign, so a new mode arrives unbound. That is the one thing this
+         * section cannot show, and only past nine modes. */}
+        {modeCount > 9 ? (
+          <div className="px-4 py-3">
+            <Notice live={false}>
+              {t("settings.modes.shortcuts.manyModes")}
+            </Notice>
+          </div>
+        ) : null}
+        <ShortcutInput shortcutId={modeBindingId(modeId, "transcribe")} />
+        <ShortcutInput shortcutId={modeBindingId(modeId, "switch")} />
+      </SettingsSection>
 
-      <SettingsGroup title={t("settings.modes.activation.title")}>
-        <SettingContainer
-          grouped
-          layout="stacked"
+      <SettingsSection label={t("settings.modes.activation.title")}>
+        <SettingsField
+          label={t("settings.modes.activation.capture.label")}
           disabled={!activationSupported}
-          title={t("settings.modes.activation.capture.label")}
-          description={t("settings.modes.activation.capture.description")}
         >
           {activationSupported ? (
             <ActivationRuleList
@@ -139,7 +146,7 @@ export const ModeAutomationPanel: React.FC<ModeAutomationPanelProps> = ({
               action={
                 <Button
                   type="button"
-                  variant="secondary"
+                  variant="outline"
                   size="sm"
                   disabled={busy}
                   onClick={onCaptureActivation}
@@ -151,50 +158,52 @@ export const ModeAutomationPanel: React.FC<ModeAutomationPanelProps> = ({
               }
             />
           ) : (
-            <StatusText>{unsupportedNote}</StatusText>
+            <Notice live={false}>{unsupportedNote}</Notice>
           )}
-        </SettingContainer>
-      </SettingsGroup>
+        </SettingsField>
+      </SettingsSection>
 
-      <SettingsGroup title={t("settings.modes.activation.website.title")}>
-        <SettingContainer
-          grouped
-          disabled={!activationSupported || !websiteCaptureEnabled}
-          title={t("settings.modes.activation.website.scope.label")}
-          description={t("settings.modes.activation.website.scope.description")}
+      <SettingsSection label={t("settings.modes.activation.website.title")}>
+        <SettingsRow
+          label={t("settings.modes.activation.website.scope.label")}
+          controlId="mode-website-scope"
+          disabled={websiteScopeDisabled}
         >
-          <Dropdown
-            selectedValue={websiteMatchKind}
-            disabled={!activationSupported || !websiteCaptureEnabled}
-            options={WEBSITE_HOST_MATCHES.map((matchKind) => ({
-              value: matchKind,
-              label: t(
-                `settings.modes.activation.website.scope.values.${matchKind}`,
-              ),
-            }))}
-            onSelect={(value) => {
+          <Select
+            value={websiteMatchKind}
+            disabled={websiteScopeDisabled}
+            onValueChange={(value) => {
               const matchKind = WEBSITE_HOST_MATCHES.find(
                 (candidate) => candidate === value,
               );
               if (matchKind) onWebsiteMatchKindChange(matchKind);
             }}
-          />
-        </SettingContainer>
-        <SettingContainer
-          grouped
-          layout="stacked"
-          disabled={!activationSupported || !websiteCaptureEnabled}
-          title={t("settings.modes.activation.website.capture.label")}
-          description={t(
-            "settings.modes.activation.website.capture.description",
-          )}
+          >
+            <SelectTrigger id="mode-website-scope" className="min-w-56">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {WEBSITE_HOST_MATCHES.map((matchKind) => (
+                <SelectItem key={matchKind} value={matchKind}>
+                  {t(
+                    `settings.modes.activation.website.scope.values.${matchKind}`,
+                  )}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </SettingsRow>
+        <SettingsField
+          label={t("settings.modes.activation.website.capture.label")}
+          hint={t("settings.modes.activation.website.capture.description")}
+          disabled={websiteScopeDisabled}
         >
           {!activationSupported ? (
-            <StatusText>{unsupportedNote}</StatusText>
+            <Notice live={false}>{unsupportedNote}</Notice>
           ) : !websiteCaptureEnabled ? (
-            <StatusText tone="warning">
+            <Notice tone="warning" live={false}>
               {t("settings.modes.errors.website_activation_consent_required")}
-            </StatusText>
+            </Notice>
           ) : (
             <ActivationRuleList
               label={t("settings.modes.activation.website.title")}
@@ -209,7 +218,7 @@ export const ModeAutomationPanel: React.FC<ModeAutomationPanelProps> = ({
               action={
                 <Button
                   type="button"
-                  variant="secondary"
+                  variant="outline"
                   size="sm"
                   disabled={busy}
                   onClick={() => onCaptureWebsiteActivation(websiteMatchKind)}
@@ -221,8 +230,8 @@ export const ModeAutomationPanel: React.FC<ModeAutomationPanelProps> = ({
               }
             />
           )}
-        </SettingContainer>
-      </SettingsGroup>
+        </SettingsField>
+      </SettingsSection>
     </>
   );
 };

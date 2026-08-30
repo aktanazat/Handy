@@ -4,46 +4,20 @@ import type { Page } from "@playwright/test";
 import { MODES_SNAPSHOT } from "./support/tauri-fixtures";
 import { installTauriMock, type JsonValue } from "./support/tauri-mock";
 
-/* The three Motion conversions, in a real browser with a real frame loop.
+/* The Motion conversions that are left, in a real browser with a real frame
+ * loop.
  *
  * Everything provable without a DOM is proved in the unit tests; what needs
- * Chromium is the part that only exists on screen — that a spring actually
- * travels instead of snapping, that the tab mark is one element moving between
- * segments rather than two fading, and that a pointer drag ends in the backend
- * command carrying the order it produced.
+ * Chromium is the part that only exists on screen — that a pointer drag ends
+ * in the backend command carrying the order it produced.
  *
- * "It animated" is asserted by sampling the property once per frame and
- * requiring distinct intermediate values. A snap never appears between the two
- * endpoints; a spring appears there repeatedly. That difference is what these
- * tests are for, and reading it needs no sleep and no timing guess. */
+ * The command palette and the segmented tab strips used to be proved here
+ * too. The palette runs on cmdk and a CSS transition now — its specs,
+ * including reduced motion and the auto-repeat flicker regression, live in
+ * shell.spec.ts — and every tablist in the app is a vg/Radix strip with no
+ * Motion mark, so there is no moving indicator left to sample. */
 
 const MODE_IDS = MODES_SNAPSHOT.modes.map((mode) => mode.id);
-/* The Library page's Processed/Raw strip: the shared segmented Tabs
- * primitive. The old top bar's Library/Meetings sub-nav died with the top
- * bar — the sidebar shell made Meetings a first-class destination — so the
- * moving mark is proved on the in-page strip that remains. */
-const TAB_STRIP = ".history-toolbar [role='tablist']";
-const TAB_MARK = `${TAB_STRIP} [role="tab"] span[aria-hidden="true"]`;
-
-/**
- * The mark's left edge, waited for rather than asserted non-null.
- *
- * The mark mounts with the tablist but lays out one frame later, and Motion
- * re-mounts it as the selection moves, so a locator that already resolves can
- * still report no box — `toBeVisible()` followed by one read is a two-step race
- * that loses whenever the remount lands between the steps. Retrying the read is
- * what makes that gap invisible to every caller instead of a `!` in each one.
- */
-const markX = async (page: Page): Promise<number> => {
-  const mark = page.locator(TAB_MARK);
-  const measured = { x: 0 };
-  await expect(async () => {
-    const box = await mark.boundingBox();
-    if (box === null) throw new Error("the tab mark has no box yet");
-    measured.x = box.x;
-  }).toPass();
-  return measured.x;
-};
 
 /** MODES_SNAPSHOT reordered, which is what the backend answers a reorder with. */
 const reorderedSnapshot = (orderedIds: readonly string[]) => ({
@@ -98,236 +72,12 @@ const invocations = (page: Page): Promise<Invocation[]> =>
     return recorded.__invocations ?? [];
   });
 
-/**
- * Samples one element's position or transform once per animation frame.
- *
- * The sampler runs in the page so no frame is lost to a round trip, and it is
- * installed before the interaction that starts the animation. Positions come
- * back as hundredths of a pixel so the samples stay comparable as strings.
- */
-async function sampleFrames(
-  page: Page,
-  selector: string,
-  read: "transform" | "x" | "y",
-  frames: number,
-): Promise<void> {
-  await page.evaluate(
-    ({ selector: sel, read: mode, frames: count }) => {
-      const samples: string[] = [];
-      // SAFETY: the sampler's own scratch slot on the page's window.
-      const scratch = window as Window & { __samples?: string[] };
-      scratch.__samples = samples;
-      let remaining = count;
-      const step = () => {
-        const element = document.querySelector(sel);
-        if (element) {
-          const box = element.getBoundingClientRect();
-          samples.push(
-            mode === "transform"
-              ? getComputedStyle(element).transform
-              : String(Math.round((mode === "x" ? box.x : box.y) * 100)),
-          );
-        }
-        remaining -= 1;
-        if (remaining > 0) requestAnimationFrame(step);
-      };
-      requestAnimationFrame(step);
-    },
-    { selector, read, frames },
-  );
-}
-
-const samples = (page: Page): Promise<string[]> =>
-  page.evaluate(() => {
-    // SAFETY: planted by sampleFrames in the same page.
-    const scratch = window as Window & { __samples?: string[] };
-    return scratch.__samples ?? [];
-  });
-
-/** The horizontal scale a `matrix(a, b, c, d, e, f)` transform applies. */
-const scaleOf = (transform: string): number => {
-  const matrix = transform.match(/matrix\(([^)]+)\)/);
-  return matrix ? Number(matrix[1].split(",")[0]) : 1;
-};
-
-/** Distinct sampled positions strictly between two endpoints. */
-const midwayStops = (
-  raw: readonly string[],
-  from: number,
-  to: number,
-): number => {
-  const lo = Math.min(from, to) + 1;
-  const hi = Math.max(from, to) - 1;
-  return new Set(
-    raw.map((value) => Number(value) / 100).filter((at) => at > lo && at < hi),
-  ).size;
-};
-
-/**
- * Waits until Motion has finished with an element.
- *
- * Motion writes `transform: none` once a spring or a layout projection has
- * landed, and writes no transform at all when it had nothing to animate — the
- * reduced-motion case. Either is settled. Reading a position before it is the
- * mistake this helper exists to prevent: a mid-flight endpoint makes the
- * interval between the two endpoints too small to contain anything.
- */
-const settled = async (page: Page, selector: string) => {
-  await expect
-    .poll(async () =>
-      page.locator(selector).evaluate((el) => {
-        // SAFETY: every selector here names an element Motion styles inline.
-        const styled = el as HTMLElement;
-        return styled.style.transform;
-      }),
-    )
-    .toMatch(/^(none)?$/);
-};
-
 const openApp = async (page: Page, section: string) => {
   await page.goto("/");
   const button = page.getByRole("button", { name: section, exact: true });
   await expect(button).toBeVisible();
   await button.click();
 };
-
-test.describe("command palette", () => {
-  test("opens on a spring and settles centred at full size", async ({
-    page,
-  }) => {
-    await installTauriMock(page);
-    await page.goto("/");
-    await expect(
-      page.getByRole("button", { name: "Modes", exact: true }),
-    ).toBeVisible();
-
-    await sampleFrames(page, ".command-palette", "transform", 45);
-    await page.keyboard.press("Meta+k");
-
-    const dialog = page.locator(".command-palette");
-    await expect(dialog).toBeVisible();
-    await expect
-      .poll(async () =>
-        scaleOf(
-          await dialog.evaluate((el) => getComputedStyle(el).transform),
-        ).toFixed(3),
-      )
-      .toBe("1.000");
-
-    const scales = (await samples(page)).map(scaleOf);
-    /* A spring passes through the interval repeatedly. An instant open never
-       appears in it, and a two-keyframe tween appears once. */
-    const growing = new Set(scales.filter((scale) => scale > 0.9 && scale < 1));
-    expect(growing.size).toBeGreaterThanOrEqual(3);
-
-    /* Motion owns the transform now, so the centring translate has to survive
-       composition with the scale or the palette lands half a width right. */
-    const box = await dialog.boundingBox();
-    const viewport = page.viewportSize();
-    expect(box).not.toBeNull();
-    expect(viewport).not.toBeNull();
-    expect(
-      Math.abs(box!.x + box!.width / 2 - viewport!.width / 2),
-    ).toBeLessThan(2);
-  });
-
-  test("filtering slides a surviving row into the gap", async ({ page }) => {
-    await installTauriMock(page);
-    await page.goto("/");
-    await page.getByRole("button", { name: "Modes", exact: true }).waitFor();
-    await page.keyboard.press("Meta+k");
-
-    const options = page.getByRole("option");
-    await expect(options.first()).toBeVisible();
-    expect(await options.count()).toBeGreaterThan(2);
-
-    /* The last option survives a query built from its own label, and rows above
-       it drop out, so it has somewhere to travel. Sampling by id follows the
-       same element across the re-render. */
-    const survivor = options.last();
-    const id = await survivor.getAttribute("id");
-    const label = ((await survivor.textContent()) ?? "").trim();
-    expect(id).not.toBeNull();
-    const startY = (await survivor.boundingBox())!.y;
-
-    await sampleFrames(page, `[id="${id}"]`, "y", 60);
-    await page.keyboard.type(label.slice(0, 5));
-
-    const moved = page.locator(`[id="${id}"]`);
-    await expect(moved).toBeVisible();
-    await settled(page, `[id="${id}"]`);
-
-    const endY = (await moved.boundingBox())!.y;
-    expect(endY).not.toBe(startY);
-    expect(
-      midwayStops(await samples(page), startY, endY),
-    ).toBeGreaterThanOrEqual(3);
-  });
-
-  test("Escape closes it and leaves the page interactive", async ({ page }) => {
-    await installTauriMock(page);
-    await page.goto("/");
-    await page.getByRole("button", { name: "Modes", exact: true }).waitFor();
-
-    await page.keyboard.press("Meta+k");
-    await expect(page.locator(".command-palette")).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(page.locator(".command-palette")).toHaveCount(0);
-
-    /* The exit spring held the native modal open while it played, so the page
-       underneath has to be reachable again once it is gone. */
-    await page.getByRole("button", { name: "Modes", exact: true }).click();
-    await expect(page.locator(".modes-list")).toBeVisible();
-  });
-});
-
-test.describe("segmented tab indicator", () => {
-  test("slides between segments as one element", async ({ page }) => {
-    await installTauriMock(page);
-    await openApp(page, "Library");
-
-    const tabs = page.locator(TAB_STRIP).getByRole("tab");
-    await expect(tabs.first()).toBeVisible();
-
-    /* One mark on the strip, not one per segment: that is what makes it a
-       shared layout element rather than two crossfading pseudo-elements. */
-    await expect(page.locator(TAB_MARK)).toHaveCount(1);
-    const from = await markX(page);
-
-    await sampleFrames(page, TAB_MARK, "x", 45);
-    await tabs.nth(1).click();
-
-    await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
-    await settled(page, TAB_MARK);
-    await expect(page.locator(TAB_MARK)).toHaveCount(1);
-
-    const to = await markX(page);
-    expect(to).not.toBe(from);
-    expect(midwayStops(await samples(page), from, to)).toBeGreaterThanOrEqual(
-      3,
-    );
-
-    /* And it lands on the segment, not near it: `inset-0` puts it on the
-       segment's padding box, one border pixel in. */
-    const segment = (await tabs.nth(1).boundingBox())!;
-    expect(Math.abs(to - segment.x)).toBeLessThanOrEqual(1);
-  });
-
-  test("the mark follows keyboard selection too", async ({ page }) => {
-    await installTauriMock(page);
-    await openApp(page, "Library");
-
-    const tabs = page.locator(TAB_STRIP).getByRole("tab");
-    await expect(tabs.first()).toBeVisible();
-    const before = await markX(page);
-
-    await tabs.first().focus();
-    await page.keyboard.press("ArrowRight");
-
-    await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
-    await expect.poll(async () => markX(page)).not.toBe(before);
-  });
-});
 
 test.describe("mode list reorder", () => {
   const swapped = [MODE_IDS[1], MODE_IDS[0], ...MODE_IDS.slice(2)];
@@ -342,7 +92,7 @@ test.describe("mode list reorder", () => {
    * wait is what makes the press hit the row.
    */
   const dragSecondRowUp = async (page: Page) => {
-    const row = page.locator(".modes-list-row").nth(1);
+    const row = modeRows(page).nth(1);
     await row.hover();
     const box = (await row.boundingBox())!;
     const x = box.x + box.width / 2;
@@ -355,9 +105,14 @@ test.describe("mode list reorder", () => {
     }
   };
 
+  /* The visible "Your modes" heading is gone — the page title and the view tab
+     both already say Modes — so the list is reached by its accessible name. */
+  const modeRows = (page: Page) =>
+    page.getByRole("list", { name: "Your modes" }).getByRole("listitem");
+
   const openModes = async (page: Page) => {
     await openApp(page, "Modes");
-    const rows = page.locator(".modes-list-row");
+    const rows = modeRows(page);
     await expect(rows).toHaveCount(MODE_IDS.length);
     /* The draggable list is an async chunk, and this attribute only exists once
        it has landed — so waiting on it also proves the lazy boundary resolves
@@ -377,7 +132,9 @@ test.describe("mode list reorder", () => {
 
     await dragSecondRowUp(page);
     /* The dragged row, not row 1: onReorder has already moved it. */
-    await expect(page.locator(".modes-list-row[data-dragging]")).toHaveCount(1);
+    await expect(
+      modeRows(page).and(page.locator("[data-dragging]")),
+    ).toHaveCount(1);
     await page.mouse.up();
 
     await expect
@@ -408,7 +165,9 @@ test.describe("mode list reorder", () => {
 
     await expect
       .poll(async () =>
-        (await page.locator(".modes-list-name").first().textContent())?.trim(),
+        (
+          await modeRows(page).first().locator("span").first().textContent()
+        )?.trim(),
       )
       .toBe(MODES_SNAPSHOT.modes[1].name);
   });
@@ -420,7 +179,12 @@ test.describe("mode list reorder", () => {
     await recordInvocations(page);
     const rows = await openModes(page);
 
-    await rows.nth(1).locator("summary").click();
+    /* The overflow menu is a Radix dropdown now: its trigger is a button
+       named for the mode it acts on, and its items only exist once open. */
+    await rows
+      .nth(1)
+      .getByRole("button", { name: /^actions for/i })
+      .click();
     await page
       .getByRole("menuitem", { name: /move up/i })
       .first()
@@ -447,77 +211,9 @@ test.describe("mode list reorder", () => {
     await dragSecondRowUp(page);
     /* While a row is held the list suppresses every hover wash, because the
        pointer is not choosing the rows it passes over. */
-    await expect(page.locator(".modes-list")).toHaveAttribute(
-      "data-dragging",
-      "true",
-    );
+    const list = page.getByRole("list", { name: "Your modes" });
+    await expect(list).toHaveAttribute("data-dragging", "true");
     await page.mouse.up();
-    await expect(page.locator(".modes-list")).not.toHaveAttribute(
-      "data-dragging",
-      "true",
-    );
-  });
-});
-
-test.describe("reduced motion", () => {
-  /**
-   * `page.emulateMedia`, not the `reducedMotion` fixture option: the fixture
-   * did not reach `window.matchMedia` in this harness, which would have made
-   * both assertions below pass for the wrong reason. The queries are asserted
-   * first so the emulation can never go quiet again.
-   */
-  const emulateReduce = async (page: Page) => {
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/");
-    await page.getByRole("button", { name: "Modes", exact: true }).waitFor();
-    expect(
-      await page.evaluate(
-        () => window.matchMedia("(prefers-reduced-motion)").matches,
-      ),
-    ).toBe(true);
-  };
-
-  test("the palette appears at full size with no travel", async ({ page }) => {
-    await installTauriMock(page);
-    await emulateReduce(page);
-
-    await sampleFrames(page, ".command-palette", "transform", 40);
-    await page.keyboard.press("Meta+k");
-    await expect(page.locator(".command-palette")).toBeVisible();
-    /* The palette rests at translateX(-50%), not `none`, because Motion owns
-       the centring translate too — so settling is read off the scale. */
-    await expect
-      .poll(async () =>
-        scaleOf(
-          await page
-            .locator(".command-palette")
-            .evaluate((el) => getComputedStyle(el).transform),
-        ).toFixed(3),
-      )
-      .toBe("1.000");
-
-    /* Motion resolves positional keys instantly for a device that asked to
-       reduce motion, so the scale is never anywhere but 1. */
-    const scales = (await samples(page)).map(scaleOf);
-    expect(scales.filter((scale) => scale < 0.999)).toEqual([]);
-  });
-
-  test("the tab mark arrives without sliding", async ({ page }) => {
-    await installTauriMock(page);
-    await emulateReduce(page);
-    await page.getByRole("button", { name: "Library", exact: true }).click();
-
-    const tabs = page.locator(TAB_STRIP).getByRole("tab");
-    await expect(tabs.first()).toBeVisible();
-    const from = await markX(page);
-
-    await sampleFrames(page, TAB_MARK, "x", 40);
-    await tabs.nth(1).click();
-    await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
-    await settled(page, TAB_MARK);
-
-    const to = await markX(page);
-    expect(to).not.toBe(from);
-    expect(midwayStops(await samples(page), from, to)).toBe(0);
+    await expect(list).not.toHaveAttribute("data-dragging", "true");
   });
 });

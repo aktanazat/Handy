@@ -10,8 +10,12 @@ lerna-debug.log*
 package-lock.json
 
 node_modules
-dist
-dist-ssr
+
+# Next.js: .next is the dev/build cache, out/ is the static export tauri ships
+.next
+out
+next-env.d.ts
+
 *.local
 *.local.*
 
@@ -45,3 +49,4 @@ result
 
 # Python bytecode (scripts/)
 __pycache__/
+*.tsbuildinfo

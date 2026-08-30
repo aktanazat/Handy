@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useId, useMemo, useState } from "react";
 import { ExternalLink, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -6,10 +6,18 @@ import {
   type PostProcessProvider,
   type PostProcessProviderConsent,
 } from "@/bindings";
-import { Alert } from "../../ui/Alert";
-import { Button } from "../../ui/Button";
-import { Dialog } from "../../ui/Dialog";
-import { SettingContainer } from "../../ui/SettingContainer";
+import { Notice, SettingsField } from "@/components/settings/rows";
+import { Button } from "@/components/vg/button";
+import { Checkbox } from "@/components/vg/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/vg/dialog";
+import { Label } from "@/components/vg/label";
 
 interface RemoteProviderConsentProps {
   provider: PostProcessProvider | undefined;
@@ -72,6 +80,7 @@ const RemoteProviderConsentContent: React.FC<
   const [acknowledged, setAcknowledged] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
+  const acknowledgeId = useId();
   const currentConsent =
     consent?.endpoint === endpoint && consent.text_transfer_consent;
 
@@ -108,52 +117,85 @@ const RemoteProviderConsentContent: React.FC<
 
   return (
     <>
-      <SettingContainer
-        title={t("settings.postProcessing.remoteConsent.title")}
-        description={
-          currentConsent
-            ? t("settings.postProcessing.remoteConsent.current", { endpoint })
-            : t("settings.postProcessing.remoteConsent.description", {
+      <SettingsField label={t("settings.postProcessing.remoteConsent.title")}>
+        {/* The one sentence in this block that is not a restatement: which
+         * endpoint text can reach, and whether it already may. That is the
+         * consent itself, so it stays on the surface rather than behind an
+         * info affordance. */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Notice live={false} className="min-w-0 flex-1">
+            {currentConsent
+              ? t("settings.postProcessing.remoteConsent.current", { endpoint })
+              : t("settings.postProcessing.remoteConsent.description", {
+                  provider: provider.label,
+                  endpoint,
+                })}
+          </Notice>
+          <Button
+            type="button"
+            variant={currentConsent ? "outline" : "default"}
+            size="sm"
+            onClick={() => setOpen(true)}
+          >
+            <ShieldCheck aria-hidden="true" />
+            {currentConsent
+              ? t("settings.postProcessing.remoteConsent.review")
+              : t("settings.postProcessing.remoteConsent.acknowledge")}
+          </Button>
+        </div>
+      </SettingsField>
+      {endpointChanged && !currentConsent ? (
+        <div className="px-4 py-3">
+          <Notice tone="warning">
+            {t("settings.postProcessing.remoteConsent.endpointChanged")}
+          </Notice>
+        </div>
+      ) : null}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {t("settings.postProcessing.remoteConsent.title")}
+            </DialogTitle>
+            <DialogDescription>
+              {t("settings.postProcessing.remoteConsent.description", {
                 provider: provider.label,
                 endpoint,
-              })
-        }
-        descriptionMode="inline"
-        layout="horizontal"
-        grouped
-      >
-        <Button
-          type="button"
-          variant={currentConsent ? "secondary" : "primary"}
-          size="sm"
-          className="gap-1.5 whitespace-nowrap"
-          onClick={() => setOpen(true)}
-        >
-          <ShieldCheck size={14} aria-hidden="true" />
-          {currentConsent
-            ? t("settings.postProcessing.remoteConsent.review")
-            : t("settings.postProcessing.remoteConsent.acknowledge")}
-        </Button>
-      </SettingContainer>
-      {endpointChanged && !currentConsent ? (
-        <Alert variant="warning" contained>
-          {t("settings.postProcessing.remoteConsent.endpointChanged")}
-        </Alert>
-      ) : null}
-      <Dialog
-        open={open}
-        title={t("settings.postProcessing.remoteConsent.title")}
-        description={t("settings.postProcessing.remoteConsent.description", {
-          provider: provider.label,
-          endpoint,
-        })}
-        closeLabel={t("settings.postProcessing.remoteConsent.cancel")}
-        onOpenChange={setOpen}
-        footer={
-          <>
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-gray-800">
+              {t("settings.postProcessing.remoteConsent.endpointLabel")}
+            </p>
+            <code className="block rounded-md border border-gray-alpha-400 bg-background-200 px-3 py-2 text-xs break-all text-gray-1000">
+              {endpoint}
+            </code>
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id={acknowledgeId}
+                checked={acknowledged}
+                onCheckedChange={(checked) => setAcknowledged(checked === true)}
+                disabled={saving || currentConsent}
+              />
+              <Label
+                htmlFor={acknowledgeId}
+                className="leading-5 font-normal text-gray-900"
+              >
+                {t("settings.postProcessing.remoteConsent.acknowledge")}
+              </Label>
+            </div>
+            {errorKey ? <Notice tone="danger">{t(errorKey)}</Notice> : null}
+            <p className="flex items-center gap-1 text-xs text-gray-800">
+              <ExternalLink aria-hidden="true" className="size-3" />
+              {t("settings.postProcessing.remoteConsent.destinationPinned")}
+            </p>
+          </div>
+          <DialogFooter>
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
+              size="sm"
               onClick={() => setOpen(false)}
               disabled={saving}
             >
@@ -161,44 +203,16 @@ const RemoteProviderConsentContent: React.FC<
             </Button>
             <Button
               type="button"
-              onClick={accept}
+              size="sm"
+              onClick={() => void accept()}
               disabled={!acknowledged || saving || currentConsent}
             >
               {saving
                 ? t("common.saving")
                 : t("settings.postProcessing.remoteConsent.accept")}
             </Button>
-          </>
-        }
-      >
-        <div className="space-y-3">
-          <p className="text-sm text-text-secondary">
-            {t("settings.postProcessing.remoteConsent.endpointLabel")}
-          </p>
-          <code className="block break-all rounded-md border border-border bg-subtle px-3 py-2 text-xs text-text-primary">
-            {endpoint}
-          </code>
-          <label className="meeting-choice-row">
-            <input
-              type="checkbox"
-              checked={acknowledged}
-              onChange={(event) => setAcknowledged(event.target.checked)}
-              disabled={saving || currentConsent}
-            />
-            <span>
-              {t("settings.postProcessing.remoteConsent.acknowledge")}
-            </span>
-          </label>
-          {errorKey ? (
-            <Alert variant="error" contained>
-              {t(errorKey)}
-            </Alert>
-          ) : null}
-          <p className="flex items-center gap-1 text-xs text-text-secondary">
-            <ExternalLink size={12} aria-hidden="true" />
-            {t("settings.postProcessing.remoteConsent.destinationPinned")}
-          </p>
-        </div>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </>
   );
@@ -222,9 +236,11 @@ export const RemoteProviderConsent: React.FC<RemoteProviderConsentProps> = ({
 
   if (endpointState.kind === "invalid") {
     return (
-      <Alert variant="error" contained>
-        {t("settings.postProcessing.remoteConsent.invalidDestination")}
-      </Alert>
+      <div className="px-4 py-3">
+        <Notice tone="danger">
+          {t("settings.postProcessing.remoteConsent.invalidDestination")}
+        </Notice>
+      </div>
     );
   }
 

@@ -20,17 +20,18 @@ import {
   type CloudSttProviderMetadata,
 } from "@/lib/cloudStt";
 import { useSettings } from "@/hooks/useSettings";
+import { Button } from "@/components/vg/button";
 import {
-  Alert,
-  Button,
   Dialog,
-  Input,
-  SettingContainer,
-  SettingsGroup,
-  StatusText,
-  Tabs,
-  type TabItem,
-} from "@/components/ui";
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/vg/dialog";
+import { Input } from "@/components/vg/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/vg/tabs";
+import { Notice } from "@/components/settings/rows";
 import {
   ModeRecognitionPanel,
   type ModeVocabularyEditor,
@@ -40,7 +41,6 @@ import { ModeContextPanel } from "./ModeContextPanel";
 import { ModeDeliveryPanel } from "./ModeDeliveryPanel";
 import { ModeAutomationPanel } from "./ModeAutomationPanel";
 import {
-  MODE_EDITOR_PANEL_ID,
   MODE_EDITOR_TABS,
   createModeDraftUpdaters,
   modeDraftIsDirty,
@@ -284,32 +284,29 @@ export const ModeEditor: React.FC<ModeEditorProps> = ({
 
   const dirty = modeDraftIsDirty(mode, savedMode);
 
-  const tabItems: TabItem[] = MODE_EDITOR_TABS.map((tab) => ({
-    id: tab,
-    label: t(`settings.modes.tabs.${tab}`),
-    panelId: MODE_EDITOR_PANEL_ID,
-  }));
-
   return (
-    <div className="mode-detail">
-      <div className="mode-detail-header">
-        <div className="mode-detail-heading">
-          <h2>
-            {mode.name.trim() === ""
-              ? t("settings.modes.untitled", "Untitled mode")
-              : mode.name}
-          </h2>
-          {dirty ? (
-            <StatusText tone="neutral" live="polite">
-              {t("settings.modes.unsavedChanges", "Unsaved changes")}
-            </StatusText>
-          ) : (
-            <StatusText>{t("settings.modes.changesNextRun")}</StatusText>
-          )}
-        </div>
+    <div className="flex flex-col gap-6">
+      {/* The name field is the editor's title: the mode's name already appears
+       * on its row in the list, so a heading over the field that edits it
+       * would be the third copy on one screen. */}
+      <div className="flex items-center gap-3">
+        <Input
+          id="mode-name"
+          value={mode.name}
+          onChange={(event) => updaters.update("name", event.target.value)}
+          aria-label={t("settings.modes.identity.name.label")}
+          aria-invalid={nameMissing || undefined}
+          placeholder={t("settings.modes.untitled", "Untitled mode")}
+          maxLength={120}
+          className="h-9 min-w-0 flex-1"
+        />
         <Button
           size="sm"
+          className="flex-none"
           onClick={onSave}
+          /* The one sentence this header used to print on every render. It is
+           * true of Save specifically, so it belongs to Save. */
+          title={t("settings.modes.changesNextRun")}
           disabled={
             saving ||
             capturingActivation ||
@@ -322,108 +319,93 @@ export const ModeEditor: React.FC<ModeEditorProps> = ({
         </Button>
       </div>
 
-      {conflict || blockingReason ? (
-        <div className="mode-detail-notice">
-          {conflict ? (
-            <Alert variant="error">
-              {t("settings.modes.errors.staleRevision")}
-            </Alert>
-          ) : null}
-          {blockingReason ? (
-            <StatusText tone="danger" live="polite">
-              {blockingReason}
-            </StatusText>
-          ) : null}
-        </div>
+      {conflict ? (
+        <Notice tone="danger">
+          {t("settings.modes.errors.staleRevision")}
+        </Notice>
+      ) : null}
+      {blockingReason ? (
+        <Notice tone="danger">{blockingReason}</Notice>
+      ) : dirty ? (
+        <Notice>{t("settings.modes.unsavedChanges", "Unsaved changes")}</Notice>
       ) : null}
 
-      <div className="mode-tabstrip">
-        <Tabs
-          items={tabItems}
-          value={activeTab}
-          onChange={(id) => {
-            const next = MODE_EDITOR_TABS.find((tab) => tab === id);
-            if (next) setActiveTab(next);
-          }}
-          label={t("settings.modes.editorTabsLabel")}
-        />
-      </div>
-
-      <div className="mode-editor-panel">
-        <SettingsGroup title={t("settings.modes.identity.title")}>
-          <SettingContainer
-            grouped
-            title={t("settings.modes.identity.name.label")}
-            description={t("settings.modes.identity.name.description")}
-            controlId="mode-name"
-          >
-            <Input
-              id="mode-name"
-              value={mode.name}
-              onChange={(event) => updaters.update("name", event.target.value)}
-              invalid={nameMissing}
-              maxLength={120}
-              className="w-full"
-            />
-          </SettingContainer>
-        </SettingsGroup>
-
-        <div
-          className="mode-editor-tabpanel"
-          id={MODE_EDITOR_PANEL_ID}
-          role="tabpanel"
-          aria-labelledby={`tab-${activeTab}`}
+      <Tabs
+        value={activeTab}
+        onValueChange={(next) => {
+          const tab = MODE_EDITOR_TABS.find((candidate) => candidate === next);
+          if (tab) setActiveTab(tab);
+        }}
+        className="gap-6"
+      >
+        <TabsList
+          variant="line"
+          aria-label={t("settings.modes.editorTabsLabel")}
         >
-          {activeTab === "recognition" ? (
-            <ModeRecognitionPanel
-              mode={mode}
-              updaters={updaters}
-              models={models}
-              globalModelId={globalModelId}
-              cloud={cloud}
-              vocabulary={vocabulary}
-              missingFallbackModel={missingLocalFallbackModel}
-            />
-          ) : null}
-          {activeTab === "rewrite" ? (
-            <ModeRewritePanel
-              mode={mode}
-              updaters={updaters}
-              providers={settings?.post_process_providers ?? NO_PROVIDERS}
-            />
-          ) : null}
-          {activeTab === "context" ? (
-            <ModeContextPanel
-              mode={mode}
-              updaters={updaters}
-              ceiling={settings?.context_policy_ceiling ?? "none"}
-            />
-          ) : null}
-          {activeTab === "delivery" ? (
-            <ModeDeliveryPanel mode={mode} updaters={updaters} />
-          ) : null}
-          {activeTab === "automation" ? (
-            <ModeAutomationPanel
-              modeId={mode.id}
-              modeCount={modeCount}
-              activationRules={activationRules}
-              websiteActivationRules={websiteActivationRules}
-              activationSupported={activationSupported}
-              websiteCaptureEnabled={
-                settings?.context_url_capture_enabled ?? false
-              }
-              websiteMatchKind={websiteMatchKind}
-              onWebsiteMatchKindChange={setWebsiteMatchKind}
-              capturing={capturingActivation}
-              saving={saving}
-              onCaptureActivation={onCaptureActivation}
-              onRemoveActivation={onRemoveActivation}
-              onCaptureWebsiteActivation={onCaptureWebsiteActivation}
-              onRemoveWebsiteActivation={onRemoveWebsiteActivation}
-            />
-          ) : null}
-        </div>
-      </div>
+          {MODE_EDITOR_TABS.map((tab) => (
+            <TabsTrigger key={tab} id={`tab-${tab}`} value={tab}>
+              {t(`settings.modes.tabs.${tab}`)}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        <TabsContent
+          value="recognition"
+          aria-labelledby="tab-recognition"
+          className="flex flex-col gap-8"
+        >
+          <ModeRecognitionPanel
+            mode={mode}
+            updaters={updaters}
+            models={models}
+            globalModelId={globalModelId}
+            cloud={cloud}
+            vocabulary={vocabulary}
+            missingFallbackModel={missingLocalFallbackModel}
+          />
+        </TabsContent>
+        <TabsContent value="rewrite" aria-labelledby="tab-rewrite">
+          <ModeRewritePanel
+            mode={mode}
+            updaters={updaters}
+            providers={settings?.post_process_providers ?? NO_PROVIDERS}
+          />
+        </TabsContent>
+        <TabsContent value="context" aria-labelledby="tab-context">
+          <ModeContextPanel
+            mode={mode}
+            updaters={updaters}
+            ceiling={settings?.context_policy_ceiling ?? "none"}
+          />
+        </TabsContent>
+        <TabsContent value="delivery" aria-labelledby="tab-delivery">
+          <ModeDeliveryPanel mode={mode} updaters={updaters} />
+        </TabsContent>
+        <TabsContent
+          value="automation"
+          aria-labelledby="tab-automation"
+          className="flex flex-col gap-8"
+        >
+          <ModeAutomationPanel
+            modeId={mode.id}
+            modeCount={modeCount}
+            activationRules={activationRules}
+            websiteActivationRules={websiteActivationRules}
+            activationSupported={activationSupported}
+            websiteCaptureEnabled={
+              settings?.context_url_capture_enabled ?? false
+            }
+            websiteMatchKind={websiteMatchKind}
+            onWebsiteMatchKindChange={setWebsiteMatchKind}
+            capturing={capturingActivation}
+            saving={saving}
+            onCaptureActivation={onCaptureActivation}
+            onRemoveActivation={onRemoveActivation}
+            onCaptureWebsiteActivation={onCaptureWebsiteActivation}
+            onRemoveWebsiteActivation={onRemoveWebsiteActivation}
+          />
+        </TabsContent>
+      </Tabs>
 
       <Dialog
         open={pendingCloudConsent !== null}
@@ -433,21 +415,96 @@ export const ModeEditor: React.FC<ModeEditorProps> = ({
             setCloudConsentError(null);
           }
         }}
-        title={t("settings.modes.recognition.cloud.consent.title", {
-          provider: pendingCloudConsent ? t(pendingCloudConsent.labelKey) : "",
-        })}
-        description={t("settings.modes.recognition.cloud.consent.description", {
-          provider: pendingCloudConsent ? t(pendingCloudConsent.labelKey) : "",
-        })}
-        closeLabel={t("common.close")}
-        dismissible={!acceptingCloudConsent}
-        closeOnBackdrop={!acceptingCloudConsent}
-        showCloseButton={!acceptingCloudConsent}
-        footer={
-          <>
+      >
+        <DialogContent
+          showCloseButton={!acceptingCloudConsent}
+          /* Every exit is blocked while the accept is in flight — the close
+             button, the backdrop, the Decline button (disabled below) and
+             Escape. Escape is not cosmetic: onOpenChange(false) clears
+             pendingCloudConsent, but acceptCloudConsent captured it, so the
+             in-flight call still records audio-transfer consent and switches
+             the mode to the cloud provider after the user backed out — and a
+             failure would write into state no open dialog renders. */
+          onEscapeKeyDown={(event) => {
+            if (acceptingCloudConsent) event.preventDefault();
+          }}
+          onInteractOutside={(event) => {
+            if (acceptingCloudConsent) event.preventDefault();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>
+              {t("settings.modes.recognition.cloud.consent.title", {
+                provider: pendingCloudConsent
+                  ? t(pendingCloudConsent.labelKey)
+                  : "",
+              })}
+            </DialogTitle>
+            <DialogDescription>
+              {t("settings.modes.recognition.cloud.consent.description", {
+                provider: pendingCloudConsent
+                  ? t(pendingCloudConsent.labelKey)
+                  : "",
+              })}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-3 text-sm text-gray-900">
+            <p>{t("settings.modes.recognition.cloud.consent.intro")}</p>
+            <ul className="flex flex-col gap-2">
+              <li>
+                <p className="font-medium text-gray-1000">
+                  {t(
+                    "settings.modes.recognition.cloud.consent.audioTransfer.label",
+                  )}
+                </p>
+                <p>
+                  {t(
+                    "settings.modes.recognition.cloud.consent.audioTransfer.description",
+                    {
+                      provider: pendingCloudConsent
+                        ? t(pendingCloudConsent.labelKey)
+                        : "",
+                    },
+                  )}
+                </p>
+              </li>
+              <li>
+                <p className="font-medium text-gray-1000">
+                  {t("settings.modes.recognition.cloud.consent.privacy.label")}
+                </p>
+                <p>
+                  {t(
+                    "settings.modes.recognition.cloud.consent.privacy.description",
+                  )}
+                </p>
+              </li>
+              <li>
+                <p className="font-medium text-gray-1000">
+                  {t(
+                    "settings.modes.recognition.cloud.consent.localFallback.label",
+                  )}
+                </p>
+                <p>
+                  {t(
+                    "settings.modes.recognition.cloud.consent.localFallback.description",
+                  )}
+                </p>
+              </li>
+            </ul>
+            {cloudConsentError ? (
+              <Notice tone="danger" assertive>
+                {t(
+                  `settings.modes.recognition.cloud.consent.errors.${cloudConsentError}`,
+                )}
+              </Notice>
+            ) : null}
+          </div>
+
+          <DialogFooter>
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
               size="sm"
               onClick={() => {
                 setPendingCloudConsent(null);
@@ -467,60 +524,8 @@ export const ModeEditor: React.FC<ModeEditorProps> = ({
                 ? t("settings.modes.recognition.cloud.consent.accepting")
                 : t("settings.modes.recognition.cloud.consent.accept")}
             </Button>
-          </>
-        }
-      >
-        <div className="space-y-3 text-sm text-text-secondary">
-          <p>{t("settings.modes.recognition.cloud.consent.intro")}</p>
-          <ul className="space-y-2">
-            <li>
-              <p className="font-medium text-text-primary">
-                {t(
-                  "settings.modes.recognition.cloud.consent.audioTransfer.label",
-                )}
-              </p>
-              <p>
-                {t(
-                  "settings.modes.recognition.cloud.consent.audioTransfer.description",
-                  {
-                    provider: pendingCloudConsent
-                      ? t(pendingCloudConsent.labelKey)
-                      : "",
-                  },
-                )}
-              </p>
-            </li>
-            <li>
-              <p className="font-medium text-text-primary">
-                {t("settings.modes.recognition.cloud.consent.privacy.label")}
-              </p>
-              <p>
-                {t(
-                  "settings.modes.recognition.cloud.consent.privacy.description",
-                )}
-              </p>
-            </li>
-            <li>
-              <p className="font-medium text-text-primary">
-                {t(
-                  "settings.modes.recognition.cloud.consent.localFallback.label",
-                )}
-              </p>
-              <p>
-                {t(
-                  "settings.modes.recognition.cloud.consent.localFallback.description",
-                )}
-              </p>
-            </li>
-          </ul>
-          {cloudConsentError ? (
-            <p role="alert" className="text-danger-strong">
-              {t(
-                `settings.modes.recognition.cloud.consent.errors.${cloudConsentError}`,
-              )}
-            </p>
-          ) : null}
-        </div>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </div>
   );

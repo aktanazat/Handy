@@ -1,16 +1,17 @@
 import React, { useState } from "react";
-import { Input } from "../../ui/Input";
+import { Input } from "@/components/vg/input";
 
 interface BaseUrlFieldProps {
   value: string;
   onBlur: (value: string) => void;
   disabled: boolean;
   placeholder?: string;
-  className?: string;
+  /** Ties the input to the field label that names it. */
+  id?: string;
 }
 
 export const BaseUrlField: React.FC<BaseUrlFieldProps> = React.memo(
-  ({ value, onBlur, disabled, placeholder, className = "" }) => {
+  ({ value, onBlur, disabled, placeholder, id }) => {
     const [localValue, setLocalValue] = useState(value);
 
     // Sync with prop changes
@@ -18,21 +19,16 @@ export const BaseUrlField: React.FC<BaseUrlFieldProps> = React.memo(
       setLocalValue(value);
     }, [value]);
 
-    const disabledMessage = disabled
-      ? "Base URL is managed by the selected provider."
-      : undefined;
-
     return (
       <Input
+        id={id}
         type="text"
         value={localValue}
         onChange={(event) => setLocalValue(event.target.value)}
         onBlur={() => onBlur(localValue)}
         placeholder={placeholder}
-        variant="compact"
         disabled={disabled}
-        className={`w-full min-w-0 flex-1 ${className}`}
-        title={disabledMessage}
+        className="h-8 w-full min-w-0"
       />
     );
   },

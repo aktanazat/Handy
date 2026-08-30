@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useRef, useState } from "react";
 import { Check, ChevronDown, ChevronUp, Copy, Ellipsis } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { toast } from "sonner";
 import {
   commands,
@@ -15,22 +16,41 @@ import {
   formatRelativeTime,
 } from "@/lib/utils/format";
 import { ProcessAgainDialog } from "./ProcessAgainDialog";
+import { AudioPlayer } from "../../ui";
+import { Microlabel } from "../rows";
+import { Badge } from "@/components/vg/badge";
+import { Button } from "@/components/vg/button";
 import {
-  AudioPlayer,
-  Badge,
-  Button,
   Dialog,
-  Dropdown,
-  IconButton,
-  Input,
-  StatusText,
-} from "../../ui";
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/vg/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/vg/dropdown-menu";
+import { Input } from "@/components/vg/input";
+import { Label } from "@/components/vg/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/vg/select";
 
 export type HistoryTextView = "processed" | "raw";
 
-/* Mirrors --duration-standard, the row collapse in history.css. Under
- * prefers-reduced-motion the collapse is instant and this is just a short
- * pause before the delete call. */
+/* The wait before the delete call, in JS. It must equal the CSS collapse below,
+ * which reads `--duration-standard` (180ms) — the row does not get to pick its
+ * own timing. Under prefers-reduced-motion App.css zeroes every transition
+ * globally with `!important`, so the collapse is instant and this is just a
+ * short pause. */
 const ROW_COLLAPSE_MS = 180;
 
 /* The precision the backend itself reports on its capture-level log receipt
@@ -38,16 +58,82 @@ const ROW_COLLAPSE_MS = 180;
  * quiet room (0.0024) into the same printed number. */
 const AMPLITUDE_DIGITS = 4;
 
+/* One quiet 28px control, the row's unit of chrome. Geist rows do not shout:
+ * the icon sits at gray-800 and only reaches full contrast under the pointer. */
+const ROW_CONTROL = "size-7 text-gray-800 hover:text-gray-1000";
+
 type CorrectionScope = "global" | "current_mode";
 
 const SCOPE_VALUES = ["current_mode", "global"] as const;
 
-/* Every row action lives in one `details` menu, so closing it after a choice
- * is the same two lines at five call sites. */
-const closeMenu = (target: HTMLElement) => {
-  const menu = target.closest("details");
-  if (menu) menu.open = false;
-};
+export interface HistoryRowAction {
+  /** Stable id; also the row's `history-entry-<id>` test hook. */
+  id: string;
+  label: string;
+  disabled: boolean;
+  destructive?: boolean;
+  onSelect: () => void;
+}
+
+/* Every operation that changes or destroys the entry, as data. The row renders
+ * this list into one menu, so the set of operations is stated once instead of
+ * five near-identical JSX blocks — and it can be read without opening a menu
+ * that only exists in a portal. */
+export const historyRowActions = ({
+  t,
+  saved,
+  hasText,
+  busy,
+  onCorrect,
+  onToggleSaved,
+  onRetranscribe,
+  onProcessAgain,
+  onDelete,
+}: {
+  t: TFunction;
+  saved: boolean;
+  hasText: boolean;
+  busy: boolean;
+  onCorrect: () => void;
+  onToggleSaved: () => void;
+  onRetranscribe: () => void;
+  onProcessAgain: () => void;
+  onDelete: () => void;
+}): HistoryRowAction[] => [
+  {
+    id: "correct",
+    label: t("settings.history.correction.add"),
+    disabled: !hasText || busy,
+    onSelect: onCorrect,
+  },
+  {
+    /* Named by what pressing it does, which is what a menu item is for: the
+     * state it reflects needs no second marker. */
+    id: "save",
+    label: saved ? t("settings.history.unsave") : t("settings.history.save"),
+    disabled: busy,
+    onSelect: onToggleSaved,
+  },
+  {
+    id: "retry",
+    label: t("settings.history.retranscribe"),
+    disabled: busy,
+    onSelect: onRetranscribe,
+  },
+  {
+    id: "process-again",
+    label: t("settings.history.processAgain.action", "Process again"),
+    disabled: busy,
+    onSelect: onProcessAgain,
+  },
+  {
+    id: "delete",
+    label: t("settings.history.delete"),
+    disabled: busy,
+    destructive: true,
+    onSelect: onDelete,
+  },
+];
 
 interface HistoryCorrectionDialogProps {
   open: boolean;
@@ -80,16 +166,83 @@ const HistoryCorrectionDialog = ({
   const fieldId = useId();
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title={t("settings.history.correction.title")}
-      description={t("settings.history.correction.description")}
-      closeLabel={t("common.close")}
-      footer={
-        <>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[440px]">
+        <DialogHeader>
+          <DialogTitle>{t("settings.history.correction.title")}</DialogTitle>
+          <DialogDescription>
+            {t("settings.history.correction.description")}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={`${fieldId}-spoken`}>
+              {t("settings.history.correction.spoken")}
+            </Label>
+            <Input
+              id={`${fieldId}-spoken`}
+              value={spoken}
+              onChange={(event) => onSpokenChange(event.target.value)}
+              placeholder={t("settings.history.correction.spokenPlaceholder")}
+              disabled={saving}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={`${fieldId}-written`}>
+              {t("settings.history.correction.written")}
+            </Label>
+            <Input
+              id={`${fieldId}-written`}
+              value={written}
+              onChange={(event) => onWrittenChange(event.target.value)}
+              placeholder={t("settings.history.correction.writtenPlaceholder")}
+              disabled={saving}
+            />
+          </div>
+          {/* The rule that is about to be written, quoted back. Recessed
+           * against the dialog rather than another card: it belongs to the
+           * form around it. */}
+          {ready && (
+            <p className="rounded-md bg-background-200 px-3 py-2 text-sm break-words text-gray-1000">
+              {t("settings.history.correction.preview", {
+                spoken: spoken.trim(),
+                written: written.trim(),
+              })}
+            </p>
+          )}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={`${fieldId}-scope`}>
+              {t("settings.history.correction.scope")}
+            </Label>
+            <Select
+              value={scope}
+              onValueChange={(value) =>
+                onScopeChange(value === "global" ? "global" : "current_mode")
+              }
+              disabled={saving}
+            >
+              <SelectTrigger id={`${fieldId}-scope`} className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SCOPE_VALUES.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {t(
+                      value === "global"
+                        ? "settings.history.correction.global"
+                        : "settings.history.correction.currentMode",
+                    )}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <DialogFooter>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={() => onOpenChange(false)}
             disabled={saving}
@@ -104,69 +257,8 @@ const HistoryCorrectionDialog = ({
           >
             {t("settings.history.correction.save")}
           </Button>
-        </>
-      }
-    >
-      <div className="history-correction">
-        <div className="history-field">
-          <label className="history-field-label" htmlFor={`${fieldId}-spoken`}>
-            {t("settings.history.correction.spoken")}
-          </label>
-          <Input
-            id={`${fieldId}-spoken`}
-            value={spoken}
-            onChange={(event) => onSpokenChange(event.target.value)}
-            placeholder={t("settings.history.correction.spokenPlaceholder")}
-            disabled={saving}
-          />
-        </div>
-        <div className="history-field">
-          <label className="history-field-label" htmlFor={`${fieldId}-written`}>
-            {t("settings.history.correction.written")}
-          </label>
-          <Input
-            id={`${fieldId}-written`}
-            value={written}
-            onChange={(event) => onWrittenChange(event.target.value)}
-            placeholder={t("settings.history.correction.writtenPlaceholder")}
-            disabled={saving}
-          />
-        </div>
-        {/* The rule that is about to be written, quoted back. An inset panel
-         * rather than a card: it belongs to the form around it. */}
-        {ready && (
-          <p className="inset-panel history-correction-preview">
-            {t("settings.history.correction.preview", {
-              spoken: spoken.trim(),
-              written: written.trim(),
-            })}
-          </p>
-        )}
-        {/* One value, shown as text. The segmented control this used to draw
-         * was a third copy of the Processed/Raw chrome for something that is
-         * a form field, not a view switch. */}
-        <div className="history-field" role="group" aria-labelledby={fieldId}>
-          <span className="history-field-label" id={fieldId}>
-            {t("settings.history.correction.scope")}
-          </span>
-          <Dropdown
-            options={SCOPE_VALUES.map((value) => ({
-              value,
-              label: t(
-                value === "global"
-                  ? "settings.history.correction.global"
-                  : "settings.history.correction.currentMode",
-              ),
-            }))}
-            selectedValue={scope}
-            onSelect={(value) =>
-              onScopeChange(value === "global" ? "global" : "current_mode")
-            }
-            disabled={saving}
-            className="history-mode-picker"
-          />
-        </div>
-      </div>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };
@@ -328,6 +420,18 @@ const HistoryEntryRow: React.FC<HistoryEntryComponentProps> = ({
    * concluded. */
   const showsTranscript = retrying || !noSpeechCaptured;
 
+  const actions = historyRowActions({
+    t,
+    saved: entry.saved,
+    hasText,
+    busy,
+    onCorrect: () => setCorrectionOpen(true),
+    onToggleSaved: () => void onToggleSaved(entry.id),
+    onRetranscribe: () => void handleRetranscribe(),
+    onProcessAgain: () => setProcessAgainOpen(true),
+    onDelete: handleDeleteEntry,
+  });
+
   /* Why an empty transcript is empty. The copy that used to sit here called
    * every case a failure and told the reader to press a retry icon that no
    * longer exists — retry is a named item in this row's menu now.
@@ -372,14 +476,17 @@ const HistoryEntryRow: React.FC<HistoryEntryComponentProps> = ({
 
   return (
     <li
-      className="history-row"
+      /* The grid-rows track is what lets a deleted row collapse to nothing
+       * before it unmounts, instead of vanishing and yanking everything below
+       * it upward. */
+      className="grid grid-rows-[1fr] transition-[grid-template-rows,opacity] duration-[var(--duration-standard)] ease-[var(--ease-out)] data-[removing=true]:pointer-events-none data-[removing=true]:grid-rows-[0fr] data-[removing=true]:opacity-0"
       data-removing={removing ? "true" : undefined}
       data-testid="history-entry"
     >
-      <div className="history-row-clip">
-        <div className="history-row-body">
-          <div className="history-row-head">
-            <div className="history-row-lines">
+      <div className="min-h-0 overflow-hidden">
+        <div className="flex flex-col gap-2 px-4 py-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 flex-col gap-1">
               <HistoryRowMeta
                 entry={entry}
                 receipt={latestReceipt}
@@ -388,38 +495,50 @@ const HistoryEntryRow: React.FC<HistoryEntryComponentProps> = ({
               />
               {showsTranscript &&
                 (retrying ? (
-                  <p className="history-transcript type-body" role="status">
+                  <p className="text-sm text-gray-900" role="status">
                     {t("settings.history.transcribing")}
                   </p>
                 ) : (
                   <p
-                    className="history-transcript type-body"
+                    /* 13px explicitly, not `text-sm`. This app sets
+                     * `:root { font-size: 14px }`, so text-sm renders 12.25px —
+                     * the legacy SECONDARY tier — and the transcript is the
+                     * row's content, not help text. 13px/19px is the row tier
+                     * this list has always used. */
+                    className="truncate text-[13px] leading-[19px] text-gray-1000 select-text data-[expanded=true]:overflow-visible data-[expanded=true]:break-words data-[expanded=true]:whitespace-pre-wrap data-[state=missing]:text-gray-900 data-[state=missing]:select-none"
                     data-state={hasText ? "text" : "missing"}
                     data-expanded={expanded ? "true" : undefined}
+                    data-testid="history-entry-transcript"
                   >
                     {hasText ? shownText : emptyTextLine}
                   </p>
                 ))}
             </div>
 
-            <div className="history-row-actions">
-              <IconButton
-                size="sm"
-                label={t("settings.history.copyToClipboard")}
+            {/* Copy, expand and one menu. Everything that changes or destroys
+             * the entry is inside the menu, so the row carries three controls
+             * rather than six of three different weights. */}
+            <div className="flex flex-none items-center gap-0.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                className={ROW_CONTROL}
+                aria-label={t("settings.history.copyToClipboard")}
                 onClick={() => void handleCopyText()}
                 disabled={!hasText || busy}
                 data-testid="history-entry-copy"
-                icon={
-                  showCopied ? (
-                    <Check aria-hidden="true" width={16} height={16} />
-                  ) : (
-                    <Copy aria-hidden="true" width={16} height={16} />
-                  )
-                }
-              />
-              <IconButton
-                size="sm"
-                label={
+              >
+                {showCopied ? (
+                  <Check aria-hidden="true" className="size-4" />
+                ) : (
+                  <Copy aria-hidden="true" className="size-4" />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={ROW_CONTROL}
+                aria-label={
                   expanded
                     ? t("settings.history.collapseEntry", "Hide full entry")
                     : t("settings.history.expandEntry", "Show full entry")
@@ -428,101 +547,61 @@ const HistoryEntryRow: React.FC<HistoryEntryComponentProps> = ({
                 aria-expanded={expanded}
                 aria-controls={expanded ? detailsId : undefined}
                 data-testid="history-entry-expand"
-                icon={
-                  expanded ? (
-                    <ChevronUp aria-hidden="true" width={16} height={16} />
-                  ) : (
-                    <ChevronDown aria-hidden="true" width={16} height={16} />
-                  )
-                }
-              />
-              {/* Everything that changes or destroys the entry sits behind one
-               * summary, so the row carries two icon buttons and a menu
-               * instead of six controls of three different weights. */}
-              <details className="history-actions-menu">
-                <summary
-                  aria-label={t("settings.history.moreActions", "More actions")}
-                  title={t("settings.history.moreActions", "More actions")}
-                  data-testid="history-entry-actions"
-                >
-                  <Ellipsis aria-hidden="true" width={16} height={16} />
-                </summary>
-                <div role="menu">
-                  <button
-                    type="button"
-                    role="menuitem"
-                    disabled={!hasText || busy}
-                    onClick={(event) => {
-                      setCorrectionOpen(true);
-                      closeMenu(event.currentTarget);
-                    }}
-                    data-testid="history-entry-correct"
+              >
+                {expanded ? (
+                  <ChevronUp aria-hidden="true" className="size-4" />
+                ) : (
+                  <ChevronDown aria-hidden="true" className="size-4" />
+                )}
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={ROW_CONTROL}
+                    aria-label={t(
+                      "settings.history.moreActions",
+                      "More actions",
+                    )}
+                    data-testid="history-entry-actions"
                   >
-                    {t("settings.history.correction.add")}
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    disabled={busy}
-                    aria-pressed={entry.saved}
-                    onClick={(event) => {
-                      void onToggleSaved(entry.id);
-                      closeMenu(event.currentTarget);
-                    }}
-                    data-testid="history-entry-save"
-                  >
-                    {entry.saved
-                      ? t("settings.history.unsave")
-                      : t("settings.history.save")}
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    disabled={busy}
-                    onClick={(event) => {
-                      void handleRetranscribe();
-                      closeMenu(event.currentTarget);
-                    }}
-                    data-testid="history-entry-retry"
-                  >
-                    {t("settings.history.retranscribe")}
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    disabled={busy}
-                    onClick={(event) => {
-                      setProcessAgainOpen(true);
-                      closeMenu(event.currentTarget);
-                    }}
-                    data-testid="history-entry-process-again"
-                  >
-                    {t("settings.history.processAgain.action", "Process again")}
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="danger-menu-item"
-                    disabled={busy}
-                    onClick={(event) => {
-                      handleDeleteEntry();
-                      closeMenu(event.currentTarget);
-                    }}
-                    data-testid="history-entry-delete"
-                  >
-                    {t("settings.history.delete")}
-                  </button>
-                </div>
-              </details>
+                    <Ellipsis aria-hidden="true" className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                {/* No fixed width. The kit's content ships `min-w-[8rem]` and
+                 * `overflow-x-hidden`, so a pinned `w-48` (168px of text
+                 * budget) would CLIP, not ellipsize, the longest of these five
+                 * labels: "Aus Gespeicherten entfernen" (de, 27 chars) and
+                 * "फेरि ट्रान्सक्राइब गर्नुहोस्" (ne, 28) both need well over 200px, and SF —
+                 * which is what actually paints today — is ~18% wider than
+                 * Geist. Sizing to content cannot clip in any of the 24
+                 * locales. */}
+                <DropdownMenuContent align="end">
+                  {actions.map((action) => (
+                    <DropdownMenuItem
+                      key={action.id}
+                      disabled={action.disabled}
+                      variant={action.destructive ? "destructive" : "default"}
+                      onSelect={action.onSelect}
+                      data-testid={`history-entry-${action.id}`}
+                    >
+                      {action.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
           {processedTextMissing && !retrying ? (
-            <p className="history-transcript-note type-secondary">
+            <p className="text-sm text-gray-900">
               {t("settings.history.postProcessEmpty")}
             </p>
           ) : null}
 
+          {/* The player's anatomy belongs to the primitive; the row only spans
+           * it and quiets it: gray-900 control, the one duration in mono. */}
           {playable ? (
             <HistoryAudioPlayer
               historyId={entry.id}
@@ -616,7 +695,9 @@ const HistoryRowMeta: React.FC<HistoryRowMetaProps> = ({
     cells.push({
       id: "reason",
       content: (
-        <span className="history-meta-reason">
+        /* The one part of line 1 that is a sentence rather than a machine
+         * value, so it keeps the sans face and the reading colour. */
+        <span className="font-sans text-gray-1000">
           {t("errors.noSpeechDetectedTitle")}
         </span>
       ),
@@ -655,11 +736,17 @@ const HistoryRowMeta: React.FC<HistoryRowMetaProps> = ({
   }
 
   return (
-    <p className="history-row-meta type-data" data-testid="history-entry-meta">
+    /* One mono run of measured values. It truncates rather than wrapping,
+     * because a metadata line that wraps changes the row's height and the list
+     * stops being a grid. */
+    <p
+      className="truncate font-mono text-[11px] tabular-nums text-gray-800"
+      data-testid="history-entry-meta"
+    >
       {cells.map((cell, index) => (
         <React.Fragment key={cell.id}>
           {index > 0 ? (
-            <span aria-hidden="true" className="history-meta-sep">
+            <span aria-hidden="true" className="px-1 text-gray-800">
               ·
             </span>
           ) : null}
@@ -669,7 +756,11 @@ const HistoryRowMeta: React.FC<HistoryRowMetaProps> = ({
       {/* The mode is a categorical identity, not a measurement, so it is the
        * line's one chip rather than another mono fragment. */}
       {receipt ? (
-        <Badge variant="secondary" className="history-mode-chip">
+        <Badge
+          variant="secondary"
+          className="ml-2 align-middle font-mono text-[10px]"
+          data-testid="history-entry-mode"
+        >
           {receipt.mode.mode_id}
         </Badge>
       ) : null}
@@ -724,7 +815,12 @@ const HistoryAudioPlayer: React.FC<HistoryAudioPlayerProps> = ({
     <AudioPlayer
       onLoadRequest={loadAudio}
       totalSeconds={totalSeconds}
-      className="history-audio"
+      /* Capped rather than full-bleed: the primitive's native range track is
+       * the loudest thing it draws, and stretched across the row it outweighed
+       * the transcript above it. At 420px it reads as a control under the text
+       * instead of a rule through the row, and the mono total sits beside the
+       * scrubber instead of floating at the row's far edge. */
+      className="w-full max-w-[420px] [&_button]:text-gray-900 [&_span]:font-mono [&_span]:text-gray-800"
     />
   );
 };
@@ -753,16 +849,22 @@ const HistoryReceiptInspector: React.FC<HistoryReceiptInspectorProps> = ({
   let body: React.ReactNode;
   if (receipts === undefined) {
     body = (
-      <StatusText live="polite">
+      <p className="text-sm text-gray-900" aria-live="polite">
         {t("settings.history.receipts.loading")}
-      </StatusText>
+      </p>
     );
   } else if (receipts === null) {
     body = (
-      <StatusText>{t("settings.history.receipts.unavailable")}</StatusText>
+      <p className="text-sm text-gray-900">
+        {t("settings.history.receipts.unavailable")}
+      </p>
     );
   } else if (receipts.length === 0) {
-    body = <StatusText>{t("settings.history.receipts.none")}</StatusText>;
+    body = (
+      <p className="text-sm text-gray-900">
+        {t("settings.history.receipts.none")}
+      </p>
+    );
   } else {
     body = receipts
       .slice()
@@ -775,7 +877,7 @@ const HistoryReceiptInspector: React.FC<HistoryReceiptInspectorProps> = ({
   return (
     <div
       id={id}
-      className="inset-panel history-receipts"
+      className="flex flex-col rounded-md bg-background-200 px-3 py-2.5"
       data-testid="history-receipts"
     >
       {/* A reprocess and a retry both write a new row pointing at the one they
@@ -784,7 +886,7 @@ const HistoryReceiptInspector: React.FC<HistoryReceiptInspectorProps> = ({
        * the rest of the provenance instead of spending a metadata cell on
        * every collapsed row. */}
       {parentId !== null ? (
-        <p className="history-receipt-provenance type-data">
+        <p className="mb-2 font-mono text-[11px] text-gray-800">
           {t("settings.history.derivedFromId", "from #{{id}}", {
             id: parentId,
           })}
@@ -799,13 +901,19 @@ interface HistoryReceiptCardProps {
   receipt: HistoryRunReceipt;
 }
 
+/* The four-state semaphore, on the state word and nowhere else. A no-speech
+ * capture is deliberately neither red nor amber — it is a real outcome of a
+ * real capture, and colouring it as a failure would claim one the app cannot
+ * name. The peak/rms rows above it are the evidence. */
+const CAPTURE_STATUS_TONE = {
+  complete: "text-blue-900",
+  truncated: "text-amber-900",
+  no_speech_detected: "text-gray-800",
+} satisfies Record<CaptureStatus, string>;
+
 const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({ receipt }) => {
   const { t } = useTranslation();
 
-  /* `status` paints the state word itself and nothing else: the one place in
-   * Library the four-state semaphore is allowed. `no_speech_detected` is
-   * deliberately not red or amber — it is a real outcome of a real capture,
-   * and colouring it as a failure would claim one the app cannot name. */
   const pairs: Array<{
     id: string;
     label: string;
@@ -928,12 +1036,24 @@ const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({ receipt }) => {
   }
 
   return (
-    <section className="history-receipt">
-      <dl className="history-receipt-grid">
+    <section className="flex flex-col gap-3 not-first:mt-3 not-first:border-t not-first:border-gray-alpha-400 not-first:pt-3">
+      {/* Two columns sharing one hairline per pair: microlabel key left,
+       * measured value right. The key/value inspector, not a paragraph of
+       * provenance. */}
+      {/* No column gap: the hairline is drawn per cell, so a gap between the
+       * key and value columns breaks each rule into two floating segments.
+       * The key cell pads its own right edge instead. */}
+      <dl className="grid grid-cols-[minmax(0,140px)_minmax(0,1fr)]">
         {pairs.map((pair) => (
           <React.Fragment key={pair.id}>
-            <dt className="microlabel-mono">{pair.label}</dt>
-            <dd className="type-data" data-status={pair.status}>
+            <dt className="border-t border-gray-alpha-400 py-1 pr-4 first-of-type:border-t-0">
+              <Microlabel>{pair.label}</Microlabel>
+            </dt>
+            <dd
+              className={`border-t border-gray-alpha-400 py-1 text-end font-mono text-[11px] break-words first-of-type:border-t-0 ${
+                pair.status ? CAPTURE_STATUS_TONE[pair.status] : "text-gray-900"
+              }`}
+            >
               {pair.value}
             </dd>
           </React.Fragment>
@@ -942,82 +1062,104 @@ const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({ receipt }) => {
 
       {/* Both of these were a list of two spans pushed apart, which is a
        * table drawn by hand and reads to a screen reader as pairs of
-       * floating words. On the real primitive each column is named once. */}
+       * floating words. As a real table each column is named once. */}
       <div>
-        <h4 className="history-receipt-subtitle microlabel-mono">
-          {t("settings.history.receipts.contextSources")}
+        <h4 className="mb-1.5">
+          <Microlabel>
+            {t("settings.history.receipts.contextSources")}
+          </Microlabel>
         </h4>
-        <table className="data-table history-receipt-table">
-          <thead>
-            <tr>
-              <th scope="col">
-                {t("settings.history.receipts.columns.source", "Source")}
-              </th>
-              <th scope="col">
-                {t("settings.history.receipts.columns.status", "Status")}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.entries(receipt.context.sources).map(
-              ([source, sourceStatus]) => (
-                <tr key={source}>
-                  <th scope="row">
-                    {t("settings.history.receipts.contextSource." + source)}
-                  </th>
-                  <td>
-                    {t(
-                      "settings.history.receipts.contextStatus." + sourceStatus,
-                    )}
-                  </td>
-                </tr>
+        <HistoryReceiptTable
+          columns={[
+            t("settings.history.receipts.columns.source", "Source"),
+            t("settings.history.receipts.columns.status", "Status"),
+          ]}
+          rows={Object.entries(receipt.context.sources).map(
+            ([source, sourceStatus]) => ({
+              id: source,
+              header: t("settings.history.receipts.contextSource." + source),
+              value: t(
+                "settings.history.receipts.contextStatus." + sourceStatus,
               ),
-            )}
-          </tbody>
-        </table>
+            }),
+          )}
+        />
       </div>
 
       <div>
-        <h4 className="history-receipt-subtitle microlabel-mono">
-          {t("settings.history.receipts.deliveryAttempts")}
+        <h4 className="mb-1.5">
+          <Microlabel>
+            {t("settings.history.receipts.deliveryAttempts")}
+          </Microlabel>
         </h4>
         {receipt.delivery_attempts.length === 0 ? (
-          <p className="history-receipt-empty type-secondary">
+          <p className="text-sm text-gray-900">
             {t("settings.history.receipts.noDeliveryAttempts")}
           </p>
         ) : (
-          <table className="data-table history-receipt-table">
-            <thead>
-              <tr>
-                <th scope="col">
-                  {t("settings.history.receipts.columns.method", "Method")}
-                </th>
-                <th scope="col">
-                  {t("settings.history.receipts.columns.outcome", "Outcome")}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {receipt.delivery_attempts.map((attempt) => (
-                <tr key={attempt.id}>
-                  <th scope="row">
-                    {t(
-                      "settings.history.receipts.deliveryMethod." +
-                        attempt.delivery.method,
-                    )}
-                  </th>
-                  <td>
-                    {t(
-                      "settings.history.receipts.deliveryOutcome." +
-                        attempt.delivery.outcome,
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <HistoryReceiptTable
+            columns={[
+              t("settings.history.receipts.columns.method", "Method"),
+              t("settings.history.receipts.columns.outcome", "Outcome"),
+            ]}
+            rows={receipt.delivery_attempts.map((attempt) => ({
+              id: String(attempt.id),
+              header: t(
+                "settings.history.receipts.deliveryMethod." +
+                  attempt.delivery.method,
+              ),
+              value: t(
+                "settings.history.receipts.deliveryOutcome." +
+                  attempt.delivery.outcome,
+              ),
+            }))}
+          />
         )}
       </div>
     </section>
   );
 };
+
+/* The receipt's two named-column tables, at inspector density: row header
+ * left, value right, one hairline per pair. Both callers hand it the same
+ * shape, so the markup is stated once. */
+const HistoryReceiptTable: React.FC<{
+  columns: [string, string];
+  rows: Array<{ id: string; header: string; value: string }>;
+}> = ({ columns, rows }) => (
+  <table className="w-full table-fixed border-collapse text-left">
+    <thead>
+      <tr>
+        {columns.map((column) => (
+          <th
+            key={column}
+            scope="col"
+            /* `font-normal` stays on the cell: a <th> is bold by default and
+             * the label voice inside it inherits that weight. */
+            className="py-1 pr-3 font-normal"
+          >
+            <Microlabel>{column}</Microlabel>
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row) => (
+        <tr
+          key={row.id}
+          className="not-last:border-b not-last:border-gray-alpha-400"
+        >
+          <th
+            scope="row"
+            className="py-1 pr-3 text-[11px] font-normal text-gray-900"
+          >
+            {row.header}
+          </th>
+          <td className="py-1 pr-3 font-mono text-[11px] text-gray-900">
+            {row.value}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+);

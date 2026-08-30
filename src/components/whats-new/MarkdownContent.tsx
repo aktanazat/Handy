@@ -84,11 +84,15 @@ const components: Components = {
   br: () => <br />,
   hr: () => <hr className="border-mid-gray/20" />,
   img: ({ alt, src }) => {
-    if (!src || !isSafeImageSrc(src)) return null;
+    /* SAFETY: React 19 widened an <img>'s `src` prop to `string | Blob`, but
+     * react-markdown builds these nodes from a parsed document, and a text
+     * document can only carry a URL string — no Blob exists on this path. */
+    const url = src as string | undefined;
+    if (!url || !isSafeImageSrc(url)) return null;
 
     return (
       <img
-        src={src}
+        src={url}
         alt={alt ?? ""}
         loading="lazy"
         decoding="async"

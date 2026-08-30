@@ -1,13 +1,20 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Dropdown,
-  Input,
-  SettingContainer,
-  SettingsGroup,
-  StatusText,
-  ToggleSwitch,
-} from "@/components/ui";
+  Notice,
+  SettingsField,
+  SettingsRow,
+  SettingsSurface,
+} from "@/components/settings/rows";
+import { Input } from "@/components/vg/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/vg/select";
+import { Switch } from "@/components/vg/switch";
 import {
   AUTO_SUBMIT_KEYS,
   CLIPBOARD_HANDLING,
@@ -15,6 +22,14 @@ import {
   TYPING_TOOLS,
   type ModePanelProps,
 } from "./modeModel";
+
+/* The Delivery tab: one surface, no section label — the selected tab already
+ * reads "Delivery", so a heading here would print the word twice.
+ *
+ * Each row states its setting once. The sentences this panel used to print
+ * under every title repeated the title; the two that carried something the
+ * label and the control cannot show — the delay unit, and what "reliable"
+ * actually does — survive as hints. */
 
 export const ModeDeliveryPanel: React.FC<ModePanelProps> = ({
   mode,
@@ -35,33 +50,36 @@ export const ModeDeliveryPanel: React.FC<ModePanelProps> = ({
   };
 
   return (
-    <SettingsGroup title={t("settings.modes.delivery.title")}>
-      <SettingContainer
-        grouped
-        title={t("settings.modes.delivery.method.label")}
-        description={t("settings.modes.delivery.method.description")}
+    <SettingsSurface>
+      <SettingsRow
+        label={t("settings.modes.delivery.method.label")}
+        controlId="mode-paste-method"
       >
-        <Dropdown
-          selectedValue={mode.delivery.paste_method}
-          options={PASTE_METHODS.map((method) => ({
-            value: method,
-            label: t(`settings.modes.delivery.method.values.${method}`),
-          }))}
-          onSelect={(method) => {
+        <Select
+          value={mode.delivery.paste_method}
+          onValueChange={(method) => {
             const next = PASTE_METHODS.find(
               (candidate) => candidate === method,
             );
             if (next) updateDelivery("paste_method", next);
           }}
-        />
-      </SettingContainer>
+        >
+          <SelectTrigger id="mode-paste-method" className="min-w-56">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PASTE_METHODS.map((method) => (
+              <SelectItem key={method} value={method}>
+                {t(`settings.modes.delivery.method.values.${method}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </SettingsRow>
 
       {mode.delivery.paste_method === "external_script" ? (
-        <SettingContainer
-          grouped
-          layout="stacked"
-          title={t("settings.modes.delivery.script.label")}
-          description={t("settings.modes.delivery.script.description")}
+        <SettingsField
+          label={t("settings.modes.delivery.script.label")}
           controlId="mode-external-script"
         >
           <Input
@@ -70,94 +88,121 @@ export const ModeDeliveryPanel: React.FC<ModePanelProps> = ({
             onChange={(event) =>
               updateDelivery("external_script_path", event.target.value || null)
             }
-            className="w-full"
           />
-        </SettingContainer>
+        </SettingsField>
       ) : null}
 
-      <SettingContainer
-        grouped
-        title={t("settings.modes.delivery.clipboard.label")}
-        description={t("settings.modes.delivery.clipboard.description")}
+      <SettingsRow
+        label={t("settings.modes.delivery.clipboard.label")}
+        controlId="mode-clipboard-handling"
       >
-        <Dropdown
-          selectedValue={mode.delivery.clipboard_handling}
-          options={CLIPBOARD_HANDLING.map((handling) => ({
-            value: handling,
-            label: t(`settings.modes.delivery.clipboard.values.${handling}`),
-          }))}
-          onSelect={(handling) => {
+        <Select
+          value={mode.delivery.clipboard_handling}
+          onValueChange={(handling) => {
             const next = CLIPBOARD_HANDLING.find(
               (candidate) => candidate === handling,
             );
             if (next) updateDelivery("clipboard_handling", next);
           }}
-        />
-      </SettingContainer>
+        >
+          <SelectTrigger id="mode-clipboard-handling" className="min-w-56">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {CLIPBOARD_HANDLING.map((handling) => (
+              <SelectItem key={handling} value={handling}>
+                {t(`settings.modes.delivery.clipboard.values.${handling}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </SettingsRow>
 
-      <ToggleSwitch
-        grouped
-        checked={mode.delivery.auto_submit}
-        onChange={(enabled) => updateDelivery("auto_submit", enabled)}
+      <SettingsRow
         label={t("settings.modes.delivery.autoSubmit.label")}
-        description={t("settings.modes.delivery.autoSubmit.description")}
-      />
+        controlId="mode-auto-submit"
+      >
+        <Switch
+          id="mode-auto-submit"
+          checked={mode.delivery.auto_submit}
+          onCheckedChange={(enabled) => updateDelivery("auto_submit", enabled)}
+        />
+      </SettingsRow>
 
-      <SettingContainer
-        grouped
+      <SettingsRow
+        label={t("settings.modes.delivery.autoSubmitKey.label")}
+        controlId="mode-auto-submit-key"
         disabled={!mode.delivery.auto_submit}
-        title={t("settings.modes.delivery.autoSubmitKey.label")}
-        description={t("settings.modes.delivery.autoSubmitKey.description")}
       >
         <div className="flex flex-col items-end gap-1">
-          <Dropdown
-            selectedValue={mode.delivery.auto_submit_key}
-            options={AUTO_SUBMIT_KEYS.map((key) => ({
-              value: key,
-              label: t(`settings.modes.delivery.autoSubmitKey.values.${key}`),
-            }))}
-            onSelect={(key) => {
+          <Select
+            value={mode.delivery.auto_submit_key}
+            disabled={!mode.delivery.auto_submit}
+            onValueChange={(key) => {
               const next = AUTO_SUBMIT_KEYS.find(
                 (candidate) => candidate === key,
               );
               if (next) updateDelivery("auto_submit_key", next);
             }}
-            disabled={!mode.delivery.auto_submit}
-          />
+          >
+            <SelectTrigger id="mode-auto-submit-key" className="min-w-56">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {AUTO_SUBMIT_KEYS.map((key) => (
+                <SelectItem key={key} value={key}>
+                  {t(`settings.modes.delivery.autoSubmitKey.values.${key}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {mode.delivery.auto_submit ? null : (
-            <StatusText>
+            <Notice live={false}>
               {t(
                 "settings.modes.delivery.autoSubmitKey.requiresAutoSubmit",
                 "Turn on auto-submit to choose a key.",
               )}
-            </StatusText>
+            </Notice>
           )}
         </div>
-      </SettingContainer>
+      </SettingsRow>
 
-      <ToggleSwitch
-        grouped
-        checked={mode.delivery.append_trailing_space}
-        onChange={(enabled) => updateDelivery("append_trailing_space", enabled)}
+      <SettingsRow
         label={t("settings.modes.delivery.trailingSpace.label")}
-        description={t("settings.modes.delivery.trailingSpace.description")}
-      />
-      <ToggleSwitch
-        grouped
-        checked={mode.delivery.reliable_paste}
-        onChange={(enabled) => updateDelivery("reliable_paste", enabled)}
-        label={t("settings.modes.delivery.reliablePaste.label")}
-        description={t("settings.modes.delivery.reliablePaste.description")}
-      />
+        controlId="mode-trailing-space"
+      >
+        <Switch
+          id="mode-trailing-space"
+          checked={mode.delivery.append_trailing_space}
+          onCheckedChange={(enabled) =>
+            updateDelivery("append_trailing_space", enabled)
+          }
+        />
+      </SettingsRow>
 
-      <SettingContainer
-        grouped
-        layout="stacked"
-        title={t("settings.modes.delivery.delay.label")}
-        description={t("settings.modes.delivery.delay.description")}
+      <SettingsRow
+        label={t("settings.modes.delivery.reliablePaste.label")}
+        hint={t("settings.modes.delivery.reliablePaste.description")}
+        controlId="mode-reliable-paste"
+      >
+        <Switch
+          id="mode-reliable-paste"
+          checked={mode.delivery.reliable_paste}
+          onCheckedChange={(enabled) =>
+            updateDelivery("reliable_paste", enabled)
+          }
+        />
+      </SettingsRow>
+
+      {/* Two numbers, so the label sits over them rather than beside them. The
+       * unit is the one thing the field cannot show, which is why this row
+       * keeps its sentence. */}
+      <SettingsField
+        label={t("settings.modes.delivery.delay.label")}
+        hint={t("settings.modes.delivery.delay.description")}
       >
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <label className="min-w-0 text-xs text-text-secondary">
+          <label className="min-w-0 text-[13px] text-gray-800">
             <span className="mb-1 block">
               {t("settings.modes.delivery.delay.before")}
             </span>
@@ -168,10 +213,9 @@ export const ModeDeliveryPanel: React.FC<ModePanelProps> = ({
               onChange={(event) =>
                 updateDelay("paste_delay_ms", event.target.value)
               }
-              className="w-full"
             />
           </label>
-          <label className="min-w-0 text-xs text-text-secondary">
+          <label className="min-w-0 text-[13px] text-gray-800">
             <span className="mb-1 block">
               {t("settings.modes.delivery.delay.after")}
             </span>
@@ -182,41 +226,46 @@ export const ModeDeliveryPanel: React.FC<ModePanelProps> = ({
               onChange={(event) =>
                 updateDelay("paste_delay_after_ms", event.target.value)
               }
-              className="w-full"
             />
           </label>
         </div>
-      </SettingContainer>
+      </SettingsField>
 
-      <SettingContainer
-        grouped
+      <SettingsRow
+        label={t("settings.modes.delivery.typingTool.label")}
+        controlId="mode-typing-tool"
         disabled={!typingToolAvailable}
-        title={t("settings.modes.delivery.typingTool.label")}
-        description={t("settings.modes.delivery.typingTool.description")}
       >
         <div className="flex flex-col items-end gap-1">
-          <Dropdown
-            selectedValue={mode.delivery.typing_tool}
-            options={TYPING_TOOLS.map((tool) => ({
-              value: tool,
-              label: t(`settings.modes.delivery.typingTool.values.${tool}`),
-            }))}
-            onSelect={(tool) => {
+          <Select
+            value={mode.delivery.typing_tool}
+            disabled={!typingToolAvailable}
+            onValueChange={(tool) => {
               const next = TYPING_TOOLS.find((candidate) => candidate === tool);
               if (next) updateDelivery("typing_tool", next);
             }}
-            disabled={!typingToolAvailable}
-          />
+          >
+            <SelectTrigger id="mode-typing-tool" className="min-w-56">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TYPING_TOOLS.map((tool) => (
+                <SelectItem key={tool} value={tool}>
+                  {t(`settings.modes.delivery.typingTool.values.${tool}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {typingToolAvailable ? null : (
-            <StatusText>
+            <Notice live={false}>
               {t(
                 "settings.modes.delivery.typingTool.requiresDirect",
                 "Choose Type directly as the delivery method to pick a tool.",
               )}
-            </StatusText>
+            </Notice>
           )}
         </div>
-      </SettingContainer>
-    </SettingsGroup>
+      </SettingsRow>
+    </SettingsSurface>
   );
 };

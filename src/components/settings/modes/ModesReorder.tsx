@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Reorder } from "motion/react";
 import { MotionScope, springDrag } from "@/lib/motion";
+import { cn } from "@/lib/cn";
 
 /* The draggable mode list, alone in its own module.
  *
@@ -21,6 +22,8 @@ export interface ModeReorderRow {
 
 export interface ModesReorderProps {
   rows: readonly ModeReorderRow[];
+  /** Accessible name for the list, since its heading is not rendered. */
+  label: string;
   /** A mutation is in flight, so a drop could not be committed anyway. */
   disabled: boolean;
   /** The full ordered ID list the backend command takes. */
@@ -31,6 +34,7 @@ const orderKey = (ids: readonly string[]) => ids.join("\u0000");
 
 export const ModesReorder: React.FC<ModesReorderProps> = ({
   rows,
+  label,
   disabled,
   onCommit,
 }) => {
@@ -54,8 +58,12 @@ export const ModesReorder: React.FC<ModesReorderProps> = ({
         axis="y"
         values={order}
         onReorder={setOrder}
-        className="modes-list"
+        aria-label={label}
+        /* While one row is held, every other row's hover wash is a lie: the
+         * pointer is passing over them, not choosing them. The rows read the
+         * state off this group. */
         data-dragging={draggingId === null ? undefined : "true"}
+        className="group/list divide-y divide-gray-alpha-400"
       >
         {order.map((id) => {
           const row = rows.find((candidate) => candidate.id === id);
@@ -65,7 +73,15 @@ export const ModesReorder: React.FC<ModesReorderProps> = ({
               key={id}
               value={id}
               as="li"
-              className="modes-list-row"
+              /* The row is the drag handle, so text selection must not
+               * compete with the gesture, and a held row lifts on the one
+               * shadow every floating surface in the app uses. */
+              className={cn(
+                "flex touch-none items-center [&_button]:cursor-grab",
+                row.selected && "bg-gray-alpha-100",
+                draggingId === id &&
+                  "relative bg-background-100 shadow-lg [&_button]:cursor-grabbing",
+              )}
               data-selected={row.selected || undefined}
               data-active={row.active || undefined}
               data-reorderable="true"

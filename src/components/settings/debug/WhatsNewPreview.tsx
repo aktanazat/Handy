@@ -1,21 +1,13 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Button } from "../../ui/Button";
-import { SettingContainer } from "../../ui/SettingContainer";
+import { SettingsRow } from "@/components/settings/rows";
+import { Button } from "@/components/vg/button";
 import { WhatsNewModal } from "../../whats-new/WhatsNewModal";
 import { findLatestReleaseNote } from "../../whats-new/releaseNotes";
 import type { ReleaseNote } from "../../whats-new/releaseNotes";
 
-interface WhatsNewPreviewProps {
-  descriptionMode?: "inline" | "tooltip";
-  grouped?: boolean;
-}
-
-export const WhatsNewPreview: React.FC<WhatsNewPreviewProps> = ({
-  descriptionMode = "tooltip",
-  grouped = false,
-}) => {
+export const WhatsNewPreview: React.FC = () => {
   const { t } = useTranslation();
   const [note, setNote] = useState<ReleaseNote | null>(null);
 
@@ -37,16 +29,16 @@ export const WhatsNewPreview: React.FC<WhatsNewPreviewProps> = ({
 
   return (
     <>
-      <SettingContainer
-        title={t("settings.debug.whatsNewPreview.title")}
-        description={t("settings.debug.whatsNewPreview.description")}
-        descriptionMode={descriptionMode}
-        grouped={grouped}
+      {/* The row already says "Preview", so the button only has to say which
+       * direction it goes. */}
+      <SettingsRow
+        label={t("settings.debug.whatsNewPreview.title")}
+        hint={t("settings.debug.whatsNewPreview.description")}
       >
-        <Button variant="secondary" size="md" onClick={preview}>
-          {t("settings.debug.whatsNewPreview.button")}
+        <Button variant="outline" size="sm" onClick={preview}>
+          {t("common.open")}
         </Button>
-      </SettingContainer>
+      </SettingsRow>
 
       {note && (
         <WhatsNewModal

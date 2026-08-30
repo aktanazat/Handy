@@ -2,7 +2,23 @@ import React, { useCallback, useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { commands } from "@/bindings";
-import { Alert, Button, Dialog, Dropdown } from "../../ui";
+import { Button } from "@/components/vg/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/vg/dialog";
+import { Label } from "@/components/vg/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/vg/select";
 import { reprocessHistoryEntry } from "../../../lib/powerPackApi";
 
 interface ProcessAgainDialogProps {
@@ -26,13 +42,15 @@ export const ProcessAgainDialog: React.FC<ProcessAgainDialogProps> = ({
   onOpenChange,
 }) => {
   const { t } = useTranslation();
-  const labelId = useId();
+  const fieldId = useId();
   const [modes, setModes] = useState<{ value: string; label: string }[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /* The list is read when the dialog opens rather than on mount: a history page
-   * renders many rows, and none of them needs the mode list until asked. */
+  /* The list is read every time the dialog opens rather than on mount: a
+   * history page renders many rows, and none of them needs the mode list until
+   * asked. Opening is also the only refresh this needs, so the dialog carries
+   * no reload control of its own. */
   const loadModes = useCallback(async () => {
     setError(null);
     try {
@@ -68,19 +86,60 @@ export const ProcessAgainDialog: React.FC<ProcessAgainDialogProps> = ({
   };
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title={t("settings.history.processAgain.title", "Process again")}
-      description={t(
-        "settings.history.processAgain.description",
-        "Run this recording through another mode. The original entry is kept and the result is saved as a new one.",
-      )}
-      closeLabel={t("common.close")}
-      footer={
-        <>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[440px]">
+        <DialogHeader>
+          <DialogTitle>
+            {t("settings.history.processAgain.title", "Process again")}
+          </DialogTitle>
+          <DialogDescription>
+            {t(
+              "settings.history.processAgain.description",
+              "Run this recording through another mode. The original entry is kept and the result is saved as a new one.",
+            )}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={fieldId}>
+              {t("settings.history.processAgain.modeLabel", "Mode")}
+            </Label>
+            <Select
+              value={selected ?? undefined}
+              onValueChange={setSelected}
+              disabled={busy}
+            >
+              <SelectTrigger id={fieldId} className="w-full">
+                <SelectValue
+                  placeholder={t(
+                    "settings.history.processAgain.placeholder",
+                    "Choose a mode",
+                  )}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {modes.map((mode) => (
+                  <SelectItem key={mode.value} value={mode.value}>
+                    {mode.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {error && (
+            <p
+              role="alert"
+              className="rounded-md border border-gray-alpha-400 bg-background-100 px-3 py-2 text-sm break-words text-red-900"
+            >
+              {error}
+            </p>
+          )}
+        </div>
+
+        <DialogFooter>
           <Button
-            variant="secondary"
+            variant="outline"
             size="sm"
             onClick={() => onOpenChange(false)}
             disabled={busy}
@@ -95,33 +154,8 @@ export const ProcessAgainDialog: React.FC<ProcessAgainDialogProps> = ({
           >
             {t("settings.history.processAgain.confirm", "Process")}
           </Button>
-        </>
-      }
-    >
-      <div className="history-correction">
-        {/* The Dropdown renders a button, which `label for` cannot target,
-         * so the visible label names the group instead: entering it
-         * announces "Mode", and the button keeps the chosen mode as its
-         * own name. */}
-        <div className="history-field" role="group" aria-labelledby={labelId}>
-          <span className="history-field-label" id={labelId}>
-            {t("settings.history.processAgain.modeLabel", "Mode")}
-          </span>
-          <Dropdown
-            options={modes}
-            selectedValue={selected}
-            onSelect={setSelected}
-            onRefresh={() => void loadModes()}
-            placeholder={t(
-              "settings.history.processAgain.placeholder",
-              "Choose a mode",
-            )}
-            disabled={busy}
-            className="history-mode-picker"
-          />
-        </div>
-        {error && <Alert variant="error">{error}</Alert>}
-      </div>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };

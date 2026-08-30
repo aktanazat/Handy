@@ -1,14 +1,15 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Button } from "@/components/vg/button";
+import { Textarea } from "@/components/vg/textarea";
 import {
-  Alert,
-  Button,
-  IconButton,
-  SettingContainer,
-  Textarea,
-} from "../../ui";
-import { EmptyHint, Hint, LoadingRows } from "./PanelParts";
+  Microlabel,
+  Notice,
+  SettingsField,
+  SettingsSection,
+} from "@/components/settings/rows";
+import { EmptyLine, LoadingRows } from "./PanelParts";
 import {
   countWords,
   getPersonaSamples,
@@ -17,12 +18,6 @@ import {
   PERSONA_SAMPLE_MAX_WORDS,
   type PersonaSample,
 } from "../../../lib/powerPackApi";
-import "./vocabulary.css";
-
-interface WritingSamplesPanelProps {
-  descriptionMode?: "inline" | "tooltip";
-  grouped?: boolean;
-}
 
 type LoadState = "loading" | "ready" | "failed";
 
@@ -35,10 +30,7 @@ type LoadState = "loading" | "ready" | "failed";
  * fact. They apply to every mode that rewrites, including the preset-based
  * modes the mode editor creates.
  */
-export const WritingSamplesPanel: React.FC<WritingSamplesPanelProps> = ({
-  descriptionMode = "inline",
-  grouped = false,
-}) => {
+export const WritingSamplesPanel: React.FC = () => {
   const { t } = useTranslation();
   const [samples, setSamples] = useState<PersonaSample[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
@@ -96,168 +88,183 @@ export const WritingSamplesPanel: React.FC<WritingSamplesPanelProps> = ({
 
     if (loadState === "failed") {
       return (
-        <Alert
-          variant="error"
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <Notice tone="danger">
+            {loadError ??
+              t(
+                "settings.prompts.samples.loadError",
+                "Could not load samples.",
+              )}
+          </Notice>
+          <Button variant="outline" size="sm" onClick={() => void load()}>
+            {t("common.retry")}
+          </Button>
+        </div>
+      );
+    }
+
+    if (samples.length === 0) {
+      return (
+        <EmptyLine
+          text={t(
+            "settings.prompts.samples.empty.description",
+            "Paste a few paragraphs you wrote yourself and rewrites will follow your vocabulary, sentence length, and formality.",
+          )}
           action={
-            <Button size="sm" variant="secondary" onClick={() => void load()}>
-              {t("common.retry")}
+            <Button variant="outline" size="sm" onClick={addSample}>
+              <Plus aria-hidden="true" />
+              {t("settings.prompts.samples.add", "Add sample")}
             </Button>
           }
-        >
-          {loadError ??
-            t("settings.prompts.samples.loadError", "Could not load samples.")}
-        </Alert>
+        />
       );
     }
 
     return (
       <>
-        {samples.length === 0 ? (
-          <EmptyHint
-            title={t("settings.prompts.samples.empty.title", "No samples yet")}
-            description={t(
-              "settings.prompts.samples.empty.description",
-              "Paste a few paragraphs you wrote yourself and rewrites will follow your vocabulary, sentence length, and formality.",
-            )}
-            action={
-              <Button size="sm" variant="secondary" onClick={addSample}>
-                {t("settings.prompts.samples.empty.action", "Add a sample")}
-              </Button>
-            }
-          />
-        ) : (
-          <ul className="persona-samples">
-            {samples.map((sample, index) => {
-              const words = countWords(sample.text);
-              const overLimit = words > PERSONA_SAMPLE_MAX_WORDS;
-              return (
-                /* A sample is a block of the person's own prose quoted back at
-                 * them, which is what the recessed panel is for. The textarea
-                 * gives up its own border so the panel is the only edge. */
-                <li
-                  key={sample.id}
-                  className="inset-panel persona-sample"
-                  data-testid="persona-sample-row"
+        {samples.map((sample, index) => {
+          const words = countWords(sample.text);
+          const overLimit = words > PERSONA_SAMPLE_MAX_WORDS;
+          const fieldId = `persona-sample-${sample.id}`;
+          return (
+            <SettingsField
+              key={sample.id}
+              label={t("settings.prompts.samples.sampleLabel", {
+                defaultValue: "Writing sample {{number}}",
+                number: index + 1,
+              })}
+              controlId={fieldId}
+              fact={
+                <span
+                  aria-live={overLimit ? "polite" : "off"}
+                  className={overLimit ? "text-amber-900" : undefined}
                 >
-                  <Textarea
-                    className="w-full"
-                    rows={5}
-                    value={sample.text}
-                    onChange={(event) =>
-                      setSamples(
-                        samples.map((current, position) =>
-                          position === index
-                            ? { ...current, text: event.target.value }
-                            : current,
-                        ),
-                      )
-                    }
-                    onBlur={() => void commit(samples)}
-                    placeholder={t(
-                      "settings.prompts.samples.placeholder",
-                      "Paste a paragraph you wrote.",
-                    )}
-                    aria-label={t("settings.prompts.samples.sampleLabel", {
-                      defaultValue: "Writing sample {{number}}",
-                      number: index + 1,
-                    })}
-                    disabled={busy}
-                    data-testid={`persona-sample-${index}`}
-                  />
-                  <div className="persona-sample-footer">
-                    <Hint
-                      className="numeric"
-                      tone={overLimit ? "warning" : "muted"}
-                      live={overLimit ? "polite" : "off"}
-                    >
-                      {overLimit
-                        ? t("settings.prompts.samples.overLimit", {
-                            defaultValue:
-                              "{{words}} words. Only the first {{max}} are used.",
-                            words,
-                            max: PERSONA_SAMPLE_MAX_WORDS,
-                          })
-                        : t("settings.prompts.samples.wordCount", {
-                            defaultValue: "{{words}} of {{max}} words",
-                            words,
-                            max: PERSONA_SAMPLE_MAX_WORDS,
-                          })}
-                    </Hint>
-                    <IconButton
-                      size="sm"
-                      variant="danger-ghost"
-                      label={t("settings.prompts.samples.delete", {
-                        defaultValue: "Delete sample {{number}}",
-                        number: index + 1,
+                  {overLimit
+                    ? t("settings.prompts.samples.overLimit", {
+                        defaultValue:
+                          "{{words}} words. Only the first {{max}} are used.",
+                        words,
+                        max: PERSONA_SAMPLE_MAX_WORDS,
+                      })
+                    : t("settings.prompts.samples.wordCount", {
+                        defaultValue: "{{words}} of {{max}} words",
+                        words,
+                        max: PERSONA_SAMPLE_MAX_WORDS,
                       })}
-                      onClick={() =>
-                        void commit(
-                          samples.filter((_, position) => position !== index),
-                        )
-                      }
-                      disabled={busy}
-                      data-testid={`persona-sample-delete-${index}`}
-                      icon={<Trash2 aria-hidden="true" className="h-4 w-4" />}
-                    />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                </span>
+              }
+            >
+              {/* `SettingsField` takes only its documented props, so the
+               * row's test handle rides on the block it wraps. */}
+              <div
+                className="flex items-start gap-2"
+                data-testid="persona-sample-row"
+              >
+                {/* Prose in the person's own voice, so it is set as prose. */}
+                <Textarea
+                  id={fieldId}
+                  /* 13px prose at the app's body leading. `leading-5` is
+                   * 17.5px at the 14px root, which is tight for paragraphs. */
+                  className="min-h-24 flex-1 text-[13px] leading-[19px]"
+                  rows={5}
+                  value={sample.text}
+                  onChange={(event) =>
+                    setSamples(
+                      samples.map((current, position) =>
+                        position === index
+                          ? { ...current, text: event.target.value }
+                          : current,
+                      ),
+                    )
+                  }
+                  onBlur={() => void commit(samples)}
+                  placeholder={t(
+                    "settings.prompts.samples.placeholder",
+                    "Paste a paragraph you wrote.",
+                  )}
+                  disabled={busy}
+                  data-testid={`persona-sample-${index}`}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-gray-700 hover:text-red-900"
+                  onClick={() =>
+                    void commit(
+                      samples.filter((_, position) => position !== index),
+                    )
+                  }
+                  disabled={busy}
+                  aria-label={t("settings.prompts.samples.delete", {
+                    defaultValue: "Delete sample {{number}}",
+                    number: index + 1,
+                  })}
+                  data-testid={`persona-sample-delete-${index}`}
+                >
+                  <Trash2 aria-hidden="true" />
+                </Button>
+              </div>
+            </SettingsField>
+          );
+        })}
 
-        {samples.length > 0 && samples.length < PERSONA_SAMPLES_MAX && (
-          <Button
-            size="sm"
-            variant="secondary"
-            className="gap-1"
-            onClick={addSample}
-            disabled={busy}
-            data-testid="persona-sample-add"
-          >
-            <Plus aria-hidden="true" className="h-4 w-4" />
-            {t("settings.prompts.samples.add", "Add sample")}
-          </Button>
+        {samples.length < PERSONA_SAMPLES_MAX && (
+          <div className="px-4 py-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={addSample}
+              disabled={busy}
+              data-testid="persona-sample-add"
+            >
+              <Plus aria-hidden="true" />
+              {t("settings.prompts.samples.add", "Add sample")}
+            </Button>
+          </div>
         )}
 
         {writeError && (
-          <Alert
-            variant="error"
-            action={
-              <Button size="sm" variant="secondary" onClick={() => void load()}>
-                {t("common.retry")}
-              </Button>
-            }
-          >
-            {writeError}
-          </Alert>
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+            <Notice tone="danger">{writeError}</Notice>
+            <Button variant="outline" size="sm" onClick={() => void load()}>
+              {t("common.retry")}
+            </Button>
+          </div>
         )}
-
-        <Hint>
-          {t("settings.prompts.samples.privacy", {
-            defaultValue:
-              "Samples are sent wherever the transcript itself already goes, and nowhere else. Up to {{max}} samples are used.",
-            max: PERSONA_SAMPLES_MAX,
-          })}
-        </Hint>
       </>
     );
   };
 
   return (
-    <SettingContainer
-      title={t("settings.prompts.samples.title", "Writing samples")}
-      description={t(
-        "settings.prompts.samples.description",
-        "Examples of your own writing. Modes that rewrite a transcript match this voice.",
-      )}
-      descriptionMode={descriptionMode}
-      grouped={grouped}
-      layout="stacked"
+    <SettingsSection
+      label={t("settings.prompts.samples.title", "Writing samples")}
+      action={
+        loadState === "ready" && samples.length > 0 ? (
+          /* The cap is the reason this count is worth printing: it is the only
+           * thing that explains where the Add button goes. */
+          <Microlabel className="tabular-nums">
+            {samples.length} / {PERSONA_SAMPLES_MAX}
+          </Microlabel>
+        ) : undefined
+      }
     >
-      <div className="space-y-3" data-testid="persona-samples-editor">
+      <div
+        className="divide-y divide-gray-alpha-400"
+        data-testid="persona-samples-editor"
+      >
         {body()}
+        <Notice live={false} className="px-4 py-3">
+          {/* The cap moved to the mono count in the header, so this sentence
+           * is being trimmed to its privacy half. `max` stays supplied until
+           * that catalogue edit lands, so neither version renders a raw
+           * placeholder. */}
+          {t("settings.prompts.samples.privacy", {
+            defaultValue:
+              "Samples are sent wherever the transcript itself already goes, and nowhere else.",
+            max: PERSONA_SAMPLES_MAX,
+          })}
+        </Notice>
       </div>
-    </SettingContainer>
+    </SettingsSection>
   );
 };

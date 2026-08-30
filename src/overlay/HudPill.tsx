@@ -38,7 +38,7 @@ export const HudPill = ({ position, direction, modeName }: HudPillProps) => {
   return (
     <div dir={direction} className={`ov-stage ${position} ov-fade show`}>
       <div
-        className="scard compact hud-pill glass-surface--tint"
+        className="scard compact hud-pill"
         onContextMenu={(event) => {
           event.preventDefault();
           void hudOpenModeMenu();
@@ -62,7 +62,7 @@ export const HudPill = ({ position, direction, modeName }: HudPillProps) => {
               report, and a coloured ring here competed with the one place a
               colour means something — the live meter. */}
           <SonaMark className="smark" width={16} height={16} />
-          <span className="hud-pill-mode type-row-title">{label}</span>
+          <span className="hud-pill-mode">{label}</span>
         </button>
         <button
           type="button"

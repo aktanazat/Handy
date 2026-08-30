@@ -24,7 +24,10 @@ import { keyCapParts, keyCombinationParts } from "@/lib/utils/keyboard";
  *    the first key lands, or the field looks broken.
  * 4. Every key these surfaces ask for exists in the shipped English catalogue.
  *    i18next falls back to the inline default silently, so a renamed key would
- *    ship as copy that quietly stopped being translatable. */
+ *    ship as copy that quietly stopped being translatable.
+ * 5. The two states stay identifiable now that the field is styled in
+ *    utilities: the record dot and the pulse are found by `data-slot`, which is
+ *    the only marker left after shortcut-recorder.css was deleted. */
 
 const catalogue = JSON.parse(
   fs.readFileSync(
@@ -121,8 +124,10 @@ describe("resting field", () => {
   });
 
   test("carries a persistent record affordance, not a hover-only one", () => {
-    expect(markup).toContain("shortcut-field-glyph");
-    expect(markup).toContain("Click to record");
+    expect(markup).toContain('data-slot="shortcut-record-dot"');
+    /* The affordance a screen reader gets, and the only place the binding's
+     * own name reaches the button. */
+    expect(markup).toContain("Record a new shortcut for Transcribe");
   });
 
   test("an unset binding says so instead of rendering an empty box", () => {
@@ -152,7 +157,7 @@ describe("recording field", () => {
       />,
     );
     expect(markup).toContain("Press your keys");
-    expect(markup).toContain("shortcut-field-pulse");
+    expect(markup).toContain('data-slot="shortcut-pulse"');
     expect(countKbd(markup)).toBe(0);
   });
 
@@ -184,6 +189,8 @@ describe("recording field", () => {
     );
     expect(markup.includes("<button")).toBe(false);
     expect(markup).toContain('aria-live="polite"');
+    /* The state marker on the surface both parents hold a ref to. */
+    expect(markup).toContain('data-recording="true"');
   });
 });
 

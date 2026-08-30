@@ -20,8 +20,11 @@ import { useTranslation } from "react-i18next";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { toast } from "sonner";
 import type { MeetingSuggestion, SourceKind } from "@/bindings";
+import { cn } from "@/lib/cn";
 import { formatDurationShort, formatEntryTimestamp } from "@/lib/utils/format";
-import { Button, StatusText, Switch } from "../../ui";
+import { Microlabel, SETTINGS_CARD } from "@/components/settings/rows";
+import { Button } from "@/components/vg/button";
+import { Switch } from "@/components/vg/switch";
 import { MeetingSourceChip } from "./MeetingSourceChip";
 import type { MeetingNotesTemplate } from "./meetingAnalytics";
 import { MEETING_SOURCES, meetingProviderKey, sourceKey } from "./meetingUtils";
@@ -43,7 +46,11 @@ import type {
  * the backend supplied its value. An event with no attendee list has no
  * PARTICIPANTS row, not an empty one; an offer from a running app has no TIME
  * row, because nothing scheduled it. Absence is information, and faking a row
- * to keep the shape tidy would spend the operator's trust on symmetry. */
+ * to keep the shape tidy would spend the operator's trust on symmetry.
+ *
+ * Every measured value on the card is set in mono, KEY then VALUE, so the
+ * facts read as facts and the one line of prose on the surface stays the one
+ * line of prose. */
 
 /** The facts about one meeting-to-be. Pure data: every control the card can
  * drive is passed separately, because the facts travel with a start request
@@ -151,6 +158,30 @@ const openLink = async (url: string, failure: string) => {
   }
 };
 
+/**
+ * A labelled list of preview cards. The heading is the mono microlabel every
+ * settings section uses, and the content sits bare underneath it: each card is
+ * already a surface, and a box around a list of boxes is the nesting the
+ * grammar exists to prevent.
+ */
+export const MeetingPreviewList: React.FC<{
+  label: string;
+  children: React.ReactNode;
+  /** A sentence about the list itself, which belongs inside its region and
+   *  cannot live in the `<ul>`. */
+  footer?: React.ReactNode;
+}> = ({ label, children, footer }) => (
+  <section className="flex flex-col gap-3">
+    <h2>
+      <Microlabel>{label}</Microlabel>
+    </h2>
+    <ul aria-label={label} className="flex flex-col gap-2">
+      {children}
+    </ul>
+    {footer}
+  </section>
+);
+
 interface PreviewRowProps {
   icon: React.ReactNode;
   label: string;
@@ -158,12 +189,14 @@ interface PreviewRowProps {
 }
 
 const PreviewRow: React.FC<PreviewRowProps> = ({ icon, label, children }) => (
-  <li className="meeting-row">
-    <span className="meeting-preview-key">
+  <li className="flex items-baseline justify-between gap-6 px-3 py-2">
+    <span className="flex flex-none items-center gap-1.5 text-gray-700">
       {icon}
-      <span className="microlabel">{label}</span>
+      <Microlabel>{label}</Microlabel>
     </span>
-    <span className="meeting-preview-value">{children}</span>
+    <span className="flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1 text-[13px] leading-5 text-gray-900">
+      {children}
+    </span>
   </li>
 );
 
@@ -199,14 +232,65 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
     count: named.filter((person) => person.status === status).length,
   })).filter((entry) => entry.count > 0);
 
+  /* What the head row can measure, in mono.
+   *
+   * The head is the card's summary, so it states only what the body is not
+   * stating two rows below it. Open, the start, the duration and the head
+   * count are all rows of their own, and printing them twice crowded the
+   * title into an ellipsis to make room for its own echo. The countdown is
+   * the exception: no row carries it, and it is the reason the card is on
+   * screen at all.
+   *
+   * An offer from a running app measures nothing, so it carries no chips and
+   * no empty rail where chips would have gone. */
+  const summarised = !expanded;
+  const chips: [string, string][] = [];
+  if (summarised && facts.startUtcMs !== null) {
+    chips.push(["start", formatEntryTimestamp(facts.startUtcMs)]);
+  }
+  if (summarised && durationSeconds !== null) {
+    chips.push(["duration", formatDurationShort(durationSeconds)]);
+  }
+  if (secondsToStart !== null) {
+    chips.push([
+      "countdown",
+      t("meetings.detection.pane.countdown", "Starts in {{seconds}}s", {
+        seconds: Math.max(0, secondsToStart),
+      }),
+    ]);
+  }
+  /* The participants row only exists for an event that named someone, so an
+   * attendee count with no names behind it stays in the head either way. */
+  if (
+    facts.attendeeCount !== null &&
+    facts.attendeeCount !== 0 &&
+    (summarised || named.length === 0)
+  ) {
+    chips.push([
+      "attendees",
+      /* The suffix is picked here, not by i18next: a plural category i18next
+       * resolves (few, many) has no key in any locale file, and every locale
+       * carries exactly _one and _other. Same shape as SecureInputWarning. */
+      t(
+        `meetings.preview.attendees_${
+          facts.attendeeCount === 1 ? "one" : "other"
+        }`,
+        { count: facts.attendeeCount },
+      ),
+    ]);
+  }
+
   /* The decision lives in the head row, not a footer: it must never sit
    * behind the disclosure, and a footer band under a collapsed card is a
    * reserved blank the operator pays for on every card. */
   const actions =
     onStart === null && onSkip === null ? null : (
-      <div className="meeting-preview-actions">
+      <div
+        data-slot="preview-actions"
+        className="flex flex-none items-center gap-1.5"
+      >
         {onSkip === null ? null : (
-          <Button type="button" variant="ghost" size="sm" onClick={onSkip}>
+          <Button type="button" variant="outline" size="sm" onClick={onSkip}>
             {t("meetings.preview.actions.skip", "Skip")}
           </Button>
         )}
@@ -231,88 +315,85 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
       : t("meetings.preview.untitled.app", "Microphone in use"));
 
   return (
-    <li className="meeting-preview">
-      <div className="meeting-preview-head">
+    <li data-slot="meeting-preview" className={SETTINGS_CARD}>
+      <div
+        data-slot="preview-head"
+        className="flex items-center gap-2 px-3 py-2"
+      >
         <button
           type="button"
-          className="meeting-preview-summary"
+          data-slot="preview-summary"
           aria-expanded={expanded}
           aria-controls={bodyId}
           onClick={() => setExpanded(!expanded)}
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-md text-start focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
         >
-          <span className="meeting-preview-origin" aria-hidden="true">
-            <OriginIcon size={13} />
-          </span>
-          <span className="type-row-title meeting-preview-title">{title}</span>
-          <span className="meeting-preview-facts">
-            {facts.startUtcMs === null ? null : (
-              <span className="meeting-preview-chip">
-                {formatEntryTimestamp(facts.startUtcMs)}
-              </span>
-            )}
-            {durationSeconds === null ? null : (
-              <span className="meeting-preview-chip">
-                {formatDurationShort(durationSeconds)}
-              </span>
-            )}
-            {secondsToStart === null ? null : (
-              <span className="meeting-preview-chip">
-                {t(
-                  "meetings.detection.pane.countdown",
-                  "Starts in {{seconds}}s",
-                  {
-                    seconds: Math.max(0, secondsToStart),
-                  },
-                )}
-              </span>
-            )}
-            {facts.attendeeCount === null ||
-            facts.attendeeCount === 0 ? null : (
-              <span className="meeting-preview-chip">
-                {/* The suffix is picked here, not by i18next: a plural
-                 * category i18next resolves (few, many) has no key in any
-                 * locale file, and every locale carries exactly _one and
-                 * _other. Same shape as SecureInputWarning. */}
-                {t(
-                  `meetings.preview.attendees_${
-                    facts.attendeeCount === 1 ? "one" : "other"
-                  }`,
-                  { count: facts.attendeeCount },
-                )}
-              </span>
-            )}
-          </span>
-          <ChevronDown
-            className="meeting-preview-caret"
-            size={14}
+          <OriginIcon
             aria-hidden="true"
+            className="size-3.5 flex-none text-gray-700"
+          />
+          <span
+            data-slot="preview-title"
+            className="truncate text-[13px] text-gray-1000"
+          >
+            {title}
+          </span>
+          {chips.length === 0 ? null : (
+            <span
+              data-slot="preview-facts"
+              className="flex flex-wrap items-baseline gap-x-3"
+            >
+              {chips.map(([key, value]) => (
+                <Microlabel
+                  key={key}
+                  className="normal-case tabular-nums text-gray-800"
+                >
+                  {value}
+                </Microlabel>
+              ))}
+            </span>
+          )}
+          <ChevronDown
+            aria-hidden="true"
+            className={cn(
+              "ms-auto size-3.5 flex-none text-gray-700 transition-transform",
+              expanded && "rotate-180",
+            )}
           />
         </button>
         {actions}
       </div>
 
-      <div id={bodyId} className="meeting-preview-body" data-open={expanded}>
-        <div className="meeting-preview-clip">
-          <ul className="meeting-rows meeting-preview-rows">
+      {/* The collapse is a grid track, so the rows stay in the document and
+       * have something to animate out of. `visibility` is what takes them out
+       * of the tab order while they are closed. */}
+      <div
+        id={bodyId}
+        data-slot="preview-body"
+        data-open={expanded}
+        className="group/body grid grid-rows-[0fr] transition-[grid-template-rows] duration-150 ease-out data-[open=true]:grid-rows-[1fr]"
+      >
+        <div className="invisible overflow-hidden group-data-[open=true]/body:visible">
+          <ul className="divide-y divide-gray-alpha-400 border-t border-gray-alpha-400">
             {facts.startUtcMs === null ? null : (
               <PreviewRow
-                icon={<Clock size={13} aria-hidden="true" />}
+                icon={<Clock aria-hidden="true" className="size-3.5" />}
                 label={t("meetings.preview.rows.time", "Time")}
               >
                 <span className="tabular-nums">
                   {formatEntryTimestamp(facts.startUtcMs)}
                 </span>
                 {durationSeconds === null ? null : (
-                  <span className="meeting-preview-chip">
+                  <Microlabel className="normal-case tabular-nums text-gray-800">
                     {formatDurationShort(durationSeconds)}
-                  </span>
+                  </Microlabel>
                 )}
               </PreviewRow>
             )}
 
             {facts.calendarName === null ? null : (
               <PreviewRow
-                icon={<CalendarDays size={13} aria-hidden="true" />}
+                icon={<CalendarDays aria-hidden="true" className="size-3.5" />}
                 label={t("meetings.preview.rows.calendar", "Calendar")}
               >
                 {facts.calendarName}
@@ -321,7 +402,7 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
 
             {facts.appName === null ? null : (
               <PreviewRow
-                icon={<AppWindow size={13} aria-hidden="true" />}
+                icon={<AppWindow aria-hidden="true" className="size-3.5" />}
                 label={t("meetings.preview.rows.app", "App")}
               >
                 {facts.appName}
@@ -330,11 +411,16 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
 
             {notify === null ? null : (
               <PreviewRow
-                icon={<Bell size={13} aria-hidden="true" />}
+                icon={<Bell aria-hidden="true" className="size-3.5" />}
                 label={t("meetings.preview.rows.notify", "Notify")}
               >
-                <StatusText
-                  tone={notify.access === "authorized" ? "muted" : "warning"}
+                <span
+                  className={cn(
+                    "text-[12px] leading-4",
+                    notify.access === "authorized"
+                      ? "text-gray-800"
+                      : "text-amber-900",
+                  )}
                 >
                   {notify.delivered === true
                     ? t(
@@ -350,13 +436,13 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
                           "meetings.preview.notify.inApp",
                           "Shown in Sona only: notifications are off",
                         )}
-                </StatusText>
+                </span>
                 {notify.autoOpen === null ? null : (
                   <Switch
                     checked={notify.autoOpen.checked}
                     disabled={notify.autoOpen.disabled}
-                    onChange={notify.autoOpen.onChange}
-                    label={t(
+                    onCheckedChange={notify.autoOpen.onChange}
+                    aria-label={t(
                       "meetings.preview.notify.autoOpen",
                       "Open this meeting when it starts",
                     )}
@@ -367,14 +453,14 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
 
             {recording === null ? null : (
               <PreviewRow
-                icon={<Mic size={13} aria-hidden="true" />}
+                icon={<Mic aria-hidden="true" className="size-3.5" />}
                 label={t("meetings.preview.rows.recording", "Recording")}
               >
                 {recording.onToggle === undefined ? (
                   recording.armed.length === 0 ? (
-                    <StatusText tone="warning">
+                    <span className="text-[12px] leading-4 text-amber-900">
                       {t("meetings.preview.recording.none", "No source armed")}
-                    </StatusText>
+                    </span>
                   ) : (
                     recording.armed
                       .map((source) => t(sourceKey(source)))
@@ -396,7 +482,7 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
 
             {notesTemplate === null ? null : (
               <PreviewRow
-                icon={<FileText size={13} aria-hidden="true" />}
+                icon={<FileText aria-hidden="true" className="size-3.5" />}
                 label={t("meetings.preview.rows.notes", "Notes")}
               >
                 {t(`meetings.notes.templates.${notesTemplate}`)}
@@ -405,67 +491,68 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
 
             {named.length === 0 ? null : (
               <PreviewRow
-                icon={<Users size={13} aria-hidden="true" />}
+                icon={<Users aria-hidden="true" className="size-3.5" />}
                 label={t("meetings.preview.rows.participants", "Participants")}
               >
-                <span className="meeting-preview-people">
-                  <span className="meeting-preview-tally">
-                    {tally.map(({ status, count }) => (
-                      <span key={status} className="microlabel">
-                        {t("meetings.preview.participation.tally", {
-                          label: t(`meetings.preview.participation.${status}`),
-                          count,
-                          defaultValue: "{{label}} {{count}}",
-                        })}
-                      </span>
-                    ))}
-                  </span>
-                  <span className="meeting-preview-chips">
-                    {named.map((person) => {
-                      const Glyph = PARTICIPATION_ICON[person.status];
-                      const status = t(
-                        `meetings.preview.participation.${person.status}`,
-                      );
-                      return (
-                        <span
-                          key={`${person.name}:${person.status}`}
-                          className="meeting-preview-person"
-                          data-status={person.status}
-                          title={`${person.name} — ${status}`}
-                        >
-                          {Glyph === null ? null : <Glyph size={11} />}
-                          {person.name}
-                          {person.isSelf ? (
-                            <span className="microlabel">
-                              {t("meetings.preview.participation.you", "You")}
-                            </span>
-                          ) : null}
-                        </span>
-                      );
-                    })}
-                    {unnamed === 0 ? null : (
-                      <span className="microlabel">
-                        {t(
-                          `meetings.preview.participation.unnamed_${
-                            unnamed === 1 ? "one" : "other"
-                          }`,
-                          { count: unnamed },
+                <span className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
+                  {tally.map(({ status, count }) => (
+                    <Microlabel key={status}>
+                      {t("meetings.preview.participation.tally", {
+                        label: t(`meetings.preview.participation.${status}`),
+                        count,
+                        defaultValue: "{{label}} {{count}}",
+                      })}
+                    </Microlabel>
+                  ))}
+                </span>
+                <span className="flex flex-wrap items-center justify-end gap-1">
+                  {named.map((person) => {
+                    const Glyph = PARTICIPATION_ICON[person.status];
+                    const status = t(
+                      `meetings.preview.participation.${person.status}`,
+                    );
+                    return (
+                      <span
+                        key={`${person.name}:${person.status}`}
+                        data-slot="preview-person"
+                        data-status={person.status}
+                        title={`${person.name} — ${status}`}
+                        className="inline-flex items-center gap-1 rounded-md border border-gray-alpha-400 px-1.5 text-[12px] leading-5 text-gray-900 data-[status=declined]:text-gray-700"
+                      >
+                        {Glyph === null ? null : (
+                          <Glyph aria-hidden="true" className="size-3" />
                         )}
+                        {person.name}
+                        {person.isSelf ? (
+                          <Microlabel>
+                            {t("meetings.preview.participation.you", "You")}
+                          </Microlabel>
+                        ) : null}
                       </span>
-                    )}
-                  </span>
+                    );
+                  })}
+                  {unnamed === 0 ? null : (
+                    <Microlabel className="normal-case text-gray-800">
+                      {t(
+                        `meetings.preview.participation.unnamed_${
+                          unnamed === 1 ? "one" : "other"
+                        }`,
+                        { count: unnamed },
+                      )}
+                    </Microlabel>
+                  )}
                 </span>
               </PreviewRow>
             )}
 
             {facts.url === null ? null : (
               <PreviewRow
-                icon={<LinkIcon size={13} aria-hidden="true" />}
+                icon={<LinkIcon aria-hidden="true" className="size-3.5" />}
                 label={t("meetings.preview.rows.link", "Link")}
               >
                 <button
                   type="button"
-                  className="meeting-preview-link"
+                  className="truncate rounded-md text-blue-900 hover:underline focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
                   onClick={() =>
                     void openLink(
                       facts.url ?? "",
@@ -483,20 +570,24 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
 
             {facts.description === null ? null : (
               <PreviewRow
-                icon={<AlignLeft size={13} aria-hidden="true" />}
+                icon={<AlignLeft aria-hidden="true" className="size-3.5" />}
                 label={t("meetings.preview.rows.description", "Description")}
               >
                 <span
-                  className="meeting-preview-description"
+                  data-slot="preview-description"
                   data-open={descriptionOpen}
+                  className="min-w-0 text-pretty line-clamp-1 data-[open=true]:line-clamp-none"
                 >
                   {facts.description}
                 </span>
                 <button
                   type="button"
-                  className="meeting-preview-more"
                   aria-expanded={descriptionOpen}
                   onClick={() => setDescriptionOpen(!descriptionOpen)}
+                  /* Inline text actions on this card are blue and underline on
+                   * hover — the same affordance as the link row. A grey mono
+                   * word beside prose would read as more prose. */
+                  className="flex-none rounded-md text-[12px] text-blue-900 hover:underline focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
                 >
                   {descriptionOpen
                     ? t("meetings.preview.description.less", "Less")

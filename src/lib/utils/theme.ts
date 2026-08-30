@@ -1,4 +1,5 @@
 import { commands, type Theme } from "@/bindings";
+import { THEME_STORAGE_KEY } from "@/lib/themeStorageKey";
 
 /**
  * Appearance theme handling.
@@ -11,12 +12,13 @@ import { commands, type Theme } from "@/bindings";
  *    OS live, because CSS alone can no longer see the preference.
  *
  * The choice is persisted in `AppSettings` (source of truth) and mirrored to
- * localStorage so the inline script in `index.html` can apply it synchronously
- * before first paint, avoiding a flash of the wrong palette. That script and
- * `resolveTheme` below must stay in agreement.
+ * localStorage under `THEME_STORAGE_KEY` so the inline script in
+ * `src/app/layout.tsx` can apply it synchronously before first paint, avoiding
+ * a flash of the wrong palette. The key itself lives in
+ * `src/lib/themeStorageKey.ts` and is interpolated into that script, so the two
+ * sides cannot drift; `resolveTheme` below still has to agree with the script's
+ * branch logic by hand.
  */
-
-export const THEME_STORAGE_KEY = "sona.theme";
 
 export const THEME_OPTIONS: Theme[] = ["system", "light", "dark"];
 

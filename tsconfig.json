@@ -12,8 +12,13 @@
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "esModuleInterop": true,
     "noEmit": true,
-    "jsx": "react-jsx",
+    "incremental": true,
+
+    /* Next compiles JSX itself and requires it left alone here. */
+    "jsx": "preserve",
+    "plugins": [{ "name": "next" }],
 
     /* Path Aliases */
     "baseUrl": ".",
@@ -28,6 +33,7 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
+  "include": ["src", "next-env.d.ts", ".next/types/**/*.ts"],
+  "exclude": ["node_modules", "out", ".next"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

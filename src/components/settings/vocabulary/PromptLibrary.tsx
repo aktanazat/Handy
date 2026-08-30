@@ -2,23 +2,30 @@ import React, { useId, useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { commands, type LLMPrompt, type Result } from "@/bindings";
+import { Badge } from "@/components/vg/badge";
+import { Button } from "@/components/vg/button";
 import {
-  Alert,
-  Badge,
-  Button,
   Dialog,
-  IconButton,
-  Input,
-  SettingContainer,
-  Textarea,
-} from "../../ui";
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/vg/dialog";
+import { Input } from "@/components/vg/input";
+import { Label } from "@/components/vg/label";
+import { Textarea } from "@/components/vg/textarea";
+import { Notice, SettingsSection } from "@/components/settings/rows";
 import { useSettings } from "../../../hooks/useSettings";
-import { EmptyHint, Hint, LoadingRows, RuleList } from "./PanelParts";
-
-interface PromptLibraryProps {
-  descriptionMode?: "inline" | "tooltip";
-  grouped?: boolean;
-}
+import {
+  EmptyLine,
+  Hint,
+  literalText,
+  LoadingRows,
+  RowActions,
+  RuleList,
+  RuleRow,
+} from "./PanelParts";
 
 /** The prompt being written. An empty id means it does not exist yet. */
 interface PromptDraft {
@@ -34,14 +41,12 @@ const EMPTY_PROMPTS: LLMPrompt[] = [];
  * Sona sends to the LLM after transcription. The selected prompt is the one a
  * mode without its own prompt starts from.
  */
-export const PromptLibrary: React.FC<PromptLibraryProps> = ({
-  descriptionMode = "tooltip",
-  grouped = true,
-}) => {
+export const PromptLibrary: React.FC = () => {
   const { t } = useTranslation();
   const { settings, isLoading, refreshSettings } = useSettings();
   const nameFieldId = useId();
   const bodyFieldId = useId();
+  const outputTipId = useId();
   const [draft, setDraft] = useState<PromptDraft | null>(null);
   const [pendingDelete, setPendingDelete] = useState<LLMPrompt | null>(null);
   const [busy, setBusy] = useState(false);
@@ -51,6 +56,10 @@ export const PromptLibrary: React.FC<PromptLibraryProps> = ({
   const prompts = settings?.post_process_prompts ?? EMPTY_PROMPTS;
   const selectedId = settings?.post_process_selected_prompt_id ?? null;
   const isLastPrompt = prompts.length <= 1;
+  const sectionLabel = t(
+    "settings.postProcessing.prompts.libraryTitle",
+    "Post-processing prompts",
+  );
 
   /* Command results carry a user-facing sentence on failure; a thrown error is
    * a transport fault. Both belong on screen, never only in the console. */
@@ -111,51 +120,30 @@ export const PromptLibrary: React.FC<PromptLibraryProps> = ({
 
     if (prompts.length === 0) {
       return (
-        <EmptyHint
-          title={t("settings.postProcessing.prompts.noPrompts")}
-          description={t(
+        <EmptyLine
+          text={t(
             "settings.postProcessing.prompts.empty.description",
             "A prompt tells the model what to do with the transcript, for example: rewrite the following as a short message, keeping every fact: ${output}",
           )}
-          action={
-            <Button
-              size="sm"
-              className="gap-1"
-              onClick={() => {
-                setDraftError(null);
-                setDraft({ id: "", name: "", prompt: "" });
-              }}
-            >
-              <Plus aria-hidden="true" className="h-4 w-4" />
-              {t("settings.postProcessing.prompts.createNew")}
-            </Button>
-          }
         />
       );
     }
 
     return (
-      <RuleList
-        label={t(
-          "settings.postProcessing.prompts.libraryTitle",
-          "Post-processing prompts",
-        )}
-      >
+      <RuleList label={sectionLabel}>
         {prompts.map((prompt) => {
           const selected = prompt.id === selectedId;
 
           return (
-            <li
+            <RuleRow
               key={prompt.id}
-              className="flex items-start gap-3 py-2"
+              className="flex items-start gap-3"
               data-testid="prompt-row"
               data-prompt-id={prompt.id}
             >
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-2">
-                  <span
-                    className={`truncate text-[13px] leading-[19px] text-text-primary ${selected ? "font-semibold" : "font-medium"}`}
-                  >
+                  <span className="truncate text-[13px] text-gray-1000">
                     {prompt.name}
                   </span>
                   {selected && (
@@ -166,15 +154,15 @@ export const PromptLibrary: React.FC<PromptLibraryProps> = ({
                     </Badge>
                   )}
                 </span>
-                <span className="mt-0.5 block line-clamp-2 text-[12.5px] leading-[18px] text-text-secondary">
+                <span className="mt-0.5 block line-clamp-2 font-mono text-[12.5px] leading-[18px] text-gray-700">
                   {prompt.prompt}
                 </span>
               </span>
               <span className="flex flex-none items-center gap-1.5">
                 {!selected && (
                   <Button
-                    size="sm"
-                    variant="secondary"
+                    size="xs"
+                    variant="outline"
                     disabled={busy}
                     onClick={() =>
                       void runCommand(
@@ -191,41 +179,51 @@ export const PromptLibrary: React.FC<PromptLibraryProps> = ({
                     {t("settings.postProcessing.prompts.use", "Use")}
                   </Button>
                 )}
-                <IconButton
-                  size="sm"
-                  disabled={busy}
-                  onClick={() => {
-                    setDraftError(null);
-                    setDraft({
-                      id: prompt.id,
+                <RowActions>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-gray-700 hover:text-gray-1000"
+                    disabled={busy}
+                    onClick={() => {
+                      setDraftError(null);
+                      setDraft({
+                        id: prompt.id,
+                        name: prompt.name,
+                        prompt: prompt.prompt,
+                      });
+                    }}
+                    aria-label={t("settings.postProcessing.prompts.editNamed", {
+                      defaultValue: "Edit {{name}}",
                       name: prompt.name,
-                      prompt: prompt.prompt,
-                    });
-                  }}
-                  label={t("settings.postProcessing.prompts.editNamed", {
-                    defaultValue: "Edit {{name}}",
-                    name: prompt.name,
-                  })}
-                  icon={<Pencil aria-hidden="true" className="h-4 w-4" />}
-                  data-testid="prompt-edit"
-                />
-                <IconButton
-                  size="sm"
-                  variant="danger-ghost"
-                  disabled={busy || isLastPrompt}
-                  onClick={() => {
-                    setError(null);
-                    setPendingDelete(prompt);
-                  }}
-                  label={t("settings.postProcessing.prompts.deleteNamed", {
-                    defaultValue: "Delete {{name}}",
-                    name: prompt.name,
-                  })}
-                  icon={<Trash2 aria-hidden="true" className="h-4 w-4" />}
-                  data-testid="prompt-delete"
-                />
+                    })}
+                    data-testid="prompt-edit"
+                  >
+                    <Pencil aria-hidden="true" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-gray-700 hover:text-red-900"
+                    disabled={busy || isLastPrompt}
+                    onClick={() => {
+                      setError(null);
+                      setPendingDelete(prompt);
+                    }}
+                    aria-label={t(
+                      "settings.postProcessing.prompts.deleteNamed",
+                      {
+                        defaultValue: "Delete {{name}}",
+                        name: prompt.name,
+                      },
+                    )}
+                    data-testid="prompt-delete"
+                  >
+                    <Trash2 aria-hidden="true" />
+                  </Button>
+                </RowActions>
               </span>
-            </li>
+            </RuleRow>
           );
         })}
       </RuleList>
@@ -234,80 +232,70 @@ export const PromptLibrary: React.FC<PromptLibraryProps> = ({
 
   return (
     <>
-      <SettingContainer
-        title={t(
-          "settings.postProcessing.prompts.libraryTitle",
-          "Post-processing prompts",
-        )}
-        description={t(
-          "settings.postProcessing.prompts.selectedPrompt.description",
-        )}
-        descriptionMode={descriptionMode}
-        grouped={grouped}
-        layout="stacked"
+      <SettingsSection
+        label={sectionLabel}
+        action={
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onClick={() => {
+              setDraftError(null);
+              setDraft({ id: "", name: "", prompt: "" });
+            }}
+            data-testid="prompt-create"
+          >
+            <Plus aria-hidden="true" />
+            {t("settings.postProcessing.prompts.createNew")}
+          </Button>
+        }
       >
-        <div className="space-y-3" data-testid="prompt-library">
-          {prompts.length > 0 && (
-            <div className="flex items-center gap-3">
-              {selectedId === null && (
-                <Hint>
-                  {t(
-                    "settings.postProcessing.prompts.noSelection",
-                    "No prompt selected: every mode uses the prompt it defines.",
-                  )}
-                </Hint>
-              )}
-              <Button
-                size="sm"
-                className="ms-auto flex-none gap-1"
-                disabled={busy}
-                onClick={() => {
-                  setDraftError(null);
-                  setDraft({ id: "", name: "", prompt: "" });
-                }}
-                data-testid="prompt-create"
-              >
-                <Plus aria-hidden="true" className="h-4 w-4" />
-                {t("settings.postProcessing.prompts.createNew")}
-              </Button>
-            </div>
-          )}
-
+        <div
+          className="divide-y divide-gray-alpha-400"
+          data-testid="prompt-library"
+        >
           {library()}
 
+          {/* Two states the list cannot show on its own: nothing is selected,
+           * or the last prompt is the reason delete is unavailable. */}
+          {prompts.length > 0 && selectedId === null && (
+            <Notice live={false} className="px-4 py-3">
+              {t(
+                "settings.postProcessing.prompts.noSelection",
+                "No prompt selected: every mode uses the prompt it defines.",
+              )}
+            </Notice>
+          )}
+
           {prompts.length === 1 && (
-            <Hint>
+            <Notice live={false} className="px-4 py-3">
               {t(
                 "settings.postProcessing.prompts.lastPrompt",
                 "Sona keeps at least one prompt, so this one cannot be deleted. Create another first.",
               )}
-            </Hint>
+            </Notice>
           )}
 
           {/* The confirm dialog covers this region, so a failed delete is
            * repeated inside the dialog instead. */}
           {error && pendingDelete === null && (
-            <Alert
-              variant="error"
-              action={
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={busy}
-                  onClick={() => {
-                    setError(null);
-                    void refreshSettings();
-                  }}
-                >
-                  {t("common.retry")}
-                </Button>
-              }
-            >
-              {error}
-            </Alert>
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+              <Notice tone="danger">{error}</Notice>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() => {
+                  setError(null);
+                  void refreshSettings();
+                }}
+              >
+                {t("common.retry")}
+              </Button>
+            </div>
           )}
         </div>
-      </SettingContainer>
+      </SettingsSection>
 
       <Dialog
         open={draft !== null}
@@ -317,16 +305,68 @@ export const PromptLibrary: React.FC<PromptLibraryProps> = ({
             setDraftError(null);
           }
         }}
-        title={
-          draft?.id === ""
-            ? t("settings.postProcessing.prompts.createNew")
-            : t("settings.postProcessing.prompts.updatePrompt")
-        }
-        closeLabel={t("common.close")}
-        footer={
-          <>
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {draft?.id === ""
+                ? t("settings.postProcessing.prompts.createNew")
+                : t("settings.postProcessing.prompts.updatePrompt")}
+            </DialogTitle>
+          </DialogHeader>
+          {draft && (
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor={nameFieldId}>
+                  {t("settings.postProcessing.prompts.promptLabel")}
+                </Label>
+                <Input
+                  id={nameFieldId}
+                  value={draft.name}
+                  onChange={(event) =>
+                    setDraft({ ...draft, name: event.target.value })
+                  }
+                  placeholder={t(
+                    "settings.postProcessing.prompts.promptLabelPlaceholder",
+                  )}
+                  disabled={busy}
+                  data-testid="prompt-name-field"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor={bodyFieldId}>
+                  {t("settings.postProcessing.prompts.promptInstructions")}
+                </Label>
+                <Textarea
+                  id={bodyFieldId}
+                  className={`min-h-40 ${literalText}`}
+                  rows={8}
+                  value={draft.prompt}
+                  onChange={(event) =>
+                    setDraft({ ...draft, prompt: event.target.value })
+                  }
+                  placeholder={t(
+                    "settings.postProcessing.prompts.promptInstructionsPlaceholder",
+                  )}
+                  aria-describedby={outputTipId}
+                  disabled={busy}
+                  data-testid="prompt-body-field"
+                />
+                {/* The one thing the field cannot show: the token that marks
+                 * where the transcript lands. */}
+                <Hint id={outputTipId}>
+                  {t(
+                    "settings.postProcessing.prompts.outputTip",
+                    "Write ${output} where the transcript should be inserted.",
+                  )}
+                </Hint>
+              </div>
+              {draftError && <Notice tone="danger">{draftError}</Notice>}
+            </div>
+          )}
+          <DialogFooter>
             <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
               disabled={busy}
               onClick={() => {
@@ -346,71 +386,8 @@ export const PromptLibrary: React.FC<PromptLibraryProps> = ({
                 ? t("settings.postProcessing.prompts.createPrompt")
                 : t("settings.postProcessing.prompts.updatePrompt")}
             </Button>
-          </>
-        }
-      >
-        {draft && (
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <label
-                htmlFor={nameFieldId}
-                className="block text-[13px] leading-[19px] font-medium text-text-primary"
-              >
-                {t("settings.postProcessing.prompts.promptLabel")}
-              </label>
-              <Input
-                id={nameFieldId}
-                className="w-full"
-                value={draft.name}
-                onChange={(event) =>
-                  setDraft({ ...draft, name: event.target.value })
-                }
-                placeholder={t(
-                  "settings.postProcessing.prompts.promptLabelPlaceholder",
-                )}
-                disabled={busy}
-                data-testid="prompt-name-field"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label
-                htmlFor={bodyFieldId}
-                className="block text-[13px] leading-[19px] font-medium text-text-primary"
-              >
-                {t("settings.postProcessing.prompts.promptInstructions")}
-              </label>
-              <Textarea
-                id={bodyFieldId}
-                className="w-full"
-                rows={8}
-                value={draft.prompt}
-                onChange={(event) =>
-                  setDraft({ ...draft, prompt: event.target.value })
-                }
-                placeholder={t(
-                  "settings.postProcessing.prompts.promptInstructionsPlaceholder",
-                )}
-                disabled={busy}
-                data-testid="prompt-body-field"
-              />
-            </div>
-            <Hint>
-              {t(
-                "settings.postProcessing.prompts.outputTip",
-                "Write ${output} where the transcript should be inserted.",
-              )}
-            </Hint>
-            {draftIncomplete && (
-              <Hint tone="muted">
-                {t(
-                  "settings.postProcessing.prompts.errors.incomplete",
-                  "Give the prompt a name and instructions before saving.",
-                )}
-              </Hint>
-            )}
-            {draftError && <Alert variant="error">{draftError}</Alert>}
-          </div>
-        )}
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
       <Dialog
@@ -418,12 +395,32 @@ export const PromptLibrary: React.FC<PromptLibraryProps> = ({
         onOpenChange={(open) => {
           if (!open) setPendingDelete(null);
         }}
-        title={t("settings.postProcessing.prompts.deletePrompt")}
-        closeLabel={t("common.close")}
-        footer={
-          <>
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {t("settings.postProcessing.prompts.deletePrompt")}
+            </DialogTitle>
+            {/* The consequence is the description, so the dialog is a title
+             * and one sentence rather than a title, a blurb and a sentence. */}
+            <DialogDescription>
+              {pendingDelete?.id === selectedId
+                ? t("settings.postProcessing.prompts.confirmDelete.selected", {
+                    defaultValue:
+                      "{{name}} is in use. Deleting it moves the selection to the first prompt in the list.",
+                    name: pendingDelete?.name ?? "",
+                  })
+                : t("settings.postProcessing.prompts.confirmDelete.body", {
+                    defaultValue:
+                      "{{name}} is removed from the library. Modes that already copied its text keep their own prompt.",
+                    name: pendingDelete?.name ?? "",
+                  })}
+            </DialogDescription>
+          </DialogHeader>
+          {error && <Notice tone="danger">{error}</Notice>}
+          <DialogFooter>
             <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
               disabled={busy}
               onClick={() => setPendingDelete(null)}
@@ -431,7 +428,7 @@ export const PromptLibrary: React.FC<PromptLibraryProps> = ({
               {t("common.cancel")}
             </Button>
             <Button
-              variant="danger"
+              variant="destructive"
               size="sm"
               disabled={busy}
               onClick={() => {
@@ -447,27 +444,8 @@ export const PromptLibrary: React.FC<PromptLibraryProps> = ({
             >
               {t("common.delete")}
             </Button>
-          </>
-        }
-      >
-        {pendingDelete && (
-          <div className="space-y-3">
-            <p className="text-[13px] leading-5 text-text-primary">
-              {pendingDelete.id === selectedId
-                ? t("settings.postProcessing.prompts.confirmDelete.selected", {
-                    defaultValue:
-                      "{{name}} is in use. Deleting it moves the selection to the first prompt in the list.",
-                    name: pendingDelete.name,
-                  })
-                : t("settings.postProcessing.prompts.confirmDelete.body", {
-                    defaultValue:
-                      "{{name}} is removed from the library. Modes that already copied its text keep their own prompt.",
-                    name: pendingDelete.name,
-                  })}
-            </p>
-            {error && <Alert variant="error">{error}</Alert>}
-          </div>
-        )}
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </>
   );

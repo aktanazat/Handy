@@ -1,86 +1,115 @@
-import React from "react";
+import React, { useId } from "react";
 import { useTranslation } from "react-i18next";
-import { Dropdown, type DropdownOption } from "../ui/Dropdown";
-import { SettingContainer } from "../ui/SettingContainer";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/vg/select";
+import { SettingsRow } from "./rows";
 import { useSettings } from "../../hooks/useSettings";
 import type { OverlayPosition, OverlayStyle } from "@/bindings";
 
-interface ShowOverlayProps {
-  descriptionMode?: "inline" | "tooltip";
-  grouped?: boolean;
-}
+export const ShowOverlay: React.FC = React.memo(() => {
+  const { t } = useTranslation();
+  const { getSetting, updateSetting, isUpdating } = useSettings();
+  const styleId = useId();
+  const positionId = useId();
 
-export const ShowOverlay: React.FC<ShowOverlayProps> = React.memo(
-  ({ descriptionMode = "tooltip", grouped = false }) => {
-    const { t } = useTranslation();
-    const { getSetting, updateSetting, isUpdating } = useSettings();
+  const styleOptions: { value: OverlayStyle; label: string }[] = [
+    {
+      value: "none",
+      label: t("settings.advanced.overlay.style.options.none"),
+    },
+    {
+      value: "minimal",
+      label: t("settings.advanced.overlay.style.options.minimal"),
+    },
+    {
+      value: "live",
+      label: t("settings.advanced.overlay.style.options.live"),
+    },
+  ];
 
-    const styleOptions: DropdownOption<OverlayStyle>[] = [
-      {
-        value: "none",
-        label: t("settings.advanced.overlay.style.options.none"),
-      },
-      {
-        value: "minimal",
-        label: t("settings.advanced.overlay.style.options.minimal"),
-      },
-      {
-        value: "live",
-        label: t("settings.advanced.overlay.style.options.live"),
-      },
-    ];
+  const positionOptions: { value: OverlayPosition; label: string }[] = [
+    {
+      value: "bottom",
+      label: t("settings.advanced.overlay.position.options.bottom"),
+    },
+    {
+      value: "top",
+      label: t("settings.advanced.overlay.position.options.top"),
+    },
+  ];
 
-    const positionOptions: DropdownOption<OverlayPosition>[] = [
-      {
-        value: "bottom",
-        label: t("settings.advanced.overlay.position.options.bottom"),
-      },
-      {
-        value: "top",
-        label: t("settings.advanced.overlay.position.options.top"),
-      },
-    ];
+  /* `getSetting` yields `OverlayStyle | undefined`, so the fallback alone
+   * produces an `OverlayStyle`. */
+  const selectedStyle = getSetting("overlay_style") || "live";
+  // Only "top" and "bottom" are selectable; anything else (empty, or a legacy
+  // "none" from before the position was retired) falls back to "bottom".
+  const selectedPosition: OverlayPosition =
+    getSetting("overlay_position") === "top" ? "top" : "bottom";
 
-    /* `getSetting` yields `OverlayStyle | undefined`, so the fallback alone
-     * produces an `OverlayStyle`. */
-    const selectedStyle = getSetting("overlay_style") || "live";
-    // Only "top" and "bottom" are selectable; anything else (empty, or a legacy
-    // "none" from before the position was retired) falls back to "bottom".
-    const selectedPosition: OverlayPosition =
-      getSetting("overlay_position") === "top" ? "top" : "bottom";
+  const styleLabel = t("settings.advanced.overlay.style.title");
 
-    return (
-      <>
-        <SettingContainer
-          title={t("settings.advanced.overlay.style.title")}
-          description={t("settings.advanced.overlay.style.description")}
-          descriptionMode={descriptionMode}
-          grouped={grouped}
+  return (
+    <>
+      <SettingsRow
+        label={styleLabel}
+        /* Kept: Live needs a streaming local model or a cloud mode to show
+         * anything, and Linux wants None — neither is in the option names. */
+        hint={t("settings.advanced.overlay.style.description")}
+        hintLabel={styleLabel}
+        controlId={styleId}
+      >
+        <Select
+          value={selectedStyle}
+          onValueChange={(value) =>
+            /* SAFETY: the items are exactly the OverlayStyle values. */
+            void updateSetting("overlay_style", value as OverlayStyle)
+          }
+          disabled={isUpdating("overlay_style")}
         >
-          <Dropdown<OverlayStyle>
-            options={styleOptions}
-            selectedValue={selectedStyle}
-            onSelect={(value) => updateSetting("overlay_style", value)}
-            disabled={isUpdating("overlay_style")}
-          />
-        </SettingContainer>
+          <SelectTrigger id={styleId} size="sm" className="w-50">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {styleOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </SettingsRow>
 
-        {selectedStyle !== "none" && (
-          <SettingContainer
-            title={t("settings.advanced.overlay.position.title")}
-            description={t("settings.advanced.overlay.position.description")}
-            descriptionMode={descriptionMode}
-            grouped={grouped}
+      {selectedStyle !== "none" && (
+        <SettingsRow
+          label={t("settings.advanced.overlay.position.title")}
+          controlId={positionId}
+        >
+          <Select
+            value={selectedPosition}
+            onValueChange={(value) =>
+              /* SAFETY: the items are exactly the OverlayPosition values. */
+              void updateSetting("overlay_position", value as OverlayPosition)
+            }
+            disabled={isUpdating("overlay_position")}
           >
-            <Dropdown<OverlayPosition>
-              options={positionOptions}
-              selectedValue={selectedPosition}
-              onSelect={(value) => updateSetting("overlay_position", value)}
-              disabled={isUpdating("overlay_position")}
-            />
-          </SettingContainer>
-        )}
-      </>
-    );
-  },
-);
+            <SelectTrigger id={positionId} size="sm" className="w-50">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {positionOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </SettingsRow>
+      )}
+    </>
+  );
+});

@@ -2,10 +2,16 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import type { ModelInfo } from "@/bindings";
 import {
-  getTranslatedModelName,
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/vg/command";
+import {
   getTranslatedModelDescription,
-} from "../../lib/utils/modelTranslation";
-import "./model-selector.css";
+  getTranslatedModelName,
+} from "@/lib/utils/modelTranslation";
 
 interface ModelDropdownProps {
   models: ModelInfo[];
@@ -14,11 +20,11 @@ interface ModelDropdownProps {
 }
 
 /**
- * Model switcher menu. Anchors below the trigger (the top nav) and opens as a
- * raised popover with internal scroll — the max height in model-selector.css
- * is derived from the viewport, so the menu never paints past the window
- * edge. The active model row carries the accent-soft fill and a small chip;
- * every other row stays quiet.
+ * The switcher's list: one command row per downloaded model.
+ *
+ * The filter field is not decoration — cmdk routes arrow keys through its
+ * input, so without it the list is unreachable from the keyboard. The active
+ * model is spelled out rather than ticked, so the state survives greyscale.
  */
 const ModelDropdown: React.FC<ModelDropdownProps> = ({
   models,
@@ -26,68 +32,45 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
   onModelSelect,
 }) => {
   const { t } = useTranslation();
-  const downloadedModels = models.filter((m) => m.is_downloaded);
-
-  const handleModelClick = (modelId: string) => {
-    onModelSelect(modelId);
-  };
+  const downloadedModels = models.filter((model) => model.is_downloaded);
 
   return (
-    <div
-      role="listbox"
-      aria-label={t("modelSelector.model")}
-      className="model-menu"
-    >
-      {downloadedModels.length > 0 ? (
-        downloadedModels.map((model) => (
-          <div
-            key={model.id}
-            onClick={() => handleModelClick(model.id)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                handleModelClick(model.id);
-              }
-            }}
-            tabIndex={0}
-            role="option"
-            aria-selected={currentModelId === model.id}
-            className="model-menu-option"
-          >
-            <div className="model-menu-option-head">
-              <span className="model-menu-option-name">
-                <span>{getTranslatedModelName(model, t)}</span>
-                {model.is_custom && (
-                  <span className="model-menu-tag">
-                    {t("modelSelector.custom")}
-                  </span>
-                )}
-                {model.supports_streaming && (
-                  <span className="model-menu-tag">
-                    {t("modelSelector.streaming")}
-                  </span>
-                )}
-              </span>
-              {currentModelId === model.id && (
-                <span className="model-menu-active-chip">
-                  {t("modelSelector.active")}
-                </span>
-              )}
-            </div>
-            <p
-              className="model-menu-option-desc"
-              title={getTranslatedModelDescription(model, t)}
+    <Command label={t("modelSelector.model")}>
+      <CommandInput placeholder={t("modelSelector.searchPlaceholder")} />
+      <CommandList>
+        <CommandEmpty>{t("modelSelector.noModelsAvailable")}</CommandEmpty>
+        {downloadedModels.map((model) => {
+          const name = getTranslatedModelName(model, t);
+          const description = getTranslatedModelDescription(model, t);
+          return (
+            <CommandItem
+              key={model.id}
+              value={`${name} ${description}`}
+              aria-selected={currentModelId === model.id}
+              onSelect={() => onModelSelect(model.id)}
+              className="flex-col items-start gap-0.5"
             >
-              {getTranslatedModelDescription(model, t)}
-            </p>
-          </div>
-        ))
-      ) : (
-        <p className="model-menu-empty">
-          {t("modelSelector.noModelsAvailable")}
-        </p>
-      )}
-    </div>
+              <span className="flex w-full min-w-0 items-center gap-2">
+                <span className="min-w-0 truncate text-[13px] text-gray-1000">
+                  {name}
+                </span>
+                {currentModelId === model.id ? (
+                  <span className="ml-auto flex-none font-mono text-[10px] uppercase tracking-[0.12em] text-blue-900">
+                    {t("modelSelector.active")}
+                  </span>
+                ) : null}
+              </span>
+              <span
+                title={description}
+                className="w-full truncate text-[12px] text-gray-800"
+              >
+                {description}
+              </span>
+            </CommandItem>
+          );
+        })}
+      </CommandList>
+    </Command>
   );
 };
 

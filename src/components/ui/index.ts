@@ -1,19 +1,27 @@
-/* The Sona design system. One import site for every shared primitive:
+/* Survivors of the legacy kit, not a design system.
  *
- *   import { Button, Card, EmptyState } from "@/components/ui";
+ * src/components/vg is the primitive kit: every button, input, select, dialog,
+ * popover, menu, switch, slider, tab and tooltip in the app comes from there,
+ * Geist-coloured through app/globals.css's `@theme inline` bridge. It is the
+ * only place a primitive may be added, and components.json points the shadcn
+ * CLI at it ("ui": "@/components/vg") so generated components land there too.
  *
- * Rules the primitives keep, so pages do not have to restate them:
- *   - every control has default, hover, active, focus-visible and disabled;
- *   - focus is the global accent ring from styles/base.css, never removed;
- *   - content groups are cards: --color-surface-raised, --radius-card and
- *     --shadow-card (whose ring IS the border); a card never contains
- *     another card, and selection is the accent-soft fill, never a black one;
- *   - color comes from styles/theme.css tokens, never raw hex;
- *   - state reads as text, never as a colored dot alone.
+ * What is left here is app-specific and has no vg counterpart yet:
+ *
+ *   AudioPlayer, AudioPlayerGroup  a transcript's audio scrubber, not a generic
+ *                                  control — Library owns its whole interaction
+ *   RouteSkeleton                  the shape of a settings page before its
+ *                                  chunk arrives, sized to this app's rhythm
+ *   Toaster                        the app's one toast root (vg/sonner was
+ *                                  deleted unused; adopting it means moving
+ *                                  this root, not adding a second one)
+ *   Badge, Button, Dialog          still consumed by the onboarding and
+ *                                  whats-new surfaces, which were not part of
+ *                                  the redesign pass
+ *
+ * Each of these retires by moving its consumers onto a vg primitive, not by
+ * being widened here. Nothing new goes in this folder.
  */
-
-export { Alert } from "./Alert";
-export type { AlertProps, AlertVariant } from "./Alert";
 
 export { AudioPlayer, AudioPlayerGroup } from "./AudioPlayer";
 export type { AudioPlayerProps } from "./AudioPlayer";
@@ -21,75 +29,13 @@ export type { AudioPlayerProps } from "./AudioPlayer";
 export { default as Badge } from "./Badge";
 export type { BadgeProps } from "./Badge";
 
-export { Button, IconButton } from "./Button";
-export type {
-  ButtonProps,
-  ButtonSize,
-  ButtonVariant,
-  IconButtonProps,
-} from "./Button";
-
-export { Card, Section } from "./Card";
-export type { CardPadding, CardProps, CardTone, SectionProps } from "./Card";
+export { Button } from "./Button";
+export type { ButtonProps, ButtonSize, ButtonVariant } from "./Button";
 
 export { Dialog } from "./Dialog";
 export type { DialogProps } from "./Dialog";
 
-export { Dropdown } from "./Dropdown";
-export type { DropdownOption, DropdownProps } from "./Dropdown";
-
-export { EmptyState } from "./EmptyState";
-export type { EmptyStateProps, EmptyStateVariant } from "./EmptyState";
-
-export { GridConnector } from "./GridConnector";
-export type { GridConnectorProps } from "./GridConnector";
-
-export { Input } from "./Input";
-export type { InputProps } from "./Input";
-
-export { Kbd, KbdChord } from "./Kbd";
-export type { KbdChordProps, KbdProps } from "./Kbd";
-
-export { List, Row } from "./List";
-export type { ListProps, RowProps } from "./List";
-
-export { PathDisplay } from "./PathDisplay";
-export type { PathDisplayProps } from "./PathDisplay";
-
-export { ResetButton } from "./ResetButton";
-export type { ResetButtonProps } from "./ResetButton";
-
-export { Select } from "./Select";
-export type { SelectOption, SelectProps } from "./Select";
-
-export { SettingContainer } from "./SettingContainer";
-export type { SettingContainerProps } from "./SettingContainer";
-
-export { SettingsGroup } from "./SettingsGroup";
-export type { SettingsGroupProps } from "./SettingsGroup";
-
-export { RouteSkeleton, Skeleton } from "./Skeleton";
-export type { RouteSkeletonProps, SkeletonProps } from "./Skeleton";
-
-export { Slider } from "./Slider";
-export type { SliderProps } from "./Slider";
-
-export { StatusText } from "./StatusText";
-export type { StatusTextProps, StatusTone } from "./StatusText";
-
-export { Switch } from "./Switch";
-export type { SwitchProps } from "./Switch";
-
-export { Tabs } from "./Tabs";
-export type { TabItem, TabsProps } from "./Tabs";
-
-export { Textarea } from "./Textarea";
-export type { TextareaProps } from "./Textarea";
+export { RouteSkeleton } from "./Skeleton";
+export type { RouteSkeletonProps } from "./Skeleton";
 
 export { Toaster } from "./Toast";
-
-export { ToggleSwitch } from "./ToggleSwitch";
-export type { ToggleSwitchProps } from "./ToggleSwitch";
-
-export { default as ProgressBar } from "../shared/ProgressBar";
-export type { ProgressData } from "../shared/ProgressBar";

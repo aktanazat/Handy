@@ -26,7 +26,9 @@ interface RecordingOverlayContentProps {
   session: number;
   position: OverlayPosition;
   direction: LanguageDirection;
-  capRef: RefObject<HTMLDivElement>;
+  /* React 19: `useRef<HTMLDivElement>(null)` yields `RefObject<T | null>`, so
+   * the null is part of the type rather than something the caller asserts away. */
+  capRef: RefObject<HTMLDivElement | null>;
   onStreamScroll: () => void;
 }
 
@@ -79,6 +81,34 @@ const errorTitleKey = (token: string): string | undefined => {
  */
 const barScale = (level: number): number =>
   Math.max(0.06, Math.min(1, Math.pow(Math.max(0, level), 0.7)));
+
+/**
+ * The reported bucket level at which the meter stops being ink and becomes the
+ * accent — the one colour event on this surface, and the whole answer to "is it
+ * hearing me".
+ *
+ * Derived from the visualiser's own calibration
+ * (`audio_toolkit/audio/visualizer.rs`: a bucket is
+ * `((db + 68) / 38 * 1.3) ^ 0.7`, calibrated against measured mic audio at
+ * dictation ~-32 and room tone ~-48 on that scale). Dictation saturates the
+ * window and clamps to 1.0; room tone lands near 0.77. 0.9 sits between them,
+ * so the tint means "a bucket is at the top of the calibrated speech range" and
+ * a humming room cannot claim it.
+ */
+const SPEECH_PEAK = 0.9;
+
+/**
+ * Whether the reported frame carries speech. A loop rather than
+ * `Math.max(...levels)`: this runs on every `mic-level` event, and the spread
+ * allocates an argument list per frame to answer a question one comparison
+ * settles.
+ */
+const hearingSpeech = (levels: number[]): boolean => {
+  for (const level of levels) {
+    if (level >= SPEECH_PEAK) return true;
+  }
+  return false;
+};
 
 /**
  * React's `CSSProperties` has no slot for a custom property, and the working
@@ -142,7 +172,7 @@ export const RecordingOverlayContent = ({
             data-testid="hud-error-pill"
           >
             <SonaMark className="smark" width={16} height={16} />
-            <span className="serror type-row-title" role="alert">
+            <span className="serror" role="alert">
               {failureText}
             </span>
           </div>
@@ -159,11 +189,13 @@ export const RecordingOverlayContent = ({
 
   /* Three meters, one geometry. `ready` is the only one carrying reported
    * values, so it is the only one marked measured — the other two are display
-   * states and are allowed to move. */
+   * states and are allowed to move. `hearing` rides on `ready` alone: it is a
+   * statement about the buckets in hand, and neither an opening stream nor a
+   * running transcriber has any. */
   const waveMode = working
     ? "working"
     : hud === "listening"
-      ? "ready snap-measured"
+      ? `ready snap-measured${hearingSpeech(levels) ? " hearing" : ""}`
       : "arming";
 
   /* The meter is the content. Reported buckets are drawn as transforms with no
@@ -202,7 +234,7 @@ export const RecordingOverlayContent = ({
       </span>
       <SonaMark className="smark" width={16} height={16} />
       {failed ? (
-        <span className="serror type-row-title" role="alert">
+        <span className="serror" role="alert">
           {failureText}
         </span>
       ) : (
@@ -249,11 +281,7 @@ export const RecordingOverlayContent = ({
         >
           <div className="stext">
             <div className="stext-clip">
-              <div
-                className="stext-cap type-body"
-                ref={capRef}
-                onScroll={onStreamScroll}
-              >
+              <div className="stext-cap" ref={capRef} onScroll={onStreamScroll}>
                 <p>
                   <span className="committed">
                     {streamText.committed ? `${streamText.committed} ` : ""}

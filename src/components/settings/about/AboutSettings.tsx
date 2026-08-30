@@ -4,7 +4,13 @@ import { ExternalLink } from "lucide-react";
 import { getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { commands } from "@/bindings";
-import { Button, SettingContainer, SettingsGroup } from "@/components/ui";
+import {
+  SettingsField,
+  SettingsPage,
+  SettingsRow,
+  SettingsSection,
+} from "@/components/settings/rows";
+import { Button } from "@/components/vg/button";
 import { AppDataDirectory } from "../AppDataDirectory";
 import { LogDirectory } from "../debug/LogDirectory";
 import { ShowWhatsNewOnUpdate } from "../ShowWhatsNewOnUpdate";
@@ -28,6 +34,7 @@ const openExternal = async (url: string) => {
   }
 };
 
+/* The only page in the app allowed to print a version or a build fact. */
 export const AboutSettings: React.FC = () => {
   const { t } = useTranslation();
   const [version, setVersion] = useState<VersionState>({ kind: "loading" });
@@ -52,96 +59,78 @@ export const AboutSettings: React.FC = () => {
   }, []);
 
   return (
-    <div className="settings-page">
-      <header className="settings-page-header">
-        <h1 className="settings-page-title">{t("settings.about.title")}</h1>
-        <p className="settings-page-description">
-          {t(
-            "settings.about.description",
-            "Which build you are running, where it came from, and where it keeps your files.",
-          )}
-        </p>
-      </header>
-
-      <SettingsGroup
-        title={t("settings.about.updates.title", "Version and updates")}
-      >
+    <SettingsPage title={t("settings.about.title")}>
+      <SettingsSection label={t("settings.about.updates.title")}>
         <UpdateRows version={version} />
-        <ShowWhatsNewOnUpdate grouped />
-      </SettingsGroup>
+        <ShowWhatsNewOnUpdate />
+      </SettingsSection>
 
-      <SettingsGroup
-        title={t("settings.about.source.title", "Source")}
-        description={t(
-          "settings.about.source.description",
-          "Sona is MIT licensed, copyright 2025 CJ Pais, and built on top of Handy.",
-        )}
-      >
-        <SettingContainer
-          grouped
-          title={t("settings.about.source.repository", "Repository")}
-          description={REPOSITORY_URL}
+      <SettingsSection label={t("settings.about.source.title")}>
+        {/* Each row prints its URL once and opens it once. The button used to
+         * repeat the host the URL already names. */}
+        <SettingsRow
+          label={t("settings.about.source.repository")}
+          hint={t("settings.about.source.license")}
         >
+          {/* The scheme is the one part of these two URLs that is identical on
+           * both rows and tells the reader nothing, so only the identifying
+           * part is shown. The button still opens the whole URL, and the
+           * accessible name still carries it.
+           *
+           * A URL is a value, not a label: one step under the 13px mono value
+           * tier, one step over the 11px `Microlabel`. A rem-based `text-xs`
+           * would land it at 10.5px against this app's 14px root, below the
+           * mono labels it sits beside. */}
+          <span className="max-w-[260px] truncate font-mono text-[12px] text-gray-900">
+            {REPOSITORY_URL.replace("https://", "")}
+          </span>
           <Button
-            variant="secondary"
+            variant="outline"
             size="sm"
-            className="gap-1.5"
+            aria-label={`${t("common.open")} ${REPOSITORY_URL}`}
             onClick={() => void openExternal(REPOSITORY_URL)}
           >
-            <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
-            {t("settings.about.source.open", "Open on GitHub")}
+            <ExternalLink aria-hidden="true" />
+            {t("common.open")}
           </Button>
-        </SettingContainer>
-        <SettingContainer
-          grouped
-          title={t("settings.about.source.upstream", "Built on Handy")}
-          description={t(
-            "settings.about.source.upstreamDescription",
-            "Sona is a fork of cjpais/Handy and still tracks its upstream fixes.",
-          )}
-        >
+        </SettingsRow>
+        <SettingsRow label={t("settings.about.source.upstream")}>
+          <span className="max-w-[260px] truncate font-mono text-[12px] text-gray-900">
+            {UPSTREAM_URL.replace("https://", "")}
+          </span>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            className="gap-1.5"
+            aria-label={`${t("common.open")} ${UPSTREAM_URL}`}
             onClick={() => void openExternal(UPSTREAM_URL)}
           >
-            <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
-            {t("settings.about.source.upstreamOpen", "cjpais/Handy")}
+            <ExternalLink aria-hidden="true" />
+            {t("common.open")}
           </Button>
-        </SettingContainer>
-        <SettingContainer
-          grouped
-          title={t("settings.about.sourceCode.title")}
-          description={t("settings.about.sourceCode.description")}
-        >
+        </SettingsRow>
+        <SettingsRow label={t("settings.about.sourceCode.title")}>
           <Button
-            variant="secondary"
+            variant="outline"
             size="sm"
             onClick={() => void openLicenseNotices()}
           >
             {t("settings.about.sourceCode.button")}
           </Button>
-        </SettingContainer>
-      </SettingsGroup>
+        </SettingsRow>
+      </SettingsSection>
 
-      <SettingsGroup title={t("settings.about.files.title", "Files")}>
-        <AppDataDirectory grouped />
-        <LogDirectory grouped />
-      </SettingsGroup>
+      <SettingsSection label={t("settings.about.files.title")}>
+        <AppDataDirectory />
+        <LogDirectory />
+      </SettingsSection>
 
-      <SettingsGroup title={t("settings.about.acknowledgments.title")}>
-        <SettingContainer
-          grouped
-          layout="stacked"
-          title={t("settings.about.acknowledgments.ggml.title")}
-          description={t("settings.about.acknowledgments.ggml.description")}
-        >
-          <p className="text-[13px] leading-5 text-text-secondary">
+      <SettingsSection label={t("settings.about.acknowledgments.title")}>
+        <SettingsField label={t("settings.about.acknowledgments.ggml.title")}>
+          <p className="text-sm text-gray-900">
             {t("settings.about.acknowledgments.ggml.details")}
           </p>
-        </SettingContainer>
-      </SettingsGroup>
-    </div>
+        </SettingsField>
+      </SettingsSection>
+    </SettingsPage>
   );
 };

@@ -30,16 +30,14 @@
     "models": "模型",
     "advanced": "高级",
     "postProcessing": "后处理",
-    "history": "历史记录",
     "debug": "调试",
     "about": "关于",
-    "modes": "Modes",
-    "privacy": "Privacy",
-    "agents": "Agents",
-    "meetings": "Meetings",
-    "navigation": "Main navigation",
-    "overview": "Overview",
-    "settings": "Settings"
+    "modes": "模式",
+    "privacy": "隐私",
+    "agents": "智能体",
+    "meetings": "会议",
+    "navigation": "主导航",
+    "settings": "设置"
   },
   "onboarding": {
     "subtitle": "模型在这台 Mac 上运行，需要在准确度和速度之间取舍",
@@ -154,6 +152,7 @@
     "active": "活跃",
     "switching": "切换中…",
     "noModelsAvailable": "没有可用的模型",
+    "searchPlaceholder": "搜索模型",
     "verifying": "正在验证 {{modelName}}…",
     "verifyingGeneric": "正在验证…",
     "extracting": "正在解压 {{modelName}}…",
@@ -161,7 +160,7 @@
     "extractingGeneric": "解压中…",
     "downloading": "下载中 {{percentage}}%",
     "downloadingMultiple": "正在下载 {{count}} 个模型…",
-    "downloadingGeneric": "Downloading…",
+    "downloadingGeneric": "正在下载…",
     "modelReady": "模型已就绪",
     "loading": "正在加载 {{modelName}}…",
     "loadingGeneric": "加载中…",
@@ -190,12 +189,10 @@
     },
     "models": {
       "title": "转录模型",
-      "description": "将语音转换为文本的模型。不同模型在准确度和速度之间取舍。",
       "deleteConfirm": "删除 {{modelName}}？再次使用需要重新下载。",
       "deleteActiveConfirm": "{{modelName}} 是当前使用的模型。删除后将停止转录，直到您选择其他模型。",
       "deleteTitle": "删除模型",
       "filters": {
-        "allLanguages": "所有语言",
         "streaming": "仅显示支持实时转录的模型",
         "translation": "仅显示支持翻译为英语的模型",
         "allFamilies": "所有系列",
@@ -205,56 +202,50 @@
         "family": "模型系列"
       },
       "noModelsMatch": "没有符合此筛选条件的模型。",
-      "yourModels": "已下载的模型",
-      "availableModels": "可供下载",
-      "searchPlaceholder": "按名称搜索模型",
       "rescan": {
         "label": "重新扫描",
         "tooltip": "重新扫描在 Sona 之外添加到模型文件夹或 Hugging Face 缓存中的模型"
       },
       "cloud": {
-        "title": "Cloud transcription",
-        "description": "Save a provider key to make its cloud engine available in a mode.",
-        "providerDescription": "Credentials stay in your operating system's native secure store.",
+        "title": "云转录",
+        "providerDescription": "凭据保存在操作系统的安全存储中。",
         "providers": {
           "deepgram": "Deepgram Nova-3",
           "elevenLabs": "ElevenLabs Scribe v2"
         },
         "apiKey": {
-          "label": "API key",
-          "description": "A saved key is write-only and never displayed here.",
-          "placeholder": "Paste API key"
+          "placeholder": "粘贴 API 密钥"
         },
         "actions": {
-          "save": "Save key",
-          "saving": "Saving…",
-          "remove": "Remove key",
-          "removing": "Removing…",
-          "verify": "Verify",
-          "verifying": "Verifying…"
+          "save": "保存密钥",
+          "saving": "正在保存…",
+          "remove": "移除密钥",
+          "removing": "正在移除…",
+          "verify": "验证",
+          "verifying": "正在验证…"
         },
         "status": {
-          "checking": "Checking native key store…",
-          "notSaved": "No API key saved.",
-          "saved": "API key saved. It has not been verified.",
-          "verified": "API key verified.",
-          "verifyRequiresConsent": "Review the transfer disclosure in a mode before verifying this key."
+          "checking": "正在检查系统密钥库…",
+          "notSaved": "尚未保存 API 密钥。",
+          "saved": "已保存 API 密钥。尚未验证。",
+          "verified": "API 密钥已验证。",
+          "verifyRequiresConsent": "验证这个密钥之前，请先在某个模式中查看传输说明。"
         },
         "errors": {
-          "not_found": "No API key is saved for this provider.",
-          "unavailable": "The native secure store is unavailable.",
-          "locked": "The native secure store is locked.",
-          "corrupt": "The saved credential cannot be read safely.",
-          "invalid": "The credential was not accepted by the secure store.",
-          "busy": "The secure store is busy. Try again.",
-          "backend": "The credential operation could not be completed.",
-          "not_configured": "Save an API key before verifying it.",
-          "consent_required": "Accept the provider transfer disclosure before verifying.",
-          "authentication": "The provider rejected this API key.",
-          "quota": "The provider rejected verification because the account is over quota.",
-          "network": "The provider could not be reached for verification.",
-          "protocol": "The provider returned an unexpected verification response.",
-          "unknown_provider": "This cloud provider is not available in this build."
+          "not_found": "尚未为该服务商保存 API 密钥。",
+          "unavailable": "系统安全存储不可用。",
+          "locked": "系统安全存储已锁定。",
+          "corrupt": "无法安全地读取已保存的凭据。",
+          "invalid": "安全存储不接受该凭据。",
+          "busy": "安全存储正忙。请重试。",
+          "backend": "无法完成凭据操作。",
+          "not_configured": "请先保存 API 密钥，然后再验证。",
+          "consent_required": "请先同意服务商的传输说明，然后再验证。",
+          "authentication": "服务商拒绝了这个 API 密钥。",
+          "quota": "账户已超出配额，因此服务商拒绝了验证。",
+          "network": "无法连接服务商进行验证。",
+          "protocol": "服务商返回了意外的验证响应。",
+          "unknown_provider": "此云端提供方在该版本中不可用。"
         }
       },
       "actions": {
@@ -262,6 +253,7 @@
         "activateNamed": "使用 {{modelName}}",
         "download": "下载",
         "downloadNamed": "下载 {{modelName}}",
+        "moreFor": "{{modelName}} 更多操作",
         "retryNamed": "重试下载 {{modelName}}"
       },
       "emptyCatalog": "Sona 无法读取模型目录。重新扫描可发现模型文件夹或 Hugging Face 缓存中已有的模型。",
@@ -273,44 +265,33 @@
         "other": "其他模型"
       },
       "familyCount": "{{total}} 个模型",
-      "noModelsMatchHint": "目录中没有同时满足所有筛选条件的模型。",
       "searchByAnything": "按名称、语言或能力搜索",
       "state": {
         "activeInMemory": "已激活，在内存中",
         "downloaded": "已下载",
         "notDownloaded": "未下载"
-      },
-      "summary": {
-        "noActive": "未选择模型",
-        "activeLabel": "当前模型",
-        "onDiskLabel": "已在磁盘"
       }
     },
     "general": {
       "title": "通用",
       "shortcut": {
         "title": "快捷键",
-        "description": "用于录制和改写的键盘快捷键。",
         "loading": "加载快捷键中…",
         "none": "未配置快捷键",
         "notFound": "未找到快捷键",
         "pressKeys": "按下你的按键…",
         "bindings": {
           "transcribe": {
-            "name": "转录快捷键",
-            "description": "用于录制和转录语音的键盘快捷键。"
+            "name": "转录快捷键"
           },
           "cancel": {
-            "name": "取消快捷键",
-            "description": "用于取消当前录制的键盘快捷键。"
+            "name": "取消快捷键"
           },
           "transcribe_with_post_process": {
-            "name": "后处理快捷键",
-            "description": "可选快捷键，始终对转录文本应用 AI 清理。"
+            "name": "后处理快捷键"
           },
           "command": {
-            "name": "命令快捷键",
-            "description": "按照口述指令改写所选文本的键盘快捷键。"
+            "name": "命令快捷键"
           }
         },
         "errors": {
@@ -320,22 +301,18 @@
         },
         "holdHint": "轻按切换，长按说话。适用于任何快捷键。",
         "recordAction": "为 {{binding}} 录制新的快捷键",
-        "recordHint": "点击开始录制",
         "unset": "未设置"
       },
       "language": {
         "title": "语言",
-        "description": "用于语音识别的语言。自动会检测语言；指定语言可以提高准确度。",
         "searchPlaceholder": "搜索语言",
         "noResults": "未找到语言",
         "auto": "自动"
       },
       "pushToTalk": {
-        "label": "按住说话",
-        "description": "按住录制，松开停止"
+        "label": "按住说话"
       },
       "appearance": {
-        "description": "界面语言和配色方案。两者都会立即生效。",
         "title": "外观",
         "material": {
           "title": "材质",
@@ -346,7 +323,6 @@
           }
         }
       },
-      "description": "你按下的按键、Sona 监听的麦克风，以及应用的外观。",
       "commandMode": {
         "label": "语音命令模式",
         "description": "按住命令快捷键，说出所选文本要如何修改。"
@@ -355,36 +331,27 @@
     "sound": {
       "title": "声音",
       "microphone": {
-        "title": "麦克风",
-        "description": "Sona 录音使用的麦克风。",
-        "placeholder": "选择麦克风",
-        "loading": "加载中…"
+        "title": "麦克风"
       },
       "channel": {
         "title": "输入通道",
-        "description": "当接口有多个输入时，要录制的输入通道。",
         "average": "所有通道的平均值",
         "channel": "通道 {{n}}"
       },
       "audioFeedback": {
-        "label": "音频反馈",
-        "description": "录制开始和停止时播放声音。"
+        "label": "音频反馈"
       },
       "outputDevice": {
         "title": "输出设备",
-        "description": "反馈声音的播放位置。",
-        "placeholder": "选择输出设备",
-        "loading": "加载中…"
+        "description": "反馈声音的播放位置。"
       },
       "volume": {
-        "title": "音量",
-        "description": "反馈声音的音量。"
+        "title": "音量"
       }
     },
     "advanced": {
       "englishSpelling": {
         "label": "英语拼写",
-        "description": "保留语音识别结果的拼写，或将常见的美式拼写转换为英式拼写。",
         "values": {
           "as_spoken": "按原样",
           "british": "英式"
@@ -398,8 +365,7 @@
         "experimental": "实验性"
       },
       "experimentalToggle": {
-        "label": "实验性功能",
-        "description": "显示仍在开发中的选项。"
+        "label": "实验性功能"
       },
       "lazyStreamClose": {
         "label": "在转录之间保持麦克风开启",
@@ -407,8 +373,7 @@
       },
       "acceleration": {
         "transcribe": {
-          "title": "Whisper 加速",
-          "description": "Whisper 模型的硬件加速。自动模式在可用时使用 GPU（macOS 上使用 Metal，Windows/Linux 上使用 Vulkan）。"
+          "title": "Whisper 加速"
         },
         "ort": {
           "title": "ONNX 加速",
@@ -423,17 +388,15 @@
         "description": "启动到系统托盘而不打开窗口。"
       },
       "autostart": {
-        "label": "开机启动",
-        "description": "登录时启动 Sona。"
+        "label": "开机启动"
       },
       "showTrayIcon": {
-        "label": "显示托盘图标",
-        "description": "在系统托盘中显示 Sona 图标。"
+        "label": "显示托盘图标"
       },
       "overlay": {
         "style": {
           "title": "悬浮窗",
-          "description": "Choose the recording overlay: None hides it, Minimal shows a compact pill, Live shows transcription in real time while a streaming local model or cloud mode is active. On Linux 'None' is recommended.",
+          "description": "选择录音悬浮窗：“无”会隐藏它，“精简”会显示一个紧凑的胶囊，“实时”会在支持流式的本地模型或云模式启用期间实时显示转录。在 Linux 上建议选择“无”。",
           "options": {
             "none": "无",
             "minimal": "精简",
@@ -442,7 +405,6 @@
         },
         "position": {
           "title": "悬浮窗位置",
-          "description": "在录制和转录期间显示可视反馈悬浮窗。在 Linux 上建议选择「无」。",
           "options": {
             "bottom": "底部",
             "top": "顶部"
@@ -489,12 +451,10 @@
         }
       },
       "translateToEnglish": {
-        "label": "翻译为英语",
-        "description": "在转录时将其他语言的语音翻译为英语。"
+        "label": "翻译为英语"
       },
       "modelUnload": {
         "title": "卸载模型",
-        "description": "模型闲置达到该时长后释放 GPU 和 CPU 内存。",
         "options": {
           "never": "从不",
           "immediately": "立即",
@@ -508,7 +468,6 @@
       },
       "customWords": {
         "title": "词汇",
-        "description": "将说出的短语更正为精确的书面形式。Whisper 将书面形式用作提示；其他模型使用确定性更正。",
         "spoken": "口述短语",
         "written": "书面文本",
         "spokenPlaceholder": "说了什么",
@@ -542,26 +501,21 @@
           "unsavedWarning": "您有未保存的词汇更改。应用此导入将替换它们。",
           "back": "返回",
           "continue": "继续",
-          "replaceSummary": "应用后，将用此文件中的 {{importedCount}} 对替换已保存的 {{savedCount}} 对。",
-          "stepConfirm": "第 2 步，共 2 步：确认替换",
-          "stepReview": "第 1 步，共 2 步：文件内容"
+          "replaceSummary": "应用后，将用此文件中的 {{importedCount}} 对替换已保存的 {{savedCount}} 对。"
         },
-        "actions": "Vocabulary actions",
+        "actions": "词汇操作",
         "audioImport": {
           "errors": {
             "start": "无法开始导入音频。请重试。"
           },
           "failure": {
-            "history": "Some recordings could not be imported into the vocabulary."
+            "history": "部分录音无法导入词汇。"
           }
         },
         "empty": {
-          "description": "添加一对词，例如 open ai 和 OpenAI，Sona 每次听到该短语都会写出准确的形式。",
-          "title": "暂无词汇规则"
+          "description": "添加一对词，例如 open ai 和 OpenAI，Sona 每次听到该短语都会写出准确的形式。"
         },
-        "sources": "你在资料库转录中保存的更正会出现在此列表。仅用于单个模式的规则存放在该模式自己的词汇中。",
-        "unsaved": "有未保存的更改",
-        "csvLabel": "CSV"
+        "sources": "你在资料库转录中保存的更正会出现在此列表。仅用于单个模式的规则存放在该模式自己的词汇中。"
       },
       "voiceActivityDetection": {
         "title": "语音活动检测",
@@ -575,8 +529,6 @@
         "enabledLabel": "启用表情符号替换",
         "enabledDescription": "仅在词汇校正后替换完全匹配的口述词元。",
         "title": "表情符号替换",
-        "description": "将完全匹配的口述短语映射为表情符号文本。不使用模糊匹配。",
-        "offState": "表情符号替换已关闭。Sona 不会针对代码或其他应用自动启用它。",
         "spoken": "口述短语",
         "written": "表情符号文本",
         "spokenPlaceholder": "笑脸",
@@ -593,53 +545,39 @@
           "incompleteRow": "保存前请补全或删除每一行。"
         },
         "empty": {
-          "description": "将一个准确的口述词（例如 smiley face）映射到你想写入的表情符号。",
-          "title": "暂无表情符号替换"
+          "description": "将一个准确的口述词（例如 smiley face）映射到你想写入的表情符号。"
         }
       },
-      "description": "Startup, processing, and experimental behavior.",
       "disclosures": {
         "launch": {
-          "title": "Launch",
-          "description": "How Sona starts and what it shows."
+          "title": "启动"
         },
         "processing": {
-          "title": "Processing",
-          "description": "Engine and model behavior while transcribing."
-        },
-        "experimental": {
-          "description": "Unstable options that can change without notice."
+          "title": "处理"
         }
       },
       "snippets": {
         "add": "添加片段",
         "confirmDelete": {
           "description": "该触发词在以后的转录中不再展开。已写入的文本不变。",
-          "body": "{{trigger}} 当前展开为 {{expansion}}。",
           "title": "删除 {{trigger}}？"
         },
-        "description": "Sona 会将短触发词展开为更长的文本。此处的更改只影响以后的转录，不会影响已写入的文本。",
         "empty": {
-          "action": "写下你的第一个片段",
-          "description": "添加一个触发词，例如 omw，此后每次你说它时 Sona 都会写出 on my way。",
-          "title": "暂无片段"
+          "description": "添加一个触发词，例如 omw，此后每次你说它时 Sona 都会写出 on my way。"
         },
-        "enabledDescription": "在每份转录中替换片段触发词，紧随词汇更正之后执行。",
         "enabledLabel": "启用文本展开",
         "errors": {
           "duplicate": "另一个片段已使用此触发词。",
           "incomplete": "请同时输入触发词和展开内容。"
         },
         "expansion": "展开内容",
-        "expansionPlaceholder": "on my way",
+        "expansionPlaceholder": "在路上了",
         "loadError": "无法加载片段。",
         "loading": "正在加载片段",
         "matching": "触发词按整词匹配且不区分大小写。当两个触发词匹配同一位置时，较长者优先，展开在词汇更正之后立即执行。",
-        "offState": "文本展开已关闭。片段仍会保留，重新开启后立即生效。",
         "title": "文本展开",
         "trigger": "触发词",
         "triggerPlaceholder": "omw",
-        "unsaved": "按 Enter 或“保存”以保留此更改。",
         "enableRow": "启用 {{trigger}}",
         "remove": "删除 {{trigger}}",
         "saveRow": "保存 {{trigger}}"
@@ -651,62 +589,41 @@
       }
     },
     "postProcessing": {
-      "hotkey": {
-        "title": "快捷键"
-      },
       "api": {
         "title": "API（兼容 OpenAI）",
         "provider": {
-          "title": "提供商",
-          "description": "选择一个兼容 OpenAI 的提供商。"
+          "title": "提供商"
         },
         "appleIntelligence": {
           "unavailable": "Apple Intelligence 在此设备上不可用。需要运行 macOS Tahoe（26.0）或更高版本的 Apple Silicon Mac，并在系统设置中启用 Apple Intelligence。"
         },
         "baseUrl": {
           "title": "基础 URL",
-          "description": "所选提供商的 API 基础 URL。仅自定义提供商可编辑。",
           "placeholder": "https://api.openai.com/v1"
         },
         "apiKey": {
           "title": "API 密钥",
-          "description": "所选提供商的 API 密钥。",
           "placeholder": "sk-..."
         },
         "model": {
           "title": "模型",
           "descriptionCustom": "提供自定义端点期望的模型标识符。",
-          "descriptionDefault": "选择所选提供商提供的模型。",
           "placeholderWithOptions": "搜索或选择模型",
           "placeholderNoOptions": "输入模型名称",
           "refreshModels": "刷新模型"
         }
       },
       "prompts": {
-        "title": "提示词",
-        "selectedPrompt": {
-          "title": "已选提示词",
-          "description": "选择用于优化转录的模板或创建新模板。在提示词文本中使用 ${output} 来引用捕获的转录。"
-        },
-        "noPrompts": "没有可用的提示词",
-        "selectPrompt": "选择提示词",
         "createNew": "新建提示词",
         "promptLabel": "提示词名称",
         "promptLabelPlaceholder": "为此提示词命名",
         "promptInstructions": "指令",
         "promptInstructionsPlaceholder": "改进以下文本的语法和清晰度: ${output}",
-        "promptTip": "在需要插入转录文本的位置写上 <code>${output}</code>。",
         "updatePrompt": "更新提示词",
         "deletePrompt": "删除提示词",
         "createPrompt": "创建提示词",
-        "cancel": "取消",
-        "selectToEdit": "选择提示词以进行编辑。",
-        "createFirst": "创建提示词以对转录文本进行后处理。",
         "empty": {
           "description": "提示词告诉模型如何处理转录，例如：将以下内容改写为一条简短消息，保留所有事实：${output}"
-        },
-        "errors": {
-          "incomplete": "保存前请为提示词填写名称和说明。"
         },
         "inUse": "使用中",
         "lastPrompt": "Sona 至少保留一个提示词，因此无法删除此项。请先创建另一个。",
@@ -724,33 +641,26 @@
         "useNamed": "使用 {{name}}"
       },
       "remoteConsent": {
-        "title": "Remote text transfer",
-        "description": "Meeting and transcription text may be sent to {{provider}} at {{endpoint}} for post-processing.",
-        "acknowledge": "I acknowledge that text may be sent to this endpoint.",
-        "accept": "Allow text transfer",
-        "cancel": "Cancel",
-        "endpointChanged": "The endpoint changed. Review and acknowledge the new endpoint before text can leave this Mac.",
-        "invalidDestination": "This provider destination is invalid or local-only, so no remote consent can be recorded.",
-        "saveFailed": "Sona could not save this acknowledgement.",
-        "current": "Text transfer is acknowledged for {{endpoint}}.",
-        "review": "Review acknowledgement",
-        "endpointLabel": "Canonical endpoint",
-        "destinationPinned": "Sona pins this exact endpoint and origin for the acknowledgement."
+        "title": "远程文本传输",
+        "description": "会议和转录文本可能会被发送到 {{endpoint}} 上的 {{provider}} 进行后处理。",
+        "acknowledge": "我了解文本可能会被发送到此端点。",
+        "accept": "允许文本传输",
+        "cancel": "取消",
+        "endpointChanged": "端点已更改。在文本离开这台 Mac 之前，请查看并确认新端点。",
+        "invalidDestination": "此服务商目标无效或仅限本地，因此无法记录远程同意。",
+        "saveFailed": "Sona 无法保存此确认。",
+        "current": "已确认向 {{endpoint}} 传输文本。",
+        "review": "查看确认内容",
+        "endpointLabel": "规范端点",
+        "destinationPinned": "Sona 会为该确认锁定这个确切的端点和来源。"
       }
     },
     "history": {
       "stats": {
-        "title": "累计使用量",
-        "loading": "正在加载使用量…",
         "unavailable": "无法获取使用统计信息。",
         "entries": "录音",
         "duration": "录音时长",
-        "words": "词",
-        "source": {
-          "microphone": "麦克风",
-          "file": "文件",
-          "legacy": "较早的录音"
-        }
+        "words": "词"
       },
       "title": "历史记录",
       "openFolder": "打开录音文件夹",
@@ -764,7 +674,6 @@
       "retranscribe": "重新转录",
       "retranscribeError": "无法重新转写。请重试。",
       "transcribing": "转录中…",
-      "transcriptionFailed": "转录失败。",
       "search": "搜索历史",
       "searchPlaceholder": "搜索转录",
       "noResults": "没有转录与“{{query}}”匹配。",
@@ -778,75 +687,75 @@
         "raw": "原始"
       },
       "receipts": {
-        "showDetails": "Show run details",
-        "hideDetails": "Hide run details",
-        "loading": "Loading run receipts…",
-        "unavailable": "Run receipt data is unavailable for this entry.",
-        "none": "No run receipts were recorded for this entry.",
+        "showDetails": "显示运行详情",
+        "hideDetails": "隐藏运行详情",
+        "loading": "正在加载运行记录…",
+        "unavailable": "此条目无运行记录数据。",
+        "none": "此条目未记录任何运行记录。",
         "duration": "{{duration}}",
-        "durationLabel": "Duration",
-        "words": "{{count}} words",
-        "wordsLabel": "Words",
+        "durationLabel": "时长",
+        "words": "{{count}} 词",
+        "wordsLabel": "词数",
         "engine": {
-          "local": "Local",
-          "cloud": "Cloud",
-          "local_fallback": "Local fallback"
+          "local": "本地",
+          "cloud": "云端",
+          "local_fallback": "本地回退"
         },
         "source": {
-          "microphone": "Microphone",
-          "file": "File import",
-          "legacy": "Legacy"
+          "microphone": "麦克风",
+          "file": "文件导入",
+          "legacy": "旧版"
         },
-        "presetLabel": "Preset",
+        "presetLabel": "预设",
         "preset": {
-          "minimalist_cleanup": "Minimal cleanup",
-          "application_context": "Application context",
-          "email": "Email",
-          "meeting": "Meeting",
-          "notes": "Notes",
-          "generic": "General"
+          "minimalist_cleanup": "最简清理",
+          "application_context": "应用上下文",
+          "email": "邮件",
+          "meeting": "会议",
+          "notes": "笔记",
+          "generic": "通用"
         },
-        "provider": "AI route",
-        "contextPolicy": "Context level",
+        "provider": "AI 路由",
+        "contextPolicy": "上下文级别",
         "contextPolicyValues": {
-          "none": "Off",
-          "target": "App",
-          "target_and_selection": "Selection",
-          "full": "Full"
+          "none": "关闭",
+          "target": "应用",
+          "target_and_selection": "选中内容",
+          "full": "完整"
         },
-        "contextSources": "Context sources",
+        "contextSources": "上下文来源",
         "contextSource": {
-          "target": "App",
-          "focused_field": "Focused field",
-          "selected_text": "Selected text",
-          "browser_url": "Browser URL",
-          "clipboard": "Recent clipboard"
+          "target": "应用",
+          "focused_field": "聚焦字段",
+          "selected_text": "选中文本",
+          "browser_url": "浏览器网址",
+          "clipboard": "最近剪贴板"
         },
         "contextStatus": {
-          "not_requested": "Not requested",
-          "captured": "Captured",
-          "empty": "Empty",
-          "unsupported": "Unsupported",
-          "permission_denied": "Permission denied",
-          "disabled": "Disabled",
-          "disabled_by_ceiling": "Blocked by ceiling",
-          "secure_field": "Secure field",
-          "stale": "Stale",
-          "failed": "Unavailable"
+          "not_requested": "未请求",
+          "captured": "已捕获",
+          "empty": "为空",
+          "unsupported": "不支持",
+          "permission_denied": "权限被拒绝",
+          "disabled": "已停用",
+          "disabled_by_ceiling": "受上限阻止",
+          "secure_field": "安全字段",
+          "stale": "已过期",
+          "failed": "不可用"
         },
-        "deliveryAttempts": "Delivery attempts",
-        "noDeliveryAttempts": "No delivery attempt was recorded.",
+        "deliveryAttempts": "投放尝试",
+        "noDeliveryAttempts": "未记录任何投放尝试。",
         "deliveryMethod": {
-          "none": "No delivery",
-          "accessibility_insertion": "Accessibility insertion",
-          "clipboard_paste": "Clipboard paste",
-          "direct_typing": "Direct typing",
-          "external_script": "External script"
+          "none": "未投放",
+          "accessibility_insertion": "辅助功能插入",
+          "clipboard_paste": "剪贴板粘贴",
+          "direct_typing": "直接键入",
+          "external_script": "外部脚本"
         },
         "deliveryOutcome": {
-          "delivered": "Delivered",
-          "definitely_not_dispatched": "Not dispatched",
-          "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+          "delivered": "已送达",
+          "definitely_not_dispatched": "未发送",
+          "dispatched_but_unconfirmed": "已发送，未确认"
         },
         "modeLabel": "模式",
         "revisionLabel": "修订号",
@@ -868,19 +777,19 @@
         }
       },
       "correction": {
-        "add": "Add correction",
-        "title": "Add vocabulary correction",
-        "description": "Enter the exact spoken span and the text Sona should write. Nothing is learned from typing or background activity.",
-        "spoken": "Spoken span",
-        "written": "Written replacement",
-        "spokenPlaceholder": "What Sona heard",
-        "writtenPlaceholder": "What Sona should write",
+        "add": "添加更正",
+        "title": "添加词汇更正",
+        "description": "输入准确的口述内容以及 Sona 应写出的文本。不会从键入或后台活动中学习任何内容。",
+        "spoken": "口述内容",
+        "written": "替换文本",
+        "spokenPlaceholder": "Sona 听到的内容",
+        "writtenPlaceholder": "Sona 应写出的内容",
         "preview": "{{spoken}} → {{written}}",
-        "scope": "Save to",
-        "currentMode": "Current mode only",
-        "global": "All modes",
-        "save": "Save correction",
-        "saved": "Vocabulary correction saved",
+        "scope": "保存到",
+        "currentMode": "仅当前模式",
+        "global": "所有模式",
+        "save": "保存更正",
+        "saved": "词汇更正已保存",
         "saveError": "无法保存校正。请重试。"
       },
       "audioImport": {
@@ -914,22 +823,6 @@
         },
         "running": "正在转录 {{count}} 个文件"
       },
-      "trends": {
-        "title": "History trends",
-        "description": "Recordings and words over the selected range.",
-        "loading": "Loading history trends…",
-        "error": "Couldn't load history trends.",
-        "metricLabel": "Metric",
-        "activeDays": "{{active}} of {{total}} days active",
-        "streak_one": "{{count}} day streak",
-        "streak_other": "{{count}} day streak",
-        "metrics": {
-          "recordings": "Recordings",
-          "duration": "Captured time",
-          "words": "Words"
-        },
-        "streak": "{{count}} day streak"
-      },
       "clearSearch": "清除搜索",
       "emptyHint": "你也可以转录现有录音：WAV、MP3、M4A、AAC、FLAC、OGG、MOV、MP4 或 M4V，最长 30 分钟。",
       "loadMore": "加载更多",
@@ -962,32 +855,26 @@
     "debug": {
       "title": "调试",
       "logDirectory": {
-        "title": "日志目录",
-        "description": "日志文件的写入位置。"
+        "title": "日志目录"
       },
       "logLevel": {
-        "title": "日志级别",
-        "description": "日志记录的详细程度。"
+        "title": "日志级别"
       },
       "liveLogs": {
         "title": "实时日志",
-        "description": "实时输出产生的日志行。仅显示此面板打开期间产生的日志行，按上方设置的日志级别显示。",
-        "live": "实时",
-        "paused": "已暂停",
+        "description": "仅显示此面板打开期间产生的日志行，按上方设置的日志级别显示。",
         "pause": "暂停",
         "resume": "继续",
         "copied": "已复制",
         "lineCount": "{{count}} 行",
-        "empty": "正在等待日志。应用产生日志行时将显示在此处。"
+        "empty": "暂无日志。"
       },
       "soundTheme": {
         "label": "声音主题",
-        "description": "录制开始和停止时播放哪些声音。",
-        "preview": "Preview the start and stop sounds"
+        "preview": "试听开始和停止提示音"
       },
       "wordCorrectionThreshold": {
-        "title": "词汇修正阈值",
-        "description": "自定义词汇修正的灵敏度"
+        "title": "词汇修正阈值"
       },
       "historyLimit": {
         "title": "历史记录上限",
@@ -1005,8 +892,7 @@
         "placeholder": "选择保留期限"
       },
       "alwaysOnMicrophone": {
-        "label": "麦克风常开",
-        "description": "保持麦克风开启，使录制启动更快。"
+        "label": "麦克风常开"
       },
       "clamshellMicrophone": {
         "title": "合盖麦克风",
@@ -1017,8 +903,7 @@
         "description": "转录后使用语言模型改写转录文本。"
       },
       "muteWhileRecording": {
-        "label": "录制时静音",
-        "description": "录制期间静音系统音频"
+        "label": "录制时静音"
       },
       "appendTrailingSpace": {
         "label": "追加尾部空格",
@@ -1026,7 +911,6 @@
       },
       "keyboardImplementation": {
         "title": "键盘实现",
-        "description": "选择键盘快捷键的后端。",
         "bindingsReset": "键盘快捷键不兼容，已重置为默认值"
       },
       "paths": {
@@ -1073,11 +957,9 @@
       "whatsNewPreview": {
         "title": "预览新功能",
         "description": "打开最新内置发行说明，且不标记为已查看",
-        "button": "预览",
         "noNotes": "未找到内置发行说明",
         "error": "无法预览发布说明。请重试。"
       },
-      "description": "检测工具和不受支持的选项。因调试模式已开启而可见。",
       "groups": {
         "capture": "录制",
         "delivery": "文本输出",
@@ -1089,17 +971,14 @@
       "title": "关于",
       "version": {
         "title": "版本",
-        "description": "当前运行的版本。",
         "unavailable": "不可用"
       },
       "appDataDirectory": {
-        "title": "应用数据目录",
-        "description": "Sona 存储数据的位置。"
+        "title": "应用数据目录"
       },
       "sourceCode": {
-        "title": "Open-source licenses",
-        "description": "View the bundled license and notice files.",
-        "button": "Open licenses"
+        "title": "开源许可证",
+        "button": "打开许可证"
       },
       "supportDevelopment": {
         "title": "支持开发",
@@ -1110,26 +989,20 @@
         "title": "致谢",
         "ggml": {
           "title": "ggml",
-          "description": "用于设备端机器学习推理的张量库",
           "details": "Sona 的本地语音转文字基于 transcribe.cpp 和 ggml。感谢 Georgi Gerganov 和贡献者们。"
         }
       },
       "whatsNewUpdates": {
-        "label": "显示新功能",
-        "description": "Sona 更新后显示发行说明"
+        "label": "显示新功能"
       },
-      "description": "你正在运行的版本、它的来源以及文件的存放位置。",
       "files": {
         "title": "文件"
       },
       "source": {
-        "description": "Sona 采用 MIT 许可证，版权归 CJ Pais 所有（2025），基于 Handy 构建。",
-        "open": "在 GitHub 上打开",
         "repository": "仓库",
         "title": "源代码",
         "upstream": "基于 Handy 构建",
-        "upstreamDescription": "Sona 是 cjpais/Handy 的分支，并持续跟进其上游修复。",
-        "upstreamOpen": "cjpais/Handy"
+        "license": "采用 MIT 许可证。版权归 CJ Pais 所有（2025）。"
       },
       "updates": {
         "autoDescription": "向 GitHub 查询最新发布。Sona 从不自行安装任何内容。",
@@ -1137,34 +1010,29 @@
         "check": "立即检查",
         "checking": "正在检查…",
         "disabled": "自动检查已关闭，因此 Sona 未联系 GitHub。",
-        "enable": "开启检查",
         "failed": "更新检查无法运行。",
-        "manualDescription": "将此版本与最新发布的版本进行比较。",
         "manualTitle": "手动检查",
         "preferenceError": "无法保存更新偏好设置。",
         "title": "版本与更新",
         "viewRelease": "查看发布",
         "available": "Sona {{version}} 已可用。",
-        "published": "发布于 {{date}}",
-        "upToDate": "Sona {{version}} 已是最新版本。"
+        "upToDate": "已是最新版本。"
       }
     },
     "modes": {
       "activation": {
-        "title": "App activation",
+        "title": "按应用激活",
         "capture": {
-          "label": "Activate in app",
-          "description": "Capture the app currently in front and select this mode when you dictate there.",
-          "action": "Capture current app",
-          "capturing": "Capturing…"
+          "label": "在应用中激活",
+          "action": "捕获当前应用",
+          "capturing": "正在捕获…"
         },
-        "empty": "No app activates this mode.",
-        "remove": "Remove",
+        "empty": "没有应用会激活此模式。",
+        "remove": "移除",
         "website": {
           "title": "按网站激活",
           "scope": {
             "label": "网站范围",
-            "description": "精确匹配一个主机，或包含其子域名。",
             "values": {
               "exact": "精确主机",
               "suffix": "主机和子域名"
@@ -1183,222 +1051,195 @@
         "removeTarget": "移除 {{target}}",
         "unsupported": "按应用和网站激活仅在 macOS 上可用。"
       },
-      "title": "Modes",
-      "description": "Choose what each dictation run recognizes, rewrites, and delivers.",
-      "listTitle": "Your modes",
-      "loading": "Loading modes…",
-      "loadError": "Modes could not be loaded.",
-      "retry": "Retry",
-      "new": "New mode",
-      "active": "Active",
-      "default": "Default",
-      "defaultProtected": "The default mode cannot be deleted.",
-      "activate": "Activate",
-      "edit": "Edit",
-      "duplicate": "Duplicate",
-      "delete": "Delete",
-      "moveUp": "Move up",
-      "moveDown": "Move down",
-      "back": "Back to modes",
-      "save": "Save changes",
-      "saving": "Saving…",
-      "changesNextRun": "Changes apply to your next dictation.",
-      "copySuffix": "copy",
-      "deleteTitle": "Delete mode",
-      "deleteDescription": "Delete {{mode}}?",
-      "deleteBody": "Its mode-only shortcuts will also be removed. This cannot be undone.",
+      "title": "模式",
+      "listTitle": "你的模式",
+      "loading": "正在加载模式…",
+      "loadError": "无法加载模式。",
+      "retry": "重试",
+      "new": "新建模式",
+      "active": "使用中",
+      "defaultProtected": "默认模式无法删除。",
+      "activate": "激活",
+      "duplicate": "复制",
+      "delete": "删除",
+      "moveUp": "上移",
+      "moveDown": "下移",
+      "save": "保存更改",
+      "saving": "正在保存…",
+      "changesNextRun": "更改将在你下次语音输入时生效。",
+      "copySuffix": "副本",
+      "deleteTitle": "删除模式",
+      "deleteDescription": "删除 {{mode}}？",
+      "deleteBody": "仅属于该模式的快捷键也会一并移除。此操作无法撤销。",
       "identity": {
-        "title": "Identity",
         "name": {
-          "label": "Mode name",
-          "description": "A label shown in mode selection and history."
+          "label": "模式名称"
         }
       },
       "writing": {
-        "title": "Writing",
         "enabled": {
-          "label": "AI cleanup",
-          "description": "Use the selected provider to rewrite the transcript for this mode."
+          "label": "AI 清理"
         },
         "preset": {
-          "label": "Preset",
-          "description": "Choose behavior by name. Preset instructions are not shown or exported.",
+          "label": "预设",
+          "description": "按名称选择行为。预设的指令不会显示，也不会导出。",
           "values": {
-            "minimalist_cleanup": "Minimal cleanup",
-            "application_context": "Application context",
-            "email": "Email",
-            "meeting": "Meeting",
-            "notes": "Notes",
-            "generic": "General"
+            "minimalist_cleanup": "最简清理",
+            "application_context": "应用上下文",
+            "email": "邮件",
+            "meeting": "会议",
+            "notes": "笔记",
+            "generic": "通用"
           }
         },
         "tone": {
-          "label": "Tone",
-          "description": "Apply this tone when AI cleanup is enabled.",
+          "label": "语气",
           "values": {
-            "casual": "Casual",
-            "semi_casual": "Semi-casual",
-            "balanced": "Balanced",
-            "semi_formal": "Semi-formal",
-            "formal": "Formal"
+            "casual": "随意",
+            "semi_casual": "略随意",
+            "balanced": "均衡",
+            "semi_formal": "略正式",
+            "formal": "正式"
           }
         },
         "provider": {
-          "label": "AI provider",
-          "description": "The configured provider used for this mode.",
-          "empty": "No provider configured",
+          "label": "AI 提供方",
+          "empty": "未配置提供方",
           "noneConfigured": "尚未配置 AI 提供方。请先在设置中添加一个，此模式才能改写。",
           "unknownSelected": "此模式指定的提供方未在此安装中配置。"
         },
         "model": {
-          "label": "AI model",
-          "description": "The provider model identifier for this mode."
+          "label": "AI 模型"
         },
         "disabledNote": "开启 AI 清理后即可使用下方的预设、语气、提供方和模型。"
       },
       "recognition": {
         "literalPunctuation": {
-          "label": "Literal punctuation",
-          "description": "Convert spoken punctuation such as comma and question mark before vocabulary corrections."
+          "label": "字面标点",
+          "description": "在词汇更正之前，转换说出的标点，例如逗号和问号。"
         },
-        "title": "Recognition",
-        "noModelSelected": "No model selected",
         "model": {
-          "label": "Transcription model",
-          "description": "Only downloaded local models are available here.",
+          "label": "转录模型",
           "inheritGlobal": "默认：全局模型",
           "inheritGlobalNamed": "默认：全局模型（{{name}}）"
         },
         "language": {
-          "label": "Language",
-          "description": "Set a recognition language or let the model detect it.",
-          "auto": "Auto detect",
-          "cloudDescription": "Choose the language sent with this cloud request."
+          "label": "语言",
+          "auto": "自动检测",
+          "cloudDescription": "选择随此云端请求发送的语言。"
         },
         "translate": {
-          "label": "Translate to English",
-          "description": "Request English output when the selected model supports translation."
+          "label": "翻译成英文"
         },
         "vad": {
-          "label": "Voice activity detection",
-          "description": "Skip silent audio while recording."
+          "label": "语音活动检测"
         },
         "fillerRemoval": {
-          "label": "Remove filler words",
-          "description": "Remove configured filler words from this mode’s transcript."
+          "label": "移除填充词"
         },
         "vocabulary": {
-          "label": "Mode vocabulary",
-          "description": "Pairs here override the global vocabulary only for this mode.",
-          "spoken": "Spoken phrase",
-          "written": "Written text",
-          "spokenPlaceholder": "What was said",
-          "writtenPlaceholder": "What to write",
-          "add": "Add pair",
-          "remove": "Remove {{spoken}}",
-          "incomplete": "Complete or remove each vocabulary pair before saving this mode.",
+          "label": "模式词汇",
+          "spoken": "口述短语",
+          "written": "书写文本",
+          "spokenPlaceholder": "说出的内容",
+          "writtenPlaceholder": "应写成的内容",
+          "add": "添加词对",
+          "remove": "移除 {{spoken}}",
+          "incomplete": "保存此模式前，请补全或移除每个词汇对。",
           "empty": "此模式没有自己的词汇。全局词汇仍会生效。"
         },
         "engine": {
-          "label": "Transcription engine",
-          "description": "Use a local model or an eligible cloud provider.",
-          "local": "Local",
-          "cloud": "Cloud",
-          "unavailable": "{{provider}} is unavailable"
+          "label": "转录引擎",
+          "local": "本地",
+          "cloud": "云端",
+          "unavailable": "{{provider}} 不可用"
         },
         "cloud": {
-          "setupRequired": "{{provider}} needs a saved native API key and current transfer consent before its cloud controls are available.",
+          "setupRequired": "{{provider}} 需要已保存的自有 API 密钥和当前的传输同意，其云端选项才可用。",
           "fallback": {
-            "label": "Use local fallback",
-            "description": "If the cloud provider cannot return a trustworthy final, transcribe the captured audio with a local model.",
-            "useModeModel": "Use this mode's local model",
+            "label": "使用本地回退",
+            "description": "如果云端提供方无法返回可信的最终结果，将用本地模型转录已采集的音频。",
+            "useModeModel": "使用此模式的本地模型",
             "model": {
-              "label": "Fallback model",
-              "description": "Choose a downloaded local model, or use this mode's local model.",
-              "required": "Choose a fallback model or set this mode's local model before saving."
+              "label": "回退模型",
+              "required": "保存前请选择回退模型，或设置此模式的本地模型。"
             }
           },
           "keyterms": {
-            "label": "Cloud keyterms",
-            "description": "One term per line. These terms are sent with this cloud request.",
-            "placeholder": "Product name\nPerson name"
+            "label": "云端关键词",
+            "description": "每行一个词。这些词会随此云端请求一起发送。",
+            "placeholder": "产品名称\n人名"
           },
           "timestamps": {
-            "label": "Word timestamps",
-            "description": "Required for cloud transcription and cannot be disabled."
+            "label": "逐词时间戳",
+            "description": "云端转录必需，无法关闭。"
           },
           "consent": {
-            "title": "Use {{provider}} for cloud transcription",
-            "description": "Review how this mode sends audio before enabling {{provider}}.",
-            "intro": "These acknowledgements are fixed for this provider. Declining keeps this mode on its current local engine.",
+            "title": "使用 {{provider}} 进行云端转录",
+            "description": "启用 {{provider}} 前，请查看此模式如何发送音频。",
+            "intro": "这些确认项对该提供方是固定的。若拒绝，此模式将保持当前的本地引擎。",
             "audioTransfer": {
-              "label": "Audio transfer",
-              "description": "Recorded audio from this mode is sent directly to {{provider}} for transcription."
+              "label": "音频传输",
+              "description": "此模式录制的音频会直接发送给 {{provider}} 进行转录。"
             },
             "privacy": {
-              "label": "Privacy contract",
-              "description": "The provider receives this mode's audio, selected language, and keyterms. Application context and native credentials stay on this device."
+              "label": "隐私约定",
+              "description": "提供方会收到此模式的音频、所选语言和关键词。应用上下文和自有凭据保留在本设备上。"
             },
             "localFallback": {
-              "label": "Local fallback",
-              "description": "If the cloud provider cannot return a trustworthy final, Sona can use your selected local model."
+              "label": "本地回退",
+              "description": "如果云端提供方无法返回可信的最终结果，Sona 可以使用你选择的本地模型。"
             },
-            "decline": "Keep local",
-            "accept": "Accept and use cloud",
-            "accepting": "Accepting…",
+            "decline": "保持本地",
+            "accept": "同意并使用云端",
+            "accepting": "正在同意…",
             "errors": {
-              "unknown_provider": "This cloud provider is not available in this build.",
-              "backend": "The consent record could not be saved."
+              "unknown_provider": "此云端提供方在该版本中不可用。",
+              "backend": "无法保存同意记录。"
             }
           },
           "title": "云端传输"
         }
       },
       "context": {
-        "title": "Context",
         "policy": {
-          "label": "Context level",
-          "description": "This mode cannot exceed the privacy ceiling.",
-          "limitedByPrivacy": "Privacy currently limits this mode. Raise the ceiling in Privacy to use this level.",
+          "label": "上下文级别",
+          "description": "此模式不能超过隐私上限。",
+          "limitedByPrivacy": "隐私设置当前限制了此模式。请在 Privacy 中提高上限以使用此级别。",
           "values": {
-            "none": "Off",
-            "target": "App",
-            "target_and_selection": "Selection",
-            "full": "Full"
+            "none": "关闭",
+            "target": "应用",
+            "target_and_selection": "选中内容",
+            "full": "完整"
           },
           "blockedByCeiling": "隐私设置将此模式限制为 {{ceiling}}。",
           "raiseCeiling": "在 Privacy 中提高上限即可使用更高级别。"
         }
       },
       "delivery": {
-        "title": "Delivery",
         "method": {
-          "label": "Delivery method",
-          "description": "How Sona puts completed text into the target app.",
+          "label": "输出方式",
           "values": {
-            "ctrl_v": "Paste",
-            "direct": "Type directly",
-            "none": "Do not deliver",
+            "ctrl_v": "粘贴",
+            "direct": "直接键入",
+            "none": "不投放",
             "shift_insert": "Shift+Insert",
-            "ctrl_shift_v": "Paste without formatting",
-            "external_script": "External script"
+            "ctrl_shift_v": "粘贴为无格式文本",
+            "external_script": "外部脚本"
           }
         },
         "clipboard": {
-          "label": "Clipboard",
-          "description": "Choose whether completed text is copied before delivery.",
+          "label": "剪贴板",
           "values": {
-            "copy_to_clipboard": "Copy to clipboard",
-            "dont_modify": "Leave unchanged"
+            "copy_to_clipboard": "复制到剪贴板",
+            "dont_modify": "保持不变"
           }
         },
         "autoSubmit": {
-          "label": "Auto-submit",
-          "description": "Submit after delivery using the chosen key."
+          "label": "自动提交"
         },
         "autoSubmitKey": {
-          "label": "Submit key",
-          "description": "The key Sona uses when auto-submit is on.",
+          "label": "提交按键",
           "values": {
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
@@ -1407,24 +1248,22 @@
           "requiresAutoSubmit": "开启自动提交后即可选择按键。"
         },
         "trailingSpace": {
-          "label": "Append a trailing space",
-          "description": "Add one space after delivered text."
+          "label": "在末尾添加一个空格"
         },
         "reliablePaste": {
-          "label": "Reliable paste",
-          "description": "Use receipt-sequenced paste when the platform supports it."
+          "label": "可靠粘贴",
+          "description": "在平台支持时，使用按回执排序的粘贴。"
         },
         "delay": {
-          "label": "Paste delays",
-          "description": "Milliseconds before and after delivery.",
-          "before": "Before",
-          "after": "After"
+          "label": "粘贴延迟",
+          "description": "投放前后的毫秒数。",
+          "before": "之前",
+          "after": "之后"
         },
         "typingTool": {
-          "label": "Typing tool",
-          "description": "Used only with direct typing.",
+          "label": "键入工具",
           "values": {
-            "auto": "Auto",
+            "auto": "自动",
             "wtype": "wtype",
             "kwtype": "kwtype",
             "dotool": "dotool",
@@ -1434,53 +1273,44 @@
           "requiresDirect": "将输出方式设为“直接键入”后即可选择工具。"
         },
         "script": {
-          "label": "External script",
-          "description": "The script path used by the external-script delivery method."
+          "label": "外部脚本"
         }
       },
       "shortcuts": {
-        "title": "Shortcuts",
-        "description": "Set a shortcut to transcribe with or switch to this mode.",
-        "manyModes": "New modes may start unbound after the first nine. Set their shortcuts here."
+        "title": "快捷键",
+        "manyModes": "前九个之后的新模式可能未绑定快捷键。请在此设置它们的快捷键。"
       },
       "errors": {
-        "staleRevision": "Settings changed elsewhere. Review the latest mode and save again.",
-        "invalid_mode_id": "This mode ID is invalid.",
-        "empty_name": "A mode name is required.",
-        "cannot_delete_default": "The default mode cannot be deleted.",
-        "unknown_mode": "That mode no longer exists.",
-        "duplicate_mode_id": "A mode with this ID already exists.",
-        "invalid_reorder": "The mode order could not be saved.",
+        "staleRevision": "设置已在别处更改。请查看最新的模式后重新保存。",
+        "invalid_mode_id": "此模式 ID 无效。",
+        "empty_name": "需要填写模式名称。",
+        "cannot_delete_default": "默认模式无法删除。",
+        "unknown_mode": "该模式已不存在。",
+        "duplicate_mode_id": "已存在使用此 ID 的模式。",
+        "invalid_reorder": "无法保存模式顺序。",
         "invalid_website_host": "网站主机无效。",
         "website_activation_consent_required": "添加网站规则前，请在“隐私”中启用浏览器 URL。",
         "frontmost_website_unavailable": "无法从浏览器捕获网站。",
         "website_activation_secure_field": "无法从安全字段捕获网站规则。"
       },
-      "globalVocabulary": {
-        "title": "Global vocabulary",
-        "description": "Vocabulary entries applied across every mode."
-      },
-      "actionsFor": "Actions for {{mode}}",
-      "editorLabel": "Mode editor",
-      "editorTabsLabel": "Mode editor sections",
-      "empty": "Select a mode to edit it.",
-      "viewNavigation": "Mode views",
+      "actionsFor": "{{mode}} 的操作",
+      "editorTabsLabel": "模式编辑器分区",
+      "empty": "选择一个模式进行编辑。",
+      "viewNavigation": "模式视图",
       "tabs": {
-        "recognition": "Recognition",
-        "rewrite": "Rewrite",
-        "context": "Context",
-        "delivery": "Delivery",
-        "automation": "Automation"
+        "recognition": "识别",
+        "rewrite": "改写",
+        "context": "上下文",
+        "delivery": "输出",
+        "automation": "自动化"
       },
       "views": {
-        "modes": "Modes",
-        "vocabulary": "Vocabulary"
+        "modes": "模式",
+        "vocabulary": "词汇"
       },
       "cleanup": {
         "title": "转录清理"
       },
-      "dismissError": "关闭错误提示",
-      "emptyHint": "在左侧选择一个模式，即可更改其识别、改写和输出方式。",
       "listEmpty": "尚未配置任何模式。",
       "listEmptyHint": "Sona 始终保留一个模式。重新加载以获取当前列表。",
       "unsavedChanges": "有未保存的更改",
@@ -1490,108 +1320,82 @@
           "local": "本地",
           "deepgram_nova_3": "Deepgram",
           "eleven_labs_scribe_v2": "ElevenLabs"
-        },
-        "modelInherited": "全局模型",
-        "languageAuto": "自动",
-        "delivery": {
-          "ctrl_v": "粘贴",
-          "direct": "直接输入",
-          "none": "不输出",
-          "shift_insert": "Shift+Insert",
-          "ctrl_shift_v": "粘贴纯文本",
-          "external_script": "脚本"
         }
       }
     },
     "privacy": {
-      "title": "Privacy",
-      "description": "Control application context, inspect capture access, and manage data kept on this device.",
+      "title": "隐私",
       "context": {
-        "title": "Context for AI cleanup",
-        "description": "The global ceiling limits every mode before context is read.",
+        "title": "AI 清理的上下文",
         "ceiling": {
-          "label": "Global context ceiling",
-          "description": "Modes may ask for less context, never more.",
+          "label": "全局上下文上限",
           "values": {
-            "none": "Off",
-            "target": "App",
-            "target_and_selection": "Selection",
-            "full": "Full"
+            "none": "关闭",
+            "target": "应用",
+            "target_and_selection": "选中内容",
+            "full": "完整"
           },
-          "error": "The context ceiling could not be saved"
+          "error": "无法保存上下文上限"
         },
         "sources": {
-          "title": "What each level reads",
-          "description": "These are source disclosures, not retained content.",
-          "none": "Reads no application context.",
-          "target": "Reads the frontmost app identity.",
-          "target_and_selection": "Reads the frontmost app identity and selected text when available.",
-          "full": "May also read a permitted browser URL and recently changed clipboard text when available."
+          "none": "不读取任何应用上下文。",
+          "target": "读取前台应用的标识。",
+          "target_and_selection": "读取前台应用的标识，以及可用时的选中文本。",
+          "full": "在可用时，还会读取已许可的浏览器网址和最近变动的剪贴板文本。"
         },
         "urlCapture": {
-          "label": "Include browser URLs",
-          "description": "Allow a frontmost browser page URL to be captured when a mode and the ceiling allow it.",
-          "error": "Browser URL capture could not be saved."
-        },
-        "cloudRoute": "Enabled cloud modes send allowed context to {{providers}}.",
-        "localRoute": "AI processing runs on this Mac.",
-        "checkingRoute": "Checking configured cloud routes…"
+          "label": "包含浏览器网址",
+          "description": "当模式和上限都允许时，允许获取前台浏览器页面的网址。",
+          "error": "无法保存浏览器网址获取设置。"
+        }
       },
       "diagnostics": {
-        "title": "Context diagnostics",
-        "description": "Read-only checks show what this build can access right now.",
-        "refresh": "Refresh",
-        "error": "Diagnostics could not be refreshed",
+        "title": "上下文诊断",
+        "refresh": "刷新",
+        "error": "无法刷新诊断",
         "accessibility": {
-          "label": "Accessibility",
-          "granted": "Accessibility access is granted.",
-          "denied": "Accessibility access is denied.",
-          "unsupported": "Accessibility context is not supported on this platform."
+          "label": "辅助功能"
         },
         "sources": {
-          "target_identity": "Frontmost app",
-          "focused_field": "Focused field",
-          "selected_text": "Selected text",
-          "browser_url": "Browser URL",
-          "clipboard": "Recent clipboard"
+          "target_identity": "前台应用",
+          "focused_field": "聚焦字段",
+          "selected_text": "选中文本",
+          "browser_url": "浏览器网址",
+          "clipboard": "最近剪贴板"
         }
       },
       "status": {
-        "granted": "Granted",
-        "denied": "Denied",
-        "unsupported": "Unsupported",
-        "not_requested": "Not requested",
-        "captured": "Available",
-        "empty": "Empty",
-        "permission_denied": "Permission denied",
-        "disabled": "Disabled",
-        "disabled_by_ceiling": "Blocked by ceiling",
-        "secure_field": "Secure field",
-        "stale": "Stale",
-        "failed": "Unavailable"
+        "granted": "已授予",
+        "denied": "已拒绝",
+        "unsupported": "不支持",
+        "not_requested": "未请求",
+        "captured": "可用",
+        "empty": "为空",
+        "permission_denied": "权限被拒绝",
+        "disabled": "已停用",
+        "disabled_by_ceiling": "受上限阻止",
+        "secure_field": "安全字段",
+        "stale": "已过期",
+        "failed": "不可用"
       },
       "data": {
-        "title": "Data on this device",
-        "credentialStore": "Provider credentials are stored in the native credential store, not in Sona settings.",
-        "locations": "Settings, history, and retained recordings live in Sona’s application data directory. Recordings are kept only for the selected retention period.",
+        "title": "本设备上的数据",
         "historyLimit": {
-          "label": "History limit",
-          "description": "Keep this many recent history entries. Set 0 to disable saved history."
+          "label": "历史记录上限",
+          "description": "保留这么多条最近的历史记录。设为 0 则停用历史保存。"
         },
         "retention": {
-          "label": "Recording retention",
-          "description": "Choose how long recording files remain on this device.",
+          "label": "录音保留期限",
           "values": {
-            "never": "Do not retain recordings",
-            "preserve_limit": "Keep recordings with history",
-            "days_3": "3 days",
-            "weeks_2": "2 weeks",
-            "months_3": "3 months"
+            "never": "不保留录音",
+            "preserve_limit": "随历史记录一起保留录音",
+            "days_3": "3 天",
+            "weeks_2": "2 周",
+            "months_3": "3 个月"
           }
         },
-        "error": "Data retention could not be saved",
+        "error": "无法保存数据保留设置",
         "historyStorage": {
-          "description": "听写历史在此磁盘上是否已加密。",
           "encrypted": "静态加密",
           "label": "历史存储",
           "locked": "已锁定",
@@ -1600,33 +1404,21 @@
             "encryption_unavailable": "此版本无法打开加密数据库，因此历史以未加密方式存储。",
             "key_rejected": "存储的密钥无法打开加密数据库，因此无法读取历史。",
             "key_unavailable": "系统凭据存储未返回可用密钥，因此历史以未加密方式存储。",
-            "migration_failed": "加密现有数据库失败。未加密的数据库完好无损且仍在使用。",
-            "unlocking": "正在打开加密数据库。启动完成后即会消失。"
+            "migration_failed": "加密现有数据库失败。未加密的数据库完好无损且仍在使用。"
           },
           "unknown": "Sona 无法读取历史的存储方式。",
-          "unlocking": "正在解锁",
-          "since": "自 {{date}} 起加密。"
+          "unlocking": "正在解锁"
         }
       },
       "cloudTranscription": {
-        "title": "Cloud transcription",
-        "description": "Read-only disclosure of direct cloud speech-to-text routes.",
-        "checking": "Checking cloud transcription setup…",
-        "checkFailed": "Cloud transcription setup could not be checked.",
-        "disclosure": "For a cloud-enabled mode, Sona sends recorded audio, the selected language, and mode keyterms directly to the provider. Application context and native credentials stay on this device.",
-        "providerDetail": "{{provider}} has a saved native API key and current transfer consent.",
-        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent.",
-        "inUse": "使用中"
+        "title": "云转录",
+        "checkFailed": "无法检查云转录的设置。",
+        "disclosure": "对于启用了云端的模式，Sona 会把录制的音频、所选语言和模式关键词直接发送给提供方。应用上下文和自有凭据保留在本设备上。"
       },
       "upstreamImport": {
-        "title": "Import from legacy app",
-        "description": "Copy selected personal data from the legacy app. The source remains unchanged.",
+        "title": "从旧版应用导入",
         "source": {
-          "settingsAvailable": "Settings file is available.",
-          "settingsMissing": "No settings file was found.",
-          "history": "{{count}} history entries found.",
-          "recordings": "{{count}} recording files, {{size}}.",
-          "empty": "No settings or history entries are available to import."
+          "empty": "没有可导入的设置或历史条目。"
         },
         "byteCount": "{{value}} {{unit}}",
         "byteUnits": {
@@ -1635,166 +1427,161 @@
           "megabytes": "MiB",
           "gigabytes": "GiB"
         },
-        "modelsNotImported": "Model files are not imported.",
-        "appRunning": "Close the legacy app before importing.",
-        "appUnverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
-        "selection": "Choose data to import",
-        "selectionSettings": "Settings",
-        "selectionHistory": "History",
-        "selectionRecordings": "Recordings",
-        "recordingsRequireHistory": "Recordings are imported only with history.",
-        "selectionRequired": "Choose settings or history to import.",
-        "progress": "{{phase}}: {{completed}} of {{total}}",
+        "appRunning": "导入前请关闭旧版应用。",
+        "appUnverifiable": "在此平台上，Sona 无法确认旧版应用已关闭。",
+        "selection": "选择要导入的数据",
+        "selectionSettings": "设置",
+        "selectionHistory": "历史",
+        "selectionRecordings": "录音",
+        "recordingsRequireHistory": "录音只会随历史一起导入。",
+        "selectionRequired": "请选择要导入的设置或历史。",
+        "progress": "{{phase}}：{{total}} 项中的 {{completed}} 项",
         "phases": {
-          "settings": "Settings",
-          "history": "History",
-          "recordings": "Recordings"
+          "settings": "设置",
+          "history": "历史",
+          "recordings": "录音"
         },
-        "settingsImported": "Settings imported.",
-        "settingsAlreadyImported": "Settings were already imported.",
-        "result": "{{settings}} Imported {{historyImported}} history entries; {{historyExisting}} already existed. Copied {{recordingsCopied}} recordings; {{recordingsExisting}} already existed.",
-        "refresh": "Check again",
-        "import": "Import selected data",
-        "importing": "Importing",
+        "settingsImported": "已导入设置。",
+        "settingsAlreadyImported": "设置此前已导入。",
+        "result": "{{settings}} 已导入 {{historyImported}} 条历史记录；{{historyExisting}} 条已存在。已复制 {{recordingsCopied}} 个录音；{{recordingsExisting}} 个已存在。",
+        "refresh": "再次检查",
+        "import": "导入所选数据",
+        "importing": "正在导入",
         "errors": {
-          "source_unavailable": "The legacy app's data folder is unavailable.",
-          "upstream_running": "Close the legacy app before importing.",
-          "app_state_unverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
-          "invalid_selection": "Choose settings or history to import.",
-          "settings_unreadable": "The legacy settings file could not be read.",
-          "secret_store_unavailable": "The native credential store is unavailable, so settings with provider keys were not imported.",
-          "secret_conflict": "A provider key already exists in the native credential store. Resolve it before importing settings.",
-          "history_unreadable": "The legacy history database could not be read.",
-          "recording_copy_failed": "A recording could not be copied and verified.",
-          "receipt_write_failed": "The import receipt could not be saved.",
-          "internal": "The import did not finish.",
-          "status": "The legacy app's data could not be inspected."
-        }
+          "source_unavailable": "旧版应用的数据文件夹不可用。",
+          "upstream_running": "导入前请关闭旧版应用。",
+          "app_state_unverifiable": "在此平台上，Sona 无法确认旧版应用已关闭。",
+          "invalid_selection": "请选择要导入的设置或历史。",
+          "settings_unreadable": "无法读取旧版设置文件。",
+          "secret_store_unavailable": "系统凭据存储不可用，因此包含服务商密钥的设置未被导入。",
+          "secret_conflict": "系统凭据存储中已存在服务商密钥。请先解决后再导入设置。",
+          "history_unreadable": "无法读取旧版历史数据库。",
+          "recording_copy_failed": "有一个录音无法复制并校验。",
+          "receipt_write_failed": "无法保存导入记录。",
+          "internal": "导入没有完成。",
+          "status": "无法检查旧版应用的数据。"
+        },
+        "scope": "来源保持不变，模型文件不会导入。"
       },
       "cloudSync": {
         "checkFailed": "Sona 无法读取云同步配置。",
         "configured": "已配置",
-        "description": "Sona 可以将会议镜像到你自己运行的服务器。在此设备完成设置之前不会上传任何内容。",
-        "endpoint": "端点",
-        "endpointDescription": "此设备指向的服务器。",
         "notConfigured": "未配置",
-        "service": "服务",
         "title": "云同步"
+      },
+      "egress": {
+        "assurance": "除了此处列出的路径，没有任何内容离开这台 Mac；服务商密钥保存在系统凭据存储中，而不是 Sona 的设置里。",
+        "thisMac": "这台 Mac",
+        "routes": {
+          "cleanup": "AI 清理"
+        }
       }
     },
     "agents": {
-      "title": "Agents",
-      "description": "Observe approved local coding-agent sessions. Responses only appear where the installed hook has a fixture-backed wire format.",
+      "title": "智能体",
       "controls": {
-        "title": "Bridge controls",
+        "title": "桥接控制",
         "master": {
-          "label": "Enable agent bridge",
-          "description": "Allow Sona to observe configured local agent hooks for authorized projects."
+          "label": "启用代理桥接"
         },
-        "offState": "The agent bridge is off. No session data or replies are processed.",
-        "status": "Runtime status",
+        "status": "运行时状态",
         "providers": {
           "claude": {
             "label": "Claude",
-            "description": "Observe Claude sessions and enable fixture-backed replies where available."
+            "description": "观察 Claude 会话，并在可用时启用由协议样本支持的回复。"
           },
           "codex": {
             "label": "Codex",
-            "description": "Observe sessions only. Replies are read-only until a wire fixture supports them."
+            "description": "仅观察会话。在协议样本支持之前，回复是只读的。"
           },
           "grok": {
             "label": "Grok",
-            "description": "Observe sessions only. Replies are read-only until a wire fixture supports them."
+            "description": "仅观察会话。在协议样本支持之前，回复是只读的。"
           },
           "omp": {
             "label": "OMP",
-            "description": "Observe OMP sessions and approval requests. Replies are available only at a supported OMP session stop."
+            "description": "观察 OMP 会话和审批请求。回复仅在受支持的 OMP 会话停止时可用。"
           }
         }
       },
       "status": {
-        "disabled": "Disabled",
-        "runtime_unavailable": "Runtime unavailable",
-        "interactive_unsupported": "Interactive responses unsupported",
-        "app_lock_held": "Another Sona instance is active",
-        "active": "Active"
+        "disabled": "已停用",
+        "runtime_unavailable": "运行时不可用",
+        "interactive_unsupported": "不支持交互式响应",
+        "app_lock_held": "另一个 Sona 实例正在运行",
+        "active": "使用中"
       },
       "projects": {
-        "title": "Authorized projects",
-        "description": "Choose a project folder with the native picker. Sona persists only its canonical hash.",
-        "hashOnly": "Exact project hashes are the permission boundary; folder paths are not stored here.",
-        "add": "Authorize folder",
-        "remove": "Remove project",
-        "empty": "No projects are authorized."
+        "title": "已授权的项目",
+        "hashOnly": "权限边界是精确的项目哈希；文件夹路径不会保存在这里。",
+        "add": "授权文件夹",
+        "remove": "移除项目",
+        "empty": "没有已授权的项目。"
       },
       "hook": {
-        "title": "Hook snippet",
-        "description": "Copy the packaged hook configuration into your agent’s own configuration. Sona never edits agent configuration files.",
-        "copy": "Copy snippet",
-        "error": "Hook snippet unavailable"
+        "title": "钩子片段",
+        "description": "把随附的钩子配置复制到你自己代理的配置中。Sona 从不编辑代理的配置文件。",
+        "copy": "复制片段",
+        "error": "无法获取钩子片段"
       },
       "replyQueue": {
-        "title": "Reply preview",
-        "description": "Create a reply preview for a prepared Claude or OMP session. Sona sends it only after you confirm the exact destination and text.",
-        "session": "Reply destination",
-        "noSession": "No observed reply-capable session",
-        "message": "Reply text",
-        "createPreview": "Create preview",
+        "title": "回复预览",
+        "session": "回复目标",
+        "noSession": "没有观察到可回复的会话",
+        "message": "回复文本",
+        "createPreview": "创建预览",
         "notReady": "回复需要开启桥接并至少启用一个代理。"
       },
       "pending": {
-        "empty": "No pending replies.",
-        "confirm": "Confirm exact reply",
-        "preview": "Review the exact destination and text before confirming",
-        "confirmed": "Confirmed for the next supported Stop event",
-        "cancel": "Cancel",
+        "empty": "没有待发送的回复。",
+        "confirm": "确认这条回复原样发送",
+        "confirmed": "已确认用于下一个受支持的 Stop 事件",
+        "cancel": "取消",
         "states": {
-          "held": "Held for the next supported Stop event",
-          "response_written": "Response written",
-          "emitted": "Emitted",
-          "copy_only": "Copy-only",
-          "cancelled": "Cancelled"
-        }
+          "held": "保留到下一个受支持的 Stop 事件",
+          "response_written": "已写入响应",
+          "emitted": "已发出",
+          "copy_only": "仅复制",
+          "cancelled": "已取消"
+        },
+        "title": "待发送的回复"
       },
       "observed": {
-        "title": "Observed activity",
-        "description": "Sessions and requests include IDs and metadata only; provider payloads are not shown.",
-        "refresh": "Refresh",
-        "sessions": "Sessions",
-        "noSessions": "No sessions observed.",
-        "requests": "Requests",
-        "noRequests": "No requests observed.",
+        "title": "观察到的活动",
+        "refresh": "刷新",
+        "sessions": "会话",
+        "noSessions": "没有观察到会话。",
+        "requests": "请求",
+        "noRequests": "没有观察到请求。",
         "requestKinds": {
-          "session_start": "Session started",
-          "user_prompt_submit": "Prompt submitted",
-          "permission_request": "Permission request",
-          "pre_tool_use": "Before tool use",
-          "post_tool_use": "After tool use",
-          "stop": "Stop",
-          "notification": "Notification"
+          "session_start": "会话已开始",
+          "user_prompt_submit": "提示词已提交",
+          "permission_request": "权限请求",
+          "pre_tool_use": "工具使用前",
+          "post_tool_use": "工具使用后",
+          "stop": "停止",
+          "notification": "通知"
         },
-        "expires": "Expires {{time}}",
-        "allowExact": "Allow exactly this request",
-        "denyExact": "Deny exactly this request",
-        "dismiss": "Dismiss",
-        "ompPermissionObserveOnly": "OMP approval requests are observed only. Approve or deny them in OMP."
+        "expires": "{{time}} 过期",
+        "allowExact": "仅允许这一个请求",
+        "denyExact": "仅拒绝这一个请求",
+        "dismiss": "关闭",
+        "ompPermissionObserveOnly": "OMP 审批请求仅供观察。请在 OMP 中批准或拒绝。"
       },
       "rules": {
-        "title": "Exact permission rules",
-        "description": "An allow or deny is stored only for the exact agent, project hash, tool, mode, and input hash that created it.",
-        "empty": "No permission rules.",
-        "remove": "Remove rule",
+        "title": "精确匹配的权限规则",
+        "empty": "没有权限规则。",
+        "remove": "移除规则",
         "decisions": {
-          "allow": "Allow",
-          "deny": "Deny"
+          "allow": "允许",
+          "deny": "拒绝"
         }
       },
       "errors": {
-        "load": "Agent bridge data could not be loaded: {{error}}",
-        "operation": "The agent bridge action could not be completed: {{error}}"
+        "load": "无法加载代理桥接数据：{{error}}",
+        "operation": "无法完成代理桥接操作：{{error}}"
       },
       "panel": {
-        "description": "代理用来发布消息并读取回复的浮动窗口。",
         "error": "无法保存代理面板设置。",
         "label": "启用代理面板",
         "rowDescription": "关闭后将关闭面板窗口，并使 Sona 拒绝所有重新打开它的请求。",
@@ -1803,27 +1590,22 @@
       "workspaceNavigation": "代理桥接视图"
     },
     "hub": {
-      "navigation": "Settings sections",
+      "navigation": "设置分区",
       "tabs": {
-        "general": "General",
-        "privacy": "Privacy",
-        "agents": "Agents",
-        "advanced": "Advanced",
-        "about": "About",
-        "debug": "Debug"
+        "general": "通用",
+        "privacy": "隐私",
+        "agents": "智能体",
+        "advanced": "高级",
+        "about": "关于",
+        "debug": "调试"
       }
     },
     "vocabulary": {
       "replacements": {
         "title": "口述替换",
-        "description": "Sona 会改写成精确文本的短语。此处的修改只影响以后的转写，绝不影响已写出的文本。",
         "enabledLabel": "启用口述替换",
-        "enabledDescription": "在词汇校正运行之前，把「艾特」这类口述短语改写为符号。",
-        "offState": "口述替换已关闭。规则仍然保存着，一旦重新打开就会再次生效。",
         "spoken": "你说",
         "written": "Sona 写",
-        "applyColumn": "应用",
-        "actionsColumn": "操作",
         "spokenPlaceholder": "艾特",
         "writtenPlaceholder": "@",
         "add": "添加规则",
@@ -1838,14 +1620,11 @@
           "incomplete": "请同时填写口述短语和它的替换文本。"
         },
         "empty": {
-          "title": "没有替换",
-          "description": "添加一个像「艾特」这样的短语，你每次这么说，Sona 就写出 @。",
-          "action": "恢复初始规则"
+          "description": "添加一个像「艾特」这样的短语，你每次这么说，Sona 就写出 @。"
         },
         "confirmDelete": {
           "title": "删除 {{spoken}}？",
-          "description": "该短语在以后的转写中不再被改写。已写出的文本不变。",
-          "body": "{{spoken}} 目前会变成 {{written}}。"
+          "description": "该短语在以后的转写中不再被改写。已写出的文本不变。"
         },
         "confirmReset": {
           "title": "恢复默认规则？",
@@ -1856,20 +1635,17 @@
     "prompts": {
       "samples": {
         "title": "写作样例",
-        "description": "你自己写的文字样例。改写转写的模式会贴合这种语气。",
         "placeholder": "粘贴一段你自己写的文字。",
         "sampleLabel": "写作样例 {{number}}",
         "delete": "删除样例 {{number}}",
         "add": "添加样例",
         "wordCount": "{{max}} 个词中的 {{words}} 个",
         "overLimit": "{{words}} 个词。只使用前 {{max}} 个。",
-        "privacy": "样例只会去转写本身已经会去的地方，不会去任何别处。最多使用 {{max}} 个样例。",
+        "privacy": "样例只会去转写本身已经会去的地方，不会去任何别处。",
         "loading": "正在加载样例",
         "loadError": "无法加载样例。",
         "empty": {
-          "title": "还没有样例",
-          "description": "粘贴几段你自己写的文字，改写就会跟随你的用词、句子长度和正式程度。",
-          "action": "添加样例"
+          "description": "粘贴几段你自己写的文字，改写就会跟随你的用词、句子长度和正式程度。"
         }
       }
     },
@@ -1877,7 +1653,6 @@
       "enabledLabel": "显示待机药丸",
       "enabledDescription": "在两次口述之间，在屏幕上保留一个小药丸。点击开始，右键切换模式。",
       "positionLabel": "待机药丸位置",
-      "positionDescription": "待机药丸停在屏幕的哪一边。",
       "positionTop": "顶部",
       "positionBottom": "底部"
     }
@@ -1891,12 +1666,13 @@
     "copy": "复制",
     "clear": "清除",
     "noOptionsFound": "未找到选项",
-    "save": "Save",
-    "saving": "Saving…",
-    "retry": "Retry",
+    "save": "保存",
+    "saving": "正在保存…",
+    "retry": "重试",
     "play": "播放",
     "pause": "暂停",
-    "seek": "播放位置"
+    "seek": "播放位置",
+    "resetSetting": "重置{{name}}"
   },
   "commandPalette": {
     "open": "搜索",
@@ -1904,9 +1680,7 @@
     "navigation": "导航",
     "actions": "操作",
     "noResults": "未找到命令",
-    "navigate": "导航",
-    "select": "选择",
-    "newMeeting": "New meeting",
+    "newMeeting": "新会议",
     "importAudio": "转录文件",
     "openRecordings": "打开录音文件夹",
     "openAgent": "打开智能体",
@@ -1947,12 +1721,10 @@
     "commandRewriteUnavailableTitle": "改写不可用"
   },
   "appLanguage": {
-    "title": "应用语言",
-    "description": "更改 Sona 界面的语言"
+    "title": "应用语言"
   },
   "theme": {
     "title": "应用主题",
-    "description": "选择 Sona 跟随系统主题，还是保持浅色或深色",
     "options": {
       "system": "跟随系统",
       "light": "浅色",
@@ -1990,303 +1762,274 @@
     "dismiss": "关闭"
   },
   "meetings": {
-    "title": "Meetings",
-    "description": "Capture, recover, and review meeting notes stored on this Mac.",
-    "loading": "Loading meetings…",
+    "title": "会议",
+    "loading": "正在加载会议…",
     "providers": {
       "zoom": "Zoom",
       "google_meet": "Google Meet",
       "microsoft_teams": "Microsoft Teams",
       "webex": "Webex",
-      "slack_huddle": "Slack huddle",
+      "slack_huddle": "Slack 快聊",
       "face_time": "FaceTime",
-      "configured_app": "Configured app"
+      "configured_app": "已配置的应用"
     },
     "phases": {
-      "preflight": "Setup",
-      "starting": "Starting",
-      "capturing_recording": "Recording",
-      "capturing_pausing": "Pausing",
-      "capturing_paused": "Paused",
-      "capturing_resuming": "Resuming",
-      "stopping": "Stopping",
-      "processing": "Processing",
-      "review_ready": "Ready for review",
-      "recovery_required": "Recovery needed",
-      "deleting": "Deleting"
+      "preflight": "设置",
+      "starting": "正在启动",
+      "capturing_recording": "录制",
+      "capturing_pausing": "正在暂停",
+      "capturing_paused": "已暂停",
+      "capturing_resuming": "正在继续",
+      "stopping": "正在停止",
+      "processing": "处理中",
+      "review_ready": "可以回顾",
+      "recovery_required": "需要恢复",
+      "deleting": "正在删除"
     },
     "sources": {
-      "microphone": "Microphone",
-      "system_audio": "System audio"
+      "microphone": "麦克风",
+      "system_audio": "系统音频"
     },
     "availability": {
-      "available": "Available",
-      "permission_required": "Permission required",
-      "permission_denied": "Permission denied",
-      "device_unavailable": "Device unavailable",
-      "unsupported_platform": "Unsupported on this Mac",
-      "storage_unavailable": "Storage unavailable",
-      "unknown": "Checking"
+      "available": "可用",
+      "permission_required": "需要权限",
+      "permission_denied": "权限被拒绝",
+      "device_unavailable": "设备不可用",
+      "unsupported_platform": "此 Mac 不支持",
+      "storage_unavailable": "存储不可用",
+      "unknown": "正在检查"
     },
     "health": {
-      "not_started": "Not started",
-      "starting": "Starting",
-      "healthy": "Healthy",
-      "paused": "Paused",
-      "degraded": "Degraded",
-      "failed": "Failed",
-      "stopped": "Stopped"
+      "not_started": "未开始",
+      "starting": "正在启动",
+      "healthy": "正常",
+      "paused": "已暂停",
+      "degraded": "已降级",
+      "failed": "失败",
+      "stopped": "已停止"
     },
     "completeness": {
-      "not_started": "Not started",
-      "complete": "Complete",
-      "partial": "Partial"
+      "not_started": "未开始",
+      "complete": "完整",
+      "partial": "部分完整"
     },
     "processing": {
-      "pending": "Waiting for processing",
-      "running": "Processing",
-      "succeeded": "Ready",
-      "cancelled": "Processing cancelled",
+      "pending": "等待处理",
+      "running": "处理中",
+      "succeeded": "已完成",
+      "cancelled": "处理已取消",
       "failed": {
-        "local_model_unavailable": "Local model unavailable",
-        "remote_unavailable": "Remote destination unavailable",
-        "engine_failure": "Processing failed",
-        "cancelled": "Processing cancelled"
+        "local_model_unavailable": "本地模型不可用",
+        "remote_unavailable": "远程目标不可用",
+        "engine_failure": "处理失败",
+        "cancelled": "处理已取消"
       }
     },
     "actions": {
-      "back": "Back",
-      "delete": "Delete meeting",
-      "discard": "Discard",
-      "pause": "Pause",
-      "refresh": "Refresh",
-      "resume": "Resume",
-      "retry": "Try again",
-      "stop": "Stop"
+      "back": "返回",
+      "delete": "删除会议",
+      "discard": "丢弃",
+      "pause": "暂停",
+      "refresh": "刷新",
+      "resume": "继续",
+      "retry": "重试",
+      "stop": "停止"
     },
     "detected": {
-      "title": "Meeting detected",
-      "description": "Sona 注意到有会议应用正在使用。",
-      "mayBeActive": "A meeting may be active in {{provider}}."
+      "title": "检测到会议",
+      "mayBeActive": "{{provider}} 中可能正在进行会议。"
     },
     "setup": {
-      "captureSources": "Capture sources",
-      "captureSourcesDescription": "Each source stays separate so missing audio remains visible.",
-      "processing": "Processing route",
-      "localOnly": "Local only",
-      "defaultTitle": "Local notes",
+      "defaultTitle": "本地笔记",
       "remoteUnavailable": "此版本不支持远程处理，因此所有会议都在这台 Mac 上转录和总结。"
     },
     "preflight": {
-      "storage": "Storage",
-      "storageAvailable": "Encrypted meeting storage is available.",
-      "storageUnavailable": "Encrypted meeting storage is unavailable.",
-      "localModel": "Local model",
-      "localModelDescription": "Processing remains local when a local model is available.",
-      "starting": "Starting visible capture…",
+      "storage": "存储",
+      "storageAvailable": "加密的会议存储可用。",
+      "storageUnavailable": "加密的会议存储不可用。",
+      "localModel": "本地模型",
+      "localModelDescription": "有可用的本地模型时，处理会保持在本地。",
+      "starting": "正在开始可见的采集…",
       "refreshing": "正在检查…"
     },
     "consent": {
-      "continuePartial": "I want to continue with a partial meeting record.",
-      "acceptMissing": "I understand {{source}} is {{state}} and this meeting will be partial."
+      "continuePartial": "我要在会议记录不完整的情况下继续。",
+      "acceptMissing": "我明白 {{source}} 处于 {{state}}，这场会议的记录会不完整。"
     },
     "live": {
-      "activeCapture": "Active capture",
-      "elapsed": "Elapsed",
-      "microphoneOnlyPartial": "Microphone only / Partial. System audio is unavailable or degraded.",
-      "partialCapture": "Partial capture. Review the gaps before relying on generated notes.",
-      "inputs": "Inputs",
-      "inputsDescription": "Source health is reported separately. Capture never fills missing intervals.",
-      "signal": "Signal",
-      "signalUnavailable": "{{source}} level is not reported by capture.",
-      "notReported": "Not reported",
-      "durabilityLag": "Durability lag",
-      "behind": "{{duration}} behind",
-      "progress": "Transcript progress",
-      "progressDescription": "Transcript timing is derived from committed segments, not a guessed model state.",
-      "transcript": "Transcript",
-      "transcriptThrough": "Transcript through {{time}}",
-      "noTranscriptCheckpoint": "No transcript checkpoint",
-      "asrLag": "ASR lag",
-      "storage": "Storage",
-      "storageHealthy": "Encrypted local storage is healthy.",
-      "storageUnavailable": "Storage needs attention.",
-      "processing": "Processing",
-      "manualNote": "Manual note",
-      "manualNoteDescription": "A note added now is anchored at {{time}}.",
-      "notePlaceholder": "Write a note for this moment",
-      "timestamp": "Timestamp {{time}}",
-      "addNote": "Add timestamped note"
+      "elapsed": "已用时间",
+      "microphoneOnlyPartial": "仅麦克风 · 部分完整。系统音频不可用或已降级。",
+      "partialCapture": "采集不完整。在依赖生成的笔记之前请先查看间隙。",
+      "inputs": "输入",
+      "signal": "信号",
+      "signalUnavailable": "采集未报告 {{source}} 的音量。",
+      "notReported": "未报告",
+      "durabilityLag": "持久化延迟",
+      "behind": "落后 {{duration}}",
+      "progress": "转录进度",
+      "transcript": "转录",
+      "asrLag": "ASR 延迟",
+      "storage": "存储",
+      "storageHealthy": "加密的本地存储正常。",
+      "storageUnavailable": "存储需要处理。",
+      "processing": "处理中",
+      "manualNote": "手动笔记",
+      "notePlaceholder": "为这一刻写条笔记",
+      "addNote": "添加带时间戳的笔记"
     },
     "recovery": {
-      "title": "Recover partial meetings",
-      "description": "These sessions were interrupted. Sona will not restart capture.",
-      "finalize": "Finalize partial"
+      "title": "恢复未完成的会议",
+      "finalize": "按未完成状态归档"
     },
     "history": {
-      "title": "Meeting history",
-      "description": "Open a local meeting record to inspect its capture coverage and notes.",
-      "loading": "Loading meeting history…",
-      "emptyTitle": "No meetings yet",
-      "emptyDescription": "Start local notes when you are ready to capture a meeting."
+      "title": "会议历史",
+      "loading": "正在加载会议历史…",
+      "emptyTitle": "还没有会议"
     },
     "retention": {
-      "title": "Retention",
-      "description": "Sona deletes eligible local meeting records through the same verified deletion path.",
-      "forever": "Keep until I delete it",
-      "days": "Delete after {{days}} days",
+      "title": "保留",
+      "description": "Sona 会通过同一条已验证的删除路径删除符合条件的本地会议记录。",
+      "forever": "保留到我手动删除",
+      "days": "{{days}} 天后删除",
       "loading": "正在读取当前策略…"
     },
     "receipts": {
-      "title": "Correction receipt",
-      "saved": "Saved locally.",
-      "savedRevision": "Saved locally. Revision {{revision}}.",
-      "duplicate": "This action was already recorded. Sona refreshed the existing result."
+      "title": "更正记录",
+      "saved": "已保存在本地。",
+      "savedRevision": "已保存在本地。修订号 {{revision}}。",
+      "duplicate": "此操作已被记录。Sona 已刷新现有结果。"
     },
     "reasons": {
-      "consent_missing": "Recording acknowledgement is required.",
-      "consent_stale": "Setup changed before this action.",
-      "stale_revision": "This meeting changed in another window.",
-      "capture_lease_busy": "Another meeting capture is active.",
-      "source_unavailable": "A requested source is unavailable.",
-      "source_start_failed": "A source could not start.",
-      "source_gap": "A source reported a gap.",
-      "storage_unavailable": "Encrypted meeting storage is unavailable.",
-      "storage_failure": "Storage could not persist this change.",
-      "local_model_unavailable": "A local model is unavailable.",
-      "recovery_required": "This meeting needs recovery.",
-      "deleted": "This meeting was deleted.",
-      "invalid_transition": "This action is not available in the current phase.",
-      "duplicate_operation": "This action was already recorded."
+      "consent_missing": "需要确认录制须知。",
+      "consent_stale": "在此操作之前设置发生了变化。",
+      "stale_revision": "这场会议在另一个窗口中被改动过。",
+      "capture_lease_busy": "另一场会议的采集正在进行。",
+      "source_unavailable": "请求的来源不可用。",
+      "source_start_failed": "有来源无法启动。",
+      "source_gap": "有来源报告了间隙。",
+      "storage_unavailable": "加密的会议存储不可用。",
+      "storage_failure": "存储无法持久化此更改。",
+      "local_model_unavailable": "没有可用的本地模型。",
+      "recovery_required": "这场会议需要恢复。",
+      "deleted": "这场会议已被删除。",
+      "invalid_transition": "在当前阶段无法执行此操作。",
+      "duplicate_operation": "此操作已被记录。"
     },
     "gaps": {
-      "source_unavailable": "Source unavailable",
-      "source_start_failed": "Source start failed",
-      "permission_lost": "Permission lost",
-      "paused": "Paused",
-      "packet_dropped": "Audio packet dropped",
-      "writer_pressure": "Storage writer pressure",
-      "storage_failure": "Storage failure",
-      "timestamp_missing": "Timestamp missing",
-      "timestamp_discontinuity": "Timestamp discontinuity",
-      "invalid_format": "Invalid audio format",
-      "source_stopped": "Source stopped",
-      "corrupt_record": "Corrupt record",
-      "missing_record": "Missing record",
-      "recovery_tail": "Recovery tail",
-      "system_sleep": "Mac sleep"
+      "source_unavailable": "来源不可用",
+      "source_start_failed": "来源启动失败",
+      "permission_lost": "权限丢失",
+      "paused": "已暂停",
+      "packet_dropped": "音频包丢失",
+      "writer_pressure": "存储写入压力",
+      "storage_failure": "存储故障",
+      "timestamp_missing": "时间戳缺失",
+      "timestamp_discontinuity": "时间戳不连续",
+      "invalid_format": "音频格式无效",
+      "source_stopped": "来源已停止",
+      "corrupt_record": "记录损坏",
+      "missing_record": "记录缺失",
+      "recovery_tail": "恢复尾段",
+      "system_sleep": "Mac 睡眠"
     },
     "errors": {
-      "load": "Sona could not load the current meeting data.",
+      "load": "Sona 无法加载当前会议的数据。",
       "operation": "无法完成该会议操作。请重试。",
-      "operationRejected": "The meeting action was rejected.",
-      "consent_required": "Confirm the recording acknowledgement before starting.",
-      "consent_stale": "The setup changed. Review it again before starting.",
-      "invalid_transition": "This action is unavailable in the current meeting phase.",
-      "stale_revision": "This meeting changed in another window. Sona refreshed its snapshot.",
-      "capture_lease_busy": "Another meeting is already capturing audio.",
-      "no_source_started": "No approved audio source started.",
-      "source_unavailable": "A requested audio source is unavailable.",
-      "storage_unavailable": "Encrypted meeting storage is unavailable.",
-      "recovery_required": "This meeting needs recovery before that action.",
-      "deletion_in_progress": "Deletion is already in progress. The meeting remains inaccessible.",
-      "not_found": "This meeting is no longer available.",
-      "invalid_request": "The meeting request was invalid.",
-      "export_cancelled": "Export was cancelled. No completed export was created.",
-      "export_failed": "Export failed. No completed export was created.",
-      "local_model_unavailable": "A local model is unavailable for this meeting.",
-      "remote_unavailable": "The selected remote destination is unavailable."
+      "operationRejected": "会议操作被拒绝。",
+      "consent_required": "开始前请先确认录制须知。",
+      "consent_stale": "设置已发生变化。开始前请再检查一次。",
+      "invalid_transition": "在当前会议阶段无法执行此操作。",
+      "stale_revision": "这场会议在另一个窗口中被改动过。Sona 已刷新其快照。",
+      "capture_lease_busy": "已有另一场会议在采集音频。",
+      "no_source_started": "没有已批准的音频来源启动。",
+      "source_unavailable": "请求的音频来源不可用。",
+      "storage_unavailable": "加密的会议存储不可用。",
+      "recovery_required": "执行该操作前，这场会议需要先恢复。",
+      "deletion_in_progress": "删除已在进行中。此会议仍无法访问。",
+      "not_found": "这场会议已不可用。",
+      "invalid_request": "会议请求无效。",
+      "export_cancelled": "导出已取消。没有生成完整的导出文件。",
+      "export_failed": "导出失败。没有生成完整的导出文件。",
+      "local_model_unavailable": "这场会议没有可用的本地模型。",
+      "remote_unavailable": "所选的远程目标不可用。"
     },
     "discard": {
-      "liveTitle": "Stop and discard this session?",
-      "liveDescription": "Sona will stop capture and delete the local meeting record.",
-      "keepRecording": "Keep recording",
-      "stopAndDiscard": "Stop and discard",
-      "explainsData": "Audio, transcript, manual notes, generated notes, and local answer caches will be deleted. This cannot be undone.",
-      "complete": "Session discarded"
+      "liveTitle": "停止并丢弃这个会话？",
+      "keepRecording": "继续录制",
+      "stopAndDiscard": "停止并丢弃",
+      "explainsData": "音频、转录、手动笔记、生成的笔记以及本地回答缓存都会被删除。此操作无法撤销。",
+      "complete": "会话已丢弃"
     },
     "delete": {
-      "title": "Delete this meeting?",
-      "description": "Sona will delete the local meeting record and its derived data.",
-      "explainsData": "Sona keeps the meeting inaccessible while verified deletion finishes. Exports and remote copies are outside local deletion.",
-      "complete": "Meeting deleted"
+      "title": "删除这场会议？",
+      "explainsData": "在已验证的删除完成之前，Sona 会让这场会议保持无法访问。导出的文件和远程副本不在本地删除的范围内。",
+      "complete": "会议已删除"
     },
     "review": {
-      "meetingTitle": "Meeting title",
-      "noStartTime": "This meeting did not record a start time.",
-      "started": "Started {{date}}",
-      "status": "Capture status",
-      "statusDescription": "Coverage, source health, and processing remain separate.",
-      "timeline": "Audio timeline and gaps",
-      "timelineDescription": "Gaps name intervals where no audio was captured.",
-      "gap": "Gap",
-      "timeUnknown": "Unknown time",
-      "noGaps": "No capture gaps were reported.",
-      "transcript": "Transcript",
-      "transcriptDescription": "Edits create a new canonical revision. Derived notes and answers become out of date.",
-      "noTranscript": "No transcript is available.",
-      "transcriptSegment": "Transcript segment",
-      "removeSegment": "Remove segment",
-      "unknownSpeaker": "Unknown speaker",
-      "speakers": "Speakers",
-      "speakersDescription": "Rename or merge local speaker labels without rewriting timing.",
-      "noSpeakers": "No speaker labels are available.",
-      "speakerName": "Speaker name",
-      "mergeSource": "Merge this speaker",
-      "mergeTarget": "Into this speaker",
-      "merge": "Merge speakers",
-      "manualNotes": "Manual notes",
-      "manualNotesDescription": "Manual notes are user-owned and remain separate from generated notes.",
-      "manualNote": "Manual note",
-      "newNote": "New manual note",
-      "notePlaceholder": "Add a manual note",
-      "addNote": "Add note",
-      "noNotes": "No manual notes yet.",
-      "noTimestamp": "No timestamp",
-      "timestamp": "Timestamp {{time}}",
-      "generatedNotes": "Generated notes",
-      "generatedNotesDescription": "Regeneration uses the current canonical revision and does not overwrite manual notes or confirmed corrections.",
-      "regenerate": "Regenerate",
-      "remoteCancellationPending": "Remote cancellation is pending. Local deletion does not claim the remote copy is deleted.",
-      "cancelRemote": "Cancel remote processing",
+      "meetingTitle": "会议标题",
+      "noStartTime": "这场会议没有记录开始时间。",
+      "started": "{{date}} 开始",
+      "status": "采集状态",
+      "timeline": "音频时间线与间隙",
+      "timeUnknown": "时间未知",
+      "noGaps": "没有报告任何采集间隙。",
+      "transcript": "转录",
+      "noTranscript": "没有可用的转录。",
+      "transcriptSegment": "转录片段",
+      "removeSegment": "移除片段",
+      "unknownSpeaker": "未知说话人",
+      "speakers": "说话人",
+      "noSpeakers": "没有可用的说话人标签。",
+      "speakerName": "说话人名称",
+      "mergeSource": "合并这个说话人",
+      "mergeTarget": "合并到这个说话人",
+      "merge": "合并说话人",
+      "manualNotes": "手动笔记",
+      "manualNote": "手动笔记",
+      "newNote": "新建手动笔记",
+      "notePlaceholder": "添加手动笔记",
+      "addNote": "添加笔记",
+      "noNotes": "还没有手动笔记。",
+      "noTimestamp": "无时间戳",
+      "timestamp": "时间戳 {{time}}",
+      "generatedNotes": "生成的笔记",
+      "regenerate": "重新生成",
+      "remoteCancellationPending": "远程取消仍在等待中。本地删除并不表示远程副本已被删除。",
+      "cancelRemote": "取消远程处理",
       "remoteCancellationRequested": "已请求取消",
-      "export": "Export",
-      "exportDescription": "Each export uses an immutable local review snapshot and opens a native save dialog.",
-      "exportMarkdown": "Export Markdown",
-      "exportJson": "Export JSON",
+      "export": "导出",
+      "exportMarkdown": "导出 Markdown",
+      "exportJson": "导出 JSON",
       "exportComplete": "会议已导出",
-      "citation": "Transcript {{time}}",
-      "noGeneratedNotes": "No generated notes are available yet.",
-      "template": "Template: {{template}}",
-      "artifactRevision": "Template v{{templateVersion}} · source revision {{revision}}",
-      "summary": "Summary",
-      "topics": "Topics",
-      "none": "None",
-      "decisions": "Decisions",
-      "actions": "Action items",
-      "keyQuestions": "Key questions",
-      "risks": "Risks",
-      "followUp": "Follow-up",
-      "artifactUnavailable": "This generated revision is unavailable. The source transcript and manual notes remain local.",
-      "actionMeta": "Owner: {{owner}} · Due: {{due}}",
-      "unassigned": "Unassigned",
-      "noDueDate": "No due date",
-      "questions": "Ask this meeting",
-      "questionsDescription": "Answers use only this local meeting and cite the supporting transcript.",
-      "questionPlaceholder": "Ask a question about this meeting",
-      "ask": "Ask locally",
-      "noQuestions": "No saved local answers.",
-      "question": "Question",
-      "insufficientEvidence": "No supporting passage was found in this meeting.",
-      "forget": "Forget this answer",
-      "exactSearch": "Exact search",
-      "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
-      "searchPlaceholder": "Search this meeting",
-      "search": "Search",
-      "noSearchResults": "No exact local matches.",
+      "citation": "转录 {{time}}",
+      "noGeneratedNotes": "目前还没有可用的生成笔记。",
+      "template": "模板: {{template}}",
+      "summary": "摘要",
+      "topics": "话题",
+      "none": "无",
+      "decisions": "决定事项",
+      "actions": "行动项",
+      "keyQuestions": "关键问题",
+      "risks": "风险",
+      "followUp": "后续跟进",
+      "artifactUnavailable": "无法获取这个生成的修订版。原始转录和手动笔记仍保留在本地。",
+      "actionMeta": "负责人：{{owner}} · 截止：{{due}}",
+      "unassigned": "未分配",
+      "noDueDate": "无截止日期",
+      "questions": "向此会议提问",
+      "questionsDescription": "回答只使用这场本地会议，并引用支撑它的转录。",
+      "questionPlaceholder": "就这场会议提问",
+      "ask": "在本地提问",
+      "noQuestions": "没有保存的本地回答。",
+      "question": "问题",
+      "insufficientEvidence": "在这场会议里没有找到可以支撑的段落。",
+      "forget": "忘掉这条回答",
+      "exactSearch": "精确搜索",
+      "searchPlaceholder": "搜索这场会议",
+      "search": "搜索",
+      "noSearchResults": "没有完全匹配的本地结果。",
       "askUnavailable": "提问需要已完成的本地转录。",
       "asking": "正在向此会议提问…",
-      "captured": "录制于 {{time}}",
       "droppedFrames": "丢帧数：{{total}}",
       "hitKind": {
         "manualNote": "手动笔记",
@@ -2311,17 +2054,12 @@
     },
     "ledger": {
       "title": "台账",
-      "description": "这场会议的每条议题、它最后落到哪里，以及读出该状态所依据的转录引文。计数是测量得到的；状态是推断的。",
       "emptyTitle": "还没有从这场会议中读出台账",
       "emptyDescription": "台账与生成的笔记一同写出。重新生成笔记，即可按议题阅读这场对话。",
       "exportHtml": "导出台账页面",
       "exported": "台账已写入 {{path}}",
       "exportMissing": "这场会议没有可导出的台账。请先重新生成笔记。",
       "statThreads": "已了结的议题",
-      "statOpen": "未决",
-      "statDropped": "搁置",
-      "statCommitments": "承诺",
-      "statOpenLoops": "未答的问题",
       "statReceipts": "引文",
       "receiptsVerified": "已核对",
       "receiptsDegraded": "已移除 {{threads}} 条议题和 {{commitments}} 条承诺",
@@ -2359,40 +2097,26 @@
       }
     },
     "artifactState": {
-      "current": "Current",
-      "out_of_date": "Out of date",
-      "failed": "Generation failed"
+      "current": "最新",
+      "out_of_date": "已过时",
+      "failed": "生成失败"
     },
     "answerState": {
-      "supported": "Supported",
-      "insufficient_evidence": "Insufficient evidence",
-      "unavailable": "Unavailable",
-      "out_of_date": "Out of date",
-      "forgotten": "Forgotten"
+      "supported": "有依据",
+      "insufficient_evidence": "证据不足",
+      "unavailable": "不可用",
+      "out_of_date": "已过时",
+      "forgotten": "已忘掉"
     },
     "diarization": {
-      "not_requested": "Diarization not requested",
-      "model_unavailable": "Diarization model unavailable",
-      "downloading": "Downloading diarization model",
-      "running": "Separating speakers",
-      "succeeded": "Speaker assignments current",
-      "failed": "Speaker separation failed"
-    },
-    "trends": {
-      "title": "Meeting activity",
-      "loading": "Loading meeting trends…",
-      "error": "Couldn't load meeting trends.",
-      "unavailable": "Meeting trends are unavailable.",
-      "metricLabel": "Metric",
-      "metrics": {
-        "meetings": "Meetings",
-        "duration": "Captured time",
-        "transcript": "Transcript segments",
-        "actions": "Action items"
-      }
+      "not_requested": "未请求说话人分离",
+      "model_unavailable": "说话人分离模型不可用",
+      "downloading": "正在下载说话人分离模型",
+      "running": "正在分离说话人",
+      "succeeded": "说话人分配已是最新",
+      "failed": "说话人分离失败"
     },
     "list": {
-      "retentionHint": "保留策略：{{policy}}。可在 Settings > Privacy 中更改。",
       "searchLabel": "搜索会议",
       "searchPlaceholder": "按标题搜索",
       "clearFilters": "清除筛选",
@@ -2450,17 +2174,13 @@
     },
     "gate": {
       "title": "录制没有开始",
-      "description": "Sona 已创建会议，但一个指定要录制的来源不可用。",
       "readyTitle": "可以开始录制",
-      "readyDescription": "没有任何东西阻碍这次会议的采集。",
       "recordAnyway": "不用它也录制",
       "recordAnywayHint": "该记录会被标记为部分完整，缺失的来源仍会在记录中被点名。"
     },
     "analytics": {
       "title": "对话",
-      "description": "在这台 Mac 上，根据区分说话人的转写计算得出。没有任何东西被发送出去。",
       "noSpeech": "没有转写到任何语音，因此没有可衡量的内容。",
-      "talkShare": "说得最多",
       "longestMonologue": "最长的独白",
       "patience": "耐心",
       "patienceDetail": "回话前停顿的中位数",
@@ -2475,7 +2195,6 @@
       "noHits": "未被提及",
       "jumpToFirst": "查看第一次",
       "trackersTitle": "关键词追踪",
-      "trackersDescription": "在每一份会议转写中留意的短语。匹配是逐字的且不区分大小写，每次扫描都在这台 Mac 上运行。",
       "addTracker": "添加追踪词",
       "removeTracker": "移除追踪词",
       "noTrackers": "还没有追踪词。添加一个，开始统计某个短语出现的频率。",
@@ -2487,7 +2206,6 @@
     "notes": {
       "title": "我的笔记",
       "liveDescription": "想写得多粗略都行。这些笔记留在这台 Mac 上，并会引导会议结束时 Sona 生成的笔记。",
-      "reviewDescription": "你自己的笔记会引导生成的笔记强调什么。它们绝不会被引用或作为出处列出。",
       "placeholder": "任何值得记下的东西：名字、数字、需要跟进的事",
       "unsaved": "尚未保存",
       "saving": "正在保存…",
@@ -2495,7 +2213,6 @@
       "conflict": "这些笔记在别处被改动过。请重新打开会议以加载当前版本。",
       "reenhance": "用我的笔记再润色一次",
       "enhancing": "正在重建…",
-      "enhanced": "笔记已重建。",
       "enhanceFailed": "Sona 无法重建笔记。请重新打开会议后再试。",
       "catchUp": "帮我快速回顾",
       "catchingUp": "正在回顾…",
@@ -2509,11 +2226,11 @@
         "interview": "面试",
         "sales_call": "销售通话",
         "standup": "站会"
-      }
+      },
+      "template": "模板"
     },
     "detection": {
       "title": "检测会议",
-      "description": "Sona 会留意通话，并提出替你做笔记。它绝不会自己开始录制。",
       "loading": "正在读取检测状态…",
       "prompt": {
         "calendar": "{{title}} 即将开始",
@@ -2531,21 +2248,17 @@
       },
       "pane": {
         "title": "即将开始",
-        "description": "在你从这里开始之前，Sona 不会录制。",
-        "countdown": "{{seconds}} 秒后开始",
-        "notYetRecording": "未在录制"
+        "countdown": "{{seconds}} 秒后开始"
       },
       "calendar": {
         "label": "使用我的日历",
         "description": "在有两位或更多参与者的日程开始前一分钟显示倒计时。由于 Apple 不提供只读授权，macOS 首次会请求完整日历访问权限。"
       },
       "anyMic": {
-        "label": "任何使用麦克风时都询问",
-        "description": "包括语音备忘录、音乐应用，以及其他任何打开麦克风的东西。关闭后，提示只限于已知的会议应用。"
+        "label": "任何使用麦克风时都询问"
       },
       "autoStart": {
-        "label": "倒计时显示时打开会议",
-        "description": "当日程开始而你已经在看它的倒计时时，跳过通知。录制什么仍由你确认。"
+        "label": "倒计时显示时打开会议"
       },
       "apps": {
         "label": "会议应用",
@@ -2555,7 +2268,6 @@
       },
       "state": {
         "title": "检测能看到什么",
-        "description": "检测大部分时间都很安静。原因如下。",
         "calendarDenied": "未授予日历访问权限，因此只有麦克风这条路径在运行。",
         "notificationsDenied": "Sona 的通知已关闭，因此提示只出现在应用内。",
         "bluetoothCaveat": "会议应用已打开，但没有任何东西报告正在使用麦克风。蓝牙耳机常常不报告，所以如果有会议正在进行，请自己开始录制。",
@@ -2623,14 +2335,12 @@
   },
   "agentPanel": {
     "open": "代理",
-    "loading": "连接中…",
     "retry": "重试",
     "cancel": "取消",
     "apply": "应用",
     "undo": "撤销",
     "panelToggle": "关闭代理面板",
     "conversationLabel": "对话",
-    "proposalLabel": "建议的更改",
     "proposalTitle": "建议的更改",
     "empty": "询问 Sona 设置。任何更改前，建议都会显示在此处供审阅。",
     "inputPlaceholder": "询问 Sona…",
@@ -2647,92 +2357,16 @@
       "error": "代理面板不可用。"
     }
   },
-  "analytics": {
-    "range": {
-      "label": "Range",
-      "days_7": "7 days",
-      "days_30": "30 days",
-      "days_180": "6 months"
-    },
-    "delta": {
-      "new": "New",
-      "flat": "No change",
-      "unavailable": "Unavailable",
-      "change": "{{value}} vs previous period"
-    },
-    "duration": {
-      "minutes": "{{value}} min",
-      "hours": "{{value}} h"
-    },
-    "chart": {
-      "description": "{{metric}} for {{range}}",
-      "empty": "No activity yet"
-    }
-  },
   "overview": {
-    "sources": {
-      "title": "Sources",
-      "description": "Where the recordings in this range came from.",
-      "microphone": "Microphone",
-      "file": "File import",
-      "legacy": "Legacy",
-      "empty": "No recordings in this range.",
-      "meetings": "会议",
-      "meetingsUnavailable": "会议存储不可用，因此此处不统计会议。"
-    },
-    "recent": {
-      "title": "Recent activity",
-      "history": "Dictation",
-      "meeting": "Meeting",
-      "viewAll": "查看全部",
-      "words": "{{count}} 词",
-      "emptyRange": "最近 30 天没有口述或会议。",
-      "failedCommand": "{{command}} 失败",
-      "failedCommandWithDetail": "{{command}} 失败：{{detail}}"
-    },
     "hero": {
-      "ready": "Ready",
-      "recording": "Listening",
-      "newMeeting": "New meeting",
-      "importAudio": "Import audio",
-      "mode": "模式：{{name}}",
-      "setShortcut": "在设置中设定听写快捷键，即可在任意应用中录入。",
-      "setShortcutAction": "设置一个快捷键",
+      "ready": "就绪",
+      "recording": "正在聆听",
+      "newMeeting": "新会议",
+      "importAudio": "导入音频",
+      "gestureTapHold": "轻按切换 · 长按说话",
+      "gestureTapOnly": "轻按切换",
       "shortcutAction": "修改口述快捷键",
-      "gestureTapHold": "轻按切换，长按说话。",
-      "gestureTapOnly": "轻按切换。"
-    },
-    "actions": {
-      "dictate": "Dictate",
-      "unavailable": "Shortcut unavailable"
-    },
-    "chart": {
-      "day": "{{date}} · 听写 {{dictations}}",
-      "dayWithMeetings": "{{date}} · 听写 {{dictations}} · 会议 {{meetings}}",
-      "legend": "每日听写次数",
-      "peak": "最繁忙的一天 {{peak}}",
-      "summary": "{{from}} 至 {{to}} 的每日听写次数。共 {{total}} 次，最繁忙的一天 {{peak}}。"
-    },
-    "empty": {
-      "action": "打开资料库",
-      "description": "在任意应用中按住听写快捷键，Sona 会输入你所说的内容。完成第一次听写后，使用统计和最近记录会显示在这里。",
-      "title": "暂无记录"
-    },
-    "stats": {
-      "activeDays": "{{total}} 天中活跃 {{active}} 天",
-      "allTime": "累计 {{total}}",
-      "dictations": "听写",
-      "dictationsAllTime": "听写，累计",
-      "error": "Sona 无法读取你的使用历史。",
-      "range": "{{from}} 至 {{to}}",
-      "rangeUnavailable": "无法读取最近 30 天的数据，因此这里显示的是累计总量。",
-      "speaking": "讲话时长",
-      "speakingAllTime": "讲话时长，累计",
-      "streak": "当前连续天数",
-      "tiles": "使用概况",
-      "title": "活动",
-      "words": "字数",
-      "wordsAllTime": "字数，累计"
+      "setShortcutAction": "设置一个快捷键"
     },
     "update": {
       "available": "Sona {{latest}} 已可用。当前安装的是 {{current}}。",
@@ -2740,122 +2374,98 @@
       "failed": "无法检查更新。",
       "failedWithReason": "无法检查更新：{{reason}}",
       "view": "查看发布"
-    },
-    "instrument": {
-      "label": "录音仪表盘",
-      "engine": "引擎",
-      "input": "输入",
-      "shortcut": "快捷键",
-      "mode": "模式",
-      "loaded": "已加载",
-      "unloaded": "未加载",
-      "notMeasured": "未测量",
-      "unbound": "未设置",
-      "gestureTapHold": "轻按 · 长按",
-      "gestureTap": "轻按",
-      "channel": "ch {{channel}}",
-      "channels": "{{count}} ch",
-      "rate": "{{kilohertz}} kHz",
-      "systemDefault": "系统默认",
-      "decode": "解码 {{factor}}"
     }
   },
   "cloudSync": {
-    "title": "Cloud Sync",
     "account": {
-      "title": "Cloud Sync",
-      "description": "Meetings stay on this device until you set up sync.",
+      "title": "云同步",
       "status": {
-        "loading": "Checking sync…",
-        "local": "Local only",
-        "ready": "Sync active",
-        "paused": "Sync paused",
-        "attention": "Sync needs attention",
-        "unavailable": "Sync unavailable"
+        "loading": "检查中…",
+        "local": "仅本机",
+        "ready": "已启用",
+        "paused": "已暂停",
+        "attention": "需要处理",
+        "unavailable": "不可用"
       },
-      "pending": "{{count}} pending",
-      "pause": "Pause sync",
-      "resume": "Resume sync"
-    },
-    "disclosure": {
-      "title": "Set up or recover sync",
-      "description": "Connect an endpoint or pair another device.",
-      "notice": "Setup is optional. Meeting data stays local until you complete it."
+      "pending": "{{count}} 项待处理",
+      "pause": "暂停同步",
+      "resume": "继续同步"
     },
     "setup": {
-      "title": "Set up a sync account",
-      "endpoint": "Endpoint",
-      "bootstrapSecret": "Bootstrap secret",
-      "submit": "Set up sync"
+      "title": "设置同步账户",
+      "endpoint": "端点",
+      "bootstrapSecret": "引导密钥",
+      "submit": "设置同步"
     },
     "recovery": {
-      "title": "Recover a sync account",
-      "code": "Recovery code",
-      "submit": "Recover account",
-      "generatedCode": "Save this recovery code now",
-      "oneTime": "Sona shows this code once and does not store it."
+      "title": "恢复同步账户",
+      "code": "恢复码",
+      "submit": "恢复账户",
+      "generatedCode": "立即保存这个恢复码",
+      "oneTime": "Sona 只会显示这个恢复码一次，并且不会保存它。"
     },
     "pairing": {
-      "title": "Pair a device",
-      "vaultId": "Vault ID",
-      "createOffer": "Create pairing offer",
-      "currentOffer": "Pairing offer",
-      "approve": "Approve this offer",
-      "receivedOffer": "Offer from another device",
-      "accept": "Accept offer"
+      "title": "配对设备",
+      "vaultId": "保管库 ID",
+      "createOffer": "创建配对提议",
+      "currentOffer": "配对提议",
+      "approve": "批准这个提议",
+      "receivedOffer": "来自另一台设备的提议",
+      "accept": "接受提议"
     },
     "errors": {
-      "portable_unavailable": "Cloud Sync is unavailable in portable mode.",
-      "secret_unavailable": "The native secure store is unavailable.",
-      "setup_required": "Set up Cloud Sync before using this action.",
-      "auth_required": "Cloud sign-in is required.",
-      "quota": "Cloud storage quota has been reached.",
-      "integrity_failure": "The cloud operation could not be verified.",
-      "conflict": "This meeting has a sync conflict.",
-      "unsupported_protocol": "This device does not support the cloud protocol.",
-      "transient": "Cloud Sync is temporarily unavailable.",
-      "invalid_expiry": "Choose a future expiry.",
-      "invalid_offer": "The pairing offer is incomplete or invalid.",
-      "unexpected": "The cloud operation failed."
+      "portable_unavailable": "便携模式下无法使用云同步。",
+      "secret_unavailable": "系统安全存储不可用。",
+      "setup_required": "使用此操作前请先设置云同步。",
+      "auth_required": "需要登录云端。",
+      "quota": "已达到云端存储配额。",
+      "integrity_failure": "无法校验该云端操作。",
+      "conflict": "这场会议存在同步冲突。",
+      "unsupported_protocol": "此设备不支持该云端协议。",
+      "transient": "云同步暂时不可用。",
+      "invalid_expiry": "请选择一个将来的到期时间。",
+      "invalid_offer": "配对提议不完整或无效。",
+      "unexpected": "云端操作失败。"
     },
     "meeting": {
-      "title": "Cloud Sync",
+      "title": "云同步",
       "status": {
-        "loading": "Checking sync…",
-        "local": "Local only",
-        "queued": "Queued",
-        "uploading": "Uploading",
-        "committed": "Synced",
-        "conflict": "Conflict",
-        "pending_deletion": "Removal pending",
-        "deleted": "Removed",
-        "paused": "Paused",
-        "auth_required": "Sign-in required",
-        "quota": "Quota reached",
-        "integrity_failure": "Verification failed",
-        "unavailable": "Sync unavailable"
+        "loading": "正在检查同步…",
+        "local": "仅本机",
+        "queued": "排队中",
+        "uploading": "正在上传",
+        "committed": "已同步",
+        "conflict": "冲突",
+        "pending_deletion": "等待移除",
+        "deleted": "已移除",
+        "paused": "已暂停",
+        "auth_required": "需要登录",
+        "quota": "已达配额",
+        "integrity_failure": "校验失败",
+        "unavailable": "同步不可用"
       },
-      "shareCount": "{{count}} shares",
-      "retryScheduled": "Retry scheduled",
-      "retry": "Retry sync",
-      "keepLocal": "Keep this device's copy",
-      "useRemote": "Use the cloud copy",
-      "expiresAt": "Share expiry",
+      "shareCount": "{{count}} 个共享",
+      "retryScheduled": "已安排重试",
+      "retry": "重试同步",
+      "keepLocal": "保留本设备的副本",
+      "useRemote": "使用云端副本",
+      "expiresAt": "共享有效期",
       "bundle": {
-        "fileFilter": "Sona share",
-        "export": "Export .sona file",
-        "import": "Import .sona file",
-        "exported": "Saved to {{path}}",
-        "imported": "Imported meeting {{sessionId}}"
+        "fileFilter": "Sona 共享",
+        "export": "导出 .sona 文件",
+        "import": "导入 .sona 文件",
+        "exported": "已保存到 {{path}}",
+        "imported": "已导入会议 {{sessionId}}"
       },
       "browser": {
-        "create": "Create browser share",
-        "revoke": "Revoke browser share"
+        "create": "创建浏览器共享",
+        "revoke": "撤销浏览器共享",
+        "revokeConfirm": "撤销后，持有此链接的任何人都会立即失去访问权限。"
       }
     }
   },
   "topNav": {
-    "capture": "Capture",
-    "library": "Library"
+    "capture": "录音",
+    "library": "资料库"
   }
 }

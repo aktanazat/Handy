@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import {
@@ -6,11 +6,28 @@ import {
   type CloudBrowserShareResult,
   type CloudConflictChoice,
   type CloudMeetingStatus,
+  type CloudObjectState,
   type CloudShareResult,
   type MeetingSessionId,
 } from "@/bindings";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/vg/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/vg/dialog";
+import { Input } from "@/components/vg/input";
+import {
+  Microlabel,
+  Notice,
+  SettingsCard,
+  SettingsField,
+} from "@/components/settings/rows";
+import { CloudDisclosure } from "./CloudDisclosure";
 import {
   defaultCloudShareExpiry,
   isRetryableCloudState,
@@ -227,6 +244,9 @@ interface CloudMeetingStatusSectionProps {
   onResolveConflict: (choice: CloudConflictChoice) => void;
 }
 
+/* The state word lives on the disclosure summary, so this row carries only
+ * what the summary cannot: how many shares exist, whether a retry is already
+ * scheduled, and the actions for the state. */
 const CloudMeetingStatusSection: React.FC<CloudMeetingStatusSectionProps> = ({
   status,
   pending,
@@ -238,56 +258,116 @@ const CloudMeetingStatusSection: React.FC<CloudMeetingStatusSectionProps> = ({
   if (!status) return null;
 
   return (
-    <>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-secondary">
-        <span>{t("cloudSync.meeting.status." + status.state)}</span>
-        <span>
+    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+        <Microlabel className="tabular-nums">
           {t("cloudSync.meeting.shareCount", { count: status.share_count })}
-        </span>
+        </Microlabel>
         {status.retry_at_utc_ms ? (
           <time dateTime={new Date(status.retry_at_utc_ms).toISOString()}>
-            {t("cloudSync.meeting.retryScheduled")}
+            <Microlabel>{t("cloudSync.meeting.retryScheduled")}</Microlabel>
           </time>
         ) : null}
       </div>
-      {isRetryableCloudState(status.state) ? (
+      <div className="flex flex-wrap gap-2">
+        {isRetryableCloudState(status.state) ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={pending !== null}
+            onClick={onRetry}
+          >
+            {t("cloudSync.meeting.retry")}
+          </Button>
+        ) : null}
+        {status.state === "conflict" ? (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={pending !== null}
+              onClick={() => onResolveConflict("keep_local")}
+            >
+              {t("cloudSync.meeting.keepLocal")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={pending !== null}
+              onClick={() => onResolveConflict("use_remote")}
+            >
+              {t("cloudSync.meeting.useRemote")}
+            </Button>
+          </>
+        ) : null}
+      </div>
+    </div>
+  );
+};
+
+/* Revoking kills a link other people already hold, and nothing in the button
+ * says so — the one action here that has to be confirmed. The dialog states
+ * the consequence, so the row does not. */
+const RevokeShareDialog: React.FC<{
+  pending: PendingAction;
+  onRevoke: () => void;
+}> = ({ pending, onRevoke }) => {
+  const { t } = useTranslation();
+  /* `confirming`, not `open`: this file imports the native dialog's `open`. */
+  const [confirming, setConfirming] = useState(false);
+
+  return (
+    <Dialog open={confirming} onOpenChange={setConfirming}>
+      <DialogTrigger asChild>
         <Button
           type="button"
-          variant="secondary"
+          variant="outline"
           size="sm"
+          className="text-red-900"
           disabled={pending !== null}
-          onClick={onRetry}
         >
-          {t("cloudSync.meeting.retry")}
+          {t("cloudSync.meeting.browser.revoke")}
         </Button>
-      ) : null}
-      {status.state === "conflict" ? (
-        <div className="flex flex-wrap gap-2">
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[420px]">
+        <DialogHeader>
+          <DialogTitle>{t("cloudSync.meeting.browser.revoke")}</DialogTitle>
+          <DialogDescription>
+            {t("cloudSync.meeting.browser.revokeConfirm")}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
           <Button
             type="button"
-            variant="secondary"
+            variant="outline"
             size="sm"
-            disabled={pending !== null}
-            onClick={() => onResolveConflict("keep_local")}
+            onClick={() => setConfirming(false)}
           >
-            {t("cloudSync.meeting.keepLocal")}
+            {t("common.cancel")}
           </Button>
           <Button
             type="button"
-            variant="secondary"
+            variant="destructive"
             size="sm"
             disabled={pending !== null}
-            onClick={() => onResolveConflict("use_remote")}
+            onClick={() => {
+              setConfirming(false);
+              onRevoke();
+            }}
           >
-            {t("cloudSync.meeting.useRemote")}
+            {t("cloudSync.meeting.browser.revoke")}
           </Button>
-        </div>
-      ) : null}
-    </>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 
 interface CloudMeetingShareSectionProps {
+  id: string;
   expiry: string;
   onExpiryChange: (value: string) => void;
   pending: PendingAction;
@@ -301,6 +381,7 @@ interface CloudMeetingShareSectionProps {
 }
 
 const CloudMeetingShareSection: React.FC<CloudMeetingShareSectionProps> = ({
+  id,
   expiry,
   onExpiryChange,
   pending,
@@ -316,18 +397,21 @@ const CloudMeetingShareSection: React.FC<CloudMeetingShareSectionProps> = ({
 
   return (
     <>
-      <label className="block space-y-1 text-xs font-medium text-text-secondary">
-        <span>{t("cloudSync.meeting.expiresAt")}</span>
+      <SettingsField
+        label={t("cloudSync.meeting.expiresAt")}
+        controlId={id + "-expiry"}
+      >
         <Input
+          id={id + "-expiry"}
           type="datetime-local"
           value={expiry}
           onChange={(event) => onExpiryChange(event.target.value)}
         />
-      </label>
-      <div className="flex flex-wrap gap-2">
+      </SettingsField>
+      <div className="flex flex-wrap justify-end gap-2 px-4 py-2.5">
         <Button
           type="button"
-          variant="secondary"
+          variant="outline"
           size="sm"
           disabled={pending !== null}
           onClick={onExportBundle}
@@ -336,7 +420,7 @@ const CloudMeetingShareSection: React.FC<CloudMeetingShareSectionProps> = ({
         </Button>
         <Button
           type="button"
-          variant="secondary"
+          variant="outline"
           size="sm"
           disabled={pending !== null}
           onClick={onImportBundle}
@@ -345,7 +429,7 @@ const CloudMeetingShareSection: React.FC<CloudMeetingShareSectionProps> = ({
         </Button>
         <Button
           type="button"
-          variant="secondary"
+          variant="outline"
           size="sm"
           disabled={pending !== null}
           onClick={onCreateBrowserShare}
@@ -353,53 +437,76 @@ const CloudMeetingShareSection: React.FC<CloudMeetingShareSectionProps> = ({
           {t("cloudSync.meeting.browser.create")}
         </Button>
       </div>
-      {bundle ? (
-        <p className="text-xs text-text-secondary" role="status">
-          {t("cloudSync.meeting.bundle.exported", { path: bundle.file_path })}
-        </p>
-      ) : null}
-      {importedSessionId ? (
-        <p className="text-xs text-text-secondary" role="status">
-          {t("cloudSync.meeting.bundle.imported", {
-            sessionId: importedSessionId,
-          })}
-        </p>
+      {bundle || importedSessionId ? (
+        <div className="flex flex-col gap-1.5 px-4 py-2.5">
+          {bundle ? (
+            <Notice tone="info">
+              {t("cloudSync.meeting.bundle.exported", {
+                path: bundle.file_path,
+              })}
+            </Notice>
+          ) : null}
+          {importedSessionId ? (
+            <Notice tone="info">
+              {t("cloudSync.meeting.bundle.imported", {
+                sessionId: importedSessionId,
+              })}
+            </Notice>
+          ) : null}
+        </div>
       ) : null}
       {browserShare ? (
-        <section
-          className="space-y-2 rounded-[var(--radius-control)] border border-border p-3"
-          aria-live="polite"
-        >
+        <div className="flex flex-col gap-2 px-4 py-3" aria-live="polite">
           <a
-            className="block break-all text-xs text-text-primary underline underline-offset-2"
+            className="font-mono text-xs break-all text-blue-900 underline underline-offset-2 transition-colors hover:text-gray-1000"
             href={browserShare.share_url}
             target="_blank"
             rel="noreferrer"
           >
             {browserShare.share_url}
           </a>
-          <p className="text-xs leading-4 text-text-secondary">
-            {browserShare.trust_disclosure}
-          </p>
-          <Button
-            type="button"
-            variant="danger-ghost"
-            size="sm"
-            disabled={pending !== null}
-            onClick={onRevokeBrowserShare}
-          >
-            {t("cloudSync.meeting.browser.revoke")}
-          </Button>
-        </section>
+          <Notice live={false}>{browserShare.trust_disclosure}</Notice>
+          <div className="flex justify-end">
+            <RevokeShareDialog
+              pending={pending}
+              onRevoke={onRevokeBrowserShare}
+            />
+          </div>
+        </div>
       ) : null}
     </>
   );
 };
 
+/* Closed, the summary is the whole signal, so a state that needs the reader
+ * says so in the type. The word is always present; colour never carries the
+ * meaning alone. Keyed by every state the row can print — the object states
+ * the backend can report plus the row's own loading/unavailable — so a new
+ * backend state fails compilation here instead of rendering unclassed. */
+const MEETING_STATE_CLASSES = {
+  loading: "text-gray-700",
+  local: "text-gray-800",
+  queued: "text-gray-800",
+  uploading: "text-gray-800",
+  deleted: "text-gray-800",
+  committed: "text-gray-1000",
+  paused: "text-amber-900",
+  pending_deletion: "text-amber-900",
+  conflict: "text-red-900",
+  auth_required: "text-red-900",
+  quota: "text-red-900",
+  integrity_failure: "text-red-900",
+  unavailable: "text-red-900",
+} satisfies Record<CloudObjectState | "loading" | "unavailable", string>;
+
+/* Sharing a meeting is a task, not a setting, so it stays a single row on the
+ * review page until it is asked for — with the sync state on that row, because
+ * that is the reason a reader would open it. */
 export const CloudMeetingActions: React.FC<CloudMeetingActionsProps> = ({
   sessionId,
 }) => {
   const { t } = useTranslation();
+  const id = useId();
   const actions = useCloudMeetingActions(
     sessionId,
     t("cloudSync.meeting.bundle.fileFilter"),
@@ -413,12 +520,15 @@ export const CloudMeetingActions: React.FC<CloudMeetingActionsProps> = ({
         : "local";
 
   return (
-    <details className="settings-disclosure meeting-cloud-sync">
-      <summary>
-        <span>{t("cloudSync.meeting.title")}</span>
-        <span>{t("cloudSync.meeting.status." + statusLabel)}</span>
-      </summary>
-      <div className="settings-disclosure-body space-y-3">
+    <SettingsCard className="overflow-hidden">
+      <CloudDisclosure
+        label={t("cloudSync.meeting.title")}
+        fact={
+          <span className={MEETING_STATE_CLASSES[statusLabel]}>
+            {t("cloudSync.meeting.status." + statusLabel)}
+          </span>
+        }
+      >
         <CloudMeetingStatusSection
           status={actions.status}
           pending={actions.pending}
@@ -426,6 +536,7 @@ export const CloudMeetingActions: React.FC<CloudMeetingActionsProps> = ({
           onResolveConflict={(choice) => void actions.resolveConflict(choice)}
         />
         <CloudMeetingShareSection
+          id={id}
           expiry={actions.expiry}
           onExpiryChange={actions.setExpiry}
           pending={actions.pending}
@@ -438,11 +549,13 @@ export const CloudMeetingActions: React.FC<CloudMeetingActionsProps> = ({
           onRevokeBrowserShare={() => void actions.revokeBrowserShare()}
         />
         {actions.error ? (
-          <p className="text-xs text-danger" role="alert">
-            {t("cloudSync.errors." + actions.error)}
-          </p>
+          <div className="px-4 py-2.5">
+            <Notice tone="danger" live={false}>
+              <span role="alert">{t("cloudSync.errors." + actions.error)}</span>
+            </Notice>
+          </div>
         ) : null}
-      </div>
-    </details>
+      </CloudDisclosure>
+    </SettingsCard>
   );
 };

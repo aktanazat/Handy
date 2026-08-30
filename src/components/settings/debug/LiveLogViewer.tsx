@@ -1,14 +1,17 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
-import { SettingContainer } from "../../ui/SettingContainer";
-import { Button } from "../../ui/Button";
+import { SettingsField } from "@/components/settings/rows";
+import { Button } from "@/components/vg/button";
+import { ScrollArea } from "@/components/vg/scroll-area";
 
 // Maximum number of lines kept in memory / rendered at once.
 const MAX_LINES = 1000;
 // Incoming logs are buffered and flushed on this cadence so a burst of log
 // activity can never trigger a render per line.
 const FLUSH_INTERVAL_MS = 250;
+// How close to the bottom still counts as "following the tail".
+const PIN_SLACK_PX = 24;
 
 // Payload emitted by tauri-plugin-log's `Webview` target on the `log://log`
 // event. `level` is the numeric LogLevel repr: Trace=1, Debug=2, Info=3,
@@ -34,44 +37,45 @@ interface LogLevelMeta {
 /** The numeric `level` reprs tauri-plugin-log emits, per `LogEventPayload`. */
 type LogLevelRepr = 1 | 2 | 3 | 4 | 5;
 
-/* Level accents on semantic tokens only. The tag is a mono microlabel, the
- * message carries the contrast: an ERROR line has to be findable while
- * scrolling, and TRACE has to stay out of the way.
+/* Levels are set in the grey ladder, and only the two levels that mean
+ * something went wrong get a hue: an ERROR line has to be findable while
+ * scrolling and TRACE has to stay out of the way. There is no success colour
+ * in this palette, so INFO is simply the highest contrast grey.
  *
  * `satisfies` keeps this exhaustive over `LogLevelRepr` while leaving the keys
  * literal, so the lookup below is total without an index signature. */
 const LEVEL_META = {
   1: {
     tag: "TRACE",
-    tagClass: "text-text-tertiary",
-    msgClass: "text-text-tertiary",
+    tagClass: "text-gray-700",
+    msgClass: "text-gray-700",
   },
   2: {
     tag: "DEBUG",
-    tagClass: "text-text-tertiary",
-    msgClass: "text-text-secondary",
+    tagClass: "text-gray-700",
+    msgClass: "text-gray-900",
   },
   3: {
     tag: "INFO",
-    tagClass: "text-text-secondary",
-    msgClass: "text-text-primary",
+    tagClass: "text-gray-800",
+    msgClass: "text-gray-1000",
   },
   4: {
     tag: "WARN",
-    tagClass: "text-warning",
-    msgClass: "text-text-primary",
+    tagClass: "text-amber-900",
+    msgClass: "text-gray-1000",
   },
   5: {
     tag: "ERROR",
-    tagClass: "text-error",
-    msgClass: "text-error",
+    tagClass: "text-red-900",
+    msgClass: "text-red-900",
   },
 } satisfies Record<LogLevelRepr, LogLevelMeta>;
 
 const UNKNOWN_META: LogLevelMeta = {
   tag: "LOG",
-  tagClass: "text-text-tertiary",
-  msgClass: "text-text-primary",
+  tagClass: "text-gray-700",
+  msgClass: "text-gray-1000",
 };
 
 /* `level` is a bare number off the event payload, so it is decoded against the
@@ -89,15 +93,7 @@ const formatTime = (date: Date): string => {
   )}`;
 };
 
-interface LiveLogViewerProps {
-  descriptionMode?: "tooltip" | "inline";
-  grouped?: boolean;
-}
-
-export const LiveLogViewer: React.FC<LiveLogViewerProps> = ({
-  descriptionMode = "tooltip",
-  grouped = false,
-}) => {
+export const LiveLogViewer: React.FC = () => {
   const { t } = useTranslation();
   const [logs, setLogs] = useState<LogLine[]>([]);
   const [paused, setPaused] = useState(false);
@@ -107,11 +103,20 @@ export const LiveLogViewer: React.FC<LiveLogViewerProps> = ({
   const idRef = useRef(0);
   const pausedRef = useRef(false);
   const pinnedRef = useRef(true);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     pausedRef.current = paused;
   }, [paused]);
+
+  /* Radix scrolls its viewport, not its root, and the kit renders that viewport
+   * itself — so the scroller is resolved from the root by its data-slot rather
+   * than through a prop the kit does not expose. */
+  const attachRoot = useCallback((node: HTMLDivElement | null) => {
+    viewportRef.current =
+      node?.querySelector<HTMLElement>('[data-slot="scroll-area-viewport"]') ??
+      null;
+  }, []);
 
   // Subscribe to the backend log stream. Lines land in a ref buffer rather than
   // state so high log volume never overwhelms React.
@@ -152,19 +157,27 @@ export const LiveLogViewer: React.FC<LiveLogViewerProps> = ({
     return () => clearInterval(interval);
   }, []);
 
+  /* Reading the scroll offset on a native listener keeps the tail-following
+   * flag off React's synthetic path: `scroll` does not bubble, and the element
+   * that fires it is inside the kit's markup. */
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const handleScroll = () => {
+      pinnedRef.current =
+        el.scrollHeight - el.scrollTop - el.clientHeight < PIN_SLACK_PX;
+    };
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, []);
+
   // Keep the view pinned to the latest line unless the user has scrolled up.
   useEffect(() => {
-    if (pinnedRef.current && scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const el = viewportRef.current;
+    if (pinnedRef.current && el) {
+      el.scrollTop = el.scrollHeight;
     }
   }, [logs]);
-
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    pinnedRef.current = distanceFromBottom < 24;
-  }, []);
 
   const handleClear = useCallback(() => {
     pendingRef.current = [];
@@ -186,93 +199,77 @@ export const LiveLogViewer: React.FC<LiveLogViewerProps> = ({
   }, [logs]);
 
   return (
-    <SettingContainer
-      title={t("settings.debug.liveLogs.title")}
-      description={t("settings.debug.liveLogs.description")}
-      descriptionMode={descriptionMode}
-      grouped={grouped}
-      layout="stacked"
+    <SettingsField
+      label={t("settings.debug.liveLogs.title")}
+      hint={t("settings.debug.liveLogs.description")}
+      fact={t("settings.debug.liveLogs.lineCount", { count: logs.length })}
     >
-      <div className="mb-2 flex items-center justify-between gap-2">
-        {/* The dot never carries the state on its own — the word beside it
-         * does, so the header still reads in greyscale. */}
-        <div className="flex min-w-0 items-center gap-2">
-          <span
-            aria-hidden="true"
-            className={`inline-block size-1.5 shrink-0 rounded-full ${
-              paused ? "bg-text-tertiary" : "animate-pulse bg-danger"
-            }`}
-          />
-          <span className="microlabel shrink-0">
-            {paused
-              ? t("settings.debug.liveLogs.paused")
-              : t("settings.debug.liveLogs.live")}
-          </span>
-          <span className="truncate font-mono text-[11px] text-text-tertiary tabular-nums">
-            {t("settings.debug.liveLogs.lineCount", { count: logs.length })}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setPaused((p) => !p)}
-          >
-            {paused
-              ? t("settings.debug.liveLogs.resume")
-              : t("settings.debug.liveLogs.pause")}
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleCopy}
-            disabled={logs.length === 0}
-          >
-            {copied ? t("settings.debug.liveLogs.copied") : t("common.copy")}
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleClear}
-            disabled={logs.length === 0}
-          >
-            {t("common.clear")}
-          </Button>
-        </div>
+      {/* Whether the stream is running is printed once, by the button that
+       * changes it: "Pause" can only mean it is live. */}
+      <div className="mb-2 flex items-center justify-end gap-1.5">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setPaused((p) => !p)}
+        >
+          {paused
+            ? t("settings.debug.liveLogs.resume")
+            : t("settings.debug.liveLogs.pause")}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void handleCopy()}
+          disabled={logs.length === 0}
+        >
+          {copied ? t("settings.debug.liveLogs.copied") : t("common.copy")}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleClear}
+          disabled={logs.length === 0}
+        >
+          {t("common.clear")}
+        </Button>
       </div>
 
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="inset-panel h-72 overflow-y-auto font-mono text-xs leading-relaxed select-text"
+      <ScrollArea
+        ref={attachRoot}
+        className="h-72 rounded-md border border-gray-alpha-400 bg-background-200"
       >
-        {logs.length === 0 ? (
-          <div className="text-text-tertiary select-none">
-            {t("settings.debug.liveLogs.empty")}
-          </div>
-        ) : (
-          logs.map((line) => {
-            const meta = metaFor(line.level);
-            return (
-              <div key={line.id} className="flex gap-2">
-                <span className="shrink-0 text-text-tertiary tabular-nums select-none">
-                  {line.time}
-                </span>
-                <span
-                  className={`${meta.tagClass} w-[3.5rem] shrink-0 tracking-[0.08em] select-none`}
-                >
-                  {meta.tag}
-                </span>
-                <span
-                  className={`${meta.msgClass} min-w-0 break-words whitespace-pre-wrap`}
-                >
-                  {line.message}
-                </span>
-              </div>
-            );
-          })
-        )}
-      </div>
-    </SettingContainer>
+        <div className="select-text p-2 font-mono text-[11px] leading-[18px]">
+          {logs.length === 0 ? (
+            <span className="text-gray-700 select-none">
+              {t("settings.debug.liveLogs.empty")}
+            </span>
+          ) : (
+            logs.map((line) => {
+              const meta = metaFor(line.level);
+              return (
+                <div key={line.id} className="flex gap-2">
+                  <span className="shrink-0 text-gray-700 tabular-nums select-none">
+                    {line.time}
+                  </span>
+                  {/* The column has to contain the widest tag, which is set in
+                   * px, so it is set in px too: as a rem it would shrink with
+                   * the root while `TRACE` did not. */}
+                  <span
+                    className={`${meta.tagClass} w-[49px] shrink-0 tracking-[0.08em] select-none`}
+                  >
+                    {meta.tag}
+                  </span>
+                  <span
+                    className={`${meta.msgClass} min-w-0 break-words whitespace-pre-wrap`}
+                  >
+                    {line.message}
+                  </span>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </ScrollArea>
+    </SettingsField>
   );
 };

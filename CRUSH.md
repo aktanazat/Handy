@@ -13,8 +13,8 @@ curl -o src-tauri/resources/models/silero_vad_v4.onnx https://blob.handy.compute
 ```bash
 bun run tauri dev              # Full app development
 CMAKE_POLICY_VERSION_MINIMUM=3.5 bun run tauri dev  # macOS with cmake fix
-bun run dev                     # Frontend only (Vite)
-bun run build                   # Build frontend
+bun run dev                     # Frontend only (next dev on :1420)
+bun run build                   # Static export to out/ (next build)
 bun run tauri build             # Production build
 ```
 

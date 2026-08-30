@@ -5,9 +5,16 @@ import {
   type CloudPairingOffer,
   type CloudSyncOverview,
 } from "@/bindings";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Textarea } from "@/components/ui/Textarea";
+import { Button } from "@/components/vg/button";
+import { Input } from "@/components/vg/input";
+import { Textarea } from "@/components/vg/textarea";
+import {
+  Microlabel,
+  Notice,
+  SettingsField,
+  SettingsSection,
+} from "@/components/settings/rows";
+import { CloudDisclosure } from "./CloudDisclosure";
 import {
   type CloudUiError,
   parseCloudPairingOffer,
@@ -41,6 +48,17 @@ const getAccountStatus = (
   if (overview?.enabled) return overview.paused ? "paused" : "ready";
   return error ? "unavailable" : "local";
 };
+
+/* The state a reader checks before deciding whether anything here needs them.
+ * Colour follows the reason; the word is always present. */
+const ACCOUNT_STATUS_CLASSES = {
+  loading: "text-gray-700",
+  attention: "text-red-900",
+  unavailable: "text-red-900",
+  paused: "text-amber-900",
+  ready: "text-gray-1000",
+  local: "text-gray-800",
+} satisfies Record<AccountStatus, string>;
 
 const useCloudSyncPanel = () => {
   const {
@@ -217,6 +235,11 @@ const useCloudSyncPanel = () => {
   };
 };
 
+/** The action a task's fields lead up to, on its own hairline-separated row. */
+const TaskAction: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="flex justify-end px-4 py-2.5">{children}</div>
+);
+
 interface CloudSyncSetupSectionProps {
   id: string;
   endpoint: string;
@@ -239,39 +262,44 @@ const CloudSyncSetupSection: React.FC<CloudSyncSetupSectionProps> = ({
   const { t } = useTranslation();
 
   return (
-    <section className="space-y-2" aria-labelledby={id}>
-      <h3 id={id} className="text-sm font-medium text-text-primary">
-        {t("cloudSync.setup.title")}
-      </h3>
-      <label className="block space-y-1 text-xs font-medium text-text-secondary">
-        <span>{t("cloudSync.setup.endpoint")}</span>
+    <CloudDisclosure label={t("cloudSync.setup.title")}>
+      <SettingsField
+        label={t("cloudSync.setup.endpoint")}
+        controlId={id + "-endpoint"}
+      >
         <Input
+          id={id + "-endpoint"}
           type="url"
           value={endpoint}
           onChange={(event) => onEndpointChange(event.target.value)}
           autoComplete="url"
         />
-      </label>
-      <label className="block space-y-1 text-xs font-medium text-text-secondary">
-        <span>{t("cloudSync.setup.bootstrapSecret")}</span>
+      </SettingsField>
+      <SettingsField
+        label={t("cloudSync.setup.bootstrapSecret")}
+        controlId={id + "-secret"}
+      >
         <Input
+          id={id + "-secret"}
           type="password"
           value={bootstrapSecret}
           onChange={(event) => onBootstrapSecretChange(event.target.value)}
           autoComplete="off"
         />
-      </label>
-      <Button
-        type="button"
-        size="sm"
-        disabled={
-          pending !== null || endpoint.trim() === "" || bootstrapSecret === ""
-        }
-        onClick={onBootstrap}
-      >
-        {t("cloudSync.setup.submit")}
-      </Button>
-    </section>
+      </SettingsField>
+      <TaskAction>
+        <Button
+          type="button"
+          size="sm"
+          disabled={
+            pending !== null || endpoint.trim() === "" || bootstrapSecret === ""
+          }
+          onClick={onBootstrap}
+        >
+          {t("cloudSync.setup.submit")}
+        </Button>
+      </TaskAction>
+    </CloudDisclosure>
   );
 };
 
@@ -298,47 +326,48 @@ const CloudSyncRecoverySection: React.FC<CloudSyncRecoverySectionProps> = ({
 
   return (
     <>
+      {/* Shown once and never again, so it cannot live behind a disclosure:
+       * the row states the code, and the one sentence that earns its place
+       * says why there is no second chance. */}
       {recoveryCode ? (
-        <section
-          className="rounded-[var(--radius-control)] border border-border p-3"
-          aria-live="polite"
-        >
-          <h3 className="text-sm font-medium text-text-primary">
-            {t("cloudSync.recovery.generatedCode")}
-          </h3>
-          <code className="mt-2 block break-all text-xs text-text-primary">
-            {recoveryCode}
-          </code>
-          <p className="mt-2 text-xs leading-4 text-text-secondary">
-            {t("cloudSync.recovery.oneTime")}
-          </p>
-        </section>
+        <SettingsField label={t("cloudSync.recovery.generatedCode")}>
+          <div aria-live="polite">
+            <code className="block font-mono text-xs break-all text-gray-1000">
+              {recoveryCode}
+            </code>
+            <Notice tone="warning" className="mt-2">
+              {t("cloudSync.recovery.oneTime")}
+            </Notice>
+          </div>
+        </SettingsField>
       ) : null}
-      <section className="space-y-2" aria-labelledby={id}>
-        <h3 id={id} className="text-sm font-medium text-text-primary">
-          {t("cloudSync.recovery.title")}
-        </h3>
-        <label className="block space-y-1 text-xs font-medium text-text-secondary">
-          <span>{t("cloudSync.recovery.code")}</span>
+      <CloudDisclosure label={t("cloudSync.recovery.title")}>
+        <SettingsField
+          label={t("cloudSync.recovery.code")}
+          controlId={id + "-code"}
+        >
           <Input
+            id={id + "-code"}
             type="password"
             value={recoveryInput}
             onChange={(event) => onRecoveryInputChange(event.target.value)}
             autoComplete="off"
           />
-        </label>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          disabled={
-            pending !== null || endpoint.trim() === "" || recoveryInput === ""
-          }
-          onClick={onRecover}
-        >
-          {t("cloudSync.recovery.submit")}
-        </Button>
-      </section>
+        </SettingsField>
+        <TaskAction>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={
+              pending !== null || endpoint.trim() === "" || recoveryInput === ""
+            }
+            onClick={onRecover}
+          >
+            {t("cloudSync.recovery.submit")}
+          </Button>
+        </TaskAction>
+      </CloudDisclosure>
     </>
   );
 };
@@ -373,76 +402,91 @@ const CloudSyncPairingSection: React.FC<CloudSyncPairingSectionProps> = ({
   const { t } = useTranslation();
 
   return (
-    <section className="space-y-2" aria-labelledby={id}>
-      <h3 id={id} className="text-sm font-medium text-text-primary">
-        {t("cloudSync.pairing.title")}
-      </h3>
-      <label className="block space-y-1 text-xs font-medium text-text-secondary">
-        <span>{t("cloudSync.pairing.vaultId")}</span>
+    <CloudDisclosure label={t("cloudSync.pairing.title")}>
+      <SettingsField
+        label={t("cloudSync.pairing.vaultId")}
+        controlId={id + "-vault"}
+      >
         <Input
+          id={id + "-vault"}
           value={vaultId}
           onChange={(event) => onVaultIdChange(event.target.value)}
           autoComplete="off"
         />
-      </label>
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        disabled={
-          pending !== null || endpoint.trim() === "" || vaultId.trim() === ""
-        }
-        onClick={onCreateOffer}
-      >
-        {t("cloudSync.pairing.createOffer")}
-      </Button>
+      </SettingsField>
+      <TaskAction>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={
+            pending !== null || endpoint.trim() === "" || vaultId.trim() === ""
+          }
+          onClick={onCreateOffer}
+        >
+          {t("cloudSync.pairing.createOffer")}
+        </Button>
+      </TaskAction>
       {offer ? (
-        <div className="space-y-2">
-          <label className="block space-y-1 text-xs font-medium text-text-secondary">
-            <span>{t("cloudSync.pairing.currentOffer")}</span>
+        <>
+          <SettingsField
+            label={t("cloudSync.pairing.currentOffer")}
+            controlId={id + "-offer"}
+          >
             <Textarea
+              id={id + "-offer"}
               value={JSON.stringify(offer)}
               readOnly
-              variant="compact"
               aria-readonly="true"
+              className="font-mono text-xs"
             />
-          </label>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            disabled={pending !== null}
-            onClick={onApproveOffer}
-          >
-            {t("cloudSync.pairing.approve")}
-          </Button>
-        </div>
+          </SettingsField>
+          <TaskAction>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={pending !== null}
+              onClick={onApproveOffer}
+            >
+              {t("cloudSync.pairing.approve")}
+            </Button>
+          </TaskAction>
+        </>
       ) : null}
-      <label className="block space-y-1 text-xs font-medium text-text-secondary">
-        <span>{t("cloudSync.pairing.receivedOffer")}</span>
+      <SettingsField
+        label={t("cloudSync.pairing.receivedOffer")}
+        controlId={id + "-received"}
+      >
         <Textarea
+          id={id + "-received"}
           value={receivedOffer}
           onChange={(event) => onReceivedOfferChange(event.target.value)}
-          variant="compact"
+          className="font-mono text-xs"
         />
-      </label>
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        disabled={
-          pending !== null ||
-          endpoint.trim() === "" ||
-          receivedOffer.trim() === ""
-        }
-        onClick={onAcceptOffer}
-      >
-        {t("cloudSync.pairing.accept")}
-      </Button>
-    </section>
+      </SettingsField>
+      <TaskAction>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={
+            pending !== null ||
+            endpoint.trim() === "" ||
+            receivedOffer.trim() === ""
+          }
+          onClick={onAcceptOffer}
+        >
+          {t("cloudSync.pairing.accept")}
+        </Button>
+      </TaskAction>
+    </CloudDisclosure>
   );
 };
 
+/* Setup, recovery and pairing are one-time tasks, so each is a row until it is
+ * needed. The section's own line carries the only thing a reader checks on the
+ * way past: whether anything is syncing, and whether it is stuck. */
 export const CloudSyncPanel: React.FC = () => {
   const { t } = useTranslation();
   const id = useId();
@@ -454,31 +498,26 @@ export const CloudSyncPanel: React.FC = () => {
   );
 
   return (
-    <details className="settings-disclosure cloud-sync-panel">
-      <summary>
-        <span>{t("cloudSync.account.title")}</span>
-        <span className="flex items-center gap-2 text-xs text-text-secondary">
+    <SettingsSection
+      label={t("cloudSync.account.title")}
+      action={
+        <div className="flex items-center gap-3">
           <span role="status">
-            {t("cloudSync.account.status." + accountStatus)}
+            <Microlabel className={ACCOUNT_STATUS_CLASSES[accountStatus]}>
+              {t("cloudSync.account.status." + accountStatus)}
+            </Microlabel>
           </span>
           {cloud.overview?.enabled && cloud.overview.queued_objects > 0 ? (
-            <span className="tabular-nums text-text-tertiary">
+            <Microlabel className="tabular-nums">
               {t("cloudSync.account.pending", {
                 count: cloud.overview.queued_objects,
               })}
-            </span>
+            </Microlabel>
           ) : null}
-        </span>
-      </summary>
-      <div className="settings-disclosure-body space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs leading-4 text-text-secondary">
-            {t("cloudSync.disclosure.notice")}
-          </p>
           {cloud.overview?.enabled ? (
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
               size="sm"
               disabled={cloud.pending !== null}
               onClick={() => void cloud.togglePaused()}
@@ -491,43 +530,46 @@ export const CloudSyncPanel: React.FC = () => {
             </Button>
           ) : null}
         </div>
-        <CloudSyncSetupSection
-          id={id + "-setup"}
-          endpoint={cloud.endpoint}
-          onEndpointChange={cloud.setEndpoint}
-          bootstrapSecret={cloud.bootstrapSecret}
-          onBootstrapSecretChange={cloud.setBootstrapSecret}
-          pending={cloud.pending}
-          onBootstrap={() => void cloud.bootstrap()}
-        />
-        <CloudSyncRecoverySection
-          id={id + "-recover"}
-          recoveryCode={cloud.recoveryCode}
-          recoveryInput={cloud.recoveryInput}
-          onRecoveryInputChange={cloud.setRecoveryInput}
-          endpoint={cloud.endpoint}
-          pending={cloud.pending}
-          onRecover={() => void cloud.recover()}
-        />
-        <CloudSyncPairingSection
-          id={id + "-pair"}
-          endpoint={cloud.endpoint}
-          vaultId={cloud.vaultId}
-          onVaultIdChange={cloud.setVaultId}
-          offer={cloud.offer}
-          receivedOffer={cloud.receivedOffer}
-          onReceivedOfferChange={cloud.setReceivedOffer}
-          pending={cloud.pending}
-          onCreateOffer={() => void cloud.createOffer()}
-          onApproveOffer={() => void cloud.approveOffer()}
-          onAcceptOffer={() => void cloud.acceptOffer()}
-        />
-        {cloud.error ? (
-          <p className="text-xs text-danger" role="alert">
-            {t("cloudSync.errors." + cloud.error)}
-          </p>
-        ) : null}
-      </div>
-    </details>
+      }
+    >
+      <CloudSyncSetupSection
+        id={id + "-setup"}
+        endpoint={cloud.endpoint}
+        onEndpointChange={cloud.setEndpoint}
+        bootstrapSecret={cloud.bootstrapSecret}
+        onBootstrapSecretChange={cloud.setBootstrapSecret}
+        pending={cloud.pending}
+        onBootstrap={() => void cloud.bootstrap()}
+      />
+      <CloudSyncRecoverySection
+        id={id + "-recover"}
+        recoveryCode={cloud.recoveryCode}
+        recoveryInput={cloud.recoveryInput}
+        onRecoveryInputChange={cloud.setRecoveryInput}
+        endpoint={cloud.endpoint}
+        pending={cloud.pending}
+        onRecover={() => void cloud.recover()}
+      />
+      <CloudSyncPairingSection
+        id={id + "-pair"}
+        endpoint={cloud.endpoint}
+        vaultId={cloud.vaultId}
+        onVaultIdChange={cloud.setVaultId}
+        offer={cloud.offer}
+        receivedOffer={cloud.receivedOffer}
+        onReceivedOfferChange={cloud.setReceivedOffer}
+        pending={cloud.pending}
+        onCreateOffer={() => void cloud.createOffer()}
+        onApproveOffer={() => void cloud.approveOffer()}
+        onAcceptOffer={() => void cloud.acceptOffer()}
+      />
+      {cloud.error ? (
+        <div className="px-4 py-2.5">
+          <Notice tone="danger" live={false}>
+            <span role="alert">{t("cloudSync.errors." + cloud.error)}</span>
+          </Notice>
+        </div>
+      ) : null}
+    </SettingsSection>
   );
 };

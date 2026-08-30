@@ -1,13 +1,8 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { commands, type KeyboardDiagnosticReport } from "@/bindings";
-import {
-  Alert,
-  Button,
-  SettingContainer,
-  StatusText,
-  type StatusTone,
-} from "@/components/ui";
+import { FactChip, Notice, SettingsRow } from "@/components/settings/rows";
+import { Button } from "@/components/vg/button";
 import { useOsType } from "../../../hooks/useOsType";
 
 /**
@@ -48,9 +43,14 @@ export const KeyboardDiagnostic: React.FC = () => {
   };
 
   /* Blocked and suspicious both mean "your keys are not reaching Sona", which
-   * is the whole reason someone opens this row, so they read as failures. */
-  type Verdict = { text: string; tone: StatusTone };
-  const verdict = (r: KeyboardDiagnosticReport): Verdict => {
+   * is the whole reason someone opens this row, so they read as failures. A
+   * healthy result is the unremarkable one and stays in the grey ladder — this
+   * palette has no success hue and a working keyboard needs no celebrating. */
+  interface KeyboardVerdict {
+    text: string;
+    tone: "muted" | "warning" | "danger";
+  }
+  const verdict = (r: KeyboardDiagnosticReport): KeyboardVerdict => {
     if (r.secure_input_enabled && r.key_down === 0) {
       return {
         text: t("settings.debug.keyboardDiagnostic.verdictBlocked"),
@@ -71,7 +71,7 @@ export const KeyboardDiagnostic: React.FC = () => {
     }
     return {
       text: t("settings.debug.keyboardDiagnostic.verdictOk"),
-      tone: "success",
+      tone: "muted",
     };
   };
 
@@ -92,62 +92,72 @@ export const KeyboardDiagnostic: React.FC = () => {
     return `${state} — ${holder}`;
   };
 
+  const currentVerdict = report === null ? null : verdict(report);
+
   return (
     <>
-      <SettingContainer
-        grouped
-        title={t("settings.debug.keyboardDiagnostic.title")}
-        description={t("settings.debug.keyboardDiagnostic.description")}
+      <SettingsRow
+        label={t("settings.debug.keyboardDiagnostic.title")}
+        hint={t("settings.debug.keyboardDiagnostic.description")}
       >
         <Button
-          variant="secondary"
+          variant="outline"
           size="sm"
           onClick={() => void runDiagnostic()}
           disabled={running}
         >
           {t("settings.debug.keyboardDiagnostic.run")}
         </Button>
-      </SettingContainer>
+      </SettingsRow>
+
       {running ? (
-        <div className="py-3">
-          <StatusText live="polite">
-            {t("settings.debug.keyboardDiagnostic.running")}
-          </StatusText>
+        <div className="px-4 py-3">
+          <Notice>{t("settings.debug.keyboardDiagnostic.running")}</Notice>
         </div>
       ) : null}
+
       {error === null ? null : (
-        <Alert
-          contained
-          variant="error"
-          action={
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => void runDiagnostic()}
-            >
-              {t("common.retry")}
-            </Button>
-          }
-        >
-          {t("settings.debug.keyboardDiagnostic.failed", { error })}
-        </Alert>
+        <div className="flex items-center justify-between gap-6 px-4 py-3">
+          <Notice tone="danger" className="min-w-0">
+            {t("settings.debug.keyboardDiagnostic.failed", { error })}
+          </Notice>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void runDiagnostic()}
+          >
+            {t("common.retry")}
+          </Button>
+        </div>
       )}
-      {report === null ? null : (
-        <div className="space-y-1.5 py-3">
-          <StatusText tone={verdict(report).tone} live="polite">
-            {verdict(report).text}
-          </StatusText>
-          <p className="font-mono text-[12px] leading-4 text-text-secondary tabular-nums">
-            {t("settings.debug.keyboardDiagnostic.secureInputLabel")}:{" "}
-            {secureInputLine(report)}
-          </p>
-          <p className="font-mono text-[12px] leading-4 text-text-secondary tabular-nums">
-            {t("settings.debug.keyboardDiagnostic.keyDown")}: {report.key_down}{" "}
-            · {t("settings.debug.keyboardDiagnostic.keyUp")}: {report.key_up} ·{" "}
-            {t("settings.debug.keyboardDiagnostic.flagsChanged")}:{" "}
-            {report.flags_changed} ·{" "}
-            {t("settings.debug.keyboardDiagnostic.mouse")}: {report.mouse}
-          </p>
+
+      {report === null || currentVerdict === null ? null : (
+        <div className="flex flex-col gap-2 px-4 py-3">
+          <Notice tone={currentVerdict.tone}>{currentVerdict.text}</Notice>
+          {/* The raw counts are the reading; the sentence above is only the
+           * interpretation of them. */}
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            <FactChip
+              label={t("settings.debug.keyboardDiagnostic.secureInputLabel")}
+              value={secureInputLine(report)}
+            />
+            <FactChip
+              label={t("settings.debug.keyboardDiagnostic.keyDown")}
+              value={report.key_down}
+            />
+            <FactChip
+              label={t("settings.debug.keyboardDiagnostic.keyUp")}
+              value={report.key_up}
+            />
+            <FactChip
+              label={t("settings.debug.keyboardDiagnostic.flagsChanged")}
+              value={report.flags_changed}
+            />
+            <FactChip
+              label={t("settings.debug.keyboardDiagnostic.mouse")}
+              value={report.mouse}
+            />
+          </div>
         </div>
       )}
     </>

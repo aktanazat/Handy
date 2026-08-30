@@ -55,7 +55,13 @@ test.describe("Meetings", () => {
     // capture in one action.
     await start.click();
 
-    await expect(page.getByText("Active capture")).toBeVisible();
+    // Stop exists only while capture is running, and only on the live surface,
+    // so it is the state itself rather than a word describing the state. The
+    // phase word next to it is "Recording", which `Start recording` contains —
+    // matching on it would pass against the button that has not been pressed.
+    await expect(
+      page.getByRole("button", { name: "Stop", exact: true }),
+    ).toBeVisible();
     await expect
       .poll(() =>
         page.evaluate(() => Number(localStorage.getItem("meeting-started"))),

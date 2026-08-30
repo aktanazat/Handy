@@ -29,17 +29,15 @@
     "general": "عام",
     "advanced": "متقدم",
     "postProcessing": "معالجة لاحقة",
-    "history": "السجل",
     "debug": "تصحيح الأخطاء",
     "about": "حول",
     "models": "النماذج",
-    "modes": "Modes",
-    "privacy": "Privacy",
-    "agents": "Agents",
-    "meetings": "Meetings",
-    "navigation": "Main navigation",
-    "overview": "Overview",
-    "settings": "Settings"
+    "modes": "الأوضاع",
+    "privacy": "الخصوصية",
+    "agents": "الوكلاء",
+    "meetings": "الاجتماعات",
+    "navigation": "التنقل الرئيسي",
+    "settings": "الإعدادات"
   },
   "onboarding": {
     "subtitle": "تعمل النماذج على جهاز Mac هذا وتوازن بين الدقة والسرعة",
@@ -153,6 +151,7 @@
     "streaming": "البث",
     "active": "نشط",
     "noModelsAvailable": "لا توجد نماذج متاحة",
+    "searchPlaceholder": "ابحث في النماذج",
     "verifying": "جارٍ التحقق من {{modelName}}…",
     "verifyingGeneric": "جارٍ التحقق…",
     "extracting": "...جاري استخراج {{modelName}}",
@@ -160,7 +159,7 @@
     "extractingGeneric": "...جاري الاستخراج",
     "downloading": "جاري التنزيل {{percentage}}%",
     "downloadingMultiple": "جاري تنزيل {{count}} من النماذج…",
-    "downloadingGeneric": "Downloading…",
+    "downloadingGeneric": "جارٍ التنزيل…",
     "modelReady": "النموذج جاهز",
     "loading": "...جاري تحميل {{modelName}}",
     "loadingGeneric": "...جاري التحميل",
@@ -189,27 +188,22 @@
       "title": "عام",
       "shortcut": {
         "title": "الاختصارات",
-        "description": "اختصارات لوحة المفاتيح للتسجيل وإعادة الكتابة.",
         "loading": "...جاري تحميل الاختصارات",
         "none": "لا توجد اختصارات مجهزة",
         "notFound": "الاختصار غير موجود",
         "pressKeys": "اضغط مفاتيحك…",
         "bindings": {
           "transcribe": {
-            "name": "اختصار التفريغ الصوتي",
-            "description": ".اختصار لوحة المفاتيح لتسجيل وتفريغ صوتك"
+            "name": "اختصار التفريغ الصوتي"
           },
           "cancel": {
-            "name": "اختصار الإلغاء",
-            "description": ".اختصار لوحة المفاتيح لإلغاء التسجيل الحالي"
+            "name": "اختصار الإلغاء"
           },
           "transcribe_with_post_process": {
-            "name": "اختصار المعالجة اللاحقة",
-            "description": "اختصار اختياري يطبق دائماً تنظيف النص بالذكاء الاصطناعي على النص المُفرَّغ."
+            "name": "اختصار المعالجة اللاحقة"
           },
           "command": {
-            "name": "اختصار الأمر",
-            "description": "اختصار لوحة المفاتيح الذي يعيد كتابة النص المحدد وفق تعليمة منطوقة."
+            "name": "اختصار الأمر"
           }
         },
         "errors": {
@@ -219,22 +213,18 @@
         },
         "holdHint": "اضغط للتبديل، واستمر بالضغط للتحدث. يعمل مع أي اختصار.",
         "recordAction": "تسجيل اختصار جديد لـ {{binding}}",
-        "recordHint": "انقر للتسجيل",
         "unset": "غير محدد"
       },
       "language": {
         "title": "اللغة",
-        "description": "اللغة المستخدمة للتعرف على الكلام. «تلقائي» يكتشفها، وتحديد لغة معينة قد يحسّن الدقة.",
         "searchPlaceholder": "البحث عن اللغات",
         "noResults": "لم يتم العثور على لغات",
         "auto": "تلقائي"
       },
       "pushToTalk": {
-        "label": "اضغط للتحدث",
-        "description": "استمر في الضغط للتسجيل، واترك للتوقف"
+        "label": "اضغط للتحدث"
       },
       "appearance": {
-        "description": "لغة الواجهة ونظام الألوان. كلاهما يُطبّق فورًا.",
         "title": "المظهر",
         "material": {
           "title": "المادة",
@@ -245,7 +235,6 @@
           }
         }
       },
-      "description": "المفاتيح التي تضغطها، والميكروفون الذي يستمع إليه Sona، ومظهر التطبيق.",
       "commandMode": {
         "label": "وضع الأوامر الصوتية",
         "description": "استمر بالضغط على اختصار الأمر وقل ما تريد تغييره في النص الذي حددته."
@@ -254,36 +243,27 @@
     "sound": {
       "title": "الصوت",
       "microphone": {
-        "title": "الميكروفون",
-        "description": "الميكروفون الذي يسجّل منه Sona.",
-        "placeholder": "اختر الميكروفون",
-        "loading": "...جاري التحميل"
+        "title": "الميكروفون"
       },
       "channel": {
         "title": "قناة الإدخال",
-        "description": "قناة الإدخال التي يتم التسجيل منها، عندما تحتوي الواجهة على أكثر من مدخل.",
         "average": "متوسط جميع القنوات",
         "channel": "القناة {{n}}"
       },
       "audioFeedback": {
-        "label": "تنبيهات صوتية",
-        "description": "تشغيل صوت عند بدء التسجيل وتوقفه."
+        "label": "تنبيهات صوتية"
       },
       "outputDevice": {
         "title": "جهاز الإخراج",
-        "description": "المكان الذي تُشغَّل فيه تنبيهات الصوت.",
-        "placeholder": "اختر جهاز الإخراج",
-        "loading": "...جاري التحميل"
+        "description": "المكان الذي تُشغَّل فيه تنبيهات الصوت."
       },
       "volume": {
-        "title": "مستوى الصوت",
-        "description": "مستوى صوت تنبيهات الصوت."
+        "title": "مستوى الصوت"
       }
     },
     "advanced": {
       "englishSpelling": {
         "label": "تهجئة الإنجليزية",
-        "description": "احتفظ بتهجئة محرّك التعرّف أو حوِّل الصيغ الأمريكية الشائعة إلى تهجئة بريطانية.",
         "values": {
           "as_spoken": "كما نُطقت",
           "british": "بريطانية"
@@ -297,8 +277,7 @@
         "experimental": "تجريبي"
       },
       "experimentalToggle": {
-        "label": "الميزات التجريبية",
-        "description": "عرض الخيارات التي لا تزال قيد التطوير."
+        "label": "الميزات التجريبية"
       },
       "lazyStreamClose": {
         "label": "إبقاء الميكروفون مفتوحًا بين عمليات النسخ",
@@ -306,8 +285,7 @@
       },
       "acceleration": {
         "transcribe": {
-          "title": "تسريع Whisper",
-          "description": "تسريع الأجهزة لنماذج Whisper. الوضع التلقائي يستخدم GPU إن توفر (Metal على macOS، Vulkan على Windows/Linux)."
+          "title": "تسريع Whisper"
         },
         "ort": {
           "title": "تسريع ONNX",
@@ -322,17 +300,15 @@
         "description": ".التشغيل في صينية النظام دون فتح النافذة"
       },
       "autostart": {
-        "label": "التشغيل عند بدء التشغيل",
-        "description": "بدء تشغيل Sona عند تسجيل الدخول."
+        "label": "التشغيل عند بدء التشغيل"
       },
       "showTrayIcon": {
-        "label": "إظهار أيقونة شريط النظام",
-        "description": "عرض أيقونة Sona في شريط النظام."
+        "label": "إظهار أيقونة شريط النظام"
       },
       "overlay": {
         "style": {
           "title": "التراكب",
-          "description": "Choose the recording overlay: None hides it, Minimal shows a compact pill, Live shows transcription in real time while a streaming local model or cloud mode is active. On Linux 'None' is recommended.",
+          "description": "اختر تراكب التسجيل: «بلا» يخفيه، و«مبسط» يعرض شريطًا صغيرًا، و«مباشر» يعرض التفريغ في الوقت الفعلي أثناء تشغيل نموذج محلي متدفق أو وضع سحابي. على Linux يُنصح بـ«بلا».",
           "options": {
             "none": "بلا",
             "minimal": "مبسط",
@@ -341,7 +317,6 @@
         },
         "position": {
           "title": "موقع التراكب",
-          "description": "عرض تراكب الملاحظات المرئية أثناء التسجيل والتفريغ. على نظام Linux يوصى بـ 'بلا'.",
           "options": {
             "bottom": "أسفل",
             "top": "أعلى"
@@ -388,12 +363,10 @@
         }
       },
       "translateToEnglish": {
-        "label": "الترجمة إلى الإنجليزية",
-        "description": "ترجمة الكلام من اللغات الأخرى إلى الإنجليزية أثناء التفريغ."
+        "label": "الترجمة إلى الإنجليزية"
       },
       "modelUnload": {
         "title": "إلغاء تحميل النموذج",
-        "description": "تحرير ذاكرة GPU وCPU بعد بقاء النموذج خاملاً هذه المدة.",
         "options": {
           "never": "أبداً",
           "immediately": "فوراً",
@@ -407,7 +380,6 @@
       },
       "customWords": {
         "title": "المفردات",
-        "description": "صحّح العبارات المنطوقة إلى صيغ مكتوبة دقيقة. يستخدم Whisper الصيغ المكتوبة كموجّه؛ وتستخدم النماذج الأخرى تصحيحًا حتميًا.",
         "spoken": "عبارة منطوقة",
         "written": "نص مكتوب",
         "spokenPlaceholder": "ما قيل",
@@ -441,26 +413,21 @@
           "unsavedWarning": "لديك تغييرات غير محفوظة في المفردات. تطبيق هذا الاستيراد يستبدلها.",
           "back": "رجوع",
           "continue": "متابعة",
-          "replaceSummary": "التطبيق يستبدل الأزواج المحفوظة البالغ عددها {{savedCount}} بالأزواج البالغ عددها {{importedCount}} من هذا الملف.",
-          "stepConfirm": "الخطوة 2 من 2: تأكيد الاستبدال",
-          "stepReview": "الخطوة 1 من 2: محتوى الملف"
+          "replaceSummary": "التطبيق يستبدل الأزواج المحفوظة البالغ عددها {{savedCount}} بالأزواج البالغ عددها {{importedCount}} من هذا الملف."
         },
-        "actions": "Vocabulary actions",
+        "actions": "إجراءات المفردات",
         "audioImport": {
           "errors": {
             "start": "لم يبدأ استيراد الصوت. حاول مرة أخرى."
           },
           "failure": {
-            "history": "Some recordings could not be imported into the vocabulary."
+            "history": "تعذر استيراد بعض التسجيلات إلى المفردات."
           }
         },
         "empty": {
-          "description": "أضف زوجًا مثل open ai وOpenAI، وسيكتب Sona الصيغة الدقيقة في كل مرة يسمع فيها العبارة.",
-          "title": "لا توجد قواعد مفردات بعد"
+          "description": "أضف زوجًا مثل open ai وOpenAI، وسيكتب Sona الصيغة الدقيقة في كل مرة يسمع فيها العبارة."
         },
-        "sources": "التصحيحات التي تحفظها من نص في المكتبة تظهر في هذه القائمة. قواعد وضع واحد توجد في مفردات ذلك الوضع نفسه.",
-        "unsaved": "تغييرات غير محفوظة",
-        "csvLabel": "CSV"
+        "sources": "التصحيحات التي تحفظها من نص في المكتبة تظهر في هذه القائمة. قواعد وضع واحد توجد في مفردات ذلك الوضع نفسه."
       },
       "voiceActivityDetection": {
         "title": "كشف النشاط الصوتي",
@@ -474,8 +441,6 @@
         "enabledLabel": "تفعيل استبدالات الرموز التعبيرية",
         "enabledDescription": "استبدل الرموز المنطوقة المطابقة فقط بعد تصحيح المفردات.",
         "title": "استبدالات الرموز التعبيرية",
-        "description": "اربط عبارة منطوقة مطابقة بنص رمز تعبيري. لا تُستخدم المطابقة التقريبية.",
-        "offState": "استبدالات الرموز التعبيرية متوقفة. لا يفعّلها Sona تلقائيًا للبرمجة أو لأي تطبيق آخر.",
         "spoken": "عبارة منطوقة",
         "written": "نص الرمز التعبيري",
         "spokenPlaceholder": "وجه مبتسم",
@@ -492,38 +457,26 @@
           "incompleteRow": "أكمل كل صف أو أزله قبل الحفظ."
         },
         "empty": {
-          "description": "اربط كلمة منطوقة محددة مثل smiley face بالإيموجي الذي تريد كتابته.",
-          "title": "لا توجد استبدالات إيموجي بعد"
+          "description": "اربط كلمة منطوقة محددة مثل smiley face بالإيموجي الذي تريد كتابته."
         }
       },
-      "description": "Startup, processing, and experimental behavior.",
       "disclosures": {
         "launch": {
-          "title": "Launch",
-          "description": "How Sona starts and what it shows."
+          "title": "بدء التشغيل"
         },
         "processing": {
-          "title": "Processing",
-          "description": "Engine and model behavior while transcribing."
-        },
-        "experimental": {
-          "description": "Unstable options that can change without notice."
+          "title": "المعالجة"
         }
       },
       "snippets": {
         "add": "إضافة مقتطف",
         "confirmDelete": {
           "description": "سيتوقف المحفّز عن التوسّع في النصوص المستقبلية. النص المكتوب بالفعل لن يتغير.",
-          "body": "يتوسّع {{trigger}} حاليًا إلى {{expansion}}.",
           "title": "حذف {{trigger}}؟"
         },
-        "description": "محفّزات قصيرة يوسّعها Sona إلى نص أطول. التغييرات هنا تؤثر على النصوص المستقبلية فقط، وليس النص المكتوب بالفعل أبدًا.",
         "empty": {
-          "action": "اكتب أول مقتطف لك",
-          "description": "أضف محفّزًا مثل omw وسيكتب Sona في طريقي في كل مرة تقوله.",
-          "title": "لا توجد مقتطفات بعد"
+          "description": "أضف محفّزًا مثل omw وسيكتب Sona في طريقي في كل مرة تقوله."
         },
-        "enabledDescription": "استبدال محفّزات المقتطفات في كل نص، مباشرة بعد تصحيحات المفردات.",
         "enabledLabel": "تمكين توسيع النص",
         "errors": {
           "duplicate": "مقتطف آخر يستخدم هذا المحفّز بالفعل.",
@@ -534,11 +487,9 @@
         "loadError": "تعذر تحميل المقتطفات.",
         "loading": "جارٍ تحميل المقتطفات",
         "matching": "تطابق المحفّزات الكلمات الكاملة وتتجاهل حالة الأحرف. عندما يناسب محفّزان الموضع نفسه يفوز الأطول، ويجري التوسيع مباشرة بعد تصحيحات المفردات.",
-        "offState": "توسيع النص متوقف. تبقى المقتطفات محفوظة وتُطبّق مجددًا بمجرد إعادة تشغيله.",
         "title": "توسيع النص",
         "trigger": "المحفّز",
         "triggerPlaceholder": "omw",
-        "unsaved": "اضغط Enter أو حفظ للاحتفاظ بهذا التغيير.",
         "enableRow": "تمكين {{trigger}}",
         "remove": "حذف {{trigger}}",
         "saveRow": "حفظ {{trigger}}"
@@ -550,62 +501,41 @@
       }
     },
     "postProcessing": {
-      "hotkey": {
-        "title": "الاختصار"
-      },
       "api": {
         "title": "API (متوافق مع OpenAI)",
         "provider": {
-          "title": "المزود",
-          "description": "اختر مزوداً متوافقاً مع OpenAI."
+          "title": "المزود"
         },
         "appleIntelligence": {
           "unavailable": "Apple Intelligence غير متاح على هذا الجهاز. يتطلب جهاز Mac بمعالج Apple Silicon يعمل بنظام macOS Tahoe (26.0) أو أحدث مع تمكين Apple Intelligence في إعدادات النظام."
         },
         "baseUrl": {
           "title": "URL الأساسي",
-          "description": "URL الأساسي لـ API للمزود المختار. يمكن تعديل المزود المخصص فقط.",
           "placeholder": "https://api.openai.com/v1"
         },
         "apiKey": {
           "title": "مفتاح API",
-          "description": "مفتاح API للمزود المختار.",
           "placeholder": "sk-..."
         },
         "model": {
           "title": "النموذج",
           "descriptionCustom": "قدم معرف النموذج المتوقع من قبل نقطة النهاية المخصصة الخاصة بك.",
-          "descriptionDefault": "اختر نموذجاً يعرضه المزود المختار.",
           "placeholderWithOptions": "ابحث عن نموذج أو اختره",
           "placeholderNoOptions": "اكتب اسم النموذج",
           "refreshModels": "تحديث النماذج"
         }
       },
       "prompts": {
-        "title": "المطالبة",
-        "selectedPrompt": {
-          "title": "المطالبة المختارة",
-          "description": ".اختر قالباً لتحسين التفريغ الصوتي أو أنشئ قالباً جديداً. استخدم ${output} داخل نص المطالبة للإشارة إلى النص الملتقط"
-        },
-        "noPrompts": "لا توجد مطالبات متاحة",
-        "selectPrompt": "اختر مطالبة",
         "createNew": "مطالبة جديدة",
         "promptLabel": "اسم المطالبة",
         "promptLabelPlaceholder": "سمِّ هذه المطالبة",
         "promptInstructions": "التعليمات",
         "promptInstructionsPlaceholder": "قم بتحسين القواعد والوضوح للنص التالي: ${output}",
-        "promptTip": "اكتب <code>${output}</code> في الموضع الذي يجب إدراج النص المفرغ فيه.",
         "updatePrompt": "تحديث المطالبة",
         "deletePrompt": "حذف المطالبة",
         "createPrompt": "إنشاء مطالبة",
-        "cancel": "إلغاء",
-        "selectToEdit": "اختر مطالبة لتعديلها.",
-        "createFirst": "أنشئ مطالبة لمعالجة النصوص المنقولة لاحقًا.",
         "empty": {
           "description": "يخبر الموجّه النموذج بما يفعله بالنص، مثلًا: أعد كتابة ما يلي كرسالة قصيرة مع الحفاظ على كل الحقائق: ${output}"
-        },
-        "errors": {
-          "incomplete": "أعطِ الموجّه اسمًا وتعليمات قبل الحفظ."
         },
         "inUse": "قيد الاستخدام",
         "lastPrompt": "يحتفظ Sona بموجّه واحد على الأقل، لذا لا يمكن حذف هذا. أنشئ آخر أولًا.",
@@ -623,33 +553,26 @@
         "useNamed": "استخدام {{name}}"
       },
       "remoteConsent": {
-        "title": "Remote text transfer",
-        "description": "Meeting and transcription text may be sent to {{provider}} at {{endpoint}} for post-processing.",
-        "acknowledge": "I acknowledge that text may be sent to this endpoint.",
-        "accept": "Allow text transfer",
-        "cancel": "Cancel",
-        "endpointChanged": "The endpoint changed. Review and acknowledge the new endpoint before text can leave this Mac.",
-        "invalidDestination": "This provider destination is invalid or local-only, so no remote consent can be recorded.",
-        "saveFailed": "Sona could not save this acknowledgement.",
-        "current": "Text transfer is acknowledged for {{endpoint}}.",
-        "review": "Review acknowledgement",
-        "endpointLabel": "Canonical endpoint",
-        "destinationPinned": "Sona pins this exact endpoint and origin for the acknowledgement."
+        "title": "نقل النص عن بُعد",
+        "description": "قد يُرسل نص الاجتماعات والتفريغ إلى {{provider}} على {{endpoint}} للمعالجة اللاحقة.",
+        "acknowledge": "أُقرّ بأن النص قد يُرسل إلى نقطة النهاية هذه.",
+        "accept": "السماح بنقل النص",
+        "cancel": "إلغاء",
+        "endpointChanged": "تغيّرت نقطة النهاية. راجع نقطة النهاية الجديدة وأقرّ بها قبل أن يتمكن النص من مغادرة هذا الـMac.",
+        "invalidDestination": "وجهة هذا المزوّد غير صالحة أو محلية فقط، لذا لا يمكن تسجيل أي موافقة عن بُعد.",
+        "saveFailed": "لم يتمكن Sona من حفظ هذا الإقرار.",
+        "current": "تم الإقرار بنقل النص إلى {{endpoint}}.",
+        "review": "مراجعة الإقرار",
+        "endpointLabel": "نقطة النهاية المعيارية",
+        "destinationPinned": "يثبّت Sona نقطة النهاية والأصل هذين بالتحديد لهذا الإقرار."
       }
     },
     "history": {
       "stats": {
-        "title": "الاستخدام الكلي",
-        "loading": "جارٍ تحميل الاستخدام…",
         "unavailable": "إحصاءات الاستخدام غير متاحة.",
         "entries": "تسجيلات",
         "duration": "مدة التسجيل",
-        "words": "كلمات",
-        "source": {
-          "microphone": "الميكروفون",
-          "file": "ملف",
-          "legacy": "تسجيلات أقدم"
-        }
+        "words": "كلمات"
       },
       "title": "السجل",
       "openFolder": "فتح مجلد التسجيلات",
@@ -663,7 +586,6 @@
       "retranscribe": "إعادة النسخ",
       "retranscribeError": "لم تتم إعادة التحويل إلى نص. حاول مرة أخرى.",
       "transcribing": "جارٍ النسخ…",
-      "transcriptionFailed": "فشل النسخ.",
       "search": "البحث في السجل",
       "searchPlaceholder": "ابحث في النصوص المنقولة",
       "noResults": "لا توجد نصوص منقولة تطابق \"{{query}}\".",
@@ -677,75 +599,75 @@
         "raw": "خام"
       },
       "receipts": {
-        "showDetails": "Show run details",
-        "hideDetails": "Hide run details",
-        "loading": "Loading run receipts…",
-        "unavailable": "Run receipt data is unavailable for this entry.",
-        "none": "No run receipts were recorded for this entry.",
+        "showDetails": "إظهار تفاصيل التشغيل",
+        "hideDetails": "إخفاء تفاصيل التشغيل",
+        "loading": "جارٍ تحميل سجلات التشغيل…",
+        "unavailable": "بيانات سجل التشغيل غير متوفرة لهذا العنصر.",
+        "none": "لم تُسجَّل أي سجلات تشغيل لهذا العنصر.",
         "duration": "{{duration}}",
-        "durationLabel": "Duration",
-        "words": "{{count}} words",
-        "wordsLabel": "Words",
+        "durationLabel": "المدة",
+        "words": "{{count}} كلمات",
+        "wordsLabel": "الكلمات",
         "engine": {
-          "local": "Local",
-          "cloud": "Cloud",
-          "local_fallback": "Local fallback"
+          "local": "محلي",
+          "cloud": "سحابي",
+          "local_fallback": "احتياطي محلي"
         },
         "source": {
-          "microphone": "Microphone",
-          "file": "File import",
-          "legacy": "Legacy"
+          "microphone": "الميكروفون",
+          "file": "استيراد ملف",
+          "legacy": "قديم"
         },
-        "presetLabel": "Preset",
+        "presetLabel": "الإعداد المسبق",
         "preset": {
-          "minimalist_cleanup": "Minimal cleanup",
-          "application_context": "Application context",
-          "email": "Email",
-          "meeting": "Meeting",
-          "notes": "Notes",
-          "generic": "General"
+          "minimalist_cleanup": "تنظيف بسيط",
+          "application_context": "سياق التطبيق",
+          "email": "البريد الإلكتروني",
+          "meeting": "اجتماع",
+          "notes": "ملاحظات",
+          "generic": "عام"
         },
-        "provider": "AI route",
-        "contextPolicy": "Context level",
+        "provider": "مسار الذكاء الاصطناعي",
+        "contextPolicy": "مستوى السياق",
         "contextPolicyValues": {
-          "none": "Off",
-          "target": "App",
-          "target_and_selection": "Selection",
-          "full": "Full"
+          "none": "إيقاف",
+          "target": "التطبيق",
+          "target_and_selection": "التحديد",
+          "full": "كامل"
         },
-        "contextSources": "Context sources",
+        "contextSources": "مصادر السياق",
         "contextSource": {
-          "target": "App",
-          "focused_field": "Focused field",
-          "selected_text": "Selected text",
-          "browser_url": "Browser URL",
-          "clipboard": "Recent clipboard"
+          "target": "التطبيق",
+          "focused_field": "الحقل النشط",
+          "selected_text": "النص المحدد",
+          "browser_url": "عنوان المتصفح",
+          "clipboard": "الحافظة الأخيرة"
         },
         "contextStatus": {
-          "not_requested": "Not requested",
-          "captured": "Captured",
-          "empty": "Empty",
-          "unsupported": "Unsupported",
-          "permission_denied": "Permission denied",
-          "disabled": "Disabled",
-          "disabled_by_ceiling": "Blocked by ceiling",
-          "secure_field": "Secure field",
-          "stale": "Stale",
-          "failed": "Unavailable"
+          "not_requested": "غير مطلوب",
+          "captured": "تم الالتقاط",
+          "empty": "فارغ",
+          "unsupported": "غير مدعوم",
+          "permission_denied": "الإذن مرفوض",
+          "disabled": "معطّل",
+          "disabled_by_ceiling": "محظور بالحد الأقصى",
+          "secure_field": "حقل آمن",
+          "stale": "قديم",
+          "failed": "غير متوفر"
         },
-        "deliveryAttempts": "Delivery attempts",
-        "noDeliveryAttempts": "No delivery attempt was recorded.",
+        "deliveryAttempts": "محاولات الإدراج",
+        "noDeliveryAttempts": "لم تُسجَّل أي محاولة إدراج.",
         "deliveryMethod": {
-          "none": "No delivery",
-          "accessibility_insertion": "Accessibility insertion",
-          "clipboard_paste": "Clipboard paste",
-          "direct_typing": "Direct typing",
-          "external_script": "External script"
+          "none": "بدون إدراج",
+          "accessibility_insertion": "إدراج عبر الإتاحة",
+          "clipboard_paste": "لصق من الحافظة",
+          "direct_typing": "كتابة مباشرة",
+          "external_script": "برنامج نصي خارجي"
         },
         "deliveryOutcome": {
-          "delivered": "Delivered",
-          "definitely_not_dispatched": "Not dispatched",
-          "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+          "delivered": "تم الإدراج",
+          "definitely_not_dispatched": "لم يُرسل",
+          "dispatched_but_unconfirmed": "أُرسل، غير مؤكد"
         },
         "modeLabel": "الوضع",
         "revisionLabel": "المراجعة",
@@ -767,19 +689,19 @@
         }
       },
       "correction": {
-        "add": "Add correction",
-        "title": "Add vocabulary correction",
-        "description": "Enter the exact spoken span and the text Sona should write. Nothing is learned from typing or background activity.",
-        "spoken": "Spoken span",
-        "written": "Written replacement",
-        "spokenPlaceholder": "What Sona heard",
-        "writtenPlaceholder": "What Sona should write",
+        "add": "إضافة تصحيح",
+        "title": "إضافة تصحيح مفردات",
+        "description": "أدخل المقطع المنطوق بدقة والنص الذي يجب أن يكتبه Sona. لا يتم التعلّم من الكتابة أو النشاط في الخلفية.",
+        "spoken": "المقطع المنطوق",
+        "written": "البديل المكتوب",
+        "spokenPlaceholder": "ما سمعه Sona",
+        "writtenPlaceholder": "ما يجب أن يكتبه Sona",
         "preview": "{{spoken}} → {{written}}",
-        "scope": "Save to",
-        "currentMode": "Current mode only",
-        "global": "All modes",
-        "save": "Save correction",
-        "saved": "Vocabulary correction saved",
+        "scope": "الحفظ في",
+        "currentMode": "الوضع الحالي فقط",
+        "global": "كل الأوضاع",
+        "save": "حفظ التصحيح",
+        "saved": "تم حفظ تصحيح المفردات",
         "saveError": "لم يتم حفظ التصحيح. حاول مرة أخرى."
       },
       "audioImport": {
@@ -813,22 +735,6 @@
         },
         "running": "جارٍ تفريغ {{count}} ملفات"
       },
-      "trends": {
-        "title": "History trends",
-        "description": "Recordings and words over the selected range.",
-        "loading": "Loading history trends…",
-        "error": "Couldn't load history trends.",
-        "metricLabel": "Metric",
-        "activeDays": "{{active}} of {{total}} days active",
-        "streak_one": "{{count}} day streak",
-        "streak_other": "{{count}} day streak",
-        "metrics": {
-          "recordings": "Recordings",
-          "duration": "Captured time",
-          "words": "Words"
-        },
-        "streak": "{{count}} day streak"
-      },
       "clearSearch": "مسح البحث",
       "emptyHint": "يمكنك أيضًا تفريغ تسجيل موجود: WAV أو MP3 أو M4A أو AAC أو FLAC أو OGG أو MOV أو MP4 أو M4V، حتى 30 دقيقة.",
       "loadMore": "تحميل المزيد",
@@ -861,32 +767,26 @@
     "debug": {
       "title": "تصحيح الأخطاء",
       "logDirectory": {
-        "title": "مجلد السجلات",
-        "description": "المكان الذي تُكتب فيه ملفات السجل."
+        "title": "مجلد السجلات"
       },
       "logLevel": {
-        "title": "مستوى السجل",
-        "description": "مقدار التفاصيل التي يسجلها السجل."
+        "title": "مستوى السجل"
       },
       "liveLogs": {
         "title": "السجلات المباشرة",
-        "description": "يبث أسطر السجل فور صدورها. تظهر هنا فقط الأسطر الصادرة أثناء فتح هذه اللوحة، بمستوى السجل المحدد أعلاه.",
-        "live": "مباشر",
-        "paused": "متوقف مؤقتًا",
+        "description": "تظهر هنا فقط الأسطر الصادرة أثناء فتح هذه اللوحة، بمستوى السجل المحدد أعلاه.",
         "pause": "إيقاف مؤقت",
         "resume": "استئناف",
         "copied": "تم النسخ",
         "lineCount": "{{count}} سطر",
-        "empty": "بانتظار السجلات. تظهر الأسطر هنا فور إصدار التطبيق لها."
+        "empty": "لا توجد أسطر بعد."
       },
       "soundTheme": {
         "label": "سمة الصوت",
-        "description": "الأصوات التي تُشغَّل عند بدء التسجيل وتوقفه.",
-        "preview": "Preview the start and stop sounds"
+        "preview": "معاينة أصوات البدء والتوقف"
       },
       "wordCorrectionThreshold": {
-        "title": "عتبة تصحيح الكلمات",
-        "description": "حساسية تصحيح الكلمات المخصصة"
+        "title": "عتبة تصحيح الكلمات"
       },
       "historyLimit": {
         "title": "حد السجل",
@@ -904,8 +804,7 @@
         "placeholder": "اختر فترة الاحتفاظ"
       },
       "alwaysOnMicrophone": {
-        "label": "ميكروفون يعمل دائماً",
-        "description": "يبقي الميكروفون مفتوحًا لكي يبدأ التسجيل أسرع."
+        "label": "ميكروفون يعمل دائماً"
       },
       "clamshellMicrophone": {
         "title": "ميكروفون وضع الإغلاق",
@@ -916,8 +815,7 @@
         "description": "إعادة كتابة النص المُفرَّغ بنموذج لغوي بعد التفريغ الصوتي."
       },
       "muteWhileRecording": {
-        "label": "كتم الصوت أثناء التسجيل",
-        "description": "كتم صوت النظام أثناء التسجيل"
+        "label": "كتم الصوت أثناء التسجيل"
       },
       "appendTrailingSpace": {
         "label": "إضافة مسافة تابعة",
@@ -925,7 +823,6 @@
       },
       "keyboardImplementation": {
         "title": "تنفيذ لوحة المفاتيح",
-        "description": ".اختر الواجهة الخلفية لاختصارات لوحة المفاتيح",
         "bindingsReset": "كانت اختصارات لوحة المفاتيح غير متوافقة وتمت إعادة تعيينها إلى القيم الافتراضية"
       },
       "paths": {
@@ -972,11 +869,9 @@
       "whatsNewPreview": {
         "title": "معاينة الجديد",
         "description": "افتح أحدث ملاحظات إصدار مضمنة دون وضع علامة عليها كمقروءة",
-        "button": "معاينة",
         "noNotes": "لم يتم العثور على ملاحظات إصدار مضمنة",
         "error": "لم يتم معاينة ملاحظات الإصدار. حاول مرة أخرى."
       },
-      "description": "أدوات القياس وخيارات غير مدعومة. مرئية لأن وضع التصحيح مفعّل.",
       "groups": {
         "capture": "الالتقاط",
         "delivery": "تسليم النص",
@@ -988,17 +883,14 @@
       "title": "حول",
       "version": {
         "title": "الإصدار",
-        "description": "الإصدار قيد التشغيل الآن.",
         "unavailable": "غير متاح"
       },
       "appDataDirectory": {
-        "title": "مجلد بيانات التطبيق",
-        "description": "الموقع الذي يخزن فيه Sona بياناته."
+        "title": "مجلد بيانات التطبيق"
       },
       "sourceCode": {
-        "title": "Open-source licenses",
-        "description": "View the bundled license and notice files.",
-        "button": "Open licenses"
+        "title": "تراخيص المصادر المفتوحة",
+        "button": "فتح التراخيص"
       },
       "supportDevelopment": {
         "title": "دعم التطوير",
@@ -1009,26 +901,20 @@
         "title": "شكر وتقدير",
         "ggml": {
           "title": "ggml",
-          "description": "مكتبة موتّرات لاستنتاج التعلم الآلي على الجهاز",
           "details": "يعتمد تحويل الكلام إلى نص محليًا في Sona على transcribe.cpp و ggml. شكرًا لـ Georgi Gerganov والمساهمين."
         }
       },
       "whatsNewUpdates": {
-        "label": "إظهار الجديد",
-        "description": "إظهار ملاحظات الإصدار بعد تحديثات Sona"
+        "label": "إظهار الجديد"
       },
-      "description": "أي إصدار تستخدمه، ومن أين أتى، وأين يحتفظ بملفاتك.",
       "files": {
         "title": "الملفات"
       },
       "source": {
-        "description": "Sona مرخّص بترخيص MIT، حقوق النشر 2025 لـ CJ Pais، ومبني على Handy.",
-        "open": "فتح على GitHub",
         "repository": "المستودع",
         "title": "المصدر",
         "upstream": "مبني على Handy",
-        "upstreamDescription": "Sona هو تفريعة من cjpais/Handy ولا يزال يتابع إصلاحات المصدر الأصلي.",
-        "upstreamOpen": "cjpais/Handy"
+        "license": "مرخّص بترخيص MIT. حقوق النشر 2025 لـ CJ Pais."
       },
       "updates": {
         "autoDescription": "يسأل GitHub عن أحدث إصدار. لا يثبّت Sona أي شيء من تلقاء نفسه أبدًا.",
@@ -1036,16 +922,13 @@
         "check": "التحقق الآن",
         "checking": "جارٍ التحقق…",
         "disabled": "عمليات التحقق التلقائية متوقفة، لذا لم يتصل Sona بـ GitHub.",
-        "enable": "تشغيل عمليات التحقق",
         "failed": "تعذر إجراء التحقق من التحديث.",
-        "manualDescription": "قارن هذا الإصدار بأحدث إصدار منشور.",
         "manualTitle": "تحقق يدوي",
         "preferenceError": "تعذر حفظ تفضيل التحديث.",
         "title": "الإصدار والتحديثات",
         "viewRelease": "عرض الإصدار",
         "available": "Sona {{version}} متاح.",
-        "published": "نُشر {{date}}",
-        "upToDate": "Sona {{version}} هو أحدث إصدار."
+        "upToDate": "هذا هو أحدث إصدار."
       }
     },
     "modelSettings": {
@@ -1053,14 +936,10 @@
     },
     "models": {
       "title": "نماذج النسخ",
-      "description": "النموذج الذي يحوّل الكلام إلى نص. تتفاوت النماذج بين الدقة والسرعة.",
-      "yourModels": "النماذج المحمّلة",
-      "availableModels": "متاح للتنزيل",
       "deleteConfirm": "حذف {{modelName}}؟ استخدامه مجددًا يعني تنزيله مجددًا.",
       "deleteActiveConfirm": "{{modelName}} هو النموذج النشط. حذفه يوقف النسخ حتى تختار نموذجًا آخر.",
       "deleteTitle": "حذف النموذج",
       "filters": {
-        "allLanguages": "جميع اللغات",
         "streaming": "عرض النماذج التي تدعم النسخ المباشر فقط",
         "translation": "عرض النماذج التي تترجم إلى الإنجليزية فقط",
         "allFamilies": "كل العائلات",
@@ -1070,54 +949,50 @@
         "family": "عائلة النموذج"
       },
       "noModelsMatch": "لا توجد نماذج مطابقة لهذا الفلتر.",
-      "searchPlaceholder": "ابحث عن النماذج بالاسم",
       "rescan": {
         "label": "إعادة الفحص",
         "tooltip": "إعادة الفحص بحثًا عن النماذج المضافة إلى مجلد النماذج أو ذاكرة Hugging Face التخزينية المؤقتة خارج Sona"
       },
       "cloud": {
-        "title": "Cloud transcription",
-        "description": "Save a provider key to make its cloud engine available in a mode.",
-        "providerDescription": "Credentials stay in your operating system's native secure store.",
+        "title": "التفريغ السحابي",
+        "providerDescription": "تبقى بيانات الاعتماد في المخزن الآمن الأصلي لنظام التشغيل.",
         "providers": {
           "deepgram": "Deepgram Nova-3",
           "elevenLabs": "ElevenLabs Scribe v2"
         },
         "apiKey": {
-          "label": "API key",
-          "description": "A saved key is write-only and never displayed here.",
-          "placeholder": "Paste API key"
+          "placeholder": "الصق مفتاح API"
         },
         "actions": {
-          "save": "Save key",
-          "saving": "Saving…",
-          "remove": "Remove key",
-          "removing": "Removing…",
-          "verify": "Verify",
-          "verifying": "Verifying…"
+          "save": "حفظ المفتاح",
+          "saving": "جارٍ الحفظ…",
+          "remove": "إزالة المفتاح",
+          "removing": "جارٍ الإزالة…",
+          "verify": "تحقق",
+          "verifying": "جارٍ التحقق…"
         },
         "status": {
-          "checking": "Checking native key store…",
-          "notSaved": "No API key saved.",
-          "saved": "API key saved. It has not been verified.",
-          "verified": "API key verified.",
-          "verifyRequiresConsent": "Review the transfer disclosure in a mode before verifying this key."
+          "checking": "جارٍ التحقق من مخزن المفاتيح الأصلي…",
+          "notSaved": "لم يُحفظ أي مفتاح API.",
+          "saved": "تم حفظ مفتاح API. ولم يتم التحقق منه.",
+          "verified": "تم التحقق من مفتاح API.",
+          "verifyRequiresConsent": "راجع إفصاح النقل في أحد الأوضاع قبل التحقق من هذا المفتاح."
         },
         "errors": {
-          "not_found": "No API key is saved for this provider.",
-          "unavailable": "The native secure store is unavailable.",
-          "locked": "The native secure store is locked.",
-          "corrupt": "The saved credential cannot be read safely.",
-          "invalid": "The credential was not accepted by the secure store.",
-          "busy": "The secure store is busy. Try again.",
-          "backend": "The credential operation could not be completed.",
-          "not_configured": "Save an API key before verifying it.",
-          "consent_required": "Accept the provider transfer disclosure before verifying.",
-          "authentication": "The provider rejected this API key.",
-          "quota": "The provider rejected verification because the account is over quota.",
-          "network": "The provider could not be reached for verification.",
-          "protocol": "The provider returned an unexpected verification response.",
-          "unknown_provider": "This cloud provider is not available in this build."
+          "not_found": "لا يوجد مفتاح API محفوظ لهذا المزوّد.",
+          "unavailable": "المخزن الآمن الأصلي غير متاح.",
+          "locked": "المخزن الآمن الأصلي مقفل.",
+          "corrupt": "لا يمكن قراءة بيانات الاعتماد المحفوظة بأمان.",
+          "invalid": "لم يقبل المخزن الآمن بيانات الاعتماد.",
+          "busy": "المخزن الآمن مشغول. حاول مرة أخرى.",
+          "backend": "تعذر إكمال عملية بيانات الاعتماد.",
+          "not_configured": "احفظ مفتاح API قبل التحقق منه.",
+          "consent_required": "اقبل إفصاح النقل الخاص بالمزوّد قبل التحقق.",
+          "authentication": "رفض المزوّد مفتاح API هذا.",
+          "quota": "رفض المزوّد التحقق لأن الحساب تجاوز الحد المسموح.",
+          "network": "تعذر الوصول إلى المزوّد للتحقق.",
+          "protocol": "أرجع المزوّد استجابة تحقق غير متوقعة.",
+          "unknown_provider": "هذا المزوّد السحابي غير متوفر في هذه النسخة."
         }
       },
       "actions": {
@@ -1125,6 +1000,7 @@
         "activateNamed": "استخدام {{modelName}}",
         "download": "تنزيل",
         "downloadNamed": "تنزيل {{modelName}}",
+        "moreFor": "إجراءات أخرى لـ {{modelName}}",
         "retryNamed": "إعادة محاولة تنزيل {{modelName}}"
       },
       "emptyCatalog": "تعذر على Sona قراءة كتالوج النماذج. تلتقط إعادة الفحص النماذج الموجودة بالفعل في مجلد النماذج أو ذاكرة Hugging Face المؤقتة.",
@@ -1136,35 +1012,27 @@
         "other": "نماذج أخرى"
       },
       "familyCount": "{{total}} نماذج",
-      "noModelsMatchHint": "لا شيء في الكتالوج يطابق كل عوامل التصفية معًا.",
       "searchByAnything": "البحث حسب الاسم أو اللغة أو القدرة",
       "state": {
         "activeInMemory": "نشط، في الذاكرة",
         "downloaded": "منزّل",
         "notDownloaded": "غير منزّل"
-      },
-      "summary": {
-        "noActive": "لم يتم اختيار نموذج",
-        "activeLabel": "النموذج النشط",
-        "onDiskLabel": "على القرص"
       }
     },
     "modes": {
       "activation": {
-        "title": "App activation",
+        "title": "التنشيط حسب التطبيق",
         "capture": {
-          "label": "Activate in app",
-          "description": "Capture the app currently in front and select this mode when you dictate there.",
-          "action": "Capture current app",
-          "capturing": "Capturing…"
+          "label": "التنشيط في التطبيق",
+          "action": "التقاط التطبيق الحالي",
+          "capturing": "جارٍ الالتقاط…"
         },
-        "empty": "No app activates this mode.",
-        "remove": "Remove",
+        "empty": "لا يوجد تطبيق ينشّط هذا الوضع.",
+        "remove": "إزالة",
         "website": {
           "title": "التنشيط حسب الموقع",
           "scope": {
             "label": "نطاق الموقع",
-            "description": "طابق مضيفًا واحدًا بدقة أو ضمّن نطاقاته الفرعية.",
             "values": {
               "exact": "مضيف مطابق",
               "suffix": "المضيف والنطاقات الفرعية"
@@ -1183,222 +1051,195 @@
         "removeTarget": "إزالة {{target}}",
         "unsupported": "تفعيل التطبيقات والمواقع متاح على macOS فقط."
       },
-      "title": "Modes",
-      "description": "Choose what each dictation run recognizes, rewrites, and delivers.",
-      "listTitle": "Your modes",
-      "loading": "Loading modes…",
-      "loadError": "Modes could not be loaded.",
-      "retry": "Retry",
-      "new": "New mode",
-      "active": "Active",
-      "default": "Default",
-      "defaultProtected": "The default mode cannot be deleted.",
-      "activate": "Activate",
-      "edit": "Edit",
-      "duplicate": "Duplicate",
-      "delete": "Delete",
-      "moveUp": "Move up",
-      "moveDown": "Move down",
-      "back": "Back to modes",
-      "save": "Save changes",
-      "saving": "Saving…",
-      "changesNextRun": "Changes apply to your next dictation.",
-      "copySuffix": "copy",
-      "deleteTitle": "Delete mode",
-      "deleteDescription": "Delete {{mode}}?",
-      "deleteBody": "Its mode-only shortcuts will also be removed. This cannot be undone.",
+      "title": "الأوضاع",
+      "listTitle": "أوضاعك",
+      "loading": "جارٍ تحميل الأوضاع…",
+      "loadError": "لم يتم تحميل الأوضاع.",
+      "retry": "إعادة المحاولة",
+      "new": "وضع جديد",
+      "active": "نشط",
+      "defaultProtected": "لا يمكن حذف الوضع الافتراضي.",
+      "activate": "تنشيط",
+      "duplicate": "تكرار",
+      "delete": "حذف",
+      "moveUp": "نقل للأعلى",
+      "moveDown": "نقل للأسفل",
+      "save": "حفظ التغييرات",
+      "saving": "جارٍ الحفظ…",
+      "changesNextRun": "تُطبَّق التغييرات على الإملاء التالي.",
+      "copySuffix": "نسخة",
+      "deleteTitle": "حذف الوضع",
+      "deleteDescription": "حذف {{mode}}؟",
+      "deleteBody": "ستُزال أيضًا الاختصارات الخاصة بهذا الوضع فقط. لا يمكن التراجع عن ذلك.",
       "identity": {
-        "title": "Identity",
         "name": {
-          "label": "Mode name",
-          "description": "A label shown in mode selection and history."
+          "label": "اسم الوضع"
         }
       },
       "writing": {
-        "title": "Writing",
         "enabled": {
-          "label": "AI cleanup",
-          "description": "Use the selected provider to rewrite the transcript for this mode."
+          "label": "تنظيف الذكاء الاصطناعي"
         },
         "preset": {
-          "label": "Preset",
-          "description": "Choose behavior by name. Preset instructions are not shown or exported.",
+          "label": "الإعداد المسبق",
+          "description": "اختر السلوك بالاسم. لا تُعرض تعليمات الإعداد المسبق ولا تُصدَّر.",
           "values": {
-            "minimalist_cleanup": "Minimal cleanup",
-            "application_context": "Application context",
-            "email": "Email",
-            "meeting": "Meeting",
-            "notes": "Notes",
-            "generic": "General"
+            "minimalist_cleanup": "تنظيف بسيط",
+            "application_context": "سياق التطبيق",
+            "email": "البريد الإلكتروني",
+            "meeting": "اجتماع",
+            "notes": "ملاحظات",
+            "generic": "عام"
           }
         },
         "tone": {
-          "label": "Tone",
-          "description": "Apply this tone when AI cleanup is enabled.",
+          "label": "النبرة",
           "values": {
-            "casual": "Casual",
-            "semi_casual": "Semi-casual",
-            "balanced": "Balanced",
-            "semi_formal": "Semi-formal",
-            "formal": "Formal"
+            "casual": "عفوية",
+            "semi_casual": "شبه عفوية",
+            "balanced": "متوازنة",
+            "semi_formal": "شبه رسمية",
+            "formal": "رسمية"
           }
         },
         "provider": {
-          "label": "AI provider",
-          "description": "The configured provider used for this mode.",
-          "empty": "No provider configured",
+          "label": "مزوّد الذكاء الاصطناعي",
+          "empty": "لا يوجد مزوّد مُكوَّن",
           "noneConfigured": "لم يتم تكوين مزوّد ذكاء اصطناعي بعد. أضف واحدًا في الإعدادات قبل أن يتمكن هذا الوضع من إعادة الكتابة.",
           "unknownSelected": "يشير هذا الوضع إلى مزوّد غير مكوّن على هذا التثبيت."
         },
         "model": {
-          "label": "AI model",
-          "description": "The provider model identifier for this mode."
+          "label": "نموذج الذكاء الاصطناعي"
         },
         "disabledNote": "شغّل تنظيف الذكاء الاصطناعي لاستخدام الإعداد المسبق والنبرة والمزوّد والنموذج أدناه."
       },
       "recognition": {
         "literalPunctuation": {
-          "label": "Literal punctuation",
-          "description": "Convert spoken punctuation such as comma and question mark before vocabulary corrections."
+          "label": "ترقيم حرفي",
+          "description": "حوِّل علامات الترقيم المنطوقة، مثل الفاصلة وعلامة الاستفهام، قبل تصحيحات المفردات."
         },
-        "title": "Recognition",
-        "noModelSelected": "No model selected",
         "model": {
-          "label": "Transcription model",
-          "description": "Only downloaded local models are available here.",
+          "label": "نموذج النسخ",
           "inheritGlobal": "الافتراضي: النموذج العام",
           "inheritGlobalNamed": "الافتراضي: النموذج العام ({{name}})"
         },
         "language": {
-          "label": "Language",
-          "description": "Set a recognition language or let the model detect it.",
-          "auto": "Auto detect",
-          "cloudDescription": "Choose the language sent with this cloud request."
+          "label": "اللغة",
+          "auto": "كشف تلقائي",
+          "cloudDescription": "اختر اللغة المُرسلة مع هذا الطلب السحابي."
         },
         "translate": {
-          "label": "Translate to English",
-          "description": "Request English output when the selected model supports translation."
+          "label": "الترجمة إلى الإنجليزية"
         },
         "vad": {
-          "label": "Voice activity detection",
-          "description": "Skip silent audio while recording."
+          "label": "كشف النشاط الصوتي"
         },
         "fillerRemoval": {
-          "label": "Remove filler words",
-          "description": "Remove configured filler words from this mode’s transcript."
+          "label": "إزالة كلمات الحشو"
         },
         "vocabulary": {
-          "label": "Mode vocabulary",
-          "description": "Pairs here override the global vocabulary only for this mode.",
-          "spoken": "Spoken phrase",
-          "written": "Written text",
-          "spokenPlaceholder": "What was said",
-          "writtenPlaceholder": "What to write",
-          "add": "Add pair",
-          "remove": "Remove {{spoken}}",
-          "incomplete": "Complete or remove each vocabulary pair before saving this mode.",
+          "label": "مفردات الوضع",
+          "spoken": "العبارة المنطوقة",
+          "written": "النص المكتوب",
+          "spokenPlaceholder": "ما قيل",
+          "writtenPlaceholder": "ما يُكتب",
+          "add": "إضافة زوج",
+          "remove": "إزالة {{spoken}}",
+          "incomplete": "أكمل كل زوج مفردات أو أزله قبل حفظ هذا الوضع.",
           "empty": "لا يملك هذا الوضع مفردات خاصة به. المفردات العامة لا تزال سارية."
         },
         "engine": {
-          "label": "Transcription engine",
-          "description": "Use a local model or an eligible cloud provider.",
-          "local": "Local",
-          "cloud": "Cloud",
-          "unavailable": "{{provider}} is unavailable"
+          "label": "محرك النسخ",
+          "local": "محلي",
+          "cloud": "سحابي",
+          "unavailable": "{{provider}} غير متوفر"
         },
         "cloud": {
-          "setupRequired": "{{provider}} needs a saved native API key and current transfer consent before its cloud controls are available.",
+          "setupRequired": "يحتاج {{provider}} إلى مفتاح API خاص محفوظ وموافقة نقل سارية قبل أن تتوفر عناصر التحكم السحابية الخاصة به.",
           "fallback": {
-            "label": "Use local fallback",
-            "description": "If the cloud provider cannot return a trustworthy final, transcribe the captured audio with a local model.",
-            "useModeModel": "Use this mode's local model",
+            "label": "استخدام الاحتياطي المحلي",
+            "description": "إذا لم يتمكن المزوّد السحابي من إرجاع نتيجة نهائية موثوقة، فسيُنسخ الصوت الملتقط بنموذج محلي.",
+            "useModeModel": "استخدام النموذج المحلي لهذا الوضع",
             "model": {
-              "label": "Fallback model",
-              "description": "Choose a downloaded local model, or use this mode's local model.",
-              "required": "Choose a fallback model or set this mode's local model before saving."
+              "label": "النموذج الاحتياطي",
+              "required": "اختر نموذجًا احتياطيًا أو حدّد النموذج المحلي لهذا الوضع قبل الحفظ."
             }
           },
           "keyterms": {
-            "label": "Cloud keyterms",
-            "description": "One term per line. These terms are sent with this cloud request.",
-            "placeholder": "Product name\nPerson name"
+            "label": "المصطلحات المفتاحية السحابية",
+            "description": "مصطلح واحد في كل سطر. تُرسل هذه المصطلحات مع هذا الطلب السحابي.",
+            "placeholder": "اسم المنتج\nاسم الشخص"
           },
           "timestamps": {
-            "label": "Word timestamps",
-            "description": "Required for cloud transcription and cannot be disabled."
+            "label": "الطوابع الزمنية للكلمات",
+            "description": "مطلوبة للنسخ السحابي ولا يمكن تعطيلها."
           },
           "consent": {
-            "title": "Use {{provider}} for cloud transcription",
-            "description": "Review how this mode sends audio before enabling {{provider}}.",
-            "intro": "These acknowledgements are fixed for this provider. Declining keeps this mode on its current local engine.",
+            "title": "استخدام {{provider}} للنسخ السحابي",
+            "description": "راجع كيف يرسل هذا الوضع الصوت قبل تمكين {{provider}}.",
+            "intro": "هذه الإقرارات ثابتة لهذا المزوّد. الرفض يُبقي هذا الوضع على محركه المحلي الحالي.",
             "audioTransfer": {
-              "label": "Audio transfer",
-              "description": "Recorded audio from this mode is sent directly to {{provider}} for transcription."
+              "label": "نقل الصوت",
+              "description": "يُرسل الصوت المسجَّل من هذا الوضع مباشرةً إلى {{provider}} للنسخ."
             },
             "privacy": {
-              "label": "Privacy contract",
-              "description": "The provider receives this mode's audio, selected language, and keyterms. Application context and native credentials stay on this device."
+              "label": "عقد الخصوصية",
+              "description": "يستقبل المزوّد صوت هذا الوضع واللغة المختارة والمصطلحات المفتاحية. يبقى سياق التطبيق وبيانات الاعتماد الخاصة على هذا الجهاز."
             },
             "localFallback": {
-              "label": "Local fallback",
-              "description": "If the cloud provider cannot return a trustworthy final, Sona can use your selected local model."
+              "label": "احتياطي محلي",
+              "description": "إذا لم يتمكن المزوّد السحابي من إرجاع نتيجة نهائية موثوقة، يمكن لـ Sona استخدام النموذج المحلي الذي اخترته."
             },
-            "decline": "Keep local",
-            "accept": "Accept and use cloud",
-            "accepting": "Accepting…",
+            "decline": "البقاء محليًا",
+            "accept": "الموافقة واستخدام السحابة",
+            "accepting": "جارٍ الموافقة…",
             "errors": {
-              "unknown_provider": "This cloud provider is not available in this build.",
-              "backend": "The consent record could not be saved."
+              "unknown_provider": "هذا المزوّد السحابي غير متوفر في هذه النسخة.",
+              "backend": "لم يتم حفظ سجل الموافقة."
             }
           },
           "title": "نقل سحابي"
         }
       },
       "context": {
-        "title": "Context",
         "policy": {
-          "label": "Context level",
-          "description": "This mode cannot exceed the privacy ceiling.",
-          "limitedByPrivacy": "Privacy currently limits this mode. Raise the ceiling in Privacy to use this level.",
+          "label": "مستوى السياق",
+          "description": "لا يمكن لهذا الوضع تجاوز الحد الأقصى للخصوصية.",
+          "limitedByPrivacy": "تقيّد الخصوصية هذا الوضع حاليًا. ارفع الحد الأقصى في الخصوصية لاستخدام هذا المستوى.",
           "values": {
-            "none": "Off",
-            "target": "App",
-            "target_and_selection": "Selection",
-            "full": "Full"
+            "none": "إيقاف",
+            "target": "التطبيق",
+            "target_and_selection": "التحديد",
+            "full": "كامل"
           },
-          "blockedByCeiling": "تحد Privacy هذا الوضع إلى {{ceiling}}.",
-          "raiseCeiling": "ارفع الحد الأقصى في Privacy لاستخدام مستويات أعلى."
+          "blockedByCeiling": "تحد الخصوصية هذا الوضع إلى {{ceiling}}.",
+          "raiseCeiling": "ارفع الحد الأقصى في الخصوصية لاستخدام مستويات أعلى."
         }
       },
       "delivery": {
-        "title": "Delivery",
         "method": {
-          "label": "Delivery method",
-          "description": "How Sona puts completed text into the target app.",
+          "label": "طريقة التسليم",
           "values": {
-            "ctrl_v": "Paste",
-            "direct": "Type directly",
-            "none": "Do not deliver",
+            "ctrl_v": "لصق",
+            "direct": "الكتابة مباشرة",
+            "none": "عدم التسليم",
             "shift_insert": "Shift+Insert",
-            "ctrl_shift_v": "Paste without formatting",
-            "external_script": "External script"
+            "ctrl_shift_v": "لصق بدون تنسيق",
+            "external_script": "برنامج نصي خارجي"
           }
         },
         "clipboard": {
-          "label": "Clipboard",
-          "description": "Choose whether completed text is copied before delivery.",
+          "label": "الحافظة",
           "values": {
-            "copy_to_clipboard": "Copy to clipboard",
-            "dont_modify": "Leave unchanged"
+            "copy_to_clipboard": "النسخ إلى الحافظة",
+            "dont_modify": "تركه بدون تغيير"
           }
         },
         "autoSubmit": {
-          "label": "Auto-submit",
-          "description": "Submit after delivery using the chosen key."
+          "label": "الإرسال التلقائي"
         },
         "autoSubmitKey": {
-          "label": "Submit key",
-          "description": "The key Sona uses when auto-submit is on.",
+          "label": "مفتاح الإرسال",
           "values": {
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
@@ -1407,24 +1248,22 @@
           "requiresAutoSubmit": "شغّل الإرسال التلقائي لاختيار مفتاح."
         },
         "trailingSpace": {
-          "label": "Append a trailing space",
-          "description": "Add one space after delivered text."
+          "label": "إضافة مسافة في النهاية"
         },
         "reliablePaste": {
-          "label": "Reliable paste",
-          "description": "Use receipt-sequenced paste when the platform supports it."
+          "label": "لصق موثوق",
+          "description": "يستخدم اللصق المتسلسل بالإيصالات عندما تدعمه المنصة."
         },
         "delay": {
-          "label": "Paste delays",
-          "description": "Milliseconds before and after delivery.",
-          "before": "Before",
-          "after": "After"
+          "label": "تأخيرات اللصق",
+          "description": "أجزاء الثانية قبل التسليم وبعده.",
+          "before": "قبل",
+          "after": "بعد"
         },
         "typingTool": {
-          "label": "Typing tool",
-          "description": "Used only with direct typing.",
+          "label": "أداة الكتابة",
           "values": {
-            "auto": "Auto",
+            "auto": "تلقائي",
             "wtype": "wtype",
             "kwtype": "kwtype",
             "dotool": "dotool",
@@ -1434,53 +1273,44 @@
           "requiresDirect": "اختر الكتابة مباشرة كطريقة تسليم لاختيار أداة."
         },
         "script": {
-          "label": "External script",
-          "description": "The script path used by the external-script delivery method."
+          "label": "برنامج نصي خارجي"
         }
       },
       "shortcuts": {
-        "title": "Shortcuts",
-        "description": "Set a shortcut to transcribe with or switch to this mode.",
-        "manyModes": "New modes may start unbound after the first nine. Set their shortcuts here."
+        "title": "الاختصارات",
+        "manyModes": "قد تبدأ الأوضاع الجديدة بدون تعيين بعد التسعة الأولى. عيّن اختصاراتها هنا."
       },
       "errors": {
-        "staleRevision": "Settings changed elsewhere. Review the latest mode and save again.",
-        "invalid_mode_id": "This mode ID is invalid.",
-        "empty_name": "A mode name is required.",
-        "cannot_delete_default": "The default mode cannot be deleted.",
-        "unknown_mode": "That mode no longer exists.",
-        "duplicate_mode_id": "A mode with this ID already exists.",
-        "invalid_reorder": "The mode order could not be saved.",
+        "staleRevision": "تغيّرت الإعدادات في مكان آخر. راجع أحدث وضع واحفظ مرة أخرى.",
+        "invalid_mode_id": "معرّف الوضع هذا غير صالح.",
+        "empty_name": "اسم الوضع مطلوب.",
+        "cannot_delete_default": "لا يمكن حذف الوضع الافتراضي.",
+        "unknown_mode": "هذا الوضع لم يعد موجودًا.",
+        "duplicate_mode_id": "يوجد بالفعل وضع بهذا المعرّف.",
+        "invalid_reorder": "لم يتم حفظ ترتيب الأوضاع.",
         "invalid_website_host": "مضيف الموقع غير صالح.",
         "website_activation_consent_required": "فعّل عناوين URL للمتصفح في الخصوصية قبل إضافة قاعدة موقع.",
         "frontmost_website_unavailable": "تعذر التقاط موقع من المتصفح.",
         "website_activation_secure_field": "لا يمكن التقاط قواعد الموقع من حقل آمن."
       },
-      "globalVocabulary": {
-        "title": "Global vocabulary",
-        "description": "Vocabulary entries applied across every mode."
-      },
-      "actionsFor": "Actions for {{mode}}",
-      "editorLabel": "Mode editor",
-      "editorTabsLabel": "Mode editor sections",
-      "empty": "Select a mode to edit it.",
-      "viewNavigation": "Mode views",
+      "actionsFor": "إجراءات {{mode}}",
+      "editorTabsLabel": "أقسام محرر الأوضاع",
+      "empty": "اختر وضعًا لتعديله.",
+      "viewNavigation": "طرق عرض الأوضاع",
       "tabs": {
-        "recognition": "Recognition",
-        "rewrite": "Rewrite",
-        "context": "Context",
-        "delivery": "Delivery",
-        "automation": "Automation"
+        "recognition": "التعرّف",
+        "rewrite": "إعادة الكتابة",
+        "context": "السياق",
+        "delivery": "التسليم",
+        "automation": "التشغيل الآلي"
       },
       "views": {
-        "modes": "Modes",
-        "vocabulary": "Vocabulary"
+        "modes": "الأوضاع",
+        "vocabulary": "المفردات"
       },
       "cleanup": {
         "title": "تنظيف النص"
       },
-      "dismissError": "تجاهل الخطأ",
-      "emptyHint": "اختر وضعًا على اليسار لتغيير ما يتعرف عليه ويعيد كتابته ويسلّمه.",
       "listEmpty": "لم يتم تكوين أي أوضاع.",
       "listEmptyHint": "يحتفظ Sona دائمًا بوضع واحد. أعد التحميل لجلب القائمة الحالية.",
       "unsavedChanges": "تغييرات غير محفوظة",
@@ -1490,108 +1320,82 @@
           "local": "محلي",
           "deepgram_nova_3": "Deepgram",
           "eleven_labs_scribe_v2": "ElevenLabs"
-        },
-        "modelInherited": "النموذج العام",
-        "languageAuto": "تلقائي",
-        "delivery": {
-          "ctrl_v": "لصق",
-          "direct": "كتابة",
-          "none": "بلا تسليم",
-          "shift_insert": "Shift+Insert",
-          "ctrl_shift_v": "لصق بلا تنسيق",
-          "external_script": "برنامج نصي"
         }
       }
     },
     "privacy": {
-      "title": "Privacy",
-      "description": "Control application context, inspect capture access, and manage data kept on this device.",
+      "title": "الخصوصية",
       "context": {
-        "title": "Context for AI cleanup",
-        "description": "The global ceiling limits every mode before context is read.",
+        "title": "سياق التنظيف بالذكاء الاصطناعي",
         "ceiling": {
-          "label": "Global context ceiling",
-          "description": "Modes may ask for less context, never more.",
+          "label": "الحد الأقصى العام للسياق",
           "values": {
-            "none": "Off",
-            "target": "App",
-            "target_and_selection": "Selection",
-            "full": "Full"
+            "none": "إيقاف",
+            "target": "التطبيق",
+            "target_and_selection": "التحديد",
+            "full": "كامل"
           },
-          "error": "The context ceiling could not be saved"
+          "error": "تعذر حفظ الحد الأقصى للسياق"
         },
         "sources": {
-          "title": "What each level reads",
-          "description": "These are source disclosures, not retained content.",
-          "none": "Reads no application context.",
-          "target": "Reads the frontmost app identity.",
-          "target_and_selection": "Reads the frontmost app identity and selected text when available.",
-          "full": "May also read a permitted browser URL and recently changed clipboard text when available."
+          "none": "لا يقرأ أي سياق للتطبيق.",
+          "target": "يقرأ هوية التطبيق في المقدمة.",
+          "target_and_selection": "يقرأ هوية التطبيق في المقدمة والنص المحدد عند توفره.",
+          "full": "قد يقرأ أيضًا عنوان صفحة متصفح مسموحًا به ونص الحافظة الذي تغيّر حديثًا عند توفرهما."
         },
         "urlCapture": {
-          "label": "Include browser URLs",
-          "description": "Allow a frontmost browser page URL to be captured when a mode and the ceiling allow it.",
-          "error": "Browser URL capture could not be saved."
-        },
-        "cloudRoute": "Enabled cloud modes send allowed context to {{providers}}.",
-        "localRoute": "AI processing runs on this Mac.",
-        "checkingRoute": "Checking configured cloud routes…"
+          "label": "تضمين عناوين المتصفح",
+          "description": "السماح بالتقاط عنوان صفحة المتصفح في المقدمة عندما يسمح الوضع والحد الأقصى بذلك.",
+          "error": "تعذر حفظ التقاط عنوان المتصفح."
+        }
       },
       "diagnostics": {
-        "title": "Context diagnostics",
-        "description": "Read-only checks show what this build can access right now.",
-        "refresh": "Refresh",
-        "error": "Diagnostics could not be refreshed",
+        "title": "تشخيصات السياق",
+        "refresh": "تحديث",
+        "error": "تعذر تحديث التشخيصات",
         "accessibility": {
-          "label": "Accessibility",
-          "granted": "Accessibility access is granted.",
-          "denied": "Accessibility access is denied.",
-          "unsupported": "Accessibility context is not supported on this platform."
+          "label": "إمكانية الوصول"
         },
         "sources": {
-          "target_identity": "Frontmost app",
-          "focused_field": "Focused field",
-          "selected_text": "Selected text",
-          "browser_url": "Browser URL",
-          "clipboard": "Recent clipboard"
+          "target_identity": "التطبيق في المقدمة",
+          "focused_field": "الحقل النشط",
+          "selected_text": "النص المحدد",
+          "browser_url": "عنوان المتصفح",
+          "clipboard": "الحافظة الأخيرة"
         }
       },
       "status": {
-        "granted": "Granted",
-        "denied": "Denied",
-        "unsupported": "Unsupported",
-        "not_requested": "Not requested",
-        "captured": "Available",
-        "empty": "Empty",
-        "permission_denied": "Permission denied",
-        "disabled": "Disabled",
-        "disabled_by_ceiling": "Blocked by ceiling",
-        "secure_field": "Secure field",
-        "stale": "Stale",
-        "failed": "Unavailable"
+        "granted": "تم المنح",
+        "denied": "مرفوض",
+        "unsupported": "غير مدعوم",
+        "not_requested": "غير مطلوب",
+        "captured": "متاح",
+        "empty": "فارغ",
+        "permission_denied": "الإذن مرفوض",
+        "disabled": "معطّل",
+        "disabled_by_ceiling": "محظور بالحد الأقصى",
+        "secure_field": "حقل آمن",
+        "stale": "قديم",
+        "failed": "غير متوفر"
       },
       "data": {
-        "title": "Data on this device",
-        "credentialStore": "Provider credentials are stored in the native credential store, not in Sona settings.",
-        "locations": "Settings, history, and retained recordings live in Sona’s application data directory. Recordings are kept only for the selected retention period.",
+        "title": "البيانات على هذا الجهاز",
         "historyLimit": {
-          "label": "History limit",
-          "description": "Keep this many recent history entries. Set 0 to disable saved history."
+          "label": "حد السجل",
+          "description": "احتفظ بهذا العدد من عناصر السجل الأخيرة. اضبطه على 0 لتعطيل حفظ السجل."
         },
         "retention": {
-          "label": "Recording retention",
-          "description": "Choose how long recording files remain on this device.",
+          "label": "مدة الاحتفاظ بالتسجيلات",
           "values": {
-            "never": "Do not retain recordings",
-            "preserve_limit": "Keep recordings with history",
-            "days_3": "3 days",
-            "weeks_2": "2 weeks",
-            "months_3": "3 months"
+            "never": "عدم الاحتفاظ بالتسجيلات",
+            "preserve_limit": "الاحتفاظ بالتسجيلات مع السجل",
+            "days_3": "3 أيام",
+            "weeks_2": "أسبوعان",
+            "months_3": "3 أشهر"
           }
         },
-        "error": "Data retention could not be saved",
+        "error": "تعذر حفظ مدة الاحتفاظ بالبيانات",
         "historyStorage": {
-          "description": "ما إذا كان سجل الإملاء مشفّرًا على هذا القرص.",
           "encrypted": "مشفّر أثناء التخزين",
           "label": "تخزين السجل",
           "locked": "مقفل",
@@ -1600,33 +1404,21 @@
             "encryption_unavailable": "لا يمكن لهذا الإصدار فتح قاعدة بيانات مشفّرة، لذا يُخزّن السجل دون تشفير.",
             "key_rejected": "المفتاح المخزّن لا يفتح قاعدة البيانات المشفّرة، لذا لا يمكن قراءة السجل.",
             "key_unavailable": "لم يُرجع مخزن بيانات اعتماد النظام مفتاحًا قابلًا للاستخدام، لذا يُخزّن السجل دون تشفير.",
-            "migration_failed": "فشل تشفير قاعدة البيانات الموجودة. قاعدة البيانات غير المشفّرة سليمة ولا تزال قيد الاستخدام.",
-            "unlocking": "جارٍ فتح قاعدة البيانات المشفّرة. يختفي هذا بمجرد انتهاء بدء التشغيل."
+            "migration_failed": "فشل تشفير قاعدة البيانات الموجودة. قاعدة البيانات غير المشفّرة سليمة ولا تزال قيد الاستخدام."
           },
           "unknown": "تعذر على Sona قراءة كيفية تخزين السجل.",
-          "unlocking": "جارٍ فتح القفل",
-          "since": "مشفّر منذ {{date}}."
+          "unlocking": "جارٍ فتح القفل"
         }
       },
       "cloudTranscription": {
-        "title": "Cloud transcription",
-        "description": "Read-only disclosure of direct cloud speech-to-text routes.",
-        "checking": "Checking cloud transcription setup…",
-        "checkFailed": "Cloud transcription setup could not be checked.",
-        "disclosure": "For a cloud-enabled mode, Sona sends recorded audio, the selected language, and mode keyterms directly to the provider. Application context and native credentials stay on this device.",
-        "providerDetail": "{{provider}} has a saved native API key and current transfer consent.",
-        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent.",
-        "inUse": "قيد الاستخدام"
+        "title": "التفريغ السحابي",
+        "checkFailed": "تعذر التحقق من إعداد التفريغ السحابي.",
+        "disclosure": "في وضع يستخدم السحابة، يُرسل Sona الصوت المسجَّل واللغة المختارة والمصطلحات المفتاحية للوضع مباشرةً إلى المزوّد. يبقى سياق التطبيق وبيانات الاعتماد الخاصة على هذا الجهاز."
       },
       "upstreamImport": {
-        "title": "Import from legacy app",
-        "description": "Copy selected personal data from the legacy app. The source remains unchanged.",
+        "title": "الاستيراد من التطبيق القديم",
         "source": {
-          "settingsAvailable": "Settings file is available.",
-          "settingsMissing": "No settings file was found.",
-          "history": "{{count}} history entries found.",
-          "recordings": "{{count}} recording files, {{size}}.",
-          "empty": "No settings or history entries are available to import."
+          "empty": "لا توجد إعدادات أو عناصر سجل متاحة للاستيراد."
         },
         "byteCount": "{{value}} {{unit}}",
         "byteUnits": {
@@ -1635,166 +1427,161 @@
           "megabytes": "MiB",
           "gigabytes": "GiB"
         },
-        "modelsNotImported": "Model files are not imported.",
-        "appRunning": "Close the legacy app before importing.",
-        "appUnverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
-        "selection": "Choose data to import",
-        "selectionSettings": "Settings",
-        "selectionHistory": "History",
-        "selectionRecordings": "Recordings",
-        "recordingsRequireHistory": "Recordings are imported only with history.",
-        "selectionRequired": "Choose settings or history to import.",
-        "progress": "{{phase}}: {{completed}} of {{total}}",
+        "appRunning": "أغلق التطبيق القديم قبل الاستيراد.",
+        "appUnverifiable": "لا يمكن لـ Sona التأكد من أن التطبيق القديم مغلق على هذه المنصة.",
+        "selection": "اختر البيانات المراد استيرادها",
+        "selectionSettings": "الإعدادات",
+        "selectionHistory": "السجل",
+        "selectionRecordings": "التسجيلات",
+        "recordingsRequireHistory": "لا تُستورد التسجيلات إلا مع السجل.",
+        "selectionRequired": "اختر الإعدادات أو السجل للاستيراد.",
+        "progress": "{{phase}}: {{completed}} من {{total}}",
         "phases": {
-          "settings": "Settings",
-          "history": "History",
-          "recordings": "Recordings"
+          "settings": "الإعدادات",
+          "history": "السجل",
+          "recordings": "التسجيلات"
         },
-        "settingsImported": "Settings imported.",
-        "settingsAlreadyImported": "Settings were already imported.",
-        "result": "{{settings}} Imported {{historyImported}} history entries; {{historyExisting}} already existed. Copied {{recordingsCopied}} recordings; {{recordingsExisting}} already existed.",
-        "refresh": "Check again",
-        "import": "Import selected data",
-        "importing": "Importing",
+        "settingsImported": "تم استيراد الإعدادات.",
+        "settingsAlreadyImported": "تم استيراد الإعدادات بالفعل.",
+        "result": "{{settings}} تم استيراد {{historyImported}} عنصر سجل؛ {{historyExisting}} كانت موجودة بالفعل. تم نسخ {{recordingsCopied}} تسجيل؛ {{recordingsExisting}} كانت موجودة بالفعل.",
+        "refresh": "تحقق مرة أخرى",
+        "import": "استيراد البيانات المحددة",
+        "importing": "جارٍ الاستيراد",
         "errors": {
-          "source_unavailable": "The legacy app's data folder is unavailable.",
-          "upstream_running": "Close the legacy app before importing.",
-          "app_state_unverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
-          "invalid_selection": "Choose settings or history to import.",
-          "settings_unreadable": "The legacy settings file could not be read.",
-          "secret_store_unavailable": "The native credential store is unavailable, so settings with provider keys were not imported.",
-          "secret_conflict": "A provider key already exists in the native credential store. Resolve it before importing settings.",
-          "history_unreadable": "The legacy history database could not be read.",
-          "recording_copy_failed": "A recording could not be copied and verified.",
-          "receipt_write_failed": "The import receipt could not be saved.",
-          "internal": "The import did not finish.",
-          "status": "The legacy app's data could not be inspected."
-        }
+          "source_unavailable": "مجلد بيانات التطبيق القديم غير متاح.",
+          "upstream_running": "أغلق التطبيق القديم قبل الاستيراد.",
+          "app_state_unverifiable": "لا يمكن لـ Sona التأكد من أن التطبيق القديم مغلق على هذه المنصة.",
+          "invalid_selection": "اختر الإعدادات أو السجل للاستيراد.",
+          "settings_unreadable": "تعذر قراءة ملف الإعدادات القديم.",
+          "secret_store_unavailable": "مخزن بيانات الاعتماد الأصلي غير متاح، لذا لم تُستورد الإعدادات التي تحتوي على مفاتيح مزوّدين.",
+          "secret_conflict": "يوجد بالفعل مفتاح مزوّد في مخزن بيانات الاعتماد الأصلي. حلّ ذلك قبل استيراد الإعدادات.",
+          "history_unreadable": "تعذر قراءة قاعدة بيانات السجل القديمة.",
+          "recording_copy_failed": "تعذر نسخ أحد التسجيلات والتحقق منه.",
+          "receipt_write_failed": "تعذر حفظ سجل الاستيراد.",
+          "internal": "لم يكتمل الاستيراد.",
+          "status": "تعذر فحص بيانات التطبيق القديم."
+        },
+        "scope": "يبقى المصدر دون تغيير، ولا تُستورد ملفات النماذج."
       },
       "cloudSync": {
         "checkFailed": "تعذر على Sona قراءة تكوين المزامنة السحابية.",
         "configured": "مكوّن",
-        "description": "يمكن لـ Sona نسخ الاجتماعات إلى خادم تديره أنت. لا يُرفع أي شيء حتى يكتمل الإعداد على هذا الجهاز.",
-        "endpoint": "نقطة النهاية",
-        "endpointDescription": "الخادم الذي يشير إليه هذا الجهاز.",
         "notConfigured": "غير مكوّن",
-        "service": "الخدمة",
         "title": "المزامنة السحابية"
+      },
+      "egress": {
+        "assurance": "لا شيء يخرج من هذا الـMac إلا عبر المسارات المذكورة هنا، ومفاتيح المزوّدين تبقى في مخزن بيانات الاعتماد بالنظام، لا في إعدادات Sona.",
+        "thisMac": "هذا الـMac",
+        "routes": {
+          "cleanup": "تنظيف بالذكاء الاصطناعي"
+        }
       }
     },
     "agents": {
-      "title": "Agents",
-      "description": "Observe approved local coding-agent sessions. Responses only appear where the installed hook has a fixture-backed wire format.",
+      "title": "الوكلاء",
       "controls": {
-        "title": "Bridge controls",
+        "title": "عناصر تحكم الجسر",
         "master": {
-          "label": "Enable agent bridge",
-          "description": "Allow Sona to observe configured local agent hooks for authorized projects."
+          "label": "تمكين جسر الوكيل"
         },
-        "offState": "The agent bridge is off. No session data or replies are processed.",
-        "status": "Runtime status",
+        "status": "حالة التشغيل",
         "providers": {
           "claude": {
             "label": "Claude",
-            "description": "Observe Claude sessions and enable fixture-backed replies where available."
+            "description": "مراقبة جلسات Claude وتمكين الردود المدعومة بنماذج اتصال محفوظة حيث تتوفر."
           },
           "codex": {
             "label": "Codex",
-            "description": "Observe sessions only. Replies are read-only until a wire fixture supports them."
+            "description": "مراقبة الجلسات فقط. الردود للقراءة فقط حتى يدعمها نموذج اتصال محفوظ."
           },
           "grok": {
             "label": "Grok",
-            "description": "Observe sessions only. Replies are read-only until a wire fixture supports them."
+            "description": "مراقبة الجلسات فقط. الردود للقراءة فقط حتى يدعمها نموذج اتصال محفوظ."
           },
           "omp": {
             "label": "OMP",
-            "description": "Observe OMP sessions and approval requests. Replies are available only at a supported OMP session stop."
+            "description": "مراقبة جلسات OMP وطلبات الموافقة. الردود متاحة فقط عند نقطة توقف مدعومة في جلسة OMP."
           }
         }
       },
       "status": {
-        "disabled": "Disabled",
-        "runtime_unavailable": "Runtime unavailable",
-        "interactive_unsupported": "Interactive responses unsupported",
-        "app_lock_held": "Another Sona instance is active",
-        "active": "Active"
+        "disabled": "معطّل",
+        "runtime_unavailable": "بيئة التشغيل غير متاحة",
+        "interactive_unsupported": "الاستجابات التفاعلية غير مدعومة",
+        "app_lock_held": "هناك نسخة أخرى من Sona نشطة",
+        "active": "نشط"
       },
       "projects": {
-        "title": "Authorized projects",
-        "description": "Choose a project folder with the native picker. Sona persists only its canonical hash.",
-        "hashOnly": "Exact project hashes are the permission boundary; folder paths are not stored here.",
-        "add": "Authorize folder",
-        "remove": "Remove project",
-        "empty": "No projects are authorized."
+        "title": "المشاريع المخوَّلة",
+        "hashOnly": "تجزئات المشاريع الدقيقة هي حدود الإذن؛ ولا تُخزَّن مسارات المجلدات هنا.",
+        "add": "تخويل مجلد",
+        "remove": "إزالة المشروع",
+        "empty": "لا توجد مشاريع مخوَّلة."
       },
       "hook": {
-        "title": "Hook snippet",
-        "description": "Copy the packaged hook configuration into your agent’s own configuration. Sona never edits agent configuration files.",
-        "copy": "Copy snippet",
-        "error": "Hook snippet unavailable"
+        "title": "مقتطف الخطاف",
+        "description": "انسخ تكوين الخطاف المرفق إلى تكوين وكيلك الخاص. لا يعدّل Sona ملفات تكوين الوكلاء أبدًا.",
+        "copy": "نسخ المقتطف",
+        "error": "مقتطف الخطاف غير متاح"
       },
       "replyQueue": {
-        "title": "Reply preview",
-        "description": "Create a reply preview for a prepared Claude or OMP session. Sona sends it only after you confirm the exact destination and text.",
-        "session": "Reply destination",
-        "noSession": "No observed reply-capable session",
-        "message": "Reply text",
-        "createPreview": "Create preview",
+        "title": "معاينة الرد",
+        "session": "وجهة الرد",
+        "noSession": "لا توجد جلسة مرصودة قادرة على الرد",
+        "message": "نص الرد",
+        "createPreview": "إنشاء معاينة",
         "notReady": "تتطلب الردود تشغيل الجسر وتمكين وكيل واحد على الأقل."
       },
       "pending": {
-        "empty": "No pending replies.",
-        "confirm": "Confirm exact reply",
-        "preview": "Review the exact destination and text before confirming",
-        "confirmed": "Confirmed for the next supported Stop event",
-        "cancel": "Cancel",
+        "empty": "لا توجد ردود معلّقة.",
+        "confirm": "تأكيد الرد بالتحديد",
+        "confirmed": "مؤكَّد لأول حدث توقف مدعوم",
+        "cancel": "إلغاء",
         "states": {
-          "held": "Held for the next supported Stop event",
-          "response_written": "Response written",
-          "emitted": "Emitted",
-          "copy_only": "Copy-only",
-          "cancelled": "Cancelled"
-        }
+          "held": "محتفظ به لأول حدث توقف مدعوم",
+          "response_written": "تم كتابة الاستجابة",
+          "emitted": "أُرسل",
+          "copy_only": "نسخ فقط",
+          "cancelled": "أُلغي"
+        },
+        "title": "الردود المعلّقة"
       },
       "observed": {
-        "title": "Observed activity",
-        "description": "Sessions and requests include IDs and metadata only; provider payloads are not shown.",
-        "refresh": "Refresh",
-        "sessions": "Sessions",
-        "noSessions": "No sessions observed.",
-        "requests": "Requests",
-        "noRequests": "No requests observed.",
+        "title": "النشاط المرصود",
+        "refresh": "تحديث",
+        "sessions": "الجلسات",
+        "noSessions": "لم تُرصد أي جلسات.",
+        "requests": "الطلبات",
+        "noRequests": "لم تُرصد أي طلبات.",
         "requestKinds": {
-          "session_start": "Session started",
-          "user_prompt_submit": "Prompt submitted",
-          "permission_request": "Permission request",
-          "pre_tool_use": "Before tool use",
-          "post_tool_use": "After tool use",
-          "stop": "Stop",
-          "notification": "Notification"
+          "session_start": "بدأت الجلسة",
+          "user_prompt_submit": "تم إرسال المطالبة",
+          "permission_request": "طلب إذن",
+          "pre_tool_use": "قبل استخدام أداة",
+          "post_tool_use": "بعد استخدام أداة",
+          "stop": "توقف",
+          "notification": "إشعار"
         },
-        "expires": "Expires {{time}}",
-        "allowExact": "Allow exactly this request",
-        "denyExact": "Deny exactly this request",
-        "dismiss": "Dismiss",
-        "ompPermissionObserveOnly": "OMP approval requests are observed only. Approve or deny them in OMP."
+        "expires": "تنتهي الصلاحية {{time}}",
+        "allowExact": "السماح بهذا الطلب بالتحديد",
+        "denyExact": "رفض هذا الطلب بالتحديد",
+        "dismiss": "تجاهل",
+        "ompPermissionObserveOnly": "طلبات موافقة OMP تُرصد فقط. وافق عليها أو ارفضها في OMP."
       },
       "rules": {
-        "title": "Exact permission rules",
-        "description": "An allow or deny is stored only for the exact agent, project hash, tool, mode, and input hash that created it.",
-        "empty": "No permission rules.",
-        "remove": "Remove rule",
+        "title": "قواعد الأذونات الدقيقة",
+        "empty": "لا توجد قواعد أذونات.",
+        "remove": "إزالة القاعدة",
         "decisions": {
-          "allow": "Allow",
-          "deny": "Deny"
+          "allow": "سماح",
+          "deny": "رفض"
         }
       },
       "errors": {
-        "load": "Agent bridge data could not be loaded: {{error}}",
-        "operation": "The agent bridge action could not be completed: {{error}}"
+        "load": "تعذر تحميل بيانات جسر الوكيل: {{error}}",
+        "operation": "تعذر إكمال إجراء جسر الوكيل: {{error}}"
       },
       "panel": {
-        "description": "النافذة العائمة التي ينشر فيها الوكلاء ويقرأون الردود منها.",
         "error": "تعذر حفظ إعداد لوحة الوكيل.",
         "label": "تمكين لوحة الوكيل",
         "rowDescription": "إيقاف هذا يغلق نافذة اللوحة ويجعل Sona يرفض كل طلب لإعادة فتحها.",
@@ -1803,27 +1590,22 @@
       "workspaceNavigation": "عروض جسر الوكيل"
     },
     "hub": {
-      "navigation": "Settings sections",
+      "navigation": "أقسام الإعدادات",
       "tabs": {
-        "general": "General",
-        "privacy": "Privacy",
-        "agents": "Agents",
-        "advanced": "Advanced",
-        "about": "About",
-        "debug": "Debug"
+        "general": "عام",
+        "privacy": "الخصوصية",
+        "agents": "الوكلاء",
+        "advanced": "متقدم",
+        "about": "حول",
+        "debug": "تصحيح الأخطاء"
       }
     },
     "vocabulary": {
       "replacements": {
         "title": "الاستبدالات المنطوقة",
-        "description": "عبارات يعيد Sona كتابتها إلى نص محدد بدقة. التغييرات هنا تؤثر على النصوص القادمة فقط، ولا تمس نصًا مكتوبًا سابقًا.",
         "enabledLabel": "تمكين الاستبدالات المنطوقة",
-        "enabledDescription": "أعد كتابة العبارات المنطوقة مثل «آت» إلى رموز، قبل تشغيل تصحيح المفردات.",
-        "offState": "الاستبدالات المنطوقة مغلقة. تبقى القواعد محفوظة وتُطبَّق مرة أخرى بمجرد إعادة التشغيل.",
         "spoken": "أنت تقول",
         "written": "Sona يكتب",
-        "applyColumn": "تطبيق",
-        "actionsColumn": "إجراءات",
         "spokenPlaceholder": "آت",
         "writtenPlaceholder": "@",
         "add": "إضافة قاعدة",
@@ -1838,14 +1620,11 @@
           "incomplete": "أدخل العبارة المنطوقة ونصها البديل معًا."
         },
         "empty": {
-          "title": "لا توجد استبدالات",
-          "description": "أضف عبارة مثل «آت»، وسيكتب Sona الرمز @ في كل مرة تقولها.",
-          "action": "استعادة القواعد الأولية"
+          "description": "أضف عبارة مثل «آت»، وسيكتب Sona الرمز @ في كل مرة تقولها."
         },
         "confirmDelete": {
           "title": "حذف {{spoken}}؟",
-          "description": "لن تُعاد كتابة هذه العبارة في النصوص القادمة. النص المكتوب سابقًا لا يتغير.",
-          "body": "{{spoken}} تصبح حاليًا {{written}}."
+          "description": "لن تُعاد كتابة هذه العبارة في النصوص القادمة. النص المكتوب سابقًا لا يتغير."
         },
         "confirmReset": {
           "title": "استعادة القواعد الافتراضية؟",
@@ -1856,20 +1635,17 @@
     "prompts": {
       "samples": {
         "title": "نماذج كتابة",
-        "description": "أمثلة من كتابتك أنت. الأوضاع التي تعيد كتابة نص تتبع هذا الأسلوب.",
         "placeholder": "الصق فقرة كتبتها بنفسك.",
         "sampleLabel": "نموذج كتابة {{number}}",
         "delete": "حذف النموذج {{number}}",
         "add": "إضافة نموذج",
         "wordCount": "{{words}} من {{max}} كلمة",
         "overLimit": "{{words}} كلمة. تُستخدم أول {{max}} كلمة فقط.",
-        "privacy": "تُرسل النماذج فقط إلى حيث يذهب النص نفسه أصلًا، ولا إلى أي مكان آخر. تُستخدم حتى {{max}} نماذج.",
+        "privacy": "تُرسل النماذج فقط إلى حيث يذهب النص نفسه أصلًا، ولا إلى أي مكان آخر.",
         "loading": "جارٍ تحميل النماذج",
         "loadError": "لم يتم تحميل النماذج.",
         "empty": {
-          "title": "لا توجد نماذج بعد",
-          "description": "الصق بضع فقرات كتبتها بنفسك، وستتبع إعادة الكتابة مفرداتك وطول جملك ودرجة الرسمية عندك.",
-          "action": "إضافة نموذج"
+          "description": "الصق بضع فقرات كتبتها بنفسك، وستتبع إعادة الكتابة مفرداتك وطول جملك ودرجة الرسمية عندك."
         }
       }
     },
@@ -1877,7 +1653,6 @@
       "enabledLabel": "إظهار الكبسولة في وضع السكون",
       "enabledDescription": "أبقِ كبسولة صغيرة على الشاشة بين الإملاءات. انقر للبدء، وانقر بالزر الأيمن لتغيير الوضع.",
       "positionLabel": "موضع كبسولة السكون",
-      "positionDescription": "على أي حافة من الشاشة تستقر كبسولة السكون.",
       "positionTop": "أعلى",
       "positionBottom": "أسفل"
     }
@@ -1891,12 +1666,13 @@
     "copy": "نسخ",
     "clear": "مسح",
     "noOptionsFound": "لم يتم العثور على خيارات",
-    "save": "Save",
-    "saving": "Saving…",
-    "retry": "Retry",
+    "save": "حفظ",
+    "saving": "جارٍ الحفظ…",
+    "retry": "إعادة المحاولة",
     "play": "تشغيل",
     "pause": "إيقاف مؤقت",
-    "seek": "موضع التشغيل"
+    "seek": "موضع التشغيل",
+    "resetSetting": "إعادة تعيين {{name}}"
   },
   "commandPalette": {
     "open": "بحث",
@@ -1904,9 +1680,7 @@
     "navigation": "التنقل",
     "actions": "إجراءات",
     "noResults": "لا توجد أوامر",
-    "navigate": "تنقّل",
-    "select": "اختر",
-    "newMeeting": "New meeting",
+    "newMeeting": "اجتماع جديد",
     "importAudio": "تفريغ ملف",
     "openRecordings": "فتح مجلد التسجيلات",
     "openAgent": "فتح المساعد",
@@ -1947,12 +1721,10 @@
     "commandRewriteUnavailableTitle": "إعادة الصياغة غير متاحة"
   },
   "appLanguage": {
-    "title": "لغة التطبيق",
-    "description": "تغيير لغة واجهة Sona"
+    "title": "لغة التطبيق"
   },
   "theme": {
     "title": "سمة التطبيق",
-    "description": "اختر ما إذا كان Sona يتبع مظهر النظام أو يبقى فاتحًا أو داكنًا",
     "options": {
       "system": "النظام",
       "light": "فاتح",
@@ -1990,303 +1762,274 @@
     "dismiss": "تجاهل"
   },
   "meetings": {
-    "title": "Meetings",
-    "description": "Capture, recover, and review meeting notes stored on this Mac.",
-    "loading": "Loading meetings…",
+    "title": "الاجتماعات",
+    "loading": "جارٍ تحميل الاجتماعات…",
     "providers": {
       "zoom": "Zoom",
       "google_meet": "Google Meet",
       "microsoft_teams": "Microsoft Teams",
       "webex": "Webex",
-      "slack_huddle": "Slack huddle",
+      "slack_huddle": "تجمّع Slack",
       "face_time": "FaceTime",
-      "configured_app": "Configured app"
+      "configured_app": "التطبيق المكوّن"
     },
     "phases": {
-      "preflight": "Setup",
-      "starting": "Starting",
-      "capturing_recording": "Recording",
-      "capturing_pausing": "Pausing",
-      "capturing_paused": "Paused",
-      "capturing_resuming": "Resuming",
-      "stopping": "Stopping",
-      "processing": "Processing",
-      "review_ready": "Ready for review",
-      "recovery_required": "Recovery needed",
-      "deleting": "Deleting"
+      "preflight": "الإعداد",
+      "starting": "جاري البدء",
+      "capturing_recording": "التسجيل",
+      "capturing_pausing": "جارٍ الإيقاف المؤقت",
+      "capturing_paused": "متوقف مؤقتًا",
+      "capturing_resuming": "جارٍ الاستئناف",
+      "stopping": "جارٍ الإيقاف",
+      "processing": "قيد المعالجة",
+      "review_ready": "جاهز للمراجعة",
+      "recovery_required": "الاسترجاع مطلوب",
+      "deleting": "جارٍ الحذف"
     },
     "sources": {
-      "microphone": "Microphone",
-      "system_audio": "System audio"
+      "microphone": "الميكروفون",
+      "system_audio": "صوت النظام"
     },
     "availability": {
-      "available": "Available",
-      "permission_required": "Permission required",
-      "permission_denied": "Permission denied",
-      "device_unavailable": "Device unavailable",
-      "unsupported_platform": "Unsupported on this Mac",
-      "storage_unavailable": "Storage unavailable",
-      "unknown": "Checking"
+      "available": "متاح",
+      "permission_required": "الإذن مطلوب",
+      "permission_denied": "الإذن مرفوض",
+      "device_unavailable": "الجهاز غير متاح",
+      "unsupported_platform": "غير مدعوم على هذا الـMac",
+      "storage_unavailable": "التخزين غير متاح",
+      "unknown": "جارٍ التحقق"
     },
     "health": {
-      "not_started": "Not started",
-      "starting": "Starting",
-      "healthy": "Healthy",
-      "paused": "Paused",
-      "degraded": "Degraded",
-      "failed": "Failed",
-      "stopped": "Stopped"
+      "not_started": "لم يبدأ",
+      "starting": "جاري البدء",
+      "healthy": "سليم",
+      "paused": "متوقف مؤقتًا",
+      "degraded": "متدهور",
+      "failed": "فاشل",
+      "stopped": "متوقف"
     },
     "completeness": {
-      "not_started": "Not started",
-      "complete": "Complete",
-      "partial": "Partial"
+      "not_started": "لم يبدأ",
+      "complete": "كامل",
+      "partial": "جزئي"
     },
     "processing": {
-      "pending": "Waiting for processing",
-      "running": "Processing",
-      "succeeded": "Ready",
-      "cancelled": "Processing cancelled",
+      "pending": "في انتظار المعالجة",
+      "running": "قيد المعالجة",
+      "succeeded": "جاهز",
+      "cancelled": "أُلغيت المعالجة",
       "failed": {
-        "local_model_unavailable": "Local model unavailable",
-        "remote_unavailable": "Remote destination unavailable",
-        "engine_failure": "Processing failed",
-        "cancelled": "Processing cancelled"
+        "local_model_unavailable": "النموذج المحلي غير متاح",
+        "remote_unavailable": "الوجهة البعيدة غير متاحة",
+        "engine_failure": "فشلت المعالجة",
+        "cancelled": "أُلغيت المعالجة"
       }
     },
     "actions": {
-      "back": "Back",
-      "delete": "Delete meeting",
-      "discard": "Discard",
-      "pause": "Pause",
-      "refresh": "Refresh",
-      "resume": "Resume",
-      "retry": "Try again",
-      "stop": "Stop"
+      "back": "رجوع",
+      "delete": "حذف الاجتماع",
+      "discard": "تخلّص",
+      "pause": "إيقاف مؤقت",
+      "refresh": "تحديث",
+      "resume": "استئناف",
+      "retry": "حاول مرة أخرى",
+      "stop": "إيقاف"
     },
     "detected": {
-      "title": "Meeting detected",
-      "description": "لاحظ Sona استخدام تطبيق اجتماعات.",
-      "mayBeActive": "A meeting may be active in {{provider}}."
+      "title": "تم اكتشاف اجتماع",
+      "mayBeActive": "قد يكون هناك اجتماع جارٍ في {{provider}}."
     },
     "setup": {
-      "captureSources": "Capture sources",
-      "captureSourcesDescription": "Each source stays separate so missing audio remains visible.",
-      "processing": "Processing route",
-      "localOnly": "Local only",
-      "defaultTitle": "Local notes",
+      "defaultTitle": "ملاحظات محلية",
       "remoteUnavailable": "المعالجة عن بُعد غير متاحة في هذا الإصدار، لذا يتم تفريغ كل اجتماع وتلخيصه على جهاز Mac هذا."
     },
     "preflight": {
-      "storage": "Storage",
-      "storageAvailable": "Encrypted meeting storage is available.",
-      "storageUnavailable": "Encrypted meeting storage is unavailable.",
-      "localModel": "Local model",
-      "localModelDescription": "Processing remains local when a local model is available.",
-      "starting": "Starting visible capture…",
+      "storage": "التخزين",
+      "storageAvailable": "تخزين الاجتماعات المشفّر متاح.",
+      "storageUnavailable": "تخزين الاجتماعات المشفّر غير متاح.",
+      "localModel": "النموذج المحلي",
+      "localModelDescription": "تبقى المعالجة محلية عندما يتوفر نموذج محلي.",
+      "starting": "جارٍ بدء تسجيل ظاهر…",
       "refreshing": "جارٍ التحقق…"
     },
     "consent": {
-      "continuePartial": "I want to continue with a partial meeting record.",
-      "acceptMissing": "I understand {{source}} is {{state}} and this meeting will be partial."
+      "continuePartial": "أريد المتابعة بسجل اجتماع جزئي.",
+      "acceptMissing": "أفهم أن {{source}} {{state}} وأن هذا الاجتماع سيكون جزئيًا."
     },
     "live": {
-      "activeCapture": "Active capture",
-      "elapsed": "Elapsed",
-      "microphoneOnlyPartial": "Microphone only / Partial. System audio is unavailable or degraded.",
-      "partialCapture": "Partial capture. Review the gaps before relying on generated notes.",
-      "inputs": "Inputs",
-      "inputsDescription": "Source health is reported separately. Capture never fills missing intervals.",
-      "signal": "Signal",
-      "signalUnavailable": "{{source}} level is not reported by capture.",
-      "notReported": "Not reported",
-      "durabilityLag": "Durability lag",
-      "behind": "{{duration}} behind",
-      "progress": "Transcript progress",
-      "progressDescription": "Transcript timing is derived from committed segments, not a guessed model state.",
-      "transcript": "Transcript",
-      "transcriptThrough": "Transcript through {{time}}",
-      "noTranscriptCheckpoint": "No transcript checkpoint",
-      "asrLag": "ASR lag",
-      "storage": "Storage",
-      "storageHealthy": "Encrypted local storage is healthy.",
-      "storageUnavailable": "Storage needs attention.",
-      "processing": "Processing",
-      "manualNote": "Manual note",
-      "manualNoteDescription": "A note added now is anchored at {{time}}.",
-      "notePlaceholder": "Write a note for this moment",
-      "timestamp": "Timestamp {{time}}",
-      "addNote": "Add timestamped note"
+      "elapsed": "المنقضي",
+      "microphoneOnlyPartial": "الميكروفون فقط / جزئي. صوت النظام غير متاح أو متدهور.",
+      "partialCapture": "تسجيل جزئي. راجع الفجوات قبل الاعتماد على الملاحظات المولّدة.",
+      "inputs": "المدخلات",
+      "signal": "الإشارة",
+      "signalUnavailable": "لا يُبلّغ التسجيل عن مستوى {{source}}.",
+      "notReported": "غير مُبلَّغ عنه",
+      "durabilityLag": "تأخر الحفظ الدائم",
+      "behind": "متأخر بمقدار {{duration}}",
+      "progress": "تقدّم النص",
+      "transcript": "النص",
+      "asrLag": "تأخر التعرّف على الكلام",
+      "storage": "التخزين",
+      "storageHealthy": "التخزين المحلي المشفّر سليم.",
+      "storageUnavailable": "التخزين يحتاج إلى انتباه.",
+      "processing": "قيد المعالجة",
+      "manualNote": "ملاحظة يدوية",
+      "notePlaceholder": "اكتب ملاحظة لهذه اللحظة",
+      "addNote": "إضافة ملاحظة بطابع زمني"
     },
     "recovery": {
-      "title": "Recover partial meetings",
-      "description": "These sessions were interrupted. Sona will not restart capture.",
-      "finalize": "Finalize partial"
+      "title": "استرجاع الاجتماعات الجزئية",
+      "finalize": "إتمام الجزئي"
     },
     "history": {
-      "title": "Meeting history",
-      "description": "Open a local meeting record to inspect its capture coverage and notes.",
-      "loading": "Loading meeting history…",
-      "emptyTitle": "No meetings yet",
-      "emptyDescription": "Start local notes when you are ready to capture a meeting."
+      "title": "سجل الاجتماعات",
+      "loading": "جارٍ تحميل سجل الاجتماعات…",
+      "emptyTitle": "لا توجد اجتماعات بعد"
     },
     "retention": {
-      "title": "Retention",
-      "description": "Sona deletes eligible local meeting records through the same verified deletion path.",
-      "forever": "Keep until I delete it",
-      "days": "Delete after {{days}} days",
+      "title": "مدة الاحتفاظ",
+      "description": "تحذف Sona سجلات الاجتماعات المحلية المستحقة عبر مسار الحذف المُتحقق نفسه.",
+      "forever": "الاحتفاظ حتى أحذفه بنفسي",
+      "days": "الحذف بعد {{days}} يومًا",
       "loading": "جارٍ قراءة السياسة الحالية…"
     },
     "receipts": {
-      "title": "Correction receipt",
-      "saved": "Saved locally.",
-      "savedRevision": "Saved locally. Revision {{revision}}.",
-      "duplicate": "This action was already recorded. Sona refreshed the existing result."
+      "title": "سجل التصحيح",
+      "saved": "تم الحفظ محليًا.",
+      "savedRevision": "تم الحفظ محليًا. المراجعة {{revision}}.",
+      "duplicate": "تم تسجيل هذا الإجراء بالفعل. حدّث Sona النتيجة الموجودة."
     },
     "reasons": {
-      "consent_missing": "Recording acknowledgement is required.",
-      "consent_stale": "Setup changed before this action.",
-      "stale_revision": "This meeting changed in another window.",
-      "capture_lease_busy": "Another meeting capture is active.",
-      "source_unavailable": "A requested source is unavailable.",
-      "source_start_failed": "A source could not start.",
-      "source_gap": "A source reported a gap.",
-      "storage_unavailable": "Encrypted meeting storage is unavailable.",
-      "storage_failure": "Storage could not persist this change.",
-      "local_model_unavailable": "A local model is unavailable.",
-      "recovery_required": "This meeting needs recovery.",
-      "deleted": "This meeting was deleted.",
-      "invalid_transition": "This action is not available in the current phase.",
-      "duplicate_operation": "This action was already recorded."
+      "consent_missing": "إقرار التسجيل مطلوب.",
+      "consent_stale": "تغيّر الإعداد قبل هذا الإجراء.",
+      "stale_revision": "تغيّر هذا الاجتماع في نافذة أخرى.",
+      "capture_lease_busy": "هناك تسجيل اجتماع آخر نشط.",
+      "source_unavailable": "أحد المصادر المطلوبة غير متاح.",
+      "source_start_failed": "تعذر بدء أحد المصادر.",
+      "source_gap": "أبلغ أحد المصادر عن فجوة.",
+      "storage_unavailable": "تخزين الاجتماعات المشفّر غير متاح.",
+      "storage_failure": "تعذر على التخزين حفظ هذا التغيير.",
+      "local_model_unavailable": "لا يتوفر نموذج محلي.",
+      "recovery_required": "يحتاج هذا الاجتماع إلى استرجاع.",
+      "deleted": "تم حذف هذا الاجتماع.",
+      "invalid_transition": "هذا الإجراء غير متاح في المرحلة الحالية.",
+      "duplicate_operation": "تم تسجيل هذا الإجراء بالفعل."
     },
     "gaps": {
-      "source_unavailable": "Source unavailable",
-      "source_start_failed": "Source start failed",
-      "permission_lost": "Permission lost",
-      "paused": "Paused",
-      "packet_dropped": "Audio packet dropped",
-      "writer_pressure": "Storage writer pressure",
-      "storage_failure": "Storage failure",
-      "timestamp_missing": "Timestamp missing",
-      "timestamp_discontinuity": "Timestamp discontinuity",
-      "invalid_format": "Invalid audio format",
-      "source_stopped": "Source stopped",
-      "corrupt_record": "Corrupt record",
-      "missing_record": "Missing record",
-      "recovery_tail": "Recovery tail",
-      "system_sleep": "Mac sleep"
+      "source_unavailable": "المصدر غير متاح",
+      "source_start_failed": "فشل بدء المصدر",
+      "permission_lost": "فُقد الإذن",
+      "paused": "متوقف مؤقتًا",
+      "packet_dropped": "حزمة صوت مفقودة",
+      "writer_pressure": "ضغط على كاتب التخزين",
+      "storage_failure": "فشل التخزين",
+      "timestamp_missing": "الطابع الزمني مفقود",
+      "timestamp_discontinuity": "انقطاع في الطابع الزمني",
+      "invalid_format": "تنسيق صوت غير صالح",
+      "source_stopped": "توقف المصدر",
+      "corrupt_record": "سجل تالف",
+      "missing_record": "سجل مفقود",
+      "recovery_tail": "ذيل الاسترجاع",
+      "system_sleep": "سكون الـMac"
     },
     "errors": {
-      "load": "Sona could not load the current meeting data.",
+      "load": "لم يتمكن Sona من تحميل بيانات الاجتماع الحالي.",
       "operation": "لم يكتمل هذا الإجراء الخاص بالاجتماع. حاول مرة أخرى.",
-      "operationRejected": "The meeting action was rejected.",
-      "consent_required": "Confirm the recording acknowledgement before starting.",
-      "consent_stale": "The setup changed. Review it again before starting.",
-      "invalid_transition": "This action is unavailable in the current meeting phase.",
-      "stale_revision": "This meeting changed in another window. Sona refreshed its snapshot.",
-      "capture_lease_busy": "Another meeting is already capturing audio.",
-      "no_source_started": "No approved audio source started.",
-      "source_unavailable": "A requested audio source is unavailable.",
-      "storage_unavailable": "Encrypted meeting storage is unavailable.",
-      "recovery_required": "This meeting needs recovery before that action.",
-      "deletion_in_progress": "Deletion is already in progress. The meeting remains inaccessible.",
-      "not_found": "This meeting is no longer available.",
-      "invalid_request": "The meeting request was invalid.",
-      "export_cancelled": "Export was cancelled. No completed export was created.",
-      "export_failed": "Export failed. No completed export was created.",
-      "local_model_unavailable": "A local model is unavailable for this meeting.",
-      "remote_unavailable": "The selected remote destination is unavailable."
+      "operationRejected": "تم رفض إجراء الاجتماع.",
+      "consent_required": "أكّد إقرار التسجيل قبل البدء.",
+      "consent_stale": "تغيّر الإعداد. راجعه مرة أخرى قبل البدء.",
+      "invalid_transition": "هذا الإجراء غير متاح في مرحلة الاجتماع الحالية.",
+      "stale_revision": "تغيّر هذا الاجتماع في نافذة أخرى. حدّث Sona لقطته.",
+      "capture_lease_busy": "هناك اجتماع آخر يسجّل الصوت بالفعل.",
+      "no_source_started": "لم يبدأ أي مصدر صوت معتمد.",
+      "source_unavailable": "أحد مصادر الصوت المطلوبة غير متاح.",
+      "storage_unavailable": "تخزين الاجتماعات المشفّر غير متاح.",
+      "recovery_required": "يحتاج هذا الاجتماع إلى استرجاع قبل ذلك الإجراء.",
+      "deletion_in_progress": "الحذف جارٍ بالفعل. يبقى الاجتماع غير قابل للوصول.",
+      "not_found": "هذا الاجتماع لم يعد متاحًا.",
+      "invalid_request": "كان طلب الاجتماع غير صالح.",
+      "export_cancelled": "أُلغي التصدير. لم يُنشأ أي تصدير مكتمل.",
+      "export_failed": "فشل التصدير. لم يُنشأ أي تصدير مكتمل.",
+      "local_model_unavailable": "لا يتوفر نموذج محلي لهذا الاجتماع.",
+      "remote_unavailable": "الوجهة البعيدة المحددة غير متاحة."
     },
     "discard": {
-      "liveTitle": "Stop and discard this session?",
-      "liveDescription": "Sona will stop capture and delete the local meeting record.",
-      "keepRecording": "Keep recording",
-      "stopAndDiscard": "Stop and discard",
-      "explainsData": "Audio, transcript, manual notes, generated notes, and local answer caches will be deleted. This cannot be undone.",
-      "complete": "Session discarded"
+      "liveTitle": "إيقاف هذه الجلسة والتخلص منها؟",
+      "keepRecording": "متابعة التسجيل",
+      "stopAndDiscard": "إيقاف وتخلّص",
+      "explainsData": "سيتم حذف الصوت والنص والملاحظات اليدوية والملاحظات المولّدة وذاكرات الإجابات المحلية. لا يمكن التراجع عن هذا.",
+      "complete": "تم التخلص من الجلسة"
     },
     "delete": {
-      "title": "Delete this meeting?",
-      "description": "Sona will delete the local meeting record and its derived data.",
-      "explainsData": "Sona keeps the meeting inaccessible while verified deletion finishes. Exports and remote copies are outside local deletion.",
-      "complete": "Meeting deleted"
+      "title": "حذف هذا الاجتماع؟",
+      "explainsData": "يُبقي Sona الاجتماع غير قابل للوصول حتى ينتهي الحذف المُتحقق. أما التصديرات والنسخ البعيدة فهي خارج نطاق الحذف المحلي.",
+      "complete": "تم حذف الاجتماع"
     },
     "review": {
-      "meetingTitle": "Meeting title",
-      "noStartTime": "This meeting did not record a start time.",
-      "started": "Started {{date}}",
-      "status": "Capture status",
-      "statusDescription": "Coverage, source health, and processing remain separate.",
-      "timeline": "Audio timeline and gaps",
-      "timelineDescription": "Gaps name intervals where no audio was captured.",
-      "gap": "Gap",
-      "timeUnknown": "Unknown time",
-      "noGaps": "No capture gaps were reported.",
-      "transcript": "Transcript",
-      "transcriptDescription": "Edits create a new canonical revision. Derived notes and answers become out of date.",
-      "noTranscript": "No transcript is available.",
-      "transcriptSegment": "Transcript segment",
-      "removeSegment": "Remove segment",
-      "unknownSpeaker": "Unknown speaker",
-      "speakers": "Speakers",
-      "speakersDescription": "Rename or merge local speaker labels without rewriting timing.",
-      "noSpeakers": "No speaker labels are available.",
-      "speakerName": "Speaker name",
-      "mergeSource": "Merge this speaker",
-      "mergeTarget": "Into this speaker",
-      "merge": "Merge speakers",
-      "manualNotes": "Manual notes",
-      "manualNotesDescription": "Manual notes are user-owned and remain separate from generated notes.",
-      "manualNote": "Manual note",
-      "newNote": "New manual note",
-      "notePlaceholder": "Add a manual note",
-      "addNote": "Add note",
-      "noNotes": "No manual notes yet.",
-      "noTimestamp": "No timestamp",
-      "timestamp": "Timestamp {{time}}",
-      "generatedNotes": "Generated notes",
-      "generatedNotesDescription": "Regeneration uses the current canonical revision and does not overwrite manual notes or confirmed corrections.",
-      "regenerate": "Regenerate",
-      "remoteCancellationPending": "Remote cancellation is pending. Local deletion does not claim the remote copy is deleted.",
-      "cancelRemote": "Cancel remote processing",
+      "meetingTitle": "عنوان الاجتماع",
+      "noStartTime": "لم يسجّل هذا الاجتماع وقت بداية.",
+      "started": "بدأ {{date}}",
+      "status": "حالة التسجيل",
+      "timeline": "الخط الزمني للصوت والفجوات",
+      "timeUnknown": "وقت غير معروف",
+      "noGaps": "لم تُبلَّغ أي فجوات في التسجيل.",
+      "transcript": "النص",
+      "noTranscript": "لا يتوفر نص.",
+      "transcriptSegment": "مقطع من النص",
+      "removeSegment": "إزالة المقطع",
+      "unknownSpeaker": "متحدث غير معروف",
+      "speakers": "المتحدثون",
+      "noSpeakers": "لا تتوفر تسميات للمتحدثين.",
+      "speakerName": "اسم المتحدث",
+      "mergeSource": "دمج هذا المتحدث",
+      "mergeTarget": "مع هذا المتحدث",
+      "merge": "دمج المتحدثين",
+      "manualNotes": "الملاحظات اليدوية",
+      "manualNote": "ملاحظة يدوية",
+      "newNote": "ملاحظة يدوية جديدة",
+      "notePlaceholder": "أضف ملاحظة يدوية",
+      "addNote": "إضافة ملاحظة",
+      "noNotes": "لا توجد ملاحظات يدوية بعد.",
+      "noTimestamp": "بلا طابع زمني",
+      "timestamp": "الطابع الزمني {{time}}",
+      "generatedNotes": "الملاحظات المولّدة",
+      "regenerate": "إعادة التوليد",
+      "remoteCancellationPending": "الإلغاء عن بُعد معلّق. الحذف المحلي لا يعني أن النسخة البعيدة قد حُذفت.",
+      "cancelRemote": "إلغاء المعالجة عن بُعد",
       "remoteCancellationRequested": "تم طلب الإلغاء",
-      "export": "Export",
-      "exportDescription": "Each export uses an immutable local review snapshot and opens a native save dialog.",
-      "exportMarkdown": "Export Markdown",
-      "exportJson": "Export JSON",
+      "export": "تصدير",
+      "exportMarkdown": "تصدير Markdown",
+      "exportJson": "تصدير JSON",
       "exportComplete": "تم تصدير الاجتماع",
-      "citation": "Transcript {{time}}",
-      "noGeneratedNotes": "No generated notes are available yet.",
-      "template": "Template: {{template}}",
-      "artifactRevision": "Template v{{templateVersion}} · source revision {{revision}}",
-      "summary": "Summary",
-      "topics": "Topics",
-      "none": "None",
-      "decisions": "Decisions",
-      "actions": "Action items",
-      "keyQuestions": "Key questions",
-      "risks": "Risks",
-      "followUp": "Follow-up",
-      "artifactUnavailable": "This generated revision is unavailable. The source transcript and manual notes remain local.",
-      "actionMeta": "Owner: {{owner}} · Due: {{due}}",
-      "unassigned": "Unassigned",
-      "noDueDate": "No due date",
-      "questions": "Ask this meeting",
-      "questionsDescription": "Answers use only this local meeting and cite the supporting transcript.",
-      "questionPlaceholder": "Ask a question about this meeting",
-      "ask": "Ask locally",
-      "noQuestions": "No saved local answers.",
-      "question": "Question",
-      "insufficientEvidence": "No supporting passage was found in this meeting.",
-      "forget": "Forget this answer",
-      "exactSearch": "Exact search",
-      "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
-      "searchPlaceholder": "Search this meeting",
-      "search": "Search",
-      "noSearchResults": "No exact local matches.",
+      "citation": "النص {{time}}",
+      "noGeneratedNotes": "لا تتوفر ملاحظات مولّدة بعد.",
+      "template": "القالب: {{template}}",
+      "summary": "الملخص",
+      "topics": "الموضوعات",
+      "none": "بلا",
+      "decisions": "القرارات",
+      "actions": "بنود العمل",
+      "keyQuestions": "الأسئلة الرئيسية",
+      "risks": "المخاطر",
+      "followUp": "المتابعة",
+      "artifactUnavailable": "هذه المراجعة المولّدة غير متاحة. يبقى النص الأصلي والملاحظات اليدوية محليًا.",
+      "actionMeta": "المسؤول: {{owner}} · الاستحقاق: {{due}}",
+      "unassigned": "غير مُعيَّن",
+      "noDueDate": "بلا تاريخ استحقاق",
+      "questions": "اسأل هذا الاجتماع",
+      "questionsDescription": "تستخدم الإجابات هذا الاجتماع المحلي فقط وتستشهد بالنص المؤيد.",
+      "questionPlaceholder": "اطرح سؤالًا عن هذا الاجتماع",
+      "ask": "اسأل محليًا",
+      "noQuestions": "لا توجد إجابات محلية محفوظة.",
+      "question": "سؤال",
+      "insufficientEvidence": "لم يُعثر على مقطع مؤيد في هذا الاجتماع.",
+      "forget": "نسيان هذه الإجابة",
+      "exactSearch": "بحث مطابق تمامًا",
+      "searchPlaceholder": "البحث في هذا الاجتماع",
+      "search": "بحث",
+      "noSearchResults": "لا توجد مطابقات محلية دقيقة.",
       "askUnavailable": "يتطلب طرح الأسئلة نصًا محليًا مكتملًا.",
       "asking": "جارٍ سؤال هذا الاجتماع…",
-      "captured": "التُقط {{time}}",
       "droppedFrames": "الإطارات المفقودة: {{total}}",
       "hitKind": {
         "manualNote": "ملاحظة يدوية",
@@ -2311,17 +2054,12 @@
     },
     "ledger": {
       "title": "السجل",
-      "description": "كل موضوع في هذا الاجتماع، وأين انتهى، والاقتباس من النص الذي قُرئت منه الحالة. الأعداد مقيسة؛ الحالات مستنتجة.",
       "emptyTitle": "لم يُقرأ أي سجل من هذا الاجتماع بعد",
       "emptyDescription": "يُكتب السجل جنبًا إلى جنب مع الملاحظات المولّدة. أعد توليد الملاحظات لقراءة هذا الحديث على شكل مواضيع.",
       "exportHtml": "تصدير صفحة السجل",
       "exported": "تم كتابة السجل في {{path}}",
       "exportMissing": "لا يوجد سجل لهذا الاجتماع لتصديره. أعد توليد الملاحظات أولًا.",
       "statThreads": "مواضيع محسومة",
-      "statOpen": "مفتوحة",
-      "statDropped": "متروكة",
-      "statCommitments": "التزامات",
-      "statOpenLoops": "أسئلة معلّقة",
       "statReceipts": "الإسنادات",
       "receiptsVerified": "مُتحقَّق منها",
       "receiptsDegraded": "تم حذف {{threads}} موضوعًا و{{commitments}} التزامًا",
@@ -2359,40 +2097,26 @@
       }
     },
     "artifactState": {
-      "current": "Current",
-      "out_of_date": "Out of date",
-      "failed": "Generation failed"
+      "current": "محدَّث",
+      "out_of_date": "غير محدَّث",
+      "failed": "فشل التوليد"
     },
     "answerState": {
-      "supported": "Supported",
-      "insufficient_evidence": "Insufficient evidence",
-      "unavailable": "Unavailable",
-      "out_of_date": "Out of date",
-      "forgotten": "Forgotten"
+      "supported": "مدعوم",
+      "insufficient_evidence": "أدلة غير كافية",
+      "unavailable": "غير متوفر",
+      "out_of_date": "غير محدَّث",
+      "forgotten": "مُنسي"
     },
     "diarization": {
-      "not_requested": "Diarization not requested",
-      "model_unavailable": "Diarization model unavailable",
-      "downloading": "Downloading diarization model",
-      "running": "Separating speakers",
-      "succeeded": "Speaker assignments current",
-      "failed": "Speaker separation failed"
-    },
-    "trends": {
-      "title": "Meeting activity",
-      "loading": "Loading meeting trends…",
-      "error": "Couldn't load meeting trends.",
-      "unavailable": "Meeting trends are unavailable.",
-      "metricLabel": "Metric",
-      "metrics": {
-        "meetings": "Meetings",
-        "duration": "Captured time",
-        "transcript": "Transcript segments",
-        "actions": "Action items"
-      }
+      "not_requested": "لم يُطلب فصل المتحدثين",
+      "model_unavailable": "نموذج فصل المتحدثين غير متاح",
+      "downloading": "جارٍ تنزيل نموذج فصل المتحدثين",
+      "running": "جارٍ فصل المتحدثين",
+      "succeeded": "تعيينات المتحدثين محدَّثة",
+      "failed": "فشل فصل المتحدثين"
     },
     "list": {
-      "retentionHint": "الاحتفاظ: {{policy}}. يمكنك تغييره في Settings > Privacy.",
       "searchLabel": "البحث في الاجتماعات",
       "searchPlaceholder": "البحث حسب العنوان",
       "clearFilters": "مسح عوامل التصفية",
@@ -2413,8 +2137,8 @@
         "words": "{{count}} كلمة مُنسوخة"
       },
       "sourceGlyph": {
-        "microphone": "MIC",
-        "system_audio": "SYS"
+        "microphone": "ميك",
+        "system_audio": "نظام"
       },
       "filters": {
         "label": "تصفية الاجتماعات",
@@ -2450,17 +2174,13 @@
     },
     "gate": {
       "title": "لم يبدأ التسجيل",
-      "description": "أنشأ Sona الاجتماع، لكن مصدرًا كان مطلوبًا تسجيله غير متاح.",
       "readyTitle": "جاهز للتسجيل",
-      "readyDescription": "لا شيء يعيق تسجيل هذا الاجتماع.",
       "recordAnyway": "سجّل بدونه",
       "recordAnywayHint": "يُوسم السجل بأنه جزئي ويبقى المصدر الناقص مذكورًا بالاسم فيه."
     },
     "analytics": {
       "title": "المحادثة",
-      "description": "محسوب على جهاز Mac هذا من النص المفصول بحسب المتحدثين. لا شيء يُرسل إلى أي مكان.",
       "noSpeech": "لم يُحوَّل أي كلام إلى نص، فلا شيء يمكن قياسه.",
-      "talkShare": "الأكثر حديثًا",
       "longestMonologue": "أطول حديث منفرد",
       "patience": "الصبر",
       "patienceDetail": "وسيط الصمت قبل الرد",
@@ -2475,7 +2195,6 @@
       "noHits": "لم يُذكر",
       "jumpToFirst": "اعرض الأولى",
       "trackersTitle": "متتبّعات الكلمات المفتاحية",
-      "trackersDescription": "عبارات يُنتبه إليها في كل نص اجتماع. المطابقة حرفية ولا تفرّق بين الحروف الكبيرة والصغيرة، وكل فحص يُجرى على جهاز Mac هذا.",
       "addTracker": "إضافة متتبّع",
       "removeTracker": "إزالة المتتبّع",
       "noTrackers": "لا توجد متتبّعات بعد. أضف واحدًا لتبدأ بعدّ تكرار عبارة ما.",
@@ -2487,7 +2206,6 @@
     "notes": {
       "title": "ملاحظاتي",
       "liveDescription": "اكتب بأي قدر من الخشونة تريد. تبقى هذه الملاحظات على جهاز Mac هذا وتوجّه الملاحظات التي ينشئها Sona عند انتهاء الاجتماع.",
-      "reviewDescription": "ملاحظاتك أنت توجّه ما تبرزه الملاحظات المُنشأة. لا تُقتبس ولا تُذكر كمرجع أبدًا.",
       "placeholder": "كل ما يستحق التذكر: أسماء وأرقام وما يجب متابعته",
       "unsaved": "لم يُحفظ بعد",
       "saving": "جارٍ الحفظ…",
@@ -2495,7 +2213,6 @@
       "conflict": "تغيّرت هذه الملاحظات في مكان آخر. افتح الاجتماع مرة أخرى لتحميل النسخة الحالية.",
       "reenhance": "أعد التحسين بملاحظاتي",
       "enhancing": "جارٍ إعادة البناء…",
-      "enhanced": "تمت إعادة بناء الملاحظات.",
       "enhanceFailed": "لم يتمكن Sona من إعادة بناء الملاحظات. افتح الاجتماع مرة أخرى وأعد المحاولة.",
       "catchUp": "لخّص لي ما فات",
       "catchingUp": "جارٍ التلخيص…",
@@ -2509,11 +2226,11 @@
         "interview": "مقابلة",
         "sales_call": "مكالمة بيع",
         "standup": "اجتماع سريع"
-      }
+      },
+      "template": "قالب"
     },
     "detection": {
       "title": "اكتشاف الاجتماعات",
-      "description": "يراقب Sona المكالمات ويعرض تدوين الملاحظات. لا يسجّل من تلقاء نفسه أبدًا.",
       "loading": "جارٍ قراءة حالة الاكتشاف…",
       "prompt": {
         "calendar": "{{title}} يبدأ",
@@ -2531,21 +2248,17 @@
       },
       "pane": {
         "title": "يبدأ قريبًا",
-        "description": "لا يسجّل Sona حتى تبدأ من هنا.",
-        "countdown": "يبدأ بعد {{seconds}} ثانية",
-        "notYetRecording": "لا يسجّل"
+        "countdown": "يبدأ بعد {{seconds}} ثانية"
       },
       "calendar": {
         "label": "استخدم تقويمي",
         "description": "يعرض عدًّا تنازليًا قبل دقيقة من الأحداث التي تضم مشاركين اثنين أو أكثر. يطلب macOS وصولًا كاملًا إلى التقويم في المرة الأولى، لأن Apple لا تقدم إذنًا للقراءة فقط."
       },
       "anyMic": {
-        "label": "اسأل عند أي استخدام للميكروفون",
-        "description": "يشمل المذكرات الصوتية وتطبيقات الموسيقى وكل ما يفتح الميكروفون. إيقافه يقصر التنبيهات على تطبيقات الاجتماعات المعروفة."
+        "label": "اسأل عند أي استخدام للميكروفون"
       },
       "autoStart": {
-        "label": "افتح الاجتماع عندما يكون عدّه التنازلي ظاهرًا",
-        "description": "يتخطى الإشعار عندما يبدأ حدث وأنت تنظر أصلًا إلى عدّه التنازلي. وتبقى أنت من يؤكد ما يُسجَّل."
+        "label": "افتح الاجتماع عندما يكون عدّه التنازلي ظاهرًا"
       },
       "apps": {
         "label": "تطبيقات الاجتماعات",
@@ -2555,7 +2268,6 @@
       },
       "state": {
         "title": "ما يمكن للاكتشاف رؤيته",
-        "description": "الاكتشاف صامت معظم الوقت. وهذا هو السبب.",
         "calendarDenied": "لم يُمنح الوصول إلى التقويم، فلا يعمل سوى مسار الميكروفون.",
         "notificationsDenied": "إشعارات Sona مغلقة، فتظهر التنبيهات داخل التطبيق فقط.",
         "bluetoothCaveat": "تطبيق اجتماعات مفتوح لكن لا شيء يفيد باستخدام الميكروفون. سماعات Bluetooth كثيرًا ما لا تفيد بذلك، فابدأ الاجتماع بنفسك إن كان هناك واحد جارٍ.",
@@ -2623,14 +2335,12 @@
   },
   "agentPanel": {
     "open": "الوكيل",
-    "loading": "جارٍ الاتصال…",
     "retry": "إعادة المحاولة",
     "cancel": "إلغاء",
     "apply": "تطبيق",
     "undo": "تراجع",
     "panelToggle": "إغلاق لوحة الوكيل",
     "conversationLabel": "المحادثة",
-    "proposalLabel": "التغييرات المقترحة",
     "proposalTitle": "التغييرات المقترحة",
     "empty": "اسأل عن إعدادات Sona. تظهر المقترحات هنا للمراجعة قبل تغيير أي شيء.",
     "inputPlaceholder": "اسأل عن Sona…",
@@ -2647,92 +2357,16 @@
       "error": "لوحة الوكيل غير متاحة."
     }
   },
-  "analytics": {
-    "range": {
-      "label": "Range",
-      "days_7": "7 days",
-      "days_30": "30 days",
-      "days_180": "6 months"
-    },
-    "delta": {
-      "new": "New",
-      "flat": "No change",
-      "unavailable": "Unavailable",
-      "change": "{{value}} vs previous period"
-    },
-    "duration": {
-      "minutes": "{{value}} min",
-      "hours": "{{value}} h"
-    },
-    "chart": {
-      "description": "{{metric}} for {{range}}",
-      "empty": "No activity yet"
-    }
-  },
   "overview": {
-    "sources": {
-      "title": "Sources",
-      "description": "Where the recordings in this range came from.",
-      "microphone": "Microphone",
-      "file": "File import",
-      "legacy": "Legacy",
-      "empty": "No recordings in this range.",
-      "meetings": "الاجتماعات",
-      "meetingsUnavailable": "تخزين الاجتماعات غير متاح، لذا لا تُحتسب الاجتماعات هنا."
-    },
-    "recent": {
-      "title": "Recent activity",
-      "history": "Dictation",
-      "meeting": "Meeting",
-      "viewAll": "عرض الكل",
-      "words": "{{count}} كلمة",
-      "emptyRange": "لا توجد إملاءات أو اجتماعات في آخر 30 يومًا.",
-      "failedCommand": "فشل {{command}}",
-      "failedCommandWithDetail": "فشل {{command}}: {{detail}}"
-    },
     "hero": {
-      "ready": "Ready",
-      "recording": "Listening",
-      "newMeeting": "New meeting",
-      "importAudio": "Import audio",
-      "mode": "الوضع: {{name}}",
-      "setShortcut": "عيّن اختصار إملاء في الإعدادات للالتقاط من أي تطبيق.",
-      "setShortcutAction": "حدّد اختصارًا",
+      "ready": "جاهز",
+      "recording": "يستمع",
+      "newMeeting": "اجتماع جديد",
+      "importAudio": "استيراد صوت",
+      "gestureTapHold": "اضغط للتبديل · استمر بالضغط للتحدث",
+      "gestureTapOnly": "اضغط للتبديل",
       "shortcutAction": "غيّر اختصار الإملاء",
-      "gestureTapHold": "اضغط للتبديل، واستمر بالضغط للتحدث.",
-      "gestureTapOnly": "اضغط للتبديل."
-    },
-    "actions": {
-      "dictate": "Dictate",
-      "unavailable": "Shortcut unavailable"
-    },
-    "chart": {
-      "day": "{{date}} · الإملاءات {{dictations}}",
-      "dayWithMeetings": "{{date}} · الإملاءات {{dictations}} · الاجتماعات {{meetings}}",
-      "legend": "الإملاءات في اليوم",
-      "peak": "اليوم الأكثر نشاطًا {{peak}}",
-      "summary": "الإملاءات في اليوم من {{from}} إلى {{to}}. الإجمالي {{total}}، اليوم الأكثر نشاطًا {{peak}}."
-    },
-    "empty": {
-      "action": "فتح المكتبة",
-      "description": "اضغط باستمرار على اختصار الإملاء في أي تطبيق وسيكتب Sona ما تقوله. تظهر إحصاءات استخدامك والالتقاطات الأخيرة هنا بعد أول إملاء.",
-      "title": "لا توجد التقاطات بعد"
-    },
-    "stats": {
-      "activeDays": "{{active}} من {{total}} يومًا نشطًا",
-      "allTime": "{{total}} منذ البداية",
-      "dictations": "الإملاءات",
-      "dictationsAllTime": "الإملاءات، منذ البداية",
-      "error": "تعذرت قراءة سجل استخدامك.",
-      "range": "من {{from}} إلى {{to}}",
-      "rangeUnavailable": "تعذرت قراءة آخر 30 يومًا، لذا هذه إجماليات منذ البداية.",
-      "speaking": "وقت التحدث",
-      "speakingAllTime": "وقت التحدث، منذ البداية",
-      "streak": "السلسلة الحالية",
-      "tiles": "ملخص الاستخدام",
-      "title": "النشاط",
-      "words": "الكلمات",
-      "wordsAllTime": "الكلمات، منذ البداية"
+      "setShortcutAction": "حدّد اختصارًا"
     },
     "update": {
       "available": "Sona {{latest}} متاح. هذا التثبيت على {{current}}.",
@@ -2740,122 +2374,98 @@
       "failed": "تعذر التحقق من التحديثات.",
       "failedWithReason": "تعذر التحقق من التحديثات: {{reason}}",
       "view": "عرض الإصدار"
-    },
-    "instrument": {
-      "label": "أدوات قياس الالتقاط",
-      "engine": "المحرك",
-      "input": "الإدخال",
-      "shortcut": "الاختصار",
-      "mode": "الوضع",
-      "loaded": "محمّل",
-      "unloaded": "غير محمّل",
-      "notMeasured": "غير مقيس",
-      "unbound": "غير محدد",
-      "gestureTapHold": "ضغطة · استمرار",
-      "gestureTap": "ضغطة",
-      "channel": "ch {{channel}}",
-      "channels": "{{count}} ch",
-      "rate": "{{kilohertz}} kHz",
-      "systemDefault": "الافتراضي للنظام",
-      "decode": "فك الترميز {{factor}}"
     }
   },
   "cloudSync": {
-    "title": "Cloud Sync",
     "account": {
-      "title": "Cloud Sync",
-      "description": "Meetings stay on this device until you set up sync.",
+      "title": "المزامنة السحابية",
       "status": {
-        "loading": "Checking sync…",
-        "local": "Local only",
-        "ready": "Sync active",
-        "paused": "Sync paused",
-        "attention": "Sync needs attention",
-        "unavailable": "Sync unavailable"
+        "loading": "جارٍ التحقق…",
+        "local": "محلي فقط",
+        "ready": "نشط",
+        "paused": "متوقف مؤقتًا",
+        "attention": "يحتاج إلى انتباه",
+        "unavailable": "غير متوفر"
       },
-      "pending": "{{count}} pending",
-      "pause": "Pause sync",
-      "resume": "Resume sync"
-    },
-    "disclosure": {
-      "title": "Set up or recover sync",
-      "description": "Connect an endpoint or pair another device.",
-      "notice": "Setup is optional. Meeting data stays local until you complete it."
+      "pending": "{{count}} معلّق",
+      "pause": "إيقاف المزامنة مؤقتًا",
+      "resume": "استئناف المزامنة"
     },
     "setup": {
-      "title": "Set up a sync account",
-      "endpoint": "Endpoint",
-      "bootstrapSecret": "Bootstrap secret",
-      "submit": "Set up sync"
+      "title": "إعداد حساب مزامنة",
+      "endpoint": "نقطة النهاية",
+      "bootstrapSecret": "سر التهيئة",
+      "submit": "إعداد المزامنة"
     },
     "recovery": {
-      "title": "Recover a sync account",
-      "code": "Recovery code",
-      "submit": "Recover account",
-      "generatedCode": "Save this recovery code now",
-      "oneTime": "Sona shows this code once and does not store it."
+      "title": "استعادة حساب مزامنة",
+      "code": "رمز الاستعادة",
+      "submit": "استعادة الحساب",
+      "generatedCode": "احفظ رمز الاستعادة هذا الآن",
+      "oneTime": "يعرض Sona هذا الرمز مرة واحدة ولا يخزّنه."
     },
     "pairing": {
-      "title": "Pair a device",
-      "vaultId": "Vault ID",
-      "createOffer": "Create pairing offer",
-      "currentOffer": "Pairing offer",
-      "approve": "Approve this offer",
-      "receivedOffer": "Offer from another device",
-      "accept": "Accept offer"
+      "title": "إقران جهاز",
+      "vaultId": "معرّف الخزنة",
+      "createOffer": "إنشاء عرض إقران",
+      "currentOffer": "عرض الإقران",
+      "approve": "الموافقة على هذا العرض",
+      "receivedOffer": "عرض من جهاز آخر",
+      "accept": "قبول العرض"
     },
     "errors": {
-      "portable_unavailable": "Cloud Sync is unavailable in portable mode.",
-      "secret_unavailable": "The native secure store is unavailable.",
-      "setup_required": "Set up Cloud Sync before using this action.",
-      "auth_required": "Cloud sign-in is required.",
-      "quota": "Cloud storage quota has been reached.",
-      "integrity_failure": "The cloud operation could not be verified.",
-      "conflict": "This meeting has a sync conflict.",
-      "unsupported_protocol": "This device does not support the cloud protocol.",
-      "transient": "Cloud Sync is temporarily unavailable.",
-      "invalid_expiry": "Choose a future expiry.",
-      "invalid_offer": "The pairing offer is incomplete or invalid.",
-      "unexpected": "The cloud operation failed."
+      "portable_unavailable": "المزامنة السحابية غير متاحة في الوضع المحمول.",
+      "secret_unavailable": "المخزن الآمن الأصلي غير متاح.",
+      "setup_required": "قم بإعداد المزامنة السحابية قبل استخدام هذا الإجراء.",
+      "auth_required": "تسجيل الدخول السحابي مطلوب.",
+      "quota": "تم الوصول إلى حد التخزين السحابي.",
+      "integrity_failure": "تعذر التحقق من العملية السحابية.",
+      "conflict": "يوجد تعارض في مزامنة هذا الاجتماع.",
+      "unsupported_protocol": "هذا الجهاز لا يدعم البروتوكول السحابي.",
+      "transient": "المزامنة السحابية غير متاحة مؤقتًا.",
+      "invalid_expiry": "اختر تاريخ انتهاء في المستقبل.",
+      "invalid_offer": "عرض الإقران غير مكتمل أو غير صالح.",
+      "unexpected": "فشلت العملية السحابية."
     },
     "meeting": {
-      "title": "Cloud Sync",
+      "title": "المزامنة السحابية",
       "status": {
-        "loading": "Checking sync…",
-        "local": "Local only",
-        "queued": "Queued",
-        "uploading": "Uploading",
-        "committed": "Synced",
-        "conflict": "Conflict",
-        "pending_deletion": "Removal pending",
-        "deleted": "Removed",
-        "paused": "Paused",
-        "auth_required": "Sign-in required",
-        "quota": "Quota reached",
-        "integrity_failure": "Verification failed",
-        "unavailable": "Sync unavailable"
+        "loading": "جارٍ التحقق من المزامنة…",
+        "local": "محلي فقط",
+        "queued": "في قائمة الانتظار",
+        "uploading": "جارٍ الرفع",
+        "committed": "تمت المزامنة",
+        "conflict": "تعارض",
+        "pending_deletion": "الإزالة معلّقة",
+        "deleted": "أُزيل",
+        "paused": "متوقف مؤقتًا",
+        "auth_required": "تسجيل الدخول مطلوب",
+        "quota": "تم الوصول إلى الحد المسموح",
+        "integrity_failure": "فشل التحقق",
+        "unavailable": "المزامنة غير متاحة"
       },
-      "shareCount": "{{count}} shares",
-      "retryScheduled": "Retry scheduled",
-      "retry": "Retry sync",
-      "keepLocal": "Keep this device's copy",
-      "useRemote": "Use the cloud copy",
-      "expiresAt": "Share expiry",
+      "shareCount": "{{count}} مشاركة",
+      "retryScheduled": "تمت جدولة إعادة المحاولة",
+      "retry": "إعادة محاولة المزامنة",
+      "keepLocal": "الاحتفاظ بنسخة هذا الجهاز",
+      "useRemote": "استخدام النسخة السحابية",
+      "expiresAt": "انتهاء صلاحية المشاركة",
       "bundle": {
-        "fileFilter": "Sona share",
-        "export": "Export .sona file",
-        "import": "Import .sona file",
-        "exported": "Saved to {{path}}",
-        "imported": "Imported meeting {{sessionId}}"
+        "fileFilter": "مشاركة Sona",
+        "export": "تصدير ملف .sona",
+        "import": "استيراد ملف .sona",
+        "exported": "تم الحفظ في {{path}}",
+        "imported": "تم استيراد الاجتماع {{sessionId}}"
       },
       "browser": {
-        "create": "Create browser share",
-        "revoke": "Revoke browser share"
+        "create": "إنشاء مشاركة للمتصفح",
+        "revoke": "إبطال مشاركة المتصفح",
+        "revokeConfirm": "كل من يملك هذا الرابط يفقد الوصول لحظة إبطاله."
       }
     }
   },
   "topNav": {
-    "capture": "Capture",
-    "library": "Library"
+    "capture": "التسجيل",
+    "library": "المكتبة"
   }
 }

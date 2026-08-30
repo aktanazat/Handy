@@ -1,6 +1,5 @@
 import React, { useEffect, useLayoutEffect, useReducer, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import "./RecordingOverlay.css";
 import { syncLanguageFromSettings } from "@/i18n";
 import { getLanguageDirection, initializeRTL } from "@/lib/utils/rtl";
 import { getHudPillState } from "@/lib/powerPackApi";

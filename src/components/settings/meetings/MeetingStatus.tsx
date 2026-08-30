@@ -8,7 +8,8 @@ import type {
   SourceAvailability,
   SourceHealth,
 } from "@/bindings";
-import { StatusText, type StatusTone } from "../../ui";
+import { cn } from "@/lib/cn";
+import { FactChip, Microlabel } from "@/components/settings/rows";
 import {
   captureCompletenessKey,
   formatMeetingOffset,
@@ -25,6 +26,40 @@ import {
  * static mark beside "Recording", the one state where a misread costs the
  * person a meeting. Nothing here animates, so reduced motion has nothing to
  * switch off and the sentence still reads in greyscale. */
+
+const STATUS_TONES = {
+  neutral: "text-gray-1000",
+  muted: "text-gray-800",
+  warning: "text-amber-900",
+  danger: "text-red-900",
+} as const;
+
+type StatusTone = keyof typeof STATUS_TONES;
+
+interface StatusWordProps {
+  tone?: StatusTone;
+  /** Announce transitions on surfaces that own one meeting, never in lists. */
+  live?: "off" | "polite";
+  children: React.ReactNode;
+  className?: string;
+}
+
+/* State as words. There is no green in the palette and none is wanted: a
+ * settled state is type at full contrast, not a colour nobody can name. */
+const StatusWord: React.FC<StatusWordProps> = ({
+  tone = "muted",
+  live = "off",
+  children,
+  className,
+}) => (
+  <span
+    role={live === "off" ? undefined : "status"}
+    aria-live={live === "off" ? undefined : live}
+    className={cn("text-[12px] leading-4", STATUS_TONES[tone], className)}
+  >
+    {children}
+  </span>
+);
 
 const PHASE_TONES = {
   preflight: "muted",
@@ -47,24 +82,28 @@ export interface MeetingPhaseTextProps {
 
 export const MeetingPhaseText: React.FC<MeetingPhaseTextProps> = ({
   phase,
-  className = "",
+  className,
 }) => {
   const { t } = useTranslation();
   const capturing = phase === "capturing_recording";
 
   return (
-    <StatusText
+    <StatusWord
       tone={PHASE_TONES[phase]}
-      className={`inline-flex items-center gap-1.5 ${capturing ? "font-semibold" : ""} ${className}`}
+      className={cn(
+        "inline-flex items-center gap-1.5",
+        capturing && "font-medium",
+        className,
+      )}
     >
       {capturing ? (
         <span
           aria-hidden="true"
-          className="size-1.5 flex-none rounded-xs bg-danger"
+          className="size-1.5 flex-none rounded-xs bg-red-700"
         />
       ) : null}
       {t(meetingPhaseKey(phase))}
-    </StatusText>
+    </StatusWord>
   );
 };
 
@@ -81,13 +120,13 @@ export interface CaptureCompletenessTextProps {
 
 export const CaptureCompletenessText: React.FC<
   CaptureCompletenessTextProps
-> = ({ completeness, className = "" }) => {
+> = ({ completeness, className }) => {
   const { t } = useTranslation();
 
   return (
-    <StatusText tone={COMPLETENESS_TONES[completeness]} className={className}>
+    <StatusWord tone={COMPLETENESS_TONES[completeness]} className={className}>
       {t(captureCompletenessKey(completeness))}
-    </StatusText>
+    </StatusWord>
   );
 };
 
@@ -101,19 +140,19 @@ export interface ProcessingStatusTextProps {
 export const ProcessingStatusText: React.FC<ProcessingStatusTextProps> = ({
   status,
   live = "off",
-  className = "",
+  className,
 }) => {
   const { t } = useTranslation();
   const failed = status.kind === "failed" || status.kind === "cancelled";
 
   return (
-    <StatusText
+    <StatusWord
       tone={failed ? "danger" : "muted"}
       live={live}
       className={className}
     >
       {t(processingStatusKey(status))}
-    </StatusText>
+    </StatusWord>
   );
 };
 
@@ -150,8 +189,8 @@ interface MeetingSourceItemProps {
  * There is no level meter here and there cannot be one: capture publishes
  * availability, health, a durable offset and a gap count, and no signal
  * amplitude at any point in the pipeline. A moving bar would be drawn from
- * nothing. "Signal — Not reported" is the honest version of that fact and is
- * why it stays. */
+ * nothing. "SIGNAL Not reported" is the honest version of that fact, set as a
+ * measurement pair, which is why it stays. */
 const MeetingSourceItem: React.FC<MeetingSourceItemProps> = ({
   source,
   elapsedOffsetNs,
@@ -164,51 +203,51 @@ const MeetingSourceItem: React.FC<MeetingSourceItemProps> = ({
       : Math.max(0, elapsedOffsetNs - source.last_durable_offset_ns);
 
   return (
-    <li className="meeting-row-stacked" data-source={source.source_kind}>
+    <li
+      data-slot="meeting-source"
+      data-source={source.source_kind}
+      className="flex flex-col gap-1 px-4 py-3"
+    >
       <div className="flex items-baseline justify-between gap-4">
-        <h3 className="meeting-row-label">
+        <h3 className="truncate text-[13px] text-gray-1000">
           {t(sourceKey(source.source_kind))}
         </h3>
-        <StatusText tone={HEALTH_TONES[source.health]} className="flex-none">
+        <StatusWord tone={HEALTH_TONES[source.health]} className="flex-none">
           {t(sourceHealthKey(source.health))}
-        </StatusText>
+        </StatusWord>
       </div>
-      <p className="mt-0.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-        <StatusText tone={AVAILABILITY_TONES[source.availability]}>
+      <p className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+        <StatusWord tone={AVAILABILITY_TONES[source.availability]}>
           {t(sourceAvailabilityKey(source.availability))}
-        </StatusText>
+        </StatusWord>
         {source.required ? (
-          <span className="microlabel">
-            {t("meetings.status.required", "Required")}
-          </span>
+          <Microlabel>{t("meetings.status.required", "Required")}</Microlabel>
         ) : null}
         {source.gap_count > 0 ? (
-          <StatusText tone="warning" className="tabular-nums">
+          <StatusWord tone="warning" className="tabular-nums">
             {t("meetings.status.gapCount", "Gaps: {{total}}", {
               total: source.gap_count,
             })}
-          </StatusText>
+          </StatusWord>
         ) : null}
       </p>
       {showTelemetry ? (
-        <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
-          <div>
-            <dt className="microlabel">{t("meetings.live.signal")}</dt>
-            <dd className="text-[12.5px] leading-[18px] text-text-secondary">
-              {t("meetings.live.notReported")}
-            </dd>
-          </div>
-          <div>
-            <dt className="microlabel">{t("meetings.live.durabilityLag")}</dt>
-            <dd className="text-[12.5px] leading-[18px] text-text-secondary tabular-nums">
-              {durableLagNs === null
+        <p className="mt-1 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <FactChip
+            label={t("meetings.live.signal")}
+            value={t("meetings.live.notReported")}
+          />
+          <FactChip
+            label={t("meetings.live.durabilityLag")}
+            value={
+              durableLagNs === null
                 ? t("meetings.live.notReported")
                 : t("meetings.live.behind", {
                     duration: formatMeetingOffset(durableLagNs),
-                  })}
-            </dd>
-          </div>
-        </dl>
+                  })
+            }
+          />
+        </p>
       ) : null}
     </li>
   );
@@ -227,7 +266,7 @@ export const MeetingSourceList: React.FC<MeetingSourceListProps> = ({
   elapsedOffsetNs = null,
   showTelemetry = false,
 }) => (
-  <ul role="list" aria-label={label} className="meeting-rows">
+  <ul role="list" aria-label={label} className="divide-y divide-gray-alpha-400">
     {sources.map((source) => (
       <MeetingSourceItem
         key={source.source_kind}
@@ -243,11 +282,20 @@ export const MeetingSourceList: React.FC<MeetingSourceListProps> = ({
  * semaphore colour because each one changes what a person does next: live
  * capture is the only state where walking away loses the meeting, a failed run
  * is the only state that needs a decision, a running one is the only state
- * worth waiting on, and ready is the only state worth opening. The fifth,
- * `pending`, is a phase nobody acts on from a list, so it stays greyscale.
+ * worth waiting on, and ready is the only state worth opening — so ready is
+ * the accent, since opening it is the action. The fifth, `pending`, is a phase
+ * nobody acts on from a list, so it stays greyscale.
  *
  * Recording is filled, the rest are outlined: a filled chip on every row would
  * make a page of finished meetings read as urgent. */
+const ROW_STATUS_CLASSES = {
+  recording: "border-transparent bg-red-700 text-white",
+  failed: "border-red-400 text-red-900",
+  processing: "border-amber-400 text-amber-900",
+  ready: "border-blue-400 text-blue-900",
+  pending: "border-gray-alpha-400 text-gray-800",
+} as const;
+
 export interface MeetingStatusChipProps {
   phase: MeetingPhase;
   processing: ProcessingStatus;
@@ -262,9 +310,13 @@ export const MeetingStatusChip: React.FC<MeetingStatusChipProps> = ({
 
   return (
     <span
-      className="meeting-status-chip"
+      data-slot="meeting-status"
       data-status={status}
       data-fill={status === "recording" ? "solid" : "outline"}
+      className={cn(
+        "inline-flex h-5 flex-none items-center rounded-md border px-1.5 font-mono text-[10px] uppercase tracking-[0.08em]",
+        ROW_STATUS_CLASSES[status],
+      )}
     >
       {t(meetingRowStatusKey(status, phase, processing))}
     </span>

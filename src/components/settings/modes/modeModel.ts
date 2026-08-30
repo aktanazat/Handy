@@ -19,10 +19,16 @@ import type {
   WebsiteHostMatch,
 } from "@/bindings";
 import {
+  CLOUD_STT_PROVIDERS,
   cloudSttProviderForEngine,
   type CloudSttProviderMetadata,
 } from "@/lib/cloudStt";
-import type { DropdownOption } from "@/components/ui";
+
+/** A `{ value, label }` pair for a picker. The kit's Select takes these. */
+export interface ModeSelectOption {
+  value: string;
+  label: string;
+}
 
 /* Shape, constants and pure mappers shared by the modes page. Everything here
  * is total and side-effect free: the page owns state, the panels own markup. */
@@ -134,8 +140,8 @@ export const MODE_MUTATION_ERROR_DEFAULTS = {
 
 export const downloadedModelOptions = (
   models: ModelInfo[],
-): DropdownOption[] => {
-  const options: DropdownOption[] = [];
+): ModeSelectOption[] => {
+  const options: ModeSelectOption[] = [];
   for (const model of models) {
     if (model.is_downloaded) {
       options.push({ value: model.id, label: model.name });
@@ -151,7 +157,16 @@ export const downloadedModelOptions = (
  */
 export type ModeTranslate = (key: string, fallback: string) => string;
 
-const engineSummary = (asr: ModeAsrSettings, t: ModeTranslate): string => {
+/**
+ * The engine a run in this mode will use — the one fact about a mode's
+ * configuration the list carries, because it is the one a reader compares
+ * modes on. Model, language and delivery are in the editor; printing them in
+ * the row too was the same four values in two places.
+ */
+export const modeEngineLabel = (
+  asr: ModeAsrSettings,
+  t: ModeTranslate,
+): string => {
   /* Absent deserializes as local: an older mode predates the engine choice. */
   switch (asr.requested_engine ?? "local") {
     case "deepgram_nova_3":
@@ -166,84 +181,131 @@ const engineSummary = (asr: ModeAsrSettings, t: ModeTranslate): string => {
   }
 };
 
-/**
- * `ModeAsrSettings.model_id` is `ModelInfo.id`, and for anything from the
- * catalog that is `repo_id/filename` (`managers/model.rs:210-213`) — 65
- * characters at the median across the shipped catalog's 367 files and 116 at
- * the longest. Printing it raw would eat the row and push engine, language and
- * delivery off the end, so the row shows the model's display name, which the
- * same catalog caps at 42 characters plus a quant suffix.
- *
- * When the id resolves to nothing — the model was deleted, or the list has not
- * loaded yet — the fallback is its last path segment with a model extension
- * removed. That is not a second naming scheme: it is the filename, and the
- * filename stem is exactly the id the backend gives a locally discovered model
- * (`managers/model.rs:1959-1965`, then `:2039-2043`).
- *
- * Only `.bin` and `.gguf` come off, which is the same pair the backend strips.
- * Chopping any trailing dot-segment instead would turn the directory-based id
- * `parakeet-tdt-0.6b-v2` — which has no extension at all — into
- * `parakeet-tdt-0`.
- */
-const MODEL_FILE_EXTENSIONS = [".bin", ".gguf"] as const;
+export interface ModeEngineOption {
+  value: RequestedEngine;
+  label: string;
+  /** No saved key for this provider, so it cannot be chosen yet. */
+  disabled: boolean;
+  /** Cloud providers group under one label; the local engine stands alone. */
+  cloud: boolean;
+}
 
-const modelSummary = (
-  asr: ModeAsrSettings,
-  t: ModeTranslate,
-  models: readonly ModelInfo[],
-): string => {
-  if (asr.model_id.length === 0)
-    return t("settings.modes.summary.modelInherited", "Global model");
-  const known = models.find((model) => model.id === asr.model_id);
-  if (known) return known.name;
-  const file = asr.model_id.slice(asr.model_id.lastIndexOf("/") + 1);
-  const extension = MODEL_FILE_EXTENSIONS.find((candidate) =>
-    file.endsWith(candidate),
+/**
+ * Every engine the editor offers, in menu order.
+ *
+ * A provider without a saved key stays in the list carrying the reason it
+ * cannot be picked. Hiding it instead would leave a user who has not saved a
+ * key with no way to learn the route exists — and the reason has to travel
+ * with the option, because the menu is a portal that only exists once it is
+ * open.
+ */
+export const modeEngineOptions = (
+  isConfigured: (provider: CloudSttProvider) => boolean,
+  t: (key: string, options?: Record<string, string>) => string,
+): ModeEngineOption[] => [
+  {
+    value: "local",
+    label: t("settings.modes.recognition.engine.local"),
+    disabled: false,
+    cloud: false,
+  },
+  ...CLOUD_STT_PROVIDERS.map((provider) => {
+    const configured = isConfigured(provider.provider);
+    return {
+      value: provider.provider,
+      label: configured
+        ? t(provider.labelKey)
+        : t("settings.modes.recognition.engine.unavailable", {
+            provider: t(provider.labelKey),
+          }),
+      disabled: !configured,
+      cloud: true,
+    };
+  }),
+];
+
+export const MODE_ROW_ACTIONS = [
+  "activate",
+  "duplicate",
+  "moveUp",
+  "moveDown",
+  "delete",
+] as const;
+
+export type ModeRowActionId = (typeof MODE_ROW_ACTIONS)[number];
+
+export interface ModeRowAction {
+  id: ModeRowActionId;
+  label: string;
+  disabled: boolean;
+  destructive: boolean;
+}
+
+/**
+ * Every revisioned action a row offers, resolved against the row's position
+ * and the mutation in flight. Rendering it is the menu's only job, which is
+ * what makes "the default mode cannot be deleted" and "the top row cannot
+ * move up" provable without opening a menu.
+ *
+ * The active mode has nothing to activate, so that entry drops out entirely
+ * rather than sitting in the menu greyed.
+ */
+export const modeRowActions = (
+  mode: ModeView,
+  options: {
+    index: number;
+    count: number;
+    isActive: boolean;
+    busy: boolean;
+    t: ModeTranslate;
+  },
+): ModeRowAction[] => {
+  const { index, count, isActive, busy, t } = options;
+  const isDefault = mode.id === DEFAULT_MODE_ID;
+  const actions: ModeRowAction[] = [];
+  if (!isActive) {
+    actions.push({
+      id: "activate",
+      label: t("settings.modes.activate", "Activate"),
+      disabled: busy,
+      destructive: false,
+    });
+  }
+  actions.push(
+    {
+      id: "duplicate",
+      label: t("settings.modes.duplicate", "Duplicate"),
+      disabled: busy,
+      destructive: false,
+    },
+    /* The keyboard route to the same reorder the pointer drags, and the only
+     * route for anyone not using a pointer. */
+    {
+      id: "moveUp",
+      label: t("settings.modes.moveUp", "Move up"),
+      disabled: busy || index === 0,
+      destructive: false,
+    },
+    {
+      id: "moveDown",
+      label: t("settings.modes.moveDown", "Move down"),
+      disabled: busy || index === count - 1,
+      destructive: false,
+    },
+    {
+      id: "delete",
+      label: isDefault
+        ? t(
+            "settings.modes.defaultProtected",
+            "The default mode cannot be deleted.",
+          )
+        : t("settings.modes.delete", "Delete"),
+      disabled: busy || isDefault,
+      destructive: true,
+    },
   );
-  return extension ? file.slice(0, -extension.length) : file;
+  return actions;
 };
-
-const languageSummary = (asr: ModeAsrSettings, t: ModeTranslate): string =>
-  asr.language === "auto" || asr.language.length === 0
-    ? t("settings.modes.summary.languageAuto", "Auto")
-    : asr.language;
-
-const DELIVERY_SUMMARY_DEFAULTS = {
-  ctrl_v: "Paste",
-  direct: "Type",
-  none: "No delivery",
-  shift_insert: "Shift+Insert",
-  ctrl_shift_v: "Paste plain",
-  external_script: "Script",
-} as const satisfies Record<PasteMethod, string>;
-
-const deliverySummary = (
-  delivery: ModeDeliverySettings,
-  t: ModeTranslate,
-): string =>
-  t(
-    `settings.modes.summary.delivery.${delivery.paste_method}`,
-    DELIVERY_SUMMARY_DEFAULTS[delivery.paste_method],
-  );
-
-export const MODE_SUMMARY_SEPARATOR = " · ";
-
-/**
- * The four values that decide what a dictation run in this mode will do:
- * `engine · model · language · delivery`. One line, so the list row can expose
- * a mode's whole configuration without opening the editor.
- */
-export const modeConfigSummary = (
-  mode: ModeDefinition | ModeView,
-  t: ModeTranslate,
-  models: readonly ModelInfo[],
-): string =>
-  [
-    engineSummary(mode.asr, t),
-    modelSummary(mode.asr, t, models),
-    languageSummary(mode.asr, t),
-    deliverySummary(mode.delivery, t),
-  ].join(MODE_SUMMARY_SEPARATOR);
 
 /**
  * The order the list would have after nudging one mode by one position.

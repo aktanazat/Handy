@@ -1,13 +1,14 @@
 import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Button,
-  Section,
-  StatusText,
-  Switch,
-  Textarea,
-  ToggleSwitch,
-} from "../../ui";
+  Notice,
+  SettingsField,
+  SettingsRow,
+  SettingsSection,
+} from "@/components/settings/rows";
+import { Button } from "@/components/vg/button";
+import { Switch } from "@/components/vg/switch";
+import { Textarea } from "@/components/vg/textarea";
 import {
   useDetectionStore,
   type DetectionSettings,
@@ -46,13 +47,26 @@ const SUPPRESS_REASON_COPY = {
   ],
 } satisfies Record<DetectionSuppressReason, [string, string]>;
 
+/** One degraded path, named. `live` belongs only to the line that changes on a
+ *  tick rather than on something the operator did. */
+interface DetectionStateLine {
+  id: string;
+  tone: "muted" | "warning";
+  live: boolean;
+  text: string;
+}
+
 /* Detection's whole operator surface.
  *
- * The layout follows the escalation the design deliberately makes visible:
- * master switch, then the calendar path behind its own permission, then the two
- * choices that widen what counts as evidence, then the allowlist. "Why detection
- * is quiet" sits at the bottom because silent detection is otherwise
- * indistinguishable from broken detection. */
+ * One section, read top to bottom as the escalation the design deliberately
+ * makes visible: the master switch in the heading, then the calendar path
+ * behind its own permission, then the two choices that widen what counts as
+ * evidence, then the allowlist. It was two headings and eight sentences; the
+ * headings said what the switches say, so the switches kept them.
+ *
+ * "What detection can see" is the second and last section, because silent
+ * detection is otherwise indistinguishable from broken detection — and it only
+ * exists when there is a degraded path to name. */
 export const MeetingDetectionSettings: React.FC = () => {
   const { t } = useTranslation();
   const status = useDetectionStore((state) => state.status);
@@ -100,17 +114,13 @@ export const MeetingDetectionSettings: React.FC = () => {
 
   if (settings === null || status === null) {
     return (
-      <Section
-        title={t("meetings.detection.title", "Detect meetings")}
-        description={t(
-          "meetings.detection.description",
-          "Sona watches for calls and offers to take notes. It never records on its own.",
-        )}
-      >
-        <StatusText tone="muted" live="polite">
-          {t("meetings.detection.loading", "Reading detection state…")}
-        </StatusText>
-      </Section>
+      <SettingsSection label={t("meetings.detection.title", "Detect meetings")}>
+        <div className="px-4 py-3">
+          <Notice tone="muted">
+            {t("meetings.detection.loading", "Reading detection state…")}
+          </Notice>
+        </div>
+      </SettingsSection>
     );
   }
 
@@ -118,100 +128,155 @@ export const MeetingDetectionSettings: React.FC = () => {
   const calendarBlocked =
     settings.calendarEnabled && status.calendarAccess !== "authorized";
 
+  const stateLines: DetectionStateLine[] = [];
+  if (calendarBlocked) {
+    stateLines.push({
+      id: "calendar",
+      tone: "warning",
+      live: false,
+      text: t(
+        "meetings.detection.state.calendarDenied",
+        "Calendar access was not granted, so only the microphone path runs.",
+      ),
+    });
+  }
+  if (status.notificationAccess === "denied") {
+    stateLines.push({
+      id: "notifications",
+      tone: "warning",
+      live: false,
+      text: t(
+        "meetings.detection.state.notificationsDenied",
+        "Notifications are off for Sona, so prompts appear in the app only.",
+      ),
+    });
+  }
+  if (status.inputDeviceReportingSuspect) {
+    stateLines.push({
+      id: "bluetooth",
+      tone: "muted",
+      live: false,
+      text: t(
+        "meetings.detection.state.bluetoothCaveat",
+        "A meeting app is open but nothing reports using the microphone. Bluetooth headsets often do not, so start the meeting yourself if one is running.",
+      ),
+    });
+  }
+  if (suppression) {
+    stateLines.push({
+      id: "suppression",
+      tone: "muted",
+      live: true,
+      text: t(
+        SUPPRESS_REASON_COPY[suppression][0],
+        SUPPRESS_REASON_COPY[suppression][1],
+      ),
+    });
+  }
+  if (!status.availableStopTriggers.includes("silence")) {
+    stateLines.push({
+      id: "stopTriggers",
+      tone: "muted",
+      live: false,
+      text: t(
+        "meetings.detection.state.noSilenceStop",
+        "Captures stop on the event end, the app quitting, sleep, or your own stop. The silence timer needs live transcription, which runs after a meeting ends.",
+      ),
+    });
+  }
+
   return (
     <>
       {/* The master switch sits in the section header rather than in a row of
        * its own: it owns everything below it, and repeating "Detect meetings"
        * as both a heading and the first row's label said it twice. */}
-      <Section
-        title={t("meetings.detection.title", "Detect meetings")}
-        description={t(
-          "meetings.detection.description",
-          "Sona watches for calls and offers to take notes. It never records on its own.",
-        )}
-        actions={
+      <SettingsSection
+        label={t("meetings.detection.title", "Detect meetings")}
+        action={
           <Switch
             checked={settings.enabled}
-            onChange={(enabled) => void patch({ enabled })}
+            onCheckedChange={(enabled) => void patch({ enabled })}
             disabled={saving}
-            label={t("meetings.detection.title", "Detect meetings")}
+            aria-label={t("meetings.detection.title", "Detect meetings")}
           />
         }
       >
-        <div className="settings-group-panel">
-          <div className="divide-y">
-            <ToggleSwitch
-              grouped
-              checked={settings.calendarEnabled}
-              onChange={(enabled) => void enableCalendar(enabled)}
-              isUpdating={saving}
-              disabled={!settings.enabled}
-              label={t("meetings.detection.calendar.label", "Use my calendar")}
-              description={t(
-                "meetings.detection.calendar.description",
-                "Shows a countdown a minute before events with two or more attendees. macOS asks for full calendar access the first time, because Apple offers no read-only grant.",
-              )}
-              descriptionMode="inline"
-            />
+        <SettingsRow
+          label={t("meetings.detection.calendar.label", "Use my calendar")}
+          /* The one thing about this switch nobody can infer from it: macOS
+           * has no read-only calendar grant, so turning it on asks for the
+           * whole calendar. */
+          hint={t(
+            "meetings.detection.calendar.description",
+            "Shows a countdown a minute before events with two or more attendees. macOS asks for full calendar access the first time, because Apple offers no read-only grant.",
+          )}
+          controlId="detection-calendar"
+          disabled={!settings.enabled}
+        >
+          <Switch
+            id="detection-calendar"
+            checked={settings.calendarEnabled}
+            onCheckedChange={(enabled) => void enableCalendar(enabled)}
+            disabled={!settings.enabled || saving}
+          />
+        </SettingsRow>
 
-            <ToggleSwitch
-              grouped
-              checked={settings.anyMicActivity}
-              onChange={(anyMicActivity) => void patch({ anyMicActivity })}
-              isUpdating={saving}
-              disabled={!settings.enabled}
-              label={t(
-                "meetings.detection.anyMic.label",
-                "Ask on any microphone use",
-              )}
-              description={t(
-                "meetings.detection.anyMic.description",
-                "Includes voice memos, music apps, and anything else that opens the microphone. Off keeps prompts to known meeting apps.",
-              )}
-              descriptionMode="inline"
-            />
+        <SettingsRow
+          label={t(
+            "meetings.detection.anyMic.label",
+            "Ask on any microphone use",
+          )}
+          controlId="detection-any-mic"
+          disabled={!settings.enabled}
+        >
+          <Switch
+            id="detection-any-mic"
+            checked={settings.anyMicActivity}
+            onCheckedChange={(anyMicActivity) => void patch({ anyMicActivity })}
+            disabled={!settings.enabled || saving}
+          />
+        </SettingsRow>
 
-            <ToggleSwitch
-              grouped
-              checked={settings.autoStartOnOpenPane}
-              onChange={(autoStartOnOpenPane) =>
-                void patch({ autoStartOnOpenPane })
-              }
-              isUpdating={saving}
-              disabled={!settings.enabled || !settings.calendarEnabled}
-              label={t(
-                "meetings.detection.autoStart.label",
-                "Open the meeting when its countdown is showing",
-              )}
-              description={t(
-                "meetings.detection.autoStart.description",
-                "Skips the notification when an event starts while you are already looking at its countdown. You still confirm what gets recorded.",
-              )}
-              descriptionMode="inline"
-            />
-          </div>
-        </div>
-      </Section>
+        <SettingsRow
+          label={t(
+            "meetings.detection.autoStart.label",
+            "Open the meeting when its countdown is showing",
+          )}
+          controlId="detection-auto-start"
+          disabled={!settings.enabled || !settings.calendarEnabled}
+        >
+          <Switch
+            id="detection-auto-start"
+            checked={settings.autoStartOnOpenPane}
+            onCheckedChange={(autoStartOnOpenPane) =>
+              void patch({ autoStartOnOpenPane })
+            }
+            disabled={!settings.enabled || !settings.calendarEnabled || saving}
+          />
+        </SettingsRow>
 
-      <Section
-        title={t("meetings.detection.apps.label", "Meeting apps")}
-        description={t(
-          "meetings.detection.apps.description",
-          "One bundle identifier per line. An entry only counts while that app is running, so a renamed identifier is inert rather than wrong.",
-        )}
-      >
-        <div className="meeting-card">
+        <SettingsField
+          label={t("meetings.detection.apps.label", "Meeting apps")}
+          /* A format the control cannot state for itself, plus the reason a
+           * stale identifier is harmless. */
+          hint={t(
+            "meetings.detection.apps.description",
+            "One bundle identifier per line. An entry only counts while that app is running, so a renamed identifier is inert rather than wrong.",
+          )}
+          controlId="detection-apps"
+          disabled={!settings.enabled}
+        >
           <Textarea
+            id="detection-apps"
             rows={5}
-            className="w-full font-mono text-[12px]"
+            className="font-mono text-[12px]"
             value={appsDraft ?? settings.meetingApps.join("\n")}
             onChange={(event) => setAppsDraft(event.target.value)}
             disabled={!settings.enabled || saving}
-            aria-label={t("meetings.detection.apps.label", "Meeting apps")}
             spellCheck={false}
           />
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-            <StatusText tone="muted">
+            <Notice tone="muted" live={false}>
               {status.runningMeetingApps.length === 0
                 ? t(
                     "meetings.detection.apps.noneRunning",
@@ -224,10 +289,10 @@ export const MeetingDetectionSettings: React.FC = () => {
                       apps: status.runningMeetingApps.join(", "),
                     },
                   )}
-            </StatusText>
+            </Notice>
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
               size="sm"
               disabled={appsDraft === null || saving}
               onClick={() => {
@@ -242,63 +307,26 @@ export const MeetingDetectionSettings: React.FC = () => {
               {t("common.save")}
             </Button>
           </div>
-        </div>
-      </Section>
+        </SettingsField>
+      </SettingsSection>
 
       {/* Silent detection is indistinguishable from broken detection, so every
-       * degraded path names itself here. Each line stays adjacent to the state
-       * it reports and keeps its tone; the suppression line keeps its live
-       * region because it changes on a tick, with no user action. */}
-      <Section
-        title={t("meetings.detection.state.title", "What detection can see")}
-        description={t(
-          "meetings.detection.state.description",
-          "Detection is quiet most of the time. This is why.",
-        )}
-      >
-        <div className="meeting-card flex flex-col items-start gap-1.5">
-          {calendarBlocked ? (
-            <StatusText tone="warning">
-              {t(
-                "meetings.detection.state.calendarDenied",
-                "Calendar access was not granted, so only the microphone path runs.",
-              )}
-            </StatusText>
-          ) : null}
-          {status.notificationAccess === "denied" ? (
-            <StatusText tone="warning">
-              {t(
-                "meetings.detection.state.notificationsDenied",
-                "Notifications are off for Sona, so prompts appear in the app only.",
-              )}
-            </StatusText>
-          ) : null}
-          {status.inputDeviceReportingSuspect ? (
-            <StatusText tone="muted">
-              {t(
-                "meetings.detection.state.bluetoothCaveat",
-                "A meeting app is open but nothing reports using the microphone. Bluetooth headsets often do not, so start the meeting yourself if one is running.",
-              )}
-            </StatusText>
-          ) : null}
-          {suppression ? (
-            <StatusText tone="muted" live="polite">
-              {t(
-                SUPPRESS_REASON_COPY[suppression][0],
-                SUPPRESS_REASON_COPY[suppression][1],
-              )}
-            </StatusText>
-          ) : null}
-          {!status.availableStopTriggers.includes("silence") ? (
-            <StatusText tone="muted">
-              {t(
-                "meetings.detection.state.noSilenceStop",
-                "Captures stop on the event end, the app quitting, sleep, or your own stop. The silence timer needs live transcription, which runs after a meeting ends.",
-              )}
-            </StatusText>
-          ) : null}
-        </div>
-      </Section>
+       * degraded path names itself here. With nothing degraded there is nothing
+       * to say, and an empty bordered box saying it would be worse than
+       * silence. */}
+      {stateLines.length === 0 ? null : (
+        <SettingsSection
+          label={t("meetings.detection.state.title", "What detection can see")}
+        >
+          <div className="flex flex-col gap-1.5 px-4 py-3">
+            {stateLines.map((line) => (
+              <Notice key={line.id} tone={line.tone} live={line.live}>
+                {line.text}
+              </Notice>
+            ))}
+          </div>
+        </SettingsSection>
+      )}
     </>
   );
 };

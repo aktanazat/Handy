@@ -2,13 +2,11 @@ import React, {
   useCallback,
   useEffect,
   useId,
-  useMemo,
   useReducer,
   useRef,
   useState,
 } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
 import { FileAudio, FolderOpen, Search, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -21,20 +19,21 @@ import {
   type HistoryStats,
   type HistoryUpdatePayload,
 } from "@/bindings";
+import { AudioPlayerGroup } from "../../ui";
 import {
-  Alert,
-  AudioPlayerGroup,
-  Button,
-  EmptyState,
-  IconButton,
-  Input,
-  Skeleton,
-  StatusText,
-  Tabs,
-  type TabItem,
-} from "../../ui";
+  Microlabel,
+  SETTINGS_CARD,
+  SETTINGS_SURFACE,
+  SettingsCard,
+  SettingsPage,
+} from "../rows";
+import { Button } from "@/components/vg/button";
+import { Input } from "@/components/vg/input";
+import { Skeleton } from "@/components/vg/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/vg/tabs";
+import { useAudioImport } from "@/hooks/useAudioImport";
 import { formatDurationShort } from "@/lib/utils/format";
-import "./history.css";
+import { cn } from "@/lib/cn";
 import { HistoryEntryComponent, type HistoryTextView } from "./HistoryEntry";
 
 const PAGE_SIZE = 30;
@@ -49,24 +48,12 @@ const TEXT_VIEWS = [
   labelKey: string;
 }>;
 
-const MEDIA_IMPORT_EXTENSIONS = [
-  "wav",
-  "mp3",
-  "m4a",
-  "aac",
-  "flac",
-  "ogg",
-  "mov",
-  "mp4",
-  "m4v",
-];
-
 // A job is still cancellable while it is in one of these states.
-const IMPORT_RUNNING = new Set<AudioImportJob["status"]>([
-  "queued",
-  "decoding",
-  "transcribing",
-]);
+const IMPORT_RUNNING = {
+  queued: true,
+  decoding: true,
+  transcribing: true,
+} satisfies Partial<Record<AudioImportJob["status"], true>>;
 
 type HistoryAudioChunk = {
   bytes: number[];
@@ -273,7 +260,15 @@ const useHistoryData = () => {
   const [audioImportError, setAudioImportError] = useState<
     "start" | "cancel" | "load" | null
   >(null);
-  const [startingAudioImport, setStartingAudioImport] = useState(false);
+  /* Library is the surface that lists imports while they run and keeps its own
+   * failure row inside the import panel, so it hands the shared action both:
+   * the job to register, and somewhere to put the error other than a toast. */
+  const { start: runAudioImport, importing: startingAudioImport } =
+    useAudioImport({
+      onQueued: (job) =>
+        setAudioImportJobs((current) => upsertAudioImportJob(current, job)),
+      onError: () => setAudioImportError("start"),
+    });
   const [historyStats, setHistoryStats] = useState<HistoryStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState(false);
@@ -556,40 +551,14 @@ const useHistoryData = () => {
     }
   }, []);
 
-  const startAudioImport = async () => {
-    if (startingAudioImport) return;
-    setStartingAudioImport(true);
+  const startAudioImport = () => {
+    // A fresh attempt clears the last one's failure. The hook owns the rest.
     setAudioImportError(null);
-    try {
-      const selectedPath = await open({
-        directory: false,
-        multiple: false,
-        filters: [
-          {
-            name: t("settings.history.audioImport.fileFilter"),
-            extensions: MEDIA_IMPORT_EXTENSIONS,
-          },
-        ],
-      });
-      if (selectedPath === null || Array.isArray(selectedPath)) return;
-
-      const result = await commands.importAudioFile(selectedPath);
-      if (result.status === "error") {
-        setAudioImportError("start");
-        return;
-      }
-      setAudioImportJobs((current) =>
-        upsertAudioImportJob(current, result.data),
-      );
-    } catch {
-      setAudioImportError("start");
-    } finally {
-      setStartingAudioImport(false);
-    }
+    void runAudioImport();
   };
 
   const cancelAudioImport = async (job: AudioImportJob) => {
-    if (job.cancel_requested || !IMPORT_RUNNING.has(job.status)) {
+    if (job.cancel_requested || !(job.status in IMPORT_RUNNING)) {
       return;
     }
     setAudioImportError(null);
@@ -648,12 +617,10 @@ interface HistorySummaryProps {
  * be a lie. */
 const SUMMARY_KEYS = ["entries", "duration", "words"] as const;
 
-/* The all-time totals under the page title: three labelled stat cards —
- * uppercase mono microlabel over a 20px tabular figure — instead of the old
- * quiet line, which read as body copy and vanished above the feed. The
- * duration still goes through the shared renderer: the hand-rolled
- * "{{hours}}h {{minutes}}m" it replaced printed "0h 0m" for every library
- * under half a minute.
+/* All-time usage: exactly three flat cards, mono microlabel over a tabular
+ * figure. No sublabel under any figure — "5 all time" under "5" states the
+ * same number twice — and no per-source split: provenance is a property of a
+ * recording, and the row that owns it states it on its receipt.
  *
  * Exported because the band is the page's one derived readout and the whole
  * page cannot be rendered without its data effects. */
@@ -667,11 +634,14 @@ export const HistorySummary: React.FC<HistorySummaryProps> = ({
 
   if (error) {
     return (
-      <div className="history-summary-state">
-        <StatusText tone="danger">
+      <div className="flex min-h-5 flex-wrap items-center gap-3">
+        <p className="text-sm text-red-900">
           {t("settings.history.stats.unavailable")}
-        </StatusText>
-        <Button variant="ghost" size="sm" onClick={onRetry}>
+        </p>
+        {/* Bordered, not a text ghost: this line has no banner surface of its
+         * own, so a ghost label would read as the tail of the sentence beside
+         * it rather than as the control that refills the band. */}
+        <Button variant="outline" size="sm" onClick={onRetry}>
           {t("settings.history.retry")}
         </Button>
       </div>
@@ -681,20 +651,32 @@ export const HistorySummary: React.FC<HistorySummaryProps> = ({
   if (stats === null) {
     if (!loading) {
       return (
-        <div className="history-summary-state">
-          <StatusText>{t("settings.history.stats.unavailable")}</StatusText>
+        <div className="flex min-h-5 flex-wrap items-center gap-3">
+          <p className="text-sm text-gray-900">
+            {t("settings.history.stats.unavailable")}
+          </p>
         </div>
       );
     }
     return (
-      <dl className="history-stats" data-testid="history-summary-loading">
+      <dl
+        className="grid grid-cols-3 gap-3"
+        data-testid="history-summary-loading"
+      >
         {SUMMARY_KEYS.map((key) => (
-          <div className="history-stat-card" key={key}>
-            <dt className="history-stat-label microlabel-mono">
-              {t(`settings.history.stats.${key}`)}
+          <div
+            className={cn(
+              SETTINGS_CARD,
+              "flex min-w-0 flex-col gap-1.5 px-4 py-3",
+            )}
+            key={key}
+            data-testid="history-stat"
+          >
+            <dt>
+              <Microlabel>{t(`settings.history.stats.${key}`)}</Microlabel>
             </dt>
-            <dd className="history-stat-value">
-              <Skeleton className="h-[26px] w-16" />
+            <dd className="m-0">
+              <Skeleton className="h-8 w-16" />
             </dd>
           </div>
         ))}
@@ -718,24 +700,25 @@ export const HistorySummary: React.FC<HistorySummaryProps> = ({
       label: t("settings.history.stats.words"),
       value: NUMBER_FORMATTER.format(stats.total_words),
     },
-    // The source split only earns its place when provenance is actually mixed.
-    ...(stats.by_source.length > 1
-      ? stats.by_source.map((source) => ({
-          key: `source-${source.source_kind ?? "legacy"}`,
-          label: t(
-            `settings.history.stats.source.${source.source_kind ?? "legacy"}`,
-          ),
-          value: NUMBER_FORMATTER.format(source.entries),
-        }))
-      : []),
   ];
 
   return (
-    <dl className="history-stats" data-testid="history-summary">
+    <dl className="grid grid-cols-3 gap-3" data-testid="history-summary">
       {totals.map((total) => (
-        <div className="history-stat-card" key={total.key}>
-          <dt className="history-stat-label microlabel-mono">{total.label}</dt>
-          <dd className="history-stat-value snap-measured">{total.value}</dd>
+        <div
+          className={cn(
+            SETTINGS_CARD,
+            "flex min-w-0 flex-col gap-1.5 px-4 py-3",
+          )}
+          key={total.key}
+          data-testid="history-stat"
+        >
+          <dt>
+            <Microlabel>{total.label}</Microlabel>
+          </dt>
+          <dd className="m-0 text-2xl text-gray-1000 tabular-nums">
+            {total.value}
+          </dd>
         </div>
       ))}
     </dl>
@@ -748,7 +731,7 @@ export const HistorySummary: React.FC<HistorySummaryProps> = ({
 const HistoryImportLive: React.FC<{ jobs: AudioImportJob[] }> = ({ jobs }) => {
   const { t } = useTranslation();
   const running = jobs.filter(
-    (job) => !job.cancel_requested && IMPORT_RUNNING.has(job.status),
+    (job) => !job.cancel_requested && job.status in IMPORT_RUNNING,
   );
   const first = running[0];
 
@@ -765,7 +748,7 @@ const HistoryImportLive: React.FC<{ jobs: AudioImportJob[] }> = ({ jobs }) => {
 
   return (
     <p
-      className="history-import-live"
+      className="text-xs break-words text-gray-900 empty:hidden"
       aria-live="polite"
       data-testid="history-import-live"
     >
@@ -790,49 +773,57 @@ const HistoryAudioImportSection: React.FC<HistoryAudioImportSectionProps> = ({
   if (jobs.length === 0 && error === null) return null;
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
       {error && (
-        <Alert variant="error">
+        <p
+          role="alert"
+          className={cn(SETTINGS_CARD, "px-4 py-3 text-sm text-red-900")}
+        >
           {t(`settings.history.audioImport.errors.${error}`)}
-        </Alert>
+        </p>
       )}
 
       {jobs.length > 0 && (
         <section
-          className="history-imports"
           aria-labelledby="audio-import-jobs-title"
           data-testid="history-imports"
+          className="flex flex-col gap-2"
         >
-          <h2 id="audio-import-jobs-title" className="microlabel-mono">
-            {t("settings.history.audioImport.jobs")}
+          <h2 id="audio-import-jobs-title">
+            <Microlabel>{t("settings.history.audioImport.jobs")}</Microlabel>
           </h2>
-          <ol>
+          <ol className={SETTINGS_SURFACE}>
             {jobs.map((job) => {
               const canCancel =
-                !job.cancel_requested && IMPORT_RUNNING.has(job.status);
+                !job.cancel_requested && job.status in IMPORT_RUNNING;
               const failure =
                 job.result?.kind === "failed" ? job.result.code : null;
               return (
-                <li key={job.id} className="history-import-row">
-                  <div className="history-import-copy">
-                    <p className="history-import-name" title={job.file_name}>
+                <li
+                  key={job.id}
+                  className="flex flex-wrap items-start justify-between gap-3 px-4 py-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className="truncate text-[13px] leading-[19px] text-gray-1000"
+                      title={job.file_name}
+                    >
                       {job.file_name}
                     </p>
-                    <p className="mt-0.5" role={failure ? "alert" : undefined}>
-                      <StatusText tone={failure ? "danger" : "muted"}>
-                        {failure
-                          ? t(`settings.history.audioImport.failure.${failure}`)
-                          : job.cancel_requested
-                            ? t(
-                                "settings.history.audioImport.status.cancelling",
-                              )
-                            : t(
-                                `settings.history.audioImport.status.${job.status}`,
-                              )}
-                      </StatusText>
+                    <p
+                      className={`mt-0.5 text-sm ${failure ? "text-red-900" : "text-gray-900"}`}
+                      role={failure ? "alert" : undefined}
+                    >
+                      {failure
+                        ? t(`settings.history.audioImport.failure.${failure}`)
+                        : job.cancel_requested
+                          ? t("settings.history.audioImport.status.cancelling")
+                          : t(
+                              `settings.history.audioImport.status.${job.status}`,
+                            )}
                     </p>
                     {job.status === "decoding" && (
-                      <p className="history-import-detail">
+                      <p className="mt-0.5 font-mono text-[11px] text-gray-800 tabular-nums">
                         {t("settings.history.audioImport.decodedSamples", {
                           count: job.decoded_samples,
                         })}
@@ -841,7 +832,7 @@ const HistoryAudioImportSection: React.FC<HistoryAudioImportSectionProps> = ({
                   </div>
                   {canCancel && (
                     <Button
-                      variant="secondary"
+                      variant="outline"
                       size="sm"
                       onClick={() => void onCancel(job)}
                       data-testid="history-import-cancel"
@@ -859,6 +850,28 @@ const HistoryAudioImportSection: React.FC<HistoryAudioImportSectionProps> = ({
   );
 };
 
+/* The feed's own empty and failed states: one centred statement inside the
+ * shape the rows would have taken, carrying at most one action. */
+const HistoryFeedState: React.FC<{
+  title: string;
+  description?: string;
+  tone?: "danger";
+  children?: React.ReactNode;
+}> = ({ title, description, tone, children }) => (
+  <SettingsCard className="flex flex-col items-center gap-3 px-8 py-12 text-center">
+    <p
+      className={`text-[13px] leading-[19px] ${tone === "danger" ? "text-red-900" : "text-gray-1000"}`}
+      role={tone === "danger" ? "alert" : undefined}
+    >
+      {title}
+    </p>
+    {description ? (
+      <p className="max-w-[46ch] text-sm text-gray-900">{description}</p>
+    ) : null}
+    {children}
+  </SettingsCard>
+);
+
 interface HistoryListSectionProps {
   state: ListState;
   query: string;
@@ -866,7 +879,7 @@ interface HistoryListSectionProps {
   view: HistoryTextView;
   setView: (view: HistoryTextView) => void;
   activeQuery: string;
-  sentinelRef: React.RefObject<HTMLDivElement>;
+  sentinelRef: React.RefObject<HTMLDivElement | null>;
   receiptsByHistoryId: Record<number, HistoryRunReceipt[] | null>;
   startingAudioImport: boolean;
   toggleSaved: (id: number) => Promise<void>;
@@ -905,15 +918,6 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
   const settled = state.phase !== "loading" && state.phase !== "error";
   const count = state.entries.length;
 
-  const textViewTabs = useMemo<TabItem[]>(
-    () =>
-      TEXT_VIEWS.map((option) => ({
-        id: option.value,
-        label: t(option.labelKey),
-      })),
-    [t],
-  );
-
   const loadNextPage = () => {
     const last = state.entries[state.entries.length - 1];
     if (last) void fetchPage(activeQuery, last.id);
@@ -921,13 +925,20 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
 
   // Only the search result count is announced. A running total that changes
   // on every scroll tick would turn the live region into noise.
-  const resultCount = useMemo(() => {
-    if (!searching || !settled) return "";
-    if (count === 0) return t("settings.history.resultsNone", "No matches");
-    return state.hasMore
-      ? t("settings.history.resultsMore", "{{count}}+ matches", { count })
-      : t("settings.history.results", "{{count}} matches", { count });
-  }, [searching, settled, count, state.hasMore, t]);
+  let resultCount = "";
+  if (searching && settled) {
+    if (count === 0) {
+      resultCount = t("settings.history.resultsNone", "No matches");
+    } else if (state.hasMore) {
+      resultCount = t("settings.history.resultsMore", "{{count}}+ matches", {
+        count,
+      });
+    } else {
+      resultCount = t("settings.history.results", "{{count}} matches", {
+        count,
+      });
+    }
+  }
 
   let content: React.ReactNode;
 
@@ -936,13 +947,13 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
       <div
         role="status"
         aria-label={t("settings.history.loading")}
-        className="history-list"
+        className={SETTINGS_SURFACE}
         data-testid="history-loading"
       >
         {SKELETON_ROWS.map((row) => (
-          <div key={row} className="history-skeleton-row">
-            <Skeleton className="h-[16px] w-64" />
-            <Skeleton className="h-[19px] w-full" />
+          <div key={row} className="flex flex-col gap-2 px-4 py-3">
+            <Skeleton className="h-4 w-64" />
+            <Skeleton className="h-5 w-full" />
           </div>
         ))}
       </div>
@@ -952,60 +963,52 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
      * put a bar above, so the region says why it is empty and carries the
      * one action that refills it. */
     content = (
-      <EmptyState
-        variant="error"
-        title={t("settings.history.loadError")}
-        action={
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => void fetchPage(activeQuery, null)}
-          >
-            {t("settings.history.retry")}
-          </Button>
-        }
-      />
+      <HistoryFeedState title={t("settings.history.loadError")} tone="danger">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void fetchPage(activeQuery, null)}
+        >
+          {t("settings.history.retry")}
+        </Button>
+      </HistoryFeedState>
     );
   } else if (count === 0) {
     content = searching ? (
-      <EmptyState
-        variant="no-results"
+      <HistoryFeedState
         title={t("settings.history.noResults", { query: trimmedActiveQuery })}
         description={t(
           "settings.history.noResultsHint",
           "Search matches whole words in both the raw and the processed transcript.",
         )}
-        action={
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setQuery("")}
-            data-testid="history-empty-clear"
-          >
-            {t("settings.history.clearSearch", "Clear search")}
-          </Button>
-        }
-      />
+      >
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setQuery("")}
+          data-testid="history-empty-clear"
+        >
+          {t("settings.history.clearSearch", "Clear search")}
+        </Button>
+      </HistoryFeedState>
     ) : (
-      <EmptyState
-        variant="informational"
+      <HistoryFeedState
         title={t("settings.history.empty")}
         description={t(
           "settings.history.emptyHint",
           "You can also transcribe an existing recording: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 or M4V, up to 30 minutes.",
         )}
-        action={
-          <Button
-            size="sm"
-            onClick={onStartAudioImport}
-            disabled={startingAudioImport}
-            data-testid="history-empty-import"
-          >
-            <FileAudio aria-hidden="true" className="h-4 w-4" />
-            {t("settings.history.audioImport.start")}
-          </Button>
-        }
-      />
+      >
+        <Button
+          size="sm"
+          onClick={onStartAudioImport}
+          disabled={startingAudioImport}
+          data-testid="history-empty-import"
+        >
+          <FileAudio aria-hidden="true" className="size-4" />
+          {t("settings.history.audioImport.start")}
+        </Button>
+      </HistoryFeedState>
     );
   } else {
     const showFooter =
@@ -1014,14 +1017,10 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
       state.phase === "paging-error";
     content = (
       <AudioPlayerGroup>
-        {/* The feed is the page's whole body, so it is a flat run of
-         * hairline-separated rows rather than one tall bordered box. The
-         * `List` primitive stays for bounded collections that sit inside a
-         * page next to other content. */}
         <ul
           role="list"
-          aria-label={t("settings.history.title")}
-          className="history-list"
+          aria-label={t("topNav.library")}
+          className={SETTINGS_SURFACE}
           data-testid="history-list"
         >
           {state.entries.map((entry) => (
@@ -1038,25 +1037,25 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
             />
           ))}
           {showFooter && (
-            <li className="history-list-footer">
+            <li className="flex flex-wrap items-center justify-center gap-3 px-4 py-3">
               {state.phase === "paging" && (
-                <StatusText live="polite">
+                <span className="text-sm text-gray-900" aria-live="polite">
                   {t("settings.history.loading")}
-                </StatusText>
+                </span>
               )}
               {state.phase === "paging-error" && (
                 <>
-                  <span className="history-list-footer-text" role="alert">
+                  <span className="text-sm text-red-900" role="alert">
                     {t("settings.history.loadError")}
                   </span>
-                  <Button variant="secondary" size="sm" onClick={loadNextPage}>
+                  <Button variant="outline" size="sm" onClick={loadNextPage}>
                     {t("settings.history.retry")}
                   </Button>
                 </>
               )}
               {state.phase === "ready" && state.hasMore && (
                 <Button
-                  variant="secondary"
+                  variant="outline"
                   size="sm"
                   onClick={loadNextPage}
                   data-testid="history-load-more"
@@ -1064,7 +1063,8 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
                   {t("settings.history.loadMore", "Load more")}
                 </Button>
               )}
-              <div ref={sentinelRef} className="history-sentinel" />
+              {/* The infinite-scroll trip wire. Zero height, never focusable. */}
+              <div ref={sentinelRef} className="h-px" />
             </li>
           )}
         </ul>
@@ -1078,39 +1078,42 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
        * flex-none in DOM order — count, view switch, folder button — so at
        * width the controls sit on one line and under it they wrap whole, last
        * first. Nothing is absolutely positioned; nothing can overlap. */}
-      <div className="history-toolbar">
-        {/* Icon and clear button are the primitive's slots, so the field's
-         * own padding accounts for both and the placeholder can no longer
-         * start underneath the magnifier. The wrapper only says how much of
-         * the toolbar row the field is allowed to take. */}
-        <div className="history-search">
+      <div
+        className="flex flex-wrap items-center gap-2"
+        data-testid="history-toolbar"
+      >
+        <div className="relative min-w-[200px] flex-[1_1_240px]">
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-gray-800"
+          />
           <Input
             type="search"
-            variant="compact"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={t("settings.history.searchPlaceholder")}
             aria-label={t("settings.history.search")}
             aria-describedby={countId}
             data-testid="history-search"
-            icon={<Search aria-hidden="true" />}
-            trailing={
-              query === "" ? null : (
-                <IconButton
-                  size="sm"
-                  label={t("settings.history.clearSearch", "Clear search")}
-                  onClick={() => setQuery("")}
-                  icon={<X aria-hidden="true" width={16} height={16} />}
-                  data-testid="history-search-clear"
-                />
-              )
-            }
+            className="h-8 pl-8"
           />
+          {query === "" ? null : (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-1/2 right-1 size-6 -translate-y-1/2 text-gray-800 hover:text-gray-1000"
+              aria-label={t("settings.history.clearSearch", "Clear search")}
+              onClick={() => setQuery("")}
+              data-testid="history-search-clear"
+            >
+              <X aria-hidden="true" className="size-4" />
+            </Button>
+          )}
         </div>
 
         <p
           id={countId}
-          className="history-result-count type-data"
+          className="flex-none font-mono text-[11px] text-gray-800 tabular-nums"
           aria-live="polite"
           data-testid="history-result-count"
         >
@@ -1118,20 +1121,28 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
         </p>
 
         <Tabs
-          variant="secondary"
-          items={textViewTabs}
           value={view}
-          onChange={(id) => setView(id === "raw" ? "raw" : "processed")}
-          label={t("settings.history.textView.label")}
-        />
+          onValueChange={(value) =>
+            setView(value === "raw" ? "raw" : "processed")
+          }
+          className="flex-none"
+        >
+          <TabsList aria-label={t("settings.history.textView.label")}>
+            {TEXT_VIEWS.map((option) => (
+              <TabsTrigger key={option.value} value={option.value}>
+                {t(option.labelKey)}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
         <Button
-          variant="secondary"
+          variant="outline"
           size="sm"
           onClick={onOpenFolder}
           data-testid="history-open-folder"
         >
-          <FolderOpen aria-hidden="true" className="h-4 w-4" />
+          <FolderOpen aria-hidden="true" className="size-4" />
           {t("settings.history.openFolder")}
         </Button>
       </div>
@@ -1171,24 +1182,31 @@ export const HistorySettings: React.FC = () => {
   } = useHistoryData();
 
   return (
-    <div className="settings-page history-page">
-      {/* Title row, then the summary line. The title keeps exactly one
-       * companion: the page's primary action, accent-filled by the Button
-       * primitive. The folder button lives on the list toolbar with the other
-       * quiet list controls, so this row can never crowd it. */}
-      <header className="history-header">
-        <div className="history-header-bar">
-          <h1 className="settings-page-title">{t("settings.history.title")}</h1>
-          <Button
-            size="sm"
-            onClick={() => void startAudioImport()}
-            disabled={startingAudioImport}
-            data-testid="history-import"
-          >
-            <FileAudio aria-hidden="true" className="h-4 w-4" />
-            {t("settings.history.audioImport.start")}
-          </Button>
-        </div>
+    /* The column and the page title come from the shared primitive, not from
+     * this file: `SettingsPage` decides the measure and the 24px title, so
+     * Library cannot drift from every other settings page. The title keeps
+     * exactly one companion — the page's primary action. The folder button
+     * lives on the list toolbar with the other quiet list controls, so this
+     * row can never crowd it. */
+    <SettingsPage
+      /* The rail names this destination Library, so the page answers to the
+       * same word — one destination, one name. `settings.history.*` keys keep
+       * their address; only the visible values moved to the rail's term. */
+      title={t("topNav.library")}
+      actions={
+        <Button
+          size="sm"
+          onClick={() => void startAudioImport()}
+          disabled={startingAudioImport}
+          data-testid="history-import"
+        >
+          <FileAudio aria-hidden="true" className="size-4" />
+          {t("overview.hero.importAudio")}
+        </Button>
+      }
+    >
+      {/* The totals and the import status read as one block under the title. */}
+      <div className="flex min-w-0 flex-col gap-4">
         <HistorySummary
           stats={historyStats}
           loading={statsLoading}
@@ -1196,7 +1214,7 @@ export const HistorySettings: React.FC = () => {
           onRetry={() => void refreshHistoryStats()}
         />
         <HistoryImportLive jobs={audioImportJobs} />
-      </header>
+      </div>
 
       <HistoryAudioImportSection
         jobs={audioImportJobs}
@@ -1223,6 +1241,6 @@ export const HistorySettings: React.FC = () => {
         onStartAudioImport={() => void startAudioImport()}
         onOpenFolder={() => void openRecordingsFolder()}
       />
-    </div>
+    </SettingsPage>
   );
 };

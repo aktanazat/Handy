@@ -30,16 +30,14 @@
     "models": "मोडेलहरू",
     "advanced": "उन्नत",
     "postProcessing": "पोस्ट-प्रोसेसिङ",
-    "history": "हिस्ट्री",
     "debug": "डिबग",
     "about": "बारेमा",
-    "modes": "Modes",
-    "privacy": "Privacy",
-    "agents": "Agents",
-    "meetings": "Meetings",
-    "navigation": "Main navigation",
-    "overview": "Overview",
-    "settings": "Settings"
+    "modes": "मोडहरू",
+    "privacy": "गोपनीयता",
+    "agents": "एजेन्टहरू",
+    "meetings": "बैठकहरू",
+    "navigation": "मुख्य नेभिगेसन",
+    "settings": "सेटिङहरू"
   },
   "onboarding": {
     "subtitle": "मोडेलहरू यही Mac मा चल्छन् र सटीकता तथा गतिबीच सन्तुलन मिलाउँछन्",
@@ -155,6 +153,7 @@
     "active": "सक्रिय",
     "switching": "बदलिँदैछ…",
     "noModelsAvailable": "कुनै मोडेल उपलब्ध छैन",
+    "searchPlaceholder": "मोडेलहरू खोज्नुहोस्",
     "verifying": "{{modelName}} प्रमाणित गरिँदैछ…",
     "verifyingGeneric": "प्रमाणित गरिँदैछ…",
     "extracting": "{{modelName}} एक्स्ट्र्याक्ट गरिँदैछ…",
@@ -162,7 +161,7 @@
     "extractingGeneric": "एक्स्ट्र्याक्ट गरिँदैछ…",
     "downloading": "डाउनलोड गरिँदैछ {{percentage}}%",
     "downloadingMultiple": "{{count}} वटा मोडेल डाउनलोड गरिँदैछ…",
-    "downloadingGeneric": "Downloading…",
+    "downloadingGeneric": "डाउनलोड हुँदै…",
     "modelReady": "मोडेल तयार छ",
     "loading": "{{modelName}} लोड गरिँदैछ…",
     "loadingGeneric": "लोड गरिँदैछ…",
@@ -192,27 +191,22 @@
       "title": "सामान्य",
       "shortcut": {
         "title": "सर्टकटहरू",
-        "description": "रेकर्डिङ र पुनर्लेखनका लागि किबोर्ड सर्टकटहरू।",
         "loading": "सर्टकटहरू लोड गरिँदैछन्…",
         "none": "कुनै सर्टकट सेट गरिएको छैन",
         "notFound": "सर्टकट भेटिएन",
         "pressKeys": "आफ्ना कुञ्जी थिच्नुहोस्…",
         "bindings": {
           "transcribe": {
-            "name": "ट्रान्सक्राइब सर्टकट",
-            "description": "तपाईंको आवाज रेकर्ड गरी ट्रान्सक्राइब गर्ने किबोर्ड सर्टकट।"
+            "name": "ट्रान्सक्राइब सर्टकट"
           },
           "cancel": {
-            "name": "रद्द सर्टकट",
-            "description": "हालको रेकर्डिङ रद्द गर्ने किबोर्ड सर्टकट।"
+            "name": "रद्द सर्टकट"
           },
           "transcribe_with_post_process": {
-            "name": "पोस्ट-प्रोसेसिङ सर्टकट",
-            "description": "ट्रान्सक्रिप्टमा सधैँ AI सफाइ लागू गर्ने वैकल्पिक सर्टकट।"
+            "name": "पोस्ट-प्रोसेसिङ सर्टकट"
           },
           "command": {
-            "name": "कमाण्ड सर्टकट",
-            "description": "बोलेको निर्देशन अनुसार तपाईंले छानेको पाठ पुनर्लेखन गर्ने किबोर्ड सर्टकट।"
+            "name": "कमाण्ड सर्टकट"
           }
         },
         "errors": {
@@ -222,22 +216,18 @@
         },
         "holdHint": "बदल्न थिच्नुहोस्, बोल्न थिचिराख्नुहोस्। कुनै पनि सर्टकटसँग चल्छ।",
         "recordAction": "{{binding}} को लागि नयाँ सर्टकट रेकर्ड गर्नुहोस्",
-        "recordHint": "रेकर्ड गर्न क्लिक गर्नुहोस्",
         "unset": "सेट गरिएको छैन"
       },
       "language": {
         "title": "भाषा",
-        "description": "वाक् पहिचानमा प्रयोग हुने भाषा। Auto ले यसलाई पत्ता लगाउँछ; कुनै भाषा तोक्दा शुद्धता सुधार हुन सक्छ।",
         "searchPlaceholder": "भाषाहरू खोज्नुहोस्",
         "noResults": "कुनै भाषा भेटिएन",
         "auto": "स्वतः"
       },
       "pushToTalk": {
-        "label": "पुश टु टक",
-        "description": "रेकर्ड गर्न थिचिराख्नुहोस्, रोक्न छोड्नुहोस्"
+        "label": "पुश टु टक"
       },
       "appearance": {
-        "description": "इन्टरफेस भाषा र रङ योजना। दुवै तुरुन्तै लागू हुन्छन्।",
         "title": "रूपरङ",
         "material": {
           "title": "म्याटेरियल",
@@ -248,7 +238,6 @@
           }
         }
       },
-      "description": "तपाईंले थिच्ने कीहरू, Sona ले सुन्ने माइक्रोफोन, र एप कस्तो देखिन्छ।",
       "commandMode": {
         "label": "आवाज कमाण्ड मोड",
         "description": "कमाण्ड सर्टकट थिचिराखी, छानेको पाठमा के बदल्ने हो भन्नुहोस्।"
@@ -256,15 +245,10 @@
     },
     "models": {
       "title": "ट्रान्सक्रिप्सन मोडेलहरू",
-      "description": "वाणीलाई टेक्स्टमा बदल्ने मोडेल। मोडेलहरूले शुद्धता र गतिबीच सन्तुलन मिलाउँछन्।",
-      "searchPlaceholder": "नामद्वारा मोडेल खोज्नुहोस्",
-      "yourModels": "डाउनलोड गरिएका मोडेलहरू",
-      "availableModels": "डाउनलोड गर्न उपलब्ध",
       "deleteConfirm": "{{modelName}} मेटाउने? यसलाई फेरि प्रयोग गर्न फेरि डाउनलोड गर्नुपर्छ।",
       "deleteActiveConfirm": "{{modelName}} सक्रिय मोडेल हो। यसलाई मेटाउँदा अर्को मोडेल चयन नगरेसम्म ट्रान्सक्रिप्सन रोकिन्छ।",
       "deleteTitle": "मोडेल मेटाउनुहोस्",
       "filters": {
-        "allLanguages": "सबै भाषाहरू",
         "streaming": "लाइभ स्ट्रिमिङ भएका मोडेलहरू मात्र देखाउनुहोस्",
         "translation": "अङ्ग्रेजीमा अनुवाद गर्ने मोडेलहरू मात्र देखाउनुहोस्",
         "allFamilies": "सबै परिवारहरू",
@@ -279,48 +263,45 @@
       },
       "noModelsMatch": "यो फिल्टरसँग कुनै मोडेल मिल्दैन।",
       "cloud": {
-        "title": "Cloud transcription",
-        "description": "Save a provider key to make its cloud engine available in a mode.",
-        "providerDescription": "Credentials stay in your operating system's native secure store.",
+        "title": "क्लाउड ट्रान्सक्रिप्शन",
+        "providerDescription": "क्रेडेन्सियल तपाईंको अपरेटिङ सिस्टमको नेटिभ सुरक्षित स्टोरमा रहन्छन्।",
         "providers": {
           "deepgram": "Deepgram Nova-3",
           "elevenLabs": "ElevenLabs Scribe v2"
         },
         "apiKey": {
-          "label": "API key",
-          "description": "A saved key is write-only and never displayed here.",
-          "placeholder": "Paste API key"
+          "placeholder": "API कुञ्जी पेस्ट गर्नुहोस्"
         },
         "actions": {
-          "save": "Save key",
-          "saving": "Saving…",
-          "remove": "Remove key",
-          "removing": "Removing…",
-          "verify": "Verify",
-          "verifying": "Verifying…"
+          "save": "कुञ्जी सुरक्षित गर्नुहोस्",
+          "saving": "सुरक्षित गर्दै…",
+          "remove": "कुञ्जी हटाउनुहोस्",
+          "removing": "हटाइँदै…",
+          "verify": "प्रमाणित गर्नुहोस्",
+          "verifying": "प्रमाणित हुँदै…"
         },
         "status": {
-          "checking": "Checking native key store…",
-          "notSaved": "No API key saved.",
-          "saved": "API key saved. It has not been verified.",
-          "verified": "API key verified.",
-          "verifyRequiresConsent": "Review the transfer disclosure in a mode before verifying this key."
+          "checking": "नेटिभ कुञ्जी स्टोर जाँच हुँदै…",
+          "notSaved": "कुनै API कुञ्जी सुरक्षित छैन।",
+          "saved": "API कुञ्जी सुरक्षित भयो। यो प्रमाणित भएको छैन।",
+          "verified": "API कुञ्जी प्रमाणित भयो।",
+          "verifyRequiresConsent": "यो कुञ्जी प्रमाणित गर्नुअघि कुनै मोडमा स्थानान्तरण प्रकटीकरण हेर्नुहोस्।"
         },
         "errors": {
-          "not_found": "No API key is saved for this provider.",
-          "unavailable": "The native secure store is unavailable.",
-          "locked": "The native secure store is locked.",
-          "corrupt": "The saved credential cannot be read safely.",
-          "invalid": "The credential was not accepted by the secure store.",
-          "busy": "The secure store is busy. Try again.",
-          "backend": "The credential operation could not be completed.",
-          "not_configured": "Save an API key before verifying it.",
-          "consent_required": "Accept the provider transfer disclosure before verifying.",
-          "authentication": "The provider rejected this API key.",
-          "quota": "The provider rejected verification because the account is over quota.",
-          "network": "The provider could not be reached for verification.",
-          "protocol": "The provider returned an unexpected verification response.",
-          "unknown_provider": "This cloud provider is not available in this build."
+          "not_found": "यो प्रदायकका लागि कुनै API कुञ्जी सुरक्षित छैन।",
+          "unavailable": "नेटिभ सुरक्षित स्टोर उपलब्ध छैन।",
+          "locked": "नेटिभ सुरक्षित स्टोर लक छ।",
+          "corrupt": "सुरक्षित गरिएको क्रेडेन्सियल सुरक्षित तरिकाले पढ्न सकिँदैन।",
+          "invalid": "सुरक्षित स्टोरले क्रेडेन्सियल स्वीकार गरेन।",
+          "busy": "सुरक्षित स्टोर व्यस्त छ। फेरि प्रयास गर्नुहोस्।",
+          "backend": "क्रेडेन्सियल कार्य पूरा गर्न सकिएन।",
+          "not_configured": "प्रमाणित गर्नुअघि API कुञ्जी सुरक्षित गर्नुहोस्।",
+          "consent_required": "प्रमाणित गर्नुअघि प्रदायकको स्थानान्तरण प्रकटीकरण स्वीकार गर्नुहोस्।",
+          "authentication": "प्रदायकले यो API कुञ्जी अस्वीकार गर्‍यो।",
+          "quota": "खाता कोटाभन्दा बढी भएकाले प्रदायकले प्रमाणीकरण अस्वीकार गर्‍यो।",
+          "network": "प्रमाणीकरणका लागि प्रदायकसँग सम्पर्क गर्न सकिएन।",
+          "protocol": "प्रदायकले अनपेक्षित प्रमाणीकरण प्रतिक्रिया फर्काए।",
+          "unknown_provider": "यो क्लाउड प्रदायक यो बिल्डमा उपलब्ध छैन।"
         }
       },
       "actions": {
@@ -328,6 +309,7 @@
         "activateNamed": "{{modelName}} प्रयोग गर्नुहोस्",
         "download": "डाउनलोड गर्नुहोस्",
         "downloadNamed": "{{modelName}} डाउनलोड गर्नुहोस्",
+        "moreFor": "{{modelName}} को लागि थप कार्यहरू",
         "retryNamed": "{{modelName}} डाउनलोड पुनः प्रयास गर्नुहोस्"
       },
       "emptyCatalog": "Sona ले आफ्नो मोडेल क्याटलग पढ्न सकेन। पुनः स्क्यान गर्दा models फोल्डर वा Hugging Face क्यासमा भएका मोडेलहरू भेटिन्छन्।",
@@ -339,52 +321,37 @@
         "other": "अन्य मोडेलहरू"
       },
       "familyCount": "{{total}} मोडेलहरू",
-      "noModelsMatchHint": "क्याटलगमा सबै फिल्टर एकैसाथ मिल्ने केही छैन।",
       "searchByAnything": "नाम, भाषा वा क्षमताबाट खोज्नुहोस्",
       "state": {
         "activeInMemory": "सक्रिय, मेमोरीमा",
         "downloaded": "डाउनलोड भएको",
         "notDownloaded": "डाउनलोड नभएको"
-      },
-      "summary": {
-        "noActive": "कुनै मोडेल चयन गरिएको छैन",
-        "activeLabel": "सक्रिय मोडेल",
-        "onDiskLabel": "डिस्कमा"
       }
     },
     "sound": {
       "title": "साउन्ड",
       "microphone": {
-        "title": "माइक्रोफोन",
-        "description": "Sona ले रेकर्ड गर्ने माइक्रोफोन।",
-        "placeholder": "माइक्रोफोन चयन गर्नुहोस्",
-        "loading": "लोड गरिँदैछ…"
+        "title": "माइक्रोफोन"
       },
       "channel": {
         "title": "इनपुट च्यानल",
-        "description": "इन्टरफेसमा एकभन्दा बढी इनपुट हुँदा कुन इनपुट च्यानलबाट रेकर्ड गर्ने।",
         "average": "सबै च्यानलको औसत",
         "channel": "च्यानल {{n}}"
       },
       "audioFeedback": {
-        "label": "अडियो फिडब्याक",
-        "description": "रेकर्डिङ सुरु र बन्द हुँदा आवाज बजाउनुहोस्।"
+        "label": "अडियो फिडब्याक"
       },
       "outputDevice": {
         "title": "आउटपुट डिभाइस",
-        "description": "फिडब्याक आवाजहरू बज्ने ठाउँ।",
-        "placeholder": "आउटपुट डिभाइस चयन गर्नुहोस्",
-        "loading": "लोड गरिँदैछ…"
+        "description": "फिडब्याक आवाजहरू बज्ने ठाउँ।"
       },
       "volume": {
-        "title": "भोल्युम",
-        "description": "फिडब्याक आवाजहरूको भोल्युम।"
+        "title": "भोल्युम"
       }
     },
     "advanced": {
       "englishSpelling": {
         "label": "अङ्ग्रेजी हिज्जे",
-        "description": "वाक् पहिचानकर्ताको हिज्जे जस्ताको तस्तै राख्नुहोस् वा प्रचलित अमेरिकी रूपहरूलाई बेलायती हिज्जेमा बदल्नुहोस्।",
         "values": {
           "as_spoken": "बोलिएअनुसार",
           "british": "बेलायती"
@@ -398,8 +365,7 @@
         "experimental": "प्रयोगात्मक"
       },
       "experimentalToggle": {
-        "label": "प्रयोगात्मक सुविधाहरू",
-        "description": "अझै विकासमा रहेका विकल्पहरू देखाउनुहोस्।"
+        "label": "प्रयोगात्मक सुविधाहरू"
       },
       "lazyStreamClose": {
         "label": "ट्रान्सक्रिप्सनहरूबीच माइक खुला राख्नुहोस्",
@@ -407,8 +373,7 @@
       },
       "acceleration": {
         "transcribe": {
-          "title": "transcribe.cpp एक्सेलेरेसन",
-          "description": "transcribe.cpp (Whisper परिवार) मोडेलहरूका लागि हार्डवेयर एक्सेलेरेसन। Auto ले उपलब्ध भए GPU प्रयोग गर्छ (macOS मा Metal, Windows/Linux मा Vulkan)।"
+          "title": "transcribe.cpp एक्सेलेरेसन"
         },
         "ort": {
           "title": "ONNX एक्सेलेरेसन",
@@ -423,17 +388,15 @@
         "description": "विन्डो नखोली सिस्टम ट्रेमा सुरु गर्नुहोस्।"
       },
       "autostart": {
-        "label": "स्टार्टअपमा सुरु गर्नुहोस्",
-        "description": "तपाईं लगइन गर्दा Sona सुरु गर्नुहोस्।"
+        "label": "स्टार्टअपमा सुरु गर्नुहोस्"
       },
       "showTrayIcon": {
-        "label": "ट्रे आइकन देखाउनुहोस्",
-        "description": "सिस्टम ट्रेमा Sona आइकन देखाउनुहोस्।"
+        "label": "ट्रे आइकन देखाउनुहोस्"
       },
       "overlay": {
         "style": {
           "title": "ओभरले",
-          "description": "Choose the recording overlay: None hides it, Minimal shows a compact pill, Live shows transcription in real time while a streaming local model or cloud mode is active. On Linux 'None' is recommended.",
+          "description": "रेकर्डिङ ओभरले छान्नुहोस्: “कुनै होइन” ले यसलाई लुकाउँछ, “मिनिमल” ले सानो पिल देखाउँछ, “लाइभ” ले स्ट्रिमिङ स्थानीय मोडेल वा क्लाउड मोड सक्रिय रहँदा ट्रान्सक्रिप्शन तत्कालै देखाउँछ। Linux मा “कुनै होइन” सिफारिस गरिन्छ।",
           "options": {
             "none": "कुनै होइन",
             "minimal": "मिनिमल",
@@ -442,7 +405,6 @@
         },
         "position": {
           "title": "ओभरले स्थिति",
-          "description": "रेकर्डिङ र ट्रान्सक्रिप्सनका बेला ओभरले स्क्रिनमा कहाँ देखिन्छ।",
           "options": {
             "bottom": "तल",
             "top": "माथि"
@@ -489,12 +451,10 @@
         }
       },
       "translateToEnglish": {
-        "label": "अङ्ग्रेजीमा अनुवाद गर्नुहोस्",
-        "description": "ट्रान्सक्राइब गर्दा अन्य भाषाको बोलीलाई अङ्ग्रेजीमा अनुवाद गर्नुहोस्।"
+        "label": "अङ्ग्रेजीमा अनुवाद गर्नुहोस्"
       },
       "modelUnload": {
         "title": "मोडेल अनलोड",
-        "description": "मोडेल यति समय निष्क्रिय रहेपछि GPU र CPU मेमोरी खाली गर्नुहोस्।",
         "options": {
           "never": "कहिल्यै होइन",
           "immediately": "तुरुन्तै",
@@ -508,7 +468,6 @@
       },
       "customWords": {
         "title": "शब्दावली",
-        "description": "बोलिएका वाक्यांशलाई ठ्याक्कै लेखिने रूपहरूमा सच्याउनुहोस्। Whisper ले लेखिने रूपहरूलाई प्रम्प्टका रूपमा प्रयोग गर्छ; अन्य मोडेलहरूले निश्चित सुधार प्रयोग गर्छन्।",
         "spoken": "बोलिएको वाक्यांश",
         "written": "लिखित पाठ",
         "spokenPlaceholder": "के भनियो",
@@ -542,26 +501,21 @@
           "unsavedWarning": "तपाईंसँग असुरक्षित शब्दावली परिवर्तनहरू छन्। यो आयात लागू गर्दा ती प्रतिस्थापन हुनेछन्।",
           "back": "पछाडि",
           "continue": "जारी राख्नुहोस्",
-          "replaceSummary": "लागू गर्दा सुरक्षित {{savedCount}} जोडीहरूलाई यस फाइलका {{importedCount}} जोडीहरूले प्रतिस्थापन गर्छन्।",
-          "stepConfirm": "चरण २ मध्ये २: प्रतिस्थापन पुष्टि गर्नुहोस्",
-          "stepReview": "चरण २ मध्ये १: फाइलमा के छ"
+          "replaceSummary": "लागू गर्दा सुरक्षित {{savedCount}} जोडीहरूलाई यस फाइलका {{importedCount}} जोडीहरूले प्रतिस्थापन गर्छन्।"
         },
-        "actions": "Vocabulary actions",
+        "actions": "शब्दावली कार्यहरू",
         "audioImport": {
           "errors": {
             "start": "अडियो आयात सुरु गर्न सकिएन। फेरि प्रयास गर्नुहोस्।"
           },
           "failure": {
-            "history": "Some recordings could not be imported into the vocabulary."
+            "history": "केही रेकर्डिङ शब्दावलीमा आयात गर्न सकिएन।"
           }
         },
         "empty": {
-          "description": "open ai र OpenAI जस्तो जोडी थप्नुहोस्, र Sona ले त्यो वाक्यांश सुनेको हरेक पटक ठीक रूप लेख्छ।",
-          "title": "अहिलेसम्म कुनै शब्दावली नियम छैन"
+          "description": "open ai र OpenAI जस्तो जोडी थप्नुहोस्, र Sona ले त्यो वाक्यांश सुनेको हरेक पटक ठीक रूप लेख्छ।"
         },
-        "sources": "Library को ट्रान्सक्रिप्टबाट सुरक्षित गरेका सुधारहरू यही सूचीमा आउँछन्। एउटै मोडका नियमहरू त्यही मोडको आफ्नै शब्दावलीमा रहन्छन्।",
-        "unsaved": "सुरक्षित नगरिएका परिवर्तनहरू",
-        "csvLabel": "CSV"
+        "sources": "Library को ट्रान्सक्रिप्टबाट सुरक्षित गरेका सुधारहरू यही सूचीमा आउँछन्। एउटै मोडका नियमहरू त्यही मोडको आफ्नै शब्दावलीमा रहन्छन्।"
       },
       "voiceActivityDetection": {
         "title": "भ्वाइस एक्टिभिटी डिटेक्सन",
@@ -575,8 +529,6 @@
         "enabledLabel": "इमोजी प्रतिस्थापन सक्षम गर्नुहोस्",
         "enabledDescription": "शब्दावली सच्याएपछि ठ्याक्कै मिल्ने बोलिएका टोकन मात्र प्रतिस्थापन गर्नुहोस्।",
         "title": "इमोजी प्रतिस्थापनहरू",
-        "description": "ठ्याक्कै बोलिएको वाक्यांशलाई इमोजी पाठमा नक्साङ्कन गर्नुहोस्। अनुमानित मिलान प्रयोग हुँदैन।",
-        "offState": "इमोजी प्रतिस्थापनहरू बन्द छन्। Sona ले कोड वा अन्य कुनै एपका लागि तिनलाई स्वतः सक्षम गर्दैन।",
         "spoken": "बोलिएको वाक्यांश",
         "written": "इमोजी पाठ",
         "spokenPlaceholder": "हँसिलो अनुहार",
@@ -593,53 +545,39 @@
           "incompleteRow": "सुरक्षित गर्नुअघि हरेक पङ्क्ति पूरा गर्नुहोस् वा हटाउनुहोस्।"
         },
         "empty": {
-          "description": "smiley face जस्तो बोलिने ठीक शब्दलाई तपाईंले लेख्न चाहेको इमोजीसँग जोड्नुहोस्।",
-          "title": "अहिलेसम्म कुनै इमोजी प्रतिस्थापन छैन"
+          "description": "smiley face जस्तो बोलिने ठीक शब्दलाई तपाईंले लेख्न चाहेको इमोजीसँग जोड्नुहोस्।"
         }
       },
-      "description": "Startup, processing, and experimental behavior.",
       "disclosures": {
         "launch": {
-          "title": "Launch",
-          "description": "How Sona starts and what it shows."
+          "title": "सुरुवात"
         },
         "processing": {
-          "title": "Processing",
-          "description": "Engine and model behavior while transcribing."
-        },
-        "experimental": {
-          "description": "Unstable options that can change without notice."
+          "title": "प्रोसेसिङ"
         }
       },
       "snippets": {
         "add": "स्निपेट थप्नुहोस्",
         "confirmDelete": {
           "description": "भविष्यका ट्रान्सक्रिप्टहरूमा यो ट्रिगर विस्तार हुन छोड्छ। पहिले नै लेखिएको पाठ अपरिवर्तित रहन्छ।",
-          "body": "{{trigger}} हाल {{expansion}} मा विस्तार हुन्छ।",
           "title": "{{trigger}} मेटाउने?"
         },
-        "description": "Sona ले लामो पाठमा विस्तार गर्ने छोटा ट्रिगरहरू। यहाँका परिवर्तनहरूले भविष्यका ट्रान्सक्रिप्टहरूमा मात्र असर गर्छन्, पहिले लेखिएको पाठमा कहिल्यै गर्दैनन्।",
         "empty": {
-          "action": "आफ्नो पहिलो स्निपेट लेख्नुहोस्",
-          "description": "omw जस्तो ट्रिगर थप्नुहोस्, र तपाईंले भनेको हरेक पटक Sona ले on my way लेख्छ।",
-          "title": "अहिलेसम्म कुनै स्निपेट छैन"
+          "description": "omw जस्तो ट्रिगर थप्नुहोस्, र तपाईंले भनेको हरेक पटक Sona ले on my way लेख्छ।"
         },
-        "enabledDescription": "शब्दावली सुधारपछि तुरुन्तै हरेक ट्रान्सक्रिप्टमा स्निपेट ट्रिगरहरू प्रतिस्थापन गर्नुहोस्।",
         "enabledLabel": "पाठ विस्तार सक्षम गर्नुहोस्",
         "errors": {
           "duplicate": "अर्को स्निपेटले यो ट्रिगर पहिले नै प्रयोग गर्छ।",
           "incomplete": "ट्रिगर र विस्तार दुवै लेख्नुहोस्।"
         },
         "expansion": "विस्तार",
-        "expansionPlaceholder": "on my way",
+        "expansionPlaceholder": "म बाटोमा छु",
         "loadError": "स्निपेटहरू लोड गर्न सकिएन।",
         "loading": "स्निपेटहरू लोड हुँदै",
         "matching": "ट्रिगरहरूले पूरा शब्द मिलाउँछन् र केसलाई बेवास्ता गर्छन्। दुई ट्रिगर एउटै ठाउँमा मिल्दा लामोले जित्छ, र विस्तार शब्दावली सुधारपछि तुरुन्तै चल्छ।",
-        "offState": "पाठ विस्तार बन्द छ। स्निपेटहरू सुरक्षित रहन्छन् र तपाईंले फेरि चालु गर्नेबित्तिकै लागू हुन्छन्।",
         "title": "पाठ विस्तार",
         "trigger": "ट्रिगर",
         "triggerPlaceholder": "omw",
-        "unsaved": "यो परिवर्तन राख्न Enter थिच्नुहोस् वा Save गर्नुहोस्।",
         "enableRow": "{{trigger}} सक्षम गर्नुहोस्",
         "remove": "{{trigger}} मेटाउनुहोस्",
         "saveRow": "{{trigger}} सुरक्षित गर्नुहोस्"
@@ -651,62 +589,41 @@
       }
     },
     "postProcessing": {
-      "hotkey": {
-        "title": "सर्टकट"
-      },
       "api": {
         "title": "API (OpenAI अनुकूल)",
         "provider": {
-          "title": "प्रदायक",
-          "description": "OpenAI-अनुकूल प्रदायक चयन गर्नुहोस्।"
+          "title": "प्रदायक"
         },
         "appleIntelligence": {
           "unavailable": "यो डिभाइसमा Apple Intelligence उपलब्ध छैन। macOS Tahoe (26.0) वा पछिको संस्करण चलिरहेको र System Settings मा Apple Intelligence सक्षम गरिएको Apple Silicon Mac आवश्यक छ।"
         },
         "baseUrl": {
           "title": "आधार URL",
-          "description": "चयन गरिएको प्रदायकका लागि API आधार URL। कस्टम प्रदायक मात्र सम्पादन गर्न सकिन्छ।",
           "placeholder": "https://api.openai.com/v1"
         },
         "apiKey": {
           "title": "API कुञ्जी",
-          "description": "चयन गरिएको प्रदायकका लागि API कुञ्जी।",
           "placeholder": "sk-..."
         },
         "model": {
           "title": "मोडेल",
           "descriptionCustom": "तपाईंको कस्टम इन्डपोइन्टले अपेक्षा गर्ने मोडेल पहिचानकर्ता दिनुहोस्।",
-          "descriptionDefault": "चयन गरिएको प्रदायकले उपलब्ध गराएको मोडेल छान्नुहोस्।",
           "placeholderWithOptions": "मोडेल खोज्नुहोस् वा चयन गर्नुहोस्",
           "placeholderNoOptions": "मोडेलको नाम टाइप गर्नुहोस्",
           "refreshModels": "मोडेलहरू रिफ्रेस गर्नुहोस्"
         }
       },
       "prompts": {
-        "title": "प्रम्प्ट",
-        "selectedPrompt": {
-          "title": "चयन गरिएको प्रम्प्ट",
-          "description": "ट्रान्सक्रिप्सन परिष्कृत गर्न टेम्प्लेट चयन गर्नुहोस् वा नयाँ बनाउनुहोस्। क्याप्चर गरिएको ट्रान्सक्रिप्ट उल्लेख गर्न प्रम्प्ट टेक्स्टभित्र ${output} प्रयोग गर्नुहोस्।"
-        },
-        "noPrompts": "कुनै प्रम्प्ट उपलब्ध छैन",
-        "selectPrompt": "प्रम्प्ट चयन गर्नुहोस्",
         "createNew": "नयाँ प्रम्प्ट",
         "promptLabel": "प्रम्प्टको नाम",
         "promptLabelPlaceholder": "यो प्रम्प्टको नाम राख्नुहोस्",
         "promptInstructions": "निर्देशनहरू",
         "promptInstructionsPlaceholder": "निम्न टेक्स्टको व्याकरण र स्पष्टता सुधार गर्नुहोस्: ${output}",
-        "promptTip": "ट्रान्सक्रिप्ट जहाँ घुसाउनुपर्छ त्यहाँ <code>${output}</code> लेख्नुहोस्।",
         "updatePrompt": "प्रम्प्ट अपडेट गर्नुहोस्",
         "deletePrompt": "प्रम्प्ट मेटाउनुहोस्",
         "createPrompt": "प्रम्प्ट बनाउनुहोस्",
-        "cancel": "रद्द गर्नुहोस्",
-        "selectToEdit": "सम्पादन गर्न प्रम्प्ट चयन गर्नुहोस्।",
-        "createFirst": "ट्रान्सक्रिप्टहरू पोस्ट-प्रोसेस गर्न प्रम्प्ट बनाउनुहोस्।",
         "empty": {
           "description": "प्रम्प्टले मोडेललाई ट्रान्सक्रिप्टसँग के गर्ने भनी बताउँछ, उदाहरणका लागि: हरेक तथ्य राख्दै तलको पाठलाई छोटो सन्देशका रूपमा पुनर्लेखन गर्नुहोस्: ${output}"
-        },
-        "errors": {
-          "incomplete": "सुरक्षित गर्नुअघि प्रम्प्टलाई नाम र निर्देशनहरू दिनुहोस्।"
         },
         "inUse": "प्रयोगमा",
         "lastPrompt": "Sona ले कम्तीमा एउटा प्रम्प्ट राख्छ, त्यसैले यो मेटाउन मिल्दैन। पहिले अर्को बनाउनुहोस्।",
@@ -724,33 +641,26 @@
         "useNamed": "{{name}} प्रयोग गर्नुहोस्"
       },
       "remoteConsent": {
-        "title": "Remote text transfer",
-        "description": "Meeting and transcription text may be sent to {{provider}} at {{endpoint}} for post-processing.",
-        "acknowledge": "I acknowledge that text may be sent to this endpoint.",
-        "accept": "Allow text transfer",
-        "cancel": "Cancel",
-        "endpointChanged": "The endpoint changed. Review and acknowledge the new endpoint before text can leave this Mac.",
-        "invalidDestination": "This provider destination is invalid or local-only, so no remote consent can be recorded.",
-        "saveFailed": "Sona could not save this acknowledgement.",
-        "current": "Text transfer is acknowledged for {{endpoint}}.",
-        "review": "Review acknowledgement",
-        "endpointLabel": "Canonical endpoint",
-        "destinationPinned": "Sona pins this exact endpoint and origin for the acknowledgement."
+        "title": "रिमोट पाठ स्थानान्तरण",
+        "description": "बैठक र ट्रान्सक्रिप्शन पाठ पोस्ट-प्रोसेसिङका लागि {{endpoint}} मा {{provider}} लाई पठाइन सक्छ।",
+        "acknowledge": "पाठ यो इन्डपोइन्टमा पठाइन सक्छ भनी मैले स्वीकार गर्छु।",
+        "accept": "पाठ स्थानान्तरणलाई अनुमति दिनुहोस्",
+        "cancel": "रद्द गर्नुहोस्",
+        "endpointChanged": "इन्डपोइन्ट बदलियो। यो Mac बाट पाठ बाहिर जानुअघि नयाँ इन्डपोइन्ट समीक्षा गरी स्वीकार गर्नुहोस्।",
+        "invalidDestination": "यो प्रदायकको गन्तव्य अवैध वा स्थानीय मात्र छ, त्यसैले कुनै रिमोट सहमति अभिलेख गर्न सकिँदैन।",
+        "saveFailed": "Sona ले यो स्वीकृति सुरक्षित गर्न सकेन।",
+        "current": "{{endpoint}} का लागि पाठ स्थानान्तरण स्वीकार गरिएको छ।",
+        "review": "स्वीकृति समीक्षा गर्नुहोस्",
+        "endpointLabel": "क्यानोनिकल इन्डपोइन्ट",
+        "destinationPinned": "Sona ले यो स्वीकृतिका लागि ठ्याक्कै यही इन्डपोइन्ट र ओरिजिन निश्चित गर्छ।"
       }
     },
     "history": {
       "stats": {
-        "title": "हालसम्मको प्रयोग",
-        "loading": "प्रयोग लोड हुँदैछ…",
         "unavailable": "प्रयोग तथ्याङ्क उपलब्ध छैन।",
         "entries": "रेकर्डिङहरू",
         "duration": "रेकर्डिङ समय",
-        "words": "शब्दहरू",
-        "source": {
-          "microphone": "माइक्रोफोन",
-          "file": "फाइल",
-          "legacy": "पुराना रेकर्डिङहरू"
-        }
+        "words": "शब्दहरू"
       },
       "title": "हिस्ट्री",
       "openFolder": "रेकर्डिङ फोल्डर खोल्नुहोस्",
@@ -764,7 +674,6 @@
       "retranscribe": "फेरि ट्रान्सक्राइब गर्नुहोस्",
       "retranscribeError": "फेरि प्रतिलेखन गर्न सकिएन। फेरि प्रयास गर्नुहोस्।",
       "transcribing": "ट्रान्सक्राइब गरिँदैछ…",
-      "transcriptionFailed": "ट्रान्सक्रिप्सन गर्न सकिएन।",
       "search": "इतिहास खोज्नुहोस्",
       "searchPlaceholder": "ट्रान्सक्रिप्टहरू खोज्नुहोस्",
       "noResults": "\"{{query}}\" सँग मेल खाने कुनै ट्रान्सक्रिप्ट छैन।",
@@ -778,75 +687,75 @@
         "raw": "कच्चो"
       },
       "receipts": {
-        "showDetails": "Show run details",
-        "hideDetails": "Hide run details",
-        "loading": "Loading run receipts…",
-        "unavailable": "Run receipt data is unavailable for this entry.",
-        "none": "No run receipts were recorded for this entry.",
+        "showDetails": "रन विवरण देखाउनुहोस्",
+        "hideDetails": "रन विवरण लुकाउनुहोस्",
+        "loading": "रन रसिदहरू लोड हुँदैछ…",
+        "unavailable": "यो प्रविष्टिको लागि रन रसिद डेटा उपलब्ध छैन।",
+        "none": "यो प्रविष्टिको लागि कुनै रन रसिद अभिलेख भएन।",
         "duration": "{{duration}}",
-        "durationLabel": "Duration",
-        "words": "{{count}} words",
-        "wordsLabel": "Words",
+        "durationLabel": "अवधि",
+        "words": "{{count}} शब्दहरू",
+        "wordsLabel": "शब्दहरू",
         "engine": {
-          "local": "Local",
-          "cloud": "Cloud",
-          "local_fallback": "Local fallback"
+          "local": "लोकल",
+          "cloud": "क्लाउड",
+          "local_fallback": "लोकल फलब्याक"
         },
         "source": {
-          "microphone": "Microphone",
-          "file": "File import",
-          "legacy": "Legacy"
+          "microphone": "माइक्रोफोन",
+          "file": "फाइल आयात",
+          "legacy": "लिगेसी"
         },
-        "presetLabel": "Preset",
+        "presetLabel": "प्रिसेट",
         "preset": {
-          "minimalist_cleanup": "Minimal cleanup",
-          "application_context": "Application context",
-          "email": "Email",
-          "meeting": "Meeting",
-          "notes": "Notes",
-          "generic": "General"
+          "minimalist_cleanup": "न्यूनतम सफाइ",
+          "application_context": "एप्लिकेसन सन्दर्भ",
+          "email": "इमेल",
+          "meeting": "मिटिङ",
+          "notes": "नोटहरू",
+          "generic": "सामान्य"
         },
-        "provider": "AI route",
-        "contextPolicy": "Context level",
+        "provider": "AI रुट",
+        "contextPolicy": "सन्दर्भ तह",
         "contextPolicyValues": {
-          "none": "Off",
-          "target": "App",
-          "target_and_selection": "Selection",
-          "full": "Full"
+          "none": "बन्द",
+          "target": "एप",
+          "target_and_selection": "चयन",
+          "full": "पूर्ण"
         },
-        "contextSources": "Context sources",
+        "contextSources": "सन्दर्भ स्रोतहरू",
         "contextSource": {
-          "target": "App",
-          "focused_field": "Focused field",
-          "selected_text": "Selected text",
-          "browser_url": "Browser URL",
-          "clipboard": "Recent clipboard"
+          "target": "एप",
+          "focused_field": "फोकस गरिएको फिल्ड",
+          "selected_text": "चयन गरिएको पाठ",
+          "browser_url": "ब्राउजर URL",
+          "clipboard": "हालैको क्लिपबोर्ड"
         },
         "contextStatus": {
-          "not_requested": "Not requested",
-          "captured": "Captured",
-          "empty": "Empty",
-          "unsupported": "Unsupported",
-          "permission_denied": "Permission denied",
-          "disabled": "Disabled",
-          "disabled_by_ceiling": "Blocked by ceiling",
-          "secure_field": "Secure field",
-          "stale": "Stale",
-          "failed": "Unavailable"
+          "not_requested": "अनुरोध गरिएन",
+          "captured": "क्याप्चर भयो",
+          "empty": "खाली",
+          "unsupported": "असमर्थित",
+          "permission_denied": "अनुमति अस्वीकृत",
+          "disabled": "निष्क्रिय",
+          "disabled_by_ceiling": "सीमाले रोकेको",
+          "secure_field": "सुरक्षित फिल्ड",
+          "stale": "पुरानो",
+          "failed": "अनुपलब्ध"
         },
-        "deliveryAttempts": "Delivery attempts",
-        "noDeliveryAttempts": "No delivery attempt was recorded.",
+        "deliveryAttempts": "डेलिभरी प्रयासहरू",
+        "noDeliveryAttempts": "कुनै डेलिभरी प्रयास अभिलेख भएन।",
         "deliveryMethod": {
-          "none": "No delivery",
-          "accessibility_insertion": "Accessibility insertion",
-          "clipboard_paste": "Clipboard paste",
-          "direct_typing": "Direct typing",
-          "external_script": "External script"
+          "none": "डेलिभरी छैन",
+          "accessibility_insertion": "एक्सेसिबिलिटी सम्मिलन",
+          "clipboard_paste": "क्लिपबोर्ड पेस्ट",
+          "direct_typing": "प्रत्यक्ष टाइपिङ",
+          "external_script": "बाह्य स्क्रिप्ट"
         },
         "deliveryOutcome": {
-          "delivered": "Delivered",
-          "definitely_not_dispatched": "Not dispatched",
-          "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+          "delivered": "डेलिभर भयो",
+          "definitely_not_dispatched": "पठाइएन",
+          "dispatched_but_unconfirmed": "पठाइयो, अपुष्ट"
         },
         "modeLabel": "मोड",
         "revisionLabel": "संशोधन",
@@ -868,19 +777,19 @@
         }
       },
       "correction": {
-        "add": "Add correction",
-        "title": "Add vocabulary correction",
-        "description": "Enter the exact spoken span and the text Sona should write. Nothing is learned from typing or background activity.",
-        "spoken": "Spoken span",
-        "written": "Written replacement",
-        "spokenPlaceholder": "What Sona heard",
-        "writtenPlaceholder": "What Sona should write",
+        "add": "सुधार थप्नुहोस्",
+        "title": "शब्दावली सुधार थप्नुहोस्",
+        "description": "बोलिएको ठ्याक्कै अंश र Sona ले लेख्नुपर्ने पाठ हाल्नुहोस्। टाइपिङ वा ब्याकग्राउन्ड गतिविधिबाट केही सिकिँदैन।",
+        "spoken": "बोलिएको अंश",
+        "written": "लेखिने प्रतिस्थापन",
+        "spokenPlaceholder": "Sona ले सुनेको",
+        "writtenPlaceholder": "Sona ले लेख्नुपर्ने",
         "preview": "{{spoken}} → {{written}}",
-        "scope": "Save to",
-        "currentMode": "Current mode only",
-        "global": "All modes",
-        "save": "Save correction",
-        "saved": "Vocabulary correction saved",
+        "scope": "यहाँ सेभ गर्नुहोस्",
+        "currentMode": "हालको मोडमा मात्र",
+        "global": "सबै मोडहरू",
+        "save": "सुधार सेभ गर्नुहोस्",
+        "saved": "शब्दावली सुधार सेभ भयो",
         "saveError": "सुधार सुरक्षित गर्न सकिएन। फेरि प्रयास गर्नुहोस्।"
       },
       "audioImport": {
@@ -914,22 +823,6 @@
         },
         "running": "{{count}} फाइलहरू ट्रान्सक्राइब गर्दै"
       },
-      "trends": {
-        "title": "History trends",
-        "description": "Recordings and words over the selected range.",
-        "loading": "Loading history trends…",
-        "error": "Couldn't load history trends.",
-        "metricLabel": "Metric",
-        "activeDays": "{{active}} of {{total}} days active",
-        "streak_one": "{{count}} day streak",
-        "streak_other": "{{count}} day streak",
-        "metrics": {
-          "recordings": "Recordings",
-          "duration": "Captured time",
-          "words": "Words"
-        },
-        "streak": "{{count}} day streak"
-      },
       "clearSearch": "खोज हटाउनुहोस्",
       "emptyHint": "तपाईं पहिलेको रेकर्डिङ पनि ट्रान्सक्राइब गर्न सक्नुहुन्छ: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 वा M4V, ३० मिनेटसम्म।",
       "loadMore": "थप लोड गर्नुहोस्",
@@ -962,39 +855,32 @@
     "debug": {
       "title": "डिबग",
       "logDirectory": {
-        "title": "लग डाइरेक्टरी",
-        "description": "लग फाइलहरू लेखिने स्थान।"
+        "title": "लग डाइरेक्टरी"
       },
       "logLevel": {
-        "title": "लग स्तर",
-        "description": "लगले कति विस्तृत विवरण रेकर्ड गर्छ।"
+        "title": "लग स्तर"
       },
       "liveLogs": {
         "title": "लाइभ लगहरू",
-        "description": "लग लाइनहरू निस्कँदै गर्दा स्ट्रिम गर्छ। यो प्यानल खुला हुँदा निस्केका लाइनहरू मात्र यहाँ देखिन्छन्, माथि सेट गरिएको लग स्तरमा।",
-        "live": "लाइभ",
-        "paused": "रोकिएको",
+        "description": "यो प्यानल खुला हुँदा निस्केका लाइनहरू मात्र यहाँ देखिन्छन्, माथि सेट गरिएको लग स्तरमा।",
         "pause": "रोक्नुहोस्",
         "resume": "जारी राख्नुहोस्",
         "copied": "कपी गरियो",
         "lineCount": "{{count}} लाइनहरू",
-        "empty": "लगहरूको प्रतीक्षा गरिँदैछ। एपले लग निकाल्दा लाइनहरू यहाँ देखिनेछन्।"
+        "empty": "अझै कुनै लाइन छैन।"
       },
       "whatsNewPreview": {
         "title": "नयाँ के छ पूर्वावलोकन",
         "description": "पछिल्लो बन्डल गरिएको रिलिज नोट हेरिएको चिन्ह नलगाई खोल्नुहोस्",
-        "button": "पूर्वावलोकन",
         "noNotes": "कुनै बन्डल गरिएको रिलिज नोट भेटिएन",
         "error": "रिलिज नोट पूर्वावलोकन गर्न सकिएन। फेरि प्रयास गर्नुहोस्।"
       },
       "soundTheme": {
         "label": "साउन्ड थिम",
-        "description": "रेकर्डिङ सुरु र बन्द हुँदा कुन आवाजहरू बज्छन्।",
-        "preview": "Preview the start and stop sounds"
+        "preview": "सुरु र बन्द हुने आवाज सुन्नुहोस्"
       },
       "wordCorrectionThreshold": {
-        "title": "शब्द सुधार थ्रेसहोल्ड",
-        "description": "कस्टम शब्द सुधारको संवेदनशीलता"
+        "title": "शब्द सुधार थ्रेसहोल्ड"
       },
       "historyLimit": {
         "title": "हिस्ट्री सीमा",
@@ -1012,8 +898,7 @@
         "placeholder": "राख्ने अवधि चयन गर्नुहोस्"
       },
       "alwaysOnMicrophone": {
-        "label": "सधैँ-सक्रिय माइक्रोफोन",
-        "description": "माइक्रोफोन खुला राख्छ, जसले रेकर्डिङ छिटो सुरु हुन्छ।"
+        "label": "सधैँ-सक्रिय माइक्रोफोन"
       },
       "clamshellMicrophone": {
         "title": "क्ल्यामशेल माइक्रोफोन",
@@ -1024,8 +909,7 @@
         "description": "ट्रान्सक्रिप्सनपछि भाषा मोडेलले ट्रान्सक्रिप्ट पुनर्लेखन गर्छ।"
       },
       "muteWhileRecording": {
-        "label": "रेकर्डिङ गर्दा म्युट गर्नुहोस्",
-        "description": "रेकर्डिङका बेला सिस्टम अडियो म्युट गर्नुहोस्"
+        "label": "रेकर्डिङ गर्दा म्युट गर्नुहोस्"
       },
       "appendTrailingSpace": {
         "label": "अन्त्यमा खाली ठाउँ थप्नुहोस्",
@@ -1033,7 +917,6 @@
       },
       "keyboardImplementation": {
         "title": "किबोर्ड कार्यान्वयन",
-        "description": "किबोर्ड सर्टकट ब्याकइन्ड छान्नुहोस्।",
         "bindingsReset": "किबोर्ड सर्टकटहरू असंगत भएकाले डिफल्टमा रिसेट गरियो"
       },
       "paths": {
@@ -1077,7 +960,6 @@
         "verdictNoEvents": "परीक्षणको क्रममा कुनै इभेन्ट कैद भएन।",
         "failed": "डायग्नोस्टिक असफल: {{error}}"
       },
-      "description": "इन्स्ट्रुमेन्टेसन र असमर्थित सेटिङहरू। डिबग मोड चालु भएकाले देखिएको।",
       "groups": {
         "capture": "क्याप्चर",
         "delivery": "पाठ वितरण",
@@ -1089,21 +971,17 @@
       "title": "बारेमा",
       "version": {
         "title": "संस्करण",
-        "description": "अहिले चलिरहेको संस्करण।",
         "unavailable": "उपलब्ध छैन"
       },
       "whatsNewUpdates": {
-        "label": "नयाँ के छ देखाउनुहोस्",
-        "description": "Sona अपडेट भएपछि रिलिज नोटहरू देखाउनुहोस्"
+        "label": "नयाँ के छ देखाउनुहोस्"
       },
       "appDataDirectory": {
-        "title": "एप डेटा डाइरेक्टरी",
-        "description": "Sona ले आफ्नो डेटा भण्डारण गर्ने स्थान।"
+        "title": "एप डेटा डाइरेक्टरी"
       },
       "sourceCode": {
-        "title": "Open-source licenses",
-        "description": "View the bundled license and notice files.",
-        "button": "Open licenses"
+        "title": "खुला स्रोत लाइसेन्सहरू",
+        "button": "लाइसेन्सहरू खोल्नुहोस्"
       },
       "supportDevelopment": {
         "title": "विकासलाई सहयोग गर्नुहोस्",
@@ -1114,22 +992,17 @@
         "title": "आभार",
         "ggml": {
           "title": "ggml",
-          "description": "अन-डिभाइस मेसिन लर्निङ अनुमानका लागि टेन्सर लाइब्रेरी",
           "details": "Sona को स्थानीय स्पिच-टु-टेक्स्ट transcribe.cpp र ggml मा आधारित छ। Georgi Gerganov र योगदानकर्ताहरूलाई धन्यवाद।"
         }
       },
-      "description": "तपाईंले कुन बिल्ड चलाइरहनुभएको छ, यो कहाँबाट आयो, र यसले तपाईंका फाइलहरू कहाँ राख्छ।",
       "files": {
         "title": "फाइलहरू"
       },
       "source": {
-        "description": "Sona MIT लाइसेन्स प्राप्त छ, कपिराइट २०२५ CJ Pais, र Handy माथि बनाइएको हो।",
-        "open": "GitHub मा खोल्नुहोस्",
         "repository": "रिपोजिटरी",
         "title": "स्रोत",
         "upstream": "Handy मा आधारित",
-        "upstreamDescription": "Sona cjpais/Handy को फोर्क हो र अझै पनि यसका अपस्ट्रिम फिक्सहरू पछ्याउँछ।",
-        "upstreamOpen": "cjpais/Handy"
+        "license": "MIT लाइसेन्स। कपिराइट २०२५ CJ Pais।"
       },
       "updates": {
         "autoDescription": "GitHub बाट पछिल्लो रिलिज सोध्छ। Sona ले आफैँ कहिल्यै केही इन्स्टल गर्दैन।",
@@ -1137,34 +1010,29 @@
         "check": "अहिले जाँच गर्नुहोस्",
         "checking": "जाँच गर्दै…",
         "disabled": "स्वचालित जाँच बन्द छ, त्यसैले Sona ले GitHub लाई सम्पर्क गरेन।",
-        "enable": "जाँच चालु गर्नुहोस्",
         "failed": "अपडेट जाँच चल्न सकेन।",
-        "manualDescription": "यो बिल्डलाई पछिल्लो प्रकाशित रिलिजसँग तुलना गर्नुहोस्।",
         "manualTitle": "म्यानुअल जाँच",
         "preferenceError": "अपडेट प्राथमिकता सुरक्षित गर्न सकिएन।",
         "title": "संस्करण र अपडेटहरू",
         "viewRelease": "रिलिज हेर्नुहोस्",
         "available": "Sona {{version}} उपलब्ध छ।",
-        "published": "{{date}} मा प्रकाशित",
-        "upToDate": "Sona {{version}} नै पछिल्लो रिलिज हो।"
+        "upToDate": "यही पछिल्लो रिलिज हो।"
       }
     },
     "modes": {
       "activation": {
-        "title": "App activation",
+        "title": "एपअनुसार सक्रियता",
         "capture": {
-          "label": "Activate in app",
-          "description": "Capture the app currently in front and select this mode when you dictate there.",
-          "action": "Capture current app",
-          "capturing": "Capturing…"
+          "label": "एपमा सक्रिय गर्नुहोस्",
+          "action": "हालको एप क्याप्चर गर्नुहोस्",
+          "capturing": "क्याप्चर गर्दै…"
         },
-        "empty": "No app activates this mode.",
-        "remove": "Remove",
+        "empty": "कुनै एपले यो मोड सक्रिय गर्दैन।",
+        "remove": "हटाउनुहोस्",
         "website": {
           "title": "वेबसाइटद्वारा सक्रियता",
           "scope": {
             "label": "वेबसाइटको दायरा",
-            "description": "एउटा होस्टसँग ठ्याक्कै मिलाउनुहोस् वा यसको उपडोमेन समावेश गर्नुहोस्।",
             "values": {
               "exact": "ठ्याक्कै होस्ट",
               "suffix": "होस्ट र उपडोमेनहरू"
@@ -1183,222 +1051,195 @@
         "removeTarget": "{{target}} हटाउनुहोस्",
         "unsupported": "एप र वेबसाइट सक्रियता macOS मा मात्र उपलब्ध छन्।"
       },
-      "title": "Modes",
-      "description": "Choose what each dictation run recognizes, rewrites, and delivers.",
-      "listTitle": "Your modes",
-      "loading": "Loading modes…",
-      "loadError": "Modes could not be loaded.",
-      "retry": "Retry",
-      "new": "New mode",
-      "active": "Active",
-      "default": "Default",
-      "defaultProtected": "The default mode cannot be deleted.",
-      "activate": "Activate",
-      "edit": "Edit",
-      "duplicate": "Duplicate",
-      "delete": "Delete",
-      "moveUp": "Move up",
-      "moveDown": "Move down",
-      "back": "Back to modes",
-      "save": "Save changes",
-      "saving": "Saving…",
-      "changesNextRun": "Changes apply to your next dictation.",
-      "copySuffix": "copy",
-      "deleteTitle": "Delete mode",
-      "deleteDescription": "Delete {{mode}}?",
-      "deleteBody": "Its mode-only shortcuts will also be removed. This cannot be undone.",
+      "title": "मोडहरू",
+      "listTitle": "तपाईंका मोडहरू",
+      "loading": "मोडहरू लोड हुँदै…",
+      "loadError": "मोडहरू लोड गर्न सकिएन।",
+      "retry": "पुन: प्रयास",
+      "new": "नयाँ मोड",
+      "active": "सक्रिय",
+      "defaultProtected": "पूर्वनिर्धारित मोड मेटाउन मिल्दैन।",
+      "activate": "सक्रिय गर्नुहोस्",
+      "duplicate": "नक्कल गर्नुहोस्",
+      "delete": "मेटाउनुहोस्",
+      "moveUp": "माथि सार्नुहोस्",
+      "moveDown": "तल सार्नुहोस्",
+      "save": "परिवर्तन सुरक्षित गर्नुहोस्",
+      "saving": "सुरक्षित गर्दै…",
+      "changesNextRun": "परिवर्तनहरू तपाईंको अर्को डिक्टेसनमा लागू हुन्छन्।",
+      "copySuffix": "प्रतिलिपि",
+      "deleteTitle": "मोड मेटाउनुहोस्",
+      "deleteDescription": "{{mode}} मेटाउने?",
+      "deleteBody": "यही मोडका मात्र सर्टकटहरू पनि हटाइनेछन्। यो फिर्ता गर्न मिल्दैन।",
       "identity": {
-        "title": "Identity",
         "name": {
-          "label": "Mode name",
-          "description": "A label shown in mode selection and history."
+          "label": "मोडको नाम"
         }
       },
       "writing": {
-        "title": "Writing",
         "enabled": {
-          "label": "AI cleanup",
-          "description": "Use the selected provider to rewrite the transcript for this mode."
+          "label": "AI सफाइ"
         },
         "preset": {
-          "label": "Preset",
-          "description": "Choose behavior by name. Preset instructions are not shown or exported.",
+          "label": "प्रिसेट",
+          "description": "व्यवहार नामद्वारा छान्नुहोस्। प्रिसेटका निर्देशनहरू देखाइँदैनन् र निर्यात गरिँदैनन्।",
           "values": {
-            "minimalist_cleanup": "Minimal cleanup",
-            "application_context": "Application context",
-            "email": "Email",
-            "meeting": "Meeting",
-            "notes": "Notes",
-            "generic": "General"
+            "minimalist_cleanup": "न्यूनतम सफाइ",
+            "application_context": "एप्लिकेसन सन्दर्भ",
+            "email": "इमेल",
+            "meeting": "मिटिङ",
+            "notes": "नोटहरू",
+            "generic": "सामान्य"
           }
         },
         "tone": {
-          "label": "Tone",
-          "description": "Apply this tone when AI cleanup is enabled.",
+          "label": "टोन",
           "values": {
-            "casual": "Casual",
-            "semi_casual": "Semi-casual",
-            "balanced": "Balanced",
-            "semi_formal": "Semi-formal",
-            "formal": "Formal"
+            "casual": "अनौपचारिक",
+            "semi_casual": "केही अनौपचारिक",
+            "balanced": "सन्तुलित",
+            "semi_formal": "केही औपचारिक",
+            "formal": "औपचारिक"
           }
         },
         "provider": {
-          "label": "AI provider",
-          "description": "The configured provider used for this mode.",
-          "empty": "No provider configured",
+          "label": "AI प्रदायक",
+          "empty": "कुनै प्रदायक कन्फिगर गरिएको छैन",
           "noneConfigured": "अहिलेसम्म कुनै AI प्रदायक कन्फिगर गरिएको छैन। यस मोडले पुनर्लेखन गर्न सक्नुअघि Settings मा एउटा थप्नुहोस्।",
           "unknownSelected": "यस मोडले यस इन्स्टलमा कन्फिगर नगरिएको प्रदायकको नाम राख्छ।"
         },
         "model": {
-          "label": "AI model",
-          "description": "The provider model identifier for this mode."
+          "label": "AI मोडेल"
         },
         "disabledNote": "तलको प्रिसेट, टोन, प्रदायक र मोडेल प्रयोग गर्न AI सफाइ चालु गर्नुहोस्।"
       },
       "recognition": {
         "literalPunctuation": {
-          "label": "Literal punctuation",
-          "description": "Convert spoken punctuation such as comma and question mark before vocabulary corrections."
+          "label": "शब्दशः विराम चिन्ह",
+          "description": "शब्दावली सुधारअघि बोलिएका विराम चिन्ह, जस्तै कमा र प्रश्नचिन्ह, रूपान्तरण गर्नुहोस्।"
         },
-        "title": "Recognition",
-        "noModelSelected": "No model selected",
         "model": {
-          "label": "Transcription model",
-          "description": "Only downloaded local models are available here.",
+          "label": "ट्रान्सक्रिप्शन मोडेल",
           "inheritGlobal": "पूर्वनिर्धारित: विश्वव्यापी मोडेल",
           "inheritGlobalNamed": "पूर्वनिर्धारित: विश्वव्यापी मोडेल ({{name}})"
         },
         "language": {
-          "label": "Language",
-          "description": "Set a recognition language or let the model detect it.",
-          "auto": "Auto detect",
-          "cloudDescription": "Choose the language sent with this cloud request."
+          "label": "भाषा",
+          "auto": "स्वतः पहिचान",
+          "cloudDescription": "यो क्लाउड अनुरोधसँग पठाइने भाषा छान्नुहोस्।"
         },
         "translate": {
-          "label": "Translate to English",
-          "description": "Request English output when the selected model supports translation."
+          "label": "अङ्ग्रेजीमा अनुवाद गर्नुहोस्"
         },
         "vad": {
-          "label": "Voice activity detection",
-          "description": "Skip silent audio while recording."
+          "label": "स्वर गतिविधि पहिचान"
         },
         "fillerRemoval": {
-          "label": "Remove filler words",
-          "description": "Remove configured filler words from this mode’s transcript."
+          "label": "भरिने शब्दहरू हटाउनुहोस्"
         },
         "vocabulary": {
-          "label": "Mode vocabulary",
-          "description": "Pairs here override the global vocabulary only for this mode.",
-          "spoken": "Spoken phrase",
-          "written": "Written text",
-          "spokenPlaceholder": "What was said",
-          "writtenPlaceholder": "What to write",
-          "add": "Add pair",
-          "remove": "Remove {{spoken}}",
-          "incomplete": "Complete or remove each vocabulary pair before saving this mode.",
+          "label": "मोडको शब्दावली",
+          "spoken": "बोलिएको वाक्यांश",
+          "written": "लेखिएको पाठ",
+          "spokenPlaceholder": "जे भनियो",
+          "writtenPlaceholder": "जे लेखिनुपर्छ",
+          "add": "जोडी थप्नुहोस्",
+          "remove": "{{spoken}} हटाउनुहोस्",
+          "incomplete": "यो मोड सुरक्षित गर्नुअघि प्रत्येक शब्दावली जोडी पूरा गर्नुहोस् वा हटाउनुहोस्।",
           "empty": "यस मोडको आफ्नै शब्दावली छैन। ग्लोबल शब्दावली अझै लागू हुन्छ।"
         },
         "engine": {
-          "label": "Transcription engine",
-          "description": "Use a local model or an eligible cloud provider.",
-          "local": "Local",
-          "cloud": "Cloud",
-          "unavailable": "{{provider}} is unavailable"
+          "label": "ट्रान्सक्रिप्शन इन्जिन",
+          "local": "लोकल",
+          "cloud": "क्लाउड",
+          "unavailable": "{{provider}} उपलब्ध छैन"
         },
         "cloud": {
-          "setupRequired": "{{provider}} needs a saved native API key and current transfer consent before its cloud controls are available.",
+          "setupRequired": "{{provider}} का क्लाउड नियन्त्रण उपलब्ध हुनुअघि यसलाई सुरक्षित गरिएको आफ्नै API कुञ्जी र हालको स्थानान्तरण सहमति आवश्यक पर्छ।",
           "fallback": {
-            "label": "Use local fallback",
-            "description": "If the cloud provider cannot return a trustworthy final, transcribe the captured audio with a local model.",
-            "useModeModel": "Use this mode's local model",
+            "label": "लोकल फलब्याक प्रयोग गर्नुहोस्",
+            "description": "यदि क्लाउड प्रदायकले भरपर्दो अन्तिम नतिजा फर्काउन सक्दैन भने, क्याप्चर गरिएको अडियो लोकल मोडेलले ट्रान्सक्राइब गर्नेछ।",
+            "useModeModel": "यो मोडको लोकल मोडेल प्रयोग गर्नुहोस्",
             "model": {
-              "label": "Fallback model",
-              "description": "Choose a downloaded local model, or use this mode's local model.",
-              "required": "Choose a fallback model or set this mode's local model before saving."
+              "label": "फलब्याक मोडेल",
+              "required": "सुरक्षित गर्नुअघि फलब्याक मोडेल छान्नुहोस् वा यो मोडको लोकल मोडेल सेट गर्नुहोस्।"
             }
           },
           "keyterms": {
-            "label": "Cloud keyterms",
-            "description": "One term per line. These terms are sent with this cloud request.",
-            "placeholder": "Product name\nPerson name"
+            "label": "क्लाउड मुख्य शब्दहरू",
+            "description": "प्रति हरफ एक शब्द। यी शब्दहरू यो क्लाउड अनुरोधसँग पठाइन्छन्।",
+            "placeholder": "उत्पादनको नाम\nव्यक्तिको नाम"
           },
           "timestamps": {
-            "label": "Word timestamps",
-            "description": "Required for cloud transcription and cannot be disabled."
+            "label": "शब्द टाइमस्टाम्प",
+            "description": "क्लाउड ट्रान्सक्रिप्शनका लागि आवश्यक र निष्क्रिय पार्न मिल्दैन।"
           },
           "consent": {
-            "title": "Use {{provider}} for cloud transcription",
-            "description": "Review how this mode sends audio before enabling {{provider}}.",
-            "intro": "These acknowledgements are fixed for this provider. Declining keeps this mode on its current local engine.",
+            "title": "क्लाउड ट्रान्सक्रिप्शनका लागि {{provider}} प्रयोग गर्नुहोस्",
+            "description": "{{provider}} सक्षम गर्नुअघि यो मोडले अडियो कसरी पठाउँछ हेर्नुहोस्।",
+            "intro": "यी स्वीकृतिहरू यो प्रदायकका लागि निश्चित छन्। अस्वीकार गर्दा यो मोड हालको लोकल इन्जिनमै रहन्छ।",
             "audioTransfer": {
-              "label": "Audio transfer",
-              "description": "Recorded audio from this mode is sent directly to {{provider}} for transcription."
+              "label": "अडियो स्थानान्तरण",
+              "description": "यो मोडमा रेकर्ड गरिएको अडियो ट्रान्सक्रिप्शनका लागि सिधै {{provider}} मा पठाइन्छ।"
             },
             "privacy": {
-              "label": "Privacy contract",
-              "description": "The provider receives this mode's audio, selected language, and keyterms. Application context and native credentials stay on this device."
+              "label": "गोपनीयता सम्झौता",
+              "description": "प्रदायकले यो मोडको अडियो, छानिएको भाषा र मुख्य शब्दहरू प्राप्त गर्छ। एप सन्दर्भ र आफ्नै क्रेडेन्सियल यही उपकरणमा रहन्छन्।"
             },
             "localFallback": {
-              "label": "Local fallback",
-              "description": "If the cloud provider cannot return a trustworthy final, Sona can use your selected local model."
+              "label": "लोकल फलब्याक",
+              "description": "यदि क्लाउड प्रदायकले भरपर्दो अन्तिम नतिजा फर्काउन सक्दैन भने, Sona तपाईंले छानेको लोकल मोडेल प्रयोग गर्न सक्छ।"
             },
-            "decline": "Keep local",
-            "accept": "Accept and use cloud",
-            "accepting": "Accepting…",
+            "decline": "लोकलमै रहनुहोस्",
+            "accept": "स्वीकार गरी क्लाउड प्रयोग गर्नुहोस्",
+            "accepting": "स्वीकार गर्दै…",
             "errors": {
-              "unknown_provider": "This cloud provider is not available in this build.",
-              "backend": "The consent record could not be saved."
+              "unknown_provider": "यो क्लाउड प्रदायक यो बिल्डमा उपलब्ध छैन।",
+              "backend": "सहमति अभिलेख सुरक्षित गर्न सकिएन।"
             }
           },
           "title": "क्लाउड ट्रान्सपोर्ट"
         }
       },
       "context": {
-        "title": "Context",
         "policy": {
-          "label": "Context level",
-          "description": "This mode cannot exceed the privacy ceiling.",
-          "limitedByPrivacy": "Privacy currently limits this mode. Raise the ceiling in Privacy to use this level.",
+          "label": "सन्दर्भ तह",
+          "description": "यो मोड गोपनीयता सीमाभन्दा माथि जान सक्दैन।",
+          "limitedByPrivacy": "गोपनीयताले अहिले यो मोड सीमित गर्दै छ। यो तह प्रयोग गर्न गोपनीयतामा सीमा बढाउनुहोस्।",
           "values": {
-            "none": "Off",
-            "target": "App",
-            "target_and_selection": "Selection",
-            "full": "Full"
+            "none": "बन्द",
+            "target": "एप",
+            "target_and_selection": "चयन",
+            "full": "पूर्ण"
           },
-          "blockedByCeiling": "Privacy ले यस मोडलाई {{ceiling}} मा सीमित गर्छ।",
-          "raiseCeiling": "उच्च स्तरहरू प्रयोग गर्न Privacy मा सीमा बढाउनुहोस्।"
+          "blockedByCeiling": "गोपनीयताले यस मोडलाई {{ceiling}} मा सीमित गर्छ।",
+          "raiseCeiling": "उच्च स्तरहरू प्रयोग गर्न गोपनीयतामा सीमा बढाउनुहोस्।"
         }
       },
       "delivery": {
-        "title": "Delivery",
         "method": {
-          "label": "Delivery method",
-          "description": "How Sona puts completed text into the target app.",
+          "label": "वितरण विधि",
           "values": {
-            "ctrl_v": "Paste",
-            "direct": "Type directly",
-            "none": "Do not deliver",
+            "ctrl_v": "टाँस्नुहोस्",
+            "direct": "प्रत्यक्ष टाइप गर्नुहोस्",
+            "none": "वितरण नगर्नुहोस्",
             "shift_insert": "Shift+Insert",
-            "ctrl_shift_v": "Paste without formatting",
-            "external_script": "External script"
+            "ctrl_shift_v": "फर्म्याटिङ बिना टाँस्नुहोस्",
+            "external_script": "बाह्य स्क्रिप्ट"
           }
         },
         "clipboard": {
-          "label": "Clipboard",
-          "description": "Choose whether completed text is copied before delivery.",
+          "label": "क्लिपबोर्ड",
           "values": {
-            "copy_to_clipboard": "Copy to clipboard",
-            "dont_modify": "Leave unchanged"
+            "copy_to_clipboard": "क्लिपबोर्डमा प्रतिलिपि गर्नुहोस्",
+            "dont_modify": "अपरिवर्तित छोड्नुहोस्"
           }
         },
         "autoSubmit": {
-          "label": "Auto-submit",
-          "description": "Submit after delivery using the chosen key."
+          "label": "स्वतः पेस"
         },
         "autoSubmitKey": {
-          "label": "Submit key",
-          "description": "The key Sona uses when auto-submit is on.",
+          "label": "पेस कुञ्जी",
           "values": {
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
@@ -1407,24 +1248,22 @@
           "requiresAutoSubmit": "की छान्न auto-submit चालु गर्नुहोस्।"
         },
         "trailingSpace": {
-          "label": "Append a trailing space",
-          "description": "Add one space after delivered text."
+          "label": "अन्त्यमा एक स्पेस थप्नुहोस्"
         },
         "reliablePaste": {
-          "label": "Reliable paste",
-          "description": "Use receipt-sequenced paste when the platform supports it."
+          "label": "भरपर्दो टाँस्ने",
+          "description": "प्लेटफर्मले समर्थन गर्दा रसिद-क्रमको टाँस्ने तरिका प्रयोग गर्छ।"
         },
         "delay": {
-          "label": "Paste delays",
-          "description": "Milliseconds before and after delivery.",
-          "before": "Before",
-          "after": "After"
+          "label": "टाँस्ने ढिलाइ",
+          "description": "वितरण अघि र पछिका मिलिसेकेन्ड।",
+          "before": "अघि",
+          "after": "पछि"
         },
         "typingTool": {
-          "label": "Typing tool",
-          "description": "Used only with direct typing.",
+          "label": "टाइपिङ उपकरण",
           "values": {
-            "auto": "Auto",
+            "auto": "स्वतः",
             "wtype": "wtype",
             "kwtype": "kwtype",
             "dotool": "dotool",
@@ -1434,164 +1273,129 @@
           "requiresDirect": "उपकरण छान्न वितरण विधिका रूपमा Type directly रोज्नुहोस्।"
         },
         "script": {
-          "label": "External script",
-          "description": "The script path used by the external-script delivery method."
+          "label": "बाह्य स्क्रिप्ट"
         }
       },
       "shortcuts": {
-        "title": "Shortcuts",
-        "description": "Set a shortcut to transcribe with or switch to this mode.",
-        "manyModes": "New modes may start unbound after the first nine. Set their shortcuts here."
+        "title": "सर्टकटहरू",
+        "manyModes": "पहिलो नौपछि नयाँ मोडहरू असाइनमेन्ट बिना सुरु हुन सक्छन्। उनका सर्टकट यहाँ सेट गर्नुहोस्।"
       },
       "errors": {
-        "staleRevision": "Settings changed elsewhere. Review the latest mode and save again.",
-        "invalid_mode_id": "This mode ID is invalid.",
-        "empty_name": "A mode name is required.",
-        "cannot_delete_default": "The default mode cannot be deleted.",
-        "unknown_mode": "That mode no longer exists.",
-        "duplicate_mode_id": "A mode with this ID already exists.",
-        "invalid_reorder": "The mode order could not be saved.",
+        "staleRevision": "सेटिङ अन्यत्र परिवर्तन भयो। नवीनतम मोड हेरी फेरि सुरक्षित गर्नुहोस्।",
+        "invalid_mode_id": "यो मोड ID अवैध छ।",
+        "empty_name": "मोडको नाम आवश्यक छ।",
+        "cannot_delete_default": "पूर्वनिर्धारित मोड मेटाउन मिल्दैन।",
+        "unknown_mode": "त्यो मोड अब अस्तित्वमा छैन।",
+        "duplicate_mode_id": "यो ID भएको मोड पहिले नै छ।",
+        "invalid_reorder": "मोडको क्रम सुरक्षित गर्न सकिएन।",
         "invalid_website_host": "वेबसाइट होस्ट अमान्य छ।",
         "website_activation_consent_required": "वेबसाइट नियम थप्नुअघि गोपनीयतामा ब्राउजर URL सक्षम गर्नुहोस्।",
         "frontmost_website_unavailable": "ब्राउजरबाट वेबसाइट क्याप्चर गर्न सकिएन।",
         "website_activation_secure_field": "सुरक्षित फिल्डबाट वेबसाइट नियम क्याप्चर गर्न सकिँदैन।"
       },
-      "globalVocabulary": {
-        "title": "Global vocabulary",
-        "description": "Vocabulary entries applied across every mode."
-      },
-      "actionsFor": "Actions for {{mode}}",
-      "editorLabel": "Mode editor",
-      "editorTabsLabel": "Mode editor sections",
-      "empty": "Select a mode to edit it.",
-      "viewNavigation": "Mode views",
+      "actionsFor": "{{mode}} का कार्यहरू",
+      "editorTabsLabel": "मोड सम्पादकका खण्डहरू",
+      "empty": "सम्पादन गर्न कुनै मोड छान्नुहोस्।",
+      "viewNavigation": "मोड दृश्यहरू",
       "tabs": {
-        "recognition": "Recognition",
-        "rewrite": "Rewrite",
-        "context": "Context",
-        "delivery": "Delivery",
-        "automation": "Automation"
+        "recognition": "पहिचान",
+        "rewrite": "पुनर्लेखन",
+        "context": "सन्दर्भ",
+        "delivery": "वितरण",
+        "automation": "स्वचालन"
       },
       "views": {
-        "modes": "Modes",
-        "vocabulary": "Vocabulary"
+        "modes": "मोडहरू",
+        "vocabulary": "शब्दावली"
       },
       "cleanup": {
         "title": "ट्रान्सक्रिप्ट सफाइ"
       },
-      "dismissError": "त्रुटि हटाउनुहोस्",
-      "emptyHint": "यसले के पहिचान गर्छ, पुनर्लेखन गर्छ र वितरण गर्छ भन्ने परिवर्तन गर्न बायाँबाट एउटा मोड छान्नुहोस्।",
       "listEmpty": "कुनै मोड कन्फिगर गरिएको छैन।",
       "listEmptyHint": "Sona ले सधैँ एउटा मोड राख्छ। हालको सूची ल्याउन पुनः लोड गर्नुहोस्।",
       "unsavedChanges": "सुरक्षित नगरिएका परिवर्तनहरू",
       "untitled": "शीर्षकविहीन मोड",
       "summary": {
         "engine": {
-          "local": "स्थानीय",
+          "local": "लोकल",
           "deepgram_nova_3": "Deepgram",
           "eleven_labs_scribe_v2": "ElevenLabs"
-        },
-        "modelInherited": "विश्वव्यापी मोडेल",
-        "languageAuto": "स्वतः",
-        "delivery": {
-          "ctrl_v": "टाँस्नु",
-          "direct": "टाइप",
-          "none": "डेलिभरी छैन",
-          "shift_insert": "Shift+Insert",
-          "ctrl_shift_v": "स्वरूपबिना टाँस्नु",
-          "external_script": "स्क्रिप्ट"
         }
       }
     },
     "privacy": {
-      "title": "Privacy",
-      "description": "Control application context, inspect capture access, and manage data kept on this device.",
+      "title": "गोपनीयता",
       "context": {
-        "title": "Context for AI cleanup",
-        "description": "The global ceiling limits every mode before context is read.",
+        "title": "AI सफाईको लागि सन्दर्भ",
         "ceiling": {
-          "label": "Global context ceiling",
-          "description": "Modes may ask for less context, never more.",
+          "label": "विश्वव्यापी सन्दर्भ सीमा",
           "values": {
-            "none": "Off",
-            "target": "App",
-            "target_and_selection": "Selection",
-            "full": "Full"
+            "none": "बन्द",
+            "target": "एप",
+            "target_and_selection": "चयन",
+            "full": "पूर्ण"
           },
-          "error": "The context ceiling could not be saved"
+          "error": "सन्दर्भ सीमा सुरक्षित गर्न सकिएन"
         },
         "sources": {
-          "title": "What each level reads",
-          "description": "These are source disclosures, not retained content.",
-          "none": "Reads no application context.",
-          "target": "Reads the frontmost app identity.",
-          "target_and_selection": "Reads the frontmost app identity and selected text when available.",
-          "full": "May also read a permitted browser URL and recently changed clipboard text when available."
+          "none": "कुनै एप्लिकेसन सन्दर्भ पढ्दैन।",
+          "target": "अगाडि रहेको एपको पहिचान पढ्छ।",
+          "target_and_selection": "अगाडि रहेको एपको पहिचान र उपलब्ध भएमा चयन गरिएको पाठ पढ्छ।",
+          "full": "उपलब्ध भएमा अनुमति दिइएको ब्राउजर URL र हालै बदलिएको क्लिपबोर्ड पाठ पनि पढ्न सक्छ।"
         },
         "urlCapture": {
-          "label": "Include browser URLs",
-          "description": "Allow a frontmost browser page URL to be captured when a mode and the ceiling allow it.",
-          "error": "Browser URL capture could not be saved."
-        },
-        "cloudRoute": "Enabled cloud modes send allowed context to {{providers}}.",
-        "localRoute": "AI processing runs on this Mac.",
-        "checkingRoute": "Checking configured cloud routes…"
+          "label": "ब्राउजर URL समावेश गर्नुहोस्",
+          "description": "कुनै मोड र सीमाले अनुमति दिँदा अगाडि रहेको ब्राउजर पृष्ठको URL क्याप्चर गर्न दिनुहोस्।",
+          "error": "ब्राउजर URL क्याप्चर सुरक्षित गर्न सकिएन।"
+        }
       },
       "diagnostics": {
-        "title": "Context diagnostics",
-        "description": "Read-only checks show what this build can access right now.",
-        "refresh": "Refresh",
-        "error": "Diagnostics could not be refreshed",
+        "title": "सन्दर्भ डायग्नोस्टिक्स",
+        "refresh": "रिफ्रेस गर्नुहोस्",
+        "error": "डायग्नोस्टिक्स रिफ्रेस गर्न सकिएन",
         "accessibility": {
-          "label": "Accessibility",
-          "granted": "Accessibility access is granted.",
-          "denied": "Accessibility access is denied.",
-          "unsupported": "Accessibility context is not supported on this platform."
+          "label": "एक्सेसिबिलिटी"
         },
         "sources": {
-          "target_identity": "Frontmost app",
-          "focused_field": "Focused field",
-          "selected_text": "Selected text",
-          "browser_url": "Browser URL",
-          "clipboard": "Recent clipboard"
+          "target_identity": "अगाडिको एप",
+          "focused_field": "फोकस गरिएको फिल्ड",
+          "selected_text": "चयन गरिएको पाठ",
+          "browser_url": "ब्राउजर URL",
+          "clipboard": "हालैको क्लिपबोर्ड"
         }
       },
       "status": {
-        "granted": "Granted",
-        "denied": "Denied",
-        "unsupported": "Unsupported",
-        "not_requested": "Not requested",
-        "captured": "Available",
-        "empty": "Empty",
-        "permission_denied": "Permission denied",
-        "disabled": "Disabled",
-        "disabled_by_ceiling": "Blocked by ceiling",
-        "secure_field": "Secure field",
-        "stale": "Stale",
-        "failed": "Unavailable"
+        "granted": "अनुमति दिइयो",
+        "denied": "अस्वीकृत",
+        "unsupported": "असमर्थित",
+        "not_requested": "अनुरोध गरिएन",
+        "captured": "उपलब्ध",
+        "empty": "खाली",
+        "permission_denied": "अनुमति अस्वीकृत",
+        "disabled": "निष्क्रिय",
+        "disabled_by_ceiling": "सीमाले रोकेको",
+        "secure_field": "सुरक्षित फिल्ड",
+        "stale": "पुरानो",
+        "failed": "अनुपलब्ध"
       },
       "data": {
-        "title": "Data on this device",
-        "credentialStore": "Provider credentials are stored in the native credential store, not in Sona settings.",
-        "locations": "Settings, history, and retained recordings live in Sona’s application data directory. Recordings are kept only for the selected retention period.",
+        "title": "यो डिभाइसमा डेटा",
         "historyLimit": {
-          "label": "History limit",
-          "description": "Keep this many recent history entries. Set 0 to disable saved history."
+          "label": "हिस्ट्री सीमा",
+          "description": "यति हालका हिस्ट्री प्रविष्टिहरू राख्नुहोस्। सुरक्षित हिस्ट्री बन्द गर्न 0 राख्नुहोस्।"
         },
         "retention": {
-          "label": "Recording retention",
-          "description": "Choose how long recording files remain on this device.",
+          "label": "रेकर्डिङ भण्डारण अवधि",
           "values": {
-            "never": "Do not retain recordings",
-            "preserve_limit": "Keep recordings with history",
-            "days_3": "3 days",
-            "weeks_2": "2 weeks",
-            "months_3": "3 months"
+            "never": "रेकर्डिङ नराख्नुहोस्",
+            "preserve_limit": "रेकर्डिङ हिस्ट्रीसँगै राख्नुहोस्",
+            "days_3": "३ दिन",
+            "weeks_2": "२ हप्ता",
+            "months_3": "३ महिना"
           }
         },
-        "error": "Data retention could not be saved",
+        "error": "डेटा भण्डारण अवधि सुरक्षित गर्न सकिएन",
         "historyStorage": {
-          "description": "यस डिस्कमा डिक्टेसन इतिहास इन्क्रिप्ट गरिएको छ कि छैन।",
           "encrypted": "भण्डारणमा इन्क्रिप्ट गरिएको",
           "label": "इतिहास भण्डारण",
           "locked": "लक गरिएको",
@@ -1600,33 +1404,21 @@
             "encryption_unavailable": "यस बिल्डले इन्क्रिप्टेड डाटाबेस खोल्न सक्दैन, त्यसैले इतिहास इन्क्रिप्ट नगरी भण्डारण गरिन्छ।",
             "key_rejected": "भण्डारित कीले इन्क्रिप्टेड डाटाबेस खोल्दैन, त्यसैले इतिहास पढ्न सकिँदैन।",
             "key_unavailable": "सिस्टम क्रेडेन्सियल स्टोरले प्रयोगयोग्य की फर्काएन, त्यसैले इतिहास इन्क्रिप्ट नगरी भण्डारण गरिन्छ।",
-            "migration_failed": "हालको डाटाबेस इन्क्रिप्ट गर्न असफल भयो। इन्क्रिप्ट नगरिएको डाटाबेस सुरक्षित छ र अझै प्रयोगमा छ।",
-            "unlocking": "इन्क्रिप्टेड डाटाबेस खोल्दै। सुरुवात सकिएपछि यो हट्छ।"
+            "migration_failed": "हालको डाटाबेस इन्क्रिप्ट गर्न असफल भयो। इन्क्रिप्ट नगरिएको डाटाबेस सुरक्षित छ र अझै प्रयोगमा छ।"
           },
           "unknown": "इतिहास कसरी भण्डारण गरिएको छ भनी Sona ले पढ्न सकेन।",
-          "unlocking": "अनलक हुँदै",
-          "since": "{{date}} देखि इन्क्रिप्ट गरिएको।"
+          "unlocking": "अनलक हुँदै"
         }
       },
       "cloudTranscription": {
-        "title": "Cloud transcription",
-        "description": "Read-only disclosure of direct cloud speech-to-text routes.",
-        "checking": "Checking cloud transcription setup…",
-        "checkFailed": "Cloud transcription setup could not be checked.",
-        "disclosure": "For a cloud-enabled mode, Sona sends recorded audio, the selected language, and mode keyterms directly to the provider. Application context and native credentials stay on this device.",
-        "providerDetail": "{{provider}} has a saved native API key and current transfer consent.",
-        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent.",
-        "inUse": "प्रयोगमा"
+        "title": "क्लाउड ट्रान्सक्रिप्शन",
+        "checkFailed": "क्लाउड ट्रान्सक्रिप्शन सेटअप जाँच गर्न सकिएन।",
+        "disclosure": "क्लाउड सक्षम भएको मोडमा, Sona ले रेकर्ड गरिएको अडियो, छानिएको भाषा र मोडका मुख्य शब्दहरू सिधै प्रदायकलाई पठाउँछ। एप सन्दर्भ र आफ्नै क्रेडेन्सियल यही उपकरणमा रहन्छन्।"
       },
       "upstreamImport": {
-        "title": "Import from legacy app",
-        "description": "Copy selected personal data from the legacy app. The source remains unchanged.",
+        "title": "पुरानो एपबाट आयात गर्नुहोस्",
         "source": {
-          "settingsAvailable": "Settings file is available.",
-          "settingsMissing": "No settings file was found.",
-          "history": "{{count}} history entries found.",
-          "recordings": "{{count}} recording files, {{size}}.",
-          "empty": "No settings or history entries are available to import."
+          "empty": "आयात गर्न कुनै सेटिङ वा हिस्ट्री प्रविष्टि उपलब्ध छैन।"
         },
         "byteCount": "{{value}} {{unit}}",
         "byteUnits": {
@@ -1635,166 +1427,161 @@
           "megabytes": "MiB",
           "gigabytes": "GiB"
         },
-        "modelsNotImported": "Model files are not imported.",
-        "appRunning": "Close the legacy app before importing.",
-        "appUnverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
-        "selection": "Choose data to import",
-        "selectionSettings": "Settings",
-        "selectionHistory": "History",
-        "selectionRecordings": "Recordings",
-        "recordingsRequireHistory": "Recordings are imported only with history.",
-        "selectionRequired": "Choose settings or history to import.",
-        "progress": "{{phase}}: {{completed}} of {{total}}",
+        "appRunning": "आयात गर्नुअघि पुरानो एप बन्द गर्नुहोस्।",
+        "appUnverifiable": "Sona ले यो प्लेटफर्ममा पुरानो एप बन्द छ भनी पुष्टि गर्न सक्दैन।",
+        "selection": "आयात गर्न डेटा छान्नुहोस्",
+        "selectionSettings": "सेटिङहरू",
+        "selectionHistory": "हिस्ट्री",
+        "selectionRecordings": "रेकर्डिङहरू",
+        "recordingsRequireHistory": "रेकर्डिङ हिस्ट्रीसँग मात्र आयात हुन्छन्।",
+        "selectionRequired": "आयात गर्न सेटिङ वा हिस्ट्री छान्नुहोस्।",
+        "progress": "{{phase}}: {{total}} मध्ये {{completed}}",
         "phases": {
-          "settings": "Settings",
-          "history": "History",
-          "recordings": "Recordings"
+          "settings": "सेटिङहरू",
+          "history": "हिस्ट्री",
+          "recordings": "रेकर्डिङहरू"
         },
-        "settingsImported": "Settings imported.",
-        "settingsAlreadyImported": "Settings were already imported.",
-        "result": "{{settings}} Imported {{historyImported}} history entries; {{historyExisting}} already existed. Copied {{recordingsCopied}} recordings; {{recordingsExisting}} already existed.",
-        "refresh": "Check again",
-        "import": "Import selected data",
-        "importing": "Importing",
+        "settingsImported": "सेटिङ आयात भयो।",
+        "settingsAlreadyImported": "सेटिङ पहिले नै आयात भइसकेको छ।",
+        "result": "{{settings}} {{historyImported}} हिस्ट्री प्रविष्टि आयात भयो; {{historyExisting}} पहिले नै थिए। {{recordingsCopied}} रेकर्डिङ प्रतिलिपि भयो; {{recordingsExisting}} पहिले नै थिए।",
+        "refresh": "फेरि जाँच्नुहोस्",
+        "import": "चयन गरिएको डेटा आयात गर्नुहोस्",
+        "importing": "आयात हुँदै",
         "errors": {
-          "source_unavailable": "The legacy app's data folder is unavailable.",
-          "upstream_running": "Close the legacy app before importing.",
-          "app_state_unverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
-          "invalid_selection": "Choose settings or history to import.",
-          "settings_unreadable": "The legacy settings file could not be read.",
-          "secret_store_unavailable": "The native credential store is unavailable, so settings with provider keys were not imported.",
-          "secret_conflict": "A provider key already exists in the native credential store. Resolve it before importing settings.",
-          "history_unreadable": "The legacy history database could not be read.",
-          "recording_copy_failed": "A recording could not be copied and verified.",
-          "receipt_write_failed": "The import receipt could not be saved.",
-          "internal": "The import did not finish.",
-          "status": "The legacy app's data could not be inspected."
-        }
+          "source_unavailable": "पुरानो एपको डेटा फोल्डर उपलब्ध छैन।",
+          "upstream_running": "आयात गर्नुअघि पुरानो एप बन्द गर्नुहोस्।",
+          "app_state_unverifiable": "Sona ले यो प्लेटफर्ममा पुरानो एप बन्द छ भनी पुष्टि गर्न सक्दैन।",
+          "invalid_selection": "आयात गर्न सेटिङ वा हिस्ट्री छान्नुहोस्।",
+          "settings_unreadable": "पुरानो सेटिङ फाइल पढ्न सकिएन।",
+          "secret_store_unavailable": "नेटिभ क्रेडेन्सियल स्टोर उपलब्ध छैन, त्यसैले प्रदायक कुञ्जी भएका सेटिङ आयात भएनन्।",
+          "secret_conflict": "नेटिभ क्रेडेन्सियल स्टोरमा प्रदायक कुञ्जी पहिले नै छ। सेटिङ आयात गर्नुअघि यसलाई समाधान गर्नुहोस्।",
+          "history_unreadable": "पुरानो हिस्ट्री डाटाबेस पढ्न सकिएन।",
+          "recording_copy_failed": "एउटा रेकर्डिङ प्रतिलिपि गरी प्रमाणित गर्न सकिएन।",
+          "receipt_write_failed": "आयात रसिद सुरक्षित गर्न सकिएन।",
+          "internal": "आयात पूरा भएन।",
+          "status": "पुरानो एपको डेटा निरीक्षण गर्न सकिएन।"
+        },
+        "scope": "स्रोत अपरिवर्तित रहन्छ, र मोडेल फाइलहरू आयात हुँदैनन्।"
       },
       "cloudSync": {
         "checkFailed": "Sona ले क्लाउड सिंक कन्फिगरेसन पढ्न सकेन।",
         "configured": "कन्फिगर गरिएको",
-        "description": "Sona ले तपाईंले चलाउने सर्भरमा बैठकहरू मिरर गर्न सक्छ। यस डिभाइसमा सेटअप पूरा नभएसम्म केही पनि अपलोड हुँदैन।",
-        "endpoint": "एन्डपोइन्ट",
-        "endpointDescription": "यो डिभाइस औंल्याइएको सर्भर।",
         "notConfigured": "कन्फिगर गरिएको छैन",
-        "service": "सेवा",
         "title": "क्लाउड सिंक"
+      },
+      "egress": {
+        "assurance": "यहाँ सूचीबद्ध मार्गहरू बाहेक यो Mac बाट कुनै पनि चीज बाहिर जाँदैन, र प्रदायक कुञ्जीहरू Sona को सेटिङमा नभई प्रणालीको क्रेडेन्सियल स्टोरमा रहन्छन्।",
+        "thisMac": "यही Mac",
+        "routes": {
+          "cleanup": "AI सफाई"
+        }
       }
     },
     "agents": {
-      "title": "Agents",
-      "description": "Observe approved local coding-agent sessions. Responses only appear where the installed hook has a fixture-backed wire format.",
+      "title": "एजेन्टहरू",
       "controls": {
-        "title": "Bridge controls",
+        "title": "ब्रिज नियन्त्रणहरू",
         "master": {
-          "label": "Enable agent bridge",
-          "description": "Allow Sona to observe configured local agent hooks for authorized projects."
+          "label": "एजेन्ट ब्रिज सक्षम गर्नुहोस्"
         },
-        "offState": "The agent bridge is off. No session data or replies are processed.",
-        "status": "Runtime status",
+        "status": "रनटाइम अवस्था",
         "providers": {
           "claude": {
             "label": "Claude",
-            "description": "Observe Claude sessions and enable fixture-backed replies where available."
+            "description": "Claude सत्र अवलोकन गर्छ र उपलब्ध भएको ठाउँमा फिक्स्चर-आधारित जवाफ सक्षम गर्छ।"
           },
           "codex": {
             "label": "Codex",
-            "description": "Observe sessions only. Replies are read-only until a wire fixture supports them."
+            "description": "सत्र अवलोकन मात्र। कुनै वायर फिक्स्चरले समर्थन नगरेसम्म जवाफ पढ्न मात्र मिल्छ।"
           },
           "grok": {
             "label": "Grok",
-            "description": "Observe sessions only. Replies are read-only until a wire fixture supports them."
+            "description": "सत्र अवलोकन मात्र। कुनै वायर फिक्स्चरले समर्थन नगरेसम्म जवाफ पढ्न मात्र मिल्छ।"
           },
           "omp": {
             "label": "OMP",
-            "description": "Observe OMP sessions and approval requests. Replies are available only at a supported OMP session stop."
+            "description": "OMP सत्र र स्वीकृति अनुरोध अवलोकन गर्छ। जवाफ समर्थित OMP सत्र रोकिने बिन्दुमा मात्र उपलब्ध हुन्छन्।"
           }
         }
       },
       "status": {
-        "disabled": "Disabled",
-        "runtime_unavailable": "Runtime unavailable",
-        "interactive_unsupported": "Interactive responses unsupported",
-        "app_lock_held": "Another Sona instance is active",
-        "active": "Active"
+        "disabled": "निष्क्रिय",
+        "runtime_unavailable": "रनटाइम अनुपलब्ध",
+        "interactive_unsupported": "अन्तर्क्रियात्मक प्रतिक्रिया असमर्थित",
+        "app_lock_held": "Sona को अर्को इन्स्टेन्स सक्रिय छ",
+        "active": "सक्रिय"
       },
       "projects": {
-        "title": "Authorized projects",
-        "description": "Choose a project folder with the native picker. Sona persists only its canonical hash.",
-        "hashOnly": "Exact project hashes are the permission boundary; folder paths are not stored here.",
-        "add": "Authorize folder",
-        "remove": "Remove project",
-        "empty": "No projects are authorized."
+        "title": "अधिकृत प्रोजेक्टहरू",
+        "hashOnly": "ठ्याक्कै प्रोजेक्ट हेसहरू अनुमतिको सीमा हुन्; फोल्डर पथ यहाँ भण्डारण हुँदैन।",
+        "add": "फोल्डर अधिकृत गर्नुहोस्",
+        "remove": "प्रोजेक्ट हटाउनुहोस्",
+        "empty": "कुनै प्रोजेक्ट अधिकृत छैन।"
       },
       "hook": {
-        "title": "Hook snippet",
-        "description": "Copy the packaged hook configuration into your agent’s own configuration. Sona never edits agent configuration files.",
-        "copy": "Copy snippet",
-        "error": "Hook snippet unavailable"
+        "title": "हुक स्निपेट",
+        "description": "प्याकेज गरिएको हुक कन्फिगरेसन आफ्नो एजेन्टको कन्फिगरेसनमा कपी गर्नुहोस्। Sona ले एजेन्ट कन्फिगरेसन फाइल कहिल्यै सम्पादन गर्दैन।",
+        "copy": "स्निपेट कपी गर्नुहोस्",
+        "error": "हुक स्निपेट अनुपलब्ध"
       },
       "replyQueue": {
-        "title": "Reply preview",
-        "description": "Create a reply preview for a prepared Claude or OMP session. Sona sends it only after you confirm the exact destination and text.",
-        "session": "Reply destination",
-        "noSession": "No observed reply-capable session",
-        "message": "Reply text",
-        "createPreview": "Create preview",
+        "title": "जवाफको पूर्वावलोकन",
+        "session": "जवाफको गन्तव्य",
+        "noSession": "जवाफ दिन सक्ने कुनै अवलोकित सत्र छैन",
+        "message": "जवाफको पाठ",
+        "createPreview": "पूर्वावलोकन बनाउनुहोस्",
         "notReady": "जवाफका लागि ब्रिज चालु र कम्तीमा एउटा एजेन्ट सक्षम हुनुपर्छ।"
       },
       "pending": {
-        "empty": "No pending replies.",
-        "confirm": "Confirm exact reply",
-        "preview": "Review the exact destination and text before confirming",
-        "confirmed": "Confirmed for the next supported Stop event",
-        "cancel": "Cancel",
+        "empty": "कुनै बाँकी जवाफ छैन।",
+        "confirm": "ठ्याक्कै यही जवाफ पुष्टि गर्नुहोस्",
+        "confirmed": "अर्को समर्थित रोकिने घटनाका लागि पुष्टि भयो",
+        "cancel": "रद्द गर्नुहोस्",
         "states": {
-          "held": "Held for the next supported Stop event",
-          "response_written": "Response written",
-          "emitted": "Emitted",
-          "copy_only": "Copy-only",
-          "cancelled": "Cancelled"
-        }
+          "held": "अर्को समर्थित रोकिने घटनाका लागि राखिएको",
+          "response_written": "प्रतिक्रिया लेखियो",
+          "emitted": "पठाइयो",
+          "copy_only": "कपी मात्र",
+          "cancelled": "रद्द गरियो"
+        },
+        "title": "बाँकी जवाफहरू"
       },
       "observed": {
-        "title": "Observed activity",
-        "description": "Sessions and requests include IDs and metadata only; provider payloads are not shown.",
-        "refresh": "Refresh",
-        "sessions": "Sessions",
-        "noSessions": "No sessions observed.",
-        "requests": "Requests",
-        "noRequests": "No requests observed.",
+        "title": "अवलोकन गरिएको गतिविधि",
+        "refresh": "रिफ्रेस गर्नुहोस्",
+        "sessions": "सत्रहरू",
+        "noSessions": "कुनै सत्र अवलोकन भएन।",
+        "requests": "अनुरोधहरू",
+        "noRequests": "कुनै अनुरोध अवलोकन भएन।",
         "requestKinds": {
-          "session_start": "Session started",
-          "user_prompt_submit": "Prompt submitted",
-          "permission_request": "Permission request",
-          "pre_tool_use": "Before tool use",
-          "post_tool_use": "After tool use",
-          "stop": "Stop",
-          "notification": "Notification"
+          "session_start": "सत्र सुरु भयो",
+          "user_prompt_submit": "प्रम्प्ट पेस गरियो",
+          "permission_request": "अनुमति अनुरोध",
+          "pre_tool_use": "टुल प्रयोग अघि",
+          "post_tool_use": "टुल प्रयोगपछि",
+          "stop": "रोकियो",
+          "notification": "सूचना"
         },
-        "expires": "Expires {{time}}",
-        "allowExact": "Allow exactly this request",
-        "denyExact": "Deny exactly this request",
-        "dismiss": "Dismiss",
-        "ompPermissionObserveOnly": "OMP approval requests are observed only. Approve or deny them in OMP."
+        "expires": "{{time}} मा समाप्त",
+        "allowExact": "ठ्याक्कै यही अनुरोधलाई अनुमति दिनुहोस्",
+        "denyExact": "ठ्याक्कै यही अनुरोध अस्वीकार गर्नुहोस्",
+        "dismiss": "हटाउनुहोस्",
+        "ompPermissionObserveOnly": "OMP स्वीकृति अनुरोध अवलोकन मात्र गरिन्छ। तिनलाई OMP मै स्वीकार वा अस्वीकार गर्नुहोस्।"
       },
       "rules": {
-        "title": "Exact permission rules",
-        "description": "An allow or deny is stored only for the exact agent, project hash, tool, mode, and input hash that created it.",
-        "empty": "No permission rules.",
-        "remove": "Remove rule",
+        "title": "ठ्याक्कै मिल्ने अनुमति नियमहरू",
+        "empty": "कुनै अनुमति नियम छैन।",
+        "remove": "नियम हटाउनुहोस्",
         "decisions": {
-          "allow": "Allow",
-          "deny": "Deny"
+          "allow": "अनुमति दिनुहोस्",
+          "deny": "अस्वीकार गर्नुहोस्"
         }
       },
       "errors": {
-        "load": "Agent bridge data could not be loaded: {{error}}",
-        "operation": "The agent bridge action could not be completed: {{error}}"
+        "load": "एजेन्ट ब्रिज डेटा लोड गर्न सकिएन: {{error}}",
+        "operation": "एजेन्ट ब्रिज कार्य पूरा गर्न सकिएन: {{error}}"
       },
       "panel": {
-        "description": "एजेन्टहरूले पोस्ट गर्ने र जवाफ पढ्ने फ्लोटिङ विन्डो।",
         "error": "एजेन्ट प्यानल सेटिङ सुरक्षित गर्न सकिएन।",
         "label": "एजेन्ट प्यानल सक्षम गर्नुहोस्",
         "rowDescription": "यसलाई बन्द गर्दा प्यानल विन्डो बन्द हुन्छ र Sona ले यसलाई फेरि खोल्ने हरेक अनुरोध अस्वीकार गर्छ।",
@@ -1803,27 +1590,22 @@
       "workspaceNavigation": "एजेन्ट ब्रिज दृश्यहरू"
     },
     "hub": {
-      "navigation": "Settings sections",
+      "navigation": "सेटिङ खण्डहरू",
       "tabs": {
-        "general": "General",
-        "privacy": "Privacy",
-        "agents": "Agents",
-        "advanced": "Advanced",
-        "about": "About",
-        "debug": "Debug"
+        "general": "सामान्य",
+        "privacy": "गोपनीयता",
+        "agents": "एजेन्टहरू",
+        "advanced": "उन्नत",
+        "about": "बारेमा",
+        "debug": "डिबग"
       }
     },
     "vocabulary": {
       "replacements": {
         "title": "बोलिने प्रतिस्थापन",
-        "description": "Sona ले ठ्याक्कै पाठमा पुनर्लेखन गर्ने वाक्यांश। यहाँका परिवर्तन आगामी प्रतिलेखमा मात्र लागू हुन्छन्, पहिले लेखिएको पाठमा कहिल्यै हुँदैन।",
         "enabledLabel": "बोलिने प्रतिस्थापन सक्षम गर्नुहोस्",
-        "enabledDescription": "शब्दावली सुधार चल्नु अघि, एट साइन जस्ता बोलिने वाक्यांशलाई चिह्नमा पुनर्लेखन गर्नुहोस्।",
-        "offState": "बोलिने प्रतिस्थापन बन्द छ। नियम सुरक्षित रहन्छन् र तपाईंले यो फेरि खोल्नेबित्तिकै लागू हुन्छन्।",
         "spoken": "तपाईं भन्नुहुन्छ",
         "written": "Sona लेख्छ",
-        "applyColumn": "लागू गर्नुहोस्",
-        "actionsColumn": "कार्यहरू",
         "spokenPlaceholder": "एट साइन",
         "writtenPlaceholder": "@",
         "add": "नियम थप्नुहोस्",
@@ -1838,14 +1620,11 @@
           "incomplete": "बोलिने वाक्यांश र त्यसको प्रतिस्थापन दुवै भर्नुहोस्।"
         },
         "empty": {
-          "title": "कुनै प्रतिस्थापन छैन",
-          "description": "एट साइन जस्तो वाक्यांश थप्नुहोस्, तपाईं जति बेला त्यो भन्नुहुन्छ Sona ले @ लेख्छ।",
-          "action": "सुरुका नियम फर्काउनुहोस्"
+          "description": "एट साइन जस्तो वाक्यांश थप्नुहोस्, तपाईं जति बेला त्यो भन्नुहुन्छ Sona ले @ लेख्छ।"
         },
         "confirmDelete": {
           "title": "{{spoken}} मेट्ने?",
-          "description": "यो वाक्यांश आगामी प्रतिलेखमा फेरि पुनर्लेखन हुँदैन। पहिले लेखिएको पाठ अपरिवर्तित रहन्छ।",
-          "body": "{{spoken}} अहिले {{written}} बन्छ।"
+          "description": "यो वाक्यांश आगामी प्रतिलेखमा फेरि पुनर्लेखन हुँदैन। पहिले लेखिएको पाठ अपरिवर्तित रहन्छ।"
         },
         "confirmReset": {
           "title": "पूर्वनिर्धारित नियम फर्काउने?",
@@ -1856,20 +1635,17 @@
     "prompts": {
       "samples": {
         "title": "लेखनका नमुना",
-        "description": "तपाईंको आफ्नै लेखनका उदाहरण। प्रतिलेख पुनर्लेखन गर्ने मोडहरू यही शैलीमा मिल्छन्।",
         "placeholder": "तपाईंले आफै लेखेको एक अनुच्छेद टाँस्नुहोस्।",
         "sampleLabel": "लेखन नमुना {{number}}",
         "delete": "नमुना {{number}} मेट्नुहोस्",
         "add": "नमुना थप्नुहोस्",
         "wordCount": "{{max}} शब्दमध्ये {{words}}",
         "overLimit": "{{words}} शब्द। पहिलो {{max}} मात्र प्रयोग हुन्छन्।",
-        "privacy": "नमुना प्रतिलेख आफै पहिले नै जाने ठाउँमा मात्र जान्छन्, अन्त कतै जाँदैनन्। {{max}} सम्म नमुना प्रयोग हुन्छन्।",
+        "privacy": "नमुना प्रतिलेख आफै पहिले नै जाने ठाउँमा मात्र जान्छन्, अन्त कतै जाँदैनन्।",
         "loading": "नमुना लोड हुँदै",
         "loadError": "नमुना लोड गर्न सकिएन।",
         "empty": {
-          "title": "अझै कुनै नमुना छैन",
-          "description": "तपाईंले आफै लेखेका केही अनुच्छेद टाँस्नुहोस्, पुनर्लेखनले तपाईंको शब्दचयन, वाक्यको लम्बाइ र औपचारिकता पछ्याउनेछ।",
-          "action": "एउटा नमुना थप्नुहोस्"
+          "description": "तपाईंले आफै लेखेका केही अनुच्छेद टाँस्नुहोस्, पुनर्लेखनले तपाईंको शब्दचयन, वाक्यको लम्बाइ र औपचारिकता पछ्याउनेछ।"
         }
       }
     },
@@ -1877,7 +1653,6 @@
       "enabledLabel": "निष्क्रिय पिल देखाउनुहोस्",
       "enabledDescription": "बोलाइका बीचमा पर्दामा सानो पिल राख्नुहोस्। सुरु गर्न क्लिक गर्नुहोस्, मोड बदल्न दायाँ क्लिक गर्नुहोस्।",
       "positionLabel": "निष्क्रिय पिलको स्थान",
-      "positionDescription": "निष्क्रिय पिल पर्दाको कुन किनारमा बस्छ।",
       "positionTop": "माथि",
       "positionBottom": "तल"
     }
@@ -1894,12 +1669,13 @@
     "copy": "कपी गर्नुहोस्",
     "clear": "खाली गर्नुहोस्",
     "noOptionsFound": "कुनै विकल्प भेटिएन",
-    "save": "Save",
-    "saving": "Saving…",
-    "retry": "Retry",
+    "save": "सुरक्षित गर्नुहोस्",
+    "saving": "सुरक्षित गर्दै…",
+    "retry": "पुनः प्रयास गर्नुहोस्",
     "play": "बजाउनुहोस्",
     "pause": "रोक्नुहोस्",
-    "seek": "प्लेब्याकको स्थान"
+    "seek": "प्लेब्याकको स्थान",
+    "resetSetting": "{{name}} रिसेट गर्नुहोस्"
   },
   "commandPalette": {
     "open": "खोज्नुहोस्",
@@ -1907,9 +1683,7 @@
     "navigation": "नेभिगेसन",
     "actions": "कार्यहरू",
     "noResults": "कुनै कमाण्ड भेटिएन",
-    "navigate": "नेभिगेट गर्नुहोस्",
-    "select": "चयन गर्नुहोस्",
-    "newMeeting": "New meeting",
+    "newMeeting": "नयाँ बैठक",
     "importAudio": "फाइल ट्रान्सक्राइब गर्नुहोस्",
     "openRecordings": "रेकर्डिङ फोल्डर खोल्नुहोस्",
     "openAgent": "एजेन्ट खोल्नुहोस्",
@@ -1950,12 +1724,10 @@
     "commandRewriteUnavailableTitle": "पुनर्लेखन उपलब्ध छैन"
   },
   "appLanguage": {
-    "title": "एपको भाषा",
-    "description": "Sona इन्टरफेसको भाषा परिवर्तन गर्नुहोस्"
+    "title": "एपको भाषा"
   },
   "theme": {
     "title": "अनुप्रयोगको थिम",
-    "description": "Sona ले तपाईंको सिस्टम थिम अनुसरण गर्ने वा उज्यालो वा अँध्यारो रहने छान्नुहोस्",
     "options": {
       "system": "सिस्टम",
       "light": "उज्यालो",
@@ -1990,303 +1762,274 @@
     "dismiss": "हटाउनुहोस्"
   },
   "meetings": {
-    "title": "Meetings",
-    "description": "Capture, recover, and review meeting notes stored on this Mac.",
-    "loading": "Loading meetings…",
+    "title": "बैठकहरू",
+    "loading": "बैठकहरू लोड हुँदै…",
     "providers": {
       "zoom": "Zoom",
       "google_meet": "Google Meet",
       "microsoft_teams": "Microsoft Teams",
       "webex": "Webex",
-      "slack_huddle": "Slack huddle",
+      "slack_huddle": "Slack हडल",
       "face_time": "FaceTime",
-      "configured_app": "Configured app"
+      "configured_app": "कन्फिगर गरिएको एप"
     },
     "phases": {
-      "preflight": "Setup",
-      "starting": "Starting",
-      "capturing_recording": "Recording",
-      "capturing_pausing": "Pausing",
-      "capturing_paused": "Paused",
-      "capturing_resuming": "Resuming",
-      "stopping": "Stopping",
-      "processing": "Processing",
-      "review_ready": "Ready for review",
-      "recovery_required": "Recovery needed",
-      "deleting": "Deleting"
+      "preflight": "सेटअप",
+      "starting": "सुरु हुँदै",
+      "capturing_recording": "रेकर्डिङ",
+      "capturing_pausing": "रोक्दै",
+      "capturing_paused": "रोकिएको",
+      "capturing_resuming": "जारी हुँदै",
+      "stopping": "रोकिँदै",
+      "processing": "प्रक्रियामा",
+      "review_ready": "समीक्षाका लागि तयार",
+      "recovery_required": "पुनःप्राप्ति आवश्यक",
+      "deleting": "मेटाउँदै"
     },
     "sources": {
-      "microphone": "Microphone",
-      "system_audio": "System audio"
+      "microphone": "माइक्रोफोन",
+      "system_audio": "सिस्टम अडियो"
     },
     "availability": {
-      "available": "Available",
-      "permission_required": "Permission required",
-      "permission_denied": "Permission denied",
-      "device_unavailable": "Device unavailable",
-      "unsupported_platform": "Unsupported on this Mac",
-      "storage_unavailable": "Storage unavailable",
-      "unknown": "Checking"
+      "available": "उपलब्ध",
+      "permission_required": "अनुमति आवश्यक",
+      "permission_denied": "अनुमति अस्वीकृत",
+      "device_unavailable": "डिभाइस अनुपलब्ध",
+      "unsupported_platform": "यो Mac मा असमर्थित",
+      "storage_unavailable": "भण्डारण अनुपलब्ध",
+      "unknown": "जाँच हुँदै"
     },
     "health": {
-      "not_started": "Not started",
-      "starting": "Starting",
-      "healthy": "Healthy",
-      "paused": "Paused",
-      "degraded": "Degraded",
-      "failed": "Failed",
-      "stopped": "Stopped"
+      "not_started": "सुरु भएको छैन",
+      "starting": "सुरु हुँदै",
+      "healthy": "स्वस्थ",
+      "paused": "रोकिएको",
+      "degraded": "कमजोर",
+      "failed": "असफल",
+      "stopped": "बन्द भएको"
     },
     "completeness": {
-      "not_started": "Not started",
-      "complete": "Complete",
-      "partial": "Partial"
+      "not_started": "सुरु भएको छैन",
+      "complete": "पूर्ण",
+      "partial": "आंशिक"
     },
     "processing": {
-      "pending": "Waiting for processing",
-      "running": "Processing",
-      "succeeded": "Ready",
-      "cancelled": "Processing cancelled",
+      "pending": "प्रशोधनको प्रतीक्षामा",
+      "running": "प्रक्रियामा",
+      "succeeded": "तयार",
+      "cancelled": "प्रशोधन रद्द भयो",
       "failed": {
-        "local_model_unavailable": "Local model unavailable",
-        "remote_unavailable": "Remote destination unavailable",
-        "engine_failure": "Processing failed",
-        "cancelled": "Processing cancelled"
+        "local_model_unavailable": "स्थानीय मोडेल अनुपलब्ध",
+        "remote_unavailable": "रिमोट गन्तव्य अनुपलब्ध",
+        "engine_failure": "प्रशोधन असफल",
+        "cancelled": "प्रशोधन रद्द भयो"
       }
     },
     "actions": {
-      "back": "Back",
-      "delete": "Delete meeting",
-      "discard": "Discard",
-      "pause": "Pause",
-      "refresh": "Refresh",
-      "resume": "Resume",
-      "retry": "Try again",
-      "stop": "Stop"
+      "back": "पछाडि",
+      "delete": "बैठक मेटाउनुहोस्",
+      "discard": "त्याग्नुहोस्",
+      "pause": "रोक्नुहोस्",
+      "refresh": "रिफ्रेस गर्नुहोस्",
+      "resume": "जारी राख्नुहोस्",
+      "retry": "फेरि प्रयास गर्नुहोस्",
+      "stop": "बन्द गर्नुहोस्"
     },
     "detected": {
-      "title": "Meeting detected",
-      "description": "Sona ले बैठक एप प्रयोगमा रहेको देख्यो।",
-      "mayBeActive": "A meeting may be active in {{provider}}."
+      "title": "बैठक पत्ता लाग्यो",
+      "mayBeActive": "{{provider}} मा बैठक चलिरहेको हुन सक्छ।"
     },
     "setup": {
-      "captureSources": "Capture sources",
-      "captureSourcesDescription": "Each source stays separate so missing audio remains visible.",
-      "processing": "Processing route",
-      "localOnly": "Local only",
-      "defaultTitle": "Local notes",
+      "defaultTitle": "स्थानीय नोटहरू",
       "remoteUnavailable": "यस बिल्डमा रिमोट प्रशोधन उपलब्ध छैन, त्यसैले हरेक बैठक यही Mac मा ट्रान्सक्राइब र सारांश गरिन्छ।"
     },
     "preflight": {
-      "storage": "Storage",
-      "storageAvailable": "Encrypted meeting storage is available.",
-      "storageUnavailable": "Encrypted meeting storage is unavailable.",
-      "localModel": "Local model",
-      "localModelDescription": "Processing remains local when a local model is available.",
-      "starting": "Starting visible capture…",
+      "storage": "भण्डारण",
+      "storageAvailable": "इन्क्रिप्टेड बैठक भण्डारण उपलब्ध छ।",
+      "storageUnavailable": "इन्क्रिप्टेड बैठक भण्डारण उपलब्ध छैन।",
+      "localModel": "स्थानीय मोडेल",
+      "localModelDescription": "स्थानीय मोडेल उपलब्ध हुँदा प्रशोधन स्थानीय रूपमै रहन्छ।",
+      "starting": "देखिने क्याप्चर सुरु हुँदै…",
       "refreshing": "जाँच गर्दै…"
     },
     "consent": {
-      "continuePartial": "I want to continue with a partial meeting record.",
-      "acceptMissing": "I understand {{source}} is {{state}} and this meeting will be partial."
+      "continuePartial": "म आंशिक बैठक अभिलेखसँगै जारी राख्न चाहन्छु।",
+      "acceptMissing": "मैले बुझेँ कि {{source}} {{state}} छ र यो बैठक आंशिक हुनेछ।"
     },
     "live": {
-      "activeCapture": "Active capture",
-      "elapsed": "Elapsed",
-      "microphoneOnlyPartial": "Microphone only / Partial. System audio is unavailable or degraded.",
-      "partialCapture": "Partial capture. Review the gaps before relying on generated notes.",
-      "inputs": "Inputs",
-      "inputsDescription": "Source health is reported separately. Capture never fills missing intervals.",
-      "signal": "Signal",
-      "signalUnavailable": "{{source}} level is not reported by capture.",
-      "notReported": "Not reported",
-      "durabilityLag": "Durability lag",
-      "behind": "{{duration}} behind",
-      "progress": "Transcript progress",
-      "progressDescription": "Transcript timing is derived from committed segments, not a guessed model state.",
-      "transcript": "Transcript",
-      "transcriptThrough": "Transcript through {{time}}",
-      "noTranscriptCheckpoint": "No transcript checkpoint",
-      "asrLag": "ASR lag",
-      "storage": "Storage",
-      "storageHealthy": "Encrypted local storage is healthy.",
-      "storageUnavailable": "Storage needs attention.",
-      "processing": "Processing",
-      "manualNote": "Manual note",
-      "manualNoteDescription": "A note added now is anchored at {{time}}.",
-      "notePlaceholder": "Write a note for this moment",
-      "timestamp": "Timestamp {{time}}",
-      "addNote": "Add timestamped note"
+      "elapsed": "बितेको समय",
+      "microphoneOnlyPartial": "माइक्रोफोन मात्र / आंशिक। सिस्टम अडियो उपलब्ध छैन वा कमजोर छ।",
+      "partialCapture": "आंशिक क्याप्चर। उत्पन्न नोटहरूमा भर पर्नुअघि खाली अन्तरहरू हेर्नुहोस्।",
+      "inputs": "इनपुटहरू",
+      "signal": "सिग्नल",
+      "signalUnavailable": "क्याप्चरले {{source}} को स्तर रिपोर्ट गर्दैन।",
+      "notReported": "रिपोर्ट भएन",
+      "durabilityLag": "स्थायी लेखनमा ढिलाइ",
+      "behind": "{{duration}} पछाडि",
+      "progress": "ट्रान्सक्रिप्टको प्रगति",
+      "transcript": "ट्रान्सक्रिप्ट",
+      "asrLag": "बोली पहिचानमा ढिलाइ",
+      "storage": "भण्डारण",
+      "storageHealthy": "इन्क्रिप्टेड स्थानीय भण्डारण स्वस्थ छ।",
+      "storageUnavailable": "भण्डारणमा ध्यान आवश्यक छ।",
+      "processing": "प्रक्रियामा",
+      "manualNote": "म्यानुअल नोट",
+      "notePlaceholder": "यो क्षणको लागि नोट लेख्नुहोस्",
+      "addNote": "टाइमस्टाम्पसहित नोट थप्नुहोस्"
     },
     "recovery": {
-      "title": "Recover partial meetings",
-      "description": "These sessions were interrupted. Sona will not restart capture.",
-      "finalize": "Finalize partial"
+      "title": "आंशिक बैठकहरू पुनःप्राप्त गर्नुहोस्",
+      "finalize": "आंशिक रूपमा अन्तिम गर्नुहोस्"
     },
     "history": {
-      "title": "Meeting history",
-      "description": "Open a local meeting record to inspect its capture coverage and notes.",
-      "loading": "Loading meeting history…",
-      "emptyTitle": "No meetings yet",
-      "emptyDescription": "Start local notes when you are ready to capture a meeting."
+      "title": "बैठकको इतिहास",
+      "loading": "बैठकको इतिहास लोड हुँदै…",
+      "emptyTitle": "अझै कुनै बैठक छैन"
     },
     "retention": {
-      "title": "Retention",
-      "description": "Sona deletes eligible local meeting records through the same verified deletion path.",
-      "forever": "Keep until I delete it",
-      "days": "Delete after {{days}} days",
+      "title": "भण्डारण अवधि",
+      "description": "Sona ले योग्य स्थानीय बैठक अभिलेखहरू उही प्रमाणित मेटाउने मार्गबाट मेटाउँछ।",
+      "forever": "मैले नमेटाउञ्जेल राख्नुहोस्",
+      "days": "{{days}} दिनपछि मेटाउनुहोस्",
       "loading": "हालको नीति पढ्दै…"
     },
     "receipts": {
-      "title": "Correction receipt",
-      "saved": "Saved locally.",
-      "savedRevision": "Saved locally. Revision {{revision}}.",
-      "duplicate": "This action was already recorded. Sona refreshed the existing result."
+      "title": "सुधार रसिद",
+      "saved": "स्थानीय रूपमा सुरक्षित भयो।",
+      "savedRevision": "स्थानीय रूपमा सुरक्षित भयो। संशोधन {{revision}}।",
+      "duplicate": "यो कार्य पहिले नै अभिलेख भइसकेको थियो। Sona ले भइरहेको नतिजा रिफ्रेस गर्‍यो।"
     },
     "reasons": {
-      "consent_missing": "Recording acknowledgement is required.",
-      "consent_stale": "Setup changed before this action.",
-      "stale_revision": "This meeting changed in another window.",
-      "capture_lease_busy": "Another meeting capture is active.",
-      "source_unavailable": "A requested source is unavailable.",
-      "source_start_failed": "A source could not start.",
-      "source_gap": "A source reported a gap.",
-      "storage_unavailable": "Encrypted meeting storage is unavailable.",
-      "storage_failure": "Storage could not persist this change.",
-      "local_model_unavailable": "A local model is unavailable.",
-      "recovery_required": "This meeting needs recovery.",
-      "deleted": "This meeting was deleted.",
-      "invalid_transition": "This action is not available in the current phase.",
-      "duplicate_operation": "This action was already recorded."
+      "consent_missing": "रेकर्डिङ स्वीकृति आवश्यक छ।",
+      "consent_stale": "यो कार्यअघि सेटअप बदलियो।",
+      "stale_revision": "यो बैठक अर्को विन्डोमा बदलियो।",
+      "capture_lease_busy": "अर्को बैठकको क्याप्चर सक्रिय छ।",
+      "source_unavailable": "अनुरोध गरिएको स्रोत उपलब्ध छैन।",
+      "source_start_failed": "कुनै स्रोत सुरु हुन सकेन।",
+      "source_gap": "कुनै स्रोतले खाली अन्तर रिपोर्ट गर्‍यो।",
+      "storage_unavailable": "इन्क्रिप्टेड बैठक भण्डारण उपलब्ध छैन।",
+      "storage_failure": "भण्डारणले यो परिवर्तन जोगाउन सकेन।",
+      "local_model_unavailable": "स्थानीय मोडेल उपलब्ध छैन।",
+      "recovery_required": "यो बैठक पुनःप्राप्त गर्नु आवश्यक छ।",
+      "deleted": "यो बैठक मेटाइएको थियो।",
+      "invalid_transition": "हालको चरणमा यो कार्य उपलब्ध छैन।",
+      "duplicate_operation": "यो कार्य पहिले नै अभिलेख भइसकेको थियो।"
     },
     "gaps": {
-      "source_unavailable": "Source unavailable",
-      "source_start_failed": "Source start failed",
-      "permission_lost": "Permission lost",
-      "paused": "Paused",
-      "packet_dropped": "Audio packet dropped",
-      "writer_pressure": "Storage writer pressure",
-      "storage_failure": "Storage failure",
-      "timestamp_missing": "Timestamp missing",
-      "timestamp_discontinuity": "Timestamp discontinuity",
-      "invalid_format": "Invalid audio format",
-      "source_stopped": "Source stopped",
-      "corrupt_record": "Corrupt record",
-      "missing_record": "Missing record",
-      "recovery_tail": "Recovery tail",
-      "system_sleep": "Mac sleep"
+      "source_unavailable": "स्रोत अनुपलब्ध",
+      "source_start_failed": "स्रोत सुरु हुन सकेन",
+      "permission_lost": "अनुमति गुम्यो",
+      "paused": "रोकिएको",
+      "packet_dropped": "अडियो प्याकेट छुट्यो",
+      "writer_pressure": "भण्डारण लेखकमा दबाब",
+      "storage_failure": "भण्डारण विफलता",
+      "timestamp_missing": "टाइमस्टाम्प छुटेको",
+      "timestamp_discontinuity": "टाइमस्टाम्पमा अवरोध",
+      "invalid_format": "अवैध अडियो ढाँचा",
+      "source_stopped": "स्रोत रोकियो",
+      "corrupt_record": "बिग्रिएको रेकर्ड",
+      "missing_record": "रेकर्ड छुटेको",
+      "recovery_tail": "पुनःप्राप्तिको अन्तिम भाग",
+      "system_sleep": "Mac स्लिप"
     },
     "errors": {
-      "load": "Sona could not load the current meeting data.",
+      "load": "Sona ले हालको बैठक डेटा लोड गर्न सकेन।",
       "operation": "त्यो बैठक कार्य पूरा गर्न सकिएन। फेरि प्रयास गर्नुहोस्।",
-      "operationRejected": "The meeting action was rejected.",
-      "consent_required": "Confirm the recording acknowledgement before starting.",
-      "consent_stale": "The setup changed. Review it again before starting.",
-      "invalid_transition": "This action is unavailable in the current meeting phase.",
-      "stale_revision": "This meeting changed in another window. Sona refreshed its snapshot.",
-      "capture_lease_busy": "Another meeting is already capturing audio.",
-      "no_source_started": "No approved audio source started.",
-      "source_unavailable": "A requested audio source is unavailable.",
-      "storage_unavailable": "Encrypted meeting storage is unavailable.",
-      "recovery_required": "This meeting needs recovery before that action.",
-      "deletion_in_progress": "Deletion is already in progress. The meeting remains inaccessible.",
-      "not_found": "This meeting is no longer available.",
-      "invalid_request": "The meeting request was invalid.",
-      "export_cancelled": "Export was cancelled. No completed export was created.",
-      "export_failed": "Export failed. No completed export was created.",
-      "local_model_unavailable": "A local model is unavailable for this meeting.",
-      "remote_unavailable": "The selected remote destination is unavailable."
+      "operationRejected": "बैठक कार्य अस्वीकार भयो।",
+      "consent_required": "सुरु गर्नुअघि रेकर्डिङ स्वीकृति पुष्टि गर्नुहोस्।",
+      "consent_stale": "सेटअप बदलियो। सुरु गर्नुअघि यसलाई फेरि हेर्नुहोस्।",
+      "invalid_transition": "बैठकको हालको चरणमा यो कार्य उपलब्ध छैन।",
+      "stale_revision": "यो बैठक अर्को विन्डोमा बदलियो। Sona ले आफ्नो स्न्यापसट रिफ्रेस गर्‍यो।",
+      "capture_lease_busy": "अर्को बैठकले पहिले नै अडियो क्याप्चर गरिरहेको छ।",
+      "no_source_started": "कुनै स्वीकृत अडियो स्रोत सुरु भएन।",
+      "source_unavailable": "अनुरोध गरिएको अडियो स्रोत उपलब्ध छैन।",
+      "storage_unavailable": "इन्क्रिप्टेड बैठक भण्डारण उपलब्ध छैन।",
+      "recovery_required": "त्यो कार्य गर्नुअघि यो बैठक पुनःप्राप्त गर्नु आवश्यक छ।",
+      "deletion_in_progress": "मेटाउने काम पहिले नै चलिरहेको छ। बैठक पहुँचयोग्य रहँदैन।",
+      "not_found": "यो बैठक अब उपलब्ध छैन।",
+      "invalid_request": "बैठक अनुरोध अवैध थियो।",
+      "export_cancelled": "निर्यात रद्द भयो। कुनै पूरा निर्यात बनेन।",
+      "export_failed": "निर्यात असफल भयो। कुनै पूरा निर्यात बनेन।",
+      "local_model_unavailable": "यो बैठकका लागि स्थानीय मोडेल उपलब्ध छैन।",
+      "remote_unavailable": "चयन गरिएको रिमोट गन्तव्य उपलब्ध छैन।"
     },
     "discard": {
-      "liveTitle": "Stop and discard this session?",
-      "liveDescription": "Sona will stop capture and delete the local meeting record.",
-      "keepRecording": "Keep recording",
-      "stopAndDiscard": "Stop and discard",
-      "explainsData": "Audio, transcript, manual notes, generated notes, and local answer caches will be deleted. This cannot be undone.",
-      "complete": "Session discarded"
+      "liveTitle": "यो सत्र रोकेर त्याग्ने?",
+      "keepRecording": "रेकर्डिङ जारी राख्नुहोस्",
+      "stopAndDiscard": "रोकेर त्याग्नुहोस्",
+      "explainsData": "अडियो, ट्रान्सक्रिप्ट, म्यानुअल नोट, उत्पन्न नोट र स्थानीय जवाफको क्यास मेटाइनेछ। यो फर्काउन सकिँदैन।",
+      "complete": "सत्र त्यागियो"
     },
     "delete": {
-      "title": "Delete this meeting?",
-      "description": "Sona will delete the local meeting record and its derived data.",
-      "explainsData": "Sona keeps the meeting inaccessible while verified deletion finishes. Exports and remote copies are outside local deletion.",
-      "complete": "Meeting deleted"
+      "title": "यो बैठक मेटाउने?",
+      "explainsData": "प्रमाणित मेटाइ पूरा हुँदासम्म Sona ले बैठकलाई पहुँचयोग्य हुन दिँदैन। निर्यात र रिमोट प्रतिलिपिहरू स्थानीय मेटाइको दायराभित्र पर्दैनन्।",
+      "complete": "बैठक मेटाइयो"
     },
     "review": {
-      "meetingTitle": "Meeting title",
-      "noStartTime": "This meeting did not record a start time.",
-      "started": "Started {{date}}",
-      "status": "Capture status",
-      "statusDescription": "Coverage, source health, and processing remain separate.",
-      "timeline": "Audio timeline and gaps",
-      "timelineDescription": "Gaps name intervals where no audio was captured.",
-      "gap": "Gap",
-      "timeUnknown": "Unknown time",
-      "noGaps": "No capture gaps were reported.",
-      "transcript": "Transcript",
-      "transcriptDescription": "Edits create a new canonical revision. Derived notes and answers become out of date.",
-      "noTranscript": "No transcript is available.",
-      "transcriptSegment": "Transcript segment",
-      "removeSegment": "Remove segment",
-      "unknownSpeaker": "Unknown speaker",
-      "speakers": "Speakers",
-      "speakersDescription": "Rename or merge local speaker labels without rewriting timing.",
-      "noSpeakers": "No speaker labels are available.",
-      "speakerName": "Speaker name",
-      "mergeSource": "Merge this speaker",
-      "mergeTarget": "Into this speaker",
-      "merge": "Merge speakers",
-      "manualNotes": "Manual notes",
-      "manualNotesDescription": "Manual notes are user-owned and remain separate from generated notes.",
-      "manualNote": "Manual note",
-      "newNote": "New manual note",
-      "notePlaceholder": "Add a manual note",
-      "addNote": "Add note",
-      "noNotes": "No manual notes yet.",
-      "noTimestamp": "No timestamp",
-      "timestamp": "Timestamp {{time}}",
-      "generatedNotes": "Generated notes",
-      "generatedNotesDescription": "Regeneration uses the current canonical revision and does not overwrite manual notes or confirmed corrections.",
-      "regenerate": "Regenerate",
-      "remoteCancellationPending": "Remote cancellation is pending. Local deletion does not claim the remote copy is deleted.",
-      "cancelRemote": "Cancel remote processing",
+      "meetingTitle": "बैठकको शीर्षक",
+      "noStartTime": "यो बैठकले सुरु भएको समय अभिलेख गरेन।",
+      "started": "{{date}} मा सुरु भयो",
+      "status": "क्याप्चरको अवस्था",
+      "timeline": "अडियो टाइमलाइन र खाली अन्तरहरू",
+      "timeUnknown": "अज्ञात समय",
+      "noGaps": "क्याप्चरमा कुनै खाली अन्तर रिपोर्ट भएन।",
+      "transcript": "ट्रान्सक्रिप्ट",
+      "noTranscript": "कुनै ट्रान्सक्रिप्ट उपलब्ध छैन।",
+      "transcriptSegment": "ट्रान्सक्रिप्ट खण्ड",
+      "removeSegment": "खण्ड हटाउनुहोस्",
+      "unknownSpeaker": "अज्ञात वक्ता",
+      "speakers": "वक्ताहरू",
+      "noSpeakers": "कुनै वक्ता लेबल उपलब्ध छैन।",
+      "speakerName": "वक्ताको नाम",
+      "mergeSource": "यो वक्ता मिलाउनुहोस्",
+      "mergeTarget": "यो वक्तामा",
+      "merge": "वक्ता मिलाउनुहोस्",
+      "manualNotes": "म्यानुअल नोटहरू",
+      "manualNote": "म्यानुअल नोट",
+      "newNote": "नयाँ म्यानुअल नोट",
+      "notePlaceholder": "म्यानुअल नोट थप्नुहोस्",
+      "addNote": "नोट थप्नुहोस्",
+      "noNotes": "अझै कुनै म्यानुअल नोट छैन।",
+      "noTimestamp": "टाइमस्टाम्प छैन",
+      "timestamp": "टाइमस्टाम्प {{time}}",
+      "generatedNotes": "उत्पन्न नोटहरू",
+      "regenerate": "पुन: उत्पन्न गर्नुहोस्",
+      "remoteCancellationPending": "रिमोट रद्दीकरण बाँकी छ। स्थानीय मेटाइले रिमोट प्रतिलिपि मेटियो भन्ने दाबी गर्दैन।",
+      "cancelRemote": "रिमोट प्रशोधन रद्द गर्नुहोस्",
       "remoteCancellationRequested": "रद्द गर्न अनुरोध गरियो",
-      "export": "Export",
-      "exportDescription": "Each export uses an immutable local review snapshot and opens a native save dialog.",
-      "exportMarkdown": "Export Markdown",
-      "exportJson": "Export JSON",
+      "export": "निर्यात गर्नुहोस्",
+      "exportMarkdown": "Markdown निर्यात गर्नुहोस्",
+      "exportJson": "JSON निर्यात गर्नुहोस्",
       "exportComplete": "बैठक निर्यात भयो",
-      "citation": "Transcript {{time}}",
-      "noGeneratedNotes": "No generated notes are available yet.",
-      "template": "Template: {{template}}",
-      "artifactRevision": "Template v{{templateVersion}} · source revision {{revision}}",
-      "summary": "Summary",
-      "topics": "Topics",
-      "none": "None",
-      "decisions": "Decisions",
-      "actions": "Action items",
-      "keyQuestions": "Key questions",
-      "risks": "Risks",
-      "followUp": "Follow-up",
-      "artifactUnavailable": "This generated revision is unavailable. The source transcript and manual notes remain local.",
-      "actionMeta": "Owner: {{owner}} · Due: {{due}}",
-      "unassigned": "Unassigned",
-      "noDueDate": "No due date",
-      "questions": "Ask this meeting",
-      "questionsDescription": "Answers use only this local meeting and cite the supporting transcript.",
-      "questionPlaceholder": "Ask a question about this meeting",
-      "ask": "Ask locally",
-      "noQuestions": "No saved local answers.",
-      "question": "Question",
-      "insufficientEvidence": "No supporting passage was found in this meeting.",
-      "forget": "Forget this answer",
-      "exactSearch": "Exact search",
-      "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
-      "searchPlaceholder": "Search this meeting",
-      "search": "Search",
-      "noSearchResults": "No exact local matches.",
+      "citation": "ट्रान्सक्रिप्ट {{time}}",
+      "noGeneratedNotes": "अझै कुनै उत्पन्न नोट उपलब्ध छैन।",
+      "template": "टेम्प्लेट: {{template}}",
+      "summary": "सारांश",
+      "topics": "विषयहरू",
+      "none": "कुनै होइन",
+      "decisions": "निर्णयहरू",
+      "actions": "कार्य बिन्दुहरू",
+      "keyQuestions": "मुख्य प्रश्नहरू",
+      "risks": "जोखिमहरू",
+      "followUp": "पछिको कार्य",
+      "artifactUnavailable": "यो उत्पन्न संशोधन उपलब्ध छैन। स्रोत ट्रान्सक्रिप्ट र म्यानुअल नोटहरू स्थानीय रूपमै रहन्छन्।",
+      "actionMeta": "जिम्मेवार: {{owner}} · म्याद: {{due}}",
+      "unassigned": "तोकिएको छैन",
+      "noDueDate": "म्याद तोकिएको छैन",
+      "questions": "यस बैठकलाई सोध्नुहोस्",
+      "questionsDescription": "जवाफहरू यही स्थानीय बैठक मात्र प्रयोग गर्छन् र समर्थक ट्रान्सक्रिप्ट उद्धृत गर्छन्।",
+      "questionPlaceholder": "यो बैठकबारे प्रश्न सोध्नुहोस्",
+      "ask": "स्थानीय रूपमा सोध्नुहोस्",
+      "noQuestions": "कुनै सुरक्षित स्थानीय जवाफ छैन।",
+      "question": "प्रश्न",
+      "insufficientEvidence": "यो बैठकमा कुनै समर्थक अंश भेटिएन।",
+      "forget": "यो जवाफ बिर्सनुहोस्",
+      "exactSearch": "ठ्याक्कै मिल्ने खोजी",
+      "searchPlaceholder": "यस बैठकमा खोज्नुहोस्",
+      "search": "खोज्नुहोस्",
+      "noSearchResults": "ठ्याक्कै मिल्ने कुनै स्थानीय नतिजा छैन।",
       "askUnavailable": "सोध्नका लागि पूरा भएको स्थानीय ट्रान्सक्रिप्ट चाहिन्छ।",
       "asking": "यस बैठकलाई सोध्दै…",
-      "captured": "{{time}} मा रेकर्ड गरिएको",
       "droppedFrames": "छुटेका फ्रेमहरू: {{total}}",
       "hitKind": {
         "manualNote": "म्यानुअल नोट",
@@ -2311,17 +2054,12 @@
     },
     "ledger": {
       "title": "अभिलेख",
-      "description": "यो बैठकको हरेक विषय, त्यो कहाँ पुग्यो, र अवस्था पढिएको ट्रान्सक्रिप्टको उद्धरण। गणना मापन गरिएका हुन्; अवस्थाहरू अनुमान हुन्।",
       "emptyTitle": "यो बैठकबाट अझै कुनै अभिलेख पढिएको छैन",
       "emptyDescription": "अभिलेख उत्पन्न गरिएका नोटहरूसँगै लेखिन्छ। यो कुराकानी विषय अनुसार पढ्न नोटहरू पुन: उत्पन्न गर्नुहोस्।",
       "exportHtml": "अभिलेख पृष्ठ निर्यात गर्नुहोस्",
       "exported": "अभिलेख {{path}} मा लेखियो",
       "exportMissing": "यो बैठकमा निर्यात गर्न मिल्ने अभिलेख छैन। पहिले नोटहरू पुन: उत्पन्न गर्नुहोस्।",
       "statThreads": "टुंगिएका विषय",
-      "statOpen": "खुला",
-      "statDropped": "छाडिएका",
-      "statCommitments": "प्रतिबद्धता",
-      "statOpenLoops": "उत्तर नपाएका प्रश्न",
       "statReceipts": "उद्धरण",
       "receiptsVerified": "प्रमाणित",
       "receiptsDegraded": "{{threads}} विषय र {{commitments}} प्रतिबद्धता हटाइयो",
@@ -2359,40 +2097,26 @@
       }
     },
     "artifactState": {
-      "current": "Current",
-      "out_of_date": "Out of date",
-      "failed": "Generation failed"
+      "current": "अद्यावधिक",
+      "out_of_date": "पुरानो भइसकेको",
+      "failed": "उत्पादन असफल"
     },
     "answerState": {
-      "supported": "Supported",
-      "insufficient_evidence": "Insufficient evidence",
-      "unavailable": "Unavailable",
-      "out_of_date": "Out of date",
-      "forgotten": "Forgotten"
+      "supported": "समर्थित",
+      "insufficient_evidence": "पर्याप्त प्रमाण छैन",
+      "unavailable": "अनुपलब्ध",
+      "out_of_date": "पुरानो भइसकेको",
+      "forgotten": "बिर्सिएको"
     },
     "diarization": {
-      "not_requested": "Diarization not requested",
-      "model_unavailable": "Diarization model unavailable",
-      "downloading": "Downloading diarization model",
-      "running": "Separating speakers",
-      "succeeded": "Speaker assignments current",
-      "failed": "Speaker separation failed"
-    },
-    "trends": {
-      "title": "Meeting activity",
-      "loading": "Loading meeting trends…",
-      "error": "Couldn't load meeting trends.",
-      "unavailable": "Meeting trends are unavailable.",
-      "metricLabel": "Metric",
-      "metrics": {
-        "meetings": "Meetings",
-        "duration": "Captured time",
-        "transcript": "Transcript segments",
-        "actions": "Action items"
-      }
+      "not_requested": "वक्ता छुट्याउन अनुरोध गरिएको छैन",
+      "model_unavailable": "वक्ता छुट्याउने मोडेल अनुपलब्ध",
+      "downloading": "वक्ता छुट्याउने मोडेल डाउनलोड हुँदै",
+      "running": "वक्ता छुट्याउँदै",
+      "succeeded": "वक्ता निर्धारण अद्यावधिक छ",
+      "failed": "वक्ता छुट्याउने काम असफल भयो"
     },
     "list": {
-      "retentionHint": "भण्डारण अवधि: {{policy}}। Settings > Privacy मा परिवर्तन गर्नुहोस्।",
       "searchLabel": "बैठकहरू खोज्नुहोस्",
       "searchPlaceholder": "शीर्षकबाट खोज्नुहोस्",
       "clearFilters": "फिल्टरहरू हटाउनुहोस्",
@@ -2413,8 +2137,8 @@
         "words": "{{count}} शब्द ट्रान्सक्राइब गरियो"
       },
       "sourceGlyph": {
-        "microphone": "MIC",
-        "system_audio": "SYS"
+        "microphone": "माइक",
+        "system_audio": "सिस्टम"
       },
       "filters": {
         "label": "बैठकहरू छान्नुहोस्",
@@ -2450,17 +2174,13 @@
     },
     "gate": {
       "title": "रेकर्डिङ सुरु भएन",
-      "description": "Sona ले बैठक बनायो, तर रेकर्ड गर्नुपर्ने एउटा स्रोत उपलब्ध छैन।",
       "readyTitle": "रेकर्ड गर्न तयार",
-      "readyDescription": "यो बैठकको क्याप्चरमा कुनै बाधा छैन।",
       "recordAnyway": "त्यो बिना रेकर्ड गर्नुहोस्",
       "recordAnywayHint": "रेकर्ड आंशिक चिह्नित हुन्छ र छुटेको स्रोत त्यसमा नाम सहित रहन्छ।"
     },
     "analytics": {
       "title": "कुराकानी",
-      "description": "यही Mac मा, वक्ता छुट्याइएको प्रतिलेखबाट नापिएको। कतै पनि केही पठाइँदैन।",
       "noSpeech": "कुनै बोली प्रतिलेखन भएन, त्यसैले नाप्ने कुरा छैन।",
-      "talkShare": "सबैभन्दा धेरै बोल्ने",
       "longestMonologue": "सबैभन्दा लामो एकालाप",
       "patience": "धैर्य",
       "patienceDetail": "जवाफ दिनु अघिको मध्य विश्राम",
@@ -2475,7 +2195,6 @@
       "noHits": "उल्लेख भएन",
       "jumpToFirst": "पहिलो देखाउनुहोस्",
       "trackersTitle": "कुञ्जीशब्द ट्रयाकर",
-      "trackersDescription": "हरेक बैठक प्रतिलेखमा हेर्ने वाक्यांश। मिलान अक्षरशः हुन्छ र सानो-ठूलो अक्षर छुट्याउँदैन, र हरेक स्क्यान यही Mac मा चल्छ।",
       "addTracker": "ट्रयाकर थप्नुहोस्",
       "removeTracker": "ट्रयाकर हटाउनुहोस्",
       "noTrackers": "अझै कुनै ट्रयाकर छैन। एउटा थप्नुहोस् र कुनै वाक्यांश कति पटक आउँछ गन्न सुरु गर्नुहोस्।",
@@ -2487,7 +2206,6 @@
     "notes": {
       "title": "मेरा टिप्पणी",
       "liveDescription": "जति कच्चा लेख्न चाहनुहुन्छ लेख्नुहोस्। यी टिप्पणी यही Mac मा रहन्छन् र बैठक सकिँदा Sona बनाउने टिप्पणीलाई दिशा दिन्छन्।",
-      "reviewDescription": "तपाईंका आफ्नै टिप्पणीले बनाइएका टिप्पणी कसमा जोर दिने भन्ने निर्धारण गर्छन्। उनीहरूलाई कहिल्यै उद्धृत वा सन्दर्भ गरिँदैन।",
       "placeholder": "सम्झनलायक सबै कुरा: नाम, अंक, पछि गर्नुपर्ने काम",
       "unsaved": "अझै सुरक्षित भएको छैन",
       "saving": "सुरक्षित हुँदै…",
@@ -2495,7 +2213,6 @@
       "conflict": "यी टिप्पणी अन्यत्र बदलिएका छन्। हालको संस्करण लोड गर्न बैठक फेरि खोल्नुहोस्।",
       "reenhance": "मेरा टिप्पणीले फेरि सुधार गर्नुहोस्",
       "enhancing": "फेरि बनाइँदै…",
-      "enhanced": "टिप्पणी फेरि बनाइयो।",
       "enhanceFailed": "Sona ले टिप्पणी फेरि बनाउन सकेन। बैठक फेरि खोलेर पुनः प्रयास गर्नुहोस्।",
       "catchUp": "अहिलेसम्मको सार दिनुहोस्",
       "catchingUp": "सार बनाइँदै…",
@@ -2509,11 +2226,11 @@
         "interview": "अन्तर्वार्ता",
         "sales_call": "बिक्री कल",
         "standup": "स्ट्यान्डअप"
-      }
+      },
+      "template": "टेम्प्लेट"
     },
     "detection": {
       "title": "बैठक पहिचान गर्नुहोस्",
-      "description": "Sona कलमा नजर राख्छ र टिप्पणी लिने प्रस्ताव गर्छ। यो आफै कहिल्यै रेकर्ड गर्दैन।",
       "loading": "पहिचानको अवस्था पढिँदै…",
       "prompt": {
         "calendar": "{{title}} सुरु हुँदै",
@@ -2531,21 +2248,17 @@
       },
       "pane": {
         "title": "चाँडै सुरु हुँदै",
-        "description": "तपाईंले यहाँबाट सुरु नगरेसम्म Sona रेकर्ड गर्दैन।",
-        "countdown": "{{seconds}} सेकेन्डमा सुरु",
-        "notYetRecording": "रेकर्ड हुँदै छैन"
+        "countdown": "{{seconds}} सेकेन्डमा सुरु"
       },
       "calendar": {
         "label": "मेरो पात्रो प्रयोग गर्नुहोस्",
         "description": "दुई वा अधिक सहभागी भएका कार्यक्रम सुरु हुनु एक मिनेट अघि उल्टो गणना देखाउँछ। Apple ले पढ्ने-मात्र अनुमति दिँदैन, त्यसैले macOS पहिलो पटक पूरा पात्रो पहुँच माग्छ।"
       },
       "anyMic": {
-        "label": "माइक्रोफोनको हरेक प्रयोगमा सोध्नुहोस्",
-        "description": "यसमा भ्वाइस मेमो, म्युजिक एप र माइक्रोफोन खोल्ने अन्य सबै पर्छन्। बन्द राख्दा सूचना चिनिएका बैठक एपमा मात्र सीमित रहन्छ।"
+        "label": "माइक्रोफोनको हरेक प्रयोगमा सोध्नुहोस्"
       },
       "autoStart": {
-        "label": "उल्टो गणना देखिँदा बैठक खोल्नुहोस्",
-        "description": "तपाईं पहिले नै उल्टो गणना हेर्दै हुनुहुन्छ र कार्यक्रम सुरु हुँदा सूचना छोड्छ। के रेकर्ड हुने हो, त्यो तपाईंले नै पुष्टि गर्नुहुन्छ।"
+        "label": "उल्टो गणना देखिँदा बैठक खोल्नुहोस्"
       },
       "apps": {
         "label": "बैठक एपहरू",
@@ -2555,7 +2268,6 @@
       },
       "state": {
         "title": "पहिचानले के देख्न सक्छ",
-        "description": "पहिचान धेरैजसो समय चुप रहन्छ। कारण यो हो।",
         "calendarDenied": "पात्रो पहुँच दिइएन, त्यसैले माइक्रोफोनको बाटो मात्र चल्दै छ।",
         "notificationsDenied": "Sona का सूचना बन्द छन्, त्यसैले संकेत एपभित्र मात्र देखिन्छन्।",
         "bluetoothCaveat": "बैठक एप खुला छ तर माइक्रोफोन प्रयोगको जानकारी कसैले दिँदैन। ब्लुटुथ हेडसेट प्रायः दिँदैनन्, त्यसैले कुनै बैठक चलिरहेको भए आफै सुरु गर्नुहोस्।",
@@ -2623,14 +2335,12 @@
   },
   "agentPanel": {
     "open": "एजेन्ट",
-    "loading": "जडान हुँदै…",
     "retry": "पुनः प्रयास",
     "cancel": "रद्द गर्नुहोस्",
     "apply": "लागू गर्नुहोस्",
     "undo": "पूर्ववत",
     "panelToggle": "एजेन्ट प्यानल बन्द गर्नुहोस्",
     "conversationLabel": "कुराकानी",
-    "proposalLabel": "प्रस्तावित परिवर्तनहरू",
     "proposalTitle": "प्रस्तावित परिवर्तनहरू",
     "empty": "Sona सेटिङहरूबारे सोध्नुहोस्। केही परिवर्तन गर्नुअघि प्रस्तावहरू यहाँ समीक्षाका लागि देखिन्छन्।",
     "inputPlaceholder": "Sona बारे सोध्नुहोस्…",
@@ -2647,92 +2357,16 @@
       "error": "एजेन्ट प्यानल उपलब्ध छैन।"
     }
   },
-  "analytics": {
-    "range": {
-      "label": "Range",
-      "days_7": "7 days",
-      "days_30": "30 days",
-      "days_180": "6 months"
-    },
-    "delta": {
-      "new": "New",
-      "flat": "No change",
-      "unavailable": "Unavailable",
-      "change": "{{value}} vs previous period"
-    },
-    "duration": {
-      "minutes": "{{value}} min",
-      "hours": "{{value}} h"
-    },
-    "chart": {
-      "description": "{{metric}} for {{range}}",
-      "empty": "No activity yet"
-    }
-  },
   "overview": {
-    "sources": {
-      "title": "Sources",
-      "description": "Where the recordings in this range came from.",
-      "microphone": "Microphone",
-      "file": "File import",
-      "legacy": "Legacy",
-      "empty": "No recordings in this range.",
-      "meetings": "बैठकहरू",
-      "meetingsUnavailable": "बैठक भण्डारण उपलब्ध छैन, त्यसैले यहाँ बैठकहरू गणना गरिएका छैनन्।"
-    },
-    "recent": {
-      "title": "Recent activity",
-      "history": "Dictation",
-      "meeting": "Meeting",
-      "viewAll": "सबै हेर्नुहोस्",
-      "words": "{{count}} शब्द",
-      "emptyRange": "पछिल्ला ३० दिनमा कुनै डिक्टेसन वा मिटिङ छैन।",
-      "failedCommand": "{{command}} असफल भयो",
-      "failedCommandWithDetail": "{{command}} असफल भयो: {{detail}}"
-    },
     "hero": {
-      "ready": "Ready",
-      "recording": "Listening",
-      "newMeeting": "New meeting",
-      "importAudio": "Import audio",
-      "mode": "मोड: {{name}}",
-      "setShortcut": "कुनै पनि एपबाट क्याप्चर गर्न Settings मा डिक्टेसन सर्टकट सेट गर्नुहोस्।",
-      "setShortcutAction": "एउटा सर्टकट सेट गर्नुहोस्",
+      "ready": "तयार",
+      "recording": "सुन्दै",
+      "newMeeting": "नयाँ बैठक",
+      "importAudio": "अडियो आयात गर्नुहोस्",
+      "gestureTapHold": "बदल्न थिच्नुहोस् · बोल्न थिचिराख्नुहोस्",
+      "gestureTapOnly": "बदल्न थिच्नुहोस्",
       "shortcutAction": "बोलाइको सर्टकट बदल्नुहोस्",
-      "gestureTapHold": "बदल्न थिच्नुहोस्, बोल्न थिचिराख्नुहोस्।",
-      "gestureTapOnly": "बदल्न थिच्नुहोस्।"
-    },
-    "actions": {
-      "dictate": "Dictate",
-      "unavailable": "Shortcut unavailable"
-    },
-    "chart": {
-      "day": "{{date}} · डिक्टेसनहरू {{dictations}}",
-      "dayWithMeetings": "{{date}} · डिक्टेसनहरू {{dictations}} · बैठकहरू {{meetings}}",
-      "legend": "प्रतिदिन डिक्टेसनहरू",
-      "peak": "सबैभन्दा व्यस्त दिन {{peak}}",
-      "summary": "{{from}} देखि {{to}} सम्म प्रतिदिन डिक्टेसनहरू। जम्मा {{total}}, सबैभन्दा व्यस्त दिन {{peak}}।"
-    },
-    "empty": {
-      "action": "Library खोल्नुहोस्",
-      "description": "कुनै पनि एपमा आफ्नो डिक्टेसन सर्टकट थिचिराख्नुहोस्, र Sona ले तपाईंले बोलेको टाइप गर्छ। पहिलो डिक्टेसनपछि तपाईंको प्रयोग तथ्याङ्क र भर्खरका क्याप्चरहरू यहाँ देखिन्छन्।",
-      "title": "अहिलेसम्म कुनै क्याप्चर छैन"
-    },
-    "stats": {
-      "activeDays": "{{total}} दिनमध्ये {{active}} दिन सक्रिय",
-      "allTime": "सबै समयमा {{total}}",
-      "dictations": "डिक्टेसनहरू",
-      "dictationsAllTime": "डिक्टेसनहरू, सबै समय",
-      "error": "Sona ले तपाईंको प्रयोग हिस्ट्री पढ्न सकेन।",
-      "range": "{{from}} देखि {{to}} सम्म",
-      "rangeUnavailable": "पछिल्ला ३० दिन पढ्न सकिएन, त्यसैले यी सबै समयका जम्मा हुन्।",
-      "speaking": "बोलेको समय",
-      "speakingAllTime": "बोलेको समय, सबै समय",
-      "streak": "हालको स्ट्रिक",
-      "tiles": "प्रयोग सारांश",
-      "title": "गतिविधि",
-      "words": "शब्दहरू",
-      "wordsAllTime": "शब्दहरू, सबै समय"
+      "setShortcutAction": "एउटा सर्टकट सेट गर्नुहोस्"
     },
     "update": {
       "available": "Sona {{latest}} उपलब्ध छ। यो इन्स्टल {{current}} मा छ।",
@@ -2740,122 +2374,98 @@
       "failed": "अपडेट जाँच गर्न सकिएन।",
       "failedWithReason": "अपडेट जाँच गर्न सकिएन: {{reason}}",
       "view": "रिलिज हेर्नुहोस्"
-    },
-    "instrument": {
-      "label": "क्याप्चर उपकरण",
-      "engine": "इन्जिन",
-      "input": "इनपुट",
-      "shortcut": "सर्टकट",
-      "mode": "मोड",
-      "loaded": "लोड भएको",
-      "unloaded": "लोड नभएको",
-      "notMeasured": "मापन गरिएको छैन",
-      "unbound": "सेट गरिएको छैन",
-      "gestureTapHold": "ट्याप · होल्ड",
-      "gestureTap": "ट्याप",
-      "channel": "ch {{channel}}",
-      "channels": "{{count}} ch",
-      "rate": "{{kilohertz}} kHz",
-      "systemDefault": "प्रणाली पूर्वनिर्धारित",
-      "decode": "डिकोडिङ {{factor}}"
     }
   },
   "cloudSync": {
-    "title": "Cloud Sync",
     "account": {
-      "title": "Cloud Sync",
-      "description": "Meetings stay on this device until you set up sync.",
+      "title": "क्लाउड सिंक",
       "status": {
-        "loading": "Checking sync…",
-        "local": "Local only",
-        "ready": "Sync active",
-        "paused": "Sync paused",
-        "attention": "Sync needs attention",
-        "unavailable": "Sync unavailable"
+        "loading": "जाँच हुँदै…",
+        "local": "स्थानीय मात्र",
+        "ready": "सक्रिय",
+        "paused": "रोकिएको",
+        "attention": "ध्यान आवश्यक",
+        "unavailable": "अनुपलब्ध"
       },
-      "pending": "{{count}} pending",
-      "pause": "Pause sync",
-      "resume": "Resume sync"
-    },
-    "disclosure": {
-      "title": "Set up or recover sync",
-      "description": "Connect an endpoint or pair another device.",
-      "notice": "Setup is optional. Meeting data stays local until you complete it."
+      "pending": "{{count}} बाँकी",
+      "pause": "सिंक रोक्नुहोस्",
+      "resume": "सिंक जारी राख्नुहोस्"
     },
     "setup": {
-      "title": "Set up a sync account",
-      "endpoint": "Endpoint",
-      "bootstrapSecret": "Bootstrap secret",
-      "submit": "Set up sync"
+      "title": "सिंक खाता सेटअप गर्नुहोस्",
+      "endpoint": "इन्डपोइन्ट",
+      "bootstrapSecret": "बुटस्ट्र्याप सिक्रेट",
+      "submit": "सिंक सेटअप गर्नुहोस्"
     },
     "recovery": {
-      "title": "Recover a sync account",
-      "code": "Recovery code",
-      "submit": "Recover account",
-      "generatedCode": "Save this recovery code now",
-      "oneTime": "Sona shows this code once and does not store it."
+      "title": "सिंक खाता पुनःप्राप्त गर्नुहोस्",
+      "code": "रिकभरी कोड",
+      "submit": "खाता पुनःप्राप्त गर्नुहोस्",
+      "generatedCode": "यो रिकभरी कोड अहिले सुरक्षित गर्नुहोस्",
+      "oneTime": "Sona ले यो कोड एक पटक देखाउँछ र भण्डारण गर्दैन।"
     },
     "pairing": {
-      "title": "Pair a device",
-      "vaultId": "Vault ID",
-      "createOffer": "Create pairing offer",
-      "currentOffer": "Pairing offer",
-      "approve": "Approve this offer",
-      "receivedOffer": "Offer from another device",
-      "accept": "Accept offer"
+      "title": "डिभाइस पेयर गर्नुहोस्",
+      "vaultId": "भल्ट ID",
+      "createOffer": "पेयरिङ प्रस्ताव बनाउनुहोस्",
+      "currentOffer": "पेयरिङ प्रस्ताव",
+      "approve": "यो प्रस्ताव स्वीकृत गर्नुहोस्",
+      "receivedOffer": "अर्को डिभाइसबाट प्रस्ताव",
+      "accept": "प्रस्ताव स्वीकार गर्नुहोस्"
     },
     "errors": {
-      "portable_unavailable": "Cloud Sync is unavailable in portable mode.",
-      "secret_unavailable": "The native secure store is unavailable.",
-      "setup_required": "Set up Cloud Sync before using this action.",
-      "auth_required": "Cloud sign-in is required.",
-      "quota": "Cloud storage quota has been reached.",
-      "integrity_failure": "The cloud operation could not be verified.",
-      "conflict": "This meeting has a sync conflict.",
-      "unsupported_protocol": "This device does not support the cloud protocol.",
-      "transient": "Cloud Sync is temporarily unavailable.",
-      "invalid_expiry": "Choose a future expiry.",
-      "invalid_offer": "The pairing offer is incomplete or invalid.",
-      "unexpected": "The cloud operation failed."
+      "portable_unavailable": "पोर्टेबल मोडमा क्लाउड सिंक उपलब्ध छैन।",
+      "secret_unavailable": "नेटिभ सुरक्षित स्टोर उपलब्ध छैन।",
+      "setup_required": "यो कार्य प्रयोग गर्नुअघि क्लाउड सिंक सेटअप गर्नुहोस्।",
+      "auth_required": "क्लाउड साइन-इन आवश्यक छ।",
+      "quota": "क्लाउड भण्डारण कोटा पुगिसक्यो।",
+      "integrity_failure": "क्लाउड कार्य प्रमाणित गर्न सकिएन।",
+      "conflict": "यो बैठकमा सिंक द्वन्द्व छ।",
+      "unsupported_protocol": "यो डिभाइसले क्लाउड प्रोटोकल समर्थन गर्दैन।",
+      "transient": "क्लाउड सिंक अस्थायी रूपमा उपलब्ध छैन।",
+      "invalid_expiry": "भविष्यको समाप्ति समय छान्नुहोस्।",
+      "invalid_offer": "पेयरिङ प्रस्ताव अपूरो वा अवैध छ।",
+      "unexpected": "क्लाउड कार्य असफल भयो।"
     },
     "meeting": {
-      "title": "Cloud Sync",
+      "title": "क्लाउड सिंक",
       "status": {
-        "loading": "Checking sync…",
-        "local": "Local only",
-        "queued": "Queued",
-        "uploading": "Uploading",
-        "committed": "Synced",
-        "conflict": "Conflict",
-        "pending_deletion": "Removal pending",
-        "deleted": "Removed",
-        "paused": "Paused",
-        "auth_required": "Sign-in required",
-        "quota": "Quota reached",
-        "integrity_failure": "Verification failed",
-        "unavailable": "Sync unavailable"
+        "loading": "सिंक जाँच हुँदै…",
+        "local": "स्थानीय मात्र",
+        "queued": "लाइनमा",
+        "uploading": "अपलोड हुँदै",
+        "committed": "सिंक भयो",
+        "conflict": "द्वन्द्व",
+        "pending_deletion": "हटाउने काम बाँकी",
+        "deleted": "हटाइयो",
+        "paused": "रोकिएको",
+        "auth_required": "साइन-इन आवश्यक",
+        "quota": "कोटा पुग्यो",
+        "integrity_failure": "प्रमाणीकरण असफल",
+        "unavailable": "सिंक अनुपलब्ध"
       },
-      "shareCount": "{{count}} shares",
-      "retryScheduled": "Retry scheduled",
-      "retry": "Retry sync",
-      "keepLocal": "Keep this device's copy",
-      "useRemote": "Use the cloud copy",
-      "expiresAt": "Share expiry",
+      "shareCount": "{{count}} साझेदारी",
+      "retryScheduled": "पुनः प्रयास तालिकाबद्ध भयो",
+      "retry": "सिंक फेरि प्रयास गर्नुहोस्",
+      "keepLocal": "यो डिभाइसको प्रतिलिपि राख्नुहोस्",
+      "useRemote": "क्लाउड प्रतिलिपि प्रयोग गर्नुहोस्",
+      "expiresAt": "साझेदारीको अवधि समाप्ति",
       "bundle": {
-        "fileFilter": "Sona share",
-        "export": "Export .sona file",
-        "import": "Import .sona file",
-        "exported": "Saved to {{path}}",
-        "imported": "Imported meeting {{sessionId}}"
+        "fileFilter": "Sona साझेदारी",
+        "export": ".sona फाइल निर्यात गर्नुहोस्",
+        "import": ".sona फाइल आयात गर्नुहोस्",
+        "exported": "{{path}} मा सुरक्षित भयो",
+        "imported": "बैठक {{sessionId}} आयात भयो"
       },
       "browser": {
-        "create": "Create browser share",
-        "revoke": "Revoke browser share"
+        "create": "ब्राउजर साझेदारी बनाउनुहोस्",
+        "revoke": "ब्राउजर साझेदारी रद्द गर्नुहोस्",
+        "revokeConfirm": "यो लिङ्क भएका सबैले तपाईंले रद्द गर्ने बित्तिकै पहुँच गुमाउँछन्।"
       }
     }
   },
   "topNav": {
-    "capture": "Capture",
-    "library": "Library"
+    "capture": "रेकर्डिङ",
+    "library": "लाइब्रेरी"
   }
 }

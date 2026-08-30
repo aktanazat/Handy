@@ -30,16 +30,14 @@
     "models": "Modelos",
     "advanced": "Avanzado",
     "postProcessing": "Post procesamiento",
-    "history": "Historial",
     "debug": "Depuración",
     "about": "Acerca de",
-    "modes": "Modes",
-    "privacy": "Privacy",
-    "agents": "Agents",
-    "meetings": "Meetings",
-    "navigation": "Main navigation",
-    "overview": "Overview",
-    "settings": "Settings"
+    "modes": "Modos",
+    "privacy": "Privacidad",
+    "agents": "Agentes",
+    "meetings": "Reuniones",
+    "navigation": "Navegación principal",
+    "settings": "Ajustes"
   },
   "onboarding": {
     "subtitle": "Los modelos se ejecutan en este Mac y equilibran precisión y velocidad",
@@ -154,6 +152,7 @@
     "active": "Activo",
     "switching": "Cambiando…",
     "noModelsAvailable": "No hay modelos disponibles",
+    "searchPlaceholder": "Buscar modelos",
     "verifying": "Verificando {{modelName}}…",
     "verifyingGeneric": "Verificando…",
     "extracting": "Extrayendo {{modelName}}…",
@@ -161,7 +160,7 @@
     "extractingGeneric": "Extrayendo…",
     "downloading": "Descargando {{percentage}}%",
     "downloadingMultiple": "Descargando {{count}} modelos…",
-    "downloadingGeneric": "Downloading…",
+    "downloadingGeneric": "Descargando…",
     "modelReady": "Modelo listo",
     "loading": "Cargando {{modelName}}…",
     "loadingGeneric": "Cargando…",
@@ -190,12 +189,10 @@
     },
     "models": {
       "title": "Modelos de transcripción",
-      "description": "El modelo que convierte la voz en texto. Los modelos equilibran precisión y velocidad.",
       "deleteConfirm": "¿Eliminar {{modelName}}? Volver a usarlo implica descargarlo de nuevo.",
       "deleteActiveConfirm": "{{modelName}} es el modelo activo. Eliminarlo detiene la transcripción hasta que selecciones otro.",
       "deleteTitle": "Eliminar modelo",
       "filters": {
-        "allLanguages": "Todos los idiomas",
         "streaming": "Mostrar solo modelos con transcripción en vivo",
         "translation": "Mostrar solo modelos que traducen al inglés",
         "allFamilies": "Todas las familias",
@@ -205,56 +202,50 @@
         "family": "Familia de modelos"
       },
       "noModelsMatch": "Ningún modelo coincide con este filtro.",
-      "yourModels": "Modelos descargados",
-      "availableModels": "Disponibles para descargar",
-      "searchPlaceholder": "Buscar modelos por nombre",
       "rescan": {
         "label": "Volver a escanear",
         "tooltip": "Vuelve a escanear en busca de modelos añadidos a la carpeta de modelos o a la caché de Hugging Face fuera de Sona"
       },
       "cloud": {
-        "title": "Cloud transcription",
-        "description": "Save a provider key to make its cloud engine available in a mode.",
-        "providerDescription": "Credentials stay in your operating system's native secure store.",
+        "title": "Transcripción en la nube",
+        "providerDescription": "Las credenciales se quedan en el almacén seguro nativo de tu sistema operativo.",
         "providers": {
           "deepgram": "Deepgram Nova-3",
           "elevenLabs": "ElevenLabs Scribe v2"
         },
         "apiKey": {
-          "label": "API key",
-          "description": "A saved key is write-only and never displayed here.",
-          "placeholder": "Paste API key"
+          "placeholder": "Pega la clave API"
         },
         "actions": {
-          "save": "Save key",
-          "saving": "Saving…",
-          "remove": "Remove key",
-          "removing": "Removing…",
-          "verify": "Verify",
-          "verifying": "Verifying…"
+          "save": "Guardar la clave",
+          "saving": "Guardando…",
+          "remove": "Eliminar la clave",
+          "removing": "Eliminando…",
+          "verify": "Verificar",
+          "verifying": "Verificando…"
         },
         "status": {
-          "checking": "Checking native key store…",
-          "notSaved": "No API key saved.",
-          "saved": "API key saved. It has not been verified.",
-          "verified": "API key verified.",
-          "verifyRequiresConsent": "Review the transfer disclosure in a mode before verifying this key."
+          "checking": "Comprobando el almacén de claves del sistema…",
+          "notSaved": "Ninguna clave API guardada.",
+          "saved": "Clave API guardada. No se ha verificado.",
+          "verified": "Clave API verificada.",
+          "verifyRequiresConsent": "Revisa la información de transferencia en un modo antes de verificar esta clave."
         },
         "errors": {
-          "not_found": "No API key is saved for this provider.",
-          "unavailable": "The native secure store is unavailable.",
-          "locked": "The native secure store is locked.",
-          "corrupt": "The saved credential cannot be read safely.",
-          "invalid": "The credential was not accepted by the secure store.",
-          "busy": "The secure store is busy. Try again.",
-          "backend": "The credential operation could not be completed.",
-          "not_configured": "Save an API key before verifying it.",
-          "consent_required": "Accept the provider transfer disclosure before verifying.",
-          "authentication": "The provider rejected this API key.",
-          "quota": "The provider rejected verification because the account is over quota.",
-          "network": "The provider could not be reached for verification.",
-          "protocol": "The provider returned an unexpected verification response.",
-          "unknown_provider": "This cloud provider is not available in this build."
+          "not_found": "No hay ninguna clave API guardada para este proveedor.",
+          "unavailable": "El almacén seguro del sistema no está disponible.",
+          "locked": "El almacén seguro del sistema está bloqueado.",
+          "corrupt": "La credencial guardada no se puede leer de forma segura.",
+          "invalid": "El almacén seguro no aceptó la credencial.",
+          "busy": "El almacén seguro está ocupado. Inténtalo de nuevo.",
+          "backend": "No se pudo completar la operación con las credenciales.",
+          "not_configured": "Guarda una clave API antes de verificarla.",
+          "consent_required": "Acepta la información de transferencia del proveedor antes de verificar.",
+          "authentication": "El proveedor rechazó esta clave API.",
+          "quota": "El proveedor rechazó la verificación porque la cuenta superó su cuota.",
+          "network": "No se pudo contactar con el proveedor para la verificación.",
+          "protocol": "El proveedor devolvió una respuesta de verificación inesperada.",
+          "unknown_provider": "Este proveedor en la nube no está disponible en esta versión."
         }
       },
       "actions": {
@@ -262,6 +253,7 @@
         "activateNamed": "Usar {{modelName}}",
         "download": "Descargar",
         "downloadNamed": "Descargar {{modelName}}",
+        "moreFor": "Más acciones para {{modelName}}",
         "retryNamed": "Reintentar la descarga de {{modelName}}"
       },
       "emptyCatalog": "Sona no pudo leer su catálogo de modelos. Volver a escanear detecta los modelos que ya están en la carpeta de modelos o en la caché de Hugging Face.",
@@ -273,44 +265,33 @@
         "other": "Otros modelos"
       },
       "familyCount": "{{total}} modelos",
-      "noModelsMatchHint": "Nada en el catálogo coincide con todos los filtros a la vez.",
       "searchByAnything": "Buscar por nombre, idioma o capacidad",
       "state": {
         "activeInMemory": "Activo, en memoria",
         "downloaded": "Descargado",
         "notDownloaded": "No descargado"
-      },
-      "summary": {
-        "noActive": "Ningún modelo seleccionado",
-        "activeLabel": "Modelo activo",
-        "onDiskLabel": "En disco"
       }
     },
     "general": {
       "title": "General",
       "shortcut": {
         "title": "Atajos",
-        "description": "Atajos de teclado para grabar y reescribir.",
         "loading": "Cargando atajos…",
         "none": "No hay atajos configurados",
         "notFound": "Atajo no encontrado",
         "pressKeys": "Pulsa tus teclas…",
         "bindings": {
           "transcribe": {
-            "name": "Atajo de transcripción",
-            "description": "El atajo de teclado para grabar y transcribir tu voz."
+            "name": "Atajo de transcripción"
           },
           "cancel": {
-            "name": "Atajo de cancelar",
-            "description": "El atajo de teclado para cancelar la grabación actual."
+            "name": "Atajo de cancelar"
           },
           "transcribe_with_post_process": {
-            "name": "Atajo de post procesamiento",
-            "description": "Un atajo opcional que siempre aplica la limpieza con IA a la transcripción."
+            "name": "Atajo de post procesamiento"
           },
           "command": {
-            "name": "Atajo de comando",
-            "description": "El atajo de teclado para reescribir el texto que has seleccionado a partir de una instrucción hablada."
+            "name": "Atajo de comando"
           }
         },
         "errors": {
@@ -320,22 +301,18 @@
         },
         "holdHint": "Toca para alternar, mantén para hablar. Funciona con cualquier atajo.",
         "recordAction": "Grabar un nuevo atajo para {{binding}}",
-        "recordHint": "Haz clic para grabar",
         "unset": "Sin definir"
       },
       "language": {
         "title": "Idioma",
-        "description": "El idioma que se usa para el reconocimiento de voz. Auto lo detecta; indicar un idioma puede mejorar la precisión.",
         "searchPlaceholder": "Buscar idiomas",
         "noResults": "No se encontraron idiomas",
         "auto": "Automático"
       },
       "pushToTalk": {
-        "label": "Presionar para hablar",
-        "description": "Mantén presionado para grabar, suelta para detener"
+        "label": "Presionar para hablar"
       },
       "appearance": {
-        "description": "Idioma de la interfaz y esquema de color. Ambos se aplican de inmediato.",
         "title": "Apariencia",
         "material": {
           "title": "Material",
@@ -346,7 +323,6 @@
           }
         }
       },
-      "description": "Las teclas que pulsas, el micrófono que Sona escucha y el aspecto de la app.",
       "commandMode": {
         "label": "Modo de comando por voz",
         "description": "Mantén el atajo de comando y di qué cambiar en el texto que has seleccionado."
@@ -355,36 +331,27 @@
     "sound": {
       "title": "Sonido",
       "microphone": {
-        "title": "Micrófono",
-        "description": "El micrófono desde el que graba Sona.",
-        "placeholder": "Selecciona un micrófono",
-        "loading": "Cargando…"
+        "title": "Micrófono"
       },
       "channel": {
         "title": "Canal de entrada",
-        "description": "Desde qué canal de entrada se graba, cuando una interfaz tiene más de uno.",
         "average": "Promediar todos los canales",
         "channel": "Canal {{n}}"
       },
       "audioFeedback": {
-        "label": "Retroalimentación de audio",
-        "description": "Reproduce un sonido cuando la grabación inicia y se detiene."
+        "label": "Retroalimentación de audio"
       },
       "outputDevice": {
         "title": "Dispositivo de salida",
-        "description": "Dónde se reproducen los sonidos de retroalimentación.",
-        "placeholder": "Selecciona un dispositivo de salida",
-        "loading": "Cargando…"
+        "description": "Dónde se reproducen los sonidos de retroalimentación."
       },
       "volume": {
-        "title": "Volumen",
-        "description": "Volumen de los sonidos de retroalimentación."
+        "title": "Volumen"
       }
     },
     "advanced": {
       "englishSpelling": {
         "label": "Ortografía en inglés",
-        "description": "Conserva la ortografía del reconocedor de voz o convierte formas estadounidenses comunes a ortografía británica.",
         "values": {
           "as_spoken": "Tal como se dice",
           "british": "Británica"
@@ -398,8 +365,7 @@
         "experimental": "Experimental"
       },
       "experimentalToggle": {
-        "label": "Funciones experimentales",
-        "description": "Mostrar opciones que aún están en desarrollo."
+        "label": "Funciones experimentales"
       },
       "lazyStreamClose": {
         "label": "Mantener micrófono abierto entre transcripciones",
@@ -407,8 +373,7 @@
       },
       "acceleration": {
         "transcribe": {
-          "title": "Aceleración de transcribe.cpp",
-          "description": "Aceleración por hardware para modelos transcribe.cpp (familia Whisper). Auto usa GPU si está disponible (Metal en macOS, Vulkan en Windows/Linux)."
+          "title": "Aceleración de transcribe.cpp"
         },
         "ort": {
           "title": "Aceleración de ONNX",
@@ -423,17 +388,15 @@
         "description": "Lanzar en la bandeja del sistema sin abrir la ventana."
       },
       "autostart": {
-        "label": "Iniciar al arranque",
-        "description": "Iniciar Sona cuando inicies sesión."
+        "label": "Iniciar al arranque"
       },
       "showTrayIcon": {
-        "label": "Mostrar icono de bandeja",
-        "description": "Mostrar el icono de Sona en la bandeja del sistema."
+        "label": "Mostrar icono de bandeja"
       },
       "overlay": {
         "style": {
           "title": "Superposición",
-          "description": "Choose the recording overlay: None hides it, Minimal shows a compact pill, Live shows transcription in real time while a streaming local model or cloud mode is active. On Linux 'None' is recommended.",
+          "description": "Elige la superposición de grabación: Ninguna la oculta, Minimalista muestra una píldora compacta, En vivo muestra la transcripción en tiempo real mientras está activo un modelo local en streaming o un modo en la nube. En Linux se recomienda «Ninguna».",
           "options": {
             "none": "Ninguna",
             "minimal": "Minimalista",
@@ -442,7 +405,6 @@
         },
         "position": {
           "title": "Posición de superposición",
-          "description": "Dónde aparece la superposición en la pantalla durante la grabación y la transcripción.",
           "options": {
             "bottom": "Abajo",
             "top": "Arriba"
@@ -489,12 +451,10 @@
         }
       },
       "translateToEnglish": {
-        "label": "Traducir al inglés",
-        "description": "Traducir el habla de otros idiomas al inglés durante la transcripción."
+        "label": "Traducir al inglés"
       },
       "modelUnload": {
         "title": "Descargar modelo",
-        "description": "Liberar la memoria GPU y CPU cuando el modelo lleve inactivo este tiempo.",
         "options": {
           "never": "Nunca",
           "immediately": "Inmediatamente",
@@ -508,7 +468,6 @@
       },
       "customWords": {
         "title": "Vocabulario",
-        "description": "Corrige las frases habladas para obtener formas escritas exactas. Whisper usa las formas escritas como prompt; otros modelos usan una corrección determinista.",
         "spoken": "Frase hablada",
         "written": "Texto escrito",
         "spokenPlaceholder": "Lo que se dijo",
@@ -542,26 +501,21 @@
           "unsavedWarning": "Tiene cambios sin guardar en el vocabulario. Aplicar esta importación los reemplaza.",
           "back": "Atrás",
           "continue": "Continuar",
-          "replaceSummary": "Al aplicar se reemplazan los {{savedCount}} pares guardados por los {{importedCount}} pares de este archivo.",
-          "stepConfirm": "Paso 2 de 2: confirma el reemplazo",
-          "stepReview": "Paso 1 de 2: qué contiene el archivo"
+          "replaceSummary": "Al aplicar se reemplazan los {{savedCount}} pares guardados por los {{importedCount}} pares de este archivo."
         },
-        "actions": "Vocabulary actions",
+        "actions": "Acciones de vocabulario",
         "audioImport": {
           "errors": {
             "start": "No se pudo iniciar la importación de audio. Inténtalo de nuevo."
           },
           "failure": {
-            "history": "Some recordings could not be imported into the vocabulary."
+            "history": "Algunas grabaciones no se pudieron importar al vocabulario."
           }
         },
         "empty": {
-          "description": "Añade un par como open ai y OpenAI, y Sona escribirá la forma exacta cada vez que oiga la frase.",
-          "title": "Aún no hay reglas de vocabulario"
+          "description": "Añade un par como open ai y OpenAI, y Sona escribirá la forma exacta cada vez que oiga la frase."
         },
-        "sources": "Las correcciones que guardas desde una transcripción en la biblioteca llegan a esta lista. Las reglas de un solo modo viven en el vocabulario propio de ese modo.",
-        "unsaved": "Cambios sin guardar",
-        "csvLabel": "CSV"
+        "sources": "Las correcciones que guardas desde una transcripción en la biblioteca llegan a esta lista. Las reglas de un solo modo viven en el vocabulario propio de ese modo."
       },
       "voiceActivityDetection": {
         "title": "Detección de actividad de voz",
@@ -575,8 +529,6 @@
         "enabledLabel": "Habilitar reemplazos de emoji",
         "enabledDescription": "Reemplaza solo tokens hablados exactos después de la corrección de vocabulario.",
         "title": "Reemplazos de emoji",
-        "description": "Asigna una frase hablada exacta a un texto de emoji. No se utiliza coincidencia aproximada.",
-        "offState": "Los reemplazos de emoji están desactivados. Sona no los habilita automáticamente para código ni para ninguna otra aplicación.",
         "spoken": "Frase hablada",
         "written": "Texto de emoji",
         "spokenPlaceholder": "cara sonriente",
@@ -593,38 +545,26 @@
           "incompleteRow": "Completa o elimina todas las filas antes de guardar."
         },
         "empty": {
-          "description": "Asigna un término hablado exacto, como cara sonriente, al emoji que quieres que se escriba.",
-          "title": "Aún no hay reemplazos de emoji"
+          "description": "Asigna un término hablado exacto, como cara sonriente, al emoji que quieres que se escriba."
         }
       },
-      "description": "Startup, processing, and experimental behavior.",
       "disclosures": {
         "launch": {
-          "title": "Launch",
-          "description": "How Sona starts and what it shows."
+          "title": "Inicio"
         },
         "processing": {
-          "title": "Processing",
-          "description": "Engine and model behavior while transcribing."
-        },
-        "experimental": {
-          "description": "Unstable options that can change without notice."
+          "title": "Procesamiento"
         }
       },
       "snippets": {
         "add": "Añadir snippet",
         "confirmDelete": {
           "description": "El disparador dejará de expandirse en futuras transcripciones. El texto ya escrito no cambia.",
-          "body": "{{trigger}} actualmente se expande a {{expansion}}.",
           "title": "¿Eliminar {{trigger}}?"
         },
-        "description": "Disparadores cortos que Sona expande en texto más largo. Los cambios aquí afectan solo a futuras transcripciones, nunca al texto ya escrito.",
         "empty": {
-          "action": "Escribe tu primer snippet",
-          "description": "Añade un disparador como omw y Sona escribirá on my way cada vez que lo digas.",
-          "title": "Aún no hay snippets"
+          "description": "Añade un disparador como omw y Sona escribirá on my way cada vez que lo digas."
         },
-        "enabledDescription": "Reemplaza los disparadores de snippets en cada transcripción, justo después de las correcciones de vocabulario.",
         "enabledLabel": "Activar expansión de texto",
         "errors": {
           "duplicate": "Otro snippet ya usa este disparador.",
@@ -635,11 +575,9 @@
         "loadError": "No se pudieron cargar los snippets.",
         "loading": "Cargando snippets",
         "matching": "Los disparadores coinciden con palabras completas e ignoran mayúsculas. Cuando dos disparadores encajan en el mismo sitio gana el más largo, y la expansión se ejecuta justo después de las correcciones de vocabulario.",
-        "offState": "La expansión de texto está desactivada. Los snippets quedan guardados y se aplican de nuevo en cuanto la reactives.",
         "title": "Expansión de texto",
         "trigger": "Disparador",
         "triggerPlaceholder": "omw",
-        "unsaved": "Pulsa Intro o Guardar para conservar este cambio.",
         "enableRow": "Activar {{trigger}}",
         "remove": "Eliminar {{trigger}}",
         "saveRow": "Guardar {{trigger}}"
@@ -651,62 +589,41 @@
       }
     },
     "postProcessing": {
-      "hotkey": {
-        "title": "Atajo"
-      },
       "api": {
         "title": "API (compatible con OpenAI)",
         "provider": {
-          "title": "Proveedor",
-          "description": "Selecciona un proveedor compatible con OpenAI."
+          "title": "Proveedor"
         },
         "appleIntelligence": {
           "unavailable": "Apple Intelligence no está disponible en este dispositivo. Requiere un Mac con Apple Silicon ejecutando macOS Tahoe (26.0) o posterior con Apple Intelligence habilitado en Ajustes del Sistema."
         },
         "baseUrl": {
           "title": "URL base",
-          "description": "URL base de la API para el proveedor seleccionado. Solo se puede editar el proveedor personalizado.",
           "placeholder": "https://api.openai.com/v1"
         },
         "apiKey": {
           "title": "Clave API",
-          "description": "Clave API para el proveedor seleccionado.",
           "placeholder": "sk-..."
         },
         "model": {
           "title": "Modelo",
           "descriptionCustom": "Proporciona el identificador del modelo esperado por tu endpoint personalizado.",
-          "descriptionDefault": "Elige un modelo expuesto por el proveedor seleccionado.",
           "placeholderWithOptions": "Buscar o seleccionar un modelo",
           "placeholderNoOptions": "Escribe un nombre de modelo",
           "refreshModels": "Actualizar modelos"
         }
       },
       "prompts": {
-        "title": "Prompt",
-        "selectedPrompt": {
-          "title": "Prompt seleccionado",
-          "description": "Selecciona una plantilla para refinar las transcripciones o crea una nueva. Usa ${output} dentro del texto del prompt para hacer referencia a la transcripción capturada."
-        },
-        "noPrompts": "No hay prompts disponibles",
-        "selectPrompt": "Seleccionar un prompt",
         "createNew": "Nuevo prompt",
         "promptLabel": "Nombre del prompt",
         "promptLabelPlaceholder": "Nombra este prompt",
         "promptInstructions": "Instrucciones",
         "promptInstructionsPlaceholder": "Mejora la gramática y claridad del siguiente texto: ${output}",
-        "promptTip": "Escribe <code>${output}</code> donde deba insertarse la transcripción.",
         "updatePrompt": "Actualizar prompt",
         "deletePrompt": "Eliminar prompt",
         "createPrompt": "Crear prompt",
-        "cancel": "Cancelar",
-        "selectToEdit": "Selecciona un prompt para editarlo.",
-        "createFirst": "Crea un prompt para post procesar las transcripciones.",
         "empty": {
           "description": "Un prompt le dice al modelo qué hacer con la transcripción, por ejemplo: reescribe lo siguiente como un mensaje corto, conservando cada dato: ${output}"
-        },
-        "errors": {
-          "incomplete": "Dale al prompt un nombre e instrucciones antes de guardar."
         },
         "inUse": "En uso",
         "lastPrompt": "Sona conserva al menos un prompt, así que este no puede eliminarse. Crea otro primero.",
@@ -724,33 +641,26 @@
         "useNamed": "Usar {{name}}"
       },
       "remoteConsent": {
-        "title": "Remote text transfer",
-        "description": "Meeting and transcription text may be sent to {{provider}} at {{endpoint}} for post-processing.",
-        "acknowledge": "I acknowledge that text may be sent to this endpoint.",
-        "accept": "Allow text transfer",
-        "cancel": "Cancel",
-        "endpointChanged": "The endpoint changed. Review and acknowledge the new endpoint before text can leave this Mac.",
-        "invalidDestination": "This provider destination is invalid or local-only, so no remote consent can be recorded.",
-        "saveFailed": "Sona could not save this acknowledgement.",
-        "current": "Text transfer is acknowledged for {{endpoint}}.",
-        "review": "Review acknowledgement",
-        "endpointLabel": "Canonical endpoint",
-        "destinationPinned": "Sona pins this exact endpoint and origin for the acknowledgement."
+        "title": "Transferencia de texto remota",
+        "description": "El texto de las reuniones y de las transcripciones se puede enviar a {{provider}} en {{endpoint}} para el posprocesamiento.",
+        "acknowledge": "Reconozco que se puede enviar texto a este endpoint.",
+        "accept": "Permitir la transferencia de texto",
+        "cancel": "Cancelar",
+        "endpointChanged": "El endpoint cambió. Revisa y acepta el nuevo endpoint antes de que el texto pueda salir de este Mac.",
+        "invalidDestination": "Este destino del proveedor no es válido o es solo local, así que no se puede registrar ningún consentimiento remoto.",
+        "saveFailed": "Sona no pudo guardar esta aceptación.",
+        "current": "La transferencia de texto está aceptada para {{endpoint}}.",
+        "review": "Revisar la aceptación",
+        "endpointLabel": "Endpoint canónico",
+        "destinationPinned": "Sona fija exactamente este endpoint y este origen para la aceptación."
       }
     },
     "history": {
       "stats": {
-        "title": "Uso total",
-        "loading": "Cargando datos de uso…",
         "unavailable": "Las estadísticas de uso no están disponibles.",
         "entries": "grabaciones",
         "duration": "tiempo de grabación",
-        "words": "palabras",
-        "source": {
-          "microphone": "Micrófono",
-          "file": "Archivo",
-          "legacy": "Grabaciones antiguas"
-        }
+        "words": "palabras"
       },
       "title": "Historial",
       "openFolder": "Abrir carpeta de grabaciones",
@@ -764,7 +674,6 @@
       "retranscribe": "Re-transcribir",
       "retranscribeError": "No se pudo volver a transcribir. Inténtalo de nuevo.",
       "transcribing": "Transcribiendo…",
-      "transcriptionFailed": "La transcripción falló.",
       "search": "Buscar en historial",
       "searchPlaceholder": "Buscar transcripciones",
       "noResults": "Ninguna transcripción coincide con \"{{query}}\".",
@@ -778,75 +687,75 @@
         "raw": "Original"
       },
       "receipts": {
-        "showDetails": "Show run details",
-        "hideDetails": "Hide run details",
-        "loading": "Loading run receipts…",
-        "unavailable": "Run receipt data is unavailable for this entry.",
-        "none": "No run receipts were recorded for this entry.",
+        "showDetails": "Mostrar detalles de ejecución",
+        "hideDetails": "Ocultar detalles de ejecución",
+        "loading": "Cargando registros de ejecución…",
+        "unavailable": "No hay datos de ejecución para esta entrada.",
+        "none": "No se registraron ejecuciones para esta entrada.",
         "duration": "{{duration}}",
-        "durationLabel": "Duration",
-        "words": "{{count}} words",
-        "wordsLabel": "Words",
+        "durationLabel": "Duración",
+        "words": "{{count}} palabras",
+        "wordsLabel": "Palabras",
         "engine": {
           "local": "Local",
-          "cloud": "Cloud",
-          "local_fallback": "Local fallback"
+          "cloud": "Nube",
+          "local_fallback": "Respaldo local"
         },
         "source": {
-          "microphone": "Microphone",
-          "file": "File import",
-          "legacy": "Legacy"
+          "microphone": "Micrófono",
+          "file": "Importar archivo",
+          "legacy": "Heredado"
         },
-        "presetLabel": "Preset",
+        "presetLabel": "Ajuste",
         "preset": {
-          "minimalist_cleanup": "Minimal cleanup",
-          "application_context": "Application context",
-          "email": "Email",
-          "meeting": "Meeting",
-          "notes": "Notes",
+          "minimalist_cleanup": "Limpieza mínima",
+          "application_context": "Contexto de la app",
+          "email": "Correo electrónico",
+          "meeting": "Reunión",
+          "notes": "Notas",
           "generic": "General"
         },
-        "provider": "AI route",
-        "contextPolicy": "Context level",
+        "provider": "Ruta de IA",
+        "contextPolicy": "Nivel de contexto",
         "contextPolicyValues": {
-          "none": "Off",
-          "target": "App",
-          "target_and_selection": "Selection",
-          "full": "Full"
+          "none": "Desactivado",
+          "target": "Aplicación",
+          "target_and_selection": "Selección",
+          "full": "Completo"
         },
-        "contextSources": "Context sources",
+        "contextSources": "Fuentes de contexto",
         "contextSource": {
-          "target": "App",
-          "focused_field": "Focused field",
-          "selected_text": "Selected text",
-          "browser_url": "Browser URL",
-          "clipboard": "Recent clipboard"
+          "target": "Aplicación",
+          "focused_field": "Campo enfocado",
+          "selected_text": "Texto seleccionado",
+          "browser_url": "URL del navegador",
+          "clipboard": "Portapapeles reciente"
         },
         "contextStatus": {
-          "not_requested": "Not requested",
-          "captured": "Captured",
-          "empty": "Empty",
-          "unsupported": "Unsupported",
-          "permission_denied": "Permission denied",
-          "disabled": "Disabled",
-          "disabled_by_ceiling": "Blocked by ceiling",
-          "secure_field": "Secure field",
-          "stale": "Stale",
-          "failed": "Unavailable"
+          "not_requested": "No solicitado",
+          "captured": "Capturado",
+          "empty": "Vacío",
+          "unsupported": "No compatible",
+          "permission_denied": "Permiso denegado",
+          "disabled": "Desactivado",
+          "disabled_by_ceiling": "Bloqueado por límite",
+          "secure_field": "Campo seguro",
+          "stale": "Obsoleto",
+          "failed": "No disponible"
         },
-        "deliveryAttempts": "Delivery attempts",
-        "noDeliveryAttempts": "No delivery attempt was recorded.",
+        "deliveryAttempts": "Intentos de entrega",
+        "noDeliveryAttempts": "No se registró ningún intento de entrega.",
         "deliveryMethod": {
-          "none": "No delivery",
-          "accessibility_insertion": "Accessibility insertion",
-          "clipboard_paste": "Clipboard paste",
-          "direct_typing": "Direct typing",
-          "external_script": "External script"
+          "none": "Sin entrega",
+          "accessibility_insertion": "Inserción por accesibilidad",
+          "clipboard_paste": "Pegado del portapapeles",
+          "direct_typing": "Escritura directa",
+          "external_script": "Script externo"
         },
         "deliveryOutcome": {
-          "delivered": "Delivered",
-          "definitely_not_dispatched": "Not dispatched",
-          "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+          "delivered": "Entregado",
+          "definitely_not_dispatched": "No enviado",
+          "dispatched_but_unconfirmed": "Enviado, sin confirmar"
         },
         "modeLabel": "Modo",
         "revisionLabel": "Revisión",
@@ -868,19 +777,19 @@
         }
       },
       "correction": {
-        "add": "Add correction",
-        "title": "Add vocabulary correction",
-        "description": "Enter the exact spoken span and the text Sona should write. Nothing is learned from typing or background activity.",
-        "spoken": "Spoken span",
-        "written": "Written replacement",
-        "spokenPlaceholder": "What Sona heard",
-        "writtenPlaceholder": "What Sona should write",
+        "add": "Añadir corrección",
+        "title": "Añadir corrección de vocabulario",
+        "description": "Introduce el fragmento hablado exacto y el texto que Sona debe escribir. No se aprende nada de lo que escribes ni de la actividad en segundo plano.",
+        "spoken": "Fragmento hablado",
+        "written": "Reemplazo escrito",
+        "spokenPlaceholder": "Lo que Sona oyó",
+        "writtenPlaceholder": "Lo que Sona debe escribir",
         "preview": "{{spoken}} → {{written}}",
-        "scope": "Save to",
-        "currentMode": "Current mode only",
-        "global": "All modes",
-        "save": "Save correction",
-        "saved": "Vocabulary correction saved",
+        "scope": "Guardar en",
+        "currentMode": "Solo el modo actual",
+        "global": "Todos los modos",
+        "save": "Guardar corrección",
+        "saved": "Corrección de vocabulario guardada",
         "saveError": "No se pudo guardar la corrección. Inténtalo de nuevo."
       },
       "audioImport": {
@@ -914,22 +823,6 @@
         },
         "running": "Transcribiendo {{count}} archivos"
       },
-      "trends": {
-        "title": "History trends",
-        "description": "Recordings and words over the selected range.",
-        "loading": "Loading history trends…",
-        "error": "Couldn't load history trends.",
-        "metricLabel": "Metric",
-        "activeDays": "{{active}} of {{total}} days active",
-        "streak_one": "{{count}} day streak",
-        "streak_other": "{{count}} day streak",
-        "metrics": {
-          "recordings": "Recordings",
-          "duration": "Captured time",
-          "words": "Words"
-        },
-        "streak": "{{count}} day streak"
-      },
       "clearSearch": "Borrar búsqueda",
       "emptyHint": "También puedes transcribir una grabación existente: WAV, MP3, M4A, AAC, FLAC, OGG, MOV, MP4 o M4V, hasta 30 minutos.",
       "loadMore": "Cargar más",
@@ -962,32 +855,26 @@
     "debug": {
       "title": "Depuración",
       "logDirectory": {
-        "title": "Directorio de registros",
-        "description": "Dónde se escriben los archivos de registro."
+        "title": "Directorio de registros"
       },
       "logLevel": {
-        "title": "Nivel de registro",
-        "description": "Cuánto detalle guarda el registro."
+        "title": "Nivel de registro"
       },
       "liveLogs": {
         "title": "Registros en vivo",
-        "description": "Transmite las líneas de registro a medida que se emiten. Aquí solo aparecen las líneas emitidas mientras este panel está abierto, con el nivel de registro configurado arriba.",
-        "live": "En vivo",
-        "paused": "En pausa",
+        "description": "Aquí solo aparecen las líneas emitidas mientras este panel está abierto, con el nivel de registro configurado arriba.",
         "pause": "Pausar",
         "resume": "Reanudar",
         "copied": "Copiado",
         "lineCount": "{{count}} líneas",
-        "empty": "Esperando registros. Las líneas aparecen aquí a medida que la aplicación las emite."
+        "empty": "Aún no hay líneas."
       },
       "soundTheme": {
         "label": "Tema de sonido",
-        "description": "Qué sonidos se reproducen cuando la grabación inicia y se detiene.",
-        "preview": "Preview the start and stop sounds"
+        "preview": "Escucha una muestra de los sonidos de inicio y parada"
       },
       "wordCorrectionThreshold": {
-        "title": "Umbral de corrección de palabras",
-        "description": "Sensibilidad para correcciones de palabras personalizadas"
+        "title": "Umbral de corrección de palabras"
       },
       "historyLimit": {
         "title": "Límite de historial",
@@ -1005,8 +892,7 @@
         "placeholder": "Selecciona un período de retención"
       },
       "alwaysOnMicrophone": {
-        "label": "Micrófono siempre activo",
-        "description": "Mantiene el micrófono abierto para que la grabación empiece más rápido."
+        "label": "Micrófono siempre activo"
       },
       "clamshellMicrophone": {
         "title": "Micrófono en modo clamshell",
@@ -1017,8 +903,7 @@
         "description": "Reescribe la transcripción con un modelo de lenguaje después de la transcripción."
       },
       "muteWhileRecording": {
-        "label": "Silenciar durante la grabación",
-        "description": "Silenciar el audio del sistema durante la grabación"
+        "label": "Silenciar durante la grabación"
       },
       "appendTrailingSpace": {
         "label": "Agregar un espacio final",
@@ -1026,7 +911,6 @@
       },
       "keyboardImplementation": {
         "title": "Implementación del teclado",
-        "description": "Elige el sistema que gestiona los atajos de teclado.",
         "bindingsReset": "Los atajos de teclado eran incompatibles y se restablecieron a los valores predeterminados"
       },
       "paths": {
@@ -1073,11 +957,9 @@
       "whatsNewPreview": {
         "title": "Vista previa de novedades",
         "description": "Abrir la nota de la versión incluida más reciente sin marcarla como vista",
-        "button": "Vista previa",
         "noNotes": "No se encontraron notas de la versión incluidas",
         "error": "No se pudieron previsualizar las notas de la versión. Inténtalo de nuevo."
       },
-      "description": "Instrumentación y controles sin soporte. Visible porque el modo de depuración está activado.",
       "groups": {
         "capture": "Captura",
         "delivery": "Entrega de texto",
@@ -1089,17 +971,14 @@
       "title": "Acerca de",
       "version": {
         "title": "Versión",
-        "description": "La versión en ejecución ahora.",
         "unavailable": "No disponible"
       },
       "appDataDirectory": {
-        "title": "Directorio de datos de la aplicación",
-        "description": "Dónde almacena Sona sus datos."
+        "title": "Directorio de datos de la aplicación"
       },
       "sourceCode": {
-        "title": "Open-source licenses",
-        "description": "View the bundled license and notice files.",
-        "button": "Open licenses"
+        "title": "Licencias de código abierto",
+        "button": "Abrir licencias"
       },
       "supportDevelopment": {
         "title": "Apoyar el desarrollo",
@@ -1110,26 +989,20 @@
         "title": "Reconocimientos",
         "ggml": {
           "title": "ggml",
-          "description": "Biblioteca de tensores para inferencia de aprendizaje automático en el dispositivo",
           "details": "El habla a texto local de Sona está construido sobre transcribe.cpp y ggml. Gracias a Georgi Gerganov y colaboradores."
         }
       },
       "whatsNewUpdates": {
-        "label": "Mostrar novedades",
-        "description": "Mostrar notas de la versión después de las actualizaciones de Sona"
+        "label": "Mostrar novedades"
       },
-      "description": "Qué versión estás ejecutando, de dónde proviene y dónde guarda tus archivos.",
       "files": {
         "title": "Archivos"
       },
       "source": {
-        "description": "Sona tiene licencia MIT, copyright 2025 CJ Pais, y está construida sobre Handy.",
-        "open": "Abrir en GitHub",
         "repository": "Repositorio",
         "title": "Código fuente",
         "upstream": "Construida sobre Handy",
-        "upstreamDescription": "Sona es un fork de cjpais/Handy y sigue incorporando las correcciones de su proyecto original.",
-        "upstreamOpen": "cjpais/Handy"
+        "license": "Con licencia MIT. Copyright 2025 CJ Pais."
       },
       "updates": {
         "autoDescription": "Consulta en GitHub la última versión publicada. Sona nunca instala nada por su cuenta.",
@@ -1137,34 +1010,29 @@
         "check": "Comprobar ahora",
         "checking": "Comprobando…",
         "disabled": "Las comprobaciones automáticas están desactivadas, así que Sona no contactó con GitHub.",
-        "enable": "Activar comprobaciones",
         "failed": "No se pudo ejecutar la comprobación de actualizaciones.",
-        "manualDescription": "Compara esta versión con la última publicada.",
         "manualTitle": "Comprobación manual",
         "preferenceError": "No se pudo guardar la preferencia de actualizaciones.",
         "title": "Versión y actualizaciones",
         "viewRelease": "Ver versión",
         "available": "Sona {{version}} está disponible.",
-        "published": "Publicada {{date}}",
-        "upToDate": "Sona {{version}} es la última versión."
+        "upToDate": "Esta es la última versión."
       }
     },
     "modes": {
       "activation": {
-        "title": "App activation",
+        "title": "Activación por aplicación",
         "capture": {
-          "label": "Activate in app",
-          "description": "Capture the app currently in front and select this mode when you dictate there.",
-          "action": "Capture current app",
-          "capturing": "Capturing…"
+          "label": "Activar en la app",
+          "action": "Capturar la app actual",
+          "capturing": "Capturando…"
         },
-        "empty": "No app activates this mode.",
-        "remove": "Remove",
+        "empty": "Ninguna app activa este modo.",
+        "remove": "Quitar",
         "website": {
           "title": "Activación por sitio web",
           "scope": {
             "label": "Alcance del sitio web",
-            "description": "Haz coincidir un host exacto o incluye sus subdominios.",
             "values": {
               "exact": "Host exacto",
               "suffix": "Host y subdominios"
@@ -1183,222 +1051,195 @@
         "removeTarget": "Eliminar {{target}}",
         "unsupported": "La activación por app y sitio web solo está disponible en macOS."
       },
-      "title": "Modes",
-      "description": "Choose what each dictation run recognizes, rewrites, and delivers.",
-      "listTitle": "Your modes",
-      "loading": "Loading modes…",
-      "loadError": "Modes could not be loaded.",
-      "retry": "Retry",
-      "new": "New mode",
-      "active": "Active",
-      "default": "Default",
-      "defaultProtected": "The default mode cannot be deleted.",
-      "activate": "Activate",
-      "edit": "Edit",
-      "duplicate": "Duplicate",
-      "delete": "Delete",
-      "moveUp": "Move up",
-      "moveDown": "Move down",
-      "back": "Back to modes",
-      "save": "Save changes",
-      "saving": "Saving…",
-      "changesNextRun": "Changes apply to your next dictation.",
-      "copySuffix": "copy",
-      "deleteTitle": "Delete mode",
-      "deleteDescription": "Delete {{mode}}?",
-      "deleteBody": "Its mode-only shortcuts will also be removed. This cannot be undone.",
+      "title": "Modos",
+      "listTitle": "Tus modos",
+      "loading": "Cargando modos…",
+      "loadError": "No se pudieron cargar los modos.",
+      "retry": "Reintentar",
+      "new": "Nuevo modo",
+      "active": "Activo",
+      "defaultProtected": "El modo predeterminado no se puede eliminar.",
+      "activate": "Activar",
+      "duplicate": "Duplicar",
+      "delete": "Eliminar",
+      "moveUp": "Subir",
+      "moveDown": "Bajar",
+      "save": "Guardar cambios",
+      "saving": "Guardando…",
+      "changesNextRun": "Los cambios se aplican a tu próximo dictado.",
+      "copySuffix": "copia",
+      "deleteTitle": "Eliminar modo",
+      "deleteDescription": "¿Eliminar {{mode}}?",
+      "deleteBody": "También se quitarán sus atajos exclusivos del modo. Esto no se puede deshacer.",
       "identity": {
-        "title": "Identity",
         "name": {
-          "label": "Mode name",
-          "description": "A label shown in mode selection and history."
+          "label": "Nombre del modo"
         }
       },
       "writing": {
-        "title": "Writing",
         "enabled": {
-          "label": "AI cleanup",
-          "description": "Use the selected provider to rewrite the transcript for this mode."
+          "label": "Limpieza con IA"
         },
         "preset": {
-          "label": "Preset",
-          "description": "Choose behavior by name. Preset instructions are not shown or exported.",
+          "label": "Ajuste",
+          "description": "Elige el comportamiento por su nombre. Las instrucciones del ajuste no se muestran ni se exportan.",
           "values": {
-            "minimalist_cleanup": "Minimal cleanup",
-            "application_context": "Application context",
-            "email": "Email",
-            "meeting": "Meeting",
-            "notes": "Notes",
+            "minimalist_cleanup": "Limpieza mínima",
+            "application_context": "Contexto de la app",
+            "email": "Correo electrónico",
+            "meeting": "Reunión",
+            "notes": "Notas",
             "generic": "General"
           }
         },
         "tone": {
-          "label": "Tone",
-          "description": "Apply this tone when AI cleanup is enabled.",
+          "label": "Tono",
           "values": {
-            "casual": "Casual",
-            "semi_casual": "Semi-casual",
-            "balanced": "Balanced",
-            "semi_formal": "Semi-formal",
+            "casual": "Informal",
+            "semi_casual": "Algo informal",
+            "balanced": "Equilibrado",
+            "semi_formal": "Algo formal",
             "formal": "Formal"
           }
         },
         "provider": {
-          "label": "AI provider",
-          "description": "The configured provider used for this mode.",
-          "empty": "No provider configured",
+          "label": "Proveedor de IA",
+          "empty": "Ningún proveedor configurado",
           "noneConfigured": "Aún no hay ningún proveedor de IA configurado. Añade uno en Ajustes para que este modo pueda reescribir.",
           "unknownSelected": "Este modo nombra un proveedor que no está configurado en esta instalación."
         },
         "model": {
-          "label": "AI model",
-          "description": "The provider model identifier for this mode."
+          "label": "Modelo de IA"
         },
         "disabledNote": "Activa la limpieza con IA para usar el preajuste, el tono, el proveedor y el modelo de abajo."
       },
       "recognition": {
         "literalPunctuation": {
-          "label": "Literal punctuation",
-          "description": "Convert spoken punctuation such as comma and question mark before vocabulary corrections."
+          "label": "Puntuación literal",
+          "description": "Convertir la puntuación dictada, como coma y signo de interrogación, antes de las correcciones de vocabulario."
         },
-        "title": "Recognition",
-        "noModelSelected": "No model selected",
         "model": {
-          "label": "Transcription model",
-          "description": "Only downloaded local models are available here.",
+          "label": "Modelo de transcripción",
           "inheritGlobal": "Predeterminado: el modelo global",
           "inheritGlobalNamed": "Predeterminado: el modelo global ({{name}})"
         },
         "language": {
-          "label": "Language",
-          "description": "Set a recognition language or let the model detect it.",
-          "auto": "Auto detect",
-          "cloudDescription": "Choose the language sent with this cloud request."
+          "label": "Idioma",
+          "auto": "Detección automática",
+          "cloudDescription": "Elige el idioma que se envía con esta solicitud en la nube."
         },
         "translate": {
-          "label": "Translate to English",
-          "description": "Request English output when the selected model supports translation."
+          "label": "Traducir al inglés"
         },
         "vad": {
-          "label": "Voice activity detection",
-          "description": "Skip silent audio while recording."
+          "label": "Detección de actividad de voz"
         },
         "fillerRemoval": {
-          "label": "Remove filler words",
-          "description": "Remove configured filler words from this mode’s transcript."
+          "label": "Quitar muletillas"
         },
         "vocabulary": {
-          "label": "Mode vocabulary",
-          "description": "Pairs here override the global vocabulary only for this mode.",
-          "spoken": "Spoken phrase",
-          "written": "Written text",
-          "spokenPlaceholder": "What was said",
-          "writtenPlaceholder": "What to write",
-          "add": "Add pair",
-          "remove": "Remove {{spoken}}",
-          "incomplete": "Complete or remove each vocabulary pair before saving this mode.",
+          "label": "Vocabulario del modo",
+          "spoken": "Frase dictada",
+          "written": "Texto escrito",
+          "spokenPlaceholder": "Lo que se dijo",
+          "writtenPlaceholder": "Lo que se escribe",
+          "add": "Añadir par",
+          "remove": "Quitar {{spoken}}",
+          "incomplete": "Completa o quita cada par de vocabulario antes de guardar este modo.",
           "empty": "Este modo no tiene vocabulario propio. El vocabulario global sigue aplicándose."
         },
         "engine": {
-          "label": "Transcription engine",
-          "description": "Use a local model or an eligible cloud provider.",
+          "label": "Motor de transcripción",
           "local": "Local",
-          "cloud": "Cloud",
-          "unavailable": "{{provider}} is unavailable"
+          "cloud": "Nube",
+          "unavailable": "{{provider}} no está disponible"
         },
         "cloud": {
-          "setupRequired": "{{provider}} needs a saved native API key and current transfer consent before its cloud controls are available.",
+          "setupRequired": "{{provider}} necesita una clave de API propia guardada y un consentimiento de transferencia vigente antes de que sus controles en la nube estén disponibles.",
           "fallback": {
-            "label": "Use local fallback",
-            "description": "If the cloud provider cannot return a trustworthy final, transcribe the captured audio with a local model.",
-            "useModeModel": "Use this mode's local model",
+            "label": "Usar respaldo local",
+            "description": "Si el proveedor en la nube no puede devolver un resultado final fiable, el audio capturado se transcribe con un modelo local.",
+            "useModeModel": "Usar el modelo local de este modo",
             "model": {
-              "label": "Fallback model",
-              "description": "Choose a downloaded local model, or use this mode's local model.",
-              "required": "Choose a fallback model or set this mode's local model before saving."
+              "label": "Modelo de respaldo",
+              "required": "Elige un modelo de respaldo o define el modelo local de este modo antes de guardar."
             }
           },
           "keyterms": {
-            "label": "Cloud keyterms",
-            "description": "One term per line. These terms are sent with this cloud request.",
-            "placeholder": "Product name\nPerson name"
+            "label": "Términos clave en la nube",
+            "description": "Un término por línea. Estos términos se envían con esta solicitud en la nube.",
+            "placeholder": "Nombre de producto\nNombre de persona"
           },
           "timestamps": {
-            "label": "Word timestamps",
-            "description": "Required for cloud transcription and cannot be disabled."
+            "label": "Marcas de tiempo por palabra",
+            "description": "Necesarias para la transcripción en la nube y no se pueden desactivar."
           },
           "consent": {
-            "title": "Use {{provider}} for cloud transcription",
-            "description": "Review how this mode sends audio before enabling {{provider}}.",
-            "intro": "These acknowledgements are fixed for this provider. Declining keeps this mode on its current local engine.",
+            "title": "Usar {{provider}} para la transcripción en la nube",
+            "description": "Revisa cómo envía audio este modo antes de activar {{provider}}.",
+            "intro": "Estas confirmaciones son fijas para este proveedor. Si rechazas, este modo se queda en su motor local actual.",
             "audioTransfer": {
-              "label": "Audio transfer",
-              "description": "Recorded audio from this mode is sent directly to {{provider}} for transcription."
+              "label": "Transferencia de audio",
+              "description": "El audio grabado en este modo se envía directamente a {{provider}} para transcribirlo."
             },
             "privacy": {
-              "label": "Privacy contract",
-              "description": "The provider receives this mode's audio, selected language, and keyterms. Application context and native credentials stay on this device."
+              "label": "Contrato de privacidad",
+              "description": "El proveedor recibe el audio de este modo, el idioma elegido y los términos clave. El contexto de la app y las credenciales propias se quedan en este dispositivo."
             },
             "localFallback": {
-              "label": "Local fallback",
-              "description": "If the cloud provider cannot return a trustworthy final, Sona can use your selected local model."
+              "label": "Respaldo local",
+              "description": "Si el proveedor en la nube no puede devolver un resultado final fiable, Sona puede usar el modelo local que hayas elegido."
             },
-            "decline": "Keep local",
-            "accept": "Accept and use cloud",
-            "accepting": "Accepting…",
+            "decline": "Seguir en local",
+            "accept": "Aceptar y usar la nube",
+            "accepting": "Aceptando…",
             "errors": {
-              "unknown_provider": "This cloud provider is not available in this build.",
-              "backend": "The consent record could not be saved."
+              "unknown_provider": "Este proveedor en la nube no está disponible en esta versión.",
+              "backend": "No se pudo guardar el registro de consentimiento."
             }
           },
           "title": "Transporte en la nube"
         }
       },
       "context": {
-        "title": "Context",
         "policy": {
-          "label": "Context level",
-          "description": "This mode cannot exceed the privacy ceiling.",
-          "limitedByPrivacy": "Privacy currently limits this mode. Raise the ceiling in Privacy to use this level.",
+          "label": "Nivel de contexto",
+          "description": "Este modo no puede superar el límite de privacidad.",
+          "limitedByPrivacy": "La privacidad limita este modo ahora mismo. Sube el límite en Privacy para usar este nivel.",
           "values": {
-            "none": "Off",
-            "target": "App",
-            "target_and_selection": "Selection",
-            "full": "Full"
+            "none": "Desactivado",
+            "target": "Aplicación",
+            "target_and_selection": "Selección",
+            "full": "Completo"
           },
           "blockedByCeiling": "Privacy limita este modo a {{ceiling}}.",
           "raiseCeiling": "Sube el límite en Privacy para usar niveles superiores."
         }
       },
       "delivery": {
-        "title": "Delivery",
         "method": {
-          "label": "Delivery method",
-          "description": "How Sona puts completed text into the target app.",
+          "label": "Método de entrega",
           "values": {
-            "ctrl_v": "Paste",
-            "direct": "Type directly",
-            "none": "Do not deliver",
+            "ctrl_v": "Pegar",
+            "direct": "Escribir directamente",
+            "none": "No entregar",
             "shift_insert": "Shift+Insert",
-            "ctrl_shift_v": "Paste without formatting",
-            "external_script": "External script"
+            "ctrl_shift_v": "Pegar sin formato",
+            "external_script": "Script externo"
           }
         },
         "clipboard": {
-          "label": "Clipboard",
-          "description": "Choose whether completed text is copied before delivery.",
+          "label": "Portapapeles",
           "values": {
-            "copy_to_clipboard": "Copy to clipboard",
-            "dont_modify": "Leave unchanged"
+            "copy_to_clipboard": "Copiar al portapapeles",
+            "dont_modify": "Dejar sin cambios"
           }
         },
         "autoSubmit": {
-          "label": "Auto-submit",
-          "description": "Submit after delivery using the chosen key."
+          "label": "Envío automático"
         },
         "autoSubmitKey": {
-          "label": "Submit key",
-          "description": "The key Sona uses when auto-submit is on.",
+          "label": "Tecla de envío",
           "values": {
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
@@ -1407,24 +1248,22 @@
           "requiresAutoSubmit": "Activa el envío automático para elegir una tecla."
         },
         "trailingSpace": {
-          "label": "Append a trailing space",
-          "description": "Add one space after delivered text."
+          "label": "Añadir un espacio final"
         },
         "reliablePaste": {
-          "label": "Reliable paste",
-          "description": "Use receipt-sequenced paste when the platform supports it."
+          "label": "Pegado fiable",
+          "description": "Usa pegado secuenciado por acuse cuando la plataforma lo admite."
         },
         "delay": {
-          "label": "Paste delays",
-          "description": "Milliseconds before and after delivery.",
-          "before": "Before",
-          "after": "After"
+          "label": "Retardos de pegado",
+          "description": "Milisegundos antes y después de la entrega.",
+          "before": "Antes",
+          "after": "Después"
         },
         "typingTool": {
-          "label": "Typing tool",
-          "description": "Used only with direct typing.",
+          "label": "Herramienta de escritura",
           "values": {
-            "auto": "Auto",
+            "auto": "Automática",
             "wtype": "wtype",
             "kwtype": "kwtype",
             "dotool": "dotool",
@@ -1434,53 +1273,44 @@
           "requiresDirect": "Elige Escribir directamente como método de entrega para seleccionar una herramienta."
         },
         "script": {
-          "label": "External script",
-          "description": "The script path used by the external-script delivery method."
+          "label": "Script externo"
         }
       },
       "shortcuts": {
-        "title": "Shortcuts",
-        "description": "Set a shortcut to transcribe with or switch to this mode.",
-        "manyModes": "New modes may start unbound after the first nine. Set their shortcuts here."
+        "title": "Atajos",
+        "manyModes": "Los modos nuevos pueden empezar sin asignar después de los primeros nueve. Define sus atajos aquí."
       },
       "errors": {
-        "staleRevision": "Settings changed elsewhere. Review the latest mode and save again.",
-        "invalid_mode_id": "This mode ID is invalid.",
-        "empty_name": "A mode name is required.",
-        "cannot_delete_default": "The default mode cannot be deleted.",
-        "unknown_mode": "That mode no longer exists.",
-        "duplicate_mode_id": "A mode with this ID already exists.",
-        "invalid_reorder": "The mode order could not be saved.",
+        "staleRevision": "Los ajustes cambiaron en otro lugar. Revisa el modo más reciente y vuelve a guardar.",
+        "invalid_mode_id": "Este ID de modo no es válido.",
+        "empty_name": "Se requiere un nombre de modo.",
+        "cannot_delete_default": "El modo predeterminado no se puede eliminar.",
+        "unknown_mode": "Ese modo ya no existe.",
+        "duplicate_mode_id": "Ya existe un modo con este ID.",
+        "invalid_reorder": "No se pudo guardar el orden de los modos.",
         "invalid_website_host": "El host del sitio web no es válido.",
         "website_activation_consent_required": "Activa las URL del navegador en Privacidad antes de añadir una regla de sitio web.",
         "frontmost_website_unavailable": "No se pudo capturar un sitio web del navegador.",
         "website_activation_secure_field": "No se pueden capturar reglas de sitios web desde un campo seguro."
       },
-      "globalVocabulary": {
-        "title": "Global vocabulary",
-        "description": "Vocabulary entries applied across every mode."
-      },
-      "actionsFor": "Actions for {{mode}}",
-      "editorLabel": "Mode editor",
-      "editorTabsLabel": "Mode editor sections",
-      "empty": "Select a mode to edit it.",
-      "viewNavigation": "Mode views",
+      "actionsFor": "Acciones para {{mode}}",
+      "editorTabsLabel": "Secciones del editor de modos",
+      "empty": "Selecciona un modo para editarlo.",
+      "viewNavigation": "Vistas de modos",
       "tabs": {
-        "recognition": "Recognition",
-        "rewrite": "Rewrite",
-        "context": "Context",
-        "delivery": "Delivery",
-        "automation": "Automation"
+        "recognition": "Reconocimiento",
+        "rewrite": "Reescritura",
+        "context": "Contexto",
+        "delivery": "Entrega",
+        "automation": "Automatización"
       },
       "views": {
-        "modes": "Modes",
-        "vocabulary": "Vocabulary"
+        "modes": "Modos",
+        "vocabulary": "Vocabulario"
       },
       "cleanup": {
         "title": "Limpieza de la transcripción"
       },
-      "dismissError": "Descartar el error",
-      "emptyHint": "Elige un modo a la izquierda para cambiar lo que reconoce, reescribe y entrega.",
       "listEmpty": "No hay modos configurados.",
       "listEmptyHint": "Sona siempre conserva un modo. Recarga para obtener la lista actual.",
       "unsavedChanges": "Cambios sin guardar",
@@ -1490,108 +1320,82 @@
           "local": "Local",
           "deepgram_nova_3": "Deepgram",
           "eleven_labs_scribe_v2": "ElevenLabs"
-        },
-        "modelInherited": "Modelo global",
-        "languageAuto": "Auto",
-        "delivery": {
-          "ctrl_v": "Pegar",
-          "direct": "Escribir",
-          "none": "Sin entrega",
-          "shift_insert": "Shift+Insert",
-          "ctrl_shift_v": "Pegar sin formato",
-          "external_script": "Script"
         }
       }
     },
     "privacy": {
-      "title": "Privacy",
-      "description": "Control application context, inspect capture access, and manage data kept on this device.",
+      "title": "Privacidad",
       "context": {
-        "title": "Context for AI cleanup",
-        "description": "The global ceiling limits every mode before context is read.",
+        "title": "Contexto para la limpieza con IA",
         "ceiling": {
-          "label": "Global context ceiling",
-          "description": "Modes may ask for less context, never more.",
+          "label": "Límite global de contexto",
           "values": {
-            "none": "Off",
-            "target": "App",
-            "target_and_selection": "Selection",
-            "full": "Full"
+            "none": "Desactivado",
+            "target": "Aplicación",
+            "target_and_selection": "Selección",
+            "full": "Completo"
           },
-          "error": "The context ceiling could not be saved"
+          "error": "No se pudo guardar el límite de contexto"
         },
         "sources": {
-          "title": "What each level reads",
-          "description": "These are source disclosures, not retained content.",
-          "none": "Reads no application context.",
-          "target": "Reads the frontmost app identity.",
-          "target_and_selection": "Reads the frontmost app identity and selected text when available.",
-          "full": "May also read a permitted browser URL and recently changed clipboard text when available."
+          "none": "No lee ningún contexto de la aplicación.",
+          "target": "Lee la identidad de la aplicación en primer plano.",
+          "target_and_selection": "Lee la identidad de la aplicación en primer plano y el texto seleccionado cuando está disponible.",
+          "full": "También puede leer una URL del navegador permitida y el texto del portapapeles modificado recientemente cuando estén disponibles."
         },
         "urlCapture": {
-          "label": "Include browser URLs",
-          "description": "Allow a frontmost browser page URL to be captured when a mode and the ceiling allow it.",
-          "error": "Browser URL capture could not be saved."
-        },
-        "cloudRoute": "Enabled cloud modes send allowed context to {{providers}}.",
-        "localRoute": "AI processing runs on this Mac.",
-        "checkingRoute": "Checking configured cloud routes…"
+          "label": "Incluir las URL del navegador",
+          "description": "Permite capturar la URL de la página del navegador en primer plano cuando un modo y el límite lo permiten.",
+          "error": "No se pudo guardar la captura de URL del navegador."
+        }
       },
       "diagnostics": {
-        "title": "Context diagnostics",
-        "description": "Read-only checks show what this build can access right now.",
-        "refresh": "Refresh",
-        "error": "Diagnostics could not be refreshed",
+        "title": "Diagnóstico del contexto",
+        "refresh": "Actualizar",
+        "error": "No se pudieron actualizar los diagnósticos",
         "accessibility": {
-          "label": "Accessibility",
-          "granted": "Accessibility access is granted.",
-          "denied": "Accessibility access is denied.",
-          "unsupported": "Accessibility context is not supported on this platform."
+          "label": "Accesibilidad"
         },
         "sources": {
-          "target_identity": "Frontmost app",
-          "focused_field": "Focused field",
-          "selected_text": "Selected text",
-          "browser_url": "Browser URL",
-          "clipboard": "Recent clipboard"
+          "target_identity": "Aplicación en primer plano",
+          "focused_field": "Campo enfocado",
+          "selected_text": "Texto seleccionado",
+          "browser_url": "URL del navegador",
+          "clipboard": "Portapapeles reciente"
         }
       },
       "status": {
-        "granted": "Granted",
-        "denied": "Denied",
-        "unsupported": "Unsupported",
-        "not_requested": "Not requested",
-        "captured": "Available",
-        "empty": "Empty",
-        "permission_denied": "Permission denied",
-        "disabled": "Disabled",
-        "disabled_by_ceiling": "Blocked by ceiling",
-        "secure_field": "Secure field",
-        "stale": "Stale",
-        "failed": "Unavailable"
+        "granted": "Concedido",
+        "denied": "Denegado",
+        "unsupported": "No compatible",
+        "not_requested": "No solicitado",
+        "captured": "Disponible",
+        "empty": "Vacío",
+        "permission_denied": "Permiso denegado",
+        "disabled": "Desactivado",
+        "disabled_by_ceiling": "Bloqueado por límite",
+        "secure_field": "Campo seguro",
+        "stale": "Obsoleto",
+        "failed": "No disponible"
       },
       "data": {
-        "title": "Data on this device",
-        "credentialStore": "Provider credentials are stored in the native credential store, not in Sona settings.",
-        "locations": "Settings, history, and retained recordings live in Sona’s application data directory. Recordings are kept only for the selected retention period.",
+        "title": "Datos en este dispositivo",
         "historyLimit": {
-          "label": "History limit",
-          "description": "Keep this many recent history entries. Set 0 to disable saved history."
+          "label": "Límite del historial",
+          "description": "Conserva esta cantidad de entradas recientes del historial. Pon 0 para desactivar el historial guardado."
         },
         "retention": {
-          "label": "Recording retention",
-          "description": "Choose how long recording files remain on this device.",
+          "label": "Retención de grabaciones",
           "values": {
-            "never": "Do not retain recordings",
-            "preserve_limit": "Keep recordings with history",
-            "days_3": "3 days",
-            "weeks_2": "2 weeks",
-            "months_3": "3 months"
+            "never": "No conservar las grabaciones",
+            "preserve_limit": "Conservar las grabaciones con el historial",
+            "days_3": "3 días",
+            "weeks_2": "2 semanas",
+            "months_3": "3 meses"
           }
         },
-        "error": "Data retention could not be saved",
+        "error": "No se pudo guardar la retención de datos",
         "historyStorage": {
-          "description": "Si el historial de dictado está cifrado en este disco.",
           "encrypted": "Cifrado en reposo",
           "label": "Almacenamiento del historial",
           "locked": "Bloqueado",
@@ -1600,33 +1404,21 @@
             "encryption_unavailable": "Esta versión no puede abrir una base de datos cifrada, así que el historial se guarda sin cifrar.",
             "key_rejected": "La clave almacenada no abre la base de datos cifrada, así que el historial no puede leerse.",
             "key_unavailable": "El almacén de credenciales del sistema no devolvió una clave utilizable, así que el historial se guarda sin cifrar.",
-            "migration_failed": "El cifrado de la base de datos existente falló. La base de datos sin cifrar está intacta y sigue en uso.",
-            "unlocking": "Abriendo la base de datos cifrada. Esto desaparece cuando termina el arranque."
+            "migration_failed": "El cifrado de la base de datos existente falló. La base de datos sin cifrar está intacta y sigue en uso."
           },
           "unknown": "Sona no pudo leer cómo se almacena el historial.",
-          "unlocking": "Desbloqueando",
-          "since": "Cifrado desde {{date}}."
+          "unlocking": "Desbloqueando"
         }
       },
       "cloudTranscription": {
-        "title": "Cloud transcription",
-        "description": "Read-only disclosure of direct cloud speech-to-text routes.",
-        "checking": "Checking cloud transcription setup…",
-        "checkFailed": "Cloud transcription setup could not be checked.",
-        "disclosure": "For a cloud-enabled mode, Sona sends recorded audio, the selected language, and mode keyterms directly to the provider. Application context and native credentials stay on this device.",
-        "providerDetail": "{{provider}} has a saved native API key and current transfer consent.",
-        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent.",
-        "inUse": "En uso"
+        "title": "Transcripción en la nube",
+        "checkFailed": "No se pudo comprobar la configuración de la transcripción en la nube.",
+        "disclosure": "Para un modo que usa la nube, Sona envía el audio grabado, el idioma elegido y los términos clave del modo directamente al proveedor. El contexto de la app y las credenciales propias se quedan en este dispositivo."
       },
       "upstreamImport": {
-        "title": "Import from legacy app",
-        "description": "Copy selected personal data from the legacy app. The source remains unchanged.",
+        "title": "Importar desde la aplicación anterior",
         "source": {
-          "settingsAvailable": "Settings file is available.",
-          "settingsMissing": "No settings file was found.",
-          "history": "{{count}} history entries found.",
-          "recordings": "{{count}} recording files, {{size}}.",
-          "empty": "No settings or history entries are available to import."
+          "empty": "No hay ajustes ni entradas del historial disponibles para importar."
         },
         "byteCount": "{{value}} {{unit}}",
         "byteUnits": {
@@ -1635,166 +1427,161 @@
           "megabytes": "MiB",
           "gigabytes": "GiB"
         },
-        "modelsNotImported": "Model files are not imported.",
-        "appRunning": "Close the legacy app before importing.",
-        "appUnverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
-        "selection": "Choose data to import",
-        "selectionSettings": "Settings",
-        "selectionHistory": "History",
-        "selectionRecordings": "Recordings",
-        "recordingsRequireHistory": "Recordings are imported only with history.",
-        "selectionRequired": "Choose settings or history to import.",
-        "progress": "{{phase}}: {{completed}} of {{total}}",
+        "appRunning": "Cierra la aplicación anterior antes de importar.",
+        "appUnverifiable": "Sona no puede verificar que la aplicación anterior esté cerrada en esta plataforma.",
+        "selection": "Elige los datos que quieres importar",
+        "selectionSettings": "Ajustes",
+        "selectionHistory": "Historial",
+        "selectionRecordings": "Grabaciones",
+        "recordingsRequireHistory": "Las grabaciones solo se importan junto con el historial.",
+        "selectionRequired": "Elige ajustes o historial para importar.",
+        "progress": "{{phase}}: {{completed}} de {{total}}",
         "phases": {
-          "settings": "Settings",
-          "history": "History",
-          "recordings": "Recordings"
+          "settings": "Ajustes",
+          "history": "Historial",
+          "recordings": "Grabaciones"
         },
-        "settingsImported": "Settings imported.",
-        "settingsAlreadyImported": "Settings were already imported.",
-        "result": "{{settings}} Imported {{historyImported}} history entries; {{historyExisting}} already existed. Copied {{recordingsCopied}} recordings; {{recordingsExisting}} already existed.",
-        "refresh": "Check again",
-        "import": "Import selected data",
-        "importing": "Importing",
+        "settingsImported": "Ajustes importados.",
+        "settingsAlreadyImported": "Los ajustes ya se habían importado.",
+        "result": "{{settings}} Se importaron {{historyImported}} entradas del historial; {{historyExisting}} ya existían. Se copiaron {{recordingsCopied}} grabaciones; {{recordingsExisting}} ya existían.",
+        "refresh": "Comprobar de nuevo",
+        "import": "Importar los datos seleccionados",
+        "importing": "Importando",
         "errors": {
-          "source_unavailable": "The legacy app's data folder is unavailable.",
-          "upstream_running": "Close the legacy app before importing.",
-          "app_state_unverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
-          "invalid_selection": "Choose settings or history to import.",
-          "settings_unreadable": "The legacy settings file could not be read.",
-          "secret_store_unavailable": "The native credential store is unavailable, so settings with provider keys were not imported.",
-          "secret_conflict": "A provider key already exists in the native credential store. Resolve it before importing settings.",
-          "history_unreadable": "The legacy history database could not be read.",
-          "recording_copy_failed": "A recording could not be copied and verified.",
-          "receipt_write_failed": "The import receipt could not be saved.",
-          "internal": "The import did not finish.",
-          "status": "The legacy app's data could not be inspected."
-        }
+          "source_unavailable": "La carpeta de datos de la aplicación anterior no está disponible.",
+          "upstream_running": "Cierra la aplicación anterior antes de importar.",
+          "app_state_unverifiable": "Sona no puede verificar que la aplicación anterior esté cerrada en esta plataforma.",
+          "invalid_selection": "Elige ajustes o historial para importar.",
+          "settings_unreadable": "No se pudo leer el archivo de ajustes de la aplicación anterior.",
+          "secret_store_unavailable": "El almacén de credenciales del sistema no está disponible, así que los ajustes con claves de proveedor no se importaron.",
+          "secret_conflict": "Ya existe una clave de proveedor en el almacén de credenciales del sistema. Resuélvelo antes de importar los ajustes.",
+          "history_unreadable": "No se pudo leer la base de datos del historial de la aplicación anterior.",
+          "recording_copy_failed": "No se pudo copiar y verificar una grabación.",
+          "receipt_write_failed": "No se pudo guardar el comprobante de la importación.",
+          "internal": "La importación no terminó.",
+          "status": "No se pudieron inspeccionar los datos de la aplicación anterior."
+        },
+        "scope": "El origen no se modifica y los archivos de modelo no se importan."
       },
       "cloudSync": {
         "checkFailed": "Sona no pudo leer la configuración de sincronización en la nube.",
         "configured": "Configurado",
-        "description": "Sona puede replicar las reuniones en un servidor que tú administres. No se sube nada hasta que la configuración termine en este dispositivo.",
-        "endpoint": "Punto de conexión",
-        "endpointDescription": "El servidor al que apunta este dispositivo.",
         "notConfigured": "No configurado",
-        "service": "Servicio",
         "title": "Sincronización en la nube"
+      },
+      "egress": {
+        "assurance": "Nada sale de este Mac salvo por las rutas indicadas aquí, y las claves de los proveedores permanecen en el almacén de credenciales del sistema, nunca en los ajustes de Sona.",
+        "thisMac": "Este Mac",
+        "routes": {
+          "cleanup": "Limpieza con IA"
+        }
       }
     },
     "agents": {
-      "title": "Agents",
-      "description": "Observe approved local coding-agent sessions. Responses only appear where the installed hook has a fixture-backed wire format.",
+      "title": "Agentes",
       "controls": {
-        "title": "Bridge controls",
+        "title": "Controles del puente",
         "master": {
-          "label": "Enable agent bridge",
-          "description": "Allow Sona to observe configured local agent hooks for authorized projects."
+          "label": "Activar el puente de agentes"
         },
-        "offState": "The agent bridge is off. No session data or replies are processed.",
-        "status": "Runtime status",
+        "status": "Estado del entorno de ejecución",
         "providers": {
           "claude": {
             "label": "Claude",
-            "description": "Observe Claude sessions and enable fixture-backed replies where available."
+            "description": "Observa las sesiones de Claude y activa las respuestas respaldadas por una fixture cuando estén disponibles."
           },
           "codex": {
             "label": "Codex",
-            "description": "Observe sessions only. Replies are read-only until a wire fixture supports them."
+            "description": "Solo observa las sesiones. Las respuestas son de solo lectura hasta que una fixture del protocolo las admita."
           },
           "grok": {
             "label": "Grok",
-            "description": "Observe sessions only. Replies are read-only until a wire fixture supports them."
+            "description": "Solo observa las sesiones. Las respuestas son de solo lectura hasta que una fixture del protocolo las admita."
           },
           "omp": {
             "label": "OMP",
-            "description": "Observe OMP sessions and approval requests. Replies are available only at a supported OMP session stop."
+            "description": "Observa las sesiones y las solicitudes de aprobación de OMP. Las respuestas solo están disponibles en una parada de sesión de OMP compatible."
           }
         }
       },
       "status": {
-        "disabled": "Disabled",
-        "runtime_unavailable": "Runtime unavailable",
-        "interactive_unsupported": "Interactive responses unsupported",
-        "app_lock_held": "Another Sona instance is active",
-        "active": "Active"
+        "disabled": "Desactivado",
+        "runtime_unavailable": "Entorno de ejecución no disponible",
+        "interactive_unsupported": "Respuestas interactivas no compatibles",
+        "app_lock_held": "Hay otra instancia de Sona activa",
+        "active": "Activo"
       },
       "projects": {
-        "title": "Authorized projects",
-        "description": "Choose a project folder with the native picker. Sona persists only its canonical hash.",
-        "hashOnly": "Exact project hashes are the permission boundary; folder paths are not stored here.",
-        "add": "Authorize folder",
-        "remove": "Remove project",
-        "empty": "No projects are authorized."
+        "title": "Proyectos autorizados",
+        "hashOnly": "Los hashes exactos de los proyectos son el límite de permisos; las rutas de las carpetas no se guardan aquí.",
+        "add": "Autorizar una carpeta",
+        "remove": "Quitar el proyecto",
+        "empty": "No hay proyectos autorizados."
       },
       "hook": {
-        "title": "Hook snippet",
-        "description": "Copy the packaged hook configuration into your agent’s own configuration. Sona never edits agent configuration files.",
-        "copy": "Copy snippet",
-        "error": "Hook snippet unavailable"
+        "title": "Snippet de hook",
+        "description": "Copia la configuración de hook incluida en la configuración propia de tu agente. Sona nunca edita los archivos de configuración de los agentes.",
+        "copy": "Copiar el snippet",
+        "error": "Snippet de hook no disponible"
       },
       "replyQueue": {
-        "title": "Reply preview",
-        "description": "Create a reply preview for a prepared Claude or OMP session. Sona sends it only after you confirm the exact destination and text.",
-        "session": "Reply destination",
-        "noSession": "No observed reply-capable session",
-        "message": "Reply text",
-        "createPreview": "Create preview",
+        "title": "Vista previa de la respuesta",
+        "session": "Destino de la respuesta",
+        "noSession": "Ninguna sesión observada admite respuestas",
+        "message": "Texto de la respuesta",
+        "createPreview": "Crear vista previa",
         "notReady": "Las respuestas requieren el puente activado y al menos un agente habilitado."
       },
       "pending": {
-        "empty": "No pending replies.",
-        "confirm": "Confirm exact reply",
-        "preview": "Review the exact destination and text before confirming",
-        "confirmed": "Confirmed for the next supported Stop event",
-        "cancel": "Cancel",
+        "empty": "No hay respuestas pendientes.",
+        "confirm": "Confirmar la respuesta exacta",
+        "confirmed": "Confirmada para el próximo evento Stop compatible",
+        "cancel": "Cancelar",
         "states": {
-          "held": "Held for the next supported Stop event",
-          "response_written": "Response written",
-          "emitted": "Emitted",
-          "copy_only": "Copy-only",
-          "cancelled": "Cancelled"
-        }
+          "held": "Retenida para el próximo evento Stop compatible",
+          "response_written": "Respuesta escrita",
+          "emitted": "Emitida",
+          "copy_only": "Solo copia",
+          "cancelled": "Cancelada"
+        },
+        "title": "Respuestas pendientes"
       },
       "observed": {
-        "title": "Observed activity",
-        "description": "Sessions and requests include IDs and metadata only; provider payloads are not shown.",
-        "refresh": "Refresh",
-        "sessions": "Sessions",
-        "noSessions": "No sessions observed.",
-        "requests": "Requests",
-        "noRequests": "No requests observed.",
+        "title": "Actividad observada",
+        "refresh": "Actualizar",
+        "sessions": "Sesiones",
+        "noSessions": "No se ha observado ninguna sesión.",
+        "requests": "Solicitudes",
+        "noRequests": "No se ha observado ninguna solicitud.",
         "requestKinds": {
-          "session_start": "Session started",
-          "user_prompt_submit": "Prompt submitted",
-          "permission_request": "Permission request",
-          "pre_tool_use": "Before tool use",
-          "post_tool_use": "After tool use",
-          "stop": "Stop",
-          "notification": "Notification"
+          "session_start": "Sesión iniciada",
+          "user_prompt_submit": "Prompt enviado",
+          "permission_request": "Solicitud de permiso",
+          "pre_tool_use": "Antes de usar una herramienta",
+          "post_tool_use": "Después de usar una herramienta",
+          "stop": "Parada",
+          "notification": "Notificación"
         },
-        "expires": "Expires {{time}}",
-        "allowExact": "Allow exactly this request",
-        "denyExact": "Deny exactly this request",
-        "dismiss": "Dismiss",
-        "ompPermissionObserveOnly": "OMP approval requests are observed only. Approve or deny them in OMP."
+        "expires": "Caduca {{time}}",
+        "allowExact": "Permitir exactamente esta solicitud",
+        "denyExact": "Denegar exactamente esta solicitud",
+        "dismiss": "Descartar",
+        "ompPermissionObserveOnly": "Las solicitudes de aprobación de OMP solo se observan. Apruébalas o deniégalas en OMP."
       },
       "rules": {
-        "title": "Exact permission rules",
-        "description": "An allow or deny is stored only for the exact agent, project hash, tool, mode, and input hash that created it.",
-        "empty": "No permission rules.",
-        "remove": "Remove rule",
+        "title": "Reglas de permisos exactas",
+        "empty": "No hay reglas de permisos.",
+        "remove": "Quitar la regla",
         "decisions": {
-          "allow": "Allow",
-          "deny": "Deny"
+          "allow": "Permitir",
+          "deny": "Denegar"
         }
       },
       "errors": {
-        "load": "Agent bridge data could not be loaded: {{error}}",
-        "operation": "The agent bridge action could not be completed: {{error}}"
+        "load": "No se pudieron cargar los datos del puente de agentes: {{error}}",
+        "operation": "No se pudo completar la acción del puente de agentes: {{error}}"
       },
       "panel": {
-        "description": "La ventana flotante en la que los agentes publican y de la que leen respuestas.",
         "error": "No se pudo guardar el ajuste del panel de agentes.",
         "label": "Activar panel de agentes",
         "rowDescription": "Al desactivarlo se cierra la ventana del panel y Sona rechaza cualquier solicitud para reabrirla.",
@@ -1803,27 +1590,22 @@
       "workspaceNavigation": "Vistas del puente de agentes"
     },
     "hub": {
-      "navigation": "Settings sections",
+      "navigation": "Secciones de ajustes",
       "tabs": {
         "general": "General",
-        "privacy": "Privacy",
-        "agents": "Agents",
-        "advanced": "Advanced",
-        "about": "About",
-        "debug": "Debug"
+        "privacy": "Privacidad",
+        "agents": "Agentes",
+        "advanced": "Avanzado",
+        "about": "Acerca de",
+        "debug": "Depuración"
       }
     },
     "vocabulary": {
       "replacements": {
         "title": "Reemplazos hablados",
-        "description": "Frases que Sona reescribe como texto exacto. Los cambios aquí solo afectan a transcripciones futuras, nunca al texto ya escrito.",
         "enabledLabel": "Activar los reemplazos hablados",
-        "enabledDescription": "Reescribir frases habladas como arroba en símbolos, antes de que se aplique la corrección de vocabulario.",
-        "offState": "Los reemplazos hablados están desactivados. Las reglas siguen guardadas y volverán a aplicarse en cuanto los actives.",
         "spoken": "Tú dices",
         "written": "Sona escribe",
-        "applyColumn": "Aplicar",
-        "actionsColumn": "Acciones",
         "spokenPlaceholder": "arroba",
         "writtenPlaceholder": "@",
         "add": "Añadir regla",
@@ -1838,14 +1620,11 @@
           "incomplete": "Introduce tanto la frase hablada como su reemplazo."
         },
         "empty": {
-          "title": "Sin reemplazos",
-          "description": "Añade una frase como arroba y Sona escribirá @ cada vez que la digas.",
-          "action": "Restaurar las reglas iniciales"
+          "description": "Añade una frase como arroba y Sona escribirá @ cada vez que la digas."
         },
         "confirmDelete": {
           "title": "¿Eliminar {{spoken}}?",
-          "description": "La frase deja de reescribirse en transcripciones futuras. El texto ya escrito no cambia.",
-          "body": "{{spoken}} se convierte actualmente en {{written}}."
+          "description": "La frase deja de reescribirse en transcripciones futuras. El texto ya escrito no cambia."
         },
         "confirmReset": {
           "title": "¿Restaurar las reglas predeterminadas?",
@@ -1856,20 +1635,17 @@
     "prompts": {
       "samples": {
         "title": "Muestras de escritura",
-        "description": "Ejemplos de tu propia escritura. Los modos que reescriben una transcripción imitan esta voz.",
         "placeholder": "Pega un párrafo que hayas escrito tú.",
         "sampleLabel": "Muestra de escritura {{number}}",
         "delete": "Eliminar la muestra {{number}}",
         "add": "Añadir muestra",
         "wordCount": "{{words}} de {{max}} palabras",
         "overLimit": "{{words}} palabras. Solo se usan las primeras {{max}}.",
-        "privacy": "Las muestras se envían solo allí donde ya va la transcripción, y a ningún otro sitio. Se usan hasta {{max}} muestras.",
+        "privacy": "Las muestras se envían solo allí donde ya va la transcripción, y a ningún otro sitio.",
         "loading": "Cargando muestras",
         "loadError": "No se pudieron cargar las muestras.",
         "empty": {
-          "title": "Aún no hay muestras",
-          "description": "Pega unos párrafos escritos por ti y las reescrituras seguirán tu vocabulario, la longitud de tus frases y tu formalidad.",
-          "action": "Añadir una muestra"
+          "description": "Pega unos párrafos escritos por ti y las reescrituras seguirán tu vocabulario, la longitud de tus frases y tu formalidad."
         }
       }
     },
@@ -1877,7 +1653,6 @@
       "enabledLabel": "Mostrar la píldora en reposo",
       "enabledDescription": "Mantén una pequeña píldora en pantalla entre dictados. Haz clic para empezar, clic derecho para cambiar de modo.",
       "positionLabel": "Posición de la píldora en reposo",
-      "positionDescription": "En qué borde de la pantalla se sitúa la píldora en reposo.",
       "positionTop": "Arriba",
       "positionBottom": "Abajo"
     }
@@ -1891,12 +1666,13 @@
     "copy": "Copiar",
     "clear": "Limpiar",
     "noOptionsFound": "No se encontraron opciones",
-    "save": "Save",
-    "saving": "Saving…",
-    "retry": "Retry",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "retry": "Reintentar",
     "play": "Reproducir",
     "pause": "Pausa",
-    "seek": "Posición de reproducción"
+    "seek": "Posición de reproducción",
+    "resetSetting": "Restablecer {{name}}"
   },
   "commandPalette": {
     "open": "Buscar",
@@ -1904,9 +1680,7 @@
     "navigation": "Navegación",
     "actions": "Acciones",
     "noResults": "No se encontraron comandos",
-    "navigate": "navegar",
-    "select": "seleccionar",
-    "newMeeting": "New meeting",
+    "newMeeting": "Nueva reunión",
     "importAudio": "Transcribir archivo",
     "openRecordings": "Abrir carpeta de grabaciones",
     "openAgent": "Abrir agente",
@@ -1947,12 +1721,10 @@
     "commandRewriteUnavailableTitle": "Reescritura no disponible"
   },
   "appLanguage": {
-    "title": "Idioma de la aplicación",
-    "description": "Cambia el idioma de la interfaz de Sona"
+    "title": "Idioma de la aplicación"
   },
   "theme": {
     "title": "Tema de la aplicación",
-    "description": "Elige si Sona sigue el tema del sistema o permanece claro u oscuro",
     "options": {
       "system": "Sistema",
       "light": "Claro",
@@ -1990,303 +1762,274 @@
     "dismiss": "Descartar"
   },
   "meetings": {
-    "title": "Meetings",
-    "description": "Capture, recover, and review meeting notes stored on this Mac.",
-    "loading": "Loading meetings…",
+    "title": "Reuniones",
+    "loading": "Cargando reuniones…",
     "providers": {
       "zoom": "Zoom",
       "google_meet": "Google Meet",
       "microsoft_teams": "Microsoft Teams",
       "webex": "Webex",
-      "slack_huddle": "Slack huddle",
+      "slack_huddle": "Huddle de Slack",
       "face_time": "FaceTime",
-      "configured_app": "Configured app"
+      "configured_app": "Aplicación configurada"
     },
     "phases": {
-      "preflight": "Setup",
-      "starting": "Starting",
-      "capturing_recording": "Recording",
-      "capturing_pausing": "Pausing",
-      "capturing_paused": "Paused",
-      "capturing_resuming": "Resuming",
-      "stopping": "Stopping",
-      "processing": "Processing",
-      "review_ready": "Ready for review",
-      "recovery_required": "Recovery needed",
-      "deleting": "Deleting"
+      "preflight": "Preparación",
+      "starting": "Iniciando",
+      "capturing_recording": "Grabando",
+      "capturing_pausing": "Pausando",
+      "capturing_paused": "En pausa",
+      "capturing_resuming": "Reanudando",
+      "stopping": "Deteniendo",
+      "processing": "Procesando",
+      "review_ready": "Lista para revisar",
+      "recovery_required": "Necesita recuperación",
+      "deleting": "Eliminando"
     },
     "sources": {
-      "microphone": "Microphone",
-      "system_audio": "System audio"
+      "microphone": "Micrófono",
+      "system_audio": "Audio del sistema"
     },
     "availability": {
-      "available": "Available",
-      "permission_required": "Permission required",
-      "permission_denied": "Permission denied",
-      "device_unavailable": "Device unavailable",
-      "unsupported_platform": "Unsupported on this Mac",
-      "storage_unavailable": "Storage unavailable",
-      "unknown": "Checking"
+      "available": "Disponible",
+      "permission_required": "Permiso necesario",
+      "permission_denied": "Permiso denegado",
+      "device_unavailable": "Dispositivo no disponible",
+      "unsupported_platform": "No compatible con este Mac",
+      "storage_unavailable": "Almacenamiento no disponible",
+      "unknown": "Comprobando"
     },
     "health": {
-      "not_started": "Not started",
-      "starting": "Starting",
-      "healthy": "Healthy",
-      "paused": "Paused",
-      "degraded": "Degraded",
-      "failed": "Failed",
-      "stopped": "Stopped"
+      "not_started": "Sin iniciar",
+      "starting": "Iniciando",
+      "healthy": "En buen estado",
+      "paused": "En pausa",
+      "degraded": "Degradado",
+      "failed": "Con error",
+      "stopped": "Detenido"
     },
     "completeness": {
-      "not_started": "Not started",
-      "complete": "Complete",
-      "partial": "Partial"
+      "not_started": "Sin iniciar",
+      "complete": "Completa",
+      "partial": "Parcial"
     },
     "processing": {
-      "pending": "Waiting for processing",
-      "running": "Processing",
-      "succeeded": "Ready",
-      "cancelled": "Processing cancelled",
+      "pending": "Esperando el procesamiento",
+      "running": "Procesando",
+      "succeeded": "Lista",
+      "cancelled": "Procesamiento cancelado",
       "failed": {
-        "local_model_unavailable": "Local model unavailable",
-        "remote_unavailable": "Remote destination unavailable",
-        "engine_failure": "Processing failed",
-        "cancelled": "Processing cancelled"
+        "local_model_unavailable": "Modelo local no disponible",
+        "remote_unavailable": "Destino remoto no disponible",
+        "engine_failure": "El procesamiento falló",
+        "cancelled": "Procesamiento cancelado"
       }
     },
     "actions": {
-      "back": "Back",
-      "delete": "Delete meeting",
-      "discard": "Discard",
-      "pause": "Pause",
-      "refresh": "Refresh",
-      "resume": "Resume",
-      "retry": "Try again",
-      "stop": "Stop"
+      "back": "Atrás",
+      "delete": "Eliminar la reunión",
+      "discard": "Descartar",
+      "pause": "Pausar",
+      "refresh": "Actualizar",
+      "resume": "Reanudar",
+      "retry": "Inténtalo de nuevo",
+      "stop": "Detener"
     },
     "detected": {
-      "title": "Meeting detected",
-      "description": "Sona notó una aplicación de reuniones en uso.",
-      "mayBeActive": "A meeting may be active in {{provider}}."
+      "title": "Reunión detectada",
+      "mayBeActive": "Puede haber una reunión en curso en {{provider}}."
     },
     "setup": {
-      "captureSources": "Capture sources",
-      "captureSourcesDescription": "Each source stays separate so missing audio remains visible.",
-      "processing": "Processing route",
-      "localOnly": "Local only",
-      "defaultTitle": "Local notes",
+      "defaultTitle": "Notas locales",
       "remoteUnavailable": "El procesamiento remoto no está disponible en esta versión, así que cada reunión se transcribe y resume en este Mac."
     },
     "preflight": {
-      "storage": "Storage",
-      "storageAvailable": "Encrypted meeting storage is available.",
-      "storageUnavailable": "Encrypted meeting storage is unavailable.",
-      "localModel": "Local model",
-      "localModelDescription": "Processing remains local when a local model is available.",
-      "starting": "Starting visible capture…",
+      "storage": "Almacenamiento",
+      "storageAvailable": "El almacenamiento cifrado de reuniones está disponible.",
+      "storageUnavailable": "El almacenamiento cifrado de reuniones no está disponible.",
+      "localModel": "Modelo local",
+      "localModelDescription": "El procesamiento se mantiene en local cuando hay un modelo local disponible.",
+      "starting": "Iniciando la captura visible…",
       "refreshing": "Comprobando…"
     },
     "consent": {
-      "continuePartial": "I want to continue with a partial meeting record.",
-      "acceptMissing": "I understand {{source}} is {{state}} and this meeting will be partial."
+      "continuePartial": "Quiero continuar con un registro de reunión parcial.",
+      "acceptMissing": "Entiendo que {{source}} está {{state}} y que esta reunión será parcial."
     },
     "live": {
-      "activeCapture": "Active capture",
-      "elapsed": "Elapsed",
-      "microphoneOnlyPartial": "Microphone only / Partial. System audio is unavailable or degraded.",
-      "partialCapture": "Partial capture. Review the gaps before relying on generated notes.",
-      "inputs": "Inputs",
-      "inputsDescription": "Source health is reported separately. Capture never fills missing intervals.",
-      "signal": "Signal",
-      "signalUnavailable": "{{source}} level is not reported by capture.",
-      "notReported": "Not reported",
-      "durabilityLag": "Durability lag",
-      "behind": "{{duration}} behind",
-      "progress": "Transcript progress",
-      "progressDescription": "Transcript timing is derived from committed segments, not a guessed model state.",
-      "transcript": "Transcript",
-      "transcriptThrough": "Transcript through {{time}}",
-      "noTranscriptCheckpoint": "No transcript checkpoint",
-      "asrLag": "ASR lag",
-      "storage": "Storage",
-      "storageHealthy": "Encrypted local storage is healthy.",
-      "storageUnavailable": "Storage needs attention.",
-      "processing": "Processing",
-      "manualNote": "Manual note",
-      "manualNoteDescription": "A note added now is anchored at {{time}}.",
-      "notePlaceholder": "Write a note for this moment",
-      "timestamp": "Timestamp {{time}}",
-      "addNote": "Add timestamped note"
+      "elapsed": "Transcurrido",
+      "microphoneOnlyPartial": "Solo micrófono / Parcial. El audio del sistema no está disponible o está degradado.",
+      "partialCapture": "Captura parcial. Revisa los huecos antes de fiarte de las notas generadas.",
+      "inputs": "Entradas",
+      "signal": "Señal",
+      "signalUnavailable": "La captura no informa del nivel de {{source}}.",
+      "notReported": "No informado",
+      "durabilityLag": "Retraso de persistencia",
+      "behind": "{{duration}} de retraso",
+      "progress": "Progreso de la transcripción",
+      "transcript": "Transcripción",
+      "asrLag": "Retraso del ASR",
+      "storage": "Almacenamiento",
+      "storageHealthy": "El almacenamiento local cifrado está en buen estado.",
+      "storageUnavailable": "El almacenamiento requiere atención.",
+      "processing": "Procesamiento",
+      "manualNote": "Nota manual",
+      "notePlaceholder": "Escribe una nota para este momento",
+      "addNote": "Añadir nota con marca de tiempo"
     },
     "recovery": {
-      "title": "Recover partial meetings",
-      "description": "These sessions were interrupted. Sona will not restart capture.",
-      "finalize": "Finalize partial"
+      "title": "Recuperar reuniones parciales",
+      "finalize": "Finalizar parcial"
     },
     "history": {
-      "title": "Meeting history",
-      "description": "Open a local meeting record to inspect its capture coverage and notes.",
-      "loading": "Loading meeting history…",
-      "emptyTitle": "No meetings yet",
-      "emptyDescription": "Start local notes when you are ready to capture a meeting."
+      "title": "Historial de reuniones",
+      "loading": "Cargando el historial de reuniones…",
+      "emptyTitle": "Aún no hay reuniones"
     },
     "retention": {
-      "title": "Retention",
-      "description": "Sona deletes eligible local meeting records through the same verified deletion path.",
-      "forever": "Keep until I delete it",
-      "days": "Delete after {{days}} days",
+      "title": "Retención",
+      "description": "Sona elimina los registros locales de reuniones que corresponda mediante la misma ruta de borrado verificada.",
+      "forever": "Conservar hasta que lo elimine",
+      "days": "Eliminar después de {{days}} días",
       "loading": "Leyendo la política actual…"
     },
     "receipts": {
-      "title": "Correction receipt",
-      "saved": "Saved locally.",
-      "savedRevision": "Saved locally. Revision {{revision}}.",
-      "duplicate": "This action was already recorded. Sona refreshed the existing result."
+      "title": "Comprobante de la corrección",
+      "saved": "Guardado en local.",
+      "savedRevision": "Guardado en local. Revisión {{revision}}.",
+      "duplicate": "Esta acción ya se había registrado. Sona actualizó el resultado existente."
     },
     "reasons": {
-      "consent_missing": "Recording acknowledgement is required.",
-      "consent_stale": "Setup changed before this action.",
-      "stale_revision": "This meeting changed in another window.",
-      "capture_lease_busy": "Another meeting capture is active.",
-      "source_unavailable": "A requested source is unavailable.",
-      "source_start_failed": "A source could not start.",
-      "source_gap": "A source reported a gap.",
-      "storage_unavailable": "Encrypted meeting storage is unavailable.",
-      "storage_failure": "Storage could not persist this change.",
-      "local_model_unavailable": "A local model is unavailable.",
-      "recovery_required": "This meeting needs recovery.",
-      "deleted": "This meeting was deleted.",
-      "invalid_transition": "This action is not available in the current phase.",
-      "duplicate_operation": "This action was already recorded."
+      "consent_missing": "Se requiere el consentimiento de grabación.",
+      "consent_stale": "La configuración cambió antes de esta acción.",
+      "stale_revision": "Esta reunión cambió en otra ventana.",
+      "capture_lease_busy": "Hay otra captura de reunión activa.",
+      "source_unavailable": "Una fuente solicitada no está disponible.",
+      "source_start_failed": "Una fuente no pudo iniciarse.",
+      "source_gap": "Una fuente notificó un hueco.",
+      "storage_unavailable": "El almacenamiento cifrado de reuniones no está disponible.",
+      "storage_failure": "El almacenamiento no pudo conservar este cambio.",
+      "local_model_unavailable": "No hay ningún modelo local disponible.",
+      "recovery_required": "Esta reunión necesita recuperarse.",
+      "deleted": "Esta reunión se eliminó.",
+      "invalid_transition": "Esta acción no está disponible en la fase actual.",
+      "duplicate_operation": "Esta acción ya se había registrado."
     },
     "gaps": {
-      "source_unavailable": "Source unavailable",
-      "source_start_failed": "Source start failed",
-      "permission_lost": "Permission lost",
-      "paused": "Paused",
-      "packet_dropped": "Audio packet dropped",
-      "writer_pressure": "Storage writer pressure",
-      "storage_failure": "Storage failure",
-      "timestamp_missing": "Timestamp missing",
-      "timestamp_discontinuity": "Timestamp discontinuity",
-      "invalid_format": "Invalid audio format",
-      "source_stopped": "Source stopped",
-      "corrupt_record": "Corrupt record",
-      "missing_record": "Missing record",
-      "recovery_tail": "Recovery tail",
-      "system_sleep": "Mac sleep"
+      "source_unavailable": "Fuente no disponible",
+      "source_start_failed": "Fallo al iniciar la fuente",
+      "permission_lost": "Permiso perdido",
+      "paused": "En pausa",
+      "packet_dropped": "Paquete de audio perdido",
+      "writer_pressure": "Saturación de la escritura en el almacenamiento",
+      "storage_failure": "Fallo del almacenamiento",
+      "timestamp_missing": "Marca de tiempo ausente",
+      "timestamp_discontinuity": "Discontinuidad de las marcas de tiempo",
+      "invalid_format": "Formato de audio no válido",
+      "source_stopped": "Fuente detenida",
+      "corrupt_record": "Registro corrupto",
+      "missing_record": "Registro ausente",
+      "recovery_tail": "Cola de recuperación",
+      "system_sleep": "Suspensión del Mac"
     },
     "errors": {
-      "load": "Sona could not load the current meeting data.",
+      "load": "Sona no pudo cargar los datos de la reunión actual.",
       "operation": "No se pudo completar esa acción de reunión. Inténtalo de nuevo.",
-      "operationRejected": "The meeting action was rejected.",
-      "consent_required": "Confirm the recording acknowledgement before starting.",
-      "consent_stale": "The setup changed. Review it again before starting.",
-      "invalid_transition": "This action is unavailable in the current meeting phase.",
-      "stale_revision": "This meeting changed in another window. Sona refreshed its snapshot.",
-      "capture_lease_busy": "Another meeting is already capturing audio.",
-      "no_source_started": "No approved audio source started.",
-      "source_unavailable": "A requested audio source is unavailable.",
-      "storage_unavailable": "Encrypted meeting storage is unavailable.",
-      "recovery_required": "This meeting needs recovery before that action.",
-      "deletion_in_progress": "Deletion is already in progress. The meeting remains inaccessible.",
-      "not_found": "This meeting is no longer available.",
-      "invalid_request": "The meeting request was invalid.",
-      "export_cancelled": "Export was cancelled. No completed export was created.",
-      "export_failed": "Export failed. No completed export was created.",
-      "local_model_unavailable": "A local model is unavailable for this meeting.",
-      "remote_unavailable": "The selected remote destination is unavailable."
+      "operationRejected": "La acción de la reunión se rechazó.",
+      "consent_required": "Confirma el consentimiento de grabación antes de empezar.",
+      "consent_stale": "La configuración cambió. Revísala de nuevo antes de empezar.",
+      "invalid_transition": "Esta acción no está disponible en la fase actual de la reunión.",
+      "stale_revision": "Esta reunión cambió en otra ventana. Sona actualizó su instantánea.",
+      "capture_lease_busy": "Otra reunión ya está capturando audio.",
+      "no_source_started": "No se inició ninguna fuente de audio aprobada.",
+      "source_unavailable": "Una fuente de audio solicitada no está disponible.",
+      "storage_unavailable": "El almacenamiento cifrado de reuniones no está disponible.",
+      "recovery_required": "Esta reunión necesita recuperarse antes de esa acción.",
+      "deletion_in_progress": "La eliminación ya está en curso. La reunión sigue siendo inaccesible.",
+      "not_found": "Esta reunión ya no está disponible.",
+      "invalid_request": "La solicitud de reunión no era válida.",
+      "export_cancelled": "La exportación se canceló. No se creó ninguna exportación completa.",
+      "export_failed": "La exportación falló. No se creó ninguna exportación completa.",
+      "local_model_unavailable": "No hay ningún modelo local disponible para esta reunión.",
+      "remote_unavailable": "El destino remoto seleccionado no está disponible."
     },
     "discard": {
-      "liveTitle": "Stop and discard this session?",
-      "liveDescription": "Sona will stop capture and delete the local meeting record.",
-      "keepRecording": "Keep recording",
-      "stopAndDiscard": "Stop and discard",
-      "explainsData": "Audio, transcript, manual notes, generated notes, and local answer caches will be deleted. This cannot be undone.",
-      "complete": "Session discarded"
+      "liveTitle": "¿Detener y descartar esta sesión?",
+      "keepRecording": "Seguir grabando",
+      "stopAndDiscard": "Detener y descartar",
+      "explainsData": "Se eliminarán el audio, la transcripción, las notas manuales, las notas generadas y las cachés de respuestas locales. Esto no se puede deshacer.",
+      "complete": "Sesión descartada"
     },
     "delete": {
-      "title": "Delete this meeting?",
-      "description": "Sona will delete the local meeting record and its derived data.",
-      "explainsData": "Sona keeps the meeting inaccessible while verified deletion finishes. Exports and remote copies are outside local deletion.",
-      "complete": "Meeting deleted"
+      "title": "¿Eliminar esta reunión?",
+      "explainsData": "Sona mantiene la reunión inaccesible mientras termina la eliminación verificada. Las exportaciones y las copias remotas quedan fuera de la eliminación local.",
+      "complete": "Reunión eliminada"
     },
     "review": {
-      "meetingTitle": "Meeting title",
-      "noStartTime": "This meeting did not record a start time.",
-      "started": "Started {{date}}",
-      "status": "Capture status",
-      "statusDescription": "Coverage, source health, and processing remain separate.",
-      "timeline": "Audio timeline and gaps",
-      "timelineDescription": "Gaps name intervals where no audio was captured.",
-      "gap": "Gap",
-      "timeUnknown": "Unknown time",
-      "noGaps": "No capture gaps were reported.",
-      "transcript": "Transcript",
-      "transcriptDescription": "Edits create a new canonical revision. Derived notes and answers become out of date.",
-      "noTranscript": "No transcript is available.",
-      "transcriptSegment": "Transcript segment",
-      "removeSegment": "Remove segment",
-      "unknownSpeaker": "Unknown speaker",
-      "speakers": "Speakers",
-      "speakersDescription": "Rename or merge local speaker labels without rewriting timing.",
-      "noSpeakers": "No speaker labels are available.",
-      "speakerName": "Speaker name",
-      "mergeSource": "Merge this speaker",
-      "mergeTarget": "Into this speaker",
-      "merge": "Merge speakers",
-      "manualNotes": "Manual notes",
-      "manualNotesDescription": "Manual notes are user-owned and remain separate from generated notes.",
-      "manualNote": "Manual note",
-      "newNote": "New manual note",
-      "notePlaceholder": "Add a manual note",
-      "addNote": "Add note",
-      "noNotes": "No manual notes yet.",
-      "noTimestamp": "No timestamp",
-      "timestamp": "Timestamp {{time}}",
-      "generatedNotes": "Generated notes",
-      "generatedNotesDescription": "Regeneration uses the current canonical revision and does not overwrite manual notes or confirmed corrections.",
-      "regenerate": "Regenerate",
-      "remoteCancellationPending": "Remote cancellation is pending. Local deletion does not claim the remote copy is deleted.",
-      "cancelRemote": "Cancel remote processing",
+      "meetingTitle": "Título de la reunión",
+      "noStartTime": "Esta reunión no registró una hora de inicio.",
+      "started": "Comenzó el {{date}}",
+      "status": "Estado de la captura",
+      "timeline": "Cronología del audio y huecos",
+      "timeUnknown": "Hora desconocida",
+      "noGaps": "No se ha notificado ningún hueco de captura.",
+      "transcript": "Transcripción",
+      "noTranscript": "No hay ninguna transcripción disponible.",
+      "transcriptSegment": "Segmento de transcripción",
+      "removeSegment": "Quitar el segmento",
+      "unknownSpeaker": "Hablante desconocido",
+      "speakers": "Hablantes",
+      "noSpeakers": "No hay etiquetas de hablante disponibles.",
+      "speakerName": "Nombre del hablante",
+      "mergeSource": "Combinar este hablante",
+      "mergeTarget": "Con este hablante",
+      "merge": "Combinar hablantes",
+      "manualNotes": "Notas manuales",
+      "manualNote": "Nota manual",
+      "newNote": "Nueva nota manual",
+      "notePlaceholder": "Añade una nota manual",
+      "addNote": "Añadir nota",
+      "noNotes": "Todavía no hay notas manuales.",
+      "noTimestamp": "Sin marca de tiempo",
+      "timestamp": "Marca de tiempo {{time}}",
+      "generatedNotes": "Notas generadas",
+      "regenerate": "Regenerar",
+      "remoteCancellationPending": "La cancelación remota está pendiente. La eliminación local no afirma que la copia remota se haya eliminado.",
+      "cancelRemote": "Cancelar el procesamiento remoto",
       "remoteCancellationRequested": "Cancelación solicitada",
-      "export": "Export",
-      "exportDescription": "Each export uses an immutable local review snapshot and opens a native save dialog.",
-      "exportMarkdown": "Export Markdown",
-      "exportJson": "Export JSON",
+      "export": "Exportar",
+      "exportMarkdown": "Exportar Markdown",
+      "exportJson": "Exportar JSON",
       "exportComplete": "Reunión exportada",
-      "citation": "Transcript {{time}}",
-      "noGeneratedNotes": "No generated notes are available yet.",
-      "template": "Template: {{template}}",
-      "artifactRevision": "Template v{{templateVersion}} · source revision {{revision}}",
-      "summary": "Summary",
-      "topics": "Topics",
-      "none": "None",
-      "decisions": "Decisions",
-      "actions": "Action items",
-      "keyQuestions": "Key questions",
-      "risks": "Risks",
-      "followUp": "Follow-up",
-      "artifactUnavailable": "This generated revision is unavailable. The source transcript and manual notes remain local.",
-      "actionMeta": "Owner: {{owner}} · Due: {{due}}",
-      "unassigned": "Unassigned",
-      "noDueDate": "No due date",
-      "questions": "Ask this meeting",
-      "questionsDescription": "Answers use only this local meeting and cite the supporting transcript.",
-      "questionPlaceholder": "Ask a question about this meeting",
-      "ask": "Ask locally",
-      "noQuestions": "No saved local answers.",
-      "question": "Question",
-      "insufficientEvidence": "No supporting passage was found in this meeting.",
-      "forget": "Forget this answer",
-      "exactSearch": "Exact search",
-      "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
-      "searchPlaceholder": "Search this meeting",
-      "search": "Search",
-      "noSearchResults": "No exact local matches.",
+      "citation": "Transcripción {{time}}",
+      "noGeneratedNotes": "Todavía no hay notas generadas.",
+      "template": "Plantilla: {{template}}",
+      "summary": "Resumen",
+      "topics": "Temas",
+      "none": "Ninguna",
+      "decisions": "Decisiones",
+      "actions": "Tareas",
+      "keyQuestions": "Preguntas clave",
+      "risks": "Riesgos",
+      "followUp": "Seguimiento",
+      "artifactUnavailable": "Esta revisión generada no está disponible. La transcripción original y las notas manuales siguen en local.",
+      "actionMeta": "Responsable: {{owner}} · Fecha límite: {{due}}",
+      "unassigned": "Sin asignar",
+      "noDueDate": "Sin fecha límite",
+      "questions": "Preguntar a esta reunión",
+      "questionsDescription": "Las respuestas usan solo esta reunión local y citan la transcripción que las respalda.",
+      "questionPlaceholder": "Haz una pregunta sobre esta reunión",
+      "ask": "Preguntar en local",
+      "noQuestions": "No hay respuestas locales guardadas.",
+      "question": "Pregunta",
+      "insufficientEvidence": "No se encontró ningún pasaje que lo respalde en esta reunión.",
+      "forget": "Olvidar esta respuesta",
+      "exactSearch": "Búsqueda exacta",
+      "searchPlaceholder": "Buscar en esta reunión",
+      "search": "Buscar",
+      "noSearchResults": "Sin coincidencias exactas en local.",
       "askUnavailable": "Preguntar requiere una transcripción local terminada.",
       "asking": "Preguntando a esta reunión…",
-      "captured": "Capturada {{time}}",
       "droppedFrames": "Fotogramas perdidos: {{total}}",
       "hitKind": {
         "manualNote": "Nota manual",
@@ -2311,17 +2054,12 @@
     },
     "ledger": {
       "title": "Registro",
-      "description": "Cada hilo de esta reunión, dónde quedó y la cita de la transcripción de la que se leyó su estado. Los recuentos están medidos; los estados están inferidos.",
       "emptyTitle": "Todavía no se ha leído ningún registro de esta reunión",
       "emptyDescription": "El registro se escribe junto con las notas generadas. Vuelve a generar las notas para leer esta conversación por hilos.",
       "exportHtml": "Exportar página del registro",
       "exported": "Registro escrito en {{path}}",
       "exportMissing": "Esta reunión no tiene registro que exportar. Vuelve a generar las notas primero.",
       "statThreads": "Hilos cerrados",
-      "statOpen": "Abiertos",
-      "statDropped": "Abandonados",
-      "statCommitments": "Compromisos",
-      "statOpenLoops": "Preguntas sin cerrar",
       "statReceipts": "Citas",
       "receiptsVerified": "verificadas",
       "receiptsDegraded": "se han quitado {{threads}} hilos y {{commitments}} compromisos",
@@ -2359,40 +2097,26 @@
       }
     },
     "artifactState": {
-      "current": "Current",
-      "out_of_date": "Out of date",
-      "failed": "Generation failed"
+      "current": "Al día",
+      "out_of_date": "Desactualizada",
+      "failed": "La generación falló"
     },
     "answerState": {
-      "supported": "Supported",
-      "insufficient_evidence": "Insufficient evidence",
-      "unavailable": "Unavailable",
-      "out_of_date": "Out of date",
-      "forgotten": "Forgotten"
+      "supported": "Respaldada",
+      "insufficient_evidence": "Pruebas insuficientes",
+      "unavailable": "No disponible",
+      "out_of_date": "Desactualizada",
+      "forgotten": "Olvidada"
     },
     "diarization": {
-      "not_requested": "Diarization not requested",
-      "model_unavailable": "Diarization model unavailable",
-      "downloading": "Downloading diarization model",
-      "running": "Separating speakers",
-      "succeeded": "Speaker assignments current",
-      "failed": "Speaker separation failed"
-    },
-    "trends": {
-      "title": "Meeting activity",
-      "loading": "Loading meeting trends…",
-      "error": "Couldn't load meeting trends.",
-      "unavailable": "Meeting trends are unavailable.",
-      "metricLabel": "Metric",
-      "metrics": {
-        "meetings": "Meetings",
-        "duration": "Captured time",
-        "transcript": "Transcript segments",
-        "actions": "Action items"
-      }
+      "not_requested": "Diarización no solicitada",
+      "model_unavailable": "Modelo de diarización no disponible",
+      "downloading": "Descargando el modelo de diarización",
+      "running": "Separando hablantes",
+      "succeeded": "Asignaciones de hablante al día",
+      "failed": "La separación de hablantes falló"
     },
     "list": {
-      "retentionHint": "Retención: {{policy}}. Cámbiala en Settings > Privacy.",
       "searchLabel": "Buscar reuniones",
       "searchPlaceholder": "Buscar por título",
       "clearFilters": "Borrar filtros",
@@ -2450,17 +2174,13 @@
     },
     "gate": {
       "title": "La grabación no se inició",
-      "description": "Sona creó la reunión, pero un origen que debía grabar no está disponible.",
       "readyTitle": "Listo para grabar",
-      "readyDescription": "Nada impide la captura de esta reunión.",
       "recordAnyway": "Grabar sin él",
       "recordAnywayHint": "El registro se marca como parcial y el origen que falta queda nombrado en él."
     },
     "analytics": {
       "title": "Conversación",
-      "description": "Medido en este Mac a partir de la transcripción con hablantes separados. Nada se envía a ningún sitio.",
       "noSpeech": "No se transcribió ninguna voz, así que no hay nada que medir.",
-      "talkShare": "Quien más habla",
       "longestMonologue": "Monólogo más largo",
       "patience": "Paciencia",
       "patienceDetail": "Pausa mediana antes de responder",
@@ -2475,7 +2195,6 @@
       "noHits": "Sin mencionar",
       "jumpToFirst": "Ver la primera",
       "trackersTitle": "Rastreadores de palabras clave",
-      "trackersDescription": "Frases que se vigilan en cada transcripción de reunión. La coincidencia es literal y no distingue mayúsculas, y cada análisis se ejecuta en este Mac.",
       "addTracker": "Añadir rastreador",
       "removeTracker": "Quitar rastreador",
       "noTrackers": "Aún no hay rastreadores. Añade uno para empezar a contar con qué frecuencia aparece una frase.",
@@ -2487,7 +2206,6 @@
     "notes": {
       "title": "Mis notas",
       "liveDescription": "Escribe tan a grandes rasgos como quieras. Estas notas se quedan en este Mac y guían las notas que Sona genera al terminar la reunión.",
-      "reviewDescription": "Tus propias notas guían lo que destacan las notas generadas. Nunca se citan ni se referencian.",
       "placeholder": "Todo lo que merezca recordarse: nombres, cifras, qué hay que seguir",
       "unsaved": "Sin guardar todavía",
       "saving": "Guardando…",
@@ -2495,7 +2213,6 @@
       "conflict": "Estas notas cambiaron en otro sitio. Vuelve a abrir la reunión para cargar la versión actual.",
       "reenhance": "Volver a mejorar con mis notas",
       "enhancing": "Reconstruyendo…",
-      "enhanced": "Notas reconstruidas.",
       "enhanceFailed": "Sona no pudo reconstruir las notas. Abre la reunión de nuevo y reinténtalo.",
       "catchUp": "Ponme al día",
       "catchingUp": "Poniéndote al día…",
@@ -2509,11 +2226,11 @@
         "interview": "Entrevista",
         "sales_call": "Llamada de ventas",
         "standup": "Standup"
-      }
+      },
+      "template": "Plantilla"
     },
     "detection": {
       "title": "Detectar reuniones",
-      "description": "Sona vigila las llamadas y ofrece tomar notas. Nunca graba por su cuenta.",
       "loading": "Leyendo el estado de detección…",
       "prompt": {
         "calendar": "{{title}} está empezando",
@@ -2531,21 +2248,17 @@
       },
       "pane": {
         "title": "Empieza pronto",
-        "description": "Sona no graba hasta que lo inicias aquí.",
-        "countdown": "Empieza en {{seconds}} s",
-        "notYetRecording": "Sin grabar"
+        "countdown": "Empieza en {{seconds}} s"
       },
       "calendar": {
         "label": "Usar mi calendario",
         "description": "Muestra una cuenta atrás un minuto antes de los eventos con dos o más asistentes. macOS pide acceso completo al calendario la primera vez, porque Apple no ofrece un permiso de solo lectura."
       },
       "anyMic": {
-        "label": "Preguntar con cualquier uso del micrófono",
-        "description": "Incluye notas de voz, apps de música y cualquier otra cosa que abra el micrófono. Desactivado limita los avisos a apps de reunión conocidas."
+        "label": "Preguntar con cualquier uso del micrófono"
       },
       "autoStart": {
-        "label": "Abrir la reunión cuando se muestre su cuenta atrás",
-        "description": "Omite la notificación cuando un evento empieza mientras ya estás mirando su cuenta atrás. Sigues confirmando qué se graba."
+        "label": "Abrir la reunión cuando se muestre su cuenta atrás"
       },
       "apps": {
         "label": "Apps de reunión",
@@ -2555,7 +2268,6 @@
       },
       "state": {
         "title": "Qué puede ver la detección",
-        "description": "La detección está callada la mayor parte del tiempo. Este es el motivo.",
         "calendarDenied": "No se concedió acceso al calendario, así que solo funciona la vía del micrófono.",
         "notificationsDenied": "Las notificaciones están desactivadas para Sona, así que los avisos aparecen solo en la app.",
         "bluetoothCaveat": "Hay una app de reunión abierta pero nada informa de uso del micrófono. Los auriculares Bluetooth a menudo no lo hacen, así que inicia la reunión tú mismo si hay una en marcha.",
@@ -2623,14 +2335,12 @@
   },
   "agentPanel": {
     "open": "Agente",
-    "loading": "Conectando…",
     "retry": "Reintentar",
     "cancel": "Cancelar",
     "apply": "Aplicar",
     "undo": "Deshacer",
     "panelToggle": "Cerrar el panel del agente",
     "conversationLabel": "Conversación",
-    "proposalLabel": "Cambios propuestos",
     "proposalTitle": "Cambios propuestos",
     "empty": "Pregunta por los ajustes de Sona. Las propuestas aparecen aquí para revisarlas antes de cambiar nada.",
     "inputPlaceholder": "Pregunta por Sona…",
@@ -2647,92 +2357,16 @@
       "error": "El panel del agente no está disponible."
     }
   },
-  "analytics": {
-    "range": {
-      "label": "Range",
-      "days_7": "7 days",
-      "days_30": "30 days",
-      "days_180": "6 months"
-    },
-    "delta": {
-      "new": "New",
-      "flat": "No change",
-      "unavailable": "Unavailable",
-      "change": "{{value}} vs previous period"
-    },
-    "duration": {
-      "minutes": "{{value}} min",
-      "hours": "{{value}} h"
-    },
-    "chart": {
-      "description": "{{metric}} for {{range}}",
-      "empty": "No activity yet"
-    }
-  },
   "overview": {
-    "sources": {
-      "title": "Sources",
-      "description": "Where the recordings in this range came from.",
-      "microphone": "Microphone",
-      "file": "File import",
-      "legacy": "Legacy",
-      "empty": "No recordings in this range.",
-      "meetings": "Reuniones",
-      "meetingsUnavailable": "El almacenamiento de reuniones no está disponible, así que las reuniones no se cuentan aquí."
-    },
-    "recent": {
-      "title": "Recent activity",
-      "history": "Dictation",
-      "meeting": "Meeting",
-      "viewAll": "Ver todo",
-      "words": "{{count}} palabras",
-      "emptyRange": "Sin dictados ni reuniones en los últimos 30 días.",
-      "failedCommand": "{{command}} falló",
-      "failedCommandWithDetail": "{{command}} falló: {{detail}}"
-    },
     "hero": {
-      "ready": "Ready",
-      "recording": "Listening",
-      "newMeeting": "New meeting",
-      "importAudio": "Import audio",
-      "mode": "Modo: {{name}}",
-      "setShortcut": "Configura un atajo de dictado en Ajustes para capturar desde cualquier app.",
-      "setShortcutAction": "Definir un atajo",
+      "ready": "Listo",
+      "recording": "Escuchando",
+      "newMeeting": "Nueva reunión",
+      "importAudio": "Importar audio",
+      "gestureTapHold": "toca para alternar · mantén para hablar",
+      "gestureTapOnly": "toca para alternar",
       "shortcutAction": "Cambiar el atajo de dictado",
-      "gestureTapHold": "Toca para alternar, mantén para hablar.",
-      "gestureTapOnly": "Toca para alternar."
-    },
-    "actions": {
-      "dictate": "Dictate",
-      "unavailable": "Shortcut unavailable"
-    },
-    "chart": {
-      "day": "{{date}} · dictados {{dictations}}",
-      "dayWithMeetings": "{{date}} · dictados {{dictations}} · reuniones {{meetings}}",
-      "legend": "Dictados por día",
-      "peak": "Día más activo {{peak}}",
-      "summary": "Dictados por día del {{from}} al {{to}}. Total {{total}}, día más activo {{peak}}."
-    },
-    "empty": {
-      "action": "Abrir biblioteca",
-      "description": "Mantén pulsado tu atajo de dictado en cualquier app y Sona escribe lo que dices. Tus estadísticas de uso y capturas recientes aparecen aquí después del primer dictado.",
-      "title": "Aún no hay capturas"
-    },
-    "stats": {
-      "activeDays": "{{active}} de {{total}} días activos",
-      "allTime": "{{total}} en total",
-      "dictations": "Dictados",
-      "dictationsAllTime": "Dictados, histórico",
-      "error": "Sona no pudo leer tu historial de uso.",
-      "range": "Del {{from}} al {{to}}",
-      "rangeUnavailable": "No se pudieron leer los últimos 30 días, así que estos son totales históricos.",
-      "speaking": "Tiempo de habla",
-      "speakingAllTime": "Tiempo de habla, histórico",
-      "streak": "Racha actual",
-      "tiles": "Resumen de uso",
-      "title": "Actividad",
-      "words": "Palabras",
-      "wordsAllTime": "Palabras, histórico"
+      "setShortcutAction": "Definir un atajo"
     },
     "update": {
       "available": "Sona {{latest}} está disponible. Esta instalación tiene la {{current}}.",
@@ -2740,122 +2374,98 @@
       "failed": "No se pudo comprobar si hay actualizaciones.",
       "failedWithReason": "No se pudo comprobar si hay actualizaciones: {{reason}}",
       "view": "Ver versión"
-    },
-    "instrument": {
-      "label": "Instrumentos de captura",
-      "engine": "Motor",
-      "input": "Entrada",
-      "shortcut": "Atajo",
-      "mode": "Modo",
-      "loaded": "cargado",
-      "unloaded": "no cargado",
-      "notMeasured": "sin medir",
-      "unbound": "sin definir",
-      "gestureTapHold": "toque · mantener",
-      "gestureTap": "toque",
-      "channel": "ch {{channel}}",
-      "channels": "{{count}} ch",
-      "rate": "{{kilohertz}} kHz",
-      "systemDefault": "Predeterminado del sistema",
-      "decode": "decodificación {{factor}}"
     }
   },
   "cloudSync": {
-    "title": "Cloud Sync",
     "account": {
-      "title": "Cloud Sync",
-      "description": "Meetings stay on this device until you set up sync.",
+      "title": "Sincronización en la nube",
       "status": {
-        "loading": "Checking sync…",
-        "local": "Local only",
-        "ready": "Sync active",
-        "paused": "Sync paused",
-        "attention": "Sync needs attention",
-        "unavailable": "Sync unavailable"
+        "loading": "Comprobando…",
+        "local": "Solo local",
+        "ready": "Activo",
+        "paused": "En pausa",
+        "attention": "Requiere atención",
+        "unavailable": "No disponible"
       },
-      "pending": "{{count}} pending",
-      "pause": "Pause sync",
-      "resume": "Resume sync"
-    },
-    "disclosure": {
-      "title": "Set up or recover sync",
-      "description": "Connect an endpoint or pair another device.",
-      "notice": "Setup is optional. Meeting data stays local until you complete it."
+      "pending": "Pendientes: {{count}}",
+      "pause": "Pausar la sincronización",
+      "resume": "Reanudar la sincronización"
     },
     "setup": {
-      "title": "Set up a sync account",
+      "title": "Configurar una cuenta de sincronización",
       "endpoint": "Endpoint",
-      "bootstrapSecret": "Bootstrap secret",
-      "submit": "Set up sync"
+      "bootstrapSecret": "Secreto de arranque",
+      "submit": "Configurar la sincronización"
     },
     "recovery": {
-      "title": "Recover a sync account",
-      "code": "Recovery code",
-      "submit": "Recover account",
-      "generatedCode": "Save this recovery code now",
-      "oneTime": "Sona shows this code once and does not store it."
+      "title": "Recuperar una cuenta de sincronización",
+      "code": "Código de recuperación",
+      "submit": "Recuperar la cuenta",
+      "generatedCode": "Guarda ahora este código de recuperación",
+      "oneTime": "Sona muestra este código una sola vez y no lo guarda."
     },
     "pairing": {
-      "title": "Pair a device",
-      "vaultId": "Vault ID",
-      "createOffer": "Create pairing offer",
-      "currentOffer": "Pairing offer",
-      "approve": "Approve this offer",
-      "receivedOffer": "Offer from another device",
-      "accept": "Accept offer"
+      "title": "Emparejar un dispositivo",
+      "vaultId": "ID del almacén",
+      "createOffer": "Crear una oferta de emparejamiento",
+      "currentOffer": "Oferta de emparejamiento",
+      "approve": "Aprobar esta oferta",
+      "receivedOffer": "Oferta de otro dispositivo",
+      "accept": "Aceptar la oferta"
     },
     "errors": {
-      "portable_unavailable": "Cloud Sync is unavailable in portable mode.",
-      "secret_unavailable": "The native secure store is unavailable.",
-      "setup_required": "Set up Cloud Sync before using this action.",
-      "auth_required": "Cloud sign-in is required.",
-      "quota": "Cloud storage quota has been reached.",
-      "integrity_failure": "The cloud operation could not be verified.",
-      "conflict": "This meeting has a sync conflict.",
-      "unsupported_protocol": "This device does not support the cloud protocol.",
-      "transient": "Cloud Sync is temporarily unavailable.",
-      "invalid_expiry": "Choose a future expiry.",
-      "invalid_offer": "The pairing offer is incomplete or invalid.",
-      "unexpected": "The cloud operation failed."
+      "portable_unavailable": "La sincronización en la nube no está disponible en modo portátil.",
+      "secret_unavailable": "El almacén seguro del sistema no está disponible.",
+      "setup_required": "Configura la sincronización en la nube antes de usar esta acción.",
+      "auth_required": "Hay que iniciar sesión en la nube.",
+      "quota": "Se ha alcanzado la cuota de almacenamiento en la nube.",
+      "integrity_failure": "No se pudo verificar la operación en la nube.",
+      "conflict": "Esta reunión tiene un conflicto de sincronización.",
+      "unsupported_protocol": "Este dispositivo no admite el protocolo de la nube.",
+      "transient": "La sincronización en la nube no está disponible temporalmente.",
+      "invalid_expiry": "Elige una fecha de caducidad futura.",
+      "invalid_offer": "La oferta de emparejamiento está incompleta o no es válida.",
+      "unexpected": "La operación en la nube falló."
     },
     "meeting": {
-      "title": "Cloud Sync",
+      "title": "Sincronización en la nube",
       "status": {
-        "loading": "Checking sync…",
-        "local": "Local only",
-        "queued": "Queued",
-        "uploading": "Uploading",
-        "committed": "Synced",
-        "conflict": "Conflict",
-        "pending_deletion": "Removal pending",
-        "deleted": "Removed",
-        "paused": "Paused",
-        "auth_required": "Sign-in required",
-        "quota": "Quota reached",
-        "integrity_failure": "Verification failed",
-        "unavailable": "Sync unavailable"
+        "loading": "Comprobando la sincronización…",
+        "local": "Solo local",
+        "queued": "En cola",
+        "uploading": "Subiendo",
+        "committed": "Sincronizada",
+        "conflict": "Conflicto",
+        "pending_deletion": "Eliminación pendiente",
+        "deleted": "Eliminada",
+        "paused": "En pausa",
+        "auth_required": "Se requiere iniciar sesión",
+        "quota": "Cuota alcanzada",
+        "integrity_failure": "Verificación fallida",
+        "unavailable": "Sincronización no disponible"
       },
-      "shareCount": "{{count}} shares",
-      "retryScheduled": "Retry scheduled",
-      "retry": "Retry sync",
-      "keepLocal": "Keep this device's copy",
-      "useRemote": "Use the cloud copy",
-      "expiresAt": "Share expiry",
+      "shareCount": "Comparticiones: {{count}}",
+      "retryScheduled": "Reintento programado",
+      "retry": "Reintentar la sincronización",
+      "keepLocal": "Conservar la copia de este dispositivo",
+      "useRemote": "Usar la copia de la nube",
+      "expiresAt": "Caducidad de la compartición",
       "bundle": {
-        "fileFilter": "Sona share",
-        "export": "Export .sona file",
-        "import": "Import .sona file",
-        "exported": "Saved to {{path}}",
-        "imported": "Imported meeting {{sessionId}}"
+        "fileFilter": "Archivo compartido de Sona",
+        "export": "Exportar un archivo .sona",
+        "import": "Importar un archivo .sona",
+        "exported": "Guardado en {{path}}",
+        "imported": "Reunión {{sessionId}} importada"
       },
       "browser": {
-        "create": "Create browser share",
-        "revoke": "Revoke browser share"
+        "create": "Crear compartición por navegador",
+        "revoke": "Revocar la compartición por navegador",
+        "revokeConfirm": "Cualquiera que tenga este enlace pierde el acceso en el momento en que lo revoques."
       }
     }
   },
   "topNav": {
-    "capture": "Capture",
-    "library": "Library"
+    "capture": "Captura",
+    "library": "Biblioteca"
   }
 }

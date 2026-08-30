@@ -1,25 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { commands } from "@/bindings";
-import { SettingContainer } from "../ui/SettingContainer";
-import { PathDisplay } from "../ui/PathDisplay";
+import { Button } from "@/components/vg/button";
+import { Notice, SettingsField } from "./rows";
 
-interface AppDataDirectoryProps {
-  descriptionMode?: "tooltip" | "inline";
-  grouped?: boolean;
-}
-
-export const AppDataDirectory: React.FC<AppDataDirectoryProps> = ({
-  descriptionMode = "inline",
-  grouped = false,
-}) => {
+export const AppDataDirectory: React.FC = () => {
   const { t } = useTranslation();
   const [appDirPath, setAppDirPath] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadAppDirectory = async () => {
+    void (async () => {
       try {
         const result = await commands.getAppDirPath();
         if (result.status === "ok") {
@@ -34,50 +26,52 @@ export const AppDataDirectory: React.FC<AppDataDirectoryProps> = ({
       } finally {
         setLoading(false);
       }
-    };
-
-    loadAppDirectory();
+    })();
   }, []);
 
-  const handleOpen = async () => {
-    if (!appDirPath) return;
-    try {
-      await commands.openAppDataDir();
-    } catch (openError) {
-      console.error("Failed to open app data directory:", openError);
-    }
-  };
+  const label = t("settings.about.appDataDirectory.title");
 
-  if (loading) {
+  if (loading || error !== null) {
     return (
-      <div role="status" className="surface-state p-3">
-        <span aria-hidden="true" className="surface-state-spinner" />
-        <span>{t("common.loading")}</span>
-      </div>
+      <SettingsField label={label}>
+        <Notice tone={error === null ? "muted" : "danger"}>
+          {error === null
+            ? t("common.loading")
+            : t("errors.loadDirectory", { error })}
+        </Notice>
+      </SettingsField>
     );
   }
 
-  if (error) {
-    return (
-      <div role="alert" className="surface-state p-3">
-        {t("errors.loadDirectory", { error })}
-      </div>
-    );
-  }
-
+  /* The path is the row's answer, printed once, in mono because it is a
+   * machine string. The row's old description said "Where Sona stores its
+   * data" above exactly that path.
+   *
+   * The action is outline rather than ghost: a ghost button has no border and
+   * no fill at rest, so the bare word "Open" beside a path reads as more path.
+   * The icon-only reset affordances elsewhere stay ghost — their glyph is the
+   * affordance. */
   return (
-    <SettingContainer
-      title={t("settings.about.appDataDirectory.title")}
-      description={t("settings.about.appDataDirectory.description")}
-      descriptionMode={descriptionMode}
-      grouped={grouped}
-      layout="stacked"
-    >
-      <PathDisplay
-        path={appDirPath}
-        onOpen={handleOpen}
-        disabled={!appDirPath}
-      />
-    </SettingContainer>
+    <SettingsField label={label}>
+      <div className="flex items-center gap-2">
+        <span className="min-w-0 flex-1 truncate font-mono text-xs text-gray-800 select-text">
+          {appDirPath}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!appDirPath}
+          onClick={() =>
+            void commands
+              .openAppDataDir()
+              .catch((openError) =>
+                console.error("Failed to open app data directory:", openError),
+              )
+          }
+        >
+          {t("common.open")}
+        </Button>
+      </div>
+    </SettingsField>
   );
 };

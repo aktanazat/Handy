@@ -30,16 +30,14 @@
     "models": "モデル",
     "advanced": "詳細設定",
     "postProcessing": "後処理",
-    "history": "履歴",
     "debug": "デバッグ",
     "about": "概要",
-    "modes": "Modes",
-    "privacy": "Privacy",
-    "agents": "Agents",
-    "meetings": "Meetings",
-    "navigation": "Main navigation",
-    "overview": "Overview",
-    "settings": "Settings"
+    "modes": "モード",
+    "privacy": "プライバシー",
+    "agents": "エージェント",
+    "meetings": "会議",
+    "navigation": "メインナビゲーション",
+    "settings": "設定"
   },
   "onboarding": {
     "subtitle": "モデルはこの Mac 上で動作し、精度と速度がトレードオフになります",
@@ -154,6 +152,7 @@
     "active": "アクティブ",
     "switching": "切替中…",
     "noModelsAvailable": "利用可能なモデルがありません",
+    "searchPlaceholder": "モデルを検索",
     "verifying": "{{modelName}}を検証中…",
     "verifyingGeneric": "検証中…",
     "extracting": "{{modelName}}を展開中…",
@@ -161,7 +160,7 @@
     "extractingGeneric": "展開中…",
     "downloading": "ダウンロード中 {{percentage}}%",
     "downloadingMultiple": "{{count}}個のモデルをダウンロード中…",
-    "downloadingGeneric": "Downloading…",
+    "downloadingGeneric": "ダウンロード中…",
     "modelReady": "モデル準備完了",
     "loading": "{{modelName}}を読み込み中…",
     "loadingGeneric": "読み込み中…",
@@ -190,12 +189,10 @@
     },
     "models": {
       "title": "文字起こしのモデル",
-      "description": "音声をテキストに変換するモデル。モデルによって精度と速度のバランスが異なります。",
       "deleteConfirm": "{{modelName}} を削除しますか? 再度使用するには再ダウンロードが必要です。",
       "deleteActiveConfirm": "{{modelName}} は現在使用中のモデルです。削除すると、別のモデルを選択するまで文字起こしが停止します。",
       "deleteTitle": "モデルを削除",
       "filters": {
-        "allLanguages": "すべての言語",
         "streaming": "リアルタイム文字起こしに対応するモデルのみ表示",
         "translation": "英語への翻訳に対応するモデルのみ表示",
         "allFamilies": "すべてのファミリー",
@@ -205,56 +202,50 @@
         "family": "モデルファミリー"
       },
       "noModelsMatch": "このフィルターに一致するモデルがありません。",
-      "yourModels": "ダウンロード済みモデル",
-      "availableModels": "ダウンロード可能",
-      "searchPlaceholder": "モデルを名前で検索",
       "rescan": {
         "label": "再スキャン",
         "tooltip": "Sona を使わずに models フォルダーまたは Hugging Face キャッシュに追加されたモデルを再スキャンします"
       },
       "cloud": {
-        "title": "Cloud transcription",
-        "description": "Save a provider key to make its cloud engine available in a mode.",
-        "providerDescription": "Credentials stay in your operating system's native secure store.",
+        "title": "クラウド文字起こし",
+        "providerDescription": "資格情報はオペレーティングシステムのセキュアストアに保管されます。",
         "providers": {
           "deepgram": "Deepgram Nova-3",
           "elevenLabs": "ElevenLabs Scribe v2"
         },
         "apiKey": {
-          "label": "API key",
-          "description": "A saved key is write-only and never displayed here.",
-          "placeholder": "Paste API key"
+          "placeholder": "API キーを貼り付け"
         },
         "actions": {
-          "save": "Save key",
-          "saving": "Saving…",
-          "remove": "Remove key",
-          "removing": "Removing…",
-          "verify": "Verify",
-          "verifying": "Verifying…"
+          "save": "キーを保存",
+          "saving": "保存中…",
+          "remove": "キーを削除",
+          "removing": "削除中…",
+          "verify": "検証",
+          "verifying": "検証中…"
         },
         "status": {
-          "checking": "Checking native key store…",
-          "notSaved": "No API key saved.",
-          "saved": "API key saved. It has not been verified.",
-          "verified": "API key verified.",
-          "verifyRequiresConsent": "Review the transfer disclosure in a mode before verifying this key."
+          "checking": "システムのキーストアを確認中…",
+          "notSaved": "API キーは保存されていません。",
+          "saved": "API キーを保存しました。まだ検証されていません。",
+          "verified": "API キーを検証しました。",
+          "verifyRequiresConsent": "このキーを検証する前に、モードで転送に関する説明を確認してください。"
         },
         "errors": {
-          "not_found": "No API key is saved for this provider.",
-          "unavailable": "The native secure store is unavailable.",
-          "locked": "The native secure store is locked.",
-          "corrupt": "The saved credential cannot be read safely.",
-          "invalid": "The credential was not accepted by the secure store.",
-          "busy": "The secure store is busy. Try again.",
-          "backend": "The credential operation could not be completed.",
-          "not_configured": "Save an API key before verifying it.",
-          "consent_required": "Accept the provider transfer disclosure before verifying.",
-          "authentication": "The provider rejected this API key.",
-          "quota": "The provider rejected verification because the account is over quota.",
-          "network": "The provider could not be reached for verification.",
-          "protocol": "The provider returned an unexpected verification response.",
-          "unknown_provider": "This cloud provider is not available in this build."
+          "not_found": "このプロバイダーの API キーは保存されていません。",
+          "unavailable": "システムのセキュアストアを利用できません。",
+          "locked": "システムのセキュアストアがロックされています。",
+          "corrupt": "保存された資格情報を安全に読み取れません。",
+          "invalid": "セキュアストアがこの資格情報を受け付けませんでした。",
+          "busy": "セキュアストアが使用中です。もう一度お試しください。",
+          "backend": "資格情報の操作を完了できませんでした。",
+          "not_configured": "検証する前に API キーを保存してください。",
+          "consent_required": "検証する前に、プロバイダーの転送に関する説明に同意してください。",
+          "authentication": "プロバイダーがこの API キーを拒否しました。",
+          "quota": "アカウントが上限を超えているため、プロバイダーが検証を拒否しました。",
+          "network": "検証のためにプロバイダーへ接続できませんでした。",
+          "protocol": "プロバイダーが予期しない検証応答を返しました。",
+          "unknown_provider": "このクラウドプロバイダはこのビルドでは利用できません。"
         }
       },
       "actions": {
@@ -262,6 +253,7 @@
         "activateNamed": "{{modelName}} を使用",
         "download": "ダウンロード",
         "downloadNamed": "{{modelName}} をダウンロード",
+        "moreFor": "{{modelName}} のその他の操作",
         "retryNamed": "{{modelName}} のダウンロードを再試行"
       },
       "emptyCatalog": "Sona はモデルカタログを読み取れませんでした。再スキャンすると、モデルフォルダや Hugging Face キャッシュにあるモデルが検出されます。",
@@ -273,44 +265,33 @@
         "other": "その他のモデル"
       },
       "familyCount": "{{total}} モデル",
-      "noModelsMatchHint": "すべてのフィルターに同時に一致するモデルはカタログにありません。",
       "searchByAnything": "名前、言語、機能で検索",
       "state": {
         "activeInMemory": "アクティブ、メモリ内",
         "downloaded": "ダウンロード済み",
         "notDownloaded": "未ダウンロード"
-      },
-      "summary": {
-        "noActive": "モデルが選択されていません",
-        "activeLabel": "使用中のモデル",
-        "onDiskLabel": "ディスク上"
       }
     },
     "general": {
       "title": "一般",
       "shortcut": {
         "title": "ショートカット",
-        "description": "録音と書き換えのキーボードショートカット。",
         "loading": "ショートカットを読み込み中…",
         "none": "ショートカットが設定されていません",
         "notFound": "ショートカットが見つかりません",
         "pressKeys": "キーを押してください…",
         "bindings": {
           "transcribe": {
-            "name": "文字起こしのショートカット",
-            "description": "音声を録音して文字起こしするためのキーボードショートカット。"
+            "name": "文字起こしのショートカット"
           },
           "cancel": {
-            "name": "キャンセルのショートカット",
-            "description": "現在の録音をキャンセルするためのキーボードショートカット。"
+            "name": "キャンセルのショートカット"
           },
           "transcribe_with_post_process": {
-            "name": "後処理のショートカット",
-            "description": "書き起こしに常に AI による整形を適用する任意のショートカット。"
+            "name": "後処理のショートカット"
           },
           "command": {
-            "name": "コマンドのショートカット",
-            "description": "選択したテキストを、話した指示にしたがって書き換えるキーボードショートカット。"
+            "name": "コマンドのショートカット"
           }
         },
         "errors": {
@@ -320,22 +301,18 @@
         },
         "holdHint": "タップで切り替え、押したままで発話。どのショートカットでも使えます。",
         "recordAction": "{{binding}} に新しいショートカットを記録",
-        "recordHint": "クリックして記録",
         "unset": "未設定"
       },
       "language": {
         "title": "言語",
-        "description": "音声認識に使用する言語。自動では言語を判定します。言語を指定すると精度が向上する場合があります。",
         "searchPlaceholder": "言語を検索",
         "noResults": "言語が見つかりません",
         "auto": "自動"
       },
       "pushToTalk": {
-        "label": "プッシュツートーク",
-        "description": "押し続けて録音、離して停止"
+        "label": "プッシュツートーク"
       },
       "appearance": {
-        "description": "インターフェイスの言語とカラースキーム。どちらも即座に適用されます。",
         "title": "外観",
         "material": {
           "title": "マテリアル",
@@ -346,7 +323,6 @@
           }
         }
       },
-      "description": "押すキー、Sona が聞くマイク、アプリの外観。",
       "commandMode": {
         "label": "音声コマンドモード",
         "description": "コマンドのショートカットを押したまま、選択したテキストをどう変えるか話してください。"
@@ -355,36 +331,27 @@
     "sound": {
       "title": "サウンド",
       "microphone": {
-        "title": "マイク",
-        "description": "Sona が録音に使用するマイク。",
-        "placeholder": "マイクを選択",
-        "loading": "読み込み中…"
+        "title": "マイク"
       },
       "channel": {
         "title": "入力チャンネル",
-        "description": "インターフェースに複数の入力がある場合に、録音に使用する入力チャンネル。",
         "average": "すべてのチャンネルの平均",
         "channel": "チャンネル{{n}}"
       },
       "audioFeedback": {
-        "label": "オーディオフィードバック",
-        "description": "録音の開始時と停止時にサウンドを再生します。"
+        "label": "オーディオフィードバック"
       },
       "outputDevice": {
         "title": "出力デバイス",
-        "description": "フィードバックのサウンドを再生する場所。",
-        "placeholder": "出力デバイスを選択",
-        "loading": "読み込み中…"
+        "description": "フィードバックのサウンドを再生する場所。"
       },
       "volume": {
-        "title": "音量",
-        "description": "フィードバックのサウンドの音量。"
+        "title": "音量"
       }
     },
     "advanced": {
       "englishSpelling": {
         "label": "英語のスペル",
-        "description": "認識結果のスペルをそのまま使うか、一般的なアメリカ式のスペルをイギリス式のスペルに変換します。",
         "values": {
           "as_spoken": "認識結果のまま",
           "british": "イギリス式"
@@ -398,8 +365,7 @@
         "experimental": "実験的"
       },
       "experimentalToggle": {
-        "label": "実験的な機能",
-        "description": "まだ開発中のオプションを表示します。"
+        "label": "実験的な機能"
       },
       "lazyStreamClose": {
         "label": "文字起こし間でマイクを有効にする",
@@ -407,8 +373,7 @@
       },
       "acceleration": {
         "transcribe": {
-          "title": "transcribe.cpp アクセラレーション",
-          "description": "transcribe.cpp (Whisper 系) モデルのハードウェアアクセラレーション。「自動」では利用可能な場合 GPU を使用します (macOS では Metal、Windows/Linux では Vulkan)。"
+          "title": "transcribe.cpp アクセラレーション"
         },
         "ort": {
           "title": "ONNX アクセラレーション",
@@ -423,17 +388,15 @@
         "description": "ウィンドウを開かずにシステムトレイに起動。"
       },
       "autostart": {
-        "label": "起動時に実行",
-        "description": "ログイン時に Sona を起動します。"
+        "label": "起動時に実行"
       },
       "showTrayIcon": {
-        "label": "トレイアイコンを表示",
-        "description": "システムトレイに Sona のアイコンを表示します。"
+        "label": "トレイアイコンを表示"
       },
       "overlay": {
         "style": {
           "title": "オーバーレイ",
-          "description": "Choose the recording overlay: None hides it, Minimal shows a compact pill, Live shows transcription in real time while a streaming local model or cloud mode is active. On Linux 'None' is recommended.",
+          "description": "録音オーバーレイを選びます。「なし」は非表示、「ミニマル」はコンパクトなピルを表示、「ライブ」はストリーミング対応のローカルモデルまたはクラウドモードが有効な間、文字起こしをリアルタイムで表示します。Linux では「なし」を推奨します。",
           "options": {
             "none": "なし",
             "minimal": "ミニマル",
@@ -442,7 +405,6 @@
         },
         "position": {
           "title": "オーバーレイの位置",
-          "description": "録音と文字起こし中に表示するオーバーレイが表示される位置を選択します。",
           "options": {
             "bottom": "下",
             "top": "上"
@@ -489,12 +451,10 @@
         }
       },
       "translateToEnglish": {
-        "label": "英語に翻訳",
-        "description": "文字起こし中に他の言語の音声を英語に翻訳します。"
+        "label": "英語に翻訳"
       },
       "modelUnload": {
         "title": "モデルのアンロード",
-        "description": "モデルがこの時間アイドル状態になったら GPU と CPU のメモリを解放します。",
         "options": {
           "never": "しない",
           "immediately": "即座に",
@@ -508,7 +468,6 @@
       },
       "customWords": {
         "title": "語彙",
-        "description": "発話フレーズを正確な表記に修正します。Whisper は表記をプロンプトとして使用し、他のモデルでは決定論的な修正を行います。",
         "spoken": "発話フレーズ",
         "written": "書き込むテキスト",
         "spokenPlaceholder": "話した内容",
@@ -542,26 +501,21 @@
           "unsavedWarning": "未保存の語彙の変更があります。このインポートを適用すると、それらは置き換えられます。",
           "back": "戻る",
           "continue": "続ける",
-          "replaceSummary": "適用すると、保存済みの {{savedCount}} 件のペアがこのファイルの {{importedCount}} 件のペアに置き換えられます。",
-          "stepConfirm": "ステップ 2/2: 置き換えを確認",
-          "stepReview": "ステップ 1/2: ファイルの内容"
+          "replaceSummary": "適用すると、保存済みの {{savedCount}} 件のペアがこのファイルの {{importedCount}} 件のペアに置き換えられます。"
         },
-        "actions": "Vocabulary actions",
+        "actions": "語彙の操作",
         "audioImport": {
           "errors": {
             "start": "音声の取り込みを開始できませんでした。もう一度お試しください。"
           },
           "failure": {
-            "history": "Some recordings could not be imported into the vocabulary."
+            "history": "一部の録音を語彙にインポートできませんでした。"
           }
         },
         "empty": {
-          "description": "open ai と OpenAI のようなペアを追加すると、Sona はそのフレーズを聞くたびに正確な表記で書き込みます。",
-          "title": "語彙ルールはまだありません"
+          "description": "open ai と OpenAI のようなペアを追加すると、Sona はそのフレーズを聞くたびに正確な表記で書き込みます。"
         },
-        "sources": "ライブラリの文字起こしから保存した修正はこのリストに入ります。特定のモード専用のルールは、そのモード自身の語彙に含まれます。",
-        "unsaved": "未保存の変更",
-        "csvLabel": "CSV"
+        "sources": "ライブラリの文字起こしから保存した修正はこのリストに入ります。特定のモード専用のルールは、そのモード自身の語彙に含まれます。"
       },
       "voiceActivityDetection": {
         "title": "音声区間検出 (VAD)",
@@ -575,8 +529,6 @@
         "enabledLabel": "絵文字の置換を有効にする",
         "enabledDescription": "語彙の修正後、完全に一致する発話トークンのみを置換します。",
         "title": "絵文字の置換",
-        "description": "完全に一致する発話フレーズを絵文字テキストに対応付けます。あいまい一致は使用しません。",
-        "offState": "絵文字の置換はオフです。Sona がコードや他のアプリで自動的に有効にすることはありません。",
         "spoken": "発話フレーズ",
         "written": "絵文字テキスト",
         "spokenPlaceholder": "笑顔",
@@ -593,53 +545,39 @@
           "incompleteRow": "保存する前にすべての行を入力するか削除してください。"
         },
         "empty": {
-          "description": "smiley face のような発話トークンを、書き込みたい絵文字に対応付けます。",
-          "title": "絵文字の置換はまだありません"
+          "description": "smiley face のような発話トークンを、書き込みたい絵文字に対応付けます。"
         }
       },
-      "description": "Startup, processing, and experimental behavior.",
       "disclosures": {
         "launch": {
-          "title": "Launch",
-          "description": "How Sona starts and what it shows."
+          "title": "起動"
         },
         "processing": {
-          "title": "Processing",
-          "description": "Engine and model behavior while transcribing."
-        },
-        "experimental": {
-          "description": "Unstable options that can change without notice."
+          "title": "処理"
         }
       },
       "snippets": {
         "add": "スニペットを追加",
         "confirmDelete": {
           "description": "このトリガーは今後の文字起こしで展開されなくなります。すでに書き込まれたテキストは変更されません。",
-          "body": "{{trigger}} は現在 {{expansion}} に展開されます。",
           "title": "{{trigger}} を削除しますか？"
         },
-        "description": "Sona が長いテキストに展開する短いトリガー。ここでの変更は今後の文字起こしにのみ適用され、すでに書き込まれたテキストには影響しません。",
         "empty": {
-          "action": "最初のスニペットを作成",
-          "description": "omw のようなトリガーを追加すると、そう言うたびに Sona が on my way と書き込みます。",
-          "title": "スニペットはまだありません"
+          "description": "omw のようなトリガーを追加すると、そう言うたびに Sona が on my way と書き込みます。"
         },
-        "enabledDescription": "すべての文字起こしで、語彙修正の直後にスニペットトリガーを置換します。",
         "enabledLabel": "テキスト展開を有効にする",
         "errors": {
           "duplicate": "このトリガーは別のスニペットですでに使われています。",
           "incomplete": "トリガーと展開の両方を入力してください。"
         },
         "expansion": "展開",
-        "expansionPlaceholder": "on my way",
+        "expansionPlaceholder": "今向かっています",
         "loadError": "スニペットを読み込めませんでした。",
         "loading": "スニペットを読み込み中",
         "matching": "トリガーは単語単位で一致し、大文字と小文字を区別しません。同じ位置に2つのトリガーが一致する場合は長い方が優先され、展開は語彙修正の直後に実行されます。",
-        "offState": "テキスト展開はオフです。スニペットは保存されたままで、再度オンにするとすぐに適用されます。",
         "title": "テキスト展開",
         "trigger": "トリガー",
         "triggerPlaceholder": "omw",
-        "unsaved": "Enter または保存を押して変更を確定してください。",
         "enableRow": "{{trigger}} を有効にする",
         "remove": "{{trigger}} を削除",
         "saveRow": "{{trigger}} を保存"
@@ -651,62 +589,41 @@
       }
     },
     "postProcessing": {
-      "hotkey": {
-        "title": "ショートカット"
-      },
       "api": {
         "title": "API (OpenAI 互換)",
         "provider": {
-          "title": "プロバイダー",
-          "description": "OpenAI 互換のプロバイダーを選択。"
+          "title": "プロバイダー"
         },
         "appleIntelligence": {
           "unavailable": "このデバイスでは Apple Intelligence を利用できません。macOS Tahoe (26.0) 以降を実行し、システム設定で Apple Intelligence が有効になっている Apple Silicon Mac が必要です。"
         },
         "baseUrl": {
           "title": "ベース URL",
-          "description": "選択したプロバイダーの API ベース URL。カスタムプロバイダーのみ編集可能。",
           "placeholder": "https://api.openai.com/v1"
         },
         "apiKey": {
           "title": "API キー",
-          "description": "選択したプロバイダーの API キー。",
           "placeholder": "sk-…"
         },
         "model": {
           "title": "モデル",
           "descriptionCustom": "カスタムエンドポイントが期待するモデル識別子を指定。",
-          "descriptionDefault": "選択したプロバイダーが提供するモデルを選択。",
           "placeholderWithOptions": "モデルを検索または選択",
           "placeholderNoOptions": "モデル名を入力",
           "refreshModels": "モデルを更新"
         }
       },
       "prompts": {
-        "title": "プロンプト",
-        "selectedPrompt": {
-          "title": "選択したプロンプト",
-          "description": "文字起こしを改善するテンプレートを選択するか、新しく作成します。プロンプトテキスト内で ${output} を使用して、キャプチャした文字起こしを参照します。"
-        },
-        "noPrompts": "プロンプトがありません",
-        "selectPrompt": "プロンプトを選択",
         "createNew": "新しいプロンプト",
         "promptLabel": "プロンプト名",
         "promptLabelPlaceholder": "プロンプトに名前を付ける",
         "promptInstructions": "指示",
         "promptInstructionsPlaceholder": "以下のテキストの文法と明瞭さを改善してください: ${output}",
-        "promptTip": "書き起こしを挿入する位置に <code>${output}</code> を記述します。",
         "updatePrompt": "プロンプトを更新",
         "deletePrompt": "プロンプトを削除",
         "createPrompt": "プロンプトを作成",
-        "cancel": "キャンセル",
-        "selectToEdit": "編集するプロンプトを選択します。",
-        "createFirst": "書き起こしを後処理するプロンプトを作成します。",
         "empty": {
           "description": "プロンプトは文字起こしに対してモデルが行う処理を指示します。例: すべての事実を保持したまま、以下を短いメッセージに書き換えてください: ${output}"
-        },
-        "errors": {
-          "incomplete": "保存する前にプロンプトの名前と指示を入力してください。"
         },
         "inUse": "使用中",
         "lastPrompt": "Sona は少なくとも1つのプロンプトを保持するため、これは削除できません。先に別のプロンプトを作成してください。",
@@ -724,33 +641,26 @@
         "useNamed": "{{name}} を使用"
       },
       "remoteConsent": {
-        "title": "Remote text transfer",
-        "description": "Meeting and transcription text may be sent to {{provider}} at {{endpoint}} for post-processing.",
-        "acknowledge": "I acknowledge that text may be sent to this endpoint.",
-        "accept": "Allow text transfer",
-        "cancel": "Cancel",
-        "endpointChanged": "The endpoint changed. Review and acknowledge the new endpoint before text can leave this Mac.",
-        "invalidDestination": "This provider destination is invalid or local-only, so no remote consent can be recorded.",
-        "saveFailed": "Sona could not save this acknowledgement.",
-        "current": "Text transfer is acknowledged for {{endpoint}}.",
-        "review": "Review acknowledgement",
-        "endpointLabel": "Canonical endpoint",
-        "destinationPinned": "Sona pins this exact endpoint and origin for the acknowledgement."
+        "title": "リモートへのテキスト送信",
+        "description": "ミーティングと文字起こしのテキストが、後処理のために {{endpoint}} の {{provider}} に送信される場合があります。",
+        "acknowledge": "このエンドポイントにテキストが送信される可能性があることを了承します。",
+        "accept": "テキストの送信を許可",
+        "cancel": "キャンセル",
+        "endpointChanged": "エンドポイントが変わりました。テキストがこの Mac から出る前に、新しいエンドポイントを確認して了承してください。",
+        "invalidDestination": "このプロバイダーの送信先は無効かローカル専用のため、リモートの了承は記録できません。",
+        "saveFailed": "Sona はこの了承を保存できませんでした。",
+        "current": "{{endpoint}} へのテキスト送信は了承済みです。",
+        "review": "了承内容を確認",
+        "endpointLabel": "正規のエンドポイント",
+        "destinationPinned": "Sona はこの了承に対して、このエンドポイントとオリジンを厳密に固定します。"
       }
     },
     "history": {
       "stats": {
-        "title": "累計使用量",
-        "loading": "使用状況を読み込んでいます…",
         "unavailable": "使用統計は利用できません。",
         "entries": "録音",
         "duration": "録音時間",
-        "words": "単語",
-        "source": {
-          "microphone": "マイク",
-          "file": "ファイル",
-          "legacy": "以前の録音"
-        }
+        "words": "単語"
       },
       "title": "履歴",
       "openFolder": "録音フォルダを開く",
@@ -764,7 +674,6 @@
       "retranscribe": "再文字起こし",
       "retranscribeError": "書き起こしをやり直せませんでした。もう一度お試しください。",
       "transcribing": "文字起こし中…",
-      "transcriptionFailed": "書き起こしできませんでした。",
       "search": "履歴を検索",
       "searchPlaceholder": "書き起こしを検索",
       "noResults": "「{{query}}」に一致する書き起こしはありません。",
@@ -778,75 +687,75 @@
         "raw": "未処理"
       },
       "receipts": {
-        "showDetails": "Show run details",
-        "hideDetails": "Hide run details",
-        "loading": "Loading run receipts…",
-        "unavailable": "Run receipt data is unavailable for this entry.",
-        "none": "No run receipts were recorded for this entry.",
+        "showDetails": "実行詳細を表示",
+        "hideDetails": "実行詳細を隠す",
+        "loading": "実行レシートを読み込み中…",
+        "unavailable": "このエントリでは実行レシートを利用できません。",
+        "none": "このエントリでは実行レシートが記録されませんでした。",
         "duration": "{{duration}}",
-        "durationLabel": "Duration",
-        "words": "{{count}} words",
-        "wordsLabel": "Words",
+        "durationLabel": "長さ",
+        "words": "{{count}} 単語",
+        "wordsLabel": "単語",
         "engine": {
-          "local": "Local",
-          "cloud": "Cloud",
-          "local_fallback": "Local fallback"
+          "local": "ローカル",
+          "cloud": "クラウド",
+          "local_fallback": "ローカル代替"
         },
         "source": {
-          "microphone": "Microphone",
-          "file": "File import",
-          "legacy": "Legacy"
+          "microphone": "マイク",
+          "file": "ファイル読み込み",
+          "legacy": "レガシー"
         },
-        "presetLabel": "Preset",
+        "presetLabel": "プリセット",
         "preset": {
-          "minimalist_cleanup": "Minimal cleanup",
-          "application_context": "Application context",
-          "email": "Email",
-          "meeting": "Meeting",
-          "notes": "Notes",
-          "generic": "General"
+          "minimalist_cleanup": "最小限の整形",
+          "application_context": "アプリの文脈",
+          "email": "メール",
+          "meeting": "会議",
+          "notes": "メモ",
+          "generic": "一般"
         },
-        "provider": "AI route",
-        "contextPolicy": "Context level",
+        "provider": "AIルート",
+        "contextPolicy": "コンテキストレベル",
         "contextPolicyValues": {
-          "none": "Off",
-          "target": "App",
-          "target_and_selection": "Selection",
-          "full": "Full"
+          "none": "オフ",
+          "target": "アプリ",
+          "target_and_selection": "選択範囲",
+          "full": "すべて"
         },
-        "contextSources": "Context sources",
+        "contextSources": "コンテキストソース",
         "contextSource": {
-          "target": "App",
-          "focused_field": "Focused field",
-          "selected_text": "Selected text",
-          "browser_url": "Browser URL",
-          "clipboard": "Recent clipboard"
+          "target": "アプリ",
+          "focused_field": "フォーカス中の入力欄",
+          "selected_text": "選択中のテキスト",
+          "browser_url": "ブラウザURL",
+          "clipboard": "最近のクリップボード"
         },
         "contextStatus": {
-          "not_requested": "Not requested",
-          "captured": "Captured",
-          "empty": "Empty",
-          "unsupported": "Unsupported",
-          "permission_denied": "Permission denied",
-          "disabled": "Disabled",
-          "disabled_by_ceiling": "Blocked by ceiling",
-          "secure_field": "Secure field",
-          "stale": "Stale",
-          "failed": "Unavailable"
+          "not_requested": "未要求",
+          "captured": "取得済み",
+          "empty": "空",
+          "unsupported": "非対応",
+          "permission_denied": "権限がありません",
+          "disabled": "無効",
+          "disabled_by_ceiling": "上限によりブロック",
+          "secure_field": "セキュア入力欄",
+          "stale": "古い情報",
+          "failed": "利用不可"
         },
-        "deliveryAttempts": "Delivery attempts",
-        "noDeliveryAttempts": "No delivery attempt was recorded.",
+        "deliveryAttempts": "挿入の試行",
+        "noDeliveryAttempts": "挿入の試行は記録されませんでした。",
         "deliveryMethod": {
-          "none": "No delivery",
-          "accessibility_insertion": "Accessibility insertion",
-          "clipboard_paste": "Clipboard paste",
-          "direct_typing": "Direct typing",
-          "external_script": "External script"
+          "none": "挿入なし",
+          "accessibility_insertion": "アクセシビリティ挿入",
+          "clipboard_paste": "クリップボード貼り付け",
+          "direct_typing": "直接入力",
+          "external_script": "外部スクリプト"
         },
         "deliveryOutcome": {
-          "delivered": "Delivered",
-          "definitely_not_dispatched": "Not dispatched",
-          "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+          "delivered": "挿入済み",
+          "definitely_not_dispatched": "未送信",
+          "dispatched_but_unconfirmed": "送信済み・未確認"
         },
         "modeLabel": "モード",
         "revisionLabel": "リビジョン",
@@ -868,19 +777,19 @@
         }
       },
       "correction": {
-        "add": "Add correction",
-        "title": "Add vocabulary correction",
-        "description": "Enter the exact spoken span and the text Sona should write. Nothing is learned from typing or background activity.",
-        "spoken": "Spoken span",
-        "written": "Written replacement",
-        "spokenPlaceholder": "What Sona heard",
-        "writtenPlaceholder": "What Sona should write",
+        "add": "修正を追加",
+        "title": "単語の修正を追加",
+        "description": "実際に話した語句と、Sonaが書き出すテキストを入力してください。入力内容やバックグラウンドの動作から学習することはありません。",
+        "spoken": "話した語句",
+        "written": "置き換えるテキスト",
+        "spokenPlaceholder": "Sonaが聞き取った内容",
+        "writtenPlaceholder": "Sonaが書き出す内容",
         "preview": "{{spoken}} → {{written}}",
-        "scope": "Save to",
-        "currentMode": "Current mode only",
-        "global": "All modes",
-        "save": "Save correction",
-        "saved": "Vocabulary correction saved",
+        "scope": "保存先",
+        "currentMode": "現在のモードのみ",
+        "global": "すべてのモード",
+        "save": "修正を保存",
+        "saved": "単語の修正を保存しました",
         "saveError": "修正を保存できませんでした。もう一度お試しください。"
       },
       "audioImport": {
@@ -914,22 +823,6 @@
         },
         "running": "{{count}} 個のファイルを文字起こし中"
       },
-      "trends": {
-        "title": "History trends",
-        "description": "Recordings and words over the selected range.",
-        "loading": "Loading history trends…",
-        "error": "Couldn't load history trends.",
-        "metricLabel": "Metric",
-        "activeDays": "{{active}} of {{total}} days active",
-        "streak_one": "{{count}} day streak",
-        "streak_other": "{{count}} day streak",
-        "metrics": {
-          "recordings": "Recordings",
-          "duration": "Captured time",
-          "words": "Words"
-        },
-        "streak": "{{count}} day streak"
-      },
       "clearSearch": "検索をクリア",
       "emptyHint": "既存の録音も文字起こしできます: WAV、MP3、M4A、AAC、FLAC、OGG、MOV、MP4、M4V、最大30分まで。",
       "loadMore": "さらに読み込む",
@@ -962,32 +855,26 @@
     "debug": {
       "title": "デバッグ",
       "logDirectory": {
-        "title": "ログディレクトリ",
-        "description": "ログファイルの書き込み先。"
+        "title": "ログディレクトリ"
       },
       "logLevel": {
-        "title": "ログレベル",
-        "description": "ログに記録する詳細度。"
+        "title": "ログレベル"
       },
       "liveLogs": {
         "title": "ライブログ",
-        "description": "ログ行を出力されたときにそのまま表示します。このパネルを開いている間に出力された行のみが、上記で設定したログレベルで表示されます。",
-        "live": "ライブ",
-        "paused": "一時停止中",
+        "description": "このパネルを開いている間に出力された行のみが、上記で設定したログレベルで表示されます。",
         "pause": "一時停止",
         "resume": "再開",
         "copied": "コピーしました",
         "lineCount": "{{count}}行",
-        "empty": "ログを待機中。アプリが出力すると、ここに行が表示されます。"
+        "empty": "まだ行がありません。"
       },
       "soundTheme": {
         "label": "サウンドテーマ",
-        "description": "録音の開始時と停止時に再生するサウンド。",
-        "preview": "Preview the start and stop sounds"
+        "preview": "開始音と停止音をプレビュー"
       },
       "wordCorrectionThreshold": {
-        "title": "単語修正しきい値",
-        "description": "カスタム単語修正の感度"
+        "title": "単語修正しきい値"
       },
       "historyLimit": {
         "title": "履歴上限",
@@ -1005,8 +892,7 @@
         "placeholder": "保持期間を選択"
       },
       "alwaysOnMicrophone": {
-        "label": "マイク常時オン",
-        "description": "マイクを開いたままにし、録音をより速く開始します。"
+        "label": "マイク常時オン"
       },
       "clamshellMicrophone": {
         "title": "クラムシェルマイク",
@@ -1017,8 +903,7 @@
         "description": "文字起こし後に言語モデルで書き起こしを書き換えます。"
       },
       "muteWhileRecording": {
-        "label": "録音中にミュート",
-        "description": "録音中にシステムオーディオをミュート"
+        "label": "録音中にミュート"
       },
       "appendTrailingSpace": {
         "label": "末尾にスペースを追加",
@@ -1026,7 +911,6 @@
       },
       "keyboardImplementation": {
         "title": "キーボード実装",
-        "description": "キーボードショートカットのバックエンドを選択してください。",
         "bindingsReset": "キーボードショートカットに互換性がなかったため、デフォルトにリセットされました"
       },
       "paths": {
@@ -1073,11 +957,9 @@
       "whatsNewPreview": {
         "title": "新機能をプレビュー",
         "description": "最新の同梱リリースノートを既読にせずに開く",
-        "button": "プレビュー",
         "noNotes": "同梱リリースノートが見つかりません",
         "error": "リリースノートをプレビューできませんでした。もう一度お試しください。"
       },
-      "description": "計測用および非サポートの設定項目。デバッグモードがオンのため表示されています。",
       "groups": {
         "capture": "キャプチャ",
         "delivery": "テキスト出力",
@@ -1089,17 +971,14 @@
       "title": "概要",
       "version": {
         "title": "バージョン",
-        "description": "現在実行中のバージョン。",
         "unavailable": "利用不可"
       },
       "appDataDirectory": {
-        "title": "アプリデータディレクトリ",
-        "description": "Sona がデータを保存する場所。"
+        "title": "アプリデータディレクトリ"
       },
       "sourceCode": {
-        "title": "Open-source licenses",
-        "description": "View the bundled license and notice files.",
-        "button": "Open licenses"
+        "title": "オープンソースライセンス",
+        "button": "ライセンスを開く"
       },
       "supportDevelopment": {
         "title": "開発を支援",
@@ -1110,26 +989,20 @@
         "title": "謝辞",
         "ggml": {
           "title": "ggml",
-          "description": "オンデバイス機械学習推論のためのテンソルライブラリ",
           "details": "Sona のローカルの音声からテキストへの文字起こしは transcribe.cpp と ggml を基盤としています。Georgi Gerganov 氏と貢献者の皆様に感謝します。"
         }
       },
       "whatsNewUpdates": {
-        "label": "新機能を表示",
-        "description": "Sona のアップデート後にリリースノートを表示"
+        "label": "新機能を表示"
       },
-      "description": "実行中のビルド、その入手元、ファイルの保存場所。",
       "files": {
         "title": "ファイル"
       },
       "source": {
-        "description": "Sona は MIT ライセンス、copyright 2025 CJ Pais で、Handy をベースに構築されています。",
-        "open": "GitHub で開く",
         "repository": "リポジトリ",
         "title": "ソース",
         "upstream": "Handy ベース",
-        "upstreamDescription": "Sona は cjpais/Handy のフォークで、現在も上流の修正を取り込んでいます。",
-        "upstreamOpen": "cjpais/Handy"
+        "license": "MIT ライセンス。Copyright 2025 CJ Pais。"
       },
       "updates": {
         "autoDescription": "GitHub に最新リリースを問い合わせます。Sona が自動で何かをインストールすることはありません。",
@@ -1137,34 +1010,29 @@
         "check": "今すぐ確認",
         "checking": "確認中…",
         "disabled": "自動確認がオフのため、Sona は GitHub に接続しませんでした。",
-        "enable": "確認をオンにする",
         "failed": "アップデートの確認を実行できませんでした。",
-        "manualDescription": "このビルドを最新の公開リリースと比較します。",
         "manualTitle": "手動確認",
         "preferenceError": "アップデート設定を保存できませんでした。",
         "title": "バージョンとアップデート",
         "viewRelease": "リリースを表示",
         "available": "Sona {{version}} が利用可能です。",
-        "published": "{{date}} に公開",
-        "upToDate": "Sona {{version}} は最新リリースです。"
+        "upToDate": "これが最新リリースです。"
       }
     },
     "modes": {
       "activation": {
-        "title": "App activation",
+        "title": "アプリによる有効化",
         "capture": {
-          "label": "Activate in app",
-          "description": "Capture the app currently in front and select this mode when you dictate there.",
-          "action": "Capture current app",
-          "capturing": "Capturing…"
+          "label": "アプリで有効化",
+          "action": "現在のアプリを取得",
+          "capturing": "取得中…"
         },
-        "empty": "No app activates this mode.",
-        "remove": "Remove",
+        "empty": "このモードを有効にするアプリはありません。",
+        "remove": "削除",
         "website": {
           "title": "ウェブサイトによる有効化",
           "scope": {
             "label": "ウェブサイトの範囲",
-            "description": "1 つのホストに完全一致させるか、そのサブドメインも含めます。",
             "values": {
               "exact": "完全一致のホスト",
               "suffix": "ホストとサブドメイン"
@@ -1183,222 +1051,195 @@
         "removeTarget": "{{target}} を削除",
         "unsupported": "アプリとウェブサイトによる有効化は macOS でのみ利用できます。"
       },
-      "title": "Modes",
-      "description": "Choose what each dictation run recognizes, rewrites, and delivers.",
-      "listTitle": "Your modes",
-      "loading": "Loading modes…",
-      "loadError": "Modes could not be loaded.",
-      "retry": "Retry",
-      "new": "New mode",
-      "active": "Active",
-      "default": "Default",
-      "defaultProtected": "The default mode cannot be deleted.",
-      "activate": "Activate",
-      "edit": "Edit",
-      "duplicate": "Duplicate",
-      "delete": "Delete",
-      "moveUp": "Move up",
-      "moveDown": "Move down",
-      "back": "Back to modes",
-      "save": "Save changes",
-      "saving": "Saving…",
-      "changesNextRun": "Changes apply to your next dictation.",
-      "copySuffix": "copy",
-      "deleteTitle": "Delete mode",
-      "deleteDescription": "Delete {{mode}}?",
-      "deleteBody": "Its mode-only shortcuts will also be removed. This cannot be undone.",
+      "title": "モード",
+      "listTitle": "あなたのモード",
+      "loading": "モードを読み込み中…",
+      "loadError": "モードを読み込めませんでした。",
+      "retry": "再試行",
+      "new": "新しいモード",
+      "active": "使用中",
+      "defaultProtected": "既定のモードは削除できません。",
+      "activate": "有効にする",
+      "duplicate": "複製",
+      "delete": "削除",
+      "moveUp": "上へ移動",
+      "moveDown": "下へ移動",
+      "save": "変更を保存",
+      "saving": "保存中…",
+      "changesNextRun": "変更は次回の音声入力から適用されます。",
+      "copySuffix": "コピー",
+      "deleteTitle": "モードを削除",
+      "deleteDescription": "{{mode}} を削除しますか？",
+      "deleteBody": "このモード専用のショートカットも削除されます。この操作は取り消せません。",
       "identity": {
-        "title": "Identity",
         "name": {
-          "label": "Mode name",
-          "description": "A label shown in mode selection and history."
+          "label": "モード名"
         }
       },
       "writing": {
-        "title": "Writing",
         "enabled": {
-          "label": "AI cleanup",
-          "description": "Use the selected provider to rewrite the transcript for this mode."
+          "label": "AI クリーンアップ"
         },
         "preset": {
-          "label": "Preset",
-          "description": "Choose behavior by name. Preset instructions are not shown or exported.",
+          "label": "プリセット",
+          "description": "動作は名前で選びます。プリセットの指示は表示もエクスポートもされません。",
           "values": {
-            "minimalist_cleanup": "Minimal cleanup",
-            "application_context": "Application context",
-            "email": "Email",
-            "meeting": "Meeting",
-            "notes": "Notes",
-            "generic": "General"
+            "minimalist_cleanup": "最小限の整形",
+            "application_context": "アプリの文脈",
+            "email": "メール",
+            "meeting": "会議",
+            "notes": "メモ",
+            "generic": "一般"
           }
         },
         "tone": {
-          "label": "Tone",
-          "description": "Apply this tone when AI cleanup is enabled.",
+          "label": "トーン",
           "values": {
-            "casual": "Casual",
-            "semi_casual": "Semi-casual",
-            "balanced": "Balanced",
-            "semi_formal": "Semi-formal",
-            "formal": "Formal"
+            "casual": "カジュアル",
+            "semi_casual": "やや カジュアル",
+            "balanced": "バランス",
+            "semi_formal": "やや フォーマル",
+            "formal": "フォーマル"
           }
         },
         "provider": {
-          "label": "AI provider",
-          "description": "The configured provider used for this mode.",
-          "empty": "No provider configured",
+          "label": "AI プロバイダ",
+          "empty": "プロバイダが未設定",
           "noneConfigured": "AI プロバイダがまだ設定されていません。このモードで書き換えを行うには、設定で追加してください。",
           "unknownSelected": "このモードは、このインストールに設定されていないプロバイダを指定しています。"
         },
         "model": {
-          "label": "AI model",
-          "description": "The provider model identifier for this mode."
+          "label": "AI モデル"
         },
         "disabledNote": "以下のプリセット、トーン、プロバイダ、モデルを使うには AI クリーンアップをオンにしてください。"
       },
       "recognition": {
         "literalPunctuation": {
-          "label": "Literal punctuation",
-          "description": "Convert spoken punctuation such as comma and question mark before vocabulary corrections."
+          "label": "句読点をそのまま入力",
+          "description": "「カンマ」「疑問符」などの発話された句読点を、語彙の修正より前に変換します。"
         },
-        "title": "Recognition",
-        "noModelSelected": "No model selected",
         "model": {
-          "label": "Transcription model",
-          "description": "Only downloaded local models are available here.",
+          "label": "文字起こしモデル",
           "inheritGlobal": "既定: グローバルモデル",
           "inheritGlobalNamed": "既定: グローバルモデル（{{name}}）"
         },
         "language": {
-          "label": "Language",
-          "description": "Set a recognition language or let the model detect it.",
-          "auto": "Auto detect",
-          "cloudDescription": "Choose the language sent with this cloud request."
+          "label": "言語",
+          "auto": "自動検出",
+          "cloudDescription": "このクラウドリクエストで送信する言語を選びます。"
         },
         "translate": {
-          "label": "Translate to English",
-          "description": "Request English output when the selected model supports translation."
+          "label": "英語に翻訳"
         },
         "vad": {
-          "label": "Voice activity detection",
-          "description": "Skip silent audio while recording."
+          "label": "音声区間検出"
         },
         "fillerRemoval": {
-          "label": "Remove filler words",
-          "description": "Remove configured filler words from this mode’s transcript."
+          "label": "フィラーを削除"
         },
         "vocabulary": {
-          "label": "Mode vocabulary",
-          "description": "Pairs here override the global vocabulary only for this mode.",
-          "spoken": "Spoken phrase",
-          "written": "Written text",
-          "spokenPlaceholder": "What was said",
-          "writtenPlaceholder": "What to write",
-          "add": "Add pair",
-          "remove": "Remove {{spoken}}",
-          "incomplete": "Complete or remove each vocabulary pair before saving this mode.",
+          "label": "モードの語彙",
+          "spoken": "発話フレーズ",
+          "written": "表記テキスト",
+          "spokenPlaceholder": "話した言葉",
+          "writtenPlaceholder": "書き起こす表記",
+          "add": "ペアを追加",
+          "remove": "{{spoken}} を削除",
+          "incomplete": "このモードを保存する前に、各語彙ペアを完成させるか削除してください。",
           "empty": "このモードには専用の語彙がありません。グローバル語彙は引き続き適用されます。"
         },
         "engine": {
-          "label": "Transcription engine",
-          "description": "Use a local model or an eligible cloud provider.",
-          "local": "Local",
-          "cloud": "Cloud",
-          "unavailable": "{{provider}} is unavailable"
+          "label": "文字起こしエンジン",
+          "local": "ローカル",
+          "cloud": "クラウド",
+          "unavailable": "{{provider}} は利用できません"
         },
         "cloud": {
-          "setupRequired": "{{provider}} needs a saved native API key and current transfer consent before its cloud controls are available.",
+          "setupRequired": "{{provider}} のクラウド設定を使うには、保存済みの独自 API キーと有効な転送同意が必要です。",
           "fallback": {
-            "label": "Use local fallback",
-            "description": "If the cloud provider cannot return a trustworthy final, transcribe the captured audio with a local model.",
-            "useModeModel": "Use this mode's local model",
+            "label": "ローカル代替を使う",
+            "description": "クラウドプロバイダが信頼できる最終結果を返せない場合、取得した音声をローカルモデルで文字起こしします。",
+            "useModeModel": "このモードのローカルモデルを使う",
             "model": {
-              "label": "Fallback model",
-              "description": "Choose a downloaded local model, or use this mode's local model.",
-              "required": "Choose a fallback model or set this mode's local model before saving."
+              "label": "代替モデル",
+              "required": "保存する前に代替モデルを選ぶか、このモードのローカルモデルを設定してください。"
             }
           },
           "keyterms": {
-            "label": "Cloud keyterms",
-            "description": "One term per line. These terms are sent with this cloud request.",
-            "placeholder": "Product name\nPerson name"
+            "label": "クラウド重要語",
+            "description": "1 行に 1 語。これらの語はこのクラウドリクエストとともに送信されます。",
+            "placeholder": "製品名\n人名"
           },
           "timestamps": {
-            "label": "Word timestamps",
-            "description": "Required for cloud transcription and cannot be disabled."
+            "label": "単語タイムスタンプ",
+            "description": "クラウド文字起こしに必要で、無効にはできません。"
           },
           "consent": {
-            "title": "Use {{provider}} for cloud transcription",
-            "description": "Review how this mode sends audio before enabling {{provider}}.",
-            "intro": "These acknowledgements are fixed for this provider. Declining keeps this mode on its current local engine.",
+            "title": "クラウド文字起こしに {{provider}} を使う",
+            "description": "{{provider}} を有効にする前に、このモードが音声をどう送信するか確認してください。",
+            "intro": "これらの同意事項はこのプロバイダで固定です。拒否した場合、このモードは現在のローカルエンジンのままになります。",
             "audioTransfer": {
-              "label": "Audio transfer",
-              "description": "Recorded audio from this mode is sent directly to {{provider}} for transcription."
+              "label": "音声の転送",
+              "description": "このモードで録音した音声は、文字起こしのため直接 {{provider}} に送信されます。"
             },
             "privacy": {
-              "label": "Privacy contract",
-              "description": "The provider receives this mode's audio, selected language, and keyterms. Application context and native credentials stay on this device."
+              "label": "プライバシー契約",
+              "description": "プロバイダはこのモードの音声、選択した言語、重要語を受け取ります。アプリの文脈と独自の認証情報はこの端末に残ります。"
             },
             "localFallback": {
-              "label": "Local fallback",
-              "description": "If the cloud provider cannot return a trustworthy final, Sona can use your selected local model."
+              "label": "ローカル代替",
+              "description": "クラウドプロバイダが信頼できる最終結果を返せない場合、Sona は選択したローカルモデルを使用できます。"
             },
-            "decline": "Keep local",
-            "accept": "Accept and use cloud",
-            "accepting": "Accepting…",
+            "decline": "ローカルのまま",
+            "accept": "同意してクラウドを使う",
+            "accepting": "同意中…",
             "errors": {
-              "unknown_provider": "This cloud provider is not available in this build.",
-              "backend": "The consent record could not be saved."
+              "unknown_provider": "このクラウドプロバイダはこのビルドでは利用できません。",
+              "backend": "同意の記録を保存できませんでした。"
             }
           },
           "title": "クラウドトランスポート"
         }
       },
       "context": {
-        "title": "Context",
         "policy": {
-          "label": "Context level",
-          "description": "This mode cannot exceed the privacy ceiling.",
-          "limitedByPrivacy": "Privacy currently limits this mode. Raise the ceiling in Privacy to use this level.",
+          "label": "コンテキストレベル",
+          "description": "このモードはプライバシーの上限を超えられません。",
+          "limitedByPrivacy": "現在プライバシー設定がこのモードを制限しています。このレベルを使うには Privacy で上限を引き上げてください。",
           "values": {
-            "none": "Off",
-            "target": "App",
-            "target_and_selection": "Selection",
-            "full": "Full"
+            "none": "オフ",
+            "target": "アプリ",
+            "target_and_selection": "選択範囲",
+            "full": "すべて"
           },
           "blockedByCeiling": "Privacy によりこのモードは {{ceiling}} に制限されています。",
           "raiseCeiling": "より高いレベルを使うには Privacy で上限を引き上げてください。"
         }
       },
       "delivery": {
-        "title": "Delivery",
         "method": {
-          "label": "Delivery method",
-          "description": "How Sona puts completed text into the target app.",
+          "label": "出力方法",
           "values": {
-            "ctrl_v": "Paste",
-            "direct": "Type directly",
-            "none": "Do not deliver",
+            "ctrl_v": "貼り付け",
+            "direct": "直接入力",
+            "none": "出力しない",
             "shift_insert": "Shift+Insert",
-            "ctrl_shift_v": "Paste without formatting",
-            "external_script": "External script"
+            "ctrl_shift_v": "書式なしで貼り付け",
+            "external_script": "外部スクリプト"
           }
         },
         "clipboard": {
-          "label": "Clipboard",
-          "description": "Choose whether completed text is copied before delivery.",
+          "label": "クリップボード",
           "values": {
-            "copy_to_clipboard": "Copy to clipboard",
-            "dont_modify": "Leave unchanged"
+            "copy_to_clipboard": "クリップボードにコピー",
+            "dont_modify": "変更しない"
           }
         },
         "autoSubmit": {
-          "label": "Auto-submit",
-          "description": "Submit after delivery using the chosen key."
+          "label": "自動送信"
         },
         "autoSubmitKey": {
-          "label": "Submit key",
-          "description": "The key Sona uses when auto-submit is on.",
+          "label": "送信キー",
           "values": {
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
@@ -1407,24 +1248,22 @@
           "requiresAutoSubmit": "キーを選ぶには自動送信をオンにしてください。"
         },
         "trailingSpace": {
-          "label": "Append a trailing space",
-          "description": "Add one space after delivered text."
+          "label": "末尾にスペースを追加"
         },
         "reliablePaste": {
-          "label": "Reliable paste",
-          "description": "Use receipt-sequenced paste when the platform supports it."
+          "label": "確実な貼り付け",
+          "description": "プラットフォームが対応している場合、受信確認順の貼り付けを使います。"
         },
         "delay": {
-          "label": "Paste delays",
-          "description": "Milliseconds before and after delivery.",
-          "before": "Before",
-          "after": "After"
+          "label": "貼り付けの待ち時間",
+          "description": "出力の前後のミリ秒。",
+          "before": "前",
+          "after": "後"
         },
         "typingTool": {
-          "label": "Typing tool",
-          "description": "Used only with direct typing.",
+          "label": "入力ツール",
           "values": {
-            "auto": "Auto",
+            "auto": "自動",
             "wtype": "wtype",
             "kwtype": "kwtype",
             "dotool": "dotool",
@@ -1434,53 +1273,44 @@
           "requiresDirect": "ツールを選ぶには、出力方法で「直接入力」を選択してください。"
         },
         "script": {
-          "label": "External script",
-          "description": "The script path used by the external-script delivery method."
+          "label": "外部スクリプト"
         }
       },
       "shortcuts": {
-        "title": "Shortcuts",
-        "description": "Set a shortcut to transcribe with or switch to this mode.",
-        "manyModes": "New modes may start unbound after the first nine. Set their shortcuts here."
+        "title": "ショートカット",
+        "manyModes": "最初の 9 個より後の新しいモードは、未割り当てで始まることがあります。ここでショートカットを設定してください。"
       },
       "errors": {
-        "staleRevision": "Settings changed elsewhere. Review the latest mode and save again.",
-        "invalid_mode_id": "This mode ID is invalid.",
-        "empty_name": "A mode name is required.",
-        "cannot_delete_default": "The default mode cannot be deleted.",
-        "unknown_mode": "That mode no longer exists.",
-        "duplicate_mode_id": "A mode with this ID already exists.",
-        "invalid_reorder": "The mode order could not be saved.",
+        "staleRevision": "設定が別の場所で変更されました。最新のモードを確認して、もう一度保存してください。",
+        "invalid_mode_id": "このモード ID は無効です。",
+        "empty_name": "モード名が必要です。",
+        "cannot_delete_default": "既定のモードは削除できません。",
+        "unknown_mode": "そのモードはもう存在しません。",
+        "duplicate_mode_id": "この ID のモードはすでに存在します。",
+        "invalid_reorder": "モードの並び順を保存できませんでした。",
         "invalid_website_host": "ウェブサイトのホストが無効です。",
         "website_activation_consent_required": "ウェブサイトのルールを追加する前に、プライバシーでブラウザ URL を有効にしてください。",
         "frontmost_website_unavailable": "ブラウザからウェブサイトを取得できませんでした。",
         "website_activation_secure_field": "安全なフィールドからウェブサイトのルールを取得することはできません。"
       },
-      "globalVocabulary": {
-        "title": "Global vocabulary",
-        "description": "Vocabulary entries applied across every mode."
-      },
-      "actionsFor": "Actions for {{mode}}",
-      "editorLabel": "Mode editor",
-      "editorTabsLabel": "Mode editor sections",
-      "empty": "Select a mode to edit it.",
-      "viewNavigation": "Mode views",
+      "actionsFor": "{{mode}} の操作",
+      "editorTabsLabel": "モードエディタのセクション",
+      "empty": "編集するモードを選んでください。",
+      "viewNavigation": "モードのビュー",
       "tabs": {
-        "recognition": "Recognition",
-        "rewrite": "Rewrite",
-        "context": "Context",
-        "delivery": "Delivery",
-        "automation": "Automation"
+        "recognition": "認識",
+        "rewrite": "書き換え",
+        "context": "コンテキスト",
+        "delivery": "出力",
+        "automation": "自動化"
       },
       "views": {
-        "modes": "Modes",
-        "vocabulary": "Vocabulary"
+        "modes": "モード",
+        "vocabulary": "語彙"
       },
       "cleanup": {
         "title": "文字起こしのクリーンアップ"
       },
-      "dismissError": "エラーを閉じる",
-      "emptyHint": "左のモードを選ぶと、認識・書き換え・出力の内容を変更できます。",
       "listEmpty": "モードが設定されていません。",
       "listEmptyHint": "Sona は常に1つのモードを保持します。再読み込みして最新のリストを取得してください。",
       "unsavedChanges": "未保存の変更",
@@ -1490,108 +1320,82 @@
           "local": "ローカル",
           "deepgram_nova_3": "Deepgram",
           "eleven_labs_scribe_v2": "ElevenLabs"
-        },
-        "modelInherited": "全体のモデル",
-        "languageAuto": "自動",
-        "delivery": {
-          "ctrl_v": "貼り付け",
-          "direct": "直接入力",
-          "none": "出力なし",
-          "shift_insert": "Shift+Insert",
-          "ctrl_shift_v": "書式なし貼り付け",
-          "external_script": "スクリプト"
         }
       }
     },
     "privacy": {
-      "title": "Privacy",
-      "description": "Control application context, inspect capture access, and manage data kept on this device.",
+      "title": "プライバシー",
       "context": {
-        "title": "Context for AI cleanup",
-        "description": "The global ceiling limits every mode before context is read.",
+        "title": "AI クリーンアップのコンテキスト",
         "ceiling": {
-          "label": "Global context ceiling",
-          "description": "Modes may ask for less context, never more.",
+          "label": "全体のコンテキスト上限",
           "values": {
-            "none": "Off",
-            "target": "App",
-            "target_and_selection": "Selection",
-            "full": "Full"
+            "none": "オフ",
+            "target": "アプリ",
+            "target_and_selection": "選択範囲",
+            "full": "すべて"
           },
-          "error": "The context ceiling could not be saved"
+          "error": "コンテキストの上限を保存できませんでした"
         },
         "sources": {
-          "title": "What each level reads",
-          "description": "These are source disclosures, not retained content.",
-          "none": "Reads no application context.",
-          "target": "Reads the frontmost app identity.",
-          "target_and_selection": "Reads the frontmost app identity and selected text when available.",
-          "full": "May also read a permitted browser URL and recently changed clipboard text when available."
+          "none": "アプリのコンテキストを読み取りません。",
+          "target": "最前面のアプリの識別情報を読み取ります。",
+          "target_and_selection": "最前面のアプリの識別情報と、利用できる場合は選択中のテキストを読み取ります。",
+          "full": "許可されたブラウザの URL と、最近変更されたクリップボードのテキストも、利用できる場合は読み取ります。"
         },
         "urlCapture": {
-          "label": "Include browser URLs",
-          "description": "Allow a frontmost browser page URL to be captured when a mode and the ceiling allow it.",
-          "error": "Browser URL capture could not be saved."
-        },
-        "cloudRoute": "Enabled cloud modes send allowed context to {{providers}}.",
-        "localRoute": "AI processing runs on this Mac.",
-        "checkingRoute": "Checking configured cloud routes…"
+          "label": "ブラウザの URL を含める",
+          "description": "モードと上限が許す場合に、最前面のブラウザページの URL を取得できるようにします。",
+          "error": "ブラウザ URL の取得設定を保存できませんでした。"
+        }
       },
       "diagnostics": {
-        "title": "Context diagnostics",
-        "description": "Read-only checks show what this build can access right now.",
-        "refresh": "Refresh",
-        "error": "Diagnostics could not be refreshed",
+        "title": "コンテキストの診断",
+        "refresh": "更新",
+        "error": "診断を更新できませんでした",
         "accessibility": {
-          "label": "Accessibility",
-          "granted": "Accessibility access is granted.",
-          "denied": "Accessibility access is denied.",
-          "unsupported": "Accessibility context is not supported on this platform."
+          "label": "アクセシビリティ"
         },
         "sources": {
-          "target_identity": "Frontmost app",
-          "focused_field": "Focused field",
-          "selected_text": "Selected text",
-          "browser_url": "Browser URL",
-          "clipboard": "Recent clipboard"
+          "target_identity": "最前面のアプリ",
+          "focused_field": "フォーカス中の入力欄",
+          "selected_text": "選択中のテキスト",
+          "browser_url": "ブラウザURL",
+          "clipboard": "最近のクリップボード"
         }
       },
       "status": {
-        "granted": "Granted",
-        "denied": "Denied",
-        "unsupported": "Unsupported",
-        "not_requested": "Not requested",
-        "captured": "Available",
-        "empty": "Empty",
-        "permission_denied": "Permission denied",
-        "disabled": "Disabled",
-        "disabled_by_ceiling": "Blocked by ceiling",
-        "secure_field": "Secure field",
-        "stale": "Stale",
-        "failed": "Unavailable"
+        "granted": "許可済み",
+        "denied": "拒否",
+        "unsupported": "非対応",
+        "not_requested": "未要求",
+        "captured": "利用可能",
+        "empty": "空",
+        "permission_denied": "権限がありません",
+        "disabled": "無効",
+        "disabled_by_ceiling": "上限によりブロック",
+        "secure_field": "セキュア入力欄",
+        "stale": "古い情報",
+        "failed": "利用不可"
       },
       "data": {
-        "title": "Data on this device",
-        "credentialStore": "Provider credentials are stored in the native credential store, not in Sona settings.",
-        "locations": "Settings, history, and retained recordings live in Sona’s application data directory. Recordings are kept only for the selected retention period.",
+        "title": "この端末のデータ",
         "historyLimit": {
-          "label": "History limit",
-          "description": "Keep this many recent history entries. Set 0 to disable saved history."
+          "label": "履歴上限",
+          "description": "直近の履歴をこの件数だけ保持します。0 にすると履歴の保存を無効にします。"
         },
         "retention": {
-          "label": "Recording retention",
-          "description": "Choose how long recording files remain on this device.",
+          "label": "録音の保持期間",
           "values": {
-            "never": "Do not retain recordings",
-            "preserve_limit": "Keep recordings with history",
-            "days_3": "3 days",
-            "weeks_2": "2 weeks",
-            "months_3": "3 months"
+            "never": "録音を保持しない",
+            "preserve_limit": "履歴と一緒に録音を保持",
+            "days_3": "3日",
+            "weeks_2": "2週間",
+            "months_3": "3か月"
           }
         },
-        "error": "Data retention could not be saved",
+        "error": "データの保持設定を保存できませんでした",
         "historyStorage": {
-          "description": "このディスク上でディクテーション履歴が暗号化されているかどうか。",
           "encrypted": "保存時に暗号化",
           "label": "履歴ストレージ",
           "locked": "ロック中",
@@ -1600,33 +1404,21 @@
             "encryption_unavailable": "このビルドは暗号化データベースを開けないため、履歴は暗号化なしで保存されています。",
             "key_rejected": "保存されているキーで暗号化データベースを開けないため、履歴を読み取れません。",
             "key_unavailable": "システムの資格情報ストアから使用可能なキーが得られなかったため、履歴は暗号化なしで保存されています。",
-            "migration_failed": "既存データベースの暗号化に失敗しました。暗号化されていないデータベースは無傷で、引き続き使用されています。",
-            "unlocking": "暗号化データベースを開いています。起動が完了すると解消されます。"
+            "migration_failed": "既存データベースの暗号化に失敗しました。暗号化されていないデータベースは無傷で、引き続き使用されています。"
           },
           "unknown": "Sona は履歴の保存方式を読み取れませんでした。",
-          "unlocking": "ロック解除中",
-          "since": "{{date}} から暗号化。"
+          "unlocking": "ロック解除中"
         }
       },
       "cloudTranscription": {
-        "title": "Cloud transcription",
-        "description": "Read-only disclosure of direct cloud speech-to-text routes.",
-        "checking": "Checking cloud transcription setup…",
-        "checkFailed": "Cloud transcription setup could not be checked.",
-        "disclosure": "For a cloud-enabled mode, Sona sends recorded audio, the selected language, and mode keyterms directly to the provider. Application context and native credentials stay on this device.",
-        "providerDetail": "{{provider}} has a saved native API key and current transfer consent.",
-        "localOnly": "No cloud transcription provider has both a saved key and current transfer consent.",
-        "inUse": "使用中"
+        "title": "クラウド文字起こし",
+        "checkFailed": "クラウド文字起こしの設定を確認できませんでした。",
+        "disclosure": "クラウドを有効にしたモードでは、Sona は録音した音声、選択した言語、モードの重要語を直接プロバイダに送信します。アプリの文脈と独自の認証情報はこの端末に残ります。"
       },
       "upstreamImport": {
-        "title": "Import from legacy app",
-        "description": "Copy selected personal data from the legacy app. The source remains unchanged.",
+        "title": "旧アプリからインポート",
         "source": {
-          "settingsAvailable": "Settings file is available.",
-          "settingsMissing": "No settings file was found.",
-          "history": "{{count}} history entries found.",
-          "recordings": "{{count}} recording files, {{size}}.",
-          "empty": "No settings or history entries are available to import."
+          "empty": "インポートできる設定や履歴の項目がありません。"
         },
         "byteCount": "{{value}} {{unit}}",
         "byteUnits": {
@@ -1635,166 +1427,161 @@
           "megabytes": "MiB",
           "gigabytes": "GiB"
         },
-        "modelsNotImported": "Model files are not imported.",
-        "appRunning": "Close the legacy app before importing.",
-        "appUnverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
-        "selection": "Choose data to import",
-        "selectionSettings": "Settings",
-        "selectionHistory": "History",
-        "selectionRecordings": "Recordings",
-        "recordingsRequireHistory": "Recordings are imported only with history.",
-        "selectionRequired": "Choose settings or history to import.",
-        "progress": "{{phase}}: {{completed}} of {{total}}",
+        "appRunning": "インポートする前に旧アプリを終了してください。",
+        "appUnverifiable": "このプラットフォームでは、Sona は旧アプリが終了していることを確認できません。",
+        "selection": "インポートするデータを選ぶ",
+        "selectionSettings": "設定",
+        "selectionHistory": "履歴",
+        "selectionRecordings": "録音",
+        "recordingsRequireHistory": "録音は履歴と一緒でなければインポートされません。",
+        "selectionRequired": "インポートする設定または履歴を選んでください。",
+        "progress": "{{phase}}: {{total}} 件中 {{completed}} 件",
         "phases": {
-          "settings": "Settings",
-          "history": "History",
-          "recordings": "Recordings"
+          "settings": "設定",
+          "history": "履歴",
+          "recordings": "録音"
         },
-        "settingsImported": "Settings imported.",
-        "settingsAlreadyImported": "Settings were already imported.",
-        "result": "{{settings}} Imported {{historyImported}} history entries; {{historyExisting}} already existed. Copied {{recordingsCopied}} recordings; {{recordingsExisting}} already existed.",
-        "refresh": "Check again",
-        "import": "Import selected data",
-        "importing": "Importing",
+        "settingsImported": "設定をインポートしました。",
+        "settingsAlreadyImported": "設定はすでにインポートされていました。",
+        "result": "{{settings}} 履歴 {{historyImported}} 件をインポートしました。{{historyExisting}} 件はすでに存在していました。録音 {{recordingsCopied}} 件をコピーしました。{{recordingsExisting}} 件はすでに存在していました。",
+        "refresh": "もう一度確認",
+        "import": "選択したデータをインポート",
+        "importing": "インポート中",
         "errors": {
-          "source_unavailable": "The legacy app's data folder is unavailable.",
-          "upstream_running": "Close the legacy app before importing.",
-          "app_state_unverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
-          "invalid_selection": "Choose settings or history to import.",
-          "settings_unreadable": "The legacy settings file could not be read.",
-          "secret_store_unavailable": "The native credential store is unavailable, so settings with provider keys were not imported.",
-          "secret_conflict": "A provider key already exists in the native credential store. Resolve it before importing settings.",
-          "history_unreadable": "The legacy history database could not be read.",
-          "recording_copy_failed": "A recording could not be copied and verified.",
-          "receipt_write_failed": "The import receipt could not be saved.",
-          "internal": "The import did not finish.",
-          "status": "The legacy app's data could not be inspected."
-        }
+          "source_unavailable": "旧アプリのデータフォルダを利用できません。",
+          "upstream_running": "インポートする前に旧アプリを終了してください。",
+          "app_state_unverifiable": "このプラットフォームでは、Sona は旧アプリが終了していることを確認できません。",
+          "invalid_selection": "インポートする設定または履歴を選んでください。",
+          "settings_unreadable": "旧アプリの設定ファイルを読み取れませんでした。",
+          "secret_store_unavailable": "システムの資格情報ストアを利用できないため、プロバイダーのキーを含む設定はインポートされませんでした。",
+          "secret_conflict": "プロバイダーのキーがすでにシステムの資格情報ストアにあります。設定をインポートする前に解決してください。",
+          "history_unreadable": "旧アプリの履歴データベースを読み取れませんでした。",
+          "recording_copy_failed": "録音をコピーして検証することができませんでした。",
+          "receipt_write_failed": "インポートのレシートを保存できませんでした。",
+          "internal": "インポートは完了しませんでした。",
+          "status": "旧アプリのデータを調べられませんでした。"
+        },
+        "scope": "取り込み元は変更されず、モデルファイルはインポートされません。"
       },
       "cloudSync": {
         "checkFailed": "Sona はクラウド同期の設定を読み取れませんでした。",
         "configured": "設定済み",
-        "description": "Sona はミーティングを自分で運用するサーバーにミラーリングできます。このデバイスでセットアップが完了するまで、何もアップロードされません。",
-        "endpoint": "エンドポイント",
-        "endpointDescription": "このデバイスが接続先とするサーバー。",
         "notConfigured": "未設定",
-        "service": "サービス",
         "title": "クラウド同期"
+      },
+      "egress": {
+        "assurance": "ここに挙げた経路以外にこの Mac から出るものはなく、プロバイダーのキーは Sona の設定ではなくシステムの資格情報ストアに保管されます。",
+        "thisMac": "この Mac",
+        "routes": {
+          "cleanup": "AI クリーンアップ"
+        }
       }
     },
     "agents": {
-      "title": "Agents",
-      "description": "Observe approved local coding-agent sessions. Responses only appear where the installed hook has a fixture-backed wire format.",
+      "title": "エージェント",
       "controls": {
-        "title": "Bridge controls",
+        "title": "ブリッジの操作",
         "master": {
-          "label": "Enable agent bridge",
-          "description": "Allow Sona to observe configured local agent hooks for authorized projects."
+          "label": "エージェントブリッジを有効にする"
         },
-        "offState": "The agent bridge is off. No session data or replies are processed.",
-        "status": "Runtime status",
+        "status": "ランタイムの状態",
         "providers": {
           "claude": {
             "label": "Claude",
-            "description": "Observe Claude sessions and enable fixture-backed replies where available."
+            "description": "Claude のセッションを観測し、利用できる場合はフィクスチャに基づく返信を有効にします。"
           },
           "codex": {
             "label": "Codex",
-            "description": "Observe sessions only. Replies are read-only until a wire fixture supports them."
+            "description": "セッションの観測のみ。ワイヤーフィクスチャが対応するまで、返信は読み取り専用です。"
           },
           "grok": {
             "label": "Grok",
-            "description": "Observe sessions only. Replies are read-only until a wire fixture supports them."
+            "description": "セッションの観測のみ。ワイヤーフィクスチャが対応するまで、返信は読み取り専用です。"
           },
           "omp": {
             "label": "OMP",
-            "description": "Observe OMP sessions and approval requests. Replies are available only at a supported OMP session stop."
+            "description": "OMP のセッションと承認リクエストを観測します。返信は、対応している OMP セッションの停止時にのみ利用できます。"
           }
         }
       },
       "status": {
-        "disabled": "Disabled",
-        "runtime_unavailable": "Runtime unavailable",
-        "interactive_unsupported": "Interactive responses unsupported",
-        "app_lock_held": "Another Sona instance is active",
-        "active": "Active"
+        "disabled": "無効",
+        "runtime_unavailable": "ランタイムを利用できません",
+        "interactive_unsupported": "対話的な応答は非対応",
+        "app_lock_held": "別の Sona インスタンスが動作しています",
+        "active": "使用中"
       },
       "projects": {
-        "title": "Authorized projects",
-        "description": "Choose a project folder with the native picker. Sona persists only its canonical hash.",
-        "hashOnly": "Exact project hashes are the permission boundary; folder paths are not stored here.",
-        "add": "Authorize folder",
-        "remove": "Remove project",
-        "empty": "No projects are authorized."
+        "title": "許可されたプロジェクト",
+        "hashOnly": "権限の境界になるのはプロジェクトのハッシュそのもので、フォルダのパスはここに保存されません。",
+        "add": "フォルダを許可",
+        "remove": "プロジェクトを削除",
+        "empty": "許可されたプロジェクトはありません。"
       },
       "hook": {
-        "title": "Hook snippet",
-        "description": "Copy the packaged hook configuration into your agent’s own configuration. Sona never edits agent configuration files.",
-        "copy": "Copy snippet",
-        "error": "Hook snippet unavailable"
+        "title": "フックのスニペット",
+        "description": "同梱のフック設定を、お使いのエージェント自身の設定にコピーしてください。Sona がエージェントの設定ファイルを編集することはありません。",
+        "copy": "スニペットをコピー",
+        "error": "フックのスニペットを利用できません"
       },
       "replyQueue": {
-        "title": "Reply preview",
-        "description": "Create a reply preview for a prepared Claude or OMP session. Sona sends it only after you confirm the exact destination and text.",
-        "session": "Reply destination",
-        "noSession": "No observed reply-capable session",
-        "message": "Reply text",
-        "createPreview": "Create preview",
+        "title": "返信のプレビュー",
+        "session": "返信の送信先",
+        "noSession": "返信できるセッションは観測されていません",
+        "message": "返信のテキスト",
+        "createPreview": "プレビューを作成",
         "notReady": "返信にはブリッジがオンで、少なくとも1つのエージェントが有効である必要があります。"
       },
       "pending": {
-        "empty": "No pending replies.",
-        "confirm": "Confirm exact reply",
-        "preview": "Review the exact destination and text before confirming",
-        "confirmed": "Confirmed for the next supported Stop event",
-        "cancel": "Cancel",
+        "empty": "保留中の返信はありません。",
+        "confirm": "この返信をそのまま確定",
+        "confirmed": "次にサポートされる Stop イベントで確定済み",
+        "cancel": "キャンセル",
         "states": {
-          "held": "Held for the next supported Stop event",
-          "response_written": "Response written",
-          "emitted": "Emitted",
-          "copy_only": "Copy-only",
-          "cancelled": "Cancelled"
-        }
+          "held": "次にサポートされる Stop イベントまで保留",
+          "response_written": "応答を書き込み済み",
+          "emitted": "送出済み",
+          "copy_only": "コピーのみ",
+          "cancelled": "キャンセル済み"
+        },
+        "title": "保留中の返信"
       },
       "observed": {
-        "title": "Observed activity",
-        "description": "Sessions and requests include IDs and metadata only; provider payloads are not shown.",
-        "refresh": "Refresh",
-        "sessions": "Sessions",
-        "noSessions": "No sessions observed.",
-        "requests": "Requests",
-        "noRequests": "No requests observed.",
+        "title": "観測された動き",
+        "refresh": "更新",
+        "sessions": "セッション",
+        "noSessions": "観測されたセッションはありません。",
+        "requests": "リクエスト",
+        "noRequests": "観測されたリクエストはありません。",
         "requestKinds": {
-          "session_start": "Session started",
-          "user_prompt_submit": "Prompt submitted",
-          "permission_request": "Permission request",
-          "pre_tool_use": "Before tool use",
-          "post_tool_use": "After tool use",
-          "stop": "Stop",
-          "notification": "Notification"
+          "session_start": "セッション開始",
+          "user_prompt_submit": "プロンプト送信",
+          "permission_request": "権限のリクエスト",
+          "pre_tool_use": "ツール使用前",
+          "post_tool_use": "ツール使用後",
+          "stop": "停止",
+          "notification": "通知"
         },
-        "expires": "Expires {{time}}",
-        "allowExact": "Allow exactly this request",
-        "denyExact": "Deny exactly this request",
-        "dismiss": "Dismiss",
-        "ompPermissionObserveOnly": "OMP approval requests are observed only. Approve or deny them in OMP."
+        "expires": "有効期限 {{time}}",
+        "allowExact": "このリクエストだけを許可",
+        "denyExact": "このリクエストだけを拒否",
+        "dismiss": "閉じる",
+        "ompPermissionObserveOnly": "OMP の承認リクエストは観測のみです。承認や拒否は OMP 側で行ってください。"
       },
       "rules": {
-        "title": "Exact permission rules",
-        "description": "An allow or deny is stored only for the exact agent, project hash, tool, mode, and input hash that created it.",
-        "empty": "No permission rules.",
-        "remove": "Remove rule",
+        "title": "完全一致の権限ルール",
+        "empty": "権限ルールはありません。",
+        "remove": "ルールを削除",
         "decisions": {
-          "allow": "Allow",
-          "deny": "Deny"
+          "allow": "許可",
+          "deny": "拒否"
         }
       },
       "errors": {
-        "load": "Agent bridge data could not be loaded: {{error}}",
-        "operation": "The agent bridge action could not be completed: {{error}}"
+        "load": "エージェントブリッジのデータを読み込めませんでした: {{error}}",
+        "operation": "エージェントブリッジの操作を完了できませんでした: {{error}}"
       },
       "panel": {
-        "description": "エージェントが投稿し、返信を読み取るフローティングウィンドウ。",
         "error": "エージェントパネルの設定を保存できませんでした。",
         "label": "エージェントパネルを有効にする",
         "rowDescription": "オフにするとパネルウィンドウが閉じ、Sona は再表示のリクエストをすべて拒否します。",
@@ -1803,27 +1590,22 @@
       "workspaceNavigation": "エージェントブリッジのビュー"
     },
     "hub": {
-      "navigation": "Settings sections",
+      "navigation": "設定セクション",
       "tabs": {
-        "general": "General",
-        "privacy": "Privacy",
-        "agents": "Agents",
-        "advanced": "Advanced",
-        "about": "About",
-        "debug": "Debug"
+        "general": "一般",
+        "privacy": "プライバシー",
+        "agents": "エージェント",
+        "advanced": "詳細",
+        "about": "情報",
+        "debug": "デバッグ"
       }
     },
     "vocabulary": {
       "replacements": {
         "title": "話し言葉の置換",
-        "description": "Sona が正確なテキストに書き換える言い回し。ここでの変更は今後の書き起こしにだけ効き、すでに書かれたテキストには決して影響しません。",
         "enabledLabel": "話し言葉の置換を有効にする",
-        "enabledDescription": "語彙の補正が走る前に、アットマークのような話し言葉を記号に書き換えます。",
-        "offState": "話し言葉の置換はオフです。ルールは保存されたまま残り、オンに戻せばまた適用されます。",
         "spoken": "あなたが言うと",
         "written": "Sona はこう書きます",
-        "applyColumn": "適用",
-        "actionsColumn": "操作",
         "spokenPlaceholder": "アットマーク",
         "writtenPlaceholder": "@",
         "add": "ルールを追加",
@@ -1838,14 +1620,11 @@
           "incomplete": "話し言葉と、その置換後のテキストの両方を入力してください。"
         },
         "empty": {
-          "title": "置換はありません",
-          "description": "アットマークのような言い回しを追加すると、そう言うたびに Sona が @ と書きます。",
-          "action": "初期ルールを復元"
+          "description": "アットマークのような言い回しを追加すると、そう言うたびに Sona が @ と書きます。"
         },
         "confirmDelete": {
           "title": "{{spoken}} を削除しますか？",
-          "description": "この言い回しは今後の書き起こしで書き換えられなくなります。すでに書かれたテキストは変わりません。",
-          "body": "{{spoken}} は現在 {{written}} になります。"
+          "description": "この言い回しは今後の書き起こしで書き換えられなくなります。すでに書かれたテキストは変わりません。"
         },
         "confirmReset": {
           "title": "既定のルールを復元しますか？",
@@ -1856,20 +1635,17 @@
     "prompts": {
       "samples": {
         "title": "文章サンプル",
-        "description": "あなた自身の文章の例。書き起こしを書き換えるモードは、この口調に合わせます。",
         "placeholder": "自分で書いた段落を貼り付けてください。",
         "sampleLabel": "文章サンプル {{number}}",
         "delete": "サンプル {{number}} を削除",
         "add": "サンプルを追加",
         "wordCount": "{{max}} 語のうち {{words}} 語",
         "overLimit": "{{words}} 語。最初の {{max}} 語だけが使われます。",
-        "privacy": "サンプルは、書き起こし自体がすでに送られる先だけに送られ、それ以外のどこにも送られません。最大 {{max}} 件のサンプルが使われます。",
+        "privacy": "サンプルは、書き起こし自体がすでに送られる先だけに送られ、それ以外のどこにも送られません。",
         "loading": "サンプルを読み込み中",
         "loadError": "サンプルを読み込めませんでした。",
         "empty": {
-          "title": "サンプルはまだありません",
-          "description": "自分で書いた段落をいくつか貼り付けると、書き換えがあなたの語彙、文の長さ、丁寧さに合わせます。",
-          "action": "サンプルを追加"
+          "description": "自分で書いた段落をいくつか貼り付けると、書き換えがあなたの語彙、文の長さ、丁寧さに合わせます。"
         }
       }
     },
@@ -1877,7 +1653,6 @@
       "enabledLabel": "待機ピルを表示",
       "enabledDescription": "口述の合間、小さなピルを画面に残します。クリックで開始、右クリックでモードを切り替えます。",
       "positionLabel": "待機ピルの位置",
-      "positionDescription": "待機ピルが画面のどの端に置かれるか。",
       "positionTop": "上",
       "positionBottom": "下"
     }
@@ -1891,12 +1666,13 @@
     "copy": "コピー",
     "clear": "クリア",
     "noOptionsFound": "オプションが見つかりません",
-    "save": "Save",
-    "saving": "Saving…",
-    "retry": "Retry",
+    "save": "保存",
+    "saving": "保存中…",
+    "retry": "再試行",
     "play": "再生",
     "pause": "一時停止",
-    "seek": "再生位置"
+    "seek": "再生位置",
+    "resetSetting": "{{name}}をリセット"
   },
   "commandPalette": {
     "open": "検索",
@@ -1904,9 +1680,7 @@
     "navigation": "ナビゲーション",
     "actions": "アクション",
     "noResults": "コマンドが見つかりません",
-    "navigate": "移動",
-    "select": "選択",
-    "newMeeting": "New meeting",
+    "newMeeting": "新しい会議",
     "importAudio": "ファイルを文字起こし",
     "openRecordings": "録音フォルダを開く",
     "openAgent": "エージェントを開く",
@@ -1947,12 +1721,10 @@
     "commandRewriteUnavailableTitle": "書き換えを利用できません"
   },
   "appLanguage": {
-    "title": "アプリの言語",
-    "description": "Sona インターフェースの言語を変更"
+    "title": "アプリの言語"
   },
   "theme": {
     "title": "アプリのテーマ",
-    "description": "Sona をシステムのテーマに合わせるか、ライトまたはダークで固定するかを選択します",
     "options": {
       "system": "システム",
       "light": "ライト",
@@ -1990,303 +1762,274 @@
     "dismiss": "閉じる"
   },
   "meetings": {
-    "title": "Meetings",
-    "description": "Capture, recover, and review meeting notes stored on this Mac.",
-    "loading": "Loading meetings…",
+    "title": "会議",
+    "loading": "ミーティングを読み込み中…",
     "providers": {
       "zoom": "Zoom",
       "google_meet": "Google Meet",
       "microsoft_teams": "Microsoft Teams",
       "webex": "Webex",
-      "slack_huddle": "Slack huddle",
+      "slack_huddle": "Slack ハドル",
       "face_time": "FaceTime",
-      "configured_app": "Configured app"
+      "configured_app": "設定したアプリ"
     },
     "phases": {
-      "preflight": "Setup",
-      "starting": "Starting",
-      "capturing_recording": "Recording",
-      "capturing_pausing": "Pausing",
-      "capturing_paused": "Paused",
-      "capturing_resuming": "Resuming",
-      "stopping": "Stopping",
-      "processing": "Processing",
-      "review_ready": "Ready for review",
-      "recovery_required": "Recovery needed",
-      "deleting": "Deleting"
+      "preflight": "設定",
+      "starting": "起動中",
+      "capturing_recording": "録音",
+      "capturing_pausing": "一時停止しています",
+      "capturing_paused": "一時停止中",
+      "capturing_resuming": "再開しています",
+      "stopping": "停止中",
+      "processing": "処理中",
+      "review_ready": "レビューの準備完了",
+      "recovery_required": "復元が必要",
+      "deleting": "削除中"
     },
     "sources": {
-      "microphone": "Microphone",
-      "system_audio": "System audio"
+      "microphone": "マイク",
+      "system_audio": "システム音声"
     },
     "availability": {
-      "available": "Available",
-      "permission_required": "Permission required",
-      "permission_denied": "Permission denied",
-      "device_unavailable": "Device unavailable",
-      "unsupported_platform": "Unsupported on this Mac",
-      "storage_unavailable": "Storage unavailable",
-      "unknown": "Checking"
+      "available": "利用可能",
+      "permission_required": "権限が必要",
+      "permission_denied": "権限がありません",
+      "device_unavailable": "デバイスを利用できません",
+      "unsupported_platform": "この Mac では非対応",
+      "storage_unavailable": "ストレージを利用できません",
+      "unknown": "確認中"
     },
     "health": {
-      "not_started": "Not started",
-      "starting": "Starting",
-      "healthy": "Healthy",
-      "paused": "Paused",
-      "degraded": "Degraded",
-      "failed": "Failed",
-      "stopped": "Stopped"
+      "not_started": "未開始",
+      "starting": "起動中",
+      "healthy": "正常",
+      "paused": "一時停止中",
+      "degraded": "品質低下",
+      "failed": "失敗",
+      "stopped": "停止"
     },
     "completeness": {
-      "not_started": "Not started",
-      "complete": "Complete",
-      "partial": "Partial"
+      "not_started": "未開始",
+      "complete": "完全",
+      "partial": "部分的"
     },
     "processing": {
-      "pending": "Waiting for processing",
-      "running": "Processing",
-      "succeeded": "Ready",
-      "cancelled": "Processing cancelled",
+      "pending": "処理を待機中",
+      "running": "処理中",
+      "succeeded": "完了",
+      "cancelled": "処理をキャンセルしました",
       "failed": {
-        "local_model_unavailable": "Local model unavailable",
-        "remote_unavailable": "Remote destination unavailable",
-        "engine_failure": "Processing failed",
-        "cancelled": "Processing cancelled"
+        "local_model_unavailable": "ローカルモデルを利用できません",
+        "remote_unavailable": "リモートの送信先を利用できません",
+        "engine_failure": "処理に失敗しました",
+        "cancelled": "処理をキャンセルしました"
       }
     },
     "actions": {
-      "back": "Back",
-      "delete": "Delete meeting",
-      "discard": "Discard",
-      "pause": "Pause",
-      "refresh": "Refresh",
-      "resume": "Resume",
-      "retry": "Try again",
-      "stop": "Stop"
+      "back": "戻る",
+      "delete": "ミーティングを削除",
+      "discard": "破棄",
+      "pause": "一時停止",
+      "refresh": "更新",
+      "resume": "再開",
+      "retry": "再試行",
+      "stop": "停止"
     },
     "detected": {
-      "title": "Meeting detected",
-      "description": "Sona はミーティングアプリの使用に気づきました。",
-      "mayBeActive": "A meeting may be active in {{provider}}."
+      "title": "会議を検出しました",
+      "mayBeActive": "{{provider}} で会議が進行中の可能性があります。"
     },
     "setup": {
-      "captureSources": "Capture sources",
-      "captureSourcesDescription": "Each source stays separate so missing audio remains visible.",
-      "processing": "Processing route",
-      "localOnly": "Local only",
-      "defaultTitle": "Local notes",
+      "defaultTitle": "ローカルのメモ",
       "remoteUnavailable": "このビルドではリモート処理を利用できないため、すべてのミーティングはこの Mac 上で文字起こしと要約が行われます。"
     },
     "preflight": {
-      "storage": "Storage",
-      "storageAvailable": "Encrypted meeting storage is available.",
-      "storageUnavailable": "Encrypted meeting storage is unavailable.",
-      "localModel": "Local model",
-      "localModelDescription": "Processing remains local when a local model is available.",
-      "starting": "Starting visible capture…",
+      "storage": "ストレージ",
+      "storageAvailable": "暗号化された会議ストレージを利用できます。",
+      "storageUnavailable": "暗号化された会議ストレージを利用できません。",
+      "localModel": "ローカルモデル",
+      "localModelDescription": "ローカルモデルが利用できる場合、処理はローカルのままです。",
+      "starting": "可視の収録を開始中…",
       "refreshing": "確認中…"
     },
     "consent": {
-      "continuePartial": "I want to continue with a partial meeting record.",
-      "acceptMissing": "I understand {{source}} is {{state}} and this meeting will be partial."
+      "continuePartial": "不完全なミーティング記録のまま続けます。",
+      "acceptMissing": "{{source}} が {{state}} であり、このミーティングが不完全になることを理解しました。"
     },
     "live": {
-      "activeCapture": "Active capture",
-      "elapsed": "Elapsed",
-      "microphoneOnlyPartial": "Microphone only / Partial. System audio is unavailable or degraded.",
-      "partialCapture": "Partial capture. Review the gaps before relying on generated notes.",
-      "inputs": "Inputs",
-      "inputsDescription": "Source health is reported separately. Capture never fills missing intervals.",
-      "signal": "Signal",
-      "signalUnavailable": "{{source}} level is not reported by capture.",
-      "notReported": "Not reported",
-      "durabilityLag": "Durability lag",
-      "behind": "{{duration}} behind",
-      "progress": "Transcript progress",
-      "progressDescription": "Transcript timing is derived from committed segments, not a guessed model state.",
-      "transcript": "Transcript",
-      "transcriptThrough": "Transcript through {{time}}",
-      "noTranscriptCheckpoint": "No transcript checkpoint",
-      "asrLag": "ASR lag",
-      "storage": "Storage",
-      "storageHealthy": "Encrypted local storage is healthy.",
-      "storageUnavailable": "Storage needs attention.",
-      "processing": "Processing",
-      "manualNote": "Manual note",
-      "manualNoteDescription": "A note added now is anchored at {{time}}.",
-      "notePlaceholder": "Write a note for this moment",
-      "timestamp": "Timestamp {{time}}",
-      "addNote": "Add timestamped note"
+      "elapsed": "経過時間",
+      "microphoneOnlyPartial": "マイクのみ・部分的。システム音声が利用できないか、品質が低下しています。",
+      "partialCapture": "部分的な収録です。生成ノートに頼る前に欠落を確認してください。",
+      "inputs": "入力",
+      "signal": "信号",
+      "signalUnavailable": "収録は {{source}} の音量を報告しません。",
+      "notReported": "報告なし",
+      "durabilityLag": "永続化の遅延",
+      "behind": "{{duration}} 遅延",
+      "progress": "文字起こしの進捗",
+      "transcript": "文字起こし",
+      "asrLag": "ASR の遅延",
+      "storage": "ストレージ",
+      "storageHealthy": "暗号化されたローカルストレージは正常です。",
+      "storageUnavailable": "ストレージに対応が必要です。",
+      "processing": "処理中",
+      "manualNote": "手動メモ",
+      "notePlaceholder": "この瞬間のメモを書く",
+      "addNote": "タイムスタンプ付きメモを追加"
     },
     "recovery": {
-      "title": "Recover partial meetings",
-      "description": "These sessions were interrupted. Sona will not restart capture.",
-      "finalize": "Finalize partial"
+      "title": "不完全な会議を復元",
+      "finalize": "不完全なまま確定"
     },
     "history": {
-      "title": "Meeting history",
-      "description": "Open a local meeting record to inspect its capture coverage and notes.",
-      "loading": "Loading meeting history…",
-      "emptyTitle": "No meetings yet",
-      "emptyDescription": "Start local notes when you are ready to capture a meeting."
+      "title": "会議の履歴",
+      "loading": "会議の履歴を読み込み中…",
+      "emptyTitle": "まだ会議はありません"
     },
     "retention": {
-      "title": "Retention",
-      "description": "Sona deletes eligible local meeting records through the same verified deletion path.",
-      "forever": "Keep until I delete it",
-      "days": "Delete after {{days}} days",
+      "title": "保存期間",
+      "description": "Sona は対象となるローカルの会議記録を、同じ検証済みの削除経路で削除します。",
+      "forever": "自分で削除するまで保存",
+      "days": "{{days}} 日後に削除",
       "loading": "現在のポリシーを読み取り中…"
     },
     "receipts": {
-      "title": "Correction receipt",
-      "saved": "Saved locally.",
-      "savedRevision": "Saved locally. Revision {{revision}}.",
-      "duplicate": "This action was already recorded. Sona refreshed the existing result."
+      "title": "修正のレシート",
+      "saved": "ローカルに保存しました。",
+      "savedRevision": "ローカルに保存しました。リビジョン {{revision}}。",
+      "duplicate": "この操作はすでに記録されています。Sona は既存の結果を更新しました。"
     },
     "reasons": {
-      "consent_missing": "Recording acknowledgement is required.",
-      "consent_stale": "Setup changed before this action.",
-      "stale_revision": "This meeting changed in another window.",
-      "capture_lease_busy": "Another meeting capture is active.",
-      "source_unavailable": "A requested source is unavailable.",
-      "source_start_failed": "A source could not start.",
-      "source_gap": "A source reported a gap.",
-      "storage_unavailable": "Encrypted meeting storage is unavailable.",
-      "storage_failure": "Storage could not persist this change.",
-      "local_model_unavailable": "A local model is unavailable.",
-      "recovery_required": "This meeting needs recovery.",
-      "deleted": "This meeting was deleted.",
-      "invalid_transition": "This action is not available in the current phase.",
-      "duplicate_operation": "This action was already recorded."
+      "consent_missing": "録音の同意事項の確認が必要です。",
+      "consent_stale": "この操作の前に設定が変わりました。",
+      "stale_revision": "このミーティングは別のウィンドウで変更されました。",
+      "capture_lease_busy": "別のミーティングの収録が動作中です。",
+      "source_unavailable": "要求されたソースを利用できません。",
+      "source_start_failed": "ソースを開始できませんでした。",
+      "source_gap": "ソースが欠落を報告しました。",
+      "storage_unavailable": "暗号化された会議ストレージを利用できません。",
+      "storage_failure": "ストレージはこの変更を保存できませんでした。",
+      "local_model_unavailable": "ローカルモデルを利用できません。",
+      "recovery_required": "このミーティングは復元が必要です。",
+      "deleted": "このミーティングは削除されました。",
+      "invalid_transition": "現在の段階では、この操作は利用できません。",
+      "duplicate_operation": "この操作はすでに記録されています。"
     },
     "gaps": {
-      "source_unavailable": "Source unavailable",
-      "source_start_failed": "Source start failed",
-      "permission_lost": "Permission lost",
-      "paused": "Paused",
-      "packet_dropped": "Audio packet dropped",
-      "writer_pressure": "Storage writer pressure",
-      "storage_failure": "Storage failure",
-      "timestamp_missing": "Timestamp missing",
-      "timestamp_discontinuity": "Timestamp discontinuity",
-      "invalid_format": "Invalid audio format",
-      "source_stopped": "Source stopped",
-      "corrupt_record": "Corrupt record",
-      "missing_record": "Missing record",
-      "recovery_tail": "Recovery tail",
-      "system_sleep": "Mac sleep"
+      "source_unavailable": "ソースを利用できません",
+      "source_start_failed": "ソースの開始に失敗",
+      "permission_lost": "権限の喪失",
+      "paused": "一時停止中",
+      "packet_dropped": "音声パケットの欠落",
+      "writer_pressure": "ストレージ書き込みの負荷",
+      "storage_failure": "ストレージの障害",
+      "timestamp_missing": "タイムスタンプの欠落",
+      "timestamp_discontinuity": "タイムスタンプの不連続",
+      "invalid_format": "無効な音声形式",
+      "source_stopped": "ソースが停止",
+      "corrupt_record": "記録の破損",
+      "missing_record": "記録の欠落",
+      "recovery_tail": "復元の末尾",
+      "system_sleep": "Mac のスリープ"
     },
     "errors": {
-      "load": "Sona could not load the current meeting data.",
+      "load": "Sona は現在のミーティングのデータを読み込めませんでした。",
       "operation": "そのミーティング操作を完了できませんでした。もう一度お試しください。",
-      "operationRejected": "The meeting action was rejected.",
-      "consent_required": "Confirm the recording acknowledgement before starting.",
-      "consent_stale": "The setup changed. Review it again before starting.",
-      "invalid_transition": "This action is unavailable in the current meeting phase.",
-      "stale_revision": "This meeting changed in another window. Sona refreshed its snapshot.",
-      "capture_lease_busy": "Another meeting is already capturing audio.",
-      "no_source_started": "No approved audio source started.",
-      "source_unavailable": "A requested audio source is unavailable.",
-      "storage_unavailable": "Encrypted meeting storage is unavailable.",
-      "recovery_required": "This meeting needs recovery before that action.",
-      "deletion_in_progress": "Deletion is already in progress. The meeting remains inaccessible.",
-      "not_found": "This meeting is no longer available.",
-      "invalid_request": "The meeting request was invalid.",
-      "export_cancelled": "Export was cancelled. No completed export was created.",
-      "export_failed": "Export failed. No completed export was created.",
-      "local_model_unavailable": "A local model is unavailable for this meeting.",
-      "remote_unavailable": "The selected remote destination is unavailable."
+      "operationRejected": "ミーティングの操作は拒否されました。",
+      "consent_required": "開始する前に録音の同意事項を確認してください。",
+      "consent_stale": "設定が変わりました。開始する前にもう一度確認してください。",
+      "invalid_transition": "現在のミーティングの段階では、この操作は利用できません。",
+      "stale_revision": "このミーティングは別のウィンドウで変更されました。Sona はスナップショットを更新しました。",
+      "capture_lease_busy": "別のミーティングがすでに音声を収録しています。",
+      "no_source_started": "承認された音声ソースは開始されませんでした。",
+      "source_unavailable": "要求された音声ソースを利用できません。",
+      "storage_unavailable": "暗号化された会議ストレージを利用できません。",
+      "recovery_required": "その操作の前に、このミーティングは復元が必要です。",
+      "deletion_in_progress": "すでに削除が進行中です。このミーティングにはアクセスできません。",
+      "not_found": "このミーティングはもう利用できません。",
+      "invalid_request": "ミーティングのリクエストが無効でした。",
+      "export_cancelled": "書き出しはキャンセルされました。完了した書き出しは作成されていません。",
+      "export_failed": "書き出しに失敗しました。完了した書き出しは作成されていません。",
+      "local_model_unavailable": "このミーティングで使えるローカルモデルがありません。",
+      "remote_unavailable": "選択したリモートの送信先を利用できません。"
     },
     "discard": {
-      "liveTitle": "Stop and discard this session?",
-      "liveDescription": "Sona will stop capture and delete the local meeting record.",
-      "keepRecording": "Keep recording",
-      "stopAndDiscard": "Stop and discard",
-      "explainsData": "Audio, transcript, manual notes, generated notes, and local answer caches will be deleted. This cannot be undone.",
-      "complete": "Session discarded"
+      "liveTitle": "このセッションを停止して破棄しますか？",
+      "keepRecording": "録音を続ける",
+      "stopAndDiscard": "停止して破棄",
+      "explainsData": "音声、文字起こし、手動メモ、生成ノート、ローカルの回答キャッシュが削除されます。この操作は取り消せません。",
+      "complete": "セッションを破棄しました"
     },
     "delete": {
-      "title": "Delete this meeting?",
-      "description": "Sona will delete the local meeting record and its derived data.",
-      "explainsData": "Sona keeps the meeting inaccessible while verified deletion finishes. Exports and remote copies are outside local deletion.",
-      "complete": "Meeting deleted"
+      "title": "このミーティングを削除しますか？",
+      "explainsData": "検証済みの削除が完了するまで、Sona はこのミーティングにアクセスできない状態を保ちます。書き出したファイルとリモートの複製は、ローカルの削除の対象外です。",
+      "complete": "ミーティングを削除しました"
     },
     "review": {
-      "meetingTitle": "Meeting title",
-      "noStartTime": "This meeting did not record a start time.",
-      "started": "Started {{date}}",
-      "status": "Capture status",
-      "statusDescription": "Coverage, source health, and processing remain separate.",
-      "timeline": "Audio timeline and gaps",
-      "timelineDescription": "Gaps name intervals where no audio was captured.",
-      "gap": "Gap",
-      "timeUnknown": "Unknown time",
-      "noGaps": "No capture gaps were reported.",
-      "transcript": "Transcript",
-      "transcriptDescription": "Edits create a new canonical revision. Derived notes and answers become out of date.",
-      "noTranscript": "No transcript is available.",
-      "transcriptSegment": "Transcript segment",
-      "removeSegment": "Remove segment",
-      "unknownSpeaker": "Unknown speaker",
-      "speakers": "Speakers",
-      "speakersDescription": "Rename or merge local speaker labels without rewriting timing.",
-      "noSpeakers": "No speaker labels are available.",
-      "speakerName": "Speaker name",
-      "mergeSource": "Merge this speaker",
-      "mergeTarget": "Into this speaker",
-      "merge": "Merge speakers",
-      "manualNotes": "Manual notes",
-      "manualNotesDescription": "Manual notes are user-owned and remain separate from generated notes.",
-      "manualNote": "Manual note",
-      "newNote": "New manual note",
-      "notePlaceholder": "Add a manual note",
-      "addNote": "Add note",
-      "noNotes": "No manual notes yet.",
-      "noTimestamp": "No timestamp",
-      "timestamp": "Timestamp {{time}}",
-      "generatedNotes": "Generated notes",
-      "generatedNotesDescription": "Regeneration uses the current canonical revision and does not overwrite manual notes or confirmed corrections.",
-      "regenerate": "Regenerate",
-      "remoteCancellationPending": "Remote cancellation is pending. Local deletion does not claim the remote copy is deleted.",
-      "cancelRemote": "Cancel remote processing",
+      "meetingTitle": "ミーティングタイトル",
+      "noStartTime": "このミーティングには開始時刻が記録されていません。",
+      "started": "開始 {{date}}",
+      "status": "収録の状態",
+      "timeline": "音声のタイムラインと欠落",
+      "timeUnknown": "時刻不明",
+      "noGaps": "収録の欠落は報告されていません。",
+      "transcript": "文字起こし",
+      "noTranscript": "利用できる文字起こしはありません。",
+      "transcriptSegment": "文字起こしのセグメント",
+      "removeSegment": "セグメントを削除",
+      "unknownSpeaker": "不明な話者",
+      "speakers": "話者",
+      "noSpeakers": "話者のラベルはありません。",
+      "speakerName": "話者名",
+      "mergeSource": "この話者を統合",
+      "mergeTarget": "この話者へ",
+      "merge": "話者を統合",
+      "manualNotes": "手動メモ",
+      "manualNote": "手動メモ",
+      "newNote": "新しい手動メモ",
+      "notePlaceholder": "手動メモを追加",
+      "addNote": "メモを追加",
+      "noNotes": "手動メモはまだありません。",
+      "noTimestamp": "タイムスタンプなし",
+      "timestamp": "タイムスタンプ {{time}}",
+      "generatedNotes": "生成ノート",
+      "regenerate": "再生成",
+      "remoteCancellationPending": "リモートのキャンセルは保留中です。ローカルの削除は、リモートの複製が削除されたことを保証しません。",
+      "cancelRemote": "リモート処理をキャンセル",
       "remoteCancellationRequested": "キャンセルを要求しました",
-      "export": "Export",
-      "exportDescription": "Each export uses an immutable local review snapshot and opens a native save dialog.",
-      "exportMarkdown": "Export Markdown",
-      "exportJson": "Export JSON",
+      "export": "書き出す",
+      "exportMarkdown": "Markdown を書き出す",
+      "exportJson": "JSON を書き出す",
       "exportComplete": "ミーティングを書き出しました",
-      "citation": "Transcript {{time}}",
-      "noGeneratedNotes": "No generated notes are available yet.",
-      "template": "Template: {{template}}",
-      "artifactRevision": "Template v{{templateVersion}} · source revision {{revision}}",
-      "summary": "Summary",
-      "topics": "Topics",
-      "none": "None",
-      "decisions": "Decisions",
-      "actions": "Action items",
-      "keyQuestions": "Key questions",
-      "risks": "Risks",
-      "followUp": "Follow-up",
-      "artifactUnavailable": "This generated revision is unavailable. The source transcript and manual notes remain local.",
-      "actionMeta": "Owner: {{owner}} · Due: {{due}}",
-      "unassigned": "Unassigned",
-      "noDueDate": "No due date",
-      "questions": "Ask this meeting",
-      "questionsDescription": "Answers use only this local meeting and cite the supporting transcript.",
-      "questionPlaceholder": "Ask a question about this meeting",
-      "ask": "Ask locally",
-      "noQuestions": "No saved local answers.",
-      "question": "Question",
-      "insufficientEvidence": "No supporting passage was found in this meeting.",
-      "forget": "Forget this answer",
-      "exactSearch": "Exact search",
-      "exactSearchDescription": "Search the selected local meeting for exact indexed text.",
-      "searchPlaceholder": "Search this meeting",
-      "search": "Search",
-      "noSearchResults": "No exact local matches.",
+      "citation": "文字起こし {{time}}",
+      "noGeneratedNotes": "利用できる生成ノートはまだありません。",
+      "template": "テンプレート: {{template}}",
+      "summary": "要約",
+      "topics": "トピック",
+      "none": "なし",
+      "decisions": "決定事項",
+      "actions": "アクション項目",
+      "keyQuestions": "主な問い",
+      "risks": "リスク",
+      "followUp": "フォローアップ",
+      "artifactUnavailable": "この生成されたリビジョンは利用できません。元の文字起こしと手動メモはローカルに残っています。",
+      "actionMeta": "担当: {{owner}} · 期限: {{due}}",
+      "unassigned": "未割り当て",
+      "noDueDate": "期限なし",
+      "questions": "このミーティングに質問",
+      "questionsDescription": "回答はこのローカルのミーティングだけを使い、裏付けとなる文字起こしを引用します。",
+      "questionPlaceholder": "このミーティングについて質問する",
+      "ask": "ローカルで質問",
+      "noQuestions": "保存されたローカルの回答はありません。",
+      "question": "質問",
+      "insufficientEvidence": "このミーティングには裏付けとなる箇所が見つかりませんでした。",
+      "forget": "この回答を忘れる",
+      "exactSearch": "完全一致検索",
+      "searchPlaceholder": "このミーティングを検索",
+      "search": "検索",
+      "noSearchResults": "完全に一致するローカルの結果はありません。",
       "askUnavailable": "質問にはローカルで完了した文字起こしが必要です。",
       "asking": "このミーティングに質問中…",
-      "captured": "{{time}} に録音",
       "droppedFrames": "ドロップフレーム: {{total}}",
       "hitKind": {
         "manualNote": "手動メモ",
@@ -2311,17 +2054,12 @@
     },
     "ledger": {
       "title": "台帳",
-      "description": "このミーティングの各スレッドと、その落ち着いた先、そして状態を読み取った文字起こしの引用。件数は計測値、状態は推定です。",
       "emptyTitle": "このミーティングからはまだ台帳が読み取られていません",
       "emptyDescription": "台帳は生成されたメモと一緒に書かれます。メモを再生成すると、この会話をスレッドとして読めます。",
       "exportHtml": "台帳ページを書き出す",
       "exported": "台帳を {{path}} に書き出しました",
       "exportMissing": "このミーティングには書き出せる台帳がありません。先にメモを再生成してください。",
       "statThreads": "決着したスレッド",
-      "statOpen": "未決",
-      "statDropped": "流れた",
-      "statCommitments": "約束",
-      "statOpenLoops": "未回答の問い",
       "statReceipts": "引用",
       "receiptsVerified": "照合済み",
       "receiptsDegraded": "スレッド {{threads}} 件、約束 {{commitments}} 件を削除しました",
@@ -2359,40 +2097,26 @@
       }
     },
     "artifactState": {
-      "current": "Current",
-      "out_of_date": "Out of date",
-      "failed": "Generation failed"
+      "current": "最新",
+      "out_of_date": "内容が古い",
+      "failed": "生成に失敗"
     },
     "answerState": {
-      "supported": "Supported",
-      "insufficient_evidence": "Insufficient evidence",
-      "unavailable": "Unavailable",
-      "out_of_date": "Out of date",
-      "forgotten": "Forgotten"
+      "supported": "裏付けあり",
+      "insufficient_evidence": "裏付けが不十分",
+      "unavailable": "利用不可",
+      "out_of_date": "内容が古い",
+      "forgotten": "忘却済み"
     },
     "diarization": {
-      "not_requested": "Diarization not requested",
-      "model_unavailable": "Diarization model unavailable",
-      "downloading": "Downloading diarization model",
-      "running": "Separating speakers",
-      "succeeded": "Speaker assignments current",
-      "failed": "Speaker separation failed"
-    },
-    "trends": {
-      "title": "Meeting activity",
-      "loading": "Loading meeting trends…",
-      "error": "Couldn't load meeting trends.",
-      "unavailable": "Meeting trends are unavailable.",
-      "metricLabel": "Metric",
-      "metrics": {
-        "meetings": "Meetings",
-        "duration": "Captured time",
-        "transcript": "Transcript segments",
-        "actions": "Action items"
-      }
+      "not_requested": "話者分離は要求されていません",
+      "model_unavailable": "話者分離モデルを利用できません",
+      "downloading": "話者分離モデルをダウンロード中",
+      "running": "話者を分離中",
+      "succeeded": "話者の割り当ては最新です",
+      "failed": "話者の分離に失敗しました"
     },
     "list": {
-      "retentionHint": "保持期間: {{policy}}。Settings > Privacy で変更できます。",
       "searchLabel": "ミーティングを検索",
       "searchPlaceholder": "タイトルで検索",
       "clearFilters": "フィルターをクリア",
@@ -2450,17 +2174,13 @@
     },
     "gate": {
       "title": "録音は開始されませんでした",
-      "description": "Sona はミーティングを作成しましたが、記録するよう指定されたソースが利用できません。",
       "readyTitle": "録音の準備ができました",
-      "readyDescription": "このミーティングの収録を妨げるものはありません。",
       "recordAnyway": "それなしで録音",
       "recordAnywayHint": "記録は部分的と印が付き、欠けたソースは記録内に名前が残ります。"
     },
     "analytics": {
       "title": "会話",
-      "description": "この Mac 上で、話者を分けた書き起こしから算出しました。どこにも送信されません。",
       "noSpeech": "発話が書き起こされていないため、測るものがありません。",
-      "talkShare": "最も話した人",
       "longestMonologue": "最長のモノローグ",
       "patience": "間の取り方",
       "patienceDetail": "返答までの間の中央値",
@@ -2475,7 +2195,6 @@
       "noHits": "言及なし",
       "jumpToFirst": "最初を表示",
       "trackersTitle": "キーワードトラッカー",
-      "trackersDescription": "すべてのミーティング書き起こしで見張る言い回し。一致は文字どおりで大文字と小文字を区別せず、走査はすべてこの Mac 上で行われます。",
       "addTracker": "トラッカーを追加",
       "removeTracker": "トラッカーを削除",
       "noTrackers": "トラッカーはまだありません。一つ追加すると、その言い回しが何回出てくるか数え始めます。",
@@ -2487,7 +2206,6 @@
     "notes": {
       "title": "自分のメモ",
       "liveDescription": "どれだけ粗く書いても構いません。このメモはこの Mac に残り、ミーティング終了時に Sona が生成するメモを導きます。",
-      "reviewDescription": "あなた自身のメモが、生成されるメモの重点を導きます。引用されたり出典として示されたりすることはありません。",
       "placeholder": "覚えておく価値のあること: 名前、数字、追いかけること",
       "unsaved": "まだ保存されていません",
       "saving": "保存中…",
@@ -2495,7 +2213,6 @@
       "conflict": "このメモは別の場所で変更されました。ミーティングを開き直して現在の版を読み込んでください。",
       "reenhance": "自分のメモで作り直す",
       "enhancing": "作り直し中…",
-      "enhanced": "メモを作り直しました。",
       "enhanceFailed": "Sona はメモを作り直せませんでした。ミーティングを開き直してもう一度お試しください。",
       "catchUp": "いまの流れを教えて",
       "catchingUp": "まとめ中…",
@@ -2509,11 +2226,11 @@
         "interview": "面接",
         "sales_call": "営業の通話",
         "standup": "スタンドアップ"
-      }
+      },
+      "template": "テンプレート"
     },
     "detection": {
       "title": "ミーティングを検出",
-      "description": "Sona は通話を見張り、メモを取ろうかと申し出ます。自分から録音することは決してありません。",
       "loading": "検出の状態を読み込み中…",
       "prompt": {
         "calendar": "{{title}} が始まります",
@@ -2531,21 +2248,17 @@
       },
       "pane": {
         "title": "もうすぐ始まります",
-        "description": "ここで開始するまで、Sona は録音しません。",
-        "countdown": "{{seconds}} 秒後に開始",
-        "notYetRecording": "録音していません"
+        "countdown": "{{seconds}} 秒後に開始"
       },
       "calendar": {
         "label": "自分のカレンダーを使う",
         "description": "参加者が 2 人以上の予定の 1 分前にカウントダウンを表示します。Apple は読み取り専用の許可を用意していないため、macOS は初回にカレンダーへのフルアクセスを求めます。"
       },
       "anyMic": {
-        "label": "マイクを使うたびに尋ねる",
-        "description": "ボイスメモ、音楽アプリ、その他マイクを開くものすべてを含みます。オフなら、通知は既知のミーティングアプリだけに限られます。"
+        "label": "マイクを使うたびに尋ねる"
       },
       "autoStart": {
-        "label": "カウントダウンが表示されているときにミーティングを開く",
-        "description": "すでにカウントダウンを見ている最中に予定が始まった場合、通知を省きます。何を録音するかは、やはりあなたが確認します。"
+        "label": "カウントダウンが表示されているときにミーティングを開く"
       },
       "apps": {
         "label": "ミーティングアプリ",
@@ -2555,7 +2268,6 @@
       },
       "state": {
         "title": "検出に見えているもの",
-        "description": "検出はほとんどの時間、黙っています。その理由です。",
         "calendarDenied": "カレンダーへのアクセスが許可されなかったため、マイク経路だけが動いています。",
         "notificationsDenied": "Sona の通知はオフなので、案内はアプリ内にだけ表示されます。",
         "bluetoothCaveat": "ミーティングアプリは開いていますが、マイクの使用を報告するものがありません。Bluetooth ヘッドセットは報告しないことが多いので、進行中なら自分でミーティングを開始してください。",
@@ -2623,14 +2335,12 @@
   },
   "agentPanel": {
     "open": "エージェント",
-    "loading": "接続中…",
     "retry": "再試行",
     "cancel": "キャンセル",
     "apply": "適用",
     "undo": "元に戻す",
     "panelToggle": "エージェントパネルを閉じる",
     "conversationLabel": "会話",
-    "proposalLabel": "提案された変更",
     "proposalTitle": "提案された変更",
     "empty": "Sonaの設定について質問できます。何かを変更する前に、提案がここにレビュー用に表示されます。",
     "inputPlaceholder": "Sonaについて質問…",
@@ -2647,92 +2357,16 @@
       "error": "エージェントパネルを利用できません。"
     }
   },
-  "analytics": {
-    "range": {
-      "label": "Range",
-      "days_7": "7 days",
-      "days_30": "30 days",
-      "days_180": "6 months"
-    },
-    "delta": {
-      "new": "New",
-      "flat": "No change",
-      "unavailable": "Unavailable",
-      "change": "{{value}} vs previous period"
-    },
-    "duration": {
-      "minutes": "{{value}} min",
-      "hours": "{{value}} h"
-    },
-    "chart": {
-      "description": "{{metric}} for {{range}}",
-      "empty": "No activity yet"
-    }
-  },
   "overview": {
-    "sources": {
-      "title": "Sources",
-      "description": "Where the recordings in this range came from.",
-      "microphone": "Microphone",
-      "file": "File import",
-      "legacy": "Legacy",
-      "empty": "No recordings in this range.",
-      "meetings": "ミーティング",
-      "meetingsUnavailable": "ミーティングストレージを利用できないため、ミーティングはここに集計されません。"
-    },
-    "recent": {
-      "title": "Recent activity",
-      "history": "Dictation",
-      "meeting": "Meeting",
-      "viewAll": "すべて表示",
-      "words": "{{count}} 単語",
-      "emptyRange": "過去 30 日間に口述もミーティングもありません。",
-      "failedCommand": "{{command}} が失敗しました",
-      "failedCommandWithDetail": "{{command}} が失敗しました: {{detail}}"
-    },
     "hero": {
-      "ready": "Ready",
-      "recording": "Listening",
-      "newMeeting": "New meeting",
-      "importAudio": "Import audio",
-      "mode": "モード: {{name}}",
-      "setShortcut": "設定でディクテーションショートカットを設定すると、どのアプリからでもキャプチャできます。",
-      "setShortcutAction": "ショートカットを設定",
+      "ready": "待機中",
+      "recording": "聞き取り中",
+      "newMeeting": "新しい会議",
+      "importAudio": "音声を読み込む",
+      "gestureTapHold": "タップで切り替え・押したままで発話",
+      "gestureTapOnly": "タップで切り替え",
       "shortcutAction": "口述のショートカットを変更",
-      "gestureTapHold": "タップで切り替え、押したままで発話。",
-      "gestureTapOnly": "タップで切り替え。"
-    },
-    "actions": {
-      "dictate": "Dictate",
-      "unavailable": "Shortcut unavailable"
-    },
-    "chart": {
-      "day": "{{date}} · ディクテーション {{dictations}}",
-      "dayWithMeetings": "{{date}} · ディクテーション {{dictations}} · ミーティング {{meetings}}",
-      "legend": "1日あたりのディクテーション",
-      "peak": "最も多かった日 {{peak}}",
-      "summary": "{{from}} から {{to}} までの1日あたりのディクテーション。合計 {{total}}、最も多かった日 {{peak}}。"
-    },
-    "empty": {
-      "action": "ライブラリを開く",
-      "description": "どのアプリでもディクテーションショートカットを押し続けると、Sona が話した内容を入力します。最初のディクテーションが終わると、使用状況と最近のキャプチャがここに表示されます。",
-      "title": "まだキャプチャはありません"
-    },
-    "stats": {
-      "activeDays": "{{total}} 日中 {{active}} 日アクティブ",
-      "allTime": "累計 {{total}}",
-      "dictations": "ディクテーション",
-      "dictationsAllTime": "ディクテーション（累計）",
-      "error": "Sona は使用履歴を読み取れませんでした。",
-      "range": "{{from}} から {{to}}",
-      "rangeUnavailable": "過去30日間を読み取れなかったため、これは累計値です。",
-      "speaking": "発話時間",
-      "speakingAllTime": "発話時間（累計）",
-      "streak": "現在の連続記録",
-      "tiles": "使用状況の概要",
-      "title": "アクティビティ",
-      "words": "単語数",
-      "wordsAllTime": "単語数（累計）"
+      "setShortcutAction": "ショートカットを設定"
     },
     "update": {
       "available": "Sona {{latest}} が利用可能です。このインストールは {{current}} です。",
@@ -2740,122 +2374,98 @@
       "failed": "アップデートを確認できませんでした。",
       "failedWithReason": "アップデートを確認できませんでした: {{reason}}",
       "view": "リリースを表示"
-    },
-    "instrument": {
-      "label": "録音インストゥルメント",
-      "engine": "エンジン",
-      "input": "入力",
-      "shortcut": "ショートカット",
-      "mode": "モード",
-      "loaded": "読み込み済み",
-      "unloaded": "未読み込み",
-      "notMeasured": "未計測",
-      "unbound": "未設定",
-      "gestureTapHold": "タップ · 長押し",
-      "gestureTap": "タップ",
-      "channel": "ch {{channel}}",
-      "channels": "{{count}} ch",
-      "rate": "{{kilohertz}} kHz",
-      "systemDefault": "システムの既定",
-      "decode": "デコード {{factor}}"
     }
   },
   "cloudSync": {
-    "title": "Cloud Sync",
     "account": {
-      "title": "Cloud Sync",
-      "description": "Meetings stay on this device until you set up sync.",
+      "title": "クラウド同期",
       "status": {
-        "loading": "Checking sync…",
-        "local": "Local only",
-        "ready": "Sync active",
-        "paused": "Sync paused",
-        "attention": "Sync needs attention",
-        "unavailable": "Sync unavailable"
+        "loading": "確認中…",
+        "local": "ローカルのみ",
+        "ready": "有効",
+        "paused": "一時停止中",
+        "attention": "対応が必要",
+        "unavailable": "利用できません"
       },
-      "pending": "{{count}} pending",
-      "pause": "Pause sync",
-      "resume": "Resume sync"
-    },
-    "disclosure": {
-      "title": "Set up or recover sync",
-      "description": "Connect an endpoint or pair another device.",
-      "notice": "Setup is optional. Meeting data stays local until you complete it."
+      "pending": "保留中 {{count}} 件",
+      "pause": "同期を一時停止",
+      "resume": "同期を再開"
     },
     "setup": {
-      "title": "Set up a sync account",
-      "endpoint": "Endpoint",
-      "bootstrapSecret": "Bootstrap secret",
-      "submit": "Set up sync"
+      "title": "同期アカウントを設定",
+      "endpoint": "エンドポイント",
+      "bootstrapSecret": "ブートストラップシークレット",
+      "submit": "同期を設定"
     },
     "recovery": {
-      "title": "Recover a sync account",
-      "code": "Recovery code",
-      "submit": "Recover account",
-      "generatedCode": "Save this recovery code now",
-      "oneTime": "Sona shows this code once and does not store it."
+      "title": "同期アカウントを復旧",
+      "code": "復旧コード",
+      "submit": "アカウントを復旧",
+      "generatedCode": "この復旧コードをいま保存してください",
+      "oneTime": "Sona はこのコードを一度だけ表示し、保存しません。"
     },
     "pairing": {
-      "title": "Pair a device",
-      "vaultId": "Vault ID",
-      "createOffer": "Create pairing offer",
-      "currentOffer": "Pairing offer",
-      "approve": "Approve this offer",
-      "receivedOffer": "Offer from another device",
-      "accept": "Accept offer"
+      "title": "端末をペアリング",
+      "vaultId": "保管庫 ID",
+      "createOffer": "ペアリングの申し出を作成",
+      "currentOffer": "ペアリングの申し出",
+      "approve": "この申し出を承認",
+      "receivedOffer": "別の端末からの申し出",
+      "accept": "申し出を受け入れる"
     },
     "errors": {
-      "portable_unavailable": "Cloud Sync is unavailable in portable mode.",
-      "secret_unavailable": "The native secure store is unavailable.",
-      "setup_required": "Set up Cloud Sync before using this action.",
-      "auth_required": "Cloud sign-in is required.",
-      "quota": "Cloud storage quota has been reached.",
-      "integrity_failure": "The cloud operation could not be verified.",
-      "conflict": "This meeting has a sync conflict.",
-      "unsupported_protocol": "This device does not support the cloud protocol.",
-      "transient": "Cloud Sync is temporarily unavailable.",
-      "invalid_expiry": "Choose a future expiry.",
-      "invalid_offer": "The pairing offer is incomplete or invalid.",
-      "unexpected": "The cloud operation failed."
+      "portable_unavailable": "ポータブルモードではクラウド同期を利用できません。",
+      "secret_unavailable": "システムのセキュアストアを利用できません。",
+      "setup_required": "この操作を使う前にクラウド同期を設定してください。",
+      "auth_required": "クラウドへのサインインが必要です。",
+      "quota": "クラウドストレージの上限に達しました。",
+      "integrity_failure": "クラウドの操作を検証できませんでした。",
+      "conflict": "このミーティングには同期の競合があります。",
+      "unsupported_protocol": "この端末はクラウドのプロトコルに対応していません。",
+      "transient": "クラウド同期は一時的に利用できません。",
+      "invalid_expiry": "未来の有効期限を選んでください。",
+      "invalid_offer": "ペアリングの申し出が不完全か無効です。",
+      "unexpected": "クラウドの操作に失敗しました。"
     },
     "meeting": {
-      "title": "Cloud Sync",
+      "title": "クラウド同期",
       "status": {
-        "loading": "Checking sync…",
-        "local": "Local only",
-        "queued": "Queued",
-        "uploading": "Uploading",
-        "committed": "Synced",
-        "conflict": "Conflict",
-        "pending_deletion": "Removal pending",
-        "deleted": "Removed",
-        "paused": "Paused",
-        "auth_required": "Sign-in required",
-        "quota": "Quota reached",
-        "integrity_failure": "Verification failed",
-        "unavailable": "Sync unavailable"
+        "loading": "同期を確認中…",
+        "local": "ローカルのみ",
+        "queued": "待機中",
+        "uploading": "アップロード中",
+        "committed": "同期済み",
+        "conflict": "競合",
+        "pending_deletion": "削除を保留中",
+        "deleted": "削除済み",
+        "paused": "一時停止中",
+        "auth_required": "サインインが必要",
+        "quota": "上限に到達",
+        "integrity_failure": "検証に失敗",
+        "unavailable": "同期を利用できません"
       },
-      "shareCount": "{{count}} shares",
-      "retryScheduled": "Retry scheduled",
-      "retry": "Retry sync",
-      "keepLocal": "Keep this device's copy",
-      "useRemote": "Use the cloud copy",
-      "expiresAt": "Share expiry",
+      "shareCount": "共有 {{count}} 件",
+      "retryScheduled": "再試行を予約しました",
+      "retry": "同期を再試行",
+      "keepLocal": "この端末の複製を保持",
+      "useRemote": "クラウドの複製を使う",
+      "expiresAt": "共有の有効期限",
       "bundle": {
-        "fileFilter": "Sona share",
-        "export": "Export .sona file",
-        "import": "Import .sona file",
-        "exported": "Saved to {{path}}",
-        "imported": "Imported meeting {{sessionId}}"
+        "fileFilter": "Sona 共有",
+        "export": ".sona ファイルを書き出す",
+        "import": ".sona ファイルをインポート",
+        "exported": "{{path}} に保存しました",
+        "imported": "ミーティング {{sessionId}} をインポートしました"
       },
       "browser": {
-        "create": "Create browser share",
-        "revoke": "Revoke browser share"
+        "create": "ブラウザ共有を作成",
+        "revoke": "ブラウザ共有を取り消す",
+        "revokeConfirm": "このリンクを持っている人は、取り消した時点でアクセスできなくなります。"
       }
     }
   },
   "topNav": {
-    "capture": "Capture",
-    "library": "Library"
+    "capture": "録音",
+    "library": "ライブラリ"
   }
 }

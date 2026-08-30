@@ -2,15 +2,17 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { Alert, Button, IconButton, StatusText } from "@/components/ui";
+import { Button } from "@/components/vg/button";
+import { SettingsCard } from "@/components/settings/rows";
 import type { UpdateCheckResult } from "@/lib/updateCheck";
 
 /* Two surfaces, deliberately unequal.
  *
- * An available update is worth one dismissible line at the top of the page.
- * A failed check is not: it is a quiet line at the foot of the page with a
- * retry, because a GitHub request that did not come back says nothing about
- * the app in front of you. "up_to_date" and "disabled" render nothing at all. */
+ * An available update is worth one dismissible row above the hero: a bordered
+ * line, the sentence, the release, the dismiss. A failed check is not — it is a
+ * quiet unbordered line at the foot of the page with a retry, because a GitHub
+ * request that did not come back says nothing about the app in front of you.
+ * "up_to_date" and "disabled" render nothing at all. */
 
 interface UpdateBannerProps {
   result: UpdateCheckResult;
@@ -34,38 +36,37 @@ export const UpdateBanner: React.FC<UpdateBannerProps> = ({
   };
 
   return (
-    <Alert
-      variant="info"
-      action={
-        <>
-          {url !== null && (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => void openRelease()}
-            >
-              {t("overview.update.view", "View release")}
-            </Button>
-          )}
-          <IconButton
-            label={t("overview.update.dismiss", "Dismiss")}
-            icon={<X className="size-4" aria-hidden="true" />}
-            size="sm"
-            onClick={onDismiss}
-          />
-        </>
-      }
-    >
-      {t(
-        "overview.update.available",
-        "Sona {{latest}} is available. This install is on {{current}}.",
-        {
-          latest: result.latest_version ?? "",
-          current: result.current_version,
-        },
+    <SettingsCard className="flex flex-wrap items-center gap-3 px-4 py-3">
+      <span className="min-w-0 flex-1 text-sm text-gray-900">
+        {t(
+          "overview.update.available",
+          "Sona {{latest}} is available. This install is on {{current}}.",
+          {
+            latest: result.latest_version ?? "",
+            current: result.current_version,
+          },
+        )}
+      </span>
+      {url !== null && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => void openRelease()}
+        >
+          {t("overview.update.view", "View release")}
+        </Button>
       )}
-    </Alert>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        aria-label={t("overview.update.dismiss", "Dismiss")}
+        onClick={onDismiss}
+      >
+        <X className="size-4" aria-hidden="true" />
+      </Button>
+    </SettingsCard>
   );
 };
 
@@ -83,8 +84,8 @@ export const UpdateCheckFailure: React.FC<UpdateCheckFailureProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div className="ov-footer-note">
-      <StatusText tone="muted" live="polite">
+    <div className="flex flex-wrap items-center gap-3">
+      <span aria-live="polite" className="min-w-0 flex-1 text-sm text-gray-800">
         {result.error === null
           ? t("overview.update.failed", "Could not check for updates.")
           : t(
@@ -92,7 +93,7 @@ export const UpdateCheckFailure: React.FC<UpdateCheckFailureProps> = ({
               "Could not check for updates: {{reason}}",
               { reason: result.error },
             )}
-      </StatusText>
+      </span>
       <Button
         type="button"
         variant="ghost"

@@ -1,48 +1,48 @@
-import React from "react";
+import React, { useId } from "react";
 import { useTranslation } from "react-i18next";
-import { Dropdown } from "../ui/Dropdown";
-import { SettingContainer } from "../ui/SettingContainer";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/vg/select";
+import { SettingsRow } from "./rows";
 import { useSettings } from "@/hooks/useSettings";
 import { applyTheme, THEME_OPTIONS } from "@/lib/utils/theme";
 import type { Theme } from "@/bindings";
 
-interface ThemeSelectorProps {
-  descriptionMode?: "inline" | "tooltip";
-  grouped?: boolean;
-}
+export const ThemeSelector: React.FC = React.memo(() => {
+  const { t } = useTranslation();
+  const { settings, updateSetting } = useSettings();
+  const id = useId();
 
-export const ThemeSelector: React.FC<ThemeSelectorProps> = React.memo(
-  ({ descriptionMode = "tooltip", grouped = false }) => {
-    const { t } = useTranslation();
-    const { settings, updateSetting } = useSettings();
+  const currentTheme: Theme = settings?.theme ?? "system";
 
-    const currentTheme: Theme = settings?.theme ?? "system";
+  const handleThemeChange = (value: string) => {
+    /* SAFETY: the items below are exactly `THEME_OPTIONS`, which is the Theme
+       union spelled out, and a Radix select can only report an item's value. */
+    const theme = value as Theme;
+    applyTheme(theme);
+    updateSetting("theme", theme);
+  };
 
-    const themeOptions = THEME_OPTIONS.map((value) => ({
-      value,
-      label: t(`theme.options.${value}`),
-    }));
-
-    const handleThemeChange = (theme: Theme) => {
-      applyTheme(theme);
-      updateSetting("theme", theme);
-    };
-
-    return (
-      <SettingContainer
-        title={t("theme.title")}
-        description={t("theme.description")}
-        descriptionMode={descriptionMode}
-        grouped={grouped}
-      >
-        <Dropdown<Theme>
-          options={themeOptions}
-          selectedValue={currentTheme}
-          onSelect={handleThemeChange}
-        />
-      </SettingContainer>
-    );
-  },
-);
+  return (
+    <SettingsRow label={t("theme.title")} controlId={id}>
+      <Select value={currentTheme} onValueChange={handleThemeChange}>
+        <SelectTrigger id={id} size="sm" className="w-50">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {THEME_OPTIONS.map((value) => (
+            <SelectItem key={value} value={value}>
+              {t(`theme.options.${value}`)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </SettingsRow>
+  );
+});
 
 ThemeSelector.displayName = "ThemeSelector";

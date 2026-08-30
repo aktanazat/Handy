@@ -2,7 +2,9 @@ import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Button, IconButton, Input, Section, StatusText } from "../../ui";
+import { Notice, SettingsSection } from "@/components/settings/rows";
+import { Button } from "@/components/vg/button";
+import { Input } from "@/components/vg/input";
 import {
   listKeywordTrackers,
   saveKeywordTrackers,
@@ -15,7 +17,9 @@ import {
  *
  * Patterns are literal phrases, not patterns in the regular-expression sense:
  * "is that your best price?" is a phrase somebody says, and typing it should
- * never produce a syntax error. */
+ * never produce a syntax error. The placeholder is where that is said, because
+ * three lowercase phrases demonstrate it in less space than a sentence about
+ * it did. */
 
 /** Patterns are edited as one comma-separated line, which is how people list
  *  phrases. Commas inside a phrase are not supported, and do not need to be. */
@@ -67,38 +71,36 @@ export const MeetingTrackersSettings: React.FC = () => {
   }
 
   return (
-    <Section
-      title={t("meetings.analytics.trackersTitle", "Keyword trackers")}
-      description={t(
-        "meetings.analytics.trackersDescription",
-        "Phrases to watch for in every meeting transcript. Matching is literal and ignores case, and every scan runs on this Mac.",
-      )}
-      actions={
+    <SettingsSection
+      label={t("meetings.analytics.trackersTitle", "Keyword trackers")}
+      action={
         <Button
           type="button"
-          variant="secondary"
+          variant="outline"
           size="sm"
           onClick={() => setTrackers([...trackers, { name: "", patterns: [] }])}
           disabled={saving}
         >
-          <Plus size={14} aria-hidden="true" />
+          <Plus aria-hidden="true" />
           {t("meetings.analytics.addTracker", "Add tracker")}
         </Button>
       }
     >
       {trackers.length === 0 ? (
-        <StatusText tone="muted">
-          {t(
-            "meetings.analytics.noTrackers",
-            "No trackers yet. Add one to start counting how often a phrase comes up.",
-          )}
-        </StatusText>
+        <div className="px-4 py-6">
+          <Notice tone="muted" live={false}>
+            {t(
+              "meetings.analytics.noTrackers",
+              "No trackers yet. Add one to start counting how often a phrase comes up.",
+            )}
+          </Notice>
+        </div>
       ) : (
-        <ul className="meeting-card meeting-card--flush divide-y divide-border">
+        <ul className="divide-y divide-gray-alpha-400">
           {trackers.map((tracker, index) => (
             <li
               key={index}
-              className="flex flex-wrap items-center gap-2 px-3 py-2.5"
+              className="flex flex-wrap items-center gap-2 px-4 py-2.5"
             >
               <Input
                 value={tracker.name}
@@ -109,7 +111,7 @@ export const MeetingTrackersSettings: React.FC = () => {
                 placeholder={t("meetings.analytics.trackerName", "Name")}
                 aria-label={t("meetings.analytics.trackerName", "Name")}
                 disabled={saving}
-                className="w-40 flex-none"
+                className="h-8 w-40 flex-none text-[13px]"
               />
               <Input
                 value={tracker.patterns.join(PATTERN_SEPARATOR)}
@@ -129,23 +131,28 @@ export const MeetingTrackersSettings: React.FC = () => {
                   "Phrases, separated by commas",
                 )}
                 disabled={saving}
-                className="min-w-48 flex-1"
+                className="h-8 min-w-48 flex-1 text-[13px]"
               />
-              <IconButton
+              <Button
                 type="button"
-                variant="danger-ghost"
-                size="sm"
-                label={t("meetings.analytics.removeTracker", "Remove tracker")}
-                icon={<Trash2 size={14} aria-hidden="true" />}
+                variant="ghost"
+                size="icon-sm"
+                className="flex-none text-red-900"
+                aria-label={t(
+                  "meetings.analytics.removeTracker",
+                  "Remove tracker",
+                )}
                 onClick={() =>
                   void commit(trackers.filter((_, at) => at !== index))
                 }
                 disabled={saving}
-              />
+              >
+                <Trash2 aria-hidden="true" />
+              </Button>
             </li>
           ))}
         </ul>
       )}
-    </Section>
+    </SettingsSection>
   );
 };

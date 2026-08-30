@@ -17,14 +17,14 @@ import {
   type Result,
   type SourceKind,
 } from "@/bindings";
-import { Skeleton } from "../../ui";
+import { Skeleton } from "@/components/vg/skeleton";
+import { SettingsPage } from "@/components/settings/rows";
 import { MeetingStartGate, consentFor } from "./MeetingStartGate";
 import { MeetingLive } from "./MeetingLive";
 import { MeetingReview } from "./MeetingReview";
 import { MeetingsHome } from "./MeetingsHome";
 import { suggestionFacts } from "./MeetingPreviewCard";
 import type { MeetingScreen, MeetingStartOptions } from "./meetingTypes";
-import "./meetings.css";
 import {
   NO_MEETING_FILTER,
   isActiveMeetingPhase,
@@ -889,21 +889,26 @@ const renderMeetingsContent = (
  * artifacts, answers. The skeleton keeps the header and the first rows in
  * place so the swap does not jump. */
 const MeetingDetailSkeleton: React.FC<{ label: string }> = ({ label }) => (
-  <div className="settings-page" role="status" aria-label={label}>
-    <div className="space-y-2">
-      <Skeleton className="h-4 w-16" />
-      <Skeleton className="h-7 w-72" />
-      <Skeleton className="h-4 w-56" />
+  <SettingsPage
+    role="status"
+    aria-label={label}
+    header={
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-4 w-16" />
+        <Skeleton className="h-8 w-72" />
+        <Skeleton className="h-4 w-56" />
+      </div>
+    }
+  >
+    <div className="flex flex-col gap-3">
+      <Skeleton className="h-3 w-24" />
+      <Skeleton className="h-[120px] w-full rounded-card" />
     </div>
-    <div className="space-y-2">
-      <Skeleton className="h-8 w-64" />
-      <Skeleton className="h-[120px] w-full" />
+    <div className="flex flex-col gap-3">
+      <Skeleton className="h-3 w-20" />
+      <Skeleton className="h-[88px] w-full rounded-card" />
     </div>
-    <div className="space-y-2">
-      <Skeleton className="h-4 w-40" />
-      <Skeleton className="h-[88px] w-full" />
-    </div>
-  </div>
+  </SettingsPage>
 );
 
 const renderMeetingSessionContent = (

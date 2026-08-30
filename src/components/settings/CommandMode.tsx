@@ -1,12 +1,8 @@
-import React from "react";
+import React, { useId } from "react";
 import { useTranslation } from "react-i18next";
-import { ToggleSwitch } from "../ui/ToggleSwitch";
+import { Switch } from "@/components/vg/switch";
+import { SettingsRow } from "./rows";
 import { useSettings } from "../../hooks/useSettings";
-
-interface CommandModeProps {
-  descriptionMode?: "inline" | "tooltip";
-  grouped?: boolean;
-}
 
 /**
  * Registers or unregisters the command chord.
@@ -15,24 +11,30 @@ interface CommandModeProps {
  * "off" would invite a click that turns a working shortcut off. `?? true`
  * carries the backend default rather than inventing a second one.
  */
-export const CommandMode: React.FC<CommandModeProps> = React.memo(
-  ({ descriptionMode = "tooltip", grouped = false }) => {
-    const { t } = useTranslation();
-    const { getSetting, updateSetting, isUpdating } = useSettings();
+export const CommandMode: React.FC = React.memo(() => {
+  const { t } = useTranslation();
+  const { getSetting, updateSetting, isUpdating } = useSettings();
+  const id = useId();
 
-    return (
-      <ToggleSwitch
+  return (
+    <SettingsRow
+      label={t("settings.general.commandMode.label", "Voice command mode")}
+      /* Kept: the gesture is the one thing the label cannot say, and nothing
+       * else on the page says it. */
+      hint={t(
+        "settings.general.commandMode.description",
+        "Hold the command shortcut and say what to change about the text you have selected.",
+      )}
+      controlId={id}
+    >
+      <Switch
+        id={id}
         checked={getSetting("command_mode_enabled") ?? true}
-        onChange={(enabled) => updateSetting("command_mode_enabled", enabled)}
-        isUpdating={isUpdating("command_mode_enabled")}
-        label={t("settings.general.commandMode.label", "Voice command mode")}
-        description={t(
-          "settings.general.commandMode.description",
-          "Hold the command shortcut and say what to change about the text you have selected.",
-        )}
-        descriptionMode={descriptionMode}
-        grouped={grouped}
+        onCheckedChange={(enabled) =>
+          updateSetting("command_mode_enabled", enabled)
+        }
+        disabled={isUpdating("command_mode_enabled")}
       />
-    );
-  },
-);
+    </SettingsRow>
+  );
+});

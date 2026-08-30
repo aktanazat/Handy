@@ -1,12 +1,19 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { commands } from "@/bindings";
-import { Alert, SettingsGroup, ToggleSwitch } from "@/components/ui";
+import { Switch } from "@/components/vg/switch";
+import {
+  Notice,
+  SettingsRow,
+  SettingsSection,
+} from "@/components/settings/rows";
 import { useSettings } from "@/hooks/useSettings";
 
 /* The agent panel is the separate always-on-top window agents talk through.
  * The panel manager owns the command because switching it off also closes an
- * open panel window. */
+ * open panel window: that consequence is the one thing a reader cannot infer
+ * from the switch, so it is the row's hint and the section says nothing else.
+ */
 export const AgentPanelToggle: React.FC = () => {
   const { t } = useTranslation();
   const { getSetting, refreshSettings, settings } = useSettings();
@@ -29,31 +36,29 @@ export const AgentPanelToggle: React.FC = () => {
   };
 
   return (
-    <SettingsGroup
-      title={t("settings.agents.panel.title", "Agent panel")}
-      description={t(
-        "settings.agents.panel.description",
-        "The floating window agents post to and read replies from.",
-      )}
-    >
-      <ToggleSwitch
-        grouped
-        checked={enabled}
-        disabled={settings === null}
-        isUpdating={updating}
-        onChange={(next) => void change(next)}
+    <SettingsSection label={t("settings.agents.panel.title", "Agent panel")}>
+      <SettingsRow
         label={t("settings.agents.panel.label", "Enable agent panel")}
-        description={t(
+        hint={t(
           "settings.agents.panel.rowDescription",
           "Turning this off closes the panel window and makes Sona refuse every request to reopen it.",
         )}
-      />
+        controlId="agent-panel-enabled"
+      >
+        <Switch
+          id="agent-panel-enabled"
+          checked={enabled}
+          disabled={settings === null || updating}
+          onCheckedChange={(next) => void change(next)}
+        />
+      </SettingsRow>
       {error === null ? null : (
-        <Alert
-          contained
-          variant="error"
-        >{`${t("settings.agents.panel.error", "The agent panel setting could not be saved.")} ${error}`}</Alert>
+        <div className="px-4 py-2.5">
+          <Notice tone="danger">
+            {`${t("settings.agents.panel.error", "The agent panel setting could not be saved.")} ${error}`}
+          </Notice>
+        </div>
       )}
-    </SettingsGroup>
+    </SettingsSection>
   );
 };

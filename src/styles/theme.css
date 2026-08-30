@@ -309,7 +309,6 @@
   --control-height: 32px;
   --touch-target: 44px;
   --settings-row-height: 44px;
-  --page-max-width: 1040px;
   --chart-height: 160px;
 
   /* -- row geometry, each derived from its own content. Between rows the
@@ -381,17 +380,26 @@
   --fs-label-12: 12px;
   --lh-label-12: 16px;
   /* The one uppercase role: a short mono label, tracked, in a muted grey,
-     reserved for TRUE COLUMN HEADERS and instrument-strip labels. Inline
-     metadata never goes uppercase. Opt in with .microlabel. */
+     reserved for TRUE COLUMN HEADERS. Inline metadata never goes uppercase.
+     The `.microlabel` class that used to opt into it is gone with the rest of
+     primitives.css's type roles; `Microlabel` in components/settings/rows.tsx
+     is the affordance now, and it re-states the size as a utility rather than
+     reading these tokens — at a wider 0.12em, so the two are near neighbours
+     and not one value. The tokens stay because the caption and keycap roles
+     below are built on them. */
   --fs-microlabel: 11px;
   --lh-microlabel: 16px;
   --ls-microlabel: 0.09em;
 
   /* The eleven roles of the ramp. Nothing outside these sets font-size,
-   * font-weight, letter-spacing or text-transform directly; the classes that
-   * apply them live in primitives.css. Every DATA role is tabular-nums —
-   * a readout that reflows its own column as digits change is a lie about
-   * stability. */
+   * font-weight, letter-spacing or text-transform directly. Where the roles are
+   * applied moved with the redesign: `.type-data` in primitives.css is the last
+   * one carried by a class, `--type-secondary-*` is read by onboarding.css, and
+   * the other nine are spelled as Tailwind utilities on the pages that set them
+   * — so the tokens below are the reference values, not the live wiring, and a
+   * change here does not reach a page on its own. Every DATA role is
+   * tabular-nums: a readout that reflows its own column as digits change is a
+   * lie about stability. */
   --type-display-size: var(--fs-display-40);
   --type-display-line: var(--lh-display-40);
   --type-display-weight: 700;

@@ -1,30 +1,35 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { SettingContainer } from "../../ui/SettingContainer";
-import { Dropdown, type DropdownOption } from "../../ui/Dropdown";
-import { useSettings } from "../../../hooks/useSettings";
-import { commands } from "@/bindings";
 import { toast } from "sonner";
+import { SettingsRow } from "@/components/settings/rows";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/vg/select";
+import { useSettings } from "../../../hooks/useSettings";
+import { commands, type KeyboardImplementation } from "@/bindings";
 
-const KEYBOARD_IMPLEMENTATION_OPTIONS: DropdownOption[] = [
-  { value: "tauri", label: "Tauri Global Shortcut" },
-  { value: "handy_keys", label: "Native key listener" },
-];
+/* Backend names, not prose: each one identifies a shortcut implementation a
+ * bug report has to be able to quote. */
+const IMPLEMENTATION_LABEL = {
+  tauri: "Tauri Global Shortcut",
+  handy_keys: "Native key listener",
+} satisfies Record<KeyboardImplementation, string>;
 
-interface KeyboardImplementationSelectorProps {
-  descriptionMode?: "tooltip" | "inline";
-  grouped?: boolean;
-}
+const IMPLEMENTATIONS = ["tauri", "handy_keys"] as const;
 
-export const KeyboardImplementationSelector: React.FC<
-  KeyboardImplementationSelectorProps
-> = ({ descriptionMode = "tooltip", grouped = false }) => {
+const CONTROL_ID = "debug-keyboard-implementation";
+
+export const KeyboardImplementationSelector: React.FC = () => {
   const { t } = useTranslation();
   const { getSetting, isUpdating, refreshSettings } = useSettings();
   const currentImplementation =
     getSetting("keyboard_implementation") ?? "tauri";
 
-  const handleSelect = async (value: string) => {
+  const handleSelect = async (value: KeyboardImplementation) => {
     if (value === currentImplementation) return;
 
     try {
@@ -39,7 +44,7 @@ export const KeyboardImplementationSelector: React.FC<
         return;
       }
 
-      // If any bindings were reset due to incompatibility, notify the user
+      // Switching backends can invalidate a chord the old one accepted.
       if (result.data.reset_bindings.length > 0) {
         toast.warning(t("settings.debug.keyboardImplementation.bindingsReset"));
       }
@@ -52,19 +57,29 @@ export const KeyboardImplementationSelector: React.FC<
   };
 
   return (
-    <SettingContainer
-      title={t("settings.debug.keyboardImplementation.title")}
-      description={t("settings.debug.keyboardImplementation.description")}
-      descriptionMode={descriptionMode}
-      grouped={grouped}
-      layout="horizontal"
+    <SettingsRow
+      label={t("settings.debug.keyboardImplementation.title")}
+      controlId={CONTROL_ID}
     >
-      <Dropdown
-        options={KEYBOARD_IMPLEMENTATION_OPTIONS}
-        selectedValue={currentImplementation}
-        onSelect={handleSelect}
+      <Select
+        value={currentImplementation}
+        onValueChange={(value) => {
+          if (value !== "tauri" && value !== "handy_keys") return;
+          void handleSelect(value);
+        }}
         disabled={isUpdating("keyboard_implementation")}
-      />
-    </SettingContainer>
+      >
+        <SelectTrigger id={CONTROL_ID} size="sm">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {IMPLEMENTATIONS.map((implementation) => (
+            <SelectItem key={implementation} value={implementation}>
+              {IMPLEMENTATION_LABEL[implementation]}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </SettingsRow>
   );
 };
