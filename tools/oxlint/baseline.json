@@ -1,29 +1,4 @@
 {
   "oxlintVersion": "1.79.0",
-  "entries": [
-    {
-      "file": "src/bindings.ts",
-      "rule": "anti-slop(no-chained-type-assertions)",
-      "severity": "error",
-      "count": 1
-    },
-    {
-      "file": "src/bindings.ts",
-      "rule": "anti-slop(no-unsafe-dictionary-type)",
-      "severity": "error",
-      "count": 1
-    },
-    {
-      "file": "src/bindings.ts",
-      "rule": "anti-slop(require-safety-comment-for-type-assertion)",
-      "severity": "error",
-      "count": 229
-    },
-    {
-      "file": "src/bindings.ts",
-      "rule": "eslint(no-unused-vars)",
-      "severity": "warning",
-      "count": 1
-    }
-  ]
+  "entries": []
 }

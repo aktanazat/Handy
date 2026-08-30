@@ -16,6 +16,10 @@
 // Equality in both directions is what keeps the manifest a true statement
 // about the repository. A one-sided check would let the recorded ceiling drift
 // above reality and quietly stop catching regressions.
+//
+// Generated files are excluded in `oxlint.config.ts` instead of being recorded
+// here. Nothing a person changes in a file its generator rewrites can survive,
+// so a row for one would be a ceiling nobody could ever bring down.
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
@@ -252,7 +256,7 @@ function main(): void {
   if (drift.added.length > 0) {
     printDrift("new findings:", drift.added);
     console.error(
-      `${LABEL} Fix them. Do not disable a rule or weaken its severity. If the growth is in generated output, refresh ${manifest} with \`${UPDATE_COMMAND}\` and say so in the commit message.`,
+      `${LABEL} Fix them at the source. Do not disable a rule, weaken its severity, or widen ${manifest} to cover them.`,
     );
   }
   if (drift.resolved.length > 0) {
