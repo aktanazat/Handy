@@ -3,12 +3,9 @@ import { useTranslation } from "react-i18next";
 import "./RecordingOverlay.css";
 import { syncLanguageFromSettings } from "@/i18n";
 import { getLanguageDirection, initializeRTL } from "@/lib/utils/rtl";
-import { keyCapParts } from "@/lib/utils/keyboard";
-import { useOsType } from "@/hooks/useOsType";
 import { getHudPillState } from "@/lib/powerPackApi";
 import { readOverlayChrome, subscribeToOverlayEvents } from "./overlayEvents";
 import {
-  deriveElapsedSeconds,
   deriveHudFrame,
   deriveHudPhase,
   hudCaptureReady,
@@ -35,10 +32,6 @@ import { RecordingOverlayContent } from "./RecordingOverlayContent";
  */
 const ERROR_DWELL_MS = 4000;
 
-/** Elapsed is whole seconds, so a 250 ms tick keeps the readout inside its own
- * last digit without pretending to a precision the clock does not have. */
-const ELAPSED_TICK_MS = 250;
-
 type HudAction = (state: HudState) => HudState;
 
 const hudReducer = (state: HudState, action: HudAction) => action(state);
@@ -53,15 +46,14 @@ const RecordingOverlay: React.FC = () => {
   const capRef = useRef<HTMLDivElement>(null);
   const pinnedRef = useRef(true);
   const direction = getLanguageDirection(i18n.language);
-  const osType = useOsType();
 
   /* The overlay is its own document and owns its own `lang`/`dir`. `index.html`
-   * ships `lang="en"` and nothing updated it, but CSS `text-transform:
-   * uppercase` — which is how the state word and every microlabel here are
-   * uppercased — follows `lang`: in Turkish `i` uppercases to `İ`, not `I`. So a
-   * Turkish HUD read "LISTENING" where it should read "LİSTENİNG". The main
-   * window already does this via `initializeRTL`; a second webview cannot
-   * inherit it, for the same reason it cannot inherit the theme. */
+   * ships `lang="en"` and nothing updated it, so a Turkish or Hebrew HUD was
+   * shaped, hyphenated and mirrored as English: `dir` drives which edge the
+   * mark sits on and which way the error line reads, and both are wrong at
+   * `lang="en"`. The main window already does this via `initializeRTL`; a
+   * second webview cannot inherit it, for the same reason it cannot inherit
+   * the theme. */
   useEffect(() => {
     initializeRTL(i18n.language);
   }, [i18n.language]);
@@ -146,20 +138,6 @@ const RecordingOverlay: React.FC = () => {
     return () => clearTimeout(id);
   }, [hud.error, hud.restAfterError]);
 
-  // The elapsed clock runs only while microphone samples are flowing, and is
-  // recomputed from the readiness timestamp rather than accumulated, so it can
-  // never drift away from the capture it reports.
-  useEffect(() => {
-    if (!hud.isVisible || hud.readyAt === null || hud.error) return;
-    if (hud.state !== "recording" && hud.state !== "streaming") return;
-    if (hud.phase === "working") return;
-    const id = setInterval(
-      () => dispatch((current) => ({ ...current, nowMs: Date.now() })),
-      ELAPSED_TICK_MS,
-    );
-    return () => clearInterval(id);
-  }, [hud.isVisible, hud.readyAt, hud.state, hud.phase, hud.error]);
-
   // Stick to the bottom as text streams in — but only while pinned, so a user
   // who has scrolled up to read history isn't yanked back down by the next chunk.
   useLayoutEffect(() => {
@@ -187,10 +165,7 @@ const RecordingOverlay: React.FC = () => {
       frame={deriveHudFrame(hud)}
       levels={hud.levels}
       streamText={hud.streamText}
-      engine={hud.engine}
-      elapsedSeconds={deriveElapsedSeconds(hud)}
       modeName={hud.modeName}
-      stopKeys={keyCapParts(hud.stopChord, osType)}
       error={hud.error}
       session={hud.session}
       position={hud.position}

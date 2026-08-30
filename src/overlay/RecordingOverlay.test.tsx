@@ -60,7 +60,6 @@ const LEVELS = [
 
 interface HudCase {
   hud: HudPhase;
-  elapsedSeconds?: number | null;
   levels?: number[];
   error?: { error_type: string; detail?: string };
   frame?: HudFrame;
@@ -68,7 +67,6 @@ interface HudCase {
 
 const render = ({
   hud,
-  elapsedSeconds = null,
   levels = [],
   error = undefined,
   frame = "compact",
@@ -81,10 +79,7 @@ const render = ({
         frame={frame}
         levels={levels}
         streamText={{ committed: "", tentative: "" }}
-        engine="local"
-        elapsedSeconds={elapsedSeconds}
         modeName="Email"
-        stopKeys={["⌥", "Space"]}
         error={error ?? null}
         session={1}
         position="bottom"
@@ -94,6 +89,12 @@ const render = ({
       />
     </I18nextProvider>,
   );
+
+/* Text a user can actually see. The state word is rendered into a
+ * visually-hidden span for screen readers, so a plain `toContain` cannot tell
+ * "the HUD shows the word Listening" from "the HUD announces it". */
+const visibleText = (markup: string): string =>
+  markup.replace(/<span class="sr-only"[^>]*>.*?<\/span>/g, "");
 
 describe("the HUD state machine", () => {
   test("withholds listening until the recorder reports its first buffer", () => {
@@ -203,63 +204,104 @@ describe("the HUD state machine", () => {
   });
 });
 
-describe("HUD states are each distinct", () => {
-  test("starting says so, dims the meter, and shows no clock", () => {
+describe("the compact HUD is a mark and a meter, and nothing else", () => {
+  test("at rest it draws the mark and the meter and no words", () => {
+    const markup = render({ hud: "listening", levels: LEVELS });
+    const seen = visibleText(markup);
+    expect(markup).toContain('class="smark"');
+    expect(markup).toContain("swave ready snap-measured");
+    /* Everything the row used to say out loud. The mode is the user's own
+     * choice, the chord is the key they just pressed, and the clock, the engine
+     * and the state word are the clutter the redesign exists to remove. */
+    for (const gone of [
+      "Listening",
+      "Email",
+      "Cloud",
+      "1m 12s",
+      "<kbd",
+      "stimer",
+      "smode",
+      "sengine",
+      "shint",
+      "sring",
+      "sstate",
+      "sspinner",
+    ]) {
+      expect(seen.includes(gone)).toBe(false);
+    }
+  });
+
+  test("the state a sighted user reads off the meter is announced in words", () => {
+    const announcements: [HudPhase, string][] = [
+      ["starting", "Starting"],
+      ["listening", "Listening"],
+      ["transcribing", "Transcribing"],
+      ["processing", "Processing"],
+    ];
+    for (const [hud, word] of announcements) {
+      const markup = render({ hud, levels: LEVELS });
+      expect(/<span class="sr-only"[^>]*>(.*?)<\/span>/.exec(markup)?.[1]).toBe(
+        word,
+      );
+      expect(markup).toContain('aria-live="polite"');
+    }
+  });
+
+  test("the meter names itself while it meters, and only while it meters", () => {
+    for (const hud of ["starting", "listening"] as const) {
+      expect(render({ hud, levels: LEVELS })).toContain(
+        'aria-label="Input level"',
+      );
+    }
+    /* Working bars report nothing, so they stop claiming to be a level and
+     * leave the state to the status span rather than announcing a lie. */
+    const working = render({ hud: "transcribing", levels: LEVELS });
+    expect(working.includes("Input level")).toBe(false);
+    expect(working).toContain('class="swave working" aria-hidden="true"');
+  });
+
+  test("starting dims and pulses the same geometry it will meter with", () => {
     const markup = render({ hud: "starting" });
     expect(markup).toContain("hud-starting");
-    expect(markup).toContain("Starting");
     expect(markup).toContain("swave arming");
-    // No readiness means no measured elapsed time to report.
-    expect(markup.includes("stimer")).toBe(false);
+    // Dimmed and pulsing is a display state, not a reported one.
+    expect(markup.includes("snap-measured")).toBe(false);
   });
 
-  test("listening says so, snaps a live meter, and reports elapsed", () => {
-    const markup = render({
-      hud: "listening",
-      elapsedSeconds: 72,
-      levels: LEVELS,
-    });
+  test("listening snaps the reported buckets and marks them measured", () => {
+    const markup = render({ hud: "listening", levels: LEVELS });
     expect(markup).toContain("hud-listening");
-    expect(markup).toContain("Listening");
     expect(markup).toContain("swave ready snap-measured");
-    expect(markup).toContain("1m 12s");
-    expect(markup).toContain("Email");
   });
 
-  test("transcribing and processing replace the meter with a spinner", () => {
-    const transcribing = render({ hud: "transcribing", elapsedSeconds: 3 });
-    expect(transcribing).toContain("hud-transcribing");
-    expect(transcribing).toContain("Transcribing");
-    expect(transcribing).toContain("sspinner");
-    expect(transcribing.includes("swave")).toBe(false);
-
-    /* "Processing", not "Delivering": the only signal behind this state is
-     * StreamWorkKind::Polishing / the `processing` overlay state, both of which
-     * are LLM post-processing. Delivery is never a state — `deliver` and
-     * `hide_recording_overlay` run in the same closure. */
-    const processing = render({ hud: "processing", elapsedSeconds: 3 });
-    expect(processing).toContain("hud-processing");
-    expect(processing).toContain("Processing");
-    expect(processing).toContain("sspinner");
+  /* The one state that could lie. Working has no reported bucket behind it, so
+   * the renderer must emit no transform at all and let CSS hold every bar at
+   * one fixed scale — a bar that moved here would read as input that is not
+   * being captured. */
+  test("working keeps the bars but reports no level through them", () => {
+    for (const hud of ["transcribing", "processing"] as const) {
+      const markup = render({ hud, levels: LEVELS });
+      expect(markup).toContain(`hud-${hud}`);
+      expect(markup).toContain("swave working");
+      expect(markup.includes("scaleY")).toBe(false);
+      expect(markup.includes("snap-measured")).toBe(false);
+      // Each bar knows its place in the row, so the highlight can travel.
+      expect(markup).toContain("--bar-index:0");
+      expect(markup).toContain("--bar-index:15");
+    }
   });
 
   test("a failure names the cause in the app's own words, not its token", () => {
     const markup = render({
       hud: "error",
-      elapsedSeconds: 1,
       error: { error_type: "no_speech_detected" },
     });
     expect(markup).toContain("hud-error");
-    expect(markup).toContain("Failed");
-    expect(markup).toContain("No speech detected");
+    expect(visibleText(markup)).toContain("No speech detected");
     expect(markup.includes("no_speech_detected")).toBe(false);
-    // Nothing to cancel once the run has failed.
+    // Nothing to cancel once the run has failed, and nothing left to meter.
     expect(markup.includes('class="sx"')).toBe(false);
-    // A failed run is not working: nothing spins, and nothing meters.
-    expect(markup.includes("sspinner")).toBe(false);
     expect(markup.includes("swave")).toBe(false);
-    // The capture length it did manage still reports.
-    expect(markup).toContain("1s");
   });
 
   test("every emitted error_type has a short cause of its own", () => {
@@ -276,7 +318,7 @@ describe("HUD states are each distinct", () => {
     ] as const;
     for (const [errorType, cause] of causes) {
       const markup = render({ hud: "error", error: { error_type: errorType } });
-      expect(markup).toContain(cause);
+      expect(visibleText(markup)).toContain(cause);
       expect(markup.includes(errorType)).toBe(false);
     }
   });
@@ -286,19 +328,43 @@ describe("HUD states are each distinct", () => {
       hud: "error",
       error: { error_type: "some_future_error", detail: "raw backend detail" },
     });
-    expect(markup).toContain("Failed");
+    expect(visibleText(markup)).toContain("Failed");
     expect(markup.includes("some_future_error")).toBe(false);
     expect(markup.includes("raw backend detail")).toBe(false);
+  });
+
+  /* Cancel is the only control left on the row. It is absolutely positioned and
+   * transparent until the row is hovered or it takes focus, so the resting pill
+   * is the mark and the wave and nothing else — but it is a real, labelled
+   * button in the markup the whole time, not something conjured on hover.
+   *
+   * The reveal itself is CSS, and the click path runs through the Tauri command
+   * bridge, so both are verified by driving the overlay in a browser rather than
+   * here: this repo renders every test to static markup and has no DOM. */
+  test("cancel is a real labelled button for as long as the run is alive", () => {
+    for (const hud of [
+      "starting",
+      "listening",
+      "transcribing",
+      "processing",
+    ] as const) {
+      const markup = render({ hud, levels: LEVELS });
+      expect(markup).toContain('<button class="sx"');
+      expect(markup).toContain('aria-label="Cancel"');
+    }
   });
 
   test("idle renders the pill instead of an instrument row", () => {
     const markup = render({ hud: "idle", frame: "pill" });
     expect(markup).toContain('data-testid="hud-pill"');
+    // The pill is the one surface that still names the mode: it is a switcher.
     expect(markup).toContain("Email");
+    expect(markup).toContain('class="smark"');
     expect(markup.includes("sbase")).toBe(false);
+    expect(markup.includes("sring")).toBe(false);
   });
 
-  /* The resting window is 184x36. A two-line 44px row drawn there would be
+  /* The resting window is 184x36. The 40px instrument row drawn there would be
    * clipped by the window, so the failure takes the pill's own shape. */
   test("a failure in the resting window renders as a one-line pill", () => {
     const markup = render({
@@ -308,6 +374,7 @@ describe("HUD states are each distinct", () => {
     });
     expect(markup).toContain('data-testid="hud-error-pill"');
     expect(markup).toContain("hud-pill hud-error");
+    expect(markup).toContain('class="smark"');
     expect(markup).toContain("No speech detected");
     expect(markup.includes("sbase")).toBe(false);
   });
@@ -347,57 +414,12 @@ describe("the HUD reports measurements and never tweens them", () => {
     const countBars = (markup: string) => markup.split("<i ").length - 1;
     expect(countBars(render({ hud: "starting" }))).toBe(16);
     expect(countBars(render({ hud: "listening", levels: LEVELS }))).toBe(16);
-  });
-
-  test("elapsed uses the one duration format, never a padded clock", () => {
-    expect(render({ hud: "listening", elapsedSeconds: 7 })).toContain("7s");
-    expect(render({ hud: "listening", elapsedSeconds: 3780 })).toContain(
-      "1h 3m",
-    );
-    expect(
-      render({ hud: "listening", elapsedSeconds: 15 }).includes("0:15"),
-    ).toBe(false);
-  });
-});
-
-describe("the stop hint", () => {
-  test("rides the mode name's line as keycaps, one per key", () => {
-    const markup = render({ hud: "listening", elapsedSeconds: 1 });
-    expect(markup).toContain('<kbd class="kbd');
-    expect(markup.split("<kbd ").length - 1).toBe(2);
-    expect(markup).toContain("Press ⌥ Space to stop");
-  });
-
-  test("is omitted rather than rendered empty when the chord is unknown", () => {
-    const markup = renderToStaticMarkup(
-      <I18nextProvider i18n={i18n}>
-        <RecordingOverlayContent
-          isVisible
-          hud="listening"
-          frame="compact"
-          levels={LEVELS}
-          streamText={{ committed: "", tentative: "" }}
-          engine="local"
-          elapsedSeconds={4}
-          modeName="Email"
-          stopKeys={[]}
-          error={null}
-          session={1}
-          position="bottom"
-          direction="ltr"
-          capRef={{ current: null }}
-          onStreamScroll={() => {}}
-        />
-      </I18nextProvider>,
-    );
-    expect(markup.includes("<kbd")).toBe(false);
-    expect(markup.includes("shint")).toBe(false);
-    expect(markup).toContain("Email");
+    expect(countBars(render({ hud: "transcribing", levels: LEVELS }))).toBe(16);
   });
 });
 
 describe("the Live panel shares the instrument row", () => {
-  test("it keeps the streaming text region and the same state row", () => {
+  test("it keeps the streaming text region and the same mark-and-meter row", () => {
     const markup = renderToStaticMarkup(
       <I18nextProvider i18n={i18n}>
         <RecordingOverlayContent
@@ -406,10 +428,7 @@ describe("the Live panel shares the instrument row", () => {
           frame="stream"
           levels={LEVELS}
           streamText={{ committed: "Hello", tentative: " world" }}
-          engine="cloud"
-          elapsedSeconds={9}
           modeName="Email"
-          stopKeys={["⌥", "Space"]}
           error={null}
           session={1}
           position="bottom"
@@ -423,8 +442,12 @@ describe("the Live panel shares the instrument row", () => {
     expect(markup).toContain("Hello");
     expect(markup).toContain("scard hud-listening open");
     expect(markup).toContain("sbase");
-    // The engine is a machine identifier: mono microlabel, no status colour.
-    expect(markup).toContain('sengine microlabel" data-engine="cloud"');
-    expect(markup).toContain("Cloud");
+    expect(markup).toContain('class="smark"');
+    expect(markup).toContain("swave ready snap-measured");
+    // The row carries the same two things it carries in the compact window.
+    const seen = visibleText(markup);
+    expect(seen.includes("Email")).toBe(false);
+    expect(seen.includes("Cloud")).toBe(false);
+    expect(seen.includes("<kbd")).toBe(false);
   });
 });

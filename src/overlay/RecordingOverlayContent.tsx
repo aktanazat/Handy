@@ -1,9 +1,8 @@
-import type { RefObject } from "react";
+import type { CSSProperties, RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import { commands } from "@/bindings";
-import type { StreamEngine, StreamTextEvent } from "@/bindings";
-import { Kbd } from "@/components/ui/Kbd";
-import { formatDurationShort } from "@/lib/utils/format";
+import type { StreamTextEvent } from "@/bindings";
+import { SonaMark } from "@/components/icons/SonaMark";
 import type { LanguageDirection } from "@/lib/utils/rtl";
 import type { OverlayPosition } from "@/lib/powerPackApi";
 import type { RecordingErrorEvent } from "@/lib/types/events";
@@ -14,19 +13,15 @@ interface RecordingOverlayContentProps {
   isVisible: boolean;
   hud: HudPhase;
   /**
-   * The window the HUD is being drawn into. `pill` is 184x36 and holds one line;
-   * `compact` and `stream` hold the two-line instrument row.
+   * The window the HUD is being drawn into. `pill` is 184x36 and holds the idle
+   * mode switcher; `compact` and `stream` hold the instrument row — the mark on
+   * the leading edge and the meter on the trailing one, nothing else.
    */
   frame: HudFrame;
   /** The mic-level buckets exactly as the recorder reported them. */
   levels: number[];
   streamText: StreamTextEvent;
-  engine: StreamEngine;
-  /** Null until the input stream has delivered its first buffer. */
-  elapsedSeconds: number | null;
   modeName: string | null;
-  /** One entry per physical key of the stop chord; empty when unknown. */
-  stopKeys: string[];
   error: RecordingErrorEvent | null;
   session: number;
   position: OverlayPosition;
@@ -50,7 +45,8 @@ const RESTING_METER_BARS: number[] = Array(16).fill(0);
  * the file's existing `<condition>Title` + `<condition>` sentence convention, so
  * a toast can adopt them later without a second string appearing.
  *
- * An unlisted cause deliberately renders no cause line rather than its token.
+ * An unlisted cause deliberately renders the plain "Failed" summary rather than
+ * its token.
  */
 const ERROR_TITLE_KEYS = {
   no_speech_detected: "errors.noSpeechDetectedTitle",
@@ -84,16 +80,22 @@ const errorTitleKey = (token: string): string | undefined => {
 const barScale = (level: number): number =>
   Math.max(0.06, Math.min(1, Math.pow(Math.max(0, level), 0.7)));
 
+/**
+ * React's `CSSProperties` has no slot for a custom property, and the working
+ * state's traveling highlight needs every bar to know its own position in the
+ * row. Declaring the property rather than casting keeps the style object typed.
+ */
+interface BarStyle extends CSSProperties {
+  "--bar-index"?: number;
+}
+
 export const RecordingOverlayContent = ({
   isVisible,
   hud,
   frame,
   levels,
   streamText,
-  engine,
-  elapsedSeconds,
   modeName,
-  stopKeys,
   error,
   session,
   position,
@@ -105,6 +107,10 @@ export const RecordingOverlayContent = ({
 
   if (!isVisible) return null;
 
+  /* The HUD says nothing out loud. Every state is carried by the meter — dim
+   * and pulsing while the stream opens, live accent bars once buckets arrive,
+   * dim and travelling while the transcriber works — so the state word exists
+   * only for a screen reader, which cannot see any of that. */
   const stateLabel = {
     idle: t("overlay.hud.idle", "Ready"),
     starting: t("overlay.state.starting", "Starting"),
@@ -120,14 +126,13 @@ export const RecordingOverlayContent = ({
    * "no apology copy, say exactly what failed" rule exists to ban. These are the
    * same conditions App.tsx toasts, keyed to the short `errors.*Title` form of
    * each, so the HUD and the toast cannot drift. A cause with no short form
-   * shows no second line: "Failed" is an honest summary, the token is not. */
+   * falls back to "Failed": an honest summary, where the token is not. */
   const errorLabelKey = error && errorTitleKey(error.error_type);
-  const errorText = errorLabelKey ? t(errorLabelKey) : "";
+  const failureText = (errorLabelKey && t(errorLabelKey)) || stateLabel;
 
   /* The resting window holds 176x28. A failure that lands after the backend has
-   * already rested the overlay to its pill therefore renders as a one-line pill
-   * — the same shell, the semaphore in red, and the error id in place of the
-   * mode name. Drawing the two-line row here would be clipped by the window. */
+   * already rested the overlay to its pill therefore renders as the pill: the
+   * same shell and the same mark, with the cause in place of the mode name. */
   if (frame === "pill") {
     if (hud === "error") {
       return (
@@ -136,9 +141,9 @@ export const RecordingOverlayContent = ({
             className="scard compact hud-pill hud-error"
             data-testid="hud-error-pill"
           >
-            <span className="sring" aria-hidden="true" />
-            <span className="serror type-data" role="alert">
-              {errorText}
+            <SonaMark className="smark" width={16} height={16} />
+            <span className="serror type-row-title" role="alert">
+              {failureText}
             </span>
           </div>
         </div>
@@ -150,84 +155,63 @@ export const RecordingOverlayContent = ({
   }
 
   const working = hud === "transcribing" || hud === "processing";
-  const metering = hud === "starting" || hud === "listening";
-  const stopTitle = t("overlay.stopHint", {
-    defaultValue: "Press {{keys}} to stop",
-    keys: stopKeys.join(" "),
-  });
+  const failed = hud === "error";
 
-  /* The meter is the content while audio is flowing: reported buckets, drawn as
-   * transforms with no transition, so a bar can only ever sit at a value the
-   * recorder actually published. While the stream is still opening the same
-   * geometry is dimmed and pulses instead — an acknowledgement of the keypress
-   * that cannot be mistaken for a level. */
+  /* Three meters, one geometry. `ready` is the only one carrying reported
+   * values, so it is the only one marked measured — the other two are display
+   * states and are allowed to move. */
+  const waveMode = working
+    ? "working"
+    : hud === "listening"
+      ? "ready snap-measured"
+      : "arming";
+
+  /* The meter is the content. Reported buckets are drawn as transforms with no
+   * transition, so a bar can only ever sit at a value the recorder actually
+   * published. While the transcriber works there is no reported value at all,
+   * so no transform is emitted and CSS holds every bar at one fixed low scale —
+   * the row is visibly running without inventing a level. */
   const meter = (
     <div
-      className={`swave ${hud === "listening" ? "ready snap-measured" : "arming"}`}
-      role="img"
-      aria-label={t("overlay.inputLevel", "Input level")}
+      className={`swave ${waveMode}`}
+      /* While the transcriber works the row is no longer a meter — nothing is
+       * being reported through it — so it stops claiming to be one and the
+       * status span carries the state instead. */
+      role={working ? undefined : "img"}
+      aria-hidden={working || undefined}
+      aria-label={working ? undefined : t("overlay.inputLevel", "Input level")}
     >
-      {(levels.length > 0 ? levels : RESTING_METER_BARS).map((level, index) => (
-        <i key={index} style={{ transform: `scaleY(${barScale(level)})` }} />
-      ))}
+      {(levels.length > 0 ? levels : RESTING_METER_BARS).map((level, index) => {
+        const style: BarStyle = working
+          ? { "--bar-index": index }
+          : { transform: `scaleY(${barScale(level)})` };
+        return <i key={index} style={style} />;
+      })}
     </div>
   );
 
-  const engineLabel =
-    engine === "cloud"
-      ? t("overlay.cloud", "Cloud")
-      : engine === "local_fallback"
-        ? t("overlay.engineFallbackShort", "Local fallback")
-        : null;
-
-  const detailLine = errorText ? (
-    <span className="serror type-data" role="alert">
-      {errorText}
-    </span>
-  ) : null;
-
   const instrumentRow = (
     <div className="sbase">
-      <div
-        className="sline"
+      <span
+        className="sr-only"
         role="status"
         aria-live="polite"
         aria-atomic="true"
       >
-        <span className="sring" aria-hidden="true" />
-        <span className="sstate microlabel">{stateLabel}</span>
-        {/* A failed run is not working, so it spins nothing; the slot collapses
-            and the elapsed capture length keeps its place on the right. */}
-        {metering && meter}
-        {working && <span className="sspinner" aria-hidden="true" />}
-        {elapsedSeconds !== null && (
-          <span className="stimer type-data snap-measured">
-            {formatDurationShort(elapsedSeconds)}
-          </span>
-        )}
-      </div>
-      <div className="sline sline-meta">
-        {detailLine ?? (
-          <>
-            {modeName && (
-              <span className="smode type-secondary">{modeName}</span>
-            )}
-            {engineLabel && (
-              <span className="sengine microlabel" data-engine={engine}>
-                {engineLabel}
-              </span>
-            )}
-            {stopKeys.length > 0 && (
-              <span className="shint" title={stopTitle} aria-label={stopTitle}>
-                {stopKeys.map((key, index) => (
-                  <Kbd key={`${key}-${index}`}>{key}</Kbd>
-                ))}
-              </span>
-            )}
-          </>
-        )}
-      </div>
-      {hud !== "error" && (
+        {stateLabel}
+      </span>
+      <SonaMark className="smark" width={16} height={16} />
+      {failed ? (
+        <span className="serror type-row-title" role="alert">
+          {failureText}
+        </span>
+      ) : (
+        meter
+      )}
+      {/* Nothing to cancel once the run has failed. The button is the one thing
+          the pill hides until it is asked for: it rides the meter's trailing end
+          on hover and focus, so at rest the row is only the mark and the wave. */}
+      {!failed && (
         <button
           className="sx"
           aria-label={t("common.cancel")}

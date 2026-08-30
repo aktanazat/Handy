@@ -1,4 +1,5 @@
 import { ChevronUp } from "lucide-react";
+import { SonaMark } from "@/components/icons/SonaMark";
 import { useTranslation } from "react-i18next";
 import type { LanguageDirection } from "@/lib/utils/rtl";
 import {
@@ -57,9 +58,10 @@ export const HudPill = ({ position, direction, modeName }: HudPillProps) => {
             "Click to dictate, right-click for modes",
           )}
         >
-          {/* The idle step of the same semaphore the HUD, the menu bar and the
-              Capture strip carry: a ring in --text-tertiary, never a fill. */}
-          <span className="sring" aria-hidden="true" />
+          {/* The mark, not a status dot: the resting pill has no state to
+              report, and a coloured ring here competed with the one place a
+              colour means something — the live meter. */}
+          <SonaMark className="smark" width={16} height={16} />
           <span className="hud-pill-mode type-row-title">{label}</span>
         </button>
         <button

@@ -15,15 +15,25 @@
        idle     OVERLAY_IDLE_WIDTH/HEIGHT         184 x 36  */
   --ov-card-max-w: 248px;
   --ov-stream-w: 392px;
+  /* The compact HUD is one fixed-width pill: mark, meter, nothing else. 200px
+     inside a 256px window leaves 28px of clearance a side, which is what keeps
+     --shadow-panel's ring off the window edge. A failure is the one state
+     allowed to grow past it, up to --ov-card-max-w. */
+  --ov-pill-w: 200px;
   /* 40px + the card's 1px border box = 42px inside a 46px window. The 4px of
      slack is not decoration: --shadow-panel's 1px ring is this card's only
-     edge now, and a card sized to the window clips that ring on every side.
-     Two 16px line boxes need 32px, so 40px is 4px of breathing room per line. */
+     edge now, and a card sized to the window clips that ring on every side. */
   --ov-base-h: 40px;
   --ov-cap-max-h: 64px;
   /* Level-meter bar track. scaleY runs against this, so it is the only place
      the meter's amplitude is defined. */
-  --ov-meter-h: 18px;
+  --ov-meter-h: 20px;
+  /* One meter, one size, in both frames. The Live panel's row is 392px wide and
+     a 16-bucket meter stretched across all of it reads as a dotted line, so the
+     meter is capped here and pushed to the trailing edge instead — which is the
+     mark-left / waves-right reading in both windows. */
+  --ov-wave-w: 148px;
+  --ov-bar-w: 4px;
 }
 
 /* ============================================================
@@ -112,11 +122,23 @@
   }
 }
 
-/* The compact HUD and the idle pill are the two sanctioned pill radii. */
+/* The compact HUD and the idle pill are the two sanctioned pill radii. The
+   working HUD is a fixed width so the meter's bar spacing is the same every
+   run: a max-content pill would resize itself as the error line changed, and
+   the meter would re-space under a value it never reported. */
 .scard.compact {
   animation: none;
   border-radius: var(--radius-pill);
+  inline-size: var(--ov-pill-w);
+}
+
+/* A cause is prose and can be longer than the meter: the working HUD is the one
+   state allowed to grow, and it stops at the width the window can still show.
+   The resting pill has its own, narrower ceiling further down. */
+.scard.compact.hud-error:not(.hud-pill) {
   inline-size: max-content;
+  min-inline-size: var(--ov-pill-w);
+  max-inline-size: var(--ov-card-max-w);
 }
 
 /* The Live panel fills its own wider window. */
@@ -183,156 +205,108 @@
 }
 
 /* ============================================================
-   The instrument row. Two dense lines plus a trailing cancel column:
+   The instrument row. One line, two things:
 
-     line 1   semaphore ring · state word · level meter · elapsed
-     line 2   mode name · engine · stop-chord keycaps   (error: the error id)
+     the mark on the leading edge · the level meter on the trailing one
 
-   16px + 16px of line box inside a 44px row is the two-line geometry from the
-   density spec; the row never changes height between states, so nothing in the
-   HUD reflows as a run moves from starting to delivering.
+   Everything the row used to carry — a state word, a semaphore ring, an elapsed
+   clock, the mode name, the engine, the stop chord — is gone. Each of those
+   restated something the user already knew (they pressed the chord; they chose
+   the mode) or something the meter says better, and six of them at 11px inside
+   a 200px pill is why the HUD read as clutter. What remains is the one thing
+   only the HUD can tell you: whether it is hearing you.
+
+   The row keeps --ov-base-h in every state, so nothing reflows as a run moves
+   from starting to working to failed.
    ============================================================ */
 .sbase {
+  position: relative;
   block-size: var(--ov-base-h);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-content: center;
-  align-items: center;
-  column-gap: var(--space-2);
-  padding-inline: var(--space-3) var(--space-1);
-}
-.sline {
-  grid-column: 1;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-2-5);
   min-inline-size: 0;
-  block-size: var(--lh-microlabel);
-}
-.sline-meta {
-  gap: var(--space-1-5);
-}
-
-/* The semaphore, identical in meaning to the menu-bar dot and the Capture
-   instrument strip. A ring on the leading edge, never a fill: at HUD scale a
-   filled status colour is the one place it could dominate the screen. Colour
-   changes are instant — fading amber into red invents a state between them. */
-.sring {
-  flex: none;
-  inline-size: 9px;
-  block-size: 9px;
-  border: 2px solid var(--hud-semaphore);
-  border-radius: var(--radius-pill);
-  box-sizing: border-box;
-}
-.sstate {
-  flex: none;
-  color: var(--hud-semaphore);
+  /* 14px leads; 20px trails, because the cancel button parks in that slack and
+     an overlap between a control and a measurement is not acceptable. */
+  padding-inline: 14px 20px;
 }
 
-/* The five-value vocabulary of §3.8, reused verbatim across the menu-bar dot,
-   this HUD, the Capture strip, the Library row and the Modes row. It is a
-   four-state vocabulary on purpose: `processing` shares blue with `transcribing`
-   because both are the work phase class, and `error` shares red with
-   `listening` because they can never be reached in the same frame and are
-   structurally distinct (a live meter versus a named error id). Minting a fifth
-   hue for a sub-phase is what stops a red dot from meaning anything.
-
-   The idle step is first so a pill carrying a phase class overrides it. */
-.hud-pill {
-  --hud-semaphore: var(--color-text-tertiary);
-}
-.hud-starting {
-  --hud-semaphore: var(--color-warning);
-}
-.hud-listening {
-  --hud-semaphore: var(--color-error);
-}
-.hud-transcribing,
-.hud-processing {
-  --hud-semaphore: var(--color-info);
-}
-/* Not --color-danger-strong: that token belongs to destructive actions the user
-   presses, and keeping it out of the semaphore is what keeps state meaningful. */
-.hud-error {
-  --hud-semaphore: var(--color-error);
+/* A failed run has no cancel button, so the slack it was holding is not slack
+   any more — it is a lopsided end cap on a pill that is now pure text. */
+.hud-error .sbase {
+  padding-inline-end: 14px;
 }
 
-/* Elapsed. Mono tabular by role class, and `.snap-measured` because a tweened
-   clock would display values the recorder never reported. */
-.stimer {
-  flex: none;
-  margin-inline-start: auto;
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-}
-
-.smode {
-  min-inline-size: 0;
+/* The state word exists for a screen reader and for nothing else: the meter is
+   the sighted channel, and it cannot be read aloud. */
+.sr-only {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  clip-path: inset(50%);
   white-space: nowrap;
 }
 
-/* Engine is a machine identifier, not a status: mono, and never semaphore-coloured. */
-.sengine {
+/* The mark, at the cap height of the row it leads. It is identity, not status:
+   it never takes a phase colour, because the moment it did there would be two
+   places carrying state and the meter would stop being the answer. */
+.smark {
   flex: none;
-  color: var(--color-text-tertiary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: block;
+  color: var(--color-text-primary);
 }
 
-/* Keycaps are right-aligned on the same line as the row they belong to, and
-   never wrap: `.kbd` owns the cap itself. */
-.shint {
-  flex: none;
-  margin-inline-start: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-/* The failure names itself. `error_type` is the backend's own identifier, so it
-   is mono and verbatim; `detail` follows it when the backend supplied one. */
+/* The failure names its cause, in prose, in the one semantic colour that means
+   a run ended badly. Not mono: `error_type` never reaches the screen. */
 .serror {
   min-inline-size: 0;
-  color: var(--color-text-primary);
+  color: var(--color-error);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 /* ============================================================
-   Level meter — the content while audio flows.
+   Level meter — the content of the HUD, in every state.
 
    Bars are driven by `transform: scaleY()` from the reported mic-level buckets
    with NO transition: a measurement snaps or it is not a measurement, and the
    previous `transition: height 80ms` both tweened a reading and animated a
-   layout property. While the stream is still opening the same 16-bar geometry
-   is dimmed and pulses — transform and opacity only — which acknowledges the
-   keypress without claiming a level exists yet.
+   layout property.
+
+   Three appearances, one geometry, so the row never reflows:
+     arming    dim tertiary, pulsing        the stream is still opening
+     ready     accent, snapped to buckets   audio is flowing
+     working   dim tertiary, one travelling highlight across a fixed low scale
+
+   `working` is deliberately unlike `ready`: no bar ever leaves its fixed scale,
+   so the row cannot be misread as input while the transcriber runs. Only the
+   highlight moves, and it moves in opacity — the one channel that carries no
+   amplitude.
    ============================================================ */
 .swave {
   flex: 1 1 auto;
-  /* 16 bars at 1px + 15 gaps at 1px. This has to be the floor rather than a
-     comfortable number: the compact card's line 1 has ~200px for ring + state
-     word + meter + clock, which leaves the meter ~44px, and a flex item cannot
-     shrink past its content's own minimum — at 2px bars the bars overflowed the
-     box and painted over the elapsed readout. Every reported bucket is still
-     drawn; none is dropped or clipped to make room. */
-  min-inline-size: 31px;
+  /* Capped and pushed to the trailing edge: the mark leads, the waves trail,
+     and the Live panel's much wider row does not stretch a 16-bucket meter into
+     a dotted line. Every reported bucket is drawn; none is dropped. */
+  max-inline-size: var(--ov-wave-w);
+  margin-inline-start: auto;
   display: flex;
   align-items: center;
-  gap: 1px;
+  justify-content: space-between;
+  gap: 2px;
   block-size: var(--ov-meter-h);
 }
 .swave i {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-inline-size: 1px;
-  max-inline-size: 3px;
+  max-inline-size: var(--ov-bar-w);
   block-size: 100%;
-  border-radius: 1px;
+  border-radius: var(--radius-pill);
   background: var(--color-accent);
   transform-origin: center;
   transition: none;
@@ -361,31 +335,51 @@
   }
 }
 
-/* Working states put a spinner where the meter was, so the row's geometry is
-   unchanged and only the content of the slot differs. */
-.sspinner {
-  flex: none;
-  margin-inline-end: auto;
-  inline-size: 13px;
-  block-size: 13px;
-  border-radius: var(--radius-pill);
-  border: 2px solid var(--color-subtle);
-  border-top-color: var(--hud-semaphore);
-  animation: sspin 0.7s linear infinite;
+/* Work is not input. No bucket is being reported, so the renderer emits no
+   inline transform at all and the scale below is the whole truth of the row:
+   every bar flat, in tertiary ink, with a crest of opacity walking the row once
+   per cycle. `--bar-index` is that bar's position, set by the renderer, so the
+   crest travels rather than blinking in place. */
+.swave.working i {
+  background: var(--color-text-tertiary);
+  /* 0.34, not a hairline: at 0.2 a 4px-wide bar renders square and the row
+     reads as a row of dots. A third of full scale is unmistakably a bar and
+     still nowhere near a level any speech would produce. */
+  transform: scaleY(0.34);
+  opacity: 0.3;
+  /* 45ms per bar spreads the crest over 675ms of a 1100ms cycle, and each bar's
+     bump is 58% of that cycle wide — so as the crest leaves the trailing bar it
+     is already re-entering the leading one and the row is never fully dark. */
+  animation: swave-working 1100ms var(--ease-in-out) infinite;
+  animation-delay: calc(var(--bar-index) * 45ms);
 }
-@keyframes sspin {
-  to {
-    transform: rotate(1turn);
+@keyframes swave-working {
+  0%,
+  58%,
+  100% {
+    opacity: 0.3;
+  }
+  20% {
+    opacity: 0.9;
   }
 }
 
+/* Cancel is the only control on the working HUD, and it is not part of the
+   resting picture: the pill at rest is the mark and the wave and nothing else.
+   It parks on the trailing slack the row already reserves and fades in when the
+   pointer is over the row or the button itself takes focus.
+
+   Opaque, not a wash: it sits over the meter's last bar, and a translucent fill
+   would let a measurement show through a control. Hover therefore reads as a
+   1px ring plus full-contrast ink rather than as a background tint. */
 .sx {
-  grid-column: 2;
-  grid-row: 1 / span 2;
+  position: absolute;
+  inset-inline-end: 4px;
+  inset-block-start: 50%;
+  translate: 0 -50%;
   inline-size: 24px;
   block-size: 24px;
   border-radius: var(--radius-pill);
-  flex: none;
   padding: 0;
   border: 0;
   -webkit-appearance: none;
@@ -394,11 +388,22 @@
   align-items: center;
   justify-content: center;
   color: var(--color-text-tertiary);
-  background: transparent;
+  background: var(--color-surface-raised);
   cursor: pointer;
+  opacity: 0;
+  /* Invisible and unclickable: a phantom 24px hit target over the meter is
+     worse than no control at all. */
+  pointer-events: none;
   transition:
+    opacity var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-in-out),
     background-color var(--duration-fast) var(--ease-in-out),
     color var(--duration-fast) var(--ease-in-out);
+}
+.sbase:hover .sx,
+.sx:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
 }
 .sx svg {
   width: 9px;
@@ -406,11 +411,12 @@
   display: block;
 }
 .sx:hover {
-  background: var(--color-hover);
   color: var(--color-text-primary);
+  box-shadow: inset 0 0 0 1px var(--color-border);
 }
 .sx:active {
-  background: var(--color-pressed);
+  color: var(--color-text-primary);
+  background: var(--color-subtle);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -421,10 +427,16 @@
 
   .scard,
   .swave.arming i,
-  .sspinner,
   .scaret {
     animation: none;
     transform: none;
+  }
+
+  /* The working bars keep their fixed scale — that scale is the state — and
+     hold the lit end of the highlight so the row still reads as running. */
+  .swave.working i {
+    animation: none;
+    opacity: 0.55;
   }
 }
 
@@ -436,14 +448,15 @@
    Geometry contract: overlay.rs sizes the idle window 184x36
    (OVERLAY_IDLE_WIDTH/HEIGHT) and .ov-stage anchors the card flush to the
    screen-edge side, so the pill stays inside 176x28 and leaves the remaining
-   pixels for its ring and the edge it sits against. Growing it means moving
-   those two constants with it. The selector carries .scard.compact because that
-   rule pins the two-line 44px row height the pill has to opt out of.
+   pixels for its shadow ring and the edge it sits against. Growing it means
+   moving those two constants with it. The selector carries .scard.compact
+   because that rule pins the working HUD's fixed --ov-pill-w width and 40px row
+   height, both of which the idle pill has to opt out of.
 
    Two real buttons share the pill: the record area and a trailing mode switch.
-   At rest both sit muted and the pill reads as a label; hover brings the mode
-   name and the chevron to full contrast, which is the whole "what can I do to
-   this" answer without a tooltip.
+   At rest both sit muted behind the mark and the pill reads as a label; hover
+   brings the mode name and the chevron to full contrast, which is the whole
+   "what can I do to this" answer without a tooltip.
 
    This is the one overlay surface that may take Glass: nothing measured is
    drawn here, so a tint cannot contest a reading.
@@ -465,8 +478,8 @@
 }
 
 /* A failure that lands after the overlay has already rested to its pill: same
-   shell, same 176x28 the idle window allows, the error id where the mode name
-   was. No buttons — there is nothing to do to a finished run. */
+   shell, same mark, same 176x28 the idle window allows, the cause where the
+   mode name was. No buttons — there is nothing to do to a finished run. */
 .hud-pill.hud-error {
   gap: var(--space-1-5);
   padding-inline: var(--space-2);
