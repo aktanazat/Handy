@@ -551,17 +551,34 @@ pub enum OverlayStyle {
     Live,
 }
 
+/* Every digit-bearing variant pins its wire name explicitly. `rename_all =
+ * "snake_case"` alone is not enough here: serde only breaks before an
+ * uppercase char, so it yields `min2`, while specta runs the same idents
+ * through the Inflector crate, which also breaks before digits and yields
+ * `min_2`. That divergence shipped a `bindings.ts` union that no backend
+ * would accept. An explicit per-variant rename overrides `rename_all` in
+ * both, so the generated type and the wire agree. These strings are the
+ * format already on disk in every user's settings file — see the
+ * `min5` fixture in the settings round-trip test below — so they must not
+ * change.
+ */
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ModelUnloadTimeout {
     Never,
     Immediately,
+    #[serde(rename = "min2")]
     Min2,
     #[default]
+    #[serde(rename = "min5")]
     Min5,
+    #[serde(rename = "min10")]
     Min10,
+    #[serde(rename = "min15")]
     Min15,
+    #[serde(rename = "hour1")]
     Hour1,
+    #[serde(rename = "sec15")]
     Sec15, // Debug mode only
 }
 
