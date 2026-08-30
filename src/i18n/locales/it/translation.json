@@ -411,45 +411,6 @@
           }
         }
       },
-      "pasteMethod": {
-        "title": "Metodo di Incollaggio",
-        "description": "Come viene inserito il testo. Diretto simula la digitazione tramite l'input di sistema. Nessuno non incolla e aggiorna solo la cronologia e gli appunti.",
-        "options": {
-          "clipboard": "Appunti ({{modifier}}+V)",
-          "clipboardCtrlShiftV": "Appunti (Ctrl+Shift+V)",
-          "clipboardShiftInsert": "Appunti (Shift+Insert)",
-          "direct": "Diretto",
-          "none": "Nessuno",
-          "externalScript": "Script esterno"
-        },
-        "externalScriptPlaceholder": "/percorso/del/tuo/script.sh"
-      },
-      "typingTool": {
-        "title": "Strumento di digitazione",
-        "description": "Lo strumento di digitazione Linux usato dal metodo di incolla diretto. Auto rileva uno strumento disponibile.",
-        "options": {
-          "auto": "Auto (Consigliato)"
-        }
-      },
-      "clipboardHandling": {
-        "title": "Gestione Appunti",
-        "description": "Non modificare gli appunti mantiene il contenuto degli appunti. Copia negli appunti lascia lì il transcript dopo aver incollato.",
-        "options": {
-          "dontModify": "Non modificare gli appunti",
-          "copyToClipboard": "Copia negli Appunti"
-        }
-      },
-      "autoSubmit": {
-        "title": "Invio automatico",
-        "description": "Invia la combinazione di tasti selezionata dopo l'inserimento del testo. Cmd+Enter su macOS, Super+Enter su Windows e Linux.",
-        "options": {
-          "off": "Disattivato",
-          "enter": "Invio",
-          "cmdEnter": "Cmd+Invio",
-          "superEnter": "Super+Invio",
-          "ctrlEnter": "Ctrl+Invio"
-        }
-      },
       "translateToEnglish": {
         "label": "Traduci in inglese"
       },
@@ -1241,9 +1202,9 @@
         "autoSubmitKey": {
           "label": "Tasto di invio",
           "values": {
-            "enter": "Enter",
-            "ctrl_enter": "Ctrl+Enter",
-            "cmd_enter": "Command+Enter"
+            "enter": "Invio",
+            "ctrl_enter": "Ctrl+Invio",
+            "cmd_enter": "Cmd+Invio"
           },
           "requiresAutoSubmit": "Attiva l'invio automatico per scegliere un tasto."
         },
@@ -2130,8 +2091,10 @@
       "previousPage": "Più recenti",
       "nextPage": "Più vecchie",
       "status": {
+        "live": "In tempo reale",
         "ready": "Pronta",
-        "processing": "In elaborazione"
+        "processing": "In elaborazione",
+        "needs_attention": "Richiede attenzione"
       },
       "headline": {
         "words": "{{count}} parole trascritte"

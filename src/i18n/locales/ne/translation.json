@@ -411,45 +411,6 @@
           }
         }
       },
-      "pasteMethod": {
-        "title": "पेस्ट विधि",
-        "description": "टेक्स्ट कसरी घुसाइन्छ। डाइरेक्ट ले सिस्टम इनपुटमार्फत टाइपिङ अनुकरण गर्छ। कुनै होइन ले पेस्ट नगरी हिस्ट्री र क्लिपबोर्ड मात्र अपडेट गर्छ।",
-        "options": {
-          "clipboard": "क्लिपबोर्ड ({{modifier}}+V)",
-          "clipboardCtrlShiftV": "क्लिपबोर्ड (Ctrl+Shift+V)",
-          "clipboardShiftInsert": "क्लिपबोर्ड (Shift+Insert)",
-          "direct": "डाइरेक्ट",
-          "none": "कुनै होइन",
-          "externalScript": "बाह्य स्क्रिप्ट"
-        },
-        "externalScriptPlaceholder": "/path/to/your/script.sh"
-      },
-      "typingTool": {
-        "title": "टाइपिङ उपकरण",
-        "description": "डाइरेक्ट पेस्ट विधिले प्रयोग गर्ने Linux टाइपिङ उपकरण। Auto ले उपलब्ध उपकरण पत्ता लगाउँछ।",
-        "options": {
-          "auto": "स्वतः (सिफारिस गरिएको)"
-        }
-      },
-      "clipboardHandling": {
-        "title": "क्लिपबोर्ड व्यवस्थापन",
-        "description": "'क्लिपबोर्ड परिवर्तन नगर्नुहोस्' ले तपाईंको क्लिपबोर्ड सामग्री जोगाउँछ। 'क्लिपबोर्डमा कपी गर्नुहोस्' ले पेस्ट गरेपछि Transcript त्यहीँ छोड्छ।",
-        "options": {
-          "dontModify": "क्लिपबोर्ड परिवर्तन नगर्नुहोस्",
-          "copyToClipboard": "क्लिपबोर्डमा कपी गर्नुहोस्"
-        }
-      },
-      "autoSubmit": {
-        "title": "स्वतः सबमिट",
-        "description": "टेक्स्ट घुसाइएपछि चयन गरिएको कि संयोजन पठाउँछ। macOS मा Cmd+Enter, Windows र Linux मा Super+Enter।",
-        "options": {
-          "off": "अफ",
-          "enter": "Enter",
-          "cmdEnter": "Cmd+Enter",
-          "superEnter": "Super+Enter",
-          "ctrlEnter": "Ctrl+Enter"
-        }
-      },
       "translateToEnglish": {
         "label": "अङ्ग्रेजीमा अनुवाद गर्नुहोस्"
       },
@@ -1243,7 +1204,7 @@
           "values": {
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
-            "cmd_enter": "Command+Enter"
+            "cmd_enter": "Cmd+Enter"
           },
           "requiresAutoSubmit": "की छान्न auto-submit चालु गर्नुहोस्।"
         },
@@ -2130,8 +2091,10 @@
       "previousPage": "नयाँ",
       "nextPage": "पुरानो",
       "status": {
+        "live": "लाइभ",
         "ready": "तयार",
-        "processing": "प्रक्रियामा"
+        "processing": "प्रक्रियामा",
+        "needs_attention": "ध्यान आवश्यक"
       },
       "headline": {
         "words": "{{count}} शब्द ट्रान्सक्राइब गरियो"

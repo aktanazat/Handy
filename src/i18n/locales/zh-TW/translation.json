@@ -411,45 +411,6 @@
           }
         }
       },
-      "pasteMethod": {
-        "title": "貼上方式",
-        "description": "文字的插入方式。直接：透過系統輸入模擬打字。無：跳過貼上，僅更新歷史紀錄和剪貼簿。",
-        "options": {
-          "clipboard": "剪貼簿 ({{modifier}}+V)",
-          "clipboardCtrlShiftV": "剪貼簿 (Ctrl+Shift+V)",
-          "clipboardShiftInsert": "剪貼簿 (Shift+Insert)",
-          "direct": "直接",
-          "none": "無",
-          "externalScript": "外部腳本"
-        },
-        "externalScriptPlaceholder": "/path/to/your/script.sh"
-      },
-      "typingTool": {
-        "title": "輸入工具",
-        "description": "直接貼上方式所使用的 Linux 輸入工具。自動會偵測可用的工具。",
-        "options": {
-          "auto": "自動（推薦）"
-        }
-      },
-      "clipboardHandling": {
-        "title": "剪貼簿處理",
-        "description": "不修改剪貼簿會保留你的剪貼簿內容。複製到剪貼簿會在貼上後將 Transcript 留在剪貼簿中。",
-        "options": {
-          "dontModify": "不修改剪貼簿",
-          "copyToClipboard": "複製到剪貼簿"
-        }
-      },
-      "autoSubmit": {
-        "title": "自動送出",
-        "description": "插入文字後發送指定的按鍵組合。macOS 為 Cmd+Enter，Windows 和 Linux 為 Super+Enter。",
-        "options": {
-          "off": "關閉",
-          "enter": "Enter",
-          "cmdEnter": "Cmd+Enter",
-          "superEnter": "Super+Enter",
-          "ctrlEnter": "Ctrl+Enter"
-        }
-      },
       "translateToEnglish": {
         "label": "翻譯為英語"
       },
@@ -1243,7 +1204,7 @@
           "values": {
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
-            "cmd_enter": "Command+Enter"
+            "cmd_enter": "Cmd+Enter"
           },
           "requiresAutoSubmit": "開啟自動送出以選擇按鍵。"
         },
@@ -2130,8 +2091,10 @@
       "previousPage": "較新",
       "nextPage": "較早",
       "status": {
+        "live": "即時",
         "ready": "已完成",
-        "processing": "處理中"
+        "processing": "處理中",
+        "needs_attention": "需要處理"
       },
       "headline": {
         "words": "已轉錄 {{count}} 個字詞"

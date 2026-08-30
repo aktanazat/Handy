@@ -411,45 +411,6 @@
           }
         }
       },
-      "pasteMethod": {
-        "title": "Метод вставки",
-        "description": "Як вставляється текст. Прямий емулює набір тексту через системне введення. Немає пропускає вставку й оновлює лише історію та буфер обміну.",
-        "options": {
-          "clipboard": "Буфер обміну ({{modifier}}+V)",
-          "clipboardCtrlShiftV": "Буфер обміну (Ctrl+Shift+V)",
-          "clipboardShiftInsert": "Буфер обміну (Shift+Insert)",
-          "direct": "Прямий",
-          "none": "Немає",
-          "externalScript": "Зовнішній скрипт"
-        },
-        "externalScriptPlaceholder": "/path/to/your/script.sh"
-      },
-      "typingTool": {
-        "title": "Інструмент введення",
-        "description": "Інструмент введення в Linux, який використовує метод прямого вставлення. Auto визначає доступний інструмент.",
-        "options": {
-          "auto": "Auto (Рекомендовано)"
-        }
-      },
-      "clipboardHandling": {
-        "title": "Робота з буфером обміну",
-        "description": "Не змінювати буфер обміну зберігає вміст вашого буфера. Копіювати в буфер обміну залишає в ньому transcript після вставки.",
-        "options": {
-          "dontModify": "Не змінювати буфер обміну",
-          "copyToClipboard": "Копіювати в буфер обміну"
-        }
-      },
-      "autoSubmit": {
-        "title": "Автоматичне надсилання",
-        "description": "Надсилає вибрану комбінацію клавіш після вставки тексту. Cmd+Enter на macOS, Super+Enter на Windows і Linux.",
-        "options": {
-          "off": "Вимк.",
-          "enter": "Enter",
-          "cmdEnter": "Cmd+Enter",
-          "superEnter": "Super+Enter",
-          "ctrlEnter": "Ctrl+Enter"
-        }
-      },
       "translateToEnglish": {
         "label": "Перекласти на англійську"
       },
@@ -1243,7 +1204,7 @@
           "values": {
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
-            "cmd_enter": "Command+Enter"
+            "cmd_enter": "Cmd+Enter"
           },
           "requiresAutoSubmit": "Увімкніть автонадсилання, щоб вибрати клавішу."
         },
@@ -2130,8 +2091,10 @@
       "previousPage": "Новіші",
       "nextPage": "Давніші",
       "status": {
+        "live": "У реальному часі",
         "ready": "Готово",
-        "processing": "Обробка"
+        "processing": "Обробка",
+        "needs_attention": "Потребує уваги"
       },
       "headline": {
         "words": "Розшифровано слів: {{count}}"

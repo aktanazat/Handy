@@ -411,45 +411,6 @@
           }
         }
       },
-      "pasteMethod": {
-        "title": "Plakmethode",
-        "description": "Hoe tekst wordt ingevoegd. 'Direct' simuleert typen via het systeem. 'Geen' slaat het plakken over en werkt alleen de geschiedenis en het klembord bij.",
-        "options": {
-          "clipboard": "Klembord ({{modifier}}+V)",
-          "clipboardCtrlShiftV": "Klembord (Ctrl+Shift+V)",
-          "clipboardShiftInsert": "Klembord (Shift+Insert)",
-          "direct": "Direct",
-          "none": "Geen",
-          "externalScript": "Extern script"
-        },
-        "externalScriptPlaceholder": "/pad/naar/je/script.sh"
-      },
-      "typingTool": {
-        "title": "Typgereedschap",
-        "description": "De Linux-typtool die de 'Directe' plakmethode gebruikt. 'Automatisch' detecteert een beschikbare tool.",
-        "options": {
-          "auto": "Automatisch (Aanbevolen)"
-        }
-      },
-      "clipboardHandling": {
-        "title": "Klembordbeheer",
-        "description": "'Klembord niet aanpassen' behoudt je klembordinhoud. 'Kopiëren naar klembord' laat het transcript daar achter na het plakken.",
-        "options": {
-          "dontModify": "Klembord niet aanpassen",
-          "copyToClipboard": "Kopiëren naar klembord"
-        }
-      },
-      "autoSubmit": {
-        "title": "Automatisch verzenden",
-        "description": "Verzendt de geselecteerde toetsencombinatie nadat de tekst is ingevoegd. Cmd+Enter op macOS, Super+Enter op Windows en Linux.",
-        "options": {
-          "off": "Uit",
-          "enter": "Enter",
-          "cmdEnter": "Cmd+Enter",
-          "superEnter": "Super+Enter",
-          "ctrlEnter": "Ctrl+Enter"
-        }
-      },
       "translateToEnglish": {
         "label": "Vertalen naar het Engels"
       },
@@ -1243,7 +1204,7 @@
           "values": {
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
-            "cmd_enter": "Command+Enter"
+            "cmd_enter": "Cmd+Enter"
           },
           "requiresAutoSubmit": "Schakel automatisch verzenden in om een toets te kiezen."
         },
@@ -2130,8 +2091,10 @@
       "previousPage": "Nieuwer",
       "nextPage": "Ouder",
       "status": {
+        "live": "Live",
         "ready": "Klaar",
-        "processing": "In behandeling"
+        "processing": "In behandeling",
+        "needs_attention": "Vereist aandacht"
       },
       "headline": {
         "words": "{{count}} woorden getranscribeerd"

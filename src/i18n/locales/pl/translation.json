@@ -411,45 +411,6 @@
           }
         }
       },
-      "pasteMethod": {
-        "title": "Metoda wklejania",
-        "description": "Sposób wstawiania tekstu. Direct symuluje wpisywanie przez wejście systemowe. None pomija wklejanie i tylko aktualizuje historię oraz schowek.",
-        "options": {
-          "clipboard": "Schowek ({{modifier}}+V)",
-          "clipboardCtrlShiftV": "Schowek (Ctrl+Shift+V)",
-          "clipboardShiftInsert": "Schowek (Shift+Insert)",
-          "direct": "Bezpośrednio",
-          "none": "Brak",
-          "externalScript": "Skrypt zewnętrzny"
-        },
-        "externalScriptPlaceholder": "/sciezka/do/twojego/skryptu.sh"
-      },
-      "typingTool": {
-        "title": "Narzędzie do wpisywania",
-        "description": "Narzędzie do wpisywania w Linuxie używane przez metodę wklejania Direct. Auto wykrywa dostępne narzędzie.",
-        "options": {
-          "auto": "Auto (Zalecane)"
-        }
-      },
-      "clipboardHandling": {
-        "title": "Obsługa schowka",
-        "description": "Nie modyfikuj schowka zachowuje zawartość schowka. Kopiuj do schowka pozostawia w nim transcript po wklejeniu.",
-        "options": {
-          "dontModify": "Nie modyfikuj schowka",
-          "copyToClipboard": "Kopiuj do schowka"
-        }
-      },
-      "autoSubmit": {
-        "title": "Automatyczne wysyłanie",
-        "description": "Wysyła wybraną kombinację klawiszy po wstawieniu tekstu. Cmd+Enter na macOS, Super+Enter w Windows i Linux.",
-        "options": {
-          "off": "Wyłączone",
-          "enter": "Enter",
-          "cmdEnter": "Cmd+Enter",
-          "superEnter": "Super+Enter",
-          "ctrlEnter": "Ctrl+Enter"
-        }
-      },
       "translateToEnglish": {
         "label": "Tłumacz na angielski"
       },
@@ -1243,7 +1204,7 @@
           "values": {
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
-            "cmd_enter": "Command+Enter"
+            "cmd_enter": "Cmd+Enter"
           },
           "requiresAutoSubmit": "Włącz automatyczne wysyłanie, aby wybrać klawisz."
         },
@@ -2130,8 +2091,10 @@
       "previousPage": "Nowsze",
       "nextPage": "Starsze",
       "status": {
+        "live": "Na żywo",
         "ready": "Gotowe",
-        "processing": "W trakcie"
+        "processing": "W trakcie",
+        "needs_attention": "Wymaga uwagi"
       },
       "headline": {
         "words": "{{count}} wyrazów w transkrypcji"

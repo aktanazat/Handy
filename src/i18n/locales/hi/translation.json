@@ -411,45 +411,6 @@
           }
         }
       },
-      "pasteMethod": {
-        "title": "पेस्ट करने का तरीका",
-        "description": "टेक्स्ट कैसे डाला जाए. 'डायरेक्ट' सिस्टम इनपुट के ज़रिए टाइप करने जैसा काम करता है. 'कोई नहीं' पेस्ट नहीं करता और केवल इतिहास और क्लिपबोर्ड अपडेट करता है.",
-        "options": {
-          "clipboard": "क्लिपबोर्ड ({{modifier}}+V)",
-          "clipboardCtrlShiftV": "क्लिपबोर्ड (Ctrl+Shift+V)",
-          "clipboardShiftInsert": "क्लिपबोर्ड (Shift+Insert)",
-          "direct": "डायरेक्ट",
-          "none": "कोई नहीं",
-          "externalScript": "बाहरी स्क्रिप्ट"
-        },
-        "externalScriptPlaceholder": "/path/to/your/script.sh"
-      },
-      "typingTool": {
-        "title": "टाइपिंग टूल",
-        "description": "'डायरेक्ट' पेस्ट में इस्तेमाल होने वाला Linux टाइपिंग टूल. 'ऑटो' उपलब्ध टूल अपने आप पहचान लेता है.",
-        "options": {
-          "auto": "ऑटो (सुझाया गया)"
-        }
-      },
-      "clipboardHandling": {
-        "title": "क्लिपबोर्ड मैनेजमेंट",
-        "description": "'क्लिपबोर्ड न बदलें' आपके क्लिपबोर्ड का कॉन्टेंट बनाए रखता है. 'क्लिपबोर्ड पर कॉपी करें' पेस्ट करने के बाद Transcript वहीं छोड़ देता है.",
-        "options": {
-          "dontModify": "क्लिपबोर्ड न बदलें",
-          "copyToClipboard": "क्लिपबोर्ड पर कॉपी करें"
-        }
-      },
-      "autoSubmit": {
-        "title": "ऑटो सबमिट",
-        "description": "टेक्स्ट डालने के बाद चुना गया बटन कॉम्बिनेशन भेजता है. macOS पर Cmd+Enter, Windows और Linux पर Super+Enter.",
-        "options": {
-          "off": "बंद",
-          "enter": "Enter",
-          "cmdEnter": "Cmd+Enter",
-          "superEnter": "Super+Enter",
-          "ctrlEnter": "Ctrl+Enter"
-        }
-      },
       "translateToEnglish": {
         "label": "अंग्रेज़ी में अनुवाद करें"
       },
@@ -1243,7 +1204,7 @@
           "values": {
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
-            "cmd_enter": "Command+Enter"
+            "cmd_enter": "Cmd+Enter"
           },
           "requiresAutoSubmit": "कुंजी चुनने के लिए ऑटो-सबमिट चालू करें।"
         },
@@ -2130,8 +2091,10 @@
       "previousPage": "नई",
       "nextPage": "पुरानी",
       "status": {
+        "live": "लाइव",
         "ready": "तैयार",
-        "processing": "प्रोसेस हो रही"
+        "processing": "प्रोसेस हो रही",
+        "needs_attention": "ध्यान चाहिए"
       },
       "headline": {
         "words": "{{count}} शब्द ट्रांसक्राइब हुए"

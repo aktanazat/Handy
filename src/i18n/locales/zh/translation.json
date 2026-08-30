@@ -411,45 +411,6 @@
           }
         }
       },
-      "pasteMethod": {
-        "title": "粘贴方式",
-        "description": "文字插入方式。直接：通过系统输入模拟打字。无：跳过粘贴，仅更新历史记录和剪贴板。",
-        "options": {
-          "clipboard": "剪贴板 ({{modifier}}+V)",
-          "clipboardCtrlShiftV": "剪贴板 (Ctrl+Shift+V)",
-          "clipboardShiftInsert": "剪贴板 (Shift+Insert)",
-          "direct": "直接",
-          "none": "无",
-          "externalScript": "外部脚本"
-        },
-        "externalScriptPlaceholder": "/path/to/your/script.sh"
-      },
-      "typingTool": {
-        "title": "输入工具",
-        "description": "直接粘贴方式使用的 Linux 输入工具。Auto 会检测可用的工具。",
-        "options": {
-          "auto": "Auto（推荐）"
-        }
-      },
-      "clipboardHandling": {
-        "title": "剪贴板处理",
-        "description": "不修改剪贴板会保留你的剪贴板内容。复制到剪贴板会在粘贴后将 transcript 留在剪贴板中。",
-        "options": {
-          "dontModify": "不修改剪贴板",
-          "copyToClipboard": "复制到剪贴板"
-        }
-      },
-      "autoSubmit": {
-        "title": "自动提交",
-        "description": "在文本插入后发送所选的按键组合。macOS 上为 Cmd+Enter，Windows 和 Linux 上为 Super+Enter。",
-        "options": {
-          "off": "关闭",
-          "enter": "回车",
-          "cmdEnter": "Cmd+回车",
-          "superEnter": "Super+回车",
-          "ctrlEnter": "Ctrl+回车"
-        }
-      },
       "translateToEnglish": {
         "label": "翻译为英语"
       },
@@ -1241,9 +1202,9 @@
         "autoSubmitKey": {
           "label": "提交按键",
           "values": {
-            "enter": "Enter",
-            "ctrl_enter": "Ctrl+Enter",
-            "cmd_enter": "Command+Enter"
+            "enter": "回车",
+            "ctrl_enter": "Ctrl+回车",
+            "cmd_enter": "Cmd+回车"
           },
           "requiresAutoSubmit": "开启自动提交后即可选择按键。"
         },
@@ -2130,8 +2091,10 @@
       "previousPage": "更近",
       "nextPage": "更早",
       "status": {
+        "live": "实时",
         "ready": "已完成",
-        "processing": "处理中"
+        "processing": "处理中",
+        "needs_attention": "需要处理"
       },
       "headline": {
         "words": "已转录 {{count}} 个词"

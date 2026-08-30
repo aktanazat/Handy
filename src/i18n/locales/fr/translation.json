@@ -411,45 +411,6 @@
           }
         }
       },
-      "pasteMethod": {
-        "title": "Méthode de collage",
-        "description": "Comment le texte est inséré. Direct simule la frappe via l'entrée système. Aucun ignore le collage et met uniquement à jour l'historique et le presse-papiers.",
-        "options": {
-          "clipboard": "Presse-papiers ({{modifier}}+V)",
-          "clipboardCtrlShiftV": "Presse-papiers (Ctrl+Shift+V)",
-          "clipboardShiftInsert": "Presse-papiers (Shift+Insert)",
-          "direct": "Direct",
-          "none": "Aucun",
-          "externalScript": "Script externe"
-        },
-        "externalScriptPlaceholder": "/chemin/vers/votre/script.sh"
-      },
-      "typingTool": {
-        "title": "Outil de frappe",
-        "description": "L'outil de frappe Linux utilisé par la méthode de collage direct. Auto détecte un outil disponible.",
-        "options": {
-          "auto": "Auto (Recommandé)"
-        }
-      },
-      "clipboardHandling": {
-        "title": "Gestion du presse-papiers",
-        "description": "Ne pas modifier le presse-papiers conserve le contenu de votre presse-papiers. Copier dans le presse-papiers y laisse le transcript après le collage.",
-        "options": {
-          "dontModify": "Ne pas modifier le presse-papiers",
-          "copyToClipboard": "Copier dans le presse-papiers"
-        }
-      },
-      "autoSubmit": {
-        "title": "Envoi automatique",
-        "description": "Envoie la combinaison de touches sélectionnée après l'insertion du texte. Cmd+Enter sur macOS, Super+Enter sur Windows et Linux.",
-        "options": {
-          "off": "Désactivé",
-          "enter": "Entrée",
-          "cmdEnter": "Cmd+Entrée",
-          "superEnter": "Super+Entrée",
-          "ctrlEnter": "Ctrl+Entrée"
-        }
-      },
       "translateToEnglish": {
         "label": "Traduire en anglais"
       },
@@ -1241,9 +1202,9 @@
         "autoSubmitKey": {
           "label": "Touche d'envoi",
           "values": {
-            "enter": "Enter",
-            "ctrl_enter": "Ctrl+Enter",
-            "cmd_enter": "Command+Enter"
+            "enter": "Entrée",
+            "ctrl_enter": "Ctrl+Entrée",
+            "cmd_enter": "Cmd+Entrée"
           },
           "requiresAutoSubmit": "Activez l'envoi automatique pour choisir une touche."
         },
@@ -2130,8 +2091,10 @@
       "previousPage": "Plus récentes",
       "nextPage": "Plus anciennes",
       "status": {
+        "live": "Live",
         "ready": "Prête",
-        "processing": "En traitement"
+        "processing": "En traitement",
+        "needs_attention": "Nécessite votre attention"
       },
       "headline": {
         "words": "{{count}} mots transcrits"

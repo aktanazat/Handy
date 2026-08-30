@@ -411,45 +411,6 @@
           }
         }
       },
-      "pasteMethod": {
-        "title": "Método de pegado",
-        "description": "Cómo se inserta el texto. Directo simula escritura mediante la entrada del sistema. Ninguno omite el pegado y solo actualiza el historial y el portapapeles.",
-        "options": {
-          "clipboard": "Portapapeles ({{modifier}}+V)",
-          "clipboardCtrlShiftV": "Portapapeles (Ctrl+Shift+V)",
-          "clipboardShiftInsert": "Portapapeles (Shift+Insert)",
-          "direct": "Directo",
-          "none": "Ninguno",
-          "externalScript": "Script externo"
-        },
-        "externalScriptPlaceholder": "/ruta/a/su/script.sh"
-      },
-      "typingTool": {
-        "title": "Herramienta de escritura",
-        "description": "La herramienta de escritura de Linux que usa el método de pegado directo. Auto detecta una herramienta disponible.",
-        "options": {
-          "auto": "Auto (recomendado)"
-        }
-      },
-      "clipboardHandling": {
-        "title": "Manejo del portapapeles",
-        "description": "No modificar portapapeles conserva el contenido de tu portapapeles. Copiar al portapapeles deja allí el transcript después de pegar.",
-        "options": {
-          "dontModify": "No modificar portapapeles",
-          "copyToClipboard": "Copiar al portapapeles"
-        }
-      },
-      "autoSubmit": {
-        "title": "Envío automático",
-        "description": "Envía la combinación de teclas seleccionada después de insertar el texto. Cmd+Enter en macOS, Super+Enter en Windows y Linux.",
-        "options": {
-          "off": "Desactivado",
-          "enter": "Intro",
-          "cmdEnter": "Cmd+Intro",
-          "superEnter": "Super+Intro",
-          "ctrlEnter": "Ctrl+Intro"
-        }
-      },
       "translateToEnglish": {
         "label": "Traducir al inglés"
       },
@@ -1241,9 +1202,9 @@
         "autoSubmitKey": {
           "label": "Tecla de envío",
           "values": {
-            "enter": "Enter",
-            "ctrl_enter": "Ctrl+Enter",
-            "cmd_enter": "Command+Enter"
+            "enter": "Intro",
+            "ctrl_enter": "Ctrl+Intro",
+            "cmd_enter": "Cmd+Intro"
           },
           "requiresAutoSubmit": "Activa el envío automático para elegir una tecla."
         },
@@ -2130,8 +2091,10 @@
       "previousPage": "Recientes",
       "nextPage": "Anteriores",
       "status": {
+        "live": "En vivo",
         "ready": "Lista",
-        "processing": "Procesando"
+        "processing": "Procesando",
+        "needs_attention": "Requiere atención"
       },
       "headline": {
         "words": "{{count}} palabras transcritas"

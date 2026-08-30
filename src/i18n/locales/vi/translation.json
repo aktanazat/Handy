@@ -411,45 +411,6 @@
           }
         }
       },
-      "pasteMethod": {
-        "title": "Phương thức dán",
-        "description": "Cách chèn văn bản. Trực tiếp mô phỏng gõ phím qua đầu vào hệ thống. Không có bỏ qua việc dán và chỉ cập nhật lịch sử và clipboard.",
-        "options": {
-          "clipboard": "Bảng nhớ tạm ({{modifier}}+V)",
-          "clipboardCtrlShiftV": "Bảng nhớ tạm (Ctrl+Shift+V)",
-          "clipboardShiftInsert": "Bảng nhớ tạm (Shift+Insert)",
-          "direct": "Trực tiếp",
-          "none": "Không có",
-          "externalScript": "Script bên ngoài"
-        },
-        "externalScriptPlaceholder": "/duong-dan/toi/script.sh"
-      },
-      "typingTool": {
-        "title": "Công cụ gõ",
-        "description": "Công cụ gõ trên Linux được phương thức dán trực tiếp sử dụng. Auto phát hiện một công cụ có sẵn.",
-        "options": {
-          "auto": "Auto (Khuyến nghị)"
-        }
-      },
-      "clipboardHandling": {
-        "title": "Xử lý Clipboard",
-        "description": "Không sửa đổi clipboard giữ nguyên nội dung clipboard của bạn. Sao chép vào clipboard để lại Transcript ở đó sau khi dán.",
-        "options": {
-          "dontModify": "Không sửa đổi clipboard",
-          "copyToClipboard": "Sao chép vào Clipboard"
-        }
-      },
-      "autoSubmit": {
-        "title": "Gửi tự động",
-        "description": "Gửi tổ hợp phím đã chọn sau khi chèn văn bản. Cmd+Enter trên macOS, Super+Enter trên Windows và Linux.",
-        "options": {
-          "off": "Tắt",
-          "enter": "Enter",
-          "cmdEnter": "Cmd+Enter",
-          "superEnter": "Super+Enter",
-          "ctrlEnter": "Ctrl+Enter"
-        }
-      },
       "translateToEnglish": {
         "label": "Dịch sang tiếng Anh"
       },
@@ -1243,7 +1204,7 @@
           "values": {
             "enter": "Enter",
             "ctrl_enter": "Ctrl+Enter",
-            "cmd_enter": "Command+Enter"
+            "cmd_enter": "Cmd+Enter"
           },
           "requiresAutoSubmit": "Bật tự động gửi để chọn phím."
         },
@@ -2130,8 +2091,10 @@
       "previousPage": "Mới hơn",
       "nextPage": "Cũ hơn",
       "status": {
+        "live": "Trực tiếp",
         "ready": "Sẵn sàng",
-        "processing": "Đang xử lý"
+        "processing": "Đang xử lý",
+        "needs_attention": "Cần xử lý"
       },
       "headline": {
         "words": "Đã chuyển {{count}} từ thành văn bản"
