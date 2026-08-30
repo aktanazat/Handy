@@ -1038,11 +1038,12 @@ mod tests {
     /// the gate reads a process-relative clock.
     fn delivered_frames(period_us: u64, frames: u64, interval_ms: u64) -> u64 {
         let last = AtomicU64::new(0);
-        (0..frames)
+        let delivered = (0..frames)
             .filter(|frame| {
                 level_emit_due((5_000_000 + frame * period_us) / 1_000, &last, interval_ms)
             })
-            .count() as u64
+            .count();
+        u64::try_from(delivered).unwrap_or(u64::MAX)
     }
 
     #[test]

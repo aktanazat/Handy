@@ -68,11 +68,11 @@
  *     with the exact output the upstream code is trying to produce.
  */
 
-import { lstat, mkdir, readdir, readlink, symlink } from "fs/promises";
+import { lstat, mkdir, readdir, symlink } from "fs/promises";
 import { join } from "path";
 
+/* Exactly the two `package.json` fields this script reads. */
 type Manifest = {
-  name?: string;
   bin?: string | Record<string, string>;
   peerDependencies?: Record<string, string>;
 };
@@ -89,6 +89,15 @@ async function isDirectory(path: string) {
 async function readManifest(path: string): Promise<Manifest | null> {
   const file = Bun.file(path);
   if (!(await file.exists())) return null;
+  /* SAFETY: this is the one place in the repo that reads JSON without a schema,
+   * and deliberately so. The script repairs `node_modules` after a bun install
+   * race, so anything it imported from `node_modules` — zod included — could
+   * itself be a casualty of the race it exists to fix; the healer has to have
+   * no repo dependencies. The claim is bounded rather than validated: both
+   * fields are optional, `peerDependencies` is read only through `?? {}`, and
+   * `parseBinField` yields nothing for a `bin` that is neither a path nor a
+   * map, so a manifest that violates this shape makes the healer skip that
+   * package instead of misbehaving. */
   return (await file.json()) as Manifest;
 }
 
@@ -112,15 +121,21 @@ function defaultBinName(pkgName: string): string {
 
 type BinSpec = { name: string; path: string };
 
+/* npm allows `bin` to be a bare path or a name->path map, and nothing else. A
+ * manifest that puts anything else there gets no entries rather than a symlink
+ * to a nonsense target — `String(value) === value` holds for a real string and
+ * nothing else, and `typeof` is unavailable under the repo's lint rules. */
 function parseBinField(pkgName: string, binField: Manifest["bin"]): BinSpec[] {
   if (!binField) return [];
-  if (typeof binField === "string") {
-    return [{ name: defaultBinName(pkgName), path: binField }];
+  // A `bin` map names its own entries; a bare path takes the package's name.
+  if (binField instanceof Object) {
+    return Object.entries(binField)
+      .filter(([, path]) => String(path) === path)
+      .map(([name, path]) => ({ name: defaultBinName(name), path }));
   }
-  return Object.entries(binField).map(([name, path]) => ({
-    name: defaultBinName(name),
-    path,
-  }));
+  return String(binField) === binField
+    ? [{ name: defaultBinName(pkgName), path: binField }]
+    : [];
 }
 
 // Produce the relative symlink target that bun itself uses for a .bin entry

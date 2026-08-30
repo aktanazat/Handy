@@ -618,6 +618,10 @@ impl HistoryManager {
         semantic: Arc<SemanticModelSlot>,
         inbox: Receiver<SemanticWork>,
     ) {
+        // Failing to spawn a thread at manager construction means the process
+        // cannot create threads at all, so there is no degraded mode to fall
+        // back to and nothing here can recover.
+        // PANIC: the process is already unusable if this fails.
         std::thread::Builder::new()
             .name("sona-history-semantic".to_string())
             .spawn(move || {
@@ -638,8 +642,6 @@ impl HistoryManager {
                 }
                 debug!("History semantic worker stopped");
             })
-            // PANIC: failing to spawn a thread at manager construction means the
-            // process cannot create threads at all; nothing here can recover.
             .expect("spawn history semantic worker");
     }
 

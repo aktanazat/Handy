@@ -4,6 +4,111 @@
 
 export type OSType = "macos" | "windows" | "linux" | "unknown";
 
+/* The four modifiers whose display name is not the same on every platform. */
+type Modifier = "shift" | "ctrl" | "alt" | "meta";
+
+/* Every table below is a Map for the same reason as the glyph tables further
+ * down: the lookup key is a raw `KeyboardEvent.code`/`.key` string, so `.get`
+ * is the total lookup, and an annotated `Record<string, string>` would be the
+ * open dictionary the repo's anti-slop rule rejects.
+ *
+ * They live at module scope because they are constants: building forty entries
+ * inside `getKeyName` rebuilt all of them on every keystroke. */
+const MODIFIER_CODES = new Map<string, Modifier>([
+  ["ShiftLeft", "shift"],
+  ["ShiftRight", "shift"],
+  ["ControlLeft", "ctrl"],
+  ["ControlRight", "ctrl"],
+  ["AltLeft", "alt"],
+  ["AltRight", "alt"],
+  ["MetaLeft", "meta"],
+  ["MetaRight", "meta"],
+  ["OSLeft", "meta"],
+  ["OSRight", "meta"],
+]);
+
+/* Non-modifier `code` values whose name is the same on every platform. */
+const CODE_NAMES = new Map([
+  ["CapsLock", "caps lock"],
+  ["Tab", "tab"],
+  ["Enter", "enter"],
+  ["Space", "space"],
+  ["Backspace", "backspace"],
+  ["Delete", "delete"],
+  ["Escape", "esc"],
+  ["ArrowUp", "up"],
+  ["ArrowDown", "down"],
+  ["ArrowLeft", "left"],
+  ["ArrowRight", "right"],
+  ["Home", "home"],
+  ["End", "end"],
+  ["PageUp", "page up"],
+  ["PageDown", "page down"],
+  ["Insert", "insert"],
+  ["PrintScreen", "print screen"],
+  ["ScrollLock", "scroll lock"],
+  ["Pause", "pause"],
+  ["ContextMenu", "menu"],
+  ["NumpadMultiply", "numpad *"],
+  ["NumpadAdd", "numpad +"],
+  ["NumpadSubtract", "numpad -"],
+  ["NumpadDecimal", "numpad ."],
+  ["NumpadDivide", "numpad /"],
+  ["NumLock", "num lock"],
+]);
+
+/* Punctuation and symbol `code` values. */
+const PUNCTUATION_NAMES = new Map([
+  ["Semicolon", ";"],
+  ["Equal", "="],
+  ["Comma", ","],
+  ["Minus", "-"],
+  ["Period", "."],
+  ["Slash", "/"],
+  ["Backquote", "`"],
+  ["BracketLeft", "["],
+  ["Backslash", "\\"],
+  ["BracketRight", "]"],
+  ["Quote", "'"],
+]);
+
+/* `KeyboardEvent.key` fallbacks whose name is the same on every platform. */
+const KEY_NAMES = new Map([
+  ["Control", "ctrl"],
+  ["Shift", "shift"],
+  ["CapsLock", "caps lock"],
+  ["ArrowUp", "up"],
+  ["ArrowDown", "down"],
+  ["ArrowLeft", "left"],
+  ["ArrowRight", "right"],
+  ["Escape", "esc"],
+  [" ", "space"],
+]);
+
+/** How this OS spells a modifier. */
+const modifierName = (modifier: Modifier, osType: OSType): string => {
+  switch (modifier) {
+    case "shift":
+      return "shift";
+    case "ctrl":
+      return "ctrl";
+    case "alt":
+      return osType === "macos" ? "option" : "alt";
+    case "meta":
+      // Windows key on Windows/Linux, Command key on Mac
+      return osType === "macos" ? "command" : "super";
+  }
+};
+
+/* The `key` fallback spells the Windows key "win" where the `code` path above
+ * says "super". Both predate this refactor and are left as they were. */
+const osKeyName = (key: string, osType: OSType): string | undefined => {
+  if (key === "Alt") return osType === "macos" ? "option" : "alt";
+  if (key !== "Meta" && key !== "OS") return undefined;
+  if (osType === "macos") return "command";
+  return osType === "windows" ? "win" : "super";
+};
+
 /**
  * Extract a consistent key name from a KeyboardEvent
  * This function provides cross-platform keyboard event handling
@@ -38,84 +143,15 @@ export const getKeyName = (
     }
 
     // Handle modifier keys - OS-specific naming
-    const getModifierName = (baseModifier: string): string => {
-      switch (baseModifier) {
-        case "shift":
-          return "shift";
-        case "ctrl":
-          return osType === "macos" ? "ctrl" : "ctrl";
-        case "alt":
-          return osType === "macos" ? "option" : "alt";
-        case "meta":
-          // Windows key on Windows/Linux, Command key on Mac
-          if (osType === "macos") return "command";
-          return "super";
-        default:
-          return baseModifier;
-      }
-    };
+    const modifier = MODIFIER_CODES.get(code);
+    if (modifier !== undefined) return modifierName(modifier, osType);
 
-    const modifierMap: Record<string, string> = {
-      ShiftLeft: getModifierName("shift"),
-      ShiftRight: getModifierName("shift"),
-      ControlLeft: getModifierName("ctrl"),
-      ControlRight: getModifierName("ctrl"),
-      AltLeft: getModifierName("alt"),
-      AltRight: getModifierName("alt"),
-      MetaLeft: getModifierName("meta"),
-      MetaRight: getModifierName("meta"),
-      OSLeft: getModifierName("meta"),
-      OSRight: getModifierName("meta"),
-      CapsLock: "caps lock",
-      Tab: "tab",
-      Enter: "enter",
-      Space: "space",
-      Backspace: "backspace",
-      Delete: "delete",
-      Escape: "esc",
-      ArrowUp: "up",
-      ArrowDown: "down",
-      ArrowLeft: "left",
-      ArrowRight: "right",
-      Home: "home",
-      End: "end",
-      PageUp: "page up",
-      PageDown: "page down",
-      Insert: "insert",
-      PrintScreen: "print screen",
-      ScrollLock: "scroll lock",
-      Pause: "pause",
-      ContextMenu: "menu",
-      NumpadMultiply: "numpad *",
-      NumpadAdd: "numpad +",
-      NumpadSubtract: "numpad -",
-      NumpadDecimal: "numpad .",
-      NumpadDivide: "numpad /",
-      NumLock: "num lock",
-    };
-
-    if (modifierMap[code]) {
-      return modifierMap[code];
-    }
+    const codeName = CODE_NAMES.get(code);
+    if (codeName !== undefined) return codeName;
 
     // Handle punctuation and special characters
-    const punctuationMap: Record<string, string> = {
-      Semicolon: ";",
-      Equal: "=",
-      Comma: ",",
-      Minus: "-",
-      Period: ".",
-      Slash: "/",
-      Backquote: "`",
-      BracketLeft: "[",
-      Backslash: "\\",
-      BracketRight: "]",
-      Quote: "'",
-    };
-
-    if (punctuationMap[code]) {
-      return punctuationMap[code];
-    }
+    const punctuation = PUNCTUATION_NAMES.get(code);
+    if (punctuation !== undefined) return punctuation;
 
     // For any other codes, try to convert to a reasonable format
     return code.toLowerCase().replace(/([a-z])([A-Z])/g, "$1 $2");
@@ -126,26 +162,11 @@ export const getKeyName = (
     const key = e.key;
 
     // Handle special key names with OS-specific formatting
-    const keyMap: Record<string, string> = {
-      Control: osType === "macos" ? "ctrl" : "ctrl",
-      Alt: osType === "macos" ? "option" : "alt",
-      Shift: "shift",
-      Meta:
-        osType === "macos" ? "command" : osType === "windows" ? "win" : "super",
-      OS:
-        osType === "macos" ? "command" : osType === "windows" ? "win" : "super",
-      CapsLock: "caps lock",
-      ArrowUp: "up",
-      ArrowDown: "down",
-      ArrowLeft: "left",
-      ArrowRight: "right",
-      Escape: "esc",
-      " ": "space",
-    };
+    const osName = osKeyName(key, osType);
+    if (osName !== undefined) return osName;
 
-    if (keyMap[key]) {
-      return keyMap[key];
-    }
+    const keyName = KEY_NAMES.get(key);
+    if (keyName !== undefined) return keyName;
 
     return key.toLowerCase();
   }

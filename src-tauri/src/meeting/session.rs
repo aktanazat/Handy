@@ -2694,7 +2694,7 @@ mod tests {
                 let manager = Arc::clone(&manager);
                 thread::spawn(move || {
                     tauri::async_runtime::block_on(manager.store())
-                        .map(|store| Arc::as_ptr(&store) as usize)
+                        .map(|store| Arc::as_ptr(&store).addr())
                 })
             })
             .collect();

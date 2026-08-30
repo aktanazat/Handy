@@ -1,6 +1,10 @@
 import { useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { useSettingsStore, type SettingsStore } from "../stores/settingsStore";
+import {
+  useSettingsStore,
+  type SettingsStore,
+  type SettingValue,
+} from "../stores/settingsStore";
 import type { AppSettings as Settings, AudioDevice } from "@/bindings";
 
 interface UseSettingsReturn {
@@ -16,7 +20,7 @@ interface UseSettingsReturn {
   // Actions
   updateSetting: <K extends keyof Settings>(
     key: K,
-    value: Settings[K],
+    value: SettingValue<K>,
   ) => Promise<void>;
   resetSetting: (key: keyof Settings) => Promise<void>;
   refreshSettings: () => Promise<void>;

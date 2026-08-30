@@ -23,7 +23,12 @@ applyTheme(getStoredTheme());
 syncThemeFromSettings();
 listen<Theme>("theme-changed", (event) => applyTheme(event.payload));
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+const root = document.getElementById("root");
+if (root === null) {
+  throw new Error("overlay.html is missing its #root mount point");
+}
+
+ReactDOM.createRoot(root).render(
   <React.StrictMode>
     <RecordingOverlay />
   </React.StrictMode>,

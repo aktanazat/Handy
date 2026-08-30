@@ -1,6 +1,10 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import {
+  parseTranslationBundle,
+  type TranslationBundle,
+} from "../src/i18n/translationTree";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -8,12 +12,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LOCALES_DIR = path.join(__dirname, "..", "src", "i18n", "locales");
 const REFERENCE_LANG = "en";
 
-type TranslationData = Record<string, unknown>;
-
 interface ValidationResult {
   valid: boolean;
-  missing: string[][];
-  extra: string[][];
+  missing: string[];
+  extra: string[];
 }
 
 function getLanguages(): string[] {
@@ -27,64 +29,34 @@ function getLanguages(): string[] {
 const LANGUAGES = getLanguages();
 
 // Colors for terminal output
-const colors: Record<string, string> = {
+const colors = {
   reset: "\x1b[0m",
   red: "\x1b[31m",
   green: "\x1b[32m",
   yellow: "\x1b[33m",
   blue: "\x1b[34m",
-};
+} satisfies Record<string, string>;
 
-function colorize(text: string, color: string): string {
+type Color = keyof typeof colors;
+
+function colorize(text: string, color: Color): string {
   return `${colors[color]}${text}${colors.reset}`;
 }
 
-function getAllKeyPaths(
-  obj: TranslationData,
-  prefix: string[] = [],
-): string[][] {
-  let paths: string[][] = [];
-  for (const key in obj) {
-    if (!Object.hasOwn(obj, key)) continue;
-
-    const currentPath = prefix.concat([key]);
-    const value = obj[key];
-
-    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-      paths = paths.concat(
-        getAllKeyPaths(value as TranslationData, currentPath),
-      );
-    } else {
-      paths.push(currentPath);
-    }
-  }
-  return paths;
-}
-
-function hasKeyPath(obj: TranslationData, keyPath: string[]): boolean {
-  let current: unknown = obj;
-  for (const key of keyPath) {
-    if (
-      typeof current !== "object" ||
-      current === null ||
-      (current as Record<string, unknown>)[key] === undefined
-    ) {
-      return false;
-    }
-    current = (current as Record<string, unknown>)[key];
-  }
-  return true;
-}
-
-function loadTranslationFile(lang: string): TranslationData | null {
+/* One locale file, decoded to its dotted keys. `null` when the file is
+ * unreadable or is not a tree of message strings; the schema names the
+ * offending key path in that case, which is the whole reason this script can
+ * report a malformed bundle rather than silently counting it as complete. */
+function loadTranslationFile(lang: string): TranslationBundle | null {
   const filePath = path.join(LOCALES_DIR, lang, "translation.json");
 
   try {
-    const content = fs.readFileSync(filePath, "utf8");
-    return JSON.parse(content) as TranslationData;
+    return parseTranslationBundle(fs.readFileSync(filePath, "utf8"));
   } catch (error) {
     console.error(colorize(`✗ Error loading ${lang}/translation.json:`, "red"));
-    console.error(`  ${(error as Error).message}`);
+    console.error(
+      `  ${error instanceof Error ? error.message : String(error)}`,
+    );
     return null;
   }
 }
@@ -103,9 +75,9 @@ function validateTranslations(): void {
     process.exit(1);
   }
 
-  // Get all key paths from reference
-  const referenceKeyPaths = getAllKeyPaths(referenceData);
-  console.log(`Reference has ${referenceKeyPaths.length} keys\n`);
+  // Get all keys from reference
+  const referenceKeys = [...referenceData.keys()];
+  console.log(`Reference has ${referenceKeys.length} keys\n`);
 
   // Track validation results
   let hasErrors = false;
@@ -122,15 +94,10 @@ function validateTranslations(): void {
     }
 
     // Find missing keys
-    const missing = referenceKeyPaths.filter(
-      (keyPath) => !hasKeyPath(langData, keyPath),
-    );
+    const missing = referenceKeys.filter((key) => !langData.has(key));
 
     // Find extra keys (keys in language but not in reference)
-    const langKeyPaths = getAllKeyPaths(langData);
-    const extra = langKeyPaths.filter(
-      (keyPath) => !hasKeyPath(referenceData, keyPath),
-    );
+    const extra = [...langData.keys()].filter((key) => !referenceData.has(key));
 
     results[lang] = {
       valid: missing.length === 0 && extra.length === 0,
@@ -161,8 +128,8 @@ function validateTranslations(): void {
         console.log(
           colorize(`  Missing ${result.missing.length} keys:`, "yellow"),
         );
-        result.missing.slice(0, 10).forEach((keyPath) => {
-          console.log(`    - ${keyPath.join(".")}`);
+        result.missing.slice(0, 10).forEach((key) => {
+          console.log(`    - ${key}`);
         });
         if (result.missing.length > 10) {
           console.log(
@@ -181,8 +148,8 @@ function validateTranslations(): void {
             "yellow",
           ),
         );
-        result.extra.slice(0, 10).forEach((keyPath) => {
-          console.log(`    - ${keyPath.join(".")}`);
+        result.extra.slice(0, 10).forEach((key) => {
+          console.log(`    - ${key}`);
         });
         if (result.extra.length > 10) {
           console.log(

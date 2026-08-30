@@ -1322,9 +1322,12 @@ pub fn normalize_transcription_output(text: &str) -> String {
 
     let normalized =
         LINE_BREAK_RUN_PATTERN.replace_all(&normalized, |captures: &regex::Captures<'_>| {
-            // PANIC: regex replace callbacks always contain capture group zero.
-            let run = captures.get(0).expect("line break run has text").as_str();
-            if run.bytes().filter(|byte| *byte == b'\n').count() > 1 {
+            // Group zero is the whole match, so it is always present; treating an
+            // absent one as "no extra newlines" keeps this total either way.
+            let newlines = captures.get(0).map_or(0, |run| {
+                run.as_str().bytes().filter(|byte| *byte == b'\n').count()
+            });
+            if newlines > 1 {
                 "\n\n"
             } else {
                 "\n"

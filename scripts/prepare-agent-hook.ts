@@ -10,6 +10,7 @@ import {
   type Stats,
 } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
+import { z } from "zod";
 
 const BINARY_NAME = "sona-agent-hook";
 const ROOT = resolve(import.meta.dirname, "..");
@@ -42,18 +43,40 @@ export function resolveTargetTriple(
   return validateTargetTriple(target);
 }
 
-type TauriConfigOverride = Record<string, unknown> & {
-  bundle?: Record<string, unknown>;
-};
+/* Tauri's `--config` override is arbitrary JSON. This script rewrites exactly
+ * one field of it and passes everything else through verbatim, so the schema
+ * below decodes it *as* JSON rather than claiming to know a shape it never
+ * reads. `bundle` is the one field it does read, and it has to be an object
+ * for the merge below to mean anything. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(jsonValueSchema),
+    z.record(jsonValueSchema),
+  ]),
+);
+
+const configOverrideSchema = z.record(jsonValueSchema);
+const bundleOverrideSchema = z.record(jsonValueSchema).optional();
 
 export function configWithoutExternalBinaries(configOverride?: string): string {
-  const config = configOverride
-    ? (JSON.parse(configOverride) as TauriConfigOverride)
-    : {};
+  const config = configOverrideSchema.parse(JSON.parse(configOverride ?? "{}"));
+  const bundle = bundleOverrideSchema.parse(config.bundle);
   return JSON.stringify({
     ...config,
     bundle: {
-      ...(config.bundle ?? {}),
+      ...bundle,
       externalBin: [],
     },
   });

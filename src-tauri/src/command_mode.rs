@@ -200,8 +200,9 @@ fn render(
 }
 
 fn serialize(envelope: &CommandEnvelope) -> String {
-    // SAFETY: every envelope field is an owned String or Option<String>, so
-    // serde_json cannot fail here.
+    // Every envelope field is an owned String, a &'static str, or an
+    // Option<String>, none of which can fail to serialize.
+    // SAFETY: there is no error path for serde_json to report here.
     serde_json::to_string(envelope).expect("command envelope types serialize")
 }
 
@@ -226,12 +227,31 @@ mod tests {
     use crate::context::{capture_selected_text, ContextSourceStatus, SelectionCapture};
     use crate::modes::{CommandPlan, TranscriptionIntent};
     use crate::settings::get_default_settings;
+    use serde::Deserialize;
 
     fn plan(selection: &str) -> CommandPlan {
         CommandPlan::new(selection.to_string())
     }
 
-    fn envelope(rendered: &RenderedPrompt) -> serde_json::Value {
+    /// The envelope as a reader sees it, so an assertion below names a field
+    /// instead of indexing an untyped tree. This mirrors the serialized shape
+    /// of [`CommandEnvelope`] rather than reusing it: the `&'static str` fields
+    /// there cannot be deserialized into. A rename on either side fails these
+    /// tests, which is the point — this is the wire shape they pin.
+    #[derive(Deserialize)]
+    struct DecodedEnvelope {
+        schema: String,
+        instruction: String,
+        input: String,
+        target: DecodedTarget,
+    }
+
+    #[derive(Deserialize)]
+    struct DecodedTarget {
+        url: Option<String>,
+    }
+
+    fn envelope(rendered: &RenderedPrompt) -> DecodedEnvelope {
         serde_json::from_str(&rendered.user_message).expect("the user message is JSON")
     }
 
@@ -273,9 +293,9 @@ mod tests {
             &TargetMetadata::default(),
         );
         let envelope = envelope(&rendered);
-        assert_eq!(envelope["instruction"], "make it title case");
-        assert_eq!(envelope["input"], "the quick brown fox");
-        assert_eq!(envelope["schema"], "sona.command-envelope.v1");
+        assert_eq!(envelope.instruction, "make it title case");
+        assert_eq!(envelope.input, "the quick brown fox");
+        assert_eq!(envelope.schema, "sona.command-envelope.v1");
         assert!(rendered.system_message.contains("[UNTRUSTED_CONTEXT]"));
     }
 
@@ -295,7 +315,7 @@ mod tests {
 
         let rendered = render(&frozen, "shorten it", "en", &TargetMetadata::default());
 
-        assert_eq!(envelope(&rendered)["input"], "the original selection");
+        assert_eq!(envelope(&rendered).input, "the original selection");
         // Rendering is the only consumer, and it cannot write back.
         assert_eq!(frozen.selection(), "the original selection");
     }
@@ -310,10 +330,7 @@ mod tests {
         };
         let rendered = render(&plan("body"), "fix the grammar", "en", &target);
         assert!(!rendered.user_message.contains("private.test"));
-        assert_eq!(
-            envelope(&rendered)["target"]["url"],
-            serde_json::Value::Null
-        );
+        assert_eq!(envelope(&rendered).target.url, None);
     }
 
     #[test]
@@ -327,10 +344,7 @@ mod tests {
         assert!(rendered.user_message.len() <= USER_MESSAGE_BUDGET_BYTES);
         assert!(rendered.budget_receipt.context_truncated);
         assert!(!rendered.budget_receipt.transcript_truncated);
-        assert_eq!(
-            envelope(&rendered)["instruction"],
-            "translate this to French"
-        );
+        assert_eq!(envelope(&rendered).instruction, "translate this to French");
     }
 
     /// A command chord pressed with nothing selected refuses instead of

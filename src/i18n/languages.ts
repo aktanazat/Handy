@@ -7,15 +7,14 @@
  * 3. Optionally add a priority (lower = higher in dropdown, no priority = alphabetical at end)
  * 4. For RTL languages, add direction: 'rtl'
  */
-export const LANGUAGE_METADATA: Record<
-  string,
-  {
-    name: string;
-    nativeName: string;
-    priority?: number;
-    direction?: "ltr" | "rtl";
-  }
-> = {
+export type LanguageMetadata = {
+  readonly name: string;
+  readonly nativeName: string;
+  readonly priority?: number;
+  readonly direction?: "ltr" | "rtl";
+};
+
+export const LANGUAGE_METADATA = {
   en: { name: "English", nativeName: "English", priority: 1 },
   zh: { name: "Simplified Chinese", nativeName: "简体中文", priority: 2 },
   "zh-TW": { name: "Traditional Chinese", nativeName: "繁體中文", priority: 3 },
@@ -40,4 +39,11 @@ export const LANGUAGE_METADATA: Record<
   ne: { name: "Nepali", nativeName: "नेपाली", priority: 22 },
   hi: { name: "Hindi", nativeName: "हिन्दी", priority: 23 },
   da: { name: "Danish", nativeName: "Dansk", priority: 24 },
-};
+} satisfies Record<string, LanguageMetadata>;
+
+/** The locale codes this app ships metadata for. */
+export type LanguageCode = keyof typeof LANGUAGE_METADATA;
+
+/** Whether a locale string from the OS, settings, or a file path is one of them. */
+export const isLanguageCode = (code: string): code is LanguageCode =>
+  code in LANGUAGE_METADATA;

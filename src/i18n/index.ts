@@ -1,7 +1,8 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { locale } from "@tauri-apps/plugin-os";
-import { LANGUAGE_METADATA } from "./languages";
+import { isLanguageCode, LANGUAGE_METADATA } from "./languages";
+import type { TranslationTree } from "./translationTree";
 import { commands } from "@/bindings";
 import {
   getLanguageDirection,
@@ -15,7 +16,7 @@ const FALLBACK_LANGUAGE = "en";
 // Auto-discover non-English translation files using Vite's glob import. The
 // fallback remains a static import, so it is always ready without also being
 // emitted as a dynamic chunk.
-const localeLoaders = import.meta.glob<{ default: Record<string, unknown> }>([
+const localeLoaders = import.meta.glob<{ default: TranslationTree }>([
   "./locales/*/translation.json",
   "!./locales/en/translation.json",
 ]);
@@ -23,7 +24,7 @@ const localeLoaders = import.meta.glob<{ default: Record<string, unknown> }>([
 // Keyed by locale code, from the glob's build-time keys.
 const loaderByCode: Record<
   string,
-  () => Promise<{ default: Record<string, unknown> }>
+  () => Promise<{ default: TranslationTree }>
 > = {};
 for (const [path, load] of Object.entries(localeLoaders)) {
   const langCode = path.match(/\.\/locales\/(.+)\/translation\.json/)?.[1];
@@ -37,11 +38,11 @@ loaderByCode[FALLBACK_LANGUAGE] = async () => ({ default: enTranslation });
 // Build supported languages list from discovered locales + metadata
 export const SUPPORTED_LANGUAGES = Object.keys(loaderByCode)
   .map((code) => {
-    const meta = LANGUAGE_METADATA[code];
-    if (!meta) {
+    if (!isLanguageCode(code)) {
       console.warn(`Missing metadata for locale "${code}" in languages.ts`);
       return { code, name: code, nativeName: code, priority: undefined };
     }
+    const meta = LANGUAGE_METADATA[code];
     return {
       code,
       name: meta.name,

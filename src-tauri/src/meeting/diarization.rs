@@ -35,6 +35,11 @@ const OVERLAP_MARGIN: f32 = 0.04;
 /// Nanoseconds per second, for offset/sample conversions.
 const NS_PER_SECOND: u64 = 1_000_000_000;
 
+/// Nanoseconds per sample at [`SAMPLE_RATE_HZ`]. One constant serves both
+/// conversions below, which are exact because 16 kHz divides a second evenly —
+/// and neither of them has to multiply, so neither can overflow.
+const NS_PER_SAMPLE: u64 = NS_PER_SECOND / 16_000;
+
 /// Sortformer scores a whole track in one pass, so the track's 16 kHz mono f32
 /// audio is resident while that pass runs: 64 KB per second, ~230 MB per hour.
 /// Past this ceiling the run would cost more memory than a desktop app should
@@ -809,11 +814,13 @@ fn simultaneous_span_ns(timeline: &[SpeakerTurn], start_offset_ns: u64, end_offs
 }
 
 fn ns_to_samples(ns: u64) -> usize {
-    usize::try_from(ns.saturating_mul(SAMPLE_RATE_HZ as u64) / NS_PER_SECOND).unwrap_or(usize::MAX)
+    usize::try_from(ns / NS_PER_SAMPLE).unwrap_or(usize::MAX)
 }
 
 fn samples_to_ns(samples: usize) -> u64 {
-    (samples as u64).saturating_mul(NS_PER_SECOND) / SAMPLE_RATE_HZ as u64
+    u64::try_from(samples)
+        .unwrap_or(u64::MAX)
+        .saturating_mul(NS_PER_SAMPLE)
 }
 
 /// The engine actually backing this generation. Both arms answer the same

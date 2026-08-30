@@ -5,7 +5,11 @@
  * They work with the i18n system to automatically update HTML attributes when
  * the language changes.
  */
-import { LANGUAGE_METADATA } from "@/i18n/languages";
+import {
+  isLanguageCode,
+  LANGUAGE_METADATA,
+  type LanguageMetadata,
+} from "@/i18n/languages";
 
 export type LanguageDirection = "ltr" | "rtl";
 
@@ -15,9 +19,10 @@ export type LanguageDirection = "ltr" | "rtl";
  * @returns true if the language is RTL, false otherwise
  */
 export const isRTLLanguage = (langCode: string): boolean => {
-  if (!langCode) return false;
   const code = langCode.split("-")[0].toLowerCase();
-  return LANGUAGE_METADATA[code]?.direction === "rtl";
+  if (!isLanguageCode(code)) return false;
+  const metadata: LanguageMetadata = LANGUAGE_METADATA[code];
+  return metadata.direction === "rtl";
 };
 
 /**
@@ -34,9 +39,7 @@ export const getLanguageDirection = (langCode: string): LanguageDirection => {
  * @param dir - The direction ('ltr' or 'rtl')
  */
 export const updateDocumentDirection = (dir: LanguageDirection): void => {
-  if (typeof document !== "undefined") {
-    document.documentElement.setAttribute("dir", dir);
-  }
+  globalThis.document?.documentElement.setAttribute("dir", dir);
 };
 
 /**
@@ -44,9 +47,7 @@ export const updateDocumentDirection = (dir: LanguageDirection): void => {
  * @param lang - The language code (e.g., 'ar', 'en')
  */
 export const updateDocumentLanguage = (lang: string): void => {
-  if (typeof document !== "undefined") {
-    document.documentElement.setAttribute("lang", lang);
-  }
+  globalThis.document?.documentElement.setAttribute("lang", lang);
 };
 
 /**

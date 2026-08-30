@@ -2,50 +2,19 @@ import { describe, expect, test } from "bun:test";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { parseTranslationBundle } from "./translationTree";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SRC_ROOT = path.join(__dirname, "..");
-const EN_TRANSLATIONS = JSON.parse(
+const EN_MESSAGES = parseTranslationBundle(
   fs.readFileSync(
     path.join(SRC_ROOT, "i18n", "locales", "en", "translation.json"),
     "utf8",
   ),
 );
 
-type TranslationData = Record<string, unknown>;
-
-const hasKey = (data: TranslationData, keyPath: string[]): boolean => {
-  let current: unknown = data;
-  for (const key of keyPath) {
-    if (
-      typeof current !== "object" ||
-      current === null ||
-      (current as Record<string, unknown>)[key] === undefined
-    ) {
-      return false;
-    }
-    current = (current as Record<string, unknown>)[key];
-  }
-  return true;
-};
-
-const getValue = (data: TranslationData, keyPath: string[]): unknown => {
-  let current: unknown = data;
-  for (const key of keyPath) {
-    if (
-      typeof current !== "object" ||
-      current === null ||
-      (current as Record<string, unknown>)[key] === undefined
-    ) {
-      return undefined;
-    }
-    current = (current as Record<string, unknown>)[key];
-  }
-  return current;
-};
-
 /** Keys whose interpolation makes them unusable as static lookups. */
-const DYNAMIC_KEYS: Record<string, readonly string[]> = {
+const DYNAMIC_KEYS = {
   "overview.recent": ["history", "meeting"],
   "overview.sources": ["microphone", "file", "legacy"],
   "settings.history.stats.source": ["microphone", "file", "legacy"],
@@ -103,7 +72,7 @@ describe("English translation fallback", () => {
     const missing: string[] = [];
     for (const key of usedKeys) {
       if (key.includes("${")) continue;
-      if (!hasKey(EN_TRANSLATIONS, key.split("."))) {
+      if (!EN_MESSAGES.has(key)) {
         missing.push(key);
       }
     }
@@ -114,9 +83,9 @@ describe("English translation fallback", () => {
     const missing: string[] = [];
     for (const [namespace, values] of Object.entries(DYNAMIC_KEYS)) {
       for (const value of values) {
-        const keyPath = [...namespace.split("."), value];
-        if (!hasKey(EN_TRANSLATIONS, keyPath)) {
-          missing.push(keyPath.join("."));
+        const key = `${namespace}.${value}`;
+        if (!EN_MESSAGES.has(key)) {
+          missing.push(key);
         }
       }
     }
@@ -127,8 +96,7 @@ describe("English translation fallback", () => {
     const leaks: string[] = [];
     for (const key of usedKeys) {
       if (key.includes("${")) continue;
-      const value = getValue(EN_TRANSLATIONS, key.split("."));
-      if (typeof value === "string" && value === key) {
+      if (EN_MESSAGES.get(key) === key) {
         leaks.push(key);
       }
     }

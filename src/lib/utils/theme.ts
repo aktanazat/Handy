@@ -25,7 +25,8 @@ export type ResolvedTheme = "light" | "dark";
 
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 
-const isTheme = (value: unknown): value is Theme =>
+/* The only caller is `getStoredTheme`, decoding what localStorage returns. */
+const isTheme = (value: string | null): value is Theme =>
   value === "system" || value === "light" || value === "dark";
 
 /** Collapse a preference into the palette that should be on the root. */

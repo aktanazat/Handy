@@ -5,8 +5,7 @@ import {
   commands,
   type AppSettings as Settings,
   type AudioDevice,
-  type TranscribeAcceleratorSetting,
-  type OrtAcceleratorSetting,
+  type Result,
 } from "@/bindings";
 
 export interface SettingsStore {
@@ -24,7 +23,7 @@ export interface SettingsStore {
   loadDefaultSettings: () => Promise<void>;
   updateSetting: <K extends keyof Settings>(
     key: K,
-    value: Settings[K],
+    value: SettingValue<K>,
   ) => Promise<void>;
   resetSetting: (key: keyof Settings) => Promise<void>;
   refreshSettings: () => Promise<void>;
@@ -70,122 +69,114 @@ const DEFAULT_AUDIO_DEVICE: AudioDevice = {
   is_default: true,
 };
 
-type SettingUpdater = (value: unknown) => Promise<unknown>;
+/* One setting's own value type with the "not present in the store" case
+ * removed. Every `AppSettings` field is optional on the wire because Rust
+ * serializes it from an `Option`, but a write always carries a value. */
+export type SettingValue<K extends keyof Settings> = Exclude<
+  Settings[K],
+  undefined
+>;
 
-const settingUpdaters: Partial<Record<keyof Settings, SettingUpdater>> = {
-  always_on_microphone: (value) =>
-    commands.updateMicrophoneMode(value as boolean),
-  audio_feedback: (value) =>
-    commands.changeAudioFeedbackSetting(value as boolean),
+/* The updater registered for a key receives that key's own value type, so
+ * every command call below is checked against the setting it writes. Each one
+ * is a settings-write command, and those all answer with the same `Result`. */
+type SettingUpdaters = {
+  [K in keyof Settings]?: (
+    value: SettingValue<K>,
+  ) => Promise<Result<null, string>>;
+};
+
+/* "Default" is the label the device pickers show for "whatever the OS
+ * picks"; the backend spells that `default`, and a cleared setting means the
+ * same thing. */
+const deviceName = (value: string | null): string =>
+  value === null || value === "Default" ? "default" : value;
+
+const settingUpdaters: SettingUpdaters = {
+  always_on_microphone: (value) => commands.updateMicrophoneMode(value),
+  audio_feedback: (value) => commands.changeAudioFeedbackSetting(value),
   audio_feedback_volume: (value) =>
-    commands.changeAudioFeedbackVolumeSetting(value as number),
-  sound_theme: (value) => commands.changeSoundThemeSetting(value as string),
-  start_hidden: (value) => commands.changeStartHiddenSetting(value as boolean),
-  autostart_enabled: (value) =>
-    commands.changeAutostartSetting(value as boolean),
+    commands.changeAudioFeedbackVolumeSetting(value),
+  sound_theme: (value) => commands.changeSoundThemeSetting(value),
+  start_hidden: (value) => commands.changeStartHiddenSetting(value),
+  autostart_enabled: (value) => commands.changeAutostartSetting(value),
   show_whats_new_on_update: (value) =>
-    commands.changeShowWhatsNewOnUpdateSetting(value as boolean),
+    commands.changeShowWhatsNewOnUpdateSetting(value),
   whats_new_last_seen_version: (value) =>
-    commands.changeWhatsNewLastSeenVersionSetting(value as string),
-  push_to_talk: (value) => commands.changePttSetting(value as boolean),
-  /* SAFETY: `updateSetting` only ever calls the updater registered under the
-   * key whose value it was given, so `value` is this field's own `boolean`;
-   * `SettingUpdater` erases that to `unknown` because one map holds them all. */
+    commands.changeWhatsNewLastSeenVersionSetting(value),
+  push_to_talk: (value) => commands.changePttSetting(value),
   command_mode_enabled: (value) =>
-    commands.changeCommandModeEnabledSetting(value as boolean),
+    commands.changeCommandModeEnabledSetting(value),
   selected_microphone: (value) =>
-    commands.setSelectedMicrophone(
-      (value as string) === "Default" || value === null
-        ? "default"
-        : (value as string),
-    ),
+    commands.setSelectedMicrophone(deviceName(value)),
   selected_channel: async (value) => {
-    const result = await commands.setSelectedChannel(
-      (value as number | null | undefined) ?? null,
-    );
+    const result = await commands.setSelectedChannel(value);
     if (result.status === "error") {
       throw new Error(result.error);
     }
+    return result;
   },
   clamshell_microphone: (value) =>
-    commands.setClamshellMicrophone(
-      (value as string) === "Default" ? "default" : (value as string),
-    ),
+    commands.setClamshellMicrophone(deviceName(value)),
   selected_output_device: (value) =>
-    commands.setSelectedOutputDevice(
-      (value as string) === "Default" || value === null
-        ? "default"
-        : (value as string),
-    ),
+    commands.setSelectedOutputDevice(deviceName(value)),
   recording_retention_period: (value) =>
-    commands.updateRecordingRetentionPeriod(value as string),
+    commands.updateRecordingRetentionPeriod(value),
   translate_to_english: (value) =>
-    commands.changeTranslateToEnglishSetting(value as boolean),
-  selected_language: (value) =>
-    commands.changeSelectedLanguageSetting(value as string),
-  english_spelling: (value) => {
-    if (value !== "as_spoken" && value !== "british") {
-      return Promise.reject(new Error("Invalid English spelling setting"));
-    }
-    return commands.changeEnglishSpellingSetting(value);
-  },
-  overlay_position: (value) =>
-    commands.changeOverlayPositionSetting(value as string),
-  debug_mode: (value) => commands.changeDebugModeSetting(value as boolean),
+    commands.changeTranslateToEnglishSetting(value),
+  selected_language: (value) => commands.changeSelectedLanguageSetting(value),
+  english_spelling: (value) => commands.changeEnglishSpellingSetting(value),
+  overlay_position: (value) => commands.changeOverlayPositionSetting(value),
+  debug_mode: (value) => commands.changeDebugModeSetting(value),
   word_correction_threshold: (value) =>
-    commands.changeWordCorrectionThresholdSetting(value as number),
-  paste_delay_ms: (value) =>
-    commands.changePasteDelayMsSetting(value as number),
+    commands.changeWordCorrectionThresholdSetting(value),
+  paste_delay_ms: (value) => commands.changePasteDelayMsSetting(value),
   paste_delay_after_ms: (value) =>
-    commands.changePasteDelayAfterMsSetting(value as number),
-  reliable_paste: (value) =>
-    commands.changeReliablePasteSetting(value as boolean),
-  paste_method: (value) => commands.changePasteMethodSetting(value as string),
-  typing_tool: (value) => commands.changeTypingToolSetting(value as string),
+    commands.changePasteDelayAfterMsSetting(value),
+  reliable_paste: (value) => commands.changeReliablePasteSetting(value),
+  paste_method: (value) => commands.changePasteMethodSetting(value),
+  typing_tool: (value) => commands.changeTypingToolSetting(value),
   external_script_path: (value) =>
-    commands.changeExternalScriptPathSetting(value as string | null),
-  clipboard_handling: (value) =>
-    commands.changeClipboardHandlingSetting(value as string),
-  auto_submit: (value) => commands.changeAutoSubmitSetting(value as boolean),
-  auto_submit_key: (value) =>
-    commands.changeAutoSubmitKeySetting(value as string),
-  history_limit: (value) => commands.updateHistoryLimit(value as number),
+    commands.changeExternalScriptPathSetting(value),
+  clipboard_handling: (value) => commands.changeClipboardHandlingSetting(value),
+  auto_submit: (value) => commands.changeAutoSubmitSetting(value),
+  auto_submit_key: (value) => commands.changeAutoSubmitKeySetting(value),
+  history_limit: (value) => commands.updateHistoryLimit(value),
   post_process_enabled: (value) =>
-    commands.changePostProcessEnabledSetting(value as boolean),
+    commands.changePostProcessEnabledSetting(value),
+  /* The backend only ever *selects* a prompt that exists, so there is no
+   * command for clearing the selection. Reject instead of sending a null the
+   * IPC layer would refuse to deserialize. */
   post_process_selected_prompt_id: (value) =>
-    commands.setPostProcessSelectedPrompt(value as string),
+    value === null
+      ? Promise.reject(new Error("No post-process prompt id to select"))
+      : commands.setPostProcessSelectedPrompt(value),
   mute_while_recording: (value) =>
-    commands.changeMuteWhileRecordingSetting(value as boolean),
+    commands.changeMuteWhileRecordingSetting(value),
   append_trailing_space: (value) =>
-    commands.changeAppendTrailingSpaceSetting(value as boolean),
-  log_level: (value) => commands.setLogLevel(value as any),
-  app_language: (value) => commands.changeAppLanguageSetting(value as string),
-  theme: (value) => commands.changeThemeSetting(value as string),
+    commands.changeAppendTrailingSpaceSetting(value),
+  log_level: (value) => commands.setLogLevel(value),
+  app_language: (value) => commands.changeAppLanguageSetting(value),
+  theme: (value) => commands.changeThemeSetting(value),
   /* The Rust side resolves intent against whether native vibrancy actually
    * applied and writes the resulting `data-material` into every webview
    * itself, so there is nothing to do here with the return value. */
   appearance_material: (value) =>
-    commands.changeAppearanceMaterialSetting(String(value)),
+    commands.changeAppearanceMaterialSetting(value),
   experimental_enabled: (value) =>
-    commands.changeExperimentalEnabledSetting(value as boolean),
-  lazy_stream_close: (value) =>
-    commands.changeLazyStreamCloseSetting(value as boolean),
-  overlay_style: (value) => commands.changeOverlayStyleSetting(value as string),
-  vad_enabled: (value) => commands.changeVadEnabledSetting(value as boolean),
+    commands.changeExperimentalEnabledSetting(value),
+  lazy_stream_close: (value) => commands.changeLazyStreamCloseSetting(value),
+  overlay_style: (value) => commands.changeOverlayStyleSetting(value),
+  vad_enabled: (value) => commands.changeVadEnabledSetting(value),
   filler_word_removal_enabled: (value) =>
-    commands.changeFillerWordRemovalEnabledSetting(value as boolean),
-  show_tray_icon: (value) =>
-    commands.changeShowTrayIconSetting(value as boolean),
+    commands.changeFillerWordRemovalEnabledSetting(value),
+  show_tray_icon: (value) => commands.changeShowTrayIconSetting(value),
   transcribe_accelerator: (value) =>
-    commands.changeTranscribeAcceleratorSetting(
-      value as TranscribeAcceleratorSetting,
-    ),
-  ort_accelerator: (value) =>
-    commands.changeOrtAcceleratorSetting(value as OrtAcceleratorSetting),
-  transcribe_gpu_device: (value) =>
-    commands.changeTranscribeGpuDevice(value as string | null),
+    commands.changeTranscribeAcceleratorSetting(value),
+  ort_accelerator: (value) => commands.changeOrtAcceleratorSetting(value),
+  transcribe_gpu_device: (value) => commands.changeTranscribeGpuDevice(value),
   extra_recording_buffer_ms: (value) =>
-    commands.changeExtraRecordingBufferSetting(value as number),
+    commands.changeExtraRecordingBufferSetting(value),
 };
 
 /* The in-flight (then settled) first load. See `initialize` for why the latch
@@ -307,7 +298,7 @@ export const useSettingsStore = create<SettingsStore>()(
     // Update a specific setting
     updateSetting: async <K extends keyof Settings>(
       key: K,
-      value: Settings[K],
+      value: SettingValue<K>,
     ) => {
       const { settings, setUpdating } = get();
       const updateKey = String(key);
@@ -342,7 +333,7 @@ export const useSettingsStore = create<SettingsStore>()(
       if (defaultSettings) {
         const defaultValue = defaultSettings[key];
         if (defaultValue !== undefined) {
-          await get().updateSetting(key, defaultValue as any);
+          await get().updateSetting(key, defaultValue);
         }
       }
     },
@@ -369,7 +360,7 @@ export const useSettingsStore = create<SettingsStore>()(
                 ...bindings,
                 [id]: { ...currentBinding, current_binding: binding },
               },
-            } as Settings,
+            },
           };
         });
 
@@ -401,7 +392,7 @@ export const useSettingsStore = create<SettingsStore>()(
                   ...bindings,
                   [id]: { ...currentBinding, current_binding: originalBinding },
                 },
-              } as Settings,
+              },
             };
           });
         }

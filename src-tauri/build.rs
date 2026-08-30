@@ -42,6 +42,28 @@ fn main() {
     tauri_build::build()
 }
 
+/// The `transcribe-libs/` staging directory beside this crate's manifest.
+///
+/// Three callers stage into it — the MSVC runtime DLLs, `onnxruntime.dll`, and
+/// transcribe-cpp's shared libraries — so the path lives here rather than
+/// being spelled out again at each one.
+fn transcribe_libs_path() -> std::path::PathBuf {
+    // cargo always sets CARGO_MANIFEST_DIR for a build script, and the staged
+    // libraries have to land beside the manifest for the bundler to find them.
+    // PANIC: a build that cannot locate its own crate root must stop.
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+    std::path::PathBuf::from(manifest_dir).join("transcribe-libs")
+}
+
+/// [`transcribe_libs_path`], created if it does not exist yet.
+fn transcribe_libs_dir() -> std::path::PathBuf {
+    let dir = transcribe_libs_path();
+    // Without this directory the installer ships with no runtime libraries.
+    // PANIC: a silently incomplete package is worse than a failed build.
+    std::fs::create_dir_all(&dir).expect("create transcribe-libs staging dir");
+    dir
+}
+
 /// Stage the MSVC runtime DLLs into `transcribe-libs/` for app-local deployment.
 ///
 /// Sona's native stack links the VC++ runtime dynamically (/MD). Shipping the
@@ -52,8 +74,6 @@ fn main() {
 /// Visual Studio install that compiled the native code. Copies only the runtime
 /// DLL families Sona imports and no-ops when the env var is unset.
 fn stage_vc_runtime_dlls() {
-    use std::path::PathBuf;
-
     println!("cargo:rerun-if-env-changed=SONA_VC_REDIST_DIRS");
 
     let Some(redist_dirs) = std::env::var_os("SONA_VC_REDIST_DIRS") else {
@@ -63,8 +83,7 @@ fn stage_vc_runtime_dlls() {
         return;
     }
 
-    let dest = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap()).join("transcribe-libs");
-    std::fs::create_dir_all(&dest).expect("create transcribe-libs staging dir");
+    let dest = transcribe_libs_dir();
 
     let mut copied: Vec<String> = Vec::new();
     for dir in std::env::split_paths(&redist_dirs) {
@@ -143,9 +162,7 @@ fn stage_onnxruntime_dll() {
     // transcribe-libs/ is already created by stage_transcribe_runtime_libs() on the
     // Windows x86_64 dynamic-backends build and bundled by tauri.windows.conf.json;
     // create it defensively so this is self-contained.
-    let dest_dir =
-        PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap()).join("transcribe-libs");
-    std::fs::create_dir_all(&dest_dir).expect("create transcribe-libs staging dir");
+    let dest_dir = transcribe_libs_dir();
     std::fs::copy(&src, dest_dir.join("onnxruntime.dll"))
         .unwrap_or_else(|e| panic!("copy {}: {e}", src.display()));
     println!("cargo:warning=Staged onnxruntime.dll for Windows bundling");
@@ -192,11 +209,10 @@ fn stage_transcribe_runtime_libs() {
         dirs.insert(PathBuf::from(module_dir));
     }
 
-    let dest = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap()).join("transcribe-libs");
     // Recreate clean so a renamed or dropped ggml module can never linger in the
     // package from a previous build.
-    let _ = std::fs::remove_dir_all(&dest);
-    std::fs::create_dir_all(&dest).expect("create transcribe-libs staging dir");
+    let _ = std::fs::remove_dir_all(transcribe_libs_path());
+    let dest = transcribe_libs_dir();
 
     // Collect every candidate library name first (across both dirs) so the
     // pruning below can see each lib's whole symlink family at once.
@@ -282,6 +298,39 @@ fn split_versioned_so(name: &str) -> Option<(&str, usize)> {
         .then_some((stem, comps.len()))
 }
 
+/// The one section of a locale bundle the tray codegen reads: the tray menu's
+/// flat map of key to translated string. Every other section is ignored, and a
+/// `tray` that is not a flat string map fails the build rather than producing a
+/// tray with blank labels.
+#[derive(serde::Deserialize)]
+struct LocaleBundle {
+    tray: Option<std::collections::BTreeMap<String, String>>,
+}
+
+/// One locale directory's tray strings, keyed by its BCP-47 directory name.
+/// `None` for a bundle that carries no `tray` section.
+fn read_locale_tray(
+    dir: &std::path::Path,
+) -> Option<(String, std::collections::BTreeMap<String, String>)> {
+    // `read_dir` never yields an entry without a final component, and a locale
+    // directory is named after its BCP-47 code, which is ASCII.
+    // PANIC: a non-UTF-8 name here means a corrupt checkout.
+    let lang = dir.file_name().unwrap().to_str().unwrap().to_string();
+    let json_path = dir.join("translation.json");
+
+    println!("cargo:rerun-if-changed={}", json_path.display());
+
+    // Every locale directory in the repo carries a translation.json.
+    // PANIC: an unreadable one must fail the build.
+    let content = std::fs::read_to_string(&json_path).unwrap();
+    // `bun run check:translations` gates every bundle's contents, so a file
+    // that does not parse here means that gate was bypassed.
+    // PANIC: a malformed bundle must fail the build, not ship blank labels.
+    let bundle: LocaleBundle = serde_json::from_str(&content).unwrap();
+
+    bundle.tray.map(|tray| (lang, tray))
+}
+
 /// Generate tray menu translations from frontend locale files.
 ///
 /// Source of truth: src/i18n/locales/*/translation.json
@@ -291,35 +340,34 @@ fn generate_tray_translations() {
     use std::fs;
     use std::path::Path;
 
+    // cargo always sets OUT_DIR for a build script, and there is nowhere to
+    // write the generated module without it.
+    // PANIC: a build that cannot find its own output directory must stop.
     let out_dir = std::env::var("OUT_DIR").unwrap();
     let locales_dir = Path::new("../src/i18n/locales");
 
     println!("cargo:rerun-if-changed=../src/i18n/locales");
 
     // Collect all locale translations
-    let mut translations: BTreeMap<String, serde_json::Value> = BTreeMap::new();
+    let mut translations: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
 
-    for entry in fs::read_dir(locales_dir).unwrap().flatten() {
+    // The locales directory is checked into the repo beside this crate.
+    // PANIC: its absence means a broken checkout, not a build to continue.
+    let locale_entries = fs::read_dir(locales_dir).unwrap();
+    for entry in locale_entries.flatten() {
         let path = entry.path();
         if !path.is_dir() {
             continue;
         }
-
-        let lang = path.file_name().unwrap().to_str().unwrap().to_string();
-        let json_path = path.join("translation.json");
-
-        println!("cargo:rerun-if-changed={}", json_path.display());
-
-        let content = fs::read_to_string(&json_path).unwrap();
-        let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
-
-        if let Some(tray) = parsed.get("tray").cloned() {
+        if let Some((lang, tray)) = read_locale_tray(&path) {
             translations.insert(lang, tray);
         }
     }
 
-    // English defines the schema
-    let english = translations.get("en").unwrap().as_object().unwrap();
+    // English defines the schema, and without it there are no fields at all —
+    // every downstream `TrayStrings` reference would fail to compile.
+    // PANIC: a missing reference locale must stop the build.
+    let english = translations.get("en").unwrap();
     let fields: Vec<_> = english
         .keys()
         .map(|k| (camel_to_snake(k), k.clone()))
@@ -346,7 +394,7 @@ fn generate_tray_translations() {
     for (lang, tray) in &translations {
         out.push_str(&format!("    m.insert(\"{lang}\", TrayStrings {{\n"));
         for (rust_field, json_key) in &fields {
-            let val = tray.get(json_key).and_then(|v| v.as_str()).unwrap_or("");
+            let val = tray.get(json_key).map(String::as_str).unwrap_or("");
             out.push_str(&format!(
                 "        {rust_field}: \"{}\".to_string(),\n",
                 escape_string(val)
@@ -357,6 +405,9 @@ fn generate_tray_translations() {
 
     out.push_str("    m\n});\n");
 
+    // OUT_DIR is cargo's own scratch directory for this crate, and a module
+    // that cannot be written leaves the crate referencing a missing file.
+    // PANIC: the build must stop here rather than fail later and obscurely.
     fs::write(Path::new(&out_dir).join("tray_translations.rs"), out).unwrap();
 
     println!(
@@ -373,7 +424,10 @@ fn camel_to_snake(s: &str) -> String {
             if c.is_uppercase() && i > 0 {
                 acc.push('_');
             }
-            acc.push(c.to_lowercase().next().unwrap());
+            /* `char::to_lowercase` yields one or more chars, and the tail
+             * matters: the old `.next().unwrap()` dropped every char past the
+             * first, silently truncating a key whose lowercase expands. */
+            acc.extend(c.to_lowercase());
             acc
         })
 }
@@ -395,9 +449,14 @@ fn build_meeting_capture_bridge() {
     const SOURCE: &str = "swift/meeting_capture.swift";
     println!("cargo:rerun-if-changed={SOURCE}");
 
+    // The compiled bridge has nowhere to go without cargo's output directory.
+    // PANIC: cargo always sets OUT_DIR for a build script.
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
     let object_path = out_dir.join("meeting_capture.o");
     let archive_path = out_dir.join("libmeeting_capture.a");
+    // Every macOS toolchain that can build this crate ships xcrun, and the SDK
+    // path it prints is a filesystem path.
+    // PANIC: no SDK means no Swift bridge, so the build cannot continue.
     let sdk_path = env::var("SDKROOT").unwrap_or_else(|_| {
         String::from_utf8(
             Command::new("xcrun")
@@ -410,6 +469,9 @@ fn build_meeting_capture_bridge() {
         .trim()
         .to_string()
     });
+    // Same toolchain guarantee as the SDK above: xcrun locates swiftc, and its
+    // answer is a filesystem path.
+    // PANIC: no Swift compiler means no bridge to link against.
     let swiftc_path = env::var("SWIFTC").unwrap_or_else(|_| {
         String::from_utf8(
             Command::new("xcrun")
@@ -422,12 +484,17 @@ fn build_meeting_capture_bridge() {
         .trim()
         .to_string()
     });
+    // The Swift target triple cannot be formed without the architecture.
+    // PANIC: cargo always sets CARGO_CFG_TARGET_ARCH.
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH").expect("target architecture unavailable");
     let target = format!("{target_arch}-apple-macosx14.0");
 
     if !Path::new(SOURCE).is_file() {
         panic!("Meeting capture Swift source is missing");
     }
+    // Both paths were just built from OUT_DIR, which cargo keeps UTF-8, and a
+    // swiftc that cannot run leaves the crate with no bridge to link.
+    // PANIC: stop here rather than fail obscurely at link time.
     let status = Command::new(&swiftc_path)
         .args([
             "-parse-as-library",
@@ -448,6 +515,9 @@ fn build_meeting_capture_bridge() {
     if !status.success() {
         panic!("swiftc failed to compile meeting capture bridge");
     }
+    // libtool is part of the same toolchain, and without the archive there is
+    // nothing for `rustc-link-lib=static` to find.
+    // PANIC: stop here rather than fail obscurely at link time.
     let status = Command::new("libtool")
         .args([
             "-static",
@@ -465,6 +535,8 @@ fn build_meeting_capture_bridge() {
         panic!("libtool failed for meeting capture bridge");
     }
 
+    // swiftc lives at <toolchain>/usr/bin/swiftc, so it always has two parents.
+    // PANIC: a layout without them is not a toolchain this bridge can link to.
     let toolchain_swift_lib = Path::new(&swiftc_path)
         .parent()
         .and_then(|path| path.parent())
@@ -508,12 +580,15 @@ fn build_apple_intelligence_bridge() {
     println!("cargo:rerun-if-changed={STUB_SWIFT_FILE}");
     println!("cargo:rerun-if-changed={BRIDGE_HEADER}");
 
+    // The compiled bridge has nowhere to go without cargo's output directory.
+    // PANIC: cargo always sets OUT_DIR for a build script.
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
     let object_path = out_dir.join("apple_intelligence.o");
     let static_lib_path = out_dir.join("libapple_intelligence.a");
 
     // SDKROOT/SWIFTC env-var overrides let non-Xcode toolchains (e.g. nixpkgs
     // with apple-sdk_* + standalone swift) bypass xcrun, which is Xcode-only.
+    // PANIC: no macOS SDK means no Swift bridge, so the build cannot continue.
     let sdk_path = env::var("SDKROOT").unwrap_or_else(|_| {
         String::from_utf8(
             Command::new("xcrun")
@@ -577,6 +652,7 @@ fn build_apple_intelligence_bridge() {
     }
 
     // See SDKROOT note above — same env-override pattern for non-Xcode toolchains.
+    // PANIC: no Swift compiler means no bridge to link against.
     let swiftc_path = env::var("SWIFTC").unwrap_or_else(|_| {
         String::from_utf8(
             Command::new("xcrun")
@@ -590,6 +666,8 @@ fn build_apple_intelligence_bridge() {
         .to_string()
     });
 
+    // swiftc lives at <toolchain>/usr/bin/swiftc, so it always has two parents.
+    // PANIC: a layout without them is not a toolchain this bridge can link to.
     let toolchain_swift_lib = Path::new(&swiftc_path)
         .parent()
         .and_then(|p| p.parent())
@@ -600,6 +678,8 @@ fn build_apple_intelligence_bridge() {
     // Use macOS 11.0 as deployment target for compatibility
     // The @available(macOS 26.0, *) checks in Swift handle runtime availability
     // Weak linking for FoundationModels is handled via cargo:rustc-link-arg below
+    // A swiftc that cannot run leaves the crate with no bridge to link.
+    // PANIC: stop here rather than fail obscurely at link time.
     let status = Command::new(&swiftc_path)
         .args([
             // Without this flag swiftc treats single-file input as script
@@ -632,6 +712,9 @@ fn build_apple_intelligence_bridge() {
         panic!("swiftc failed to compile {source_file}");
     }
 
+    // libtool is part of the same toolchain, and without the archive there is
+    // nothing for `rustc-link-lib=static` to find.
+    // PANIC: stop here rather than fail obscurely at link time.
     let status = Command::new("libtool")
         .args([
             "-static",
