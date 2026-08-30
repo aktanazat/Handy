@@ -18,8 +18,12 @@ import { installTauriMock, type JsonValue } from "./support/tauri-mock";
  * tests are for, and reading it needs no sleep and no timing guess. */
 
 const MODE_IDS = MODES_SNAPSHOT.modes.map((mode) => mode.id);
-const SUBNAV = ".app-subnav-inner";
-const TAB_MARK = `${SUBNAV} [role="tab"] span[aria-hidden="true"]`;
+/* The Library page's Processed/Raw strip: the shared segmented Tabs
+ * primitive. The old top bar's Library/Meetings sub-nav died with the top
+ * bar — the sidebar shell made Meetings a first-class destination — so the
+ * moving mark is proved on the in-page strip that remains. */
+const TAB_STRIP = ".history-toolbar [role='tablist']";
+const TAB_MARK = `${TAB_STRIP} [role="tab"] span[aria-hidden="true"]`;
 
 /**
  * The mark's left edge, waited for rather than asserted non-null.
@@ -282,7 +286,7 @@ test.describe("segmented tab indicator", () => {
     await installTauriMock(page);
     await openApp(page, "Library");
 
-    const tabs = page.locator(SUBNAV).getByRole("tab");
+    const tabs = page.locator(TAB_STRIP).getByRole("tab");
     await expect(tabs.first()).toBeVisible();
 
     /* One mark on the strip, not one per segment: that is what makes it a
@@ -313,7 +317,7 @@ test.describe("segmented tab indicator", () => {
     await installTauriMock(page);
     await openApp(page, "Library");
 
-    const tabs = page.locator(SUBNAV).getByRole("tab");
+    const tabs = page.locator(TAB_STRIP).getByRole("tab");
     await expect(tabs.first()).toBeVisible();
     const before = await markX(page);
 
@@ -503,7 +507,7 @@ test.describe("reduced motion", () => {
     await emulateReduce(page);
     await page.getByRole("button", { name: "Library", exact: true }).click();
 
-    const tabs = page.locator(SUBNAV).getByRole("tab");
+    const tabs = page.locator(TAB_STRIP).getByRole("tab");
     await expect(tabs.first()).toBeVisible();
     const from = await markX(page);
 

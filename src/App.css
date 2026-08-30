@@ -488,9 +488,6 @@
     justify-self: stretch;
     max-inline-size: none;
   }
-  .app-topnav {
-    padding-inline-end: var(--space-2);
-  }
 
   .modes-workspace {
     grid-template-columns: minmax(0, 1fr);
@@ -537,13 +534,6 @@
     grid-column: 1 / -1;
     flex-direction: row;
     gap: 8px;
-  }
-}
-
-@media (max-width: 600px) {
-  .app-topnav-wordmark,
-  .app-topnav-model {
-    display: none;
   }
 }
 

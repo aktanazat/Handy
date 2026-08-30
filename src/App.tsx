@@ -15,7 +15,7 @@ import SecureInputWarning from "./components/SecureInputWarning";
 import Onboarding from "./components/onboarding/Onboarding";
 import AccessibilityOnboarding from "./components/onboarding/AccessibilityOnboarding";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { TopNav } from "./components/TopNav";
+import { Sidebar } from "./components/Sidebar";
 import { CommandPalette } from "./components/CommandPalette";
 import { DetectionListeners } from "./components/settings/meetings/DetectionListeners";
 import { RouteSkeleton, Toaster } from "./components/ui";
@@ -131,8 +131,6 @@ interface AppContentProps {
   commandActions: CommandPaletteAction[];
   onCommandClose: () => void;
   onCommandOpen: () => void;
-  scrollRef: React.RefObject<HTMLDivElement>;
-  onScroll: () => void;
 }
 
 const AppContent = ({
@@ -150,8 +148,6 @@ const AppContent = ({
   commandActions,
   onCommandClose,
   onCommandOpen,
-  scrollRef,
-  onScroll,
 }: AppContentProps) => {
   if (onboardingStep === null) return null;
   if (onboardingStep === "accessibility") {
@@ -164,22 +160,18 @@ const AppContent = ({
   return (
     <div
       dir={direction}
-      className="app-shell flex h-screen flex-col select-none cursor-default"
+      className="app-shell flex h-screen select-none cursor-default"
     >
       <ErrorBoundary context="What's New">
         <WhatsNewGate />
       </ErrorBoundary>
-      <TopNav
+      <Sidebar
         activeSection={currentSection}
         onSectionChange={onSectionChange}
         onOpenCommand={onCommandOpen}
       />
       <main className="settings-main flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div
-          ref={scrollRef}
-          onScroll={onScroll}
-          className="settings-scroll flex-1 overflow-y-auto"
-        >
+        <div className="settings-scroll flex-1 overflow-y-auto">
           <div className="settings-content flex w-full flex-col items-stretch">
             <AccessibilityPermissions />
             <SecureInputWarning />
@@ -462,20 +454,6 @@ function App() {
   );
   const hasCompletedPostOnboardingInit = useRef(false);
 
-  /* The top bar only goes solid once page content passes under it. The flag
-   * lives on the document root, the way Vercel's own chrome tracks it, so the
-   * bar can react in CSS without this component re-rendering on every scroll
-   * event. Re-synced per route because a shorter page can leave the pane
-   * clamped back at the top without emitting a scroll. */
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const syncScrolled = useCallback(() => {
-    document.documentElement.toggleAttribute(
-      "data-scrolled",
-      (scrollRef.current?.scrollTop ?? 0) > 4,
-    );
-  }, []);
-  useEffect(syncScrolled, [currentSection, syncScrolled]);
-
   /* A route change swaps the whole view, which is the one case the View
    * Transitions API is for. The deep-link handler below deliberately keeps the
    * raw setter: it moves three pieces of state at once, and snapshotting a
@@ -731,8 +709,6 @@ function App() {
         commandActions={commandActions}
         onCommandClose={() => setCommandOpen(false)}
         onCommandOpen={() => setCommandOpen(true)}
-        scrollRef={scrollRef}
-        onScroll={syncScrolled}
       />
     </MotionProvider>
   );

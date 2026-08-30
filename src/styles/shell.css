@@ -1,15 +1,15 @@
-/* App chrome: window shell, top bar, section sub-nav, command palette and the
- * scrolling page container.
+/* App chrome: window shell, left sidebar, command palette and the scrolling
+ * page container.
  *
- * The top bar is the whole navigation model: the brand mark, three text
- * routes on the left, model state, a command-palette chip and one utility on
- * the right. It is 52px, it does not scroll, and it is a quiet SURFACE
- * (--color-surface) one step off the page from the first frame — the reskin
- * retired the transparent-until-scrolled treatment; scrolling now only
- * strengthens the bar's bottom hairline. Under Glass it carries the tint
- * instead: behind it is the desktop, not the page, and nav text floating on
- * wallpaper is not legible. The active route is named by aria-current and
- * shown as an accent-soft pill plus a weight jump. */
+ * The sidebar is the whole navigation model: the brand row, a search row
+ * that opens the command palette, five text destinations and the model chip
+ * docked at the foot. It is 220px, full height, does not scroll, and is a
+ * quiet SURFACE (--color-surface) one step off the page, closed by a 1px
+ * hairline on its content edge. Under Glass it carries the tint instead:
+ * behind it is the desktop, not the page, and nav text floating on wallpaper
+ * is not legible. The active route is named by aria-current and shown as an
+ * accent-soft fill plus a weight jump. Every edge and inset is logical, so
+ * the whole rail mirrors itself under RTL. */
 
 /* ---------------------------------------------------------------- shell */
 
@@ -30,248 +30,167 @@
   background: transparent;
 }
 
-/* ------------------------------------------------------------- top nav */
+/* -------------------------------------------------------------- sidebar */
 
-.app-topnav {
-  align-items: stretch;
+.app-sidebar {
   background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-inline-end: 1px solid var(--color-border-subtle);
   display: flex;
   flex: none;
-  gap: var(--space-2);
-  min-block-size: var(--topnav-height);
-  padding-inline: var(--space-3);
-  transition: border-color var(--duration-standard) var(--ease-out);
+  flex-direction: column;
+  /* One value, one consumer. At the 680px minimum window this still leaves
+     the content pane the width the page breakpoints already serve. */
+  inline-size: 220px;
+  min-block-size: 0;
+  padding: 0 var(--space-2) var(--space-2);
   user-select: none;
 }
 
-:root[data-scrolled] .app-topnav {
-  border-bottom-color: var(--color-border);
-}
-
-:root[data-platform="macos"] .app-topnav {
-  padding-inline-start: 80px;
-}
-
-.app-topnav-mark {
-  align-items: center;
-  color: var(--color-text-primary);
-  display: flex;
+/* Clearance for the overlay title bar: on macOS the traffic lights sit in
+ * the sidebar's top corner (TitleBarStyle::Overlay, hidden title), so the
+ * rail keeps a draggable spacer above the brand row. Other platforms keep
+ * their native title bar and need only a breath. */
+.app-sidebar-drag {
+  block-size: var(--space-2);
   flex: none;
-  gap: var(--space-1-5);
 }
 
-.app-topnav-mark svg {
-  block-size: 16px;
-  color: var(--color-accent);
-  inline-size: 16px;
+:root[data-platform="macos"] .app-sidebar-drag {
+  block-size: 38px;
 }
 
-.app-topnav-wordmark {
-  font-size: var(--fs-heading-15);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  line-height: var(--lh-heading-15);
-  white-space: nowrap;
-}
-
-.app-topnav-routes {
-  align-items: stretch;
-  display: flex;
-  gap: var(--space-1);
-  margin-inline-start: var(--space-5);
-  min-inline-size: 0;
-}
-
-.app-topnav-route {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  font-size: var(--type-row-size);
-  font-weight: var(--type-row-weight);
-  isolation: isolate;
-  min-block-size: var(--touch-target);
-  min-inline-size: var(--touch-target);
-  padding-inline: var(--space-2-5);
-  position: relative;
-  transition: color var(--duration-fast) var(--ease-in-out);
-  white-space: nowrap;
-}
-
-/* The route's visible body: a pill inset from the full-height hit target,
- * the same device the icon button uses. The active route fills it with the
- * accent-soft step; hover stays an achromatic wash so only selection earns
- * the accent. */
-.app-topnav-route::before {
-  background: transparent;
-  border-radius: var(--radius-control);
-  content: "";
-  inset-block: calc((var(--topnav-height) - 32px) / 2);
-  inset-inline: 0;
-  position: absolute;
-  transition: background-color var(--duration-fast) var(--ease-in-out);
-  z-index: -1;
-}
-
-.app-topnav-route:hover {
-  color: var(--color-text-primary);
-}
-
-.app-topnav-route:hover::before {
-  background: var(--color-hover);
-}
-
-.app-topnav-route:active::before {
-  background: var(--color-pressed);
-}
-
-/* The whole nav item is the hit target, so its ring hugs the pill rather
- * than floating on the bar's edges. */
-.app-topnav-route:focus-visible {
-  color: var(--color-text-primary);
-  outline-offset: -8px;
-}
-
-.app-topnav-route[aria-current="page"] {
-  color: var(--color-text-primary);
-  font-weight: var(--fw-heading);
-}
-
-.app-topnav-route[aria-current="page"]::before {
-  background: var(--color-accent-soft);
-}
-
-.app-topnav-spacer {
-  flex: 1 1 auto;
-  min-inline-size: var(--space-2);
-}
-
-.app-topnav-actions {
+.app-sidebar-brand {
   align-items: center;
+  color: var(--color-text-primary);
   display: flex;
-  flex: none;
-  gap: var(--space-0-5);
-  min-inline-size: 0;
-}
-
-/* A search field that is really a button: it opens the command palette, so it
- * carries the shortcut that does the same thing instead of a caret. */
-.app-topnav-search {
-  align-items: center;
-  background: var(--color-canvas);
-  border: 1px solid transparent;
-  border-radius: var(--radius-control);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  display: inline-flex;
   flex: none;
   gap: var(--space-2);
+  margin-block-end: var(--space-4);
   min-block-size: var(--control-height);
-  padding-inline: var(--space-2) var(--space-1-5);
+  padding-inline: var(--space-2-5);
+}
+
+.app-sidebar-brand svg {
+  block-size: 18px;
+  color: var(--color-accent);
+  flex: none;
+  inline-size: 18px;
+}
+
+.app-sidebar-wordmark {
+  font-size: var(--fs-heading-14);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: var(--lh-heading-14);
+  white-space: nowrap;
+}
+
+/* A search field that is really a button: it opens the command palette, so
+ * it carries the chord that does the same thing instead of a caret. Quiet
+ * like the nav rows under it; the keycaps sit against the row's end edge. */
+.app-sidebar-search {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-control);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  flex: none;
+  gap: var(--space-2);
+  margin-block-end: var(--space-3);
+  min-block-size: var(--control-height);
+  padding-inline: var(--space-2-5);
   transition:
     background-color var(--duration-fast) var(--ease-in-out),
-    border-color var(--duration-fast) var(--ease-in-out),
     color var(--duration-fast) var(--ease-in-out);
 }
 
-.app-topnav-search:hover {
-  border-color: var(--color-border);
+.app-sidebar-search:hover {
+  background: var(--color-hover);
   color: var(--color-text-primary);
 }
 
-.app-topnav-search:active {
+.app-sidebar-search:active {
   background: var(--color-pressed);
 }
 
-.app-topnav-search svg {
+.app-sidebar-search svg {
   block-size: 14px;
   flex: none;
   inline-size: 14px;
 }
 
-.app-topnav-search-label {
+.app-sidebar-search-label {
   font-size: var(--fs-label-13);
   font-weight: var(--fw-label);
   line-height: var(--lh-label-13);
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* The window narrows below the point where a label and a chord both fit; the
- * icon alone still names the control through its aria-label. */
-@media (max-width: 720px) {
-  .app-topnav-search-label,
-  .app-topnav-search-keys {
-    display: none;
-  }
+.app-sidebar-search-keys {
+  margin-inline-start: auto;
 }
 
-.app-topnav-icon-button {
+.app-sidebar-nav {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--space-0-5);
+}
+
+/* One row per destination. 32px rows on the control radius; selection is the
+ * accent-soft fill plus primary text and the weight jump — the same device
+ * the Tabs primitive uses, so "current" reads identically everywhere. Hover
+ * stays an achromatic wash: only selection earns the accent. No black fills,
+ * no side accent bar. */
+.app-sidebar-item {
   align-items: center;
   background: transparent;
   border: 0;
-  block-size: var(--touch-target);
+  border-radius: var(--radius-control);
   color: var(--color-text-secondary);
   cursor: pointer;
-  display: inline-flex;
-  flex: none;
-  inline-size: var(--touch-target);
-  justify-content: center;
-  padding: 0;
-  position: relative;
-  transition: color var(--duration-fast) var(--ease-in-out);
+  display: flex;
+  font-size: var(--type-row-size);
+  font-weight: var(--type-row-weight);
+  min-block-size: var(--control-height);
+  padding-inline: var(--space-2-5);
+  text-align: start;
+  transition:
+    background-color var(--duration-fast) var(--ease-in-out),
+    color var(--duration-fast) var(--ease-in-out);
+  white-space: nowrap;
 }
 
-.app-topnav-icon-button::before {
-  background: transparent;
-  border-radius: var(--radius-control);
-  content: "";
-  inset: var(--space-1-5);
-  position: absolute;
-  transition: background-color var(--duration-fast) var(--ease-in-out);
-}
-
-.app-topnav-icon-button:hover {
+.app-sidebar-item:hover {
+  background: var(--color-hover);
   color: var(--color-text-primary);
 }
 
-.app-topnav-icon-button:hover::before {
-  background: var(--color-hover);
-}
-
-.app-topnav-icon-button:active::before {
+.app-sidebar-item:active {
   background: var(--color-pressed);
 }
 
-.app-topnav-icon-button:focus-visible {
-  color: var(--color-text-primary);
-  /* Pull the ring in so it hugs the 32px wash, not the 44px hit area. */
-  outline-offset: calc(var(--space-1-5) * -1);
-}
-
-.app-topnav-icon-button[aria-current="page"],
-.app-topnav-icon-button[aria-expanded="true"] {
-  color: var(--color-text-primary);
-}
-
-.app-topnav-icon-button[aria-current="page"]::before {
+.app-sidebar-item[aria-current="page"] {
   background: var(--color-accent-soft);
-}
-
-.app-topnav-icon-button svg {
-  block-size: 15px;
-  inline-size: 15px;
-  position: relative;
+  color: var(--color-text-primary);
+  font-weight: var(--fw-heading);
 }
 
 /* ---------------------------------------------------------- model chip */
 
-.app-topnav-model {
-  align-items: center;
+/* Docked at the sidebar's foot. The switcher menu opens upward from here;
+ * model-selector.css owns the menu's geometry. */
+.app-sidebar-model {
   display: flex;
-  margin-inline-end: var(--space-1);
-  min-inline-size: 0;
+  flex-direction: column;
+  margin-block-start: auto;
+  min-block-size: 0;
+  padding-block-start: var(--space-2);
   position: relative;
 }
 
@@ -283,7 +202,7 @@
   cursor: pointer;
   display: inline-flex;
   gap: var(--space-1-5);
-  max-inline-size: 176px;
+  inline-size: 100%;
   min-block-size: var(--touch-target);
   padding-inline: var(--space-2);
   position: relative;
@@ -338,12 +257,14 @@
 }
 
 .model-chip-label {
+  flex: 1 1 auto;
   font-size: var(--fs-label-12);
   font-weight: var(--fw-button);
   line-height: var(--lh-label-12);
   min-inline-size: 0;
   overflow: hidden;
   position: relative;
+  text-align: start;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -361,7 +282,7 @@
 }
 
 /* Determinate download progress, drawn under the label instead of a second
- * widget in the bar. */
+ * widget in the chrome. */
 .model-chip-progress {
   background: var(--color-subtle);
   block-size: 2px;
@@ -384,8 +305,8 @@
 }
 
 /* The chip carries download state, so the standalone progress widget the
- * model selector also renders stays out of the bar. */
-.app-topnav-model > :not(.model-chip-anchor) {
+ * model selector also renders stays out of the dock. */
+.app-sidebar-model > :not(.model-chip-anchor) {
   display: none;
 }
 
@@ -393,36 +314,6 @@
   max-inline-size: 100%;
   min-inline-size: 0;
   position: relative;
-}
-
-/* ---------------------------------------------------------- section nav */
-
-/* The bar and its rail. The segments themselves are the shared `secondary`
- * Tabs primitive (ui/Tabs.tsx), which brings its own track, active treatment
- * and roving tabindex — the twelve `.app-subnav-item*` rules that used to draw
- * a bespoke unbordered strip here are gone with it. The rail keeps the page's
- * own gutter and max width so the strip lines up with the content below it. */
-.app-subnav {
-  background: var(--color-canvas);
-  border-bottom: 1px solid var(--border-hairline);
-  display: flex;
-  flex: none;
-  padding-block: var(--space-1-5);
-  /* The strip starts where the page's content column starts: the page gutter
-     on a narrow window, and the gutter plus the centring offset once the window
-     is wider than --page-max-width. Centring the bar itself is wrong — the bar
-     spans the window because its hairline does. */
-  padding-inline: max(
-    var(--space-6),
-    calc((100% - var(--page-max-width)) / 2 + var(--space-6))
-  );
-}
-
-/* The Tabs track. Its own classes carry the box; this only keeps a long strip
-   from pushing the bar wider than the window. */
-.app-subnav-inner {
-  max-inline-size: 100%;
-  min-inline-size: 0;
 }
 
 /* -------------------------------------------------------- command palette */

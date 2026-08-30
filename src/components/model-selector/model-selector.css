@@ -1,13 +1,15 @@
-/* Model switcher menu: the raised popover the top-nav chip opens. The chip
- * itself is shell chrome and lives in styles/shell.css; this file owns only
- * the menu. Every value is a token from styles/theme.css, consumed by name. */
+/* Model switcher menu: the raised popover the sidebar's docked chip opens.
+ * The chip itself is shell chrome and lives in styles/shell.css; this file
+ * owns only the menu. Every value is a token from styles/theme.css, consumed
+ * by name. */
 
-/* Clipping is impossible by construction, on both axes: the menu's top edge
- * sits at the bottom of the top nav, so its height budget is the viewport
- * minus the nav minus slack, scrolled internally past that — and it grows
- * inline-START from the chip's end edge, into the nav's own width, because
- * the chip sits against the window's end edge where an outward menu would
- * leave the window. */
+/* Clipping is impossible by construction, on both axes: the menu's bottom
+ * edge sits on top of the chip docked at the sidebar's foot, so its height
+ * budget is the viewport minus the dock minus top slack, scrolled internally
+ * past that — and it grows inline-END from the chip's start edge, out of the
+ * 220px rail and over the content pane, because the chip sits against the
+ * window's inline-start edge where a start-growing menu would leave the
+ * window. */
 .model-menu {
   background: var(--color-surface-raised);
   border-radius: var(--radius-panel);
@@ -15,13 +17,10 @@
   display: flex;
   flex-direction: column;
   inline-size: 304px;
-  inset-block-start: 100%;
-  inset-inline-end: 0;
-  margin-block-start: var(--space-1);
-  max-block-size: min(
-    440px,
-    calc(100dvh - var(--topnav-height) - var(--space-4))
-  );
+  inset-block-end: 100%;
+  inset-inline-start: 0;
+  margin-block-end: var(--space-1);
+  max-block-size: min(440px, calc(100dvh - 120px));
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: var(--space-1-5);

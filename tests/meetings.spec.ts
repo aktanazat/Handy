@@ -29,12 +29,10 @@ test.describe("Meetings", () => {
     });
 
     await page.goto("/");
-    // Meetings is a segment of the Library section, not a top-level nav item.
-    // That strip is a segmented control, so the segment is a `tab`: wave 2
-    // moved it onto the shared Tabs primitive, which brings the tablist
-    // semantics and the roving tabindex with it.
-    await page.getByRole("button", { name: "Library", exact: true }).click();
-    await page.getByRole("tab", { name: "Meetings", exact: true }).click();
+    // Meetings is a first-class sidebar destination: the sidebar shell
+    // promoted it out of the old Library sub-nav, and the row lands on the
+    // same meetings surface the deep-link handler targets.
+    await page.getByRole("button", { name: "Meetings", exact: true }).click();
 
     const start = page
       .getByRole("button", { name: "Start recording", exact: true })
