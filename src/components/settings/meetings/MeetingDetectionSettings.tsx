@@ -138,55 +138,59 @@ export const MeetingDetectionSettings: React.FC = () => {
           />
         }
       >
-        <ToggleSwitch
-          grouped
-          checked={settings.calendarEnabled}
-          onChange={(enabled) => void enableCalendar(enabled)}
-          isUpdating={saving}
-          disabled={!settings.enabled}
-          label={t("meetings.detection.calendar.label", "Use my calendar")}
-          description={t(
-            "meetings.detection.calendar.description",
-            "Shows a countdown a minute before events with two or more attendees. macOS asks for full calendar access the first time, because Apple offers no read-only grant.",
-          )}
-          descriptionMode="inline"
-        />
+        <div className="settings-group-panel">
+          <div className="divide-y">
+            <ToggleSwitch
+              grouped
+              checked={settings.calendarEnabled}
+              onChange={(enabled) => void enableCalendar(enabled)}
+              isUpdating={saving}
+              disabled={!settings.enabled}
+              label={t("meetings.detection.calendar.label", "Use my calendar")}
+              description={t(
+                "meetings.detection.calendar.description",
+                "Shows a countdown a minute before events with two or more attendees. macOS asks for full calendar access the first time, because Apple offers no read-only grant.",
+              )}
+              descriptionMode="inline"
+            />
 
-        <ToggleSwitch
-          grouped
-          checked={settings.anyMicActivity}
-          onChange={(anyMicActivity) => void patch({ anyMicActivity })}
-          isUpdating={saving}
-          disabled={!settings.enabled}
-          label={t(
-            "meetings.detection.anyMic.label",
-            "Ask on any microphone use",
-          )}
-          description={t(
-            "meetings.detection.anyMic.description",
-            "Includes voice memos, music apps, and anything else that opens the microphone. Off keeps prompts to known meeting apps.",
-          )}
-          descriptionMode="inline"
-        />
+            <ToggleSwitch
+              grouped
+              checked={settings.anyMicActivity}
+              onChange={(anyMicActivity) => void patch({ anyMicActivity })}
+              isUpdating={saving}
+              disabled={!settings.enabled}
+              label={t(
+                "meetings.detection.anyMic.label",
+                "Ask on any microphone use",
+              )}
+              description={t(
+                "meetings.detection.anyMic.description",
+                "Includes voice memos, music apps, and anything else that opens the microphone. Off keeps prompts to known meeting apps.",
+              )}
+              descriptionMode="inline"
+            />
 
-        <ToggleSwitch
-          grouped
-          checked={settings.autoStartOnOpenPane}
-          onChange={(autoStartOnOpenPane) =>
-            void patch({ autoStartOnOpenPane })
-          }
-          isUpdating={saving}
-          disabled={!settings.enabled || !settings.calendarEnabled}
-          label={t(
-            "meetings.detection.autoStart.label",
-            "Open the meeting when its countdown is showing",
-          )}
-          description={t(
-            "meetings.detection.autoStart.description",
-            "Skips the notification when an event starts while you are already looking at its countdown. You still confirm what gets recorded.",
-          )}
-          descriptionMode="inline"
-        />
+            <ToggleSwitch
+              grouped
+              checked={settings.autoStartOnOpenPane}
+              onChange={(autoStartOnOpenPane) =>
+                void patch({ autoStartOnOpenPane })
+              }
+              isUpdating={saving}
+              disabled={!settings.enabled || !settings.calendarEnabled}
+              label={t(
+                "meetings.detection.autoStart.label",
+                "Open the meeting when its countdown is showing",
+              )}
+              description={t(
+                "meetings.detection.autoStart.description",
+                "Skips the notification when an event starts while you are already looking at its countdown. You still confirm what gets recorded.",
+              )}
+              descriptionMode="inline"
+            />
+          </div>
+        </div>
       </Section>
 
       <Section
@@ -196,42 +200,48 @@ export const MeetingDetectionSettings: React.FC = () => {
           "One bundle identifier per line. An entry only counts while that app is running, so a renamed identifier is inert rather than wrong.",
         )}
       >
-        <Textarea
-          rows={5}
-          className="w-full font-mono text-[12px]"
-          value={appsDraft ?? settings.meetingApps.join("\n")}
-          onChange={(event) => setAppsDraft(event.target.value)}
-          disabled={!settings.enabled || saving}
-          aria-label={t("meetings.detection.apps.label", "Meeting apps")}
-          spellCheck={false}
-        />
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-          <StatusText tone="muted">
-            {status.runningMeetingApps.length === 0
-              ? t(
-                  "meetings.detection.apps.noneRunning",
-                  "None of these are running right now.",
-                )
-              : t("meetings.detection.apps.running", "Running now: {{apps}}", {
-                  apps: status.runningMeetingApps.join(", "),
-                })}
-          </StatusText>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            disabled={appsDraft === null || saving}
-            onClick={() => {
-              const meetingApps = (appsDraft ?? "")
-                .split("\n")
-                .map((line) => line.trim())
-                .filter((line) => line.length > 0);
-              setAppsDraft(null);
-              void patch({ meetingApps });
-            }}
-          >
-            {t("common.save")}
-          </Button>
+        <div className="meeting-card">
+          <Textarea
+            rows={5}
+            className="w-full font-mono text-[12px]"
+            value={appsDraft ?? settings.meetingApps.join("\n")}
+            onChange={(event) => setAppsDraft(event.target.value)}
+            disabled={!settings.enabled || saving}
+            aria-label={t("meetings.detection.apps.label", "Meeting apps")}
+            spellCheck={false}
+          />
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+            <StatusText tone="muted">
+              {status.runningMeetingApps.length === 0
+                ? t(
+                    "meetings.detection.apps.noneRunning",
+                    "None of these are running right now.",
+                  )
+                : t(
+                    "meetings.detection.apps.running",
+                    "Running now: {{apps}}",
+                    {
+                      apps: status.runningMeetingApps.join(", "),
+                    },
+                  )}
+            </StatusText>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={appsDraft === null || saving}
+              onClick={() => {
+                const meetingApps = (appsDraft ?? "")
+                  .split("\n")
+                  .map((line) => line.trim())
+                  .filter((line) => line.length > 0);
+                setAppsDraft(null);
+                void patch({ meetingApps });
+              }}
+            >
+              {t("common.save")}
+            </Button>
+          </div>
         </div>
       </Section>
 
@@ -246,7 +256,7 @@ export const MeetingDetectionSettings: React.FC = () => {
           "Detection is quiet most of the time. This is why.",
         )}
       >
-        <div className="flex flex-col items-start gap-1.5">
+        <div className="meeting-card flex flex-col items-start gap-1.5">
           {calendarBlocked ? (
             <StatusText tone="warning">
               {t(

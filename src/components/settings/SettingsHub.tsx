@@ -63,6 +63,7 @@ export const SettingsHub: React.FC = () => {
     <div className="settings-hub">
       <div className="pb-2">
         <Tabs
+          variant="secondary"
           items={items}
           value={visibleTab}
           onChange={(id) => {

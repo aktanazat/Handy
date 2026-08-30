@@ -132,19 +132,21 @@ export const MeetingLive: React.FC<MeetingLiveProps> = ({
         title={t("meetings.live.inputs")}
         description={t("meetings.live.inputsDescription")}
       >
-        <MeetingSourceList
-          sources={snapshot.session.sources}
-          label={t("meetings.live.inputs")}
-          elapsedOffsetNs={elapsedOffsetNs}
-          showTelemetry
-        />
+        <div className="meeting-card">
+          <MeetingSourceList
+            sources={snapshot.session.sources}
+            label={t("meetings.live.inputs")}
+            elapsedOffsetNs={elapsedOffsetNs}
+            showTelemetry
+          />
+        </div>
       </Section>
 
       <Section
         title={t("meetings.live.progress")}
         description={t("meetings.live.progressDescription")}
       >
-        <dl className="meeting-rows">
+        <dl className="meeting-card meeting-rows">
           <ProgressRow label={t("meetings.live.transcript")}>
             {latestTranscriptOffsetNs === null
               ? t("meetings.live.noTranscriptCheckpoint")
@@ -181,28 +183,30 @@ export const MeetingLive: React.FC<MeetingLiveProps> = ({
           time: formatMeetingOffset(elapsedOffsetNs),
         })}
       >
-        <Textarea
-          value={noteBody}
-          onChange={(event) => setNoteBody(event.target.value)}
-          placeholder={t("meetings.live.notePlaceholder")}
-          aria-label={t("meetings.live.manualNote")}
-          disabled={isMutating}
-          className="w-full"
-        />
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-          <span className="microlabel tabular-nums">
-            {t("meetings.live.timestamp", {
-              time: formatMeetingOffset(elapsedOffsetNs),
-            })}
-          </span>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={addNote}
-            disabled={noteBody.trim().length === 0 || isMutating}
-          >
-            {t("meetings.live.addNote")}
-          </Button>
+        <div className="meeting-card">
+          <Textarea
+            value={noteBody}
+            onChange={(event) => setNoteBody(event.target.value)}
+            placeholder={t("meetings.live.notePlaceholder")}
+            aria-label={t("meetings.live.manualNote")}
+            disabled={isMutating}
+            className="w-full"
+          />
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+            <span className="chip">
+              {t("meetings.live.timestamp", {
+                time: formatMeetingOffset(elapsedOffsetNs),
+              })}
+            </span>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={addNote}
+              disabled={noteBody.trim().length === 0 || isMutating}
+            >
+              {t("meetings.live.addNote")}
+            </Button>
+          </div>
         </div>
       </Section>
 

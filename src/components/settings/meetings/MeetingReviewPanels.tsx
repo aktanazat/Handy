@@ -204,170 +204,182 @@ export const TranscriptTab: React.FC<TranscriptTabProps> = ({
         title={t("meetings.review.exactSearch")}
         description={t("meetings.review.exactSearchDescription")}
       >
-        <form
-          className="flex flex-wrap items-center gap-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            onSearch();
-          }}
-        >
-          <Input
-            type="search"
-            value={searchQuery}
-            onChange={(event) => onSearchQueryChange(event.target.value)}
-            placeholder={t("meetings.review.searchPlaceholder")}
-            aria-label={t("meetings.review.exactSearch")}
-            className="w-full max-w-[320px]"
-          />
-          <Button
-            type="submit"
-            variant="secondary"
-            disabled={searching || searchQuery.trim().length === 0}
+        <div className="meeting-card">
+          <form
+            className="flex flex-wrap items-center gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              onSearch();
+            }}
           >
-            <Search size={14} aria-hidden="true" />
-            {searching
-              ? t("meetings.review.searching", "Searching…")
-              : t("meetings.review.search")}
-          </Button>
-        </form>
-        {searching ? (
-          <StatusText tone="muted" live="polite" className="mt-2 block">
-            {t("meetings.review.searching", "Searching…")}
-          </StatusText>
-        ) : searchHits === null ? null : searchHits.length === 0 ? (
-          <StatusText tone="muted" live="polite" className="mt-2 block">
-            {t("meetings.review.noSearchResults")}
-          </StatusText>
-        ) : (
-          <ul
-            role="list"
-            aria-label={t("meetings.review.exactSearch")}
-            className="meeting-rows mt-3"
-          >
-            {searchHits.map((hit) => (
-              <MeetingSearchHitRow
-                key={`${hit.kind}:${hit.entity_id}:${hit.start_offset_ns ?? "start"}`}
-                hit={hit}
-                onJump={onJumpToSegment}
-              />
-            ))}
-          </ul>
-        )}
+            <Input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => onSearchQueryChange(event.target.value)}
+              placeholder={t("meetings.review.searchPlaceholder")}
+              aria-label={t("meetings.review.exactSearch")}
+              className="w-full max-w-[320px]"
+            />
+            <Button
+              type="submit"
+              variant="secondary"
+              disabled={searching || searchQuery.trim().length === 0}
+            >
+              <Search size={14} aria-hidden="true" />
+              {searching
+                ? t("meetings.review.searching", "Searching…")
+                : t("meetings.review.search")}
+            </Button>
+          </form>
+          {searching ? (
+            <StatusText tone="muted" live="polite" className="mt-2 block">
+              {t("meetings.review.searching", "Searching…")}
+            </StatusText>
+          ) : searchHits === null ? null : searchHits.length === 0 ? (
+            <StatusText tone="muted" live="polite" className="mt-2 block">
+              {t("meetings.review.noSearchResults")}
+            </StatusText>
+          ) : (
+            <ul
+              role="list"
+              aria-label={t("meetings.review.exactSearch")}
+              className="meeting-rows mt-3"
+            >
+              {searchHits.map((hit) => (
+                <MeetingSearchHitRow
+                  key={`${hit.kind}:${hit.entity_id}:${hit.start_offset_ns ?? "start"}`}
+                  hit={hit}
+                  onJump={onJumpToSegment}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
       </Section>
 
       <Section
         title={t("meetings.review.speakers")}
         description={t("meetings.review.speakersDescription")}
       >
-        <StatusText tone="muted" className="mb-2 block">
-          {t(`meetings.diarization.${snapshot.diarization.status}`)}
-        </StatusText>
-        {snapshot.speakers.length === 0 ? (
-          <StatusText tone="muted" className="block">
-            {t("meetings.review.noSpeakers")}
+        <div className="meeting-card">
+          <StatusText tone="muted" className="mb-2 block">
+            {t(`meetings.diarization.${snapshot.diarization.status}`)}
           </StatusText>
-        ) : (
-          <>
-            <ul
-              role="list"
-              aria-label={t("meetings.review.speakers")}
-              className="meeting-rows"
-            >
-              {snapshot.speakers.map((speaker) => (
-                <SpeakerRow
-                  key={`${speaker.speaker_id}:${speaker.revision}:${speaker.display_name}`}
-                  speakerId={speaker.speaker_id}
-                  name={speaker.display_name}
+          {snapshot.speakers.length === 0 ? (
+            <StatusText tone="muted" className="block">
+              {t("meetings.review.noSpeakers")}
+            </StatusText>
+          ) : (
+            <>
+              <ul
+                role="list"
+                aria-label={t("meetings.review.speakers")}
+                className="meeting-rows"
+              >
+                {snapshot.speakers.map((speaker) => (
+                  <SpeakerRow
+                    key={`${speaker.speaker_id}:${speaker.revision}:${speaker.display_name}`}
+                    speakerId={speaker.speaker_id}
+                    name={speaker.display_name}
+                    disabled={disabled}
+                    onRename={onSpeakerRename}
+                  />
+                ))}
+              </ul>
+              {snapshot.speakers.length > 1 ? (
+                <MeetingSpeakerMerge
+                  key={snapshot.speakers
+                    .map(
+                      (speaker) => `${speaker.speaker_id}:${speaker.revision}`,
+                    )
+                    .join("|")}
+                  speakers={snapshot.speakers}
                   disabled={disabled}
-                  onRename={onSpeakerRename}
+                  onMerge={onSpeakerMerge}
                 />
-              ))}
-            </ul>
-            {snapshot.speakers.length > 1 ? (
-              <MeetingSpeakerMerge
-                key={snapshot.speakers
-                  .map((speaker) => `${speaker.speaker_id}:${speaker.revision}`)
-                  .join("|")}
-                speakers={snapshot.speakers}
-                disabled={disabled}
-                onMerge={onSpeakerMerge}
-              />
-            ) : null}
-          </>
-        )}
+              ) : null}
+            </>
+          )}
+        </div>
       </Section>
 
       <Section
         title={t("meetings.review.transcript")}
         description={t("meetings.review.transcriptDescription")}
       >
-        {snapshot.transcript.length === 0 ? (
-          <StatusText tone="muted" className="block">
-            {t("meetings.review.noTranscript")}
-          </StatusText>
-        ) : (
-          <ol
-            role="list"
-            aria-label={t("meetings.review.transcript")}
-            className="meeting-rows"
-          >
-            {snapshot.transcript.map((segment) => {
-              const text = segment.replacement_text ?? segment.base.text;
-              const highlighted = jump?.segmentId === segment.base.segment_id;
-              return (
-                <li
-                  key={segment.base.segment_id}
-                  id={`${SEGMENT_DOM_PREFIX}${segment.base.segment_id}`}
-                  className={`meeting-row-stacked ${highlighted ? "bg-subtle" : ""}`}
-                >
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                    <p className="flex min-w-0 items-baseline gap-2">
-                      <span className="microlabel tabular-nums">
-                        {formatMeetingOffset(segment.base.start_offset_ns)}
-                      </span>
-                      <span className="truncate text-[12.5px] leading-[18px] font-medium text-text-secondary">
-                        {speakerNames[segment.assigned_speaker_id] ??
-                          t("meetings.review.unknownSpeaker")}
-                      </span>
-                    </p>
-                    <Button
-                      type="button"
-                      variant="danger-ghost"
-                      size="sm"
-                      onClick={() =>
-                        onSegmentEdit(segment.base.segment_id, text, true)
-                      }
-                      disabled={disabled || segment.removed}
-                    >
-                      {t("meetings.review.removeSegment")}
-                    </Button>
-                  </div>
-                  <Textarea
-                    key={`${segment.base.segment_id}:${segment.edit_revision ?? "base"}`}
-                    variant="compact"
-                    defaultValue={text}
-                    aria-label={t("meetings.review.transcriptSegment")}
-                    disabled={disabled}
-                    onBlur={(event) => {
-                      const nextText = event.target.value.trim();
-                      if (nextText !== text && nextText.length > 0) {
-                        onSegmentEdit(segment.base.segment_id, nextText, false);
-                      }
-                    }}
-                    className={`mt-1.5 min-h-[46px] w-full ${segment.removed ? "line-through" : ""}`}
-                  />
-                </li>
-              );
-            })}
-          </ol>
-        )}
+        <div className="meeting-card">
+          {snapshot.transcript.length === 0 ? (
+            <StatusText tone="muted" className="block">
+              {t("meetings.review.noTranscript")}
+            </StatusText>
+          ) : (
+            <ol
+              role="list"
+              aria-label={t("meetings.review.transcript")}
+              className="meeting-rows"
+            >
+              {snapshot.transcript.map((segment) => {
+                const text = segment.replacement_text ?? segment.base.text;
+                const highlighted = jump?.segmentId === segment.base.segment_id;
+                return (
+                  <li
+                    key={segment.base.segment_id}
+                    id={`${SEGMENT_DOM_PREFIX}${segment.base.segment_id}`}
+                    className={`meeting-row-stacked ${highlighted ? "bg-subtle" : ""}`}
+                  >
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                      <p className="flex min-w-0 items-baseline gap-2">
+                        <span className="chip">
+                          {formatMeetingOffset(segment.base.start_offset_ns)}
+                        </span>
+                        <span className="truncate text-[12.5px] leading-[18px] font-medium text-text-secondary">
+                          {speakerNames[segment.assigned_speaker_id] ??
+                            t("meetings.review.unknownSpeaker")}
+                        </span>
+                      </p>
+                      <Button
+                        type="button"
+                        variant="danger-ghost"
+                        size="sm"
+                        onClick={() =>
+                          onSegmentEdit(segment.base.segment_id, text, true)
+                        }
+                        disabled={disabled || segment.removed}
+                      >
+                        {t("meetings.review.removeSegment")}
+                      </Button>
+                    </div>
+                    <Textarea
+                      key={`${segment.base.segment_id}:${segment.edit_revision ?? "base"}`}
+                      variant="compact"
+                      defaultValue={text}
+                      aria-label={t("meetings.review.transcriptSegment")}
+                      disabled={disabled}
+                      onBlur={(event) => {
+                        const nextText = event.target.value.trim();
+                        if (nextText !== text && nextText.length > 0) {
+                          onSegmentEdit(
+                            segment.base.segment_id,
+                            nextText,
+                            false,
+                          );
+                        }
+                      }}
+                      className={`mt-1.5 min-h-[46px] w-full ${segment.removed ? "line-through" : ""}`}
+                    />
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </div>
       </Section>
 
       <Section
         title={t("meetings.review.status")}
         description={t("meetings.review.statusDescription")}
       >
-        <div className="space-y-3">
+        <div className="meeting-card space-y-3">
           <MeetingSourceList
             sources={snapshot.session.sources}
             label={t("meetings.review.status")}
@@ -383,48 +395,50 @@ export const TranscriptTab: React.FC<TranscriptTabProps> = ({
         title={t("meetings.review.timeline")}
         description={t("meetings.review.timelineDescription")}
       >
-        {snapshot.gaps.length === 0 ? (
-          <StatusText tone="muted" className="block">
-            {t("meetings.review.noGaps")}
-          </StatusText>
-        ) : (
-          <ul
-            role="list"
-            aria-label={t("meetings.review.timeline")}
-            className="meeting-rows"
-          >
-            {snapshot.gaps.map((gap) => (
-              <li
-                key={`${gap.track_id}:${gap.epoch}:${gap.start_offset_ns ?? "start"}`}
-                className="meeting-row"
-              >
-                <span className="min-w-0">
-                  <p className="meeting-row-label">
-                    {t(`meetings.gaps.${gap.reason}`)}
-                  </p>
-                  <span className="microlabel tabular-nums">
-                    {gap.start_offset_ns === null
-                      ? t("meetings.review.timeUnknown")
-                      : formatMeetingOffset(gap.start_offset_ns)}
-                    {" – "}
-                    {gap.end_offset_ns === null
-                      ? t("meetings.review.timeUnknown")
-                      : formatMeetingOffset(gap.end_offset_ns)}
+        <div className="meeting-card">
+          {snapshot.gaps.length === 0 ? (
+            <StatusText tone="muted" className="block">
+              {t("meetings.review.noGaps")}
+            </StatusText>
+          ) : (
+            <ul
+              role="list"
+              aria-label={t("meetings.review.timeline")}
+              className="meeting-rows"
+            >
+              {snapshot.gaps.map((gap) => (
+                <li
+                  key={`${gap.track_id}:${gap.epoch}:${gap.start_offset_ns ?? "start"}`}
+                  className="meeting-row"
+                >
+                  <span className="min-w-0">
+                    <p className="meeting-row-label">
+                      {t(`meetings.gaps.${gap.reason}`)}
+                    </p>
+                    <span className="chip">
+                      {gap.start_offset_ns === null
+                        ? t("meetings.review.timeUnknown")
+                        : formatMeetingOffset(gap.start_offset_ns)}
+                      {" – "}
+                      {gap.end_offset_ns === null
+                        ? t("meetings.review.timeUnknown")
+                        : formatMeetingOffset(gap.end_offset_ns)}
+                    </span>
                   </span>
-                </span>
-                {gap.dropped_frames === null ? null : (
-                  <StatusText tone="muted" className="meeting-row-value">
-                    {t(
-                      "meetings.review.droppedFrames",
-                      "Dropped frames: {{total}}",
-                      { total: gap.dropped_frames },
-                    )}
-                  </StatusText>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
+                  {gap.dropped_frames === null ? null : (
+                    <StatusText tone="muted" className="meeting-row-value">
+                      {t(
+                        "meetings.review.droppedFrames",
+                        "Dropped frames: {{total}}",
+                        { total: gap.dropped_frames },
+                      )}
+                    </StatusText>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </Section>
     </>
   );
@@ -451,9 +465,7 @@ const MeetingSearchHitRow: React.FC<MeetingSearchHitRowProps> = ({
   const body = (
     <>
       <span className="flex items-baseline gap-2">
-        <span className="microlabel tabular-nums">
-          {formatMeetingOffset(hit.start_offset_ns)}
-        </span>
+        <span className="chip">{formatMeetingOffset(hit.start_offset_ns)}</span>
         <span className="microlabel">{kindLabel}</span>
       </span>
       <span className="mt-0.5 line-clamp-2 block text-[13px] leading-5 text-text-primary">
@@ -680,46 +692,48 @@ export const InsightsTab: React.FC<InsightsTabProps> = ({
         title={t("meetings.review.manualNotes")}
         description={t("meetings.review.manualNotesDescription")}
       >
-        <Textarea
-          value={newNote}
-          onChange={(event) => onNewNoteChange(event.target.value)}
-          placeholder={t("meetings.review.notePlaceholder")}
-          aria-label={t("meetings.review.newNote")}
-          disabled={disabled}
-          className="w-full"
-        />
-        <div className="mt-2 flex justify-end">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={onCreateNote}
-            disabled={disabled || newNote.trim().length === 0}
-          >
-            {t("meetings.review.addNote")}
-          </Button>
+        <div className="meeting-card">
+          <Textarea
+            value={newNote}
+            onChange={(event) => onNewNoteChange(event.target.value)}
+            placeholder={t("meetings.review.notePlaceholder")}
+            aria-label={t("meetings.review.newNote")}
+            disabled={disabled}
+            className="w-full"
+          />
+          <div className="mt-2 flex justify-end">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={onCreateNote}
+              disabled={disabled || newNote.trim().length === 0}
+            >
+              {t("meetings.review.addNote")}
+            </Button>
+          </div>
+          {snapshot.notes.length === 0 ? (
+            <StatusText tone="muted" className="mt-2 block">
+              {t("meetings.review.noNotes")}
+            </StatusText>
+          ) : (
+            <ul
+              role="list"
+              aria-label={t("meetings.review.manualNotes")}
+              className="meeting-rows mt-3"
+            >
+              {snapshot.notes.map((note) => (
+                <ManualNoteEditor
+                  key={`${note.note_id}:${note.revision}:${note.body}`}
+                  note={note}
+                  disabled={disabled}
+                  onUpdate={onNoteUpdate}
+                  onDelete={onNoteDelete}
+                />
+              ))}
+            </ul>
+          )}
         </div>
-        {snapshot.notes.length === 0 ? (
-          <StatusText tone="muted" className="mt-2 block">
-            {t("meetings.review.noNotes")}
-          </StatusText>
-        ) : (
-          <ul
-            role="list"
-            aria-label={t("meetings.review.manualNotes")}
-            className="meeting-rows mt-3"
-          >
-            {snapshot.notes.map((note) => (
-              <ManualNoteEditor
-                key={`${note.note_id}:${note.revision}:${note.body}`}
-                note={note}
-                disabled={disabled}
-                onUpdate={onNoteUpdate}
-                onDelete={onNoteDelete}
-              />
-            ))}
-          </ul>
-        )}
       </Section>
 
       <Section
@@ -826,7 +840,7 @@ const ManualNoteEditor: React.FC<ManualNoteEditorProps> = ({
 
   return (
     <li className="meeting-row-stacked">
-      <p className="microlabel tabular-nums">
+      <p className="chip">
         {note.start_offset_ns === null
           ? t("meetings.review.noTimestamp")
           : t("meetings.review.timestamp", {
@@ -1070,98 +1084,100 @@ export const QuestionsTab: React.FC<QuestionsTabProps> = ({
       title={t("meetings.review.questions")}
       description={t("meetings.review.questionsDescription")}
     >
-      <Textarea
-        value={question}
-        onChange={(event) => onQuestionChange(event.target.value)}
-        placeholder={t("meetings.review.questionPlaceholder")}
-        aria-label={t("meetings.review.questions")}
-        disabled={!canAskQuestion || askingQuestion}
-        variant="compact"
-        className="w-full"
-      />
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-        <StatusText tone="muted" live="polite">
-          {!canAskQuestion
-            ? t(
-                "meetings.review.askUnavailable",
-                "Asking needs a finished local transcript.",
-              )
-            : askingQuestion
-              ? t("meetings.review.asking", "Asking this meeting…")
-              : null}
-        </StatusText>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={onAskQuestion}
-          disabled={
-            !canAskQuestion || askingQuestion || question.trim().length === 0
-          }
-        >
-          {t("meetings.review.ask")}
-        </Button>
-      </div>
-
-      {snapshot.questions.length === 0 ? (
-        <StatusText tone="muted" className="mt-3 block">
-          {t("meetings.review.noQuestions")}
-        </StatusText>
-      ) : (
-        <ul
-          role="list"
+      <div className="meeting-card">
+        <Textarea
+          value={question}
+          onChange={(event) => onQuestionChange(event.target.value)}
+          placeholder={t("meetings.review.questionPlaceholder")}
           aria-label={t("meetings.review.questions")}
-          className="mt-4"
-        >
-          {snapshot.questions.map((answer) => (
-            <li
-              key={`${answer.question_id}:${answer.revision}`}
-              className="meeting-answer"
-            >
-              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                <p className={CAPTION_CLASSES}>
-                  {t("meetings.review.youAsked", "You asked")}
-                </p>
-                <StatusText
-                  tone={ANSWER_STATE_TONES[answer.state]}
-                  className="flex-none"
-                >
-                  {t(`meetings.answerState.${answer.state}`)}
-                </StatusText>
-              </div>
-              <p className="mt-1 text-[13px] leading-5 font-semibold text-text-primary text-pretty">
-                {answer.question ?? t("meetings.review.question")}
-              </p>
-              <div className="mt-3">
-                <p className={CAPTION_CLASSES}>
-                  {t("meetings.review.sonaAnswered", "Sona answered")}
-                </p>
-                <p className="mt-1 text-[13px] leading-5 text-text-primary text-pretty">
-                  {answer.answer ?? t("meetings.review.insufficientEvidence")}
-                </p>
-                {answer.citations.length > 0 ? (
-                  <div className="mt-1.5">
-                    <AnswerCitations
-                      citations={answer.citations}
-                      onJump={onJumpToSegment}
-                    />
-                  </div>
-                ) : null}
-                <div className="mt-2 flex justify-end">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onForgetQuestion(answer.question_id)}
-                    disabled={askingQuestion || answer.state === "forgotten"}
+          disabled={!canAskQuestion || askingQuestion}
+          variant="compact"
+          className="w-full"
+        />
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <StatusText tone="muted" live="polite">
+            {!canAskQuestion
+              ? t(
+                  "meetings.review.askUnavailable",
+                  "Asking needs a finished local transcript.",
+                )
+              : askingQuestion
+                ? t("meetings.review.asking", "Asking this meeting…")
+                : null}
+          </StatusText>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onAskQuestion}
+            disabled={
+              !canAskQuestion || askingQuestion || question.trim().length === 0
+            }
+          >
+            {t("meetings.review.ask")}
+          </Button>
+        </div>
+
+        {snapshot.questions.length === 0 ? (
+          <StatusText tone="muted" className="mt-3 block">
+            {t("meetings.review.noQuestions")}
+          </StatusText>
+        ) : (
+          <ul
+            role="list"
+            aria-label={t("meetings.review.questions")}
+            className="mt-4"
+          >
+            {snapshot.questions.map((answer) => (
+              <li
+                key={`${answer.question_id}:${answer.revision}`}
+                className="meeting-answer"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                  <p className={CAPTION_CLASSES}>
+                    {t("meetings.review.youAsked", "You asked")}
+                  </p>
+                  <StatusText
+                    tone={ANSWER_STATE_TONES[answer.state]}
+                    className="flex-none"
                   >
-                    {t("meetings.review.forget")}
-                  </Button>
+                    {t(`meetings.answerState.${answer.state}`)}
+                  </StatusText>
                 </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+                <p className="mt-1 text-[13px] leading-5 font-semibold text-text-primary text-pretty">
+                  {answer.question ?? t("meetings.review.question")}
+                </p>
+                <div className="mt-3">
+                  <p className={CAPTION_CLASSES}>
+                    {t("meetings.review.sonaAnswered", "Sona answered")}
+                  </p>
+                  <p className="mt-1 text-[13px] leading-5 text-text-primary text-pretty">
+                    {answer.answer ?? t("meetings.review.insufficientEvidence")}
+                  </p>
+                  {answer.citations.length > 0 ? (
+                    <div className="mt-1.5">
+                      <AnswerCitations
+                        citations={answer.citations}
+                        onJump={onJumpToSegment}
+                      />
+                    </div>
+                  ) : null}
+                  <div className="mt-2 flex justify-end">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onForgetQuestion(answer.question_id)}
+                      disabled={askingQuestion || answer.state === "forgotten"}
+                    >
+                      {t("meetings.review.forget")}
+                    </Button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </Section>
   );
 };

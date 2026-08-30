@@ -134,63 +134,67 @@ export const MeetingStartGate: React.FC<MeetingStartGateProps> = ({
       )}
 
       {blocked ? (
-        <ul
-          className="meeting-rows"
-          aria-label={t("meetings.setup.captureSources")}
-        >
-          {blockedSources.map((source) => (
-            <li key={source.source_kind} className="meeting-row">
-              <p className="meeting-row-label">
-                {t(sourceKey(source.source_kind))}
-              </p>
-              <StatusText tone="warning" className="meeting-row-value">
-                {t(sourceAvailabilityKey(source.availability))}
-              </StatusText>
-            </li>
-          ))}
-        </ul>
+        <div className="meeting-card">
+          <ul
+            className="meeting-rows"
+            aria-label={t("meetings.setup.captureSources")}
+          >
+            {blockedSources.map((source) => (
+              <li key={source.source_kind} className="meeting-row">
+                <p className="meeting-row-label">
+                  {t(sourceKey(source.source_kind))}
+                </p>
+                <StatusText tone="warning" className="meeting-row-value">
+                  {t(sourceAvailabilityKey(source.availability))}
+                </StatusText>
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
 
       <Section
         title={t("meetings.review.status")}
         description={t("meetings.setup.captureSourcesDescription")}
       >
-        <MeetingSourceList
-          sources={snapshot.session.sources}
-          label={t("meetings.review.status")}
-        />
-        <ul className="meeting-rows mt-3">
-          <li className="meeting-row">
-            <p className="meeting-row-label">
-              {t("meetings.preflight.storage")}
-            </p>
-            <StatusText
-              tone={storageAvailable ? "muted" : "danger"}
-              className="meeting-row-value"
-            >
-              {storageAvailable
-                ? t("meetings.preflight.storageAvailable")
-                : t("meetings.preflight.storageUnavailable")}
-            </StatusText>
-          </li>
-          <li className="meeting-row">
-            <p className="meeting-row-label">
-              {t("meetings.preflight.localModel")}
-            </p>
-            <ProcessingStatusText
-              status={snapshot.session.processing_status}
-              className="meeting-row-value"
-            />
-          </li>
-          <li className="meeting-row">
-            <p className="meeting-row-label">
-              {t("meetings.setup.processing")}
-            </p>
-            <StatusText className="meeting-row-value">
-              {t("meetings.setup.localOnly")}
-            </StatusText>
-          </li>
-        </ul>
+        <div className="meeting-card">
+          <MeetingSourceList
+            sources={snapshot.session.sources}
+            label={t("meetings.review.status")}
+          />
+          <ul className="meeting-rows mt-3">
+            <li className="meeting-row">
+              <p className="meeting-row-label">
+                {t("meetings.preflight.storage")}
+              </p>
+              <StatusText
+                tone={storageAvailable ? "muted" : "danger"}
+                className="meeting-row-value"
+              >
+                {storageAvailable
+                  ? t("meetings.preflight.storageAvailable")
+                  : t("meetings.preflight.storageUnavailable")}
+              </StatusText>
+            </li>
+            <li className="meeting-row">
+              <p className="meeting-row-label">
+                {t("meetings.preflight.localModel")}
+              </p>
+              <ProcessingStatusText
+                status={snapshot.session.processing_status}
+                className="meeting-row-value"
+              />
+            </li>
+            <li className="meeting-row">
+              <p className="meeting-row-label">
+                {t("meetings.setup.processing")}
+              </p>
+              <StatusText className="meeting-row-value">
+                {t("meetings.setup.localOnly")}
+              </StatusText>
+            </li>
+          </ul>
+        </div>
       </Section>
 
       <p className="meeting-start-assurance">

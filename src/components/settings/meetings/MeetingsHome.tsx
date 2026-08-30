@@ -286,13 +286,22 @@ const MeetingRow: React.FC<MeetingRowProps> = ({
           {speakers.length === 0 ? (
             <span className="meeting-entry-speakers" />
           ) : (
-            <span className="meeting-entry-speakers microlabel">
-              {speakers.join(", ")}
+            <span className="meeting-entry-speakers">
+              {speakers.map((speaker, index) => (
+                <span
+                  key={`${speaker}:${index}`}
+                  className="meeting-entry-person"
+                >
+                  {speaker}
+                </span>
+              ))}
             </span>
           )}
+          {/* Measured facts in the machine's own face — .chip, never the
+           * uppercase microlabel: inline metadata does not shout. */}
           <span className="meeting-entry-facts">
             {sources.length === 0 ? null : (
-              <span className="microlabel">
+              <span className="chip">
                 {sources
                   .map((source) =>
                     source === "microphone"
@@ -305,15 +314,15 @@ const MeetingRow: React.FC<MeetingRowProps> = ({
             {meeting.capture_completeness === "partial" ? (
               <CaptureCompletenessText
                 completeness="partial"
-                className="microlabel"
+                className="chip"
               />
             ) : null}
             {recordedMs === null ? null : (
-              <span className="microlabel">
+              <span className="chip">
                 {formatDurationShort(recordedMs / 1000)}
               </span>
             )}
-            <span className="microlabel">
+            <span className="chip">
               {formatEntryTimestamp(meeting.created_at_utc_ms)}
             </span>
           </span>
@@ -474,42 +483,44 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
           title={t("meetings.recovery.title")}
           description={t("meetings.recovery.description")}
         >
-          <ul
-            className="meeting-rows"
-            aria-label={t("meetings.recovery.title")}
-          >
-            {recovery.map((meeting) => (
-              <li key={meeting.session_id} className="meeting-row">
-                <span className="min-w-0">
-                  <p className="meeting-row-label">{meeting.title}</p>
-                  <span className="microlabel">
-                    {formatEntryTimestamp(meeting.created_at_utc_ms)}
+          <div className="meeting-card">
+            <ul
+              className="meeting-rows"
+              aria-label={t("meetings.recovery.title")}
+            >
+              {recovery.map((meeting) => (
+                <li key={meeting.session_id} className="meeting-row">
+                  <span className="min-w-0">
+                    <p className="meeting-row-label">{meeting.title}</p>
+                    <span className="chip">
+                      {formatEntryTimestamp(meeting.created_at_utc_ms)}
+                    </span>
                   </span>
-                </span>
-                <span className="flex flex-none items-center gap-2">
-                  <CaptureCompletenessText
-                    completeness={meeting.capture_completeness}
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => onFinalizeRecovery(meeting.session_id)}
-                  >
-                    {t("meetings.recovery.finalize")}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="danger-ghost"
-                    size="sm"
-                    onClick={() => onDiscardRecovery(meeting.session_id)}
-                  >
-                    {t("meetings.actions.discard")}
-                  </Button>
-                </span>
-              </li>
-            ))}
-          </ul>
+                  <span className="flex flex-none items-center gap-2">
+                    <CaptureCompletenessText
+                      completeness={meeting.capture_completeness}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => onFinalizeRecovery(meeting.session_id)}
+                    >
+                      {t("meetings.recovery.finalize")}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="danger-ghost"
+                      size="sm"
+                      onClick={() => onDiscardRecovery(meeting.session_id)}
+                    >
+                      {t("meetings.actions.discard")}
+                    </Button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </Section>
       ) : null}
 
@@ -642,7 +653,7 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
          * "3 of 8" rail would be a number the store never returned. */}
         {loading || (page === 1 && !hasMore) ? null : (
           <div className="meeting-list-footer">
-            <span className="microlabel">
+            <span className="chip">
               {t("meetings.list.pagePosition", "Page {{page}}", { page })}
             </span>
             <span className="meeting-list-pager">

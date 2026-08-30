@@ -181,66 +181,68 @@ export const MeetingNotesPane: React.FC<MeetingNotesPaneProps> = ({
             )
       }
     >
-      <Textarea
-        value={body}
-        onChange={(event) => scheduleSave(event.target.value)}
-        onBlur={() => {
-          if (saveState !== "unsaved" || notes === null) return;
-          clearTimeout(pendingSave.current);
-          void persist(body, notes.template);
-        }}
-        placeholder={t(
-          "meetings.notes.placeholder",
-          "Anything worth remembering: names, numbers, what to follow up on",
-        )}
-        aria-label={t("meetings.notes.title", "My notes")}
-        disabled={busy}
-        rows={variant === "live" ? 8 : 5}
-        className="w-full"
-      />
+      <div className="meeting-card">
+        <Textarea
+          value={body}
+          onChange={(event) => scheduleSave(event.target.value)}
+          onBlur={() => {
+            if (saveState !== "unsaved" || notes === null) return;
+            clearTimeout(pendingSave.current);
+            void persist(body, notes.template);
+          }}
+          placeholder={t(
+            "meetings.notes.placeholder",
+            "Anything worth remembering: names, numbers, what to follow up on",
+          )}
+          aria-label={t("meetings.notes.title", "My notes")}
+          disabled={busy}
+          rows={variant === "live" ? 8 : 5}
+          className="w-full"
+        />
 
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-        <NotesSaveState state={saveState} />
-        <div className="flex flex-wrap items-center gap-2">
-          {variant === "live" ? (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={runCatchUp}
-              disabled={catchingUp}
-            >
-              {catchingUp
-                ? t("meetings.notes.catchingUp", "Catching up…")
-                : t("meetings.notes.catchUp", "Catch me up")}
-            </Button>
-          ) : (
-            <>
-              <Select
-                value={notes?.template ?? "general"}
-                options={MEETING_NOTES_TEMPLATES.map((template) => ({
-                  value: template,
-                  label: t(`meetings.notes.templates.${template}`),
-                }))}
-                onChange={(value) => void changeTemplate(value)}
-                disabled={busy || enhancing}
-                className="min-w-44"
-              />
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <NotesSaveState state={saveState} />
+          <div className="flex flex-wrap items-center gap-2">
+            {variant === "live" ? (
               <Button
                 type="button"
                 variant="secondary"
-                onClick={reenhance}
-                disabled={busy || enhancing}
+                onClick={runCatchUp}
+                disabled={catchingUp}
               >
-                {enhancing
-                  ? t("meetings.notes.enhancing", "Rebuilding…")
-                  : t("meetings.notes.reenhance", "Re-enhance with my notes")}
+                {catchingUp
+                  ? t("meetings.notes.catchingUp", "Catching up…")
+                  : t("meetings.notes.catchUp", "Catch me up")}
               </Button>
-            </>
-          )}
+            ) : (
+              <>
+                <Select
+                  value={notes?.template ?? "general"}
+                  options={MEETING_NOTES_TEMPLATES.map((template) => ({
+                    value: template,
+                    label: t(`meetings.notes.templates.${template}`),
+                  }))}
+                  onChange={(value) => void changeTemplate(value)}
+                  disabled={busy || enhancing}
+                  className="min-w-44"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={reenhance}
+                  disabled={busy || enhancing}
+                >
+                  {enhancing
+                    ? t("meetings.notes.enhancing", "Rebuilding…")
+                    : t("meetings.notes.reenhance", "Re-enhance with my notes")}
+                </Button>
+              </>
+            )}
+          </div>
         </div>
-      </div>
 
-      {catchUp === null ? null : <CatchUpResult result={catchUp} />}
+        {catchUp === null ? null : <CatchUpResult result={catchUp} />}
+      </div>
     </Section>
   );
 };

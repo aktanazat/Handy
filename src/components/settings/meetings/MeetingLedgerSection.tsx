@@ -103,205 +103,210 @@ export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
         </Button>
       }
     >
-      <dl className="flex flex-wrap items-baseline gap-x-6 gap-y-1.5">
-        <LedgerStat
-          label={t("meetings.ledger.statThreads")}
-          value={`${tally("landed")}/${scored.length}`}
-        />
-        <LedgerStat
-          label={t("meetings.ledger.statOpen")}
-          value={String(tally("open"))}
-        />
-        <LedgerStat
-          label={t("meetings.ledger.statDropped")}
-          value={String(tally("dropped"))}
-        />
-        <LedgerStat
-          label={t("meetings.ledger.statCommitments")}
-          value={String(ledger.commitments.length)}
-        />
-        <LedgerStat
-          label={t("meetings.ledger.statOpenLoops")}
-          value={String(ledger.open_loops.length)}
-        />
-        <LedgerStat
-          label={t("meetings.ledger.statReceipts")}
-          value={
-            ledger.receipts.status === "verified"
-              ? t("meetings.ledger.receiptsVerified")
-              : t("meetings.ledger.receiptsDegraded", {
-                  threads: ledger.receipts.dropped_threads,
-                  commitments: ledger.receipts.dropped_commitments,
-                })
-          }
-          tone={ledger.receipts.status === "verified" ? "muted" : "warning"}
-        />
-      </dl>
+      <div className="meeting-card">
+        <dl className="flex flex-wrap items-baseline gap-x-6 gap-y-1.5">
+          <LedgerStat
+            label={t("meetings.ledger.statThreads")}
+            value={`${tally("landed")}/${scored.length}`}
+          />
+          <LedgerStat
+            label={t("meetings.ledger.statOpen")}
+            value={String(tally("open"))}
+          />
+          <LedgerStat
+            label={t("meetings.ledger.statDropped")}
+            value={String(tally("dropped"))}
+          />
+          <LedgerStat
+            label={t("meetings.ledger.statCommitments")}
+            value={String(ledger.commitments.length)}
+          />
+          <LedgerStat
+            label={t("meetings.ledger.statOpenLoops")}
+            value={String(ledger.open_loops.length)}
+          />
+          <LedgerStat
+            label={t("meetings.ledger.statReceipts")}
+            value={
+              ledger.receipts.status === "verified"
+                ? t("meetings.ledger.receiptsVerified")
+                : t("meetings.ledger.receiptsDegraded", {
+                    threads: ledger.receipts.dropped_threads,
+                    commitments: ledger.receipts.dropped_commitments,
+                  })
+            }
+            tone={ledger.receipts.status === "verified" ? "muted" : "warning"}
+          />
+        </dl>
 
-      <p className="mt-3 text-[13px] leading-5 text-text-primary text-pretty">
-        {ledger.headline}
-      </p>
+        <p className="mt-3 text-[13px] leading-5 text-text-primary text-pretty">
+          {ledger.headline}
+        </p>
 
-      <h4 className={`mt-5 mb-1.5 ${CAPTION_CLASSES}`}>
-        {t("meetings.ledger.threads")}
-      </h4>
-      <ul
-        role="list"
-        aria-label={t("meetings.ledger.threads")}
-        className="meeting-rows"
-      >
-        {ledger.threads.map((thread, index) => {
-          const outcome = LEDGER_OUTCOME[thread.state];
-          return (
-            <li key={`thread:${index}`} className="meeting-row-stacked">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-                <div className="min-w-0 flex items-baseline gap-2">
-                  <span className="font-mono text-[11px] text-text-tertiary tabular-nums">
-                    {`T${String(index + 1).padStart(2, "0")}`}
-                  </span>
-                  <span className="text-[13px] leading-5 font-medium text-text-primary">
-                    {thread.topic}
-                  </span>
-                  {thread.owner ? (
-                    <span className="font-mono text-[11px] text-text-secondary">
-                      {thread.owner}
-                    </span>
-                  ) : null}
-                  {thread.substantive ? null : (
-                    <StatusText tone="muted" className="font-mono text-[11px]">
-                      {t("meetings.ledger.asideThread")}
-                    </StatusText>
-                  )}
-                </div>
-                <StatusText
-                  tone={OUTCOME_TONES[outcome]}
-                  className="flex-none font-mono text-[11px] whitespace-nowrap"
-                >
-                  {`${OUTCOME_GLYPHS[outcome]} ${t(`meetings.ledger.states.${thread.state}`)}`}
-                </StatusText>
-              </div>
-              <LedgerReceiptRow
-                receipt={thread.receipt}
-                onJumpToSegment={onJumpToSegment}
-              />
-            </li>
-          );
-        })}
-      </ul>
-
-      <h4 className={`mt-5 mb-1.5 ${CAPTION_CLASSES}`}>
-        {t("meetings.ledger.openLoops")}
-      </h4>
-      {ledger.open_loops.length === 0 ? (
-        <StatusText tone="muted" className="block">
-          {t("meetings.ledger.noOpenLoops")}
-        </StatusText>
-      ) : (
-        <table className="data-table w-full">
-          <thead>
-            <tr>
-              <th scope="col">{t("meetings.ledger.columnAt")}</th>
-              <th scope="col">{t("meetings.ledger.columnQuestion")}</th>
-              <th scope="col">{t("meetings.ledger.columnInstead")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ledger.open_loops.map((loop, index) => (
-              <tr key={`loop:${index}`}>
-                <td className="font-mono tabular-nums whitespace-nowrap">
-                  {offsetOf(loop.at_ms)}
-                </td>
-                <td>{loop.question}</td>
-                <td className="text-text-secondary">{loop.instead}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      <h4 className={`mt-5 mb-1.5 ${CAPTION_CLASSES}`}>
-        {t("meetings.ledger.commitments")}
-      </h4>
-      {ledger.commitments.length === 0 ? (
-        <StatusText tone="muted" className="block">
-          {t("meetings.ledger.noCommitments")}
-        </StatusText>
-      ) : (
+        <h4 className={`mt-5 mb-1.5 ${CAPTION_CLASSES}`}>
+          {t("meetings.ledger.threads")}
+        </h4>
         <ul
           role="list"
-          aria-label={t("meetings.ledger.commitments")}
+          aria-label={t("meetings.ledger.threads")}
           className="meeting-rows"
         >
-          {ledger.commitments.map((commitment, index) => (
-            <li key={`commitment:${index}`} className="meeting-row-stacked">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                <span className="text-[13px] leading-5 text-text-primary">
-                  <span className="font-medium">{commitment.who}</span>
-                  {` — ${commitment.what}`}
-                </span>
-                <span className="flex-none font-mono text-[11px] text-text-secondary whitespace-nowrap">
-                  {t(`meetings.ledger.firmness.${commitment.firmness}`)}
-                </span>
-              </div>
-              <LedgerReceiptRow
-                receipt={commitment.receipt}
-                onJumpToSegment={onJumpToSegment}
-              />
+          {ledger.threads.map((thread, index) => {
+            const outcome = LEDGER_OUTCOME[thread.state];
+            return (
+              <li key={`thread:${index}`} className="meeting-row-stacked">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                  <div className="min-w-0 flex items-baseline gap-2">
+                    <span className="font-mono text-[11px] text-text-tertiary tabular-nums">
+                      {`T${String(index + 1).padStart(2, "0")}`}
+                    </span>
+                    <span className="text-[13px] leading-5 font-medium text-text-primary">
+                      {thread.topic}
+                    </span>
+                    {thread.owner ? (
+                      <span className="font-mono text-[11px] text-text-secondary">
+                        {thread.owner}
+                      </span>
+                    ) : null}
+                    {thread.substantive ? null : (
+                      <StatusText
+                        tone="muted"
+                        className="font-mono text-[11px]"
+                      >
+                        {t("meetings.ledger.asideThread")}
+                      </StatusText>
+                    )}
+                  </div>
+                  <StatusText
+                    tone={OUTCOME_TONES[outcome]}
+                    className="flex-none font-mono text-[11px] whitespace-nowrap"
+                  >
+                    {`${OUTCOME_GLYPHS[outcome]} ${t(`meetings.ledger.states.${thread.state}`)}`}
+                  </StatusText>
+                </div>
+                <LedgerReceiptRow
+                  receipt={thread.receipt}
+                  onJumpToSegment={onJumpToSegment}
+                />
+              </li>
+            );
+          })}
+        </ul>
+
+        <h4 className={`mt-5 mb-1.5 ${CAPTION_CLASSES}`}>
+          {t("meetings.ledger.openLoops")}
+        </h4>
+        {ledger.open_loops.length === 0 ? (
+          <StatusText tone="muted" className="block">
+            {t("meetings.ledger.noOpenLoops")}
+          </StatusText>
+        ) : (
+          <table className="data-table w-full">
+            <thead>
+              <tr>
+                <th scope="col">{t("meetings.ledger.columnAt")}</th>
+                <th scope="col">{t("meetings.ledger.columnQuestion")}</th>
+                <th scope="col">{t("meetings.ledger.columnInstead")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ledger.open_loops.map((loop, index) => (
+                <tr key={`loop:${index}`}>
+                  <td className="font-mono tabular-nums whitespace-nowrap">
+                    {offsetOf(loop.at_ms)}
+                  </td>
+                  <td>{loop.question}</td>
+                  <td className="text-text-secondary">{loop.instead}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        <h4 className={`mt-5 mb-1.5 ${CAPTION_CLASSES}`}>
+          {t("meetings.ledger.commitments")}
+        </h4>
+        {ledger.commitments.length === 0 ? (
+          <StatusText tone="muted" className="block">
+            {t("meetings.ledger.noCommitments")}
+          </StatusText>
+        ) : (
+          <ul
+            role="list"
+            aria-label={t("meetings.ledger.commitments")}
+            className="meeting-rows"
+          >
+            {ledger.commitments.map((commitment, index) => (
+              <li key={`commitment:${index}`} className="meeting-row-stacked">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                  <span className="text-[13px] leading-5 text-text-primary">
+                    <span className="font-medium">{commitment.who}</span>
+                    {` — ${commitment.what}`}
+                  </span>
+                  <span className="flex-none font-mono text-[11px] text-text-secondary whitespace-nowrap">
+                    {t(`meetings.ledger.firmness.${commitment.firmness}`)}
+                  </span>
+                </div>
+                <LedgerReceiptRow
+                  receipt={commitment.receipt}
+                  onJumpToSegment={onJumpToSegment}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <h4 className={`mt-5 mb-1.5 ${CAPTION_CLASSES}`}>
+          {t("meetings.ledger.stances")}
+        </h4>
+        {ledger.stances.length === 0 ? (
+          <StatusText tone="muted" className="block">
+            {t("meetings.ledger.noStances")}
+          </StatusText>
+        ) : (
+          <table className="data-table w-full">
+            <thead>
+              <tr>
+                <th scope="col">{t("meetings.ledger.columnAt")}</th>
+                <th scope="col">{t("meetings.ledger.columnDirection")}</th>
+                <th scope="col">{t("meetings.ledger.columnWhat")}</th>
+                <th scope="col">{t("meetings.ledger.columnTaken")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ledger.stances.map((stance, index) => (
+                <tr key={`stance:${index}`}>
+                  <td className="font-mono tabular-nums whitespace-nowrap">
+                    {offsetOf(stance.at_ms)}
+                  </td>
+                  <td className="whitespace-nowrap font-medium">
+                    {`${stance.from} \u2192 ${stance.to}`}
+                  </td>
+                  <td>{stance.what}</td>
+                  <td className="text-text-secondary">{stance.note ?? ""}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        <h4 className={`mt-5 mb-1.5 ${CAPTION_CLASSES}`}>
+          {t("meetings.ledger.trust")}
+        </h4>
+        <ul role="list" className="meeting-rows">
+          <li className="meeting-row-stacked text-[12.5px] leading-[18px] text-text-secondary text-pretty">
+            {t("meetings.ledger.trustMeasured")}
+          </li>
+          {ledger.caveats.map((caveat, index) => (
+            <li
+              key={`caveat:${index}`}
+              className="meeting-row-stacked text-[12.5px] leading-[18px] text-text-secondary text-pretty"
+            >
+              {caveat}
             </li>
           ))}
         </ul>
-      )}
-
-      <h4 className={`mt-5 mb-1.5 ${CAPTION_CLASSES}`}>
-        {t("meetings.ledger.stances")}
-      </h4>
-      {ledger.stances.length === 0 ? (
-        <StatusText tone="muted" className="block">
-          {t("meetings.ledger.noStances")}
-        </StatusText>
-      ) : (
-        <table className="data-table w-full">
-          <thead>
-            <tr>
-              <th scope="col">{t("meetings.ledger.columnAt")}</th>
-              <th scope="col">{t("meetings.ledger.columnDirection")}</th>
-              <th scope="col">{t("meetings.ledger.columnWhat")}</th>
-              <th scope="col">{t("meetings.ledger.columnTaken")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ledger.stances.map((stance, index) => (
-              <tr key={`stance:${index}`}>
-                <td className="font-mono tabular-nums whitespace-nowrap">
-                  {offsetOf(stance.at_ms)}
-                </td>
-                <td className="whitespace-nowrap font-medium">
-                  {`${stance.from} \u2192 ${stance.to}`}
-                </td>
-                <td>{stance.what}</td>
-                <td className="text-text-secondary">{stance.note ?? ""}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      <h4 className={`mt-5 mb-1.5 ${CAPTION_CLASSES}`}>
-        {t("meetings.ledger.trust")}
-      </h4>
-      <ul role="list" className="meeting-rows">
-        <li className="meeting-row-stacked text-[12.5px] leading-[18px] text-text-secondary text-pretty">
-          {t("meetings.ledger.trustMeasured")}
-        </li>
-        {ledger.caveats.map((caveat, index) => (
-          <li
-            key={`caveat:${index}`}
-            className="meeting-row-stacked text-[12.5px] leading-[18px] text-text-secondary text-pretty"
-          >
-            {caveat}
-          </li>
-        ))}
-      </ul>
+      </div>
     </Section>
   );
 };

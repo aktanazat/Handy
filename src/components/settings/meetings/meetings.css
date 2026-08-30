@@ -1,21 +1,39 @@
 /* Meetings page chrome.
  *
- * Everything here is flat: sections are separated by space and hairlines, and
- * the only boxes are the two things a person actually acts on — a meeting
- * entry they open, and a prompt they answer. */
+ * Content groups sit on the page as real cards: --color-surface-raised,
+ * --radius-card, --shadow-card (the shadow carries its own 1px ring, so a
+ * card never draws a border of its own). Rows inside a card keep their
+ * hairline rhythm. Accent is rationed: the Start press, the armed/selected
+ * state, focus rings — nowhere else. */
 
 /* ------------------------------------------------------------ start block */
 
-/* One control starts a meeting. One instrument row above a hairline — the
- * press, what it captures, where it stays — with the assurance sentence as
- * the row's caption, because what the button does to the room is the part
+/* One control starts a meeting. One instrument row on the page's first card —
+ * the press, what it captures, where it stays — with the assurance sentence
+ * as the row's caption, because what the button does to the room is the part
  * people need to read before pressing it. */
 .meeting-start {
-  border-bottom: 1px solid var(--border-subtle);
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding-bottom: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+}
+
+/* The generic content-group card the detail sections share. `--flush` drops
+ * the inset for content that carries its own row padding (divided lists). */
+.meeting-card {
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4);
+}
+
+.meeting-card--flush {
+  overflow: hidden;
+  padding: 0;
 }
 
 .meeting-start-row {
@@ -50,10 +68,10 @@
 }
 
 /* A capture source is a two-state control, so it reads as one: hairline when
- * off, the Geist inversion when on. */
+ * off, the accent-soft armed fill when on. */
 .meeting-source-chip {
   align-items: center;
-  background: var(--surface-1);
+  background: transparent;
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   color: var(--text-secondary);
@@ -76,9 +94,9 @@
 }
 
 .meeting-source-chip[aria-pressed="true"] {
-  background: var(--invert-bg);
-  border-color: var(--invert-bg);
-  color: var(--invert-fg);
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+  color: var(--color-text-primary);
 }
 
 .meeting-source-chip:disabled {
@@ -159,13 +177,17 @@
 
 /* --------------------------------------------------------------- numbers */
 
-/* Four facts about the conversation. Tiles, not cards: a hairline between
- * columns is enough separation for numbers that are read together. */
+/* Four facts about the conversation, on one card: tiles inside it are
+ * separated by hairlines because these numbers are read together, and boxing
+ * each one would claim they are four separate objects. */
 .meeting-stats {
-  border-block: 1px solid var(--border-subtle);
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   display: grid;
   gap: 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: var(--space-1) var(--space-4);
 }
 
 .meeting-stat {
@@ -247,10 +269,10 @@
 
 /* ---------------------------------------------------------- check + link */
 
-/* One checkbox pattern for the whole feature: the Geist inversion as the
- * accent, a real focus ring, and a 16px box that lines up with 19px text. */
+/* One checkbox pattern for the whole feature: the accent as the checked
+ * fill, a real focus ring, and a 16px box that lines up with 19px text. */
 .meeting-check {
-  accent-color: var(--invert-bg);
+  accent-color: var(--color-accent);
   block-size: 16px;
   cursor: pointer;
   flex: none;
@@ -296,11 +318,14 @@
 
 /* ------------------------------------------------------------- artifacts */
 
-/* Generated notes are one document, so the blocks inside it are separated by
- * hairlines and a microlabel, never by nested boxes. */
+/* Generated notes are one document per artifact, and the artifact is the
+ * card. The blocks inside it stay separated by hairlines and a microlabel,
+ * never by nested boxes. */
 .meeting-artifact {
-  border-top: 1px solid var(--border-subtle);
-  padding-top: var(--space-4);
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4);
 }
 
 .meeting-artifact-block + .meeting-artifact-block {
@@ -323,16 +348,16 @@
 .meeting-previews {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
 .meeting-preview {
-  background: var(--surface-raised);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-panel);
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 
@@ -621,36 +646,41 @@
 
 /* ================================================ meetings list panel === */
 
-/* The list is one surface and the rows are its rules. No card per meeting:
- * thirty boxes stacked down a page is thirty borders competing with the thirty
- * titles a person came to read, and a hairline separates a row from its
- * neighbour just as well. */
+/* One meeting, one card. The title, the summary line and the foot facts sit
+ * on their own raised surface; the whole body is still one press. Hover is a
+ * wash over the card, never a border change, so thirty rows do not flicker
+ * their edges while the pointer travels the list. */
 
 .meeting-entries {
-  border-block-start: 1px solid var(--border-hairline);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-/* 67px, derived not picked: row title 19 + summary 16 + microtext 16, plus
- * 8 above and below. A type-scale change moves the row with it. The overflow
- * menu is the second grid column so it centres on the three lines rather than
- * on the first one. */
+/* Row height derived, not picked: title 19 + summary 16 + microtext 16, plus
+ * 10 above and below. A type-scale change moves the card with it. The
+ * overflow menu is the second grid column so it centres on the three lines
+ * rather than on the first one. */
 .meeting-entry {
   align-items: center;
-  border-block-end: 1px solid var(--border-hairline);
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   min-block-size: calc(
     var(--type-row-line) + var(--lh-label-13) + var(--lh-microlabel) + 2 *
-      var(--space-2)
+      var(--space-2-5)
   );
-  padding-inline-end: var(--space-1);
+  overflow: hidden;
+  padding-inline-end: var(--space-2);
 }
 
 /* The row's whole body opens the meeting, so the control owns the padding and
- * the hit target reaches both hairlines. */
+ * the hit target reaches the card's own edges. */
 .meeting-entry-open {
   background: transparent;
   border: 0;
@@ -658,7 +688,7 @@
   display: grid;
   gap: var(--space-0-5);
   min-inline-size: 0;
-  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-1);
+  padding: var(--space-2-5) var(--space-2) var(--space-2-5) var(--space-4);
   text-align: start;
   transition: background-color var(--duration-fast) var(--ease-out);
 }
@@ -708,9 +738,10 @@
   white-space: nowrap;
 }
 
-/* Line 3. Who was in it on the left, what the capture was on the right. */
+/* Line 3. Who was in it on the left as chips, what the capture was on the
+ * right as measured facts; the chip boxes centre against the mono run. */
 .meeting-entry-foot {
-  align-items: baseline;
+  align-items: center;
   display: flex;
   gap: var(--space-4);
   justify-content: space-between;
@@ -718,11 +749,28 @@
   min-inline-size: 0;
 }
 
+/* Who was in it: one small hairline chip per participant, clipped at the
+ * card edge rather than wrapped — a list row is three lines, never four. */
 .meeting-entry-speakers {
-  color: var(--text-tertiary);
+  align-items: center;
+  color: var(--text-secondary);
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--space-1-5);
   min-inline-size: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.meeting-entry-person {
+  align-items: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  display: inline-flex;
+  flex: none;
+  font-size: var(--fs-label-12);
+  line-height: var(--lh-label-12);
+  padding: 1px var(--space-2);
   white-space: nowrap;
 }
 

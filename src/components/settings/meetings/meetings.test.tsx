@@ -417,7 +417,11 @@ describe("meetings list", () => {
     expect(markup).toContain("Weekly planning");
     expect(markup).toContain('data-headline="ledger"');
     expect(markup).toContain("Pricing is open again.");
-    expect(markup).toContain("Ada, Grace");
+    // One chip per participant, in row order.
+    expect(occurrences(markup, "meeting-entry-person")).toBe(2);
+    expect(markup).toContain(">Ada<");
+    expect(markup).toContain(">Grace<");
+    expect(markup.indexOf(">Ada<")).toBeLessThan(markup.indexOf(">Grace<"));
     expect(markup).toContain("MIC SYS");
     expect(markup).toContain("3m 12s");
     // One chip, and it is the state that decides whether the row can be read.

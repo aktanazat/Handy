@@ -210,6 +210,7 @@ const PairEditor: React.FC<PairEditorProps> = ({
           />
           <Button
             size="sm"
+            variant="secondary"
             className="gap-1 justify-self-start sm:justify-self-end"
             onClick={onAdd}
             disabled={!canAdd}

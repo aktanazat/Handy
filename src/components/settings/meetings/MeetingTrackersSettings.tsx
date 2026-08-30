@@ -94,7 +94,7 @@ export const MeetingTrackersSettings: React.FC = () => {
           )}
         </StatusText>
       ) : (
-        <ul className="divide-y divide-border overflow-hidden rounded-panel border border-border">
+        <ul className="meeting-card meeting-card--flush divide-y divide-border">
           {trackers.map((tracker, index) => (
             <li
               key={index}
