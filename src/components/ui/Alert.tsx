@@ -13,10 +13,16 @@ export interface AlertProps {
   className?: string;
 }
 
-const variantStyles: Record<
-  AlertVariant,
-  { container: string; icon: string; text: string }
-> = {
+interface AlertStyle {
+  container: string;
+  icon: string;
+  text: string;
+}
+
+/* `satisfies` rather than an annotation: it still proves the map covers every
+ * `AlertVariant` and rejects a stray one, while keeping the literal key set so
+ * the lookups below stay total without a fallback. */
+const variantStyles = {
   error: {
     container: "border-border bg-surface",
     icon: "text-danger-strong",
@@ -37,14 +43,14 @@ const variantStyles: Record<
     icon: "text-text-secondary",
     text: "text-text-primary",
   },
-};
+} satisfies Record<AlertVariant, AlertStyle>;
 
-const variantIcons: Record<AlertVariant, React.ElementType> = {
+const variantIcons = {
   error: AlertCircle,
   warning: AlertTriangle,
   info: Info,
   success: CheckCircle,
-};
+} satisfies Record<AlertVariant, React.ElementType>;
 
 export const Alert: React.FC<AlertProps> = ({
   variant = "error",

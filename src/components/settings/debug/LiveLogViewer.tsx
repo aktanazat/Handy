@@ -25,13 +25,22 @@ interface LogLine {
   message: string;
 }
 
+interface LogLevelMeta {
+  tag: string;
+  tagClass: string;
+  msgClass: string;
+}
+
+/** The numeric `level` reprs tauri-plugin-log emits, per `LogEventPayload`. */
+type LogLevelRepr = 1 | 2 | 3 | 4 | 5;
+
 /* Level accents on semantic tokens only. The tag is a mono microlabel, the
  * message carries the contrast: an ERROR line has to be findable while
- * scrolling, and TRACE has to stay out of the way. */
-const LEVEL_META: Record<
-  number,
-  { tag: string; tagClass: string; msgClass: string }
-> = {
+ * scrolling, and TRACE has to stay out of the way.
+ *
+ * `satisfies` keeps this exhaustive over `LogLevelRepr` while leaving the keys
+ * literal, so the lookup below is total without an index signature. */
+const LEVEL_META = {
   1: {
     tag: "TRACE",
     tagClass: "text-text-tertiary",
@@ -57,15 +66,21 @@ const LEVEL_META: Record<
     tagClass: "text-error",
     msgClass: "text-error",
   },
-};
+} satisfies Record<LogLevelRepr, LogLevelMeta>;
 
-const UNKNOWN_META = {
+const UNKNOWN_META: LogLevelMeta = {
   tag: "LOG",
   tagClass: "text-text-tertiary",
   msgClass: "text-text-primary",
 };
 
-const metaFor = (level: number) => LEVEL_META[level] ?? UNKNOWN_META;
+/* `level` is a bare number off the event payload, so it is decoded against the
+ * known reprs rather than indexed blind or asserted into one. */
+const isLogLevelRepr = (level: number): level is LogLevelRepr =>
+  level === 1 || level === 2 || level === 3 || level === 4 || level === 5;
+
+const metaFor = (level: number): LogLevelMeta =>
+  isLogLevelRepr(level) ? LEVEL_META[level] : UNKNOWN_META;
 
 const formatTime = (date: Date): string => {
   const pad = (n: number) => String(n).padStart(2, "0");

@@ -6,7 +6,6 @@ import {
   SUPPORTED_LANGUAGES,
   getSupportedLanguage,
   setLanguage,
-  type SupportedLanguageCode,
 } from "../../i18n";
 import { useSettings } from "@/hooks/useSettings";
 
@@ -20,8 +19,8 @@ export const AppLanguageSelector: React.FC<AppLanguageSelectorProps> =
     const { t, i18n } = useTranslation();
     const { settings, updateSetting } = useSettings();
 
-    const currentLanguage = (getSupportedLanguage(settings?.app_language) ||
-      i18n.language) as SupportedLanguageCode;
+    const currentLanguage =
+      getSupportedLanguage(settings?.app_language) || i18n.language;
 
     const languageOptions = SUPPORTED_LANGUAGES.map((lang) => ({
       value: lang.code,

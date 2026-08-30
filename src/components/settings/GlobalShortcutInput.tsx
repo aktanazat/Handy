@@ -142,7 +142,12 @@ export const GlobalShortcutInput: React.FC<GlobalShortcutInputProps> = ({
     const handleClickOutside = async (e: MouseEvent) => {
       if (cleanup) return;
       const activeElement = shortcutRefs.current.get(editingShortcutId);
-      if (activeElement && !activeElement.contains(e.target as Node)) {
+      const target = e.target;
+      if (
+        activeElement &&
+        target instanceof Node &&
+        !activeElement.contains(target)
+      ) {
         // Cancel shortcut recording and restore original binding
         if (editingShortcutId && originalBinding) {
           try {

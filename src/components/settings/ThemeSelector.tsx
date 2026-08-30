@@ -23,8 +23,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = React.memo(
       label: t(`theme.options.${value}`),
     }));
 
-    const handleThemeChange = (value: string) => {
-      const theme = value as Theme;
+    const handleThemeChange = (theme: Theme) => {
       applyTheme(theme);
       updateSetting("theme", theme);
     };
@@ -36,7 +35,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = React.memo(
         descriptionMode={descriptionMode}
         grouped={grouped}
       >
-        <Dropdown
+        <Dropdown<Theme>
           options={themeOptions}
           selectedValue={currentTheme}
           onSelect={handleThemeChange}

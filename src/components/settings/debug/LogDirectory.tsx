@@ -28,11 +28,12 @@ export const LogDirectory: React.FC<LogDirectoryProps> = ({
           setError(result.error);
         }
       } catch (err) {
-        const errorMessage =
-          err && typeof err === "object" && "message" in err
-            ? String(err.message)
-            : "Failed to load log directory";
-        setError(errorMessage);
+        /* `commands.getLogDirPath` rethrows only `Error` instances — every
+         * other failure value is returned as the `status: "error"` branch
+         * handled above — so this is the whole domain of what lands here. */
+        setError(
+          err instanceof Error ? err.message : "Failed to load log directory",
+        );
       } finally {
         setLoading(false);
       }

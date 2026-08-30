@@ -188,9 +188,11 @@ export const HandyKeysShortcutInput: React.FC<HandyKeysShortcutInputProps> = ({
     if (!isRecording) return;
 
     const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target;
       if (
         shortcutRef.current &&
-        !shortcutRef.current.contains(e.target as Node)
+        target instanceof Node &&
+        !shortcutRef.current.contains(target)
       ) {
         cancelRecording();
       }

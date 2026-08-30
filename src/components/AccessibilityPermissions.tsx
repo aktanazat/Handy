@@ -9,12 +9,6 @@ import {
 // Define permission state type
 type PermissionState = "request" | "verify" | "granted";
 
-// Define button configuration type
-interface ButtonConfig {
-  text: string;
-  className: string;
-}
-
 const AccessibilityPermissions: React.FC = () => {
   const { t } = useTranslation();
   const [hasAccessibility, setHasAccessibility] = useState<boolean>(false);
@@ -74,22 +68,13 @@ const AccessibilityPermissions: React.FC = () => {
     return null;
   }
 
-  // Configure button text and style based on state
-  const buttonConfig: Record<PermissionState, ButtonConfig | null> = {
-    request: {
-      text: t("accessibility.openSettings"),
-      className:
-        "liquid-control min-h-8 cursor-pointer border border-border bg-surface px-3 text-sm font-medium text-text-primary hover:border-border-strong hover:bg-hover",
-    },
-    verify: {
-      text: t("accessibility.openSettings"),
-      className:
-        "liquid-control min-h-8 cursor-pointer border border-border bg-surface px-3 text-sm font-medium text-text-primary hover:border-border-strong hover:bg-hover",
-    },
-    granted: null,
-  };
-
-  const config = buttonConfig[permissionState] as ButtonConfig;
+  /* `granted` cannot reach the markup below: the early return above fires
+   * whenever permission is held, and `permissionState` only turns "granted"
+   * in the same commit that sets `hasAccessibility` true (see
+   * `checkPermissions` and the boot effect). The two states that do render,
+   * `request` and `verify`, share one label and one style, so the button
+   * needs no per-state lookup.
+   */
 
   return (
     <div
@@ -102,8 +87,11 @@ const AccessibilityPermissions: React.FC = () => {
             {t("accessibility.permissionsDescription")}
           </p>
         </div>
-        <button onClick={handleButtonClick} className={config.className}>
-          {config.text}
+        <button
+          onClick={handleButtonClick}
+          className="liquid-control min-h-8 cursor-pointer border border-border bg-surface px-3 text-sm font-medium text-text-primary hover:border-border-strong hover:bg-hover"
+        >
+          {t("accessibility.openSettings")}
         </button>
       </div>
     </div>

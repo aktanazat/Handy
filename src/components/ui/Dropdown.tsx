@@ -1,17 +1,22 @@
-import React, { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-export interface DropdownOption {
-  value: string;
+/* `T` is the caller's own value domain rather than `string`: a settings row
+ * that selects an `OverlayStyle` instantiates `Dropdown<OverlayStyle>` and its
+ * `onSelect` hands an `OverlayStyle` straight back, so no caller has to assert
+ * a string into its enum. Defaulted to `string` for lists of opaque ids
+ * (device names, model ids) where there is no narrower domain to name. */
+export interface DropdownOption<T extends string = string> {
+  value: T;
   label: string;
   disabled?: boolean;
 }
 
-export interface DropdownProps {
-  options: DropdownOption[];
+export interface DropdownProps<T extends string = string> {
+  options: DropdownOption<T>[];
   className?: string;
-  selectedValue: string | null;
-  onSelect: (value: string) => void;
+  selectedValue: T | null;
+  onSelect: (value: T) => void;
   placeholder?: string;
   disabled?: boolean;
   onRefresh?: () => void;
@@ -25,7 +30,7 @@ export interface DropdownProps {
   filterKey?: string;
 }
 
-export const Dropdown: React.FC<DropdownProps> = ({
+export function Dropdown<T extends string = string>({
   options,
   selectedValue,
   onSelect,
@@ -35,7 +40,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
   onRefresh,
   variant = "default",
   filterKey,
-}) => {
+}: DropdownProps<T>) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -71,7 +76,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
    * in flight; only the owner of the enumeration knows that. */
   const selectedLabel = selectedOption?.label || selectedValue || placeholder;
 
-  const handleSelect = (value: string) => {
+  const handleSelect = (value: T) => {
     onSelect(value);
     setIsOpen(false);
   };
@@ -170,4 +175,4 @@ export const Dropdown: React.FC<DropdownProps> = ({
       )}
     </div>
   );
-};
+}

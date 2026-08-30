@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Dropdown } from "../ui/Dropdown";
+import { Dropdown, type DropdownOption } from "../ui/Dropdown";
 import { SettingContainer } from "../ui/SettingContainer";
 import { useSettings } from "../../hooks/useSettings";
 import type { OverlayPosition, OverlayStyle } from "@/bindings";
@@ -15,7 +15,7 @@ export const ShowOverlay: React.FC<ShowOverlayProps> = React.memo(
     const { t } = useTranslation();
     const { getSetting, updateSetting, isUpdating } = useSettings();
 
-    const styleOptions = [
+    const styleOptions: DropdownOption<OverlayStyle>[] = [
       {
         value: "none",
         label: t("settings.advanced.overlay.style.options.none"),
@@ -30,7 +30,7 @@ export const ShowOverlay: React.FC<ShowOverlayProps> = React.memo(
       },
     ];
 
-    const positionOptions = [
+    const positionOptions: DropdownOption<OverlayPosition>[] = [
       {
         value: "bottom",
         label: t("settings.advanced.overlay.position.options.bottom"),
@@ -41,8 +41,9 @@ export const ShowOverlay: React.FC<ShowOverlayProps> = React.memo(
       },
     ];
 
-    const selectedStyle = (getSetting("overlay_style") ||
-      "live") as OverlayStyle;
+    /* `getSetting` yields `OverlayStyle | undefined`, so the fallback alone
+     * produces an `OverlayStyle`. */
+    const selectedStyle = getSetting("overlay_style") || "live";
     // Only "top" and "bottom" are selectable; anything else (empty, or a legacy
     // "none" from before the position was retired) falls back to "bottom".
     const selectedPosition: OverlayPosition =
@@ -56,12 +57,10 @@ export const ShowOverlay: React.FC<ShowOverlayProps> = React.memo(
           descriptionMode={descriptionMode}
           grouped={grouped}
         >
-          <Dropdown
+          <Dropdown<OverlayStyle>
             options={styleOptions}
             selectedValue={selectedStyle}
-            onSelect={(value) =>
-              updateSetting("overlay_style", value as OverlayStyle)
-            }
+            onSelect={(value) => updateSetting("overlay_style", value)}
             disabled={isUpdating("overlay_style")}
           />
         </SettingContainer>
@@ -73,12 +72,10 @@ export const ShowOverlay: React.FC<ShowOverlayProps> = React.memo(
             descriptionMode={descriptionMode}
             grouped={grouped}
           >
-            <Dropdown
+            <Dropdown<OverlayPosition>
               options={positionOptions}
               selectedValue={selectedPosition}
-              onSelect={(value) =>
-                updateSetting("overlay_position", value as OverlayPosition)
-              }
+              onSelect={(value) => updateSetting("overlay_position", value)}
               disabled={isUpdating("overlay_position")}
             />
           </SettingContainer>

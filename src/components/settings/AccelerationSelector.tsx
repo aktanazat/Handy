@@ -9,13 +9,32 @@ import type {
   OrtAcceleratorSetting,
 } from "@/bindings";
 
-const ORT_LABELS: Record<OrtAcceleratorSetting, string> = {
+const ORT_LABELS = {
   auto: "Auto",
   cpu: "CPU",
   cuda: "CUDA",
   directml: "DirectML",
   rocm: "ROCm",
-};
+} satisfies Record<OrtAcceleratorSetting, string>;
+
+/* `AvailableAccelerators.ort` is a `Vec<String>` the backend builds by
+ * stringifying transcribe_rs's own accelerator enum, so nothing guarantees a
+ * value is one this app can store. Decode it rather than assert it: the
+ * fallthrough group narrows `value` to exactly `OrtAcceleratorSetting`, and an
+ * accelerator Sona has no setting for is dropped instead of being offered as a
+ * choice `change_ort_accelerator_setting` would refuse. */
+function decodeOrtAccelerator(value: string): OrtAcceleratorSetting | null {
+  switch (value) {
+    case "auto":
+    case "cpu":
+    case "cuda":
+    case "directml":
+    case "rocm":
+      return value;
+    default:
+      return null;
+  }
+}
 
 interface AccelerationSelectorProps {
   descriptionMode?: "tooltip" | "inline";
@@ -37,10 +56,12 @@ function encodeTranscribeValue(
   return "auto";
 }
 
-function decodeTranscribeValue(value: string): {
+type TranscribeSelection = {
   accelerator: TranscribeAcceleratorSetting;
   gpuDevice: string | null;
-} {
+};
+
+function decodeTranscribeValue(value: string): TranscribeSelection {
   if (value === "cpu") return { accelerator: "cpu", gpuDevice: null };
   if (value.startsWith("gpu:")) {
     return { accelerator: "gpu", gpuDevice: value.slice(4) };
@@ -58,7 +79,9 @@ export const AccelerationSelector: FC<AccelerationSelectorProps> = ({
   const [transcribeOptions, setTranscribeOptions] = useState<DropdownOption[]>(
     [],
   );
-  const [ortOptions, setOrtOptions] = useState<DropdownOption[]>([]);
+  const [ortOptions, setOrtOptions] = useState<
+    DropdownOption<OrtAcceleratorSetting>[]
+  >([]);
 
   useEffect(() => {
     commands.getAvailableAccelerators().then((available) => {
@@ -89,15 +112,19 @@ export const AccelerationSelector: FC<AccelerationSelectorProps> = ({
       }
       setTranscribeOptions(opts);
 
-      // ORT options (unchanged)
-      const ortVals = available.ort.includes("auto")
+      const ortValues = available.ort.includes("auto")
         ? available.ort
         : ["auto", ...available.ort];
       setOrtOptions(
-        ortVals.map((v) => ({
-          value: v,
-          label: ORT_LABELS[v as OrtAcceleratorSetting] ?? v,
-        })),
+        ortValues
+          .flatMap((value) => {
+            const accelerator = decodeOrtAccelerator(value);
+            return accelerator === null ? [] : [accelerator];
+          })
+          .map((accelerator) => ({
+            value: accelerator,
+            label: ORT_LABELS[accelerator],
+          })),
       );
     });
   }, [t]);
@@ -105,8 +132,8 @@ export const AccelerationSelector: FC<AccelerationSelectorProps> = ({
   const currentAccelerator = getSetting("transcribe_accelerator") ?? "auto";
   const currentGpuDevice = getSetting("transcribe_gpu_device") ?? null;
   const currentTranscribe = encodeTranscribeValue(
-    currentAccelerator as TranscribeAcceleratorSetting,
-    currentGpuDevice as string | null,
+    currentAccelerator,
+    currentGpuDevice,
   );
   const displayedTranscribe = transcribeOptions.some(
     (option) => option.value === currentTranscribe,
@@ -149,12 +176,10 @@ export const AccelerationSelector: FC<AccelerationSelectorProps> = ({
           grouped={grouped}
           layout="horizontal"
         >
-          <Dropdown
+          <Dropdown<OrtAcceleratorSetting>
             options={ortOptions}
             selectedValue={currentOrt}
-            onSelect={(value) =>
-              updateSetting("ort_accelerator", value as OrtAcceleratorSetting)
-            }
+            onSelect={(value) => updateSetting("ort_accelerator", value)}
             disabled={isUpdating("ort_accelerator")}
           />
         </SettingContainer>
