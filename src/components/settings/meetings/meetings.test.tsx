@@ -15,7 +15,8 @@ import type {
 } from "@/bindings";
 import { MeetingLive } from "./MeetingLive";
 import { MeetingStartGate } from "./MeetingStartGate";
-import { InsightsTab, QuestionsTab } from "./MeetingReviewPanels";
+import { InsightsTab } from "./review/InsightsTab";
+import { QuestionsTab } from "./review/QuestionsTab";
 import { MeetingReview } from "./MeetingReview";
 import { MeetingsHome } from "./MeetingsHome";
 import { MeetingLedgerSection } from "./MeetingLedgerSection";
@@ -69,9 +70,9 @@ const render = (node: React.ReactElement) =>
 const occurrences = (markup: string, needle: string) =>
   markup.split(needle).length - 1;
 
-/** Opening tag of the button whose whole label is `label`. */
+/** Opening tag of the button containing the visible label. */
 const buttonTag = (markup: string, label: string) => {
-  const labelIndex = markup.indexOf(`>${label}</button>`);
+  const labelIndex = markup.indexOf(`>${label}<`);
   if (labelIndex === -1) return "";
   return markup.slice(markup.lastIndexOf("<button", labelIndex), labelIndex);
 };
@@ -427,11 +428,11 @@ describe("meetings list", () => {
     expect(markup).toContain("Weekly planning");
     expect(markup).toContain('data-headline="ledger"');
     expect(markup).toContain("Pricing is open again.");
-    // One chip per participant, in row order.
+    // Two speakers produce two initial bubbles and one readable name line.
     expect(occurrences(markup, 'data-slot="meeting-person"')).toBe(2);
-    expect(markup).toContain(">Ada<");
-    expect(markup).toContain(">Grace<");
-    expect(markup.indexOf(">Ada<")).toBeLessThan(markup.indexOf(">Grace<"));
+    expect(markup).toContain(">A<");
+    expect(markup).toContain(">G<");
+    expect(markup).toContain(">Ada, Grace<");
     expect(markup).toContain("MIC SYS");
     expect(markup).toContain("3m 12s");
     // One chip, and it is the state that decides whether the row can be read.
@@ -439,7 +440,7 @@ describe("meetings list", () => {
     expect(occurrences(markup, 'data-slot="meeting-status"')).toBe(1);
   });
 
-  test("each status maps to its own semaphore, recording alone filled", () => {
+  test("each meeting state maps to its tinted card status", () => {
     const chip = (overrides: Partial<MeetingHistorySummary>) => {
       const markup = row(overrides);
       const at = markup.indexOf('data-slot="meeting-status"');
@@ -450,30 +451,41 @@ describe("meetings list", () => {
         phase: "capturing_recording",
         processing_status: { kind: "pending" },
       }),
-    ).toContain('data-status="recording"');
+    ).toContain('data-status="live"');
     expect(
       chip({
-        phase: "capturing_recording",
+        phase: "starting",
         processing_status: { kind: "pending" },
       }),
-    ).toContain('data-fill="solid"');
+    ).toContain('data-status="live"');
     expect(
       chip({ phase: "processing", processing_status: { kind: "running" } }),
     ).toContain('data-status="processing"');
     expect(chip({})).toContain('data-status="ready"');
-    expect(chip({})).toContain('data-fill="outline"');
     expect(
       chip({
         processing_status: { kind: "failed", reason: "engine_failure" },
       }),
-    ).toContain('data-status="failed"');
-    // Recovery is a failure a person has to act on, not a phase word.
+    ).toContain('data-status="needs_attention"');
+    // Recovery needs action even before processing reports a failure.
     expect(
       chip({
         phase: "recovery_required",
         processing_status: { kind: "pending" },
       }),
-    ).toContain('data-status="failed"');
+    ).toContain('data-status="needs_attention"');
+  });
+
+  test("four speakers use two initials and one overflow bubble", () => {
+    const markup = row({
+      speaker_labels: ["Ada Lovelace", "Grace Hopper", "Linus", "Margaret"],
+    });
+    expect(occurrences(markup, 'data-slot="meeting-person"')).toBe(2);
+    expect(occurrences(markup, 'data-slot="meeting-person-overflow"')).toBe(1);
+    expect(markup).toContain(">AL<");
+    expect(markup).toContain(">GH<");
+    expect(markup).toContain(">+2<");
+    expect(markup).toContain(">Ada Lovelace, Grace Hopper, Linus, Margaret<");
   });
 
   test("line two falls back from ledger to summary to a word count to nothing", () => {

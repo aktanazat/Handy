@@ -13,8 +13,10 @@ import type {
   HistoryStats,
   ModeReceipt,
 } from "@/bindings";
-import { HistoryEntryComponent, historyRowActions } from "./HistoryEntry";
-import { HistorySettings, HistorySummary } from "./HistorySettings";
+import { HistoryEntryComponent } from "./HistoryEntry";
+import { historyRowActions } from "./historyRowActions";
+import { HistorySettings } from "./HistorySettings";
+import { HistorySummary } from "./HistorySummary";
 import { PAGE_COLUMN } from "../rows";
 
 /* What a Library row is allowed to say, and what it must never say.

@@ -82,10 +82,12 @@ Sona is a cross-platform desktop speech-to-text application built with Tauri 2.x
     `@theme inline` token bridge in `app/globals.css`. `components.json` points
     the shadcn CLI at it (`"ui": "@/components/vg"`), so `bunx shadcn add …`
     lands here. Never hand-roll a control, and never start a second kit.
-  - `ui/` - what is left of the pre-Geist kit: app-specific survivors with no
-    `vg/` counterpart yet (AudioPlayer, RouteSkeleton, Toaster) plus three
-    still used by onboarding and what's-new. Frozen — each retires by moving
-    its consumers onto a `vg/` primitive. Nothing new goes in it.
+  - `audio/AudioPlayer.tsx`, `RouteSkeleton.tsx`, `Toaster.tsx` - app
+    components, not primitives: the transcript scrubber, the shape of a
+    settings page before its chunk arrives, and the app's one toast root. Each
+    owns behaviour specific to this app, which is why it sits outside `vg/` —
+    `vg/` is the only primitives home, and the pre-Geist `ui/` kit it replaced
+    is gone.
   - `settings/` - Settings UI. `settings/rows.tsx` is its composition layer
     (SettingsPage, SettingsCard, SettingsSurface, SettingsRow, Notice,
     `PAGE_COLUMN`); pages compose those, they never restate the surface

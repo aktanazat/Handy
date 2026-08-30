@@ -134,13 +134,8 @@ const settingUpdaters: SettingUpdaters = {
   paste_delay_after_ms: (value) =>
     commands.changePasteDelayAfterMsSetting(value),
   reliable_paste: (value) => commands.changeReliablePasteSetting(value),
-  paste_method: (value) => commands.changePasteMethodSetting(value),
-  typing_tool: (value) => commands.changeTypingToolSetting(value),
   external_script_path: (value) =>
     commands.changeExternalScriptPathSetting(value),
-  clipboard_handling: (value) => commands.changeClipboardHandlingSetting(value),
-  auto_submit: (value) => commands.changeAutoSubmitSetting(value),
-  auto_submit_key: (value) => commands.changeAutoSubmitKeySetting(value),
   history_limit: (value) => commands.updateHistoryLimit(value),
   post_process_enabled: (value) =>
     commands.changePostProcessEnabledSetting(value),

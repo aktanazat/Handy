@@ -153,7 +153,7 @@
   font-size: var(--fs-microlabel);
   font-weight: 500;
   letter-spacing: var(--ls-microlabel);
-  line-height: 16px;
+  line-height: var(--lh-microlabel);
   text-transform: uppercase;
 }
 

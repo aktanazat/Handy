@@ -5,7 +5,8 @@ import { invoke } from "@tauri-apps/api/core";
  *
  * The generated wrappers exist, but these thirteen calls declare their payload
  * shapes locally and go through `invoke` exactly like `read_history_audio_chunk`
- * already does in `HistorySettings.tsx`. Keeping one accessor per command here
+ * already does in `settings/history/historyAudioBlob.ts`. Keeping one accessor
+ * per command here
  * means the panels below never import a second settings surface.
  */
 

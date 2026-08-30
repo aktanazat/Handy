@@ -29,12 +29,10 @@ import {
 } from "@/components/vg/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/vg/tabs";
 import { CloudMeetingActions } from "../../cloud-sync/CloudMeetingActions";
-import {
-  InsightsTab,
-  QuestionsTab,
-  TranscriptTab,
-  type SegmentJump,
-} from "./MeetingReviewPanels";
+import type { SegmentJump } from "./review/Citations";
+import { InsightsTab } from "./review/InsightsTab";
+import { QuestionsTab } from "./review/QuestionsTab";
+import { TranscriptTab } from "./review/TranscriptTab";
 import { MeetingLedgerSection } from "./MeetingLedgerSection";
 import { CaptureCompletenessText, MeetingPhaseText } from "./MeetingStatus";
 import {

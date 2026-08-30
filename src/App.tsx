@@ -18,7 +18,8 @@ import { Sidebar } from "./components/Sidebar";
 import { CommandPalette } from "./components/CommandPalette";
 import { DetectionListeners } from "./components/settings/meetings/DetectionListeners";
 import { PAGE_COLUMN } from "./components/settings/rows";
-import { RouteSkeleton, Toaster } from "./components/ui";
+import { RouteSkeleton } from "./components/RouteSkeleton";
+import { Toaster } from "./components/Toaster";
 import {
   commandActionIcons,
   isCommandPaletteChord,
@@ -105,8 +106,9 @@ const subscribeToMeetingEvents = async (
   };
 };
 
-/* The toast surface and the route skeleton both live in the design system;
- * the shell only decides where they mount. */
+/* The toast surface and the route skeleton are app components, not kit
+ * primitives — they own this app's copy rules and page rhythm. The shell only
+ * decides where they mount. */
 
 interface AppContentProps {
   onboardingStep: OnboardingStep | null;

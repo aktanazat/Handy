@@ -2016,6 +2016,34 @@ mod tests {
         settings
     }
 
+    #[test]
+    fn empty_mode_list_seeds_delivery_from_legacy_roots() {
+        let raw = serde_json::json!({
+            "modes": [],
+            "paste_method": "direct",
+            "clipboard_handling": "copy_to_clipboard",
+            "auto_submit": true,
+            "auto_submit_key": "cmd_enter",
+            "typing_tool": "xdotool",
+        });
+        let mut settings: AppSettings =
+            serde_json::from_value(raw).expect("legacy delivery roots deserialize");
+
+        assert!(settings.modes.is_empty());
+        assert!(ensure_mode_settings(&mut settings));
+        assert_eq!(settings.modes.len(), 4);
+        for mode in &settings.modes {
+            assert_eq!(mode.delivery.paste_method, PasteMethod::Direct);
+            assert_eq!(
+                mode.delivery.clipboard_handling,
+                ClipboardHandling::CopyToClipboard
+            );
+            assert!(mode.delivery.auto_submit);
+            assert_eq!(mode.delivery.auto_submit_key, AutoSubmitKey::CmdEnter);
+            assert_eq!(mode.delivery.typing_tool, TypingTool::Xdotool);
+        }
+    }
+
     fn grant_remote_llm_consent(settings: &mut AppSettings, provider_id: &str) {
         let provider = settings
             .post_process_provider(provider_id)

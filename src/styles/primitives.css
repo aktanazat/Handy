@@ -1,19 +1,22 @@
-/* Shared component surfaces: the control fill ladder, the dialog, the loading
- * skeleton, the measured-value type role, the Glass material, and nothing
- * else.
+/* Shared component surfaces: the control fill ladder, the loading skeleton,
+ * the measured-value type role, the Glass material, and nothing else.
  *
- * These rules back the primitives in src/components/ui that are still
- * standing. Components carry layout and variant classes with Tailwind
- * utilities; anything that needs a pseudo-element, a keyframe, or a rule that
- * has to reach into third-party markup lives here.
+ * Nothing in src/components/vg reads any of this: the kit is Tailwind on Geist
+ * tokens. What is left backs the app's own surfaces — the settings page's bare
+ * fields, the route skeleton, the audio scrubber's readout, and the Glass
+ * material behind the sidebar and the command palette. Components carry layout
+ * and variant classes with Tailwind utilities; anything that needs a
+ * pseudo-element, a keyframe, or a rule that has to reach into third-party
+ * markup lives here.
  *
  * Pruned with the kit it backed: the settings group/row/panel grammar (now
  * `src/components/settings/rows.tsx`, Tailwind on Geist tokens), the Switch
  * track, the Slider rail, the popover, the card and inset-panel surfaces, ten
  * of the eleven type roles, the microlabel pair, the keycap, the value chip,
- * the toggle pill, the data table and the grid connector. Every one of those
- * classes had zero references left anywhere in src/, tests/, scripts/ or
- * src-tauri/. */
+ * the toggle pill, the data table and the grid connector. Deleting the kit
+ * outright took the last three: the dialog surface, its scrim, and
+ * `.control-surface`. Every one of those classes had zero references left
+ * anywhere in src/, tests/, scripts/ or src-tauri/. */
 
 /* ----------------------------------------------------------- controls */
 
@@ -23,8 +26,8 @@
  * utilities layer can only win against a layered rule: an unlayered
  * declaration outranks every layer, which silently killed hover, active and
  * disabled feedback on every bordered control. Measured in-browser before
- * the fix: `.control-surface` + `bg-control-disabled` computed to the plain
- * control fill.
+ * the fix: a bordered control marked `bg-control-disabled` computed to the
+ * plain control fill.
  *
  * Every window now carries Tailwind, so the layer is real everywhere: under
  * Next.js this file is reached only through app/globals.css, which is the
@@ -32,7 +35,6 @@
  * not true under Vite, where the overlay and agent-panel entries imported this
  * file as plain CSS and the layer was created on first use. Keep it layered. */
 @layer components {
-  .control-surface,
   .settings-main
     :is(
       input[type="text"],
@@ -48,30 +50,28 @@
   }
 
   .liquid-control,
-  .control-surface,
   .settings-main :is(input, select, textarea) {
     border-radius: var(--radius-control);
   }
 
-  .control-surface:not(textarea),
   .settings-main :is(input:not([type="checkbox"]):not([type="radio"]), select) {
     min-block-size: var(--control-height);
   }
 
   /* Bare fields inside a settings page get their box from here — a `<select>`
-   * or an `<input>` that no component wraps. `.control-surface` is the opt-out
-   * for a control that owns its own padding, and its one remaining consumer is
-   * ui/Button's secondary variant, which is a `<button>`: the `:not()` clauses
-   * below can no longer match anything, and are kept only so re-marking a field
-   * with the class still opts it out. They cost one class of specificity each,
-   * which this selector needs anyway to outspecify a Tailwind utility — without
-   * it the rule silently reinstated the Library search placeholder under the
-   * magnifier no matter what the field asked for. */
-  .settings-main input[type="text"]:not(.control-surface),
-  .settings-main input[type="search"]:not(.control-surface),
-  .settings-main input[type="password"]:not(.control-surface),
-  .settings-main input[type="url"]:not(.control-surface),
-  .settings-main select:not(.control-surface) {
+   * or an `<input>` that no component wraps. `.settings-main` is doubled to
+   * hold the weight a `:not(.control-surface)` clause used to carry: that
+   * clause went dead with the legacy kit's Button, the only thing that ever
+   * wore the class, and dropping it was no place to also change what this
+   * rule beats. What lets a field override the padding is the layer rather
+   * than the weight — measured on the compiled sheet: `pl-8` on the Library
+   * search input is a `utilities` rule, and `utilities` outranks this whole
+   * block. */
+  .settings-main.settings-main input[type="text"],
+  .settings-main.settings-main input[type="search"],
+  .settings-main.settings-main input[type="password"],
+  .settings-main.settings-main input[type="url"],
+  .settings-main.settings-main select {
     border: 1px solid var(--color-control-border);
     padding-inline: var(--space-2-5);
   }
@@ -95,29 +95,6 @@
   .settings-main button {
     -webkit-tap-highlight-color: transparent;
   }
-}
-
-/* ------------------------------------------------------------- dialog */
-
-/* NAMING TRAP, read before editing: these two `.glass-*` classes are SOLID
- * surfaces. The name is left over from an earlier era and predates the
- * Material setting; the only class in this file that carries an actual
- * backdrop-filter is `.glass-surface`, further down. Do not "restore" blur
- * here. Renaming them is a follow-up, not a mid-flight edit: their call sites
- * are in ui/Dialog.tsx, which another slice owns right now. */
-
-.glass-dialog-backdrop {
-  background: var(--color-backdrop);
-}
-
-/* Border-colour transparent, not border-width zero: the 1px ring that leads
- * --shadow-dialog IS this dialog's edge, and keeping the border box means the
- * layout does not shift by a pixel. */
-.glass-dialog {
-  background: var(--color-material-dialog);
-  border: 1px solid transparent;
-  border-radius: var(--radius-dialog);
-  box-shadow: var(--shadow-dialog);
 }
 
 /* ---------------------------------------------------------- skeletons */
@@ -168,16 +145,16 @@
  *
  * The 2026-08 ruling, which replaces the old two-glass-surface budget: under
  * Glass, every CHROME surface goes translucent-raised over the native
- * vibrancy sample — the sidebar rail, the command palette, and dialog
- * chrome. All are bounded regions, so the blur cost stays bounded. Surfaces
- * that DISPLAY MEASURED DATA (content cards, settings panels, tables, the
- * library list) stay opaque --color-surface-raised in BOTH materials: numbers
- * are never read through wallpaper. Solid is the default cascade — fully
- * opaque, zero backdrop-filter — so [data-material="solid"] needs no rules at
- * all.
+ * vibrancy sample — today the sidebar rail and the command palette, which is
+ * itself a dialog and opts in by wearing `.glass-surface`. Both are bounded
+ * regions, so the blur cost stays bounded. Surfaces that DISPLAY MEASURED
+ * DATA (content cards, settings panels, tables, the library list) stay opaque
+ * --color-surface-raised in BOTH materials: numbers are never read through
+ * wallpaper. Solid is the default cascade — fully opaque, zero
+ * backdrop-filter — so [data-material="solid"] needs no rules at all.
  *
- * Content genuinely sits beneath these two, so backdrop-filter samples app
- * content plus the vibrancy underlay: blur(20px) saturate(1.4) — saturate is
+ * Content genuinely sits beneath it, so backdrop-filter samples app content
+ * plus the vibrancy underlay: blur(20px) saturate(1.4) — saturate is
  * sanctioned by the pivot; the cool palette reads flat through a plain blur.
  * The recording HUD used to take a second, tint-only variant here; it now
  * defines its own in src/overlay/RecordingOverlay.css, where the surface it
@@ -186,12 +163,12 @@
  * No --shadow-panel here: its 1px ring would double the --glass-border edge,
  * so glass takes the ring-less --glass-shadow. Never nest two blurring
  * surfaces, and never animate the blur radius. */
-:root[data-material="glass"] :is(.glass-surface, .glass-dialog) {
+:root[data-material="glass"] .glass-surface {
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
   backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
   background: var(--glass-tint);
   /* Colour only, never the shorthand: the consumer owns which edges it draws.
-     The rail wants an end rule; the palette and dialogs want all four. */
+     The rail wants an end rule; the palette wants all four. */
   border-color: var(--glass-border);
   box-shadow:
     inset 0 1px 0 var(--glass-specular-top),
@@ -204,7 +181,7 @@
  * costs nothing. Increase Contrast IS supported, and flattens glass to a
  * bordered solid, which is what the system does natively. */
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  :root[data-material="glass"] :is(.glass-surface, .glass-dialog) {
+  :root[data-material="glass"] .glass-surface {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
     background: var(--surface-raised);

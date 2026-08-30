@@ -9,7 +9,7 @@ import {
   SettingsSection,
 } from "@/components/settings/rows";
 import { Button } from "@/components/vg/button";
-import { CitationJump } from "./MeetingReviewPanels";
+import { CitationJump } from "./review/Citations";
 import { formatMeetingOffset } from "./meetingUtils";
 import {
   currentLedger,

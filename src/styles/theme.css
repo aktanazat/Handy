@@ -332,29 +332,20 @@
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* -- type. Weights are 400/500/600 for UI, 700 for the page title only —
-     the one confident jump the identity asks for.
+  /* -- type. Weights are 400/500/600 for UI.
 
-     TRACKING IS ZERO AT EVERY UI SIZE except the page title. SF's own
-     tracking never exceeds ±0.012em between 19 and 80px and crosses zero at
-     40px; SF also ships a real optical-size axis (see fonts.css), so
-     per-size tracking re-solves a problem the font already solves. The page
-     title at 26px/700 carries the identity's -0.02em; nothing else does.
-     The --ls-* names stay so no consumer breaks. */
+     TRACKING IS ZERO AT EVERY UI SIZE. SF's own tracking never exceeds
+     ±0.012em between 19 and 80px and crosses zero at 40px; SF also ships a
+     real optical-size axis (see fonts.css), so per-size tracking re-solves a
+     problem the font already solves. Settings page titles and section labels
+     live in rows.tsx: PageTitle is 24px/30px at weight 500, while
+     SettingsSection uses the canonical 11px Microlabel typography. */
   --fw-heading: 600;
   --fw-button: 500;
   --fw-label: 400;
-  --fs-display-40: 40px;
-  --lh-display-40: 44px;
   --fs-heading-32: 32px;
   --lh-heading-32: 40px;
   --ls-heading-32: 0;
-  --fs-heading-28: 28px;
-  --lh-heading-28: 32px;
-  /* The page-title primitive: 26px at 1.15 (30px), weight 700, -0.02em. */
-  --fs-heading-26: 26px;
-  --lh-heading-26: 30px;
-  --ls-heading-26: -0.02em;
   --fs-heading-24: 24px;
   --lh-heading-24: 32px;
   --ls-heading-24: 0;
@@ -364,10 +355,6 @@
   --fs-heading-16: 16px;
   --lh-heading-16: 24px;
   --ls-heading-16: 0;
-  /* The section-title primitive: 15px/600 on a 20px line. */
-  --fs-heading-15: 15px;
-  --lh-heading-15: 20px;
-  --ls-heading-15: 0;
   --fs-heading-14: 14px;
   --lh-heading-14: 20px;
   --ls-heading-14: 0;
@@ -375,8 +362,6 @@
   --lh-label-16: 20px;
   --fs-label-14: 14px;
   --lh-label-14: 20px;
-  --fs-label-13: 13px;
-  --lh-label-13: 16px;
   --fs-label-12: 12px;
   --lh-label-12: 16px;
   /* The one uppercase role: a short mono label, tracked, in a muted grey,
@@ -385,53 +370,24 @@
      primitives.css's type roles; `Microlabel` in components/settings/rows.tsx
      is the affordance now, and it re-states the size as a utility rather than
      reading these tokens — at a wider 0.12em, so the two are near neighbours
-     and not one value. The tokens stay because the caption and keycap roles
-     below are built on them. */
+     and not one value. What reads them is `.ob-group-label` in
+     components/onboarding/onboarding.css, the app's one uppercase label. */
   --fs-microlabel: 11px;
   --lh-microlabel: 16px;
   --ls-microlabel: 0.09em;
 
-  /* The eleven roles of the ramp. Nothing outside these sets font-size,
-   * font-weight, letter-spacing or text-transform directly. Where the roles are
-   * applied moved with the redesign: `.type-data` in primitives.css is the last
-   * one carried by a class, `--type-secondary-*` is read by onboarding.css, and
-   * the other nine are spelled as Tailwind utilities on the pages that set them
-   * — so the tokens below are the reference values, not the live wiring, and a
-   * change here does not reach a page on its own. Every DATA role is
-   * tabular-nums: a readout that reflows its own column as digits change is a
-   * lie about stability. */
-  --type-display-size: var(--fs-display-40);
-  --type-display-line: var(--lh-display-40);
-  --type-display-weight: 700;
-  --type-title-size: var(--fs-heading-26);
-  --type-title-line: var(--lh-heading-26);
-  --type-title-weight: 700;
-  --type-title-tracking: var(--ls-heading-26);
-  --type-section-size: var(--fs-heading-15);
-  --type-section-line: var(--lh-heading-15);
-  --type-section-weight: var(--fw-heading);
-  --type-section-tracking: var(--ls-heading-15);
-  --type-metric-size: var(--fs-heading-28);
-  --type-metric-line: var(--lh-heading-28);
-  --type-metric-weight: var(--fw-heading);
-  --type-metric-tracking: 0;
-  --type-row-size: var(--fs-label-13);
-  --type-row-line: 19px;
-  --type-row-weight: var(--fw-button);
-  --type-body-size: var(--fs-label-13);
-  --type-body-line: 19px;
+  /* Two roles of the ramp are still wired to something: `.type-data` in
+   * primitives.css reads --type-data-*, and onboarding.css reads
+   * --type-secondary-*. The other nine had no consumer left — the redesign
+   * spells those sizes as Tailwind utilities on the pages that set them — so
+   * they are gone rather than sitting here as reference values a change to
+   * which reached nothing. The data role also carries tabular-nums, in
+   * primitives.css: a readout that reflows its own column as digits change is
+   * a lie about stability. */
   --type-secondary-size: var(--fs-label-12);
   --type-secondary-line: var(--lh-label-12);
   --type-data-size: var(--fs-label-12);
   --type-data-line: var(--lh-label-12);
-  --type-code-size: var(--fs-label-13);
-  --type-code-line: 20px;
-  --type-keycap-size: var(--fs-microlabel);
-  --type-caption-size: var(--fs-microlabel);
-  --type-caption-line: var(--lh-microlabel);
-  --type-caption-weight: var(--fw-heading);
-  /* One owner for the uppercase-label tracking. */
-  --type-caption-tracking: var(--ls-microlabel);
 }
 
 /* ============================================================== motion === */

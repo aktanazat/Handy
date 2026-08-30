@@ -22,8 +22,8 @@ import {
   getLanguageLabel,
   getUniqueCapabilityLanguages,
 } from "../../lib/constants/languages";
-import Badge from "../ui/Badge";
-import { Button } from "../ui/Button";
+import { Badge } from "@/components/vg/badge";
+import { Button } from "@/components/vg/button";
 import { useSettingsStore } from "@/stores/settingsStore";
 
 // Get display text for model's language support
@@ -158,11 +158,11 @@ const ModelCard: React.FC<ModelCardProps> = ({
               {displayName}
             </h3>
             {showRecommended && model.is_recommended && (
-              <Badge variant="primary">{t("onboarding.recommended")}</Badge>
+              <Badge>{t("onboarding.recommended")}</Badge>
             )}
             {status === "active" && (
-              <Badge variant="primary">
-                <Check className="w-3 h-3 mr-1" />
+              <Badge>
+                <Check />
                 {t("modelSelector.active")}
               </Badge>
             )}
@@ -174,7 +174,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
             )}
             {status === "switching" && (
               <Badge variant="secondary">
-                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                <Loader2 className="animate-spin" />
                 {t("modelSelector.switching")}
               </Badge>
             )}
@@ -274,7 +274,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
             size="sm"
             onClick={handleDelete}
             title={t("modelSelector.deleteModel", { modelName: displayName })}
-            className="flex items-center gap-1.5 text-logo-primary/85 hover:text-logo-primary hover:bg-logo-primary/10"
+            className="gap-1.5 text-logo-primary/85 hover:bg-logo-primary/10 hover:text-logo-primary dark:hover:bg-logo-primary/10"
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span>{t("common.delete")}</span>
@@ -307,7 +307,8 @@ const ModelCard: React.FC<ModelCardProps> = ({
               )}
               {onCancel && (
                 <Button
-                  variant="danger-ghost"
+                  variant="ghost"
+                  className="text-red-900 hover:text-red-900"
                   size="sm"
                   onClick={(e) => {
                     e.preventDefault();

@@ -11,7 +11,8 @@ import {
 import { toast } from "sonner";
 import { commands } from "@/bindings";
 import { useSettingsStore } from "@/stores/settingsStore";
-import { Badge, Button } from "@/components/ui";
+import { Badge } from "@/components/vg/badge";
+import { Button } from "@/components/vg/button";
 import { SonaMark } from "../icons/SonaMark";
 import { SonaWordmark } from "../icons/SonaWordmark";
 import "./onboarding.css";
@@ -78,7 +79,13 @@ const PermissionRow: React.FC<PermissionRowProps> = ({
     <div className="ob-row">
       <div className="ob-row-head">
         <h3 className="ob-row-title">{title}</h3>
-        <Badge variant={granted ? "success" : "secondary"}>
+        {/* The semaphore law: a granted state keeps the plain chip and carries
+         * its meaning in the word. Tinted fills and borders are reserved for
+         * the status indicators a person has to act on. */}
+        <Badge
+          variant="secondary"
+          className={granted ? "text-[var(--green-900)]" : undefined}
+        >
           {granted
             ? t("onboarding.permissions.granted")
             : t("onboarding.permissions.waiting")}
@@ -88,7 +95,7 @@ const PermissionRow: React.FC<PermissionRowProps> = ({
       {granted ? null : status === "waiting" ? (
         <>
           <div className="ob-row-actions">
-            <Button variant="secondary" size="sm" onClick={onOpenSettings}>
+            <Button variant="outline" size="sm" onClick={onOpenSettings}>
               {t("accessibility.openSettings")}
             </Button>
             <Button variant="ghost" size="sm" onClick={onRecheck}>

@@ -24,9 +24,9 @@ use crate::secrets::{SecretAccount, SecretCommandError, SecretManager, SecretRea
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 use crate::settings::APPLE_INTELLIGENCE_DEFAULT_MODEL_ID;
 use crate::settings::{
-    self, get_settings, AppSettings, AppearanceMaterial, AutoSubmitKey, ClipboardHandling,
-    EnglishSpelling, KeyboardImplementation, LLMPrompt, OverlayPosition, OverlayStyle, PasteMethod,
-    ShortcutBinding, SoundTheme, Theme, TypingTool, APPLE_INTELLIGENCE_PROVIDER_ID,
+    self, get_settings, AppSettings, AppearanceMaterial, EnglishSpelling, KeyboardImplementation,
+    LLMPrompt, OverlayPosition, OverlayStyle, ShortcutBinding, SoundTheme, Theme,
+    APPLE_INTELLIGENCE_PROVIDER_ID,
 };
 use crate::tray;
 
@@ -1026,27 +1026,6 @@ pub fn change_reliable_paste_setting(app: AppHandle, enabled: bool) -> Result<()
 
 #[tauri::command]
 #[specta::specta]
-pub fn change_paste_method_setting(app: AppHandle, method: String) -> Result<(), String> {
-    let parsed = match method.as_str() {
-        "ctrl_v" => PasteMethod::CtrlV,
-        "direct" => PasteMethod::Direct,
-        "none" => PasteMethod::None,
-        "shift_insert" => PasteMethod::ShiftInsert,
-        "ctrl_shift_v" => PasteMethod::CtrlShiftV,
-        "external_script" => PasteMethod::ExternalScript,
-        other => {
-            warn!("Invalid paste method '{}', defaulting to ctrl_v", other);
-            PasteMethod::CtrlV
-        }
-    };
-    settings::update_settings(&app, |settings| {
-        settings.paste_method = parsed;
-    });
-    Ok(())
-}
-
-#[tauri::command]
-#[specta::specta]
 pub fn get_available_typing_tools() -> Vec<String> {
     #[cfg(target_os = "linux")]
     {
@@ -1060,80 +1039,12 @@ pub fn get_available_typing_tools() -> Vec<String> {
 
 #[tauri::command]
 #[specta::specta]
-pub fn change_typing_tool_setting(app: AppHandle, tool: String) -> Result<(), String> {
-    let parsed = match tool.as_str() {
-        "auto" => TypingTool::Auto,
-        "wtype" => TypingTool::Wtype,
-        "kwtype" => TypingTool::Kwtype,
-        "dotool" => TypingTool::Dotool,
-        "ydotool" => TypingTool::Ydotool,
-        "xdotool" => TypingTool::Xdotool,
-        other => {
-            warn!("Invalid typing tool '{}', defaulting to auto", other);
-            TypingTool::Auto
-        }
-    };
-    settings::update_settings(&app, |settings| {
-        settings.typing_tool = parsed;
-    });
-    Ok(())
-}
-
-#[tauri::command]
-#[specta::specta]
 pub fn change_external_script_path_setting(
     app: AppHandle,
     path: Option<String>,
 ) -> Result<(), String> {
     settings::update_settings(&app, |settings| {
         settings.external_script_path = path;
-    });
-    Ok(())
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn change_clipboard_handling_setting(app: AppHandle, handling: String) -> Result<(), String> {
-    let parsed = match handling.as_str() {
-        "dont_modify" => ClipboardHandling::DontModify,
-        "copy_to_clipboard" => ClipboardHandling::CopyToClipboard,
-        other => {
-            warn!(
-                "Invalid clipboard handling '{}', defaulting to dont_modify",
-                other
-            );
-            ClipboardHandling::DontModify
-        }
-    };
-    settings::update_settings(&app, |settings| {
-        settings.clipboard_handling = parsed;
-    });
-    Ok(())
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn change_auto_submit_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
-    settings::update_settings(&app, |settings| {
-        settings.auto_submit = enabled;
-    });
-    Ok(())
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn change_auto_submit_key_setting(app: AppHandle, key: String) -> Result<(), String> {
-    let parsed = match key.as_str() {
-        "enter" => AutoSubmitKey::Enter,
-        "ctrl_enter" => AutoSubmitKey::CtrlEnter,
-        "cmd_enter" => AutoSubmitKey::CmdEnter,
-        other => {
-            warn!("Invalid auto submit key '{}', defaulting to enter", other);
-            AutoSubmitKey::Enter
-        }
-    };
-    settings::update_settings(&app, |settings| {
-        settings.auto_submit_key = parsed;
     });
     Ok(())
 }

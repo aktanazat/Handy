@@ -1,13 +1,14 @@
 import React from "react";
 
-export interface SkeletonProps {
-  /** Sizing utilities, for example "h-4 w-40". */
-  className?: string;
-}
-
 /* A placeholder block. Never announce these: the region that owns them says
- * what is loading. */
-export const Skeleton: React.FC<SkeletonProps> = ({ className = "" }) => (
+ * what is loading.
+ *
+ * Local rather than `vg/skeleton` because the two are not the same shape: the
+ * kit's is `animate-pulse` on `bg-accent` at the kit radius, this one is a
+ * slower 1.6s fade on `--color-subtle` at the control radius, and it is
+ * `aria-hidden` so the `role="status"` wrapper below is the only thing a
+ * screen reader hears. */
+const Skeleton: React.FC<{ className?: string }> = ({ className = "" }) => (
   <div aria-hidden="true" className={`ui-skeleton ${className}`} />
 );
 
