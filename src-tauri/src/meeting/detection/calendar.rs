@@ -272,9 +272,8 @@ mod macos {
                     let end = NSDate::dateWithTimeIntervalSince1970(
                         (now_utc_ms + lookahead_ms) as f64 / 1_000.0,
                     );
-                    // SAFETY: both dates are live for the predicate's
-                    // construction, and `None` calendars means "every calendar
-                    // the store sees".
+                    // `None` calendars means "every calendar the store sees".
+                    // SAFETY: both dates are live for this construction call.
                     let predicate = unsafe {
                         store.predicateForEventsWithStartDate_endDate_calendars(&start, &end, None)
                     };

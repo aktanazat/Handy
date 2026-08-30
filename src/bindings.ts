@@ -2114,6 +2114,7 @@ agentPanelStatusChanged: AgentPanelStatusChangedEvent,
 agentPanelTurnChanged: AgentPanelTurnChangedEvent,
 audioImportUpdateEvent: AudioImportUpdateEvent,
 cloudSyncChanged: CloudSyncChangedEvent,
+detectionPrompt: DetectionPromptEvent,
 historyUpdatePayload: HistoryUpdatePayload,
 meetingArtifactChanged: MeetingArtifactChangedEvent,
 meetingNavigationRequested: MeetingNavigationRequestedEvent,
@@ -2137,6 +2138,7 @@ agentPanelStatusChanged: "agent-panel://status-changed",
 agentPanelTurnChanged: "agent-panel://turn-changed",
 audioImportUpdateEvent: "audio-import-update-event",
 cloudSyncChanged: "cloud-sync:changed",
+detectionPrompt: "detection-prompt",
 historyUpdatePayload: "history-update-payload",
 meetingArtifactChanged: "meeting:artifact-changed",
 meetingNavigationRequested: "meeting:navigation-requested",
@@ -2746,6 +2748,67 @@ export type DeliveryReceipt = { method: DeliveryMethod; outcome: DeliveryOutcome
  * here would be a second place for them to go stale.
  */
 export type DetectionCountdown = { event: CalendarEventSummary; secondsToStart: number }
+/**
+ * Emitted when detection wants an answer. The frontend renders localized copy
+ * from these fields; the native notification carries §5.4's English pattern.
+ */
+export type DetectionPromptEvent = { eventSchemaVersion: number;
+/**
+ * Opaque handle. Echo it back through `detection_prompt_respond`.
+ */
+promptId: string; prompt: DetectionPromptKind;
+/**
+ * §5.4's English copy, exactly as the notification shows it.
+ */
+notificationTitle: string;
+/**
+ * True when this prompt was also delivered as a native notification. False
+ * means notifications are denied or unavailable and the in-app card is the
+ * only surface.
+ */
+notified: boolean }
+/**
+ * Which prompt to raise, carrying the fields the copy pattern interpolates.
+ * The frontend localizes from these fields; the native notification uses the
+ * English copy pattern from §5.4 verbatim.
+ *
+ * Exported to TypeScript as `DetectionPromptKind`: bare `PromptKind` would
+ * land in bindings.ts beside `PromptPreset` and read as an LLM prompt, which
+ * this is not. The rename is specta-only — serde never sees it, so it cannot
+ * reach the wire.
+ *
+ * The `rename_all` sits on each variant rather than on the enum. On an enum,
+ * a container-level `rename_all` renames the *variants* and leaves their
+ * fields alone — so writing it there emitted `{"kind":"appMeeting",
+ * "app_name":…}` while the frontend read `{"kind":"AppMeeting","appName":…}`,
+ * matched no arm, and rendered a prompt card with no title on it. Per-variant
+ * is the placement that renames fields, which is what the rest of this
+ * module's camelCase wire shape needs. Pinned by
+ * `the_prompt_wire_shape_names_variants_and_camelcases_fields`; specta reads
+ * the same per-variant attribute, so the generated union carries the same
+ * camelCase fields the wire does.
+ */
+export type DetectionPromptKind =
+/**
+ * §5.3 case 3 — "{Event title} starting".
+ */
+{ kind: "CalendarEvent"; eventKey: string; eventTitle: string } |
+/**
+ * §5.3 case 5 — "{App} meeting detected".
+ */
+{ kind: "AppMeeting"; bundleId: string; appName: string } |
+/**
+ * §5.3 case 5, Slack flavor — "{App} huddle detected".
+ */
+{ kind: "AppHuddle"; bundleId: string; appName: string } |
+/**
+ * §5.3 case 7 — "Call detected in {Browser}".
+ */
+{ kind: "BrowserCall"; bundleId: string; appName: string } |
+/**
+ * §5.3 case 6, behind the opt-in toggle — no app identity to name.
+ */
+{ kind: "UnknownMicSource" }
 /**
  * The operator-editable half of detection, read and written as one unit.
  *
@@ -3379,7 +3442,7 @@ sha256: string | null } } |
  * in a shared cache. Nothing to download.
  */
 "Local"
-export type ModelUnloadTimeout = "never" | "immediately" | "min_2" | "min_5" | "min_10" | "min_15" | "hour_1" | "sec_15"
+export type ModelUnloadTimeout = "never" | "immediately" | "min2" | "min5" | "min10" | "min15" | "hour1" | "sec15"
 /**
  * Full mode state after one committed mutation. Consumers can replace their
  * cached mode snapshot without reconstructing a delta.

@@ -119,8 +119,8 @@ mod macos {
         let mut property = address(selector);
         let mut value: u32 = 0;
         let mut size = u32::try_from(std::mem::size_of::<u32>()).ok()?;
-        // SAFETY: `property` and `value` are live stack slots for this call, and
-        // `size` states `value`'s exact byte length as CoreAudio requires.
+        // `size` states `value`'s exact byte length, as CoreAudio requires.
+        // SAFETY: `property` and `value` are live stack slots for this call.
         let status = unsafe {
             AudioObjectGetPropertyData(
                 object_id,
@@ -178,8 +178,8 @@ mod macos {
             let state = Box::into_raw(Box::new(ListenerState { level, observer }));
 
             let mut property = address(kAudioDevicePropertyDeviceIsRunningSomewhere);
-            // SAFETY: `state` outlives the listener; `Drop` removes the listener
-            // before reclaiming the box.
+            // `Drop` removes the listener before reclaiming the box.
+            // SAFETY: `state` therefore outlives every callback that reads it.
             let status = unsafe {
                 AudioObjectAddPropertyListener(
                     device_id,
@@ -210,9 +210,9 @@ mod macos {
     impl Drop for CoreAudioInputMonitor {
         fn drop(&mut self) {
             let mut property = address(kAudioDevicePropertyDeviceIsRunningSomewhere);
-            // SAFETY: removing the same listener and context registered in
-            // `start`. CoreAudio guarantees no further callbacks once this
-            // returns, which is what makes reclaiming the box below sound.
+            // CoreAudio guarantees no further callbacks once this returns,
+            // which is what makes reclaiming the box below sound.
+            // SAFETY: removes the same listener and context `start` registered.
             unsafe {
                 AudioObjectRemovePropertyListener(
                     self.device_id,
@@ -238,8 +238,8 @@ mod macos {
         if client_data.is_null() {
             return 0;
         }
-        // SAFETY: `CoreAudioInputMonitor` keeps this box alive until after the
-        // listener is removed.
+        // `CoreAudioInputMonitor` removes the listener before reclaiming the box.
+        // SAFETY: this pointer is therefore live for the whole callback.
         let state = unsafe { &*client_data.cast::<ListenerState>() };
         let active = read_u32(object_id, kAudioDevicePropertyDeviceIsRunningSomewhere)
             .is_some_and(|value| value != 0);

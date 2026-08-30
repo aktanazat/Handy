@@ -196,12 +196,14 @@ describe("english catalogue", () => {
 
 /* Payloads copied verbatim from the Rust serialization test
  * `the_prompt_wire_shape_names_variants_and_camelcases_fields` in
- * src-tauri/src/meeting/detection/machine.rs. `DetectionPromptKind` is a hand
- * mirror — the prompt leaves Rust through a raw `app.emit`, so it never passes
- * through specta and bindings.ts cannot check it — and when the two drifted the
- * pane rendered cards whose only content was an app icon and two buttons. These
- * strings are the contract; parsing them here is what makes the next drift a
- * test failure rather than a blank card with a Start recording button on it. */
+ * src-tauri/src/meeting/detection/machine.rs. `DetectionPromptKind` is no
+ * longer a hand mirror — the prompt event is registered with the specta
+ * builder, so bindings.ts generates the union from the Rust enum — but a
+ * generated type only pins the shape the compiler sees, and these tests run on
+ * bytes. When the two drifted, the pane rendered cards whose only content was
+ * an app icon and two buttons; what failed then was the runtime titling, not
+ * the declaration. So these strings stay: they prove `promptTitle` reads the
+ * bytes Rust actually emits, which no type-check can reach. */
 const WIRE_PAYLOADS: [string, string][] = [
   [
     '{"kind":"CalendarEvent","eventKey":"event-1","eventTitle":"Quarterly planning"}',

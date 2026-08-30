@@ -1,20 +1,24 @@
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { create } from "zustand";
+import type { DetectionPromptEvent, DetectionPromptKind } from "@/bindings";
 
 /* Detection's frontend contract.
  *
  * The commands are invoked by name with camelCase argument keys, the same
  * precedent `read_history_audio_chunk` follows, so this store is the one place
  * that names detection's wire shapes. Every type below mirrors a Rust type in
- * src-tauri/src/meeting/detection.rs, which serializes camelCase. */
+ * src-tauri/src/meeting/detection.rs, which serializes camelCase.
+ *
+ * The two prompt shapes are the exception, and re-exported rather than
+ * mirrored: `DetectionPromptEvent` is registered with the specta builder in
+ * lib.rs, so bindings.ts generates it and the union it carries straight from
+ * the Rust definitions. A hand mirror of them drifted once already — serde's
+ * container `rename_all` renamed the variants instead of their fields, the
+ * union matched no arm, and the pane rendered prompt cards with no title on
+ * them. Generated types cannot drift, so these two no longer can. */
 
-export type DetectionPromptKind =
-  | { kind: "CalendarEvent"; eventKey: string; eventTitle: string }
-  | { kind: "AppMeeting"; bundleId: string; appName: string }
-  | { kind: "AppHuddle"; bundleId: string; appName: string }
-  | { kind: "BrowserCall"; bundleId: string; appName: string }
-  | { kind: "UnknownMicSource" };
+export type { DetectionPromptEvent, DetectionPromptKind };
 
 export type CalendarAccess =
   | "not_determined"
@@ -103,14 +107,6 @@ export interface DetectionStatus {
   runningMeetingApps: string[];
   availableStopTriggers: DetectionStopTrigger[];
   inputDeviceReportingSuspect: boolean;
-}
-
-export interface DetectionPromptEvent {
-  eventSchemaVersion: number;
-  promptId: string;
-  prompt: DetectionPromptKind;
-  notificationTitle: string;
-  notified: boolean;
 }
 
 /* What an offer is *about*, as opposed to which delivery of it this is.

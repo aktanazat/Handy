@@ -69,9 +69,12 @@ export const DetectionListeners: React.FC = () => {
 /* A name the payload actually supplied.
  *
  * The parameter admits `undefined` because the wire once disagreed with the
- * hand-written union: interpolating a missing name produced a card whose only
- * content was an app icon and two buttons, and reading `.trim()` off an
- * absent field would have turned that blank card into a render crash. */
+ * frontend's declaration of it: interpolating a missing name produced a card
+ * whose only content was an app icon and two buttons, and reading `.trim()`
+ * off an absent field would have turned that blank card into a render crash.
+ * `DetectionPromptKind` is generated from the Rust enum now, so that exact
+ * disagreement cannot recur — but a payload from an older or newer build
+ * still can, and this stays cheap. */
 const named = (value: string | undefined): string | null =>
   value === undefined || value.trim() === "" ? null : value;
 
@@ -139,9 +142,10 @@ export const promptTitle = (
   }
   /* One sentence for both ways a prompt can arrive unnameable: an app the
    * platform would not name, and — once, in the field — a `kind` this build
-   * could not read after the Rust enum's serde tagging drifted from the union
-   * above. Either way the detection was real, so it gets a sentence rather
-   * than a blank header: silent detection is indistinguishable from broken
-   * detection, and this card carries a Start recording button. */
+   * could not read after the Rust enum's serde tagging drifted from the
+   * frontend's copy of it. Either way the detection was real, so it gets a
+   * sentence rather than a blank header: silent detection is
+   * indistinguishable from broken detection, and this card carries a Start
+   * recording button. */
   return t("meetings.detection.prompt.generic", "Meeting detected");
 };

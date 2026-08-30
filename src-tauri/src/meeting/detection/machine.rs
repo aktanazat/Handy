@@ -231,16 +231,24 @@ impl Default for DetectionPolicy {
 /// The frontend localizes from these fields; the native notification uses the
 /// English copy pattern from §5.4 verbatim.
 ///
+/// Exported to TypeScript as `DetectionPromptKind`: bare `PromptKind` would
+/// land in bindings.ts beside `PromptPreset` and read as an LLM prompt, which
+/// this is not. The rename is specta-only — serde never sees it, so it cannot
+/// reach the wire.
+///
 /// The `rename_all` sits on each variant rather than on the enum. On an enum,
 /// a container-level `rename_all` renames the *variants* and leaves their
 /// fields alone — so writing it there emitted `{"kind":"appMeeting",
-/// "app_name":…}` while the frontend's mirror in detectionStore.ts read
-/// `{"kind":"AppMeeting","appName":…}`, matched no arm, and rendered a prompt
-/// card with no title on it. Per-variant is the placement that renames fields,
-/// which is what the rest of this module's camelCase wire shape needs. Pinned
-/// by `the_prompt_wire_shape_names_variants_and_camelcases_fields`.
+/// "app_name":…}` while the frontend read `{"kind":"AppMeeting","appName":…}`,
+/// matched no arm, and rendered a prompt card with no title on it. Per-variant
+/// is the placement that renames fields, which is what the rest of this
+/// module's camelCase wire shape needs. Pinned by
+/// `the_prompt_wire_shape_names_variants_and_camelcases_fields`; specta reads
+/// the same per-variant attribute, so the generated union carries the same
+/// camelCase fields the wire does.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 #[serde(tag = "kind")]
+#[specta(rename = "DetectionPromptKind")]
 pub enum PromptKind {
     /// §5.3 case 3 — "{Event title} starting".
     #[serde(rename_all = "camelCase")]

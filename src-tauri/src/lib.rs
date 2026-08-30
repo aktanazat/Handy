@@ -1476,6 +1476,7 @@ pub fn run(cli_args: CliArgs) {
             meeting::types::MeetingRemovedEvent,
             cloud_sync::types::CloudSyncChangedEvent,
             meeting::types::MeetingNavigationRequestedEvent,
+            meeting::detection::DetectionPromptEvent,
         ]);
 
     #[cfg(debug_assertions)]

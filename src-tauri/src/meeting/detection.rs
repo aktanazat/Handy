@@ -94,6 +94,16 @@ pub struct DetectionPromptEvent {
     pub notified: bool,
 }
 
+/// Registers this payload with the specta builder so `bindings.ts` carries the
+/// generated `DetectionPromptEvent` and `DetectionPromptKind` instead of a
+/// hand-written mirror of them. The emit site keeps using `Emitter::emit` with
+/// the literal name below, exactly as the meeting events do: `Event::emit`
+/// would resolve to the same string, and going through it would change nothing
+/// except which line of code the wire bytes come from.
+impl tauri_specta::Event for DetectionPromptEvent {
+    const NAME: &'static str = "detection-prompt";
+}
+
 /// The countdown half of §5.3 case 1, and everything the pre-meeting card
 /// renders about the event it is counting down to.
 ///
