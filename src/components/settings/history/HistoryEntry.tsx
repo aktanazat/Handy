@@ -12,10 +12,12 @@ import {
   formatDurationShort,
   formatEntryTimestamp,
   formatRealtimeFactor,
+  formatRelativeTime,
 } from "@/lib/utils/format";
 import { ProcessAgainDialog } from "./ProcessAgainDialog";
 import {
   AudioPlayer,
+  Badge,
   Button,
   Dialog,
   Dropdown,
@@ -382,6 +384,7 @@ const HistoryEntryRow: React.FC<HistoryEntryComponentProps> = ({
                 entry={entry}
                 receipt={latestReceipt}
                 noSpeechCaptured={noSpeechCaptured}
+                showDuration={!playable}
               />
               {showsTranscript &&
                 (retrying ? (
@@ -529,7 +532,11 @@ const HistoryEntryRow: React.FC<HistoryEntryComponentProps> = ({
           ) : null}
 
           {expanded ? (
-            <HistoryReceiptInspector id={detailsId} receipts={receipts} />
+            <HistoryReceiptInspector
+              id={detailsId}
+              receipts={receipts}
+              parentId={entry.parent_id}
+            />
           ) : null}
 
           <HistoryCorrectionDialog
@@ -570,23 +577,29 @@ interface HistoryRowMetaProps {
   entry: HistoryEntry;
   receipt: HistoryRunReceipt | null;
   noSpeechCaptured: boolean;
+  /* True when the row renders no audio player; the meta line then carries the
+   * duration the player's right edge would otherwise state. */
+  showDuration: boolean;
 }
 
-/* Line 1 of the row: one mono run of measured values, separated by middots,
- * no badges. Word count, duration, mode and engine are numbers and
- * identifiers, so they read as text at data weight; a pill around each would
- * add five borders and no information. */
+/* Line 1 of the row: when it happened, how long, how many words, which mode.
+ * Four cells and nothing else. The measured detail this line used to shout —
+ * peak/rms, engine, source, reprocess parentage — lives on the expanded
+ * receipt, where it reads as a table instead of seven mono fragments. The
+ * date is relative while that is meaningful and absolute past two weeks,
+ * through the shared formatter. */
 const HistoryRowMeta: React.FC<HistoryRowMetaProps> = ({
   entry,
   receipt,
   noSpeechCaptured,
+  showDuration,
 }) => {
   const { t } = useTranslation();
 
   const cells: Array<{ id: string; content: React.ReactNode }> = [
     {
       id: "time",
-      content: formatEntryTimestamp(entry.timestamp * 1000),
+      content: formatRelativeTime(entry.timestamp * 1000),
     },
   ];
 
@@ -598,9 +611,8 @@ const HistoryRowMeta: React.FC<HistoryRowMetaProps> = ({
      *
      * No length here on purpose. A silent capture is zero-padded before it is
      * saved, so its stored length describes the padded clip while peak and rms
-     * describe what the microphone actually delivered; printing both in one run
-     * of middots would assert they measure the same window. The saved clip's
-     * length is stated by the thing it belongs to — the player's total. */
+     * describe what the microphone actually delivered. The saved clip's length
+     * is stated by the thing it belongs to — the player's total. */
     cells.push({
       id: "reason",
       content: (
@@ -609,49 +621,18 @@ const HistoryRowMeta: React.FC<HistoryRowMetaProps> = ({
         </span>
       ),
     });
-  } else if (receipt?.duration_ms != null) {
-    cells.push({
-      id: "duration",
-      content: formatDurationShort(receipt.duration_ms / 1000),
-    });
-  }
-
-  /* The two numbers that separate a dead input from a quiet room: 0.0119 peak
-   * over 1.14 s of room noise against 0.1456 over a real utterance. Every
-   * receipt written from a measured microphone capture carries them, including
-   * a truncated overrun. Absent means the run never measured them — a file
-   * import, a reprocess or retry off a stored WAV, and every row older than the
-   * field — so the cell disappears rather than printing a zero nobody
-   * recorded. */
-  if (receipt?.mode.input_peak != null) {
-    cells.push({
-      id: "peak",
-      content: (
-        <>
-          <span className="microlabel">
-            {t("settings.history.level.peak", "peak")}
-          </span>
-          {` ${receipt.mode.input_peak.toFixed(AMPLITUDE_DIGITS)}`}
-        </>
-      ),
-    });
-  }
-  if (receipt?.mode.input_rms != null) {
-    cells.push({
-      id: "rms",
-      content: (
-        <>
-          <span className="microlabel">
-            {t("settings.history.level.rms", "rms")}
-          </span>
-          {` ${receipt.mode.input_rms.toFixed(AMPLITUDE_DIGITS)}`}
-        </>
-      ),
-    });
-  }
-
-  if (receipt) {
-    if (!noSpeechCaptured && receipt.word_count !== null) {
+  } else {
+    /* The row states its length exactly once. When the audio row renders, its
+     * right edge is the duration (it doubles as the scrubber's total); only a
+     * row with no player left — a receipt proved the clip empty, or retention
+     * removed the file — says it here. */
+    if (showDuration && receipt?.duration_ms) {
+      cells.push({
+        id: "duration",
+        content: formatDurationShort(receipt.duration_ms / 1000),
+      });
+    }
+    if (receipt && receipt.word_count !== null) {
       cells.push({
         id: "words",
         content: t("settings.history.receipts.words", {
@@ -659,31 +640,6 @@ const HistoryRowMeta: React.FC<HistoryRowMetaProps> = ({
         }),
       });
     }
-    cells.push({ id: "mode", content: receipt.mode.mode_id });
-    cells.push({
-      id: "engine",
-      content: t(
-        "settings.history.receipts.engine." + receipt.mode.engine_requested,
-      ),
-    });
-    if (receipt.source_kind) {
-      cells.push({
-        id: "source",
-        content: t("settings.history.receipts.source." + receipt.source_kind),
-      });
-    }
-  }
-
-  /* A reprocess and a retry both write a new row pointing at the one they came
-   * from. Naming the id says which row, which is what someone looking at two
-   * near-identical transcripts actually needs. */
-  if (entry.parent_id !== null) {
-    cells.push({
-      id: "parent",
-      content: t("settings.history.derivedFromId", "from #{{id}}", {
-        id: entry.parent_id,
-      }),
-    });
   }
 
   /* Only the semantic case is marked. Every row in a search result matched
@@ -710,6 +666,13 @@ const HistoryRowMeta: React.FC<HistoryRowMetaProps> = ({
           {cell.content}
         </React.Fragment>
       ))}
+      {/* The mode is a categorical identity, not a measurement, so it is the
+       * line's one chip rather than another mono fragment. */}
+      {receipt ? (
+        <Badge variant="secondary" className="history-mode-chip">
+          {receipt.mode.mode_id}
+        </Badge>
+      ) : null}
     </p>
   );
 };
@@ -769,6 +732,8 @@ const HistoryAudioPlayer: React.FC<HistoryAudioPlayerProps> = ({
 interface HistoryReceiptInspectorProps {
   id: string;
   receipts: HistoryRunReceipt[] | null | undefined;
+  /** The row this entry was reprocessed or retried from, when it has one. */
+  parentId: number | null;
 }
 
 /* The full receipt, as an inset panel of key/value pairs: quoted machine
@@ -778,6 +743,7 @@ interface HistoryReceiptInspectorProps {
 const HistoryReceiptInspector: React.FC<HistoryReceiptInspectorProps> = ({
   id,
   receipts,
+  parentId,
 }) => {
   const { t } = useTranslation();
 
@@ -812,6 +778,18 @@ const HistoryReceiptInspector: React.FC<HistoryReceiptInspectorProps> = ({
       className="inset-panel history-receipts"
       data-testid="history-receipts"
     >
+      {/* A reprocess and a retry both write a new row pointing at the one they
+       * came from. Naming the id says which row, which is what someone looking
+       * at two near-identical transcripts actually needs. It reads here with
+       * the rest of the provenance instead of spending a metadata cell on
+       * every collapsed row. */}
+      {parentId !== null ? (
+        <p className="history-receipt-provenance type-data">
+          {t("settings.history.derivedFromId", "from #{{id}}", {
+            id: parentId,
+          })}
+        </p>
+      ) : null}
       {body}
     </div>
   );

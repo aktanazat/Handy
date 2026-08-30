@@ -643,9 +643,9 @@ interface HistorySummaryProps {
 }
 
 /* The all-time totals under the page title. The rich analytics band lives on
- * Capture; this is the number you glance at while scanning transcripts, so
- * it is a strip of microlabel-over-figure pairs rather than a sentence: the
- * figures line up, they are tabular, and the labels stay out of the way.
+ * Capture; here the totals are one quiet line — figure then lowercase label,
+ * mono only on the figures because they are measured data — instead of the
+ * old strip of giant metrics, which shouted over the feed it introduced.
  *
  * Exported because the strip is the page's one derived readout and the whole
  * page cannot be rendered without its data effects. */
@@ -674,7 +674,7 @@ export const HistorySummary: React.FC<HistorySummaryProps> = ({
     return (
       <div className="history-summary-state">
         {loading ? (
-          <Skeleton className="h-[48px] w-64" />
+          <Skeleton className="h-[16px] w-72" />
         ) : (
           <StatusText>{t("settings.history.stats.unavailable")}</StatusText>
         )}
@@ -682,7 +682,7 @@ export const HistorySummary: React.FC<HistorySummaryProps> = ({
     );
   }
 
-  /* RECORDINGS · RECORDING TIME · WORDS, microlabel over figure. The duration
+  /* recordings · recording time · words as figure-label pairs. The duration
    * goes through the shared renderer: the hand-rolled "{{hours}}h {{minutes}}m"
    * this replaced printed "0h 0m" for every library under half a minute, which
    * is a total that reports zero for recordings that exist. */
@@ -718,8 +718,8 @@ export const HistorySummary: React.FC<HistorySummaryProps> = ({
     <dl className="history-summary" data-testid="history-summary">
       {totals.map((total) => (
         <div className="history-stat" key={total.key}>
-          <dt className="microlabel">{total.label}</dt>
-          <dd className="history-stat-value type-metric">{total.value}</dd>
+          <dt className="history-stat-label type-secondary">{total.label}</dt>
+          <dd className="history-stat-value type-data">{total.value}</dd>
         </div>
       ))}
     </dl>
@@ -860,6 +860,7 @@ interface HistoryListSectionProps {
   retryHistoryEntry: (id: number) => Promise<void>;
   fetchPage: (query: string, cursor: number | null) => Promise<void>;
   onStartAudioImport: () => void;
+  onOpenFolder: () => void;
 }
 
 const HistoryListSection: React.FC<HistoryListSectionProps> = ({
@@ -879,6 +880,7 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
   retryHistoryEntry,
   fetchPage,
   onStartAudioImport,
+  onOpenFolder,
 }) => {
   const { t } = useTranslation();
   const countId = useId();
@@ -1056,6 +1058,10 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
 
   return (
     <div className="flex flex-col gap-3">
+      {/* One honest wrap row: the search field grows, everything after it is
+       * flex-none in DOM order — count, view switch, folder button — so at
+       * width the controls sit on one line and under it they wrap whole, last
+       * first. Nothing is absolutely positioned; nothing can overlap. */}
       <div className="history-toolbar">
         {/* Icon and clear button are the primitive's slots, so the field's
          * own padding accounts for both and the placeholder can no longer
@@ -1102,6 +1108,16 @@ const HistoryListSection: React.FC<HistoryListSectionProps> = ({
           onChange={(id) => setView(id === "raw" ? "raw" : "processed")}
           label={t("settings.history.textView.label")}
         />
+
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={onOpenFolder}
+          data-testid="history-open-folder"
+        >
+          <FolderOpen aria-hidden="true" className="h-4 w-4" />
+          {t("settings.history.openFolder")}
+        </Button>
       </div>
 
       {content}
@@ -1140,18 +1156,13 @@ export const HistorySettings: React.FC = () => {
 
   return (
     <div className="settings-page history-page">
+      {/* Title row, then the summary line. The title keeps exactly one
+       * companion: the page's primary action, accent-filled by the Button
+       * primitive. The folder button lives on the list toolbar with the other
+       * quiet list controls, so this row can never crowd it. */}
       <header className="history-header">
-        <div className="history-header-copy">
+        <div className="history-header-bar">
           <h1 className="settings-page-title">{t("settings.history.title")}</h1>
-          <HistorySummary
-            stats={historyStats}
-            loading={statsLoading}
-            error={statsError}
-            onRetry={() => void refreshHistoryStats()}
-          />
-          <HistoryImportLive jobs={audioImportJobs} />
-        </div>
-        <div className="history-header-actions">
           <Button
             size="sm"
             onClick={() => void startAudioImport()}
@@ -1161,16 +1172,14 @@ export const HistorySettings: React.FC = () => {
             <FileAudio aria-hidden="true" className="h-4 w-4" />
             {t("settings.history.audioImport.start")}
           </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => void openRecordingsFolder()}
-            data-testid="history-open-folder"
-          >
-            <FolderOpen aria-hidden="true" className="h-4 w-4" />
-            {t("settings.history.openFolder")}
-          </Button>
         </div>
+        <HistorySummary
+          stats={historyStats}
+          loading={statsLoading}
+          error={statsError}
+          onRetry={() => void refreshHistoryStats()}
+        />
+        <HistoryImportLive jobs={audioImportJobs} />
       </header>
 
       <HistoryAudioImportSection
@@ -1196,6 +1205,7 @@ export const HistorySettings: React.FC = () => {
         retryHistoryEntry={retryHistoryEntry}
         fetchPage={fetchPage}
         onStartAudioImport={() => void startAudioImport()}
+        onOpenFolder={() => void openRecordingsFolder()}
       />
     </div>
   );

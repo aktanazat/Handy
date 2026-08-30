@@ -14,18 +14,25 @@ import type {
   ModeReceipt,
 } from "@/bindings";
 import { HistoryEntryComponent } from "./HistoryEntry";
-import { HistorySummary } from "./HistorySettings";
+import { HistorySettings, HistorySummary } from "./HistorySettings";
 
 /* What a Library row is allowed to say, and what it must never say.
  *
- * Six defects are pinned dead here, each of which shipped and each of which a
+ * Defects are pinned dead here, each of which shipped and each of which a
  * plausible refactor would bring back:
+ *   - a metadata line of seven mono fragments: the row states date, words and
+ *     mode, and the measured detail (peak/rms, engine, source, parentage)
+ *     stays behind the expander;
+ *   - the duration printed twice, once in the meta line and once at the
+ *     player's right edge — a row states its length exactly once;
  *   - a player on a capture that holds nothing to play;
- *   - a 0:00 elapsed beside a 0:00 total, one measurement printed twice;
- *   - "0h 0m" for a library that holds real recordings;
+ *   - "0h 0m" for a library that holds real recordings, and a stats band of
+ *     giant metrics where one quiet line belongs;
  *   - a printed 0.0000 for an input level nobody measured;
  *   - row actions scattered across six controls of three weights;
- *   - a transcript line on a row whose receipt says there was no speech.
+ *   - a transcript line on a row whose receipt says there was no speech;
+ *   - the toolbar controls (search, view switch, folder button) overlapping —
+ *     the DOM order pinned here is what the honest flex wrap relies on.
  *
  * Static rendering runs no effects, so these are pure prop-to-markup checks and
  * no Tauri command is reachable from here. */
@@ -144,25 +151,37 @@ const row = (
     />,
   );
 
+/* The metadata line alone: everything inside the <p> that carries it,
+ * mode chip included. */
+const metaOf = (markup: string): string =>
+  markup.slice(
+    markup.indexOf('data-testid="history-entry-meta"'),
+    markup.indexOf("</p>", markup.indexOf("history-entry-meta")),
+  );
+
 describe("library row, line 1", () => {
   const markup = row();
 
-  test("states timestamp, length, words, mode, engine and source as one mono run", () => {
-    const meta = markup.slice(
-      markup.indexOf('data-testid="history-entry-meta"'),
-      markup.indexOf("</p>", markup.indexOf("history-entry-meta")),
-    );
-    expect(meta).toContain("15s");
+  test("states date, words and the mode chip — nothing else", () => {
+    const meta = metaOf(markup);
     expect(meta).toContain("6 words");
     expect(meta).toContain("email");
-    expect(meta).toContain("Local");
-    expect(meta).toContain("Microphone");
-    // Exactly one rendered time on the line, absolute, from the shared
-    // formatter. The fixture is fixed in the past, so its year always differs
-    // from now and always renders — a second time would double the count.
+    expect(meta).toContain("history-mode-chip");
+    // Exactly one rendered time on the line, from the shared relative
+    // formatter. The fixture is fixed more than two weeks in the past, so it
+    // always renders absolute with its year — a second time would double the
+    // count.
     expect(occurrences(meta, "2025")).toBe(1);
     // Machine values, so the mono data role, not the body face.
     expect(markup).toContain('class="history-row-meta type-data"');
+  });
+
+  test("engine, source and levels left the line for the expanded receipt", () => {
+    const meta = metaOf(markup);
+    expect(meta).not.toContain("Local");
+    expect(meta).not.toContain("Microphone");
+    expect(meta).not.toContain(">peak<");
+    expect(meta).not.toContain(">rms<");
   });
 
   test("shows the transcript on its own line", () => {
@@ -170,8 +189,10 @@ describe("library row, line 1", () => {
     expect(markup).toContain('class="history-transcript type-body"');
   });
 
-  test("names the row it was reprocessed from by id", () => {
-    expect(row({ entry: { parent_id: 17 } })).toContain("from #17");
+  test("reprocess parentage is provenance, not a metadata cell", () => {
+    // "from #17" lives with the receipts behind the expander now; the
+    // collapsed row does not spend a cell on it.
+    expect(row({ entry: { parent_id: 17 } })).not.toContain("from #17");
   });
 
   test("omits an input level the run never measured", () => {
@@ -179,16 +200,14 @@ describe("library row, line 1", () => {
     expect(markup).not.toContain("0.0000");
   });
 
-  test("reports a measured input level at the precision the backend logged", () => {
+  test("keeps a measured input level off the collapsed row too", () => {
     const measured = row({
       receipts: [
         receipt({ mode: { ...MODE, input_peak: 0.1456, input_rms: 0.011 } }),
       ],
     });
-    expect(measured).toContain(">peak<");
-    expect(measured).toContain("0.1456");
-    expect(measured).toContain(">rms<");
-    expect(measured).toContain("0.0110");
+    expect(measured).not.toContain("0.1456");
+    expect(measured).not.toContain(">peak<");
   });
 });
 
@@ -201,10 +220,10 @@ describe("library row, no-speech capture", () => {
   });
   const markup = row({ receipts: [silent] });
 
-  test("collapses to one line: the reason plus the measured level", () => {
+  test("collapses to one line: the reason, with the levels behind the expander", () => {
     expect(markup).toContain("No speech detected");
-    expect(markup).toContain("0.0119");
-    expect(markup).toContain("0.0024");
+    expect(markup).not.toContain("0.0119");
+    expect(markup).not.toContain("0.0024");
     expect(markup).not.toContain('class="history-transcript type-body"');
   });
 
@@ -233,14 +252,22 @@ describe("library row, no-speech capture", () => {
 });
 
 describe("library row, audio player", () => {
-  test("shows the receipt's length as the total instead of a second zero", () => {
+  test("the row states its length exactly once, at the player's right edge", () => {
     const markup = row();
-    // Elapsed 0s on the left, the real length on the right: one pair, and the
-    // total is never the elapsed value printed twice.
-    expect(markup).toContain(">0s<");
-    expect(markup).toContain(">15s<");
-    expect(occurrences(markup, ">0s<")).toBe(1);
+    // The receipt's 15s renders as the player total and nowhere else: not in
+    // the meta line, not as a second readout.
+    expect(occurrences(markup, "15s")).toBe(1);
+    expect(metaOf(markup)).not.toContain("15s");
     expect(markup).not.toContain("0:00");
+  });
+
+  test("a row with no player left says its length in the meta line instead", () => {
+    const withoutAudio = row({ receipts: [receipt({ has_audio: false })] });
+    expect(withoutAudio).not.toContain('data-testid="audio-player-toggle"');
+    expect(metaOf(withoutAudio)).toContain("15s");
+    // Still exactly once: the meta cell replaces the player total, it does
+    // not join it.
+    expect(occurrences(withoutAudio, "15s")).toBe(1);
   });
 
   test("keeps a real range control rather than an unstyled nub", () => {
@@ -268,6 +295,12 @@ describe("library row, actions", () => {
     expect(markup).toContain('data-testid="history-entry-expand"');
     expect(markup).toContain('data-testid="history-entry-actions"');
     expect(occurrences(markup, 'class="history-actions-menu"')).toBe(1);
+  });
+
+  test("the hover reveal keeps the cluster in the DOM, never amputated", () => {
+    // The fade is CSS opacity on .history-row-actions; the controls must stay
+    // rendered and focusable so keyboard and touch reach them.
+    expect(occurrences(markup, 'class="history-row-actions"')).toBe(1);
   });
 
   test("every operation the row had before is still reachable", () => {
@@ -367,8 +400,8 @@ describe("library row, search provenance", () => {
   test("marks only the row whose meaning matched, and keeps it in the mono run", () => {
     const semantic = row({ entry: { match_kind: "semantic" } });
     expect(semantic).toContain("by meaning");
-    // A derived classification like the mode or the engine, so it stays at data
-    // weight rather than taking the sans reason span.
+    // A derived classification, so it stays at data weight rather than taking
+    // the sans reason span.
     expect(semantic).not.toContain(
       '<span class="history-meta-reason">by meaning',
     );
@@ -386,7 +419,7 @@ describe("library row, receipt inspector", () => {
   });
 });
 
-describe("library stats bar", () => {
+describe("library stats line", () => {
   const stats: HistoryStats = {
     entries: 4,
     total_duration_ms: 15_000,
@@ -408,7 +441,22 @@ describe("library stats bar", () => {
     expect(markup).toContain("recordings");
     expect(markup).toContain("recording time");
     expect(markup).toContain("words");
-    expect(occurrences(markup, "type-metric")).toBe(3);
+  });
+
+  test("is one quiet line of figure-label pairs, not a band of metrics", () => {
+    const markup = render(
+      <HistorySummary
+        stats={stats}
+        loading={false}
+        error={false}
+        onRetry={() => undefined}
+      />,
+    );
+    expect(occurrences(markup, "history-stat-value")).toBe(3);
+    // Figures carry the tabular data role; nothing on the line is a metric
+    // display and nothing shouts in the uppercase microlabel voice.
+    expect(markup).not.toContain("type-metric");
+    expect(markup).not.toContain("microlabel");
   });
 
   test("carries hours when the library actually holds hours", () => {
@@ -421,5 +469,37 @@ describe("library stats bar", () => {
       />,
     );
     expect(markup).toContain("1h 4m");
+  });
+});
+
+describe("library page chrome", () => {
+  /* Static render, phase "loading": no effect runs, no Tauri command is
+   * reached, and the header plus toolbar render around the skeletons. */
+  const markup = render(<HistorySettings />);
+
+  test("one toolbar owns search, the view switch and the folder button, in wrap order", () => {
+    const toolbar = markup.slice(
+      markup.indexOf('class="history-toolbar"'),
+      markup.indexOf('data-testid="history-loading"'),
+    );
+    const search = toolbar.indexOf('data-testid="history-search"');
+    const tabs = toolbar.indexOf('role="tablist"');
+    const folder = toolbar.indexOf('data-testid="history-open-folder"');
+    expect(search).toBeGreaterThan(-1);
+    expect(tabs).toBeGreaterThan(-1);
+    expect(folder).toBeGreaterThan(-1);
+    // The honest wrap depends on this order: the growing search field first,
+    // then the flex-none controls, folder last so it wraps first.
+    expect(search).toBeLessThan(tabs);
+    expect(tabs).toBeLessThan(folder);
+  });
+
+  test("the title row carries exactly one action, and not the folder button", () => {
+    const header = markup.slice(
+      markup.indexOf('class="history-header"'),
+      markup.indexOf('class="history-toolbar"'),
+    );
+    expect(header).toContain('data-testid="history-import"');
+    expect(header).not.toContain('data-testid="history-open-folder"');
   });
 });
