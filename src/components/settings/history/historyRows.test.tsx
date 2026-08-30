@@ -419,7 +419,7 @@ describe("library row, receipt inspector", () => {
   });
 });
 
-describe("library stats line", () => {
+describe("library stats cards", () => {
   const stats: HistoryStats = {
     entries: 4,
     total_duration_ms: 15_000,
@@ -443,7 +443,7 @@ describe("library stats line", () => {
     expect(markup).toContain("words");
   });
 
-  test("is one quiet line of figure-label pairs, not a band of metrics", () => {
+  test("is three labelled cards: microlabel over figure, no 28px metric shout", () => {
     const markup = render(
       <HistorySummary
         stats={stats}
@@ -452,11 +452,28 @@ describe("library stats line", () => {
         onRetry={() => undefined}
       />,
     );
+    expect(occurrences(markup, "history-stat-card")).toBe(3);
     expect(occurrences(markup, "history-stat-value")).toBe(3);
-    // Figures carry the tabular data role; nothing on the line is a metric
-    // display and nothing shouts in the uppercase microlabel voice.
+    // Labels wear the shared uppercase mono voice; figures stay at the
+    // page's own 20px step, never the 28px .type-metric display role.
+    expect(occurrences(markup, "microlabel-mono")).toBe(3);
     expect(markup).not.toContain("type-metric");
-    expect(markup).not.toContain("microlabel");
+  });
+
+  test("while loading, the cards carry labels over skeletons, never invented zeros", () => {
+    const markup = render(
+      <HistorySummary
+        stats={null}
+        loading
+        error={false}
+        onRetry={() => undefined}
+      />,
+    );
+    expect(markup).toContain('data-testid="history-summary-loading"');
+    expect(occurrences(markup, "history-stat-card")).toBe(3);
+    expect(markup).toContain("recordings");
+    // A figure the backend never reported must not render.
+    expect(markup).not.toContain(">0<");
   });
 
   test("carries hours when the library actually holds hours", () => {

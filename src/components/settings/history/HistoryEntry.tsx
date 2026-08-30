@@ -932,7 +932,7 @@ const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({ receipt }) => {
       <dl className="history-receipt-grid">
         {pairs.map((pair) => (
           <React.Fragment key={pair.id}>
-            <dt className="microlabel">{pair.label}</dt>
+            <dt className="microlabel-mono">{pair.label}</dt>
             <dd className="type-data" data-status={pair.status}>
               {pair.value}
             </dd>
@@ -944,7 +944,7 @@ const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({ receipt }) => {
        * table drawn by hand and reads to a screen reader as pairs of
        * floating words. On the real primitive each column is named once. */}
       <div>
-        <h4 className="history-receipt-subtitle microlabel">
+        <h4 className="history-receipt-subtitle microlabel-mono">
           {t("settings.history.receipts.contextSources")}
         </h4>
         <table className="data-table history-receipt-table">
@@ -978,7 +978,7 @@ const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({ receipt }) => {
       </div>
 
       <div>
-        <h4 className="history-receipt-subtitle microlabel">
+        <h4 className="history-receipt-subtitle microlabel-mono">
           {t("settings.history.receipts.deliveryAttempts")}
         </h4>
         {receipt.delivery_attempts.length === 0 ? (

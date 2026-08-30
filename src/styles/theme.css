@@ -258,16 +258,16 @@
 /* ===================================== scales that do not follow a theme === */
 
 :root {
-  /* -- radii. The identity rounds up: 9px controls, 12px cards, 14px
-     panels/popovers, 16px dialogs — tactile, not consumer-soft — and the
+  /* -- radii. The identity rounds crisp: 6px controls, 8px cards, 12px
+     panels/popovers, 14px dialogs — precise, not consumer-soft — and the
      card/panel split keeps a popover one step softer than the card grid under
      it. Names stay the app's own so Tailwind's rounded-md/-lg utilities keep
      their default values. */
   --radius-xs: 5px; /* key cap */
-  --radius-control: 9px; /* button, input, select, tooltip */
-  --radius-card: 12px; /* content card */
-  --radius-panel: 14px; /* menu, popover, floating panel */
-  --radius-dialog: 16px; /* modal */
+  --radius-control: 6px; /* button, input, select, tooltip */
+  --radius-card: 8px; /* content card */
+  --radius-panel: 12px; /* menu, popover, floating panel */
+  --radius-dialog: 14px; /* modal */
   --radius-sheet: 20px; /* full-bleed panel */
   /* Pills are for status dots, the HUD card and toggle tracks. Never on a badge
      that carries metadata, never on a button. */
@@ -308,10 +308,6 @@
   --control-height-sm: 28px;
   --control-height: 32px;
   --touch-target: 44px;
-  /* 52px, not 64: Cursor's app header and Apple's local-nav/ribbon are both
-     52px, while 64 is a marketing-site nav. 12px per screen is real vertical
-     budget in a dense instrument. */
-  --topnav-height: 52px;
   --settings-row-height: 44px;
   --page-max-width: 1040px;
   --chart-height: 160px;

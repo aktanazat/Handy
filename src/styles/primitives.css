@@ -518,6 +518,22 @@ input:focus-visible + .glass-toggle {
   text-transform: uppercase;
 }
 
+/* The vgpu-flavour variant for section, column and stat-card labels: one step
+ * quieter than .microlabel (tertiary ink, slightly tighter tracking) and
+ * tabular, so a label that carries a count never reflows. Defined once here;
+ * pages apply it, they never restyle it. 11px and 0.08em are the sanctioned
+ * values for this role — the microlabel tokens stay owned by .microlabel. */
+.microlabel-mono {
+  color: var(--color-text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--fw-button);
+  letter-spacing: 0.08em;
+  line-height: var(--lh-microlabel);
+  text-transform: uppercase;
+}
+
 /* One keycap per physical key, inline on its row's line. The box is 18px so a
  * chip row fits inside a 36px dense row without pushing it taller. Backed by a
  * class rather than utilities because <Kbd> also renders in the overlay
@@ -645,7 +661,6 @@ input:focus-visible + .glass-toggle {
     .glass-surface,
     .glass-popover,
     .glass-dialog,
-    .app-subnav,
     .settings-local-nav,
     .meeting-actions-menu > div,
     .mode-actions-menu > div,
@@ -661,7 +676,6 @@ input:focus-visible + .glass-toggle {
     .glass-surface,
     .glass-popover,
     .glass-dialog,
-    .app-subnav,
     .settings-local-nav,
     .meeting-actions-menu > div,
     .mode-actions-menu > div,
@@ -698,7 +712,6 @@ input:focus-visible + .glass-toggle {
       .glass-surface,
       .glass-popover,
       .glass-dialog,
-      .app-subnav,
       .settings-local-nav,
       .meeting-actions-menu > div,
       .mode-actions-menu > div,

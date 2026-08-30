@@ -228,7 +228,12 @@
 
 /* Below the minimum window width the strip stacks, because a 40-character cell
  * is the floor at which the measurements survive. */
-@media (max-width: 560px) {
+/* Breakpoints measure the viewport, but the content pane runs 220px narrower
+ * than it since the sidebar landed; both thresholds carry that offset so the
+ * strip goes single-column (and the hero tightens) at the same pane width as
+ * before. At the 680px minimum window the strip is single-column, so no
+ * measurement cell can clip mid-word. */
+@media (max-width: 780px) {
   .ov-strip {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -249,7 +254,7 @@
 
 /* Narrow: the card tightens and the display line steps down one size so the
  * hero never eats the whole window. */
-@media (max-width: 720px) {
+@media (max-width: 940px) {
   .ov-hero {
     padding: var(--space-5);
   }
@@ -272,10 +277,18 @@
 .ov-stat-grid {
   display: grid;
   gap: var(--space-3);
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  /* Four counters, so the row count must divide four: auto-fit wrapped 3+1 at
+   * mid widths and stranded one card beside empty track. */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+@media (max-width: 1080px) {
+  .ov-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .ov-stat {
@@ -289,13 +302,10 @@
   padding: var(--space-4);
 }
 
-/* The card's header: a plain sans label, not an uppercase shout — uppercase
- * microlabels are reserved for true column headers like the strip's. */
+/* The card's header wears the shared stat-label voice (.microlabel-mono, from
+ * styles/primitives.css). Only truncation is local: the label must never
+ * wrap a card taller than its neighbours. */
 .ov-stat-label {
-  color: var(--color-text-secondary);
-  font-size: var(--fs-label-12);
-  font-weight: 500;
-  line-height: var(--lh-label-12);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -2,11 +2,12 @@
  * and every shared surface comes from components/ui. Loaded after App.css by
  * the lazy route chunk, so the global reduced-motion kill still wins.
  *
- * The page sits on the app background and each recording is a real card:
- * --color-surface-raised under --shadow-card at --radius-card, space between
- * cards instead of hairlines. Identity (palette, ring, lift) lives entirely
- * in those tokens, so a theme pivot re-skins this page without edits here.
- * Hairlines survive only INSIDE a surface — import rows, the receipt grid —
+ * The page sits on the app background. The feed is ONE raised surface —
+ * --color-surface-raised under --shadow-card at --radius-card — holding every
+ * recording as a row, 1px hairline dividers between rows instead of space
+ * between cards. Identity (palette, ring, lift) lives entirely in those
+ * tokens, so a theme pivot re-skins this page without edits here. Hairlines
+ * live only INSIDE a surface — the feed, import rows, the receipt grid —
  * where they separate peers.
  *
  * Type roles (.type-data, .type-body, .microlabel) come from
@@ -39,35 +40,43 @@
   justify-content: space-between;
 }
 
-/* All-time usage as one quiet line: mono figure, lowercase sans label, space
- * between the pairs. The figures are measured data, so they keep the tabular
- * data role; nothing on this line is a metric display. */
-.history-summary {
-  align-items: baseline;
-  column-gap: var(--space-4);
-  display: flex;
-  flex-wrap: wrap;
+/* All-time usage as three labelled stat cards: a .microlabel-mono header over
+ * the measured figure. The cards share one auto-fit grid so the figures line
+ * up and read as a comparison. */
+.history-stats {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   margin: 0;
-  row-gap: var(--space-1);
 }
 
-/* dt then dd in the DOM for the definition-list reading order; reversed
- * visually so the line reads "128 recordings", figure first. */
-.history-stat {
-  align-items: baseline;
+.history-stat-card {
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   display: flex;
-  flex-direction: row-reverse;
+  flex-direction: column;
   gap: var(--space-1);
   min-inline-size: 0;
+  padding: var(--space-3) var(--space-4);
 }
 
+/* The figure. 20px/700 tabular are this wave's sanctioned values for the
+ * stat-card readout — deliberately below .type-metric's 28px so the cards
+ * introduce the feed instead of shouting over it. No role token exists at
+ * this step; the values are pinned here and nowhere else. */
 .history-stat-value {
   color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 26px;
   margin: 0;
 }
 
-/* The line's own loading and failure state — prose rather than figures — at
- * the same height, so the header does not jump when the figures arrive. */
+/* The band's failure and empty state — prose rather than figures — kept at a
+ * stable height, so the header does not jump when the figures arrive. */
 .history-summary-state {
   align-items: center;
   display: flex;
@@ -169,25 +178,32 @@
 
 /* --------------------------------------------------------------- list */
 
-/* The feed: one card per recording on the page background, separated by
- * space rather than hairlines. Both the real list and the loading
- * placeholder use this, so the skeletons occupy the shape the rows will. */
+/* The feed: ONE raised surface holding every recording as a divided row.
+ * --shadow-card draws the surface's own 1px ring, so it carries no border;
+ * hairlines live between the rows inside it. Both the real list and the
+ * loading placeholder use this, so the skeletons occupy the shape the rows
+ * will. */
 .history-list {
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-/* The card shell. --shadow-card draws its own 1px ring, so the card carries
- * no border; the grid-rows track is what lets a deleted row collapse to
- * nothing before it unmounts. */
+/* One hairline per adjacent pair — rows, skeletons and the footer alike. It
+ * rides the FOLLOWING sibling's leading edge, so a collapsing row takes no
+ * divider with it and the list never shows a doubled rule. */
+.history-list > * + * {
+  border-block-start: 1px solid var(--border-hairline);
+}
+
+/* The row shell: no surface of its own inside the shared one. The grid-rows
+ * track is what lets a deleted row collapse to nothing before it unmounts. */
 .history-row {
-  background: var(--color-surface-raised);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
   display: grid;
   grid-template-rows: 1fr;
   transition-duration: var(--duration-standard);
@@ -204,12 +220,11 @@
 }
 
 .history-row-clip {
-  border-radius: inherit;
   min-block-size: 0;
   overflow: hidden;
 }
 
-/* Comfortable card interior: 16px all around, small gaps between the lines,
+/* Comfortable row interior: 16px all around, small gaps between the lines,
  * the player row and the expanded receipt. */
 .history-row-body {
   display: flex;
@@ -425,10 +440,6 @@
   margin: 0;
 }
 
-.history-receipt-grid > dt {
-  color: var(--text-tertiary);
-}
-
 .history-receipt-grid > dd {
   color: var(--text-primary);
   margin: 0;
@@ -497,12 +508,10 @@
 
 /* ------------------------------------------------------- list states */
 
-/* Card-shaped placeholders: same shell and interior as the rows they stand
- * in for, so the swap to real entries does not reflow the page. */
+/* Row-shaped placeholders: same interior as the rows they stand in for,
+ * inside the same shared surface, so the swap to real entries does not
+ * reflow the page. */
 .history-skeleton-row {
-  background: var(--color-surface-raised);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);

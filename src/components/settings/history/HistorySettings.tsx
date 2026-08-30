@@ -642,12 +642,20 @@ interface HistorySummaryProps {
   onRetry: () => void;
 }
 
-/* The all-time totals under the page title. The rich analytics band lives on
- * Capture; here the totals are one quiet line — figure then lowercase label,
- * mono only on the figures because they are measured data — instead of the
- * old strip of giant metrics, which shouted over the feed it introduced.
+/* The three base totals every library reports, in card order. The loading
+ * state renders these same labels over skeleton figures — the labels are
+ * known before the numbers are, and a zero the backend never reported would
+ * be a lie. */
+const SUMMARY_KEYS = ["entries", "duration", "words"] as const;
+
+/* The all-time totals under the page title: three labelled stat cards —
+ * uppercase mono microlabel over a 20px tabular figure — instead of the old
+ * quiet line, which read as body copy and vanished above the feed. The
+ * duration still goes through the shared renderer: the hand-rolled
+ * "{{hours}}h {{minutes}}m" it replaced printed "0h 0m" for every library
+ * under half a minute.
  *
- * Exported because the strip is the page's one derived readout and the whole
+ * Exported because the band is the page's one derived readout and the whole
  * page cannot be rendered without its data effects. */
 export const HistorySummary: React.FC<HistorySummaryProps> = ({
   stats,
@@ -671,21 +679,29 @@ export const HistorySummary: React.FC<HistorySummaryProps> = ({
   }
 
   if (stats === null) {
-    return (
-      <div className="history-summary-state">
-        {loading ? (
-          <Skeleton className="h-[16px] w-72" />
-        ) : (
+    if (!loading) {
+      return (
+        <div className="history-summary-state">
           <StatusText>{t("settings.history.stats.unavailable")}</StatusText>
-        )}
-      </div>
+        </div>
+      );
+    }
+    return (
+      <dl className="history-stats" data-testid="history-summary-loading">
+        {SUMMARY_KEYS.map((key) => (
+          <div className="history-stat-card" key={key}>
+            <dt className="history-stat-label microlabel-mono">
+              {t(`settings.history.stats.${key}`)}
+            </dt>
+            <dd className="history-stat-value">
+              <Skeleton className="h-[26px] w-16" />
+            </dd>
+          </div>
+        ))}
+      </dl>
     );
   }
 
-  /* recordings · recording time · words as figure-label pairs. The duration
-   * goes through the shared renderer: the hand-rolled "{{hours}}h {{minutes}}m"
-   * this replaced printed "0h 0m" for every library under half a minute, which
-   * is a total that reports zero for recordings that exist. */
   const totals = [
     {
       key: "entries",
@@ -715,11 +731,11 @@ export const HistorySummary: React.FC<HistorySummaryProps> = ({
   ];
 
   return (
-    <dl className="history-summary" data-testid="history-summary">
+    <dl className="history-stats" data-testid="history-summary">
       {totals.map((total) => (
-        <div className="history-stat" key={total.key}>
-          <dt className="history-stat-label type-secondary">{total.label}</dt>
-          <dd className="history-stat-value type-data">{total.value}</dd>
+        <div className="history-stat-card" key={total.key}>
+          <dt className="history-stat-label microlabel-mono">{total.label}</dt>
+          <dd className="history-stat-value snap-measured">{total.value}</dd>
         </div>
       ))}
     </dl>
@@ -787,7 +803,7 @@ const HistoryAudioImportSection: React.FC<HistoryAudioImportSectionProps> = ({
           aria-labelledby="audio-import-jobs-title"
           data-testid="history-imports"
         >
-          <h2 id="audio-import-jobs-title" className="microlabel">
+          <h2 id="audio-import-jobs-title" className="microlabel-mono">
             {t("settings.history.audioImport.jobs")}
           </h2>
           <ol>

@@ -237,7 +237,7 @@ export const OverviewAnalytics: React.FC<OverviewAnalyticsProps> = ({
       >
         {tiles.map((tile) => (
           <li key={tile.key} className="ov-stat">
-            <span className="ov-stat-label">{tile.label}</span>
+            <span className="ov-stat-label microlabel-mono">{tile.label}</span>
             <span className="ov-stat-value type-metric snap-measured">
               {tile.value}
             </span>
