@@ -94,15 +94,30 @@ export const Tabs: React.FC<TabsProps> = ({
   className = "",
 }) => {
   const listRef = useRef<HTMLDivElement>(null);
-  /* One strip's mark must not chase another strip's active segment, and two
-   * strips are on screen at once (top nav plus a panel's own). */
+  /* One strip's mark must not chase another strip's active segment: several
+   * strips are routinely on screen at once (a hub's rail plus a panel's own). */
   const indicatorLayoutId = `tabs-indicator-${useId()}`;
+
+  /* The deferral is load-bearing, not a debounce: the mark is one `layoutId`
+   * element that unmounts under the old segment and mounts under the new
+   * one, and Motion only adopts the outgoing mark's box when the swap
+   * commits in a task AFTER the interaction's own — a rendering opportunity
+   * has to pass in between. Measured per-frame on the shipped build, in both
+   * directions: committing inside the click task (plain, flushSync-forced,
+   * or microtask-deferred) never wrote a transform; a task-deferred commit
+   * springs. The old top-nav strip only ever slid because route clicks rode
+   * runViewTransition, whose startViewTransition callback runs in exactly
+   * such a later task. Focus itself stays synchronous in focusTab below;
+   * only the selection dispatch waits the one task. */
+  const commit = (id: string) => {
+    setTimeout(() => onChange(id), 0);
+  };
 
   const focusTab = (index: number) => {
     const tabs =
       listRef.current?.querySelectorAll<HTMLButtonElement>("[role='tab']");
     tabs?.[index]?.focus();
-    onChange(items[index].id);
+    commit(items[index].id);
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -145,7 +160,7 @@ export const Tabs: React.FC<TabsProps> = ({
             aria-controls={item.panelId}
             tabIndex={active ? 0 : -1}
             disabled={item.disabled}
-            onClick={() => onChange(item.id)}
+            onClick={() => commit(item.id)}
             className={`${TAB_CLASSES[variant]} ${active ? state.active : state.idle}`}
           >
             {active ? (
