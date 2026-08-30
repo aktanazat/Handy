@@ -7,7 +7,18 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createInstance } from "i18next";
 import { I18nextProvider } from "react-i18next";
 import type { HistoryUpdatePayload } from "@/bindings";
-import { Overview, subscribeToHistoryWrites } from "./Overview";
+import {
+  Overview,
+  readOverviewData,
+  subscribeToHistoryWrites,
+  type OverviewData,
+} from "./Overview";
+import { InstrumentStrip } from "./InstrumentStrip";
+import {
+  buildInstrumentCells,
+  type InstrumentLabels,
+  type RecentActivityLabels,
+} from "./instrument";
 
 /* First paint of the page, before any effect has run: what someone sees in the
  * moment between opening Capture and the history reads landing. The names
@@ -15,7 +26,7 @@ import { Overview, subscribeToHistoryWrites } from "./Overview";
  * end-to-end suite look up.
  *
  * Inline resources initialise synchronously, so no beforeAll hook is needed
- * (the repo's bun:test shim declares neither hooks nor `expect().not`). */
+ * (the repo's bun:test shim declares no hooks). */
 
 const localeRoot = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -33,12 +44,34 @@ const localeRoot = path.join(
  * it are the ones `@tauri-apps/api` calls through when this page subscribes:
  * `transformCallback` hands the page's own handler straight back, so the
  * `listen` invoke carries it and the test can deliver a write the way the
- * webview does. */
+ * webview does.
+ *
+ * `answer` is the backend. It is swappable rather than a fixed table because
+ * the behaviour under test is a capture landing between two read waves: the
+ * same commands answer differently before and after, which is exactly what a
+ * dictation does to the database. Nothing is registered by default, so the
+ * first-paint render below reaches no command. */
 const listens: {
   event: string;
   handler: (message: { payload: HistoryUpdatePayload }) => void;
 }[] = [];
 const unlistens: string[] = [];
+/**
+ * The JSON a Tauri command answers with. Named because standing in for the wire
+ * is this mock's whole job: the generated commands parse whatever comes back,
+ * so a value this type cannot express is a value no real command could send.
+ * Mirrors `JsonValue` in `tests/support/tauri-mock.ts`, which does the same job
+ * for the browser suite.
+ */
+type CommandPayload =
+  | null
+  | boolean
+  | number
+  | string
+  | CommandPayload[]
+  | { [field: string]: CommandPayload };
+
+let answer: (command: string) => CommandPayload = () => null;
 
 Object.defineProperty(globalThis, "window", {
   configurable: true,
@@ -62,8 +95,9 @@ Object.defineProperty(globalThis, "window", {
         }
         if (command === "plugin:event|unlisten") {
           unlistens.push(args.event);
+          return null;
         }
-        return null;
+        return answer(command);
       },
     },
   },
@@ -211,5 +245,166 @@ describe("Capture stays live while it is open", () => {
 
     await unlisten();
     expect(unlistens).toEqual(["history-update-payload"]);
+  });
+});
+
+/* The defect this closes: the measured cells reported the capture before the
+ * one that just landed, and only corrected themselves when someone left Capture
+ * and came back. The proof has to be end to end over the seam — the event goes
+ * in through the real `@tauri-apps/api` listen path, the wave goes out through
+ * the real generated commands, and the assertion is on the strip's own rendered
+ * markup — because every one of those three is a place the datum can be lost.
+ *
+ * `readOverviewData` is the function the mount effect runs. The test calls that
+ * same function, so a live capture is proven to arrive at the state a fresh
+ * mount would: there is no second code path to keep in step. */
+
+/* Only what the strip reads; the label mapping itself is instrument.test.ts's
+ * subject. English literals so an assertion reads as the rendered line. */
+const stripLabels: InstrumentLabels = {
+  engine: "Engine",
+  input: "Input",
+  shortcut: "Shortcut",
+  mode: "Mode",
+  loaded: "loaded",
+  unloaded: "unloaded",
+  notMeasured: "not measured",
+  unbound: "not set",
+  gestureTapHold: "tap \u00b7 hold",
+  gestureTap: "tap",
+  channel: (channel) => `ch ${channel}`,
+  channels: (count) => `${count} ch`,
+  sampleRate: (kilohertz) => `${kilohertz} kHz`,
+  decode: (factor) => `decode ${factor}`,
+};
+
+const rowLabels: RecentActivityLabels = {
+  meeting: "Meeting",
+  words: (count) => `${count} words`,
+  engine: () => "Local",
+  phase: (phase) => phase,
+};
+
+/** The strip as the page draws it, given one settled read wave. */
+const stripMarkup = (data: OverviewData): string =>
+  renderToStaticMarkup(
+    <InstrumentStrip
+      cells={buildInstrumentCells(
+        {
+          modeName: "Message",
+          modelName: "Parakeet TDT 0.6b",
+          engineLabel: "Local",
+          engineIsLocal: true,
+          backend: "MTL0",
+          modelLoaded: true,
+          deviceName: "MacBook Pro Microphone",
+          deviceChannels: 1,
+          selectedChannel: null,
+          inputPeak: data.inputPeak,
+          inputRms: data.inputRms,
+          realtimeFactor: data.realtimeFactor,
+          keys: [],
+          pushToTalk: true,
+        },
+        stripLabels,
+      )}
+      label="Capture instrument"
+    />,
+  );
+
+const NO_MEETINGS = { entries: [], has_more: false };
+
+/** An install with nothing recorded: the measured cells have no datum to show. */
+const nothingRecorded = (command: string): CommandPayload => {
+  if (command === "get_history_entries")
+    return { entries: [], has_more: false, total: 0 };
+  if (command === "meeting_list") return NO_MEETINGS;
+  return null;
+};
+
+/* The same backend one dictation later. The run receipt is written as the plain
+ * JSON it is on the wire — the generated command is what parses it — so no
+ * fixture cast can hide a shape the frontend would never actually receive. */
+const oneMeasuredCapture = (command: string): CommandPayload => {
+  if (command === "get_history_entries")
+    return { entries: [entry], has_more: false, total: 1 };
+  if (command === "meeting_list") return NO_MEETINGS;
+  if (command === "get_history_run_receipts")
+    return [
+      {
+        id: 1,
+        history_id: entry.id,
+        run_id: 11,
+        retry_of_run_id: null,
+        started_at_ms: 1_000,
+        completed_at_ms: 2_000,
+        duration_ms: 15_000,
+        word_count: 2,
+        source_kind: "microphone",
+        has_audio: true,
+        capture_status: "complete",
+        delivery_attempts: [],
+        context: {},
+        mode: {
+          mode_id: "mode_message",
+          engine_requested: "local",
+          engine_used: "local",
+          input_peak: 0.1456,
+          input_rms: 0.011,
+          realtime_factor: 13.82,
+        },
+      },
+    ];
+  return null;
+};
+
+/**
+ * The wave the mount effect runs, on a fixed clock. Nothing here supersedes a
+ * wave, so a null answer is the wave misreporting itself rather than a case
+ * this test has to handle.
+ */
+const settledWave = async (): Promise<OverviewData> => {
+  const data = await readOverviewData([], rowLabels, 3_000, () => false);
+  if (data === null) throw new Error("read wave reported itself superseded");
+  return data;
+};
+
+describe("a capture that lands while Capture is open", () => {
+  test("moves the measured cells off 'not measured' without a remount", async () => {
+    answer = nothingRecorded;
+
+    const before = stripMarkup(await settledWave());
+    expect(before).toContain("not measured");
+    expect(before.includes("0.1456")).toBe(false);
+    expect(before.includes("decode")).toBe(false);
+
+    /* The dictation lands. The backend commits the entry and its receipt in one
+     * transaction and emits afterwards, so by the time the event arrives the
+     * receipt below is already readable — which is why the handler re-queries
+     * rather than needing the measurements in the payload. */
+    const waves: Promise<OverviewData>[] = [];
+    const unlisten = await subscribeToHistoryWrites(() => {
+      waves.push(settledWave());
+    });
+    const listener = listens[listens.length - 1];
+    expect(listener.event).toBe("history-update-payload");
+
+    answer = oneMeasuredCapture;
+    listener.handler({ payload: { action: "added", entry } });
+
+    /* One write, one wave: the page re-queries the database rather than reading
+     * anything out of the event, and it does so once. */
+    expect(waves).toHaveLength(1);
+    const settled = await waves[0];
+    expect(settled.inputPeak).toBe(0.1456);
+    expect(settled.inputRms).toBe(0.011);
+    expect(settled.realtimeFactor).toBe(13.82);
+
+    const after = stripMarkup(settled);
+    expect(after).toContain("0.1456 / 0.0110");
+    expect(after).toContain("decode 13.8x");
+    expect(after.includes("not measured")).toBe(false);
+
+    await unlisten();
   });
 });

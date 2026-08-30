@@ -42,6 +42,7 @@ import {
   shortenModelId,
   type InstrumentCell,
   type ReadFailure,
+  type RecentActivityLabels,
   type RecentActivityRow,
 } from "./instrument";
 import { InstrumentStrip } from "./InstrumentStrip";
@@ -78,9 +79,16 @@ interface OverviewState {
   activityFailures: ReadFailure[];
 }
 
+/**
+ * Everything one read wave settles. `loading` is not part of it: that flag says
+ * whether a wave has ever settled, which is a property of the page's lifetime
+ * rather than of any single wave.
+ */
+export type OverviewData = Omit<OverviewState, "loading">;
+
 type OverviewAction =
   | { type: "load-start" }
-  | { type: "load-settled"; data: Omit<OverviewState, "loading"> }
+  | { type: "load-settled"; data: OverviewData }
   | { type: "load-finished" };
 
 const DEFAULT_TREND_RANGE: DashboardTrendRange = "days_30";
@@ -144,7 +152,13 @@ const overviewReducer = (
 ): OverviewState => {
   switch (action.type) {
     case "load-start":
-      return { ...state, loading: true, activityFailures: [] };
+      /* `loading` is not re-raised here: it means no wave has settled yet,
+       * which is exactly what the placeholders say. A dictation landing while
+       * this page is open starts a wave over numbers already on screen, and
+       * taking them away to put the same numbers back would make every capture
+       * blink the page's own answers out. The failures go, because this wave is
+       * about to re-establish whichever of them are still true. */
+      return { ...state, activityFailures: [] };
     case "load-settled":
       return { ...state, ...action.data };
     case "load-finished":
@@ -175,12 +189,111 @@ const loadReceipts = async (
 };
 
 /**
+ * The page's whole read wave: the two trends, one page of each recent source,
+ * the all-time counters, and the run receipts behind the rows — mapped into the
+ * state the page renders.
+ *
+ * Exported because the mount effect and the history-write subscription both run
+ * exactly this, and a live capture has to arrive at the same numbers a fresh
+ * mount would. One function is how that stays true rather than being asserted.
+ *
+ * `superseded` is consulted between the two query waves: a wave a newer one has
+ * already replaced stops before spending five receipt reads whose answers would
+ * be discarded. It returns null in that case, because there is no wave left to
+ * settle.
+ */
+export const readOverviewData = async (
+  /* Structural, not `ModeView`: the recent rows need a mode's id and name and
+   * nothing else, and both the settings document and the modes command supply
+   * those. */
+  modes: readonly { id: string; name: string }[],
+  labels: RecentActivityLabels,
+  nowMs: number,
+  superseded: () => boolean,
+): Promise<OverviewData | null> => {
+  const [
+    historyResult,
+    meetingResult,
+    historyListResult,
+    meetingListResult,
+    statsResult,
+  ] = await Promise.allSettled([
+    commands.getHistoryTrend({ range: DEFAULT_TREND_RANGE }),
+    commands.meetingTrend({ range: DEFAULT_TREND_RANGE }),
+    commands.getHistoryEntries(null, RECENT_SOURCE_PAGE),
+    // Recent activity wants the newest meetings, unnarrowed.
+    commands.meetingList(null, RECENT_SOURCE_PAGE, null),
+    commands.getHistoryStats(),
+  ]);
+
+  if (superseded()) return null;
+
+  const historyEntries =
+    historyListResult.status === "fulfilled" &&
+    historyListResult.value.status === "ok"
+      ? historyListResult.value.data.entries
+      : [];
+  const meetingEntries =
+    meetingListResult.status === "fulfilled" &&
+    meetingListResult.value.status === "ok"
+      ? meetingListResult.value.data.entries
+      : [];
+
+  const receipts = await loadReceipts(historyEntries.map((entry) => entry.id));
+  if (superseded()) return null;
+
+  /* The newest run of the newest entry is the last thing the microphone
+   * actually delivered, so its amplitudes and its decode throughput are what
+   * INPUT and ENGINE report. */
+  const latestReceipt =
+    historyEntries.length === 0
+      ? null
+      : newestReceipt(receipts.get(historyEntries[0].id));
+
+  return {
+    historyTrend:
+      historyResult.status === "fulfilled" &&
+      historyResult.value.status === "ok"
+        ? historyResult.value.data
+        : null,
+    meetingTrend:
+      meetingResult.status === "fulfilled" &&
+      meetingResult.value.status === "ok"
+        ? meetingResult.value.data
+        : null,
+    recentActivity: buildRecentActivity(
+      historyEntries,
+      receipts,
+      meetingEntries,
+      modes,
+      labels,
+      nowMs,
+    ),
+    historyStats:
+      statsResult.status === "fulfilled" && statsResult.value.status === "ok"
+        ? statsResult.value.data
+        : null,
+    inputPeak: latestReceipt?.mode.input_peak ?? null,
+    inputRms: latestReceipt?.mode.input_rms ?? null,
+    realtimeFactor: latestReceipt?.mode.realtime_factor ?? null,
+    activityFailures: [
+      readFailure("get_history_entries", historyListResult),
+      readFailure("meeting_list", meetingListResult),
+    ].filter((failure): failure is ReadFailure => failure !== null),
+  };
+};
+
+/**
  * Mirrors the transcription pipeline's history writes onto this page. This page
  * reads history once per mount — the trend, the recent lists, the all-time
  * stats and the newest run's receipt — so a write that lands while it is open
  * has to re-run that read or the measured cells keep reporting the capture
- * before it. `reload` is the mount read itself, so a live dictation and a fresh
- * mount arrive at the same state by the same path.
+ * before it. `reload` runs `readOverviewData` — the mount read itself — so a
+ * live dictation and a fresh mount arrive at the same state by the same path.
+ *
+ * The event is safe to trust for the receipt: the backend commits the history
+ * row and its run receipt in one transaction and emits afterwards, so by the
+ * time this fires the receipt the strip is about to read is already durable.
  *
  * A row arriving, changing or leaving moves all four reads. Starring one moves
  * none of them: this page never draws the star, and its counters do not
@@ -463,101 +576,34 @@ export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const requestRef = useRef(0);
 
+  /* The page's one read: the mount effect, the retry buttons and the
+   * history-write subscription all run this, so a live capture cannot arrive at
+   * a different state than a fresh mount would. */
   const loadOverview = useCallback(async () => {
+    dispatch({ type: "load-start" });
     const requestId = requestRef.current + 1;
     requestRef.current = requestId;
-    dispatch({ type: "load-start" });
-
     try {
-      const [
-        historyResult,
-        meetingResult,
-        historyListResult,
-        meetingListResult,
-        statsResult,
-      ] = await Promise.allSettled([
-        commands.getHistoryTrend({ range: DEFAULT_TREND_RANGE }),
-        commands.meetingTrend({ range: DEFAULT_TREND_RANGE }),
-        commands.getHistoryEntries(null, RECENT_SOURCE_PAGE),
-        // Recent activity wants the newest meetings, unnarrowed.
-        commands.meetingList(null, RECENT_SOURCE_PAGE, null),
-        commands.getHistoryStats(),
-      ]);
-
-      if (requestRef.current !== requestId) return;
-
-      const historyEntries =
-        historyListResult.status === "fulfilled" &&
-        historyListResult.value.status === "ok"
-          ? historyListResult.value.data.entries
-          : [];
-      const meetingEntries =
-        meetingListResult.status === "fulfilled" &&
-        meetingListResult.value.status === "ok"
-          ? meetingListResult.value.data.entries
-          : [];
-
-      const receipts = await loadReceipts(
-        historyEntries.map((entry) => entry.id),
-      );
-      if (requestRef.current !== requestId) return;
-
-      /* The newest run of the newest entry is the last thing the microphone
-       * actually delivered, so its amplitudes and its decode throughput are
-       * what INPUT and ENGINE report. */
-      const latestReceipt =
-        historyEntries.length === 0
-          ? null
-          : newestReceipt(receipts.get(historyEntries[0].id));
-
-      dispatch({
-        type: "load-settled",
-        data: {
-          historyTrend:
-            historyResult.status === "fulfilled" &&
-            historyResult.value.status === "ok"
-              ? historyResult.value.data
-              : null,
-          meetingTrend:
-            meetingResult.status === "fulfilled" &&
-            meetingResult.value.status === "ok"
-              ? meetingResult.value.data
-              : null,
-          recentActivity: buildRecentActivity(
-            historyEntries,
-            receipts,
-            meetingEntries,
-            settings?.modes ?? [],
-            {
-              meeting: t("overview.recent.meeting"),
-              words: (count) =>
-                t("overview.recent.words", "{{count}} words", { count }),
-              /* SAFETY: `engine_used` is `RequestedEngine` on the receipt, and
-                 the map is keyed by that exact union; the `??` covers a receipt
-                 written by a newer build with a route this one does not know. */
-              engine: (engine) =>
-                t(
-                  ENGINE_LABEL_KEY[engine as RequestedEngine] ??
-                    ENGINE_LABEL_KEY.local,
-                ),
-              phase: (phase) => t(`meetings.phases.${phase}`, phase),
-            },
-            Date.now(),
-          ),
-          historyStats:
-            statsResult.status === "fulfilled" &&
-            statsResult.value.status === "ok"
-              ? statsResult.value.data
-              : null,
-          inputPeak: latestReceipt?.mode.input_peak ?? null,
-          inputRms: latestReceipt?.mode.input_rms ?? null,
-          realtimeFactor: latestReceipt?.mode.realtime_factor ?? null,
-          activityFailures: [
-            readFailure("get_history_entries", historyListResult),
-            readFailure("meeting_list", meetingListResult),
-          ].filter((failure): failure is ReadFailure => failure !== null),
+      const data = await readOverviewData(
+        settings?.modes ?? [],
+        {
+          meeting: t("overview.recent.meeting"),
+          words: (count) =>
+            t("overview.recent.words", "{{count}} words", { count }),
+          /* SAFETY: `engine_used` is `RequestedEngine` on the receipt, and the
+             map is keyed by that exact union; the `??` covers a receipt written
+             by a newer build with a route this one does not know. */
+          engine: (engine) =>
+            t(
+              ENGINE_LABEL_KEY[engine as RequestedEngine] ??
+                ENGINE_LABEL_KEY.local,
+            ),
+          phase: (phase) => t(`meetings.phases.${phase}`, phase),
         },
-      });
+        Date.now(),
+        () => requestRef.current !== requestId,
+      );
+      if (data !== null) dispatch({ type: "load-settled", data });
     } finally {
       if (requestRef.current === requestId) {
         dispatch({ type: "load-finished" });
@@ -569,9 +615,9 @@ export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
     void loadOverview();
   }, [loadOverview]);
 
-  /* `loadOverview` already discards a superseded wave, so re-reading on a
-   * write costs reads rather than a wrong number, and at dictation cadence
-   * that is one wave per capture. */
+  /* `loadOverview` discards a superseded wave, so re-reading on a write costs
+   * reads rather than a wrong number, and at dictation cadence that is one wave
+   * per capture. */
   useEffect(() => {
     const subscription = subscribeToHistoryWrites(() => void loadOverview());
     return () => {
