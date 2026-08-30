@@ -294,9 +294,19 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
    * declare gets a track it cannot drag, which is the truth. */
   const total = duration > 0 ? duration : (totalSeconds ?? 0);
   const seekable = duration > 0;
+  /* ONE duration cell, right-aligned in the same 28px row. Idle it names the
+   * total; while the head has moved it names the position, and at the end the
+   * two coincide. The old second cell printed an elapsed "0s" beside a total
+   * "0s" — one measurement twice, neither of them true. */
+  const engaged = isPlaying || isDragging || currentTime > 0;
+  const readoutValue = engaged
+    ? readout(currentTime)
+    : total > 0
+      ? readout(total)
+      : "—";
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <div className={`flex min-h-7 items-center gap-2 ${className}`}>
       <audio ref={audioRef} src={src ?? undefined} preload="metadata" />
 
       <button
@@ -316,19 +326,11 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         )}
       </button>
 
-      {/* Elapsed left, total right, one pair, both through the shared duration
-       * renderer. The cells are wide enough for the longest string the
-       * renderer produces ("10m 30s") so the track between them keeps its
-       * width as the digits change instead of shifting under the pointer. */}
-      <span className="type-data w-14 flex-none text-text-tertiary">
-        {readout(currentTime)}
-      </span>
-
       {/* A native range, deliberately: `appearance: none` without replacement
        * track and thumb rules is what reduced this control to a bare nub, and
        * the platform slider already carries keyboard stepping, Home/End and
-       * the drag behaviour. `accent-color` paints it in the app's own
-       * inversion, so it is monochrome in both themes. */}
+       * the drag behaviour. `accent-color` paints the played span in the
+       * app's one accent — a reported value, so it snaps with the input. */}
       <input
         type="range"
         aria-label={t("common.seek", "Playback position")}
@@ -342,12 +344,15 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         onMouseDown={handleSliderMouseDown}
         onTouchStart={handleSliderTouchStart}
         className="h-5 min-w-0 flex-1 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-        style={{ accentColor: "var(--invert-bg)" }}
+        style={{ accentColor: "var(--color-accent)" }}
         data-testid="audio-player-seek"
       />
 
+      {/* Wide enough for the longest string the shared renderer produces
+       * ("10m 30s") so the track keeps its width as digits change instead of
+       * shifting under the pointer. */}
       <span className="type-data w-14 flex-none text-end text-text-tertiary">
-        {total > 0 ? readout(total) : "—"}
+        {readoutValue}
       </span>
     </div>
   );

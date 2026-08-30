@@ -36,15 +36,15 @@ const nextEnabledIndex = (
 };
 
 /* The underlined strip owns its own rail, because an underline that marks the
- * active tab needs a line to sit on. The 2px marker is pulled one pixel down so
- * it covers the rail instead of stacking above it.
+ * active tab needs a line to sit on. The 2px marker is the accent — the
+ * selected-state colour — pulled one pixel down so it covers the rail instead
+ * of stacking above it.
  *
  * The segmented strip is a real track: a hairline box holding the segments, so
- * the control reads as a switch before you know which segment is on. The active
- * segment is then unmistakable — raised fill AND its own border AND the weight
- * jump. `bg-subtle` alone was none of those in light, where subtle sits 4/255
- * off the page and the strip read as three plain words. Segments are concentric
- * with the track: 6px outer, 2px padding, 4px inner.
+ * the control reads as a switch before you know which segment is on. The
+ * active segment carries the accent-soft fill plus the weight jump — the
+ * directive's selection device, never a black fill. Segments are concentric
+ * with the track: 9px outer, 2px padding, 7px inner.
  *
  * In both variants the mark is ONE element that moves between segments rather
  * than a per-segment pseudo-element switching on and off: same `layoutId`, so
@@ -60,7 +60,7 @@ const TAB_CLASSES = {
   default:
     "relative isolate min-h-9 cursor-pointer px-0.5 text-[13px] whitespace-nowrap transition-colors duration-[var(--duration-fast)] ease-[var(--ease-in-out)] disabled:cursor-not-allowed disabled:text-text-disabled",
   secondary:
-    "relative isolate min-h-7 cursor-pointer rounded-xs border border-transparent px-3 text-[13px] whitespace-nowrap transition-colors duration-[var(--duration-fast)] ease-[var(--ease-in-out)] disabled:cursor-not-allowed disabled:text-text-disabled",
+    "relative isolate min-h-7 cursor-pointer rounded-[7px] border border-transparent px-3 text-[13px] whitespace-nowrap transition-colors duration-[var(--duration-fast)] ease-[var(--ease-in-out)] disabled:cursor-not-allowed disabled:text-text-disabled",
 } as const;
 
 const TAB_STATE_CLASSES = {
@@ -77,9 +77,9 @@ const TAB_STATE_CLASSES = {
 /* The moving mark. `isolate` on the segment keeps the negative z-index inside
  * the button, so the fill sits under its own label and still over the track. */
 const INDICATOR_CLASSES = {
-  default: "absolute inset-x-0 -bottom-px h-0.5 bg-text-primary",
+  default: "absolute inset-x-0 -bottom-px h-0.5 bg-accent",
   secondary:
-    "absolute inset-0 -z-10 rounded-xs border border-border bg-surface-raised",
+    "absolute inset-0 -z-10 rounded-[7px] border border-transparent bg-accent-soft",
 } as const;
 
 /* Roving tabindex: one stop in the Tab order, arrows move between tabs.

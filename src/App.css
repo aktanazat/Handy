@@ -40,6 +40,7 @@
   --color-accent-soft: var(--color-accent-soft);
   --color-accent-hover: var(--color-accent-hover);
   --color-accent-pressed: var(--color-accent-pressed);
+  --color-on-accent: var(--color-on-accent);
   --color-control: var(--color-control);
   --color-control-hover: var(--color-control-hover);
   --color-control-active: var(--color-control-active);
@@ -62,6 +63,8 @@
   --radius-control: var(--radius-control);
   --radius-panel: var(--radius-panel);
   --radius-dialog: var(--radius-dialog);
+  --radius-card: var(--radius-card);
+  --shadow-card: var(--shadow-card);
 }
 
 /* ---------------------------------------------------------- onboarding */
@@ -184,9 +187,9 @@
   font-weight: var(--fw-heading);
 }
 
-/* The same 2px mark the Tabs primitive draws: one underline convention. */
+/* The same 2px accent mark the Tabs primitive draws: one underline convention. */
 .settings-local-nav button[aria-current="page"]::after {
-  background: var(--color-text-primary);
+  background: var(--color-accent);
   block-size: 2px;
   bottom: -1px;
   content: "";
@@ -202,9 +205,10 @@
 }
 
 .settings-disclosure {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-panel);
+  background: var(--color-surface-raised);
+  border: 0;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 
@@ -331,9 +335,11 @@
 .mode-actions-menu > div,
 .history-actions-menu > div,
 .vocabulary-actions-popover {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-control);
+  background: var(--color-surface-raised);
+  /* Colour transparent, width kept: the 1px ring leading --shadow-popover IS
+     this menu's edge, and the border box keeps layout from shifting. */
+  border: 1px solid transparent;
+  border-radius: var(--radius-panel);
   box-shadow: var(--shadow-popover);
   inset-inline-end: 0;
   min-inline-size: 160px;
@@ -349,7 +355,7 @@
 .vocabulary-actions-popover > button {
   background: transparent;
   border: 0;
-  border-radius: calc(var(--radius-control) - 2px);
+  border-radius: calc(var(--radius-panel) - var(--space-1));
   color: var(--color-text-primary);
   cursor: pointer;
   display: block;

@@ -42,18 +42,18 @@
   text-wrap: pretty;
 }
 
-/* Flat sections, not nested panels. The governing rule from vercel.com/design.md:
- * a surface has to be earned by selection, interaction, warning or contrast, and
- * a settings group is none of those — it is a heading plus spacing. The class
- * names stay so every call site keeps working; only the box is gone. Reach for
- * `.card` when something really is a selectable object. */
+/* Content groups are real cards now: the raised step, the card radius and the
+ * card shadow, whose 1px ring IS the border (never both). The heading stays
+ * OUTSIDE the card — a heading plus spacing above a carded body — so the card
+ * holds only rows and never another card. */
 .settings-group-panel,
 .setting-panel {
-  background: transparent;
+  background: var(--color-surface-raised);
   border: 0;
-  border-radius: 0;
-  box-shadow: none;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   overflow: visible;
+  padding: var(--space-1) var(--space-4);
 }
 
 .settings-group-panel > .divide-y {
@@ -61,8 +61,8 @@
   display: block;
 }
 
-/* The hairline now sits on the page rather than inside a box, so it drops to the
- * subtle step: at --color-border strength it reads as a table, not a rhythm. */
+/* The hairline between rows inside a card stays at the subtle step: at
+ * --color-border strength it reads as a table, not a rhythm. */
 .settings-group-panel > .divide-y > :not(:last-child),
 .settings-group-panel > div > :not(:last-child) {
   border-bottom: 1px solid var(--color-border-subtle);
@@ -254,11 +254,15 @@
 }
 
 input:checked + .glass-toggle {
-  background: var(--color-inverse-background);
-  border-color: var(--color-inverse-background);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
 }
 
+/* The knob on an accent track is the on-accent ink: white in light,
+ * near-black in dark — never a grey mid-step. */
 input:checked + .glass-toggle::after {
+  background: var(--color-on-accent);
+  border-color: transparent;
   transform: translateX(16px);
 }
 
@@ -285,9 +289,9 @@ input:focus-visible + .glass-toggle {
 /* The Slider primitive's range input. Native rendering left the rail invisible
  * in both themes (a thumb floating on empty space), so the control draws its
  * own instrument rail: a 4px hairline-weight track, the filled span in the
- * achromatic inversion, and a plain circular thumb. The fill boundary comes
- * from --range-fill, set inline by ui/Slider.tsx from value/min/max — the
- * fill is a reported value, so it snaps with the input rather than tweening.
+ * accent, and a plain circular thumb. The fill boundary comes from
+ * --range-fill, set inline by ui/Slider.tsx from value/min/max — the fill is
+ * a reported value, so it snaps with the input rather than tweening.
  * WebKit pseudo-elements only: every window this app ships is WebKit. */
 .ui-range {
   -webkit-appearance: none;
@@ -307,7 +311,7 @@ input:focus-visible + .glass-toggle {
 .ui-range::-webkit-slider-runnable-track {
   background: linear-gradient(
     to right,
-    var(--invert-bg) 0 var(--range-fill, 0%),
+    var(--color-accent) 0 var(--range-fill, 0%),
     var(--gray-a-300) var(--range-fill, 0%) 100%
   );
   block-size: 4px;
@@ -318,7 +322,7 @@ input:focus-visible + .glass-toggle {
 [dir="rtl"] .ui-range::-webkit-slider-runnable-track {
   background: linear-gradient(
     to left,
-    var(--invert-bg) 0 var(--range-fill, 0%),
+    var(--color-accent) 0 var(--range-fill, 0%),
     var(--gray-a-300) var(--range-fill, 0%) 100%
   );
 }
@@ -326,11 +330,12 @@ input:focus-visible + .glass-toggle {
 .ui-range::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  background: var(--invert-bg);
+  background: var(--color-surface-raised);
   block-size: 14px;
-  border: 0;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-pill);
   box-shadow: 0 1px 2px var(--gray-a-200);
+  box-sizing: border-box;
   inline-size: 14px;
   /* Centre a 14px thumb on the 4px rail: (4 − 14) / 2. */
   margin-block-start: -5px;
@@ -347,8 +352,8 @@ input:focus-visible + .glass-toggle {
 }
 
 .glass-popover [role="option"][aria-selected="true"] {
-  background: var(--color-inverse-background);
-  color: var(--color-inverse-text);
+  background: var(--color-accent-soft);
+  color: var(--color-text-primary);
 }
 
 .glass-dialog-backdrop {
@@ -382,17 +387,19 @@ input:focus-visible + .glass-toggle {
 /* -------------------------------------------------- surfaces & labels */
 
 /* Earn a surface. `.card` is a discrete object the person selects, drags or
- * opens; `.inset-panel` is quoted machine output — a transcript excerpt, a raw
- * prompt, a receipt, a config dump — that belongs to the flat section around
- * it. They differ in one token, and in dark that difference carries the whole
- * meaning: raised is LIGHTER than the page, recessed is DARKER. Everything
- * else — a settings group, a metric, a comparison — is spacing and typography,
- * not a box. Nesting is one level deep: a card may hold an inset panel, an
- * inset panel holds only text, a card never holds a card. */
+ * opens: the raised fill, the card radius, and the card shadow whose 1px ring
+ * IS its border. `.inset-panel` is quoted machine output — a transcript
+ * excerpt, a raw prompt, a receipt, a config dump — that belongs to the flat
+ * section around it. In dark the difference carries the whole meaning: raised
+ * is LIGHTER than the page, recessed is DARKER. Everything else — a metric, a
+ * comparison — is spacing and typography, not a box. Nesting is one level
+ * deep: a card may hold an inset panel, an inset panel holds only text, a
+ * card never holds a card. */
 .card {
-  background: var(--surface-raised);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-panel);
+  background: var(--color-surface-raised);
+  border: 1px solid transparent;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   padding: var(--space-4);
 }
 
@@ -406,7 +413,7 @@ input:focus-visible + .glass-toggle {
 .inset-panel {
   background: var(--surface-inset);
   border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-panel);
+  border-radius: var(--radius-control);
   padding: var(--space-3);
 }
 
@@ -588,9 +595,9 @@ input:focus-visible + .glass-toggle {
 }
 
 .toggle-chip[aria-pressed="true"] {
-  background: var(--wash-hover);
-  border-color: var(--border-active);
-  color: var(--text-primary);
+  background: var(--color-accent-soft);
+  border-color: color-mix(in oklab, var(--color-accent) 32%, transparent);
+  color: var(--color-text-primary);
 }
 
 .toggle-chip:disabled {
@@ -602,45 +609,82 @@ input:focus-visible + .glass-toggle {
 
 /* The Glass material, live only while the Material setting is Glass AND the
  * native vibrancy view actually applied — Rust owns `data-material` and only
- * writes "glass" when both hold, so these rules never fire on a window that
- * cannot back them.
+ * writes "glass" when both hold (UnderWindowBackground, follows window
+ * activity), so these rules never fire on a window that cannot back them.
+ * CSS only ever READS the attribute; nothing in the webview sets it.
  *
- * Two variants, because the two window kinds are not the same problem:
+ * The 2026-08 ruling, which replaces the old two-glass-surface budget: under
+ * Glass, every CHROME surface goes translucent-raised over the native
+ * vibrancy sample — top bar, command palette, section/hub rails, dropdown
+ * menus and popovers, and dialog chrome. All are bounded regions, so the
+ * blur cost stays bounded. Surfaces that DISPLAY MEASURED DATA (content
+ * cards, settings panels, tables, the library list) stay opaque
+ * --color-surface-raised in BOTH materials: numbers are never read through
+ * wallpaper. Solid is the default cascade — fully opaque, zero
+ * backdrop-filter — so [data-material="solid"] needs no rules at all.
  *
- *   .glass-surface        top nav + command palette, inside the main window.
- *                         Content genuinely scrolls beneath them, so a
- *                         backdrop-filter samples app content: cheap, bounded,
- *                         and the effect is visible.
- *   .glass-surface--tint  the recording HUD, a transparent NSPanel over an
- *                         arbitrary desktop. Tint, border and specular only.
- *                         A blur there has to sample the screen behind the
- *                         window, during live ASR, for an effect the 0.85 tint
- *                         mostly hides — this app shipped that once (a 28px
- *                         backdrop blur, see overlay/RecordingOverlay.css) and
- *                         reverted it for cost and legibility. Not repeated.
+ * Two glass variants remain:
  *
- * No saturate(): Apple's shipped value is a plain blur and a monochrome UI has
- * no saturation to boost. No --shadow-panel: its 1px ring would double the
- * --glass-border edge, so glass takes the ring-less --glass-shadow. No
- * `contain`: `layout` would make the surface an independent formatting context
- * (the overlay card's flush-to-edge anchoring depends on not being one) and
- * `paint` would clip the model dropdown that opens out of the nav. Three glass
- * surfaces total is inside budget without it. Never nest two, and never
- * animate the blur radius. */
-:root[data-material="glass"] .glass-surface {
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  backdrop-filter: blur(var(--glass-blur));
+ *   blur set               chrome inside the main window. Content genuinely
+ *                          sits beneath, so backdrop-filter samples app
+ *                          content plus the vibrancy underlay:
+ *                          blur(20px) saturate(1.4) — saturate is sanctioned
+ *                          by the pivot; the cool palette reads flat through
+ *                          a plain blur.
+ *   .glass-surface--tint   the recording HUD, a transparent NSPanel over an
+ *                          arbitrary desktop. Tint, border and specular only.
+ *                          A blur there samples the whole screen during live
+ *                          ASR — this app shipped that once and reverted it
+ *                          for cost and legibility. Not repeated.
+ *
+ * No --shadow-panel here: its 1px ring would double the --glass-border edge,
+ * so glass takes the ring-less --glass-shadow. Never nest two blurring
+ * surfaces, and never animate the blur radius. */
+:root[data-material="glass"]
+  :is(
+    .glass-surface,
+    .glass-popover,
+    .glass-dialog,
+    .app-subnav,
+    .settings-local-nav,
+    .meeting-actions-menu > div,
+    .mode-actions-menu > div,
+    .history-actions-menu > div,
+    .vocabulary-actions-popover
+  ) {
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
 }
 
-:root[data-material="glass"] .glass-surface,
+:root[data-material="glass"]
+  :is(
+    .glass-surface,
+    .glass-popover,
+    .glass-dialog,
+    .app-subnav,
+    .settings-local-nav,
+    .meeting-actions-menu > div,
+    .mode-actions-menu > div,
+    .history-actions-menu > div,
+    .vocabulary-actions-popover
+  ),
 :root[data-material="glass"] .glass-surface--tint {
   background: var(--glass-tint);
   /* Colour only, never the shorthand: the consumer owns which edges it draws.
-     The nav wants a bottom rule, the palette and the HUD card want all four. */
+     The nav and rails want a bottom rule; the palette, menus and the HUD card
+     want all four. */
   border-color: var(--glass-border);
   box-shadow:
     inset 0 1px 0 var(--glass-specular-top),
     var(--glass-shadow);
+}
+
+/* The tint-only surface has no blur and no --glass-canvas under it, so the
+ * airy tint would let extreme wallpapers swing the plate luminance past AA
+ * for the pill's own text (measured on the real HudPill: alpha must clear
+ * ~0.78 light / ~0.83 dark). It takes the dense step instead. */
+:root[data-material="glass"] .glass-surface--tint {
+  background: var(--glass-tint-dense);
 }
 
 /* Reduce Transparency is not readable from a WKWebView today — WebKit does not
@@ -649,7 +693,18 @@ input:focus-visible + .glass-toggle {
  * costs nothing. Increase Contrast IS supported, and flattens glass to a
  * bordered solid, which is what the system does natively. */
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  :root[data-material="glass"] .glass-surface,
+  :root[data-material="glass"]
+    :is(
+      .glass-surface,
+      .glass-popover,
+      .glass-dialog,
+      .app-subnav,
+      .settings-local-nav,
+      .meeting-actions-menu > div,
+      .mode-actions-menu > div,
+      .history-actions-menu > div,
+      .vocabulary-actions-popover
+    ),
   :root[data-material="glass"] .glass-surface--tint {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
@@ -774,69 +829,4 @@ input:focus-visible + .glass-toggle {
 .grid-connector::after {
   inset-block-end: -1px;
   inset-inline-end: -1px;
-}
-
-/* --------------------------------------------------------- shader hero */
-
-/* Two independently swappable layers over one container: a conic-gradient
- * that paints on the first frame, and a WebGL2 canvas that fades in over it
- * once its shader has compiled. Deleting either one leaves a working hero. */
-.shader-hero {
-  background: var(--hero-paper);
-  border-radius: var(--radius-panel);
-  isolation: isolate;
-  overflow: hidden;
-  position: relative;
-}
-
-.shader-hero-layer {
-  inset: 0;
-  position: absolute;
-}
-
-/* The placeholder is the same light-through-glass idea a gradient can express:
- * one narrow spectral sweep smeared across the band, masked to a soft wedge so
- * it reads as a beam rather than as a blob.
- *
- * Its origin sits inside the region the accent owns, past --shader-hero-clear,
- * for the same reason the fragment shader clamps itself there: this layer
- * paints on the first frame, before the shader compiles, and an origin inside
- * the content column would put a smear across the copy for exactly as long as
- * the shader takes to link. */
-.shader-hero-placeholder {
-  background: conic-gradient(
-    from 200deg at calc(var(--shader-hero-clear, 62%) + 14%) 30%,
-    transparent 0deg 26deg,
-    color-mix(in oklab, var(--amber-700) 26%, transparent) 34deg,
-    color-mix(in oklab, var(--text-primary) 22%, transparent) 40deg,
-    color-mix(in oklab, var(--blue-700) 20%, transparent) 47deg,
-    transparent 56deg 360deg
-  );
-  filter: blur(18px);
-}
-
-.shader-hero-canvas {
-  display: block;
-  inline-size: 100%;
-  block-size: 100%;
-  opacity: 0;
-  transition: opacity var(--duration-slow) var(--ease-out);
-}
-
-.shader-hero-canvas[data-ready="true"] {
-  opacity: 1;
-}
-
-/* Content flush against a rounded band always looks like a mistake, so the
- * inset is the default rather than something every caller has to remember. */
-.shader-hero-content {
-  padding: var(--space-6);
-  position: relative;
-  z-index: 1;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .shader-hero-canvas {
-    transition: none;
-  }
 }

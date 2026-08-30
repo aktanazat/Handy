@@ -157,9 +157,9 @@ export function Dropdown<T extends string = string>({
                 type="button"
                 role="option"
                 aria-selected={selectedValue === option.value}
-                className={`min-h-9 w-full rounded-xs px-2 text-start text-[13px] text-text-primary transition-colors duration-[var(--duration-fast)] ease-[var(--ease-in-out)] hover:bg-hover ${
+                className={`min-h-9 w-full rounded-[10px] px-2 text-start text-[13px] text-text-primary transition-colors duration-[var(--duration-fast)] ease-[var(--ease-in-out)] hover:bg-hover ${
                   selectedValue === option.value
-                    ? "bg-inverse-background font-medium text-inverse-text hover:bg-inverse-background"
+                    ? "bg-accent-soft font-medium hover:bg-accent-soft"
                     : ""
                 } ${option.disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
                 onClick={() => handleSelect(option.value)}

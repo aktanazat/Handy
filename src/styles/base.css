@@ -47,8 +47,8 @@ body {
 }
 
 ::selection {
-  background: var(--color-inverse-background);
-  color: var(--color-inverse-text);
+  background: color-mix(in oklab, var(--color-accent) 30%, transparent);
+  color: var(--color-text-primary);
 }
 
 /* One focus treatment for the whole app: a 2px blue outline offset by 2px, so

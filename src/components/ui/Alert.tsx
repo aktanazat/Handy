@@ -24,22 +24,22 @@ interface AlertStyle {
  * the lookups below stay total without a fallback. */
 const variantStyles = {
   error: {
-    container: "border-border bg-surface",
+    container: "border-border bg-surface-raised",
     icon: "text-danger-strong",
     text: "text-text-primary",
   },
   warning: {
-    container: "border-border bg-surface",
+    container: "border-border bg-surface-raised",
     icon: "text-text-secondary",
     text: "text-text-primary",
   },
   info: {
-    container: "border-border bg-surface",
+    container: "border-border bg-surface-raised",
     icon: "text-text-secondary",
     text: "text-text-primary",
   },
   success: {
-    container: "border-border bg-surface",
+    container: "border-border bg-surface-raised",
     icon: "text-text-secondary",
     text: "text-text-primary",
   },

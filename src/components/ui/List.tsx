@@ -23,7 +23,7 @@ export const List: React.FC<ListProps> = ({
       // in WebKit. The explicit role puts them back.
       role="list"
       aria-label={label}
-      className={`overflow-hidden rounded-panel border border-border bg-surface ${dividers ? "divide-y divide-border" : ""} ${className}`}
+      className={`overflow-hidden rounded-card border border-transparent bg-surface-raised shadow-card ${dividers ? "divide-y divide-border-subtle" : ""} ${className}`}
       {...props}
     >
       {children}
@@ -91,7 +91,7 @@ export const Row: React.FC<RowProps> = ({
 
   return (
     <li
-      className={`flex items-center ${selected ? "bg-subtle" : ""} ${className}`}
+      className={`flex items-center ${selected ? "bg-accent-soft" : ""} ${className}`}
       aria-current={selected ? "true" : undefined}
     >
       {onSelect ? (

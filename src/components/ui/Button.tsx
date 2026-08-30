@@ -19,17 +19,15 @@ export interface ButtonProps
  * is ghost-red by default; the filled danger variant is for the confirming
  * button inside a dialog, where the action is already the point.
  *
- * Primary is a pure inversion: fill is grey-1000 and text is bg-1, both of
- * which flip poles between the themes, so the button reads black-on-white in
- * light and white-on-black in dark without branching on the theme. Hover and
- * press walk one and two steps down the same grey ladder rather than fading
- * out with opacity. */
+ * Primary is the accent fill with on-accent ink — the one accented control
+ * a view gets. Hover and press walk the accent ladder rather than fading out
+ * with opacity, and both themes come out of the same three tokens. */
 const BUTTON_BASE_CLASSES =
   "liquid-control inline-flex cursor-pointer items-center justify-center gap-1.5 border font-medium whitespace-nowrap transition-[background-color,border-color,color] duration-[var(--duration-fast)] ease-[var(--ease-in-out)] disabled:cursor-not-allowed disabled:border-border disabled:bg-control-disabled disabled:text-text-disabled";
 
 const BUTTON_VARIANT_CLASSES = {
   primary:
-    "border-inverse-background bg-inverse-background text-inverse-text enabled:hover:border-accent-hover enabled:hover:bg-accent-hover enabled:active:border-accent-pressed enabled:active:bg-accent-pressed",
+    "border-accent bg-accent text-on-accent enabled:hover:border-accent-hover enabled:hover:bg-accent-hover enabled:active:border-accent-pressed enabled:active:bg-accent-pressed",
   secondary:
     "control-surface border-border text-text-primary enabled:hover:border-border-strong enabled:hover:bg-control-hover enabled:active:bg-control-active",
   ghost:

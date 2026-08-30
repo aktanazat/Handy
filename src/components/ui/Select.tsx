@@ -88,7 +88,7 @@ const selectStyles: StylesConfig<SelectOption, false> = {
   menu: (base) => ({
     ...base,
     zIndex: 30,
-    backgroundColor: "var(--color-surface)",
+    backgroundColor: "var(--color-surface-raised)",
     color: "var(--color-text-primary)",
     /* The 1px ring leading --shadow-popover is the menu's edge; a painted
        border on top of it would draw a 2px double edge. Width kept so the
@@ -101,13 +101,12 @@ const selectStyles: StylesConfig<SelectOption, false> = {
     ...base,
     minHeight: 36,
     backgroundColor: state.isSelected
-      ? "var(--color-inverse-background)"
+      ? "var(--color-accent-soft)"
       : state.isFocused
         ? "var(--color-hover)"
         : "transparent",
-    color: state.isSelected
-      ? "var(--color-inverse-text)"
-      : "var(--color-text-primary)",
+    color: "var(--color-text-primary)",
+    fontWeight: state.isSelected ? 500 : 400,
     cursor: state.isDisabled ? "not-allowed" : "pointer",
     opacity: state.isDisabled ? 0.5 : 1,
   }),

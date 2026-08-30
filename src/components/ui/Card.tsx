@@ -18,12 +18,12 @@ const CARD_PADDING_CLASSES = {
   md: "p-4",
 } as const;
 
-/* The two tones differ in exactly one token, and in dark mode that difference
- * is the whole point: a raised card is LIGHTER than the page (grey-100) while
- * an inset panel is DARKER (bg-2). In light mode nothing goes above white, so
- * raised earns its lift from the hairline alone. */
+/* Raised is a real card now: the raised fill plus --shadow-card, whose 1px
+ * ring IS the border. Inset keeps the hairline and the recessed fill — in
+ * dark that difference carries the whole meaning: raised is LIGHTER than the
+ * page, recessed is DARKER. */
 const CARD_TONE_CLASSES = {
-  raised: "border-border-subtle bg-surface",
+  raised: "border-transparent bg-surface-raised shadow-card",
   inset: "border-border-subtle bg-surface-sunken",
 } as const;
 
@@ -42,7 +42,7 @@ export const Card: React.FC<CardProps> = ({
   const Element = as;
   return (
     <Element
-      className={`rounded-panel border ${CARD_TONE_CLASSES[tone]} ${CARD_PADDING_CLASSES[padding]} ${className}`}
+      className={`rounded-card border ${CARD_TONE_CLASSES[tone]} ${CARD_PADDING_CLASSES[padding]} ${className}`}
       {...props}
     >
       {children}

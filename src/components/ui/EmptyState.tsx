@@ -24,7 +24,7 @@ export interface EmptyStateProps {
 const CONTAINER_CLASSES = {
   blank: "px-1 py-8",
   informational:
-    "rounded-panel border border-border-subtle bg-surface px-4 py-6",
+    "rounded-card border border-transparent bg-surface-raised px-4 py-6 shadow-card",
   "no-results": "px-1 py-6",
   error: "px-1 py-6",
 } as const;

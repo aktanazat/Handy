@@ -97,24 +97,23 @@ const activeSegment = (markup: string): string => {
   return markup.slice(start, markup.indexOf("</button>", selected));
 };
 
-/* The fill and the border used to be classes on the active button, switched on
- * and off per segment. They are now one element that Motion moves between
- * segments, so the assertions follow it there: the contract is still "the
- * active segment is unmistakably filled and bordered", and it is still one
- * segment at a time. The slide itself is a browser fact, asserted in
- * tests/motion.spec.ts. */
+/* The fill used to be classes on the active button, switched on and off per
+ * segment. It is now one element that Motion moves between segments, so the
+ * assertions follow it there: the contract is "the active segment carries the
+ * accent-soft selection fill plus a weight jump" — the reskin directive's
+ * selection device — and it is still one segment at a time. The slide itself
+ * is a browser fact, asserted in tests/motion.spec.ts. */
 describe("segmented tabs", () => {
-  test("the active segment carries a fill and a border, not just a weight", () => {
+  test("the active segment carries the selection fill, not just a weight", () => {
     const active = activeSegment(strip("history"));
-    expect(active).toContain("bg-surface-raised");
-    expect(active).toContain("border-border");
+    expect(active).toContain("bg-accent-soft");
     expect(active).toContain("font-semibold");
   });
 
-  test("an idle segment carries neither", () => {
+  test("an idle segment carries no fill", () => {
     const markup = strip("history");
     const idle = markup.slice(markup.indexOf('aria-selected="false"'));
-    expect(idle.includes("bg-surface-raised")).toBe(false);
+    expect(idle.includes("bg-accent-soft")).toBe(false);
   });
 
   test("the strip is a track, so the control reads as a switch when unread", () => {
@@ -124,8 +123,8 @@ describe("segmented tabs", () => {
   test("exactly one segment is selected, and it holds the only mark", () => {
     const markup = strip("meetings");
     expect(markup.split('aria-selected="true"').length - 1).toBe(1);
-    expect(markup.split("bg-surface-raised").length - 1).toBe(1);
-    expect(activeSegment(markup)).toContain("bg-surface-raised");
+    expect(markup.split("bg-accent-soft").length - 1).toBe(1);
+    expect(activeSegment(markup)).toContain("bg-accent-soft");
   });
 
   test("the mark is decoration, so it stays out of the accessibility tree", () => {
@@ -143,7 +142,7 @@ describe("segmented tabs", () => {
         label="Library section"
       />,
     );
-    expect(activeSegment(markup)).toContain("bg-text-primary");
-    expect(markup.split("bg-text-primary").length - 1).toBe(1);
+    expect(activeSegment(markup)).toContain("bg-accent");
+    expect(markup.split("bg-accent").length - 1).toBe(1);
   });
 });

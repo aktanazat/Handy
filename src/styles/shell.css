@@ -1,16 +1,15 @@
 /* App chrome: window shell, top bar, section sub-nav, command palette and the
  * scrolling page container.
  *
- * The top bar is the whole navigation model: three text routes on the left,
- * model state, a command-palette chip and one utility on the right. It is
- * 52px, it does not scroll, and in the Solid material it starts transparent —
- * the page reads as one surface until content actually passes underneath, at
- * which point :root[data-scrolled] gives the bar the recessed fill and its
- * hairline. Under Glass it carries the tint from the first frame instead:
- * behind it is the desktop, not the page, and nav text floating on wallpaper
- * is not legible. The routes carry no pill or underline chrome of their own;
- * the active one is named by aria-current and shown by a jump in both weight
- * and contrast. */
+ * The top bar is the whole navigation model: the brand mark, three text
+ * routes on the left, model state, a command-palette chip and one utility on
+ * the right. It is 52px, it does not scroll, and it is a quiet SURFACE
+ * (--color-surface) one step off the page from the first frame — the reskin
+ * retired the transparent-until-scrolled treatment; scrolling now only
+ * strengthens the bar's bottom hairline. Under Glass it carries the tint
+ * instead: behind it is the desktop, not the page, and nav text floating on
+ * wallpaper is not legible. The active route is named by aria-current and
+ * shown as an accent-soft pill plus a weight jump. */
 
 /* ---------------------------------------------------------------- shell */
 
@@ -35,22 +34,19 @@
 
 .app-topnav {
   align-items: stretch;
-  background: transparent;
-  border-bottom: 1px solid transparent;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border-subtle);
   display: flex;
   flex: none;
   gap: var(--space-2);
   min-block-size: var(--topnav-height);
   padding-inline: var(--space-3);
-  transition:
-    background-color var(--duration-standard) var(--ease-out),
-    border-color var(--duration-standard) var(--ease-out);
+  transition: border-color var(--duration-standard) var(--ease-out);
   user-select: none;
 }
 
 :root[data-scrolled] .app-topnav {
-  background: var(--surface-2);
-  border-bottom-color: var(--border);
+  border-bottom-color: var(--color-border);
 }
 
 :root[data-platform="macos"] .app-topnav {
@@ -67,15 +63,15 @@
 
 .app-topnav-mark svg {
   block-size: 16px;
-  color: currentColor;
+  color: var(--color-accent);
   inline-size: 16px;
 }
 
 .app-topnav-wordmark {
-  font-size: var(--fs-heading-14);
-  font-weight: var(--fw-heading);
-  letter-spacing: var(--ls-heading-14);
-  line-height: var(--lh-heading-14);
+  font-size: var(--fs-heading-15);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: var(--lh-heading-15);
   white-space: nowrap;
 }
 
@@ -95,31 +91,56 @@
   cursor: pointer;
   font-size: var(--type-row-size);
   font-weight: var(--type-row-weight);
+  isolation: isolate;
   min-block-size: var(--touch-target);
   min-inline-size: var(--touch-target);
   padding-inline: var(--space-2-5);
+  position: relative;
   transition: color var(--duration-fast) var(--ease-in-out);
   white-space: nowrap;
+}
+
+/* The route's visible body: a pill inset from the full-height hit target,
+ * the same device the icon button uses. The active route fills it with the
+ * accent-soft step; hover stays an achromatic wash so only selection earns
+ * the accent. */
+.app-topnav-route::before {
+  background: transparent;
+  border-radius: var(--radius-control);
+  content: "";
+  inset-block: calc((var(--topnav-height) - 32px) / 2);
+  inset-inline: 0;
+  position: absolute;
+  transition: background-color var(--duration-fast) var(--ease-in-out);
+  z-index: -1;
 }
 
 .app-topnav-route:hover {
   color: var(--color-text-primary);
 }
 
-.app-topnav-route:active {
-  color: var(--color-text-secondary);
+.app-topnav-route:hover::before {
+  background: var(--color-hover);
 }
 
-/* The whole nav item is the hit target, so its ring belongs inside the box
- * rather than floating two pixels off the bar's edges. */
+.app-topnav-route:active::before {
+  background: var(--color-pressed);
+}
+
+/* The whole nav item is the hit target, so its ring hugs the pill rather
+ * than floating on the bar's edges. */
 .app-topnav-route:focus-visible {
   color: var(--color-text-primary);
-  outline-offset: -2px;
+  outline-offset: -8px;
 }
 
 .app-topnav-route[aria-current="page"] {
   color: var(--color-text-primary);
   font-weight: var(--fw-heading);
+}
+
+.app-topnav-route[aria-current="page"]::before {
+  background: var(--color-accent-soft);
 }
 
 .app-topnav-spacer {
@@ -139,8 +160,8 @@
  * carries the shortcut that does the same thing instead of a caret. */
 .app-topnav-search {
   align-items: center;
-  background: var(--surface-1);
-  border: 1px solid var(--border);
+  background: var(--color-canvas);
+  border: 1px solid transparent;
   border-radius: var(--radius-control);
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -156,12 +177,12 @@
 }
 
 .app-topnav-search:hover {
-  border-color: var(--border-hover);
+  border-color: var(--color-border);
   color: var(--color-text-primary);
 }
 
 .app-topnav-search:active {
-  background: var(--color-control-active);
+  background: var(--color-pressed);
 }
 
 .app-topnav-search svg {
@@ -235,7 +256,7 @@
 }
 
 .app-topnav-icon-button[aria-current="page"]::before {
-  background: var(--color-subtle);
+  background: var(--color-accent-soft);
 }
 
 .app-topnav-icon-button svg {
@@ -270,8 +291,8 @@
 }
 
 .model-chip::before {
-  background: transparent;
-  border: 1px solid transparent;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
   content: "";
   inset: var(--space-1-5) 0;
@@ -310,6 +331,12 @@
   color: var(--color-danger);
 }
 
+/* A running download is the one time the chip may speak accent: the label
+ * doubles as the progress readout's caption. */
+.model-chip[data-status="downloading"] .model-chip-label {
+  color: var(--color-accent);
+}
+
 .model-chip-label {
   font-size: var(--fs-label-12);
   font-weight: var(--fw-button);
@@ -336,7 +363,7 @@
 /* Determinate download progress, drawn under the label instead of a second
  * widget in the bar. */
 .model-chip-progress {
-  background: var(--color-border-strong);
+  background: var(--color-subtle);
   block-size: 2px;
   border-radius: var(--radius-pill);
   inset-block-end: var(--space-2);
@@ -349,7 +376,7 @@
  * inline-size is both an animated layout property and a value the backend
  * never sent. `span { block-size: 100% }` keeps the bar painting. */
 .model-chip-progress > span {
-  background: var(--color-text-primary);
+  background: var(--color-accent);
   block-size: 100%;
   display: block;
   inline-size: var(--model-chip-progress, 0%);
@@ -513,9 +540,13 @@
   transition: background-color var(--duration-fast) var(--ease-in-out);
 }
 
-.command-palette-item:hover,
-.command-palette-item[data-highlighted] {
+.command-palette-item:hover {
   background: var(--color-hover);
+}
+
+/* The keyboard cursor is a selection, so it takes the selection fill. */
+.command-palette-item[data-highlighted] {
+  background: var(--color-accent-soft);
 }
 
 .command-palette-item:active {
@@ -583,13 +614,15 @@
   min-inline-size: 0;
 }
 
-/* The content region is the one place the Glass material does NOT reach. It
- * used to carry its own blur(24px) — a fourth glass surface, on the content
- * layer, under the three sanctioned ones — which HIG rules out and which put a
- * nested backdrop-filter behind every scrolling table. It stays opaque in both
- * materials; only the chrome above it is glass. */
+/* Under Glass the content region keeps NO blur of its own (a full-height
+ * backdrop-filter behind every scrolling table is the cost the app reverted
+ * once already), but its canvas goes translucent so the native vibrancy
+ * sample reads across the whole window instead of dying at the nav's bottom
+ * edge. Legibility lives one layer up: every data-bearing card in the page
+ * is opaque --color-surface-raised in both materials, so numbers are never
+ * read through wallpaper. */
 :root[data-material="glass"] .settings-main {
-  background: var(--color-canvas);
+  background: var(--glass-canvas);
 }
 
 .settings-scroll {

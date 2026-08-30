@@ -50,7 +50,7 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
         describedBy={`${inputId}-description`}
       />
       {isUpdating && (
-        <div className="absolute inset-0 flex items-center justify-center bg-surface/80">
+        <div className="absolute inset-0 flex items-center justify-center bg-surface-raised/80">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-text-secondary border-t-transparent" />
         </div>
       )}

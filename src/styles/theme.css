@@ -1,31 +1,31 @@
-/* Sona design tokens, derived from the Vercel Geist design system.
+/* Sona design tokens: Mercury-sleek — cool near-white, ink-navy text, one
+ * violet-blue accent.
  *
  * Three layers, in the order a component should reach for them:
  *
- *   1. Primitives  two background steps, a 10-step opaque grey ladder, a
- *                  parallel grey-ALPHA ladder (black wash in light, white wash
- *                  in dark) and four accent families. No meaning attached.
+ *   1. Primitives  two background steps, a 10-step cool-grey ladder, a
+ *                  parallel grey-ALPHA ladder (ink wash in light, cool-white
+ *                  wash in dark), the violet accent family and three status
+ *                  families. No meaning attached.
  *   2. Semantics   surface / border / text / accent / invert. This is the only
- *                  layer component rules may name. The indirection is what
- *                  makes the primary button's black-white inversion free:
- *                  --invert-bg is always grey-1000, and grey-1000 itself flips
- *                  poles between the two blocks, so no component branches on
- *                  the theme.
- *   3. Compat      the --color-* names the pages already consume, re-pointed
- *                  at layer 2. Kept so this file can land before the page
- *                  restyle; the restyle wave should migrate to layer 2 and
- *                  then this block shrinks to nothing.
+ *                  layer component rules may name.
+ *   3. Compat      the --color-* names the pages consume, re-pointed at
+ *                  layer 2. Pages consume by NAME only; values live here and
+ *                  nowhere else. Extend this file; do not rename.
  *
- * Dark is written as the attribute-less base and light as the only override,
- * mirroring vgpu.sh's own cascade: an unstyled first paint, or a theme script
- * that failed to run, still renders the intended dark identity instead of
- * flashing white.
+ * The identity (2026-08 pivot): cool near-white pages, white cards carrying a
+ * hairline ring and a very low shadow, ink-navy text, a single violet accent
+ * used sparingly — the primary action per view, active/selected states (soft
+ * fill), the live waveform, focus rings. Measured data is tabular-nums,
+ * always. Status semaphore colours are never repurposed as accents.
  *
- * Grey step 400 repeating step 200 in light, and steps 700/800 dipping below
- * 600/900 in dark, are deliberate non-monotonicity in Geist's own scale and
- * are preserved rather than "fixed".
+ * Dark is written as the attribute-less base and light as the only override:
+ * an unstyled first paint, or a theme script that failed to run, still
+ * renders the intended cool-graphite identity instead of flashing white.
  *
- * Tokens live here and nowhere else. Extend this file; do not rename.
+ * Grey steps 700/800 deliberately dip against their neighbours in both
+ * blocks: disabled text sits between tertiary and the fills, and the two
+ * names cross rather than climb. Preserved, not "fixed".
  */
 
 /* ==================================================== dark (the base) === */
@@ -34,117 +34,142 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  /* -- backgrounds. Note bg-2 is DARKER than bg-1: it reads as recessed
-     chrome (nav, hero), not as a raised surface. Raised uses the grey ladder. */
-  --bg-1: #0a0a0a;
-  --bg-2: #000000;
+  /* -- backgrounds. bg-1 is the page; bg-2 is DARKER and reads as recessed —
+     it backs --surface-inset (quoted machine output, wells). Chrome does not
+     live on bg-2: the top bar is a surface one step LIGHTER than the page,
+     so the shell reads raised rather than sunken. */
+  --bg-1: #0f1115;
+  --bg-2: #0a0c10;
 
-  /* -- grey primitives 100-1000 */
-  --gray-100: #1a1a1a;
-  --gray-200: #1f1f1f;
-  --gray-300: #292929;
-  --gray-400: #2e2e2e;
-  --gray-500: #454545;
-  --gray-600: #878787;
-  --gray-700: #8f8f8f;
-  --gray-800: #7d7d7d;
-  --gray-900: #a1a1a1;
-  --gray-1000: #ededed;
+  /* -- cool grey primitives 100-1000 (slate-navy family) */
+  --gray-100: #232732;
+  --gray-200: #262b36;
+  --gray-300: #2c3140;
+  --gray-400: #303646;
+  --gray-500: #3e4557;
+  --gray-600: #767e90;
+  --gray-700: #7a8294;
+  --gray-800: #6c7484;
+  --gray-900: #a8b0bf;
+  --gray-1000: #f2f4f8;
 
   /* -- grey-alpha: every hairline in the product. An opaque line would read
-     wrong over one surface or the other; an alpha wash self-adjusts. */
-  --gray-a-100: rgba(255, 255, 255, 0.07);
-  --gray-a-200: rgba(255, 255, 255, 0.09);
-  --gray-a-300: rgba(255, 255, 255, 0.13);
-  --gray-a-400: rgba(255, 255, 255, 0.14);
-  --gray-a-500: rgba(255, 255, 255, 0.24);
-  --gray-a-600: rgba(255, 255, 255, 0.51);
-  --gray-a-700: rgba(255, 255, 255, 0.54);
-  --gray-a-900: rgba(255, 255, 255, 0.61);
+     wrong over one surface or the other; an alpha wash self-adjusts. The base
+     is the cool white of --gray-1000, so washes stay in the palette's
+     temperature. */
+  --gray-a-100: rgba(242, 244, 248, 0.04);
+  --gray-a-200: rgba(242, 244, 248, 0.05);
+  --gray-a-300: rgba(242, 244, 248, 0.08);
+  --gray-a-400: rgba(242, 244, 248, 0.1);
+  --gray-a-500: rgba(242, 244, 248, 0.18);
+  --gray-a-600: rgba(242, 244, 248, 0.38);
+  --gray-a-700: rgba(242, 244, 248, 0.48);
+  --gray-a-900: rgba(242, 244, 248, 0.62);
 
-  /* -- accents. Step 700 is a brand constant shared by both themes; 100/400/900
-     are the theme-tuned subtle / border / high-contrast-text steps. */
-  --blue-100: hsl(216 50% 12%);
-  --blue-400: hsl(212 78% 23%);
-  --blue-700: #0070f3;
-  --blue-900: hsl(210 100% 66%);
-  --green-100: hsl(136 50% 9%);
-  --green-400: hsl(135 70% 16%);
-  --green-700: #46a758;
-  --green-900: hsl(131 43% 57%);
-  --red-100: hsl(357 37% 12%);
-  --red-400: hsl(357 55% 26%);
-  --red-700: #e5484d;
-  --red-900: hsl(358 100% 69%);
-  --amber-100: hsl(35 100% 8%);
-  --amber-400: hsl(35 100% 17%);
-  --amber-700: #ffb224;
-  --amber-900: hsl(35 100% 52%);
+  /* -- violet, the one accent. 100 is the soft selected fill, 400 the
+     border-grade step, 700 the identity, 800/900 the hover and pressed walk.
+     Dark lifts the tone to #7B85F2 so it holds against graphite; hover goes
+     LIGHTER there and pressed deeper, mirroring light's darker walk. */
+  --violet-100: rgba(123, 133, 242, 0.16);
+  --violet-400: rgba(123, 133, 242, 0.42);
+  --violet-700: #7b85f2;
+  --violet-800: #8b94f5;
+  --violet-900: #6a75ee;
+
+  /* -- status families. Step 700 is the identity, 100/400/900 the theme-tuned
+     subtle / border / text steps. Semantics unchanged; never repurposed. */
+  --blue-100: #16202e;
+  --blue-400: #24466e;
+  --blue-700: #2e90fa;
+  --blue-900: #61a6fa;
+  --green-100: #132a1e;
+  --green-400: #1f4d36;
+  --green-700: #12b76a;
+  --green-900: #47cd89;
+  --red-100: #331a18;
+  --red-400: #5c2a26;
+  --red-700: #d92d20;
+  --red-900: #f97066;
+  --amber-100: #2e2113;
+  --amber-400: #5c4322;
+  --amber-700: #b54708;
+  --amber-900: #e8963f;
 
   /* -- semantic aliases */
   --surface-1: var(--bg-1);
-  --surface-2: var(--bg-2);
-  --surface-raised: var(--gray-100);
-  /* The single owner of "recessed". Three surfaces, three owners: recessed is
-     --surface-inset, chrome is --surface-2, raised is --surface-raised. In dark
-     recessed is DARKER than the page; in light it is the third Apple step
-     (#f2f2f2), which is the one that actually separates from white. */
+  /* Chrome: the top bar and section rail. One step LIGHTER than the page in
+     both themes — the shell is a quiet surface, not a recess. */
+  --surface-2: #14161b;
+  /* Cards and popovers: the raised pole, the fill of every content card. */
+  --surface-raised: #1a1d23;
+  /* The single owner of "recessed": quoted machine output, inset wells. */
   --surface-inset: var(--bg-2);
   --border-subtle: var(--gray-a-300);
   --border: var(--gray-a-400);
   --border-hover: var(--gray-a-500);
   --border-active: var(--gray-a-600);
   --wash-hover: var(--gray-a-200);
-  --wash-active: var(--gray-a-300);
+  --wash-active: rgba(242, 244, 248, 0.1);
   --text-primary: var(--gray-1000);
   --text-secondary: var(--gray-900);
   --text-tertiary: var(--gray-800);
   --text-disabled: var(--gray-700);
-  --accent: var(--blue-700);
-  --focus-ring: var(--blue-900);
+  --accent: var(--violet-700);
+  --accent-hover: var(--violet-800);
+  --accent-pressed: var(--violet-900);
+  --accent-soft: var(--violet-100);
+  /* Ink on an accent fill. Dark reads near-black on violet; light reads
+     white. Never grey — grey text on a coloured fill is on the reject list. */
+  --on-accent: #0e1015;
+  --focus-ring: var(--violet-700);
   --info: var(--blue-900);
   --success: var(--green-900);
   --warning: var(--amber-900);
   --error: var(--red-900);
   --invert-bg: var(--gray-1000);
   --invert-fg: var(--bg-1);
-  /* A scrim darkens in both themes: an inverted (white) scrim would light the
+  /* A scrim darkens in both themes: an inverted (light) scrim would light the
      window up instead of pushing it back. */
   --scrim: rgba(0, 0, 0, 0.72);
 
-  /* Backdrop of the decorative hero band. Duplicated as a literal inside
-     ShaderHero's fragment shader, which cannot read a custom property; the two
-     must be changed together, and the CSS one is what paints first. */
-  --hero-paper: #09090a;
-
-  /* -- elevation. A 1px ring plus tight low-alpha layers, which is Geist's real
-     product elevation: on dark the ring is what separates a panel at all, and
-     the layers only keep it from looking pasted on. A panel carrying
-     --shadow-panel must NOT also carry a border — the ring is the border. */
+  /* -- elevation, Mercury-quiet. A 1px ring plus one very low layer for a
+     card; the panel step keeps a soft long-throw for things that float. The
+     ring is what separates a surface on dark. A surface carrying
+     --shadow-card or --shadow-panel must NOT also carry a border — the ring
+     IS the border. Same geometry as light, black-based alphas. */
+  --shadow-card: 0 0 0 1px var(--border), 0 1px 2px rgba(0, 0, 0, 0.32);
+  --shadow-panel: 0 0 0 1px var(--border), 0 16px 40px -20px rgba(0, 0, 0, 0.6);
   --shadow-popover:
-    0 0 0 1px rgba(255, 255, 255, 0.145), 0 1px 1px rgba(0, 0, 0, 0.08),
-    0 4px 8px -4px rgba(0, 0, 0, 0.16), 0 16px 24px -8px rgba(0, 0, 0, 0.24);
-  --shadow-panel:
-    0 0 0 1px rgba(255, 255, 255, 0.145), 0 2px 2px rgba(0, 0, 0, 0.32),
-    0 8px 8px -8px rgba(0, 0, 0, 0.16);
+    0 0 0 1px rgba(242, 244, 248, 0.12), 0 4px 8px rgba(0, 0, 0, 0.32),
+    0 16px 32px -8px rgba(0, 0, 0, 0.5);
   --shadow-dialog:
-    0 0 0 1px rgba(255, 255, 255, 0.145), 0 1px 1px rgba(0, 0, 0, 0.08),
-    0 8px 16px -4px rgba(0, 0, 0, 0.16), 0 24px 32px -8px rgba(0, 0, 0, 0.24);
+    0 0 0 1px rgba(242, 244, 248, 0.12), 0 8px 16px -4px rgba(0, 0, 0, 0.32),
+    0 28px 48px -12px rgba(0, 0, 0, 0.55);
 
-  /* -- glass. Only the three chrome surfaces read these, and only while the
-     Material setting is Glass; see .glass-surface in primitives.css. The tint
-     is x.ai's measured header value (0.85) rather than a thinner one, because
-     a chrome surface carrying this much text does not hold legibility below it.
-     No saturate(): Apple's own shipped value is a plain blur, and on a
-     monochrome UI a saturation boost has nothing to boost. */
-  --glass-tint: rgba(10, 10, 10, 0.85);
-  --glass-tint-clear: rgba(10, 10, 10, 0.28);
-  --glass-border: rgba(255, 255, 255, 0.14);
-  --glass-specular-top: rgba(255, 255, 255, 0.22);
+  /* -- glass. Read by the chrome surfaces (top bar, rails, popovers, menus,
+     dialog chrome, HUD pill) only while the Material setting is Glass; see
+     primitives.css. The tint is a TRANSLUCENT raised surface — 0.55, not the
+     old 0.85 that made Glass indistinguishable from Solid — sitting over the
+     native UnderWindowBackground vibrancy sample. Data-bearing cards stay
+     opaque in both materials.
+
+     --glass-tint-dense is for the TINT-ONLY surface (the HUD pill): no
+     backdrop blur and no --glass-canvas under it, so its plate luminance
+     swings with the raw wallpaper. Measured on the real HudPill 2026-08-29:
+     the airy tint fails AA past ~0.78 light / ~0.83 dark on extreme
+     wallpapers, so the dense step keeps the proven 0.85. */
+  --glass-tint: rgba(26, 29, 35, 0.55);
+  --glass-tint-dense: rgba(26, 29, 35, 0.85);
+  --glass-tint-clear: rgba(26, 29, 35, 0.3);
+  --glass-border: rgba(242, 244, 248, 0.12);
+  --glass-specular-top: rgba(242, 244, 248, 0.18);
   /* Ring-less: a glass surface already draws its own edge with --glass-border
      and the specular top, so it takes an ambient shadow instead of the ringed
-     --shadow-panel, which would double the edge. */
+     panel shadow, which would double the edge. */
   --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  /* The translucent page wash under Glass: vibrancy reads through the whole
+     window, not just the bar. Solid keeps the opaque canvas. */
+  --glass-canvas: rgba(15, 17, 21, 0.6);
 }
 
 /* ====================================================== light override === */
@@ -152,89 +177,98 @@
 :root[data-theme="light"] {
   color-scheme: light;
 
-  --bg-1: #ffffff;
-  --bg-2: #fafafa;
+  --bg-1: #f7f8fa;
+  --bg-2: #fbfcfd;
 
-  --gray-100: #f2f2f2;
-  --gray-200: #ebebeb;
-  --gray-300: #e6e6e6;
-  --gray-400: #ebebeb;
-  --gray-500: #c9c9c9;
-  --gray-600: #a8a8a8;
-  --gray-700: #8f8f8f;
-  --gray-800: #7d7d7d;
-  --gray-900: #666666;
-  --gray-1000: #171717;
+  --gray-100: #eef0f3;
+  --gray-200: #e4e7ec;
+  --gray-300: #d7dbe2;
+  --gray-400: #e4e7ec;
+  --gray-500: #b9c0cc;
+  --gray-600: #8e98a8;
+  --gray-700: #acb4c2;
+  --gray-800: #98a2b3;
+  --gray-900: #475467;
+  --gray-1000: #101828;
 
-  --gray-a-100: rgba(0, 0, 0, 0.05);
-  --gray-a-200: rgba(0, 0, 0, 0.081);
-  --gray-a-300: rgba(0, 0, 0, 0.1);
-  --gray-a-400: rgba(0, 0, 0, 0.08);
-  --gray-a-500: rgba(0, 0, 0, 0.21);
-  --gray-a-600: rgba(0, 0, 0, 0.24);
-  --gray-a-700: rgba(0, 0, 0, 0.44);
-  --gray-a-900: rgba(0, 0, 0, 0.7);
+  /* Ink washes: alpha over the cool page, base #101828. */
+  --gray-a-100: rgba(16, 24, 40, 0.03);
+  --gray-a-200: rgba(16, 24, 40, 0.04);
+  --gray-a-300: rgba(16, 24, 40, 0.07);
+  --gray-a-400: rgba(16, 24, 40, 0.1);
+  --gray-a-500: rgba(16, 24, 40, 0.16);
+  --gray-a-600: rgba(16, 24, 40, 0.24);
+  --gray-a-700: rgba(16, 24, 40, 0.44);
+  --gray-a-900: rgba(16, 24, 40, 0.7);
 
-  --blue-100: hsl(212 100% 97%);
-  --blue-400: hsl(209 100% 90%);
-  --blue-700: #0070f3;
-  --blue-900: hsl(211 100% 42%);
-  --green-100: hsl(120 60% 96%);
-  --green-400: hsl(122 60% 86%);
-  --green-700: #46a758;
-  --green-900: hsl(133 50% 32%);
-  --red-100: hsl(0 100% 97%);
-  --red-400: hsl(0 90% 92%);
-  --red-700: #e5484d;
-  --red-900: hsl(358 66% 48%);
-  --amber-100: hsl(39 100% 95%);
-  --amber-400: hsl(42 100% 78%);
-  --amber-700: #ffb224;
-  --amber-900: hsl(30 100% 32%);
+  --violet-100: #eef0fe;
+  --violet-400: #c7ccfa;
+  --violet-700: #5b67e8;
+  --violet-800: #4a56d6;
+  --violet-900: #3d48c4;
 
-  /* Nothing sits above white, so a raised surface in light earns its lift from
-     the hairline and the shadow, not from a lighter fill. Recessed, though, has
-     to move: --bg-2 (#fafafa) is 5/255 from the page and reads as a smudge, so
-     light's inset takes Apple's third step, which Geist already ships as
-     --gray-100 (#f2f2f2) — 13/255, a separation you can actually see. */
-  --surface-raised: var(--bg-1);
+  --blue-100: #eaf2fe;
+  --blue-400: #b9d7fd;
+  --blue-700: #2e90fa;
+  --blue-900: #2e90fa;
+  --green-100: #e7f6ee;
+  --green-400: #b5e5cd;
+  --green-700: #12b76a;
+  --green-900: #067647;
+  --red-100: #fceae8;
+  --red-400: #f5c1bc;
+  --red-700: #d92d20;
+  --red-900: #d92d20;
+  --amber-100: #faefde;
+  --amber-400: #efd0a2;
+  --amber-700: #b54708;
+  --amber-900: #b54708;
+
+  /* The page is cool near-white; the chrome (--surface-2, #FBFCFD) and cards
+     (--surface-raised, #FFFFFF) climb toward white, so a raised surface earns
+     its lift from real steps AND the quiet card shadow, not from a hairline
+     alone. Recessed takes --gray-100 (#EEF0F3), a separation you can
+     actually see. */
+  --surface-2: var(--bg-2);
+  --surface-raised: #ffffff;
   --surface-inset: var(--gray-100);
-  --focus-ring: var(--blue-700);
-  --scrim: rgba(0, 0, 0, 0.36);
-  --hero-paper: #e6e3df;
+  --wash-active: rgba(16, 24, 40, 0.08);
+  --on-accent: #ffffff;
+  --scrim: rgba(16, 24, 40, 0.4);
 
-  --shadow-popover:
-    0 0 0 1px rgba(0, 0, 0, 0.078), 0 1px 1px rgba(0, 0, 0, 0.02),
-    0 4px 8px -4px rgba(0, 0, 0, 0.04), 0 16px 24px -8px rgba(0, 0, 0, 0.06);
+  --shadow-card: 0 0 0 1px var(--border), 0 1px 2px rgba(16, 24, 40, 0.06);
   --shadow-panel:
-    0 0 0 1px rgba(0, 0, 0, 0.078), 0 2px 2px rgba(0, 0, 0, 0.04),
-    0 8px 8px -8px rgba(0, 0, 0, 0.04);
+    0 0 0 1px var(--border), 0 16px 40px -20px rgba(16, 24, 40, 0.25);
+  --shadow-popover:
+    0 0 0 1px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.04),
+    0 12px 24px -8px rgba(16, 24, 40, 0.12);
   --shadow-dialog:
-    0 0 0 1px rgba(0, 0, 0, 0.078), 0 1px 1px rgba(0, 0, 0, 0.02),
-    0 8px 16px -4px rgba(0, 0, 0, 0.04), 0 24px 32px -8px rgba(0, 0, 0, 0.06);
+    0 0 0 1px rgba(16, 24, 40, 0.08), 0 8px 16px -4px rgba(16, 24, 40, 0.08),
+    0 28px 48px -12px rgba(16, 24, 40, 0.2);
 
-  --glass-tint: rgba(255, 255, 255, 0.85);
-  --glass-tint-clear: rgba(255, 255, 255, 0.32);
-  --glass-border: rgba(255, 255, 255, 0.6);
-  --glass-specular-top: rgba(255, 255, 255, 0.85);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
+  --glass-tint: rgba(255, 255, 255, 0.62);
+  --glass-tint-dense: rgba(255, 255, 255, 0.85);
+  --glass-tint-clear: rgba(255, 255, 255, 0.34);
+  --glass-border: rgba(16, 24, 40, 0.12);
+  --glass-specular-top: rgba(255, 255, 255, 0.75);
+  --glass-shadow: 0 8px 32px rgba(16, 24, 40, 0.12);
+  --glass-canvas: rgba(247, 248, 250, 0.6);
 }
 
 /* ===================================== scales that do not follow a theme === */
 
 :root {
-  /* -- radii. Geist's product ("materials") scale, not its editorial one:
-     6px for a control, 8px for a panel, 12px for a modal, 16px for a
-     full-bleed sheet. Names stay the app's own so Tailwind's rounded-md/-lg
-     utilities keep their default values instead of silently inheriting a
-     product tier. The panel step is 8px, not 12: 12px on a data panel reads
-     consumer-soft, and 8px is x.ai's authored base, Cursor's panel radius and
-     one step above Apple's 5px. A dialog is larger than a panel and keeps 12. */
-  --radius-xs: 4px; /* key cap */
-  --radius-control: 6px; /* button, input, select, tooltip */
-  --radius-panel: 8px; /* card, menu, popover */
-  --radius-dialog: 12px; /* modal */
-  --radius-sheet: 16px; /* full-bleed panel */
+  /* -- radii. The identity rounds up: 9px controls, 12px cards, 14px
+     panels/popovers, 16px dialogs — tactile, not consumer-soft — and the
+     card/panel split keeps a popover one step softer than the card grid under
+     it. Names stay the app's own so Tailwind's rounded-md/-lg utilities keep
+     their default values. */
+  --radius-xs: 5px; /* key cap */
+  --radius-control: 9px; /* button, input, select, tooltip */
+  --radius-card: 12px; /* content card */
+  --radius-panel: 14px; /* menu, popover, floating panel */
+  --radius-dialog: 16px; /* modal */
+  --radius-sheet: 20px; /* full-bleed panel */
   /* Pills are for status dots, the HUD card and toggle tracks. Never on a badge
      that carries metadata, never on a button. */
   --radius-pill: 999px;
@@ -242,10 +276,10 @@
    * gets R - P, so the two curves stay parallel. */
   --radius-in-control: calc(var(--radius-control) - var(--space-1));
 
-  /* -- focus. A real outline, not a box-shadow glow. --focus-outline goes on
-     standalone controls; --focus-ring-inset goes on rows, cells and segments
-     inside a dense list, where an outset outline would collide with the
-     neighbouring row's divider. */
+  /* -- focus. A real outline in the accent, not a box-shadow glow.
+     --focus-outline goes on standalone controls; --focus-ring-inset goes on
+     rows, cells and segments inside a dense list, where an outset outline
+     would collide with the neighbouring row's divider. */
   --focus-ring-width: 2px;
   --focus-ring-offset: 2px;
   --focus-outline: var(--focus-ring-width) solid var(--focus-ring);
@@ -253,10 +287,10 @@
   --focus-ring-inset: 0 0 0 2px var(--surface-1), 0 0 0 4px var(--focus-ring);
 
   /* -- hairline. The repeated divider inside a dense list or an instrument
-     strip, at the faint alpha step: at --border (0.14) a divider every 36-60px
-     bands the whole column. --border stays the outline of a discrete object —
-     card, control, input, segmented track. --gray-a-100 already flips poles
-     between the two theme blocks, so one declaration serves both. */
+     strip, at the faint alpha step: at --border strength a divider every
+     36-60px bands the whole column. --border stays the outline of a discrete
+     object — control, input, segmented track. --gray-a-100 already flips
+     poles between the two theme blocks, so one declaration serves both. */
   --border-hairline: var(--gray-a-100);
 
   --space-0-5: 2px;
@@ -290,8 +324,8 @@
   --row-h-settings: var(--settings-row-height);
   --keycap-h: 18px;
 
-  /* -- glass, read only by .glass-surface under [data-material="glass"]. The
-     per-theme tint/border/specular/shadow live in the two theme blocks. */
+  /* -- glass geometry, read by the material rules in primitives.css. The
+     per-theme tint/border/specular/shadow/canvas live in the theme blocks. */
   --glass-blur: 20px; /* Apple's shipped web value */
   --glass-scrim: rgba(0, 0, 0, 0.35); /* HIG's stated dimming layer */
 
@@ -303,19 +337,15 @@
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* -- type. Weights are 400/500/600 only — SF's own guidance rules out
-     Ultralight/Thin/Light for UI, and the editorial 450 belongs to Vercel's
-     report skin, not to an app.
+  /* -- type. Weights are 400/500/600 for UI, 700 for the page title only —
+     the one confident jump the identity asks for.
 
-     TRACKING IS ZERO AT EVERY UI SIZE. Measured off Apple's live SF rendering:
-     SF's own tracking never exceeds ±0.012em between 19 and 80px, it crosses
-     zero at 40px, and below that it is positive. The old −0.02/−0.04em values
-     were three to four times SF's magnitude and pointed the wrong way. SF also
-     ships a real optical-size axis (see fonts.css), so per-size tracking is
-     re-solving a problem the font already solves. The --ls-* names stay so no
-     consumer breaks; they are all zero now, and one owner beats eleven.
-     Above 40px, if a surface ever needs it, use Apple's curve directly:
-     −0.003em @48, −0.005em @56, −0.009em @64, −0.015em @80. Sona stops at 40. */
+     TRACKING IS ZERO AT EVERY UI SIZE except the page title. SF's own
+     tracking never exceeds ±0.012em between 19 and 80px and crosses zero at
+     40px; SF also ships a real optical-size axis (see fonts.css), so
+     per-size tracking re-solves a problem the font already solves. The page
+     title at 26px/700 carries the identity's -0.02em; nothing else does.
+     The --ls-* names stay so no consumer breaks. */
   --fw-heading: 600;
   --fw-button: 500;
   --fw-label: 400;
@@ -326,6 +356,10 @@
   --ls-heading-32: 0;
   --fs-heading-28: 28px;
   --lh-heading-28: 32px;
+  /* The page-title primitive: 26px at 1.15 (30px), weight 700, -0.02em. */
+  --fs-heading-26: 26px;
+  --lh-heading-26: 30px;
+  --ls-heading-26: -0.02em;
   --fs-heading-24: 24px;
   --lh-heading-24: 32px;
   --ls-heading-24: 0;
@@ -335,6 +369,10 @@
   --fs-heading-16: 16px;
   --lh-heading-16: 24px;
   --ls-heading-16: 0;
+  /* The section-title primitive: 15px/600 on a 20px line. */
+  --fs-heading-15: 15px;
+  --lh-heading-15: 20px;
+  --ls-heading-15: 0;
   --fs-heading-14: 14px;
   --lh-heading-14: 20px;
   --ls-heading-14: 0;
@@ -346,32 +384,29 @@
   --lh-label-13: 16px;
   --fs-label-12: 12px;
   --lh-label-12: 16px;
-  /* The one uppercase role: a short mono label, tracked, in a muted grey. Opt
-     in with .microlabel. 0.09em, not 0.14: at 11px, 0.14em adds 1.54px per pair
-     and visibly fragments a two-word label like SAMPLE RATE, while 0.09em sits
-     inside the measured aerospace band (SpaceX runs +0.09em at 13px) and buys
-     back horizontal room in a four-cell instrument strip. */
+  /* The one uppercase role: a short mono label, tracked, in a muted grey,
+     reserved for TRUE COLUMN HEADERS and instrument-strip labels. Inline
+     metadata never goes uppercase. Opt in with .microlabel. */
   --fs-microlabel: 11px;
   --lh-microlabel: 16px;
   --ls-microlabel: 0.09em;
 
   /* The eleven roles of the ramp. Nothing outside these sets font-size,
-     font-weight, letter-spacing or text-transform directly; the classes that
-     apply them live in primitives.css. */
+   * font-weight, letter-spacing or text-transform directly; the classes that
+   * apply them live in primitives.css. Every DATA role is tabular-nums —
+   * a readout that reflows its own column as digits change is a lie about
+   * stability. */
   --type-display-size: var(--fs-display-40);
   --type-display-line: var(--lh-display-40);
-  --type-display-weight: var(--fw-heading);
-  --type-title-size: var(--fs-heading-20);
-  --type-title-line: var(--lh-heading-20);
-  --type-title-weight: var(--fw-heading);
-  --type-title-tracking: var(--ls-heading-20);
-  /* A group heading is 14px, not 16: it reuses the existing 14/20 primitive,
-     it is x.ai's own measured workhorse UI size, and it saves 4px of leading
-     per heading on screens that stack many. */
-  --type-section-size: var(--fs-heading-14);
-  --type-section-line: var(--lh-heading-14);
+  --type-display-weight: 700;
+  --type-title-size: var(--fs-heading-26);
+  --type-title-line: var(--lh-heading-26);
+  --type-title-weight: 700;
+  --type-title-tracking: var(--ls-heading-26);
+  --type-section-size: var(--fs-heading-15);
+  --type-section-line: var(--lh-heading-15);
   --type-section-weight: var(--fw-heading);
-  --type-section-tracking: var(--ls-heading-14);
+  --type-section-tracking: var(--ls-heading-15);
   --type-metric-size: var(--fs-heading-28);
   --type-metric-line: var(--lh-heading-28);
   --type-metric-weight: var(--fw-heading);
@@ -391,8 +426,7 @@
   --type-caption-size: var(--fs-microlabel);
   --type-caption-line: var(--lh-microlabel);
   --type-caption-weight: var(--fw-heading);
-  /* One owner for the uppercase-label tracking; this used to disagree with
-     --ls-microlabel by 0.095em. */
+  /* One owner for the uppercase-label tracking. */
   --type-caption-tracking: var(--ls-microlabel);
 }
 
@@ -453,13 +487,17 @@
 
 /* ============================================================== compat === */
 
-/* The --color-* vocabulary the pages were written against, re-pointed at the
- * semantic layer above. Every entry resolves lazily, so both themes come out
- * of one declaration. Migrating a page means deleting its entry's last user. */
+/* The --color-* vocabulary the pages consume, re-pointed at the semantic
+ * layer above. Every entry resolves lazily, so both themes come out of one
+ * declaration. --color-surface is the CHROME/quiet surface; content cards and
+ * popovers take --color-surface-raised — the two names stopped being aliases
+ * when the card language landed. */
 
 :root {
   --color-canvas: var(--surface-1);
-  --color-surface: var(--surface-raised);
+  /* Directive-name alias for the page background; same value as canvas. */
+  --color-bg: var(--surface-1);
+  --color-surface: var(--surface-2);
   --color-surface-raised: var(--surface-raised);
   --color-surface-sunken: var(--surface-inset);
   --color-subtle: var(--gray-100);
@@ -478,17 +516,20 @@
   --color-inverse-background: var(--invert-bg);
   --color-inverse-text: var(--invert-fg);
 
-  /* Sona's accent is the monochrome inversion, matching Geist's own primary
-     button (grey-1000 fill, bg-1 text) rather than the blue, which stays a
-     link and focus colour. Hover and press walk down the grey ladder. */
-  --color-accent: var(--invert-bg);
-  --color-accent-strong: var(--invert-bg);
-  --color-accent-hover: var(--gray-900);
-  --color-accent-pressed: var(--gray-800);
-  --color-accent-soft: var(--gray-200);
+  /* The accent is violet, and it is scarce: the primary action per view,
+     active/selected fills (--color-accent-soft), the live waveform, focus.
+     Hover and press walk the violet ladder, never fade with opacity. */
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-pressed: var(--accent-pressed);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
 
-  /* One control fill ladder shared by buttons, inputs and selects. */
-  --color-control: var(--surface-1);
+  /* One control fill ladder shared by buttons, inputs and selects. Controls
+     sit on cards now, so the fill is the raised step: on a card the border
+     carries the box, on the page it reads gently lifted. */
+  --color-control: var(--surface-raised);
   --color-control-hover: var(--wash-hover);
   --color-control-active: var(--wash-active);
   --color-control-disabled: var(--gray-100);
@@ -503,8 +544,7 @@
   --color-warning: var(--warning);
 
   /* --color-danger is the identity red: graphics, borders, fills. Danger *type*
-     and solid destructive fills use --color-danger-strong, the 900 step, which
-     is the one that clears 4.5:1 against the surface in both themes. */
+     and solid destructive fills use --color-danger-strong, the 900 step. */
   --color-danger: var(--red-700);
   --color-danger-strong: var(--error);
   --color-danger-hover: color-mix(in oklab, var(--error) 86%, var(--invert-bg));
