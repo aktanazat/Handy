@@ -94,10 +94,11 @@ const ModeRowBody: React.FC<ModeRowBodyProps> = ({
         <span className="modes-list-headline">
           <span className="modes-list-name type-row-title">{mode.name}</span>
           {isActive ? (
-            /* A word, in the microlabel the rest of the page uses for state.
-             * It survives greyscale and forced colours, and it sits beside the
-             * name rather than pushing a second line under it. */
-            <span className="microlabel modes-list-active">
+            /* The one word of state the list carries, worn as the same small
+             * accent chip the model menu uses. It survives greyscale as a
+             * spelled word, and it sits beside the name rather than pushing a
+             * second line under it. */
+            <span className="modes-list-active">
               {t("settings.modes.active")}
             </span>
           ) : null}

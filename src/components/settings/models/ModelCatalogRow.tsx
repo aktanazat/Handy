@@ -98,8 +98,10 @@ export const ModelCatalogRow: React.FC<ModelCatalogRowProps> = ({
       : null,
   ].filter((part): part is string => part !== null);
 
-  /* One status line per row, and one primary action beside it. Delete is the
-   * only destructive control here and stays ghost-red until hovered. */
+  /* One status line per row. Row actions stay quiet — bordered or ghost, no
+   * filled primary in a 68-row catalog — and delete is the only destructive
+   * control, ghost-red until hovered. The active row carries its state as a
+   * data attribute so the stylesheet can give it the accent-soft fill. */
   const status = (() => {
     switch (state) {
       case "loading":
@@ -151,7 +153,7 @@ export const ModelCatalogRow: React.FC<ModelCatalogRowProps> = ({
     state === "loading" || state === "verifying" || state === "extracting";
 
   return (
-    <li className="models-row">
+    <li className="models-row" data-state={state}>
       <div className="models-row-main">
         <div className="models-row-identity">
           <div className="models-row-name">
@@ -188,6 +190,7 @@ export const ModelCatalogRow: React.FC<ModelCatalogRowProps> = ({
            * subset of it, which is what WCAG 2.5.3 asks for. */}
           {state === "not-downloaded" && !error && (
             <Button
+              variant="secondary"
               size="sm"
               aria-label={t(
                 "settings.models.actions.downloadNamed",
@@ -211,6 +214,7 @@ export const ModelCatalogRow: React.FC<ModelCatalogRowProps> = ({
           )}
           {state === "downloaded" && (
             <Button
+              variant="secondary"
               size="sm"
               aria-label={t(
                 "settings.models.actions.activateNamed",

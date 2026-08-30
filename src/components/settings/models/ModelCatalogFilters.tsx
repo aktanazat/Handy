@@ -29,7 +29,8 @@ export const ModelCatalogFilters: React.FC<ModelCatalogFiltersProps> = ({
   const filtered = isFiltered(filters);
 
   /* Capability chips: `aria-pressed` carries the state for assistive tech,
-   * the filled variant carries it visually, so neither channel is alone. */
+   * the accent-soft fill (models-page.css) carries it visually, so neither
+   * channel is alone. */
   const chips = [
     {
       key: "downloadedOnly" as const,
@@ -104,7 +105,8 @@ export const ModelCatalogFilters: React.FC<ModelCatalogFiltersProps> = ({
         {chips.map((chip) => (
           <Button
             key={chip.key}
-            variant={filters[chip.key] ? "primary" : "secondary"}
+            variant="secondary"
+            className="models-filter-chip"
             aria-pressed={filters[chip.key]}
             title={chip.title}
             onClick={() =>

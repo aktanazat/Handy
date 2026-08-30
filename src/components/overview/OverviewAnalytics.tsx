@@ -228,21 +228,19 @@ export const OverviewAnalytics: React.FC<OverviewAnalyticsProps> = ({
 
   return (
     <Section title={title} description={description}>
-      {/* Flat sections, not cards. The numbers are a comparison, and a
-       * comparison is expressed by alignment: one continuous hairline baseline
-       * above the row, the metric first, its unit-bearing name under it. No
-       * per-tile tick — four floating rules in four gutters would be four
-       * objects where the page has one. */}
+      {/* One raised card per counter, its label on top as the card's header
+       * and the measured value under it. The shared grid keeps the values
+       * aligned, so the band still reads as one comparison. */}
       <ul
         className="ov-stat-grid"
         aria-label={t("overview.stats.tiles", "Usage summary")}
       >
         {tiles.map((tile) => (
           <li key={tile.key} className="ov-stat">
+            <span className="ov-stat-label">{tile.label}</span>
             <span className="ov-stat-value type-metric snap-measured">
               {tile.value}
             </span>
-            <span className="ov-stat-label microlabel">{tile.label}</span>
             {tile.meta !== null && (
               <span className="ov-stat-meta type-data snap-measured">
                 {tile.meta}

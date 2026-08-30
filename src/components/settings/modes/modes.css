@@ -1,6 +1,6 @@
-/* Modes page. The two-pane workspace, the mode list rows and the segmented
- * pickers the editor uses. Tokens only, no raw values for color or motion.
- * Reduced motion is handled once, globally, in App.css. */
+/* Modes page. The two-pane workspace, the mode cards in the master list and
+ * the segmented pickers the editor uses. Tokens only, no raw values for color
+ * or motion. Reduced motion is handled once, globally, in App.css. */
 
 /* The list stays put while the editor scrolls, so the workspace is sized to
  * the viewport: 44 top bar, 24 content padding, 47 title block, 33 view nav,
@@ -19,23 +19,29 @@
 
 /* ------------------------------------------------------------- mode list */
 
+/* Every row is a small raised card. The inline padding is the room the card
+ * shadows need inside the scroll container; without it the ring clips at the
+ * column edges. */
 .modes-list {
   display: flex;
   flex: 1;
   flex-direction: column;
+  gap: var(--space-2);
   list-style: none;
   margin: 0;
   min-block-size: 0;
   min-inline-size: 0;
   overflow-y: auto;
-  padding: 0;
+  padding: var(--space-0-5) var(--space-1) var(--space-3);
 }
 
 /* 44px = headline 19px + config 16px + 4px top and bottom. A grid, so the
- * overflow menu centres on the pair of lines instead of on the first one.
- * `relative` carries the active bar. */
+ * overflow menu centres on the pair of lines instead of on the first one. */
 .modes-list-row {
   align-items: center;
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   min-block-size: 44px;
@@ -43,52 +49,36 @@
   padding-inline-end: var(--space-0-5);
   position: relative;
   transition-duration: var(--duration-fast);
-  transition-property: background-color, border-color;
+  transition-property: background-color;
   transition-timing-function: var(--ease-in-out);
 }
 
-/* The divider is the row's own top rule, so hover brightens it: an
- * instrument row lighting up, for one property. Hairline rather than
- * --border, which bands visibly down a column at 44px pitch. */
-.modes-list-row + .modes-list-row {
-  border-block-start: 1px solid var(--border-hairline);
-}
-
-.modes-list-row:hover {
-  border-block-start-color: var(--border-hover);
-}
-
-/* Active is the mode a dictation would use: a 2px bar in the achromatic
- * accent plus a row tint. Selected is the mode open in the editor and reads
- * from the heavier wash, so a row can be both at once and still say which is
- * which. Neither is colour alone — active also spells the word in its chip. */
-.modes-list-row[data-active] {
-  background: var(--wash-hover);
-}
-
-.modes-list-row[data-active]::before {
-  background: var(--color-accent);
-  content: "";
-  inline-size: 2px;
-  inset-block: 0;
-  inset-inline-start: 0;
-  position: absolute;
-  z-index: 1;
-}
-
+/* Selected is the mode open in the editor: the pressed wash, which lands
+ * between the page and the raised cards in both themes. Active is the mode a
+ * dictation would use: the accent-soft fill, declared after selected so a row
+ * that is both reads as the active one. Neither is colour alone — active also
+ * bolds its name and spells the word in its chip. */
 .modes-list-row[data-selected] {
-  background: var(--wash-active);
+  background: var(--color-pressed);
 }
 
+.modes-list-row[data-active] {
+  background: var(--color-accent-soft);
+}
+
+/* The row's select surface: a concentric wash chip inside the card, so its
+ * hover never bleeds past the card's corners. */
 .modes-list-button {
   background: transparent;
   border: 0;
+  border-radius: calc(var(--radius-card) - var(--space-0-5));
   cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 1px;
   justify-content: center;
-  min-block-size: 44px;
+  margin: var(--space-0-5);
+  min-block-size: 40px;
   min-inline-size: 0;
   padding: var(--space-1) var(--space-2);
   text-align: start;
@@ -98,45 +88,37 @@
 }
 
 .modes-list-button:hover {
-  background: var(--wash-hover);
+  background: var(--color-hover);
 }
 
 .modes-list-button:active {
-  background: var(--wash-active);
+  background: var(--color-pressed);
 }
 
-/* Pulled inside the row: at this pitch an outset ring would sit on the
- * neighbour's divider. */
+/* Pulled inside the card: an outset ring would sit on the neighbouring
+ * card's shadow. */
 .modes-list-button:focus-visible {
   outline-offset: -2px;
 }
 
 /* --------------------------------------------------- reorder by dragging */
 
-/* A row under the pointer is lifted off the list: the ring elevation token,
-   which is the same edge every popover in the app uses, plus the raised fill
-   so the rows it passes over show through underneath rather than behind a
-   transparent hole. Motion owns the row's transform and z-index; CSS owns what
-   the lift looks like. */
+/* A card under the pointer lifts off the list: the popover elevation, which
+   is the same edge every floating surface in the app uses. Motion owns the
+   row's transform and z-index; CSS owns what the lift looks like. */
 .modes-list-row[data-dragging] {
-  background: var(--surface-raised);
   box-shadow: var(--shadow-popover);
 }
 
-/* While one row is held, every other row's hover wash is a lie: the pointer is
-   not choosing them, it is passing over them. Both washes go quiet for the
-   duration, and the divider stops brightening with them. */
-.modes-list[data-dragging] .modes-list-row:hover {
-  border-block-start-color: var(--border-hairline);
-}
-
+/* While one card is held, every other row's hover wash is a lie: the pointer
+   is not choosing them, it is passing over them. */
 .modes-list[data-dragging] .modes-list-button:hover,
 .modes-list[data-dragging] .modes-list-button:active {
   background: transparent;
 }
 
-/* The row is a drag handle, so the pointer says so — and text selection has to
-   stop competing with the gesture for the drag. */
+/* The card is a drag handle, so the pointer says so — and text selection has
+   to stop competing with the gesture for the drag. */
 .modes-list-row[data-reorderable] {
   touch-action: none;
 }
@@ -161,7 +143,7 @@
 }
 
 .modes-list-name {
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   flex: 0 1 auto;
   min-inline-size: 0;
   overflow: hidden;
@@ -173,14 +155,18 @@
   font-weight: var(--fw-heading);
 }
 
-/* A microlabel in a hairline box, not a filled pill: the pill radius is
- * reserved for status shapes and a metadata chip is not one. */
+/* The one word of state the list carries, worn as a small accent chip — the
+ * same device as the model menu's Active chip. */
 .modes-list-active {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xs);
-  color: var(--text-secondary);
+  background: var(--color-accent);
+  border-radius: var(--radius-pill);
+  color: var(--color-on-accent);
   flex: none;
-  padding-inline: var(--space-1);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  padding: 1px var(--space-1-5);
 }
 
 /* Right-aligned on line 1. Never wrapped, never shrunk. */
@@ -192,7 +178,7 @@
 /* Line 2: the whole configuration, truncated rather than wrapped at any
  * width. The untruncated string is the element's title. */
 .modes-list-config {
-  color: var(--text-tertiary);
+  color: var(--color-text-tertiary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -241,14 +227,28 @@
   min-inline-size: 0;
 }
 
+/* Each editor section is its heading over one raised card of rows — the same
+ * shape as the model catalog's families. The heading stays on the page; the
+ * card holds the rows; the divide hairlines inside it come from the group's
+ * own panel. The inline padding on the scroll container is shadow room. */
+.modes-page .mode-editor-panel {
+  padding-inline: var(--space-1);
+}
+
+.modes-page .mode-editor-panel .settings-group > .settings-group-panel {
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-1) var(--space-4);
+}
+
 /* --------------------------------------------------------- segmented set */
 
 /* A preset, a tone or a context level is one of N values on a form, so the
  * markup stays a radio group: `role="tab"` without a panel would be a lie,
- * and Geist's own tab rules say a tab has to survive a refresh in the route.
- * The LOOK is `Tabs variant="secondary"` to the pixel — same 32px cap, same
- * 6px radius, same recessed fill and weight jump on the chosen segment — so
- * the page carries one segmented language whatever the semantics underneath. */
+ * and a tab has to survive a refresh in the route. The LOOK matches the
+ * shared segmented language — same cap height, same control radius — with
+ * the chosen segment on the accent-soft fill. */
 
 .mode-segment {
   border: 0;
@@ -280,7 +280,7 @@
   align-items: center;
   background: transparent;
   border-radius: var(--radius-control);
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   display: flex;
   font-size: var(--fs-label-13);
   font-weight: var(--fw-label);
@@ -298,19 +298,19 @@
 
 .mode-segment-option > input:enabled:hover + span,
 .mode-segment-option > input:enabled + span:hover {
-  background: var(--wash-hover);
-  color: var(--text-primary);
+  background: var(--color-hover);
+  color: var(--color-text-primary);
 }
 
 .mode-segment-option > input:enabled:active + span {
-  background: var(--wash-active);
+  background: var(--color-pressed);
 }
 
-/* Selection is a recessed fill plus a weight jump. The weight is the channel
- * that survives greyscale and forced-colors rendering. */
+/* Selection is the accent-soft fill plus a weight jump. The weight is the
+ * channel that survives greyscale and forced-colors rendering. */
 .mode-segment-option > input:checked + span {
-  background: var(--gray-100);
-  color: var(--text-primary);
+  background: var(--color-accent-soft);
+  color: var(--color-text-primary);
   font-weight: var(--fw-heading);
 }
 
@@ -320,7 +320,7 @@
 }
 
 .mode-segment-option > input:disabled + span {
-  color: var(--text-disabled);
+  color: var(--color-text-disabled);
   cursor: not-allowed;
 }
 

@@ -205,7 +205,7 @@ export const ModelsSettings: React.FC = () => {
               <div className="models-family-header">
                 <Skeleton className="h-5 w-28" />
               </div>
-              <div>
+              <div className="models-rows">
                 {Array.from({ length: rows }, (_row, rowIndex) => (
                   <div key={rowIndex} className="models-skeleton-row">
                     <Skeleton className="h-4 w-52" />

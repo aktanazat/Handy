@@ -1,0 +1,131 @@
+/* Model switcher menu: the raised popover the top-nav chip opens. The chip
+ * itself is shell chrome and lives in styles/shell.css; this file owns only
+ * the menu. Every value is a token from styles/theme.css, consumed by name. */
+
+/* Clipping is impossible by construction, on both axes: the menu's top edge
+ * sits at the bottom of the top nav, so its height budget is the viewport
+ * minus the nav minus slack, scrolled internally past that — and it grows
+ * inline-START from the chip's end edge, into the nav's own width, because
+ * the chip sits against the window's end edge where an outward menu would
+ * leave the window. */
+.model-menu {
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  display: flex;
+  flex-direction: column;
+  inline-size: 304px;
+  inset-block-start: 100%;
+  inset-inline-end: 0;
+  margin-block-start: var(--space-1);
+  max-block-size: min(
+    440px,
+    calc(100dvh - var(--topnav-height) - var(--space-4))
+  );
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-1-5);
+  position: absolute;
+  z-index: 50;
+}
+
+.model-menu-option {
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  padding: var(--space-2) var(--space-2-5);
+  text-align: start;
+  transition: background-color var(--duration-fast) var(--ease-in-out);
+}
+
+.model-menu-option:hover {
+  background: var(--color-hover);
+}
+
+/* Rows sit inside a scroll container, so the ring pulls inward rather than
+ * colliding with the neighbouring row. */
+.model-menu-option:focus-visible {
+  outline: var(--focus-outline);
+  outline-offset: -2px;
+}
+
+/* The active model: the accent-soft fill, which also holds under hover — a
+ * selected row does not un-select while being pointed at. */
+.model-menu-option[aria-selected="true"],
+.model-menu-option[aria-selected="true"]:hover {
+  background: var(--color-accent-soft);
+}
+
+.model-menu-option-head {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+  justify-content: space-between;
+  min-inline-size: 0;
+}
+
+.model-menu-option-name {
+  align-items: baseline;
+  color: var(--color-text-primary);
+  display: flex;
+  font-size: var(--fs-label-13);
+  font-weight: var(--fw-button);
+  gap: var(--space-1-5);
+  line-height: var(--lh-label-13);
+  min-inline-size: 0;
+}
+
+.model-menu-option-name > span:first-child {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Categorical facts about the build (custom, streaming): quiet sans, no
+ * uppercase shouting beside the name. */
+.model-menu-tag {
+  color: var(--color-text-tertiary);
+  flex: none;
+  font-size: var(--fs-microlabel);
+  line-height: var(--lh-microlabel);
+}
+
+/* The one word of state the menu carries, worn as a small accent chip. */
+.model-menu-active-chip {
+  background: var(--color-accent);
+  border-radius: var(--radius-pill);
+  color: var(--color-on-accent);
+  flex: none;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  padding: 3px var(--space-1-5);
+}
+
+.model-menu-option-desc {
+  color: var(--color-text-secondary);
+  font-size: var(--fs-label-12);
+  line-height: var(--lh-label-12);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-menu-empty {
+  color: var(--color-text-secondary);
+  font-size: var(--fs-label-13);
+  line-height: var(--lh-label-13);
+  margin: 0;
+  padding: var(--space-2) var(--space-2-5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .model-menu-option {
+    transition-duration: 1ms;
+  }
+}

@@ -9,8 +9,9 @@ export interface InstrumentStripProps {
 }
 
 /* The instrument strip: four equal cells of 44px, separated by hairline rules,
- * no fill, no border, no radius. Each cell is a microlabel over a mono data
- * line — the metadata inspector rotated horizontal.
+ * drawn as the hero card's footer under one full-width rule. Each cell is a
+ * microlabel over a mono data line — the metadata inspector rotated
+ * horizontal.
  *
  * Two columns rather than four across, because four does not fit: the INPUT
  * cell's own payload (device, rate, channels, peak/rms) needs ~55 monospace

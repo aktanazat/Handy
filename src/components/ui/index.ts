@@ -5,8 +5,9 @@
  * Rules the primitives keep, so pages do not have to restate them:
  *   - every control has default, hover, active, focus-visible and disabled;
  *   - focus is the global accent ring from styles/base.css, never removed;
- *   - surfaces are flat with a 1px hairline, shadows only on things that
- *     float, and a card never contains another card;
+ *   - content groups are cards: --color-surface-raised, --radius-card and
+ *     --shadow-card (whose ring IS the border); a card never contains
+ *     another card, and selection is the accent-soft fill, never a black one;
  *   - color comes from styles/theme.css tokens, never raw hex;
  *   - state reads as text, never as a colored dot alone.
  */
@@ -63,9 +64,6 @@ export type { SelectOption, SelectProps } from "./Select";
 
 export { SettingContainer } from "./SettingContainer";
 export type { SettingContainerProps } from "./SettingContainer";
-
-export { ShaderHero } from "./ShaderHero";
-export type { ShaderHeroProps } from "./ShaderHero";
 
 export { SettingsGroup } from "./SettingsGroup";
 export type { SettingsGroupProps } from "./SettingsGroup";

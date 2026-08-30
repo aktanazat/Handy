@@ -29,7 +29,6 @@ import {
   EmptyState,
   Kbd,
   Section,
-  ShaderHero,
   Skeleton,
   StatusText,
 } from "@/components/ui";
@@ -97,10 +96,6 @@ const RECENT_ACTIVITY_ROWS = 5;
  * RECENT_ACTIVITY_ROWS, so fetching more would be receipts read for rows that
  * never render. */
 const RECENT_SOURCE_PAGE = 5;
-/* Fraction of the hero band the text column owns. The prism accent clamps
- * itself to the remainder — one number, two consumers, so the accent can never
- * be drawn across the copy. */
-const HERO_CONTENT_SHARE = 0.62;
 const MEDIA_IMPORT_EXTENSIONS = [
   "wav",
   "mp3",
@@ -346,93 +341,91 @@ const OverviewHero: React.FC<OverviewHeroProps> = ({
   );
 
   return (
-    <ShaderHero className="ov-hero-band" clear={HERO_CONTENT_SHARE}>
-      <section className="ov-hero" aria-labelledby="overview-status">
-        <div className="ov-hero-text">
-          <h1
-            className="ov-hero-title type-display snap-measured"
-            id="overview-status"
-            data-recording={isRecording ? "true" : undefined}
-            aria-live="polite"
-          >
-            <span aria-hidden="true" className="ov-hero-dot" />
-            {t(isRecording ? "overview.hero.recording" : "overview.hero.ready")}
-          </h1>
-          {/* The shortcut is the product's whole interface, so it is drawn as
-           * the keys themselves and the keys are the control that goes and
-           * changes them — not a sentence pointing at a settings page. */}
-          {keys.length > 0 ? (
-            <p className="ov-hero-instruction type-secondary">
-              <button
-                type="button"
-                className="ov-keys"
-                onClick={onOpenShortcutSettings}
-                title={
-                  transcribeBinding === null
-                    ? undefined
-                    : formatKeyCombination(transcribeBinding, osType)
-                }
-                aria-label={t(
-                  "overview.hero.shortcutAction",
-                  "Change dictation shortcut",
-                )}
-                data-testid="overview-shortcut"
-              >
-                {keys.map((key, index) => (
-                  <Kbd key={`${key}-${index}`}>{key}</Kbd>
-                ))}
-              </button>
-              {gesture}
-            </p>
-          ) : (
-            <p className="ov-hero-instruction type-secondary">
-              <StatusText tone="warning">
-                {`${t("overview.actions.unavailable")} ${t(
-                  "overview.hero.setShortcut",
-                  "Set a dictation shortcut in Settings to capture from any app.",
-                )}`}
-              </StatusText>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={onOpenShortcutSettings}
-                data-testid="overview-shortcut"
-              >
-                {t("overview.hero.setShortcutAction", "Set a shortcut")}
-              </Button>
-            </p>
-          )}
-          <div className="ov-hero-actions">
-            {/* One click starts a meeting, so the reassurance sits with the
-             * button rather than behind a wizard step nobody reads. The key
-             * lives in the meetings subtree, which owns this promise's exact
-             * wording in every locale. */}
-            <span className="ov-hero-action">
-              <Button type="button" onClick={onOpenMeetings}>
-                <Video aria-hidden="true" className="size-3.5" />
-                {t("overview.hero.newMeeting")}
-              </Button>
-              <span className="ov-hero-assurance type-secondary">
-                {t(
-                  "meetings.start.assurance",
-                  "Records your Mac's audio locally. Nothing joins the call.",
-                )}
-              </span>
-            </span>
+    <section className="ov-hero" aria-labelledby="overview-status">
+      <div className="ov-hero-text">
+        <h1
+          className="ov-hero-title type-display snap-measured"
+          id="overview-status"
+          data-recording={isRecording ? "true" : undefined}
+          aria-live="polite"
+        >
+          <span aria-hidden="true" className="ov-hero-dot" />
+          {t(isRecording ? "overview.hero.recording" : "overview.hero.ready")}
+        </h1>
+        {/* The shortcut is the product's whole interface, so it is drawn as
+         * the keys themselves and the keys are the control that goes and
+         * changes them — not a sentence pointing at a settings page. */}
+        {keys.length > 0 ? (
+          <p className="ov-hero-instruction type-secondary">
+            <button
+              type="button"
+              className="ov-keys"
+              onClick={onOpenShortcutSettings}
+              title={
+                transcribeBinding === null
+                  ? undefined
+                  : formatKeyCombination(transcribeBinding, osType)
+              }
+              aria-label={t(
+                "overview.hero.shortcutAction",
+                "Change dictation shortcut",
+              )}
+              data-testid="overview-shortcut"
+            >
+              {keys.map((key, index) => (
+                <Kbd key={`${key}-${index}`}>{key}</Kbd>
+              ))}
+            </button>
+            {gesture}
+          </p>
+        ) : (
+          <p className="ov-hero-instruction type-secondary">
+            <StatusText tone="warning">
+              {`${t("overview.actions.unavailable")} ${t(
+                "overview.hero.setShortcut",
+                "Set a dictation shortcut in Settings to capture from any app.",
+              )}`}
+            </StatusText>
             <Button
               type="button"
               variant="secondary"
-              onClick={onStartAudioImport}
-              disabled={startingAudioImport}
+              size="sm"
+              onClick={onOpenShortcutSettings}
+              data-testid="overview-shortcut"
             >
-              <FileAudio aria-hidden="true" className="size-3.5" />
-              {t("overview.hero.importAudio")}
+              {t("overview.hero.setShortcutAction", "Set a shortcut")}
             </Button>
-          </div>
+          </p>
+        )}
+        <div className="ov-hero-actions">
+          {/* One click starts a meeting, so the reassurance sits with the
+           * button rather than behind a wizard step nobody reads. The key
+           * lives in the meetings subtree, which owns this promise's exact
+           * wording in every locale. */}
+          <span className="ov-hero-action">
+            <Button type="button" onClick={onOpenMeetings}>
+              <Video aria-hidden="true" className="size-3.5" />
+              {t("overview.hero.newMeeting")}
+            </Button>
+            <span className="ov-hero-assurance type-secondary">
+              {t(
+                "meetings.start.assurance",
+                "Records your Mac's audio locally. Nothing joins the call.",
+              )}
+            </span>
+          </span>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onStartAudioImport}
+            disabled={startingAudioImport}
+          >
+            <FileAudio aria-hidden="true" className="size-3.5" />
+            {t("overview.hero.importAudio")}
+          </Button>
         </div>
-      </section>
-    </ShaderHero>
+      </div>
+    </section>
   );
 };
 

@@ -5,6 +5,7 @@ import {
   getTranslatedModelName,
   getTranslatedModelDescription,
 } from "../../lib/utils/modelTranslation";
+import "./model-selector.css";
 
 interface ModelDropdownProps {
   models: ModelInfo[];
@@ -13,9 +14,11 @@ interface ModelDropdownProps {
 }
 
 /**
- * Model switcher menu. Anchors below the trigger (the top nav) and opens as
- * a bordered, opaque popover with the same 6px control language as the rest
- * of the shell.
+ * Model switcher menu. Anchors below the trigger (the top nav) and opens as a
+ * raised popover with internal scroll — the max height in model-selector.css
+ * is derived from the viewport, so the menu never paints past the window
+ * edge. The active model row carries the accent-soft fill and a small chip;
+ * every other row stays quiet.
  */
 const ModelDropdown: React.FC<ModelDropdownProps> = ({
   models,
@@ -33,55 +36,54 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
     <div
       role="listbox"
       aria-label={t("modelSelector.model")}
-      className="absolute left-0 top-full z-50 mt-1 max-h-[60vh] w-72 overflow-y-auto rounded-panel border border-border-strong bg-surface py-1.5 shadow-[var(--shadow-popover)]"
+      className="model-menu"
     >
       {downloadedModels.length > 0 ? (
-        <div>
-          {downloadedModels.map((model) => (
-            <div
-              key={model.id}
-              onClick={() => handleModelClick(model.id)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  handleModelClick(model.id);
-                }
-              }}
-              tabIndex={0}
-              role="option"
-              aria-selected={currentModelId === model.id}
-              className={`mx-1.5 cursor-pointer rounded-[6px] px-2.5 py-2 text-start transition-colors hover:bg-hover ${
-                currentModelId === model.id ? "bg-subtle" : ""
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate text-[13px] text-text-primary">
-                  {getTranslatedModelName(model, t)}
-                  {model.is_custom && (
-                    <span className="ms-1.5 font-mono text-[10px] uppercase text-text-tertiary">
-                      {t("modelSelector.custom")}
-                    </span>
-                  )}
-                  {model.supports_streaming && (
-                    <span className="ms-1.5 font-mono text-[10px] uppercase text-text-tertiary">
-                      {t("modelSelector.streaming")}
-                    </span>
-                  )}
-                </span>
-                {currentModelId === model.id && (
-                  <span className="shrink-0 font-mono text-[11px] text-text-primary">
-                    {t("modelSelector.active")}
+        downloadedModels.map((model) => (
+          <div
+            key={model.id}
+            onClick={() => handleModelClick(model.id)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleModelClick(model.id);
+              }
+            }}
+            tabIndex={0}
+            role="option"
+            aria-selected={currentModelId === model.id}
+            className="model-menu-option"
+          >
+            <div className="model-menu-option-head">
+              <span className="model-menu-option-name">
+                <span>{getTranslatedModelName(model, t)}</span>
+                {model.is_custom && (
+                  <span className="model-menu-tag">
+                    {t("modelSelector.custom")}
                   </span>
                 )}
-              </div>
-              <p className="mt-0.5 truncate text-xs text-text-tertiary">
-                {getTranslatedModelDescription(model, t)}
-              </p>
+                {model.supports_streaming && (
+                  <span className="model-menu-tag">
+                    {t("modelSelector.streaming")}
+                  </span>
+                )}
+              </span>
+              {currentModelId === model.id && (
+                <span className="model-menu-active-chip">
+                  {t("modelSelector.active")}
+                </span>
+              )}
             </div>
-          ))}
-        </div>
+            <p
+              className="model-menu-option-desc"
+              title={getTranslatedModelDescription(model, t)}
+            >
+              {getTranslatedModelDescription(model, t)}
+            </p>
+          </div>
+        ))
       ) : (
-        <p className="px-3 py-2 text-sm text-text-secondary">
+        <p className="model-menu-empty">
           {t("modelSelector.noModelsAvailable")}
         </p>
       )}

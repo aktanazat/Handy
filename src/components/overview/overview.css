@@ -1,71 +1,49 @@
-/* Capture: the hero band, the instrument strip, the flat stat row and the SVG
- * activity chart.
+/* Capture: the hero card, the instrument strip, the analytics cards and the
+ * SVG activity chart.
  *
- * Shared surfaces (buttons, keycaps, the type ramp, the shader accent) come
- * from the primitives, so this file only carries what is specific to this page.
- * Every value is a token from styles/theme.css. */
+ * Shared surfaces (buttons, keycaps, the type ramp) come from the primitives,
+ * so this file only carries what is specific to this page. Every value is a
+ * token from styles/theme.css, consumed by name. */
 
 .ov-page {
   /* --chart-height (160px) is sized for a page whose whole job is one chart.
    * The overview band sits between a hero and a list inside a 570px-tall
    * window, so it gets a shorter band of its own. */
   --ov-chart-height: 84px;
-  /* How much of the hero band's width the accent keeps to itself. The prism
-   * clamps itself to exactly this share — ShaderHero takes the complement as
-   * its `clear` prop and publishes it back as --shader-hero-clear — so the
-   * accent and the text column cannot drift apart. Change it in Overview.tsx
-   * (HERO_CONTENT_SHARE); this is the derived half. */
-  --ov-hero-glow-share: calc(100% - var(--shader-hero-clear, 62%));
 }
 
 /* ------------------------------------------------------------------ hero */
 
-/* The band and its strip are one object: the state readout, its instruction and
- * its actions above, the live values below, separated by a hairline rather than
- * by a gap. */
+/* The hero and its instrument strip are one raised card: the state readout,
+ * its instruction and its actions above, the live values below, separated by
+ * one rule rather than by a gap. The card is the page's one hero surface —
+ * no second card ever nests inside it. */
 .ov-capture {
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
-}
-
-/* The band is tall enough for the fan to open: the shader masks itself out
- * near the top and bottom edges, so a short band clips the dispersion into a
- * smear. Sized in svh so a tall window gets a taller hero without the band
- * ever growing past the fold on a small one. */
-.ov-hero-band {
-  /* The two accent layers are absolutely positioned, so turning the band
-   * into a flex container only affects the content slot: it stretches to the
-   * band's height instead of collapsing to the text and leaving the
-   * dispersion to fill the gap on its own. */
-  display: flex;
-  min-block-size: clamp(212px, 30svh, 296px);
-}
-
-.ov-hero-band .shader-hero-content {
-  display: flex;
-  flex: 1;
-  padding: var(--space-8);
+  overflow: hidden;
 }
 
 .ov-hero {
   display: flex;
-  flex: 1;
-  /* Content left, dispersion right. */
-  padding-inline-end: var(--ov-hero-glow-share);
+  padding: var(--space-7) var(--space-6) var(--space-6);
 }
 
 .ov-hero-text {
-  align-self: center;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
   min-inline-size: 0;
 }
 
-/* The display line: the one 40px moment in the app, per the type ramp. */
+/* The display line: the one display-size moment in the app, per the type
+ * ramp. */
 .ov-hero-title {
   align-items: center;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   display: flex;
   gap: var(--space-3);
   margin: 0;
@@ -77,7 +55,7 @@
  * a state change, and fading through it invents a state that never existed. */
 .ov-hero-dot {
   block-size: 8px;
-  border: 2px solid var(--text-tertiary);
+  border: 2px solid var(--color-text-tertiary);
   border-radius: var(--radius-pill);
   flex: none;
   inline-size: 8px;
@@ -85,19 +63,19 @@
 
 /* Recording is the one state allowed to use the identity red. */
 .ov-hero-title[data-recording="true"] {
-  color: var(--error);
+  color: var(--color-error);
 }
 
 .ov-hero-title[data-recording="true"] .ov-hero-dot {
-  background: var(--error);
-  border-color: var(--error);
+  background: var(--color-error);
+  border-color: var(--color-error);
 }
 
 /* One muted sentence: the chord, drawn as its own keys, and the gesture those
  * keys perform. */
 .ov-hero-instruction {
   align-items: center;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
@@ -123,12 +101,12 @@
 }
 
 .ov-keys:hover {
-  background: var(--wash-hover);
-  border-color: var(--border);
+  background: var(--color-hover);
+  border-color: var(--color-border);
 }
 
 .ov-keys:active {
-  background: var(--wash-active);
+  background: var(--color-pressed);
 }
 
 .ov-hero-actions {
@@ -147,40 +125,36 @@
 }
 
 .ov-hero-assurance {
-  color: var(--text-tertiary);
+  color: var(--color-text-tertiary);
   max-inline-size: 42ch;
   text-wrap: pretty;
 }
 
 /* ------------------------------------------------------ instrument strip */
 
-/* Four equal 44px cells: microlabel over one mono data line, hairline rules
- * between them, no fill, no outer border, no radius. It is a strip, not a card.
+/* Four equal 44px cells inside the hero card, under one full-width rule:
+ * microlabel over one mono data line, hairline rules between cells, no fill of
+ * its own. It is the card's instrument footer, not a second card.
  *
- * Two columns, not four across, and the reason is arithmetic rather than taste.
- * --font-mono resolves to SF Mono on this engine, measured at 0.618em advance,
- * so 12px mono is 7.42px per character. At the 1040px page maximum the content
- * column is 992px. Four cells give 248px each, 224px inside the 12px padding,
- * which is 30 characters. The INPUT cell alone reads device, rate, channels and
- * peak/rms — about 55 characters — so a four-across strip cannot show even its
- * measurements at any width this window reaches. Two columns give 472px (63
- * characters) at the page maximum and 292px (39) at the 680px minimum window,
- * where the device name truncates and every measurement stays whole. Cells are
- * flexible rather than sized in `ch`: the face differs between the engines Sona
- * renders in, so a fixed character width would be a fixed width in the wrong
- * units. */
+ * Two columns, not four across, and the reason is arithmetic rather than
+ * taste: the INPUT cell alone reads device, rate, channels and peak/rms —
+ * about 55 monospace characters — so a four-across strip cannot show even its
+ * measurements at any width this window reaches. Two columns keep every
+ * measurement whole and let only the identities (device, model) truncate. */
 .ov-strip {
+  border-block-start: 1px solid var(--color-border);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 0;
+  padding-inline: var(--space-6);
 }
 
 .ov-strip-cell {
   block-size: var(--row-h-strip);
   /* Transparent rather than absent on the outer edges: the box stays identical,
    * so no cell is a pixel taller or narrower than its neighbours. */
-  border-block-start: 1px solid var(--border-hairline);
-  border-inline-start: 1px solid var(--border-hairline);
+  border-block-start: 1px solid var(--color-border);
+  border-inline-start: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -207,7 +181,7 @@
  * separators are drawn, so they stay out of the accessible name. */
 .ov-strip-value {
   align-items: center;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   display: flex;
   gap: var(--space-2);
   margin: 0;
@@ -230,7 +204,7 @@
 }
 
 .ov-strip-datum[data-identity="true"] {
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   flex: 0 1 auto;
   min-inline-size: 0;
   overflow: hidden;
@@ -242,12 +216,12 @@
  * slots. Colour tracks whether a value exists, never whether it is a problem —
  * a semaphore hue here would invent a fault out of a pending read. */
 .ov-strip-datum[data-absent="true"] {
-  color: var(--text-tertiary);
+  color: var(--color-text-tertiary);
 }
 
 .ov-strip-datum + .ov-strip-datum::before,
 .ov-strip-keys + .ov-strip-datum::before {
-  color: var(--text-tertiary);
+  color: var(--color-text-tertiary);
   content: "\00b7";
   margin-inline-end: var(--space-2);
 }
@@ -269,23 +243,19 @@
   }
 
   .ov-strip-cell:nth-child(2) {
-    border-block-start-color: var(--border-hairline);
+    border-block-start-color: var(--color-border);
   }
 }
 
-/* Narrow: the dispersion goes behind the text instead of beside it, and the
- * band shortens so the hero never eats the whole window. */
+/* Narrow: the card tightens and the display line steps down one size so the
+ * hero never eats the whole window. */
 @media (max-width: 720px) {
-  .ov-page {
-    --ov-hero-glow-share: 0px;
-  }
-
-  .ov-hero-band {
-    min-block-size: 0;
-  }
-
-  .ov-hero-band .shader-hero-content {
+  .ov-hero {
     padding: var(--space-5);
+  }
+
+  .ov-strip {
+    padding-inline: var(--space-5);
   }
 
   .ov-hero-title {
@@ -296,74 +266,64 @@
 
 /* ------------------------------------------------------------- stat band */
 
-/* One row of flat tiles on a wide window, so the numbers line up and read as
- * one comparison. They share a single continuous hairline baseline instead of
- * carrying a tick each: four floating rules in four gutters is four objects
- * where the page has one. */
+/* One card per counter, each with its labelled header on top and the measured
+ * value under it. The cards share one grid so the values still line up and
+ * read as a comparison. */
 .ov-stat-grid {
-  border-block-start: 1px solid var(--border-hairline);
   display: grid;
-  gap: 0;
-  grid-auto-columns: minmax(0, 1fr);
-  grid-auto-flow: column;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
 .ov-stat {
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
-  gap: var(--space-0-5);
+  gap: var(--space-1);
   min-inline-size: 0;
-  padding-block: var(--space-3);
-  padding-inline-end: var(--space-6);
+  padding: var(--space-4);
 }
 
-.ov-stat-value {
-  color: var(--text-primary);
-}
-
+/* The card's header: a plain sans label, not an uppercase shout — uppercase
+ * microlabels are reserved for true column headers like the strip's. */
 .ov-stat-label {
-  color: var(--text-tertiary);
+  color: var(--color-text-secondary);
+  font-size: var(--fs-label-12);
+  font-weight: 500;
+  line-height: var(--lh-label-12);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.ov-stat-value {
+  color: var(--color-text-primary);
+}
+
 .ov-stat-meta {
-  color: var(--text-tertiary);
+  color: var(--color-text-tertiary);
   font-variant-numeric: tabular-nums;
-}
-
-@media (max-width: 860px) {
-  .ov-stat-grid {
-    grid-auto-flow: row;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .ov-stat:nth-child(n + 3) {
-    border-block-start: 1px solid var(--border-hairline);
-  }
-}
-
-@media (max-width: 480px) {
-  .ov-stat-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .ov-stat + .ov-stat {
-    border-block-start: 1px solid var(--border-hairline);
-  }
 }
 
 /* ----------------------------------------------------------------- chart */
 
+/* The chart is a card of its own beside the counters: header row on top —
+ * what the bars mean on the left, the measured peak on the right — then the
+ * bars, then the axis line. */
 .ov-chart-block {
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  margin-top: var(--space-5);
+  margin-top: var(--space-3);
+  padding: var(--space-4);
 }
 
 .ov-chart-head,
@@ -373,13 +333,15 @@
   justify-content: space-between;
 }
 
+/* The card's labelled header. */
 .ov-chart-legend {
-  color: var(--text-secondary);
+  color: var(--color-text-primary);
+  font-weight: 500;
 }
 
 .ov-chart-peak,
 .ov-chart-axis {
-  color: var(--text-tertiary);
+  color: var(--color-text-tertiary);
 }
 
 .ov-chart {
@@ -393,20 +355,25 @@
   margin-top: var(--space-5);
 }
 
-/* Monochrome bars: the chart is one series, so hue would be decoration. */
+/* Ink bars: the chart is one series, so hue would be decoration. The accent
+ * stays reserved for actions, active states and the live waveform. */
 .ov-chart-bar {
-  fill: color-mix(in oklab, var(--text-primary) 66%, var(--surface-1));
+  fill: color-mix(
+    in oklab,
+    var(--color-text-primary) 66%,
+    var(--color-surface-raised)
+  );
   transition: fill var(--duration-fast) var(--ease-in-out);
 }
 
 /* A day with nothing in it keeps a hairline stub, which is what makes the
  * baseline readable without drawing an axis. */
 .ov-chart-bar[data-empty="true"] {
-  fill: var(--border-hover);
+  fill: var(--color-border);
 }
 
 .ov-chart-bar:hover {
-  fill: var(--text-primary);
+  fill: var(--color-text-primary);
 }
 
 /* --------------------------------------------------------------- sources */
@@ -419,25 +386,29 @@
 }
 
 .ov-source-line {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
 /* ------------------------------------------------------- recent activity */
 
-/* Two-line rows at --row-h-entry: line 1 is every measurement the run carries,
- * in mono; line 2 is the text it actually produced. Rows are separated by a
- * hairline, never by a gap. */
+/* One card holding two-line rows at --row-h-entry: line 1 is the run's few
+ * facts, in mono; line 2 is the text it actually produced. Rows are separated
+ * by a hairline, never by a gap. */
 .ov-activity {
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
   list-style: none;
   margin: 0;
+  overflow: hidden;
   padding: 0;
 }
 
 .ov-activity-row {
-  border-block-start: 1px solid var(--border-hairline);
+  border-block-start: 1px solid var(--color-border);
   display: flex;
 }
 
@@ -445,8 +416,6 @@
   border-block-start-color: transparent;
 }
 
-/* Hover brightens the row's own top rule alongside the wash — an instrument
- * row lighting up, one extra property. */
 .ov-activity-open {
   block-size: var(--row-h-entry);
   cursor: pointer;
@@ -456,22 +425,17 @@
   gap: var(--space-1);
   justify-content: center;
   min-inline-size: 0;
+  padding-inline: var(--space-4);
   text-align: start;
-  transition:
-    background-color var(--duration-fast) var(--ease-in-out),
-    border-color var(--duration-fast) var(--ease-in-out);
-}
-
-.ov-activity-row:hover {
-  border-block-start-color: var(--border);
+  transition: background-color var(--duration-fast) var(--ease-in-out);
 }
 
 .ov-activity-open:hover {
-  background: var(--wash-hover);
+  background: var(--color-hover);
 }
 
 .ov-activity-open:active {
-  background: var(--wash-active);
+  background: var(--color-pressed);
 }
 
 .ov-activity-open:focus-visible {
@@ -481,7 +445,7 @@
 
 .ov-activity-facts {
   align-items: center;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   display: flex;
   min-inline-size: 0;
   overflow: hidden;
@@ -502,13 +466,13 @@
 }
 
 .ov-activity-fact + .ov-activity-fact::before {
-  color: var(--text-tertiary);
+  color: var(--color-text-tertiary);
   content: "\00b7";
   margin-inline: var(--space-2);
 }
 
 .ov-activity-snippet {
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -529,13 +493,13 @@
 }
 
 .ov-activity-failure p {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   margin: 0;
   overflow-wrap: anywhere;
 }
 
 .ov-activity-empty {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 

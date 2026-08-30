@@ -176,10 +176,11 @@ describe("Overview first paint", () => {
     expect(markup).toContain(">not set<");
   });
 
-  /* The accent's containment boundary and the text column's reserved width are
-   * the same number, published once so they cannot drift apart. */
-  test("publishes one containment share for the accent and the layout", () => {
-    expect(markup).toContain("--shader-hero-clear:62%");
+  /* The hero is one raised card that carries the strip as its footer: no
+   * decorative shader layer may come back around it. */
+  test("draws the hero and the strip as one card, with no shader layer", () => {
+    expect(markup).toContain('class="ov-capture"');
+    expect(markup.includes("shader-hero")).toBe(false);
   });
 
   test("loads behind placeholders, with no update banner and no numbers", () => {

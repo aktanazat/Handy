@@ -698,9 +698,9 @@ describe("mode list", () => {
     delivery: { ...MODE_VIEW.delivery, paste_method: "ctrl_shift_v" },
   };
 
-  test("marks the active mode with a microlabel chip, not a filled pill", () => {
+  test("marks the active mode with the accent chip, spelled as a word", () => {
     const html = list();
-    expect(html).toContain('class="microlabel modes-list-active"');
+    expect(html).toContain('class="modes-list-active"');
     expect(html).toContain("Active");
     expect(html).toContain('data-active="true"');
     expect(html).toContain('data-selected="true"');
