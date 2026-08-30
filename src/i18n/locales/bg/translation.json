@@ -1960,10 +1960,7 @@
     }
   },
   "overlay": {
-    "cloud": "Cloud",
-    "engineFallbackShort": "Локален резерв",
     "inputLevel": "Ниво на входа",
-    "stopHint": "Натиснете {{keys}} за спиране",
     "state": {
       "starting": "Стартира",
       "listening": "Слуша",

@@ -1960,10 +1960,7 @@
     }
   },
   "overlay": {
-    "cloud": "Cloud",
-    "engineFallbackShort": "Lokal reserv",
     "inputLevel": "Ingångsnivå",
-    "stopHint": "Tryck på {{keys}} för att stoppa",
     "state": {
       "starting": "Startar",
       "listening": "Lyssnar",

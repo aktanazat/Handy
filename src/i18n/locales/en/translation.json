@@ -1967,10 +1967,7 @@
     }
   },
   "overlay": {
-    "cloud": "Cloud",
-    "engineFallbackShort": "Local fallback",
     "inputLevel": "Input level",
-    "stopHint": "Press {{keys}} to stop",
     "state": {
       "starting": "Starting",
       "listening": "Listening",

@@ -1960,10 +1960,7 @@
     }
   },
   "overlay": {
-    "cloud": "Cloud",
-    "engineFallbackShort": "Yerel yedek",
     "inputLevel": "Giriş düzeyi",
-    "stopHint": "Durdurmak için {{keys}} tuşlarına basın",
     "state": {
       "starting": "Başlatılıyor",
       "listening": "Dinliyor",

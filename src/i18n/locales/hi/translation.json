@@ -1963,10 +1963,7 @@
     }
   },
   "overlay": {
-    "cloud": "Cloud",
-    "engineFallbackShort": "स्थानीय विकल्प",
     "inputLevel": "इनपुट स्तर",
-    "stopHint": "रोकने के लिए {{keys}} दबाएँ",
     "state": {
       "starting": "शुरू हो रहा है",
       "listening": "सुन रहा है",

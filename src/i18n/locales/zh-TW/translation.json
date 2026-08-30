@@ -1960,10 +1960,7 @@
     }
   },
   "overlay": {
-    "cloud": "Cloud",
-    "engineFallbackShort": "本機回退",
     "inputLevel": "輸入電平",
-    "stopHint": "按 {{keys}} 停止",
     "state": {
       "starting": "正在啟動",
       "listening": "正在聆聽",

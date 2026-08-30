@@ -1960,10 +1960,7 @@
     }
   },
   "overlay": {
-    "cloud": "Cloud",
-    "engineFallbackShort": "Dự phòng cục bộ",
     "inputLevel": "Mức đầu vào",
-    "stopHint": "Nhấn {{keys}} để dừng",
     "state": {
       "starting": "Đang bắt đầu",
       "listening": "Đang nghe",

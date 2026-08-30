@@ -1960,10 +1960,7 @@
     }
   },
   "overlay": {
-    "cloud": "Cloud",
-    "engineFallbackShort": "로컬 대체",
     "inputLevel": "입력 레벨",
-    "stopHint": "{{keys}} 를 눌러 중지",
     "state": {
       "starting": "시작 중",
       "listening": "듣는 중",

@@ -1960,10 +1960,7 @@
     }
   },
   "overlay": {
-    "cloud": "Cloud",
-    "engineFallbackShort": "بديل محلي",
     "inputLevel": "مستوى الإدخال",
-    "stopHint": "اضغط {{keys}} للإيقاف",
     "state": {
       "starting": "جاري البدء",
       "listening": "يستمع",

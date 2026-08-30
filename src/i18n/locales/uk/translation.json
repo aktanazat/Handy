@@ -1960,10 +1960,7 @@
     }
   },
   "overlay": {
-    "cloud": "Cloud",
-    "engineFallbackShort": "Локальний резерв",
     "inputLevel": "Рівень входу",
-    "stopHint": "Натисніть {{keys}}, щоб зупинити",
     "state": {
       "starting": "Запуск",
       "listening": "Слухає",

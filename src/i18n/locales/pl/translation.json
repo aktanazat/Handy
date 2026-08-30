@@ -1960,10 +1960,7 @@
     }
   },
   "overlay": {
-    "cloud": "Cloud",
-    "engineFallbackShort": "Rezerwa lokalna",
     "inputLevel": "Poziom wejścia",
-    "stopHint": "Naciśnij {{keys}}, aby zatrzymać",
     "state": {
       "starting": "Uruchamianie",
       "listening": "Nasłuchuje",

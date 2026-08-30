@@ -1960,10 +1960,7 @@
     }
   },
   "overlay": {
-    "cloud": "Cloud",
-    "engineFallbackShort": "גיבוי מקומי",
     "inputLevel": "עוצמת הקלט",
-    "stopHint": "הקש {{keys}} לעצירה",
     "state": {
       "starting": "מתחיל",
       "listening": "מקשיב",

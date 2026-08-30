@@ -1960,10 +1960,7 @@
     }
   },
   "overlay": {
-    "cloud": "Cloud",
-    "engineFallbackShort": "Místní záloha",
     "inputLevel": "Úroveň vstupu",
-    "stopHint": "Zastavíte stisknutím {{keys}}",
     "state": {
       "starting": "Startuji",
       "listening": "Poslouchá",

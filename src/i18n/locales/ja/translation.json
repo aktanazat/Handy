@@ -1960,10 +1960,7 @@
     }
   },
   "overlay": {
-    "cloud": "Cloud",
-    "engineFallbackShort": "ローカル代替",
     "inputLevel": "入力レベル",
-    "stopHint": "{{keys}} で停止",
     "state": {
       "starting": "起動中",
       "listening": "聴取中",

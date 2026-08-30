@@ -1960,10 +1960,7 @@
     }
   },
   "overlay": {
-    "cloud": "Cloud",
-    "engineFallbackShort": "Repli local",
     "inputLevel": "Niveau d'entrée",
-    "stopHint": "Appuyez sur {{keys}} pour arrêter",
     "state": {
       "starting": "Démarrage",
       "listening": "À l'écoute",

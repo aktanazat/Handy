@@ -1963,10 +1963,7 @@
     }
   },
   "overlay": {
-    "cloud": "Cloud",
-    "engineFallbackShort": "Lokale terugval",
     "inputLevel": "Ingangsniveau",
-    "stopHint": "Druk op {{keys}} om te stoppen",
     "state": {
       "starting": "Starten",
       "listening": "Luistert",
