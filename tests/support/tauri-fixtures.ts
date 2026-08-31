@@ -978,3 +978,10 @@ export const MODEL_LOAD_STATUS = {
     "handy-computer/parakeet-tdt-0.6b-v2-gguf/parakeet-tdt-0.6b-v2-Q8_0.gguf",
   backend: "MTL0",
 };
+
+/**
+ * When a mocked in-progress meeting started, read at install time so the
+ * recording pill's clock counts a plausible few minutes instead of the years
+ * since a captured timestamp.
+ */
+export const meetingStartedAtMs = (): number => Date.now() - 7 * 60_000;

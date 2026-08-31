@@ -10,19 +10,24 @@ import {
 import { Button } from "@/components/vg/button";
 import { formatRelativeTime } from "@/lib/utils/format";
 import { Microlabel, SettingsCard } from "@/components/settings/rows";
-import { formatWorkflowOutcome } from "@/components/settings/workflows/formatWorkflowOutcome";
+import {
+  formatWorkflowOutcome,
+  workflowOutcomeHasEffect,
+} from "@/components/settings/workflows/formatWorkflowOutcome";
 import { WORKFLOW_NAME_KEY } from "@/components/settings/workflows/workflowCatalogue";
 
 const OVERVIEW_RUN_PAGE_SIZE = 20;
 const OVERVIEW_RECEIPT_LIMIT = 3;
 
-/* What the feed will show: a run that succeeded and that the reader can act
- * on, which normally means it names a meeting to open. Meeting-recording runs
- * are the exception — skipping a detected meeting leaves no session to open,
- * and "Skipped recording a detected meeting" is exactly the line a reader
- * needs to see. */
+/* What the feed will show: a run that succeeded, changed something, and that
+ * the reader can act on, which normally means it names a meeting to open.
+ * Meeting-recording runs are the exception — skipping a detected meeting
+ * leaves no session to open, and "Skipped recording a detected meeting" is
+ * exactly the line a reader needs to see. A run that found nothing keeps its
+ * row in the full run log under Settings, where a quiet pass is the point. */
 const belongsInFeed = (receipt: WorkflowRunReceipt): boolean =>
   receipt.status === "ok" &&
+  workflowOutcomeHasEffect(receipt) &&
   (receipt.jump_target?.kind === "meeting" ||
     receipt.workflow_id === "meeting_activity");
 
@@ -104,7 +109,16 @@ export const OverviewWorkflowCardsView: React.FC<
   nowMs = Date.now(),
 }) => {
   const { t } = useTranslation();
-  const hideReceipts = isLoadedEmpty(receipts);
+  /* The card lists effects, so a receipt with none does not reach it — the
+   * same rule the loader pages by, applied where the row is drawn. */
+  const feedReceipts =
+    receipts.status === "loaded"
+      ? receipts.entries
+          .filter(workflowOutcomeHasEffect)
+          .slice(0, OVERVIEW_RECEIPT_LIMIT)
+      : [];
+  const hideReceipts =
+    receipts.status === "loaded" && feedReceipts.length === 0;
   const hideOpenLoops = isLoadedEmpty(openLoops);
   if (hideReceipts && hideOpenLoops) return null;
 
@@ -119,57 +133,52 @@ export const OverviewWorkflowCardsView: React.FC<
           </h2>
           {receipts.status === "loaded" ? (
             <ul role="list" className="divide-y divide-gray-alpha-400">
-              {receipts.entries
-                .slice(0, OVERVIEW_RECEIPT_LIMIT)
-                .map((receipt) => {
-                  const meetingId =
-                    receipt.jump_target?.kind === "meeting"
-                      ? receipt.jump_target.session_id
-                      : null;
-                  const line = (
-                    <>
-                      <span className="block text-[13px] leading-5 text-gray-1000">
-                        {formatWorkflowOutcome(receipt, t)}
+              {feedReceipts.map((receipt) => {
+                const meetingId =
+                  receipt.jump_target?.kind === "meeting"
+                    ? receipt.jump_target.session_id
+                    : null;
+                const line = (
+                  <>
+                    <span className="block text-[13px] leading-5 text-gray-1000">
+                      {formatWorkflowOutcome(receipt, t)}
+                    </span>
+                    <span className="mt-1 block text-[11px] text-gray-700">
+                      {t(WORKFLOW_NAME_KEY[receipt.workflow_id])}
+                      <span aria-hidden="true"> · </span>
+                      <span className="snap-measured tabular-nums">
+                        {formatRelativeTime(receipt.finished_at_utc_ms, nowMs)}
                       </span>
-                      <span className="mt-1 block text-[11px] text-gray-700">
-                        {t(WORKFLOW_NAME_KEY[receipt.workflow_id])}
-                        <span aria-hidden="true"> · </span>
-                        <span className="snap-measured tabular-nums">
-                          {formatRelativeTime(
-                            receipt.finished_at_utc_ms,
-                            nowMs,
-                          )}
-                        </span>
-                      </span>
-                    </>
-                  );
+                    </span>
+                  </>
+                );
 
-                  return (
-                    <li key={receipt.id}>
-                      {/* A line with nothing to open is a line, not a dead
-                       * button: skipping a detected meeting leaves no
-                       * session behind. */}
-                      {meetingId === null ? (
-                        <div
-                          data-testid="overview-workflow-receipt"
-                          className="px-4 py-3"
-                        >
-                          {line}
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          data-testid="overview-workflow-receipt"
-                          data-meeting-id={meetingId}
-                          onClick={() => onOpenMeeting(meetingId)}
-                          className="hover-fast w-full px-4 py-3 text-start hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
-                        >
-                          {line}
-                        </button>
-                      )}
-                    </li>
-                  );
-                })}
+                return (
+                  <li key={receipt.id}>
+                    {/* A line with nothing to open is a line, not a dead
+                     * button: skipping a detected meeting leaves no
+                     * session behind. */}
+                    {meetingId === null ? (
+                      <div
+                        data-testid="overview-workflow-receipt"
+                        className="px-4 py-3"
+                      >
+                        {line}
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        data-testid="overview-workflow-receipt"
+                        data-meeting-id={meetingId}
+                        onClick={() => onOpenMeeting(meetingId)}
+                        className="hover-fast w-full px-4 py-3 text-start hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+                      >
+                        {line}
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <OverviewCardStateRow

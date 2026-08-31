@@ -65,6 +65,23 @@ const skippedRecording: WorkflowRunReceipt = {
   outcome_code: "prompt_ignored",
 };
 
+/* A learning pass that found nothing still writes a receipt. The shipped
+ * Capture page turned those into "Noticed 0 things" rows. */
+const learningRun = (id: string, suggestions: number): WorkflowRunReceipt => ({
+  ...run(id, "learning pass", 5),
+  workflow_id: "spoken_punctuation",
+  outcome_code: "learning_suggestions",
+  outcome_counts: {
+    changes: 0,
+    persons: 0,
+    series: 0,
+    carried: 0,
+    candidates: 0,
+    suggestions,
+    terms: 0,
+  },
+});
+
 const openLoop: PersonOpenLoop = {
   meeting_id: "meeting-open-loop",
   title: "Weekly planning",
@@ -138,6 +155,21 @@ describe("Overview workflow cards", () => {
      * ("consent receipt") never reaches the reader either. */
     expect(markup).not.toContain("data-meeting-id");
     expect(markup).not.toContain("consent receipt");
+  });
+
+  test("counts a learning pass only when it noticed something", () => {
+    expect(render([learningRun("found", 2)], [])).toContain("Noticed 2 things");
+
+    const quiet = render([learningRun("quiet", 0)], []);
+
+    /* "Noticed 0 things" is a row about nothing. The run log under Settings
+     * keeps it; this card is a list of what changed. */
+    expect(quiet).not.toContain("Noticed 0 things");
+    expect(quiet).not.toContain('data-testid="overview-workflow-receipt"');
+  });
+
+  test("hides the card when every receipt it was handed did nothing", () => {
+    expect(render([learningRun("quiet", 0)], [])).toBe("");
   });
 
   test("shows what is still open with an exact meeting target", () => {

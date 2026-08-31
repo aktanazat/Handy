@@ -47,6 +47,7 @@ use tauri::AppHandle;
 use tauri_specta::Event as _;
 use uuid::Uuid;
 
+use crate::meeting::consent_panel::ConsentPanelLayout;
 use crate::meeting::people_types::PersonBriefingRow;
 use crate::meeting::session::{MeetingSessionManager, MeetingTitleSetRequest};
 use crate::meeting::types::{
@@ -871,7 +872,7 @@ impl DetectionRuntime {
         while let Some(command) = commands.pop_front() {
             match command {
                 PanelCommand::ShowPanel => {
-                    let _ = self.prompts.show_panel();
+                    let _ = self.prompts.show_panel(ConsentPanelLayout::Recording);
                 }
                 PanelCommand::HidePanel => self.prompts.hide_panel(),
                 PanelCommand::WithdrawPrompt { prompt_id } => {
@@ -879,7 +880,14 @@ impl DetectionRuntime {
                 }
                 PanelCommand::PresentPanel { prompt_id, prompt } => {
                     self.prompts.withdraw(&prompt_id);
-                    if self.prompts.show_panel() {
+                    let layout = prompt_panel_layout(
+                        &prompt,
+                        state
+                            .last_status
+                            .as_ref()
+                            .and_then(|status| status.countdown.as_ref()),
+                    );
+                    if self.prompts.show_panel(layout) {
                         self.emit_prompt(&prompt_id, &prompt, DetectionPromptDelivery::Panel);
                         self.schedule_panel_ack_timeout(prompt_id);
                     } else {
@@ -1350,6 +1358,35 @@ fn prompt_priority(prompt: &PromptKind) -> u8 {
     }
 }
 
+/// Which rows the consent panel will draw for this prompt.
+///
+/// The window is sized before the webview renders, so the presenter has to
+/// predict the three conditionals in ConsentPanel.tsx: the always-record
+/// checkbox belongs to calendar prompts, the introduction is the one-time
+/// explanation the prompt carries, and the series brief needs a countdown for
+/// this same event that has someone to brief about.
+fn prompt_panel_layout(
+    pending: &PendingPrompt,
+    countdown: Option<&DetectionCountdown>,
+) -> ConsentPanelLayout {
+    let event_key = match &pending.prompt {
+        PromptKind::CalendarEvent { event_key, .. } => Some(event_key.as_str()),
+        PromptKind::AppMeeting { .. }
+        | PromptKind::AppHuddle { .. }
+        | PromptKind::BrowserCall { .. }
+        | PromptKind::UnknownMicSource => None,
+    };
+    ConsentPanelLayout::Prompt {
+        always_record_checkbox: event_key.is_some(),
+        introduction: pending.show_introduction,
+        series_brief: event_key.is_some_and(|key| {
+            countdown.is_some_and(|countdown| {
+                countdown.event.event_key == key && !countdown.briefing.is_empty()
+            })
+        }),
+    }
+}
+
 /// The four §5.5 triggers whose evidence this build actually observes. `Silence`
 /// is absent because nothing publishes live voiced activity; naming the gap here
 /// is what keeps it from looking like a bug.
@@ -1492,5 +1529,90 @@ mod tests {
             started.elapsed() < Duration::from_secs(5),
             "a flagged wakeup must return immediately"
         );
+    }
+
+    fn pending(prompt: PromptKind, show_introduction: bool) -> PendingPrompt {
+        PendingPrompt {
+            prompt,
+            event_end_utc_ms: None,
+            calendar_event: None,
+            show_introduction,
+        }
+    }
+
+    fn countdown(event_key: &str, briefed: bool) -> DetectionCountdown {
+        DetectionCountdown {
+            event: CalendarEventSummary {
+                event_key: event_key.to_string(),
+                series_key: "series-1".to_string(),
+                title: "Weekly sync".to_string(),
+                attendee_count: 4,
+                start_utc_ms: 1_700_000_000_000,
+                end_utc_ms: 1_700_000_000_000 + 30 * 60_000,
+                attendees: Vec::new(),
+                notes: None,
+                calendar_name: None,
+                url: None,
+            },
+            seconds_to_start: 48,
+            briefing: if briefed {
+                vec![PersonBriefingRow {
+                    person_id: crate::meeting::people_types::PersonId::new(),
+                    display_name: "Morgan Ellis".to_string(),
+                    meetings_count: 3,
+                    last: None,
+                    open_loops: Vec::new(),
+                    commitments: Vec::new(),
+                }]
+            } else {
+                Vec::new()
+            },
+        }
+    }
+
+    #[test]
+    fn an_app_prompt_is_sized_without_the_calendar_only_rows() {
+        let prompt = pending(
+            PromptKind::AppMeeting {
+                bundle_id: "us.zoom.xos".to_string(),
+                app_name: "Zoom".to_string(),
+            },
+            false,
+        );
+
+        assert_eq!(
+            prompt_panel_layout(&prompt, Some(&countdown("event-1", true))),
+            ConsentPanelLayout::Prompt {
+                always_record_checkbox: false,
+                introduction: false,
+                series_brief: false,
+            }
+        );
+    }
+
+    #[test]
+    fn a_calendar_prompt_counts_the_brief_only_for_its_own_briefed_event() {
+        let prompt = pending(
+            PromptKind::CalendarEvent {
+                event_key: "event-1".to_string(),
+                event_title: "Weekly sync".to_string(),
+            },
+            true,
+        );
+        let layout =
+            |countdown: Option<&DetectionCountdown>| prompt_panel_layout(&prompt, countdown);
+        let brief_shown = |countdown: Option<&DetectionCountdown>| {
+            layout(countdown)
+                == ConsentPanelLayout::Prompt {
+                    always_record_checkbox: true,
+                    introduction: true,
+                    series_brief: true,
+                }
+        };
+
+        assert!(brief_shown(Some(&countdown("event-1", true))));
+        assert!(!brief_shown(Some(&countdown("event-2", true))));
+        assert!(!brief_shown(Some(&countdown("event-1", false))));
+        assert!(!brief_shown(None));
     }
 }

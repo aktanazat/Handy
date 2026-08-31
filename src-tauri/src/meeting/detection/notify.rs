@@ -19,6 +19,7 @@ use tauri::AppHandle;
 
 use super::machine::PromptKind;
 use super::DetectionPromptDelivery;
+use crate::meeting::consent_panel::ConsentPanelLayout;
 
 /// Action identifier for the affirmative button. Also the value reported back
 /// through `PromptResponse`.
@@ -346,7 +347,7 @@ impl<T: Clone> PanelSlot<T> {
 pub trait ConsentPromptSurface: Send + Sync {
     fn access(&self) -> NotificationAccess;
     fn request_access(&self) -> NotificationAccessFuture;
-    fn show_panel(&self) -> bool;
+    fn show_panel(&self, layout: ConsentPanelLayout) -> bool;
     fn hide_panel(&self);
     fn present_fallback(&self, prompt_id: &str, prompt: &PromptKind) -> DetectionPromptDelivery;
     fn withdraw(&self, prompt_id: &str);
@@ -372,8 +373,8 @@ impl ConsentPromptSurface for ConsentPromptPresenter {
         self.native.request_access()
     }
 
-    fn show_panel(&self) -> bool {
-        crate::meeting::consent_panel::show(&self.app)
+    fn show_panel(&self, layout: ConsentPanelLayout) -> bool {
+        crate::meeting::consent_panel::show(&self.app, layout)
     }
 
     fn hide_panel(&self) {

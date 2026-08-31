@@ -22,19 +22,24 @@ const MEETING_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
   timeStyle: "short",
 });
 
+/** "0:00" | "9:41" | "1:04:07" — a clock reading, seconds in, no unit words. */
+export const formatClock = (seconds: number) => {
+  const total = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const remainder = total % 60;
+
+  return hours > 0
+    ? `${hours}:${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`
+    : `${minutes}:${String(remainder).padStart(2, "0")}`;
+};
+
 export const formatMeetingOffset = (offsetNs: number | null | undefined) => {
   if (offsetNs === null || offsetNs === undefined) {
     return "—";
   }
 
-  const seconds = Math.max(0, Math.floor(offsetNs / 1_000_000_000));
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainder = seconds % 60;
-
-  return hours > 0
-    ? `${hours}:${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`
-    : `${minutes}:${String(remainder).padStart(2, "0")}`;
+  return formatClock(offsetNs / 1_000_000_000);
 };
 
 export const formatMeetingDate = (timestamp: number) =>

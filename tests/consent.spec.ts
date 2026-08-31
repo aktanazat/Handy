@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+import { meetingStartedAtMs } from "./support/tauri-fixtures";
 import { installTauriMock } from "./support/tauri-mock";
 
 const CALENDAR_PROMPT = {
@@ -21,7 +22,7 @@ const ACTIVE_PANEL_STATE = {
     phase: "capturing_recording",
     revision: 2,
     title: "Existing recording",
-    started_at_utc_ms: 1_756_136_400_000,
+    started_at_utc_ms: meetingStartedAtMs(),
   },
   standing_series_key: null,
 };

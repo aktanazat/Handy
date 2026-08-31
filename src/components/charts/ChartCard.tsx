@@ -58,7 +58,11 @@ export function ChartCard({
       className={cn("flex min-w-0 flex-col gap-4 p-4", className)}
       {...props}
     >
-      <div className="flex min-h-6 items-center justify-between gap-3">
+      {/* The measurement's name is the one thing on this card that must stay
+       * readable, so the range control drops onto its own line rather than
+       * squeezing the title into an ellipsis. Three of these sit side by side
+       * in a 900pt window, which is exactly where the squeeze happened. */}
+      <div className="flex min-h-6 flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <h3 id={headingId} className="min-w-0 truncate">
           <Microlabel>{label}</Microlabel>
         </h3>

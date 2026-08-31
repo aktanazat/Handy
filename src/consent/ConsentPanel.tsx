@@ -13,6 +13,7 @@ import { Button } from "@/components/vg/button";
 import { Checkbox } from "@/components/vg/checkbox";
 import { consentFor } from "@/components/settings/meetings/MeetingStartGate";
 import type { MeetingStartOptions } from "@/components/settings/meetings/meetingTypes";
+import { elapsedLabel } from "./elapsed";
 
 const startOptions = (prompt: DetectionPromptEvent): MeetingStartOptions => ({
   title:
@@ -195,18 +196,15 @@ export default function ConsentPanel() {
   };
 
   if (active !== null) {
-    const started = active.snapshot.started_at_utc_ms ?? now;
-    const elapsed = Math.max(0, Math.floor((now - started) / 1_000));
-    const elapsedLabel = `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
     return (
-      <main className="m-2 flex h-[calc(100%-1rem)] flex-col justify-between rounded-lg border border-border bg-raised p-4 text-gray-1000 shadow-lg">
+      <main className="m-2 flex h-[calc(100%-1rem)] flex-col gap-3 rounded-lg border border-border bg-raised p-4 text-gray-1000 shadow-lg">
         <div className="flex items-center gap-2">
           <span className="size-2 rounded-full bg-red-700" aria-hidden="true" />
           <strong className="text-sm font-semibold">
             {t("consentPanel.recording")}
           </strong>
           <span className="ml-auto text-sm tabular-nums text-gray-900">
-            {elapsedLabel}
+            {elapsedLabel(active.snapshot.started_at_utc_ms, now)}
           </span>
         </div>
         <p className="truncate text-base font-medium">
@@ -234,26 +232,32 @@ export default function ConsentPanel() {
   if (prompt === null) return null;
   const calendarPrompt = prompt.prompt.kind === "CalendarEvent";
   return (
-    <main className="m-2 flex h-[calc(100%-1rem)] flex-col rounded-lg border border-border bg-raised p-4 text-gray-1000 shadow-lg">
-      <h1 className="text-base font-semibold tracking-tight">{title}</h1>
-      {prompt.showIntroduction ? (
-        <p className="mt-1 text-sm text-gray-900">
-          {t("consentPanel.introduction")}
-        </p>
-      ) : null}
-      {briefing !== null ? (
-        <p className="mt-2 text-sm text-gray-900">{briefing}</p>
-      ) : null}
+    <main className="m-2 flex h-[calc(100%-1rem)] flex-col gap-3 rounded-lg border border-border bg-raised p-4 text-gray-1000 shadow-lg">
+      {/* The one block that gives way when copy runs long: a wrapped title
+       * loses its tail rather than pushing the checkbox and the buttons out
+       * of a window whose height was decided before this text was measured. */}
+      <div className="min-h-0 overflow-hidden">
+        <h1 className="text-base font-semibold tracking-tight">{title}</h1>
+        {prompt.showIntroduction ? (
+          <p className="mt-1 text-sm text-gray-900">
+            {t("consentPanel.introduction")}
+          </p>
+        ) : null}
+        {briefing !== null ? (
+          <p className="mt-1 text-sm text-gray-900">{briefing}</p>
+        ) : null}
+      </div>
       {calendarPrompt ? (
-        <label className="mt-3 flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-sm">
           <Checkbox
+            className="border-gray-700"
             checked={alwaysRecord}
             onCheckedChange={(checked) => setAlwaysRecord(checked === true)}
           />
           <span>{t("consentPanel.alwaysRecord")}</span>
         </label>
       ) : null}
-      <div className="mt-auto flex items-end justify-between gap-3">
+      <div className="flex items-end justify-between gap-3">
         <p className="max-w-[215px] text-xs leading-4 text-gray-900">
           {t(
             "meetings.start.assurance",

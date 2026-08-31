@@ -1,6 +1,10 @@
 import type { Page } from "@playwright/test";
 
-import { APP_SETTINGS, MODES_SNAPSHOT } from "./tauri-fixtures";
+import {
+  APP_SETTINGS,
+  MODES_SNAPSHOT,
+  meetingStartedAtMs,
+} from "./tauri-fixtures";
 
 /**
  * Playwright runs the frontend in a plain Chromium, so every `invoke` and every
@@ -33,6 +37,7 @@ export async function installTauriMock(
   await page.addInitScript(installMockedRuntime, {
     settings: APP_SETTINGS,
     modes: MODES_SNAPSHOT,
+    startedAtUtcMs: meetingStartedAtMs(),
     responses: options.responses ?? {},
     events: options.events ?? {},
   });
@@ -41,6 +46,8 @@ export async function installTauriMock(
 type MockPayload = {
   settings: Record<string, JsonValue>;
   modes: Record<string, JsonValue>;
+  /** When the mocked capturing session started, in UTC milliseconds. */
+  startedAtUtcMs: number;
   responses: Record<string, JsonValue>;
   events: Record<string, JsonValue[]>;
 };
@@ -107,7 +114,7 @@ export function installMockedRuntime(payload: MockPayload): void {
     phase: state.phase,
     revision: capturing() ? 2 : 1,
     title: "Local notes",
-    started_at_utc_ms: capturing() ? 1_756_136_400_000 : null,
+    started_at_utc_ms: capturing() ? payload.startedAtUtcMs : null,
     elapsed_offset_ns: capturing() ? 8_000_000_000 : null,
     sources,
     open_capture_window_started_at_ns: null,

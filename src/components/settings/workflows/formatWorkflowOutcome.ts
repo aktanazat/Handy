@@ -60,3 +60,44 @@ export const formatWorkflowOutcome = (
     }
   }
 };
+
+/**
+ * Whether the sentence above names something that happened to the reader's
+ * data. A pass that found nothing still writes a receipt — "Noticed 0 things",
+ * "Nothing new to do" — and the run log is where those belong. A feed of
+ * recent effects has no room for a run that had none.
+ */
+export const workflowOutcomeHasEffect = (
+  receipt: WorkflowRunReceipt,
+): boolean => {
+  const counts = receipt.outcome_counts;
+
+  switch (receipt.outcome_code) {
+    case "person_links":
+    case "document_links":
+      return counts.changes > 0;
+    case "continuity":
+      return counts.carried > 0;
+    case "vocabulary_candidates":
+      return counts.candidates > 0;
+    case "learning_suggestions":
+      return counts.suggestions > 0;
+    case "already_processed":
+    case "skipped":
+      return false;
+    /* Each of these narrates a single event that either happened or was never
+     * recorded, so the receipt's existence is the effect. */
+    case "briefing":
+    case "series_primed":
+    case "prompt_recorded":
+    case "prompt_ignored":
+    case "auto_record_started":
+    case "auto_record_stopped":
+    case "failed":
+      return true;
+    default: {
+      const exhaustive: never = receipt.outcome_code;
+      return exhaustive;
+    }
+  }
+};
