@@ -17,6 +17,7 @@ import { Textarea } from "@/components/vg/textarea";
 import { MeetingSourceList, ProcessingStatusText } from "../MeetingStatus";
 import { formatMeetingOffset } from "../meetingUtils";
 import type { SegmentJump } from "./Citations";
+import { GapTimeline } from "./GapTimeline";
 import { SpeakerRoster } from "./SpeakerRoster";
 
 /** DOM id prefix for transcript rows, so a citation can find its segment. */
@@ -219,52 +220,7 @@ export const TranscriptTab: React.FC<TranscriptTabProps> = ({
         </div>
       </SettingsSection>
 
-      <SettingsSection label={t("meetings.review.timeline")}>
-        {snapshot.gaps.length === 0 ? (
-          <div className="px-4 py-3">
-            <Notice tone="muted" live={false}>
-              {t("meetings.review.noGaps")}
-            </Notice>
-          </div>
-        ) : (
-          <ul
-            role="list"
-            aria-label={t("meetings.review.timeline")}
-            className="divide-y divide-gray-alpha-400"
-          >
-            {snapshot.gaps.map((gap) => (
-              <li
-                key={`${gap.track_id}:${gap.epoch}:${gap.start_offset_ns ?? "start"}`}
-                className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-2.5"
-              >
-                <span className="flex min-w-0 items-baseline gap-2">
-                  <span className="text-[13px] leading-5 text-gray-1000">
-                    {t(`meetings.gaps.${gap.reason}`)}
-                  </span>
-                  <span className={MONO_FACT}>
-                    {gap.start_offset_ns === null
-                      ? t("meetings.review.timeUnknown")
-                      : formatMeetingOffset(gap.start_offset_ns)}
-                    {" – "}
-                    {gap.end_offset_ns === null
-                      ? t("meetings.review.timeUnknown")
-                      : formatMeetingOffset(gap.end_offset_ns)}
-                  </span>
-                </span>
-                {gap.dropped_frames === null ? null : (
-                  <span className={`flex-none ${MONO_FACT}`}>
-                    {t(
-                      "meetings.review.droppedFrames",
-                      "Dropped frames: {{total}}",
-                      { total: gap.dropped_frames },
-                    )}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </SettingsSection>
+      <GapTimeline gaps={snapshot.gaps} />
     </>
   );
 };

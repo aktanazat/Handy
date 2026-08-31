@@ -114,33 +114,36 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 heading={groupLabels[section.group]}
                 className="p-1.5 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:tracking-[0.12em] [&_[cmdk-group-heading]]:text-gray-800 [&_[cmdk-group-heading]]:uppercase"
               >
-                {section.items.map((action) => (
-                  <CommandItem
-                    key={action.id}
-                    value={action.label}
-                    onSelect={() => {
-                      /* Closed first, then run: a navigating action goes
-                         through a view transition whose `flushSync` also
-                         flushes this close, so the palette leaves inside the
-                         same cross-fade as the route instead of lingering for
-                         a frame on the far side of it. */
-                      onOpenChange(false);
-                      action.run();
-                    }}
-                    /* Rows are the content of this surface, so they take the
-                       content tier. Shipping them at gray-900 was the mistake:
-                       measured against the palette's own #0a0a0a it is 7.66:1
-                       where gray-1000 is 16.91:1, so every row you came here
-                       to read was at less than half the contrast the surface
-                       it replaced gave them. gray-900 is for prose; a row you
-                       are scanning to pick is not prose. The muted tiers stay
-                       where they belong — group headings and the icons. */
-                    className="min-h-9 gap-2.5 rounded-md px-2 py-2 text-[13px] text-gray-1000 data-[selected=true]:bg-gray-alpha-300"
-                  >
-                    {action.icon}
-                    <span className="min-w-0 truncate">{action.label}</span>
-                  </CommandItem>
-                ))}
+                {section.items.map((action) => {
+                  const ActionIcon = action.icon;
+                  return (
+                    <CommandItem
+                      key={action.id}
+                      value={action.label}
+                      onSelect={() => {
+                        /* Closed first, then run: a navigating action goes
+                           through a view transition whose `flushSync` also
+                           flushes this close, so the palette leaves inside the
+                           same cross-fade as the route instead of lingering for
+                           a frame on the far side of it. */
+                        onOpenChange(false);
+                        action.run();
+                      }}
+                      /* Rows are the content of this surface, so they take the
+                         content tier. Shipping them at gray-900 was the mistake:
+                         measured against the palette's own #0a0a0a it is 7.66:1
+                         where gray-1000 is 16.91:1, so every row you came here
+                         to read was at less than half the contrast the surface
+                         it replaced gave them. gray-900 is for prose; a row you
+                         are scanning to pick is not prose. The muted tiers stay
+                         where they belong — group headings and the icons. */
+                      className="min-h-9 gap-2.5 rounded-md px-2 py-2 text-[13px] text-gray-1000 data-[selected=true]:bg-gray-alpha-300"
+                    >
+                      <ActionIcon aria-hidden="true" className="size-4" />
+                      <span className="min-w-0 truncate">{action.label}</span>
+                    </CommandItem>
+                  );
+                })}
               </CommandGroup>
             ))}
           </CommandList>

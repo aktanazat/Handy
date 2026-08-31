@@ -467,6 +467,8 @@ pub struct SourceStopReport {
     pub track_id: SourceTrackId,
     pub final_offset_ns: Option<u64>,
     pub health: SourceHealth,
+    /// Source-local summary for diagnostics. Each gap is already published
+    /// through the packet sink, which is the sole persistence path.
     pub observed_gaps: Vec<SourceGap>,
 }
 

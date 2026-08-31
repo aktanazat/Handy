@@ -5053,6 +5053,13 @@ impl MeetingTrackWriter {
         })
     }
 
+    fn latest_end_offset_ns(&self) -> Option<u64> {
+        self.pending
+            .last()
+            .and_then(|record| record.end_offset_ns)
+            .or(self.durable_end_offset_ns)
+    }
+
     pub fn accept(
         &mut self,
         packet: CapturedPacket,
@@ -5068,57 +5075,72 @@ impl MeetingTrackWriter {
         samples: &[f32],
         bridge: TimestampBridge,
     ) -> Result<PacketPushResult, StoreError> {
+        let next_packet_sequence = packet.sequence.checked_add(1).ok_or(StoreError::Corrupt)?;
         if packet.track_id != self.track_id
-            || packet.sequence != self.next_sequence
+            || packet.sample_rate_hz == 0
+            || packet.channels == 0
             || packet.format().checked_frame_samples(packet.frame_count) != Some(samples.len())
         {
             self.store.record_gap(&SourceGap {
                 track_id: self.track_id,
                 epoch: packet.source_epoch,
-                start_offset_ns: None,
+                start_offset_ns: self.latest_end_offset_ns(),
                 end_offset_ns: None,
                 reason: SourceGapReason::InvalidFormat,
                 dropped_frames: Some(u64::from(packet.frame_count)),
             })?;
+            if packet.track_id == self.track_id {
+                self.next_sequence = self.next_sequence.max(next_packet_sequence);
+            }
             return Ok(PacketPushResult::Dropped {
                 frames: packet.frame_count,
             });
         }
+        if packet.sequence < self.next_sequence {
+            return Ok(PacketPushResult::Dropped {
+                frames: packet.frame_count,
+            });
+        }
+
+        let skipped_source_packet = packet.sequence > self.next_sequence;
+        let duration_ns = u64::from(packet.frame_count)
+            .checked_mul(1_000_000_000)
+            .and_then(|frames| frames.checked_div(u64::from(packet.sample_rate_hz)))
+            .ok_or(StoreError::Invalid)?;
+        let previous_end_offset_ns = self.latest_end_offset_ns();
         let clock = SessionClock::new(SessionClockAnchor {
             host_monotonic_anchor_ns: bridge.host_monotonic_anchor_ns,
             wall_start_utc_ms: 0,
             clock_policy_version: 1,
         });
-        let Some(start_offset_ns) = clock.map_packet(bridge, packet) else {
-            self.store.record_gap(&SourceGap {
-                track_id: self.track_id,
-                epoch: packet.source_epoch,
-                start_offset_ns: None,
-                end_offset_ns: None,
-                reason: SourceGapReason::TimestampMissing,
-                dropped_frames: Some(u64::from(packet.frame_count)),
-            })?;
-            return Ok(PacketPushResult::Dropped {
-                frames: packet.frame_count,
-            });
-        };
-        if packet.discontinuity_flags.timestamp_reset
+        let start_offset_ns = clock
+            .map_packet(bridge, packet)
+            .unwrap_or_else(|| previous_end_offset_ns.unwrap_or(bridge.session_offset_ns));
+
+        let has_source_boundary = packet.discontinuity_flags.timestamp_reset
             || packet.discontinuity_flags.source_restarted
-            || packet.discontinuity_flags.route_changed
-        {
-            self.store.record_gap(&SourceGap {
-                track_id: self.track_id,
-                epoch: packet.source_epoch,
-                start_offset_ns: Some(start_offset_ns),
-                end_offset_ns: Some(start_offset_ns),
-                reason: SourceGapReason::TimestampDiscontinuity,
-                dropped_frames: None,
-            })?;
+            || packet.discontinuity_flags.route_changed;
+        if !skipped_source_packet && !has_source_boundary {
+            if let Some(previous_end_offset_ns) = previous_end_offset_ns {
+                let tolerance_ns =
+                    (duration_ns / 2).max(1_000_000_000 / u64::from(packet.sample_rate_hz));
+                let drift_ns = start_offset_ns.abs_diff(previous_end_offset_ns);
+                if drift_ns > tolerance_ns {
+                    let dropped_frames = (start_offset_ns > previous_end_offset_ns).then(|| {
+                        drift_ns.saturating_mul(u64::from(packet.sample_rate_hz)) / 1_000_000_000
+                    });
+                    self.store.record_gap(&SourceGap {
+                        track_id: self.track_id,
+                        epoch: packet.source_epoch,
+                        start_offset_ns: Some(previous_end_offset_ns.min(start_offset_ns)),
+                        end_offset_ns: Some(previous_end_offset_ns.max(start_offset_ns)),
+                        reason: SourceGapReason::TimestampDiscontinuity,
+                        dropped_frames,
+                    })?;
+                }
+            }
         }
-        let duration_ns = u64::from(packet.frame_count)
-            .checked_mul(1_000_000_000)
-            .and_then(|frames| frames.checked_div(u64::from(packet.sample_rate_hz)))
-            .ok_or(StoreError::Invalid)?;
+
         let payload = f32_payload(samples);
         let record_offset = self.records.seek(SeekFrom::End(0))?;
         let pending = write_encrypted_record(
@@ -5136,7 +5158,7 @@ impl MeetingTrackWriter {
             &payload,
             record_offset,
         )?;
-        self.next_sequence = packet.sequence.checked_add(1).ok_or(StoreError::Corrupt)?;
+        self.next_sequence = next_packet_sequence;
         self.pending.push(pending);
         let should_checkpoint = self
             .pending
@@ -5206,6 +5228,7 @@ impl MeetingStore {
         for record in pending {
             insert_durable_record(&transaction, track_id, record)?;
         }
+        let first = pending.first().ok_or(StoreError::Invalid)?;
         let last = pending.last().ok_or(StoreError::Invalid)?;
         transaction.execute(
             "INSERT INTO meeting_track_checkpoints (
@@ -5233,7 +5256,7 @@ impl MeetingStore {
              SET first_offset_ns = COALESCE(first_offset_ns, ?1), last_offset_ns = ?2
              WHERE track_id = ?3",
             params![
-                optional_i64(last.start_offset_ns)?,
+                optional_i64(first.start_offset_ns)?,
                 optional_i64(last.end_offset_ns)?,
                 id(track_id),
             ],
@@ -8618,6 +8641,132 @@ mod tests {
         }
     }
 
+    fn microphone_track(
+        store: &Arc<MeetingStore>,
+        timestamp_bridge: TimestampBridge,
+    ) -> (MeetingSessionId, SourceTrackId, MeetingStoragePlan) {
+        let session_id = MeetingSessionId::new();
+        store
+            .create_preflight(
+                StoreMutation {
+                    operation_id: MeetingOperationId::new(),
+                    requested_at_utc_ms: 1,
+                    session_id,
+                    expected_revision: 0,
+                    command: MeetingCommandKind::PreflightCreate,
+                },
+                "Design sync".to_string(),
+                MeetingOrigin::Manual,
+                preflight(session_id),
+                MeetingRetentionPolicy::Forever,
+            )
+            .unwrap();
+        let storage = MeetingStoragePlan {
+            format_version: 1,
+            record_max_payload_bytes: 4_096,
+            checkpoint_interval_ms: 1,
+            source_lane_sample_capacity: 1_024,
+            source_lane_descriptor_capacity: 4,
+        };
+        let plan = MeetingRunPlan {
+            plan_id: MeetingPlanId::new(),
+            session_id,
+            consent_id: ConsentId::new(),
+            attempt_number: 1,
+            schema_version: 1,
+            app_build: "test".to_string(),
+            preflight_revision: 0,
+            requested_sources: vec![SourceKind::Microphone],
+            required_sources: vec![SourceKind::Microphone],
+            accepted_known_missing_sources: Vec::new(),
+            degraded_start_policy: DegradedStartPolicy::AbortIfRequiredSourceFails,
+            microphone_device_uid: None,
+            frozen_system_audio_application_bundle_ids: Vec::new(),
+            session_clock_anchor: SessionClockAnchor {
+                host_monotonic_anchor_ns: 0,
+                wall_start_utc_ms: 0,
+                clock_policy_version: 1,
+            },
+            storage: storage.clone(),
+            language: "en".to_string(),
+            asr_model_id: None,
+            asr_model_version: None,
+            diarization_model_id: None,
+            diarization_model_version: None,
+            destination: ProcessingDestination::Local,
+            remote_acknowledgement: None,
+            retention_policy: MeetingRetentionPolicy::Forever,
+        };
+        let consent = MeetingConsent {
+            consent_id: plan.consent_id,
+            session_id,
+            attempt_number: 1,
+            preflight_revision: 0,
+            policy_version: 1,
+            acknowledged_at_utc_ms: 0,
+            microphone_acknowledged: true,
+            system_audio_acknowledged: false,
+            known_missing_sources_acknowledged: Vec::new(),
+            degraded_start_policy: DegradedStartPolicy::AbortIfRequiredSourceFails,
+            destination: ProcessingDestination::Local,
+            remote_acknowledgement: None,
+        };
+        store
+            .start_with_plan_and_consent(MeetingOperationId::new(), 1, &plan, &consent, 0)
+            .unwrap();
+        let track_id = SourceTrackId::new();
+        store
+            .create_track(TrackCreation {
+                session_id,
+                plan_id: plan.plan_id,
+                source_kind: SourceKind::Microphone,
+                required: true,
+                requested: true,
+                descriptor_json: "{}",
+                report: SourceStartReport {
+                    track_id,
+                    source_kind: SourceKind::Microphone,
+                    format: AudioFormat {
+                        sample_rate_hz: 48_000,
+                        channels: 1,
+                    },
+                    epoch: SourceEpoch::new(0),
+                    format_epoch: 1,
+                    timestamp_bridge,
+                },
+            })
+            .unwrap();
+        (session_id, track_id, storage)
+    }
+
+    const TEST_PACKET_FRAMES: u32 = 512;
+    const TEST_PACKET_RATE: u32 = 48_000;
+
+    fn test_packet_duration_ns() -> i64 {
+        i64::from(TEST_PACKET_FRAMES) * 1_000_000_000 / i64::from(TEST_PACKET_RATE)
+    }
+
+    fn captured_packet(
+        track_id: SourceTrackId,
+        sequence: u64,
+        native_timestamp_value: Option<i64>,
+    ) -> CapturedPacket {
+        CapturedPacket {
+            track_id,
+            source_epoch: SourceEpoch::new(0),
+            format_epoch: 1,
+            sequence,
+            native_timestamp_value,
+            native_timestamp_timescale: native_timestamp_value.map(|_| 1_000_000_000),
+            host_monotonic_anchor_ns: native_timestamp_value
+                .and_then(|value| value.try_into().ok()),
+            sample_rate_hz: TEST_PACKET_RATE,
+            channels: 1,
+            frame_count: TEST_PACKET_FRAMES,
+            discontinuity_flags: PacketDiscontinuityFlags::default(),
+        }
+    }
+
     fn review_ready_session(store: &MeetingStore, session_id: MeetingSessionId) -> u64 {
         store
             .create_preflight(
@@ -9109,6 +9258,97 @@ mod tests {
                 .entries
                 .len(),
             1
+        );
+    }
+
+    #[test]
+    fn contiguous_untimestamped_prefix_is_durable_without_false_gaps() {
+        let (_directory, store) = store();
+        let bridge = TimestampBridge {
+            native_anchor_value: 0,
+            native_timescale: 1_000_000_000,
+            host_monotonic_anchor_ns: 0,
+            session_offset_ns: 0,
+        };
+        let (session_id, track_id, storage) = microphone_track(&store, bridge);
+        let mut writer = store
+            .open_track_writer(session_id, track_id, storage)
+            .unwrap();
+        let packet_duration_ns = test_packet_duration_ns();
+        let samples = vec![0.25; usize::try_from(TEST_PACKET_FRAMES).unwrap()];
+
+        assert_eq!(
+            writer
+                .accept(captured_packet(track_id, 1, Some(-1)), &samples)
+                .unwrap(),
+            PacketPushResult::Accepted
+        );
+        assert_eq!(
+            writer
+                .accept(captured_packet(track_id, 3, None), &samples)
+                .unwrap(),
+            PacketPushResult::Accepted
+        );
+        writer.seal().unwrap();
+
+        let snapshot = store.review_snapshot(session_id).unwrap();
+        assert!(snapshot.gaps.is_empty());
+        assert_eq!(snapshot.tracks[0].durable_record_count, 2);
+        assert_eq!(snapshot.tracks[0].first_offset_ns, Some(0));
+        assert_eq!(
+            snapshot.tracks[0].last_offset_ns,
+            u64::try_from(packet_duration_ns * 2).ok()
+        );
+    }
+
+    #[test]
+    fn capture_clock_stall_records_one_timed_gap_and_keeps_later_audio() {
+        let (_directory, store) = store();
+        let bridge = TimestampBridge {
+            native_anchor_value: 0,
+            native_timescale: 1_000_000_000,
+            host_monotonic_anchor_ns: 0,
+            session_offset_ns: 0,
+        };
+        let (session_id, track_id, storage) = microphone_track(&store, bridge);
+        let mut writer = store
+            .open_track_writer(session_id, track_id, storage)
+            .unwrap();
+        let packet_duration_ns = test_packet_duration_ns();
+        let samples = vec![0.25; usize::try_from(TEST_PACKET_FRAMES).unwrap()];
+
+        assert_eq!(
+            writer
+                .accept(captured_packet(track_id, 0, Some(0)), &samples)
+                .unwrap(),
+            PacketPushResult::Accepted
+        );
+        assert_eq!(
+            writer
+                .accept(
+                    captured_packet(track_id, 1, Some(packet_duration_ns * 3)),
+                    &samples,
+                )
+                .unwrap(),
+            PacketPushResult::Accepted
+        );
+        writer.seal().unwrap();
+
+        let snapshot = store.review_snapshot(session_id).unwrap();
+        assert_eq!(snapshot.tracks[0].durable_record_count, 2);
+        assert_eq!(snapshot.gaps.len(), 1);
+        let gap = &snapshot.gaps[0];
+        assert_eq!(gap.reason, SourceGapReason::TimestampDiscontinuity);
+        assert_eq!(gap.start_offset_ns, u64::try_from(packet_duration_ns).ok());
+        assert_eq!(
+            gap.end_offset_ns,
+            u64::try_from(packet_duration_ns * 3).ok()
+        );
+        assert_eq!(
+            gap.dropped_frames,
+            u64::try_from(packet_duration_ns * 2)
+                .ok()
+                .map(|duration_ns| { duration_ns * u64::from(TEST_PACKET_RATE) / 1_000_000_000 })
         );
     }
 

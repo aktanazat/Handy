@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Radar, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Notice, SettingsSection } from "@/components/settings/rows";
 import { Button } from "@/components/vg/button";
@@ -87,7 +87,8 @@ export const MeetingTrackersSettings: React.FC = () => {
       }
     >
       {trackers.length === 0 ? (
-        <div className="px-4 py-6">
+        <div className="flex flex-col items-center gap-2 px-4 py-6 text-center">
+          <Radar aria-hidden="true" className="size-6 text-gray-700" />
           <Notice tone="muted" live={false}>
             {t(
               "meetings.analytics.noTrackers",

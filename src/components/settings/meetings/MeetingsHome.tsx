@@ -11,6 +11,7 @@ import {
 } from "@/components/settings/rows";
 import { Button } from "@/components/vg/button";
 import { formatEntryTimestamp } from "@/lib/utils/format";
+import { destinationIcons } from "@/lib/navIcons";
 import { MeetingDetectionSettings } from "./MeetingDetectionSettings";
 import { CaptureCompletenessText } from "./MeetingStatus";
 import { MeetingSourceChip } from "./MeetingSourceChip";
@@ -25,6 +26,7 @@ import { MEETING_SOURCES } from "./meetingUtils";
 import { MeetingsHistory } from "./home/MeetingsHistory";
 
 const START_BUTTON_ID = "meeting-start-button";
+const StartRecordingIcon = destinationIcons.overview;
 
 interface MeetingStartCardProps {
   sources: SourceKind[];
@@ -72,6 +74,7 @@ const MeetingStartCard: React.FC<MeetingStartCardProps> = ({
           onClick={onStart}
           disabled={starting || sources.length === 0}
         >
+          <StartRecordingIcon aria-hidden="true" className="size-4" />
           {starting
             ? t("meetings.start.starting", "Starting…")
             : t("meetings.start.action", "Start recording")}

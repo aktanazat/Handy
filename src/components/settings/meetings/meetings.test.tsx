@@ -433,7 +433,8 @@ describe("meetings list", () => {
     expect(markup).toContain(">A<");
     expect(markup).toContain(">G<");
     expect(markup).toContain(">Ada, Grace<");
-    expect(markup).toContain("MIC SYS");
+    expect(markup).toContain(">MIC</span>");
+    expect(markup).toContain(">SYS</span>");
     expect(markup).toContain("3m 12s");
     // One chip, and it is the state that decides whether the row can be read.
     expect(markup).toContain('data-status="ready"');

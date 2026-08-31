@@ -198,6 +198,7 @@ enum Cmd {
 
 struct ActiveMeetingCapture {
     plan: SourceStartPlan,
+    anchor: SessionClockAnchor,
     sink: PacketSink,
     start_reply: Option<mpsc::Sender<Result<SourceStartReport, MeetingCaptureError>>>,
     timestamp_bridge: Option<TimestampBridge>,
@@ -205,6 +206,7 @@ struct ActiveMeetingCapture {
     paused_at_offset_ns: Option<u64>,
     final_offset_ns: Option<u64>,
     observed_gaps: Vec<SourceGap>,
+    untimestamped_prefix_ns: u64,
     overrun_reported: bool,
     paused: bool,
 }
@@ -212,12 +214,13 @@ struct ActiveMeetingCapture {
 impl ActiveMeetingCapture {
     fn new(
         plan: SourceStartPlan,
-        _anchor: SessionClockAnchor,
+        anchor: SessionClockAnchor,
         sink: PacketSink,
         start_reply: mpsc::Sender<Result<SourceStartReport, MeetingCaptureError>>,
     ) -> Self {
         Self {
             plan,
+            anchor,
             sink,
             start_reply: Some(start_reply),
             timestamp_bridge: None,
@@ -225,6 +228,7 @@ impl ActiveMeetingCapture {
             paused_at_offset_ns: None,
             final_offset_ns: None,
             observed_gaps: Vec::with_capacity(4),
+            untimestamped_prefix_ns: 0,
             overrun_reported: false,
             paused: false,
         }
@@ -236,16 +240,25 @@ impl ActiveMeetingCapture {
         host_monotonic_anchor_ns: Option<u64>,
     ) -> Option<TimestampBridge> {
         if self.timestamp_bridge.is_none() {
-            let (native_anchor_value, native_timescale) = native_timestamp?;
+            let (native_timestamp_value, native_timescale) = native_timestamp?;
             let host_monotonic_anchor_ns = host_monotonic_anchor_ns?;
             if native_timescale == 0 {
                 return None;
             }
+            let prefix_ticks = u128::from(self.untimestamped_prefix_ns)
+                .checked_mul(u128::from(native_timescale))?
+                .checked_div(1_000_000_000)?;
+            let prefix_ticks = i64::try_from(prefix_ticks).ok()?;
+            let native_anchor_value = native_timestamp_value.checked_sub(prefix_ticks)?;
+            let host_monotonic_anchor_ns =
+                host_monotonic_anchor_ns.checked_sub(self.untimestamped_prefix_ns)?;
+            let session_offset_ns =
+                host_monotonic_anchor_ns.checked_sub(self.anchor.host_monotonic_anchor_ns)?;
             self.timestamp_bridge = Some(TimestampBridge {
                 native_anchor_value,
                 native_timescale,
                 host_monotonic_anchor_ns,
-                session_offset_ns: 0,
+                session_offset_ns,
             });
         }
         self.timestamp_bridge
@@ -267,9 +280,18 @@ impl ActiveMeetingCapture {
         }
     }
 
+    fn packet_duration_ns(sample_rate_hz: u32, frame_count: u32) -> Option<u64> {
+        u64::from(frame_count)
+            .checked_mul(1_000_000_000)?
+            .checked_div(u64::from(sample_rate_hz))
+    }
+
     fn source_offset(&self, native_timestamp: Option<(i64, u32)>) -> Option<u64> {
-        let (value, timescale) = native_timestamp?;
-        self.timestamp_bridge?.map_native(value, timescale)
+        match native_timestamp {
+            Some((value, timescale)) => self.timestamp_bridge?.map_native(value, timescale),
+            None if self.timestamp_bridge.is_some() => self.final_offset_ns,
+            None => None,
+        }
     }
 
     fn source_end_offset(
@@ -278,11 +300,8 @@ impl ActiveMeetingCapture {
         sample_rate_hz: u32,
         frame_count: u32,
     ) -> Option<u64> {
-        let start = self.source_offset(native_timestamp)?;
-        let duration_ns = u64::from(frame_count)
-            .checked_mul(1_000_000_000)?
-            .checked_div(u64::from(sample_rate_hz))?;
-        start.checked_add(duration_ns)
+        self.source_offset(native_timestamp)?
+            .checked_add(Self::packet_duration_ns(sample_rate_hz, frame_count)?)
     }
 
     fn report_gap(&mut self, gap: SourceGap) {
@@ -1262,6 +1281,18 @@ fn observe_meeting_packet(
     samples: &[f32],
 ) {
     let native_timestamp = descriptor_timestamp(descriptor);
+    if native_timestamp.is_none() && capture.timestamp_bridge.is_none() {
+        let Some(duration_ns) = ActiveMeetingCapture::packet_duration_ns(
+            descriptor.sample_rate,
+            descriptor.frame_count,
+        ) else {
+            return;
+        };
+        let Some(prefix_ns) = capture.untimestamped_prefix_ns.checked_add(duration_ns) else {
+            return;
+        };
+        capture.untimestamped_prefix_ns = prefix_ns;
+    }
     let timestamp_bridge =
         capture.establish_timestamp_bridge(native_timestamp, descriptor.host_monotonic_anchor_ns);
     let packet = CapturedPacket {
@@ -1288,16 +1319,6 @@ fn observe_meeting_packet(
         descriptor.frame_count,
     );
 
-    if native_timestamp.is_none() {
-        capture.report_gap(SourceGap {
-            track_id: capture.plan.track_id,
-            epoch: packet.source_epoch,
-            start_offset_ns: None,
-            end_offset_ns: None,
-            reason: SourceGapReason::TimestampMissing,
-            dropped_frames: None,
-        });
-    }
     if descriptor.flags & TIMESTAMP_DISCONTINUITY != 0 {
         capture.report_gap(SourceGap {
             track_id: capture.plan.track_id,
@@ -1942,13 +1963,16 @@ fn run_consumer(inputs: ConsumerInputs) {
 mod tests {
     use super::{
         cached_config_for, capture_into_lane, capture_into_timed_lane, capture_lane,
-        is_microphone_access_denied, is_no_input_device_error, retain_no_speech_samples,
-        run_consumer, store_config, AudioRecorder, CaptureError, CaptureProducer, Cmd,
-        ConsumerInputs, MeetingCallbackControl, RecordedAudio, TimedCaptureState, VadConfig,
-        VadPolicy, MAX_NO_SPEECH_HISTORY_SAMPLES,
+        is_microphone_access_denied, is_no_input_device_error, observe_meeting_packet,
+        retain_no_speech_samples, run_consumer, store_config, ActiveMeetingCapture, AudioRecorder,
+        CaptureError, CaptureProducer, Cmd, ConsumerInputs, MeetingCallbackControl, PacketSink,
+        RecordedAudio, TimedCaptureState, VadConfig, VadPolicy, MAX_NO_SPEECH_HISTORY_SAMPLES,
     };
     use crate::audio_toolkit::vad::{VadFrame, VoiceActivityDetector};
-    use crate::meeting::types::SourceEpoch;
+    use crate::meeting::types::{
+        MeetingSessionId, SessionClockAnchor, SourceEpoch, SourceKind, SourceStartPlan,
+        SourceTrackId,
+    };
     use cpal::{InputCallbackInfo, InputStreamTimestamp, StreamInstant};
     use std::{
         sync::{
@@ -2246,6 +2270,78 @@ mod tests {
             "the timed callback allocated while refusing samples"
         );
         assert!(consumer.timed_overrun(NATIVE_RATE).is_some());
+    }
+
+    #[test]
+    fn initial_untimestamped_packet_extends_the_real_capture_clock() {
+        let track_id = SourceTrackId::new();
+        let (sink, mut reader) = PacketSink::new(track_id, 1_024, 2);
+        let (start_reply, start_result) = mpsc::channel();
+        let session_anchor_ns = 5_000_000_000;
+        let mut capture = ActiveMeetingCapture::new(
+            SourceStartPlan {
+                session_id: MeetingSessionId::new(),
+                track_id,
+                source_kind: SourceKind::Microphone,
+                required: true,
+                frozen_application_bundle_ids: Vec::new(),
+                source_epoch: SourceEpoch::new(0),
+            },
+            SessionClockAnchor {
+                host_monotonic_anchor_ns: session_anchor_ns,
+                wall_start_utc_ms: 0,
+                clock_policy_version: 1,
+            },
+            sink,
+            start_reply,
+        );
+        let frame_count = 512;
+        let packet_duration_ns = i64::from(frame_count) * 1_000_000_000 / i64::from(NATIVE_RATE);
+        let samples = vec![0.25; usize::try_from(frame_count).unwrap()];
+        let descriptor = |sequence, timestamp: Option<i64>| capture_lane::CaptureDescriptor {
+            sequence,
+            source_epoch: 0,
+            native_timestamp_value: timestamp.unwrap_or_default(),
+            native_timestamp_timescale: timestamp.map_or(0, |_| 1_000_000_000),
+            host_monotonic_anchor_ns: timestamp
+                .and_then(|value| u64::try_from(value).ok())
+                .and_then(|value| session_anchor_ns.checked_add(value)),
+            format_epoch: 1,
+            frame_start: 0,
+            frame_count,
+            sample_rate: NATIVE_RATE,
+            channels: 1,
+            sample_format: capture_lane::CaptureSampleFormat::F32,
+            flags: timestamp.map_or(capture_lane::TIMESTAMP_MISSING, |_| 0),
+        };
+
+        observe_meeting_packet(&mut capture, descriptor(0, None), &samples);
+        assert!(matches!(
+            start_result.try_recv(),
+            Err(mpsc::TryRecvError::Empty)
+        ));
+        observe_meeting_packet(
+            &mut capture,
+            descriptor(1, Some(packet_duration_ns)),
+            &samples,
+        );
+
+        let report = start_result.recv().unwrap().unwrap();
+        assert_eq!(report.timestamp_bridge.native_anchor_value, 0);
+        assert_eq!(
+            report.timestamp_bridge.host_monotonic_anchor_ns,
+            session_anchor_ns
+        );
+        assert_eq!(report.timestamp_bridge.session_offset_ns, 0);
+        assert!(reader.pop_gap().is_none());
+
+        let mut stored_samples = Vec::new();
+        let prefix = reader.pop_into(&mut stored_samples).unwrap().unwrap();
+        assert_eq!(prefix.sequence, 0);
+        assert_eq!(prefix.native_timestamp_value, None);
+        let timestamped = reader.pop_into(&mut stored_samples).unwrap().unwrap();
+        assert_eq!(timestamped.sequence, 1);
+        assert_eq!(timestamped.native_timestamp_value, Some(packet_duration_ns));
     }
 
     #[test]

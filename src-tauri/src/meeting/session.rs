@@ -1094,11 +1094,9 @@ impl MeetingSessionManager {
             .filter(|active| active.session_id == request.session_id)
             .ok_or(MeetingCommandError::NotFound)?;
         for source in active.sources.values_mut() {
-            if let Ok(report) = source.source.stop() {
-                for gap in report.observed_gaps {
-                    store.record_gap(&gap).map_err(map_store_error)?;
-                }
-            }
+            // The packet lane is the persistence path. The stop report repeats
+            // what the source observed and must not insert every gap a second time.
+            let _ = source.source.stop();
             source.worker.stop().map_err(map_store_error)?;
         }
         let stopping = store
