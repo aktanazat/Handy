@@ -17,6 +17,7 @@ import type {
   SpeakerId,
 } from "@/bindings";
 import type { MeetingPreviewFacts } from "./MeetingPreviewCard";
+import type { CalendarEventSummary } from "./detectionStore";
 
 export interface MeetingsSettingsProps {
   invalidation?: number;
@@ -30,6 +31,7 @@ export interface MeetingStartOptions {
   title: string;
   origin: MeetingOrigin;
   suggestionId: MeetingSuggestionId | null;
+  calendarEventKey: string | null;
   sources: SourceKind[];
   degradedStartPolicy: DegradedStartPolicy;
   destination: ProcessingDestination;
@@ -88,7 +90,7 @@ export interface MeetingsHomeScreenActions {
   onSourcesChange: (sources: SourceKind[]) => void;
   onStart: () => void;
   onStartSuggestion: (suggestion: MeetingSuggestion) => void;
-  onStartEvent: (facts: MeetingPreviewFacts) => void;
+  onStartEvent: (event: CalendarEventSummary) => void;
   onOpenMeeting: (sessionId: string) => void;
   onFinalizeRecovery: (sessionId: string) => void;
   onDiscardRecovery: (sessionId: string) => void;

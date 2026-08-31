@@ -4,6 +4,7 @@ use super::analytics::{
 };
 use super::capture::{MeetingCaptureSource, PacketLaneReadError, PacketLaneReader, PacketSink};
 use super::clock::host_monotonic_now_ns;
+use super::detection::machine::CalendarEventSummary;
 use super::export;
 use super::keep_awake::MeetingKeepAwake;
 use super::ledger;
@@ -30,7 +31,7 @@ use tauri::{AppHandle, Emitter};
 use tauri_plugin_dialog::DialogExt;
 use uuid::Uuid;
 
-const MEETING_EVENT_SCHEMA_VERSION: u32 = 1;
+pub(super) const MEETING_EVENT_SCHEMA_VERSION: u32 = 1;
 const DEFAULT_RECORD_MAX_PAYLOAD_BYTES: u32 = 4 * 1024 * 1024;
 const DEFAULT_CHECKPOINT_INTERVAL_MS: u32 = 1_000;
 const DEFAULT_SOURCE_SAMPLE_CAPACITY: u32 = 96_000;
@@ -143,6 +144,8 @@ pub struct MeetingPreflightCreateRequest {
     pub title: String,
     pub origin: MeetingOrigin,
     pub suggestion_id: Option<MeetingSuggestionId>,
+    #[serde(default)]
+    pub calendar_event_key: Option<String>,
     pub requested_sources: Vec<SourceKind>,
     pub required_sources: Vec<SourceKind>,
     pub accepted_known_missing_sources: Vec<SourceKind>,
@@ -536,6 +539,19 @@ impl MeetingSessionManager {
         &self,
         request: MeetingPreflightCreateRequest,
     ) -> Result<MeetingMutationResult, MeetingCommandError> {
+        self.create_preflight_with_calendar(request, None).await
+    }
+
+    pub async fn create_preflight_with_calendar(
+        &self,
+        request: MeetingPreflightCreateRequest,
+        calendar_event: Option<CalendarEventSummary>,
+    ) -> Result<MeetingMutationResult, MeetingCommandError> {
+        match (&request.calendar_event_key, &calendar_event) {
+            (None, None) => {}
+            (Some(event_key), Some(event)) if event_key == &event.event_key => {}
+            _ => return Err(MeetingCommandError::InvalidRequest),
+        }
         if request.expected_revision != 0
             || request.title.trim().is_empty()
             || request.requested_sources.is_empty()
@@ -561,6 +577,11 @@ impl MeetingSessionManager {
             .map_err(map_store_error)?
         {
             let session_id = receipt.session_id.ok_or(MeetingCommandError::NotFound)?;
+            if let Some(event) = calendar_event.as_ref() {
+                store
+                    .remember_calendar_facts(session_id, event)
+                    .map_err(map_store_error)?;
+            }
             return self.result_for_receipt(store, receipt, session_id);
         }
         let session_id = MeetingSessionId::new();
@@ -581,6 +602,11 @@ impl MeetingSessionManager {
                 retention_policy,
             )
             .map_err(map_store_error)?;
+        if let Some(event) = calendar_event.as_ref() {
+            store
+                .remember_calendar_facts(session_id, event)
+                .map_err(map_store_error)?;
+        }
         let result = self.result_for_receipt(store, receipt, session_id)?;
         self.emit_session_changed(&result.snapshot);
         Ok(result)
@@ -596,6 +622,7 @@ impl MeetingSessionManager {
                 title: "Local notes".to_string(),
                 origin: MeetingOrigin::Manual,
                 suggestion_id: None,
+                calendar_event_key: None,
                 requested_sources: SourceKind::ALL.to_vec(),
                 required_sources: SourceKind::ALL.to_vec(),
                 accepted_known_missing_sources: Vec::new(),
@@ -631,6 +658,7 @@ impl MeetingSessionManager {
             title: current.proposed_title.clone(),
             origin: current.origin,
             suggestion_id: None,
+            calendar_event_key: None,
             requested_sources: current
                 .sources
                 .iter()
@@ -882,6 +910,7 @@ impl MeetingSessionManager {
             .session_snapshot(request.session_id)
             .map_err(map_store_error)?;
         self.emit_session_changed(&snapshot);
+        self.record_meeting_started(Arc::clone(&store), request.session_id);
         Ok(MeetingMutationResult { receipt, snapshot })
     }
 
@@ -1211,7 +1240,10 @@ impl MeetingSessionManager {
                 source.worker.stop().map_err(map_store_error)?;
             }
         }
-        store.finish_deletion(job_id).map_err(map_store_error)?;
+        let people_revision = store.finish_deletion(job_id).map_err(map_store_error)?;
+        if let Some(people_revision) = people_revision {
+            self.emit_artifact_changed(Some(request.session_id), people_revision);
+        }
         self.emit_removed(
             request.session_id,
             receipt.new_revision.unwrap_or(request.expected_revision),
@@ -1347,6 +1379,9 @@ impl MeetingSessionManager {
         request: MeetingSpeakerRenameRequest,
     ) -> Result<MeetingMutationResult, MeetingCommandError> {
         let store = self.store().await?;
+        let display_name = request.display_name.clone();
+        let operation_id = request.operation_id;
+        let session_id = request.session_id;
         let receipt = store
             .rename_speaker(
                 request.operation_id,
@@ -1357,8 +1392,11 @@ impl MeetingSessionManager {
                 request.display_name,
             )
             .map_err(map_store_error)?;
-        let result = self.result_for_receipt(store, receipt, request.session_id)?;
+        let result = self.result_for_receipt(Arc::clone(&store), receipt, request.session_id)?;
         self.emit_session_changed(&result.snapshot);
+        if result.receipt.result == OperationResult::Committed {
+            self.record_speaker_renamed(Arc::clone(&store), session_id, operation_id, display_name);
+        }
         Ok(result)
     }
 
@@ -1964,7 +2002,7 @@ impl MeetingSessionManager {
     /// run its migrations concurrently against one database, which fails one of
     /// them with `StorageUnavailable` and makes Capture report that meeting
     /// storage is gone on a healthy install.
-    async fn store(&self) -> Result<Arc<MeetingStore>, MeetingCommandError> {
+    pub(super) async fn store(&self) -> Result<Arc<MeetingStore>, MeetingCommandError> {
         if let Some(store) = self.store_lock().clone() {
             return Ok(store);
         }
@@ -1982,7 +2020,13 @@ impl MeetingSessionManager {
             return Ok(store);
         }
         let opened = MeetingStore::open(root, key).map_err(map_store_error)?;
-        Ok(cached.insert(opened).clone())
+        let store = cached.insert(opened).clone();
+        drop(cached);
+        super::workflow_engine::resume_pending_workflow_events(
+            Arc::clone(&store),
+            self.app.clone(),
+        );
+        Ok(store)
     }
 
     fn build_preflight_snapshot(
@@ -2069,8 +2113,8 @@ impl MeetingSessionManager {
                 .filter(|source| source.required)
                 .map(|source| source.source_kind)
                 .collect(),
-            accepted_known_missing_sources: preflight.accepted_known_missing_sources.clone(),
-            degraded_start_policy: preflight.degraded_start_policy,
+            accepted_known_missing_sources: consent.known_missing_sources_acknowledged.clone(),
+            degraded_start_policy: consent.degraded_start_policy,
             microphone_device_uid: preflight.microphone_device_uid.clone(),
             frozen_system_audio_application_bundle_ids: preflight
                 .frozen_system_audio_application_bundle_ids
@@ -2130,6 +2174,27 @@ impl MeetingSessionManager {
         self.store
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    pub(super) fn app_handle(&self) -> Option<&AppHandle> {
+        self.app.as_ref()
+    }
+
+    pub(super) fn emit_artifact_changed(
+        &self,
+        session_id: Option<MeetingSessionId>,
+        revision: u64,
+    ) {
+        if let Some(app) = &self.app {
+            let _ = app.emit(
+                "meeting:artifact-changed",
+                MeetingEventPayload {
+                    event_schema_version: MEETING_EVENT_SCHEMA_VERSION,
+                    session_id,
+                    revision,
+                },
+            );
+        }
     }
 
     fn emit_session_changed(&self, snapshot: &MeetingSessionSnapshot) {
@@ -2489,10 +2554,20 @@ mod tests {
     struct FakeSources {
         starts: Arc<std::sync::atomic::AtomicUsize>,
         aborts: Arc<std::sync::atomic::AtomicUsize>,
+        unavailable: Option<SourceKind>,
     }
 
     impl MeetingSourceProvider for FakeSources {
         fn probe(&self, source_kind: SourceKind) -> SourceProbe {
+            if self.unavailable == Some(source_kind) {
+                return SourceProbe {
+                    source_kind,
+                    availability: SourceAvailability::PermissionDenied,
+                    health: SourceHealth::NotStarted,
+                    detail: Some(SourceProbeDetail::Permission),
+                    negotiated_format: None,
+                };
+            }
             SourceProbe {
                 source_kind,
                 availability: SourceAvailability::Available,
@@ -2509,6 +2584,9 @@ mod tests {
             &self,
             source_kind: SourceKind,
         ) -> Result<Box<dyn MeetingCaptureSource>, MeetingCaptureError> {
+            if self.unavailable == Some(source_kind) {
+                return Err(MeetingCaptureError::Unavailable);
+            }
             Ok(Box::new(FakeSource {
                 kind: source_kind,
                 starts: Arc::clone(&self.starts),
@@ -2536,6 +2614,7 @@ mod tests {
             Arc::new(FakeSources {
                 starts: Arc::clone(&starts),
                 aborts: Arc::clone(&aborts),
+                unavailable: None,
             }),
         );
         (directory, manager, starts, aborts)
@@ -2550,6 +2629,7 @@ mod tests {
                 title: "Retention test".to_string(),
                 origin: MeetingOrigin::Manual,
                 suggestion_id: None,
+                calendar_event_key: None,
                 requested_sources: SourceKind::ALL.to_vec(),
                 required_sources: SourceKind::ALL.to_vec(),
                 accepted_known_missing_sources: Vec::new(),
@@ -2748,6 +2828,7 @@ mod tests {
                 title: "Active capture".to_string(),
                 origin: MeetingOrigin::Manual,
                 suggestion_id: None,
+                calendar_event_key: None,
                 requested_sources: SourceKind::ALL.to_vec(),
                 required_sources: SourceKind::ALL.to_vec(),
                 accepted_known_missing_sources: Vec::new(),
@@ -2870,6 +2951,7 @@ mod tests {
             Arc::new(FakeSources {
                 starts: Arc::clone(&starts),
                 aborts: Arc::clone(&aborts),
+                unavailable: None,
             }),
         );
         let snapshot = review_ready_session(&manager);
@@ -2879,7 +2961,11 @@ mod tests {
             None,
             Some(root),
             secrets,
-            Arc::new(FakeSources { starts, aborts }),
+            Arc::new(FakeSources {
+                starts,
+                aborts,
+                unavailable: None,
+            }),
         );
         assert!(tauri::async_runtime::block_on(
             restarted.recover_at_startup_at(retention_deadline(&snapshot)),
@@ -2890,6 +2976,88 @@ mod tests {
             tauri::async_runtime::block_on(restarted.get(snapshot.session_id)),
             Err(MeetingCommandError::NotFound)
         ));
+    }
+
+    #[test]
+    fn acknowledged_partial_retry_starts_with_the_available_source() {
+        let directory = TempDir::new().unwrap();
+        let secrets = Arc::new(SecretManager::with_backend(Arc::new(
+            MemorySecretBackend::new(),
+        )));
+        let starts = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let aborts = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let manager = MeetingSessionManager::with_parts(
+            None,
+            Some(directory.path().join("meetings")),
+            secrets,
+            Arc::new(FakeSources {
+                starts: Arc::clone(&starts),
+                aborts,
+                unavailable: Some(SourceKind::SystemAudio),
+            }),
+        );
+        let preflight = tauri::async_runtime::block_on(manager.create_preflight(
+            MeetingPreflightCreateRequest {
+                operation_id: MeetingOperationId::new(),
+                expected_revision: 0,
+                title: "Acknowledged partial capture".to_string(),
+                origin: MeetingOrigin::Manual,
+                suggestion_id: None,
+                calendar_event_key: None,
+                requested_sources: SourceKind::ALL.to_vec(),
+                required_sources: SourceKind::ALL.to_vec(),
+                accepted_known_missing_sources: Vec::new(),
+                degraded_start_policy: DegradedStartPolicy::AbortIfRequiredSourceFails,
+                destination: ProcessingDestination::Local,
+                remote_acknowledgement: None,
+                microphone_device_uid: None,
+                frozen_system_audio_application_bundle_ids: Vec::new(),
+            },
+        ))
+        .unwrap();
+
+        let started = tauri::async_runtime::block_on(manager.start(MeetingStartRequest {
+            operation_id: MeetingOperationId::new(),
+            session_id: preflight.snapshot.session_id,
+            expected_revision: preflight.snapshot.revision,
+            consent: MeetingConsentInput {
+                policy_version: 1,
+                microphone_acknowledged: true,
+                system_audio_acknowledged: true,
+                known_missing_sources_acknowledged: vec![SourceKind::SystemAudio],
+                degraded_start_policy: DegradedStartPolicy::ContinueAndMarkPartial,
+                destination: ProcessingDestination::Local,
+                remote_acknowledgement: None,
+            },
+        }))
+        .unwrap();
+
+        assert_eq!(started.snapshot.phase, MeetingPhase::CapturingRecording);
+        assert_eq!(starts.load(Ordering::Acquire), 1);
+        let plan = tauri::async_runtime::block_on(async {
+            manager
+                .store()
+                .await
+                .unwrap()
+                .processing_plan(started.snapshot.session_id)
+                .unwrap()
+        });
+        assert_eq!(
+            plan.accepted_known_missing_sources,
+            vec![SourceKind::SystemAudio]
+        );
+        assert_eq!(
+            plan.degraded_start_policy,
+            DegradedStartPolicy::ContinueAndMarkPartial
+        );
+
+        let discarded = tauri::async_runtime::block_on(manager.discard(MeetingMutationRequest {
+            operation_id: MeetingOperationId::new(),
+            session_id: started.snapshot.session_id,
+            expected_revision: started.snapshot.revision,
+        }))
+        .unwrap();
+        assert!(discarded.removed);
     }
 
     #[test]
@@ -2911,6 +3079,7 @@ mod tests {
                 title: "Design sync".to_string(),
                 origin: MeetingOrigin::Manual,
                 suggestion_id: None,
+                calendar_event_key: None,
                 requested_sources: SourceKind::ALL.to_vec(),
                 required_sources: SourceKind::ALL.to_vec(),
                 accepted_known_missing_sources: Vec::new(),
@@ -2950,6 +3119,7 @@ mod tests {
                 title: "Design sync".to_string(),
                 origin: MeetingOrigin::Manual,
                 suggestion_id: None,
+                calendar_event_key: None,
                 requested_sources: SourceKind::ALL.to_vec(),
                 required_sources: SourceKind::ALL.to_vec(),
                 accepted_known_missing_sources: Vec::new(),
@@ -2994,5 +3164,65 @@ mod tests {
         .unwrap();
         assert!(removed.removed);
         assert_eq!(aborts.load(Ordering::Acquire), 2);
+    }
+
+    #[test]
+    fn countdown_preflight_persists_the_exact_calendar_event() {
+        let (_directory, manager, _, _) = manager();
+        let event = CalendarEventSummary {
+            event_key: "calendar-event-1".to_string(),
+            title: "Roadmap review".to_string(),
+            attendee_count: 2,
+            start_utc_ms: 1_000,
+            end_utc_ms: 2_000,
+            attendees: Vec::new(),
+            notes: Some("Review Q4".to_string()),
+            calendar_name: Some("Work".to_string()),
+            url: Some("https://meet.example/roadmap".to_string()),
+        };
+        let request = MeetingPreflightCreateRequest {
+            operation_id: MeetingOperationId::new(),
+            expected_revision: 0,
+            title: event.title.clone(),
+            origin: MeetingOrigin::Manual,
+            suggestion_id: None,
+            calendar_event_key: Some(event.event_key.clone()),
+            requested_sources: SourceKind::ALL.to_vec(),
+            required_sources: SourceKind::ALL.to_vec(),
+            accepted_known_missing_sources: Vec::new(),
+            degraded_start_policy: DegradedStartPolicy::AbortIfRequiredSourceFails,
+            destination: ProcessingDestination::Local,
+            remote_acknowledgement: None,
+            microphone_device_uid: None,
+            frozen_system_audio_application_bundle_ids: Vec::new(),
+        };
+        let result = tauri::async_runtime::block_on(
+            manager.create_preflight_with_calendar(request, Some(event.clone())),
+        )
+        .unwrap();
+        let store = tauri::async_runtime::block_on(manager.store()).unwrap();
+        assert_eq!(
+            store
+                .meeting_calendar_facts(result.snapshot.session_id)
+                .unwrap(),
+            Some(event)
+        );
+    }
+
+    #[test]
+    fn agent_hook_acknowledges_only_durable_event_insertions() {
+        let (_directory, manager, _, _) = manager();
+        assert!(tauri::async_runtime::block_on(
+            manager.record_agent_hook_event("request-1".to_string(), "permission".to_string())
+        ));
+
+        let secrets = Arc::new(SecretManager::with_backend(Arc::new(
+            MemorySecretBackend::new(),
+        )));
+        let unavailable =
+            MeetingSessionManager::with_parts(None, None, secrets, Arc::new(NoCaptureSources));
+        assert!(!tauri::async_runtime::block_on(
+            unavailable.record_agent_hook_event("request-2".to_string(), "permission".to_string(),)
+        ));
     }
 }

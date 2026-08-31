@@ -164,6 +164,31 @@ const AVAILABILITY_TONES = {
   unknown: "muted",
 } as const satisfies Record<SourceAvailability, StatusTone>;
 
+export interface SourceAvailabilityTextProps {
+  availability: SourceAvailability;
+  /** Announce a refreshed preflight result without moving focus. */
+  live?: "off" | "polite";
+  className?: string;
+}
+
+export const SourceAvailabilityText: React.FC<SourceAvailabilityTextProps> = ({
+  availability,
+  live = "off",
+  className,
+}) => {
+  const { t } = useTranslation();
+
+  return (
+    <StatusWord
+      tone={AVAILABILITY_TONES[availability]}
+      live={live}
+      className={className}
+    >
+      {t(sourceAvailabilityKey(availability))}
+    </StatusWord>
+  );
+};
+
 const HEALTH_TONES = {
   not_started: "muted",
   starting: "muted",

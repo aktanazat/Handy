@@ -3,12 +3,15 @@ import { useTranslation } from "react-i18next";
 import type { SourceKind } from "@/bindings";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { promptTitle } from "./DetectionListeners";
-import { useDetectionStore, type DetectionPromptKind } from "./detectionStore";
+import {
+  useDetectionStore,
+  type CalendarEventSummary,
+  type DetectionPromptKind,
+} from "./detectionStore";
 import {
   MeetingPreviewCard,
   MeetingPreviewList,
   eventFacts,
-  type MeetingPreviewFacts,
 } from "./MeetingPreviewCard";
 
 /* The pre-meeting pane from §5.3 case 1, plus any prompt still waiting.
@@ -38,7 +41,7 @@ export interface PreMeetingCountdownCardProps {
   /** Routes a calendar event into the page's existing start path, which
    * creates a preflight and puts the consent screen in front of the
    * operator. */
-  onStartEvent: (facts: MeetingPreviewFacts) => void;
+  onStartEvent: (event: CalendarEventSummary) => void;
 }
 
 /** The application a prompt names, for prompts that name one. A calendar
@@ -104,6 +107,7 @@ export const PreMeetingCountdownCard: React.FC<
           key={countdown.event.eventKey}
           facts={eventFacts(countdown.event, t)}
           secondsToStart={countdown.secondsToStart}
+          briefing={countdown.briefing}
           /* The countdown is the one card worth opening on arrival: it is on
            * screen because something is about to start, and every row on it
            * is a decision that expires. */
@@ -120,7 +124,7 @@ export const PreMeetingCountdownCard: React.FC<
           recording={recording}
           notesTemplate={notesTemplate}
           starting={starting}
-          onStart={() => onStartEvent(eventFacts(countdown.event, t))}
+          onStart={() => onStartEvent(countdown.event)}
         />
       ) : null}
 

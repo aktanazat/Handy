@@ -1,7 +1,11 @@
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { create } from "zustand";
-import type { DetectionPromptEvent, DetectionPromptKind } from "@/bindings";
+import type {
+  DetectionPromptEvent,
+  DetectionPromptKind,
+  PersonBriefingRow,
+} from "@/bindings";
 
 /* Detection's frontend contract.
  *
@@ -93,6 +97,7 @@ export interface CalendarEventSummary {
 export interface DetectionCountdown {
   event: CalendarEventSummary;
   secondsToStart: number;
+  briefing: PersonBriefingRow[];
 }
 
 export interface DetectionStatus {

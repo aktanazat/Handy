@@ -81,6 +81,7 @@ const START_OPTIONS: MeetingStartOptions = {
   title: "Weekly planning",
   origin: "manual",
   suggestionId: null,
+  calendarEventKey: null,
   sources: ["microphone", "system_audio"],
   degradedStartPolicy: "abort_if_required_source_fails",
   destination: { kind: "local" },
@@ -525,16 +526,16 @@ describe("meetings list", () => {
     expect(occurrences(markup, 'data-slot="meeting-status"')).toBe(1);
   });
 
-  test("the ledger page is offered only where a ledger exists", () => {
-    expect(
-      row({ headline: { kind: "ledger", text: "Pricing is open again." } }),
-    ).toContain("Export ledger page");
-    expect(
-      occurrences(
-        row({ headline: { kind: "words", words: 12 } }),
-        "Export ledger page",
-      ),
-    ).toBe(0);
+  test("keeps row actions behind one shared menu trigger", () => {
+    const ledger = row({
+      headline: { kind: "ledger", text: "Pricing is open again." },
+    });
+    const words = row({ headline: { kind: "words", words: 12 } });
+
+    expect(occurrences(ledger, 'data-slot="dropdown-menu-trigger"')).toBe(1);
+    expect(occurrences(words, 'data-slot="dropdown-menu-trigger"')).toBe(1);
+    expect(ledger).not.toContain("Export ledger page");
+    expect(words).not.toContain("Export ledger page");
   });
 
   test("the filter bar states the whole query in KEY VALUE pairs", () => {
@@ -664,6 +665,9 @@ describe("the start gate", () => {
         session: {
           ...SNAPSHOT.session,
           phase: "preflight",
+          processing_status: { kind: "pending" },
+          preflight_local_processing: "available",
+          allowed_actions: ["refresh_preflight", "cancel_preflight", "start"],
           sources: SNAPSHOT.session.sources.map((source) => ({
             ...source,
             availability: "available",
@@ -676,6 +680,29 @@ describe("the start gate", () => {
       occurrences(buttonTag(markup, "Start recording"), 'disabled=""'),
     ).toBe(0);
     expect(occurrences(markup, "Record without it")).toBe(0);
+    expect(markup).toContain(">Available<");
+    expect(markup).not.toContain("Waiting for processing");
+  });
+
+  test("a stale preflight cannot render a press that its snapshot rejects", () => {
+    const markup = gateMarkup({
+      snapshot: {
+        ...SNAPSHOT,
+        session: {
+          ...SNAPSHOT.session,
+          phase: "preflight",
+          allowed_actions: ["refresh_preflight", "cancel_preflight"],
+          sources: SNAPSHOT.session.sources.map((source) => ({
+            ...source,
+            availability: "available",
+          })),
+        },
+      },
+    });
+    expect(buttonTag(markup, "Start recording")).toContain("disabled");
+    expect(markup).toContain(
+      "This action is not available in the current phase.",
+    );
   });
 });
 

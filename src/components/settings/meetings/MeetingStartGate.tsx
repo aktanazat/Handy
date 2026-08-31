@@ -17,8 +17,9 @@ import { Button } from "@/components/vg/button";
 import { Checkbox } from "@/components/vg/checkbox";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { MeetingPreviewCard } from "./MeetingPreviewCard";
-import { MeetingSourceList, ProcessingStatusText } from "./MeetingStatus";
+import { MeetingSourceList, SourceAvailabilityText } from "./MeetingStatus";
 import type { MeetingStartOptions } from "./meetingTypes";
+import { preflightAllowsAction } from "./meetingUtils";
 
 /* The only screen left between pressing Start and recording, and it appears
  * exactly when pressing Start could not work: the session exists but a source
@@ -69,6 +70,7 @@ export const MeetingStartGate: React.FC<MeetingStartGateProps> = ({
   );
   const blocked = blockedSources.length > 0;
   const storageAvailable = snapshot.session.storage === "available";
+  const canStart = preflightAllowsAction(snapshot.session, "start");
 
   /* Consent flags are populated here: the click on the labelled Start button
    * rendered below the assurance line on this screen is the operator's
@@ -87,7 +89,11 @@ export const MeetingStartGate: React.FC<MeetingStartGateProps> = ({
       type="button"
       variant="outline"
       onClick={onRefresh}
-      disabled={refreshing || starting}
+      disabled={
+        refreshing ||
+        starting ||
+        !preflightAllowsAction(snapshot.session, "refresh_preflight")
+      }
     >
       <RefreshCcw aria-hidden="true" />
       {refreshing
@@ -112,7 +118,7 @@ export const MeetingStartGate: React.FC<MeetingStartGateProps> = ({
             {t("meetings.actions.back")}
           </Button>
           <PageTitle>
-            {blocked
+            {blocked || !canStart
               ? t("meetings.gate.title", "Recording did not start")
               : t("meetings.gate.readyTitle", "Ready to record")}
           </PageTitle>
@@ -154,7 +160,12 @@ export const MeetingStartGate: React.FC<MeetingStartGateProps> = ({
           </span>
         </SettingsRow>
         <SettingsRow label={t("meetings.preflight.localModel")}>
-          <ProcessingStatusText status={snapshot.session.processing_status} />
+          <SourceAvailabilityText
+            availability={
+              snapshot.session.preflight_local_processing ?? "unknown"
+            }
+            live="polite"
+          />
         </SettingsRow>
       </SettingsSection>
 
@@ -187,13 +198,19 @@ export const MeetingStartGate: React.FC<MeetingStartGateProps> = ({
           </div>
         ) : null}
 
+        {canStart ? null : (
+          <p role="status" className="text-[13px] leading-5 text-red-900">
+            {t("meetings.reasons.invalid_transition")}
+          </p>
+        )}
+
         <div className="flex flex-wrap items-center justify-end gap-2">
           {refresh}
           {blocked ? (
             <Button
               type="button"
               onClick={() => start(true)}
-              disabled={!partialAccepted || starting}
+              disabled={!partialAccepted || starting || !canStart}
             >
               {starting
                 ? t("meetings.start.starting", "Starting…")
@@ -203,7 +220,7 @@ export const MeetingStartGate: React.FC<MeetingStartGateProps> = ({
             <Button
               type="button"
               onClick={() => start(false)}
-              disabled={starting}
+              disabled={starting || !canStart}
             >
               {starting
                 ? t("meetings.start.starting", "Starting…")

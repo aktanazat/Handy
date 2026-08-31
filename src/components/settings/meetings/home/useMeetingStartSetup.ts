@@ -17,6 +17,7 @@ export type MeetingStartOptionsBuilder = (
   suggestionId?: MeetingStartOptions["suggestionId"],
   title?: string,
   preview?: MeetingStartOptions["preview"],
+  calendarEventKey?: MeetingStartOptions["calendarEventKey"],
 ) => MeetingStartOptions;
 
 export interface MeetingStartSetup {
@@ -37,11 +38,13 @@ export const useMeetingStartSetup = (): MeetingStartSetup => {
       suggestionId: MeetingStartOptions["suggestionId"] = null,
       title = t("meetings.setup.defaultTitle"),
       preview: MeetingStartOptions["preview"] = null,
+      calendarEventKey: MeetingStartOptions["calendarEventKey"] = null,
     ): MeetingStartOptions => ({
       title,
       origin,
       suggestionId,
       sources,
+      calendarEventKey,
       degradedStartPolicy: "abort_if_required_source_fails",
       destination: { kind: "local" },
       preview,

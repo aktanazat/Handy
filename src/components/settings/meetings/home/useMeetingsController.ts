@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { suggestionFacts } from "../MeetingPreviewCard";
+import { eventFacts, suggestionFacts } from "../MeetingPreviewCard";
 import type {
   MeetingsController,
   MeetingsSettingsProps,
@@ -88,9 +88,16 @@ export const useMeetingsController = ({
             ),
           );
         },
-        onStartEvent: (facts) => {
+        onStartEvent: (event) => {
+          const facts = eventFacts(event, t);
           void startFlow.startMeeting(
-            setup.startOptions("manual", null, facts.title, facts),
+            setup.startOptions(
+              "manual",
+              null,
+              facts.title,
+              facts,
+              event.eventKey,
+            ),
           );
         },
         onOpenMeeting: (sessionId) => {

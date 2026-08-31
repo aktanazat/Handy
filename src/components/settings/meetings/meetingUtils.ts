@@ -1,8 +1,10 @@
 import type {
+  AllowedMeetingAction,
   CaptureCompleteness,
   MeetingCommandError,
   MeetingListFilter,
   MeetingPhase,
+  MeetingSessionSnapshot,
   MeetingProvider,
   MeetingReasonCode,
   MeetingStatusFilter,
@@ -115,6 +117,13 @@ export const isActiveMeetingPhase = (phase: MeetingPhase) =>
 
 export const isPreflightMeetingPhase = (phase: MeetingPhase) =>
   phase === "preflight";
+
+export const preflightAllowsAction = (
+  session: Pick<MeetingSessionSnapshot, "phase" | "allowed_actions">,
+  action: AllowedMeetingAction,
+) =>
+  isPreflightMeetingPhase(session.phase) &&
+  session.allowed_actions.includes(action);
 
 /** Every status a list filter can ask the store for, in menu order. */
 export const MEETING_STATUS_FILTERS: MeetingStatusFilter[] = [

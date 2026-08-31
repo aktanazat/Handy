@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { commands, type MeetingConsentInput } from "@/bindings";
 import { consentFor } from "../MeetingStartGate";
 import type { MeetingStartOptions } from "../meetingTypes";
+import { preflightAllowsAction } from "../meetingUtils";
 import type { MeetingOutcomes } from "./useMeetingOutcomes";
 import type { MeetingWorkflow } from "./useMeetingWorkflow";
 
@@ -29,7 +30,7 @@ export const useMeetingStartFlow = ({
   reportMeetingError,
 }: MeetingStartFlowOptions): MeetingStartFlow => {
   const { t } = useTranslation();
-  const { screen, snapshot } = workflow.state;
+  const { snapshot } = workflow.state;
   const {
     beginAction,
     finishAction,
@@ -83,6 +84,7 @@ export const useMeetingStartFlow = ({
           title: options.title.trim(),
           origin: options.origin,
           suggestion_id: options.suggestionId,
+          calendar_event_key: options.calendarEventKey,
           requested_sources: options.sources,
           required_sources: options.sources,
           accepted_known_missing_sources: [],
@@ -131,9 +133,14 @@ export const useMeetingStartFlow = ({
     ],
   );
 
+  /* A loaded preflight can render while navigation still names a generic
+   * session. Its phase and allowed actions are the command authority; the
+   * transient screen variant is not. */
   const startFromGate = useCallback(
     async (consent: MeetingConsentInput) => {
-      if (screen.kind !== "gate" || !snapshot) return;
+      if (!snapshot || !preflightAllowsAction(snapshot.session, "start")) {
+        return;
+      }
 
       beginAction("start");
       try {
@@ -148,13 +155,16 @@ export const useMeetingStartFlow = ({
         finishAction("start");
       }
     },
-    [beginAction, finishAction, screen, snapshot, startCapture, t],
+    [beginAction, finishAction, snapshot, startCapture, t],
   );
 
   /* Leaving the gate cancels the preflight row so an abandoned start does not
    * remain in meeting history. */
   const cancelGate = useCallback(async () => {
-    if (screen.kind !== "gate" || !snapshot) {
+    if (
+      !snapshot ||
+      !preflightAllowsAction(snapshot.session, "cancel_preflight")
+    ) {
       showHome();
       return;
     }
@@ -189,14 +199,18 @@ export const useMeetingStartFlow = ({
     refreshHome,
     refreshSessionAndHome,
     reportMeetingError,
-    screen,
     showHome,
     snapshot,
     t,
   ]);
 
   const refreshGate = useCallback(async () => {
-    if (screen.kind !== "gate" || !snapshot) return;
+    if (
+      !snapshot ||
+      !preflightAllowsAction(snapshot.session, "refresh_preflight")
+    ) {
+      return;
+    }
 
     beginAction("preflight_refresh");
     try {
@@ -223,7 +237,6 @@ export const useMeetingStartFlow = ({
     receiveReceipt,
     refreshSessionAndHome,
     reportMeetingError,
-    screen,
     snapshot,
     t,
   ]);

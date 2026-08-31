@@ -19,13 +19,18 @@ import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { toast } from "sonner";
-import type { MeetingSuggestion, SourceKind } from "@/bindings";
+import type {
+  MeetingSuggestion,
+  PersonBriefingRow,
+  SourceKind,
+} from "@/bindings";
 import { cn } from "@/lib/cn";
 import { formatDurationShort, formatEntryTimestamp } from "@/lib/utils/format";
 import { Microlabel, SETTINGS_CARD } from "@/components/settings/rows";
 import { Button } from "@/components/vg/button";
 import { Switch } from "@/components/vg/switch";
 import { MeetingSourceChip } from "./MeetingSourceChip";
+import { PreMeetingBriefing } from "@/components/people/PreMeetingBriefing";
 import type { MeetingNotesTemplate } from "./meetingAnalytics";
 import { MEETING_SOURCES, meetingProviderKey, sourceKey } from "./meetingUtils";
 import type {
@@ -109,6 +114,8 @@ export interface MeetingPreviewCardProps {
   facts: MeetingPreviewFacts;
   /** Live seconds until the event starts, when a countdown is running. */
   secondsToStart?: number | null;
+  /** Deterministic relationship context attached to a calendar countdown. */
+  briefing?: PersonBriefingRow[];
   notify?: MeetingPreviewNotify | null;
   recording?: MeetingPreviewRecording | null;
   /** The shape generated notes will take, read from the real setting. */
@@ -203,6 +210,7 @@ const PreviewRow: React.FC<PreviewRowProps> = ({ icon, label, children }) => (
 export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
   facts,
   secondsToStart = null,
+  briefing = [],
   notify = null,
   recording = null,
   notesTemplate = null,
@@ -363,6 +371,8 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
         </button>
         {actions}
       </div>
+
+      <PreMeetingBriefing rows={briefing} />
 
       {/* The collapse is a grid track, so the rows stay in the document and
        * have something to animate out of. `visibility` is what takes them out

@@ -9,6 +9,7 @@ import { I18nextProvider } from "react-i18next";
 import type {
   MeetingReviewSnapshot,
   MeetingSuggestion,
+  PersonBriefingRow,
   SourceKind,
 } from "@/bindings";
 import { formatDurationShort, formatEntryTimestamp } from "@/lib/utils/format";
@@ -116,6 +117,31 @@ const SUGGESTION: MeetingSuggestion = {
   expires_at_ns: 2,
 };
 
+const BRIEFING: PersonBriefingRow[] = [
+  {
+    person_id: "person-1",
+    display_name: "Dana Reyes",
+    meetings_count: 3,
+    last: {
+      id: "meeting-1",
+      title: "Planning",
+      at_utc_ms: START - 86_400_000,
+      headline: "Pricing remained open.",
+    },
+    open_loops: [
+      {
+        meeting_id: "meeting-1",
+        title: "Planning",
+        at_utc_ms: START - 86_400_000,
+        text: "Who owns the launch checklist?",
+        owner_person_id: "person-1",
+        carried_since_at_utc_ms: null,
+      },
+    ],
+    commitments: [],
+  },
+];
+
 const card = (props: Partial<MeetingPreviewCardProps> = {}) =>
   render(
     <ul>
@@ -195,6 +221,17 @@ describe("the collapsed row", () => {
     const open = card({ secondsToStart: 45, defaultExpanded: true });
 
     expect(occurrences(open, "Starts in 45s")).toBe(1);
+  });
+
+  test("shows the frozen relationship briefing in at most two quiet lines", () => {
+    const markup = card({ briefing: BRIEFING });
+
+    expect(markup).toContain('data-slot="preview-briefing"');
+    expect(markup).toContain("You have met Dana Reyes 3 times");
+    expect(markup).toContain("Who owns the launch checklist?");
+    expect(markup).toContain(formatEntryTimestamp(START - 86_400_000));
+    expect(occurrences(markup, '<p class="truncate">')).toBe(2);
+    expect(card()).not.toContain('data-slot="preview-briefing"');
   });
 
   test("omits the head count for an event with no attendee list", () => {
@@ -632,6 +669,7 @@ const GATE_OPTIONS: MeetingStartOptions = {
   title: "Quarterly planning",
   origin: "manual",
   suggestionId: null,
+  calendarEventKey: EVENT.eventKey,
   sources: ["microphone", "system_audio"],
   degradedStartPolicy: "abort_if_required_source_fails",
   destination: { kind: "local" },
