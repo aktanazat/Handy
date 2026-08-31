@@ -13,36 +13,50 @@ import type {
   HistoryStats,
   ModeReceipt,
 } from "@/bindings";
+import { startOfLocalDay } from "@/lib/utils/localDay";
 import { HistoryEntryComponent } from "./HistoryEntry";
+import { HistoryFeed } from "./HistoryFeed";
+import { HistoryRowControls } from "./HistoryRowControls";
 import { historyRowActions } from "./historyRowActions";
 import { HistorySettings } from "./HistorySettings";
 import { HistorySummary } from "./HistorySummary";
+import type { ListState } from "./historyListReducer";
 import { PAGE_COLUMN } from "../rows";
 
-/* What a Library row is allowed to say, and what it must never say.
+/* What the Library is allowed to say, and what it must never say.
+ *
+ * The log is quiet: rows are grouped by day, a collapsed row is one line — the
+ * transcript's first words, a word count, a clock time — and it carries no
+ * control at all. Opening a row is what produces playback, copy, transcribe
+ * again and delete.
  *
  * Defects are pinned dead here, each of which shipped and each of which a
  * plausible refactor would bring back:
- *   - a metadata line of seven mono fragments: the row states date, words and
- *     mode, and the measured detail (peak/rms, engine, source, parentage)
- *     stays behind the expander;
- *   - the duration printed twice, once in the meta line and once at the
- *     player's right edge — a row states its length exactly once;
+ *   - a metadata line of seven fragments: date, duration, words, mode chip and
+ *     provenance all on a collapsed row, with peak/rms one expander away;
+ *   - the date printed on every row when the day heading above the group
+ *     already states it;
+ *   - three icon buttons on every row of a thirty-row list, and a player
+ *     mounted on all thirty;
  *   - a player on a capture that holds nothing to play;
- *   - "0h 0m" for a library that holds real recordings, a fourth/fifth stat
- *     card for a provenance split, and an echo sublabel restating the figure
- *     above it;
+ *   - "0h 0m" for a library that holds real recordings, three 24px stat cards
+ *     given the loudest type on a page whose subject is the list below them,
+ *     a fourth/fifth card for a provenance split, and an echo sublabel;
  *   - a printed 0.0000 for an input level nobody measured;
- *   - row actions scattered across six controls of three weights;
  *   - a transcript line on a row whose receipt says there was no speech;
+ *   - a `role="tablist"` on the two-segment view switch, with no tabpanel
+ *     anywhere under it;
  *   - the toolbar controls (search, view switch, folder button) overlapping —
- *     the DOM order pinned here is what the honest flex wrap relies on.
+ *     the DOM order pinned here is what the honest flex wrap relies on;
+ *   - a page-split day appearing twice, one group per page.
  *
  * Static rendering runs no effects, so these are pure prop-to-markup checks and
- * no Tauri command is reachable from here. Radix keeps menu and dialog content
- * in a portal that a static render never mounts, so the row's operations are
- * asserted on `historyRowActions` — the list the menu is built from — plus the
- * trigger that opens it. */
+ * no Tauri command is reachable from here. The open row is reachable because
+ * the list owns which row is open, so `expanded` is a prop: a real public
+ * interface, rendered the way the feed renders it. Radix keeps menu and dialog
+ * content in a portal that a static render never mounts, so the menu's
+ * operations are asserted on `historyRowActions` — the list the menu is built
+ * from — plus the trigger that opens it. */
 
 const localeFile = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -143,6 +157,7 @@ const row = (
   overrides: {
     entry?: Partial<HistoryEntryRow>;
     receipts?: HistoryRunReceipt[] | null | undefined;
+    expanded?: boolean;
   } = {},
 ) =>
   render(
@@ -150,6 +165,8 @@ const row = (
       entry={{ ...ENTRY, ...overrides.entry }}
       receipts={"receipts" in overrides ? overrides.receipts : [receipt()]}
       view="processed"
+      expanded={overrides.expanded ?? false}
+      onToggleExpanded={() => undefined}
       onToggleSaved={noop}
       onCopyText={noText}
       getAudioBlob={noBlob}
@@ -158,53 +175,56 @@ const row = (
     />,
   );
 
-/* The metadata line alone: everything inside the <p> that carries it,
- * mode chip included. */
-const metaOf = (markup: string): string =>
+/** The collapsed row's one line and its two measured cells — the whole button. */
+const lineOf = (markup: string): string =>
   markup.slice(
-    markup.indexOf('data-testid="history-entry-meta"'),
-    markup.indexOf("</p>", markup.indexOf("history-entry-meta")),
+    markup.indexOf('data-testid="history-entry-toggle"'),
+    markup.indexOf("</button>"),
   );
 
-describe("library row, line 1", () => {
+describe("library row, the calm line", () => {
   const markup = row();
 
-  test("states date, words and the mode chip — nothing else", () => {
-    const meta = metaOf(markup);
-    expect(meta).toContain("6 words");
-    expect(meta).toContain("email");
-    expect(markup).toContain('data-testid="history-entry-mode"');
-    // Exactly one rendered time on the line, from the shared relative
-    // formatter. The fixture is fixed more than two weeks in the past, so it
-    // always renders absolute with its year — a second time would double the
-    // count.
-    expect(occurrences(meta, "2025")).toBe(1);
-    // Machine values, so the mono voice at the metadata step, never body copy.
-    expect(markup).toContain(
-      'class="truncate font-mono text-[11px] tabular-nums text-gray-800" data-testid="history-entry-meta"',
-    );
+  test("states the first words, the word count and the clock time", () => {
+    const line = lineOf(markup);
+    expect(line).toContain("Ship the dense Library rows today.");
+    expect(line).toContain('data-testid="history-entry-transcript"');
+    expect(line).toContain("6 words");
+    // A clock time, tabular, right of everything else.
+    expect(line).toMatch(/data-testid="history-entry-time"[^>]*>[^<]*\d:\d\d/);
+    expect(line).toContain("tabular-nums");
   });
 
-  test("engine, source and levels left the line for the expanded receipt", () => {
-    const meta = metaOf(markup);
-    expect(meta).not.toContain("Local");
-    expect(meta).not.toContain("Microphone");
-    expect(meta).not.toContain(">peak<");
-    expect(meta).not.toContain(">rms<");
+  test("does not print the date its day heading owns", () => {
+    // The feed groups by day and names the day once. A row repeating it is the
+    // same fact twice, and it was what made the old metadata line long.
+    expect(markup).not.toContain("2025");
+    expect(markup).not.toContain("Aug");
   });
 
-  test("shows the transcript on its own line", () => {
-    expect(markup).toContain("Ship the dense Library rows today.");
-    expect(markup).toContain('data-testid="history-entry-transcript"');
+  test("carries no control at rest — the row itself is the only button", () => {
+    expect(occurrences(markup, "<button")).toBe(1);
+    expect(markup).toContain('data-testid="history-entry-toggle"');
+    expect(markup).toContain('aria-expanded="false"');
+    for (const control of [
+      "copy",
+      "retry",
+      "delete",
+      "actions",
+      "details",
+      "controls",
+    ]) {
+      expect(markup).not.toContain(`data-testid="history-entry-${control}"`);
+    }
+    expect(markup).not.toContain('data-testid="history-receipts"');
+    expect(markup).not.toContain('data-testid="audio-player-toggle"');
   });
 
-  test("reprocess parentage is provenance, not a metadata cell", () => {
-    // "from #17" lives with the receipts behind the expander now; the
-    // collapsed row does not spend a cell on it.
-    expect(row({ entry: { parent_id: 17 } })).not.toContain("from #17");
-  });
-
-  test("omits an input level the run never measured", () => {
+  test("the mode, the engine, the source and the levels are not on the row", () => {
+    expect(markup).not.toContain('data-testid="history-entry-mode"');
+    expect(markup).not.toContain("email");
+    expect(markup).not.toContain("Local");
+    expect(markup).not.toContain("Microphone");
     expect(markup).not.toContain(">peak<");
     expect(markup).not.toContain("0.0000");
   });
@@ -218,6 +238,23 @@ describe("library row, line 1", () => {
     expect(measured).not.toContain("0.1456");
     expect(measured).not.toContain(">peak<");
   });
+
+  test("states no duration: the opened row's player and receipt do that", () => {
+    expect(markup).not.toContain("15s");
+    expect(row({ receipts: [receipt({ has_audio: false })] })).not.toContain(
+      "15s",
+    );
+  });
+
+  test("reprocess parentage is provenance, not a row cell", () => {
+    expect(row({ entry: { parent_id: 17 } })).not.toContain("from #17");
+  });
+
+  test("a count and a clock time never animate", () => {
+    /* Rule 1 of the motion contract: a tweened measurement displays values
+     * nothing reported. Both cells carry the blanket freeze. */
+    expect(occurrences(lineOf(markup), "snap-measured")).toBe(2);
+  });
 });
 
 describe("library row, no-speech capture", () => {
@@ -229,23 +266,79 @@ describe("library row, no-speech capture", () => {
   });
   const markup = row({ receipts: [silent] });
 
-  test("collapses to one line: the reason, with the levels behind the expander", () => {
+  test("says so on the line, with the levels behind the expander", () => {
     expect(markup).toContain("No speech detected");
     expect(markup).not.toContain("0.0119");
     expect(markup).not.toContain("0.0024");
-    expect(markup).not.toContain('data-testid="history-entry-transcript"');
   });
 
   test("does not claim a word count for a capture with no speech", () => {
     expect(markup).not.toContain("0 words");
+    expect(markup).not.toContain('data-testid="history-entry-words"');
+  });
+
+  test("the statement reads as the app talking, not as a transcript", () => {
+    // A real transcript is the row's content and reads at full contrast;
+    // everything the app says *about* the row steps back one tier.
+    expect(lineOf(markup)).toContain('data-tone="stated"');
+    expect(lineOf(row())).toContain('data-tone="text"');
   });
 
   test("keeps the player, because the retained sample is the evidence", () => {
-    expect(markup).toContain('data-testid="audio-player-seek"');
+    expect(row({ receipts: [silent], expanded: true })).toContain(
+      'data-testid="audio-player-seek"',
+    );
+  });
+});
+
+describe("library row, opened", () => {
+  const markup = row({ expanded: true });
+
+  test("reveals playback, copy, transcribe again and delete", () => {
+    expect(markup).toContain('data-testid="history-entry-details"');
+    expect(markup).toContain('data-testid="audio-player-toggle"');
+    expect(markup).toContain('data-testid="history-entry-copy"');
+    expect(markup).toContain('data-testid="history-entry-retry"');
+    expect(markup).toContain('data-testid="history-entry-delete"');
+    expect(markup).toContain("Copy");
+    expect(markup).toContain("Transcribe again");
+    expect(markup).toContain("Delete");
+  });
+
+  test("the three named actions carry a hairline, and only the menu is a ghost", () => {
+    const bar = markup.slice(
+      markup.indexOf('data-testid="history-entry-controls"'),
+      markup.indexOf('data-testid="history-receipts"'),
+    );
+    expect(occurrences(bar, 'data-variant="outline"')).toBe(3);
+    expect(occurrences(bar, 'data-variant="ghost"')).toBe(1);
+    // The one ghost is the icon-only menu trigger.
+    expect(bar).toContain('data-testid="history-entry-actions"');
+  });
+
+  test("the row it opens is the region it announces", () => {
+    expect(markup).toContain('aria-expanded="true"');
+    const controls = /aria-controls="([^"]+)"/.exec(markup)?.[1];
+    expect(controls).toBeDefined();
+    expect(markup).toContain(`id="${controls}"`);
+  });
+
+  test("shows the whole transcript rather than a second copy of it", () => {
+    // One text node: truncated closed, wrapped open. A separate full-text
+    // block under the header would print the opening words twice.
+    expect(occurrences(markup, "Ship the dense Library rows today.")).toBe(1);
+    expect(markup).toContain('data-expanded="true"');
+  });
+
+  test("carries the run receipt, and the length at the player", () => {
+    expect(markup).toContain('data-testid="history-receipts"');
+    expect(markup).toContain('max="15"');
+    expect(markup).toContain("15s");
   });
 
   test("drops the player when the receipt says there is nothing to play", () => {
     const empty = row({
+      expanded: true,
       receipts: [
         receipt({ capture_status: "no_speech_detected", duration_ms: 0 }),
       ],
@@ -253,61 +346,95 @@ describe("library row, no-speech capture", () => {
     expect(empty).not.toContain('data-testid="audio-player-seek"');
     expect(empty).not.toContain('data-testid="audio-player-toggle"');
 
-    const silentNoFile = row({
+    const noFile = row({
+      expanded: true,
       receipts: [receipt({ has_audio: false })],
     });
-    expect(silentNoFile).not.toContain('data-testid="audio-player-seek"');
-  });
-});
-
-describe("library row, audio player", () => {
-  test("the row states its length exactly once, at the player's right edge", () => {
-    const markup = row();
-    // The receipt's 15s renders as the player total and nowhere else: not in
-    // the meta line, not as a second readout.
-    expect(occurrences(markup, "15s")).toBe(1);
-    expect(metaOf(markup)).not.toContain("15s");
-    expect(markup).not.toContain("0:00");
+    expect(noFile).not.toContain('data-testid="audio-player-seek"');
   });
 
-  test("a row with no player left says its length in the meta line instead", () => {
-    const withoutAudio = row({ receipts: [receipt({ has_audio: false })] });
-    expect(withoutAudio).not.toContain('data-testid="audio-player-toggle"');
-    expect(metaOf(withoutAudio)).toContain("15s");
-    // Still exactly once: the meta cell replaces the player total, it does
-    // not join it.
-    expect(occurrences(withoutAudio, "15s")).toBe(1);
+  test("offers the player when no receipt can prove the row is empty", () => {
+    expect(row({ expanded: true, receipts: [] })).toContain(
+      'data-testid="audio-player-toggle"',
+    );
+    expect(row({ expanded: true, receipts: null })).toContain(
+      'data-testid="audio-player-toggle"',
+    );
   });
 
-  test("keeps a real range control rather than an unstyled nub", () => {
-    const markup = row();
-    expect(markup).toContain('type="range"');
-    expect(markup).not.toContain("appearance-none");
-    expect(markup).toContain('max="15"');
-  });
-
-  test("the player row rides quiet: gray control, one mono duration", () => {
-    const markup = row();
+  test("the player row rides quiet: gray control, one tabular duration", () => {
     // The player is a frozen primitive, so the row quiets it from outside.
     // Static markup escapes the `&` in an arbitrary variant, hence the
     // suffix match rather than the literal class.
     expect(markup).toContain("_button]:text-gray-900");
-    expect(markup).toContain("_span]:font-mono");
+    expect(markup).toContain("_span]:tabular-nums");
   });
 
-  test("offers the player when no receipt can prove the row is empty", () => {
-    expect(row({ receipts: [] })).toContain(
-      'data-testid="audio-player-toggle"',
-    );
-    expect(row({ receipts: null })).toContain(
-      'data-testid="audio-player-toggle"',
-    );
+  test("keeps a real range control rather than an unstyled nub", () => {
+    expect(markup).toContain('type="range"');
+    expect(markup).not.toContain("appearance-none");
   });
 });
 
-describe("library row, actions", () => {
-  const markup = row();
+describe("library row, the action bar", () => {
+  const controls = (
+    overrides: { hasText?: boolean; busy?: boolean; showCopied?: boolean } = {},
+  ) =>
+    render(
+      <HistoryRowControls
+        menuActions={[]}
+        hasText={overrides.hasText ?? true}
+        busy={overrides.busy ?? false}
+        showCopied={overrides.showCopied ?? false}
+        onCopy={() => undefined}
+        onRetranscribe={() => undefined}
+        onDelete={() => undefined}
+      />,
+    );
 
+  /* The button's own tag, not its class list. Every vg button carries
+   * `disabled:pointer-events-none` in its classes, so a substring search for
+   * "disabled" passes on a button that is perfectly enabled — the check has to
+   * be the rendered attribute. */
+  const buttonFor = (markup: string, id: string) =>
+    markup.slice(
+      markup.lastIndexOf("<button", markup.indexOf(`history-entry-${id}`)),
+      markup.indexOf(">", markup.indexOf(`history-entry-${id}`)),
+    );
+
+  const isDisabled = (markup: string, id: string) =>
+    buttonFor(markup, id).includes('disabled=""');
+
+  test("copy is disabled when there is no text to copy", () => {
+    expect(isDisabled(controls({ hasText: false }), "copy")).toBe(true);
+    expect(isDisabled(controls(), "copy")).toBe(false);
+  });
+
+  test("a row mid-retry or mid-delete offers no operation at all", () => {
+    const busy = controls({ busy: true });
+    for (const id of ["copy", "retry", "delete"]) {
+      expect(isDisabled(busy, id)).toBe(true);
+    }
+    const idle = controls();
+    for (const id of ["retry", "delete"]) {
+      expect(isDisabled(idle, id)).toBe(false);
+    }
+  });
+
+  test("copy confirms itself in place instead of raising a toast", () => {
+    expect(controls({ showCopied: true })).toContain("Copied");
+    expect(controls()).not.toContain("Copied");
+  });
+
+  test("delete is the only action coloured as destructive", () => {
+    const markup = controls();
+    expect(buttonFor(markup, "delete")).toContain("text-red-900");
+    expect(buttonFor(markup, "copy")).not.toContain("text-red-900");
+    expect(buttonFor(markup, "retry")).not.toContain("text-red-900");
+  });
+});
+
+describe("library row, the menu behind the bar", () => {
   const actions = (
     overrides: { saved?: boolean; hasText?: boolean; busy?: boolean } = {},
   ) =>
@@ -318,50 +445,23 @@ describe("library row, actions", () => {
       busy: false,
       onCorrect: () => undefined,
       onToggleSaved: () => undefined,
-      onRetranscribe: () => undefined,
       onProcessAgain: () => undefined,
-      onDelete: () => undefined,
       ...overrides,
     });
 
-  test("the row carries three controls: copy, expand, one menu", () => {
-    expect(markup).toContain('data-testid="history-entry-copy"');
-    expect(markup).toContain('data-testid="history-entry-expand"');
-    expect(occurrences(markup, 'data-testid="history-entry-actions"')).toBe(1);
-    expect(markup).toContain("More actions");
-  });
-
-  test("everything that changes or destroys the entry is inside the menu", () => {
-    // Collapsed, the row shows none of them: the menu content is the only
-    // place they exist, so the row cannot grow a sixth inline control.
-    for (const id of ["correct", "save", "retry", "process-again", "delete"]) {
-      expect(markup).not.toContain(`data-testid="history-entry-${id}"`);
-    }
-  });
-
-  test("every operation the row had before is still offered, in order", () => {
+  test("holds what changes the entry without being why you opened it", () => {
     expect(actions().map((action) => action.id)).toEqual([
       "correct",
       "save",
-      "retry",
       "process-again",
-      "delete",
     ]);
   });
 
-  test("names the star action by what pressing it does", () => {
+  test("names the save action by what pressing it does", () => {
     const label = (saved: boolean) =>
       actions({ saved }).find((action) => action.id === "save")?.label;
     expect(label(false)).toBe("Save entry");
     expect(label(true)).toBe("Remove from saved");
-  });
-
-  test("delete is the only destructive item", () => {
-    expect(
-      actions()
-        .filter((action) => action.destructive)
-        .map((action) => action.id),
-    ).toEqual(["delete"]);
   });
 
   test("disables correction when there is no text to act on, and nothing else", () => {
@@ -376,15 +476,6 @@ describe("library row, actions", () => {
     expect(actions({ busy: true }).every((action) => action.disabled)).toBe(
       true,
     );
-  });
-
-  test("copy is disabled when there is no text to copy", () => {
-    const empty = row({ entry: { transcription_text: "" } });
-    const copy = empty.slice(
-      empty.lastIndexOf("<button", empty.indexOf("history-entry-copy")),
-      empty.indexOf("history-entry-copy"),
-    );
-    expect(copy).toContain("disabled");
   });
 });
 
@@ -445,37 +536,101 @@ describe("library row, empty transcript", () => {
     expect(legacy).toContain("No text was recorded for this entry.");
     expect(legacy).not.toContain("Transcription failed");
   });
-
-  test("no line points at a control the row no longer has", () => {
-    // Retry is a named item in the overflow menu; there is no retry icon.
-    expect(markup).not.toContain("retry icon");
-  });
 });
 
 describe("library row, search provenance", () => {
-  test("marks only the row whose meaning matched, and keeps it in the mono run", () => {
+  test("marks only the row whose meaning matched", () => {
     const semantic = row({ entry: { match_kind: "semantic" } });
     expect(semantic).toContain("by meaning");
-    // A derived classification, so it stays in the mono run rather than taking
-    // the sans reason span the no-speech reason gets.
-    expect(semantic).not.toContain(
-      '<span class="font-sans text-gray-1000">by meaning',
-    );
+    // A derived classification stays in the metadata tier rather than reading
+    // as part of the transcript.
+    expect(semantic).not.toContain('text-gray-1000">by meaning');
 
     expect(row({ entry: { match_kind: "text" } })).not.toContain("by meaning");
     expect(row()).not.toContain("by meaning");
   });
 });
 
-describe("library row, receipt inspector", () => {
-  test("stays closed until the row is expanded", () => {
-    const markup = row();
-    expect(markup).not.toContain('data-testid="history-receipts"');
-    expect(markup).toContain('aria-expanded="false"');
+/* The day groups themselves are checked at src/lib/utils/localDay.test.ts:
+ * the bucketer and the heading are shared with meeting history now, so they
+ * are not the Library's to pin. What stays here is the feed's use of them. */
+
+describe("library feed", () => {
+  const NOON = 12 * 60 * 60 * 1000;
+  const today = startOfLocalDay(Date.now()) + NOON;
+  const yesterday = (() => {
+    const date = new Date(today);
+    date.setDate(date.getDate() - 1);
+    return date.getTime();
+  })();
+
+  const feed = (state: Partial<ListState> = {}) =>
+    render(
+      <HistoryFeed
+        state={{
+          phase: "ready",
+          hasMore: false,
+          entries: [
+            { ...ENTRY, id: 3, timestamp: Math.floor(today / 1000) },
+            { ...ENTRY, id: 2, timestamp: Math.floor(yesterday / 1000) },
+          ],
+          ...state,
+        }}
+        setQuery={() => undefined}
+        view="processed"
+        activeQuery=""
+        sentinelRef={{ current: null }}
+        receiptsByHistoryId={{}}
+        startingAudioImport={false}
+        toggleSaved={noop}
+        copyToClipboard={noText}
+        getAudioBlob={noBlob}
+        deleteEntry={noop}
+        retryHistoryEntry={noop}
+        fetchPage={noop}
+        onStartAudioImport={() => undefined}
+      />,
+    );
+
+  test("renders one named day section per day, each over its own surface", () => {
+    const markup = feed();
+    expect(occurrences(markup, 'data-testid="history-day"')).toBe(2);
+    expect(occurrences(markup, 'data-testid="history-day-heading"')).toBe(2);
+    expect(markup).toContain(">Today</h2>");
+    expect(markup).toContain(">Yesterday</h2>");
+    // Each day's rows sit on one hairline surface, and the surface is the list.
+    expect(occurrences(markup, '<ul role="list"')).toBe(2);
+    expect(occurrences(markup, 'data-testid="history-entry"')).toBe(2);
+    // The heading names the list it heads, for anyone who cannot see it.
+    expect(markup).toContain('aria-label="Today"');
+  });
+
+  test("no row is open until one is asked for", () => {
+    const markup = feed();
+    expect(occurrences(markup, 'aria-expanded="false"')).toBe(2);
+    expect(markup).not.toContain('data-testid="history-entry-details"');
+    expect(markup).not.toContain('data-testid="audio-player-toggle"');
+  });
+
+  test("the paging trip wire and its manual fallback survive the grouping", () => {
+    const markup = feed({ hasMore: true });
+    expect(markup).toContain('data-testid="history-load-more"');
+    // The footer sits outside every day section: the next page may open a new
+    // day above it.
+    expect(markup.lastIndexOf("</section>")).toBeLessThan(
+      markup.indexOf('data-testid="history-load-more"'),
+    );
+  });
+
+  test("an empty library states what it is and how to fill it", () => {
+    const markup = feed({ entries: [] });
+    expect(markup).toContain("No recordings yet.");
+    expect(markup).toContain('data-testid="history-empty-import"');
+    expect(markup).not.toContain('data-testid="history-day"');
   });
 });
 
-describe("library stats cards", () => {
+describe("library summary line", () => {
   const stats: HistoryStats = {
     entries: 4,
     total_duration_ms: 15_000,
@@ -493,36 +648,37 @@ describe("library stats cards", () => {
       />,
     );
 
+  test("states the three totals as one quiet sentence", () => {
+    const markup = summary();
+    expect(markup).toContain("4 recordings · 15s · 96 words");
+    expect(markup).toContain('data-testid="history-summary"');
+  });
+
   test("reports a 15-second library as 15s, never as 0h 0m", () => {
-    const markup = summary();
-    expect(markup).toContain("15s");
-    expect(markup).not.toContain("0h 0m");
-    expect(markup).toContain("recordings");
-    expect(markup).toContain("recording time");
-    expect(markup).toContain("words");
+    expect(summary()).not.toContain("0h 0m");
+    expect(summary({ total_duration_ms: 3_840_000 })).toContain("1h 4m");
   });
 
-  test("is one row of three cards: mono microlabel over a tabular figure", () => {
+  test("is a line, not a band of stat cards", () => {
     const markup = summary();
-    expect(occurrences(markup, 'data-testid="history-stat"')).toBe(3);
-    expect(markup).toContain("grid-cols-3");
-    expect(occurrences(markup, "font-mono")).toBe(3);
-    expect(occurrences(markup, "text-2xl")).toBe(3);
+    // Three 24px figures were the loudest type on a page whose subject is the
+    // list below them.
+    expect(markup).not.toContain('data-testid="history-stat"');
+    expect(markup).not.toContain("grid-cols-3");
+    expect(markup).not.toContain("text-2xl");
+    expect(markup).not.toContain("<dl");
+    expect(occurrences(markup, "<p")).toBe(1);
+  });
+
+  test("counts read as measurements: tabular, and never tweened", () => {
+    const markup = summary();
     expect(markup).toContain("tabular-nums");
+    expect(markup).toContain("snap-measured");
   });
 
-  test("each card is exactly one label and one figure — no echo sublabel", () => {
-    const markup = summary();
-    // "4 recordings" over "4 all time" states the same number twice. One <dt>
-    // and one <dd> per card is what forbids the second copy structurally.
-    expect(occurrences(markup, "<dt")).toBe(3);
-    expect(occurrences(markup, "<dd")).toBe(3);
-    expect(markup).not.toContain("all time");
-  });
-
-  test("a mixed-provenance library still shows three cards, not five", () => {
+  test("a mixed-provenance library still states one line, not five figures", () => {
     // Provenance is a property of a recording: the row that owns it states it
-    // on its receipt. Splitting the count by source repeated the total.
+    // on its receipt.
     const markup = summary({
       by_source: [
         {
@@ -539,12 +695,18 @@ describe("library stats cards", () => {
         },
       ],
     });
-    expect(occurrences(markup, 'data-testid="history-stat"')).toBe(3);
+    expect(markup).toContain("4 recordings · 15s · 96 words");
     expect(markup).not.toContain("Microphone");
     expect(markup).not.toContain("File");
   });
 
-  test("while loading, the cards carry labels over skeletons, never invented zeros", () => {
+  test("counts one recording without pretending it is several", () => {
+    expect(summary({ entries: 1, total_words: 1 })).toContain(
+      "1 recording · 15s · 1 word",
+    );
+  });
+
+  test("while loading it invents no figure at all", () => {
     const markup = render(
       <HistorySummary
         stats={null}
@@ -554,14 +716,24 @@ describe("library stats cards", () => {
       />,
     );
     expect(markup).toContain('data-testid="history-summary-loading"');
-    expect(occurrences(markup, 'data-testid="history-stat"')).toBe(3);
-    expect(markup).toContain("recordings");
-    // A figure the backend never reported must not render.
-    expect(markup).not.toContain(">0<");
+    /* No rendered text at all, so no figure the backend never reported and no
+     * half-sentence with blanks in it. The only visible thing is the bar; the
+     * one string in the markup is the region's accessible name. */
+    expect(markup).not.toMatch(/>[^<]*\d/);
+    expect(markup).toContain('aria-label="Counting your recordings…"');
   });
 
-  test("carries hours when the library actually holds hours", () => {
-    expect(summary({ total_duration_ms: 3_840_000 })).toContain("1h 4m");
+  test("the stats failure line carries a real button, not a ghost label", () => {
+    const failed = render(
+      <HistorySummary
+        stats={null}
+        loading={false}
+        error
+        onRetry={() => undefined}
+      />,
+    );
+    expect(failed).toContain('data-variant="outline"');
+    expect(failed).not.toContain('data-variant="ghost"');
   });
 });
 
@@ -579,12 +751,37 @@ describe("library page chrome", () => {
     expect(markup).toContain("py-12");
   });
 
+  test("the title row carries exactly one action, and not the folder button", () => {
+    const header = markup.slice(
+      markup.indexOf("<h1"),
+      markup.indexOf('data-testid="history-toolbar"'),
+    );
+    expect(header).toContain('data-testid="history-import"');
+    expect(header).not.toContain('data-testid="history-open-folder"');
+    // One destination, one name: the h1 answers to the rail's word, and the
+    // import action reuses the hero's label instead of coining a second one.
+    expect(header).toContain(">Library</h1>");
+    expect(header).toContain("Import audio");
+    expect(header).not.toContain("History");
+  });
+
+  test("the totals sit against the title they describe", () => {
+    // The summary is one line about what the page holds, so it reads under the
+    // title rather than a page gap below it.
+    const header = markup.slice(
+      markup.indexOf("<h1"),
+      markup.indexOf('data-testid="history-toolbar"'),
+    );
+    expect(header).toContain('data-testid="history-summary-loading"');
+  });
+
+  test("the page title is 24px, not text-2xl's 21px at this app's 14px root", () => {
+    expect(markup).toContain("text-[24px] leading-[30px]");
+  });
+
   test("no text action is left invisible at rest", () => {
-    /* The kit's `secondary` button is a fill with no border, and Geist's
-     * secondary fill sits within a hair of the page in light theme — verified
-     * on a real compiled-CSS capture, where "Open recordings folder" read as
-     * white-on-white. Every standing text action is `outline`; `ghost` is
-     * allowed only where a glyph carries the affordance. */
+    /* Secondary actions now carry a shared hairline. These standing text
+     * actions remain `outline` so their hierarchy is explicit. */
     expect(markup).not.toContain('data-slot="button" data-variant="secondary"');
     const toolbar = markup.slice(
       markup.indexOf('data-testid="history-toolbar"'),
@@ -600,62 +797,43 @@ describe("library page chrome", () => {
     expect(toolbar).not.toContain('data-variant="ghost"');
   });
 
-  test("the stats failure line carries a real button, not a ghost label", () => {
-    const failed = render(
-      <HistorySummary
-        stats={null}
-        loading={false}
-        error
-        onRetry={() => undefined}
-      />,
-    );
-    expect(failed).toContain('data-variant="outline"');
-    expect(failed).not.toContain('data-variant="ghost"');
-  });
-
   test("one toolbar owns search, the view switch and the folder button, in wrap order", () => {
     const toolbar = markup.slice(
       markup.indexOf('data-testid="history-toolbar"'),
       markup.indexOf('data-testid="history-loading"'),
     );
     const search = toolbar.indexOf('data-testid="history-search"');
-    const tabs = toolbar.indexOf('role="tablist"');
+    const view = toolbar.indexOf('data-testid="history-text-view"');
     const folder = toolbar.indexOf('data-testid="history-open-folder"');
     expect(search).toBeGreaterThan(-1);
-    expect(tabs).toBeGreaterThan(-1);
+    expect(view).toBeGreaterThan(-1);
     expect(folder).toBeGreaterThan(-1);
     // The honest wrap depends on this order: the growing search field first,
     // then the flex-none controls, folder last so it wraps first.
-    expect(search).toBeLessThan(tabs);
-    expect(tabs).toBeLessThan(folder);
+    expect(search).toBeLessThan(view);
+    expect(view).toBeLessThan(folder);
   });
 
-  test("the view switch is a two-segment control, Processed first", () => {
-    const tabs = markup.slice(
-      markup.indexOf('role="tablist"'),
+  test("the view switch is a two-segment control, Processed first, not a tablist", () => {
+    const control = markup.slice(
+      markup.indexOf('data-testid="history-text-view"'),
       markup.indexOf('data-testid="history-open-folder"'),
     );
-    expect(occurrences(tabs, 'role="tab"')).toBe(2);
-    expect(tabs.indexOf("Processed")).toBeLessThan(tabs.indexOf("Raw"));
+    expect(occurrences(control, 'data-slot="toggle-group-item"')).toBe(2);
+    expect(control.indexOf("Processed")).toBeLessThan(control.indexOf("Raw"));
+    // Two segments over one list is not a tab structure, and claiming one
+    // promises assistive tech a tabpanel that does not exist.
+    expect(markup).not.toContain('role="tablist"');
+    expect(markup).not.toContain('role="tab"');
+    // One control, not two buttons side by side.
+    expect(control).toContain('data-spacing="0"');
   });
 
-  test("the title row carries exactly one action, and not the folder button", () => {
-    // The column and the h1 come from the shared SettingsPage primitive now, so
-    // the slice anchors on the heading itself rather than a local test hook.
-    const header = markup.slice(
-      markup.indexOf("<h1"),
-      markup.indexOf('data-testid="history-toolbar"'),
+  test("the loading list is a run of calm rows, not stacked two-line blocks", () => {
+    const skeletons = markup.slice(
+      markup.indexOf('data-testid="history-loading"'),
+      markup.length,
     );
-    expect(header).toContain('data-testid="history-import"');
-    expect(header).not.toContain('data-testid="history-open-folder"');
-    // One destination, one name: the h1 answers to the rail's word, and the
-    // import action reuses the hero's label instead of coining a second one.
-    expect(header).toContain(">Library</h1>");
-    expect(header).toContain("Import audio");
-    expect(header).not.toContain("History");
-  });
-
-  test("the page title is 24px, not text-2xl's 21px at this app's 14px root", () => {
-    expect(markup).toContain("text-[24px] leading-[30px]");
+    expect(occurrences(skeletons, "px-4 py-2.5")).toBe(5);
   });
 });

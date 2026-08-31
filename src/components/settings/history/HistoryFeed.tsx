@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { FileAudio, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { HistoryRunReceipt } from "@/bindings";
@@ -7,6 +7,7 @@ import { SETTINGS_SURFACE, SettingsCard } from "../rows";
 import { Button } from "@/components/vg/button";
 import { Skeleton } from "@/components/vg/skeleton";
 import { destinationIcons } from "@/lib/navIcons";
+import { groupByLocalDay, localDayHeading } from "@/lib/utils/localDay";
 import { HistoryEntryComponent, type HistoryTextView } from "./HistoryEntry";
 import type { ListState } from "./historyListReducer";
 
@@ -53,7 +54,7 @@ interface HistoryFeedProps {
   onStartAudioImport: () => void;
 }
 
-/* The rows themselves, and the four things the list can be instead of rows:
+/* The log, in day groups, and the four things the list can be instead of rows:
  * still loading, unreadable, empty, or empty because a search matched
  * nothing. */
 export const HistoryFeed: React.FC<HistoryFeedProps> = ({
@@ -76,6 +77,23 @@ export const HistoryFeed: React.FC<HistoryFeedProps> = ({
   const trimmedActiveQuery = activeQuery.trim();
   const searching = trimmedActiveQuery !== "";
 
+  /* Grouping is cheap, but a keystroke in the search field re-renders this
+   * component (the query lives with the list state), and rebuilding the group
+   * arrays on each one would hand every row a new parent array for no reason. */
+  const dayGroups = useMemo(
+    () => groupByLocalDay(state.entries, (entry) => entry.timestamp * 1000),
+    [state.entries],
+  );
+
+  /* Which recording is open. One at a time, and the list is what knows: a row
+   * cannot close its neighbour. An id that leaves the page (a new search, a
+   * deleted row) simply matches nothing, so there is nothing to clean up. */
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const toggleExpanded = useCallback(
+    (id: number) => setExpandedId((current) => (current === id ? null : id)),
+    [],
+  );
+
   const loadNextPage = () => {
     const last = state.entries[state.entries.length - 1];
     if (last) void fetchPage(activeQuery, last.id);
@@ -90,9 +108,9 @@ export const HistoryFeed: React.FC<HistoryFeedProps> = ({
         data-testid="history-loading"
       >
         {SKELETON_ROWS.map((row) => (
-          <div key={row} className="flex flex-col gap-2 px-4 py-3">
-            <Skeleton className="h-4 w-64" />
-            <Skeleton className="h-5 w-full" />
+          <div key={row} className="flex items-center gap-3 px-4 py-2.5">
+            <Skeleton className="h-4 flex-1" />
+            <Skeleton className="h-3 w-12" />
           </div>
         ))}
       </div>
@@ -162,27 +180,52 @@ export const HistoryFeed: React.FC<HistoryFeedProps> = ({
 
   return (
     <AudioPlayerGroup>
-      <ul
-        role="list"
-        aria-label={t("topNav.library")}
-        className={SETTINGS_SURFACE}
-        data-testid="history-list"
-      >
-        {state.entries.map((entry) => (
-          <HistoryEntryComponent
-            key={entry.id}
-            entry={entry}
-            receipts={receiptsByHistoryId[entry.id]}
-            view={view}
-            onToggleSaved={toggleSaved}
-            onCopyText={copyToClipboard}
-            getAudioBlob={getAudioBlob}
-            deleteAudio={deleteEntry}
-            retryTranscription={retryHistoryEntry}
-          />
-        ))}
+      <div className="flex flex-col gap-6" data-testid="history-list">
+        {dayGroups.map((group) => {
+          /* One day, one section: a heading over one hairline surface, which is
+           * the grammar `SettingsSection` is written in. It is restated here
+           * rather than composed because the surface has to be the `<ul>`
+           * itself — a list whose rows are separated by the surface's own
+           * hairlines — which is why `SETTINGS_SURFACE` is exported as a class
+           * string and not only as a component. */
+          const heading = localDayHeading(group.startOfDayMs, t);
+          return (
+            <section
+              key={group.startOfDayMs}
+              className="flex flex-col gap-3"
+              data-testid="history-day"
+            >
+              <h2
+                className="text-[13px] leading-5 text-gray-900"
+                data-testid="history-day-heading"
+              >
+                {heading}
+              </h2>
+              <ul role="list" aria-label={heading} className={SETTINGS_SURFACE}>
+                {group.items.map((entry) => (
+                  <HistoryEntryComponent
+                    key={entry.id}
+                    entry={entry}
+                    receipts={receiptsByHistoryId[entry.id]}
+                    view={view}
+                    expanded={entry.id === expandedId}
+                    onToggleExpanded={toggleExpanded}
+                    onToggleSaved={toggleSaved}
+                    onCopyText={copyToClipboard}
+                    getAudioBlob={getAudioBlob}
+                    deleteAudio={deleteEntry}
+                    retryTranscription={retryHistoryEntry}
+                  />
+                ))}
+              </ul>
+            </section>
+          );
+        })}
+
+        {/* The footer belongs to the feed, not to the last day: a page that
+         * arrives while it is visible may open a new day group above it. */}
         {showFooter && (
-          <li className="flex flex-wrap items-center justify-center gap-3 px-4 py-3">
+          <div className="flex flex-wrap items-center justify-center gap-3">
             {state.phase === "paging" && (
               <span className="text-sm text-gray-900" aria-live="polite">
                 {t("settings.history.loading")}
@@ -210,9 +253,9 @@ export const HistoryFeed: React.FC<HistoryFeedProps> = ({
             )}
             {/* The infinite-scroll trip wire. Zero height, never focusable. */}
             <div ref={sentinelRef} className="h-px" />
-          </li>
+          </div>
         )}
-      </ul>
+      </div>
     </AudioPlayerGroup>
   );
 };

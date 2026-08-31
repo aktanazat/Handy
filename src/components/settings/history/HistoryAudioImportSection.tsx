@@ -70,7 +70,7 @@ export const HistoryAudioImportSection: React.FC<
                             )}
                     </p>
                     {job.status === "decoding" && (
-                      <p className="mt-0.5 font-mono text-[11px] text-gray-800 tabular-nums">
+                      <p className="mt-0.5 text-[11px] text-gray-800 tabular-nums">
                         {t("settings.history.audioImport.decodedSamples", {
                           count: job.decoded_samples,
                         })}

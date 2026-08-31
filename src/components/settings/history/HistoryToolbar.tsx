@@ -3,7 +3,7 @@ import { FolderOpen, Search, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/vg/button";
 import { Input } from "@/components/vg/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/vg/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/vg/toggle-group";
 import type { HistoryTextView } from "./HistoryEntry";
 import type { ListState } from "./historyListReducer";
 
@@ -97,28 +97,44 @@ export const HistoryToolbar: React.FC<HistoryToolbarProps> = ({
 
       <p
         id={countId}
-        className="flex-none font-mono text-[11px] text-gray-800 tabular-nums"
+        className="flex-none text-[11px] text-gray-800 tabular-nums"
         aria-live="polite"
         data-testid="history-result-count"
       >
         {resultCount}
       </p>
 
-      <Tabs
+      {/* A two-segment control, not a tablist. There is no third panel here to
+       * switch between — both segments render the same rows, one field of them
+       * — and a `role="tablist"` with no `tabpanel` under it tells assistive
+       * tech about a structure the page does not have. `spacing={0}` is what
+       * makes the two outlined items one control with a shared inner edge. */}
+      <ToggleGroup
+        type="single"
         value={view}
-        onValueChange={(value) =>
-          setView(value === "raw" ? "raw" : "processed")
-        }
+        onValueChange={(value) => {
+          /* Radix reports "" when the pressed item is toggled off. There is no
+           * unset transcript view, so that press is a no-op. */
+          if (value === "") return;
+          setView(value === "raw" ? "raw" : "processed");
+        }}
+        variant="outline"
+        size="sm"
+        spacing={0}
+        aria-label={t("settings.history.textView.label")}
         className="flex-none"
+        data-testid="history-text-view"
       >
-        <TabsList aria-label={t("settings.history.textView.label")}>
-          {TEXT_VIEWS.map((option) => (
-            <TabsTrigger key={option.value} value={option.value}>
-              {t(option.labelKey)}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+        {TEXT_VIEWS.map((option) => (
+          <ToggleGroupItem
+            key={option.value}
+            value={option.value}
+            className="text-[13px]"
+          >
+            {t(option.labelKey)}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
 
       <Button
         variant="outline"

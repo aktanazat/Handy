@@ -5,14 +5,17 @@ export interface HistoryRowAction {
   id: string;
   label: string;
   disabled: boolean;
-  destructive?: boolean;
   onSelect: () => void;
 }
 
-/* Every operation that changes or destroys the entry, as data. The row renders
- * this list into one menu, so the set of operations is stated once instead of
- * five near-identical JSX blocks — and it can be read without opening a menu
- * that only exists in a portal. */
+/* The operations an opened row keeps behind its menu, as data.
+ *
+ * Copy, transcribe again and delete are not here: they are named buttons on the
+ * expanded row's action bar, because they are what someone opens a recording to
+ * do. What is left is the three that are worth offering and not worth a button
+ * — teach a correction, save the entry, run it through another mode — stated
+ * once here instead of three near-identical JSX blocks, and readable without
+ * opening a menu that only exists in a portal. */
 export const historyRowActions = ({
   t,
   saved,
@@ -20,9 +23,7 @@ export const historyRowActions = ({
   busy,
   onCorrect,
   onToggleSaved,
-  onRetranscribe,
   onProcessAgain,
-  onDelete,
 }: {
   t: TFunction;
   saved: boolean;
@@ -30,9 +31,7 @@ export const historyRowActions = ({
   busy: boolean;
   onCorrect: () => void;
   onToggleSaved: () => void;
-  onRetranscribe: () => void;
   onProcessAgain: () => void;
-  onDelete: () => void;
 }): HistoryRowAction[] => [
   {
     id: "correct",
@@ -49,22 +48,9 @@ export const historyRowActions = ({
     onSelect: onToggleSaved,
   },
   {
-    id: "retry",
-    label: t("settings.history.retranscribe"),
-    disabled: busy,
-    onSelect: onRetranscribe,
-  },
-  {
     id: "process-again",
     label: t("settings.history.processAgain.action", "Process again"),
     disabled: busy,
     onSelect: onProcessAgain,
-  },
-  {
-    id: "delete",
-    label: t("settings.history.delete"),
-    disabled: busy,
-    destructive: true,
-    onSelect: onDelete,
   },
 ];

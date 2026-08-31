@@ -1,7 +1,7 @@
 import React from "react";
 import { FileAudio } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { SettingsPage } from "../rows";
+import { PageTitle, SettingsPage } from "../rows";
 import { Button } from "@/components/vg/button";
 import { HistoryAudioImportSection } from "./HistoryAudioImportSection";
 import { HistoryImportLive } from "./HistoryImportLive";
@@ -40,40 +40,44 @@ export const HistorySettings: React.FC = () => {
   } = useHistoryData();
 
   return (
-    /* The column and the page title come from the shared primitive, not from
-     * this file: `SettingsPage` decides the measure and the 24px title, so
-     * Library cannot drift from every other settings page. The title keeps
-     * exactly one companion — the page's primary action. The folder button
-     * lives on the list toolbar with the other quiet list controls, so this
-     * row can never crowd it. */
+    /* The column and the type still come from the shared primitive, so Library
+     * cannot drift from every other settings page. The title line takes the
+     * primitive's `header` slot rather than its `title`/`actions` pair for one
+     * reason: the totals are a single line now, and a line that describes what
+     * the page holds belongs against the title it describes, not a page gap
+     * below it. The folder button stays on the list toolbar with the other
+     * quiet list controls, so the title row can never crowd it. */
     <SettingsPage
-      /* The rail names this destination Library, so the page answers to the
-       * same word — one destination, one name. `settings.history.*` keys keep
-       * their address; only the visible values moved to the rail's term. */
-      title={t("topNav.library")}
-      actions={
-        <Button
-          size="sm"
-          onClick={() => void startAudioImport()}
-          disabled={startingAudioImport}
-          data-testid="history-import"
-        >
-          <FileAudio aria-hidden="true" className="size-4" />
-          {t("overview.hero.importAudio")}
-        </Button>
+      header={
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <div className="flex items-center justify-between gap-4">
+            {/* The rail names this destination Library, so the page answers to
+             * the same word — one destination, one name. `settings.history.*`
+             * keys keep their address; only the visible values moved to the
+             * rail's term. */}
+            <PageTitle>{t("topNav.library")}</PageTitle>
+            <Button
+              size="sm"
+              onClick={() => void startAudioImport()}
+              disabled={startingAudioImport}
+              data-testid="history-import"
+            >
+              <FileAudio aria-hidden="true" className="size-4" />
+              {t("overview.hero.importAudio")}
+            </Button>
+          </div>
+          <HistorySummary
+            stats={historyStats}
+            loading={statsLoading}
+            error={statsError}
+            onRetry={() => void refreshHistoryStats()}
+          />
+          {/* Always mounted, and empty it takes no space: a live region that
+           * appears with its first message loses that message. */}
+          <HistoryImportLive jobs={audioImportJobs} />
+        </div>
       }
     >
-      {/* The totals and the import status read as one block under the title. */}
-      <div className="flex min-w-0 flex-col gap-4">
-        <HistorySummary
-          stats={historyStats}
-          loading={statsLoading}
-          error={statsError}
-          onRetry={() => void refreshHistoryStats()}
-        />
-        <HistoryImportLive jobs={audioImportJobs} />
-      </div>
-
       <HistoryAudioImportSection
         jobs={audioImportJobs}
         error={audioImportError}

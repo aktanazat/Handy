@@ -32,9 +32,10 @@ interface ProcessAgainDialogProps {
  *
  * Owns its own mode list so the history list does not thread a callback
  * through three components for one row action, but not its own trigger: the
- * row's overflow menu opens it, alongside every other action that changes the
- * entry. Retry, in the same menu, repeats the run under the active mode; this
- * exists for the case where the user wanted a different one.
+ * opened row's overflow menu opens it, alongside the other actions that change
+ * the entry without being what you opened the row to do. "Transcribe again",
+ * a named button on that same opened row, repeats the run under the active
+ * mode; this exists for the case where the user wanted a different one.
  */
 export const ProcessAgainDialog: React.FC<ProcessAgainDialogProps> = ({
   historyId,

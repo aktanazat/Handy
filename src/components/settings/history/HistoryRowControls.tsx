@@ -1,5 +1,5 @@
 import React from "react";
-import { Check, ChevronDown, ChevronUp, Copy, Ellipsis } from "lucide-react";
+import { Check, Copy, Ellipsis, RotateCcw, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/vg/button";
 import {
@@ -10,45 +10,46 @@ import {
 } from "@/components/vg/dropdown-menu";
 import type { HistoryRowAction } from "./historyRowActions";
 
-/* One quiet 28px control, the row's unit of chrome. Geist rows do not shout:
- * the icon sits at gray-800 and only reaches full contrast under the pointer. */
-const ROW_CONTROL = "size-7 text-gray-800 hover:text-gray-1000";
-
 interface HistoryRowControlsProps {
-  actions: HistoryRowAction[];
+  /** The operations that stay behind the menu: correct, save, process again. */
+  menuActions: HistoryRowAction[];
   hasText: boolean;
   busy: boolean;
   /** True for the two seconds after a copy, while the check mark shows. */
   showCopied: boolean;
-  expanded: boolean;
-  /** The receipt panel the expander controls, referenced only while it is open. */
-  detailsId: string;
   onCopy: () => void;
-  onToggleExpanded: () => void;
+  onRetranscribe: () => void;
+  onDelete: () => void;
 }
 
-/* Copy, expand and one menu. Everything that changes or destroys the entry is
- * inside the menu, so the row carries three controls rather than six of three
- * different weights. */
+/* The expanded row's action bar. It exists only while the row is open, which is
+ * what buys the collapsed log its quiet: three named buttons for the three
+ * things you open a recording to do — copy it, transcribe it again, throw it
+ * away — and one menu for the rest.
+ *
+ * Named buttons rather than icons: an icon row is exactly the clutter the
+ * collapsed row was cleared of, and re-drawing it one level down would only
+ * move the noise. Outline rather than ghost so each one carries a hairline in
+ * both themes instead of reading as loose words under the player. */
 export const HistoryRowControls: React.FC<HistoryRowControlsProps> = ({
-  actions,
+  menuActions,
   hasText,
   busy,
   showCopied,
-  expanded,
-  detailsId,
   onCopy,
-  onToggleExpanded,
+  onRetranscribe,
+  onDelete,
 }) => {
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-none items-center gap-0.5">
+    <div
+      className="flex flex-wrap items-center gap-2"
+      data-testid="history-entry-controls"
+    >
       <Button
-        variant="ghost"
-        size="icon"
-        className={ROW_CONTROL}
-        aria-label={t("settings.history.copyToClipboard")}
+        variant="outline"
+        size="sm"
         onClick={onCopy}
         disabled={!hasText || busy}
         data-testid="history-entry-copy"
@@ -58,52 +59,57 @@ export const HistoryRowControls: React.FC<HistoryRowControlsProps> = ({
         ) : (
           <Copy aria-hidden="true" className="size-4" />
         )}
+        {showCopied
+          ? t("libraryV2.actions.copied")
+          : t("libraryV2.actions.copy")}
       </Button>
+
       <Button
-        variant="ghost"
-        size="icon"
-        className={ROW_CONTROL}
-        aria-label={
-          expanded
-            ? t("settings.history.collapseEntry", "Hide full entry")
-            : t("settings.history.expandEntry", "Show full entry")
-        }
-        onClick={onToggleExpanded}
-        aria-expanded={expanded}
-        aria-controls={expanded ? detailsId : undefined}
-        data-testid="history-entry-expand"
+        variant="outline"
+        size="sm"
+        onClick={onRetranscribe}
+        disabled={busy}
+        data-testid="history-entry-retry"
       >
-        {expanded ? (
-          <ChevronUp aria-hidden="true" className="size-4" />
-        ) : (
-          <ChevronDown aria-hidden="true" className="size-4" />
-        )}
+        <RotateCcw aria-hidden="true" className="size-4" />
+        {t("libraryV2.actions.transcribeAgain")}
       </Button>
+
+      {/* Destructive by colour on an outlined button, not the filled
+       * `destructive` variant: a solid red button inside an opened row would be
+       * the loudest thing on the page, and deleting one dictation is not the
+       * page's primary action. */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onDelete}
+        disabled={busy}
+        className="text-red-900 hover:text-red-900"
+        data-testid="history-entry-delete"
+      >
+        <Trash2 aria-hidden="true" className="size-4" />
+        {t("libraryV2.actions.delete")}
+      </Button>
+
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            size="icon"
-            className={ROW_CONTROL}
-            aria-label={t("settings.history.moreActions", "More actions")}
+            size="icon-sm"
+            className="text-gray-800 hover:text-gray-1000"
+            aria-label={t("libraryV2.actions.more")}
             data-testid="history-entry-actions"
           >
             <Ellipsis aria-hidden="true" className="size-4" />
           </Button>
         </DropdownMenuTrigger>
-        {/* No fixed width. The kit's content ships `min-w-[8rem]` and
-         * `overflow-x-hidden`, so a pinned `w-48` (168px of text budget) would
-         * CLIP, not ellipsize, the longest of these five labels:
-         * "Aus Gespeicherten entfernen" (de, 27 chars) and
-         * "फेरि ट्रान्सक्राइब गर्नुहोस्" (ne, 28) both need well over 200px, and SF — which is
-         * what actually paints today — is ~18% wider than Geist. Sizing to
-         * content cannot clip in any of the 24 locales. */}
+        {/* No fixed width. Several translated labels need more than 200px, and
+         * sizing the menu to its content avoids clipping in every locale. */}
         <DropdownMenuContent align="end">
-          {actions.map((action) => (
+          {menuActions.map((action) => (
             <DropdownMenuItem
               key={action.id}
               disabled={action.disabled}
-              variant={action.destructive ? "destructive" : "default"}
               onSelect={action.onSelect}
               data-testid={`history-entry-${action.id}`}
             >

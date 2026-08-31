@@ -169,7 +169,7 @@ export const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({
               <Microlabel>{pair.label}</Microlabel>
             </dt>
             <dd
-              className={`border-t border-gray-alpha-400 py-1 text-end font-mono text-[11px] break-words first-of-type:border-t-0 ${
+              className={`border-t border-gray-alpha-400 py-1 text-end text-[11px] break-words tabular-nums first-of-type:border-t-0 ${
                 pair.status ? CAPTURE_STATUS_TONE[pair.status] : "text-gray-900"
               }`}
             >

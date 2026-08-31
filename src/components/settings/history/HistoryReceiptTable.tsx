@@ -36,7 +36,7 @@ export const HistoryReceiptTable: React.FC<{
           >
             {row.header}
           </th>
-          <td className="py-1 pr-3 font-mono text-[11px] text-gray-900">
+          <td className="py-1 pr-3 text-[11px] text-gray-900 tabular-nums">
             {row.value}
           </td>
         </tr>

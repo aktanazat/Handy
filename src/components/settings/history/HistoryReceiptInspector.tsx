@@ -4,7 +4,6 @@ import type { HistoryRunReceipt } from "@/bindings";
 import { HistoryReceiptCard } from "./HistoryReceiptCard";
 
 interface HistoryReceiptInspectorProps {
-  id: string;
   receipts: HistoryRunReceipt[] | null | undefined;
   /** The row this entry was reprocessed or retried from, when it has one. */
   parentId: number | null;
@@ -16,7 +15,7 @@ interface HistoryReceiptInspectorProps {
  * underneath it. */
 export const HistoryReceiptInspector: React.FC<
   HistoryReceiptInspectorProps
-> = ({ id, receipts, parentId }) => {
+> = ({ receipts, parentId }) => {
   const { t } = useTranslation();
 
   /* Three ways to have no receipt to show, and they are not the same thing:
@@ -52,7 +51,6 @@ export const HistoryReceiptInspector: React.FC<
 
   return (
     <div
-      id={id}
       className="flex flex-col rounded-md bg-background-200 px-3 py-2.5"
       data-testid="history-receipts"
     >
@@ -62,7 +60,7 @@ export const HistoryReceiptInspector: React.FC<
        * the rest of the provenance instead of spending a metadata cell on
        * every collapsed row. */}
       {parentId !== null ? (
-        <p className="mb-2 font-mono text-[11px] text-gray-800">
+        <p className="mb-2 text-[11px] text-gray-800 tabular-nums">
           {t("settings.history.derivedFromId", "from #{{id}}", {
             id: parentId,
           })}
