@@ -126,6 +126,15 @@ pub fn named_attendee(
     status_raw: isize,
     is_self: bool,
 ) -> Option<CalendarAttendee> {
+    named_attendee_with_email(name, status_raw, is_self, None)
+}
+
+fn named_attendee_with_email(
+    name: Option<&str>,
+    status_raw: isize,
+    is_self: bool,
+    participant_url: Option<&str>,
+) -> Option<CalendarAttendee> {
     let name = name?.trim();
     if name.is_empty() {
         return None;
@@ -133,8 +142,21 @@ pub fn named_attendee(
     Some(CalendarAttendee {
         name: name.to_string(),
         status: participation_status(status_raw),
+        email: participant_email(participant_url),
         is_self,
     })
+}
+
+fn participant_email(participant_url: Option<&str>) -> Option<String> {
+    let value = participant_url?.trim();
+    let email = value
+        .strip_prefix("mailto:")
+        .or_else(|| value.strip_prefix("MAILTO:"))?
+        .split('?')
+        .next()?
+        .trim()
+        .to_lowercase();
+    (!email.is_empty()).then_some(email)
 }
 
 /// Trims one optional event string and treats an empty result as absent, so a
@@ -153,7 +175,9 @@ pub use macos::EventKitCalendar;
 
 #[cfg(target_os = "macos")]
 mod macos {
-    use super::{event_text, named_attendee, CalendarAccess, CalendarEventSummary, CalendarSource};
+    use super::{
+        event_text, named_attendee_with_email, CalendarAccess, CalendarEventSummary, CalendarSource,
+    };
     use block2::RcBlock;
     use objc2::rc::Retained;
     use objc2::runtime::Bool;
@@ -364,15 +388,25 @@ mod macos {
                 .iter()
                 .filter_map(|participant| {
                     // SAFETY: plain property reads on a live participant.
-                    let (name, status, is_self) = unsafe {
+                    let (name, status, is_self, participant_url) = unsafe {
+                        let participant_url = participant
+                            .URL()
+                            .absoluteString()
+                            .map(|url| url.to_string());
                         (
                             participant.name(),
                             participant.participantStatus(),
                             participant.isCurrentUser(),
+                            participant_url,
                         )
                     };
                     let name = name.map(|name| name.to_string());
-                    named_attendee(name.as_deref(), status.0, is_self)
+                    named_attendee_with_email(
+                        name.as_deref(),
+                        status.0,
+                        is_self,
+                        participant_url.as_deref(),
+                    )
                 })
                 .collect();
         }
@@ -526,6 +560,25 @@ mod tests {
                 name: "Aktan Azat".to_string(),
                 status: ParticipationStatus::Accepted,
                 is_self: true,
+                email: None,
+            })
+        );
+    }
+
+    #[test]
+    fn a_mailto_participant_url_preserves_the_calendar_email() {
+        assert_eq!(
+            named_attendee_with_email(
+                Some("Stephen Wolfram"),
+                RAW_ACCEPTED,
+                false,
+                Some("mailto:STEPHEN@example.com?subject=meeting"),
+            ),
+            Some(CalendarAttendee {
+                name: "Stephen Wolfram".to_string(),
+                email: Some("stephen@example.com".to_string()),
+                status: ParticipationStatus::Accepted,
+                is_self: false,
             })
         );
     }

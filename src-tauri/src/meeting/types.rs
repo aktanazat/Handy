@@ -696,6 +696,10 @@ pub struct MeetingSessionSnapshot {
     pub capture_completeness: CaptureCompleteness,
     pub storage: StorageAvailability,
     pub processing_status: ProcessingStatus,
+    /// The model-installation readiness captured by the current preflight.
+    /// Post-capture processing has its own lifecycle in `processing_status`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preflight_local_processing: Option<SourceAvailability>,
     pub retention_deadline_utc_ms: Option<i64>,
     pub allowed_actions: Vec<AllowedMeetingAction>,
 }

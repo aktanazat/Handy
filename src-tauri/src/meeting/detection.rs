@@ -46,6 +46,7 @@ use specta::Type;
 use tauri::{AppHandle, Emitter};
 use uuid::Uuid;
 
+use crate::meeting::people_types::PersonBriefingRow;
 use crate::meeting::session::{MeetingSessionManager, MeetingTitleSetRequest};
 use crate::meeting::types::{
     MeetingNavigationDestination, MeetingOperationId, MeetingPhase, MeetingSessionId,
@@ -115,6 +116,7 @@ impl tauri_specta::Event for DetectionPromptEvent {
 pub struct DetectionCountdown {
     pub event: CalendarEventSummary,
     pub seconds_to_start: i64,
+    pub briefing: Vec<PersonBriefingRow>,
 }
 
 /// The operator-editable half of detection, read and written as one unit.
@@ -182,6 +184,7 @@ struct PendingPrompt {
     prompt: PromptKind,
     /// Calendar event this prompt belongs to, for the auto-stop event-end rule.
     event_end_utc_ms: Option<i64>,
+    calendar_event: Option<CalendarEventSummary>,
 }
 
 /// A capture detection started, and what stops it.
@@ -199,6 +202,8 @@ struct RuntimeState {
     /// re-notify for the same event every tick until it ended — the most likely
     /// new failure this subsystem introduces, and the cheapest to block.
     prompted_events: HashSet<String>,
+    /// Calendar events whose durable briefing workflow has been dispatched.
+    briefing_events: HashSet<String>,
     /// Bundle IDs already prompted for during the current input-device episode.
     /// Cleared when the device goes idle, so a second meeting in the same app
     /// prompts again.
@@ -541,6 +546,16 @@ impl DetectionRuntime {
             }
             CalendarSignal::Absent => (None, None),
         };
+        let calendar_event = match &calendar {
+            CalendarSignal::Upcoming { event, .. } | CalendarSignal::Started { event }
+                if event.attendee_count >= machine::ATTENDEE_FLOOR =>
+            {
+                Some(event.clone())
+            }
+            _ => None,
+        };
+        let briefing_event = calendar_event.clone();
+        let briefing = Vec::new();
         let pane_open = event_key
             .as_deref()
             .is_some_and(|event_key| self.countdown_shown_for(event_key));
@@ -559,7 +574,13 @@ impl DetectionRuntime {
         };
 
         let outcome = evaluate(&inputs, &policy);
-        let (suppress_reason, countdown) = self.apply(outcome, event_end_utc_ms, now_utc_ms);
+        let (suppress_reason, countdown) = self.apply(
+            outcome,
+            event_end_utc_ms,
+            now_utc_ms,
+            calendar_event,
+            briefing,
+        );
         self.publish_status(
             &settings,
             mic,
@@ -568,6 +589,9 @@ impl DetectionRuntime {
             countdown,
             running_allowlisted,
         );
+        if let Some(event) = briefing_event {
+            self.schedule_calendar_briefing(event, now_utc_ms);
+        }
     }
 
     /// Turns one outcome into the action it names. Returns what the status event
@@ -577,6 +601,8 @@ impl DetectionRuntime {
         outcome: DetectionOutcome,
         event_end_utc_ms: Option<i64>,
         now_utc_ms: i64,
+        calendar_event: Option<CalendarEventSummary>,
+        briefing: Vec<PersonBriefingRow>,
     ) -> (Option<SuppressReason>, Option<DetectionCountdown>) {
         match outcome {
             DetectionOutcome::Suppress(reason) => (Some(reason), None),
@@ -588,6 +614,7 @@ impl DetectionRuntime {
                 Some(DetectionCountdown {
                     event,
                     seconds_to_start,
+                    briefing,
                 }),
             ),
             DetectionOutcome::AutoStart {
@@ -607,7 +634,7 @@ impl DetectionRuntime {
                     };
                     tauri::async_runtime::spawn(async move {
                         runtime
-                            .open_capture(&prompt, event_end_utc_ms, now_utc_ms)
+                            .open_capture(&prompt, event_end_utc_ms, now_utc_ms, calendar_event)
                             .await;
                     });
                 }
@@ -615,7 +642,7 @@ impl DetectionRuntime {
             }
             DetectionOutcome::Prompt(prompt) => {
                 if self.claim_prompt(&prompt) {
-                    self.raise(prompt, event_end_utc_ms);
+                    self.raise(prompt, event_end_utc_ms, calendar_event);
                 }
                 (None, None)
             }
@@ -656,8 +683,60 @@ impl DetectionRuntime {
             .and_then(|status| status.countdown.as_ref())
             .is_some_and(|countdown| countdown.event.event_key == event_key)
     }
+    fn schedule_calendar_briefing(self: &Arc<Self>, event: CalendarEventSummary, now_utc_ms: i64) {
+        if !self.lock().briefing_events.insert(event.event_key.clone()) {
+            return;
+        }
+        let runtime = Arc::clone(self);
+        tauri::async_runtime::spawn(async move {
+            let event_key = event.event_key.clone();
+            let briefing = runtime.meetings.calendar_briefing(event, now_utc_ms).await;
+            runtime.publish_calendar_briefing(&event_key, briefing);
+        });
+    }
 
-    fn raise(&self, prompt: PromptKind, event_end_utc_ms: Option<i64>) {
+    fn publish_calendar_briefing(&self, event_key: &str, briefing: Vec<PersonBriefingRow>) {
+        let status = {
+            let mut state = self.lock();
+            let Some(status) = state.last_status.as_mut() else {
+                return;
+            };
+            let Some(countdown) = status.countdown.as_mut() else {
+                return;
+            };
+            if countdown.event.event_key != event_key || countdown.briefing == briefing {
+                return;
+            }
+            countdown.briefing = briefing;
+            status.clone()
+        };
+        let _ = self.app.emit("detection-status", status);
+    }
+
+    pub fn calendar_event_for_start(&self, event_key: &str) -> Option<CalendarEventSummary> {
+        let state = self.lock();
+        state
+            .last_status
+            .as_ref()
+            .and_then(|status| status.countdown.as_ref())
+            .map(|countdown| &countdown.event)
+            .into_iter()
+            .chain(
+                state
+                    .pending
+                    .values()
+                    .filter_map(|pending| pending.calendar_event.as_ref()),
+            )
+            .find(|event| event.event_key == event_key)
+            .cloned()
+    }
+
+    fn raise(
+        &self,
+        prompt: PromptKind,
+        event_end_utc_ms: Option<i64>,
+        calendar_event: Option<CalendarEventSummary>,
+    ) {
         let prompt_id = Uuid::new_v4().to_string();
         let notified = self.prompts.present(&prompt_id, &prompt);
         self.lock().pending.insert(
@@ -665,6 +744,7 @@ impl DetectionRuntime {
             PendingPrompt {
                 prompt: prompt.clone(),
                 event_end_utc_ms,
+                calendar_event,
             },
         );
         let _ = self.app.emit(
@@ -691,7 +771,12 @@ impl DetectionRuntime {
         let runtime = Arc::clone(self);
         tauri::async_runtime::spawn(async move {
             runtime
-                .open_capture(&pending.prompt, pending.event_end_utc_ms, utc_now_ms())
+                .open_capture(
+                    &pending.prompt,
+                    pending.event_end_utc_ms,
+                    utc_now_ms(),
+                    pending.calendar_event,
+                )
                 .await;
         });
     }
@@ -709,6 +794,7 @@ impl DetectionRuntime {
         prompt: &PromptKind,
         event_end_utc_ms: Option<i64>,
         now_utc_ms: i64,
+        calendar_event: Option<CalendarEventSummary>,
     ) {
         let title = prompt.proposed_meeting_title();
         let trigger_bundle_id = prompt.bundle_id().map(str::to_string);
@@ -747,6 +833,15 @@ impl DetectionRuntime {
                 snapshot
             }
         };
+        if let Some(calendar_event) = calendar_event {
+            if let Err(error) = self
+                .meetings
+                .remember_calendar_facts(snapshot.session_id, calendar_event)
+                .await
+            {
+                log::warn!("Meeting calendar facts could not be saved: {error:?}");
+            }
+        }
         {
             let mut state = self.lock();
             state.tracked = Some(TrackedCapture {

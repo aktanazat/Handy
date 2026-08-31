@@ -1,16 +1,19 @@
 pub mod audio;
 pub mod cloud_sync;
 pub mod detection;
+pub mod documents;
 pub mod history;
 pub mod hud;
 pub mod media_import;
 pub mod meeting;
 pub mod models;
+pub mod people;
 pub mod persona;
 pub mod snippets;
 pub mod transcription;
 pub mod updates;
 pub mod vocabulary;
+pub mod workflows;
 
 use crate::settings::{get_settings, update_settings, AppSettings, LogLevel};
 use crate::utils::cancel_current_operation;

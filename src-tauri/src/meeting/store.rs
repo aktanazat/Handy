@@ -1,3 +1,11 @@
+mod documents;
+mod people;
+#[cfg(test)]
+mod workflow_core_tests;
+#[cfg(test)]
+mod workflow_receipt_tests;
+mod workflows;
+
 use super::analytics::{
     AnalyticsSegment, MeetingActionItemState, MeetingAnalytics, MeetingNotesTemplate,
     MeetingUserNotes,
@@ -511,6 +519,120 @@ static MIGRATIONS: &[M] = &[
         );
         CREATE INDEX meeting_action_item_states_session_idx
             ON meeting_action_item_states(session_id, artifact_id, action_index);
+        ",
+    ),
+    M::up(
+        "
+        CREATE TABLE people_state (
+            singleton INTEGER PRIMARY KEY NOT NULL CHECK (singleton = 1),
+            revision INTEGER NOT NULL CHECK (revision >= 0)
+        );
+        INSERT INTO people_state(singleton, revision) VALUES (1, 0);
+        CREATE TABLE persons (
+            id TEXT PRIMARY KEY NOT NULL,
+            display_name TEXT NOT NULL CHECK (length(trim(display_name)) > 0),
+            aliases_json TEXT NOT NULL,
+            calendar_emails_json TEXT NOT NULL,
+            created_at_utc_ms INTEGER NOT NULL,
+            updated_at_utc_ms INTEGER NOT NULL
+        );
+        CREATE TABLE meeting_person_links (
+            meeting_id TEXT NOT NULL REFERENCES meeting_sessions(id) ON DELETE CASCADE,
+            person_id TEXT NOT NULL REFERENCES persons(id) ON DELETE CASCADE,
+            source TEXT NOT NULL CHECK (source IN ('calendar', 'speaker', 'title', 'manual')),
+            confidence TEXT NOT NULL CHECK (confidence IN ('confirmed', 'suggested')),
+            created_at_utc_ms INTEGER NOT NULL,
+            PRIMARY KEY (meeting_id, person_id)
+        );
+        CREATE INDEX meeting_person_links_person_idx
+            ON meeting_person_links(person_id, confidence, created_at_utc_ms DESC);
+
+        CREATE TABLE document_state (
+            singleton INTEGER PRIMARY KEY NOT NULL CHECK (singleton = 1),
+            revision INTEGER NOT NULL CHECK (revision >= 0)
+        );
+        INSERT INTO document_state(singleton, revision) VALUES (1, 0);
+        CREATE TABLE documents (
+            id TEXT PRIMARY KEY NOT NULL,
+            title TEXT NOT NULL CHECK (length(trim(title)) > 0),
+            source_name TEXT NOT NULL CHECK (length(trim(source_name)) > 0),
+            media_type TEXT NOT NULL CHECK (media_type IN ('text/plain', 'text/markdown')),
+            content TEXT NOT NULL,
+            created_at_utc_ms INTEGER NOT NULL,
+            updated_at_utc_ms INTEGER NOT NULL
+        );
+        CREATE TABLE document_person_links (
+            document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+            person_id TEXT NOT NULL REFERENCES persons(id) ON DELETE CASCADE,
+            created_at_utc_ms INTEGER NOT NULL,
+            PRIMARY KEY (document_id, person_id)
+        );
+        CREATE INDEX document_person_links_person_idx
+            ON document_person_links(person_id, created_at_utc_ms DESC);
+
+        CREATE TABLE workflow_state (
+            singleton INTEGER PRIMARY KEY NOT NULL CHECK (singleton = 1),
+            revision INTEGER NOT NULL CHECK (revision >= 0)
+        );
+        INSERT INTO workflow_state(singleton, revision) VALUES (1, 0);
+        CREATE TABLE workflow_settings (
+            workflow_id TEXT PRIMARY KEY NOT NULL CHECK (workflow_id IN (
+                'person_linking', 'pre_meeting_briefing', 'continuity',
+                'vocabulary_mining', 'document_linking'
+            )),
+            enabled INTEGER NOT NULL CHECK (enabled IN (0, 1))
+        );
+        INSERT INTO workflow_settings(workflow_id, enabled) VALUES
+            ('person_linking', 1),
+            ('pre_meeting_briefing', 1),
+            ('continuity', 1),
+            ('vocabulary_mining', 1),
+            ('document_linking', 1);
+        CREATE TABLE workflow_events (
+            id TEXT PRIMARY KEY NOT NULL,
+            kind TEXT NOT NULL CHECK (kind IN (
+                'meeting_finalized', 'meeting_started', 'speaker_renamed',
+                'audio_imported', 'doc_ingested', 'calendar_meeting_detected',
+                'agent_hook_event'
+            )),
+            payload_json TEXT NOT NULL,
+            occurred_at_utc_ms INTEGER NOT NULL,
+            source TEXT NOT NULL,
+            dedupe_key TEXT NOT NULL UNIQUE
+        );
+        CREATE TABLE workflow_runs (
+            id TEXT PRIMARY KEY NOT NULL,
+            workflow_id TEXT NOT NULL REFERENCES workflow_settings(workflow_id),
+            event_id TEXT NOT NULL REFERENCES workflow_events(id) ON DELETE CASCADE,
+            status TEXT NOT NULL CHECK (status IN ('ok', 'failed', 'skipped')),
+            started_at_utc_ms INTEGER NOT NULL,
+            finished_at_utc_ms INTEGER NOT NULL,
+            outcome_summary TEXT NOT NULL,
+            error TEXT
+        );
+        CREATE UNIQUE INDEX workflow_runs_once_idx
+            ON workflow_runs(workflow_id, event_id)
+            WHERE status IN ('ok', 'failed');
+        CREATE INDEX workflow_runs_list_idx
+            ON workflow_runs(started_at_utc_ms DESC, id DESC);
+        CREATE TABLE meeting_calendar_facts (
+            session_id TEXT PRIMARY KEY NOT NULL
+                REFERENCES meeting_sessions(id) ON DELETE CASCADE,
+            event_key TEXT NOT NULL,
+            event_json TEXT NOT NULL
+        );
+        ",
+    ),
+    M::up(
+        "
+        ALTER TABLE workflow_state
+            ADD COLUMN run_revision INTEGER NOT NULL DEFAULT 0
+            CHECK (run_revision >= 0);
+        CREATE TABLE document_ingest_operations (
+            operation_id TEXT PRIMARY KEY NOT NULL,
+            result_json TEXT NOT NULL,
+            created_at_utc_ms INTEGER NOT NULL
+        );
         ",
     ),
 
@@ -2766,7 +2888,17 @@ impl MeetingStore {
     ) -> Result<MeetingSessionSnapshot, StoreError> {
         let connection = self.connection()?;
         let row = session_row(&connection, session_id)?;
-        let sources = source_snapshots(&connection, session_id)?;
+        let preflight = if row.phase == MeetingPhase::Preflight {
+            Some(decode_json::<MeetingPreflightSnapshot>(
+                &row.preflight_json,
+            )?)
+        } else {
+            None
+        };
+        let sources = match preflight.as_ref() {
+            Some(snapshot) => snapshot.sources.clone(),
+            None => source_snapshots(&connection, session_id)?,
+        };
         let completeness = derive_completeness(&connection, session_id, &sources)?;
         let open_capture_window_started_at_ns = connection
             .query_row(
@@ -2783,6 +2915,12 @@ impl MeetingStore {
             .iter()
             .filter_map(|source| source.last_durable_offset_ns)
             .max();
+        let preflight_local_processing =
+            preflight.as_ref().map(|snapshot| snapshot.local_processing);
+        let storage = preflight
+            .as_ref()
+            .map(|snapshot| snapshot.storage)
+            .unwrap_or(StorageAvailability::Available);
         Ok(MeetingSessionSnapshot {
             session_id,
             phase: row.phase,
@@ -2793,8 +2931,9 @@ impl MeetingStore {
             sources,
             open_capture_window_started_at_ns,
             capture_completeness: completeness,
-            storage: StorageAvailability::Available,
+            storage,
             processing_status: decode_json(&row.processing_status_json)?,
+            preflight_local_processing,
             retention_deadline_utc_ms: row.delete_after_utc_ms,
             allowed_actions,
         })
@@ -4597,7 +4736,7 @@ impl MeetingStore {
         Ok((receipt, job_id))
     }
 
-    pub fn finish_deletion(&self, job_id: MeetingDeletionJobId) -> Result<(), StoreError> {
+    pub fn finish_deletion(&self, job_id: MeetingDeletionJobId) -> Result<Option<u64>, StoreError> {
         let job = match self.deletion_job(job_id) {
             Ok(job) => job,
             Err(StoreError::NotFound) => {
@@ -4611,7 +4750,7 @@ impl MeetingStore {
                     .optional()?
                     .is_some();
                 if completed {
-                    return Ok(());
+                    return Ok(None);
                 }
                 return Err(StoreError::NotFound);
             }
@@ -4626,19 +4765,33 @@ impl MeetingStore {
             fs::rename(&live, &trash)?;
             self.update_deletion_job_state(job_id, "trashed")?;
         }
-        {
+        let people_revision = {
             let mut connection = self.connection()?;
-            let transaction = connection.transaction()?;
+            let transaction =
+                connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+            let affected_people: bool = transaction.query_row(
+                "SELECT EXISTS(
+                    SELECT 1 FROM meeting_person_links WHERE meeting_id = ?1
+                 )",
+                [&job.session_id],
+                |row| row.get(0),
+            )?;
             transaction.execute(
                 "DELETE FROM meeting_sessions WHERE id = ?1",
                 params![job.session_id],
             )?;
+            let people_revision = if affected_people {
+                Some(people::bump_people_revision_in(&transaction)?)
+            } else {
+                None
+            };
             transaction.execute(
                 "UPDATE meeting_deletion_jobs SET state = 'rows_deleted', updated_at_utc_ms = ?1 WHERE job_id = ?2",
                 params![utc_now_ms(), id(job_id)],
             )?;
             transaction.commit()?;
-        }
+            people_revision
+        };
         if trash.exists() {
             fs::remove_dir_all(&trash)?;
         }
@@ -4652,7 +4805,7 @@ impl MeetingStore {
             "DELETE FROM meeting_deletion_jobs WHERE job_id = ?1",
             params![id(job_id)],
         )?;
-        Ok(())
+        Ok(people_revision)
     }
 
     pub fn resume_deletions(&self) -> Result<(), StoreError> {
@@ -9028,6 +9181,61 @@ mod tests {
                 )
                 .expect("insert trend artifact");
         }
+    }
+
+    #[test]
+    fn preflight_readiness_is_projected_and_refreshed() {
+        let (_directory, store) = store();
+        let session_id = MeetingSessionId::new();
+        let mut initial = preflight(session_id);
+        initial.local_processing = SourceAvailability::DeviceUnavailable;
+        initial.sources[1].availability = SourceAvailability::DeviceUnavailable;
+        store
+            .create_preflight(
+                StoreMutation {
+                    operation_id: MeetingOperationId::new(),
+                    requested_at_utc_ms: 1,
+                    session_id,
+                    expected_revision: 0,
+                    command: MeetingCommandKind::PreflightCreate,
+                },
+                initial.proposed_title.clone(),
+                initial.origin,
+                initial,
+                MeetingRetentionPolicy::Forever,
+            )
+            .expect("create preflight");
+
+        let initial_snapshot = store
+            .session_snapshot(session_id)
+            .expect("initial session snapshot");
+        assert_eq!(
+            initial_snapshot.preflight_local_processing,
+            Some(SourceAvailability::DeviceUnavailable)
+        );
+        assert_eq!(initial_snapshot.sources.len(), SourceKind::ALL.len());
+        assert_eq!(
+            initial_snapshot.sources[1].availability,
+            SourceAvailability::DeviceUnavailable
+        );
+
+        let mut refreshed = preflight(session_id);
+        refreshed.revision = 1;
+        store
+            .refresh_preflight(MeetingOperationId::new(), 2, session_id, 0, refreshed)
+            .expect("refresh preflight");
+
+        let refreshed_snapshot = store
+            .session_snapshot(session_id)
+            .expect("refreshed session snapshot");
+        assert_eq!(
+            refreshed_snapshot.preflight_local_processing,
+            Some(SourceAvailability::Available)
+        );
+        assert!(refreshed_snapshot
+            .sources
+            .iter()
+            .all(|source| source.availability == SourceAvailability::Available));
     }
 
     #[test]

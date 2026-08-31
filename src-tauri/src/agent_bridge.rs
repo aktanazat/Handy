@@ -69,6 +69,20 @@ pub enum AgentBridgeRequestKind {
     Notification,
 }
 
+impl AgentBridgeRequestKind {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::SessionStart => "session_start",
+            Self::UserPromptSubmit => "user_prompt_submit",
+            Self::PermissionRequest => "permission_request",
+            Self::PreToolUse => "pre_tool_use",
+            Self::PostToolUse => "post_tool_use",
+            Self::Stop => "stop",
+            Self::Notification => "notification",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Type)]
 pub struct AgentBridgeStatus {
     pub running: bool,
@@ -964,21 +978,46 @@ impl AgentBridgeManager {
         let worker_stop = stop.clone();
         let app = self.app.clone();
         let core = self.core.clone();
+        let meeting_manager = self
+            .app
+            .try_state::<std::sync::Arc<crate::meeting::session::MeetingSessionManager>>()
+            .map(|manager| std::sync::Arc::clone(&manager));
         let join = std::thread::spawn(move || {
             use std::sync::atomic::Ordering;
             use tauri::Emitter as _;
             use tauri_specta::Event as _;
             let mut previous: Option<(bool, usize, usize, u64)> = None;
+            let mut recorded_workflow_requests = BTreeSet::new();
             while !worker_stop.load(Ordering::Acquire) {
                 let settings = crate::settings::get_settings(&app).agent_bridge;
                 if !settings.master_enabled {
                     break;
                 }
-                let status = {
+                let (status, requests) = {
                     let mut core = lock_recover(&core);
                     let _ = core.tick(&settings, now_ms());
-                    core.status(&settings)
+                    (core.status(&settings), core.requests())
                 };
+                let active_request_ids = requests
+                    .iter()
+                    .map(|request| request.id.clone())
+                    .collect::<BTreeSet<_>>();
+                recorded_workflow_requests
+                    .retain(|request_id| active_request_ids.contains(request_id));
+                if let Some(manager) = &meeting_manager {
+                    for request in requests {
+                        if recorded_workflow_requests.contains(&request.id) {
+                            continue;
+                        }
+                        let request_id = request.id;
+                        let kind = request.kind.as_str().to_string();
+                        if tauri::async_runtime::block_on(
+                            manager.record_agent_hook_event(request_id.clone(), kind),
+                        ) {
+                            recorded_workflow_requests.insert(request_id);
+                        }
+                    }
+                }
                 let signature = (
                     status.running,
                     status.observed_sessions,

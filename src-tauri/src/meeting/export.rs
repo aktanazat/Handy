@@ -243,6 +243,7 @@ mod tests {
                 processing_status: ProcessingStatus::Failed {
                     reason: super::super::types::ProcessingFailure::LocalModelUnavailable,
                 },
+                preflight_local_processing: None,
                 retention_deadline_utc_ms: None,
                 allowed_actions: vec![AllowedMeetingAction::Export],
             },

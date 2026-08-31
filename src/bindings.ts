@@ -1838,6 +1838,158 @@ async meetingCatchUp(sessionId: MeetingSessionId) : Promise<Result<MeetingCatchU
     else return { status: "error", error: e  as any };
 }
 },
+async peopleList() : Promise<Result<PeopleListResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("people_list") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async personDetail(personId: PersonId) : Promise<Result<PersonDetailResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("person_detail", { personId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async personContext(personIds: PersonId[]) : Promise<Result<PersonContextResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("person_context", { personIds }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingPeopleContext(sessionId: MeetingSessionId) : Promise<Result<MeetingPeopleContextResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_people_context", { sessionId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async personRename(request: PersonRenameRequest) : Promise<Result<PeopleMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("person_rename", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async personMerge(request: PersonMergeRequest) : Promise<Result<PeopleMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("person_merge", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async personSplit(request: PersonSplitRequest) : Promise<Result<PeopleMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("person_split", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async personDelete(request: PersonDeleteRequest) : Promise<Result<PeopleMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("person_delete", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async linkConfirm(request: PersonLinkRequest) : Promise<Result<PeopleMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("link_confirm", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async linkRemove(request: PersonLinkRequest) : Promise<Result<PeopleMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("link_remove", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async linkAddManual(request: PersonLinkRequest) : Promise<Result<PeopleMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("link_add_manual", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async openLoopsInbox(limit: number | null) : Promise<Result<OpenLoopsInboxResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("open_loops_inbox", { limit }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async vocabularyCandidates() : Promise<Result<VocabularyCandidatesResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("vocabulary_candidates") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async workflowsList() : Promise<Result<WorkflowsListResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("workflows_list") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async workflowSetEnabled(request: WorkflowSetEnabledRequest) : Promise<Result<WorkflowsListResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("workflow_set_enabled", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async workflowRuns(request: WorkflowRunsRequest | null) : Promise<Result<PaginatedWorkflowRuns, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("workflow_runs", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async docIngest(request: DocumentIngestRequest) : Promise<Result<DocumentMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("doc_ingest", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async docList(personId: PersonId | null) : Promise<Result<DocumentListResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("doc_list", { personId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async docDelete(request: DocumentDeleteRequest) : Promise<Result<DocumentMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("doc_delete", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async cloudSyncOverviewGet() : Promise<Result<CloudSyncOverview, CloudSyncErrorKind>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("cloud_sync_overview_get") };
@@ -2455,17 +2607,20 @@ export type CalendarAccess =
  */
 export type CalendarAttendee = { name: string; status: ParticipationStatus;
 /**
+ * Normalized address from EventKit's `mailto:` participant URL.
+ */
+email?: string | null;
+/**
  * True for the account that owns the calendar this event lives on.
  */
 isSelf: boolean }
 /**
  * One calendar event, reduced to the fields the pre-meeting surfaces read.
  *
- * The content fields below (`attendees`, `notes`, `calendar_name`, `url`) are
- * read for the one nearest event only and are never persisted: they live in
- * the in-memory status the pre-meeting card renders and are dropped when the
- * event passes. The decision table itself still reads nothing but
- * `attendee_count` and the two instants.
+ * A qualifying detection durably records these facts in the encrypted
+ * workflow-event store before its briefing runs. Accepting the event also
+ * copies the same facts onto the meeting session.
+ * The decision table reads only `attendee_count` and the two instants.
  */
 export type CalendarEventSummary = {
 /**
@@ -2707,7 +2862,7 @@ export type DeliveryReceipt = { method: DeliveryMethod; outcome: DeliveryOutcome
  * fields: the card shows the calendar's own facts, and a second copy of them
  * here would be a second place for them to go stale.
  */
-export type DetectionCountdown = { event: CalendarEventSummary; secondsToStart: number }
+export type DetectionCountdown = { event: CalendarEventSummary; secondsToStart: number; briefing: PersonBriefingRow[] }
 /**
  * Emitted when detection wants an answer. The frontend renders localized copy
  * from these fields; the native notification carries §5.4's English pattern.
@@ -2813,6 +2968,13 @@ availableStopTriggers: StopTrigger[];
  */
 inputDeviceReportingSuspect: boolean }
 export type DiarizationStatus = "not_requested" | "model_unavailable" | "downloading" | "running" | "succeeded" | "failed"
+export type Document = { summary: DocumentSummary; content: string }
+export type DocumentDeleteRequest = { document_id: DocumentId; expected_revision: number }
+export type DocumentId = string
+export type DocumentIngestRequest = { path: string; operation_id: MeetingOperationId }
+export type DocumentListResult = { schema_version: number; revision: number; entries: Document[] }
+export type DocumentMutationResult = { schema_version: number; revision: number; document: Document | null; removed: boolean }
+export type DocumentSummary = { id: DocumentId; title: string; source_name: string; media_type: string; created_at_utc_ms: number }
 export type EffectiveTranscriptSegment = { base: TranscriptSegment; replacement_text: string | null; removed: boolean; edit_revision: number | null; assigned_speaker_id: SpeakerId; speaker_assignment: SpeakerAssignmentKind }
 /**
  * An opt-in exact-token replacement applied after vocabulary correction.
@@ -3161,8 +3323,10 @@ export type MeetingNotesTemplate = "general" | "one_on_one" | "interview" | "sal
 export type MeetingOperationId = string
 export type MeetingOrigin = "manual" | "suggestion" | "cli"
 export type MeetingOutlineTopic = { title: CitedArtifactText; detail: CitedArtifactText | null }
+export type MeetingPeopleContextResult = { schema_version: number; revision: number; rows: MeetingPersonContextRow[] }
+export type MeetingPersonContextRow = { person_id: PersonId; display_name: string; evidence_source: PersonLinkSource; meetings_together: number; last_prior_meeting: PersonBriefingLastMeeting | null; top_open_loop: PersonOpenLoop | null }
 export type MeetingPhase = "preflight" | "starting" | "capturing_recording" | "capturing_pausing" | "capturing_paused" | "capturing_resuming" | "stopping" | "processing" | "review_ready" | "recovery_required" | "deleting"
-export type MeetingPreflightCreateRequest = { operation_id: MeetingOperationId; expected_revision: number; title: string; origin: MeetingOrigin; suggestion_id: MeetingSuggestionId | null; requested_sources: SourceKind[]; required_sources: SourceKind[]; accepted_known_missing_sources: SourceKind[]; degraded_start_policy: DegradedStartPolicy; destination: ProcessingDestination; remote_acknowledgement: RemoteAcknowledgement | null; microphone_device_uid: string | null; frozen_system_audio_application_bundle_ids: string[] }
+export type MeetingPreflightCreateRequest = { operation_id: MeetingOperationId; expected_revision: number; title: string; origin: MeetingOrigin; suggestion_id: MeetingSuggestionId | null; calendar_event_key?: string | null; requested_sources: SourceKind[]; required_sources: SourceKind[]; accepted_known_missing_sources: SourceKind[]; degraded_start_policy: DegradedStartPolicy; destination: ProcessingDestination; remote_acknowledgement: RemoteAcknowledgement | null; microphone_device_uid: string | null; frozen_system_audio_application_bundle_ids: string[] }
 export type MeetingPreflightRefreshRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number }
 export type MeetingProvider = "zoom" | "google_meet" | "microsoft_teams" | "webex" | "slack_huddle" | "face_time" | "configured_app"
 export type MeetingQuestionId = string
@@ -3189,7 +3353,12 @@ export type MeetingSearchResult = { entries: MeetingSearchHit[] }
 export type MeetingSegmentEditRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; segment_id: TranscriptSegmentId; replacement_text: string; removed: boolean }
 export type MeetingSessionChangedEvent = MeetingEventPayload
 export type MeetingSessionId = string
-export type MeetingSessionSnapshot = { session_id: MeetingSessionId; phase: MeetingPhase; revision: number; title: string; started_at_utc_ms: number | null; elapsed_offset_ns: number | null; sources: MeetingSourceSnapshot[]; open_capture_window_started_at_ns: number | null; capture_completeness: CaptureCompleteness; storage: StorageAvailability; processing_status: ProcessingStatus; retention_deadline_utc_ms: number | null; allowed_actions: AllowedMeetingAction[] }
+export type MeetingSessionSnapshot = { session_id: MeetingSessionId; phase: MeetingPhase; revision: number; title: string; started_at_utc_ms: number | null; elapsed_offset_ns: number | null; sources: MeetingSourceSnapshot[]; open_capture_window_started_at_ns: number | null; capture_completeness: CaptureCompleteness; storage: StorageAvailability; processing_status: ProcessingStatus;
+/**
+ * The model-installation readiness captured by the current preflight.
+ * Post-capture processing has its own lifecycle in `processing_status`.
+ */
+preflight_local_processing?: SourceAvailability | null; retention_deadline_utc_ms: number | null; allowed_actions: AllowedMeetingAction[] }
 export type MeetingSourceHealthChangedEvent = MeetingEventPayload
 export type MeetingSourceSnapshot = { track_id: SourceTrackId | null; source_kind: SourceKind; required: boolean; availability: SourceAvailability; health: SourceHealth; format: AudioFormat | null; last_durable_offset_ns: number | null; gap_count: number }
 export type MeetingSpeaker = { speaker_id: SpeakerId; session_id: MeetingSessionId; source_kind: SourceKind; display_name: string; revision: number }
@@ -3417,6 +3586,7 @@ export type NotificationAccess = "not_determined" | "authorized" | "denied" |
  * target.
  */
 "unavailable"
+export type OpenLoopsInboxResult = { schema_version: number; revision: number; entries: PersonOpenLoop[] }
 export type OperationActor = "user" | "system"
 export type OperationReceipt = { schema_version: number; operation_id: MeetingOperationId; session_id: MeetingSessionId | null; actor: OperationActor; command: MeetingCommandKind; expected_revision: number; from_phase: MeetingPhase | null; to_phase: MeetingPhase | null; requested_at_utc_ms: number; committed_at_utc_ms: number | null; result: OperationResult; reason_codes: MeetingReasonCode[]; new_revision: number | null; effect_ids: string[] }
 export type OperationResult = "committed" | "rejected" | "failed"
@@ -3431,6 +3601,7 @@ export type OverlayPosition = "top" | "bottom"
 export type OverlayStyle = "none" | "minimal" | "live"
 export type PaginatedHistory = { entries: HistoryEntry[]; has_more: boolean }
 export type PaginatedMeetings = { entries: MeetingHistorySummary[]; has_more: boolean }
+export type PaginatedWorkflowRuns = { schema_version: number; revision: number; entries: WorkflowRunReceipt[]; next_cursor: WorkflowRunCursor | null }
 /**
  * How one participant answered the invitation, as EventKit reports it.
  *
@@ -3446,7 +3617,31 @@ export type ParticipationStatus =
  */
 "unknown" | "pending" | "accepted" | "declined" | "tentative"
 export type PasteMethod = "ctrl_v" | "direct" | "none" | "shift_insert" | "ctrl_shift_v" | "external_script"
+export type PeopleListResult = { schema_version: number; revision: number; entries: PersonListEntry[] }
+export type PeopleMutationResult = { schema_version: number; revision: number; person: Person | null; removed: boolean }
 export type PermissionAccess = "allowed" | "denied" | "unknown"
+export type Person = { id: PersonId; display_name: string; aliases: string[]; calendar_emails: string[]; created_at_utc_ms: number; updated_at_utc_ms: number }
+export type PersonBriefingLastMeeting = { id: MeetingSessionId; title: string; at_utc_ms: number; headline: string | null }
+export type PersonBriefingRow = { person_id: PersonId; display_name: string; meetings_count: number; last: PersonBriefingLastMeeting | null; open_loops: PersonOpenLoop[]; commitments: PersonCommitment[] }
+export type PersonCommitment = { meeting_id: MeetingSessionId; title: string; at_utc_ms: number; text: string }
+export type PersonContextResult = { schema_version: number; revision: number; rows: PersonBriefingRow[] }
+export type PersonDeleteRequest = { person_id: PersonId; expected_revision: number }
+export type PersonDetail = { person: Person; links: PersonMeetingLink[]; open_loops: PersonOpenLoop[]; commitments: PersonCommitment[]; talk_share_avg_permille: number | null; documents: DocumentSummary[] }
+export type PersonDetailResult = { schema_version: number; revision: number; detail: PersonDetail }
+export type PersonId = string
+export type PersonLinkConfidence = "confirmed" | "suggested"
+export type PersonLinkRequest = { meeting_id: MeetingSessionId; person_id: PersonId; expected_revision: number }
+export type PersonLinkSource = "calendar" | "speaker" | "title" | "manual"
+export type PersonListEntry = { person: Person; meetings_count: number; last_meeting_at_utc_ms: number | null; suggested_count: number; evidence_sources: PersonLinkSource[]; confirmed_count: number; last_meeting: PersonListLastMeeting | null }
+export type PersonListLastMeeting = { session_id: MeetingSessionId; title: string; at_ms: number; headline: PersonMeetingHeadline | null }
+export type PersonMeetingHeadline = { kind: "ledger"; text: string } | { kind: "summary"; text: string }
+export type PersonMeetingLink = { meeting: PersonMeetingSummary; source: PersonLinkSource; confidence: PersonLinkConfidence }
+export type PersonMeetingSummary = { id: MeetingSessionId; title: string; at_utc_ms: number; headline: string | null; series_number: number }
+export type PersonMergeRequest = { source_person_id: PersonId; target_person_id: PersonId; expected_revision: number }
+export type PersonOpenLoop = { meeting_id: MeetingSessionId; title: string; at_utc_ms: number; text: string; owner_person_id: PersonId | null; carried_since_at_utc_ms: number | null }
+export type PersonRenameRequest = { person_id: PersonId; display_name: string; expected_revision: number }
+export type PersonSplitRequest = { source_person_id: PersonId; target: PersonSplitTarget; meeting_ids: MeetingSessionId[]; aliases: string[]; calendar_emails: string[]; document_ids: DocumentId[]; expected_revision: number }
+export type PersonSplitTarget = { kind: "create"; display_name: string } | { kind: "existing"; person_id: PersonId }
 /**
  * One paragraph of the user's own writing, injected into the rewrite prompt as
  * a voice-matching example. Samples are the user's text, so they are never
@@ -3678,6 +3873,8 @@ export type UpstreamImportProgressEvent = { phase: UpstreamImportPhase; complete
 export type UpstreamImportResult = { settings_imported: boolean; history_imported: number; history_existing: number; recordings_copied: number; recordings_existing: number }
 export type UpstreamImportSelection = { settings: boolean; history: boolean; recordings: boolean }
 export type UpstreamImportStatus = { available: boolean; app_state: UpstreamAppState; settings_available: boolean; history_entries: number; recording_files: number; recording_bytes: number; settings_imported: boolean; settings_backup_available: boolean; settings_backup_saved_at_ms: number | null; history_imported: number; recordings_imported: number }
+export type VocabularyCandidate = { text: string; occurrences: number; meetings_count: number }
+export type VocabularyCandidatesResult = { schema_version: number; revision: number; entries: VocabularyCandidate[] }
 export type VocabularyCsvPreview = { total_rows: number; valid_rows: number; invalid_rows: number; duplicate_rows: number; conflict_rows: number; can_apply: boolean; entries: VocabularyEntry[] }
 /**
  * A deterministic correction from what the recognizer heard to what should
@@ -3691,6 +3888,19 @@ export type VocabularyScope = { kind: "global" } | { kind: "current_mode" } | { 
  */
 export type WebsiteHostMatch = "exact" | "suffix"
 export type WindowsMicrophonePermissionStatus = { supported: boolean; overall_access: PermissionAccess; device_access: PermissionAccess; app_access: PermissionAccess; desktop_app_access: PermissionAccess }
+export type WorkflowEventKind = "meeting_finalized" | "meeting_started" | "speaker_renamed" | "audio_imported" | "document_ingested" | "calendar_meeting_detected" | "agent_hook_event"
+export type WorkflowId = "person_linking" | "pre_meeting_briefing" | "continuity" | "vocabulary_mining" | "document_linking"
+export type WorkflowJumpTarget = { kind: "meeting"; session_id: MeetingSessionId } | { kind: "document"; document_id: DocumentId }
+export type WorkflowOutcomeCode = "person_links" | "briefing" | "continuity" | "vocabulary_candidates" | "document_links" | "already_processed" | "failed" | "skipped"
+export type WorkflowOutcomeCounts = { changes: number; persons: number; series: number; carried: number; candidates: number }
+export type WorkflowRunCursor = { started_at_utc_ms: number; run_id: WorkflowRunId }
+export type WorkflowRunId = string
+export type WorkflowRunReceipt = { id: WorkflowRunId; workflow_id: WorkflowId; event_kind: WorkflowEventKind; jump_target: WorkflowJumpTarget | null; status: WorkflowRunStatus; started_at_utc_ms: number; finished_at_utc_ms: number; outcome_summary: string; outcome_code: WorkflowOutcomeCode; outcome_counts: WorkflowOutcomeCounts; error: string | null }
+export type WorkflowRunStatus = "ok" | "failed" | "skipped"
+export type WorkflowRunsRequest = { workflow_id: WorkflowId | null; cursor: WorkflowRunCursor | null; limit: number | null }
+export type WorkflowSetEnabledRequest = { workflow_id: WorkflowId; enabled: boolean; expected_revision: number }
+export type WorkflowSummary = { id: WorkflowId; enabled: boolean; last_run: WorkflowRunReceipt | null }
+export type WorkflowsListResult = { schema_version: number; revision: number; entries: WorkflowSummary[] }
 
 /** tauri-specta globals **/
 

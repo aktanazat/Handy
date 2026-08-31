@@ -70,17 +70,19 @@ pub enum ParticipationStatus {
 pub struct CalendarAttendee {
     pub name: String,
     pub status: ParticipationStatus,
+    /// Normalized address from EventKit's `mailto:` participant URL.
+    #[serde(default)]
+    pub email: Option<String>,
     /// True for the account that owns the calendar this event lives on.
     pub is_self: bool,
 }
 
 /// One calendar event, reduced to the fields the pre-meeting surfaces read.
 ///
-/// The content fields below (`attendees`, `notes`, `calendar_name`, `url`) are
-/// read for the one nearest event only and are never persisted: they live in
-/// the in-memory status the pre-meeting card renders and are dropped when the
-/// event passes. The decision table itself still reads nothing but
-/// `attendee_count` and the two instants.
+/// A qualifying detection durably records these facts in the encrypted
+/// workflow-event store before its briefing runs. Accepting the event also
+/// copies the same facts onto the meeting session.
+/// The decision table reads only `attendee_count` and the two instants.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CalendarEventSummary {

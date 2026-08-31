@@ -21,7 +21,7 @@ use symphonia::core::formats::FormatOptions;
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 use symphonia::core::probe::Hint;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 use tauri_specta::Event;
 
 pub const MAX_MEDIA_IMPORT_SAMPLES: usize = 28_800_000;
@@ -464,6 +464,7 @@ fn process_work(inner: &Arc<MediaImportInner>, work: WorkItem) {
         finish_failed(inner, work.id, AudioImportError::history());
         return;
     };
+    let source_name = file_name.clone();
     let record = ImportHistoryRecord {
         file_name,
         word_count: u64::try_from(transcription.split_whitespace().count()).ok(),
@@ -481,7 +482,7 @@ fn process_work(inner: &Arc<MediaImportInner>, work: WorkItem) {
             return;
         }
     };
-    finish_done(inner, work.id, history_id);
+    finish_done(inner, work.id, history_id, source_name);
 }
 
 fn set_status(inner: &Arc<MediaImportInner>, id: u64, status: AudioImportStatus) {
@@ -508,13 +509,26 @@ fn update_decode_progress(inner: &Arc<MediaImportInner>, id: u64, emitted_sample
     emit_update(inner, update);
 }
 
-fn finish_done(inner: &Arc<MediaImportInner>, id: u64, history_id: i64) {
+fn finish_done(inner: &Arc<MediaImportInner>, id: u64, history_id: i64, source_name: String) {
     finish(
         inner,
         id,
         AudioImportStatus::Done,
         AudioImportResult::Done { history_id },
     );
+    let Some(app) = &inner.app_handle else {
+        return;
+    };
+    let Some(manager) = app.try_state::<Arc<crate::meeting::session::MeetingSessionManager>>()
+    else {
+        return;
+    };
+    let manager = Arc::clone(&manager);
+    tauri::async_runtime::spawn(async move {
+        manager
+            .record_audio_imported(history_id.to_string(), source_name)
+            .await;
+    });
 }
 
 fn finish_cancelled(inner: &Arc<MediaImportInner>, id: u64) {

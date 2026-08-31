@@ -15,6 +15,7 @@ use super::store::{
     TranscriptSegmentInput,
 };
 use super::types::*;
+use super::workflow_engine::{known_vocabulary, record_meeting_finalized};
 use crate::audio_toolkit::vad::{self, VoiceActivityDetector};
 use crate::managers::transcription::TranscriptionManager;
 use crate::modes::AsrPlan;
@@ -448,13 +449,13 @@ impl MeetingProcessingService {
             ),
         };
         if store.set_processing_status(session_id, status).is_ok() {
-            self.finish_review(&store, session_id, reason);
+            self.finish_review(store, session_id, reason);
         }
     }
 
     fn finish_review(
         &self,
-        store: &MeetingStore,
+        store: Arc<MeetingStore>,
         session_id: MeetingSessionId,
         reason: Vec<MeetingReasonCode>,
     ) {
@@ -477,6 +478,17 @@ impl MeetingProcessingService {
         }
         if let Ok(snapshot) = store.session_snapshot(session_id) {
             self.emit("meeting:session-changed", session_id, snapshot.revision);
+            if snapshot.phase == MeetingPhase::ReviewReady {
+                let vocabulary = known_vocabulary(self.app.as_ref());
+                if let Err(error) = record_meeting_finalized(
+                    Arc::clone(&store),
+                    self.app.clone(),
+                    session_id,
+                    vocabulary,
+                ) {
+                    log::warn!("meeting finalization workflow event failed: {error:?}");
+                }
+            }
         }
     }
 

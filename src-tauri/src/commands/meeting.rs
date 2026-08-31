@@ -4,6 +4,7 @@ use crate::meeting::analytics::{
     MeetingUserNotes,
 };
 use crate::meeting::clock::host_monotonic_now_ns;
+use crate::meeting::detection::DetectionRuntime;
 use crate::meeting::session::{
     MeetingActionItemDoneRequest, MeetingMutationRequest, MeetingMutationResult,
     MeetingNoteCreateRequest, MeetingNoteDeleteRequest, MeetingNoteUpdateRequest,
@@ -30,9 +31,21 @@ pub fn meeting_suggestions_list(
 #[specta::specta]
 pub async fn meeting_preflight_create(
     manager: State<'_, Arc<MeetingSessionManager>>,
+    detection: State<'_, Arc<DetectionRuntime>>,
     request: MeetingPreflightCreateRequest,
 ) -> Result<MeetingMutationResult, MeetingCommandError> {
-    manager.create_preflight(request).await
+    let calendar_event = request
+        .calendar_event_key
+        .as_deref()
+        .map(|event_key| {
+            detection
+                .calendar_event_for_start(event_key)
+                .ok_or(MeetingCommandError::InvalidRequest)
+        })
+        .transpose()?;
+    manager
+        .create_preflight_with_calendar(request, calendar_event)
+        .await
 }
 
 #[tauri::command]
