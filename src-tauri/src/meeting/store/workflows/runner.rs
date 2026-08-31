@@ -5,6 +5,11 @@ use super::{
 use crate::meeting::detection::machine::CalendarEventSummary;
 use crate::meeting::document_types::DocumentId;
 use crate::meeting::store::documents::{bump_document_revision_in, document_by_id_in};
+use crate::meeting::store::learning::{
+    cursor_floor_in, mine_capture_advice_in, mine_dictation_correction_in, mine_meeting_edits_in,
+    mine_mode_habits_in, mine_spoken_punctuation_in, prime_series_in, DictationCorpus,
+    LearningInputs,
+};
 use crate::meeting::store::people::{
     bump_people_revision_in, calendar_context_in, continuity_summary_in, derive_calendar_links_in,
     derive_speaker_link_in, derive_title_links_in, link_document_mentions_in,
@@ -20,14 +25,45 @@ use rusqlite::{params, Connection, OptionalExtension, Transaction, TransactionBe
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use uuid::Uuid;
 
+/// Runs every enabled workflow this event matches, each in its own transaction.
+///
+/// The dictation corpus lives in a second database behind a second lock, and a
+/// read of it can wait out that database's unlock and busy timeouts. So the
+/// page a miner will work from is resolved *before* the transaction below
+/// opens, and the transaction only ever touches rows in this database. Each
+/// miner still re-reads its own cursor inside the transaction and filters the
+/// page against it: the cursor is a row here, and that is what keeps two
+/// concurrent passes from counting the same run twice.
 pub(super) fn run_event(
     store: &MeetingStore,
     event_id: WorkflowEventId,
     record_skips: bool,
+    inputs: &dyn LearningInputs,
 ) -> Result<Vec<WorkflowRunReceipt>, StoreError> {
+    let (event, workflows, floor) = {
+        let connection = store.connection()?;
+        let event = stored_event_in(&connection, event_id)?;
+        let workflows = matching_enabled_workflows_in(&connection, event.kind)?;
+        // Only the workflows that still have work: a duplicate dispatch skips
+        // every one of them, and must not pay for a corpus read to do it. The
+        // check inside the transaction below is the authoritative one, so a
+        // concurrent pass finishing between the two costs a wasted read and
+        // nothing else.
+        let mut unfinished = Vec::with_capacity(workflows.len());
+        for workflow_id in workflows.iter().copied() {
+            if !terminal_receipt_exists_in(&connection, event.id, event.kind, workflow_id)? {
+                unfinished.push(workflow_id);
+            }
+        }
+        let floor = cursor_floor_in(&connection, &unfinished)?;
+        (event, workflows, floor)
+    };
+    let corpus = match floor {
+        Some(floor) => DictationCorpus::read(inputs, floor),
+        None => DictationCorpus::default(),
+    };
+
     let mut connection = store.connection()?;
-    let event = stored_event_in(&connection, event_id)?;
-    let workflows = matching_enabled_workflows_in(&connection, event.kind)?;
     let mut receipts = Vec::with_capacity(workflows.len());
     for workflow_id in workflows {
         let mut transaction =
@@ -37,7 +73,9 @@ pub(super) fn run_event(
             &event,
             workflow_id,
             record_skips,
-            execute_workflow_in,
+            |connection, event, workflow_id| {
+                execute_workflow_in(connection, event, workflow_id, inputs, &corpus)
+            },
         )? {
             receipts.push(receipt);
         }
@@ -56,7 +94,7 @@ fn run_workflow_in<F>(
 where
     F: FnOnce(&Connection, &StoredWorkflowEvent, WorkflowId) -> Result<String, StoreError>,
 {
-    if terminal_receipt_exists_in(transaction, event.id, workflow_id)? {
+    if terminal_receipt_exists_in(transaction, event.id, event.kind, workflow_id)? {
         if !record_skips {
             return Ok(None);
         }
@@ -116,6 +154,8 @@ fn execute_workflow_in(
     connection: &Connection,
     event: &StoredWorkflowEvent,
     workflow_id: WorkflowId,
+    inputs: &dyn LearningInputs,
+    corpus: &DictationCorpus,
 ) -> Result<String, StoreError> {
     match workflow_id {
         WorkflowId::PersonLinking => run_person_linking_in(connection, event),
@@ -123,7 +163,62 @@ fn execute_workflow_in(
         WorkflowId::Continuity => run_continuity_in(connection, event),
         WorkflowId::VocabularyMining => run_vocabulary_in(connection, event),
         WorkflowId::DocumentLinking => run_document_linking_in(connection, event),
+        WorkflowId::SpokenPunctuation => {
+            let added =
+                mine_spoken_punctuation_in(connection, inputs, corpus, event.occurred_at_utc_ms)?;
+            Ok(format!("spoken_punctuation:suggestions={added}"))
+        }
+        WorkflowId::CorrectionLearning => run_correction_learning_in(connection, event, inputs),
+        WorkflowId::ModeHabits => {
+            let added = mine_mode_habits_in(connection, inputs, corpus, event.occurred_at_utc_ms)?;
+            Ok(format!("mode_habits:suggestions={added}"))
+        }
+        WorkflowId::CaptureAdvisor => {
+            let added = mine_capture_advice_in(connection, corpus, event.occurred_at_utc_ms)?;
+            Ok(format!("capture_advice:suggestions={added}"))
+        }
+        WorkflowId::SeriesPriming => {
+            let session_id =
+                MeetingSessionId::from_uuid(payload_uuid(&event.payload, "session_id")?);
+            let terms = prime_series_in(connection, session_id, event.occurred_at_utc_ms)?;
+            Ok(format!("series_priming:terms={terms}"))
+        }
+        WorkflowId::MeetingActivity => run_meeting_activity_in(event),
     }
+}
+
+/// Loop 2, from whichever human-authored source woke it.
+///
+/// A finalized meeting brings its own review edits; a dictation correction
+/// brings the one rewrite a person just performed. Neither path reads the
+/// dictation corpus, which is what keeps model-versus-model retry diffs out of
+/// vocabulary evidence entirely.
+fn run_correction_learning_in(
+    connection: &Connection,
+    event: &StoredWorkflowEvent,
+    inputs: &dyn LearningInputs,
+) -> Result<String, StoreError> {
+    let added = match event.kind {
+        WorkflowEventKind::MeetingFinalized => {
+            let session_id =
+                MeetingSessionId::from_uuid(payload_uuid(&event.payload, "session_id")?);
+            mine_meeting_edits_in(connection, inputs, session_id, event.occurred_at_utc_ms)?
+        }
+        WorkflowEventKind::DictationCorrectionRecorded => {
+            let spoken = payload_str(&event.payload, "spoken")?;
+            let written = payload_str(&event.payload, "written")?;
+            mine_dictation_correction_in(
+                connection,
+                inputs,
+                spoken,
+                written,
+                event.occurred_at_utc_ms,
+                event.occurred_at_utc_ms,
+            )?
+        }
+        _ => return Err(StoreError::Invalid),
+    };
+    Ok(format!("correction_learning:suggestions={added}"))
 }
 
 fn run_person_linking_in(
@@ -239,6 +334,24 @@ fn run_document_linking_in(
     Ok(format!("document_links:persons={links}"))
 }
 
+/// The one workflow that only narrates: the event kind *is* the outcome.
+///
+/// The projection reads the kind rather than this string, so the summary is
+/// free to be what every other workflow's is — one `name:field=value` line —
+/// and the value comes from the kind's own `as_str` instead of a second table
+/// of the same words.
+fn run_meeting_activity_in(event: &StoredWorkflowEvent) -> Result<String, StoreError> {
+    match event.kind {
+        WorkflowEventKind::MeetingPromptRecorded
+        | WorkflowEventKind::MeetingPromptIgnored
+        | WorkflowEventKind::MeetingAutoRecordStarted
+        | WorkflowEventKind::MeetingAutoRecordStopped => {
+            Ok(format!("meeting_activity:decision={}", event.kind.as_str()))
+        }
+        _ => Err(StoreError::Invalid),
+    }
+}
+
 fn insert_receipt_in(
     connection: &Connection,
     event: &StoredWorkflowEvent,
@@ -255,7 +368,8 @@ fn insert_receipt_in(
         WorkflowRunStatus::Failed => "failed",
         WorkflowRunStatus::Skipped => "skipped",
     };
-    let (outcome_code, outcome_counts) = outcome_projection(workflow_id, status, &outcome_summary);
+    let (outcome_code, outcome_counts) =
+        outcome_projection(workflow_id, event.kind, status, &outcome_summary);
     connection.execute(
         "INSERT INTO workflow_runs (
             id, workflow_id, event_id, status, started_at_utc_ms,
@@ -300,6 +414,13 @@ fn payload_uuid(payload: &serde_json::Value, key: &str) -> Result<Uuid, StoreErr
         .and_then(|value| Uuid::parse_str(value).map_err(|_| StoreError::Invalid))
 }
 
+fn payload_str<'a>(payload: &'a serde_json::Value, key: &str) -> Result<&'a str, StoreError> {
+    payload
+        .get(key)
+        .and_then(serde_json::Value::as_str)
+        .ok_or(StoreError::Invalid)
+}
+
 fn error_code(error: StoreError) -> &'static str {
     match error {
         StoreError::NotFound => "not_found",
@@ -309,6 +430,7 @@ fn error_code(error: StoreError) -> &'static str {
         StoreError::Unavailable => "store_unavailable",
         StoreError::Corrupt => "store_corrupt",
         StoreError::Io => "io_error",
+        StoreError::ConsentStale => "consent_stale",
     }
 }
 
@@ -361,5 +483,124 @@ mod tests {
                 .len(),
             1
         );
+    }
+
+    /// A failed run of the daily sweep is not the last word, and a failed run
+    /// of anything else is.
+    ///
+    /// The sweep is the one event no later signal re-raises: every dictation of
+    /// the same local day collapses into its dedupe key, so counting a failure
+    /// as terminal silences all three of its loops until tomorrow. The startup
+    /// reconciliation scan is what tries again, which is what
+    /// `dispatch_daily_workflow_event` has always claimed.
+    #[test]
+    fn a_failed_sweep_stays_unfinished_while_other_failures_are_final() {
+        let (_directory, store) = store();
+        let sweep = store
+            .record_workflow_event(event(
+                WorkflowEventKind::DictationCorpusSwept,
+                serde_json::json!({"local_day": "2026-08-31"}),
+                "sweep-retry",
+            ))
+            .unwrap();
+        let finalized = store
+            .record_workflow_event(event(
+                WorkflowEventKind::MeetingFinalized,
+                serde_json::json!({"session_id": MeetingSessionId::new().uuid().to_string()}),
+                "finalized-no-retry",
+            ))
+            .unwrap();
+
+        // Both events match several workflows, and the scan asks about all of
+        // them, so every one has to have been attempted before "is this event
+        // still pending?" says anything about failure being terminal.
+        for dispatch in [&sweep, &finalized] {
+            for workflow_id in matching_workflows(&store, dispatch.event_id) {
+                let receipt = run_once(&store, dispatch.event_id, workflow_id, |_, _, _| {
+                    Err(StoreError::Invalid)
+                });
+                assert_eq!(receipt.status, WorkflowRunStatus::Failed);
+            }
+        }
+
+        let connection = store.connection().unwrap();
+        let sweep_event = stored_event_in(&connection, sweep.event_id).unwrap();
+        assert!(
+            !terminal_receipt_exists_in(
+                &connection,
+                sweep_event.id,
+                sweep_event.kind,
+                WorkflowId::SpokenPunctuation
+            )
+            .unwrap(),
+            "a failed sweep counts as finished, so nothing will retry it"
+        );
+        let finalized_event = stored_event_in(&connection, finalized.event_id).unwrap();
+        assert!(
+            terminal_receipt_exists_in(
+                &connection,
+                finalized_event.id,
+                finalized_event.kind,
+                WorkflowId::PersonLinking
+            )
+            .unwrap(),
+            "an event its own next occurrence re-raises was queued for a retry"
+        );
+        drop(connection);
+
+        let pending = store.pending_workflow_event_ids().unwrap();
+        assert!(
+            pending.contains(&sweep.event_id),
+            "the startup reconciliation scan is not offered the failed sweep"
+        );
+        assert!(
+            !pending.contains(&finalized.event_id),
+            "an event whose every workflow failed terminally came back to the scan"
+        );
+
+        // The retries succeed, and the once-only index accepts each receipt
+        // beside the failure it replaces.
+        for workflow_id in matching_workflows(&store, sweep.event_id) {
+            let retried = run_once(&store, sweep.event_id, workflow_id, |_, _, _| {
+                Ok(format!("{}:suggestions=0", workflow_id.as_str()))
+            });
+            assert_eq!(retried.status, WorkflowRunStatus::Ok);
+        }
+        assert!(
+            !store
+                .pending_workflow_event_ids()
+                .unwrap()
+                .contains(&sweep.event_id),
+            "a sweep that finally succeeded is still pending"
+        );
+    }
+
+    /// Every workflow the scan will ask this event about.
+    fn matching_workflows(store: &MeetingStore, event_id: WorkflowEventId) -> Vec<WorkflowId> {
+        let connection = store.connection().unwrap();
+        let event = stored_event_in(&connection, event_id).unwrap();
+        matching_enabled_workflows_in(&connection, event.kind).unwrap()
+    }
+
+    /// One workflow, one transaction, whatever the caller's closure decides.
+    fn run_once<F>(
+        store: &MeetingStore,
+        event_id: WorkflowEventId,
+        workflow_id: WorkflowId,
+        execute: F,
+    ) -> WorkflowRunReceipt
+    where
+        F: FnOnce(&Connection, &StoredWorkflowEvent, WorkflowId) -> Result<String, StoreError>,
+    {
+        let mut connection = store.connection().unwrap();
+        let event = stored_event_in(&connection, event_id).unwrap();
+        let mut transaction = connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .unwrap();
+        let receipt = run_workflow_in(&mut transaction, &event, workflow_id, false, execute)
+            .unwrap()
+            .unwrap();
+        transaction.commit().unwrap();
+        receipt
     }
 }

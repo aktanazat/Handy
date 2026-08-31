@@ -35,7 +35,7 @@ pub mod input_device;
 pub mod machine;
 pub mod notify;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashSet, VecDeque};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex, OnceLock};
 use std::thread;
@@ -43,7 +43,8 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 use specta::Type;
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
+use tauri_specta::Event as _;
 use uuid::Uuid;
 
 use crate::meeting::people_types::PersonBriefingRow;
@@ -62,21 +63,33 @@ use machine::{
     DetectionOutcome, DetectionPolicy, MicSignal, PromptKind, RecentCapture,
     ScreenRecordingPermission, StopInputs, StopPolicy, StopTrigger, SuppressReason,
 };
-use notify::{NotificationAccess, PromptPresenter, PromptResponder, PromptResponse};
+use notify::{
+    ConsentPromptSurface, NotificationAccess, PanelCommand, PanelSlot, PromptResponder,
+    PromptResponse,
+};
 
 /// Schema marker on both detection events, matching the meeting events' shape.
-pub const DETECTION_EVENT_SCHEMA_VERSION: u32 = 1;
+pub const DETECTION_EVENT_SCHEMA_VERSION: u32 = 2;
 
 /// Tick interval. Chosen so the T-60s calendar prompt lands between T-60 and
 /// T-45: tight enough to be useful, loose enough that the idle path costs a
 /// settings read, an atomic load, and one in-process application list — and no
 /// database read at all.
 const TICK: Duration = Duration::from_secs(15);
+const PANEL_ACK_WINDOW: Duration = Duration::from_millis(750);
 
 /// A wall-clock jump this much larger than the monotonic clock's advance means
 /// the host slept. Both clocks are read on the same tick, so the only source of
 /// a gap this size is suspend.
 const SLEEP_DETECTION_SLACK: Duration = Duration::from_secs(60);
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum DetectionPromptDelivery {
+    Panel,
+    Notification,
+    InAppOnly,
+}
 
 /// Emitted when detection wants an answer. The frontend renders localized copy
 /// from these fields; the native notification carries §5.4's English pattern.
@@ -89,18 +102,17 @@ pub struct DetectionPromptEvent {
     pub prompt: PromptKind,
     /// §5.4's English copy, exactly as the notification shows it.
     pub notification_title: String,
-    /// True when this prompt was also delivered as a native notification. False
-    /// means notifications are denied or unavailable and the in-app card is the
-    /// only surface.
-    pub notified: bool,
+    /// The surface that owns this delivery. Only `in_app_only` should produce a
+    /// toast in the main window; `panel` and `notification` are already visible.
+    pub delivery: DetectionPromptDelivery,
+    /// One short explanation rendered only after the panel has acknowledged its
+    /// first successful prompt delivery.
+    pub show_introduction: bool,
 }
 
-/// Registers this payload with the specta builder so `bindings.ts` carries the
-/// generated `DetectionPromptEvent` and `DetectionPromptKind` instead of a
-/// hand-written mirror of them. The emit site keeps using `Emitter::emit` with
-/// the literal name below, exactly as the meeting events do: `Event::emit`
-/// would resolve to the same string, and going through it would change nothing
-/// except which line of code the wire bytes come from.
+/// Registers the payload and its event name with the specta builder. Runtime
+/// emits use the typed `tauri_specta::Event` method, so construction and the
+/// wire name stay together.
 impl tauri_specta::Event for DetectionPromptEvent {
     const NAME: &'static str = "detection-prompt";
 }
@@ -178,6 +190,31 @@ pub struct DetectionStatus {
     pub input_device_reporting_suspect: bool,
 }
 
+impl tauri_specta::Event for DetectionStatus {
+    const NAME: &'static str = "detection-status";
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum DetectionPromptRetractionReason {
+    TriggerAppQuit,
+    EventEnded,
+    MicEpisodeEnded,
+    Resolved,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct DetectionPromptRetractedEvent {
+    pub event_schema_version: u32,
+    pub prompt_id: String,
+    pub reason: DetectionPromptRetractionReason,
+}
+
+impl tauri_specta::Event for DetectionPromptRetractedEvent {
+    const NAME: &'static str = "detection-prompt-retracted";
+}
+
 /// A prompt awaiting an answer.
 #[derive(Clone, Debug)]
 struct PendingPrompt {
@@ -185,8 +222,8 @@ struct PendingPrompt {
     /// Calendar event this prompt belongs to, for the auto-stop event-end rule.
     event_end_utc_ms: Option<i64>,
     calendar_event: Option<CalendarEventSummary>,
+    show_introduction: bool,
 }
-
 /// A capture detection started, and what stops it.
 #[derive(Clone, Debug)]
 struct TrackedCapture {
@@ -197,7 +234,7 @@ struct TrackedCapture {
 
 #[derive(Default)]
 struct RuntimeState {
-    pending: HashMap<String, PendingPrompt>,
+    panel: PanelSlot<PendingPrompt>,
     /// Calendar event keys already prompted for. Without this the 15s tick would
     /// re-notify for the same event every tick until it ended — the most likely
     /// new failure this subsystem introduces, and the cheapest to block.
@@ -266,7 +303,7 @@ pub struct DetectionRuntime {
     calendar: Arc<dyn CalendarSource>,
     running_apps: Arc<dyn RunningAppsSource>,
     input: Arc<dyn InputDeviceState>,
-    prompts: Arc<dyn PromptPresenter>,
+    prompts: Arc<dyn ConsentPromptSurface>,
     state: Mutex<RuntimeState>,
     wakeup: Arc<Wakeup>,
     stop: Arc<AtomicBool>,
@@ -296,7 +333,7 @@ impl DetectionRuntime {
         calendar: Arc<dyn CalendarSource>,
         running_apps: Arc<dyn RunningAppsSource>,
         input: Arc<dyn InputDeviceState>,
-        prompts: Arc<dyn PromptPresenter>,
+        prompts: Arc<dyn ConsentPromptSurface>,
         screen_recording_probe: fn() -> ScreenRecordingPermission,
     ) -> Self {
         Self {
@@ -340,6 +377,10 @@ impl DetectionRuntime {
 
     pub fn self_lease(&self) -> Arc<SelfInputDeviceLease> {
         Arc::clone(&self.self_lease)
+    }
+
+    pub fn app_handle(&self) -> &AppHandle {
+        &self.app
     }
 
     /// The observer handed to the CoreAudio monitor.
@@ -504,6 +545,8 @@ impl DetectionRuntime {
         // precisely on the idle path — as is
         // `input_device_reporting_suspect`, which is derived from it and was
         // therefore never able to fire here either.
+        self.retract_stale_prompts(now_utc_ms, &running, mic);
+
         let inert = mic == MicSignal::Idle && calendar == CalendarSignal::Absent;
         if inert && tracked.is_none() {
             self.publish_status(&settings, mic, sona_holds, None, None, running_allowlisted);
@@ -540,11 +583,11 @@ impl DetectionRuntime {
             ),
             _ => machine::BrowserTitleEvidence::NoMatch,
         };
-        let (event_key, event_end_utc_ms) = match &calendar {
+        let event_end_utc_ms = match &calendar {
             CalendarSignal::Upcoming { event, .. } | CalendarSignal::Started { event } => {
-                (Some(event.event_key.clone()), Some(event.end_utc_ms))
+                Some(event.end_utc_ms)
             }
-            CalendarSignal::Absent => (None, None),
+            CalendarSignal::Absent => None,
         };
         let calendar_event = match &calendar {
             CalendarSignal::Upcoming { event, .. } | CalendarSignal::Started { event }
@@ -556,9 +599,15 @@ impl DetectionRuntime {
         };
         let briefing_event = calendar_event.clone();
         let briefing = Vec::new();
-        let pane_open = event_key
-            .as_deref()
-            .is_some_and(|event_key| self.countdown_shown_for(event_key));
+        let standing_series_consent = match &calendar {
+            CalendarSignal::Started { event } if mic == MicSignal::Active => {
+                tauri::async_runtime::block_on(self.meetings.live_series_consent(&event.series_key))
+                    .ok()
+                    .flatten()
+                    .is_some()
+            }
+            _ => false,
+        };
 
         let inputs = DetectionInputs {
             now_utc_ms,
@@ -567,7 +616,7 @@ impl DetectionRuntime {
             mic,
             screen_recording: self.screen_recording(),
             browser_title,
-            pre_meeting_pane_open: pane_open,
+            standing_series_consent,
             recent_capture: self.lock().recent.clone(),
             self_holds_input_device: sona_holds,
             capture_active: active.is_some(),
@@ -600,7 +649,7 @@ impl DetectionRuntime {
         self: &Arc<Self>,
         outcome: DetectionOutcome,
         event_end_utc_ms: Option<i64>,
-        now_utc_ms: i64,
+        _now_utc_ms: i64,
         calendar_event: Option<CalendarEventSummary>,
         briefing: Vec<PersonBriefingRow>,
     ) -> (Option<SuppressReason>, Option<DetectionCountdown>) {
@@ -621,21 +670,48 @@ impl DetectionRuntime {
                 event_key,
                 event_title,
             } => {
-                // The carve-out skips the notification, not the consent screen.
                 if self.claim_event(&event_key) {
-                    // Spawned rather than awaited: `apply` runs on the tick
-                    // thread, and the preflight is two store writes behind a
-                    // lock. A tick that waited on them would delay the next
-                    // microphone edge.
                     let runtime = Arc::clone(self);
-                    let prompt = PromptKind::CalendarEvent {
-                        event_key,
-                        event_title,
-                    };
                     tauri::async_runtime::spawn(async move {
-                        runtime
-                            .open_capture(&prompt, event_end_utc_ms, now_utc_ms, calendar_event)
-                            .await;
+                        let Some(event) = calendar_event else {
+                            return;
+                        };
+                        let Ok(Some(standing)) = runtime
+                            .meetings
+                            .live_series_consent(&event.series_key)
+                            .await
+                        else {
+                            return;
+                        };
+                        let context = crate::meeting::session::MeetingDetectionStartContext {
+                            prompt_id: format!("auto:{event_key}"),
+                            title: event_title,
+                            trigger_bundle_id: None,
+                            event_end_utc_ms,
+                            calendar_event: Some(event),
+                        };
+                        match runtime
+                            .meetings
+                            .start_from_standing_series(&context, standing)
+                            .await
+                        {
+                            Ok(result)
+                                if result.snapshot.phase == MeetingPhase::CapturingRecording =>
+                            {
+                                runtime.track_started(&context, &result.snapshot);
+                                runtime
+                                    .meetings
+                                    .record_auto_record_started(
+                                        &event_key,
+                                        result.snapshot.session_id,
+                                    )
+                                    .await;
+                            }
+                            Ok(_) => {}
+                            Err(error) => {
+                                log::warn!("Standing-series recording could not start: {error:?}");
+                            }
+                        }
                     });
                 }
                 (None, None)
@@ -676,13 +752,6 @@ impl DetectionRuntime {
         self.lock().prompted_events.insert(event_key.to_string())
     }
 
-    fn countdown_shown_for(&self, event_key: &str) -> bool {
-        self.lock()
-            .last_status
-            .as_ref()
-            .and_then(|status| status.countdown.as_ref())
-            .is_some_and(|countdown| countdown.event.event_key == event_key)
-    }
     fn schedule_calendar_briefing(self: &Arc<Self>, event: CalendarEventSummary, now_utc_ms: i64) {
         if !self.lock().briefing_events.insert(event.event_key.clone()) {
             return;
@@ -710,12 +779,49 @@ impl DetectionRuntime {
             countdown.briefing = briefing;
             status.clone()
         };
-        let _ = self.app.emit("detection-status", status);
+        let _ = status.emit(&self.app);
+    }
+
+    fn retract_stale_prompts(
+        self: &Arc<Self>,
+        now_utc_ms: i64,
+        running: &[RunningApp],
+        mic: MicSignal,
+    ) {
+        let retract = self
+            .lock()
+            .panel
+            .iter()
+            .filter_map(|(prompt_id, pending)| {
+                let reason = if pending
+                    .event_end_utc_ms
+                    .is_some_and(|end| now_utc_ms >= end)
+                {
+                    Some(DetectionPromptRetractionReason::EventEnded)
+                } else if pending
+                    .prompt
+                    .bundle_id()
+                    .is_some_and(|bundle_id| !apps::is_app_running(running, bundle_id))
+                {
+                    Some(DetectionPromptRetractionReason::TriggerAppQuit)
+                } else if mic == MicSignal::Idle
+                    && !matches!(pending.prompt, PromptKind::CalendarEvent { .. })
+                {
+                    Some(DetectionPromptRetractionReason::MicEpisodeEnded)
+                } else {
+                    None
+                };
+                reason.map(|reason| (prompt_id.to_string(), reason))
+            })
+            .collect::<Vec<_>>();
+        for (prompt_id, reason) in retract {
+            self.finish_prompt(&prompt_id, reason);
+        }
     }
 
     pub fn calendar_event_for_start(&self, event_key: &str) -> Option<CalendarEventSummary> {
         let state = self.lock();
-        state
+        let event = state
             .last_status
             .as_ref()
             .and_then(|status| status.countdown.as_ref())
@@ -723,49 +829,153 @@ impl DetectionRuntime {
             .into_iter()
             .chain(
                 state
-                    .pending
-                    .values()
-                    .filter_map(|pending| pending.calendar_event.as_ref()),
+                    .panel
+                    .iter()
+                    .filter_map(|(_, pending)| pending.calendar_event.as_ref()),
             )
             .find(|event| event.event_key == event_key)
-            .cloned()
+            .cloned();
+        event
     }
 
     fn raise(
-        &self,
+        self: &Arc<Self>,
         prompt: PromptKind,
         event_end_utc_ms: Option<i64>,
         calendar_event: Option<CalendarEventSummary>,
     ) {
         let prompt_id = Uuid::new_v4().to_string();
-        let notified = self.prompts.present(&prompt_id, &prompt);
-        self.lock().pending.insert(
-            prompt_id.clone(),
-            PendingPrompt {
-                prompt: prompt.clone(),
-                event_end_utc_ms,
-                calendar_event,
-            },
-        );
-        let _ = self.app.emit(
-            "detection-prompt",
-            DetectionPromptEvent {
-                event_schema_version: DETECTION_EVENT_SCHEMA_VERSION,
-                prompt_id,
-                notification_title: prompt.notification_title(),
-                prompt,
-                notified,
-            },
-        );
+        let show_introduction =
+            tauri::async_runtime::block_on(self.meetings.consent_panel_introduction_needed());
+        let priority = prompt_priority(&prompt);
+        let pending = PendingPrompt {
+            prompt,
+            event_end_utc_ms,
+            calendar_event,
+            show_introduction,
+        };
+        let mut state = self.lock();
+        let panel_available = state.tracked.is_none();
+        let commands = state
+            .panel
+            .raise(prompt_id, pending, priority, panel_available);
+        self.apply_panel_commands(&mut state, commands);
     }
 
-    /// Resolves an answered prompt. Called from the notification delegate and
-    /// from the in-app card, which must behave identically.
+    fn apply_panel_commands(
+        self: &Arc<Self>,
+        state: &mut RuntimeState,
+        commands: Vec<PanelCommand<PendingPrompt>>,
+    ) {
+        let mut commands = VecDeque::from(commands);
+        while let Some(command) = commands.pop_front() {
+            match command {
+                PanelCommand::ShowPanel => {
+                    let _ = self.prompts.show_panel();
+                }
+                PanelCommand::HidePanel => self.prompts.hide_panel(),
+                PanelCommand::WithdrawPrompt { prompt_id } => {
+                    self.prompts.withdraw(&prompt_id);
+                }
+                PanelCommand::PresentPanel { prompt_id, prompt } => {
+                    self.prompts.withdraw(&prompt_id);
+                    if self.prompts.show_panel() {
+                        self.emit_prompt(&prompt_id, &prompt, DetectionPromptDelivery::Panel);
+                        self.schedule_panel_ack_timeout(prompt_id);
+                    } else {
+                        commands.extend(state.panel.fallback_if_unacknowledged(&prompt_id));
+                    }
+                }
+                PanelCommand::PresentFallback { prompt_id, prompt } => {
+                    self.prompts.withdraw(&prompt_id);
+                    let delivery = self.prompts.present_fallback(&prompt_id, &prompt.prompt);
+                    self.emit_prompt(&prompt_id, &prompt, delivery);
+                }
+                PanelCommand::Acknowledged {
+                    prompt_id: _,
+                    prompt,
+                } => {
+                    if prompt.show_introduction {
+                        let meetings = Arc::clone(&self.meetings);
+                        tauri::async_runtime::spawn(async move {
+                            meetings.mark_consent_panel_introduction_shown().await;
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    fn emit_prompt(
+        &self,
+        prompt_id: &str,
+        pending: &PendingPrompt,
+        delivery: DetectionPromptDelivery,
+    ) {
+        let _ = DetectionPromptEvent {
+            event_schema_version: DETECTION_EVENT_SCHEMA_VERSION,
+            prompt_id: prompt_id.to_string(),
+            notification_title: pending.prompt.notification_title(),
+            prompt: pending.prompt.clone(),
+            delivery,
+            show_introduction: pending.show_introduction,
+        }
+        .emit(&self.app);
+    }
+
+    fn schedule_panel_ack_timeout(self: &Arc<Self>, prompt_id: String) {
+        let runtime = Arc::clone(self);
+        tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(PANEL_ACK_WINDOW).await;
+            runtime.panel_ack_timed_out(&prompt_id);
+        });
+    }
+
+    fn panel_ack_timed_out(self: &Arc<Self>, prompt_id: &str) {
+        let mut state = self.lock();
+        let commands = state.panel.fallback_if_unacknowledged(prompt_id);
+        self.apply_panel_commands(&mut state, commands);
+    }
+
+    pub fn acknowledge_panel(self: &Arc<Self>, prompt_id: &str) {
+        let mut state = self.lock();
+        let commands = state.panel.acknowledge(prompt_id);
+        self.apply_panel_commands(&mut state, commands);
+    }
+
+    pub fn take_for_panel_start(
+        self: &Arc<Self>,
+        prompt_id: &str,
+    ) -> Option<crate::meeting::session::MeetingDetectionStartContext> {
+        let pending = self.finish_prompt(prompt_id, DetectionPromptRetractionReason::Resolved)?;
+        Some(crate::meeting::session::MeetingDetectionStartContext {
+            prompt_id: prompt_id.to_string(),
+            title: pending.prompt.proposed_meeting_title(),
+            trigger_bundle_id: pending.prompt.bundle_id().map(str::to_string),
+            event_end_utc_ms: pending.event_end_utc_ms,
+            calendar_event: pending.calendar_event,
+        })
+    }
+
+    /// Resolves an answered native or in-app fallback prompt. Accepting keeps
+    /// the historical notification contract: it opens preflight and never
+    /// starts capture. The consent panel uses the composed meeting command.
     pub fn respond(self: &Arc<Self>, prompt_id: &str, accepted: bool) {
-        let Some(pending) = self.lock().pending.remove(prompt_id) else {
+        let Some(pending) =
+            self.finish_prompt(prompt_id, DetectionPromptRetractionReason::Resolved)
+        else {
+            log::info!(
+                "Meeting detection received a response receipt for already-drained prompt \
+                 {prompt_id}; no action was taken"
+            );
             return;
         };
         if !accepted {
+            let meetings = Arc::clone(&self.meetings);
+            let prompt_id = prompt_id.to_string();
+            tauri::async_runtime::spawn(async move {
+                meetings.record_prompt_ignored(prompt_id).await;
+            });
             return;
         }
         let runtime = Arc::clone(self);
@@ -779,6 +989,60 @@ impl DetectionRuntime {
                 )
                 .await;
         });
+    }
+
+    fn finish_prompt(
+        self: &Arc<Self>,
+        prompt_id: &str,
+        reason: DetectionPromptRetractionReason,
+    ) -> Option<PendingPrompt> {
+        let mut state = self.lock();
+        let finish = state.panel.finish(prompt_id);
+        let pending = finish.removed?;
+        let _ = DetectionPromptRetractedEvent {
+            event_schema_version: DETECTION_EVENT_SCHEMA_VERSION,
+            prompt_id: prompt_id.to_string(),
+            reason,
+        }
+        .emit(&self.app);
+        self.apply_panel_commands(&mut state, finish.commands);
+        Some(pending)
+    }
+
+    pub fn track_started(
+        self: &Arc<Self>,
+        context: &crate::meeting::session::MeetingDetectionStartContext,
+        snapshot: &MeetingSessionSnapshot,
+    ) {
+        let trigger_bundle_id = context.trigger_bundle_id.clone();
+        let mut state = self.lock();
+        state.tracked = Some(TrackedCapture {
+            session_id: snapshot.session_id,
+            trigger_bundle_id: trigger_bundle_id.clone(),
+            event_end_utc_ms: context.event_end_utc_ms,
+        });
+        state.recent = Some(RecentCapture {
+            session_id: snapshot.session_id.uuid().to_string(),
+            trigger_bundle_id,
+            started_utc_ms: utc_now_ms(),
+        });
+        let commands = state.panel.begin_capture();
+        self.apply_panel_commands(&mut state, commands);
+    }
+
+    pub fn track_ended(self: &Arc<Self>, session_id: MeetingSessionId) {
+        let mut state = self.lock();
+        if state
+            .tracked
+            .as_ref()
+            .is_none_or(|tracked| tracked.session_id != session_id)
+        {
+            return;
+        }
+        state.tracked = None;
+        state.slept = false;
+        let commands = state.panel.end_capture();
+        self.apply_panel_commands(&mut state, commands);
     }
 
     /// The one place detection touches capture, and it touches only the entry
@@ -866,7 +1130,7 @@ impl DetectionRuntime {
     /// §5.5, for the capture detection opened. Manual stop stays primary: this
     /// only fires on the triggers the platform actually reports.
     fn evaluate_running_capture(
-        &self,
+        self: &Arc<Self>,
         settings: &AppSettings,
         tracked: &TrackedCapture,
         active: Option<&MeetingSessionSnapshot>,
@@ -877,11 +1141,11 @@ impl DetectionRuntime {
         let Some(active) = active else {
             // The capture ended by some other route. Stop tracking it, but keep
             // `recent` so the cross-link and merge windows still apply.
-            self.lock().tracked = None;
+            self.track_ended(tracked.session_id);
             return;
         };
         if active.session_id != tracked.session_id {
-            self.lock().tracked = None;
+            self.track_ended(tracked.session_id);
             return;
         }
         let slept = self.lock().slept;
@@ -907,20 +1171,25 @@ impl DetectionRuntime {
             return;
         };
         log::info!("Meeting detection is stopping capture on {trigger:?}");
-        {
-            let mut state = self.lock();
-            state.tracked = None;
-            state.slept = false;
-        }
+        let runtime = Arc::clone(self);
         let meetings = Arc::clone(&self.meetings);
         let request = crate::meeting::session::MeetingMutationRequest {
             operation_id: MeetingOperationId::new(),
             session_id: active.session_id,
             expected_revision: active.revision,
         };
+        let session_id = active.session_id;
         tauri::async_runtime::spawn(async move {
-            if let Err(error) = meetings.stop(request).await {
-                log::warn!("Meeting detection could not stop the capture: {error:?}");
+            match meetings.stop(request).await {
+                Ok(_) => {
+                    meetings
+                        .record_auto_record_stopped(session_id, trigger)
+                        .await;
+                    runtime.track_ended(session_id);
+                }
+                Err(error) => {
+                    log::warn!("Meeting detection could not stop the capture: {error:?}");
+                }
             }
         });
     }
@@ -991,7 +1260,7 @@ impl DetectionRuntime {
             }
             state.last_status = Some(status.clone());
         }
-        let _ = self.app.emit("detection-status", status);
+        let _ = status.emit(&self.app);
     }
 
     /// The status the frontend reads on mount, before any tick has fired.
@@ -1043,8 +1312,10 @@ impl DetectionRuntime {
         access
     }
 
-    pub fn request_notification_access(&self) -> NotificationAccess {
-        self.prompts.request_access()
+    pub async fn request_notification_access(&self) -> NotificationAccess {
+        let access = self.prompts.request_access().await;
+        self.wakeup.wake();
+        access
     }
 
     /// Allowlisted bundle IDs whose application is running, so the settings UI
@@ -1068,6 +1339,14 @@ impl DetectionRuntime {
         self.state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+}
+fn prompt_priority(prompt: &PromptKind) -> u8 {
+    match prompt {
+        PromptKind::CalendarEvent { .. } => 3,
+        PromptKind::AppMeeting { .. } | PromptKind::AppHuddle { .. } => 2,
+        PromptKind::BrowserCall { .. } => 1,
+        PromptKind::UnknownMicSource => 0,
     }
 }
 

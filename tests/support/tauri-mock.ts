@@ -21,6 +21,8 @@ export type JsonValue =
 export type TauriMockOptions = {
   /** Command responses layered over the defaults. An override always wins. */
   responses?: Record<string, JsonValue>;
+  /** Backend events delivered once their matching listener registers. */
+  events?: Record<string, JsonValue[]>;
 };
 
 /** Installs the mocked Tauri runtime before any page script runs. */
@@ -32,6 +34,7 @@ export async function installTauriMock(
     settings: APP_SETTINGS,
     modes: MODES_SNAPSHOT,
     responses: options.responses ?? {},
+    events: options.events ?? {},
   });
 }
 
@@ -39,7 +42,12 @@ type MockPayload = {
   settings: Record<string, JsonValue>;
   modes: Record<string, JsonValue>;
   responses: Record<string, JsonValue>;
+  events: Record<string, JsonValue[]>;
 };
+
+/** The envelope every mocked `plugin:event|listen` callback receives; the
+ * payload side is JSON by the same serialization contract as `JsonValue`. */
+type MockEventEnvelope = { event: string; id: number; payload: JsonValue };
 
 /**
  * Runs in the browser, so it may not close over anything outside its argument:
@@ -49,8 +57,24 @@ type MockPayload = {
  * `<script>` ahead of the app bundle. One owner for what the browser sees.
  */
 export function installMockedRuntime(payload: MockPayload): void {
-  const state = { phase: "preflight", started: 0 };
+  const state = { phase: "preflight", started: 0, stopped: 0 };
   localStorage.setItem("meeting-started", "0");
+  localStorage.setItem("meeting-stopped", "0");
+  localStorage.setItem("detection-panel-ack", "");
+  localStorage.setItem("detection-prompt-response", "");
+  const callbacks = new Map<number, (value: MockEventEnvelope) => void>();
+  let nextCallbackId = 1;
+
+  /* Wire-boundary parsers: the mock validates request shapes the way the real
+   * backend's serde layer would — decode into the domain, never narrow by
+   * representation. A string is the one JSON value identical to its own
+   * String() image. */
+  const jsonObject = (
+    value: JsonValue | undefined,
+  ): { [key: string]: JsonValue } | null =>
+    value instanceof Object && !Array.isArray(value) ? value : null;
+  const isJsonString = (value: JsonValue | undefined): value is string =>
+    value === String(value ?? "");
 
   const sources = [
     {
@@ -75,7 +99,8 @@ export function installMockedRuntime(payload: MockPayload): void {
     },
   ];
 
-  const capturing = () => state.phase !== "preflight";
+  const capturing = () =>
+    state.phase === "capturing_recording" || state.phase === "capturing_paused";
 
   const session = () => ({
     session_id: "meeting-1",
@@ -113,11 +138,10 @@ export function installMockedRuntime(payload: MockPayload): void {
     effect_ids: [],
   });
 
-  /* Detection never fires a prompt in E2E: the ad-hoc path needs a real
-   * CoreAudio transition and the calendar path a granted TCC scope, so the
-   * quiet-but-healthy status below is the only one a browser can reach. */
+  /* Detection defaults to a quiet status. Specs can inject prompts through the
+   * event map without needing a real CoreAudio transition or calendar TCC. */
   const detectionStatus = () => ({
-    eventSchemaVersion: 1,
+    eventSchemaVersion: 2,
     settings: {
       enabled: true,
       calendarEnabled: false,
@@ -325,15 +349,18 @@ export function installMockedRuntime(payload: MockPayload): void {
         next_cursor: null,
       },
     ],
+    ["learning_suggestions", { schema_version: 1, revision: 1, entries: [] }],
+    ["learning_decide", { schema_version: 1, revision: 2, entries: [] }],
 
-    // Meeting detection (MeetingDetect). No `detection-prompt` event is ever
-    // emitted here, so the countdown card and the toast path stay unmounted.
+    // Meeting detection (MeetingDetect).
     ["detection_status_get", detectionStatus()],
     ["detection_settings_set", detectionStatus()],
     ["detection_calendar_access_request", "not_determined"],
     ["detection_notification_access_request", "not_determined"],
     ["detection_prompt_respond", null],
+    ["detection_prompt_panel_ack", null],
     ["detection_running_meeting_apps", []],
+    ["meeting_consent_panel_forget_series", true],
 
     // Meeting analytics + notes (MeetingAnalyticsNotes).
     ["get_meeting_analytics", analyticsSnapshot()],
@@ -429,6 +456,23 @@ export function installMockedRuntime(payload: MockPayload): void {
     command: string,
     args?: Record<string, JsonValue>,
   ): Promise<JsonValue> => {
+    if (command === "plugin:event|listen") {
+      const eventName = String(args?.event ?? "");
+      const callbackId = Number(args?.handler);
+      const callback = callbacks.get(callbackId);
+      if (callback !== undefined) {
+        window.setTimeout(() => {
+          for (const eventPayload of payload.events[eventName] ?? []) {
+            callback({
+              event: eventName,
+              id: callbackId,
+              payload: eventPayload,
+            });
+          }
+        }, 0);
+      }
+      return callbackId;
+    }
     if (Object.prototype.hasOwnProperty.call(payload.responses, command)) {
       return payload.responses[command];
     }
@@ -474,6 +518,83 @@ export function installMockedRuntime(payload: MockPayload): void {
       localStorage.setItem("meeting-started", String(state.started));
       return { receipt: receipt(), snapshot: session() };
     }
+    if (command === "meeting_consent_panel_start") {
+      const request = jsonObject(args?.request);
+      const alwaysRecord = request?.always_record_series;
+      const consent = jsonObject(request?.consent);
+      if (
+        request === null ||
+        !isJsonString(request.prompt_id) ||
+        !isJsonString(request.operation_id) ||
+        (alwaysRecord !== true && alwaysRecord !== false) ||
+        consent === null
+      ) {
+        throw new Error(
+          "meeting_consent_panel_start received an invalid request",
+        );
+      }
+      localStorage.setItem(
+        "meeting-consent-panel-start-request",
+        JSON.stringify(request),
+      );
+      state.started += 1;
+      state.phase = "capturing_recording";
+      localStorage.setItem("meeting-started", String(state.started));
+      return { receipt: receipt(), snapshot: session() };
+    }
+    if (command === "meeting_stop") {
+      const request = jsonObject(args?.request);
+      if (
+        request === null ||
+        !isJsonString(request.session_id) ||
+        !Number.isFinite(request.expected_revision)
+      ) {
+        throw new Error("meeting_stop received an invalid request");
+      }
+      state.stopped += 1;
+      state.phase = "review_ready";
+      localStorage.setItem("meeting-stopped", String(state.stopped));
+      return { receipt: receipt(), snapshot: session() };
+    }
+    if (command === "detection_prompt_panel_ack") {
+      const promptId = args?.promptId;
+      if (!isJsonString(promptId)) {
+        throw new Error("detection_prompt_panel_ack requires promptId");
+      }
+      localStorage.setItem("detection-panel-ack", promptId);
+      return null;
+    }
+    if (command === "detection_prompt_respond") {
+      const promptId = args?.promptId;
+      const accepted = args?.accepted;
+      if (
+        !isJsonString(promptId) ||
+        (accepted !== true && accepted !== false)
+      ) {
+        throw new Error(
+          "detection_prompt_respond received an invalid response",
+        );
+      }
+      localStorage.setItem(
+        "detection-prompt-response",
+        JSON.stringify({ promptId, accepted }),
+      );
+      return null;
+    }
+    if (command === "meeting_consent_panel_active_state") {
+      return capturing()
+        ? { snapshot: session(), standing_series_key: null }
+        : null;
+    }
+    /* The agent-bridge observation reads return lists in production; a null
+     * here crashes the console's memos, so the mock honors the contract. */
+    if (
+      command === "get_agent_bridge_sessions" ||
+      command === "get_agent_bridge_requests" ||
+      command === "get_agent_bridge_pending_messages"
+    ) {
+      return [];
+    }
     const preset = defaults.get(command);
     if (preset !== undefined) {
       return preset;
@@ -486,7 +607,9 @@ export function installMockedRuntime(payload: MockPayload): void {
     isTauri: boolean;
     __TAURI_INTERNALS__: {
       invoke: typeof invoke;
-      transformCallback: () => number;
+      transformCallback: (
+        callback?: (value: MockEventEnvelope) => void,
+      ) => number;
       convertFileSrc: (path: string) => string;
     };
     __TAURI_OS_PLUGIN_INTERNALS__: Record<string, string>;
@@ -498,12 +621,11 @@ export function installMockedRuntime(payload: MockPayload): void {
   target.isTauri = true;
   target.__TAURI_INTERNALS__ = {
     invoke,
-    /* One constant id for every callback, so no handler is ever kept: the mock
-       answers `plugin:event|listen` with an id and then emits nothing, which
-       means a `listen()` handler in the app never runs under Playwright. Any
-       spec that needs a backend event has to register handlers here first,
-       rather than pass because the event silently never arrived. */
-    transformCallback: () => 1,
+    transformCallback: (callback) => {
+      const id = nextCallbackId++;
+      if (callback !== undefined) callbacks.set(id, callback);
+      return id;
+    },
     convertFileSrc: (path: string) => path,
   };
   target.__TAURI_OS_PLUGIN_INTERNALS__ = {

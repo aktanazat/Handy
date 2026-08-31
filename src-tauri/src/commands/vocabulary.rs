@@ -265,7 +265,9 @@ fn touch_mode_revision(settings: &mut AppSettings, scope: &VocabularyScope) {
     }
 }
 
-fn add_correction_to_entries(
+/// Upserts one spoken form. Shared with the learning feed's accept path so
+/// "learned a word" means exactly one thing wherever it is triggered from.
+pub(super) fn add_correction_to_entries(
     entries: &mut Vec<VocabularyEntry>,
     entry: VocabularyEntry,
 ) -> VocabularyEntry {
@@ -397,11 +399,15 @@ pub fn add_vocabulary_correction(
     scope: VocabularyScope,
 ) -> Result<VocabularyEntry, String> {
     let entry = normalize_entry(VocabularyEntry { spoken, written })?;
-    settings::try_update_settings(&app, |settings| {
+    let saved = settings::try_update_settings(&app, |settings| {
         let saved = add_correction_to_entries(entries_for_scope_mut(settings, &scope)?, entry);
         touch_mode_revision(settings, &scope);
         Ok::<_, String>(saved)
-    })
+    })?;
+    // A human rewrote a dictation. That is the only kind of delta the
+    // correction loop learns from, and this is where one happens.
+    crate::meeting::learning::notify_dictation_corrected(&app, &saved.spoken, &saved.written);
+    Ok(saved)
 }
 
 /// Normalizes a submitted rule set: outer whitespace trimmed, rules that could

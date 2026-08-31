@@ -1548,6 +1548,30 @@ async meetingStart(request: MeetingStartRequest) : Promise<Result<MeetingMutatio
     else return { status: "error", error: e  as any };
 }
 },
+async meetingConsentPanelStart(request: MeetingConsentPanelStartRequest) : Promise<Result<MeetingMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_consent_panel_start", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingConsentPanelActiveState() : Promise<Result<MeetingConsentPanelSessionState | null, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_consent_panel_active_state") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingConsentPanelForgetSeries(sessionId: MeetingSessionId) : Promise<Result<boolean, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_consent_panel_forget_series", { sessionId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async meetingPause(request: MeetingMutationRequest) : Promise<Result<MeetingMutationResult, MeetingCommandError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("meeting_pause", { request }) };
@@ -1966,6 +1990,25 @@ async workflowRuns(request: WorkflowRunsRequest | null) : Promise<Result<Paginat
     else return { status: "error", error: e  as any };
 }
 },
+async learningSuggestions() : Promise<Result<LearningSuggestionsResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("learning_suggestions") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Answers one suggestion: accept it into real settings, or dismiss it forever.
+ */
+async learningDecide(request: LearningDecisionRequest) : Promise<Result<LearningSuggestionsResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("learning_decide", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async docIngest(request: DocumentIngestRequest) : Promise<Result<DocumentMutationResult, MeetingCommandError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("doc_ingest", { request }) };
@@ -2199,6 +2242,14 @@ async detectionPromptRespond(promptId: string, accepted: boolean) : Promise<void
     await TAURI_INVOKE("detection_prompt_respond", { promptId, accepted });
 },
 /**
+ * Confirms that the consent webview rendered the panel delivery. If this
+ * bounded acknowledgement never arrives, the backend alone falls back to the
+ * native notification tier.
+ */
+async detectionPromptPanelAck(promptId: string) : Promise<void> {
+    await TAURI_INVOKE("detection_prompt_panel_ack", { promptId });
+},
+/**
  * Allowlisted bundle IDs whose application is running right now. The settings UI
  * uses this to show an operator whether an entry they typed is real, which is
  * the runtime validation the allowlist needs to stay honest as vendors rename.
@@ -2227,6 +2278,8 @@ agentPanelTurnChanged: AgentPanelTurnChangedEvent,
 audioImportUpdateEvent: AudioImportUpdateEvent,
 cloudSyncChanged: CloudSyncChangedEvent,
 detectionPrompt: DetectionPromptEvent,
+detectionPromptRetracted: DetectionPromptRetractedEvent,
+detectionStatus: DetectionStatus,
 historyUpdatePayload: HistoryUpdatePayload,
 meetingArtifactChanged: MeetingArtifactChangedEvent,
 meetingNavigationRequested: MeetingNavigationRequestedEvent,
@@ -2251,6 +2304,8 @@ agentPanelTurnChanged: "agent-panel://turn-changed",
 audioImportUpdateEvent: "audio-import-update-event",
 cloudSyncChanged: "cloud-sync:changed",
 detectionPrompt: "detection-prompt",
+detectionPromptRetracted: "detection-prompt-retracted",
+detectionStatus: "detection-status",
 historyUpdatePayload: "history-update-payload",
 meetingArtifactChanged: "meeting:artifact-changed",
 meetingNavigationRequested: "meeting:navigation-requested",
@@ -2624,9 +2679,15 @@ isSelf: boolean }
  */
 export type CalendarEventSummary = {
 /**
- * Stable per-occurrence identity, used to avoid re-prompting for one event.
+ * Identity for this occurrence. Recurring events share `series_key`, but
+ * every start instant gets its own claim and prompt.
  */
-eventKey: string; title: string;
+eventKey: string;
+/**
+ * EventKit's calendar-item identifier, used only for standing series
+ * consent and continuity priming.
+ */
+seriesKey?: string; title: string;
 /**
  * Participant count including the organizer, and including participants
  * EventKit refused to name. Zero means the event carries no attendee list
@@ -2652,6 +2713,27 @@ calendarName?: string | null;
  * link. `None` when the event carries none.
  */
 url?: string | null }
+/**
+ * Which capture statistic an advice row is about.
+ *
+ * Each one is keyed on the identity the receipts actually carry. Receipts hold
+ * no input-device provenance, so none of these can be attributed to a
+ * microphone; `subject` names the transcription route instead, and the copy
+ * says so.
+ */
+export type CaptureAdviceKind =
+/**
+ * This route's runs get retried far more often than the others.
+ */
+"retry_rate" |
+/**
+ * This route's captures end truncated or silent far more often.
+ */
+"lost_capture_rate" |
+/**
+ * Measured input amplitude is low across most captures.
+ */
+"input_level"
 export type CaptureCompleteness = "not_started" | "complete" | "partial"
 /**
  * Whether the original microphone capture was complete. This belongs to the
@@ -2863,6 +2945,7 @@ export type DeliveryReceipt = { method: DeliveryMethod; outcome: DeliveryOutcome
  * here would be a second place for them to go stale.
  */
 export type DetectionCountdown = { event: CalendarEventSummary; secondsToStart: number; briefing: PersonBriefingRow[] }
+export type DetectionPromptDelivery = "panel" | "notification" | "in_app_only"
 /**
  * Emitted when detection wants an answer. The frontend renders localized copy
  * from these fields; the native notification carries §5.4's English pattern.
@@ -2877,11 +2960,15 @@ promptId: string; prompt: DetectionPromptKind;
  */
 notificationTitle: string;
 /**
- * True when this prompt was also delivered as a native notification. False
- * means notifications are denied or unavailable and the in-app card is the
- * only surface.
+ * The surface that owns this delivery. Only `in_app_only` should produce a
+ * toast in the main window; `panel` and `notification` are already visible.
  */
-notified: boolean }
+delivery: DetectionPromptDelivery;
+/**
+ * One short explanation rendered only after the panel has acknowledged its
+ * first successful prompt delivery.
+ */
+showIntroduction: boolean }
 /**
  * Which prompt to raise, carrying the fields the copy pattern interpolates.
  * The frontend localizes from these fields; the native notification uses the
@@ -2924,6 +3011,8 @@ export type DetectionPromptKind =
  * §5.3 case 6, behind the opt-in toggle — no app identity to name.
  */
 { kind: "UnknownMicSource" }
+export type DetectionPromptRetractedEvent = { eventSchemaVersion: number; promptId: string; reason: DetectionPromptRetractionReason }
+export type DetectionPromptRetractionReason = "trigger_app_quit" | "event_ended" | "mic_episode_ended" | "resolved"
 /**
  * The operator-editable half of detection, read and written as one unit.
  *
@@ -3120,6 +3209,88 @@ export type KeyboardImplementation = "tauri" | "handy_keys"
  */
 export type KeywordTracker = { name: string; patterns: string[] }
 export type LLMPrompt = { id: string; name: string; prompt: string }
+export type LearningDecisionRequest = { loop_kind: LearningLoopKind; candidate_key: string; status: LearningDecisionStatus;
+/**
+ * Human-facing text to remember alongside the decision. The candidate key
+ * is normalized and cannot be shown back to anyone, and loop 4 primes a
+ * session with the words a user actually accepted, so the display form has
+ * to survive the decision.
+ */
+display_text: string }
+/**
+ * What a human answered. There is no third state: a candidate is pending
+ * because no row exists for it, not because a row says so.
+ */
+export type LearningDecisionStatus = "accepted" | "dismissed"
+/**
+ * Why a suggestion exists, counted from the corpus that produced it.
+ *
+ * `examples` are verbatim local contexts, capped at
+ * [`MAX_SUGGESTION_EXAMPLES`]. They are the difference between "trust me" and
+ * a claim the reader can check, and they never leave this machine.
+ */
+export type LearningEvidence = { occurrences: number; distinct_days: number; examples: string[] }
+/**
+ * Which loop a candidate belongs to.
+ *
+ * The two vocabulary kinds are separate because their candidate identities are
+ * different things: a term is a phrase Sona keeps hearing, a correction is a
+ * rewrite a human performed. Collapsing them would make one dismissal silence
+ * the other.
+ */
+export type LearningLoopKind =
+/**
+ * Loop 1. A spoken symbol phrase that no replacement rule covers yet.
+ */
+"spoken_punctuation" |
+/**
+ * Loop 2's sibling: a repeated term mined from meeting transcripts. The
+ * candidates themselves are computed live; only decisions are stored.
+ */
+"vocabulary_term" |
+/**
+ * Loop 2. A rewrite a human performed, seen often enough to be a habit.
+ */
+"vocabulary_correction" |
+/**
+ * Loop 5. A mode the user keeps reaching for by shortcut.
+ */
+"mode_habit" |
+/**
+ * Loop 6. A capture-quality statistic worth telling the user about.
+ */
+"capture_advice"
+/**
+ * One suggestion's content, rebuilt on read from stored evidence.
+ */
+export type LearningSuggestion =
+/**
+ * Loop 1. Accepting writes the replacement rule `spoken` -> `written`.
+ */
+{ kind: "spoken_punctuation"; spoken: string; written: string } |
+/**
+ * Loop 2. Accepting writes the vocabulary pair `spoken` -> `written`.
+ */
+{ kind: "vocabulary_correction"; spoken: string; written: string } |
+/**
+ * Loop 5. Accepting makes `mode_id` the active mode.
+ */
+{ kind: "mode_habit"; mode_id: string; mode_name: string } |
+/**
+ * Loop 6. Nothing to accept: an observation is either useful or dismissed.
+ */
+{ kind: "capture_advice"; advice: CaptureAdviceKind; subject: string; stat_permille: number; sample_runs: number }
+/**
+ * One pending suggestion as the feed reads it.
+ */
+export type LearningSuggestionEntry = { loop_kind: LearningLoopKind;
+/**
+ * The normalized candidate identity. The feed sends this back verbatim
+ * when the reader answers, so the answer lands on the same candidate the
+ * miner generated even if the copy around it has changed.
+ */
+candidate_key: string; suggestion: LearningSuggestion; evidence: LearningEvidence; generated_at_utc_ms: number }
+export type LearningSuggestionsResult = { schema_version: number; revision: number; entries: LearningSuggestionEntry[] }
 export type LedgerCommitment = { who: string; what: string; firmness: LedgerFirmness; receipt: LedgerReceipt }
 /**
  * How firmly a commitment was made, read off the language used: "I'll do X"
@@ -3236,6 +3407,8 @@ export type MeetingCitation = { kind: CitationKind; session_id: MeetingSessionId
 export type MeetingCommandError = "consent_required" | "consent_stale" | "invalid_transition" | "stale_revision" | "capture_lease_busy" | "no_source_started" | "source_unavailable" | "storage_unavailable" | "recovery_required" | "deletion_in_progress" | "not_found" | "invalid_request" | "export_cancelled" | "export_failed" | "local_model_unavailable" | "remote_unavailable"
 export type MeetingCommandKind = "preflight_create" | "preflight_refresh" | "preflight_cancel" | "start" | "pause" | "resume" | "stop" | "discard" | "recovery_finalize" | "title_set" | "speaker_rename" | "speaker_merge" | "segment_edit" | "note_create" | "note_update" | "note_delete" | "artifacts_regenerate" | "question_ask" | "question_forget" | "export" | "delete" | "retention_set" | "remote_cancel"
 export type MeetingConsentInput = { policy_version: number; microphone_acknowledged: boolean; system_audio_acknowledged: boolean; known_missing_sources_acknowledged: SourceKind[]; degraded_start_policy: DegradedStartPolicy; destination: ProcessingDestination; remote_acknowledgement: RemoteAcknowledgement | null }
+export type MeetingConsentPanelSessionState = { snapshot: MeetingSessionSnapshot; standing_series_key: string | null }
+export type MeetingConsentPanelStartRequest = { prompt_id: string; operation_id: MeetingOperationId; consent: MeetingConsentInput; always_record_series: boolean }
 export type MeetingDiarizationGenerationId = string
 export type MeetingDiarizationSnapshot = { status: DiarizationStatus; model_id: string; model_version: string; generation_id: MeetingDiarizationGenerationId | null; assigned_segment_count: number }
 export type MeetingEventPayload = { event_schema_version: number; session_id: MeetingSessionId | null; revision: number }
@@ -3888,11 +4061,66 @@ export type VocabularyScope = { kind: "global" } | { kind: "current_mode" } | { 
  */
 export type WebsiteHostMatch = "exact" | "suffix"
 export type WindowsMicrophonePermissionStatus = { supported: boolean; overall_access: PermissionAccess; device_access: PermissionAccess; app_access: PermissionAccess; desktop_app_access: PermissionAccess }
-export type WorkflowEventKind = "meeting_finalized" | "meeting_started" | "speaker_renamed" | "audio_imported" | "document_ingested" | "calendar_meeting_detected" | "agent_hook_event"
-export type WorkflowId = "person_linking" | "pre_meeting_briefing" | "continuity" | "vocabulary_mining" | "document_linking"
+export type WorkflowEventKind = "meeting_finalized" | "meeting_started" | "speaker_renamed" | "audio_imported" | "document_ingested" | "calendar_meeting_detected" | "agent_hook_event" | "meeting_prompt_recorded" | "meeting_prompt_ignored" | "meeting_auto_record_started" | "meeting_auto_record_stopped" |
+/**
+ * The dictation history has runs the learning loops have not read yet.
+ *
+ * This is a wake-up, not data: it carries no transcript and its dedupe key
+ * is one local day, so a heavy dictation day produces one event and one
+ * bounded mining pass per loop rather than thousands.
+ */
+"dictation_corpus_swept" |
+/**
+ * A human corrected a dictation. Payload is the rewrite they performed;
+ * the dedupe key is that rewrite on that local day.
+ */
+"dictation_correction_recorded"
+export type WorkflowId = "person_linking" | "pre_meeting_briefing" | "continuity" | "vocabulary_mining" | "document_linking" |
+/**
+ * Loop 1. Mines the dictation corpus for spoken symbol phrases no
+ * replacement rule covers yet.
+ */
+"spoken_punctuation" |
+/**
+ * Loop 2. Turns repeated human-authored rewrites into vocabulary
+ * suggestions.
+ */
+"correction_learning" |
+/**
+ * Loop 5. Notices a mode the user keeps reaching for by shortcut.
+ */
+"mode_habits" |
+/**
+ * Loop 6. Reports capture-quality statistics worth acting on.
+ */
+"capture_advisor" |
+/**
+ * Internal projection that narrates meeting recording decisions. It is
+ * permanently enabled and never appears in the Settings workflow list.
+ */
+"meeting_activity" |
+/**
+ * Loop 4. Assembles the session-scoped priming blob for a meeting in a
+ * series with standing consent. Infrastructure, not a choice: it only ever
+ * runs for a series the user has already said yes to, and its output dies
+ * with the session.
+ */
+"series_priming"
 export type WorkflowJumpTarget = { kind: "meeting"; session_id: MeetingSessionId } | { kind: "document"; document_id: DocumentId }
-export type WorkflowOutcomeCode = "person_links" | "briefing" | "continuity" | "vocabulary_candidates" | "document_links" | "already_processed" | "failed" | "skipped"
-export type WorkflowOutcomeCounts = { changes: number; persons: number; series: number; carried: number; candidates: number }
+export type WorkflowOutcomeCode = "person_links" | "briefing" | "continuity" | "vocabulary_candidates" | "document_links" |
+/**
+ * A learning loop finished a mining pass. `suggestions` counts what it
+ * added to the pending queue this run, which is the only number a reader
+ * can act on — a pass that mined a thousand runs and suggested nothing is
+ * a quiet success, not an event.
+ */
+"learning_suggestions" |
+/**
+ * Loop 4 primed one session. `terms` counts what the session's own
+ * transcription will see; nothing was written to shared vocabulary.
+ */
+"series_primed" | "prompt_recorded" | "prompt_ignored" | "auto_record_started" | "auto_record_stopped" | "already_processed" | "failed" | "skipped"
+export type WorkflowOutcomeCounts = { changes: number; persons: number; series: number; carried: number; candidates: number; suggestions: number; terms: number }
 export type WorkflowRunCursor = { started_at_utc_ms: number; run_id: WorkflowRunId }
 export type WorkflowRunId = string
 export type WorkflowRunReceipt = { id: WorkflowRunId; workflow_id: WorkflowId; event_kind: WorkflowEventKind; jump_target: WorkflowJumpTarget | null; status: WorkflowRunStatus; started_at_utc_ms: number; finished_at_utc_ms: number; outcome_summary: string; outcome_code: WorkflowOutcomeCode; outcome_counts: WorkflowOutcomeCounts; error: string | null }

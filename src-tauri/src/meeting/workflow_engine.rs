@@ -2,6 +2,10 @@ mod documents;
 mod people;
 
 use super::detection::machine::CalendarEventSummary;
+use super::learning::{no_inputs, AppLearningInputs};
+use super::learning_types::{
+    LearningDecisionRequest, LearningSuggestion, LearningSuggestionsResult,
+};
 use super::people_types::{PersonBriefingRow, VocabularyCandidatesResult};
 use super::session::{MeetingSessionManager, MEETING_EVENT_SCHEMA_VERSION};
 use super::store::{MeetingStore, StoreError};
@@ -13,6 +17,7 @@ use super::workflow_types::{
     WorkflowEventKind, WorkflowRunReceipt, WorkflowRunsRequest, WorkflowSetEnabledRequest,
     WorkflowsListResult,
 };
+use chrono::Local;
 use std::collections::BTreeSet;
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
@@ -61,6 +66,46 @@ impl MeetingSessionManager {
             .map_err(map_store_error)
     }
 
+    /// Every pending learning suggestion, with stale ones dropped.
+    pub async fn learning_suggestions(
+        &self,
+    ) -> Result<LearningSuggestionsResult, MeetingCommandError> {
+        let store = self.store().await?;
+        let app = self.app_handle().cloned();
+        match AppLearningInputs::resolve(app.as_ref()) {
+            Some(inputs) => store.learning_suggestions(&inputs),
+            None => store.learning_suggestions(&no_inputs()),
+        }
+        .map_err(map_store_error)
+    }
+
+    /// The suggestion behind one candidate, for the command that is about to
+    /// act on it. The command needs the payload to know what to write.
+    pub(crate) async fn learning_suggestion(
+        &self,
+        request: &LearningDecisionRequest,
+    ) -> Result<Option<LearningSuggestion>, MeetingCommandError> {
+        self.store()
+            .await?
+            .learning_suggestion(request.loop_kind, &request.candidate_key)
+            .map_err(map_store_error)
+    }
+
+    /// Records a human answer. The caller has already performed whatever
+    /// settings write an acceptance implies.
+    pub(crate) async fn decide_learning_suggestion(
+        &self,
+        request: &LearningDecisionRequest,
+    ) -> Result<LearningSuggestionsResult, MeetingCommandError> {
+        let result = self
+            .store()
+            .await?
+            .decide_learning_suggestion(request, now_utc_ms())
+            .map_err(map_store_error)?;
+        self.emit_artifact_changed(None, result.revision);
+        Ok(result)
+    }
+
     pub(crate) async fn calendar_briefing(
         &self,
         event: CalendarEventSummary,
@@ -82,8 +127,12 @@ impl MeetingSessionManager {
                 return Vec::new();
             }
         };
-        let runner =
-            spawn_workflow_runner(Arc::clone(&store), dispatch.event_id, !dispatch.inserted);
+        let runner = spawn_workflow_runner(
+            Arc::clone(&store),
+            dispatch.event_id,
+            !dispatch.inserted,
+            self.app_handle().cloned(),
+        );
         if await_workflow_runner(runner, Arc::clone(&store), self.app_handle().cloned(), None)
             .await
             .is_err()
@@ -148,6 +197,60 @@ impl MeetingSessionManager {
         );
     }
 
+    /// Tells the learning loops that dictation history has moved.
+    ///
+    /// Called after every dictation run receipt, and deliberately coarse: the
+    /// dedupe key is one local day, so a heavy dictation day produces one event
+    /// and one bounded mining pass per loop instead of thousands.
+    pub(crate) async fn record_dictation_corpus_swept(&self) {
+        let Ok(store) = self.store().await else {
+            return;
+        };
+        let local_day = Local::now().format("%Y-%m-%d").to_string();
+        if let Err(error) = dispatch_daily_workflow_event(
+            store,
+            NewWorkflowEvent {
+                kind: WorkflowEventKind::DictationCorpusSwept,
+                payload: serde_json::json!({"local_day": &local_day}),
+                occurred_at_utc_ms: now_utc_ms(),
+                source: "dictation_history",
+                dedupe_key: format!("dictation-corpus-swept:{local_day}"),
+            },
+            self.app_handle().cloned(),
+        ) {
+            log::warn!("dictation corpus sweep failed: {error:?}");
+        }
+    }
+
+    /// Records one human dictation correction as vocabulary evidence.
+    ///
+    /// The dedupe key is the rewrite on the local day it happened, which is what
+    /// makes "three days running" the evidence rather than "three clicks in one
+    /// afternoon".
+    pub(crate) async fn record_dictation_correction(&self, spoken: String, written: String) {
+        let Ok(store) = self.store().await else {
+            return;
+        };
+        let local_day = Local::now().format("%Y-%m-%d").to_string();
+        if let Err(error) = dispatch_daily_workflow_event(
+            store,
+            NewWorkflowEvent {
+                kind: WorkflowEventKind::DictationCorrectionRecorded,
+                payload: serde_json::json!({"spoken": &spoken, "written": &written}),
+                occurred_at_utc_ms: now_utc_ms(),
+                source: "dictation_correction",
+                dedupe_key: format!(
+                    "dictation-correction:{local_day}:{}->{}",
+                    spoken.trim().to_lowercase(),
+                    written.trim().to_lowercase()
+                ),
+            },
+            self.app_handle().cloned(),
+        ) {
+            log::warn!("dictation correction event failed: {error:?}");
+        }
+    }
+
     pub(crate) async fn record_audio_imported(&self, import_id: String, source_name: String) {
         let dedupe_key = format!("audio-imported:{import_id}");
         self.record_event(
@@ -168,6 +271,75 @@ impl MeetingSessionManager {
             "sona_agent_hook",
             dedupe_key,
             None,
+        )
+        .await
+    }
+
+    pub(crate) async fn record_prompt_recorded(
+        &self,
+        prompt_id: String,
+        session_id: MeetingSessionId,
+    ) -> bool {
+        self.record_event(
+            WorkflowEventKind::MeetingPromptRecorded,
+            serde_json::json!({"prompt_id": prompt_id, "session_id": session_id.uuid().to_string()}),
+            "meeting_detection",
+            format!("meeting-prompt-recorded:{prompt_id}:{}", session_id.uuid()),
+            Some(session_id),
+        )
+        .await
+    }
+
+    pub(crate) async fn record_prompt_ignored(&self, prompt_id: String) -> bool {
+        self.record_event(
+            WorkflowEventKind::MeetingPromptIgnored,
+            serde_json::json!({"prompt_id": prompt_id}),
+            "meeting_detection",
+            format!("meeting-prompt-ignored:{prompt_id}"),
+            None,
+        )
+        .await
+    }
+
+    pub(crate) async fn record_auto_record_started(
+        &self,
+        occurrence_key: &str,
+        session_id: MeetingSessionId,
+    ) -> bool {
+        self.record_event(
+            WorkflowEventKind::MeetingAutoRecordStarted,
+            serde_json::json!({
+                "occurrence_key": occurrence_key,
+                "session_id": session_id.uuid().to_string(),
+            }),
+            "meeting_detection",
+            format!(
+                "meeting-auto-record-started:{occurrence_key}:{}",
+                session_id.uuid()
+            ),
+            Some(session_id),
+        )
+        .await
+    }
+
+    pub(crate) async fn record_auto_record_stopped(
+        &self,
+        session_id: MeetingSessionId,
+        trigger: crate::meeting::detection::machine::StopTrigger,
+    ) -> bool {
+        self.record_event(
+            WorkflowEventKind::MeetingAutoRecordStopped,
+            serde_json::json!({
+                "session_id": session_id.uuid().to_string(),
+                "trigger": trigger,
+            }),
+            "meeting_detection",
+            format!(
+                "meeting-auto-record-stopped:{}:{}",
+                session_id.uuid(),
+                trigger.as_str()
+            ),
+            Some(session_id),
         )
         .await
     }
@@ -239,6 +411,11 @@ pub(crate) fn record_meeting_finalized(
     )
 }
 
+/// Records an event and runs it, always.
+///
+/// Passing `!inserted` as `record_skips` is deliberate: a duplicate dedupe key
+/// means this exact event already exists, and writing a `skipped` receipt is how
+/// the run log says so.
 fn dispatch_workflow_event(
     store: Arc<MeetingStore>,
     event: NewWorkflowEvent,
@@ -246,9 +423,38 @@ fn dispatch_workflow_event(
     session_id: Option<MeetingSessionId>,
 ) -> Result<WorkflowDispatchResult, StoreError> {
     let dispatch = store.record_workflow_event(event)?;
-    let runner = spawn_workflow_runner(Arc::clone(&store), dispatch.event_id, !dispatch.inserted);
+    let runner = spawn_workflow_runner(
+        Arc::clone(&store),
+        dispatch.event_id,
+        !dispatch.inserted,
+        app.clone(),
+    );
     tauri::async_runtime::spawn(async move {
         let _ = await_workflow_runner(runner, store, app, session_id).await;
+    });
+    Ok(dispatch)
+}
+
+/// Records a coarse, day-bucketed event and runs it only when it is new.
+///
+/// The learning loops are woken by one event per local day per kind. Running a
+/// duplicate would write a `skipped` receipt for every dictation of the day —
+/// thousands of rows saying nothing — so a duplicate is recorded and left alone.
+/// A run that failed is retried by the startup reconciliation scan instead —
+/// see [`WorkflowEventKind::retries_after_failure`], which is what makes that
+/// true for this kind.
+fn dispatch_daily_workflow_event(
+    store: Arc<MeetingStore>,
+    event: NewWorkflowEvent,
+    app: Option<AppHandle>,
+) -> Result<WorkflowDispatchResult, StoreError> {
+    let dispatch = store.record_workflow_event(event)?;
+    if !dispatch.inserted {
+        return Ok(dispatch);
+    }
+    let runner = spawn_workflow_runner(Arc::clone(&store), dispatch.event_id, false, app.clone());
+    tauri::async_runtime::spawn(async move {
+        let _ = await_workflow_runner(runner, store, app, None).await;
     });
     Ok(dispatch)
 }
@@ -257,8 +463,12 @@ fn spawn_workflow_runner(
     store: Arc<MeetingStore>,
     event_id: WorkflowEventId,
     record_skips: bool,
+    app: Option<AppHandle>,
 ) -> tauri::async_runtime::JoinHandle<Result<Vec<WorkflowRunReceipt>, StoreError>> {
-    tauri::async_runtime::spawn_blocking(move || store.run_workflow_event(event_id, record_skips))
+    tauri::async_runtime::spawn_blocking(move || match AppLearningInputs::resolve(app.as_ref()) {
+        Some(inputs) => store.run_workflow_event(event_id, record_skips, &inputs),
+        None => store.run_workflow_event(event_id, record_skips, &no_inputs()),
+    })
 }
 
 async fn await_workflow_runner(
@@ -294,7 +504,7 @@ pub(crate) fn resume_pending_workflow_events(store: Arc<MeetingStore>, app: Opti
         }
     };
     for event_id in event_ids {
-        let runner = spawn_workflow_runner(Arc::clone(&store), event_id, false);
+        let runner = spawn_workflow_runner(Arc::clone(&store), event_id, false, app.clone());
         let store = Arc::clone(&store);
         let app = app.clone();
         tauri::async_runtime::spawn(async move {
@@ -325,6 +535,7 @@ pub(crate) fn known_vocabulary(app: Option<&tauri::AppHandle>) -> Vec<String> {
 pub(crate) fn map_store_error(error: StoreError) -> MeetingCommandError {
     match error {
         StoreError::NotFound => MeetingCommandError::NotFound,
+        StoreError::ConsentStale => MeetingCommandError::ConsentStale,
         StoreError::Conflict => MeetingCommandError::StaleRevision,
         StoreError::Invalid => MeetingCommandError::InvalidRequest,
         StoreError::EncryptionUnavailable

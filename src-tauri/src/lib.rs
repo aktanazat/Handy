@@ -286,6 +286,10 @@ fn start_meeting_detection(app_handle: &AppHandle, meetings: Arc<MeetingSessionM
         Arc::new(notify::NoPrompts) as Arc<dyn notify::PromptPresenter>,
         (|| ScreenRecordingPermission::NotGranted) as fn() -> ScreenRecordingPermission,
     );
+    let prompts = Arc::new(notify::ConsentPromptPresenter::new(
+        app_handle.clone(),
+        prompts,
+    ));
 
     let runtime = Arc::new(DetectionRuntime::with_parts(
         app_handle.clone(),
@@ -1387,6 +1391,9 @@ pub fn run(cli_args: CliArgs) {
             commands::meeting::meeting_preflight_refresh,
             commands::meeting::meeting_preflight_cancel,
             commands::meeting::meeting_start,
+            commands::meeting::meeting_consent_panel_start,
+            commands::meeting::meeting_consent_panel_active_state,
+            commands::meeting::meeting_consent_panel_forget_series,
             commands::meeting::meeting_pause,
             commands::meeting::meeting_resume,
             commands::meeting::meeting_stop,
@@ -1437,6 +1444,8 @@ pub fn run(cli_args: CliArgs) {
             commands::workflows::workflows_list,
             commands::workflows::workflow_set_enabled,
             commands::workflows::workflow_runs,
+            commands::learning::learning_suggestions,
+            commands::learning::learning_decide,
             commands::documents::doc_ingest,
             commands::documents::doc_list,
             commands::documents::doc_delete,
@@ -1464,6 +1473,7 @@ pub fn run(cli_args: CliArgs) {
             commands::detection::detection_calendar_access_request,
             commands::detection::detection_notification_access_request,
             commands::detection::detection_prompt_respond,
+            commands::detection::detection_prompt_panel_ack,
             commands::detection::detection_running_meeting_apps,
             commands::detection::detection_settings_set,
         ])
@@ -1491,6 +1501,8 @@ pub fn run(cli_args: CliArgs) {
             cloud_sync::types::CloudSyncChangedEvent,
             meeting::types::MeetingNavigationRequestedEvent,
             meeting::detection::DetectionPromptEvent,
+            meeting::detection::DetectionPromptRetractedEvent,
+            meeting::detection::DetectionStatus,
         ]);
 
     #[cfg(debug_assertions)]
@@ -1702,9 +1714,12 @@ pub fn run(cli_args: CliArgs) {
                 tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App("/".into()))
                     .title("Sona")
                     .inner_size(900.0, 680.0)
-                    .min_inner_size(680.0, 570.0)
-                    .resizable(true)
-                    .maximizable(true)
+                    .min_inner_size(900.0, 680.0)
+                    .max_inner_size(900.0, 680.0)
+                    .resizable(false)
+                    .maximizable(false)
+                    .minimizable(true)
+                    .fullscreen(false)
                     .visible(false);
 
             if let Some(data_dir) = portable::data_dir() {
@@ -1830,6 +1845,7 @@ pub fn run(cli_args: CliArgs) {
             }
 
             initialize_recording_overlay(&app_handle);
+            meeting::consent_panel::create(&app_handle);
 
             // Last, and only now: the dictation history database resolves its
             // encryption key. The read can surface an OS credential prompt, and

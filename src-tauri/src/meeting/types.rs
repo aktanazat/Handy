@@ -508,6 +508,17 @@ pub struct MeetingRunPlan {
     pub retention_policy: MeetingRetentionPolicy,
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum MeetingConsentProvenance {
+    #[default]
+    Direct,
+    StandingSeries {
+        series_key: String,
+        granted_at_utc_ms: i64,
+    },
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 pub struct MeetingConsent {
     pub consent_id: ConsentId,
@@ -516,6 +527,11 @@ pub struct MeetingConsent {
     pub preflight_revision: u64,
     pub policy_version: u32,
     pub acknowledged_at_utc_ms: i64,
+    /// How this attempt was authorized. Old direct-consent rows deserialize as
+    /// `Direct`; standing grants are cited by identity and revalidated inside
+    /// the same transaction that writes this immutable receipt.
+    #[serde(default)]
+    pub provenance: MeetingConsentProvenance,
     pub microphone_acknowledged: bool,
     pub system_audio_acknowledged: bool,
     pub known_missing_sources_acknowledged: Vec<SourceKind>,

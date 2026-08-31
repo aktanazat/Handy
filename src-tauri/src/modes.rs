@@ -1280,6 +1280,17 @@ impl RequestedEngine {
             Self::ElevenLabsScribeV2 => Some(CloudSttProvider::ElevenLabsScribeV2),
         }
     }
+
+    /// The route's stable name, matching what `serde` writes. Callers that key
+    /// durable rows or user-visible copy on the engine read it from here, so no
+    /// unknown variant can be silently relabelled as another one.
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Local => "local",
+            Self::DeepgramNova3 => "deepgram_nova3",
+            Self::ElevenLabsScribeV2 => "eleven_labs_scribe_v2",
+        }
+    }
 }
 
 /// Which rule selected the mode frozen into a run. The receipt deliberately

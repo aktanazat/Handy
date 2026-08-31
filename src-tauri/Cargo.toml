@@ -195,6 +195,9 @@ transcribe-cpp = { version = "0.2.0", default-features = false, features = ["met
 objc2 = "0.6"
 objc2-foundation = "0.3"
 objc2-app-kit = "0.3"
+objc2-core-graphics = { version = "0.3.2", default-features = false, features = [
+  "CGWindow",
+] }
 objc2-service-management = "0.3.2"
 # Accessibility (ApplicationServices/HIServices) drives context capture and the
 # preferred delivery path: reading the focused control and inserting text into

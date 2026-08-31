@@ -510,9 +510,15 @@ impl MeetingProcessingService {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .clone()
             .ok_or(ProcessingFailure::LocalModelUnavailable)?;
-        let asr_plan = engine
+        let mut asr_plan = engine
             .plan_for(&plan)
             .ok_or(ProcessingFailure::LocalModelUnavailable)?;
+        // Loop 4: a series the user gave standing consent to primes this one
+        // session's transcription. The blob was assembled onto the session and
+        // dies with it; nothing here touches shared vocabulary.
+        if let Ok(Some(blob)) = store.series_priming(session_id) {
+            super::learning::apply_series_priming(&mut asr_plan, &blob);
+        }
         let transcript_revision_id = store
             .begin_transcript_revision(TranscriptRevisionInput {
                 session_id,

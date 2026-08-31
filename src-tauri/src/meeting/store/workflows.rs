@@ -1,5 +1,6 @@
 mod runner;
 
+use super::learning::LearningInputs;
 use super::{MeetingStore, StoreError};
 use crate::meeting::detection::machine::CalendarEventSummary;
 use crate::meeting::document_types::DocumentId;
@@ -67,9 +68,10 @@ impl MeetingStore {
     pub(crate) fn record_and_run_workflow_event(
         &self,
         event: NewWorkflowEvent,
+        inputs: &dyn LearningInputs,
     ) -> Result<WorkflowDispatchResult, StoreError> {
         let mut dispatch = self.record_workflow_event(event)?;
-        dispatch.receipts = runner::run_event(self, dispatch.event_id, !dispatch.inserted)?;
+        dispatch.receipts = runner::run_event(self, dispatch.event_id, !dispatch.inserted, inputs)?;
         Ok(dispatch)
     }
 
@@ -77,10 +79,19 @@ impl MeetingStore {
         &self,
         event_id: WorkflowEventId,
         record_skips: bool,
+        inputs: &dyn LearningInputs,
     ) -> Result<Vec<WorkflowRunReceipt>, StoreError> {
-        runner::run_event(self, event_id, record_skips)
+        runner::run_event(self, event_id, record_skips, inputs)
     }
 
+    /// Events that still have work to do, for the reconciliation scan at
+    /// startup.
+    ///
+    /// An event whose kind this build does not know is skipped rather than
+    /// treated as corruption. Such a row can only come from a newer build that
+    /// wrote it before a downgrade, and failing the scan on it would stall every
+    /// other pending event on the machine — one unreadable row taking the whole
+    /// queue with it.
     pub(crate) fn pending_workflow_event_ids(&self) -> Result<Vec<WorkflowEventId>, StoreError> {
         let connection = self.connection()?;
         let mut statement = connection
@@ -95,9 +106,11 @@ impl MeetingStore {
         for (event_id, kind) in events {
             let event_id =
                 WorkflowEventId(Uuid::parse_str(&event_id).map_err(|_| StoreError::Corrupt)?);
-            let kind = WorkflowEventKind::from_str(&kind).ok_or(StoreError::Corrupt)?;
+            let Some(kind) = WorkflowEventKind::from_str(&kind) else {
+                continue;
+            };
             for workflow_id in matching_enabled_workflows_in(&connection, kind)? {
-                if !terminal_receipt_exists_in(&connection, event_id, workflow_id)? {
+                if !terminal_receipt_exists_in(&connection, event_id, kind, workflow_id)? {
                     pending.push(event_id);
                     break;
                 }
@@ -110,8 +123,9 @@ impl MeetingStore {
     pub(crate) fn rerun_workflow_event(
         &self,
         event_id: WorkflowEventId,
+        inputs: &dyn LearningInputs,
     ) -> Result<Vec<WorkflowRunReceipt>, StoreError> {
-        runner::run_event(self, event_id, true)
+        runner::run_event(self, event_id, true, inputs)
     }
 
     pub(crate) fn workflows_list(&self) -> Result<WorkflowsListResult, StoreError> {
@@ -128,6 +142,12 @@ impl MeetingStore {
         enabled: bool,
         expected_revision: u64,
     ) -> Result<WorkflowsListResult, StoreError> {
+        // A permanently-enabled workflow is infrastructure, not a choice: it
+        // never appears in the Settings list, so a request to toggle one is a
+        // caller bug rather than a preference.
+        if WorkflowId::PERMANENT.contains(&workflow_id) {
+            return Err(StoreError::Invalid);
+        }
         let mut connection = self.connection()?;
         let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         if workflow_revision_in(&transaction)? != expected_revision {
@@ -285,6 +305,12 @@ pub(super) fn calendar_facts_in(
         .transpose()
 }
 
+/// Which enabled workflows an event of this kind runs.
+///
+/// The `match` is exhaustive over the Rust enum, so an event kind this build
+/// does not know can only reach here as a database row a newer build wrote —
+/// which is why the enabled lookup below tolerates a workflow row that is
+/// likewise absent instead of failing the whole dispatch.
 pub(super) fn matching_enabled_workflows_in(
     connection: &Connection,
     kind: WorkflowEventKind,
@@ -294,40 +320,70 @@ pub(super) fn matching_enabled_workflows_in(
             WorkflowId::PersonLinking,
             WorkflowId::Continuity,
             WorkflowId::VocabularyMining,
+            WorkflowId::CorrectionLearning,
         ],
-        WorkflowEventKind::MeetingStarted | WorkflowEventKind::SpeakerRenamed => {
-            &[WorkflowId::PersonLinking]
+        WorkflowEventKind::MeetingStarted => {
+            &[WorkflowId::PersonLinking, WorkflowId::SeriesPriming]
         }
+        WorkflowEventKind::SpeakerRenamed => &[WorkflowId::PersonLinking],
         WorkflowEventKind::CalendarMeetingDetected => &[WorkflowId::PreMeetingBriefing],
         WorkflowEventKind::DocumentIngested => &[WorkflowId::DocumentLinking],
+        WorkflowEventKind::MeetingPromptRecorded
+        | WorkflowEventKind::MeetingPromptIgnored
+        | WorkflowEventKind::MeetingAutoRecordStarted
+        | WorkflowEventKind::MeetingAutoRecordStopped => &[WorkflowId::MeetingActivity],
+        WorkflowEventKind::DictationCorpusSwept => &[
+            WorkflowId::SpokenPunctuation,
+            WorkflowId::ModeHabits,
+            WorkflowId::CaptureAdvisor,
+        ],
+        WorkflowEventKind::DictationCorrectionRecorded => &[WorkflowId::CorrectionLearning],
         WorkflowEventKind::AudioImported | WorkflowEventKind::AgentHookEvent => &[],
     };
     let mut enabled = Vec::new();
     for workflow in matching {
-        let is_enabled: bool = connection.query_row(
-            "SELECT enabled FROM workflow_settings WHERE workflow_id = ?1",
-            [workflow.as_str()],
-            |row| row.get(0),
-        )?;
-        if is_enabled {
+        let is_enabled: Option<bool> = connection
+            .query_row(
+                "SELECT enabled FROM workflow_settings WHERE workflow_id = ?1",
+                [workflow.as_str()],
+                |row| row.get(0),
+            )
+            .optional()?;
+        if is_enabled == Some(true) {
             enabled.push(*workflow);
         }
     }
     Ok(enabled)
 }
 
+/// Whether this workflow is done with this event.
+///
+/// "Done" is not the same question for every event kind. A failed run of an
+/// event some later signal will raise again needs no retry — the next
+/// occurrence brings its own event. The daily corpus sweep has no next
+/// occurrence: every later dictation on the same local day collapses into the
+/// same dedupe key, so for that kind only a successful run is the last word,
+/// and the startup reconciliation scan picks the failure back up.
 pub(super) fn terminal_receipt_exists_in(
     connection: &Connection,
     event_id: WorkflowEventId,
+    event_kind: WorkflowEventKind,
     workflow_id: WorkflowId,
 ) -> Result<bool, StoreError> {
+    let statuses: &str = if event_kind.retries_after_failure() {
+        "('ok')"
+    } else {
+        "('ok', 'failed')"
+    };
     connection
         .query_row(
-            "SELECT EXISTS(
-                SELECT 1 FROM workflow_runs
-                 WHERE workflow_id = ?1 AND event_id = ?2
-                   AND status IN ('ok', 'failed')
-             )",
+            &format!(
+                "SELECT EXISTS(
+                    SELECT 1 FROM workflow_runs
+                     WHERE workflow_id = ?1 AND event_id = ?2
+                       AND status IN {statuses}
+                 )"
+            ),
             params![workflow_id.as_str(), event_id.uuid().to_string()],
             |row| row.get(0),
         )
@@ -462,8 +518,8 @@ pub(super) fn bump_workflow_run_revision_in(connection: &Connection) -> Result<u
 
 fn workflows_list_in(connection: &Connection) -> Result<WorkflowsListResult, StoreError> {
     let revision = workflow_revision_in(connection)?;
-    let mut entries = Vec::with_capacity(WorkflowId::ALL.len());
-    for workflow_id in WorkflowId::ALL {
+    let mut entries = Vec::with_capacity(WorkflowId::CONFIGURABLE.len());
+    for workflow_id in WorkflowId::CONFIGURABLE {
         let enabled: bool = connection.query_row(
             "SELECT enabled FROM workflow_settings WHERE workflow_id = ?1",
             [workflow_id.as_str()],
@@ -534,7 +590,8 @@ pub(super) fn receipt_from_columns(
     };
     let event_kind = WorkflowEventKind::from_str(&columns.7).ok_or(StoreError::Corrupt)?;
     let payload: Value = serde_json::from_str(&columns.8).map_err(|_| StoreError::Corrupt)?;
-    let (outcome_code, outcome_counts) = outcome_projection(workflow_id, status, &columns.5);
+    let (outcome_code, outcome_counts) =
+        outcome_projection(workflow_id, event_kind, status, &columns.5);
     Ok(WorkflowRunReceipt {
         id: WorkflowRunId(id),
         workflow_id,
@@ -550,8 +607,16 @@ pub(super) fn receipt_from_columns(
     })
 }
 
+/// What a stored run means, in the two forms a reader needs: one outcome code
+/// and the counts that fill its sentence.
+///
+/// Summaries are one grammar — `name:field=value`, values numeric — and this is
+/// the only thing that parses them. Nothing here string-matches a whole
+/// summary: the meeting-activity codes come from the event kind, which is the
+/// fact they were always a restatement of.
 pub(super) fn outcome_projection(
     workflow_id: WorkflowId,
+    event_kind: WorkflowEventKind,
     status: WorkflowRunStatus,
     summary: &str,
 ) -> (WorkflowOutcomeCode, WorkflowOutcomeCounts) {
@@ -567,6 +632,22 @@ pub(super) fn outcome_projection(
             WorkflowId::Continuity => WorkflowOutcomeCode::Continuity,
             WorkflowId::VocabularyMining => WorkflowOutcomeCode::VocabularyCandidates,
             WorkflowId::DocumentLinking => WorkflowOutcomeCode::DocumentLinks,
+            WorkflowId::SpokenPunctuation
+            | WorkflowId::CorrectionLearning
+            | WorkflowId::ModeHabits
+            | WorkflowId::CaptureAdvisor => WorkflowOutcomeCode::LearningSuggestions,
+            WorkflowId::SeriesPriming => WorkflowOutcomeCode::SeriesPrimed,
+            WorkflowId::MeetingActivity => match event_kind {
+                WorkflowEventKind::MeetingPromptRecorded => WorkflowOutcomeCode::PromptRecorded,
+                WorkflowEventKind::MeetingPromptIgnored => WorkflowOutcomeCode::PromptIgnored,
+                WorkflowEventKind::MeetingAutoRecordStarted => {
+                    WorkflowOutcomeCode::AutoRecordStarted
+                }
+                WorkflowEventKind::MeetingAutoRecordStopped => {
+                    WorkflowOutcomeCode::AutoRecordStopped
+                }
+                _ => WorkflowOutcomeCode::Skipped,
+            },
         },
     };
     let mut counts = WorkflowOutcomeCounts::default();
@@ -583,6 +664,8 @@ pub(super) fn outcome_projection(
             "series" => counts.series = value,
             "carried" => counts.carried = value,
             "candidates" => counts.candidates = value,
+            "suggestions" => counts.suggestions = value,
+            "terms" => counts.terms = value,
             _ => {}
         }
     }
@@ -594,7 +677,10 @@ fn jump_target(kind: WorkflowEventKind, payload: &Value) -> Option<WorkflowJumpT
         WorkflowEventKind::DocumentIngested => "document_id",
         WorkflowEventKind::MeetingFinalized
         | WorkflowEventKind::MeetingStarted
-        | WorkflowEventKind::SpeakerRenamed => "session_id",
+        | WorkflowEventKind::SpeakerRenamed
+        | WorkflowEventKind::MeetingPromptRecorded
+        | WorkflowEventKind::MeetingAutoRecordStarted
+        | WorkflowEventKind::MeetingAutoRecordStopped => "session_id",
         _ => return None,
     };
     let id = Uuid::parse_str(payload.get(key)?.as_str()?).ok()?;

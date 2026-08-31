@@ -6,13 +6,13 @@ use crate::meeting::analytics::{
 use crate::meeting::clock::host_monotonic_now_ns;
 use crate::meeting::detection::DetectionRuntime;
 use crate::meeting::session::{
-    MeetingActionItemDoneRequest, MeetingMutationRequest, MeetingMutationResult,
-    MeetingNoteCreateRequest, MeetingNoteDeleteRequest, MeetingNoteUpdateRequest,
-    MeetingPreflightCreateRequest, MeetingPreflightRefreshRequest, MeetingQuestionRequest,
-    MeetingQuestionResult, MeetingReenhanceRequest, MeetingRemovalResult,
-    MeetingSegmentEditRequest, MeetingSessionManager, MeetingSpeakerMergeRequest,
-    MeetingSpeakerRenameRequest, MeetingStartRequest, MeetingTitleSetRequest,
-    MeetingUserNotesSaveRequest,
+    MeetingActionItemDoneRequest, MeetingConsentPanelSessionState, MeetingConsentPanelStartRequest,
+    MeetingMutationRequest, MeetingMutationResult, MeetingNoteCreateRequest,
+    MeetingNoteDeleteRequest, MeetingNoteUpdateRequest, MeetingPreflightCreateRequest,
+    MeetingPreflightRefreshRequest, MeetingQuestionRequest, MeetingQuestionResult,
+    MeetingReenhanceRequest, MeetingRemovalResult, MeetingSegmentEditRequest,
+    MeetingSessionManager, MeetingSpeakerMergeRequest, MeetingSpeakerRenameRequest,
+    MeetingStartRequest, MeetingTitleSetRequest, MeetingUserNotesSaveRequest,
 };
 use crate::meeting::suggestions::MeetingSuggestion;
 use crate::meeting::types::*;
@@ -77,6 +77,55 @@ pub async fn meeting_start(
 
 #[tauri::command]
 #[specta::specta]
+pub async fn meeting_consent_panel_start(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    detection: State<'_, Arc<DetectionRuntime>>,
+    request: MeetingConsentPanelStartRequest,
+) -> Result<MeetingMutationResult, MeetingCommandError> {
+    let context = detection
+        .take_for_panel_start(&request.prompt_id)
+        .ok_or(MeetingCommandError::ConsentStale)?;
+    let series_consent = request
+        .always_record_series
+        .then(|| request.consent.clone());
+    let result = manager.start_from_consent_panel(&context, request).await;
+    if let Ok(started) = &result {
+        if started.snapshot.phase == MeetingPhase::CapturingRecording {
+            if let Some(consent) = series_consent {
+                if let Err(error) = manager.grant_panel_series_consent(&context, &consent).await {
+                    log::warn!(
+                        "Meeting started, but standing-series consent was not saved: {error:?}"
+                    );
+                }
+            }
+            detection.track_started(&context, &started.snapshot);
+            manager
+                .record_prompt_recorded(context.prompt_id, started.snapshot.session_id)
+                .await;
+        }
+    }
+    result
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn meeting_consent_panel_active_state(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+) -> Result<Option<MeetingConsentPanelSessionState>, MeetingCommandError> {
+    manager.consent_panel_active_state().await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn meeting_consent_panel_forget_series(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    session_id: MeetingSessionId,
+) -> Result<bool, MeetingCommandError> {
+    manager.forget_active_series(session_id).await
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn meeting_pause(
     manager: State<'_, Arc<MeetingSessionManager>>,
     request: MeetingMutationRequest,
@@ -97,18 +146,30 @@ pub async fn meeting_resume(
 #[specta::specta]
 pub async fn meeting_stop(
     manager: State<'_, Arc<MeetingSessionManager>>,
+    detection: State<'_, Arc<DetectionRuntime>>,
     request: MeetingMutationRequest,
 ) -> Result<MeetingMutationResult, MeetingCommandError> {
-    manager.stop(request).await
+    let session_id = request.session_id;
+    let result = manager.stop(request).await;
+    if result.is_ok() {
+        detection.track_ended(session_id);
+    }
+    result
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn meeting_discard(
     manager: State<'_, Arc<MeetingSessionManager>>,
+    detection: State<'_, Arc<DetectionRuntime>>,
     request: MeetingMutationRequest,
 ) -> Result<MeetingRemovalResult, MeetingCommandError> {
-    manager.discard(request).await
+    let session_id = request.session_id;
+    let result = manager.discard(request).await;
+    if result.as_ref().is_ok_and(|removed| removed.removed) {
+        detection.track_ended(session_id);
+    }
+    result
 }
 
 #[tauri::command]

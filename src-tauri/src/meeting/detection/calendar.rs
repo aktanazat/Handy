@@ -96,6 +96,13 @@ pub fn calendar_signal(event: Option<CalendarEventSummary>, now_utc_ms: i64) -> 
 pub fn lookahead_ms() -> i64 {
     LOOKAHEAD_MS
 }
+/// Derives the identity used for one prompt/auto-start claim. EventKit exposes
+/// a calendar-item identifier shared by recurring occurrences, so the start
+/// instant is part of the occurrence key while the bare identifier remains the
+/// series key used by standing consent.
+pub fn occurrence_key(series_key: &str, start_utc_ms: i64) -> String {
+    format!("{series_key}#{start_utc_ms}")
+}
 
 /// Maps `EKParticipantStatus`'s raw value onto the answer a person recognizes.
 ///
@@ -176,7 +183,8 @@ pub use macos::EventKitCalendar;
 #[cfg(target_os = "macos")]
 mod macos {
     use super::{
-        event_text, named_attendee_with_email, CalendarAccess, CalendarEventSummary, CalendarSource,
+        event_text, named_attendee_with_email, occurrence_key, CalendarAccess,
+        CalendarEventSummary, CalendarSource,
     };
     use block2::RcBlock;
     use objc2::rc::Retained;
@@ -349,12 +357,13 @@ mod macos {
                 event.attendees(),
             )
         };
-        let event_key = identifier.to_string();
-        if event_key.is_empty() {
+        let series_key = identifier.to_string();
+        if series_key.is_empty() {
             return None;
         }
         Some(CalendarEventSummary {
-            event_key,
+            event_key: occurrence_key(&series_key, start_utc_ms),
+            series_key,
             title: title.to_string(),
             // A nil attendee list counts as zero, which §5.3 case 9 treats the
             // same as a solo block. Under-counting here suppresses a prompt;
@@ -434,6 +443,7 @@ mod tests {
     fn event(start_offset_ms: i64, duration_ms: i64) -> CalendarEventSummary {
         CalendarEventSummary {
             event_key: "event-1".to_string(),
+            series_key: "series-1".to_string(),
             title: "Quarterly planning".to_string(),
             attendee_count: 3,
             start_utc_ms: NOW + start_offset_ms,
@@ -443,6 +453,16 @@ mod tests {
             calendar_name: None,
             url: None,
         }
+    }
+
+    #[test]
+    fn recurring_occurrences_have_distinct_claim_keys_and_one_series_key() {
+        let first = occurrence_key("event-kit-series", NOW);
+        let second = occurrence_key("event-kit-series", NOW + 7 * 24 * 60 * 60_000);
+
+        assert_ne!(first, second);
+        assert!(first.starts_with("event-kit-series#"));
+        assert!(second.starts_with("event-kit-series#"));
     }
 
     #[test]

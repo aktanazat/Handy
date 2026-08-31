@@ -1,4 +1,4 @@
-use super::workflow_core_tests::{event, meeting, person, store, transcript};
+use super::workflow_core_tests::{event, inputs, meeting, person, store, transcript};
 use crate::meeting::detection::machine::{
     CalendarAttendee, CalendarEventSummary, ParticipationStatus,
 };
@@ -15,17 +15,20 @@ fn workflow_rerun_records_skips_without_reapplying_work() {
     let meeting_id = meeting(&store, "1:1 with Alice", 1);
     person(&store, "Alice Doe", &[], &[]);
     let dispatch = store
-        .record_and_run_workflow_event(event(
-            WorkflowEventKind::MeetingFinalized,
-            serde_json::json!({
-                "session_id": meeting_id.uuid().to_string(),
-                "known_vocabulary": []
-            }),
-            "finalized-1",
-        ))
+        .record_and_run_workflow_event(
+            event(
+                WorkflowEventKind::MeetingFinalized,
+                serde_json::json!({
+                    "session_id": meeting_id.uuid().to_string(),
+                    "known_vocabulary": []
+                }),
+                "finalized-1",
+            ),
+            &inputs(),
+        )
         .unwrap();
     assert!(dispatch.inserted);
-    assert_eq!(dispatch.receipts.len(), 3);
+    assert_eq!(dispatch.receipts.len(), 4);
     assert!(dispatch.receipts.iter().all(|receipt| {
         receipt.started_at_utc_ms > 0
             && receipt.finished_at_utc_ms >= receipt.started_at_utc_ms
@@ -36,8 +39,10 @@ fn workflow_rerun_records_skips_without_reapplying_work() {
                     | WorkflowOutcomeCode::Skipped
             )
     }));
-    let rerun = store.rerun_workflow_event(dispatch.event_id).unwrap();
-    assert_eq!(rerun.len(), 3);
+    let rerun = store
+        .rerun_workflow_event(dispatch.event_id, &inputs())
+        .unwrap();
+    assert_eq!(rerun.len(), 4);
     assert!(rerun
         .iter()
         .all(|receipt| receipt.status == WorkflowRunStatus::Skipped));
@@ -55,11 +60,14 @@ fn workflow_rerun_records_skips_without_reapplying_work() {
 fn malformed_event_is_contained_in_failed_receipts() {
     let (_directory, store) = store();
     let dispatch = store
-        .record_and_run_workflow_event(event(
-            WorkflowEventKind::MeetingFinalized,
-            serde_json::json!({}),
-            "malformed-1",
-        ))
+        .record_and_run_workflow_event(
+            event(
+                WorkflowEventKind::MeetingFinalized,
+                serde_json::json!({}),
+                "malformed-1",
+            ),
+            &inputs(),
+        )
         .unwrap();
     assert!(dispatch
         .receipts
@@ -80,14 +88,17 @@ fn vocabulary_requires_repetition_across_meetings_and_excludes_known_terms() {
     transcript(&store, first, "North Star shipped. North Star worked.");
     transcript(&store, second, "North Star returned.");
     store
-        .record_and_run_workflow_event(event(
-            WorkflowEventKind::MeetingFinalized,
-            serde_json::json!({
-                "session_id": second.uuid().to_string(),
-                "known_vocabulary": []
-            }),
-            "vocabulary-finalized",
-        ))
+        .record_and_run_workflow_event(
+            event(
+                WorkflowEventKind::MeetingFinalized,
+                serde_json::json!({
+                    "session_id": second.uuid().to_string(),
+                    "known_vocabulary": []
+                }),
+                "vocabulary-finalized",
+            ),
+            &inputs(),
+        )
         .unwrap();
     let candidates = store.vocabulary_candidates(&[]).unwrap();
     assert!(candidates.entries.iter().any(|candidate| {
@@ -119,11 +130,14 @@ fn document_workflow_links_exact_alias_mentions() {
         .document
         .unwrap();
     let dispatch = store
-        .record_and_run_workflow_event(event(
-            WorkflowEventKind::DocumentIngested,
-            serde_json::json!({"document_id": document.summary.id.uuid().to_string()}),
-            "doc-1",
-        ))
+        .record_and_run_workflow_event(
+            event(
+                WorkflowEventKind::DocumentIngested,
+                serde_json::json!({"document_id": document.summary.id.uuid().to_string()}),
+                "doc-1",
+            ),
+            &inputs(),
+        )
         .unwrap();
     assert_eq!(dispatch.receipts.len(), 1);
     assert_eq!(dispatch.receipts[0].status, WorkflowRunStatus::Ok);
@@ -142,14 +156,17 @@ fn finalization_does_not_confirm_default_speaker_labels_as_people() {
     transcript(&store, meeting_id, "A short transcript.");
 
     store
-        .record_and_run_workflow_event(event(
-            WorkflowEventKind::MeetingFinalized,
-            serde_json::json!({
-                "session_id": meeting_id.uuid().to_string(),
-                "known_vocabulary": []
-            }),
-            "default-speaker-finalized",
-        ))
+        .record_and_run_workflow_event(
+            event(
+                WorkflowEventKind::MeetingFinalized,
+                serde_json::json!({
+                    "session_id": meeting_id.uuid().to_string(),
+                    "known_vocabulary": []
+                }),
+                "default-speaker-finalized",
+            ),
+            &inputs(),
+        )
         .unwrap();
 
     assert!(store
@@ -168,14 +185,17 @@ fn speaker_rename_requires_a_unique_exact_identity_match() {
     person(&store, "Alex Kim", &[], &["alex.two@example.com"]);
 
     store
-        .record_and_run_workflow_event(event(
-            WorkflowEventKind::SpeakerRenamed,
-            serde_json::json!({
-                "session_id": meeting_id.uuid().to_string(),
-                "display_name": "Alex Kim"
-            }),
-            "ambiguous-speaker-rename",
-        ))
+        .record_and_run_workflow_event(
+            event(
+                WorkflowEventKind::SpeakerRenamed,
+                serde_json::json!({
+                    "session_id": meeting_id.uuid().to_string(),
+                    "display_name": "Alex Kim"
+                }),
+                "ambiguous-speaker-rename",
+            ),
+            &inputs(),
+        )
         .unwrap();
 
     let linked: i64 = store
@@ -220,10 +240,12 @@ fn duplicate_event_resumes_missing_terminal_receipts() {
         )
         .unwrap();
 
-    let dispatch = store.record_and_run_workflow_event(pending).unwrap();
+    let dispatch = store
+        .record_and_run_workflow_event(pending, &inputs())
+        .unwrap();
 
     assert!(!dispatch.inserted);
-    assert_eq!(dispatch.receipts.len(), 3);
+    assert_eq!(dispatch.receipts.len(), 4);
     assert!(dispatch
         .receipts
         .iter()
@@ -252,14 +274,17 @@ fn workflow_receipts_do_not_advance_settings_revision() {
     let before = store.workflows_list().unwrap().revision;
 
     store
-        .record_and_run_workflow_event(event(
-            WorkflowEventKind::MeetingFinalized,
-            serde_json::json!({
-                "session_id": meeting_id.uuid().to_string(),
-                "known_vocabulary": []
-            }),
-            "revision-split-finalized",
-        ))
+        .record_and_run_workflow_event(
+            event(
+                WorkflowEventKind::MeetingFinalized,
+                serde_json::json!({
+                    "session_id": meeting_id.uuid().to_string(),
+                    "known_vocabulary": []
+                }),
+                "revision-split-finalized",
+            ),
+            &inputs(),
+        )
         .unwrap();
 
     assert_eq!(store.workflows_list().unwrap().revision, before);
@@ -334,6 +359,7 @@ fn calendar_briefing_requires_its_successful_enabled_receipt() {
     let person_id = person(&store, "Alice Doe", &[], &["alice@example.com"]);
     let calendar = CalendarEventSummary {
         event_key: "briefing-event".to_string(),
+        series_key: "briefing-series".to_string(),
         title: "Planning".to_string(),
         attendee_count: 2,
         start_utc_ms: 100,
@@ -361,7 +387,9 @@ fn calendar_briefing_requires_its_successful_enabled_receipt() {
         .rows
         .is_empty());
 
-    store.run_workflow_event(dispatch.event_id, false).unwrap();
+    store
+        .run_workflow_event(dispatch.event_id, false, &inputs())
+        .unwrap();
     let rows = store.calendar_person_context(&calendar).unwrap().rows;
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0].person_id, person_id);

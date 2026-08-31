@@ -1,26 +1,24 @@
-//! Prompt delivery through `UNUserNotificationCenter`.
+//! Meeting-detection prompt delivery.
 //!
-//! Native notifications over a custom always-on-top window, deliberately: they
-//! respect Focus and Do Not Disturb, land in Notification Center when missed,
-//! carry inline action buttons without stealing focus, and can be silenced at
-//! the OS level. That last one is a feature — the reviewer complaint about
-//! Granola's custom pop-up is precisely that it nagged when the user wanted
-//! quiet, and an OS-level off switch is a defense against Sona doing the same.
+//! The consent panel is the first delivery tier. Native notifications are its
+//! fallback: they respect Focus and Do Not Disturb, remain in Notification
+//! Center when missed, and can be silenced at the OS level.
 //!
-//! Two hard constraints shape the code:
-//!
-//! * `UNUserNotificationCenter::currentNotificationCenter` raises an
-//!   Objective-C exception when the process is not a bundled application. That
-//!   is every `cargo test` binary and every `cargo run` of a bare executable, so
-//!   the bundle check below is load-bearing, not defensive padding.
-//! * The delegate that receives action clicks must outlive every notification.
-//!   It is created once and leaked into the center for the process lifetime;
-//!   there is no correct point at which to drop it while notifications may still
-//!   be in Notification Center history.
+//! `PanelSlot` owns which pending prompt may use the panel. Its transitions are
+//! pure and return commands; the runtime applies those commands in transition
+//! order while it holds the state lock once. Presenters never decide priority
+//! or construct detection events.
 
+use std::cmp::Reverse;
+use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::Arc;
 
+use tauri::AppHandle;
+
 use super::machine::PromptKind;
+use super::DetectionPromptDelivery;
 
 /// Action identifier for the affirmative button. Also the value reported back
 /// through `PromptResponse`.
@@ -52,19 +50,15 @@ pub trait PromptResponder: Send + Sync {
 
 /// A responder the delegate reads through, bound once the runtime exists.
 ///
-/// The notification delegate has to be registered before the runtime is built —
-/// registering it later would drop clicks on notifications already on screen —
-/// but the delegate's target is the runtime. This cell is the whole resolution:
-/// one write, at a named point, and a click that arrives before the bind is
-/// dropped rather than routed at a half-built object.
+/// The notification delegate has to be registered before the runtime is built,
+/// but the delegate's target is the runtime. A click that arrives before the
+/// one-time bind is logged and dropped.
 #[derive(Default)]
 pub struct ResponderCell {
     inner: std::sync::OnceLock<Arc<dyn PromptResponder>>,
 }
 
 impl ResponderCell {
-    /// Binds the real responder. Later calls are ignored: a second target for the
-    /// same notifications would be an ambiguity, not a feature.
     pub fn bind(&self, responder: Arc<dyn PromptResponder>) {
         let _ = self.inner.set(responder);
     }
@@ -89,26 +83,25 @@ pub enum NotificationAccess {
     NotDetermined,
     Authorized,
     Denied,
-    /// No notification center reachable — an unbundled build, or a non-macOS
+    /// No notification center reachable: an unbundled build, or a non-macOS
     /// target.
     Unavailable,
 }
 
-/// Prompt delivery, behind a trait so the runtime is exercisable without a
-/// notification center.
+pub type NotificationAccessFuture =
+    Pin<Box<dyn Future<Output = NotificationAccess> + Send + 'static>>;
+
+/// Native notification delivery. All methods return without waiting for an
+/// Objective-C completion handler.
 pub trait PromptPresenter: Send + Sync {
     fn access(&self) -> NotificationAccess;
-
-    /// Requests authorization if it has not been asked for yet.
-    fn request_access(&self) -> NotificationAccess;
-
-    /// Posts one prompt. `prompt_id` comes back verbatim in the response.
+    fn request_access(&self) -> NotificationAccessFuture;
     fn present(&self, prompt_id: &str, prompt: &PromptKind) -> bool;
+    fn withdraw(&self, prompt_id: &str);
 }
 
-/// Used when no notification center is reachable. Detection still runs: the
-/// in-app pre-meeting card and the meetings list remain, so the feature
-/// degrades to visible-in-app rather than disappearing.
+/// Used when no notification center is reachable. Detection still runs and
+/// falls back to the in-app card and toast.
 pub struct NoPrompts;
 
 impl PromptPresenter for NoPrompts {
@@ -116,12 +109,287 @@ impl PromptPresenter for NoPrompts {
         NotificationAccess::Unavailable
     }
 
-    fn request_access(&self) -> NotificationAccess {
-        NotificationAccess::Unavailable
+    fn request_access(&self) -> NotificationAccessFuture {
+        Box::pin(async { NotificationAccess::Unavailable })
     }
 
     fn present(&self, _prompt_id: &str, _prompt: &PromptKind) -> bool {
         false
+    }
+
+    fn withdraw(&self, _prompt_id: &str) {}
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) enum PanelCommand<T> {
+    ShowPanel,
+    HidePanel,
+    WithdrawPrompt { prompt_id: String },
+    PresentPanel { prompt_id: String, prompt: T },
+    PresentFallback { prompt_id: String, prompt: T },
+    Acknowledged { prompt_id: String, prompt: T },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) struct PanelFinish<T> {
+    pub removed: Option<T>,
+    pub commands: Vec<PanelCommand<T>>,
+}
+
+#[derive(Clone, Debug)]
+struct PanelEntry<T> {
+    prompt: T,
+    priority: u8,
+    sequence: u64,
+    panel_eligible: bool,
+}
+
+#[derive(Clone, Debug)]
+struct PanelOwner {
+    prompt_id: String,
+    acknowledged: bool,
+}
+
+/// The pending prompt set and its single panel owner.
+///
+/// A prompt remains pending after fallback so an answer from a native
+/// notification can still resolve it. `owner` names only the prompt currently
+/// awaiting or holding the panel.
+#[derive(Clone, Debug)]
+pub(super) struct PanelSlot<T> {
+    pending: HashMap<String, PanelEntry<T>>,
+    owner: Option<PanelOwner>,
+    next_sequence: u64,
+}
+
+impl<T> Default for PanelSlot<T> {
+    fn default() -> Self {
+        Self {
+            pending: HashMap::new(),
+            owner: None,
+            next_sequence: 0,
+        }
+    }
+}
+
+impl<T: Clone> PanelSlot<T> {
+    pub fn raise(
+        &mut self,
+        prompt_id: String,
+        prompt: T,
+        priority: u8,
+        panel_available: bool,
+    ) -> Vec<PanelCommand<T>> {
+        let sequence = self.next_sequence;
+        self.next_sequence += 1;
+        self.pending.insert(
+            prompt_id.clone(),
+            PanelEntry {
+                prompt: prompt.clone(),
+                priority,
+                sequence,
+                panel_eligible: panel_available,
+            },
+        );
+
+        if !panel_available {
+            return vec![PanelCommand::PresentFallback { prompt_id, prompt }];
+        }
+
+        let Some(owner) = self.owner.as_ref() else {
+            return self.promote_next().into_iter().collect();
+        };
+        let owner_id = owner.prompt_id.clone();
+        let Some(owner_priority) = self.pending.get(&owner_id).map(|entry| entry.priority) else {
+            self.owner = None;
+            return self.promote_next().into_iter().collect();
+        };
+        if priority <= owner_priority {
+            return Vec::new();
+        }
+
+        let displaced = self.mark_for_fallback(&owner_id);
+        self.owner = None;
+        let mut commands = displaced.into_iter().collect::<Vec<_>>();
+        if let Some(promote) = self.promote_next() {
+            commands.push(promote);
+        }
+        commands
+    }
+
+    pub fn acknowledge(&mut self, prompt_id: &str) -> Vec<PanelCommand<T>> {
+        let Some(owner) = self.owner.as_mut() else {
+            return Vec::new();
+        };
+        if owner.prompt_id != prompt_id || owner.acknowledged {
+            return Vec::new();
+        }
+        let Some(entry) = self.pending.get(prompt_id) else {
+            return Vec::new();
+        };
+        owner.acknowledged = true;
+        vec![PanelCommand::Acknowledged {
+            prompt_id: prompt_id.to_string(),
+            prompt: entry.prompt.clone(),
+        }]
+    }
+
+    pub fn fallback_if_unacknowledged(&mut self, prompt_id: &str) -> Vec<PanelCommand<T>> {
+        let should_fallback = self
+            .owner
+            .as_ref()
+            .is_some_and(|owner| owner.prompt_id == prompt_id && !owner.acknowledged);
+        if !should_fallback {
+            return Vec::new();
+        }
+        self.owner = None;
+        let mut commands = vec![PanelCommand::HidePanel];
+        if let Some(fallback) = self.mark_for_fallback(prompt_id) {
+            commands.push(fallback);
+        }
+        if let Some(promote) = self.promote_next() {
+            commands.push(promote);
+        }
+        commands
+    }
+
+    pub fn begin_capture(&mut self) -> Vec<PanelCommand<T>> {
+        self.owner = None;
+        let mut pending = self
+            .pending
+            .iter()
+            .filter(|(_, entry)| entry.panel_eligible)
+            .map(|(prompt_id, entry)| (entry.sequence, prompt_id.clone()))
+            .collect::<Vec<_>>();
+        pending.sort_by_key(|(sequence, _)| *sequence);
+        let mut commands = pending
+            .into_iter()
+            .filter_map(|(_, prompt_id)| self.mark_for_fallback(&prompt_id))
+            .collect::<Vec<_>>();
+        commands.push(PanelCommand::ShowPanel);
+        commands
+    }
+
+    pub fn end_capture(&mut self) -> Vec<PanelCommand<T>> {
+        vec![PanelCommand::HidePanel]
+    }
+
+    pub fn finish(&mut self, prompt_id: &str) -> PanelFinish<T> {
+        let Some(entry) = self.pending.remove(prompt_id) else {
+            return PanelFinish {
+                removed: None,
+                commands: Vec::new(),
+            };
+        };
+        let was_owner = self
+            .owner
+            .as_ref()
+            .is_some_and(|owner| owner.prompt_id == prompt_id);
+        let mut commands = vec![PanelCommand::WithdrawPrompt {
+            prompt_id: prompt_id.to_string(),
+        }];
+        if !was_owner {
+            return PanelFinish {
+                removed: Some(entry.prompt),
+                commands,
+            };
+        }
+
+        self.owner = None;
+        commands.push(PanelCommand::HidePanel);
+        if let Some(promote) = self.promote_next() {
+            commands.push(promote);
+        }
+        PanelFinish {
+            removed: Some(entry.prompt),
+            commands,
+        }
+    }
+
+    fn mark_for_fallback(&mut self, prompt_id: &str) -> Option<PanelCommand<T>> {
+        let entry = self.pending.get_mut(prompt_id)?;
+        entry.panel_eligible = false;
+        Some(PanelCommand::PresentFallback {
+            prompt_id: prompt_id.to_string(),
+            prompt: entry.prompt.clone(),
+        })
+    }
+
+    fn promote_next(&mut self) -> Option<PanelCommand<T>> {
+        let (prompt_id, prompt) = self
+            .pending
+            .iter()
+            .filter(|(_, entry)| entry.panel_eligible)
+            .max_by_key(|(_, entry)| (entry.priority, Reverse(entry.sequence)))
+            .map(|(prompt_id, entry)| (prompt_id.clone(), entry.prompt.clone()))?;
+        self.owner = Some(PanelOwner {
+            prompt_id: prompt_id.clone(),
+            acknowledged: false,
+        });
+        Some(PanelCommand::PresentPanel { prompt_id, prompt })
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&str, &T)> {
+        self.pending
+            .iter()
+            .map(|(prompt_id, entry)| (prompt_id.as_str(), &entry.prompt))
+    }
+
+    #[cfg(test)]
+    fn owner_id(&self) -> Option<&str> {
+        self.owner.as_ref().map(|owner| owner.prompt_id.as_str())
+    }
+}
+
+/// The runtime-facing presenter seam. It keeps Tauri windows and
+/// `UNUserNotificationCenter` out of the pure slot tests.
+pub trait ConsentPromptSurface: Send + Sync {
+    fn access(&self) -> NotificationAccess;
+    fn request_access(&self) -> NotificationAccessFuture;
+    fn show_panel(&self) -> bool;
+    fn hide_panel(&self);
+    fn present_fallback(&self, prompt_id: &str, prompt: &PromptKind) -> DetectionPromptDelivery;
+    fn withdraw(&self, prompt_id: &str);
+}
+
+pub struct ConsentPromptPresenter {
+    app: AppHandle,
+    native: Arc<dyn PromptPresenter>,
+}
+
+impl ConsentPromptPresenter {
+    pub fn new(app: AppHandle, native: Arc<dyn PromptPresenter>) -> Self {
+        Self { app, native }
+    }
+}
+
+impl ConsentPromptSurface for ConsentPromptPresenter {
+    fn access(&self) -> NotificationAccess {
+        self.native.access()
+    }
+
+    fn request_access(&self) -> NotificationAccessFuture {
+        self.native.request_access()
+    }
+
+    fn show_panel(&self) -> bool {
+        crate::meeting::consent_panel::show(&self.app)
+    }
+
+    fn hide_panel(&self) {
+        crate::meeting::consent_panel::hide(&self.app);
+    }
+
+    fn present_fallback(&self, prompt_id: &str, prompt: &PromptKind) -> DetectionPromptDelivery {
+        if self.native.present(prompt_id, prompt) {
+            DetectionPromptDelivery::Notification
+        } else {
+            DetectionPromptDelivery::InAppOnly
+        }
+    }
+
+    fn withdraw(&self, prompt_id: &str) {
+        self.native.withdraw(prompt_id);
     }
 }
 
@@ -131,8 +399,9 @@ pub use macos::UserNotificationPrompts;
 #[cfg(target_os = "macos")]
 mod macos {
     use super::{
-        NotificationAccess, PromptKind, PromptPresenter, PromptResponder, PromptResponse,
-        ACTION_DISMISS, ACTION_START, CATEGORY_DETECTION, DISMISS_TITLE, START_TITLE,
+        NotificationAccess, NotificationAccessFuture, PromptKind, PromptPresenter, PromptResponder,
+        PromptResponse, ACTION_DISMISS, ACTION_START, CATEGORY_DETECTION, DISMISS_TITLE,
+        START_TITLE,
     };
     use block2::RcBlock;
     use objc2::rc::Retained;
@@ -147,11 +416,30 @@ mod macos {
         UNNotificationCategoryOptions, UNNotificationRequest, UNNotificationResponse,
         UNUserNotificationCenter, UNUserNotificationCenterDelegate,
     };
-    use std::sync::mpsc;
-    use std::sync::{Arc, OnceLock};
+    use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+    use std::sync::{Arc, Mutex, OnceLock};
     use std::time::Duration;
 
     const AUTHORIZATION_TIMEOUT: Duration = Duration::from_secs(120);
+    const ACCESS_NOT_DETERMINED: u8 = 0;
+    const ACCESS_AUTHORIZED: u8 = 1;
+    const ACCESS_DENIED: u8 = 2;
+
+    fn access_code(status: UNAuthorizationStatus) -> u8 {
+        match status {
+            UNAuthorizationStatus::NotDetermined => ACCESS_NOT_DETERMINED,
+            UNAuthorizationStatus::Denied => ACCESS_DENIED,
+            _ => ACCESS_AUTHORIZED,
+        }
+    }
+
+    fn cached_access(code: u8) -> NotificationAccess {
+        match code {
+            ACCESS_AUTHORIZED => NotificationAccess::Authorized,
+            ACCESS_DENIED => NotificationAccess::Denied,
+            _ => NotificationAccess::NotDetermined,
+        }
+    }
 
     /// True only for a real `.app` bundle. `currentNotificationCenter` throws
     /// otherwise, and an Objective-C exception crossing back into Rust is
@@ -251,6 +539,8 @@ mod macos {
     pub struct UserNotificationPrompts {
         responder: Arc<dyn PromptResponder>,
         center: OnceLock<CenterBinding>,
+        cached_access: Arc<AtomicU8>,
+        access_query_in_flight: Arc<AtomicBool>,
     }
 
     /// The center together with the delegate that must outlive every
@@ -282,19 +572,13 @@ mod macos {
             Some(Self {
                 responder,
                 center: OnceLock::new(),
+                cached_access: Arc::new(AtomicU8::new(ACCESS_NOT_DETERMINED)),
+                access_query_in_flight: Arc::new(AtomicBool::new(false)),
             })
         }
 
         /// Creates the center, binds the delegate, and registers the two actions
-        /// — once, on whichever call needs it first.
-        ///
-        /// The delegate is still bound before any notification this process
-        /// posts, because posting goes through `present`, which comes through
-        /// here first. What is no longer true is that it is bound before
-        /// notifications from a *previous* run that are still in Notification
-        /// Center: clicking one of those launches the app, and the click is
-        /// delivered once a delegate exists. That is a one-tick window at worst
-        /// and it is the trade for not touching AppKit during launch.
+        /// once, on whichever call needs it first.
         fn center(&self) -> &UNUserNotificationCenter {
             &self
                 .center
@@ -310,6 +594,30 @@ mod macos {
                     }
                 })
                 .center
+        }
+
+        fn refresh_access(&self) {
+            if self
+                .access_query_in_flight
+                .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+                .is_err()
+            {
+                return;
+            }
+            let cached_access = Arc::clone(&self.cached_access);
+            let query_in_flight = Arc::clone(&self.access_query_in_flight);
+            let completion = RcBlock::new(
+                move |settings: core::ptr::NonNull<
+                    objc2_user_notifications::UNNotificationSettings,
+                >| {
+                    // SAFETY: the system hands a live settings object to this block.
+                    let status = unsafe { settings.as_ref().authorizationStatus() };
+                    cached_access.store(access_code(status), Ordering::Release);
+                    query_in_flight.store(false, Ordering::Release);
+                },
+            );
+            self.center()
+                .getNotificationSettingsWithCompletionHandler(&completion);
         }
     }
 
@@ -343,63 +651,77 @@ mod macos {
 
     impl PromptPresenter for UserNotificationPrompts {
         fn access(&self) -> NotificationAccess {
-            let (sender, receiver) = mpsc::channel::<UNAuthorizationStatus>();
-            let completion = RcBlock::new(
-                move |settings: core::ptr::NonNull<
-                    objc2_user_notifications::UNNotificationSettings,
-                >| {
-                    // SAFETY: the system hands a live settings object to this block.
-                    let status = unsafe { settings.as_ref().authorizationStatus() };
-                    let _ = sender.send(status);
-                },
-            );
-            self.center()
-                .getNotificationSettingsWithCompletionHandler(&completion);
-            match receiver.recv_timeout(Duration::from_secs(5)) {
-                Ok(UNAuthorizationStatus::NotDetermined) => NotificationAccess::NotDetermined,
-                Ok(UNAuthorizationStatus::Denied) => NotificationAccess::Denied,
-                Ok(_) => NotificationAccess::Authorized,
-                Err(_) => NotificationAccess::Unavailable,
-            }
+            self.refresh_access();
+            cached_access(self.cached_access.load(Ordering::Acquire))
         }
 
-        fn request_access(&self) -> NotificationAccess {
-            let (sender, receiver) = mpsc::channel::<bool>();
+        fn request_access(&self) -> NotificationAccessFuture {
+            let (sender, receiver) = tokio::sync::oneshot::channel();
+            let sender = Arc::new(Mutex::new(Some(sender)));
+            let cached_access = Arc::clone(&self.cached_access);
             let completion = RcBlock::new(move |granted: Bool, _error: *mut NSError| {
-                let _ = sender.send(granted.as_bool());
+                let access = if granted.as_bool() {
+                    NotificationAccess::Authorized
+                } else {
+                    NotificationAccess::Denied
+                };
+                cached_access.store(
+                    if granted.as_bool() {
+                        ACCESS_AUTHORIZED
+                    } else {
+                        ACCESS_DENIED
+                    },
+                    Ordering::Release,
+                );
+                let sender = sender
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner())
+                    .take();
+                if let Some(sender) = sender {
+                    let _ = sender.send(access);
+                }
             });
             self.center()
                 .requestAuthorizationWithOptions_completionHandler(
                     UNAuthorizationOptions::Alert | UNAuthorizationOptions::Sound,
                     &completion,
                 );
-            match receiver.recv_timeout(AUTHORIZATION_TIMEOUT) {
-                Ok(true) => NotificationAccess::Authorized,
-                Ok(false) => NotificationAccess::Denied,
-                Err(_) => NotificationAccess::NotDetermined,
-            }
+            Box::pin(async move {
+                match tokio::time::timeout(AUTHORIZATION_TIMEOUT, receiver).await {
+                    Ok(Ok(access)) => access,
+                    Ok(Err(_)) | Err(_) => NotificationAccess::NotDetermined,
+                }
+            })
         }
 
         fn present(&self, prompt_id: &str, prompt: &PromptKind) -> bool {
+            if self.access() != NotificationAccess::Authorized {
+                return false;
+            }
             objc2::rc::autoreleasepool(|_| {
                 let content = UNMutableNotificationContent::new();
                 content.setTitle(&NSString::from_str(&prompt.notification_title()));
                 content.setBody(&NSString::from_str(PROMPT_BODY));
                 content.setCategoryIdentifier(&NSString::from_str(CATEGORY_DETECTION));
-                // No trigger: deliver immediately. The ad-hoc path must fire on
-                // the microphone transition itself, not on a schedule.
                 let request = UNNotificationRequest::requestWithIdentifier_content_trigger(
                     &NSString::from_str(prompt_id),
                     &content,
                     None,
                 );
-                // A delivery failure surfaces in the status event as a prompt with
-                // `notified` false, not as a silent success, so no completion
-                // handler is needed here.
                 self.center()
                     .addNotificationRequest_withCompletionHandler(&request, None);
                 true
             })
+        }
+
+        fn withdraw(&self, prompt_id: &str) {
+            objc2::rc::autoreleasepool(|_| {
+                let identifiers = NSArray::from_retained_slice(&[NSString::from_str(prompt_id)]);
+                self.center()
+                    .removePendingNotificationRequestsWithIdentifiers(&identifiers);
+                self.center()
+                    .removeDeliveredNotificationsWithIdentifiers(&identifiers);
+            });
         }
     }
 
@@ -421,5 +743,194 @@ mod tests {
     fn an_absent_presenter_reports_unavailable_and_posts_nothing() {
         assert_eq!(NoPrompts.access(), NotificationAccess::Unavailable);
         assert!(!NoPrompts.present("prompt-1", &PromptKind::UnknownMicSource));
+    }
+
+    #[test]
+    fn lower_priority_prompt_waits_without_displacing_panel_owner() {
+        let mut slot = PanelSlot::default();
+        slot.raise("calendar".to_string(), "calendar", 3, true);
+
+        let commands = slot.raise("browser".to_string(), "browser", 1, true);
+
+        assert!(commands.is_empty());
+        assert_eq!(slot.owner_id(), Some("calendar"));
+    }
+
+    #[test]
+    fn higher_priority_prompt_displaces_the_owner_to_fallback() {
+        let mut slot = PanelSlot::default();
+        slot.raise("browser".to_string(), "browser", 1, true);
+
+        let commands = slot.raise("calendar".to_string(), "calendar", 3, true);
+
+        assert_eq!(
+            commands,
+            vec![
+                PanelCommand::PresentFallback {
+                    prompt_id: "browser".to_string(),
+                    prompt: "browser",
+                },
+                PanelCommand::PresentPanel {
+                    prompt_id: "calendar".to_string(),
+                    prompt: "calendar",
+                },
+            ]
+        );
+        assert_eq!(slot.owner_id(), Some("calendar"));
+    }
+
+    #[test]
+    fn displaced_prompt_is_not_promoted_after_fallback() {
+        let mut slot = PanelSlot::default();
+        slot.raise("browser".to_string(), "browser", 1, true);
+        slot.raise("calendar".to_string(), "calendar", 3, true);
+
+        let finish = slot.finish("calendar");
+
+        assert_eq!(
+            finish.commands,
+            vec![
+                PanelCommand::WithdrawPrompt {
+                    prompt_id: "calendar".to_string(),
+                },
+                PanelCommand::HidePanel,
+            ]
+        );
+        assert_eq!(slot.owner_id(), None);
+    }
+
+    #[test]
+    fn finishing_the_owner_promotes_the_highest_priority_waiter() {
+        let mut slot = PanelSlot::default();
+        slot.raise("calendar".to_string(), "calendar", 3, true);
+        slot.raise("browser".to_string(), "browser", 1, true);
+        slot.raise("app".to_string(), "app", 2, true);
+
+        let finish = slot.finish("calendar");
+
+        assert_eq!(finish.removed, Some("calendar"));
+        assert_eq!(
+            finish.commands,
+            vec![
+                PanelCommand::WithdrawPrompt {
+                    prompt_id: "calendar".to_string(),
+                },
+                PanelCommand::HidePanel,
+                PanelCommand::PresentPanel {
+                    prompt_id: "app".to_string(),
+                    prompt: "app",
+                },
+            ]
+        );
+        assert_eq!(slot.owner_id(), Some("app"));
+    }
+
+    #[test]
+    fn retracting_a_queued_prompt_leaves_the_owner_unchanged() {
+        let mut slot = PanelSlot::default();
+        slot.raise("calendar".to_string(), "calendar", 3, true);
+        slot.raise("browser".to_string(), "browser", 1, true);
+
+        let finish = slot.finish("browser");
+
+        assert_eq!(finish.removed, Some("browser"));
+        assert_eq!(
+            finish.commands,
+            vec![PanelCommand::WithdrawPrompt {
+                prompt_id: "browser".to_string(),
+            }]
+        );
+        assert_eq!(slot.owner_id(), Some("calendar"));
+    }
+
+    #[test]
+    fn finishing_the_last_owner_drains_and_hides_the_panel() {
+        let mut slot = PanelSlot::default();
+        slot.raise("calendar".to_string(), "calendar", 3, true);
+
+        let finish = slot.finish("calendar");
+
+        assert_eq!(finish.removed, Some("calendar"));
+        assert_eq!(
+            finish.commands,
+            vec![
+                PanelCommand::WithdrawPrompt {
+                    prompt_id: "calendar".to_string(),
+                },
+                PanelCommand::HidePanel,
+            ]
+        );
+        assert_eq!(slot.owner_id(), None);
+    }
+
+    #[test]
+    fn missing_ack_falls_back_and_promotes_without_blocking_a_thread() {
+        let mut slot = PanelSlot::default();
+        slot.raise("calendar".to_string(), "calendar", 3, true);
+        slot.raise("browser".to_string(), "browser", 1, true);
+
+        let commands = slot.fallback_if_unacknowledged("calendar");
+
+        assert_eq!(
+            commands,
+            vec![
+                PanelCommand::HidePanel,
+                PanelCommand::PresentFallback {
+                    prompt_id: "calendar".to_string(),
+                    prompt: "calendar",
+                },
+                PanelCommand::PresentPanel {
+                    prompt_id: "browser".to_string(),
+                    prompt: "browser",
+                },
+            ]
+        );
+        assert_eq!(slot.owner_id(), Some("browser"));
+    }
+
+    #[test]
+    fn acknowledgement_cancels_the_fallback_transition() {
+        let mut slot = PanelSlot::default();
+        slot.raise("calendar".to_string(), "calendar", 3, true);
+
+        assert_eq!(
+            slot.acknowledge("calendar"),
+            vec![PanelCommand::Acknowledged {
+                prompt_id: "calendar".to_string(),
+                prompt: "calendar",
+            }]
+        );
+        assert!(slot.fallback_if_unacknowledged("calendar").is_empty());
+    }
+
+    #[test]
+    fn capture_displaces_acknowledged_and_queued_prompts_to_fallback() {
+        let mut slot = PanelSlot::default();
+        slot.raise("calendar".to_string(), "calendar", 3, true);
+        slot.acknowledge("calendar");
+        slot.raise("browser".to_string(), "browser", 1, true);
+
+        assert_eq!(
+            slot.begin_capture(),
+            vec![
+                PanelCommand::PresentFallback {
+                    prompt_id: "calendar".to_string(),
+                    prompt: "calendar",
+                },
+                PanelCommand::PresentFallback {
+                    prompt_id: "browser".to_string(),
+                    prompt: "browser",
+                },
+                PanelCommand::ShowPanel,
+            ]
+        );
+        assert_eq!(slot.owner_id(), None);
+    }
+
+    #[test]
+    fn ending_a_tracked_capture_hides_the_panel() {
+        let mut slot = PanelSlot::<&str>::default();
+
+        assert_eq!(slot.end_capture(), vec![PanelCommand::HidePanel]);
     }
 }

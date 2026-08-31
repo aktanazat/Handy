@@ -183,6 +183,29 @@ pub struct MeetingStartRequest {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, Type)]
+pub struct MeetingConsentPanelStartRequest {
+    pub prompt_id: String,
+    pub operation_id: MeetingOperationId,
+    pub consent: MeetingConsentInput,
+    pub always_record_series: bool,
+}
+
+#[derive(Clone, Debug)]
+pub struct MeetingDetectionStartContext {
+    pub prompt_id: String,
+    pub title: String,
+    pub trigger_bundle_id: Option<String>,
+    pub event_end_utc_ms: Option<i64>,
+    pub calendar_event: Option<CalendarEventSummary>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, Type)]
+pub struct MeetingConsentPanelSessionState {
+    pub snapshot: MeetingSessionSnapshot,
+    pub standing_series_key: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, Type)]
 pub struct MeetingMutationRequest {
     pub operation_id: MeetingOperationId,
     pub session_id: MeetingSessionId,
@@ -718,9 +741,251 @@ impl MeetingSessionManager {
         Ok(receipt)
     }
 
+    pub async fn start_from_consent_panel(
+        &self,
+        context: &MeetingDetectionStartContext,
+        request: MeetingConsentPanelStartRequest,
+    ) -> Result<MeetingMutationResult, MeetingCommandError> {
+        request_system_audio_permission_once();
+        let preflight = self
+            .create_detection_preflight(context, request.operation_id, &request.consent)
+            .await?;
+        if request.always_record_series && context.calendar_event.is_none() {
+            self.show_consent_gate(&preflight.snapshot);
+            return Err(MeetingCommandError::InvalidRequest);
+        }
+        let start = self
+            .start(MeetingStartRequest {
+                operation_id: MeetingOperationId::new(),
+                session_id: preflight.snapshot.session_id,
+                expected_revision: preflight.snapshot.revision,
+                consent: request.consent,
+            })
+            .await;
+        self.finish_detection_start(&preflight.snapshot, start)
+    }
+
+    pub(crate) async fn live_series_consent(
+        &self,
+        series_key: &str,
+    ) -> Result<Option<super::store::StandingSeriesConsent>, MeetingCommandError> {
+        self.store()
+            .await?
+            .live_series_consent(series_key)
+            .map_err(map_store_error)
+    }
+
+    pub(crate) async fn grant_panel_series_consent(
+        &self,
+        context: &MeetingDetectionStartContext,
+        consent: &MeetingConsentInput,
+    ) -> Result<(), MeetingCommandError> {
+        let event = context
+            .calendar_event
+            .as_ref()
+            .ok_or(MeetingCommandError::InvalidRequest)?;
+        let acknowledged_sources = acknowledged_sources(consent);
+        self.store()
+            .await?
+            .grant_series_consent(
+                &event.series_key,
+                consent.policy_version,
+                &acknowledged_sources,
+                utc_now_ms(),
+            )
+            .map(|_| ())
+            .map_err(map_store_error)
+    }
+
+    pub(crate) async fn start_from_standing_series(
+        &self,
+        context: &MeetingDetectionStartContext,
+        standing: super::store::StandingSeriesConsent,
+    ) -> Result<MeetingMutationResult, MeetingCommandError> {
+        let consent = MeetingConsentInput {
+            policy_version: standing.policy_version,
+            microphone_acknowledged: standing
+                .acknowledged_sources
+                .contains(&SourceKind::Microphone),
+            system_audio_acknowledged: standing
+                .acknowledged_sources
+                .contains(&SourceKind::SystemAudio),
+            known_missing_sources_acknowledged: Vec::new(),
+            degraded_start_policy: DegradedStartPolicy::AbortIfRequiredSourceFails,
+            destination: ProcessingDestination::Local,
+            remote_acknowledgement: None,
+        };
+        let preflight = self
+            .create_detection_preflight(context, MeetingOperationId::new(), &consent)
+            .await?;
+        let provenance = MeetingConsentProvenance::StandingSeries {
+            series_key: standing.series_key,
+            granted_at_utc_ms: standing.granted_at_utc_ms,
+        };
+        let start = self
+            .start_with_provenance(
+                MeetingStartRequest {
+                    operation_id: MeetingOperationId::new(),
+                    session_id: preflight.snapshot.session_id,
+                    expected_revision: preflight.snapshot.revision,
+                    consent,
+                },
+                provenance,
+            )
+            .await;
+        self.finish_detection_start(&preflight.snapshot, start)
+    }
+
+    fn finish_detection_start(
+        &self,
+        preflight: &MeetingSessionSnapshot,
+        start: Result<MeetingMutationResult, MeetingCommandError>,
+    ) -> Result<MeetingMutationResult, MeetingCommandError> {
+        match start {
+            Ok(result) if result.snapshot.phase == MeetingPhase::CapturingRecording => Ok(result),
+            Ok(result) => {
+                self.show_consent_gate(&result.snapshot);
+                Ok(result)
+            }
+            Err(error) => {
+                self.show_consent_gate(preflight);
+                Err(error)
+            }
+        }
+    }
+
+    async fn create_detection_preflight(
+        &self,
+        context: &MeetingDetectionStartContext,
+        operation_id: MeetingOperationId,
+        consent: &MeetingConsentInput,
+    ) -> Result<MeetingMutationResult, MeetingCommandError> {
+        let calendar_event_key = context
+            .calendar_event
+            .as_ref()
+            .map(|event| event.event_key.clone());
+        let result = self
+            .create_preflight_with_calendar(
+                MeetingPreflightCreateRequest {
+                    operation_id,
+                    expected_revision: 0,
+                    title: context.title.clone(),
+                    origin: MeetingOrigin::Suggestion,
+                    suggestion_id: None,
+                    calendar_event_key,
+                    requested_sources: SourceKind::ALL.to_vec(),
+                    required_sources: SourceKind::ALL.to_vec(),
+                    accepted_known_missing_sources: consent
+                        .known_missing_sources_acknowledged
+                        .clone(),
+                    degraded_start_policy: consent.degraded_start_policy,
+                    destination: consent.destination.clone(),
+                    remote_acknowledgement: consent.remote_acknowledgement.clone(),
+                    microphone_device_uid: None,
+                    frozen_system_audio_application_bundle_ids: context
+                        .trigger_bundle_id
+                        .iter()
+                        .cloned()
+                        .collect(),
+                },
+                context.calendar_event.clone(),
+            )
+            .await;
+        if result.is_err() {
+            if let Some(app) = self.app.as_ref() {
+                crate::show_meeting_destination(app, MeetingNavigationDestination::Preflight, None);
+            }
+        }
+        result
+    }
+
+    fn show_consent_gate(&self, snapshot: &MeetingSessionSnapshot) {
+        if let Some(app) = self.app.as_ref() {
+            crate::show_meeting_destination(
+                app,
+                MeetingNavigationDestination::Preflight,
+                Some(snapshot),
+            );
+        }
+    }
+
+    pub async fn consent_panel_introduction_needed(&self) -> bool {
+        self.store()
+            .await
+            .and_then(|store| {
+                store
+                    .consent_panel_introduction_needed()
+                    .map_err(map_store_error)
+            })
+            .unwrap_or(false)
+    }
+
+    pub async fn mark_consent_panel_introduction_shown(&self) {
+        if let Ok(store) = self.store().await {
+            if let Err(error) = store.mark_consent_panel_introduction_shown(utc_now_ms()) {
+                log::warn!("Meeting consent introduction state could not be saved: {error:?}");
+            }
+        }
+    }
+
+    pub async fn consent_panel_active_state(
+        &self,
+    ) -> Result<Option<MeetingConsentPanelSessionState>, MeetingCommandError> {
+        let Some(snapshot) = self.tray_snapshot().await? else {
+            return Ok(None);
+        };
+        if !matches!(
+            snapshot.phase,
+            MeetingPhase::CapturingRecording
+                | MeetingPhase::CapturingPausing
+                | MeetingPhase::CapturingPaused
+                | MeetingPhase::CapturingResuming
+        ) {
+            return Ok(None);
+        }
+        let store = self.store().await?;
+        let standing_series_key = store
+            .latest_consent_for_session(snapshot.session_id)
+            .map_err(map_store_error)?
+            .and_then(|consent| match consent.provenance {
+                MeetingConsentProvenance::StandingSeries { series_key, .. } => Some(series_key),
+                MeetingConsentProvenance::Direct => None,
+            });
+        Ok(Some(MeetingConsentPanelSessionState {
+            snapshot,
+            standing_series_key,
+        }))
+    }
+
+    pub async fn forget_active_series(
+        &self,
+        session_id: MeetingSessionId,
+    ) -> Result<bool, MeetingCommandError> {
+        let store = self.store().await?;
+        let consent = store
+            .latest_consent_for_session(session_id)
+            .map_err(map_store_error)?
+            .ok_or(MeetingCommandError::NotFound)?;
+        let MeetingConsentProvenance::StandingSeries { series_key, .. } = consent.provenance else {
+            return Err(MeetingCommandError::InvalidRequest);
+        };
+        store
+            .revoke_series_consent(&series_key, utc_now_ms())
+            .map_err(map_store_error)
+    }
+
     pub async fn start(
         &self,
         request: MeetingStartRequest,
+    ) -> Result<MeetingMutationResult, MeetingCommandError> {
+        self.start_with_provenance(request, MeetingConsentProvenance::Direct)
+            .await
+    }
+
+    async fn start_with_provenance(
+        &self,
+        request: MeetingStartRequest,
+        provenance: MeetingConsentProvenance,
     ) -> Result<MeetingMutationResult, MeetingCommandError> {
         let store = self.store().await?;
         if let Some(receipt) = store
@@ -755,6 +1020,7 @@ impl MeetingSessionManager {
             preflight_revision: request.expected_revision,
             policy_version: request.consent.policy_version,
             acknowledged_at_utc_ms: utc_now_ms(),
+            provenance,
             microphone_acknowledged: request.consent.microphone_acknowledged,
             system_audio_acknowledged: request.consent.system_audio_acknowledged,
             known_missing_sources_acknowledged: request
@@ -2385,6 +2651,35 @@ fn validate_destination(
     }
 }
 
+fn acknowledged_sources(consent: &MeetingConsentInput) -> Vec<SourceKind> {
+    let mut sources = Vec::with_capacity(SourceKind::ALL.len());
+    if consent.microphone_acknowledged {
+        sources.push(SourceKind::Microphone);
+    }
+    if consent.system_audio_acknowledged {
+        sources.push(SourceKind::SystemAudio);
+    }
+    sources
+}
+
+#[cfg(all(target_os = "macos", not(test)))]
+fn request_system_audio_permission_once() {
+    static REQUESTED: AtomicBool = AtomicBool::new(false);
+    if REQUESTED
+        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+        .is_ok()
+    {
+        // Screen Recording is the system-audio capture grant on macOS. The
+        // result is deliberately not treated as authorization: the preflight
+        // probe below remains the source of truth and opens the existing gate
+        // when the operator declines.
+        let _ = objc2_core_graphics::CGRequestScreenCaptureAccess();
+    }
+}
+
+#[cfg(any(not(target_os = "macos"), test))]
+fn request_system_audio_permission_once() {}
+
 fn validate_consent(
     preflight: &MeetingPreflightSnapshot,
     consent: &MeetingConsentInput,
@@ -2435,6 +2730,7 @@ fn map_secret_error(error: SecretResolveError) -> MeetingCommandError {
 fn map_store_error(error: StoreError) -> MeetingCommandError {
     match error {
         StoreError::NotFound => MeetingCommandError::NotFound,
+        StoreError::ConsentStale => MeetingCommandError::ConsentStale,
         StoreError::Conflict => MeetingCommandError::InvalidTransition,
         StoreError::Invalid => MeetingCommandError::InvalidRequest,
         StoreError::EncryptionUnavailable
@@ -2979,6 +3275,67 @@ mod tests {
     }
 
     #[test]
+    fn failed_panel_start_does_not_create_standing_series_consent() {
+        let directory = TempDir::new().unwrap();
+        let secrets = Arc::new(SecretManager::with_backend(Arc::new(
+            MemorySecretBackend::new(),
+        )));
+        let manager = MeetingSessionManager::with_parts(
+            None,
+            Some(directory.path().join("meetings")),
+            secrets,
+            Arc::new(FakeSources {
+                starts: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+                aborts: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+                unavailable: Some(SourceKind::SystemAudio),
+            }),
+        );
+        let event = CalendarEventSummary {
+            event_key: "failed-panel-event".to_string(),
+            series_key: "failed-panel-series".to_string(),
+            title: "Weekly review".to_string(),
+            attendee_count: 2,
+            start_utc_ms: 1_000,
+            end_utc_ms: 2_000,
+            attendees: Vec::new(),
+            notes: None,
+            calendar_name: None,
+            url: None,
+        };
+        let context = MeetingDetectionStartContext {
+            prompt_id: "failed-panel-prompt".to_string(),
+            title: event.title.clone(),
+            trigger_bundle_id: None,
+            event_end_utc_ms: Some(event.end_utc_ms),
+            calendar_event: Some(event),
+        };
+        let result = tauri::async_runtime::block_on(manager.start_from_consent_panel(
+            &context,
+            MeetingConsentPanelStartRequest {
+                prompt_id: context.prompt_id.clone(),
+                operation_id: MeetingOperationId::new(),
+                consent: MeetingConsentInput {
+                    policy_version: 1,
+                    microphone_acknowledged: true,
+                    system_audio_acknowledged: true,
+                    known_missing_sources_acknowledged: vec![SourceKind::SystemAudio],
+                    degraded_start_policy: DegradedStartPolicy::AbortIfRequiredSourceFails,
+                    destination: ProcessingDestination::Local,
+                    remote_acknowledgement: None,
+                },
+                always_record_series: true,
+            },
+        ));
+
+        assert!(result.is_err());
+        assert!(
+            tauri::async_runtime::block_on(manager.live_series_consent("failed-panel-series"))
+                .unwrap()
+                .is_none()
+        );
+    }
+
+    #[test]
     fn acknowledged_partial_retry_starts_with_the_available_source() {
         let directory = TempDir::new().unwrap();
         let secrets = Arc::new(SecretManager::with_backend(Arc::new(
@@ -3171,6 +3528,7 @@ mod tests {
         let (_directory, manager, _, _) = manager();
         let event = CalendarEventSummary {
             event_key: "calendar-event-1".to_string(),
+            series_key: "calendar-series-1".to_string(),
             title: "Roadmap review".to_string(),
             attendee_count: 2,
             start_utc_ms: 1_000,

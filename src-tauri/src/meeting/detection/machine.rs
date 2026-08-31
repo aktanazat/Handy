@@ -86,8 +86,13 @@ pub struct CalendarAttendee {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CalendarEventSummary {
-    /// Stable per-occurrence identity, used to avoid re-prompting for one event.
+    /// Identity for this occurrence. Recurring events share `series_key`, but
+    /// every start instant gets its own claim and prompt.
     pub event_key: String,
+    /// EventKit's calendar-item identifier, used only for standing series
+    /// consent and continuity priming.
+    #[serde(default)]
+    pub series_key: String,
     pub title: String,
     /// Participant count including the organizer, and including participants
     /// EventKit refused to name. Zero means the event carries no attendee list
@@ -191,9 +196,9 @@ pub struct DetectionInputs {
     pub mic: MicSignal,
     pub screen_recording: ScreenRecordingPermission,
     pub browser_title: BrowserTitleEvidence,
-    /// True when the operator already has this event's pre-meeting pane open.
-    /// The §5.3 case 2 carve-out reads this as prior opt-in.
-    pub pre_meeting_pane_open: bool,
+    /// True only when the session layer found a live standing grant for this
+    /// event's series. A visible countdown is context, never consent.
+    pub standing_series_consent: bool,
     pub recent_capture: Option<RecentCapture>,
     /// True when Sona itself holds the default input device — its own dictation
     /// run or the microphone lane of its own meeting capture.
@@ -344,8 +349,8 @@ pub enum DetectionOutcome {
         event: CalendarEventSummary,
         seconds_to_start: i64,
     },
-    /// §5.3 case 2 — the pre-opened-pane carve-out. Still routes through the
-    /// preflight consent screen; it only skips the notification round trip.
+    /// §5.3 case 2 — a live standing series grant authorizes this occurrence.
+    /// The session layer revalidates that grant atomically with the start.
     AutoStart {
         event_key: String,
         event_title: String,
@@ -441,7 +446,7 @@ fn calendar_path(inputs: &DetectionInputs, policy: &DetectionPolicy) -> Calendar
 /// §5.3 cases 2 and 3, for an event whose start instant has passed.
 fn started_event_outcome(
     inputs: &DetectionInputs,
-    policy: &DetectionPolicy,
+    _policy: &DetectionPolicy,
     event: &CalendarEventSummary,
 ) -> DetectionOutcome {
     if inputs.mic != MicSignal::Active {
@@ -450,17 +455,17 @@ fn started_event_outcome(
         return DetectionOutcome::Suppress(SuppressReason::NoQualifyingSignal);
     }
 
-    // Case 2. The carve-out, and the only outcome that does not wait for a
-    // notification click. Default off: a new install prompts for everything
-    // until the operator has reason to trust detection.
-    if inputs.pre_meeting_pane_open && policy.auto_start_on_open_pane {
+    // Case 2. Detection can cite a standing series grant, but cannot construct
+    // consent itself. The session manager revalidates the grant when it writes
+    // the per-attempt receipt.
+    if inputs.standing_series_consent {
         return DetectionOutcome::AutoStart {
             event_key: event.event_key.clone(),
             event_title: event.title.clone(),
         };
     }
 
-    // Case 3. Pane not open, or the carve-out is off: prompt, never silent-start.
+    // Case 3. No standing grant: prompt, never silent-start.
     DetectionOutcome::Prompt(PromptKind::CalendarEvent {
         event_key: event.event_key.clone(),
         event_title: event.title.clone(),
@@ -623,6 +628,18 @@ pub enum StopTrigger {
     Silence,
 }
 
+impl StopTrigger {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::SleepBoundary => "sleep_boundary",
+            Self::EventEnd => "event_end",
+            Self::TriggerAppExited => "trigger_app_exited",
+            Self::InputDeviceIdle => "input_device_idle",
+            Self::Silence => "silence",
+        }
+    }
+}
+
 /// Definitive causes first, the silence timer last. A sleep boundary or a
 /// scheduled end is a fact; silence is an inference that a long pause is over.
 pub fn evaluate_stop(inputs: &StopInputs, policy: &StopPolicy) -> Option<StopTrigger> {
@@ -693,6 +710,7 @@ mod tests {
     fn event(attendee_count: usize) -> CalendarEventSummary {
         CalendarEventSummary {
             event_key: "event-1".to_string(),
+            series_key: "series-1".to_string(),
             title: "Quarterly planning".to_string(),
             attendee_count,
             start_utc_ms: NOW,
@@ -712,7 +730,7 @@ mod tests {
             mic: MicSignal::Idle,
             screen_recording: ScreenRecordingPermission::NotGranted,
             browser_title: BrowserTitleEvidence::Unreadable,
-            pre_meeting_pane_open: false,
+            standing_series_consent: false,
             recent_capture: None,
             self_holds_input_device: false,
             capture_active: false,
@@ -844,24 +862,22 @@ mod tests {
         );
     }
 
-    /* §5.3 case 2 — start reached, pane already open, mic live. Ships disabled. */
+    /* §5.3 case 2 — a live standing grant, not a visible pane or setting,
+     * authorizes the recurring occurrence. */
     #[test]
-    fn case_2_open_pane_auto_starts_only_when_enabled() {
-        let case_2_inputs = DetectionInputs {
-            calendar: CalendarSignal::Started { event: event(3) },
-            mic: MicSignal::Active,
-            pre_meeting_pane_open: true,
-            ..inputs()
-        };
+    fn case_2_standing_series_consent_auto_starts() {
+        let outcome = evaluate(
+            &DetectionInputs {
+                calendar: CalendarSignal::Started { event: event(3) },
+                mic: MicSignal::Active,
+                standing_series_consent: true,
+                ..inputs()
+            },
+            &calendar_policy(),
+        );
 
         assert_eq!(
-            evaluate(
-                &case_2_inputs,
-                &DetectionPolicy {
-                    auto_start_on_open_pane: true,
-                    ..calendar_policy()
-                }
-            ),
+            outcome,
             DetectionOutcome::AutoStart {
                 event_key: "event-1".to_string(),
                 event_title: "Quarterly planning".to_string(),
@@ -870,17 +886,17 @@ mod tests {
     }
 
     #[test]
-    fn case_2_carve_out_defaults_off_and_falls_back_to_a_prompt() {
-        assert!(!DetectionPolicy::default().auto_start_on_open_pane);
-
+    fn open_pane_setting_without_standing_consent_still_prompts() {
         let outcome = evaluate(
             &DetectionInputs {
                 calendar: CalendarSignal::Started { event: event(3) },
                 mic: MicSignal::Active,
-                pre_meeting_pane_open: true,
                 ..inputs()
             },
-            &calendar_policy(),
+            &DetectionPolicy {
+                auto_start_on_open_pane: true,
+                ..calendar_policy()
+            },
         );
 
         assert_eq!(
@@ -1252,7 +1268,7 @@ mod tests {
                 DetectionInputs {
                     calendar: CalendarSignal::Started { event: event(3) },
                     mic: MicSignal::Active,
-                    pre_meeting_pane_open: true,
+                    standing_series_consent: true,
                     ..inputs()
                 },
                 DetectionPolicy {

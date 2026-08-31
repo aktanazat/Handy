@@ -4,9 +4,9 @@ import { THEME_STORAGE_KEY } from "@/lib/themeStorageKey";
 /**
  * Appearance theme handling.
  *
- * `styles/theme.css` is authored dark-as-base with `[data-theme="light"]` as
- * the only override, so `data-theme` is always resolved to a concrete palette
- * here rather than being left off for the cascade to guess:
+ * `styles/theme.css` is authored light-as-base with an explicit dark override,
+ * so `data-theme` is always resolved to a concrete palette here rather than
+ * being left off for the cascade to guess:
  *  - `light` / `dark` set it directly.
  *  - `system` resolves once against `prefers-color-scheme` and then follows the
  *    OS live, because CSS alone can no longer see the preference.
@@ -37,9 +37,9 @@ export const resolveTheme = (theme: Theme): ResolvedTheme => {
   try {
     return window.matchMedia(DARK_QUERY).matches ? "dark" : "light";
   } catch {
-    // matchMedia is missing in non-browser environments; the CSS base is dark,
-    // so match it.
-    return "dark";
+    // matchMedia is missing in non-browser environments; match the light CSS
+    // base.
+    return "light";
   }
 };
 

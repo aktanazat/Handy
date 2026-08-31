@@ -4,6 +4,7 @@ pub mod detection;
 pub mod documents;
 pub mod history;
 pub mod hud;
+pub mod learning;
 pub mod media_import;
 pub mod meeting;
 pub mod models;

@@ -6020,6 +6020,7 @@ dependencies = [
  "objc2-application-services",
  "objc2-core-audio",
  "objc2-core-foundation",
+ "objc2-core-graphics",
  "objc2-event-kit",
  "objc2-foundation",
  "objc2-service-management",

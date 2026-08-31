@@ -1,0 +1,15 @@
+html:root,
+body {
+  background: transparent;
+  block-size: 100%;
+  inline-size: 100%;
+  margin: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+body > #root {
+  block-size: 100%;
+  inline-size: 100%;
+  overflow: hidden;
+}

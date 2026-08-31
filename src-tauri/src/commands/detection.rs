@@ -48,12 +48,7 @@ pub async fn detection_calendar_access_request(
 pub async fn detection_notification_access_request(
     runtime: State<'_, Arc<DetectionRuntime>>,
 ) -> Result<NotificationAccess, ()> {
-    let runtime = Arc::clone(&runtime);
-    Ok(
-        tauri::async_runtime::spawn_blocking(move || runtime.request_notification_access())
-            .await
-            .unwrap_or(NotificationAccess::NotDetermined),
-    )
+    Ok(runtime.request_notification_access().await)
 }
 
 /// Answers a prompt from inside the app. Identical in effect to clicking the
@@ -68,6 +63,15 @@ pub fn detection_prompt_respond(
 ) {
     let runtime = Arc::clone(&runtime);
     runtime.respond(&prompt_id, accepted);
+}
+
+/// Confirms that the consent webview rendered the panel delivery. If this
+/// bounded acknowledgement never arrives, the backend alone falls back to the
+/// native notification tier.
+#[tauri::command]
+#[specta::specta]
+pub fn detection_prompt_panel_ack(runtime: State<'_, Arc<DetectionRuntime>>, prompt_id: String) {
+    runtime.acknowledge_panel(&prompt_id);
 }
 
 /// Allowlisted bundle IDs whose application is running right now. The settings UI

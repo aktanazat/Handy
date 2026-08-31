@@ -1,5 +1,7 @@
 use super::{all_people_in, identity_names, normalized, people_revision_in, SCHEMA_VERSION};
+use crate::meeting::learning_types::LearningLoopKind;
 use crate::meeting::people_types::{VocabularyCandidate, VocabularyCandidatesResult};
+use crate::meeting::store::learning::decided_keys_in;
 use crate::meeting::store::workflows::workflow_has_successful_run_in;
 use crate::meeting::store::{effective_segments_for_session, MeetingStore, StoreError};
 use crate::meeting::types::MeetingSessionId;
@@ -109,6 +111,9 @@ struct CandidateCount {
     meetings: HashSet<MeetingSessionId>,
 }
 
+/// Terms this list must not offer: what the user already has, who Sona already
+/// knows about, and — the reason this reads the store rather than a client's
+/// local storage — every term the user has already answered about.
 fn excluded_terms(
     connection: &Connection,
     known_terms: &[String],
@@ -120,6 +125,10 @@ fn excluded_terms(
     for person in all_people_in(connection)? {
         excluded.extend(identity_names(&person).map(normalized));
     }
+    excluded.extend(decided_keys_in(
+        connection,
+        LearningLoopKind::VocabularyTerm,
+    )?);
     Ok(excluded)
 }
 

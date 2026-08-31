@@ -12,6 +12,12 @@ use std::sync::Arc;
 use tempfile::TempDir;
 use uuid::Uuid;
 
+/// The learning-inputs boundary for tests that are not about the loops: an empty
+/// corpus and settings that claim nothing, so a mining pass is a no-op.
+pub(super) fn inputs() -> impl crate::meeting::store::learning::LearningInputs {
+    crate::meeting::learning::no_inputs()
+}
+
 pub(super) fn store() -> (TempDir, Arc<MeetingStore>) {
     let directory = TempDir::new().unwrap();
     let secrets = SecretManager::with_backend(Arc::new(crate::secrets::MemorySecretBackend::new()));
@@ -343,14 +349,17 @@ fn inbox_omits_loops_after_their_meeting_is_deleted() {
     let meeting_id = meeting(&store, "Inbox", 1);
     artifact(&store, meeting_id, "Open work");
     store
-        .record_and_run_workflow_event(event(
-            WorkflowEventKind::MeetingFinalized,
-            serde_json::json!({
-                "session_id": meeting_id.uuid().to_string(),
-                "known_vocabulary": []
-            }),
-            "inbox-finalized",
-        ))
+        .record_and_run_workflow_event(
+            event(
+                WorkflowEventKind::MeetingFinalized,
+                serde_json::json!({
+                    "session_id": meeting_id.uuid().to_string(),
+                    "known_vocabulary": []
+                }),
+                "inbox-finalized",
+            ),
+            &inputs(),
+        )
         .unwrap();
     assert_eq!(store.open_loops_inbox(5).unwrap().entries.len(), 1);
     let workflow_revision = store.workflows_list().unwrap().revision;

@@ -1,4 +1,7 @@
 mod documents;
+pub(crate) mod learning;
+#[cfg(test)]
+mod learning_tests;
 mod people;
 #[cfg(test)]
 mod workflow_core_tests;
@@ -40,6 +43,85 @@ const RECORD_HEADER_BYTES: usize = 92;
 const INDEX_PLAINTEXT_BYTES: usize = 48;
 const INDEX_RECORD_BYTES: usize = 76;
 const MISSING_OFFSET: u64 = u64::MAX;
+
+/// The three workflow tables, rebuilt around a widened allowed-value list.
+///
+/// SQLite cannot alter a `CHECK` constraint, and `workflow_runs` carries
+/// foreign keys into both of the other two tables, so widening either
+/// `workflow_settings.workflow_id` or `workflow_events.kind` means rebuilding
+/// all three. Only the lists differ between migrations that do it, which is why
+/// they are the only parameters: the column sets, the index definitions, the
+/// rename order that lets `ALTER TABLE ... RENAME` rewrite the foreign keys,
+/// the `INSERT ... SELECT` copies and the child-first drop order live here once
+/// instead of once per migration.
+///
+/// The shadow tables are named the same way every time. A migration creates
+/// them and drops them again before it returns, so no two rebuilds ever hold
+/// the names at once.
+macro_rules! rebuilt_workflow_tables {
+    (
+        workflow_ids: $workflow_ids:literal,
+        seeded: $seeded:literal,
+        event_kinds: $event_kinds:literal $(,)?
+    ) => {
+        concat!(
+            "
+        DROP INDEX workflow_runs_once_idx;
+        DROP INDEX workflow_runs_list_idx;
+        ALTER TABLE workflow_runs RENAME TO workflow_runs_rebuilding;
+        ALTER TABLE workflow_events RENAME TO workflow_events_rebuilding;
+        ALTER TABLE workflow_settings RENAME TO workflow_settings_rebuilding;
+
+        CREATE TABLE workflow_settings (
+            workflow_id TEXT PRIMARY KEY NOT NULL CHECK (workflow_id IN (",
+            $workflow_ids,
+            ")),
+            enabled INTEGER NOT NULL CHECK (enabled IN (0, 1))
+        );
+        INSERT INTO workflow_settings(workflow_id, enabled)
+        SELECT workflow_id, enabled FROM workflow_settings_rebuilding;
+        INSERT INTO workflow_settings(workflow_id, enabled) VALUES ",
+            $seeded,
+            ";
+
+        CREATE TABLE workflow_events (
+            id TEXT PRIMARY KEY NOT NULL,
+            kind TEXT NOT NULL CHECK (kind IN (",
+            $event_kinds,
+            ")),
+            payload_json TEXT NOT NULL,
+            occurred_at_utc_ms INTEGER NOT NULL,
+            source TEXT NOT NULL,
+            dedupe_key TEXT NOT NULL UNIQUE
+        );
+        INSERT INTO workflow_events
+        SELECT * FROM workflow_events_rebuilding;
+
+        CREATE TABLE workflow_runs (
+            id TEXT PRIMARY KEY NOT NULL,
+            workflow_id TEXT NOT NULL REFERENCES workflow_settings(workflow_id),
+            event_id TEXT NOT NULL REFERENCES workflow_events(id) ON DELETE CASCADE,
+            status TEXT NOT NULL CHECK (status IN ('ok', 'failed', 'skipped')),
+            started_at_utc_ms INTEGER NOT NULL,
+            finished_at_utc_ms INTEGER NOT NULL,
+            outcome_summary TEXT NOT NULL,
+            error TEXT
+        );
+        INSERT INTO workflow_runs
+        SELECT * FROM workflow_runs_rebuilding;
+        CREATE UNIQUE INDEX workflow_runs_once_idx
+            ON workflow_runs(workflow_id, event_id)
+            WHERE status IN ('ok', 'failed');
+        CREATE INDEX workflow_runs_list_idx
+            ON workflow_runs(started_at_utc_ms DESC, id DESC);
+
+        DROP TABLE workflow_runs_rebuilding;
+        DROP TABLE workflow_events_rebuilding;
+        DROP TABLE workflow_settings_rebuilding;
+        "
+        )
+    };
+}
 
 static MIGRATIONS: &[M] = &[
     M::up(
@@ -635,7 +717,205 @@ static MIGRATIONS: &[M] = &[
         );
         ",
     ),
+    M::up(concat!(
+        "
+        CREATE TABLE meeting_series_consents (
+            series_key TEXT PRIMARY KEY NOT NULL,
+            policy_version INTEGER NOT NULL,
+            granted_at_utc_ms INTEGER NOT NULL,
+            acknowledged_sources_json TEXT NOT NULL,
+            revoked_at_utc_ms INTEGER
+        );
+        CREATE TABLE meeting_consent_panel_state (
+            singleton INTEGER PRIMARY KEY NOT NULL CHECK (singleton = 1),
+            first_prompt_shown_at_utc_ms INTEGER
+        );
+        INSERT INTO meeting_consent_panel_state(singleton, first_prompt_shown_at_utc_ms)
+        VALUES (1, NULL);
+        ",
+        rebuilt_workflow_tables!(
+            workflow_ids: "
+                'person_linking', 'pre_meeting_briefing', 'continuity',
+                'vocabulary_mining', 'document_linking', 'meeting_activity'
+            ",
+            seeded: "('meeting_activity', 1)",
+            event_kinds: "
+                'meeting_finalized', 'meeting_started', 'speaker_renamed',
+                'audio_imported', 'doc_ingested', 'calendar_meeting_detected',
+                'agent_hook_event', 'meeting_prompt_recorded',
+                'meeting_prompt_ignored', 'meeting_auto_record_started',
+                'meeting_auto_record_stopped'
+            ",
+        ),
+    )),
+    // The six local learning loops. Two allowed-value lists have to widen —
+    // `workflow_settings.workflow_id` and `workflow_events.kind` — so the three
+    // workflow tables go through the shared rebuild.
+    M::up(concat!(
+        "
+        ALTER TABLE workflow_state
+            ADD COLUMN learning_revision INTEGER NOT NULL DEFAULT 0
+            CHECK (learning_revision >= 0);
+        ",
+        rebuilt_workflow_tables!(
+            workflow_ids: "
+                'person_linking', 'pre_meeting_briefing', 'continuity',
+                'vocabulary_mining', 'document_linking', 'meeting_activity',
+                'spoken_punctuation', 'correction_learning', 'mode_habits',
+                'capture_advisor', 'series_priming'
+            ",
+            seeded: "
+                ('spoken_punctuation', 1),
+                ('correction_learning', 1),
+                ('mode_habits', 1),
+                ('capture_advisor', 1),
+                ('series_priming', 1)
+            ",
+            event_kinds: "
+                'meeting_finalized', 'meeting_started', 'speaker_renamed',
+                'audio_imported', 'doc_ingested', 'calendar_meeting_detected',
+                'agent_hook_event', 'meeting_prompt_recorded',
+                'meeting_prompt_ignored', 'meeting_auto_record_started',
+                'meeting_auto_record_stopped', 'dictation_corpus_swept',
+                'dictation_correction_recorded'
+            ",
+        ),
+        "
 
+        CREATE TABLE learning_decisions (
+            loop_kind TEXT NOT NULL CHECK (loop_kind IN (
+                'spoken_punctuation', 'vocabulary_term', 'vocabulary_correction',
+                'mode_habit', 'capture_advice'
+            )),
+            candidate_key TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (status IN ('accepted', 'dismissed')),
+            display_text TEXT NOT NULL,
+            decided_at_utc_ms INTEGER NOT NULL,
+            PRIMARY KEY (loop_kind, candidate_key)
+        );
+        CREATE TABLE learning_suggestions (
+            loop_kind TEXT NOT NULL CHECK (loop_kind IN (
+                'spoken_punctuation', 'vocabulary_correction', 'mode_habit',
+                'capture_advice'
+            )),
+            candidate_key TEXT NOT NULL,
+            suggestion_json TEXT NOT NULL,
+            evidence_json TEXT NOT NULL,
+            generated_at_utc_ms INTEGER NOT NULL,
+            PRIMARY KEY (loop_kind, candidate_key)
+        );
+        CREATE INDEX learning_suggestions_recent_idx
+            ON learning_suggestions(generated_at_utc_ms DESC, loop_kind, candidate_key);
+        CREATE TABLE learning_cursors (
+            loop_kind TEXT PRIMARY KEY NOT NULL CHECK (loop_kind IN (
+                'spoken_punctuation', 'mode_habit', 'capture_advice'
+            )),
+            last_run_receipt_id INTEGER NOT NULL CHECK (last_run_receipt_id >= 0)
+        );
+        INSERT INTO learning_cursors(loop_kind, last_run_receipt_id) VALUES
+            ('spoken_punctuation', 0),
+            ('mode_habit', 0),
+            ('capture_advice', 0);
+        -- The one evidence ledger every loop counts into.
+        --
+        -- A loop reads a bounded slice of the corpus per run, so no single pass
+        -- can see enough to clear an evidence floor; the floors are read from
+        -- here instead. `occurrences` is the count a floor tests and
+        -- `sample_size` is the count it is a fraction of, which is 0 for the
+        -- loops that have no ratio. Rows are bucketed by local day because
+        -- three times today is not the same evidence as three days running,
+        -- and the day is also what bounds this table's growth.
+        CREATE TABLE learning_observations (
+            loop_kind TEXT NOT NULL CHECK (loop_kind IN (
+                'spoken_punctuation', 'vocabulary_term', 'vocabulary_correction',
+                'mode_habit', 'capture_advice'
+            )),
+            candidate_key TEXT NOT NULL,
+            local_day TEXT NOT NULL,
+            occurrences INTEGER NOT NULL CHECK (occurrences >= 0),
+            sample_size INTEGER NOT NULL CHECK (sample_size >= 0),
+            display_text TEXT NOT NULL,
+            example_context TEXT,
+            PRIMARY KEY (loop_kind, candidate_key, local_day)
+        );
+        CREATE INDEX learning_observations_day_idx
+            ON learning_observations(local_day);
+        -- What number loop 6 last told the user about a subject, and which
+        -- generation of that advice it was.
+        --
+        -- Dismissal memory is absolute: a dismissed candidate never comes back.
+        -- Advice that must reappear when a statistic moves materially therefore
+        -- has to become a *different* candidate, and the generation counted here
+        -- is what makes it one. It advances only on a material move, so a
+        -- statistic drifting across a threshold cannot flip a candidate back and
+        -- forth.
+        CREATE TABLE learning_advice_baselines (
+            subject_key TEXT PRIMARY KEY NOT NULL,
+            stat_permille INTEGER NOT NULL CHECK (stat_permille >= 0),
+            generation INTEGER NOT NULL CHECK (generation >= 0),
+            advised_at_utc_ms INTEGER NOT NULL
+        );
+        CREATE TABLE meeting_series_priming (
+            session_id TEXT PRIMARY KEY NOT NULL
+                REFERENCES meeting_sessions(id) ON DELETE CASCADE,
+            series_key TEXT NOT NULL,
+            blob_json TEXT NOT NULL,
+            assembled_at_utc_ms INTEGER NOT NULL
+        );
+        ",
+    )),
+    // Verbatim evidence dies with the meeting it came from.
+    //
+    // `learning_observations.example_context` holds up to 120 characters of the
+    // user's own text, and for the correction loop that text is a slice of a
+    // meeting transcript edit. Without this column the excerpt outlived the
+    // meeting by up to `OBSERVATION_RETENTION_DAYS`, and its second copy in
+    // `learning_suggestions.evidence_json` outlived it too. `NULL` is the
+    // dictation-sourced case, whose lifetime is the retention horizon rather
+    // than a session's.
+    //
+    // The index exists for the cascade: SQLite scans the child column on every
+    // parent delete, and meeting deletion is not a rare path.
+    //
+    // The trigger is the second copy's owner. A pending suggestion carries the
+    // excerpts its card renders inside `evidence_json`, so losing the ledger
+    // rows is not enough on its own — and putting the rule here rather than in
+    // one Rust delete path is what makes it hold for both ways rows leave the
+    // ledger, the cascade above and the retention horizon, without a caller
+    // having to remember either.
+    M::up(
+        "
+        ALTER TABLE learning_observations
+            ADD COLUMN source_session_id TEXT
+            REFERENCES meeting_sessions(id) ON DELETE CASCADE;
+        CREATE INDEX learning_observations_session_idx
+            ON learning_observations(source_session_id);
+        CREATE TRIGGER learning_suggestions_need_evidence
+        AFTER DELETE ON learning_observations
+        BEGIN
+            DELETE FROM learning_suggestions
+             WHERE loop_kind = OLD.loop_kind
+               AND candidate_key = OLD.candidate_key
+               AND NOT EXISTS (
+                    SELECT 1 FROM learning_observations
+                     WHERE loop_kind = OLD.loop_kind
+                       AND candidate_key = OLD.candidate_key
+               );
+        END;
+        ",
+    ),
+    // A failed run is no longer the last word for every event kind, so the
+    // once-only index narrows to the invariant that is actually absolute: a
+    // workflow succeeds at most once per event. See
+    // `WorkflowEventKind::retries_after_failure`.
+    M::up(
+        "
+        DROP INDEX workflow_runs_once_idx;
+        CREATE UNIQUE INDEX workflow_runs_once_idx
+            ON workflow_runs(workflow_id, event_id)
+            WHERE status = 'ok';
+        ",
+    ),
 ];
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StoreError {
@@ -645,6 +925,7 @@ pub enum StoreError {
     NotFound,
     Conflict,
     Invalid,
+    ConsentStale,
     Io,
 }
 /// The single durable Cloudflare vault cursor and clock state.
@@ -982,6 +1263,14 @@ fn meeting_trend_value(value: i64) -> Result<u64, StoreError> {
     u64::try_from(value).map_err(|_| StoreError::Corrupt)
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct StandingSeriesConsent {
+    pub series_key: String,
+    pub policy_version: u32,
+    pub granted_at_utc_ms: i64,
+    pub acknowledged_sources: Vec<SourceKind>,
+}
+
 pub struct MeetingStore {
     root: PathBuf,
     database_path: PathBuf,
@@ -1011,6 +1300,131 @@ impl MeetingStore {
             connection: Mutex::new(connection),
             master_key: Arc::new(master_key),
         }))
+    }
+    pub(crate) fn grant_series_consent(
+        &self,
+        series_key: &str,
+        policy_version: u32,
+        acknowledged_sources: &[SourceKind],
+        granted_at_utc_ms: i64,
+    ) -> Result<StandingSeriesConsent, StoreError> {
+        let series_key = series_key.trim();
+        if series_key.is_empty() || acknowledged_sources.is_empty() {
+            return Err(StoreError::Invalid);
+        }
+        let acknowledged_sources_json = encode_json(&acknowledged_sources)?;
+        let connection = self.connection()?;
+        connection.execute(
+            "INSERT INTO meeting_series_consents (
+                series_key, policy_version, granted_at_utc_ms,
+                acknowledged_sources_json, revoked_at_utc_ms
+             ) VALUES (?1, ?2, ?3, ?4, NULL)
+             ON CONFLICT(series_key) DO UPDATE SET
+                policy_version = excluded.policy_version,
+                granted_at_utc_ms = excluded.granted_at_utc_ms,
+                acknowledged_sources_json = excluded.acknowledged_sources_json,
+                revoked_at_utc_ms = NULL",
+            params![
+                series_key,
+                i64::from(policy_version),
+                granted_at_utc_ms,
+                acknowledged_sources_json
+            ],
+        )?;
+        Ok(StandingSeriesConsent {
+            series_key: series_key.to_string(),
+            policy_version,
+            granted_at_utc_ms,
+            acknowledged_sources: acknowledged_sources.to_vec(),
+        })
+    }
+
+    pub(crate) fn live_series_consent(
+        &self,
+        series_key: &str,
+    ) -> Result<Option<StandingSeriesConsent>, StoreError> {
+        let connection = self.connection()?;
+        let row = connection
+            .query_row(
+                "SELECT policy_version, granted_at_utc_ms, acknowledged_sources_json
+                   FROM meeting_series_consents
+                  WHERE series_key = ?1 AND revoked_at_utc_ms IS NULL",
+                [series_key],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, String>(2)?,
+                    ))
+                },
+            )
+            .optional()?;
+        row.map(|(policy_version, granted_at_utc_ms, sources)| {
+            Ok(StandingSeriesConsent {
+                series_key: series_key.to_string(),
+                policy_version: u32::try_from(policy_version).map_err(|_| StoreError::Corrupt)?,
+                granted_at_utc_ms,
+                acknowledged_sources: decode_json(&sources)?,
+            })
+        })
+        .transpose()
+    }
+
+    pub(crate) fn revoke_series_consent(
+        &self,
+        series_key: &str,
+        revoked_at_utc_ms: i64,
+    ) -> Result<bool, StoreError> {
+        let connection = self.connection()?;
+        Ok(connection.execute(
+            "UPDATE meeting_series_consents
+                SET revoked_at_utc_ms = ?2
+              WHERE series_key = ?1 AND revoked_at_utc_ms IS NULL",
+            params![series_key, revoked_at_utc_ms],
+        )? != 0)
+    }
+
+    pub(crate) fn consent_panel_introduction_needed(&self) -> Result<bool, StoreError> {
+        let connection = self.connection()?;
+        connection
+            .query_row(
+                "SELECT first_prompt_shown_at_utc_ms IS NULL
+                   FROM meeting_consent_panel_state WHERE singleton = 1",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(Into::into)
+    }
+
+    pub(crate) fn mark_consent_panel_introduction_shown(
+        &self,
+        shown_at_utc_ms: i64,
+    ) -> Result<(), StoreError> {
+        let connection = self.connection()?;
+        connection.execute(
+            "UPDATE meeting_consent_panel_state
+                SET first_prompt_shown_at_utc_ms = COALESCE(first_prompt_shown_at_utc_ms, ?1)
+              WHERE singleton = 1",
+            [shown_at_utc_ms],
+        )?;
+        Ok(())
+    }
+
+    pub(crate) fn latest_consent_for_session(
+        &self,
+        session_id: MeetingSessionId,
+    ) -> Result<Option<MeetingConsent>, StoreError> {
+        let connection = self.connection()?;
+        let acknowledgement: Option<String> = connection
+            .query_row(
+                "SELECT acknowledgement_json FROM meeting_consents
+                  WHERE session_id = ?1
+                  ORDER BY attempt_number DESC LIMIT 1",
+                [id(session_id)],
+                |row| row.get(0),
+            )
+            .optional()?;
+        acknowledgement.map(|json| decode_json(&json)).transpose()
     }
 
     pub(crate) fn cloud_state(&self) -> Result<Option<CloudState>, StoreError> {
@@ -2537,6 +2951,40 @@ impl MeetingStore {
         if let Some(receipt) = validation {
             transaction.commit()?;
             return Ok(receipt);
+        }
+        if let MeetingConsentProvenance::StandingSeries {
+            series_key,
+            granted_at_utc_ms,
+        } = &consent.provenance
+        {
+            let standing = transaction
+                .query_row(
+                    "SELECT policy_version, granted_at_utc_ms, acknowledged_sources_json
+                       FROM meeting_series_consents
+                      WHERE series_key = ?1 AND revoked_at_utc_ms IS NULL",
+                    [series_key],
+                    |row| {
+                        Ok((
+                            row.get::<_, i64>(0)?,
+                            row.get::<_, i64>(1)?,
+                            row.get::<_, String>(2)?,
+                        ))
+                    },
+                )
+                .optional()?;
+            let Some((policy_version, stored_granted_at, sources_json)) = standing else {
+                return Err(StoreError::ConsentStale);
+            };
+            let sources: Vec<SourceKind> = decode_json(&sources_json)?;
+            let source_acknowledgements_match = sources.contains(&SourceKind::Microphone)
+                == consent.microphone_acknowledged
+                && sources.contains(&SourceKind::SystemAudio) == consent.system_audio_acknowledged;
+            if policy_version != i64::from(consent.policy_version)
+                || stored_granted_at != *granted_at_utc_ms
+                || !source_acknowledgements_match
+            {
+                return Err(StoreError::ConsentStale);
+            }
         }
         let next_revision = current.revision.checked_add(1).ok_or(StoreError::Corrupt)?;
         let now = utc_now_ms();
@@ -8857,6 +9305,7 @@ mod tests {
             preflight_revision: 0,
             policy_version: 1,
             acknowledged_at_utc_ms: 0,
+            provenance: MeetingConsentProvenance::Direct,
             microphone_acknowledged: true,
             system_audio_acknowledged: false,
             known_missing_sources_acknowledged: Vec::new(),
@@ -9622,6 +10071,7 @@ mod tests {
             preflight_revision: 0,
             policy_version: 1,
             acknowledged_at_utc_ms: 0,
+            provenance: MeetingConsentProvenance::Direct,
             microphone_acknowledged: true,
             system_audio_acknowledged: false,
             known_missing_sources_acknowledged: Vec::new(),

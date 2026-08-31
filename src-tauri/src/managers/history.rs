@@ -496,6 +496,26 @@ pub struct HistoryDeliveryAttempt {
     pub run_receipt_id: i64,
     pub delivery: DeliveryReceipt,
 }
+/// One dictation run as the local learning loops read it: the delivered text
+/// plus the content-free provenance of the run that produced it.
+///
+/// `id` is the `transcription_runs` rowid, which is `AUTOINCREMENT` and so is
+/// the monotonic cursor the loops page through. `is_retry` folds both lineage
+/// columns — a run that points back at another run, and an entry that points
+/// back at another entry — because either one makes this text a second reading
+/// of audio a model already read, never a human's own words.
+#[derive(Clone, Debug)]
+pub struct DictationRunRow {
+    pub id: i64,
+    pub completed_at_ms: i64,
+    /// Exactly what Sona delivered: the post-processed text when a run had it,
+    /// the raw transcript otherwise. Replacement rules have already run, so a
+    /// literal spoken form surviving here is one no rule covers.
+    pub delivered_text: String,
+    pub mode: ModeReceipt,
+    pub capture_status: Option<CaptureStatus>,
+    pub is_retry: bool,
+}
 
 /// Data persisted atomically with a new or retried transcription result.
 #[derive(Clone, Debug)]
@@ -1195,6 +1215,10 @@ impl HistoryManager {
         {
             error!("Failed to emit history-updated event: {error}");
         }
+        // The one place dictation history is established as having moved, and so
+        // the one place the local learning loops are woken. The call is
+        // day-bucketed on the other side, so this is cheap per dictation.
+        crate::meeting::learning::notify_dictation_history_changed(&self.app_handle);
         Ok(entry)
     }
 
@@ -1335,6 +1359,44 @@ impl HistoryManager {
                     Self::get_delivery_attempts_with_connection(conn, receipt.id)?;
             }
             Ok(receipts)
+        })
+    }
+
+    /// One bounded page of dictation runs newer than `after`, oldest first.
+    ///
+    /// This is the only way the local learning loops see dictation history, and
+    /// it is read-only by construction. `limit` is not a courtesy: the caller
+    /// mines this page while holding a write transaction on a different
+    /// database, so an unbounded scan here would stall live captures there.
+    pub fn dictation_runs_after(&self, after: i64, limit: usize) -> Result<Vec<DictationRunRow>> {
+        let limit = as_sql_i64(u64::try_from(limit).unwrap_or(0))?;
+        self.storage.with_connection(|conn| {
+            let mut statement = conn.prepare(
+                "SELECT
+                    r.id,
+                    r.completed_at_ms,
+                    COALESCE(h.post_processed_text, h.transcription_text),
+                    r.mode_receipt_json,
+                    r.capture_status,
+                    r.retry_of_run_id IS NOT NULL OR h.parent_id IS NOT NULL
+                 FROM transcription_runs AS r
+                 JOIN transcription_history AS h ON h.id = r.history_id
+                 WHERE r.id > ?1
+                 ORDER BY r.id ASC
+                 LIMIT ?2",
+            )?;
+            let rows = statement.query_map(params![after, limit], |row| {
+                Ok(DictationRunRow {
+                    id: row.get(0)?,
+                    completed_at_ms: row.get(1)?,
+                    delivered_text: row.get(2)?,
+                    mode: decode_receipt_json(row.get::<_, String>(3)?, 3)?,
+                    capture_status: CaptureStatus::from_stored(row.get(4)?),
+                    is_retry: row.get(5)?,
+                })
+            })?;
+            rows.collect::<std::result::Result<Vec<_>, _>>()
+                .map_err(Into::into)
         })
     }
 
