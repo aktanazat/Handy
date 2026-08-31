@@ -2,6 +2,7 @@ import React, { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Search } from "lucide-react";
 import { Kbd } from "@/components/vg/kbd";
+import { destinationIcons } from "@/lib/navIcons";
 import { SonaMark } from "./icons/SonaMark";
 import {
   RAIL_SECTIONS,
@@ -33,7 +34,7 @@ const WORDMARK = "Sona";
  * app's default outline is suppressed so the ring is the single indicator, not
  * a second one drawn around it. */
 const NAV_ROW =
-  "flex h-[32px] items-center rounded-md px-[10px] text-start text-[13px] whitespace-nowrap text-gray-900 transition-colors hover:bg-gray-alpha-100 hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none aria-[current=page]:bg-gray-alpha-200 aria-[current=page]:text-gray-1000";
+  "flex h-[32px] items-center gap-2 rounded-md px-[10px] text-start text-[13px] whitespace-nowrap text-gray-900 transition-colors hover:bg-gray-alpha-100 hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none aria-[current=page]:bg-gray-alpha-200 aria-[current=page]:text-gray-1000";
 
 /** Moves focus between sibling nav rows on arrow keys. Tab order keeps every
  * row, so this is an addition to normal tabbing, not a replacement. Up/Down
@@ -142,17 +143,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
         className="flex flex-none flex-col gap-0.5"
         aria-label={t("sidebar.navigation")}
       >
-        {RAIL_SECTIONS.map((section) => (
-          <button
-            key={section}
-            type="button"
-            aria-current={section === activeSection ? "page" : undefined}
-            className={NAV_ROW}
-            onClick={() => onSectionChange(section)}
-          >
-            {t(SECTIONS_CONFIG[section].labelKey)}
-          </button>
-        ))}
+        {RAIL_SECTIONS.map((section) => {
+          const DestinationIcon = destinationIcons[section];
+          return (
+            <button
+              key={section}
+              type="button"
+              aria-current={section === activeSection ? "page" : undefined}
+              className={NAV_ROW}
+              onClick={() => onSectionChange(section)}
+            >
+              <DestinationIcon
+                aria-hidden="true"
+                className="size-4 flex-none"
+              />
+              {t(SECTIONS_CONFIG[section].labelKey)}
+            </button>
+          );
+        })}
       </nav>
 
       {/* The model chip, docked at the sidebar's foot. Its menu is a portalled

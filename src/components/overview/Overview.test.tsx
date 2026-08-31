@@ -230,7 +230,8 @@ describe("the Capture page", () => {
     expect(markup.includes("all time")).toBe(false);
     expect(markup.includes("Current streak")).toBe(false);
     expect(markup.includes("Dictations per day")).toBe(false);
-    expect(markup.includes("<svg")).toBe(false);
+    // Only the two action glyphs remain; a chart would add another SVG.
+    expect(occurrences(markup, "<svg")).toBe(2);
   });
 
   test("draws no recent activity list and no empty-state pitch", () => {

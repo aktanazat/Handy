@@ -1,17 +1,10 @@
 import {
-  AudioLines,
   FileAudio,
   FolderOpen,
   MessageSquare,
-  Mic,
-  Package,
-  Settings,
-  SlidersHorizontal,
-  Video,
+  type LucideIcon,
 } from "lucide-react";
-import type { ReactNode } from "react";
-
-const ICON_SIZE = 16;
+import { destinationIcons } from "@/lib/navIcons";
 
 export type CommandPaletteGroup = "navigation" | "actions";
 
@@ -19,24 +12,18 @@ export interface CommandPaletteAction {
   id: string;
   group: CommandPaletteGroup;
   label: string;
-  icon: ReactNode;
+  icon: LucideIcon;
   run: () => void;
 }
 
-/* One glyph per concept, no glyph on two rows: the palette's icons are the
- * only place every destination and verb sits in one column, so a repeated
- * glyph there reads as a repeated meaning. */
+/* Actions outside the destination list use the same glyph wherever they
+ * appear. New meeting deliberately shares Meetings' destination glyph. */
 export const commandActionIcons = {
-  mic: <Mic size={ICON_SIZE} aria-hidden="true" />,
-  audio: <AudioLines size={ICON_SIZE} aria-hidden="true" />,
-  modes: <SlidersHorizontal size={ICON_SIZE} aria-hidden="true" />,
-  models: <Package size={ICON_SIZE} aria-hidden="true" />,
-  settings: <Settings size={ICON_SIZE} aria-hidden="true" />,
-  video: <Video size={ICON_SIZE} aria-hidden="true" />,
-  file: <FileAudio size={ICON_SIZE} aria-hidden="true" />,
-  folder: <FolderOpen size={ICON_SIZE} aria-hidden="true" />,
-  agent: <MessageSquare size={ICON_SIZE} aria-hidden="true" />,
-} as const;
+  newMeeting: destinationIcons.meetings,
+  importAudio: FileAudio,
+  openRecordings: FolderOpen,
+  openAgent: MessageSquare,
+} as const satisfies Record<string, LucideIcon>;
 
 /**
  * Whether one keydown is the chord that summons the palette.

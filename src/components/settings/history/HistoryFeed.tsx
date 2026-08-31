@@ -1,11 +1,12 @@
 import React from "react";
-import { FileAudio } from "lucide-react";
+import { FileAudio, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { HistoryRunReceipt } from "@/bindings";
 import { AudioPlayerGroup } from "@/components/audio/AudioPlayer";
 import { SETTINGS_SURFACE, SettingsCard } from "../rows";
 import { Button } from "@/components/vg/button";
 import { Skeleton } from "@/components/vg/skeleton";
+import { destinationIcons } from "@/lib/navIcons";
 import { HistoryEntryComponent, type HistoryTextView } from "./HistoryEntry";
 import type { ListState } from "./historyListReducer";
 
@@ -17,9 +18,11 @@ const HistoryFeedState: React.FC<{
   title: string;
   description?: string;
   tone?: "danger";
+  icon?: LucideIcon;
   children?: React.ReactNode;
-}> = ({ title, description, tone, children }) => (
+}> = ({ title, description, tone, icon: Icon, children }) => (
   <SettingsCard className="flex flex-col items-center gap-3 px-8 py-12 text-center">
+    {Icon ? <Icon aria-hidden="true" className="size-6 text-gray-700" /> : null}
     <p
       className={`text-[13px] leading-[19px] ${tone === "danger" ? "text-red-900" : "text-gray-1000"}`}
       role={tone === "danger" ? "alert" : undefined}
@@ -116,6 +119,7 @@ export const HistoryFeed: React.FC<HistoryFeedProps> = ({
   if (state.entries.length === 0) {
     return searching ? (
       <HistoryFeedState
+        icon={destinationIcons.history}
         title={t("settings.history.noResults", { query: trimmedActiveQuery })}
         description={t(
           "settings.history.noResultsHint",
@@ -133,6 +137,7 @@ export const HistoryFeed: React.FC<HistoryFeedProps> = ({
       </HistoryFeedState>
     ) : (
       <HistoryFeedState
+        icon={destinationIcons.history}
         title={t("settings.history.empty")}
         description={t(
           "settings.history.emptyHint",

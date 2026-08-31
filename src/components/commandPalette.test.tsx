@@ -6,6 +6,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInstance } from "i18next";
 import { I18nextProvider } from "react-i18next";
+import { destinationIcons } from "@/lib/navIcons";
 import {
   commandActionIcons,
   groupPaletteActions,
@@ -87,7 +88,7 @@ const action = (
   id,
   group,
   label: id,
-  icon: commandActionIcons.folder,
+  icon: commandActionIcons.openRecordings,
   run: () => undefined,
 });
 
@@ -194,15 +195,11 @@ describe("the section registry", () => {
     expect(i18n.exists("sidebar.history")).toBe(false);
   });
 
-  /* One glyph per concept: the palette is the only surface that stacks all six
-   * destinations in a single column, so a repeated glyph there reads as a
-   * repeated meaning. */
-  test("every destination names a distinct palette glyph", () => {
-    const icons = SECTION_ORDER.map((section) => SECTIONS_CONFIG[section].icon);
+  /* One glyph per concept. Both navigation surfaces resolve this same map, so
+   * a destination cannot drift to a second icon in one of them. */
+  test("every destination names a distinct shared glyph", () => {
+    const icons = SECTION_ORDER.map((section) => destinationIcons[section]);
     expect(new Set(icons).size).toBe(icons.length);
-    for (const icon of icons) {
-      expect(commandActionIcons[icon]).toBeDefined();
-    }
   });
 });
 
@@ -257,7 +254,7 @@ describe("Sidebar", () => {
     const markup = renderSidebar("meetings");
     expect([...markup.matchAll(/aria-current="page"/g)]).toHaveLength(1);
     expect(markup).toContain('aria-current="page" class=');
-    expect(markup).toMatch(/aria-current="page"[^>]*>Meetings</);
+    expect(markup).toMatch(/aria-current="page"[^>]*>.*?Meetings<\/button>/);
   });
 
   test("the search row is a button that names the palette and shows its chord", () => {

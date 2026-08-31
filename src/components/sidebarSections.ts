@@ -1,9 +1,7 @@
 import { lazy } from "react";
 import type { ComponentType } from "react";
-import {
-  commandActionIcons,
-  type CommandPaletteAction,
-} from "./commandPaletteActions";
+import type { CommandPaletteAction } from "./commandPaletteActions";
+import { destinationIcons } from "@/lib/navIcons";
 
 /* Every section is a route-level chunk. The shell, the top bar and the
  * command palette ship in the entry bundle; a section's page code arrives
@@ -46,8 +44,6 @@ interface SectionConfig {
    * two lists cannot disagree about what a place is called.
    */
   labelKey: string;
-  /** Which palette glyph names it. One glyph per concept, no glyph twice. */
-  icon: keyof typeof commandActionIcons;
   /**
    * Whether the sidebar rail carries a row for it. Models is reachable from the
    * palette and from inside pages, and has never had a row.
@@ -57,8 +53,7 @@ interface SectionConfig {
 }
 
 /**
- * Every navigation destination in the app, and the only place any of them is
- * described.
+ * Every navigation destination's label, route component and placement.
  *
  * Declaration order below is the order these are listed in — the rail takes the
  * `inRail` ones in this order, the palette takes all of them in this order. That
@@ -68,19 +63,16 @@ interface SectionConfig {
 export const SECTIONS_CONFIG = {
   overview: {
     labelKey: "topNav.capture",
-    icon: "mic",
     inRail: true,
     component: Overview,
   },
   history: {
     labelKey: "topNav.library",
-    icon: "audio",
     inRail: true,
     component: HistorySettings,
   },
   modes: {
     labelKey: "sidebar.modes",
-    icon: "modes",
     inRail: true,
     component: ModesSettings,
   },
@@ -88,23 +80,20 @@ export const SECTIONS_CONFIG = {
    * meetings surface the deep-link handler targets, so nothing forked. */
   meetings: {
     labelKey: "sidebar.meetings",
-    icon: "video",
     inRail: true,
     component: MeetingsSettings,
   },
   settings: {
     labelKey: "sidebar.settings",
-    icon: "settings",
     inRail: true,
     component: SettingsHub,
   },
   models: {
     labelKey: "sidebar.models",
-    icon: "models",
     inRail: false,
     component: ModelsSettings,
   },
-} as const satisfies Record<string, SectionConfig>;
+} as const satisfies Record<keyof typeof destinationIcons, SectionConfig>;
 
 export type SidebarSection = keyof typeof SECTIONS_CONFIG;
 
@@ -135,7 +124,7 @@ export const buildNavigationActions = (
       id: `nav-${section}`,
       group: "navigation",
       label: t(config.labelKey),
-      icon: commandActionIcons[config.icon],
+      icon: destinationIcons[section],
       run: () => onNavigate(section),
     };
   });

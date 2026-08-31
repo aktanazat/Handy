@@ -241,21 +241,21 @@ const buildCommandActions = ({
     id: "action-meeting",
     group: "actions",
     label: t("commandPalette.newMeeting"),
-    icon: commandActionIcons.video,
+    icon: commandActionIcons.newMeeting,
     run: onNewMeeting,
   },
   {
     id: "action-import",
     group: "actions",
     label: t("commandPalette.importAudio"),
-    icon: commandActionIcons.file,
+    icon: commandActionIcons.importAudio,
     run: onImportAudio,
   },
   {
     id: "action-recordings",
     group: "actions",
     label: t("commandPalette.openRecordings"),
-    icon: commandActionIcons.folder,
+    icon: commandActionIcons.openRecordings,
     run: onOpenRecordings,
   },
   ...(agentEnabled
@@ -264,7 +264,7 @@ const buildCommandActions = ({
           id: "action-agent",
           group: "actions" as const,
           label: t("commandPalette.openAgent"),
-          icon: commandActionIcons.agent,
+          icon: commandActionIcons.openAgent,
           run: onOpenAgent,
         },
       ]

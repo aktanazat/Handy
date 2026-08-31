@@ -8,6 +8,7 @@ import { formatKeyCombination, keyCapParts } from "@/lib/utils/keyboard";
 import { cn } from "@/lib/cn";
 import { SettingsCard } from "@/components/settings/rows";
 import { Button } from "@/components/vg/button";
+import { commandActionIcons } from "@/components/commandPaletteActions";
 import { Kbd } from "@/components/vg/kbd";
 import {
   Tooltip,
@@ -34,6 +35,8 @@ import { UpdateBanner, UpdateCheckFailure } from "./UpdateNotice";
  * global chord this window never sees, so the status word is polled. One
  * boolean a second is the whole backend cost of this page while it is open. */
 const RECORDING_POLL_MS = 1000;
+const NewMeetingIcon = commandActionIcons.newMeeting;
+const ImportAudioIcon = commandActionIcons.importAudio;
 
 export interface CaptureHeroProps {
   isRecording: boolean;
@@ -157,6 +160,7 @@ export const CaptureHero: React.FC<CaptureHeroProps> = ({
         <Tooltip>
           <TooltipTrigger asChild>
             <Button type="button" onClick={onNewMeeting}>
+              <NewMeetingIcon aria-hidden="true" className="size-4" />
               {t("overview.hero.newMeeting")}
             </Button>
           </TooltipTrigger>
@@ -171,6 +175,7 @@ export const CaptureHero: React.FC<CaptureHeroProps> = ({
           disabled={importing}
           onClick={onImportAudio}
         >
+          <ImportAudioIcon aria-hidden="true" className="size-4" />
           {t("overview.hero.importAudio")}
         </Button>
       </div>

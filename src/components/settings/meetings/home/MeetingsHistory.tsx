@@ -8,10 +8,12 @@ import type {
 import { Microlabel, Notice } from "@/components/settings/rows";
 import { Button } from "@/components/vg/button";
 import { Skeleton } from "@/components/vg/skeleton";
+import { destinationIcons } from "@/lib/navIcons";
 import { isUnfilteredMeetingList } from "../meetingUtils";
 import { MeetingCard } from "./MeetingCard";
 import { MeetingsFilterBar } from "./MeetingsFilterBar";
 import { MeetingsPager } from "./MeetingsPager";
+const MeetingsEmptyIcon = destinationIcons.meetings;
 
 interface MeetingsHistoryProps {
   meetings: MeetingHistorySummary[];
@@ -95,6 +97,10 @@ export const MeetingsHistory: React.FC<MeetingsHistoryProps> = ({
           <MeetingListSkeleton label={t("meetings.history.loading")} />
         ) : meetings.length === 0 ? (
           <div className="flex flex-col items-center gap-2 rounded-card border border-gray-alpha-400 bg-background-100 px-4 py-12 text-center">
+            <MeetingsEmptyIcon
+              aria-hidden="true"
+              className="size-6 text-gray-700"
+            />
             <p className="text-[13px] text-gray-1000">
               {unfiltered
                 ? t("meetings.history.emptyTitle")

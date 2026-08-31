@@ -1,5 +1,5 @@
 import React from "react";
-import { Ellipsis } from "lucide-react";
+import { Ellipsis, Mic, MonitorSpeaker } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { MeetingExportFormat, MeetingHistorySummary } from "@/bindings";
 import { Microlabel } from "@/components/settings/rows";
@@ -33,14 +33,21 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
 
   if (sources.length > 0) {
     metadata.push(
-      <Microlabel key="sources" className="text-gray-900">
-        {sources
-          .map((source) =>
-            source === "microphone"
-              ? t("meetings.list.sourceGlyph.microphone", "MIC")
-              : t("meetings.list.sourceGlyph.system_audio", "SYS"),
-          )
-          .join(" ")}
+      <Microlabel
+        key="sources"
+        className="inline-flex items-center gap-2 text-gray-900"
+      >
+        {sources.map((source) => {
+          const SourceIcon = source === "microphone" ? Mic : MonitorSpeaker;
+          return (
+            <span key={source} className="inline-flex items-center gap-1">
+              <SourceIcon aria-hidden="true" className="size-3" />
+              {source === "microphone"
+                ? t("meetings.list.sourceGlyph.microphone", "MIC")
+                : t("meetings.list.sourceGlyph.system_audio", "SYS")}
+            </span>
+          );
+        })}
       </Microlabel>,
     );
   }
