@@ -68,4 +68,49 @@ test.describe("Meetings", () => {
       )
       .toBe(1);
   });
+
+  test("a meeting an interrupted launch left behind says why and offers to run it again", async ({
+    page,
+  }) => {
+    await installTauriMock(page, {
+      responses: {
+        // The shape yesterday's launch leaves on disk once startup recovery has
+        // resolved it: parked for a person, with a terminal reason.
+        meeting_list: {
+          entries: [
+            {
+              kind: "meeting",
+              session_id: "meeting-stranded",
+              title: "Yesterday's standup",
+              phase: "recovery_required",
+              created_at_utc_ms: 1_756_136_400_000,
+              capture_completeness: "partial",
+              processing_status: { kind: "failed", reason: "interrupted" },
+              recorded_duration_ms: 1_800_000,
+            },
+          ],
+          has_more: false,
+        },
+        // Empty, so the only control offered for this meeting is the one on its
+        // own row: the recovery card at the top of the page is not on screen.
+        meeting_recovery_list: [],
+      },
+    });
+
+    await page.goto("/");
+    await page.getByRole("button", { name: "Meetings", exact: true }).click();
+
+    const row = page.getByRole("listitem").filter({
+      hasText: "Yesterday's standup",
+    });
+    await expect(row.getByText("Needs attention")).toBeVisible();
+    // The state alone does not say what happened, so the reason is on the row.
+    await expect(row.getByText("Interrupted before it finished")).toBeVisible();
+    await expect(
+      row.getByRole("button", { name: "Try again", exact: true }),
+    ).toBeEnabled();
+    // The bug this replaced: a meeting nothing was working on reading as work
+    // in flight, with no way to act on it.
+    await expect(row.getByText("Processing", { exact: true })).toHaveCount(0);
+  });
 });

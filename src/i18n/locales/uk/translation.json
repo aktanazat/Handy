@@ -1813,7 +1813,8 @@
         "local_model_unavailable": "Локальна модель недоступна",
         "remote_unavailable": "Віддалене призначення недоступне",
         "engine_failure": "Обробка не вдалася",
-        "cancelled": "Обробку скасовано"
+        "cancelled": "Обробку скасовано",
+        "interrupted": "Обробку перервано"
       }
     },
     "actions": {

@@ -1807,7 +1807,8 @@
         "local_model_unavailable": "Modèle local indisponible",
         "remote_unavailable": "Destination distante indisponible",
         "engine_failure": "Échec du traitement",
-        "cancelled": "Traitement annulé"
+        "cancelled": "Traitement annulé",
+        "interrupted": "Traitement interrompu"
       }
     },
     "actions": {

@@ -1807,7 +1807,8 @@
         "local_model_unavailable": "המודל המקומי אינו זמין",
         "remote_unavailable": "היעד המרוחק אינו זמין",
         "engine_failure": "העיבוד נכשל",
-        "cancelled": "העיבוד בוטל"
+        "cancelled": "העיבוד בוטל",
+        "interrupted": "העיבוד הופסק"
       }
     },
     "actions": {

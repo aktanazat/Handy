@@ -1107,6 +1107,26 @@ pub(crate) struct DueRetentionSession {
     pub session_id: MeetingSessionId,
     pub revision: u64,
 }
+
+/// One meeting a previous launch left mid-flight, with the phase it was in
+/// when that launch ended. The prior phase is the only discriminator left
+/// between a meeting whose audio was still being written and one that had
+/// already been stopped, and it decides what recovery may attempt on its own.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RecoveredMeeting {
+    pub session_id: MeetingSessionId,
+    pub prior_phase: MeetingPhase,
+}
+
+/// What one startup reconciliation changed.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct InterruptedRecovery {
+    /// Meetings moved out of a live phase by this pass.
+    pub recovered: Vec<RecoveredMeeting>,
+    /// Meetings already parked in recovery whose stale processing status this
+    /// pass resolved. Their phase, revision, and history are untouched.
+    pub status_resolved: Vec<MeetingSessionId>,
+}
 #[derive(Clone, Copy)]
 pub(crate) struct StoreMutation {
     pub operation_id: MeetingOperationId,
@@ -5271,8 +5291,23 @@ impl MeetingStore {
         Ok(())
     }
 
-    pub fn recover_interrupted(&self) -> Result<Vec<MeetingSessionId>, StoreError> {
+    /// Reconcile every meeting a previous launch left mid-flight, so that no
+    /// row can advertise processing that no job is doing.
+    ///
+    /// Two shapes need it. A live phase means the launch ended mid-capture or
+    /// mid-processing: the phase moves to `recovery_required` and the
+    /// processing status becomes terminal in the same transaction, because a
+    /// phase that parks the meeting for a human while the status still reads
+    /// `pending` is the state that showed "Processing" forever. A row already
+    /// parked in `recovery_required` with a non-terminal status is the same
+    /// state left by launches that flipped the phase alone; it is healed
+    /// without touching the phase, the revision, or the event log, since
+    /// nothing about the meeting changed — only what was always true about it
+    /// is now written down. Terminal statuses are fixpoints, so a second pass
+    /// in the same launch changes nothing.
+    pub fn recover_interrupted(&self) -> Result<InterruptedRecovery, StoreError> {
         self.resume_deletions()?;
+        let status_resolved = self.resolve_abandoned_recovery_status()?;
         let connection = self.connection()?;
         let mut statement = connection.prepare(
             "SELECT id FROM meeting_sessions WHERE phase IN (
@@ -5285,6 +5320,9 @@ impl MeetingStore {
             .collect::<Result<Vec<_>, _>>()?;
         drop(statement);
         drop(connection);
+        let interrupted = encode_json(&ProcessingStatus::Failed {
+            reason: ProcessingFailure::Interrupted,
+        })?;
         let mut recovered = Vec::new();
         for value in ids {
             let session_id = MeetingSessionId::from_uuid(parse_uuid(&value)?);
@@ -5295,11 +5333,21 @@ impl MeetingStore {
             let next_revision = current.revision.checked_add(1).ok_or(StoreError::Corrupt)?;
             transaction.execute(
                 "UPDATE meeting_sessions
-                 SET phase = 'recovery_required', revision = ?1, recovered_at_utc_ms = ?2
-                 WHERE id = ?3",
-                params![to_i64(next_revision)?, utc_now_ms(), id(session_id)],
+                 SET phase = 'recovery_required', revision = ?1, recovered_at_utc_ms = ?2,
+                     processing_status = ?3
+                 WHERE id = ?4",
+                params![
+                    to_i64(next_revision)?,
+                    utc_now_ms(),
+                    interrupted,
+                    id(session_id)
+                ],
             )?;
-            append_event(
+            // The phase the launch died in is the only surviving discriminator
+            // between a meeting whose audio was still being written and one
+            // that was already past the stop, and it is gone the moment this
+            // transaction commits. The event ledger is where it keeps.
+            append_event_with_details(
                 &transaction,
                 session_id,
                 next_revision,
@@ -5307,11 +5355,69 @@ impl MeetingStore {
                 MeetingPhase::RecoveryRequired,
                 "recovery_required",
                 None,
+                &recovery_details(current.phase),
             )?;
             transaction.commit()?;
-            recovered.push(session_id);
+            recovered.push(RecoveredMeeting {
+                session_id,
+                prior_phase: current.phase,
+            });
         }
-        Ok(recovered)
+        Ok(InterruptedRecovery {
+            recovered,
+            status_resolved,
+        })
+    }
+
+    /// Meetings parked in `recovery_required` whose processing status never
+    /// reached a terminal value, healed in one statement. Returned so the
+    /// caller can tell the windows their rows changed.
+    fn resolve_abandoned_recovery_status(&self) -> Result<Vec<MeetingSessionId>, StoreError> {
+        const ABANDONED: &str = "phase = 'recovery_required'
+             AND json_extract(processing_status, '$.kind') IN ('pending', 'running')";
+        let connection = self.connection()?;
+        let mut statement = connection.prepare(&format!(
+            "SELECT id FROM meeting_sessions WHERE {ABANDONED}"
+        ))?;
+        let ids = statement
+            .query_map([], |row| row.get::<_, String>(0))?
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .map(|value| parse_uuid(&value).map(MeetingSessionId::from_uuid))
+            .collect::<Result<Vec<_>, _>>()?;
+        drop(statement);
+        if ids.is_empty() {
+            return Ok(ids);
+        }
+        connection.execute(
+            &format!("UPDATE meeting_sessions SET processing_status = ?1 WHERE {ABANDONED}"),
+            params![encode_json(&ProcessingStatus::Failed {
+                reason: ProcessingFailure::Interrupted,
+            })?],
+        )?;
+        Ok(ids)
+    }
+
+    /// True when a track of this meeting has lost its records on disk. The
+    /// repair pass writes a `MissingRecord` gap for exactly that, and it is
+    /// the one shape automatic reprocessing must leave alone: a transcript
+    /// rebuilt from the tracks that survived would quietly replace the
+    /// meeting with a fraction of itself, which is a decision for the person
+    /// who was in the room.
+    pub fn has_missing_record_gap(&self, session_id: MeetingSessionId) -> Result<bool, StoreError> {
+        let connection = self.connection()?;
+        let count: i64 = connection.query_row(
+            "SELECT COUNT(*)
+               FROM meeting_source_gaps g
+               JOIN meeting_source_tracks t ON t.track_id = g.track_id
+              WHERE t.session_id = ?1 AND g.reason = ?2",
+            params![
+                id(session_id),
+                encode_json(&SourceGapReason::MissingRecord)?
+            ],
+            |row| row.get(0),
+        )?;
+        Ok(count > 0)
     }
 
     fn edit_session<F>(
@@ -6204,11 +6310,37 @@ fn append_event(
     event_kind: &str,
     session_offset_ns: Option<u64>,
 ) -> Result<(), StoreError> {
+    append_event_with_details(
+        transaction,
+        session_id,
+        sequence,
+        prior_phase,
+        next_phase,
+        event_kind,
+        session_offset_ns,
+        "{}",
+    )
+}
+
+/// The event log, with room for what the phase pair alone cannot say. Every
+/// transition writes through here; `details_json` is an object because the
+/// column has always held one.
+#[allow(clippy::too_many_arguments)]
+fn append_event_with_details(
+    transaction: &Transaction<'_>,
+    session_id: MeetingSessionId,
+    sequence: u64,
+    prior_phase: MeetingPhase,
+    next_phase: MeetingPhase,
+    event_kind: &str,
+    session_offset_ns: Option<u64>,
+    details_json: &str,
+) -> Result<(), StoreError> {
     transaction.execute(
         "INSERT INTO meeting_session_events (
             session_id, sequence, prior_phase, next_phase, event_kind, observed_at_utc_ms,
             session_offset_ns, details_json
-         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, '{}')",
+         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
         params![
             id(session_id),
             to_i64(sequence)?,
@@ -6217,9 +6349,17 @@ fn append_event(
             event_kind,
             utc_now_ms(),
             optional_i64(session_offset_ns)?,
+            details_json,
         ],
     )?;
     Ok(())
+}
+
+/// Why a meeting entered recovery, as the event ledger keeps it. `prior_phase`
+/// is the phase the interrupted launch died in, written in the same spelling
+/// the phase column uses.
+fn recovery_details(prior_phase: MeetingPhase) -> String {
+    format!(r#"{{"prior_phase":"{}"}}"#, phase_db(prior_phase))
 }
 
 /* --------------------------------------------------- meetings-list helpers */
@@ -11086,5 +11226,261 @@ mod tests {
             .entries
             .iter()
             .all(|row| row.phase == MeetingPhase::ReviewReady));
+    }
+
+    /* ------------------------------------------- startup recovery invariant */
+
+    /// A meeting the way an unannounced end of a launch leaves it: a phase
+    /// nothing is working on any more and whatever status was last written.
+    fn stranded_session(
+        store: &Arc<MeetingStore>,
+        phase: &str,
+        status: ProcessingStatus,
+    ) -> MeetingSessionId {
+        let session_id = MeetingSessionId::new();
+        store
+            .create_preflight(
+                StoreMutation {
+                    operation_id: MeetingOperationId::new(),
+                    requested_at_utc_ms: 1,
+                    session_id,
+                    expected_revision: 0,
+                    command: MeetingCommandKind::PreflightCreate,
+                },
+                "Design sync".to_string(),
+                MeetingOrigin::Manual,
+                preflight(session_id),
+                MeetingRetentionPolicy::Forever,
+            )
+            .unwrap();
+        let connection = store.connection().unwrap();
+        connection
+            .execute(
+                "UPDATE meeting_sessions SET phase = ?1, processing_status = ?2 WHERE id = ?3",
+                params![phase, encode_json(&status).unwrap(), id(session_id)],
+            )
+            .unwrap();
+        session_id
+    }
+
+    fn latest_event(store: &Arc<MeetingStore>, session_id: MeetingSessionId) -> (String, String) {
+        let connection = store.connection().unwrap();
+        connection
+            .query_row(
+                "SELECT event_kind, details_json FROM meeting_session_events
+                  WHERE session_id = ?1 ORDER BY sequence DESC LIMIT 1",
+                params![id(session_id)],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap()
+    }
+
+    fn event_count(store: &Arc<MeetingStore>, session_id: MeetingSessionId) -> i64 {
+        let connection = store.connection().unwrap();
+        connection
+            .query_row(
+                "SELECT COUNT(*) FROM meeting_session_events WHERE session_id = ?1",
+                params![id(session_id)],
+                |row| row.get(0),
+            )
+            .unwrap()
+    }
+
+    fn listed_ids(store: &Arc<MeetingStore>, status: MeetingStatusFilter) -> Vec<MeetingSessionId> {
+        store
+            .list_sessions(
+                None,
+                100,
+                &MeetingListFilter {
+                    status,
+                    ..MeetingListFilter::default()
+                },
+            )
+            .expect("list sessions")
+            .entries
+            .into_iter()
+            .map(|entry| entry.session_id)
+            .collect()
+    }
+
+    /// Matrix 1: the shape that showed "Processing" for days. Recovery has to
+    /// leave a terminal status behind, or the row keeps advertising work that
+    /// no job is doing.
+    #[test]
+    fn recovery_gives_an_interrupted_meeting_a_terminal_status() {
+        let (_directory, store) = store();
+        let session_id = stranded_session(&store, "processing", ProcessingStatus::Pending);
+        let before = store.session_snapshot(session_id).unwrap().revision;
+
+        let recovery = store.recover_interrupted().expect("recovery sweep");
+
+        let snapshot = store.session_snapshot(session_id).unwrap();
+        assert_eq!(snapshot.phase, MeetingPhase::RecoveryRequired);
+        assert_eq!(
+            snapshot.processing_status,
+            ProcessingStatus::Failed {
+                reason: ProcessingFailure::Interrupted
+            }
+        );
+        assert_eq!(snapshot.revision, before + 1);
+        assert_eq!(
+            recovery.recovered,
+            vec![RecoveredMeeting {
+                session_id,
+                prior_phase: MeetingPhase::Processing,
+            }],
+            "the phase the launch died in is the only eligibility discriminator"
+        );
+        let (event_kind, details) = latest_event(&store, session_id);
+        assert_eq!(event_kind, "recovery_required");
+        assert_eq!(details, r#"{"prior_phase":"processing"}"#);
+        assert_eq!(
+            listed_ids(&store, MeetingStatusFilter::Failed),
+            vec![session_id]
+        );
+        assert!(
+            listed_ids(&store, MeetingStatusFilter::Processing).is_empty(),
+            "an abandoned meeting must leave the Processing filter"
+        );
+    }
+
+    /// Matrix 2: a launch that died mid-recording ends in the same terminal
+    /// shape, and says so — the prior phase is what later refuses to reprocess
+    /// it unasked.
+    #[test]
+    fn recovery_records_the_capture_phase_it_interrupted() {
+        let (_directory, store) = store();
+        let session_id = stranded_session(&store, "capturing_recording", ProcessingStatus::Pending);
+
+        let recovery = store.recover_interrupted().expect("recovery sweep");
+
+        let snapshot = store.session_snapshot(session_id).unwrap();
+        assert_eq!(snapshot.phase, MeetingPhase::RecoveryRequired);
+        assert_eq!(
+            snapshot.processing_status,
+            ProcessingStatus::Failed {
+                reason: ProcessingFailure::Interrupted
+            }
+        );
+        assert_eq!(
+            recovery
+                .recovered
+                .first()
+                .map(|meeting| meeting.prior_phase),
+            Some(MeetingPhase::CapturingRecording)
+        );
+        assert_eq!(
+            latest_event(&store, session_id).1,
+            r#"{"prior_phase":"capturing_recording"}"#
+        );
+    }
+
+    /// Matrix 3: the rows already on disk from launches that flipped the phase
+    /// alone. They heal without a new revision or a new event, because nothing
+    /// about the meeting changed — only what was always true is written down.
+    #[test]
+    fn recovery_heals_a_meeting_already_parked_with_an_unfinished_status() {
+        let (_directory, store) = store();
+        let session_id = stranded_session(&store, "recovery_required", ProcessingStatus::Pending);
+        let before = store.session_snapshot(session_id).unwrap();
+        let events = event_count(&store, session_id);
+
+        let recovery = store.recover_interrupted().expect("recovery sweep");
+
+        let after = store.session_snapshot(session_id).unwrap();
+        assert_eq!(
+            after.processing_status,
+            ProcessingStatus::Failed {
+                reason: ProcessingFailure::Interrupted
+            }
+        );
+        assert_eq!(after.phase, MeetingPhase::RecoveryRequired);
+        assert_eq!(after.revision, before.revision);
+        assert_eq!(event_count(&store, session_id), events);
+        assert!(recovery.recovered.is_empty());
+        assert_eq!(recovery.status_resolved, vec![session_id]);
+        assert!(
+            listed_ids(&store, MeetingStatusFilter::Processing).is_empty(),
+            "the row the person saw as Processing must stop matching that filter"
+        );
+        assert_eq!(
+            listed_ids(&store, MeetingStatusFilter::Failed),
+            vec![session_id]
+        );
+    }
+
+    /// Matrix 4: a meeting whose failure is already recorded keeps the reason
+    /// it has. A terminal status is a fixpoint, not something to overwrite.
+    #[test]
+    fn recovery_leaves_a_recorded_failure_reason_alone() {
+        let (_directory, store) = store();
+        let session_id = stranded_session(
+            &store,
+            "recovery_required",
+            ProcessingStatus::Failed {
+                reason: ProcessingFailure::EngineFailure,
+            },
+        );
+        let before = store.session_snapshot(session_id).unwrap();
+
+        let recovery = store.recover_interrupted().expect("recovery sweep");
+
+        assert_eq!(store.session_snapshot(session_id).unwrap(), before);
+        assert!(recovery.recovered.is_empty());
+        assert!(recovery.status_resolved.is_empty());
+    }
+
+    /// Matrix 5: the sweep is a fixpoint as a whole, so running it twice in one
+    /// launch cannot walk a meeting further away from where it belongs.
+    #[test]
+    fn recovery_run_twice_changes_nothing_the_second_time() {
+        let (_directory, store) = store();
+        let interrupted = stranded_session(&store, "stopping", ProcessingStatus::Pending);
+        let parked = stranded_session(&store, "recovery_required", ProcessingStatus::Pending);
+
+        store.recover_interrupted().expect("first sweep");
+        let after_first = (
+            store.session_snapshot(interrupted).unwrap(),
+            store.session_snapshot(parked).unwrap(),
+            event_count(&store, interrupted),
+        );
+
+        let second = store.recover_interrupted().expect("second sweep");
+
+        assert!(second.recovered.is_empty());
+        assert!(second.status_resolved.is_empty());
+        assert_eq!(
+            (
+                store.session_snapshot(interrupted).unwrap(),
+                store.session_snapshot(parked).unwrap(),
+                event_count(&store, interrupted),
+            ),
+            after_first
+        );
+    }
+
+    /// A meeting that lost its records on disk is exactly what the repair pass
+    /// writes a `MissingRecord` gap for, and reading that back is how automatic
+    /// reprocessing knows to keep its hands off.
+    #[test]
+    fn missing_records_are_readable_as_a_gap_after_recovery() {
+        let (_directory, store) = store();
+        let (session_id, _track_id, _storage) = microphone_track(
+            &store,
+            TimestampBridge {
+                native_anchor_value: 0,
+                native_timescale: 1_000_000_000,
+                host_monotonic_anchor_ns: 0,
+                session_offset_ns: 0,
+            },
+        );
+        assert!(!store.has_missing_record_gap(session_id).unwrap());
+
+        store.recover_interrupted().expect("recovery sweep");
+
+        assert!(
+            store.has_missing_record_gap(session_id).unwrap(),
+            "a track whose record file was never written reads as missing audio"
+        );
     }
 }

@@ -1801,7 +1801,8 @@
         "local_model_unavailable": "Lokal modell är inte tillgänglig",
         "remote_unavailable": "Fjärrdestinationen är inte tillgänglig",
         "engine_failure": "Bearbetningen misslyckades",
-        "cancelled": "Bearbetningen avbröts"
+        "cancelled": "Bearbetningen avbröts",
+        "interrupted": "Bearbetningen avbröts i förtid"
       }
     },
     "actions": {

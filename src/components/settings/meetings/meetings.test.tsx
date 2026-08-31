@@ -10,9 +10,13 @@ import { TooltipProvider } from "@/components/vg/tooltip";
 import type {
   MeetingHistorySummary,
   MeetingLedger,
+  MeetingPhase,
   MeetingReviewSnapshot,
+  MeetingStatusFilter,
   MeetingSuggestion,
+  ProcessingStatus,
 } from "@/bindings";
+import { meetingCardStatus } from "./home/MeetingStatusChip";
 import { MeetingLive } from "./MeetingLive";
 import { MeetingStartGate } from "./MeetingStartGate";
 import { InsightsTab } from "./review/InsightsTab";
@@ -1100,6 +1104,210 @@ describe("meeting ledger", () => {
     expect(currentLedger([ledgerless])).toBeNull();
     expect(currentLedger([ledgerless, artifact])?.ledger.headline).toBe(
       LEDGER.headline,
+    );
+  });
+});
+
+/* What a row says about itself, and the one action that can change it.
+ *
+ * A meeting left behind by a launch that ended used to read "Processing"
+ * forever: its phase was parked for a human but its recorded status still said
+ * `pending`, and a chip that trusted the status could not tell the difference
+ * between work in flight and work abandoned. The store now resolves that at
+ * startup, and these tests hold the reading end of the same contract: no
+ * status value on its own may produce the Processing chip, a row that ended
+ * badly says why, and Retry appears only where it can run. */
+
+const PHASES: MeetingPhase[] = [
+  "preflight",
+  "starting",
+  "capturing_recording",
+  "capturing_pausing",
+  "capturing_paused",
+  "capturing_resuming",
+  "stopping",
+  "processing",
+  "review_ready",
+  "recovery_required",
+  "deleting",
+];
+
+const STATUSES: ProcessingStatus[] = [
+  { kind: "pending" },
+  { kind: "running" },
+  { kind: "succeeded" },
+  { kind: "cancelled" },
+  { kind: "failed", reason: "interrupted" },
+  { kind: "failed", reason: "engine_failure" },
+  { kind: "failed", reason: "local_model_unavailable" },
+];
+
+/** The store's own list filters, as SQL-free predicates. Mirrors
+ *  `status_predicate` in src-tauri/src/meeting/store.rs — the chip and the
+ *  filter that returns a row have to agree, and this is where drift shows. */
+const matchingFilters = (phase: MeetingPhase, status: ProcessingStatus) => {
+  const arms: MeetingStatusFilter[] = ["any"];
+  if (phase === "review_ready" && status.kind === "succeeded") {
+    arms.push("ready");
+  }
+  if (
+    phase === "processing" ||
+    phase === "stopping" ||
+    status.kind === "pending" ||
+    status.kind === "running"
+  ) {
+    arms.push("processing");
+  }
+  if (
+    phase === "recovery_required" ||
+    status.kind === "failed" ||
+    status.kind === "cancelled"
+  ) {
+    arms.push("failed");
+  }
+  return arms;
+};
+
+const STRANDED: MeetingHistorySummary = {
+  ...SUMMARY,
+  session_id: "meeting-stranded",
+  title: "Yesterday's standup",
+  phase: "recovery_required",
+  processing_status: { kind: "failed", reason: "interrupted" },
+};
+
+describe("what a meeting row says about itself", () => {
+  /** The phases a live job can belong to: the only ones the Processing chip is
+   *  allowed to come from, whatever a row's status says. */
+  const IN_FLIGHT: MeetingPhase[] = [
+    "preflight",
+    "stopping",
+    "processing",
+    "deleting",
+  ];
+
+  test("no processing status on its own can claim a meeting is processing", () => {
+    for (const phase of PHASES) {
+      for (const status of STATUSES) {
+        if (meetingCardStatus(phase, status) !== "processing") continue;
+        expect({
+          phase,
+          status: status.kind,
+          inFlight: IN_FLIGHT.includes(phase),
+        }).toEqual({ phase, status: status.kind, inFlight: true });
+      }
+    }
+  });
+
+  test("every shape the store can hold agrees with the filter that returns it", () => {
+    /* The shapes a launch can leave on disk. A meeting is born `pending` in
+     * preflight and stays `pending` while it captures; only a finished job
+     * writes a terminal status, and startup reconciliation writes one for the
+     * job nobody finished. That is why `review_ready` with an unresolved
+     * status is not here — it would mean a meeting arrived at review without
+     * its run ending — and why `deleting` is not either: the store's list
+     * excludes that phase outright. */
+    const reachable: [MeetingPhase, ProcessingStatus][] = [
+      ["preflight", { kind: "pending" }],
+      ["starting", { kind: "pending" }],
+      ["capturing_recording", { kind: "pending" }],
+      ["capturing_pausing", { kind: "pending" }],
+      ["capturing_paused", { kind: "pending" }],
+      ["capturing_resuming", { kind: "pending" }],
+      ["stopping", { kind: "pending" }],
+      ["processing", { kind: "pending" }],
+      ["processing", { kind: "succeeded" }],
+      ["processing", { kind: "cancelled" }],
+      ["processing", { kind: "failed", reason: "engine_failure" }],
+      ["review_ready", { kind: "succeeded" }],
+      ["review_ready", { kind: "cancelled" }],
+      ["review_ready", { kind: "failed", reason: "local_model_unavailable" }],
+      // Before the sweep runs, and after it.
+      ["recovery_required", { kind: "pending" }],
+      ["recovery_required", { kind: "failed", reason: "interrupted" }],
+      ["recovery_required", { kind: "failed", reason: "engine_failure" }],
+    ];
+
+    for (const [phase, status] of reachable) {
+      const arms = matchingFilters(phase, status);
+      const chip = meetingCardStatus(phase, status);
+      expect({ phase, status, failed: chip === "needs_attention" }).toEqual({
+        phase,
+        status,
+        failed: arms.includes("failed"),
+      });
+      expect({ phase, status, ready: chip === "ready" }).toEqual({
+        phase,
+        status,
+        ready: arms.includes("ready"),
+      });
+      if (chip === "processing") {
+        expect({
+          phase,
+          status,
+          processingArm: arms.includes("processing"),
+        }).toEqual({ phase, status, processingArm: true });
+      }
+    }
+  });
+
+  test("a meeting an interrupted launch left behind reads as needing attention", () => {
+    expect(meetingCardStatus("recovery_required", { kind: "pending" })).toBe(
+      "needs_attention",
+    );
+    expect(
+      meetingCardStatus("recovery_required", {
+        kind: "failed",
+        reason: "interrupted",
+      }),
+    ).toBe("needs_attention");
+    // The shape the sweep produces has left the Processing filter for good.
+    expect(
+      matchingFilters("recovery_required", {
+        kind: "failed",
+        reason: "interrupted",
+      }),
+    ).not.toContain("processing");
+  });
+});
+
+describe("recovering a meeting from the list", () => {
+  test("the row says what happened and offers to run it again", () => {
+    const markup = homeMarkup({ meetings: [STRANDED] });
+    expect(markup).toContain(">Needs attention</span>");
+    expect(markup).toContain(">Interrupted before it finished</span>");
+    // "Needs attention" is a state, not an explanation, so the reason has to
+    // be on the row beside it.
+    expect(occurrences(markup, ">Try again</button>")).toBe(1);
+    expect(markup).not.toContain(">Processing</span>");
+  });
+
+  test("a finished meeting gets no chip, no reason line and no retry", () => {
+    const markup = homeMarkup({ meetings: [SUMMARY] });
+    expect(markup).toContain(">Weekly planning</span>");
+    expect(markup).not.toContain(">Needs attention</span>");
+    expect(markup).not.toContain(">Ready</span>");
+    expect(occurrences(markup, ">Try again</button>")).toBe(0);
+  });
+
+  test("a meeting that failed after review keeps its reason and is offered no retry", () => {
+    const markup = homeMarkup({
+      meetings: [
+        {
+          ...SUMMARY,
+          phase: "review_ready",
+          processing_status: {
+            kind: "failed",
+            reason: "local_model_unavailable",
+          },
+        },
+      ],
+    });
+    expect(markup).toContain(">Local model unavailable</span>");
+    expect(occurrences(markup, ">Try again</button>")).toBe(
+      0,
+      // There is no command that reprocesses a meeting from review, so an
+      // enabled Retry here would be a button that cannot do its job.
     );
   });
 });

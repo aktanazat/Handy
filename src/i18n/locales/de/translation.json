@@ -1801,7 +1801,8 @@
         "local_model_unavailable": "Lokales Modell nicht verfügbar",
         "remote_unavailable": "Entferntes Ziel nicht verfügbar",
         "engine_failure": "Verarbeitung fehlgeschlagen",
-        "cancelled": "Verarbeitung abgebrochen"
+        "cancelled": "Verarbeitung abgebrochen",
+        "interrupted": "Verarbeitung unterbrochen"
       }
     },
     "actions": {

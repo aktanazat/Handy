@@ -8,10 +8,10 @@ use super::detection::machine::CalendarEventSummary;
 use super::export;
 use super::keep_awake::MeetingKeepAwake;
 use super::ledger;
-use super::processing::{MeetingProcessingService, QuestionGenerationRequest};
+use super::processing::{MeetingProcessingService, ProcessingOrigin, QuestionGenerationRequest};
 use super::store::{
-    MeetingStore, MeetingTrackWriter, SegmentEdit, StoreError, StoreMutation, StoreTransition,
-    TrackCreation, STORE_SCHEMA_VERSION,
+    InterruptedRecovery, MeetingStore, MeetingTrackWriter, RecoveredMeeting, SegmentEdit,
+    StoreError, StoreMutation, StoreTransition, TrackCreation, STORE_SCHEMA_VERSION,
 };
 use super::suggestions::{
     MeetingSuggestion, MeetingSuggestionService, MeetingSuggestionSignal, MeetingSuggestionSink,
@@ -354,6 +354,12 @@ pub struct MeetingSessionManager {
     sources: Mutex<Arc<dyn MeetingSourceProvider>>,
     store: Mutex<Option<Arc<MeetingStore>>>,
     recovery_complete: AtomicBool,
+    /// UUID namespace for this launch's automatic recovery attempts. Drawn
+    /// once per launch so an attempt's operation id is stable inside the
+    /// launch — a second pass is deduplicated by the receipt the first one
+    /// wrote — and different in the next one, which is what lets a meeting
+    /// that failed today be tried again tomorrow.
+    recovery_launch: Uuid,
     processing: Arc<MeetingProcessingService>,
     keep_awake: Mutex<MeetingKeepAwake>,
     actor: Mutex<ActorState>,
@@ -387,6 +393,16 @@ pub(crate) struct RetentionSweepResult {
     pub failed_sessions: usize,
 }
 
+/// What one automatic recovery reprocess pass did. `skipped` counts meetings
+/// deliberately left for the person, which is a normal outcome and not a
+/// failure.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) struct RecoveryReprocessResult {
+    pub attempted: usize,
+    pub succeeded: usize,
+    pub skipped: usize,
+}
+
 impl MeetingSessionManager {
     pub fn new(app: &AppHandle, secrets: Arc<SecretManager>) -> Self {
         let root = crate::portable::app_data_dir(app)
@@ -410,6 +426,7 @@ impl MeetingSessionManager {
             sources: Mutex::new(source_provider),
             store: Mutex::new(None),
             recovery_complete: AtomicBool::new(false),
+            recovery_launch: Uuid::new_v4(),
             processing,
             keep_awake: Mutex::new(MeetingKeepAwake::new()),
             actor: Mutex::new(ActorState {
@@ -456,27 +473,206 @@ impl MeetingSessionManager {
         });
     }
 
-    pub async fn recover_at_startup(&self) -> Result<Vec<MeetingSessionId>, MeetingCommandError> {
+    pub async fn recover_at_startup(&self) -> Result<Vec<RecoveredMeeting>, MeetingCommandError> {
         self.recover_at_startup_at(utc_now_ms()).await
     }
 
     pub(crate) async fn recover_at_startup_at(
         &self,
         now_utc_ms: i64,
-    ) -> Result<Vec<MeetingSessionId>, MeetingCommandError> {
+    ) -> Result<Vec<RecoveredMeeting>, MeetingCommandError> {
         let store = self.store().await?;
-        let recovered = store.recover_interrupted().map_err(map_store_error)?;
-        for session_id in &recovered {
-            let snapshot = store
-                .session_snapshot(*session_id)
-                .map_err(map_store_error)?;
-            self.emit_session_changed(&snapshot);
-        }
+        let recovery = store.recover_interrupted().map_err(map_store_error)?;
+        self.announce_recovery(&store, &recovery)?;
         if let Err(error) = self.sweep_retention_at(now_utc_ms).await {
             log::warn!("Meeting retention sweep is unavailable at startup: {error:?}");
         }
         self.recovery_complete.store(true, Ordering::Release);
-        Ok(recovered)
+        Ok(recovery.recovered)
+    }
+
+    /// One line per meeting the reconciliation touched, and one refreshed row
+    /// per meeting in every open window. Without the line there is no record
+    /// of why a meeting is asking for attention after a launch nobody watched.
+    fn announce_recovery(
+        &self,
+        store: &MeetingStore,
+        recovery: &InterruptedRecovery,
+    ) -> Result<(), MeetingCommandError> {
+        for meeting in &recovery.recovered {
+            log::info!(
+                "Meeting recovery: {:?} was left in {:?} by an earlier launch and now needs review",
+                meeting.session_id,
+                meeting.prior_phase,
+            );
+        }
+        for session_id in &recovery.status_resolved {
+            log::info!(
+                "Meeting recovery: {session_id:?} was still marked as processing by an earlier launch, now marked interrupted",
+            );
+        }
+        for session_id in recovery
+            .recovered
+            .iter()
+            .map(|meeting| meeting.session_id)
+            .chain(recovery.status_resolved.iter().copied())
+        {
+            let snapshot = store
+                .session_snapshot(session_id)
+                .map_err(map_store_error)?;
+            self.emit_session_changed(&snapshot);
+        }
+        Ok(())
+    }
+
+    /// The automatic reprocess pass, off the startup path. It owns a thread
+    /// because every attempt waits for a whole engine run to finish, and
+    /// startup must not.
+    pub(crate) fn start_recovery_reprocess(self: &Arc<Self>, recovered: Vec<RecoveredMeeting>) {
+        if recovered.is_empty() {
+            return;
+        }
+        let manager = Arc::clone(self);
+        thread::spawn(move || {
+            let result = tauri::async_runtime::block_on(manager.reprocess_recovered(&recovered));
+            log::info!(
+                "Meeting recovery reprocess finished: {} attempted, {} finished, {} left for review",
+                result.attempted,
+                result.succeeded,
+                result.skipped,
+            );
+        });
+    }
+
+    /// One automatic attempt per interrupted meeting per launch, in sequence.
+    ///
+    /// Each attempt is a whole transcription pass over one meeting, so they run
+    /// one at a time: five at once at login would spend the same work while
+    /// making the machine unusable. An attempt that fails leaves the meeting in
+    /// recovery, where the next launch — or the person — can try it again.
+    pub(crate) async fn reprocess_recovered(
+        &self,
+        recovered: &[RecoveredMeeting],
+    ) -> RecoveryReprocessResult {
+        let mut result = RecoveryReprocessResult::default();
+        if recovered.is_empty() {
+            return result;
+        }
+        let store = match self.store().await {
+            Ok(store) => store,
+            Err(error) => {
+                log::warn!("Meeting recovery reprocess is unavailable: {error:?}");
+                return result;
+            }
+        };
+        for meeting in recovered {
+            if let Some(reason) = self.reprocess_withheld(&store, meeting) {
+                result.skipped += 1;
+                log::info!(
+                    "Meeting recovery left {:?} for review without an attempt: {reason}",
+                    meeting.session_id,
+                );
+                continue;
+            }
+            let Ok(snapshot) = store.session_snapshot(meeting.session_id) else {
+                result.skipped += 1;
+                log::warn!(
+                    "Meeting recovery could not read {:?} and made no attempt",
+                    meeting.session_id,
+                );
+                continue;
+            };
+            let request = MeetingMutationRequest {
+                operation_id: self.recovery_operation_id(meeting.session_id),
+                session_id: meeting.session_id,
+                expected_revision: snapshot.revision,
+            };
+            result.attempted += 1;
+            match self
+                .recovery_finalize_as(OperationActor::System, request)
+                .await
+            {
+                Ok(outcome) if outcome.receipt.result == OperationResult::Committed => {
+                    // In the app the run is a detached thread. Waiting for it
+                    // is what makes the pass sequential.
+                    self.processing.wait_for_job(meeting.session_id);
+                    let status = store
+                        .session_snapshot(meeting.session_id)
+                        .map(|snapshot| snapshot.processing_status);
+                    if status == Ok(ProcessingStatus::Succeeded) {
+                        result.succeeded += 1;
+                    }
+                    log::info!(
+                        "Meeting recovery reprocessed {:?}: {:?}",
+                        meeting.session_id,
+                        status,
+                    );
+                }
+                Ok(outcome) => log::info!(
+                    "Meeting recovery attempt on {:?} was refused: {:?}",
+                    meeting.session_id,
+                    outcome.receipt.reason_codes,
+                ),
+                Err(error) => log::warn!(
+                    "Meeting recovery attempt on {:?} did not start: {error:?}",
+                    meeting.session_id,
+                ),
+            }
+        }
+        result
+    }
+
+    /// Why this meeting is not something to reprocess unasked, if it is not.
+    ///
+    /// Only a meeting whose launch died at or after the stop is eligible: its
+    /// audio is closed and only the transcript is missing, which is exactly
+    /// what a reprocess rebuilds. Every other shape is a decision for the
+    /// person who was in the room — a capture cut mid-recording, a meeting
+    /// missing audio on disk, one bound for a remote destination, or one whose
+    /// local model is not installed. Withholding costs the meeting nothing: it
+    /// keeps its place in recovery with Retry beside it.
+    fn reprocess_withheld(
+        &self,
+        store: &MeetingStore,
+        meeting: &RecoveredMeeting,
+    ) -> Option<&'static str> {
+        if !matches!(
+            meeting.prior_phase,
+            MeetingPhase::Stopping | MeetingPhase::Processing
+        ) {
+            return Some("the recording was interrupted before it was stopped");
+        }
+        match store.has_missing_record_gap(meeting.session_id) {
+            Ok(true) => return Some("some of its audio is no longer on disk"),
+            Err(error) => {
+                log::warn!("Meeting recovery could not read source gaps: {error:?}");
+                return Some("its audio could not be checked");
+            }
+            Ok(false) => {}
+        }
+        match store.processing_plan(meeting.session_id) {
+            Ok(plan) if matches!(plan.destination, ProcessingDestination::Local) => {}
+            Ok(_) => return Some("it was set up to be processed remotely"),
+            Err(error) => {
+                log::warn!("Meeting recovery could not read the processing plan: {error:?}");
+                return Some("its processing plan could not be read");
+            }
+        }
+        if self.processing.local_processing_availability() != SourceAvailability::Available {
+            return Some("the local model is not available on this launch");
+        }
+        None
+    }
+
+    /// An automatic attempt's operation id, namespaced to this launch. Stable
+    /// inside the launch, so a second pass is deduplicated by the receipt the
+    /// first one wrote; fresh in the next launch, so a meeting that failed
+    /// today is tried again tomorrow.
+    fn recovery_operation_id(&self, session_id: MeetingSessionId) -> MeetingOperationId {
+        MeetingOperationId::from_uuid(Uuid::new_v5(
+            &self.recovery_launch,
+            session_id.uuid().as_bytes(),
+        ))
     }
 
     pub(crate) async fn sweep_retention_at(
@@ -1423,8 +1619,11 @@ impl MeetingSessionManager {
         actor.tray_session_id = Some(request.session_id);
         drop(active);
         drop(actor);
-        self.processing
-            .submit(Arc::clone(&store), request.session_id);
+        self.processing.submit(
+            Arc::clone(&store),
+            request.session_id,
+            ProcessingOrigin::Stop,
+        );
         let snapshot = store
             .session_snapshot(request.session_id)
             .map_err(map_store_error)?;
@@ -1536,9 +1735,23 @@ impl MeetingSessionManager {
         &self,
         request: MeetingMutationRequest,
     ) -> Result<MeetingMutationResult, MeetingCommandError> {
+        self.recovery_finalize_as(OperationActor::User, request)
+            .await
+    }
+
+    /// The one owner of reprocessing an interrupted meeting, whether the
+    /// person asked for it or the launch's automatic pass did. The phase fence
+    /// is the whole duplicate-press guard: a second call while the first is
+    /// still running is refused because the meeting is no longer in recovery.
+    async fn recovery_finalize_as(
+        &self,
+        actor: OperationActor,
+        request: MeetingMutationRequest,
+    ) -> Result<MeetingMutationResult, MeetingCommandError> {
         let store = self.store().await?;
-        let receipt = required_transition(
+        let receipt = required_transition_by(
             &store,
+            actor,
             &request,
             MeetingCommandKind::RecoveryFinalize,
             &[MeetingPhase::RecoveryRequired],
@@ -1547,8 +1760,11 @@ impl MeetingSessionManager {
         )?;
         if receipt.result == OperationResult::Committed {
             self.processing.set_capture_active(false);
-            self.processing
-                .submit(Arc::clone(&store), request.session_id);
+            self.processing.submit(
+                Arc::clone(&store),
+                request.session_id,
+                ProcessingOrigin::Recovery,
+            );
         }
         let result = self.result_for_receipt(store, receipt, request.session_id)?;
         self.emit_session_changed(&result.snapshot);
@@ -2621,10 +2837,33 @@ fn required_transition(
     next_phase: MeetingPhase,
     event_kind: &str,
 ) -> Result<OperationReceipt, MeetingCommandError> {
+    required_transition_by(
+        store,
+        OperationActor::User,
+        request,
+        command,
+        allowed_from,
+        next_phase,
+        event_kind,
+    )
+}
+
+/// The same transition, attributed. Recovery is the one command the app also
+/// issues on its own, and the receipt has to say which of the two did it.
+#[allow(clippy::too_many_arguments)]
+fn required_transition_by(
+    store: &MeetingStore,
+    actor: OperationActor,
+    request: &MeetingMutationRequest,
+    command: MeetingCommandKind,
+    allowed_from: &[MeetingPhase],
+    next_phase: MeetingPhase,
+    event_kind: &str,
+) -> Result<OperationReceipt, MeetingCommandError> {
     store
         .transition(StoreTransition {
             operation_id: Some(request.operation_id),
-            actor: OperationActor::User,
+            actor,
             command,
             requested_at_utc_ms: utc_now_ms(),
             session_id: request.session_id,
@@ -2745,6 +2984,10 @@ fn map_processing_error(error: ProcessingFailure) -> MeetingCommandError {
         ProcessingFailure::LocalModelUnavailable => MeetingCommandError::LocalModelUnavailable,
         ProcessingFailure::RemoteUnavailable => MeetingCommandError::RemoteUnavailable,
         ProcessingFailure::Cancelled => MeetingCommandError::StaleRevision,
+        // `Interrupted` is written by startup recovery, never returned by a
+        // live operation. If one ever surfaces it, the meeting does need
+        // recovery, which is the error that says so.
+        ProcessingFailure::Interrupted => MeetingCommandError::RecoveryRequired,
         ProcessingFailure::EngineFailure => MeetingCommandError::InvalidRequest,
     }
 }
@@ -3582,5 +3825,570 @@ mod tests {
         assert!(!tauri::async_runtime::block_on(
             unavailable.record_agent_hook_event("request-2".to_string(), "permission".to_string(),)
         ));
+    }
+
+    /* --------------------------------- automatic recovery reprocessing pass */
+
+    /// An engine that answers everything asked of it. Zero-track meetings then
+    /// run the whole pipeline to a successful finish, which is what these tests
+    /// need: the subject is the orchestration, not the audio.
+    struct ReadyEngine;
+
+    impl super::super::processing::MeetingTranscriptEngine for ReadyEngine {
+        fn selected_model_id(&self) -> Option<String> {
+            Some("fake-asr".to_string())
+        }
+
+        fn plan_for(&self, _run_plan: &MeetingRunPlan) -> Option<crate::modes::AsrPlan> {
+            Some(crate::modes::AsrPlan::from_settings(
+                &crate::settings::AppSettings::default(),
+            ))
+        }
+
+        fn engine_id(&self) -> &'static str {
+            "fake-asr"
+        }
+
+        fn transcribe(
+            &self,
+            _plan: &crate::modes::AsrPlan,
+            _samples: &[f32],
+        ) -> Result<String, ProcessingFailure> {
+            Ok(String::new())
+        }
+    }
+
+    /// The cold-start race, as a double: the availability probe passes because
+    /// a model is selected, and the meeting's own plan is then refused. This is
+    /// the failure the eligibility gate cannot see coming, so it is the one
+    /// that has to land somewhere safe.
+    struct ProbeOnlyEngine;
+
+    impl super::super::processing::MeetingTranscriptEngine for ProbeOnlyEngine {
+        fn selected_model_id(&self) -> Option<String> {
+            Some("fake-asr".to_string())
+        }
+
+        fn plan_for(&self, run_plan: &MeetingRunPlan) -> Option<crate::modes::AsrPlan> {
+            // The probe asks with no sources on the plan; a real meeting has
+            // the sources it recorded.
+            run_plan.requested_sources.is_empty().then(|| {
+                crate::modes::AsrPlan::from_settings(&crate::settings::AppSettings::default())
+            })
+        }
+
+        fn engine_id(&self) -> &'static str {
+            "fake-asr"
+        }
+
+        fn transcribe(
+            &self,
+            _plan: &crate::modes::AsrPlan,
+            _samples: &[f32],
+        ) -> Result<String, ProcessingFailure> {
+            Err(ProcessingFailure::EngineFailure)
+        }
+    }
+
+    /// An engine that dies where nothing catches it but `run`.
+    struct PanickingEngine;
+
+    impl super::super::processing::MeetingTranscriptEngine for PanickingEngine {
+        fn selected_model_id(&self) -> Option<String> {
+            Some("fake-asr".to_string())
+        }
+
+        fn plan_for(&self, run_plan: &MeetingRunPlan) -> Option<crate::modes::AsrPlan> {
+            assert!(
+                run_plan.requested_sources.is_empty(),
+                "the engine panics on a real meeting's plan"
+            );
+            Some(crate::modes::AsrPlan::from_settings(
+                &crate::settings::AppSettings::default(),
+            ))
+        }
+
+        fn engine_id(&self) -> &'static str {
+            "fake-asr"
+        }
+
+        fn transcribe(
+            &self,
+            _plan: &crate::modes::AsrPlan,
+            _samples: &[f32],
+        ) -> Result<String, ProcessingFailure> {
+            Ok(String::new())
+        }
+    }
+
+    /// A meeting a launch left behind in `phase`, with the plan and consent a
+    /// real one carries — recovery reads both — and no tracks, so nothing about
+    /// its audio is in question. Retention is a day, so the retention deadline
+    /// is observable when processing stamps one.
+    fn interrupted_session(
+        manager: &MeetingSessionManager,
+        phase: MeetingPhase,
+        destination: ProcessingDestination,
+    ) -> MeetingSessionId {
+        tauri::async_runtime::block_on(async {
+            let session_id = MeetingSessionId::new();
+            let store = manager.store().await.unwrap();
+            let request = MeetingPreflightCreateRequest {
+                operation_id: MeetingOperationId::new(),
+                expected_revision: 0,
+                title: "Interrupted sync".to_string(),
+                origin: MeetingOrigin::Manual,
+                suggestion_id: None,
+                calendar_event_key: None,
+                requested_sources: vec![SourceKind::Microphone],
+                required_sources: vec![SourceKind::Microphone],
+                accepted_known_missing_sources: Vec::new(),
+                degraded_start_policy: DegradedStartPolicy::AbortIfRequiredSourceFails,
+                destination: destination.clone(),
+                remote_acknowledgement: None,
+                microphone_device_uid: None,
+                frozen_system_audio_application_bundle_ids: Vec::new(),
+            };
+            let preflight = manager.build_preflight_snapshot(session_id, &request);
+            store
+                .create_preflight(
+                    StoreMutation {
+                        operation_id: request.operation_id,
+                        requested_at_utc_ms: 0,
+                        session_id,
+                        expected_revision: 0,
+                        command: MeetingCommandKind::PreflightCreate,
+                    },
+                    request.title.clone(),
+                    request.origin,
+                    preflight,
+                    MeetingRetentionPolicy::DeleteAfterDays { days: 1 },
+                )
+                .unwrap();
+            let consent_id = ConsentId::new();
+            let plan = MeetingRunPlan {
+                plan_id: MeetingPlanId::new(),
+                session_id,
+                consent_id,
+                attempt_number: 1,
+                schema_version: 1,
+                app_build: "test".to_string(),
+                preflight_revision: 0,
+                requested_sources: vec![SourceKind::Microphone],
+                required_sources: vec![SourceKind::Microphone],
+                accepted_known_missing_sources: Vec::new(),
+                degraded_start_policy: DegradedStartPolicy::AbortIfRequiredSourceFails,
+                microphone_device_uid: None,
+                frozen_system_audio_application_bundle_ids: Vec::new(),
+                session_clock_anchor: SessionClockAnchor {
+                    host_monotonic_anchor_ns: 0,
+                    wall_start_utc_ms: 0,
+                    clock_policy_version: 1,
+                },
+                storage: MeetingStoragePlan {
+                    format_version: 1,
+                    record_max_payload_bytes: 4_096,
+                    checkpoint_interval_ms: 1,
+                    source_lane_sample_capacity: 1_024,
+                    source_lane_descriptor_capacity: 4,
+                },
+                language: "en".to_string(),
+                asr_model_id: Some("fake-asr".to_string()),
+                asr_model_version: Some("fake-asr".to_string()),
+                diarization_model_id: None,
+                diarization_model_version: None,
+                destination: destination.clone(),
+                remote_acknowledgement: None,
+                retention_policy: MeetingRetentionPolicy::DeleteAfterDays { days: 1 },
+            };
+            let consent = MeetingConsent {
+                consent_id,
+                session_id,
+                attempt_number: 1,
+                preflight_revision: 0,
+                policy_version: 1,
+                acknowledged_at_utc_ms: 0,
+                provenance: MeetingConsentProvenance::Direct,
+                microphone_acknowledged: true,
+                system_audio_acknowledged: false,
+                known_missing_sources_acknowledged: Vec::new(),
+                degraded_start_policy: DegradedStartPolicy::AbortIfRequiredSourceFails,
+                destination,
+                remote_acknowledgement: None,
+            };
+            store
+                .start_with_plan_and_consent(MeetingOperationId::new(), 0, &plan, &consent, 0)
+                .unwrap();
+            if phase != MeetingPhase::Starting {
+                let revision = store.session_snapshot(session_id).unwrap().revision;
+                store
+                    .transition(StoreTransition {
+                        operation_id: None,
+                        actor: OperationActor::System,
+                        command: MeetingCommandKind::Stop,
+                        requested_at_utc_ms: 0,
+                        session_id,
+                        expected_revision: revision,
+                        allowed_from: &[MeetingPhase::Starting],
+                        next_phase: phase,
+                        event_kind: "test_phase",
+                        reason_codes: Vec::new(),
+                    })
+                    .unwrap();
+            }
+            session_id
+        })
+    }
+
+    /// Matrix 6: the whole point of the pass. A meeting interrupted after its
+    /// stop is transcribed without being asked, through the same command a
+    /// person's Retry uses, and the receipt says the app did it.
+    #[test]
+    fn automatic_reprocessing_finishes_a_meeting_interrupted_after_the_stop() {
+        let (_directory, manager, _backend) = mounted_manager();
+        manager
+            .processing
+            .set_transcript_engine(Arc::new(ReadyEngine));
+        let session_id = interrupted_session(
+            &manager,
+            MeetingPhase::Processing,
+            ProcessingDestination::Local,
+        );
+
+        let recovered = tauri::async_runtime::block_on(manager.recover_at_startup_at(0)).unwrap();
+        let result = tauri::async_runtime::block_on(manager.reprocess_recovered(&recovered));
+
+        assert_eq!(
+            result,
+            RecoveryReprocessResult {
+                attempted: 1,
+                succeeded: 1,
+                skipped: 0,
+            }
+        );
+        let store = tauri::async_runtime::block_on(manager.store()).unwrap();
+        let snapshot = store.session_snapshot(session_id).unwrap();
+        assert_eq!(snapshot.phase, MeetingPhase::ReviewReady);
+        assert_eq!(snapshot.processing_status, ProcessingStatus::Succeeded);
+        assert!(
+            snapshot.retention_deadline_utc_ms.is_some(),
+            "a meeting that reached review through a successful pass starts its retention clock"
+        );
+        let receipt = store
+            .operation_receipt(manager.recovery_operation_id(session_id))
+            .unwrap()
+            .expect("an automatic attempt leaves a receipt to read afterwards");
+        assert_eq!(receipt.actor, OperationActor::System);
+        assert_eq!(receipt.command, MeetingCommandKind::RecoveryFinalize);
+        assert_eq!(receipt.result, OperationResult::Committed);
+        assert_eq!(receipt.from_phase, Some(MeetingPhase::RecoveryRequired));
+        assert_eq!(receipt.to_phase, Some(MeetingPhase::Processing));
+    }
+
+    /// Matrix 7: no model installed on this launch. The attempt is not spent,
+    /// so the next launch — with the model downloaded — still has one.
+    #[test]
+    fn automatic_reprocessing_withholds_the_attempt_without_a_local_model() {
+        let (_directory, manager, _backend) = mounted_manager();
+        let session_id = interrupted_session(
+            &manager,
+            MeetingPhase::Processing,
+            ProcessingDestination::Local,
+        );
+
+        let recovered = tauri::async_runtime::block_on(manager.recover_at_startup_at(0)).unwrap();
+        let before = tauri::async_runtime::block_on(manager.store())
+            .unwrap()
+            .session_snapshot(session_id)
+            .unwrap();
+        let result = tauri::async_runtime::block_on(manager.reprocess_recovered(&recovered));
+
+        assert_eq!(result.attempted, 0);
+        assert_eq!(result.skipped, 1);
+        let store = tauri::async_runtime::block_on(manager.store()).unwrap();
+        assert_eq!(store.session_snapshot(session_id).unwrap(), before);
+        assert!(store
+            .operation_receipt(manager.recovery_operation_id(session_id))
+            .unwrap()
+            .is_none());
+    }
+
+    /// Matrix 8, the hazard this design exists to avoid: a failed automatic
+    /// attempt must not walk the meeting into review. Review stamps a retention
+    /// deadline, and a meeting nobody has read would then be deleted on a timer
+    /// with nothing left to retry it with.
+    #[test]
+    fn a_failed_automatic_attempt_returns_the_meeting_to_recovery() {
+        let (_directory, manager, _backend) = mounted_manager();
+        manager
+            .processing
+            .set_transcript_engine(Arc::new(ProbeOnlyEngine));
+        let session_id = interrupted_session(
+            &manager,
+            MeetingPhase::Processing,
+            ProcessingDestination::Local,
+        );
+
+        let recovered = tauri::async_runtime::block_on(manager.recover_at_startup_at(0)).unwrap();
+        let result = tauri::async_runtime::block_on(manager.reprocess_recovered(&recovered));
+
+        assert_eq!(result.attempted, 1);
+        assert_eq!(result.succeeded, 0);
+        let store = tauri::async_runtime::block_on(manager.store()).unwrap();
+        let snapshot = store.session_snapshot(session_id).unwrap();
+        assert_eq!(snapshot.phase, MeetingPhase::RecoveryRequired);
+        assert_eq!(
+            snapshot.processing_status,
+            ProcessingStatus::Failed {
+                reason: ProcessingFailure::LocalModelUnavailable
+            }
+        );
+        assert_eq!(
+            snapshot.retention_deadline_utc_ms, None,
+            "audio nobody has read must not be on a deletion timer"
+        );
+        let month_later = utc_now_ms() + 31 * 24 * 60 * 60 * 1_000;
+        assert!(store
+            .due_retention_sessions(month_later)
+            .unwrap()
+            .is_empty());
+    }
+
+    /// Matrix 13: a pipeline that panics still leaves the outcome written down.
+    /// Before, the thread died with it and the meeting read as processing until
+    /// the next launch.
+    #[test]
+    fn a_panicking_pipeline_still_records_a_terminal_status() {
+        let (_directory, manager, _backend) = mounted_manager();
+        manager
+            .processing
+            .set_transcript_engine(Arc::new(PanickingEngine));
+        let session_id = interrupted_session(
+            &manager,
+            MeetingPhase::Processing,
+            ProcessingDestination::Local,
+        );
+
+        let recovered = tauri::async_runtime::block_on(manager.recover_at_startup_at(0)).unwrap();
+        tauri::async_runtime::block_on(manager.reprocess_recovered(&recovered));
+
+        let snapshot = tauri::async_runtime::block_on(manager.store())
+            .unwrap()
+            .session_snapshot(session_id)
+            .unwrap();
+        assert_eq!(
+            snapshot.processing_status,
+            ProcessingStatus::Failed {
+                reason: ProcessingFailure::EngineFailure
+            }
+        );
+        assert_eq!(snapshot.phase, MeetingPhase::RecoveryRequired);
+    }
+
+    /// Matrix 9: a meeting the person set up to be processed elsewhere is not
+    /// something to quietly process here.
+    #[test]
+    fn automatic_reprocessing_withholds_a_remote_meeting() {
+        let (_directory, manager, _backend) = mounted_manager();
+        manager
+            .processing
+            .set_transcript_engine(Arc::new(ReadyEngine));
+        let session_id = interrupted_session(
+            &manager,
+            MeetingPhase::Processing,
+            ProcessingDestination::Remote {
+                destination_id: "remote-1".to_string(),
+            },
+        );
+
+        let recovered = tauri::async_runtime::block_on(manager.recover_at_startup_at(0)).unwrap();
+        let result = tauri::async_runtime::block_on(manager.reprocess_recovered(&recovered));
+
+        assert_eq!(result.attempted, 0);
+        assert_eq!(result.skipped, 1);
+        assert_eq!(
+            tauri::async_runtime::block_on(manager.store())
+                .unwrap()
+                .session_snapshot(session_id)
+                .unwrap()
+                .phase,
+            MeetingPhase::RecoveryRequired
+        );
+    }
+
+    /// Matrix 12: a meeting that lost audio on disk. Rebuilding a transcript
+    /// from the tracks that survived would quietly replace the meeting with a
+    /// fraction of itself, so the pass leaves it, and finalizing what was
+    /// captured stays on offer to the person.
+    #[test]
+    fn automatic_reprocessing_withholds_a_meeting_missing_audio_on_disk() {
+        let (_directory, manager, _backend) = mounted_manager();
+        manager
+            .processing
+            .set_transcript_engine(Arc::new(ReadyEngine));
+        let session_id = interrupted_session(
+            &manager,
+            MeetingPhase::Processing,
+            ProcessingDestination::Local,
+        );
+        let store = tauri::async_runtime::block_on(manager.store()).unwrap();
+        // A track the interrupted launch registered and never wrote a byte for.
+        store
+            .create_track(TrackCreation {
+                session_id,
+                plan_id: store.processing_plan(session_id).unwrap().plan_id,
+                source_kind: SourceKind::Microphone,
+                required: true,
+                requested: true,
+                descriptor_json: "{}",
+                report: SourceStartReport {
+                    track_id: SourceTrackId::new(),
+                    source_kind: SourceKind::Microphone,
+                    format: AudioFormat {
+                        sample_rate_hz: 48_000,
+                        channels: 1,
+                    },
+                    epoch: SourceEpoch::new(0),
+                    format_epoch: 1,
+                    timestamp_bridge: TimestampBridge {
+                        native_anchor_value: 0,
+                        native_timescale: 1_000_000_000,
+                        host_monotonic_anchor_ns: 0,
+                        session_offset_ns: 0,
+                    },
+                },
+            })
+            .unwrap();
+
+        let recovered = tauri::async_runtime::block_on(manager.recover_at_startup_at(0)).unwrap();
+        let result = tauri::async_runtime::block_on(manager.reprocess_recovered(&recovered));
+
+        assert!(store.has_missing_record_gap(session_id).unwrap());
+        assert_eq!(result.attempted, 0);
+        assert_eq!(result.skipped, 1);
+        let snapshot = store.session_snapshot(session_id).unwrap();
+        assert_eq!(snapshot.phase, MeetingPhase::RecoveryRequired);
+        assert!(snapshot
+            .allowed_actions
+            .contains(&AllowedMeetingAction::FinalizePartial));
+    }
+
+    /// Matrix 2 and the pass's side of it: a recording cut mid-capture is the
+    /// person's call, not the app's. It keeps its place in recovery, where
+    /// finalizing what was captured is still offered.
+    #[test]
+    fn automatic_reprocessing_withholds_a_capture_interrupted_mid_recording() {
+        let (_directory, manager, _backend) = mounted_manager();
+        manager
+            .processing
+            .set_transcript_engine(Arc::new(ReadyEngine));
+        let session_id = interrupted_session(
+            &manager,
+            MeetingPhase::CapturingRecording,
+            ProcessingDestination::Local,
+        );
+
+        let recovered = tauri::async_runtime::block_on(manager.recover_at_startup_at(0)).unwrap();
+        let result = tauri::async_runtime::block_on(manager.reprocess_recovered(&recovered));
+
+        assert_eq!(result.attempted, 0);
+        assert_eq!(result.skipped, 1);
+        let snapshot = tauri::async_runtime::block_on(manager.store())
+            .unwrap()
+            .session_snapshot(session_id)
+            .unwrap();
+        assert_eq!(snapshot.phase, MeetingPhase::RecoveryRequired);
+        assert!(snapshot
+            .allowed_actions
+            .contains(&AllowedMeetingAction::FinalizePartial));
+    }
+
+    /// Matrix 10: Retry pressed on a meeting a job already has is refused by
+    /// the phase, not by anything the interface remembers. A list row can be
+    /// seconds out of date; the fence cannot.
+    #[test]
+    fn retry_is_refused_while_the_meeting_is_already_processing() {
+        let (_directory, manager, _backend) = mounted_manager();
+        // A meeting with a live job on it: phase Processing, nothing swept.
+        let session_id = interrupted_session(
+            &manager,
+            MeetingPhase::Processing,
+            ProcessingDestination::Local,
+        );
+        let store = tauri::async_runtime::block_on(manager.store()).unwrap();
+        let current = store.session_snapshot(session_id).unwrap();
+
+        let refused =
+            tauri::async_runtime::block_on(manager.recovery_finalize(MeetingMutationRequest {
+                operation_id: MeetingOperationId::new(),
+                session_id,
+                expected_revision: current.revision,
+            }))
+            .unwrap();
+
+        assert_eq!(refused.receipt.result, OperationResult::Rejected);
+        assert!(
+            refused
+                .receipt
+                .reason_codes
+                .contains(&MeetingReasonCode::InvalidTransition),
+            "the refusal comes from the phase, with the revision up to date"
+        );
+        assert_eq!(
+            store.session_snapshot(session_id).unwrap().phase,
+            MeetingPhase::Processing,
+            "the meeting stays with the job that already has it, and no second job starts"
+        );
+    }
+
+    /// Matrix 11: one automatic attempt per launch, and a fresh one next
+    /// launch. The same meeting seen twice in one launch is deduplicated by the
+    /// receipt the first attempt wrote; a new launch draws a new namespace and
+    /// may try again.
+    #[test]
+    fn automatic_attempts_are_one_per_launch_and_renewed_by_the_next() {
+        let (_directory, manager, _backend) = mounted_manager();
+        manager
+            .processing
+            .set_transcript_engine(Arc::new(ProbeOnlyEngine));
+        let session_id = interrupted_session(
+            &manager,
+            MeetingPhase::Processing,
+            ProcessingDestination::Local,
+        );
+        let recovered = tauri::async_runtime::block_on(manager.recover_at_startup_at(0)).unwrap();
+
+        let first = tauri::async_runtime::block_on(manager.reprocess_recovered(&recovered));
+        let repeat = tauri::async_runtime::block_on(manager.reprocess_recovered(&recovered));
+
+        assert_eq!(first.attempted, 1);
+        assert_eq!(
+            repeat.attempted, 1,
+            "the pass still counts the meeting, and the receipt is what stops the work"
+        );
+        let store = tauri::async_runtime::block_on(manager.store()).unwrap();
+        let receipt = store
+            .operation_receipt(manager.recovery_operation_id(session_id))
+            .unwrap()
+            .expect("the first attempt's receipt");
+        assert_eq!(receipt.result, OperationResult::Committed);
+        let events = tauri::async_runtime::block_on(manager.store())
+            .unwrap()
+            .session_snapshot(session_id)
+            .unwrap();
+        assert_eq!(events.phase, MeetingPhase::RecoveryRequired);
+
+        // A different launch of the same app, reading the same store.
+        let next_launch = Arc::new(MeetingSessionManager::with_parts(
+            None,
+            manager.root.clone(),
+            Arc::clone(&manager.secrets),
+            Arc::new(NoCaptureSources),
+        ));
+        assert_ne!(
+            next_launch.recovery_operation_id(session_id),
+            manager.recovery_operation_id(session_id),
+            "a per-launch namespace is what keeps yesterday's receipt from silencing today's attempt"
+        );
     }
 }

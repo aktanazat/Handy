@@ -192,6 +192,11 @@ pub enum ProcessingFailure {
     RemoteUnavailable,
     EngineFailure,
     Cancelled,
+    /// The launch that was recording or processing this meeting ended before
+    /// the work finished. Written by startup recovery, never by a run: it is
+    /// the terminal status of an attempt nobody is making any more, which is
+    /// what keeps an abandoned meeting out of the Processing filter.
+    Interrupted,
 }
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 #[serde(tag = "kind", rename_all = "snake_case")]

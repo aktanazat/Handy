@@ -1825,7 +1825,8 @@
         "local_model_unavailable": "النموذج المحلي غير متاح",
         "remote_unavailable": "الوجهة البعيدة غير متاحة",
         "engine_failure": "فشلت المعالجة",
-        "cancelled": "أُلغيت المعالجة"
+        "cancelled": "أُلغيت المعالجة",
+        "interrupted": "انقطعت المعالجة قبل أن تكتمل"
       }
     },
     "actions": {

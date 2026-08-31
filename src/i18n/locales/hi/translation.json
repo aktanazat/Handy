@@ -1801,7 +1801,8 @@
         "local_model_unavailable": "लोकल मॉडल अनुपलब्ध",
         "remote_unavailable": "रिमोट डेस्टिनेशन अनुपलब्ध",
         "engine_failure": "प्रोसेसिंग विफल",
-        "cancelled": "प्रोसेसिंग रद्द हुई"
+        "cancelled": "प्रोसेसिंग रद्द हुई",
+        "interrupted": "प्रोसेसिंग बाधित हुई"
       }
     },
     "actions": {

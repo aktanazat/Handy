@@ -1795,7 +1795,8 @@
         "local_model_unavailable": "本機模型無法使用",
         "remote_unavailable": "遠端目的地無法使用",
         "engine_failure": "處理失敗",
-        "cancelled": "處理已取消"
+        "cancelled": "處理已取消",
+        "interrupted": "處理已中斷"
       }
     },
     "actions": {

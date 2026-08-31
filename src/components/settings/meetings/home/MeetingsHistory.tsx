@@ -37,6 +37,9 @@ interface MeetingsHistoryProps {
   onExportMeeting: (sessionId: string, format: MeetingExportFormat) => void;
   onExportLedger: (sessionId: string) => void;
   onDeleteMeeting: (sessionId: string) => void;
+  /** Reprocess one meeting an interrupted launch left behind. Not `onRetry`,
+   *  which retries the failed read of the list itself. */
+  onReprocessMeeting: (sessionId: string) => void;
   onRetry: () => void;
 }
 
@@ -74,6 +77,7 @@ export const MeetingsHistory: React.FC<MeetingsHistoryProps> = ({
   onExportMeeting,
   onExportLedger,
   onDeleteMeeting,
+  onReprocessMeeting,
   onRetry,
 }) => {
   const { t } = useTranslation();
@@ -151,6 +155,7 @@ export const MeetingsHistory: React.FC<MeetingsHistoryProps> = ({
                       }
                       onExportLedger={() => onExportLedger(meeting.session_id)}
                       onDelete={() => onDeleteMeeting(meeting.session_id)}
+                      onRetry={() => onReprocessMeeting(meeting.session_id)}
                     />
                   ))}
                 </ul>

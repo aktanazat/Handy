@@ -1801,7 +1801,8 @@
         "local_model_unavailable": "Lokal model utilgængelig",
         "remote_unavailable": "Fjerndestination utilgængelig",
         "engine_failure": "Behandlingen mislykkedes",
-        "cancelled": "Behandlingen blev annulleret"
+        "cancelled": "Behandlingen blev annulleret",
+        "interrupted": "Behandlingen blev afbrudt"
       }
     },
     "actions": {

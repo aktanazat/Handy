@@ -573,15 +573,22 @@ fn initialize_core_logic(app_handle: &AppHandle) -> anyhow::Result<()> {
     app_handle.manage(Arc::clone(&cloud_runtime));
     // Ordering preserved from the former synchronous startup: recovery opens the
     // store, then the cloud runtime claims its outbox, then the retention
-    // sweeper starts. Nothing before the window paint waits on any of it.
+    // sweeper starts. Nothing before the window paint waits on any of it. The
+    // reprocess pass goes last and on its own thread: it waits for whole
+    // transcription runs, which nothing here may wait for.
     let recovery_meetings = Arc::clone(&meeting_manager);
     let recovery_cloud = Arc::clone(&cloud_runtime);
     tauri::async_runtime::spawn(async move {
-        if let Err(error) = recovery_meetings.recover_at_startup().await {
-            log::warn!("Meeting recovery is unavailable at startup: {error:?}");
-        }
+        let recovered = match recovery_meetings.recover_at_startup().await {
+            Ok(recovered) => recovered,
+            Err(error) => {
+                log::warn!("Meeting recovery is unavailable at startup: {error:?}");
+                Vec::new()
+            }
+        };
         recovery_cloud.start();
         recovery_meetings.start_retention_sweeper();
+        recovery_meetings.start_recovery_reprocess(recovered);
     });
     match agent_bridge::AgentBridgeManager::new(app_handle) {
         Ok(manager) => {
@@ -1713,9 +1720,9 @@ pub fn run(cli_args: CliArgs) {
             let mut win_builder =
                 tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App("/".into()))
                     .title("Sona")
-                    .inner_size(900.0, 680.0)
-                    .min_inner_size(900.0, 680.0)
-                    .max_inner_size(900.0, 680.0)
+                    .inner_size(900.0, 800.0)
+                    .min_inner_size(900.0, 800.0)
+                    .max_inner_size(900.0, 800.0)
                     .resizable(false)
                     .maximizable(false)
                     .minimizable(true)

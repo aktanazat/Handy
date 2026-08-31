@@ -1795,7 +1795,8 @@
         "local_model_unavailable": "ローカルモデルを利用できません",
         "remote_unavailable": "リモートの送信先を利用できません",
         "engine_failure": "処理に失敗しました",
-        "cancelled": "処理をキャンセルしました"
+        "cancelled": "処理をキャンセルしました",
+        "interrupted": "処理が中断されました"
       }
     },
     "actions": {

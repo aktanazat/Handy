@@ -2,10 +2,10 @@ import { expect, test } from "@playwright/test";
 
 import { installTauriMock } from "./support/tauri-mock";
 
-/* The main window ships at a fixed 900x680 (lib.rs), which leaves the Activity
+/* The main window ships at a fixed 900x800 (lib.rs), which leaves the Activity
  * band's three cards about 200pt each. That is the width its layout has to
  * survive, so this is the width the test runs at. */
-test.use({ viewport: { width: 900, height: 680 } });
+test.use({ viewport: { width: 900, height: 800 } });
 
 const day = (localDate: string, recordings: number) => ({
   local_date: localDate,

@@ -1813,7 +1813,8 @@
         "local_model_unavailable": "Model lokalny niedostępny",
         "remote_unavailable": "Zdalne miejsce docelowe niedostępne",
         "engine_failure": "Przetwarzanie nie powiodło się",
-        "cancelled": "Przetwarzanie anulowane"
+        "cancelled": "Przetwarzanie anulowane",
+        "interrupted": "Przetwarzanie zostało przerwane"
       }
     },
     "actions": {

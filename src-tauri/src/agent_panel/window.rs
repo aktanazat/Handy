@@ -479,7 +479,7 @@ mod tests {
             x: 100,
             y: 80,
             outer_width: 900,
-            outer_height: 680,
+            outer_height: 800,
             scale_factor: 1.0,
             work_x: 0,
             work_y: 0,

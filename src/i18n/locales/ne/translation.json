@@ -1801,7 +1801,8 @@
         "local_model_unavailable": "स्थानीय मोडेल अनुपलब्ध",
         "remote_unavailable": "रिमोट गन्तव्य अनुपलब्ध",
         "engine_failure": "प्रशोधन असफल",
-        "cancelled": "प्रशोधन रद्द भयो"
+        "cancelled": "प्रशोधन रद्द भयो",
+        "interrupted": "प्रशोधन बाधित भयो"
       }
     },
     "actions": {

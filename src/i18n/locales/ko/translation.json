@@ -1795,7 +1795,8 @@
         "local_model_unavailable": "로컬 모델 사용 불가",
         "remote_unavailable": "원격 대상 사용 불가",
         "engine_failure": "처리에 실패했습니다",
-        "cancelled": "처리가 취소되었습니다"
+        "cancelled": "처리가 취소되었습니다",
+        "interrupted": "처리가 중단되었습니다"
       }
     },
     "actions": {

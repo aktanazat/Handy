@@ -1795,7 +1795,8 @@
         "local_model_unavailable": "Mô hình cục bộ không khả dụng",
         "remote_unavailable": "Đích từ xa không khả dụng",
         "engine_failure": "Xử lý thất bại",
-        "cancelled": "Đã hủy xử lý"
+        "cancelled": "Đã hủy xử lý",
+        "interrupted": "Quá trình xử lý bị ngắt"
       }
     },
     "actions": {

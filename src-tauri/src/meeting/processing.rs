@@ -24,8 +24,9 @@ use rustfft::num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, HashMap};
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
@@ -219,6 +220,19 @@ pub(crate) struct QuestionGenerationRequest {
     pub save_history: bool,
 }
 
+/// Where a processing job was submitted from, which is what decides where it
+/// lands when it does not succeed.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum ProcessingOrigin {
+    /// A stop. A failure here is this meeting's answer: it moves on to review,
+    /// where the reason is shown beside it.
+    Stop,
+    /// A recovery attempt. A failure must leave the meeting in the recovery
+    /// pool it came from — the audio is still the only copy of the meeting and
+    /// nobody has read it yet.
+    Recovery,
+}
+
 #[derive(Clone)]
 pub struct MeetingProcessingService {
     app: Option<AppHandle>,
@@ -228,6 +242,10 @@ pub struct MeetingProcessingService {
     diarizer: MeetingDiarizer,
     capture_active: Arc<AtomicBool>,
     jobs: Arc<Mutex<HashMap<MeetingSessionId, Arc<AtomicBool>>>>,
+    /// Signalled whenever a job leaves `jobs`. The map stays the only record
+    /// of which jobs are live; this is how a caller waits for one to finish
+    /// without polling it.
+    jobs_idle: Arc<Condvar>,
 }
 
 impl MeetingProcessingService {
@@ -240,6 +258,7 @@ impl MeetingProcessingService {
             diarizer: MeetingDiarizer::new(),
             capture_active: Arc::new(AtomicBool::new(false)),
             jobs: Arc::new(Mutex::new(HashMap::new())),
+            jobs_idle: Arc::new(Condvar::new()),
         }
     }
 
@@ -249,6 +268,16 @@ impl MeetingProcessingService {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         *engine = Some(Arc::new(LocalMeetingTranscriptEngine { manager }));
+    }
+
+    /// The same slot `set_transcription_manager` fills, for tests that need to
+    /// choose what the engine answers.
+    #[cfg(test)]
+    pub(crate) fn set_transcript_engine(&self, engine: Arc<dyn MeetingTranscriptEngine>) {
+        *self
+            .transcript_engine
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(engine);
     }
 
     pub fn set_capture_active(&self, active: bool) {
@@ -296,29 +325,54 @@ impl MeetingProcessingService {
             .and_then(|engine| engine.selected_model_id())
     }
 
-    pub fn submit(self: &Arc<Self>, store: Arc<MeetingStore>, session_id: MeetingSessionId) {
+    pub(crate) fn submit(
+        self: &Arc<Self>,
+        store: Arc<MeetingStore>,
+        session_id: MeetingSessionId,
+        origin: ProcessingOrigin,
+    ) {
         let cancelled = Arc::new(AtomicBool::new(false));
         self.jobs
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .insert(session_id, Arc::clone(&cancelled));
         if self.app.is_none() {
-            self.run(store, session_id, cancelled);
-            self.jobs
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner())
-                .remove(&session_id);
+            self.run(store, session_id, cancelled, origin);
+            self.retire_job(session_id);
             return;
         }
         let service = Arc::clone(self);
         thread::spawn(move || {
-            service.run(store, session_id, cancelled);
-            service
-                .jobs
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner())
-                .remove(&session_id);
+            service.run(store, session_id, cancelled, origin);
+            service.retire_job(session_id);
         });
+    }
+
+    /// Drop a finished job and wake whoever is waiting for it.
+    fn retire_job(&self, session_id: MeetingSessionId) {
+        self.jobs
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .remove(&session_id);
+        self.jobs_idle.notify_all();
+    }
+
+    /// Block until this meeting has no job running. `submit` registers the job
+    /// before it returns and `run` cannot leave without being retired — a
+    /// panic inside it is caught — so a caller that submits and then waits
+    /// here always observes the whole run, and one that waits for a meeting
+    /// with no job returns at once.
+    pub(crate) fn wait_for_job(&self, session_id: MeetingSessionId) {
+        let mut jobs = self
+            .jobs
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        while jobs.contains_key(&session_id) {
+            jobs = self
+                .jobs_idle
+                .wait(jobs)
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+        }
     }
 
     pub fn regenerate(
@@ -433,8 +487,21 @@ impl MeetingProcessingService {
         store: Arc<MeetingStore>,
         session_id: MeetingSessionId,
         cancelled: Arc<AtomicBool>,
+        origin: ProcessingOrigin,
     ) {
-        let outcome = self.process(&store, session_id, &cancelled);
+        // A panic in the pipeline used to take the whole thread with it, and
+        // with it the only code that writes the outcome down: the meeting kept
+        // its Processing phase and its pending status until the next launch
+        // swept it. Catching it here, at the layer that turns an outcome into
+        // a persisted status, is what closes that window. Nothing in-memory is
+        // read afterwards — the status is written through a fresh connection.
+        let outcome = catch_unwind(AssertUnwindSafe(|| {
+            self.process(&store, session_id, &cancelled)
+        }))
+        .unwrap_or_else(|_| {
+            log::error!("Meeting processing panicked for session {session_id:?}");
+            Err(ProcessingFailure::EngineFailure)
+        });
         let (status, reason) = match outcome {
             Ok(()) => (ProcessingStatus::Succeeded, Vec::new()),
             Err(ProcessingFailure::Cancelled) => (ProcessingStatus::Cancelled, Vec::new()),
@@ -449,7 +516,7 @@ impl MeetingProcessingService {
             ),
         };
         if store.set_processing_status(session_id, status).is_ok() {
-            self.finish_review(store, session_id, reason);
+            self.finish_review(store, session_id, status, reason, origin);
         }
     }
 
@@ -457,25 +524,48 @@ impl MeetingProcessingService {
         &self,
         store: Arc<MeetingStore>,
         session_id: MeetingSessionId,
+        status: ProcessingStatus,
         reason: Vec<MeetingReasonCode>,
+        origin: ProcessingOrigin,
     ) {
         let Ok(snapshot) = store.session_snapshot(session_id) else {
             return;
         };
         if snapshot.phase == MeetingPhase::Processing {
+            // A recovery attempt that did not succeed goes back to the pool it
+            // came from. Arriving at review instead would stamp the retention
+            // deadline on audio nobody has read and drop the meeting out of
+            // every recovery surface, leaving a failure with nothing left to
+            // retry it with.
+            let returns_to_recovery =
+                origin == ProcessingOrigin::Recovery && status != ProcessingStatus::Succeeded;
+            let (command, next_phase, event_kind) = if returns_to_recovery {
+                (
+                    MeetingCommandKind::RecoveryFinalize,
+                    MeetingPhase::RecoveryRequired,
+                    "recovery_attempt_failed",
+                )
+            } else {
+                (
+                    MeetingCommandKind::Stop,
+                    MeetingPhase::ReviewReady,
+                    "processing_finished",
+                )
+            };
             let _ = store.transition(StoreTransition {
                 operation_id: None,
                 actor: OperationActor::System,
-                command: MeetingCommandKind::Stop,
+                command,
                 requested_at_utc_ms: utc_now_ms(),
                 session_id,
                 expected_revision: snapshot.revision,
                 allowed_from: &[MeetingPhase::Processing],
-                next_phase: MeetingPhase::ReviewReady,
-                event_kind: "processing_finished",
+                next_phase,
+                event_kind,
                 reason_codes: reason,
             });
         }
+
         if let Ok(snapshot) = store.session_snapshot(session_id) {
             self.emit("meeting:session-changed", session_id, snapshot.revision);
             if snapshot.phase == MeetingPhase::ReviewReady {
@@ -1229,6 +1319,7 @@ fn store_error_from_processing(error: ProcessingFailure) -> StoreError {
         ProcessingFailure::Cancelled => StoreError::Conflict,
         ProcessingFailure::LocalModelUnavailable
         | ProcessingFailure::RemoteUnavailable
+        | ProcessingFailure::Interrupted
         | ProcessingFailure::EngineFailure => StoreError::Unavailable,
     }
 }

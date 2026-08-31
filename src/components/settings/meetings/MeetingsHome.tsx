@@ -267,6 +267,9 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
         onExportMeeting={onExportMeeting}
         onExportLedger={onExportLedger}
         onDeleteMeeting={onDeleteMeeting}
+        /* The same owner the recovery section calls: one command reprocesses
+         * an interrupted meeting, wherever it is offered. */
+        onReprocessMeeting={onFinalizeRecovery}
         onRetry={onRetry}
       />
     </SettingsPage>

@@ -1807,7 +1807,8 @@
         "local_model_unavailable": "Modelo local indisponível",
         "remote_unavailable": "Destino remoto indisponível",
         "engine_failure": "O processamento falhou",
-        "cancelled": "Processamento cancelado"
+        "cancelled": "Processamento cancelado",
+        "interrupted": "O processamento foi interrompido"
       }
     },
     "actions": {

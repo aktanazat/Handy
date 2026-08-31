@@ -1813,7 +1813,8 @@
         "local_model_unavailable": "Místní model není dostupný",
         "remote_unavailable": "Vzdálený cíl není dostupný",
         "engine_failure": "Zpracování selhalo",
-        "cancelled": "Zpracování zrušeno"
+        "cancelled": "Zpracování zrušeno",
+        "interrupted": "Zpracování bylo přerušeno"
       }
     },
     "actions": {

@@ -1801,7 +1801,8 @@
         "local_model_unavailable": "Lokaal model niet beschikbaar",
         "remote_unavailable": "Externe bestemming niet beschikbaar",
         "engine_failure": "Verwerking mislukt",
-        "cancelled": "Verwerking geannuleerd"
+        "cancelled": "Verwerking geannuleerd",
+        "interrupted": "Verwerking onderbroken"
       }
     },
     "actions": {

@@ -1805,7 +1805,8 @@
         "local_model_unavailable": "Local model unavailable",
         "remote_unavailable": "Remote destination unavailable",
         "engine_failure": "Processing failed",
-        "cancelled": "Processing cancelled"
+        "cancelled": "Processing cancelled",
+        "interrupted": "Interrupted before it finished"
       }
     },
     "start": {

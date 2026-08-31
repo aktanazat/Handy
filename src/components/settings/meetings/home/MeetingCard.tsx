@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/cn";
 import { formatDurationShort } from "@/lib/utils/format";
 import { formatTimeOfDay } from "@/lib/utils/localDay";
+import { processingStatusKey } from "../meetingUtils";
 import { MeetingStatusChip, meetingCardStatus } from "./MeetingStatusChip";
 
 /* Every row that can be acted on keeps its actions behind this one trigger:
@@ -140,6 +141,8 @@ interface MeetingCardProps {
   onExport: (format: MeetingExportFormat) => void;
   onExportLedger: () => void;
   onDelete: () => void;
+  /** Reprocess a meeting an interrupted launch left behind. */
+  onRetry: () => void;
 }
 
 /* One meeting inside its day group: what it was called, how long it ran, and
@@ -147,13 +150,20 @@ interface MeetingCardProps {
  * date, and a finished meeting says nothing further about itself — the status
  * chip appears only while a meeting is live, still processing, or waiting on
  * the reader. The summary line the row used to print lives on the meeting
- * itself, one click away, and stays here as the row's hover title. */
+ * itself, one click away, and stays here as the row's hover title.
+ *
+ * A meeting that ended badly says why on its own line, because "Needs
+ * attention" is a state and not an explanation. Retry appears only where it
+ * can actually run — a meeting parked in recovery — and stays enabled while it
+ * runs: a second press is refused by the phase it already left, so there is no
+ * pressed-state bookkeeping here to disagree with the store. */
 export const MeetingCard: React.FC<MeetingCardProps> = ({
   meeting,
   onOpen,
   onExport,
   onExportLedger,
   onDelete,
+  onRetry,
 }) => {
   const { t } = useTranslation();
   const headline = meeting.headline ?? { kind: "none" };
@@ -176,8 +186,15 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
         title={openTitle}
         className="hover-fast flex min-w-0 flex-1 items-center gap-3 px-4 py-2.5 text-start hover:bg-background-200 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
       >
-        <span className="min-w-0 flex-1 truncate text-[13px] leading-[19px] text-gray-1000">
-          {meeting.title}
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="truncate text-[13px] leading-[19px] text-gray-1000">
+            {meeting.title}
+          </span>
+          {status === "needs_attention" ? (
+            <span className="truncate text-[12px] leading-4 text-red-900">
+              {t(processingStatusKey(meeting.processing_status))}
+            </span>
+          ) : null}
         </span>
         {status === "ready" ? null : (
           <MeetingStatusChip
@@ -194,6 +211,18 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
           {formatTimeOfDay(meeting.created_at_utc_ms)}
         </span>
       </button>
+
+      {meeting.phase === "recovery_required" ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="flex-none"
+          onClick={onRetry}
+        >
+          {t("meetings.actions.retry")}
+        </Button>
+      ) : null}
 
       <RowActionsMenu label={t("meetings.list.rowActions")}>
         <DropdownMenuItem onSelect={() => onExport("markdown")}>

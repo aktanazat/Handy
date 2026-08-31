@@ -1807,7 +1807,8 @@
         "local_model_unavailable": "Modello locale non disponibile",
         "remote_unavailable": "Destinazione remota non disponibile",
         "engine_failure": "Elaborazione non riuscita",
-        "cancelled": "Elaborazione annullata"
+        "cancelled": "Elaborazione annullata",
+        "interrupted": "Elaborazione interrotta"
       }
     },
     "actions": {
