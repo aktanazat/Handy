@@ -3,38 +3,32 @@ import { useTranslation } from "react-i18next";
 import { Search } from "lucide-react";
 import { Kbd } from "@/components/vg/kbd";
 import { destinationIcons } from "@/lib/navIcons";
+import { cn } from "@/lib/cn";
 import { SonaMark } from "./icons/SonaMark";
 import {
   RAIL_SECTIONS,
   SECTIONS_CONFIG,
   type SidebarSection,
 } from "./sidebarSections";
-import ModelSelector from "./model-selector/ModelSelector";
 import { useOsType } from "@/hooks/useOsType";
 
 export interface SidebarProps {
-  activeSection: SidebarSection;
+  currentSection: SidebarSection;
   onSectionChange: (section: SidebarSection) => void;
   onOpenCommand: () => void;
 }
 
-/* The rail's rows come from the section registry, in its order: Capture,
- * Library, Modes, Meetings, People, Settings. `models` is the one destination the
- * registry marks `inRail: false`: it is reachable from the palette and from
- * within pages, exactly as before. Each row lights for exactly one section, so
- * no route carries an activeSections list any more. */
+/* The rail's rows come from the section registry. Modes and Models stay
+ * available through the command palette without occupying permanent rail
+ * space. Each visible row compares against the shell's current section. */
 
 /* The wordmark is the product's name, not copy; it never localizes. */
 const WORDMARK = "Sona";
 
-/* One row, in every state it has. Inactive is a quiet grey, hover is the
- * achromatic alpha wash, and the current route is the next wash up at full
- * text contrast — no weight jump, because reflowing the label is a layout
- * change to announce a selection. Blue is spent on the focus ring alone: the
- * app's default outline is suppressed so the ring is the single indicator, not
- * a second one drawn around it. */
+/* One row, in every state it has. The selected border and fill are applied
+ * directly from currentSection, while blue remains reserved for focus. */
 const NAV_ROW =
-  "flex h-[32px] items-center gap-2 rounded-md px-[10px] text-start text-[13px] whitespace-nowrap text-gray-900 transition-colors hover:bg-gray-alpha-100 hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none aria-[current=page]:bg-gray-alpha-200 aria-[current=page]:text-gray-1000";
+  "flex h-[32px] items-center gap-2 rounded-md border border-transparent px-[10px] text-start text-[13px] whitespace-nowrap text-gray-900 transition-colors hover:bg-gray-alpha-100 hover:text-gray-1000 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none";
 
 /** Moves focus between sibling nav rows on arrow keys. Tab order keeps every
  * row, so this is an addition to normal tabbing, not a replacement. Up/Down
@@ -63,7 +57,7 @@ const useArrowNavigation = () => {
 };
 
 export const Sidebar: React.FC<SidebarProps> = ({
-  activeSection,
+  currentSection,
   onSectionChange,
   onOpenCommand,
 }) => {
@@ -145,32 +139,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
       >
         {RAIL_SECTIONS.map((section) => {
           const DestinationIcon = destinationIcons[section];
+          const label = t(SECTIONS_CONFIG[section].labelKey);
+          const current = section === currentSection;
           return (
             <button
               key={section}
               type="button"
-              aria-current={section === activeSection ? "page" : undefined}
-              className={NAV_ROW}
+              aria-current={current ? "page" : undefined}
+              aria-label={label}
+              className={cn(
+                NAV_ROW,
+                current &&
+                  "border-gray-alpha-400 bg-background-100 text-gray-1000",
+              )}
               onClick={() => onSectionChange(section)}
             >
               <DestinationIcon
                 aria-hidden="true"
                 className="size-4 flex-none"
               />
-              {t(SECTIONS_CONFIG[section].labelKey)}
+              {label}
             </button>
           );
         })}
       </nav>
-
-      {/* The model chip, docked at the sidebar's foot. Its menu is a portalled
-          popover, so the dock needs no stacking allowance, and the selector
-          renders exactly one child now — the second rendering of the download
-          percentage that this dock used to hide with a sibling selector was
-          deleted at the source, which is where a duplicated datum belongs. */}
-      <div className="mt-auto -mx-[10px] flex min-h-0 flex-col border-t border-gray-alpha-400 px-[10px] pt-2">
-        <ModelSelector />
-      </div>
     </aside>
   );
 };

@@ -63,7 +63,7 @@ export function Ring({
       {center === undefined ? null : (
         <span
           aria-hidden="true"
-          className="absolute inset-0 flex items-center justify-center font-mono text-[18px] font-medium text-gray-1000 tabular-nums"
+          className="absolute inset-0 flex items-center justify-center text-[18px] font-medium text-gray-1000 tabular-nums"
         >
           {center}
         </span>

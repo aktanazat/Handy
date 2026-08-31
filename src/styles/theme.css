@@ -1,273 +1,206 @@
-/* Sona design tokens: Mercury-sleek — cool near-white, ink-navy text, one
- * violet-blue accent.
- *
- * Three layers, in the order a component should reach for them:
- *
- *   1. Primitives  two background steps, a 10-step cool-grey ladder, a
- *                  parallel grey-ALPHA ladder (ink wash in light, cool-white
- *                  wash in dark), the violet accent family and three status
- *                  families. No meaning attached.
- *   2. Semantics   surface / border / text / accent / invert. This is the only
- *                  layer component rules may name.
- *   3. Compat      the --color-* names the pages consume, re-pointed at
- *                  layer 2. Pages consume by NAME only; values live here and
- *                  nowhere else. Extend this file; do not rename.
- *
- * The identity (2026-08 pivot): cool near-white pages, white cards carrying a
- * hairline ring and a very low shadow, ink-navy text, a single violet accent
- * used sparingly — the primary action per view, active/selected states (soft
- * fill), the live waveform, focus rings. Measured data is tabular-nums,
- * always. Status semaphore colours are never repurposed as accents.
- *
- * Dark is written as the attribute-less base and light as the only override:
- * an unstyled first paint, or a theme script that failed to run, still
- * renders the intended cool-graphite identity instead of flashing white.
- *
- * Grey steps 700/800 deliberately dip against their neighbours in both
- * blocks: disabled text sits between tertiary and the fills, and the two
- * names cross rather than climb. Preserved, not "fixed".
- */
+/* Sona theme tokens. Light uses the Porcelain Aurora skin; dark uses its Ink
+ * twin. Components consume semantic names or the Tailwind bridge in
+ * app/globals.css. Theme values do not live in component styles. */
 
-/* ==================================================== dark (the base) === */
+/* =================================================== light (the default) === */
 
 :root,
-:root[data-theme="dark"] {
-  color-scheme: dark;
+:root[data-theme="light"] {
+  color-scheme: light;
 
-  /* -- backgrounds. bg-1 is the page; bg-2 is DARKER and reads as recessed —
-     it backs --surface-inset (quoted machine output, wells). Chrome does not
-     live on bg-2: the top bar is a surface one step LIGHTER than the page,
-     so the shell reads raised rather than sunken. */
-  --bg-1: #0f1115;
-  --bg-2: #0a0c10;
+  --bg-1: #ffffff;
+  --bg-2: #fafafa;
 
-  /* -- cool grey primitives 100-1000 (slate-navy family) */
-  --gray-100: #232732;
-  --gray-200: #262b36;
-  --gray-300: #2c3140;
-  --gray-400: #303646;
-  --gray-500: #3e4557;
-  --gray-600: #767e90;
-  --gray-700: #7a8294;
-  --gray-800: #6c7484;
-  --gray-900: #a8b0bf;
-  --gray-1000: #f2f4f8;
+  --gray-100: #f5f5f5;
+  --gray-200: #ebebeb;
+  --gray-300: #e3e3e3;
+  --gray-400: #ebebeb;
+  --gray-500: #c9c9c9;
+  --gray-600: #a8a8a8;
+  --gray-700: #999999;
+  --gray-800: #999999;
+  --gray-900: #666666;
+  --gray-1000: #171717;
 
-  /* -- grey-alpha: every hairline in the product. An opaque line would read
-     wrong over one surface or the other; an alpha wash self-adjusts. The base
-     is the cool white of --gray-1000, so washes stay in the palette's
-     temperature. */
-  --gray-a-100: rgba(242, 244, 248, 0.04);
-  --gray-a-200: rgba(242, 244, 248, 0.05);
-  --gray-a-300: rgba(242, 244, 248, 0.08);
-  --gray-a-400: rgba(242, 244, 248, 0.1);
-  --gray-a-500: rgba(242, 244, 248, 0.18);
-  --gray-a-600: rgba(242, 244, 248, 0.38);
-  --gray-a-700: rgba(242, 244, 248, 0.48);
-  --gray-a-900: rgba(242, 244, 248, 0.62);
+  --gray-a-100: rgba(0, 0, 0, 0.04);
+  --gray-a-200: rgba(0, 0, 0, 0.06);
+  --gray-a-300: rgba(0, 0, 0, 0.08);
+  --gray-a-400: #ebebeb;
+  --gray-a-500: #c9c9c9;
+  --gray-a-600: #999999;
+  --gray-a-700: rgba(0, 0, 0, 0.44);
+  --gray-a-900: rgba(0, 0, 0, 0.7);
 
-  /* -- violet, the one accent. 100 is the soft selected fill, 400 the
-     border-grade step, 700 the identity, 800/900 the hover and pressed walk.
-     Dark lifts the tone to #7B85F2 so it holds against graphite; hover goes
-     LIGHTER there and pressed deeper, mirroring light's darker walk. */
-  --violet-100: rgba(123, 133, 242, 0.16);
-  --violet-400: rgba(123, 133, 242, 0.42);
-  --violet-700: #7b85f2;
-  --violet-800: #8b94f5;
-  --violet-900: #6a75ee;
-
-  /* -- status families. Step 700 is the identity, 100/400/900 the theme-tuned
-     subtle / border / text steps. Semantics unchanged; never repurposed. */
-  --blue-100: #16202e;
-  --blue-400: #24466e;
-  --blue-700: #2e90fa;
-  --blue-900: #61a6fa;
-  --green-100: #132a1e;
-  --green-400: #1f4d36;
+  --blue-100: #eef6ff;
+  --blue-400: #b9d7fd;
+  --blue-700: #0070f3;
+  --blue-900: #0061d5;
+  --green-100: #e7f6ee;
+  --green-400: #b5e5cd;
   --green-700: #12b76a;
-  --green-900: #47cd89;
-  --red-100: #331a18;
-  --red-400: #5c2a26;
-  --red-700: #d92d20;
-  --red-900: #f97066;
-  --amber-100: #2e2113;
-  --amber-400: #5c4322;
-  --amber-700: #b54708;
-  --amber-900: #e8963f;
+  --green-900: #067647;
+  --red-100: #fff0f0;
+  --red-400: #f5c1bc;
+  --red-700: #e5484d;
+  --red-900: #c93c42;
+  --amber-100: #fff7e6;
+  --amber-400: #efd0a2;
+  --amber-700: #ffb224;
+  --amber-900: #a35200;
 
-  /* -- semantic aliases */
   --surface-1: var(--bg-1);
-  /* Chrome: the top bar and section rail. One step LIGHTER than the page in
-     both themes — the shell is a quiet surface, not a recess. */
-  --surface-2: #14161b;
-  /* Cards and popovers: the raised pole, the fill of every content card. */
-  --surface-raised: #1a1d23;
-  /* The single owner of "recessed": quoted machine output, inset wells. */
-  --surface-inset: var(--bg-2);
+  --surface-2: var(--bg-2);
+  --surface-raised: #ffffff;
+  --surface-inset: var(--gray-100);
   --border-subtle: var(--gray-a-300);
   --border: var(--gray-a-400);
   --border-hover: var(--gray-a-500);
   --border-active: var(--gray-a-600);
-  --wash-hover: var(--gray-a-200);
-  --wash-active: rgba(242, 244, 248, 0.1);
+  --wash-hover: var(--gray-a-100);
+  --wash-active: var(--gray-a-200);
   --text-primary: var(--gray-1000);
   --text-secondary: var(--gray-900);
   --text-tertiary: var(--gray-800);
   --text-disabled: var(--gray-700);
-  --accent: var(--violet-700);
-  --accent-hover: var(--violet-800);
-  --accent-pressed: var(--violet-900);
-  --accent-soft: var(--violet-100);
-  /* Ink on an accent fill. Dark reads near-black on violet; light reads
-     white. Never grey — grey text on a coloured fill is on the reject list. */
-  --on-accent: #0e1015;
-  --focus-ring: var(--violet-700);
+  --accent: var(--blue-700);
+  --accent-hover: var(--blue-900);
+  --accent-pressed: #0051b3;
+  --accent-soft: var(--blue-100);
+  --on-accent: #ffffff;
+  --focus-ring: var(--blue-700);
   --info: var(--blue-900);
   --success: var(--green-900);
   --warning: var(--amber-900);
   --error: var(--red-900);
   --invert-bg: var(--gray-1000);
   --invert-fg: var(--bg-1);
-  /* A scrim darkens in both themes: an inverted (light) scrim would light the
-     window up instead of pushing it back. */
-  --scrim: rgba(0, 0, 0, 0.72);
+  --scrim: rgba(0, 0, 0, 0.4);
 
-  /* -- elevation, Mercury-quiet. A 1px ring plus one very low layer for a
-     card; the panel step keeps a soft long-throw for things that float. The
-     ring is what separates a surface on dark. A surface carrying
-     --shadow-card or --shadow-panel must NOT also carry a border — the ring
-     IS the border. Same geometry as light, black-based alphas. */
-  --shadow-card: 0 0 0 1px var(--border), 0 1px 2px rgba(0, 0, 0, 0.32);
-  --shadow-panel: 0 0 0 1px var(--border), 0 16px 40px -20px rgba(0, 0, 0, 0.6);
-  --shadow-popover:
-    0 0 0 1px rgba(242, 244, 248, 0.12), 0 4px 8px rgba(0, 0, 0, 0.32),
-    0 16px 32px -8px rgba(0, 0, 0, 0.5);
-  --shadow-dialog:
-    0 0 0 1px rgba(242, 244, 248, 0.12), 0 8px 16px -4px rgba(0, 0, 0, 0.32),
-    0 28px 48px -12px rgba(0, 0, 0, 0.55);
-
-  /* -- glass. Read by the chrome surfaces (top bar, rails, popovers, menus,
-     dialog chrome, HUD pill) only while the Material setting is Glass; see
-     primitives.css. The tint is a TRANSLUCENT raised surface — 0.55, not the
-     old 0.85 that made Glass indistinguishable from Solid — sitting over the
-     native UnderWindowBackground vibrancy sample. Data-bearing cards stay
-     opaque in both materials.
-
-     --glass-tint-dense is for the TINT-ONLY surface (the HUD pill): no
-     backdrop blur and no --glass-canvas under it, so its plate luminance
-     swings with the raw wallpaper. Measured on the real HudPill 2026-08-29:
-     the airy tint fails AA past ~0.78 light / ~0.83 dark on extreme
-     wallpapers, so the dense step keeps the proven 0.85. */
-  --glass-tint: rgba(26, 29, 35, 0.55);
-  --glass-tint-dense: rgba(26, 29, 35, 0.85);
-  --glass-tint-clear: rgba(26, 29, 35, 0.3);
-  --glass-border: rgba(242, 244, 248, 0.12);
-  --glass-specular-top: rgba(242, 244, 248, 0.18);
-  /* Ring-less: a glass surface already draws its own edge with --glass-border
-     and the specular top, so it takes an ambient shadow instead of the ringed
-     panel shadow, which would double the edge. */
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-  /* The translucent page wash under Glass: vibrancy reads through the whole
-     window, not just the bar. Solid keeps the opaque canvas. */
-  --glass-canvas: rgba(15, 17, 21, 0.6);
-}
-
-/* ====================================================== light override === */
-
-:root[data-theme="light"] {
-  color-scheme: light;
-
-  --bg-1: #f7f8fa;
-  --bg-2: #fbfcfd;
-
-  --gray-100: #eef0f3;
-  --gray-200: #e4e7ec;
-  --gray-300: #d7dbe2;
-  --gray-400: #e4e7ec;
-  --gray-500: #b9c0cc;
-  --gray-600: #8e98a8;
-  --gray-700: #acb4c2;
-  --gray-800: #98a2b3;
-  --gray-900: #475467;
-  --gray-1000: #101828;
-
-  /* Ink washes: alpha over the cool page, base #101828. */
-  --gray-a-100: rgba(16, 24, 40, 0.03);
-  --gray-a-200: rgba(16, 24, 40, 0.04);
-  --gray-a-300: rgba(16, 24, 40, 0.07);
-  --gray-a-400: rgba(16, 24, 40, 0.1);
-  --gray-a-500: rgba(16, 24, 40, 0.16);
-  --gray-a-600: rgba(16, 24, 40, 0.24);
-  --gray-a-700: rgba(16, 24, 40, 0.44);
-  --gray-a-900: rgba(16, 24, 40, 0.7);
-
-  --violet-100: #eef0fe;
-  --violet-400: #c7ccfa;
-  --violet-700: #5b67e8;
-  --violet-800: #4a56d6;
-  --violet-900: #3d48c4;
-
-  --blue-100: #eaf2fe;
-  --blue-400: #b9d7fd;
-  --blue-700: #2e90fa;
-  --blue-900: #2e90fa;
-  --green-100: #e7f6ee;
-  --green-400: #b5e5cd;
-  --green-700: #12b76a;
-  --green-900: #067647;
-  --red-100: #fceae8;
-  --red-400: #f5c1bc;
-  --red-700: #d92d20;
-  --red-900: #d92d20;
-  --amber-100: #faefde;
-  --amber-400: #efd0a2;
-  --amber-700: #b54708;
-  --amber-900: #b54708;
-
-  /* The page is cool near-white; the chrome (--surface-2, #FBFCFD) and cards
-     (--surface-raised, #FFFFFF) climb toward white, so a raised surface earns
-     its lift from real steps AND the quiet card shadow, not from a hairline
-     alone. Recessed takes --gray-100 (#EEF0F3), a separation you can
-     actually see. */
-  --surface-2: var(--bg-2);
-  --surface-raised: #ffffff;
-  --surface-inset: var(--gray-100);
-  --wash-active: rgba(16, 24, 40, 0.08);
-  --on-accent: #ffffff;
-  --scrim: rgba(16, 24, 40, 0.4);
-
-  --shadow-card: 0 0 0 1px var(--border), 0 1px 2px rgba(16, 24, 40, 0.06);
-  --shadow-panel:
-    0 0 0 1px var(--border), 0 16px 40px -20px rgba(16, 24, 40, 0.25);
-  --shadow-popover:
-    0 0 0 1px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.04),
-    0 12px 24px -8px rgba(16, 24, 40, 0.12);
-  --shadow-dialog:
-    0 0 0 1px rgba(16, 24, 40, 0.08), 0 8px 16px -4px rgba(16, 24, 40, 0.08),
-    0 28px 48px -12px rgba(16, 24, 40, 0.2);
+  /* Cards and controls are flat. Only floating popovers and dialogs lift. */
+  --shadow-card: none;
+  --shadow-panel: none;
+  --shadow-popover: 0 12px 30px rgba(0, 0, 0, 0.12);
+  --shadow-dialog: 0 18px 44px rgba(0, 0, 0, 0.16);
+  --shadow-overlay: 0 16px 40px -20px rgb(0 0 0 / 0.25);
 
   --glass-tint: rgba(255, 255, 255, 0.62);
   --glass-tint-dense: rgba(255, 255, 255, 0.85);
   --glass-tint-clear: rgba(255, 255, 255, 0.34);
-  --glass-border: rgba(16, 24, 40, 0.12);
+  --glass-border: var(--border);
   --glass-specular-top: rgba(255, 255, 255, 0.75);
-  --glass-shadow: 0 8px 32px rgba(16, 24, 40, 0.12);
-  --glass-canvas: rgba(247, 248, 250, 0.6);
+  --glass-shadow: none;
+  --glass-canvas: rgba(255, 255, 255, 0.6);
+
+  --aurora-blue: rgba(0, 112, 243, 0.2);
+  --aurora-violet: rgba(124, 58, 237, 0.13);
+  --aurora-cyan: rgba(34, 211, 238, 0.17);
+  --aurora-veil-start: rgba(255, 255, 255, 0.25);
+  --aurora-veil-end: rgba(255, 255, 255, 0.62);
+}
+
+/* ============================================================ dark twin === */
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg-1: #0a0a0a;
+  --bg-2: #050505;
+
+  --gray-100: #111111;
+  --gray-200: #1a1a1a;
+  --gray-300: #1f1f1f;
+  --gray-400: #262626;
+  --gray-500: #333333;
+  --gray-600: #5c5c5c;
+  --gray-700: #5c5c5c;
+  --gray-800: #5c5c5c;
+  --gray-900: #8f8f8f;
+  --gray-1000: #ededed;
+
+  --gray-a-100: rgba(255, 255, 255, 0.04);
+  --gray-a-200: rgba(255, 255, 255, 0.07);
+  --gray-a-300: #1f1f1f;
+  --gray-a-400: #262626;
+  --gray-a-500: #333333;
+  --gray-a-600: #5c5c5c;
+  --gray-a-700: rgba(255, 255, 255, 0.44);
+  --gray-a-900: rgba(255, 255, 255, 0.62);
+
+  --blue-100: #101b2d;
+  --blue-400: #163f73;
+  --blue-700: #0070f3;
+  --blue-900: #3291ff;
+  --green-100: #132a1e;
+  --green-400: #1f4d36;
+  --green-700: #12b76a;
+  --green-900: #47cd89;
+  --red-100: #331a18;
+  --red-400: #5c2a26;
+  --red-700: #e5484d;
+  --red-900: #ff6369;
+  --amber-100: #2e2113;
+  --amber-400: #5c4322;
+  --amber-700: #ffb224;
+  --amber-900: #ffc96b;
+
+  --surface-1: var(--bg-1);
+  --surface-2: var(--bg-2);
+  --surface-raised: #111111;
+  --surface-inset: var(--bg-2);
+  --border-subtle: var(--gray-a-300);
+  --border: var(--gray-a-400);
+  --border-hover: var(--gray-a-500);
+  --border-active: var(--gray-a-600);
+  --wash-hover: var(--gray-a-100);
+  --wash-active: var(--gray-a-200);
+  --text-primary: var(--gray-1000);
+  --text-secondary: var(--gray-900);
+  --text-tertiary: var(--gray-800);
+  --text-disabled: var(--gray-700);
+  --accent: var(--blue-700);
+  --accent-hover: var(--blue-900);
+  --accent-pressed: #0061d5;
+  --accent-soft: var(--blue-100);
+  --on-accent: #0a0a0a;
+  --focus-ring: var(--blue-700);
+  --info: var(--blue-900);
+  --success: var(--green-900);
+  --warning: var(--amber-900);
+  --error: var(--red-900);
+  --invert-bg: var(--gray-1000);
+  --invert-fg: var(--bg-1);
+  --scrim: rgba(0, 0, 0, 0.72);
+
+  --shadow-card: none;
+  --shadow-panel: none;
+  --shadow-popover: 0 12px 30px rgba(0, 0, 0, 0.45);
+  --shadow-dialog: 0 18px 44px rgba(0, 0, 0, 0.55);
+  --shadow-overlay: 0 16px 40px -20px rgb(0 0 0 / 0.6);
+
+  --glass-tint: rgba(17, 17, 17, 0.62);
+  --glass-tint-dense: rgba(17, 17, 17, 0.85);
+  --glass-tint-clear: rgba(17, 17, 17, 0.34);
+  --glass-border: var(--border);
+  --glass-specular-top: rgba(255, 255, 255, 0.1);
+  --glass-shadow: none;
+  --glass-canvas: rgba(10, 10, 10, 0.6);
+
+  --aurora-blue: rgba(0, 112, 243, 0.6);
+  --aurora-violet: rgba(124, 58, 237, 0.48);
+  --aurora-cyan: rgba(34, 211, 238, 0.32);
+  --aurora-veil-start: rgba(10, 10, 10, 0);
+  --aurora-veil-end: rgba(10, 10, 10, 0.72);
 }
 
 /* ===================================== scales that do not follow a theme === */
 
 :root {
-  /* -- radii. The identity rounds crisp: 6px controls, 8px cards, 12px
-     panels/popovers, 14px dialogs — precise, not consumer-soft — and the
-     card/panel split keeps a popover one step softer than the card grid under
-     it. Names stay the app's own so Tailwind's rounded-md/-lg utilities keep
-     their default values. */
+  /* Controls use 8px corners; cards and floating panels use 12px. */
   --radius-xs: 5px; /* key cap */
-  --radius-control: 6px; /* button, input, select, tooltip */
-  --radius-card: 8px; /* content card */
+  --radius-control: 8px; /* button, input, select, tooltip */
+  --radius-card: 12px; /* content card */
   --radius-panel: 12px; /* menu, popover, floating panel */
-  --radius-dialog: 14px; /* modal */
+  --radius-dialog: 12px; /* modal */
   --radius-sheet: 20px; /* full-bleed panel */
   /* Pills are for status dots, the HUD card and toggle tracks. Never on a badge
      that carries metadata, never on a button. */
@@ -286,12 +219,8 @@
   --focus-offset: var(--focus-ring-offset);
   --focus-ring-inset: 0 0 0 2px var(--surface-1), 0 0 0 4px var(--focus-ring);
 
-  /* -- hairline. The repeated divider inside a dense list or an instrument
-     strip, at the faint alpha step: at --border strength a divider every
-     36-60px bands the whole column. --border stays the outline of a discrete
-     object — control, input, segmented track. --gray-a-100 already flips
-     poles between the two theme blocks, so one declaration serves both. */
-  --border-hairline: var(--gray-a-100);
+  /* Dividers and object outlines share the approved one-pixel hairline. */
+  --border-hairline: var(--border);
 
   --space-0-5: 2px;
   --space-1: 4px;
@@ -332,14 +261,8 @@
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* -- type. Weights are 400/500/600 for UI.
-
-     TRACKING IS ZERO AT EVERY UI SIZE. SF's own tracking never exceeds
-     ±0.012em between 19 and 80px and crosses zero at 40px; SF also ships a
-     real optical-size axis (see fonts.css), so per-size tracking re-solves a
-     problem the font already solves. Settings page titles and section labels
-     live in rows.tsx: PageTitle is 24px/30px at weight 500, while
-     SettingsSection uses the canonical 11px Microlabel typography. */
+  /* UI weights are 400/500/600. SF provides its own optical tracking, so
+     letter spacing stays at zero. */
   --fw-heading: 600;
   --fw-button: 500;
   --fw-label: 400;
@@ -364,17 +287,10 @@
   --lh-label-14: 20px;
   --fs-label-12: 12px;
   --lh-label-12: 16px;
-  /* The one uppercase role: a short mono label, tracked, in a muted grey,
-     reserved for TRUE COLUMN HEADERS. Inline metadata never goes uppercase.
-     The `.microlabel` class that used to opt into it is gone with the rest of
-     primitives.css's type roles; `Microlabel` in components/settings/rows.tsx
-     is the affordance now, and it re-states the size as a utility rather than
-     reading these tokens — at a wider 0.12em, so the two are near neighbours
-     and not one value. What reads them is `.ob-group-label` in
-     components/onboarding/onboarding.css, the app's one uppercase label. */
-  --fs-microlabel: 11px;
-  --lh-microlabel: 16px;
-  --ls-microlabel: 0.09em;
+  /* Sentence-case microlabels use the same 13px secondary role everywhere. */
+  --fs-microlabel: 13px;
+  --lh-microlabel: 20px;
+  --ls-microlabel: 0;
 
   /* Two roles of the ramp are still wired to something: `.type-data` in
    * primitives.css reads --type-data-*, and onboarding.css reads
@@ -454,6 +370,38 @@
  * when the card language landed. */
 
 :root {
+  /* Tailwind utility scales. The semantic values above remain authoritative. */
+  --color-background-100: var(--surface-1);
+  --color-background-200: var(--surface-2);
+  --color-raised: var(--surface-raised);
+  --color-gray-100: var(--gray-100);
+  --color-gray-200: var(--gray-200);
+  --color-gray-300: var(--gray-300);
+  --color-gray-400: var(--gray-400);
+  --color-gray-500: var(--gray-500);
+  --color-gray-600: var(--gray-600);
+  --color-gray-700: var(--gray-700);
+  --color-gray-800: var(--gray-800);
+  --color-gray-900: var(--gray-900);
+  --color-gray-1000: var(--gray-1000);
+  --color-gray-alpha-100: var(--gray-a-100);
+  --color-gray-alpha-200: var(--gray-a-200);
+  --color-gray-alpha-300: var(--gray-a-300);
+  --color-gray-alpha-400: var(--gray-a-400);
+  --color-gray-alpha-500: var(--gray-a-500);
+  --color-gray-alpha-600: var(--gray-a-600);
+  --color-blue-100: var(--blue-100);
+  --color-blue-400: var(--blue-400);
+  --color-blue-700: var(--blue-700);
+  --color-blue-900: var(--blue-900);
+  --color-red-100: var(--red-100);
+  --color-red-400: var(--red-400);
+  --color-red-700: var(--red-700);
+  --color-red-900: var(--red-900);
+  --color-amber-100: var(--amber-100);
+  --color-amber-400: var(--amber-400);
+  --color-amber-700: var(--amber-700);
+  --color-amber-900: var(--amber-900);
   --color-canvas: var(--surface-1);
   /* Directive-name alias for the page background; same value as canvas. */
   --color-bg: var(--surface-1);
@@ -476,9 +424,7 @@
   --color-inverse-background: var(--invert-bg);
   --color-inverse-text: var(--invert-fg);
 
-  /* The accent is violet, and it is scarce: the primary action per view,
-     active/selected fills (--color-accent-soft), the live waveform, focus.
-     Hover and press walk the violet ladder, never fade with opacity. */
+  /* Blue is reserved for focus, selection and live-state accents. */
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent);
   --color-accent-hover: var(--accent-hover);

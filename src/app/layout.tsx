@@ -15,17 +15,10 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-/* Resolve the palette before first paint. `data-theme="dark"` on the element
- * below is the correct fallback if this ever fails to run, because the token
- * sheets are authored dark-as-base; the script only has to move the root to
- * light when it should be light. Must stay in agreement with resolveTheme() in
- * src/lib/utils/theme.ts. Inline and synchronous on purpose: a deferred script
- * would paint the wrong palette first.
- *
- * The storage key is interpolated from the same constant theme.ts reads, and
- * through JSON.stringify because this is a JS string literal being built by
- * string concatenation, not JSX. Importing theme.ts itself is not an option:
- * it pulls @/bindings, and this layout is a server component. */
+/* Resolve the palette before first paint. Light is the document fallback; the
+ * existing bootstrap switches to dark when the saved choice or macOS appearance
+ * calls for it. This stays in agreement with resolveTheme() in
+ * src/lib/utils/theme.ts. */
 const THEME_BOOTSTRAP = `(function(){var s;try{s=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)})}catch(e){s=null}document.documentElement.dataset.theme=s==="light"||s==="dark"?s:window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"})();`;
 
 export default function RootLayout({
@@ -37,7 +30,7 @@ export default function RootLayout({
     /* `lang`/`dir` are the boot values; i18n rewrites both on the live document
      * once a locale loads, which is also why hydration warnings are suppressed
      * here — the theme script has already moved `data-theme` by then. */
-    <html lang="en" dir="ltr" data-theme="dark" suppressHydrationWarning>
+    <html lang="en" dir="ltr" data-theme="light" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
       </head>

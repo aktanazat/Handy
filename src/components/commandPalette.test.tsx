@@ -160,21 +160,20 @@ describe("the section registry", () => {
     expect(actions.every((item) => item.group === "navigation")).toBe(true);
   });
 
-  /* Models is the only destination with no rail row, and it lands last in the
-   * palette because the registry lists it last: the palette's order is the
-   * registry's order, not a sort. */
+  /* Modes and Models are the destinations with no rail row, and Models lands
+   * last in the palette because the registry lists it last: the palette's
+   * order is the registry's order, not a sort. */
   test("the rail is the registry minus the palette-only destinations", () => {
     expect(RAIL_SECTIONS).toEqual([
       "overview",
       "history",
-      "modes",
       "meetings",
       "people",
       "settings",
     ]);
     expect(
       SECTION_ORDER.filter((section) => !RAIL_SECTIONS.includes(section)),
-    ).toEqual(["models"]);
+    ).toEqual(["modes", "models"]);
     expect(SECTION_ORDER[SECTION_ORDER.length - 1]).toBe("models");
   });
 
@@ -190,7 +189,9 @@ describe("the section registry", () => {
       () => undefined,
     ).map((item) => item.label);
 
-    expect(paletteLabels.slice(0, railLabels.length)).toEqual(railLabels);
+    expect(paletteLabels.filter((label) => railLabels.includes(label))).toEqual(
+      railLabels,
+    );
     expect(railLabels).not.toContain("Overview");
     expect(railLabels).not.toContain("History");
     expect(i18n.exists("sidebar.overview")).toBe(false);
@@ -223,7 +224,7 @@ const renderSidebar = (activeSection: "overview" | "meetings" = "overview") => {
     return renderToStaticMarkup(
       <I18nextProvider i18n={i18n}>
         <Sidebar
-          activeSection={activeSection}
+          currentSection={activeSection}
           onSectionChange={() => undefined}
           onOpenCommand={() => undefined}
         />
@@ -244,19 +245,16 @@ describe("Sidebar", () => {
     expect(labels).toEqual([
       "Capture",
       "Library",
-      "Modes",
       "Meetings",
       "People",
       "Settings",
     ]);
   });
 
-  /* aria-current is the selection; the styling hangs off it rather than off a
-   * second class, so asserting the attribute also pins the appearance. */
+  /* aria-current is the selection; the styling reads the same current route. */
   test("aria-current names exactly one route", () => {
     const markup = renderSidebar("meetings");
     expect([...markup.matchAll(/aria-current="page"/g)]).toHaveLength(1);
-    expect(markup).toContain('aria-current="page" class=');
     expect(markup).toMatch(/aria-current="page"[^>]*>.*?Meetings<\/button>/);
   });
 
@@ -269,17 +267,14 @@ describe("Sidebar", () => {
     expect([...markup.matchAll(/<kbd/g)]).toHaveLength(1);
   });
 
-  /* The rail is Geist tokens now, not hand-rolled CSS: no `app-sidebar*` class
-   * survives, so a rule left behind in a stylesheet cannot quietly restyle it.
-   * The tokens themselves are asserted because they are the contract — page
-   * surface on the rail, alpha-grey wash on hover, blue only on focus. */
-  test("carries Geist utilities and no legacy shell classes", () => {
+  /* The rail uses shared theme tokens, not hand-rolled shell CSS. */
+  test("carries theme utilities and no legacy shell classes", () => {
     const markup = renderSidebar();
     expect(markup).not.toContain("app-sidebar");
     expect(markup).toContain("bg-background-200");
     expect(markup).toContain("border-gray-alpha-400");
     expect(markup).toContain("hover:bg-gray-alpha-100");
-    expect(markup).toContain("aria-[current=page]:bg-gray-alpha-200");
+    expect(markup).toContain("bg-background-100");
     expect(markup).toContain("focus-visible:ring-blue-700");
     // Violet is dead, and so is every accent-soft fill it used to tint.
     expect(markup).not.toContain("violet");

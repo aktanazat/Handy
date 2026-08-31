@@ -1,85 +1,14 @@
-/* Geist Sans and Geist Mono, bundled locally.
-   Copyright (c) 2023 Vercel, in collaboration with basement.studio.
-   Licensed under the SIL Open Font License 1.1 — full text in
-   ../assets/fonts/OFL.txt, byte-identical to the LICENSE.txt shipped in the
-   `geist` npm package. The OFL permits bundling and redistribution with the
-   software, so Sona ships the fonts instead of fetching them at runtime.
-
-   Both files are the variable cuts (one axis, wght 100-900) and are
-   byte-identical to geist@1.7.2's
-   dist/fonts/geist-{sans,mono}/{Geist,GeistMono}-Variable.woff2 (verified by
-   md5). Refresh by re-copying from a `bun add -D geist` install; the package
-   itself is not a dependency, because its other export is a next/font wrapper
-   that would fetch or re-emit the same two files behind a second mechanism —
-   and these faces are the fallback here, not the primary (see below).
-
-   The bundler fingerprints and emits them from the relative url() below, which
-   every other static asset in the app ships. 70 KB each, so the whole type
-   system costs two requests against the app's own asset protocol.
-   `font-synthesis: none` in App.css keeps the browser from faking weights the
-   axis already covers. */
-
-@font-face {
-  font-family: "Geist Sans";
-  src: url("../assets/fonts/Geist-Variable.woff2") format("woff2-variations");
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Geist Mono";
-  src: url("../assets/fonts/GeistMono-Variable.woff2")
-    format("woff2-variations");
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
+/* The app uses the platform San Francisco stack for every text role. Font
+ * tokens and family assignments live here so no route can load a second face. */
 
 :root {
-  /* The two type primitives. Nothing else in the app names a font file.
-
-     Geist first, both stacks. This overturns the earlier Mercury-era decision
-     to lead with San Francisco ("Sona is a macOS instrument, SF is the face the
-     rest of the desktop is set in", with Geist as the cross-platform fallback).
-     The product's verified target stack is vgpu.sh's, which loads and renders
-     Geist for everything — including the uppercase mono microlabels that carry
-     the look — so the bundled faces have to be the ones actually selected, not
-     just the ones that load. Wave: geist-migration.
-
-     The system aliases stay behind Geist as the fallback chain; they cost
-     nothing and they are what paints if the woff2 ever fails to arrive. Both
-     were measured inside a real WKWebView on macOS 26.6.2 (2026-08-28, canvas
-     rasterisation + advance comparison against known AppKit faces):
-       system-ui    -> .AppleSystemUIFont            (SF Pro)
-       ui-monospace -> .AppleSystemUIFontMonospaced  (SF Mono, 0.618em advance)
-     Naming "SF Mono" ahead of the alias would still be dead weight: WebKit
-     hides the system families from web content, so a quoted "SF Mono" resolves
-     to Times New Roman and the stack falls through to `ui-monospace` anyway.
-     Keep the aliases; do not name the system face. */
-
-  /* Literals, not `var(--font-geist-sans)`: these two declarations are the ones
-     that win the cascade, and the Tailwind theme in app/globals.css points
-     `font-sans` / `font-mono` back at them. Naming a token that named this one
-     back would be a cycle — both sides would invalidate and every surface would
-     fall to the browser default face. Keep the families spelled out here. */
-  --font-sans: "Geist Sans", system-ui, -apple-system, sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, monospace;
-}
-
-/* Geist and SF are both single-axis-plus-optical variable families, so let the
- * engine pick the optical size per used size instead of asking for a discrete
- * Text/Display cut. `font-synthesis: none` keeps it from faking weights the
- * wght axis already covers (100-900 in both bundled cuts).
- *
- * `font-synthesis: none` is also declared in base.css, which every window now
- * loads: app/globals.css pulls both files into src/app/layout.tsx, and all three
- * routes nest inside it. So this is a duplicate rather than the overlay's and
- * agent-panel's only copy, as it was under Vite's per-window entry HTML. It
- * stays because `font-optical-sizing` has no other owner and belongs beside the
- * families it applies to, and because a stylesheet that declares a font stack
- * should not need a second file loaded to render it as intended. */
-html {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  --font-mono: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  font-family: var(--font-sans);
   font-optical-sizing: auto;
   font-synthesis: none;
+}
+
+:where(code, kbd, samp, pre) {
+  font-family: var(--font-sans);
 }

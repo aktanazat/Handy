@@ -28,6 +28,14 @@ interface ModelsStore {
   extractingModels: Record<string, true>;
   downloadProgress: Record<string, DownloadProgress>;
   downloadStats: Record<string, DownloadStats>;
+  /* The model that was active when each download was queued.
+   *
+   * A finished download becomes the active model as a convenience, which is
+   * only a convenience while the reader has not chosen for themselves since.
+   * Comparing the live `currentModel` against this snapshot is what tells the
+   * two apart. A download resumed from a previous session has no entry, which
+   * reads as "no choice was observed" and keeps the convenience. */
+  activeModelWhenQueued: Record<string, string>;
   loading: boolean;
   error: string | null;
   initialized: boolean;
@@ -64,6 +72,7 @@ export const useModelStore = create<ModelsStore>()(
     extractingModels: {},
     downloadProgress: {},
     downloadStats: {},
+    activeModelWhenQueued: {},
     loading: true,
     error: null,
     initialized: false,
@@ -160,11 +169,13 @@ export const useModelStore = create<ModelsStore>()(
     },
 
     downloadModel: async (modelId: string) => {
+      const activeWhenQueued = get().currentModel;
       try {
         set({ error: null });
         set(
           produce((state) => {
             state.downloadingModels[modelId] = true;
+            state.activeModelWhenQueued[modelId] = activeWhenQueued;
             state.downloadProgress[modelId] = {
               model_id: modelId,
               downloaded: 0,
@@ -182,6 +193,7 @@ export const useModelStore = create<ModelsStore>()(
             produce((state) => {
               delete state.downloadingModels[modelId];
               delete state.downloadProgress[modelId];
+              delete state.activeModelWhenQueued[modelId];
               delete state.downloadStats[modelId];
             }),
           );
@@ -194,6 +206,7 @@ export const useModelStore = create<ModelsStore>()(
           produce((state) => {
             delete state.downloadingModels[modelId];
             delete state.downloadProgress[modelId];
+            delete state.activeModelWhenQueued[modelId];
             delete state.downloadStats[modelId];
           }),
         );
@@ -210,6 +223,7 @@ export const useModelStore = create<ModelsStore>()(
             produce((state) => {
               delete state.downloadingModels[modelId];
               delete state.downloadProgress[modelId];
+              delete state.activeModelWhenQueued[modelId];
               delete state.downloadStats[modelId];
             }),
           );
@@ -322,15 +336,46 @@ export const useModelStore = create<ModelsStore>()(
 
       listen<string>("model-download-complete", (event) => {
         const modelId = event.payload;
+        const activeWhenQueued = get().activeModelWhenQueued[modelId];
         set(
           produce((state) => {
             delete state.downloadingModels[modelId];
             delete state.verifyingModels[modelId];
             delete state.downloadProgress[modelId];
+            delete state.activeModelWhenQueued[modelId];
             delete state.downloadStats[modelId];
           }),
         );
-        get().loadModels();
+        void get().loadModels();
+
+        /* Extraction settles immediately before this event. Give the backend
+         * one turn to release the model files, then preserve the completed
+         * download as the active model.
+         *
+         * Two things say not to. Dictation already running is one. The other is
+         * the reader having picked a different model while this one downloaded:
+         * the catalog's activate action writes `currentModel` immediately, and
+         * silently replacing that choice half a second later — with no
+         * notification, on a page whose language list is driven by it — is the
+         * one outcome this convenience must never produce. `currentModel` is
+         * read inside the timer, so a switch made during the delay counts too. */
+        setTimeout(() => {
+          void (async () => {
+            try {
+              if (
+                activeWhenQueued !== undefined &&
+                get().currentModel !== activeWhenQueued
+              ) {
+                return;
+              }
+              if (!(await commands.isRecording())) {
+                await get().selectModel(modelId);
+              }
+            } catch {
+              // The downloaded model remains available for manual selection.
+            }
+          })();
+        }, 500);
       });
 
       listen<{ model_id: string; error: string }>(
@@ -342,6 +387,7 @@ export const useModelStore = create<ModelsStore>()(
               delete state.downloadingModels[modelId];
               delete state.verifyingModels[modelId];
               delete state.downloadProgress[modelId];
+              delete state.activeModelWhenQueued[modelId];
               delete state.downloadStats[modelId];
               state.error = error;
             }),

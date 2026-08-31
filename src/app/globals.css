@@ -1,9 +1,6 @@
 /* The app's single Tailwind entry. Loaded by app/layout.tsx, so every window
- * route (/, /overlay, /agent-panel) gets one copy of preflight plus one set of
- * utilities. No other stylesheet may `@import "tailwindcss"`: a second entry
- * would emit a second utility set whose theme lacks the Geist scales, and the
- * later copy would win — Tailwind's stock slate-tinted `gray-900` would quietly
- * beat Geist's #a1a1a1. Page stylesheets stay plain CSS. */
+ * route (/, /overlay, /agent-panel) gets one copy of preflight and one set of
+ * utilities. Page stylesheets stay plain CSS. */
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -16,10 +13,9 @@
 @import "../styles/base.css";
 @import "../styles/shell.css";
 @import "../styles/primitives.css";
+@import "../styles/aurora.css";
 
-/* Geist values last: it deliberately overrides the legacy --radius-card (8px ->
- * 12px) and the legacy focus-ring hue, so it has to win the tie. */
-@import "../styles/geist.css";
+/* Theme values are owned by styles/theme.css above. */
 
 /* Class scanning: every source file lives under src/. Stated explicitly so the
  * utility set does not depend on where the build was invoked from. */
@@ -32,31 +28,8 @@
  * light-mode gray-1000 (#171717): a black disc on a light track. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-/* Geist Sans and Geist Mono, bundled locally — Copyright (c) 2023 Vercel, in
- * collaboration with basement.studio, SIL Open Font License 1.1 (full text in
- * ../assets/fonts/OFL.txt). Declared here as well as in styles/fonts.css so
- * this entry stays self-sufficient once the legacy chain is pruned; both point
- * at the same two files, so the browser still fetches each once. */
-@font-face {
-  font-family: "Geist Sans";
-  src: url("../assets/fonts/Geist-Variable.woff2") format("woff2-variations");
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Geist Mono";
-  src: url("../assets/fonts/GeistMono-Variable.woff2")
-    format("woff2-variations");
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* Tailwind's stock palettes for the four scales Geist redefines are removed
- * rather than shadowed: an undefined step (`text-blue-600`) then compiles to
- * nothing and is caught, instead of silently rendering a non-Geist hue. */
+/* Undefined palette steps compile to nothing instead of silently falling back
+ * to Tailwind's unrelated stock hues. */
 @theme {
   --color-gray-*: initial;
   --color-blue-*: initial;
@@ -69,7 +42,7 @@
  * `color: var(--color-gray-1000)` and picks up whichever [data-theme] block is
  * active at runtime. */
 @theme inline {
-  /* ---- Geist scales (values in styles/geist.css) ---- */
+  /* ---- Sona scales (values in styles/theme.css) ---- */
   --color-background-100: var(--color-background-100);
   --color-background-200: var(--color-background-200);
   --color-raised: var(--color-raised);
@@ -107,24 +80,19 @@
   --color-amber-700: var(--color-amber-700);
   --color-amber-900: var(--color-amber-900);
 
-  /* Literal, not var(--radius-card): `inline` substitutes it into the utility
-   * at compile time, so `rounded-card` is 12px no matter what the legacy
-   * theme.css declares and no matter which stylesheet the document loads last.
-   * styles/geist.css keeps the same value as a CSS variable for the plain-CSS
-   * surfaces that read var(--radius-card). */
-  --radius-card: 12px;
+  /* Controls use 8px corners; cards and floating surfaces use 12px. */
+  --radius-md: var(--radius-control);
+  --radius-lg: var(--radius-card);
+  --radius-card: var(--radius-card);
 
-  /* ---- shadcn/ui semantic names, mapped onto Geist ----
-   * The kit in components/vg is stock shadcn, so it writes bg-card,
-   * border-input, ring-ring. These aliases are how those classes come out
-   * Geist-coloured without patching every component. */
+  /* ---- shadcn/ui semantic names, mapped onto Sona's tokens ---- */
   --color-background: var(--color-background-100);
   --color-foreground: var(--color-gray-1000);
   --color-card: var(--color-background-100);
   --color-card-foreground: var(--color-gray-1000);
   --color-popover: var(--color-raised);
   --color-popover-foreground: var(--color-gray-1000);
-  /* Geist's primary button is the inverted one: near-white on near-black. */
+  /* The primary button is the high-contrast inverted action. */
   --color-primary: var(--color-gray-1000);
   --color-primary-foreground: var(--color-background-100);
   --color-secondary: var(--color-background-100);
@@ -139,9 +107,7 @@
   --color-input: var(--color-gray-alpha-400);
   --color-ring: var(--color-blue-700);
 
-  /* ---- Legacy token bridge (styles/theme.css), unchanged names ----
-   * Kept until the last page stops using these utilities. Self-referential on
-   * purpose: the values live in theme.css and switch per [data-theme]. */
+  /* ---- App semantic token bridge (styles/theme.css) ---- */
   --color-text: var(--color-text);
   --color-background-ui: var(--color-background-ui);
   --color-logo-primary: var(--color-logo-primary);
@@ -152,8 +118,7 @@
   --color-surface: var(--color-surface);
   --color-surface-raised: var(--color-surface-raised);
   --color-surface-sunken: var(--color-surface-sunken);
-  /* The modal scrim. rgba(0,0,0,0.72) dark / navy-tinted rgba(16,24,40,0.4)
-   * light, so `bg-backdrop` replaces the kit's flat bg-black/50 in both themes. */
+  /* The modal scrim follows the active theme. */
   --color-backdrop: var(--color-backdrop);
   --color-subtle: var(--color-subtle);
   --color-hover: var(--color-hover);
@@ -187,9 +152,6 @@
   --color-danger-soft: var(--color-danger-soft);
   --color-danger-border: var(--color-danger-border);
   --color-error: var(--color-error);
-  /* Resolved from styles/fonts.css, which spells the families out. */
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
   --radius-xs: var(--radius-xs);
   --radius-control: var(--radius-control);
   --radius-panel: var(--radius-panel);

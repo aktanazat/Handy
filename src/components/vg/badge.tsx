@@ -11,10 +11,7 @@ const badgeVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
         secondary:
-          /* Geist chip, not stock shadcn: the stock `bg-secondary` fill lands
-           * within a hair of the card surface in both themes, so a chip read
-           * as bare text. The hairline border is what makes it an object —
-           * verified on a real compiled-CSS render (LibraryFlow, this wave). */
+          /* A secondary chip needs a real hairline against both canvases. */
           "border-gray-alpha-400 bg-background-200 text-gray-900 [a&]:hover:bg-gray-alpha-100",
         destructive:
           "bg-destructive text-white focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40 [a&]:hover:bg-destructive/90",

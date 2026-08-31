@@ -49,8 +49,8 @@ interface SectionConfig {
    */
   labelKey: string;
   /**
-   * Whether the sidebar rail carries a row for it. Models is reachable from the
-   * palette and from inside pages, and has never had a row.
+   * Whether the sidebar rail carries a row. Modes and Models stay available
+   * through the command palette and from links inside pages.
    */
   inRail: boolean;
   component: ComponentType;
@@ -77,7 +77,7 @@ export const SECTIONS_CONFIG = {
   },
   modes: {
     labelKey: "sidebar.modes",
-    inRail: true,
+    inRail: false,
     component: ModesSettings,
   },
   /* A first-class destination, not a segment inside Library: this is the same
@@ -114,7 +114,7 @@ export const SECTION_ORDER =
    * declaration order above, and that order is the point of this list. */
   Object.keys(SECTIONS_CONFIG) as SidebarSection[];
 
-/** The rail's rows: everything except the destinations only the palette lists. */
+/** The destinations that earn permanent rail space. */
 export const RAIL_SECTIONS: readonly SidebarSection[] = SECTION_ORDER.filter(
   (section) => SECTIONS_CONFIG[section].inRail,
 );

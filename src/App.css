@@ -1,20 +1,6 @@
-/* What is left of the shell's own plain CSS: the onboarding shell, and the
- * scrollbars on the platforms that draw them. Plain CSS only.
- *
- * Everything else that used to live here — the settings hub and its local nav,
- * the modes workspace and master/detail shells, the four `<details>` action
- * menus, the inline status and empty rows, the logo fills, and the breakpoint
- * overrides that reshaped all of them — went with the surfaces it styled when
- * the settings, modes and meetings pages moved to utilities on Geist tokens.
- * Nothing in src/ named any of it any more.
- *
- * No `@import` and no `@theme` here: app/globals.css is the app's single
- * Tailwind entry and owns the whole legacy chain (theme, fonts, base, shell,
- * primitives) plus the token bridge, in the original cascade order. A second
- * entry in this file emitted a second utility set whose theme had no Geist
- * scales, and being later it won — Tailwind's stock slate `gray-900` quietly
- * beating Geist's. App.tsx still imports this file, so these rules still land
- * after the shared ones. */
+/* Plain CSS for the onboarding shell and native scrollbars. Tailwind enters
+ * through app/globals.css once; App.tsx imports this file afterward for these
+ * remaining shell-specific rules. */
 
 /* ---------------------------------------------------------- onboarding */
 

@@ -1,22 +1,9 @@
 /* Shared component surfaces: the control fill ladder, the loading skeleton,
  * the measured-value type role, the Glass material, and nothing else.
  *
- * Nothing in src/components/vg reads any of this: the kit is Tailwind on Geist
- * tokens. What is left backs the app's own surfaces — the settings page's bare
- * fields, the route skeleton, the audio scrubber's readout, and the Glass
- * material behind the sidebar and the command palette. Components carry layout
- * and variant classes with Tailwind utilities; anything that needs a
- * pseudo-element, a keyframe, or a rule that has to reach into third-party
- * markup lives here.
- *
- * Pruned with the kit it backed: the settings group/row/panel grammar (now
- * `src/components/settings/rows.tsx`, Tailwind on Geist tokens), the Switch
- * track, the Slider rail, the popover, the card and inset-panel surfaces, ten
- * of the eleven type roles, the microlabel pair, the keycap, the value chip,
- * the toggle pill, the data table and the grid connector. Deleting the kit
- * outright took the last three: the dialog surface, its scrim, and
- * `.control-surface`. Every one of those classes had zero references left
- * anywhere in src/, tests/, scripts/ or src-tauri/. */
+ * The vg kit reads Tailwind utilities through the shared theme tokens. What
+ * remains here backs app-owned fields, route skeletons, the audio scrubber and
+ * optional Glass material. Component files own their layout classes. */
 
 /* ----------------------------------------------------------- controls */
 
@@ -116,18 +103,9 @@
 
 /* ---------------------------------------------------------- type role */
 
-/* Every measured value, and the one type role left in this file: the other ten
- * moved to utilities with the pages that set them. Unlayered on purpose, so it
- * beats a Tailwind utility rather than losing to one — a data readout's mono
- * face and tabular figures are not a preference a page may override with
- * `font-sans`. (The old reason given here, that the overlay and agent-panel
- * webviews import this file without Tailwind, stopped being true when the
- * Next.js root layout made app/globals.css the only path to this file.)
- *
- * tabular-nums is required, not decorative: a readout that reflows its own
- * column width as digits change is a lie about stability. */
+/* The remaining type role is a measured value. Tabular figures keep its column
+ * width stable as digits change. */
 .type-data {
-  font-family: var(--font-mono);
   font-size: var(--type-data-size);
   font-variant-numeric: tabular-nums;
   font-weight: var(--fw-label);
