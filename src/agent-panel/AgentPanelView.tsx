@@ -116,6 +116,37 @@ const conversationRows = (
   });
 };
 
+/* An answer worth reading cites where it came from, and the pack it was given
+ * is nothing but quotes with `sona://` addresses beside them (`query/pack.rs`),
+ * so an assistant that answers from evidence writes those addresses into its
+ * reply. Left as text they are unclickable noise; split out here they are the
+ * one gesture that turns an answer back into the meeting it came from.
+ *
+ * The address stops at the first character that cannot be inside one. Trailing
+ * sentence punctuation is trimmed after the fact rather than excluded from the
+ * class, because a `?` can legitimately open a query string while a `.` at the
+ * end of a sentence never belongs to the link. */
+const SONA_LINK = /sona:\/\/[^\s<>"'`)\]]+/g;
+const TRAILING_PUNCTUATION = /[.,;:!?]+$/;
+
+export type MessageSegment = { text: string } | { link: string };
+
+/** One message as alternating prose and addresses, in the order it was written. */
+export const linkifySona = (message: string): MessageSegment[] => {
+  const segments: MessageSegment[] = [];
+  let cursor = 0;
+  for (const match of message.matchAll(SONA_LINK)) {
+    const link = match[0].replace(TRAILING_PUNCTUATION, "");
+    if (link === "sona://") continue;
+    const start = match.index;
+    if (start > cursor) segments.push({ text: message.slice(cursor, start) });
+    segments.push({ link });
+    cursor = start + link.length;
+  }
+  if (cursor < message.length) segments.push({ text: message.slice(cursor) });
+  return segments;
+};
+
 /** `m:ss`, counted from the turn's own start so a reload cannot restart it. */
 const elapsedLabel = (milliseconds: number): string => {
   const total = Math.max(0, Math.floor(milliseconds / 1000));
@@ -408,6 +439,7 @@ interface AgentPanelBodyProps {
   onSend: () => void;
   onDraftChange: (draft: string) => void;
   onWorkspaceChange: (workspace: AgentPanelWorkspaceV1) => void;
+  onOpenLink: (link: string) => void;
 }
 
 const AgentPanelBody: React.FC<AgentPanelBodyProps> = ({
@@ -426,6 +458,7 @@ const AgentPanelBody: React.FC<AgentPanelBodyProps> = ({
   onSend,
   onDraftChange,
   onWorkspaceChange,
+  onOpenLink,
 }) => {
   const { t } = useTranslation();
   const rows = conversationRows(conversation);
@@ -457,7 +490,26 @@ const AgentPanelBody: React.FC<AgentPanelBodyProps> = ({
                       : "border border-gray-alpha-400 bg-background-100",
                   )}
                 >
-                  {row.message}
+                  {row.role === "assistant"
+                    ? linkifySona(row.message).map((segment, index) =>
+                        "link" in segment ? (
+                          <button
+                            // SAFETY: segments come from one immutable message
+                            // string, so position is a stable identity here.
+                            key={`${index}:${segment.link}`}
+                            type="button"
+                            onClick={() => onOpenLink(segment.link)}
+                            className="underline decoration-gray-alpha-600 underline-offset-2 hover:decoration-gray-1000"
+                          >
+                            {segment.link}
+                          </button>
+                        ) : (
+                          <React.Fragment key={`${index}:text`}>
+                            {segment.text}
+                          </React.Fragment>
+                        ),
+                      )
+                    : row.message}
                 </li>
               ))}
             </ul>
@@ -578,6 +630,8 @@ export interface AgentPanelViewProps {
   onSend: () => void;
   onDraftChange: (draft: string) => void;
   onWorkspaceChange: (workspace: AgentPanelWorkspaceV1) => void;
+  /** Opening one `sona://` address an answer cited. */
+  onOpenLink: (link: string) => void;
 }
 
 /**
@@ -608,6 +662,7 @@ export const AgentPanelView: React.FC<AgentPanelViewProps> = ({
   onSend,
   onDraftChange,
   onWorkspaceChange,
+  onOpenLink,
 }) => (
   <div className="flex size-full flex-col bg-background-200 text-gray-1000">
     <AgentPanelHeader
@@ -639,6 +694,7 @@ export const AgentPanelView: React.FC<AgentPanelViewProps> = ({
         onSend={onSend}
         onDraftChange={onDraftChange}
         onWorkspaceChange={onWorkspaceChange}
+        onOpenLink={onOpenLink}
       />
     )}
   </div>

@@ -6,8 +6,9 @@ use crate::meeting::analytics::{
 use crate::meeting::clock::host_monotonic_now_ns;
 use crate::meeting::detection::DetectionRuntime;
 use crate::meeting::series_types::{
-    MeetingSeriesTemplateMutationResult, MeetingSeriesTemplateSetRequest,
-    MeetingSeriesTemplateSnapshot,
+    MeetingSeriesAlwaysRecordSetRequest, MeetingSeriesDigestSetRequest,
+    MeetingSeriesMutationResult, MeetingSeriesPreferences, MeetingSeriesRemoteOptOutSetRequest,
+    MeetingSeriesRemoteRoster, MeetingSeriesTemplateSetRequest,
 };
 use crate::meeting::session::{
     MeetingActionItemDoneRequest, MeetingConsentPanelSessionState, MeetingConsentPanelStartRequest,
@@ -483,19 +484,20 @@ pub async fn meeting_catch_up(
     manager.catch_up(session_id).await
 }
 
-/// D21: the notes template one calendar series has been told to use, by key.
-/// The pre-meeting card reads it this way, because a calendar event carries its
-/// series key and no session exists yet.
+/// What one calendar series has decided — template, digest inclusion, and
+/// whether it records itself — by key. The pre-meeting card and D28's Upcoming
+/// rows read it this way, because a calendar event carries its series key and
+/// no session exists yet.
 #[tauri::command]
 #[specta::specta]
 pub async fn meeting_series_template_get(
     manager: State<'_, Arc<MeetingSessionManager>>,
     series_key: String,
-) -> Result<MeetingSeriesTemplateSnapshot, MeetingCommandError> {
-    manager.series_template(series_key).await
+) -> Result<MeetingSeriesPreferences, MeetingCommandError> {
+    manager.series_preferences(series_key).await
 }
 
-/// The same preference reached from a meeting. A `series_key` of `null` in the
+/// The same record reached from a meeting. A `series_key` of `null` in the
 /// answer means this meeting belongs to no series, which is what the review
 /// screen needs in order to not offer the choice.
 #[tauri::command]
@@ -503,8 +505,8 @@ pub async fn meeting_series_template_get(
 pub async fn meeting_series_template_for_session(
     manager: State<'_, Arc<MeetingSessionManager>>,
     session_id: MeetingSessionId,
-) -> Result<MeetingSeriesTemplateSnapshot, MeetingCommandError> {
-    manager.series_template_for_session(session_id).await
+) -> Result<MeetingSeriesPreferences, MeetingCommandError> {
+    manager.series_preferences_for_session(session_id).await
 }
 
 #[tauri::command]
@@ -512,6 +514,56 @@ pub async fn meeting_series_template_for_session(
 pub async fn meeting_series_template_set(
     manager: State<'_, Arc<MeetingSessionManager>>,
     request: MeetingSeriesTemplateSetRequest,
-) -> Result<MeetingSeriesTemplateMutationResult, MeetingCommandError> {
+) -> Result<MeetingSeriesMutationResult, MeetingCommandError> {
     manager.set_series_template(request).await
+}
+
+/// D28: keep this series in the evening digest, or take it out of it.
+#[tauri::command]
+#[specta::specta]
+pub async fn meeting_series_digest_set(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    request: MeetingSeriesDigestSetRequest,
+) -> Result<MeetingSeriesMutationResult, MeetingCommandError> {
+    manager.set_series_digest(request).await
+}
+
+/// D28: grant or revoke the standing consent that lets this series record
+/// itself.
+///
+/// The grant is written through the same rows the consent panel writes, so an
+/// occurrence auto-started from it cites a grant the start transaction can
+/// revalidate. `acknowledged_sources` is the operator's acknowledgement and the
+/// grant is refused without one.
+#[tauri::command]
+#[specta::specta]
+pub async fn meeting_series_always_record_set(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    request: MeetingSeriesAlwaysRecordSetRequest,
+) -> Result<MeetingSeriesMutationResult, MeetingCommandError> {
+    manager.set_series_always_record(request).await
+}
+
+/// D14: keep this series' text on this Mac, or hand it back to the global
+/// meeting-intelligence setting.
+///
+/// Fenced on the same series revision the other two writes carry, so the three
+/// controls a surface shows together cannot overwrite each other's decisions.
+#[tauri::command]
+#[specta::specta]
+pub async fn meeting_series_remote_opt_out_set(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    request: MeetingSeriesRemoteOptOutSetRequest,
+) -> Result<MeetingSeriesMutationResult, MeetingCommandError> {
+    manager.set_series_remote_opt_out(request).await
+}
+
+/// D14: the series the meeting-intelligence section offers a per-series switch
+/// for, newest first, with the fence those switches write with.
+#[tauri::command]
+#[specta::specta]
+pub async fn meeting_series_remote_roster(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+) -> Result<MeetingSeriesRemoteRoster, MeetingCommandError> {
+    manager.series_remote_roster().await
 }

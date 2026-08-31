@@ -1553,6 +1553,10 @@
         "rowDescription": "Turning this off closes the panel window and makes Sona refuse every request to reopen it.",
         "title": "Agent panel"
       },
+      "externalAccess": {
+        "label": "External access",
+        "rowDescription": "Lets other programs on this Mac read your meetings, dictations, people and open loops through the sona command line and the MCP server. Read-only, and off until you turn it on."
+      },
       "workspaceNavigation": "Agent bridge views",
       "sonaAgent": {
         "title": "Sona agent",
@@ -1678,6 +1682,40 @@
         "description": "One notification at the end of a day that had meetings or closed loops. Everything stays on this Mac.",
         "timeLabel": "Digest time",
         "timeHint": "Local time. A day with nothing in it stays quiet."
+      },
+      "automations": {
+        "title": "After a meeting",
+        "description": "Actions that run on this Mac when a series' notes are written. Off for every series until you turn one on.",
+        "loading": "Reading your series…",
+        "empty": "No recorded series yet. Record a meeting from a calendar event and it will show up here.",
+        "seriesFact": "{{count}} recorded · last met {{when}}",
+        "reminders": "Add my open commitments to Reminders",
+        "remindersHint": "Writes what you still owe into a list called Sona. Nothing is ever read back out of it.",
+        "remindersDenied": "macOS has not granted access to Reminders. Open Privacy & Security › Reminders to change that.",
+        "shortcut": "Run a Shortcut",
+        "shortcutHint": "Runs the Shortcut by name with the meeting's export on its input. Thirty seconds, then it is stopped.",
+        "shortcutPlaceholder": "Shortcut name",
+        "webhook": "Send to a webhook",
+        "webhookHint": "POSTs the meeting's export as JSON. Only your own machine or your tailnet — the same rule as the relay.",
+        "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "needsTarget": "Add a name first",
+        "needsUrl": "Add an address first",
+        "rejected": "Another window changed these. Read again and retry.",
+        "invalid": "Sona will not send there. Use localhost or a tailnet address.",
+        "saveFailed": "That did not save."
+      },
+      "remoteIntelligence": {
+        "title": "Meeting intelligence",
+        "label": "Write meeting notes on my server",
+        "consent": "Summaries and answers for meetings are written on your server over your private network",
+        "unpaired": "Pair Sona with your server under Agents to turn this on",
+        "seriesTitle": "Series that stay on this Mac",
+        "seriesHint": "A series listed here is always written on this Mac, even while meeting intelligence is on.",
+        "seriesEmpty": "No recurring meetings recorded yet",
+        "loading": "Reading your series…",
+        "lastMet": "Last met {{date}}",
+        "keepLocalLabel": "Keep {{series}} on this Mac",
+        "saveFailed": "That change did not save. Read the row again and try once more."
       }
     }
   },
@@ -1715,7 +1753,14 @@
     "importAudio": "Import audio",
     "openRecordings": "Open recordings folder",
     "openAgent": "Open agent",
-    "esc": "esc"
+    "esc": "esc",
+    "search": {
+      "meetings": "Meetings",
+      "people": "People",
+      "dictations": "Dictations",
+      "loops": "Open loops",
+      "unavailable": "Search is unavailable right now."
+    }
   },
   "accessibility": {
     "permissionsDescription": "Sona needs accessibility permissions to type transcribed text.",
@@ -2161,6 +2206,12 @@
       "carriedForward": "Carried forward from an earlier meeting",
       "stale": "Somebody else moved this loop first, so the list has been refreshed."
     },
+    "transcript": {
+      "trace": {
+        "jumpLine": "Jump to the transcript at {{time}}",
+        "tooltip": "Show where this line came from"
+      }
+    },
     "artifactState": {
       "current": "Current",
       "out_of_date": "Out of date",
@@ -2378,6 +2429,42 @@
       "use": "Use this template for this series",
       "saving": "Remembering…",
       "remembered": "This series uses {{template}}"
+    },
+    "upcoming": {
+      "title": "Upcoming",
+      "loading": "Reading your calendar…",
+      "empty": "Nothing scheduled for the next week.",
+      "noAccess": "Sona cannot see your calendar.",
+      "noAccessHint": "Turn on \"Use my calendar\" in Meetings settings, then allow full access when macOS asks. Whatever macOS Calendar already shows — Google, iCloud, Outlook — comes with it.",
+      "unavailable": "This system has no calendar Sona can read.",
+      "attendees": "Attendees",
+      "you": "You",
+      "attendeesMore": "+{{count}}",
+      "recurring": "Repeats",
+      "seriesOptions": "Series options for {{title}}",
+      "alwaysRecord": "Always record this series",
+      "alwaysRecordNeedsSource": "Choose a capture source above first.",
+      "template": "Notes template",
+      "templateDefault": "App default",
+      "digest": "Include in the evening digest"
+    },
+    "talkTime": {
+      "label": "Talk time",
+      "speakerShare": "{{name}} {{share}}",
+      "sentence": "Talk time: {{speakers}}"
+    },
+    "followUp": {
+      "draft": "Draft follow-up",
+      "drafting": "Drafting…",
+      "title": "Follow-up draft",
+      "fromEngine": "Written from the summary, what you owe and the decisions. Read it before you send it.",
+      "fromRecord": "No writing engine is available here, so this draft is the record itself, word for word.",
+      "iOwe": "What I owe",
+      "decisions": "What we decided",
+      "copy": "Copy",
+      "copied": "Draft copied.",
+      "copyFailed": "Couldn't copy the draft.",
+      "failed": "Couldn't draft a follow-up for this meeting."
     }
   },
   "agentPanel": {
@@ -2426,7 +2513,16 @@
       "failed": "Failed",
       "canceled": "Stopped",
       "unverified_external": "Unverified reply"
+    },
+    "ask": {
+      "row": "Ask Sona: {{query}}",
+      "error": "Couldn't send that question to Sona."
     }
+  },
+  "chat": {
+    "open": "Chat",
+    "label": "Chat with Sona Agent",
+    "unpaired": "Pair Sona Agent in Settings"
   },
   "overview": {
     "hero": {
@@ -2645,9 +2741,16 @@
       "metCount_other": "You have met {{name}} {{count}} times",
       "metBefore_one": "You have met {{name}} once · last {{date}}",
       "metBefore_other": "You have met {{name}} {{count}} times · last {{date}}",
-      "stillOpen": "Still open: {{text}}",
       "metCount": "You have met {{name}} {{count}} times",
       "metBefore": "You have met {{name}} {{count}} times · last {{date}}"
+    },
+    "waitingOn": {
+      "iOwe": "I owe",
+      "them": "Waiting on {{name}}",
+      "stale": "Overdue",
+      "brief": "Waiting on {{name}}: {{text}}",
+      "briefOverdue": "Overdue with {{name}}: {{text}}",
+      "briefIOwe": "You owe: {{text}}"
     }
   },
   "libraryV2": {

@@ -22,7 +22,7 @@ use crate::meeting::store::{MeetingStore, StoreError};
 use crate::meeting::types::MeetingSessionId;
 use crate::meeting::workflow_types::WorkflowId;
 use rusqlite::Connection;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
 impl MeetingStore {
@@ -111,6 +111,42 @@ impl MeetingStore {
         };
         transaction.commit()?;
         Ok(result)
+    }
+
+    /// Which of these calendar addresses Sona already knows a person by.
+    ///
+    /// Keyed by the normalized address rather than by person, because the
+    /// caller holds attendees and needs to answer "is this chip a link?" one
+    /// attendee at a time. Addresses nobody is known by are simply absent, so
+    /// an unlinked attendee is a missing key rather than a null.
+    ///
+    /// Unlike `calendar_person_context` this is not gated on the briefing
+    /// workflow: a name that is already a person page is a fact about the
+    /// address book, not an inference drawn from the meeting, and hiding the
+    /// link until a workflow has run would make the same chip navigable on one
+    /// row and dead on the next.
+    pub(crate) fn person_ids_for_calendar_emails(
+        &self,
+        emails: &[String],
+    ) -> Result<HashMap<String, PersonId>, StoreError> {
+        let connection = self.connection()?;
+        let wanted = emails
+            .iter()
+            .map(|email| normalized_email(email))
+            .collect::<HashSet<_>>();
+        if wanted.is_empty() {
+            return Ok(HashMap::new());
+        }
+        let mut links = HashMap::new();
+        for person in all_people_in(&connection)? {
+            for email in &person.calendar_emails {
+                let email = normalized_email(email);
+                if wanted.contains(&email) {
+                    links.insert(email, person.id);
+                }
+            }
+        }
+        Ok(links)
     }
 }
 

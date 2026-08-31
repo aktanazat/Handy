@@ -8,10 +8,7 @@ import "@/overlay/RecordingOverlay.css";
 
 /* The recording HUD. Its own webview, so it owns its own bootstrap — ported
  * from the old src/overlay/main.tsx — and, like every window here, none of it
- * can run during the static export.
- *
- * It skips `platformAttr` because nothing here reads `data-platform`: the only
- * rules keyed off it live in App.css, which only the settings window imports. */
+ * can run during the static export. */
 const RecordingOverlayWindow = dynamic(
   async () => {
     const [{ default: RecordingOverlay }, { followAppearanceMaterial }] =
@@ -20,7 +17,6 @@ const RecordingOverlayWindow = dynamic(
         import("@/overlay/overlayEvents"),
         bootstrapWindow({
           compatShims: true,
-          platformAttr: false,
           followThemeChanges: true,
         }),
       ]);

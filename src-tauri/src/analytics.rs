@@ -111,7 +111,11 @@ impl LocalCalendarRange {
 }
 
 /// Resolve the first representable local instant on `date`, normally midnight.
-fn local_midnight(date: NaiveDate) -> Result<DateTime<Local>> {
+///
+/// `pub(crate)` because D28's calendar window cuts its days at exactly the same
+/// boundary the trend ranges do, and a second answer to "where does a local day
+/// begin" is a bug waiting for a spring-forward morning.
+pub(crate) fn local_midnight(date: NaiveDate) -> Result<DateTime<Local>> {
     let midnight = date
         .and_hms_opt(0, 0, 0)
         .ok_or_else(|| anyhow!("calendar day has no midnight"))?;

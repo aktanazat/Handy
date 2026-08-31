@@ -457,6 +457,31 @@ export function installMockedRuntime(payload: MockPayload): void {
       "agent_panel_public_identity",
       { key_id: "agent-panel-key-1", public_key: "0".repeat(64) },
     ],
+
+    /* The one query plane (⌘K). Two characters into the palette's field the
+     * surface asks `sona_query_search`, so an unmocked command would answer
+     * `null` and every spec that types would read the palette's "search is
+     * unavailable" notice instead of its command list. The empty page is the
+     * exact shape `query/mod.rs` returns; a spec that wants rows supplies them
+     * through `responses`, because a default with rows in it would silently
+     * change what "no commands found" means for every other spec.
+     *
+     * `sona_open_link` answers `true` — the address was ours — and routes
+     * nothing: navigation happens through the events the backend emits, which
+     * a spec injects through the event map. */
+    [
+      "sona_query_search",
+      { schema_version: 1, entries: [], next_cursor: null },
+    ],
+    [
+      "sona_query_pack",
+      {
+        schema_version: 1,
+        pack: "sona context pack 1\nquestion: what did I promise\nquotes: 0 of 0",
+        sources: [],
+      },
+    ],
+    ["sona_open_link", true],
   ]);
 
   const invoke = async (

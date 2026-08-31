@@ -1493,6 +1493,10 @@
         "rowDescription": "כיבוי האפשרות סוגר את חלון החלונית וגורם ל־Sona לסרב לכל בקשה לפתוח אותה מחדש.",
         "title": "חלונית סוכנים"
       },
+      "externalAccess": {
+        "label": "גישה חיצונית",
+        "rowDescription": "מאפשר לתוכניות אחרות ב-Mac הזה לקרוא את הפגישות, ההכתבות, האנשים והמשימות הפתוחות שלך דרך שורת הפקודה sona ושרת ה-MCP. קריאה בלבד, וכבוי עד שתפעיל אותו."
+      },
       "workspaceNavigation": "תצוגות גשר הסוכנים",
       "sonaAgent": {
         "title": "סוכן Sona",
@@ -1680,6 +1684,40 @@
         "description": "התראה אחת בסוף יום שהיו בו פגישות או משימות שנסגרו. הכול נשאר על המק הזה.",
         "timeLabel": "שעת הסיכום",
         "timeHint": "שעון מקומי. יום שלא קרה בו דבר נשאר שקט."
+      },
+      "automations": {
+        "title": "אחרי פגישה",
+        "description": "פעולות שרצות על ה-Mac הזה כשההערות של סדרה נכתבות. כבויות בכל סדרה עד שתדליק אחת.",
+        "loading": "קוראים את הסדרות שלך…",
+        "empty": "אין עדיין סדרות מוקלטות. הקלט פגישה מאירוע ביומן והיא תופיע כאן.",
+        "seriesFact": "{{count}} הוקלטו · לאחרונה {{when}}",
+        "reminders": "הוסף את ההתחייבויות הפתוחות שלי לתזכורות",
+        "remindersHint": "כותב את מה שעוד עליך לרשימה בשם Sona. לעולם לא נקרא ממנה דבר בחזרה.",
+        "remindersDenied": "macOS לא נתן גישה לתזכורות. שנה זאת ב״פרטיות ואבטחה › תזכורות״.",
+        "shortcut": "הרץ קיצור דרך",
+        "shortcutHint": "מריץ את הקיצור לפי שם עם ייצוא הפגישה כקלט. שלושים שניות, ואז נעצר.",
+        "shortcutPlaceholder": "שם קיצור הדרך",
+        "webhook": "שלח ל-webhook",
+        "webhookHint": "שולח את ייצוא הפגישה כ-JSON. רק המחשב שלך או ה-tailnet שלך — אותו כלל כמו הממסר.",
+        "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "needsTarget": "הוסף שם קודם",
+        "needsUrl": "הוסף כתובת קודם",
+        "rejected": "חלון אחר שינה את זה. קרא שוב ונסה שנית.",
+        "invalid": "Sona לא ישלח לשם. השתמש ב-localhost או בכתובת tailnet.",
+        "saveFailed": "זה לא נשמר."
+      },
+      "remoteIntelligence": {
+        "title": "בינת פגישות",
+        "label": "לכתוב את סיכומי הפגישות על השרת שלי",
+        "consent": "סיכומים ותשובות לפגישות נכתבים על השרת שלך דרך הרשת הפרטית שלך",
+        "unpaired": "חבר את Sona לשרת שלך תחת סוכנים כדי להפעיל את זה",
+        "seriesTitle": "סדרות שנשארות על ה-Mac הזה",
+        "seriesHint": "סדרה שמופיעה כאן נכתבת תמיד על ה-Mac הזה, גם כשבינת הפגישות מופעלת.",
+        "seriesEmpty": "עוד לא הוקלטו פגישות חוזרות",
+        "loading": "קורא את הסדרות שלך…",
+        "lastMet": "נפגשתם לאחרונה ב-{{date}}",
+        "keepLocalLabel": "להשאיר את {{series}} על ה-Mac הזה",
+        "saveFailed": "השינוי לא נשמר. קרא את השורה מחדש ונסה שוב."
       }
     }
   },
@@ -1714,7 +1752,14 @@
     "importAudio": "תמלול קובץ",
     "openRecordings": "פתח את תיקיית ההקלטות",
     "openAgent": "פתח סוכן",
-    "esc": "esc"
+    "esc": "esc",
+    "search": {
+      "meetings": "פגישות",
+      "people": "אנשים",
+      "dictations": "הכתבות",
+      "loops": "שאלות פתוחות",
+      "unavailable": "החיפוש אינו זמין כרגע."
+    }
   },
   "accessibility": {
     "permissionsDescription": "Sona צריך הרשאות נגישות כדי להקליד את הטקסט המתומלל.",
@@ -2147,6 +2192,12 @@
       "carriedForward": "הועבר מפגישה קודמת",
       "stale": "מישהו אחר שינה את הנושא הזה לפניך, לכן הרשימה רועננה."
     },
+    "transcript": {
+      "trace": {
+        "jumpLine": "מעבר לתמלול ב-{{time}}",
+        "tooltip": "הצגת המקום שממנו הגיעה השורה"
+      }
+    },
     "artifactState": {
       "current": "עדכנית",
       "out_of_date": "לא מעודכנת",
@@ -2380,6 +2431,42 @@
       "use": "השתמש בתבנית הזו לסדרה הזו",
       "saving": "נשמר…",
       "remembered": "הסדרה הזו משתמשת ב{{template}}"
+    },
+    "upcoming": {
+      "title": "הקרובים",
+      "loading": "קורא את היומן שלך…",
+      "empty": "אין דבר מתוכנן לשבוע הקרוב.",
+      "noAccess": "Sona לא רואה את היומן שלך.",
+      "noAccessHint": "הפעל \"שימוש ביומן שלי\" בהגדרות הפגישות, ואשר גישה מלאה כש-macOS מבקש. כל מה שיומן macOS כבר מציג — Google, iCloud, Outlook — מגיע איתו.",
+      "unavailable": "במערכת הזו אין יומן ש-Sona יכולה לקרוא.",
+      "attendees": "משתתפים",
+      "you": "את/ה",
+      "attendeesMore": "+{{count}}",
+      "recurring": "חוזר",
+      "seriesOptions": "אפשרויות הסדרה עבור {{title}}",
+      "alwaysRecord": "תמיד להקליט את הסדרה הזו",
+      "alwaysRecordNeedsSource": "בחר תחילה מקור הקלטה למעלה.",
+      "template": "תבנית סיכום",
+      "templateDefault": "ברירת המחדל של האפליקציה",
+      "digest": "לכלול בסיכום הערב"
+    },
+    "talkTime": {
+      "label": "זמן דיבור",
+      "speakerShare": "{{name}} {{share}}",
+      "sentence": "זמן דיבור: {{speakers}}"
+    },
+    "followUp": {
+      "draft": "ניסוח מעקב",
+      "drafting": "מנסח…",
+      "title": "טיוטת מעקב",
+      "fromEngine": "נכתב מתוך הסיכום, ממה שאתה חייב ומההחלטות. קרא לפני השליחה.",
+      "fromRecord": "אין כאן מנוע כתיבה זמין, ולכן הטיוטה היא הרישום עצמו, מילה במילה.",
+      "iOwe": "מה שאני חייב",
+      "decisions": "מה שהחלטנו",
+      "copy": "העתק",
+      "copied": "הטיוטה הועתקה.",
+      "copyFailed": "לא ניתן להעתיק את הטיוטה.",
+      "failed": "לא ניתן לנסח מעקב לפגישה הזו."
     }
   },
   "agentPanel": {
@@ -2428,7 +2515,16 @@
       "failed": "נכשל",
       "canceled": "נעצר",
       "unverified_external": "תשובה לא מאומתת"
+    },
+    "ask": {
+      "row": "שאל את Sona: {{query}}",
+      "error": "לא ניתן היה לשלוח את השאלה ל-Sona."
     }
+  },
+  "chat": {
+    "open": "צ'אט",
+    "label": "צ'אט עם סוכן Sona",
+    "unpaired": "התאם את סוכן Sona בהגדרות"
   },
   "overview": {
     "hero": {
@@ -2657,9 +2753,16 @@
       "metBefore_one": "נפגשת עם {{name}} פעם אחת · לאחרונה {{date}}",
       "metBefore_two": "נפגשת עם {{name}} פעמיים · לאחרונה {{date}}",
       "metBefore_other": "נפגשת עם {{name}} {{count}} פעמים · לאחרונה {{date}}",
-      "stillOpen": "עדיין פתוח: {{text}}",
       "metCount": "נפגשת עם {{name}} {{count}} פעמים",
       "metBefore": "נפגשת עם {{name}} {{count}} פעמים · לאחרונה {{date}}"
+    },
+    "waitingOn": {
+      "iOwe": "אני חייב",
+      "them": "ממתין ל{{name}}",
+      "stale": "באיחור",
+      "brief": "ממתין ל{{name}}: {{text}}",
+      "briefOverdue": "באיחור אצל {{name}}: {{text}}",
+      "briefIOwe": "אתה חייב: {{text}}"
     }
   },
   "libraryV2": {

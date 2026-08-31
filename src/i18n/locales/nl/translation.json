@@ -1493,6 +1493,10 @@
         "rowDescription": "Uitschakelen sluit het paneelvenster en laat Sona elk verzoek om het te heropenen weigeren.",
         "title": "Agentpaneel"
       },
+      "externalAccess": {
+        "label": "Externe toegang",
+        "rowDescription": "Laat andere programma's op deze Mac je vergaderingen, dictaten, personen en openstaande punten lezen via de sona-opdrachtregel en de MCP-server. Alleen-lezen, en uit totdat je het aanzet."
+      },
       "workspaceNavigation": "Agentbridge-weergaven",
       "sonaAgent": {
         "title": "Sona-agent",
@@ -1674,6 +1678,40 @@
         "description": "Eén melding aan het eind van een dag met vergaderingen of afgeronde punten. Alles blijft op deze Mac.",
         "timeLabel": "Tijd van de samenvatting",
         "timeHint": "Lokale tijd. Een dag zonder iets blijft stil."
+      },
+      "automations": {
+        "title": "Na een vergadering",
+        "description": "Acties die op deze Mac draaien zodra de notities van een serie geschreven zijn. Voor elke serie uit, tot je er een aanzet.",
+        "loading": "Je series worden gelezen…",
+        "empty": "Nog geen opgenomen series. Neem een vergadering op vanuit een agenda-item en hij verschijnt hier.",
+        "seriesFact": "{{count}} opgenomen · laatst {{when}}",
+        "reminders": "Mijn openstaande toezeggingen aan Herinneringen toevoegen",
+        "remindersHint": "Schrijft wat je nog moet doen in een lijst met de naam Sona. Er wordt nooit iets uit teruggelezen.",
+        "remindersDenied": "macOS heeft geen toegang tot Herinneringen gegeven. Wijzig dat in Privacy en beveiliging › Herinneringen.",
+        "shortcut": "Een Snelle actie uitvoeren",
+        "shortcutHint": "Voert de Snelle actie op naam uit met de export van de vergadering als invoer. Dertig seconden, dan wordt hij gestopt.",
+        "shortcutPlaceholder": "Naam van de Snelle actie",
+        "webhook": "Naar een webhook sturen",
+        "webhookHint": "Verstuurt de export van de vergadering als JSON. Alleen je eigen machine of je tailnet — dezelfde regel als de relay.",
+        "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "needsTarget": "Vul eerst een naam in",
+        "needsUrl": "Vul eerst een adres in",
+        "rejected": "Een ander venster heeft dit gewijzigd. Lees opnieuw en probeer het nog eens.",
+        "invalid": "Sona stuurt daar niet heen. Gebruik localhost of een tailnet-adres.",
+        "saveFailed": "Dat is niet opgeslagen."
+      },
+      "remoteIntelligence": {
+        "title": "Vergaderintelligentie",
+        "label": "Vergadernotities op mijn server schrijven",
+        "consent": "Samenvattingen en antwoorden voor vergaderingen worden op je server geschreven via je privénetwerk",
+        "unpaired": "Koppel Sona onder Agents aan je server om dit aan te zetten",
+        "seriesTitle": "Reeksen die op deze Mac blijven",
+        "seriesHint": "Een reeks in deze lijst wordt altijd op deze Mac geschreven, ook als vergaderintelligentie aan staat.",
+        "seriesEmpty": "Nog geen terugkerende vergaderingen opgenomen",
+        "loading": "Je reeksen worden gelezen…",
+        "lastMet": "Laatst op {{date}}",
+        "keepLocalLabel": "{{series}} op deze Mac houden",
+        "saveFailed": "De wijziging is niet opgeslagen. Lees de rij opnieuw en probeer het nog eens."
       }
     }
   },
@@ -1711,7 +1749,14 @@
     "importAudio": "Bestand transcriberen",
     "openRecordings": "Opnamemap openen",
     "openAgent": "Agent openen",
-    "esc": "esc"
+    "esc": "esc",
+    "search": {
+      "meetings": "Vergaderingen",
+      "people": "Personen",
+      "dictations": "Dictees",
+      "loops": "Open vragen",
+      "unavailable": "Zoeken is nu niet beschikbaar."
+    }
   },
   "accessibility": {
     "permissionsDescription": "Sona heeft toegankelijkheidsmachtigingen nodig om getranscribeerde tekst te kunnen typen.",
@@ -2141,6 +2186,12 @@
       "carriedForward": "Meegenomen uit een eerdere vergadering",
       "stale": "Iemand anders heeft dit punt eerder verplaatst, dus de lijst is vernieuwd."
     },
+    "transcript": {
+      "trace": {
+        "jumpLine": "Ga naar het transcript op {{time}}",
+        "tooltip": "Laat zien waar deze regel vandaan komt"
+      }
+    },
     "artifactState": {
       "current": "Actueel",
       "out_of_date": "Verouderd",
@@ -2374,6 +2425,42 @@
       "use": "Dit sjabloon voor deze reeks gebruiken",
       "saving": "Onthouden…",
       "remembered": "Deze reeks gebruikt {{template}}"
+    },
+    "upcoming": {
+      "title": "Binnenkort",
+      "loading": "Je agenda wordt gelezen…",
+      "empty": "Niets gepland voor de komende week.",
+      "noAccess": "Sona kan je agenda niet zien.",
+      "noAccessHint": "Zet \"Mijn agenda gebruiken\" aan in de vergaderinstellingen en geef volledige toegang wanneer macOS erom vraagt. Alles wat Agenda op macOS al toont — Google, iCloud, Outlook — komt mee.",
+      "unavailable": "Dit systeem heeft geen agenda die Sona kan lezen.",
+      "attendees": "Deelnemers",
+      "you": "Jij",
+      "attendeesMore": "+{{count}}",
+      "recurring": "Herhaalt",
+      "seriesOptions": "Serieopties voor {{title}}",
+      "alwaysRecord": "Deze serie altijd opnemen",
+      "alwaysRecordNeedsSource": "Kies eerst hierboven een opnamebron.",
+      "template": "Notitiesjabloon",
+      "templateDefault": "Standaard van de app",
+      "digest": "Opnemen in de avondsamenvatting"
+    },
+    "talkTime": {
+      "label": "Spreektijd",
+      "speakerShare": "{{name}} {{share}}",
+      "sentence": "Spreektijd: {{speakers}}"
+    },
+    "followUp": {
+      "draft": "Opvolging opstellen",
+      "drafting": "Opstellen…",
+      "title": "Concept-opvolging",
+      "fromEngine": "Geschreven op basis van de samenvatting, wat jij hebt toegezegd en de besluiten. Lees het voordat je het verstuurt.",
+      "fromRecord": "Er is hier geen schrijfengine beschikbaar, dus het concept is het verslag zelf, woord voor woord.",
+      "iOwe": "Wat ik heb toegezegd",
+      "decisions": "Wat we hebben besloten",
+      "copy": "Kopiëren",
+      "copied": "Concept gekopieerd.",
+      "copyFailed": "Het concept kon niet worden gekopieerd.",
+      "failed": "Er kon geen opvolging voor deze vergadering worden opgesteld."
     }
   },
   "agentPanel": {
@@ -2422,7 +2509,16 @@
       "failed": "Mislukt",
       "canceled": "Gestopt",
       "unverified_external": "Ongecontroleerd antwoord"
+    },
+    "ask": {
+      "row": "Sona vragen: {{query}}",
+      "error": "De vraag kon niet naar Sona worden verzonden."
     }
+  },
+  "chat": {
+    "open": "Chat",
+    "label": "Chatten met de Sona-agent",
+    "unpaired": "Koppel de Sona-agent in Instellingen"
   },
   "overview": {
     "hero": {
@@ -2645,9 +2741,16 @@
       "metCount_other": "Je hebt {{name}} {{count}} keer ontmoet",
       "metBefore_one": "Je hebt {{name}} één keer ontmoet · laatste {{date}}",
       "metBefore_other": "Je hebt {{name}} {{count}} keer ontmoet · laatste {{date}}",
-      "stillOpen": "Nog open: {{text}}",
       "metCount": "Je hebt {{name}} {{count}} keer ontmoet",
       "metBefore": "Je hebt {{name}} {{count}} keer ontmoet · laatste {{date}}"
+    },
+    "waitingOn": {
+      "iOwe": "Ik moet",
+      "them": "Wachten op {{name}}",
+      "stale": "Te laat",
+      "brief": "Wachten op {{name}}: {{text}}",
+      "briefOverdue": "Te laat bij {{name}}: {{text}}",
+      "briefIOwe": "Jij moet: {{text}}"
     }
   },
   "libraryV2": {

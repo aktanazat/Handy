@@ -22,15 +22,16 @@ use super::{
 };
 use crate::meeting::ledger::{LedgerFirmness, LedgerOutcome, MeetingLedger};
 use crate::meeting::loop_types::{
-    MeetingLoopAssignRequest, MeetingLoopId, MeetingLoopKind, MeetingLoopMutationResult,
-    MeetingLoopReopenRequest, MeetingLoopResolveRequest, MeetingLoopRow, MeetingLoopStatus,
-    MeetingLoopsResult,
+    loop_direction, MeetingLoopAssignRequest, MeetingLoopId, MeetingLoopKind,
+    MeetingLoopMutationResult, MeetingLoopReopenRequest, MeetingLoopResolveRequest, MeetingLoopRow,
+    MeetingLoopStatus, MeetingLoopsResult,
 };
 use crate::meeting::people_types::PersonId;
 use crate::meeting::types::{
     ArtifactCitation, GeneratedMeetingArtifacts, MeetingCommandKind, MeetingOperationId,
-    MeetingPhase, MeetingReasonCode, MeetingSessionId, OperationReceipt,
+    MeetingPhase, MeetingReasonCode, MeetingSessionId, OperationReceipt, SourceKind,
 };
+use crate::meeting::workflow_types::WorkflowId;
 use rusqlite::{params, Connection, OptionalExtension, Transaction, TransactionBehavior};
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -103,6 +104,31 @@ impl MeetingStore {
     ) -> Result<MeetingLoopsResult, StoreError> {
         let connection = self.connection()?;
         loops_in(&connection, session_id)
+    }
+
+    /// Every actionable row in the corpus, newest meeting first.
+    ///
+    /// The corpus-wide counterpart of [`Self::meeting_loops`], gated the way
+    /// the open-loops inbox is: until a meeting's continuity pass has
+    /// succeeded its rows have not been matched against the previous session,
+    /// so a loop that is really carried forward would still read as open. It
+    /// keeps both registers and every status, because "what is still open",
+    /// "what got done" and "what did somebody commit to" are three questions
+    /// about one set of rows — which is what the read-only external plane
+    /// asks, and why it asks the store rather than opening ledger JSON itself.
+    pub(crate) fn corpus_loops(&self) -> Result<Vec<MeetingLedgerRows>, StoreError> {
+        let connection = self.connection()?;
+        let mut meetings = Vec::new();
+        for meeting in ledger_rows_in(&connection)? {
+            if super::workflows::workflow_succeeded_for_session_in(
+                &connection,
+                WorkflowId::Continuity,
+                meeting.session_id,
+            )? {
+                meetings.push(meeting);
+            }
+        }
+        Ok(meetings)
     }
 
     pub(crate) fn resolve_loop(
@@ -314,6 +340,76 @@ impl MeetingStore {
     }
 }
 
+/// One meeting's actionable rows, with the meeting facts every corpus-wide
+/// reader needs beside them.
+pub(crate) struct MeetingLedgerRows {
+    pub session_id: MeetingSessionId,
+    pub title: String,
+    /// When the meeting happened: its start, or its creation for one that
+    /// never started.
+    pub at_utc_ms: i64,
+    pub rows: Vec<MeetingLoopRow>,
+}
+
+/// Every retained meeting that has a current ledger, newest first, with its
+/// rows already joined to their stored state.
+///
+/// Loops live in artifact JSON rather than in a table, so every question about
+/// the whole corpus — the open-loops inbox, the digest's overdue count — is
+/// this walk. It is written once so those answers cannot disagree about what a
+/// meeting's rows are.
+pub(crate) fn ledger_rows_in(
+    connection: &Connection,
+) -> Result<Vec<MeetingLedgerRows>, StoreError> {
+    let mut statement = connection.prepare(
+        "SELECT m.id, m.title, COALESCE(m.started_at_utc_ms, m.created_at_utc_ms),
+                (SELECT a.content_json
+                   FROM meeting_artifact_revisions a
+                  WHERE a.session_id = m.id AND a.state = 'current'
+                    AND a.content_json IS NOT NULL
+                  ORDER BY a.generated_at_utc_ms DESC LIMIT 1)
+           FROM meeting_sessions m
+          WHERE m.phase != 'deleting'
+          ORDER BY COALESCE(m.started_at_utc_ms, m.created_at_utc_ms) DESC, m.id DESC",
+    )?;
+    let meetings = statement
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, i64>(2)?,
+                row.get::<_, Option<String>>(3)?,
+            ))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    drop(statement);
+
+    let mut walked = Vec::with_capacity(meetings.len());
+    for (session_id, title, at_utc_ms, content_json) in meetings {
+        let session_id = MeetingSessionId::from_uuid(
+            Uuid::parse_str(&session_id).map_err(|_| StoreError::Corrupt)?,
+        );
+        let Some(content_json) = content_json else {
+            continue;
+        };
+        let content: GeneratedMeetingArtifacts = decode_json(&content_json)?;
+        let Some(ledger) = content.ledger else {
+            continue;
+        };
+        walked.push(MeetingLedgerRows {
+            session_id,
+            title,
+            at_utc_ms,
+            rows: rows_from_seeds_in(
+                connection,
+                session_id,
+                ledger_loop_seeds(session_id, &ledger),
+            )?,
+        });
+    }
+    Ok(walked)
+}
+
 /// Every ledger row in `ledger` that can be acted on, in the order the review
 /// screen reads them: threads first because they carry the owner and the
 /// receipt, then the questions nobody answered, then the commitments.
@@ -433,6 +529,7 @@ pub(crate) fn rows_from_seeds_in(
     seeds: Vec<LoopSeed>,
 ) -> Result<Vec<MeetingLoopRow>, StoreError> {
     let states = states_in(connection, session_id)?;
+    let mine = microphone_speaker_labels_in(connection, session_id)?;
     let mut owner_names = HashMap::<PersonId, String>::new();
     let mut rows = Vec::with_capacity(seeds.len());
     for seed in seeds {
@@ -460,6 +557,12 @@ pub(crate) fn rows_from_seeds_in(
             None => None,
         };
         let carried_since_at_utc_ms = carried_since_in(connection, &seed.loop_id)?;
+        let direction = loop_direction(
+            state.owner_person_id,
+            seed.owner_text.as_deref(),
+            seed.speaker.as_deref(),
+            &mine,
+        );
         rows.push(MeetingLoopRow {
             loop_id: seed.loop_id,
             session_id,
@@ -468,6 +571,7 @@ pub(crate) fn rows_from_seeds_in(
             owner_text: seed.owner_text,
             owner_person_id: state.owner_person_id,
             owner_display_name,
+            direction,
             status: state.status,
             resolved_at_utc_ms: state.resolved_at_utc_ms,
             resolving_operation_id: state.resolving_operation_id,
@@ -483,6 +587,31 @@ pub(crate) fn rows_from_seeds_in(
         });
     }
     Ok(rows)
+}
+
+/// The display names of this session's microphone speakers, merged-away ones
+/// excluded.
+///
+/// This is the whole answer to "which voice is the user's". Sona has no
+/// voiceprints and no self `Person`, so the microphone track is the evidence:
+/// what was captured on this machine's own input was said by whoever is
+/// sitting at it. Renaming that speaker to a real name keeps working, because
+/// the row is matched by the name it currently carries.
+fn microphone_speaker_labels_in(
+    connection: &Connection,
+    session_id: MeetingSessionId,
+) -> Result<Vec<String>, StoreError> {
+    let mut statement = connection.prepare(
+        "SELECT display_name FROM meeting_speakers
+          WHERE session_id = ?1 AND source_kind = ?2 AND merged_into_speaker_id IS NULL",
+    )?;
+    let labels = statement
+        .query_map(
+            params![id(session_id), SourceKind::Microphone.as_str()],
+            |row| row.get::<_, String>(0),
+        )?
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(labels)
 }
 
 pub(crate) fn loops_in(

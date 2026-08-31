@@ -32,6 +32,7 @@ pub mod meeting;
 pub mod meeting_macos;
 mod memory;
 mod modes;
+mod net_policy;
 mod overlay;
 mod paste_tx;
 pub mod portable;
@@ -247,7 +248,10 @@ fn show_query_link(app: &AppHandle, target: query::QueryLinkTarget) {
 /// a deep link is another trigger, never a private path into the app. Callers
 /// use the return value to decide whether the string still needs their own
 /// handling, which is how file:// opens and sona:// links share one event.
-fn dispatch_deep_link(app: &AppHandle, raw: &str) -> bool {
+/// `sona_open_link` is one of those callers: a `sona://` row inside the app
+/// routes through here rather than through a second, client-side reading of
+/// what an address means.
+pub(crate) fn dispatch_deep_link(app: &AppHandle, raw: &str) -> bool {
     let Some(action) = deeplink::parse_deep_link(raw) else {
         return false;
     };
@@ -1012,9 +1016,9 @@ fn show_main_window_command(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-/// Convert an unexpected panic on the headless worker into a normal CLI
+/// Convert an unexpected panic on a headless worker into a normal CLI
 /// failure. Without this guard the Tauri event loop remains alive after the
-/// worker exits, leaving `--transcribe-file` hung indefinitely.
+/// worker exits, leaving `--transcribe-file` or a `--query` hung indefinitely.
 fn run_headless_guarded<F>(operation: F) -> i32
 where
     F: FnOnce() -> i32,
@@ -1022,7 +1026,7 @@ where
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(operation)) {
         Ok(code) => code,
         Err(_) => {
-            eprintln!("error: headless transcription failed unexpectedly");
+            eprintln!("error: the headless run failed unexpectedly");
             1
         }
     }
@@ -1033,6 +1037,7 @@ fn is_headless_mode(args: &CliArgs) -> bool {
         || args.list_devices
         || args.list_models
         || args.agent_panel_public_identity
+        || query::external::is_external_query(args)
 }
 
 /// Headless one-shot transcription for the `--transcribe-file` / `--list-devices`
@@ -1521,6 +1526,11 @@ pub fn run(cli_args: CliArgs) {
             commands::meeting::meeting_series_template_get,
             commands::meeting::meeting_series_template_for_session,
             commands::meeting::meeting_series_template_set,
+            commands::meeting::meeting_series_digest_set,
+            commands::meeting::meeting_series_always_record_set,
+            commands::meeting::meeting_series_remote_opt_out_set,
+            commands::meeting::meeting_series_remote_roster,
+            commands::upcoming::meeting_upcoming_events,
             commands::people::people_list,
             commands::people::person_detail,
             commands::people::person_context,
@@ -1538,6 +1548,7 @@ pub fn run(cli_args: CliArgs) {
             commands::loops::meeting_loop_resolve,
             commands::loops::meeting_loop_reopen,
             commands::loops::meeting_loop_assign,
+            commands::followup::meeting_follow_up_draft,
             commands::workflows::workflows_list,
             commands::workflows::workflow_set_enabled,
             commands::workflows::workflow_runs,
@@ -1575,6 +1586,13 @@ pub fn run(cli_args: CliArgs) {
             commands::detection::detection_settings_set,
             commands::query::sona_query_search,
             commands::query::sona_query_events,
+            commands::query::sona_query_pack,
+            commands::query::sona_open_link,
+            commands::automations::meeting_series_automations_get,
+            commands::automations::meeting_series_automations_for_session,
+            commands::automations::meeting_series_automation_set,
+            commands::automations::meeting_automation_roster,
+            commands::automations::meeting_automation_runs,
         ])
         .events(collect_events![
             upstream_import::UpstreamImportProgressEvent,
@@ -1768,6 +1786,36 @@ pub fn run(cli_args: CliArgs) {
             app.manage(secret_manager.clone());
 
             specta_builder.mount_events(app);
+
+            // Headless read-only corpus query (`--query` / `--meetings` /
+            // `--meeting` / `--transcript` / `--loops` / `--people` /
+            // `--events`): mount the two managers the query plane reads
+            // through and nothing else. No model, no engine, no mic — this
+            // path never transcribes, and building the transcription stack for
+            // it would load a GGUF to answer a SELECT. The consent gate lives
+            // in `query::external::answer`, so nothing below opens the store
+            // until the setting says it may.
+            if query::external::is_external_query(&cli_args) {
+                let app_handle = app.handle().clone();
+                let history_manager = Arc::new(HistoryManager::new(&app_handle)?);
+                let meeting_secrets =
+                    Arc::clone(&app_handle.state::<Arc<secrets::SecretManager>>());
+                let meeting_manager =
+                    Arc::new(MeetingSessionManager::new(&app_handle, meeting_secrets));
+                app_handle.manage(history_manager);
+                app_handle.manage(meeting_manager);
+
+                let handle = app_handle.clone();
+                let args = cli_args.clone();
+                std::thread::spawn(move || {
+                    let code = run_headless_guarded(|| query::external::run_cli(&handle, &args));
+                    use std::io::Write;
+                    let _ = std::io::stdout().flush();
+                    let _ = std::io::stderr().flush();
+                    std::process::exit(code);
+                });
+                return Ok(());
+            }
 
             // Headless one-shot path (`--transcribe-file` / `--list-devices` /
             // `--list-models`): initialize only what transcription needs — the

@@ -1270,6 +1270,25 @@ pub struct AppSettings {
     /// a settings file can express.
     #[serde(default = "default_meeting_digest_minute_of_day")]
     pub meeting_digest_minute_of_day: u32,
+    /// D14. Whether the summaries, ledgers, recaps and answers for meetings are
+    /// written on the operator's own server instead of on this Mac.
+    ///
+    /// Off on install, and inert until the agent panel is paired with a relay:
+    /// this switch alone never sends anything anywhere. A series can be kept
+    /// local while it is on, which is a per-series preference in the meeting
+    /// store rather than a second setting here — the list of a person's
+    /// sensitive meetings does not belong in a settings file.
+    #[serde(default)]
+    pub meeting_remote_intelligence_enabled: bool,
+    /// D15. Whether processes outside this app may read the corpus through
+    /// the read-only `sona --query …` surface and the MCP server over it.
+    ///
+    /// Off on install, and the only thing standing between an agent on this
+    /// Mac and every meeting on it: the headless read plane refuses with
+    /// `consent_required` while this is false, so turning it on is the whole
+    /// grant. Read-only either way — nothing on that surface mutates.
+    #[serde(default)]
+    pub external_query_enabled: bool,
 }
 
 fn default_model() -> String {
@@ -1854,6 +1873,8 @@ pub fn get_default_settings() -> AppSettings {
         detection_meeting_apps: default_detection_meeting_apps(),
         meeting_digest_enabled: false,
         meeting_digest_minute_of_day: default_meeting_digest_minute_of_day(),
+        meeting_remote_intelligence_enabled: false,
+        external_query_enabled: false,
     };
     settings.modes = default_modes(&settings);
     ensure_mode_settings(&mut settings);

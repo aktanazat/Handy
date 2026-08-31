@@ -13,16 +13,11 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
-  --scrollbar-thumb: color-mix(
-    in oklab,
-    var(--color-text-secondary) 34%,
-    transparent
-  );
-  --scrollbar-thumb-hover: color-mix(
-    in oklab,
-    var(--color-text-secondary) 52%,
-    transparent
-  );
+  /* The thumb is the app's hairline colour, one step darker under the pointer.
+   * Both skins define these steps, so the scrollbar follows the theme without
+   * a second per-theme rule. */
+  --scrollbar-thumb: var(--color-gray-alpha-400);
+  --scrollbar-thumb-hover: var(--color-gray-alpha-600);
   --color-log-surface: var(--color-subtle);
 }
 
@@ -81,4 +76,48 @@ body {
 
 :where(button, input, select, textarea):disabled {
   cursor: not-allowed;
+}
+
+/* One scrollbar for the whole app, in the stylesheet globals.css loads for
+ * every window route. Panes are the scroll owners (`body` is `overflow:
+ * hidden` above), so this is what the reader actually sees inside a pane.
+ *
+ * 8px of track with a 2px transparent border painted out of the thumb's own
+ * box leaves a ~4px pill: present enough to grab, quiet enough not to read as
+ * chrome. `background-clip: padding-box` is what makes the border transparent
+ * rather than thumb-coloured.
+ *
+ * The standards properties are deliberately fenced behind engines that have no
+ * `::-webkit-scrollbar`: in WebKit, naming `scrollbar-color` at all opts the
+ * document out of overlay scrollbars, which is exactly how this app ended up
+ * with a fat always-visible bar on macOS. */
+::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-clip: padding-box;
+  background-color: var(--scrollbar-thumb);
+  border: 2px solid transparent;
+  border-radius: var(--radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  :root {
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+    scrollbar-width: thin;
+  }
 }

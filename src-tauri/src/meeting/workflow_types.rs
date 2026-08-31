@@ -178,6 +178,9 @@ pub struct WorkflowOutcomeCounts {
     /// D20: learning suggestions still waiting for an answer at digest time.
     /// Distinct from `suggestions`, which counts what a mining pass just added.
     pub suggestions_waiting: u64,
+    /// D27: open rows somebody else has owed for longer than a working week,
+    /// at digest time. A backlog like `suggestions_waiting`, not a day count.
+    pub waiting_on_stale: u64,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]

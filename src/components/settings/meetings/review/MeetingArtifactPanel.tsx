@@ -4,7 +4,7 @@ import type { MeetingArtifactRevision, MeetingArtifactState } from "@/bindings";
 import { Microlabel, Notice } from "@/components/settings/rows";
 import { Checkbox } from "@/components/vg/checkbox";
 import { actionItemKey } from "../meetingAnalytics";
-import { CitedText } from "./Citations";
+import { CitedText, TracedSummary } from "./Citations";
 
 const ARTIFACT_STATE_CLASSES = {
   current: "text-gray-700",
@@ -56,7 +56,11 @@ export const MeetingArtifactPanel: React.FC<MeetingArtifactPanelProps> = ({
       ) : (
         <>
           <ArtifactBlock title={t("meetings.review.summary")}>
-            <CitedText value={content.summary} onJump={onJump} />
+            <TracedSummary
+              summary={content.summary}
+              trace={content.summary_trace}
+              onJump={onJump}
+            />
           </ArtifactBlock>
           <ArtifactBlock title={t("meetings.review.topics")}>
             {content.outline.length === 0 ? (

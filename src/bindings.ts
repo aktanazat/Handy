@@ -1900,11 +1900,12 @@ async meetingCatchUp(sessionId: MeetingSessionId) : Promise<Result<MeetingCatchU
 }
 },
 /**
- * D21: the notes template one calendar series has been told to use, by key.
- * The pre-meeting card reads it this way, because a calendar event carries its
- * series key and no session exists yet.
+ * What one calendar series has decided — template, digest inclusion, and
+ * whether it records itself — by key. The pre-meeting card and D28's Upcoming
+ * rows read it this way, because a calendar event carries its series key and
+ * no session exists yet.
  */
-async meetingSeriesTemplateGet(seriesKey: string) : Promise<Result<MeetingSeriesTemplateSnapshot, MeetingCommandError>> {
+async meetingSeriesTemplateGet(seriesKey: string) : Promise<Result<MeetingSeriesPreferences, MeetingCommandError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("meeting_series_template_get", { seriesKey }) };
 } catch (e) {
@@ -1913,11 +1914,11 @@ async meetingSeriesTemplateGet(seriesKey: string) : Promise<Result<MeetingSeries
 }
 },
 /**
- * The same preference reached from a meeting. A `series_key` of `null` in the
+ * The same record reached from a meeting. A `series_key` of `null` in the
  * answer means this meeting belongs to no series, which is what the review
  * screen needs in order to not offer the choice.
  */
-async meetingSeriesTemplateForSession(sessionId: MeetingSessionId) : Promise<Result<MeetingSeriesTemplateSnapshot, MeetingCommandError>> {
+async meetingSeriesTemplateForSession(sessionId: MeetingSessionId) : Promise<Result<MeetingSeriesPreferences, MeetingCommandError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("meeting_series_template_for_session", { sessionId }) };
 } catch (e) {
@@ -1925,9 +1926,84 @@ async meetingSeriesTemplateForSession(sessionId: MeetingSessionId) : Promise<Res
     else return { status: "error", error: e  as any };
 }
 },
-async meetingSeriesTemplateSet(request: MeetingSeriesTemplateSetRequest) : Promise<Result<MeetingSeriesTemplateMutationResult, MeetingCommandError>> {
+async meetingSeriesTemplateSet(request: MeetingSeriesTemplateSetRequest) : Promise<Result<MeetingSeriesMutationResult, MeetingCommandError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("meeting_series_template_set", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * D28: keep this series in the evening digest, or take it out of it.
+ */
+async meetingSeriesDigestSet(request: MeetingSeriesDigestSetRequest) : Promise<Result<MeetingSeriesMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_series_digest_set", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * D28: grant or revoke the standing consent that lets this series record
+ * itself.
+ *
+ * The grant is written through the same rows the consent panel writes, so an
+ * occurrence auto-started from it cites a grant the start transaction can
+ * revalidate. `acknowledged_sources` is the operator's acknowledgement and the
+ * grant is refused without one.
+ */
+async meetingSeriesAlwaysRecordSet(request: MeetingSeriesAlwaysRecordSetRequest) : Promise<Result<MeetingSeriesMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_series_always_record_set", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * D14: keep this series' text on this Mac, or hand it back to the global
+ * meeting-intelligence setting.
+ *
+ * Fenced on the same series revision the other two writes carry, so the three
+ * controls a surface shows together cannot overwrite each other's decisions.
+ */
+async meetingSeriesRemoteOptOutSet(request: MeetingSeriesRemoteOptOutSetRequest) : Promise<Result<MeetingSeriesMutationResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_series_remote_opt_out_set", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * D14: the series the meeting-intelligence section offers a per-series switch
+ * for, newest first, with the fence those switches write with.
+ */
+async meetingSeriesRemoteRoster() : Promise<Result<MeetingSeriesRemoteRoster, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_series_remote_roster") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * D28: today plus the next `days` local days of calendar, with each recurring
+ * row joined to what its series remembers.
+ *
+ * Two owners, wired here and nowhere else: the detection runtime owns the
+ * calendar grant and the EventKit read, and the meeting store owns the series
+ * records and the address book. Neither knows about the other, and this
+ * command is the only place they meet.
+ *
+ * The EventKit read is blocking and can walk a week of events, so it runs off
+ * the async runtime's worker threads rather than on one of them.
+ */
+async meetingUpcomingEvents(days: number) : Promise<Result<MeetingUpcomingEvents, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_upcoming_events", { days }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -2064,6 +2140,20 @@ async meetingLoopReopen(request: MeetingLoopReopenRequest) : Promise<Result<Meet
 async meetingLoopAssign(request: MeetingLoopAssignRequest) : Promise<Result<MeetingLoopMutationResult, MeetingCommandError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("meeting_loop_assign", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * D26. Draft a follow-up message for one meeting.
+ *
+ * Takes an operation id because the draft is recorded: pressing twice with
+ * the same id returns the first receipt rather than logging a second event.
+ */
+async meetingFollowUpDraft(operationId: MeetingOperationId, sessionId: MeetingSessionId) : Promise<Result<MeetingFollowUpDraft, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_follow_up_draft", { operationId, sessionId }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -2389,6 +2479,80 @@ async sonaQuerySearch(scope: QueryScope, query: string, limit: number | null, cu
 async sonaQueryEvents(afterId: string | null, limit: number | null) : Promise<Result<QueryEventsPage, QueryError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("sona_query_events", { afterId, limit }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Assemble the evidence for one question: the top rows that matched, quoted
+ * verbatim with their `sona://` addresses, inside the ceiling the agent panel
+ * accepts on the wire.
+ */
+async sonaQueryPack(question: string) : Promise<Result<QueryPack, QueryError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("sona_query_pack", { question }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Open one `sona://` address from inside the app.
+ *
+ * The same routing an external link takes, deliberately: `deeplink.rs` owns
+ * what an address means and `dispatch_deep_link` owns which surface it wakes,
+ * so a row in ⌘K citing `sona://loop/<id>` lands exactly where the OS handing
+ * the app that URL would land. Re-deriving either rule in a client is how a
+ * second, quietly different navigation appears. Returns whether the address
+ * was one of ours.
+ */
+async sonaOpenLink(link: string) : Promise<boolean> {
+    return await TAURI_INVOKE("sona_open_link", { link });
+},
+async meetingSeriesAutomationsGet(seriesKey: string) : Promise<Result<MeetingSeriesAutomationsSnapshot, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_series_automations_get", { seriesKey }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingSeriesAutomationsForSession(sessionId: MeetingSessionId) : Promise<Result<MeetingSeriesAutomationsSnapshot, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_series_automations_for_session", { sessionId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Turn one automation on or off for one series.
+ *
+ * Returns the reminders grant alongside the mutation: switching the reminders
+ * kind on is the one press that may raise a macOS permission dialog, and the
+ * answer belongs to the same round trip so the row can show a hint rather than
+ * the page showing a banner.
+ */
+async meetingSeriesAutomationSet(request: MeetingSeriesAutomationSetRequest) : Promise<Result<MeetingSeriesAutomationEnableResult, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_series_automation_set", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingAutomationRoster() : Promise<Result<MeetingAutomationRoster, MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_automation_roster") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async meetingAutomationRuns(sessionId: MeetingSessionId) : Promise<Result<MeetingAutomationRunReceipt[], MeetingCommandError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_automation_runs", { sessionId }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -2800,7 +2964,28 @@ meeting_digest_enabled?: boolean;
  * than "18:00" so there is no clock format to parse, and no invalid state
  * a settings file can express.
  */
-meeting_digest_minute_of_day?: number }
+meeting_digest_minute_of_day?: number;
+/**
+ * D14. Whether the summaries, ledgers, recaps and answers for meetings are
+ * written on the operator's own server instead of on this Mac.
+ *
+ * Off on install, and inert until the agent panel is paired with a relay:
+ * this switch alone never sends anything anywhere. A series can be kept
+ * local while it is on, which is a per-series preference in the meeting
+ * store rather than a second setting here — the list of a person's
+ * sensitive meetings does not belong in a settings file.
+ */
+meeting_remote_intelligence_enabled?: boolean;
+/**
+ * D15. Whether processes outside this app may read the corpus through
+ * the read-only `sona --query …` surface and the MCP server over it.
+ *
+ * Off on install, and the only thing standing between an agent on this
+ * Mac and every meeting on it: the headless read plane refuses with
+ * `consent_required` while this is false, so turning it on is the whole
+ * grant. Read-only either way — nothing on that surface mutates.
+ */
+external_query_enabled?: boolean }
 /**
  * Window material. `Solid` paints Sona's own surfaces edge to edge; `Glass`
  * makes the window background transparent so the native vibrancy view shows
@@ -3285,7 +3470,13 @@ export type EngineType =
  * user's requested British spelling table.
  */
 export type EnglishSpelling = "as_spoken" | "british"
-export type GeneratedMeetingArtifacts = { summary: CitedArtifactText; outline: MeetingOutlineTopic[]; decisions: CitedArtifactText[]; action_items: MeetingActionItem[]; key_questions: CitedArtifactText[]; risks: CitedArtifactText[]; follow_up_draft: CitedArtifactText;
+export type GeneratedMeetingArtifacts = { summary: CitedArtifactText;
+/**
+ * The summary's line-to-segment map, in line order. Defaulted rather than
+ * required, so a revision generated before this existed still reads back
+ * and simply offers no jumps.
+ */
+summary_trace?: SummaryLineTrace[]; outline: MeetingOutlineTopic[]; decisions: CitedArtifactText[]; action_items: MeetingActionItem[]; key_questions: CitedArtifactText[]; risks: CitedArtifactText[]; follow_up_draft: CitedArtifactText;
 /**
  * The where-did-we-land ledger for this meeting: threads, where each one
  * landed, and the receipt each state was read from. Defaulted rather than
@@ -3598,6 +3789,117 @@ export type MeetingArtifactId = string
 export type MeetingArtifactRevision = { artifact_id: MeetingArtifactId; session_id: MeetingSessionId; transcript_revision_id: TranscriptRevisionId; input_revision: number; template_id: string; template_version: number; generation_key: string; state: MeetingArtifactState; generated_at_utc_ms: number; content: GeneratedMeetingArtifacts | null }
 export type MeetingArtifactState = "current" | "out_of_date" | "failed"
 /**
+ * Why an attempt did not commit.
+ *
+ * Its own vocabulary rather than [`super::types::MeetingReasonCode`], for the
+ * same reason `ProcessingStatus::Failed` carries its own: these are the ways
+ * three specific effects fail, and widening the app-wide code list with them
+ * would make every unrelated receipt reader carry them too.
+ */
+export type MeetingAutomationFailure =
+/**
+ * macOS has not been asked, or said no. Surfaces as a hint on the settings
+ * row, never as a dialog: the operator turned this on once and does not
+ * need to be interrupted after every meeting about it.
+ */
+"permission_denied" |
+/**
+ * No Shortcut name or no URL. Cannot happen through the settings surface,
+ * and is checked anyway because the store is older than any one release.
+ */
+"target_missing" |
+/**
+ * The URL is not on the operator's own network. Same policy as the relay —
+ * see [`crate::net_policy`].
+ */
+"host_not_allowed" |
+/**
+ * The URL is not a URL, or not one this app will POST to.
+ */
+"target_invalid" |
+/**
+ * This platform has no such facility: no EventKit, no `shortcuts` binary.
+ */
+"unavailable" |
+/**
+ * The effect ran past its bound and was stopped.
+ */
+"timed_out" |
+/**
+ * It ran, and it said no: a non-2xx status, a non-zero exit, a save that
+ * EventKit refused.
+ */
+"rejected"
+/**
+ * The three after-meeting actions. Nothing here is a channel to a third party:
+ * reminders are Apple's local database, a Shortcut is a program the operator
+ * wrote, and a webhook is refused unless its host is on their own tailnet.
+ */
+export type MeetingAutomationKind =
+/**
+ * Write this meeting's still-open commitments into a "Sona" list in Apple
+ * Reminders.
+ */
+"reminders" |
+/**
+ * Run a named Shortcut with the meeting's export JSON on stdin.
+ */
+"shortcut" |
+/**
+ * POST the meeting's export JSON to a URL on the operator's own network.
+ */
+"webhook"
+/**
+ * Every series the settings surface lists, and the fence its writes carry.
+ *
+ * The revision rides with the list rather than being fetched per row because it
+ * is one counter for the whole table: a surface that read it per series would be
+ * making three round trips to learn the same number, and would still have to
+ * re-read all of them after any write.
+ */
+export type MeetingAutomationRoster = { series: MeetingAutomationSeries[]; revision: number }
+/**
+ * The receipt for one attempt.
+ *
+ * This *is* the receipt, not a summary of one kept elsewhere: like the workflow
+ * engine's run log, a system-actor background pass records its own outcome in
+ * its own table rather than minting an [`OperationReceipt`], which belongs to
+ * fenced user mutations. One row per artifact revision per kind, forever, so
+ * "did my webhook fire for that meeting" has an answer that does not depend on
+ * a log file.
+ */
+export type MeetingAutomationRunReceipt = { artifact_id: MeetingArtifactId; session_id: MeetingSessionId; series_key: string; kind: MeetingAutomationKind; state: MeetingAutomationRunState; failure: MeetingAutomationFailure | null;
+/**
+ * One short line naming what happened, for a reader who needs more than
+ * the code: the HTTP status, the exit status, the list that was written.
+ * Never the payload, and never a URL.
+ */
+detail: string | null;
+/**
+ * How many things the effect produced — reminders written, requests sent.
+ */
+effects: number; started_at_utc_ms: number; finished_at_utc_ms: number | null }
+/**
+ * Where an attempt got to.
+ *
+ * `Started` is not a pending state waiting for a retry — nothing retries. It is
+ * the claim an attempt writes before it touches anything outside this process,
+ * and a row still saying it means the attempt never reported back: the app was
+ * quit, or it crashed, mid-run. Leaving that visible is the point. There is no
+ * reconciliation pass that would silently make it look like it never happened.
+ */
+export type MeetingAutomationRunState = "started" | "committed" | "failed"
+/**
+ * One series the operator could turn an automation on for, as the settings
+ * surface lists it.
+ *
+ * Assembled from the calendar facts meetings already recorded, so the list is
+ * "series you have actually recorded", not a calendar browse. `title` is the
+ * most recent occurrence's event title, which is what a person calls the
+ * series.
+ */
+export type MeetingAutomationSeries = { series_key: string; title: string; last_met_at_utc_ms: number; meeting_count: number; automations: MeetingSeriesAutomation[] }
+/**
  * A short recap of the transcript captured so far.
  */
 export type MeetingCatchUp = { state: MeetingCatchUpState; bullets: string[]; through_offset_ns: number | null; segment_count: number }
@@ -3609,7 +3911,7 @@ export type MeetingCatchUp = { state: MeetingCatchUpState; bullets: string[]; th
 export type MeetingCatchUpState = "ready" | "no_transcript_yet" | "model_unavailable" | "failed"
 export type MeetingCitation = { kind: CitationKind; session_id: MeetingSessionId; entity_id: string; start_offset_ns: number | null; end_offset_ns?: number | null }
 export type MeetingCommandError = "consent_required" | "consent_stale" | "invalid_transition" | "stale_revision" | "capture_lease_busy" | "no_source_started" | "source_unavailable" | "storage_unavailable" | "recovery_required" | "deletion_in_progress" | "not_found" | "invalid_request" | "export_cancelled" | "export_failed" | "local_model_unavailable" | "remote_unavailable"
-export type MeetingCommandKind = "preflight_create" | "preflight_refresh" | "preflight_cancel" | "start" | "pause" | "resume" | "stop" | "discard" | "recovery_finalize" | "title_set" | "speaker_rename" | "speaker_merge" | "segment_edit" | "note_create" | "note_update" | "note_delete" | "artifacts_regenerate" | "question_ask" | "question_forget" | "export" | "delete" | "retention_set" | "remote_cancel" | "loop_resolve" | "loop_reopen" | "loop_assign" | "loop_carry" | "series_template_set"
+export type MeetingCommandKind = "preflight_create" | "preflight_refresh" | "preflight_cancel" | "start" | "pause" | "resume" | "stop" | "discard" | "recovery_finalize" | "title_set" | "speaker_rename" | "speaker_merge" | "segment_edit" | "note_create" | "note_update" | "note_delete" | "artifacts_regenerate" | "question_ask" | "question_forget" | "export" | "delete" | "retention_set" | "remote_cancel" | "loop_resolve" | "loop_reopen" | "loop_assign" | "loop_carry" | "series_template_set" | "series_digest_set" | "series_always_record_set" | "follow_up_draft" | "series_automation_set" | "series_remote_opt_out_set"
 export type MeetingConsentInput = { policy_version: number; microphone_acknowledged: boolean; system_audio_acknowledged: boolean; known_missing_sources_acknowledged: SourceKind[]; degraded_start_policy: DegradedStartPolicy; destination: ProcessingDestination; remote_acknowledgement: RemoteAcknowledgement | null }
 export type MeetingConsentPanelSessionState = { snapshot: MeetingSessionSnapshot; standing_series_key: string | null }
 export type MeetingConsentPanelStartRequest = { prompt_id: string; operation_id: MeetingOperationId; consent: MeetingConsentInput; always_record_series: boolean }
@@ -3622,6 +3924,50 @@ export type MeetingExportReceipt = { export_receipt_id: MeetingExportReceiptId; 
 export type MeetingExportReceiptId = string
 export type MeetingExportRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; format: MeetingExportFormat }
 export type MeetingExportResult = { receipt: OperationReceipt; export_receipt: MeetingExportReceipt }
+/**
+ * A follow-up draft: the message when an engine wrote one, and always the
+ * evidence it was built from.
+ *
+ * The evidence rides along even for a generated draft, so a reader can check
+ * the message against the record without leaving the sheet — and so the sheet
+ * has something to render when no engine was available.
+ */
+export type MeetingFollowUpDraft = { session_id: MeetingSessionId; title: string; source: MeetingFollowUpSource;
+/**
+ * The model's message. `None` for [`MeetingFollowUpSource::Structured`].
+ */
+message: string | null;
+/**
+ * The current revision's summary, trimmed. Empty when there is none.
+ */
+summary: string;
+/**
+ * Open rows the user owes, ledger order.
+ */
+mine: string[];
+/**
+ * What the meeting decided, ledger order.
+ */
+decisions: string[];
+/**
+ * The receipt for the draft event, so the run is as checkable as a write.
+ * `effect_ids` names the engine that wrote it, or the fallback.
+ */
+receipt: OperationReceipt }
+/**
+ * Who wrote the draft.
+ */
+export type MeetingFollowUpSource =
+/**
+ * The meeting-intelligence seam wrote the message.
+ */
+"generated" |
+/**
+ * No engine was selectable, so the draft is the record, verbatim. Not a
+ * failure state: nothing was invented, which is the one thing a follow-up
+ * must never do.
+ */
+"structured"
 /**
  * Which of the three real sources line two of a meetings-list row came from.
  * The row states this on itself, so a reader can tell the news a model wrote
@@ -3688,6 +4034,30 @@ export type MeetingLoopAssignRequest = { operation_id: MeetingOperationId; loop_
  */
 owner_person_id: PersonId | null }
 /**
+ * Which way an actionable row points: something the user owes, or something
+ * the user is waiting on somebody else for.
+ *
+ * Sona models no `Person` for its own user. The people store is built from
+ * calendar attendees with `is_self` filtered out and from speaker labels on
+ * the other side of the conversation, so a `PersonId` is always somebody
+ * else. "Mine" therefore cannot be a link; it is what came in on this
+ * machine's microphone.
+ */
+export type MeetingLoopDirection =
+/**
+ * The user owes this.
+ */
+"mine" |
+/**
+ * Somebody else owes it. Which somebody is the row's own owner name.
+ */
+"waiting_on" |
+/**
+ * Nothing in the ledger says whose it is. A question nobody answered,
+ * cited but unquoted, has no speaker and lands here.
+ */
+"unattributed"
+/**
  * A loop's stable address: `<session uuid>:<kind>:<16 hex of the text>`.
  *
  * The session uuid leads so a router can find the meeting without a lookup
@@ -3738,7 +4108,13 @@ text: string;
  * transcript. Kept beside `owner_person_id` because a name the model read
  * and a person the user picked are different claims.
  */
-owner_text: string | null; owner_person_id: PersonId | null; owner_display_name: string | null; status: MeetingLoopStatus; resolved_at_utc_ms: number | null;
+owner_text: string | null; owner_person_id: PersonId | null; owner_display_name: string | null;
+/**
+ * Whose side of the conversation this row is on. Derived by
+ * [`loop_direction`] where the row is built, so every surface that groups
+ * "I owe" against "waiting on them" reads one answer.
+ */
+direction: MeetingLoopDirection; status: MeetingLoopStatus; resolved_at_utc_ms: number | null;
 /**
  * The operation that put this row in its current state, so a caller can
  * look the receipt back up.
@@ -3827,7 +4203,124 @@ export type MeetingSearchHit = { session_id: MeetingSessionId; kind: CitationKin
 export type MeetingSearchRequest = { query: string; session_ids: MeetingSessionId[]; limit: number | null }
 export type MeetingSearchResult = { entries: MeetingSearchHit[] }
 export type MeetingSegmentEditRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; segment_id: TranscriptSegmentId; replacement_text: string; removed: boolean }
-export type MeetingSeriesTemplateMutationResult = { receipt: OperationReceipt; snapshot: MeetingSeriesTemplateSnapshot }
+/**
+ * D28. Grant or revoke the standing consent that lets this series record
+ * itself.
+ *
+ * `acknowledged_sources` is the operator's acknowledgement, not a hint: it is
+ * the set of capture sources selected on the surface they pressed this on, and
+ * it is what the grant stores and what a later auto-started attempt cites in
+ * its own consent receipt. Turning always-record *off* ignores it, because
+ * revoking permission needs none.
+ */
+export type MeetingSeriesAlwaysRecordSetRequest = { operation_id: MeetingOperationId; series_key: string; always_record: boolean; policy_version: number; acknowledged_sources: SourceKind[]; expected_revision: number }
+/**
+ * One series' setting for one kind.
+ *
+ * `target` is the Shortcut name or the webhook URL, and stays on the row while
+ * the switch is off so that turning an automation off and on again does not
+ * make the operator retype it. `enabled: false` with a target is a remembered
+ * choice, not a broken one.
+ */
+export type MeetingSeriesAutomation = { kind: MeetingAutomationKind; enabled: boolean; target: string | null }
+/**
+ * A write, plus whether macOS will let the reminders kind actually run.
+ *
+ * The access state rides back with the mutation rather than being a second
+ * command the surface has to remember to call: the only reason to ask is that
+ * somebody just turned this on, and answering in the same breath is what lets
+ * the row show a hint instead of the settings page showing a banner.
+ */
+export type MeetingSeriesAutomationEnableResult = { mutation: MeetingSeriesAutomationMutationResult; reminders_access: CalendarAccess }
+export type MeetingSeriesAutomationMutationResult = { receipt: OperationReceipt; snapshot: MeetingSeriesAutomationsSnapshot }
+/**
+ * Turn one kind on or off for one series, and set what it points at.
+ *
+ * `enabled: false` with `target: None` forgets the row entirely, which is how
+ * an operator takes a URL back off their machine. Every other combination
+ * remembers.
+ */
+export type MeetingSeriesAutomationSetRequest = { operation_id: MeetingOperationId; series_key: string; kind: MeetingAutomationKind; enabled: boolean; target: string | null; expected_revision: number }
+/**
+ * What one series has chosen, and the fence a write against it must carry.
+ *
+ * Only configured kinds appear in `automations`; a kind with no row has never
+ * been touched and is off. `revision` counts every automation write on this
+ * machine rather than only this series', for the same reason D21's does: the
+ * surfaces that write it read the whole preference at once, and a shared
+ * counter costs one retry in the rare two-window case while saving a per-row
+ * column nothing would read.
+ */
+export type MeetingSeriesAutomationsSnapshot = { series_key: string | null; automations: MeetingSeriesAutomation[]; revision: number }
+/**
+ * D28. Keep this series in the evening digest, or take it out of it.
+ */
+export type MeetingSeriesDigestSetRequest = { operation_id: MeetingOperationId; series_key: string; digest_included: boolean; expected_revision: number }
+export type MeetingSeriesMutationResult = { receipt: OperationReceipt; preferences: MeetingSeriesPreferences }
+/**
+ * Everything one series has decided, and the fence a write against it carries.
+ *
+ * `series_key` is `None` when the surface asking has no series at all — a
+ * manual recording, or a meeting whose calendar event was never captured. In
+ * that case every other field is its default, which is what lets a caller
+ * render "not part of a series" without a second shape.
+ *
+ * `revision` counts every series write on this machine rather than only this
+ * series'. Two windows editing two different series is not a real collision,
+ * but a shared counter costs one retry in that case and removes a per-row
+ * revision column that nothing else would read. All three setters below fence
+ * on it and bump it, so the three controls a surface shows side by side are
+ * fenced by the one number that surface already holds.
+ */
+export type MeetingSeriesPreferences = { series_key: string | null;
+/**
+ * `None` when the series exists but has made no choice, which is the state
+ * that lets artifact generation fall through to the app default.
+ */
+template: MeetingNotesTemplate | null;
+/**
+ * D28. True unless the operator has taken this series out of the evening
+ * digest; a series with no row at all is included.
+ */
+digest_included: boolean;
+/**
+ * True while a live, unrevoked standing grant covers this series, which is
+ * exactly the condition that lets detection auto-start an occurrence.
+ */
+always_record: boolean;
+/**
+ * D14. True when this series' text is written on this Mac even while
+ * meeting intelligence is routed to the operator's own server.
+ *
+ * The default is false — a series inherits the global setting — because a
+ * switch that quietly excluded series would make the global one a lie.
+ * What is stored here is only the departure from that.
+ */
+remote_intelligence_opt_out: boolean; revision: number }
+/**
+ * D14. Keep this series' text on this Mac, or hand it back to the global
+ * meeting-intelligence setting.
+ *
+ * A separate mutation from the global switch on purpose: excluding one series
+ * is a statement about that series, it survives the switch being turned off
+ * and on again, and it earns its own receipt naming the series it touched.
+ */
+export type MeetingSeriesRemoteOptOutSetRequest = { operation_id: MeetingOperationId; series_key: string; remote_intelligence_opt_out: boolean; expected_revision: number }
+export type MeetingSeriesRemoteRoster = { rows: MeetingSeriesRemoteRow[];
+/**
+ * The one fence every switch on these rows writes with.
+ */
+revision: number }
+/**
+ * D14. One series the operator can keep on this Mac, as the settings surface
+ * shows it.
+ *
+ * `title` is the title the most recent occurrence carried, because a series
+ * has no name of its own — only the events that belong to it do, and the
+ * latest one is the name the operator would recognize. `meetings` is how many
+ * of them Sona has actually sat in, which is what makes a row worth showing.
+ */
+export type MeetingSeriesRemoteRow = { series_key: string; title: string; last_met_at_utc_ms: number; meetings: number; remote_intelligence_opt_out: boolean }
 /**
  * Choose, or unchoose, the template for one series.
  *
@@ -3836,20 +4329,6 @@ export type MeetingSeriesTemplateMutationResult = { receipt: OperationReceipt; s
  * because "stop remembering this" is a decision a person makes on purpose.
  */
 export type MeetingSeriesTemplateSetRequest = { operation_id: MeetingOperationId; series_key: string; template: MeetingNotesTemplate | null; expected_revision: number }
-/**
- * What one series has chosen, and the fence a write against it must carry.
- *
- * `series_key` is `None` when the surface asking has no series at all — a
- * manual recording, or a meeting whose calendar event was never captured.
- * `template` is `None` when the series exists but has made no choice, which is
- * the state that lets artifact generation fall through to the app default.
- *
- * `revision` counts every series-preference write on this machine rather than
- * only this series'. Two windows editing two different series is not a real
- * collision, but a shared counter costs one retry in that case and removes a
- * per-row revision column that nothing else would read.
- */
-export type MeetingSeriesTemplateSnapshot = { series_key: string | null; template: MeetingNotesTemplate | null; revision: number }
 export type MeetingSessionChangedEvent = MeetingEventPayload
 export type MeetingSessionId = string
 export type MeetingSessionSnapshot = { session_id: MeetingSessionId; phase: MeetingPhase; revision: number; title: string; started_at_utc_ms: number | null; elapsed_offset_ns: number | null; sources: MeetingSourceSnapshot[]; open_capture_window_started_at_ns: number | null; capture_completeness: CaptureCompleteness; storage: StorageAvailability; processing_status: ProcessingStatus;
@@ -3922,6 +4401,87 @@ export type MeetingTrendProjection = { status: "available"; range: DashboardTren
  * retained meeting sessions.
  */
 export type MeetingTrendTotals = { meetings: number; verified_captured_duration_ms: number; transcript_segments: number; generated_action_items: number }
+/**
+ * One named participant on an upcoming event, and whether they are already
+ * somebody Sona has a page for.
+ */
+export type MeetingUpcomingAttendee = { name: string; status: ParticipationStatus;
+/**
+ * True for the calendar account's own entry, which a chip row renders as
+ * "you" rather than as a person to link to.
+ */
+is_self: boolean;
+/**
+ * The person page behind this address, when the address book knows one.
+ * `None` is the ordinary case for a first-time attendee.
+ */
+person_id: PersonId | null }
+/**
+ * The whole answer: the window that was read, what is in it, and why it might
+ * be empty.
+ */
+export type MeetingUpcomingEvents = {
+/**
+ * Whether events are readable at all. An empty list under `authorized` is
+ * a free week; an empty list under anything else is a missing grant, and
+ * the section says something different for each.
+ */
+access: CalendarAccess; window_start_utc_ms: number; window_end_utc_ms: number; rows: MeetingUpcomingRow[];
+/**
+ * The series-preferences fence every control on these rows writes with.
+ * One number for the whole pane, because one counter fences all three
+ * decisions.
+ */
+series_revision: number }
+/**
+ * One event in the window.
+ */
+export type MeetingUpcomingRow = {
+/**
+ * The occurrence's own key, which is what `meeting_preflight_create`
+ * accepts to start this specific event.
+ */
+event_key: string; title: string; start_utc_ms: number; end_utc_ms: number;
+/**
+ * Participants EventKit named, in the order it named them.
+ */
+attendees: MeetingUpcomingAttendee[];
+/**
+ * Participants including the ones EventKit refused to name, so it can
+ * exceed `attendees.len()`.
+ */
+attendee_count: number;
+/**
+ * Title of the calendar this event sits on — "Work", "Personal", the
+ * Google or Outlook account name — or `None` when EventKit reports none.
+ */
+calendar_name: string | null;
+/**
+ * The event's own URL, which for a scheduled call is the join link.
+ */
+join_url: string | null;
+/**
+ * `Some` exactly when the event repeats. Carries the series' decisions.
+ */
+series: MeetingUpcomingSeries | null }
+/**
+ * What one series has decided, joined onto every row that belongs to it.
+ *
+ * Present only on a recurring row: a one-off has no series to remember
+ * anything, and offering "always record this" for an event that happens once
+ * would be a control with nothing behind it.
+ */
+export type MeetingUpcomingSeries = { series_key: string;
+/**
+ * A live standing grant covers this series, so its occurrences record
+ * themselves.
+ */
+always_record: boolean;
+/**
+ * The notes template this series is remembered by, or `None` for the app
+ * default.
+ */
+template: MeetingNotesTemplate | null; digest_included: boolean }
 /**
  * The user's own layer on a meeting: rough notes typed while it runs and the
  * template those notes should be shaped into.
@@ -4122,7 +4682,15 @@ export type PermissionAccess = "allowed" | "denied" | "unknown"
 export type Person = { id: PersonId; display_name: string; aliases: string[]; calendar_emails: string[]; created_at_utc_ms: number; updated_at_utc_ms: number }
 export type PersonBriefingLastMeeting = { id: MeetingSessionId; title: string; at_utc_ms: number; headline: string | null }
 export type PersonBriefingRow = { person_id: PersonId; display_name: string; meetings_count: number; last: PersonBriefingLastMeeting | null; open_loops: PersonOpenLoop[]; commitments: PersonCommitment[] }
-export type PersonCommitment = { loop_id: MeetingLoopId; meeting_id: MeetingSessionId; title: string; at_utc_ms: number; text: string; status: MeetingLoopStatus; resolved_at_utc_ms: number | null }
+export type PersonCommitment = { loop_id: MeetingLoopId; meeting_id: MeetingSessionId; title: string; at_utc_ms: number; text: string; status: MeetingLoopStatus;
+/**
+ * See [`PersonOpenLoop::direction`].
+ */
+direction: MeetingLoopDirection;
+/**
+ * See [`PersonOpenLoop::waiting_on_stale`].
+ */
+waiting_on_stale: boolean; resolved_at_utc_ms: number | null }
 export type PersonContextResult = { schema_version: number; revision: number; rows: PersonBriefingRow[] }
 export type PersonDeleteRequest = { person_id: PersonId; expected_revision: number }
 export type PersonDetail = { person: Person; links: PersonMeetingLink[]; open_loops: PersonOpenLoop[]; commitments: PersonCommitment[]; talk_share_avg_permille: number | null; documents: DocumentSummary[] }
@@ -4138,13 +4706,24 @@ export type PersonMeetingLink = { meeting: PersonMeetingSummary; source: PersonL
 export type PersonMeetingSummary = { id: MeetingSessionId; title: string; at_utc_ms: number; headline: string | null; series_number: number }
 export type PersonMergeRequest = { source_person_id: PersonId; target_person_id: PersonId; expected_revision: number }
 /**
- * A loop this person is on the hook for, as the people surfaces read it.
+ * A loop raised in a meeting with this person, as the people surfaces read it.
  *
  * The words come from the meeting's ledger; `loop_id` and `status` come from
  * the loop state row that ledger row is keyed to, so a resolution made on the
  * review screen shows up here without a second copy of the state.
  */
 export type PersonOpenLoop = { loop_id: MeetingLoopId; meeting_id: MeetingSessionId; title: string; at_utc_ms: number; text: string; owner_person_id: PersonId | null; status: MeetingLoopStatus;
+/**
+ * Which side of the conversation this row is on: the user owes it, or
+ * this person does. What lets a page show two lists instead of one.
+ */
+direction: MeetingLoopDirection;
+/**
+ * This person has owed it for longer than a working week. Computed
+ * against the store's clock at read time, so it is never a cached
+ * yesterday.
+ */
+waiting_on_stale: boolean;
 /**
  * When this loop was first raised, if it reached this meeting by being
  * carried forward from an earlier session in the series.
@@ -4274,6 +4853,20 @@ export type QueryLinkTarget = { kind: "person"; person_id: PersonId } | { kind: 
  * link named no question, which is what the ⌘K chord does.
  */
 { kind: "search"; query: string }
+/**
+ * One question's evidence bundle.
+ */
+export type QueryPack = { schema_version: number;
+/**
+ * The pack itself, ready to ride as a turn's `context_pack`.
+ */
+pack: string;
+/**
+ * Exactly the rows quoted in `pack`, in the order they are quoted. A
+ * caller that renders citations beside an answer renders these, so the two
+ * can never disagree about what the model was shown.
+ */
+sources: QueryRow[] }
 /**
  * One answer. `link` is always a `sona://` URL this app parses, so an agent
  * can cite it, a human can click it, and a test can assert it.
@@ -4458,6 +5051,16 @@ export type StreamWorkKind = "transcribing" | "polishing"
  */
 export type SttSecretVerificationError = "not_configured" | "consent_required" | "unavailable" | "locked" | "corrupt" | "invalid" | "busy" | "backend"
 /**
+ * Where one line of the summary came from: the transcript segment a reader
+ * lands on when they press that line. `line` is the zero-based index of the
+ * line inside `CitedArtifactText::text` split on newlines, which holds
+ * because the text and this map are written together in one generation and
+ * an artifact revision is immutable afterwards. Sparse on purpose: a line
+ * with no entry renders as plain text, which is what every revision
+ * generated before line provenance existed has.
+ */
+export type SummaryLineTrace = { line: number; anchor: ArtifactCitation }
+/**
  * Why detection stayed quiet. Carried into the status event so the operator can
  * see what detection is doing instead of guessing at silence.
  */
@@ -4634,7 +5237,12 @@ loops_closed: number;
  * D20: learning suggestions still waiting for an answer at digest time.
  * Distinct from `suggestions`, which counts what a mining pass just added.
  */
-suggestions_waiting: number }
+suggestions_waiting: number;
+/**
+ * D27: open rows somebody else has owed for longer than a working week,
+ * at digest time. A backlog like `suggestions_waiting`, not a day count.
+ */
+waiting_on_stale: number }
 export type WorkflowRunCursor = { started_at_utc_ms: number; run_id: WorkflowRunId }
 export type WorkflowRunId = string
 export type WorkflowRunReceipt = { id: WorkflowRunId; workflow_id: WorkflowId; event_kind: WorkflowEventKind; jump_target: WorkflowJumpTarget | null; status: WorkflowRunStatus; started_at_utc_ms: number; finished_at_utc_ms: number; outcome_summary: string; outcome_code: WorkflowOutcomeCode; outcome_counts: WorkflowOutcomeCounts; error: string | null }

@@ -671,6 +671,7 @@ pub(super) fn outcome_projection(
             "meetings" => counts.meetings = value,
             "loops_closed" => counts.loops_closed = value,
             "suggestions_waiting" => counts.suggestions_waiting = value,
+            "waiting_on_stale" => counts.waiting_on_stale = value,
             _ => {}
         }
     }

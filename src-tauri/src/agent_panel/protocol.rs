@@ -16,7 +16,44 @@ pub(crate) const SONA_CONFIG_WORKSPACE_ID: &str = "sona-config";
 pub(crate) const SONA_CHAT_WORKSPACE_ID: &str = "sona-chat";
 pub(crate) const SONA_CONFIG_CAPABILITY: &str = "sona-config";
 pub(crate) const SONA_CHAT_CAPABILITY: &str = "sona-chat";
-pub(crate) const MAX_CONTEXT_PACK_BYTES: usize = 32 * 1024;
+/// The model tier every panel submission asks for. Mirrored by
+/// `SONA_CHAT_MODEL_ALIAS` in `omp_bridge/sona_chat.py`.
+pub(crate) const SONA_MODEL_ALIAS: &str = "ultra";
+/// The largest context pack the panel accepts on the wire, in bytes.
+///
+/// 128 KiB because a pack has to carry the evidence of a whole meeting rather
+/// than a prefix of one. At 32 KiB the remote engine answered an hour-long
+/// meeting from roughly its first half hour while the on-device engine saw all
+/// of it: one corpus, two answers, decided by which engine was reachable. The
+/// constraint that used to justify the smaller number is gone — transport
+/// allows 25 MiB and the model's own budget is far larger than this.
+pub(crate) const MAX_CONTEXT_PACK_BYTES: usize = 128 * 1024;
+/// Room in a chat submission for everything that is not one of its three
+/// variable parts: field names, the two identifiers, the locale, the app
+/// version, and — the term that dominates — the escaping a pack costs once it
+/// is a JSON string rather than bytes.
+///
+/// The escape cost is proportional to the pack, so this could not stay at the
+/// 8 KiB that served a 32 KiB pack. Measured on a serialized evidence pack at
+/// the new ceiling, where the citations are quote-dense: 7 438 bytes, which
+/// would have consumed a whole 8 KiB envelope and left the identifiers nothing.
+/// 16 KiB covers that with room, and being generous here costs nothing — the
+/// three parts are what actually bound a submission, and transport allows
+/// 25 MiB.
+const SUBMISSION_ENVELOPE_BYTES: usize = 16 * 1024;
+/// The largest whole chat submission the relay accepts, in bytes, measured as
+/// JSON.
+///
+/// Derived rather than chosen, because a submission is exactly a context pack,
+/// a user message and the recent turns. A number picked beside its parts goes
+/// stale the first time one part moves, and the failure it produces is the
+/// worst kind: a pack that every check on this side accepted, refused on the
+/// wire. `omp_bridge/sona_chat.py` enforces the same ceiling fail-closed, and
+/// deriving it here is what makes that mirror checkable rather than hopeful.
+pub(crate) const MAX_CHAT_SUBMISSION_BYTES: usize = MAX_CONTEXT_PACK_BYTES
+    + MAX_USER_MESSAGE_BYTES
+    + MAX_RECENT_TURN_BYTES
+    + SUBMISSION_ENVELOPE_BYTES;
 pub(crate) const MAX_ASSISTANT_MESSAGE_BYTES: usize = 16 * 1024;
 pub(crate) const MAX_RESPONSE_STEPS: usize = 32;
 pub(crate) const MAX_STEP_LABEL_BYTES: usize = 256;
@@ -228,6 +265,25 @@ pub struct SonaChatTurnV1 {
 pub(crate) enum PanelTurnV1 {
     Config(SonaAgentTurnV1),
     Chat(SonaChatTurnV1),
+}
+
+/// The whole submission body, as the relay reads it off the wire.
+///
+/// This is the outermost wire shape, so it lives beside the shapes it wraps
+/// rather than in `relay.rs`, which only posts it. `MAX_CHAT_SUBMISSION_BYTES`
+/// bounds *this* object and not the request alone, and a bound is only
+/// checkable where the thing it bounds can be composed — which is what
+/// `a_maximal_chat_submission_fits_the_ceiling_it_declares` below does.
+///
+/// `omp_bridge/sona_chat.py::prepare_sona_chat_submission` requires exactly
+/// these five fields.
+#[derive(Serialize)]
+pub(crate) struct SonaSubmissionV1<'a> {
+    pub(crate) workspace_id: &'static str,
+    pub(crate) model: &'static str,
+    pub(crate) capability: &'static str,
+    pub(crate) idempotency_key: &'a str,
+    pub(crate) request: &'a PanelTurnV1,
 }
 
 impl PanelTurnV1 {
@@ -988,6 +1044,125 @@ mod tests {
         );
         turn.context_pack = None;
         assert_eq!(turn.validate(), Ok(()));
+    }
+
+    /// The numbers the relay mirrors, pinned on the side that owns them.
+    ///
+    /// `omp_bridge/sona_chat.py` re-declares these because the two
+    /// repositories ship separately, and its test spells them out rather than
+    /// importing them. That mirror is only checkable if this side fails when a
+    /// part moves: widening `MAX_RECENT_TURN_BYTES` silently moves the derived
+    /// submission ceiling, and a relay still enforcing the old total would
+    /// refuse a turn this client believed was legal.
+    ///
+    /// So a failure here is not a wrong constant. It is a reminder that
+    /// `MAX_SONA_CONTEXT_PACK_BYTES` and `MAX_SONA_SUBMISSION_BYTES` on the
+    /// relay have to move in the same commit.
+    #[test]
+    fn the_wires_ceilings_are_what_the_relay_was_told_they_are() {
+        assert_eq!(MAX_CONTEXT_PACK_BYTES, 131_072);
+        assert_eq!(MAX_CHAT_SUBMISSION_BYTES, 188_416);
+        assert_eq!(
+            MAX_CHAT_SUBMISSION_BYTES,
+            MAX_CONTEXT_PACK_BYTES + MAX_USER_MESSAGE_BYTES + MAX_RECENT_TURN_BYTES + 16 * 1024,
+            "a submission is a pack, a message and the recent turns, and nothing else varies"
+        );
+    }
+
+    /// Repeats `template` and cuts to exactly `bytes`. ASCII only, so the cut
+    /// is always on a char boundary.
+    fn dense(template: &str, bytes: usize) -> String {
+        assert!(template.is_ascii(), "filler must be ASCII to cut by byte");
+        let mut text = template.repeat(bytes / template.len() + 1);
+        text.truncate(bytes);
+        text
+    }
+
+    /// A real pack line, near the escape density the builder actually emits:
+    /// two newlines between entries, two inside one, and the quotes that make
+    /// a quote a quote.
+    const PACK_ENTRY: &str = "\n\n[7] meeting - Weekly product sync - 2026-03-14 09:30 UTC\nlink: sona://meeting/m-0000000000000007\nquote: Steven said \"I will send the deck on Friday\", and I said \"not until the pricing lands\".";
+
+    /// `SUBMISSION_ENVELOPE_BYTES` is a claim about measured bytes, and the
+    /// term that dominates it — what escaping a pack costs once it is a JSON
+    /// string — is proportional to the pack. So the constant that survived a
+    /// 32 KiB pack says nothing about a 128 KiB one, and the arithmetic in
+    /// `the_wires_ceilings_are_what_the_relay_was_told_they_are` above cannot
+    /// catch that: it adds the same four numbers the constant is made of.
+    ///
+    /// This composes the thing instead. Every variable part sits exactly on
+    /// its ceiling, the free text is quote- and newline-dense, and the
+    /// identifiers, locale and app version are at their maximum lengths. If a
+    /// future pack ceiling outgrows the envelope, this fails here rather than
+    /// on the wire, where the relay would refuse a submission every check on
+    /// this side had just accepted.
+    ///
+    /// Cross-language twin: `test_sona_chat_ceilings_match_sonas_protocol_definitions`
+    /// in `tests/omp_bridge/test_sona_chat.py`, which pins the same numbers on
+    /// the side that enforces them.
+    #[test]
+    fn a_maximal_chat_submission_fits_the_ceiling_it_declares() {
+        let turn = SonaChatTurnV1 {
+            protocol_version: SONA_CHAT_TURN_VERSION.to_string(),
+            conversation_id: dense("conversation-0001-", 128),
+            turn_id: dense("turn-00000002-", 128),
+            user_message: dense(
+                "Did I tell Steven \"Friday\" or \"next week\" about the deck? ",
+                MAX_USER_MESSAGE_BYTES,
+            ),
+            recent_turns: (0..MAX_RECENT_TURNS)
+                .map(|_| SonaAgentChatTurnV1 {
+                    role: SonaAgentChatRoleV1::User,
+                    message: dense(
+                        "You said \"hold the deck\", and I said \"the pricing lands Thursday\". ",
+                        MAX_RECENT_TURN_BYTES / MAX_RECENT_TURNS,
+                    ),
+                })
+                .collect(),
+            context_pack: Some(dense(PACK_ENTRY, MAX_CONTEXT_PACK_BYTES)),
+            locale: dense("en-GB-oxendict-", 64),
+            app_version: dense("1.0.0-rc.1+build.", 128),
+        };
+        assert_eq!(
+            turn.user_message.len()
+                + turn
+                    .recent_turns
+                    .iter()
+                    .map(|turn| turn.message.len())
+                    .sum::<usize>()
+                + turn.context_pack.as_deref().map_or(0, str::len),
+            MAX_USER_MESSAGE_BYTES + MAX_RECENT_TURN_BYTES + MAX_CONTEXT_PACK_BYTES,
+            "the three variable parts must sit exactly on their ceilings"
+        );
+        assert_eq!(
+            turn.validate(),
+            Ok(()),
+            "a submission at every ceiling is still a legal one"
+        );
+
+        let request = PanelTurnV1::Chat(turn);
+        let body = SonaSubmissionV1 {
+            workspace_id: SONA_CHAT_WORKSPACE_ID,
+            model: SONA_MODEL_ALIAS,
+            capability: SONA_CHAT_CAPABILITY,
+            idempotency_key: "0123456789abcdef0123456789abcdef",
+            request: &request,
+        };
+        let wire = serde_json::to_string(&body).expect("submission serializes");
+        assert!(
+            wire.len() <= MAX_CHAT_SUBMISSION_BYTES,
+            "a maximal submission serializes to {} bytes, over the {MAX_CHAT_SUBMISSION_BYTES}-byte ceiling: SUBMISSION_ENVELOPE_BYTES no longer covers what escaping a pack costs",
+            wire.len()
+        );
+        assert!(
+            wire.len()
+                > MAX_CONTEXT_PACK_BYTES
+                    + MAX_USER_MESSAGE_BYTES
+                    + MAX_RECENT_TURN_BYTES
+                    + 8 * 1024,
+            "a maximal submission serializes to {} bytes, which the 8 KiB envelope this ceiling used to carry would have covered — so either the escape cost stopped being the dominant term or this test stopped composing a maximal submission, and the assertion above stopped meaning anything",
+            wire.len()
+        );
     }
 
     #[test]

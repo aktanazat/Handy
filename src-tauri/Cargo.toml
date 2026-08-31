@@ -228,6 +228,11 @@ objc2-event-kit = { version = "0.3", default-features = false, features = [
   "EKEventStore",
   "EKObject",
   "EKParticipant",
+  # D22 writes open commitments into a "Sona" reminders list: EKReminder is the
+  # row, and EKSource is how a newly created list is homed on the same account
+  # as the operator's existing reminders instead of nowhere.
+  "EKReminder",
+  "EKSource",
   "EKTypes",
 ] }
 objc2-user-notifications = { version = "0.3.2", default-features = false, features = [

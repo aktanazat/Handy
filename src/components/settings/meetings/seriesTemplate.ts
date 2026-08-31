@@ -2,26 +2,31 @@ import { useCallback, useEffect, useState } from "react";
 import {
   commands,
   type MeetingNotesTemplate,
-  type MeetingSeriesTemplateSnapshot,
+  type MeetingSeriesPreferences,
 } from "@/bindings";
 
-/* D21's client half: read one series' remembered notes template, and write it.
+/* The client half of per-series preferences: read what one series has decided,
+ * and write one of those decisions.
  *
- * The snapshot is the whole state — the series key (null when a meeting belongs
- * to no series), the template (null when the series has made no choice), and
- * the revision the next write has to carry. A read that fails leaves it null,
+ * The record is the whole state — the series key (null when a meeting belongs
+ * to no series), the template (null when the series has made no choice),
+ * whether it stays in the evening digest, whether it records itself, and the
+ * revision the next write has to carry. A read that fails leaves it null,
  * which every surface renders as "no series": a store that cannot answer costs
  * a missing control rather than an error nobody can act on.
  *
  * Nothing is cached across surfaces. The pre-meeting card and the review screen
- * each ask, and each ask is one row. */
+ * each ask, and each ask is one row. D28's Upcoming section does not use these
+ * hooks: it reads a week of series in one command rather than one row at a
+ * time, which is the same state reached the way a list has to reach it. */
 
 /** The series preference behind one calendar event, for the pre-meeting card. */
 export const useSeriesTemplate = (
   seriesKey: string | null | undefined,
-): MeetingSeriesTemplateSnapshot | null => {
-  const [snapshot, setSnapshot] =
-    useState<MeetingSeriesTemplateSnapshot | null>(null);
+): MeetingSeriesPreferences | null => {
+  const [snapshot, setSnapshot] = useState<MeetingSeriesPreferences | null>(
+    null,
+  );
 
   useEffect(() => {
     if (seriesKey === null || seriesKey === undefined || seriesKey === "") {
@@ -48,8 +53,9 @@ export const useSeriesTemplate = (
 /** The series preference behind one meeting, plus the write the review screen
  * offers. */
 export const useSessionSeriesTemplate = (sessionId: string) => {
-  const [snapshot, setSnapshot] =
-    useState<MeetingSeriesTemplateSnapshot | null>(null);
+  const [snapshot, setSnapshot] = useState<MeetingSeriesPreferences | null>(
+    null,
+  );
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -81,7 +87,7 @@ export const useSessionSeriesTemplate = (sessionId: string) => {
           template,
           expected_revision: snapshot.revision,
         });
-        if (result.status === "ok") setSnapshot(result.data.snapshot);
+        if (result.status === "ok") setSnapshot(result.data.preferences);
       } catch {
         /* The stored row is unchanged and the button is still there. */
       } finally {

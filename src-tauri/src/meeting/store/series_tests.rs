@@ -1,12 +1,15 @@
-//! D21 series preferences and D20's day counts, at the store boundary.
+//! Per-series preferences and D20's day counts, at the store boundary.
 
 use super::workflow_core_tests::{event, inputs, meeting, store};
 use super::*;
 use crate::meeting::analytics::MeetingNotesTemplate;
-use crate::meeting::series_types::MeetingSeriesTemplateSetRequest;
+use crate::meeting::series_types::{
+    MeetingSeriesAlwaysRecordSetRequest, MeetingSeriesDigestSetRequest,
+    MeetingSeriesMutationResult, MeetingSeriesTemplateSetRequest,
+};
 use crate::meeting::types::{
     MeetingCommandKind, MeetingOperationId, MeetingReasonCode, MeetingSessionId, OperationActor,
-    OperationResult,
+    OperationResult, SourceKind,
 };
 use crate::meeting::workflow_types::{WorkflowEventKind, WorkflowId, WorkflowRunStatus};
 use rusqlite::params;
@@ -36,7 +39,7 @@ fn set(
     series_key: &str,
     template: Option<MeetingNotesTemplate>,
     expected_revision: u64,
-) -> crate::meeting::series_types::MeetingSeriesTemplateMutationResult {
+) -> MeetingSeriesMutationResult {
     store
         .set_series_template(
             &MeetingSeriesTemplateSetRequest {
@@ -50,14 +53,55 @@ fn set(
         .unwrap()
 }
 
+fn set_digest(
+    store: &MeetingStore,
+    series_key: &str,
+    digest_included: bool,
+    expected_revision: u64,
+) -> MeetingSeriesMutationResult {
+    store
+        .set_series_digest(
+            &MeetingSeriesDigestSetRequest {
+                operation_id: MeetingOperationId::new(),
+                series_key: series_key.to_string(),
+                digest_included,
+                expected_revision,
+            },
+            1_000,
+        )
+        .unwrap()
+}
+
+fn set_always_record(
+    store: &MeetingStore,
+    series_key: &str,
+    always_record: bool,
+    sources: &[SourceKind],
+    expected_revision: u64,
+) -> Result<MeetingSeriesMutationResult, StoreError> {
+    store.set_series_always_record(
+        &MeetingSeriesAlwaysRecordSetRequest {
+            operation_id: MeetingOperationId::new(),
+            series_key: series_key.to_string(),
+            always_record,
+            policy_version: 1,
+            acknowledged_sources: sources.to_vec(),
+            expected_revision,
+        },
+        1_000,
+    )
+}
+
 #[test]
 fn a_series_nobody_has_chosen_for_reports_no_template() {
     let (_directory, store) = store();
-    let snapshot = store.series_template("weekly-sync").unwrap();
+    let preferences = store.series_preferences("weekly-sync").unwrap();
 
-    assert_eq!(snapshot.series_key.as_deref(), Some("weekly-sync"));
-    assert_eq!(snapshot.template, None);
-    assert_eq!(snapshot.revision, 0);
+    assert_eq!(preferences.series_key.as_deref(), Some("weekly-sync"));
+    assert_eq!(preferences.template, None);
+    assert!(preferences.digest_included, "no row means in the digest");
+    assert!(!preferences.always_record);
+    assert_eq!(preferences.revision, 0);
 }
 
 #[test]
@@ -79,12 +123,12 @@ fn choosing_a_template_is_receipted_and_names_the_series_it_touched() {
     assert_eq!(result.receipt.effect_ids, vec!["weekly-sync".to_string()]);
     assert_eq!(result.receipt.new_revision, Some(1));
     assert_eq!(
-        result.snapshot.template,
+        result.preferences.template,
         Some(MeetingNotesTemplate::Standup)
     );
-    assert_eq!(result.snapshot.revision, 1);
+    assert_eq!(result.preferences.revision, 1);
     assert_eq!(
-        store.series_template("weekly-sync").unwrap().template,
+        store.series_preferences("weekly-sync").unwrap().template,
         Some(MeetingNotesTemplate::Standup)
     );
 }
@@ -112,7 +156,7 @@ fn a_write_against_a_revision_that_moved_is_rejected_and_changes_nothing() {
         vec![MeetingReasonCode::StaleRevision]
     );
     assert_eq!(
-        store.series_template("weekly-sync").unwrap().template,
+        store.series_preferences("weekly-sync").unwrap().template,
         Some(MeetingNotesTemplate::Standup)
     );
 }
@@ -133,7 +177,7 @@ fn a_replayed_operation_returns_the_receipt_it_already_wrote() {
 
     assert_eq!(first.receipt, replay.receipt);
     // A replay that re-ran the write would have bumped the counter again.
-    assert_eq!(replay.snapshot.revision, 1);
+    assert_eq!(replay.preferences.revision, 1);
 }
 
 #[test]
@@ -146,10 +190,10 @@ fn clearing_a_preference_hands_the_series_back_to_the_default() {
         0,
     );
 
-    let cleared = set(&store, "weekly-sync", None, chosen.snapshot.revision);
+    let cleared = set(&store, "weekly-sync", None, chosen.preferences.revision);
 
     assert_eq!(cleared.receipt.result, OperationResult::Committed);
-    assert_eq!(cleared.snapshot.template, None);
+    assert_eq!(cleared.preferences.template, None);
 }
 
 #[test]
@@ -157,10 +201,10 @@ fn a_meeting_with_no_calendar_event_belongs_to_no_series() {
     let (_directory, store) = store();
     let session_id = meeting(&store, "Local notes", 1);
 
-    let snapshot = store.series_template_for_session(session_id).unwrap();
+    let preferences = store.series_preferences_for_session(session_id).unwrap();
 
-    assert_eq!(snapshot.series_key, None);
-    assert_eq!(snapshot.template, None);
+    assert_eq!(preferences.series_key, None);
+    assert_eq!(preferences.template, None);
 }
 
 /// The middle rung of D21's precedence: what artifact generation is handed when
@@ -177,10 +221,10 @@ fn a_meeting_resolves_the_template_of_the_series_it_belongs_to() {
         0,
     );
 
-    let snapshot = store.series_template_for_session(session_id).unwrap();
+    let preferences = store.series_preferences_for_session(session_id).unwrap();
 
-    assert_eq!(snapshot.series_key.as_deref(), Some("weekly-sync"));
-    assert_eq!(snapshot.template, Some(MeetingNotesTemplate::Standup));
+    assert_eq!(preferences.series_key.as_deref(), Some("weekly-sync"));
+    assert_eq!(preferences.template, Some(MeetingNotesTemplate::Standup));
 }
 
 /// The top rung: a template saved on this meeting's own notes outranks its
@@ -209,6 +253,170 @@ fn a_meetings_own_notes_template_outranks_the_one_it_was_handed() {
             .template,
         MeetingNotesTemplate::Interview
     );
+}
+
+/* D28. The three decisions share one row and one fence, so a write to any of
+ * them has to leave the other two exactly where they were. This is the join
+ * D28's Upcoming rows read; a digest write that silently cleared a template
+ * would show the operator a choice they never unmade. */
+#[test]
+fn each_series_decision_is_written_without_disturbing_the_others() {
+    let (_directory, store) = store();
+    let chosen = set(
+        &store,
+        "weekly-sync",
+        Some(MeetingNotesTemplate::Standup),
+        0,
+    );
+    let excluded = set_digest(&store, "weekly-sync", false, chosen.preferences.revision);
+    let granted = set_always_record(
+        &store,
+        "weekly-sync",
+        true,
+        &[SourceKind::Microphone],
+        excluded.preferences.revision,
+    )
+    .unwrap();
+
+    assert_eq!(granted.receipt.result, OperationResult::Committed);
+    assert_eq!(
+        granted.receipt.command,
+        MeetingCommandKind::SeriesAlwaysRecordSet
+    );
+    let preferences = store.series_preferences("weekly-sync").unwrap();
+    assert_eq!(preferences.template, Some(MeetingNotesTemplate::Standup));
+    assert!(!preferences.digest_included);
+    assert!(preferences.always_record);
+    assert_eq!(preferences.revision, 3, "each write moved the one fence");
+}
+
+/* Always-record is the standing grant, so turning it on has to produce the
+ * same row the consent panel produces — the one an auto-started occurrence
+ * revalidates against — and turning it off has to revoke it. */
+#[test]
+fn always_record_grants_and_revokes_the_standing_series_consent() {
+    let (_directory, store) = store();
+    let granted = set_always_record(
+        &store,
+        "weekly-sync",
+        true,
+        &[SourceKind::Microphone, SourceKind::SystemAudio],
+        0,
+    )
+    .unwrap();
+
+    let live = store
+        .live_series_consent("weekly-sync")
+        .unwrap()
+        .expect("the toggle grants a live standing consent");
+    assert_eq!(live.policy_version, 1);
+    assert_eq!(
+        live.acknowledged_sources,
+        vec![SourceKind::Microphone, SourceKind::SystemAudio]
+    );
+
+    set_always_record(
+        &store,
+        "weekly-sync",
+        false,
+        &[],
+        granted.preferences.revision,
+    )
+    .unwrap();
+
+    assert!(store.live_series_consent("weekly-sync").unwrap().is_none());
+    assert!(
+        !store
+            .series_preferences("weekly-sync")
+            .unwrap()
+            .always_record
+    );
+}
+
+/* A grant naming no source is permission to record "something", which is not
+ * permission. The primitive refuses it and the toggle inherits that refusal
+ * rather than inventing a default set. */
+#[test]
+fn always_record_refuses_a_grant_that_acknowledges_nothing() {
+    let (_directory, store) = store();
+
+    assert_eq!(
+        set_always_record(&store, "weekly-sync", true, &[], 0),
+        Err(StoreError::Invalid)
+    );
+    assert!(store.live_series_consent("weekly-sync").unwrap().is_none());
+}
+
+/* Clearing every choice removes the row, so "has a row" keeps meaning "has
+ * decided something" — which is what makes the digest's COALESCE honest. */
+#[test]
+fn a_series_that_has_unmade_every_choice_keeps_no_row() {
+    let (_directory, store) = store();
+    let excluded = set_digest(&store, "weekly-sync", false, 0);
+    let included = set_digest(&store, "weekly-sync", true, excluded.preferences.revision);
+
+    assert!(included.preferences.digest_included);
+    let rows: i64 = store
+        .connection()
+        .unwrap()
+        .query_row(
+            "SELECT COUNT(*) FROM meeting_series_preferences WHERE series_key = ?1",
+            params!["weekly-sync"],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(rows, 0);
+}
+
+/* One read for a whole week of calendar rows. Keys with nothing stored still
+ * come back, at their defaults, so the caller never has to decide what an
+ * absent key means. */
+#[test]
+fn a_bulk_read_answers_for_every_key_including_the_ones_with_no_row() {
+    let (_directory, store) = store();
+    set(
+        &store,
+        "weekly-sync",
+        Some(MeetingNotesTemplate::Standup),
+        0,
+    );
+
+    let records = store
+        .series_preferences_many(&[
+            "weekly-sync".to_string(),
+            "never-touched".to_string(),
+            "weekly-sync".to_string(),
+            "   ".to_string(),
+        ])
+        .unwrap();
+
+    assert_eq!(records.len(), 2, "blank keys are not series");
+    assert_eq!(
+        records["weekly-sync"].template,
+        Some(MeetingNotesTemplate::Standup)
+    );
+    assert_eq!(records["never-touched"].template, None);
+    assert!(records["never-touched"].digest_included);
+    assert_eq!(
+        records["never-touched"].revision,
+        records["weekly-sync"].revision
+    );
+}
+
+/* D28's preference has to actually reach the evening sentence, or it is a
+ * switch that does nothing. A meeting in an excluded series is not counted;
+ * one with no calendar event at all still is. */
+#[test]
+fn the_digest_skips_meetings_whose_series_was_taken_out_of_it() {
+    let (_directory, store) = store();
+    let excluded = meeting(&store, "Weekly sync", 1_100);
+    calendar_facts(&store, excluded, "weekly-sync");
+    let kept = meeting(&store, "Design review", 1_200);
+    calendar_facts(&store, kept, "design-review");
+    meeting(&store, "Local notes", 1_300);
+    set_digest(&store, "weekly-sync", false, 0);
+
+    assert_eq!(store.digest_counts(1_000, 2_000).unwrap().meetings, 2);
 }
 
 #[test]

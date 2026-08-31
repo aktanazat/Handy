@@ -13,6 +13,7 @@ import {
   SettingsSection,
 } from "@/components/settings/rows";
 import { Button } from "@/components/vg/button";
+import { FollowUpDraftAction } from "./review/FollowUpDraftAction";
 import { LedgerReceiptRow } from "./review/LedgerReceiptRow";
 import { LoopRows, type LoopChange } from "./review/LoopRows";
 import { formatMeetingOffset } from "./meetingUtils";
@@ -113,16 +114,25 @@ export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
     <SettingsSection
       label={t("meetings.ledger.title")}
       action={
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onExportLedger}
-          disabled={busy || !canExport}
-        >
-          <FileCode2 aria-hidden="true" className="size-3.5" />
-          {t("meetings.ledger.exportHtml")}
-        </Button>
+        /* Two things to do with where we landed: send it to somebody, or keep
+         * it. Drafting reads the record and writes nothing to the meeting, so
+         * it is not gated on the export permission the page below is. */
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <FollowUpDraftAction
+            sessionId={snapshot.session.session_id}
+            disabled={busy}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onExportLedger}
+            disabled={busy || !canExport}
+          >
+            <FileCode2 aria-hidden="true" className="size-3.5" />
+            {t("meetings.ledger.exportHtml")}
+          </Button>
+        </div>
       }
     >
       <div className="flex flex-col gap-2 px-4 py-3">

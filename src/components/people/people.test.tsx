@@ -143,6 +143,8 @@ const DETAIL: PersonDetail = {
       text: "Who owns the launch checklist?",
       owner_person_id: PERSON.id,
       status: "open",
+      direction: "waiting_on",
+      waiting_on_stale: true,
       carried_since_at_utc_ms: JANUARY,
       carried_into_meeting_id: null,
     },
@@ -155,6 +157,8 @@ const DETAIL: PersonDetail = {
       at_utc_ms: JANUARY,
       text: "Dana will send the tier comparison.",
       status: "done",
+      direction: "waiting_on",
+      waiting_on_stale: false,
       resolved_at_utc_ms: JUNE,
     },
   ],
@@ -294,6 +298,61 @@ describe("person detail", () => {
     /* An open loop names the meeting it came from, and the name is the way
      * back into that meeting rather than a caption about it. */
     expect(occurrences(markup, ">Planning</button>")).toBe(2);
+  });
+
+  /* D27: a person page answers two questions, so it shows two lists. Grouping
+   * them under one heading each is the whole feature — "what did I promise
+   * Dana" and "what is Dana sitting on" were previously one undifferentiated
+   * column, and the page could not tell you which was which. */
+  test("groups what the user owes apart from what this person owes", () => {
+    const markup = detail(
+      {
+        ...DETAIL,
+        open_loops: [
+          { ...DETAIL.open_loops[0], direction: "waiting_on" },
+          {
+            ...DETAIL.open_loops[0],
+            loop_id: "meeting-january:loop:00112233445566ff",
+            text: "Confirm the rebate spreadsheet owner",
+            direction: "mine",
+            waiting_on_stale: false,
+          },
+        ],
+      },
+      [],
+    );
+
+    expect(markup).toContain("I owe");
+    expect(markup).toContain("Waiting on Dana Reyes");
+    // The user's own line comes first: it is the one they can act on.
+    expect(markup.indexOf("Confirm the rebate spreadsheet owner")).toBeLessThan(
+      markup.indexOf("Who owns the launch checklist?"),
+    );
+  });
+
+  /* The stale mark only ever lands on a row somebody else owes. A backlog of
+   * the user's own work is theirs to schedule; marking it overdue would be the
+   * app nagging its user about a decision it did not make. */
+  test("marks an overdue handoff and never the user's own backlog", () => {
+    const overdue = detail(DETAIL, []);
+    expect(occurrences(overdue, 'data-slot="loop-stale"')).toBe(1);
+    expect(overdue).toContain("Overdue");
+
+    const mine = detail(
+      {
+        ...DETAIL,
+        open_loops: [
+          {
+            ...DETAIL.open_loops[0],
+            direction: "mine",
+            waiting_on_stale: false,
+          },
+        ],
+        commitments: [],
+      },
+      [],
+    );
+    expect(mine).not.toContain('data-slot="loop-stale"');
   });
 
   /* D18: a person page reads the loop's live state, not a copy of the words.

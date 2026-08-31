@@ -1493,6 +1493,10 @@
         "rowDescription": "オフにするとパネルウィンドウが閉じ、Sona は再表示のリクエストをすべて拒否します。",
         "title": "エージェントパネル"
       },
+      "externalAccess": {
+        "label": "外部アクセス",
+        "rowDescription": "この Mac 上の他のプログラムが、sona コマンドラインと MCP サーバーを通じてミーティング、音声入力、人物、未完了の約束を読み取れるようにします。読み取り専用で、オンにするまで無効です。"
+      },
       "workspaceNavigation": "エージェントブリッジのビュー",
       "sonaAgent": {
         "title": "Sona エージェント",
@@ -1668,6 +1672,40 @@
         "description": "会議があった日や課題を片づけた日の終わりに、通知をひとつだけ。すべてこの Mac の中で完結します。",
         "timeLabel": "まとめの時刻",
         "timeHint": "現地時間です。何もなかった日は通知しません。"
+      },
+      "automations": {
+        "title": "会議のあとに",
+        "description": "シリーズのノートが書き終わったときに、この Mac 上で動く処理です。オンにするまで、どのシリーズでもオフです。",
+        "loading": "シリーズを読み込み中…",
+        "empty": "録音済みのシリーズはまだありません。カレンダーの予定から会議を録音すると、ここに出てきます。",
+        "seriesFact": "{{count}} 件録音 · 最後は {{when}}",
+        "reminders": "自分の未完了の約束をリマインダーに追加",
+        "remindersHint": "まだ自分がやるべきことを Sona というリストに書き込みます。そこから読み戻すことはありません。",
+        "remindersDenied": "macOS がリマインダーへのアクセスを許可していません。プライバシーとセキュリティ › リマインダー で変更できます。",
+        "shortcut": "ショートカットを実行",
+        "shortcutHint": "会議のエクスポートを入力として、名前で指定したショートカットを実行します。30 秒で打ち切ります。",
+        "shortcutPlaceholder": "ショートカット名",
+        "webhook": "Webhook に送信",
+        "webhookHint": "会議のエクスポートを JSON で POST します。自分のマシンか tailnet のみ — リレーと同じ規則です。",
+        "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "needsTarget": "先に名前を入れてください",
+        "needsUrl": "先にアドレスを入れてください",
+        "rejected": "別のウインドウが変更しました。読み直してやり直してください。",
+        "invalid": "そこへは送信しません。localhost か tailnet のアドレスを使ってください。",
+        "saveFailed": "保存できませんでした。"
+      },
+      "remoteIntelligence": {
+        "title": "会議インテリジェンス",
+        "label": "会議のノートを自分のサーバーで書く",
+        "consent": "会議の要約と回答は、あなたのプライベートネットワーク経由であなたのサーバー上で書かれます",
+        "unpaired": "有効にするには、エージェントで Sona をサーバーとペアリングしてください",
+        "seriesTitle": "この Mac に残すシリーズ",
+        "seriesHint": "ここに並ぶシリーズは、会議インテリジェンスがオンでも常にこの Mac で書かれます。",
+        "seriesEmpty": "繰り返しの会議はまだ記録されていません",
+        "loading": "シリーズを読み込んでいます…",
+        "lastMet": "最後は {{date}}",
+        "keepLocalLabel": "{{series}} をこの Mac に残す",
+        "saveFailed": "変更は保存されませんでした。行をもう一度読んでから試してください。"
       }
     }
   },
@@ -1702,7 +1740,14 @@
     "importAudio": "ファイルを文字起こし",
     "openRecordings": "録音フォルダを開く",
     "openAgent": "エージェントを開く",
-    "esc": "esc"
+    "esc": "esc",
+    "search": {
+      "meetings": "会議",
+      "people": "人物",
+      "dictations": "口述",
+      "loops": "未回答の問い",
+      "unavailable": "検索は現在利用できません。"
+    }
   },
   "accessibility": {
     "permissionsDescription": "Sona が文字起こしテキストを入力するには、アクセシビリティ権限が必要です。",
@@ -2135,6 +2180,12 @@
       "carriedForward": "前回のミーティングから引き継ぎ",
       "stale": "別の操作が先に反映されたため、一覧を更新しました。"
     },
+    "transcript": {
+      "trace": {
+        "jumpLine": "{{time}} の文字起こしに移動",
+        "tooltip": "この行の出どころを表示"
+      }
+    },
     "artifactState": {
       "current": "最新",
       "out_of_date": "内容が古い",
@@ -2368,6 +2419,42 @@
       "use": "このテンプレートをこのシリーズに使う",
       "saving": "記憶しています…",
       "remembered": "このシリーズは{{template}}を使います"
+    },
+    "upcoming": {
+      "title": "この先の予定",
+      "loading": "カレンダーを読み込んでいます…",
+      "empty": "今後1週間の予定はありません。",
+      "noAccess": "Sona はカレンダーを見ることができません。",
+      "noAccessHint": "ミーティング設定で「カレンダーを使う」をオンにし、macOS が尋ねたらフルアクセスを許可してください。macOS カレンダーに表示されているもの（Google、iCloud、Outlook）はそのまま含まれます。",
+      "unavailable": "このシステムには Sona が読めるカレンダーがありません。",
+      "attendees": "参加者",
+      "you": "自分",
+      "attendeesMore": "+{{count}}",
+      "recurring": "繰り返し",
+      "seriesOptions": "{{title}} のシリーズ設定",
+      "alwaysRecord": "このシリーズを常に録音する",
+      "alwaysRecordNeedsSource": "先に上でキャプチャ元を選んでください。",
+      "template": "ノートのテンプレート",
+      "templateDefault": "アプリの既定",
+      "digest": "夕方のダイジェストに含める"
+    },
+    "talkTime": {
+      "label": "発話時間",
+      "speakerShare": "{{name}} {{share}}",
+      "sentence": "発話時間: {{speakers}}"
+    },
+    "followUp": {
+      "draft": "フォローアップを作成",
+      "drafting": "作成中…",
+      "title": "フォローアップの下書き",
+      "fromEngine": "要約・自分の約束・決定事項から作成しました。送信する前に確認してください。",
+      "fromRecord": "この環境では文章生成エンジンが使えないため、下書きは記録そのものです。",
+      "iOwe": "自分がやること",
+      "decisions": "決まったこと",
+      "copy": "コピー",
+      "copied": "下書きをコピーしました。",
+      "copyFailed": "下書きをコピーできませんでした。",
+      "failed": "このミーティングのフォローアップを作成できませんでした。"
     }
   },
   "agentPanel": {
@@ -2416,7 +2503,16 @@
       "failed": "失敗",
       "canceled": "停止しました",
       "unverified_external": "未検証の返信"
+    },
+    "ask": {
+      "row": "Sona に質問: {{query}}",
+      "error": "質問を Sona に送信できませんでした。"
     }
+  },
+  "chat": {
+    "open": "チャット",
+    "label": "Sona エージェントとチャット",
+    "unpaired": "設定で Sona エージェントをペアリングしてください"
   },
   "overview": {
     "hero": {
@@ -2637,9 +2733,16 @@
       "metCount_other": "{{name}}とは{{count}}回会っています",
       "metBefore_one": "{{name}}とは1回会っています · 前回 {{date}}",
       "metBefore_other": "{{name}}とは{{count}}回会っています · 前回 {{date}}",
-      "stillOpen": "未解決: {{text}}",
       "metCount": "{{name}}とは{{count}}回会っています",
       "metBefore": "{{name}}とは{{count}}回会っています · 前回 {{date}}"
+    },
+    "waitingOn": {
+      "iOwe": "自分の担当",
+      "them": "{{name}} 待ち",
+      "stale": "期限超過",
+      "brief": "{{name}} 待ち: {{text}}",
+      "briefOverdue": "{{name}} で期限超過: {{text}}",
+      "briefIOwe": "あなたの担当: {{text}}"
     }
   },
   "libraryV2": {

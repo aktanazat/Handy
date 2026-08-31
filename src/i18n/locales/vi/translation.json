@@ -1493,6 +1493,10 @@
         "rowDescription": "Tắt tùy chọn này sẽ đóng cửa sổ bảng và khiến Sona từ chối mọi yêu cầu mở lại.",
         "title": "Bảng agent"
       },
+      "externalAccess": {
+        "label": "Truy cập bên ngoài",
+        "rowDescription": "Cho phép các chương trình khác trên máy Mac này đọc cuộc họp, bản đọc chính tả, mọi người và các việc còn mở qua dòng lệnh sona và máy chủ MCP. Chỉ đọc, và tắt cho đến khi bạn bật."
+      },
       "workspaceNavigation": "Chế độ xem cầu nối agent",
       "sonaAgent": {
         "title": "Tác nhân Sona",
@@ -1668,6 +1672,40 @@
         "description": "Một thông báo vào cuối ngày có cuộc họp hoặc việc đã khép lại. Mọi thứ đều ở lại trên chiếc Mac này.",
         "timeLabel": "Giờ tóm tắt",
         "timeHint": "Giờ địa phương. Ngày không có gì thì vẫn im lặng."
+      },
+      "automations": {
+        "title": "Sau một cuộc họp",
+        "description": "Các hành động chạy trên chiếc Mac này khi ghi chú của một chuỗi đã được viết. Tắt ở mọi chuỗi cho tới khi bạn bật một cái.",
+        "loading": "Đang đọc các chuỗi của bạn…",
+        "empty": "Chưa có chuỗi nào được ghi. Ghi một cuộc họp từ sự kiện lịch, nó sẽ hiện ở đây.",
+        "seriesFact": "{{count}} đã ghi · gần nhất {{when}}",
+        "reminders": "Thêm các cam kết còn dở của tôi vào Lời nhắc",
+        "remindersHint": "Ghi những gì bạn còn nợ vào một danh sách tên Sona. Không bao giờ đọc ngược lại từ đó.",
+        "remindersDenied": "macOS chưa cấp quyền truy cập Lời nhắc. Đổi ở Quyền riêng tư & Bảo mật › Lời nhắc.",
+        "shortcut": "Chạy một Phím tắt",
+        "shortcutHint": "Chạy Phím tắt theo tên với bản xuất của cuộc họp làm đầu vào. Ba mươi giây rồi dừng.",
+        "shortcutPlaceholder": "Tên Phím tắt",
+        "webhook": "Gửi tới một webhook",
+        "webhookHint": "Gửi bản xuất của cuộc họp dạng JSON. Chỉ máy của bạn hoặc tailnet của bạn — cùng quy tắc với relay.",
+        "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "needsTarget": "Nhập tên trước đã",
+        "needsUrl": "Nhập địa chỉ trước đã",
+        "rejected": "Một cửa sổ khác đã đổi cái này. Đọc lại rồi thử lần nữa.",
+        "invalid": "Sona sẽ không gửi tới đó. Dùng localhost hoặc địa chỉ tailnet.",
+        "saveFailed": "Cái đó chưa được lưu."
+      },
+      "remoteIntelligence": {
+        "title": "Trí tuệ cho cuộc họp",
+        "label": "Viết ghi chú cuộc họp trên máy chủ của tôi",
+        "consent": "Bản tóm tắt và câu trả lời cho cuộc họp được viết trên máy chủ của bạn qua mạng riêng của bạn",
+        "unpaired": "Ghép nối Sona với máy chủ của bạn ở mục Tác nhân để bật cái này",
+        "seriesTitle": "Chuỗi ở lại trên máy Mac này",
+        "seriesHint": "Chuỗi có trong danh sách này luôn được viết trên máy Mac này, kể cả khi trí tuệ cho cuộc họp đang bật.",
+        "seriesEmpty": "Chưa ghi cuộc họp định kỳ nào",
+        "loading": "Đang đọc các chuỗi của bạn…",
+        "lastMet": "Gặp lần cuối {{date}}",
+        "keepLocalLabel": "Giữ {{series}} trên máy Mac này",
+        "saveFailed": "Thay đổi chưa được lưu. Đọc lại dòng này và thử lần nữa."
       }
     }
   },
@@ -1702,7 +1740,14 @@
     "importAudio": "Chuyển tệp thành văn bản",
     "openRecordings": "Mở thư mục ghi âm",
     "openAgent": "Mở trợ lý",
-    "esc": "esc"
+    "esc": "esc",
+    "search": {
+      "meetings": "Cuộc họp",
+      "people": "Mọi người",
+      "dictations": "Lần đọc chính tả",
+      "loops": "Câu hỏi chưa được trả lời",
+      "unavailable": "Tìm kiếm hiện không khả dụng."
+    }
   },
   "accessibility": {
     "permissionsDescription": "Sona cần quyền truy cập để gõ văn bản đã chuyển đổi.",
@@ -2135,6 +2180,12 @@
       "carriedForward": "Chuyển tiếp từ buổi họp trước",
       "stale": "Người khác đã thay đổi việc này trước, nên danh sách đã được làm mới."
     },
+    "transcript": {
+      "trace": {
+        "jumpLine": "Chuyển đến bản ghi thoại tại {{time}}",
+        "tooltip": "Cho biết dòng này đến từ đâu"
+      }
+    },
     "artifactState": {
       "current": "Hiện hành",
       "out_of_date": "Đã lỗi thời",
@@ -2368,6 +2419,42 @@
       "use": "Dùng mẫu này cho chuỗi cuộc họp này",
       "saving": "Đang ghi nhớ…",
       "remembered": "Chuỗi này dùng {{template}}"
+    },
+    "upcoming": {
+      "title": "Sắp tới",
+      "loading": "Đang đọc lịch của bạn…",
+      "empty": "Không có gì được lên lịch trong tuần tới.",
+      "noAccess": "Sona không thấy lịch của bạn.",
+      "noAccessHint": "Bật \"Dùng lịch của tôi\" trong cài đặt cuộc họp, rồi cho phép truy cập đầy đủ khi macOS hỏi. Mọi thứ Lịch macOS đã hiển thị — Google, iCloud, Outlook — đều đi kèm.",
+      "unavailable": "Hệ thống này không có lịch nào Sona đọc được.",
+      "attendees": "Người tham dự",
+      "you": "Bạn",
+      "attendeesMore": "+{{count}}",
+      "recurring": "Lặp lại",
+      "seriesOptions": "Tùy chọn chuỗi cho {{title}}",
+      "alwaysRecord": "Luôn ghi chuỗi này",
+      "alwaysRecordNeedsSource": "Hãy chọn nguồn thu ở trên trước.",
+      "template": "Mẫu ghi chú",
+      "templateDefault": "Mặc định của ứng dụng",
+      "digest": "Đưa vào bản tóm tắt buổi tối"
+    },
+    "talkTime": {
+      "label": "Thời lượng nói",
+      "speakerShare": "{{name}} {{share}}",
+      "sentence": "Thời lượng nói: {{speakers}}"
+    },
+    "followUp": {
+      "draft": "Soạn thư theo dõi",
+      "drafting": "Đang soạn…",
+      "title": "Bản nháp thư theo dõi",
+      "fromEngine": "Được viết từ bản tóm tắt, những việc bạn nhận và các quyết định. Hãy đọc lại trước khi gửi.",
+      "fromRecord": "Ở đây không có công cụ viết nào, nên bản nháp chính là biên bản, nguyên văn.",
+      "iOwe": "Việc tôi nhận",
+      "decisions": "Điều đã quyết",
+      "copy": "Sao chép",
+      "copied": "Đã sao chép bản nháp.",
+      "copyFailed": "Không sao chép được bản nháp.",
+      "failed": "Không soạn được thư theo dõi cho cuộc họp này."
     }
   },
   "agentPanel": {
@@ -2416,7 +2503,16 @@
       "failed": "Thất bại",
       "canceled": "Đã dừng",
       "unverified_external": "Phản hồi chưa xác minh"
+    },
+    "ask": {
+      "row": "Hỏi Sona: {{query}}",
+      "error": "Không thể gửi câu hỏi đến Sona."
     }
+  },
+  "chat": {
+    "open": "Trò chuyện",
+    "label": "Trò chuyện với tác nhân Sona",
+    "unpaired": "Ghép nối tác nhân Sona trong Cài đặt"
   },
   "overview": {
     "hero": {
@@ -2637,9 +2733,16 @@
       "metCount_other": "Bạn đã gặp {{name}} {{count}} lần",
       "metBefore_one": "Bạn đã gặp {{name}} 1 lần · gần nhất {{date}}",
       "metBefore_other": "Bạn đã gặp {{name}} {{count}} lần · gần nhất {{date}}",
-      "stillOpen": "Vẫn còn mở: {{text}}",
       "metCount": "Bạn đã gặp {{name}} {{count}} lần",
       "metBefore": "Bạn đã gặp {{name}} {{count}} lần · gần nhất {{date}}"
+    },
+    "waitingOn": {
+      "iOwe": "Tôi nợ",
+      "them": "Đang chờ {{name}}",
+      "stale": "Quá hạn",
+      "brief": "Đang chờ {{name}}: {{text}}",
+      "briefOverdue": "Quá hạn với {{name}}: {{text}}",
+      "briefIOwe": "Bạn nợ: {{text}}"
     }
   },
   "libraryV2": {

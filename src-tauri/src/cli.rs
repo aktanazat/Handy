@@ -1,8 +1,20 @@
-use clap::Parser;
+use crate::query::external::ExternalLoopStatus;
+use crate::query::QueryScope;
+use clap::{ArgGroup, Parser};
 use std::path::PathBuf;
 
+/* The read-only corpus flags below are one verb per invocation, so they live
+ * in a clap group rather than in seven pairwise `conflicts_with`es: the group
+ * is what makes `sona --meetings --loops` a usage error clap words itself,
+ * and what keeps the list in one place when an eighth verb arrives. Their
+ * modifiers hang off the verb they belong to with `requires`, so a flag that
+ * cannot mean anything on its own says so instead of being ignored. */
 #[derive(Parser, Debug, Clone, Default)]
 #[command(name = "sona", about = "Sona — speech to text")]
+#[command(group(ArgGroup::new("read").args([
+    "query", "meetings", "meeting", "transcript", "loops", "people", "events",
+])))]
+#[command(group(ArgGroup::new("loop_side").args(["mine", "waiting"])))]
 pub struct CliArgs {
     /// Start with the main window hidden
     #[arg(long)]
@@ -64,6 +76,75 @@ pub struct CliArgs {
     /// Emit --transcribe-file results as JSON.
     #[arg(long)]
     pub json: bool,
+
+    // ── Read-only corpus queries ───────────────────────────────────────────
+    // Each of these answers with one JSON value on stdout and exits. They
+    // require Settings > Agents > External access, and none of them writes.
+    /// Search the corpus and print the matching rows as JSON.
+    #[arg(long, value_name = "TEXT")]
+    pub query: Option<String>,
+
+    /// Which nouns --query searches. Defaults to all of them.
+    #[arg(long, value_enum, requires = "query")]
+    pub scope: Option<QueryScope>,
+
+    /// How many rows a read returns (max 100). Not for --meetings, which
+    /// counts with --last.
+    #[arg(long, value_name = "N", conflicts_with = "last")]
+    pub limit: Option<usize>,
+
+    /// List retained meetings, newest first, as JSON.
+    #[arg(long)]
+    pub meetings: bool,
+
+    /// How many meetings --meetings returns (max 100).
+    #[arg(long, value_name = "N", requires = "meetings")]
+    pub last: Option<usize>,
+
+    /// Earliest local day --meetings includes, as YYYY-MM-DD.
+    #[arg(long, value_name = "DATE", requires = "to", conflicts_with = "last")]
+    pub from: Option<String>,
+
+    /// Latest local day --meetings includes, as YYYY-MM-DD.
+    #[arg(long, value_name = "DATE", requires = "from", conflicts_with = "last")]
+    pub to: Option<String>,
+
+    /// Print one meeting — summary, notes and ledger rows — as JSON.
+    #[arg(long, value_name = "MEETING_ID")]
+    pub meeting: Option<String>,
+
+    /// Print one meeting's speaker-labeled transcript as JSON.
+    #[arg(long, value_name = "MEETING_ID")]
+    pub transcript: Option<String>,
+
+    /// List the corpus's open loops and commitments as JSON.
+    #[arg(long)]
+    pub loops: bool,
+
+    /// Keep only loops in this state. Omit to get every state.
+    #[arg(long, value_enum, requires = "loops")]
+    pub status: Option<ExternalLoopStatus>,
+
+    /// Keep only loops the user owes.
+    #[arg(long, requires = "loops")]
+    pub mine: bool,
+
+    /// Keep only loops somebody else owes.
+    #[arg(long, requires = "loops")]
+    pub waiting: bool,
+
+    /// Look a person up by name, alias or calendar address.
+    #[arg(long, value_name = "NAME")]
+    pub people: Option<String>,
+
+    /// List what has happened to the corpus, newest first, as JSON.
+    #[arg(long)]
+    pub events: bool,
+
+    /// Resume --events after this event id.
+    #[arg(long, value_name = "EVENT_ID", requires = "events")]
+    pub after: Option<String>,
+
     /// Audio file paths supplied by an operating-system Open With action.
     /// They enter the GUI import queue and never trigger direct delivery.
     #[arg(value_name = "AUDIO", num_args = 0..)]

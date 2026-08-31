@@ -1,0 +1,165 @@
+import React from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
+import { toast } from "sonner";
+import { commands } from "@/bindings";
+import { cn } from "@/lib/cn";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/vg/tooltip";
+
+/* The shell's standing way into the agent.
+ *
+ * ⌘K already carries an "Open agent" row, but a palette row is a thing you
+ * have to know is there. This is the same door with a handle on it, in the one
+ * place every route leaves empty: the band above the page's first heading, at
+ * the content pane's right gutter. It is mounted once by the shell (App.tsx)
+ * outside the page scroll region, so it neither scrolls away nor has to be
+ * restated by twelve pages.
+ *
+ * Geometry, stated once here because this component owns where it sits and the
+ * shell only owns which box it sits in. The app's root is 14px, so every rem
+ * utility renders at 87.5% of its name and the numbers a shape depends on are
+ * written in px:
+ *
+ *   - `top-[7px]` with `h-[28px]`: centred in the 42px band that every page's
+ *     `py-12` leaves above its first heading, clearing page content by 7px.
+ *     On macOS that centre line is also the overlay title bar's, so the pill
+ *     sits on the traffic lights' row at the far side of the window, which is
+ *     empty on every route.
+ *   - `end-[28px]`: the page column's own gutter (`PAGE_COLUMN`'s `px-8` =
+ *     2rem = 28px), so the pill's outer edge and the page's content edge are
+ *     the same line. Logical, not `right-`: the shell sets `dir` per language.
+ *
+ * The heading band itself was not available: `SettingsPage` puts page actions
+ * at its right edge — Modes' "New mode", Models' catalog size, a live
+ * meeting's phase chip — and a floating pill there would cover them. */
+const PLACEMENT = "absolute top-[7px] end-[28px] z-10";
+
+/* The glyph: one ring, three arcs, one aurora hue each, in the order the
+ * capture wash layers them (styles/aurora.css). Stroke only and static — the
+ * wash on Capture is the surface that is allowed to move, and a second
+ * animated aurora in the chrome would compete with it. The hues carry their
+ * own alpha, which is why the ring needs no plate under it: at 0.2 on white
+ * the palest of them is still a stronger line than the pill's own hairline. */
+const GLYPH_SIZE = 14;
+const GLYPH_STROKE = 1.5;
+const GLYPH_CENTER = GLYPH_SIZE / 2;
+const GLYPH_RADIUS = (GLYPH_SIZE - GLYPH_STROKE) / 2;
+
+const round = (value: number): number => Math.round(value * 1000) / 1000;
+
+/** One third of the ring, and the two thirds each arc skips. */
+const ARC = round((2 * Math.PI * GLYPH_RADIUS) / 3);
+const ARC_GAP = round(ARC * 2);
+
+const AURORA_HUES = [
+  "--aurora-blue",
+  "--aurora-cyan",
+  "--aurora-violet",
+] as const;
+
+const AuroraRing: React.FC = () => (
+  <svg
+    aria-hidden="true"
+    focusable="false"
+    width={GLYPH_SIZE}
+    height={GLYPH_SIZE}
+    viewBox={`0 0 ${GLYPH_SIZE} ${GLYPH_SIZE}`}
+    /* Rotated so the first hue starts at the top; the ring is otherwise
+     * three-fold symmetric. */
+    className="-rotate-90 flex-none"
+  >
+    {AURORA_HUES.map((hue, index) => (
+      /* No `strokeLinecap`: the arcs are contiguous, and a round cap would
+       * overlap its neighbour by half a stroke — two translucent hues over
+       * each other, which draws three dots on a ring that has none. */
+      <circle
+        key={hue}
+        cx={GLYPH_CENTER}
+        cy={GLYPH_CENTER}
+        r={GLYPH_RADIUS}
+        fill="none"
+        strokeWidth={GLYPH_STROKE}
+        strokeDasharray={`${ARC} ${ARC_GAP}`}
+        strokeDashoffset={round(ARC * index)}
+        style={{ stroke: `var(${hue})` }}
+      />
+    ))}
+  </svg>
+);
+
+/* The backend owns whether the panel is open, so the click reads it rather
+ * than mirroring it: a panel is a window of its own and can be closed from its
+ * own header, from ⌘K, or by the relay going away. Nothing local to keep in
+ * sync, and one round trip on a gesture nobody makes twice a second.
+ *
+ * Exported because this is the pill's verb, and a static render cannot press
+ * a button: the two branches are pinned against stubbed commands instead. */
+export const toggleAgentPanel = async (t: TFunction): Promise<void> => {
+  try {
+    const status = await commands.agentPanelStatus();
+    const result =
+      status.status === "ok" && status.data.panel_open
+        ? await commands.agentPanelClose()
+        : await commands.agentPanelOpen();
+    if (result.status === "error") toast.error(t("agentPanel.status.error"));
+  } catch {
+    toast.error(t("agentPanel.status.error"));
+  }
+};
+
+export interface ChatPillProps {
+  /** `agent_panel_enabled`. Off means the affordance does not exist at all. */
+  enabled: boolean;
+  /** `agent_panel_paired`. Off means no relay would answer a turn. */
+  paired: boolean;
+}
+
+export const ChatPill: React.FC<ChatPillProps> = ({ enabled, paired }) => {
+  const { t } = useTranslation();
+
+  /* Nothing to offer and nothing to explain: the panel is off by setting, and
+   * a disabled control pointing at a switch the reader turned off themselves
+   * is noise. Settings is where it comes back. */
+  if (!enabled) return null;
+
+  const pill = (
+    <button
+      type="button"
+      data-slot="chat-pill"
+      /* The label reads "Chat", which does not say chat with what. The
+       * accessible name does. */
+      aria-label={t("chat.label")}
+      /* `aria-disabled`, not `disabled`: the reason it is inert lives in the
+       * tooltip below, and a `disabled` button takes neither hover nor focus,
+       * so it would be the one state that cannot reach its own explanation.
+       * Dimmed type rather than opacity, like every disabled settings row. */
+      aria-disabled={paired ? undefined : true}
+      onClick={paired ? () => void toggleAgentPanel(t) : undefined}
+      className={cn(
+        PLACEMENT,
+        "inline-flex h-[28px] items-center gap-1.5 rounded-full border border-gray-alpha-400 bg-raised ps-2.5 pe-3 text-[13px] leading-[18px] transition-colors outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        paired ? "text-gray-1000 hover:bg-gray-alpha-100" : "text-gray-800",
+      )}
+    >
+      <AuroraRing />
+      {t("chat.open")}
+    </button>
+  );
+
+  if (paired) return pill;
+
+  /* Radix opens on focus as well as hover and points the trigger's
+   * aria-describedby at this sentence while it is open, so the reason is one
+   * tab away rather than pointer-only — and it is said once, here, instead of
+   * being copied into a title attribute as well. */
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{pill}</TooltipTrigger>
+      <TooltipContent>{t("chat.unpaired")}</TooltipContent>
+    </Tooltip>
+  );
+};

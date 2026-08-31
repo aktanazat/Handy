@@ -633,6 +633,11 @@ pub enum MeetingCommandKind {
     LoopAssign,
     LoopCarry,
     SeriesTemplateSet,
+    SeriesDigestSet,
+    SeriesAlwaysRecordSet,
+    FollowUpDraft,
+    SeriesAutomationSet,
+    SeriesRemoteOptOutSet,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
@@ -1011,6 +1016,19 @@ pub struct CitedArtifactText {
     pub citations: Vec<ArtifactCitation>,
 }
 
+/// Where one line of the summary came from: the transcript segment a reader
+/// lands on when they press that line. `line` is the zero-based index of the
+/// line inside `CitedArtifactText::text` split on newlines, which holds
+/// because the text and this map are written together in one generation and
+/// an artifact revision is immutable afterwards. Sparse on purpose: a line
+/// with no entry renders as plain text, which is what every revision
+/// generated before line provenance existed has.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct SummaryLineTrace {
+    pub line: u32,
+    pub anchor: ArtifactCitation,
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 pub struct MeetingOutlineTopic {
     pub title: CitedArtifactText,
@@ -1027,6 +1045,11 @@ pub struct MeetingActionItem {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 pub struct GeneratedMeetingArtifacts {
     pub summary: CitedArtifactText,
+    /// The summary's line-to-segment map, in line order. Defaulted rather than
+    /// required, so a revision generated before this existed still reads back
+    /// and simply offers no jumps.
+    #[serde(default)]
+    pub summary_trace: Vec<SummaryLineTrace>,
     pub outline: Vec<MeetingOutlineTopic>,
     pub decisions: Vec<CitedArtifactText>,
     pub action_items: Vec<MeetingActionItem>,

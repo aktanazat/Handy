@@ -139,6 +139,8 @@ const BRIEFING: PersonBriefingRow[] = [
         text: "Who owns the launch checklist?",
         owner_person_id: "person-1",
         status: "open",
+        direction: "waiting_on",
+        waiting_on_stale: false,
         carried_since_at_utc_ms: null,
         carried_into_meeting_id: null,
       },

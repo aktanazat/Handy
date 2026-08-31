@@ -10,10 +10,11 @@ import type { Theme } from "@/bindings";
  * and every difference between the windows is an argument at the call site, so a
  * window that skips a step has to say so out loud.
  *
- * None of this can run during the static export: `platform()`, the settings IPC
- * and `localStorage` all need a live webview. That is what each caller's
- * `ssr: false` buys, and why this is an async function rather than module
- * side-effects — the imports below must not be hoisted into the export build.
+ * None of this can run during the static export: the settings IPC, the Tauri
+ * event channel and `localStorage` all need a live webview. That is what each
+ * caller's `ssr: false` buys, and why this is an async function rather than
+ * module side-effects — the imports below must not be hoisted into the export
+ * build.
  */
 export interface BootstrapWindowOptions {
   /**
@@ -22,13 +23,6 @@ export interface BootstrapWindowOptions {
    * all three; the overlay went without only because the call was never ported.
    */
   compatShims: boolean;
-  /**
-   * Write `data-platform` on the root element. Exactly one stylesheet reads that
-   * attribute — App.css's per-platform scrollbars — and exactly one route
-   * imports App.css, so this is the settings window's flag alone. Setting it
-   * anywhere else is an attribute nothing can match.
-   */
-  platformAttr: boolean;
   /**
    * Follow `theme-changed` from whichever window changed the setting. The
    * settings window is that window: it emits the event, so listening to itself
@@ -39,7 +33,6 @@ export interface BootstrapWindowOptions {
 
 export const bootstrapWindow = async ({
   compatShims,
-  platformAttr,
   followThemeChanges,
 }: BootstrapWindowOptions): Promise<void> => {
   // Registers the language bundles and applies the persisted locale. First,
@@ -48,22 +41,16 @@ export const bootstrapWindow = async ({
 
   /* Deferred deliberately, not for code splitting: a static import of any of
    * these would run at module scope during `next build`'s static export, where
-   * there is no webview and `platform()` throws. They resolve in parallel, the
-   * way each route factory used to resolve them. */
-  const [{ installCompatShims }, { platform }, theme, { listen }] =
-    await Promise.all([
-      import("@/lib/compat"),
-      import("@tauri-apps/plugin-os"),
-      import("@/lib/utils/theme"),
-      import("@tauri-apps/api/event"),
-    ]);
+   * there is no webview to talk to. They resolve in parallel, the way each
+   * route factory used to resolve them. */
+  const [{ installCompatShims }, theme, { listen }] = await Promise.all([
+    import("@/lib/compat"),
+    import("@/lib/utils/theme"),
+    import("@tauri-apps/api/event"),
+  ]);
 
   if (compatShims) {
     installCompatShims();
-  }
-
-  if (platformAttr) {
-    document.documentElement.dataset.platform = platform();
   }
 
   // The layout's inline script already applied the last-known theme before

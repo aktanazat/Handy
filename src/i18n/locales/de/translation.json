@@ -1493,6 +1493,10 @@
         "rowDescription": "Beim Ausschalten wird das Panel-Fenster geschlossen und Sona lehnt jede Anfrage ab, es wieder zu öffnen.",
         "title": "Agent-Panel"
       },
+      "externalAccess": {
+        "label": "Externer Zugriff",
+        "rowDescription": "Erlaubt anderen Programmen auf diesem Mac, Ihre Meetings, Diktate, Personen und offenen Punkte über die sona-Befehlszeile und den MCP-Server zu lesen. Nur lesend, und aus, bis Sie es einschalten."
+      },
       "workspaceNavigation": "Agent-Bridge-Ansichten",
       "sonaAgent": {
         "title": "Sona-Agent",
@@ -1674,6 +1678,40 @@
         "description": "Eine Mitteilung am Ende eines Tages mit Meetings oder geschlossenen Punkten. Alles bleibt auf diesem Mac.",
         "timeLabel": "Uhrzeit der Zusammenfassung",
         "timeHint": "Ortszeit. Ein Tag ohne Aktivität bleibt still."
+      },
+      "automations": {
+        "title": "Nach einem Meeting",
+        "description": "Aktionen, die auf diesem Mac laufen, sobald die Notizen einer Serie geschrieben sind. Für jede Serie aus, bis du eine einschaltest.",
+        "loading": "Serien werden gelesen…",
+        "empty": "Noch keine aufgezeichnete Serie. Nimm ein Meeting aus einem Kalendereintrag auf, dann erscheint es hier.",
+        "seriesFact": "{{count}} aufgezeichnet · zuletzt {{when}}",
+        "reminders": "Meine offenen Zusagen zu Erinnerungen hinzufügen",
+        "remindersHint": "Schreibt, was du noch schuldest, in eine Liste namens Sona. Daraus wird nie etwas zurückgelesen.",
+        "remindersDenied": "macOS erlaubt keinen Zugriff auf Erinnerungen. Ändere das unter Datenschutz & Sicherheit › Erinnerungen.",
+        "shortcut": "Kurzbefehl ausführen",
+        "shortcutHint": "Führt den Kurzbefehl mit dem Export des Meetings als Eingabe aus. Nach dreißig Sekunden wird abgebrochen.",
+        "shortcutPlaceholder": "Name des Kurzbefehls",
+        "webhook": "An einen Webhook senden",
+        "webhookHint": "Sendet den Export des Meetings als JSON. Nur dein eigener Rechner oder dein Tailnet — dieselbe Regel wie beim Relay.",
+        "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "needsTarget": "Zuerst einen Namen angeben",
+        "needsUrl": "Zuerst eine Adresse angeben",
+        "rejected": "Ein anderes Fenster hat das geändert. Neu lesen und erneut versuchen.",
+        "invalid": "Sona sendet nicht dorthin. Nutze localhost oder eine Tailnet-Adresse.",
+        "saveFailed": "Das wurde nicht gespeichert."
+      },
+      "remoteIntelligence": {
+        "title": "Meeting-Intelligenz",
+        "label": "Meeting-Notizen auf meinem Server schreiben",
+        "consent": "Zusammenfassungen und Antworten zu Meetings werden auf deinem Server über dein privates Netzwerk geschrieben",
+        "unpaired": "Verbinde Sona unter Agenten mit deinem Server, um das einzuschalten",
+        "seriesTitle": "Serien, die auf diesem Mac bleiben",
+        "seriesHint": "Eine hier aufgeführte Serie wird immer auf diesem Mac geschrieben, auch wenn Meeting-Intelligenz an ist.",
+        "seriesEmpty": "Noch keine wiederkehrenden Meetings aufgenommen",
+        "loading": "Serien werden gelesen…",
+        "lastMet": "Zuletzt am {{date}}",
+        "keepLocalLabel": "{{series}} auf diesem Mac behalten",
+        "saveFailed": "Die Änderung wurde nicht gespeichert. Lies die Zeile neu und versuch es noch einmal."
       }
     }
   },
@@ -1708,7 +1746,14 @@
     "importAudio": "Datei transkribieren",
     "openRecordings": "Aufnahmeordner öffnen",
     "openAgent": "Agent öffnen",
-    "esc": "esc"
+    "esc": "esc",
+    "search": {
+      "meetings": "Meetings",
+      "people": "Personen",
+      "dictations": "Diktate",
+      "loops": "Offene Fragen",
+      "unavailable": "Die Suche ist gerade nicht verfügbar."
+    }
   },
   "accessibility": {
     "permissionsDescription": "Sona benötigt Bedienungshilfen-Berechtigungen, um transkribierten Text einzugeben.",
@@ -2141,6 +2186,12 @@
       "carriedForward": "Aus einer früheren Besprechung übernommen",
       "stale": "Jemand anderes hat diesen Punkt zuerst geändert, die Liste wurde aktualisiert."
     },
+    "transcript": {
+      "trace": {
+        "jumpLine": "Zum Transkript bei {{time}} springen",
+        "tooltip": "Zeigen, woher diese Zeile kommt"
+      }
+    },
     "artifactState": {
       "current": "Aktuell",
       "out_of_date": "Veraltet",
@@ -2374,6 +2425,42 @@
       "use": "Diese Vorlage für diese Serie verwenden",
       "saving": "Wird gemerkt…",
       "remembered": "Diese Serie verwendet {{template}}"
+    },
+    "upcoming": {
+      "title": "Demnächst",
+      "loading": "Kalender wird gelesen…",
+      "empty": "In der nächsten Woche ist nichts geplant.",
+      "noAccess": "Sona kann deinen Kalender nicht sehen.",
+      "noAccessHint": "Aktiviere „Meinen Kalender verwenden“ in den Meeting-Einstellungen und erlaube den Vollzugriff, wenn macOS fragt. Alles, was der macOS-Kalender bereits zeigt — Google, iCloud, Outlook — kommt damit mit.",
+      "unavailable": "Dieses System hat keinen Kalender, den Sona lesen kann.",
+      "attendees": "Teilnehmende",
+      "you": "Du",
+      "attendeesMore": "+{{count}}",
+      "recurring": "Wiederholt sich",
+      "seriesOptions": "Serienoptionen für {{title}}",
+      "alwaysRecord": "Diese Serie immer aufnehmen",
+      "alwaysRecordNeedsSource": "Wähle zuerst oben eine Aufnahmequelle.",
+      "template": "Notizvorlage",
+      "templateDefault": "App-Standard",
+      "digest": "In die Abendzusammenfassung aufnehmen"
+    },
+    "talkTime": {
+      "label": "Redeanteil",
+      "speakerShare": "{{name}} {{share}}",
+      "sentence": "Redeanteil: {{speakers}}"
+    },
+    "followUp": {
+      "draft": "Nachfassen entwerfen",
+      "drafting": "Wird geschrieben…",
+      "title": "Entwurf zum Nachfassen",
+      "fromEngine": "Aus der Zusammenfassung, deinen Zusagen und den Entscheidungen geschrieben. Lies ihn, bevor du ihn sendest.",
+      "fromRecord": "Hier ist keine Schreib-Engine verfügbar, deshalb ist der Entwurf der Mitschrieb selbst, Wort für Wort.",
+      "iOwe": "Was ich zugesagt habe",
+      "decisions": "Was wir entschieden haben",
+      "copy": "Kopieren",
+      "copied": "Entwurf kopiert.",
+      "copyFailed": "Der Entwurf konnte nicht kopiert werden.",
+      "failed": "Für dieses Meeting konnte kein Entwurf geschrieben werden."
     }
   },
   "agentPanel": {
@@ -2422,7 +2509,16 @@
       "failed": "Fehlgeschlagen",
       "canceled": "Gestoppt",
       "unverified_external": "Ungeprüfte Antwort"
+    },
+    "ask": {
+      "row": "Sona fragen: {{query}}",
+      "error": "Die Frage konnte nicht an Sona gesendet werden."
     }
+  },
+  "chat": {
+    "open": "Chat",
+    "label": "Chat mit dem Sona-Agenten",
+    "unpaired": "Sona-Agent in den Einstellungen koppeln"
   },
   "overview": {
     "hero": {
@@ -2645,9 +2741,16 @@
       "metCount_other": "Du hast {{name}} {{count}}-mal getroffen",
       "metBefore_one": "Du hast {{name}} einmal getroffen · zuletzt {{date}}",
       "metBefore_other": "Du hast {{name}} {{count}}-mal getroffen · zuletzt {{date}}",
-      "stillOpen": "Noch offen: {{text}}",
       "metCount": "Du hast {{name}} {{count}}-mal getroffen",
       "metBefore": "Du hast {{name}} {{count}}-mal getroffen · zuletzt {{date}}"
+    },
+    "waitingOn": {
+      "iOwe": "Ich schulde",
+      "them": "Warten auf {{name}}",
+      "stale": "Überfällig",
+      "brief": "Warten auf {{name}}: {{text}}",
+      "briefOverdue": "Überfällig bei {{name}}: {{text}}",
+      "briefIOwe": "Du schuldest: {{text}}"
     }
   },
   "libraryV2": {

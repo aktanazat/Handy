@@ -90,6 +90,7 @@ fn ledger_meeting(store: &MeetingStore, at_utc_ms: i64) -> MeetingSessionId {
             text: "Pricing stayed open.".to_string(),
             citations: Vec::new(),
         },
+        summary_trace: Vec::new(),
         outline: Vec::new(),
         decisions: Vec::new(),
         action_items: Vec::new(),
@@ -572,4 +573,209 @@ fn a_meeting_outside_a_series_carries_nothing() {
     let alone = ledger_meeting(&store, NOW);
 
     assert!(store.carry_loops_forward(alone).unwrap().is_empty());
+}
+
+/// Give this session a microphone speaker with `name` on it, which is how the
+/// store knows which voice is the user's.
+fn microphone_speaker(store: &MeetingStore, session_id: MeetingSessionId, name: &str) {
+    store
+        .connection()
+        .unwrap()
+        .execute(
+            "INSERT INTO meeting_speakers (
+                speaker_id, session_id, source_kind, display_name, revision
+             ) VALUES (?1, ?2, 'microphone', ?3, 0)",
+            params![
+                Uuid::new_v4().to_string(),
+                session_id.uuid().to_string(),
+                name
+            ],
+        )
+        .unwrap();
+}
+
+/// D27 through the real store. The fixture ledger attributes both rows to
+/// "Dana Reyes", so the same two rows read one way or the other depending on
+/// nothing but who was on the microphone.
+#[test]
+fn the_microphone_speaker_decides_which_rows_the_user_owes() {
+    let (_directory, store) = store();
+    let theirs = ledger_meeting(&store, NOW);
+    microphone_speaker(&store, theirs, "Amir");
+    let mine = ledger_meeting(&store, NOW);
+    microphone_speaker(&store, mine, "Dana Reyes");
+
+    for row in &store.meeting_loops(theirs).unwrap().rows {
+        assert!(row.is_waiting_on(), "Dana is not at this Mac: {row:?}");
+        assert!(!row.is_mine());
+    }
+    for row in &store.meeting_loops(mine).unwrap().rows {
+        assert!(row.is_mine(), "Dana is the one recording: {row:?}");
+        assert!(!row.is_waiting_on());
+    }
+}
+
+/// A meeting with no microphone speaker row at all still has to answer. It
+/// answers "somebody else", which is the safe reading: a row wrongly called
+/// mine would go into an after-meeting reminders list as the user's own work.
+#[test]
+fn a_session_with_no_microphone_speaker_attributes_nothing_to_the_user() {
+    let (_directory, store, session_id) = review_ready_meeting_with_ledger();
+
+    for row in &store.meeting_loops(session_id).unwrap().rows {
+        assert!(row.is_waiting_on(), "{row:?}");
+    }
+}
+
+/// Assigning a person is the user saying "not me, them", and it has to win
+/// over the microphone. Persons never model the user, so an assignment can
+/// only ever mean somebody else.
+#[test]
+fn assigning_a_person_moves_a_row_the_user_said_off_the_users_own_list() {
+    let (_directory, store, session_id) = review_ready_meeting_with_ledger();
+    microphone_speaker(&store, session_id, "Dana Reyes");
+    let commitment = loop_id(
+        session_id,
+        MeetingLoopKind::Commitment,
+        "Send the tier comparison",
+    );
+    assert!(row_for(&store.meeting_loops(session_id).unwrap().rows, &commitment).is_mine());
+    let amir = person(&store, "Amir");
+
+    let result = store
+        .assign_loop(
+            MeetingLoopAssignRequest {
+                operation_id: MeetingOperationId::new(),
+                loop_id: commitment.clone(),
+                expected_revision: 0,
+                owner_person_id: Some(amir),
+            },
+            NOW,
+        )
+        .unwrap();
+
+    let row = row_for(&result.loops.rows, &commitment);
+    assert!(row.is_waiting_on());
+    assert!(!row.is_mine());
+    assert_eq!(row.owner_person_id, Some(amir));
+}
+
+/// The corpus walk every cross-meeting reader shares: one entry per meeting
+/// that has a current ledger, with the rows already joined to their state.
+#[test]
+fn the_corpus_walk_reaches_every_meeting_that_has_a_ledger() {
+    let (_directory, store) = store();
+    let with_ledger = ledger_meeting(&store, NOW);
+    let without = meeting(&store, "Nothing generated yet", NOW + 1);
+
+    let walked = super::loops::ledger_rows_in(&store.connection().unwrap()).unwrap();
+
+    assert_eq!(walked.len(), 1, "a meeting with no artifact has no rows");
+    assert_eq!(walked[0].session_id, with_ledger);
+    assert_eq!(walked[0].at_utc_ms, NOW);
+    assert_eq!(walked[0].rows.len(), 2);
+    assert!(walked.iter().all(|entry| entry.session_id != without));
+}
+
+/// D27 reaching D20's evening sentence. The count is the whole corpus, not
+/// the digest's day: a promise nobody kept last month is exactly what the
+/// nudge is for, and it must not vanish because the meeting was not today.
+#[test]
+fn the_digest_counts_rows_others_have_owed_for_over_a_week() {
+    let (_directory, store) = store();
+    let day_start = NOW - 86_400_000;
+
+    // Nothing in the corpus yet.
+    assert_eq!(
+        store
+            .digest_counts(day_start, NOW)
+            .unwrap()
+            .waiting_on_stale,
+        0
+    );
+
+    // A meeting from this morning: both rows are somebody else's, and neither
+    // is overdue yet.
+    let today = ledger_meeting(&store, day_start + 1);
+    microphone_speaker(&store, today, "Amir");
+    assert_eq!(
+        store
+            .digest_counts(day_start, NOW)
+            .unwrap()
+            .waiting_on_stale,
+        0
+    );
+
+    // The same two rows, from a month ago.
+    let old = ledger_meeting(&store, NOW - 30 * 86_400_000);
+    microphone_speaker(&store, old, "Amir");
+    assert_eq!(
+        store
+            .digest_counts(day_start, NOW)
+            .unwrap()
+            .waiting_on_stale,
+        2
+    );
+
+    // Closing one takes it out of the count; the user's own backlog was never
+    // in it, so putting the user on the microphone empties the count entirely.
+    store
+        .resolve_loop(
+            MeetingLoopResolveRequest {
+                operation_id: MeetingOperationId::new(),
+                loop_id: loop_id(old, MeetingLoopKind::Commitment, "Send the tier comparison"),
+                expected_revision: 0,
+                resolution: MeetingLoopResolution::Done,
+            },
+            NOW,
+        )
+        .unwrap();
+    assert_eq!(
+        store
+            .digest_counts(day_start, NOW)
+            .unwrap()
+            .waiting_on_stale,
+        1
+    );
+
+    let mine = ledger_meeting(&store, NOW - 30 * 86_400_000);
+    microphone_speaker(&store, mine, "Dana Reyes");
+    assert_eq!(
+        store
+            .digest_counts(day_start, NOW)
+            .unwrap()
+            .waiting_on_stale,
+        1,
+        "two more open rows, but they are the user's own"
+    );
+}
+
+/// D26's receipt. Worth an end-to-end call rather than only a unit test of the
+/// evidence: a store method that takes a connection and then reaches for
+/// another `&self` method deadlocks on the non-reentrant mutex, and the only
+/// thing that catches it is somebody actually calling it.
+#[test]
+fn drafting_a_follow_up_records_one_receipt_naming_its_engine() {
+    let (_directory, store) = store();
+    let session_id = ledger_meeting(&store, NOW);
+    let operation_id = MeetingOperationId::new();
+
+    let receipt = store
+        .record_follow_up_draft(operation_id, session_id, "apple-intelligence")
+        .unwrap();
+
+    assert_eq!(receipt.command, MeetingCommandKind::FollowUpDraft);
+    assert_eq!(receipt.result, OperationResult::Committed);
+    assert_eq!(receipt.session_id, Some(session_id));
+    // Which engine wrote it is the whole point of recording the event.
+    assert_eq!(receipt.effect_ids, vec!["apple-intelligence".to_string()]);
+    // A draft reads the record; it does not move the meeting.
+    assert_eq!(receipt.new_revision, Some(receipt.expected_revision));
+
+    // The same press twice is one event, and the engine named on it is the
+    // one that actually ran.
+    let replayed = store
+        .record_follow_up_draft(operation_id, session_id, "sona-relay")
+        .unwrap();
+    assert_eq!(replayed, receipt);
 }

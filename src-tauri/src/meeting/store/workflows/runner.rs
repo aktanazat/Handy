@@ -372,8 +372,8 @@ fn run_daily_digest_in(
     }
     let counts = digest_counts_in(connection, day_start_utc_ms, day_end_utc_ms)?;
     Ok(format!(
-        "daily_digest:meetings={},loops_closed={},suggestions_waiting={}",
-        counts.meetings, counts.loops_closed, counts.suggestions_waiting
+        "daily_digest:meetings={},loops_closed={},suggestions_waiting={},waiting_on_stale={}",
+        counts.meetings, counts.loops_closed, counts.suggestions_waiting, counts.waiting_on_stale
     ))
 }
 

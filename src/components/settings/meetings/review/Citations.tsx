@@ -1,7 +1,12 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import type { CitedArtifactText, MeetingCitation } from "@/bindings";
+import type {
+  CitedArtifactText,
+  MeetingCitation,
+  SummaryLineTrace,
+} from "@/bindings";
 import { formatMeetingOffset } from "../meetingUtils";
+import { summaryLines } from "./summaryTrace";
 
 export interface SegmentJump {
   segmentId: string;
@@ -72,6 +77,70 @@ export const CitedText: React.FC<CitedTextProps> = ({ value, onJump }) => (
     ) : null}
   </div>
 );
+
+interface TracedSummaryProps {
+  summary: CitedArtifactText;
+  trace: SummaryLineTrace[] | null | undefined;
+  onJump: (segmentId: string) => void;
+}
+
+/* The Granola move: a summary line is itself the way back to the moment it
+ * came from. Quiet by default — the line reads as the sentence it is, and only
+ * hover, focus, and its timestamp say it is pressable — so the summary stays a
+ * summary and does not turn into a wall of links. A summary with no line
+ * provenance renders exactly as it did before, chips and all. */
+export const TracedSummary: React.FC<TracedSummaryProps> = ({
+  summary,
+  trace,
+  onJump,
+}) => {
+  const { t } = useTranslation();
+  const lines = summaryLines(summary, trace);
+
+  if (lines === null) {
+    return <CitedText value={summary} onJump={onJump} />;
+  }
+
+  return (
+    <ul role="list" className="flex flex-col gap-1">
+      {lines.map((line, index) => {
+        const segmentId = line.segmentId;
+        if (segmentId === null) {
+          return (
+            <li
+              key={`line:${index}`}
+              data-slot="summary-line"
+              className="px-1.5 text-[13px] leading-5 text-pretty text-gray-1000"
+            >
+              {line.text}
+            </li>
+          );
+        }
+        const time = formatMeetingOffset(line.startOffsetNs);
+        const label = t("meetings.transcript.trace.jumpLine", { time });
+        return (
+          <li key={`line:${index}`} data-slot="summary-line">
+            <button
+              type="button"
+              data-slot="summary-line-jump"
+              onClick={() => onJump(segmentId)}
+              title={t("meetings.transcript.trace.tooltip")}
+              aria-label={label}
+              className="group -ms-1.5 flex w-full cursor-pointer items-baseline justify-between gap-3 rounded-md px-1.5 text-start transition-colors hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+            >
+              <span className="text-[13px] leading-5 text-pretty text-gray-1000">
+                {line.text}
+              </span>
+              <span className="flex-none text-[11px] tabular-nums text-gray-700 group-hover:text-blue-900">
+                {time}
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+};
 
 interface AnswerCitationsProps {
   citations: MeetingCitation[];

@@ -6,6 +6,10 @@ use super::capture::{MeetingCaptureSource, PacketLaneReadError, PacketLaneReader
 use super::clock::host_monotonic_now_ns;
 use super::detection::machine::CalendarEventSummary;
 use super::export;
+use super::follow_up::{
+    follow_up_prompt, FollowUpEvidence, MeetingFollowUpDraft, MeetingFollowUpSource,
+    FOLLOW_UP_MAX_TOKENS,
+};
 use super::keep_awake::MeetingKeepAwake;
 use super::ledger;
 use super::loop_types::{
@@ -1872,6 +1876,78 @@ impl MeetingSessionManager {
             .map_err(map_store_error)
     }
 
+    /// D26. Turn this meeting's record into a message the user can send.
+    ///
+    /// Nothing about the meeting changes, so this takes no expected revision:
+    /// it reads the current artifact revision and the loops beside it, asks
+    /// whichever engine the meeting resolves to for a message, and records the
+    /// event. The operation id is the caller's, so a double press produces one
+    /// receipt and one draft rather than two.
+    ///
+    /// No engine is not a failure. The evidence goes back either way and the
+    /// sheet renders it as the draft, which is why this returns `Ok` with
+    /// [`MeetingFollowUpSource::Structured`] rather than an error the button
+    /// would have to hide behind. A meeting with no record at all is the one
+    /// real absence, and that is `NotFound`.
+    pub async fn follow_up_draft(
+        &self,
+        operation_id: MeetingOperationId,
+        session_id: MeetingSessionId,
+    ) -> Result<MeetingFollowUpDraft, MeetingCommandError> {
+        let store = self.store().await?;
+        let review = store.review_snapshot(session_id).map_err(map_store_error)?;
+        let content = review
+            .artifacts
+            .iter()
+            .filter(|artifact| artifact.state == MeetingArtifactState::Current)
+            .find_map(|artifact| artifact.content.as_ref());
+        let loops = store.meeting_loops(session_id).map_err(map_store_error)?;
+        let evidence = FollowUpEvidence::gather(review.session.title.clone(), content, &loops.rows);
+        if evidence.is_empty() {
+            return Err(MeetingCommandError::NotFound);
+        }
+
+        // One engine per draft: the meeting's own choice, asked once. A second
+        // attempt on the other engine after a failure would route text the
+        // operator kept local onto a server, or the reverse.
+        let generator = self
+            .processing
+            .text_generator_for_session(&store, session_id);
+        let generated = generator.as_ref().and_then(|generator| {
+            generator
+                .generate(
+                    &follow_up_prompt(),
+                    &evidence.as_prompt_input(),
+                    FOLLOW_UP_MAX_TOKENS,
+                )
+                .ok()
+                .map(|message| message.trim().to_string())
+                .filter(|message| !message.is_empty())
+        });
+        let engine = match (&generated, &generator) {
+            (Some(_), Some(generator)) => generator.model_id(),
+            _ => "structured-fallback",
+        };
+        let receipt = store
+            .record_follow_up_draft(operation_id, session_id, engine)
+            .map_err(map_store_error)?;
+
+        Ok(MeetingFollowUpDraft {
+            session_id,
+            title: evidence.title,
+            source: if generated.is_some() {
+                MeetingFollowUpSource::Generated
+            } else {
+                MeetingFollowUpSource::Structured
+            },
+            message: generated,
+            summary: evidence.summary,
+            mine: evidence.mine,
+            decisions: evidence.decisions,
+            receipt,
+        })
+    }
+
     pub async fn loop_resolve(
         &self,
         request: MeetingLoopResolveRequest,
@@ -2071,7 +2147,7 @@ impl MeetingSessionManager {
         {
             return self.result_for_receipt(store, receipt, request.session_id);
         }
-        let artifact = self
+        let (artifact, engine) = self
             .processing
             .regenerate(&store, request.session_id, request.expected_revision)
             .map_err(map_processing_error)?;
@@ -2082,6 +2158,7 @@ impl MeetingSessionManager {
                 request.session_id,
                 request.expected_revision,
                 artifact.artifact_id,
+                engine,
             )
             .map_err(map_store_error)?;
         if receipt.result == OperationResult::Rejected {

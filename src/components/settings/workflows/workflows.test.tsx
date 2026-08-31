@@ -78,6 +78,7 @@ const receipt = (
     meetings: 0,
     loops_closed: 0,
     suggestions_waiting: 0,
+    waiting_on_stale: 0,
   },
   error: status === "failed" ? "failed for test" : null,
 });

@@ -55,6 +55,7 @@ const run = (
     meetings: 0,
     loops_closed: 0,
     suggestions_waiting: 0,
+    waiting_on_stale: 0,
   },
   error: null,
 });
@@ -85,6 +86,7 @@ const learningRun = (id: string, suggestions: number): WorkflowRunReceipt => ({
     meetings: 0,
     loops_closed: 0,
     suggestions_waiting: 0,
+    waiting_on_stale: 0,
   },
 });
 
@@ -96,6 +98,8 @@ const openLoop: PersonOpenLoop = {
   text: "Send the revised launch notes",
   owner_person_id: null,
   status: "open",
+  direction: "waiting_on",
+  waiting_on_stale: false,
   carried_since_at_utc_ms: null,
   carried_into_meeting_id: null,
 };
@@ -211,5 +215,19 @@ describe("Overview workflow cards", () => {
     expect(markup).toContain("What Sona did");
     expect(markup).toContain("Open loops");
     expect(markup.split("Loading…").length - 1).toBe(2);
+  });
+
+  test("gives a solo card the whole content measure", () => {
+    /* Both cards present: two columns from the md breakpoint up. */
+    expect(render([run("one", "Linked Morgan", 1)], [openLoop])).toContain(
+      "md:grid-cols-2",
+    );
+
+    /* Only one card has anything to say, so it spans the row instead of
+     * sitting at half width beside an empty column. */
+    expect(render([run("one", "Linked Morgan", 1)], [])).not.toContain(
+      "md:grid-cols-2",
+    );
+    expect(render([], [openLoop])).not.toContain("md:grid-cols-2");
   });
 });

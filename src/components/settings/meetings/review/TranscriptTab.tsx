@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type {
@@ -25,6 +25,11 @@ const SEGMENT_DOM_PREFIX = "meeting-transcript-segment-";
 
 /** A quiet tabular measurement inside a row. */
 const MEASURED_FACT = "text-[11px] tabular-nums text-gray-700";
+
+/** How long the segment a jump landed on stays lit. Long enough to find with
+ * your eye after the scroll, short enough that it does not become the row's
+ * resting state. */
+const FLASH_MS = 1_200;
 
 export interface TranscriptTabProps {
   snapshot: MeetingReviewSnapshot;
@@ -68,19 +73,25 @@ export const TranscriptTab: React.FC<TranscriptTabProps> = ({
 }) => {
   const { t } = useTranslation();
   const disabled = busy || !editable;
+  /* The nonce of the last jump whose flash has burned out. A fresh jump is lit
+   * on the render that carries it, so the row is already marked when the
+   * scroll arrives. */
+  const [settledJump, setSettledJump] = useState<number | null>(null);
 
   useEffect(() => {
     if (jump === null) return;
-    const target = document.getElementById(
-      `${SEGMENT_DOM_PREFIX}${jump.segmentId}`,
-    );
-    if (target === null) return;
-    target.scrollIntoView({
-      block: "center",
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "auto"
-        : "smooth",
-    });
+    /* A segment that is not on screen has nothing to scroll to, but the flash
+     * still has to burn out or the row would arrive already lit. */
+    document
+      .getElementById(`${SEGMENT_DOM_PREFIX}${jump.segmentId}`)
+      ?.scrollIntoView({
+        block: "center",
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+      });
+    const timer = window.setTimeout(() => setSettledJump(jump.nonce), FLASH_MS);
+    return () => window.clearTimeout(timer);
   }, [jump]);
 
   return (
@@ -158,11 +169,14 @@ export const TranscriptTab: React.FC<TranscriptTabProps> = ({
             {snapshot.transcript.map((segment) => {
               const text = segment.replacement_text ?? segment.base.text;
               const highlighted = jump?.segmentId === segment.base.segment_id;
+              const flashing =
+                highlighted && jump !== null && settledJump !== jump.nonce;
               return (
                 <li
                   key={segment.base.segment_id}
                   id={`${SEGMENT_DOM_PREFIX}${segment.base.segment_id}`}
-                  className={`flex flex-col gap-1.5 px-4 py-3 ${highlighted ? "bg-gray-alpha-100" : ""}`}
+                  data-slot="transcript-segment"
+                  className={`flex flex-col gap-1.5 px-4 py-3 transition-colors motion-reduce:transition-none ${flashing ? "bg-blue-alpha-200" : highlighted ? "bg-gray-alpha-100" : ""}`}
                 >
                   <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                     <p className="flex min-w-0 items-baseline gap-2">

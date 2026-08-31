@@ -1,11 +1,13 @@
 use crate::meeting::analytics::MeetingAnalytics;
-use crate::meeting::loop_types::{MeetingLoopId, MeetingLoopKind};
+use crate::meeting::loop_types::{
+    waiting_on_is_stale, MeetingLoopDirection, MeetingLoopId, MeetingLoopKind,
+};
 use crate::meeting::people_types::{
     Person, PersonCommitment, PersonId, PersonMeetingHeadline, PersonMeetingSummary, PersonOpenLoop,
 };
-use crate::meeting::store::loops::{ledger_loop_seeds, rows_from_seeds_in};
+use crate::meeting::store::loops::{ledger_loop_seeds, ledger_rows_in, rows_from_seeds_in};
 use crate::meeting::store::people::{all_people_in, owner_matches};
-use crate::meeting::store::StoreError;
+use crate::meeting::store::{utc_now_ms, StoreError};
 use crate::meeting::types::{GeneratedMeetingArtifacts, MeetingSessionId};
 use rusqlite::{params, Connection, OptionalExtension};
 use uuid::Uuid;
@@ -60,10 +62,18 @@ pub(super) fn meeting_summary_in(
     })
 }
 
+/// Everything one person's page is built from.
+///
+/// The loop lists carry both directions: what this person owes, and what the
+/// user owes out of the meetings they were both in. Grouping the two is the
+/// point — "what did I promise Steven" and "what is Steven still sitting on"
+/// are the two halves of one relationship, and a page that showed only the
+/// second would answer half the question.
 pub(super) fn facts_for_person_in(
     connection: &Connection,
     person: &Person,
 ) -> Result<PersonFacts, StoreError> {
+    let now_utc_ms = utc_now_ms();
     let mut statement = connection.prepare(
         "SELECT m.id, m.title, COALESCE(m.started_at_utc_ms, m.created_at_utc_ms),
                 (SELECT a.content_json
@@ -113,19 +123,32 @@ pub(super) fn facts_for_person_in(
             ledger_loop_seeds(meeting_id, &ledger),
         )?;
         for row in loop_rows {
-            // An explicit assignment decides ownership; without one the name
-            // the ledger read off the transcript does. Loops with neither
-            // belong to nobody and stay off a person's page.
-            let owned = match row.owner_person_id {
-                Some(owner) => owner == person.id,
-                None => row
-                    .owner_text
-                    .as_deref()
-                    .is_some_and(|owner| owner_matches(person, owner)),
+            // Two ways a row belongs on this page. Something this person owes
+            // needs them named on it: an explicit assignment, or the name the
+            // ledger read off the transcript. Something the user owes belongs
+            // here because it was raised in a meeting with them — no name
+            // needed, since the user is never a `Person`. A row attributed to
+            // some third party, or to nobody, is neither.
+            let relevant = match row.direction {
+                MeetingLoopDirection::Mine => true,
+                MeetingLoopDirection::WaitingOn => match row.owner_person_id {
+                    Some(owner) => owner == person.id,
+                    None => row
+                        .owner_text
+                        .as_deref()
+                        .is_some_and(|owner| owner_matches(person, owner)),
+                },
+                MeetingLoopDirection::Unattributed => false,
             };
-            if !owned {
+            if !relevant {
                 continue;
             }
+            let waiting_on_stale = waiting_on_is_stale(
+                row.direction,
+                row.status,
+                row.outstanding_since(at_utc_ms),
+                now_utc_ms,
+            );
             match row.kind {
                 MeetingLoopKind::Loop => {
                     if !row.is_open() {
@@ -137,8 +160,10 @@ pub(super) fn facts_for_person_in(
                         title: title.clone(),
                         at_utc_ms,
                         text: row.text,
-                        owner_person_id: Some(person.id),
+                        owner_person_id: row.owner_person_id,
                         status: row.status,
+                        direction: row.direction,
+                        waiting_on_stale,
                         carried_since_at_utc_ms: row.carried_since_at_utc_ms,
                         carried_into_meeting_id: row
                             .carried_into_loop_id
@@ -155,6 +180,8 @@ pub(super) fn facts_for_person_in(
                     at_utc_ms,
                     text: row.text,
                     status: row.status,
+                    direction: row.direction,
+                    waiting_on_stale,
                     resolved_at_utc_ms: row.resolved_at_utc_ms,
                 }),
             }
@@ -175,42 +202,10 @@ pub(super) fn all_open_loops_in(
     connection: &Connection,
 ) -> Result<Vec<PersonOpenLoop>, StoreError> {
     let people = all_people_in(connection)?;
-    let mut statement = connection.prepare(
-        "SELECT m.id, m.title, COALESCE(m.started_at_utc_ms, m.created_at_utc_ms),
-                (SELECT a.content_json
-                   FROM meeting_artifact_revisions a
-                  WHERE a.session_id = m.id AND a.state = 'current'
-                    AND a.content_json IS NOT NULL
-                  ORDER BY a.generated_at_utc_ms DESC LIMIT 1)
-           FROM meeting_sessions m
-          ORDER BY COALESCE(m.started_at_utc_ms, m.created_at_utc_ms) DESC, m.id DESC",
-    )?;
-    let rows = statement
-        .query_map([], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, i64>(2)?,
-                row.get::<_, Option<String>>(3)?,
-            ))
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
-    drop(statement);
-
+    let now_utc_ms = utc_now_ms();
     let mut loops = Vec::new();
-    for (meeting_id, title, at_utc_ms, content_json) in rows {
-        let meeting_id = parse_meeting_id(&meeting_id)?;
-        let Some(ledger) =
-            decode_artifacts(content_json.as_deref())?.and_then(|value| value.ledger)
-        else {
-            continue;
-        };
-        let loop_rows = rows_from_seeds_in(
-            connection,
-            meeting_id,
-            ledger_loop_seeds(meeting_id, &ledger),
-        )?;
-        for row in loop_rows {
+    for meeting in ledger_rows_in(connection)? {
+        for row in meeting.rows {
             if row.kind != MeetingLoopKind::Loop || !row.is_open() {
                 continue;
             }
@@ -223,14 +218,22 @@ pub(super) fn all_open_loops_in(
                         .map(|person| person.id)
                 }),
             };
+            let waiting_on_stale = waiting_on_is_stale(
+                row.direction,
+                row.status,
+                row.outstanding_since(meeting.at_utc_ms),
+                now_utc_ms,
+            );
             loops.push(PersonOpenLoop {
                 loop_id: row.loop_id,
-                meeting_id,
-                title: title.clone(),
-                at_utc_ms,
+                meeting_id: meeting.session_id,
+                title: meeting.title.clone(),
+                at_utc_ms: meeting.at_utc_ms,
                 text: row.text,
                 owner_person_id,
                 status: row.status,
+                direction: row.direction,
+                waiting_on_stale,
                 carried_since_at_utc_ms: row.carried_since_at_utc_ms,
                 carried_into_meeting_id: None,
             });

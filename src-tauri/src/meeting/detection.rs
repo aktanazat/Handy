@@ -1320,6 +1320,27 @@ impl DetectionRuntime {
         access
     }
 
+    /// Whether events are readable right now, without waking the loop.
+    ///
+    /// D28's Upcoming section reads this rather than the whole `DetectionStatus`
+    /// because a calendar grant and a detection policy are different questions:
+    /// listing the week ahead needs the grant, and needs nothing detection
+    /// decides.
+    pub fn calendar_access(&self) -> CalendarAccess {
+        self.calendar.access()
+    }
+
+    /// Every event overlapping the half-open window, oldest first. Empty
+    /// whenever the calendar cannot be read, which is the same answer an empty
+    /// week gives — the caller distinguishes them with `calendar_access`.
+    pub fn calendar_events_between(
+        &self,
+        start_utc_ms: i64,
+        end_utc_ms: i64,
+    ) -> Vec<calendar::CalendarOccurrence> {
+        self.calendar.events_between(start_utc_ms, end_utc_ms)
+    }
+
     pub async fn request_notification_access(&self) -> NotificationAccess {
         let access = self.prompts.request_access().await;
         self.wakeup.wake();

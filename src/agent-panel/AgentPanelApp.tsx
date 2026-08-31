@@ -307,6 +307,10 @@ export const AgentPanelApp: React.FC = () => {
       onSend={() => void send()}
       onDraftChange={setDraft}
       onWorkspaceChange={setWorkspace}
+      /* The panel is its own webview, so a cited address cannot be navigated
+       * here: the backend routes it and the main window answers, exactly as it
+       * would for the same URL arriving from outside the app. */
+      onOpenLink={(link) => void commands.sonaOpenLink(link)}
     />
   );
 };

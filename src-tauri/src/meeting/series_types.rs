@@ -1,31 +1,56 @@
-//! D21: the notes template a recurring meeting is remembered by.
+//! What one recurring meeting remembers about itself.
 //!
 //! A series is identified by the same `series_key` standing consent and loop 4's
 //! priming already use — EventKit's calendar-item identifier — so "this series"
 //! means exactly what it means everywhere else in the app. A meeting with no
 //! calendar event behind it has no series and therefore no preference; that is
 //! the `None` in every shape below, not an error.
+//!
+//! Three decisions live here, and they are read as one record because the
+//! surfaces that show them show them together: D21's notes template, D28's
+//! digest inclusion, and whether the series records itself without asking. The
+//! third is not stored here — it is the live standing-consent grant in
+//! `meeting_series_consents`, joined in on read — because permission to record
+//! is consent, not a preference, and it must stay in the table the consent
+//! receipts revalidate against.
 
 use super::analytics::MeetingNotesTemplate;
 use super::types::{MeetingOperationId, OperationReceipt};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-/// What one series has chosen, and the fence a write against it must carry.
+/// Everything one series has decided, and the fence a write against it carries.
 ///
 /// `series_key` is `None` when the surface asking has no series at all — a
-/// manual recording, or a meeting whose calendar event was never captured.
-/// `template` is `None` when the series exists but has made no choice, which is
-/// the state that lets artifact generation fall through to the app default.
+/// manual recording, or a meeting whose calendar event was never captured. In
+/// that case every other field is its default, which is what lets a caller
+/// render "not part of a series" without a second shape.
 ///
-/// `revision` counts every series-preference write on this machine rather than
-/// only this series'. Two windows editing two different series is not a real
-/// collision, but a shared counter costs one retry in that case and removes a
-/// per-row revision column that nothing else would read.
+/// `revision` counts every series write on this machine rather than only this
+/// series'. Two windows editing two different series is not a real collision,
+/// but a shared counter costs one retry in that case and removes a per-row
+/// revision column that nothing else would read. All three setters below fence
+/// on it and bump it, so the three controls a surface shows side by side are
+/// fenced by the one number that surface already holds.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
-pub struct MeetingSeriesTemplateSnapshot {
+pub struct MeetingSeriesPreferences {
     pub series_key: Option<String>,
+    /// `None` when the series exists but has made no choice, which is the state
+    /// that lets artifact generation fall through to the app default.
     pub template: Option<MeetingNotesTemplate>,
+    /// D28. True unless the operator has taken this series out of the evening
+    /// digest; a series with no row at all is included.
+    pub digest_included: bool,
+    /// True while a live, unrevoked standing grant covers this series, which is
+    /// exactly the condition that lets detection auto-start an occurrence.
+    pub always_record: bool,
+    /// D14. True when this series' text is written on this Mac even while
+    /// meeting intelligence is routed to the operator's own server.
+    ///
+    /// The default is false — a series inherits the global setting — because a
+    /// switch that quietly excluded series would make the global one a lie.
+    /// What is stored here is only the departure from that.
+    pub remote_intelligence_opt_out: bool,
     pub revision: u64,
 }
 
@@ -42,8 +67,72 @@ pub struct MeetingSeriesTemplateSetRequest {
     pub expected_revision: u64,
 }
 
+/// D28. Keep this series in the evening digest, or take it out of it.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
-pub struct MeetingSeriesTemplateMutationResult {
+pub struct MeetingSeriesDigestSetRequest {
+    pub operation_id: MeetingOperationId,
+    pub series_key: String,
+    pub digest_included: bool,
+    pub expected_revision: u64,
+}
+
+/// D28. Grant or revoke the standing consent that lets this series record
+/// itself.
+///
+/// `acknowledged_sources` is the operator's acknowledgement, not a hint: it is
+/// the set of capture sources selected on the surface they pressed this on, and
+/// it is what the grant stores and what a later auto-started attempt cites in
+/// its own consent receipt. Turning always-record *off* ignores it, because
+/// revoking permission needs none.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingSeriesAlwaysRecordSetRequest {
+    pub operation_id: MeetingOperationId,
+    pub series_key: String,
+    pub always_record: bool,
+    pub policy_version: u32,
+    pub acknowledged_sources: Vec<super::types::SourceKind>,
+    pub expected_revision: u64,
+}
+
+/// D14. Keep this series' text on this Mac, or hand it back to the global
+/// meeting-intelligence setting.
+///
+/// A separate mutation from the global switch on purpose: excluding one series
+/// is a statement about that series, it survives the switch being turned off
+/// and on again, and it earns its own receipt naming the series it touched.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingSeriesRemoteOptOutSetRequest {
+    pub operation_id: MeetingOperationId,
+    pub series_key: String,
+    pub remote_intelligence_opt_out: bool,
+    pub expected_revision: u64,
+}
+
+/// D14. One series the operator can keep on this Mac, as the settings surface
+/// shows it.
+///
+/// `title` is the title the most recent occurrence carried, because a series
+/// has no name of its own — only the events that belong to it do, and the
+/// latest one is the name the operator would recognize. `meetings` is how many
+/// of them Sona has actually sat in, which is what makes a row worth showing.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingSeriesRemoteRow {
+    pub series_key: String,
+    pub title: String,
+    pub last_met_at_utc_ms: i64,
+    pub meetings: u32,
+    pub remote_intelligence_opt_out: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingSeriesRemoteRoster {
+    pub rows: Vec<MeetingSeriesRemoteRow>,
+    /// The one fence every switch on these rows writes with.
+    pub revision: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+pub struct MeetingSeriesMutationResult {
     pub receipt: OperationReceipt,
-    pub snapshot: MeetingSeriesTemplateSnapshot,
+    pub preferences: MeetingSeriesPreferences,
 }

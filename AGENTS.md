@@ -202,6 +202,27 @@ Sona supports command-line parameters on all platforms for integration with scri
 | `--no-tray`              | Launch without system tray (closing window quits the app)  |
 | `--debug`                | Enable debug mode with verbose (Trace) logging             |
 
+**Read-only corpus queries (D15):** one JSON value on stdout, one JSON refusal
+on stderr, and nothing else on either. All of them require
+`Settings > Agents > External access`, which is off on install; while it is off
+every one refuses with `{"error":"consent_required","settings_path":…}`. None
+of them writes.
+
+| Flag                                                | Description                                                       |
+| --------------------------------------------------- | ----------------------------------------------------------------- |
+| `--query <TEXT> [--scope S] [--limit N]`            | Search the corpus. `S` ∈ all\|meetings\|dictations\|people\|loops |
+| `--meetings [--last N \| --from D --to D]`          | Retained meetings, newest first. Dates are local `YYYY-MM-DD`     |
+| `--meeting <ID>`                                    | One meeting: summary, headline, notes, ledger rows                |
+| `--transcript <ID>`                                 | One meeting's speaker-labeled transcript                          |
+| `--loops [--status open\|done] [--mine\|--waiting]` | Loops and commitments across the corpus                           |
+| `--people <NAME>`                                   | Look a person up by name, alias or calendar address               |
+| `--events [--after <ID>]`                           | Receipts and workflow runs, newest first                          |
+
+Exit codes: 0 answered, 2 bad input (`invalid_request`), 1 everything else
+(`consent_required`, `unavailable`, `not_found`, `failed`). The plane lives in
+`query/external.rs`; `tools/sona-mcp/` is a thin MCP server over exactly these
+flags.
+
 **Key design decisions:**
 
 - CLI flags are runtime-only overrides — they do NOT modify persisted settings

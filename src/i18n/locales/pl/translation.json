@@ -1493,6 +1493,10 @@
         "rowDescription": "Wyłączenie tej opcji zamyka okno panelu i sprawia, że Sona odrzuca każdą prośbę o jego ponowne otwarcie.",
         "title": "Panel agentów"
       },
+      "externalAccess": {
+        "label": "Dostęp zewnętrzny",
+        "rowDescription": "Pozwala innym programom na tym Macu odczytywać Twoje spotkania, dyktanda, osoby i otwarte zobowiązania przez wiersz poleceń sona i serwer MCP. Tylko do odczytu, wyłączone, dopóki go nie włączysz."
+      },
       "workspaceNavigation": "Widoki mostka agentów",
       "sonaAgent": {
         "title": "Agent Sony",
@@ -1686,6 +1690,40 @@
         "description": "Jedno powiadomienie na koniec dnia, w którym były spotkania lub zamknięte wątki. Wszystko zostaje na tym Macu.",
         "timeLabel": "Godzina podsumowania",
         "timeHint": "Czas lokalny. Dzień, w którym nic się nie wydarzyło, pozostaje cichy."
+      },
+      "automations": {
+        "title": "Po spotkaniu",
+        "description": "Działania, które uruchamiają się na tym Macu, gdy notatki serii są zapisane. Wyłączone dla każdej serii, dopóki którejś nie włączysz.",
+        "loading": "Wczytujemy twoje serie…",
+        "empty": "Brak nagranych serii. Nagraj spotkanie z wydarzenia w kalendarzu, a pojawi się tutaj.",
+        "seriesFact": "{{count}} nagranych · ostatnio {{when}}",
+        "reminders": "Dodawaj moje otwarte zobowiązania do Przypomnień",
+        "remindersHint": "Zapisuje to, co jeszcze jesteś winien, na liście o nazwie Sona. Nic stamtąd nie jest odczytywane z powrotem.",
+        "remindersDenied": "macOS nie przyznał dostępu do Przypomnień. Zmień to w Prywatność i ochrona › Przypomnienia.",
+        "shortcut": "Uruchom skrót",
+        "shortcutHint": "Uruchamia skrót po nazwie z eksportem spotkania na wejściu. Trzydzieści sekund i zostaje zatrzymany.",
+        "shortcutPlaceholder": "Nazwa skrótu",
+        "webhook": "Wyślij na webhook",
+        "webhookHint": "Wysyła eksport spotkania jako JSON. Tylko twoja maszyna albo twój tailnet — ta sama reguła co w przekaźniku.",
+        "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "needsTarget": "Najpierw podaj nazwę",
+        "needsUrl": "Najpierw podaj adres",
+        "rejected": "Inne okno to zmieniło. Odczytaj ponownie i spróbuj jeszcze raz.",
+        "invalid": "Sona tam nie wyśle. Użyj localhost albo adresu w tailnecie.",
+        "saveFailed": "To się nie zapisało."
+      },
+      "remoteIntelligence": {
+        "title": "Inteligencja spotkań",
+        "label": "Pisz notatki ze spotkań na moim serwerze",
+        "consent": "Podsumowania i odpowiedzi dotyczące spotkań są pisane na twoim serwerze przez twoją prywatną sieć",
+        "unpaired": "Powiąż Sonę ze swoim serwerem w sekcji Agenci, aby to włączyć",
+        "seriesTitle": "Serie, które zostają na tym Macu",
+        "seriesHint": "Seria z tej listy jest zawsze pisana na tym Macu, nawet gdy inteligencja spotkań jest włączona.",
+        "seriesEmpty": "Nie zapisano jeszcze żadnych cyklicznych spotkań",
+        "loading": "Czytanie twoich serii…",
+        "lastMet": "Ostatnio {{date}}",
+        "keepLocalLabel": "Zatrzymaj {{series}} na tym Macu",
+        "saveFailed": "Zmiana nie została zapisana. Przeczytaj wiersz jeszcze raz i spróbuj ponownie."
       }
     }
   },
@@ -1720,7 +1758,14 @@
     "importAudio": "Transkrybuj plik",
     "openRecordings": "Otwórz folder nagrań",
     "openAgent": "Otwórz agenta",
-    "esc": "esc"
+    "esc": "esc",
+    "search": {
+      "meetings": "Spotkania",
+      "people": "Osoby",
+      "dictations": "Dyktowania",
+      "loops": "Pytania bez odpowiedzi",
+      "unavailable": "Wyszukiwanie jest teraz niedostępne."
+    }
   },
   "accessibility": {
     "permissionsDescription": "Sona potrzebuje uprawnień dostępności, aby wpisywać transkrybowany tekst.",
@@ -2153,6 +2198,12 @@
       "carriedForward": "Przeniesione z wcześniejszego spotkania",
       "stale": "Ktoś inny zmienił tę sprawę pierwszy, więc lista została odświeżona."
     },
+    "transcript": {
+      "trace": {
+        "jumpLine": "Przejdź do transkrypcji w {{time}}",
+        "tooltip": "Pokaż, skąd pochodzi ten wiersz"
+      }
+    },
     "artifactState": {
       "current": "Aktualne",
       "out_of_date": "Nieaktualne",
@@ -2386,6 +2437,42 @@
       "use": "Użyj tego szablonu dla tej serii",
       "saving": "Zapamiętywanie…",
       "remembered": "Ta seria używa szablonu {{template}}"
+    },
+    "upcoming": {
+      "title": "Nadchodzące",
+      "loading": "Odczytywanie kalendarza…",
+      "empty": "Nic nie zaplanowano na najbliższy tydzień.",
+      "noAccess": "Sona nie widzi Twojego kalendarza.",
+      "noAccessHint": "Włącz „Używaj mojego kalendarza” w ustawieniach spotkań i zezwól na pełny dostęp, gdy macOS zapyta. Wszystko, co Kalendarz macOS już pokazuje — Google, iCloud, Outlook — jest w komplecie.",
+      "unavailable": "Ten system nie ma kalendarza, który Sona mogłaby odczytać.",
+      "attendees": "Uczestnicy",
+      "you": "Ty",
+      "attendeesMore": "+{{count}}",
+      "recurring": "Powtarza się",
+      "seriesOptions": "Opcje serii {{title}}",
+      "alwaysRecord": "Zawsze nagrywaj tę serię",
+      "alwaysRecordNeedsSource": "Najpierw wybierz źródło nagrywania powyżej.",
+      "template": "Szablon notatek",
+      "templateDefault": "Domyślne ustawienie aplikacji",
+      "digest": "Uwzględnij w wieczornym podsumowaniu"
+    },
+    "talkTime": {
+      "label": "Czas mówienia",
+      "speakerShare": "{{name}} {{share}}",
+      "sentence": "Czas mówienia: {{speakers}}"
+    },
+    "followUp": {
+      "draft": "Napisz wiadomość",
+      "drafting": "Pisanie…",
+      "title": "Szkic wiadomości",
+      "fromEngine": "Napisane na podstawie podsumowania, twoich zobowiązań i decyzji. Przeczytaj przed wysłaniem.",
+      "fromRecord": "Nie ma tu dostępnego silnika pisania, więc szkic to sam zapis, słowo w słowo.",
+      "iOwe": "Co jestem winien",
+      "decisions": "Co ustaliliśmy",
+      "copy": "Kopiuj",
+      "copied": "Szkic skopiowany.",
+      "copyFailed": "Nie udało się skopiować szkicu.",
+      "failed": "Nie udało się napisać wiadomości do tego spotkania."
     }
   },
   "agentPanel": {
@@ -2434,7 +2521,16 @@
       "failed": "Niepowodzenie",
       "canceled": "Zatrzymano",
       "unverified_external": "Niezweryfikowana odpowiedź"
+    },
+    "ask": {
+      "row": "Zapytaj Sonę: {{query}}",
+      "error": "Nie udało się wysłać pytania do Sony."
     }
+  },
+  "chat": {
+    "open": "Czat",
+    "label": "Czat z agentem Sony",
+    "unpaired": "Sparuj agenta Sony w Ustawieniach"
   },
   "overview": {
     "hero": {
@@ -2669,9 +2765,16 @@
       "metBefore_few": "Masz za sobą {{count}} spotkania z {{name}} · ostatnie {{date}}",
       "metBefore_many": "Masz za sobą {{count}} spotkań z {{name}} · ostatnie {{date}}",
       "metBefore_other": "Masz za sobą {{count}} spotkania z {{name}} · ostatnie {{date}}",
-      "stillOpen": "Nadal otwarte: {{text}}",
       "metCount": "Masz za sobą {{count}} spotkań z {{name}}",
       "metBefore": "Masz za sobą {{count}} spotkań z {{name}} · ostatnie {{date}}"
+    },
+    "waitingOn": {
+      "iOwe": "Jestem winien",
+      "them": "Czekam na {{name}}",
+      "stale": "Po terminie",
+      "brief": "Czekam na {{name}}: {{text}}",
+      "briefOverdue": "Po terminie u {{name}}: {{text}}",
+      "briefIOwe": "Jesteś winien: {{text}}"
     }
   },
   "libraryV2": {

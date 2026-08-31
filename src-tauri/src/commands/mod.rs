@@ -1,7 +1,9 @@
 pub mod audio;
+pub mod automations;
 pub mod cloud_sync;
 pub mod detection;
 pub mod documents;
+pub mod followup;
 pub mod history;
 pub mod hud;
 pub mod learning;
@@ -14,6 +16,7 @@ pub mod persona;
 pub mod query;
 pub mod snippets;
 pub mod transcription;
+pub mod upcoming;
 pub mod updates;
 pub mod vocabulary;
 pub mod workflows;

@@ -1,5 +1,8 @@
 mod config;
-mod protocol;
+/// `pub(crate)` for one constant: the context-pack ceiling this module
+/// enforces on the wire is the same ceiling `query::pack` truncates to, and a
+/// second copy of that number would be a pack refused after it was built.
+pub(crate) mod protocol;
 mod relay;
 mod window;
 mod wire;
@@ -202,19 +205,7 @@ impl AgentPanelManager {
     }
 
     fn configured_relay_status(&self) -> AgentPanelRelayStatusV1 {
-        let settings = crate::settings::get_settings(&self.app);
-        if !settings.agent_panel_enabled {
-            AgentPanelRelayStatusV1::Disabled
-        } else if !settings.agent_panel_paired {
-            AgentPanelRelayStatusV1::Unpaired
-        } else if settings.agent_panel_relay_url.is_none()
-            || settings.agent_panel_relay_key_id.is_none()
-            || settings.agent_panel_relay_public_key.is_none()
-        {
-            AgentPanelRelayStatusV1::InvalidConfiguration
-        } else {
-            AgentPanelRelayStatusV1::Ready
-        }
+        configured_relay_status(&self.app)
     }
 
     fn refresh_configured_status_locked(&self, state: &mut PanelState) {
@@ -1226,6 +1217,158 @@ async fn poll_once(app: &AppHandle, plan: &PollPlan) -> Result<(), AgentPanelCom
     manager.accept_events(&plan.turn_id, &plan.job_id, events)
 }
 
+/// What the stored pairing says about whether a turn can be sent at all.
+///
+/// A free function because the panel manager is not the only caller any more:
+/// D14's meeting engine and the settings surface that offers it both need the
+/// same answer, and a second reading of the same four settings fields is how
+/// two surfaces come to disagree about whether a relay exists.
+fn configured_relay_status(app: &AppHandle) -> AgentPanelRelayStatusV1 {
+    let settings = crate::settings::get_settings(app);
+    if !settings.agent_panel_enabled {
+        AgentPanelRelayStatusV1::Disabled
+    } else if !settings.agent_panel_paired {
+        AgentPanelRelayStatusV1::Unpaired
+    } else if settings.agent_panel_relay_url.is_none()
+        || settings.agent_panel_relay_key_id.is_none()
+        || settings.agent_panel_relay_public_key.is_none()
+    {
+        AgentPanelRelayStatusV1::InvalidConfiguration
+    } else {
+        AgentPanelRelayStatusV1::Ready
+    }
+}
+
+/// True when a `sona-chat` turn has somewhere to go: the panel is on, a relay
+/// is paired, and the pinned key and its URL are both stored.
+pub(crate) fn relay_is_reachable(app: &AppHandle) -> bool {
+    configured_relay_status(app) == AgentPanelRelayStatusV1::Ready
+}
+
+/// Why a headless turn produced no text, in the only two shapes a caller
+/// outside the panel can act on.
+///
+/// The twelve [`RelayError`] variants are relay semantics and stay in this
+/// module: nothing in a meeting can act differently on `OwnershipRejected`
+/// than on `ResponseTooLarge`. What it can do is tell its reader "your server
+/// was not reached" rather than "these notes could not be written", so that is
+/// the one distinction that crosses the boundary.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum ChatTurnError {
+    /// The relay was never reached: switched off, unpaired, misconfigured, or
+    /// the network was not there. Nothing ran on the far side.
+    Unreachable,
+    /// The turn reached the relay and did not come back with usable text.
+    Failed,
+}
+
+/// Which of the two a relay error is.
+///
+/// Everything meaning "this client cannot talk to a relay at all right now" is
+/// `Unreachable`; everything meaning "it talked, and the answer was not one"
+/// is `Failed`. `RandomUnavailable` sits with the first group because a client
+/// that cannot mint a nonce never sends anything.
+fn chat_turn_error(error: RelayError) -> ChatTurnError {
+    match error {
+        RelayError::Disabled
+        | RelayError::Unpaired
+        | RelayError::InvalidConfiguration
+        | RelayError::CleartextRejected
+        | RelayError::SecretUnavailable
+        | RelayError::RandomUnavailable
+        | RelayError::RequestFailed => ChatTurnError::Unreachable,
+        RelayError::ResponseTooLarge
+        | RelayError::ResponseSignatureInvalid
+        | RelayError::ResponseMalformed
+        | RelayError::RemoteRejected
+        | RelayError::OwnershipRejected => ChatTurnError::Failed,
+    }
+}
+
+/// One `sona-chat` turn, submitted and polled to completion, for a caller that
+/// is not the panel.
+///
+/// D14's meeting engine needs the relay, not the panel: the same Ed25519
+/// signing, the same tailnet-or-loopback allowlist, the same submit-and-poll
+/// shape. It must not borrow the panel's turn machinery, which is a user
+/// interface — one active turn, a scrollback, an emitted status per change.
+/// Going through `send_turn` would let a background artifact generation cancel
+/// what the operator is typing, and would put meeting evidence into the
+/// panel's visible conversation. So this shares the client, and nothing else.
+///
+/// The nonce cache is the panel's whenever the panel exists, because response
+/// replay protection belongs to the client key rather than to one caller.
+///
+/// `deadline` is the caller's whole budget. A turn still running when it runs
+/// out is cancelled on the relay instead of being left to finish for nobody.
+pub(crate) async fn run_chat_turn(
+    app: &AppHandle,
+    message: &str,
+    context_pack: Option<String>,
+    deadline: Duration,
+) -> Result<String, ChatTurnError> {
+    let nonce_cache = app.try_state::<AgentPanelManager>().map_or_else(
+        || Arc::new(ResponseNonceCache::default()),
+        |manager| manager.nonce_cache.clone(),
+    );
+    let idempotency_key = relay::new_idempotency_key().map_err(chat_turn_error)?;
+    let turn = PanelTurnV1::Chat(SonaChatTurnV1 {
+        protocol_version: SONA_CHAT_TURN_VERSION.to_string(),
+        conversation_id: format!("headless-{idempotency_key}"),
+        turn_id: format!("turn-{idempotency_key}"),
+        user_message: message.to_string(),
+        /* A generation is one question asked once. There is no earlier turn to
+         * carry, and carrying one would make two artifacts of the same meeting
+         * depend on the order they were generated in. */
+        recent_turns: Vec::new(),
+        context_pack,
+        locale: crate::settings::get_settings(app).app_language,
+        app_version: env!("CARGO_PKG_VERSION").to_string(),
+    });
+    /* Checked against the wire's own limits before anything leaves: an
+     * oversized pack refused here costs nothing, and refused by the relay
+     * costs a round trip and a job. */
+    turn.validate().map_err(|_| ChatTurnError::Failed)?;
+    let client = RelayClient::from_settings(app, nonce_cache)
+        .await
+        .map_err(chat_turn_error)?;
+    let mut job = client
+        .submit_turn(&idempotency_key, &turn)
+        .await
+        .map_err(chat_turn_error)?;
+    let started = Instant::now();
+    while !job.state.is_terminal() {
+        if started.elapsed() >= deadline {
+            let _ = client
+                .cancel_job(&job.id, AgentPanelWorkspaceV1::SonaChat)
+                .await;
+            return Err(ChatTurnError::Unreachable);
+        }
+        tokio::time::sleep(POLL_INTERVAL).await;
+        job = client
+            .get_job(&job.id, AgentPanelWorkspaceV1::SonaChat)
+            .await
+            .map_err(chat_turn_error)?;
+    }
+    if job.state != RelayJobStateV1::Succeeded {
+        return Err(ChatTurnError::Failed);
+    }
+    let response = job.response.ok_or(ChatTurnError::Failed)?;
+    response
+        .validate(
+            AgentPanelWorkspaceV1::SonaChat,
+            None,
+            &SonaAllowedValuesV1::default(),
+        )
+        .map_err(|_| ChatTurnError::Failed)?;
+    match response {
+        SonaAgentResponseV1::Text { message, .. } => Ok(message),
+        /* Unreachable through `validate`, which refuses a proposal from the
+         * chat workspace. Written out rather than unwrapped. */
+        SonaAgentResponseV1::Proposal { .. } => Err(ChatTurnError::Failed),
+    }
+}
+
 fn turn_state_for_job(state: &RelayJobStateV1, cancel_requested: bool) -> AgentPanelTurnStateV1 {
     if cancel_requested && !state.is_terminal() {
         return AgentPanelTurnStateV1::Canceling;
@@ -1580,5 +1723,42 @@ mod tests {
     fn terminal_turns_do_not_poll() {
         assert!(AgentPanelTurnStateV1::Succeeded.is_terminal());
         assert!(!AgentPanelTurnStateV1::Running.is_terminal());
+    }
+
+    /// A caller outside the panel decides what to tell its reader from this
+    /// classification alone, so the line between the two groups is the whole
+    /// contract: anything that means "nothing ran on the far side" must not
+    /// arrive as a failed attempt, and an answer that came back wrong must not
+    /// arrive as an unreachable server.
+    #[test]
+    fn unreached_relays_are_not_reported_as_failed_answers() {
+        for error in [
+            RelayError::Disabled,
+            RelayError::Unpaired,
+            RelayError::InvalidConfiguration,
+            RelayError::CleartextRejected,
+            RelayError::SecretUnavailable,
+            RelayError::RandomUnavailable,
+            RelayError::RequestFailed,
+        ] {
+            assert_eq!(
+                chat_turn_error(error),
+                ChatTurnError::Unreachable,
+                "{error:?} never reached a relay"
+            );
+        }
+        for error in [
+            RelayError::ResponseTooLarge,
+            RelayError::ResponseSignatureInvalid,
+            RelayError::ResponseMalformed,
+            RelayError::RemoteRejected,
+            RelayError::OwnershipRejected,
+        ] {
+            assert_eq!(
+                chat_turn_error(error),
+                ChatTurnError::Failed,
+                "{error:?} is an answer this client refused"
+            );
+        }
     }
 }

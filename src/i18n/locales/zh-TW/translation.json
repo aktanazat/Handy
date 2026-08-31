@@ -1493,6 +1493,10 @@
         "rowDescription": "關閉此選項會關閉面板視窗，並讓 Sona 拒絕所有重新開啟的要求。",
         "title": "代理程式面板"
       },
+      "externalAccess": {
+        "label": "外部存取",
+        "rowDescription": "允許這台 Mac 上的其他程式透過 sona 命令列與 MCP 伺服器讀取你的會議、聽寫、人物與未完成事項。唯讀，且在你開啟前保持關閉。"
+      },
       "workspaceNavigation": "代理程式橋接檢視",
       "sonaAgent": {
         "title": "Sona 代理",
@@ -1668,6 +1672,40 @@
         "description": "在有會議或有事項收尾的那天結束時，只發一則通知。所有內容都留在這台 Mac 上。",
         "timeLabel": "摘要時間",
         "timeHint": "當地時間。什麼都沒發生的一天不會打擾你。"
+      },
+      "automations": {
+        "title": "會議之後",
+        "description": "系列的筆記寫好後，在這台 Mac 上執行的動作。每個系列預設關閉，直到你打開其中一個。",
+        "loading": "正在讀取你的系列…",
+        "empty": "還沒有錄製過的系列。從行事曆事件錄一場會議，它就會出現在這裡。",
+        "seriesFact": "已錄 {{count}} 場 · 最近 {{when}}",
+        "reminders": "把我未了結的承諾加入提醒事項",
+        "remindersHint": "把你還欠著的事寫進一個叫 Sona 的列表。絕不會從裡面讀回任何內容。",
+        "remindersDenied": "macOS 尚未授予提醒事項存取權。在「隱私權與安全性 › 提醒事項」中更改。",
+        "shortcut": "執行捷徑",
+        "shortcutHint": "依名稱執行捷徑，把會議匯出作為輸入。三十秒後停止。",
+        "shortcutPlaceholder": "捷徑名稱",
+        "webhook": "傳送到 webhook",
+        "webhookHint": "以 JSON 形式 POST 會議匯出。只能是你自己的機器或你的 tailnet——與中繼同一條規則。",
+        "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "needsTarget": "請先填寫名稱",
+        "needsUrl": "請先填寫位址",
+        "rejected": "另一個視窗改動了這些。請重新讀取後再試。",
+        "invalid": "Sona 不會傳到那裡。請使用 localhost 或 tailnet 位址。",
+        "saveFailed": "沒有儲存成功。"
+      },
+      "remoteIntelligence": {
+        "title": "會議智慧",
+        "label": "在我的伺服器上撰寫會議筆記",
+        "consent": "會議的摘要與回答會透過你的私有網路，在你的伺服器上撰寫",
+        "unpaired": "先在「代理」中將 Sona 與你的伺服器配對，才能開啟",
+        "seriesTitle": "留在這台 Mac 上的系列",
+        "seriesHint": "這裡列出的系列一律在這台 Mac 上撰寫，即使會議智慧已開啟。",
+        "seriesEmpty": "還沒有記錄到重複會議",
+        "loading": "正在讀取你的系列…",
+        "lastMet": "上次 {{date}}",
+        "keepLocalLabel": "把 {{series}} 留在這台 Mac 上",
+        "saveFailed": "這項變更未儲存。請重新讀取該列後再試一次。"
       }
     }
   },
@@ -1702,7 +1740,14 @@
     "importAudio": "轉錄檔案",
     "openRecordings": "開啟錄音資料夾",
     "openAgent": "開啟代理",
-    "esc": "esc"
+    "esc": "esc",
+    "search": {
+      "meetings": "會議",
+      "people": "人物",
+      "dictations": "口述",
+      "loops": "未答的問題",
+      "unavailable": "搜尋目前無法使用。"
+    }
   },
   "accessibility": {
     "permissionsDescription": "Sona 需要輔助使用權限才能輸入轉錄的文字",
@@ -2135,6 +2180,12 @@
       "carriedForward": "從上次會議順延而來",
       "stale": "其他操作先生效了，清單已重新載入。"
     },
+    "transcript": {
+      "trace": {
+        "jumpLine": "跳至 {{time}} 的逐字稿",
+        "tooltip": "顯示這一行的來源"
+      }
+    },
     "artifactState": {
       "current": "最新",
       "out_of_date": "已過時",
@@ -2368,6 +2419,42 @@
       "use": "此系列使用這個範本",
       "saving": "正在記住…",
       "remembered": "此系列使用{{template}}"
+    },
+    "upcoming": {
+      "title": "即將開始",
+      "loading": "正在讀取你的行事曆…",
+      "empty": "未來一週沒有安排。",
+      "noAccess": "Sona 看不到你的行事曆。",
+      "noAccessHint": "在會議設定中開啟「使用我的行事曆」，並在 macOS 詢問時授予完整存取權。macOS 行事曆裡已有的一切——Google、iCloud、Outlook——都會一併讀到。",
+      "unavailable": "此系統沒有 Sona 能讀取的行事曆。",
+      "attendees": "參與者",
+      "you": "你",
+      "attendeesMore": "+{{count}}",
+      "recurring": "重複",
+      "seriesOptions": "{{title}} 的系列選項",
+      "alwaysRecord": "一律錄製此系列",
+      "alwaysRecordNeedsSource": "請先在上方選擇一個擷取來源。",
+      "template": "筆記範本",
+      "templateDefault": "應用程式預設",
+      "digest": "納入晚間摘要"
+    },
+    "talkTime": {
+      "label": "發言時間",
+      "speakerShare": "{{name}} {{share}}",
+      "sentence": "發言時間：{{speakers}}"
+    },
+    "followUp": {
+      "draft": "草擬後續訊息",
+      "drafting": "草擬中…",
+      "title": "後續訊息草稿",
+      "fromEngine": "根據摘要、你要做的事與決議寫成。送出前請先看過。",
+      "fromRecord": "這裡沒有可用的寫作引擎，因此草稿就是紀錄本身，逐字照錄。",
+      "iOwe": "我要做的",
+      "decisions": "我們的決議",
+      "copy": "複製",
+      "copied": "草稿已複製。",
+      "copyFailed": "無法複製草稿。",
+      "failed": "無法為這場會議草擬後續訊息。"
     }
   },
   "agentPanel": {
@@ -2416,7 +2503,16 @@
       "failed": "失敗",
       "canceled": "已停止",
       "unverified_external": "未驗證的回覆"
+    },
+    "ask": {
+      "row": "詢問 Sona：{{query}}",
+      "error": "無法將這個問題傳送給 Sona。"
     }
+  },
+  "chat": {
+    "open": "聊天",
+    "label": "與 Sona 代理聊天",
+    "unpaired": "在設定中配對 Sona 代理"
   },
   "overview": {
     "hero": {
@@ -2637,9 +2733,16 @@
       "metCount_other": "你曾與 {{name}} 見面 {{count}} 次",
       "metBefore_one": "你曾與 {{name}} 見面 1 次 · 最近一次 {{date}}",
       "metBefore_other": "你曾與 {{name}} 見面 {{count}} 次 · 最近一次 {{date}}",
-      "stillOpen": "仍待處理：{{text}}",
       "metCount": "你曾與 {{name}} 見面 {{count}} 次",
       "metBefore": "你曾與 {{name}} 見面 {{count}} 次 · 最近一次 {{date}}"
+    },
+    "waitingOn": {
+      "iOwe": "我負責",
+      "them": "等待 {{name}}",
+      "stale": "已逾期",
+      "brief": "等待 {{name}}：{{text}}",
+      "briefOverdue": "{{name}} 已逾期：{{text}}",
+      "briefIOwe": "你負責：{{text}}"
     }
   },
   "libraryV2": {

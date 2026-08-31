@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { commands } from "@/bindings";
 import { PeopleListView } from "./PeopleList";
 import { PersonDetailScreen } from "./PersonDetailScreen";
@@ -10,10 +10,21 @@ interface PeoplePageProps {
    * destination as a bare component; App.tsx is the only caller and always
    * passes one. */
   onOpenMeeting?: (meetingId: string) => void;
+  /* A person the shell was asked to open — `sona://person/<id>` from a deep
+   * link or a ⌘K row. The nonce is what makes the same person twice a second
+   * request: without it, coming back to the list and picking the same row from
+   * the palette again would set state that is already set and change nothing. */
+  personRequest?: { personId: string; nonce: number } | null;
 }
 
-export const PeoplePage: React.FC<PeoplePageProps> = ({ onOpenMeeting }) => {
+export const PeoplePage: React.FC<PeoplePageProps> = ({
+  onOpenMeeting,
+  personRequest,
+}) => {
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
+  useEffect(() => {
+    if (personRequest) setSelectedPersonId(personRequest.personId);
+  }, [personRequest]);
   const loadPeople = useCallback(async () => {
     const result = await commands.peopleList();
     if (result.status === "error") throw new Error(result.error);

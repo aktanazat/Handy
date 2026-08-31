@@ -1,5 +1,5 @@
 use super::document_types::{DocumentId, DocumentSummary};
-use super::loop_types::{MeetingLoopId, MeetingLoopStatus};
+use super::loop_types::{MeetingLoopDirection, MeetingLoopId, MeetingLoopStatus};
 use super::types::MeetingSessionId;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -67,7 +67,7 @@ pub struct PersonMeetingLink {
     pub confidence: PersonLinkConfidence,
 }
 
-/// A loop this person is on the hook for, as the people surfaces read it.
+/// A loop raised in a meeting with this person, as the people surfaces read it.
 ///
 /// The words come from the meeting's ledger; `loop_id` and `status` come from
 /// the loop state row that ledger row is keyed to, so a resolution made on the
@@ -81,6 +81,13 @@ pub struct PersonOpenLoop {
     pub text: String,
     pub owner_person_id: Option<PersonId>,
     pub status: MeetingLoopStatus,
+    /// Which side of the conversation this row is on: the user owes it, or
+    /// this person does. What lets a page show two lists instead of one.
+    pub direction: MeetingLoopDirection,
+    /// This person has owed it for longer than a working week. Computed
+    /// against the store's clock at read time, so it is never a cached
+    /// yesterday.
+    pub waiting_on_stale: bool,
     /// When this loop was first raised, if it reached this meeting by being
     /// carried forward from an earlier session in the series.
     pub carried_since_at_utc_ms: Option<i64>,
@@ -96,6 +103,10 @@ pub struct PersonCommitment {
     pub at_utc_ms: i64,
     pub text: String,
     pub status: MeetingLoopStatus,
+    /// See [`PersonOpenLoop::direction`].
+    pub direction: MeetingLoopDirection,
+    /// See [`PersonOpenLoop::waiting_on_stale`].
+    pub waiting_on_stale: bool,
     pub resolved_at_utc_ms: Option<i64>,
 }
 

@@ -1493,6 +1493,10 @@
         "rowDescription": "Slås dette fra, lukkes panelvinduet, og Sona afviser alle anmodninger om at genåbne det.",
         "title": "Agentpanel"
       },
+      "externalAccess": {
+        "label": "Ekstern adgang",
+        "rowDescription": "Lader andre programmer på denne Mac læse dine møder, dikteringer, personer og åbne opgaver via sona-kommandolinjen og MCP-serveren. Skrivebeskyttet og slået fra, indtil du slår det til."
+      },
       "workspaceNavigation": "Agentbro-visninger",
       "sonaAgent": {
         "title": "Sona-agent",
@@ -1674,6 +1678,40 @@
         "description": "Én notifikation i slutningen af en dag med møder eller lukkede løse ender. Alt bliver på denne Mac.",
         "timeLabel": "Tidspunkt for opsummering",
         "timeHint": "Lokal tid. En dag uden noget i forbliver stille."
+      },
+      "automations": {
+        "title": "Efter et møde",
+        "description": "Handlinger, der kører på denne Mac, når en series noter er skrevet. Slået fra for hver serie, indtil du slår en til.",
+        "loading": "Læser dine serier…",
+        "empty": "Ingen optagne serier endnu. Optag et møde fra en kalenderbegivenhed, så dukker det op her.",
+        "seriesFact": "{{count}} optaget · senest {{when}}",
+        "reminders": "Føj mine åbne løfter til Påmindelser",
+        "remindersHint": "Skriver det, du stadig skylder, ind i en liste ved navn Sona. Der læses aldrig noget tilbage fra den.",
+        "remindersDenied": "macOS har ikke givet adgang til Påmindelser. Ret det i Anonymitet og sikkerhed › Påmindelser.",
+        "shortcut": "Kør en genvej",
+        "shortcutHint": "Kører genvejen ved navn med mødets eksport som input. Tredive sekunder, så stoppes den.",
+        "shortcutPlaceholder": "Genvejens navn",
+        "webhook": "Send til en webhook",
+        "webhookHint": "Sender mødets eksport som JSON. Kun din egen maskine eller dit tailnet — samme regel som relæet.",
+        "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "needsTarget": "Tilføj et navn først",
+        "needsUrl": "Tilføj en adresse først",
+        "rejected": "Et andet vindue ændrede det her. Læs igen, og prøv igen.",
+        "invalid": "Sona sender ikke dertil. Brug localhost eller en tailnet-adresse.",
+        "saveFailed": "Det blev ikke gemt."
+      },
+      "remoteIntelligence": {
+        "title": "Mødeintelligens",
+        "label": "Skriv mødenoter på min server",
+        "consent": "Resuméer og svar for møder skrives på din server over dit private netværk",
+        "unpaired": "Par Sona med din server under Agenter for at slå dette til",
+        "seriesTitle": "Serier der bliver på denne Mac",
+        "seriesHint": "En serie på denne liste skrives altid på denne Mac, også når mødeintelligens er slået til.",
+        "seriesEmpty": "Ingen gentagne møder optaget endnu",
+        "loading": "Læser dine serier…",
+        "lastMet": "Sidst mødt {{date}}",
+        "keepLocalLabel": "Behold {{series}} på denne Mac",
+        "saveFailed": "Ændringen blev ikke gemt. Læs rækken igen og prøv en gang mere."
       }
     }
   },
@@ -1711,7 +1749,14 @@
     "importAudio": "Transskriber fil",
     "openRecordings": "Åbn optagelsesmappe",
     "openAgent": "Åbn agent",
-    "esc": "esc"
+    "esc": "esc",
+    "search": {
+      "meetings": "Møder",
+      "people": "Personer",
+      "dictations": "Dikteringer",
+      "loops": "Åbne spørgsmål",
+      "unavailable": "Søgning er utilgængelig lige nu."
+    }
   },
   "accessibility": {
     "permissionsDescription": "Sona har brug for tilgængelighedstilladelser for at skrive den transskriberede tekst.",
@@ -2141,6 +2186,12 @@
       "carriedForward": "Overført fra et tidligere møde",
       "stale": "En anden flyttede dette punkt først, så listen er opdateret."
     },
+    "transcript": {
+      "trace": {
+        "jumpLine": "Gå til transskriptionen ved {{time}}",
+        "tooltip": "Vis hvor denne linje kommer fra"
+      }
+    },
     "artifactState": {
       "current": "Aktuel",
       "out_of_date": "Forældet",
@@ -2374,6 +2425,42 @@
       "use": "Brug denne skabelon til denne serie",
       "saving": "Husker…",
       "remembered": "Denne serie bruger {{template}}"
+    },
+    "upcoming": {
+      "title": "Kommende",
+      "loading": "Læser din kalender…",
+      "empty": "Intet planlagt den næste uge.",
+      "noAccess": "Sona kan ikke se din kalender.",
+      "noAccessHint": "Slå \"Brug min kalender\" til i indstillingerne for møder, og giv fuld adgang, når macOS spørger. Alt, hvad macOS Kalender allerede viser — Google, iCloud, Outlook — følger med.",
+      "unavailable": "Dette system har ingen kalender, Sona kan læse.",
+      "attendees": "Deltagere",
+      "you": "Dig",
+      "attendeesMore": "+{{count}}",
+      "recurring": "Gentages",
+      "seriesOptions": "Seriemuligheder for {{title}}",
+      "alwaysRecord": "Optag altid denne serie",
+      "alwaysRecordNeedsSource": "Vælg først en optagekilde ovenfor.",
+      "template": "Notatskabelon",
+      "templateDefault": "Appens standard",
+      "digest": "Tag med i aftenopsummeringen"
+    },
+    "talkTime": {
+      "label": "Taletid",
+      "speakerShare": "{{name}} {{share}}",
+      "sentence": "Taletid: {{speakers}}"
+    },
+    "followUp": {
+      "draft": "Skriv opfølgning",
+      "drafting": "Skriver…",
+      "title": "Udkast til opfølgning",
+      "fromEngine": "Skrevet ud fra resuméet, det du skylder, og beslutningerne. Læs det, før du sender det.",
+      "fromRecord": "Der er ingen skrivemotor tilgængelig her, så udkastet er selve referatet, ord for ord.",
+      "iOwe": "Det jeg skylder",
+      "decisions": "Det vi besluttede",
+      "copy": "Kopiér",
+      "copied": "Udkast kopieret.",
+      "copyFailed": "Udkastet kunne ikke kopieres.",
+      "failed": "Der kunne ikke skrives en opfølgning til dette møde."
     }
   },
   "agentPanel": {
@@ -2422,7 +2509,16 @@
       "failed": "Mislykkedes",
       "canceled": "Stoppet",
       "unverified_external": "Ubekræftet svar"
+    },
+    "ask": {
+      "row": "Spørg Sona: {{query}}",
+      "error": "Spørgsmålet kunne ikke sendes til Sona."
     }
+  },
+  "chat": {
+    "open": "Chat",
+    "label": "Chat med Sona-agenten",
+    "unpaired": "Par Sona-agenten under Indstillinger"
   },
   "overview": {
     "hero": {
@@ -2645,9 +2741,16 @@
       "metCount_other": "Du har mødt {{name}} {{count}} gange",
       "metBefore_one": "Du har mødt {{name}} én gang · senest {{date}}",
       "metBefore_other": "Du har mødt {{name}} {{count}} gange · senest {{date}}",
-      "stillOpen": "Stadig åbent: {{text}}",
       "metCount": "Du har mødt {{name}} {{count}} gange",
       "metBefore": "Du har mødt {{name}} {{count}} gange · senest {{date}}"
+    },
+    "waitingOn": {
+      "iOwe": "Jeg skylder",
+      "them": "Venter på {{name}}",
+      "stale": "Overskredet",
+      "brief": "Venter på {{name}}: {{text}}",
+      "briefOverdue": "Overskredet hos {{name}}: {{text}}",
+      "briefIOwe": "Du skylder: {{text}}"
     }
   },
   "libraryV2": {

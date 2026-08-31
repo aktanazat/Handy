@@ -11,7 +11,6 @@ const ConsentPanelWindow = dynamic(
       import("@/consent/ConsentPanel"),
       bootstrapWindow({
         compatShims: true,
-        platformAttr: false,
         followThemeChanges: true,
       }),
     ]);

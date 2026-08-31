@@ -8,6 +8,7 @@ import {
   type WorkflowRunReceipt,
 } from "@/bindings";
 import { Button } from "@/components/vg/button";
+import { cn } from "@/lib/cn";
 import { formatRelativeTime } from "@/lib/utils/format";
 import { Microlabel, SettingsCard } from "@/components/settings/rows";
 import {
@@ -123,7 +124,17 @@ export const OverviewWorkflowCardsView: React.FC<
   if (hideReceipts && hideOpenLoops) return null;
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    /* Two cards share the row; one card takes the whole content measure. The
+     * second column is only a column when something is in it — pinning
+     * `md:grid-cols-2` unconditionally left a solo "What Sona did" at half the
+     * page width beside a dead half. Rows are short lines with a 44px gutter,
+     * so the wider measure costs the reader nothing. */
+    <div
+      className={cn(
+        "grid gap-6",
+        !hideReceipts && !hideOpenLoops && "md:grid-cols-2",
+      )}
+    >
       {hideReceipts ? null : (
         <SettingsCard aria-labelledby="overview-workflow-receipts">
           <h2 id="overview-workflow-receipts" className="px-4 pt-4 pb-2">

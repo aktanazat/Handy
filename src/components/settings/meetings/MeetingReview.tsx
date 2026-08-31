@@ -34,6 +34,7 @@ import { CloudMeetingActions } from "../../cloud-sync/CloudMeetingActions";
 import type { SegmentJump } from "./review/Citations";
 import { InsightsTab } from "./review/InsightsTab";
 import { QuestionsTab } from "./review/QuestionsTab";
+import { TalkTimeRow } from "./review/TalkTimeRow";
 import { TranscriptTab } from "./review/TranscriptTab";
 import { MeetingLedgerSection } from "./MeetingLedgerSection";
 import { CaptureCompletenessText, MeetingPhaseText } from "./MeetingStatus";
@@ -48,6 +49,7 @@ import {
   actionItemKey,
   getMeetingAnalytics,
   setActionItemDone,
+  type MeetingAnalytics,
   type MeetingAnalyticsSnapshot,
 } from "./meetingAnalytics";
 
@@ -410,6 +412,8 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
         <MeetingReviewHeader
           snapshot={snapshot}
           lastReceipt={lastReceipt}
+          analytics={analytics?.analytics ?? null}
+          speakerNames={speakerNames}
           busy={busy}
           editable={editable}
           onBack={onBack}
@@ -537,6 +541,9 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
 interface MeetingReviewHeaderProps {
   snapshot: MeetingReviewSnapshot;
   lastReceipt: OperationReceipt | null;
+  /** Conversation metrics, or null until the first read lands. */
+  analytics: MeetingAnalytics | null;
+  speakerNames: Record<string, string>;
   busy: boolean;
   editable: boolean;
   onBack: () => void;
@@ -546,6 +553,8 @@ interface MeetingReviewHeaderProps {
 const MeetingReviewHeader: React.FC<MeetingReviewHeaderProps> = ({
   snapshot,
   lastReceipt,
+  analytics,
+  speakerNames,
   busy,
   editable,
   onBack,
@@ -593,6 +602,13 @@ const MeetingReviewHeader: React.FC<MeetingReviewHeaderProps> = ({
           />
         )}
       </div>
+      {/* Talk share sits under the facts line, not among them: it is a shape,
+       * and the chips beside it are single values. */}
+      <TalkTimeRow
+        diarization={snapshot.diarization}
+        analytics={analytics}
+        speakerNames={speakerNames}
+      />
       {lastReceipt?.session_id === snapshot.session.session_id ? (
         <MeetingReceipt receipt={lastReceipt} />
       ) : null}

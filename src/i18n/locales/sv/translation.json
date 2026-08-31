@@ -1493,6 +1493,10 @@
         "rowDescription": "Om detta stängs av stängs panelfönstret och Sona nekar alla förfrågningar att öppna det igen.",
         "title": "Agentpanel"
       },
+      "externalAccess": {
+        "label": "Extern åtkomst",
+        "rowDescription": "Låter andra program på den här datorn läsa dina möten, dikteringar, personer och öppna åtaganden via sona-kommandoraden och MCP-servern. Skrivskyddat och avstängt tills du slår på det."
+      },
       "workspaceNavigation": "Vyer för agentbryggan",
       "sonaAgent": {
         "title": "Sona-agent",
@@ -1674,6 +1678,40 @@
         "description": "En avisering i slutet av en dag med möten eller avslutade punkter. Allt stannar på den här Macen.",
         "timeLabel": "Tid för sammanfattning",
         "timeHint": "Lokal tid. En dag utan något förblir tyst."
+      },
+      "automations": {
+        "title": "Efter ett möte",
+        "description": "Åtgärder som körs på den här Macen när en series anteckningar skrivits. Av för varje serie tills du slår på någon.",
+        "loading": "Läser dina serier…",
+        "empty": "Inga inspelade serier än. Spela in ett möte från en kalenderhändelse så dyker det upp här.",
+        "seriesFact": "{{count}} inspelade · senast {{when}}",
+        "reminders": "Lägg mina öppna löften i Påminnelser",
+        "remindersHint": "Skriver det du fortfarande är skyldig till en lista som heter Sona. Inget läses någonsin tillbaka därifrån.",
+        "remindersDenied": "macOS har inte gett åtkomst till Påminnelser. Ändra det i Integritet och säkerhet › Påminnelser.",
+        "shortcut": "Kör ett kortkommando",
+        "shortcutHint": "Kör kortkommandot vid namn med mötets export som indata. Trettio sekunder, sedan stoppas det.",
+        "shortcutPlaceholder": "Kortkommandots namn",
+        "webhook": "Skicka till en webhook",
+        "webhookHint": "Skickar mötets export som JSON. Bara din egen maskin eller ditt tailnet — samma regel som reläet.",
+        "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "needsTarget": "Lägg till ett namn först",
+        "needsUrl": "Lägg till en adress först",
+        "rejected": "Ett annat fönster ändrade det här. Läs om och försök igen.",
+        "invalid": "Sona skickar inte dit. Använd localhost eller en tailnet-adress.",
+        "saveFailed": "Det sparades inte."
+      },
+      "remoteIntelligence": {
+        "title": "Mötesintelligens",
+        "label": "Skriv mötesanteckningar på min server",
+        "consent": "Sammanfattningar och svar för möten skrivs på din server över ditt privata nätverk",
+        "unpaired": "Parkoppla Sona med din server under Agenter för att slå på detta",
+        "seriesTitle": "Serier som stannar på den här Macen",
+        "seriesHint": "En serie i den här listan skrivs alltid på den här Macen, även när mötesintelligens är på.",
+        "seriesEmpty": "Inga återkommande möten inspelade än",
+        "loading": "Läser dina serier…",
+        "lastMet": "Senast {{date}}",
+        "keepLocalLabel": "Behåll {{series}} på den här Macen",
+        "saveFailed": "Ändringen sparades inte. Läs raden igen och försök en gång till."
       }
     }
   },
@@ -1708,7 +1746,14 @@
     "importAudio": "Transkribera fil",
     "openRecordings": "Öppna mapp för inspelningar",
     "openAgent": "Öppna agent",
-    "esc": "esc"
+    "esc": "esc",
+    "search": {
+      "meetings": "Möten",
+      "people": "Personer",
+      "dictations": "Dikteringar",
+      "loops": "Öppna frågor",
+      "unavailable": "Sökningen är inte tillgänglig just nu."
+    }
   },
   "accessibility": {
     "permissionsDescription": "Sona behöver behörighet för hjälpmedel för att kunna skriva transkriberad text.",
@@ -2141,6 +2186,12 @@
       "carriedForward": "Överförd från ett tidigare möte",
       "stale": "Någon annan flyttade den här punkten först, så listan har uppdaterats."
     },
+    "transcript": {
+      "trace": {
+        "jumpLine": "Gå till transkriptet vid {{time}}",
+        "tooltip": "Visa var den här raden kommer från"
+      }
+    },
     "artifactState": {
       "current": "Aktuell",
       "out_of_date": "Inaktuell",
@@ -2374,6 +2425,42 @@
       "use": "Använd den här mallen för den här serien",
       "saving": "Sparar…",
       "remembered": "Den här serien använder {{template}}"
+    },
+    "upcoming": {
+      "title": "Kommande",
+      "loading": "Läser din kalender…",
+      "empty": "Inget inplanerat den kommande veckan.",
+      "noAccess": "Sona kan inte se din kalender.",
+      "noAccessHint": "Slå på \"Använd min kalender\" i mötesinställningarna och ge full åtkomst när macOS frågar. Allt som Kalender i macOS redan visar — Google, iCloud, Outlook — följer med.",
+      "unavailable": "Det här systemet har ingen kalender som Sona kan läsa.",
+      "attendees": "Deltagare",
+      "you": "Du",
+      "attendeesMore": "+{{count}}",
+      "recurring": "Upprepas",
+      "seriesOptions": "Seriealternativ för {{title}}",
+      "alwaysRecord": "Spela alltid in den här serien",
+      "alwaysRecordNeedsSource": "Välj först en inspelningskälla ovan.",
+      "template": "Anteckningsmall",
+      "templateDefault": "Appens standard",
+      "digest": "Ta med i kvällssammanfattningen"
+    },
+    "talkTime": {
+      "label": "Taltid",
+      "speakerShare": "{{name}} {{share}}",
+      "sentence": "Taltid: {{speakers}}"
+    },
+    "followUp": {
+      "draft": "Skriv uppföljning",
+      "drafting": "Skriver…",
+      "title": "Utkast till uppföljning",
+      "fromEngine": "Skrivet utifrån sammanfattningen, det du lovat och besluten. Läs igenom innan du skickar.",
+      "fromRecord": "Ingen skrivmotor är tillgänglig här, så utkastet är själva anteckningen, ord för ord.",
+      "iOwe": "Det jag ska göra",
+      "decisions": "Det vi beslutade",
+      "copy": "Kopiera",
+      "copied": "Utkastet kopierat.",
+      "copyFailed": "Utkastet kunde inte kopieras.",
+      "failed": "Det gick inte att skriva en uppföljning för det här mötet."
     }
   },
   "agentPanel": {
@@ -2422,7 +2509,16 @@
       "failed": "Misslyckades",
       "canceled": "Stoppat",
       "unverified_external": "Overifierat svar"
+    },
+    "ask": {
+      "row": "Fråga Sona: {{query}}",
+      "error": "Frågan kunde inte skickas till Sona."
     }
+  },
+  "chat": {
+    "open": "Chatt",
+    "label": "Chatta med Sona-agenten",
+    "unpaired": "Parkoppla Sona-agenten i Inställningar"
   },
   "overview": {
     "hero": {
@@ -2645,9 +2741,16 @@
       "metCount_other": "Du har träffat {{name}} {{count}} gånger",
       "metBefore_one": "Du har träffat {{name}} en gång · senast {{date}}",
       "metBefore_other": "Du har träffat {{name}} {{count}} gånger · senast {{date}}",
-      "stillOpen": "Fortfarande öppet: {{text}}",
       "metCount": "Du har träffat {{name}} {{count}} gånger",
       "metBefore": "Du har träffat {{name}} {{count}} gånger · senast {{date}}"
+    },
+    "waitingOn": {
+      "iOwe": "Jag ska",
+      "them": "Väntar på {{name}}",
+      "stale": "Försenat",
+      "brief": "Väntar på {{name}}: {{text}}",
+      "briefOverdue": "Försenat hos {{name}}: {{text}}",
+      "briefIOwe": "Du ska: {{text}}"
     }
   },
   "libraryV2": {

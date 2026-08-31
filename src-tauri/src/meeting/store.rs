@@ -1,5 +1,15 @@
+#[cfg(test)]
+mod artifact_trace_tests;
+pub(crate) mod automations;
+#[cfg(test)]
+mod automations_run_tests;
+#[cfg(test)]
+mod automations_tests;
 pub(crate) mod digest;
 mod documents;
+#[cfg(test)]
+mod external_tests;
+mod follow_up;
 pub(crate) mod learning;
 #[cfg(test)]
 mod learning_tests;
@@ -8,9 +18,13 @@ pub(crate) mod loops;
 mod loops_tests;
 mod people;
 pub(crate) mod query_plane;
+#[cfg(test)]
+mod remote_intelligence_tests;
 pub(crate) mod series;
 #[cfg(test)]
 mod series_tests;
+#[cfg(test)]
+mod title_tests;
 #[cfg(test)]
 mod workflow_core_tests;
 #[cfg(test)]
@@ -1039,6 +1053,103 @@ static MIGRATIONS: &[M] = &[
         );
         ",
     ),
+    // D28. A series preference is no longer only a template, so `template_id`
+    // stops being mandatory: a series that has been taken out of the evening
+    // digest but never chose a template is a legitimate row, and before this it
+    // was unrepresentable. SQLite cannot relax a NOT NULL in place, so the
+    // table is rebuilt — which is also the cheapest moment to add the column.
+    //
+    // Every existing row is digest-included, because every existing row was
+    // written before the choice existed and inclusion is what the digest did.
+    M::up(
+        "
+        CREATE TABLE meeting_series_preferences_rebuilt (
+            series_key TEXT PRIMARY KEY NOT NULL CHECK (length(trim(series_key)) > 0),
+            template_id TEXT CHECK (template_id IS NULL OR length(trim(template_id)) > 0),
+            digest_included INTEGER NOT NULL DEFAULT 1 CHECK (digest_included IN (0, 1)),
+            updated_at_utc_ms INTEGER NOT NULL
+        );
+        INSERT INTO meeting_series_preferences_rebuilt (
+            series_key, template_id, digest_included, updated_at_utc_ms
+        )
+        SELECT series_key, template_id, 1, updated_at_utc_ms
+          FROM meeting_series_preferences;
+        DROP TABLE meeting_series_preferences;
+        ALTER TABLE meeting_series_preferences_rebuilt
+            RENAME TO meeting_series_preferences;
+        ",
+    ),
+    // D22 local automations: what a series does after a meeting, and what
+    // happened when it did.
+    //
+    // `meeting_series_automations` is one row per series per kind, holding the
+    // switch and its target together. That pairing is the point: "webhook
+    // enabled" with no URL is unrunnable, so the two are written under one
+    // receipt and no reader can ever see half a decision. There is no row for a
+    // kind nobody has touched, which is why nothing is backfilled — absent means
+    // off, everywhere.
+    //
+    // `meeting_automation_runs` is the run log, and its primary key is the
+    // once-per-artifact-revision gate: an attempt inserts before it touches
+    // anything outside this process, so a second attempt for the same notes is
+    // refused by SQLite rather than by timing. Nothing retries, so `started`
+    // with no finish is a real terminal state — the app was quit or crashed mid
+    // attempt — and it is left visible instead of swept.
+    //
+    // `series_key` here is not a foreign key. There is no series table: the key
+    // is EventKit's calendar-item identifier, the same string standing consent
+    // and D21's preference use, and a series is only ever known through the
+    // meetings that carry it.
+    M::up(
+        "
+        CREATE TABLE meeting_automation_state (
+            singleton INTEGER PRIMARY KEY NOT NULL CHECK (singleton = 1),
+            revision INTEGER NOT NULL CHECK (revision >= 0)
+        );
+        INSERT INTO meeting_automation_state(singleton, revision) VALUES (1, 0);
+        CREATE TABLE meeting_series_automations (
+            series_key TEXT NOT NULL CHECK (length(trim(series_key)) > 0),
+            kind TEXT NOT NULL CHECK (kind IN ('reminders', 'shortcut', 'webhook')),
+            enabled INTEGER NOT NULL CHECK (enabled IN (0, 1)),
+            target TEXT,
+            updated_at_utc_ms INTEGER NOT NULL,
+            PRIMARY KEY (series_key, kind)
+        );
+        CREATE TABLE meeting_automation_runs (
+            artifact_id TEXT NOT NULL,
+            kind TEXT NOT NULL CHECK (kind IN ('reminders', 'shortcut', 'webhook')),
+            session_id TEXT NOT NULL REFERENCES meeting_sessions(id) ON DELETE CASCADE,
+            series_key TEXT NOT NULL,
+            state TEXT NOT NULL CHECK (state IN ('started', 'committed', 'failed')),
+            failure TEXT,
+            detail TEXT,
+            effects INTEGER NOT NULL CHECK (effects >= 0),
+            started_at_utc_ms INTEGER NOT NULL,
+            finished_at_utc_ms INTEGER,
+            PRIMARY KEY (artifact_id, kind)
+        );
+        CREATE INDEX meeting_automation_runs_session_idx
+            ON meeting_automation_runs(session_id, started_at_utc_ms DESC);
+        ",
+    ),
+    // D14. Which series keep their text on this Mac while meeting intelligence
+    // is routed to the operator's own server.
+    //
+    // A column beside the template and the digest flag rather than a table of
+    // its own: it is one boolean per series, written by the same fenced,
+    // receipted path as the other two, and a second per-series table would be
+    // a second place to look for what one series has decided.
+    //
+    // Default 0 means "follow the global setting", so nothing is backfilled and
+    // a series that has never been considered behaves exactly as the switch
+    // says. The exclusion is the only thing worth storing.
+    M::up(
+        "
+        ALTER TABLE meeting_series_preferences
+            ADD COLUMN remote_intelligence_opt_out INTEGER NOT NULL DEFAULT 0
+            CHECK (remote_intelligence_opt_out IN (0, 1));
+        ",
+    ),
 ];
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StoreError {
@@ -1414,6 +1525,93 @@ pub(crate) struct StandingSeriesConsent {
     pub acknowledged_sources: Vec<SourceKind>,
 }
 
+/// Grants, or re-grants, the standing consent for one series.
+///
+/// Connection-scoped rather than a method so a caller that is already inside a
+/// transaction — the series-preferences setter, which has to write its receipt
+/// and this row together or neither — reaches the same statement the consent
+/// panel does. A grant with no acknowledged source is rejected: permission to
+/// record "something" is not permission.
+pub(super) fn grant_series_consent_in(
+    connection: &Connection,
+    series_key: &str,
+    policy_version: u32,
+    acknowledged_sources: &[SourceKind],
+    granted_at_utc_ms: i64,
+) -> Result<StandingSeriesConsent, StoreError> {
+    let series_key = series_key.trim();
+    if series_key.is_empty() || acknowledged_sources.is_empty() {
+        return Err(StoreError::Invalid);
+    }
+    let acknowledged_sources_json = encode_json(&acknowledged_sources)?;
+    connection.execute(
+        "INSERT INTO meeting_series_consents (
+            series_key, policy_version, granted_at_utc_ms,
+            acknowledged_sources_json, revoked_at_utc_ms
+         ) VALUES (?1, ?2, ?3, ?4, NULL)
+         ON CONFLICT(series_key) DO UPDATE SET
+            policy_version = excluded.policy_version,
+            granted_at_utc_ms = excluded.granted_at_utc_ms,
+            acknowledged_sources_json = excluded.acknowledged_sources_json,
+            revoked_at_utc_ms = NULL",
+        params![
+            series_key,
+            i64::from(policy_version),
+            granted_at_utc_ms,
+            acknowledged_sources_json
+        ],
+    )?;
+    Ok(StandingSeriesConsent {
+        series_key: series_key.to_string(),
+        policy_version,
+        granted_at_utc_ms,
+        acknowledged_sources: acknowledged_sources.to_vec(),
+    })
+}
+
+pub(super) fn live_series_consent_in(
+    connection: &Connection,
+    series_key: &str,
+) -> Result<Option<StandingSeriesConsent>, StoreError> {
+    let row = connection
+        .query_row(
+            "SELECT policy_version, granted_at_utc_ms, acknowledged_sources_json
+               FROM meeting_series_consents
+              WHERE series_key = ?1 AND revoked_at_utc_ms IS NULL",
+            [series_key],
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            },
+        )
+        .optional()?;
+    row.map(|(policy_version, granted_at_utc_ms, sources)| {
+        Ok(StandingSeriesConsent {
+            series_key: series_key.to_string(),
+            policy_version: u32::try_from(policy_version).map_err(|_| StoreError::Corrupt)?,
+            granted_at_utc_ms,
+            acknowledged_sources: decode_json(&sources)?,
+        })
+    })
+    .transpose()
+}
+
+pub(super) fn revoke_series_consent_in(
+    connection: &Connection,
+    series_key: &str,
+    revoked_at_utc_ms: i64,
+) -> Result<bool, StoreError> {
+    Ok(connection.execute(
+        "UPDATE meeting_series_consents
+            SET revoked_at_utc_ms = ?2
+          WHERE series_key = ?1 AND revoked_at_utc_ms IS NULL",
+        params![series_key, revoked_at_utc_ms],
+    )? != 0)
+}
+
 pub struct MeetingStore {
     root: PathBuf,
     database_path: PathBuf,
@@ -1451,35 +1649,14 @@ impl MeetingStore {
         acknowledged_sources: &[SourceKind],
         granted_at_utc_ms: i64,
     ) -> Result<StandingSeriesConsent, StoreError> {
-        let series_key = series_key.trim();
-        if series_key.is_empty() || acknowledged_sources.is_empty() {
-            return Err(StoreError::Invalid);
-        }
-        let acknowledged_sources_json = encode_json(&acknowledged_sources)?;
         let connection = self.connection()?;
-        connection.execute(
-            "INSERT INTO meeting_series_consents (
-                series_key, policy_version, granted_at_utc_ms,
-                acknowledged_sources_json, revoked_at_utc_ms
-             ) VALUES (?1, ?2, ?3, ?4, NULL)
-             ON CONFLICT(series_key) DO UPDATE SET
-                policy_version = excluded.policy_version,
-                granted_at_utc_ms = excluded.granted_at_utc_ms,
-                acknowledged_sources_json = excluded.acknowledged_sources_json,
-                revoked_at_utc_ms = NULL",
-            params![
-                series_key,
-                i64::from(policy_version),
-                granted_at_utc_ms,
-                acknowledged_sources_json
-            ],
-        )?;
-        Ok(StandingSeriesConsent {
-            series_key: series_key.to_string(),
+        grant_series_consent_in(
+            &connection,
+            series_key,
             policy_version,
+            acknowledged_sources,
             granted_at_utc_ms,
-            acknowledged_sources: acknowledged_sources.to_vec(),
-        })
+        )
     }
 
     pub(crate) fn live_series_consent(
@@ -1487,30 +1664,7 @@ impl MeetingStore {
         series_key: &str,
     ) -> Result<Option<StandingSeriesConsent>, StoreError> {
         let connection = self.connection()?;
-        let row = connection
-            .query_row(
-                "SELECT policy_version, granted_at_utc_ms, acknowledged_sources_json
-                   FROM meeting_series_consents
-                  WHERE series_key = ?1 AND revoked_at_utc_ms IS NULL",
-                [series_key],
-                |row| {
-                    Ok((
-                        row.get::<_, i64>(0)?,
-                        row.get::<_, i64>(1)?,
-                        row.get::<_, String>(2)?,
-                    ))
-                },
-            )
-            .optional()?;
-        row.map(|(policy_version, granted_at_utc_ms, sources)| {
-            Ok(StandingSeriesConsent {
-                series_key: series_key.to_string(),
-                policy_version: u32::try_from(policy_version).map_err(|_| StoreError::Corrupt)?,
-                granted_at_utc_ms,
-                acknowledged_sources: decode_json(&sources)?,
-            })
-        })
-        .transpose()
+        live_series_consent_in(&connection, series_key)
     }
 
     pub(crate) fn revoke_series_consent(
@@ -1519,12 +1673,7 @@ impl MeetingStore {
         revoked_at_utc_ms: i64,
     ) -> Result<bool, StoreError> {
         let connection = self.connection()?;
-        Ok(connection.execute(
-            "UPDATE meeting_series_consents
-                SET revoked_at_utc_ms = ?2
-              WHERE series_key = ?1 AND revoked_at_utc_ms IS NULL",
-            params![series_key, revoked_at_utc_ms],
-        )? != 0)
+        revoke_series_consent_in(&connection, series_key, revoked_at_utc_ms)
     }
 
     pub(crate) fn consent_panel_introduction_needed(&self) -> Result<bool, StoreError> {
@@ -4719,6 +4868,10 @@ impl MeetingStore {
             ],
         )?;
         transaction.commit()?;
+        /* The read below takes this same lock, and a `MutexGuard` lives to the
+         * end of its scope rather than to its last use, so the write has to
+         * hand the connection back before the row it just wrote can be read. */
+        drop(connection);
         self.artifact_by_generation_key(input.session_id, input.generation_key)?
             .ok_or(StoreError::Corrupt)
     }
@@ -5264,6 +5417,14 @@ impl MeetingStore {
         Ok(speaker_id)
     }
 
+    /// The receipt for one rewrite of a meeting's notes.
+    ///
+    /// `engine` is the id of the generator that actually wrote the revision —
+    /// `apple-intelligence` or `sona-relay` — and it is recorded here, beside
+    /// the artifact it produced, because D14 makes that a question with two
+    /// answers. A reader auditing what left their machine needs the engine
+    /// named by the operation that ran, not inferred afterwards from a setting
+    /// that may have changed since.
     pub(crate) fn record_artifact_regeneration(
         &self,
         operation_id: MeetingOperationId,
@@ -5271,6 +5432,7 @@ impl MeetingStore {
         session_id: MeetingSessionId,
         expected_revision: u64,
         artifact_id: MeetingArtifactId,
+        engine: &str,
     ) -> Result<OperationReceipt, StoreError> {
         if let Some(receipt) = self.operation_receipt(operation_id)? {
             return Ok(receipt);
@@ -5308,7 +5470,7 @@ impl MeetingStore {
             current.phase,
             requested_at_utc_ms,
             current.revision,
-            vec![id(artifact_id)],
+            vec![id(artifact_id), engine.to_string()],
         );
         insert_operation_receipt(&transaction, &receipt, requested_at_utc_ms)?;
         transaction.commit()?;
@@ -9817,6 +9979,7 @@ mod tests {
         };
         GeneratedMeetingArtifacts {
             summary: text.clone(),
+            summary_trace: Vec::new(),
             outline: Vec::new(),
             decisions: Vec::new(),
             action_items: (0..action_count)

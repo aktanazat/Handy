@@ -1,0 +1,312 @@
+/* What this server actually does: turn a tool call into a `sona` command line,
+ * and hand back what `sona` said.
+ *
+ * The stub below is the whole test rig. It records the argv it was given and
+ * replies with whatever the test told it to, which is enough to pin both
+ * halves — the mapping, and the passthrough — without an installed app and
+ * without a corpus.
+ */
+
+import { afterEach, describe, expect, test } from "bun:test";
+import {
+  chmodSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  DEFAULT_SONA_BIN,
+  runSona,
+  SonaCliError,
+  sonaBinary,
+} from "../src/cli.ts";
+import {
+  SCOPES,
+  SIDES,
+  STATUSES,
+  SonaInputError,
+  type ToolDefinition,
+  type ToolInput,
+  TOOLS,
+} from "../src/tools.ts";
+
+const directories: string[] = [];
+
+afterEach(() => {
+  for (const directory of directories.splice(0)) {
+    rmSync(directory, { force: true, recursive: true });
+  }
+  delete process.env.SONA_BIN;
+});
+
+interface Stub {
+  /** The argv the last run passed, one argument per line. */
+  argv(): string[];
+}
+
+/** A `sona` that records its argv and answers with `reply`.
+ *
+ * The replies are files the script cats rather than strings it prints, so a
+ * multi-line stderr — Sona logging beside its refusal — arrives byte for byte
+ * instead of through `sh`'s idea of an escape.
+ */
+function stub(reply: {
+  stdout?: string;
+  stderr?: string;
+  exit?: number;
+}): Stub {
+  const directory = mkdtempSync(join(tmpdir(), "sona-mcp-"));
+  directories.push(directory);
+  const binary = join(directory, "sona");
+  const recorded = join(directory, "argv");
+  const script = [
+    "#!/bin/sh",
+    `: > ${JSON.stringify(recorded)}`,
+    `for argument in "$@"; do printf '%s\\n' "$argument" >> ${JSON.stringify(recorded)}; done`,
+  ];
+  for (const [stream, body] of [
+    ["stdout", reply.stdout],
+    ["stderr", reply.stderr],
+  ] as const) {
+    if (body === undefined) continue;
+    const path = join(directory, stream);
+    writeFileSync(path, body);
+    script.push(
+      `cat ${JSON.stringify(path)}${stream === "stderr" ? " >&2" : ""}`,
+    );
+  }
+  script.push(`exit ${reply.exit ?? 0}`, "");
+  writeFileSync(binary, script.join("\n"));
+  chmodSync(binary, 0o755);
+  process.env.SONA_BIN = binary;
+  return {
+    argv: () =>
+      readFileSync(recorded, "utf8")
+        .split("\n")
+        .filter((line) => line !== ""),
+  };
+}
+
+function tool(name: string) {
+  const found = TOOLS.find((candidate) => candidate.name === name);
+  if (found === undefined) throw new Error(`no tool ${name}`);
+  return found;
+}
+
+/** The values a tool's schema publishes for one property. */
+function publishedEnum(toolName: string, property: string): readonly string[] {
+  const published = tool(toolName).inputSchema.properties[property]?.enum;
+  if (published === undefined) {
+    throw new Error(`${toolName}.${property} publishes no enum`);
+  }
+  return published;
+}
+
+/** The refusal `sona` produced, or a failure saying it did not refuse. */
+async function refusalOf(argv: readonly string[]): Promise<SonaCliError> {
+  try {
+    await runSona(argv);
+  } catch (error) {
+    if (error instanceof SonaCliError) return error;
+    throw error;
+  }
+  throw new Error(`sona answered ${argv.join(" ")} instead of refusing`);
+}
+
+describe("tool to argv", () => {
+  test("every tool maps onto one read-only sona verb", () => {
+    expect(TOOLS.map((definition) => definition.name)).toEqual([
+      "sona_search",
+      "sona_meetings",
+      "sona_meeting",
+      "sona_transcript",
+      "sona_action_items",
+      "sona_people",
+    ]);
+    expect(
+      TOOLS.map((definition) => definition.argv(minimalInput(definition))[0]),
+    ).toEqual([
+      "--query",
+      "--meetings",
+      "--meeting",
+      "--transcript",
+      "--loops",
+      "--people",
+    ]);
+  });
+
+  test("search carries its scope and limit", () => {
+    expect(
+      tool("sona_search").argv({ query: "dana", scope: "people", limit: 5 }),
+    ).toEqual(["--query", "dana", "--scope", "people", "--limit", "5"]);
+    expect(tool("sona_search").argv({ query: "dana" })).toEqual([
+      "--query",
+      "dana",
+    ]);
+  });
+
+  test("a meetings window is either a count or a pair of dates", () => {
+    expect(tool("sona_meetings").argv({ last: 3 })).toEqual([
+      "--meetings",
+      "--last",
+      "3",
+    ]);
+    expect(
+      tool("sona_meetings").argv({ from: "2026-06-01", to: "2026-06-30" }),
+    ).toEqual(["--meetings", "--from", "2026-06-01", "--to", "2026-06-30"]);
+  });
+
+  test("action items narrow by state and by side", () => {
+    expect(tool("sona_action_items").argv({ status: "open" })).toEqual([
+      "--loops",
+      "--status",
+      "open",
+    ]);
+    expect(tool("sona_action_items").argv({ side: "mine" })).toEqual([
+      "--loops",
+      "--mine",
+    ]);
+    expect(
+      tool("sona_action_items").argv({ side: "waiting", limit: 10 }),
+    ).toEqual(["--loops", "--waiting", "--limit", "10"]);
+  });
+
+  test("a meeting id and a name go through verbatim", () => {
+    expect(tool("sona_meeting").argv({ meeting_id: "abc" })).toEqual([
+      "--meeting",
+      "abc",
+    ]);
+    expect(tool("sona_transcript").argv({ meeting_id: "abc" })).toEqual([
+      "--transcript",
+      "abc",
+    ]);
+    expect(tool("sona_people").argv({ name: "Dana Reyes" })).toEqual([
+      "--people",
+      "Dana Reyes",
+    ]);
+  });
+
+  /* Sona owns what a scope is. This server only has to publish the same list,
+   * so a client picking from the schema cannot compose a command Sona refuses
+   * for a reason the schema could have prevented. */
+  test("the schemas publish the enums sona accepts", () => {
+    expect(publishedEnum("sona_search", "scope")).toEqual([...SCOPES]);
+    expect(publishedEnum("sona_action_items", "status")).toEqual([...STATUSES]);
+    expect(publishedEnum("sona_action_items", "side")).toEqual([...SIDES]);
+    expect(SCOPES).toEqual([
+      "all",
+      "meetings",
+      "dictations",
+      "people",
+      "loops",
+    ]);
+  });
+
+  test("an argument that cannot become a command line is refused here", () => {
+    expect(() => tool("sona_search").argv({})).toThrow(SonaInputError);
+    expect(() => tool("sona_people").argv({ name: 42 })).toThrow(
+      SonaInputError,
+    );
+    expect(() => tool("sona_search").argv({ query: "x", limit: 1.5 })).toThrow(
+      SonaInputError,
+    );
+  });
+});
+
+describe("running sona", () => {
+  test("the resolved binary is the install path unless SONA_BIN says otherwise", () => {
+    expect(sonaBinary()).toBe(DEFAULT_SONA_BIN);
+    process.env.SONA_BIN = "/somewhere/else/sona";
+    expect(sonaBinary()).toBe("/somewhere/else/sona");
+  });
+
+  test("a tool call reaches the binary as the argv the tool built", async () => {
+    const sona = stub({ stdout: '{"schema_version":1,"entries":[]}' });
+
+    const answer = await runSona(
+      tool("sona_search").argv({ query: "tier comparison", scope: "meetings" }),
+    );
+
+    expect(sona.argv()).toEqual([
+      "--query",
+      "tier comparison",
+      "--scope",
+      "meetings",
+    ]);
+    expect(answer).toEqual({ schema_version: 1, entries: [] });
+  });
+
+  /* The refusal this whole feature exists to gate on. It has to survive the
+   * trip unchanged: the code an agent branches on, and the settings row it
+   * tells its human to click. */
+  test("a consent refusal comes back with its code and its settings path", async () => {
+    stub({
+      stderr: JSON.stringify({
+        schema_version: 1,
+        error: "consent_required",
+        message:
+          "External access is off. Turn on Settings > Agents > External access in Sona to allow read-only corpus queries.",
+        settings_path: "Settings > Agents > External access",
+      }),
+      exit: 1,
+    });
+
+    const refused = await refusalOf(["--loops"]);
+
+    expect(refused.code).toBe("consent_required");
+    expect(refused.settingsPath).toBe("Settings > Agents > External access");
+    expect(refused.exitCode).toBe(1);
+    expect(refused.message).toContain("External access is off");
+  });
+
+  test("a refusal is found past the log lines printed beside it", async () => {
+    stub({
+      stderr: [
+        "[2026-08-31][INFO][sona] meeting storage mounted",
+        JSON.stringify({
+          schema_version: 1,
+          error: "unavailable",
+          message: "Meeting storage is not open.",
+        }),
+      ].join("\n"),
+      exit: 1,
+    });
+
+    const refused = await refusalOf(["--meetings"]);
+
+    expect(refused.code).toBe("unavailable");
+    expect(refused.settingsPath).toBeUndefined();
+  });
+
+  /* Clap answers a usage error in its own words rather than in JSON, so a
+   * stderr that is not a refusal still has to reach the caller intact. */
+  test("a non-JSON failure is reported as what sona said", async () => {
+    stub({ stderr: "error: unexpected argument '--nope' found", exit: 2 });
+
+    const refused = await refusalOf(["--nope"]);
+
+    expect(refused.code).toBe("failed");
+    expect(refused.message).toContain("unexpected argument");
+    expect(refused.exitCode).toBe(2);
+  });
+
+  test("a missing install says where it looked", async () => {
+    process.env.SONA_BIN = join(tmpdir(), "sona-mcp-nonexistent", "sona");
+
+    const refused = await refusalOf(["--meetings"]);
+
+    expect(refused.code).toBe("not_installed");
+    expect(refused.message).toContain("sona-mcp-nonexistent");
+  });
+});
+
+/** The least each tool needs to build a command line at all: one placeholder
+ *  for every field its own schema marks required. Read off the schema rather
+ *  than restated per tool, so a new required field cannot be forgotten here. */
+const minimalInput = (tool: ToolDefinition): ToolInput =>
+  Object.fromEntries(
+    (tool.inputSchema.required ?? []).map((field) => [field, "abc"]),
+  );

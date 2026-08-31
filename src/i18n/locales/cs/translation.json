@@ -1493,6 +1493,10 @@
         "rowDescription": "Vypnutím se okno panelu zavře a Sona odmítne každý požadavek na jeho opětovné otevření.",
         "title": "Panel agentů"
       },
+      "externalAccess": {
+        "label": "Externí přístup",
+        "rowDescription": "Umožňuje jiným programům na tomto Macu číst vaše schůzky, diktáty, lidi a otevřené závazky přes příkazový řádek sona a server MCP. Pouze pro čtení a vypnuté, dokud je nezapnete."
+      },
       "workspaceNavigation": "Zobrazení mostu agentů",
       "sonaAgent": {
         "title": "Agent Sona",
@@ -1686,6 +1690,40 @@
         "description": "Jedno oznámení na konci dne, ve kterém byly schůzky nebo uzavřené smyčky. Vše zůstává na tomto Macu.",
         "timeLabel": "Čas přehledu",
         "timeHint": "Místní čas. Den, ve kterém se nic nestalo, zůstane tichý."
+      },
+      "automations": {
+        "title": "Po schůzce",
+        "description": "Akce, které běží na tomto Macu, jakmile jsou zapsané poznámky série. U každé série vypnuté, dokud jednu nezapnete.",
+        "loading": "Načítáme vaše série…",
+        "empty": "Zatím žádná nahraná série. Nahrajte schůzku z události v kalendáři a objeví se tady.",
+        "seriesFact": "{{count}} nahráno · naposled {{when}}",
+        "reminders": "Přidávat mé otevřené závazky do Připomínek",
+        "remindersHint": "Zapisuje to, co ještě dlužíte, do seznamu Sona. Nic se odtud nikdy nečte zpět.",
+        "remindersDenied": "macOS nepovolil přístup k Připomínkám. Změňte to v Soukromí a zabezpečení › Připomínky.",
+        "shortcut": "Spustit zkratku",
+        "shortcutHint": "Spustí zkratku podle jména s exportem schůzky na vstupu. Třicet sekund, pak se ukončí.",
+        "shortcutPlaceholder": "Název zkratky",
+        "webhook": "Odeslat na webhook",
+        "webhookHint": "Odešle export schůzky jako JSON. Jen váš vlastní stroj nebo váš tailnet — stejné pravidlo jako u relé.",
+        "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "needsTarget": "Nejdřív doplňte název",
+        "needsUrl": "Nejdřív doplňte adresu",
+        "rejected": "Změnilo to jiné okno. Načtěte znovu a zkuste to znovu.",
+        "invalid": "Sona tam neodešle. Použijte localhost nebo adresu v tailnetu.",
+        "saveFailed": "Neuložilo se to."
+      },
+      "remoteIntelligence": {
+        "title": "Inteligence schůzek",
+        "label": "Psát poznámky ze schůzek na mém serveru",
+        "consent": "Souhrny a odpovědi ke schůzkám se píší na tvém serveru přes tvou soukromou síť",
+        "unpaired": "Nejdřív spáruj Sonu se svým serverem v části Agenti",
+        "seriesTitle": "Série, které zůstávají na tomto Macu",
+        "seriesHint": "Série uvedená zde se vždy píše na tomto Macu, i když je inteligence schůzek zapnutá.",
+        "seriesEmpty": "Zatím žádné zaznamenané opakující se schůzky",
+        "loading": "Načítání tvých série…",
+        "lastMet": "Naposledy {{date}}",
+        "keepLocalLabel": "Nechat {{series}} na tomto Macu",
+        "saveFailed": "Změna se neuložila. Přečti řádek znovu a zkus to ještě raz."
       }
     }
   },
@@ -1720,7 +1758,14 @@
     "importAudio": "Transkribovat soubor",
     "openRecordings": "Otevřít složku nahrávek",
     "openAgent": "Otevřít agenta",
-    "esc": "esc"
+    "esc": "esc",
+    "search": {
+      "meetings": "Schůzky",
+      "people": "Lidé",
+      "dictations": "Diktáty",
+      "loops": "Otevřené otázky",
+      "unavailable": "Vyhledávání teď není k dispozici."
+    }
   },
   "accessibility": {
     "permissionsDescription": "Sona potřebuje oprávnění usnadnění přístupu, aby mohlo psát přepsaný text.",
@@ -2153,6 +2198,12 @@
       "carriedForward": "Přeneseno z dřívější schůzky",
       "stale": "Někdo jiný tento bod změnil dřív, seznam byl obnoven."
     },
+    "transcript": {
+      "trace": {
+        "jumpLine": "Přejít na přepis v {{time}}",
+        "tooltip": "Zobrazit, odkud tento řádek pochází"
+      }
+    },
     "artifactState": {
       "current": "Aktuální",
       "out_of_date": "Neaktuální",
@@ -2386,6 +2437,42 @@
       "use": "Použít tuto šablonu pro tuto sérii",
       "saving": "Ukládá se…",
       "remembered": "Tato série používá {{template}}"
+    },
+    "upcoming": {
+      "title": "Nadcházející",
+      "loading": "Načítání kalendáře…",
+      "empty": "Na příští týden nic naplánovaného.",
+      "noAccess": "Sona nevidí váš kalendář.",
+      "noAccessHint": "Zapněte „Používat můj kalendář“ v nastavení schůzek a povolte plný přístup, až se macOS zeptá. Vše, co Kalendář macOS už zobrazuje — Google, iCloud, Outlook — přijde s ním.",
+      "unavailable": "Tento systém nemá kalendář, který by Sona přečetla.",
+      "attendees": "Účastníci",
+      "you": "Vy",
+      "attendeesMore": "+{{count}}",
+      "recurring": "Opakuje se",
+      "seriesOptions": "Možnosti série {{title}}",
+      "alwaysRecord": "Vždy nahrávat tuto sérii",
+      "alwaysRecordNeedsSource": "Nejprve vyberte zdroj nahrávání výše.",
+      "template": "Šablona poznámek",
+      "templateDefault": "Výchozí nastavení aplikace",
+      "digest": "Zahrnout do večerního souhrnu"
+    },
+    "talkTime": {
+      "label": "Čas mluvení",
+      "speakerShare": "{{name}} {{share}}",
+      "sentence": "Čas mluvení: {{speakers}}"
+    },
+    "followUp": {
+      "draft": "Návrh navazující zprávy",
+      "drafting": "Připravuje se…",
+      "title": "Návrh navazující zprávy",
+      "fromEngine": "Sestaveno ze shrnutí, z toho, co dlužíte, a z rozhodnutí. Než to odešlete, přečtěte si to.",
+      "fromRecord": "Není zde dostupný žádný generátor textu, takže návrh je doslovný záznam.",
+      "iOwe": "Co dlužím",
+      "decisions": "Na čem jsme se shodli",
+      "copy": "Kopírovat",
+      "copied": "Návrh zkopírován.",
+      "copyFailed": "Návrh se nepodařilo zkopírovat.",
+      "failed": "Pro tuto schůzku se nepodařilo sestavit návrh."
     }
   },
   "agentPanel": {
@@ -2434,7 +2521,16 @@
       "failed": "Selhalo",
       "canceled": "Zastaveno",
       "unverified_external": "Neověřená odpověď"
+    },
+    "ask": {
+      "row": "Zeptat se Sony: {{query}}",
+      "error": "Dotaz se nepodařilo odeslat do Sony."
     }
+  },
+  "chat": {
+    "open": "Chat",
+    "label": "Chat s agentem Sona",
+    "unpaired": "Spárujte agenta Sona v Nastavení"
   },
   "overview": {
     "hero": {
@@ -2669,9 +2765,16 @@
       "metBefore_few": "S osobou {{name}} jste se setkali {{count}}krát · naposledy {{date}}",
       "metBefore_many": "S osobou {{name}} jste se setkali {{count}}krát · naposledy {{date}}",
       "metBefore_other": "S osobou {{name}} jste se setkali {{count}}krát · naposledy {{date}}",
-      "stillOpen": "Stále otevřené: {{text}}",
       "metCount": "S osobou {{name}} jste se setkali {{count}}krát",
       "metBefore": "S osobou {{name}} jste se setkali {{count}}krát · naposledy {{date}}"
+    },
+    "waitingOn": {
+      "iOwe": "Dlužím",
+      "them": "Čeká se na {{name}}",
+      "stale": "Po termínu",
+      "brief": "Čeká se na {{name}}: {{text}}",
+      "briefOverdue": "Po termínu u {{name}}: {{text}}",
+      "briefIOwe": "Dlužíte: {{text}}"
     }
   },
   "libraryV2": {

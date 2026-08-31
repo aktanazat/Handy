@@ -1493,6 +1493,10 @@
         "rowDescription": "关闭后将关闭面板窗口，并使 Sona 拒绝所有重新打开它的请求。",
         "title": "代理面板"
       },
+      "externalAccess": {
+        "label": "外部访问",
+        "rowDescription": "允许这台 Mac 上的其他程序通过 sona 命令行和 MCP 服务器读取你的会议、听写、人物和未完成事项。只读，默认关闭，需你手动开启。"
+      },
       "workspaceNavigation": "代理桥接视图",
       "sonaAgent": {
         "title": "Sona 代理",
@@ -1668,6 +1672,40 @@
         "description": "在有会议或有事项收尾的那天结束时，只发一条通知。所有内容都留在这台 Mac 上。",
         "timeLabel": "摘要时间",
         "timeHint": "本地时间。什么都没发生的一天不会打扰你。"
+      },
+      "automations": {
+        "title": "会议之后",
+        "description": "系列的笔记写好后，在这台 Mac 上运行的动作。每个系列默认关闭，直到你打开其中一个。",
+        "loading": "正在读取你的系列…",
+        "empty": "还没有录制过的系列。从日历事件录一场会议，它就会出现在这里。",
+        "seriesFact": "已录 {{count}} 场 · 最近 {{when}}",
+        "reminders": "把我未了结的承诺加入提醒事项",
+        "remindersHint": "把你还欠着的事写进一个叫 Sona 的列表。绝不会从里面读回任何内容。",
+        "remindersDenied": "macOS 尚未授予提醒事项访问权限。在「隐私与安全性 › 提醒事项」中更改。",
+        "shortcut": "运行快捷指令",
+        "shortcutHint": "按名称运行快捷指令，把会议导出作为输入。三十秒后停止。",
+        "shortcutPlaceholder": "快捷指令名称",
+        "webhook": "发送到 webhook",
+        "webhookHint": "以 JSON 形式 POST 会议导出。只能是你自己的机器或你的 tailnet——与中继同一条规则。",
+        "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "needsTarget": "请先填写名称",
+        "needsUrl": "请先填写地址",
+        "rejected": "另一个窗口改动了这些。请重新读取后再试。",
+        "invalid": "Sona 不会发到那里。请使用 localhost 或 tailnet 地址。",
+        "saveFailed": "没有保存成功。"
+      },
+      "remoteIntelligence": {
+        "title": "会议智能",
+        "label": "在我的服务器上撰写会议笔记",
+        "consent": "会议的摘要和回答将通过你的私有网络在你的服务器上撰写",
+        "unpaired": "先在“代理”中将 Sona 与你的服务器配对，才能开启",
+        "seriesTitle": "留在这台 Mac 上的系列",
+        "seriesHint": "此处列出的系列始终在这台 Mac 上撰写，即使会议智能已开启。",
+        "seriesEmpty": "还没有记录到重复会议",
+        "loading": "正在读取你的系列…",
+        "lastMet": "上次 {{date}}",
+        "keepLocalLabel": "将 {{series}} 留在这台 Mac 上",
+        "saveFailed": "该更改未保存。请重新读取该行后再试一次。"
       }
     }
   },
@@ -1702,7 +1740,14 @@
     "importAudio": "转录文件",
     "openRecordings": "打开录音文件夹",
     "openAgent": "打开智能体",
-    "esc": "esc"
+    "esc": "esc",
+    "search": {
+      "meetings": "会议",
+      "people": "人物",
+      "dictations": "口述",
+      "loops": "未答的问题",
+      "unavailable": "搜索当前不可用。"
+    }
   },
   "accessibility": {
     "permissionsDescription": "Sona 需要辅助功能权限才能输入转录的文字。",
@@ -2135,6 +2180,12 @@
       "carriedForward": "从上次会议顺延而来",
       "stale": "其他操作先生效了，列表已刷新。"
     },
+    "transcript": {
+      "trace": {
+        "jumpLine": "跳转到 {{time}} 的转录",
+        "tooltip": "显示这行内容的来源"
+      }
+    },
     "artifactState": {
       "current": "最新",
       "out_of_date": "已过时",
@@ -2368,6 +2419,42 @@
       "use": "此系列使用该模板",
       "saving": "正在记住…",
       "remembered": "此系列使用{{template}}"
+    },
+    "upcoming": {
+      "title": "即将开始",
+      "loading": "正在读取你的日历…",
+      "empty": "未来一周没有安排。",
+      "noAccess": "Sona 看不到你的日历。",
+      "noAccessHint": "在会议设置中打开「使用我的日历」，并在 macOS 询问时授予完全访问权限。macOS 日历里已有的一切——Google、iCloud、Outlook——都会一并读到。",
+      "unavailable": "此系统没有 Sona 能读取的日历。",
+      "attendees": "参与者",
+      "you": "你",
+      "attendeesMore": "+{{count}}",
+      "recurring": "重复",
+      "seriesOptions": "{{title}} 的系列选项",
+      "alwaysRecord": "始终录制此系列",
+      "alwaysRecordNeedsSource": "请先在上方选择一个采集来源。",
+      "template": "笔记模板",
+      "templateDefault": "应用默认",
+      "digest": "纳入晚间摘要"
+    },
+    "talkTime": {
+      "label": "发言时长",
+      "speakerShare": "{{name}} {{share}}",
+      "sentence": "发言时长：{{speakers}}"
+    },
+    "followUp": {
+      "draft": "起草跟进",
+      "drafting": "正在起草…",
+      "title": "跟进草稿",
+      "fromEngine": "根据摘要、你要做的事和决定写成。发送前请先看一遍。",
+      "fromRecord": "这里没有可用的写作引擎，所以草稿就是记录本身，逐字照录。",
+      "iOwe": "我要做的",
+      "decisions": "我们的决定",
+      "copy": "复制",
+      "copied": "草稿已复制。",
+      "copyFailed": "无法复制草稿。",
+      "failed": "无法为这场会议起草跟进。"
     }
   },
   "agentPanel": {
@@ -2416,7 +2503,16 @@
       "failed": "失败",
       "canceled": "已停止",
       "unverified_external": "未验证的回复"
+    },
+    "ask": {
+      "row": "询问 Sona：{{query}}",
+      "error": "无法将该问题发送给 Sona。"
     }
+  },
+  "chat": {
+    "open": "聊天",
+    "label": "与 Sona 代理聊天",
+    "unpaired": "在设置中配对 Sona 代理"
   },
   "overview": {
     "hero": {
@@ -2637,9 +2733,16 @@
       "metCount_other": "你曾与 {{name}} 见面 {{count}} 次",
       "metBefore_one": "你曾与 {{name}} 见面 1 次 · 最近一次 {{date}}",
       "metBefore_other": "你曾与 {{name}} 见面 {{count}} 次 · 最近一次 {{date}}",
-      "stillOpen": "仍待处理：{{text}}",
       "metCount": "你曾与 {{name}} 见面 {{count}} 次",
       "metBefore": "你曾与 {{name}} 见面 {{count}} 次 · 最近一次 {{date}}"
+    },
+    "waitingOn": {
+      "iOwe": "我负责",
+      "them": "等待 {{name}}",
+      "stale": "已逾期",
+      "brief": "等待 {{name}}：{{text}}",
+      "briefOverdue": "{{name}} 已逾期：{{text}}",
+      "briefIOwe": "你负责：{{text}}"
     }
   },
   "libraryV2": {

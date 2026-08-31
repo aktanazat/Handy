@@ -233,6 +233,14 @@ export const MeetingStartGate: React.FC<MeetingStartGateProps> = ({
   );
 };
 
+/* The consent policy every acknowledgement on this machine is stamped with.
+ *
+ * Named here because this module owns what an acknowledgement is. D28's
+ * always-record toggle makes the same acknowledgement ahead of time, for a
+ * whole series, and cites this same version — two spellings of it would let a
+ * standing grant claim a policy the per-attempt receipt never used. */
+export const MEETING_CONSENT_POLICY_VERSION = 1;
+
 /* Consent, in the wire shape the backend persists per attempt.
  *
  * The click on the labelled Start button below the assurance line is the
@@ -245,7 +253,7 @@ export const consentFor = (
   acceptedMissingSources: SourceKind[],
   acceptPartial: boolean,
 ): MeetingConsentInput => ({
-  policy_version: 1,
+  policy_version: MEETING_CONSENT_POLICY_VERSION,
   microphone_acknowledged: options.sources.includes("microphone"),
   system_audio_acknowledged: options.sources.includes("system_audio"),
   known_missing_sources_acknowledged: acceptedMissingSources,

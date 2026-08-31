@@ -1,5 +1,6 @@
 use super::protocol::{
-    AgentPanelWorkspaceV1, PanelTurnV1, SonaAgentResponseV1, MAX_PROPOSAL_BYTES,
+    AgentPanelWorkspaceV1, PanelTurnV1, SonaAgentResponseV1, SonaSubmissionV1,
+    MAX_CHAT_SUBMISSION_BYTES, MAX_PROPOSAL_BYTES, SONA_MODEL_ALIAS,
 };
 use base64::Engine as _;
 use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
@@ -24,9 +25,21 @@ const HEADER_STATUS: &str = "X-Bridge-Status";
 const HEADER_REQUEST_NONCE: &str = "X-Bridge-Req-Nonce";
 const HEADER_SIGNATURE: &str = "X-Bridge-Sig";
 const MAX_SKEW_SECONDS: u64 = 300;
-const MAX_RESPONSE_BYTES: usize = 64 * 1024;
+/// Room in a job row for the fields that are neither the submission nor the
+/// result: the two identifiers, the state, the workspace, the granted
+/// capabilities and the empty tool list.
+const JOB_ENVELOPE_BYTES: usize = 8 * 1024;
+/// The largest response body this client will read, in bytes.
+///
+/// Not a number of its own: the relay answers a submit, a poll and a cancel
+/// with the whole job row, and a job row carries the submission back verbatim
+/// beside the result. So a ceiling below "one max submission plus one max
+/// result" turns a pack the relay accepted into a reply this client refuses to
+/// read — the pack ceiling raised on one side and the answer unreadable on the
+/// other. Derived from both so the two cannot come apart.
+const MAX_RESPONSE_BYTES: usize =
+    MAX_CHAT_SUBMISSION_BYTES + MAX_PROPOSAL_BYTES + JOB_ENVELOPE_BYTES;
 const RESPONSE_NONCE_TTL: Duration = Duration::from_secs(MAX_SKEW_SECONDS * 2);
-pub(crate) const SONA_MODEL_ALIAS: &str = "ultra";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum RelayError {
@@ -247,7 +260,7 @@ impl RelayClient {
         turn: &PanelTurnV1,
     ) -> Result<RelayJob, RelayError> {
         let workspace = turn.workspace();
-        let body = SonaSubmission {
+        let body = SonaSubmissionV1 {
             workspace_id: workspace.id(),
             model: SONA_MODEL_ALIAS,
             capability: workspace.capability(),
@@ -435,15 +448,6 @@ pub(crate) fn new_idempotency_key() -> Result<String, RelayError> {
     Ok(hex::encode(bytes))
 }
 
-#[derive(Serialize)]
-struct SonaSubmission<'a> {
-    workspace_id: &'static str,
-    model: &'static str,
-    capability: &'static str,
-    idempotency_key: &'a str,
-    request: &'a PanelTurnV1,
-}
-
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct SubmissionResponse {
@@ -605,7 +609,7 @@ fn validate_relay_url(value: &str) -> Result<Url, RelayError> {
     if !matches!(url.scheme(), "https" | "http") {
         return Err(RelayError::InvalidConfiguration);
     }
-    if !is_private_relay_host(url.host_str()) {
+    if !crate::net_policy::is_private_relay_host(url.host_str()) {
         return Err(RelayError::CleartextRejected);
     }
     if url.path().is_empty() {
@@ -615,32 +619,6 @@ fn validate_relay_url(value: &str) -> Result<Url, RelayError> {
         return Err(RelayError::InvalidConfiguration);
     }
     Ok(url)
-}
-
-fn is_private_relay_host(host: Option<&str>) -> bool {
-    let Some(host) = host else {
-        return false;
-    };
-    let host = host.trim_matches(|character| matches!(character, '[' | ']'));
-    if host.eq_ignore_ascii_case("localhost") {
-        return true;
-    }
-    if host
-        .get(host.len().saturating_sub(7)..)
-        .is_some_and(|suffix| suffix.eq_ignore_ascii_case(".ts.net"))
-    {
-        return true;
-    }
-    if let Ok(ipv4) = host.parse::<std::net::Ipv4Addr>() {
-        let [first, second, _, _] = ipv4.octets();
-        return first == 127 || (first == 100 && (64..=127).contains(&second));
-    }
-    if let Ok(ipv6) = host.parse::<std::net::Ipv6Addr>() {
-        let segments = ipv6.segments();
-        return ipv6.is_loopback()
-            || (segments[0] == 0xfd7a && segments[1] == 0x115c && segments[2] == 0xa1e0);
-    }
-    false
 }
 
 fn verifying_key_from_base64(value: &str) -> Result<VerifyingKey, RelayError> {

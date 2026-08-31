@@ -21,6 +21,7 @@ import type {
 } from "./meetingTypes";
 import { MEETING_SOURCES } from "./meetingUtils";
 import { MeetingsHistory } from "./home/MeetingsHistory";
+import { MeetingsUpcoming } from "./home/MeetingsUpcoming";
 
 const START_BUTTON_ID = "meeting-start-button";
 const StartRecordingIcon = destinationIcons.overview;
@@ -251,6 +252,8 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
           </ul>
         </SettingsSection>
       ) : null}
+
+      <MeetingsUpcoming sources={sources} />
 
       <MeetingsHistory
         meetings={meetings}

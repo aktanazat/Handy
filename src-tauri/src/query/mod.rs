@@ -32,6 +32,8 @@
 //! find the same meeting, the row is reported once, with the words that
 //! literally matched as its snippet.
 
+pub mod external;
+pub mod pack;
 pub mod semantic;
 #[cfg(test)]
 mod tests;
@@ -52,8 +54,9 @@ use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::sync::Arc;
 
-/// Wire version of everything in this module. Bumped when a field changes
-/// meaning, never when one is added.
+/// Wire version of everything in this module, and of the read-only external
+/// surface in [`external`] that projects the same nouns out of the same
+/// corpus. Bumped when a field changes meaning, never when one is added.
 pub const QUERY_SCHEMA_VERSION: u32 = 1;
 
 const DEFAULT_PAGE_SIZE: usize = 25;
@@ -78,7 +81,9 @@ const LOOP_SCAN_DEPTH: usize = 200;
 const INDEX_TOP_UP_PER_SEARCH: usize = 2;
 
 /// What a caller wants searched. `All` is every scope this plane produces.
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[derive(
+    Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize, Type, clap::ValueEnum,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryScope {
     #[default]

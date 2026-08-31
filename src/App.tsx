@@ -15,6 +15,7 @@ import Onboarding from "./components/onboarding/Onboarding";
 import AccessibilityOnboarding from "./components/onboarding/AccessibilityOnboarding";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Sidebar } from "./components/Sidebar";
+import { ChatPill } from "./components/ChatPill";
 import { CommandPalette } from "./components/CommandPalette";
 import { DetectionListeners } from "./components/settings/meetings/DetectionListeners";
 import { PAGE_COLUMN } from "./components/settings/rows";
@@ -46,11 +47,26 @@ import { MotionProvider } from "@/lib/motion/provider";
 
 type OnboardingStep = "accessibility" | "model" | "done";
 
+/* One `sona://` address the shell was asked to open, as the surface that owns
+ * it needs it. The nonce is the request, not the target: asking for the same
+ * person or the same question twice has to move state twice, and a bare id
+ * would be equal to the one already there. */
+interface PersonRequest {
+  personId: string;
+  nonce: number;
+}
+
+interface SearchRequest {
+  query: string;
+  nonce: number;
+}
+
 interface SettingsContentProps {
   section: SidebarSection;
   meetingInvalidation: number;
   meetingNavigationRequest: MeetingNavigationPayload | null;
   meetingStartRequest: number;
+  personRequest: PersonRequest | null;
   onSectionChange: (section: SidebarSection) => void;
   onOpenMeeting: (meetingId: string) => void;
 }
@@ -60,6 +76,7 @@ const renderSettingsContent = ({
   meetingInvalidation,
   meetingNavigationRequest,
   meetingStartRequest,
+  personRequest,
   onSectionChange,
   onOpenMeeting,
 }: SettingsContentProps) => {
@@ -87,7 +104,12 @@ const renderSettingsContent = ({
 
   if (section === "people") {
     const PeopleComponent = SECTIONS_CONFIG.people.component;
-    return <PeopleComponent onOpenMeeting={onOpenMeeting} />;
+    return (
+      <PeopleComponent
+        onOpenMeeting={onOpenMeeting}
+        personRequest={personRequest}
+      />
+    );
   }
 
   if (section === "settings") {
@@ -132,7 +154,7 @@ const subscribeToMeetingEvents = async (
  * primitives — they own this app's copy rules and page rhythm. The shell only
  * decides where they mount. */
 
-interface AppContentProps {
+export interface AppContentProps {
   onboardingStep: OnboardingStep | null;
   onAccessibilityComplete: () => void;
   onModelSelected: () => void;
@@ -144,13 +166,19 @@ interface AppContentProps {
   meetingInvalidation: number;
   meetingNavigationRequest: MeetingNavigationPayload | null;
   meetingStartRequest: number;
+  personRequest: PersonRequest | null;
   commandOpen: boolean;
   commandActions: CommandPaletteAction[];
+  commandSeed: SearchRequest | null;
+  agentPanel: { enabled: boolean; paired: boolean };
   onCommandOpenChange: (open: boolean) => void;
   onCommandOpen: () => void;
 }
 
-const AppContent = ({
+/* Exported for the shell's own test: `App` itself paints nothing until the
+ * onboarding probe answers, so the layout — the rail, the banner strip, the
+ * scroll owner and the chat pill's corner — is only assertable from here. */
+export const AppContent = ({
   onboardingStep,
   onAccessibilityComplete,
   onModelSelected,
@@ -162,8 +190,11 @@ const AppContent = ({
   meetingInvalidation,
   meetingNavigationRequest,
   meetingStartRequest,
+  personRequest,
   commandOpen,
   commandActions,
+  commandSeed,
+  agentPanel,
   onCommandOpenChange,
   onCommandOpen,
 }: AppContentProps) => {
@@ -194,15 +225,25 @@ const AppContent = ({
       />
       {/* `settings-main` is a hook as well: primitives.css still styles bare
        * inputs and selects through it for the surfaces that have not moved to
-       * the component kit yet. */}
-      <main className="settings-main flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="flex-1 overflow-x-hidden overflow-y-auto">
+       * the component kit yet. `relative` is what the chat pill is positioned
+       * against: the content pane, not the page and not the scroll box. */}
+      <main className="settings-main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        {/* Above the scroll owner and outside it, so it holds its corner on
+         * every route and through every scroll. It draws nothing at all when
+         * the panel is off by setting. */}
+        <ChatPill enabled={agentPanel.enabled} paired={agentPanel.paired} />
+        <div
+          data-slot="page-scroll"
+          className="flex-1 overflow-x-hidden overflow-y-auto"
+        >
           {/* Every page owns its own column now, so the scroll region is full
            * width and unpadded. These two are shell banners rather than
            * pages, so they borrow the pages' column from the primitive that
            * owns it — and both render nothing on the ordinary path, which is
-           * what collapses the wrapper. */}
-          <div className={cn(PAGE_COLUMN, "pt-8 empty:hidden")}>
+           * what collapses the wrapper. The top padding matches a page's
+           * `py-12` rather than sitting 14px above it: the pill's band is the
+           * one thing in the pane a banner may not grow into. */}
+          <div className={cn(PAGE_COLUMN, "pt-12 empty:hidden")}>
             <AccessibilityPermissions />
             <SecureInputWarning />
           </div>
@@ -222,6 +263,7 @@ const AppContent = ({
                 meetingInvalidation,
                 meetingNavigationRequest,
                 meetingStartRequest,
+                personRequest,
                 onSectionChange,
                 onOpenMeeting,
               })}
@@ -233,6 +275,8 @@ const AppContent = ({
         open={commandOpen}
         onOpenChange={onCommandOpenChange}
         actions={commandActions}
+        seed={commandSeed}
+        panel={agentPanel}
       />
     </div>
   );
@@ -444,6 +488,10 @@ function App() {
     useState<MeetingNavigationPayload | null>(null);
   const [meetingStartRequest, setMeetingStartRequest] = useState(0);
   const [commandOpen, setCommandOpen] = useState(false);
+  const [commandSeed, setCommandSeed] = useState<SearchRequest | null>(null);
+  const [personRequest, setPersonRequest] = useState<PersonRequest | null>(
+    null,
+  );
   const { settings, updateSetting } = useSettings();
   const direction = getLanguageDirection(i18n.language);
   const refreshAudioDevices = useSettingsStore(
@@ -518,6 +566,51 @@ function App() {
     void events.sonaCaptureRequested
       .listen(() => {
         if (!disposed) setCurrentSection("overview");
+      })
+      .then((cleanup) => {
+        if (disposed) cleanup();
+        else unsubscribe = cleanup;
+      });
+    return () => {
+      disposed = true;
+      unsubscribe?.();
+    };
+  }, []);
+
+  /* The other half of `sona://`. Meetings and loops arrive on the meeting
+   * navigation event above, because a meeting has a lifecycle to navigate; the
+   * nouns that had no destination of their own arrive here. One listener, three
+   * targets, and the same routing whether the address came from the OS, from a
+   * ⌘K row, or from a link an agent cited in the panel.
+   *
+   * A dictation opens Library and stops there. The feed pages by time and has
+   * no way to address one row, so scrolling to it would mean inventing a second
+   * answer to "where is a dictation" inside a listener — the row's own surface
+   * is where that belongs, if it is ever worth it. */
+  useEffect(() => {
+    let disposed = false;
+    let unsubscribe: (() => void) | null = null;
+    void events.queryLinkRequested
+      .listen((event) => {
+        if (disposed) return;
+        const target = event.payload.target;
+        if (target.kind === "person") {
+          setPersonRequest((current) => ({
+            personId: target.person_id,
+            nonce: (current?.nonce ?? 0) + 1,
+          }));
+          runViewTransition(() => setCurrentSection("people"));
+          return;
+        }
+        if (target.kind === "dictation") {
+          runViewTransition(() => setCurrentSection("history"));
+          return;
+        }
+        setCommandSeed((current) => ({
+          query: target.query,
+          nonce: (current?.nonce ?? 0) + 1,
+        }));
+        setCommandOpen(true);
       })
       .then((cleanup) => {
         if (disposed) cleanup();
@@ -725,8 +818,16 @@ function App() {
         meetingInvalidation={meetingInvalidation}
         meetingNavigationRequest={meetingNavigationRequest}
         meetingStartRequest={meetingStartRequest}
+        personRequest={personRequest}
         commandOpen={commandOpen}
         commandActions={commandActions}
+        commandSeed={commandSeed}
+        /* Pairing decides whether the ask row is offered, so the palette reads
+         * the same two settings the panel's own pairing screen writes. */
+        agentPanel={{
+          enabled: agentEnabled,
+          paired: settings?.agent_panel_paired === true,
+        }}
         onCommandOpenChange={setCommandOpen}
         onCommandOpen={openCommandPalette}
       />

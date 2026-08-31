@@ -115,11 +115,13 @@ export const PersonDetailView: React.FC<PersonDetailViewProps> = ({
       />
       <PersonOpenLoops
         openLoops={detail.open_loops}
+        personName={detail.person.display_name}
         onOpenMeeting={onOpenMeeting}
       />
       <PersonEvidence links={detail.links} />
       <PersonCommitments
         commitments={detail.commitments}
+        personName={detail.person.display_name}
         onOpenMeeting={onOpenMeeting}
       />
 

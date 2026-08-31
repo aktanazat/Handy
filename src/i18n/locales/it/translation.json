@@ -1493,6 +1493,10 @@
         "rowDescription": "Disattivandolo la finestra del pannello si chiude e Sona rifiuta ogni richiesta di riaprirla.",
         "title": "Pannello agenti"
       },
+      "externalAccess": {
+        "label": "Accesso esterno",
+        "rowDescription": "Consente ad altri programmi su questo Mac di leggere riunioni, dettati, persone e impegni aperti tramite la riga di comando sona e il server MCP. Sola lettura, e disattivato finché non lo attivi."
+      },
       "workspaceNavigation": "Viste del bridge agenti",
       "sonaAgent": {
         "title": "Agente Sona",
@@ -1680,6 +1684,40 @@
         "description": "Una notifica alla fine di una giornata con riunioni o questioni chiuse. Tutto resta su questo Mac.",
         "timeLabel": "Ora del riepilogo",
         "timeHint": "Ora locale. Una giornata senza nulla resta in silenzio."
+      },
+      "automations": {
+        "title": "Dopo una riunione",
+        "description": "Azioni che girano su questo Mac quando le note di una serie vengono scritte. Disattivate per ogni serie finché non ne accendi una.",
+        "loading": "Lettura delle tue serie…",
+        "empty": "Nessuna serie registrata. Registra una riunione da un evento del calendario e comparirà qui.",
+        "seriesFact": "{{count}} registrate · ultima volta {{when}}",
+        "reminders": "Aggiungi i miei impegni aperti a Promemoria",
+        "remindersHint": "Scrive ciò che devi ancora in un elenco chiamato Sona. Da lì non viene mai riletto nulla.",
+        "remindersDenied": "macOS non ha concesso l'accesso a Promemoria. Cambialo in Privacy e sicurezza › Promemoria.",
+        "shortcut": "Esegui un comando rapido",
+        "shortcutHint": "Esegue il comando rapido per nome con l'esportazione della riunione in ingresso. Trenta secondi, poi viene fermato.",
+        "shortcutPlaceholder": "Nome del comando rapido",
+        "webhook": "Invia a un webhook",
+        "webhookHint": "Invia l'esportazione della riunione come JSON. Solo la tua macchina o la tua tailnet: la stessa regola del relay.",
+        "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "needsTarget": "Aggiungi prima un nome",
+        "needsUrl": "Aggiungi prima un indirizzo",
+        "rejected": "Un'altra finestra ha cambiato questo. Rileggi e riprova.",
+        "invalid": "Sona non invierà lì. Usa localhost o un indirizzo tailnet.",
+        "saveFailed": "Non è stato salvato."
+      },
+      "remoteIntelligence": {
+        "title": "Intelligenza delle riunioni",
+        "label": "Scrivi le note delle riunioni sul mio server",
+        "consent": "I riassunti e le risposte delle riunioni vengono scritti sul tuo server attraverso la tua rete privata",
+        "unpaired": "Abbina Sona al tuo server in Agenti per attivarlo",
+        "seriesTitle": "Serie che restano su questo Mac",
+        "seriesHint": "Una serie elencata qui viene sempre scritta su questo Mac, anche con l'intelligenza delle riunioni attiva.",
+        "seriesEmpty": "Nessuna riunione ricorrente registrata finora",
+        "loading": "Lettura delle tue serie…",
+        "lastMet": "Ultima volta il {{date}}",
+        "keepLocalLabel": "Tieni {{series}} su questo Mac",
+        "saveFailed": "La modifica non è stata salvata. Rileggi la riga e riprova."
       }
     }
   },
@@ -1714,7 +1752,14 @@
     "importAudio": "Trascrivi file",
     "openRecordings": "Apri la cartella delle registrazioni",
     "openAgent": "Apri agente",
-    "esc": "esc"
+    "esc": "esc",
+    "search": {
+      "meetings": "Riunioni",
+      "people": "Persone",
+      "dictations": "Dettature",
+      "loops": "Domande aperte",
+      "unavailable": "La ricerca non è disponibile in questo momento."
+    }
   },
   "accessibility": {
     "permissionsDescription": "Sona ha bisogno dei permessi di accessibilità per digitare il testo trascritto.",
@@ -2147,6 +2192,12 @@
       "carriedForward": "Rinviato da una riunione precedente",
       "stale": "Qualcun altro ha spostato questo punto per primo, la lista è stata aggiornata."
     },
+    "transcript": {
+      "trace": {
+        "jumpLine": "Vai alla trascrizione a {{time}}",
+        "tooltip": "Mostra da dove arriva questa riga"
+      }
+    },
     "artifactState": {
       "current": "Aggiornata",
       "out_of_date": "Non aggiornata",
@@ -2380,6 +2431,42 @@
       "use": "Usa questo modello per questa serie",
       "saving": "Salvataggio…",
       "remembered": "Questa serie usa {{template}}"
+    },
+    "upcoming": {
+      "title": "In arrivo",
+      "loading": "Lettura del calendario…",
+      "empty": "Niente in programma per la prossima settimana.",
+      "noAccess": "Sona non vede il tuo calendario.",
+      "noAccessHint": "Attiva «Usa il mio calendario» nelle impostazioni delle riunioni e concedi l'accesso completo quando macOS lo chiede. Tutto ciò che Calendario di macOS già mostra — Google, iCloud, Outlook — arriva con esso.",
+      "unavailable": "Questo sistema non ha un calendario che Sona possa leggere.",
+      "attendees": "Partecipanti",
+      "you": "Tu",
+      "attendeesMore": "+{{count}}",
+      "recurring": "Si ripete",
+      "seriesOptions": "Opzioni della serie {{title}}",
+      "alwaysRecord": "Registra sempre questa serie",
+      "alwaysRecordNeedsSource": "Scegli prima una sorgente di acquisizione qui sopra.",
+      "template": "Modello di note",
+      "templateDefault": "Predefinito dell'app",
+      "digest": "Includi nel riepilogo serale"
+    },
+    "talkTime": {
+      "label": "Tempo di parola",
+      "speakerShare": "{{name}} {{share}}",
+      "sentence": "Tempo di parola: {{speakers}}"
+    },
+    "followUp": {
+      "draft": "Scrivi il follow-up",
+      "drafting": "Scrittura…",
+      "title": "Bozza di follow-up",
+      "fromEngine": "Scritta a partire dal riepilogo, da ciò che devi e dalle decisioni. Leggila prima di inviarla.",
+      "fromRecord": "Qui non è disponibile alcun motore di scrittura, quindi la bozza è il verbale stesso, parola per parola.",
+      "iOwe": "Cosa devo",
+      "decisions": "Cosa abbiamo deciso",
+      "copy": "Copia",
+      "copied": "Bozza copiata.",
+      "copyFailed": "Impossibile copiare la bozza.",
+      "failed": "Impossibile scrivere un follow-up per questa riunione."
     }
   },
   "agentPanel": {
@@ -2428,7 +2515,16 @@
       "failed": "Non riuscito",
       "canceled": "Interrotto",
       "unverified_external": "Risposta non verificata"
+    },
+    "ask": {
+      "row": "Chiedi a Sona: {{query}}",
+      "error": "Impossibile inviare la domanda a Sona."
     }
+  },
+  "chat": {
+    "open": "Chat",
+    "label": "Chatta con l'agente Sona",
+    "unpaired": "Abbina l'agente Sona in Impostazioni"
   },
   "overview": {
     "hero": {
@@ -2657,9 +2753,16 @@
       "metBefore_one": "Hai incontrato {{name}} una volta · ultima {{date}}",
       "metBefore_many": "Hai incontrato {{name}} {{count}} volte · ultima {{date}}",
       "metBefore_other": "Hai incontrato {{name}} {{count}} volte · ultima {{date}}",
-      "stillOpen": "Ancora aperto: {{text}}",
       "metCount": "Hai incontrato {{name}} {{count}} volte",
       "metBefore": "Hai incontrato {{name}} {{count}} volte · ultima {{date}}"
+    },
+    "waitingOn": {
+      "iOwe": "Devo",
+      "them": "In attesa di {{name}}",
+      "stale": "In ritardo",
+      "brief": "In attesa di {{name}}: {{text}}",
+      "briefOverdue": "In ritardo con {{name}}: {{text}}",
+      "briefIOwe": "Devi: {{text}}"
     }
   },
   "libraryV2": {

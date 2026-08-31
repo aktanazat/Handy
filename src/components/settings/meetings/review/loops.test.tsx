@@ -69,6 +69,7 @@ const row = (
   owner_text: "Dana Reyes",
   owner_person_id: null,
   owner_display_name: null,
+  direction: "waiting_on",
   status,
   resolved_at_utc_ms: null,
   resolving_operation_id: null,

@@ -641,6 +641,9 @@ fn validate_generated_artifacts(
         return Ok(());
     };
     validate_cited_artifact_text(&artifacts.summary, segment_ids)?;
+    for entry in &artifacts.summary_trace {
+        validate_artifact_citation(&entry.anchor, segment_ids)?;
+    }
     for topic in &artifacts.outline {
         validate_cited_artifact_text(&topic.title, segment_ids)?;
         if let Some(detail) = &topic.detail {
@@ -670,11 +673,21 @@ fn validate_cited_artifact_text(
 ) -> Result<(), StoreError> {
     validate_text(&value.text)?;
     for citation in &value.citations {
-        if !segment_ids.contains(&citation.segment_id)
-            || citation.start_offset_ns >= citation.end_offset_ns
-        {
-            return Err(StoreError::Invalid);
-        }
+        validate_artifact_citation(citation, segment_ids)?;
+    }
+    Ok(())
+}
+
+/// One rule for every artifact citation, wherever it is attached: it names a
+/// segment this bundle actually carries, and it names a real span of it.
+fn validate_artifact_citation(
+    citation: &ArtifactCitation,
+    segment_ids: &HashSet<TranscriptSegmentId>,
+) -> Result<(), StoreError> {
+    if !segment_ids.contains(&citation.segment_id)
+        || citation.start_offset_ns >= citation.end_offset_ns
+    {
+        return Err(StoreError::Invalid);
     }
     Ok(())
 }

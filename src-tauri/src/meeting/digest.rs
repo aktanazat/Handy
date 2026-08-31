@@ -107,15 +107,15 @@ pub(crate) fn due_digest_day(
 /// The sentence, or `None` when the day does not deserve one.
 ///
 /// "The day had activity" means something happened today: a meeting was
-/// captured, or a loop was closed. Waiting suggestions are a backlog rather
-/// than an event, so they can join the sentence but never start one — a queue
-/// nobody has emptied would otherwise raise the same notification every evening
-/// until they did.
+/// captured, or a loop was closed. Waiting suggestions and overdue handoffs
+/// are backlogs rather than events, so they can join the sentence but never
+/// start one — a queue nobody has emptied would otherwise raise the same
+/// notification every evening until they did.
 pub(crate) fn digest_body(counts: MeetingDigestCounts) -> Option<String> {
     if counts.meetings == 0 && counts.loops_closed == 0 {
         return None;
     }
-    let mut clauses = Vec::with_capacity(3);
+    let mut clauses = Vec::with_capacity(4);
     if counts.meetings > 0 {
         clauses.push(plural(counts.meetings, "meeting", "meetings"));
     }
@@ -129,6 +129,12 @@ pub(crate) fn digest_body(counts: MeetingDigestCounts) -> Option<String> {
         clauses.push(format!(
             "{} waiting",
             plural(counts.suggestions_waiting, "suggestion", "suggestions")
+        ));
+    }
+    if counts.waiting_on_stale > 0 {
+        clauses.push(format!(
+            "{} overdue with others",
+            plural(counts.waiting_on_stale, "loop", "loops")
         ));
     }
     Some(clauses.join(", "))
@@ -236,6 +242,7 @@ impl MeetingSessionManager {
                 meetings: receipt.outcome_counts.meetings,
                 loops_closed: receipt.outcome_counts.loops_closed,
                 suggestions_waiting: receipt.outcome_counts.suggestions_waiting,
+                waiting_on_stale: receipt.outcome_counts.waiting_on_stale,
             })
         else {
             return Err(super::store::StoreError::Unavailable);
@@ -277,11 +284,17 @@ mod tests {
     use super::*;
     use chrono::TimeZone;
 
-    fn counts(meetings: u64, loops_closed: u64, suggestions_waiting: u64) -> MeetingDigestCounts {
+    fn counts(
+        meetings: u64,
+        loops_closed: u64,
+        suggestions_waiting: u64,
+        waiting_on_stale: u64,
+    ) -> MeetingDigestCounts {
         MeetingDigestCounts {
             meetings,
             loops_closed,
             suggestions_waiting,
+            waiting_on_stale,
         }
     }
 
@@ -295,31 +308,46 @@ mod tests {
     #[test]
     fn the_sentence_is_the_counts_the_day_actually_had() {
         assert_eq!(
-            digest_body(counts(2, 3, 1)).as_deref(),
-            Some("2 meetings, 3 loops closed, 1 suggestion waiting")
+            digest_body(counts(2, 3, 1, 4)).as_deref(),
+            Some("2 meetings, 3 loops closed, 1 suggestion waiting, 4 loops overdue with others")
         );
     }
 
     #[test]
     fn one_of_a_thing_is_singular() {
         assert_eq!(
-            digest_body(counts(1, 1, 1)).as_deref(),
-            Some("1 meeting, 1 loop closed, 1 suggestion waiting")
+            digest_body(counts(1, 1, 1, 1)).as_deref(),
+            Some("1 meeting, 1 loop closed, 1 suggestion waiting, 1 loop overdue with others")
         );
     }
 
     #[test]
     fn a_clause_worth_zero_is_left_out_rather_than_printed() {
-        assert_eq!(digest_body(counts(2, 0, 0)).as_deref(), Some("2 meetings"));
         assert_eq!(
-            digest_body(counts(0, 4, 0)).as_deref(),
+            digest_body(counts(2, 0, 0, 0)).as_deref(),
+            Some("2 meetings")
+        );
+        assert_eq!(
+            digest_body(counts(0, 4, 0, 0)).as_deref(),
             Some("4 loops closed")
+        );
+    }
+
+    /// A backlog is not news. Overdue handoffs join a sentence the day earned
+    /// and never raise one on their own, or the same notification would arrive
+    /// every evening until somebody else answered their email.
+    #[test]
+    fn overdue_handoffs_join_a_sentence_but_never_start_one() {
+        assert_eq!(digest_body(counts(0, 0, 0, 9)), None);
+        assert_eq!(
+            digest_body(counts(1, 0, 0, 9)).as_deref(),
+            Some("1 meeting, 9 loops overdue with others")
         );
     }
 
     #[test]
     fn a_day_with_nothing_in_it_has_no_sentence() {
-        assert_eq!(digest_body(counts(0, 0, 0)), None);
+        assert_eq!(digest_body(counts(0, 0, 0, 0)), None);
     }
 
     /// A suggestion queue nobody has emptied is a backlog, not today's news.
@@ -327,9 +355,9 @@ mod tests {
     /// cleared, which is the behavior this product does not have.
     #[test]
     fn waiting_suggestions_join_a_sentence_but_never_start_one() {
-        assert_eq!(digest_body(counts(0, 0, 7)), None);
+        assert_eq!(digest_body(counts(0, 0, 7, 0)), None);
         assert_eq!(
-            digest_body(counts(1, 0, 7)).as_deref(),
+            digest_body(counts(1, 0, 7, 0)).as_deref(),
             Some("1 meeting, 7 suggestions waiting")
         );
     }

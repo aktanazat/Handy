@@ -1493,6 +1493,10 @@
         "rowDescription": "Bunu kapatmak panel penceresini kapatır ve Sona'nın yeniden açma isteklerinin tümünü reddetmesini sağlar.",
         "title": "Ajan paneli"
       },
+      "externalAccess": {
+        "label": "Harici erişim",
+        "rowDescription": "Bu Mac'teki diğer programların sona komut satırı ve MCP sunucusu üzerinden toplantılarınızı, dikte kayıtlarınızı, kişileri ve açık işleri okumasına izin verir. Salt okunur ve siz açana kadar kapalı."
+      },
       "workspaceNavigation": "Ajan köprüsü görünümleri",
       "sonaAgent": {
         "title": "Sona aracısı",
@@ -1674,6 +1678,40 @@
         "description": "Toplantı yapılan ya da bir madde kapatılan günün sonunda tek bildirim. Her şey bu Mac'te kalır.",
         "timeLabel": "Özet saati",
         "timeHint": "Yerel saat. Hiçbir şeyin olmadığı gün sessiz kalır."
+      },
+      "automations": {
+        "title": "Toplantıdan sonra",
+        "description": "Bir serinin notları yazıldığında bu Mac'te çalışan işlemler. Sen birini açana kadar her seride kapalı.",
+        "loading": "Serilerin okunuyor…",
+        "empty": "Henüz kaydedilmiş seri yok. Takvim etkinliğinden bir toplantı kaydet, burada görünür.",
+        "seriesFact": "{{count}} kayıt · son {{when}}",
+        "reminders": "Açık taahhütlerimi Anımsatıcılar'a ekle",
+        "remindersHint": "Hâlâ sende olanı Sona adlı bir listeye yazar. Oradan asla bir şey geri okunmaz.",
+        "remindersDenied": "macOS Anımsatıcılar erişimi vermedi. Bunu Gizlilik ve Güvenlik › Anımsatıcılar'dan değiştir.",
+        "shortcut": "Bir Kısayol çalıştır",
+        "shortcutHint": "Kısayolu adıyla, toplantının dışa aktarımı girdi olarak çalıştırır. Otuz saniye, sonra durdurulur.",
+        "shortcutPlaceholder": "Kısayol adı",
+        "webhook": "Bir webhook'a gönder",
+        "webhookHint": "Toplantının dışa aktarımını JSON olarak gönderir. Yalnızca kendi makinen ya da tailnet'in — röleyle aynı kural.",
+        "webhookPlaceholder": "http://100.x.y.z:8650/hook",
+        "needsTarget": "Önce bir ad ekle",
+        "needsUrl": "Önce bir adres ekle",
+        "rejected": "Başka bir pencere bunu değiştirdi. Yeniden okuyup tekrar dene.",
+        "invalid": "Sona oraya göndermez. localhost ya da bir tailnet adresi kullan.",
+        "saveFailed": "Bu kaydedilmedi."
+      },
+      "remoteIntelligence": {
+        "title": "Toplantı zekâsı",
+        "label": "Toplantı notlarını kendi sunucumda yaz",
+        "consent": "Toplantı özetleri ve yanıtları, özel ağın üzerinden kendi sunucunda yazılır",
+        "unpaired": "Bunu açmak için Ajanlar bölümünde Sona'yı sunucunla eşleştir",
+        "seriesTitle": "Bu Mac'te kalan seriler",
+        "seriesHint": "Burada listelenen bir seri, toplantı zekâsı açıkken bile hep bu Mac'te yazılır.",
+        "seriesEmpty": "Henüz kaydedilmiş yinelenen toplantı yok",
+        "loading": "Serileriniz okunuyor…",
+        "lastMet": "Son görüşme {{date}}",
+        "keepLocalLabel": "{{series}} serisini bu Mac'te tut",
+        "saveFailed": "Bu değişiklik kaydedilmedi. Satırı yeniden okuyup bir daha dene."
       }
     }
   },
@@ -1708,7 +1746,14 @@
     "importAudio": "Dosyayı transkribe et",
     "openRecordings": "Kayıtlar Klasörünü Aç",
     "openAgent": "Ajanı aç",
-    "esc": "esc"
+    "esc": "esc",
+    "search": {
+      "meetings": "Toplantılar",
+      "people": "Kişiler",
+      "dictations": "Dikteler",
+      "loops": "Yanıtsız sorular",
+      "unavailable": "Arama şu anda kullanılamıyor."
+    }
   },
   "accessibility": {
     "permissionsDescription": "Sona, transkribe edilen metni yazabilmek için erişilebilirlik izinlerine ihtiyaç duyar.",
@@ -2141,6 +2186,12 @@
       "carriedForward": "Önceki bir toplantıdan devredildi",
       "stale": "Bu konuyu başka biri sizden önce taşıdı, liste yenilendi."
     },
+    "transcript": {
+      "trace": {
+        "jumpLine": "Transkriptte {{time}} konumuna git",
+        "tooltip": "Bu satırın nereden geldiğini göster"
+      }
+    },
     "artifactState": {
       "current": "Güncel",
       "out_of_date": "Güncel değil",
@@ -2374,6 +2425,42 @@
       "use": "Bu şablonu bu seri için kullan",
       "saving": "Kaydediliyor…",
       "remembered": "Bu seri {{template}} kullanıyor"
+    },
+    "upcoming": {
+      "title": "Yaklaşanlar",
+      "loading": "Takviminiz okunuyor…",
+      "empty": "Önümüzdeki hafta için planlanmış bir şey yok.",
+      "noAccess": "Sona takviminizi göremiyor.",
+      "noAccessHint": "Toplantı ayarlarında \"Takvimimi kullan\"ı açın, macOS sorduğunda tam erişim verin. macOS Takvim'in zaten gösterdiği her şey — Google, iCloud, Outlook — bununla birlikte gelir.",
+      "unavailable": "Bu sistemde Sona'nın okuyabileceği bir takvim yok.",
+      "attendees": "Katılımcılar",
+      "you": "Siz",
+      "attendeesMore": "+{{count}}",
+      "recurring": "Yineleniyor",
+      "seriesOptions": "{{title}} için seri seçenekleri",
+      "alwaysRecord": "Bu seriyi her zaman kaydet",
+      "alwaysRecordNeedsSource": "Önce yukarıdan bir kayıt kaynağı seçin.",
+      "template": "Not şablonu",
+      "templateDefault": "Uygulama varsayılanı",
+      "digest": "Akşam özetine dahil et"
+    },
+    "talkTime": {
+      "label": "Konuşma süresi",
+      "speakerShare": "{{name}} {{share}}",
+      "sentence": "Konuşma süresi: {{speakers}}"
+    },
+    "followUp": {
+      "draft": "Takip mesajı yaz",
+      "drafting": "Yazılıyor…",
+      "title": "Takip mesajı taslağı",
+      "fromEngine": "Özetten, üstlendiklerinden ve kararlardan yazıldı. Göndermeden önce oku.",
+      "fromRecord": "Burada kullanılabilir bir yazım motoru yok, bu yüzden taslak kaydın kendisi, kelimesi kelimesine.",
+      "iOwe": "Bana düşenler",
+      "decisions": "Karar verdiklerimiz",
+      "copy": "Kopyala",
+      "copied": "Taslak kopyalandı.",
+      "copyFailed": "Taslak kopyalanamadı.",
+      "failed": "Bu toplantı için takip mesajı yazılamadı."
     }
   },
   "agentPanel": {
@@ -2422,7 +2509,16 @@
       "failed": "Başarısız",
       "canceled": "Durduruldu",
       "unverified_external": "Doğrulanmamış yanıt"
+    },
+    "ask": {
+      "row": "Sona'ya sor: {{query}}",
+      "error": "Soru Sona'ya gönderilemedi."
     }
+  },
+  "chat": {
+    "open": "Sohbet",
+    "label": "Sona aracısıyla sohbet et",
+    "unpaired": "Sona aracısını Ayarlar'da eşleştirin"
   },
   "overview": {
     "hero": {
@@ -2645,9 +2741,16 @@
       "metCount_other": "{{name}} ile {{count}} kez görüştünüz",
       "metBefore_one": "{{name}} ile bir kez görüştünüz · son {{date}}",
       "metBefore_other": "{{name}} ile {{count}} kez görüştünüz · son {{date}}",
-      "stillOpen": "Hâlâ açık: {{text}}",
       "metCount": "{{name}} ile {{count}} kez görüştünüz",
       "metBefore": "{{name}} ile {{count}} kez görüştünüz · son {{date}}"
+    },
+    "waitingOn": {
+      "iOwe": "Bana düşen",
+      "them": "{{name}} bekleniyor",
+      "stale": "Gecikmiş",
+      "brief": "{{name}} bekleniyor: {{text}}",
+      "briefOverdue": "{{name}} tarafında gecikmiş: {{text}}",
+      "briefIOwe": "Sana düşen: {{text}}"
     }
   },
   "libraryV2": {

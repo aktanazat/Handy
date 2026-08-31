@@ -5,8 +5,10 @@ import {
   MeetingDetectionAdvanced,
   MeetingDetectionState,
 } from "../meetings/MeetingDetectionSettings";
+import { MeetingAutomations } from "../meetings/MeetingAutomations";
 import { MeetingDigestSettings } from "../meetings/MeetingDigestSettings";
 import { MeetingRetentionSettings } from "../meetings/MeetingRetention";
+import { MeetingRemoteIntelligence } from "../meetings/MeetingRemoteIntelligence";
 import { MeetingTrackersSettings } from "../meetings/MeetingTrackersSettings";
 
 /* Everything about meetings that is not the switch on Essentials.
@@ -27,6 +29,8 @@ export const AdvancedMeetings: React.FC = () => {
         <MeetingDigestSettings />
       </SettingsSection>
       <MeetingDetectionState />
+      <MeetingRemoteIntelligence />
+      <MeetingAutomations />
       <MeetingTrackersSettings />
     </>
   );

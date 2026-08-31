@@ -12,7 +12,7 @@ import type {
   AgentPanelWorkspaceV1,
   SonaAgentChatTurnV1,
 } from "@/bindings";
-import { AgentPanelView, type PanelPhase } from "./AgentPanelView";
+import { AgentPanelView, linkifySona, type PanelPhase } from "./AgentPanelView";
 
 /* The panel's one hard rule is that a datum appears once per screen. It used to
  * break it in three places at once — the phase sentence in the header AND in the
@@ -156,6 +156,7 @@ const render = ({
         onSend={() => {}}
         onDraftChange={() => {}}
         onWorkspaceChange={() => {}}
+        onOpenLink={() => {}}
       />
     </I18nextProvider>,
   );
@@ -253,7 +254,7 @@ describe("which regions a phase is allowed to draw", () => {
 describe("a free-text answer", () => {
   test("lands in the scrollback with no card behind it", () => {
     const markup = render({ phase: "idle", conversation: ANSWER });
-    expect(markup).toContain("The deck, by Friday. sona://meeting/m-1");
+    expect(markup).toContain("The deck, by Friday. ");
     // An answer is a message, not a proposal: nothing to apply, nothing to undo.
     expect(markup.includes(en.agentPanel.proposalTitle)).toBe(false);
     expect(markup.includes("agent-panel-proposal-title")).toBe(false);
@@ -267,6 +268,59 @@ describe("a free-text answer", () => {
     });
     expect(markup).toContain(CONVERSATION[1].message);
     expect(markup).toContain(en.agentPanel.proposalTitle);
+  });
+});
+
+/* The pack the panel is given is quotes plus `sona://` addresses
+ * (`query/pack.rs`), so an answer that used its evidence writes those addresses
+ * back. Left as text they are the one thing on screen that looks clickable and
+ * is not. */
+describe("an answer's citations", () => {
+  test("every address in the message becomes its own control, in place", () => {
+    expect(
+      linkifySona("Two: sona://meeting/m-1 and sona://person/p-2."),
+    ).toEqual([
+      { text: "Two: " },
+      { link: "sona://meeting/m-1" },
+      { text: " and " },
+      { link: "sona://person/p-2" },
+      { text: "." },
+    ]);
+  });
+
+  test("a message with no address is one piece of prose", () => {
+    expect(linkifySona("Nothing to cite.")).toEqual([
+      { text: "Nothing to cite." },
+    ]);
+  });
+
+  /* The sentence's punctuation is not part of the address, and a scheme with
+   * nothing after it addresses nothing. */
+  test("what is not part of the address stays prose", () => {
+    expect(
+      linkifySona("Ends here: sona://loop/m-1:loop:abc, then more"),
+    ).toEqual([
+      { text: "Ends here: " },
+      { link: "sona://loop/m-1:loop:abc" },
+      { text: ", then more" },
+    ]);
+    expect(linkifySona("a sona:// b")).toEqual([{ text: "a sona:// b" }]);
+  });
+
+  test("the assistant's bubble carries the address as a button", () => {
+    const markup = render({ phase: "idle", conversation: ANSWER });
+    expect(markup).toContain(">sona://meeting/m-1</button>");
+  });
+
+  /* Only the assistant cites. A question that happens to contain an address is
+   * the reader's own words, and rewriting those is not this surface's job. */
+  test("the reader's own message is left alone", () => {
+    const markup = render({
+      phase: "idle",
+      conversation: [{ role: "user", message: "open sona://meeting/m-9" }],
+    });
+    expect(markup).toContain("open sona://meeting/m-9");
+    expect(markup.includes(">sona://meeting/m-9</button>")).toBe(false);
   });
 });
 

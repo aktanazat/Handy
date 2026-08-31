@@ -96,6 +96,26 @@ impl MeetingLoopStatus {
     }
 }
 
+/// Which way an actionable row points: something the user owes, or something
+/// the user is waiting on somebody else for.
+///
+/// Sona models no `Person` for its own user. The people store is built from
+/// calendar attendees with `is_self` filtered out and from speaker labels on
+/// the other side of the conversation, so a `PersonId` is always somebody
+/// else. "Mine" therefore cannot be a link; it is what came in on this
+/// machine's microphone.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum MeetingLoopDirection {
+    /// The user owes this.
+    Mine,
+    /// Somebody else owes it. Which somebody is the row's own owner name.
+    WaitingOn,
+    /// Nothing in the ledger says whose it is. A question nobody answered,
+    /// cited but unquoted, has no speaker and lands here.
+    Unattributed,
+}
+
 /// What a resolve mutation is allowed to write. Narrower than
 /// [`MeetingLoopStatus`] on purpose: reopening is its own mutation, and only
 /// the ledger pass may carry a loop forward.
@@ -174,6 +194,68 @@ fn normalized_loop_text(value: &str) -> String {
         .collect()
 }
 
+/// Ledger owner names that name the speaker rather than a person. The model
+/// fills `who` from the labelled transcript and usually writes the speaker's
+/// label, but a first-person promise sometimes comes back in the first person.
+const FIRST_PERSON_OWNERS: [&str; 3] = ["i", "me", "myself"];
+
+/// How long a row somebody else owes may stay open before it is worth
+/// mentioning: one working week, so a thing promised on Monday is not stale
+/// on Friday.
+pub const WAITING_ON_STALE_AFTER_MS: i64 = 7 * 24 * 60 * 60 * 1_000;
+
+/// Which way one ledger row points.
+///
+/// Precedence runs strongest claim first: the person the user picked, then the
+/// owner name the ledger read, then the speaker who said it. Names are matched
+/// against `my_speaker_labels` — the display names of this session's
+/// microphone speakers — because the microphone track is the only thing that
+/// says which voice is the user's without a voiceprint.
+pub fn loop_direction(
+    owner_person_id: Option<PersonId>,
+    owner_text: Option<&str>,
+    speaker: Option<&str>,
+    my_speaker_labels: &[String],
+) -> MeetingLoopDirection {
+    // A `Person` is always somebody else, so an explicit assignment settles it
+    // and the ledger's reading never overrides the user's pick.
+    if owner_person_id.is_some() {
+        return MeetingLoopDirection::WaitingOn;
+    }
+    for name in [owner_text, speaker].into_iter().flatten() {
+        let normalized = normalized_loop_text(name);
+        if normalized.is_empty() {
+            continue;
+        }
+        let mine = FIRST_PERSON_OWNERS.contains(&normalized.as_str())
+            || my_speaker_labels
+                .iter()
+                .any(|label| normalized_loop_text(label) == normalized);
+        return if mine {
+            MeetingLoopDirection::Mine
+        } else {
+            MeetingLoopDirection::WaitingOn
+        };
+    }
+    MeetingLoopDirection::Unattributed
+}
+
+/// Whether a row somebody else owes has been open long enough to say so.
+///
+/// Only `WaitingOn` rows go stale. A thing the user owes is theirs to do, and
+/// counting their own backlog at them every evening is not what this number is
+/// for.
+pub const fn waiting_on_is_stale(
+    direction: MeetingLoopDirection,
+    status: MeetingLoopStatus,
+    at_utc_ms: i64,
+    now_utc_ms: i64,
+) -> bool {
+    matches!(direction, MeetingLoopDirection::WaitingOn)
+        && status.is_open()
+        && now_utc_ms.saturating_sub(at_utc_ms) > WAITING_ON_STALE_AFTER_MS
+}
+
 /// One actionable ledger row: the words from the artifact, the state from the
 /// store.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
@@ -189,6 +271,10 @@ pub struct MeetingLoopRow {
     pub owner_text: Option<String>,
     pub owner_person_id: Option<PersonId>,
     pub owner_display_name: Option<String>,
+    /// Whose side of the conversation this row is on. Derived by
+    /// [`loop_direction`] where the row is built, so every surface that groups
+    /// "I owe" against "waiting on them" reads one answer.
+    pub direction: MeetingLoopDirection,
     pub status: MeetingLoopStatus,
     pub resolved_at_utc_ms: Option<i64>,
     /// The operation that put this row in its current state, so a caller can
@@ -216,6 +302,27 @@ pub struct MeetingLoopRow {
 impl MeetingLoopRow {
     pub const fn is_open(&self) -> bool {
         self.status.is_open()
+    }
+
+    /// The user owes this one.
+    pub const fn is_mine(&self) -> bool {
+        matches!(self.direction, MeetingLoopDirection::Mine)
+    }
+
+    /// Somebody else owes this one.
+    pub const fn is_waiting_on(&self) -> bool {
+        matches!(self.direction, MeetingLoopDirection::WaitingOn)
+    }
+
+    /// When this row started being outstanding. That is its own meeting,
+    /// except for a row carried forward — which has been outstanding since the
+    /// session it was first raised in, and calling it a day old every time a
+    /// series meets again would be the opposite of the truth.
+    pub const fn outstanding_since(&self, meeting_at_utc_ms: i64) -> i64 {
+        match self.carried_since_at_utc_ms {
+            Some(first_raised) => first_raised,
+            None => meeting_at_utc_ms,
+        }
     }
 }
 
@@ -299,5 +406,102 @@ mod tests {
 
         assert_eq!(loop_id.session_id(), Some(session_id));
         assert_eq!(MeetingLoopId("not-an-id".to_string()).session_id(), None);
+    }
+
+    /// The whole precedence table in one place: a picked person beats the
+    /// ledger's owner name, which beats the speaker who said it, and every
+    /// name is decided against the microphone speakers of that session.
+    #[test]
+    fn direction_reads_the_pick_then_the_owner_then_the_speaker() {
+        let mine = ["Local speaker".to_string(), "Ada".to_string()];
+        let cases: [(
+            Option<PersonId>,
+            Option<&str>,
+            Option<&str>,
+            MeetingLoopDirection,
+        ); 9] = [
+            // A picked person is always somebody else, even when the user
+            // spoke the words and the ledger agreed they were the user's.
+            (
+                Some(PersonId::new()),
+                Some("Ada"),
+                Some("Ada"),
+                MeetingLoopDirection::WaitingOn,
+            ),
+            // The ledger's owner name outranks the speaker: Ada can promise
+            // something on Amir's behalf.
+            (
+                None,
+                Some("Amir"),
+                Some("Ada"),
+                MeetingLoopDirection::WaitingOn,
+            ),
+            (None, Some("Ada"), Some("Amir"), MeetingLoopDirection::Mine),
+            // Whitespace and case are the id's own normalization, so a label
+            // the user renamed still matches.
+            (
+                None,
+                Some("  local   SPEAKER "),
+                None,
+                MeetingLoopDirection::Mine,
+            ),
+            // A first-person promise the model did not resolve to a label.
+            (None, Some("I"), Some("Amir"), MeetingLoopDirection::Mine),
+            // No owner name: the voice that said it decides.
+            (None, None, Some("Ada"), MeetingLoopDirection::Mine),
+            (None, None, Some("Amir"), MeetingLoopDirection::WaitingOn),
+            // A blank owner name is not an attribution; fall through to the
+            // speaker rather than reading it as an unknown other.
+            (None, Some("   "), Some("Ada"), MeetingLoopDirection::Mine),
+            // An unanswered question is cited but never quoted, so it has
+            // neither owner nor speaker.
+            (None, None, None, MeetingLoopDirection::Unattributed),
+        ];
+
+        for (owner_person_id, owner_text, speaker, expected) in cases {
+            assert_eq!(
+                loop_direction(owner_person_id, owner_text, speaker, &mine),
+                expected,
+                "owner {owner_text:?} speaker {speaker:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn only_an_open_waiting_on_row_goes_stale_and_only_after_a_week() {
+        let now = 1_000 * WAITING_ON_STALE_AFTER_MS;
+        let a_week_ago = now - WAITING_ON_STALE_AFTER_MS;
+        let stale = |direction, status, at| waiting_on_is_stale(direction, status, at, now);
+
+        assert!(stale(
+            MeetingLoopDirection::WaitingOn,
+            MeetingLoopStatus::Open,
+            a_week_ago - 1
+        ));
+        // Exactly a week is not yet overdue.
+        assert!(!stale(
+            MeetingLoopDirection::WaitingOn,
+            MeetingLoopStatus::Open,
+            a_week_ago
+        ));
+        // The user's own backlog is never nagged about.
+        assert!(!stale(
+            MeetingLoopDirection::Mine,
+            MeetingLoopStatus::Open,
+            a_week_ago - 1
+        ));
+        assert!(!stale(
+            MeetingLoopDirection::Unattributed,
+            MeetingLoopStatus::Open,
+            a_week_ago - 1
+        ));
+        // A row that closed cannot be overdue, however old it is.
+        for status in [
+            MeetingLoopStatus::Done,
+            MeetingLoopStatus::Dropped,
+            MeetingLoopStatus::Carried,
+        ] {
+            assert!(!stale(MeetingLoopDirection::WaitingOn, status, 0));
+        }
     }
 }

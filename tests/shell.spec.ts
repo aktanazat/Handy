@@ -530,9 +530,13 @@ test.describe("the fold at the shipped window size", () => {
    * loses a whole one of when a route hides content. */
   const measureFold = (page: Page): Promise<FoldReport> =>
     page.getByRole("main").evaluate((main) => {
-      // SAFETY: the region is App.tsx's rendered <div>; evaluate types the
-      // tree as bare Element, so the narrow restores what the DOM guarantees.
-      const region = main.firstElementChild as HTMLElement;
+      // The Chat pill sits before the scroll owner in `main`, so the region is
+      // addressed by its slot rather than by position.
+      // SAFETY: the slot is App.tsx's rendered <div>; evaluate types the tree
+      // as bare Element, so the narrow restores what the DOM guarantees.
+      const region = main.querySelector(
+        '[data-slot="page-scroll"]',
+      ) as HTMLElement;
       const origin = region.getBoundingClientRect().top - region.scrollTop;
       const nameOf = (node: HTMLElement): string => {
         const label = node.getAttribute("aria-label");

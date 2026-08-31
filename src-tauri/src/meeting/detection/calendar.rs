@@ -38,6 +38,21 @@ pub enum CalendarAccess {
     Unavailable,
 }
 
+/// One occurrence returned by a ranged listing, plus the one fact only the
+/// calendar itself can answer: whether the event it came from repeats.
+///
+/// `is_recurring` is not derivable from `CalendarEventSummary`. Every event has
+/// a `series_key` — it is EventKit's calendar-item identifier, which a one-off
+/// carries too — so "this is a series" has to come from the recurrence rules,
+/// and it rides beside the summary rather than inside it: the decision table
+/// never asks, and widening a type six call sites construct to serve one
+/// surface is how shared types rot.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CalendarOccurrence {
+    pub summary: CalendarEventSummary,
+    pub is_recurring: bool,
+}
+
 /// The calendar store, behind a trait so the runtime and the decision table can
 /// both be exercised without a Calendar database or a TCC prompt.
 pub trait CalendarSource: Send + Sync {
@@ -53,6 +68,16 @@ pub trait CalendarSource: Send + Sync {
     /// about the current moment, and a list would invite callers to invent
     /// their own precedence.
     fn next_event(&self, now_utc_ms: i64, lookahead_ms: i64) -> Option<CalendarEventSummary>;
+
+    /// Every event that overlaps `[start_utc_ms, end_utc_ms)`, oldest first.
+    ///
+    /// D28's Upcoming section is the only caller, and it is user-triggered
+    /// rather than ticked, which is what makes a list affordable here when the
+    /// detection path deliberately refuses one. Rows are enriched with the
+    /// facts a row renders — named attendees, the calendar's title, the join
+    /// URL — and deliberately *not* with the event's notes: an agenda pasted
+    /// into a recurring event is kilobytes nothing on this surface shows.
+    fn events_between(&self, start_utc_ms: i64, end_utc_ms: i64) -> Vec<CalendarOccurrence>;
 }
 
 /// Used on non-macOS targets and whenever the sub-toggle is off.
@@ -69,6 +94,10 @@ impl CalendarSource for NoCalendar {
 
     fn next_event(&self, _now_utc_ms: i64, _lookahead_ms: i64) -> Option<CalendarEventSummary> {
         None
+    }
+
+    fn events_between(&self, _start_utc_ms: i64, _end_utc_ms: i64) -> Vec<CalendarOccurrence> {
+        Vec::new()
     }
 }
 
@@ -184,7 +213,7 @@ pub use macos::EventKitCalendar;
 mod macos {
     use super::{
         event_text, named_attendee_with_email, occurrence_key, CalendarAccess,
-        CalendarEventSummary, CalendarSource,
+        CalendarEventSummary, CalendarOccurrence, CalendarSource,
     };
     use block2::RcBlock;
     use objc2::rc::Retained;
@@ -331,6 +360,59 @@ mod macos {
                 })
             })
         }
+
+        fn events_between(&self, start_utc_ms: i64, end_utc_ms: i64) -> Vec<CalendarOccurrence> {
+            if self.access() != CalendarAccess::Authorized || end_utc_ms <= start_utc_ms {
+                return Vec::new();
+            }
+            objc2::rc::autoreleasepool(|_| {
+                self.with_store(|store| {
+                    let start =
+                        NSDate::dateWithTimeIntervalSince1970(start_utc_ms as f64 / 1_000.0);
+                    let end = NSDate::dateWithTimeIntervalSince1970(end_utc_ms as f64 / 1_000.0);
+                    // `None` calendars means "every calendar the store sees",
+                    // which is exactly what D28 promises: the Google, iCloud and
+                    // Outlook accounts already signed in to macOS Calendar.
+                    // SAFETY: both dates are live for this construction call.
+                    let predicate = unsafe {
+                        store.predicateForEventsWithStartDate_endDate_calendars(&start, &end, None)
+                    };
+                    // SAFETY: the predicate came from this same store.
+                    let events = unsafe { store.eventsMatchingPredicate(&predicate) };
+                    let mut occurrences = events
+                        .iter()
+                        .filter_map(|event| {
+                            let mut summary = summarize(&event)?;
+                            // The predicate matches anything overlapping the
+                            // window, including something that began yesterday
+                            // and runs into it. A row that has already ended is
+                            // not upcoming.
+                            if summary.end_utc_ms <= start_utc_ms {
+                                return None;
+                            }
+                            enrich_participants(&event, &mut summary);
+                            // SAFETY: a plain property read on a live event.
+                            let is_recurring = unsafe { event.hasRecurrenceRules() };
+                            Some(CalendarOccurrence {
+                                summary,
+                                is_recurring,
+                            })
+                        })
+                        .collect::<Vec<_>>();
+                    // EventKit does not promise an order. The title breaks a
+                    // tie so two events on the same minute do not swap places
+                    // between reads of the same unchanged calendar.
+                    occurrences.sort_by(|left, right| {
+                        left.summary
+                            .start_utc_ms
+                            .cmp(&right.summary.start_utc_ms)
+                            .then_with(|| left.summary.title.cmp(&right.summary.title))
+                            .then_with(|| left.summary.event_key.cmp(&right.summary.event_key))
+                    });
+                    occurrences
+                })
+            })
+        }
     }
 
     /// Reduces an `EKEvent` to the fields the decision table reads, and nothing
@@ -383,15 +465,23 @@ mod macos {
     /// event. Every one of them stays absent when EventKit reports nothing, so
     /// a card omits the row rather than showing an empty one.
     fn enrich(event: &EKEvent, summary: &mut CalendarEventSummary) {
+        enrich_participants(event, summary);
+        // SAFETY: a plain property read on a live event.
+        let notes = unsafe { event.notes() };
+        summary.notes = event_text(notes.map(|notes| notes.to_string()));
+    }
+
+    /// Everything a row can show about who is coming and where the event lives.
+    ///
+    /// Split out from `enrich` so the ranged listing can have it without the
+    /// notes read: an agenda pasted into a recurring event is kilobytes of
+    /// string, no D28 row shows one, and paying for thirty of them on every
+    /// Meetings-home mount is exactly the waste this module already refuses on
+    /// the tick path.
+    fn enrich_participants(event: &EKEvent, summary: &mut CalendarEventSummary) {
         // SAFETY: plain property reads on a live event.
-        let (attendees, notes, calendar, url) = unsafe {
-            (
-                event.attendees(),
-                event.notes(),
-                event.calendar(),
-                event.URL(),
-            )
-        };
+        let (attendees, calendar, url) =
+            unsafe { (event.attendees(), event.calendar(), event.URL()) };
         if let Some(attendees) = attendees {
             summary.attendees = attendees
                 .iter()
@@ -419,7 +509,6 @@ mod macos {
                 })
                 .collect();
         }
-        summary.notes = event_text(notes.map(|notes| notes.to_string()));
         // SAFETY: `title` is a plain property read on a live calendar.
         summary.calendar_name =
             event_text(calendar.map(|calendar| unsafe { calendar.title() }.to_string()));
@@ -522,6 +611,10 @@ mod tests {
     fn an_absent_calendar_never_produces_an_event() {
         assert_eq!(NoCalendar.access(), CalendarAccess::Unavailable);
         assert_eq!(NoCalendar.next_event(NOW, lookahead_ms()), None);
+        assert_eq!(
+            NoCalendar.events_between(NOW, NOW + 8 * 24 * 60 * 60_000),
+            Vec::new()
+        );
     }
 
     /* EKParticipantStatus's raw values, as the framework defines them. Written
