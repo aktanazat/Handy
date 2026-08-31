@@ -89,6 +89,7 @@ export function installMockedRuntime(payload: MockPayload): void {
     capture_completeness: "not_started",
     storage: "available",
     processing_status: { kind: "pending" },
+    preflight_local_processing: capturing() ? null : "available",
     retention_deadline_utc_ms: null,
     allowed_actions: capturing()
       ? ["pause", "stop", "discard"]
@@ -285,6 +286,45 @@ export function installMockedRuntime(payload: MockPayload): void {
     ["meeting_recovery_list", []],
     ["meeting_retention_get", { policy: { kind: "forever" }, revision: 1 }],
     ["meeting_trend", null],
+    ["people_list", { schema_version: 1, revision: 1, entries: [] }],
+    ["meeting_people_context", { schema_version: 1, revision: 1, rows: [] }],
+    [
+      "person_split",
+      {
+        schema_version: 1,
+        revision: 2,
+        person: {
+          id: "person-split",
+          display_name: "Split person",
+          aliases: [],
+          calendar_emails: [],
+          created_at_utc_ms: 1_756_136_400_000,
+          updated_at_utc_ms: 1_756_136_400_000,
+        },
+        removed: false,
+      },
+    ],
+    ["doc_list", { schema_version: 1, revision: 1, entries: [] }],
+    [
+      "doc_ingest",
+      {
+        schema_version: 1,
+        revision: 2,
+        document: null,
+        removed: false,
+      },
+    ],
+    ["open_loops_inbox", { schema_version: 1, revision: 1, entries: [] }],
+    ["workflows_list", { schema_version: 1, revision: 1, entries: [] }],
+    [
+      "workflow_runs",
+      {
+        schema_version: 1,
+        revision: 1,
+        entries: [],
+        next_cursor: null,
+      },
+    ],
 
     // Meeting detection (MeetingDetect). No `detection-prompt` event is ever
     // emitted here, so the countdown card and the toast path stay unmounted.
@@ -385,7 +425,10 @@ export function installMockedRuntime(payload: MockPayload): void {
     ],
   ]);
 
-  const invoke = async (command: string): Promise<JsonValue> => {
+  const invoke = async (
+    command: string,
+    args?: Record<string, JsonValue>,
+  ): Promise<JsonValue> => {
     if (Object.prototype.hasOwnProperty.call(payload.responses, command)) {
       return payload.responses[command];
     }
@@ -393,6 +436,15 @@ export function installMockedRuntime(payload: MockPayload): void {
       command === "meeting_preflight_create" ||
       command === "meeting_preflight_refresh"
     ) {
+      if (command === "meeting_preflight_create") {
+        // SAFETY: the generated meeting_preflight_create binding always puts
+        // MeetingPreflightCreateRequest at args.request.
+        const request = args?.request as
+          | { calendar_event_key?: string | null }
+          | undefined;
+        const calendarEventKey = request?.calendar_event_key ?? "";
+        localStorage.setItem("meeting-calendar-event-key", calendarEventKey);
+      }
       return { receipt: receipt(), snapshot: session() };
     }
     if (command === "meeting_get") {

@@ -13,6 +13,7 @@ import { SnippetsPanel } from "./vocabulary/SnippetsPanel";
 import { ReplacementsPanel } from "./vocabulary/ReplacementsPanel";
 import { ImportPreviewDialog } from "./custom-words/ImportPreviewDialog";
 import { PairEditor } from "./custom-words/PairEditor";
+import { MeetingVocabularySuggestions } from "./custom-words/MeetingVocabularySuggestions";
 import { useCustomWordsEditor } from "./custom-words/useCustomWordsEditor";
 
 /* Every text rule the app applies after a transcript, in the order a user
@@ -49,6 +50,7 @@ export const CustomWords: React.FC = () => {
     getVocabularyRowKey,
     getEmojiRowKey,
     addEntry,
+    addSuggestedEntry,
     editEntry,
     removeEntry,
     addEmojiReplacement,
@@ -112,6 +114,10 @@ export const CustomWords: React.FC = () => {
           </span>
         }
       >
+        <MeetingVocabularySuggestions
+          entries={entries}
+          onAccept={addSuggestedEntry}
+        />
         <PairEditor
           labels={{
             title: vocabularyTitle,

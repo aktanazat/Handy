@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { commands } from "@/bindings";
+import { commands, events, type HistoryTrendProjection } from "@/bindings";
 import { useAudioImport } from "@/hooks/useAudioImport";
 import { useSettings } from "@/hooks/useSettings";
 import { useOsType } from "@/hooks/useOsType";
@@ -17,19 +17,12 @@ import {
 } from "@/components/vg/tooltip";
 import { checkForUpdates, type UpdateCheckResult } from "@/lib/updateCheck";
 import { UpdateBanner, UpdateCheckFailure } from "./UpdateNotice";
+import { ActivityBand } from "./ActivityBand";
+import { OverviewWorkflowCards } from "./OverviewWorkflowCards";
 
-/* Capture is one hero and nothing else.
- *
- * Every number this page used to draw belonged somewhere else: the engine and
- * the model are the sidebar chip's, the counters and the activity band are the
- * Library's, the recent rows are the Library's list. What is left is the only
- * thing that is this page's own — the state the app is in, the chord that
- * changes it, and the two ways to start a capture that is not dictation.
- *
- * With no numbers there is nothing to keep in step, so the read wave, its
- * reducer, its history-write subscription and the receipt reads behind them are
- * gone with the surfaces they fed.
- */
+/* Capture stays the primary surface. The activity band below it reuses the
+ * history trend projection the former Overview analytics read, now expressed
+ * through the shared chart grammar instead of page-local chart markup. */
 
 /* Recording is a command, not an event: the backend starts and stops on a
  * global chord this window never sees, so the status word is polled. One
@@ -37,6 +30,15 @@ import { UpdateBanner, UpdateCheckFailure } from "./UpdateNotice";
 const RECORDING_POLL_MS = 1000;
 const NewMeetingIcon = commandActionIcons.newMeeting;
 const ImportAudioIcon = commandActionIcons.importAudio;
+
+const subscribeToActivityUpdates = (reload: () => void): (() => void) => {
+  const subscription = events.historyUpdatePayload.listen((event) => {
+    if (event.payload.action !== "toggled") reload();
+  });
+  return () => {
+    void subscription.then((unlisten) => unlisten());
+  };
+};
 
 export interface CaptureHeroProps {
   isRecording: boolean;
@@ -184,14 +186,20 @@ export const CaptureHero: React.FC<CaptureHeroProps> = ({
 };
 
 interface OverviewProps {
-  /** The shell's section setter. Capture sends people exactly two places:
-   * Meetings, and Settings when the chord it draws has to be changed. */
+  /** The shell's section setter for Capture's two direct actions. */
   onOpenSection?: (section: "meetings" | "settings") => void;
+  /** Opens the retained meeting named by a workflow receipt or commitment. */
+  onOpenMeeting?: (meetingId: string) => void;
 }
 
-export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
+export const Overview: React.FC<OverviewProps> = ({
+  onOpenSection,
+  onOpenMeeting,
+}) => {
   const { settings } = useSettings();
   const [isRecording, setIsRecording] = useState(false);
+  const [activityTrend, setActivityTrend] =
+    useState<HistoryTrendProjection | null>(null);
   /* No options: Capture has nowhere of its own to draw a failure, so it takes
    * the shared action's toast. It used to swallow the error entirely and tell
    * the reader to go look in Library, which is not where they were. */
@@ -223,6 +231,29 @@ export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+
+    const refresh = async () => {
+      try {
+        const result = await commands.getHistoryTrend({ range: "days_180" });
+        if (active) {
+          setActivityTrend(result.status === "ok" ? result.data : null);
+        }
+      } catch {
+        if (active) setActivityTrend(null);
+      }
+    };
+
+    void refresh();
+    const stopListening = subscribeToActivityUpdates(() => void refresh());
+
+    return () => {
+      active = false;
+      stopListening();
+    };
+  }, []);
+
   const runUpdateCheck = useCallback(async () => {
     setCheckingUpdate(true);
     try {
@@ -244,12 +275,9 @@ export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
   }, [runUpdateCheck]);
 
   return (
-    /* One card in an empty room, placed rather than parked: the column fills
-     * the viewport and centres its stack, with the centre biased upward by a
-     * viewport twelfth — true centre reads low once a window grows tall. The
-     * card itself stays narrow; 560px is the measure of its own sentence, and
-     * anything wider read as an empty container. */
-    <div className="mx-auto flex min-h-full w-full max-w-[560px] flex-col justify-center gap-6 px-8 py-12 pb-[12vh]">
+    /* The hero and activity cards share the settings-page measure. The hero
+     * remains first and the charts follow as one compact band. */
+    <div className="mx-auto flex min-h-full w-full max-w-[760px] flex-col justify-center gap-6 px-8 py-12">
       {updateResult !== null &&
         updateResult.status === "update_available" &&
         !updateDismissed && (
@@ -270,6 +298,12 @@ export const Overview: React.FC<OverviewProps> = ({ onOpenSection }) => {
         onImportAudio={() => void startAudioImport()}
         onChangeShortcut={() => onOpenSection?.("settings")}
       />
+
+      <OverviewWorkflowCards
+        onOpenMeeting={(meetingId) => onOpenMeeting?.(meetingId)}
+      />
+
+      {activityTrend === null ? null : <ActivityBand trend={activityTrend} />}
 
       {updateResult !== null && updateResult.status === "check_failed" && (
         <UpdateCheckFailure

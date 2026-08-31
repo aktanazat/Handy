@@ -15,6 +15,7 @@ import { useSettings } from "../../../hooks/useSettings";
 import { setSpokenEditsEnabled } from "../../../lib/powerPackApi";
 import type { ImportReview } from "./ImportPreviewDialog";
 import { usePairRowKeys } from "./usePairRowKeys";
+import { addVocabularyCandidate } from "./meetingVocabulary";
 import {
   emojiBlockers,
   emojiDraftState,
@@ -266,6 +267,9 @@ export const useCustomWordsEditor = () => {
     setWritten("");
   };
 
+  const addSuggestedEntry = (text: string) =>
+    setEntries((current) => addVocabularyCandidate(current, text));
+
   const addEmojiReplacement = () => {
     setEmojiReplacements([
       ...emojiReplacements,
@@ -316,6 +320,7 @@ export const useCustomWordsEditor = () => {
     getVocabularyRowKey: vocabularyRowKeys.getRowKey,
     getEmojiRowKey: emojiRowKeys.getRowKey,
     addEntry,
+    addSuggestedEntry,
     editEntry,
     removeEntry,
     addEmojiReplacement,

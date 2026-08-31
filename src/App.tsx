@@ -52,6 +52,7 @@ interface SettingsContentProps {
   meetingNavigationRequest: MeetingNavigationPayload | null;
   meetingStartRequest: number;
   onSectionChange: (section: SidebarSection) => void;
+  onOpenMeeting: (meetingId: string) => void;
 }
 
 const renderSettingsContent = ({
@@ -60,10 +61,16 @@ const renderSettingsContent = ({
   meetingNavigationRequest,
   meetingStartRequest,
   onSectionChange,
+  onOpenMeeting,
 }: SettingsContentProps) => {
   if (section === "overview") {
     const OverviewComponent = SECTIONS_CONFIG.overview.component;
-    return <OverviewComponent onOpenSection={onSectionChange} />;
+    return (
+      <OverviewComponent
+        onOpenSection={onSectionChange}
+        onOpenMeeting={onOpenMeeting}
+      />
+    );
   }
 
   if (section === "meetings") {
@@ -117,6 +124,7 @@ interface AppContentProps {
   direction: LanguageDirection;
   currentSection: SidebarSection;
   onSectionChange: (section: SidebarSection) => void;
+  onOpenMeeting: (meetingId: string) => void;
   loadingLabel: string;
   meetingInvalidation: number;
   meetingNavigationRequest: MeetingNavigationPayload | null;
@@ -134,6 +142,7 @@ const AppContent = ({
   direction,
   currentSection,
   onSectionChange,
+  onOpenMeeting,
   loadingLabel,
   meetingInvalidation,
   meetingNavigationRequest,
@@ -199,6 +208,7 @@ const AppContent = ({
                 meetingNavigationRequest,
                 meetingStartRequest,
                 onSectionChange,
+                onOpenMeeting,
               })}
             </Suspense>
           </ErrorBoundary>
@@ -437,6 +447,21 @@ function App() {
     runViewTransition(() => setCurrentSection(section));
   }, []);
 
+  /* Overview meeting links reuse the same navigation payload consumed by deep
+   * links. The meetings controller reloads the authoritative snapshot, so zero
+   * is the established unknown-revision value rather than a copied snapshot. */
+  const openMeeting = useCallback((meetingId: string) => {
+    runViewTransition(() => {
+      setMeetingNavigationRequest({
+        event_schema_version: 1,
+        destination: "session",
+        session_id: meetingId,
+        revision: 0,
+      });
+      setCurrentSection("meetings");
+    });
+  }, []);
+
   useEffect(() => {
     let disposed = false;
     let unsubscribe: (() => Promise<void>) | null = null;
@@ -661,6 +686,7 @@ function App() {
         direction={direction}
         currentSection={currentSection}
         onSectionChange={navigateToSection}
+        onOpenMeeting={openMeeting}
         loadingLabel={t("common.loading")}
         meetingInvalidation={meetingInvalidation}
         meetingNavigationRequest={meetingNavigationRequest}

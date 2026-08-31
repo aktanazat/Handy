@@ -126,12 +126,11 @@ describe("palette grouping", () => {
 });
 
 /* One registry, two surfaces. The rail and the palette used to hold their own
- * copies of these six destinations — same labels, same order, written twice —
- * plus a third copy in the section registry that nothing read and that had gone
- * stale, still calling these two "Overview" and "History" for the places that
- * ship as "Capture" and "Library". These tests pin the derivation itself, not a
- * second transcription of the list: what they hard-code is the shipped names and
- * the shipped order, which is the part a reader can check against the app. */
+ * copies of these destinations, plus a third copy in the section registry that
+ * nothing read and that had gone stale, still calling these two "Overview" and
+ * "History" for the places that ship as "Capture" and "Library". These tests
+ * pin the derivation itself, not a second transcription of the list: what they
+ * hard-code is the shipped names and order a reader can check against the app. */
 describe("the section registry", () => {
   test("is the palette's destination list, in its own order", () => {
     const actions = buildNavigationActions(
@@ -144,6 +143,7 @@ describe("the section registry", () => {
       "nav-history",
       "nav-modes",
       "nav-meetings",
+      "nav-people",
       "nav-settings",
       "nav-models",
     ]);
@@ -152,6 +152,7 @@ describe("the section registry", () => {
       "Library",
       "Modes",
       "Meetings",
+      "People",
       "Settings",
       "Models",
     ]);
@@ -160,7 +161,7 @@ describe("the section registry", () => {
   });
 
   /* Models is the only destination with no rail row, and it lands last in the
-   * palette because the registry lists it last — the palette's order is the
+   * palette because the registry lists it last: the palette's order is the
    * registry's order, not a sort. */
   test("the rail is the registry minus the palette-only destinations", () => {
     expect(RAIL_SECTIONS).toEqual([
@@ -168,6 +169,7 @@ describe("the section registry", () => {
       "history",
       "modes",
       "meetings",
+      "people",
       "settings",
     ]);
     expect(
@@ -244,6 +246,7 @@ describe("Sidebar", () => {
       "Library",
       "Modes",
       "Meetings",
+      "People",
       "Settings",
     ]);
   });

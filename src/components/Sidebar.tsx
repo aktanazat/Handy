@@ -18,8 +18,8 @@ export interface SidebarProps {
   onOpenCommand: () => void;
 }
 
-/* The rail's rows come from the section registry, in its order — Capture,
- * Library, Modes, Meetings, Settings. `models` is the one destination the
+/* The rail's rows come from the section registry, in its order: Capture,
+ * Library, Modes, Meetings, People, Settings. `models` is the one destination the
  * registry marks `inRail: false`: it is reachable from the palette and from
  * within pages, exactly as before. Each row lights for exactly one section, so
  * no route carries an activeSections list any more. */

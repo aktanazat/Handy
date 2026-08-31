@@ -6,16 +6,16 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInstance } from "i18next";
 import { I18nextProvider } from "react-i18next";
+import type { HistoryTrendProjection } from "@/bindings";
 import { TooltipProvider } from "@/components/vg/tooltip";
+import { ActivityBand } from "./ActivityBand";
+import { activityPage } from "./activityPaging";
 import { CaptureHero, Overview, type CaptureHeroProps } from "./Overview";
 
-/* Capture's whole contract: one hero card, and nothing else on the page.
- *
- * Every assertion here is either the hero's own content — the state word, the
- * chord drawn exactly once, the two actions and the promise attached to the
- * first of them — or a guard against a deleted surface coming back. Keys
- * resolve through the real English bundle, so a pruned key shows up here as a
- * missing sentence rather than as a silent inline default.
+/* Capture's contract covers the hero's state, chord and actions. The activity
+ * band has its own data-driven assertions below. Keys resolve through the real
+ * English bundle, so a pruned key shows up as a missing sentence rather than
+ * as a silent inline default.
  *
  * The chord states are rendered through `CaptureHero` rather than through the
  * page, because the page reads its settings from a zustand store and zustand
@@ -202,19 +202,16 @@ describe("the Capture hero", () => {
   });
 });
 
-/* The kill list, as assertions. Each deleted surface said something another
- * page already says — the sidebar chip, the Library's cards, the Library's
- * list — and the page column is one hero wide precisely because none of them
- * may come back to it. */
+/* The first paint contains the hero while the history trend loads. The
+ * data-driven band is rendered separately below with the command's real shape. */
 describe("the Capture page", () => {
   const markup = render(<Overview />);
 
-  test("is one placed, narrow, vertically centered column", () => {
-    expect(markup).toContain("max-w-[560px]");
+  test("uses the shared settings-page measure", () => {
+    expect(markup).toContain("max-w-[760px]");
     expect(markup).toContain("mx-auto");
     expect(markup).toContain("min-h-full");
     expect(markup).toContain("justify-center");
-    expect(occurrences(markup, "<section")).toBe(1);
   });
 
   test("draws no instrument strip", () => {
@@ -224,14 +221,11 @@ describe("the Capture page", () => {
     expect(markup.includes("not measured")).toBe(false);
   });
 
-  test("draws no activity header, stat cards or chart", () => {
-    expect(markup.includes("Activity")).toBe(false);
+  test("does not invent activity values before the trend read settles", () => {
     expect(markup.includes("Usage summary")).toBe(false);
     expect(markup.includes("all time")).toBe(false);
     expect(markup.includes("Current streak")).toBe(false);
     expect(markup.includes("Dictations per day")).toBe(false);
-    // Only the two action glyphs remain; a chart would add another SVG.
-    expect(occurrences(markup, "<svg")).toBe(2);
   });
 
   test("draws no recent activity list and no empty-state pitch", () => {
@@ -252,5 +246,128 @@ describe("the Capture page", () => {
   test("shows no update notice before the check has answered", () => {
     expect(markup.includes("is available. This install is on")).toBe(false);
     expect(markup.includes("Could not check for updates")).toBe(false);
+  });
+});
+
+const activityTrend: HistoryTrendProjection = {
+  range: "days_180",
+  range_start_local_date: "2026-03-04",
+  range_end_local_date: "2026-08-30",
+  all_time: {
+    recordings: 18,
+    duration_ms: 12_000,
+    words: 180,
+    by_source: [],
+  },
+  range_total: {
+    recordings: 18,
+    duration_ms: 12_000,
+    words: 180,
+    by_source: [],
+  },
+  active_days: 6,
+  current_streak_days: 3,
+  points: [
+    {
+      local_date: "2026-08-23",
+      recordings: 0,
+      duration_ms: 0,
+      words: 0,
+      by_source: [],
+    },
+    {
+      local_date: "2026-08-24",
+      recordings: 1,
+      duration_ms: 1000,
+      words: 10,
+      by_source: [],
+    },
+    {
+      local_date: "2026-08-25",
+      recordings: 4,
+      duration_ms: 2000,
+      words: 40,
+      by_source: [],
+    },
+    {
+      local_date: "2026-08-26",
+      recordings: 2,
+      duration_ms: 1000,
+      words: 20,
+      by_source: [],
+    },
+    {
+      local_date: "2026-08-27",
+      recordings: 0,
+      duration_ms: 0,
+      words: 0,
+      by_source: [],
+    },
+    {
+      local_date: "2026-08-28",
+      recordings: 6,
+      duration_ms: 4000,
+      words: 60,
+      by_source: [],
+    },
+    {
+      local_date: "2026-08-29",
+      recordings: 3,
+      duration_ms: 2000,
+      words: 30,
+      by_source: [],
+    },
+    {
+      local_date: "2026-08-30",
+      recordings: 2,
+      duration_ms: 2000,
+      words: 20,
+      by_source: [],
+    },
+  ],
+};
+
+describe("the Overview activity band", () => {
+  const markup = render(<ActivityBand trend={activityTrend} />);
+
+  test("renders the three ChartCard measurements from the trend", () => {
+    expect(markup).toContain("Activity");
+    expect(markup).toContain("Dictations");
+    expect(markup).toContain("Words");
+    expect(markup).toContain("Streak");
+    expect(markup).toContain("Aug 24–Aug 30");
+    expect(occurrences(markup, "rounded-card")).toBe(3);
+  });
+
+  test("pages backward through the retained trend in seven-day ranges", () => {
+    const current = activityPage(activityTrend.points, 0);
+    const previous = activityPage(activityTrend.points, 1);
+
+    expect(current.points.map((point) => point.local_date)).toEqual([
+      "2026-08-24",
+      "2026-08-25",
+      "2026-08-26",
+      "2026-08-27",
+      "2026-08-28",
+      "2026-08-29",
+      "2026-08-30",
+    ]);
+    expect(previous.points.map((point) => point.local_date)).toEqual([
+      "2026-08-23",
+    ]);
+    expect(current.page).toBe(0);
+    expect(previous.page).toBe(1);
+  });
+
+  test("translates complete aria sentences for each chart", () => {
+    expect(markup).toContain(
+      'aria-label="Dictations per day, highest 6 on Friday"',
+    );
+    expect(markup).toContain(
+      'aria-label="Words per day, 180 total, ending at 20"',
+    );
+    expect(markup).toContain('aria-label="Current streak, 3 days"');
+    expect(markup).toContain('aria-label="Previous 7 days"');
+    expect(markup).toContain('aria-label="Next 7 days"');
   });
 });

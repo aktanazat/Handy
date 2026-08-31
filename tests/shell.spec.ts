@@ -229,6 +229,7 @@ test.describe("the palette's content", () => {
       "Library",
       "Modes",
       "Meetings",
+      "People",
       "Settings",
     ]);
 
@@ -245,6 +246,7 @@ test.describe("the palette's content", () => {
       "Meetings",
       "Models",
       "Modes",
+      "People",
       "Settings",
     ]);
     expect(paletteLabels).not.toContain("Overview");

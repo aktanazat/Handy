@@ -14,6 +14,8 @@ import { MeetingNotesPane } from "../MeetingNotesPane";
 import type { MeetingAnalytics } from "../meetingAnalytics";
 import { formatMeetingOffset } from "../meetingUtils";
 import { MeetingArtifactPanel } from "./MeetingArtifactPanel";
+import { FollowUpAgentAction } from "./FollowUpAgentAction";
+import { PreviouslyTogetherBand } from "./PreviouslyTogetherBand";
 
 export interface InsightsTabProps {
   snapshot: MeetingReviewSnapshot;
@@ -74,6 +76,8 @@ export const InsightsTab: React.FC<InsightsTabProps> = ({
 
   return (
     <>
+      <PreviouslyTogetherBand sessionId={snapshot.session.session_id} />
+
       {analytics === null ? null : (
         <MeetingAnalyticsStrip
           analytics={analytics}
@@ -144,16 +148,19 @@ export const InsightsTab: React.FC<InsightsTabProps> = ({
       <SettingsSection
         label={t("meetings.review.generatedNotes")}
         action={
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onRegenerate}
-            disabled={busy || !canRegenerate}
-          >
-            <RefreshCcw aria-hidden="true" className="size-3.5" />
-            {t("meetings.review.regenerate")}
-          </Button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <FollowUpAgentAction snapshot={snapshot} />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onRegenerate}
+              disabled={busy || !canRegenerate}
+            >
+              <RefreshCcw aria-hidden="true" className="size-3.5" />
+              {t("meetings.review.regenerate")}
+            </Button>
+          </div>
         }
       >
         {remoteUnavailable ? (

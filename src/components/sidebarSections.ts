@@ -8,7 +8,7 @@ import { destinationIcons } from "@/lib/navIcons";
  * when it is first opened, behind the Suspense skeleton in App.tsx.
  *
  * The dynamic imports below are the split points themselves: a static import
- * would pull all six pages back into the entry bundle, which is the thing
+ * would pull all seven pages back into the entry bundle, which is the thing
  * this file exists to prevent. Each loader re-wraps the page's named export
  * as a default, which is the shape React.lazy resolves. */
 
@@ -23,6 +23,10 @@ const HistorySettings = lazy(async () => ({
 const MeetingsSettings = lazy(async () => ({
   default: (await import("./settings/meetings/MeetingsSettings"))
     .MeetingsSettings,
+}));
+
+const PeoplePage = lazy(async () => ({
+  default: (await import("./people/PeoplePage")).PeoplePage,
 }));
 
 const ModelsSettings = lazy(async () => ({
@@ -82,6 +86,11 @@ export const SECTIONS_CONFIG = {
     labelKey: "sidebar.meetings",
     inRail: true,
     component: MeetingsSettings,
+  },
+  people: {
+    labelKey: "sidebar.people",
+    inRail: true,
+    component: PeoplePage,
   },
   settings: {
     labelKey: "sidebar.settings",

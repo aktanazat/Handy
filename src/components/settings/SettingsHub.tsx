@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/vg/tabs";
 import { GeneralSettings } from "./general/GeneralSettings";
 import { PrivacySettings } from "./privacy/PrivacySettings";
 import { AgentsSettings } from "./agents/AgentsSettings";
+import { WorkflowsSettings } from "./workflows/WorkflowsSettings";
 import { AdvancedSettings } from "./advanced/AdvancedSettings";
 import { AboutSettings } from "./about/AboutSettings";
 import { DebugSettings } from "./debug/DebugSettings";
@@ -16,6 +17,7 @@ type SettingsTab =
   | "general"
   | "privacy"
   | "agents"
+  | "workflows"
   | "advanced"
   | "about"
   | "debug";
@@ -24,6 +26,7 @@ const TAB_COMPONENTS = {
   general: GeneralSettings,
   privacy: PrivacySettings,
   agents: AgentsSettings,
+  workflows: WorkflowsSettings,
   advanced: AdvancedSettings,
   about: AboutSettings,
   debug: DebugSettings,
@@ -33,6 +36,7 @@ const BASE_TABS: readonly SettingsTab[] = [
   "general",
   "privacy",
   "agents",
+  "workflows",
   "advanced",
   "about",
 ];

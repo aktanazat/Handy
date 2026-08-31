@@ -82,6 +82,11 @@ Sona is a cross-platform desktop speech-to-text application built with Tauri 2.x
     `@theme inline` token bridge in `app/globals.css`. `components.json` points
     the shadcn CLI at it (`"ui": "@/components/vg"`), so `bunx shadcn add …`
     lands here. Never hand-roll a control, and never start a second kit.
+  - `vg/chart/` - deterministic inline SVG primitives. Import `Bars`,
+    `Sparkline`, and `Ring` from `@/components/vg/chart`; feature code supplies
+    translated aria sentences.
+  - `charts/` - app-level chart composition. Import `ChartCard` from
+    `@/components/charts`; it may compose settings rows and vg primitives.
   - `audio/AudioPlayer.tsx`, `RouteSkeleton.tsx`, `Toaster.tsx` - app
     components, not primitives: the transcript scrubber, the shape of a
     settings page before its chunk arrives, and the app's one toast root. Each
