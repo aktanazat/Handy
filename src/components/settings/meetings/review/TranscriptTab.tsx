@@ -23,8 +23,8 @@ import { SpeakerRoster } from "./SpeakerRoster";
 /** DOM id prefix for transcript rows, so a citation can find its segment. */
 const SEGMENT_DOM_PREFIX = "meeting-transcript-segment-";
 
-/** A measurement inside a row: mono, tabular, quiet. */
-const MONO_FACT = "font-mono text-[11px] tabular-nums text-gray-700";
+/** A quiet tabular measurement inside a row. */
+const MEASURED_FACT = "text-[11px] tabular-nums text-gray-700";
 
 export interface TranscriptTabProps {
   snapshot: MeetingReviewSnapshot;
@@ -166,7 +166,7 @@ export const TranscriptTab: React.FC<TranscriptTabProps> = ({
                 >
                   <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                     <p className="flex min-w-0 items-baseline gap-2">
-                      <span className={MONO_FACT}>
+                      <span className={MEASURED_FACT}>
                         {formatMeetingOffset(segment.base.start_offset_ns)}
                       </span>
                       <span className="truncate text-sm text-gray-900">
@@ -246,7 +246,7 @@ const MeetingSearchHitRow: React.FC<MeetingSearchHitRowProps> = ({
   const body = (
     <>
       <span className="flex items-baseline gap-2">
-        <span className={MONO_FACT}>
+        <span className={MEASURED_FACT}>
           {formatMeetingOffset(hit.start_offset_ns)}
         </span>
         <Microlabel>{kindLabel}</Microlabel>

@@ -1,84 +1,123 @@
 import React from "react";
-import { CheckCheck, CircleDashed } from "lucide-react";
+import { CheckCheck, CircleDashed, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { PersonCommitment, PersonOpenLoop } from "@/bindings";
-import { Microlabel, SettingsSection } from "@/components/settings/rows";
+import { SettingsSection } from "@/components/settings/rows";
 import { formatEntryTimestamp } from "@/lib/utils/format";
 import { EmptyStateRow } from "./EmptyStateRow";
 
-const RelationshipRow: React.FC<{
+/* One thing said in one meeting, in the shape both ledgers keep it.
+ *
+ * Open loops and commitments are two questions about the same record, which is
+ * why they render through one section below rather than two copies of it. What
+ * differs is the heading, the empty state, and whether a line carries the date
+ * it was first raised — so those are fields, not a second component. */
+interface LedgerRow {
+  /** React key: the same line can arrive from two meetings. */
+  key: string;
   text: string;
+  /** The meeting the line was said in, as the link's own label. */
   title: string;
+  meetingId: string;
   atUtcMs: number;
-  carriedSinceUtcMs?: number | null;
-}> = ({ text, title, atUtcMs, carriedSinceUtcMs = null }) => {
+  /** When the loop was first raised, for a line that has outlived a meeting. */
+  carriedSinceUtcMs: number | null;
+}
+
+/* The sentence first, then the meeting it came from. The meeting is a link,
+ * not a caption — reading "who owns the launch checklist?" is the moment you
+ * want to be back in the room where it was asked. */
+const LedgerSection: React.FC<{
+  label: string;
+  emptyIcon: LucideIcon;
+  emptyText: string;
+  rows: LedgerRow[];
+  onOpenMeeting: (meetingId: string) => void;
+}> = ({ label, emptyIcon, emptyText, rows, onOpenMeeting }) => {
   const { t } = useTranslation();
+
   return (
-    <li className="flex flex-col gap-1.5 px-4 py-3">
-      <p className="text-[13px] leading-5 text-gray-1000 text-pretty">{text}</p>
-      <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <Microlabel className="normal-case">{title}</Microlabel>
-        <Microlabel className="normal-case tabular-nums">
-          {formatEntryTimestamp(atUtcMs)}
-        </Microlabel>
-        {carriedSinceUtcMs === null ? null : (
-          <Microlabel className="normal-case tabular-nums">
-            {t("people.detail.carriedSince", {
-              date: formatEntryTimestamp(carriedSinceUtcMs),
-            })}
-          </Microlabel>
-        )}
-      </span>
-    </li>
+    <SettingsSection label={label}>
+      {rows.length === 0 ? (
+        <EmptyStateRow icon={emptyIcon}>{emptyText}</EmptyStateRow>
+      ) : (
+        <ul className="divide-y divide-gray-alpha-400">
+          {rows.map((row) => (
+            <li key={row.key} className="flex flex-col gap-1.5 px-4 py-3">
+              <p className="text-[13px] leading-5 text-gray-1000 text-pretty">
+                {row.text}
+              </p>
+              <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <button
+                  type="button"
+                  onClick={() => onOpenMeeting(row.meetingId)}
+                  className="rounded-md text-[13px] leading-5 text-blue-900 hover:underline focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+                >
+                  {row.title}
+                </button>
+                <span className="snap-measured text-[11px] text-gray-800 tabular-nums">
+                  {formatEntryTimestamp(row.atUtcMs)}
+                </span>
+                {row.carriedSinceUtcMs === null ? null : (
+                  <span className="snap-measured text-[11px] text-gray-800 tabular-nums">
+                    {t("people.detail.carriedSince", {
+                      date: formatEntryTimestamp(row.carriedSinceUtcMs),
+                    })}
+                  </span>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </SettingsSection>
   );
 };
 
-export const PersonLedgerSections: React.FC<{
+export const PersonOpenLoops: React.FC<{
   openLoops: PersonOpenLoop[];
-  commitments: PersonCommitment[];
-}> = ({ openLoops, commitments }) => {
+  onOpenMeeting: (meetingId: string) => void;
+}> = ({ openLoops, onOpenMeeting }) => {
   const { t } = useTranslation();
 
   return (
-    <>
-      <SettingsSection label={t("people.detail.stillOpen")}>
-        {openLoops.length === 0 ? (
-          <EmptyStateRow icon={CircleDashed}>
-            {t("people.detail.noOpenLoops")}
-          </EmptyStateRow>
-        ) : (
-          <ul className="divide-y divide-gray-alpha-400">
-            {openLoops.map((loop, index) => (
-              <RelationshipRow
-                key={`${loop.meeting_id}:${index}`}
-                text={loop.text}
-                title={loop.title}
-                atUtcMs={loop.at_utc_ms}
-                carriedSinceUtcMs={loop.carried_since_at_utc_ms}
-              />
-            ))}
-          </ul>
-        )}
-      </SettingsSection>
+    <LedgerSection
+      label={t("peopleV2.detail.openLoops")}
+      emptyIcon={CircleDashed}
+      emptyText={t("people.detail.noOpenLoops")}
+      rows={openLoops.map((loop, index) => ({
+        key: `${loop.meeting_id}:${index}`,
+        text: loop.text,
+        title: loop.title,
+        meetingId: loop.meeting_id,
+        atUtcMs: loop.at_utc_ms,
+        carriedSinceUtcMs: loop.carried_since_at_utc_ms,
+      }))}
+      onOpenMeeting={onOpenMeeting}
+    />
+  );
+};
 
-      <SettingsSection label={t("people.detail.commitments")}>
-        {commitments.length === 0 ? (
-          <EmptyStateRow icon={CheckCheck}>
-            {t("people.detail.noCommitments")}
-          </EmptyStateRow>
-        ) : (
-          <ul className="divide-y divide-gray-alpha-400">
-            {commitments.map((commitment, index) => (
-              <RelationshipRow
-                key={`${commitment.meeting_id}:${index}`}
-                text={commitment.text}
-                title={commitment.title}
-                atUtcMs={commitment.at_utc_ms}
-              />
-            ))}
-          </ul>
-        )}
-      </SettingsSection>
-    </>
+export const PersonCommitments: React.FC<{
+  commitments: PersonCommitment[];
+  onOpenMeeting: (meetingId: string) => void;
+}> = ({ commitments, onOpenMeeting }) => {
+  const { t } = useTranslation();
+
+  return (
+    <LedgerSection
+      label={t("people.detail.commitments")}
+      emptyIcon={CheckCheck}
+      emptyText={t("people.detail.noCommitments")}
+      rows={commitments.map((commitment, index) => ({
+        key: `${commitment.meeting_id}:${index}`,
+        text: commitment.text,
+        title: commitment.title,
+        meetingId: commitment.meeting_id,
+        atUtcMs: commitment.at_utc_ms,
+        carriedSinceUtcMs: null,
+      }))}
+      onOpenMeeting={onOpenMeeting}
+    />
   );
 };

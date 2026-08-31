@@ -12,8 +12,9 @@ import { ChartCard } from "@/components/charts";
 import { Bars } from "@/components/vg/chart";
 import { formatEntryTimestamp } from "@/lib/utils/format";
 import { PersonDocuments } from "./PersonDocuments";
+import { PersonEvidence } from "./PersonEvidence";
 import { PersonHeader } from "./PersonHeader";
-import { PersonLedgerSections } from "./PersonLedgerSections";
+import { PersonCommitments, PersonOpenLoops } from "./PersonLedgerSections";
 import { PersonMeetings } from "./PersonMeetings";
 import {
   confirmedPersonLinks,
@@ -38,6 +39,8 @@ export interface PersonDetailViewProps {
   onUnlink: (link: PersonMeetingLink) => void;
   onImportDocument: () => void;
   onDeleteDocument: (document: Document) => void;
+  /** Opens the meeting a line came from. Every ledger line is a link to one. */
+  onOpenMeeting: (meetingId: string) => void;
 }
 
 export const PersonDetailView: React.FC<PersonDetailViewProps> = ({
@@ -55,6 +58,7 @@ export const PersonDetailView: React.FC<PersonDetailViewProps> = ({
   onUnlink,
   onImportDocument,
   onDeleteDocument,
+  onOpenMeeting,
 }) => {
   const { t } = useTranslation();
   const confirmedLinks = confirmedPersonLinks(detail.links);
@@ -99,6 +103,26 @@ export const PersonDetailView: React.FC<PersonDetailViewProps> = ({
         />
       }
     >
+      {/* The page reads as one catalogue: the meetings you have had, what is
+       * still open out of them, and how Sona connected this person to any of
+       * it. The measured summary and imported context sit after that, because
+       * a chart is not something you read aloud first. */}
+      <PersonMeetings
+        links={detail.links}
+        pending={pending}
+        onConfirm={onConfirmLink}
+        onUnlink={onUnlink}
+      />
+      <PersonOpenLoops
+        openLoops={detail.open_loops}
+        onOpenMeeting={onOpenMeeting}
+      />
+      <PersonEvidence links={detail.links} />
+      <PersonCommitments
+        commitments={detail.commitments}
+        onOpenMeeting={onOpenMeeting}
+      />
+
       {confirmedLinks.length === 0 ? null : (
         <ChartCard
           data-slot="person-cadence"
@@ -116,16 +140,6 @@ export const PersonDetailView: React.FC<PersonDetailViewProps> = ({
         </ChartCard>
       )}
 
-      <PersonLedgerSections
-        openLoops={detail.open_loops}
-        commitments={detail.commitments}
-      />
-      <PersonMeetings
-        links={detail.links}
-        pending={pending}
-        onConfirm={onConfirmLink}
-        onUnlink={onUnlink}
-      />
       <PersonDocuments
         documents={documents}
         loadFailed={documentsLoadFailed}

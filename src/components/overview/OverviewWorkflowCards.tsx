@@ -11,11 +11,22 @@ import { Button } from "@/components/vg/button";
 import { formatRelativeTime } from "@/lib/utils/format";
 import { Microlabel, SettingsCard } from "@/components/settings/rows";
 import { formatWorkflowOutcome } from "@/components/settings/workflows/formatWorkflowOutcome";
+import { WORKFLOW_NAME_KEY } from "@/components/settings/workflows/workflowCatalogue";
 
 const OVERVIEW_RUN_PAGE_SIZE = 20;
 const OVERVIEW_RECEIPT_LIMIT = 3;
 
-const loadRecentMeetingReceipts = async (): Promise<WorkflowRunReceipt[]> => {
+/* What the feed will show: a run that succeeded and that the reader can act
+ * on, which normally means it names a meeting to open. Meeting-recording runs
+ * are the exception — skipping a detected meeting leaves no session to open,
+ * and "Skipped recording a detected meeting" is exactly the line a reader
+ * needs to see. */
+const belongsInFeed = (receipt: WorkflowRunReceipt): boolean =>
+  receipt.status === "ok" &&
+  (receipt.jump_target?.kind === "meeting" ||
+    receipt.workflow_id === "meeting_activity");
+
+const loadRecentFeedReceipts = async (): Promise<WorkflowRunReceipt[]> => {
   const receipts: WorkflowRunReceipt[] = [];
   let cursor: WorkflowRunCursor | null = null;
 
@@ -27,7 +38,7 @@ const loadRecentMeetingReceipts = async (): Promise<WorkflowRunReceipt[]> => {
     });
     if (result.status === "error") throw new Error(result.error);
     for (const receipt of result.data.entries) {
-      if (receipt.status === "ok" && receipt.jump_target?.kind === "meeting") {
+      if (belongsInFeed(receipt)) {
         receipts.push(receipt);
         if (receipts.length === OVERVIEW_RECEIPT_LIMIT) return receipts;
       }
@@ -75,10 +86,10 @@ const OverviewCardStateRow: React.FC<{
 
 interface OverviewWorkflowCardsViewProps {
   receipts: OverviewCardState<WorkflowRunReceipt>;
-  commitments: OverviewCardState<PersonOpenLoop>;
+  openLoops: OverviewCardState<PersonOpenLoop>;
   onOpenMeeting: (meetingId: string) => void;
   onRetryReceipts: () => void;
-  onRetryCommitments: () => void;
+  onRetryOpenLoops: () => void;
   nowMs?: number;
 }
 
@@ -86,16 +97,16 @@ export const OverviewWorkflowCardsView: React.FC<
   OverviewWorkflowCardsViewProps
 > = ({
   receipts,
-  commitments,
+  openLoops,
   onOpenMeeting,
   onRetryReceipts,
-  onRetryCommitments,
+  onRetryOpenLoops,
   nowMs = Date.now(),
 }) => {
   const { t } = useTranslation();
   const hideReceipts = isLoadedEmpty(receipts);
-  const hideCommitments = isLoadedEmpty(commitments);
-  if (hideReceipts && hideCommitments) return null;
+  const hideOpenLoops = isLoadedEmpty(openLoops);
+  if (hideReceipts && hideOpenLoops) return null;
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
@@ -111,33 +122,51 @@ export const OverviewWorkflowCardsView: React.FC<
               {receipts.entries
                 .slice(0, OVERVIEW_RECEIPT_LIMIT)
                 .map((receipt) => {
-                  if (receipt.jump_target?.kind !== "meeting") return null;
-                  const meetingId = receipt.jump_target.session_id;
+                  const meetingId =
+                    receipt.jump_target?.kind === "meeting"
+                      ? receipt.jump_target.session_id
+                      : null;
+                  const line = (
+                    <>
+                      <span className="block text-[13px] leading-5 text-gray-1000">
+                        {formatWorkflowOutcome(receipt, t)}
+                      </span>
+                      <span className="mt-1 block text-[11px] text-gray-700">
+                        {t(WORKFLOW_NAME_KEY[receipt.workflow_id])}
+                        <span aria-hidden="true"> · </span>
+                        <span className="snap-measured tabular-nums">
+                          {formatRelativeTime(
+                            receipt.finished_at_utc_ms,
+                            nowMs,
+                          )}
+                        </span>
+                      </span>
+                    </>
+                  );
+
                   return (
                     <li key={receipt.id}>
-                      <button
-                        type="button"
-                        data-testid="overview-workflow-receipt"
-                        data-meeting-id={meetingId}
-                        onClick={() => onOpenMeeting(meetingId)}
-                        className="w-full px-4 py-3 text-left transition-colors hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
-                      >
-                        <span className="block text-[13px] leading-5 text-gray-1000">
-                          {formatWorkflowOutcome(receipt, t)}
-                        </span>
-                        <span className="mt-1 block font-mono text-[11px] text-gray-700">
-                          {t(
-                            `settings.workflows.items.${receipt.workflow_id}.name`,
-                          )}
-                          <span aria-hidden="true"> · </span>
-                          <span className="tabular-nums">
-                            {formatRelativeTime(
-                              receipt.finished_at_utc_ms,
-                              nowMs,
-                            )}
-                          </span>
-                        </span>
-                      </button>
+                      {/* A line with nothing to open is a line, not a dead
+                       * button: skipping a detected meeting leaves no
+                       * session behind. */}
+                      {meetingId === null ? (
+                        <div
+                          data-testid="overview-workflow-receipt"
+                          className="px-4 py-3"
+                        >
+                          {line}
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          data-testid="overview-workflow-receipt"
+                          data-meeting-id={meetingId}
+                          onClick={() => onOpenMeeting(meetingId)}
+                          className="hover-fast w-full px-4 py-3 text-start hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+                        >
+                          {line}
+                        </button>
+                      )}
                     </li>
                   );
                 })}
@@ -151,37 +180,37 @@ export const OverviewWorkflowCardsView: React.FC<
         </SettingsCard>
       )}
 
-      {hideCommitments ? null : (
-        <SettingsCard aria-labelledby="overview-commitments">
-          <h2 id="overview-commitments" className="px-4 pt-4 pb-2">
+      {hideOpenLoops ? null : (
+        <SettingsCard aria-labelledby="overview-open-loops">
+          <h2 id="overview-open-loops" className="px-4 pt-4 pb-2">
             <Microlabel>
-              {t("settings.workflows.overview.commitments")}
+              {t("settings.workflows.overview.openLoops")}
             </Microlabel>
           </h2>
-          {commitments.status === "loaded" ? (
+          {openLoops.status === "loaded" ? (
             <ul role="list" className="divide-y divide-gray-alpha-400">
-              {commitments.entries.map((commitment) => (
+              {openLoops.entries.map((openLoop) => (
                 <li
-                  key={`${commitment.meeting_id}:${commitment.at_utc_ms}:${commitment.text}`}
+                  key={`${openLoop.meeting_id}:${openLoop.at_utc_ms}:${openLoop.text}`}
                 >
                   <button
                     type="button"
-                    data-testid="overview-commitment"
-                    data-meeting-id={commitment.meeting_id}
+                    data-testid="overview-open-loop"
+                    data-meeting-id={openLoop.meeting_id}
                     aria-label={t("settings.workflows.overview.openMeeting", {
-                      title: commitment.title,
+                      title: openLoop.title,
                     })}
-                    onClick={() => onOpenMeeting(commitment.meeting_id)}
-                    className="w-full px-4 py-3 text-left transition-colors hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+                    onClick={() => onOpenMeeting(openLoop.meeting_id)}
+                    className="hover-fast w-full px-4 py-3 text-start hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
                   >
                     <span className="block text-[13px] leading-5 text-gray-1000">
-                      {commitment.text}
+                      {openLoop.text}
                     </span>
-                    <span className="mt-1 block truncate font-mono text-[11px] text-gray-700">
-                      {commitment.title}
+                    <span className="mt-1 block truncate text-[11px] text-gray-700">
+                      {openLoop.title}
                       <span aria-hidden="true"> · </span>
-                      <span className="tabular-nums">
-                        {formatRelativeTime(commitment.at_utc_ms, nowMs)}
+                      <span className="snap-measured tabular-nums">
+                        {formatRelativeTime(openLoop.at_utc_ms, nowMs)}
                       </span>
                     </span>
                   </button>
@@ -190,8 +219,8 @@ export const OverviewWorkflowCardsView: React.FC<
             </ul>
           ) : (
             <OverviewCardStateRow
-              status={commitments.status}
-              onRetry={onRetryCommitments}
+              status={openLoops.status}
+              onRetry={onRetryOpenLoops}
             />
           )}
         </SettingsCard>
@@ -210,19 +239,19 @@ export const OverviewWorkflowCards: React.FC<OverviewWorkflowCardsProps> = ({
   const [receipts, setReceipts] = useState<
     OverviewCardState<WorkflowRunReceipt>
   >({ status: "loading" });
-  const [commitments, setCommitments] = useState<
-    OverviewCardState<PersonOpenLoop>
-  >({ status: "loading" });
+  const [openLoops, setOpenLoops] = useState<OverviewCardState<PersonOpenLoop>>(
+    { status: "loading" },
+  );
   const requestGenerationRef = useRef(0);
 
   const refresh = useCallback(async () => {
     const requestGeneration = requestGenerationRef.current + 1;
     requestGenerationRef.current = requestGeneration;
     setReceipts({ status: "loading" });
-    setCommitments({ status: "loading" });
+    setOpenLoops({ status: "loading" });
 
     const [receiptResult, inboxResult] = await Promise.allSettled([
-      loadRecentMeetingReceipts(),
+      loadRecentFeedReceipts(),
       commands.openLoopsInbox(5),
     ]);
     if (requestGenerationRef.current !== requestGeneration) return;
@@ -232,7 +261,7 @@ export const OverviewWorkflowCards: React.FC<OverviewWorkflowCardsProps> = ({
         ? { status: "loaded", entries: receiptResult.value }
         : { status: "error" },
     );
-    setCommitments(
+    setOpenLoops(
       inboxResult.status === "fulfilled" && inboxResult.value.status === "ok"
         ? { status: "loaded", entries: inboxResult.value.data.entries }
         : { status: "error" },
@@ -258,10 +287,10 @@ export const OverviewWorkflowCards: React.FC<OverviewWorkflowCardsProps> = ({
   return (
     <OverviewWorkflowCardsView
       receipts={receipts}
-      commitments={commitments}
+      openLoops={openLoops}
       onOpenMeeting={onOpenMeeting}
       onRetryReceipts={() => void refresh()}
-      onRetryCommitments={() => void refresh()}
+      onRetryOpenLoops={() => void refresh()}
     />
   );
 };

@@ -88,7 +88,7 @@ export const PersonDocuments: React.FC<PersonDocumentsProps> = ({
                     className="mt-0.5 size-4 flex-none text-gray-700 transition-transform group-open:rotate-180"
                   />
                 </summary>
-                <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap border-t border-gray-alpha-400 pt-3 font-mono text-[11px] leading-5 text-gray-900 select-text">
+                <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap border-t border-gray-alpha-400 pt-3 text-[11px] leading-5 text-gray-900 select-text">
                   {document.content}
                 </pre>
               </details>

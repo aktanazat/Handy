@@ -2,7 +2,6 @@ import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import type { MeetingRetentionPolicy, SourceKind } from "@/bindings";
 import {
-  FactChip,
   Microlabel,
   Notice,
   SettingsCard,
@@ -12,12 +11,10 @@ import {
 import { Button } from "@/components/vg/button";
 import { formatEntryTimestamp } from "@/lib/utils/format";
 import { destinationIcons } from "@/lib/navIcons";
-import { MeetingDetectionSettings } from "./MeetingDetectionSettings";
 import { CaptureCompletenessText } from "./MeetingStatus";
 import { MeetingSourceChip } from "./MeetingSourceChip";
 import { MeetingSuggestionPreviews } from "./MeetingSuggestionPreviews";
 import { PreMeetingCountdownCard } from "./PreMeetingCountdownCard";
-import { MeetingTrackersSettings } from "./MeetingTrackersSettings";
 import type {
   MeetingsHomeScreenActions,
   MeetingsHomeScreenModel,
@@ -35,10 +32,13 @@ interface MeetingStartCardProps {
   focusStart: boolean;
   onSourcesChange: (sources: SourceKind[]) => void;
   onStart: () => void;
+  onOpenSettings?: () => void;
 }
 
-/* One press records a meeting. The sources it will use and the retention fact
- * stay beside that press instead of becoming a setup screen. */
+/* One press records a meeting. The sources it will use and how long the
+ * recording is kept stay beside that press instead of becoming a setup
+ * screen — and the retention line only states the policy, because the one
+ * place it can be changed is Settings. */
 const MeetingStartCard: React.FC<MeetingStartCardProps> = ({
   sources,
   retention,
@@ -46,6 +46,7 @@ const MeetingStartCard: React.FC<MeetingStartCardProps> = ({
   focusStart,
   onSourcesChange,
   onStart,
+  onOpenSettings,
 }) => {
   const { t } = useTranslation();
 
@@ -106,16 +107,25 @@ const MeetingStartCard: React.FC<MeetingStartCardProps> = ({
         <span className="flex flex-none items-baseline gap-4">
           <Microlabel>{t("meetings.start.localOnly", "Local only")}</Microlabel>
           {retention === null ? null : (
-            <FactChip
-              label={t("meetings.retention.title")}
-              value={
-                retention.kind === "forever"
-                  ? t("meetings.retention.forever")
-                  : t("meetings.retention.days", {
-                      days: retention.days,
-                    })
-              }
-            />
+            <span className="text-[13px] leading-5 text-gray-800">
+              {retention.kind === "forever"
+                ? t("meetingsV2.retention.keptForever")
+                : t("meetingsV2.retention.keptDays", {
+                    days: retention.days,
+                  })}
+              {onOpenSettings === undefined ? null : (
+                <>
+                  <span aria-hidden="true"> · </span>
+                  <button
+                    type="button"
+                    onClick={onOpenSettings}
+                    className="rounded-md text-blue-900 hover:underline focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+                  >
+                    {t("meetingsV2.retention.change")}
+                  </button>
+                </>
+              )}
+            </span>
           )}
         </span>
       </div>
@@ -128,7 +138,11 @@ const MeetingStartCard: React.FC<MeetingStartCardProps> = ({
   );
 };
 
-type MeetingsHomeProps = MeetingsHomeScreenModel & MeetingsHomeScreenActions;
+type MeetingsHomeProps = MeetingsHomeScreenModel &
+  MeetingsHomeScreenActions & {
+    /** The shell's route setter, so the retention line can reach Settings. */
+    onOpenSettings?: () => void;
+  };
 
 export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
   suggestions,
@@ -158,6 +172,7 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
   onExportLedger,
   onDeleteMeeting,
   onRetry,
+  onOpenSettings,
 }) => {
   const { t } = useTranslation();
 
@@ -170,6 +185,7 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
         focusStart={focusStart}
         onSourcesChange={onSourcesChange}
         onStart={onStart}
+        onOpenSettings={onOpenSettings}
       />
 
       <PreMeetingCountdownCard
@@ -253,9 +269,6 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
         onDeleteMeeting={onDeleteMeeting}
         onRetry={onRetry}
       />
-
-      <MeetingTrackersSettings />
-      <MeetingDetectionSettings />
     </SettingsPage>
   );
 };

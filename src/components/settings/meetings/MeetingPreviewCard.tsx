@@ -53,9 +53,9 @@ import type {
  * row, because nothing scheduled it. Absence is information, and faking a row
  * to keep the shape tidy would spend the operator's trust on symmetry.
  *
- * Every measured value on the card is set in mono, KEY then VALUE, so the
- * facts read as facts and the one line of prose on the surface stays the one
- * line of prose. */
+ * Every measured value on the card is presented KEY then VALUE, so the facts
+ * read as facts and the one line of prose on the surface stays the one line
+ * of prose. */
 
 /** The facts about one meeting-to-be. Pure data: every control the card can
  * drive is passed separately, because the facts travel with a start request
@@ -166,9 +166,9 @@ const openLink = async (url: string, failure: string) => {
 };
 
 /**
- * A labelled list of preview cards. The heading is the mono microlabel every
- * settings section uses, and the content sits bare underneath it: each card is
- * already a surface, and a box around a list of boxes is the nesting the
+ * A labelled list of preview cards. The heading is the microlabel every
+ * settings section uses, and the content sits bare underneath it: each card
+ * is already a surface, and a box around a list of boxes is the nesting the
  * grammar exists to prevent.
  */
 export const MeetingPreviewList: React.FC<{
@@ -240,7 +240,7 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
     count: named.filter((person) => person.status === status).length,
   })).filter((entry) => entry.count > 0);
 
-  /* What the head row can measure, in mono.
+  /* What the head row can measure.
    *
    * The head is the card's summary, so it states only what the body is not
    * stating two rows below it. Open, the start, the duration and the head
@@ -595,7 +595,7 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
                   aria-expanded={descriptionOpen}
                   onClick={() => setDescriptionOpen(!descriptionOpen)}
                   /* Inline text actions on this card are blue and underline on
-                   * hover — the same affordance as the link row. A grey mono
+                   * hover — the same affordance as the link row. A grey status
                    * word beside prose would read as more prose. */
                   className="flex-none rounded-md text-[12px] text-blue-900 hover:underline focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
                 >

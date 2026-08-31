@@ -26,7 +26,7 @@ export const SpeakerBubbles: React.FC<SpeakerBubblesProps> = ({ speakers }) => {
           <span
             key={`${speaker}:${index}`}
             data-slot="meeting-person"
-            className="flex size-5 items-center justify-center rounded-full border border-background-100 bg-gray-300 font-mono text-[10px] text-gray-1000"
+            className="flex size-5 items-center justify-center rounded-full border border-background-100 bg-gray-300 text-[10px] text-gray-1000"
           >
             {speakerInitials(speaker)}
           </span>
@@ -34,7 +34,7 @@ export const SpeakerBubbles: React.FC<SpeakerBubblesProps> = ({ speakers }) => {
         {overflow > 0 ? (
           <span
             data-slot="meeting-person-overflow"
-            className="flex size-5 items-center justify-center rounded-full border border-background-100 bg-gray-300 font-mono text-[10px] text-gray-1000"
+            className="flex size-5 items-center justify-center rounded-full border border-background-100 bg-gray-300 text-[10px] text-gray-1000"
           >
             +{overflow}
           </span>
@@ -42,7 +42,7 @@ export const SpeakerBubbles: React.FC<SpeakerBubblesProps> = ({ speakers }) => {
       </span>
       <span
         title={speakers.join(", ")}
-        className="truncate font-mono text-[11px] uppercase tracking-[0.08em] text-gray-900"
+        className="truncate text-[12px] text-gray-900"
       >
         {speakers.join(", ")}
       </span>

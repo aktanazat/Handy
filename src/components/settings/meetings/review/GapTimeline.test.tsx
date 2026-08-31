@@ -95,7 +95,9 @@ describe("gap timeline", () => {
     ]);
 
     expect(markup.match(/<li/g) ?? []).toHaveLength(1);
-    expect(markup).toContain("Invalid audio format");
+    /* The reason reads as a sentence a person would say: the wire calls it
+     * `invalid_format`, the row says the audio could not be read. */
+    expect(markup).toContain("Unreadable audio");
     expect(markup).toContain("×3");
     expect(markup).toContain("Dropped frames: 1536");
     expect(markup).toContain("Unknown time");

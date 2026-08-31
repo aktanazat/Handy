@@ -16,8 +16,8 @@ export interface CitationJumpProps {
 }
 
 /* A citation is a jump, so it looks like the thing that jumps: the accent
- * colour with the timestamp kept monospaced and tabular. It degrades to plain
- * text when it points at a manual note or the title, which have no transcript
+ * colour with a tabular timestamp. It degrades to plain text when it points
+ * at a manual note or the title, which have no transcript
  * row to scroll to. */
 export const CitationJump: React.FC<CitationJumpProps> = ({
   startOffsetNs,
@@ -31,7 +31,7 @@ export const CitationJump: React.FC<CitationJumpProps> = ({
 
   if (segmentId === null) {
     return (
-      <span className="px-1.5 py-0.5 font-mono text-[11px] tabular-nums text-gray-700">
+      <span className="px-1.5 py-0.5 text-[11px] tabular-nums text-gray-700">
         {label}
       </span>
     );
@@ -41,7 +41,7 @@ export const CitationJump: React.FC<CitationJumpProps> = ({
     <button
       type="button"
       onClick={() => onJump(segmentId)}
-      className="rounded-md px-1.5 py-0.5 font-mono text-[11px] tabular-nums text-blue-900 transition-colors hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+      className="rounded-md px-1.5 py-0.5 text-[11px] tabular-nums text-blue-900 transition-colors hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
     >
       {label}
     </button>

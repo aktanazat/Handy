@@ -62,7 +62,7 @@ export const PreviouslyTogetherBandView: React.FC<{
                 </span>
               )}
             </span>
-            <span className="flex flex-none flex-col items-end font-mono text-[11px] leading-[17px] text-gray-800 tabular-nums">
+            <span className="flex flex-none flex-col items-end text-[11px] leading-[17px] text-gray-800 tabular-nums">
               <span>
                 {t("people.review.meetingsBefore", {
                   count: row.meetingsCount,

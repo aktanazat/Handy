@@ -4,7 +4,15 @@ import { PeopleListView } from "./PeopleList";
 import { PersonDetailScreen } from "./PersonDetailScreen";
 import { usePeopleQuery } from "./usePeopleQuery";
 
-export const PeoplePage: React.FC = () => {
+interface PeoplePageProps {
+  /* The shell's meeting route, so a line on a person's page can open the
+   * meeting it was said in. Optional because `sidebarSections` types every
+   * destination as a bare component; App.tsx is the only caller and always
+   * passes one. */
+  onOpenMeeting?: (meetingId: string) => void;
+}
+
+export const PeoplePage: React.FC<PeoplePageProps> = ({ onOpenMeeting }) => {
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const loadPeople = useCallback(async () => {
     const result = await commands.peopleList();
@@ -24,6 +32,7 @@ export const PeoplePage: React.FC = () => {
           setSelectedPersonId(null);
           void reload();
         }}
+        onOpenMeeting={onOpenMeeting}
       />
     );
   }

@@ -88,6 +88,7 @@ const hero = (overrides: Partial<CaptureHeroProps> = {}): string =>
       onNewMeeting={() => {}}
       onImportAudio={() => {}}
       onChangeShortcut={() => {}}
+      onOpenModes={() => {}}
       {...overrides}
     />,
   );
@@ -99,9 +100,13 @@ describe("the Capture hero", () => {
     expect(markup).toContain('id="overview-status"');
     expect(markup).toContain("Ready");
     expect(markup).toContain('aria-live="polite"');
-    /* Not recording: the attribute is absent rather than false, and the word is
-     * the page's whole answer — no second indicator restating it. */
-    expect(markup.includes("data-recording")).toBe(false);
+    /* Not recording: the heading carries no marker at all — the attribute is
+     * absent rather than false. The aurora does mark the state, because its
+     * idle wash is a different animation from its recording breath
+     * (styles/aurora.css), and that marker is the only other copy on the
+     * card. */
+    expect(markup.match(/data-recording/g)?.length).toBe(1);
+    expect(markup).toContain('data-recording="false"');
     /* Written in px on purpose: `:root { font-size: 14px }` makes `text-2xl`
      * 21px here, which would leave the app's default route with a smaller
      * headline than every other page's h1 (settings/rows.tsx uses 24px). */
@@ -184,11 +189,9 @@ describe("the Capture hero", () => {
     expect(hero().includes('disabled=""')).toBe(false);
   });
 
-  test("is one flat Geist card", () => {
+  test("is one flat hero card", () => {
     const markup = hero();
-    /* The card's own attributes, not its contents: vg's bordered button ships a
-     * hairline shadow of its own, and that is the kit's business. What must
-     * stay flat is this page surface. */
+    /* The card itself stays flat; floating surfaces own the only shadows. */
     const card = markup.slice(0, markup.indexOf(">") + 1);
 
     expect(card).toContain("rounded-card");
@@ -196,7 +199,7 @@ describe("the Capture hero", () => {
     expect(card).toContain("bg-background-100");
     expect(card).toContain('aria-labelledby="overview-status"');
     expect(card.includes("shadow")).toBe(false);
-    /* Geist never nests a card inside a card. */
+    /* The hero remains one card, without nested surfaces. */
     expect(occurrences(markup, "<section")).toBe(1);
     expect(occurrences(markup, "rounded-card")).toBe(1);
   });

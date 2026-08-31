@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { events } from "@/bindings";
 import {
   attachDetectionListeners,
   useDetectionStore,
@@ -20,6 +21,7 @@ export const DetectionListeners: React.FC = () => {
   const { t } = useTranslation();
   const answer = useDetectionStore((state) => state.answer);
   const refresh = useDetectionStore((state) => state.refresh);
+  const clearPrompt = useDetectionStore((state) => state.clearPrompt);
 
   useEffect(() => {
     void refresh().catch(() => {
@@ -36,6 +38,16 @@ export const DetectionListeners: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const subscription = events.detectionPromptRetracted.listen((event) => {
+      clearPrompt(event.payload.promptId);
+      toast.dismiss(promptToastId(event.payload.promptId));
+    });
+    return () => {
+      void subscription.then((stop) => stop());
+    };
+  }, [clearPrompt]);
+
+  useEffect(() => {
     /* Subscribing rather than reading: this effect has to fire for every prompt,
      * including ones that arrive while the window is hidden. */
     return useDetectionStore.subscribe((state, previous) => {
@@ -44,8 +56,9 @@ export const DetectionListeners: React.FC = () => {
         (prompt) => !previous.prompts.includes(prompt),
       );
       for (const prompt of added) {
-        if (prompt.notified) continue;
+        if (prompt.delivery !== "in_app_only") continue;
         toast(promptTitle(t, prompt.prompt), {
+          id: promptToastId(prompt.promptId),
           description: t(
             "meetings.detection.prompt.body",
             "Sona can take local notes for this call.",
@@ -65,6 +78,9 @@ export const DetectionListeners: React.FC = () => {
 
   return null;
 };
+
+const promptToastId = (promptId: string): string =>
+  `detection-prompt:${promptId}`;
 
 /* A name the payload actually supplied.
  *

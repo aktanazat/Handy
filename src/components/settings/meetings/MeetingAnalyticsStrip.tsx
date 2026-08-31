@@ -41,9 +41,7 @@ interface StatProps {
 const Stat: React.FC<StatProps> = ({ label, value, detail }) => (
   <div className="flex flex-col gap-0.5 px-4 py-3">
     <Microlabel>{label}</Microlabel>
-    <p className="font-mono text-lg leading-7 tabular-nums text-gray-1000">
-      {value}
-    </p>
+    <p className="text-lg leading-7 tabular-nums text-gray-1000">{value}</p>
     {detail ? (
       <p className="truncate text-[12px] leading-4 text-gray-800">{detail}</p>
     ) : null}
@@ -117,7 +115,7 @@ export const MeetingAnalyticsStrip: React.FC<MeetingAnalyticsStripProps> = ({
               {nameOf(share.speaker_id)}
             </span>
             <span className="flex flex-none items-baseline gap-3">
-              <span className="font-mono text-[13px] leading-5 font-medium tabular-nums text-gray-1000">
+              <span className="text-[13px] leading-5 font-medium tabular-nums text-gray-1000">
                 {formatTalkShare(share.share_permille)}
               </span>
               <Microlabel className="normal-case tabular-nums text-gray-800">

@@ -338,6 +338,7 @@ const homeMarkup = (
       onExportLedger={noop}
       onDeleteMeeting={noop}
       onRetry={noop}
+      onOpenSettings={noop}
       {...overrides}
     />,
   );
@@ -404,22 +405,22 @@ describe("meetings list", () => {
     /* The assurance sentence lives beside the page's own Start and nowhere
      * else: one sentence never appears twice on one screen. */
     expect(occurrences(markup, ASSURANCE)).toBe(1);
-    /* And the evidence is shown as the measurement it is — a mono APP fact
-     * naming the app — rather than as "Sona noticed a meeting app in use.",
-     * which was the section heading written out a second time as prose. */
+    /* And the evidence is shown as the measurement it is — an APP fact naming
+     * the app — rather than as "Sona noticed a meeting app in use.", which was
+     * the section heading written out a second time as prose. */
     expect(markup).not.toContain("Sona noticed");
     expect(markup).toContain(">App<");
     expect(markup).toContain(">Zoom<");
   });
 
-  /* The row render matrix: status chip × which of the three real sources line
-   * two came from × what the capture actually was. `data-headline` is the row
-   * stating its own provenance, which is what makes these assertions about
-   * behaviour rather than about prose. */
+  /* The row render matrix. A row in the day log says three things — what the
+   * meeting was called, how long it ran, and the time of day it started — and
+   * `data-headline` is the row stating its own provenance, which keeps these
+   * assertions about behaviour rather than about prose. */
   const row = (overrides: Partial<MeetingHistorySummary>) =>
     homeMarkup({ meetings: [{ ...SUMMARY, ...overrides }] });
 
-  test("a ready row reads title, one summary line, speakers and the capture", () => {
+  test("a finished row is its title, its length and its time, and no chip", () => {
     const markup = row({
       headline: { kind: "ledger", text: "Pricing is open again." },
       speaker_labels: ["Ada", "Grace"],
@@ -428,25 +429,26 @@ describe("meetings list", () => {
     });
     expect(markup).toContain("Weekly planning");
     expect(markup).toContain('data-headline="ledger"');
-    expect(markup).toContain("Pricing is open again.");
-    // Two speakers produce two initial bubbles and one readable name line.
-    expect(occurrences(markup, 'data-slot="meeting-person"')).toBe(2);
-    expect(markup).toContain(">A<");
-    expect(markup).toContain(">G<");
-    expect(markup).toContain(">Ada, Grace<");
-    expect(markup).toContain(">MIC</span>");
-    expect(markup).toContain(">SYS</span>");
     expect(markup).toContain("3m 12s");
-    // One chip, and it is the state that decides whether the row can be read.
-    expect(markup).toContain('data-status="ready"');
-    expect(occurrences(markup, 'data-slot="meeting-status"')).toBe(1);
+    // The heading over the group carries the date, so the row carries a clock.
+    expect(occurrences(markup, 'data-slot="meeting-day"')).toBe(1);
+    /* Nothing a finished meeting does not need: no status chip, no speaker
+     * bubbles, no source glyphs and no second line. The summary it used to
+     * print is the row's hover title, and the meeting is one click away. */
+    expect(occurrences(markup, 'data-slot="meeting-status"')).toBe(0);
+    expect(occurrences(markup, 'data-slot="meeting-person"')).toBe(0);
+    expect(markup).not.toContain(">Ada, Grace<");
+    expect(markup).not.toContain("Pricing is open again.</span>");
+    expect(markup).toContain(
+      'title="Weekly planning — Pricing is open again."',
+    );
   });
 
-  test("each meeting state maps to its tinted card status", () => {
+  test("only an unfinished meeting wears a chip, and it names the state", () => {
     const chip = (overrides: Partial<MeetingHistorySummary>) => {
       const markup = row(overrides);
       const at = markup.indexOf('data-slot="meeting-status"');
-      return markup.slice(at, markup.indexOf("</span>", at));
+      return at === -1 ? "" : markup.slice(at, markup.indexOf("</span>", at));
     };
     expect(
       chip({
@@ -463,7 +465,6 @@ describe("meetings list", () => {
     expect(
       chip({ phase: "processing", processing_status: { kind: "running" } }),
     ).toContain('data-status="processing"');
-    expect(chip({})).toContain('data-status="ready"');
     expect(
       chip({
         processing_status: { kind: "failed", reason: "engine_failure" },
@@ -476,31 +477,39 @@ describe("meetings list", () => {
         processing_status: { kind: "pending" },
       }),
     ).toContain('data-status="needs_attention"');
+    // A meeting that is ready to read says nothing about being ready.
+    expect(chip({})).toBe("");
   });
 
-  test("four speakers use two initials and one overflow bubble", () => {
-    const markup = row({
-      speaker_labels: ["Ada Lovelace", "Grace Hopper", "Linus", "Margaret"],
+  test("the log is grouped by the day each meeting was recorded", () => {
+    const markup = homeMarkup({
+      meetings: [
+        SUMMARY,
+        { ...SUMMARY, session_id: "meeting-2", title: "Standup" },
+        {
+          ...SUMMARY,
+          session_id: "meeting-3",
+          title: "Retro",
+          created_at_utc_ms: SUMMARY.created_at_utc_ms - 172_800_000,
+        },
+      ],
     });
-    expect(occurrences(markup, 'data-slot="meeting-person"')).toBe(2);
-    expect(occurrences(markup, 'data-slot="meeting-person-overflow"')).toBe(1);
-    expect(markup).toContain(">AL<");
-    expect(markup).toContain(">GH<");
-    expect(markup).toContain(">+2<");
-    expect(markup).toContain(">Ada Lovelace, Grace Hopper, Linus, Margaret<");
+    // Two days, three rows: same-day meetings share one heading.
+    expect(occurrences(markup, 'data-slot="meeting-day"')).toBe(2);
+    expect(occurrences(markup, 'data-slot="meeting-entry"')).toBe(3);
+    expect(markup.indexOf("Standup")).toBeLessThan(markup.indexOf("Retro"));
   });
 
-  test("line two falls back from ledger to summary to a word count to nothing", () => {
+  test("the row keeps its provenance without printing a word count", () => {
     expect(
       row({ headline: { kind: "summary", text: "We picked Postgres." } }),
     ).toContain('data-headline="summary"');
     const words = row({ headline: { kind: "words", words: 1_284 } });
     expect(words).toContain('data-headline="words"');
-    expect(words).toContain("1284 words transcribed");
-    // Nothing generated and nothing transcribed prints no line, not "0 words".
-    const silent = row({ headline: { kind: "none" } });
-    expect(silent).toContain('data-headline="none"');
-    expect(occurrences(silent, "words transcribed")).toBe(0);
+    expect(occurrences(words, "words transcribed")).toBe(0);
+    expect(row({ headline: { kind: "none" } })).toContain(
+      'data-headline="none"',
+    );
   });
 
   test("a capture with nothing to report reports nothing, never a zero", () => {
@@ -508,22 +517,13 @@ describe("meetings list", () => {
       recorded_duration_ms: null,
       sources: [],
       speaker_labels: [],
+      capture_completeness: "partial",
     });
     expect(occurrences(markup, "0s")).toBe(0);
     expect(occurrences(markup, "MIC")).toBe(0);
-    // The timestamp is the one fact every meeting has.
-    expect(markup).toContain('data-slot="meeting-facts"');
-  });
-
-  test("a partial capture says so beside the sources it is missing one of", () => {
-    const markup = row({
-      capture_completeness: "partial",
-      sources: ["microphone"],
-    });
-    expect(markup).toContain("Partial");
-    // Still one chip: completeness is a fact about the sources, not the state
-    // that decides whether the meeting can be read.
-    expect(occurrences(markup, 'data-slot="meeting-status"')).toBe(1);
+    /* Completeness is a fact about the recording, read on the meeting itself.
+     * A log row is not where a caveat about audio belongs. */
+    expect(occurrences(markup, "Partial")).toBe(0);
   });
 
   test("keeps row actions behind one shared menu trigger", () => {
@@ -544,10 +544,13 @@ describe("meetings list", () => {
       retention: { kind: "delete_after_days", days: 30 },
       filter: { status: "failed", window: "last_7_days", title_query: "sync" },
     });
-    /* The retention policy is a fact of the start card, stated there once as a
-     * mono chip. It used to be repeated here as a sentence under the filters,
-     * which is the same datum twice on one screen. */
-    expect(occurrences(markup, "Delete after 30 days")).toBe(1);
+    /* Retention is stated once, on the start card, as a quiet line whose one
+     * link is the page that can change it. The list repeats neither the fact
+     * nor the control: the same datum twice on one screen is what this
+     * replaced, and the policy now lives in Settings alone. */
+    expect(occurrences(markup, "Kept 30 days")).toBe(1);
+    expect(occurrences(markup, ">change in Settings</button>")).toBe(1);
+    expect(occurrences(markup, "Delete after 30 days")).toBe(0);
     expect(markup).toContain('aria-label="Search meetings"');
     expect(markup).toContain("Status");
     expect(markup).toContain("Failed");
@@ -759,8 +762,9 @@ describe("meeting review", () => {
      * generated rather than authored — asserting them would pin a detail the
      * kit owns. The contract is the roles and the selected state. */
     expect(occurrences(markup, 'role="tab"')).toBe(4);
-    // The questions tab is labelled "Q&A", which arrives HTML-escaped.
-    for (const label of ["Transcript", "Insights", "Ledger", "Q&amp;A"]) {
+    /* Every tab is a word you could say out loud: the questions tab is
+     * "Questions", not the "Q&A" abbreviation it used to carry. */
+    for (const label of ["Transcript", "Insights", "Ledger", "Questions"]) {
       expect(markup).toContain(`>${label}<`);
     }
     /* All four panels are rendered so the strip is navigable without JS, but
@@ -773,7 +777,10 @@ describe("meeting review", () => {
   test("transcript panel carries speakers, segments, coverage and gaps", () => {
     expect(markup).toContain("We ship the meetings redesign this week.");
     expect(markup).toContain('id="meeting-transcript-segment-segment-1"');
-    expect(markup).toContain("Speaker assignments current");
+    /* The roster says what happened in plain words. "Diarization" is the
+     * subsystem's name for separating speakers and reaches no reader. */
+    expect(markup).toContain("Speakers are up to date");
+    expect(markup).not.toContain("iarization");
     expect(markup).toContain(">Merge speakers<");
     expect(markup).toContain(">Remove segment<");
     expect(markup).toContain("Permission lost");
@@ -787,8 +794,8 @@ describe("meeting review", () => {
     expect(markup).toContain(">Export Markdown<");
     expect(markup).toContain(">Export JSON<");
     expect(markup).toContain(">Delete meeting<");
-    /* The capture length is a measurement, so it is set as one: a mono
-     * ELAPSED label and its value, not the sentence "Captured 30:45". */
+    /* The capture length is presented as one measurement: an ELAPSED label and
+     * its value, not the sentence "Captured 30:45". */
     expect(markup).toContain(">Elapsed<");
     expect(markup).toContain(">30:45<");
   });

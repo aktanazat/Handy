@@ -37,8 +37,8 @@ import { MeetingNotesPane } from "./MeetingNotesPane";
  * box and again on a chip inside it) is gone: what is left is the state, the
  * clock, what capture is hearing, and the three controls. */
 
-/** Measurements sit in mono so a column of them lines up. */
-const MONO_VALUE = "font-mono text-[12px] tabular-nums text-gray-1000";
+/** Tabular figures keep live measurements aligned as they update. */
+const MEASURED_VALUE = "text-[12px] tabular-nums text-gray-1000";
 
 interface MeetingLiveProps {
   snapshot: MeetingReviewSnapshot;
@@ -137,14 +137,14 @@ export const MeetingLive: React.FC<MeetingLiveProps> = ({
 
       <SettingsSection label={t("meetings.live.progress")}>
         <SettingsRow label={t("meetings.live.transcript")}>
-          <span className={MONO_VALUE}>
+          <span className={MEASURED_VALUE}>
             {latestTranscriptOffsetNs === null
               ? t("meetings.live.notReported")
               : formatMeetingOffset(latestTranscriptOffsetNs)}
           </span>
         </SettingsRow>
         <SettingsRow label={t("meetings.live.asrLag")}>
-          <span className={MONO_VALUE}>
+          <span className={MEASURED_VALUE}>
             {transcriptLagNs === null
               ? t("meetings.live.notReported")
               : formatMeetingOffset(transcriptLagNs)}

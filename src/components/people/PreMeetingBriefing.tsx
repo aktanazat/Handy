@@ -33,7 +33,7 @@ export const PreMeetingBriefing: React.FC<{
         aria-hidden="true"
         className="mt-0.5 size-3.5 flex-none text-gray-700"
       />
-      <div className="min-w-0 font-mono text-[11px] leading-[17px] text-gray-900">
+      <div className="min-w-0 text-[11px] leading-[17px] text-gray-900">
         <p className="truncate">{relationship}</p>
         {openLoop === undefined ? null : (
           <p className="truncate">

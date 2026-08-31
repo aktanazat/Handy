@@ -30,7 +30,7 @@ import {
  * the citation jump — the same control the rest of the review uses, because a
  * citation is a jump wherever it appears.
  *
- * One card, hairline blocks, mono measurements. The only tally left is the
+ * One card, hairline blocks, compact measurements. The only tally left is the
  * score: counting the commitments and the open loops above lists that print
  * every one of them was the same number said twice. */
 
@@ -49,7 +49,7 @@ const OUTCOME_GLYPHS = {
 } as const satisfies Record<LedgerOutcome, string>;
 
 const COLUMN_CLASSES =
-  "pb-1.5 pe-3 text-start font-mono text-[11px] font-normal uppercase tracking-[0.12em] text-gray-800";
+  "pb-1.5 pe-3 text-start text-[13px] leading-5 font-normal text-gray-900";
 
 const CELL_CLASSES = "py-1.5 pe-3 align-top";
 
@@ -151,14 +151,14 @@ export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
               <li key={`thread:${index}`} className="flex flex-col gap-1">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
                   <span className="flex min-w-0 items-baseline gap-2">
-                    <span className="font-mono text-[11px] tabular-nums text-gray-700">
+                    <span className="text-[11px] tabular-nums text-gray-700">
                       {`T${String(index + 1).padStart(2, "0")}`}
                     </span>
                     <span className="text-[13px] leading-5 font-medium text-gray-1000">
                       {thread.topic}
                     </span>
                     {thread.owner ? (
-                      <span className="font-mono text-[11px] text-gray-800">
+                      <span className="text-[11px] text-gray-800">
                         {thread.owner}
                       </span>
                     ) : null}
@@ -169,7 +169,7 @@ export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
                     )}
                   </span>
                   <span
-                    className={`flex-none font-mono text-[11px] whitespace-nowrap ${OUTCOME_CLASSES[outcome]}`}
+                    className={`flex-none text-[11px] whitespace-nowrap ${OUTCOME_CLASSES[outcome]}`}
                   >
                     {`${OUTCOME_GLYPHS[outcome]} ${t(`meetings.ledger.states.${thread.state}`)}`}
                   </span>
@@ -208,7 +208,7 @@ export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
               {ledger.open_loops.map((loop, index) => (
                 <tr key={`loop:${index}`}>
                   <td
-                    className={`${CELL_CLASSES} font-mono text-[11px] tabular-nums whitespace-nowrap text-gray-700`}
+                    className={`${CELL_CLASSES} text-[11px] tabular-nums whitespace-nowrap text-gray-700`}
                   >
                     {offsetOf(loop.at_ms)}
                   </td>
@@ -241,7 +241,7 @@ export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
                     <span className="font-medium">{commitment.who}</span>
                     {` — ${commitment.what}`}
                   </span>
-                  <span className="flex-none font-mono text-[11px] whitespace-nowrap text-gray-700">
+                  <span className="flex-none text-[11px] whitespace-nowrap text-gray-700">
                     {t(`meetings.ledger.firmness.${commitment.firmness}`)}
                   </span>
                 </div>
@@ -282,7 +282,7 @@ export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
               {ledger.stances.map((stance, index) => (
                 <tr key={`stance:${index}`}>
                   <td
-                    className={`${CELL_CLASSES} font-mono text-[11px] tabular-nums whitespace-nowrap text-gray-700`}
+                    className={`${CELL_CLASSES} text-[11px] tabular-nums whitespace-nowrap text-gray-700`}
                   >
                     {offsetOf(stance.at_ms)}
                   </td>
@@ -326,7 +326,7 @@ interface LedgerBlockProps {
   children: React.ReactNode;
 }
 
-/** One register of the ledger: a mono heading over its rows, on a hairline. */
+/** One register of the ledger: a microlabel over its rows, on a hairline. */
 const LedgerBlock: React.FC<LedgerBlockProps> = ({ label, children }) => (
   <div className="flex flex-col gap-2 px-4 py-3">
     <h3>
@@ -360,7 +360,7 @@ const LedgerReceiptRow: React.FC<LedgerReceiptRowProps> = ({
        * sit on one line, so the citation control keeps its own gap instead of
        * the negative inline start a left-aligned citation row wants. */}
       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 ps-2.5">
-        <span className="font-mono text-[11px] text-gray-700">
+        <span className="text-[11px] text-gray-700">
           {attribution || t("meetings.ledger.unattributed")}
         </span>
         <span className="flex flex-wrap items-center gap-1">

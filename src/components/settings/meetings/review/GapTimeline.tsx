@@ -19,7 +19,7 @@ import {
 } from "./gapLedger";
 
 const COLLAPSED_ROW_LIMIT = 8;
-const MONO_FACT = "font-mono text-[11px] tabular-nums text-gray-700";
+const MEASURED_FACT = "text-[11px] tabular-nums text-gray-700";
 
 type GapSeverity = "info" | "warning" | "error";
 
@@ -76,22 +76,22 @@ const GapRow: React.FC<{ gap: AggregatedGap }> = ({ gap }) => {
               {t(`meetings.gaps.${gap.reason}`)}
             </span>
             {gap.count > 1 ? (
-              <span className={MONO_FACT}>×{gap.count}</span>
+              <span className={MEASURED_FACT}>×{gap.count}</span>
             ) : null}
           </span>
-          <span className={MONO_FACT}>{range}</span>
+          <span className={MEASURED_FACT}>{range}</span>
         </span>
       </span>
       <span className="flex flex-none flex-wrap justify-end gap-x-3 gap-y-0.5">
         {gap.durationNs === null ? null : (
-          <span className={MONO_FACT}>
+          <span className={MEASURED_FACT}>
             {t("meetings.review.gapDuration", "Duration: {{duration}}", {
               duration: formatGapDuration(gap.durationNs),
             })}
           </span>
         )}
         {gap.droppedFrames === null ? null : (
-          <span className={MONO_FACT}>
+          <span className={MEASURED_FACT}>
             {t("meetings.review.droppedFrames", "Dropped frames: {{total}}", {
               total: gap.droppedFrames,
             })}

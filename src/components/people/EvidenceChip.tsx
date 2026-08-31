@@ -23,7 +23,7 @@ export const EvidenceChip: React.FC<{ source: PersonLinkSource }> = ({
       variant="secondary"
       data-slot="person-evidence"
       data-source={source}
-      className="rounded-md font-mono text-[10px] font-normal uppercase tracking-[0.08em]"
+      className="rounded-md text-[12px] font-normal"
     >
       <Icon aria-hidden="true" />
       {t(`people.source.${source}`)}
@@ -37,7 +37,7 @@ export const SuggestedChip: React.FC = () => {
     <Badge
       variant="secondary"
       data-slot="person-suggested"
-      className="rounded-md font-mono text-[10px] font-normal uppercase tracking-[0.08em]"
+      className="rounded-md text-[12px] font-normal"
     >
       {t("people.source.suggested")}
     </Badge>

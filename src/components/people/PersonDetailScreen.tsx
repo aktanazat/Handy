@@ -33,6 +33,13 @@ interface PersonDetailScreenProps {
   onBack: () => void;
   onPersonChange: (personId: string) => void;
   onDeleted: () => void;
+  /* Optional at exactly one caller: the person dialog the meeting-review
+   * insights band opens has no meeting route to give, and threading one to it
+   * would mean an `onOpenMeeting` prop on InsightsTab and the band as well —
+   * the four-level drill this change removed from the ledger below. So the
+   * absence is resolved here, once, and every surface under this line takes a
+   * route it can rely on. */
+  onOpenMeeting?: (meetingId: string) => void;
 }
 
 export const PersonDetailScreen: React.FC<PersonDetailScreenProps> = ({
@@ -40,6 +47,7 @@ export const PersonDetailScreen: React.FC<PersonDetailScreenProps> = ({
   onBack,
   onPersonChange,
   onDeleted,
+  onOpenMeeting,
 }) => {
   const { t } = useTranslation();
   const [pending, setPending] = useState(false);
@@ -247,6 +255,7 @@ export const PersonDetailScreen: React.FC<PersonDetailScreenProps> = ({
         onUnlink={unlink}
         onImportDocument={() => void importDocument()}
         onDeleteDocument={deleteDocument}
+        onOpenMeeting={onOpenMeeting ?? (() => {})}
       />
     );
   }

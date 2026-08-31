@@ -1,8 +1,7 @@
 import React from "react";
-import { Ellipsis, Mic, MonitorSpeaker } from "lucide-react";
+import { Ellipsis } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { MeetingExportFormat, MeetingHistorySummary } from "@/bindings";
-import { Microlabel } from "@/components/settings/rows";
 import { Button } from "@/components/vg/button";
 import {
   DropdownMenu,
@@ -12,10 +11,36 @@ import {
   DropdownMenuTrigger,
 } from "@/components/vg/dropdown-menu";
 import { cn } from "@/lib/cn";
-import { formatDurationShort, formatEntryTimestamp } from "@/lib/utils/format";
-import { CaptureCompletenessText } from "../MeetingStatus";
-import { MeetingStatusChip } from "./MeetingStatusChip";
-import { SpeakerBubbles } from "./SpeakerBubbles";
+import { formatDurationShort } from "@/lib/utils/format";
+import { formatTimeOfDay } from "@/lib/utils/localDay";
+import { MeetingStatusChip, meetingCardStatus } from "./MeetingStatusChip";
+
+/* Every row that can be acted on keeps its actions behind this one trigger:
+ * a quiet glyph at the end of the row, the same menu on the meetings list and
+ * on a person's meetings. */
+const RowActionsMenu: React.FC<{
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+}> = ({ label, className, children }) => (
+  <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className={cn("text-gray-700 hover:text-gray-1000", className)}
+        aria-label={label}
+        title={label}
+      >
+        <Ellipsis aria-hidden="true" />
+      </Button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align="end" className="min-w-52">
+      {children}
+    </DropdownMenuContent>
+  </DropdownMenu>
+);
 
 interface MeetingSummaryRowProps
   extends Omit<React.ComponentProps<"li">, "children" | "title"> {
@@ -64,7 +89,7 @@ export const MeetingSummaryRow: React.FC<MeetingSummaryRowProps> = ({
           {metadata.length === 0 ? null : (
             <span
               data-slot="meeting-facts"
-              className="ms-auto flex flex-none items-center font-mono text-[11px] text-gray-900 tabular-nums"
+              className="ms-auto flex flex-none items-center text-[11px] text-gray-900 tabular-nums"
             >
               {metadata.map((fact, index) => (
                 <React.Fragment key={index}>
@@ -102,23 +127,9 @@ export const MeetingSummaryRow: React.FC<MeetingSummaryRowProps> = ({
         </button>
       )}
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="-mt-1 -me-1 text-gray-700 hover:text-gray-1000"
-            aria-label={actionsLabel}
-            title={actionsLabel}
-          >
-            <Ellipsis aria-hidden="true" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-52">
-          {actions}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <RowActionsMenu label={actionsLabel} className="-mt-1 -me-1">
+        {actions}
+      </RowActionsMenu>
     </li>
   );
 };
@@ -131,6 +142,12 @@ interface MeetingCardProps {
   onDelete: () => void;
 }
 
+/* One meeting inside its day group: what it was called, how long it ran, and
+ * the time of day it started. The heading above the group already carries the
+ * date, and a finished meeting says nothing further about itself — the status
+ * chip appears only while a meeting is live, still processing, or waiting on
+ * the reader. The summary line the row used to print lives on the meeting
+ * itself, one click away, and stays here as the row's hover title. */
 export const MeetingCard: React.FC<MeetingCardProps> = ({
   meeting,
   onOpen,
@@ -140,102 +157,61 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
 }) => {
   const { t } = useTranslation();
   const headline = meeting.headline ?? { kind: "none" };
-  const speakers = meeting.speaker_labels ?? [];
-  const sources = meeting.sources ?? [];
   const recordedMs = meeting.recorded_duration_ms ?? null;
-  const metadata: React.ReactNode[] = [];
-
-  if (sources.length > 0) {
-    metadata.push(
-      <Microlabel
-        key="sources"
-        className="inline-flex items-center gap-2 text-gray-900"
-      >
-        {sources.map((source) => {
-          const SourceIcon = source === "microphone" ? Mic : MonitorSpeaker;
-          return (
-            <span key={source} className="inline-flex items-center gap-1">
-              <SourceIcon aria-hidden="true" className="size-3" />
-              {source === "microphone"
-                ? t("meetings.list.sourceGlyph.microphone", "MIC")
-                : t("meetings.list.sourceGlyph.system_audio", "SYS")}
-            </span>
-          );
-        })}
-      </Microlabel>,
-    );
-  }
-  if (meeting.capture_completeness === "partial") {
-    metadata.push(
-      <CaptureCompletenessText
-        key="completeness"
-        completeness="partial"
-        className="font-mono text-[11px] uppercase tracking-[0.08em]"
-      />,
-    );
-  }
-  if (recordedMs !== null) {
-    metadata.push(
-      <span key="duration">{formatDurationShort(recordedMs / 1000)}</span>,
-    );
-  }
-  metadata.push(
-    <span key="timestamp">
-      {formatEntryTimestamp(meeting.created_at_utc_ms)}
-    </span>,
-  );
-
-  const headlineContent =
-    headline.kind === "none"
-      ? null
-      : headline.kind === "words"
-        ? t("meetings.list.headline.words", "{{count}} words transcribed", {
-            count: headline.words,
-          })
-        : headline.text;
+  const status = meetingCardStatus(meeting.phase, meeting.processing_status);
   const openTitle =
     headline.kind === "ledger" || headline.kind === "summary"
       ? `${meeting.title} — ${headline.text}`
       : meeting.title;
 
   return (
-    <MeetingSummaryRow
+    <li
       data-slot="meeting-entry"
       data-headline={headline.kind}
-      className="rounded-card border border-gray-alpha-400 bg-background-100 px-5 py-4 transition-colors hover:bg-background-200"
-      contentClassName="-m-1 rounded-md p-1 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
-      title={meeting.title}
-      headline={headlineContent}
-      titleAside={
-        <MeetingStatusChip
-          phase={meeting.phase}
-          processing={meeting.processing_status}
-        />
-      }
-      footerLeading={<SpeakerBubbles speakers={speakers} />}
-      metadata={metadata}
-      actionsLabel={t("meetings.list.rowActions", "Meeting actions")}
-      onOpen={onOpen}
-      openTitle={openTitle}
-      actions={
-        <>
-          <DropdownMenuItem onSelect={() => onExport("markdown")}>
-            {t("meetings.list.exportMarkdown", "Export notes (Markdown)")}
+      className="flex items-center gap-1 pe-2"
+    >
+      <button
+        type="button"
+        onClick={onOpen}
+        title={openTitle}
+        className="hover-fast flex min-w-0 flex-1 items-center gap-3 px-4 py-2.5 text-start hover:bg-background-200 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+      >
+        <span className="min-w-0 flex-1 truncate text-[13px] leading-[19px] text-gray-1000">
+          {meeting.title}
+        </span>
+        {status === "ready" ? null : (
+          <MeetingStatusChip
+            phase={meeting.phase}
+            processing={meeting.processing_status}
+          />
+        )}
+        {recordedMs === null ? null : (
+          <span className="snap-measured flex-none text-[11px] text-gray-800 tabular-nums">
+            {formatDurationShort(recordedMs / 1000)}
+          </span>
+        )}
+        <span className="snap-measured w-[52px] flex-none text-end text-[11px] text-gray-800 tabular-nums">
+          {formatTimeOfDay(meeting.created_at_utc_ms)}
+        </span>
+      </button>
+
+      <RowActionsMenu label={t("meetings.list.rowActions")}>
+        <DropdownMenuItem onSelect={() => onExport("markdown")}>
+          {t("meetings.list.exportMarkdown")}
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onExport("json")}>
+          {t("meetings.list.exportJson")}
+        </DropdownMenuItem>
+        {headline.kind === "ledger" ? (
+          <DropdownMenuItem onSelect={onExportLedger}>
+            {t("meetings.list.exportLedger")}
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => onExport("json")}>
-            {t("meetings.list.exportJson", "Export notes (JSON)")}
-          </DropdownMenuItem>
-          {headline.kind === "ledger" ? (
-            <DropdownMenuItem onSelect={onExportLedger}>
-              {t("meetings.list.exportLedger", "Export ledger page")}
-            </DropdownMenuItem>
-          ) : null}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onSelect={onDelete}>
-            {t("meetings.actions.delete", "Delete meeting")}
-          </DropdownMenuItem>
-        </>
-      }
-    />
+        ) : null}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+          {t("meetings.actions.delete")}
+        </DropdownMenuItem>
+      </RowActionsMenu>
+    </li>
   );
 };

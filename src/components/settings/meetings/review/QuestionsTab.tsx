@@ -107,7 +107,7 @@ export const QuestionsTab: React.FC<QuestionsTabProps> = ({
                     {t("meetings.review.youAsked", "You asked")}
                   </Microlabel>
                   <span
-                    className={`flex-none font-mono text-[11px] ${ANSWER_STATE_CLASSES[answer.state]}`}
+                    className={`flex-none text-[11px] ${ANSWER_STATE_CLASSES[answer.state]}`}
                   >
                     {t(`meetings.answerState.${answer.state}`)}
                   </span>

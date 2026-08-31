@@ -20,6 +20,7 @@ const MeetingsSettingsPage: React.FC<MeetingsSettingsProps> = (props) => {
       <MeetingsHomeScreen
         model={controller.model}
         actions={controller.actions}
+        onOpenSettings={props.onOpenSettings}
       />
     );
   }

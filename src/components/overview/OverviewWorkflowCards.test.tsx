@@ -50,12 +50,23 @@ const run = (
     series: 0,
     carried: 0,
     candidates: 0,
+    suggestions: 0,
+    terms: 0,
   },
   error: null,
 });
 
-const commitment: PersonOpenLoop = {
-  meeting_id: "meeting-commitment",
+/* A meeting-recording run with nothing to open: skipping a detected meeting
+ * leaves no session, and the line still has to reach the reader. */
+const skippedRecording: WorkflowRunReceipt = {
+  ...run("skipped", "consent receipt", 1),
+  workflow_id: "meeting_activity",
+  jump_target: null,
+  outcome_code: "prompt_ignored",
+};
+
+const openLoop: PersonOpenLoop = {
+  meeting_id: "meeting-open-loop",
   title: "Weekly planning",
   at_utc_ms: nowMs - 60_000,
   text: "Send the revised launch notes",
@@ -65,9 +76,9 @@ const commitment: PersonOpenLoop = {
 
 const render = (
   receipts: readonly WorkflowRunReceipt[],
-  commitments: readonly PersonOpenLoop[],
+  openLoops: readonly PersonOpenLoop[],
   receiptStatus: "loading" | "loaded" | "error" = "loaded",
-  commitmentStatus: "loading" | "loaded" | "error" = "loaded",
+  openLoopStatus: "loading" | "loaded" | "error" = "loaded",
 ): string =>
   renderToStaticMarkup(
     <I18nextProvider i18n={i18n}>
@@ -77,14 +88,14 @@ const render = (
             ? { status: "loaded", entries: receipts }
             : { status: receiptStatus }
         }
-        commitments={
-          commitmentStatus === "loaded"
-            ? { status: "loaded", entries: commitments }
-            : { status: commitmentStatus }
+        openLoops={
+          openLoopStatus === "loaded"
+            ? { status: "loaded", entries: openLoops }
+            : { status: openLoopStatus }
         }
         onOpenMeeting={() => {}}
         onRetryReceipts={() => {}}
-        onRetryCommitments={() => {}}
+        onRetryOpenLoops={() => {}}
         nowMs={nowMs}
       />
     </I18nextProvider>,
@@ -102,10 +113,13 @@ describe("Overview workflow cards", () => {
       [],
     );
 
+    /* The feed speaks human and counts from the receipt: the subsystem's own
+     * name for itself never reaches a sentence, and neither does the summary
+     * string the run stored. */
     expect(markup).toContain("What Sona did");
-    expect(markup).toContain("Updated 1 person link");
-    expect(markup).toContain("Updated 2 person links");
-    expect(markup).toContain("Updated 3 person links");
+    expect(markup).toContain("Remembered 1 person");
+    expect(markup).toContain("Remembered 2 people");
+    expect(markup).toContain("Remembered 3 people");
     expect(markup.includes("Linked Morgan to the meeting")).toBe(false);
     expect(markup.includes("Older receipt")).toBe(false);
     expect(
@@ -114,13 +128,27 @@ describe("Overview workflow cards", () => {
     expect(markup).toContain('data-meeting-id="meeting-one"');
   });
 
-  test("shows open commitments with an exact meeting target", () => {
-    const markup = render([], [commitment]);
+  test("shows a recording line that has no meeting to open", () => {
+    const markup = render([skippedRecording], []);
 
-    expect(markup).toContain("Commitments");
+    expect(markup).toContain("Skipped recording a detected meeting");
+    expect(markup).toContain("Meeting recording");
+    expect(markup).toContain('data-testid="overview-workflow-receipt"');
+    /* No target, so no button and no dead click — and the stored summary
+     * ("consent receipt") never reaches the reader either. */
+    expect(markup).not.toContain("data-meeting-id");
+    expect(markup).not.toContain("consent receipt");
+  });
+
+  test("shows what is still open with an exact meeting target", () => {
+    const markup = render([], [openLoop]);
+
+    /* The card is named after what it lists. It reads the open-loop inbox, so
+     * "Commitments" was the wrong word for it in two directions at once. */
+    expect(markup).toContain("Open loops");
     expect(markup).toContain("Send the revised launch notes");
     expect(markup).toContain("Weekly planning");
-    expect(markup).toContain('data-meeting-id="meeting-commitment"');
+    expect(markup).toContain('data-meeting-id="meeting-open-loop"');
     expect(markup).toContain('aria-label="Open meeting Weekly planning"');
   });
 
@@ -140,7 +168,7 @@ describe("Overview workflow cards", () => {
     const markup = render([], [], "loading", "loading");
 
     expect(markup).toContain("What Sona did");
-    expect(markup).toContain("Commitments");
+    expect(markup).toContain("Open loops");
     expect(markup.split("Loading…").length - 1).toBe(2);
   });
 });

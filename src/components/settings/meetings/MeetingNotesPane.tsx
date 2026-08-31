@@ -39,7 +39,7 @@ import {
  * something. The typing and saving behavior is identical in both, which is why
  * this is one component.
  *
- * Saving reports itself once, as a mono microlabel beside the label — never a
+ * Saving reports itself once, as a microlabel beside the label — never a
  * sentence and a spinner and a toast for the same keystroke. */
 
 type NotesVariant = "live" | "review";

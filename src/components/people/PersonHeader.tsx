@@ -156,7 +156,7 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({
       </div>
 
       {person.aliases.length === 0 ? null : (
-        <p className="font-mono text-[11px] text-gray-800">
+        <p className="text-[11px] text-gray-800">
           {t("people.detail.aliases", { aliases: person.aliases.join(" · ") })}
         </p>
       )}

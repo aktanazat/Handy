@@ -59,7 +59,7 @@ export const MeetingStatusChip: React.FC<MeetingStatusChipProps> = ({
       data-slot="meeting-status"
       data-status={status}
       className={cn(
-        "inline-flex flex-none items-center gap-1.5 rounded-full px-2 py-0.5 font-mono text-[11px] leading-4 uppercase tracking-[0.08em]",
+        "inline-flex flex-none items-center gap-1.5 rounded-full px-2 py-0.5 text-[12px] leading-4",
         STATUS_CLASSES[status],
       )}
     >

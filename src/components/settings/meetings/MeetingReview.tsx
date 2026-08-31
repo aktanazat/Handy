@@ -327,7 +327,7 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
     transcript: t("meetings.review.tabs.transcript", "Transcript"),
     insights: t("meetings.review.tabs.insights", "Insights"),
     ledger: t("meetings.review.tabs.ledger", "Ledger"),
-    questions: t("meetings.review.tabs.questions", "Q&A"),
+    questions: t("meetings.review.tabs.questions", "Questions"),
   } satisfies Record<ReviewTab, string>;
 
   return (

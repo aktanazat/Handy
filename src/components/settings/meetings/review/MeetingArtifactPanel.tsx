@@ -44,7 +44,7 @@ export const MeetingArtifactPanel: React.FC<MeetingArtifactPanelProps> = ({
           {t("meetings.review.template", { template: artifact.template_id })}
         </h3>
         <span
-          className={`flex-none font-mono text-[11px] ${ARTIFACT_STATE_CLASSES[artifact.state]}`}
+          className={`flex-none text-[11px] ${ARTIFACT_STATE_CLASSES[artifact.state]}`}
         >
           {t(`meetings.artifactState.${artifact.state}`)}
         </span>
@@ -119,9 +119,9 @@ export const MeetingArtifactPanel: React.FC<MeetingArtifactPanelProps> = ({
                         className={`min-w-0 flex-1 ${done ? "line-through opacity-60" : ""}`}
                       >
                         <CitedText value={action.text} onJump={onJump} />
-                        {/* Mono, but not uppercased: the owner is somebody's
-                         * name and a microlabel would shout it. */}
-                        <span className="mt-0.5 block font-mono text-[11px] text-gray-700">
+                        {/* The owner is somebody's name, so it stays in normal
+                         * sentence-case text. */}
+                        <span className="mt-0.5 block text-[11px] text-gray-700">
                           {t("meetings.review.actionMeta", {
                             owner:
                               action.owner_text ??

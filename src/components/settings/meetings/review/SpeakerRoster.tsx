@@ -37,7 +37,7 @@ export const SpeakerRoster: React.FC<SpeakerRosterProps> = ({
     <SettingsSection
       label={t("meetings.review.speakers")}
       action={
-        <span className="font-mono text-[11px] text-gray-700">
+        <span className="text-[11px] text-gray-700">
           {t(`meetings.diarization.${diarizationStatus}`)}
         </span>
       }

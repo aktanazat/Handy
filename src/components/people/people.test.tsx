@@ -195,6 +195,7 @@ const detail = (personDetail: PersonDetail, documents: Document[]) =>
       onConfirmLink={noop}
       onImportDocument={noop}
       onDeleteDocument={noop}
+      onOpenMeeting={noop}
     />,
   );
 
@@ -208,16 +209,21 @@ describe("People list", () => {
     expect(markup).not.toContain('data-slot="person-card"');
   });
 
-  test("renders the query-computed card projection without meeting detail rows", () => {
+  test("says a person's name, meeting count and last meeting on one line", () => {
     const markup = list([ENTRY]);
 
     expect(markup).toContain('data-slot="person-card"');
-    expect(markup).toContain('data-slot="meeting-person"');
-    expect(markup).toContain('data-slot="suggested-links"');
-    expect(markup).toContain("Pricing is still open.");
-    expect(markup).toContain("Calendar");
-    expect(markup).toContain("Speaker");
-    expect(markup).toContain("Title");
+    expect(markup).toContain("Dana Reyes");
+    expect(markup).toContain("2 meetings");
+    expect(markup).toContain("Last met");
+    /* The line is the whole row. The initial bubble, the last meeting's
+     * headline, the evidence chips and the suggested-links footer all moved to
+     * the person's own page, which is what the row opens — a list of people is
+     * not the place to read one person's meeting. */
+    expect(markup).not.toContain('data-slot="meeting-person"');
+    expect(markup).not.toContain('data-slot="suggested-links"');
+    expect(markup).not.toContain("Pricing is still open.");
+    expect(markup).not.toContain("Calendar");
     expect(markup).not.toContain("Launch sync");
     expect(markup).not.toContain(">Dismiss</button>");
     expect(markup).not.toContain(">Confirm</button>");
@@ -225,7 +231,7 @@ describe("People list", () => {
 });
 
 describe("person detail", () => {
-  test("keeps empty ledgers, meetings, and documents as quiet rows", () => {
+  test("keeps every empty section as one quiet row", () => {
     const markup = detail(
       {
         ...DETAIL,
@@ -238,8 +244,28 @@ describe("person detail", () => {
     );
 
     expect(markup).toContain("max-w-[760px]");
-    expect(occurrences(markup, 'data-slot="people-empty-row"')).toBe(4);
+    /* Five sections, five one-line absences: meetings together, open loops,
+     * how Sona knows, commitments, imported documents. */
+    expect(occurrences(markup, 'data-slot="people-empty-row"')).toBe(5);
     expect(markup).not.toContain('data-slot="person-cadence"');
+  });
+
+  test("reads as one catalogue: meetings, then what is open, then the evidence", () => {
+    const markup = detail(DETAIL, [DOCUMENT]);
+
+    expect(markup.indexOf("Meetings together")).toBeLessThan(
+      markup.indexOf("Open loops"),
+    );
+    expect(markup.indexOf("Open loops")).toBeLessThan(
+      markup.indexOf("How Sona knows"),
+    );
+    /* Three kinds of evidence across three links: an invite, a voice, a
+     * title. The section counts the links already on screen above it and asks
+     * the backend nothing. */
+    expect(occurrences(markup, 'data-slot="person-evidence-row"')).toBe(3);
+    expect(markup).toContain("Calendar");
+    expect(markup).toContain("Speaker");
+    expect(markup).toContain("Title");
   });
 
   test("renders cadence, relationship facts, links, and imported context", () => {
@@ -259,6 +285,9 @@ describe("person detail", () => {
     expect(markup).toContain("Dana prefers a concise weekly update.");
     expect(markup).toContain(">Split person</button>");
     expect(occurrences(markup, 'data-slot="dropdown-menu-trigger"')).toBe(3);
+    /* An open loop names the meeting it came from, and the name is the way
+     * back into that meeting rather than a caption about it. */
+    expect(occurrences(markup, ">Planning</button>")).toBe(2);
   });
 });
 

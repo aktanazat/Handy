@@ -7,6 +7,7 @@ import { useOsType } from "@/hooks/useOsType";
 import { formatKeyCombination, keyCapParts } from "@/lib/utils/keyboard";
 import { cn } from "@/lib/cn";
 import { SettingsCard } from "@/components/settings/rows";
+import { Aurora } from "@/components/Aurora";
 import { Button } from "@/components/vg/button";
 import { commandActionIcons } from "@/components/commandPaletteActions";
 import { Kbd } from "@/components/vg/kbd";
@@ -18,7 +19,9 @@ import {
 import { checkForUpdates, type UpdateCheckResult } from "@/lib/updateCheck";
 import { UpdateBanner, UpdateCheckFailure } from "./UpdateNotice";
 import { ActivityBand } from "./ActivityBand";
+import { CaptureModeChip } from "./CaptureModeChip";
 import { OverviewWorkflowCards } from "./OverviewWorkflowCards";
+import { LearningSuggestionCard } from "./LearningSuggestionCard";
 
 /* Capture stays the primary surface. The activity band below it reuses the
  * history trend projection the former Overview analytics read, now expressed
@@ -50,6 +53,8 @@ export interface CaptureHeroProps {
   onNewMeeting: () => void;
   onImportAudio: () => void;
   onChangeShortcut: () => void;
+  /** Opens the Modes editor, from the mode chip's one footer line. */
+  onOpenModes: () => void;
 }
 
 /**
@@ -66,6 +71,7 @@ export const CaptureHero: React.FC<CaptureHeroProps> = ({
   onNewMeeting,
   onImportAudio,
   onChangeShortcut,
+  onOpenModes,
 }) => {
   const { t } = useTranslation();
   const osType = useOsType();
@@ -82,8 +88,12 @@ export const CaptureHero: React.FC<CaptureHeroProps> = ({
   );
 
   return (
-    <SettingsCard aria-labelledby="overview-status" className="space-y-8 p-8">
-      <div className="space-y-4">
+    <SettingsCard
+      aria-labelledby="overview-status"
+      className="relative space-y-8 overflow-hidden p-8"
+    >
+      <Aurora isRecording={isRecording} />
+      <div className="relative space-y-4">
         <h1
           id="overview-status"
           aria-live="polite"
@@ -149,9 +159,16 @@ export const CaptureHero: React.FC<CaptureHeroProps> = ({
             </span>
           </p>
         )}
+
+        {/* Modes left the rail, so this is where one gets picked: the name of
+         * the mode the next dictation runs in, one click from the list. */}
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-900">
+          <span>{t("modesV2.chip.lead")}</span>
+          <CaptureModeChip onOpenModes={onOpenModes} />
+        </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="relative flex flex-wrap items-center gap-3">
         {/* The promise lives in the tooltip and nowhere else. Radix opens the
          * tooltip on focus and points the trigger's aria-describedby at the
          * content while it is open, so a keyboard or screen-reader user reaches
@@ -168,9 +185,8 @@ export const CaptureHero: React.FC<CaptureHeroProps> = ({
           </TooltipTrigger>
           <TooltipContent>{assurance}</TooltipContent>
         </Tooltip>
-        {/* Filled + bordered is Geist's action pair. Ghost was wrong here: with
-         * no border and no fill at rest it read as a caption sitting next to
-         * New meeting instead of as the second way to start a capture. */}
+        {/* The secondary capture action keeps a real hairline at rest so it
+         * remains legible beside the filled primary action. */}
         <Button
           type="button"
           variant="outline"
@@ -186,8 +202,8 @@ export const CaptureHero: React.FC<CaptureHeroProps> = ({
 };
 
 interface OverviewProps {
-  /** The shell's section setter for Capture's two direct actions. */
-  onOpenSection?: (section: "meetings" | "settings") => void;
+  /** The shell's section setter for Capture's direct actions. */
+  onOpenSection?: (section: "meetings" | "settings" | "modes") => void;
   /** Opens the retained meeting named by a workflow receipt or commitment. */
   onOpenMeeting?: (meetingId: string) => void;
 }
@@ -297,11 +313,16 @@ export const Overview: React.FC<OverviewProps> = ({
         onNewMeeting={() => onOpenSection?.("meetings")}
         onImportAudio={() => void startAudioImport()}
         onChangeShortcut={() => onOpenSection?.("settings")}
+        onOpenModes={() => onOpenSection?.("modes")}
       />
 
       <OverviewWorkflowCards
         onOpenMeeting={(meetingId) => onOpenMeeting?.(meetingId)}
       />
+
+      {/* What Sona noticed, beside what Sona did: the same feed, and this half
+       * is the one that asks the reader a question. */}
+      <LearningSuggestionCard />
 
       {activityTrend === null ? null : <ActivityBand trend={activityTrend} />}
 

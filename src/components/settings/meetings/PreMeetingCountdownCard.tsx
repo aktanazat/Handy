@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import type { SourceKind } from "@/bindings";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -66,11 +66,11 @@ export const PreMeetingCountdownCard: React.FC<
   const status = useDetectionStore((state) => state.status);
   const prompts = useDetectionStore((state) => state.prompts);
   const answer = useDetectionStore((state) => state.answer);
-  const save = useDetectionStore((state) => state.save);
+  const patch = useDetectionStore((state) => state.patch);
+  const savingSettings = useDetectionStore((state) => state.savingSettings);
   const notesTemplate = useSettingsStore(
     (state) => state.settings?.meeting_notes_template ?? null,
   );
-  const [savingAutoOpen, setSavingAutoOpen] = useState(false);
 
   const countdown = status?.countdown ?? null;
   if (countdown === null && prompts.length === 0) return null;
@@ -88,15 +88,10 @@ export const PreMeetingCountdownCard: React.FC<
     disabled: starting,
   };
 
-  const setAutoOpen = async (next: boolean) => {
-    if (status === null) return;
-    setSavingAutoOpen(true);
-    try {
-      await save({ ...status.settings, autoStartOnOpenPane: next });
-    } finally {
-      setSavingAutoOpen(false);
-    }
-  };
+  /* The same whole-struct write the detection rows use, so this switch cannot
+   * revert one of theirs — or be reverted by it — while both are on screen. */
+  const setAutoOpen = (next: boolean) =>
+    void patch({ autoStartOnOpenPane: next });
 
   return (
     <MeetingPreviewList
@@ -117,8 +112,8 @@ export const PreMeetingCountdownCard: React.FC<
             delivered: null,
             autoOpen: {
               checked: status.settings.autoStartOnOpenPane,
-              onChange: (next) => void setAutoOpen(next),
-              disabled: savingAutoOpen,
+              onChange: setAutoOpen,
+              disabled: savingSettings,
             },
           }}
           recording={recording}
@@ -149,7 +144,7 @@ export const PreMeetingCountdownCard: React.FC<
               ? null
               : {
                   access: status.notificationAccess,
-                  delivered: prompt.notified,
+                  delivered: prompt.delivery !== "in_app_only",
                   autoOpen: null,
                 }
           }
