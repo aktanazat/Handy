@@ -25,9 +25,9 @@ import {
   Microlabel,
   Notice,
   SettingsCard,
+  SettingsDisclosure,
   SettingsField,
 } from "@/components/settings/rows";
-import { CloudDisclosure } from "./CloudDisclosure";
 import {
   defaultCloudShareExpiry,
   isRetryableCloudState,
@@ -458,7 +458,7 @@ const CloudMeetingShareSection: React.FC<CloudMeetingShareSectionProps> = ({
       {browserShare ? (
         <div className="flex flex-col gap-2 px-4 py-3" aria-live="polite">
           <a
-            className="font-mono text-xs break-all text-blue-900 underline underline-offset-2 transition-colors hover:text-gray-1000"
+            className="text-xs break-all text-blue-900 underline underline-offset-2 transition-colors hover:text-gray-1000"
             href={browserShare.share_url}
             target="_blank"
             rel="noreferrer"
@@ -521,7 +521,7 @@ export const CloudMeetingActions: React.FC<CloudMeetingActionsProps> = ({
 
   return (
     <SettingsCard className="overflow-hidden">
-      <CloudDisclosure
+      <SettingsDisclosure
         label={t("cloudSync.meeting.title")}
         fact={
           <span className={MEETING_STATE_CLASSES[statusLabel]}>
@@ -555,7 +555,7 @@ export const CloudMeetingActions: React.FC<CloudMeetingActionsProps> = ({
             </Notice>
           </div>
         ) : null}
-      </CloudDisclosure>
+      </SettingsDisclosure>
     </SettingsCard>
   );
 };

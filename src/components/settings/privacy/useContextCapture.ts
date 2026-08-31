@@ -3,10 +3,8 @@ import { useTranslation } from "react-i18next";
 import { commands, type ContextPolicy } from "@/bindings";
 import { useSettings } from "@/hooks/useSettings";
 
-/* The two writes that decide what Sona reads from other apps. Both change
- * what the diagnostics table below can report, so both refresh it after the
- * backend has taken the new value. */
-export const useContextCapture = (refreshDiagnostics: () => Promise<void>) => {
+/* The two writes that decide what Sona reads from other apps. */
+export const useContextCapture = () => {
   const { t } = useTranslation();
   const { getSetting, refreshSettings } = useSettings();
   const [ceilingError, setCeilingError] = useState<string | null>(null);
@@ -23,7 +21,6 @@ export const useContextCapture = (refreshDiagnostics: () => Promise<void>) => {
     try {
       await commands.changeContextPolicyCeilingSetting(ceiling);
       await refreshSettings();
-      await refreshDiagnostics();
     } catch (error) {
       setCeilingError(String(error));
     } finally {
@@ -37,7 +34,6 @@ export const useContextCapture = (refreshDiagnostics: () => Promise<void>) => {
     try {
       await commands.changeContextUrlCaptureEnabledSetting(enabled);
       await refreshSettings();
-      await refreshDiagnostics();
     } catch {
       setUrlCaptureError(t("settings.privacy.context.urlCapture.error"));
     } finally {

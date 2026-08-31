@@ -37,43 +37,39 @@ interface LogLevelMeta {
 /** The numeric `level` reprs tauri-plugin-log emits, per `LogEventPayload`. */
 type LogLevelRepr = 1 | 2 | 3 | 4 | 5;
 
-/* Levels are set in the grey ladder, and only the two levels that mean
- * something went wrong get a hue: an ERROR line has to be findable while
- * scrolling and TRACE has to stay out of the way. There is no success colour
- * in this palette, so INFO is simply the highest contrast grey.
- *
+/* Levels stay in the grey ladder, and only warnings and errors get a hue.
  * `satisfies` keeps this exhaustive over `LogLevelRepr` while leaving the keys
  * literal, so the lookup below is total without an index signature. */
 const LEVEL_META = {
   1: {
-    tag: "TRACE",
+    tag: "Trace",
     tagClass: "text-gray-700",
     msgClass: "text-gray-700",
   },
   2: {
-    tag: "DEBUG",
+    tag: "Debug",
     tagClass: "text-gray-700",
     msgClass: "text-gray-900",
   },
   3: {
-    tag: "INFO",
+    tag: "Info",
     tagClass: "text-gray-800",
     msgClass: "text-gray-1000",
   },
   4: {
-    tag: "WARN",
+    tag: "Warn",
     tagClass: "text-amber-900",
     msgClass: "text-gray-1000",
   },
   5: {
-    tag: "ERROR",
+    tag: "Error",
     tagClass: "text-red-900",
     msgClass: "text-red-900",
   },
 } satisfies Record<LogLevelRepr, LogLevelMeta>;
 
 const UNKNOWN_META: LogLevelMeta = {
-  tag: "LOG",
+  tag: "Log",
   tagClass: "text-gray-700",
   msgClass: "text-gray-1000",
 };
@@ -238,7 +234,7 @@ export const LiveLogViewer: React.FC = () => {
         ref={attachRoot}
         className="h-72 rounded-md border border-gray-alpha-400 bg-background-200"
       >
-        <div className="select-text p-2 font-mono text-[11px] leading-[18px]">
+        <div className="select-text p-2 text-[11px] leading-[18px] tabular-nums">
           {logs.length === 0 ? (
             <span className="text-gray-700 select-none">
               {t("settings.debug.liveLogs.empty")}
@@ -251,11 +247,9 @@ export const LiveLogViewer: React.FC = () => {
                   <span className="shrink-0 text-gray-700 tabular-nums select-none">
                     {line.time}
                   </span>
-                  {/* The column has to contain the widest tag, which is set in
-                   * px, so it is set in px too: as a rem it would shrink with
-                   * the root while `TRACE` did not. */}
+                  {/* The fixed column keeps every sentence-case tag aligned. */}
                   <span
-                    className={`${meta.tagClass} w-[49px] shrink-0 tracking-[0.08em] select-none`}
+                    className={`${meta.tagClass} w-[49px] shrink-0 select-none`}
                   >
                     {meta.tag}
                   </span>

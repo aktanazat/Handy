@@ -80,8 +80,23 @@ const renderSettingsContent = ({
         invalidation={meetingInvalidation}
         navigationRequest={meetingNavigationRequest}
         startRequest={meetingStartRequest}
+        onOpenSettings={() => onSectionChange("settings")}
       />
     );
+  }
+
+  if (section === "people") {
+    const PeopleComponent = SECTIONS_CONFIG.people.component;
+    return <PeopleComponent onOpenMeeting={onOpenMeeting} />;
+  }
+
+  if (section === "settings") {
+    const SettingsComponent = SECTIONS_CONFIG.settings.component;
+    /* Essentials and Advanced each hold one link row — dictation styles and
+     * the model catalog — and both are destinations the rail no longer lists.
+     * Routing is this component's job, so the hub gets the same callback the
+     * rail and the palette use rather than a second way to change the view. */
+    return <SettingsComponent onOpenSection={onSectionChange} />;
   }
 
   const ActiveComponent =
@@ -173,7 +188,7 @@ const AppContent = ({
         <WhatsNewGate />
       </ErrorBoundary>
       <Sidebar
-        activeSection={currentSection}
+        currentSection={currentSection}
         onSectionChange={onSectionChange}
         onOpenCommand={onCommandOpen}
       />

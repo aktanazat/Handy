@@ -11,10 +11,10 @@ import { Textarea } from "@/components/vg/textarea";
 import {
   Microlabel,
   Notice,
+  SettingsDisclosure,
   SettingsField,
   SettingsSection,
 } from "@/components/settings/rows";
-import { CloudDisclosure } from "./CloudDisclosure";
 import {
   type CloudUiError,
   parseCloudPairingOffer,
@@ -262,7 +262,7 @@ const CloudSyncSetupSection: React.FC<CloudSyncSetupSectionProps> = ({
   const { t } = useTranslation();
 
   return (
-    <CloudDisclosure label={t("cloudSync.setup.title")}>
+    <SettingsDisclosure label={t("cloudSync.setup.title")}>
       <SettingsField
         label={t("cloudSync.setup.endpoint")}
         controlId={id + "-endpoint"}
@@ -299,7 +299,7 @@ const CloudSyncSetupSection: React.FC<CloudSyncSetupSectionProps> = ({
           {t("cloudSync.setup.submit")}
         </Button>
       </TaskAction>
-    </CloudDisclosure>
+    </SettingsDisclosure>
   );
 };
 
@@ -332,7 +332,7 @@ const CloudSyncRecoverySection: React.FC<CloudSyncRecoverySectionProps> = ({
       {recoveryCode ? (
         <SettingsField label={t("cloudSync.recovery.generatedCode")}>
           <div aria-live="polite">
-            <code className="block font-mono text-xs break-all text-gray-1000">
+            <code className="block text-xs break-all text-gray-1000 tabular-nums">
               {recoveryCode}
             </code>
             <Notice tone="warning" className="mt-2">
@@ -341,7 +341,7 @@ const CloudSyncRecoverySection: React.FC<CloudSyncRecoverySectionProps> = ({
           </div>
         </SettingsField>
       ) : null}
-      <CloudDisclosure label={t("cloudSync.recovery.title")}>
+      <SettingsDisclosure label={t("cloudSync.recovery.title")}>
         <SettingsField
           label={t("cloudSync.recovery.code")}
           controlId={id + "-code"}
@@ -367,7 +367,7 @@ const CloudSyncRecoverySection: React.FC<CloudSyncRecoverySectionProps> = ({
             {t("cloudSync.recovery.submit")}
           </Button>
         </TaskAction>
-      </CloudDisclosure>
+      </SettingsDisclosure>
     </>
   );
 };
@@ -402,7 +402,7 @@ const CloudSyncPairingSection: React.FC<CloudSyncPairingSectionProps> = ({
   const { t } = useTranslation();
 
   return (
-    <CloudDisclosure label={t("cloudSync.pairing.title")}>
+    <SettingsDisclosure label={t("cloudSync.pairing.title")}>
       <SettingsField
         label={t("cloudSync.pairing.vaultId")}
         controlId={id + "-vault"}
@@ -438,7 +438,7 @@ const CloudSyncPairingSection: React.FC<CloudSyncPairingSectionProps> = ({
               value={JSON.stringify(offer)}
               readOnly
               aria-readonly="true"
-              className="font-mono text-xs"
+              className="text-xs tabular-nums"
             />
           </SettingsField>
           <TaskAction>
@@ -462,7 +462,7 @@ const CloudSyncPairingSection: React.FC<CloudSyncPairingSectionProps> = ({
           id={id + "-received"}
           value={receivedOffer}
           onChange={(event) => onReceivedOfferChange(event.target.value)}
-          className="font-mono text-xs"
+          className="text-xs tabular-nums"
         />
       </SettingsField>
       <TaskAction>
@@ -480,7 +480,7 @@ const CloudSyncPairingSection: React.FC<CloudSyncPairingSectionProps> = ({
           {t("cloudSync.pairing.accept")}
         </Button>
       </TaskAction>
-    </CloudDisclosure>
+    </SettingsDisclosure>
   );
 };
 

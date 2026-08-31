@@ -1,14 +1,17 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { FactChip, SettingsCard } from "@/components/settings/rows";
+import { FactChip } from "@/components/settings/rows";
 import { FailureNotice } from "./FailureNotice";
 import { useCloudSyncServiceStatus } from "./privacyStatus";
 import { useEgressRoutes } from "./useEgressRoutes";
 
-/* The page in four lines: one sentence that holds regardless of settings, then
- * one mono fact per route that can carry anything off this Mac. Every other
- * reassurance paragraph that used to be scattered through the sections below
- * collapsed into here, and nothing below restates it. */
+/* The privacy page in four lines: one sentence that holds regardless of
+ * settings, then one compact fact per route that can carry anything off this
+ * Mac. Every other reassurance paragraph that used to be scattered through
+ * that page collapsed into here, and nothing restates it.
+ *
+ * A bare block, not a card: Advanced keeps it behind a disclosure whose
+ * summary already names it. */
 export const PrivacyEgress: React.FC = () => {
   const { t } = useTranslation();
   const {
@@ -24,7 +27,7 @@ export const PrivacyEgress: React.FC = () => {
   const thisMac = t("settings.privacy.egress.thisMac");
 
   return (
-    <SettingsCard className="flex flex-col gap-3 px-4 py-3.5">
+    <div className="flex flex-col gap-3 px-4 py-3.5">
       <p className="text-[13px] leading-5 text-gray-900">
         {t("settings.privacy.egress.assurance")}
       </p>
@@ -98,6 +101,6 @@ export const PrivacyEgress: React.FC = () => {
           {service.error === null ? "" : ` ${service.error}`}
         </FailureNotice>
       ) : null}
-    </SettingsCard>
+    </div>
   );
 };

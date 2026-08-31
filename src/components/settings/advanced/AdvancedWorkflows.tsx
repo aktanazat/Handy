@@ -1,16 +1,19 @@
 import React from "react";
-import { useTranslation } from "react-i18next";
-import { SettingsPage } from "@/components/settings/rows";
-import { WorkflowList } from "./WorkflowList";
-import { WorkflowRunLog } from "./WorkflowRunLog";
-import { useWorkflows } from "./useWorkflows";
+import { WorkflowList } from "../workflows/WorkflowList";
+import { WorkflowRunLog } from "../workflows/WorkflowRunLog";
+import { useWorkflows } from "../workflows/useWorkflows";
 
-export const WorkflowsSettings: React.FC = () => {
-  const { t } = useTranslation();
+/* The five things Sona does on its own after a meeting, and what they did.
+ *
+ * This was a tab; it is two sections now, and it reads the same model it
+ * always did. The switches say what they do in plain language — the names live
+ * in the catalogue, not here — because "Person linking" named a subsystem and
+ * "Remember people" names the outcome. */
+export const AdvancedWorkflows: React.FC = () => {
   const model = useWorkflows();
 
   return (
-    <SettingsPage title={t("settings.workflows.title")}>
+    <>
       <WorkflowList
         data={model.workflows}
         loading={model.loadingWorkflows}
@@ -34,6 +37,6 @@ export const WorkflowsSettings: React.FC = () => {
         }
         onLoadMore={() => void model.loadMoreRuns()}
       />
-    </SettingsPage>
+    </>
   );
 };

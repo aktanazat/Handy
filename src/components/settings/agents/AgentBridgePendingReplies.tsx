@@ -31,8 +31,8 @@ export const AgentBridgePendingReplies: React.FC<
             className="flex min-w-0 flex-wrap items-start justify-between gap-3 px-4 py-3"
           >
             <div className="min-w-0 flex-1">
-              <p className="flex min-w-0 flex-wrap items-baseline gap-x-2 font-mono text-[11px] text-gray-800">
-                <span className="uppercase tracking-[0.12em]">
+              <p className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-[13px] text-gray-900">
+                <span>
                   {t(
                     "settings.agents.controls.providers." +
                       pending.agent +

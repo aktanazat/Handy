@@ -9,8 +9,16 @@ import {
 } from "@/components/vg/select";
 import { SettingsRow } from "./rows";
 import { commands } from "@/bindings";
-import { useSettings } from "../../hooks/useSettings";
+import { useSettings } from "@/hooks/useSettings";
 
+/* Which channel of a multi-channel microphone is recorded.
+ *
+ * Absent on the ordinary one-channel device, which is most of them: a row
+ * offering a choice of one is a row that costs a reader a line to learn
+ * nothing. `selected_channel` is read by the recorder on every capture
+ * (managers/audio.rs, recorder.rs), so this is the only surface that can change
+ * what an interface mixer or a two-input device actually captures.
+ */
 export const ChannelSelector: React.FC = React.memo(() => {
   const { t } = useTranslation();
   const { getSetting, updateSetting, isUpdating, isLoading } = useSettings();
@@ -42,13 +50,11 @@ export const ChannelSelector: React.FC = React.memo(() => {
     };
   }, [selectedMicrophone]);
 
-  // Don't render if the device only has one channel.
-  if (channelCount <= 1) {
-    return null;
-  }
+  if (channelCount <= 1) return null;
 
-  // An old selection may not exist on a newly selected device. The recorder
-  // also falls back to averaging in that case, so reflect that effective value.
+  /* An old selection may not exist on a newly selected device. The recorder
+   * also falls back to averaging in that case, so reflect that effective
+   * value. */
   const currentValue =
     selectedChannel == null || selectedChannel >= channelCount
       ? "average"
@@ -66,7 +72,7 @@ export const ChannelSelector: React.FC = React.memo(() => {
         }
         disabled={isUpdating("selected_channel") || isLoading}
       >
-        <SelectTrigger id={id} size="sm" className="w-50">
+        <SelectTrigger id={id} size="sm">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

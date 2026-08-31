@@ -3,12 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { ContextPolicy } from "@/bindings";
 import { Switch } from "@/components/vg/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/vg/toggle-group";
-import {
-  Notice,
-  SettingsField,
-  SettingsRow,
-  SettingsSection,
-} from "@/components/settings/rows";
+import { Notice, SettingsField, SettingsRow } from "@/components/settings/rows";
 import { FailureNotice } from "./FailureNotice";
 import { useContextCapture } from "./useContextCapture";
 
@@ -19,9 +14,12 @@ const CONTEXT_POLICIES = [
   "full",
 ] as const satisfies readonly ContextPolicy[];
 
-export const PrivacyContextSettings: React.FC<{
-  refreshDiagnostics: () => Promise<void>;
-}> = ({ refreshDiagnostics }) => {
+/* The global ceiling on what Sona may read from the app you are dictating
+ * into, and the one opt-in that goes past it.
+ *
+ * A bare row group: Advanced puts this behind a disclosure whose summary
+ * already names it, and a heading inside that would say it twice. */
+export const PrivacyContextSettings: React.FC = () => {
   const { t } = useTranslation();
   const {
     contextCeiling,
@@ -32,10 +30,10 @@ export const PrivacyContextSettings: React.FC<{
     urlCaptureUpdating,
     changeContextCeiling,
     changeContextUrlCaptureEnabled,
-  } = useContextCapture(refreshDiagnostics);
+  } = useContextCapture();
 
   return (
-    <SettingsSection label={t("settings.privacy.context.title")}>
+    <>
       <SettingsField label={t("settings.privacy.context.ceiling.label")}>
         {/* The one segmented primitive, same as Library's Processed/Raw and
          * the Material control: a bordered track whose active segment is
@@ -92,6 +90,6 @@ export const PrivacyContextSettings: React.FC<{
       {urlCaptureError ? (
         <FailureNotice className="px-4 py-2.5">{urlCaptureError}</FailureNotice>
       ) : null}
-    </SettingsSection>
+    </>
   );
 };

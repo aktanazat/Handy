@@ -14,10 +14,8 @@ import { useModelStore } from "@/stores/modelStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { formatModelSize } from "@/lib/utils/format";
 import { getTranslatedModelName } from "@/lib/utils/modelTranslation";
-import { PostProcessingSettingsApi } from "../PostProcessingSettingsApi";
 import { PromptLibrary } from "../vocabulary/PromptLibrary";
 import { WritingSamplesPanel } from "../vocabulary/WritingSamplesPanel";
-import { CloudSttProviderSettings } from "./CloudSttProviderSettings";
 import {
   ModelCatalogFilters,
   type ModelFamilyOption,
@@ -210,7 +208,7 @@ export const ModelsSettings: React.FC = () => {
        * and so does the sidebar chip. */
       actions={
         onDisk.count > 0 ? (
-          <span className="font-mono text-[11px] tabular-nums text-gray-800">
+          <span className="text-[11px] tabular-nums text-gray-800">
             {t("settings.models.familyCount", "{{total}} models", {
               total: onDisk.count,
             })}
@@ -280,9 +278,9 @@ export const ModelsSettings: React.FC = () => {
         </div>
       ) : (
         groups.map((group) => (
-          /* One family is one mono microlabel over one hairline-divided
-           * surface. The family's size is the number of rows under it, so it
-           * is not also printed as a count. */
+          /* One family is one microlabel over one hairline-divided surface.
+           * The family's size is the number of rows under it, so it is not
+           * also printed as a count. */
           <SettingsSection key={group.key} label={group.label}>
             <ul aria-label={group.label}>
               {group.models.map((model) => (
@@ -306,8 +304,9 @@ export const ModelsSettings: React.FC = () => {
         ))
       )}
 
-      <CloudSttProviderSettings />
-      <PostProcessingSettingsApi />
+      {/* Cloud transcription keys and the cleanup endpoint moved to
+       * Settings > Advanced > Models: they are one-time credential setups, not
+       * part of choosing a model, and this page is the catalog. */}
       <PromptLibrary />
       <WritingSamplesPanel />
     </SettingsPage>

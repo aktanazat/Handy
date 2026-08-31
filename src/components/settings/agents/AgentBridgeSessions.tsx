@@ -31,10 +31,10 @@ export const AgentBridgeSessions: React.FC<AgentBridgeSessionsProps> = ({
                   ".label",
               )}
             </span>
-            <code className="min-w-0 font-mono text-xs break-all text-gray-800">
+            <code className="min-w-0 text-xs break-all text-gray-800 tabular-nums">
               {session.id}
             </code>
-            <code className="min-w-0 font-mono text-xs break-all text-gray-800">
+            <code className="min-w-0 text-xs break-all text-gray-800 tabular-nums">
               {session.canonical_project_hash}
             </code>
           </div>

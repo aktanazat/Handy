@@ -58,7 +58,7 @@ export const AgentBridgeHook: React.FC<AgentBridgeHookProps> = ({
         </div>
       )}
       {hookSnippet === null ? null : (
-        <pre className="max-w-full overflow-hidden px-4 py-3 font-mono text-xs break-all whitespace-pre-wrap text-gray-900">
+        <pre className="max-w-full overflow-hidden px-4 py-3 text-xs break-all whitespace-pre-wrap text-gray-900">
           <code>{hookSnippet}</code>
         </pre>
       )}

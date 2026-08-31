@@ -14,11 +14,7 @@ import {
 import { useSettings } from "@/hooks/useSettings";
 import { Button } from "@/components/vg/button";
 import { Input } from "@/components/vg/input";
-import {
-  Notice,
-  SettingsField,
-  SettingsSection,
-} from "@/components/settings/rows";
+import { Notice, SettingsField } from "@/components/settings/rows";
 
 type CloudProviderError =
   | SecretCommandError
@@ -230,15 +226,20 @@ const CloudSttProviderCard: React.FC<CloudSttProviderCardProps> = ({
   );
 };
 
+/* Every cloud ASR route's key, as a bare row group.
+ *
+ * No section of its own: Advanced puts this behind a disclosure whose summary
+ * already reads "Cloud transcription keys", and a heading inside it would say
+ * the same thing a second time. */
 export const CloudSttProviderSettings: React.FC = () => {
   const { t } = useTranslation();
   const { refreshSettings, settings } = useSettings();
 
   return (
-    <SettingsSection label={t("settings.models.cloud.title")}>
+    <>
       {/* Where the keys live is the one thing a reader cannot infer from a
        * password field, and it is true of every provider — so it is said once,
-       * for the section, rather than once per provider. */}
+       * for the group, rather than once per provider. */}
       <div className="px-4 py-3">
         <Notice live={false}>
           {t("settings.models.cloud.providerDescription")}
@@ -255,6 +256,6 @@ export const CloudSttProviderSettings: React.FC = () => {
           onProviderChanged={refreshSettings}
         />
       ))}
-    </SettingsSection>
+    </>
   );
 };

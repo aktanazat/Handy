@@ -20,9 +20,12 @@ const RETENTION_DAYS = [7, 30, 90] as const;
 
 /* One setting, so one row: the policy, and the press that writes it.
  *
- * It renders as a bare row rather than a section of its own because it is
- * dropped into the Privacy page's hairline surface, where a heading saying
+ * How long a *meeting* is kept, which is a different object from the dictation
+ * recordings Essentials governs — so it lives where meetings do, in Advanced >
+ * Meetings. It renders as a bare row rather than a section of its own because
+ * it is dropped into that section's hairline surface, where a heading saying
  * "Retention" above a row labelled "Retention" would be the same word twice.
+ *
  * The write is explicit because the command carries `expected_revision`: a
  * select that saved on change would race another window and lose. */
 export const MeetingRetentionSettings: React.FC = () => {

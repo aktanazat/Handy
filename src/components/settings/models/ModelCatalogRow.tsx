@@ -251,17 +251,17 @@ export const ModelCatalogRow: React.FC<ModelCatalogRowProps> = ({
           {displayName}
         </h3>
         {model.is_recommended ? (
-          <span className="flex-none font-mono text-[11px] text-gray-800">
+          <span className="flex-none text-[11px] text-gray-800">
             {t("onboarding.recommended")}
           </span>
         ) : null}
-        <span className="w-16 flex-none text-right font-mono text-[11px] tabular-nums text-gray-800">
+        <span className="w-16 flex-none text-right text-[11px] tabular-nums text-gray-800">
           {formatModelSize(Number(model.size_mb))}
         </span>
         <span
           aria-live={announce ? "polite" : undefined}
           className={cn(
-            "w-36 flex-none text-right font-mono text-[11px] whitespace-nowrap tabular-nums",
+            "w-36 flex-none text-right text-[11px] whitespace-nowrap tabular-nums",
             state === "active" ? "text-blue-900" : "text-gray-800",
           )}
         >

@@ -3,8 +3,8 @@ import { RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/vg/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/vg/tabs";
-import { Notice, SettingsPage } from "@/components/settings/rows";
-import { AgentPanelToggle } from "./AgentPanelToggle";
+import { Notice } from "@/components/settings/rows";
+import { useAgentBridgeSettings } from "./useAgentBridgeSettings";
 import { AgentBridgeControls } from "./AgentBridgeControls";
 import { AgentBridgeHook } from "./AgentBridgeHook";
 import { AgentBridgePendingReplies } from "./AgentBridgePendingReplies";
@@ -13,12 +13,20 @@ import { AgentBridgeReplyComposer } from "./AgentBridgeReplyComposer";
 import { AgentBridgeRequests } from "./AgentBridgeRequests";
 import { AgentBridgeRules } from "./AgentBridgeRules";
 import { AgentBridgeSessions } from "./AgentBridgeSessions";
-import type { AgentBridgeSettingsModel } from "./useAgentBridgeSettings";
 
-export const AgentBridgeSettingsPage: React.FC<{
-  model: AgentBridgeSettingsModel;
-}> = ({ model }) => {
+/* The coding-agent bridge's operator console: what it is allowed to do, what
+ * it has been doing, and the replies waiting to be sent.
+ *
+ * It was the Agents tab, which is why it opened with a page title repeating
+ * the tab above it. Settings has two tabs now, so this is a block Advanced
+ * drops behind one disclosure row — the switches that decide whether any of it
+ * runs are outside it, and this is what you open once they are on.
+ *
+ * One refresh for the whole console: sessions, requests, runtime status and
+ * the pending queue all come from the same read. */
+export const AgentBridgeWorkspace: React.FC = () => {
   const { t } = useTranslation();
+  const model = useAgentBridgeSettings();
   const { refreshObservations, loading, error } = model;
   const [workspace, setWorkspace] = useState<"status" | "queue" | "rules">(
     "status",
@@ -30,12 +38,9 @@ export const AgentBridgeSettingsPage: React.FC<{
   ] as const;
 
   return (
-    /* One refresh for the whole page: sessions, requests, runtime status and
-     * the pending queue all come from the same read, so each workspace no
-     * longer carries a button of its own. */
-    <SettingsPage
-      title={t("settings.agents.title")}
-      actions={
+    <div className="flex flex-col gap-6 px-4 py-4">
+      <div className="flex items-center justify-between gap-4">
+        {error ? <Notice tone="danger">{error}</Notice> : <span />}
         <Button
           variant="outline"
           size="sm"
@@ -48,10 +53,7 @@ export const AgentBridgeSettingsPage: React.FC<{
           />
           {t("settings.agents.observed.refresh")}
         </Button>
-      }
-    >
-      {error ? <Notice tone="danger">{error}</Notice> : null}
-      <AgentPanelToggle />
+      </div>
       <Tabs
         value={workspace}
         onValueChange={(id) => {
@@ -131,6 +133,6 @@ export const AgentBridgeSettingsPage: React.FC<{
           />
         </TabsContent>
       </Tabs>
-    </SettingsPage>
+    </div>
   );
 };

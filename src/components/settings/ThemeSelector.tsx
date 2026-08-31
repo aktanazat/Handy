@@ -28,7 +28,9 @@ export const ThemeSelector: React.FC = React.memo(() => {
   };
 
   return (
-    <SettingsRow label={t("theme.title")} controlId={id}>
+    /* "Appearance", not "Application Theme": the row is the only appearance
+     * control left, and its three options say what it does. */
+    <SettingsRow label={t("settingsV2.essentials.appearance")} controlId={id}>
       <Select value={currentTheme} onValueChange={handleThemeChange}>
         <SelectTrigger id={id} size="sm" className="w-50">
           <SelectValue />

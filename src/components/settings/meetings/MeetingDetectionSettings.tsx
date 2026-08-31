@@ -1,17 +1,15 @@
-import React, { useCallback, useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import {
   Notice,
-  SettingsField,
   SettingsRow,
   SettingsSection,
 } from "@/components/settings/rows";
-import { Button } from "@/components/vg/button";
 import { Switch } from "@/components/vg/switch";
-import { Textarea } from "@/components/vg/textarea";
 import {
   useDetectionStore,
   type DetectionSettings,
+  type DetectionStatus,
   type DetectionSuppressReason,
 } from "./detectionStore";
 
@@ -56,80 +54,147 @@ interface DetectionStateLine {
   text: string;
 }
 
-/* Detection's whole operator surface.
+export interface DetectionEditor {
+  status: DetectionStatus | null;
+  settings: DetectionSettings | null;
+  saving: boolean;
+  patch: (change: Partial<DetectionSettings>) => Promise<void>;
+  enableCalendar: (enabled: boolean) => Promise<void>;
+}
+
+/* Detection's one write path, as the rows see it.
  *
- * One section, read top to bottom as the escalation the design deliberately
- * makes visible: the master switch in the heading, then the calendar path
- * behind its own permission, then the two choices that widen what counts as
- * evidence, then the allowlist. It was two headings and eight sentences; the
- * headings said what the switches say, so the switches kept them.
- *
- * "What detection can see" is the second and last section, because silent
- * detection is otherwise indistinguishable from broken detection — and it only
- * exists when there is a degraded path to name. */
-export const MeetingDetectionSettings: React.FC = () => {
-  const { t } = useTranslation();
+ * Every field is store state, so this hook may be mounted as many times as
+ * there are rows and there is still one write in flight, one gate, and one
+ * base. It used to keep `saving` in component-local state and close `patch`
+ * over a render-old `settings`, which made two adjacent Essentials rows two
+ * independent writers of the same whole struct: turning the master switch off
+ * and then ticking an app box sent `enabled: true` back and switched detection
+ * on again. The gate that stops it belongs to the settings, not to a row, so
+ * it lives beside the write in `detectionStore`. */
+export const useDetectionEditor = (): DetectionEditor => {
   const status = useDetectionStore((state) => state.status);
-  const save = useDetectionStore((state) => state.save);
-  const requestCalendarAccess = useDetectionStore(
-    (state) => state.requestCalendarAccess,
+  const saving = useDetectionStore((state) => state.savingSettings);
+  const patch = useDetectionStore((state) => state.patch);
+  const enableCalendar = useDetectionStore((state) => state.enableCalendar);
+
+  return {
+    status,
+    settings: status?.settings ?? null,
+    saving,
+    patch,
+    enableCalendar,
+  };
+};
+
+const DETECTION_ENABLED_ID = "detection-enabled";
+
+/* The master switch, as an ordinary Essentials row.
+ *
+ * It used to ride in a section header, which is why the page then had to
+ * repeat "Detect meetings" as both a heading and a control. On Essentials it is
+ * one row among ten, so it says its name once.
+ *
+ * Unread state claims `true` because that is the backend default
+ * (settings.rs `default_detection_enabled`): rendering "off" would invite a
+ * click that turns working detection off. */
+export const MeetingDetectionToggle: React.FC = () => {
+  const { t } = useTranslation();
+  const { settings, saving, patch } = useDetectionEditor();
+
+  return (
+    <SettingsRow
+      label={t("settingsV2.essentials.detectMeetings")}
+      /* The one thing the switch cannot say: noticing is not recording. */
+      hint={t("settingsV2.essentials.detectMeetingsHint")}
+      controlId={DETECTION_ENABLED_ID}
+      disabled={settings === null}
+    >
+      <Switch
+        id={DETECTION_ENABLED_ID}
+        checked={settings?.enabled ?? true}
+        onCheckedChange={(enabled) => void patch({ enabled })}
+        disabled={settings === null || saving}
+      />
+    </SettingsRow>
   );
-  const [saving, setSaving] = useState(false);
-  const [appsDraft, setAppsDraft] = useState<string | null>(null);
+};
 
-  const settings = status?.settings ?? null;
+/* Everything detection can be told beyond "watch for meetings": the calendar
+ * path behind its own permission, and the two choices that widen what counts
+ * as evidence. Advanced > Meetings owns these; Essentials owns the switch that
+ * makes them matter. */
+export const MeetingDetectionAdvanced: React.FC = () => {
+  const { t } = useTranslation();
+  const { settings, saving, patch, enableCalendar } = useDetectionEditor();
 
-  const patch = useCallback(
-    async (change: Partial<DetectionSettings>) => {
-      if (settings === null) return;
-      setSaving(true);
-      try {
-        await save({ ...settings, ...change });
-      } finally {
-        setSaving(false);
-      }
-    },
-    [save, settings],
-  );
-
-  /* Turning the calendar path on is what triggers the EventKit request, and
-   * reading events needs full access. Asking first and only writing the setting
-   * on success keeps the toggle from claiming a path that cannot run. */
-  const enableCalendar = useCallback(
-    async (enabled: boolean) => {
-      if (!enabled) {
-        await patch({ calendarEnabled: false });
-        return;
-      }
-      setSaving(true);
-      try {
-        const access = await requestCalendarAccess();
-        if (access === "authorized") await patch({ calendarEnabled: true });
-      } finally {
-        setSaving(false);
-      }
-    },
-    [patch, requestCalendarAccess],
-  );
-
-  if (settings === null || status === null) {
+  if (settings === null) {
     return (
-      <SettingsSection label={t("meetings.detection.title", "Detect meetings")}>
-        <div className="px-4 py-3">
-          <Notice tone="muted">
-            {t("meetings.detection.loading", "Reading detection state…")}
-          </Notice>
-        </div>
-      </SettingsSection>
+      <div className="px-4 py-3">
+        <Notice tone="muted">
+          {t("meetings.detection.loading", "Reading detection state…")}
+        </Notice>
+      </div>
     );
   }
 
-  const suppression = status.suppressReason;
-  const calendarBlocked =
-    settings.calendarEnabled && status.calendarAccess !== "authorized";
+  return (
+    <>
+      <SettingsRow
+        label={t("meetings.detection.calendar.label", "Use my calendar")}
+        /* The one thing about this switch nobody can infer from it: macOS
+         * has no read-only calendar grant, so turning it on asks for the
+         * whole calendar. */
+        hint={t(
+          "meetings.detection.calendar.description",
+          "Shows a countdown a minute before events with two or more attendees. macOS asks for full calendar access the first time, because Apple offers no read-only grant.",
+        )}
+        controlId="detection-calendar"
+        disabled={!settings.enabled}
+      >
+        <Switch
+          id="detection-calendar"
+          checked={settings.calendarEnabled}
+          onCheckedChange={(enabled) => void enableCalendar(enabled)}
+          disabled={!settings.enabled || saving}
+        />
+      </SettingsRow>
+
+      <SettingsRow
+        label={t(
+          "meetings.detection.anyMic.label",
+          "Ask on any microphone use",
+        )}
+        controlId="detection-any-mic"
+        disabled={!settings.enabled}
+      >
+        <Switch
+          id="detection-any-mic"
+          checked={settings.anyMicActivity}
+          onCheckedChange={(anyMicActivity) => void patch({ anyMicActivity })}
+          disabled={!settings.enabled || saving}
+        />
+      </SettingsRow>
+
+      {/* No open-on-countdown row. `autoStartOnOpenPane` is still on the wire
+       * and still round-trips through the whole-struct write below, but the
+       * consent slice took capture authority away from it in favour of
+       * per-series standing consent — so a switch here would claim a decision
+       * detection no longer reads. */}
+    </>
+  );
+};
+
+/* Silent detection is indistinguishable from broken detection, so every
+ * degraded path names itself here. With nothing degraded there is nothing to
+ * say, and an empty bordered box saying it would be worse than silence. */
+export const MeetingDetectionState: React.FC = () => {
+  const { t } = useTranslation();
+  const { status, settings } = useDetectionEditor();
+  if (status === null || settings === null) return null;
 
   const stateLines: DetectionStateLine[] = [];
-  if (calendarBlocked) {
+  if (settings.calendarEnabled && status.calendarAccess !== "authorized") {
     stateLines.push({
       id: "calendar",
       tone: "warning",
@@ -162,14 +227,14 @@ export const MeetingDetectionSettings: React.FC = () => {
       ),
     });
   }
-  if (suppression) {
+  if (status.suppressReason) {
     stateLines.push({
       id: "suppression",
       tone: "muted",
       live: true,
       text: t(
-        SUPPRESS_REASON_COPY[suppression][0],
-        SUPPRESS_REASON_COPY[suppression][1],
+        SUPPRESS_REASON_COPY[status.suppressReason][0],
+        SUPPRESS_REASON_COPY[status.suppressReason][1],
       ),
     });
   }
@@ -185,148 +250,19 @@ export const MeetingDetectionSettings: React.FC = () => {
     });
   }
 
+  if (stateLines.length === 0) return null;
+
   return (
-    <>
-      {/* The master switch sits in the section header rather than in a row of
-       * its own: it owns everything below it, and repeating "Detect meetings"
-       * as both a heading and the first row's label said it twice. */}
-      <SettingsSection
-        label={t("meetings.detection.title", "Detect meetings")}
-        action={
-          <Switch
-            checked={settings.enabled}
-            onCheckedChange={(enabled) => void patch({ enabled })}
-            disabled={saving}
-            aria-label={t("meetings.detection.title", "Detect meetings")}
-          />
-        }
-      >
-        <SettingsRow
-          label={t("meetings.detection.calendar.label", "Use my calendar")}
-          /* The one thing about this switch nobody can infer from it: macOS
-           * has no read-only calendar grant, so turning it on asks for the
-           * whole calendar. */
-          hint={t(
-            "meetings.detection.calendar.description",
-            "Shows a countdown a minute before events with two or more attendees. macOS asks for full calendar access the first time, because Apple offers no read-only grant.",
-          )}
-          controlId="detection-calendar"
-          disabled={!settings.enabled}
-        >
-          <Switch
-            id="detection-calendar"
-            checked={settings.calendarEnabled}
-            onCheckedChange={(enabled) => void enableCalendar(enabled)}
-            disabled={!settings.enabled || saving}
-          />
-        </SettingsRow>
-
-        <SettingsRow
-          label={t(
-            "meetings.detection.anyMic.label",
-            "Ask on any microphone use",
-          )}
-          controlId="detection-any-mic"
-          disabled={!settings.enabled}
-        >
-          <Switch
-            id="detection-any-mic"
-            checked={settings.anyMicActivity}
-            onCheckedChange={(anyMicActivity) => void patch({ anyMicActivity })}
-            disabled={!settings.enabled || saving}
-          />
-        </SettingsRow>
-
-        <SettingsRow
-          label={t(
-            "meetings.detection.autoStart.label",
-            "Open the meeting when its countdown is showing",
-          )}
-          controlId="detection-auto-start"
-          disabled={!settings.enabled || !settings.calendarEnabled}
-        >
-          <Switch
-            id="detection-auto-start"
-            checked={settings.autoStartOnOpenPane}
-            onCheckedChange={(autoStartOnOpenPane) =>
-              void patch({ autoStartOnOpenPane })
-            }
-            disabled={!settings.enabled || !settings.calendarEnabled || saving}
-          />
-        </SettingsRow>
-
-        <SettingsField
-          label={t("meetings.detection.apps.label", "Meeting apps")}
-          /* A format the control cannot state for itself, plus the reason a
-           * stale identifier is harmless. */
-          hint={t(
-            "meetings.detection.apps.description",
-            "One bundle identifier per line. An entry only counts while that app is running, so a renamed identifier is inert rather than wrong.",
-          )}
-          controlId="detection-apps"
-          disabled={!settings.enabled}
-        >
-          <Textarea
-            id="detection-apps"
-            rows={5}
-            className="font-mono text-[12px]"
-            value={appsDraft ?? settings.meetingApps.join("\n")}
-            onChange={(event) => setAppsDraft(event.target.value)}
-            disabled={!settings.enabled || saving}
-            spellCheck={false}
-          />
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-            <Notice tone="muted" live={false}>
-              {status.runningMeetingApps.length === 0
-                ? t(
-                    "meetings.detection.apps.noneRunning",
-                    "None of these are running right now.",
-                  )
-                : t(
-                    "meetings.detection.apps.running",
-                    "Running now: {{apps}}",
-                    {
-                      apps: status.runningMeetingApps.join(", "),
-                    },
-                  )}
-            </Notice>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={appsDraft === null || saving}
-              onClick={() => {
-                const meetingApps = (appsDraft ?? "")
-                  .split("\n")
-                  .map((line) => line.trim())
-                  .filter((line) => line.length > 0);
-                setAppsDraft(null);
-                void patch({ meetingApps });
-              }}
-            >
-              {t("common.save")}
-            </Button>
-          </div>
-        </SettingsField>
-      </SettingsSection>
-
-      {/* Silent detection is indistinguishable from broken detection, so every
-       * degraded path names itself here. With nothing degraded there is nothing
-       * to say, and an empty bordered box saying it would be worse than
-       * silence. */}
-      {stateLines.length === 0 ? null : (
-        <SettingsSection
-          label={t("meetings.detection.state.title", "What detection can see")}
-        >
-          <div className="flex flex-col gap-1.5 px-4 py-3">
-            {stateLines.map((line) => (
-              <Notice key={line.id} tone={line.tone} live={line.live}>
-                {line.text}
-              </Notice>
-            ))}
-          </div>
-        </SettingsSection>
-      )}
-    </>
+    <SettingsSection
+      label={t("meetings.detection.state.title", "What detection can see")}
+    >
+      <div className="flex flex-col gap-1.5 px-4 py-3">
+        {stateLines.map((line) => (
+          <Notice key={line.id} tone={line.tone} live={line.live}>
+            {line.text}
+          </Notice>
+        ))}
+      </div>
+    </SettingsSection>
   );
 };

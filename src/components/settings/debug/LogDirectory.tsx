@@ -53,7 +53,7 @@ export const LogDirectory: React.FC = () => {
         <div className="flex items-start gap-2">
           {/* The tail of a path is the part that identifies it, so it wraps
            * rather than truncating. */}
-          <span className="min-w-0 flex-1 rounded-md border border-gray-alpha-400 bg-background-200 px-2 py-1.5 font-mono text-[12px] break-all text-gray-900 select-text">
+          <span className="min-w-0 flex-1 rounded-md border border-gray-alpha-400 bg-background-200 px-2 py-1.5 text-[12px] break-all text-gray-900 select-text">
             {logDir}
           </span>
           <Button

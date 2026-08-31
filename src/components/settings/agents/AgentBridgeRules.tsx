@@ -37,7 +37,7 @@ export const AgentBridgeRules: React.FC<AgentBridgeRulesProps> = ({
                 {" · "}
                 {t("settings.agents.rules.decisions." + rule.decision)}
               </p>
-              <code className="mt-1 block font-mono text-xs break-all text-gray-800">
+              <code className="mt-1 block text-xs break-all text-gray-800 tabular-nums">
                 {rule.canonical_project_hash}
               </code>
             </div>

@@ -185,9 +185,12 @@ export const UpdateRows: React.FC<UpdateRowsProps> = ({ version }) => {
 
   return (
     <>
+      {/* Version and the act of checking it are one question, so they are one
+       * row: the running build on the left of the button that asks GitHub
+       * whether there is a newer one. */}
       <SettingsRow label={t("settings.about.version.title")}>
         {displayVersion !== null ? (
-          <span className="font-mono text-[13px] tabular-nums text-gray-1000">
+          <span className="text-[13px] tabular-nums text-gray-1000">
             {`v${displayVersion}`}
           </span>
         ) : (
@@ -199,6 +202,16 @@ export const UpdateRows: React.FC<UpdateRowsProps> = ({ version }) => {
               : t("settings.about.version.unavailable")}
           </Notice>
         )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void runCheck()}
+          disabled={checking}
+        >
+          {checking
+            ? t("settings.about.updates.checking")
+            : t("settings.about.updates.check")}
+        </Button>
       </SettingsRow>
 
       <SettingsRow
@@ -213,19 +226,6 @@ export const UpdateRows: React.FC<UpdateRowsProps> = ({ version }) => {
           disabled={enabled === null || savingPreference}
           onCheckedChange={(next) => void changeEnabled(next)}
         />
-      </SettingsRow>
-
-      <SettingsRow label={t("settings.about.updates.manualTitle")}>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => void runCheck()}
-          disabled={checking}
-        >
-          {checking
-            ? t("settings.about.updates.checking")
-            : t("settings.about.updates.check")}
-        </Button>
       </SettingsRow>
 
       {status === null ? null : (

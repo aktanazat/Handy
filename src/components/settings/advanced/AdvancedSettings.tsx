@@ -1,94 +1,43 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import {
-  SettingsPage,
-  SettingsRow,
-  SettingsSection,
-} from "@/components/settings/rows";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/vg/select";
-import { useSettings } from "../../../hooks/useSettings";
-import { AccelerationSelector } from "../AccelerationSelector";
-import { AutostartToggle } from "../AutostartToggle";
-import { ExperimentalToggle } from "../ExperimentalToggle";
-import { LazyStreamClose } from "../LazyStreamClose";
-import { ModelUnloadTimeoutSetting } from "../ModelUnloadTimeout";
-import { ShowOverlay } from "../ShowOverlay";
-import { HudPillSettings } from "../HudPillSettings";
-import { ShowTrayIcon } from "../ShowTrayIcon";
-import { StartHidden } from "../StartHidden";
-import { KeyboardImplementationSelector } from "../debug/KeyboardImplementationSelector";
+import { type } from "@tauri-apps/plugin-os";
+import { Microlabel, SettingsPage } from "@/components/settings/rows";
+import { AboutSections } from "../about/AboutSections";
+import { AdvancedAgents } from "./AdvancedAgents";
+import { AdvancedDictation } from "./AdvancedDictation";
+import { AdvancedMeetings } from "./AdvancedMeetings";
+import { AdvancedModels } from "./AdvancedModels";
+import { AdvancedSync } from "./AdvancedSync";
+import { AdvancedWorkflows } from "./AdvancedWorkflows";
 
-const SPELLING_ID = "advanced-english-spelling";
-
-/* Previously three collapsed <details> disclosures, which hid every advanced
- * setting behind a click; then three boxed groups that each explained their own
- * heading. Now three hairline sections whose headings are the whole label. */
-export const AdvancedSettings: React.FC = () => {
+/* Everything that is not essential, in the order a person goes looking for it.
+ *
+ * Five tabs collapsed into this page: General's leftovers, Privacy, Agents,
+ * Workflows and About. The order is by subject, not by how the code is
+ * organised — meetings, then what recognises speech, then what happens to a
+ * dictation, then what Sona does on its own, then what leaves this Mac, then
+ * what talks to Sona, then what build this is. */
+export const AdvancedSettings: React.FC<{ onOpenCatalog: () => void }> = ({
+  onOpenCatalog,
+}) => {
   const { t } = useTranslation();
-  const { settings, updateSetting } = useSettings();
-  const experimentalEnabled = settings?.experimental_enabled ?? false;
-  const englishSpelling = settings?.english_spelling ?? "as_spoken";
 
   return (
-    <SettingsPage title={t("sidebar.advanced")}>
-      <SettingsSection label={t("settings.advanced.disclosures.launch.title")}>
-        <StartHidden />
-        <AutostartToggle />
-        <ShowTrayIcon />
-        <ShowOverlay />
-        <HudPillSettings />
-      </SettingsSection>
-
-      <SettingsSection
-        label={t("settings.advanced.disclosures.processing.title")}
-      >
-        <ModelUnloadTimeoutSetting />
-        {/* The two option names are the description: "As spoken" or
-         * "British" says everything a sentence under the row would. */}
-        <SettingsRow
-          label={t("settings.advanced.englishSpelling.label")}
-          controlId={SPELLING_ID}
-        >
-          <Select
-            value={englishSpelling}
-            onValueChange={(value) => {
-              if (value !== "as_spoken" && value !== "british") return;
-              void updateSetting("english_spelling", value);
-            }}
-          >
-            <SelectTrigger id={SPELLING_ID} size="sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="as_spoken">
-                {t("settings.advanced.englishSpelling.values.as_spoken")}
-              </SelectItem>
-              <SelectItem value="british">
-                {t("settings.advanced.englishSpelling.values.british")}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </SettingsRow>
-      </SettingsSection>
-
-      {/* The switch sits with what it unlocks, so turning it on visibly
-       * extends this section instead of revealing one elsewhere. */}
-      <SettingsSection label={t("settings.advanced.groups.experimental")}>
-        <ExperimentalToggle />
-        {experimentalEnabled ? (
-          <>
-            <KeyboardImplementationSelector />
-            <AccelerationSelector />
-            <LazyStreamClose />
-          </>
-        ) : null}
-      </SettingsSection>
+    <SettingsPage title={t("settingsV2.advanced.title")}>
+      <AdvancedMeetings />
+      <AdvancedModels onOpenCatalog={onOpenCatalog} />
+      <AdvancedDictation />
+      <AdvancedWorkflows />
+      <AdvancedSync />
+      <AdvancedAgents />
+      <AboutSections />
+      {/* The debug page has no row and no link: it is a chord, and this is the
+       * one line in the app that says so. */}
+      <Microlabel>
+        {t("settingsV2.advanced.debugHint", {
+          chord: type() === "macos" ? "\u2318\u21e7D" : "Ctrl+Shift+D",
+        })}
+      </Microlabel>
     </SettingsPage>
   );
 };

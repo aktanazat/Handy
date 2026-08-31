@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Notice, SettingsField, SettingsRow } from "@/components/settings/rows";
 import { FailureNotice } from "./FailureNotice";
-import { MonoState } from "./MonoState";
+import { StatusValue } from "./StatusValue";
 import { useHistoryStorageStatus } from "./privacyStatus";
 
 /* History is encrypted at rest with a key from the OS credential store. The
@@ -95,7 +95,7 @@ export const PrivacyHistoryStorage: React.FC = () => {
             : undefined
         }
       >
-        <MonoState
+        <StatusValue
           live
           className={
             encryptedAndReadable
@@ -118,7 +118,7 @@ export const PrivacyHistoryStorage: React.FC = () => {
                     "settings.privacy.data.historyStorage.plaintext",
                     "Not encrypted",
                   )}
-        </MonoState>
+        </StatusValue>
       </SettingsRow>
       {reason === null ? null : (
         <div className="px-4 py-2.5">

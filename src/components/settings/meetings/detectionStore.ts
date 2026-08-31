@@ -149,7 +149,17 @@ interface DetectionStore {
   clearPrompt: (promptId: string) => void;
   refresh: () => Promise<void>;
   answer: (promptId: string, accepted: boolean) => Promise<void>;
-  save: (settings: DetectionSettings) => Promise<void>;
+  /* True while `detection_settings_set` is in flight.
+   *
+   * One flag for the whole app, because the surfaces that write these settings
+   * are not one component and not even one page: the master switch is an
+   * Essentials row, the app picker is the row under it, the calendar switch is
+   * on Advanced and the countdown card writes `autoStartOnOpenPane` from the
+   * Meetings page. A per-component boolean leaves every one of them believing
+   * nothing is being written. */
+  savingSettings: boolean;
+  patch: (change: Partial<DetectionSettings>) => Promise<void>;
+  enableCalendar: (enabled: boolean) => Promise<void>;
   requestCalendarAccess: () => Promise<CalendarAccess>;
   requestNotificationAccess: () => Promise<NotificationAccess>;
 }
@@ -157,6 +167,7 @@ interface DetectionStore {
 export const useDetectionStore = create<DetectionStore>()((set, get) => ({
   status: null,
   prompts: [],
+  savingSettings: false,
   setStatus: (status) =>
     set((state) => ({
       status,
@@ -204,11 +215,56 @@ export const useDetectionStore = create<DetectionStore>()((set, get) => ({
     await invoke("detection_prompt_respond", { promptId, accepted });
   },
 
-  save: async (settings) => {
-    const status = await invoke<DetectionStatus>("detection_settings_set", {
-      settings,
-    });
-    get().setStatus(status);
+  /* Detection's one write.
+   *
+   * `detection_settings_set` takes the whole struct, deliberately: the backend
+   * refuses to represent a half-written state such as
+   * calendar-on-while-detection-off. Two overlapping writes are therefore two
+   * full overwrites, and whichever lands second reverts every field the first
+   * one changed.
+   *
+   * Two things stop that here. The base is read at call time rather than
+   * supplied by the caller, so a row holding a render-old snapshot cannot send
+   * the fields it never touched back to what they were before the last write;
+   * and a write refuses to start while one is in flight, which is what makes
+   * `savingSettings` an invariant rather than a convention the rows are
+   * trusted to honour. Before both, switching detection off and then ticking
+   * an app box switched detection back on. */
+  patch: async (change) => {
+    const base = get().status?.settings;
+    if (base === undefined || get().savingSettings) return;
+    set({ savingSettings: true });
+    try {
+      const status = await invoke<DetectionStatus>("detection_settings_set", {
+        settings: { ...base, ...change },
+      });
+      get().setStatus(status);
+    } finally {
+      set({ savingSettings: false });
+    }
+  },
+
+  /* Turning the calendar path on is what triggers the EventKit request, and
+   * reading events needs full access. Asking first and only writing the
+   * setting on success keeps the toggle from claiming a path that cannot run.
+   *
+   * The gate is held across the request, not just across the write: the
+   * request ends by refreshing `status`, and a switch left live while macOS
+   * has its dialog up can be turned off and then back on by the grant. */
+  enableCalendar: async (enabled) => {
+    if (!enabled) {
+      await get().patch({ calendarEnabled: false });
+      return;
+    }
+    if (get().savingSettings) return;
+    set({ savingSettings: true });
+    let authorized = false;
+    try {
+      authorized = (await get().requestCalendarAccess()) === "authorized";
+    } finally {
+      set({ savingSettings: false });
+    }
+    if (authorized) await get().patch({ calendarEnabled: true });
   },
 
   requestCalendarAccess: async () => {

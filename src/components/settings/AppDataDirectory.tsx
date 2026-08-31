@@ -43,9 +43,9 @@ export const AppDataDirectory: React.FC = () => {
     );
   }
 
-  /* The path is the row's answer, printed once, in mono because it is a
-   * machine string. The row's old description said "Where Sona stores its
-   * data" above exactly that path.
+  /* The path is the row's answer, printed once as a machine value. The row's
+   * old description said "Where Sona stores its data" above exactly that
+   * path.
    *
    * The action is outline rather than ghost: a ghost button has no border and
    * no fill at rest, so the bare word "Open" beside a path reads as more path.
@@ -54,7 +54,7 @@ export const AppDataDirectory: React.FC = () => {
   return (
     <SettingsField label={label}>
       <div className="flex items-center gap-2">
-        <span className="min-w-0 flex-1 truncate font-mono text-xs text-gray-800 select-text">
+        <span className="min-w-0 flex-1 truncate text-xs text-gray-800 select-text">
           {appDirPath}
         </span>
         <Button

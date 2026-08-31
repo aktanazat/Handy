@@ -28,8 +28,8 @@ test.describe("App shell", () => {
     for (const name of [
       "Capture",
       "Library",
-      "Modes",
       "Meetings",
+      "People",
       "Settings",
     ]) {
       await expect(
@@ -55,13 +55,77 @@ test.describe("App shell", () => {
     await expect(capture).not.toHaveAttribute("aria-current", "page");
   });
 
-  test("the Settings row opens the settings hub", async ({ page }) => {
+  test("the Settings row opens the hub on Essentials", async ({ page }) => {
     await openApp(page);
 
     await sidebarNav(page)
       .getByRole("button", { name: "Settings", exact: true })
       .click();
     await expect(page.getByTestId("settings-hub")).toBeVisible();
+
+    /* Two tabs, and Debug is absent until the chord unlocks it. Five of the
+     * seven tabs this hub used to carry are gone: General, Privacy, Agents,
+     * Workflows and About are all Advanced now. */
+    const tabs = page.getByRole("tablist", { name: "Settings" });
+    await expect(tabs.getByRole("tab")).toHaveText(["Essentials", "Advanced"]);
+    await expect(
+      tabs.getByRole("tab", { name: "Essentials", exact: true }),
+    ).toHaveAttribute("aria-selected", "true");
+  });
+
+  /* The number this restructure exists for. Essentials is meant to be short
+   * enough to read at once, and the only way that stays true is if adding a
+   * row here fails a test. Rows and fields both count: a field is a row whose
+   * control is too wide to sit beside its label, not a second kind of thing. */
+  test("Essentials is one surface of ten to eleven rows", async ({ page }) => {
+    await openApp(page);
+
+    await sidebarNav(page)
+      .getByRole("button", { name: "Settings", exact: true })
+      .click();
+    const essentials = page.getByTestId("settings-essentials");
+    await expect(essentials).toBeVisible();
+
+    const rows = essentials.locator(
+      '[data-slot="settings-row"], [data-slot="settings-field"]',
+    );
+    const count = await rows.count();
+    expect(count).toBeGreaterThanOrEqual(10);
+    expect(count).toBeLessThanOrEqual(11);
+
+    // No section headings: the tab above already names the page.
+    await expect(essentials.getByRole("heading")).toHaveCount(0);
+  });
+
+  test("Advanced carries the sections the folded tabs became", async ({
+    page,
+  }) => {
+    await openApp(page);
+
+    await sidebarNav(page)
+      .getByRole("button", { name: "Settings", exact: true })
+      .click();
+    await page.getByRole("tab", { name: "Advanced", exact: true }).click();
+
+    for (const section of [
+      "Meetings",
+      "Models",
+      "Dictation",
+      "What Sona does after a meeting",
+      "Sync",
+      "Agents",
+      "About Sona",
+    ]) {
+      await expect(
+        page.getByRole("heading", { name: section, exact: true }),
+      ).toBeVisible();
+    }
+
+    /* Debug has no row and no link anywhere, so the one line that says how to
+     * reach it is load-bearing. */
+    await expect(
+      page.getByText("Press \u2318\u21e7D to open the debug page."),
+    ).toBeVisible();
   });
 
   test("the search row opens the command palette", async ({ page }) => {
@@ -182,10 +246,12 @@ test.describe("the ⌘K palette does not flicker", () => {
 
     /* And the page underneath is reachable again: a modal dialog that failed
        to release focus would swallow this click. */
-    await sidebarNav(page)
-      .getByRole("button", { name: "Modes", exact: true })
-      .click();
-    await expect(page.getByRole("list", { name: "Your modes" })).toBeVisible();
+    const meetings = sidebarNav(page).getByRole("button", {
+      name: "Meetings",
+      exact: true,
+    });
+    await meetings.click();
+    await expect(meetings).toHaveAttribute("aria-current", "page");
   });
 });
 
@@ -227,7 +293,6 @@ test.describe("the palette's content", () => {
     expect(railLabels).toEqual([
       "Capture",
       "Library",
-      "Modes",
       "Meetings",
       "People",
       "Settings",
@@ -239,7 +304,7 @@ test.describe("the palette's content", () => {
       .getByRole("option");
     const paletteLabels = await destinations.allInnerTexts();
 
-    // Models keeps no rail row; every other destination matches the rail.
+    // Modes and Models keep no rail row; every destination stays in the palette.
     expect(paletteLabels.map((label) => label.trim()).sort()).toEqual([
       "Capture",
       "Library",
@@ -260,9 +325,12 @@ test.describe("the palette's content", () => {
     await page.getByRole("option", { name: "Modes", exact: true }).click();
 
     await expect(palette(page)).toHaveCount(0);
-    await expect(
-      sidebarNav(page).getByRole("button", { name: "Modes", exact: true }),
-    ).toHaveAttribute("aria-current", "page");
+    /* Modes is a railless destination: the pane changes, and no rail button
+     * claims the page. */
+    await expect(page.getByRole("list", { name: "Your modes" })).toBeVisible();
+    await expect(sidebarNav(page).locator('[aria-current="page"]')).toHaveCount(
+      0,
+    );
   });
 });
 

@@ -12,7 +12,10 @@ import { SettingsRow } from "./rows";
 import { useSettings } from "@/hooks/useSettings";
 import type { AppearanceMaterial } from "@/bindings";
 
-const MATERIAL_OPTIONS: AppearanceMaterial[] = ["solid", "glass"];
+const MATERIAL_OPTIONS = [
+  "solid",
+  "glass",
+] as const satisfies readonly AppearanceMaterial[];
 
 /**
  * Window material: Solid surfaces, or Glass over the desktop.
@@ -36,40 +39,33 @@ export const MaterialSelector: React.FC = React.memo(() => {
   const current: AppearanceMaterial = supported
     ? (settings?.appearance_material ?? "solid")
     : "solid";
-  const label = t("settings.general.appearance.material.title", "Material");
+  const label = t("settings.general.appearance.material.title");
 
   return (
     <SettingsRow
       label={label}
       /* Kept: it names which surfaces go transparent, which is the one thing
        * "Solid / Glass" cannot tell you. */
-      hint={t(
-        "settings.general.appearance.material.description",
-        "Solid keeps Sona's surfaces opaque. Glass lets the desktop show through the top bar, the command palette, and the recording HUD.",
-      )}
+      hint={t("settings.general.appearance.material.description")}
       hintLabel={label}
       controlId={id}
       disabled={!supported}
     >
       <Select
         value={current}
-        onValueChange={(value) =>
-          /* SAFETY: the items below are exactly `MATERIAL_OPTIONS`, which is
-             the AppearanceMaterial union spelled out, and a Radix select can
-             only report an item's own value. */
-          updateSetting("appearance_material", value as AppearanceMaterial)
-        }
+        onValueChange={(value) => {
+          const next = MATERIAL_OPTIONS.find((option) => option === value);
+          if (next) void updateSetting("appearance_material", next);
+        }}
         disabled={!supported}
       >
-        <SelectTrigger id={id} size="sm" className="w-50">
+        <SelectTrigger id={id} size="sm">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
           {MATERIAL_OPTIONS.map((value) => (
             <SelectItem key={value} value={value}>
-              {t(`settings.general.appearance.material.options.${value}`, {
-                defaultValue: value === "glass" ? "Glass" : "Solid",
-              })}
+              {t(`settings.general.appearance.material.options.${value}`)}
             </SelectItem>
           ))}
         </SelectContent>

@@ -109,8 +109,8 @@ export const PrivacyUpstreamImport: React.FC = () => {
               hint={t(
                 "settings.privacy.upstreamImport.recordingsRequireHistory",
               )}
-              /* KiB/MiB carry meaning in their case, and the mono fact type
-               * is uppercase, so the measurement opts out of it. */
+              /* KiB/MiB carry meaning in their case, so the measurement keeps
+               * the spelling supplied by the formatter. */
               fact={
                 <span className="normal-case">
                   {`${NUMBER_FORMATTER.format(status.recording_files)} · ${t(

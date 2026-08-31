@@ -1,11 +1,7 @@
 import React, { useEffect, useId, useState } from "react";
 import { RefreshCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import {
-  Notice,
-  SettingsField,
-  SettingsSection,
-} from "@/components/settings/rows";
+import { Notice, SettingsField } from "@/components/settings/rows";
 import { Button } from "@/components/vg/button";
 import { useSettings } from "@/hooks/useSettings";
 import { cn } from "@/lib/cn";
@@ -34,10 +30,12 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
     state.handleBaseUrlChange(value);
   };
   return (
-    <SettingsSection label={t("settings.postProcessing.api.title")}>
-      {/* Every control here is a field rather than a row: a provider name, an
-       * endpoint URL, a key and a model id are all long enough that a control
-       * sized to a settings column's right half would cut them. */}
+    /* A bare row group, not a section: Advanced puts this behind a disclosure
+     * whose summary already names it. Every control here is a field rather
+     * than a row — a provider name, an endpoint URL, a key and a model id are
+     * all long enough that a control sized to a settings column's right half
+     * would cut them. */
+    <>
       <SettingsField
         label={t("settings.postProcessing.api.provider.title")}
         controlId={`${fieldId}-provider`}
@@ -174,7 +172,7 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
           </div>
         </SettingsField>
       )}
-    </SettingsSection>
+    </>
   );
 };
 

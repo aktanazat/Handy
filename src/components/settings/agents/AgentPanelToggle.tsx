@@ -2,18 +2,15 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { commands } from "@/bindings";
 import { Switch } from "@/components/vg/switch";
-import {
-  Notice,
-  SettingsRow,
-  SettingsSection,
-} from "@/components/settings/rows";
+import { Notice, SettingsRow } from "@/components/settings/rows";
 import { useSettings } from "@/hooks/useSettings";
 
 /* The agent panel is the separate always-on-top window agents talk through.
  * The panel manager owns the command because switching it off also closes an
  * open panel window: that consequence is the one thing a reader cannot infer
- * from the switch, so it is the row's hint and the section says nothing else.
- */
+ * from the switch, so it is the row's hint and nothing else says it.
+ *
+ * A bare row: Advanced's Agents section is its heading now. */
 export const AgentPanelToggle: React.FC = () => {
   const { t } = useTranslation();
   const { getSetting, refreshSettings, settings } = useSettings();
@@ -36,7 +33,7 @@ export const AgentPanelToggle: React.FC = () => {
   };
 
   return (
-    <SettingsSection label={t("settings.agents.panel.title", "Agent panel")}>
+    <>
       <SettingsRow
         label={t("settings.agents.panel.label", "Enable agent panel")}
         hint={t(
@@ -59,6 +56,6 @@ export const AgentPanelToggle: React.FC = () => {
           </Notice>
         </div>
       )}
-    </SettingsSection>
+    </>
   );
 };

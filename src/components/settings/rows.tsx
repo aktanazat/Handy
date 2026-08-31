@@ -1,6 +1,7 @@
 import * as React from "react";
-import { Info } from "lucide-react";
+import { ChevronDown, ChevronRight, Info } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { Button } from "@/components/vg/button";
 import {
   Tooltip,
   TooltipContent,
@@ -9,9 +10,9 @@ import {
 
 /* The grammar every settings surface is written in.
  *
- * A page is one centered column. A section is a mono microlabel over a single
- * `background-100` surface whose rows are separated by hairlines — not a stack
- * of boxes. A row states its setting once, on the left, and puts its control
+ * A page is one centered column. A section is a sentence-case microlabel over
+ * a single `background-100` surface whose rows are separated by hairlines, not
+ * a stack of boxes. A row states its setting once, on the left, and puts its control
  * flush right. There is no second sentence: a row that genuinely needs one
  * carries it as a tooltip, and a row that does not need one does not get one.
  *
@@ -84,17 +85,12 @@ export const SettingsPage: React.FC<
   </div>
 );
 
-/** Mono, uppercase, wide-tracked: the type a measurement is set in. */
+/** Sentence-case SF at 13px in the secondary text color. */
 export const Microlabel: React.FC<{
   children: React.ReactNode;
   className?: string;
 }> = ({ children, className }) => (
-  <span
-    className={cn(
-      "font-mono text-[11px] uppercase tracking-[0.12em] text-gray-800",
-      className,
-    )}
-  >
+  <span className={cn("text-[13px] leading-5 text-gray-900", className)}>
     {children}
   </span>
 );
@@ -118,19 +114,16 @@ const HintTooltip: React.FC<{ label: string; hint: React.ReactNode }> = ({
   </Tooltip>
 );
 
-/** A named measurement — `DURATION 12:04`. Label and value, nothing else. */
+/** A named measurement: label and value, nothing else. */
 export const FactChip: React.FC<{
   label: string;
   value: React.ReactNode;
   className?: string;
 }> = ({ label, value, className }) => (
   <span
-    className={cn(
-      "inline-flex items-baseline gap-1.5 font-mono text-[11px]",
-      className,
-    )}
+    className={cn("inline-flex items-baseline gap-1.5 text-[13px]", className)}
   >
-    <span className="uppercase tracking-[0.12em] text-gray-700">{label}</span>
+    <span className="text-gray-900">{label}</span>
     <span className="tabular-nums text-gray-1000">{value}</span>
   </span>
 );
@@ -144,9 +137,7 @@ export const SettingsSection: React.FC<{
 }> = ({ label, action, children, className }) => (
   <section className={cn("flex flex-col gap-3", className)}>
     <div className="flex min-h-6 items-center justify-between gap-4">
-      <h2 className="font-mono text-[11px] uppercase tracking-[0.12em] text-gray-800">
-        {label}
-      </h2>
+      <h2 className="text-[13px] leading-5 text-gray-900">{label}</h2>
       {action}
     </div>
     <div className={SETTINGS_SURFACE}>{children}</div>
@@ -188,7 +179,7 @@ export interface SettingsRowProps {
   hint?: React.ReactNode;
   /** Accessible name for the hint affordance. Defaults to the label. */
   hintLabel?: string;
-  /** A measured value that belongs beside the label, set in mono. */
+  /** A measured value that belongs beside the label. */
   fact?: React.ReactNode;
   /** Associates the label with the control it names. */
   controlId?: string;
@@ -207,8 +198,7 @@ export const SettingsRow: React.FC<SettingsRowProps> = ({
   children,
   className,
 }) => {
-  /* Disabled rows dim their type rather than their opacity: opacity would take
-   * the keycaps and the mono facts down with it. */
+  /* Disabled rows dim their type without changing the controls beside it. */
   const labelClass = cn(
     /* 13px, the size a settings row has always been here — `text-sm` is
      * 12.25px under the 14px root and would quietly demote every label to the
@@ -234,7 +224,9 @@ export const SettingsRow: React.FC<SettingsRowProps> = ({
           <span className={labelClass}>{label}</span>
         )}
         {hint ? <HintTooltip label={hintLabel ?? label} hint={hint} /> : null}
-        {fact ? <Microlabel>{fact}</Microlabel> : null}
+        {/* A fact is a measurement, so its digits are tabular: a percentage
+         * beside a slider must not shift the label under the drag. */}
+        {fact ? <Microlabel className="tabular-nums">{fact}</Microlabel> : null}
       </div>
       {children ? (
         <div className="flex shrink-0 items-center gap-2">{children}</div>
@@ -278,10 +270,81 @@ export const SettingsField: React.FC<SettingsRowProps> = ({
           )}
           {hint ? <HintTooltip label={hintLabel ?? label} hint={hint} /> : null}
         </div>
-        {fact ? <Microlabel>{fact}</Microlabel> : null}
+        {fact ? <Microlabel className="tabular-nums">{fact}</Microlabel> : null}
       </div>
       <div className="min-w-0">{children}</div>
     </div>
+  );
+};
+
+/**
+ * A row whose control is a jump: the setting it names lives on another
+ * surface, and this row is the one place that says where.
+ *
+ * Essentials uses it so a page of ten rows can still reach the editors behind
+ * it without growing a section for each one.
+ */
+export const SettingsLinkRow: React.FC<{
+  label: string;
+  /** The verb on the button. "Open" for a catalog, "Edit" for an editor. */
+  action: string;
+  hint?: React.ReactNode;
+  fact?: React.ReactNode;
+  onOpen: () => void;
+}> = ({ label, action, hint, fact, onOpen }) => (
+  <SettingsRow label={label} hint={hint} fact={fact}>
+    <Button type="button" variant="outline" size="sm" onClick={onOpen}>
+      {action}
+      <ChevronRight aria-hidden="true" />
+    </Button>
+  </SettingsRow>
+);
+
+/**
+ * A task, a credential, or a reference that is one row until a reader needs
+ * it. Advanced keeps its one-time setups here so they do not read as switches
+ * that happen to be off.
+ *
+ * The kit has no collapsible, so this is `<details>` — no JavaScript for the
+ * open state, and keyboard and screen-reader behaviour for free. The summary
+ * is a settings row: label left, the state that decides whether you open it
+ * on the right. `lazy` defers mounting the body until first open, for bodies
+ * that fetch on mount (the agent-bridge console); a native `<details>` keeps
+ * closed content in the DOM, so eager children would fetch unseen.
+ */
+export const SettingsDisclosure: React.FC<{
+  label: string;
+  /** The measured state a reader checks before opening this. */
+  fact?: React.ReactNode;
+  /** Mount children on first open instead of eagerly. */
+  lazy?: boolean;
+  children: React.ReactNode;
+  className?: string;
+}> = ({ label, fact, lazy = false, children, className }) => {
+  const [opened, setOpened] = React.useState(!lazy);
+  return (
+    <details
+      className={cn("group", className)}
+      onToggle={(event) => {
+        if (event.currentTarget.open) setOpened(true);
+      }}
+    >
+      <summary className="flex min-h-[52px] cursor-pointer list-none items-center justify-between gap-4 px-4 py-2.5 text-[13px] text-gray-1000 transition-colors hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+        {label}
+        <span className="flex shrink-0 items-center gap-3">
+          {fact ? (
+            <Microlabel className="tabular-nums">{fact}</Microlabel>
+          ) : null}
+          <ChevronDown
+            aria-hidden="true"
+            className="size-4 text-gray-700 transition-transform group-open:rotate-180"
+          />
+        </span>
+      </summary>
+      <div className="divide-y divide-gray-alpha-400 border-t border-gray-alpha-400">
+        {opened ? children : null}
+      </div>
+    </details>
   );
 };
 
@@ -294,10 +357,8 @@ const NOTICE_TONES = {
 } as const;
 
 /**
- * One line of state — save blocked, a conflict, a failed command. A sentence,
- * not a box: Geist does not draw a panel around a status. `live` announces it
- * to assistive tech, which is the whole reason this is a primitive rather than
- * a `<p>` each surface writes for itself.
+ * One line of state: save blocked, a conflict, a failed command. `live`
+ * announces it to assistive tech, which is why this is a shared component.
  */
 export const Notice: React.FC<{
   tone?: keyof typeof NOTICE_TONES;

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -6,13 +6,20 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInstance } from "i18next";
 import { I18nextProvider } from "react-i18next";
-import { MeetingDetectionSettings } from "./MeetingDetectionSettings";
+import { TooltipProvider } from "@/components/vg/tooltip";
+import {
+  MeetingDetectionAdvanced,
+  MeetingDetectionState,
+  MeetingDetectionToggle,
+} from "./MeetingDetectionSettings";
+import { MeetingAppsPicker } from "./MeetingAppsPicker";
 import { DetectionListeners, promptTitle } from "./DetectionListeners";
 import { PreMeetingCountdownCard } from "./PreMeetingCountdownCard";
 import {
   useDetectionStore,
   type DetectionPromptEvent,
   type DetectionPromptKind,
+  type DetectionSettings,
   type DetectionStatus,
 } from "./detectionStore";
 
@@ -59,8 +66,15 @@ void i18n.init({
   parseMissingKeyHandler: () => "__MISSING__",
 });
 
+/* Every window root mounts one `TooltipProvider` and the row primitives assume
+ * it, so a hinted row rendered in isolation needs its own — Radix's `Tooltip`
+ * throws without one. */
 const paint = (node: React.ReactElement) =>
-  renderToStaticMarkup(<I18nextProvider i18n={i18n}>{node}</I18nextProvider>);
+  renderToStaticMarkup(
+    <I18nextProvider i18n={i18n}>
+      <TooltipProvider>{node}</TooltipProvider>
+    </I18nextProvider>,
+  );
 
 const PROMPT_COPY: [DetectionPromptKind, string][] = [
   [
@@ -112,18 +126,47 @@ describe("first paint", () => {
     expect(paint(<DetectionListeners />)).toBe("");
   });
 
-  test("the settings section says it is still reading state, and nothing else", () => {
-    const markup = paint(<MeetingDetectionSettings />);
+  test("the master switch claims the backend default before state arrives", () => {
+    const markup = paint(<MeetingDetectionToggle />);
 
-    expect(markup).toContain("Detect meetings");
-    expect(markup).toContain("Reading detection state");
-    /* The section heading is the whole header now: the sentence that used to
-     * sit under it said what the switches below say. */
-    expect(markup).not.toContain("It never records on its own");
-    /* "What detection can see" exists only when there is a degraded path to
-     * name, and first paint has read no state at all. */
-    expect(markup).not.toContain("What detection can see");
+    /* Detection ships on, so an unread store has to render on: "off" would
+     * invite a click that turns working detection off. The row is disabled
+     * until a status lands, which is what stops that click landing early. */
+    expect(markup).toContain('role="switch" aria-checked="true"');
+    expect(markup).toContain('data-disabled="true"');
     expect(markup.includes("__MISSING__")).toBe(false);
+  });
+
+  test("the advanced rows say they are still reading state, and nothing else", () => {
+    const markup = paint(<MeetingDetectionAdvanced />);
+
+    expect(markup).toContain("Reading detection state");
+    /* Every switch below belongs to a status that has not arrived, so none of
+     * them render yet. */
+    expect(markup).not.toContain('data-slot="settings-row"');
+  });
+
+  test("the app picker offers the five known apps and says browsers are automatic", () => {
+    const markup = paint(<MeetingAppsPicker />);
+
+    for (const name of [
+      "Zoom",
+      "Microsoft Teams",
+      "Webex",
+      "FaceTime",
+      "Slack",
+    ]) {
+      expect(markup).toContain(name);
+    }
+    expect(markup).toContain("browser");
+    /* The textarea this replaced is gone: no bundle identifier is printed for
+     * an app the picker names. */
+    expect(markup).not.toContain("us.zoom.xos");
+    expect(markup.includes("__MISSING__")).toBe(false);
+  });
+
+  test("what detection can see costs the page nothing with no state", () => {
+    expect(paint(<MeetingDetectionState />)).toBe("");
   });
 });
 
@@ -131,7 +174,6 @@ describe("english catalogue", () => {
   /* Every key the three components reference, so a rename breaks here rather
    * than silently degrading to the inline default at runtime. */
   const KEYS = [
-    "meetings.detection.title",
     "meetings.detection.loading",
     "meetings.detection.prompt.calendar",
     "meetings.detection.prompt.app",
@@ -148,11 +190,23 @@ describe("english catalogue", () => {
     "meetings.detection.calendar.label",
     "meetings.detection.calendar.description",
     "meetings.detection.anyMic.label",
-    "meetings.detection.autoStart.label",
-    "meetings.detection.apps.label",
-    "meetings.detection.apps.description",
-    "meetings.detection.apps.running",
-    "meetings.detection.apps.noneRunning",
+    "settingsV2.essentials.detectMeetings",
+    "settingsV2.essentials.detectMeetingsHint",
+    "settingsV2.apps.label",
+    "settingsV2.apps.browsersAutomatic",
+    "settingsV2.apps.runningNow",
+    "settingsV2.apps.add",
+    "settingsV2.apps.addTitle",
+    "settingsV2.apps.addDescription",
+    "settingsV2.apps.identifier",
+    "settingsV2.apps.identifierPlaceholder",
+    "settingsV2.apps.invalid",
+    "settingsV2.apps.duplicate",
+    "settingsV2.apps.names.zoom",
+    "settingsV2.apps.names.teams",
+    "settingsV2.apps.names.webex",
+    "settingsV2.apps.names.facetime",
+    "settingsV2.apps.names.slack",
     "meetings.detection.state.title",
     "meetings.detection.state.calendarDenied",
     "meetings.detection.state.notificationsDenied",
@@ -302,7 +356,8 @@ const promptEvent = (
   promptId,
   prompt,
   notificationTitle: "unused by the in-app card",
-  notified: true,
+  delivery: "notification",
+  showIntroduction: false,
 });
 
 const status = (inputDeviceActive: boolean): DetectionStatus => ({
@@ -479,5 +534,104 @@ describe("the prompt list", () => {
       "Call detected in Chrome",
       "Quarterly planning starting",
     ]);
+  });
+});
+
+/* The interleaving that reached the tree, and the gate that closes it.
+ *
+ * `detection_settings_set` takes the whole struct, so two overlapping writes
+ * are two full overwrites — and the two rows that send them are adjacent on
+ * Essentials. When the gate was a component-local `useState` and the base was
+ * a render-old snapshot captured by the caller, this exact sequence ended with
+ * `enabled: true`: a click on an app checkbox silently switched meeting
+ * detection back on. The gate is store state now, which is what makes the race
+ * expressible here at all — no React, no interaction harness.
+ *
+ * The host is faked at the Tauri boundary rather than by mocking a module, so
+ * the store's own `invoke` runs and echoes back the settings it was handed,
+ * which is what the real command answers. It resolves immediately: an async
+ * function suspends at its first `await`, so a second call made before the
+ * first resumes is exactly the click that arrives mid-save. */
+describe("the shared write gate", () => {
+  let sent: DetectionSettings[] = [];
+  const priorWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+
+  beforeAll(() => {
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: {
+        ...globalThis.window,
+        __TAURI_INTERNALS__: {
+          invoke: (command: string, args: { settings: DetectionSettings }) => {
+            if (command !== "detection_settings_set") {
+              throw new Error(`unexpected command: ${command}`);
+            }
+            sent.push(args.settings);
+            return Promise.resolve({
+              ...status(true),
+              settings: args.settings,
+            });
+          },
+        },
+      },
+    });
+  });
+  afterAll(() => {
+    if (priorWindow) Object.defineProperty(globalThis, "window", priorWindow);
+    else Reflect.deleteProperty(globalThis, "window");
+  });
+
+  const seed = () => {
+    sent = [];
+    useDetectionStore.setState({
+      status: status(true),
+      prompts: [],
+      savingSettings: false,
+    });
+    return useDetectionStore.getState().patch;
+  };
+
+  test("an app box ticked mid-save cannot switch detection back on", async () => {
+    const patch = seed();
+
+    // The master switch, turned off. Its write is in flight.
+    const off = patch({ enabled: false });
+    expect(useDetectionStore.getState().savingSettings).toBe(true);
+
+    /* The app picker one row below, ticking Zoom against the state the store
+     * still reports — `enabled: true`, because the write has not landed. It
+     * shares the switch's gate, so nothing is sent. */
+    void patch({ meetingApps: ["us.zoom.xos"] });
+    expect(sent).toHaveLength(1);
+
+    await off;
+
+    expect(useDetectionStore.getState().status?.settings.enabled).toBe(false);
+    expect(useDetectionStore.getState().savingSettings).toBe(false);
+  });
+
+  test("a row a render behind still writes off the landed base", async () => {
+    const patch = seed();
+
+    await patch({ enabled: false });
+
+    /* Whatever the picker believes about `enabled` is a render old by now. The
+     * base is read at call time, so its write carries the one field it changed
+     * and inherits the rest from what actually landed. */
+    await patch({ meetingApps: ["us.zoom.xos"] });
+
+    expect(sent[1].enabled).toBe(false);
+    expect(sent[1].meetingApps).toEqual(["us.zoom.xos"]);
+    expect(useDetectionStore.getState().status?.settings.enabled).toBe(false);
+  });
+
+  test("a write with no status to write onto is not sent", async () => {
+    const patch = seed();
+    useDetectionStore.setState({ status: null });
+
+    await patch({ enabled: false });
+
+    expect(sent).toHaveLength(0);
+    expect(useDetectionStore.getState().savingSettings).toBe(false);
   });
 });

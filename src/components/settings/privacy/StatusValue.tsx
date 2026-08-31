@@ -1,8 +1,8 @@
 import React from "react";
 import { Microlabel } from "@/components/settings/rows";
 
-/** A status word, in the mono type every measurement on this page is set in. */
-export const MonoState: React.FC<{
+/** A compact status value with optional polite live-region updates. */
+export const StatusValue: React.FC<{
   className?: string;
   live?: boolean;
   children: React.ReactNode;

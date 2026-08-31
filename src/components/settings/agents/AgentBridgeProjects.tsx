@@ -61,7 +61,7 @@ export const AgentBridgeProjects: React.FC<AgentBridgeProjectsProps> = ({
             key={project.canonical_project_hash}
             className="flex min-h-[52px] min-w-0 items-center justify-between gap-4 px-4 py-2.5"
           >
-            <code className="min-w-0 font-mono text-xs break-all text-gray-1000">
+            <code className="min-w-0 text-xs break-all text-gray-1000 tabular-nums">
               {project.canonical_project_hash}
             </code>
             <Button

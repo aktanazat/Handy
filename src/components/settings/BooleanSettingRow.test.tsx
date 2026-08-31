@@ -11,14 +11,9 @@ import type { AppSettings } from "@/bindings";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { BooleanSettingRow } from "./BooleanSettingRow";
 import { AlwaysOnMicrophone } from "./AlwaysOnMicrophone";
-import { AudioFeedback } from "./AudioFeedback";
 import { AutostartToggle } from "./AutostartToggle";
 import { ExperimentalToggle } from "./ExperimentalToggle";
-import { MuteWhileRecording } from "./MuteWhileRecording";
 import { PushToTalk } from "./PushToTalk";
-import { ShowTrayIcon } from "./ShowTrayIcon";
-import { ShowWhatsNewOnUpdate } from "./ShowWhatsNewOnUpdate";
-import { StartHidden } from "./StartHidden";
 
 /* Nine toggle rows were the same five statements written nine times, and they
  * had already drifted on the one thing they had to agree about: what an ABSENT
@@ -27,10 +22,14 @@ import { StartHidden } from "./StartHidden";
  *
  * Three idioms were in the tree — `?? false`, `|| false`, `?? true` — and the
  * first two are indistinguishable, which is why nobody noticed. They come
- * apart the moment a row defaults to TRUE, and two rows do: with `||` a stored
- * `false` is read as missing and the switch flips back on under the user. That
- * is the case the third test below is here for; it is the reason this row
- * exists rather than nine copies. */
+ * apart the moment a row defaults to TRUE, which is what the third test below
+ * is here for; it is the reason this row exists rather than a copy per switch.
+ *
+ * Four of the nine rows are gone with the settings restructure — tray icon,
+ * start hidden, mute while recording, and What's New on update all kept their
+ * backend default and lost their row — so the roster below is the four that
+ * still render, plus `show_tray_icon` as the defaults-on case the unit tests
+ * above drive directly. */
 
 const i18n = createInstance();
 void i18n.init({
@@ -135,11 +134,11 @@ describe("a boolean settings row", () => {
   });
 });
 
-/* Nine rows now declare their copy and their default as data, which a
+/* The surviving rows declare their copy and their default as data, which a
  * type-check cannot read: a mistyped `labelKey` ships as a raw dotted string
  * and a dropped `defaultValue` silently reverses a row. i18next falls back
  * silently, so nothing else in the build would notice. */
-describe("the nine toggles the extraction absorbed", () => {
+describe("the toggles the extraction absorbed", () => {
   const catalogue = JSON.parse(
     fs.readFileSync(
       path.join(
@@ -163,17 +162,12 @@ describe("the nine toggles the extraction absorbed", () => {
     parseMissingKeyHandler: () => "__MISSING__",
   });
 
-  /* Every row, and every row's UNSET reading — which is the value the nine
-   * copies disagreed about and the only thing `defaultValue` decides. */
+  /* Every row, and every row's UNSET reading — which is the value the copies
+   * disagreed about and the only thing `defaultValue` decides. */
   const ROWS: [string, React.ReactElement, boolean][] = [
     ["autostart", <AutostartToggle />, false],
-    ["tray icon", <ShowTrayIcon />, true],
-    ["mute while recording", <MuteWhileRecording />, false],
     ["always-on microphone", <AlwaysOnMicrophone />, false],
-    ["start hidden", <StartHidden />, false],
     ["experimental", <ExperimentalToggle />, false],
-    ["what's new on update", <ShowWhatsNewOnUpdate />, true],
-    ["audio feedback", <AudioFeedback />, false],
     ["push to talk", <PushToTalk />, false],
   ];
 

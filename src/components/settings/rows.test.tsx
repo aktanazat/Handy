@@ -74,10 +74,10 @@ describe("a settings row", () => {
     expect(markup).toContain('data-disabled="true"');
   });
 
-  test("a measured value rides beside the label in mono, not as a sentence", () => {
+  test("a measured value rides beside the label as a tabular fact, not a sentence", () => {
     const markup = paint(<SettingsRow label="Volume" fact="60%" />);
 
-    expect(markup).toContain("font-mono");
+    expect(markup).toContain("tabular-nums");
     expect(markup.split("60%").length - 1).toBe(1);
   });
 });
@@ -94,7 +94,7 @@ describe("a settings section", () => {
     expect(markup.split("rounded-card").length - 1).toBe(1);
     expect(markup).toContain("divide-y");
     expect(markup).toContain("bg-background-100");
-    // Geist is flat: a section at rest casts nothing.
+    // A section at rest casts nothing.
     expect(markup).not.toContain("shadow-");
   });
 
@@ -107,8 +107,8 @@ describe("a settings section", () => {
 
     expect(markup).toContain("<h2");
     expect(markup.split("Appearance").length - 1).toBe(1);
-    expect(markup).toContain("font-mono");
-    expect(markup).toContain("uppercase");
+    expect(markup).toContain("text-[13px]");
+    expect(markup).toContain("text-gray-900");
   });
 });
 
