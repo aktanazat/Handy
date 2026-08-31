@@ -1493,7 +1493,40 @@
         "rowDescription": "إيقاف هذا يغلق نافذة اللوحة ويجعل Sona يرفض كل طلب لإعادة فتحها.",
         "title": "لوحة الوكيل"
       },
-      "workspaceNavigation": "عروض جسر الوكيل"
+      "workspaceNavigation": "عروض جسر الوكيل",
+      "sonaAgent": {
+        "title": "وكيل Sona",
+        "pairing": "الاقتران",
+        "paired": "مقترن",
+        "unpaired": "غير مقترن",
+        "lastReached": "آخر اتصال ناجح",
+        "never": "أبدًا",
+        "relayUrl": "عنوان المُرحِّل",
+        "relayUrlHint": "يُقبل فقط عنوان Tailscale أو هذا الجهاز نفسه. يُرفض أي عنوان على الإنترنت المفتوح قبل حفظه.",
+        "relayKeyId": "معرّف مفتاح المُرحِّل",
+        "relayPublicKey": "المفتاح العام للمُرحِّل",
+        "identity": "المفتاح العام لهذا الجهاز",
+        "identityHint": "أضف هذا المفتاح إلى المُرحِّل ليقبل الأدوار من هذا الجهاز. النصف الخاص لا يغادر سلسلة مفاتيحك أبدًا.",
+        "identityUnavailable": "شغّل لوحة الوكيل لإنشاء مفتاح.",
+        "copy": "نسخ",
+        "copied": "تم النسخ",
+        "save": "حفظ",
+        "unpair": "إلغاء الاقتران",
+        "test": "اختبار",
+        "reached": "استجاب المُرحِّل.",
+        "failed": "تعذّر الاقتران بالمُرحِّل.",
+        "reason": {
+          "unauthorized_window": "لا يجوز لتلك النافذة تغيير الاقتران.",
+          "disabled": "لوحة الوكيل متوقفة.",
+          "unpaired": "لم يُقترن أي مُرحِّل بعد.",
+          "offline": "لم يستجب المُرحِّل.",
+          "invalid_configuration": "هذا العنوان أو المفتاح لن يستخدمه Sona.",
+          "secret_unavailable": "تعذّرت قراءة مفتاح هذا الجهاز.",
+          "untrusted_response": "لم يوقّع المُرحِّل المقترن هذا الرد.",
+          "remote_rejected": "رفض المُرحِّل الطلب.",
+          "ownership_rejected": "أجاب المُرحِّل نيابةً عن شخص آخر."
+        }
+      }
     },
     "workflows": {
       "title": "سير العمل",
@@ -1525,6 +1558,9 @@
         },
         "meeting_activity": {
           "name": "تسجيل الاجتماعات"
+        },
+        "daily_digest": {
+          "name": "ملخص المساء"
         }
       },
       "status": {
@@ -1564,7 +1600,8 @@
         "autoRecordStopped": "توقّف التسجيل تلقائيًا",
         "alreadyProcessed": "لا جديد يُفعل",
         "failed": "تعذّر الإكمال",
-        "skipped": "تم التخطي"
+        "skipped": "تم التخطي",
+        "digestRaised": "لخّص اليوم"
       },
       "vocabularySuggestions": {
         "title": "من اجتماعاتك",
@@ -1654,6 +1691,14 @@
       "positionLabel": "موضع كبسولة السكون",
       "positionTop": "أعلى",
       "positionBottom": "أسفل"
+    },
+    "meetings": {
+      "digest": {
+        "title": "ملخص المساء",
+        "description": "إشعار واحد في نهاية يوم شهد اجتماعات أو حلقات مغلقة. كل شيء يبقى على هذا الجهاز.",
+        "timeLabel": "وقت الملخص",
+        "timeHint": "بالتوقيت المحلي. اليوم الخالي من النشاط يبقى صامتًا."
+      }
     }
   },
   "common": {
@@ -2103,6 +2148,23 @@
         "soft": "مرن"
       }
     },
+    "loops": {
+      "status": {
+        "open": "مفتوحة",
+        "done": "منجزة",
+        "dropped": "مُلغاة",
+        "carried": "مُرحّلة"
+      },
+      "markDone": "وضع علامة منجزة على هذه الحلقة",
+      "drop": "إلغاء",
+      "reopen": "إعادة الفتح",
+      "owner": "المسؤول",
+      "ownerIs": "المسؤول: {{owner}}",
+      "ownerUnassigned": "لا أحد بعد",
+      "instead": "بدلاً من ذلك: {{instead}}",
+      "carriedForward": "مُرحّلة من اجتماع سابق",
+      "stale": "غيّر شخص آخر هذه الحلقة قبلك، لذا تم تحديث القائمة."
+    },
     "artifactState": {
       "current": "محدَّث",
       "out_of_date": "غير محدَّث",
@@ -2293,7 +2355,8 @@
         "notes": "الملاحظات",
         "participants": "المشاركون",
         "link": "الرابط",
-        "description": "الوصف"
+        "description": "الوصف",
+        "notesSeries": "لهذه السلسلة"
       },
       "attendees_one": "شخص واحد",
       "attendees_other": "{{count}} أشخاص",
@@ -2330,6 +2393,11 @@
       },
       "linkFailed": "لم تستطع Sona فتح هذا الرابط.",
       "skippedNote": "التخطي يخفي العرض من هنا. تبقى Sona ترى المكالمة حتى تنتهي صلاحية العرض."
+    },
+    "seriesTemplate": {
+      "use": "استخدم هذا القالب لهذه السلسلة",
+      "saving": "جارٍ الحفظ…",
+      "remembered": "تستخدم هذه السلسلة {{template}}"
     }
   },
   "agentPanel": {
@@ -2341,8 +2409,7 @@
     "panelToggle": "إغلاق لوحة الوكيل",
     "conversationLabel": "المحادثة",
     "proposalTitle": "التغييرات المقترحة",
-    "empty": "اسأل عن إعدادات Sona. تظهر المقترحات هنا للمراجعة قبل تغيير أي شيء.",
-    "inputPlaceholder": "اسأل عن Sona…",
+    "empty": "اسأل عن اجتماعاتك وملاحظاتك وإعداداتك. تظهر تغييرات الإعدادات هنا كاقتراح تراجعه قبل أن يتغير أي شيء.",
     "inputLabel": "اسأل عن Sona",
     "send": "إرسال",
     "status": {
@@ -2351,9 +2418,34 @@
       "unpaired": "غير مقترنة بمرحّل.",
       "offline": "المرحّل غير متصل.",
       "idle": "جاهز",
-      "running": "يعمل…",
       "proposal": "المقترح جاهز",
       "error": "لوحة الوكيل غير متاحة."
+    },
+    "activityLabel": "النشاط",
+    "workspaceLabel": "من يجيب",
+    "step": {
+      "sent": "أُرسل"
+    },
+    "workspace": {
+      "sona_chat": "اسأل",
+      "sona_config": "الإعدادات"
+    },
+    "placeholder": {
+      "sona_chat": "اسأل عن اجتماعاتك وملاحظاتك…",
+      "sona_config": "اسأل عن إعدادات Sona…"
+    },
+    "turnState": {
+      "submitting": "جارٍ الإرسال",
+      "queued": "في الانتظار",
+      "leased": "قيد الاستلام",
+      "running": "يفكر",
+      "waiting_user": "بانتظارك",
+      "waiting_approval": "بانتظار الموافقة",
+      "canceling": "جارٍ الإيقاف",
+      "succeeded": "تمت الإجابة",
+      "failed": "فشل",
+      "canceled": "توقف",
+      "unverified_external": "رد غير موثّق"
     }
   },
   "overview": {

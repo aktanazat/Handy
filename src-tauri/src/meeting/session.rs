@@ -8,6 +8,10 @@ use super::detection::machine::CalendarEventSummary;
 use super::export;
 use super::keep_awake::MeetingKeepAwake;
 use super::ledger;
+use super::loop_types::{
+    MeetingLoopAssignRequest, MeetingLoopMutationResult, MeetingLoopReopenRequest,
+    MeetingLoopResolveRequest, MeetingLoopsResult,
+};
 use super::processing::{MeetingProcessingService, ProcessingOrigin, QuestionGenerationRequest};
 use super::store::{
     InterruptedRecovery, MeetingStore, MeetingTrackWriter, RecoveredMeeting, SegmentEdit,
@@ -838,7 +842,7 @@ impl MeetingSessionManager {
             .create_preflight(MeetingPreflightCreateRequest {
                 operation_id: MeetingOperationId::new(),
                 expected_revision: 0,
-                title: "Local notes".to_string(),
+                title: MANUAL_DEFAULT_TITLE.to_string(),
                 origin: MeetingOrigin::Manual,
                 suggestion_id: None,
                 calendar_event_key: None,
@@ -1856,6 +1860,60 @@ impl MeetingSessionManager {
         Ok(result)
     }
 
+    /// Every actionable ledger row in a meeting: the loops and commitments the
+    /// review screen ticks off, with whatever has already been done to them.
+    pub async fn loops_list(
+        &self,
+        session_id: MeetingSessionId,
+    ) -> Result<MeetingLoopsResult, MeetingCommandError> {
+        self.store()
+            .await?
+            .meeting_loops(session_id)
+            .map_err(map_store_error)
+    }
+
+    pub async fn loop_resolve(
+        &self,
+        request: MeetingLoopResolveRequest,
+    ) -> Result<MeetingLoopMutationResult, MeetingCommandError> {
+        let session_id = request.loop_id.session_id();
+        let result = self
+            .store()
+            .await?
+            .resolve_loop(request, utc_now_ms())
+            .map_err(map_store_error)?;
+        self.emit_artifact_changed(session_id, result.loops.revision);
+        Ok(result)
+    }
+
+    pub async fn loop_reopen(
+        &self,
+        request: MeetingLoopReopenRequest,
+    ) -> Result<MeetingLoopMutationResult, MeetingCommandError> {
+        let session_id = request.loop_id.session_id();
+        let result = self
+            .store()
+            .await?
+            .reopen_loop(request, utc_now_ms())
+            .map_err(map_store_error)?;
+        self.emit_artifact_changed(session_id, result.loops.revision);
+        Ok(result)
+    }
+
+    pub async fn loop_assign(
+        &self,
+        request: MeetingLoopAssignRequest,
+    ) -> Result<MeetingLoopMutationResult, MeetingCommandError> {
+        let session_id = request.loop_id.session_id();
+        let result = self
+            .store()
+            .await?
+            .assign_loop(request, utc_now_ms())
+            .map_err(map_store_error)?;
+        self.emit_artifact_changed(session_id, result.loops.revision);
+        Ok(result)
+    }
+
     pub async fn speaker_rename(
         &self,
         request: MeetingSpeakerRenameRequest,
@@ -2484,7 +2542,13 @@ impl MeetingSessionManager {
     /// run its migrations concurrently against one database, which fails one of
     /// them with `StorageUnavailable` and makes Capture report that meeting
     /// storage is gone on a healthy install.
-    pub(super) async fn store(&self) -> Result<Arc<MeetingStore>, MeetingCommandError> {
+    ///
+    /// Crate-visible rather than module-visible because the query plane spans
+    /// this store and dictation history and so cannot live under `meeting/`;
+    /// it reads through this mount rather than opening a second connection to
+    /// a database whose key, retention sweep and deletion cascade this store
+    /// owns.
+    pub(crate) async fn store(&self) -> Result<Arc<MeetingStore>, MeetingCommandError> {
         if let Some(store) = self.store_lock().clone() {
             return Ok(store);
         }

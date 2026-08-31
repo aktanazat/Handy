@@ -1493,7 +1493,40 @@
         "rowDescription": "Vypnutím se okno panelu zavře a Sona odmítne každý požadavek na jeho opětovné otevření.",
         "title": "Panel agentů"
       },
-      "workspaceNavigation": "Zobrazení mostu agentů"
+      "workspaceNavigation": "Zobrazení mostu agentů",
+      "sonaAgent": {
+        "title": "Agent Sona",
+        "pairing": "Spárování",
+        "paired": "Spárováno",
+        "unpaired": "Nespárováno",
+        "lastReached": "Naposledy spojeno",
+        "never": "Nikdy",
+        "relayUrl": "Adresa relay",
+        "relayUrlHint": "Přijímá se jen adresa v Tailscale nebo tento Mac. Cokoli na otevřeném internetu se odmítne dřív, než se uloží.",
+        "relayKeyId": "ID klíče relay",
+        "relayPublicKey": "Veřejný klíč relay",
+        "identity": "Veřejný klíč tohoto Macu",
+        "identityHint": "Přidejte tento klíč do relay, aby přijímala požadavky z tohoto Macu. Soukromá polovina nikdy neopustí vaši klíčenku.",
+        "identityUnavailable": "Zapněte panel agenta, aby se klíč vytvořil.",
+        "copy": "Kopírovat",
+        "copied": "Zkopírováno",
+        "save": "Uložit",
+        "unpair": "Zrušit spárování",
+        "test": "Vyzkoušet",
+        "reached": "Relay odpověděla.",
+        "failed": "S relay se nepodařilo spárovat.",
+        "reason": {
+          "unauthorized_window": "Toto okno nesmí měnit spárování.",
+          "disabled": "Panel agenta je vypnutý.",
+          "unpaired": "Zatím není spárovaná žádná relay.",
+          "offline": "Relay neodpověděla.",
+          "invalid_configuration": "Tuto adresu ani klíč Sona nepoužije.",
+          "secret_unavailable": "Klíč tohoto Macu se nepodařilo přečíst.",
+          "untrusted_response": "Odpověď nepodepsala spárovaná relay.",
+          "remote_rejected": "Relay požadavek odmítla.",
+          "ownership_rejected": "Relay odpověděla za někoho jiného."
+        }
+      }
     },
     "workflows": {
       "title": "Pracovní postupy",
@@ -1525,6 +1558,9 @@
         },
         "meeting_activity": {
           "name": "Nahrávání schůzek"
+        },
+        "daily_digest": {
+          "name": "Večerní přehled"
         }
       },
       "status": {
@@ -1556,7 +1592,8 @@
         "autoRecordStopped": "Nahrávání se zastavilo automaticky",
         "alreadyProcessed": "Nic nového k udělání",
         "failed": "Nepodařilo se dokončit",
-        "skipped": "Přeskočeno"
+        "skipped": "Přeskočeno",
+        "digestRaised": "Shrnul den"
       },
       "vocabularySuggestions": {
         "title": "Z vašich schůzek",
@@ -1642,6 +1679,14 @@
       "positionLabel": "Umístění pilulky v nečinnosti",
       "positionTop": "Nahoře",
       "positionBottom": "Dole"
+    },
+    "meetings": {
+      "digest": {
+        "title": "Večerní přehled",
+        "description": "Jedno oznámení na konci dne, ve kterém byly schůzky nebo uzavřené smyčky. Vše zůstává na tomto Macu.",
+        "timeLabel": "Čas přehledu",
+        "timeHint": "Místní čas. Den, ve kterém se nic nestalo, zůstane tichý."
+      }
     }
   },
   "common": {
@@ -2091,6 +2136,23 @@
         "soft": "Volný"
       }
     },
+    "loops": {
+      "status": {
+        "open": "Otevřeno",
+        "done": "Hotovo",
+        "dropped": "Zahozeno",
+        "carried": "Přeneseno"
+      },
+      "markDone": "Označit tento bod jako hotový",
+      "drop": "Zahodit",
+      "reopen": "Znovu otevřít",
+      "owner": "Odpovědný",
+      "ownerIs": "Odpovědný: {{owner}}",
+      "ownerUnassigned": "Ještě nikdo",
+      "instead": "Místo toho: {{instead}}",
+      "carriedForward": "Přeneseno z dřívější schůzky",
+      "stale": "Někdo jiný tento bod změnil dřív, seznam byl obnoven."
+    },
     "artifactState": {
       "current": "Aktuální",
       "out_of_date": "Neaktuální",
@@ -2281,7 +2343,8 @@
         "notes": "Poznámky",
         "participants": "Účastníci",
         "link": "Odkaz",
-        "description": "Popis"
+        "description": "Popis",
+        "notesSeries": "pro tuto sérii"
       },
       "attendees_one": "{{count}} člověk",
       "attendees_other": "{{count}} lidí",
@@ -2318,6 +2381,11 @@
       },
       "linkFailed": "Sona nedokázala ten odkaz otevřít.",
       "skippedNote": "Přeskočením se nabídka odsud skryje. Sona vidí ten hovor dál, dokud nabídka nevyprší."
+    },
+    "seriesTemplate": {
+      "use": "Použít tuto šablonu pro tuto sérii",
+      "saving": "Ukládá se…",
+      "remembered": "Tato série používá {{template}}"
     }
   },
   "agentPanel": {
@@ -2329,8 +2397,7 @@
     "panelToggle": "Zavřít panel agenta",
     "conversationLabel": "Konverzace",
     "proposalTitle": "Navrhované změny",
-    "empty": "Zeptejte se na nastavení Sona. Návrhy se zde objeví ke kontrole, než se něco změní.",
-    "inputPlaceholder": "Zeptejte se na Sona…",
+    "empty": "Zeptejte se na své schůzky, poznámky a nastavení. Změny nastavení se tu objeví jako návrh, který si projdete dřív, než se cokoli změní.",
     "inputLabel": "Zeptejte se na Sona",
     "send": "Odeslat",
     "status": {
@@ -2339,9 +2406,34 @@
       "unpaired": "Není spárováno s relé.",
       "offline": "Relé je offline.",
       "idle": "Připraveno",
-      "running": "Pracuje…",
       "proposal": "Návrh je připraven",
       "error": "Panel agenta není k dispozici."
+    },
+    "activityLabel": "Průběh",
+    "workspaceLabel": "Kdo odpovídá",
+    "step": {
+      "sent": "Odesláno"
+    },
+    "workspace": {
+      "sona_chat": "Dotaz",
+      "sona_config": "Nastavení"
+    },
+    "placeholder": {
+      "sona_chat": "Zeptejte se na své schůzky a poznámky…",
+      "sona_config": "Zeptejte se na nastavení Sony…"
+    },
+    "turnState": {
+      "submitting": "Odesílá se",
+      "queued": "Ve frontě",
+      "leased": "Převzato",
+      "running": "Přemýšlí",
+      "waiting_user": "Čeká na vás",
+      "waiting_approval": "Čeká na schválení",
+      "canceling": "Zastavuje se",
+      "succeeded": "Zodpovězeno",
+      "failed": "Selhalo",
+      "canceled": "Zastaveno",
+      "unverified_external": "Neověřená odpověď"
     }
   },
   "overview": {

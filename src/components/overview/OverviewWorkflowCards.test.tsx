@@ -52,6 +52,9 @@ const run = (
     candidates: 0,
     suggestions: 0,
     terms: 0,
+    meetings: 0,
+    loops_closed: 0,
+    suggestions_waiting: 0,
   },
   error: null,
 });
@@ -79,16 +82,22 @@ const learningRun = (id: string, suggestions: number): WorkflowRunReceipt => ({
     candidates: 0,
     suggestions,
     terms: 0,
+    meetings: 0,
+    loops_closed: 0,
+    suggestions_waiting: 0,
   },
 });
 
 const openLoop: PersonOpenLoop = {
+  loop_id: "loop-open",
   meeting_id: "meeting-open-loop",
   title: "Weekly planning",
   at_utc_ms: nowMs - 60_000,
   text: "Send the revised launch notes",
   owner_person_id: null,
+  status: "open",
   carried_since_at_utc_ms: null,
+  carried_into_meeting_id: null,
 };
 
 const render = (

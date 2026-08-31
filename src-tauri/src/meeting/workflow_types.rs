@@ -30,6 +30,12 @@ pub enum WorkflowId {
     /// runs for a series the user has already said yes to, and its output dies
     /// with the session.
     SeriesPriming,
+    /// D20. Shapes one evening sentence out of the day's receipts. It is
+    /// permanently enabled here and gated by `meeting_digest_enabled` at the
+    /// scheduler instead: the switch a person looks for lives on Settings >
+    /// Meetings beside the hour it fires at, and a second copy of it in the
+    /// workflow list would be a second thing to keep true.
+    DailyDigest,
 }
 
 impl WorkflowId {
@@ -44,7 +50,7 @@ impl WorkflowId {
         Self::ModeHabits,
         Self::CaptureAdvisor,
     ];
-    pub const ALL: [Self; 11] = [
+    pub const ALL: [Self; 12] = [
         Self::PersonLinking,
         Self::PreMeetingBriefing,
         Self::Continuity,
@@ -56,11 +62,16 @@ impl WorkflowId {
         Self::CaptureAdvisor,
         Self::MeetingActivity,
         Self::SeriesPriming,
+        Self::DailyDigest,
     ];
 
     /// Workflows the Settings list never shows and `set_workflow_enabled`
     /// refuses to touch.
-    pub const PERMANENT: [Self; 2] = [Self::MeetingActivity, Self::SeriesPriming];
+    pub const PERMANENT: [Self; 3] = [
+        Self::MeetingActivity,
+        Self::SeriesPriming,
+        Self::DailyDigest,
+    ];
 
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -75,6 +86,7 @@ impl WorkflowId {
             Self::CaptureAdvisor => "capture_advisor",
             Self::MeetingActivity => "meeting_activity",
             Self::SeriesPriming => "series_priming",
+            Self::DailyDigest => "daily_digest",
         }
     }
 
@@ -137,6 +149,10 @@ pub enum WorkflowOutcomeCode {
     /// Loop 4 primed one session. `terms` counts what the session's own
     /// transcription will see; nothing was written to shared vocabulary.
     SeriesPrimed,
+    /// D20 shaped one evening's sentence. The three counts below are the
+    /// sentence: they are what the day held, not what this run changed —
+    /// the digest writes nothing.
+    DigestRaised,
     PromptRecorded,
     PromptIgnored,
     AutoRecordStarted,
@@ -155,6 +171,13 @@ pub struct WorkflowOutcomeCounts {
     pub candidates: u64,
     pub suggestions: u64,
     pub terms: u64,
+    /// D20: meetings captured on the digest's local day.
+    pub meetings: u64,
+    /// D20: open loops closed on the digest's local day.
+    pub loops_closed: u64,
+    /// D20: learning suggestions still waiting for an answer at digest time.
+    /// Distinct from `suggestions`, which counts what a mining pass just added.
+    pub suggestions_waiting: u64,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
@@ -244,6 +267,10 @@ pub enum WorkflowEventKind {
     /// A human corrected a dictation. Payload is the rewrite they performed;
     /// the dedupe key is that rewrite on that local day.
     DictationCorrectionRecorded,
+    /// The configured digest hour has passed on a local day the digest has not
+    /// summarized yet. Payload is that local day; the dedupe key is that local
+    /// day, so a restart at 19:00 cannot fire a second evening notification.
+    DailyDigestDue,
 }
 
 impl WorkflowEventKind {
@@ -262,6 +289,7 @@ impl WorkflowEventKind {
             Self::MeetingAutoRecordStopped => "meeting_auto_record_stopped",
             Self::DictationCorpusSwept => "dictation_corpus_swept",
             Self::DictationCorrectionRecorded => "dictation_correction_recorded",
+            Self::DailyDigestDue => "daily_digest_due",
         }
     }
 
@@ -280,6 +308,7 @@ impl WorkflowEventKind {
             "meeting_auto_record_stopped" => Some(Self::MeetingAutoRecordStopped),
             "dictation_corpus_swept" => Some(Self::DictationCorpusSwept),
             "dictation_correction_recorded" => Some(Self::DictationCorrectionRecorded),
+            "daily_digest_due" => Some(Self::DailyDigestDue),
             _ => None,
         }
     }
@@ -293,6 +322,11 @@ impl WorkflowEventKind {
     /// otherwise silence all three of its loops until tomorrow. For that kind
     /// only a *successful* run is terminal, and the startup reconciliation scan
     /// is what tries again.
+    ///
+    /// The digest is day-bucketed too and still does *not* retry: it is a
+    /// moment rather than a debt. The reconciliation scan runs at the next
+    /// launch, which could be tomorrow morning, and an evening summary of
+    /// yesterday delivered over breakfast is worse than no summary at all.
     pub const fn retries_after_failure(self) -> bool {
         matches!(self, Self::DictationCorpusSwept)
     }

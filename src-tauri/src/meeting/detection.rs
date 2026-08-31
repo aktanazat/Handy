@@ -1470,6 +1470,10 @@ impl PromptResponder for RuntimeResponder {
         match response {
             PromptResponse::Start { prompt_id } => self.runtime.respond(&prompt_id, true),
             PromptResponse::Dismiss { prompt_id } => self.runtime.respond(&prompt_id, false),
+            // Sorted out by `ResponderCell` before it reaches the runtime; the
+            // digest is not detection's, and the arm exists so that stays true
+            // by construction rather than by comment.
+            PromptResponse::DigestOpened => {}
         }
     }
 }

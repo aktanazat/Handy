@@ -1,7 +1,11 @@
 import React from "react";
 import { FileCode2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { LedgerReceipt, MeetingReviewSnapshot } from "@/bindings";
+import type {
+  MeetingLoopRow,
+  MeetingReviewSnapshot,
+  PersonListEntry,
+} from "@/bindings";
 import {
   FactChip,
   Microlabel,
@@ -9,7 +13,8 @@ import {
   SettingsSection,
 } from "@/components/settings/rows";
 import { Button } from "@/components/vg/button";
-import { CitationJump } from "./review/Citations";
+import { LedgerReceiptRow } from "./review/LedgerReceiptRow";
+import { LoopRows, type LoopChange } from "./review/LoopRows";
 import { formatMeetingOffset } from "./meetingUtils";
 import {
   currentLedger,
@@ -60,16 +65,24 @@ export interface MeetingLedgerSectionProps {
   snapshot: MeetingReviewSnapshot;
   busy: boolean;
   canExport: boolean;
+  /** Actionable rows for this meeting, or null until the first read lands. */
+  loops: MeetingLoopRow[] | null;
+  /** Everybody who could own a loop, for the owner picker. */
+  people: PersonListEntry[];
   onJumpToSegment: (segmentId: string) => void;
   onExportLedger: () => void;
+  onLoopChange: (row: MeetingLoopRow, change: LoopChange) => void;
 }
 
 export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
   snapshot,
   busy,
   canExport,
+  loops,
+  people,
   onJumpToSegment,
   onExportLedger,
+  onLoopChange,
 }) => {
   const { t } = useTranslation();
   const found = currentLedger(snapshot.artifacts);
@@ -175,7 +188,10 @@ export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
                   </span>
                 </div>
                 <LedgerReceiptRow
-                  receipt={thread.receipt}
+                  quote={thread.receipt.quote}
+                  speaker={thread.receipt.speaker}
+                  atMs={thread.receipt.t_ms}
+                  citations={thread.receipt.citations}
                   onJumpToSegment={onJumpToSegment}
                 />
               </li>
@@ -184,75 +200,36 @@ export const MeetingLedgerSection: React.FC<MeetingLedgerSectionProps> = ({
         </ul>
       </LedgerBlock>
 
+      {/* Two registers, one control set. Both are things somebody still has to
+       * do, so they read and act the same way; only the heading and the
+       * absence line differ. Until the first read lands there is nothing to
+       * act on, and a spinner over four rows is worse than the wait. */}
       <LedgerBlock label={t("meetings.ledger.openLoops")}>
-        {ledger.open_loops.length === 0 ? (
-          <Notice tone="muted" live={false}>
-            {t("meetings.ledger.noOpenLoops")}
-          </Notice>
-        ) : (
-          <table className="w-full text-[13px] leading-5 text-gray-900">
-            <thead>
-              <tr>
-                <th scope="col" className={COLUMN_CLASSES}>
-                  {t("meetings.ledger.columnAt")}
-                </th>
-                <th scope="col" className={COLUMN_CLASSES}>
-                  {t("meetings.ledger.columnQuestion")}
-                </th>
-                <th scope="col" className={COLUMN_CLASSES}>
-                  {t("meetings.ledger.columnInstead")}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-alpha-400">
-              {ledger.open_loops.map((loop, index) => (
-                <tr key={`loop:${index}`}>
-                  <td
-                    className={`${CELL_CLASSES} text-[11px] tabular-nums whitespace-nowrap text-gray-700`}
-                  >
-                    {offsetOf(loop.at_ms)}
-                  </td>
-                  <td className={`${CELL_CLASSES} text-gray-1000`}>
-                    {loop.question}
-                  </td>
-                  <td className={CELL_CLASSES}>{loop.instead}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <LoopRows
+          rows={
+            loops === null ? [] : loops.filter((row) => row.kind === "loop")
+          }
+          people={people}
+          disabled={busy || loops === null}
+          emptyText={t("meetings.ledger.noOpenLoops")}
+          onChange={onLoopChange}
+          onJumpToSegment={onJumpToSegment}
+        />
       </LedgerBlock>
 
       <LedgerBlock label={t("meetings.ledger.commitments")}>
-        {ledger.commitments.length === 0 ? (
-          <Notice tone="muted" live={false}>
-            {t("meetings.ledger.noCommitments")}
-          </Notice>
-        ) : (
-          <ul
-            role="list"
-            aria-label={t("meetings.ledger.commitments")}
-            className="flex flex-col gap-3"
-          >
-            {ledger.commitments.map((commitment, index) => (
-              <li key={`commitment:${index}`} className="flex flex-col gap-1">
-                <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                  <span className="text-[13px] leading-5 text-gray-1000">
-                    <span className="font-medium">{commitment.who}</span>
-                    {` — ${commitment.what}`}
-                  </span>
-                  <span className="flex-none text-[11px] whitespace-nowrap text-gray-700">
-                    {t(`meetings.ledger.firmness.${commitment.firmness}`)}
-                  </span>
-                </div>
-                <LedgerReceiptRow
-                  receipt={commitment.receipt}
-                  onJumpToSegment={onJumpToSegment}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
+        <LoopRows
+          rows={
+            loops === null
+              ? []
+              : loops.filter((row) => row.kind === "commitment")
+          }
+          people={people}
+          disabled={busy || loops === null}
+          emptyText={t("meetings.ledger.noCommitments")}
+          onChange={onLoopChange}
+          onJumpToSegment={onJumpToSegment}
+        />
       </LedgerBlock>
 
       <LedgerBlock label={t("meetings.ledger.stances")}>
@@ -335,45 +312,3 @@ const LedgerBlock: React.FC<LedgerBlockProps> = ({ label, children }) => (
     {children}
   </div>
 );
-
-interface LedgerReceiptRowProps {
-  receipt: LedgerReceipt;
-  onJumpToSegment: (segmentId: string) => void;
-}
-
-/* The receipt, verbatim, and the way back to where it was said. */
-const LedgerReceiptRow: React.FC<LedgerReceiptRowProps> = ({
-  receipt,
-  onJumpToSegment,
-}) => {
-  const { t } = useTranslation();
-  const attribution = [receipt.speaker, offsetOf(receipt.t_ms)]
-    .filter((part): part is string => Boolean(part))
-    .join(", ");
-
-  return (
-    <div className="flex flex-col gap-1">
-      <blockquote className="border-s border-gray-alpha-400 ps-2.5 text-[13px] leading-5 text-pretty text-gray-900">
-        {`\u201C${receipt.quote}\u201D`}
-      </blockquote>
-      {/* The attribution names who said it and when; the jumps go there. They
-       * sit on one line, so the citation control keeps its own gap instead of
-       * the negative inline start a left-aligned citation row wants. */}
-      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 ps-2.5">
-        <span className="text-[11px] text-gray-700">
-          {attribution || t("meetings.ledger.unattributed")}
-        </span>
-        <span className="flex flex-wrap items-center gap-1">
-          {receipt.citations.map((citation) => (
-            <CitationJump
-              key={citation.segment_id}
-              startOffsetNs={citation.start_offset_ns}
-              segmentId={citation.segment_id}
-              onJump={onJumpToSegment}
-            />
-          ))}
-        </span>
-      </div>
-    </div>
-  );
-};

@@ -5,6 +5,10 @@ use crate::meeting::analytics::{
 };
 use crate::meeting::clock::host_monotonic_now_ns;
 use crate::meeting::detection::DetectionRuntime;
+use crate::meeting::series_types::{
+    MeetingSeriesTemplateMutationResult, MeetingSeriesTemplateSetRequest,
+    MeetingSeriesTemplateSnapshot,
+};
 use crate::meeting::session::{
     MeetingActionItemDoneRequest, MeetingConsentPanelSessionState, MeetingConsentPanelStartRequest,
     MeetingMutationRequest, MeetingMutationResult, MeetingNoteCreateRequest,
@@ -477,4 +481,37 @@ pub async fn meeting_catch_up(
     session_id: MeetingSessionId,
 ) -> Result<MeetingCatchUp, MeetingCommandError> {
     manager.catch_up(session_id).await
+}
+
+/// D21: the notes template one calendar series has been told to use, by key.
+/// The pre-meeting card reads it this way, because a calendar event carries its
+/// series key and no session exists yet.
+#[tauri::command]
+#[specta::specta]
+pub async fn meeting_series_template_get(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    series_key: String,
+) -> Result<MeetingSeriesTemplateSnapshot, MeetingCommandError> {
+    manager.series_template(series_key).await
+}
+
+/// The same preference reached from a meeting. A `series_key` of `null` in the
+/// answer means this meeting belongs to no series, which is what the review
+/// screen needs in order to not offer the choice.
+#[tauri::command]
+#[specta::specta]
+pub async fn meeting_series_template_for_session(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    session_id: MeetingSessionId,
+) -> Result<MeetingSeriesTemplateSnapshot, MeetingCommandError> {
+    manager.series_template_for_session(session_id).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn meeting_series_template_set(
+    manager: State<'_, Arc<MeetingSessionManager>>,
+    request: MeetingSeriesTemplateSetRequest,
+) -> Result<MeetingSeriesTemplateMutationResult, MeetingCommandError> {
+    manager.set_series_template(request).await
 }

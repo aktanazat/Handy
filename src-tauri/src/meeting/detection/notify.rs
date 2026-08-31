@@ -35,6 +35,15 @@ pub const START_TITLE: &str = "Start Transcribing";
 /// The dismissive button's label, per §5.4.
 pub const DISMISS_TITLE: &str = "Dismiss";
 
+/// The evening digest's category. It carries no actions: the whole notification
+/// is one sentence and one place to go, so the body click is the only gesture
+/// and no buttons are registered against it.
+///
+/// It is also the identifier every digest is posted under, so a second one
+/// replaces the first in Notification Center rather than stacking. There is one
+/// digest per local day; there is never a reason to see two.
+pub const CATEGORY_DIGEST: &str = "computer.sona.digest.evening";
+
 /// What the operator did with a prompt.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PromptResponse {
@@ -42,31 +51,58 @@ pub enum PromptResponse {
     Start { prompt_id: String },
     /// "Dismiss".
     Dismiss { prompt_id: String },
+    /// The evening digest's body was clicked.
+    DigestOpened,
 }
 
-/// Receives action clicks. Implemented by the detection runtime.
+/// Receives detection action clicks. Implemented by the detection runtime.
 pub trait PromptResponder: Send + Sync {
     fn prompt_answered(&self, response: PromptResponse);
 }
 
-/// A responder the delegate reads through, bound once the runtime exists.
+/// Receives the digest's one gesture. Implemented next to the digest, because
+/// where a digest click lands is the digest's decision and not detection's.
+pub trait DigestOpener: Send + Sync {
+    fn digest_opened(&self);
+}
+
+/// The delegate's one target, and the fork behind it.
 ///
-/// The notification delegate has to be registered before the runtime is built,
-/// but the delegate's target is the runtime. A click that arrives before the
-/// one-time bind is logged and dropped.
+/// The notification centre holds a single delegate for the whole process, but
+/// the two things it can deliver belong to different owners: a detection answer
+/// is the detection runtime's, and a digest click is the digest's. Both are
+/// bound after startup and this is where a response is sorted, so neither owner
+/// has to know the other exists.
+///
+/// A click that arrives before its bind is logged and dropped.
 #[derive(Default)]
 pub struct ResponderCell {
     inner: std::sync::OnceLock<Arc<dyn PromptResponder>>,
+    digest: std::sync::OnceLock<Arc<dyn DigestOpener>>,
 }
 
 impl ResponderCell {
     pub fn bind(&self, responder: Arc<dyn PromptResponder>) {
         let _ = self.inner.set(responder);
     }
+
+    pub fn bind_digest(&self, opener: Arc<dyn DigestOpener>) {
+        let _ = self.digest.set(opener);
+    }
 }
 
 impl PromptResponder for ResponderCell {
     fn prompt_answered(&self, response: PromptResponse) {
+        if response == PromptResponse::DigestOpened {
+            match self.digest.get() {
+                Some(opener) => opener.digest_opened(),
+                None => log::info!(
+                    "The evening digest dropped a notification click that arrived before startup \
+                     finished"
+                ),
+            }
+            return;
+        }
         match self.inner.get() {
             Some(responder) => responder.prompt_answered(response),
             None => log::info!(
@@ -99,6 +135,13 @@ pub trait PromptPresenter: Send + Sync {
     fn request_access(&self) -> NotificationAccessFuture;
     fn present(&self, prompt_id: &str, prompt: &PromptKind) -> bool;
     fn withdraw(&self, prompt_id: &str);
+    /// Posts the evening digest. `false` means nothing was delivered, which is
+    /// the answer on every build without an authorized notification centre.
+    ///
+    /// Title and body arrive as finished strings. The OS renders them from a
+    /// Rust `&str` and cannot reach the frontend's i18next catalog, which is
+    /// the same reason `PromptKind::notification_title` is English.
+    fn present_digest(&self, title: &str, body: &str) -> bool;
 }
 
 /// Used when no notification center is reachable. Detection still runs and
@@ -119,6 +162,10 @@ impl PromptPresenter for NoPrompts {
     }
 
     fn withdraw(&self, _prompt_id: &str) {}
+
+    fn present_digest(&self, _title: &str, _body: &str) -> bool {
+        false
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -401,8 +448,8 @@ pub use macos::UserNotificationPrompts;
 mod macos {
     use super::{
         NotificationAccess, NotificationAccessFuture, PromptKind, PromptPresenter, PromptResponder,
-        PromptResponse, ACTION_DISMISS, ACTION_START, CATEGORY_DETECTION, DISMISS_TITLE,
-        START_TITLE,
+        PromptResponse, ACTION_DISMISS, ACTION_START, CATEGORY_DETECTION, CATEGORY_DIGEST,
+        DISMISS_TITLE, START_TITLE,
     };
     use block2::RcBlock;
     use objc2::rc::Retained;
@@ -477,12 +524,26 @@ mod macos {
                 completion: &block2::DynBlock<dyn Fn()>,
             ) {
                 let action = response.actionIdentifier().to_string();
-                let prompt_id = response.notification().request().identifier().to_string();
+                let request = response.notification().request();
+                let prompt_id = request.identifier().to_string();
+                let responder = Arc::clone(&self.ivars().responder);
+                // The digest is told apart by its category, not its identifier:
+                // the category is what the notification was posted under and
+                // cannot drift from the content the way a parsed id would. It
+                // registers no actions, so its only gesture is the body.
+                let is_digest = request.content().categoryIdentifier().to_string()
+                    == CATEGORY_DIGEST;
+                if is_digest {
+                    if action == DEFAULT_ACTION {
+                        responder.prompt_answered(PromptResponse::DigestOpened);
+                    }
+                    completion.call(());
+                    return;
+                }
                 // The default action is clicking the notification itself. Treating
                 // it as "start" matches how the copy reads: the notification asks
                 // whether to transcribe, so acting on it is an affirmative.
                 let started = action == ACTION_START || action == DEFAULT_ACTION;
-                let responder = Arc::clone(&self.ivars().responder);
                 if started {
                     responder.prompt_answered(PromptResponse::Start { prompt_id });
                 } else if action == ACTION_DISMISS || action == DISMISS_ACTION {
@@ -588,7 +649,7 @@ mod macos {
                     let delegate = DetectionDelegate::new(Arc::clone(&self.responder));
                     let protocol_delegate = ProtocolObject::from_ref(&*delegate);
                     center.setDelegate(Some(protocol_delegate));
-                    register_category(&center);
+                    register_categories(&center);
                     CenterBinding {
                         center,
                         _delegate: delegate,
@@ -622,7 +683,13 @@ mod macos {
         }
     }
 
-    fn register_category(center: &UNUserNotificationCenter) {
+    /// Registers both categories in one call.
+    ///
+    /// `setNotificationCategories` replaces the whole set, so the two have to
+    /// be declared together — registering them from their own owners would
+    /// leave whichever ran second holding the only category the system knows
+    /// about.
+    fn register_categories(center: &UNUserNotificationCenter) {
         objc2::rc::autoreleasepool(|_| {
             // `Foreground` brings Sona forward on click, which is what the
             // affirmative action needs: the next step is a consent screen.
@@ -638,14 +705,25 @@ mod macos {
             );
             let actions = NSArray::from_retained_slice(&[start, dismiss]);
             let intents: Retained<NSArray<NSString>> = NSArray::new();
-            let category =
+            let detection =
                 UNNotificationCategory::categoryWithIdentifier_actions_intentIdentifiers_options(
                     &NSString::from_str(CATEGORY_DETECTION),
                     &actions,
                     &intents,
                     UNNotificationCategoryOptions::empty(),
                 );
-            let categories = NSSet::from_retained_slice(&[category]);
+            // No actions: the digest states the day and the body click opens
+            // Capture. A button would have to name a second place to go, and
+            // there is not a second place to go.
+            let no_actions: Retained<NSArray<UNNotificationAction>> = NSArray::new();
+            let digest =
+                UNNotificationCategory::categoryWithIdentifier_actions_intentIdentifiers_options(
+                    &NSString::from_str(CATEGORY_DIGEST),
+                    &no_actions,
+                    &intents,
+                    UNNotificationCategoryOptions::empty(),
+                );
+            let categories = NSSet::from_retained_slice(&[detection, digest]);
             center.setNotificationCategories(&categories);
         });
     }
@@ -723,6 +801,28 @@ mod macos {
                 self.center()
                     .removeDeliveredNotificationsWithIdentifiers(&identifiers);
             });
+        }
+
+        fn present_digest(&self, title: &str, body: &str) -> bool {
+            if self.access() != NotificationAccess::Authorized {
+                return false;
+            }
+            objc2::rc::autoreleasepool(|_| {
+                let content = UNMutableNotificationContent::new();
+                content.setTitle(&NSString::from_str(title));
+                content.setBody(&NSString::from_str(body));
+                content.setCategoryIdentifier(&NSString::from_str(CATEGORY_DIGEST));
+                // The category doubles as the request identifier, so a second
+                // digest replaces the first instead of stacking beside it.
+                let request = UNNotificationRequest::requestWithIdentifier_content_trigger(
+                    &NSString::from_str(CATEGORY_DIGEST),
+                    &content,
+                    None,
+                );
+                self.center()
+                    .addNotificationRequest_withCompletionHandler(&request, None);
+                true
+            })
         }
     }
 

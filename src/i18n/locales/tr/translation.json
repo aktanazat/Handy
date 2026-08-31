@@ -1493,7 +1493,40 @@
         "rowDescription": "Bunu kapatmak panel penceresini kapatır ve Sona'nın yeniden açma isteklerinin tümünü reddetmesini sağlar.",
         "title": "Ajan paneli"
       },
-      "workspaceNavigation": "Ajan köprüsü görünümleri"
+      "workspaceNavigation": "Ajan köprüsü görünümleri",
+      "sonaAgent": {
+        "title": "Sona aracısı",
+        "pairing": "Eşleşme",
+        "paired": "Eşleşti",
+        "unpaired": "Eşleşmedi",
+        "lastReached": "Son ulaşılan",
+        "never": "Hiç",
+        "relayUrl": "Röle adresi",
+        "relayUrlHint": "Yalnızca bir Tailscale adresi ya da bu Mac'in kendisi kabul edilir. Açık internetteki her şey kaydedilmeden önce reddedilir.",
+        "relayKeyId": "Röle anahtar kimliği",
+        "relayPublicKey": "Rölenin açık anahtarı",
+        "identity": "Bu Mac'in açık anahtarı",
+        "identityHint": "Bu anahtarı röleye ekle ki bu Mac'ten gelen istekleri kabul etsin. Özel yarısı anahtar zincirinden hiç çıkmaz.",
+        "identityUnavailable": "Anahtar oluşturmak için aracı panelini aç.",
+        "copy": "Kopyala",
+        "copied": "Kopyalandı",
+        "save": "Kaydet",
+        "unpair": "Eşleşmeyi kaldır",
+        "test": "Dene",
+        "reached": "Röle yanıt verdi.",
+        "failed": "Röleyle eşleşilemedi.",
+        "reason": {
+          "unauthorized_window": "O pencere eşleşmeyi değiştiremez.",
+          "disabled": "Aracı paneli kapalı.",
+          "unpaired": "Henüz eşleşmiş bir röle yok.",
+          "offline": "Röle yanıt vermedi.",
+          "invalid_configuration": "Sona o adresi veya anahtarı kullanmaz.",
+          "secret_unavailable": "Bu Mac'in anahtarı okunamadı.",
+          "untrusted_response": "Yanıt, eşleşmiş röle tarafından imzalanmamıştı.",
+          "remote_rejected": "Röle isteği reddetti.",
+          "ownership_rejected": "Röle başkası adına yanıt verdi."
+        }
+      }
     },
     "workflows": {
       "title": "İş akışları",
@@ -1525,6 +1558,9 @@
         },
         "meeting_activity": {
           "name": "Toplantı kaydı"
+        },
+        "daily_digest": {
+          "name": "Akşam özeti"
         }
       },
       "status": {
@@ -1548,7 +1584,8 @@
         "autoRecordStopped": "Kayıt otomatik olarak durdu",
         "alreadyProcessed": "Yapılacak yeni bir şey yok",
         "failed": "Tamamlanamadı",
-        "skipped": "Atlandı"
+        "skipped": "Atlandı",
+        "digestRaised": "Günü özetledi"
       },
       "vocabularySuggestions": {
         "title": "Toplantılarınızdan",
@@ -1630,6 +1667,14 @@
       "positionLabel": "Bekleme kapsülünün konumu",
       "positionTop": "Üst",
       "positionBottom": "Alt"
+    },
+    "meetings": {
+      "digest": {
+        "title": "Akşam özeti",
+        "description": "Toplantı yapılan ya da bir madde kapatılan günün sonunda tek bildirim. Her şey bu Mac'te kalır.",
+        "timeLabel": "Özet saati",
+        "timeHint": "Yerel saat. Hiçbir şeyin olmadığı gün sessiz kalır."
+      }
     }
   },
   "common": {
@@ -2079,6 +2124,23 @@
         "soft": "Gevşek"
       }
     },
+    "loops": {
+      "status": {
+        "open": "Açık",
+        "done": "Tamam",
+        "dropped": "Bırakıldı",
+        "carried": "Devredildi"
+      },
+      "markDone": "Bu konuyu tamamlandı olarak işaretle",
+      "drop": "Bırak",
+      "reopen": "Yeniden aç",
+      "owner": "Sorumlu",
+      "ownerIs": "Sorumlu: {{owner}}",
+      "ownerUnassigned": "Henüz kimse",
+      "instead": "Bunun yerine: {{instead}}",
+      "carriedForward": "Önceki bir toplantıdan devredildi",
+      "stale": "Bu konuyu başka biri sizden önce taşıdı, liste yenilendi."
+    },
     "artifactState": {
       "current": "Güncel",
       "out_of_date": "Güncel değil",
@@ -2269,7 +2331,8 @@
         "notes": "Notlar",
         "participants": "Katılımcılar",
         "link": "Bağlantı",
-        "description": "Açıklama"
+        "description": "Açıklama",
+        "notesSeries": "bu seri için"
       },
       "attendees_one": "{{count}} kişi",
       "attendees_other": "{{count}} kişi",
@@ -2306,6 +2369,11 @@
       },
       "linkFailed": "Sona o bağlantıyı açamadı.",
       "skippedNote": "Atlamak buradaki öneriyi gizler. Öneri sona erene kadar Sona o görüşmeyi görmeye devam eder."
+    },
+    "seriesTemplate": {
+      "use": "Bu şablonu bu seri için kullan",
+      "saving": "Kaydediliyor…",
+      "remembered": "Bu seri {{template}} kullanıyor"
     }
   },
   "agentPanel": {
@@ -2317,8 +2385,7 @@
     "panelToggle": "Ajan panelini kapat",
     "conversationLabel": "Sohbet",
     "proposalTitle": "Önerilen değişiklikler",
-    "empty": "Sona ayarları hakkında sorun. Bir şey değişmeden önce öneriler burada incelemeye sunulur.",
-    "inputPlaceholder": "Sona hakkında sor…",
+    "empty": "Toplantılarını, notlarını ve ayarlarını sor. Ayar değişiklikleri, bir şey değişmeden önce gözden geçirdiğin bir öneri olarak burada görünür.",
     "inputLabel": "Sona hakkında sor",
     "send": "Gönder",
     "status": {
@@ -2327,9 +2394,34 @@
       "unpaired": "Bir aktarıcıyla eşleştirilmedi.",
       "offline": "Aktarıcı çevrimdışı.",
       "idle": "Hazır",
-      "running": "Çalışıyor…",
       "proposal": "Öneri hazır",
       "error": "Ajan paneli kullanılamıyor."
+    },
+    "activityLabel": "Akış",
+    "workspaceLabel": "Kim yanıtlıyor",
+    "step": {
+      "sent": "Gönderildi"
+    },
+    "workspace": {
+      "sona_chat": "Sor",
+      "sona_config": "Ayarlar"
+    },
+    "placeholder": {
+      "sona_chat": "Toplantıların ve notların hakkında sor…",
+      "sona_config": "Sona ayarları hakkında sor…"
+    },
+    "turnState": {
+      "submitting": "Gönderiliyor",
+      "queued": "Sırada",
+      "leased": "Alındı",
+      "running": "Düşünüyor",
+      "waiting_user": "Seni bekliyor",
+      "waiting_approval": "Onay bekliyor",
+      "canceling": "Durduruluyor",
+      "succeeded": "Yanıtlandı",
+      "failed": "Başarısız",
+      "canceled": "Durduruldu",
+      "unverified_external": "Doğrulanmamış yanıt"
     }
   },
   "overview": {

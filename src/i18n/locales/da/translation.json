@@ -1493,7 +1493,40 @@
         "rowDescription": "Slås dette fra, lukkes panelvinduet, og Sona afviser alle anmodninger om at genåbne det.",
         "title": "Agentpanel"
       },
-      "workspaceNavigation": "Agentbro-visninger"
+      "workspaceNavigation": "Agentbro-visninger",
+      "sonaAgent": {
+        "title": "Sona-agent",
+        "pairing": "Parring",
+        "paired": "Parret",
+        "unpaired": "Ikke parret",
+        "lastReached": "Sidst nået",
+        "never": "Aldrig",
+        "relayUrl": "Relayets adresse",
+        "relayUrlHint": "Kun en Tailscale-adresse eller denne Mac accepteres. Alt på det åbne internet afvises, før det gemmes.",
+        "relayKeyId": "Relayets nøgle-id",
+        "relayPublicKey": "Relayets offentlige nøgle",
+        "identity": "Denne Macs offentlige nøgle",
+        "identityHint": "Tilføj denne nøgle til relayet, så det tager imod ture fra denne Mac. Den private halvdel forlader aldrig din nøglering.",
+        "identityUnavailable": "Slå agentpanelet til for at oprette en nøgle.",
+        "copy": "Kopiér",
+        "copied": "Kopieret",
+        "save": "Gem",
+        "unpair": "Fjern parring",
+        "test": "Test",
+        "reached": "Relayet svarede.",
+        "failed": "Relayet kunne ikke parres.",
+        "reason": {
+          "unauthorized_window": "Det vindue må ikke ændre parringen.",
+          "disabled": "Agentpanelet er slået fra.",
+          "unpaired": "Der er endnu ikke parret et relay.",
+          "offline": "Relayet svarede ikke.",
+          "invalid_configuration": "Den adresse eller nøgle vil Sona ikke bruge.",
+          "secret_unavailable": "Denne Macs nøgle kunne ikke læses.",
+          "untrusted_response": "Svaret var ikke underskrevet af det parrede relay.",
+          "remote_rejected": "Relayet afviste anmodningen.",
+          "ownership_rejected": "Relayet svarede for en anden."
+        }
+      }
     },
     "workflows": {
       "title": "Arbejdsgange",
@@ -1525,6 +1558,9 @@
         },
         "meeting_activity": {
           "name": "Mødeoptagelse"
+        },
+        "daily_digest": {
+          "name": "Aftenopsummering"
         }
       },
       "status": {
@@ -1548,7 +1584,8 @@
         "autoRecordStopped": "Optagelsen stoppede automatisk",
         "alreadyProcessed": "Intet nyt at gøre",
         "failed": "Kunne ikke gøres færdig",
-        "skipped": "Sprunget over"
+        "skipped": "Sprunget over",
+        "digestRaised": "Opsummerede dagen"
       },
       "vocabularySuggestions": {
         "title": "Fra dine møder",
@@ -1630,6 +1667,14 @@
       "positionLabel": "Hvilepillens placering",
       "positionTop": "Øverst",
       "positionBottom": "Nederst"
+    },
+    "meetings": {
+      "digest": {
+        "title": "Aftenopsummering",
+        "description": "Én notifikation i slutningen af en dag med møder eller lukkede løse ender. Alt bliver på denne Mac.",
+        "timeLabel": "Tidspunkt for opsummering",
+        "timeHint": "Lokal tid. En dag uden noget i forbliver stille."
+      }
     }
   },
   "whatsNew": {
@@ -2079,6 +2124,23 @@
         "soft": "Løst"
       }
     },
+    "loops": {
+      "status": {
+        "open": "Åben",
+        "done": "Færdig",
+        "dropped": "Droppet",
+        "carried": "Overført"
+      },
+      "markDone": "Markér dette punkt som færdigt",
+      "drop": "Drop",
+      "reopen": "Åbn igen",
+      "owner": "Ansvarlig",
+      "ownerIs": "Ansvarlig: {{owner}}",
+      "ownerUnassigned": "Ingen endnu",
+      "instead": "I stedet: {{instead}}",
+      "carriedForward": "Overført fra et tidligere møde",
+      "stale": "En anden flyttede dette punkt først, så listen er opdateret."
+    },
     "artifactState": {
       "current": "Aktuel",
       "out_of_date": "Forældet",
@@ -2269,7 +2331,8 @@
         "notes": "Noter",
         "participants": "Deltagere",
         "link": "Link",
-        "description": "Beskrivelse"
+        "description": "Beskrivelse",
+        "notesSeries": "for denne serie"
       },
       "attendees_one": "{{count}} person",
       "attendees_other": "{{count}} personer",
@@ -2306,6 +2369,11 @@
       },
       "linkFailed": "Sona kunne ikke åbne det link.",
       "skippedNote": "Springer du over, skjules tilbuddet her. Sona ser fortsat opkaldet, indtil tilbuddet udløber."
+    },
+    "seriesTemplate": {
+      "use": "Brug denne skabelon til denne serie",
+      "saving": "Husker…",
+      "remembered": "Denne serie bruger {{template}}"
     }
   },
   "agentPanel": {
@@ -2317,8 +2385,7 @@
     "panelToggle": "Luk agentpanelet",
     "conversationLabel": "Samtale",
     "proposalTitle": "Foreslåede ændringer",
-    "empty": "Spørg om Sona-indstillinger. Forslag vises her til gennemsyn, før noget ændres.",
-    "inputPlaceholder": "Spørg om Sona…",
+    "empty": "Spørg om dine møder, noter og indstillinger. Ændringer af indstillinger vises her som et forslag, du gennemgår, før noget ændrer sig.",
     "inputLabel": "Spørg om Sona",
     "send": "Send",
     "status": {
@@ -2327,9 +2394,34 @@
       "unpaired": "Ikke parret med et relæ.",
       "offline": "Relæet er offline.",
       "idle": "Klar",
-      "running": "Arbejder…",
       "proposal": "Forslaget er klar",
       "error": "Agentpanelet er utilgængeligt."
+    },
+    "activityLabel": "Aktivitet",
+    "workspaceLabel": "Hvem svarer",
+    "step": {
+      "sent": "Sendt"
+    },
+    "workspace": {
+      "sona_chat": "Spørg",
+      "sona_config": "Indstillinger"
+    },
+    "placeholder": {
+      "sona_chat": "Spørg om dine møder og noter…",
+      "sona_config": "Spørg om Sonas indstillinger…"
+    },
+    "turnState": {
+      "submitting": "Sender",
+      "queued": "I kø",
+      "leased": "Taget op",
+      "running": "Tænker",
+      "waiting_user": "Venter på dig",
+      "waiting_approval": "Venter på godkendelse",
+      "canceling": "Stopper",
+      "succeeded": "Besvaret",
+      "failed": "Mislykkedes",
+      "canceled": "Stoppet",
+      "unverified_external": "Ubekræftet svar"
     }
   },
   "overview": {

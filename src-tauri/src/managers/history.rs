@@ -17,7 +17,7 @@ use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
 use tauri_specta::Event;
 
-mod semantic;
+pub(crate) mod semantic;
 mod storage;
 
 use semantic::{SemanticModel, SemanticModelSlot};
@@ -1903,6 +1903,17 @@ impl HistoryManager {
             self.semantic.ensure_fetch_started();
         }
         Ok(page)
+    }
+
+    /// The recall model, when it is already on disk and loaded.
+    ///
+    /// Exposed for the query plane, which embeds meeting text with the same
+    /// model so one query vector can be compared against both corpora. It
+    /// deliberately does not start a fetch: whether this machine downloads the
+    /// model stays a decision of the search above, driven by a user who
+    /// searched and found nothing.
+    pub(crate) fn semantic_model(&self) -> Option<Arc<SemanticModel>> {
+        self.semantic.model()
     }
 
     /// FTS5 first, then semantic, merged into one newest-first list.

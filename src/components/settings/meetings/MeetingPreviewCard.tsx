@@ -120,6 +120,10 @@ export interface MeetingPreviewCardProps {
   recording?: MeetingPreviewRecording | null;
   /** The shape generated notes will take, read from the real setting. */
   notesTemplate?: MeetingNotesTemplate | null;
+  /** Whether that shape came from this series' own remembered choice rather
+   * than the app default. The row says so, because "One-to-one" with no
+   * provenance reads as a global setting the reader did not make. */
+  notesTemplateFromSeries?: boolean;
   defaultExpanded?: boolean;
   /** Routes through the surface's existing start path, consent screen and
    * all. `null` on a surface that has no start to offer. */
@@ -214,6 +218,7 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
   notify = null,
   recording = null,
   notesTemplate = null,
+  notesTemplateFromSeries = false,
   defaultExpanded = false,
   onStart = null,
   starting = false,
@@ -496,6 +501,11 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
                 label={t("meetings.preview.rows.notes", "Notes")}
               >
                 {t(`meetings.notes.templates.${notesTemplate}`)}
+                {notesTemplateFromSeries ? (
+                  <Microlabel>
+                    {t("meetings.preview.rows.notesSeries", "for this series")}
+                  </Microlabel>
+                ) : null}
               </PreviewRow>
             )}
 

@@ -1493,7 +1493,40 @@
         "rowDescription": "オフにするとパネルウィンドウが閉じ、Sona は再表示のリクエストをすべて拒否します。",
         "title": "エージェントパネル"
       },
-      "workspaceNavigation": "エージェントブリッジのビュー"
+      "workspaceNavigation": "エージェントブリッジのビュー",
+      "sonaAgent": {
+        "title": "Sona エージェント",
+        "pairing": "ペアリング",
+        "paired": "ペアリング済み",
+        "unpaired": "未ペアリング",
+        "lastReached": "最後に接続",
+        "never": "なし",
+        "relayUrl": "リレーのアドレス",
+        "relayUrlHint": "受け付けるのは Tailscale のアドレスかこの Mac 自身だけです。公開インターネット上のものは保存する前に拒否します。",
+        "relayKeyId": "リレーのキー ID",
+        "relayPublicKey": "リレーの公開鍵",
+        "identity": "この Mac の公開鍵",
+        "identityHint": "この鍵をリレーに登録すると、この Mac からのやり取りを受け付けます。秘密鍵側はキーチェーンから出ません。",
+        "identityUnavailable": "鍵を作成するにはエージェントパネルをオンにしてください。",
+        "copy": "コピー",
+        "copied": "コピーしました",
+        "save": "保存",
+        "unpair": "解除",
+        "test": "テスト",
+        "reached": "リレーが応答しました。",
+        "failed": "リレーとペアリングできませんでした。",
+        "reason": {
+          "unauthorized_window": "そのウィンドウからはペアリングを変更できません。",
+          "disabled": "エージェントパネルがオフです。",
+          "unpaired": "まだリレーがペアリングされていません。",
+          "offline": "リレーが応答しませんでした。",
+          "invalid_configuration": "そのアドレスまたは鍵は Sona では使えません。",
+          "secret_unavailable": "この Mac の鍵を読み取れませんでした。",
+          "untrusted_response": "応答にペアリング済みリレーの署名がありませんでした。",
+          "remote_rejected": "リレーが要求を拒否しました。",
+          "ownership_rejected": "リレーが別の相手として応答しました。"
+        }
+      }
     },
     "workflows": {
       "title": "ワークフロー",
@@ -1525,6 +1558,9 @@
         },
         "meeting_activity": {
           "name": "ミーティングの録音"
+        },
+        "daily_digest": {
+          "name": "夕方のまとめ"
         }
       },
       "status": {
@@ -1544,7 +1580,8 @@
         "autoRecordStopped": "録音を自動で停止しました",
         "alreadyProcessed": "新しくやることはありません",
         "failed": "完了できませんでした",
-        "skipped": "スキップ"
+        "skipped": "スキップ",
+        "digestRaised": "一日をまとめました"
       },
       "vocabularySuggestions": {
         "title": "ミーティングから",
@@ -1624,6 +1661,14 @@
       "positionLabel": "待機ピルの位置",
       "positionTop": "上",
       "positionBottom": "下"
+    },
+    "meetings": {
+      "digest": {
+        "title": "夕方のまとめ",
+        "description": "会議があった日や課題を片づけた日の終わりに、通知をひとつだけ。すべてこの Mac の中で完結します。",
+        "timeLabel": "まとめの時刻",
+        "timeHint": "現地時間です。何もなかった日は通知しません。"
+      }
     }
   },
   "common": {
@@ -2073,6 +2118,23 @@
         "soft": "緩い"
       }
     },
+    "loops": {
+      "status": {
+        "open": "未解決",
+        "done": "完了",
+        "dropped": "見送り",
+        "carried": "次回へ引き継ぎ"
+      },
+      "markDone": "この項目を完了にする",
+      "drop": "見送る",
+      "reopen": "再開する",
+      "owner": "担当",
+      "ownerIs": "担当: {{owner}}",
+      "ownerUnassigned": "未定",
+      "instead": "代わりに: {{instead}}",
+      "carriedForward": "前回のミーティングから引き継ぎ",
+      "stale": "別の操作が先に反映されたため、一覧を更新しました。"
+    },
     "artifactState": {
       "current": "最新",
       "out_of_date": "内容が古い",
@@ -2263,7 +2325,8 @@
         "notes": "メモ",
         "participants": "参加者",
         "link": "リンク",
-        "description": "説明"
+        "description": "説明",
+        "notesSeries": "このシリーズ用"
       },
       "attendees_one": "{{count}} 人",
       "attendees_other": "{{count}} 人",
@@ -2300,6 +2363,11 @@
       },
       "linkFailed": "Sona はそのリンクを開けませんでした。",
       "skippedNote": "スキップするとここでの提案は隠れます。提案が期限切れになるまで、Sona はその通話を見続けます。"
+    },
+    "seriesTemplate": {
+      "use": "このテンプレートをこのシリーズに使う",
+      "saving": "記憶しています…",
+      "remembered": "このシリーズは{{template}}を使います"
     }
   },
   "agentPanel": {
@@ -2311,8 +2379,7 @@
     "panelToggle": "エージェントパネルを閉じる",
     "conversationLabel": "会話",
     "proposalTitle": "提案された変更",
-    "empty": "Sonaの設定について質問できます。何かを変更する前に、提案がここにレビュー用に表示されます。",
-    "inputPlaceholder": "Sonaについて質問…",
+    "empty": "会議やメモ、設定について聞いてください。設定の変更は、何かが変わる前に確認できる提案としてここに表示されます。",
     "inputLabel": "Sonaについて質問",
     "send": "送信",
     "status": {
@@ -2321,9 +2388,34 @@
       "unpaired": "リレーとペアリングされていません。",
       "offline": "リレーがオフラインです。",
       "idle": "準備完了",
-      "running": "処理中…",
       "proposal": "提案の準備ができました",
       "error": "エージェントパネルを利用できません。"
+    },
+    "activityLabel": "経過",
+    "workspaceLabel": "回答する相手",
+    "step": {
+      "sent": "送信済み"
+    },
+    "workspace": {
+      "sona_chat": "質問",
+      "sona_config": "設定"
+    },
+    "placeholder": {
+      "sona_chat": "会議やメモについて聞く…",
+      "sona_config": "Sona の設定について聞く…"
+    },
+    "turnState": {
+      "submitting": "送信中",
+      "queued": "待機中",
+      "leased": "受付済み",
+      "running": "考え中",
+      "waiting_user": "あなたを待っています",
+      "waiting_approval": "承認待ち",
+      "canceling": "停止中",
+      "succeeded": "回答済み",
+      "failed": "失敗",
+      "canceled": "停止しました",
+      "unverified_external": "未検証の返信"
     }
   },
   "overview": {

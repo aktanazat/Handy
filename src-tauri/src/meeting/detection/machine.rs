@@ -298,7 +298,7 @@ impl PromptKind {
                 format!("{app_name} meeting")
             }
             Self::BrowserCall { app_name, .. } => format!("Call in {app_name}"),
-            Self::UnknownMicSource => "Local notes".to_string(),
+            Self::UnknownMicSource => crate::meeting::types::MANUAL_DEFAULT_TITLE.to_string(),
         }
     }
 

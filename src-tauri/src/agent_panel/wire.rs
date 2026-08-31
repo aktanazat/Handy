@@ -1,4 +1,7 @@
-use super::protocol::{SonaAgentChatTurnV1, SonaConfirmationClassV1, SonaSettingChangeV1};
+use super::protocol::{
+    AgentPanelWorkspaceV1, SonaAgentChatTurnV1, SonaAgentStepV1, SonaConfirmationClassV1,
+    SonaSettingChangeV1,
+};
 use super::window::AgentPanelGeometryV1;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -62,8 +65,16 @@ pub enum AgentPanelGeometryStatusV1 {
 #[serde(deny_unknown_fields)]
 pub struct AgentPanelTurnStatusV1 {
     pub turn_id: String,
+    pub workspace: AgentPanelWorkspaceV1,
     pub state: AgentPanelTurnStateV1,
     pub event_cursor: u64,
+    /// When the panel accepted this turn, so the activity tree can count
+    /// elapsed time without inventing a start of its own every time the
+    /// webview re-reads status.
+    pub started_at_utc_ms: i64,
+    /// What the remote side did on the way to its answer. Empty until a
+    /// workspace reports steps.
+    pub steps: Vec<SonaAgentStepV1>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Type)]
@@ -99,6 +110,11 @@ pub struct AgentPanelSendTurnRequestV1 {
     pub turn_id: String,
     pub message: String,
     pub locale: String,
+    pub workspace: AgentPanelWorkspaceV1,
+    /// Evidence for this one question: quotes, ids and `sona://` links, built
+    /// by whoever is asking. The panel does not assemble packs, and a turn
+    /// without one is an ordinary question.
+    pub context_pack: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -121,6 +137,58 @@ pub struct AgentPanelApplyChangeRequestV1 {
 pub struct AgentPanelUndoChangeRequestV1 {
     pub receipt_id: String,
     pub expected_revision: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(deny_unknown_fields)]
+pub struct AgentPanelPairingRequestV1 {
+    pub relay_url: String,
+    pub relay_key_id: String,
+    pub relay_public_key: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum AgentPanelPairingCommandV1 {
+    Set,
+    Clear,
+    TestConnection,
+}
+
+/// What the panel is paired to, as the settings store holds it. The private
+/// half of this machine's identity is never here — it stays in the secret
+/// backend, and `agent_panel_public_identity` is how the relay learns the
+/// public half.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(deny_unknown_fields)]
+pub struct AgentPanelPairingStatusV1 {
+    pub paired: bool,
+    pub relay_url: Option<String>,
+    pub relay_key_id: Option<String>,
+    pub relay_public_key: Option<String>,
+    pub last_successful_connection_at_utc_ms: Option<i64>,
+}
+
+/// Proof that a pairing change happened, in the shape the rest of the app
+/// uses: what was asked, by whom, when it committed, and the state it left
+/// behind. A refused change returns `AgentPanelCommandErrorV1` instead — the
+/// error is the reason code, and nothing was written to have a receipt for.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(deny_unknown_fields)]
+pub struct AgentPanelPairingReceiptV1 {
+    pub schema_version: u32,
+    pub receipt_id: String,
+    pub command: AgentPanelPairingCommandV1,
+    pub actor: AgentPanelActorV1,
+    pub requested_at_utc_ms: i64,
+    pub committed_at_utc_ms: i64,
+    pub pairing: AgentPanelPairingStatusV1,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum AgentPanelActorV1 {
+    User,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]

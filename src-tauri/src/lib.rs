@@ -36,6 +36,7 @@ mod overlay;
 mod paste_tx;
 pub mod portable;
 mod prompt_renderer;
+pub mod query;
 mod secrets;
 mod secure_input;
 mod settings;
@@ -184,10 +185,35 @@ pub(crate) fn show_meeting_destination(
     destination: MeetingNavigationDestination,
     snapshot: Option<&MeetingSessionSnapshot>,
 ) {
-    show_main_window(app);
     let (session_id, revision) = snapshot
         .map(|snapshot| (Some(snapshot.session_id), snapshot.revision))
         .unwrap_or((None, 0));
+    show_meeting_navigation(app, destination, session_id, revision);
+}
+
+/// Open one meeting by id.
+///
+/// Revision zero is the established "unknown" value on this payload: the
+/// meetings controller reloads the authoritative snapshot when it arrives,
+/// which is exactly what the Overview's meeting links rely on. A URL handler
+/// opening the encrypted store to read a number its destination re-reads
+/// anyway would be a second answer to the same question.
+fn show_meeting_by_id(app: &AppHandle, session_id: meeting::types::MeetingSessionId) {
+    show_meeting_navigation(
+        app,
+        MeetingNavigationDestination::Session,
+        Some(session_id),
+        0,
+    );
+}
+
+fn show_meeting_navigation(
+    app: &AppHandle,
+    destination: MeetingNavigationDestination,
+    session_id: Option<meeting::types::MeetingSessionId>,
+    revision: u64,
+) {
+    show_main_window(app);
     let _ = app.emit(
         "meeting:navigation-requested",
         MeetingNavigationPayload {
@@ -195,6 +221,22 @@ pub(crate) fn show_meeting_destination(
             destination,
             session_id,
             revision,
+        },
+    );
+}
+
+/// Ask the shell to open one query-plane address.
+///
+/// Meetings are absent on purpose: they have their own navigation event and
+/// [`show_meeting_by_id`] uses it. This is for the nouns whose surfaces the
+/// backend could not reach at all — a person, a dictation, the search field.
+fn show_query_link(app: &AppHandle, target: query::QueryLinkTarget) {
+    show_main_window(app);
+    let _ = app.emit(
+        query::QUERY_LINK_EVENT,
+        query::QueryLinkPayload {
+            event_schema_version: 1,
+            target,
         },
     );
 }
@@ -234,6 +276,34 @@ fn dispatch_deep_link(app: &AppHandle, raw: &str) -> bool {
             // Surfaces the meeting screen rather than starting capture. A URL
             // is not consent to record a room, and meetings are prompt-only.
             show_meeting_destination(app, MeetingNavigationDestination::Preflight, None);
+        }
+        deeplink::DeepLinkAction::OpenMeeting(session_id) => {
+            show_meeting_by_id(app, meeting::types::MeetingSessionId::from_uuid(session_id));
+        }
+        deeplink::DeepLinkAction::OpenLoop(loop_id) => {
+            // A loop's address carries its meeting, so this routes without a
+            // lookup. It opens the meeting's review — which loop is in front of
+            // the reader once they are there is the review screen's affordance,
+            // not something a URL handler can reach into.
+            let loop_id = meeting::loop_types::MeetingLoopId(loop_id);
+            match loop_id.session_id() {
+                Some(session_id) => show_meeting_by_id(app, session_id),
+                None => log::warn!("Deep link loop id names no meeting: {}", loop_id.as_str()),
+            }
+        }
+        deeplink::DeepLinkAction::OpenPerson(person_id) => {
+            show_query_link(
+                app,
+                query::QueryLinkTarget::Person {
+                    person_id: meeting::people_types::PersonId(person_id),
+                },
+            );
+        }
+        deeplink::DeepLinkAction::OpenDictation(history_id) => {
+            show_query_link(app, query::QueryLinkTarget::Dictation { history_id });
+        }
+        deeplink::DeepLinkAction::Search(query) => {
+            show_query_link(app, query::QueryLinkTarget::Search { query });
         }
     }
     true
@@ -286,10 +356,20 @@ fn start_meeting_detection(app_handle: &AppHandle, meetings: Arc<MeetingSessionM
         Arc::new(notify::NoPrompts) as Arc<dyn notify::PromptPresenter>,
         (|| ScreenRecordingPermission::NotGranted) as fn() -> ScreenRecordingPermission,
     );
+    // The digest shares this presenter rather than making its own. There is one
+    // notification centre per process, one delegate on it, and both categories
+    // are registered together — a second presenter would be a second delegate
+    // and would silently unregister the first one's actions.
+    let native_prompts = Arc::clone(&prompts);
     let prompts = Arc::new(notify::ConsentPromptPresenter::new(
         app_handle.clone(),
         prompts,
     ));
+
+    meetings.start_digest_scheduler(app_handle.clone(), native_prompts);
+    responder.bind_digest(Arc::new(meeting::digest::CaptureOpener::new(
+        app_handle.clone(),
+    )));
 
     let runtime = Arc::new(DetectionRuntime::with_parts(
         app_handle.clone(),
@@ -1234,6 +1314,9 @@ pub fn run(cli_args: CliArgs) {
             agent_panel::agent_panel_undo_change,
             agent_panel::agent_panel_public_identity,
             agent_panel::change_agent_panel_enabled_setting,
+            agent_panel::set_agent_panel_pairing,
+            agent_panel::clear_agent_panel_pairing,
+            agent_panel::agent_panel_test_connection,
             modes::get_modes,
             modes::set_active_mode,
             modes::upsert_mode,
@@ -1435,6 +1518,9 @@ pub fn run(cli_args: CliArgs) {
             commands::meeting::save_meeting_user_notes,
             commands::meeting::reenhance_meeting_with_notes,
             commands::meeting::meeting_catch_up,
+            commands::meeting::meeting_series_template_get,
+            commands::meeting::meeting_series_template_for_session,
+            commands::meeting::meeting_series_template_set,
             commands::people::people_list,
             commands::people::person_detail,
             commands::people::person_context,
@@ -1448,6 +1534,10 @@ pub fn run(cli_args: CliArgs) {
             commands::people::link_add_manual,
             commands::people::open_loops_inbox,
             commands::people::vocabulary_candidates,
+            commands::loops::meeting_loops,
+            commands::loops::meeting_loop_resolve,
+            commands::loops::meeting_loop_reopen,
+            commands::loops::meeting_loop_assign,
             commands::workflows::workflows_list,
             commands::workflows::workflow_set_enabled,
             commands::workflows::workflow_runs,
@@ -1483,6 +1573,8 @@ pub fn run(cli_args: CliArgs) {
             commands::detection::detection_prompt_panel_ack,
             commands::detection::detection_running_meeting_apps,
             commands::detection::detection_settings_set,
+            commands::query::sona_query_search,
+            commands::query::sona_query_events,
         ])
         .events(collect_events![
             upstream_import::UpstreamImportProgressEvent,
@@ -1510,6 +1602,8 @@ pub fn run(cli_args: CliArgs) {
             meeting::detection::DetectionPromptEvent,
             meeting::detection::DetectionPromptRetractedEvent,
             meeting::detection::DetectionStatus,
+            meeting::digest::CaptureRequestedEvent,
+            query::QueryLinkRequestedEvent,
         ]);
 
     #[cfg(debug_assertions)]

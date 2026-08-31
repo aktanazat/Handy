@@ -4,6 +4,8 @@
 //! without an `AppHandle`. Dispatch lives in `lib.rs`, next to the CLI and tray
 //! handlers it shares plumbing with.
 
+use uuid::Uuid;
+
 /// A resolved `sona://` route.
 ///
 /// Every variant maps onto an action the app already exposes through the tray,
@@ -22,6 +24,31 @@ pub enum DeepLinkAction {
     /// not begin capture: meetings are prompt-only by product decision, and a
     /// URL is not consent to record a room.
     StartMeeting,
+    /// `sona://meeting/<uuid>` — open one meeting's detail in Library, the same
+    /// destination its row in the list opens.
+    OpenMeeting(Uuid),
+    /// `sona://person/<uuid>` — open one person's page.
+    OpenPerson(Uuid),
+    /// `sona://loop/<id>` — open the review of the meeting this loop belongs
+    /// to.
+    ///
+    /// The id is a loop's own address, `<meeting uuid>:<kind>:<digest>`, and is
+    /// carried whole rather than split apart here: its format belongs to
+    /// `meeting::loop_types`, and the route table validates only what it can
+    /// see — that the meeting it names is a uuid.
+    OpenLoop(String),
+    /// `sona://dictation/<id>` — open one dictation's row in History.
+    ///
+    /// Not a query-plane noun the round-3 brief named, and here for a reason
+    /// worth writing down: every row the query plane returns carries a
+    /// `sona://` link, dictations are one of the kinds it returns, and History
+    /// had no address. A link that resolves to nothing would be worse than the
+    /// route.
+    OpenDictation(i64),
+    /// `sona://search?q=…` — open the search surface with the question in it.
+    /// An empty or absent `q` opens it empty, which is what pressing ⌘K does;
+    /// a blank `q=` is a link built wrong and is refused instead.
+    Search(String),
 }
 
 /// The one scheme this app answers to.
@@ -63,8 +90,51 @@ pub fn parse_deep_link(raw: &str) -> Option<DeepLinkAction> {
         };
         return non_empty(mode_id).map(DeepLinkAction::SetActiveMode);
     }
-    if route.eq_ignore_ascii_case("meeting") && segments == ["start"] {
-        return Some(DeepLinkAction::StartMeeting);
+    if route.eq_ignore_ascii_case("meeting") {
+        // `start` is a keyword, not an id: it was this route's only meaning
+        // before meetings were addressable, and it keeps that meaning.
+        if segments == ["start"] {
+            return Some(DeepLinkAction::StartMeeting);
+        }
+        let [session_id] = segments[..] else {
+            return None;
+        };
+        return uuid(session_id).map(DeepLinkAction::OpenMeeting);
+    }
+    if route.eq_ignore_ascii_case("person") {
+        let [person_id] = segments[..] else {
+            return None;
+        };
+        return uuid(person_id).map(DeepLinkAction::OpenPerson);
+    }
+    if route.eq_ignore_ascii_case("loop") {
+        let [loop_id] = segments[..] else {
+            return None;
+        };
+        let loop_id = non_empty(loop_id)?;
+        // The meeting has to be there for the link to route anywhere. The rest
+        // of the id is the ledger's business, not this table's.
+        uuid(loop_id.split(':').next()?)?;
+        return Some(DeepLinkAction::OpenLoop(loop_id));
+    }
+    if route.eq_ignore_ascii_case("dictation") {
+        // Parsed here rather than downstream: a history row is numbered, so a
+        // non-numeric id is a malformed link, not a row that has gone away.
+        let [history_id] = segments[..] else {
+            return None;
+        };
+        return history_id
+            .trim()
+            .parse::<i64>()
+            .ok()
+            .filter(|id| *id > 0)
+            .map(DeepLinkAction::OpenDictation);
+    }
+    if route.eq_ignore_ascii_case("search") && segments.is_empty() {
+        return match url.query_pairs().find(|(key, _)| key == "q") {
+            Some((_, value)) => non_empty(&value).map(DeepLinkAction::Search),
+            None => Some(DeepLinkAction::Search(String::new())),
+        };
     }
     None
 }
@@ -72,6 +142,12 @@ pub fn parse_deep_link(raw: &str) -> Option<DeepLinkAction> {
 fn non_empty(value: &str) -> Option<String> {
     let trimmed = value.trim();
     (!trimmed.is_empty()).then(|| trimmed.to_string())
+}
+
+/// An id that cannot be a uuid cannot name a meeting or a person, so the route
+/// is refused rather than dispatched to a lookup that must fail.
+fn uuid(value: &str) -> Option<Uuid> {
+    Uuid::parse_str(value.trim()).ok()
 }
 
 #[cfg(test)]
@@ -109,13 +185,113 @@ mod tests {
     }
 
     #[test]
-    fn meeting_start_is_the_only_meeting_route() {
+    fn start_stays_a_keyword_beside_addressable_meetings() {
         assert_eq!(
             parse_deep_link("sona://meeting/start"),
             Some(DeepLinkAction::StartMeeting)
         );
         assert_eq!(parse_deep_link("sona://meeting"), None);
+        // Not an id and not a verb: nothing this route can do.
         assert_eq!(parse_deep_link("sona://meeting/stop"), None);
+    }
+
+    #[test]
+    fn every_query_plane_noun_has_a_route() {
+        let session = Uuid::from_u128(0x9f2c);
+        let person = Uuid::from_u128(0x4d10);
+        assert_eq!(
+            parse_deep_link(&format!("sona://meeting/{session}")),
+            Some(DeepLinkAction::OpenMeeting(session))
+        );
+        assert_eq!(
+            parse_deep_link(&format!("sona://person/{person}")),
+            Some(DeepLinkAction::OpenPerson(person))
+        );
+        assert_eq!(
+            parse_deep_link(&format!("sona://loop/{session}:loop:0123456789abcdef")),
+            Some(DeepLinkAction::OpenLoop(format!(
+                "{session}:loop:0123456789abcdef"
+            )))
+        );
+        assert_eq!(
+            parse_deep_link("sona://dictation/4218"),
+            Some(DeepLinkAction::OpenDictation(4218))
+        );
+        assert_eq!(
+            parse_deep_link("sona://search?q=pricing%20tier"),
+            Some(DeepLinkAction::Search("pricing tier".to_string()))
+        );
+    }
+
+    #[test]
+    fn a_bare_search_route_opens_the_surface_empty() {
+        assert_eq!(
+            parse_deep_link("sona://search"),
+            Some(DeepLinkAction::Search(String::new()))
+        );
+        // A `q` that was built and left blank is a broken link, not ⌘K.
+        assert_eq!(parse_deep_link("sona://search?q="), None);
+        assert_eq!(parse_deep_link("sona://search?q=%20"), None);
+        assert_eq!(parse_deep_link("sona://search/extra"), None);
+    }
+
+    #[test]
+    fn an_id_that_cannot_name_a_row_is_refused() {
+        let session = Uuid::from_u128(0x9f2c);
+        assert_eq!(parse_deep_link("sona://meeting/not-a-uuid"), None);
+        assert_eq!(parse_deep_link("sona://person/"), None);
+        assert_eq!(parse_deep_link("sona://person/steven"), None);
+        assert_eq!(parse_deep_link("sona://loop/"), None);
+        assert_eq!(parse_deep_link("sona://loop/loop:0123456789abcdef"), None);
+        assert_eq!(
+            parse_deep_link(&format!("sona://loop/{session}/extra")),
+            None
+        );
+        assert_eq!(parse_deep_link("sona://dictation/abc"), None);
+        assert_eq!(parse_deep_link("sona://dictation/0"), None);
+        assert_eq!(parse_deep_link("sona://dictation/-3"), None);
+        assert_eq!(parse_deep_link("sona://dictation"), None);
+    }
+
+    /// The plane builds these strings and this table parses them. A round trip
+    /// is the only thing that proves the two agree, and a row whose link does
+    /// not route is a citation an agent cannot hand to a human.
+    #[test]
+    fn plane_links_round_trip_through_this_table() {
+        use crate::meeting::loop_types::{MeetingLoopId, MeetingLoopKind};
+        use crate::meeting::people_types::PersonId;
+        use crate::meeting::types::MeetingSessionId;
+
+        let session_id = MeetingSessionId::new();
+        let person_id = PersonId::new();
+        let loop_id = MeetingLoopId::derive(
+            session_id,
+            MeetingLoopKind::Loop,
+            "Which tier does the trial convert into?",
+        );
+
+        assert_eq!(
+            parse_deep_link(&crate::query::meeting_link(session_id)),
+            Some(DeepLinkAction::OpenMeeting(session_id.uuid()))
+        );
+        assert_eq!(
+            parse_deep_link(&crate::query::person_link(person_id)),
+            Some(DeepLinkAction::OpenPerson(person_id.uuid()))
+        );
+        assert_eq!(
+            parse_deep_link(&crate::query::loop_link(&loop_id)),
+            Some(DeepLinkAction::OpenLoop(loop_id.as_str().to_string()))
+        );
+        assert_eq!(
+            parse_deep_link(&crate::query::dictation_link(4218)),
+            Some(DeepLinkAction::OpenDictation(4218))
+        );
+        assert_eq!(
+            parse_deep_link(&crate::query::search_link("what did I promise Steven?")),
+            Some(DeepLinkAction::Search(
+                "what did I promise Steven?".to_string()
+            ))
+        );
     }
 
     #[test]

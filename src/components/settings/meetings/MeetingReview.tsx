@@ -6,9 +6,11 @@ import {
   commands,
   type ManualNote,
   type MeetingExportFormat,
+  type MeetingLoopRow,
   type MeetingReviewSnapshot,
   type MeetingSearchHit,
   type OperationReceipt,
+  type PersonListEntry,
   type SpeakerId,
 } from "@/bindings";
 import {
@@ -35,6 +37,7 @@ import { QuestionsTab } from "./review/QuestionsTab";
 import { TranscriptTab } from "./review/TranscriptTab";
 import { MeetingLedgerSection } from "./MeetingLedgerSection";
 import { CaptureCompletenessText, MeetingPhaseText } from "./MeetingStatus";
+import { type LoopChange } from "./review/LoopRows";
 import {
   formatMeetingDate,
   formatMeetingOffset,
@@ -131,6 +134,9 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
   const [analytics, setAnalytics] = useState<MeetingAnalyticsSnapshot | null>(
     null,
   );
+  const [loops, setLoops] = useState<MeetingLoopRow[] | null>(null);
+  const [people, setPeople] = useState<PersonListEntry[]>([]);
+  const [loopsBusy, setLoopsBusy] = useState(false);
   const editable = snapshot.session.allowed_actions.includes("edit");
   const canRegenerate = snapshot.session.allowed_actions.includes("regenerate");
   const canAskQuestion =
@@ -190,6 +196,71 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
       );
     } catch {
       toast.error(t("meetings.errors.operation"));
+    }
+  };
+
+  /* Loops are the ledger's actionable half: words from the artifact, state
+   * from the store. Re-read on the same trigger as the metrics, because a
+   * regeneration can rewrite the rows a resolution was attached to. */
+  const loadLoops = useCallback(async () => {
+    const [loopsResult, peopleResult] = await Promise.all([
+      commands.meetingLoops(sessionId),
+      commands.peopleList(),
+    ]);
+    setLoops(loopsResult.status === "ok" ? loopsResult.data.rows : []);
+    setPeople(peopleResult.status === "ok" ? peopleResult.data.entries : []);
+  }, [sessionId]);
+
+  const loopsRevision = useRef<number | null>(null);
+  useEffect(() => {
+    if (loopsRevision.current === revision) return;
+    loopsRevision.current = revision;
+    void loadLoops();
+  }, [loadLoops, revision]);
+
+  /* One path for all three loop commands. They differ only in the request they
+   * build, and each answers with the whole refreshed list, so the row somebody
+   * just ticked never has to be patched by hand. */
+  const changeLoop = async (row: MeetingLoopRow, change: LoopChange) => {
+    const operation_id = crypto.randomUUID();
+    const loop_id = row.loop_id;
+    const expected_revision = row.revision;
+    setLoopsBusy(true);
+    try {
+      const result = await (change.kind === "resolve"
+        ? commands.meetingLoopResolve({
+            operation_id,
+            loop_id,
+            expected_revision,
+            resolution: change.dropped ? "dropped" : "done",
+          })
+        : change.kind === "reopen"
+          ? commands.meetingLoopReopen({
+              operation_id,
+              loop_id,
+              expected_revision,
+            })
+          : commands.meetingLoopAssign({
+              operation_id,
+              loop_id,
+              expected_revision,
+              owner_person_id: change.personId,
+            }));
+      if (result.status === "error") {
+        toast.error(t(meetingErrorKey(result.error)));
+        await loadLoops();
+        return;
+      }
+      setLoops(result.data.loops.rows);
+      // A refused write means somebody else moved this row first; the fresh
+      // list that came back with the refusal is already the truth.
+      if (result.data.receipt.reason_codes.includes("stale_revision")) {
+        toast.info(t("meetings.loops.stale"));
+      }
+    } catch {
+      toast.error(t("meetings.errors.operation"));
+    } finally {
+      setLoopsBusy(false);
     }
   };
 
@@ -427,10 +498,13 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
         <TabsContent value="ledger" className={TAB_PANEL_CLASSES}>
           <MeetingLedgerSection
             snapshot={snapshot}
-            busy={busy || exportingLedger}
+            busy={busy || exportingLedger || loopsBusy || !editable}
             canExport={canExport}
             onJumpToSegment={jumpToSegment}
             onExportLedger={() => void exportLedger()}
+            loops={loops}
+            people={people}
+            onLoopChange={(row, change) => void changeLoop(row, change)}
           />
         </TabsContent>
 

@@ -75,6 +75,9 @@ const receipt = (
     candidates: 0,
     suggestions: 0,
     terms: 0,
+    meetings: 0,
+    loops_closed: 0,
+    suggestions_waiting: 0,
   },
   error: status === "failed" ? "failed for test" : null,
 });

@@ -3,7 +3,10 @@ import { useTranslation } from "react-i18next";
 import { Loader2, Send, X } from "lucide-react";
 import type {
   AgentPanelProposalPreviewV1,
+  AgentPanelTurnStatusV1,
+  AgentPanelWorkspaceV1,
   SonaAgentChatTurnV1,
+  SonaAgentStepV1,
 } from "@/bindings";
 import { Button } from "@/components/vg/button";
 import { Input } from "@/components/vg/input";
@@ -60,14 +63,34 @@ const BODY_PHASES = {
 } satisfies Partial<Record<PanelPhase, true>>;
 
 /**
- * The status dot's tone. Three tones is the entire vocabulary — the panel is
- * working, the panel needs you, the connection is broken — because the dot sits
- * beside the word that says which, and a fourth colour would be decoration.
+ * The turn states that are over. A live turn can be stopped and its timer is
+ * still counting; a finished one is a record, and offering to cancel it is an
+ * offer to undo the past.
+ *
+ * One table, read in two places — the rail's mark and the cancel row's
+ * existence — because those two must never disagree about whether the turn is
+ * still happening.
+ */
+const TERMINAL_TURN_STATES = {
+  succeeded: true,
+  failed: true,
+  canceled: true,
+  unverified_external: true,
+} satisfies Partial<Record<AgentPanelTurnStatusV1["state"], true>>;
+
+/**
+ * The status dot's tone.
+ *
+ * Three tones, and none of them is a brand colour: the panel wears the same
+ * gray ladder as every other Sona surface, and the only hues it may reach for
+ * are the two that mean something — red for broken, amber for waiting on you.
+ * A blue "working" dot was decoration; the activity rail already says what the
+ * turn is doing, and says it with a number beside it.
  */
 const dotTone = (phase: PanelPhase): string => {
-  if (phase === "error" || phase === "offline") return "bg-red-700";
-  if (phase === "running" || phase === "proposal") return "bg-blue-700";
-  return "bg-gray-700";
+  if (phase === "error" || phase === "offline") return "bg-red-900";
+  if (phase === "proposal") return "bg-amber-900";
+  return "bg-gray-800";
 };
 
 const actionSummary = (proposal: AgentPanelProposalPreviewV1): string =>
@@ -93,6 +116,80 @@ const conversationRows = (
   });
 };
 
+/** `m:ss`, counted from the turn's own start so a reload cannot restart it. */
+const elapsedLabel = (milliseconds: number): string => {
+  const total = Math.max(0, Math.floor(milliseconds / 1000));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+};
+
+const STEP_MARK = {
+  running: "○",
+  done: "●",
+  failed: "×",
+} satisfies Record<SonaAgentStepV1["state"], string>;
+
+interface ActivityTreeProps {
+  turn: AgentPanelTurnStatusV1;
+  now: number;
+}
+
+/**
+ * The left rail: what this turn has done so far, oldest first.
+ *
+ * Two rows are always true of a turn that exists — it was submitted, and it is
+ * either still running or it is not — so those are drawn from the turn's own
+ * state rather than waited for. Everything below them is whatever the response
+ * envelope reported in `steps`, which is nothing at all until a workspace grows
+ * tools. An empty `steps` is the normal case, not a loading state, so the rail
+ * does not apologise for it.
+ */
+const ActivityTree: React.FC<ActivityTreeProps> = ({ turn, now }) => {
+  const { t } = useTranslation();
+  const live = !(turn.state in TERMINAL_TURN_STATES);
+
+  return (
+    <aside
+      className="flex w-[148px] flex-none flex-col gap-1.5 overflow-y-auto border-r border-gray-alpha-400 px-3 py-3"
+      aria-label={t("agentPanel.activityLabel")}
+    >
+      <ol className="flex list-none flex-col gap-1.5 p-0 text-[11px] leading-4 text-gray-900">
+        <li className="flex items-baseline gap-1.5">
+          <span aria-hidden="true" className="text-gray-700">
+            {STEP_MARK.done}
+          </span>
+          <span className="min-w-0 truncate">{t("agentPanel.step.sent")}</span>
+        </li>
+        <li className="flex items-baseline gap-1.5">
+          <span aria-hidden="true" className="text-gray-700">
+            {live ? STEP_MARK.running : STEP_MARK.done}
+          </span>
+          <span className="min-w-0 flex-1 truncate">
+            {t(`agentPanel.turnState.${turn.state}`)}
+          </span>
+          {/* The one number on this rail, so it is tabular: a ticking second
+              must not shuffle the label to its left. */}
+          <span className="flex-none tabular-nums text-gray-800">
+            {elapsedLabel(now - turn.started_at_utc_ms)}
+          </span>
+        </li>
+        {turn.steps.map((step) => (
+          <li key={step.id} className="flex items-baseline gap-1.5">
+            <span
+              aria-hidden="true"
+              className={
+                step.state === "failed" ? "text-red-900" : "text-gray-700"
+              }
+            >
+              {STEP_MARK[step.state]}
+            </span>
+            <span className="min-w-0 truncate">{step.label}</span>
+          </li>
+        ))}
+      </ol>
+    </aside>
+  );
+};
+
 interface AgentPanelHeaderProps {
   phase: PanelPhase;
   lastIdentity: string | null;
@@ -108,8 +205,11 @@ const AgentPanelHeader: React.FC<AgentPanelHeaderProps> = ({
 }) => {
   const { t } = useTranslation();
   /* Dot and word travel together: a lone dot beside no word is a colour with
-   * nothing to mean. When the body carries the sentence, this slot is empty. */
-  const showsPhase = !isHeadlinePhase(phase);
+   * nothing to mean. When the body carries the sentence, this slot is empty —
+   * and a running turn is exactly that case now, because the activity rail
+   * names the state and counts the seconds. A header reading "Working…" over
+   * a rail reading "Thinking 0:12" is the same fact twice. */
+  const showsPhase = !isHeadlinePhase(phase) && phase !== "running";
 
   return (
     <header className="flex min-h-[44px] flex-none items-center justify-between gap-2 border-b border-gray-alpha-400 px-3">
@@ -207,12 +307,99 @@ const AgentPanelState: React.FC<AgentPanelStateProps> = ({
   );
 };
 
+const WORKSPACES = ["sona_chat", "sona_config"] as const;
+
+interface ComposerProps {
+  workspace: AgentPanelWorkspaceV1;
+  draft: string;
+  canSend: boolean;
+  onWorkspaceChange: (workspace: AgentPanelWorkspaceV1) => void;
+  onDraftChange: (draft: string) => void;
+  onSend: () => void;
+}
+
+/**
+ * One pill: what you are asking, and who you are asking.
+ *
+ * The two workspaces are not two moods of one brain — one answers questions
+ * from your own corpus, the other proposes settings changes and can change
+ * nothing without a card and a click. Which one a question goes to is the
+ * user's to say, because a client-side guess that misroutes sends a private
+ * question to the wrong sandbox, and there is no honest heuristic for the
+ * difference between "what did I say about the theme" and "change the theme".
+ */
+const Composer: React.FC<ComposerProps> = ({
+  workspace,
+  draft,
+  canSend,
+  onWorkspaceChange,
+  onDraftChange,
+  onSend,
+}) => {
+  const { t } = useTranslation();
+
+  return (
+    <form
+      className="flex flex-none items-center gap-2 border-t border-gray-alpha-400 px-3 py-2.5"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSend();
+      }}
+    >
+      <div
+        className="flex flex-none items-center gap-1 rounded-full border border-gray-alpha-400 bg-background-100 p-0.5"
+        role="radiogroup"
+        aria-label={t("agentPanel.workspaceLabel")}
+      >
+        {WORKSPACES.map((option) => (
+          <button
+            key={option}
+            type="button"
+            role="radio"
+            aria-checked={workspace === option}
+            disabled={!canSend}
+            onClick={() => onWorkspaceChange(option)}
+            className={cn(
+              "rounded-full px-2.5 py-1 text-[11px] transition-colors disabled:pointer-events-none disabled:opacity-50",
+              workspace === option
+                ? "bg-gray-alpha-200 text-gray-1000"
+                : "text-gray-800 hover:text-gray-1000",
+            )}
+          >
+            {t(`agentPanel.workspace.${option}`)}
+          </button>
+        ))}
+      </div>
+      <Input
+        type="text"
+        className="h-8 min-w-0 flex-1 rounded-full text-[13px]"
+        value={draft}
+        onChange={(event) => onDraftChange(event.target.value)}
+        placeholder={t(`agentPanel.placeholder.${workspace}`)}
+        aria-label={t("agentPanel.inputLabel")}
+        disabled={!canSend}
+      />
+      <Button
+        type="submit"
+        size="icon-sm"
+        className="rounded-full"
+        disabled={!canSend || draft.trim() === ""}
+        aria-label={t("agentPanel.send")}
+      >
+        <Send aria-hidden="true" className="size-4" />
+      </Button>
+    </form>
+  );
+};
+
 interface AgentPanelBodyProps {
   conversation: readonly SonaAgentChatTurnV1[];
-  hasTurn: boolean;
+  turn: AgentPanelTurnStatusV1 | null;
+  now: number;
   proposal: AgentPanelProposalPreviewV1 | null;
   error: string | null;
   draft: string;
+  workspace: AgentPanelWorkspaceV1;
   sending: boolean;
   canSend: boolean;
   onCancel: () => void;
@@ -220,14 +407,17 @@ interface AgentPanelBodyProps {
   onUndo: () => void;
   onSend: () => void;
   onDraftChange: (draft: string) => void;
+  onWorkspaceChange: (workspace: AgentPanelWorkspaceV1) => void;
 }
 
 const AgentPanelBody: React.FC<AgentPanelBodyProps> = ({
   conversation,
-  hasTurn,
+  turn,
+  now,
   proposal,
   error,
   draft,
+  workspace,
   sending,
   canSend,
   onCancel,
@@ -235,47 +425,53 @@ const AgentPanelBody: React.FC<AgentPanelBodyProps> = ({
   onUndo,
   onSend,
   onDraftChange,
+  onWorkspaceChange,
 }) => {
   const { t } = useTranslation();
   const rows = conversationRows(conversation);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <section
-        className="min-h-0 flex-1 overflow-y-auto p-4"
-        aria-label={t("agentPanel.conversationLabel")}
-      >
-        {rows.length === 0 ? (
-          <p className="my-6 text-center text-[13px] text-gray-800">
-            {t("agentPanel.empty")}
-          </p>
-        ) : (
-          <ul className="flex list-none flex-col gap-3 p-0">
-            {rows.map(({ key, turn }) => (
-              <li
-                key={key}
-                className={cn(
-                  "max-w-[88%] rounded-md px-3 py-2 text-[13px] leading-[19px] text-gray-1000 [overflow-wrap:anywhere]",
-                  turn.role === "user"
-                    ? "self-end bg-gray-100"
-                    : "border border-gray-alpha-400 bg-background-100",
-                )}
-              >
-                {turn.message}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <div className="flex min-h-0 flex-1">
+        {/* The rail is the turn's structure and the scrollback is its content,
+            so they scroll independently: reading back through an answer must
+            not drag the step list off screen. */}
+        {turn && <ActivityTree turn={turn} now={now} />}
+        <section
+          className="min-h-0 flex-1 overflow-y-auto p-4"
+          aria-label={t("agentPanel.conversationLabel")}
+        >
+          {rows.length === 0 ? (
+            <p className="my-6 text-center text-[13px] text-gray-800">
+              {t("agentPanel.empty")}
+            </p>
+          ) : (
+            <ul className="flex list-none flex-col gap-3 p-0">
+              {rows.map(({ key, turn: row }) => (
+                <li
+                  key={key}
+                  className={cn(
+                    "max-w-[88%] rounded-md px-3 py-2 text-[13px] leading-[19px] text-gray-1000 [overflow-wrap:anywhere] whitespace-pre-wrap",
+                    row.role === "user"
+                      ? "self-end bg-gray-100"
+                      : "border border-gray-alpha-400 bg-background-100",
+                  )}
+                >
+                  {row.message}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
 
-      {/* The header already says "Working…", so this row is only the two things
-          it can add: that work is still moving, and the way to stop it. */}
-      {hasTurn && (
-        <div className="flex flex-none items-center gap-2 border-t border-gray-alpha-400 px-4 py-2.5">
-          <Loader2
-            aria-hidden="true"
-            className="size-4 animate-spin text-gray-900"
-          />
+      {/* The rail already says which step is running and for how long, so this
+          row is only the thing the rail cannot be: a way to stop it — and only
+          while there is something left to stop. A finished turn keeps its rail,
+          because that is the record of what happened, but offering to cancel
+          it would be offering to undo the past. */}
+      {turn && !(turn.state in TERMINAL_TURN_STATES) && (
+        <div className="flex flex-none items-center justify-end border-t border-gray-alpha-400 px-4 py-2">
           <Button
             variant="outline"
             size="sm"
@@ -316,7 +512,12 @@ const AgentPanelBody: React.FC<AgentPanelBodyProps> = ({
             </p>
           )}
           <div className="mt-3 flex gap-2">
-            <Button size="sm" onClick={onApply} disabled={sending}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onApply}
+              disabled={sending}
+            >
               {t("agentPanel.apply")}
             </Button>
             {proposal.receipt_id && (
@@ -342,31 +543,14 @@ const AgentPanelBody: React.FC<AgentPanelBodyProps> = ({
         </p>
       )}
 
-      <form
-        className="flex flex-none items-center gap-2 border-t border-gray-alpha-400 px-4 py-2.5"
-        onSubmit={(event) => {
-          event.preventDefault();
-          onSend();
-        }}
-      >
-        <Input
-          type="text"
-          className="h-8 min-w-0 flex-1 text-[13px]"
-          value={draft}
-          onChange={(event) => onDraftChange(event.target.value)}
-          placeholder={t("agentPanel.inputPlaceholder")}
-          aria-label={t("agentPanel.inputLabel")}
-          disabled={!canSend}
-        />
-        <Button
-          type="submit"
-          size="icon-sm"
-          disabled={!canSend || draft.trim() === ""}
-          aria-label={t("agentPanel.send")}
-        >
-          <Send aria-hidden="true" className="size-4" />
-        </Button>
-      </form>
+      <Composer
+        workspace={workspace}
+        draft={draft}
+        canSend={canSend}
+        onWorkspaceChange={onWorkspaceChange}
+        onDraftChange={onDraftChange}
+        onSend={onSend}
+      />
     </div>
   );
 };
@@ -375,12 +559,16 @@ export interface AgentPanelViewProps {
   phase: PanelPhase;
   lastIdentity: string | null;
   conversation: readonly SonaAgentChatTurnV1[];
-  hasTurn: boolean;
+  /** The live turn, whose state and steps are the activity rail. */
+  turn: AgentPanelTurnStatusV1 | null;
+  /** Wall clock, ticked by the owner so the elapsed timer is testable. */
+  now: number;
   proposal: AgentPanelProposalPreviewV1 | null;
   /** A failed send, cancel, apply or undo. Distinct from the `error` phase,
    * which is the relay itself being unreachable. */
   error: string | null;
   draft: string;
+  workspace: AgentPanelWorkspaceV1;
   sending: boolean;
   onToggle: () => void;
   onRefresh: () => void;
@@ -389,6 +577,7 @@ export interface AgentPanelViewProps {
   onUndo: () => void;
   onSend: () => void;
   onDraftChange: (draft: string) => void;
+  onWorkspaceChange: (workspace: AgentPanelWorkspaceV1) => void;
 }
 
 /**
@@ -404,10 +593,12 @@ export const AgentPanelView: React.FC<AgentPanelViewProps> = ({
   phase,
   lastIdentity,
   conversation,
-  hasTurn,
+  turn,
+  now,
   proposal,
   error,
   draft,
+  workspace,
   sending,
   onToggle,
   onRefresh,
@@ -416,6 +607,7 @@ export const AgentPanelView: React.FC<AgentPanelViewProps> = ({
   onUndo,
   onSend,
   onDraftChange,
+  onWorkspaceChange,
 }) => (
   <div className="flex size-full flex-col bg-background-200 text-gray-1000">
     <AgentPanelHeader
@@ -428,10 +620,12 @@ export const AgentPanelView: React.FC<AgentPanelViewProps> = ({
     {phase in BODY_PHASES && (
       <AgentPanelBody
         conversation={conversation}
-        hasTurn={hasTurn}
+        turn={turn}
+        now={now}
         proposal={proposal}
         error={error}
         draft={draft}
+        workspace={workspace}
         sending={sending}
         /* Offline still takes a draft — the relay is the thing that is away,
          * not the panel — and a proposal on screen does not stop a question. */
@@ -444,6 +638,7 @@ export const AgentPanelView: React.FC<AgentPanelViewProps> = ({
         onUndo={onUndo}
         onSend={onSend}
         onDraftChange={onDraftChange}
+        onWorkspaceChange={onWorkspaceChange}
       />
     )}
   </div>

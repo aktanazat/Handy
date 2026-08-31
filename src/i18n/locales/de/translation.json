@@ -1493,7 +1493,40 @@
         "rowDescription": "Beim Ausschalten wird das Panel-Fenster geschlossen und Sona lehnt jede Anfrage ab, es wieder zu öffnen.",
         "title": "Agent-Panel"
       },
-      "workspaceNavigation": "Agent-Bridge-Ansichten"
+      "workspaceNavigation": "Agent-Bridge-Ansichten",
+      "sonaAgent": {
+        "title": "Sona-Agent",
+        "pairing": "Kopplung",
+        "paired": "Gekoppelt",
+        "unpaired": "Nicht gekoppelt",
+        "lastReached": "Zuletzt erreicht",
+        "never": "Nie",
+        "relayUrl": "Relay-Adresse",
+        "relayUrlHint": "Akzeptiert werden nur eine Tailscale-Adresse oder dieser Mac selbst. Alles im offenen Internet wird abgelehnt, bevor es gespeichert wird.",
+        "relayKeyId": "Relay-Schlüssel-ID",
+        "relayPublicKey": "Öffentlicher Schlüssel des Relays",
+        "identity": "Öffentlicher Schlüssel dieses Macs",
+        "identityHint": "Trag diesen Schlüssel im Relay ein, damit es Anfragen von diesem Mac annimmt. Die private Hälfte verlässt deinen Schlüsselbund nie.",
+        "identityUnavailable": "Schalte das Agent-Panel ein, um einen Schlüssel zu erzeugen.",
+        "copy": "Kopieren",
+        "copied": "Kopiert",
+        "save": "Sichern",
+        "unpair": "Kopplung lösen",
+        "test": "Testen",
+        "reached": "Das Relay hat geantwortet.",
+        "failed": "Die Kopplung mit dem Relay war nicht möglich.",
+        "reason": {
+          "unauthorized_window": "Dieses Fenster darf die Kopplung nicht ändern.",
+          "disabled": "Das Agent-Panel ist aus.",
+          "unpaired": "Es ist noch kein Relay gekoppelt.",
+          "offline": "Das Relay hat nicht geantwortet.",
+          "invalid_configuration": "Diese Adresse oder diesen Schlüssel wird Sona nicht verwenden.",
+          "secret_unavailable": "Der Schlüssel dieses Macs konnte nicht gelesen werden.",
+          "untrusted_response": "Die Antwort war nicht vom gekoppelten Relay signiert.",
+          "remote_rejected": "Das Relay hat die Anfrage abgelehnt.",
+          "ownership_rejected": "Das Relay hat für jemand anderen geantwortet."
+        }
+      }
     },
     "workflows": {
       "title": "Arbeitsabläufe",
@@ -1525,6 +1558,9 @@
         },
         "meeting_activity": {
           "name": "Meeting-Aufnahme"
+        },
+        "daily_digest": {
+          "name": "Abendliche Zusammenfassung"
         }
       },
       "status": {
@@ -1548,7 +1584,8 @@
         "autoRecordStopped": "Aufnahme automatisch beendet",
         "alreadyProcessed": "Nichts Neues zu tun",
         "failed": "Konnte nicht abgeschlossen werden",
-        "skipped": "Übersprungen"
+        "skipped": "Übersprungen",
+        "digestRaised": "Den Tag zusammengefasst"
       },
       "vocabularySuggestions": {
         "title": "Aus deinen Meetings",
@@ -1630,6 +1667,14 @@
       "positionLabel": "Position der Ruhe-Pille",
       "positionTop": "Oben",
       "positionBottom": "Unten"
+    },
+    "meetings": {
+      "digest": {
+        "title": "Abendliche Zusammenfassung",
+        "description": "Eine Mitteilung am Ende eines Tages mit Meetings oder geschlossenen Punkten. Alles bleibt auf diesem Mac.",
+        "timeLabel": "Uhrzeit der Zusammenfassung",
+        "timeHint": "Ortszeit. Ein Tag ohne Aktivität bleibt still."
+      }
     }
   },
   "common": {
@@ -2079,6 +2124,23 @@
         "soft": "Weich"
       }
     },
+    "loops": {
+      "status": {
+        "open": "Offen",
+        "done": "Erledigt",
+        "dropped": "Verworfen",
+        "carried": "Übertragen"
+      },
+      "markDone": "Diesen Punkt als erledigt markieren",
+      "drop": "Verwerfen",
+      "reopen": "Wieder öffnen",
+      "owner": "Zuständig",
+      "ownerIs": "Zuständig: {{owner}}",
+      "ownerUnassigned": "Noch niemand",
+      "instead": "Stattdessen: {{instead}}",
+      "carriedForward": "Aus einer früheren Besprechung übernommen",
+      "stale": "Jemand anderes hat diesen Punkt zuerst geändert, die Liste wurde aktualisiert."
+    },
     "artifactState": {
       "current": "Aktuell",
       "out_of_date": "Veraltet",
@@ -2269,7 +2331,8 @@
         "notes": "Notizen",
         "participants": "Teilnehmende",
         "link": "Link",
-        "description": "Beschreibung"
+        "description": "Beschreibung",
+        "notesSeries": "für diese Serie"
       },
       "attendees_one": "{{count}} Person",
       "attendees_other": "{{count}} Personen",
@@ -2306,6 +2369,11 @@
       },
       "linkFailed": "Sona konnte diesen Link nicht öffnen.",
       "skippedNote": "Überspringen verbirgt das Angebot hier. Sona sieht den Anruf weiter, bis das Angebot abläuft."
+    },
+    "seriesTemplate": {
+      "use": "Diese Vorlage für diese Serie verwenden",
+      "saving": "Wird gemerkt…",
+      "remembered": "Diese Serie verwendet {{template}}"
     }
   },
   "agentPanel": {
@@ -2317,8 +2385,7 @@
     "panelToggle": "Agent-Panel schließen",
     "conversationLabel": "Unterhaltung",
     "proposalTitle": "Vorgeschlagene Änderungen",
-    "empty": "Fragen Sie zu Sona-Einstellungen. Vorschläge erscheinen hier zur Prüfung, bevor sich etwas ändert.",
-    "inputPlaceholder": "Zu Sona fragen…",
+    "empty": "Frag nach deinen Meetings, Notizen und Einstellungen. Änderungen an Einstellungen erscheinen hier als Vorschlag, den du prüfst, bevor sich etwas ändert.",
     "inputLabel": "Zu Sona fragen",
     "send": "Senden",
     "status": {
@@ -2327,9 +2394,34 @@
       "unpaired": "Nicht mit einem Relay gekoppelt.",
       "offline": "Relay ist offline.",
       "idle": "Bereit",
-      "running": "Arbeitet…",
       "proposal": "Vorschlag ist bereit",
       "error": "Das Agent-Panel ist nicht verfügbar."
+    },
+    "activityLabel": "Verlauf",
+    "workspaceLabel": "Wer antwortet",
+    "step": {
+      "sent": "Gesendet"
+    },
+    "workspace": {
+      "sona_chat": "Fragen",
+      "sona_config": "Einstellungen"
+    },
+    "placeholder": {
+      "sona_chat": "Frag nach deinen Meetings und Notizen…",
+      "sona_config": "Frag nach den Einstellungen von Sona…"
+    },
+    "turnState": {
+      "submitting": "Wird gesendet",
+      "queued": "In der Warteschlange",
+      "leased": "Übernommen",
+      "running": "Denkt nach",
+      "waiting_user": "Wartet auf dich",
+      "waiting_approval": "Wartet auf Freigabe",
+      "canceling": "Wird gestoppt",
+      "succeeded": "Beantwortet",
+      "failed": "Fehlgeschlagen",
+      "canceled": "Gestoppt",
+      "unverified_external": "Ungeprüfte Antwort"
     }
   },
   "overview": {

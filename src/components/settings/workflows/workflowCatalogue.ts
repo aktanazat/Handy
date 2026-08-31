@@ -18,17 +18,21 @@ export const WORKFLOW_NAME_KEY = {
   mode_habits: "learningV2.workflows.modeHabits.name",
   capture_advisor: "learningV2.workflows.captureAdvisor.name",
   series_priming: "learningV2.workflows.seriesPriming.name",
+  daily_digest: "settings.workflows.items.daily_digest.name",
 } satisfies Record<WorkflowId, string>;
 
 /* Workflows the Settings list never shows — `WorkflowId::PERMANENT` in Rust,
- * where a test asserts these two and `CONFIGURABLE` partition the enum. */
-export type PermanentWorkflowId = "meeting_activity" | "series_priming";
+ * where a test asserts these three and `CONFIGURABLE` partition the enum. */
+export type PermanentWorkflowId =
+  | "meeting_activity"
+  | "series_priming"
+  | "daily_digest";
 
 /* Where each workflow's description lives, for the workflows that have one.
  *
  * A description is read by exactly one surface — the Settings list — and that
- * list renders `WorkflowId::CONFIGURABLE`. So the two permanent workflows have
- * a name and no description, and the type says both halves of that: every
+ * list renders `WorkflowId::CONFIGURABLE`. So the three permanent workflows
+ * have a name and no description, and the type says both halves of that: every
  * configurable workflow must appear, and asking about any workflow is allowed
  * and may answer "none". */
 export const WORKFLOW_DESCRIPTION_KEY: Partial<Record<WorkflowId, string>> &

@@ -1493,7 +1493,40 @@
         "rowDescription": "Tắt tùy chọn này sẽ đóng cửa sổ bảng và khiến Sona từ chối mọi yêu cầu mở lại.",
         "title": "Bảng agent"
       },
-      "workspaceNavigation": "Chế độ xem cầu nối agent"
+      "workspaceNavigation": "Chế độ xem cầu nối agent",
+      "sonaAgent": {
+        "title": "Tác nhân Sona",
+        "pairing": "Ghép nối",
+        "paired": "Đã ghép nối",
+        "unpaired": "Chưa ghép nối",
+        "lastReached": "Lần liên lạc gần nhất",
+        "never": "Chưa bao giờ",
+        "relayUrl": "Địa chỉ relay",
+        "relayUrlHint": "Chỉ chấp nhận địa chỉ Tailscale hoặc chính máy Mac này. Mọi địa chỉ trên internet mở đều bị từ chối trước khi lưu.",
+        "relayKeyId": "ID khoá của relay",
+        "relayPublicKey": "Khoá công khai của relay",
+        "identity": "Khoá công khai của máy Mac này",
+        "identityHint": "Thêm khoá này vào relay để nó nhận lượt hỏi từ máy Mac này. Nửa khoá riêng không bao giờ rời khỏi keychain của bạn.",
+        "identityUnavailable": "Bật bảng tác nhân để tạo khoá.",
+        "copy": "Sao chép",
+        "copied": "Đã sao chép",
+        "save": "Lưu",
+        "unpair": "Huỷ ghép nối",
+        "test": "Thử",
+        "reached": "Relay đã trả lời.",
+        "failed": "Không ghép nối được với relay.",
+        "reason": {
+          "unauthorized_window": "Cửa sổ đó không được đổi ghép nối.",
+          "disabled": "Bảng tác nhân đang tắt.",
+          "unpaired": "Chưa có relay nào được ghép nối.",
+          "offline": "Relay không trả lời.",
+          "invalid_configuration": "Sona sẽ không dùng địa chỉ hoặc khoá đó.",
+          "secret_unavailable": "Không đọc được khoá của máy Mac này.",
+          "untrusted_response": "Phản hồi không do relay đã ghép nối ký.",
+          "remote_rejected": "Relay đã từ chối yêu cầu.",
+          "ownership_rejected": "Relay trả lời thay cho người khác."
+        }
+      }
     },
     "workflows": {
       "title": "Quy trình",
@@ -1525,6 +1558,9 @@
         },
         "meeting_activity": {
           "name": "Ghi âm cuộc họp"
+        },
+        "daily_digest": {
+          "name": "Tóm tắt buổi tối"
         }
       },
       "status": {
@@ -1544,7 +1580,8 @@
         "autoRecordStopped": "Đã tự động dừng ghi",
         "alreadyProcessed": "Không có gì mới để làm",
         "failed": "Không thể hoàn tất",
-        "skipped": "Đã bỏ qua"
+        "skipped": "Đã bỏ qua",
+        "digestRaised": "Đã tóm tắt cả ngày"
       },
       "vocabularySuggestions": {
         "title": "Từ các cuộc họp của bạn",
@@ -1624,6 +1661,14 @@
       "positionLabel": "Vị trí viên thuốc chờ",
       "positionTop": "Trên",
       "positionBottom": "Dưới"
+    },
+    "meetings": {
+      "digest": {
+        "title": "Tóm tắt buổi tối",
+        "description": "Một thông báo vào cuối ngày có cuộc họp hoặc việc đã khép lại. Mọi thứ đều ở lại trên chiếc Mac này.",
+        "timeLabel": "Giờ tóm tắt",
+        "timeHint": "Giờ địa phương. Ngày không có gì thì vẫn im lặng."
+      }
     }
   },
   "common": {
@@ -2073,6 +2118,23 @@
         "soft": "Lỏng"
       }
     },
+    "loops": {
+      "status": {
+        "open": "Còn mở",
+        "done": "Xong",
+        "dropped": "Bỏ qua",
+        "carried": "Chuyển tiếp"
+      },
+      "markDone": "Đánh dấu việc này là xong",
+      "drop": "Bỏ qua",
+      "reopen": "Mở lại",
+      "owner": "Người phụ trách",
+      "ownerIs": "Người phụ trách: {{owner}}",
+      "ownerUnassigned": "Chưa có ai",
+      "instead": "Thay vào đó: {{instead}}",
+      "carriedForward": "Chuyển tiếp từ buổi họp trước",
+      "stale": "Người khác đã thay đổi việc này trước, nên danh sách đã được làm mới."
+    },
     "artifactState": {
       "current": "Hiện hành",
       "out_of_date": "Đã lỗi thời",
@@ -2263,7 +2325,8 @@
         "notes": "Ghi chú",
         "participants": "Người tham dự",
         "link": "Liên kết",
-        "description": "Mô tả"
+        "description": "Mô tả",
+        "notesSeries": "cho chuỗi này"
       },
       "attendees_one": "{{count}} người",
       "attendees_other": "{{count}} người",
@@ -2300,6 +2363,11 @@
       },
       "linkFailed": "Sona không mở được liên kết đó.",
       "skippedNote": "Bỏ qua sẽ ẩn lời mời ở đây. Sona vẫn thấy cuộc gọi cho đến khi lời mời hết hạn."
+    },
+    "seriesTemplate": {
+      "use": "Dùng mẫu này cho chuỗi cuộc họp này",
+      "saving": "Đang ghi nhớ…",
+      "remembered": "Chuỗi này dùng {{template}}"
     }
   },
   "agentPanel": {
@@ -2311,8 +2379,7 @@
     "panelToggle": "Đóng bảng trợ lý",
     "conversationLabel": "Hội thoại",
     "proposalTitle": "Thay đổi đề xuất",
-    "empty": "Hỏi về cài đặt Sona. Các đề xuất hiện ở đây để xem xét trước khi có bất kỳ thay đổi nào.",
-    "inputPlaceholder": "Hỏi về Sona…",
+    "empty": "Hỏi về các cuộc họp, ghi chú và cài đặt của bạn. Thay đổi cài đặt xuất hiện ở đây dưới dạng đề xuất để bạn xem lại trước khi có gì thay đổi.",
     "inputLabel": "Hỏi về Sona",
     "send": "Gửi",
     "status": {
@@ -2321,9 +2388,34 @@
       "unpaired": "Chưa ghép nối với rơ-le.",
       "offline": "Rơ-le ngoại tuyến.",
       "idle": "Sẵn sàng",
-      "running": "Đang xử lý…",
       "proposal": "Đề xuất đã sẵn sàng",
       "error": "Bảng trợ lý không khả dụng."
+    },
+    "activityLabel": "Diễn tiến",
+    "workspaceLabel": "Ai trả lời",
+    "step": {
+      "sent": "Đã gửi"
+    },
+    "workspace": {
+      "sona_chat": "Hỏi",
+      "sona_config": "Cài đặt"
+    },
+    "placeholder": {
+      "sona_chat": "Hỏi về cuộc họp và ghi chú của bạn…",
+      "sona_config": "Hỏi về cài đặt của Sona…"
+    },
+    "turnState": {
+      "submitting": "Đang gửi",
+      "queued": "Đang xếp hàng",
+      "leased": "Đã nhận",
+      "running": "Đang nghĩ",
+      "waiting_user": "Đang chờ bạn",
+      "waiting_approval": "Đang chờ duyệt",
+      "canceling": "Đang dừng",
+      "succeeded": "Đã trả lời",
+      "failed": "Thất bại",
+      "canceled": "Đã dừng",
+      "unverified_external": "Phản hồi chưa xác minh"
     }
   },
   "overview": {

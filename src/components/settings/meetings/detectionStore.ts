@@ -82,6 +82,10 @@ export interface CalendarAttendee {
  * rendering an empty one. */
 export interface CalendarEventSummary {
   eventKey: string;
+  /** EventKit's calendar-item identifier, shared by every occurrence of a
+   * recurring event. Always sent, empty for an event that recurs not at all,
+   * which is what the series surfaces read as "no series". */
+  seriesKey: string;
   title: string;
   /** Includes participants EventKit refused to name, so it can exceed
    * `attendees.length`. */

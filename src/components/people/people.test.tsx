@@ -136,20 +136,26 @@ const DETAIL: PersonDetail = {
   links: [CONFIRMED_LINK, CURRENT_LINK, SUGGESTED_LINK],
   open_loops: [
     {
+      loop_id: "meeting-january:loop:a1b2c3d4e5f60718",
       meeting_id: CONFIRMED_LINK.meeting.id,
       title: CONFIRMED_LINK.meeting.title,
       at_utc_ms: JANUARY,
       text: "Who owns the launch checklist?",
       owner_person_id: PERSON.id,
+      status: "open",
       carried_since_at_utc_ms: JANUARY,
+      carried_into_meeting_id: null,
     },
   ],
   commitments: [
     {
+      loop_id: "meeting-january:commitment:8796a5b4c3d2e1f0",
       meeting_id: CONFIRMED_LINK.meeting.id,
       title: CONFIRMED_LINK.meeting.title,
       at_utc_ms: JANUARY,
       text: "Dana will send the tier comparison.",
+      status: "done",
+      resolved_at_utc_ms: JUNE,
     },
   ],
   talk_share_avg_permille: 347,
@@ -288,6 +294,18 @@ describe("person detail", () => {
     /* An open loop names the meeting it came from, and the name is the way
      * back into that meeting rather than a caption about it. */
     expect(occurrences(markup, ">Planning</button>")).toBe(2);
+  });
+
+  /* D18: a person page reads the loop's live state, not a copy of the words.
+   * The status word is the whole point of the row — a commitment already
+   * settled on the review screen must not read the same as one still owed. */
+  test("states where each loop stands, and how long the open one has been open", () => {
+    const markup = detail(DETAIL, []);
+
+    expect(occurrences(markup, 'data-slot="loop-status"')).toBe(2);
+    expect(markup).toContain(">Open<");
+    expect(markup).toContain(">Done<");
+    expect(markup).toContain("Open since");
   });
 });
 

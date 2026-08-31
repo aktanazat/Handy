@@ -1,4 +1,5 @@
 use super::document_types::{DocumentId, DocumentSummary};
+use super::loop_types::{MeetingLoopId, MeetingLoopStatus};
 use super::types::MeetingSessionId;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -66,22 +67,36 @@ pub struct PersonMeetingLink {
     pub confidence: PersonLinkConfidence,
 }
 
+/// A loop this person is on the hook for, as the people surfaces read it.
+///
+/// The words come from the meeting's ledger; `loop_id` and `status` come from
+/// the loop state row that ledger row is keyed to, so a resolution made on the
+/// review screen shows up here without a second copy of the state.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 pub struct PersonOpenLoop {
+    pub loop_id: MeetingLoopId,
     pub meeting_id: MeetingSessionId,
     pub title: String,
     pub at_utc_ms: i64,
     pub text: String,
     pub owner_person_id: Option<PersonId>,
+    pub status: MeetingLoopStatus,
+    /// When this loop was first raised, if it reached this meeting by being
+    /// carried forward from an earlier session in the series.
     pub carried_since_at_utc_ms: Option<i64>,
+    /// The meeting this loop was carried into, if it has already moved on.
+    pub carried_into_meeting_id: Option<MeetingSessionId>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 pub struct PersonCommitment {
+    pub loop_id: MeetingLoopId,
     pub meeting_id: MeetingSessionId,
     pub title: String,
     pub at_utc_ms: i64,
     pub text: String,
+    pub status: MeetingLoopStatus,
+    pub resolved_at_utc_ms: Option<i64>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]

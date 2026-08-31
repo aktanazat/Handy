@@ -6,11 +6,15 @@ mod wire;
 
 use config::{AppliedSettings, ConfigError, SettingUndo};
 use protocol::{
-    SonaAgentChatRoleV1, SonaAgentChatTurnV1, SonaAgentTurnV1, SonaAllowedValuesV1,
+    AgentPanelWorkspaceV1, PanelTurnV1, SonaAgentChatRoleV1, SonaAgentChatTurnV1,
+    SonaAgentResponseV1, SonaAgentStepV1, SonaAgentTurnV1, SonaAllowedValuesV1, SonaChatTurnV1,
     SonaConfigProposalV1, SonaConfirmationClassV1, SonaSettingChangeV1, MAX_RECENT_TURNS,
-    MAX_RECENT_TURN_BYTES, SONA_AGENT_TURN_VERSION,
+    MAX_RECENT_TURN_BYTES, SONA_AGENT_TURN_VERSION, SONA_CHAT_TURN_VERSION,
 };
-use relay::{RelayClient, RelayError, RelayEvent, RelayJob, RelayJobStateV1, ResponseNonceCache};
+use relay::{
+    validate_pairing, RelayClient, RelayError, RelayEvent, RelayJob, RelayJobStateV1,
+    ResponseNonceCache,
+};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
@@ -21,12 +25,13 @@ use window::{AgentPanelWindowController, WindowError, AGENT_PANEL_WINDOW_LABEL};
 pub use relay::AgentPanelPublicIdentityV1;
 pub use window::AgentPanelGeometryV1;
 pub use wire::{
-    AgentPanelApplyChangeRequestV1, AgentPanelCancelTurnRequestV1, AgentPanelCommandErrorV1,
-    AgentPanelGeometryChangedEvent, AgentPanelGeometryStatusV1, AgentPanelProposalChangedEvent,
-    AgentPanelProposalPreviewV1, AgentPanelProposalStateV1, AgentPanelRelayStatusV1,
-    AgentPanelSendTurnRequestV1, AgentPanelStatusChangedEvent, AgentPanelStatusV1,
-    AgentPanelTurnChangedEvent, AgentPanelTurnStateV1, AgentPanelTurnStatusV1,
-    AgentPanelUndoChangeRequestV1,
+    AgentPanelActorV1, AgentPanelApplyChangeRequestV1, AgentPanelCancelTurnRequestV1,
+    AgentPanelCommandErrorV1, AgentPanelGeometryChangedEvent, AgentPanelGeometryStatusV1,
+    AgentPanelPairingCommandV1, AgentPanelPairingReceiptV1, AgentPanelPairingRequestV1,
+    AgentPanelPairingStatusV1, AgentPanelProposalChangedEvent, AgentPanelProposalPreviewV1,
+    AgentPanelProposalStateV1, AgentPanelRelayStatusV1, AgentPanelSendTurnRequestV1,
+    AgentPanelStatusChangedEvent, AgentPanelStatusV1, AgentPanelTurnChangedEvent,
+    AgentPanelTurnStateV1, AgentPanelTurnStatusV1, AgentPanelUndoChangeRequestV1,
 };
 
 const MAIN_WINDOW_LABEL: &str = "main";
@@ -37,8 +42,9 @@ const MAX_CONVERSATION_TURNS: usize = MAX_RECENT_TURNS * 2;
 
 struct ActiveTurn {
     turn_id: String,
+    workspace: AgentPanelWorkspaceV1,
     idempotency_key: String,
-    request: SonaAgentTurnV1,
+    request: PanelTurnV1,
     allowed: SonaAllowedValuesV1,
     job_id: Option<String>,
     state: AgentPanelTurnStateV1,
@@ -46,14 +52,19 @@ struct ActiveTurn {
     submitting: bool,
     cancel_requested: bool,
     last_progress: Instant,
+    started_at_utc_ms: i64,
+    steps: Vec<SonaAgentStepV1>,
 }
 
 impl ActiveTurn {
     fn status(&self) -> AgentPanelTurnStatusV1 {
         AgentPanelTurnStatusV1 {
             turn_id: self.turn_id.clone(),
+            workspace: self.workspace,
             state: self.state,
             event_cursor: self.event_cursor,
+            started_at_utc_ms: self.started_at_utc_ms,
+            steps: self.steps.clone(),
         }
     }
 }
@@ -326,6 +337,13 @@ impl AgentPanelManager {
             .map_err(map_relay_error)
     }
 
+    pub(crate) async fn test_connection(&self) -> Result<(), AgentPanelCommandErrorV1> {
+        let client = RelayClient::from_settings(&self.app, self.nonce_cache.clone())
+            .await
+            .map_err(map_relay_error)?;
+        client.test_connection().await.map_err(map_relay_error)
+    }
+
     pub(crate) async fn send_turn(
         &self,
         request: AgentPanelSendTurnRequestV1,
@@ -341,11 +359,20 @@ impl AgentPanelManager {
             return Ok(self.current_status());
         }
 
-        let context = config::build_snapshot(&self.app)
-            .await
-            .map_err(map_config_error)?;
+        /* Only the settings proposer is shown the settings. Building that
+         * snapshot enumerates audio devices and permissions, so a question
+         * about last week's meeting neither pays for it nor sends it. */
+        let context = match request.workspace {
+            AgentPanelWorkspaceV1::SonaConfig => Some(
+                config::build_snapshot(&self.app)
+                    .await
+                    .map_err(map_config_error)?,
+            ),
+            AgentPanelWorkspaceV1::SonaChat => None,
+        };
         let idempotency_key = relay::new_idempotency_key().map_err(map_relay_error)?;
         let turn_id = request.turn_id.clone();
+        let started_at_utc_ms = chrono::Utc::now().timestamp_millis();
         let invalidation_id = {
             let mut state = self.lock_state();
             if state
@@ -363,36 +390,58 @@ impl AgentPanelManager {
                     conversation_id
                 }
             };
-            let turn = SonaAgentTurnV1 {
-                protocol_version: SONA_AGENT_TURN_VERSION.to_string(),
-                conversation_id,
-                turn_id: turn_id.clone(),
-                user_message: request.message.clone(),
-                recent_turns: state.recent_turns(),
-                config_snapshot: context.snapshot,
-                proposal_schema: SonaAgentTurnV1::proposal_schema()
-                    .map_err(|_| AgentPanelCommandErrorV1::InvalidRequest)?,
-                locale: request.locale,
-                app_version: env!("CARGO_PKG_VERSION").to_string(),
+            let recent_turns = state.recent_turns();
+            let (turn, allowed) = match context {
+                Some(context) => (
+                    PanelTurnV1::Config(SonaAgentTurnV1 {
+                        protocol_version: SONA_AGENT_TURN_VERSION.to_string(),
+                        conversation_id,
+                        turn_id: turn_id.clone(),
+                        user_message: request.message.clone(),
+                        recent_turns,
+                        config_snapshot: context.snapshot,
+                        proposal_schema: SonaAgentTurnV1::proposal_schema()
+                            .map_err(|_| AgentPanelCommandErrorV1::InvalidRequest)?,
+                        locale: request.locale,
+                        app_version: env!("CARGO_PKG_VERSION").to_string(),
+                    }),
+                    context.allowed,
+                ),
+                None => (
+                    PanelTurnV1::Chat(SonaChatTurnV1 {
+                        protocol_version: SONA_CHAT_TURN_VERSION.to_string(),
+                        conversation_id,
+                        turn_id: turn_id.clone(),
+                        user_message: request.message.clone(),
+                        recent_turns,
+                        context_pack: request.context_pack,
+                        locale: request.locale,
+                        app_version: env!("CARGO_PKG_VERSION").to_string(),
+                    }),
+                    SonaAllowedValuesV1::default(),
+                ),
             };
             turn.validate()
                 .map_err(|_| AgentPanelCommandErrorV1::InvalidRequest)?;
             state.push_conversation(SonaAgentChatTurnV1 {
                 role: SonaAgentChatRoleV1::User,
-                message: turn.user_message.clone(),
+                message: turn.user_message().to_string(),
             });
             state.proposal = None;
             state.turn = Some(ActiveTurn {
-                turn_id: turn.turn_id.clone(),
+                turn_id: turn.turn_id().to_string(),
+                workspace: turn.workspace(),
                 idempotency_key,
                 request: turn,
-                allowed: context.allowed,
+                allowed,
                 job_id: None,
                 state: AgentPanelTurnStateV1::Submitting,
                 event_cursor: 0,
                 submitting: false,
                 cancel_requested: false,
                 last_progress: Instant::now(),
+                started_at_utc_ms,
+                steps: Vec::new(),
             });
             state.invalidate()
         };
@@ -420,7 +469,10 @@ impl AgentPanelManager {
         if active.turn_id != request.turn_id {
             return Err(AgentPanelCommandErrorV1::TurnActive);
         }
-        if active.request.user_message != request.message || active.request.locale != request.locale
+        if active.workspace != request.workspace
+            || active.request.user_message() != request.message
+            || active.request.locale() != request.locale
+            || active.request.context_pack() != request.context_pack.as_deref()
         {
             return Err(AgentPanelCommandErrorV1::InvalidRequest);
         }
@@ -516,7 +568,7 @@ impl AgentPanelManager {
     }
 
     async fn cancel_known_turn(&self, turn_id: &str) -> Result<(), AgentPanelCommandErrorV1> {
-        let job_id = {
+        let (job_id, workspace) = {
             let state = self.lock_state();
             let active = state
                 .turn
@@ -529,10 +581,10 @@ impl AgentPanelManager {
             if active.state.is_terminal() {
                 return Ok(());
             }
-            job_id
+            (job_id, active.workspace)
         };
         let result = match RelayClient::from_settings(&self.app, self.nonce_cache.clone()).await {
-            Ok(client) => client.cancel_job(&job_id).await,
+            Ok(client) => client.cancel_job(&job_id, workspace).await,
             Err(error) => Err(error),
         };
         match result {
@@ -558,11 +610,11 @@ impl AgentPanelManager {
         let RelayJob {
             id: job_id,
             state: relay_state,
-            proposal,
+            response,
         } = job;
         let auto_apply_enabled =
             crate::settings::get_settings(&self.app).agent_panel_safe_appearance_auto_apply;
-        let (expected_revision, allowed, existing_job_id) = {
+        let (workspace, expected_revision, allowed, existing_job_id) = {
             let state = self.lock_state();
             let active = state
                 .turn
@@ -570,7 +622,8 @@ impl AgentPanelManager {
                 .filter(|active| active.turn_id == turn_id)
                 .ok_or(AgentPanelCommandErrorV1::UnknownTurn)?;
             (
-                active.request.config_snapshot.settings_revision,
+                active.workspace,
+                active.request.settings_revision(),
                 active.allowed.clone(),
                 active.job_id.clone(),
             )
@@ -582,12 +635,19 @@ impl AgentPanelManager {
             self.record_relay_error(turn_id, RelayError::OwnershipRejected, false);
             return Err(AgentPanelCommandErrorV1::OwnershipRejected);
         }
-        if proposal
-            .as_ref()
-            .is_some_and(|proposal| proposal.validate(expected_revision, &allowed).is_err())
-        {
-            self.record_protocol_failure(turn_id);
-            return Err(AgentPanelCommandErrorV1::InvalidProposal);
+        if let Some(response) = response.as_ref() {
+            if response
+                .validate(workspace, expected_revision, &allowed)
+                .is_err()
+            {
+                self.record_protocol_failure(turn_id);
+                return Err(match response {
+                    SonaAgentResponseV1::Proposal { .. } => {
+                        AgentPanelCommandErrorV1::InvalidProposal
+                    }
+                    SonaAgentResponseV1::Text { .. } => AgentPanelCommandErrorV1::UntrustedResponse,
+                });
+            }
         }
 
         let (invalidation_id, turn_state, proposal_event, follow_up) = {
@@ -609,33 +669,49 @@ impl AgentPanelManager {
                 active.submitting = false;
                 active.last_progress = Instant::now();
                 active.state = turn_state_for_job(&relay_state, active.cancel_requested);
+                if let Some(response) = response.as_ref() {
+                    active.steps = response.steps().to_vec();
+                }
                 (active.cancel_requested, active.state)
             };
             state.relay_status = AgentPanelRelayStatusV1::Ready;
 
             let mut proposal_event = None;
             let mut auto_apply = false;
-            if let Some(proposal) = proposal {
-                let proposal_id = format!("proposal-{turn_id}");
-                let summary = proposal.summary.clone();
-                let all_safe_appearance = !proposal.actions.is_empty()
-                    && proposal
-                        .actions
-                        .iter()
-                        .all(SonaSettingChangeV1::is_auto_eligible);
-                state.push_conversation(SonaAgentChatTurnV1 {
-                    role: SonaAgentChatRoleV1::Assistant,
-                    message: summary,
-                });
-                state.proposal = Some(StoredProposal {
-                    id: proposal_id.clone(),
-                    proposal,
-                    allowed,
-                    state: AgentPanelProposalStateV1::Pending,
-                    receipt: None,
-                });
-                proposal_event = Some((proposal_id, AgentPanelProposalStateV1::Pending));
-                auto_apply = auto_apply_enabled && all_safe_appearance;
+            match response {
+                /* An answer is just the next thing said in the conversation.
+                 * It has no card, nothing to apply and nothing to undo, which
+                 * is the whole difference between asking Sona something and
+                 * asking Sona to change something. */
+                Some(SonaAgentResponseV1::Text { message, .. }) => {
+                    state.push_conversation(SonaAgentChatTurnV1 {
+                        role: SonaAgentChatRoleV1::Assistant,
+                        message,
+                    });
+                }
+                Some(SonaAgentResponseV1::Proposal { proposal, .. }) => {
+                    let proposal_id = format!("proposal-{turn_id}");
+                    let summary = proposal.summary.clone();
+                    let all_safe_appearance = !proposal.actions.is_empty()
+                        && proposal
+                            .actions
+                            .iter()
+                            .all(SonaSettingChangeV1::is_auto_eligible);
+                    state.push_conversation(SonaAgentChatTurnV1 {
+                        role: SonaAgentChatRoleV1::Assistant,
+                        message: summary,
+                    });
+                    state.proposal = Some(StoredProposal {
+                        id: proposal_id.clone(),
+                        proposal,
+                        allowed,
+                        state: AgentPanelProposalStateV1::Pending,
+                        receipt: None,
+                    });
+                    proposal_event = Some((proposal_id, AgentPanelProposalStateV1::Pending));
+                    auto_apply = auto_apply_enabled && all_safe_appearance;
+                }
+                None => {}
             }
             let invalidation_id = state.invalidate();
             let follow_up = JobFollowUp {
@@ -935,6 +1011,7 @@ impl AgentPanelManager {
         };
         Some(PollPlan {
             turn_id: active.turn_id.clone(),
+            workspace: active.workspace,
             job_id,
             event_cursor: active.event_cursor,
             delay,
@@ -979,7 +1056,7 @@ impl AgentPanelManager {
     pub(crate) async fn shutdown(&self) {
         self.stop_polling();
         self.window.on_main_destroyed();
-        let job_id = {
+        let pending = {
             let mut state = self.lock_state();
             state.panel_open = false;
             state.turn.as_mut().and_then(|active| {
@@ -987,15 +1064,18 @@ impl AgentPanelManager {
                     None
                 } else {
                     active.cancel_requested = true;
-                    active.job_id.clone()
+                    active
+                        .job_id
+                        .clone()
+                        .map(|job_id| (job_id, active.workspace))
                 }
             })
         };
-        let Some(job_id) = job_id else {
+        let Some((job_id, workspace)) = pending else {
             return;
         };
         if let Ok(client) = RelayClient::from_settings(&self.app, self.nonce_cache.clone()).await {
-            let _ = client.cancel_job(&job_id).await;
+            let _ = client.cancel_job(&job_id, workspace).await;
         }
     }
 
@@ -1054,6 +1134,7 @@ impl AgentPanelManager {
 
 struct PollPlan {
     turn_id: String,
+    workspace: AgentPanelWorkspaceV1,
     job_id: String,
     event_cursor: u64,
     delay: Duration,
@@ -1102,7 +1183,7 @@ async fn poll_once(app: &AppHandle, plan: &PollPlan) -> Result<(), AgentPanelCom
             };
         }
     };
-    let job = match client.get_job(&plan.job_id).await {
+    let job = match client.get_job(&plan.job_id, plan.workspace).await {
         Ok(job) => job,
         Err(error) => {
             let manager = app.state::<AgentPanelManager>();
@@ -1358,6 +1439,118 @@ pub fn change_agent_panel_enabled_setting(app: AppHandle, enabled: bool) -> Resu
         }
     }
     Ok(())
+}
+
+/// Where the pairing lives, read back for a receipt. Settings is the one copy
+/// of this state; nothing caches it beside the store.
+fn pairing_status(app: &AppHandle) -> AgentPanelPairingStatusV1 {
+    let settings = crate::settings::get_settings(app);
+    AgentPanelPairingStatusV1 {
+        paired: settings.agent_panel_paired,
+        relay_url: settings.agent_panel_relay_url,
+        relay_key_id: settings.agent_panel_relay_key_id,
+        relay_public_key: settings.agent_panel_relay_public_key,
+        last_successful_connection_at_utc_ms: settings.agent_panel_last_successful_connection_at,
+    }
+}
+
+fn pairing_receipt(
+    app: &AppHandle,
+    command: AgentPanelPairingCommandV1,
+    requested_at_utc_ms: i64,
+) -> Result<AgentPanelPairingReceiptV1, AgentPanelCommandErrorV1> {
+    let receipt_id = format!(
+        "pairing-{}",
+        relay::new_idempotency_key().map_err(map_relay_error)?
+    );
+    Ok(AgentPanelPairingReceiptV1 {
+        schema_version: 1,
+        receipt_id,
+        command,
+        actor: AgentPanelActorV1::User,
+        requested_at_utc_ms,
+        committed_at_utc_ms: chrono::Utc::now().timestamp_millis(),
+        pairing: pairing_status(app),
+    })
+}
+
+/// Pair the panel with a relay. The URL and the pinned key are checked by the
+/// same code the client uses to build a request, so a pairing that saves is a
+/// pairing the next turn can actually use.
+///
+/// Pairing does not test the connection — `agent_panel_test_connection` does,
+/// and separating them is what lets the screen say "saved, never reached"
+/// instead of refusing to save a relay that happens to be asleep.
+#[tauri::command]
+#[specta::specta]
+pub fn set_agent_panel_pairing(
+    caller: WebviewWindow,
+    app: AppHandle,
+    request: AgentPanelPairingRequestV1,
+) -> Result<AgentPanelPairingReceiptV1, AgentPanelCommandErrorV1> {
+    require_caller(&caller, &[MAIN_WINDOW_LABEL])?;
+    let requested_at_utc_ms = chrono::Utc::now().timestamp_millis();
+    let pairing = validate_pairing(
+        &request.relay_url,
+        &request.relay_key_id,
+        &request.relay_public_key,
+    )
+    .map_err(map_relay_error)?;
+    crate::settings::update_settings(&app, |settings| {
+        let rotated = settings.agent_panel_relay_url.as_deref() != Some(pairing.relay_url.as_str())
+            || settings.agent_panel_relay_public_key.as_deref()
+                != Some(pairing.relay_public_key.as_str());
+        settings.agent_panel_relay_url = Some(pairing.relay_url);
+        settings.agent_panel_relay_key_id = Some(pairing.relay_key_id);
+        settings.agent_panel_relay_public_key = Some(pairing.relay_public_key);
+        settings.agent_panel_paired = true;
+        /* A different relay or a different key is a different peer, so the
+         * last time we reached one says nothing about this one. */
+        if rotated {
+            settings.agent_panel_last_successful_connection_at = None;
+        }
+    });
+    pairing_receipt(&app, AgentPanelPairingCommandV1::Set, requested_at_utc_ms)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn clear_agent_panel_pairing(
+    caller: WebviewWindow,
+    app: AppHandle,
+) -> Result<AgentPanelPairingReceiptV1, AgentPanelCommandErrorV1> {
+    require_caller(&caller, &[MAIN_WINDOW_LABEL])?;
+    let requested_at_utc_ms = chrono::Utc::now().timestamp_millis();
+    crate::settings::update_settings(&app, |settings| {
+        settings.agent_panel_relay_url = None;
+        settings.agent_panel_relay_key_id = None;
+        settings.agent_panel_relay_public_key = None;
+        settings.agent_panel_paired = false;
+        settings.agent_panel_last_successful_connection_at = None;
+    });
+    pairing_receipt(&app, AgentPanelPairingCommandV1::Clear, requested_at_utc_ms)
+}
+
+/// One signed round-trip against the paired relay, so the screen can tell a
+/// wrong URL from a wrong key from a relay that is simply not running.
+#[tauri::command]
+#[specta::specta]
+pub async fn agent_panel_test_connection(
+    caller: WebviewWindow,
+    app: AppHandle,
+    manager: State<'_, AgentPanelManager>,
+) -> Result<AgentPanelPairingReceiptV1, AgentPanelCommandErrorV1> {
+    require_caller(&caller, &[MAIN_WINDOW_LABEL])?;
+    let requested_at_utc_ms = chrono::Utc::now().timestamp_millis();
+    manager.test_connection().await?;
+    crate::settings::update_settings(&app, |settings| {
+        settings.agent_panel_last_successful_connection_at = Some(requested_at_utc_ms);
+    });
+    pairing_receipt(
+        &app,
+        AgentPanelPairingCommandV1::TestConnection,
+        requested_at_utc_ms,
+    )
 }
 
 #[cfg(test)]

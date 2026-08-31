@@ -1493,7 +1493,40 @@
         "rowDescription": "Wyłączenie tej opcji zamyka okno panelu i sprawia, że Sona odrzuca każdą prośbę o jego ponowne otwarcie.",
         "title": "Panel agentów"
       },
-      "workspaceNavigation": "Widoki mostka agentów"
+      "workspaceNavigation": "Widoki mostka agentów",
+      "sonaAgent": {
+        "title": "Agent Sony",
+        "pairing": "Parowanie",
+        "paired": "Sparowano",
+        "unpaired": "Niesparowane",
+        "lastReached": "Ostatni kontakt",
+        "never": "Nigdy",
+        "relayUrl": "Adres przekaźnika",
+        "relayUrlHint": "Przyjmowany jest tylko adres w Tailscale albo ten Mac. Cokolwiek w otwartym internecie zostaje odrzucone, zanim się zapisze.",
+        "relayKeyId": "Identyfikator klucza przekaźnika",
+        "relayPublicKey": "Klucz publiczny przekaźnika",
+        "identity": "Klucz publiczny tego Maca",
+        "identityHint": "Dodaj ten klucz w przekaźniku, żeby przyjmował zapytania z tego Maca. Prywatna połowa nigdy nie opuszcza pęku kluczy.",
+        "identityUnavailable": "Włącz panel agenta, aby utworzyć klucz.",
+        "copy": "Kopiuj",
+        "copied": "Skopiowano",
+        "save": "Zapisz",
+        "unpair": "Rozparuj",
+        "test": "Sprawdź",
+        "reached": "Przekaźnik odpowiedział.",
+        "failed": "Nie udało się sparować z przekaźnikiem.",
+        "reason": {
+          "unauthorized_window": "To okno nie może zmieniać parowania.",
+          "disabled": "Panel agenta jest wyłączony.",
+          "unpaired": "Żaden przekaźnik nie jest jeszcze sparowany.",
+          "offline": "Przekaźnik nie odpowiedział.",
+          "invalid_configuration": "Sona nie użyje tego adresu ani klucza.",
+          "secret_unavailable": "Nie udało się odczytać klucza tego Maca.",
+          "untrusted_response": "Odpowiedź nie została podpisana przez sparowany przekaźnik.",
+          "remote_rejected": "Przekaźnik odrzucił żądanie.",
+          "ownership_rejected": "Przekaźnik odpowiedział za kogoś innego."
+        }
+      }
     },
     "workflows": {
       "title": "Przepływy pracy",
@@ -1525,6 +1558,9 @@
         },
         "meeting_activity": {
           "name": "Nagrywanie spotkań"
+        },
+        "daily_digest": {
+          "name": "Wieczorne podsumowanie"
         }
       },
       "status": {
@@ -1556,7 +1592,8 @@
         "autoRecordStopped": "Nagrywanie zatrzymało się automatycznie",
         "alreadyProcessed": "Nic nowego do zrobienia",
         "failed": "Nie udało się dokończyć",
-        "skipped": "Pominięto"
+        "skipped": "Pominięto",
+        "digestRaised": "Podsumowano dzień"
       },
       "vocabularySuggestions": {
         "title": "Z Twoich spotkań",
@@ -1642,6 +1679,14 @@
       "positionLabel": "Położenie pigułki spoczynkowej",
       "positionTop": "Górna",
       "positionBottom": "Dolna"
+    },
+    "meetings": {
+      "digest": {
+        "title": "Wieczorne podsumowanie",
+        "description": "Jedno powiadomienie na koniec dnia, w którym były spotkania lub zamknięte wątki. Wszystko zostaje na tym Macu.",
+        "timeLabel": "Godzina podsumowania",
+        "timeHint": "Czas lokalny. Dzień, w którym nic się nie wydarzyło, pozostaje cichy."
+      }
     }
   },
   "common": {
@@ -2091,6 +2136,23 @@
         "soft": "Miękkie"
       }
     },
+    "loops": {
+      "status": {
+        "open": "Otwarte",
+        "done": "Zrobione",
+        "dropped": "Porzucone",
+        "carried": "Przeniesione"
+      },
+      "markDone": "Oznacz tę sprawę jako zrobioną",
+      "drop": "Porzuć",
+      "reopen": "Otwórz ponownie",
+      "owner": "Odpowiedzialny",
+      "ownerIs": "Odpowiedzialny: {{owner}}",
+      "ownerUnassigned": "Jeszcze nikt",
+      "instead": "Zamiast tego: {{instead}}",
+      "carriedForward": "Przeniesione z wcześniejszego spotkania",
+      "stale": "Ktoś inny zmienił tę sprawę pierwszy, więc lista została odświeżona."
+    },
     "artifactState": {
       "current": "Aktualne",
       "out_of_date": "Nieaktualne",
@@ -2281,7 +2343,8 @@
         "notes": "Notatki",
         "participants": "Uczestnicy",
         "link": "Odnośnik",
-        "description": "Opis"
+        "description": "Opis",
+        "notesSeries": "dla tej serii"
       },
       "attendees_one": "{{count}} osoba",
       "attendees_other": "{{count}} osób",
@@ -2318,6 +2381,11 @@
       },
       "linkFailed": "Sona nie mogła otworzyć tego odnośnika.",
       "skippedNote": "Pominięcie ukrywa tutaj propozycję. Sona nadal widzi to połączenie, dopóki propozycja nie wygaśnie."
+    },
+    "seriesTemplate": {
+      "use": "Użyj tego szablonu dla tej serii",
+      "saving": "Zapamiętywanie…",
+      "remembered": "Ta seria używa szablonu {{template}}"
     }
   },
   "agentPanel": {
@@ -2329,8 +2397,7 @@
     "panelToggle": "Zamknij panel agenta",
     "conversationLabel": "Rozmowa",
     "proposalTitle": "Proponowane zmiany",
-    "empty": "Zapytaj o ustawienia Sona. Propozycje pojawiają się tutaj do przeglądu, zanim cokolwiek się zmieni.",
-    "inputPlaceholder": "Zapytaj o Sona…",
+    "empty": "Zapytaj o swoje spotkania, notatki i ustawienia. Zmiany ustawień pojawiają się tutaj jako propozycja, którą przeglądasz, zanim cokolwiek się zmieni.",
     "inputLabel": "Zapytaj o Sona",
     "send": "Wyślij",
     "status": {
@@ -2339,9 +2406,34 @@
       "unpaired": "Brak pary z przekaźnikiem.",
       "offline": "Przekaźnik jest offline.",
       "idle": "Gotowe",
-      "running": "Pracuje…",
       "proposal": "Propozycja gotowa",
       "error": "Panel agenta jest niedostępny."
+    },
+    "activityLabel": "Przebieg",
+    "workspaceLabel": "Kto odpowiada",
+    "step": {
+      "sent": "Wysłano"
+    },
+    "workspace": {
+      "sona_chat": "Pytanie",
+      "sona_config": "Ustawienia"
+    },
+    "placeholder": {
+      "sona_chat": "Zapytaj o swoje spotkania i notatki…",
+      "sona_config": "Zapytaj o ustawienia Sony…"
+    },
+    "turnState": {
+      "submitting": "Wysyłanie",
+      "queued": "W kolejce",
+      "leased": "Podjęte",
+      "running": "Myśli",
+      "waiting_user": "Czeka na ciebie",
+      "waiting_approval": "Czeka na zatwierdzenie",
+      "canceling": "Zatrzymywanie",
+      "succeeded": "Odpowiedziano",
+      "failed": "Niepowodzenie",
+      "canceled": "Zatrzymano",
+      "unverified_external": "Niezweryfikowana odpowiedź"
     }
   },
   "overview": {

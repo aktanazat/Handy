@@ -510,6 +510,25 @@ function App() {
     };
   }, []);
 
+  /* The evening digest's one gesture. It names no object — the notification is
+   * about the day — so it asks for Capture and nothing else. */
+  useEffect(() => {
+    let disposed = false;
+    let unsubscribe: (() => void) | null = null;
+    void events.sonaCaptureRequested
+      .listen(() => {
+        if (!disposed) setCurrentSection("overview");
+      })
+      .then((cleanup) => {
+        if (disposed) cleanup();
+        else unsubscribe = cleanup;
+      });
+    return () => {
+      disposed = true;
+      unsubscribe?.();
+    };
+  }, []);
+
   useEffect(() => {
     checkOnboardingStatus();
   }, []);

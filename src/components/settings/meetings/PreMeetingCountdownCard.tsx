@@ -13,6 +13,7 @@ import {
   MeetingPreviewList,
   eventFacts,
 } from "./MeetingPreviewCard";
+import { useSeriesTemplate } from "./seriesTemplate";
 
 /* The pre-meeting pane from §5.3 case 1, plus any prompt still waiting.
  *
@@ -73,6 +74,12 @@ export const PreMeetingCountdownCard: React.FC<
   );
 
   const countdown = status?.countdown ?? null;
+  /* D21: what the next meeting in this series will actually be shaped into.
+   * The hook is called before the early return below, because a hook cannot be
+   * conditional — it answers null for an event with no series, which is the
+   * same thing the early return would have meant. */
+  const seriesTemplate = useSeriesTemplate(countdown?.event.seriesKey ?? null);
+  const countdownTemplate = seriesTemplate?.template ?? notesTemplate;
   if (countdown === null && prompts.length === 0) return null;
 
   const toggleSource = (source: SourceKind) =>
@@ -117,7 +124,8 @@ export const PreMeetingCountdownCard: React.FC<
             },
           }}
           recording={recording}
-          notesTemplate={notesTemplate}
+          notesTemplate={countdownTemplate}
+          notesTemplateFromSeries={seriesTemplate?.template != null}
           starting={starting}
           onStart={() => onStartEvent(countdown.event)}
         />

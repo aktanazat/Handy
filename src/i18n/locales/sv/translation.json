@@ -1493,7 +1493,40 @@
         "rowDescription": "Om detta stängs av stängs panelfönstret och Sona nekar alla förfrågningar att öppna det igen.",
         "title": "Agentpanel"
       },
-      "workspaceNavigation": "Vyer för agentbryggan"
+      "workspaceNavigation": "Vyer för agentbryggan",
+      "sonaAgent": {
+        "title": "Sona-agent",
+        "pairing": "Parkoppling",
+        "paired": "Parkopplad",
+        "unpaired": "Inte parkopplad",
+        "lastReached": "Senast nådd",
+        "never": "Aldrig",
+        "relayUrl": "Reläets adress",
+        "relayUrlHint": "Bara en Tailscale-adress eller den här datorn accepteras. Allt på det öppna internet avvisas innan det sparas.",
+        "relayKeyId": "Reläets nyckel-id",
+        "relayPublicKey": "Reläets publika nyckel",
+        "identity": "Den här datorns publika nyckel",
+        "identityHint": "Lägg in nyckeln i reläet så att det tar emot turer från den här datorn. Den privata halvan lämnar aldrig din nyckelring.",
+        "identityUnavailable": "Slå på agentpanelen för att skapa en nyckel.",
+        "copy": "Kopiera",
+        "copied": "Kopierat",
+        "save": "Spara",
+        "unpair": "Koppla från",
+        "test": "Testa",
+        "reached": "Reläet svarade.",
+        "failed": "Det gick inte att parkoppla reläet.",
+        "reason": {
+          "unauthorized_window": "Det fönstret får inte ändra parkopplingen.",
+          "disabled": "Agentpanelen är avstängd.",
+          "unpaired": "Inget relä är parkopplat än.",
+          "offline": "Reläet svarade inte.",
+          "invalid_configuration": "Sona använder inte den adressen eller nyckeln.",
+          "secret_unavailable": "Det gick inte att läsa den här datorns nyckel.",
+          "untrusted_response": "Svaret var inte signerat av det parkopplade reläet.",
+          "remote_rejected": "Reläet avvisade begäran.",
+          "ownership_rejected": "Reläet svarade åt någon annan."
+        }
+      }
     },
     "workflows": {
       "title": "Arbetsflöden",
@@ -1525,6 +1558,9 @@
         },
         "meeting_activity": {
           "name": "Mötesinspelning"
+        },
+        "daily_digest": {
+          "name": "Kvällssammanfattning"
         }
       },
       "status": {
@@ -1548,7 +1584,8 @@
         "autoRecordStopped": "Inspelningen stoppade automatiskt",
         "alreadyProcessed": "Inget nytt att göra",
         "failed": "Kunde inte slutföras",
-        "skipped": "Hoppades över"
+        "skipped": "Hoppades över",
+        "digestRaised": "Sammanfattade dagen"
       },
       "vocabularySuggestions": {
         "title": "Från dina möten",
@@ -1630,6 +1667,14 @@
       "positionLabel": "Vilopillrets placering",
       "positionTop": "Överkant",
       "positionBottom": "Nederkant"
+    },
+    "meetings": {
+      "digest": {
+        "title": "Kvällssammanfattning",
+        "description": "En avisering i slutet av en dag med möten eller avslutade punkter. Allt stannar på den här Macen.",
+        "timeLabel": "Tid för sammanfattning",
+        "timeHint": "Lokal tid. En dag utan något förblir tyst."
+      }
     }
   },
   "common": {
@@ -2079,6 +2124,23 @@
         "soft": "Mjuk"
       }
     },
+    "loops": {
+      "status": {
+        "open": "Öppen",
+        "done": "Klar",
+        "dropped": "Släppt",
+        "carried": "Överförd"
+      },
+      "markDone": "Markera den här punkten som klar",
+      "drop": "Släpp",
+      "reopen": "Öppna igen",
+      "owner": "Ansvarig",
+      "ownerIs": "Ansvarig: {{owner}}",
+      "ownerUnassigned": "Ingen ännu",
+      "instead": "I stället: {{instead}}",
+      "carriedForward": "Överförd från ett tidigare möte",
+      "stale": "Någon annan flyttade den här punkten först, så listan har uppdaterats."
+    },
     "artifactState": {
       "current": "Aktuell",
       "out_of_date": "Inaktuell",
@@ -2269,7 +2331,8 @@
         "notes": "Anteckningar",
         "participants": "Deltagare",
         "link": "Länk",
-        "description": "Beskrivning"
+        "description": "Beskrivning",
+        "notesSeries": "för den här serien"
       },
       "attendees_one": "{{count}} person",
       "attendees_other": "{{count}} personer",
@@ -2306,6 +2369,11 @@
       },
       "linkFailed": "Sona kunde inte öppna den länken.",
       "skippedNote": "Att hoppa över döljer erbjudandet här. Sona fortsätter se samtalet tills erbjudandet går ut."
+    },
+    "seriesTemplate": {
+      "use": "Använd den här mallen för den här serien",
+      "saving": "Sparar…",
+      "remembered": "Den här serien använder {{template}}"
     }
   },
   "agentPanel": {
@@ -2317,8 +2385,7 @@
     "panelToggle": "Stäng agentpanelen",
     "conversationLabel": "Konversation",
     "proposalTitle": "Föreslagna ändringar",
-    "empty": "Fråga om Sona-inställningar. Förslag visas här för granskning innan något ändras.",
-    "inputPlaceholder": "Fråga om Sona…",
+    "empty": "Fråga om dina möten, anteckningar och inställningar. Ändringar av inställningar dyker upp här som ett förslag du går igenom innan något ändras.",
     "inputLabel": "Fråga om Sona",
     "send": "Skicka",
     "status": {
@@ -2327,9 +2394,34 @@
       "unpaired": "Inte ihopparad med ett relä.",
       "offline": "Reläet är offline.",
       "idle": "Redo",
-      "running": "Arbetar…",
       "proposal": "Förslaget är klart",
       "error": "Agentpanelen är inte tillgänglig."
+    },
+    "activityLabel": "Förlopp",
+    "workspaceLabel": "Vem svarar",
+    "step": {
+      "sent": "Skickat"
+    },
+    "workspace": {
+      "sona_chat": "Fråga",
+      "sona_config": "Inställningar"
+    },
+    "placeholder": {
+      "sona_chat": "Fråga om dina möten och anteckningar…",
+      "sona_config": "Fråga om Sonas inställningar…"
+    },
+    "turnState": {
+      "submitting": "Skickar",
+      "queued": "I kö",
+      "leased": "Upptaget",
+      "running": "Tänker",
+      "waiting_user": "Väntar på dig",
+      "waiting_approval": "Väntar på godkännande",
+      "canceling": "Stoppar",
+      "succeeded": "Besvarat",
+      "failed": "Misslyckades",
+      "canceled": "Stoppat",
+      "unverified_external": "Overifierat svar"
     }
   },
   "overview": {

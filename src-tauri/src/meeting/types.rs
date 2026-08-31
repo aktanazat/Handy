@@ -48,6 +48,12 @@ meeting_id!(MeetingQuestionId);
 meeting_id!(MeetingArtifactId);
 meeting_id!(MeetingDiarizationGenerationId);
 
+/// The title a recording with no calendar event and no recognised app gets
+/// before anything has been read out of it. One constant because two places
+/// mint it and a third has to recognise it: a derived title may only replace
+/// this exact string, never a title a person typed.
+pub const MANUAL_DEFAULT_TITLE: &str = "Local notes";
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, Type)]
 #[serde(transparent)]
 pub struct SourceEpoch(pub u64);
@@ -622,6 +628,11 @@ pub enum MeetingCommandKind {
     Delete,
     RetentionSet,
     RemoteCancel,
+    LoopResolve,
+    LoopReopen,
+    LoopAssign,
+    LoopCarry,
+    SeriesTemplateSet,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
@@ -1028,6 +1039,23 @@ pub struct GeneratedMeetingArtifacts {
     /// back; a `TEMPLATE_VERSION` bump is what retires those.
     #[serde(default)]
     pub ledger: Option<MeetingLedger>,
+}
+
+impl GeneratedMeetingArtifacts {
+    /// The one line that stands for this meeting: the ledger's reading across
+    /// rows when there is one, the summary otherwise. Every surface that shows
+    /// a meeting in one line reads this, including the derived title, so a
+    /// meeting is never headlined two different ways.
+    pub fn headline(&self) -> Option<&str> {
+        self.ledger
+            .as_ref()
+            .map(|ledger| ledger.headline.trim())
+            .filter(|headline| !headline.is_empty())
+            .or_else(|| {
+                let summary = self.summary.text.trim();
+                (!summary.is_empty()).then_some(summary)
+            })
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]

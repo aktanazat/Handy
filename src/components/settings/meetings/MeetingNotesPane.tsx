@@ -28,6 +28,7 @@ import {
   type MeetingNotesTemplate,
   type MeetingUserNotes,
 } from "./meetingAnalytics";
+import { useSessionSeriesTemplate } from "./seriesTemplate";
 
 /* The user's own notes for one meeting: a plain text area they type into while
  * the call runs, saved on a short delay so nothing is lost, and blended into
@@ -291,6 +292,11 @@ export const MeetingNotesPane: React.FC<MeetingNotesPaneProps> = ({
                   ? t("meetings.notes.enhancing", "Rebuilding…")
                   : t("meetings.notes.reenhance", "Re-enhance with my notes")}
               </Button>
+              <SeriesTemplateAction
+                sessionId={sessionId}
+                template={notes?.template ?? "general"}
+                disabled={busy || enhancing}
+              />
             </>
           )}
         </div>
@@ -309,6 +315,53 @@ export const MeetingNotesPane: React.FC<MeetingNotesPaneProps> = ({
 
       {catchUp === null ? null : <CatchUpResult result={catchUp} />}
     </SettingsCard>
+  );
+};
+
+interface SeriesTemplateActionProps {
+  sessionId: string;
+  template: MeetingNotesTemplate;
+  disabled: boolean;
+}
+
+/* D21, offered where the choice was just made.
+ *
+ * Renders nothing for a meeting that belongs to no calendar series: there is
+ * nothing to remember it against, and a disabled button would be the app
+ * asking a question it already knows the answer to. It also disappears once
+ * this template *is* the series' template, because pressing it again would do
+ * nothing and say so afterwards. */
+const SeriesTemplateAction: React.FC<SeriesTemplateActionProps> = ({
+  sessionId,
+  template,
+  disabled,
+}) => {
+  const { t } = useTranslation();
+  const { snapshot, saving, remember } = useSessionSeriesTemplate(sessionId);
+
+  if (snapshot === null || snapshot.series_key === null) return null;
+  if (snapshot.template === template) {
+    return (
+      <Microlabel>
+        {t("meetings.seriesTemplate.remembered", {
+          template: t(`meetings.notes.templates.${template}`),
+          defaultValue: "This series uses {{template}}",
+        })}
+      </Microlabel>
+    );
+  }
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={() => void remember(template)}
+      disabled={disabled || saving}
+    >
+      {saving
+        ? t("meetings.seriesTemplate.saving", "Remembering…")
+        : t("meetings.seriesTemplate.use", "Use this template for this series")}
+    </Button>
   );
 };
 

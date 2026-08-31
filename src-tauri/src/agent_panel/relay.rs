@@ -1,4 +1,6 @@
-use super::protocol::{SonaAgentTurnV1, SonaConfigProposalV1, MAX_PROPOSAL_BYTES};
+use super::protocol::{
+    AgentPanelWorkspaceV1, PanelTurnV1, SonaAgentResponseV1, MAX_PROPOSAL_BYTES,
+};
 use base64::Engine as _;
 use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
 use futures_util::StreamExt;
@@ -24,9 +26,7 @@ const HEADER_SIGNATURE: &str = "X-Bridge-Sig";
 const MAX_SKEW_SECONDS: u64 = 300;
 const MAX_RESPONSE_BYTES: usize = 64 * 1024;
 const RESPONSE_NONCE_TTL: Duration = Duration::from_secs(MAX_SKEW_SECONDS * 2);
-pub(crate) const SONA_WORKSPACE_ID: &str = "sona-config";
 pub(crate) const SONA_MODEL_ALIAS: &str = "ultra";
-pub(crate) const SONA_CAPABILITY: &str = "sona-config";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum RelayError {
@@ -71,7 +71,18 @@ impl RelayJobStateV1 {
 pub(crate) struct RelayJob {
     pub(crate) id: String,
     pub(crate) state: RelayJobStateV1,
-    pub(crate) proposal: Option<SonaConfigProposalV1>,
+    pub(crate) response: Option<SonaAgentResponseV1>,
+}
+
+/// The routing facts a job is checked against on the way back in. A reply is
+/// only this client's reply if it came from the workspace this client asked,
+/// under the capability it asked for: the panel now speaks to two workspaces,
+/// so what used to be a pair of constants is carried per job.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct RelayJobExpectation<'a> {
+    pub(crate) workspace: AgentPanelWorkspaceV1,
+    pub(crate) job_id: Option<&'a str>,
+    pub(crate) idempotency_key: Option<&'a str>,
 }
 
 #[derive(Clone, Debug)]
@@ -233,32 +244,58 @@ impl RelayClient {
     pub(crate) async fn submit_turn(
         &self,
         idempotency_key: &str,
-        turn: &SonaAgentTurnV1,
+        turn: &PanelTurnV1,
     ) -> Result<RelayJob, RelayError> {
+        let workspace = turn.workspace();
         let body = SonaSubmission {
-            workspace_id: SONA_WORKSPACE_ID,
+            workspace_id: workspace.id(),
             model: SONA_MODEL_ALIAS,
-            capability: SONA_CAPABILITY,
+            capability: workspace.capability(),
             idempotency_key,
             request: turn,
         };
         let response: SubmissionResponse = self
             .request(Method::POST, "/v1/jobs/submit", Some(&body))
             .await?;
-        response
-            .job
-            .into_job(None, &self.client_key_id, Some(idempotency_key))
+        response.job.into_job(
+            &self.client_key_id,
+            RelayJobExpectation {
+                workspace,
+                job_id: None,
+                idempotency_key: Some(idempotency_key),
+            },
+        )
     }
 
-    pub(crate) async fn get_job(&self, job_id: &str) -> Result<RelayJob, RelayError> {
+    pub(crate) async fn get_job(
+        &self,
+        job_id: &str,
+        workspace: AgentPanelWorkspaceV1,
+    ) -> Result<RelayJob, RelayError> {
         if !is_job_identifier(job_id) {
             return Err(RelayError::OwnershipRejected);
         }
         let path = format!("/v1/jobs/{job_id}");
         let response: JobResponse = self.request(Method::GET, &path, None::<&()>).await?;
-        response
-            .job
-            .into_job(Some(job_id), &self.client_key_id, None)
+        response.job.into_job(
+            &self.client_key_id,
+            RelayJobExpectation {
+                workspace,
+                job_id: Some(job_id),
+                idempotency_key: None,
+            },
+        )
+    }
+
+    /// The smallest signed round-trip the relay offers, for the pairing screen
+    /// to prove a relay URL and a pinned key actually reach each other. It
+    /// reads one event because reading nothing is not a test: the reply has to
+    /// carry a body this client can verify and parse.
+    pub(crate) async fn test_connection(&self) -> Result<(), RelayError> {
+        let _: EventsResponse = self
+            .request(Method::GET, "/v1/events?limit=1", None::<&()>)
+            .await?;
+        Ok(())
     }
 
     pub(crate) async fn get_events(
@@ -284,15 +321,24 @@ impl RelayClient {
         Ok(events)
     }
 
-    pub(crate) async fn cancel_job(&self, job_id: &str) -> Result<RelayJob, RelayError> {
+    pub(crate) async fn cancel_job(
+        &self,
+        job_id: &str,
+        workspace: AgentPanelWorkspaceV1,
+    ) -> Result<RelayJob, RelayError> {
         if !is_job_identifier(job_id) {
             return Err(RelayError::OwnershipRejected);
         }
         let path = format!("/v1/jobs/{job_id}/cancel");
         let response: CancelResponse = self.request(Method::POST, &path, None::<&()>).await?;
-        response
-            .job
-            .into_job(Some(job_id), &self.client_key_id, None)
+        response.job.into_job(
+            &self.client_key_id,
+            RelayJobExpectation {
+                workspace,
+                job_id: Some(job_id),
+                idempotency_key: None,
+            },
+        )
     }
 
     async fn request<T, B>(
@@ -395,7 +441,7 @@ struct SonaSubmission<'a> {
     model: &'static str,
     capability: &'static str,
     idempotency_key: &'a str,
-    request: &'a SonaAgentTurnV1,
+    request: &'a PanelTurnV1,
 }
 
 #[derive(Deserialize)]
@@ -446,33 +492,35 @@ struct RelayJobWire {
 impl RelayJobWire {
     fn into_job(
         self,
-        expected_job_id: Option<&str>,
         expected_submitter_key_id: &str,
-        expected_idempotency_key: Option<&str>,
+        expected: RelayJobExpectation<'_>,
     ) -> Result<RelayJob, RelayError> {
         if !is_job_identifier(&self.id) {
             return Err(RelayError::ResponseMalformed);
         }
-        if expected_job_id.is_some_and(|expected| expected != self.id)
+        if expected.job_id.is_some_and(|expected| expected != self.id)
             || self.submitter_key_id != expected_submitter_key_id
         {
             return Err(RelayError::OwnershipRejected);
         }
-        if expected_idempotency_key.is_some_and(|expected| expected != self.external_ref)
-            || self.kind != SONA_CAPABILITY
-            || self.workspace_id != SONA_WORKSPACE_ID
+        let capability = expected.workspace.capability();
+        if expected
+            .idempotency_key
+            .is_some_and(|expected| expected != self.external_ref)
+            || self.kind != capability
+            || self.workspace_id != expected.workspace.id()
             || self.model_alias != SONA_MODEL_ALIAS
             || self.capabilities.len() != 1
             || self
                 .capabilities
                 .first()
-                .is_none_or(|capability| capability != SONA_CAPABILITY)
+                .is_none_or(|granted| granted != capability)
             || !self.tools.is_empty()
         {
             return Err(RelayError::ResponseMalformed);
         }
         let state = parse_state(&self.state)?;
-        let proposal = if state == RelayJobStateV1::Succeeded {
+        let response = if state == RelayJobStateV1::Succeeded {
             let result = self.result.ok_or(RelayError::ResponseMalformed)?;
             let serialized =
                 serde_json::to_vec(&result).map_err(|_| RelayError::ResponseMalformed)?;
@@ -486,7 +534,7 @@ impl RelayJobWire {
         Ok(RelayJob {
             id: self.id,
             state,
-            proposal,
+            response,
         })
     }
 }
@@ -604,6 +652,40 @@ fn verifying_key_from_base64(value: &str) -> Result<VerifyingKey, RelayError> {
         .try_into()
         .map_err(|_| RelayError::InvalidConfiguration)?;
     VerifyingKey::from_bytes(&key_bytes).map_err(|_| RelayError::InvalidConfiguration)
+}
+
+/// A pairing the client would accept. Normalising here rather than at the
+/// command means the rules a request is checked against are the same rules
+/// `from_settings` will apply on the next turn: a pairing that saves is a
+/// pairing that connects, or the difference is a fault on the wire and not a
+/// second opinion in the settings layer.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct ValidatedPairingV1 {
+    pub(crate) relay_url: String,
+    pub(crate) relay_key_id: String,
+    pub(crate) relay_public_key: String,
+}
+
+pub(crate) fn validate_pairing(
+    relay_url: &str,
+    relay_key_id: &str,
+    relay_public_key: &str,
+) -> Result<ValidatedPairingV1, RelayError> {
+    let url = validate_relay_url(relay_url.trim())?;
+    let relay_key_id = relay_key_id.trim();
+    if !is_key_identifier(relay_key_id) {
+        return Err(RelayError::InvalidConfiguration);
+    }
+    let relay_public_key = relay_public_key.trim();
+    let verifying_key = verifying_key_from_base64(relay_public_key)?;
+    Ok(ValidatedPairingV1 {
+        relay_url: url.to_string(),
+        relay_key_id: relay_key_id.to_string(),
+        /* Re-encoded from the parsed key, so the stored form is the canonical
+         * 32-byte encoding rather than whatever padding the paste carried. */
+        relay_public_key: base64::engine::general_purpose::STANDARD
+            .encode(verifying_key.to_bytes()),
+    })
 }
 
 fn public_identity_for_key(signing_key: &SigningKey) -> AgentPanelPublicIdentityV1 {
@@ -930,5 +1012,69 @@ mod tests {
             .expect("stable explicit identity");
         assert_eq!(first, second);
         assert_eq!(backend.operation_count(), operations_after_create + 1);
+    }
+
+    #[test]
+    fn pairing_only_accepts_a_tailnet_relay_and_a_real_ed25519_key() {
+        let public_key = base64::engine::general_purpose::STANDARD
+            .encode(signing_key().verifying_key().to_bytes());
+        let paired = validate_pairing("  http://100.99.192.40:8650  ", " relay-01 ", &public_key)
+            .expect("a tailnet relay with a 32-byte key pairs");
+        assert_eq!(paired.relay_url, "http://100.99.192.40:8650/");
+        assert_eq!(paired.relay_key_id, "relay-01");
+        assert_eq!(paired.relay_public_key, public_key);
+
+        assert_eq!(
+            validate_pairing("https://relay.example.com", "relay-01", &public_key),
+            Err(RelayError::CleartextRejected)
+        );
+        assert_eq!(
+            validate_pairing("http://100.99.192.40/v1", "relay-01", &public_key),
+            Err(RelayError::InvalidConfiguration)
+        );
+        assert_eq!(
+            validate_pairing("http://100.99.192.40", "relay 01", &public_key),
+            Err(RelayError::InvalidConfiguration)
+        );
+        /* A 31-byte key is well-formed base64 and not a key. */
+        let short = base64::engine::general_purpose::STANDARD.encode([7_u8; 31]);
+        assert_eq!(
+            validate_pairing("http://100.99.192.40", "relay-01", &short),
+            Err(RelayError::InvalidConfiguration)
+        );
+    }
+
+    #[test]
+    fn a_job_from_the_other_workspace_is_not_this_turns_job() {
+        let wire = || RelayJobWire {
+            id: "job-1".to_string(),
+            state: "SUCCEEDED".to_string(),
+            kind: "sona-chat".to_string(),
+            workspace_id: "sona-chat".to_string(),
+            model_alias: SONA_MODEL_ALIAS.to_string(),
+            capabilities: vec!["sona-chat".to_string()],
+            tools: Vec::new(),
+            submitter_key_id: "sona-me".to_string(),
+            external_ref: "abcd".to_string(),
+            result: Some(serde_json::json!({"kind":"text","message":"Found it."})),
+        };
+        let expectation = |workspace| RelayJobExpectation {
+            workspace,
+            job_id: Some("job-1"),
+            idempotency_key: None,
+        };
+        let job = wire()
+            .into_job("sona-me", expectation(AgentPanelWorkspaceV1::SonaChat))
+            .expect("a chat job answers a chat turn");
+        assert!(matches!(
+            job.response,
+            Some(super::SonaAgentResponseV1::Text { .. })
+        ));
+        assert_eq!(
+            wire()
+                .into_job("sona-me", expectation(AgentPanelWorkspaceV1::SonaConfig))
+                .err(),
+            Some(RelayError::ResponseMalformed)
+        );
     }
 }

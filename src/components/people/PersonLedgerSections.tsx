@@ -1,7 +1,12 @@
 import React from "react";
 import { CheckCheck, CircleDashed, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { PersonCommitment, PersonOpenLoop } from "@/bindings";
+import type {
+  MeetingLoopStatus,
+  PersonCommitment,
+  PersonOpenLoop,
+} from "@/bindings";
+import { LoopStatusChip } from "@/components/settings/meetings/review/LoopRows";
 import { SettingsSection } from "@/components/settings/rows";
 import { formatEntryTimestamp } from "@/lib/utils/format";
 import { EmptyStateRow } from "./EmptyStateRow";
@@ -13,7 +18,7 @@ import { EmptyStateRow } from "./EmptyStateRow";
  * differs is the heading, the empty state, and whether a line carries the date
  * it was first raised — so those are fields, not a second component. */
 interface LedgerRow {
-  /** React key: the same line can arrive from two meetings. */
+  /** React key: the loop's own id, which is stable across re-reads. */
   key: string;
   text: string;
   /** The meeting the line was said in, as the link's own label. */
@@ -22,6 +27,8 @@ interface LedgerRow {
   atUtcMs: number;
   /** When the loop was first raised, for a line that has outlived a meeting. */
   carriedSinceUtcMs: number | null;
+  /** Where the loop stands now, read live from its store row. */
+  status: MeetingLoopStatus;
 }
 
 /* The sentence first, then the meeting it came from. The meeting is a link,
@@ -58,6 +65,7 @@ const LedgerSection: React.FC<{
                 <span className="snap-measured text-[11px] text-gray-800 tabular-nums">
                   {formatEntryTimestamp(row.atUtcMs)}
                 </span>
+                <LoopStatusChip status={row.status} />
                 {row.carriedSinceUtcMs === null ? null : (
                   <span className="snap-measured text-[11px] text-gray-800 tabular-nums">
                     {t("people.detail.carriedSince", {
@@ -85,13 +93,14 @@ export const PersonOpenLoops: React.FC<{
       label={t("peopleV2.detail.openLoops")}
       emptyIcon={CircleDashed}
       emptyText={t("people.detail.noOpenLoops")}
-      rows={openLoops.map((loop, index) => ({
-        key: `${loop.meeting_id}:${index}`,
+      rows={openLoops.map((loop) => ({
+        key: loop.loop_id,
         text: loop.text,
         title: loop.title,
         meetingId: loop.meeting_id,
         atUtcMs: loop.at_utc_ms,
         carriedSinceUtcMs: loop.carried_since_at_utc_ms,
+        status: loop.status,
       }))}
       onOpenMeeting={onOpenMeeting}
     />
@@ -109,13 +118,14 @@ export const PersonCommitments: React.FC<{
       label={t("people.detail.commitments")}
       emptyIcon={CheckCheck}
       emptyText={t("people.detail.noCommitments")}
-      rows={commitments.map((commitment, index) => ({
-        key: `${commitment.meeting_id}:${index}`,
+      rows={commitments.map((commitment) => ({
+        key: commitment.loop_id,
         text: commitment.text,
         title: commitment.title,
         meetingId: commitment.meeting_id,
         atUtcMs: commitment.at_utc_ms,
         carriedSinceUtcMs: null,
+        status: commitment.status,
       }))}
       onOpenMeeting={onOpenMeeting}
     />

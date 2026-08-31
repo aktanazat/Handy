@@ -11,6 +11,15 @@ pub(crate) const MAX_RECENT_TURNS: usize = 8;
 pub(crate) const MAX_RECENT_TURN_BYTES: usize = 32 * 1024;
 pub(crate) const MAX_PROPOSAL_BYTES: usize = 32 * 1024;
 pub(crate) const MAX_PROPOSAL_ACTIONS: usize = 32;
+pub(crate) const SONA_CHAT_TURN_VERSION: &str = "SonaChatTurnV1";
+pub(crate) const SONA_CONFIG_WORKSPACE_ID: &str = "sona-config";
+pub(crate) const SONA_CHAT_WORKSPACE_ID: &str = "sona-chat";
+pub(crate) const SONA_CONFIG_CAPABILITY: &str = "sona-config";
+pub(crate) const SONA_CHAT_CAPABILITY: &str = "sona-chat";
+pub(crate) const MAX_CONTEXT_PACK_BYTES: usize = 32 * 1024;
+pub(crate) const MAX_ASSISTANT_MESSAGE_BYTES: usize = 16 * 1024;
+pub(crate) const MAX_RESPONSE_STEPS: usize = 32;
+pub(crate) const MAX_STEP_LABEL_BYTES: usize = 256;
 
 const PROPOSAL_SCHEMA_JSON: &str = r#"{"$id":"SonaConfigProposalV1","type":"object","additionalProperties":false,"required":["version","summary","rationale","actions","follow_up_question","source_settings_revision"],"properties":{"version":{"const":"SonaConfigProposalV1"},"summary":{"type":"string","minLength":1,"maxLength":2048},"rationale":{"type":"string","minLength":1,"maxLength":4096},"actions":{"type":"array","maxItems":32,"items":{"type":"object","additionalProperties":false,"required":["key","value"],"properties":{"key":{"enum":["audio_feedback","audio_output_device_id","audio_volume","default_transcription_model","language","local_retention_period","material_preference","microphone_excluded_ids","microphone_favorite_order","microphone_id","mode_selection","mode_toggles","mute_while_recording","overlay_position","overlay_style","spelling_behavior","start_hidden","theme","tray_visibility","update_note_visibility"]},"value":{"type":["string","number","boolean","array","object"]}}}},"follow_up_question":{"type":["string","null"],"maxLength":2048},"source_settings_revision":{"type":"integer","minimum":0}}}"#;
 
@@ -143,6 +152,44 @@ pub struct SonaConfigSnapshotV1 {
     pub startup: SonaStartupSnapshotV1,
 }
 
+/// Which capability-scoped brain a turn is addressed to. The relay registry
+/// declares one sandbox per workspace, so this is the only thing that decides
+/// what the remote side is allowed to be: `sona-config` is the zero-tool
+/// settings proposer, `sona-chat` is the assistant that answers from a context
+/// pack and may never touch settings.
+///
+/// The two are separate workspaces rather than one prompt with two moods
+/// because their inputs differ in kind — one carries the whole settings
+/// snapshot, the other carries evidence quotes — and because a brain that can
+/// both read your configuration and answer open questions is a wider grant
+/// than either job needs.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum AgentPanelWorkspaceV1 {
+    #[default]
+    SonaChat,
+    SonaConfig,
+}
+
+impl AgentPanelWorkspaceV1 {
+    pub(crate) const fn id(self) -> &'static str {
+        match self {
+            Self::SonaChat => SONA_CHAT_WORKSPACE_ID,
+            Self::SonaConfig => SONA_CONFIG_WORKSPACE_ID,
+        }
+    }
+
+    pub(crate) const fn capability(self) -> &'static str {
+        match self {
+            Self::SonaChat => SONA_CHAT_CAPABILITY,
+            Self::SonaConfig => SONA_CONFIG_CAPABILITY,
+        }
+    }
+}
+
+/// The settings-proposal turn. Its field set is frozen: the relay's
+/// `sona-config` validator requires exactly these nine keys, so widening the
+/// panel adds a second turn shape rather than a tenth field here.
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct SonaAgentTurnV1 {
     pub protocol_version: String,
@@ -154,6 +201,87 @@ pub struct SonaAgentTurnV1 {
     pub proposal_schema: serde_json::Value,
     pub locale: String,
     pub app_version: String,
+}
+
+/// The assistant turn. Same conversation machinery as the config turn, with
+/// the settings snapshot replaced by a context pack: quotes, ids and
+/// `sona://` links assembled locally for this one question. The pack is
+/// caller-supplied — the panel never assembles evidence itself — and `None`
+/// is an ordinary turn with no evidence to cite.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct SonaChatTurnV1 {
+    pub protocol_version: String,
+    pub conversation_id: String,
+    pub turn_id: String,
+    pub user_message: String,
+    pub recent_turns: Vec<SonaAgentChatTurnV1>,
+    pub context_pack: Option<String>,
+    pub locale: String,
+    pub app_version: String,
+}
+
+/// One turn, addressed to one workspace. Untagged because the workspace is
+/// already named on the submission envelope the relay routes on; repeating it
+/// inside the request would be a second source of truth for the same fact.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(untagged)]
+pub(crate) enum PanelTurnV1 {
+    Config(SonaAgentTurnV1),
+    Chat(SonaChatTurnV1),
+}
+
+impl PanelTurnV1 {
+    pub(crate) const fn workspace(&self) -> AgentPanelWorkspaceV1 {
+        match self {
+            Self::Config(_) => AgentPanelWorkspaceV1::SonaConfig,
+            Self::Chat(_) => AgentPanelWorkspaceV1::SonaChat,
+        }
+    }
+
+    pub(crate) fn turn_id(&self) -> &str {
+        match self {
+            Self::Config(turn) => &turn.turn_id,
+            Self::Chat(turn) => &turn.turn_id,
+        }
+    }
+
+    pub(crate) fn user_message(&self) -> &str {
+        match self {
+            Self::Config(turn) => &turn.user_message,
+            Self::Chat(turn) => &turn.user_message,
+        }
+    }
+
+    pub(crate) fn context_pack(&self) -> Option<&str> {
+        match self {
+            Self::Config(_) => None,
+            Self::Chat(turn) => turn.context_pack.as_deref(),
+        }
+    }
+
+    pub(crate) fn locale(&self) -> &str {
+        match self {
+            Self::Config(turn) => &turn.locale,
+            Self::Chat(turn) => &turn.locale,
+        }
+    }
+
+    /// The settings revision a proposal must match. Chat turns carry no
+    /// snapshot, so a proposal can never be validated against one — which is
+    /// the same thing as saying the chat workspace may not propose.
+    pub(crate) const fn settings_revision(&self) -> Option<u64> {
+        match self {
+            Self::Config(turn) => Some(turn.config_snapshot.settings_revision),
+            Self::Chat(_) => None,
+        }
+    }
+
+    pub(crate) fn validate(&self) -> Result<(), ProposalValidationError> {
+        match self {
+            Self::Config(turn) => turn.validate(),
+            Self::Chat(turn) => turn.validate(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Type)]
@@ -197,6 +325,82 @@ pub struct SonaConfigProposalV1 {
     pub source_settings_revision: u64,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum SonaAgentStepStateV1 {
+    Running,
+    Done,
+    Failed,
+}
+
+/// One row of the panel's activity tree: what the remote side did on the way
+/// to its answer. The relay does not report steps yet, so every response today
+/// carries an empty list; the field exists now so that the day a workspace
+/// gains tools the panel already has somewhere to draw them, and so both
+/// mirrors agree on the shape before anything depends on it.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(deny_unknown_fields)]
+pub struct SonaAgentStepV1 {
+    pub id: String,
+    pub label: String,
+    pub state: SonaAgentStepStateV1,
+}
+
+/// What a finished job returned. `kind` is required and fail-closed: a
+/// response that does not say which of the two things it is, is not one of
+/// them.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub(crate) enum SonaAgentResponseV1 {
+    Text {
+        message: String,
+        #[serde(default)]
+        steps: Vec<SonaAgentStepV1>,
+    },
+    Proposal {
+        #[serde(flatten)]
+        proposal: SonaConfigProposalV1,
+        #[serde(default)]
+        steps: Vec<SonaAgentStepV1>,
+    },
+}
+
+impl SonaAgentResponseV1 {
+    pub(crate) fn steps(&self) -> &[SonaAgentStepV1] {
+        match self {
+            Self::Text { steps, .. } | Self::Proposal { steps, .. } => steps,
+        }
+    }
+
+    /// A workspace may only answer in its own currency. The settings proposer
+    /// does not chat and the assistant does not propose: crossing that line is
+    /// a remote side claiming authority it was never granted, so it fails the
+    /// same way a bad signature does.
+    pub(crate) fn validate(
+        &self,
+        workspace: AgentPanelWorkspaceV1,
+        expected_revision: Option<u64>,
+        allowed: &SonaAllowedValuesV1,
+    ) -> Result<(), ProposalValidationError> {
+        validate_steps(self.steps())?;
+        match (self, workspace) {
+            (Self::Text { message, .. }, AgentPanelWorkspaceV1::SonaChat) => {
+                if is_message_text(message, MAX_ASSISTANT_MESSAGE_BYTES) {
+                    Ok(())
+                } else {
+                    Err(ProposalValidationError::InvalidAssistantMessage)
+                }
+            }
+            (Self::Proposal { proposal, .. }, AgentPanelWorkspaceV1::SonaConfig) => {
+                let revision =
+                    expected_revision.ok_or(ProposalValidationError::WorkspaceMismatch)?;
+                proposal.validate(revision, allowed)
+            }
+            _ => Err(ProposalValidationError::WorkspaceMismatch),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub(crate) struct SonaAllowedValuesV1 {
     pub(crate) model_ids: BTreeSet<String>,
@@ -231,6 +435,11 @@ pub(crate) enum ProposalValidationError {
     UnknownMode,
     UnknownModeToggle,
     DuplicateAction,
+    OversizedContextPack,
+    InvalidAssistantMessage,
+    TooManySteps,
+    InvalidStep,
+    WorkspaceMismatch,
 }
 
 impl SonaAgentTurnV1 {
@@ -272,6 +481,50 @@ impl SonaAgentTurnV1 {
         }
         if !self.config_snapshot.is_valid() {
             return Err(ProposalValidationError::InvalidSnapshot);
+        }
+        Ok(())
+    }
+}
+
+impl SonaChatTurnV1 {
+    pub(crate) fn validate(&self) -> Result<(), ProposalValidationError> {
+        if self.protocol_version != SONA_CHAT_TURN_VERSION {
+            return Err(ProposalValidationError::InvalidVersion);
+        }
+        if !is_identifier(&self.conversation_id) || !is_identifier(&self.turn_id) {
+            return Err(ProposalValidationError::InvalidTurnIdentifier);
+        }
+        if !is_safe_text(&self.user_message, MAX_USER_MESSAGE_BYTES) {
+            return Err(ProposalValidationError::OversizedUserMessage);
+        }
+        if self.recent_turns.len() > MAX_RECENT_TURNS {
+            return Err(ProposalValidationError::TooManyRecentTurns);
+        }
+        if self
+            .recent_turns
+            .iter()
+            .map(|turn| turn.message.len())
+            .sum::<usize>()
+            > MAX_RECENT_TURN_BYTES
+        {
+            return Err(ProposalValidationError::OversizedRecentTurns);
+        }
+        /* A pack quotes the corpus back at the model, so it carries the one
+         * thing the rest of this protocol refuses: `sona://` links. It is
+         * checked for size and control bytes, not for the shape of its
+         * contents, because its contents are evidence. */
+        if self
+            .context_pack
+            .as_deref()
+            .is_some_and(|pack| !is_message_text(pack, MAX_CONTEXT_PACK_BYTES))
+        {
+            return Err(ProposalValidationError::OversizedContextPack);
+        }
+        if !is_safe_text(&self.locale, 64) {
+            return Err(ProposalValidationError::InvalidLocale);
+        }
+        if !is_safe_text(&self.app_version, 128) {
+            return Err(ProposalValidationError::InvalidAppVersion);
         }
         Ok(())
     }
@@ -465,6 +718,38 @@ fn is_safe_text(value: &str, maximum: usize) -> bool {
         && !value.contains("://")
 }
 
+/// Prose, as opposed to an identifier or a setting value.
+///
+/// `is_safe_text` refuses anything containing `://` because nothing in the
+/// settings protocol has any business naming an endpoint. An assistant answer
+/// is the opposite case: citing `sona://meeting/<id>` is the whole point of
+/// giving it evidence, so the rule here is only that the string is non-empty,
+/// bounded, and free of the control bytes that would let it forge structure in
+/// a log or a terminal. Rendering escapes the rest.
+fn is_message_text(value: &str, maximum: usize) -> bool {
+    !value.is_empty()
+        && value.len() <= maximum
+        && !value
+            .chars()
+            .any(|character| character.is_control() && !matches!(character, '\n' | '\t'))
+}
+
+fn validate_steps(steps: &[SonaAgentStepV1]) -> Result<(), ProposalValidationError> {
+    if steps.len() > MAX_RESPONSE_STEPS {
+        return Err(ProposalValidationError::TooManySteps);
+    }
+    let mut ids = BTreeSet::new();
+    for step in steps {
+        if !is_identifier(&step.id)
+            || !is_message_text(&step.label, MAX_STEP_LABEL_BYTES)
+            || !ids.insert(step.id.as_str())
+        {
+            return Err(ProposalValidationError::InvalidStep);
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -615,5 +900,193 @@ mod tests {
             r#"{"version":"SonaConfigProposalV1","summary":"x","rationale":"x","actions":[],"follow_up_question":null,"source_settings_revision":7,"unexpected":true}"#,
         );
         assert!(result.is_err());
+    }
+
+    fn chat_turn() -> SonaChatTurnV1 {
+        SonaChatTurnV1 {
+            protocol_version: SONA_CHAT_TURN_VERSION.to_string(),
+            conversation_id: "conversation-0001".to_string(),
+            turn_id: "turn-00000002".to_string(),
+            user_message: "What did I promise Steven?".to_string(),
+            recent_turns: Vec::new(),
+            context_pack: Some(
+                "sona://meeting/m-1 \"I will send the deck on Friday.\"".to_string(),
+            ),
+            locale: "en".to_string(),
+            app_version: "1.0.0".to_string(),
+        }
+    }
+
+    #[test]
+    fn a_chat_turn_carries_a_pack_where_the_config_turn_carries_a_snapshot() {
+        let turn = chat_turn();
+        assert_eq!(turn.validate(), Ok(()));
+        let wire = serde_json::to_value(PanelTurnV1::Chat(turn)).expect("chat turn serializes");
+        let object = wire.as_object().expect("turn is an object");
+        assert_eq!(
+            object.keys().map(String::as_str).collect::<BTreeSet<_>>(),
+            BTreeSet::from([
+                "protocol_version",
+                "conversation_id",
+                "turn_id",
+                "user_message",
+                "recent_turns",
+                "context_pack",
+                "locale",
+                "app_version",
+            ])
+        );
+        assert_eq!(object["protocol_version"], SONA_CHAT_TURN_VERSION);
+    }
+
+    #[test]
+    fn the_frozen_config_turn_gained_no_fields() {
+        let (config_snapshot, _) = snapshot();
+        let turn = PanelTurnV1::Config(SonaAgentTurnV1 {
+            protocol_version: SONA_AGENT_TURN_VERSION.to_string(),
+            conversation_id: "conversation-0001".to_string(),
+            turn_id: "turn-00000001".to_string(),
+            user_message: "Use dark mode".to_string(),
+            recent_turns: Vec::new(),
+            config_snapshot,
+            proposal_schema: SonaAgentTurnV1::proposal_schema().expect("static schema parses"),
+            locale: "en".to_string(),
+            app_version: "1.0.0".to_string(),
+        });
+        let wire = serde_json::to_value(&turn).expect("config turn serializes");
+        assert_eq!(
+            wire.as_object()
+                .expect("turn is an object")
+                .keys()
+                .map(String::as_str)
+                .collect::<BTreeSet<_>>(),
+            BTreeSet::from([
+                "protocol_version",
+                "conversation_id",
+                "turn_id",
+                "user_message",
+                "recent_turns",
+                "config_snapshot",
+                "proposal_schema",
+                "locale",
+                "app_version",
+            ])
+        );
+        assert_eq!(turn.workspace(), AgentPanelWorkspaceV1::SonaConfig);
+        assert_eq!(turn.workspace().id(), "sona-config");
+    }
+
+    #[test]
+    fn a_context_pack_may_cite_sona_links_but_not_exceed_its_ceiling() {
+        let mut turn = chat_turn();
+        turn.context_pack = Some("sona://person/steven".to_string());
+        assert_eq!(turn.validate(), Ok(()));
+        turn.context_pack = Some("x".repeat(MAX_CONTEXT_PACK_BYTES + 1));
+        assert_eq!(
+            turn.validate(),
+            Err(ProposalValidationError::OversizedContextPack)
+        );
+        turn.context_pack = None;
+        assert_eq!(turn.validate(), Ok(()));
+    }
+
+    #[test]
+    fn both_response_kinds_round_trip_through_the_envelope() {
+        let text = SonaAgentResponseV1::Text {
+            message: "You promised Steven the deck. sona://meeting/m-1".to_string(),
+            steps: vec![SonaAgentStepV1 {
+                id: "step-1".to_string(),
+                label: "Searched meetings".to_string(),
+                state: SonaAgentStepStateV1::Done,
+            }],
+        };
+        let encoded = serde_json::to_value(&text).expect("text response serializes");
+        assert_eq!(encoded["kind"], "text");
+        assert_eq!(
+            serde_json::from_value::<SonaAgentResponseV1>(encoded).expect("text round-trips"),
+            text
+        );
+
+        let proposal = SonaAgentResponseV1::Proposal {
+            proposal: proposal(SonaSettingChangeV1::AudioVolume(0.25)),
+            steps: Vec::new(),
+        };
+        let encoded = serde_json::to_value(&proposal).expect("proposal response serializes");
+        assert_eq!(encoded["kind"], "proposal");
+        /* The proposal variant is the existing proposal object with `kind`
+         * beside its fields, not a proposal nested under a key: the settings
+         * half of the contract did not move. */
+        assert_eq!(encoded["version"], SONA_CONFIG_PROPOSAL_VERSION);
+        assert_eq!(encoded["source_settings_revision"], 7);
+        assert_eq!(
+            serde_json::from_value::<SonaAgentResponseV1>(encoded).expect("proposal round-trips"),
+            proposal
+        );
+    }
+
+    #[test]
+    fn a_response_without_a_kind_is_not_a_response() {
+        assert!(serde_json::from_str::<SonaAgentResponseV1>(
+            r#"{"version":"SonaConfigProposalV1","summary":"x","rationale":"y","actions":[],"follow_up_question":null,"source_settings_revision":7}"#
+        )
+        .is_err());
+        assert!(serde_json::from_str::<SonaAgentResponseV1>(
+            r#"{"kind":"whatever","message":"hi"}"#
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn a_workspace_may_only_answer_in_its_own_currency() {
+        let (snapshot, names) = snapshot();
+        let allowed = snapshot.allowed_values(&names);
+        let text = SonaAgentResponseV1::Text {
+            message: "Here is what I found.".to_string(),
+            steps: Vec::new(),
+        };
+        assert_eq!(
+            text.validate(AgentPanelWorkspaceV1::SonaChat, None, &allowed),
+            Ok(())
+        );
+        assert_eq!(
+            text.validate(AgentPanelWorkspaceV1::SonaConfig, Some(7), &allowed),
+            Err(ProposalValidationError::WorkspaceMismatch)
+        );
+
+        let settings_change = SonaAgentResponseV1::Proposal {
+            proposal: proposal(SonaSettingChangeV1::Theme(Theme::Dark)),
+            steps: Vec::new(),
+        };
+        assert_eq!(
+            settings_change.validate(AgentPanelWorkspaceV1::SonaConfig, Some(7), &allowed),
+            Ok(())
+        );
+        /* The assistant has no snapshot, so it has nothing to propose against
+         * — and a chat workspace that proposes settings anyway is refused. */
+        assert_eq!(
+            settings_change.validate(AgentPanelWorkspaceV1::SonaChat, None, &allowed),
+            Err(ProposalValidationError::WorkspaceMismatch)
+        );
+    }
+
+    #[test]
+    fn steps_are_bounded_and_uniquely_identified() {
+        let step = |id: &str| SonaAgentStepV1 {
+            id: id.to_string(),
+            label: "Read the transcript".to_string(),
+            state: SonaAgentStepStateV1::Running,
+        };
+        assert_eq!(validate_steps(&[step("a"), step("b")]), Ok(()));
+        assert_eq!(
+            validate_steps(&[step("a"), step("a")]),
+            Err(ProposalValidationError::InvalidStep)
+        );
+        let too_many = (0..=MAX_RESPONSE_STEPS)
+            .map(|index| step(&format!("step-{index}")))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            validate_steps(&too_many),
+            Err(ProposalValidationError::TooManySteps)
+        );
     }
 }

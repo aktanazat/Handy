@@ -4,6 +4,7 @@ import {
   commands,
   events,
   type AgentPanelStatusV1,
+  type AgentPanelWorkspaceV1,
   type SonaAgentChatTurnV1,
 } from "@/bindings";
 import { useSettings } from "@/hooks/useSettings";
@@ -65,9 +66,12 @@ export const AgentPanelApp: React.FC = () => {
   const [phase, setPhase] = useState<PanelPhase>("loading");
   const [status, setStatus] = useState<AgentPanelStatusV1 | null>(null);
   const [draft, setDraft] = useState("");
+  const [workspace, setWorkspace] =
+    useState<AgentPanelWorkspaceV1>("sona_chat");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastIdentity, setLastIdentity] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const requestRef = useRef(0);
 
   const refresh = useCallback(async () => {
@@ -128,6 +132,18 @@ export const AgentPanelApp: React.FC = () => {
     }
   }, [settings]);
 
+  /* The elapsed timer is the only thing on screen that changes without an
+   * event behind it, so it is the only thing that gets a clock — and only
+   * while a turn is actually running. */
+  const turn = status?.turn ?? null;
+  const turnActive = turn !== null && hasActiveTurn(turn);
+  useEffect(() => {
+    if (!turnActive) return;
+    setNow(Date.now());
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, [turnActive, turn?.turn_id]);
+
   useEffect(() => {
     let cancelled = false;
     void commands.agentPanelPublicIdentity().then(
@@ -158,6 +174,10 @@ export const AgentPanelApp: React.FC = () => {
         turn_id: crypto.randomUUID(),
         message,
         locale: i18n.language,
+        workspace,
+        /* Packs are assembled by whoever has the evidence. The panel asks the
+         * question; it does not go looking through the corpus first. */
+        context_pack: null,
       });
       if (result.status === "error") {
         setError(result.error);
@@ -176,13 +196,13 @@ export const AgentPanelApp: React.FC = () => {
   };
 
   const cancel = async () => {
-    const turn = status?.turn;
-    if (!turn || sending) return;
+    const active = status?.turn;
+    if (!active || sending) return;
     setSending(true);
     setError(null);
     try {
       const result = await commands.agentPanelCancelTurn({
-        turn_id: turn.turn_id,
+        turn_id: active.turn_id,
       });
       if (result.status === "error") {
         setError(result.error);
@@ -272,10 +292,12 @@ export const AgentPanelApp: React.FC = () => {
       phase={phase}
       lastIdentity={lastIdentity}
       conversation={conversation}
-      hasTurn={status?.turn != null}
+      turn={turn}
+      now={now}
       proposal={status?.proposal ?? null}
       error={error}
       draft={draft}
+      workspace={workspace}
       sending={sending}
       onToggle={() => void togglePanel()}
       onRefresh={() => void refresh()}
@@ -284,6 +306,7 @@ export const AgentPanelApp: React.FC = () => {
       onUndo={() => void undo()}
       onSend={() => void send()}
       onDraftChange={setDraft}
+      onWorkspaceChange={setWorkspace}
     />
   );
 };

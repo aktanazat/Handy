@@ -1493,7 +1493,40 @@
         "rowDescription": "כיבוי האפשרות סוגר את חלון החלונית וגורם ל־Sona לסרב לכל בקשה לפתוח אותה מחדש.",
         "title": "חלונית סוכנים"
       },
-      "workspaceNavigation": "תצוגות גשר הסוכנים"
+      "workspaceNavigation": "תצוגות גשר הסוכנים",
+      "sonaAgent": {
+        "title": "סוכן Sona",
+        "pairing": "התאמה",
+        "paired": "מותאם",
+        "unpaired": "לא מותאם",
+        "lastReached": "חיבור אחרון",
+        "never": "מעולם לא",
+        "relayUrl": "כתובת הממסר",
+        "relayUrlHint": "מתקבלת רק כתובת Tailscale או המחשב הזה עצמו. כל כתובת באינטרנט הפתוח נדחית עוד לפני השמירה.",
+        "relayKeyId": "מזהה מפתח הממסר",
+        "relayPublicKey": "המפתח הציבורי של הממסר",
+        "identity": "המפתח הציבורי של המחשב הזה",
+        "identityHint": "הוסף את המפתח הזה לממסר כדי שיקבל פניות מהמחשב הזה. החצי הפרטי לעולם לא יוצא ממחזיק המפתחות שלך.",
+        "identityUnavailable": "הפעל את חלונית הסוכן כדי ליצור מפתח.",
+        "copy": "העתק",
+        "copied": "הועתק",
+        "save": "שמור",
+        "unpair": "בטל התאמה",
+        "test": "בדוק",
+        "reached": "הממסר ענה.",
+        "failed": "לא ניתן היה להתאים את הממסר.",
+        "reason": {
+          "unauthorized_window": "החלון הזה אינו רשאי לשנות התאמה.",
+          "disabled": "חלונית הסוכן כבויה.",
+          "unpaired": "עדיין לא הותאם ממסר.",
+          "offline": "הממסר לא ענה.",
+          "invalid_configuration": "Sona לא תשתמש בכתובת או במפתח האלה.",
+          "secret_unavailable": "לא ניתן היה לקרוא את המפתח של המחשב הזה.",
+          "untrusted_response": "התשובה לא נחתמה בידי הממסר המותאם.",
+          "remote_rejected": "הממסר דחה את הבקשה.",
+          "ownership_rejected": "הממסר ענה עבור מישהו אחר."
+        }
+      }
     },
     "workflows": {
       "title": "תהליכי עבודה",
@@ -1525,6 +1558,9 @@
         },
         "meeting_activity": {
           "name": "הקלטת פגישות"
+        },
+        "daily_digest": {
+          "name": "סיכום ערב"
         }
       },
       "status": {
@@ -1552,7 +1588,8 @@
         "autoRecordStopped": "ההקלטה נעצרה אוטומטית",
         "alreadyProcessed": "אין משהו חדש לעשות",
         "failed": "לא הצליח להסתיים",
-        "skipped": "דולג"
+        "skipped": "דולג",
+        "digestRaised": "סיכם את היום"
       },
       "vocabularySuggestions": {
         "title": "מהפגישות שלך",
@@ -1636,6 +1673,14 @@
       "positionLabel": "מקום הכפתור במצב המתנה",
       "positionTop": "למעלה",
       "positionBottom": "למטה"
+    },
+    "meetings": {
+      "digest": {
+        "title": "סיכום ערב",
+        "description": "התראה אחת בסוף יום שהיו בו פגישות או משימות שנסגרו. הכול נשאר על המק הזה.",
+        "timeLabel": "שעת הסיכום",
+        "timeHint": "שעון מקומי. יום שלא קרה בו דבר נשאר שקט."
+      }
     }
   },
   "common": {
@@ -2085,6 +2130,23 @@
         "soft": "רופף"
       }
     },
+    "loops": {
+      "status": {
+        "open": "פתוח",
+        "done": "בוצע",
+        "dropped": "נזנח",
+        "carried": "הועבר"
+      },
+      "markDone": "סמן את הנושא הזה כבוצע",
+      "drop": "זנח",
+      "reopen": "פתח מחדש",
+      "owner": "אחראי",
+      "ownerIs": "אחראי: {{owner}}",
+      "ownerUnassigned": "עדיין אף אחד",
+      "instead": "במקום זאת: {{instead}}",
+      "carriedForward": "הועבר מפגישה קודמת",
+      "stale": "מישהו אחר שינה את הנושא הזה לפניך, לכן הרשימה רועננה."
+    },
     "artifactState": {
       "current": "עדכנית",
       "out_of_date": "לא מעודכנת",
@@ -2275,7 +2337,8 @@
         "notes": "סיכום",
         "participants": "משתתפים",
         "link": "קישור",
-        "description": "תיאור"
+        "description": "תיאור",
+        "notesSeries": "לסדרה הזו"
       },
       "attendees_one": "אדם אחד",
       "attendees_other": "{{count}} אנשים",
@@ -2312,6 +2375,11 @@
       },
       "linkFailed": "Sona לא הצליחה לפתוח את הקישור.",
       "skippedNote": "דילוג מסתיר את ההצעה מכאן. Sona ממשיכה לראות את השיחה עד שההצעה תפוג."
+    },
+    "seriesTemplate": {
+      "use": "השתמש בתבנית הזו לסדרה הזו",
+      "saving": "נשמר…",
+      "remembered": "הסדרה הזו משתמשת ב{{template}}"
     }
   },
   "agentPanel": {
@@ -2323,8 +2391,7 @@
     "panelToggle": "סגירת לוח הסוכן",
     "conversationLabel": "שיחה",
     "proposalTitle": "שינויים מוצעים",
-    "empty": "שאל על הגדרות Sona. הצעות יופיעו כאן לבדיקה לפני שכל דבר משתנה.",
-    "inputPlaceholder": "שאל על Sona…",
+    "empty": "אפשר לשאול על הפגישות, ההערות וההגדרות שלך. שינויי הגדרות מופיעים כאן כהצעה שאתה בודק לפני שמשהו משתנה.",
     "inputLabel": "שאל על Sona",
     "send": "שלח",
     "status": {
@@ -2333,9 +2400,34 @@
       "unpaired": "לא מזווג לממסר.",
       "offline": "הממסר במצב לא מקוון.",
       "idle": "מוכן",
-      "running": "עובד…",
       "proposal": "ההצעה מוכנה",
       "error": "לוח הסוכן אינו זמין."
+    },
+    "activityLabel": "פעילות",
+    "workspaceLabel": "מי עונה",
+    "step": {
+      "sent": "נשלח"
+    },
+    "workspace": {
+      "sona_chat": "שאלה",
+      "sona_config": "הגדרות"
+    },
+    "placeholder": {
+      "sona_chat": "שאל על הפגישות וההערות שלך…",
+      "sona_config": "שאל על ההגדרות של Sona…"
+    },
+    "turnState": {
+      "submitting": "נשלח",
+      "queued": "בתור",
+      "leased": "נאסף",
+      "running": "חושב",
+      "waiting_user": "ממתין לך",
+      "waiting_approval": "ממתין לאישור",
+      "canceling": "עוצר",
+      "succeeded": "נענה",
+      "failed": "נכשל",
+      "canceled": "נעצר",
+      "unverified_external": "תשובה לא מאומתת"
     }
   },
   "overview": {

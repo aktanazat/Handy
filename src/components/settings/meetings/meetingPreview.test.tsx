@@ -76,6 +76,7 @@ const END = Date.UTC(2026, 7, 28, 17, 45);
  * take facts away one at a time. Five participants, three of them named. */
 const EVENT: CalendarEventSummary = {
   eventKey: "event-1",
+  seriesKey: "series-1",
   title: "Quarterly planning",
   attendeeCount: 5,
   startUtcMs: START,
@@ -93,6 +94,7 @@ const EVENT: CalendarEventSummary = {
 /** An event from a calendar that told Sona the bare minimum. */
 const BARE_EVENT: CalendarEventSummary = {
   eventKey: "event-2",
+  seriesKey: "",
   title: "Focus block",
   attendeeCount: 0,
   startUtcMs: START,
@@ -130,12 +132,15 @@ const BRIEFING: PersonBriefingRow[] = [
     },
     open_loops: [
       {
+        loop_id: "meeting-1:loop:a1b2c3d4e5f60718",
         meeting_id: "meeting-1",
         title: "Planning",
         at_utc_ms: START - 86_400_000,
         text: "Who owns the launch checklist?",
         owner_person_id: "person-1",
+        status: "open",
         carried_since_at_utc_ms: null,
+        carried_into_meeting_id: null,
       },
     ],
     commitments: [],

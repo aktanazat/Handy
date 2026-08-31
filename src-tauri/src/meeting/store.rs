@@ -1,8 +1,16 @@
+pub(crate) mod digest;
 mod documents;
 pub(crate) mod learning;
 #[cfg(test)]
 mod learning_tests;
+pub(crate) mod loops;
+#[cfg(test)]
+mod loops_tests;
 mod people;
+pub(crate) mod query_plane;
+pub(crate) mod series;
+#[cfg(test)]
+mod series_tests;
 #[cfg(test)]
 mod workflow_core_tests;
 #[cfg(test)]
@@ -58,6 +66,14 @@ const MISSING_OFFSET: u64 = u64::MAX;
 /// The shadow tables are named the same way every time. A migration creates
 /// them and drops them again before it returns, so no two rebuilds ever hold
 /// the names at once.
+///
+/// The index definitions here are the live ones, not the ones that were live
+/// when the first rebuild ran. `workflow_runs_once_idx` narrowed to `status =
+/// 'ok'` in a later migration, and a rebuild that re-emitted the old predicate
+/// would silently widen it back — so a migration that changes an index changes
+/// it here as well. Earlier rebuilds now create the narrow index and the
+/// narrowing migration recreates the same one, which leaves both a fresh
+/// database and an upgraded one in the same state.
 macro_rules! rebuilt_workflow_tables {
     (
         workflow_ids: $workflow_ids:literal,
@@ -111,7 +127,7 @@ macro_rules! rebuilt_workflow_tables {
         SELECT * FROM workflow_runs_rebuilding;
         CREATE UNIQUE INDEX workflow_runs_once_idx
             ON workflow_runs(workflow_id, event_id)
-            WHERE status IN ('ok', 'failed');
+            WHERE status = 'ok';
         CREATE INDEX workflow_runs_list_idx
             ON workflow_runs(started_at_utc_ms DESC, id DESC);
 
@@ -914,6 +930,113 @@ static MIGRATIONS: &[M] = &[
         CREATE UNIQUE INDEX workflow_runs_once_idx
             ON workflow_runs(workflow_id, event_id)
             WHERE status = 'ok';
+        ",
+    ),
+    // Loops that close. A ledger row's words live in the artifact revision
+    // that produced them and are re-read on every regeneration, so what a
+    // person did about a row cannot live there. This table holds only the
+    // departures from open: no row means open, unassigned, never carried, and
+    // that is why nothing has to be backfilled for meetings recorded before
+    // it existed. `revision` is the per-row fence, and revision 0 is the
+    // absent row, so a first write and a later one are fenced the same way.
+    //
+    // `carried_into_loop_id` is deliberately not a foreign key. It holds a
+    // derived loop id, and the successor it names is by definition the loop
+    // nobody has touched yet — open, so no row of its own. A self-reference
+    // here would make the only write that sets the column impossible.
+    M::up(
+        "
+        CREATE TABLE meeting_loop_states (
+            loop_id TEXT PRIMARY KEY NOT NULL,
+            session_id TEXT NOT NULL REFERENCES meeting_sessions(id) ON DELETE CASCADE,
+            kind TEXT NOT NULL CHECK (kind IN ('loop', 'commitment')),
+            status TEXT NOT NULL CHECK (status IN ('open', 'done', 'dropped', 'carried')),
+            owner_person_id TEXT REFERENCES persons(id) ON DELETE SET NULL,
+            resolved_at_utc_ms INTEGER,
+            resolving_operation_id TEXT,
+            carried_into_loop_id TEXT,
+            revision INTEGER NOT NULL CHECK (revision > 0),
+            updated_at_utc_ms INTEGER NOT NULL
+        );
+        CREATE INDEX meeting_loop_states_session_idx
+            ON meeting_loop_states(session_id, kind);
+        CREATE INDEX meeting_loop_states_carry_idx
+            ON meeting_loop_states(carried_into_loop_id);
+        CREATE INDEX meeting_loop_states_owner_idx
+            ON meeting_loop_states(owner_person_id);
+        ",
+    ),
+    // D21 series templates and D20's evening digest.
+    //
+    // A series preference is keyed on the same `series_key` standing consent
+    // and loop 4's priming already use — EventKit's calendar-item identifier —
+    // so a recurring meeting's choice is remembered by the thing that makes it
+    // recurring, and a meeting with no calendar event simply has no row.
+    // `revision` is global rather than per row because the surfaces that write
+    // it read the whole preference at once; the counter is what fences two
+    // windows writing the same series.
+    //
+    // The digest needs its own workflow id and its own event kind, and both
+    // allowed-value lists are `CHECK` constraints, so the three workflow
+    // tables go through the shared rebuild. `daily_digest` is seeded enabled:
+    // its real switch is `meeting_digest_enabled` in app settings, and the
+    // scheduler is what reads it.
+    M::up(concat!(
+        "
+        CREATE TABLE meeting_series_state (
+            singleton INTEGER PRIMARY KEY NOT NULL CHECK (singleton = 1),
+            revision INTEGER NOT NULL CHECK (revision >= 0)
+        );
+        INSERT INTO meeting_series_state(singleton, revision) VALUES (1, 0);
+        CREATE TABLE meeting_series_preferences (
+            series_key TEXT PRIMARY KEY NOT NULL CHECK (length(trim(series_key)) > 0),
+            template_id TEXT NOT NULL CHECK (length(trim(template_id)) > 0),
+            updated_at_utc_ms INTEGER NOT NULL
+        );
+        ",
+        rebuilt_workflow_tables!(
+            workflow_ids: "
+                'person_linking', 'pre_meeting_briefing', 'continuity',
+                'vocabulary_mining', 'document_linking', 'meeting_activity',
+                'spoken_punctuation', 'correction_learning', 'mode_habits',
+                'capture_advisor', 'series_priming', 'daily_digest'
+            ",
+            seeded: "('daily_digest', 1)",
+            event_kinds: "
+                'meeting_finalized', 'meeting_started', 'speaker_renamed',
+                'audio_imported', 'doc_ingested', 'calendar_meeting_detected',
+                'agent_hook_event', 'meeting_prompt_recorded',
+                'meeting_prompt_ignored', 'meeting_auto_record_started',
+                'meeting_auto_record_stopped', 'dictation_corpus_swept',
+                'dictation_correction_recorded', 'daily_digest_due'
+            ",
+        ),
+    )),
+    // The semantic half of the query plane. Both tables are a cache of vectors
+    // derived from this session's own artifact and transcript: dropping them
+    // costs one re-index and loses nothing, which is why they carry no
+    // revision, no receipt, and no consent of their own. They live here rather
+    // than beside the dictation index because a meeting's words are encrypted
+    // in this database and are deleted with it — a copy in another file would
+    // outlive the retention sweep that is supposed to reach it.
+    M::up(
+        "
+        CREATE TABLE meeting_semantic_chunks (
+            chunk_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL REFERENCES meeting_sessions(id) ON DELETE CASCADE,
+            text TEXT NOT NULL,
+            embedding BLOB NOT NULL,
+            model_revision TEXT NOT NULL
+        );
+        CREATE INDEX meeting_semantic_chunks_session
+            ON meeting_semantic_chunks(session_id);
+        CREATE TABLE meeting_semantic_index_state (
+            session_id TEXT PRIMARY KEY NOT NULL
+                REFERENCES meeting_sessions(id) ON DELETE CASCADE,
+            indexed_key TEXT NOT NULL,
+            model_revision TEXT NOT NULL,
+            indexed_at_utc_ms INTEGER NOT NULL
+        );
         ",
     ),
 ];
@@ -3808,6 +3931,80 @@ impl MeetingStore {
         )
     }
 
+    /// Title a meeting from what was said in it, once its notes exist.
+    ///
+    /// Only the manual default is replaced. A title a person typed and a title
+    /// a calendar event supplied are both somebody's answer to this question
+    /// already, and overwriting either would be the app arguing with its user.
+    ///
+    /// Deliberately not an `edit_session`: this runs immediately after an
+    /// artifact revision lands, and `edit_session` marks artifacts out of date.
+    /// A title read *from* the current artifact must not invalidate it —
+    /// that is a meeting whose every generation retires itself.
+    ///
+    /// Returns `None` when there was nothing to do, which is the ordinary
+    /// case: a titled meeting, or a headline no title could be read from.
+    pub(crate) fn derive_title_from_headline(
+        &self,
+        session_id: MeetingSessionId,
+        headline: &str,
+    ) -> Result<Option<OperationReceipt>, StoreError> {
+        let Some(title) = derived_title(headline) else {
+            return Ok(None);
+        };
+        let mut connection = self.connection()?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let current = session_row(&transaction, session_id)?;
+        if current.title != MANUAL_DEFAULT_TITLE || title == current.title {
+            transaction.commit()?;
+            return Ok(None);
+        }
+        let next_revision = current.revision.checked_add(1).ok_or(StoreError::Corrupt)?;
+        let now = utc_now_ms();
+        transaction.execute(
+            "UPDATE meeting_sessions SET title = ?1, revision = ?2 WHERE id = ?3",
+            params![title, to_i64(next_revision)?, id(session_id)],
+        )?;
+        rebuild_search_documents_in(&transaction, session_id)?;
+        // The event log is where a receipt's details live in this store, and
+        // the receipt's `new_revision` is the sequence that reads them back.
+        append_event_with_details(
+            &transaction,
+            session_id,
+            next_revision,
+            current.phase,
+            current.phase,
+            "title_derived",
+            None,
+            &encode_json(&serde_json::json!({
+                "source": "summary_headline",
+                "headline": headline.trim(),
+                "from": MANUAL_DEFAULT_TITLE,
+                "to": title,
+            }))?,
+        )?;
+        let receipt = OperationReceipt {
+            schema_version: STORE_SCHEMA_VERSION,
+            operation_id: MeetingOperationId::new(),
+            session_id: Some(session_id),
+            // Nobody asked for this one: the pipeline read it off the notes.
+            actor: OperationActor::System,
+            command: MeetingCommandKind::TitleSet,
+            expected_revision: current.revision,
+            from_phase: Some(current.phase),
+            to_phase: Some(current.phase),
+            requested_at_utc_ms: now,
+            committed_at_utc_ms: Some(now),
+            result: OperationResult::Committed,
+            reason_codes: Vec::new(),
+            new_revision: Some(next_revision),
+            effect_ids: vec![title],
+        };
+        insert_operation_receipt(&transaction, &receipt, now)?;
+        transaction.commit()?;
+        Ok(Some(receipt))
+    }
+
     pub fn create_note(
         &self,
         operation_id: MeetingOperationId,
@@ -6496,6 +6693,48 @@ fn first_sentence(text: &str) -> String {
         }
     }
     trimmed.to_string()
+}
+
+/// How long a derived title is allowed to be. A title is read at a glance in a
+/// list row, so it stops being one somewhere around here.
+const MAX_DERIVED_TITLE_CHARS: usize = 64;
+
+/// A title read out of a meeting's own headline: its first sentence, in
+/// sentence case, without the full stop, cut at a word boundary if the
+/// sentence runs long.
+///
+/// `None` when the headline yields nothing a person would recognise as a
+/// title — which is how a meeting with no speech in it keeps the name it was
+/// born with rather than being given an empty one.
+fn derived_title(headline: &str) -> Option<String> {
+    let sentence = first_sentence(headline);
+    let trimmed = sentence.trim_end_matches(['.', '!', '?', ' ']).trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let cut = shortened_to_words(trimmed, MAX_DERIVED_TITLE_CHARS);
+    let mut characters = cut.chars();
+    let first = characters.next()?;
+    // Sentence case: the first letter is the app's, the rest is the meeting's.
+    // Upper-casing one character can widen it, so the capacity is a hint.
+    let mut title = String::with_capacity(cut.len() + 3);
+    title.extend(first.to_uppercase());
+    title.push_str(characters.as_str());
+    Some(title)
+}
+
+/// `text` cut to at most `limit` characters, on a word boundary when there is
+/// one to cut on. No ellipsis: a shortened title is still a title, not a
+/// truncated sentence.
+fn shortened_to_words(text: &str, limit: usize) -> &str {
+    let Some((end, _)) = text.char_indices().nth(limit) else {
+        return text;
+    };
+    let head = &text[..end];
+    match head.rfind(char::is_whitespace) {
+        Some(space) => head[..space].trim_end_matches([',', ';', ':', '-']).trim(),
+        None => head,
+    }
 }
 
 /// Words in the current transcript, whitespace-delimited, with editor

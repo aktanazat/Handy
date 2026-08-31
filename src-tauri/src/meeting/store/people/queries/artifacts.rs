@@ -1,13 +1,13 @@
 use crate::meeting::analytics::MeetingAnalytics;
-use crate::meeting::ledger::LedgerOutcome;
+use crate::meeting::loop_types::{MeetingLoopId, MeetingLoopKind};
 use crate::meeting::people_types::{
     Person, PersonCommitment, PersonId, PersonMeetingHeadline, PersonMeetingSummary, PersonOpenLoop,
 };
-use crate::meeting::store::people::{all_people_in, normalized, owner_matches};
+use crate::meeting::store::loops::{ledger_loop_seeds, rows_from_seeds_in};
+use crate::meeting::store::people::{all_people_in, owner_matches};
 use crate::meeting::store::StoreError;
 use crate::meeting::types::{GeneratedMeetingArtifacts, MeetingSessionId};
 use rusqlite::{params, Connection, OptionalExtension};
-use std::collections::HashMap;
 use uuid::Uuid;
 
 pub(super) struct PersonFacts {
@@ -107,40 +107,59 @@ pub(super) fn facts_for_person_in(
         let Some(ledger) = content.and_then(|content| content.ledger) else {
             continue;
         };
-        open_loops.extend(
-            ledger
-                .threads
-                .into_iter()
-                .filter(|thread| {
-                    thread.state.outcome() != LedgerOutcome::Landed
-                        && thread
-                            .owner
-                            .as_deref()
-                            .is_some_and(|owner| owner_matches(person, owner))
-                })
-                .map(|thread| PersonOpenLoop {
+        let loop_rows = rows_from_seeds_in(
+            connection,
+            meeting_id,
+            ledger_loop_seeds(meeting_id, &ledger),
+        )?;
+        for row in loop_rows {
+            // An explicit assignment decides ownership; without one the name
+            // the ledger read off the transcript does. Loops with neither
+            // belong to nobody and stay off a person's page.
+            let owned = match row.owner_person_id {
+                Some(owner) => owner == person.id,
+                None => row
+                    .owner_text
+                    .as_deref()
+                    .is_some_and(|owner| owner_matches(person, owner)),
+            };
+            if !owned {
+                continue;
+            }
+            match row.kind {
+                MeetingLoopKind::Loop => {
+                    if !row.is_open() {
+                        continue;
+                    }
+                    open_loops.push(PersonOpenLoop {
+                        loop_id: row.loop_id,
+                        meeting_id,
+                        title: title.clone(),
+                        at_utc_ms,
+                        text: row.text,
+                        owner_person_id: Some(person.id),
+                        status: row.status,
+                        carried_since_at_utc_ms: row.carried_since_at_utc_ms,
+                        carried_into_meeting_id: row
+                            .carried_into_loop_id
+                            .as_ref()
+                            .and_then(MeetingLoopId::session_id),
+                    });
+                }
+                // A commitment stays on the page once it is kept: the point of
+                // the list is what somebody undertook, not only what is left.
+                MeetingLoopKind::Commitment => commitments.push(PersonCommitment {
+                    loop_id: row.loop_id,
                     meeting_id,
                     title: title.clone(),
                     at_utc_ms,
-                    text: thread.topic,
-                    owner_person_id: Some(person.id),
-                    carried_since_at_utc_ms: None,
+                    text: row.text,
+                    status: row.status,
+                    resolved_at_utc_ms: row.resolved_at_utc_ms,
                 }),
-        );
-        commitments.extend(
-            ledger
-                .commitments
-                .into_iter()
-                .filter(|commitment| owner_matches(person, &commitment.who))
-                .map(|commitment| PersonCommitment {
-                    meeting_id,
-                    title: title.clone(),
-                    at_utc_ms,
-                    text: commitment.what,
-                }),
-        );
+            }
+        }
     }
-    mark_carried_loops(&mut open_loops);
     Ok(PersonFacts {
         meetings,
         open_loops,
@@ -148,6 +167,10 @@ pub(super) fn facts_for_person_in(
     })
 }
 
+/// Every loop still open, newest meeting first. The one query the open-loops
+/// inbox, the pre-meeting brief and the consent panel's series line all read,
+/// so "open" means the same thing on all three: a loop somebody resolved,
+/// dropped or carried forward is gone from every one of them at once.
 pub(super) fn all_open_loops_in(
     connection: &Connection,
 ) -> Result<Vec<PersonOpenLoop>, StoreError> {
@@ -182,43 +205,37 @@ pub(super) fn all_open_loops_in(
         else {
             continue;
         };
-        loops.extend(
-            ledger
-                .open_loops
-                .into_iter()
-                .map(|open_loop| PersonOpenLoop {
-                    meeting_id,
-                    title: title.clone(),
-                    at_utc_ms,
-                    text: open_loop.question,
-                    owner_person_id: None,
-                    carried_since_at_utc_ms: None,
+        let loop_rows = rows_from_seeds_in(
+            connection,
+            meeting_id,
+            ledger_loop_seeds(meeting_id, &ledger),
+        )?;
+        for row in loop_rows {
+            if row.kind != MeetingLoopKind::Loop || !row.is_open() {
+                continue;
+            }
+            let owner_person_id = match row.owner_person_id {
+                Some(owner) => Some(owner),
+                None => row.owner_text.as_deref().and_then(|owner| {
+                    people
+                        .iter()
+                        .find(|person| owner_matches(person, owner))
+                        .map(|person| person.id)
                 }),
-        );
-        loops.extend(
-            ledger
-                .threads
-                .into_iter()
-                .filter(|thread| thread.state.outcome() != LedgerOutcome::Landed)
-                .map(|thread| {
-                    let owner_person_id = thread.owner.as_deref().and_then(|owner| {
-                        people
-                            .iter()
-                            .find(|person| owner_matches(person, owner))
-                            .map(|person| person.id)
-                    });
-                    PersonOpenLoop {
-                        meeting_id,
-                        title: title.clone(),
-                        at_utc_ms,
-                        text: thread.topic,
-                        owner_person_id,
-                        carried_since_at_utc_ms: None,
-                    }
-                }),
-        );
+            };
+            loops.push(PersonOpenLoop {
+                loop_id: row.loop_id,
+                meeting_id,
+                title: title.clone(),
+                at_utc_ms,
+                text: row.text,
+                owner_person_id,
+                status: row.status,
+                carried_since_at_utc_ms: row.carried_since_at_utc_ms,
+                carried_into_meeting_id: None,
+            });
+        }
     }
-    mark_carried_loops(&mut loops);
     Ok(loops)
 }
 
@@ -311,60 +328,37 @@ fn decode_artifacts(
         .transpose()
 }
 
+/// The same headline, plus where it came from — the people surfaces mark a
+/// ledger reading differently from a summary sentence. The precedence itself
+/// stays in `GeneratedMeetingArtifacts::headline`; this only reads the tag off
+/// the answer.
 pub(super) fn person_meeting_headline_from_json(
     content_json: Option<&str>,
 ) -> Result<Option<PersonMeetingHeadline>, StoreError> {
-    Ok(decode_artifacts(content_json)?
+    let Some(content) = decode_artifacts(content_json)? else {
+        return Ok(None);
+    };
+    let Some(headline) = content.headline() else {
+        return Ok(None);
+    };
+    let from_ledger = content
+        .ledger
         .as_ref()
-        .and_then(|content| {
-            content
-                .ledger
-                .as_ref()
-                .map(|ledger| ledger.headline.trim())
-                .filter(|headline| !headline.is_empty())
-                .map(|headline| PersonMeetingHeadline::Ledger {
-                    text: headline.to_string(),
-                })
-                .or_else(|| {
-                    let summary = content.summary.text.trim();
-                    (!summary.is_empty()).then(|| PersonMeetingHeadline::Summary {
-                        text: summary.to_string(),
-                    })
-                })
-        }))
+        .is_some_and(|ledger| ledger.headline.trim() == headline);
+    let text = headline.to_string();
+    Ok(Some(if from_ledger {
+        PersonMeetingHeadline::Ledger { text }
+    } else {
+        PersonMeetingHeadline::Summary { text }
+    }))
 }
 
 fn artifact_headline(content: &GeneratedMeetingArtifacts) -> Option<String> {
-    content
-        .ledger
-        .as_ref()
-        .map(|ledger| ledger.headline.trim())
-        .filter(|headline| !headline.is_empty())
-        .or_else(|| {
-            let summary = content.summary.text.trim();
-            (!summary.is_empty()).then_some(summary)
-        })
-        .map(str::to_string)
+    content.headline().map(str::to_string)
 }
 
 fn parse_meeting_id(value: &str) -> Result<MeetingSessionId, StoreError> {
     Uuid::parse_str(value)
         .map(MeetingSessionId::from_uuid)
         .map_err(|_| StoreError::Corrupt)
-}
-
-fn mark_carried_loops(loops: &mut [PersonOpenLoop]) {
-    let mut earliest = HashMap::<(Option<PersonId>, String), i64>::new();
-    for open_loop in loops.iter().rev() {
-        let key = (open_loop.owner_person_id, normalized(&open_loop.text));
-        earliest.entry(key).or_insert(open_loop.at_utc_ms);
-    }
-    for open_loop in loops {
-        let key = (open_loop.owner_person_id, normalized(&open_loop.text));
-        if let Some(first) = earliest.get(&key).copied() {
-            if first < open_loop.at_utc_ms {
-                open_loop.carried_since_at_utc_ms = Some(first);
-            }
-        }
-    }
 }

@@ -1493,7 +1493,40 @@
         "rowDescription": "關閉此選項會關閉面板視窗，並讓 Sona 拒絕所有重新開啟的要求。",
         "title": "代理程式面板"
       },
-      "workspaceNavigation": "代理程式橋接檢視"
+      "workspaceNavigation": "代理程式橋接檢視",
+      "sonaAgent": {
+        "title": "Sona 代理",
+        "pairing": "配對",
+        "paired": "已配對",
+        "unpaired": "未配對",
+        "lastReached": "上次連通",
+        "never": "從未",
+        "relayUrl": "中繼位址",
+        "relayUrlHint": "只接受 Tailscale 位址或本機。公開網路上的位址在儲存之前就會被拒絕。",
+        "relayKeyId": "中繼金鑰 ID",
+        "relayPublicKey": "中繼公開金鑰",
+        "identity": "本機公開金鑰",
+        "identityHint": "把這把公開金鑰加到中繼，它才會接受來自本機的請求。私鑰那一半始終留在你的鑰匙圈裡。",
+        "identityUnavailable": "開啟代理面板以建立金鑰。",
+        "copy": "複製",
+        "copied": "已複製",
+        "save": "儲存",
+        "unpair": "解除配對",
+        "test": "測試",
+        "reached": "中繼已回應。",
+        "failed": "無法與中繼配對。",
+        "reason": {
+          "unauthorized_window": "該視窗無權變更配對。",
+          "disabled": "代理面板已關閉。",
+          "unpaired": "還沒有配對任何中繼。",
+          "offline": "中繼沒有回應。",
+          "invalid_configuration": "Sona 不會使用該位址或金鑰。",
+          "secret_unavailable": "無法讀取本機金鑰。",
+          "untrusted_response": "回覆不是已配對中繼簽署的。",
+          "remote_rejected": "中繼拒絕了請求。",
+          "ownership_rejected": "中繼回覆的是別人的請求。"
+        }
+      }
     },
     "workflows": {
       "title": "工作流程",
@@ -1525,6 +1558,9 @@
         },
         "meeting_activity": {
           "name": "會議錄製"
+        },
+        "daily_digest": {
+          "name": "晚間摘要"
         }
       },
       "status": {
@@ -1544,7 +1580,8 @@
         "autoRecordStopped": "已自動停止錄製",
         "alreadyProcessed": "沒有新的事要做",
         "failed": "未能完成",
-        "skipped": "已略過"
+        "skipped": "已略過",
+        "digestRaised": "彙整了這一天"
       },
       "vocabularySuggestions": {
         "title": "來自你的會議",
@@ -1624,6 +1661,14 @@
       "positionLabel": "待機藥丸位置",
       "positionTop": "上方",
       "positionBottom": "下方"
+    },
+    "meetings": {
+      "digest": {
+        "title": "晚間摘要",
+        "description": "在有會議或有事項收尾的那天結束時，只發一則通知。所有內容都留在這台 Mac 上。",
+        "timeLabel": "摘要時間",
+        "timeHint": "當地時間。什麼都沒發生的一天不會打擾你。"
+      }
     }
   },
   "common": {
@@ -2073,6 +2118,23 @@
         "soft": "鬆動"
       }
     },
+    "loops": {
+      "status": {
+        "open": "未解決",
+        "done": "已完成",
+        "dropped": "已放棄",
+        "carried": "已順延"
+      },
+      "markDone": "將此事項標記為已完成",
+      "drop": "放棄",
+      "reopen": "重新開啟",
+      "owner": "負責人",
+      "ownerIs": "負責人：{{owner}}",
+      "ownerUnassigned": "暫無",
+      "instead": "實際情況：{{instead}}",
+      "carriedForward": "從上次會議順延而來",
+      "stale": "其他操作先生效了，清單已重新載入。"
+    },
     "artifactState": {
       "current": "最新",
       "out_of_date": "已過時",
@@ -2263,7 +2325,8 @@
         "notes": "筆記",
         "participants": "參與者",
         "link": "連結",
-        "description": "描述"
+        "description": "描述",
+        "notesSeries": "用於此系列"
       },
       "attendees_one": "{{count}} 人",
       "attendees_other": "{{count}} 人",
@@ -2300,6 +2363,11 @@
       },
       "linkFailed": "Sona 無法開啟該連結。",
       "skippedNote": "略過會在這裡隱藏該提議。在提議過期之前，Sona 仍會看到這通通話。"
+    },
+    "seriesTemplate": {
+      "use": "此系列使用這個範本",
+      "saving": "正在記住…",
+      "remembered": "此系列使用{{template}}"
     }
   },
   "agentPanel": {
@@ -2311,8 +2379,7 @@
     "panelToggle": "關閉代理面板",
     "conversationLabel": "對話",
     "proposalTitle": "建議的變更",
-    "empty": "詢問 Sona 設定。任何變更前，建議都會顯示在此處供檢閱。",
-    "inputPlaceholder": "詢問 Sona…",
+    "empty": "可以問會議、筆記和設定。設定的變動會在這裡以提案出現，你先過目，之後才會真的改。",
     "inputLabel": "詢問 Sona",
     "send": "傳送",
     "status": {
@@ -2321,9 +2388,34 @@
       "unpaired": "未與中繼站配對。",
       "offline": "中繼站離線。",
       "idle": "就緒",
-      "running": "處理中…",
       "proposal": "建議已就緒",
       "error": "代理面板無法使用。"
+    },
+    "activityLabel": "進度",
+    "workspaceLabel": "由誰回答",
+    "step": {
+      "sent": "已送出"
+    },
+    "workspace": {
+      "sona_chat": "提問",
+      "sona_config": "設定"
+    },
+    "placeholder": {
+      "sona_chat": "問問你的會議和筆記…",
+      "sona_config": "問問 Sona 的設定…"
+    },
+    "turnState": {
+      "submitting": "傳送中",
+      "queued": "排隊中",
+      "leased": "已接手",
+      "running": "思考中",
+      "waiting_user": "等你回應",
+      "waiting_approval": "等待核准",
+      "canceling": "停止中",
+      "succeeded": "已回答",
+      "failed": "失敗",
+      "canceled": "已停止",
+      "unverified_external": "未驗證的回覆"
     }
   },
   "overview": {

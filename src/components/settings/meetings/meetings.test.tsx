@@ -10,6 +10,7 @@ import { TooltipProvider } from "@/components/vg/tooltip";
 import type {
   MeetingHistorySummary,
   MeetingLedger,
+  MeetingLoopRow,
   MeetingPhase,
   MeetingReviewSnapshot,
   MeetingStatusFilter,
@@ -1006,6 +1007,54 @@ const LEDGER: MeetingLedger = {
   receipts: { status: "verified" },
 };
 
+/* The actionable half of the same ledger: the words come from the artifact
+ * above, the state comes from the store. The question arrives carried forward,
+ * which is the one row shape only a series produces. */
+const LOOPS: MeetingLoopRow[] = [
+  {
+    loop_id: "session-1:loop:0f1e2d3c4b5a6978",
+    session_id: "session-1",
+    kind: "loop",
+    text: "Which tier does the trial convert into?",
+    owner_text: null,
+    owner_person_id: null,
+    owner_display_name: null,
+    status: "open",
+    resolved_at_utc_ms: null,
+    resolving_operation_id: null,
+    carried_into_loop_id: null,
+    carried_since_at_utc_ms: 1_700_000_000_000,
+    at_ms: 12_000,
+    revision: 0,
+    instead: "Amir answered the discount question instead.",
+    firmness: null,
+    quote: null,
+    speaker: null,
+    citations: RECEIPT_CITATIONS,
+  },
+  {
+    loop_id: "session-1:commitment:8796a5b4c3d2e1f0",
+    session_id: "session-1",
+    kind: "commitment",
+    text: "Draft the tier comparison",
+    owner_text: "Amir",
+    owner_person_id: null,
+    owner_display_name: null,
+    status: "open",
+    resolved_at_utc_ms: null,
+    resolving_operation_id: null,
+    carried_into_loop_id: null,
+    carried_since_at_utc_ms: null,
+    at_ms: 12_000,
+    revision: 0,
+    instead: null,
+    firmness: "firm",
+    quote: "I will draft the tier comparison by Friday.",
+    speaker: "Amir",
+    citations: RECEIPT_CITATIONS,
+  },
+];
+
 /* bindings.ts is regenerated at integration, so a fixture attaches the ledger
  * the same way the app reads it: through one cast at the seam. */
 const ledgerSnapshot = (ledger: MeetingLedger): MeetingReviewSnapshot => {
@@ -1030,8 +1079,11 @@ describe("meeting ledger", () => {
         snapshot={ledgerSnapshot(LEDGER)}
         busy={false}
         canExport
+        loops={LOOPS}
+        people={[]}
         onJumpToSegment={noop}
         onExportLedger={noop}
+        onLoopChange={noop}
         {...overrides}
       />,
     );
@@ -1105,6 +1157,49 @@ describe("meeting ledger", () => {
     expect(currentLedger([ledgerless, artifact])?.ledger.headline).toBe(
       LEDGER.headline,
     );
+  });
+
+  /* D18: the two actionable registers are rows you act on, so each states
+   * where it stands, who it belongs to, and offers only the controls its own
+   * state can reach. A carried row says so — that line is the only thing on
+   * the review screen that names the series. */
+  test("states each loop, its owner, and only the controls its state allows", () => {
+    const markup = ledgerMarkup({});
+
+    expect(occurrences(markup, 'data-slot="loop-row"')).toBe(2);
+    expect(occurrences(markup, ">Open<")).toBe(2);
+    expect(markup).toContain("Owner: Nobody yet");
+    expect(markup).toContain("Owner: Amir");
+    expect(markup).toContain("Carried forward from an earlier meeting");
+    // Open rows can be dropped; nothing here has been dropped or carried, so
+    // there is no Reopen to press.
+    expect(occurrences(markup, ">Drop</button>")).toBe(2);
+    expect(markup).not.toContain(">Reopen</button>");
+  });
+
+  test("a settled loop offers the way back, and a done one is struck through", () => {
+    const markup = ledgerMarkup({
+      loops: [
+        { ...LOOPS[0], status: "carried" },
+        { ...LOOPS[1], status: "done" },
+      ],
+    });
+
+    expect(markup).toContain(">Carried forward<");
+    expect(markup).toContain(">Done<");
+    expect(occurrences(markup, ">Reopen</button>")).toBe(1);
+    expect(markup).not.toContain(">Drop</button>");
+    expect(markup).toContain("line-through");
+  });
+
+  /* Until the first read lands there is nothing to act on: the registers read
+   * as empty and every control is out, rather than a spinner over four rows. */
+  test("reads as empty and inert before the first loop read lands", () => {
+    const markup = ledgerMarkup({ loops: null });
+
+    expect(markup).not.toContain('data-slot="loop-row"');
+    expect(markup).toContain("No question was left without an answer.");
+    expect(markup).toContain("Nobody committed to anything out loud.");
   });
 });
 

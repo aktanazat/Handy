@@ -1493,7 +1493,40 @@
         "rowDescription": "Uitschakelen sluit het paneelvenster en laat Sona elk verzoek om het te heropenen weigeren.",
         "title": "Agentpaneel"
       },
-      "workspaceNavigation": "Agentbridge-weergaven"
+      "workspaceNavigation": "Agentbridge-weergaven",
+      "sonaAgent": {
+        "title": "Sona-agent",
+        "pairing": "Koppeling",
+        "paired": "Gekoppeld",
+        "unpaired": "Niet gekoppeld",
+        "lastReached": "Laatst bereikt",
+        "never": "Nooit",
+        "relayUrl": "Adres van de relay",
+        "relayUrlHint": "Alleen een Tailscale-adres of deze Mac zelf wordt geaccepteerd. Alles op het open internet wordt geweigerd voordat het wordt bewaard.",
+        "relayKeyId": "Sleutel-id van de relay",
+        "relayPublicKey": "Publieke sleutel van de relay",
+        "identity": "Publieke sleutel van deze Mac",
+        "identityHint": "Zet deze sleutel in de relay zodat die beurten vanaf deze Mac aanneemt. De privéhelft verlaat je sleutelhanger nooit.",
+        "identityUnavailable": "Zet het agentpaneel aan om een sleutel te maken.",
+        "copy": "Kopiëren",
+        "copied": "Gekopieerd",
+        "save": "Bewaren",
+        "unpair": "Ontkoppelen",
+        "test": "Testen",
+        "reached": "De relay antwoordde.",
+        "failed": "Koppelen met de relay lukte niet.",
+        "reason": {
+          "unauthorized_window": "Dat venster mag de koppeling niet wijzigen.",
+          "disabled": "Het agentpaneel staat uit.",
+          "unpaired": "Er is nog geen relay gekoppeld.",
+          "offline": "De relay antwoordde niet.",
+          "invalid_configuration": "Dat adres of die sleutel gebruikt Sona niet.",
+          "secret_unavailable": "De sleutel van deze Mac kon niet worden gelezen.",
+          "untrusted_response": "Het antwoord was niet ondertekend door de gekoppelde relay.",
+          "remote_rejected": "De relay wees het verzoek af.",
+          "ownership_rejected": "De relay antwoordde voor iemand anders."
+        }
+      }
     },
     "workflows": {
       "title": "Werkstromen",
@@ -1525,6 +1558,9 @@
         },
         "meeting_activity": {
           "name": "Vergaderopname"
+        },
+        "daily_digest": {
+          "name": "Avondsamenvatting"
         }
       },
       "status": {
@@ -1548,7 +1584,8 @@
         "autoRecordStopped": "Opname automatisch gestopt",
         "alreadyProcessed": "Niets nieuws te doen",
         "failed": "Kon niet worden voltooid",
-        "skipped": "Overgeslagen"
+        "skipped": "Overgeslagen",
+        "digestRaised": "De dag samengevat"
       },
       "vocabularySuggestions": {
         "title": "Uit je vergaderingen",
@@ -1630,6 +1667,14 @@
       "positionLabel": "Positie van de rustpil",
       "positionTop": "Boven",
       "positionBottom": "Onder"
+    },
+    "meetings": {
+      "digest": {
+        "title": "Avondsamenvatting",
+        "description": "Eén melding aan het eind van een dag met vergaderingen of afgeronde punten. Alles blijft op deze Mac.",
+        "timeLabel": "Tijd van de samenvatting",
+        "timeHint": "Lokale tijd. Een dag zonder iets blijft stil."
+      }
     }
   },
   "whatsNew": {
@@ -2079,6 +2124,23 @@
         "soft": "Zacht"
       }
     },
+    "loops": {
+      "status": {
+        "open": "Open",
+        "done": "Klaar",
+        "dropped": "Laten vallen",
+        "carried": "Meegenomen"
+      },
+      "markDone": "Dit punt als klaar markeren",
+      "drop": "Laten vallen",
+      "reopen": "Heropenen",
+      "owner": "Eigenaar",
+      "ownerIs": "Eigenaar: {{owner}}",
+      "ownerUnassigned": "Nog niemand",
+      "instead": "In plaats daarvan: {{instead}}",
+      "carriedForward": "Meegenomen uit een eerdere vergadering",
+      "stale": "Iemand anders heeft dit punt eerder verplaatst, dus de lijst is vernieuwd."
+    },
     "artifactState": {
       "current": "Actueel",
       "out_of_date": "Verouderd",
@@ -2269,7 +2331,8 @@
         "notes": "Notities",
         "participants": "Deelnemers",
         "link": "Link",
-        "description": "Beschrijving"
+        "description": "Beschrijving",
+        "notesSeries": "voor deze reeks"
       },
       "attendees_one": "{{count}} persoon",
       "attendees_other": "{{count}} personen",
@@ -2306,6 +2369,11 @@
       },
       "linkFailed": "Sona kon die link niet openen.",
       "skippedNote": "Overslaan verbergt het aanbod hier. Sona blijft het gesprek zien tot het aanbod verloopt."
+    },
+    "seriesTemplate": {
+      "use": "Dit sjabloon voor deze reeks gebruiken",
+      "saving": "Onthouden…",
+      "remembered": "Deze reeks gebruikt {{template}}"
     }
   },
   "agentPanel": {
@@ -2317,8 +2385,7 @@
     "panelToggle": "Agentpaneel sluiten",
     "conversationLabel": "Gesprek",
     "proposalTitle": "Voorgestelde wijzigingen",
-    "empty": "Stel een vraag over Sona-instellingen. Voorstellen verschijnen hier ter controle voordat er iets verandert.",
-    "inputPlaceholder": "Vraag over Sona…",
+    "empty": "Vraag naar je gesprekken, notities en instellingen. Wijzigingen in instellingen verschijnen hier als voorstel dat je nakijkt voordat er iets verandert.",
     "inputLabel": "Vraag over Sona",
     "send": "Verzenden",
     "status": {
@@ -2327,9 +2394,34 @@
       "unpaired": "Niet gekoppeld aan een relay.",
       "offline": "Relay is offline.",
       "idle": "Klaar",
-      "running": "Bezig…",
       "proposal": "Voorstel is klaar",
       "error": "Het agentpaneel is niet beschikbaar."
+    },
+    "activityLabel": "Verloop",
+    "workspaceLabel": "Wie antwoordt",
+    "step": {
+      "sent": "Verstuurd"
+    },
+    "workspace": {
+      "sona_chat": "Vragen",
+      "sona_config": "Instellingen"
+    },
+    "placeholder": {
+      "sona_chat": "Vraag naar je gesprekken en notities…",
+      "sona_config": "Vraag naar de instellingen van Sona…"
+    },
+    "turnState": {
+      "submitting": "Versturen",
+      "queued": "In de wachtrij",
+      "leased": "Opgepakt",
+      "running": "Denkt na",
+      "waiting_user": "Wacht op jou",
+      "waiting_approval": "Wacht op goedkeuring",
+      "canceling": "Stoppen",
+      "succeeded": "Beantwoord",
+      "failed": "Mislukt",
+      "canceled": "Gestopt",
+      "unverified_external": "Ongecontroleerd antwoord"
     }
   },
   "overview": {

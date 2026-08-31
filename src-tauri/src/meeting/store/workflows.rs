@@ -338,6 +338,7 @@ pub(super) fn matching_enabled_workflows_in(
             WorkflowId::CaptureAdvisor,
         ],
         WorkflowEventKind::DictationCorrectionRecorded => &[WorkflowId::CorrectionLearning],
+        WorkflowEventKind::DailyDigestDue => &[WorkflowId::DailyDigest],
         WorkflowEventKind::AudioImported | WorkflowEventKind::AgentHookEvent => &[],
     };
     let mut enabled = Vec::new();
@@ -637,6 +638,7 @@ pub(super) fn outcome_projection(
             | WorkflowId::ModeHabits
             | WorkflowId::CaptureAdvisor => WorkflowOutcomeCode::LearningSuggestions,
             WorkflowId::SeriesPriming => WorkflowOutcomeCode::SeriesPrimed,
+            WorkflowId::DailyDigest => WorkflowOutcomeCode::DigestRaised,
             WorkflowId::MeetingActivity => match event_kind {
                 WorkflowEventKind::MeetingPromptRecorded => WorkflowOutcomeCode::PromptRecorded,
                 WorkflowEventKind::MeetingPromptIgnored => WorkflowOutcomeCode::PromptIgnored,
@@ -666,6 +668,9 @@ pub(super) fn outcome_projection(
             "candidates" => counts.candidates = value,
             "suggestions" => counts.suggestions = value,
             "terms" => counts.terms = value,
+            "meetings" => counts.meetings = value,
+            "loops_closed" => counts.loops_closed = value,
+            "suggestions_waiting" => counts.suggestions_waiting = value,
             _ => {}
         }
     }

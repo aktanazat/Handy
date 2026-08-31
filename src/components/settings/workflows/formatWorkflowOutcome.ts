@@ -38,6 +38,10 @@ export const formatWorkflowOutcome = (
       });
     case "series_primed":
       return t("learningV2.outcomes.primed");
+    /* D20 narrates a day, not a change: the run writes nothing, so its
+     * receipt existing is the whole sentence. */
+    case "digest_raised":
+      return t("settings.workflows.outcomes.digestRaised");
     /* The consent popup's own history, narrated: what happened to the
      * recording, never what happened to a prompt or a receipt. */
     case "prompt_recorded":
@@ -89,6 +93,7 @@ export const workflowOutcomeHasEffect = (
      * recorded, so the receipt's existence is the effect. */
     case "briefing":
     case "series_primed":
+    case "digest_raised":
     case "prompt_recorded":
     case "prompt_ignored":
     case "auto_record_started":

@@ -1493,7 +1493,40 @@
         "rowDescription": "Desligar isto fecha a janela do painel e faz com que o Sona recuse todos os pedidos para a reabrir.",
         "title": "Painel de agentes"
       },
-      "workspaceNavigation": "Vistas da ponte de agentes"
+      "workspaceNavigation": "Vistas da ponte de agentes",
+      "sonaAgent": {
+        "title": "Agente Sona",
+        "pairing": "Emparelhamento",
+        "paired": "Emparelhado",
+        "unpaired": "Não emparelhado",
+        "lastReached": "Último contacto",
+        "never": "Nunca",
+        "relayUrl": "Endereço do relay",
+        "relayUrlHint": "Só é aceite um endereço Tailscale ou este próprio Mac. Tudo o que esteja na internet aberta é recusado antes de ser guardado.",
+        "relayKeyId": "ID da chave do relay",
+        "relayPublicKey": "Chave pública do relay",
+        "identity": "Chave pública deste Mac",
+        "identityHint": "Adicione esta chave ao relay para que ele aceite pedidos deste Mac. A metade privada nunca sai do seu porta-chaves.",
+        "identityUnavailable": "Ligue o painel do agente para criar uma chave.",
+        "copy": "Copiar",
+        "copied": "Copiado",
+        "save": "Guardar",
+        "unpair": "Desemparelhar",
+        "test": "Testar",
+        "reached": "O relay respondeu.",
+        "failed": "Não foi possível emparelhar com o relay.",
+        "reason": {
+          "unauthorized_window": "Essa janela não pode alterar o emparelhamento.",
+          "disabled": "O painel do agente está desligado.",
+          "unpaired": "Ainda não há nenhum relay emparelhado.",
+          "offline": "O relay não respondeu.",
+          "invalid_configuration": "A Sona não vai usar esse endereço nem essa chave.",
+          "secret_unavailable": "Não foi possível ler a chave deste Mac.",
+          "untrusted_response": "A resposta não foi assinada pelo relay emparelhado.",
+          "remote_rejected": "O relay recusou o pedido.",
+          "ownership_rejected": "O relay respondeu por outra pessoa."
+        }
+      }
     },
     "workflows": {
       "title": "Fluxos de trabalho",
@@ -1525,6 +1558,9 @@
         },
         "meeting_activity": {
           "name": "Gravação de reuniões"
+        },
+        "daily_digest": {
+          "name": "Resumo da noite"
         }
       },
       "status": {
@@ -1552,7 +1588,8 @@
         "autoRecordStopped": "Gravação parada automaticamente",
         "alreadyProcessed": "Nada de novo a fazer",
         "failed": "Não foi possível concluir",
-        "skipped": "Ignorado"
+        "skipped": "Ignorado",
+        "digestRaised": "Resumiu o dia"
       },
       "vocabularySuggestions": {
         "title": "Das suas reuniões",
@@ -1636,6 +1673,14 @@
       "positionLabel": "Posição da pílula em repouso",
       "positionTop": "Topo",
       "positionBottom": "Base"
+    },
+    "meetings": {
+      "digest": {
+        "title": "Resumo da noite",
+        "description": "Uma notificação no fim de um dia com reuniões ou pendências fechadas. Tudo fica neste Mac.",
+        "timeLabel": "Hora do resumo",
+        "timeHint": "Hora local. Um dia sem nada continua em silêncio."
+      }
     }
   },
   "common": {
@@ -2085,6 +2130,23 @@
         "soft": "Fraco"
       }
     },
+    "loops": {
+      "status": {
+        "open": "Em aberto",
+        "done": "Concluído",
+        "dropped": "Descartado",
+        "carried": "Transferido"
+      },
+      "markDone": "Marcar este ponto como concluído",
+      "drop": "Descartar",
+      "reopen": "Reabrir",
+      "owner": "Responsável",
+      "ownerIs": "Responsável: {{owner}}",
+      "ownerUnassigned": "Ninguém ainda",
+      "instead": "Em vez disso: {{instead}}",
+      "carriedForward": "Transferido de uma reunião anterior",
+      "stale": "Outra pessoa mudou este ponto primeiro, então a lista foi atualizada."
+    },
     "artifactState": {
       "current": "Atualizada",
       "out_of_date": "Desatualizada",
@@ -2275,7 +2337,8 @@
         "notes": "Notas",
         "participants": "Participantes",
         "link": "Ligação",
-        "description": "Descrição"
+        "description": "Descrição",
+        "notesSeries": "para esta série"
       },
       "attendees_one": "{{count}} pessoa",
       "attendees_other": "{{count}} pessoas",
@@ -2312,6 +2375,11 @@
       },
       "linkFailed": "A Sona não conseguiu abrir essa ligação.",
       "skippedNote": "Ignorar esconde a proposta aqui. A Sona continua a ver a chamada até a proposta expirar."
+    },
+    "seriesTemplate": {
+      "use": "Usar este modelo para esta série",
+      "saving": "A guardar…",
+      "remembered": "Esta série usa {{template}}"
     }
   },
   "agentPanel": {
@@ -2323,8 +2391,7 @@
     "panelToggle": "Fechar painel do agente",
     "conversationLabel": "Conversa",
     "proposalTitle": "Alterações propostas",
-    "empty": "Pergunte sobre as definições do Sona. As propostas aparecem aqui para revisão antes de qualquer alteração.",
-    "inputPlaceholder": "Perguntar sobre o Sona…",
+    "empty": "Pergunte sobre as suas reuniões, notas e definições. Mudanças de definições aparecem aqui como uma proposta que você revê antes de algo mudar.",
     "inputLabel": "Perguntar sobre o Sona",
     "send": "Enviar",
     "status": {
@@ -2333,9 +2400,34 @@
       "unpaired": "Não emparelhado com um relé.",
       "offline": "O relé está offline.",
       "idle": "Pronto",
-      "running": "A trabalhar…",
       "proposal": "Proposta pronta",
       "error": "O painel do agente está indisponível."
+    },
+    "activityLabel": "Atividade",
+    "workspaceLabel": "Quem responde",
+    "step": {
+      "sent": "Enviado"
+    },
+    "workspace": {
+      "sona_chat": "Perguntar",
+      "sona_config": "Definições"
+    },
+    "placeholder": {
+      "sona_chat": "Pergunte sobre as suas reuniões e notas…",
+      "sona_config": "Pergunte sobre as definições da Sona…"
+    },
+    "turnState": {
+      "submitting": "A enviar",
+      "queued": "Na fila",
+      "leased": "Recebido",
+      "running": "A pensar",
+      "waiting_user": "À sua espera",
+      "waiting_approval": "À espera de aprovação",
+      "canceling": "A parar",
+      "succeeded": "Respondido",
+      "failed": "Falhou",
+      "canceled": "Parado",
+      "unverified_external": "Resposta não verificada"
     }
   },
   "overview": {

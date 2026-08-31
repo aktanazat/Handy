@@ -1039,7 +1039,7 @@ impl MeetingProcessingService {
             .artifact_evidence(
                 session_id,
                 MAX_ARTIFACT_EVIDENCE_BYTES,
-                self.default_notes_template(),
+                self.fallback_notes_template(store, session_id),
             )
             .map_err(|_| ProcessingFailure::EngineFailure)?;
         if evidence.transcript.is_empty() {
@@ -1126,6 +1126,33 @@ impl MeetingProcessingService {
                 generated_at_utc_ms: utc_now_ms(),
             })
             .map_err(|_| ProcessingFailure::EngineFailure)?;
+        // Two passes read the revision that just landed, in this order and
+        // only here.
+        //
+        // The title first, because it is read out of the artifact and must not
+        // invalidate it — `derive_title_from_headline` is the one title write
+        // that leaves artifacts current, and it only fires when the meeting
+        // still carries the manual default.
+        //
+        // Then the ledger pass: an open loop this meeting inherited from the
+        // previous session of its series closes that earlier occurrence as
+        // carried. Both are best-effort — a meeting with notes and an
+        // untouched title is worth more than no notes at all.
+        if let Some(headline) = content.headline() {
+            if let Err(error) = store.derive_title_from_headline(session_id, headline) {
+                log::warn!("Could not derive a title for {session_id:?}: {error:?}");
+            }
+        }
+        if let Err(error) = store.carry_loops_forward(session_id) {
+            log::warn!("Could not carry loops forward into {session_id:?}: {error:?}");
+        }
+        // Third pass over the same landed revision: the summary and transcript
+        // a reader will search for are final now, so this is where the meeting
+        // half of the semantic index is built. Best effort and inline — it is
+        // tokenize-and-look-up on the job thread that just spent minutes
+        // transcribing, and the index carries what it was built from, so a
+        // failure here costs one search's worth of recall and nothing else.
+        crate::query::semantic::index_after_artifact(self.app.as_ref(), store, session_id);
         Ok(ArtifactGenerationOutcome::Generated(artifact))
     }
 
@@ -1137,6 +1164,29 @@ impl MeetingProcessingService {
             .as_ref()
             .map(|app| crate::settings::get_settings(app).meeting_notes_template)
             .unwrap_or_default()
+    }
+
+    /// The template a meeting falls back to, which is the series' choice when
+    /// its series has made one and the app default otherwise.
+    ///
+    /// This is the middle rung of D21's three. Above it, a template saved on
+    /// this meeting's own notes wins — `artifact_evidence` prefers the notes
+    /// row and only reaches for what is passed here when there is none — and
+    /// below it sits the setting. A series preference the store cannot read is
+    /// not worth failing generation over: the default still produces notes.
+    fn fallback_notes_template(
+        &self,
+        store: &MeetingStore,
+        session_id: MeetingSessionId,
+    ) -> MeetingNotesTemplate {
+        match store.series_template_for_session(session_id) {
+            Ok(snapshot) => snapshot.template,
+            Err(error) => {
+                log::warn!("Could not read a series template for {session_id:?}: {error:?}");
+                None
+            }
+        }
+        .unwrap_or_else(|| self.default_notes_template())
     }
 
     fn keyword_trackers(&self) -> Vec<KeywordTracker> {

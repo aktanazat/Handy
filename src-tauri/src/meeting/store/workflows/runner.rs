@@ -4,6 +4,7 @@ use super::{
 };
 use crate::meeting::detection::machine::CalendarEventSummary;
 use crate::meeting::document_types::DocumentId;
+use crate::meeting::store::digest::digest_counts_in;
 use crate::meeting::store::documents::{bump_document_revision_in, document_by_id_in};
 use crate::meeting::store::learning::{
     cursor_floor_in, mine_capture_advice_in, mine_dictation_correction_in, mine_meeting_edits_in,
@@ -184,6 +185,7 @@ fn execute_workflow_in(
             Ok(format!("series_priming:terms={terms}"))
         }
         WorkflowId::MeetingActivity => run_meeting_activity_in(event),
+        WorkflowId::DailyDigest => run_daily_digest_in(connection, event),
     }
 }
 
@@ -352,6 +354,29 @@ fn run_meeting_activity_in(event: &StoredWorkflowEvent) -> Result<String, StoreE
     }
 }
 
+/// D20. Counts the day the event names and writes those counts into its
+/// summary, which is the whole run: the digest changes nothing.
+///
+/// The window arrives in the payload rather than being derived here. Local
+/// midnight is DST arithmetic, the scheduler already did it to decide the event
+/// was due, and doing it twice is how the two answers drift apart. It also
+/// makes this run replayable: the same event always counts the same day.
+fn run_daily_digest_in(
+    connection: &Connection,
+    event: &StoredWorkflowEvent,
+) -> Result<String, StoreError> {
+    let day_start_utc_ms = payload_i64(&event.payload, "day_start_utc_ms")?;
+    let day_end_utc_ms = payload_i64(&event.payload, "day_end_utc_ms")?;
+    if day_end_utc_ms <= day_start_utc_ms {
+        return Err(StoreError::Invalid);
+    }
+    let counts = digest_counts_in(connection, day_start_utc_ms, day_end_utc_ms)?;
+    Ok(format!(
+        "daily_digest:meetings={},loops_closed={},suggestions_waiting={}",
+        counts.meetings, counts.loops_closed, counts.suggestions_waiting
+    ))
+}
+
 fn insert_receipt_in(
     connection: &Connection,
     event: &StoredWorkflowEvent,
@@ -418,6 +443,13 @@ fn payload_str<'a>(payload: &'a serde_json::Value, key: &str) -> Result<&'a str,
     payload
         .get(key)
         .and_then(serde_json::Value::as_str)
+        .ok_or(StoreError::Invalid)
+}
+
+fn payload_i64(payload: &serde_json::Value, key: &str) -> Result<i64, StoreError> {
+    payload
+        .get(key)
+        .and_then(serde_json::Value::as_i64)
         .ok_or(StoreError::Invalid)
 }
 

@@ -1259,6 +1259,17 @@ pub struct AppSettings {
     /// with that ID is actually running.
     #[serde(default = "default_detection_meeting_apps")]
     pub detection_meeting_apps: Vec<String>,
+    /// Whether the evening digest raises one native notification on days with
+    /// activity. Off on install: an unasked-for notification is the one thing a
+    /// quiet app must never do.
+    #[serde(default)]
+    pub meeting_digest_enabled: bool,
+    /// Minutes past local midnight the digest is due. 1080 is 18:00, which is
+    /// evening for the working day this summarizes. Stored as a number rather
+    /// than "18:00" so there is no clock format to parse, and no invalid state
+    /// a settings file can express.
+    #[serde(default = "default_meeting_digest_minute_of_day")]
+    pub meeting_digest_minute_of_day: u32,
 }
 
 fn default_model() -> String {
@@ -1287,6 +1298,11 @@ fn default_detection_silence_stop_minutes() -> u32 {
 
 fn default_detection_meeting_apps() -> Vec<String> {
     crate::meeting::detection::apps::default_meeting_app_bundle_ids()
+}
+
+/// 18:00 local, the default digest hour.
+fn default_meeting_digest_minute_of_day() -> u32 {
+    18 * 60
 }
 
 fn default_update_check_enabled() -> bool {
@@ -1836,6 +1852,8 @@ pub fn get_default_settings() -> AppSettings {
         detection_auto_start_on_open_pane: false,
         detection_silence_stop_minutes: default_detection_silence_stop_minutes(),
         detection_meeting_apps: default_detection_meeting_apps(),
+        meeting_digest_enabled: false,
+        meeting_digest_minute_of_day: default_meeting_digest_minute_of_day(),
     };
     settings.modes = default_modes(&settings);
     ensure_mode_settings(&mut settings);

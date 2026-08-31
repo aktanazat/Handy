@@ -1553,7 +1553,40 @@
         "rowDescription": "Turning this off closes the panel window and makes Sona refuse every request to reopen it.",
         "title": "Agent panel"
       },
-      "workspaceNavigation": "Agent bridge views"
+      "workspaceNavigation": "Agent bridge views",
+      "sonaAgent": {
+        "title": "Sona agent",
+        "pairing": "Pairing",
+        "paired": "Paired",
+        "unpaired": "Not paired",
+        "lastReached": "Last reached",
+        "never": "Never",
+        "relayUrl": "Relay address",
+        "relayUrlHint": "Only a Tailscale address or this Mac itself is accepted. Anything on the open internet is refused before it is saved.",
+        "relayKeyId": "Relay key id",
+        "relayPublicKey": "Relay public key",
+        "identity": "This Mac's public key",
+        "identityHint": "Add this key to the relay so it accepts turns from this Mac. The private half never leaves your keychain.",
+        "identityUnavailable": "Turn the agent panel on to create a key.",
+        "copy": "Copy",
+        "copied": "Copied",
+        "save": "Save",
+        "unpair": "Unpair",
+        "test": "Test",
+        "reached": "The relay answered.",
+        "failed": "The relay could not be paired.",
+        "reason": {
+          "unauthorized_window": "That window may not change pairing.",
+          "disabled": "The agent panel is off.",
+          "unpaired": "No relay is paired yet.",
+          "offline": "The relay did not answer.",
+          "invalid_configuration": "That address or key is not one Sona will use.",
+          "secret_unavailable": "This Mac's key could not be read.",
+          "untrusted_response": "The reply was not signed by the paired relay.",
+          "remote_rejected": "The relay refused the request.",
+          "ownership_rejected": "The relay answered for someone else."
+        }
+      }
     },
     "workflows": {
       "title": "Workflows",
@@ -1585,6 +1618,9 @@
         },
         "meeting_activity": {
           "name": "Meeting recording"
+        },
+        "daily_digest": {
+          "name": "Evening digest"
         }
       },
       "status": {
@@ -1608,7 +1644,8 @@
         "autoRecordStopped": "Stopped recording automatically",
         "alreadyProcessed": "Nothing new to do",
         "failed": "Couldn't finish",
-        "skipped": "Skipped"
+        "skipped": "Skipped",
+        "digestRaised": "Summed up the day"
       },
       "vocabularySuggestions": {
         "title": "From your meetings",
@@ -1633,6 +1670,14 @@
         "loadMoreError": "Couldn't load more runs.",
         "loadMore": "Load more",
         "chartAria": "Workflow runs per day, {{count}} in the last 7 days"
+      }
+    },
+    "meetings": {
+      "digest": {
+        "title": "Evening digest",
+        "description": "One notification at the end of a day that had meetings or closed loops. Everything stays on this Mac.",
+        "timeLabel": "Digest time",
+        "timeHint": "Local time. A day with nothing in it stays quiet."
       }
     }
   },
@@ -2099,6 +2144,23 @@
         "soft": "Soft"
       }
     },
+    "loops": {
+      "status": {
+        "open": "Open",
+        "done": "Done",
+        "dropped": "Dropped",
+        "carried": "Carried forward"
+      },
+      "markDone": "Mark this loop done",
+      "drop": "Drop",
+      "reopen": "Reopen",
+      "owner": "Owner",
+      "ownerIs": "Owner: {{owner}}",
+      "ownerUnassigned": "Nobody yet",
+      "instead": "Instead: {{instead}}",
+      "carriedForward": "Carried forward from an earlier meeting",
+      "stale": "Somebody else moved this loop first, so the list has been refreshed."
+    },
     "artifactState": {
       "current": "Current",
       "out_of_date": "Out of date",
@@ -2273,7 +2335,8 @@
         "notes": "Notes",
         "participants": "Participants",
         "link": "Link",
-        "description": "Description"
+        "description": "Description",
+        "notesSeries": "for this series"
       },
       "attendees_one": "{{count}} person",
       "attendees_other": "{{count}} people",
@@ -2310,6 +2373,11 @@
       },
       "linkFailed": "Sona could not open that link.",
       "skippedNote": "Skipping hides an offer here. Sona keeps seeing the call until the offer expires."
+    },
+    "seriesTemplate": {
+      "use": "Use this template for this series",
+      "saving": "Remembering…",
+      "remembered": "This series uses {{template}}"
     }
   },
   "agentPanel": {
@@ -2321,8 +2389,7 @@
     "panelToggle": "Close agent panel",
     "conversationLabel": "Conversation",
     "proposalTitle": "Proposed changes",
-    "empty": "Ask about Sona settings. Proposals appear here for review before anything changes.",
-    "inputPlaceholder": "Ask about Sona…",
+    "empty": "Ask about your meetings, notes and settings. Settings changes appear here as a proposal you review before anything changes.",
     "inputLabel": "Ask about Sona",
     "send": "Send",
     "status": {
@@ -2331,9 +2398,34 @@
       "unpaired": "Not paired with a relay.",
       "offline": "Relay offline.",
       "idle": "Ready",
-      "running": "Working…",
       "proposal": "Proposal ready",
       "error": "Agent panel unavailable."
+    },
+    "activityLabel": "Activity",
+    "workspaceLabel": "Who answers",
+    "step": {
+      "sent": "Sent"
+    },
+    "workspace": {
+      "sona_chat": "Ask",
+      "sona_config": "Settings"
+    },
+    "placeholder": {
+      "sona_chat": "Ask about your meetings and notes…",
+      "sona_config": "Ask about Sona settings…"
+    },
+    "turnState": {
+      "submitting": "Sending",
+      "queued": "Queued",
+      "leased": "Picked up",
+      "running": "Thinking",
+      "waiting_user": "Waiting for you",
+      "waiting_approval": "Waiting for approval",
+      "canceling": "Stopping",
+      "succeeded": "Answered",
+      "failed": "Failed",
+      "canceled": "Stopped",
+      "unverified_external": "Unverified reply"
     }
   },
   "overview": {

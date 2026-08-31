@@ -5,6 +5,7 @@ import {
   MeetingDetectionAdvanced,
   MeetingDetectionState,
 } from "../meetings/MeetingDetectionSettings";
+import { MeetingDigestSettings } from "../meetings/MeetingDigestSettings";
 import { MeetingRetentionSettings } from "../meetings/MeetingRetention";
 import { MeetingTrackersSettings } from "../meetings/MeetingTrackersSettings";
 
@@ -23,6 +24,7 @@ export const AdvancedMeetings: React.FC = () => {
       <SettingsSection label={t("settingsV2.advanced.meetings")}>
         <MeetingDetectionAdvanced />
         <MeetingRetentionSettings />
+        <MeetingDigestSettings />
       </SettingsSection>
       <MeetingDetectionState />
       <MeetingTrackersSettings />

@@ -564,7 +564,8 @@ const fn corpus_loop_kind(workflow_id: WorkflowId) -> Option<LearningLoopKind> {
         | WorkflowId::DocumentLinking
         | WorkflowId::CorrectionLearning
         | WorkflowId::MeetingActivity
-        | WorkflowId::SeriesPriming => None,
+        | WorkflowId::SeriesPriming
+        | WorkflowId::DailyDigest => None,
     }
 }
 
