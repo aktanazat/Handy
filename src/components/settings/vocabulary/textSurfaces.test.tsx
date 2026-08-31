@@ -10,10 +10,9 @@ import { I18nextProvider } from "react-i18next";
 import { TooltipProvider } from "@/components/vg/tooltip";
 import { CustomWords } from "../CustomWords";
 import { PromptLibrary } from "./PromptLibrary";
-import { SnippetsPanel } from "./SnippetsPanel";
 
 /**
- * Mount checks for the three text-rule surfaces.
+ * Mount checks for the two text-rule surfaces.
  *
  * The i18n instance carries no resources on purpose: every string falls back
  * to the inline English default, so these assertions stay true after
@@ -39,22 +38,6 @@ const render = async (node: React.ReactElement): Promise<string> => {
   );
 };
 
-describe("SnippetsPanel", () => {
-  test("mounts with the master toggle and a loading list", async () => {
-    const markup = await render(<SnippetsPanel />);
-
-    /* The section names the feature once, in its own heading; the switch
-     * beside it carries the "Enable" wording as its accessible name instead
-     * of repeating the name in a row title. */
-    expect(markup).toContain('role="switch"');
-    expect(markup).toContain('aria-label="Enable text expansion"');
-    expect(markup).toContain('aria-label="Loading snippets"');
-    expect(markup).toContain('data-testid="snippets-editor"');
-    // Rows only exist once list_snippets answers.
-    expect(markup.includes('data-testid="snippet-row"')).toBe(false);
-  });
-});
-
 describe("PromptLibrary", () => {
   test("mounts with its own heading and a loading list", async () => {
     const markup = await render(<PromptLibrary />);
@@ -66,22 +49,43 @@ describe("PromptLibrary", () => {
 });
 
 describe("CustomWords", () => {
-  test("composes the vocabulary editor, text expansion and emoji rows", async () => {
-    const markup = await render(<CustomWords />);
+  test("puts every kind of text rule in one list with one add flow", async () => {
+    /* Real copy: the merged list's strings live only in the locale file, so
+     * the empty-resource render would prove a key path rather than a label. */
+    const markup = await renderWithEnglishCopy(<CustomWords />);
 
-    expect(markup).toContain('data-testid="vocabulary-editor"');
-    expect(markup).toContain('data-testid="vocabulary-editor-add"');
-    expect(markup).toContain('data-testid="snippets-editor"');
-    expect(markup).toContain('aria-label="Enable text expansion"');
-    // Emoji replacement is opt-in, so its editor stays closed by default.
-    expect(markup.includes('data-testid="emoji-editor"')).toBe(false);
+    expect(markup).toContain('data-testid="rules-editor"');
+    expect(markup).toContain('data-testid="rule-new-kind"');
+    expect(markup).toContain('data-testid="rule-new-left"');
+    expect(markup).toContain('data-testid="rule-new-right"');
+    expect(markup).toContain('data-testid="rule-add"');
+    // One add flow, so there is no second one for any other kind.
+    expect(markup.match(/data-testid="rule-add"/g)?.length).toBe(1);
+    // Rows only exist once the stores answer.
+    expect(markup.includes('data-testid="rule-row"')).toBe(false);
+    expect(markup).toContain('aria-label="Loading text rules"');
   });
 
-  test("keeps the vocabulary CSV actions reachable", async () => {
+  test("keeps the four master switches above the list", async () => {
+    const markup = await renderWithEnglishCopy(<CustomWords />);
+
+    expect(markup.match(/role="switch"/g)?.length).toBe(4);
+    for (const label of [
+      "Obey spoken editing commands",
+      "Write emoji when you name one",
+      "Expand shortcuts",
+      "Apply rewrites",
+    ]) {
+      expect(markup).toContain(label);
+    }
+  });
+
+  test("keeps the vocabulary CSV actions and the rewrite reset reachable", async () => {
     const markup = await render(<CustomWords />);
 
     expect(markup).toContain('role="group"');
     expect(markup).toContain('accept=".csv,text/csv"');
+    expect(markup).toContain('data-testid="rules-restore-rewrites"');
   });
 });
 

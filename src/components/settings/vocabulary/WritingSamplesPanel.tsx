@@ -254,9 +254,9 @@ export const WritingSamplesPanel: React.FC = () => {
       >
         {body()}
         <Notice live={false} className="px-4 py-3">
-          {/* The cap moved to the mono count in the header, so this sentence
-           * is being trimmed to its privacy half. `max` stays supplied until
-           * that catalogue edit lands, so neither version renders a raw
+          {/* The cap moved to the count in the header, so this sentence is
+           * being trimmed to its privacy half. `max` stays supplied until that
+           * catalogue edit lands, so neither version renders a raw
            * placeholder. */}
           {t("settings.prompts.samples.privacy", {
             defaultValue:

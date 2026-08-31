@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -41,9 +41,14 @@ void i18n.init({
   interpolation: { escapeValue: false },
 });
 
+const priorWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
 Object.defineProperty(globalThis, "window", {
   configurable: true,
   value: { __TAURI_OS_PLUGIN_INTERNALS__: { os_type: "macos" } },
+});
+afterAll(() => {
+  if (priorWindow) Object.defineProperty(globalThis, "window", priorWindow);
+  else Reflect.deleteProperty(globalThis, "window");
 });
 
 const ORDER = ["message", "email", "meeting", "notes"];

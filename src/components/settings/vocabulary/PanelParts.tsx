@@ -13,12 +13,12 @@ import { Skeleton } from "@/components/vg/skeleton";
  */
 
 /**
- * Literal text the person typed for the machine — a trigger, a replacement, a
- * prompt — set in mono so a trailing space or a homoglyph is visible. The `md:`
- * repeat is load-bearing: the kit's field steps its own size down at that
- * breakpoint, and a bare `text-[12.5px]` would lose to it there.
+ * Literal text the person typed for the machine — a trigger, a replacement,
+ * or a prompt — kept verbatim at the compact body step. The `md:` repeat is
+ * load-bearing: the kit's field steps its own size down at that breakpoint,
+ * and a bare `text-[12.5px]` would lose to it there.
  */
-export const literalText = "font-mono text-[12.5px] md:text-[12.5px]";
+export const literalText = "text-[12.5px] md:text-[12.5px]";
 
 export interface RuleListProps {
   /** Accessible name for the collection. */
@@ -83,27 +83,30 @@ export const RowActions: React.FC<{
 export interface ColumnHeaderProps {
   /** The grid template shared with the rows below, so cells line up. */
   gridClassName: string;
-  start: string;
-  end: string;
+  /** One name per leading column, in column order. */
+  labels: readonly string[];
 }
 
-/* Column names for a two-field row, in the mono microlabel a category is set
- * in. Hidden from assistive tech because every field below carries its own
- * label: this is a visual alignment cue and nothing else. */
+/* Column names for a rule row, in the same microlabel used for categories.
+ * Hidden from assistive tech because every field below carries its own label:
+ * this is a visual alignment cue and nothing else. Trailing columns that hold
+ * controls rather than values are simply left unnamed. */
 export const ColumnHeader: React.FC<ColumnHeaderProps> = ({
   gridClassName,
-  start,
-  end,
+  labels,
 }) => (
   <div
     aria-hidden="true"
     className={cn(
       gridClassName,
-      "px-4 pt-3 pb-1 font-mono text-[11px] tracking-[0.12em] text-gray-800 uppercase",
+      "px-4 pt-3 pb-1 text-[13px] leading-5 text-gray-900",
     )}
   >
-    <span className="truncate">{start}</span>
-    <span className="truncate">{end}</span>
+    {labels.map((label) => (
+      <span key={label} className="truncate">
+        {label}
+      </span>
+    ))}
   </div>
 );
 

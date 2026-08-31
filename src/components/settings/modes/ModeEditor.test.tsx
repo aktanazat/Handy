@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -15,24 +15,23 @@ import type {
 } from "@/bindings";
 import { ModeEditor } from "./ModeEditor";
 import { ModesList } from "./ModesList";
-import { ModeRecognitionPanel } from "./ModeRecognitionPanel";
-import { ModeRewritePanel } from "./ModeRewritePanel";
-import { ModeContextPanel } from "./ModeContextPanel";
-import { ModeDeliveryPanel } from "./ModeDeliveryPanel";
-import { ModeAutomationPanel } from "./ModeAutomationPanel";
 import {
-  createModeDraftUpdaters,
+  isPresetMode,
   modeDefinitionFromView,
   modeDraftIsDirty,
   modeEngineOptions,
-  type ModeCloudState,
 } from "./modeModel";
-import type { ModeVocabularyEditor } from "./ModeRecognitionPanel";
 
-/* Every mode setting the editor owned before the redesign has to survive it,
- * and the surface cannot be opened in a browser from here. These renders are
- * the standing proof: each panel is rendered with real translations and every
- * control label is asserted by name. */
+/* Every mode setting the editor owned before the collapse either survives it
+ * on one screen, survives it behind the one Advanced disclosure, or is gone on
+ * purpose. The surface cannot be opened in a browser from here, so these
+ * renders are the standing proof: real translations, and every control that
+ * survived asserted by name.
+ *
+ * The editor now reads the app settings store for providers, the privacy
+ * ceiling and browser-URL consent. Under `renderToStaticMarkup` that store is
+ * still empty, which is exactly a fresh install — so the branches asserted
+ * below are the ones a first-run reader actually meets. */
 
 const localeFile = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -59,9 +58,14 @@ void i18n.init({
  * shortcut rows go through it. Nothing else in these components needs a DOM.
  * defineProperty, not assignment: under a whole-src run another test file has
  * already planted `window` and plain assignment throws on the readonly slot. */
+const priorWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
 Object.defineProperty(globalThis, "window", {
   configurable: true,
   value: { __TAURI_OS_PLUGIN_INTERNALS__: { os_type: "macos" } },
+});
+afterAll(() => {
+  if (priorWindow) Object.defineProperty(globalThis, "window", priorWindow);
+  else Reflect.deleteProperty(globalThis, "window");
 });
 
 const binding = (id: string, chord: string): ShortcutBinding => ({
@@ -145,32 +149,10 @@ const draft = (overrides: Partial<ModeDefinition> = {}): ModeDefinition => ({
 
 const noop = () => undefined;
 
-const updatersFor = (mode: ModeDefinition) =>
-  createModeDraftUpdaters(mode, noop);
-
-const localCloud: ModeCloudState = {
-  requestedEngine: "local",
-  selectedProvider: undefined,
-  isConfigured: () => false,
-  controlsAvailable: false,
-  selectEngine: noop,
-};
-
-const vocabularyEditor: ModeVocabularyEditor = {
-  rowKey: (entry) => `row-${entry.spoken}`,
-  setField: noop,
-  add: noop,
-  remove: noop,
-  incomplete: false,
-};
-
-const expectLabels = (html: string, labels: readonly string[]) => {
-  const missing = labels.filter((label) => !html.includes(label));
-  expect(missing).toEqual([]);
-};
-
-describe("mode editor shell", () => {
-  const html = render(
+const editor = (
+  overrides: Partial<React.ComponentProps<typeof ModeEditor>> = {},
+): string =>
+  render(
     <ModeEditor
       mode={draft()}
       savedMode={MODE_VIEW}
@@ -188,8 +170,17 @@ describe("mode editor shell", () => {
       onRemoveActivation={noop}
       onCaptureWebsiteActivation={noop}
       onRemoveWebsiteActivation={noop}
+      {...overrides}
     />,
   );
+
+const expectLabels = (html: string, labels: readonly string[]) => {
+  const missing = labels.filter((label) => !html.includes(label));
+  expect(missing).toEqual([]);
+};
+
+describe("mode editor shell", () => {
+  const html = editor();
 
   test("names the mode, offers Save and keeps the identity field", () => {
     expectLabels(html, [
@@ -198,135 +189,113 @@ describe("mode editor shell", () => {
       "Mode name",
       'id="mode-name"',
     ]);
-  });
-
-  test("renders the five editor sections as one tablist", () => {
-    expectLabels(html, [
-      "Recognition",
-      "Rewrite",
-      "Context",
-      "Delivery",
-      "Automation",
-    ]);
-    expect(html.match(/role="tab"/g)?.length).toBe(5);
-    expect(html.match(/aria-selected="true"/g)?.length).toBe(1);
-    // The panel is named by the selected tab rather than a duplicated string.
-    expect(html).toContain('aria-labelledby="tab-recognition"');
-    expect(html).toContain('role="tabpanel"');
-  });
-
-  test("opens on Recognition with no unsaved-change claim", () => {
-    expect(html).toContain("Transcription engine");
-    expect(html.includes("Unsaved changes")).toBe(false);
     expect(html).toContain("Changes apply to your next dictation.");
   });
 
+  test("is one screen: four sections and no tabs", () => {
+    expectLabels(html, [
+      "Instructions",
+      "Model",
+      "Output",
+      "Turns on by itself",
+    ]);
+    // The five-tab editor is gone, so nothing here is a tablist any more.
+    expect(html.includes('role="tab"')).toBe(false);
+    expect(html.includes('role="tabpanel"')).toBe(false);
+    expect(html.includes("Recognition")).toBe(false);
+    expect(html.includes("Automation")).toBe(false);
+  });
+
+  test("opens with no unsaved-change claim", () => {
+    expect(html.includes("Unsaved changes")).toBe(false);
+  });
+
   test("reports an edited draft as unsaved", () => {
-    const edited = draft({ name: "Email drafts" });
-    expect(modeDraftIsDirty(edited, MODE_VIEW)).toBe(true);
-    expect(modeDraftIsDirty(draft(), MODE_VIEW)).toBe(false);
-    const editedHtml = render(
-      <ModeEditor
-        mode={edited}
-        savedMode={MODE_VIEW}
-        modeCount={4}
-        models={MODELS}
-        onChange={noop}
-        onSave={noop}
-        saving={false}
-        conflict={false}
-        activationRules={[]}
-        websiteActivationRules={[]}
-        activationSupported
-        capturingActivation={false}
-        onCaptureActivation={noop}
-        onRemoveActivation={noop}
-        onCaptureWebsiteActivation={noop}
-        onRemoveWebsiteActivation={noop}
-      />,
+    expect(modeDraftIsDirty(draft({ name: "Email drafts" }), MODE_VIEW)).toBe(
+      true,
     );
-    expect(editedHtml).toContain("Unsaved changes");
+    expect(modeDraftIsDirty(draft(), MODE_VIEW)).toBe(false);
+    expect(editor({ mode: draft({ name: "Email drafts" }) })).toContain(
+      "Unsaved changes",
+    );
   });
 
   test("blocks Save with a reason when the name is empty", () => {
-    const blocked = render(
-      <ModeEditor
-        mode={draft({ name: "" })}
-        savedMode={MODE_VIEW}
-        modeCount={4}
-        models={MODELS}
-        onChange={noop}
-        onSave={noop}
-        saving={false}
-        conflict={false}
-        activationRules={[]}
-        websiteActivationRules={[]}
-        activationSupported
-        capturingActivation={false}
-        onCaptureActivation={noop}
-        onRemoveActivation={noop}
-        onCaptureWebsiteActivation={noop}
-        onRemoveWebsiteActivation={noop}
-      />,
-    );
+    const blocked = editor({ mode: draft({ name: "" }) });
+
     expect(blocked).toContain("A mode name is required.");
     expect(blocked).toContain("Untitled mode");
     expect(blocked).toContain("disabled");
   });
 
   test("surfaces a stale-revision conflict without dropping the draft", () => {
-    const conflicted = render(
-      <ModeEditor
-        mode={draft({ name: "Email drafts" })}
-        savedMode={MODE_VIEW}
-        modeCount={4}
-        models={MODELS}
-        onChange={noop}
-        onSave={noop}
-        saving={false}
-        conflict
-        activationRules={[]}
-        websiteActivationRules={[]}
-        activationSupported
-        capturingActivation={false}
-        onCaptureActivation={noop}
-        onRemoveActivation={noop}
-        onCaptureWebsiteActivation={noop}
-        onRemoveWebsiteActivation={noop}
-      />,
-    );
+    const conflicted = editor({
+      mode: draft({ name: "Email drafts" }),
+      conflict: true,
+    });
+
     expect(conflicted).toContain("Settings changed elsewhere");
     expect(conflicted).toContain("Email drafts");
   });
 });
 
-describe("recognition panel", () => {
-  test("keeps every local recognition control", () => {
-    const mode = draft();
-    const html = render(
-      <ModeRecognitionPanel
-        mode={mode}
-        updaters={updatersFor(mode)}
-        models={MODELS}
-        globalModelId="whisper-large-v3-turbo"
-        cloud={localCloud}
-        vocabulary={vocabularyEditor}
-        missingFallbackModel={false}
-      />,
+describe("instructions", () => {
+  test("edits the mode's own rewrite prompt, and says what it overrides", () => {
+    const html = editor({
+      mode: draft({
+        prompt: { ...draft().prompt, custom_prompt: "Keep it to two lines." },
+      }),
+    });
+
+    expect(html).toContain('id="mode-instructions"');
+    expect(html).toContain("Your own instructions");
+    expect(html).toContain("Keep it to two lines.");
+    expect(html).toContain("Clean up with AI");
+    /* The precedence sentence rides on an affordance, not as a second
+     * paragraph under the label: a field states its setting once. Radix
+     * portals the content, so what a static render can prove is the named
+     * trigger — the sentence itself is asserted on the locale below. */
+    expect(html).toContain('aria-label="Your own instructions"');
+    expect(html).toContain('data-slot="tooltip-trigger"');
+    expect(html.includes("replaces the output style below")).toBe(false);
+    expect(i18n.t("modesV2.instructions.custom.hint")).toContain(
+      "replaces the output style below",
     );
+  });
+
+  test("says why the prompt is inert when cleanup is off", () => {
+    const html = editor({
+      mode: draft({ llm: { ...draft().llm, enabled: false } }),
+    });
+
+    expect(html).toContain("Turn on cleanup");
+    expect(html.match(/id="mode-instructions"[^>]*disabled/)).not.toBeNull();
+  });
+});
+
+describe("model", () => {
+  test("keeps the engine, the local model and the language on the screen", () => {
+    const html = editor();
+
     expectLabels(html, [
-      /* No "Recognition" heading: the tab above the panel already says it. */
       "Transcription engine",
+      'id="mode-engine"',
       "Transcription model",
+      'id="mode-model"',
       "Language",
-      "Translate to English",
-      "Voice activity detection",
-      "Transcript cleanup",
-      "Literal punctuation",
-      "Remove filler words",
-      "Mode vocabulary",
-      "Add pair",
+      'id="mode-language"',
     ]);
+  });
+
+  test("hides the local model on a cloud engine and explains the gap", () => {
+    const html = editor({
+      mode: draft({
+        asr: { ...draft().asr, requested_engine: "deepgram_nova_3" },
+      }),
+    });
+
+    expect(html.includes('id="mode-model"')).toBe(false);
+    expect(html).toContain("needs a saved native API key");
   });
 
   /* The engine menu is a Radix portal: its items exist only once a pointer
@@ -336,313 +305,154 @@ describe("recognition panel", () => {
       (provider) => provider === "deepgram_nova_3",
       (key, values) => i18n.t(key, values ?? {}),
     );
+
     expect(options.map((option) => option.value)).toEqual([
       "local",
       "deepgram_nova_3",
       "eleven_labs_scribe_v2",
     ]);
-    // Unavailable providers stay listed with the reason, never hidden.
     expect(options.filter((option) => option.disabled).length).toBe(1);
-    const deepgram = options[1];
-    expect(deepgram.disabled).toBe(false);
-    expect(deepgram.label).toBe("Deepgram Nova-3");
-    const elevenLabs = options[2];
-    expect(elevenLabs.disabled).toBe(true);
-    expect(elevenLabs.label).toContain("is unavailable");
-    expect(elevenLabs.label).toContain("ElevenLabs");
-  });
-
-  test("shows the cloud transport group once a provider is usable", () => {
-    const mode = draft({
-      asr: { ...draft().asr, requested_engine: "deepgram_nova_3" },
-    });
-    const html = render(
-      <ModeRecognitionPanel
-        mode={mode}
-        updaters={updatersFor(mode)}
-        models={MODELS}
-        globalModelId="whisper-large-v3-turbo"
-        cloud={{
-          requestedEngine: "deepgram_nova_3",
-          selectedProvider: {
-            provider: "deepgram_nova_3",
-            secretAccountId: "deepgram_nova3",
-            labelKey: "settings.models.cloud.providers.deepgram",
-          },
-          isConfigured: () => true,
-          controlsAvailable: true,
-          selectEngine: noop,
-        }}
-        vocabulary={vocabularyEditor}
-        missingFallbackModel
-      />,
-    );
-    expectLabels(html, [
-      "Cloud transport",
-      "Use local fallback",
-      "Fallback model",
-      "Cloud keyterms",
-      "Word timestamps",
-    ]);
-    expect(html).toContain("Choose a fallback model");
-  });
-
-  test("explains an unconfigured cloud selection instead of failing silently", () => {
-    const mode = draft({
-      asr: { ...draft().asr, requested_engine: "eleven_labs_scribe_v2" },
-    });
-    const html = render(
-      <ModeRecognitionPanel
-        mode={mode}
-        updaters={updatersFor(mode)}
-        models={MODELS}
-        globalModelId="whisper-large-v3-turbo"
-        cloud={{
-          requestedEngine: "eleven_labs_scribe_v2",
-          selectedProvider: {
-            provider: "eleven_labs_scribe_v2",
-            secretAccountId: "elevenlabs_scribe_v2",
-            labelKey: "settings.models.cloud.providers.elevenLabs",
-          },
-          isConfigured: () => false,
-          controlsAvailable: false,
-          selectEngine: noop,
-        }}
-        vocabulary={vocabularyEditor}
-        missingFallbackModel={false}
-      />,
-    );
-    expect(html).toContain("needs a saved native API key");
-    expect(html.includes("Cloud transport")).toBe(false);
-  });
-
-  test("states the empty case for mode vocabulary", () => {
-    const mode = draft({ asr: { ...draft().asr, custom_words: [] } });
-    const html = render(
-      <ModeRecognitionPanel
-        mode={mode}
-        updaters={updatersFor(mode)}
-        models={MODELS}
-        globalModelId="whisper-large-v3-turbo"
-        cloud={localCloud}
-        vocabulary={vocabularyEditor}
-        missingFallbackModel={false}
-      />,
-    );
-    expect(html).toContain("has no vocabulary of its own");
-    expect(html).toContain("Add pair");
+    expect(options[1].label).toBe("Deepgram Nova-3");
+    expect(options[2].label).toContain("is unavailable");
+    expect(options[2].label).toContain("ElevenLabs");
   });
 });
 
-describe("rewrite panel", () => {
-  test("renders six presets and five tones as radio groups", () => {
-    const mode = draft();
-    const html = render(
-      <ModeRewritePanel
-        mode={mode}
-        updaters={updatersFor(mode)}
-        providers={[
-          {
-            id: "openai",
-            label: "OpenAI",
-            base_url: "https://api.openai.com/v1",
-          },
-        ]}
-      />,
-    );
+describe("output", () => {
+  test("carries the delivery method and the output style", () => {
+    const html = editor();
+
     expectLabels(html, [
-      /* No "Writing" heading: the tab above the panel already says Rewrite,
-       * and a group title repeating its own tab is the repeat this wave
-       * exists to kill. */
-      "AI cleanup",
-      "Preset",
-      "Minimal cleanup",
-      "Application context",
-      "Email",
-      "Meeting",
-      "Notes",
-      "General",
-      "Tone",
-      "Casual",
-      "Semi-casual",
-      "Balanced",
-      "Semi-formal",
-      "Formal",
-      "AI provider",
-      "AI model",
-    ]);
-    expect(html.match(/name="mode-prompt-preset"/g)?.length).toBe(6);
-    expect(html.match(/name="mode-tone"/g)?.length).toBe(5);
-    // Exactly one preset and one tone read as selected.
-    expect(html.match(/name="mode-prompt-preset" checked=""/g)?.length).toBe(1);
-    expect(html.match(/name="mode-tone" checked=""/g)?.length).toBe(1);
-  });
-
-  test("says why the rewrite controls are inert and what to configure", () => {
-    const mode = draft({ llm: { ...draft().llm, enabled: false } });
-    const html = render(
-      <ModeRewritePanel
-        mode={mode}
-        updaters={updatersFor(mode)}
-        providers={[]}
-      />,
-    );
-    expect(html).toContain("Turn on AI cleanup");
-    expect(html).toContain("No AI provider is configured");
-    expect(html.match(/<fieldset[^>]*disabled/g)?.length).toBe(2);
-  });
-});
-
-describe("context panel", () => {
-  test("offers all four levels and marks the ones privacy blocks", () => {
-    const mode = draft();
-    const html = render(
-      <ModeContextPanel
-        mode={mode}
-        updaters={updatersFor(mode)}
-        ceiling="target"
-      />,
-    );
-    expectLabels(html, [
-      "Context",
-      "Context level",
-      "Off",
-      "App",
-      "Selection",
-      "Full",
-    ]);
-    expect(html.match(/name="mode-context-policy"/g)?.length).toBe(4);
-    expect(html.match(/disabled=""/g)?.length).toBe(2);
-    expect(html).toContain("Privacy limits this mode to App.");
-  });
-
-  test("warns when the saved level now exceeds the ceiling", () => {
-    const mode = draft({ context_policy: "full" });
-    const html = render(
-      <ModeContextPanel
-        mode={mode}
-        updaters={updatersFor(mode)}
-        ceiling="none"
-      />,
-    );
-    expect(html).toContain("Privacy currently limits this mode");
-  });
-});
-
-describe("delivery panel", () => {
-  test("keeps every delivery control", () => {
-    const mode = draft();
-    const html = render(
-      <ModeDeliveryPanel mode={mode} updaters={updatersFor(mode)} />,
-    );
-    expectLabels(html, [
-      "Delivery",
       "Delivery method",
-      "Clipboard",
-      "Auto-submit",
-      "Submit key",
-      "Append a trailing space",
-      "Reliable paste",
-      "Paste delays",
-      "Before",
-      "After",
-      "Typing tool",
+      'id="mode-paste-method"',
+      "Output style",
+      'id="mode-output-style"',
     ]);
-    expect(html).toContain("Turn on auto-submit to choose a key.");
-    expect(html).toContain("Choose Type directly");
     expect(html.includes('id="mode-external-script"')).toBe(false);
   });
 
-  test("reveals the script path only for external-script delivery", () => {
-    const mode = draft({
-      delivery: { ...draft().delivery, paste_method: "external_script" },
+  /* The path is the method's own parameter: a method that cannot run without
+   * it must not hide it behind the disclosure. */
+  test("reveals the script path beside external-script delivery", () => {
+    const html = editor({
+      mode: draft({
+        delivery: { ...draft().delivery, paste_method: "external_script" },
+      }),
     });
-    const html = render(
-      <ModeDeliveryPanel mode={mode} updaters={updatersFor(mode)} />,
-    );
+
     expect(html).toContain('id="mode-external-script"');
     expect(html).toContain("External script");
   });
 });
 
-describe("automation panel", () => {
-  const automation = (
-    overrides: Partial<React.ComponentProps<typeof ModeAutomationPanel>> = {},
-  ) =>
-    render(
-      <ModeAutomationPanel
-        modeId="email"
-        modeCount={4}
-        activationRules={[]}
-        websiteActivationRules={[]}
-        activationSupported
-        websiteCaptureEnabled
-        websiteMatchKind="exact"
-        onWebsiteMatchKindChange={noop}
-        capturing={false}
-        saving={false}
-        onCaptureActivation={noop}
-        onRemoveActivation={noop}
-        onCaptureWebsiteActivation={noop}
-        onRemoveWebsiteActivation={noop}
-        {...overrides}
-      />,
-    );
+describe("turns on by itself", () => {
+  test("teaches the rule shape when nothing activates the mode", () => {
+    const html = editor();
 
-  test("carries shortcuts plus both activation editors", () => {
-    const html = automation();
-    expectLabels(html, [
-      "Shortcuts",
-      "App activation",
-      "Activate in app",
-      "Capture current app",
-      "Website activation",
-      "Website scope",
-      "Activate on website",
-      "Capture current website",
-    ]);
-  });
-
-  test("teaches the rule shape when a list is empty", () => {
-    const html = automation();
-    expect(html).toContain("No app activates this mode.");
+    expect(html).toContain("Apps and websites");
+    expect(html).toContain("Nothing switches to this mode on its own.");
     expect(html).toContain("com.apple.mail");
-    expect(html).toContain("No website activates this mode.");
     expect(html).toContain("mail.google.com");
+    expect(html).toContain("Capture current app");
   });
 
-  test("lists captured rules with a scoped remove control", () => {
-    const html = automation({
+  test("lists app and website rules in one list, each with its own remove", () => {
+    const html = editor({
       activationRules: [{ app_id: "com.apple.mail", mode_id: "email" }],
       websiteActivationRules: [
         { host: "mail.google.com", match_kind: "suffix", mode_id: "email" },
       ],
     });
-    expect(html).toContain("<code");
+
     expect(html).toContain('aria-label="Remove com.apple.mail"');
     expect(html).toContain('aria-label="Remove mail.google.com"');
+    // The website row's scope is the one thing its host cannot show.
     expect(html).toContain("Host and subdomains");
+    // One list, not two.
+    expect(html.match(/aria-label="Apps and websites"/g)?.length).toBe(1);
   });
 
   test("ignores rules that belong to another mode", () => {
-    const html = automation({
+    const html = editor({
       activationRules: [{ app_id: "com.apple.mail", mode_id: "notes" }],
     });
-    expect(html).toContain("No app activates this mode.");
+
+    expect(html).toContain("Nothing switches to this mode on its own.");
     expect(html.includes("com.apple.mail<")).toBe(false);
   });
 
   test("explains the platform limit instead of hiding the section", () => {
-    const html = automation({ activationSupported: false });
+    const html = editor({ activationSupported: false });
+
     expect(html).toContain("available on macOS");
-    expect(html).toContain("App activation");
+    expect(html).toContain("Apps and websites");
     expect(html.includes("Capture current app")).toBe(false);
   });
 
+  /* Browser-URL consent is off on a fresh install, so the website half names
+   * the switch that turns it on rather than offering a capture that fails. */
   test("points at Privacy when website capture is off", () => {
-    const html = automation({ websiteCaptureEnabled: false });
+    const html = editor();
+
     expect(html).toContain("Enable Browser URLs in Privacy");
     expect(html.includes("Capture current website")).toBe(false);
+  });
+});
+
+describe("advanced", () => {
+  const html = editor();
+
+  test("is one disclosure, closed on arrival", () => {
+    expect(html).toContain("<details");
+    expect(html).toContain("Advanced");
+    // Closed: `<details>` carries no `open`, so the four decisions above it
+    // are the screen.
+    expect(html.includes("<details open")).toBe(false);
+    // One disclosure, never a second one nested inside it.
+    expect(html.match(/<details/g)?.length).toBe(1);
+  });
+
+  test("holds every knob that survived the collapse", () => {
+    expectLabels(html, [
+      "Tone",
+      "AI provider",
+      "AI model",
+      "Context level",
+      "Translate to English",
+      "Literal punctuation",
+      "Remove filler words",
+      "Voice activity detection",
+      "Clipboard",
+      "Auto-submit",
+      "Submit key",
+      "Append a trailing space",
+      "Mode vocabulary",
+    ]);
+    // The privacy ceiling still outranks the mode, and still says so.
+    expect(html).toContain("Privacy currently limits this mode");
+    expect(html).toContain("No AI provider is configured");
+  });
+
+  test("drops the knobs a default already answers", () => {
+    for (const gone of [
+      "Reliable paste",
+      "Paste delays",
+      "Typing tool",
+      "Word timestamps",
+    ]) {
+      expect(html.includes(gone)).toBe(false);
+    }
+  });
+
+  test("keeps the per-mode vocabulary editable, including its empty case", () => {
+    expect(html).toContain("Add pair");
+    expect(html).toContain('aria-label="Remove sona"');
+
+    const empty = editor({
+      mode: draft({ asr: { ...draft().asr, custom_words: [] } }),
+    });
+    expect(empty).toContain("has no vocabulary of its own");
+    expect(empty).toContain("Add pair");
   });
 });
 
@@ -665,7 +475,8 @@ describe("mode list", () => {
       />,
     );
 
-  /* A cloud mode, so the engine cell cannot pass by rendering a constant. */
+  /* A cloud mode nobody shipped, so neither the engine cell nor the preset
+   * marker can pass by rendering a constant. */
   const CLOUD_VIEW: ModeView = {
     ...MODE_VIEW,
     id: "cloud",
@@ -673,44 +484,10 @@ describe("mode list", () => {
     asr: { ...MODE_VIEW.asr, requested_engine: "deepgram_nova_3" },
   };
 
-  test("marks the active mode with one word, not a colour", () => {
-    const html = list();
-    expect(html).toContain("Active");
-    expect(html).toContain("text-blue-900");
-    // A round coloured status dot is the pattern this list must not use, and
-    // the Badge primitive's inverted pill is the chip it must not wear.
-    expect(html.includes("rounded-full")).toBe(false);
-    expect(html.includes("bg-primary")).toBe(false);
-    // Exactly one row can be active, and one row is open in the editor.
-    expect(html.split(">Active<").length - 1).toBe(1);
-    expect(html.split('data-selected="true"').length - 1).toBe(1);
-  });
-
-  test("shows each mode's dictation chord as engraved caps", () => {
-    const html = list();
-    expect(html).toContain("<kbd");
-    // One cap per physical key, in the form macOS engraves.
-    expectLabels(html, ["⌥", "⇧", "Space"]);
-    expect(html.match(/<kbd/g)?.length).toBe(5);
-    // The qualified form is not lost: it is the chord's tooltip.
-    expect(html).toContain('title="Left Option + Shift + 2"');
-    expect(html).toContain('title="Option + Space"');
-  });
-
-  test("carries the engine, and carries it exactly once per row", () => {
-    const html = list();
-    // Both fixtures run locally, so the word appears once per row and the
-    // row does not also print the model, language and delivery the editor
-    // below it already owns.
-    expect(html.split(">Local<").length - 1).toBe(2);
-    expect(html.includes("Paste")).toBe(false);
-    expect(html.includes("Auto")).toBe(false);
-  });
-
-  test("reads the engine from the mode rather than from a default", () => {
-    const html = render(
+  const single = (mode: ModeView) =>
+    render(
       <ModesList
-        modes={[CLOUD_VIEW]}
+        modes={[mode]}
         activeModeId="message"
         selectedModeId={null}
         busy={false}
@@ -724,6 +501,57 @@ describe("mode list", () => {
         onReload={noop}
       />,
     );
+
+  test("marks the active mode with one word, not a colour", () => {
+    const html = list();
+
+    expect(html).toContain("Active");
+    expect(html).toContain("text-blue-900");
+    // A round coloured status dot is the pattern this list must not use, and
+    // the Badge primitive's inverted pill is the chip it must not wear.
+    expect(html.includes("rounded-full")).toBe(false);
+    expect(html.includes("bg-primary")).toBe(false);
+    // Exactly one row can be active, and one row is open in the editor.
+    expect(html.split(">Active<").length - 1).toBe(1);
+    expect(html.split('data-selected="true"').length - 1).toBe(1);
+  });
+
+  test("reads the shipped modes as presets, and only those", () => {
+    expect(isPresetMode("message")).toBe(true);
+    expect(isPresetMode("notes")).toBe(true);
+    expect(isPresetMode("cloud")).toBe(false);
+
+    // Message and Email both ship with Sona, so both rows carry the word.
+    expect(list().split(">Preset<").length - 1).toBe(2);
+    expect(single(CLOUD_VIEW).includes(">Preset<")).toBe(false);
+  });
+
+  test("shows each mode's dictation chord as engraved caps", () => {
+    const html = list();
+
+    expect(html).toContain("<kbd");
+    // One cap per physical key, in the form macOS engraves.
+    expectLabels(html, ["⌥", "⇧", "Space"]);
+    expect(html.match(/<kbd/g)?.length).toBe(5);
+    // The qualified form is not lost: it is the chord's tooltip.
+    expect(html).toContain('title="Left Option + Shift + 2"');
+    expect(html).toContain('title="Option + Space"');
+  });
+
+  test("carries the engine, and carries it exactly once per row", () => {
+    const html = list();
+
+    // Both fixtures run locally, so the word appears once per row and the row
+    // does not also print the model, language and delivery the editor below
+    // it already owns.
+    expect(html.split(">Local<").length - 1).toBe(2);
+    expect(html.includes("Paste")).toBe(false);
+    expect(html.includes("Auto")).toBe(false);
+  });
+
+  test("reads the engine from the mode rather than from a default", () => {
+    const html = single(CLOUD_VIEW);
+
     expect(html).toContain(">Deepgram<");
     expect(html.includes(">Local<")).toBe(false);
   });
@@ -733,6 +561,7 @@ describe("mode list", () => {
     // the shipped catalog and 116 at the longest. The row does not carry the
     // model at all now, so the path can never reach it.
     const html = list();
+
     expect(html.includes("handy-computer/")).toBe(false);
     expect(html.includes(".gguf")).toBe(false);
   });
@@ -740,6 +569,7 @@ describe("mode list", () => {
   test("keeps name, state, engine and keycaps on one line", () => {
     const html = list();
     const rows = html.split("<li").slice(1);
+
     expect(rows.length).toBe(2);
     // The defect this replaces put the state and the caps on a second line
     // under the title, which then wrapped. One row is one flex line.
@@ -753,6 +583,7 @@ describe("mode list", () => {
 
   test("reaches each mode's actions by that mode's name", () => {
     const html = list();
+
     expectLabels(html, [
       'aria-label="Actions for Email"',
       'aria-label="Actions for Message"',
@@ -779,6 +610,7 @@ describe("mode list", () => {
         onReload={noop}
       />,
     );
+
     expect(html).toContain("No modes are configured.");
     expect(html).toContain("Retry");
   });

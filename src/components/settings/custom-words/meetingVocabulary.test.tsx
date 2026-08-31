@@ -8,12 +8,7 @@ import { createInstance } from "i18next";
 import { I18nextProvider } from "react-i18next";
 import type { VocabularyCandidate, VocabularyEntry } from "@/bindings";
 import { MeetingVocabularySuggestionsList } from "./MeetingVocabularySuggestions";
-import {
-  addVocabularyCandidate,
-  readVocabularyDismissals,
-  VOCABULARY_DISMISSALS_KEY,
-  writeVocabularyDismissals,
-} from "./meetingVocabulary";
+import { addVocabularyCandidate } from "./meetingVocabulary";
 
 const localePath = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -69,23 +64,6 @@ describe("meeting vocabulary suggestions", () => {
       { spoken: "North Star", written: "North Star" },
     ]);
     expect(addVocabularyCandidate(entries, "OpenAI")).toEqual(entries);
-  });
-
-  test("round-trips dismissals through the versioned device cache", () => {
-    let stored: string | null = null;
-    const storage = {
-      getItem: (key: string) =>
-        key === VOCABULARY_DISMISSALS_KEY ? stored : null,
-      setItem: (key: string, value: string) => {
-        if (key === VOCABULARY_DISMISSALS_KEY) stored = value;
-      },
-    };
-
-    writeVocabularyDismissals(storage, new Set(["North Star", "Sona Labs"]));
-
-    expect(readVocabularyDismissals(storage)).toEqual(
-      new Set(["North Star", "Sona Labs"]),
-    );
   });
 
   test("renders no suggestion chrome for an empty result", () => {

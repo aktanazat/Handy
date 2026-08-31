@@ -23,7 +23,6 @@ interface ImportPreviewDialogProps {
   review: ImportReview | null;
   savedCount: number;
   saving: boolean;
-  unsavedChanges: boolean;
   onStep: (step: "review" | "confirm") => void;
   onClose: () => void;
   onApply: () => void;
@@ -38,7 +37,6 @@ export const ImportPreviewDialog: React.FC<ImportPreviewDialogProps> = ({
   review,
   savedCount,
   saving,
-  unsavedChanges,
   onStep,
   onClose,
   onApply,
@@ -89,14 +87,6 @@ export const ImportPreviewDialog: React.FC<ImportPreviewDialogProps> = ({
 
         {preview && (
           <div className="flex flex-col gap-3">
-            {unsavedChanges && (
-              <Notice tone="warning">
-                {t(
-                  "settings.advanced.customWords.importPreview.unsavedWarning",
-                )}
-              </Notice>
-            )}
-
             {reviewing ? (
               <>
                 <div className="flex flex-wrap gap-x-5 gap-y-1.5">
@@ -119,12 +109,14 @@ export const ImportPreviewDialog: React.FC<ImportPreviewDialogProps> = ({
                   <div className="max-h-56 overflow-y-auto rounded-card border border-gray-alpha-400">
                     <ColumnHeader
                       gridClassName="grid grid-cols-2 gap-2"
-                      start={t("settings.advanced.customWords.spoken")}
-                      end={t("settings.advanced.customWords.written")}
+                      labels={[
+                        t("settings.advanced.customWords.spoken"),
+                        t("settings.advanced.customWords.written"),
+                      ]}
                     />
                     <ul
                       role="list"
-                      className="divide-y divide-gray-alpha-400 font-mono text-[12.5px]"
+                      className="divide-y divide-gray-alpha-400 text-[12.5px]"
                     >
                       {preview.entries.map((entry) => (
                         <li

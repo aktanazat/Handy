@@ -72,11 +72,24 @@ const invocations = (page: Page): Promise<Invocation[]> =>
     return recorded.__invocations ?? [];
   });
 
-const openApp = async (page: Page, section: string) => {
+/**
+ * Opens the app on the Modes page.
+ *
+ * Modes has no rail row any more — picking a mode is a Capture decision and
+ * editing one is a Settings task — so the destination is reached the way every
+ * railless destination is: through the ⌘K palette, which lists all of them.
+ */
+const openModesPage = async (page: Page) => {
   await page.goto("/");
-  const button = page.getByRole("button", { name: section, exact: true });
-  await expect(button).toBeVisible();
-  await button.click();
+  /* The ⌘K listener mounts with the app shell; pressing before the rail
+   * renders races it and the palette never opens. */
+  await expect(
+    page.getByRole("navigation", { name: "Main navigation" }),
+  ).toBeVisible();
+  await page.keyboard.press("Meta+k");
+  const destination = page.getByRole("option", { name: "Modes", exact: true });
+  await expect(destination).toBeVisible();
+  await destination.click();
 };
 
 test.describe("mode list reorder", () => {
@@ -111,7 +124,7 @@ test.describe("mode list reorder", () => {
     page.getByRole("list", { name: "Your modes" }).getByRole("listitem");
 
   const openModes = async (page: Page) => {
-    await openApp(page, "Modes");
+    await openModesPage(page);
     const rows = modeRows(page);
     await expect(rows).toHaveCount(MODE_IDS.length);
     /* The draggable list is an async chunk, and this attribute only exists once

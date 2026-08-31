@@ -147,14 +147,14 @@ export const PromptLibrary: React.FC = () => {
                     {prompt.name}
                   </span>
                   {selected && (
-                    /* One prompt in the library is the one modes start from,
-                     * which is exactly Geist's inverted "current" chip. */
+                    /* The prompt modes start from carries the inverted current
+                     * chip. */
                     <Badge className="flex-none">
                       {t("settings.postProcessing.prompts.inUse", "In use")}
                     </Badge>
                   )}
                 </span>
-                <span className="mt-0.5 block line-clamp-2 font-mono text-[12.5px] leading-[18px] text-gray-700">
+                <span className="mt-0.5 block line-clamp-2 text-[12.5px] leading-[18px] text-gray-700">
                   {prompt.prompt}
                 </span>
               </span>

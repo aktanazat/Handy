@@ -1,80 +1,95 @@
-import React, { useId } from "react";
-import { Download, Upload } from "lucide-react";
+import React, { useId, useRef } from "react";
+import { Download, RotateCcw, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/vg/button";
 import { Switch } from "@/components/vg/switch";
 import {
-  Notice,
   SettingsCard,
   SettingsRow,
   SettingsSection,
 } from "@/components/settings/rows";
-import { SnippetsPanel } from "./vocabulary/SnippetsPanel";
-import { ReplacementsPanel } from "./vocabulary/ReplacementsPanel";
 import { ImportPreviewDialog } from "./custom-words/ImportPreviewDialog";
-import { PairEditor } from "./custom-words/PairEditor";
 import { MeetingVocabularySuggestions } from "./custom-words/MeetingVocabularySuggestions";
-import { useCustomWordsEditor } from "./custom-words/useCustomWordsEditor";
+import { VocabularyRules } from "./vocabulary/VocabularyRules";
+import { useVocabularyRules } from "./vocabulary/useVocabularyRules";
 
-/* Every text rule the app applies after a transcript, in the order a user
- * meets them: the global vocabulary and its CSV transfer, text expansion,
- * replacements, spoken editing, and the emoji map. */
+/**
+ * Every text rule the app applies after a transcript.
+ *
+ * Four switches say which kinds of rule are in force; one list holds the rules
+ * themselves, whichever store they live in. The four separate editors this
+ * replaces each carried their own heading, add row, column names, save button
+ * and empty line — five copies of one grammar for four lists that a reader
+ * only ever reads together.
+ */
 export const CustomWords: React.FC = () => {
   const { t } = useTranslation();
   const spokenEditsId = useId();
-  const {
-    entries,
-    emojiReplacements,
-    savedCount,
-    spoken,
-    written,
-    emojiSpoken,
-    emojiWritten,
-    setSpoken,
-    setWritten,
-    setEmojiSpoken,
-    setEmojiWritten,
-    loading,
-    saving,
-    failure,
-    review,
-    vocabularyChanged,
-    emojiChanged,
-    vocabularyDraft,
-    emojiDraft,
-    vocabularyBlockers,
-    emojiBlockers,
-    emojiEnabled,
-    spokenEditsEnabled,
-    fileInputRef,
-    getVocabularyRowKey,
-    getEmojiRowKey,
-    addEntry,
-    addSuggestedEntry,
-    editEntry,
-    removeEntry,
-    addEmojiReplacement,
-    editEmojiReplacement,
-    removeEmojiReplacement,
-    saveEntries,
-    saveEmojiReplacements,
-    previewImport,
-    applyImport,
-    exportCsv,
-    toggleEmojiReplacements,
-    toggleSpokenEdits,
-    setReviewStep,
-    closeReview,
-  } = useCustomWordsEditor();
+  const emojiId = useId();
+  const snippetsId = useId();
+  const replacementsId = useId();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const state = useVocabularyRules();
 
-  const vocabularyTitle = t("settings.advanced.customWords.title");
-  const emojiTitle = t("settings.advanced.emoji.title");
   const importLabel = t("settings.advanced.customWords.import");
 
   return (
     <>
+      <SettingsCard className="divide-y divide-gray-alpha-400">
+        <SettingsRow
+          label={t("settings.advanced.spokenEdits.enabledLabel")}
+          hint={t("settings.advanced.spokenEdits.enabledDescription")}
+          controlId={spokenEditsId}
+        >
+          <Switch
+            id={spokenEditsId}
+            checked={state.spokenEditsEnabled}
+            disabled={state.busy}
+            onCheckedChange={state.setSpokenEdits}
+          />
+        </SettingsRow>
+        <SettingsRow
+          label={t("modesV2.rules.toggles.emoji")}
+          hint={t("settings.advanced.emoji.enabledDescription")}
+          controlId={emojiId}
+        >
+          <Switch
+            id={emojiId}
+            checked={state.emojiEnabled}
+            disabled={state.busy}
+            onCheckedChange={state.setEmoji}
+          />
+        </SettingsRow>
+        {/* The two kill switches the merged list inherited from the panels it
+         * replaces. They are state about whether a kind of rule fires at all,
+         * which is the same sentence as the two above, so they sit in the same
+         * band rather than on the rows they govern. */}
+        <SettingsRow
+          label={t("modesV2.rules.toggles.snippet")}
+          controlId={snippetsId}
+        >
+          <Switch
+            id={snippetsId}
+            checked={state.snippetsEnabled}
+            disabled={state.busy}
+            onCheckedChange={state.setSnippets}
+          />
+        </SettingsRow>
+        <SettingsRow
+          label={t("modesV2.rules.toggles.replacement")}
+          controlId={replacementsId}
+        >
+          <Switch
+            id={replacementsId}
+            checked={state.replacementsEnabled}
+            disabled={state.busy}
+            onCheckedChange={state.setReplacements}
+          />
+        </SettingsRow>
+      </SettingsCard>
+
       <SettingsSection
-        label={vocabularyTitle}
+        label={t("modesV2.rules.title")}
         action={
           <span
             role="group"
@@ -85,7 +100,7 @@ export const CustomWords: React.FC = () => {
               size="sm"
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
-              disabled={saving}
+              disabled={state.busy}
             >
               <Upload aria-hidden="true" />
               {importLabel}
@@ -93,11 +108,21 @@ export const CustomWords: React.FC = () => {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => void exportCsv()}
-              disabled={saving || savedCount === 0}
+              onClick={state.exportCsv}
+              disabled={state.busy || state.savedVocabularyCount === 0}
             >
               <Download aria-hidden="true" />
               {t("settings.advanced.customWords.export")}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={state.restoreDefaultRewrites}
+              disabled={state.busy}
+              data-testid="rules-restore-rewrites"
+            >
+              <RotateCcw aria-hidden="true" />
+              {t("modesV2.rules.restoreRewrites")}
             </Button>
             <input
               ref={fileInputRef}
@@ -108,157 +133,26 @@ export const CustomWords: React.FC = () => {
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 event.target.value = "";
-                if (file) void previewImport(file);
+                if (file) state.previewImport(file);
               }}
             />
           </span>
         }
       >
         <MeetingVocabularySuggestions
-          entries={entries}
-          onAccept={addSuggestedEntry}
+          entries={state.vocabularyEntries}
+          onAccept={state.addSuggestion}
         />
-        <PairEditor
-          labels={{
-            title: vocabularyTitle,
-            spoken: t("settings.advanced.customWords.spoken"),
-            written: t("settings.advanced.customWords.written"),
-            spokenPlaceholder: t(
-              "settings.advanced.customWords.spokenPlaceholder",
-            ),
-            writtenPlaceholder: t(
-              "settings.advanced.customWords.writtenPlaceholder",
-            ),
-            add: t("settings.advanced.customWords.add"),
-            save: t("settings.advanced.customWords.save"),
-            remove: (entrySpoken) =>
-              t("settings.advanced.customWords.remove", {
-                spoken: entrySpoken,
-              }),
-            empty: t(
-              "settings.advanced.customWords.empty.description",
-              "Add a pair such as open ai and OpenAI, and Sona writes the exact form every time it hears the phrase.",
-            ),
-          }}
-          entries={entries}
-          draftSpoken={spoken}
-          draftWritten={written}
-          draftHint={vocabularyDraft.hint}
-          canAdd={!saving && vocabularyDraft.addable}
-          changed={vocabularyChanged}
-          saving={saving}
-          loading={loading}
-          blockers={vocabularyBlockers}
-          testId="vocabulary-editor"
-          getRowKey={getVocabularyRowKey}
-          onDraftSpokenChange={setSpoken}
-          onDraftWrittenChange={setWritten}
-          onAdd={addEntry}
-          onEdit={editEntry}
-          onRemove={removeEntry}
-          onSave={() => void saveEntries()}
-          footnote={t(
-            "settings.advanced.customWords.sources",
-            "Corrections you save from a transcript in Library land in this list. Rules for a single mode live in that mode's own vocabulary.",
-          )}
-        />
-      </SettingsSection>
-
-      {failure && (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Notice tone="danger">{failure.message}</Notice>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={saving}
-            onClick={failure.retry}
-          >
-            {t("common.retry")}
-          </Button>
-        </div>
-      )}
-
-      <SnippetsPanel />
-
-      <ReplacementsPanel />
-
-      <SettingsCard>
-        <SettingsRow
-          label={t("settings.advanced.spokenEdits.enabledLabel")}
-          hint={t("settings.advanced.spokenEdits.enabledDescription")}
-          controlId={spokenEditsId}
-        >
-          <Switch
-            id={spokenEditsId}
-            checked={spokenEditsEnabled}
-            disabled={saving}
-            onCheckedChange={(enabled) => void toggleSpokenEdits(enabled)}
-          />
-        </SettingsRow>
-      </SettingsCard>
-
-      <SettingsSection
-        label={emojiTitle}
-        action={
-          <Switch
-            checked={emojiEnabled}
-            disabled={saving}
-            onCheckedChange={(enabled) => void toggleEmojiReplacements(enabled)}
-            aria-label={t("settings.advanced.emoji.enabledLabel")}
-          />
-        }
-      >
-        {emojiEnabled && (
-          <PairEditor
-            labels={{
-              title: emojiTitle,
-              spoken: t("settings.advanced.emoji.spoken"),
-              written: t("settings.advanced.emoji.written"),
-              spokenPlaceholder: t("settings.advanced.emoji.spokenPlaceholder"),
-              writtenPlaceholder: t(
-                "settings.advanced.emoji.writtenPlaceholder",
-              ),
-              add: t("settings.advanced.emoji.add"),
-              save: t("settings.advanced.emoji.save"),
-              remove: (entrySpoken) =>
-                t("settings.advanced.emoji.remove", { spoken: entrySpoken }),
-              empty: t(
-                "settings.advanced.emoji.empty.description",
-                "Map an exact spoken token such as smiley face to the emoji you want written.",
-              ),
-            }}
-            entries={emojiReplacements}
-            draftSpoken={emojiSpoken}
-            draftWritten={emojiWritten}
-            draftHint={emojiDraft.hint}
-            canAdd={!saving && emojiDraft.addable}
-            changed={emojiChanged}
-            saving={saving}
-            loading={loading}
-            blockers={emojiBlockers}
-            testId="emoji-editor"
-            getRowKey={getEmojiRowKey}
-            onDraftSpokenChange={setEmojiSpoken}
-            onDraftWrittenChange={setEmojiWritten}
-            onAdd={addEmojiReplacement}
-            onEdit={editEmojiReplacement}
-            onRemove={removeEmojiReplacement}
-            onSave={() => void saveEmojiReplacements()}
-          />
-        )}
-        <Notice live={false} className="px-4 py-3">
-          {t("settings.advanced.emoji.enabledDescription")}
-        </Notice>
+        <VocabularyRules state={state} />
       </SettingsSection>
 
       <ImportPreviewDialog
-        review={review}
-        savedCount={savedCount}
-        saving={saving}
-        unsavedChanges={vocabularyChanged}
-        onStep={setReviewStep}
-        onClose={closeReview}
-        onApply={() => void applyImport()}
+        review={state.review}
+        savedCount={state.savedVocabularyCount}
+        saving={state.busy}
+        onStep={state.setReviewStep}
+        onClose={state.closeReview}
+        onApply={state.applyImport}
       />
     </>
   );

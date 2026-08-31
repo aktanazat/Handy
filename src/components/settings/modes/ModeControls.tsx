@@ -14,8 +14,7 @@ import {
  *
  * Page, section and row shapes come from `@/components/settings/rows` — one
  * owner for the settings grammar, so Modes and Meetings cannot drift. The
- * whole modes surface is Tailwind utilities on Geist tokens; there is no
- * modes.css. */
+ * whole modes surface resolves through shared theme utilities. */
 
 export interface SegmentedOption<Value extends string> {
   value: Value;
@@ -82,9 +81,9 @@ export const SegmentedRadioGroup = <Value extends string>({
         />
         <span
           className={cn(
-            "flex h-7 items-center justify-center overflow-hidden rounded-[4px] px-3 text-center text-[13px] whitespace-nowrap text-ellipsis text-gray-900",
+            "flex h-7 items-center justify-center overflow-hidden rounded-[4px] border border-transparent px-3 text-center text-[13px] whitespace-nowrap text-ellipsis text-gray-900",
             "peer-enabled:hover:bg-gray-alpha-100 peer-enabled:hover:text-gray-1000",
-            "peer-checked:bg-background-100 peer-checked:font-medium peer-checked:text-gray-1000 peer-checked:shadow-[0_0_0_1px_var(--color-gray-alpha-400)]",
+            "peer-checked:border-gray-alpha-400 peer-checked:bg-background-100 peer-checked:font-medium peer-checked:text-gray-1000",
             "peer-disabled:text-gray-700",
             "peer-focus-visible:ring-2 peer-focus-visible:ring-blue-700 peer-focus-visible:outline-none",
           )}
@@ -197,7 +196,7 @@ export const ActivationRuleList: React.FC<ActivationRuleListProps> = ({
         {items.map((item) => (
           <li key={item.id} className="flex min-h-10 items-center gap-3 py-1.5">
             <span className="min-w-0 flex-1">
-              <code className="block truncate font-mono text-[12.5px] leading-5 text-gray-1000">
+              <code className="block truncate text-[12.5px] leading-5 text-gray-1000">
                 {item.target}
               </code>
               {item.detail ? (
@@ -209,7 +208,7 @@ export const ActivationRuleList: React.FC<ActivationRuleListProps> = ({
             <Button
               type="button"
               /* Bordered, not ghost: a bare text control at the right of a
-               * mono host row reads as more of the path. */
+               * machine-value row reads as more of the path. */
               variant="outline"
               size="sm"
               className="flex-none"

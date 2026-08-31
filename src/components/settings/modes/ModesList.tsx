@@ -13,7 +13,7 @@ import { cn } from "@/lib/cn";
 import type { OSType } from "@/lib/utils/keyboard";
 import { SettingsSurface } from "@/components/settings/rows";
 import { ShortcutChord } from "./ModeControls";
-import { modeEngineLabel, modeRowActions } from "./modeModel";
+import { isPresetMode, modeEngineLabel, modeRowActions } from "./modeModel";
 import type { ModeReorderRow } from "./ModesReorder";
 
 /* Dragging costs Motion's full feature set (see ModesReorder.tsx), so it loads
@@ -106,14 +106,22 @@ const ModeRowBody: React.FC<ModeRowBodyProps> = ({
         >
           {mode.name}
         </span>
+        {/* The four modes Sona ships with read as presets: a starting point,
+         * not a fixture. Everything else about the row is identical, because
+         * everything else about the mode is. */}
+        {isPresetMode(mode.id) ? (
+          <span className="flex-none text-[11px] text-gray-700">
+            {t("modesV2.list.preset")}
+          </span>
+        ) : null}
         {/* The one word of state the list carries. Spelled out, so it survives
-         * greyscale; mono, so it reads as a marker rather than as content. */}
+         * greyscale and reads as a marker rather than as content. */}
         {isActive ? (
-          <span className="flex-none font-mono text-[10px] uppercase tracking-[0.12em] text-blue-900">
+          <span className="flex-none text-[13px] leading-5 text-blue-900">
             {t("settings.modes.active")}
           </span>
         ) : null}
-        <span className="ml-auto flex-none font-mono text-[11px] text-gray-800">
+        <span className="ml-auto flex-none text-[11px] text-gray-800">
           {modeEngineLabel(mode.asr, t)}
         </span>
         <ShortcutChord

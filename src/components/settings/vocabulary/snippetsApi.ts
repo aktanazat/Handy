@@ -20,11 +20,6 @@ const unwrap = async <T>(pending: Promise<Result<T, string>>): Promise<T> => {
 export const listSnippets = (): Promise<Snippet[]> =>
   unwrap(commands.listSnippets());
 
-export const fetchSnippetsEnabled = async (): Promise<boolean> => {
-  const settings = await unwrap(commands.getAppSettings());
-  return settings.snippets_enabled ?? true;
-};
-
 /* Every mutating command answers with the whole new list, so callers set
  * state from the result instead of following up with list_snippets. */
 

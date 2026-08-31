@@ -1,18 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   commands,
-  events,
+  type LearningDecisionStatus,
   type VocabularyCandidate,
   type VocabularyEntry,
 } from "@/bindings";
+import { useLearningDecisions } from "@/hooks/useLearningDecisions";
 import { spokenMatchKey } from "@/lib/vocabularyDraft";
 import { Button } from "@/components/vg/button";
 import { Microlabel } from "@/components/settings/rows";
-import {
-  readVocabularyDismissals,
-  writeVocabularyDismissals,
-} from "./meetingVocabulary";
 
 interface MeetingVocabularySuggestionsProps {
   entries: readonly VocabularyEntry[];
@@ -49,7 +46,7 @@ export const MeetingVocabularySuggestionsList: React.FC<
               <p className="truncate text-[13px] text-gray-1000">
                 {candidate.text}
               </p>
-              <p className="font-mono text-[11px] text-gray-700">
+              <p className="text-[11px] text-gray-700 tabular-nums">
                 {t("settings.workflows.vocabularySuggestions.occurrences", {
                   count: candidate.occurrences,
                 })}{" "}
@@ -84,31 +81,22 @@ export const MeetingVocabularySuggestionsList: React.FC<
   );
 };
 
+const loadCandidates = async (): Promise<readonly VocabularyCandidate[]> => {
+  try {
+    const result = await commands.vocabularyCandidates();
+    return result.status === "ok" ? result.data.entries : [];
+  } catch {
+    return [];
+  }
+};
+
 export const MeetingVocabularySuggestions: React.FC<
   MeetingVocabularySuggestionsProps
 > = ({ entries, onAccept }) => {
-  const [candidates, setCandidates] = useState<VocabularyCandidate[]>([]);
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
-
-  const refresh = useCallback(async () => {
-    try {
-      const result = await commands.vocabularyCandidates();
-      setCandidates(result.status === "ok" ? result.data.entries : []);
-    } catch {
-      setCandidates([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    setDismissed(readVocabularyDismissals(window.localStorage));
-    void refresh();
-    const subscription = events.meetingArtifactChanged.listen(() => {
-      void refresh();
-    });
-    return () => {
-      void subscription.then((unlisten) => unlisten());
-    };
-  }, [refresh]);
+  /* An answer is remembered by the store, not by this device: the same
+   * (loop, candidate) memory serves every learning loop, and the candidate list
+   * already arrives with answered terms removed. */
+  const { entries: candidates, decide } = useLearningDecisions(loadCandidates);
 
   const knownTerms = useMemo(() => {
     const terms = new Set<string>();
@@ -120,28 +108,25 @@ export const MeetingVocabularySuggestions: React.FC<
   }, [entries]);
 
   const visibleCandidates = candidates.filter(
-    (candidate) =>
-      !dismissed.has(candidate.text) &&
-      !knownTerms.has(spokenMatchKey(candidate.text)),
+    (candidate) => !knownTerms.has(spokenMatchKey(candidate.text)),
   );
 
-  const dismiss = (text: string) => {
-    setDismissed((current) => {
-      const next = new Set(current).add(text);
-      try {
-        writeVocabularyDismissals(window.localStorage, next);
-      } catch {
-        // The in-memory dismissal still applies when this webview denies storage.
-      }
-      return next;
-    });
-  };
+  /* The mined term itself, never a rendered line: an accepted vocabulary
+   * decision is what loop 4 primes a session's ASR with. */
+  const answer = (text: string, status: LearningDecisionStatus) =>
+    void decide(
+      { loop_kind: "vocabulary_term", candidate_key: text, display_text: text },
+      status,
+    );
 
   return (
     <MeetingVocabularySuggestionsList
       candidates={visibleCandidates}
-      onAccept={onAccept}
-      onDismiss={dismiss}
+      onAccept={(text) => {
+        onAccept(text);
+        answer(text, "accepted");
+      }}
+      onDismiss={(text) => answer(text, "dismissed")}
     />
   );
 };

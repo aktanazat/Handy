@@ -31,23 +31,26 @@ export interface ModeSelectOption {
 }
 
 /* Shape, constants and pure mappers shared by the modes page. Everything here
- * is total and side-effect free: the page owns state, the panels own markup. */
+ * is total and side-effect free: the page owns state, the sections own markup. */
 
 export const DEFAULT_MODE_ID = "message";
 
-export const MODE_EDITOR_TABS = [
-  "recognition",
-  "rewrite",
-  "context",
-  "delivery",
-  "automation",
-] as const;
+/**
+ * The modes Sona ships with. They are presets: a starting point a reader
+ * recognizes, not a private list the app depends on — every one of them can be
+ * renamed, reordered and (except the default) deleted like any other mode.
+ * `modes.rs:501-504` is where they are created, and this is the only place the
+ * frontend restates that set.
+ */
+export const PRESET_MODE_IDS: readonly string[] = [
+  DEFAULT_MODE_ID,
+  "email",
+  "meeting",
+  "notes",
+];
 
-export type ModeEditorTab = (typeof MODE_EDITOR_TABS)[number];
-
-/* One panel is mounted at a time, so every tab points its aria-controls at
- * the same element. */
-export const MODE_EDITOR_PANEL_ID = "mode-editor-tabpanel";
+export const isPresetMode = (modeId: string): boolean =>
+  PRESET_MODE_IDS.includes(modeId);
 
 export const WEBSITE_HOST_MATCHES = [
   "exact",

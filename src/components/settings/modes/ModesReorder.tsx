@@ -74,13 +74,13 @@ export const ModesReorder: React.FC<ModesReorderProps> = ({
               value={id}
               as="li"
               /* The row is the drag handle, so text selection must not
-               * compete with the gesture, and a held row lifts on the one
-               * shadow every floating surface in the app uses. */
+               * compete with the gesture. A held row gets a crisp outline
+               * without turning a list item into a floating card. */
               className={cn(
                 "flex touch-none items-center [&_button]:cursor-grab",
                 row.selected && "bg-gray-alpha-100",
                 draggingId === id &&
-                  "relative bg-background-100 shadow-lg [&_button]:cursor-grabbing",
+                  "relative bg-background-100 outline outline-1 outline-gray-alpha-400 [&_button]:cursor-grabbing",
               )}
               data-selected={row.selected || undefined}
               data-active={row.active || undefined}
