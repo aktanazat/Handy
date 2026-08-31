@@ -37,6 +37,7 @@
     "agents": "Agents",
     "meetings": "Möten",
     "navigation": "Huvudnavigering",
+    "people": "Personer",
     "settings": "Inställningar"
   },
   "onboarding": {
@@ -1550,12 +1551,90 @@
       },
       "workspaceNavigation": "Vyer för agentbryggan"
     },
+    "workflows": {
+      "title": "Arbetsflöden",
+      "builtIns": "Inbyggda arbetsflöden",
+      "loadError": "Arbetsflödena kunde inte läsas in.",
+      "updateError": "Arbetsflödet kunde inte uppdateras.",
+      "empty": "Det finns inga tillgängliga arbetsflöden.",
+      "neverRun": "Inte kört ännu",
+      "toggleLabel": "Aktivera {{name}}",
+      "items": {
+        "person_linking": {
+          "name": "Koppla personer",
+          "description": "Kopplar möten till personer med bekräftade uppgifter om deltagare och talare."
+        },
+        "pre_meeting_briefing": {
+          "name": "Förberedelse inför mötet",
+          "description": "Skapar en översikt från tidigare möten innan ett identifierat möte börjar."
+        },
+        "continuity": {
+          "name": "Kontinuitet",
+          "description": "För vidare olösta åtaganden till kommande möten."
+        },
+        "vocabulary_mining": {
+          "name": "Hitta ordförråd",
+          "description": "Hittar återkommande namn och termer som kan höra hemma i ditt ordförråd."
+        },
+        "document_linking": {
+          "name": "Koppla dokument",
+          "description": "Kopplar importerade dokument till personerna som nämns i dem."
+        }
+      },
+      "status": {
+        "ok": "Slutförd",
+        "failed": "Misslyckades",
+        "skipped": "Hoppades över"
+      },
+      "outcomes": {
+        "personLinks_one": "Uppdaterade 1 personlänk",
+        "personLinks_other": "Uppdaterade {{count}} personlänkar",
+        "briefing_one": "Förberedde en briefing för 1 person",
+        "briefing_other": "Förberedde en briefing för {{count}} personer",
+        "continuitySeries_one": "Uppdaterade 1 mötesserie",
+        "continuitySeries_other": "Uppdaterade {{count}} mötesserier",
+        "continuityCarried_one": "förde vidare 1 öppen punkt",
+        "continuityCarried_other": "förde vidare {{count}} öppna punkter",
+        "vocabularyCandidates_one": "Hittade 1 ordförslag",
+        "vocabularyCandidates_other": "Hittade {{count}} ordförslag",
+        "documentLinks_one": "Uppdaterade 1 dokumentlänk",
+        "documentLinks_other": "Uppdaterade {{count}} dokumentlänkar",
+        "alreadyProcessed": "Redan bearbetat",
+        "failed": "Körningen misslyckades",
+        "skipped": "Hoppades över"
+      },
+      "vocabularySuggestions": {
+        "title": "Från dina möten",
+        "occurrences_one": "1 omnämnande",
+        "occurrences_other": "{{count}} omnämnanden",
+        "meetings_one": "1 möte",
+        "meetings_other": "{{count}} möten",
+        "accept": "Lägg till",
+        "dismiss": "Avvisa"
+      },
+      "overview": {
+        "whatSonaDid": "Vad Sona gjorde",
+        "commitments": "Åtaganden",
+        "openMeeting": "Öppna mötet {{title}}",
+        "loadError": "Det gick inte att läsa in det här kortet.",
+        "retry": "Försök igen"
+      },
+      "runLog": {
+        "title": "Körningslogg",
+        "empty": "Inga arbetsflöden har körts ännu.",
+        "loadError": "Körningsloggen kunde inte läsas in.",
+        "loadMoreError": "Fler körningar kunde inte läsas in.",
+        "loadMore": "Läs in fler",
+        "chartAria": "Arbetsflödeskörningar per dag, {{count}} under de senaste 7 dagarna"
+      }
+    },
     "hub": {
       "navigation": "Inställningsavsnitt",
       "tabs": {
         "general": "Allmänt",
         "privacy": "Integritet",
         "agents": "Agenter",
+        "workflows": "Arbetsflöden",
         "advanced": "Avancerat",
         "about": "Om",
         "debug": "Felsökning"
@@ -2334,6 +2413,21 @@
       "shortcutAction": "Ändra dikteringsgenvägen",
       "setShortcutAction": "Ange en genväg"
     },
+    "activity": {
+      "title": "Aktivitet",
+      "dictations": "Dikteringar",
+      "words": "Ord",
+      "streak": "Svit",
+      "rangePrevious": "Föregående 7 dagar",
+      "rangeNext": "Nästa 7 dagar",
+      "peak": "Topp",
+      "dictationsAria": "Dikteringar per dag, högst {{count}} på {{day}}",
+      "wordsAria": "Ord per dag, totalt {{count}}, sista värde {{last}}",
+      "days_one": "{{count}} dag",
+      "days_other": "{{count}} dagar",
+      "streakAria_one": "Aktuell svit, {{count}} dag",
+      "streakAria_other": "Aktuell svit, {{count}} dagar"
+    },
     "update": {
       "available": "Sona {{latest}} är tillgänglig. Den här installationen har {{current}}.",
       "dismiss": "Stäng",
@@ -2433,5 +2527,110 @@
   "topNav": {
     "capture": "Inspelning",
     "library": "Bibliotek"
+  },
+  "people": {
+    "title": "Personer",
+    "source": {
+      "calendar": "Kalender",
+      "speaker": "Talare",
+      "title": "Titel",
+      "manual": "Manuellt",
+      "suggested": "Föreslaget"
+    },
+    "list": {
+      "meetings_one": "1 möte",
+      "meetings_other": "{{count}} möten",
+      "last": "Senast {{date}}",
+      "suggested_one": "Länka 1 föreslaget möte?",
+      "suggested_other": "Länka {{count}} föreslagna möten?",
+      "dismiss": "Avvisa",
+      "confirm": "Bekräfta",
+      "loadError": "Det gick inte att läsa in personer.",
+      "empty": "Inga personer ännu.",
+      "meetings": "{{count}} möten",
+      "suggested": "Länka {{count}} föreslagna möten?"
+    },
+    "detail": {
+      "nameLabel": "Personens namn",
+      "rename": "Byt namn",
+      "deletePerson": "Ta bort person",
+      "aliases": "Även: {{aliases}}",
+      "renameTitle": "Byta namn på den här personen?",
+      "renameDescription": "Ändra personens namn till {{name}}?",
+      "merge": "Slå ihop",
+      "mergeTitle": "Slå ihop den här personen?",
+      "mergeDescription": "Slå ihop {{source}} med {{target}}? Länkar, alias och relationshistorik kombineras.",
+      "mergeTarget": "Välj en person",
+      "deleteTitle": "Ta bort den här personen?",
+      "deleteDescription": "Ta bort {{name}} och alla möteslänkar?",
+      "carriedSince": "Öppet sedan {{date}}",
+      "stillOpen": "Fortfarande öppet",
+      "noOpenLoops": "Inget är längre öppet.",
+      "commitments": "Åtaganden",
+      "noCommitments": "Inga åtaganden registrerade.",
+      "meetingsTogether": "Möten tillsammans",
+      "noMeetings": "Inga länkade möten.",
+      "series": "Möte {{number}} i serien",
+      "meetingActions": "Mötesåtgärder",
+      "unlink": "Ta bort möteslänk",
+      "unlinkTitle": "Ta bort länken till det här mötet?",
+      "unlinkDescription": "Ta bort {{meeting}} från den här personen?",
+      "documents": "Dokument",
+      "importDocument": "Importera dokument",
+      "documentsLoadError": "Dokumenten kunde inte läsas in.",
+      "noDocuments": "Inga importerade dokument.",
+      "deleteDocument": "Ta bort dokument",
+      "deleteDocumentTitle": "Ta bort det här dokumentet?",
+      "deleteDocumentDescription": "Ta bort {{document}} från den importerade kontexten?",
+      "cadence": "Mötesfrekvens",
+      "lastMeeting": "Senaste mötet",
+      "talkShare": "Andel talartid",
+      "cadenceAria": "Möten per månad: {{values}}",
+      "documentFilter": "Textdokument",
+      "documentImported": "Dokumentet importerades.",
+      "split": "Dela upp person",
+      "splitTitle": "Dela upp den här personen?",
+      "splitDescription": "Flytta valda identitetsuppgifter och möten från {{name}} till en annan person.",
+      "splitTarget": "Flytta till",
+      "splitCreate": "Ny person",
+      "splitExisting": "Befintlig person",
+      "splitNameLabel": "Den nya personens namn",
+      "splitEvidence": "Välj vad som ska flyttas",
+      "splitMeetings": "Möten",
+      "splitAliases": "Andra namn",
+      "splitEmails": "Kalenderadresser",
+      "splitDocuments": "Dokument",
+      "splitSubmit": "Dela upp person",
+      "splitNothingSelected": "Välj minst ett objekt att flytta.",
+      "splitNoItems": "Den här personen har inga identitetsuppgifter eller möten att dela upp.",
+      "loadError": "Den här personen kunde inte läsas in."
+    },
+    "errors": {
+      "stale": "Personer ändrades på en annan skärm. Läs in igen och försök på nytt.",
+      "operation": "Det gick inte att uppdatera personer. Försök igen."
+    },
+    "review": {
+      "personDetails": "Personuppgifter",
+      "previouslyTogether": "Tidigare möten tillsammans",
+      "meetingsBefore_one": "1 tidigare möte",
+      "meetingsBefore_other": "{{count}} tidigare möten",
+      "last": "Senast {{date}}",
+      "agentPromptIntro": "Hjälp mig att skriva en uppföljning av ”{{title}}” utifrån de här mötesuppgifterna.",
+      "agentPromptCommitments": "Åtaganden",
+      "agentPromptOpenLoops": "Öppna frågor",
+      "agentPromptRequest": "Skriv uppföljningen. Hitta inte på detaljer eller löften.",
+      "agentError": "Det gick inte att öppna uppföljningen med agenten.",
+      "discussFollowUp": "Diskutera uppföljning med agenten",
+      "meetingsBefore": "{{count}} tidigare möten"
+    },
+    "briefing": {
+      "metCount_one": "Du har träffat {{name}} en gång",
+      "metCount_other": "Du har träffat {{name}} {{count}} gånger",
+      "metBefore_one": "Du har träffat {{name}} en gång · senast {{date}}",
+      "metBefore_other": "Du har träffat {{name}} {{count}} gånger · senast {{date}}",
+      "stillOpen": "Fortfarande öppet: {{text}}",
+      "metCount": "Du har träffat {{name}} {{count}} gånger",
+      "metBefore": "Du har träffat {{name}} {{count}} gånger · senast {{date}}"
+    }
   }
 }

@@ -37,6 +37,7 @@
     "agents": "Агенты",
     "meetings": "Встречи",
     "navigation": "Основная навигация",
+    "people": "Люди",
     "settings": "Настройки"
   },
   "onboarding": {
@@ -1550,12 +1551,106 @@
       },
       "workspaceNavigation": "Представления моста агентов"
     },
+    "workflows": {
+      "title": "Рабочие процессы",
+      "builtIns": "Встроенные рабочие процессы",
+      "loadError": "Не удалось загрузить рабочие процессы.",
+      "updateError": "Не удалось обновить рабочий процесс.",
+      "empty": "Нет доступных рабочих процессов.",
+      "neverRun": "Ещё не запускался",
+      "toggleLabel": "Включить {{name}}",
+      "items": {
+        "person_linking": {
+          "name": "Связывание людей",
+          "description": "Связывает встречи с людьми по подтверждённым данным участников и говорящих."
+        },
+        "pre_meeting_briefing": {
+          "name": "Справка перед встречей",
+          "description": "Перед началом обнаруженной встречи готовит справку по предыдущим встречам."
+        },
+        "continuity": {
+          "name": "Продолжение",
+          "description": "Переносит незавершённые обязательства в следующие встречи."
+        },
+        "vocabulary_mining": {
+          "name": "Поиск словаря",
+          "description": "Находит повторяющиеся имена и термины, которые можно добавить в ваш словарь."
+        },
+        "document_linking": {
+          "name": "Связывание документов",
+          "description": "Связывает импортированные документы с упомянутыми в них людьми."
+        }
+      },
+      "status": {
+        "ok": "Завершено",
+        "failed": "Ошибка",
+        "skipped": "Пропущено"
+      },
+      "outcomes": {
+        "personLinks_one": "Обновлена {{count}} связь с человеком",
+        "personLinks_few": "Обновлены {{count}} связи с людьми",
+        "personLinks_many": "Обновлено {{count}} связей с людьми",
+        "personLinks_other": "Обновлено {{count}} связи с человеком",
+        "briefing_one": "Подготовлена сводка для {{count}} человека",
+        "briefing_few": "Подготовлена сводка для {{count}} человек",
+        "briefing_many": "Подготовлена сводка для {{count}} человек",
+        "briefing_other": "Подготовлена сводка для {{count}} человека",
+        "continuitySeries_one": "Обновлена {{count}} серия встреч",
+        "continuitySeries_few": "Обновлены {{count}} серии встреч",
+        "continuitySeries_many": "Обновлено {{count}} серий встреч",
+        "continuitySeries_other": "Обновлено {{count}} серии встреч",
+        "continuityCarried_one": "перенесён {{count}} открытый вопрос",
+        "continuityCarried_few": "перенесены {{count}} открытых вопроса",
+        "continuityCarried_many": "перенесено {{count}} открытых вопросов",
+        "continuityCarried_other": "перенесено {{count}} открытого вопроса",
+        "vocabularyCandidates_one": "Найдена {{count}} подсказка для словаря",
+        "vocabularyCandidates_few": "Найдены {{count}} подсказки для словаря",
+        "vocabularyCandidates_many": "Найдено {{count}} подсказок для словаря",
+        "vocabularyCandidates_other": "Найдено {{count}} подсказки для словаря",
+        "documentLinks_one": "Обновлена {{count}} связь с документом",
+        "documentLinks_few": "Обновлены {{count}} связи с документами",
+        "documentLinks_many": "Обновлено {{count}} связей с документами",
+        "documentLinks_other": "Обновлено {{count}} связи с документом",
+        "alreadyProcessed": "Уже обработано",
+        "failed": "Запуск завершился с ошибкой",
+        "skipped": "Пропущено"
+      },
+      "vocabularySuggestions": {
+        "title": "Из ваших встреч",
+        "occurrences_one": "{{count}} упоминание",
+        "occurrences_few": "{{count}} упоминания",
+        "occurrences_many": "{{count}} упоминаний",
+        "occurrences_other": "{{count}} упоминания",
+        "meetings_one": "{{count}} встреча",
+        "meetings_few": "{{count}} встречи",
+        "meetings_many": "{{count}} встреч",
+        "meetings_other": "{{count}} встречи",
+        "accept": "Добавить",
+        "dismiss": "Отклонить"
+      },
+      "overview": {
+        "whatSonaDid": "Что сделала Sona",
+        "commitments": "Обязательства",
+        "openMeeting": "Открыть встречу {{title}}",
+        "loadError": "Не удалось загрузить эту карточку.",
+        "retry": "Повторить"
+      },
+      "runLog": {
+        "title": "Журнал запусков",
+        "empty": "Рабочие процессы ещё не запускались.",
+        "loadError": "Не удалось загрузить журнал запусков.",
+        "loadMoreError": "Не удалось загрузить дополнительные запуски.",
+        "loadMore": "Загрузить ещё",
+        "chartAria": "Запусков в день: {{count}} за последние 7 дней"
+      }
+    },
     "hub": {
       "navigation": "Разделы настроек",
       "tabs": {
         "general": "Основные",
         "privacy": "Конфиденциальность",
         "agents": "Агенты",
+        "workflows": "Рабочие процессы",
         "advanced": "Дополнительно",
         "about": "О программе",
         "debug": "Отладка"
@@ -2334,6 +2429,25 @@
       "shortcutAction": "Изменить сочетание для диктовки",
       "setShortcutAction": "Задать сочетание"
     },
+    "activity": {
+      "title": "Активность",
+      "dictations": "Диктовки",
+      "words": "Слова",
+      "streak": "Серия",
+      "rangePrevious": "Предыдущие 7 дней",
+      "rangeNext": "Следующие 7 дней",
+      "peak": "Пик",
+      "dictationsAria": "Диктовок в день, максимум {{count}} в {{day}}",
+      "wordsAria": "Слов в день, всего {{count}}, последнее значение {{last}}",
+      "days_one": "{{count}} день",
+      "days_few": "{{count}} дня",
+      "days_many": "{{count}} дней",
+      "days_other": "{{count}} дня",
+      "streakAria_one": "Текущая серия, {{count}} день",
+      "streakAria_few": "Текущая серия, {{count}} дня",
+      "streakAria_many": "Текущая серия, {{count}} дней",
+      "streakAria_other": "Текущая серия, {{count}} дня"
+    },
     "update": {
       "available": "Доступна Sona {{latest}}. Установлена версия {{current}}.",
       "dismiss": "Скрыть",
@@ -2433,5 +2547,120 @@
   "topNav": {
     "capture": "Запись",
     "library": "Библиотека"
+  },
+  "people": {
+    "title": "Люди",
+    "source": {
+      "calendar": "Календарь",
+      "speaker": "Спикер",
+      "title": "Заголовок",
+      "manual": "Вручную",
+      "suggested": "Предложено"
+    },
+    "list": {
+      "meetings_one": "1 встреча",
+      "meetings_few": "{{count}} встречи",
+      "meetings_many": "{{count}} встреч",
+      "meetings_other": "{{count}} встречи",
+      "last": "Последняя {{date}}",
+      "suggested_one": "Связать 1 предложенную встречу?",
+      "suggested_few": "Связать {{count}} предложенные встречи?",
+      "suggested_many": "Связать {{count}} предложенных встреч?",
+      "suggested_other": "Связать {{count}} предложенной встречи?",
+      "dismiss": "Отклонить",
+      "confirm": "Подтвердить",
+      "loadError": "Не удалось загрузить людей.",
+      "empty": "Людей пока нет.",
+      "meetings": "{{count}} встреч",
+      "suggested": "Связать {{count}} предложенных встреч?"
+    },
+    "detail": {
+      "nameLabel": "Имя человека",
+      "rename": "Переименовать",
+      "deletePerson": "Удалить человека",
+      "aliases": "Также: {{aliases}}",
+      "renameTitle": "Переименовать этого человека?",
+      "renameDescription": "Изменить имя этого человека на {{name}}?",
+      "merge": "Объединить",
+      "mergeTitle": "Объединить этого человека?",
+      "mergeDescription": "Объединить {{source}} с {{target}}? Связи, псевдонимы и история отношений будут объединены.",
+      "mergeTarget": "Выберите человека",
+      "deleteTitle": "Удалить этого человека?",
+      "deleteDescription": "Удалить {{name}} и все связи со встречами?",
+      "carriedSince": "Открыто с {{date}}",
+      "stillOpen": "Всё ещё открыто",
+      "noOpenLoops": "Открытых вопросов не осталось.",
+      "commitments": "Обязательства",
+      "noCommitments": "Обязательства не записаны.",
+      "meetingsTogether": "Совместные встречи",
+      "noMeetings": "Нет связанных встреч.",
+      "series": "Встреча {{number}} в серии",
+      "meetingActions": "Действия со встречей",
+      "unlink": "Отвязать встречу",
+      "unlinkTitle": "Отвязать эту встречу?",
+      "unlinkDescription": "Удалить {{meeting}} у этого человека?",
+      "documents": "Документы",
+      "importDocument": "Импортировать документ",
+      "documentsLoadError": "Не удалось загрузить документы.",
+      "noDocuments": "Нет импортированных документов.",
+      "deleteDocument": "Удалить документ",
+      "deleteDocumentTitle": "Удалить этот документ?",
+      "deleteDocumentDescription": "Удалить {{document}} из импортированного контекста?",
+      "cadence": "Частота встреч",
+      "lastMeeting": "Последняя встреча",
+      "talkShare": "Доля речи",
+      "cadenceAria": "Встречи по месяцам: {{values}}",
+      "documentFilter": "Текстовые документы",
+      "documentImported": "Документ импортирован.",
+      "split": "Разделить человека",
+      "splitTitle": "Разделить этого человека?",
+      "splitDescription": "Перенесите выбранные данные личности и встречи {{name}} к другому человеку.",
+      "splitTarget": "Перенести к",
+      "splitCreate": "Новый человек",
+      "splitExisting": "Существующий человек",
+      "splitNameLabel": "Имя нового человека",
+      "splitEvidence": "Выберите, что перенести",
+      "splitMeetings": "Встречи",
+      "splitAliases": "Другие имена",
+      "splitEmails": "Адреса из календаря",
+      "splitDocuments": "Документы",
+      "splitSubmit": "Разделить человека",
+      "splitNothingSelected": "Выберите хотя бы один элемент для переноса.",
+      "splitNoItems": "У этого человека нет данных личности или встреч, которые можно отделить.",
+      "loadError": "Не удалось загрузить этого человека."
+    },
+    "errors": {
+      "stale": "Данные о людях изменились на другом экране. Обновите и повторите попытку.",
+      "operation": "Не удалось обновить данные о людях. Повторите попытку."
+    },
+    "review": {
+      "personDetails": "Сведения о человеке",
+      "previouslyTogether": "Ранее встречались",
+      "meetingsBefore_one": "1 предыдущая встреча",
+      "meetingsBefore_few": "{{count}} предыдущие встречи",
+      "meetingsBefore_many": "{{count}} предыдущих встреч",
+      "meetingsBefore_other": "{{count}} предыдущей встречи",
+      "last": "Последняя {{date}}",
+      "agentPromptIntro": "Помоги составить сообщение по итогам «{{title}}» на основе этих данных встречи.",
+      "agentPromptCommitments": "Обязательства",
+      "agentPromptOpenLoops": "Открытые вопросы",
+      "agentPromptRequest": "Составь сообщение по итогам. Не выдумывай детали или обещания.",
+      "agentError": "Не удалось открыть обсуждение с агентом.",
+      "discussFollowUp": "Обсудить дальнейшие действия с агентом",
+      "meetingsBefore": "{{count}} предыдущих встреч"
+    },
+    "briefing": {
+      "metCount_one": "Вы встречались с {{name}} {{count}} раз",
+      "metCount_few": "Вы встречались с {{name}} {{count}} раза",
+      "metCount_many": "Вы встречались с {{name}} {{count}} раз",
+      "metCount_other": "Вы встречались с {{name}} {{count}} раза",
+      "metBefore_one": "Вы встречались с {{name}} {{count}} раз · последняя встреча {{date}}",
+      "metBefore_few": "Вы встречались с {{name}} {{count}} раза · последняя встреча {{date}}",
+      "metBefore_many": "Вы встречались с {{name}} {{count}} раз · последняя встреча {{date}}",
+      "metBefore_other": "Вы встречались с {{name}} {{count}} раза · последняя встреча {{date}}",
+      "stillOpen": "Всё ещё открыто: {{text}}",
+      "metCount": "Вы встречались с {{name}} {{count}} раз",
+      "metBefore": "Вы встречались с {{name}} {{count}} раз · последняя встреча {{date}}"
+    }
   }
 }

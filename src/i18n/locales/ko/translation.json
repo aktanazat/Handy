@@ -37,6 +37,7 @@
     "agents": "에이전트",
     "meetings": "회의",
     "navigation": "기본 탐색",
+    "people": "사람",
     "settings": "설정"
   },
   "onboarding": {
@@ -1550,12 +1551,82 @@
       },
       "workspaceNavigation": "에이전트 브리지 보기"
     },
+    "workflows": {
+      "title": "워크플로",
+      "builtIns": "기본 제공 워크플로",
+      "loadError": "워크플로를 불러오지 못했습니다.",
+      "updateError": "워크플로를 업데이트하지 못했습니다.",
+      "empty": "사용 가능한 워크플로가 없습니다.",
+      "neverRun": "아직 실행되지 않음",
+      "toggleLabel": "{{name}} 활성화",
+      "items": {
+        "person_linking": {
+          "name": "사람 연결",
+          "description": "확인된 참석자와 화자 정보를 사용해 미팅을 사람과 연결합니다."
+        },
+        "pre_meeting_briefing": {
+          "name": "미팅 전 브리핑",
+          "description": "감지된 미팅이 시작되기 전에 이전 미팅으로 브리핑을 만듭니다."
+        },
+        "continuity": {
+          "name": "연속성",
+          "description": "해결되지 않은 약속을 다음 미팅으로 이어갑니다."
+        },
+        "vocabulary_mining": {
+          "name": "어휘 후보 찾기",
+          "description": "어휘에 추가할 만한 반복되는 이름과 용어를 찾습니다."
+        },
+        "document_linking": {
+          "name": "문서 연결",
+          "description": "가져온 문서를 그 안에 언급된 사람과 연결합니다."
+        }
+      },
+      "status": {
+        "ok": "완료",
+        "failed": "실패",
+        "skipped": "건너뜀"
+      },
+      "outcomes": {
+        "personLinks_other": "사람 링크 {{count}}개 업데이트",
+        "briefing_other": "{{count}}명에 대한 브리핑 준비",
+        "continuitySeries_other": "미팅 시리즈 {{count}}개 업데이트",
+        "continuityCarried_other": "열린 항목 {{count}}개 이월",
+        "vocabularyCandidates_other": "어휘 제안 {{count}}개 찾음",
+        "documentLinks_other": "문서 링크 {{count}}개 업데이트",
+        "alreadyProcessed": "이미 처리됨",
+        "failed": "실행 실패",
+        "skipped": "건너뜀"
+      },
+      "vocabularySuggestions": {
+        "title": "미팅에서 찾은 항목",
+        "occurrences_other": "{{count}}회 언급",
+        "meetings_other": "{{count}}개 미팅",
+        "accept": "추가",
+        "dismiss": "숨기기"
+      },
+      "overview": {
+        "whatSonaDid": "Sona가 한 일",
+        "commitments": "약속",
+        "openMeeting": "미팅 {{title}} 열기",
+        "loadError": "이 카드를 불러오지 못했습니다.",
+        "retry": "다시 시도"
+      },
+      "runLog": {
+        "title": "실행 로그",
+        "empty": "아직 실행된 워크플로가 없습니다.",
+        "loadError": "실행 로그를 불러오지 못했습니다.",
+        "loadMoreError": "실행 기록을 더 불러오지 못했습니다.",
+        "loadMore": "더 불러오기",
+        "chartAria": "일별 워크플로 실행 수, 최근 7일 동안 {{count}}회"
+      }
+    },
     "hub": {
       "navigation": "설정 섹션",
       "tabs": {
         "general": "일반",
         "privacy": "개인정보 보호",
         "agents": "에이전트",
+        "workflows": "워크플로",
         "advanced": "고급",
         "about": "정보",
         "debug": "디버그"
@@ -2334,6 +2405,19 @@
       "shortcutAction": "받아쓰기 단축키 변경",
       "setShortcutAction": "단축키 설정"
     },
+    "activity": {
+      "title": "활동",
+      "dictations": "받아쓰기",
+      "words": "단어",
+      "streak": "연속 기록",
+      "rangePrevious": "이전 7일",
+      "rangeNext": "다음 7일",
+      "peak": "최고",
+      "dictationsAria": "일별 받아쓰기, {{day}}에 최고 {{count}}회",
+      "wordsAria": "일별 단어, 총 {{count}}개, 마지막 값 {{last}}",
+      "days_other": "{{count}}일",
+      "streakAria_other": "현재 연속 기록, {{count}}일"
+    },
     "update": {
       "available": "Sona {{latest}}을(를) 사용할 수 있습니다. 이 설치본은 {{current}}입니다.",
       "dismiss": "닫기",
@@ -2433,5 +2517,110 @@
   "topNav": {
     "capture": "녹음",
     "library": "라이브러리"
+  },
+  "people": {
+    "title": "사람",
+    "source": {
+      "calendar": "캘린더",
+      "speaker": "화자",
+      "title": "제목",
+      "manual": "수동",
+      "suggested": "추천"
+    },
+    "list": {
+      "meetings_one": "미팅 1회",
+      "meetings_other": "미팅 {{count}}회",
+      "last": "마지막 {{date}}",
+      "suggested_one": "추천 미팅 1개를 연결할까요?",
+      "suggested_other": "추천 미팅 {{count}}개를 연결할까요?",
+      "dismiss": "무시",
+      "confirm": "확인",
+      "loadError": "사람을 불러오지 못했습니다.",
+      "empty": "아직 등록된 사람이 없습니다.",
+      "meetings": "미팅 {{count}}회",
+      "suggested": "추천 미팅 {{count}}개를 연결할까요?"
+    },
+    "detail": {
+      "nameLabel": "이름",
+      "rename": "이름 변경",
+      "deletePerson": "사람 삭제",
+      "aliases": "다른 이름: {{aliases}}",
+      "renameTitle": "이 사람의 이름을 변경할까요?",
+      "renameDescription": "이 사람의 이름을 {{name}}(으)로 변경할까요?",
+      "merge": "병합",
+      "mergeTitle": "이 사람을 병합할까요?",
+      "mergeDescription": "{{source}}을(를) {{target}}에 병합할까요? 연결, 다른 이름, 관계 기록이 합쳐집니다.",
+      "mergeTarget": "사람 선택",
+      "deleteTitle": "이 사람을 삭제할까요?",
+      "deleteDescription": "{{name}} 및 모든 미팅 연결을 삭제할까요?",
+      "carriedSince": "{{date}}부터 미해결",
+      "stillOpen": "아직 미해결",
+      "noOpenLoops": "남아 있는 미해결 항목이 없습니다.",
+      "commitments": "약속",
+      "noCommitments": "기록된 약속이 없습니다.",
+      "meetingsTogether": "함께한 미팅",
+      "noMeetings": "연결된 미팅이 없습니다.",
+      "series": "시리즈 {{number}}번째 미팅",
+      "meetingActions": "미팅 작업",
+      "unlink": "미팅 연결 해제",
+      "unlinkTitle": "이 미팅의 연결을 해제할까요?",
+      "unlinkDescription": "이 사람에게서 {{meeting}}을(를) 제거할까요?",
+      "documents": "문서",
+      "importDocument": "문서 가져오기",
+      "documentsLoadError": "문서를 불러오지 못했습니다.",
+      "noDocuments": "가져온 문서가 없습니다.",
+      "deleteDocument": "문서 삭제",
+      "deleteDocumentTitle": "이 문서를 삭제할까요?",
+      "deleteDocumentDescription": "가져온 컨텍스트에서 {{document}}을(를) 삭제할까요?",
+      "cadence": "미팅 빈도",
+      "lastMeeting": "마지막 미팅",
+      "talkShare": "발언 비율",
+      "cadenceAria": "월별 미팅: {{values}}",
+      "documentFilter": "텍스트 문서",
+      "documentImported": "문서를 가져왔습니다.",
+      "split": "사람 분리",
+      "splitTitle": "이 사람을 분리할까요?",
+      "splitDescription": "{{name}}의 선택한 신원 정보와 미팅을 다른 사람에게 옮깁니다.",
+      "splitTarget": "이동 대상",
+      "splitCreate": "새 사람",
+      "splitExisting": "기존 사람",
+      "splitNameLabel": "새 사람의 이름",
+      "splitEvidence": "이동할 항목 선택",
+      "splitMeetings": "미팅",
+      "splitAliases": "다른 이름",
+      "splitEmails": "캘린더 이메일",
+      "splitDocuments": "문서",
+      "splitSubmit": "사람 분리",
+      "splitNothingSelected": "이동할 항목을 하나 이상 선택하세요.",
+      "splitNoItems": "이 사람에게는 분리할 신원 정보나 미팅이 없습니다.",
+      "loadError": "이 사람을 불러오지 못했습니다."
+    },
+    "errors": {
+      "stale": "다른 화면에서 사람 정보가 변경되었습니다. 다시 불러온 후 재시도하세요.",
+      "operation": "사람 정보를 업데이트하지 못했습니다. 다시 시도하세요."
+    },
+    "review": {
+      "personDetails": "사람 세부 정보",
+      "previouslyTogether": "이전에 함께한 미팅",
+      "meetingsBefore_one": "이전 미팅 1회",
+      "meetingsBefore_other": "이전 미팅 {{count}}회",
+      "last": "마지막 {{date}}",
+      "agentPromptIntro": "이 미팅 기록을 바탕으로 “{{title}}” 후속 메시지를 작성해 주세요.",
+      "agentPromptCommitments": "약속",
+      "agentPromptOpenLoops": "미해결 항목",
+      "agentPromptRequest": "후속 메시지를 작성하세요. 세부 내용이나 약속을 지어내지 마세요.",
+      "agentError": "에이전트 후속 작업을 열지 못했습니다.",
+      "discussFollowUp": "에이전트와 후속 작업 논의",
+      "meetingsBefore": "이전 미팅 {{count}}회"
+    },
+    "briefing": {
+      "metCount_one": "{{name}} 님과 1회 만났습니다",
+      "metCount_other": "{{name}} 님과 {{count}}회 만났습니다",
+      "metBefore_one": "{{name}} 님과 1회 만났습니다 · 마지막 {{date}}",
+      "metBefore_other": "{{name}} 님과 {{count}}회 만났습니다 · 마지막 {{date}}",
+      "stillOpen": "아직 미해결: {{text}}",
+      "metCount": "{{name}} 님과 {{count}}회 만났습니다",
+      "metBefore": "{{name}} 님과 {{count}}회 만났습니다 · 마지막 {{date}}"
+    }
   }
 }

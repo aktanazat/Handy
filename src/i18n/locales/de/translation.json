@@ -37,6 +37,7 @@
     "agents": "Agents",
     "meetings": "Meetings",
     "navigation": "Hauptnavigation",
+    "people": "Personen",
     "settings": "Einstellungen"
   },
   "onboarding": {
@@ -1550,12 +1551,90 @@
       },
       "workspaceNavigation": "Agent-Bridge-Ansichten"
     },
+    "workflows": {
+      "title": "Arbeitsabläufe",
+      "builtIns": "Integrierte Arbeitsabläufe",
+      "loadError": "Die Arbeitsabläufe konnten nicht geladen werden.",
+      "updateError": "Der Arbeitsablauf konnte nicht aktualisiert werden.",
+      "empty": "Es sind keine Arbeitsabläufe verfügbar.",
+      "neverRun": "Noch nicht ausgeführt",
+      "toggleLabel": "{{name}} aktivieren",
+      "items": {
+        "person_linking": {
+          "name": "Personen verknüpfen",
+          "description": "Verknüpft Meetings anhand bestätigter Teilnehmer- und Sprecherangaben mit Personen."
+        },
+        "pre_meeting_briefing": {
+          "name": "Briefing vor dem Meeting",
+          "description": "Erstellt vor Beginn eines erkannten Meetings ein Briefing aus früheren Meetings."
+        },
+        "continuity": {
+          "name": "Kontinuität",
+          "description": "Übernimmt offene Zusagen in nachfolgende Meetings."
+        },
+        "vocabulary_mining": {
+          "name": "Vokabular erkennen",
+          "description": "Findet wiederkehrende Namen und Begriffe, die in dein Vokabular gehören könnten."
+        },
+        "document_linking": {
+          "name": "Dokumente verknüpfen",
+          "description": "Verknüpft importierte Dokumente mit den darin genannten Personen."
+        }
+      },
+      "status": {
+        "ok": "Abgeschlossen",
+        "failed": "Fehlgeschlagen",
+        "skipped": "Übersprungen"
+      },
+      "outcomes": {
+        "personLinks_one": "1 Personenverknüpfung aktualisiert",
+        "personLinks_other": "{{count}} Personenverknüpfungen aktualisiert",
+        "briefing_one": "Briefing für 1 Person vorbereitet",
+        "briefing_other": "Briefing für {{count}} Personen vorbereitet",
+        "continuitySeries_one": "1 Meetingserie aktualisiert",
+        "continuitySeries_other": "{{count}} Meetingserien aktualisiert",
+        "continuityCarried_one": "1 offenen Punkt übernommen",
+        "continuityCarried_other": "{{count}} offene Punkte übernommen",
+        "vocabularyCandidates_one": "1 Vokabelvorschlag gefunden",
+        "vocabularyCandidates_other": "{{count}} Vokabelvorschläge gefunden",
+        "documentLinks_one": "1 Dokumentverknüpfung aktualisiert",
+        "documentLinks_other": "{{count}} Dokumentverknüpfungen aktualisiert",
+        "alreadyProcessed": "Bereits verarbeitet",
+        "failed": "Ausführung fehlgeschlagen",
+        "skipped": "Übersprungen"
+      },
+      "vocabularySuggestions": {
+        "title": "Aus deinen Meetings",
+        "occurrences_one": "1 Erwähnung",
+        "occurrences_other": "{{count}} Erwähnungen",
+        "meetings_one": "1 Meeting",
+        "meetings_other": "{{count}} Meetings",
+        "accept": "Hinzufügen",
+        "dismiss": "Verwerfen"
+      },
+      "overview": {
+        "whatSonaDid": "Was Sona erledigt hat",
+        "commitments": "Zusagen",
+        "openMeeting": "Meeting {{title}} öffnen",
+        "loadError": "Diese Karte konnte nicht geladen werden.",
+        "retry": "Erneut versuchen"
+      },
+      "runLog": {
+        "title": "Ausführungsprotokoll",
+        "empty": "Es gibt noch keine Ausführungen.",
+        "loadError": "Das Ausführungsprotokoll konnte nicht geladen werden.",
+        "loadMoreError": "Weitere Ausführungen konnten nicht geladen werden.",
+        "loadMore": "Mehr laden",
+        "chartAria": "Ausführungen pro Tag, {{count}} in den letzten 7 Tagen"
+      }
+    },
     "hub": {
       "navigation": "Einstellungsbereiche",
       "tabs": {
         "general": "Allgemein",
         "privacy": "Datenschutz",
         "agents": "Agenten",
+        "workflows": "Arbeitsabläufe",
         "advanced": "Erweitert",
         "about": "Über",
         "debug": "Debug"
@@ -2334,6 +2413,21 @@
       "shortcutAction": "Diktierkürzel ändern",
       "setShortcutAction": "Kürzel festlegen"
     },
+    "activity": {
+      "title": "Aktivität",
+      "dictations": "Diktate",
+      "words": "Wörter",
+      "streak": "Serie",
+      "rangePrevious": "Vorherige 7 Tage",
+      "rangeNext": "Nächste 7 Tage",
+      "peak": "Spitze",
+      "dictationsAria": "Diktate pro Tag, höchster Wert {{count}} am {{day}}",
+      "wordsAria": "Wörter pro Tag, {{count}} insgesamt, zuletzt {{last}}",
+      "days_one": "{{count}} Tag",
+      "days_other": "{{count}} Tage",
+      "streakAria_one": "Aktuelle Serie, {{count}} Tag",
+      "streakAria_other": "Aktuelle Serie, {{count}} Tage"
+    },
     "update": {
       "available": "Sona {{latest}} ist verfügbar. Diese Installation ist auf {{current}}.",
       "dismiss": "Ausblenden",
@@ -2433,5 +2527,110 @@
   "topNav": {
     "capture": "Aufnahme",
     "library": "Bibliothek"
+  },
+  "people": {
+    "title": "Personen",
+    "source": {
+      "calendar": "Kalender",
+      "speaker": "Sprecher",
+      "title": "Titel",
+      "manual": "Manuell",
+      "suggested": "Vorgeschlagen"
+    },
+    "list": {
+      "meetings_one": "1 Meeting",
+      "meetings_other": "{{count}} Meetings",
+      "last": "Zuletzt {{date}}",
+      "suggested_one": "1 vorgeschlagenes Meeting verknüpfen?",
+      "suggested_other": "{{count}} vorgeschlagene Meetings verknüpfen?",
+      "dismiss": "Verwerfen",
+      "confirm": "Bestätigen",
+      "loadError": "Personen konnten nicht geladen werden.",
+      "empty": "Noch keine Personen.",
+      "meetings": "{{count}} Meetings",
+      "suggested": "{{count}} vorgeschlagene Meetings verknüpfen?"
+    },
+    "detail": {
+      "nameLabel": "Personenname",
+      "rename": "Umbenennen",
+      "deletePerson": "Person löschen",
+      "aliases": "Auch: {{aliases}}",
+      "renameTitle": "Diese Person umbenennen?",
+      "renameDescription": "Den Namen dieser Person in {{name}} ändern?",
+      "merge": "Zusammenführen",
+      "mergeTitle": "Diese Person zusammenführen?",
+      "mergeDescription": "{{source}} mit {{target}} zusammenführen? Verknüpfungen, Aliasse und der Beziehungsverlauf werden kombiniert.",
+      "mergeTarget": "Person auswählen",
+      "deleteTitle": "Diese Person löschen?",
+      "deleteDescription": "{{name}} löschen und alle Meeting-Verknüpfungen entfernen?",
+      "carriedSince": "Offen seit {{date}}",
+      "stillOpen": "Noch offen",
+      "noOpenLoops": "Nichts ist mehr offen.",
+      "commitments": "Zusagen",
+      "noCommitments": "Keine Zusagen erfasst.",
+      "meetingsTogether": "Gemeinsame Meetings",
+      "noMeetings": "Keine verknüpften Meetings.",
+      "series": "Meeting {{number}} in der Reihe",
+      "meetingActions": "Meeting-Aktionen",
+      "unlink": "Meeting-Verknüpfung lösen",
+      "unlinkTitle": "Verknüpfung dieses Meetings lösen?",
+      "unlinkDescription": "{{meeting}} von dieser Person entfernen?",
+      "documents": "Dokumente",
+      "importDocument": "Dokument importieren",
+      "documentsLoadError": "Dokumente konnten nicht geladen werden.",
+      "noDocuments": "Keine importierten Dokumente.",
+      "deleteDocument": "Dokument löschen",
+      "deleteDocumentTitle": "Dieses Dokument löschen?",
+      "deleteDocumentDescription": "{{document}} aus dem importierten Kontext löschen?",
+      "cadence": "Meeting-Rhythmus",
+      "lastMeeting": "Letztes Meeting",
+      "talkShare": "Redeanteil",
+      "cadenceAria": "Meetings nach Monat: {{values}}",
+      "documentFilter": "Textdokumente",
+      "documentImported": "Dokument importiert.",
+      "split": "Person aufteilen",
+      "splitTitle": "Diese Person aufteilen?",
+      "splitDescription": "Ausgewählte Identitätsdaten und Meetings von {{name}} zu einer anderen Person verschieben.",
+      "splitTarget": "Verschieben zu",
+      "splitCreate": "Neue Person",
+      "splitExisting": "Vorhandene Person",
+      "splitNameLabel": "Name der neuen Person",
+      "splitEvidence": "Zu verschiebende Elemente auswählen",
+      "splitMeetings": "Meetings",
+      "splitAliases": "Weitere Namen",
+      "splitEmails": "Kalender-E-Mails",
+      "splitDocuments": "Dokumente",
+      "splitSubmit": "Person aufteilen",
+      "splitNothingSelected": "Wähle mindestens ein Element zum Verschieben aus.",
+      "splitNoItems": "Diese Person hat keine Identitätsdaten oder Meetings, die aufgeteilt werden können.",
+      "loadError": "Diese Person konnte nicht geladen werden."
+    },
+    "errors": {
+      "stale": "Personen wurden in einem anderen Fenster geändert. Neu laden und erneut versuchen.",
+      "operation": "Personen konnten nicht aktualisiert werden. Erneut versuchen."
+    },
+    "review": {
+      "personDetails": "Personendetails",
+      "previouslyTogether": "Frühere gemeinsame Meetings",
+      "meetingsBefore_one": "1 früheres Meeting",
+      "meetingsBefore_other": "{{count}} frühere Meetings",
+      "last": "Zuletzt {{date}}",
+      "agentPromptIntro": "Hilf mir, anhand dieser Meeting-Daten eine Nachfassnachricht für „{{title}}“ zu entwerfen.",
+      "agentPromptCommitments": "Zusagen",
+      "agentPromptOpenLoops": "Offene Punkte",
+      "agentPromptRequest": "Entwirf die Nachfassnachricht. Erfinde keine Details oder Versprechen.",
+      "agentError": "Die Nachfassaktion mit dem Agenten konnte nicht geöffnet werden.",
+      "discussFollowUp": "Nachfassaktion mit Agent besprechen",
+      "meetingsBefore": "{{count}} frühere Meetings"
+    },
+    "briefing": {
+      "metCount_one": "Du hast {{name}} einmal getroffen",
+      "metCount_other": "Du hast {{name}} {{count}}-mal getroffen",
+      "metBefore_one": "Du hast {{name}} einmal getroffen · zuletzt {{date}}",
+      "metBefore_other": "Du hast {{name}} {{count}}-mal getroffen · zuletzt {{date}}",
+      "stillOpen": "Noch offen: {{text}}",
+      "metCount": "Du hast {{name}} {{count}}-mal getroffen",
+      "metBefore": "Du hast {{name}} {{count}}-mal getroffen · zuletzt {{date}}"
+    }
   }
 }

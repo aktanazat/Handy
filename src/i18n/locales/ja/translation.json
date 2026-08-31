@@ -37,6 +37,7 @@
     "agents": "エージェント",
     "meetings": "会議",
     "navigation": "メインナビゲーション",
+    "people": "人物",
     "settings": "設定"
   },
   "onboarding": {
@@ -1550,12 +1551,82 @@
       },
       "workspaceNavigation": "エージェントブリッジのビュー"
     },
+    "workflows": {
+      "title": "ワークフロー",
+      "builtIns": "組み込みワークフロー",
+      "loadError": "ワークフローを読み込めませんでした。",
+      "updateError": "ワークフローを更新できませんでした。",
+      "empty": "利用できるワークフローはありません。",
+      "neverRun": "まだ実行されていません",
+      "toggleLabel": "{{name}}を有効にする",
+      "items": {
+        "person_linking": {
+          "name": "人物の関連付け",
+          "description": "確認済みの参加者と話者の情報を使って、ミーティングを人物に関連付けます。"
+        },
+        "pre_meeting_briefing": {
+          "name": "ミーティング前のブリーフィング",
+          "description": "検出されたミーティングの開始前に、過去のミーティングから概要を作成します。"
+        },
+        "continuity": {
+          "name": "継続事項",
+          "description": "未解決の約束を次のミーティングへ引き継ぎます。"
+        },
+        "vocabulary_mining": {
+          "name": "用語候補の抽出",
+          "description": "語彙に追加できそうな、繰り返し登場する名前や用語を見つけます。"
+        },
+        "document_linking": {
+          "name": "文書の関連付け",
+          "description": "インポートした文書を、その中で言及されている人物に関連付けます。"
+        }
+      },
+      "status": {
+        "ok": "完了",
+        "failed": "失敗",
+        "skipped": "スキップ"
+      },
+      "outcomes": {
+        "personLinks_other": "{{count}}件の人物リンクを更新",
+        "briefing_other": "{{count}}人分のブリーフィングを作成",
+        "continuitySeries_other": "{{count}}件のミーティングシリーズを更新",
+        "continuityCarried_other": "{{count}}件の未解決事項を引き継ぎ",
+        "vocabularyCandidates_other": "{{count}}件の語彙候補を検出",
+        "documentLinks_other": "{{count}}件の文書リンクを更新",
+        "alreadyProcessed": "処理済み",
+        "failed": "実行に失敗",
+        "skipped": "スキップ"
+      },
+      "vocabularySuggestions": {
+        "title": "ミーティングから",
+        "occurrences_other": "{{count}}回の言及",
+        "meetings_other": "{{count}}件のミーティング",
+        "accept": "追加",
+        "dismiss": "非表示"
+      },
+      "overview": {
+        "whatSonaDid": "Sonaが行ったこと",
+        "commitments": "コミットメント",
+        "openMeeting": "ミーティング「{{title}}」を開く",
+        "loadError": "このカードを読み込めませんでした。",
+        "retry": "再試行"
+      },
+      "runLog": {
+        "title": "実行ログ",
+        "empty": "ワークフローはまだ実行されていません。",
+        "loadError": "実行ログを読み込めませんでした。",
+        "loadMoreError": "追加の実行を読み込めませんでした。",
+        "loadMore": "さらに読み込む",
+        "chartAria": "1日あたりのワークフロー実行数、過去7日間で{{count}}件"
+      }
+    },
     "hub": {
       "navigation": "設定セクション",
       "tabs": {
         "general": "一般",
         "privacy": "プライバシー",
         "agents": "エージェント",
+        "workflows": "ワークフロー",
         "advanced": "詳細",
         "about": "情報",
         "debug": "デバッグ"
@@ -2334,6 +2405,19 @@
       "shortcutAction": "口述のショートカットを変更",
       "setShortcutAction": "ショートカットを設定"
     },
+    "activity": {
+      "title": "アクティビティ",
+      "dictations": "口述",
+      "words": "単語",
+      "streak": "連続記録",
+      "rangePrevious": "前の7日間",
+      "rangeNext": "次の7日間",
+      "peak": "最大",
+      "dictationsAria": "1日あたりの口述、{{day}}に最多{{count}}件",
+      "wordsAria": "1日あたりの単語、合計{{count}}語、最終値{{last}}",
+      "days_other": "{{count}}日",
+      "streakAria_other": "現在の連続記録、{{count}}日"
+    },
     "update": {
       "available": "Sona {{latest}} が利用可能です。このインストールは {{current}} です。",
       "dismiss": "閉じる",
@@ -2433,5 +2517,110 @@
   "topNav": {
     "capture": "録音",
     "library": "ライブラリ"
+  },
+  "people": {
+    "title": "人物",
+    "source": {
+      "calendar": "カレンダー",
+      "speaker": "話者",
+      "title": "タイトル",
+      "manual": "手動",
+      "suggested": "候補"
+    },
+    "list": {
+      "meetings_one": "1件のミーティング",
+      "meetings_other": "{{count}}件のミーティング",
+      "last": "前回 {{date}}",
+      "suggested_one": "候補のミーティング1件をリンクしますか？",
+      "suggested_other": "候補のミーティング{{count}}件をリンクしますか？",
+      "dismiss": "却下",
+      "confirm": "確認",
+      "loadError": "人物を読み込めませんでした。",
+      "empty": "人物はまだ登録されていません。",
+      "meetings": "{{count}}件のミーティング",
+      "suggested": "候補のミーティング{{count}}件をリンクしますか？"
+    },
+    "detail": {
+      "nameLabel": "人物名",
+      "rename": "名前を変更",
+      "deletePerson": "人物を削除",
+      "aliases": "別名: {{aliases}}",
+      "renameTitle": "この人物の名前を変更しますか？",
+      "renameDescription": "この人物の名前を{{name}}に変更しますか？",
+      "merge": "統合",
+      "mergeTitle": "この人物を統合しますか？",
+      "mergeDescription": "{{source}}を{{target}}に統合しますか？リンク、別名、関係の履歴がまとめられます。",
+      "mergeTarget": "人物を選択",
+      "deleteTitle": "この人物を削除しますか？",
+      "deleteDescription": "{{name}}とすべてのミーティングリンクを削除しますか？",
+      "carriedSince": "{{date}}から未解決",
+      "stillOpen": "未解決",
+      "noOpenLoops": "未解決の項目はありません。",
+      "commitments": "約束",
+      "noCommitments": "記録された約束はありません。",
+      "meetingsTogether": "一緒に参加したミーティング",
+      "noMeetings": "リンク済みのミーティングはありません。",
+      "series": "シリーズ{{number}}回目のミーティング",
+      "meetingActions": "ミーティングの操作",
+      "unlink": "ミーティングのリンクを解除",
+      "unlinkTitle": "このミーティングのリンクを解除しますか？",
+      "unlinkDescription": "この人物から{{meeting}}を削除しますか？",
+      "documents": "ドキュメント",
+      "importDocument": "ドキュメントを読み込む",
+      "documentsLoadError": "ドキュメントを読み込めませんでした。",
+      "noDocuments": "読み込んだドキュメントはありません。",
+      "deleteDocument": "ドキュメントを削除",
+      "deleteDocumentTitle": "このドキュメントを削除しますか？",
+      "deleteDocumentDescription": "読み込んだコンテキストから{{document}}を削除しますか？",
+      "cadence": "ミーティング頻度",
+      "lastMeeting": "前回のミーティング",
+      "talkShare": "発言割合",
+      "cadenceAria": "月別ミーティング: {{values}}",
+      "documentFilter": "テキストドキュメント",
+      "documentImported": "ドキュメントを読み込みました。",
+      "split": "人物を分割",
+      "splitTitle": "この人物を分割しますか？",
+      "splitDescription": "{{name}}から選択した識別情報とミーティングを別の人物へ移動します。",
+      "splitTarget": "移動先",
+      "splitCreate": "新しい人物",
+      "splitExisting": "既存の人物",
+      "splitNameLabel": "新しい人物の名前",
+      "splitEvidence": "移動する項目を選択",
+      "splitMeetings": "ミーティング",
+      "splitAliases": "別名",
+      "splitEmails": "カレンダーのメールアドレス",
+      "splitDocuments": "ドキュメント",
+      "splitSubmit": "人物を分割",
+      "splitNothingSelected": "移動する項目を1つ以上選択してください。",
+      "splitNoItems": "この人物には分割できる識別情報やミーティングがありません。",
+      "loadError": "この人物を読み込めませんでした。"
+    },
+    "errors": {
+      "stale": "人物情報が別の画面で変更されました。再読み込みして、もう一度お試しください。",
+      "operation": "人物情報を更新できませんでした。もう一度お試しください。"
+    },
+    "review": {
+      "personDetails": "人物の詳細",
+      "previouslyTogether": "以前に同席",
+      "meetingsBefore_one": "以前のミーティング1件",
+      "meetingsBefore_other": "以前のミーティング{{count}}件",
+      "last": "前回 {{date}}",
+      "agentPromptIntro": "このミーティング記録から「{{title}}」のフォローアップ文を作成してください。",
+      "agentPromptCommitments": "約束",
+      "agentPromptOpenLoops": "未解決の項目",
+      "agentPromptRequest": "フォローアップ文を作成してください。詳細や約束を捏造しないでください。",
+      "agentError": "エージェントとのフォローアップを開けませんでした。",
+      "discussFollowUp": "エージェントとフォローアップを相談",
+      "meetingsBefore": "以前のミーティング{{count}}件"
+    },
+    "briefing": {
+      "metCount_one": "{{name}}とは1回会っています",
+      "metCount_other": "{{name}}とは{{count}}回会っています",
+      "metBefore_one": "{{name}}とは1回会っています · 前回 {{date}}",
+      "metBefore_other": "{{name}}とは{{count}}回会っています · 前回 {{date}}",
+      "stillOpen": "未解決: {{text}}",
+      "metCount": "{{name}}とは{{count}}回会っています",
+      "metBefore": "{{name}}とは{{count}}回会っています · 前回 {{date}}"
+    }
   }
 }

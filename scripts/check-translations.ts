@@ -27,6 +27,20 @@ function getLanguages(): string[] {
 }
 
 const LANGUAGES = getLanguages();
+const PLURAL_SUFFIX = /_(zero|one|two|few|many|other)$/;
+
+function pluralKey(
+  key: string,
+): { base: string; category: Intl.LDMLPluralRule } | null {
+  const match = PLURAL_SUFFIX.exec(key);
+  if (!match) return null;
+  return {
+    base: key.slice(0, -match[0].length),
+    // SAFETY: the regex alternation lists exactly the six LDML plural rules,
+    // so a match's first group is always a member of that union.
+    category: match[1] as Intl.LDMLPluralRule,
+  };
+}
 
 // Colors for terminal output
 const colors = {
@@ -77,6 +91,16 @@ function validateTranslations(): void {
 
   // Get all keys from reference
   const referenceKeys = [...referenceData.keys()];
+  const referencePluralBases = new Set(
+    referenceKeys
+      .map((key) => pluralKey(key)?.base)
+      .filter((base): base is string => base !== undefined)
+      .filter(
+        (base) =>
+          referenceData.has(`${base}_one`) ||
+          referenceData.has(`${base}_other`),
+      ),
+  );
   console.log(`Reference has ${referenceKeys.length} keys\n`);
 
   // Track validation results
@@ -93,11 +117,26 @@ function validateTranslations(): void {
       continue;
     }
 
-    // Find missing keys
-    const missing = referenceKeys.filter((key) => !langData.has(key));
+    const pluralCategories = new Set(
+      new Intl.PluralRules(lang).resolvedOptions().pluralCategories,
+    );
 
-    // Find extra keys (keys in language but not in reference)
-    const extra = [...langData.keys()].filter((key) => !referenceData.has(key));
+    // Locale bundles carry only the CLDR categories their locale can select.
+    const missing = referenceKeys.filter((key) => {
+      const plural = pluralKey(key);
+      if (plural && !pluralCategories.has(plural.category)) return false;
+      return !langData.has(key);
+    });
+
+    const extra = [...langData.keys()].filter((key) => {
+      if (referenceData.has(key)) return false;
+      const plural = pluralKey(key);
+      return !(
+        plural &&
+        pluralCategories.has(plural.category) &&
+        referencePluralBases.has(plural.base)
+      );
+    });
 
     results[lang] = {
       valid: missing.length === 0 && extra.length === 0,

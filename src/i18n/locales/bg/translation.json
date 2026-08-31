@@ -37,6 +37,7 @@
     "agents": "Агенти",
     "meetings": "Срещи",
     "navigation": "Основна навигация",
+    "people": "Хора",
     "settings": "Настройки"
   },
   "onboarding": {
@@ -1550,12 +1551,90 @@
       },
       "workspaceNavigation": "Изгледи на моста за агенти"
     },
+    "workflows": {
+      "title": "Работни потоци",
+      "builtIns": "Вградени работни потоци",
+      "loadError": "Работните потоци не можаха да се заредят.",
+      "updateError": "Работният поток не можа да се обнови.",
+      "empty": "Няма налични работни потоци.",
+      "neverRun": "Все още не е изпълняван",
+      "toggleLabel": "Активиране на {{name}}",
+      "items": {
+        "person_linking": {
+          "name": "Свързване на хора",
+          "description": "Свързва срещите с хора чрез потвърдени данни за участници и говорители."
+        },
+        "pre_meeting_briefing": {
+          "name": "Подготовка преди среща",
+          "description": "Създава резюме от предишни срещи, преди да започне открита среща."
+        },
+        "continuity": {
+          "name": "Приемственост",
+          "description": "Пренася нерешените ангажименти към следващите срещи."
+        },
+        "vocabulary_mining": {
+          "name": "Извличане на речник",
+          "description": "Намира повтарящи се имена и термини, които може да добавите към речника си."
+        },
+        "document_linking": {
+          "name": "Свързване на документи",
+          "description": "Свързва импортираните документи с хората, споменати в тях."
+        }
+      },
+      "status": {
+        "ok": "Завършено",
+        "failed": "Неуспешно",
+        "skipped": "Пропуснато"
+      },
+      "outcomes": {
+        "personLinks_one": "Обновена е 1 връзка с човек",
+        "personLinks_other": "Обновени са {{count}} връзки с хора",
+        "briefing_one": "Подготвен е брифинг за 1 човек",
+        "briefing_other": "Подготвен е брифинг за {{count}} души",
+        "continuitySeries_one": "Обновена е 1 поредица от срещи",
+        "continuitySeries_other": "Обновени са {{count}} поредици от срещи",
+        "continuityCarried_one": "пренесена е 1 отворена задача",
+        "continuityCarried_other": "пренесени са {{count}} отворени задачи",
+        "vocabularyCandidates_one": "Намерено е 1 предложение за речника",
+        "vocabularyCandidates_other": "Намерени са {{count}} предложения за речника",
+        "documentLinks_one": "Обновена е 1 връзка с документ",
+        "documentLinks_other": "Обновени са {{count}} връзки с документи",
+        "alreadyProcessed": "Вече е обработено",
+        "failed": "Изпълнението е неуспешно",
+        "skipped": "Пропуснато"
+      },
+      "vocabularySuggestions": {
+        "title": "От вашите срещи",
+        "occurrences_one": "1 споменаване",
+        "occurrences_other": "{{count}} споменавания",
+        "meetings_one": "1 среща",
+        "meetings_other": "{{count}} срещи",
+        "accept": "Добавяне",
+        "dismiss": "Отхвърляне"
+      },
+      "overview": {
+        "whatSonaDid": "Какво направи Sona",
+        "commitments": "Ангажименти",
+        "openMeeting": "Отваряне на срещата {{title}}",
+        "loadError": "Тази карта не можа да се зареди.",
+        "retry": "Опитай отново"
+      },
+      "runLog": {
+        "title": "Дневник на изпълненията",
+        "empty": "Все още няма изпълнения на работни потоци.",
+        "loadError": "Дневникът на изпълненията не можа да се зареди.",
+        "loadMoreError": "Не можаха да се заредят още изпълнения.",
+        "loadMore": "Зареждане на още",
+        "chartAria": "Изпълнения на работни потоци по дни, {{count}} през последните 7 дни"
+      }
+    },
     "hub": {
       "navigation": "Раздели с настройки",
       "tabs": {
         "general": "Общи",
         "privacy": "Поверителност",
         "agents": "Агенти",
+        "workflows": "Работни потоци",
         "advanced": "Разширени",
         "about": "Относно",
         "debug": "Отстраняване на грешки"
@@ -2334,6 +2413,21 @@
       "shortcutAction": "Смени прекия път за диктовка",
       "setShortcutAction": "Задай пряк път"
     },
+    "activity": {
+      "title": "Активност",
+      "dictations": "Диктовки",
+      "words": "Думи",
+      "streak": "Поредица",
+      "rangePrevious": "Предишните 7 дни",
+      "rangeNext": "Следващите 7 дни",
+      "peak": "Пик",
+      "dictationsAria": "Диктовки на ден, най-много {{count}} в {{day}}",
+      "wordsAria": "Думи на ден, общо {{count}}, последно {{last}}",
+      "days_one": "{{count}} ден",
+      "days_other": "{{count}} дни",
+      "streakAria_one": "Текуща поредица, {{count}} ден",
+      "streakAria_other": "Текуща поредица, {{count}} дни"
+    },
     "update": {
       "available": "Sona {{latest}} е налична. Тази инсталация е с версия {{current}}.",
       "dismiss": "Затвори",
@@ -2433,5 +2527,110 @@
   "topNav": {
     "capture": "Запис",
     "library": "Библиотека"
+  },
+  "people": {
+    "title": "Хора",
+    "source": {
+      "calendar": "Календар",
+      "speaker": "Говорител",
+      "title": "Заглавие",
+      "manual": "Ръчно",
+      "suggested": "Предложено"
+    },
+    "list": {
+      "meetings_one": "1 среща",
+      "meetings_other": "{{count}} срещи",
+      "last": "Последна {{date}}",
+      "suggested_one": "Да се свърже 1 предложена среща?",
+      "suggested_other": "Да се свържат {{count}} предложени срещи?",
+      "dismiss": "Отхвърляне",
+      "confirm": "Потвърждаване",
+      "loadError": "Хората не можаха да се заредят.",
+      "empty": "Все още няма хора.",
+      "meetings": "{{count}} срещи",
+      "suggested": "Да се свържат {{count}} предложени срещи?"
+    },
+    "detail": {
+      "nameLabel": "Име на човека",
+      "rename": "Преименуване",
+      "deletePerson": "Изтриване на човек",
+      "aliases": "Също: {{aliases}}",
+      "renameTitle": "Преименуване на този човек?",
+      "renameDescription": "Да се промени името на този човек на {{name}}?",
+      "merge": "Обединяване",
+      "mergeTitle": "Обединяване на този човек?",
+      "mergeDescription": "Да се обедини {{source}} с {{target}}? Връзките, псевдонимите и историята на отношенията ще бъдат събрани.",
+      "mergeTarget": "Изберете човек",
+      "deleteTitle": "Изтриване на този човек?",
+      "deleteDescription": "Да се изтрие {{name}} и всички връзки към срещи?",
+      "carriedSince": "Отворено от {{date}}",
+      "stillOpen": "Все още отворено",
+      "noOpenLoops": "Няма нищо останало отворено.",
+      "commitments": "Ангажименти",
+      "noCommitments": "Няма записани ангажименти.",
+      "meetingsTogether": "Общи срещи",
+      "noMeetings": "Няма свързани срещи.",
+      "series": "Среща {{number}} от поредицата",
+      "meetingActions": "Действия за срещата",
+      "unlink": "Премахване на връзката със срещата",
+      "unlinkTitle": "Да се премахне връзката с тази среща?",
+      "unlinkDescription": "Да се премахне {{meeting}} от този човек?",
+      "documents": "Документи",
+      "importDocument": "Импортиране на документ",
+      "documentsLoadError": "Документите не можаха да се заредят.",
+      "noDocuments": "Няма импортирани документи.",
+      "deleteDocument": "Изтриване на документ",
+      "deleteDocumentTitle": "Изтриване на този документ?",
+      "deleteDocumentDescription": "Да се изтрие {{document}} от импортирания контекст?",
+      "cadence": "Честота на срещите",
+      "lastMeeting": "Последна среща",
+      "talkShare": "Дял от разговора",
+      "cadenceAria": "Срещи по месеци: {{values}}",
+      "documentFilter": "Текстови документи",
+      "documentImported": "Документът е импортиран.",
+      "split": "Разделяне на човек",
+      "splitTitle": "Разделяне на този човек?",
+      "splitDescription": "Преместете избраните данни за самоличност и срещи от {{name}} към друг човек.",
+      "splitTarget": "Преместване към",
+      "splitCreate": "Нов човек",
+      "splitExisting": "Съществуващ човек",
+      "splitNameLabel": "Име на новия човек",
+      "splitEvidence": "Изберете какво да се премести",
+      "splitMeetings": "Срещи",
+      "splitAliases": "Други имена",
+      "splitEmails": "Имейли от календара",
+      "splitDocuments": "Документи",
+      "splitSubmit": "Разделяне на човек",
+      "splitNothingSelected": "Изберете поне един елемент за преместване.",
+      "splitNoItems": "Този човек няма данни за самоличност или срещи за разделяне.",
+      "loadError": "Този човек не можа да се зареди."
+    },
+    "errors": {
+      "stale": "Хората са променени на друг екран. Презаредете и опитайте отново.",
+      "operation": "Хората не можаха да се актуализират. Опитайте отново."
+    },
+    "review": {
+      "personDetails": "Подробности за човека",
+      "previouslyTogether": "Предишни общи срещи",
+      "meetingsBefore_one": "1 по-ранна среща",
+      "meetingsBefore_other": "{{count}} по-ранни срещи",
+      "last": "Последна {{date}}",
+      "agentPromptIntro": "Помогни ми да съставя последващо съобщение за „{{title}}“ от тези записи на срещата.",
+      "agentPromptCommitments": "Ангажименти",
+      "agentPromptOpenLoops": "Отворени въпроси",
+      "agentPromptRequest": "Състави последващото съобщение. Не измисляй подробности или обещания.",
+      "agentError": "Последващото действие с агента не можа да се отвори.",
+      "discussFollowUp": "Обсъждане на последващото действие с агента",
+      "meetingsBefore": "{{count}} по-ранни срещи"
+    },
+    "briefing": {
+      "metCount_one": "Срещали сте {{name}} веднъж",
+      "metCount_other": "Срещали сте {{name}} {{count}} пъти",
+      "metBefore_one": "Срещали сте {{name}} веднъж · последно {{date}}",
+      "metBefore_other": "Срещали сте {{name}} {{count}} пъти · последно {{date}}",
+      "stillOpen": "Все още отворено: {{text}}",
+      "metCount": "Срещали сте {{name}} {{count}} пъти",
+      "metBefore": "Срещали сте {{name}} {{count}} пъти · последно {{date}}"
+    }
   }
 }

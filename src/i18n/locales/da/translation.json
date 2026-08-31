@@ -37,6 +37,7 @@
     "agents": "Agents",
     "meetings": "Møder",
     "navigation": "Hovednavigation",
+    "people": "Personer",
     "settings": "Indstillinger"
   },
   "onboarding": {
@@ -1550,12 +1551,90 @@
       },
       "workspaceNavigation": "Agentbro-visninger"
     },
+    "workflows": {
+      "title": "Arbejdsgange",
+      "builtIns": "Indbyggede arbejdsgange",
+      "loadError": "Arbejdsgangene kunne ikke indlæses.",
+      "updateError": "Arbejdsgangen kunne ikke opdateres.",
+      "empty": "Der er ingen tilgængelige arbejdsgange.",
+      "neverRun": "Ikke kørt endnu",
+      "toggleLabel": "Aktivér {{name}}",
+      "items": {
+        "person_linking": {
+          "name": "Sammenknytning af personer",
+          "description": "Knytter møder til personer ud fra bekræftede deltager- og taleroplysninger."
+        },
+        "pre_meeting_briefing": {
+          "name": "Briefing før mødet",
+          "description": "Laver en briefing fra tidligere møder, før et registreret møde starter."
+        },
+        "continuity": {
+          "name": "Kontinuitet",
+          "description": "Fører uafklarede tilsagn videre til de næste møder."
+        },
+        "vocabulary_mining": {
+          "name": "Udtræk af ordforråd",
+          "description": "Finder gentagne navne og udtryk, som kan høre hjemme i dit ordforråd."
+        },
+        "document_linking": {
+          "name": "Sammenknytning af dokumenter",
+          "description": "Knytter importerede dokumenter til de personer, der nævnes i dem."
+        }
+      },
+      "status": {
+        "ok": "Fuldført",
+        "failed": "Mislykket",
+        "skipped": "Sprunget over"
+      },
+      "outcomes": {
+        "personLinks_one": "Opdaterede 1 personlink",
+        "personLinks_other": "Opdaterede {{count}} personlinks",
+        "briefing_one": "Forberedte en briefing for 1 person",
+        "briefing_other": "Forberedte en briefing for {{count}} personer",
+        "continuitySeries_one": "Opdaterede 1 mødeserie",
+        "continuitySeries_other": "Opdaterede {{count}} mødeserier",
+        "continuityCarried_one": "videreførte 1 åbent punkt",
+        "continuityCarried_other": "videreførte {{count}} åbne punkter",
+        "vocabularyCandidates_one": "Fandt 1 forslag til ordforrådet",
+        "vocabularyCandidates_other": "Fandt {{count}} forslag til ordforrådet",
+        "documentLinks_one": "Opdaterede 1 dokumentlink",
+        "documentLinks_other": "Opdaterede {{count}} dokumentlinks",
+        "alreadyProcessed": "Allerede behandlet",
+        "failed": "Kørslen mislykkedes",
+        "skipped": "Sprunget over"
+      },
+      "vocabularySuggestions": {
+        "title": "Fra dine møder",
+        "occurrences_one": "1 omtale",
+        "occurrences_other": "{{count}} omtaler",
+        "meetings_one": "1 møde",
+        "meetings_other": "{{count}} møder",
+        "accept": "Tilføj",
+        "dismiss": "Afvis"
+      },
+      "overview": {
+        "whatSonaDid": "Hvad Sona gjorde",
+        "commitments": "Tilsagn",
+        "openMeeting": "Åbn mødet {{title}}",
+        "loadError": "Kortet kunne ikke indlæses.",
+        "retry": "Prøv igen"
+      },
+      "runLog": {
+        "title": "Kørselslog",
+        "empty": "Der er endnu ingen kørsler.",
+        "loadError": "Kørselsloggen kunne ikke indlæses.",
+        "loadMoreError": "Flere kørsler kunne ikke indlæses.",
+        "loadMore": "Indlæs flere",
+        "chartAria": "Arbejdsgangskørsler pr. dag, {{count}} de seneste 7 dage"
+      }
+    },
     "hub": {
       "navigation": "Indstillingssektioner",
       "tabs": {
         "general": "Generelt",
         "privacy": "Anonymitet",
         "agents": "Agenter",
+        "workflows": "Arbejdsgange",
         "advanced": "Avanceret",
         "about": "Om",
         "debug": "Fejlfinding"
@@ -2334,6 +2413,21 @@
       "shortcutAction": "Ændr dikteringsgenvejen",
       "setShortcutAction": "Angiv en genvej"
     },
+    "activity": {
+      "title": "Aktivitet",
+      "dictations": "Dikteringer",
+      "words": "Ord",
+      "streak": "Serie",
+      "rangePrevious": "Forrige 7 dage",
+      "rangeNext": "Næste 7 dage",
+      "peak": "Top",
+      "dictationsAria": "Dikteringer pr. dag, højest {{count}} på {{day}}",
+      "wordsAria": "Ord pr. dag, {{count}} i alt, slutter på {{last}}",
+      "days_one": "{{count}} dag",
+      "days_other": "{{count}} dage",
+      "streakAria_one": "Aktuel serie, {{count}} dag",
+      "streakAria_other": "Aktuel serie, {{count}} dage"
+    },
     "update": {
       "available": "Sona {{latest}} er tilgængelig. Denne installation kører {{current}}.",
       "dismiss": "Afvis",
@@ -2433,5 +2527,110 @@
   "topNav": {
     "capture": "Optagelse",
     "library": "Bibliotek"
+  },
+  "people": {
+    "title": "Personer",
+    "source": {
+      "calendar": "Kalender",
+      "speaker": "Taler",
+      "title": "Titel",
+      "manual": "Manuel",
+      "suggested": "Foreslået"
+    },
+    "list": {
+      "meetings_one": "1 møde",
+      "meetings_other": "{{count}} møder",
+      "last": "Senest {{date}}",
+      "suggested_one": "Tilknyt 1 foreslået møde?",
+      "suggested_other": "Tilknyt {{count}} foreslåede møder?",
+      "dismiss": "Afvis",
+      "confirm": "Bekræft",
+      "loadError": "Personer kunne ikke indlæses.",
+      "empty": "Ingen personer endnu.",
+      "meetings": "{{count}} møder",
+      "suggested": "Tilknyt {{count}} foreslåede møder?"
+    },
+    "detail": {
+      "nameLabel": "Personens navn",
+      "rename": "Omdøb",
+      "deletePerson": "Slet person",
+      "aliases": "Også: {{aliases}}",
+      "renameTitle": "Omdøb denne person?",
+      "renameDescription": "Skift denne persons navn til {{name}}?",
+      "merge": "Flet",
+      "mergeTitle": "Flet denne person?",
+      "mergeDescription": "Flet {{source}} ind i {{target}}? Tilknytninger, aliasser og relationshistorik bliver samlet.",
+      "mergeTarget": "Vælg en person",
+      "deleteTitle": "Slet denne person?",
+      "deleteDescription": "Slet {{name}} og alle personens mødetilknytninger?",
+      "carriedSince": "Åben siden {{date}}",
+      "stillOpen": "Stadig åben",
+      "noOpenLoops": "Intet er længere åbent.",
+      "commitments": "Tilsagn",
+      "noCommitments": "Ingen registrerede tilsagn.",
+      "meetingsTogether": "Møder sammen",
+      "noMeetings": "Ingen tilknyttede møder.",
+      "series": "Møde {{number}} i serien",
+      "meetingActions": "Mødehandlinger",
+      "unlink": "Fjern mødetilknytning",
+      "unlinkTitle": "Fjern tilknytningen til dette møde?",
+      "unlinkDescription": "Fjern {{meeting}} fra denne person?",
+      "documents": "Dokumenter",
+      "importDocument": "Importér dokument",
+      "documentsLoadError": "Dokumenterne kunne ikke indlæses.",
+      "noDocuments": "Ingen importerede dokumenter.",
+      "deleteDocument": "Slet dokument",
+      "deleteDocumentTitle": "Slet dette dokument?",
+      "deleteDocumentDescription": "Slet {{document}} fra den importerede kontekst?",
+      "cadence": "Mødefrekvens",
+      "lastMeeting": "Seneste møde",
+      "talkShare": "Andel af taletiden",
+      "cadenceAria": "Møder pr. måned: {{values}}",
+      "documentFilter": "Tekstdokumenter",
+      "documentImported": "Dokument importeret.",
+      "split": "Opdel person",
+      "splitTitle": "Opdel denne person?",
+      "splitDescription": "Flyt de valgte identitetsoplysninger og møder fra {{name}} til en anden person.",
+      "splitTarget": "Flyt til",
+      "splitCreate": "Ny person",
+      "splitExisting": "Eksisterende person",
+      "splitNameLabel": "Den nye persons navn",
+      "splitEvidence": "Vælg, hvad der skal flyttes",
+      "splitMeetings": "Møder",
+      "splitAliases": "Andre navne",
+      "splitEmails": "Kalender-e-mails",
+      "splitDocuments": "Dokumenter",
+      "splitSubmit": "Opdel person",
+      "splitNothingSelected": "Vælg mindst ét element, der skal flyttes.",
+      "splitNoItems": "Denne person har ingen identitetsoplysninger eller møder, der kan opdeles.",
+      "loadError": "Denne person kunne ikke indlæses."
+    },
+    "errors": {
+      "stale": "Personer blev ændret på en anden skærm. Genindlæs, og prøv igen.",
+      "operation": "Personer kunne ikke opdateres. Prøv igen."
+    },
+    "review": {
+      "personDetails": "Personoplysninger",
+      "previouslyTogether": "Tidligere møder sammen",
+      "meetingsBefore_one": "1 tidligere møde",
+      "meetingsBefore_other": "{{count}} tidligere møder",
+      "last": "Senest {{date}}",
+      "agentPromptIntro": "Hjælp mig med at skrive en opfølgning på “{{title}}” ud fra disse mødeoplysninger.",
+      "agentPromptCommitments": "Tilsagn",
+      "agentPromptOpenLoops": "Åbne punkter",
+      "agentPromptRequest": "Skriv opfølgningen. Opfind ikke detaljer eller løfter.",
+      "agentError": "Opfølgningen med agenten kunne ikke åbnes.",
+      "discussFollowUp": "Drøft opfølgning med agenten",
+      "meetingsBefore": "{{count}} tidligere møder"
+    },
+    "briefing": {
+      "metCount_one": "Du har mødt {{name}} én gang",
+      "metCount_other": "Du har mødt {{name}} {{count}} gange",
+      "metBefore_one": "Du har mødt {{name}} én gang · senest {{date}}",
+      "metBefore_other": "Du har mødt {{name}} {{count}} gange · senest {{date}}",
+      "stillOpen": "Stadig åbent: {{text}}",
+      "metCount": "Du har mødt {{name}} {{count}} gange",
+      "metBefore": "Du har mødt {{name}} {{count}} gange · senest {{date}}"
+    }
   }
 }

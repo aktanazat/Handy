@@ -37,6 +37,7 @@
     "agents": "智能体",
     "meetings": "会议",
     "navigation": "主导航",
+    "people": "人物",
     "settings": "设置"
   },
   "onboarding": {
@@ -1550,12 +1551,82 @@
       },
       "workspaceNavigation": "代理桥接视图"
     },
+    "workflows": {
+      "title": "工作流",
+      "builtIns": "内置工作流",
+      "loadError": "无法加载工作流。",
+      "updateError": "无法更新工作流。",
+      "empty": "没有可用的工作流。",
+      "neverRun": "尚未运行",
+      "toggleLabel": "启用“{{name}}”",
+      "items": {
+        "person_linking": {
+          "name": "人物关联",
+          "description": "使用已确认的参会者和发言人信息，将会议关联到人物。"
+        },
+        "pre_meeting_briefing": {
+          "name": "会前简报",
+          "description": "在检测到的会议开始前，根据以往会议生成简报。"
+        },
+        "continuity": {
+          "name": "连续跟进",
+          "description": "将尚未解决的承诺带到后续会议中。"
+        },
+        "vocabulary_mining": {
+          "name": "词汇提取",
+          "description": "查找可能适合加入词汇表的重复名称和术语。"
+        },
+        "document_linking": {
+          "name": "文档关联",
+          "description": "将导入的文档关联到其中提到的人物。"
+        }
+      },
+      "status": {
+        "ok": "已完成",
+        "failed": "失败",
+        "skipped": "已跳过"
+      },
+      "outcomes": {
+        "personLinks_other": "已更新 {{count}} 个人物关联",
+        "briefing_other": "已为 {{count}} 人准备简报",
+        "continuitySeries_other": "已更新 {{count}} 个会议系列",
+        "continuityCarried_other": "已结转 {{count}} 个待处理事项",
+        "vocabularyCandidates_other": "找到 {{count}} 个词汇建议",
+        "documentLinks_other": "已更新 {{count}} 个文档关联",
+        "alreadyProcessed": "已处理",
+        "failed": "运行失败",
+        "skipped": "已跳过"
+      },
+      "vocabularySuggestions": {
+        "title": "来自你的会议",
+        "occurrences_other": "提及 {{count}} 次",
+        "meetings_other": "{{count}} 场会议",
+        "accept": "添加",
+        "dismiss": "忽略"
+      },
+      "overview": {
+        "whatSonaDid": "Sona 完成的工作",
+        "commitments": "承诺事项",
+        "openMeeting": "打开会议 {{title}}",
+        "loadError": "无法加载此卡片。",
+        "retry": "重试"
+      },
+      "runLog": {
+        "title": "运行日志",
+        "empty": "尚无工作流运行记录。",
+        "loadError": "无法加载运行日志。",
+        "loadMoreError": "无法加载更多运行记录。",
+        "loadMore": "加载更多",
+        "chartAria": "每日工作流运行次数，过去 7 天共 {{count}} 次"
+      }
+    },
     "hub": {
       "navigation": "设置分区",
       "tabs": {
         "general": "通用",
         "privacy": "隐私",
         "agents": "智能体",
+        "workflows": "工作流",
         "advanced": "高级",
         "about": "关于",
         "debug": "调试"
@@ -2334,6 +2405,19 @@
       "shortcutAction": "修改口述快捷键",
       "setShortcutAction": "设置一个快捷键"
     },
+    "activity": {
+      "title": "活动",
+      "dictations": "口述",
+      "words": "字词",
+      "streak": "连续记录",
+      "rangePrevious": "前 7 天",
+      "rangeNext": "后 7 天",
+      "peak": "最高",
+      "dictationsAria": "每日口述，{{day}}最高 {{count}} 次",
+      "wordsAria": "每日字词，共 {{count}} 个，最后为 {{last}}",
+      "days_other": "{{count}} 天",
+      "streakAria_other": "当前连续记录，{{count}} 天"
+    },
     "update": {
       "available": "Sona {{latest}} 已可用。当前安装的是 {{current}}。",
       "dismiss": "忽略",
@@ -2433,5 +2517,110 @@
   "topNav": {
     "capture": "录音",
     "library": "资料库"
+  },
+  "people": {
+    "title": "人物",
+    "source": {
+      "calendar": "日历",
+      "speaker": "说话者",
+      "title": "标题",
+      "manual": "手动",
+      "suggested": "建议"
+    },
+    "list": {
+      "meetings_one": "1 次会议",
+      "meetings_other": "{{count}} 次会议",
+      "last": "最近一次 {{date}}",
+      "suggested_one": "关联 1 个建议的会议？",
+      "suggested_other": "关联 {{count}} 个建议的会议？",
+      "dismiss": "忽略",
+      "confirm": "确认",
+      "loadError": "无法加载人物。",
+      "empty": "暂无人物。",
+      "meetings": "{{count}} 次会议",
+      "suggested": "关联 {{count}} 个建议的会议？"
+    },
+    "detail": {
+      "nameLabel": "人物名称",
+      "rename": "重命名",
+      "deletePerson": "删除人物",
+      "aliases": "其他名称：{{aliases}}",
+      "renameTitle": "重命名此人物？",
+      "renameDescription": "将此人物重命名为 {{name}}？",
+      "merge": "合并",
+      "mergeTitle": "合并此人物？",
+      "mergeDescription": "将 {{source}} 合并到 {{target}}？关联、其他名称和关系历史将被合并。",
+      "mergeTarget": "选择人物",
+      "deleteTitle": "删除此人物？",
+      "deleteDescription": "删除 {{name}} 及其所有会议关联？",
+      "carriedSince": "自 {{date}} 起待处理",
+      "stillOpen": "仍待处理",
+      "noOpenLoops": "没有待处理事项。",
+      "commitments": "承诺事项",
+      "noCommitments": "没有已记录的承诺事项。",
+      "meetingsTogether": "共同会议",
+      "noMeetings": "没有已关联的会议。",
+      "series": "系列中的第 {{number}} 次会议",
+      "meetingActions": "会议操作",
+      "unlink": "取消会议关联",
+      "unlinkTitle": "取消关联此会议？",
+      "unlinkDescription": "从此人物移除 {{meeting}}？",
+      "documents": "文档",
+      "importDocument": "导入文档",
+      "documentsLoadError": "无法加载文档。",
+      "noDocuments": "没有已导入的文档。",
+      "deleteDocument": "删除文档",
+      "deleteDocumentTitle": "删除此文档？",
+      "deleteDocumentDescription": "从导入的上下文中删除 {{document}}？",
+      "cadence": "会议频率",
+      "lastMeeting": "最近一次会议",
+      "talkShare": "发言比例",
+      "cadenceAria": "每月会议：{{values}}",
+      "documentFilter": "文本文档",
+      "documentImported": "文档已导入。",
+      "split": "拆分人物",
+      "splitTitle": "拆分此人物？",
+      "splitDescription": "将 {{name}} 的所选身份信息和会议移至另一个人物。",
+      "splitTarget": "移至",
+      "splitCreate": "新人物",
+      "splitExisting": "现有人物",
+      "splitNameLabel": "新人物姓名",
+      "splitEvidence": "选择要移动的内容",
+      "splitMeetings": "会议",
+      "splitAliases": "其他姓名",
+      "splitEmails": "日历邮箱",
+      "splitDocuments": "文档",
+      "splitSubmit": "拆分人物",
+      "splitNothingSelected": "请至少选择一项要移动的内容。",
+      "splitNoItems": "此人物没有可拆分的身份信息或会议。",
+      "loadError": "无法加载此人物。"
+    },
+    "errors": {
+      "stale": "人物数据已在其他界面更改。请重新加载后重试。",
+      "operation": "无法更新人物数据。请重试。"
+    },
+    "review": {
+      "personDetails": "人物详情",
+      "previouslyTogether": "以往共同会议",
+      "meetingsBefore_one": "此前 1 次会议",
+      "meetingsBefore_other": "此前 {{count}} 次会议",
+      "last": "最近一次 {{date}}",
+      "agentPromptIntro": "请根据这些会议记录，帮我为“{{title}}”撰写后续消息。",
+      "agentPromptCommitments": "承诺事项",
+      "agentPromptOpenLoops": "待处理事项",
+      "agentPromptRequest": "撰写后续消息。不要编造细节或承诺。",
+      "agentError": "无法打开与代理的后续讨论。",
+      "discussFollowUp": "与代理讨论后续事项",
+      "meetingsBefore": "此前 {{count}} 次会议"
+    },
+    "briefing": {
+      "metCount_one": "你曾与 {{name}} 见面 1 次",
+      "metCount_other": "你曾与 {{name}} 见面 {{count}} 次",
+      "metBefore_one": "你曾与 {{name}} 见面 1 次 · 最近一次 {{date}}",
+      "metBefore_other": "你曾与 {{name}} 见面 {{count}} 次 · 最近一次 {{date}}",
+      "stillOpen": "仍待处理：{{text}}",
+      "metCount": "你曾与 {{name}} 见面 {{count}} 次",
+      "metBefore": "你曾与 {{name}} 见面 {{count}} 次 · 最近一次 {{date}}"
+    }
   }
 }

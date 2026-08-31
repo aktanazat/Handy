@@ -37,6 +37,7 @@
     "agents": "Агенти",
     "meetings": "Зустрічі",
     "navigation": "Основна навігація",
+    "people": "Люди",
     "settings": "Налаштування"
   },
   "onboarding": {
@@ -1550,12 +1551,106 @@
       },
       "workspaceNavigation": "Подання моста агентів"
     },
+    "workflows": {
+      "title": "Робочі процеси",
+      "builtIns": "Вбудовані робочі процеси",
+      "loadError": "Не вдалося завантажити робочі процеси.",
+      "updateError": "Не вдалося оновити робочий процес.",
+      "empty": "Немає доступних робочих процесів.",
+      "neverRun": "Ще не запускався",
+      "toggleLabel": "Увімкнути {{name}}",
+      "items": {
+        "person_linking": {
+          "name": "Пов’язування людей",
+          "description": "Пов’язує зустрічі з людьми за підтвердженими даними учасників і мовців."
+        },
+        "pre_meeting_briefing": {
+          "name": "Довідка перед зустріччю",
+          "description": "Перед початком виявленої зустрічі готує довідку з попередніх зустрічей."
+        },
+        "continuity": {
+          "name": "Продовження",
+          "description": "Переносить невирішені зобов’язання до наступних зустрічей."
+        },
+        "vocabulary_mining": {
+          "name": "Пошук словника",
+          "description": "Знаходить повторювані імена й терміни, які можна додати до вашого словника."
+        },
+        "document_linking": {
+          "name": "Пов’язування документів",
+          "description": "Пов’язує імпортовані документи зі згаданими в них людьми."
+        }
+      },
+      "status": {
+        "ok": "Завершено",
+        "failed": "Помилка",
+        "skipped": "Пропущено"
+      },
+      "outcomes": {
+        "personLinks_one": "Оновлено {{count}} зв’язок з людиною",
+        "personLinks_few": "Оновлено {{count}} зв’язки з людьми",
+        "personLinks_many": "Оновлено {{count}} зв’язків з людьми",
+        "personLinks_other": "Оновлено {{count}} зв’язку з людиною",
+        "briefing_one": "Підготовлено огляд для {{count}} людини",
+        "briefing_few": "Підготовлено огляд для {{count}} людей",
+        "briefing_many": "Підготовлено огляд для {{count}} людей",
+        "briefing_other": "Підготовлено огляд для {{count}} людини",
+        "continuitySeries_one": "Оновлено {{count}} серію зустрічей",
+        "continuitySeries_few": "Оновлено {{count}} серії зустрічей",
+        "continuitySeries_many": "Оновлено {{count}} серій зустрічей",
+        "continuitySeries_other": "Оновлено {{count}} серії зустрічей",
+        "continuityCarried_one": "перенесено {{count}} відкрите питання",
+        "continuityCarried_few": "перенесено {{count}} відкриті питання",
+        "continuityCarried_many": "перенесено {{count}} відкритих питань",
+        "continuityCarried_other": "перенесено {{count}} відкритого питання",
+        "vocabularyCandidates_one": "Знайдено {{count}} пропозицію для словника",
+        "vocabularyCandidates_few": "Знайдено {{count}} пропозиції для словника",
+        "vocabularyCandidates_many": "Знайдено {{count}} пропозицій для словника",
+        "vocabularyCandidates_other": "Знайдено {{count}} пропозиції для словника",
+        "documentLinks_one": "Оновлено {{count}} зв’язок із документом",
+        "documentLinks_few": "Оновлено {{count}} зв’язки з документами",
+        "documentLinks_many": "Оновлено {{count}} зв’язків із документами",
+        "documentLinks_other": "Оновлено {{count}} зв’язку з документом",
+        "alreadyProcessed": "Уже оброблено",
+        "failed": "Запуск завершився помилкою",
+        "skipped": "Пропущено"
+      },
+      "vocabularySuggestions": {
+        "title": "Із ваших зустрічей",
+        "occurrences_one": "{{count}} згадка",
+        "occurrences_few": "{{count}} згадки",
+        "occurrences_many": "{{count}} згадок",
+        "occurrences_other": "{{count}} згадки",
+        "meetings_one": "{{count}} зустріч",
+        "meetings_few": "{{count}} зустрічі",
+        "meetings_many": "{{count}} зустрічей",
+        "meetings_other": "{{count}} зустрічі",
+        "accept": "Додати",
+        "dismiss": "Відхилити"
+      },
+      "overview": {
+        "whatSonaDid": "Що зробила Sona",
+        "commitments": "Зобов’язання",
+        "openMeeting": "Відкрити зустріч {{title}}",
+        "loadError": "Не вдалося завантажити цю картку.",
+        "retry": "Повторити"
+      },
+      "runLog": {
+        "title": "Журнал запусків",
+        "empty": "Робочі процеси ще не запускалися.",
+        "loadError": "Не вдалося завантажити журнал запусків.",
+        "loadMoreError": "Не вдалося завантажити додаткові запуски.",
+        "loadMore": "Завантажити ще",
+        "chartAria": "Запусків за день: {{count}} за останні 7 днів"
+      }
+    },
     "hub": {
       "navigation": "Розділи налаштувань",
       "tabs": {
         "general": "Загальні",
         "privacy": "Конфіденційність",
         "agents": "Агенти",
+        "workflows": "Робочі процеси",
         "advanced": "Додатково",
         "about": "Про програму",
         "debug": "Налагодження"
@@ -2334,6 +2429,25 @@
       "shortcutAction": "Змінити скорочення для диктування",
       "setShortcutAction": "Задати скорочення"
     },
+    "activity": {
+      "title": "Активність",
+      "dictations": "Диктування",
+      "words": "Слова",
+      "streak": "Серія",
+      "rangePrevious": "Попередні 7 днів",
+      "rangeNext": "Наступні 7 днів",
+      "peak": "Пік",
+      "dictationsAria": "Диктувань на день, найбільше {{count}} у {{day}}",
+      "wordsAria": "Слів на день, усього {{count}}, останнє значення {{last}}",
+      "days_one": "{{count}} день",
+      "days_few": "{{count}} дні",
+      "days_many": "{{count}} днів",
+      "days_other": "{{count}} дня",
+      "streakAria_one": "Поточна серія, {{count}} день",
+      "streakAria_few": "Поточна серія, {{count}} дні",
+      "streakAria_many": "Поточна серія, {{count}} днів",
+      "streakAria_other": "Поточна серія, {{count}} дня"
+    },
     "update": {
       "available": "Доступна Sona {{latest}}. Установлена версія — {{current}}.",
       "dismiss": "Відхилити",
@@ -2433,5 +2547,120 @@
   "topNav": {
     "capture": "Запис",
     "library": "Бібліотека"
+  },
+  "people": {
+    "title": "Люди",
+    "source": {
+      "calendar": "Календар",
+      "speaker": "Мовець",
+      "title": "Заголовок",
+      "manual": "Вручну",
+      "suggested": "Запропоновано"
+    },
+    "list": {
+      "meetings_one": "1 зустріч",
+      "meetings_few": "{{count}} зустрічі",
+      "meetings_many": "{{count}} зустрічей",
+      "meetings_other": "{{count}} зустрічі",
+      "last": "Остання {{date}}",
+      "suggested_one": "Пов’язати 1 запропоновану зустріч?",
+      "suggested_few": "Пов’язати {{count}} запропоновані зустрічі?",
+      "suggested_many": "Пов’язати {{count}} запропонованих зустрічей?",
+      "suggested_other": "Пов’язати {{count}} запропонованої зустрічі?",
+      "dismiss": "Відхилити",
+      "confirm": "Підтвердити",
+      "loadError": "Не вдалося завантажити людей.",
+      "empty": "Людей поки немає.",
+      "meetings": "{{count}} зустрічей",
+      "suggested": "Пов’язати {{count}} запропонованих зустрічей?"
+    },
+    "detail": {
+      "nameLabel": "Ім’я людини",
+      "rename": "Перейменувати",
+      "deletePerson": "Видалити людину",
+      "aliases": "Також: {{aliases}}",
+      "renameTitle": "Перейменувати цю людину?",
+      "renameDescription": "Змінити ім’я цієї людини на {{name}}?",
+      "merge": "Об’єднати",
+      "mergeTitle": "Об’єднати цю людину?",
+      "mergeDescription": "Об’єднати {{source}} з {{target}}? Зв’язки, псевдоніми та історію стосунків буде поєднано.",
+      "mergeTarget": "Виберіть людину",
+      "deleteTitle": "Видалити цю людину?",
+      "deleteDescription": "Видалити {{name}} та всі зв’язки із зустрічами?",
+      "carriedSince": "Відкрито з {{date}}",
+      "stillOpen": "Досі відкрито",
+      "noOpenLoops": "Відкритих питань не залишилося.",
+      "commitments": "Зобов’язання",
+      "noCommitments": "Зобов’язань не записано.",
+      "meetingsTogether": "Спільні зустрічі",
+      "noMeetings": "Немає пов’язаних зустрічей.",
+      "series": "Зустріч {{number}} у серії",
+      "meetingActions": "Дії із зустріччю",
+      "unlink": "Відв’язати зустріч",
+      "unlinkTitle": "Відв’язати цю зустріч?",
+      "unlinkDescription": "Видалити {{meeting}} у цієї людини?",
+      "documents": "Документи",
+      "importDocument": "Імпортувати документ",
+      "documentsLoadError": "Не вдалося завантажити документи.",
+      "noDocuments": "Немає імпортованих документів.",
+      "deleteDocument": "Видалити документ",
+      "deleteDocumentTitle": "Видалити цей документ?",
+      "deleteDocumentDescription": "Видалити {{document}} з імпортованого контексту?",
+      "cadence": "Частота зустрічей",
+      "lastMeeting": "Остання зустріч",
+      "talkShare": "Частка мовлення",
+      "cadenceAria": "Зустрічі за місяцями: {{values}}",
+      "documentFilter": "Текстові документи",
+      "documentImported": "Документ імпортовано.",
+      "split": "Розділити людину",
+      "splitTitle": "Розділити цю людину?",
+      "splitDescription": "Перенесіть вибрані дані особи та зустрічі {{name}} до іншої людини.",
+      "splitTarget": "Перенести до",
+      "splitCreate": "Нова людина",
+      "splitExisting": "Наявна людина",
+      "splitNameLabel": "Ім’я нової людини",
+      "splitEvidence": "Виберіть, що перенести",
+      "splitMeetings": "Зустрічі",
+      "splitAliases": "Інші імена",
+      "splitEmails": "Адреси з календаря",
+      "splitDocuments": "Документи",
+      "splitSubmit": "Розділити людину",
+      "splitNothingSelected": "Виберіть принаймні один елемент для перенесення.",
+      "splitNoItems": "У цієї людини немає даних особи або зустрічей, які можна відокремити.",
+      "loadError": "Не вдалося завантажити цю людину."
+    },
+    "errors": {
+      "stale": "Дані про людей змінилися на іншому екрані. Перезавантажте й повторіть спробу.",
+      "operation": "Не вдалося оновити дані про людей. Повторіть спробу."
+    },
+    "review": {
+      "personDetails": "Відомості про людину",
+      "previouslyTogether": "Раніше зустрічалися",
+      "meetingsBefore_one": "1 попередня зустріч",
+      "meetingsBefore_few": "{{count}} попередні зустрічі",
+      "meetingsBefore_many": "{{count}} попередніх зустрічей",
+      "meetingsBefore_other": "{{count}} попередньої зустрічі",
+      "last": "Остання {{date}}",
+      "agentPromptIntro": "Допоможи скласти повідомлення за підсумками «{{title}}» на основі цих даних зустрічі.",
+      "agentPromptCommitments": "Зобов’язання",
+      "agentPromptOpenLoops": "Відкриті питання",
+      "agentPromptRequest": "Склади повідомлення за підсумками. Не вигадуй подробиць чи обіцянок.",
+      "agentError": "Не вдалося відкрити обговорення з агентом.",
+      "discussFollowUp": "Обговорити подальші дії з агентом",
+      "meetingsBefore": "{{count}} попередніх зустрічей"
+    },
+    "briefing": {
+      "metCount_one": "Ви зустрічалися з {{name}} {{count}} раз",
+      "metCount_few": "Ви зустрічалися з {{name}} {{count}} рази",
+      "metCount_many": "Ви зустрічалися з {{name}} {{count}} разів",
+      "metCount_other": "Ви зустрічалися з {{name}} {{count}} раза",
+      "metBefore_one": "Ви зустрічалися з {{name}} {{count}} раз · остання зустріч {{date}}",
+      "metBefore_few": "Ви зустрічалися з {{name}} {{count}} рази · остання зустріч {{date}}",
+      "metBefore_many": "Ви зустрічалися з {{name}} {{count}} разів · остання зустріч {{date}}",
+      "metBefore_other": "Ви зустрічалися з {{name}} {{count}} раза · остання зустріч {{date}}",
+      "stillOpen": "Досі відкрито: {{text}}",
+      "metCount": "Ви зустрічалися з {{name}} {{count}} разів",
+      "metBefore": "Ви зустрічалися з {{name}} {{count}} разів · остання зустріч {{date}}"
+    }
   }
 }

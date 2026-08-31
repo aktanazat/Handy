@@ -37,6 +37,7 @@
     "agents": "Agents",
     "meetings": "Vergaderingen",
     "navigation": "Hoofdnavigatie",
+    "people": "Personen",
     "settings": "Instellingen"
   },
   "onboarding": {
@@ -1550,12 +1551,90 @@
       },
       "workspaceNavigation": "Agentbridge-weergaven"
     },
+    "workflows": {
+      "title": "Werkstromen",
+      "builtIns": "Ingebouwde werkstromen",
+      "loadError": "De werkstromen konden niet worden geladen.",
+      "updateError": "De werkstroom kon niet worden bijgewerkt.",
+      "empty": "Er zijn geen werkstromen beschikbaar.",
+      "neverRun": "Nog niet uitgevoerd",
+      "toggleLabel": "{{name}} inschakelen",
+      "items": {
+        "person_linking": {
+          "name": "Personen koppelen",
+          "description": "Koppelt vergaderingen aan personen met bevestigde deelnemers- en sprekersgegevens."
+        },
+        "pre_meeting_briefing": {
+          "name": "Voorbereiding voor de vergadering",
+          "description": "Maakt vóór een gedetecteerde vergadering een overzicht van eerdere vergaderingen."
+        },
+        "continuity": {
+          "name": "Continuïteit",
+          "description": "Neemt openstaande toezeggingen mee naar volgende vergaderingen."
+        },
+        "vocabulary_mining": {
+          "name": "Woordenschat vinden",
+          "description": "Vindt herhaalde namen en termen die mogelijk in je woordenschat thuishoren."
+        },
+        "document_linking": {
+          "name": "Documenten koppelen",
+          "description": "Koppelt geïmporteerde documenten aan de personen die erin worden genoemd."
+        }
+      },
+      "status": {
+        "ok": "Voltooid",
+        "failed": "Mislukt",
+        "skipped": "Overgeslagen"
+      },
+      "outcomes": {
+        "personLinks_one": "1 persoonskoppeling bijgewerkt",
+        "personLinks_other": "{{count}} persoonskoppelingen bijgewerkt",
+        "briefing_one": "Briefing voor 1 persoon voorbereid",
+        "briefing_other": "Briefing voor {{count}} personen voorbereid",
+        "continuitySeries_one": "1 vergaderreeks bijgewerkt",
+        "continuitySeries_other": "{{count}} vergaderreeksen bijgewerkt",
+        "continuityCarried_one": "1 open punt meegenomen",
+        "continuityCarried_other": "{{count}} open punten meegenomen",
+        "vocabularyCandidates_one": "1 woordsuggestie gevonden",
+        "vocabularyCandidates_other": "{{count}} woordsuggesties gevonden",
+        "documentLinks_one": "1 documentkoppeling bijgewerkt",
+        "documentLinks_other": "{{count}} documentkoppelingen bijgewerkt",
+        "alreadyProcessed": "Al verwerkt",
+        "failed": "Uitvoering mislukt",
+        "skipped": "Overgeslagen"
+      },
+      "vocabularySuggestions": {
+        "title": "Uit je vergaderingen",
+        "occurrences_one": "1 vermelding",
+        "occurrences_other": "{{count}} vermeldingen",
+        "meetings_one": "1 vergadering",
+        "meetings_other": "{{count}} vergaderingen",
+        "accept": "Toevoegen",
+        "dismiss": "Negeren"
+      },
+      "overview": {
+        "whatSonaDid": "Wat Sona deed",
+        "commitments": "Toezeggingen",
+        "openMeeting": "Vergadering {{title}} openen",
+        "loadError": "Deze kaart kon niet worden geladen.",
+        "retry": "Opnieuw proberen"
+      },
+      "runLog": {
+        "title": "Uitvoeringslogboek",
+        "empty": "Er zijn nog geen werkstromen uitgevoerd.",
+        "loadError": "Het uitvoeringslogboek kon niet worden geladen.",
+        "loadMoreError": "Meer uitvoeringen konden niet worden geladen.",
+        "loadMore": "Meer laden",
+        "chartAria": "Uitvoeringen per dag, {{count}} in de afgelopen 7 dagen"
+      }
+    },
     "hub": {
       "navigation": "Instellingensecties",
       "tabs": {
         "general": "Algemeen",
         "privacy": "Privacy",
         "agents": "Agents",
+        "workflows": "Werkstromen",
         "advanced": "Geavanceerd",
         "about": "Over",
         "debug": "Foutopsporing"
@@ -2334,6 +2413,21 @@
       "shortcutAction": "De dicteersneltoets wijzigen",
       "setShortcutAction": "Een sneltoets instellen"
     },
+    "activity": {
+      "title": "Activiteit",
+      "dictations": "Dictees",
+      "words": "Woorden",
+      "streak": "Reeks",
+      "rangePrevious": "Vorige 7 dagen",
+      "rangeNext": "Volgende 7 dagen",
+      "peak": "Piek",
+      "dictationsAria": "Dictees per dag, hoogste aantal {{count}} op {{day}}",
+      "wordsAria": "Woorden per dag, {{count}} in totaal, laatste waarde {{last}}",
+      "days_one": "{{count}} dag",
+      "days_other": "{{count}} dagen",
+      "streakAria_one": "Huidige reeks, {{count}} dag",
+      "streakAria_other": "Huidige reeks, {{count}} dagen"
+    },
     "update": {
       "available": "Sona {{latest}} is beschikbaar. Deze installatie draait {{current}}.",
       "dismiss": "Sluiten",
@@ -2433,5 +2527,110 @@
   "topNav": {
     "capture": "Opname",
     "library": "Bibliotheek"
+  },
+  "people": {
+    "title": "Personen",
+    "source": {
+      "calendar": "Agenda",
+      "speaker": "Spreker",
+      "title": "Titel",
+      "manual": "Handmatig",
+      "suggested": "Voorgesteld"
+    },
+    "list": {
+      "meetings_one": "1 vergadering",
+      "meetings_other": "{{count}} vergaderingen",
+      "last": "Laatste {{date}}",
+      "suggested_one": "1 voorgestelde vergadering koppelen?",
+      "suggested_other": "{{count}} voorgestelde vergaderingen koppelen?",
+      "dismiss": "Negeren",
+      "confirm": "Bevestigen",
+      "loadError": "Personen konden niet worden geladen.",
+      "empty": "Nog geen personen.",
+      "meetings": "{{count}} vergaderingen",
+      "suggested": "{{count}} voorgestelde vergaderingen koppelen?"
+    },
+    "detail": {
+      "nameLabel": "Naam van persoon",
+      "rename": "Naam wijzigen",
+      "deletePerson": "Persoon verwijderen",
+      "aliases": "Ook: {{aliases}}",
+      "renameTitle": "Naam van deze persoon wijzigen?",
+      "renameDescription": "De naam van deze persoon wijzigen in {{name}}?",
+      "merge": "Samenvoegen",
+      "mergeTitle": "Deze persoon samenvoegen?",
+      "mergeDescription": "{{source}} samenvoegen met {{target}}? Koppelingen, aliassen en de relatiegeschiedenis worden gecombineerd.",
+      "mergeTarget": "Kies een persoon",
+      "deleteTitle": "Deze persoon verwijderen?",
+      "deleteDescription": "{{name}} en alle vergaderkoppelingen verwijderen?",
+      "carriedSince": "Open sinds {{date}}",
+      "stillOpen": "Nog open",
+      "noOpenLoops": "Er staat niets meer open.",
+      "commitments": "Toezeggingen",
+      "noCommitments": "Geen toezeggingen vastgelegd.",
+      "meetingsTogether": "Vergaderingen samen",
+      "noMeetings": "Geen gekoppelde vergaderingen.",
+      "series": "Vergadering {{number}} in de reeks",
+      "meetingActions": "Vergaderacties",
+      "unlink": "Vergadering ontkoppelen",
+      "unlinkTitle": "Deze vergadering ontkoppelen?",
+      "unlinkDescription": "{{meeting}} bij deze persoon verwijderen?",
+      "documents": "Documenten",
+      "importDocument": "Document importeren",
+      "documentsLoadError": "Documenten konden niet worden geladen.",
+      "noDocuments": "Geen geïmporteerde documenten.",
+      "deleteDocument": "Document verwijderen",
+      "deleteDocumentTitle": "Dit document verwijderen?",
+      "deleteDocumentDescription": "{{document}} uit de geïmporteerde context verwijderen?",
+      "cadence": "Vergaderfrequentie",
+      "lastMeeting": "Laatste vergadering",
+      "talkShare": "Aandeel spreektijd",
+      "cadenceAria": "Vergaderingen per maand: {{values}}",
+      "documentFilter": "Tekstdocumenten",
+      "documentImported": "Document geïmporteerd.",
+      "split": "Persoon splitsen",
+      "splitTitle": "Deze persoon splitsen?",
+      "splitDescription": "Verplaats geselecteerde identiteitsgegevens en vergaderingen van {{name}} naar een andere persoon.",
+      "splitTarget": "Verplaatsen naar",
+      "splitCreate": "Nieuwe persoon",
+      "splitExisting": "Bestaande persoon",
+      "splitNameLabel": "Naam van nieuwe persoon",
+      "splitEvidence": "Kies wat je wilt verplaatsen",
+      "splitMeetings": "Vergaderingen",
+      "splitAliases": "Andere namen",
+      "splitEmails": "Agenda-e-mails",
+      "splitDocuments": "Documenten",
+      "splitSubmit": "Persoon splitsen",
+      "splitNothingSelected": "Kies minstens één item om te verplaatsen.",
+      "splitNoItems": "Deze persoon heeft geen identiteitsgegevens of vergaderingen om te splitsen.",
+      "loadError": "Deze persoon kon niet worden geladen."
+    },
+    "errors": {
+      "stale": "Personen zijn op een ander scherm gewijzigd. Laad opnieuw en probeer het nogmaals.",
+      "operation": "Personen konden niet worden bijgewerkt. Probeer het opnieuw."
+    },
+    "review": {
+      "personDetails": "Persoonsgegevens",
+      "previouslyTogether": "Eerder samen vergaderd",
+      "meetingsBefore_one": "1 eerdere vergadering",
+      "meetingsBefore_other": "{{count}} eerdere vergaderingen",
+      "last": "Laatste {{date}}",
+      "agentPromptIntro": "Help me met deze vergadergegevens een opvolgbericht voor ‘{{title}}’ op te stellen.",
+      "agentPromptCommitments": "Toezeggingen",
+      "agentPromptOpenLoops": "Open punten",
+      "agentPromptRequest": "Stel het opvolgbericht op. Verzin geen details of toezeggingen.",
+      "agentError": "De opvolging met de agent kon niet worden geopend.",
+      "discussFollowUp": "Opvolging met agent bespreken",
+      "meetingsBefore": "{{count}} eerdere vergaderingen"
+    },
+    "briefing": {
+      "metCount_one": "Je hebt {{name}} één keer ontmoet",
+      "metCount_other": "Je hebt {{name}} {{count}} keer ontmoet",
+      "metBefore_one": "Je hebt {{name}} één keer ontmoet · laatste {{date}}",
+      "metBefore_other": "Je hebt {{name}} {{count}} keer ontmoet · laatste {{date}}",
+      "stillOpen": "Nog open: {{text}}",
+      "metCount": "Je hebt {{name}} {{count}} keer ontmoet",
+      "metBefore": "Je hebt {{name}} {{count}} keer ontmoet · laatste {{date}}"
+    }
   }
 }

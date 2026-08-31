@@ -37,6 +37,7 @@
     "agents": "एजेन्टहरू",
     "meetings": "बैठकहरू",
     "navigation": "मुख्य नेभिगेसन",
+    "people": "व्यक्तिहरू",
     "settings": "सेटिङहरू"
   },
   "onboarding": {
@@ -1550,12 +1551,90 @@
       },
       "workspaceNavigation": "एजेन्ट ब्रिज दृश्यहरू"
     },
+    "workflows": {
+      "title": "कार्यप्रवाहहरू",
+      "builtIns": "अन्तर्निर्मित कार्यप्रवाहहरू",
+      "loadError": "कार्यप्रवाहहरू लोड गर्न सकिएन।",
+      "updateError": "कार्यप्रवाह अद्यावधिक गर्न सकिएन।",
+      "empty": "कुनै कार्यप्रवाह उपलब्ध छैन।",
+      "neverRun": "अझै चलाइएको छैन",
+      "toggleLabel": "{{name}} सक्षम पार्नुहोस्",
+      "items": {
+        "person_linking": {
+          "name": "व्यक्ति जोडाइ",
+          "description": "पुष्टि भएका सहभागी र वक्ताको जानकारीबाट बैठकहरूलाई व्यक्तिसँग जोड्छ।"
+        },
+        "pre_meeting_briefing": {
+          "name": "बैठकअघिको संक्षिप्त विवरण",
+          "description": "पत्ता लागेको बैठक सुरु हुनुअघि विगतका बैठकबाट संक्षिप्त विवरण बनाउँछ।"
+        },
+        "continuity": {
+          "name": "निरन्तरता",
+          "description": "समाधान नभएका प्रतिबद्धताहरूलाई पछिल्ला बैठकमा लैजान्छ।"
+        },
+        "vocabulary_mining": {
+          "name": "शब्दावली खोज",
+          "description": "तपाईंको शब्दावलीमा पर्न सक्ने दोहोरिएका नाम र शब्दहरू फेला पार्छ।"
+        },
+        "document_linking": {
+          "name": "कागजात जोडाइ",
+          "description": "आयात गरिएका कागजातलाई तिनमा उल्लेख भएका व्यक्तिसँग जोड्छ।"
+        }
+      },
+      "status": {
+        "ok": "सम्पन्न",
+        "failed": "असफल",
+        "skipped": "छोडिएको"
+      },
+      "outcomes": {
+        "personLinks_one": "१ व्यक्ति लिङ्क अद्यावधिक गरियो",
+        "personLinks_other": "{{count}} व्यक्ति लिङ्क अद्यावधिक गरिए",
+        "briefing_one": "१ व्यक्तिका लागि ब्रिफिङ तयार गरियो",
+        "briefing_other": "{{count}} जनाका लागि ब्रिफिङ तयार गरियो",
+        "continuitySeries_one": "१ बैठक शृङ्खला अद्यावधिक गरियो",
+        "continuitySeries_other": "{{count}} बैठक शृङ्खला अद्यावधिक गरिए",
+        "continuityCarried_one": "१ खुला विषय अगाडि सारियो",
+        "continuityCarried_other": "{{count}} खुला विषय अगाडि सारिए",
+        "vocabularyCandidates_one": "१ शब्दावली सुझाव भेटियो",
+        "vocabularyCandidates_other": "{{count}} शब्दावली सुझाव भेटिए",
+        "documentLinks_one": "१ कागजात लिङ्क अद्यावधिक गरियो",
+        "documentLinks_other": "{{count}} कागजात लिङ्क अद्यावधिक गरिए",
+        "alreadyProcessed": "पहिले नै प्रशोधन गरिएको",
+        "failed": "रन असफल भयो",
+        "skipped": "छोडियो"
+      },
+      "vocabularySuggestions": {
+        "title": "तपाईंका बैठकहरूबाट",
+        "occurrences_one": "१ उल्लेख",
+        "occurrences_other": "{{count}} उल्लेख",
+        "meetings_one": "१ बैठक",
+        "meetings_other": "{{count}} बैठक",
+        "accept": "थप्नुहोस्",
+        "dismiss": "हटाउनुहोस्"
+      },
+      "overview": {
+        "whatSonaDid": "Sona ले के गर्‍यो",
+        "commitments": "प्रतिबद्धताहरू",
+        "openMeeting": "बैठक {{title}} खोल्नुहोस्",
+        "loadError": "यो कार्ड लोड गर्न सकिएन।",
+        "retry": "फेरि प्रयास गर्नुहोस्"
+      },
+      "runLog": {
+        "title": "चालन लग",
+        "empty": "अझै कुनै कार्यप्रवाह चलेको छैन।",
+        "loadError": "चालन लग लोड गर्न सकिएन।",
+        "loadMoreError": "थप चालनहरू लोड गर्न सकिएन।",
+        "loadMore": "थप लोड गर्नुहोस्",
+        "chartAria": "दैनिक कार्यप्रवाह चालन, पछिल्ला 7 दिनमा {{count}}"
+      }
+    },
     "hub": {
       "navigation": "सेटिङ खण्डहरू",
       "tabs": {
         "general": "सामान्य",
         "privacy": "गोपनीयता",
         "agents": "एजेन्टहरू",
+        "workflows": "कार्यप्रवाहहरू",
         "advanced": "उन्नत",
         "about": "बारेमा",
         "debug": "डिबग"
@@ -2334,6 +2413,21 @@
       "shortcutAction": "बोलाइको सर्टकट बदल्नुहोस्",
       "setShortcutAction": "एउटा सर्टकट सेट गर्नुहोस्"
     },
+    "activity": {
+      "title": "गतिविधि",
+      "dictations": "श्रुतिलेख",
+      "words": "शब्दहरू",
+      "streak": "निरन्तरता",
+      "rangePrevious": "अघिल्ला ७ दिन",
+      "rangeNext": "अर्का ७ दिन",
+      "peak": "उच्चतम",
+      "dictationsAria": "दैनिक श्रुतिलेख, {{day}} मा सबैभन्दा धेरै {{count}}",
+      "wordsAria": "दैनिक शब्दहरू, जम्मा {{count}}, अन्तिम मान {{last}}",
+      "days_one": "{{count}} दिन",
+      "days_other": "{{count}} दिन",
+      "streakAria_one": "हालको निरन्तरता, {{count}} दिन",
+      "streakAria_other": "हालको निरन्तरता, {{count}} दिन"
+    },
     "update": {
       "available": "Sona {{latest}} उपलब्ध छ। यो इन्स्टल {{current}} मा छ।",
       "dismiss": "हटाउनुहोस्",
@@ -2433,5 +2527,110 @@
   "topNav": {
     "capture": "रेकर्डिङ",
     "library": "लाइब्रेरी"
+  },
+  "people": {
+    "title": "व्यक्तिहरू",
+    "source": {
+      "calendar": "पात्रो",
+      "speaker": "वक्ता",
+      "title": "शीर्षक",
+      "manual": "म्यानुअल",
+      "suggested": "सुझाइएको"
+    },
+    "list": {
+      "meetings_one": "१ बैठक",
+      "meetings_other": "{{count}} बैठक",
+      "last": "पछिल्लो {{date}}",
+      "suggested_one": "१ सुझाइएको बैठक जोड्ने?",
+      "suggested_other": "{{count}} सुझाइएका बैठक जोड्ने?",
+      "dismiss": "खारेज गर्नुहोस्",
+      "confirm": "पुष्टि गर्नुहोस्",
+      "loadError": "व्यक्तिहरू लोड गर्न सकिएन।",
+      "empty": "अहिलेसम्म कुनै व्यक्ति छैन।",
+      "meetings": "{{count}} बैठक",
+      "suggested": "{{count}} सुझाइएका बैठक जोड्ने?"
+    },
+    "detail": {
+      "nameLabel": "व्यक्तिको नाम",
+      "rename": "नाम बदल्नुहोस्",
+      "deletePerson": "व्यक्ति मेटाउनुहोस्",
+      "aliases": "अन्य नाम: {{aliases}}",
+      "renameTitle": "यस व्यक्तिको नाम बदल्ने?",
+      "renameDescription": "यस व्यक्तिको नाम {{name}} राख्ने?",
+      "merge": "गाभ्नुहोस्",
+      "mergeTitle": "यस व्यक्तिलाई गाभ्ने?",
+      "mergeDescription": "{{source}} लाई {{target}} सँग गाभ्ने? लिङ्क, अन्य नाम र सम्बन्धको इतिहास एकत्रित हुनेछ।",
+      "mergeTarget": "व्यक्ति छान्नुहोस्",
+      "deleteTitle": "यस व्यक्तिलाई मेटाउने?",
+      "deleteDescription": "{{name}} र उनका सबै बैठक लिङ्क मेटाउने?",
+      "carriedSince": "{{date}} देखि खुला",
+      "stillOpen": "अझै खुला",
+      "noOpenLoops": "कुनै कुरा खुला छैन।",
+      "commitments": "प्रतिबद्धताहरू",
+      "noCommitments": "कुनै प्रतिबद्धता रेकर्ड गरिएको छैन।",
+      "meetingsTogether": "सँगैका बैठकहरू",
+      "noMeetings": "कुनै जोडिएको बैठक छैन।",
+      "series": "शृङ्खलाको बैठक {{number}}",
+      "meetingActions": "बैठकका कार्यहरू",
+      "unlink": "बैठकको लिङ्क हटाउनुहोस्",
+      "unlinkTitle": "यस बैठकको लिङ्क हटाउने?",
+      "unlinkDescription": "यस व्यक्तिबाट {{meeting}} हटाउने?",
+      "documents": "कागजातहरू",
+      "importDocument": "कागजात आयात गर्नुहोस्",
+      "documentsLoadError": "कागजातहरू लोड गर्न सकिएन।",
+      "noDocuments": "कुनै आयात गरिएको कागजात छैन।",
+      "deleteDocument": "कागजात मेटाउनुहोस्",
+      "deleteDocumentTitle": "यो कागजात मेटाउने?",
+      "deleteDocumentDescription": "आयात गरिएको सन्दर्भबाट {{document}} मेटाउने?",
+      "cadence": "बैठकको आवृत्ति",
+      "lastMeeting": "पछिल्लो बैठक",
+      "talkShare": "बोलाइको हिस्सा",
+      "cadenceAria": "महिनाअनुसार बैठकहरू: {{values}}",
+      "documentFilter": "पाठ कागजातहरू",
+      "documentImported": "कागजात आयात भयो।",
+      "split": "व्यक्ति छुट्याउनुहोस्",
+      "splitTitle": "यो व्यक्ति छुट्याउने?",
+      "splitDescription": "{{name}} बाट छानिएका पहिचान विवरण र बैठक अर्को व्यक्तिमा सार्नुहोस्।",
+      "splitTarget": "यहाँ सार्नुहोस्",
+      "splitCreate": "नयाँ व्यक्ति",
+      "splitExisting": "अवस्थित व्यक्ति",
+      "splitNameLabel": "नयाँ व्यक्तिको नाम",
+      "splitEvidence": "के सार्ने छान्नुहोस्",
+      "splitMeetings": "बैठकहरू",
+      "splitAliases": "अन्य नामहरू",
+      "splitEmails": "पात्रो इमेलहरू",
+      "splitDocuments": "कागजातहरू",
+      "splitSubmit": "व्यक्ति छुट्याउनुहोस्",
+      "splitNothingSelected": "सार्न कम्तीमा एउटा वस्तु छान्नुहोस्।",
+      "splitNoItems": "यस व्यक्तिसँग छुट्याउन मिल्ने पहिचान विवरण वा बैठक छैन।",
+      "loadError": "यस व्यक्तिलाई लोड गर्न सकिएन।"
+    },
+    "errors": {
+      "stale": "व्यक्तिहरू अर्को स्क्रिनमा परिवर्तन भएका छन्। पुनः लोड गरेर फेरि प्रयास गर्नुहोस्।",
+      "operation": "व्यक्तिहरू अद्यावधिक गर्न सकिएन। फेरि प्रयास गर्नुहोस्।"
+    },
+    "review": {
+      "personDetails": "व्यक्तिको विवरण",
+      "previouslyTogether": "पहिले सँगै भेटिएको",
+      "meetingsBefore_one": "१ अघिल्लो बैठक",
+      "meetingsBefore_other": "{{count}} अघिल्ला बैठक",
+      "last": "पछिल्लो {{date}}",
+      "agentPromptIntro": "यी बैठक अभिलेखबाट “{{title}}” को फलो-अप तयार गर्न मद्दत गर्नुहोस्।",
+      "agentPromptCommitments": "प्रतिबद्धताहरू",
+      "agentPromptOpenLoops": "खुला विषयहरू",
+      "agentPromptRequest": "फलो-अप तयार गर्नुहोस्। विवरण वा वाचा नबनाउनुहोस्।",
+      "agentError": "एजेन्टसँगको फलो-अप खोल्न सकिएन।",
+      "discussFollowUp": "एजेन्टसँग फलो-अप छलफल गर्नुहोस्",
+      "meetingsBefore": "{{count}} अघिल्ला बैठक"
+    },
+    "briefing": {
+      "metCount_one": "तपाईंले {{name}} लाई एक पटक भेट्नुभएको छ",
+      "metCount_other": "तपाईंले {{name}} लाई {{count}} पटक भेट्नुभएको छ",
+      "metBefore_one": "तपाईंले {{name}} लाई एक पटक भेट्नुभएको छ · पछिल्लो {{date}}",
+      "metBefore_other": "तपाईंले {{name}} लाई {{count}} पटक भेट्नुभएको छ · पछिल्लो {{date}}",
+      "stillOpen": "अझै खुला: {{text}}",
+      "metCount": "तपाईंले {{name}} लाई {{count}} पटक भेट्नुभएको छ",
+      "metBefore": "तपाईंले {{name}} लाई {{count}} पटक भेट्नुभएको छ · पछिल्लो {{date}}"
+    }
   }
 }

@@ -37,6 +37,7 @@
     "agents": "Tác nhân",
     "meetings": "Cuộc họp",
     "navigation": "Điều hướng chính",
+    "people": "Mọi người",
     "settings": "Cài đặt"
   },
   "onboarding": {
@@ -1550,12 +1551,82 @@
       },
       "workspaceNavigation": "Chế độ xem cầu nối agent"
     },
+    "workflows": {
+      "title": "Quy trình",
+      "builtIns": "Quy trình tích hợp",
+      "loadError": "Không thể tải các quy trình.",
+      "updateError": "Không thể cập nhật quy trình.",
+      "empty": "Không có quy trình nào.",
+      "neverRun": "Chưa từng chạy",
+      "toggleLabel": "Bật {{name}}",
+      "items": {
+        "person_linking": {
+          "name": "Liên kết người",
+          "description": "Liên kết cuộc họp với người bằng dữ liệu người tham dự và người nói đã xác nhận."
+        },
+        "pre_meeting_briefing": {
+          "name": "Tóm tắt trước cuộc họp",
+          "description": "Tạo bản tóm tắt từ các cuộc họp trước khi cuộc họp được phát hiện bắt đầu."
+        },
+        "continuity": {
+          "name": "Tính liên tục",
+          "description": "Chuyển các cam kết chưa giải quyết sang những cuộc họp tiếp theo."
+        },
+        "vocabulary_mining": {
+          "name": "Tìm từ vựng",
+          "description": "Tìm các tên và thuật ngữ lặp lại có thể thuộc từ vựng của bạn."
+        },
+        "document_linking": {
+          "name": "Liên kết tài liệu",
+          "description": "Liên kết tài liệu đã nhập với những người được nhắc đến trong đó."
+        }
+      },
+      "status": {
+        "ok": "Đã hoàn tất",
+        "failed": "Thất bại",
+        "skipped": "Đã bỏ qua"
+      },
+      "outcomes": {
+        "personLinks_other": "Đã cập nhật {{count}} liên kết người",
+        "briefing_other": "Đã chuẩn bị bản tóm tắt cho {{count}} người",
+        "continuitySeries_other": "Đã cập nhật {{count}} chuỗi cuộc họp",
+        "continuityCarried_other": "đã chuyển tiếp {{count}} vấn đề còn mở",
+        "vocabularyCandidates_other": "Đã tìm thấy {{count}} đề xuất từ vựng",
+        "documentLinks_other": "Đã cập nhật {{count}} liên kết tài liệu",
+        "alreadyProcessed": "Đã xử lý",
+        "failed": "Lần chạy thất bại",
+        "skipped": "Đã bỏ qua"
+      },
+      "vocabularySuggestions": {
+        "title": "Từ các cuộc họp của bạn",
+        "occurrences_other": "{{count}} lượt nhắc",
+        "meetings_other": "{{count}} cuộc họp",
+        "accept": "Thêm",
+        "dismiss": "Bỏ qua"
+      },
+      "overview": {
+        "whatSonaDid": "Những gì Sona đã làm",
+        "commitments": "Cam kết",
+        "openMeeting": "Mở cuộc họp {{title}}",
+        "loadError": "Không thể tải thẻ này.",
+        "retry": "Thử lại"
+      },
+      "runLog": {
+        "title": "Nhật ký chạy",
+        "empty": "Chưa có quy trình nào được chạy.",
+        "loadError": "Không thể tải nhật ký chạy.",
+        "loadMoreError": "Không thể tải thêm lượt chạy.",
+        "loadMore": "Tải thêm",
+        "chartAria": "Số lượt chạy mỗi ngày, {{count}} trong 7 ngày qua"
+      }
+    },
     "hub": {
       "navigation": "Các mục cài đặt",
       "tabs": {
         "general": "Chung",
         "privacy": "Quyền riêng tư",
         "agents": "Tác nhân",
+        "workflows": "Quy trình",
         "advanced": "Nâng cao",
         "about": "Giới thiệu",
         "debug": "Gỡ lỗi"
@@ -2334,6 +2405,19 @@
       "shortcutAction": "Đổi phím tắt đọc chính tả",
       "setShortcutAction": "Đặt một phím tắt"
     },
+    "activity": {
+      "title": "Hoạt động",
+      "dictations": "Lần đọc chính tả",
+      "words": "Từ",
+      "streak": "Chuỗi ngày",
+      "rangePrevious": "7 ngày trước",
+      "rangeNext": "7 ngày tiếp theo",
+      "peak": "Cao nhất",
+      "dictationsAria": "Số lần đọc chính tả mỗi ngày, cao nhất {{count}} vào {{day}}",
+      "wordsAria": "Số từ mỗi ngày, tổng cộng {{count}}, giá trị cuối {{last}}",
+      "days_other": "{{count}} ngày",
+      "streakAria_other": "Chuỗi hiện tại, {{count}} ngày"
+    },
     "update": {
       "available": "Đã có Sona {{latest}}. Bản cài đặt này đang ở {{current}}.",
       "dismiss": "Bỏ qua",
@@ -2433,5 +2517,110 @@
   "topNav": {
     "capture": "Ghi âm",
     "library": "Thư viện"
+  },
+  "people": {
+    "title": "Mọi người",
+    "source": {
+      "calendar": "Lịch",
+      "speaker": "Người nói",
+      "title": "Tiêu đề",
+      "manual": "Thủ công",
+      "suggested": "Đề xuất"
+    },
+    "list": {
+      "meetings_one": "1 cuộc họp",
+      "meetings_other": "{{count}} cuộc họp",
+      "last": "Gần nhất {{date}}",
+      "suggested_one": "Liên kết 1 cuộc họp được đề xuất?",
+      "suggested_other": "Liên kết {{count}} cuộc họp được đề xuất?",
+      "dismiss": "Bỏ qua",
+      "confirm": "Xác nhận",
+      "loadError": "Không thể tải danh sách người.",
+      "empty": "Chưa có ai.",
+      "meetings": "{{count}} cuộc họp",
+      "suggested": "Liên kết {{count}} cuộc họp được đề xuất?"
+    },
+    "detail": {
+      "nameLabel": "Tên người",
+      "rename": "Đổi tên",
+      "deletePerson": "Xóa người",
+      "aliases": "Còn gọi là: {{aliases}}",
+      "renameTitle": "Đổi tên người này?",
+      "renameDescription": "Đổi tên người này thành {{name}}?",
+      "merge": "Hợp nhất",
+      "mergeTitle": "Hợp nhất người này?",
+      "mergeDescription": "Hợp nhất {{source}} vào {{target}}? Các liên kết, tên khác và lịch sử mối quan hệ sẽ được gộp lại.",
+      "mergeTarget": "Chọn một người",
+      "deleteTitle": "Xóa người này?",
+      "deleteDescription": "Xóa {{name}} và tất cả liên kết cuộc họp?",
+      "carriedSince": "Mở từ {{date}}",
+      "stillOpen": "Vẫn còn mở",
+      "noOpenLoops": "Không còn nội dung nào đang mở.",
+      "commitments": "Cam kết",
+      "noCommitments": "Chưa ghi nhận cam kết nào.",
+      "meetingsTogether": "Các cuộc họp cùng nhau",
+      "noMeetings": "Không có cuộc họp được liên kết.",
+      "series": "Cuộc họp {{number}} trong chuỗi",
+      "meetingActions": "Thao tác cuộc họp",
+      "unlink": "Hủy liên kết cuộc họp",
+      "unlinkTitle": "Hủy liên kết cuộc họp này?",
+      "unlinkDescription": "Xóa {{meeting}} khỏi người này?",
+      "documents": "Tài liệu",
+      "importDocument": "Nhập tài liệu",
+      "documentsLoadError": "Không thể tải tài liệu.",
+      "noDocuments": "Không có tài liệu đã nhập.",
+      "deleteDocument": "Xóa tài liệu",
+      "deleteDocumentTitle": "Xóa tài liệu này?",
+      "deleteDocumentDescription": "Xóa {{document}} khỏi ngữ cảnh đã nhập?",
+      "cadence": "Tần suất cuộc họp",
+      "lastMeeting": "Cuộc họp gần nhất",
+      "talkShare": "Tỷ lệ phát biểu",
+      "cadenceAria": "Cuộc họp theo tháng: {{values}}",
+      "documentFilter": "Tài liệu văn bản",
+      "documentImported": "Đã nhập tài liệu.",
+      "split": "Tách người",
+      "splitTitle": "Tách người này?",
+      "splitDescription": "Chuyển thông tin nhận dạng và cuộc họp đã chọn từ {{name}} sang một người khác.",
+      "splitTarget": "Chuyển sang",
+      "splitCreate": "Người mới",
+      "splitExisting": "Người hiện có",
+      "splitNameLabel": "Tên người mới",
+      "splitEvidence": "Chọn nội dung cần chuyển",
+      "splitMeetings": "Cuộc họp",
+      "splitAliases": "Tên khác",
+      "splitEmails": "Email lịch",
+      "splitDocuments": "Tài liệu",
+      "splitSubmit": "Tách người",
+      "splitNothingSelected": "Chọn ít nhất một mục để chuyển.",
+      "splitNoItems": "Người này không có thông tin nhận dạng hoặc cuộc họp để tách.",
+      "loadError": "Không thể tải người này."
+    },
+    "errors": {
+      "stale": "Danh sách người đã thay đổi ở màn hình khác. Hãy tải lại rồi thử lại.",
+      "operation": "Không thể cập nhật danh sách người. Hãy thử lại."
+    },
+    "review": {
+      "personDetails": "Chi tiết người",
+      "previouslyTogether": "Đã từng họp cùng",
+      "meetingsBefore_one": "1 cuộc họp trước",
+      "meetingsBefore_other": "{{count}} cuộc họp trước",
+      "last": "Gần nhất {{date}}",
+      "agentPromptIntro": "Hãy giúp tôi soạn nội dung theo dõi cho “{{title}}” từ các bản ghi cuộc họp này.",
+      "agentPromptCommitments": "Cam kết",
+      "agentPromptOpenLoops": "Nội dung còn mở",
+      "agentPromptRequest": "Soạn nội dung theo dõi. Không được bịa chi tiết hoặc lời hứa.",
+      "agentError": "Không thể mở nội dung theo dõi với trợ lý.",
+      "discussFollowUp": "Thảo luận nội dung theo dõi với trợ lý",
+      "meetingsBefore": "{{count}} cuộc họp trước"
+    },
+    "briefing": {
+      "metCount_one": "Bạn đã gặp {{name}} 1 lần",
+      "metCount_other": "Bạn đã gặp {{name}} {{count}} lần",
+      "metBefore_one": "Bạn đã gặp {{name}} 1 lần · gần nhất {{date}}",
+      "metBefore_other": "Bạn đã gặp {{name}} {{count}} lần · gần nhất {{date}}",
+      "stillOpen": "Vẫn còn mở: {{text}}",
+      "metCount": "Bạn đã gặp {{name}} {{count}} lần",
+      "metBefore": "Bạn đã gặp {{name}} {{count}} lần · gần nhất {{date}}"
+    }
   }
 }

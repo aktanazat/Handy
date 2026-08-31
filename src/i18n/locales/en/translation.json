@@ -37,6 +37,7 @@
     "agents": "Agents",
     "meetings": "Meetings",
     "navigation": "Main navigation",
+    "people": "People",
     "settings": "Settings"
   },
   "topNav": {
@@ -1610,6 +1611,83 @@
       },
       "workspaceNavigation": "Agent bridge views"
     },
+    "workflows": {
+      "title": "Workflows",
+      "builtIns": "Built-in workflows",
+      "loadError": "Couldn't load workflows.",
+      "updateError": "Couldn't update the workflow.",
+      "empty": "No workflows are available.",
+      "neverRun": "Not run yet",
+      "toggleLabel": "Enable {{name}}",
+      "items": {
+        "person_linking": {
+          "name": "Person linking",
+          "description": "Connects meetings to people using confirmed attendee and speaker evidence."
+        },
+        "pre_meeting_briefing": {
+          "name": "Pre-meeting briefing",
+          "description": "Builds a brief from past meetings before a detected meeting starts."
+        },
+        "continuity": {
+          "name": "Continuity",
+          "description": "Carries unresolved commitments forward across meetings."
+        },
+        "vocabulary_mining": {
+          "name": "Vocabulary mining",
+          "description": "Finds repeated names and terms that may belong in your vocabulary."
+        },
+        "document_linking": {
+          "name": "Document linking",
+          "description": "Connects imported documents to people named in them."
+        }
+      },
+      "status": {
+        "ok": "Completed",
+        "failed": "Failed",
+        "skipped": "Skipped"
+      },
+      "outcomes": {
+        "personLinks_one": "Updated 1 person link",
+        "personLinks_other": "Updated {{count}} person links",
+        "briefing_one": "Prepared a briefing for 1 person",
+        "briefing_other": "Prepared a briefing for {{count}} people",
+        "continuitySeries_one": "Updated 1 meeting series",
+        "continuitySeries_other": "Updated {{count}} meeting series",
+        "continuityCarried_one": "carried 1 open loop",
+        "continuityCarried_other": "carried {{count}} open loops",
+        "vocabularyCandidates_one": "Found 1 vocabulary suggestion",
+        "vocabularyCandidates_other": "Found {{count}} vocabulary suggestions",
+        "documentLinks_one": "Updated 1 document link",
+        "documentLinks_other": "Updated {{count}} document links",
+        "alreadyProcessed": "Already processed",
+        "failed": "Run failed",
+        "skipped": "Skipped"
+      },
+      "vocabularySuggestions": {
+        "title": "From your meetings",
+        "occurrences_one": "1 mention",
+        "occurrences_other": "{{count}} mentions",
+        "meetings_one": "1 meeting",
+        "meetings_other": "{{count}} meetings",
+        "accept": "Add",
+        "dismiss": "Dismiss"
+      },
+      "overview": {
+        "whatSonaDid": "What Sona did",
+        "commitments": "Commitments",
+        "openMeeting": "Open meeting {{title}}",
+        "loadError": "Couldn't load this card.",
+        "retry": "Retry"
+      },
+      "runLog": {
+        "title": "Run log",
+        "empty": "No workflow runs yet.",
+        "loadError": "Couldn't load the run log.",
+        "loadMoreError": "Couldn't load more runs.",
+        "loadMore": "Load more",
+        "chartAria": "Workflow runs per day, {{count}} in the last 7 days"
+      }
+    },
     "hub": {
       "navigation": "Settings sections",
       "tabs": {
@@ -1618,6 +1696,7 @@
         "agents": "Agents",
         "advanced": "Advanced",
         "about": "About",
+        "workflows": "Workflows",
         "debug": "Debug"
       }
     }
@@ -2338,6 +2417,21 @@
       "shortcutAction": "Change dictation shortcut",
       "setShortcutAction": "Set a shortcut"
     },
+    "activity": {
+      "title": "Activity",
+      "dictations": "Dictations",
+      "words": "Words",
+      "streak": "Streak",
+      "rangePrevious": "Previous 7 days",
+      "rangeNext": "Next 7 days",
+      "peak": "Peak",
+      "dictationsAria": "Dictations per day, highest {{count}} on {{day}}",
+      "wordsAria": "Words per day, {{count}} total, ending at {{last}}",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days",
+      "streakAria_one": "Current streak, {{count}} day",
+      "streakAria_other": "Current streak, {{count}} days"
+    },
     "update": {
       "available": "Sona {{latest}} is available. This install is on {{current}}.",
       "dismiss": "Dismiss",
@@ -2432,6 +2526,111 @@
         "revoke": "Revoke browser share",
         "revokeConfirm": "Anyone holding this link loses access the moment you revoke it."
       }
+    }
+  },
+  "people": {
+    "title": "People",
+    "source": {
+      "calendar": "Calendar",
+      "speaker": "Speaker",
+      "title": "Title",
+      "manual": "Manual",
+      "suggested": "Suggested"
+    },
+    "list": {
+      "meetings_one": "1 meeting",
+      "meetings_other": "{{count}} meetings",
+      "last": "Last {{date}}",
+      "suggested_one": "Link 1 suggested meeting?",
+      "suggested_other": "Link {{count}} suggested meetings?",
+      "dismiss": "Dismiss",
+      "confirm": "Confirm",
+      "loadError": "Couldn't load people.",
+      "empty": "No people yet.",
+      "meetings": "{{count}} meetings",
+      "suggested": "Link {{count}} suggested meetings?"
+    },
+    "detail": {
+      "nameLabel": "Person name",
+      "rename": "Rename",
+      "deletePerson": "Delete person",
+      "aliases": "Also: {{aliases}}",
+      "renameTitle": "Rename this person?",
+      "renameDescription": "Change this person's name to {{name}}?",
+      "merge": "Merge",
+      "mergeTitle": "Merge this person?",
+      "mergeDescription": "Merge {{source}} into {{target}}? Links, aliases, and relationship history will be combined.",
+      "mergeTarget": "Choose a person",
+      "deleteTitle": "Delete this person?",
+      "deleteDescription": "Delete {{name}} and remove all of their meeting links?",
+      "carriedSince": "Open since {{date}}",
+      "stillOpen": "Still open",
+      "noOpenLoops": "Nothing is still open.",
+      "commitments": "Commitments",
+      "noCommitments": "No commitments recorded.",
+      "meetingsTogether": "Meetings together",
+      "noMeetings": "No linked meetings.",
+      "series": "Meeting {{number}} in series",
+      "meetingActions": "Meeting actions",
+      "unlink": "Unlink meeting",
+      "unlinkTitle": "Unlink this meeting?",
+      "unlinkDescription": "Remove {{meeting}} from this person?",
+      "documents": "Documents",
+      "importDocument": "Import document",
+      "documentsLoadError": "Documents couldn't be loaded.",
+      "noDocuments": "No imported documents.",
+      "deleteDocument": "Delete document",
+      "deleteDocumentTitle": "Delete this document?",
+      "deleteDocumentDescription": "Delete {{document}} from imported context?",
+      "cadence": "Meeting cadence",
+      "lastMeeting": "Last meeting",
+      "talkShare": "Talk share",
+      "cadenceAria": "Meetings by month: {{values}}",
+      "documentFilter": "Text documents",
+      "documentImported": "Document imported.",
+      "split": "Split person",
+      "splitTitle": "Split this person?",
+      "splitDescription": "Move selected identity details and meetings from {{name}} to another person.",
+      "splitTarget": "Move to",
+      "splitCreate": "New person",
+      "splitExisting": "Existing person",
+      "splitNameLabel": "New person's name",
+      "splitEvidence": "Choose what to move",
+      "splitMeetings": "Meetings",
+      "splitAliases": "Aliases",
+      "splitEmails": "Calendar emails",
+      "splitDocuments": "Documents",
+      "splitSubmit": "Split person",
+      "splitNothingSelected": "Choose at least one item to move.",
+      "splitNoItems": "This person has no identity details or meetings to split.",
+      "loadError": "Couldn't load this person."
+    },
+    "errors": {
+      "stale": "People changed on another screen. Reload and try again.",
+      "operation": "Couldn't update People. Try again."
+    },
+    "review": {
+      "personDetails": "Person details",
+      "previouslyTogether": "Previously together",
+      "meetingsBefore_one": "1 earlier meeting",
+      "meetingsBefore_other": "{{count}} earlier meetings",
+      "last": "Last {{date}}",
+      "agentPromptIntro": "Help me draft a follow-up for “{{title}}” from these meeting records.",
+      "agentPromptCommitments": "Commitments",
+      "agentPromptOpenLoops": "Open loops",
+      "agentPromptRequest": "Draft the follow-up. Do not invent details or promises.",
+      "agentError": "Couldn't open the agent follow-up.",
+      "discussFollowUp": "Discuss follow-up with agent",
+      "meetingsBefore": "{{count}} earlier meetings"
+    },
+    "briefing": {
+      "metCount_one": "You have met {{name}} once",
+      "metCount_other": "You have met {{name}} {{count}} times",
+      "metBefore_one": "You have met {{name}} once · last {{date}}",
+      "metBefore_other": "You have met {{name}} {{count}} times · last {{date}}",
+      "stillOpen": "Still open: {{text}}",
+      "metCount": "You have met {{name}} {{count}} times",
+      "metBefore": "You have met {{name}} {{count}} times · last {{date}}"
     }
   }
 }

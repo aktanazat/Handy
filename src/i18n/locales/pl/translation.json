@@ -37,6 +37,7 @@
     "agents": "Agenci",
     "meetings": "Spotkania",
     "navigation": "Nawigacja główna",
+    "people": "Osoby",
     "settings": "Ustawienia"
   },
   "onboarding": {
@@ -1550,12 +1551,106 @@
       },
       "workspaceNavigation": "Widoki mostka agentów"
     },
+    "workflows": {
+      "title": "Przepływy pracy",
+      "builtIns": "Wbudowane przepływy pracy",
+      "loadError": "Nie udało się wczytać przepływów pracy.",
+      "updateError": "Nie udało się zaktualizować przepływu pracy.",
+      "empty": "Brak dostępnych przepływów pracy.",
+      "neverRun": "Jeszcze nie uruchomiono",
+      "toggleLabel": "Włącz {{name}}",
+      "items": {
+        "person_linking": {
+          "name": "Łączenie osób",
+          "description": "Łączy spotkania z osobami na podstawie potwierdzonych danych uczestników i mówców."
+        },
+        "pre_meeting_briefing": {
+          "name": "Przygotowanie przed spotkaniem",
+          "description": "Przed rozpoczęciem wykrytego spotkania tworzy podsumowanie wcześniejszych spotkań."
+        },
+        "continuity": {
+          "name": "Ciągłość",
+          "description": "Przenosi nierozwiązane zobowiązania do kolejnych spotkań."
+        },
+        "vocabulary_mining": {
+          "name": "Wyszukiwanie słownictwa",
+          "description": "Znajduje powtarzające się nazwy i terminy, które mogą trafić do Twojego słownika."
+        },
+        "document_linking": {
+          "name": "Łączenie dokumentów",
+          "description": "Łączy zaimportowane dokumenty z wymienionymi w nich osobami."
+        }
+      },
+      "status": {
+        "ok": "Ukończono",
+        "failed": "Niepowodzenie",
+        "skipped": "Pominięto"
+      },
+      "outcomes": {
+        "personLinks_one": "Zaktualizowano 1 powiązanie osoby",
+        "personLinks_few": "Zaktualizowano {{count}} powiązania osób",
+        "personLinks_many": "Zaktualizowano {{count}} powiązań osób",
+        "personLinks_other": "Zaktualizowano {{count}} powiązania osoby",
+        "briefing_one": "Przygotowano odprawę dla 1 osoby",
+        "briefing_few": "Przygotowano odprawę dla {{count}} osób",
+        "briefing_many": "Przygotowano odprawę dla {{count}} osób",
+        "briefing_other": "Przygotowano odprawę dla {{count}} osoby",
+        "continuitySeries_one": "Zaktualizowano 1 serię spotkań",
+        "continuitySeries_few": "Zaktualizowano {{count}} serie spotkań",
+        "continuitySeries_many": "Zaktualizowano {{count}} serii spotkań",
+        "continuitySeries_other": "Zaktualizowano {{count}} serii spotkania",
+        "continuityCarried_one": "przeniesiono 1 otwartą sprawę",
+        "continuityCarried_few": "przeniesiono {{count}} otwarte sprawy",
+        "continuityCarried_many": "przeniesiono {{count}} otwartych spraw",
+        "continuityCarried_other": "przeniesiono {{count}} otwartej sprawy",
+        "vocabularyCandidates_one": "Znaleziono 1 sugestię słownictwa",
+        "vocabularyCandidates_few": "Znaleziono {{count}} sugestie słownictwa",
+        "vocabularyCandidates_many": "Znaleziono {{count}} sugestii słownictwa",
+        "vocabularyCandidates_other": "Znaleziono {{count}} sugestii słownictwa",
+        "documentLinks_one": "Zaktualizowano 1 powiązanie dokumentu",
+        "documentLinks_few": "Zaktualizowano {{count}} powiązania dokumentów",
+        "documentLinks_many": "Zaktualizowano {{count}} powiązań dokumentów",
+        "documentLinks_other": "Zaktualizowano {{count}} powiązania dokumentu",
+        "alreadyProcessed": "Już przetworzono",
+        "failed": "Uruchomienie nie powiodło się",
+        "skipped": "Pominięto"
+      },
+      "vocabularySuggestions": {
+        "title": "Z Twoich spotkań",
+        "occurrences_one": "1 wzmianka",
+        "occurrences_few": "{{count}} wzmianki",
+        "occurrences_many": "{{count}} wzmianek",
+        "occurrences_other": "{{count}} wzmianki",
+        "meetings_one": "1 spotkanie",
+        "meetings_few": "{{count}} spotkania",
+        "meetings_many": "{{count}} spotkań",
+        "meetings_other": "{{count}} spotkania",
+        "accept": "Dodaj",
+        "dismiss": "Odrzuć"
+      },
+      "overview": {
+        "whatSonaDid": "Co zrobiła Sona",
+        "commitments": "Zobowiązania",
+        "openMeeting": "Otwórz spotkanie {{title}}",
+        "loadError": "Nie udało się wczytać tej karty.",
+        "retry": "Spróbuj ponownie"
+      },
+      "runLog": {
+        "title": "Dziennik uruchomień",
+        "empty": "Nie uruchomiono jeszcze żadnego przepływu pracy.",
+        "loadError": "Nie udało się wczytać dziennika uruchomień.",
+        "loadMoreError": "Nie udało się wczytać kolejnych uruchomień.",
+        "loadMore": "Wczytaj więcej",
+        "chartAria": "Uruchomienia dziennie, {{count}} w ciągu ostatnich 7 dni"
+      }
+    },
     "hub": {
       "navigation": "Sekcje ustawień",
       "tabs": {
         "general": "Ogólne",
         "privacy": "Prywatność",
         "agents": "Agenci",
+        "workflows": "Przepływy pracy",
         "advanced": "Zaawansowane",
         "about": "O programie",
         "debug": "Debugowanie"
@@ -2334,6 +2429,25 @@
       "shortcutAction": "Zmień skrót dyktowania",
       "setShortcutAction": "Ustaw skrót"
     },
+    "activity": {
+      "title": "Aktywność",
+      "dictations": "Dyktowania",
+      "words": "Słowa",
+      "streak": "Seria",
+      "rangePrevious": "Poprzednie 7 dni",
+      "rangeNext": "Następne 7 dni",
+      "peak": "Szczyt",
+      "dictationsAria": "Dyktowania dziennie, najwięcej {{count}} w {{day}}",
+      "wordsAria": "Słowa dziennie, łącznie {{count}}, ostatnia wartość {{last}}",
+      "days_one": "{{count}} dzień",
+      "days_few": "{{count}} dni",
+      "days_many": "{{count}} dni",
+      "days_other": "{{count}} dnia",
+      "streakAria_one": "Bieżąca seria, {{count}} dzień",
+      "streakAria_few": "Bieżąca seria, {{count}} dni",
+      "streakAria_many": "Bieżąca seria, {{count}} dni",
+      "streakAria_other": "Bieżąca seria, {{count}} dnia"
+    },
     "update": {
       "available": "Sona {{latest}} jest dostępna. Ta instalacja ma wersję {{current}}.",
       "dismiss": "Odrzuć",
@@ -2433,5 +2547,120 @@
   "topNav": {
     "capture": "Nagrywanie",
     "library": "Biblioteka"
+  },
+  "people": {
+    "title": "Osoby",
+    "source": {
+      "calendar": "Kalendarz",
+      "speaker": "Mówca",
+      "title": "Tytuł",
+      "manual": "Ręcznie",
+      "suggested": "Sugerowane"
+    },
+    "list": {
+      "meetings_one": "1 spotkanie",
+      "meetings_few": "{{count}} spotkania",
+      "meetings_many": "{{count}} spotkań",
+      "meetings_other": "{{count}} spotkania",
+      "last": "Ostatnie {{date}}",
+      "suggested_one": "Połączyć 1 sugerowane spotkanie?",
+      "suggested_few": "Połączyć {{count}} sugerowane spotkania?",
+      "suggested_many": "Połączyć {{count}} sugerowanych spotkań?",
+      "suggested_other": "Połączyć {{count}} sugerowanego spotkania?",
+      "dismiss": "Odrzuć",
+      "confirm": "Potwierdź",
+      "loadError": "Nie udało się wczytać osób.",
+      "empty": "Nie ma jeszcze żadnych osób.",
+      "meetings": "{{count}} spotkań",
+      "suggested": "Połączyć {{count}} sugerowanych spotkań?"
+    },
+    "detail": {
+      "nameLabel": "Imię i nazwisko",
+      "rename": "Zmień nazwę",
+      "deletePerson": "Usuń osobę",
+      "aliases": "Także: {{aliases}}",
+      "renameTitle": "Zmienić nazwę tej osoby?",
+      "renameDescription": "Zmienić nazwę tej osoby na {{name}}?",
+      "merge": "Scal",
+      "mergeTitle": "Scalić tę osobę?",
+      "mergeDescription": "Scalić {{source}} z {{target}}? Połączenia, aliasy i historia relacji zostaną połączone.",
+      "mergeTarget": "Wybierz osobę",
+      "deleteTitle": "Usunąć tę osobę?",
+      "deleteDescription": "Usunąć {{name}} i wszystkie połączenia ze spotkaniami?",
+      "carriedSince": "Otwarte od {{date}}",
+      "stillOpen": "Nadal otwarte",
+      "noOpenLoops": "Nic nie pozostaje otwarte.",
+      "commitments": "Zobowiązania",
+      "noCommitments": "Brak zapisanych zobowiązań.",
+      "meetingsTogether": "Wspólne spotkania",
+      "noMeetings": "Brak połączonych spotkań.",
+      "series": "Spotkanie {{number}} w serii",
+      "meetingActions": "Działania spotkania",
+      "unlink": "Odłącz spotkanie",
+      "unlinkTitle": "Odłączyć to spotkanie?",
+      "unlinkDescription": "Usunąć {{meeting}} od tej osoby?",
+      "documents": "Dokumenty",
+      "importDocument": "Importuj dokument",
+      "documentsLoadError": "Nie udało się wczytać dokumentów.",
+      "noDocuments": "Brak zaimportowanych dokumentów.",
+      "deleteDocument": "Usuń dokument",
+      "deleteDocumentTitle": "Usunąć ten dokument?",
+      "deleteDocumentDescription": "Usunąć {{document}} z zaimportowanego kontekstu?",
+      "cadence": "Częstotliwość spotkań",
+      "lastMeeting": "Ostatnie spotkanie",
+      "talkShare": "Udział w rozmowie",
+      "cadenceAria": "Spotkania według miesięcy: {{values}}",
+      "documentFilter": "Dokumenty tekstowe",
+      "documentImported": "Dokument zaimportowany.",
+      "split": "Podziel osobę",
+      "splitTitle": "Podzielić tę osobę?",
+      "splitDescription": "Przenieś wybrane dane tożsamości i spotkania osoby {{name}} do innej osoby.",
+      "splitTarget": "Przenieś do",
+      "splitCreate": "Nowa osoba",
+      "splitExisting": "Istniejąca osoba",
+      "splitNameLabel": "Imię nowej osoby",
+      "splitEvidence": "Wybierz elementy do przeniesienia",
+      "splitMeetings": "Spotkania",
+      "splitAliases": "Inne nazwy",
+      "splitEmails": "Adresy e-mail z kalendarza",
+      "splitDocuments": "Dokumenty",
+      "splitSubmit": "Podziel osobę",
+      "splitNothingSelected": "Wybierz co najmniej jeden element do przeniesienia.",
+      "splitNoItems": "Ta osoba nie ma danych tożsamości ani spotkań, które można oddzielić.",
+      "loadError": "Nie udało się wczytać tej osoby."
+    },
+    "errors": {
+      "stale": "Osoby zostały zmienione na innym ekranie. Wczytaj ponownie i spróbuj jeszcze raz.",
+      "operation": "Nie udało się zaktualizować osób. Spróbuj ponownie."
+    },
+    "review": {
+      "personDetails": "Szczegóły osoby",
+      "previouslyTogether": "Wcześniejsze wspólne spotkania",
+      "meetingsBefore_one": "1 wcześniejsze spotkanie",
+      "meetingsBefore_few": "{{count}} wcześniejsze spotkania",
+      "meetingsBefore_many": "{{count}} wcześniejszych spotkań",
+      "meetingsBefore_other": "{{count}} wcześniejszego spotkania",
+      "last": "Ostatnie {{date}}",
+      "agentPromptIntro": "Pomóż mi napisać wiadomość uzupełniającą po „{{title}}” na podstawie tych danych ze spotkania.",
+      "agentPromptCommitments": "Zobowiązania",
+      "agentPromptOpenLoops": "Otwarte kwestie",
+      "agentPromptRequest": "Napisz wiadomość uzupełniającą. Nie wymyślaj szczegółów ani obietnic.",
+      "agentError": "Nie udało się otworzyć działania z agentem.",
+      "discussFollowUp": "Omów dalsze działania z agentem",
+      "meetingsBefore": "{{count}} wcześniejszych spotkań"
+    },
+    "briefing": {
+      "metCount_one": "Masz za sobą 1 spotkanie z {{name}}",
+      "metCount_few": "Masz za sobą {{count}} spotkania z {{name}}",
+      "metCount_many": "Masz za sobą {{count}} spotkań z {{name}}",
+      "metCount_other": "Masz za sobą {{count}} spotkania z {{name}}",
+      "metBefore_one": "Masz za sobą 1 spotkanie z {{name}} · ostatnie {{date}}",
+      "metBefore_few": "Masz za sobą {{count}} spotkania z {{name}} · ostatnie {{date}}",
+      "metBefore_many": "Masz za sobą {{count}} spotkań z {{name}} · ostatnie {{date}}",
+      "metBefore_other": "Masz za sobą {{count}} spotkania z {{name}} · ostatnie {{date}}",
+      "stillOpen": "Nadal otwarte: {{text}}",
+      "metCount": "Masz za sobą {{count}} spotkań z {{name}}",
+      "metBefore": "Masz za sobą {{count}} spotkań z {{name}} · ostatnie {{date}}"
+    }
   }
 }

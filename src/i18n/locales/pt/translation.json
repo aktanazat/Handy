@@ -37,6 +37,7 @@
     "agents": "Agentes",
     "meetings": "Reuniões",
     "navigation": "Navegação principal",
+    "people": "Pessoas",
     "settings": "Configurações"
   },
   "onboarding": {
@@ -1550,12 +1551,98 @@
       },
       "workspaceNavigation": "Vistas da ponte de agentes"
     },
+    "workflows": {
+      "title": "Fluxos de trabalho",
+      "builtIns": "Fluxos de trabalho integrados",
+      "loadError": "Não foi possível carregar os fluxos de trabalho.",
+      "updateError": "Não foi possível atualizar o fluxo de trabalho.",
+      "empty": "Não há fluxos de trabalho disponíveis.",
+      "neverRun": "Ainda não executado",
+      "toggleLabel": "Ativar {{name}}",
+      "items": {
+        "person_linking": {
+          "name": "Vinculação de pessoas",
+          "description": "Vincula reuniões a pessoas usando dados confirmados de participantes e oradores."
+        },
+        "pre_meeting_briefing": {
+          "name": "Resumo antes da reunião",
+          "description": "Prepara um resumo de reuniões anteriores antes do início de uma reunião detetada."
+        },
+        "continuity": {
+          "name": "Continuidade",
+          "description": "Transfere compromissos pendentes para as reuniões seguintes."
+        },
+        "vocabulary_mining": {
+          "name": "Extração de vocabulário",
+          "description": "Encontra nomes e termos repetidos que podem pertencer ao seu vocabulário."
+        },
+        "document_linking": {
+          "name": "Vinculação de documentos",
+          "description": "Vincula documentos importados às pessoas mencionadas neles."
+        }
+      },
+      "status": {
+        "ok": "Concluído",
+        "failed": "Falhou",
+        "skipped": "Ignorado"
+      },
+      "outcomes": {
+        "personLinks_one": "Atualizada 1 associação de pessoa",
+        "personLinks_many": "Atualizadas {{count}} associações de pessoas",
+        "personLinks_other": "Atualizadas {{count}} associações de pessoas",
+        "briefing_one": "Preparado um resumo para 1 pessoa",
+        "briefing_many": "Preparado um resumo para {{count}} pessoas",
+        "briefing_other": "Preparado um resumo para {{count}} pessoas",
+        "continuitySeries_one": "Atualizada 1 série de reuniões",
+        "continuitySeries_many": "Atualizadas {{count}} séries de reuniões",
+        "continuitySeries_other": "Atualizadas {{count}} séries de reuniões",
+        "continuityCarried_one": "transferido 1 ponto em aberto",
+        "continuityCarried_many": "transferidos {{count}} pontos em aberto",
+        "continuityCarried_other": "transferidos {{count}} pontos em aberto",
+        "vocabularyCandidates_one": "Encontrada 1 sugestão de vocabulário",
+        "vocabularyCandidates_many": "Encontradas {{count}} sugestões de vocabulário",
+        "vocabularyCandidates_other": "Encontradas {{count}} sugestões de vocabulário",
+        "documentLinks_one": "Atualizada 1 associação de documento",
+        "documentLinks_many": "Atualizadas {{count}} associações de documentos",
+        "documentLinks_other": "Atualizadas {{count}} associações de documentos",
+        "alreadyProcessed": "Já processado",
+        "failed": "A execução falhou",
+        "skipped": "Ignorado"
+      },
+      "vocabularySuggestions": {
+        "title": "Das suas reuniões",
+        "occurrences_one": "1 menção",
+        "occurrences_many": "{{count}} menções",
+        "occurrences_other": "{{count}} menções",
+        "meetings_one": "1 reunião",
+        "meetings_many": "{{count}} reuniões",
+        "meetings_other": "{{count}} reuniões",
+        "accept": "Adicionar",
+        "dismiss": "Ignorar"
+      },
+      "overview": {
+        "whatSonaDid": "O que a Sona fez",
+        "commitments": "Compromissos",
+        "openMeeting": "Abrir a reunião {{title}}",
+        "loadError": "Não foi possível carregar este cartão.",
+        "retry": "Tentar novamente"
+      },
+      "runLog": {
+        "title": "Registo de execuções",
+        "empty": "Ainda não há execuções de fluxos de trabalho.",
+        "loadError": "Não foi possível carregar o registo de execuções.",
+        "loadMoreError": "Não foi possível carregar mais execuções.",
+        "loadMore": "Carregar mais",
+        "chartAria": "Execuções por dia, {{count}} nos últimos 7 dias"
+      }
+    },
     "hub": {
       "navigation": "Seções de configurações",
       "tabs": {
         "general": "Geral",
         "privacy": "Privacidade",
         "agents": "Agentes",
+        "workflows": "Fluxos de trabalho",
         "advanced": "Avançado",
         "about": "Sobre",
         "debug": "Depuração"
@@ -2334,6 +2421,23 @@
       "shortcutAction": "Mudar o atalho de ditado",
       "setShortcutAction": "Definir um atalho"
     },
+    "activity": {
+      "title": "Atividade",
+      "dictations": "Ditados",
+      "words": "Palavras",
+      "streak": "Sequência",
+      "rangePrevious": "7 dias anteriores",
+      "rangeNext": "7 dias seguintes",
+      "peak": "Pico",
+      "dictationsAria": "Ditados por dia, máximo de {{count}} em {{day}}",
+      "wordsAria": "Palavras por dia, {{count}} no total, último valor {{last}}",
+      "days_one": "{{count}} dia",
+      "days_many": "{{count}} dias",
+      "days_other": "{{count}} dias",
+      "streakAria_one": "Sequência atual, {{count}} dia",
+      "streakAria_many": "Sequência atual, {{count}} dias",
+      "streakAria_other": "Sequência atual, {{count}} dias"
+    },
     "update": {
       "available": "O Sona {{latest}} está disponível. Esta instalação está na versão {{current}}.",
       "dismiss": "Ignorar",
@@ -2433,5 +2537,115 @@
   "topNav": {
     "capture": "Captura",
     "library": "Biblioteca"
+  },
+  "people": {
+    "title": "Pessoas",
+    "source": {
+      "calendar": "Calendário",
+      "speaker": "Falante",
+      "title": "Título",
+      "manual": "Manual",
+      "suggested": "Sugerido"
+    },
+    "list": {
+      "meetings_one": "1 reunião",
+      "meetings_many": "{{count}} reuniões",
+      "meetings_other": "{{count}} reuniões",
+      "last": "Última {{date}}",
+      "suggested_one": "Associar 1 reunião sugerida?",
+      "suggested_many": "Associar {{count}} reuniões sugeridas?",
+      "suggested_other": "Associar {{count}} reuniões sugeridas?",
+      "dismiss": "Ignorar",
+      "confirm": "Confirmar",
+      "loadError": "Não foi possível carregar as pessoas.",
+      "empty": "Ainda não há pessoas.",
+      "meetings": "{{count}} reuniões",
+      "suggested": "Associar {{count}} reuniões sugeridas?"
+    },
+    "detail": {
+      "nameLabel": "Nome da pessoa",
+      "rename": "Renomear",
+      "deletePerson": "Eliminar pessoa",
+      "aliases": "Também: {{aliases}}",
+      "renameTitle": "Renomear esta pessoa?",
+      "renameDescription": "Alterar o nome desta pessoa para {{name}}?",
+      "merge": "Combinar",
+      "mergeTitle": "Combinar esta pessoa?",
+      "mergeDescription": "Combinar {{source}} com {{target}}? As associações, alcunhas e o histórico da relação serão reunidos.",
+      "mergeTarget": "Escolher uma pessoa",
+      "deleteTitle": "Eliminar esta pessoa?",
+      "deleteDescription": "Eliminar {{name}} e todas as associações a reuniões?",
+      "carriedSince": "Em aberto desde {{date}}",
+      "stillOpen": "Ainda em aberto",
+      "noOpenLoops": "Não há nada em aberto.",
+      "commitments": "Compromissos",
+      "noCommitments": "Não há compromissos registados.",
+      "meetingsTogether": "Reuniões em conjunto",
+      "noMeetings": "Não há reuniões associadas.",
+      "series": "Reunião {{number}} da série",
+      "meetingActions": "Ações da reunião",
+      "unlink": "Desassociar reunião",
+      "unlinkTitle": "Desassociar esta reunião?",
+      "unlinkDescription": "Remover {{meeting}} desta pessoa?",
+      "documents": "Documentos",
+      "importDocument": "Importar documento",
+      "documentsLoadError": "Não foi possível carregar os documentos.",
+      "noDocuments": "Não há documentos importados.",
+      "deleteDocument": "Eliminar documento",
+      "deleteDocumentTitle": "Eliminar este documento?",
+      "deleteDocumentDescription": "Eliminar {{document}} do contexto importado?",
+      "cadence": "Cadência das reuniões",
+      "lastMeeting": "Última reunião",
+      "talkShare": "Percentagem de fala",
+      "cadenceAria": "Reuniões por mês: {{values}}",
+      "documentFilter": "Documentos de texto",
+      "documentImported": "Documento importado.",
+      "split": "Dividir pessoa",
+      "splitTitle": "Dividir esta pessoa?",
+      "splitDescription": "Mova os dados de identidade e as reuniões selecionados de {{name}} para outra pessoa.",
+      "splitTarget": "Mover para",
+      "splitCreate": "Nova pessoa",
+      "splitExisting": "Pessoa existente",
+      "splitNameLabel": "Nome da nova pessoa",
+      "splitEvidence": "Escolha o que mover",
+      "splitMeetings": "Reuniões",
+      "splitAliases": "Outros nomes",
+      "splitEmails": "E-mails do calendário",
+      "splitDocuments": "Documentos",
+      "splitSubmit": "Dividir pessoa",
+      "splitNothingSelected": "Escolha pelo menos um item para mover.",
+      "splitNoItems": "Esta pessoa não tem dados de identidade nem reuniões para separar.",
+      "loadError": "Não foi possível carregar esta pessoa."
+    },
+    "errors": {
+      "stale": "As pessoas foram alteradas noutro ecrã. Recarregue e tente novamente.",
+      "operation": "Não foi possível atualizar as pessoas. Tente novamente."
+    },
+    "review": {
+      "personDetails": "Detalhes da pessoa",
+      "previouslyTogether": "Reuniões anteriores",
+      "meetingsBefore_one": "1 reunião anterior",
+      "meetingsBefore_many": "{{count}} reuniões anteriores",
+      "meetingsBefore_other": "{{count}} reuniões anteriores",
+      "last": "Última {{date}}",
+      "agentPromptIntro": "Ajuda-me a redigir um seguimento para “{{title}}” com estes registos da reunião.",
+      "agentPromptCommitments": "Compromissos",
+      "agentPromptOpenLoops": "Questões em aberto",
+      "agentPromptRequest": "Redige o seguimento. Não inventes detalhes nem promessas.",
+      "agentError": "Não foi possível abrir o seguimento com o agente.",
+      "discussFollowUp": "Discutir o seguimento com o agente",
+      "meetingsBefore": "{{count}} reuniões anteriores"
+    },
+    "briefing": {
+      "metCount_one": "Já se reuniu com {{name}} uma vez",
+      "metCount_many": "Já se reuniu com {{name}} {{count}} vezes",
+      "metCount_other": "Já se reuniu com {{name}} {{count}} vezes",
+      "metBefore_one": "Já se reuniu com {{name}} uma vez · última {{date}}",
+      "metBefore_many": "Já se reuniu com {{name}} {{count}} vezes · última {{date}}",
+      "metBefore_other": "Já se reuniu com {{name}} {{count}} vezes · última {{date}}",
+      "stillOpen": "Ainda em aberto: {{text}}",
+      "metCount": "Já se reuniu com {{name}} {{count}} vezes",
+      "metBefore": "Já se reuniu com {{name}} {{count}} vezes · última {{date}}"
+    }
   }
 }

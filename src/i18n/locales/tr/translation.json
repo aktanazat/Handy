@@ -37,6 +37,7 @@
     "agents": "Ajanlar",
     "meetings": "Toplantılar",
     "navigation": "Ana gezinme",
+    "people": "Kişiler",
     "settings": "Ayarlar"
   },
   "onboarding": {
@@ -1550,12 +1551,90 @@
       },
       "workspaceNavigation": "Ajan köprüsü görünümleri"
     },
+    "workflows": {
+      "title": "İş akışları",
+      "builtIns": "Yerleşik iş akışları",
+      "loadError": "İş akışları yüklenemedi.",
+      "updateError": "İş akışı güncellenemedi.",
+      "empty": "Kullanılabilir iş akışı yok.",
+      "neverRun": "Henüz çalıştırılmadı",
+      "toggleLabel": "{{name}} iş akışını etkinleştir",
+      "items": {
+        "person_linking": {
+          "name": "Kişi eşleştirme",
+          "description": "Toplantıları doğrulanmış katılımcı ve konuşmacı bilgileriyle kişilere bağlar."
+        },
+        "pre_meeting_briefing": {
+          "name": "Toplantı öncesi özet",
+          "description": "Algılanan bir toplantı başlamadan önce geçmiş toplantılardan bir özet hazırlar."
+        },
+        "continuity": {
+          "name": "Süreklilik",
+          "description": "Çözülmemiş taahhütleri sonraki toplantılara taşır."
+        },
+        "vocabulary_mining": {
+          "name": "Kelime hazinesi çıkarma",
+          "description": "Kelime hazinenize eklenebilecek tekrarlanan adları ve terimleri bulur."
+        },
+        "document_linking": {
+          "name": "Belge eşleştirme",
+          "description": "İçe aktarılan belgeleri belgelerde adı geçen kişilere bağlar."
+        }
+      },
+      "status": {
+        "ok": "Tamamlandı",
+        "failed": "Başarısız",
+        "skipped": "Atlandı"
+      },
+      "outcomes": {
+        "personLinks_one": "1 kişi bağlantısı güncellendi",
+        "personLinks_other": "{{count}} kişi bağlantısı güncellendi",
+        "briefing_one": "1 kişi için brifing hazırlandı",
+        "briefing_other": "{{count}} kişi için brifing hazırlandı",
+        "continuitySeries_one": "1 toplantı serisi güncellendi",
+        "continuitySeries_other": "{{count}} toplantı serisi güncellendi",
+        "continuityCarried_one": "1 açık konu aktarıldı",
+        "continuityCarried_other": "{{count}} açık konu aktarıldı",
+        "vocabularyCandidates_one": "1 kelime önerisi bulundu",
+        "vocabularyCandidates_other": "{{count}} kelime önerisi bulundu",
+        "documentLinks_one": "1 belge bağlantısı güncellendi",
+        "documentLinks_other": "{{count}} belge bağlantısı güncellendi",
+        "alreadyProcessed": "Zaten işlendi",
+        "failed": "Çalıştırma başarısız",
+        "skipped": "Atlandı"
+      },
+      "vocabularySuggestions": {
+        "title": "Toplantılarınızdan",
+        "occurrences_one": "1 kez geçti",
+        "occurrences_other": "{{count}} kez geçti",
+        "meetings_one": "1 toplantı",
+        "meetings_other": "{{count}} toplantı",
+        "accept": "Ekle",
+        "dismiss": "Reddet"
+      },
+      "overview": {
+        "whatSonaDid": "Sona’nın yaptıkları",
+        "commitments": "Taahhütler",
+        "openMeeting": "{{title}} toplantısını aç",
+        "loadError": "Bu kart yüklenemedi.",
+        "retry": "Yeniden dene"
+      },
+      "runLog": {
+        "title": "Çalıştırma günlüğü",
+        "empty": "Henüz hiçbir iş akışı çalıştırılmadı.",
+        "loadError": "Çalıştırma günlüğü yüklenemedi.",
+        "loadMoreError": "Daha fazla çalıştırma yüklenemedi.",
+        "loadMore": "Daha fazla yükle",
+        "chartAria": "Günlük iş akışı çalıştırmaları, son 7 günde {{count}}"
+      }
+    },
     "hub": {
       "navigation": "Ayar bölümleri",
       "tabs": {
         "general": "Genel",
         "privacy": "Gizlilik",
         "agents": "Ajanlar",
+        "workflows": "İş akışları",
         "advanced": "Gelişmiş",
         "about": "Hakkında",
         "debug": "Hata ayıklama"
@@ -2334,6 +2413,21 @@
       "shortcutAction": "Dikte kısayolunu değiştir",
       "setShortcutAction": "Bir kısayol ayarla"
     },
+    "activity": {
+      "title": "Etkinlik",
+      "dictations": "Dikteler",
+      "words": "Kelimeler",
+      "streak": "Seri",
+      "rangePrevious": "Önceki 7 gün",
+      "rangeNext": "Sonraki 7 gün",
+      "peak": "Zirve",
+      "dictationsAria": "Günlük dikte, en yüksek {{day}} günü {{count}}",
+      "wordsAria": "Günlük kelime, toplam {{count}}, son değer {{last}}",
+      "days_one": "{{count}} gün",
+      "days_other": "{{count}} gün",
+      "streakAria_one": "Mevcut seri, {{count}} gün",
+      "streakAria_other": "Mevcut seri, {{count}} gün"
+    },
     "update": {
       "available": "Sona {{latest}} kullanılabilir. Bu kurulum {{current}} sürümünde.",
       "dismiss": "Kapat",
@@ -2433,5 +2527,110 @@
   "topNav": {
     "capture": "Kayıt",
     "library": "Kitaplık"
+  },
+  "people": {
+    "title": "Kişiler",
+    "source": {
+      "calendar": "Takvim",
+      "speaker": "Konuşmacı",
+      "title": "Başlık",
+      "manual": "Elle",
+      "suggested": "Önerilen"
+    },
+    "list": {
+      "meetings_one": "1 toplantı",
+      "meetings_other": "{{count}} toplantı",
+      "last": "Son {{date}}",
+      "suggested_one": "Önerilen 1 toplantı bağlansın mı?",
+      "suggested_other": "Önerilen {{count}} toplantı bağlansın mı?",
+      "dismiss": "Reddet",
+      "confirm": "Onayla",
+      "loadError": "Kişiler yüklenemedi.",
+      "empty": "Henüz kimse yok.",
+      "meetings": "{{count}} toplantı",
+      "suggested": "Önerilen {{count}} toplantı bağlansın mı?"
+    },
+    "detail": {
+      "nameLabel": "Kişi adı",
+      "rename": "Yeniden adlandır",
+      "deletePerson": "Kişiyi sil",
+      "aliases": "Diğer adlar: {{aliases}}",
+      "renameTitle": "Bu kişi yeniden adlandırılsın mı?",
+      "renameDescription": "Bu kişinin adı {{name}} olarak değiştirilsin mi?",
+      "merge": "Birleştir",
+      "mergeTitle": "Bu kişi birleştirilsin mi?",
+      "mergeDescription": "{{source}}, {{target}} ile birleştirilsin mi? Bağlantılar, diğer adlar ve ilişki geçmişi birleştirilecek.",
+      "mergeTarget": "Kişi seçin",
+      "deleteTitle": "Bu kişi silinsin mi?",
+      "deleteDescription": "{{name}} ve tüm toplantı bağlantıları silinsin mi?",
+      "carriedSince": "{{date}} tarihinden beri açık",
+      "stillOpen": "Hâlâ açık",
+      "noOpenLoops": "Açık kalan bir konu yok.",
+      "commitments": "Taahhütler",
+      "noCommitments": "Kaydedilmiş taahhüt yok.",
+      "meetingsTogether": "Birlikte yapılan toplantılar",
+      "noMeetings": "Bağlı toplantı yok.",
+      "series": "Serideki {{number}}. toplantı",
+      "meetingActions": "Toplantı işlemleri",
+      "unlink": "Toplantı bağlantısını kaldır",
+      "unlinkTitle": "Bu toplantının bağlantısı kaldırılsın mı?",
+      "unlinkDescription": "{{meeting}} bu kişiden kaldırılsın mı?",
+      "documents": "Belgeler",
+      "importDocument": "Belge içe aktar",
+      "documentsLoadError": "Belgeler yüklenemedi.",
+      "noDocuments": "İçe aktarılmış belge yok.",
+      "deleteDocument": "Belgeyi sil",
+      "deleteDocumentTitle": "Bu belge silinsin mi?",
+      "deleteDocumentDescription": "{{document}} içe aktarılan bağlamdan silinsin mi?",
+      "cadence": "Toplantı sıklığı",
+      "lastMeeting": "Son toplantı",
+      "talkShare": "Konuşma payı",
+      "cadenceAria": "Aya göre toplantılar: {{values}}",
+      "documentFilter": "Metin belgeleri",
+      "documentImported": "Belge içe aktarıldı.",
+      "split": "Kişiyi ayır",
+      "splitTitle": "Bu kişi ayrılsın mı?",
+      "splitDescription": "{{name}} kişisinin seçili kimlik bilgilerini ve toplantılarını başka bir kişiye taşıyın.",
+      "splitTarget": "Şuraya taşı",
+      "splitCreate": "Yeni kişi",
+      "splitExisting": "Mevcut kişi",
+      "splitNameLabel": "Yeni kişinin adı",
+      "splitEvidence": "Taşınacak öğeleri seçin",
+      "splitMeetings": "Toplantılar",
+      "splitAliases": "Diğer adlar",
+      "splitEmails": "Takvim e-postaları",
+      "splitDocuments": "Belgeler",
+      "splitSubmit": "Kişiyi ayır",
+      "splitNothingSelected": "Taşımak için en az bir öğe seçin.",
+      "splitNoItems": "Bu kişinin ayrılabilecek kimlik bilgisi veya toplantısı yok.",
+      "loadError": "Bu kişi yüklenemedi."
+    },
+    "errors": {
+      "stale": "Kişiler başka bir ekranda değişti. Yeniden yükleyip tekrar deneyin.",
+      "operation": "Kişiler güncellenemedi. Tekrar deneyin."
+    },
+    "review": {
+      "personDetails": "Kişi ayrıntıları",
+      "previouslyTogether": "Daha önce birlikte",
+      "meetingsBefore_one": "Önceki 1 toplantı",
+      "meetingsBefore_other": "Önceki {{count}} toplantı",
+      "last": "Son {{date}}",
+      "agentPromptIntro": "Bu toplantı kayıtlarından “{{title}}” için bir takip mesajı hazırlamama yardım et.",
+      "agentPromptCommitments": "Taahhütler",
+      "agentPromptOpenLoops": "Açık konular",
+      "agentPromptRequest": "Takip mesajını hazırla. Ayrıntı veya söz uydurma.",
+      "agentError": "Temsilciyle takip açılamadı.",
+      "discussFollowUp": "Takibi temsilciyle görüş",
+      "meetingsBefore": "Önceki {{count}} toplantı"
+    },
+    "briefing": {
+      "metCount_one": "{{name}} ile bir kez görüştünüz",
+      "metCount_other": "{{name}} ile {{count}} kez görüştünüz",
+      "metBefore_one": "{{name}} ile bir kez görüştünüz · son {{date}}",
+      "metBefore_other": "{{name}} ile {{count}} kez görüştünüz · son {{date}}",
+      "stillOpen": "Hâlâ açık: {{text}}",
+      "metCount": "{{name}} ile {{count}} kez görüştünüz",
+      "metBefore": "{{name}} ile {{count}} kez görüştünüz · son {{date}}"
+    }
   }
 }

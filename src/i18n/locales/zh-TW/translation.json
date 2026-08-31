@@ -37,6 +37,7 @@
     "agents": "代理程式",
     "meetings": "會議",
     "navigation": "主導覽",
+    "people": "人物",
     "settings": "設定"
   },
   "onboarding": {
@@ -1550,12 +1551,82 @@
       },
       "workspaceNavigation": "代理程式橋接檢視"
     },
+    "workflows": {
+      "title": "工作流程",
+      "builtIns": "內建工作流程",
+      "loadError": "無法載入工作流程。",
+      "updateError": "無法更新工作流程。",
+      "empty": "沒有可用的工作流程。",
+      "neverRun": "尚未執行",
+      "toggleLabel": "啟用「{{name}}」",
+      "items": {
+        "person_linking": {
+          "name": "人物連結",
+          "description": "使用已確認的與會者與發言者資料，將會議連結至人物。"
+        },
+        "pre_meeting_briefing": {
+          "name": "會議前摘要",
+          "description": "在偵測到的會議開始前，根據過往會議建立摘要。"
+        },
+        "continuity": {
+          "name": "延續追蹤",
+          "description": "將尚未解決的承諾延續到後續會議。"
+        },
+        "vocabulary_mining": {
+          "name": "詞彙擷取",
+          "description": "找出可能適合加入詞彙表的重複名稱與詞語。"
+        },
+        "document_linking": {
+          "name": "文件連結",
+          "description": "將匯入的文件連結至其中提及的人物。"
+        }
+      },
+      "status": {
+        "ok": "已完成",
+        "failed": "失敗",
+        "skipped": "已略過"
+      },
+      "outcomes": {
+        "personLinks_other": "已更新 {{count}} 個人物連結",
+        "briefing_other": "已為 {{count}} 人準備簡報",
+        "continuitySeries_other": "已更新 {{count}} 個會議系列",
+        "continuityCarried_other": "已延續 {{count}} 個待處理事項",
+        "vocabularyCandidates_other": "找到 {{count}} 個詞彙建議",
+        "documentLinks_other": "已更新 {{count}} 個文件連結",
+        "alreadyProcessed": "已處理",
+        "failed": "執行失敗",
+        "skipped": "已略過"
+      },
+      "vocabularySuggestions": {
+        "title": "來自你的會議",
+        "occurrences_other": "提及 {{count}} 次",
+        "meetings_other": "{{count}} 場會議",
+        "accept": "加入",
+        "dismiss": "略過"
+      },
+      "overview": {
+        "whatSonaDid": "Sona 完成的工作",
+        "commitments": "承諾事項",
+        "openMeeting": "開啟會議 {{title}}",
+        "loadError": "無法載入此卡片。",
+        "retry": "重試"
+      },
+      "runLog": {
+        "title": "執行記錄",
+        "empty": "尚無工作流程執行記錄。",
+        "loadError": "無法載入執行記錄。",
+        "loadMoreError": "無法載入更多執行記錄。",
+        "loadMore": "載入更多",
+        "chartAria": "每日工作流程執行次數，過去 7 天共 {{count}} 次"
+      }
+    },
     "hub": {
       "navigation": "設定區段",
       "tabs": {
         "general": "一般",
         "privacy": "隱私",
         "agents": "代理程式",
+        "workflows": "工作流程",
         "advanced": "進階",
         "about": "關於",
         "debug": "偵錯"
@@ -2334,6 +2405,19 @@
       "shortcutAction": "修改口述快速鍵",
       "setShortcutAction": "設定一個快速鍵"
     },
+    "activity": {
+      "title": "活動",
+      "dictations": "口述",
+      "words": "字詞",
+      "streak": "連續紀錄",
+      "rangePrevious": "前 7 天",
+      "rangeNext": "後 7 天",
+      "peak": "最高",
+      "dictationsAria": "每日口述，{{day}}最高 {{count}} 次",
+      "wordsAria": "每日字詞，共 {{count}} 個，最後為 {{last}}",
+      "days_other": "{{count}} 天",
+      "streakAria_other": "目前連續紀錄，{{count}} 天"
+    },
     "update": {
       "available": "Sona {{latest}} 已推出。目前安裝的是 {{current}}。",
       "dismiss": "關閉",
@@ -2433,5 +2517,110 @@
   "topNav": {
     "capture": "錄音",
     "library": "資料庫"
+  },
+  "people": {
+    "title": "人物",
+    "source": {
+      "calendar": "行事曆",
+      "speaker": "說話者",
+      "title": "標題",
+      "manual": "手動",
+      "suggested": "建議"
+    },
+    "list": {
+      "meetings_one": "1 次會議",
+      "meetings_other": "{{count}} 次會議",
+      "last": "最近一次 {{date}}",
+      "suggested_one": "連結 1 個建議的會議？",
+      "suggested_other": "連結 {{count}} 個建議的會議？",
+      "dismiss": "略過",
+      "confirm": "確認",
+      "loadError": "無法載入人物。",
+      "empty": "尚無人物。",
+      "meetings": "{{count}} 次會議",
+      "suggested": "連結 {{count}} 個建議的會議？"
+    },
+    "detail": {
+      "nameLabel": "人物名稱",
+      "rename": "重新命名",
+      "deletePerson": "刪除人物",
+      "aliases": "其他名稱：{{aliases}}",
+      "renameTitle": "重新命名此人物？",
+      "renameDescription": "將此人物重新命名為 {{name}}？",
+      "merge": "合併",
+      "mergeTitle": "合併此人物？",
+      "mergeDescription": "將 {{source}} 合併到 {{target}}？連結、其他名稱與關係記錄都會合併。",
+      "mergeTarget": "選擇人物",
+      "deleteTitle": "刪除此人物？",
+      "deleteDescription": "刪除 {{name}} 及其所有會議連結？",
+      "carriedSince": "自 {{date}} 起尚未處理",
+      "stillOpen": "仍待處理",
+      "noOpenLoops": "沒有待處理事項。",
+      "commitments": "承諾事項",
+      "noCommitments": "沒有已記錄的承諾事項。",
+      "meetingsTogether": "共同會議",
+      "noMeetings": "沒有已連結的會議。",
+      "series": "系列中的第 {{number}} 次會議",
+      "meetingActions": "會議操作",
+      "unlink": "取消會議連結",
+      "unlinkTitle": "取消連結此會議？",
+      "unlinkDescription": "從此人物移除 {{meeting}}？",
+      "documents": "文件",
+      "importDocument": "匯入文件",
+      "documentsLoadError": "無法載入文件。",
+      "noDocuments": "沒有已匯入的文件。",
+      "deleteDocument": "刪除文件",
+      "deleteDocumentTitle": "刪除此文件？",
+      "deleteDocumentDescription": "從匯入的內容中刪除 {{document}}？",
+      "cadence": "會議頻率",
+      "lastMeeting": "最近一次會議",
+      "talkShare": "發言比例",
+      "cadenceAria": "每月會議：{{values}}",
+      "documentFilter": "文字文件",
+      "documentImported": "已匯入文件。",
+      "split": "拆分人物",
+      "splitTitle": "拆分此人物？",
+      "splitDescription": "將 {{name}} 的所選身分資訊和會議移至另一個人物。",
+      "splitTarget": "移至",
+      "splitCreate": "新人物",
+      "splitExisting": "現有人物",
+      "splitNameLabel": "新人物姓名",
+      "splitEvidence": "選擇要移動的內容",
+      "splitMeetings": "會議",
+      "splitAliases": "其他姓名",
+      "splitEmails": "行事曆電子郵件",
+      "splitDocuments": "文件",
+      "splitSubmit": "拆分人物",
+      "splitNothingSelected": "請至少選擇一項要移動的內容。",
+      "splitNoItems": "此人物沒有可拆分的身分資訊或會議。",
+      "loadError": "無法載入此人物。"
+    },
+    "errors": {
+      "stale": "人物資料已在其他畫面變更。請重新載入後再試一次。",
+      "operation": "無法更新人物資料。請再試一次。"
+    },
+    "review": {
+      "personDetails": "人物詳細資料",
+      "previouslyTogether": "過往共同會議",
+      "meetingsBefore_one": "先前 1 次會議",
+      "meetingsBefore_other": "先前 {{count}} 次會議",
+      "last": "最近一次 {{date}}",
+      "agentPromptIntro": "請根據這些會議記錄，協助我撰寫「{{title}}」的後續訊息。",
+      "agentPromptCommitments": "承諾事項",
+      "agentPromptOpenLoops": "待處理事項",
+      "agentPromptRequest": "撰寫後續訊息。不要杜撰細節或承諾。",
+      "agentError": "無法開啟與代理程式的後續討論。",
+      "discussFollowUp": "與代理程式討論後續事項",
+      "meetingsBefore": "先前 {{count}} 次會議"
+    },
+    "briefing": {
+      "metCount_one": "你曾與 {{name}} 見面 1 次",
+      "metCount_other": "你曾與 {{name}} 見面 {{count}} 次",
+      "metBefore_one": "你曾與 {{name}} 見面 1 次 · 最近一次 {{date}}",
+      "metBefore_other": "你曾與 {{name}} 見面 {{count}} 次 · 最近一次 {{date}}",
+      "stillOpen": "仍待處理：{{text}}",
+      "metCount": "你曾與 {{name}} 見面 {{count}} 次",
+      "metBefore": "你曾與 {{name}} 見面 {{count}} 次 · 最近一次 {{date}}"
+    }
   }
 }

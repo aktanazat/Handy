@@ -37,6 +37,7 @@
     "agents": "Agenti",
     "meetings": "Schůzky",
     "navigation": "Hlavní navigace",
+    "people": "Lidé",
     "settings": "Nastavení"
   },
   "onboarding": {
@@ -1550,12 +1551,106 @@
       },
       "workspaceNavigation": "Zobrazení mostu agentů"
     },
+    "workflows": {
+      "title": "Pracovní postupy",
+      "builtIns": "Vestavěné pracovní postupy",
+      "loadError": "Pracovní postupy se nepodařilo načíst.",
+      "updateError": "Pracovní postup se nepodařilo aktualizovat.",
+      "empty": "Nejsou k dispozici žádné pracovní postupy.",
+      "neverRun": "Zatím nebyl spuštěn",
+      "toggleLabel": "Povolit {{name}}",
+      "items": {
+        "person_linking": {
+          "name": "Propojování osob",
+          "description": "Propojuje schůzky s osobami podle potvrzených údajů o účastnících a mluvčích."
+        },
+        "pre_meeting_briefing": {
+          "name": "Příprava před schůzkou",
+          "description": "Před zahájením rozpoznané schůzky sestaví přehled z předchozích schůzek."
+        },
+        "continuity": {
+          "name": "Návaznost",
+          "description": "Přenáší nevyřešené závazky do dalších schůzek."
+        },
+        "vocabulary_mining": {
+          "name": "Vyhledávání slovní zásoby",
+          "description": "Hledá opakovaná jména a výrazy, které mohou patřit do vašeho slovníku."
+        },
+        "document_linking": {
+          "name": "Propojování dokumentů",
+          "description": "Propojuje importované dokumenty s osobami, které jsou v nich uvedeny."
+        }
+      },
+      "status": {
+        "ok": "Dokončeno",
+        "failed": "Neúspěšné",
+        "skipped": "Přeskočeno"
+      },
+      "outcomes": {
+        "personLinks_one": "Aktualizován 1 odkaz na osobu",
+        "personLinks_few": "Aktualizovány {{count}} odkazy na osoby",
+        "personLinks_many": "Aktualizováno {{count}} odkazu na osobu",
+        "personLinks_other": "Aktualizováno {{count}} odkazů na osoby",
+        "briefing_one": "Připraven přehled pro 1 osobu",
+        "briefing_few": "Připraven přehled pro {{count}} osoby",
+        "briefing_many": "Připraven přehled pro {{count}} osoby",
+        "briefing_other": "Připraven přehled pro {{count}} osob",
+        "continuitySeries_one": "Aktualizována 1 série schůzek",
+        "continuitySeries_few": "Aktualizovány {{count}} série schůzek",
+        "continuitySeries_many": "Aktualizováno {{count}} série schůzek",
+        "continuitySeries_other": "Aktualizováno {{count}} sérií schůzek",
+        "continuityCarried_one": "přenesen 1 otevřený bod",
+        "continuityCarried_few": "přeneseny {{count}} otevřené body",
+        "continuityCarried_many": "přeneseno {{count}} otevřeného bodu",
+        "continuityCarried_other": "přeneseno {{count}} otevřených bodů",
+        "vocabularyCandidates_one": "Nalezen 1 návrh slovní zásoby",
+        "vocabularyCandidates_few": "Nalezeny {{count}} návrhy slovní zásoby",
+        "vocabularyCandidates_many": "Nalezeno {{count}} návrhu slovní zásoby",
+        "vocabularyCandidates_other": "Nalezeno {{count}} návrhů slovní zásoby",
+        "documentLinks_one": "Aktualizován 1 odkaz na dokument",
+        "documentLinks_few": "Aktualizovány {{count}} odkazy na dokumenty",
+        "documentLinks_many": "Aktualizováno {{count}} odkazu na dokument",
+        "documentLinks_other": "Aktualizováno {{count}} odkazů na dokumenty",
+        "alreadyProcessed": "Již zpracováno",
+        "failed": "Spuštění selhalo",
+        "skipped": "Přeskočeno"
+      },
+      "vocabularySuggestions": {
+        "title": "Z vašich schůzek",
+        "occurrences_one": "1 zmínka",
+        "occurrences_few": "{{count}} zmínky",
+        "occurrences_many": "{{count}} zmínky",
+        "occurrences_other": "{{count}} zmínek",
+        "meetings_one": "1 schůzka",
+        "meetings_few": "{{count}} schůzky",
+        "meetings_many": "{{count}} schůzky",
+        "meetings_other": "{{count}} schůzek",
+        "accept": "Přidat",
+        "dismiss": "Skrýt"
+      },
+      "overview": {
+        "whatSonaDid": "Co Sona udělala",
+        "commitments": "Závazky",
+        "openMeeting": "Otevřít schůzku {{title}}",
+        "loadError": "Tuto kartu se nepodařilo načíst.",
+        "retry": "Zkusit znovu"
+      },
+      "runLog": {
+        "title": "Protokol spuštění",
+        "empty": "Zatím nejsou zaznamenána žádná spuštění.",
+        "loadError": "Protokol spuštění se nepodařilo načíst.",
+        "loadMoreError": "Další spuštění se nepodařilo načíst.",
+        "loadMore": "Načíst další",
+        "chartAria": "Počet spuštění za den, {{count}} za posledních 7 dní"
+      }
+    },
     "hub": {
       "navigation": "Sekce nastavení",
       "tabs": {
         "general": "Obecné",
         "privacy": "Soukromí",
         "agents": "Agenti",
+        "workflows": "Pracovní postupy",
         "advanced": "Pokročilé",
         "about": "O aplikaci",
         "debug": "Ladění"
@@ -2334,6 +2429,25 @@
       "shortcutAction": "Změnit zkratku pro diktování",
       "setShortcutAction": "Nastavit zkratku"
     },
+    "activity": {
+      "title": "Aktivita",
+      "dictations": "Diktáty",
+      "words": "Slova",
+      "streak": "Série",
+      "rangePrevious": "Předchozích 7 dní",
+      "rangeNext": "Následujících 7 dní",
+      "peak": "Maximum",
+      "dictationsAria": "Diktáty za den, nejvíce {{count}} v {{day}}",
+      "wordsAria": "Slova za den, celkem {{count}}, poslední hodnota {{last}}",
+      "days_one": "{{count}} den",
+      "days_few": "{{count}} dny",
+      "days_many": "{{count}} dne",
+      "days_other": "{{count}} dní",
+      "streakAria_one": "Aktuální série, {{count}} den",
+      "streakAria_few": "Aktuální série, {{count}} dny",
+      "streakAria_many": "Aktuální série, {{count}} dne",
+      "streakAria_other": "Aktuální série, {{count}} dní"
+    },
     "update": {
       "available": "Sona {{latest}} je k dispozici. Tato instalace má verzi {{current}}.",
       "dismiss": "Zavřít",
@@ -2433,5 +2547,120 @@
   "topNav": {
     "capture": "Záznam",
     "library": "Knihovna"
+  },
+  "people": {
+    "title": "Lidé",
+    "source": {
+      "calendar": "Kalendář",
+      "speaker": "Mluvčí",
+      "title": "Název",
+      "manual": "Ručně",
+      "suggested": "Navrženo"
+    },
+    "list": {
+      "meetings_one": "1 schůzka",
+      "meetings_few": "{{count}} schůzky",
+      "meetings_many": "{{count}} schůzky",
+      "meetings_other": "{{count}} schůzek",
+      "last": "Poslední {{date}}",
+      "suggested_one": "Propojit 1 navrženou schůzku?",
+      "suggested_few": "Propojit {{count}} navržené schůzky?",
+      "suggested_many": "Propojit {{count}} navržené schůzky?",
+      "suggested_other": "Propojit {{count}} navržených schůzek?",
+      "dismiss": "Zamítnout",
+      "confirm": "Potvrdit",
+      "loadError": "Lidi se nepodařilo načíst.",
+      "empty": "Zatím tu nikdo není.",
+      "meetings": "{{count}} schůzek",
+      "suggested": "Propojit {{count}} navržených schůzek?"
+    },
+    "detail": {
+      "nameLabel": "Jméno osoby",
+      "rename": "Přejmenovat",
+      "deletePerson": "Smazat osobu",
+      "aliases": "Také: {{aliases}}",
+      "renameTitle": "Přejmenovat tuto osobu?",
+      "renameDescription": "Změnit jméno této osoby na {{name}}?",
+      "merge": "Sloučit",
+      "mergeTitle": "Sloučit tuto osobu?",
+      "mergeDescription": "Sloučit {{source}} do {{target}}? Propojení, přezdívky a historie vztahu se spojí.",
+      "mergeTarget": "Vyberte osobu",
+      "deleteTitle": "Smazat tuto osobu?",
+      "deleteDescription": "Smazat {{name}} a všechna propojení se schůzkami?",
+      "carriedSince": "Otevřeno od {{date}}",
+      "stillOpen": "Stále otevřené",
+      "noOpenLoops": "Nic nezůstává otevřené.",
+      "commitments": "Závazky",
+      "noCommitments": "Nejsou zaznamenány žádné závazky.",
+      "meetingsTogether": "Společné schůzky",
+      "noMeetings": "Žádné propojené schůzky.",
+      "series": "Schůzka {{number}} v sérii",
+      "meetingActions": "Akce schůzky",
+      "unlink": "Odpojit schůzku",
+      "unlinkTitle": "Odpojit tuto schůzku?",
+      "unlinkDescription": "Odebrat {{meeting}} od této osoby?",
+      "documents": "Dokumenty",
+      "importDocument": "Importovat dokument",
+      "documentsLoadError": "Dokumenty se nepodařilo načíst.",
+      "noDocuments": "Žádné importované dokumenty.",
+      "deleteDocument": "Smazat dokument",
+      "deleteDocumentTitle": "Smazat tento dokument?",
+      "deleteDocumentDescription": "Smazat {{document}} z importovaného kontextu?",
+      "cadence": "Frekvence schůzek",
+      "lastMeeting": "Poslední schůzka",
+      "talkShare": "Podíl na hovoru",
+      "cadenceAria": "Schůzky podle měsíců: {{values}}",
+      "documentFilter": "Textové dokumenty",
+      "documentImported": "Dokument importován.",
+      "split": "Rozdělit osobu",
+      "splitTitle": "Rozdělit tuto osobu?",
+      "splitDescription": "Přesuňte vybrané údaje o identitě a schůzky osoby {{name}} k jiné osobě.",
+      "splitTarget": "Přesunout k",
+      "splitCreate": "Nová osoba",
+      "splitExisting": "Existující osoba",
+      "splitNameLabel": "Jméno nové osoby",
+      "splitEvidence": "Vyberte, co přesunout",
+      "splitMeetings": "Schůzky",
+      "splitAliases": "Další jména",
+      "splitEmails": "E-maily z kalendáře",
+      "splitDocuments": "Dokumenty",
+      "splitSubmit": "Rozdělit osobu",
+      "splitNothingSelected": "Vyberte alespoň jednu položku k přesunutí.",
+      "splitNoItems": "Tato osoba nemá údaje o identitě ani schůzky, které lze oddělit.",
+      "loadError": "Tuto osobu se nepodařilo načíst."
+    },
+    "errors": {
+      "stale": "Lidé se změnili na jiné obrazovce. Načtěte znovu a zkuste to znovu.",
+      "operation": "Lidi se nepodařilo aktualizovat. Zkuste to znovu."
+    },
+    "review": {
+      "personDetails": "Podrobnosti o osobě",
+      "previouslyTogether": "Dřívější společné schůzky",
+      "meetingsBefore_one": "1 dřívější schůzka",
+      "meetingsBefore_few": "{{count}} dřívější schůzky",
+      "meetingsBefore_many": "{{count}} dřívější schůzky",
+      "meetingsBefore_other": "{{count}} dřívějších schůzek",
+      "last": "Poslední {{date}}",
+      "agentPromptIntro": "Pomoz mi z těchto záznamů schůzky sepsat navazující zprávu k „{{title}}“.",
+      "agentPromptCommitments": "Závazky",
+      "agentPromptOpenLoops": "Otevřené otázky",
+      "agentPromptRequest": "Sepiš navazující zprávu. Nevymýšlej si podrobnosti ani sliby.",
+      "agentError": "Navazující akci s agentem se nepodařilo otevřít.",
+      "discussFollowUp": "Probrat navazující zprávu s agentem",
+      "meetingsBefore": "{{count}} dřívějších schůzek"
+    },
+    "briefing": {
+      "metCount_one": "S osobou {{name}} jste se setkali jednou",
+      "metCount_few": "S osobou {{name}} jste se setkali {{count}}krát",
+      "metCount_many": "S osobou {{name}} jste se setkali {{count}}krát",
+      "metCount_other": "S osobou {{name}} jste se setkali {{count}}krát",
+      "metBefore_one": "S osobou {{name}} jste se setkali jednou · naposledy {{date}}",
+      "metBefore_few": "S osobou {{name}} jste se setkali {{count}}krát · naposledy {{date}}",
+      "metBefore_many": "S osobou {{name}} jste se setkali {{count}}krát · naposledy {{date}}",
+      "metBefore_other": "S osobou {{name}} jste se setkali {{count}}krát · naposledy {{date}}",
+      "stillOpen": "Stále otevřené: {{text}}",
+      "metCount": "S osobou {{name}} jste se setkali {{count}}krát",
+      "metBefore": "S osobou {{name}} jste se setkali {{count}}krát · naposledy {{date}}"
+    }
   }
 }

@@ -37,6 +37,7 @@
     "agents": "סוכנים",
     "meetings": "פגישות",
     "navigation": "ניווט ראשי",
+    "people": "אנשים",
     "settings": "הגדרות"
   },
   "onboarding": {
@@ -1550,12 +1551,98 @@
       },
       "workspaceNavigation": "תצוגות גשר הסוכנים"
     },
+    "workflows": {
+      "title": "תהליכי עבודה",
+      "builtIns": "תהליכי עבודה מובנים",
+      "loadError": "לא ניתן לטעון את תהליכי העבודה.",
+      "updateError": "לא ניתן לעדכן את תהליך העבודה.",
+      "empty": "אין תהליכי עבודה זמינים.",
+      "neverRun": "טרם הופעל",
+      "toggleLabel": "הפעלת {{name}}",
+      "items": {
+        "person_linking": {
+          "name": "קישור אנשים",
+          "description": "מקשר פגישות לאנשים בעזרת נתונים מאומתים של משתתפים ודוברים."
+        },
+        "pre_meeting_briefing": {
+          "name": "תדריך לפני פגישה",
+          "description": "מכין תדריך מפגישות קודמות לפני שפגישה שזוהתה מתחילה."
+        },
+        "continuity": {
+          "name": "המשכיות",
+          "description": "מעביר התחייבויות פתוחות לפגישות הבאות."
+        },
+        "vocabulary_mining": {
+          "name": "איתור אוצר מילים",
+          "description": "מאתר שמות ומונחים חוזרים שעשויים להתאים לאוצר המילים שלך."
+        },
+        "document_linking": {
+          "name": "קישור מסמכים",
+          "description": "מקשר מסמכים שיובאו לאנשים המוזכרים בהם."
+        }
+      },
+      "status": {
+        "ok": "הושלם",
+        "failed": "נכשל",
+        "skipped": "דולג"
+      },
+      "outcomes": {
+        "personLinks_one": "עודכן קישור אחד לאדם",
+        "personLinks_two": "עודכנו שני קישורים לאנשים",
+        "personLinks_other": "עודכנו {{count}} קישורים לאנשים",
+        "briefing_one": "הוכן תדריך לאדם אחד",
+        "briefing_two": "הוכן תדריך לשני אנשים",
+        "briefing_other": "הוכן תדריך ל־{{count}} אנשים",
+        "continuitySeries_one": "עודכנה סדרת פגישות אחת",
+        "continuitySeries_two": "עודכנו שתי סדרות פגישות",
+        "continuitySeries_other": "עודכנו {{count}} סדרות פגישות",
+        "continuityCarried_one": "הועבר נושא פתוח אחד",
+        "continuityCarried_two": "הועברו שני נושאים פתוחים",
+        "continuityCarried_other": "הועברו {{count}} נושאים פתוחים",
+        "vocabularyCandidates_one": "נמצאה הצעת אוצר מילים אחת",
+        "vocabularyCandidates_two": "נמצאו שתי הצעות אוצר מילים",
+        "vocabularyCandidates_other": "נמצאו {{count}} הצעות אוצר מילים",
+        "documentLinks_one": "עודכן קישור מסמך אחד",
+        "documentLinks_two": "עודכנו שני קישורי מסמכים",
+        "documentLinks_other": "עודכנו {{count}} קישורי מסמכים",
+        "alreadyProcessed": "כבר עובד",
+        "failed": "ההפעלה נכשלה",
+        "skipped": "דולג"
+      },
+      "vocabularySuggestions": {
+        "title": "מהפגישות שלך",
+        "occurrences_one": "אזכור אחד",
+        "occurrences_two": "שני אזכורים",
+        "occurrences_other": "{{count}} אזכורים",
+        "meetings_one": "פגישה אחת",
+        "meetings_two": "שתי פגישות",
+        "meetings_other": "{{count}} פגישות",
+        "accept": "הוספה",
+        "dismiss": "דחייה"
+      },
+      "overview": {
+        "whatSonaDid": "מה Sona עשתה",
+        "commitments": "התחייבויות",
+        "openMeeting": "פתיחת הפגישה {{title}}",
+        "loadError": "לא ניתן לטעון את הכרטיס הזה.",
+        "retry": "נסה שוב"
+      },
+      "runLog": {
+        "title": "יומן הפעלות",
+        "empty": "עדיין אין הפעלות של תהליכי עבודה.",
+        "loadError": "לא ניתן לטעון את יומן ההפעלות.",
+        "loadMoreError": "לא ניתן לטעון הפעלות נוספות.",
+        "loadMore": "טעינת עוד",
+        "chartAria": "הפעלות תהליך עבודה ביום, {{count}} ב־7 הימים האחרונים"
+      }
+    },
     "hub": {
       "navigation": "מקטעי הגדרות",
       "tabs": {
         "general": "כללי",
         "privacy": "פרטיות",
         "agents": "סוכנים",
+        "workflows": "תהליכי עבודה",
         "advanced": "מתקדם",
         "about": "אודות",
         "debug": "ניפוי באגים"
@@ -2334,6 +2421,23 @@
       "shortcutAction": "שנה את קיצור ההכתבה",
       "setShortcutAction": "הגדר קיצור"
     },
+    "activity": {
+      "title": "פעילות",
+      "dictations": "הכתבות",
+      "words": "מילים",
+      "streak": "רצף",
+      "rangePrevious": "7 הימים הקודמים",
+      "rangeNext": "7 הימים הבאים",
+      "peak": "שיא",
+      "dictationsAria": "הכתבות ליום, השיא {{count}} ביום {{day}}",
+      "wordsAria": "מילים ליום, {{count}} בסך הכול, מסתיים ב-{{last}}",
+      "days_one": "יום אחד",
+      "days_two": "יומיים",
+      "days_other": "{{count}} ימים",
+      "streakAria_one": "רצף נוכחי, יום אחד",
+      "streakAria_two": "רצף נוכחי, יומיים",
+      "streakAria_other": "רצף נוכחי, {{count}} ימים"
+    },
     "update": {
       "available": "Sona {{latest}} זמין. ההתקנה הזו על {{current}}.",
       "dismiss": "סגור",
@@ -2433,5 +2537,115 @@
   "topNav": {
     "capture": "הקלטה",
     "library": "ספרייה"
+  },
+  "people": {
+    "title": "אנשים",
+    "source": {
+      "calendar": "לוח שנה",
+      "speaker": "דובר",
+      "title": "כותרת",
+      "manual": "ידני",
+      "suggested": "מוצע"
+    },
+    "list": {
+      "meetings_one": "פגישה אחת",
+      "meetings_two": "שתי פגישות",
+      "meetings_other": "{{count}} פגישות",
+      "last": "אחרונה {{date}}",
+      "suggested_one": "לקשר פגישה מוצעת אחת?",
+      "suggested_two": "לקשר שתי פגישות מוצעות?",
+      "suggested_other": "לקשר {{count}} פגישות מוצעות?",
+      "dismiss": "דחייה",
+      "confirm": "אישור",
+      "loadError": "לא ניתן לטעון את האנשים.",
+      "empty": "עדיין אין אנשים.",
+      "meetings": "{{count}} פגישות",
+      "suggested": "לקשר {{count}} פגישות מוצעות?"
+    },
+    "detail": {
+      "nameLabel": "שם האדם",
+      "rename": "שינוי שם",
+      "deletePerson": "מחיקת אדם",
+      "aliases": "גם: {{aliases}}",
+      "renameTitle": "לשנות את שם האדם הזה?",
+      "renameDescription": "לשנות את שם האדם הזה ל־{{name}}?",
+      "merge": "מיזוג",
+      "mergeTitle": "למזג את האדם הזה?",
+      "mergeDescription": "למזג את {{source}} עם {{target}}? הקישורים, הכינויים והיסטוריית הקשר יאוחדו.",
+      "mergeTarget": "בחירת אדם",
+      "deleteTitle": "למחוק את האדם הזה?",
+      "deleteDescription": "למחוק את {{name}} ואת כל הקישורים לפגישות?",
+      "carriedSince": "פתוח מאז {{date}}",
+      "stillOpen": "עדיין פתוח",
+      "noOpenLoops": "לא נותר דבר פתוח.",
+      "commitments": "התחייבויות",
+      "noCommitments": "לא נרשמו התחייבויות.",
+      "meetingsTogether": "פגישות משותפות",
+      "noMeetings": "אין פגישות מקושרות.",
+      "series": "פגישה {{number}} בסדרה",
+      "meetingActions": "פעולות פגישה",
+      "unlink": "ניתוק פגישה",
+      "unlinkTitle": "לנתק את הפגישה הזאת?",
+      "unlinkDescription": "להסיר את {{meeting}} מהאדם הזה?",
+      "documents": "מסמכים",
+      "importDocument": "ייבוא מסמך",
+      "documentsLoadError": "לא ניתן לטעון את המסמכים.",
+      "noDocuments": "אין מסמכים מיובאים.",
+      "deleteDocument": "מחיקת מסמך",
+      "deleteDocumentTitle": "למחוק את המסמך הזה?",
+      "deleteDocumentDescription": "למחוק את {{document}} מההקשר המיובא?",
+      "cadence": "תדירות פגישות",
+      "lastMeeting": "פגישה אחרונה",
+      "talkShare": "חלק יחסי בדיבור",
+      "cadenceAria": "פגישות לפי חודש: {{values}}",
+      "documentFilter": "מסמכי טקסט",
+      "documentImported": "המסמך יובא.",
+      "split": "פיצול אדם",
+      "splitTitle": "לפצל את האדם הזה?",
+      "splitDescription": "העברת פרטי הזהות והפגישות שנבחרו מ־{{name}} לאדם אחר.",
+      "splitTarget": "העברה אל",
+      "splitCreate": "אדם חדש",
+      "splitExisting": "אדם קיים",
+      "splitNameLabel": "שם האדם החדש",
+      "splitEvidence": "בחירת הפריטים להעברה",
+      "splitMeetings": "פגישות",
+      "splitAliases": "שמות נוספים",
+      "splitEmails": "כתובות דוא״ל מהיומן",
+      "splitDocuments": "מסמכים",
+      "splitSubmit": "פיצול אדם",
+      "splitNothingSelected": "יש לבחור לפחות פריט אחד להעברה.",
+      "splitNoItems": "לאדם הזה אין פרטי זהות או פגישות שאפשר לפצל.",
+      "loadError": "לא ניתן לטעון את האדם הזה."
+    },
+    "errors": {
+      "stale": "האנשים השתנו במסך אחר. יש לטעון מחדש ולנסות שוב.",
+      "operation": "לא ניתן לעדכן את האנשים. נסו שוב."
+    },
+    "review": {
+      "personDetails": "פרטי האדם",
+      "previouslyTogether": "פגישות קודמות יחד",
+      "meetingsBefore_one": "פגישה קודמת אחת",
+      "meetingsBefore_two": "שתי פגישות קודמות",
+      "meetingsBefore_other": "{{count}} פגישות קודמות",
+      "last": "אחרונה {{date}}",
+      "agentPromptIntro": "עזור לי לנסח הודעת המשך עבור „{{title}}” מתוך רשומות הפגישה האלה.",
+      "agentPromptCommitments": "התחייבויות",
+      "agentPromptOpenLoops": "נושאים פתוחים",
+      "agentPromptRequest": "נסח את הודעת ההמשך. אל תמציא פרטים או הבטחות.",
+      "agentError": "לא ניתן לפתוח את המעקב עם הסוכן.",
+      "discussFollowUp": "דיון במעקב עם הסוכן",
+      "meetingsBefore": "{{count}} פגישות קודמות"
+    },
+    "briefing": {
+      "metCount_one": "נפגשת עם {{name}} פעם אחת",
+      "metCount_two": "נפגשת עם {{name}} פעמיים",
+      "metCount_other": "נפגשת עם {{name}} {{count}} פעמים",
+      "metBefore_one": "נפגשת עם {{name}} פעם אחת · לאחרונה {{date}}",
+      "metBefore_two": "נפגשת עם {{name}} פעמיים · לאחרונה {{date}}",
+      "metBefore_other": "נפגשת עם {{name}} {{count}} פעמים · לאחרונה {{date}}",
+      "stillOpen": "עדיין פתוח: {{text}}",
+      "metCount": "נפגשת עם {{name}} {{count}} פעמים",
+      "metBefore": "נפגשת עם {{name}} {{count}} פעמים · לאחרונה {{date}}"
+    }
   }
 }

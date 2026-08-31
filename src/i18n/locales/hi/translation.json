@@ -37,6 +37,7 @@
     "agents": "एजेंट",
     "meetings": "मीटिंग",
     "navigation": "मुख्य नेविगेशन",
+    "people": "लोग",
     "settings": "सेटिंग्स"
   },
   "onboarding": {
@@ -1550,12 +1551,90 @@
       },
       "workspaceNavigation": "एजेंट ब्रिज व्यू"
     },
+    "workflows": {
+      "title": "वर्कफ़्लो",
+      "builtIns": "अंतर्निहित वर्कफ़्लो",
+      "loadError": "वर्कफ़्लो लोड नहीं किए जा सके।",
+      "updateError": "वर्कफ़्लो अपडेट नहीं किया जा सका।",
+      "empty": "कोई वर्कफ़्लो उपलब्ध नहीं है।",
+      "neverRun": "अभी तक नहीं चला",
+      "toggleLabel": "{{name}} चालू करें",
+      "items": {
+        "person_linking": {
+          "name": "व्यक्तियों को जोड़ना",
+          "description": "पुष्टि किए गए प्रतिभागी और वक्ता डेटा से बैठकों को व्यक्तियों से जोड़ता है।"
+        },
+        "pre_meeting_briefing": {
+          "name": "बैठक-पूर्व विवरण",
+          "description": "पता चली बैठक शुरू होने से पहले पिछली बैठकों से विवरण तैयार करता है।"
+        },
+        "continuity": {
+          "name": "निरंतरता",
+          "description": "अनसुलझी प्रतिबद्धताओं को अगली बैठकों में आगे ले जाता है।"
+        },
+        "vocabulary_mining": {
+          "name": "शब्दावली खोज",
+          "description": "दोहराए गए नाम और शब्द खोजता है जो आपकी शब्दावली में जोड़े जा सकते हैं।"
+        },
+        "document_linking": {
+          "name": "दस्तावेज़ जोड़ना",
+          "description": "आयात किए गए दस्तावेज़ों को उनमें उल्लिखित व्यक्तियों से जोड़ता है।"
+        }
+      },
+      "status": {
+        "ok": "पूर्ण",
+        "failed": "विफल",
+        "skipped": "छोड़ा गया"
+      },
+      "outcomes": {
+        "personLinks_one": "1 व्यक्ति लिंक अपडेट किया",
+        "personLinks_other": "{{count}} व्यक्ति लिंक अपडेट किए",
+        "briefing_one": "1 व्यक्ति के लिए ब्रीफ़िंग तैयार की",
+        "briefing_other": "{{count}} लोगों के लिए ब्रीफ़िंग तैयार की",
+        "continuitySeries_one": "1 मीटिंग शृंखला अपडेट की",
+        "continuitySeries_other": "{{count}} मीटिंग शृंखलाएँ अपडेट कीं",
+        "continuityCarried_one": "1 खुला मुद्दा आगे बढ़ाया",
+        "continuityCarried_other": "{{count}} खुले मुद्दे आगे बढ़ाए",
+        "vocabularyCandidates_one": "1 शब्दावली सुझाव मिला",
+        "vocabularyCandidates_other": "{{count}} शब्दावली सुझाव मिले",
+        "documentLinks_one": "1 दस्तावेज़ लिंक अपडेट किया",
+        "documentLinks_other": "{{count}} दस्तावेज़ लिंक अपडेट किए",
+        "alreadyProcessed": "पहले ही प्रोसेस किया गया",
+        "failed": "रन विफल रहा",
+        "skipped": "छोड़ा गया"
+      },
+      "vocabularySuggestions": {
+        "title": "आपकी बैठकों से",
+        "occurrences_one": "1 उल्लेख",
+        "occurrences_other": "{{count}} उल्लेख",
+        "meetings_one": "1 बैठक",
+        "meetings_other": "{{count}} बैठकें",
+        "accept": "जोड़ें",
+        "dismiss": "हटाएँ"
+      },
+      "overview": {
+        "whatSonaDid": "Sona ने क्या किया",
+        "commitments": "प्रतिबद्धताएँ",
+        "openMeeting": "बैठक {{title}} खोलें",
+        "loadError": "यह कार्ड लोड नहीं किया जा सका।",
+        "retry": "पुनः प्रयास करें"
+      },
+      "runLog": {
+        "title": "रन लॉग",
+        "empty": "अभी तक कोई वर्कफ़्लो नहीं चला है।",
+        "loadError": "रन लॉग लोड नहीं किया जा सका।",
+        "loadMoreError": "और रन लोड नहीं किए जा सके।",
+        "loadMore": "और लोड करें",
+        "chartAria": "प्रतिदिन वर्कफ़्लो रन, पिछले 7 दिनों में {{count}}"
+      }
+    },
     "hub": {
       "navigation": "सेटिंग अनुभाग",
       "tabs": {
         "general": "सामान्य",
         "privacy": "गोपनीयता",
         "agents": "एजेंट",
+        "workflows": "वर्कफ़्लो",
         "advanced": "उन्नत",
         "about": "परिचय",
         "debug": "डिबग"
@@ -2334,6 +2413,21 @@
       "shortcutAction": "बोलने का शॉर्टकट बदलें",
       "setShortcutAction": "एक शॉर्टकट सेट करें"
     },
+    "activity": {
+      "title": "गतिविधि",
+      "dictations": "श्रुतलेख",
+      "words": "शब्द",
+      "streak": "लगातार दिन",
+      "rangePrevious": "पिछले 7 दिन",
+      "rangeNext": "अगले 7 दिन",
+      "peak": "अधिकतम",
+      "dictationsAria": "प्रतिदिन श्रुतलेख, {{day}} को सबसे अधिक {{count}}",
+      "wordsAria": "प्रतिदिन शब्द, कुल {{count}}, अंतिम मान {{last}}",
+      "days_one": "{{count}} दिन",
+      "days_other": "{{count}} दिन",
+      "streakAria_one": "वर्तमान सिलसिला, {{count}} दिन",
+      "streakAria_other": "वर्तमान सिलसिला, {{count}} दिन"
+    },
     "update": {
       "available": "Sona {{latest}} उपलब्ध है। यह इंस्टॉल {{current}} पर है।",
       "dismiss": "हटाएँ",
@@ -2433,5 +2527,110 @@
   "topNav": {
     "capture": "रिकॉर्डिंग",
     "library": "लाइब्रेरी"
+  },
+  "people": {
+    "title": "लोग",
+    "source": {
+      "calendar": "कैलेंडर",
+      "speaker": "वक्ता",
+      "title": "शीर्षक",
+      "manual": "मैन्युअल",
+      "suggested": "सुझाया गया"
+    },
+    "list": {
+      "meetings_one": "1 मीटिंग",
+      "meetings_other": "{{count}} मीटिंग",
+      "last": "पिछली {{date}}",
+      "suggested_one": "1 सुझाई गई मीटिंग जोड़ें?",
+      "suggested_other": "{{count}} सुझाई गई मीटिंग जोड़ें?",
+      "dismiss": "खारिज करें",
+      "confirm": "पुष्टि करें",
+      "loadError": "लोगों को लोड नहीं किया जा सका।",
+      "empty": "अभी कोई व्यक्ति नहीं है।",
+      "meetings": "{{count}} मीटिंग",
+      "suggested": "{{count}} सुझाई गई मीटिंग जोड़ें?"
+    },
+    "detail": {
+      "nameLabel": "व्यक्ति का नाम",
+      "rename": "नाम बदलें",
+      "deletePerson": "व्यक्ति हटाएँ",
+      "aliases": "अन्य नाम: {{aliases}}",
+      "renameTitle": "इस व्यक्ति का नाम बदलें?",
+      "renameDescription": "इस व्यक्ति का नाम बदलकर {{name}} करें?",
+      "merge": "मर्ज करें",
+      "mergeTitle": "इस व्यक्ति को मर्ज करें?",
+      "mergeDescription": "{{source}} को {{target}} में मर्ज करें? लिंक, अन्य नाम और संबंध का इतिहास एक साथ जोड़ दिया जाएगा।",
+      "mergeTarget": "कोई व्यक्ति चुनें",
+      "deleteTitle": "इस व्यक्ति को हटाएँ?",
+      "deleteDescription": "{{name}} और उनकी सभी मीटिंग लिंक हटाएँ?",
+      "carriedSince": "{{date}} से खुला",
+      "stillOpen": "अभी भी खुला",
+      "noOpenLoops": "कुछ भी खुला नहीं है।",
+      "commitments": "प्रतिबद्धताएँ",
+      "noCommitments": "कोई प्रतिबद्धता दर्ज नहीं है।",
+      "meetingsTogether": "साथ की मीटिंग",
+      "noMeetings": "कोई लिंक की गई मीटिंग नहीं है।",
+      "series": "श्रृंखला की मीटिंग {{number}}",
+      "meetingActions": "मीटिंग की कार्रवाइयाँ",
+      "unlink": "मीटिंग का लिंक हटाएँ",
+      "unlinkTitle": "इस मीटिंग का लिंक हटाएँ?",
+      "unlinkDescription": "इस व्यक्ति से {{meeting}} हटाएँ?",
+      "documents": "दस्तावेज़",
+      "importDocument": "दस्तावेज़ आयात करें",
+      "documentsLoadError": "दस्तावेज़ों को लोड नहीं किया जा सका।",
+      "noDocuments": "कोई आयातित दस्तावेज़ नहीं है।",
+      "deleteDocument": "दस्तावेज़ हटाएँ",
+      "deleteDocumentTitle": "यह दस्तावेज़ हटाएँ?",
+      "deleteDocumentDescription": "आयातित संदर्भ से {{document}} हटाएँ?",
+      "cadence": "मीटिंग की आवृत्ति",
+      "lastMeeting": "पिछली मीटिंग",
+      "talkShare": "बोलने का हिस्सा",
+      "cadenceAria": "महीने के अनुसार मीटिंग: {{values}}",
+      "documentFilter": "टेक्स्ट दस्तावेज़",
+      "documentImported": "दस्तावेज़ आयात हो गया।",
+      "split": "व्यक्ति को विभाजित करें",
+      "splitTitle": "इस व्यक्ति को विभाजित करें?",
+      "splitDescription": "{{name}} से चुनी हुई पहचान जानकारी और मीटिंग किसी दूसरे व्यक्ति में ले जाएँ।",
+      "splitTarget": "यहाँ ले जाएँ",
+      "splitCreate": "नया व्यक्ति",
+      "splitExisting": "मौजूदा व्यक्ति",
+      "splitNameLabel": "नए व्यक्ति का नाम",
+      "splitEvidence": "चुनें कि क्या ले जाना है",
+      "splitMeetings": "मीटिंग",
+      "splitAliases": "दूसरे नाम",
+      "splitEmails": "कैलेंडर ईमेल",
+      "splitDocuments": "दस्तावेज़",
+      "splitSubmit": "व्यक्ति को विभाजित करें",
+      "splitNothingSelected": "ले जाने के लिए कम से कम एक आइटम चुनें।",
+      "splitNoItems": "इस व्यक्ति के पास विभाजित करने के लिए कोई पहचान जानकारी या मीटिंग नहीं है।",
+      "loadError": "इस व्यक्ति को लोड नहीं किया जा सका।"
+    },
+    "errors": {
+      "stale": "लोगों की जानकारी दूसरी स्क्रीन पर बदल गई है। फिर से लोड करके दोबारा कोशिश करें।",
+      "operation": "लोगों की जानकारी अपडेट नहीं की जा सकी। दोबारा कोशिश करें।"
+    },
+    "review": {
+      "personDetails": "व्यक्ति का विवरण",
+      "previouslyTogether": "पहले साथ मिले",
+      "meetingsBefore_one": "1 पिछली मीटिंग",
+      "meetingsBefore_other": "{{count}} पिछली मीटिंग",
+      "last": "पिछली {{date}}",
+      "agentPromptIntro": "इन मीटिंग रिकॉर्ड से “{{title}}” के लिए फ़ॉलो-अप लिखने में मेरी मदद करें।",
+      "agentPromptCommitments": "प्रतिबद्धताएँ",
+      "agentPromptOpenLoops": "खुले मुद्दे",
+      "agentPromptRequest": "फ़ॉलो-अप लिखें। कोई विवरण या वादा न गढ़ें।",
+      "agentError": "एजेंट के साथ फ़ॉलो-अप नहीं खोला जा सका।",
+      "discussFollowUp": "एजेंट के साथ फ़ॉलो-अप पर चर्चा करें",
+      "meetingsBefore": "{{count}} पिछली मीटिंग"
+    },
+    "briefing": {
+      "metCount_one": "आप {{name}} से एक बार मिल चुके हैं",
+      "metCount_other": "आप {{name}} से {{count}} बार मिल चुके हैं",
+      "metBefore_one": "आप {{name}} से एक बार मिल चुके हैं · पिछली {{date}}",
+      "metBefore_other": "आप {{name}} से {{count}} बार मिल चुके हैं · पिछली {{date}}",
+      "stillOpen": "अभी भी खुला: {{text}}",
+      "metCount": "आप {{name}} से {{count}} बार मिल चुके हैं",
+      "metBefore": "आप {{name}} से {{count}} बार मिल चुके हैं · पिछली {{date}}"
+    }
   }
 }
