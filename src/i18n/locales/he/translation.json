@@ -26,15 +26,8 @@
     "secureInputWarning": "קיצורי המקשים חסומים על ידי Secure Input"
   },
   "sidebar": {
-    "general": "כללי",
     "models": "מודלים",
-    "advanced": "מתקדם",
-    "postProcessing": "עיבוד משלים",
-    "debug": "ניפוי שגיאות",
-    "about": "אודות",
     "modes": "מצבים",
-    "privacy": "פרטיות",
-    "agents": "סוכנים",
     "meetings": "פגישות",
     "navigation": "ניווט ראשי",
     "people": "אנשים",
@@ -153,21 +146,13 @@
     "active": "פעיל",
     "switching": "מחליף…",
     "noModelsAvailable": "אין מודלים זמינים",
-    "searchPlaceholder": "חיפוש במודלים",
     "verifying": "מאמת את {{modelName}}…",
     "verifyingGeneric": "מאמת…",
     "extracting": "מחלץ את {{modelName}}…",
-    "extractingMultiple": "מחלץ {{count}} מודלים…",
     "extractingGeneric": "מחלץ…",
     "downloading": "מוריד {{percentage}}%",
-    "downloadingMultiple": "מוריד {{count}} מודלים…",
-    "downloadingGeneric": "מוריד…",
-    "modelReady": "המודל מוכן",
     "loading": "טוען את {{modelName}}…",
     "loadingGeneric": "טוען…",
-    "modelError": "שגיאת מודל",
-    "modelUnloaded": "המודל נפרק",
-    "noModelDownloadRequired": "אין מודל, נדרשת הורדה",
     "deleteModel": "מחק את {{modelName}}",
     "downloadSpeed": "{{speed}} MB/s",
     "cancel": "ביטול",
@@ -181,8 +166,7 @@
       "translate": "תרגם לאנגלית",
       "streaming": "מציג תמלול חי תוך כדי דיבור"
     },
-    "legacy": "מדור קודם",
-    "model": "מודל"
+    "legacy": "מדור קודם"
   },
   "settings": {
     "modelSettings": {
@@ -330,7 +314,6 @@
       }
     },
     "sound": {
-      "title": "שמע",
       "microphone": {
         "title": "מיקרופון"
       },
@@ -338,16 +321,6 @@
         "title": "ערוץ קלט",
         "average": "ממוצע של כל הערוצים",
         "channel": "ערוץ {{n}}"
-      },
-      "audioFeedback": {
-        "label": "משוב קולי"
-      },
-      "outputDevice": {
-        "title": "התקן פלט",
-        "description": "היכן מושמעים צלילי המשוב."
-      },
-      "volume": {
-        "title": "עוצמת קול"
       }
     },
     "advanced": {
@@ -357,13 +330,6 @@
           "as_spoken": "כפי שנאמר",
           "british": "בריטי"
         }
-      },
-      "groups": {
-        "app": "אפליקציה",
-        "output": "פלט",
-        "transcription": "תמלול",
-        "history": "היסטוריה",
-        "experimental": "ניסיוני"
       },
       "experimentalToggle": {
         "label": "תכונות ניסיוניות"
@@ -384,15 +350,8 @@
           "auto": "אוטומטי"
         }
       },
-      "startHidden": {
-        "label": "התחל מוסתר",
-        "description": "הפעל לתוך מגש המערכת בלי לפתוח את החלון."
-      },
       "autostart": {
         "label": "הפעל עם עליית המערכת"
-      },
-      "showTrayIcon": {
-        "label": "הצג אייקון במגש"
       },
       "overlay": {
         "style": {
@@ -508,14 +467,6 @@
         },
         "empty": {
           "description": "מפה מילה מדוברת מדויקת כמו סמיילי לאמוג׳י שברצונך שייכתב."
-        }
-      },
-      "disclosures": {
-        "launch": {
-          "title": "הפעלה"
-        },
-        "processing": {
-          "title": "עיבוד"
         }
       },
       "snippets": {
@@ -864,9 +815,6 @@
         "label": "עיבוד משלים",
         "description": "ניסוח מחדש של התמלול באמצעות מודל שפה אחרי התמלול."
       },
-      "muteWhileRecording": {
-        "label": "השתק בזמן הקלטה"
-      },
       "appendTrailingSpace": {
         "label": "הוסף רווח בסוף",
         "description": "מוסיף רווח אחד אחרי התמלול המודבק."
@@ -930,7 +878,6 @@
       }
     },
     "about": {
-      "title": "אודות",
       "version": {
         "title": "גרסה",
         "unavailable": "לא זמין"
@@ -953,9 +900,6 @@
           "title": "ggml",
           "details": "התמלול המקומי של Sona בנוי על transcribe.cpp ו-ggml. תודה ל-Georgi Gerganov ולתורמים."
         }
-      },
-      "whatsNewUpdates": {
-        "label": "הצג מה חדש"
       },
       "files": {
         "title": "קבצים"
@@ -1553,7 +1497,6 @@
     },
     "workflows": {
       "title": "תהליכי עבודה",
-      "builtIns": "תהליכי עבודה מובנים",
       "loadError": "לא ניתן לטעון את תהליכי העבודה.",
       "updateError": "לא ניתן לעדכן את תהליך העבודה.",
       "empty": "אין תהליכי עבודה זמינים.",
@@ -1561,24 +1504,27 @@
       "toggleLabel": "הפעלת {{name}}",
       "items": {
         "person_linking": {
-          "name": "קישור אנשים",
+          "name": "לזכור אנשים",
           "description": "מקשר פגישות לאנשים בעזרת נתונים מאומתים של משתתפים ודוברים."
         },
         "pre_meeting_briefing": {
-          "name": "תדריך לפני פגישה",
+          "name": "להכין תקצירי פגישות",
           "description": "מכין תדריך מפגישות קודמות לפני שפגישה שזוהתה מתחילה."
         },
         "continuity": {
-          "name": "המשכיות",
+          "name": "להמשיך פגישות קדימה",
           "description": "מעביר התחייבויות פתוחות לפגישות הבאות."
         },
         "vocabulary_mining": {
-          "name": "איתור אוצר מילים",
+          "name": "ללמוד מילים חדשות",
           "description": "מאתר שמות ומונחים חוזרים שעשויים להתאים לאוצר המילים שלך."
         },
         "document_linking": {
-          "name": "קישור מסמכים",
+          "name": "לקשר מסמכים",
           "description": "מקשר מסמכים שיובאו לאנשים המוזכרים בהם."
+        },
+        "meeting_activity": {
+          "name": "הקלטת פגישות"
         }
       },
       "status": {
@@ -1587,26 +1533,25 @@
         "skipped": "דולג"
       },
       "outcomes": {
-        "personLinks_one": "עודכן קישור אחד לאדם",
-        "personLinks_two": "עודכנו שני קישורים לאנשים",
-        "personLinks_other": "עודכנו {{count}} קישורים לאנשים",
-        "briefing_one": "הוכן תדריך לאדם אחד",
-        "briefing_two": "הוכן תדריך לשני אנשים",
-        "briefing_other": "הוכן תדריך ל־{{count}} אנשים",
-        "continuitySeries_one": "עודכנה סדרת פגישות אחת",
-        "continuitySeries_two": "עודכנו שתי סדרות פגישות",
-        "continuitySeries_other": "עודכנו {{count}} סדרות פגישות",
-        "continuityCarried_one": "הועבר נושא פתוח אחד",
-        "continuityCarried_two": "הועברו שני נושאים פתוחים",
-        "continuityCarried_other": "הועברו {{count}} נושאים פתוחים",
-        "vocabularyCandidates_one": "נמצאה הצעת אוצר מילים אחת",
-        "vocabularyCandidates_two": "נמצאו שתי הצעות אוצר מילים",
-        "vocabularyCandidates_other": "נמצאו {{count}} הצעות אוצר מילים",
-        "documentLinks_one": "עודכן קישור מסמך אחד",
-        "documentLinks_two": "עודכנו שני קישורי מסמכים",
-        "documentLinks_other": "עודכנו {{count}} קישורי מסמכים",
-        "alreadyProcessed": "כבר עובד",
-        "failed": "ההפעלה נכשלה",
+        "personLinks_one": "נשמר אדם אחד",
+        "personLinks_two": "נשמרו שני אנשים",
+        "personLinks_other": "נשמרו {{count}} אנשים",
+        "briefing": "תקציר הפגישה שלך מוכן",
+        "continuity_one": "הועברה שאלה פתוחה אחת",
+        "continuity_two": "הועברו שתי שאלות פתוחות",
+        "continuity_other": "הועברו {{count}} שאלות פתוחות",
+        "vocabularyCandidates_one": "נלמדה מילה חדשה",
+        "vocabularyCandidates_two": "נלמדו שתי מילים חדשות",
+        "vocabularyCandidates_other": "נלמדו {{count}} מילים חדשות",
+        "documentLinks_one": "קושר מסמך אחד",
+        "documentLinks_two": "קושרו שני מסמכים",
+        "documentLinks_other": "קושרו {{count}} מסמכים",
+        "promptRecorded": "ההקלטה התחילה",
+        "promptIgnored": "פגישה שזוהתה לא הוקלטה",
+        "autoRecordStarted": "ההקלטה התחילה אוטומטית",
+        "autoRecordStopped": "ההקלטה נעצרה אוטומטית",
+        "alreadyProcessed": "אין משהו חדש לעשות",
+        "failed": "לא הצליח להסתיים",
         "skipped": "דולג"
       },
       "vocabularySuggestions": {
@@ -1622,7 +1567,7 @@
       },
       "overview": {
         "whatSonaDid": "מה Sona עשתה",
-        "commitments": "התחייבויות",
+        "openLoops": "שאלות פתוחות",
         "openMeeting": "פתיחת הפגישה {{title}}",
         "loadError": "לא ניתן לטעון את הכרטיס הזה.",
         "retry": "נסה שוב"
@@ -1634,18 +1579,6 @@
         "loadMoreError": "לא ניתן לטעון הפעלות נוספות.",
         "loadMore": "טעינת עוד",
         "chartAria": "הפעלות תהליך עבודה ביום, {{count}} ב־7 הימים האחרונים"
-      }
-    },
-    "hub": {
-      "navigation": "מקטעי הגדרות",
-      "tabs": {
-        "general": "כללי",
-        "privacy": "פרטיות",
-        "agents": "סוכנים",
-        "workflows": "תהליכי עבודה",
-        "advanced": "מתקדם",
-        "about": "אודות",
-        "debug": "ניפוי באגים"
       }
     },
     "vocabulary": {
@@ -1720,7 +1653,11 @@
     "play": "נגן",
     "pause": "השהה",
     "seek": "מקום הנגינה",
-    "resetSetting": "איפוס {{name}}"
+    "resetSetting": "איפוס {{name}}",
+    "day": {
+      "today": "היום",
+      "yesterday": "אתמול"
+    }
   },
   "commandPalette": {
     "open": "חיפוש",
@@ -1906,17 +1843,17 @@
     },
     "live": {
       "elapsed": "זמן שעבר",
-      "microphoneOnlyPartial": "מיקרופון בלבד / חלקי. אודיו המערכת אינו זמין או ירוד.",
-      "partialCapture": "לכידה חלקית. בדוק את הפערים לפני שתסתמך על ההערות שנוצרו.",
+      "microphoneOnlyPartial": "מוקלט רק המיקרופון. שמע המערכת אינו זמין, ולכן הפגישה הזו תהיה חלקית.",
+      "partialCapture": "חסר חלק מהשמע. בדוק את הפערים לפני שתסתמך על הסיכומים שנוצרו.",
       "inputs": "קלטים",
       "signal": "אות",
       "signalUnavailable": "הלכידה אינה מדווחת על עוצמת {{source}}.",
       "notReported": "לא דווח",
-      "durabilityLag": "פיגור בשמירה הקבועה",
+      "durabilityLag": "נשמר לדיסק",
       "behind": "בפיגור של {{duration}}",
       "progress": "התקדמות התמלול",
       "transcript": "תמלול",
-      "asrLag": "פיגור בזיהוי דיבור",
+      "asrLag": "פיגור בתמלול",
       "storage": "אחסון",
       "storageHealthy": "האחסון המקומי המוצפן תקין.",
       "storageUnavailable": "האחסון דורש טיפול.",
@@ -1965,20 +1902,20 @@
     },
     "gaps": {
       "source_unavailable": "המקור אינו זמין",
-      "source_start_failed": "הפעלת המקור נכשלה",
+      "source_start_failed": "המקור לא התחיל",
       "permission_lost": "ההרשאה אבדה",
       "paused": "מושהה",
-      "packet_dropped": "חבילת אודיו אבדה",
-      "writer_pressure": "עומס על כותב האחסון",
-      "storage_failure": "כשל אחסון",
-      "timestamp_missing": "חותמת זמן חסרה",
-      "timestamp_discontinuity": "אי-רציפות בחותמת הזמן",
-      "invalid_format": "תבנית אודיו לא תקפה",
+      "packet_dropped": "אבד שמע",
+      "writer_pressure": "האחסון פיגר",
+      "storage_failure": "האחסון נכשל",
+      "timestamp_missing": "חסר תזמון",
+      "timestamp_discontinuity": "התזמון קפץ",
+      "invalid_format": "שמע לא קריא",
       "source_stopped": "המקור נעצר",
-      "corrupt_record": "רשומה פגומה",
-      "missing_record": "רשומה חסרה",
-      "recovery_tail": "זנב שחזור",
-      "system_sleep": "שינה של ה-Mac"
+      "corrupt_record": "הקלטה פגומה",
+      "missing_record": "הקלטה חסרה",
+      "recovery_tail": "שוחזר אחרי קריסה",
+      "system_sleep": "ה-Mac שלך נכנס לשינה"
     },
     "errors": {
       "load": "Sona לא הצליח לטעון את נתוני הפגישה הנוכחית.",
@@ -2096,7 +2033,7 @@
       "tabs": {
         "insights": "תובנות",
         "ledger": "רישום",
-        "questions": "שאלות ותשובות",
+        "questions": "שאלות",
         "transcript": "תמלול"
       },
       "tabsLabel": "מקטעי סקירת פגישה",
@@ -2160,12 +2097,12 @@
       "forgotten": "נשכחה"
     },
     "diarization": {
-      "not_requested": "לא התבקשה הפרדת דוברים",
-      "model_unavailable": "מודל הפרדת הדוברים אינו זמין",
-      "downloading": "מוריד מודל הפרדת דוברים",
+      "not_requested": "הדוברים לא הופרדו",
+      "model_unavailable": "מודל הדוברים אינו זמין",
+      "downloading": "מוריד את מודל הדוברים",
       "running": "מפריד דוברים",
-      "succeeded": "שיוכי הדוברים עדכניים",
-      "failed": "הפרדת הדוברים נכשלה"
+      "succeeded": "הדוברים מעודכנים",
+      "failed": "לא הצליח להפריד דוברים"
     },
     "list": {
       "searchLabel": "חיפוש פגישות",
@@ -2185,13 +2122,6 @@
         "ready": "מוכן",
         "processing": "בעיבוד",
         "needs_attention": "דורש טיפול"
-      },
-      "headline": {
-        "words": "{{count}} מילים תומללו"
-      },
-      "sourceGlyph": {
-        "microphone": "מיק",
-        "system_audio": "מערכת"
       },
       "filters": {
         "label": "סינון פגישות",
@@ -2309,9 +2239,6 @@
       },
       "anyMic": {
         "label": "שאל בכל שימוש במיקרופון"
-      },
-      "autoStart": {
-        "label": "פתח את הפגישה כשהספירה לאחור שלה מוצגת"
       },
       "apps": {
         "label": "אפליקציות פגישה",
@@ -2551,16 +2478,11 @@
       "meetings_one": "פגישה אחת",
       "meetings_two": "שתי פגישות",
       "meetings_other": "{{count}} פגישות",
-      "last": "אחרונה {{date}}",
-      "suggested_one": "לקשר פגישה מוצעת אחת?",
-      "suggested_two": "לקשר שתי פגישות מוצעות?",
-      "suggested_other": "לקשר {{count}} פגישות מוצעות?",
       "dismiss": "דחייה",
       "confirm": "אישור",
       "loadError": "לא ניתן לטעון את האנשים.",
       "empty": "עדיין אין אנשים.",
-      "meetings": "{{count}} פגישות",
-      "suggested": "לקשר {{count}} פגישות מוצעות?"
+      "meetings": "{{count}} פגישות"
     },
     "detail": {
       "nameLabel": "שם האדם",
@@ -2576,7 +2498,6 @@
       "deleteTitle": "למחוק את האדם הזה?",
       "deleteDescription": "למחוק את {{name}} ואת כל הקישורים לפגישות?",
       "carriedSince": "פתוח מאז {{date}}",
-      "stillOpen": "עדיין פתוח",
       "noOpenLoops": "לא נותר דבר פתוח.",
       "commitments": "התחייבויות",
       "noCommitments": "לא נרשמו התחייבויות.",
@@ -2646,6 +2567,261 @@
       "stillOpen": "עדיין פתוח: {{text}}",
       "metCount": "נפגשת עם {{name}} {{count}} פעמים",
       "metBefore": "נפגשת עם {{name}} {{count}} פעמים · לאחרונה {{date}}"
+    }
+  },
+  "libraryV2": {
+    "recordings_one": "הקלטה אחת",
+    "recordings_two": "שתי הקלטות",
+    "recordings_other": "{{count, number}} הקלטות",
+    "words_one": "מילה אחת",
+    "words_two": "שתי מילים",
+    "words_other": "{{count, number}} מילים",
+    "summaryLoading": "סופר את ההקלטות שלך…",
+    "byMeaning": "לפי משמעות",
+    "actions": {
+      "copy": "העתק",
+      "copied": "הועתק",
+      "transcribeAgain": "תמלל שוב",
+      "delete": "מחק",
+      "more": "פעולות נוספות"
+    }
+  },
+  "meetingsV2": {
+    "retention": {
+      "keptForever": "נשמר לתמיד",
+      "keptDays": "נשמר {{days}} ימים",
+      "change": "שינוי בהגדרות"
+    }
+  },
+  "peopleV2": {
+    "list": {
+      "lastMet": "פגישה אחרונה {{date}}"
+    },
+    "detail": {
+      "openLoops": "שאלות פתוחות",
+      "howSonaKnows": "איך Sona יודעת",
+      "noEvidence": "עדיין שום דבר לא מקשר את האדם הזה לפגישה."
+    }
+  },
+  "modesV2": {
+    "sections": {
+      "instructions": "הנחיות",
+      "model": "מודל",
+      "output": "פלט"
+    },
+    "instructions": {
+      "enabled": {
+        "label": "ניקוי בעזרת AI"
+      },
+      "custom": {
+        "label": "ההנחיות שלך",
+        "hint": "מה שנכתב כאן מחליף את סגנון הפלט שלמטה במקום להתווסף אליו. השאר ריק כדי להשתמש בסגנון.",
+        "placeholder": "כתוב כמו שהייתי כותב: משפטים קצרים, בלי תבליטים."
+      },
+      "disabled": "הפעל את הניקוי ו-Sona תפעל לפי ההנחיות האלה אחרי כל הכתבה."
+    },
+    "output": {
+      "style": {
+        "label": "סגנון הפלט"
+      }
+    },
+    "activation": {
+      "title": "נדלק מעצמו",
+      "rules": {
+        "label": "אפליקציות ואתרים",
+        "empty": "שום דבר לא עובר למצב הזה מעצמו.",
+        "example": "כלל שומר זהות אפליקציה אחת או מארח אתר אחד: com.apple.mail או mail.google.com."
+      }
+    },
+    "advanced": {
+      "title": "מתקדם",
+      "summary": "קיצורי מקשים, טון, הקשר, מסירה"
+    },
+    "list": {
+      "preset": "ערכה"
+    },
+    "chip": {
+      "lead": "מצב",
+      "title": "מצבים",
+      "action": "החלפת מצב, כרגע {{mode}}",
+      "editLink": "עריכת מצבים בהגדרות",
+      "switchError": "לא ניתן היה להחליף מצב. נסה שוב."
+    },
+    "rules": {
+      "title": "כללי טקסט",
+      "kind": "סוג",
+      "left": "אתה אומר",
+      "right": "Sona כותב",
+      "add": "הוסף כלל",
+      "loading": "טוען כללי טקסט",
+      "empty": "אין עדיין כללי טקסט. הוסף אחד למעלה ו-Sona תחיל אותו על כל תמלול.",
+      "matching": "הכללים חלים על מילים שלמות ומתעלמים מאותיות גדולות וקטנות. כששניים מתאימים לאותו מקום, הארוך מנצח.",
+      "applyRule": "החל {{rule}}",
+      "removeRule": "מחק {{rule}}",
+      "restoreRewrites": "שחזר את שכתובי ברירת המחדל",
+      "kinds": {
+        "vocabulary": "איות",
+        "snippet": "קיצור",
+        "replacement": "שכתוב",
+        "emoji": "אמוג׳י"
+      },
+      "kindHints": {
+        "vocabulary": "מלמד את Sona איך שם נכתב, כך שתכתוב את הצורה המדויקת בכל פעם שהיא שומעת את הביטוי.",
+        "snippet": "מרחיב טריגר קצר לטקסט ארוך יותר, למשל omw ל-on my way.",
+        "replacement": "משכתב ביטוי ש-Sona כבר שמעה, למשל שטרודל ל-@.",
+        "emoji": "ממפה מילה מדוברת מדויקת כמו סמיילי לאמוג׳י שברצונך שייכתב."
+      },
+      "placeholders": {
+        "vocabulary": {
+          "left": "open ai",
+          "right": "OpenAI"
+        },
+        "snippet": {
+          "left": "omw",
+          "right": "on my way"
+        },
+        "replacement": {
+          "left": "שטרודל",
+          "right": "@"
+        },
+        "emoji": {
+          "left": "סמיילי",
+          "right": "🙂"
+        }
+      },
+      "toggles": {
+        "emoji": "כתוב אמוג׳י כשאתה אומר את שמו",
+        "snippet": "הרחב קיצורים",
+        "replacement": "החל שכתובים"
+      },
+      "toggleErrors": {
+        "spokenEdits": "לא ניתן היה לשנות את פקודות העריכה הקוליות. נסה שוב.",
+        "emoji": "לא ניתן היה לשנות את כתיבת האמוג׳י. נסה שוב.",
+        "snippet": "לא ניתן היה לשנות את הרחבת הקיצורים. נסה שוב.",
+        "replacement": "לא ניתן היה לשנות את השכתובים. נסה שוב."
+      },
+      "errors": {
+        "incomplete": "מלא את שני הצדדים, או מחק את הכלל.",
+        "duplicate": "כלל אחר מהסוג הזה כבר משתמש בביטוי הזה."
+      }
+    }
+  },
+  "settingsV2": {
+    "navigation": "הגדרות",
+    "tabs": {
+      "essentials": "עיקרי",
+      "advanced": "מתקדם",
+      "debug": "ניפוי שגיאות"
+    },
+    "essentials": {
+      "title": "עיקרי",
+      "sounds": "צלילים",
+      "launchAtLogin": "הפעל עם עליית המערכת",
+      "appearance": "מראה",
+      "volume": "עוצמת הצלילים",
+      "detectMeetings": "שים לב כשאני מצטרף לפגישה",
+      "detectMeetingsHint": "Sona מציעה להקליט. היא לעולם לא מתחילה הקלטה מעצמה.",
+      "retention": "מחק הקלטות אחרי",
+      "dictationStyles": "סגנונות הכתבה",
+      "dictationStylesAction": "עריכה"
+    },
+    "advanced": {
+      "title": "מתקדם",
+      "meetings": "פגישות",
+      "models": "מודלים",
+      "modelCatalog": "קטלוג המודלים",
+      "cloudKeys": "מפתחות לתמלול בענן",
+      "cleanupProvider": "ספק הניקוי",
+      "dictation": "הכתבה",
+      "keepDictations": "כמה הכתבות לשמור",
+      "readsFromOtherApps": "מה Sona רשאית לקרוא מאפליקציות אחרות",
+      "workflows": "מה Sona עושה אחרי פגישה",
+      "sync": "סנכרון",
+      "leavesThisMac": "מה יוצא מה-Mac הזה",
+      "agents": "סוכנים",
+      "agentBridge": "גשר לסוכני קוד",
+      "about": "אודות Sona",
+      "debugHint": "הקש {{chord}} כדי לפתוח את דף ניפוי השגיאות."
+    },
+    "apps": {
+      "label": "אפליקציות פגישה",
+      "browsersAutomatic": "שיחה בלשונית של דפדפן מזוהה גם בלי להופיע כאן.",
+      "runningNow": "פועלות כעת",
+      "add": "הוסף אפליקציה",
+      "addTitle": "הוספת אפליקציית פגישה",
+      "addDescription": "Sona זקוקה למזהה של האפליקציה, שאפשר לקרוא בחלון האודות של האפליקציה עצמה או באמצעות `osascript -e 'id of app \"שם\"'`.",
+      "identifier": "מזהה האפליקציה",
+      "identifierPlaceholder": "com.example.app",
+      "invalid": "מזהה נראה כך: com.example.app — מילים באותיות קטנות המחוברות בנקודות.",
+      "duplicate": "האפליקציה הזו כבר ברשימה.",
+      "remove": "הסר את {{app}}",
+      "names": {
+        "zoom": "Zoom",
+        "teams": "Microsoft Teams",
+        "webex": "Webex",
+        "facetime": "FaceTime",
+        "slack": "Slack"
+      }
+    }
+  },
+  "consentPanel": {
+    "calendarTitle": "{{title}} — להקליט?",
+    "appTitle": "פגישת {{app}} — להקליט?",
+    "genericTitle": "להקליט את הפגישה הזו?",
+    "introduction": "Sona מקליטה על ה-Mac הזה, והשליטה נשארת אצלך.",
+    "seriesBrief_one": "פגישה {{nth}} עם {{person}} · {{count}} נושא פתוח",
+    "seriesBrief_two": "פגישה {{nth}} עם {{person}} · {{count}} נושאים פתוחים",
+    "seriesBrief_other": "פגישה {{nth}} עם {{person}} · {{count}} נושאים פתוחים",
+    "alwaysRecord": "תמיד להקליט את הפגישה הזו",
+    "assurance": "התחל רק אחרי שכל המשתתפים בפגישה הסכימו שיוקלטו.",
+    "record": "הקלט",
+    "ignore": "התעלם",
+    "recording": "מקליט",
+    "stop": "עצור",
+    "forgetSeries": "שכח את הסדרה הזו"
+  },
+  "learningV2": {
+    "workflows": {
+      "spokenPunctuation": {
+        "name": "הצע פיסוק מדובר",
+        "description": "מזהה סמלים שאתה אומר בקול ושאין להם עדיין כלל החלפה."
+      },
+      "correctionLearning": {
+        "name": "למד מהתיקונים שלך",
+        "description": "הופך תיקונים שאתה מקליד לידיים להצעות אוצר מילים."
+      },
+      "modeHabits": {
+        "name": "הצע כללי מצב",
+        "description": "מזהה מצב שאתה בוחר שוב ושוב בקיצור דרך."
+      },
+      "captureAdvisor": {
+        "name": "ייעץ על איכות ההקלטה",
+        "description": "מדווח על ניסיונות חוזרים, הקלטות אבודות ואודיו חלש מההרצות שלך."
+      },
+      "seriesPriming": {
+        "name": "הכן פגישות חוזרות"
+      }
+    },
+    "feed": {
+      "title": "מה Sona שמה לב",
+      "spokenPunctuation": "שמנו לב שאתה אומר {{spoken}} הרבה — לכתוב את זה {{written}}?",
+      "vocabularyCorrection": "אתה משנה {{spoken}} ל־{{written}} כל הזמן — ללמוד את זה?",
+      "modeHabit": "אתה בוחר {{mode}} בקיצור דרך כמעט כל יום — להפוך אותו לברירת המחדל?",
+      "retryRate": "ההרצות של {{subject}} חוזרות {{times}}× יותר מהשאר.",
+      "lostCaptureRate": "ההרצות של {{subject}} מסתיימות קטומות או שקטות {{times}}× יותר מהשאר.",
+      "inputLevel": "{{percent}}% מההקלטות שלך היו שקטות — לבדוק את עוצמת המיקרופון?",
+      "example": "”{{text}}“",
+      "accept": "כן",
+      "dismiss": "לא, תודה",
+      "evidence_one": "פעם אחת, על פני {{days}} ימים",
+      "evidence_two": "{{count}} פעמים, על פני {{days}} ימים",
+      "evidence_other": "{{count}} פעמים, על פני {{days}} ימים"
+    },
+    "outcomes": {
+      "primed": "הכינה פגישה חוזרת",
+      "noticed_one": "שמה לב לדבר אחד",
+      "noticed_two": "שמה לב ל־{{count}} דברים",
+      "noticed_other": "שמה לב ל־{{count}} דברים"
     }
   }
 }

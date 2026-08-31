@@ -26,15 +26,8 @@
     "secureInputWarning": "Сочетания клавиш заблокированы Secure Input"
   },
   "sidebar": {
-    "general": "Общие",
     "models": "Модели",
-    "advanced": "Продвинутые",
-    "postProcessing": "Постобработка",
-    "debug": "Отладка",
-    "about": "О программе",
     "modes": "Режимы",
-    "privacy": "Конфиденциальность",
-    "agents": "Агенты",
     "meetings": "Встречи",
     "navigation": "Основная навигация",
     "people": "Люди",
@@ -153,21 +146,13 @@
     "active": "Активный",
     "switching": "Переключение…",
     "noModelsAvailable": "Нет доступных моделей",
-    "searchPlaceholder": "Поиск моделей",
     "verifying": "Проверка {{modelName}}…",
     "verifyingGeneric": "Проверка…",
     "extracting": "Извлечение {{modelName}}…",
-    "extractingMultiple": "Извлечение моделей {{count}}…",
     "extractingGeneric": "Извлечение…",
     "downloading": "Загрузка {{percentage}} %",
-    "downloadingMultiple": "Загрузка моделей {{count}}…",
-    "downloadingGeneric": "Загрузка…",
-    "modelReady": "Модель готова",
     "loading": "Загрузка {{modelName}}…",
     "loadingGeneric": "Загрузка…",
-    "modelError": "Ошибка модели",
-    "modelUnloaded": "Модель выгружена",
-    "noModelDownloadRequired": "Нет модели, требуется загрузка",
     "deleteModel": "Удалить {{modelName}}",
     "downloadSpeed": "{{speed}} МБ/с",
     "capabilities": {
@@ -181,8 +166,7 @@
     },
     "cancel": "Отмена",
     "cancelDownload": "Отменить загрузку",
-    "legacy": "Устаревшее",
-    "model": "Модель"
+    "legacy": "Устаревшее"
   },
   "settings": {
     "modelSettings": {
@@ -330,7 +314,6 @@
       }
     },
     "sound": {
-      "title": "Звук",
       "microphone": {
         "title": "Микрофон"
       },
@@ -338,16 +321,6 @@
         "title": "Входной канал",
         "average": "Усреднять все каналы",
         "channel": "Канал {{n}}"
-      },
-      "audioFeedback": {
-        "label": "Обратная звуковая связь"
-      },
-      "outputDevice": {
-        "title": "Устройство вывода",
-        "description": "Где воспроизводятся звуки обратной связи."
-      },
-      "volume": {
-        "title": "Громкость"
       }
     },
     "advanced": {
@@ -357,13 +330,6 @@
           "as_spoken": "Как распознано",
           "british": "Британское"
         }
-      },
-      "groups": {
-        "app": "Приложение",
-        "output": "Вывод",
-        "transcription": "Транскрипция",
-        "history": "История",
-        "experimental": "Экспериментальное"
       },
       "experimentalToggle": {
         "label": "Экспериментальные функции"
@@ -384,15 +350,8 @@
           "auto": "Авто"
         }
       },
-      "startHidden": {
-        "label": "Скрыть при запуске",
-        "description": "Запускать в системный трей, не открывая окно."
-      },
       "autostart": {
         "label": "Запускать при старте"
-      },
-      "showTrayIcon": {
-        "label": "Показать значок в трее"
       },
       "overlay": {
         "style": {
@@ -508,14 +467,6 @@
         },
         "empty": {
           "description": "Сопоставьте точную произносимую фразу, например смайлик, с нужным эмодзи."
-        }
-      },
-      "disclosures": {
-        "launch": {
-          "title": "Запуск"
-        },
-        "processing": {
-          "title": "Обработка"
         }
       },
       "snippets": {
@@ -864,9 +815,6 @@
         "label": "Постобработка",
         "description": "Переписывать транскрипцию языковой моделью после транскрипции."
       },
-      "muteWhileRecording": {
-        "label": "Отключить звук во время записи"
-      },
       "appendTrailingSpace": {
         "label": "Добавлять пробел в конце",
         "description": "Добавляет один пробел после вставленного transcript."
@@ -930,7 +878,6 @@
       }
     },
     "about": {
-      "title": "О программе",
       "version": {
         "title": "Версия",
         "unavailable": "Недоступно"
@@ -953,9 +900,6 @@
           "title": "ggml",
           "details": "Локальное преобразование речи в текст в Sona построено на transcribe.cpp и ggml. Спасибо Георгию Герганову и участникам."
         }
-      },
-      "whatsNewUpdates": {
-        "label": "Показывать новинки"
       },
       "files": {
         "title": "Файлы"
@@ -1553,7 +1497,6 @@
     },
     "workflows": {
       "title": "Рабочие процессы",
-      "builtIns": "Встроенные рабочие процессы",
       "loadError": "Не удалось загрузить рабочие процессы.",
       "updateError": "Не удалось обновить рабочий процесс.",
       "empty": "Нет доступных рабочих процессов.",
@@ -1561,24 +1504,27 @@
       "toggleLabel": "Включить {{name}}",
       "items": {
         "person_linking": {
-          "name": "Связывание людей",
+          "name": "Запоминать людей",
           "description": "Связывает встречи с людьми по подтверждённым данным участников и говорящих."
         },
         "pre_meeting_briefing": {
-          "name": "Справка перед встречей",
+          "name": "Готовить сводки по встречам",
           "description": "Перед началом обнаруженной встречи готовит справку по предыдущим встречам."
         },
         "continuity": {
-          "name": "Продолжение",
+          "name": "Переносить встречи дальше",
           "description": "Переносит незавершённые обязательства в следующие встречи."
         },
         "vocabulary_mining": {
-          "name": "Поиск словаря",
+          "name": "Учить новые слова",
           "description": "Находит повторяющиеся имена и термины, которые можно добавить в ваш словарь."
         },
         "document_linking": {
-          "name": "Связывание документов",
+          "name": "Связывать документы",
           "description": "Связывает импортированные документы с упомянутыми в них людьми."
+        },
+        "meeting_activity": {
+          "name": "Запись встреч"
         }
       },
       "status": {
@@ -1587,32 +1533,29 @@
         "skipped": "Пропущено"
       },
       "outcomes": {
-        "personLinks_one": "Обновлена {{count}} связь с человеком",
-        "personLinks_few": "Обновлены {{count}} связи с людьми",
-        "personLinks_many": "Обновлено {{count}} связей с людьми",
-        "personLinks_other": "Обновлено {{count}} связи с человеком",
-        "briefing_one": "Подготовлена сводка для {{count}} человека",
-        "briefing_few": "Подготовлена сводка для {{count}} человек",
-        "briefing_many": "Подготовлена сводка для {{count}} человек",
-        "briefing_other": "Подготовлена сводка для {{count}} человека",
-        "continuitySeries_one": "Обновлена {{count}} серия встреч",
-        "continuitySeries_few": "Обновлены {{count}} серии встреч",
-        "continuitySeries_many": "Обновлено {{count}} серий встреч",
-        "continuitySeries_other": "Обновлено {{count}} серии встреч",
-        "continuityCarried_one": "перенесён {{count}} открытый вопрос",
-        "continuityCarried_few": "перенесены {{count}} открытых вопроса",
-        "continuityCarried_many": "перенесено {{count}} открытых вопросов",
-        "continuityCarried_other": "перенесено {{count}} открытого вопроса",
-        "vocabularyCandidates_one": "Найдена {{count}} подсказка для словаря",
-        "vocabularyCandidates_few": "Найдены {{count}} подсказки для словаря",
-        "vocabularyCandidates_many": "Найдено {{count}} подсказок для словаря",
-        "vocabularyCandidates_other": "Найдено {{count}} подсказки для словаря",
-        "documentLinks_one": "Обновлена {{count}} связь с документом",
-        "documentLinks_few": "Обновлены {{count}} связи с документами",
-        "documentLinks_many": "Обновлено {{count}} связей с документами",
-        "documentLinks_other": "Обновлено {{count}} связи с документом",
-        "alreadyProcessed": "Уже обработано",
-        "failed": "Запуск завершился с ошибкой",
+        "personLinks_one": "Запомнен 1 человек",
+        "personLinks_few": "Запомнено {{count}} человека",
+        "personLinks_many": "Запомнено {{count}} человек",
+        "personLinks_other": "Запомнено {{count}} человека",
+        "briefing": "Ваша сводка по встрече готова",
+        "continuity_one": "Перенесён 1 вопрос без ответа",
+        "continuity_few": "Перенесено {{count}} вопроса без ответа",
+        "continuity_many": "Перенесено {{count}} вопросов без ответа",
+        "continuity_other": "Перенесено {{count}} вопроса без ответа",
+        "vocabularyCandidates_one": "Выучено новое слово",
+        "vocabularyCandidates_few": "Выучено {{count}} новых слова",
+        "vocabularyCandidates_many": "Выучено {{count}} новых слов",
+        "vocabularyCandidates_other": "Выучено {{count}} новых слова",
+        "documentLinks_one": "Связан один документ",
+        "documentLinks_few": "Связано {{count}} документа",
+        "documentLinks_many": "Связано {{count}} документов",
+        "documentLinks_other": "Связано {{count}} документа",
+        "promptRecorded": "Запись начата",
+        "promptIgnored": "Обнаруженная встреча не записана",
+        "autoRecordStarted": "Запись начата автоматически",
+        "autoRecordStopped": "Запись остановлена автоматически",
+        "alreadyProcessed": "Ничего нового",
+        "failed": "Не удалось завершить",
         "skipped": "Пропущено"
       },
       "vocabularySuggestions": {
@@ -1630,7 +1573,7 @@
       },
       "overview": {
         "whatSonaDid": "Что сделала Sona",
-        "commitments": "Обязательства",
+        "openLoops": "Вопросы без ответа",
         "openMeeting": "Открыть встречу {{title}}",
         "loadError": "Не удалось загрузить эту карточку.",
         "retry": "Повторить"
@@ -1642,18 +1585,6 @@
         "loadMoreError": "Не удалось загрузить дополнительные запуски.",
         "loadMore": "Загрузить ещё",
         "chartAria": "Запусков в день: {{count}} за последние 7 дней"
-      }
-    },
-    "hub": {
-      "navigation": "Разделы настроек",
-      "tabs": {
-        "general": "Основные",
-        "privacy": "Конфиденциальность",
-        "agents": "Агенты",
-        "workflows": "Рабочие процессы",
-        "advanced": "Дополнительно",
-        "about": "О программе",
-        "debug": "Отладка"
       }
     },
     "vocabulary": {
@@ -1728,7 +1659,11 @@
     "play": "Воспроизвести",
     "pause": "Пауза",
     "seek": "Позиция воспроизведения",
-    "resetSetting": "Сбросить {{name}}"
+    "resetSetting": "Сбросить {{name}}",
+    "day": {
+      "today": "Сегодня",
+      "yesterday": "Вчера"
+    }
   },
   "commandPalette": {
     "open": "Поиск",
@@ -1914,17 +1849,17 @@
     },
     "live": {
       "elapsed": "Прошло",
-      "microphoneOnlyPartial": "Только микрофон / Частично. Системный звук недоступен или работает хуже.",
-      "partialCapture": "Частичный захват. Просмотрите пропуски, прежде чем полагаться на сгенерированные заметки.",
+      "microphoneOnlyPartial": "Записывается только микрофон. Системный звук недоступен, поэтому встреча будет записана частично.",
+      "partialCapture": "Часть звука отсутствует. Проверьте пропуски, прежде чем полагаться на созданные заметки.",
       "inputs": "Входы",
       "signal": "Сигнал",
       "signalUnavailable": "Уровень {{source}} не сообщается при захвате.",
       "notReported": "Не сообщается",
-      "durabilityLag": "Задержка надёжной записи",
+      "durabilityLag": "Сохранено на диск",
       "behind": "отстаёт на {{duration}}",
       "progress": "Прогресс расшифровки",
       "transcript": "Расшифровка",
-      "asrLag": "Задержка ASR",
+      "asrLag": "Задержка расшифровки",
       "storage": "Хранилище",
       "storageHealthy": "Зашифрованное локальное хранилище в порядке.",
       "storageUnavailable": "Хранилище требует внимания.",
@@ -1973,20 +1908,20 @@
     },
     "gaps": {
       "source_unavailable": "Источник недоступен",
-      "source_start_failed": "Не удалось запустить источник",
+      "source_start_failed": "Источник не запустился",
       "permission_lost": "Разрешение потеряно",
       "paused": "Пауза",
-      "packet_dropped": "Потерян звуковой пакет",
-      "writer_pressure": "Нагрузка на запись в хранилище",
+      "packet_dropped": "Звук потерян",
+      "writer_pressure": "Хранилище не успевало",
       "storage_failure": "Сбой хранилища",
-      "timestamp_missing": "Метка времени отсутствует",
-      "timestamp_discontinuity": "Разрыв меток времени",
-      "invalid_format": "Недопустимый формат звука",
+      "timestamp_missing": "Нет отметок времени",
+      "timestamp_discontinuity": "Скачок во времени",
+      "invalid_format": "Нечитаемый звук",
       "source_stopped": "Источник остановлен",
       "corrupt_record": "Повреждённая запись",
-      "missing_record": "Отсутствующая запись",
-      "recovery_tail": "Хвост восстановления",
-      "system_sleep": "Mac ушёл в сон"
+      "missing_record": "Запись отсутствует",
+      "recovery_tail": "Восстановлено после сбоя",
+      "system_sleep": "Mac уходил в сон"
     },
     "errors": {
       "load": "Sona не удалось загрузить данные текущей встречи.",
@@ -2104,7 +2039,7 @@
       "tabs": {
         "insights": "Выводы",
         "ledger": "Журнал",
-        "questions": "Вопросы и ответы",
+        "questions": "Вопросы",
         "transcript": "Расшифровка"
       },
       "tabsLabel": "Разделы обзора встречи",
@@ -2168,12 +2103,12 @@
       "forgotten": "Забыто"
     },
     "diarization": {
-      "not_requested": "Диаризация не запрошена",
-      "model_unavailable": "Модель диаризации недоступна",
-      "downloading": "Загрузка модели диаризации",
+      "not_requested": "Говорящие не разделены",
+      "model_unavailable": "Модель говорящих недоступна",
+      "downloading": "Загрузка модели говорящих",
       "running": "Разделение говорящих",
-      "succeeded": "Назначения говорящих актуальны",
-      "failed": "Разделение говорящих не удалось"
+      "succeeded": "Говорящие обновлены",
+      "failed": "Не удалось разделить говорящих"
     },
     "list": {
       "searchLabel": "Поиск встреч",
@@ -2193,13 +2128,6 @@
         "ready": "Готово",
         "processing": "Обработка",
         "needs_attention": "Требует внимания"
-      },
-      "headline": {
-        "words": "Расшифровано слов: {{count}}"
-      },
-      "sourceGlyph": {
-        "microphone": "МИК",
-        "system_audio": "СИС"
       },
       "filters": {
         "label": "Фильтр встреч",
@@ -2317,9 +2245,6 @@
       },
       "anyMic": {
         "label": "Спрашивать при любом использовании микрофона"
-      },
-      "autoStart": {
-        "label": "Открывать встречу, когда виден её отсчёт"
       },
       "apps": {
         "label": "Приложения для встреч",
@@ -2562,17 +2487,11 @@
       "meetings_few": "{{count}} встречи",
       "meetings_many": "{{count}} встреч",
       "meetings_other": "{{count}} встречи",
-      "last": "Последняя {{date}}",
-      "suggested_one": "Связать 1 предложенную встречу?",
-      "suggested_few": "Связать {{count}} предложенные встречи?",
-      "suggested_many": "Связать {{count}} предложенных встреч?",
-      "suggested_other": "Связать {{count}} предложенной встречи?",
       "dismiss": "Отклонить",
       "confirm": "Подтвердить",
       "loadError": "Не удалось загрузить людей.",
       "empty": "Людей пока нет.",
-      "meetings": "{{count}} встреч",
-      "suggested": "Связать {{count}} предложенных встреч?"
+      "meetings": "{{count}} встреч"
     },
     "detail": {
       "nameLabel": "Имя человека",
@@ -2588,7 +2507,6 @@
       "deleteTitle": "Удалить этого человека?",
       "deleteDescription": "Удалить {{name}} и все связи со встречами?",
       "carriedSince": "Открыто с {{date}}",
-      "stillOpen": "Всё ещё открыто",
       "noOpenLoops": "Открытых вопросов не осталось.",
       "commitments": "Обязательства",
       "noCommitments": "Обязательства не записаны.",
@@ -2661,6 +2579,266 @@
       "stillOpen": "Всё ещё открыто: {{text}}",
       "metCount": "Вы встречались с {{name}} {{count}} раз",
       "metBefore": "Вы встречались с {{name}} {{count}} раз · последняя встреча {{date}}"
+    }
+  },
+  "libraryV2": {
+    "recordings_one": "{{count, number}} запись",
+    "recordings_few": "{{count, number}} записи",
+    "recordings_many": "{{count, number}} записей",
+    "recordings_other": "{{count, number}} записи",
+    "words_one": "{{count, number}} слово",
+    "words_few": "{{count, number}} слова",
+    "words_many": "{{count, number}} слов",
+    "words_other": "{{count, number}} слова",
+    "summaryLoading": "Считаем ваши записи…",
+    "byMeaning": "по смыслу",
+    "actions": {
+      "copy": "Копировать",
+      "copied": "Скопировано",
+      "transcribeAgain": "Расшифровать заново",
+      "delete": "Удалить",
+      "more": "Ещё действия"
+    }
+  },
+  "meetingsV2": {
+    "retention": {
+      "keptForever": "Хранится всегда",
+      "keptDays": "Хранится {{days}} дней",
+      "change": "изменить в Настройках"
+    }
+  },
+  "peopleV2": {
+    "list": {
+      "lastMet": "Последняя встреча: {{date}}"
+    },
+    "detail": {
+      "openLoops": "Вопросы без ответа",
+      "howSonaKnows": "Откуда Sona это знает",
+      "noEvidence": "Пока ничто не связывает этого человека со встречей."
+    }
+  },
+  "modesV2": {
+    "sections": {
+      "instructions": "Инструкции",
+      "model": "Модель",
+      "output": "Вывод"
+    },
+    "instructions": {
+      "enabled": {
+        "label": "Очищать с помощью ИИ"
+      },
+      "custom": {
+        "label": "Ваши собственные инструкции",
+        "hint": "То, что написано здесь, заменяет стиль вывода ниже, а не дополняет его. Оставьте поле пустым, чтобы использовать стиль.",
+        "placeholder": "Пиши так, как написал бы я: короткие предложения, без списков."
+      },
+      "disabled": "Включите очистку, и Sona будет следовать этим инструкциям после каждой диктовки."
+    },
+    "output": {
+      "style": {
+        "label": "Стиль вывода"
+      }
+    },
+    "activation": {
+      "title": "Включается сам",
+      "rules": {
+        "label": "Приложения и сайты",
+        "empty": "Ничто не переключает на этот режим само.",
+        "example": "Правило хранит один идентификатор приложения или один хост сайта: com.apple.mail или mail.google.com."
+      }
+    },
+    "advanced": {
+      "title": "Продвинутые",
+      "summary": "Сочетания клавиш, тон, контекст, доставка"
+    },
+    "list": {
+      "preset": "Пресет"
+    },
+    "chip": {
+      "lead": "Режим",
+      "title": "Режимы",
+      "action": "Сменить режим, сейчас {{mode}}",
+      "editLink": "Изменить режимы в Настройках",
+      "switchError": "Не удалось сменить режим. Попробуйте ещё раз."
+    },
+    "rules": {
+      "title": "Текстовые правила",
+      "kind": "Тип",
+      "left": "Вы говорите",
+      "right": "Sona пишет",
+      "add": "Добавить правило",
+      "loading": "Загрузка текстовых правил",
+      "empty": "Текстовых правил пока нет. Добавьте одно выше, и Sona будет применять его к каждой расшифровке.",
+      "matching": "Правила срабатывают на целых словах и не различают регистр. Если два подходят к одному месту, побеждает более длинное.",
+      "applyRule": "Применить {{rule}}",
+      "removeRule": "Удалить {{rule}}",
+      "restoreRewrites": "Вернуть стандартные переписывания",
+      "kinds": {
+        "vocabulary": "Написание",
+        "snippet": "Сокращение",
+        "replacement": "Переписывание",
+        "emoji": "Эмодзи"
+      },
+      "kindHints": {
+        "vocabulary": "Показывает Sona, как пишется имя, чтобы она писала точную форму каждый раз, когда слышит эту фразу.",
+        "snippet": "Разворачивает короткий триггер в более длинный текст, например «щас буду» в «скоро буду».",
+        "replacement": "Переписывает фразу, которую Sona уже услышала, например «собака» в @.",
+        "emoji": "Сопоставляет точную произносимую фразу, например смайлик, с нужным эмодзи."
+      },
+      "placeholders": {
+        "vocabulary": {
+          "left": "open ai",
+          "right": "OpenAI"
+        },
+        "snippet": {
+          "left": "щас буду",
+          "right": "скоро буду"
+        },
+        "replacement": {
+          "left": "собака",
+          "right": "@"
+        },
+        "emoji": {
+          "left": "смайлик",
+          "right": "🙂"
+        }
+      },
+      "toggles": {
+        "emoji": "Писать эмодзи, когда вы их называете",
+        "snippet": "Разворачивать сокращения",
+        "replacement": "Применять переписывания"
+      },
+      "toggleErrors": {
+        "spokenEdits": "Не удалось изменить голосовые команды редактирования. Попробуйте ещё раз.",
+        "emoji": "Не удалось изменить написание эмодзи. Попробуйте ещё раз.",
+        "snippet": "Не удалось изменить разворачивание сокращений. Попробуйте ещё раз.",
+        "replacement": "Не удалось изменить переписывания. Попробуйте ещё раз."
+      },
+      "errors": {
+        "incomplete": "Заполните обе стороны или удалите правило.",
+        "duplicate": "Другое правило этого типа уже использует эту фразу."
+      }
+    }
+  },
+  "settingsV2": {
+    "navigation": "Настройки",
+    "tabs": {
+      "essentials": "Основное",
+      "advanced": "Продвинутые",
+      "debug": "Отладка"
+    },
+    "essentials": {
+      "title": "Основное",
+      "sounds": "Звуки",
+      "launchAtLogin": "Запускать при старте",
+      "appearance": "Внешний вид",
+      "volume": "Громкость звука",
+      "detectMeetings": "Замечать, когда я присоединяюсь к встрече",
+      "detectMeetingsHint": "Sona предложит записать. Сама она запись никогда не начинает.",
+      "retention": "Удалять записи через",
+      "dictationStyles": "Стили диктовки",
+      "dictationStylesAction": "Изменить"
+    },
+    "advanced": {
+      "title": "Продвинутые",
+      "meetings": "Встречи",
+      "models": "Модели",
+      "modelCatalog": "Каталог моделей",
+      "cloudKeys": "Ключи для облачной расшифровки",
+      "cleanupProvider": "Провайдер очистки",
+      "dictation": "Диктовка",
+      "keepDictations": "Сколько диктовок хранить",
+      "readsFromOtherApps": "Что Sona может читать из других приложений",
+      "workflows": "Что Sona делает после встречи",
+      "sync": "Синхронизация",
+      "leavesThisMac": "Что покидает этот Mac",
+      "agents": "Агенты",
+      "agentBridge": "Мост для кодовых агентов",
+      "about": "О Sona",
+      "debugHint": "Нажмите {{chord}}, чтобы открыть страницу отладки."
+    },
+    "apps": {
+      "label": "Приложения для встреч",
+      "browsersAutomatic": "Звонок во вкладке браузера распознаётся и без записи в этом списке.",
+      "runningNow": "Запущены сейчас",
+      "add": "Добавить приложение",
+      "addTitle": "Добавить приложение для встреч",
+      "addDescription": "Sona нужен идентификатор приложения — его видно в окне «О программе» самого приложения или в выводе `osascript -e 'id of app \"Название\"'`.",
+      "identifier": "Идентификатор приложения",
+      "identifierPlaceholder": "com.example.app",
+      "invalid": "Идентификатор выглядит так: com.example.app — слова в нижнем регистре, соединённые точками.",
+      "duplicate": "Это приложение уже в списке.",
+      "remove": "Убрать {{app}}",
+      "names": {
+        "zoom": "Zoom",
+        "teams": "Microsoft Teams",
+        "webex": "Webex",
+        "facetime": "FaceTime",
+        "slack": "Slack"
+      }
+    }
+  },
+  "consentPanel": {
+    "calendarTitle": "{{title}} — записать?",
+    "appTitle": "Встреча в {{app}} — записать?",
+    "genericTitle": "Записать эту встречу?",
+    "introduction": "Sona записывает на этом Mac, и управление остаётся у вас.",
+    "seriesBrief_one": "Встреча {{nth}} с {{person}} · {{count}} открытый вопрос",
+    "seriesBrief_few": "Встреча {{nth}} с {{person}} · {{count}} открытых вопроса",
+    "seriesBrief_many": "Встреча {{nth}} с {{person}} · {{count}} открытых вопросов",
+    "seriesBrief_other": "Встреча {{nth}} с {{person}} · {{count}} открытого вопроса",
+    "alwaysRecord": "Всегда записывать эту встречу",
+    "assurance": "Начинайте только после того, как все участники согласились на запись.",
+    "record": "Записать",
+    "ignore": "Пропустить",
+    "recording": "Запись",
+    "stop": "Остановить",
+    "forgetSeries": "Забыть эту серию"
+  },
+  "learningV2": {
+    "workflows": {
+      "spokenPunctuation": {
+        "name": "Предлагать произносимую пунктуацию",
+        "description": "Замечает символы, которые вы произносите, но для которых ещё нет правила замены."
+      },
+      "correctionLearning": {
+        "name": "Учиться на ваших правках",
+        "description": "Превращает ручные правки в предложения для словаря."
+      },
+      "modeHabits": {
+        "name": "Предлагать правила режимов",
+        "description": "Замечает режим, который вы постоянно включаете горячей клавишей."
+      },
+      "captureAdvisor": {
+        "name": "Советовать по качеству записи",
+        "description": "Сообщает о повторах, потерянных записях и тихом звуке из ваших сеансов."
+      },
+      "seriesPriming": {
+        "name": "Готовить повторяющиеся встречи"
+      }
+    },
+    "feed": {
+      "title": "Что заметила Sona",
+      "spokenPunctuation": "Вы часто говорите {{spoken}} — писать это как {{written}}?",
+      "vocabularyCorrection": "Вы постоянно меняете {{spoken}} на {{written}} — запомнить?",
+      "modeHabit": "Почти каждый день вы включаете {{mode}} горячей клавишей — сделать его основным?",
+      "retryRate": "Сеансы {{subject}} повторяются в {{times}}× чаще остальных.",
+      "lostCaptureRate": "Сеансы {{subject}} заканчиваются обрезанными или пустыми в {{times}}× чаще остальных.",
+      "inputLevel": "{{percent}}% ваших записей оказались тихими — проверить уровень микрофона?",
+      "example": "«{{text}}»",
+      "accept": "Да",
+      "dismiss": "Нет, спасибо",
+      "evidence_one": "1 раз, за {{days}} дней",
+      "evidence_few": "{{count}} раз, за {{days}} дней",
+      "evidence_many": "{{count}} раз, за {{days}} дней",
+      "evidence_other": "{{count}} раз, за {{days}} дней"
+    },
+    "outcomes": {
+      "primed": "Подготовлена повторяющаяся встреча",
+      "noticed_one": "Замечено 1",
+      "noticed_few": "Замечено {{count}}",
+      "noticed_many": "Замечено {{count}}",
+      "noticed_other": "Замечено {{count}}"
     }
   }
 }

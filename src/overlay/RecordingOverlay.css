@@ -1,55 +1,14 @@
-/* Recording overlay — its own webview, its own stylesheet.
+/* Recording overlay: its own webview and its own component stylesheet.
  *
- * Colour comes from ONE place: the Geist token file, keyed on this document's
- * own `data-theme` (src/app/overlay/page.tsx writes it; a second webview cannot
- * inherit the settings window's root attribute). Nothing here restates a colour
- * value.
+ * app/layout.tsx loads the shared theme, font and base styles for this route.
+ * The overlay writes its own data-theme because a separate webview cannot
+ * inherit the main window's root attribute. Every color below comes from the
+ * shared theme tokens.
  *
- * No `@import` of its own. Under Next.js every route nests inside
- * src/app/layout.tsx, which imports app/globals.css, so this document already
- * has geist.css and fonts.css — and also theme.css, base.css, shell.css and
- * primitives.css, which an earlier version of this header claimed were
- * deliberately kept out. They are not kept out any more, and importing
- * geist.css/fonts.css again here only put a second copy of the token block and
- * both @font-face rules in the /overlay chunk.
- *
- * That shared cascade is safe here, and the reasons are mechanical rather than
- * a promise, so they can be re-checked:
- *
- *   Tokens. Every colour this file reads — --color-background-100, --color-gray-
- *   {800,900,1000}, --color-gray-alpha-{100,200,400}, --color-blue-700,
- *   --color-red-900 — is declared in geist.css and NOWHERE else, so theme.css
- *   cannot repoint one. It never reads a theme.css semantic (--color-accent,
- *   --color-surface-*, --scrim), which is what the old violet-inheritance worry
- *   was actually about. The one shared name, --radius-card, is declared by both,
- *   and geist.css wins twice over: it is imported last AND takes `html:root`
- *   against theme.css's `:root` (geist.css:122-131). Same 12px either way.
- *
- *   Selectors. This file's classes are namespaced — `s*` for the stream card,
- *   `hud-pill*` for the compact pill, `ov-*` for the stage — and share exactly
- *   one name with the reachable sheets: `.snap-measured`, whose declaration
- *   here is byte-identical to theme.css:477-481. The local copy stays: an
- *   identical rule cannot conflict, and this window must survive theme.css
- *   being pruned. Same for the type roles baked into `.stext` and the tint-only
- *   Glass variant on `.hud-pill` — both were copied out of the shared layers on
- *   purpose and are not re-shared now that those layers are reachable again.
- *
- *   Geometry. base.css's `:root { font-size: 14px }` reaches this document but
- *   cannot move anything in it: every length here is px, pinned to a native
- *   window size, and the one relative unit is the `1.02em` cap height on
- *   `.scaret`, which resolves against its own element's font-size.
- *
- * base.css's `:root { background-color: var(--color-canvas) }` DOES reach this
- * document and would paint the transparent HUD window opaque. That one is
- * defeated deliberately, in src/app/overlay/overlay-window.css, which is where
- * the document-level rules for this window live.
- *
- * What is deliberately NOT ported to Tailwind utilities: everything in this
- * file. It is four @keyframes, an nth-child animation-delay ladder, a per-bar
- * `animation-delay: calc(var(--bar-index) * 45ms)`, and geometry every value of
- * which is pinned to a native window size in src-tauri/src/overlay.rs. As
- * arbitrary-value utilities that is the same CSS in a worse syntax, minus the
- * comments that say why each number cannot move. */
+ * Classes stay namespaced (`s*`, `hud-pill*`, `ov-*`). Geometry is pinned to
+ * the native window sizes in src-tauri/src/overlay.rs, so the CSS remains
+ * explicit rather than becoming arbitrary-value utilities. The document-level
+ * transparent background override lives in app/overlay/overlay-window.css. */
 
 :root {
   /* Card geometry. Every value is bounded by a window size in
@@ -81,13 +40,9 @@
   --ov-wave-w: 148px;
   --ov-bar-w: 4px;
 
-  /* Spacing and motion, verbatim the values this surface shipped with
-     (theme.css --space-* / --duration-* / --ease-*). They are local ONLY because
-     geist.css carries no spacing or motion vocabulary — if it grows one, these
-     should point at it. The card radius deliberately does NOT live here: 12px is
-     an app-wide decision and geist.css already owns it as --radius-card, so this
-     file reads that rather than restating the number. The pill radius stays
-     local because 999px is this surface's own call, not app vocabulary. */
+  /* Spacing and motion remain local because the native overlay geometry is
+     fixed. The card reads the shared 12px radius; only the pill radius is
+     component-specific. */
   --ov-radius-pill: 999px;
   --ov-gap-1-5: 6px;
   --ov-gap-2: 8px;
@@ -97,23 +52,12 @@
   --ov-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ov-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* The card's lift. Geist is flat at rest but keeps a shadow on things that
-     float over other windows, and this card floats over the whole desktop. The
-     throw is unchanged from the ring-and-throw shadow this file used before;
-     only the 1px ring is gone, because the card now draws a real
-     gray-alpha-400 border in the 1px slot it always reserved. */
-  --ov-shadow: 0 16px 40px -20px rgb(0 0 0 / 0.6);
-  /* Glass, on the idle pill only: a translucent Geist surface, no blur. See the
-     pill's own section for why this window gets tint without blur. */
+  /* The idle Glass pill uses a theme-derived tint without blur. */
   --ov-glass-tint: color-mix(
     in srgb,
     var(--color-background-100) 85%,
     transparent
   );
-}
-
-:root[data-theme="light"] {
-  --ov-shadow: 0 16px 40px -20px rgb(0 0 0 / 0.25);
 }
 
 /* The measurement guard, formerly inherited from theme.css. A transition or a
@@ -141,7 +85,6 @@
   display: flex;
   justify-content: center; /* horizontal centering, kept for every form */
   align-items: flex-end; /* bottom placement: flush to the bottom edge */
-  font-family: var(--font-sans);
 }
 .ov-stage.top {
   align-items: flex-start; /* top placement: flush to the top edge */
@@ -181,13 +124,8 @@
  * contests exactly the reading it exists to show. Glass lives on the idle pill
  * only, where nothing measured is rendered.
  *
- * background-100 is the Geist raised surface (#FFF light, #0A0A0A dark) and the
- * edge is the product's one hairline, gray-alpha-400 — an alpha wash, so the
- * same line reads correctly whichever wallpaper the shadow falls on. The 1px
- * border slot is not new: this card always reserved it (previously transparent,
- * with the edge drawn by a ring inside the shadow), so making it real moves
- * nothing. Width is never transitioned — it is a layout property, and this card
- * is on screen while ASR runs. */
+ * background-100 is the shared card surface and gray-alpha-400 is its hairline.
+ * Width never transitions because this card stays visible while ASR runs. */
 .scard {
   box-sizing: border-box;
   max-inline-size: var(--ov-card-max-w);
@@ -199,7 +137,7 @@
   transform-origin: bottom center;
   background: var(--color-background-100);
   border: 1px solid var(--color-gray-alpha-400);
-  box-shadow: var(--ov-shadow);
+  box-shadow: var(--shadow-overlay);
   animation: scard-pop var(--ov-duration-standard) var(--ov-ease-out);
 }
 @keyframes scard-pop {
@@ -360,8 +298,8 @@
 
 /* The failure names its cause, in prose, in the one semantic colour that means
    a run ended badly — red-900, the high-contrast step, because this text sits
-   on a surface and has to be read rather than noticed. Not mono: `error_type`
-   never reaches the screen. Carries the row-title role (13px/19px, weight 500)
+   on a surface and has to be read rather than noticed. `error_type` never
+   reaches the screen. Carries the row-title role (13px/19px, weight 500)
    inline, for the same reason .stext-cap does. */
 .serror {
   min-inline-size: 0;
@@ -666,10 +604,9 @@
 
    Tint only, no backdrop blur: this is a transparent NSPanel over an arbitrary
    desktop, and a blur here samples the whole screen for as long as the pill is
-   up — this app shipped that once and reverted it. 85% of the Geist surface is
-   the measured floor at which the pill still holds AA over extreme wallpapers.
-   The specular top highlight the Mercury version drew is gone: Geist surfaces
-   are flat, and the pill already has an edge.
+   up; this app shipped that once and reverted it. The 85% surface tint is the
+   measured floor at which the pill still holds AA over extreme wallpapers.
+   The pill already has a real edge, so it draws no specular highlight.
 
    Scoped away from the failure pill: that one carries prose in red-900 that has
    to be read, and a tint over unblurred wallpaper is exactly what a legibility

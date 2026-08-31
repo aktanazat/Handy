@@ -26,15 +26,8 @@
     "secureInputWarning": "Phím tắt bị Secure Input chặn"
   },
   "sidebar": {
-    "general": "Chung",
     "models": "Mô hình",
-    "advanced": "Nâng cao",
-    "postProcessing": "Xử lý sau",
-    "debug": "Gỡ lỗi",
-    "about": "Giới thiệu",
     "modes": "Chế độ",
-    "privacy": "Quyền riêng tư",
-    "agents": "Tác nhân",
     "meetings": "Cuộc họp",
     "navigation": "Điều hướng chính",
     "people": "Mọi người",
@@ -153,21 +146,13 @@
     "active": "Đang hoạt động",
     "switching": "Đang chuyển…",
     "noModelsAvailable": "Không có mô hình nào",
-    "searchPlaceholder": "Tìm kiếm mô hình",
     "verifying": "Đang xác minh {{modelName}}…",
     "verifyingGeneric": "Đang xác minh…",
     "extracting": "Đang giải nén {{modelName}}…",
-    "extractingMultiple": "Đang giải nén {{count}} mô hình…",
     "extractingGeneric": "Đang giải nén…",
     "downloading": "Đang tải xuống {{percentage}}%",
-    "downloadingMultiple": "Đang tải xuống {{count}} mô hình…",
-    "downloadingGeneric": "Đang tải xuống…",
-    "modelReady": "Mô Hình Sẵn Sàng",
     "loading": "Đang tải {{modelName}}…",
     "loadingGeneric": "Đang tải…",
-    "modelError": "Lỗi Mô Hình",
-    "modelUnloaded": "Mô Hình Đã Gỡ",
-    "noModelDownloadRequired": "Chưa có mô hình, cần tải xuống",
     "deleteModel": "Xóa {{modelName}}",
     "downloadSpeed": "{{speed}} MB/s",
     "capabilities": {
@@ -181,8 +166,7 @@
     },
     "cancel": "Hủy",
     "cancelDownload": "Hủy tải xuống",
-    "legacy": "Cũ",
-    "model": "Mô hình"
+    "legacy": "Cũ"
   },
   "settings": {
     "modelSettings": {
@@ -330,7 +314,6 @@
       }
     },
     "sound": {
-      "title": "Âm thanh",
       "microphone": {
         "title": "Micrô"
       },
@@ -338,16 +321,6 @@
         "title": "Kênh đầu vào",
         "average": "Trung bình tất cả các kênh",
         "channel": "Kênh {{n}}"
-      },
-      "audioFeedback": {
-        "label": "Phản hồi âm thanh"
-      },
-      "outputDevice": {
-        "title": "Thiết bị đầu ra",
-        "description": "Nơi phát âm thanh phản hồi."
-      },
-      "volume": {
-        "title": "Âm lượng"
       }
     },
     "advanced": {
@@ -357,13 +330,6 @@
           "as_spoken": "Theo cách nói",
           "british": "Anh (Anh Quốc)"
         }
-      },
-      "groups": {
-        "app": "Ứng dụng",
-        "output": "Đầu ra",
-        "transcription": "Chuyển đổi",
-        "history": "Lịch sử",
-        "experimental": "Thử nghiệm"
       },
       "experimentalToggle": {
         "label": "Tính năng thử nghiệm"
@@ -384,15 +350,8 @@
           "auto": "Tự động"
         }
       },
-      "startHidden": {
-        "label": "Khởi động ẩn",
-        "description": "Khởi động vào khay hệ thống mà không mở cửa sổ."
-      },
       "autostart": {
         "label": "Khởi động cùng hệ thống"
-      },
-      "showTrayIcon": {
-        "label": "Hiển thị biểu tượng khay"
       },
       "overlay": {
         "style": {
@@ -508,14 +467,6 @@
         },
         "empty": {
           "description": "Ánh xạ một từ nói chính xác như smiley face sang emoji bạn muốn viết."
-        }
-      },
-      "disclosures": {
-        "launch": {
-          "title": "Khởi động"
-        },
-        "processing": {
-          "title": "Xử lý"
         }
       },
       "snippets": {
@@ -864,9 +815,6 @@
         "label": "Xử lý sau",
         "description": "Viết lại bản ghi bằng mô hình ngôn ngữ sau khi chuyển đổi."
       },
-      "muteWhileRecording": {
-        "label": "Tắt tiếng khi ghi âm"
-      },
       "appendTrailingSpace": {
         "label": "Thêm dấu cách cuối",
         "description": "Thêm một dấu cách sau Transcript đã dán."
@@ -930,7 +878,6 @@
       }
     },
     "about": {
-      "title": "Giới thiệu",
       "version": {
         "title": "Phiên bản",
         "unavailable": "Không khả dụng"
@@ -953,9 +900,6 @@
           "title": "ggml",
           "details": "Chuyển đổi giọng nói thành văn bản cục bộ của Sona được xây dựng trên transcribe.cpp và ggml. Cảm ơn Georgi Gerganov và các cộng tác viên."
         }
-      },
-      "whatsNewUpdates": {
-        "label": "Hiển thị điểm mới"
       },
       "files": {
         "title": "Tệp"
@@ -1553,7 +1497,6 @@
     },
     "workflows": {
       "title": "Quy trình",
-      "builtIns": "Quy trình tích hợp",
       "loadError": "Không thể tải các quy trình.",
       "updateError": "Không thể cập nhật quy trình.",
       "empty": "Không có quy trình nào.",
@@ -1561,24 +1504,27 @@
       "toggleLabel": "Bật {{name}}",
       "items": {
         "person_linking": {
-          "name": "Liên kết người",
+          "name": "Ghi nhớ mọi người",
           "description": "Liên kết cuộc họp với người bằng dữ liệu người tham dự và người nói đã xác nhận."
         },
         "pre_meeting_briefing": {
-          "name": "Tóm tắt trước cuộc họp",
+          "name": "Chuẩn bị tóm tắt cuộc họp",
           "description": "Tạo bản tóm tắt từ các cuộc họp trước khi cuộc họp được phát hiện bắt đầu."
         },
         "continuity": {
-          "name": "Tính liên tục",
+          "name": "Mang cuộc họp đi tiếp",
           "description": "Chuyển các cam kết chưa giải quyết sang những cuộc họp tiếp theo."
         },
         "vocabulary_mining": {
-          "name": "Tìm từ vựng",
+          "name": "Học từ mới",
           "description": "Tìm các tên và thuật ngữ lặp lại có thể thuộc từ vựng của bạn."
         },
         "document_linking": {
           "name": "Liên kết tài liệu",
           "description": "Liên kết tài liệu đã nhập với những người được nhắc đến trong đó."
+        },
+        "meeting_activity": {
+          "name": "Ghi âm cuộc họp"
         }
       },
       "status": {
@@ -1587,14 +1533,17 @@
         "skipped": "Đã bỏ qua"
       },
       "outcomes": {
-        "personLinks_other": "Đã cập nhật {{count}} liên kết người",
-        "briefing_other": "Đã chuẩn bị bản tóm tắt cho {{count}} người",
-        "continuitySeries_other": "Đã cập nhật {{count}} chuỗi cuộc họp",
-        "continuityCarried_other": "đã chuyển tiếp {{count}} vấn đề còn mở",
-        "vocabularyCandidates_other": "Đã tìm thấy {{count}} đề xuất từ vựng",
-        "documentLinks_other": "Đã cập nhật {{count}} liên kết tài liệu",
-        "alreadyProcessed": "Đã xử lý",
-        "failed": "Lần chạy thất bại",
+        "personLinks_other": "Đã ghi nhớ {{count}} người",
+        "briefing": "Bản tóm tắt cuộc họp của bạn đã sẵn sàng",
+        "continuity_other": "Đã mang {{count}} câu hỏi chưa được trả lời đi tiếp",
+        "vocabularyCandidates_other": "Đã học {{count}} từ mới",
+        "documentLinks_other": "Đã liên kết {{count}} tài liệu",
+        "promptRecorded": "Đã bắt đầu ghi",
+        "promptIgnored": "Không ghi buổi họp đã phát hiện",
+        "autoRecordStarted": "Đã tự động bắt đầu ghi",
+        "autoRecordStopped": "Đã tự động dừng ghi",
+        "alreadyProcessed": "Không có gì mới để làm",
+        "failed": "Không thể hoàn tất",
         "skipped": "Đã bỏ qua"
       },
       "vocabularySuggestions": {
@@ -1606,7 +1555,7 @@
       },
       "overview": {
         "whatSonaDid": "Những gì Sona đã làm",
-        "commitments": "Cam kết",
+        "openLoops": "Câu hỏi chưa được trả lời",
         "openMeeting": "Mở cuộc họp {{title}}",
         "loadError": "Không thể tải thẻ này.",
         "retry": "Thử lại"
@@ -1618,18 +1567,6 @@
         "loadMoreError": "Không thể tải thêm lượt chạy.",
         "loadMore": "Tải thêm",
         "chartAria": "Số lượt chạy mỗi ngày, {{count}} trong 7 ngày qua"
-      }
-    },
-    "hub": {
-      "navigation": "Các mục cài đặt",
-      "tabs": {
-        "general": "Chung",
-        "privacy": "Quyền riêng tư",
-        "agents": "Tác nhân",
-        "workflows": "Quy trình",
-        "advanced": "Nâng cao",
-        "about": "Giới thiệu",
-        "debug": "Gỡ lỗi"
       }
     },
     "vocabulary": {
@@ -1704,7 +1641,11 @@
     "play": "Phát",
     "pause": "Tạm dừng",
     "seek": "Vị trí phát",
-    "resetSetting": "Đặt lại {{name}}"
+    "resetSetting": "Đặt lại {{name}}",
+    "day": {
+      "today": "Hôm nay",
+      "yesterday": "Hôm qua"
+    }
   },
   "commandPalette": {
     "open": "Tìm kiếm",
@@ -1890,17 +1831,17 @@
     },
     "live": {
       "elapsed": "Đã trôi qua",
-      "microphoneOnlyPartial": "Chỉ micrô / Chưa đầy đủ. Âm thanh hệ thống không khả dụng hoặc bị suy giảm.",
-      "partialCapture": "Bản thu chưa đầy đủ. Hãy xem các khoảng trống trước khi dựa vào ghi chú được tạo.",
+      "microphoneOnlyPartial": "Chỉ micrô đang được ghi. Âm thanh hệ thống không khả dụng, nên cuộc họp này sẽ không đầy đủ.",
+      "partialCapture": "Thiếu một phần âm thanh. Hãy xem các khoảng trống trước khi tin vào ghi chú được tạo ra.",
       "inputs": "Đầu vào",
       "signal": "Tín hiệu",
       "signalUnavailable": "Mức {{source}} không được bản thu báo về.",
       "notReported": "Không được báo",
-      "durabilityLag": "Độ trễ ghi bền",
+      "durabilityLag": "Đã lưu vào đĩa",
       "behind": "chậm {{duration}}",
       "progress": "Tiến độ bản ghi thoại",
       "transcript": "Bản ghi thoại",
-      "asrLag": "Độ trễ ASR",
+      "asrLag": "Độ trễ bản ghi thoại",
       "storage": "Bộ lưu trữ",
       "storageHealthy": "Bộ lưu trữ cục bộ đã mã hoá đang hoạt động tốt.",
       "storageUnavailable": "Bộ lưu trữ cần được xử lý.",
@@ -1949,20 +1890,20 @@
     },
     "gaps": {
       "source_unavailable": "Nguồn không khả dụng",
-      "source_start_failed": "Nguồn không khởi động được",
+      "source_start_failed": "Nguồn không khởi động",
       "permission_lost": "Mất quyền",
       "paused": "Đã tạm dừng",
-      "packet_dropped": "Mất gói âm thanh",
-      "writer_pressure": "Áp lực ghi vào bộ lưu trữ",
-      "storage_failure": "Lỗi bộ lưu trữ",
-      "timestamp_missing": "Thiếu dấu thời gian",
-      "timestamp_discontinuity": "Dấu thời gian bị gián đoạn",
-      "invalid_format": "Định dạng âm thanh không hợp lệ",
+      "packet_dropped": "Mất âm thanh",
+      "writer_pressure": "Lưu trữ bị chậm lại",
+      "storage_failure": "Lưu trữ thất bại",
+      "timestamp_missing": "Thiếu mốc thời gian",
+      "timestamp_discontinuity": "Thời gian bị nhảy",
+      "invalid_format": "Âm thanh không đọc được",
       "source_stopped": "Nguồn đã dừng",
       "corrupt_record": "Bản ghi bị hỏng",
       "missing_record": "Thiếu bản ghi",
-      "recovery_tail": "Đoạn cuối khi phục hồi",
-      "system_sleep": "Mac ở chế độ ngủ"
+      "recovery_tail": "Đã khôi phục sau sự cố",
+      "system_sleep": "Máy Mac của bạn đã ngủ"
     },
     "errors": {
       "load": "Sona không thể tải dữ liệu cuộc họp hiện tại.",
@@ -2080,7 +2021,7 @@
       "tabs": {
         "insights": "Thông tin chuyên sâu",
         "ledger": "Sổ ghi",
-        "questions": "Hỏi đáp",
+        "questions": "Câu hỏi",
         "transcript": "Bản ghi thoại"
       },
       "tabsLabel": "Các phần xem lại cuộc họp",
@@ -2144,12 +2085,12 @@
       "forgotten": "Đã quên"
     },
     "diarization": {
-      "not_requested": "Không yêu cầu phân tách người nói",
-      "model_unavailable": "Mô hình phân tách người nói không khả dụng",
-      "downloading": "Đang tải xuống mô hình phân tách người nói",
+      "not_requested": "Chưa phân tách người nói",
+      "model_unavailable": "Mô hình người nói không khả dụng",
+      "downloading": "Đang tải mô hình người nói",
       "running": "Đang phân tách người nói",
-      "succeeded": "Phân công người nói đã cập nhật",
-      "failed": "Phân tách người nói thất bại"
+      "succeeded": "Người nói đã được cập nhật",
+      "failed": "Không thể phân tách người nói"
     },
     "list": {
       "searchLabel": "Tìm kiếm cuộc họp",
@@ -2169,13 +2110,6 @@
         "ready": "Sẵn sàng",
         "processing": "Đang xử lý",
         "needs_attention": "Cần xử lý"
-      },
-      "headline": {
-        "words": "Đã chuyển {{count}} từ thành văn bản"
-      },
-      "sourceGlyph": {
-        "microphone": "MIC",
-        "system_audio": "SYS"
       },
       "filters": {
         "label": "Lọc cuộc họp",
@@ -2293,9 +2227,6 @@
       },
       "anyMic": {
         "label": "Hỏi mỗi khi micrô được dùng"
-      },
-      "autoStart": {
-        "label": "Mở buổi họp khi đồng hồ đếm ngược của nó đang hiện"
       },
       "apps": {
         "label": "Ứng dụng họp",
@@ -2530,15 +2461,11 @@
     "list": {
       "meetings_one": "1 cuộc họp",
       "meetings_other": "{{count}} cuộc họp",
-      "last": "Gần nhất {{date}}",
-      "suggested_one": "Liên kết 1 cuộc họp được đề xuất?",
-      "suggested_other": "Liên kết {{count}} cuộc họp được đề xuất?",
       "dismiss": "Bỏ qua",
       "confirm": "Xác nhận",
       "loadError": "Không thể tải danh sách người.",
       "empty": "Chưa có ai.",
-      "meetings": "{{count}} cuộc họp",
-      "suggested": "Liên kết {{count}} cuộc họp được đề xuất?"
+      "meetings": "{{count}} cuộc họp"
     },
     "detail": {
       "nameLabel": "Tên người",
@@ -2554,7 +2481,6 @@
       "deleteTitle": "Xóa người này?",
       "deleteDescription": "Xóa {{name}} và tất cả liên kết cuộc họp?",
       "carriedSince": "Mở từ {{date}}",
-      "stillOpen": "Vẫn còn mở",
       "noOpenLoops": "Không còn nội dung nào đang mở.",
       "commitments": "Cam kết",
       "noCommitments": "Chưa ghi nhận cam kết nào.",
@@ -2621,6 +2547,251 @@
       "stillOpen": "Vẫn còn mở: {{text}}",
       "metCount": "Bạn đã gặp {{name}} {{count}} lần",
       "metBefore": "Bạn đã gặp {{name}} {{count}} lần · gần nhất {{date}}"
+    }
+  },
+  "libraryV2": {
+    "recordings_other": "{{count, number}} bản ghi",
+    "words_other": "{{count, number}} từ",
+    "summaryLoading": "Đang đếm các bản ghi của bạn…",
+    "byMeaning": "theo ý nghĩa",
+    "actions": {
+      "copy": "Sao chép",
+      "copied": "Đã sao chép",
+      "transcribeAgain": "Chuyển lại thành văn bản",
+      "delete": "Xóa",
+      "more": "Thao tác khác"
+    }
+  },
+  "meetingsV2": {
+    "retention": {
+      "keptForever": "Giữ mãi mãi",
+      "keptDays": "Giữ {{days}} ngày",
+      "change": "đổi trong Cài đặt"
+    }
+  },
+  "peopleV2": {
+    "list": {
+      "lastMet": "Gặp gần nhất {{date}}"
+    },
+    "detail": {
+      "openLoops": "Câu hỏi chưa được trả lời",
+      "howSonaKnows": "Sona biết điều này từ đâu",
+      "noEvidence": "Chưa có gì nối người này với một cuộc họp."
+    }
+  },
+  "modesV2": {
+    "sections": {
+      "instructions": "Hướng dẫn",
+      "model": "Mô hình",
+      "output": "Đầu ra"
+    },
+    "instructions": {
+      "enabled": {
+        "label": "Dọn dẹp bằng AI"
+      },
+      "custom": {
+        "label": "Hướng dẫn của riêng bạn",
+        "hint": "Những gì bạn viết ở đây sẽ thay cho kiểu đầu ra bên dưới chứ không cộng thêm vào. Để trống để dùng kiểu đó.",
+        "placeholder": "Hãy viết như tôi vẫn viết: câu ngắn, không dùng gạch đầu dòng."
+      },
+      "disabled": "Bật dọn dẹp thì Sona sẽ theo các hướng dẫn này sau mỗi lần đọc chính tả."
+    },
+    "output": {
+      "style": {
+        "label": "Kiểu đầu ra"
+      }
+    },
+    "activation": {
+      "title": "Tự bật",
+      "rules": {
+        "label": "Ứng dụng và trang web",
+        "empty": "Không có gì tự chuyển sang chế độ này.",
+        "example": "Một quy tắc lưu một định danh ứng dụng hoặc một máy chủ trang web: com.apple.mail hoặc mail.google.com."
+      }
+    },
+    "advanced": {
+      "title": "Nâng cao",
+      "summary": "Phím tắt, giọng điệu, ngữ cảnh, cách gửi"
+    },
+    "list": {
+      "preset": "Cài sẵn"
+    },
+    "chip": {
+      "lead": "Chế độ",
+      "title": "Chế độ",
+      "action": "Đổi chế độ, hiện là {{mode}}",
+      "editLink": "Sửa chế độ trong Cài đặt",
+      "switchError": "Không đổi được chế độ. Hãy thử lại."
+    },
+    "rules": {
+      "title": "Quy tắc văn bản",
+      "kind": "Loại",
+      "left": "Bạn nói",
+      "right": "Sona viết",
+      "add": "Thêm một quy tắc",
+      "loading": "Đang tải quy tắc văn bản",
+      "empty": "Chưa có quy tắc văn bản nào. Thêm một quy tắc ở trên và Sona sẽ áp dụng cho mọi bản ghi thoại.",
+      "matching": "Quy tắc khớp với nguyên từ và bỏ qua chữ hoa chữ thường. Khi hai quy tắc cùng khớp một chỗ, quy tắc dài hơn thắng.",
+      "applyRule": "Áp dụng {{rule}}",
+      "removeRule": "Xóa {{rule}}",
+      "restoreRewrites": "Phục hồi các bản viết lại mặc định",
+      "kinds": {
+        "vocabulary": "Chính tả",
+        "snippet": "Phím tắt chữ",
+        "replacement": "Viết lại",
+        "emoji": "Emoji"
+      },
+      "kindHints": {
+        "vocabulary": "Dạy Sona cách viết một cái tên, để nó viết đúng dạng đó mỗi khi nghe thấy cụm từ.",
+        "snippet": "Mở rộng một từ kích hoạt ngắn thành văn bản dài hơn, ví dụ omw thành on my way.",
+        "replacement": "Viết lại một cụm từ Sona đã nghe, ví dụ a móc thành @.",
+        "emoji": "Ánh xạ một từ nói chính xác như smiley face sang emoji bạn muốn viết."
+      },
+      "placeholders": {
+        "vocabulary": {
+          "left": "open ai",
+          "right": "OpenAI"
+        },
+        "snippet": {
+          "left": "omw",
+          "right": "on my way"
+        },
+        "replacement": {
+          "left": "a móc",
+          "right": "@"
+        },
+        "emoji": {
+          "left": "smiley face",
+          "right": "🙂"
+        }
+      },
+      "toggles": {
+        "emoji": "Viết emoji khi bạn gọi tên nó",
+        "snippet": "Mở rộng phím tắt chữ",
+        "replacement": "Áp dụng các bản viết lại"
+      },
+      "toggleErrors": {
+        "spokenEdits": "Không đổi được lệnh chỉnh sửa bằng giọng nói. Hãy thử lại.",
+        "emoji": "Không đổi được việc viết emoji. Hãy thử lại.",
+        "snippet": "Không đổi được việc mở rộng phím tắt chữ. Hãy thử lại.",
+        "replacement": "Không đổi được các bản viết lại. Hãy thử lại."
+      },
+      "errors": {
+        "incomplete": "Hãy điền cả hai bên, hoặc xóa quy tắc.",
+        "duplicate": "Một quy tắc khác cùng loại đã dùng cụm từ này."
+      }
+    }
+  },
+  "settingsV2": {
+    "navigation": "Cài đặt",
+    "tabs": {
+      "essentials": "Cơ bản",
+      "advanced": "Nâng cao",
+      "debug": "Gỡ lỗi"
+    },
+    "essentials": {
+      "title": "Cơ bản",
+      "sounds": "Âm thanh",
+      "launchAtLogin": "Khởi động cùng hệ thống",
+      "appearance": "Giao diện",
+      "volume": "Âm lượng",
+      "detectMeetings": "Nhận biết khi tôi vào một cuộc họp",
+      "detectMeetingsHint": "Sona sẽ hỏi bạn có muốn ghi không. Nó không bao giờ tự bắt đầu ghi.",
+      "retention": "Xóa bản ghi sau",
+      "dictationStyles": "Kiểu đọc chính tả",
+      "dictationStylesAction": "Sửa"
+    },
+    "advanced": {
+      "title": "Nâng cao",
+      "meetings": "Cuộc họp",
+      "models": "Mô hình",
+      "modelCatalog": "Danh mục mô hình",
+      "cloudKeys": "Khóa chuyển văn bản trên đám mây",
+      "cleanupProvider": "Nhà cung cấp dọn dẹp",
+      "dictation": "Đọc chính tả",
+      "keepDictations": "Số lần đọc chính tả cần giữ",
+      "readsFromOtherApps": "Những gì Sona có thể đọc từ ứng dụng khác",
+      "workflows": "Sona làm gì sau một cuộc họp",
+      "sync": "Đồng bộ",
+      "leavesThisMac": "Những gì rời khỏi máy Mac này",
+      "agents": "Tác nhân",
+      "agentBridge": "Cầu nối tác nhân lập trình",
+      "about": "Giới thiệu Sona",
+      "debugHint": "Nhấn {{chord}} để mở trang gỡ lỗi."
+    },
+    "apps": {
+      "label": "Ứng dụng họp",
+      "browsersAutomatic": "Cuộc gọi trong một thẻ trình duyệt vẫn được phát hiện mà không cần liệt kê ở đây.",
+      "runningNow": "Đang chạy",
+      "add": "Thêm một ứng dụng",
+      "addTitle": "Thêm một ứng dụng họp",
+      "addDescription": "Sona cần định danh của ứng dụng; bạn có thể xem trong cửa sổ Giới thiệu của chính ứng dụng đó hoặc bằng `osascript -e 'id of app \"Tên\"'`.",
+      "identifier": "Định danh ứng dụng",
+      "identifierPlaceholder": "com.example.app",
+      "invalid": "Định danh trông như com.example.app: các từ viết thường nối bằng dấu chấm.",
+      "duplicate": "Ứng dụng đó đã có trong danh sách.",
+      "remove": "Bỏ {{app}}",
+      "names": {
+        "zoom": "Zoom",
+        "teams": "Microsoft Teams",
+        "webex": "Webex",
+        "facetime": "FaceTime",
+        "slack": "Slack"
+      }
+    }
+  },
+  "consentPanel": {
+    "calendarTitle": "{{title}} — ghi lại chứ?",
+    "appTitle": "Buổi họp {{app}} — ghi lại chứ?",
+    "genericTitle": "Ghi lại cuộc họp này?",
+    "introduction": "Sona ghi ngay trên máy Mac này và bạn vẫn nắm quyền quyết định.",
+    "seriesBrief_other": "Cuộc họp {{nth}} với {{person}} · {{count}} vấn đề còn mở",
+    "alwaysRecord": "Luôn ghi cuộc họp này",
+    "assurance": "Chỉ bắt đầu sau khi mọi người trong cuộc họp đã đồng ý được ghi.",
+    "record": "Ghi",
+    "ignore": "Bỏ qua",
+    "recording": "Đang ghi âm",
+    "stop": "Dừng",
+    "forgetSeries": "Quên chuỗi này"
+  },
+  "learningV2": {
+    "workflows": {
+      "spokenPunctuation": {
+        "name": "Gợi ý dấu câu đọc thành tiếng",
+        "description": "Nhận ra các ký hiệu bạn đọc thành tiếng mà chưa có quy tắc thay thế nào viết ra."
+      },
+      "correctionLearning": {
+        "name": "Học từ các sửa chữa của bạn",
+        "description": "Biến những sửa chữa bạn tự nhập thành gợi ý từ vựng."
+      },
+      "modeHabits": {
+        "name": "Gợi ý quy tắc chế độ",
+        "description": "Nhận ra chế độ bạn liên tục chọn bằng phím tắt."
+      },
+      "captureAdvisor": {
+        "name": "Tư vấn chất lượng thu âm",
+        "description": "Báo về các lần thử lại, bản thu bị mất và âm lượng thấp từ chính các lần chạy của bạn."
+      },
+      "seriesPriming": {
+        "name": "Chuẩn bị cho họp định kỳ"
+      }
+    },
+    "feed": {
+      "title": "Điều Sona nhận thấy",
+      "spokenPunctuation": "Bạn nói {{spoken}} rất nhiều — viết thành {{written}} nhé?",
+      "vocabularyCorrection": "Bạn liên tục đổi {{spoken}} thành {{written}} — học lại nhé?",
+      "modeHabit": "Hầu như ngày nào bạn cũng chọn {{mode}} bằng phím tắt — đặt làm mặc định nhé?",
+      "retryRate": "Các lần chạy {{subject}} bị thử lại nhiều hơn {{times}}× so với phần còn lại.",
+      "lostCaptureRate": "Các lần chạy {{subject}} kết thúc bị cắt hoặc im lặng nhiều hơn {{times}}× so với phần còn lại.",
+      "inputLevel": "{{percent}}% bản thu của bạn có âm lượng thấp — kiểm tra mức micrô nhé?",
+      "example": "“{{text}}”",
+      "accept": "Có",
+      "dismiss": "Không, cảm ơn",
+      "evidence_other": "{{count}} lần, trong {{days}} ngày"
+    },
+    "outcomes": {
+      "primed": "Đã chuẩn bị một cuộc họp định kỳ",
+      "noticed_other": "Nhận thấy {{count}} điều"
     }
   }
 }

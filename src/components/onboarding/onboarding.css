@@ -22,10 +22,8 @@
   min-inline-size: 0;
 }
 
-/* Identity, then the display moment. Deliberately Geist Sans at the 32px
- * heading step rather than a display serif: the reference site's serif
- * wordmark is a one-off marketing flourish and a second face would cost
- * another font file for four words. Scale and tracking carry it instead. */
+/* Identity, then the display moment. The 32px heading remains in the app's
+ * single system typeface; scale and weight carry the hierarchy. */
 .ob-brand {
   align-items: center;
   color: var(--color-text-secondary);
@@ -149,12 +147,10 @@
 
 .ob-group-label {
   color: var(--color-text-tertiary);
-  font-family: var(--font-mono);
   font-size: var(--fs-microlabel);
   font-weight: 500;
   letter-spacing: var(--ls-microlabel);
   line-height: var(--lh-microlabel);
-  text-transform: uppercase;
 }
 
 .ob-group-items {

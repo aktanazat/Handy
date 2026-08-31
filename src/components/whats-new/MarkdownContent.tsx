@@ -109,15 +109,11 @@ const components: Components = {
     const isBlock = className?.startsWith("language-");
 
     if (isBlock) {
-      return (
-        <code className="block whitespace-pre font-mono text-xs">
-          {children}
-        </code>
-      );
+      return <code className="block whitespace-pre text-xs">{children}</code>;
     }
 
     return (
-      <code className="rounded bg-mid-gray/10 px-1 py-0.5 font-mono text-[0.85em]">
+      <code className="rounded bg-mid-gray/10 px-1 py-0.5 text-[0.85em]">
         {children}
       </code>
     );

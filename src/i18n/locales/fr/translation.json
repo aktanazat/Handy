@@ -26,15 +26,8 @@
     "secureInputWarning": "Raccourcis bloqués par Secure Input"
   },
   "sidebar": {
-    "general": "Général",
     "models": "Modèles",
-    "advanced": "Avancé",
-    "postProcessing": "Post-traitement",
-    "debug": "Débogage",
-    "about": "À propos",
     "modes": "Modes",
-    "privacy": "Confidentialité",
-    "agents": "Agents",
     "meetings": "Réunions",
     "navigation": "Navigation principale",
     "people": "Personnes",
@@ -153,21 +146,13 @@
     "active": "Actif",
     "switching": "Changement…",
     "noModelsAvailable": "Aucun modèle disponible",
-    "searchPlaceholder": "Rechercher un modèle",
     "verifying": "Vérification de {{modelName}}…",
     "verifyingGeneric": "Vérification…",
     "extracting": "Extraction de {{modelName}}…",
-    "extractingMultiple": "Extraction de {{count}} modèles…",
     "extractingGeneric": "Extraction…",
     "downloading": "Téléchargement {{percentage}}%",
-    "downloadingMultiple": "Téléchargement de {{count}} modèles…",
-    "downloadingGeneric": "Téléchargement…",
-    "modelReady": "Modèle Prêt",
     "loading": "Chargement de {{modelName}}…",
     "loadingGeneric": "Chargement…",
-    "modelError": "Erreur du Modèle",
-    "modelUnloaded": "Modèle Déchargé",
-    "noModelDownloadRequired": "Aucun modèle, téléchargement requis",
     "deleteModel": "Supprimer {{modelName}}",
     "downloadSpeed": "{{speed}} Mo/s",
     "capabilities": {
@@ -181,8 +166,7 @@
     },
     "cancel": "Annuler",
     "cancelDownload": "Annuler le téléchargement",
-    "legacy": "Hérité",
-    "model": "Modèle"
+    "legacy": "Hérité"
   },
   "settings": {
     "modelSettings": {
@@ -330,7 +314,6 @@
       }
     },
     "sound": {
-      "title": "Son",
       "microphone": {
         "title": "Microphone"
       },
@@ -338,16 +321,6 @@
         "title": "Canal d’entrée",
         "average": "Moyenne de tous les canaux",
         "channel": "Canal {{n}}"
-      },
-      "audioFeedback": {
-        "label": "Signal sonore"
-      },
-      "outputDevice": {
-        "title": "Périphérique de sortie",
-        "description": "Périphérique sur lequel le signal sonore est joué."
-      },
-      "volume": {
-        "title": "Volume"
       }
     },
     "advanced": {
@@ -357,13 +330,6 @@
           "as_spoken": "Comme prononcé",
           "british": "Britannique"
         }
-      },
-      "groups": {
-        "app": "Application",
-        "output": "Sortie",
-        "transcription": "Transcription",
-        "history": "Historique",
-        "experimental": "Expérimental"
       },
       "experimentalToggle": {
         "label": "Fonctionnalités Expérimentales"
@@ -384,15 +350,8 @@
           "auto": "Automatique"
         }
       },
-      "startHidden": {
-        "label": "Démarrer masqué",
-        "description": "Lancer dans la barre système sans ouvrir la fenêtre."
-      },
       "autostart": {
         "label": "Lancer au démarrage"
-      },
-      "showTrayIcon": {
-        "label": "Afficher l'icône de la barre"
       },
       "overlay": {
         "style": {
@@ -508,14 +467,6 @@
         },
         "empty": {
           "description": "Associez un mot prononcé exact comme smiley à l'émoji que vous voulez écrire."
-        }
-      },
-      "disclosures": {
-        "launch": {
-          "title": "Démarrage"
-        },
-        "processing": {
-          "title": "Traitement"
         }
       },
       "snippets": {
@@ -864,9 +815,6 @@
         "label": "Post-traitement",
         "description": "Réécrit la transcription avec un modèle de langage après la transcription."
       },
-      "muteWhileRecording": {
-        "label": "Muet pendant l'enregistrement"
-      },
       "appendTrailingSpace": {
         "label": "Ajouter une espace final",
         "description": "Ajoute une espace après le transcript collé."
@@ -930,7 +878,6 @@
       }
     },
     "about": {
-      "title": "À propos",
       "version": {
         "title": "Version",
         "unavailable": "Indisponible"
@@ -953,9 +900,6 @@
           "title": "ggml",
           "details": "La reconnaissance vocale locale de Sona repose sur transcribe.cpp et ggml. Merci à Georgi Gerganov et aux contributeurs."
         }
-      },
-      "whatsNewUpdates": {
-        "label": "Afficher les nouveautés"
       },
       "files": {
         "title": "Fichiers"
@@ -1553,7 +1497,6 @@
     },
     "workflows": {
       "title": "Flux de travail",
-      "builtIns": "Flux de travail intégrés",
       "loadError": "Impossible de charger les flux de travail.",
       "updateError": "Impossible de mettre à jour le flux de travail.",
       "empty": "Aucun flux de travail n’est disponible.",
@@ -1561,24 +1504,27 @@
       "toggleLabel": "Activer {{name}}",
       "items": {
         "person_linking": {
-          "name": "Association des personnes",
+          "name": "Mémoriser les personnes",
           "description": "Associe les réunions aux personnes à partir des participants et intervenants confirmés."
         },
         "pre_meeting_briefing": {
-          "name": "Briefing avant la réunion",
+          "name": "Préparer les résumés de réunion",
           "description": "Prépare un briefing à partir des réunions passées avant le début d’une réunion détectée."
         },
         "continuity": {
-          "name": "Continuité",
+          "name": "Reporter d'une réunion à l'autre",
           "description": "Reporte les engagements en suspens sur les réunions suivantes."
         },
         "vocabulary_mining": {
-          "name": "Extraction du vocabulaire",
+          "name": "Apprendre de nouveaux mots",
           "description": "Repère les noms et termes répétés qui pourraient appartenir à votre vocabulaire."
         },
         "document_linking": {
-          "name": "Association des documents",
+          "name": "Lier les documents",
           "description": "Associe les documents importés aux personnes qui y sont mentionnées."
+        },
+        "meeting_activity": {
+          "name": "Enregistrement des réunions"
         }
       },
       "status": {
@@ -1587,26 +1533,25 @@
         "skipped": "Ignoré"
       },
       "outcomes": {
-        "personLinks_one": "1 lien de personne mis à jour",
-        "personLinks_many": "{{count}} liens de personnes mis à jour",
-        "personLinks_other": "{{count}} liens de personnes mis à jour",
-        "briefing_one": "Briefing préparé pour 1 personne",
-        "briefing_many": "Briefing préparé pour {{count}} personnes",
-        "briefing_other": "Briefing préparé pour {{count}} personnes",
-        "continuitySeries_one": "1 série de réunions mise à jour",
-        "continuitySeries_many": "{{count}} séries de réunions mises à jour",
-        "continuitySeries_other": "{{count}} séries de réunions mises à jour",
-        "continuityCarried_one": "1 point ouvert reporté",
-        "continuityCarried_many": "{{count}} points ouverts reportés",
-        "continuityCarried_other": "{{count}} points ouverts reportés",
-        "vocabularyCandidates_one": "1 suggestion de vocabulaire trouvée",
-        "vocabularyCandidates_many": "{{count}} suggestions de vocabulaire trouvées",
-        "vocabularyCandidates_other": "{{count}} suggestions de vocabulaire trouvées",
-        "documentLinks_one": "1 lien de document mis à jour",
-        "documentLinks_many": "{{count}} liens de documents mis à jour",
-        "documentLinks_other": "{{count}} liens de documents mis à jour",
-        "alreadyProcessed": "Déjà traité",
-        "failed": "Échec de l’exécution",
+        "personLinks_one": "1 personne mémorisée",
+        "personLinks_many": "{{count}} personnes mémorisées",
+        "personLinks_other": "{{count}} personnes mémorisées",
+        "briefing": "Votre résumé de réunion est prêt",
+        "continuity_one": "1 question en suspens reportée",
+        "continuity_many": "{{count}} questions en suspens reportées",
+        "continuity_other": "{{count}} questions en suspens reportées",
+        "vocabularyCandidates_one": "Un nouveau mot appris",
+        "vocabularyCandidates_many": "{{count}} nouveaux mots appris",
+        "vocabularyCandidates_other": "{{count}} nouveaux mots appris",
+        "documentLinks_one": "Un document lié",
+        "documentLinks_many": "{{count}} documents liés",
+        "documentLinks_other": "{{count}} documents liés",
+        "promptRecorded": "Enregistrement démarré",
+        "promptIgnored": "Réunion détectée non enregistrée",
+        "autoRecordStarted": "Enregistrement démarré automatiquement",
+        "autoRecordStopped": "Enregistrement arrêté automatiquement",
+        "alreadyProcessed": "Rien de nouveau à faire",
+        "failed": "Impossible de terminer",
         "skipped": "Ignoré"
       },
       "vocabularySuggestions": {
@@ -1622,7 +1567,7 @@
       },
       "overview": {
         "whatSonaDid": "Ce que Sona a fait",
-        "commitments": "Engagements",
+        "openLoops": "Questions en suspens",
         "openMeeting": "Ouvrir la réunion {{title}}",
         "loadError": "Impossible de charger cette carte.",
         "retry": "Réessayer"
@@ -1634,18 +1579,6 @@
         "loadMoreError": "Impossible de charger d’autres exécutions.",
         "loadMore": "Charger plus",
         "chartAria": "Exécutions par jour, {{count}} au cours des 7 derniers jours"
-      }
-    },
-    "hub": {
-      "navigation": "Sections des réglages",
-      "tabs": {
-        "general": "Général",
-        "privacy": "Confidentialité",
-        "agents": "Agents",
-        "workflows": "Flux de travail",
-        "advanced": "Avancé",
-        "about": "À propos",
-        "debug": "Débogage"
       }
     },
     "vocabulary": {
@@ -1720,7 +1653,11 @@
     "play": "Lecture",
     "pause": "Pause",
     "seek": "Position de lecture",
-    "resetSetting": "Réinitialiser {{name}}"
+    "resetSetting": "Réinitialiser {{name}}",
+    "day": {
+      "today": "Aujourd'hui",
+      "yesterday": "Hier"
+    }
   },
   "commandPalette": {
     "open": "Rechercher",
@@ -1906,17 +1843,17 @@
     },
     "live": {
       "elapsed": "Écoulé",
-      "microphoneOnlyPartial": "Microphone uniquement / Partiel. L'audio système est indisponible ou dégradé.",
-      "partialCapture": "Capture partielle. Vérifiez les lacunes avant de vous fier aux notes générées.",
+      "microphoneOnlyPartial": "Enregistrement du micro uniquement. L'audio système est indisponible, cette réunion sera donc partielle.",
+      "partialCapture": "Il manque une partie de l'audio. Vérifiez les trous avant de vous fier aux notes générées.",
       "inputs": "Entrées",
       "signal": "Signal",
       "signalUnavailable": "Le niveau de {{source}} n'est pas communiqué par la capture.",
       "notReported": "Non communiqué",
-      "durabilityLag": "Retard de persistance",
+      "durabilityLag": "Enregistré sur le disque",
       "behind": "{{duration}} de retard",
       "progress": "Progression de la transcription",
       "transcript": "Transcription",
-      "asrLag": "Retard ASR",
+      "asrLag": "Retard de la transcription",
       "storage": "Stockage",
       "storageHealthy": "Le stockage local chiffré est sain.",
       "storageUnavailable": "Le stockage nécessite votre attention.",
@@ -1965,20 +1902,20 @@
     },
     "gaps": {
       "source_unavailable": "Source indisponible",
-      "source_start_failed": "Échec du démarrage de la source",
+      "source_start_failed": "La source n'a pas démarré",
       "permission_lost": "Autorisation perdue",
       "paused": "En pause",
-      "packet_dropped": "Paquet audio perdu",
-      "writer_pressure": "Saturation de l'écriture sur le stockage",
-      "storage_failure": "Échec du stockage",
-      "timestamp_missing": "Horodatage manquant",
-      "timestamp_discontinuity": "Discontinuité des horodatages",
-      "invalid_format": "Format audio invalide",
+      "packet_dropped": "Audio perdu",
+      "writer_pressure": "Le stockage a pris du retard",
+      "storage_failure": "Le stockage a échoué",
+      "timestamp_missing": "Repères temporels manquants",
+      "timestamp_discontinuity": "Rupture dans les repères temporels",
+      "invalid_format": "Audio illisible",
       "source_stopped": "Source arrêtée",
-      "corrupt_record": "Enregistrement corrompu",
+      "corrupt_record": "Enregistrement endommagé",
       "missing_record": "Enregistrement manquant",
-      "recovery_tail": "Fin de récupération",
-      "system_sleep": "Veille du Mac"
+      "recovery_tail": "Récupéré après un plantage",
+      "system_sleep": "Votre Mac s'est mis en veille"
     },
     "errors": {
       "load": "Sona n'a pas pu charger les données de la réunion en cours.",
@@ -2096,7 +2033,7 @@
       "tabs": {
         "insights": "Analyses",
         "ledger": "Registre",
-        "questions": "Q&R",
+        "questions": "Questions",
         "transcript": "Transcription"
       },
       "tabsLabel": "Sections de revue de réunion",
@@ -2160,12 +2097,12 @@
       "forgotten": "Oubliée"
     },
     "diarization": {
-      "not_requested": "Diarisation non demandée",
-      "model_unavailable": "Modèle de diarisation indisponible",
-      "downloading": "Téléchargement du modèle de diarisation",
+      "not_requested": "Locuteurs non séparés",
+      "model_unavailable": "Modèle de locuteurs indisponible",
+      "downloading": "Téléchargement du modèle de locuteurs",
       "running": "Séparation des locuteurs",
-      "succeeded": "Attributions des locuteurs à jour",
-      "failed": "Échec de la séparation des locuteurs"
+      "succeeded": "Les locuteurs sont à jour",
+      "failed": "Impossible de séparer les locuteurs"
     },
     "list": {
       "searchLabel": "Rechercher des réunions",
@@ -2185,13 +2122,6 @@
         "ready": "Prête",
         "processing": "En traitement",
         "needs_attention": "Nécessite votre attention"
-      },
-      "headline": {
-        "words": "{{count}} mots transcrits"
-      },
-      "sourceGlyph": {
-        "microphone": "MIC",
-        "system_audio": "SYS"
       },
       "filters": {
         "label": "Filtrer les réunions",
@@ -2309,9 +2239,6 @@
       },
       "anyMic": {
         "label": "Demander à chaque usage du microphone"
-      },
-      "autoStart": {
-        "label": "Ouvrir la réunion quand son compte à rebours est affiché"
       },
       "apps": {
         "label": "Apps de réunion",
@@ -2551,16 +2478,11 @@
       "meetings_one": "1 réunion",
       "meetings_many": "{{count}} réunions",
       "meetings_other": "{{count}} réunions",
-      "last": "Dernière le {{date}}",
-      "suggested_one": "Associer 1 réunion suggérée ?",
-      "suggested_many": "Associer {{count}} réunions suggérées ?",
-      "suggested_other": "Associer {{count}} réunions suggérées ?",
       "dismiss": "Ignorer",
       "confirm": "Confirmer",
       "loadError": "Impossible de charger les personnes.",
       "empty": "Aucune personne pour le moment.",
-      "meetings": "{{count}} réunions",
-      "suggested": "Associer {{count}} réunions suggérées ?"
+      "meetings": "{{count}} réunions"
     },
     "detail": {
       "nameLabel": "Nom de la personne",
@@ -2576,7 +2498,6 @@
       "deleteTitle": "Supprimer cette personne ?",
       "deleteDescription": "Supprimer {{name}} et tous ses liens avec des réunions ?",
       "carriedSince": "Ouvert depuis le {{date}}",
-      "stillOpen": "Toujours ouvert",
       "noOpenLoops": "Plus aucun point ouvert.",
       "commitments": "Engagements",
       "noCommitments": "Aucun engagement enregistré.",
@@ -2646,6 +2567,261 @@
       "stillOpen": "Toujours ouvert : {{text}}",
       "metCount": "Vous avez rencontré {{name}} {{count}} fois",
       "metBefore": "Vous avez rencontré {{name}} {{count}} fois · dernière le {{date}}"
+    }
+  },
+  "libraryV2": {
+    "recordings_one": "{{count, number}} enregistrement",
+    "recordings_many": "{{count, number}} enregistrements",
+    "recordings_other": "{{count, number}} enregistrements",
+    "words_one": "{{count, number}} mot",
+    "words_many": "{{count, number}} mots",
+    "words_other": "{{count, number}} mots",
+    "summaryLoading": "Comptage de vos enregistrements…",
+    "byMeaning": "par sens",
+    "actions": {
+      "copy": "Copier",
+      "copied": "Copié",
+      "transcribeAgain": "Transcrire à nouveau",
+      "delete": "Supprimer",
+      "more": "Plus d'actions"
+    }
+  },
+  "meetingsV2": {
+    "retention": {
+      "keptForever": "Conservé indéfiniment",
+      "keptDays": "Conservé {{days}} jours",
+      "change": "modifier dans Réglages"
+    }
+  },
+  "peopleV2": {
+    "list": {
+      "lastMet": "Dernière réunion le {{date}}"
+    },
+    "detail": {
+      "openLoops": "Questions en suspens",
+      "howSonaKnows": "Comment Sona le sait",
+      "noEvidence": "Rien ne relie encore cette personne à une réunion."
+    }
+  },
+  "modesV2": {
+    "sections": {
+      "instructions": "Instructions",
+      "model": "Modèle",
+      "output": "Sortie"
+    },
+    "instructions": {
+      "enabled": {
+        "label": "Nettoyer avec l'IA"
+      },
+      "custom": {
+        "label": "Vos propres instructions",
+        "hint": "Ce que vous écrivez ici remplace le style de sortie ci-dessous au lieu de s'y ajouter. Laissez vide pour utiliser le style.",
+        "placeholder": "Écris comme je le ferais : des phrases courtes, sans puces."
+      },
+      "disabled": "Activez le nettoyage et Sona suivra ces instructions après chaque dictée."
+    },
+    "output": {
+      "style": {
+        "label": "Style de sortie"
+      }
+    },
+    "activation": {
+      "title": "S'active tout seul",
+      "rules": {
+        "label": "Applications et sites web",
+        "empty": "Rien ne bascule vers ce mode tout seul.",
+        "example": "Une règle stocke une identité d'application ou un hôte de site web : com.apple.mail ou mail.google.com."
+      }
+    },
+    "advanced": {
+      "title": "Avancé",
+      "summary": "Raccourcis, ton, contexte, insertion"
+    },
+    "list": {
+      "preset": "Préréglage"
+    },
+    "chip": {
+      "lead": "Mode",
+      "title": "Modes",
+      "action": "Changer de mode, actuellement {{mode}}",
+      "editLink": "Modifier les modes dans Réglages",
+      "switchError": "Impossible de changer de mode. Réessayez."
+    },
+    "rules": {
+      "title": "Règles de texte",
+      "kind": "Type",
+      "left": "Vous dites",
+      "right": "Sona écrit",
+      "add": "Ajouter une règle",
+      "loading": "Chargement des règles de texte",
+      "empty": "Aucune règle de texte pour l'instant. Ajoutez-en une ci-dessus et Sona l'appliquera à chaque transcription.",
+      "matching": "Les règles correspondent à des mots entiers et ignorent la casse. Quand deux règles conviennent au même endroit, la plus longue gagne.",
+      "applyRule": "Appliquer {{rule}}",
+      "removeRule": "Supprimer {{rule}}",
+      "restoreRewrites": "Rétablir les réécritures par défaut",
+      "kinds": {
+        "vocabulary": "Orthographe",
+        "snippet": "Raccourci",
+        "replacement": "Réécriture",
+        "emoji": "Emoji"
+      },
+      "kindHints": {
+        "vocabulary": "Apprend à Sona l'orthographe d'un nom, pour qu'elle écrive la forme exacte chaque fois qu'elle entend l'expression.",
+        "snippet": "Développe un déclencheur court en un texte plus long, comme jariv en j'arrive.",
+        "replacement": "Réécrit une expression que Sona a déjà entendue, comme arobase en @.",
+        "emoji": "Associe un mot prononcé exact, comme smiley, à l'émoji que vous voulez écrire."
+      },
+      "placeholders": {
+        "vocabulary": {
+          "left": "open ai",
+          "right": "OpenAI"
+        },
+        "snippet": {
+          "left": "jariv",
+          "right": "j'arrive"
+        },
+        "replacement": {
+          "left": "arobase",
+          "right": "@"
+        },
+        "emoji": {
+          "left": "smiley",
+          "right": "🙂"
+        }
+      },
+      "toggles": {
+        "emoji": "Écrire les émojis quand vous les nommez",
+        "snippet": "Développer les raccourcis",
+        "replacement": "Appliquer les réécritures"
+      },
+      "toggleErrors": {
+        "spokenEdits": "Impossible de modifier les commandes d'édition vocale. Réessayez.",
+        "emoji": "Impossible de modifier l'écriture des émojis. Réessayez.",
+        "snippet": "Impossible de modifier le développement des raccourcis. Réessayez.",
+        "replacement": "Impossible de modifier les réécritures. Réessayez."
+      },
+      "errors": {
+        "incomplete": "Remplissez les deux côtés ou supprimez la règle.",
+        "duplicate": "Une autre règle de ce type utilise déjà cette expression."
+      }
+    }
+  },
+  "settingsV2": {
+    "navigation": "Réglages",
+    "tabs": {
+      "essentials": "L'essentiel",
+      "advanced": "Avancé",
+      "debug": "Débogage"
+    },
+    "essentials": {
+      "title": "L'essentiel",
+      "sounds": "Sons",
+      "launchAtLogin": "Lancer au démarrage",
+      "appearance": "Apparence",
+      "volume": "Volume du son",
+      "detectMeetings": "Me signaler quand je rejoins une réunion",
+      "detectMeetingsHint": "Sona propose d'enregistrer. Elle ne démarre jamais un enregistrement d'elle-même.",
+      "retention": "Supprimer les enregistrements après",
+      "dictationStyles": "Styles de dictée",
+      "dictationStylesAction": "Modifier"
+    },
+    "advanced": {
+      "title": "Avancé",
+      "meetings": "Réunions",
+      "models": "Modèles",
+      "modelCatalog": "Catalogue de modèles",
+      "cloudKeys": "Clés de transcription cloud",
+      "cleanupProvider": "Fournisseur de nettoyage",
+      "dictation": "Dictée",
+      "keepDictations": "Dictées à conserver",
+      "readsFromOtherApps": "Ce que Sona peut lire dans les autres applications",
+      "workflows": "Ce que Sona fait après une réunion",
+      "sync": "Synchronisation",
+      "leavesThisMac": "Ce qui quitte ce Mac",
+      "agents": "Agents",
+      "agentBridge": "Passerelle pour agents de code",
+      "about": "À propos de Sona",
+      "debugHint": "Appuyez sur {{chord}} pour ouvrir la page de débogage."
+    },
+    "apps": {
+      "label": "Apps de réunion",
+      "browsersAutomatic": "Un appel dans un onglet du navigateur est détecté sans figurer ici.",
+      "runningNow": "En cours d'exécution",
+      "add": "Ajouter une app",
+      "addTitle": "Ajouter une app de réunion",
+      "addDescription": "Sona a besoin de l'identifiant de l'app, que vous pouvez lire dans sa propre fenêtre À propos ou avec `osascript -e 'id of app \"Nom\"'`.",
+      "identifier": "Identifiant de l'app",
+      "identifierPlaceholder": "com.example.app",
+      "invalid": "Un identifiant ressemble à com.example.app : des mots en minuscules reliés par des points.",
+      "duplicate": "Cette app est déjà dans la liste.",
+      "remove": "Retirer {{app}}",
+      "names": {
+        "zoom": "Zoom",
+        "teams": "Microsoft Teams",
+        "webex": "Webex",
+        "facetime": "FaceTime",
+        "slack": "Slack"
+      }
+    }
+  },
+  "consentPanel": {
+    "calendarTitle": "{{title}} — l'enregistrer ?",
+    "appTitle": "Réunion {{app}} — l'enregistrer ?",
+    "genericTitle": "Enregistrer cette réunion ?",
+    "introduction": "Sona enregistre sur ce Mac et vous gardez la main.",
+    "seriesBrief_one": "Réunion {{nth}} avec {{person}} · {{count}} point en suspens",
+    "seriesBrief_many": "Réunion {{nth}} avec {{person}} · {{count}} de points en suspens",
+    "seriesBrief_other": "Réunion {{nth}} avec {{person}} · {{count}} points en suspens",
+    "alwaysRecord": "Toujours enregistrer cette réunion",
+    "assurance": "Ne démarrez qu'une fois que tout le monde a accepté d'être enregistré.",
+    "record": "Enregistrer",
+    "ignore": "Ignorer",
+    "recording": "Enregistrement",
+    "stop": "Arrêter",
+    "forgetSeries": "Oublier cette série"
+  },
+  "learningV2": {
+    "workflows": {
+      "spokenPunctuation": {
+        "name": "Suggérer la ponctuation dictée",
+        "description": "Repère les symboles que vous prononcez et qu’aucune règle de remplacement n’écrit encore."
+      },
+      "correctionLearning": {
+        "name": "Apprendre de vos corrections",
+        "description": "Transforme vos corrections manuelles en suggestions de vocabulaire."
+      },
+      "modeHabits": {
+        "name": "Suggérer des règles de mode",
+        "description": "Repère un mode que vous activez sans cesse par raccourci."
+      },
+      "captureAdvisor": {
+        "name": "Conseiller sur la qualité de capture",
+        "description": "Signale les reprises, les captures perdues et l’audio faible de vos propres sessions."
+      },
+      "seriesPriming": {
+        "name": "Préparer les réunions récurrentes"
+      }
+    },
+    "feed": {
+      "title": "Ce que Sona a remarqué",
+      "spokenPunctuation": "Vous dites souvent {{spoken}} — l’écrire {{written}} ?",
+      "vocabularyCorrection": "Vous remplacez sans cesse {{spoken}} par {{written}} — l’apprendre ?",
+      "modeHabit": "Vous activez {{mode}} par raccourci presque chaque jour — en faire votre mode par défaut ?",
+      "retryRate": "Vos sessions {{subject}} sont reprises {{times}}× plus souvent que les autres.",
+      "lostCaptureRate": "Vos sessions {{subject}} finissent tronquées ou muettes {{times}}× plus souvent que les autres.",
+      "inputLevel": "{{percent}} % de vos captures étaient faibles — vérifier le niveau du micro ?",
+      "example": "«{{text}}»",
+      "accept": "Oui",
+      "dismiss": "Non merci",
+      "evidence_one": "1 fois, sur {{days}} jours",
+      "evidence_many": "{{count}} fois, sur {{days}} jours",
+      "evidence_other": "{{count}} fois, sur {{days}} jours"
+    },
+    "outcomes": {
+      "primed": "Réunion récurrente préparée",
+      "noticed_one": "1 chose remarquée",
+      "noticed_many": "{{count}} choses remarquées",
+      "noticed_other": "{{count}} choses remarquées"
     }
   }
 }

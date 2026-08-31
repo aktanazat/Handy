@@ -74,7 +74,7 @@ export function ChartCard({
             >
               <ChevronLeft aria-hidden="true" />
             </Button>
-            <span className="min-w-[9.5ch] text-center font-mono text-[11px] text-gray-800 tabular-nums">
+            <span className="min-w-[9.5ch] text-center text-[11px] text-gray-800 tabular-nums">
               {range.label}
             </span>
             <Button
@@ -98,7 +98,7 @@ export function ChartCard({
         {delta === undefined ? null : (
           <span
             className={cn(
-              "rounded-full px-1.5 py-0.5 font-mono text-[11px] tabular-nums",
+              "rounded-full px-1.5 py-0.5 text-[11px] tabular-nums",
               deltaClass[delta.direction ?? "neutral"],
             )}
           >

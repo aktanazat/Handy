@@ -136,7 +136,7 @@ const AgentPanelHeader: React.FC<AgentPanelHeaderProps> = ({
       <div className="flex flex-none items-center gap-2">
         {lastIdentity && (
           <span
-            className="max-w-[140px] truncate font-mono text-[11px] text-gray-800"
+            className="max-w-[140px] truncate text-[11px] text-gray-800"
             title={lastIdentity}
           >
             {lastIdentity}
@@ -194,7 +194,7 @@ const AgentPanelState: React.FC<AgentPanelStateProps> = ({
         {t(`agentPanel.status.${phase}`)}
       </p>
       {failed && error && (
-        <p className="max-w-[40ch] font-mono text-[11px] text-gray-800 [overflow-wrap:anywhere]">
+        <p className="max-w-[40ch] text-[11px] text-gray-800 [overflow-wrap:anywhere]">
           {error}
         </p>
       )}
@@ -292,12 +292,11 @@ const AgentPanelBody: React.FC<AgentPanelBodyProps> = ({
           className="flex-none border-t border-gray-alpha-400 bg-background-100 p-4"
           aria-labelledby="agent-panel-proposal-title"
         >
-          {/* The section label role: short, mono, uppercase, tracked. It is also
-              the section's accessible name, which is why the old duplicate
-              `proposalLabel` aria-label is gone. */}
+          {/* This sentence-case section label is also the section's accessible
+              name, which is why the old duplicate aria-label stays gone. */}
           <h2
             id="agent-panel-proposal-title"
-            className="font-mono text-[11px] uppercase tracking-[0.12em] text-gray-800"
+            className="text-[13px] leading-5 text-gray-900"
           >
             {t("agentPanel.proposalTitle")}
           </h2>
@@ -307,9 +306,8 @@ const AgentPanelBody: React.FC<AgentPanelBodyProps> = ({
           <p className="mt-2 text-[13px] leading-[19px] text-gray-900">
             {proposal.rationale}
           </p>
-          {/* The action keys, verbatim: they are identifiers, so they are mono
-              and they are not uppercased. */}
-          <p className="mt-2 font-mono text-[11px] text-gray-800 [overflow-wrap:anywhere]">
+          {/* Action keys stay verbatim because they are identifiers. */}
+          <p className="mt-2 text-[11px] text-gray-800 [overflow-wrap:anywhere]">
             {actionSummary(proposal)}
           </p>
           {proposal.follow_up_question && (

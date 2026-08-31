@@ -6,7 +6,7 @@ type SonaWordmarkProps = {
 
 export const SonaWordmark = ({ className }: SonaWordmarkProps) => (
   <span
-    className={`font-sans text-base leading-none font-semibold tracking-[-0.02em] ${className ?? ""}`}
+    className={`text-base leading-none font-semibold tracking-[-0.02em] ${className ?? ""}`}
   >
     {wordmarkText}
   </span>

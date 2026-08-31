@@ -22,7 +22,7 @@ export const Toaster: React.FC = () => (
       unstyled: true,
       classNames: {
         toast:
-          "bg-surface-raised border border-transparent rounded-panel px-4 py-3 flex items-center gap-3 text-[13px] leading-[19px] shadow-[var(--shadow-popover)]",
+          "bg-surface-raised border border-gray-alpha-400 rounded-panel px-4 py-3 flex items-center gap-3 text-[13px] leading-[19px] shadow-[var(--shadow-popover)]",
         title: "font-medium text-text-primary",
         description: "text-text-secondary",
         actionButton:

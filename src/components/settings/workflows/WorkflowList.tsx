@@ -9,6 +9,10 @@ import { Switch } from "@/components/vg/switch";
 import { Notice, SettingsSection } from "@/components/settings/rows";
 import { WorkflowStatusGlyph } from "./WorkflowStatusGlyph";
 import { formatWorkflowOutcome } from "./formatWorkflowOutcome";
+import {
+  WORKFLOW_DESCRIPTION_KEY,
+  WORKFLOW_NAME_KEY,
+} from "./workflowCatalogue";
 
 interface WorkflowListProps {
   data: WorkflowsListResult | null;
@@ -32,7 +36,7 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
   const { t } = useTranslation();
 
   return (
-    <SettingsSection label={t("settings.workflows.builtIns")}>
+    <SettingsSection label={t("settingsV2.advanced.workflows")}>
       {loading && data === null ? (
         <div
           role="status"
@@ -60,7 +64,8 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
       ) : (
         <ul role="list" className="divide-y divide-gray-alpha-400">
           {data?.entries.map((workflow) => {
-            const name = t(`settings.workflows.items.${workflow.id}.name`);
+            const name = t(WORKFLOW_NAME_KEY[workflow.id]);
+            const description = WORKFLOW_DESCRIPTION_KEY[workflow.id];
             return (
               <li
                 key={workflow.id}
@@ -70,15 +75,17 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
                   <p className="truncate text-[13px] font-medium text-gray-1000">
                     {name}
                   </p>
-                  <p className="truncate text-[12.5px] text-gray-800">
-                    {t(`settings.workflows.items.${workflow.id}.description`)}
-                  </p>
+                  {description === undefined ? null : (
+                    <p className="truncate text-[12.5px] text-gray-800">
+                      {t(description)}
+                    </p>
+                  )}
                   {workflow.last_run === null ? (
-                    <p className="font-mono text-[11px] text-gray-700">
+                    <p className="text-[11px] text-gray-700">
                       {t("settings.workflows.neverRun")}
                     </p>
                   ) : (
-                    <p className="flex min-w-0 items-center gap-1.5 font-mono text-[11px] text-gray-700">
+                    <p className="flex min-w-0 items-center gap-1.5 text-[11px] text-gray-700">
                       <WorkflowStatusGlyph status={workflow.last_run.status} />
                       <span className="truncate">
                         {formatWorkflowOutcome(workflow.last_run, t)}

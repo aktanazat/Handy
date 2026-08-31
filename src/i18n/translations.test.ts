@@ -25,9 +25,14 @@ const hasEnglishMessage = (key: string): boolean =>
     EN_MESSAGES.has(`${key}_${category}`),
   );
 
+/* Count keys whose plural family every locale has to resolve. Three entries
+ * left this list with the feed's copy pass: the continuity pair became one
+ * sentence ("Carried 2 open loops forward"), and the People list no longer
+ * offers to link suggested meetings. The consent-panel briefing belongs here
+ * because its open-loop count must select the locale's exact CLDR form. */
 const RUNTIME_COUNT_KEYS = [
+  "consentPanel.seriesBrief",
   "people.list.meetings",
-  "people.list.suggested",
   "people.review.meetingsBefore",
   "people.briefing.metCount",
   "people.briefing.metBefore",
@@ -36,11 +41,10 @@ const RUNTIME_COUNT_KEYS = [
   "settings.workflows.vocabularySuggestions.occurrences",
   "settings.workflows.vocabularySuggestions.meetings",
   "settings.workflows.outcomes.personLinks",
-  "settings.workflows.outcomes.briefing",
-  "settings.workflows.outcomes.continuitySeries",
-  "settings.workflows.outcomes.continuityCarried",
   "settings.workflows.outcomes.vocabularyCandidates",
   "settings.workflows.outcomes.documentLinks",
+  "libraryV2.recordings",
+  "libraryV2.words",
 ] as const;
 
 const PLURAL_SAMPLE_COUNTS = [
@@ -79,15 +83,7 @@ const sampleCount = (
 const DYNAMIC_KEYS = {
   "settings.history.receipts.engine": ["local", "cloud", "local_fallback"],
   "settings.history.receipts.source": ["microphone", "file", "legacy"],
-  "settings.hub.tabs": [
-    "general",
-    "privacy",
-    "agents",
-    "workflows",
-    "advanced",
-    "about",
-    "debug",
-  ],
+  "settingsV2.tabs": ["essentials", "advanced", "debug"],
   "settings.workflows.items": [
     "person_linking.name",
     "person_linking.description",
@@ -99,16 +95,35 @@ const DYNAMIC_KEYS = {
     "vocabulary_mining.description",
     "document_linking.name",
     "document_linking.description",
+    /* Permanently enabled and absent from the configurable list, so no switch
+     * names it and no description key exists for it — but its receipts reach
+     * the Capture feed, and the feed reads the same `items.<id>.name` key every
+     * other workflow does. */
+    "meeting_activity.name",
   ],
   "settings.workflows.status": ["ok", "failed", "skipped"],
-  "settings.modes.tabs": [
-    "recognition",
-    "rewrite",
-    "context",
-    "delivery",
-    "automation",
-  ],
+  /* The five-tab mode editor is gone: one screen plus one Advanced
+   * disclosure, so `settings.modes.tabs` has no call site left. */
   "settings.modes.views": ["modes", "vocabulary"],
+  "modesV2.rules.kinds": ["vocabulary", "snippet", "replacement", "emoji"],
+  "modesV2.rules.kindHints": ["vocabulary", "snippet", "replacement", "emoji"],
+  "modesV2.rules.placeholders": [
+    "vocabulary.left",
+    "vocabulary.right",
+    "snippet.left",
+    "snippet.right",
+    "replacement.left",
+    "replacement.right",
+    "emoji.left",
+    "emoji.right",
+  ],
+  "modesV2.rules.toggles": ["emoji", "snippet", "replacement"],
+  "modesV2.rules.toggleErrors": [
+    "spokenEdits",
+    "emoji",
+    "snippet",
+    "replacement",
+  ],
   "theme.options": ["system", "light", "dark"],
 };
 
@@ -136,6 +151,38 @@ const findTranslationKeys = (): Set<string> => {
     }
   }
   return keys;
+};
+
+/* Every dotted string src mentions, and every namespace it builds a key under.
+ *
+ * Deliberately wider than the `t(` pattern above: a key reaches the screen
+ * through a lookup table as often as through a call — `workflowCatalogue.ts`
+ * maps workflow ids to key strings, `MeetingDetectionSettings` keeps its
+ * suppression copy in a `satisfies Record<...>` table — and a sweep that only
+ * saw `t(` would call all of those orphaned. So a bare literal counts, and a
+ * literal or template head ending in a dot marks its whole namespace reached:
+ * `"settingsV2.apps.names." + app.id` and
+ * `` `settings.models.cloud.errors.${err}` `` are the same claim about a
+ * namespace, written two ways. */
+const findReferencedCopy = () => {
+  const literals = new Set<string>();
+  const namespaces = new Set<string>();
+  /* A single-, double- or back-quoted run with no quote or newline in it. A
+   * template literal's static head stops at its first `${`, which is exactly
+   * the prefix a dynamic key is built from — a dot for a nested namespace
+   * (`settingsV2.tabs.`), an underscore for a hand-selected plural category
+   * (`secureInput.blockedNoCulprit_`). */
+  const literalPattern = /(['"`])([A-Za-z0-9_.]+)(?:\1|\$\{)/g;
+  for (const file of walk(SRC_ROOT)) {
+    if (file.endsWith(".test.ts") || file.endsWith(".test.tsx")) continue;
+    const source = fs.readFileSync(file, "utf8");
+    for (const [, , text] of source.matchAll(literalPattern)) {
+      if (!text.includes(".")) continue;
+      if (text.endsWith(".") || text.endsWith("_")) namespaces.add(text);
+      else literals.add(text);
+    }
+  }
+  return { literals, namespaces: Array.from(namespaces) };
 };
 
 describe("English translation fallback", () => {
@@ -174,6 +221,64 @@ describe("English translation fallback", () => {
       }
     }
     expect(leaks).toEqual([]);
+  });
+});
+
+const REFERENCED_COPY = findReferencedCopy();
+const DYNAMIC_NAMESPACES = Object.keys(DYNAMIC_KEYS).map(
+  (namespace) => `${namespace}.`,
+);
+
+/* The other direction: a catalogue key nothing renders.
+ *
+ * The parity and plural checks above ask whether every locale can answer a
+ * key. Neither asks whether anyone is asking, so cutovers leave leaves behind
+ * — `settings.hub.*`, `sidebar.general`, nine `modelSelector.*`, the copy of
+ * five deleted rows — each multiplied by twenty-four locale files, each still
+ * shipped to translators. A dead key is cheap on its own and expensive by the
+ * file: it is a paragraph a volunteer translates for a surface that does not
+ * exist.
+ *
+ * `unreachedCopy.json` is the debt this check was added on top of: keys with no
+ * reference in `src` that were NOT individually verified as safe to delete.
+ * Some are genuinely dead (`settings.modes.tabs.*` — the five-tab mode editor
+ * is gone); others may be read somewhere this sweep cannot see, which is
+ * exactly why they were not deleted on a regex's word. The list may only
+ * shrink: a key removed from the catalogue must be removed from it, and a new
+ * key must be referenced from `src` rather than added here. */
+const UNREACHED_COPY: string[] = JSON.parse(
+  fs.readFileSync(path.join(SRC_ROOT, "i18n", "unreachedCopy.json"), "utf8"),
+);
+
+describe("the English catalogue", () => {
+  const reachedBy = (key: string): boolean => {
+    const { literals, namespaces } = REFERENCED_COPY;
+    /* A plural family is reached through its base key: `t(k, {count})` never
+     * names `k_other`. A caller that selects the category itself instead leaves
+     * a `..._` prefix, so the raw key is offered to the namespaces as well. */
+    const base = key.replace(/_(zero|one|two|few|many|other)$/, "");
+    if (literals.has(base) || literals.has(key)) return true;
+    return [...namespaces, ...DYNAMIC_NAMESPACES].some(
+      (prefix) => base.startsWith(prefix) || key.startsWith(prefix),
+    );
+  };
+
+  test("ships no key that nothing in src can reach", () => {
+    const orphans = Array.from(EN_MESSAGES.keys())
+      .filter((key) => !reachedBy(key) && !UNREACHED_COPY.includes(key))
+      .sort();
+
+    expect(orphans).toEqual([]);
+  });
+
+  test("carries every key the unreached list still claims", () => {
+    /* Otherwise the list outlives the debt and starts hiding the next orphan:
+     * a deleted key left in here is a name nothing can ever justify again. */
+    const stale = UNREACHED_COPY.filter(
+      (key) => !EN_MESSAGES.has(key) || reachedBy(key),
+    ).sort();
+
+    expect(stale).toEqual([]);
   });
 });
 

@@ -73,6 +73,8 @@ const receipt = (
     series: 0,
     carried: 0,
     candidates: 0,
+    suggestions: 0,
+    terms: 0,
   },
   error: status === "failed" ? "failed for test" : null,
 });
@@ -104,16 +106,19 @@ describe("Workflows settings", () => {
       />,
     );
 
-    expect(markup).toContain("Built-in workflows");
-    expect(markup).toContain("Person linking");
+    expect(markup).toContain("What Sona does after a meeting");
+    /* The label names the outcome, not the subsystem: "Person linking" was a
+     * module name that happened to be printed at a user. */
+    expect(markup).toContain("Remember people");
+    expect(markup).not.toContain("Person linking");
     expect(markup).toContain(
       "Connects meetings to people using confirmed attendee and speaker evidence.",
     );
-    expect(markup).toContain("Updated 2 person links");
-    expect(markup.includes("Linked two people")).toBe(false);
+    expect(markup).toContain("Remembered 2 people");
+    expect(markup.includes("Updated 2 person links")).toBe(false);
     expect(markup).toContain("Completed");
     expect(markup).toContain("Not run yet");
-    expect(markup).toContain('aria-label="Enable Person linking"');
+    expect(markup).toContain('aria-label="Enable Remember people"');
     expect(markup).toContain('data-state="checked"');
     expect(markup).toContain('data-state="unchecked"');
   });
@@ -143,7 +148,7 @@ describe("Workflows settings", () => {
     expect(markup.indexOf('data-workflow-run-id="failed"')).toBeLessThan(
       markup.indexOf('data-workflow-run-id="skipped"'),
     );
-    expect(markup).toContain("Updated 2 person links");
+    expect(markup).toContain("Remembered 2 people");
     expect(markup.includes("Newest outcome")).toBe(false);
     expect(markup).toContain("Completed");
     expect(markup).toContain("Failed");
@@ -153,6 +158,43 @@ describe("Workflows settings", () => {
     );
     expect(markup).toContain("Load more");
     expect(markup.split("<rect").length - 1).toBe(7);
+  });
+
+  /* `settings.workflows.items` covers six of the eleven workflow ids; the five
+   * learning loops live under `learningV2.workflows`. A run log that built its
+   * copy key by template literal printed the key itself for those five, and
+   * i18next is configured with no missing-key handler to catch it. */
+  test("names a learning workflow from the catalogue, never by raw key", () => {
+    const markup = render(
+      <WorkflowRunLog
+        receipts={[
+          {
+            ...receipt("mined", "ok", "spoken_punctuation:suggestions=1", 0),
+            workflow_id: "spoken_punctuation",
+            event_kind: "dictation_corpus_swept",
+            outcome_code: "learning_suggestions",
+            outcome_counts: {
+              ...receipt("mined", "ok", "", 0).outcome_counts,
+              changes: 0,
+              suggestions: 1,
+            },
+          },
+        ]}
+        loading={false}
+        loadingMore={false}
+        error={false}
+        hasMore={false}
+        onRetry={() => {}}
+        onLoadMore={() => {}}
+        nowMs={nowMs}
+      />,
+    );
+
+    expect(markup).toContain(
+      i18n.t("learningV2.workflows.spokenPunctuation.name"),
+    );
+    expect(markup).not.toContain("settings.workflows.items");
+    expect(markup).not.toContain("learningV2.workflows");
   });
 
   test("uses one quiet glyph and no chart before the first run", () => {
@@ -191,25 +233,45 @@ describe("formatWorkflowOutcome", () => {
     );
   };
 
+  /* The sentences a person would say, counted from the receipt. The workflow's
+   * own name never appears in one: "Person linking" is the subsystem talking
+   * about itself, and no reader is owed that word. */
   test("maps every structured count family without using the stored summary", () => {
-    expect(format("person_links", { changes: 1 })).toBe(
-      "Updated 1 person link",
-    );
+    expect(format("person_links", { changes: 1 })).toBe("Remembered 1 person");
+    expect(format("person_links", { changes: 2 })).toBe("Remembered 2 people");
     expect(format("briefing", { persons: 2 })).toBe(
-      "Prepared a briefing for 2 people",
+      "Prepared your meeting brief",
     );
-    expect(format("continuity", { series: 3, carried: 1 })).toBe(
-      "Updated 3 meeting series · carried 1 open loop",
+    expect(format("continuity", { series: 3, carried: 2 })).toBe(
+      "Carried 2 open loops forward",
+    );
+    expect(format("vocabulary_candidates", { candidates: 1 })).toBe(
+      "Learned a new word",
     );
     expect(format("vocabulary_candidates", { candidates: 4 })).toBe(
-      "Found 4 vocabulary suggestions",
+      "Learned 4 new words",
     );
-    expect(format("document_links", { changes: 2 })).toBe(
-      "Updated 2 document links",
-    );
-    expect(format("already_processed")).toBe("Already processed");
-    expect(format("failed")).toBe("Run failed");
+    expect(format("document_links", { changes: 1 })).toBe("Linked a document");
+    expect(format("document_links", { changes: 2 })).toBe("Linked 2 documents");
+    expect(format("already_processed")).toBe("Nothing new to do");
+    expect(format("failed")).toBe("Couldn't finish");
     expect(format("skipped")).toBe("Skipped");
+  });
+
+  /* The consent popup writes its own history into the same feed. Each line
+   * says what happened to the recording; "prompt", "consent" and "receipt"
+   * are words for the session manager, not for a reader. */
+  test("narrates what the consent popup did to the recording", () => {
+    expect(format("prompt_recorded")).toBe("Started recording");
+    expect(format("prompt_ignored")).toBe(
+      "Skipped recording a detected meeting",
+    );
+    expect(format("auto_record_started")).toBe(
+      "Started recording automatically",
+    );
+    expect(format("auto_record_stopped")).toBe(
+      "Stopped recording automatically",
+    );
   });
 });
 

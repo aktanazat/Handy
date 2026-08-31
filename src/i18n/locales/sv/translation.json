@@ -26,15 +26,8 @@
     "secureInputWarning": "Kortkommandon blockeras av Secure Input"
   },
   "sidebar": {
-    "general": "Allmänt",
     "models": "Modeller",
-    "advanced": "Avancerat",
-    "postProcessing": "Efterbearbetning",
-    "debug": "Felsökning",
-    "about": "Om",
     "modes": "Lägen",
-    "privacy": "Privacy",
-    "agents": "Agents",
     "meetings": "Möten",
     "navigation": "Huvudnavigering",
     "people": "Personer",
@@ -153,21 +146,13 @@
     "active": "Aktiv",
     "switching": "Byter…",
     "noModelsAvailable": "Inga modeller tillgängliga",
-    "searchPlaceholder": "Sök modeller",
     "verifying": "Verifierar {{modelName}}…",
     "verifyingGeneric": "Verifierar…",
     "extracting": "Extraherar {{modelName}}…",
-    "extractingMultiple": "Extraherar {{count}} modeller…",
     "extractingGeneric": "Extraherar…",
     "downloading": "Laddar ner {{percentage}}%",
-    "downloadingMultiple": "Laddar ner {{count}} modeller…",
-    "downloadingGeneric": "Laddar ner…",
-    "modelReady": "Modell klar",
     "loading": "Laddar {{modelName}}…",
     "loadingGeneric": "Laddar…",
-    "modelError": "Modellfel",
-    "modelUnloaded": "Modell avlastad",
-    "noModelDownloadRequired": "Ingen modell, nedladdning krävs",
     "deleteModel": "Ta bort {{modelName}}",
     "downloadSpeed": "{{speed}} MB/s",
     "cancel": "Avbryt",
@@ -181,8 +166,7 @@
       "translate": "Översätt till engelska",
       "streaming": "Visar transkription i realtid medan du talar"
     },
-    "legacy": "Äldre",
-    "model": "Modell"
+    "legacy": "Äldre"
   },
   "settings": {
     "modelSettings": {
@@ -330,7 +314,6 @@
       }
     },
     "sound": {
-      "title": "Ljud",
       "microphone": {
         "title": "Mikrofon"
       },
@@ -338,16 +321,6 @@
         "title": "Ingångskanal",
         "average": "Medelvärde av alla kanaler",
         "channel": "Kanal {{n}}"
-      },
-      "audioFeedback": {
-        "label": "Ljudåterkoppling"
-      },
-      "outputDevice": {
-        "title": "Utmatningsenhet",
-        "description": "Var återkopplingsljud spelas upp."
-      },
-      "volume": {
-        "title": "Volym"
       }
     },
     "advanced": {
@@ -357,13 +330,6 @@
           "as_spoken": "Som uttalat",
           "british": "Brittisk"
         }
-      },
-      "groups": {
-        "app": "App",
-        "output": "Utmatning",
-        "transcription": "Transkription",
-        "history": "Historik",
-        "experimental": "Experimentellt"
       },
       "experimentalToggle": {
         "label": "Experimentella funktioner"
@@ -384,15 +350,8 @@
           "auto": "Automatiskt"
         }
       },
-      "startHidden": {
-        "label": "Starta dold",
-        "description": "Starta i systemfältet utan att öppna fönstret."
-      },
       "autostart": {
         "label": "Starta vid uppstart"
-      },
-      "showTrayIcon": {
-        "label": "Visa ikon i systemfältet"
       },
       "overlay": {
         "style": {
@@ -508,14 +467,6 @@
         },
         "empty": {
           "description": "Koppla ett exakt uttalat ord som glad gubbe till den emoji du vill få skriven."
-        }
-      },
-      "disclosures": {
-        "launch": {
-          "title": "Start"
-        },
-        "processing": {
-          "title": "Bearbetning"
         }
       },
       "snippets": {
@@ -864,9 +815,6 @@
         "label": "Efterbearbetning",
         "description": "Skriv om transkriptionen med en språkmodell efter transkription."
       },
-      "muteWhileRecording": {
-        "label": "Ljudlös under inspelning"
-      },
       "appendTrailingSpace": {
         "label": "Lägg till avslutande mellanslag",
         "description": "Lägger till ett mellanslag efter inklistrat transcript."
@@ -930,7 +878,6 @@
       }
     },
     "about": {
-      "title": "Om",
       "version": {
         "title": "Version",
         "unavailable": "Otillgänglig"
@@ -953,9 +900,6 @@
           "title": "ggml",
           "details": "Sonas lokala tal-till-text bygger på transcribe.cpp och ggml. Tack till Georgi Gerganov med medarbetare."
         }
-      },
-      "whatsNewUpdates": {
-        "label": "Visa nyheter"
       },
       "files": {
         "title": "Filer"
@@ -1553,7 +1497,6 @@
     },
     "workflows": {
       "title": "Arbetsflöden",
-      "builtIns": "Inbyggda arbetsflöden",
       "loadError": "Arbetsflödena kunde inte läsas in.",
       "updateError": "Arbetsflödet kunde inte uppdateras.",
       "empty": "Det finns inga tillgängliga arbetsflöden.",
@@ -1561,24 +1504,27 @@
       "toggleLabel": "Aktivera {{name}}",
       "items": {
         "person_linking": {
-          "name": "Koppla personer",
+          "name": "Kom ihåg personer",
           "description": "Kopplar möten till personer med bekräftade uppgifter om deltagare och talare."
         },
         "pre_meeting_briefing": {
-          "name": "Förberedelse inför mötet",
+          "name": "Förbered mötesöversikter",
           "description": "Skapar en översikt från tidigare möten innan ett identifierat möte börjar."
         },
         "continuity": {
-          "name": "Kontinuitet",
+          "name": "För möten vidare",
           "description": "För vidare olösta åtaganden till kommande möten."
         },
         "vocabulary_mining": {
-          "name": "Hitta ordförråd",
+          "name": "Lär nya ord",
           "description": "Hittar återkommande namn och termer som kan höra hemma i ditt ordförråd."
         },
         "document_linking": {
           "name": "Koppla dokument",
           "description": "Kopplar importerade dokument till personerna som nämns i dem."
+        },
+        "meeting_activity": {
+          "name": "Mötesinspelning"
         }
       },
       "status": {
@@ -1587,20 +1533,21 @@
         "skipped": "Hoppades över"
       },
       "outcomes": {
-        "personLinks_one": "Uppdaterade 1 personlänk",
-        "personLinks_other": "Uppdaterade {{count}} personlänkar",
-        "briefing_one": "Förberedde en briefing för 1 person",
-        "briefing_other": "Förberedde en briefing för {{count}} personer",
-        "continuitySeries_one": "Uppdaterade 1 mötesserie",
-        "continuitySeries_other": "Uppdaterade {{count}} mötesserier",
-        "continuityCarried_one": "förde vidare 1 öppen punkt",
-        "continuityCarried_other": "förde vidare {{count}} öppna punkter",
-        "vocabularyCandidates_one": "Hittade 1 ordförslag",
-        "vocabularyCandidates_other": "Hittade {{count}} ordförslag",
-        "documentLinks_one": "Uppdaterade 1 dokumentlänk",
-        "documentLinks_other": "Uppdaterade {{count}} dokumentlänkar",
-        "alreadyProcessed": "Redan bearbetat",
-        "failed": "Körningen misslyckades",
+        "personLinks_one": "1 person ihågkommen",
+        "personLinks_other": "{{count}} personer ihågkomna",
+        "briefing": "Din mötesöversikt är klar",
+        "continuity_one": "1 öppen fråga fördes vidare",
+        "continuity_other": "{{count}} öppna frågor fördes vidare",
+        "vocabularyCandidates_one": "Ett nytt ord inlärt",
+        "vocabularyCandidates_other": "{{count}} nya ord inlärda",
+        "documentLinks_one": "Ett dokument kopplat",
+        "documentLinks_other": "{{count}} dokument kopplade",
+        "promptRecorded": "Inspelningen startade",
+        "promptIgnored": "Ett upptäckt möte spelades inte in",
+        "autoRecordStarted": "Inspelningen startade automatiskt",
+        "autoRecordStopped": "Inspelningen stoppade automatiskt",
+        "alreadyProcessed": "Inget nytt att göra",
+        "failed": "Kunde inte slutföras",
         "skipped": "Hoppades över"
       },
       "vocabularySuggestions": {
@@ -1614,7 +1561,7 @@
       },
       "overview": {
         "whatSonaDid": "Vad Sona gjorde",
-        "commitments": "Åtaganden",
+        "openLoops": "Öppna frågor",
         "openMeeting": "Öppna mötet {{title}}",
         "loadError": "Det gick inte att läsa in det här kortet.",
         "retry": "Försök igen"
@@ -1626,18 +1573,6 @@
         "loadMoreError": "Fler körningar kunde inte läsas in.",
         "loadMore": "Läs in fler",
         "chartAria": "Arbetsflödeskörningar per dag, {{count}} under de senaste 7 dagarna"
-      }
-    },
-    "hub": {
-      "navigation": "Inställningsavsnitt",
-      "tabs": {
-        "general": "Allmänt",
-        "privacy": "Integritet",
-        "agents": "Agenter",
-        "workflows": "Arbetsflöden",
-        "advanced": "Avancerat",
-        "about": "Om",
-        "debug": "Felsökning"
       }
     },
     "vocabulary": {
@@ -1712,7 +1647,11 @@
     "play": "Spela",
     "pause": "Pausa",
     "seek": "Uppspelningsposition",
-    "resetSetting": "Återställ {{name}}"
+    "resetSetting": "Återställ {{name}}",
+    "day": {
+      "today": "I dag",
+      "yesterday": "I går"
+    }
   },
   "commandPalette": {
     "open": "Sök",
@@ -1898,17 +1837,17 @@
     },
     "live": {
       "elapsed": "Förfluten tid",
-      "microphoneOnlyPartial": "Endast mikrofon / Delvis. Systemljud är inte tillgängligt eller försämrat.",
-      "partialCapture": "Delvis inspelning. Granska luckorna innan du förlitar dig på genererade anteckningar.",
+      "microphoneOnlyPartial": "Bara mikrofonen spelas in. Systemljudet är inte tillgängligt, så det här mötet blir ofullständigt.",
+      "partialCapture": "Ljud saknas. Kontrollera luckorna innan du litar på de genererade anteckningarna.",
       "inputs": "Ingångar",
       "signal": "Signal",
       "signalUnavailable": "Nivån för {{source}} rapporteras inte av inspelningen.",
       "notReported": "Ej rapporterat",
-      "durabilityLag": "Fördröjning för varaktig lagring",
+      "durabilityLag": "Sparat på disk",
       "behind": "{{duration}} efter",
       "progress": "Transkriptets förlopp",
       "transcript": "Transkript",
-      "asrLag": "ASR-fördröjning",
+      "asrLag": "Fördröjning i transkriptet",
       "storage": "Lagring",
       "storageHealthy": "Den krypterade lokala lagringen är i gott skick.",
       "storageUnavailable": "Lagringen kräver åtgärd.",
@@ -1957,20 +1896,20 @@
     },
     "gaps": {
       "source_unavailable": "Källan är inte tillgänglig",
-      "source_start_failed": "Källan kunde inte startas",
+      "source_start_failed": "Källan startade inte",
       "permission_lost": "Behörighet förlorad",
       "paused": "Pausad",
-      "packet_dropped": "Ljudpaket tappades",
-      "writer_pressure": "Skrivtryck på lagringen",
-      "storage_failure": "Lagringsfel",
-      "timestamp_missing": "Tidsstämpel saknas",
-      "timestamp_discontinuity": "Tidsstämpelbrott",
-      "invalid_format": "Ogiltigt ljudformat",
+      "packet_dropped": "Ljud tappades",
+      "writer_pressure": "Lagringen hamnade efter",
+      "storage_failure": "Lagringen misslyckades",
+      "timestamp_missing": "Tidsangivelse saknas",
+      "timestamp_discontinuity": "Tiden hoppade",
+      "invalid_format": "Oläsbart ljud",
       "source_stopped": "Källan stoppades",
-      "corrupt_record": "Skadad post",
-      "missing_record": "Saknad post",
-      "recovery_tail": "Återställningsrest",
-      "system_sleep": "Mac i vila"
+      "corrupt_record": "Skadad inspelning",
+      "missing_record": "Inspelning saknas",
+      "recovery_tail": "Återställt efter en krasch",
+      "system_sleep": "Din Mac gick i viloläge"
     },
     "errors": {
       "load": "Sona kunde inte läsa in aktuella mötesdata.",
@@ -2088,7 +2027,7 @@
       "tabs": {
         "insights": "Insikter",
         "ledger": "Register",
-        "questions": "Frågor och svar",
+        "questions": "Frågor",
         "transcript": "Transkript"
       },
       "tabsLabel": "Sektioner för mötesgenomgång",
@@ -2152,12 +2091,12 @@
       "forgotten": "Glömt"
     },
     "diarization": {
-      "not_requested": "Talarseparering ej begärd",
-      "model_unavailable": "Modell för talarseparering är inte tillgänglig",
-      "downloading": "Laddar ner modell för talarseparering",
+      "not_requested": "Talare inte separerade",
+      "model_unavailable": "Talarmodellen är inte tillgänglig",
+      "downloading": "Laddar ner talarmodellen",
       "running": "Separerar talare",
-      "succeeded": "Talartilldelningarna är aktuella",
-      "failed": "Talarsepareringen misslyckades"
+      "succeeded": "Talarna är uppdaterade",
+      "failed": "Kunde inte separera talarna"
     },
     "list": {
       "searchLabel": "Sök möten",
@@ -2177,13 +2116,6 @@
         "ready": "Klart",
         "processing": "Bearbetas",
         "needs_attention": "Kräver åtgärd"
-      },
-      "headline": {
-        "words": "{{count}} ord transkriberade"
-      },
-      "sourceGlyph": {
-        "microphone": "MIK",
-        "system_audio": "SYS"
       },
       "filters": {
         "label": "Filtrera möten",
@@ -2301,9 +2233,6 @@
       },
       "anyMic": {
         "label": "Fråga vid all mikrofonanvändning"
-      },
-      "autoStart": {
-        "label": "Öppna mötet när dess nedräkning visas"
       },
       "apps": {
         "label": "Mötesappar",
@@ -2540,15 +2469,11 @@
     "list": {
       "meetings_one": "1 möte",
       "meetings_other": "{{count}} möten",
-      "last": "Senast {{date}}",
-      "suggested_one": "Länka 1 föreslaget möte?",
-      "suggested_other": "Länka {{count}} föreslagna möten?",
       "dismiss": "Avvisa",
       "confirm": "Bekräfta",
       "loadError": "Det gick inte att läsa in personer.",
       "empty": "Inga personer ännu.",
-      "meetings": "{{count}} möten",
-      "suggested": "Länka {{count}} föreslagna möten?"
+      "meetings": "{{count}} möten"
     },
     "detail": {
       "nameLabel": "Personens namn",
@@ -2564,7 +2489,6 @@
       "deleteTitle": "Ta bort den här personen?",
       "deleteDescription": "Ta bort {{name}} och alla möteslänkar?",
       "carriedSince": "Öppet sedan {{date}}",
-      "stillOpen": "Fortfarande öppet",
       "noOpenLoops": "Inget är längre öppet.",
       "commitments": "Åtaganden",
       "noCommitments": "Inga åtaganden registrerade.",
@@ -2631,6 +2555,256 @@
       "stillOpen": "Fortfarande öppet: {{text}}",
       "metCount": "Du har träffat {{name}} {{count}} gånger",
       "metBefore": "Du har träffat {{name}} {{count}} gånger · senast {{date}}"
+    }
+  },
+  "libraryV2": {
+    "recordings_one": "{{count, number}} inspelning",
+    "recordings_other": "{{count, number}} inspelningar",
+    "words_one": "{{count, number}} ord",
+    "words_other": "{{count, number}} ord",
+    "summaryLoading": "Räknar dina inspelningar…",
+    "byMeaning": "efter betydelse",
+    "actions": {
+      "copy": "Kopiera",
+      "copied": "Kopierad",
+      "transcribeAgain": "Transkribera igen",
+      "delete": "Ta bort",
+      "more": "Fler åtgärder"
+    }
+  },
+  "meetingsV2": {
+    "retention": {
+      "keptForever": "Sparas för alltid",
+      "keptDays": "Sparas {{days}} dagar",
+      "change": "ändra i Inställningar"
+    }
+  },
+  "peopleV2": {
+    "list": {
+      "lastMet": "Senaste mötet {{date}}"
+    },
+    "detail": {
+      "openLoops": "Öppna frågor",
+      "howSonaKnows": "Hur Sona vet det",
+      "noEvidence": "Inget kopplar den här personen till ett möte ännu."
+    }
+  },
+  "modesV2": {
+    "sections": {
+      "instructions": "Instruktioner",
+      "model": "Modell",
+      "output": "Utmatning"
+    },
+    "instructions": {
+      "enabled": {
+        "label": "Rensa med AI"
+      },
+      "custom": {
+        "label": "Dina egna instruktioner",
+        "hint": "Det du skriver här ersätter utmatningsstilen nedan i stället för att läggas till den. Lämna tomt för att använda stilen.",
+        "placeholder": "Skriv som jag skulle ha gjort: korta meningar, inga punktlistor."
+      },
+      "disabled": "Slå på rensningen, så följer Sona de här instruktionerna efter varje diktering."
+    },
+    "output": {
+      "style": {
+        "label": "Utmatningsstil"
+      }
+    },
+    "activation": {
+      "title": "Slås på av sig själv",
+      "rules": {
+        "label": "Appar och webbplatser",
+        "empty": "Inget växlar till det här läget av sig själv.",
+        "example": "En regel lagrar en appidentitet eller en webbplatsvärd: com.apple.mail eller mail.google.com."
+      }
+    },
+    "advanced": {
+      "title": "Avancerat",
+      "summary": "Kortkommandon, ton, kontext, leverans"
+    },
+    "list": {
+      "preset": "Förinställning"
+    },
+    "chip": {
+      "lead": "Läge",
+      "title": "Lägen",
+      "action": "Byt läge, just nu {{mode}}",
+      "editLink": "Redigera lägen i Inställningar",
+      "switchError": "Kunde inte byta läge. Försök igen."
+    },
+    "rules": {
+      "title": "Textregler",
+      "kind": "Typ",
+      "left": "Du säger",
+      "right": "Sona skriver",
+      "add": "Lägg till en regel",
+      "loading": "Läser in textregler",
+      "empty": "Inga textregler ännu. Lägg till en ovan, så tillämpar Sona den på varje transkript.",
+      "matching": "Regler matchar hela ord och struntar i skiftläge. När två passar samma ställe vinner den längre.",
+      "applyRule": "Tillämpa {{rule}}",
+      "removeRule": "Ta bort {{rule}}",
+      "restoreRewrites": "Återställ standardomskrivningarna",
+      "kinds": {
+        "vocabulary": "Stavning",
+        "snippet": "Genväg",
+        "replacement": "Omskrivning",
+        "emoji": "Emoji"
+      },
+      "kindHints": {
+        "vocabulary": "Lär Sona hur ett namn stavas, så att den exakta formen skrivs varje gång frasen hörs.",
+        "snippet": "Utvidgar en kort utlösare till längre text, som omw till on my way.",
+        "replacement": "Skriver om en fras som Sona redan hört, som snabel-a till @.",
+        "emoji": "Kopplar ett exakt uttalat ord som glad gubbe till den emoji du vill få skriven."
+      },
+      "placeholders": {
+        "vocabulary": {
+          "left": "open ai",
+          "right": "OpenAI"
+        },
+        "snippet": {
+          "left": "omw",
+          "right": "on my way"
+        },
+        "replacement": {
+          "left": "snabel-a",
+          "right": "@"
+        },
+        "emoji": {
+          "left": "glad gubbe",
+          "right": "🙂"
+        }
+      },
+      "toggles": {
+        "emoji": "Skriv emoji när du säger namnet",
+        "snippet": "Expandera genvägar",
+        "replacement": "Tillämpa omskrivningar"
+      },
+      "toggleErrors": {
+        "spokenEdits": "Kunde inte ändra de talade redigeringskommandona. Försök igen.",
+        "emoji": "Kunde inte ändra emojiskrivningen. Försök igen.",
+        "snippet": "Kunde inte ändra genvägsexpansionen. Försök igen.",
+        "replacement": "Kunde inte ändra omskrivningarna. Försök igen."
+      },
+      "errors": {
+        "incomplete": "Fyll i båda sidorna eller ta bort regeln.",
+        "duplicate": "En annan regel av det här slaget använder redan den här frasen."
+      }
+    }
+  },
+  "settingsV2": {
+    "navigation": "Inställningar",
+    "tabs": {
+      "essentials": "Grunderna",
+      "advanced": "Avancerat",
+      "debug": "Felsökning"
+    },
+    "essentials": {
+      "title": "Grunderna",
+      "sounds": "Ljud",
+      "launchAtLogin": "Starta vid uppstart",
+      "appearance": "Utseende",
+      "volume": "Ljudvolym",
+      "detectMeetings": "Märk när jag går med i ett möte",
+      "detectMeetingsHint": "Sona erbjuder sig att spela in. Den startar aldrig en inspelning på egen hand.",
+      "retention": "Radera inspelningar efter",
+      "dictationStyles": "Dikteringsstilar",
+      "dictationStylesAction": "Redigera"
+    },
+    "advanced": {
+      "title": "Avancerat",
+      "meetings": "Möten",
+      "models": "Modeller",
+      "modelCatalog": "Modellkatalog",
+      "cloudKeys": "Nycklar för molntranskription",
+      "cleanupProvider": "Leverantör för rensning",
+      "dictation": "Diktering",
+      "keepDictations": "Dikteringar att spara",
+      "readsFromOtherApps": "Vad Sona får läsa från andra appar",
+      "workflows": "Vad Sona gör efter ett möte",
+      "sync": "Synkronisering",
+      "leavesThisMac": "Vad som lämnar den här Macen",
+      "agents": "Agents",
+      "agentBridge": "Brygga för kodagenter",
+      "about": "Om Sona",
+      "debugHint": "Tryck på {{chord}} för att öppna felsökningssidan."
+    },
+    "apps": {
+      "label": "Mötesappar",
+      "browsersAutomatic": "Ett samtal i en webbläsarflik upptäcks utan att stå med här.",
+      "runningNow": "Körs nu",
+      "add": "Lägg till en app",
+      "addTitle": "Lägg till en mötesapp",
+      "addDescription": "Sona behöver appens identifierare, som du kan läsa i appens eget Om-fönster eller med `osascript -e 'id of app \"Namn\"'`.",
+      "identifier": "Appidentifierare",
+      "identifierPlaceholder": "com.example.app",
+      "invalid": "En identifierare ser ut så här: com.example.app, gemena ord sammanbundna med punkter.",
+      "duplicate": "Den appen finns redan i listan.",
+      "remove": "Ta bort {{app}}",
+      "names": {
+        "zoom": "Zoom",
+        "teams": "Microsoft Teams",
+        "webex": "Webex",
+        "facetime": "FaceTime",
+        "slack": "Slack"
+      }
+    }
+  },
+  "consentPanel": {
+    "calendarTitle": "{{title}} — spela in?",
+    "appTitle": "{{app}}-möte — spela in?",
+    "genericTitle": "Spela in det här mötet?",
+    "introduction": "Sona spelar in på den här Macen och du behåller kontrollen.",
+    "seriesBrief_one": "Möte {{nth}} med {{person}} · {{count}} öppen punkt",
+    "seriesBrief_other": "Möte {{nth}} med {{person}} · {{count}} öppna punkter",
+    "alwaysRecord": "Spela alltid in det här mötet",
+    "assurance": "Börja först när alla i mötet har gått med på att spelas in.",
+    "record": "Spela in",
+    "ignore": "Ignorera",
+    "recording": "Inspelning",
+    "stop": "Stoppa",
+    "forgetSeries": "Glöm den här serien"
+  },
+  "learningV2": {
+    "workflows": {
+      "spokenPunctuation": {
+        "name": "Föreslå talad interpunktion",
+        "description": "Upptäcker symboler du säger högt som ingen ersättningsregel skriver än."
+      },
+      "correctionLearning": {
+        "name": "Lär av dina rättelser",
+        "description": "Gör dina manuella rättelser till förslag för ordlistan."
+      },
+      "modeHabits": {
+        "name": "Föreslå lägesregler",
+        "description": "Upptäcker ett läge du gång på gång väljer med kortkommando."
+      },
+      "captureAdvisor": {
+        "name": "Ge råd om inspelningskvalitet",
+        "description": "Rapporterar omtag, förlorade inspelningar och svagt ljud från dina egna körningar."
+      },
+      "seriesPriming": {
+        "name": "Förbered återkommande möten"
+      }
+    },
+    "feed": {
+      "title": "Vad Sona lade märke till",
+      "spokenPunctuation": "Du säger {{spoken}} ofta — skriva det som {{written}}?",
+      "vocabularyCorrection": "Du ändrar hela tiden {{spoken}} till {{written}} — lära in det?",
+      "modeHabit": "Du väljer {{mode}} med kortkommando de flesta dagar — göra det till standard?",
+      "retryRate": "Dina {{subject}}-körningar görs om {{times}}× oftare än de övriga.",
+      "lostCaptureRate": "Dina {{subject}}-körningar slutar avklippta eller tysta {{times}}× oftare än de övriga.",
+      "inputLevel": "{{percent}}% av dina inspelningar kom in svaga — kolla mikrofonnivån?",
+      "example": "”{{text}}”",
+      "accept": "Ja",
+      "dismiss": "Nej tack",
+      "evidence_one": "1 gång, över {{days}} dagar",
+      "evidence_other": "{{count}} gånger, över {{days}} dagar"
+    },
+    "outcomes": {
+      "primed": "Förberedde ett återkommande möte",
+      "noticed_one": "Lade märke till 1 sak",
+      "noticed_other": "Lade märke till {{count}} saker"
     }
   }
 }

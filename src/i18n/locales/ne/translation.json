@@ -26,15 +26,8 @@
     "secureInputWarning": "Secure Input ले सर्टकटहरू रोकेको छ"
   },
   "sidebar": {
-    "general": "सामान्य",
     "models": "मोडेलहरू",
-    "advanced": "उन्नत",
-    "postProcessing": "पोस्ट-प्रोसेसिङ",
-    "debug": "डिबग",
-    "about": "बारेमा",
     "modes": "मोडहरू",
-    "privacy": "गोपनीयता",
-    "agents": "एजेन्टहरू",
     "meetings": "बैठकहरू",
     "navigation": "मुख्य नेभिगेसन",
     "people": "व्यक्तिहरू",
@@ -154,21 +147,13 @@
     "active": "सक्रिय",
     "switching": "बदलिँदैछ…",
     "noModelsAvailable": "कुनै मोडेल उपलब्ध छैन",
-    "searchPlaceholder": "मोडेलहरू खोज्नुहोस्",
     "verifying": "{{modelName}} प्रमाणित गरिँदैछ…",
     "verifyingGeneric": "प्रमाणित गरिँदैछ…",
     "extracting": "{{modelName}} एक्स्ट्र्याक्ट गरिँदैछ…",
-    "extractingMultiple": "{{count}} वटा मोडेल एक्स्ट्र्याक्ट गरिँदैछ…",
     "extractingGeneric": "एक्स्ट्र्याक्ट गरिँदैछ…",
     "downloading": "डाउनलोड गरिँदैछ {{percentage}}%",
-    "downloadingMultiple": "{{count}} वटा मोडेल डाउनलोड गरिँदैछ…",
-    "downloadingGeneric": "डाउनलोड हुँदै…",
-    "modelReady": "मोडेल तयार छ",
     "loading": "{{modelName}} लोड गरिँदैछ…",
     "loadingGeneric": "लोड गरिँदैछ…",
-    "modelError": "मोडेल त्रुटि",
-    "modelUnloaded": "मोडेल अनलोड गरियो",
-    "noModelDownloadRequired": "मोडेल छैन, डाउनलोड आवश्यक",
     "deleteModel": "{{modelName}} मेटाउनुहोस्",
     "downloadSpeed": "{{speed}} MB/s",
     "cancel": "रद्द गर्नुहोस्",
@@ -181,8 +166,7 @@
       "translation": "अङ्ग्रेजीमा अनुवाद गर्न सक्छ",
       "translate": "अनुवाद",
       "streaming": "बोल्दै गर्दा लाइभ ट्रान्सक्रिप्सन देखाउँछ"
-    },
-    "model": "मोडेल"
+    }
   },
   "settings": {
     "modelSettings": {
@@ -330,7 +314,6 @@
       }
     },
     "sound": {
-      "title": "साउन्ड",
       "microphone": {
         "title": "माइक्रोफोन"
       },
@@ -338,16 +321,6 @@
         "title": "इनपुट च्यानल",
         "average": "सबै च्यानलको औसत",
         "channel": "च्यानल {{n}}"
-      },
-      "audioFeedback": {
-        "label": "अडियो फिडब्याक"
-      },
-      "outputDevice": {
-        "title": "आउटपुट डिभाइस",
-        "description": "फिडब्याक आवाजहरू बज्ने ठाउँ।"
-      },
-      "volume": {
-        "title": "भोल्युम"
       }
     },
     "advanced": {
@@ -357,13 +330,6 @@
           "as_spoken": "बोलिएअनुसार",
           "british": "बेलायती"
         }
-      },
-      "groups": {
-        "app": "एप",
-        "output": "आउटपुट",
-        "transcription": "ट्रान्सक्रिप्सन",
-        "history": "हिस्ट्री",
-        "experimental": "प्रयोगात्मक"
       },
       "experimentalToggle": {
         "label": "प्रयोगात्मक सुविधाहरू"
@@ -384,15 +350,8 @@
           "auto": "स्वतः"
         }
       },
-      "startHidden": {
-        "label": "लुकेर सुरु गर्नुहोस्",
-        "description": "विन्डो नखोली सिस्टम ट्रेमा सुरु गर्नुहोस्।"
-      },
       "autostart": {
         "label": "स्टार्टअपमा सुरु गर्नुहोस्"
-      },
-      "showTrayIcon": {
-        "label": "ट्रे आइकन देखाउनुहोस्"
       },
       "overlay": {
         "style": {
@@ -508,14 +467,6 @@
         },
         "empty": {
           "description": "smiley face जस्तो बोलिने ठीक शब्दलाई तपाईंले लेख्न चाहेको इमोजीसँग जोड्नुहोस्।"
-        }
-      },
-      "disclosures": {
-        "launch": {
-          "title": "सुरुवात"
-        },
-        "processing": {
-          "title": "प्रोसेसिङ"
         }
       },
       "snippets": {
@@ -870,9 +821,6 @@
         "label": "पोस्ट प्रोसेसिङ",
         "description": "ट्रान्सक्रिप्सनपछि भाषा मोडेलले ट्रान्सक्रिप्ट पुनर्लेखन गर्छ।"
       },
-      "muteWhileRecording": {
-        "label": "रेकर्डिङ गर्दा म्युट गर्नुहोस्"
-      },
       "appendTrailingSpace": {
         "label": "अन्त्यमा खाली ठाउँ थप्नुहोस्",
         "description": "पेस्ट गरिएको Transcript पछि एउटा खाली ठाउँ थप्छ।"
@@ -930,13 +878,9 @@
       }
     },
     "about": {
-      "title": "बारेमा",
       "version": {
         "title": "संस्करण",
         "unavailable": "उपलब्ध छैन"
-      },
-      "whatsNewUpdates": {
-        "label": "नयाँ के छ देखाउनुहोस्"
       },
       "appDataDirectory": {
         "title": "एप डेटा डाइरेक्टरी"
@@ -1553,7 +1497,6 @@
     },
     "workflows": {
       "title": "कार्यप्रवाहहरू",
-      "builtIns": "अन्तर्निर्मित कार्यप्रवाहहरू",
       "loadError": "कार्यप्रवाहहरू लोड गर्न सकिएन।",
       "updateError": "कार्यप्रवाह अद्यावधिक गर्न सकिएन।",
       "empty": "कुनै कार्यप्रवाह उपलब्ध छैन।",
@@ -1561,24 +1504,27 @@
       "toggleLabel": "{{name}} सक्षम पार्नुहोस्",
       "items": {
         "person_linking": {
-          "name": "व्यक्ति जोडाइ",
+          "name": "व्यक्तिहरू सम्झनुहोस्",
           "description": "पुष्टि भएका सहभागी र वक्ताको जानकारीबाट बैठकहरूलाई व्यक्तिसँग जोड्छ।"
         },
         "pre_meeting_briefing": {
-          "name": "बैठकअघिको संक्षिप्त विवरण",
+          "name": "बैठकको सार तयार पार्नुहोस्",
           "description": "पत्ता लागेको बैठक सुरु हुनुअघि विगतका बैठकबाट संक्षिप्त विवरण बनाउँछ।"
         },
         "continuity": {
-          "name": "निरन्तरता",
+          "name": "बैठकहरू अगाडि लैजानुहोस्",
           "description": "समाधान नभएका प्रतिबद्धताहरूलाई पछिल्ला बैठकमा लैजान्छ।"
         },
         "vocabulary_mining": {
-          "name": "शब्दावली खोज",
+          "name": "नयाँ शब्द सिक्नुहोस्",
           "description": "तपाईंको शब्दावलीमा पर्न सक्ने दोहोरिएका नाम र शब्दहरू फेला पार्छ।"
         },
         "document_linking": {
-          "name": "कागजात जोडाइ",
+          "name": "कागजातहरू जोड्नुहोस्",
           "description": "आयात गरिएका कागजातलाई तिनमा उल्लेख भएका व्यक्तिसँग जोड्छ।"
+        },
+        "meeting_activity": {
+          "name": "बैठक रेकर्डिङ"
         }
       },
       "status": {
@@ -1587,20 +1533,21 @@
         "skipped": "छोडिएको"
       },
       "outcomes": {
-        "personLinks_one": "१ व्यक्ति लिङ्क अद्यावधिक गरियो",
-        "personLinks_other": "{{count}} व्यक्ति लिङ्क अद्यावधिक गरिए",
-        "briefing_one": "१ व्यक्तिका लागि ब्रिफिङ तयार गरियो",
-        "briefing_other": "{{count}} जनाका लागि ब्रिफिङ तयार गरियो",
-        "continuitySeries_one": "१ बैठक शृङ्खला अद्यावधिक गरियो",
-        "continuitySeries_other": "{{count}} बैठक शृङ्खला अद्यावधिक गरिए",
-        "continuityCarried_one": "१ खुला विषय अगाडि सारियो",
-        "continuityCarried_other": "{{count}} खुला विषय अगाडि सारिए",
-        "vocabularyCandidates_one": "१ शब्दावली सुझाव भेटियो",
-        "vocabularyCandidates_other": "{{count}} शब्दावली सुझाव भेटिए",
-        "documentLinks_one": "१ कागजात लिङ्क अद्यावधिक गरियो",
-        "documentLinks_other": "{{count}} कागजात लिङ्क अद्यावधिक गरिए",
-        "alreadyProcessed": "पहिले नै प्रशोधन गरिएको",
-        "failed": "रन असफल भयो",
+        "personLinks_one": "१ व्यक्ति सम्झियो",
+        "personLinks_other": "{{count}} व्यक्ति सम्झियो",
+        "briefing": "तपाईंको बैठकको सार तयार भयो",
+        "continuity_one": "१ उत्तर नपाएको प्रश्न अगाडि लगियो",
+        "continuity_other": "{{count}} उत्तर नपाएका प्रश्न अगाडि लगिए",
+        "vocabularyCandidates_one": "एउटा नयाँ शब्द सिकियो",
+        "vocabularyCandidates_other": "{{count}} नयाँ शब्द सिकिए",
+        "documentLinks_one": "एउटा कागजात जोडियो",
+        "documentLinks_other": "{{count}} कागजात जोडिए",
+        "promptRecorded": "रेकर्डिङ सुरु भयो",
+        "promptIgnored": "पहिचान भएको बैठक रेकर्ड गरिएन",
+        "autoRecordStarted": "रेकर्डिङ स्वतः सुरु भयो",
+        "autoRecordStopped": "रेकर्डिङ स्वतः बन्द भयो",
+        "alreadyProcessed": "नयाँ केही गर्नु छैन",
+        "failed": "पूरा गर्न सकिएन",
         "skipped": "छोडियो"
       },
       "vocabularySuggestions": {
@@ -1614,7 +1561,7 @@
       },
       "overview": {
         "whatSonaDid": "Sona ले के गर्‍यो",
-        "commitments": "प्रतिबद्धताहरू",
+        "openLoops": "उत्तर नपाएका प्रश्न",
         "openMeeting": "बैठक {{title}} खोल्नुहोस्",
         "loadError": "यो कार्ड लोड गर्न सकिएन।",
         "retry": "फेरि प्रयास गर्नुहोस्"
@@ -1626,18 +1573,6 @@
         "loadMoreError": "थप चालनहरू लोड गर्न सकिएन।",
         "loadMore": "थप लोड गर्नुहोस्",
         "chartAria": "दैनिक कार्यप्रवाह चालन, पछिल्ला 7 दिनमा {{count}}"
-      }
-    },
-    "hub": {
-      "navigation": "सेटिङ खण्डहरू",
-      "tabs": {
-        "general": "सामान्य",
-        "privacy": "गोपनीयता",
-        "agents": "एजेन्टहरू",
-        "workflows": "कार्यप्रवाहहरू",
-        "advanced": "उन्नत",
-        "about": "बारेमा",
-        "debug": "डिबग"
       }
     },
     "vocabulary": {
@@ -1715,7 +1650,11 @@
     "play": "बजाउनुहोस्",
     "pause": "रोक्नुहोस्",
     "seek": "प्लेब्याकको स्थान",
-    "resetSetting": "{{name}} रिसेट गर्नुहोस्"
+    "resetSetting": "{{name}} रिसेट गर्नुहोस्",
+    "day": {
+      "today": "आज",
+      "yesterday": "हिजो"
+    }
   },
   "commandPalette": {
     "open": "खोज्नुहोस्",
@@ -1898,17 +1837,17 @@
     },
     "live": {
       "elapsed": "बितेको समय",
-      "microphoneOnlyPartial": "माइक्रोफोन मात्र / आंशिक। सिस्टम अडियो उपलब्ध छैन वा कमजोर छ।",
-      "partialCapture": "आंशिक क्याप्चर। उत्पन्न नोटहरूमा भर पर्नुअघि खाली अन्तरहरू हेर्नुहोस्।",
+      "microphoneOnlyPartial": "माइक्रोफोन मात्र रेकर्ड हुँदै छ। सिस्टम अडियो उपलब्ध छैन, त्यसैले यो बैठक अपूरो हुनेछ।",
+      "partialCapture": "केही अडियो छुटेको छ। तयार भएका नोटमा भर पर्नुअघि खाली ठाउँहरू हेर्नुहोस्।",
       "inputs": "इनपुटहरू",
       "signal": "सिग्नल",
       "signalUnavailable": "क्याप्चरले {{source}} को स्तर रिपोर्ट गर्दैन।",
       "notReported": "रिपोर्ट भएन",
-      "durabilityLag": "स्थायी लेखनमा ढिलाइ",
+      "durabilityLag": "डिस्कमा सुरक्षित",
       "behind": "{{duration}} पछाडि",
       "progress": "ट्रान्सक्रिप्टको प्रगति",
       "transcript": "ट्रान्सक्रिप्ट",
-      "asrLag": "बोली पहिचानमा ढिलाइ",
+      "asrLag": "ट्रान्सक्रिप्ट ढिलाइ",
       "storage": "भण्डारण",
       "storageHealthy": "इन्क्रिप्टेड स्थानीय भण्डारण स्वस्थ छ।",
       "storageUnavailable": "भण्डारणमा ध्यान आवश्यक छ।",
@@ -1957,20 +1896,20 @@
     },
     "gaps": {
       "source_unavailable": "स्रोत अनुपलब्ध",
-      "source_start_failed": "स्रोत सुरु हुन सकेन",
+      "source_start_failed": "स्रोत सुरु भएन",
       "permission_lost": "अनुमति गुम्यो",
       "paused": "रोकिएको",
-      "packet_dropped": "अडियो प्याकेट छुट्यो",
-      "writer_pressure": "भण्डारण लेखकमा दबाब",
-      "storage_failure": "भण्डारण विफलता",
-      "timestamp_missing": "टाइमस्टाम्प छुटेको",
-      "timestamp_discontinuity": "टाइमस्टाम्पमा अवरोध",
-      "invalid_format": "अवैध अडियो ढाँचा",
+      "packet_dropped": "अडियो छुट्यो",
+      "writer_pressure": "भण्डारण पछि पर्‍यो",
+      "storage_failure": "भण्डारण असफल भयो",
+      "timestamp_missing": "समयको जानकारी छैन",
+      "timestamp_discontinuity": "समयमा उफ्राइ",
+      "invalid_format": "पढ्न नसकिने अडियो",
       "source_stopped": "स्रोत रोकियो",
-      "corrupt_record": "बिग्रिएको रेकर्ड",
-      "missing_record": "रेकर्ड छुटेको",
-      "recovery_tail": "पुनःप्राप्तिको अन्तिम भाग",
-      "system_sleep": "Mac स्लिप"
+      "corrupt_record": "बिग्रिएको रेकर्डिङ",
+      "missing_record": "हराएको रेकर्डिङ",
+      "recovery_tail": "क्र्यासपछि फिर्ता पाइयो",
+      "system_sleep": "तपाईंको Mac निदायो"
     },
     "errors": {
       "load": "Sona ले हालको बैठक डेटा लोड गर्न सकेन।",
@@ -2088,7 +2027,7 @@
       "tabs": {
         "insights": "अन्तर्दृष्टि",
         "ledger": "अभिलेख",
-        "questions": "प्रश्नोत्तर",
+        "questions": "प्रश्नहरू",
         "transcript": "ट्रान्सक्रिप्ट"
       },
       "tabsLabel": "बैठक समीक्षा खण्डहरू",
@@ -2152,12 +2091,12 @@
       "forgotten": "बिर्सिएको"
     },
     "diarization": {
-      "not_requested": "वक्ता छुट्याउन अनुरोध गरिएको छैन",
-      "model_unavailable": "वक्ता छुट्याउने मोडेल अनुपलब्ध",
-      "downloading": "वक्ता छुट्याउने मोडेल डाउनलोड हुँदै",
+      "not_requested": "वक्ता छुट्याइएका छैनन्",
+      "model_unavailable": "वक्ता मोडेल उपलब्ध छैन",
+      "downloading": "वक्ता मोडेल डाउनलोड हुँदै",
       "running": "वक्ता छुट्याउँदै",
-      "succeeded": "वक्ता निर्धारण अद्यावधिक छ",
-      "failed": "वक्ता छुट्याउने काम असफल भयो"
+      "succeeded": "वक्ताहरू अद्यावधिक छन्",
+      "failed": "वक्ता छुट्याउन सकिएन"
     },
     "list": {
       "searchLabel": "बैठकहरू खोज्नुहोस्",
@@ -2177,13 +2116,6 @@
         "ready": "तयार",
         "processing": "प्रक्रियामा",
         "needs_attention": "ध्यान आवश्यक"
-      },
-      "headline": {
-        "words": "{{count}} शब्द ट्रान्सक्राइब गरियो"
-      },
-      "sourceGlyph": {
-        "microphone": "माइक",
-        "system_audio": "सिस्टम"
       },
       "filters": {
         "label": "बैठकहरू छान्नुहोस्",
@@ -2301,9 +2233,6 @@
       },
       "anyMic": {
         "label": "माइक्रोफोनको हरेक प्रयोगमा सोध्नुहोस्"
-      },
-      "autoStart": {
-        "label": "उल्टो गणना देखिँदा बैठक खोल्नुहोस्"
       },
       "apps": {
         "label": "बैठक एपहरू",
@@ -2540,15 +2469,11 @@
     "list": {
       "meetings_one": "१ बैठक",
       "meetings_other": "{{count}} बैठक",
-      "last": "पछिल्लो {{date}}",
-      "suggested_one": "१ सुझाइएको बैठक जोड्ने?",
-      "suggested_other": "{{count}} सुझाइएका बैठक जोड्ने?",
       "dismiss": "खारेज गर्नुहोस्",
       "confirm": "पुष्टि गर्नुहोस्",
       "loadError": "व्यक्तिहरू लोड गर्न सकिएन।",
       "empty": "अहिलेसम्म कुनै व्यक्ति छैन।",
-      "meetings": "{{count}} बैठक",
-      "suggested": "{{count}} सुझाइएका बैठक जोड्ने?"
+      "meetings": "{{count}} बैठक"
     },
     "detail": {
       "nameLabel": "व्यक्तिको नाम",
@@ -2564,7 +2489,6 @@
       "deleteTitle": "यस व्यक्तिलाई मेटाउने?",
       "deleteDescription": "{{name}} र उनका सबै बैठक लिङ्क मेटाउने?",
       "carriedSince": "{{date}} देखि खुला",
-      "stillOpen": "अझै खुला",
       "noOpenLoops": "कुनै कुरा खुला छैन।",
       "commitments": "प्रतिबद्धताहरू",
       "noCommitments": "कुनै प्रतिबद्धता रेकर्ड गरिएको छैन।",
@@ -2631,6 +2555,256 @@
       "stillOpen": "अझै खुला: {{text}}",
       "metCount": "तपाईंले {{name}} लाई {{count}} पटक भेट्नुभएको छ",
       "metBefore": "तपाईंले {{name}} लाई {{count}} पटक भेट्नुभएको छ · पछिल्लो {{date}}"
+    }
+  },
+  "libraryV2": {
+    "recordings_one": "{{count, number}} रेकर्डिङ",
+    "recordings_other": "{{count, number}} रेकर्डिङ",
+    "words_one": "{{count, number}} शब्द",
+    "words_other": "{{count, number}} शब्द",
+    "summaryLoading": "तपाईंका रेकर्डिङ गनिँदै…",
+    "byMeaning": "अर्थअनुसार",
+    "actions": {
+      "copy": "कपी गर्नुहोस्",
+      "copied": "कपी गरियो",
+      "transcribeAgain": "फेरि ट्रान्सक्राइब गर्नुहोस्",
+      "delete": "मेटाउनुहोस्",
+      "more": "थप कार्यहरू"
+    }
+  },
+  "meetingsV2": {
+    "retention": {
+      "keptForever": "सधैँ राखिन्छ",
+      "keptDays": "{{days}} दिन राखिन्छ",
+      "change": "सेटिङहरूमा बदल्नुहोस्"
+    }
+  },
+  "peopleV2": {
+    "list": {
+      "lastMet": "पछिल्लो भेट {{date}}"
+    },
+    "detail": {
+      "openLoops": "उत्तर नपाएका प्रश्न",
+      "howSonaKnows": "Sona ले यो कसरी थाहा पायो",
+      "noEvidence": "यो व्यक्तिलाई कुनै बैठकसँग जोड्ने कुरा अझै छैन।"
+    }
+  },
+  "modesV2": {
+    "sections": {
+      "instructions": "निर्देशनहरू",
+      "model": "मोडेल",
+      "output": "आउटपुट"
+    },
+    "instructions": {
+      "enabled": {
+        "label": "AI ले सफा गर्नुहोस्"
+      },
+      "custom": {
+        "label": "तपाईंका आफ्नै निर्देशनहरू",
+        "hint": "यहाँ लेखिएको कुराले तलको आउटपुट शैलीमा थपिने होइन, त्यसको ठाउँ लिन्छ। शैली प्रयोग गर्न यो खाली छोड्नुहोस्।",
+        "placeholder": "मैले लेख्ने शैलीमा लेख: छोटा वाक्य, बुलेट नराख।"
+      },
+      "disabled": "सफाइ सक्रिय गर्नुहोस्, अनि Sona ले हरेक श्रुतिलेखनपछि यी निर्देशन पालना गर्नेछ।"
+    },
+    "output": {
+      "style": {
+        "label": "आउटपुट शैली"
+      }
+    },
+    "activation": {
+      "title": "आफैँ सक्रिय हुन्छ",
+      "rules": {
+        "label": "एप र वेबसाइटहरू",
+        "empty": "कुनै पनि कुराले आफैँ यो मोडमा बदल्दैन।",
+        "example": "एउटा नियमले एउटा एप पहिचान वा एउटा वेबसाइट होस्ट राख्छ: com.apple.mail वा mail.google.com।"
+      }
+    },
+    "advanced": {
+      "title": "उन्नत",
+      "summary": "सर्टकट, टोन, सन्दर्भ, वितरण"
+    },
+    "list": {
+      "preset": "प्रिसेट"
+    },
+    "chip": {
+      "lead": "मोड",
+      "title": "मोडहरू",
+      "action": "मोड बदल्नुहोस्, अहिले {{mode}}",
+      "editLink": "सेटिङहरूमा मोड सम्पादन गर्नुहोस्",
+      "switchError": "मोड बदल्न सकिएन। फेरि प्रयास गर्नुहोस्।"
+    },
+    "rules": {
+      "title": "पाठ नियमहरू",
+      "kind": "किसिम",
+      "left": "तपाईं भन्नुहुन्छ",
+      "right": "Sona लेख्छ",
+      "add": "नियम थप्नुहोस्",
+      "loading": "पाठ नियमहरू लोड हुँदै",
+      "empty": "अझै कुनै पाठ नियम छैन। माथि एउटा थप्नुहोस्, अनि Sona ले हरेक ट्रान्सक्रिप्टमा लागू गर्नेछ।",
+      "matching": "नियमहरू पूरा शब्दमा मिल्छन् र सानो–ठूलो अक्षरको वास्ता गर्दैनन्। दुईवटा एउटै ठाउँमा मिले भने लामो जित्छ।",
+      "applyRule": "{{rule}} लागू गर्नुहोस्",
+      "removeRule": "{{rule}} मेटाउनुहोस्",
+      "restoreRewrites": "पूर्वनिर्धारित पुनर्लेखन फर्काउनुहोस्",
+      "kinds": {
+        "vocabulary": "हिज्जे",
+        "snippet": "सर्टकट",
+        "replacement": "पुनर्लेखन",
+        "emoji": "इमोजी"
+      },
+      "kindHints": {
+        "vocabulary": "कुनै नाम कसरी लेखिन्छ भनेर Sona लाई सिकाउँछ, ताकि त्यो वाक्यांश सुन्नेबित्तिकै हरेक पटक ठीक रूप लेखोस्।",
+        "snippet": "छोटो ट्रिगरलाई लामो पाठमा फैलाउँछ, जस्तै omw लाई on my way मा।",
+        "replacement": "Sona ले पहिले नै सुनेको वाक्यांश बदल्छ, जस्तै एट साइन लाई @ मा।",
+        "emoji": "smiley face जस्तो बोलिने ठीक शब्दलाई तपाईंले लेख्न चाहेको इमोजीसँग जोड्छ।"
+      },
+      "placeholders": {
+        "vocabulary": {
+          "left": "open ai",
+          "right": "OpenAI"
+        },
+        "snippet": {
+          "left": "omw",
+          "right": "on my way"
+        },
+        "replacement": {
+          "left": "एट साइन",
+          "right": "@"
+        },
+        "emoji": {
+          "left": "smiley face",
+          "right": "🙂"
+        }
+      },
+      "toggles": {
+        "emoji": "तपाईंले नाम लिँदा इमोजी लेख्नुहोस्",
+        "snippet": "सर्टकटहरू फैलाउनुहोस्",
+        "replacement": "पुनर्लेखनहरू लागू गर्नुहोस्"
+      },
+      "toggleErrors": {
+        "spokenEdits": "बोलिने सम्पादन आदेशहरू बदल्न सकिएन। फेरि प्रयास गर्नुहोस्।",
+        "emoji": "इमोजी लेखन बदल्न सकिएन। फेरि प्रयास गर्नुहोस्।",
+        "snippet": "सर्टकट विस्तार बदल्न सकिएन। फेरि प्रयास गर्नुहोस्।",
+        "replacement": "पुनर्लेखनहरू बदल्न सकिएन। फेरि प्रयास गर्नुहोस्।"
+      },
+      "errors": {
+        "incomplete": "दुवैतिर भर्नुहोस्, वा नियम मेटाउनुहोस्।",
+        "duplicate": "यही किसिमको अर्को नियमले यो वाक्यांश पहिले नै प्रयोग गरिरहेको छ।"
+      }
+    }
+  },
+  "settingsV2": {
+    "navigation": "सेटिङहरू",
+    "tabs": {
+      "essentials": "आधारभूत",
+      "advanced": "उन्नत",
+      "debug": "डिबग"
+    },
+    "essentials": {
+      "title": "आधारभूत",
+      "sounds": "साउन्डहरू",
+      "launchAtLogin": "स्टार्टअपमा सुरु गर्नुहोस्",
+      "appearance": "रूपरङ",
+      "volume": "साउन्ड भोल्युम",
+      "detectMeetings": "म बैठकमा सहभागी हुँदा थाहा पाउनुहोस्",
+      "detectMeetingsHint": "Sona ले रेकर्ड गर्ने प्रस्ताव गर्छ। यसले आफैँ कहिल्यै रेकर्डिङ सुरु गर्दैन।",
+      "retention": "यति समयपछि रेकर्डिङ मेटाउनुहोस्",
+      "dictationStyles": "श्रुतिलेखन शैलीहरू",
+      "dictationStylesAction": "सम्पादन"
+    },
+    "advanced": {
+      "title": "उन्नत",
+      "meetings": "बैठकहरू",
+      "models": "मोडेलहरू",
+      "modelCatalog": "मोडेल क्याटलग",
+      "cloudKeys": "क्लाउड ट्रान्सक्रिप्सन कुञ्जीहरू",
+      "cleanupProvider": "सफाइ प्रदायक",
+      "dictation": "श्रुतिलेखन",
+      "keepDictations": "कति श्रुतिलेख राख्ने",
+      "readsFromOtherApps": "Sona ले अरू एपबाट के पढ्न सक्छ",
+      "workflows": "बैठकपछि Sona ले के गर्छ",
+      "sync": "सिंक",
+      "leavesThisMac": "यो Mac बाट के बाहिर जान्छ",
+      "agents": "एजेन्टहरू",
+      "agentBridge": "कोडिङ एजेन्ट ब्रिज",
+      "about": "Sona बारेमा",
+      "debugHint": "डिबग पृष्ठ खोल्न {{chord}} थिच्नुहोस्।"
+    },
+    "apps": {
+      "label": "बैठक एपहरू",
+      "browsersAutomatic": "ब्राउजर ट्याबको कल यहाँ नराखीकनै पहिचान हुन्छ।",
+      "runningNow": "अहिले चलिरहेका",
+      "add": "एप थप्नुहोस्",
+      "addTitle": "बैठक एप थप्नुहोस्",
+      "addDescription": "Sona लाई एपको पहिचानकर्ता चाहिन्छ, जुन एपको आफ्नै About सञ्झ्यालमा वा `osascript -e 'id of app \"नाम\"'` बाट हेर्न सकिन्छ।",
+      "identifier": "एप पहिचानकर्ता",
+      "identifierPlaceholder": "com.example.app",
+      "invalid": "पहिचानकर्ता यस्तो देखिन्छ: com.example.app — थोप्लाले जोडिएका साना अक्षरका शब्दहरू।",
+      "duplicate": "त्यो एप पहिले नै सूचीमा छ।",
+      "remove": "{{app}} हटाउनुहोस्",
+      "names": {
+        "zoom": "Zoom",
+        "teams": "Microsoft Teams",
+        "webex": "Webex",
+        "facetime": "FaceTime",
+        "slack": "Slack"
+      }
+    }
+  },
+  "consentPanel": {
+    "calendarTitle": "{{title}} — रेकर्ड गर्ने?",
+    "appTitle": "{{app}} बैठक — रेकर्ड गर्ने?",
+    "genericTitle": "यो बैठक रेकर्ड गर्ने?",
+    "introduction": "Sona यही Mac मा रेकर्ड गर्छ र नियन्त्रण तपाईंकै हातमा रहन्छ।",
+    "seriesBrief_one": "{{person}} सँगको बैठक {{nth}} · {{count}} खुला विषय",
+    "seriesBrief_other": "{{person}} सँगको बैठक {{nth}} · {{count}} खुला विषयहरू",
+    "alwaysRecord": "यो बैठक सधैँ रेकर्ड गर्नुहोस्",
+    "assurance": "बैठकका सबैले रेकर्ड गर्न सहमति जनाएपछि मात्र सुरु गर्नुहोस्।",
+    "record": "रेकर्ड गर्नुहोस्",
+    "ignore": "बेवास्ता गर्नुहोस्",
+    "recording": "रेकर्डिङ",
+    "stop": "बन्द गर्नुहोस्",
+    "forgetSeries": "यो शृंखला बिर्सनुहोस्"
+  },
+  "learningV2": {
+    "workflows": {
+      "spokenPunctuation": {
+        "name": "बोलिएको विराम चिन्ह सुझाव",
+        "description": "तपाईं बोल्ने तर अझै प्रतिस्थापन नियम नभएका चिन्हहरू पहिचान गर्छ।"
+      },
+      "correctionLearning": {
+        "name": "तपाईंका सुधारबाट सिक",
+        "description": "हातले गरेका सुधारलाई शब्दावली सुझावमा बदल्छ।"
+      },
+      "modeHabits": {
+        "name": "मोड नियम सुझाव",
+        "description": "छोटो बाटोबाट बारम्बार रोज्ने मोड पहिचान गर्छ।"
+      },
+      "captureAdvisor": {
+        "name": "रेकर्डिङ गुणस्तर सल्लाह",
+        "description": "तपाईंका रनबाट पुनःप्रयास, हराएका रेकर्डिङ र मसिनो आवाज देखाउँछ।"
+      },
+      "seriesPriming": {
+        "name": "दोहोरिने बैठक तयारी"
+      }
+    },
+    "feed": {
+      "title": "Sona ले देखेको",
+      "spokenPunctuation": "तपाईं {{spoken}} धेरै भन्नुहुन्छ — यसलाई {{written}} लेख्ने?",
+      "vocabularyCorrection": "तपाईं {{spoken}} लाई {{written}} बनाइरहनुहुन्छ — सिकाउने?",
+      "modeHabit": "प्रायः हरेक दिन छोटो बाटोबाट {{mode}} रोज्नुहुन्छ — पूर्वनिर्धारित बनाउने?",
+      "retryRate": "तपाईंका {{subject}} रन अरूभन्दा {{times}}× बढी दोहोरिन्छन्।",
+      "lostCaptureRate": "तपाईंका {{subject}} रन अरूभन्दा {{times}}× बढी काटिएका वा मौन हुन्छन्।",
+      "inputLevel": "तपाईंका {{percent}}% रेकर्डिङ मसिनो आए — माइक्रोफोन स्तर जाँच्ने?",
+      "example": "“{{text}}”",
+      "accept": "हुन्छ",
+      "dismiss": "पर्दैन",
+      "evidence_one": "१ पटक, {{days}} दिनमा",
+      "evidence_other": "{{count}} पटक, {{days}} दिनमा"
+    },
+    "outcomes": {
+      "primed": "एक दोहोरिने बैठक तयार पार्यो",
+      "noticed_one": "१ कुरा देख्यो",
+      "noticed_other": "{{count}} कुरा देख्यो"
     }
   }
 }

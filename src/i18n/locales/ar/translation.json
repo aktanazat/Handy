@@ -26,15 +26,8 @@
     "secureInputWarning": "الاختصارات محجوبة بواسطة Secure Input"
   },
   "sidebar": {
-    "general": "عام",
-    "advanced": "متقدم",
-    "postProcessing": "معالجة لاحقة",
-    "debug": "تصحيح الأخطاء",
-    "about": "حول",
     "models": "النماذج",
     "modes": "الأوضاع",
-    "privacy": "الخصوصية",
-    "agents": "الوكلاء",
     "meetings": "الاجتماعات",
     "navigation": "التنقل الرئيسي",
     "people": "الأشخاص",
@@ -152,21 +145,13 @@
     "streaming": "البث",
     "active": "نشط",
     "noModelsAvailable": "لا توجد نماذج متاحة",
-    "searchPlaceholder": "ابحث في النماذج",
     "verifying": "جارٍ التحقق من {{modelName}}…",
     "verifyingGeneric": "جارٍ التحقق…",
     "extracting": "...جاري استخراج {{modelName}}",
-    "extractingMultiple": "...جاري استخراج {{count}} من النماذج",
     "extractingGeneric": "...جاري الاستخراج",
     "downloading": "جاري التنزيل {{percentage}}%",
-    "downloadingMultiple": "جاري تنزيل {{count}} من النماذج…",
-    "downloadingGeneric": "جارٍ التنزيل…",
-    "modelReady": "النموذج جاهز",
     "loading": "...جاري تحميل {{modelName}}",
     "loadingGeneric": "...جاري التحميل",
-    "modelError": "خطأ في النموذج",
-    "modelUnloaded": "تم إلغاء تحميل النموذج",
-    "noModelDownloadRequired": "لا يوجد نموذج، التنزيل مطلوب",
     "deleteModel": "حذف {{modelName}}",
     "switching": "جارٍ التبديل…",
     "downloadSpeed": "{{speed}} ميجابايت/ث",
@@ -181,8 +166,7 @@
       "translate": "ترجمة",
       "streaming": "يعرض النسخ المباشر أثناء التحدث"
     },
-    "legacy": "قديم",
-    "model": "النموذج"
+    "legacy": "قديم"
   },
   "settings": {
     "general": {
@@ -242,7 +226,6 @@
       }
     },
     "sound": {
-      "title": "الصوت",
       "microphone": {
         "title": "الميكروفون"
       },
@@ -250,16 +233,6 @@
         "title": "قناة الإدخال",
         "average": "متوسط جميع القنوات",
         "channel": "القناة {{n}}"
-      },
-      "audioFeedback": {
-        "label": "تنبيهات صوتية"
-      },
-      "outputDevice": {
-        "title": "جهاز الإخراج",
-        "description": "المكان الذي تُشغَّل فيه تنبيهات الصوت."
-      },
-      "volume": {
-        "title": "مستوى الصوت"
       }
     },
     "advanced": {
@@ -269,13 +242,6 @@
           "as_spoken": "كما نُطقت",
           "british": "بريطانية"
         }
-      },
-      "groups": {
-        "app": "التطبيق",
-        "output": "الإخراج",
-        "transcription": "التفريغ الصوتي",
-        "history": "السجل",
-        "experimental": "تجريبي"
       },
       "experimentalToggle": {
         "label": "الميزات التجريبية"
@@ -296,15 +262,8 @@
           "auto": "تلقائي"
         }
       },
-      "startHidden": {
-        "label": "بدء مخفي",
-        "description": ".التشغيل في صينية النظام دون فتح النافذة"
-      },
       "autostart": {
         "label": "التشغيل عند بدء التشغيل"
-      },
-      "showTrayIcon": {
-        "label": "إظهار أيقونة شريط النظام"
       },
       "overlay": {
         "style": {
@@ -420,14 +379,6 @@
         },
         "empty": {
           "description": "اربط كلمة منطوقة محددة مثل smiley face بالإيموجي الذي تريد كتابته."
-        }
-      },
-      "disclosures": {
-        "launch": {
-          "title": "بدء التشغيل"
-        },
-        "processing": {
-          "title": "المعالجة"
         }
       },
       "snippets": {
@@ -776,9 +727,6 @@
         "label": "معالجة لاحقة",
         "description": "إعادة كتابة النص المُفرَّغ بنموذج لغوي بعد التفريغ الصوتي."
       },
-      "muteWhileRecording": {
-        "label": "كتم الصوت أثناء التسجيل"
-      },
       "appendTrailingSpace": {
         "label": "إضافة مسافة تابعة",
         "description": "يضيف مسافة واحدة بعد النص الملصق."
@@ -842,7 +790,6 @@
       }
     },
     "about": {
-      "title": "حول",
       "version": {
         "title": "الإصدار",
         "unavailable": "غير متاح"
@@ -865,9 +812,6 @@
           "title": "ggml",
           "details": "يعتمد تحويل الكلام إلى نص محليًا في Sona على transcribe.cpp و ggml. شكرًا لـ Georgi Gerganov والمساهمين."
         }
-      },
-      "whatsNewUpdates": {
-        "label": "إظهار الجديد"
       },
       "files": {
         "title": "الملفات"
@@ -1553,7 +1497,6 @@
     },
     "workflows": {
       "title": "سير العمل",
-      "builtIns": "عمليات سير العمل المضمّنة",
       "loadError": "تعذّر تحميل عمليات سير العمل.",
       "updateError": "تعذّر تحديث سير العمل.",
       "empty": "لا تتوفر عمليات سير عمل.",
@@ -1561,24 +1504,27 @@
       "toggleLabel": "تفعيل {{name}}",
       "items": {
         "person_linking": {
-          "name": "ربط الأشخاص",
+          "name": "تذكّر الأشخاص",
           "description": "يربط الاجتماعات بالأشخاص باستخدام بيانات مؤكدة من الحضور والمتحدثين."
         },
         "pre_meeting_briefing": {
-          "name": "موجز ما قبل الاجتماع",
+          "name": "تحضير ملخّصات الاجتماعات",
           "description": "يُنشئ موجزًا من الاجتماعات السابقة قبل بدء اجتماع تم اكتشافه."
         },
         "continuity": {
-          "name": "الاستمرارية",
+          "name": "متابعة الاجتماعات",
           "description": "ينقل الالتزامات غير المحسومة إلى الاجتماعات التالية."
         },
         "vocabulary_mining": {
-          "name": "استخراج المفردات",
+          "name": "تعلّم كلمات جديدة",
           "description": "يعثر على الأسماء والمصطلحات المتكررة التي قد تنتمي إلى مفرداتك."
         },
         "document_linking": {
           "name": "ربط المستندات",
           "description": "يربط المستندات المستوردة بالأشخاص المذكورين فيها."
+        },
+        "meeting_activity": {
+          "name": "تسجيل الاجتماعات"
         }
       },
       "status": {
@@ -1587,44 +1533,37 @@
         "skipped": "تم التخطي"
       },
       "outcomes": {
-        "personLinks_zero": "لم يتم تحديث أي رابط شخص",
-        "personLinks_one": "تم تحديث رابط شخص واحد",
-        "personLinks_two": "تم تحديث رابطَي شخصين",
-        "personLinks_few": "تم تحديث {{count}} روابط أشخاص",
-        "personLinks_many": "تم تحديث {{count}} رابط شخص",
-        "personLinks_other": "تم تحديث {{count}} من روابط الأشخاص",
-        "briefing_zero": "لم يتم إعداد أي موجز",
-        "briefing_one": "تم إعداد موجز لشخص واحد",
-        "briefing_two": "تم إعداد موجزين لشخصين",
-        "briefing_few": "تم إعداد موجز لـ {{count}} أشخاص",
-        "briefing_many": "تم إعداد موجز لـ {{count}} شخصًا",
-        "briefing_other": "تم إعداد موجز لـ {{count}} شخص",
-        "continuitySeries_zero": "لم يتم تحديث أي سلسلة اجتماعات",
-        "continuitySeries_one": "تم تحديث سلسلة اجتماعات واحدة",
-        "continuitySeries_two": "تم تحديث سلسلتَي اجتماعات",
-        "continuitySeries_few": "تم تحديث {{count}} سلاسل اجتماعات",
-        "continuitySeries_many": "تم تحديث {{count}} سلسلة اجتماعات",
-        "continuitySeries_other": "تم تحديث {{count}} من سلاسل الاجتماعات",
-        "continuityCarried_zero": "لم تُنقل أي مسألة مفتوحة",
-        "continuityCarried_one": "نُقلت مسألة مفتوحة واحدة",
-        "continuityCarried_two": "نُقلت مسألتان مفتوحتان",
-        "continuityCarried_few": "نُقلت {{count}} مسائل مفتوحة",
-        "continuityCarried_many": "نُقلت {{count}} مسألة مفتوحة",
-        "continuityCarried_other": "نُقلت {{count}} من المسائل المفتوحة",
-        "vocabularyCandidates_zero": "لم يُعثر على أي اقتراح للمفردات",
-        "vocabularyCandidates_one": "عُثر على اقتراح مفردات واحد",
-        "vocabularyCandidates_two": "عُثر على اقتراحين للمفردات",
-        "vocabularyCandidates_few": "عُثر على {{count}} اقتراحات للمفردات",
-        "vocabularyCandidates_many": "عُثر على {{count}} اقتراحًا للمفردات",
-        "vocabularyCandidates_other": "عُثر على {{count}} اقتراح للمفردات",
-        "documentLinks_zero": "لم يتم تحديث أي رابط مستند",
-        "documentLinks_one": "تم تحديث رابط مستند واحد",
-        "documentLinks_two": "تم تحديث رابطَي مستندين",
-        "documentLinks_few": "تم تحديث {{count}} روابط مستندات",
-        "documentLinks_many": "تم تحديث {{count}} رابط مستند",
-        "documentLinks_other": "تم تحديث {{count}} من روابط المستندات",
-        "alreadyProcessed": "تمت المعالجة من قبل",
-        "failed": "فشل التشغيل",
+        "continuity_zero": "لم يُنقل أي سؤال معلّق",
+        "continuity_one": "تم نقل سؤال معلّق واحد",
+        "continuity_two": "تم نقل سؤالين معلّقين",
+        "continuity_few": "تم نقل {{count}} أسئلة معلّقة",
+        "continuity_many": "تم نقل {{count}} سؤالًا معلّقًا",
+        "continuity_other": "تم نقل {{count}} سؤال معلّق",
+        "personLinks_zero": "لم يتم تذكّر أي شخص",
+        "personLinks_one": "تم تذكّر شخص واحد",
+        "personLinks_two": "تم تذكّر شخصين",
+        "personLinks_few": "تم تذكّر {{count}} أشخاص",
+        "personLinks_many": "تم تذكّر {{count}} شخصًا",
+        "personLinks_other": "تم تذكّر {{count}} شخص",
+        "briefing": "ملخّص اجتماعك جاهز",
+        "vocabularyCandidates_zero": "لم يتم تعلّم أي كلمة",
+        "vocabularyCandidates_one": "تم تعلّم كلمة جديدة",
+        "vocabularyCandidates_two": "تم تعلّم كلمتين جديدتين",
+        "vocabularyCandidates_few": "تم تعلّم {{count}} كلمات جديدة",
+        "vocabularyCandidates_many": "تم تعلّم {{count}} كلمة جديدة",
+        "vocabularyCandidates_other": "تم تعلّم {{count}} كلمة جديدة",
+        "documentLinks_zero": "لم يتم ربط أي مستند",
+        "documentLinks_one": "تم ربط مستند واحد",
+        "documentLinks_two": "تم ربط مستندين",
+        "documentLinks_few": "تم ربط {{count}} مستندات",
+        "documentLinks_many": "تم ربط {{count}} مستندًا",
+        "documentLinks_other": "تم ربط {{count}} مستند",
+        "promptRecorded": "بدأ التسجيل",
+        "promptIgnored": "لم يُسجَّل اجتماع تم اكتشافه",
+        "autoRecordStarted": "بدأ التسجيل تلقائيًا",
+        "autoRecordStopped": "توقّف التسجيل تلقائيًا",
+        "alreadyProcessed": "لا جديد يُفعل",
+        "failed": "تعذّر الإكمال",
         "skipped": "تم التخطي"
       },
       "vocabularySuggestions": {
@@ -1646,7 +1585,7 @@
       },
       "overview": {
         "whatSonaDid": "ما فعله Sona",
-        "commitments": "الالتزامات",
+        "openLoops": "الأسئلة المعلّقة",
         "openMeeting": "فتح الاجتماع {{title}}",
         "loadError": "تعذر تحميل هذه البطاقة.",
         "retry": "إعادة المحاولة"
@@ -1658,18 +1597,6 @@
         "loadMoreError": "تعذّر تحميل المزيد من عمليات التشغيل.",
         "loadMore": "تحميل المزيد",
         "chartAria": "عمليات تشغيل سير العمل يوميًا، {{count}} خلال آخر 7 أيام"
-      }
-    },
-    "hub": {
-      "navigation": "أقسام الإعدادات",
-      "tabs": {
-        "general": "عام",
-        "privacy": "الخصوصية",
-        "agents": "الوكلاء",
-        "workflows": "سير العمل",
-        "advanced": "متقدم",
-        "about": "حول",
-        "debug": "تصحيح الأخطاء"
       }
     },
     "vocabulary": {
@@ -1744,7 +1671,11 @@
     "play": "تشغيل",
     "pause": "إيقاف مؤقت",
     "seek": "موضع التشغيل",
-    "resetSetting": "إعادة تعيين {{name}}"
+    "resetSetting": "إعادة تعيين {{name}}",
+    "day": {
+      "today": "اليوم",
+      "yesterday": "أمس"
+    }
   },
   "commandPalette": {
     "open": "بحث",
@@ -1930,17 +1861,17 @@
     },
     "live": {
       "elapsed": "المنقضي",
-      "microphoneOnlyPartial": "الميكروفون فقط / جزئي. صوت النظام غير متاح أو متدهور.",
-      "partialCapture": "تسجيل جزئي. راجع الفجوات قبل الاعتماد على الملاحظات المولّدة.",
+      "microphoneOnlyPartial": "يجري تسجيل الميكروفون فقط. صوت النظام غير متاح، لذا سيكون هذا الاجتماع ناقصًا.",
+      "partialCapture": "جزء من الصوت مفقود. تحقّق من الفجوات قبل الاعتماد على الملاحظات المُنشأة.",
       "inputs": "المدخلات",
       "signal": "الإشارة",
       "signalUnavailable": "لا يُبلّغ التسجيل عن مستوى {{source}}.",
       "notReported": "غير مُبلَّغ عنه",
-      "durabilityLag": "تأخر الحفظ الدائم",
+      "durabilityLag": "محفوظ على القرص",
       "behind": "متأخر بمقدار {{duration}}",
       "progress": "تقدّم النص",
       "transcript": "النص",
-      "asrLag": "تأخر التعرّف على الكلام",
+      "asrLag": "تأخّر النص",
       "storage": "التخزين",
       "storageHealthy": "التخزين المحلي المشفّر سليم.",
       "storageUnavailable": "التخزين يحتاج إلى انتباه.",
@@ -1989,20 +1920,20 @@
     },
     "gaps": {
       "source_unavailable": "المصدر غير متاح",
-      "source_start_failed": "فشل بدء المصدر",
+      "source_start_failed": "لم يبدأ المصدر",
       "permission_lost": "فُقد الإذن",
       "paused": "متوقف مؤقتًا",
-      "packet_dropped": "حزمة صوت مفقودة",
-      "writer_pressure": "ضغط على كاتب التخزين",
+      "packet_dropped": "فُقد صوت",
+      "writer_pressure": "تأخّر التخزين",
       "storage_failure": "فشل التخزين",
-      "timestamp_missing": "الطابع الزمني مفقود",
-      "timestamp_discontinuity": "انقطاع في الطابع الزمني",
-      "invalid_format": "تنسيق صوت غير صالح",
+      "timestamp_missing": "التوقيت مفقود",
+      "timestamp_discontinuity": "قفزة في التوقيت",
+      "invalid_format": "صوت غير قابل للقراءة",
       "source_stopped": "توقف المصدر",
-      "corrupt_record": "سجل تالف",
-      "missing_record": "سجل مفقود",
-      "recovery_tail": "ذيل الاسترجاع",
-      "system_sleep": "سكون الـMac"
+      "corrupt_record": "تسجيل تالف",
+      "missing_record": "تسجيل مفقود",
+      "recovery_tail": "تمت الاستعادة بعد تعطّل",
+      "system_sleep": "دخل جهاز Mac في وضع السكون"
     },
     "errors": {
       "load": "لم يتمكن Sona من تحميل بيانات الاجتماع الحالي.",
@@ -2120,7 +2051,7 @@
       "tabs": {
         "insights": "الرؤى",
         "ledger": "السجل",
-        "questions": "أسئلة وأجوبة",
+        "questions": "الأسئلة",
         "transcript": "النص"
       },
       "tabsLabel": "أقسام مراجعة الاجتماع",
@@ -2184,12 +2115,12 @@
       "forgotten": "مُنسي"
     },
     "diarization": {
-      "not_requested": "لم يُطلب فصل المتحدثين",
-      "model_unavailable": "نموذج فصل المتحدثين غير متاح",
-      "downloading": "جارٍ تنزيل نموذج فصل المتحدثين",
+      "not_requested": "لم يتم فصل المتحدثين",
+      "model_unavailable": "نموذج المتحدثين غير متاح",
+      "downloading": "جارٍ تنزيل نموذج المتحدثين",
       "running": "جارٍ فصل المتحدثين",
-      "succeeded": "تعيينات المتحدثين محدَّثة",
-      "failed": "فشل فصل المتحدثين"
+      "succeeded": "المتحدثون محدّثون",
+      "failed": "تعذّر فصل المتحدثين"
     },
     "list": {
       "searchLabel": "البحث في الاجتماعات",
@@ -2209,13 +2140,6 @@
         "ready": "جاهز",
         "processing": "قيد المعالجة",
         "needs_attention": "يحتاج إلى انتباه"
-      },
-      "headline": {
-        "words": "{{count}} كلمة مُنسوخة"
-      },
-      "sourceGlyph": {
-        "microphone": "ميك",
-        "system_audio": "نظام"
       },
       "filters": {
         "label": "تصفية الاجتماعات",
@@ -2333,9 +2257,6 @@
       },
       "anyMic": {
         "label": "اسأل عند أي استخدام للميكروفون"
-      },
-      "autoStart": {
-        "label": "افتح الاجتماع عندما يكون عدّه التنازلي ظاهرًا"
       },
       "apps": {
         "label": "تطبيقات الاجتماعات",
@@ -2584,19 +2505,11 @@
       "meetings_few": "{{count}} اجتماعات",
       "meetings_many": "{{count}} اجتماعًا",
       "meetings_other": "{{count}} اجتماع",
-      "last": "الأخير {{date}}",
-      "suggested_zero": "لا توجد اجتماعات مقترحة لربطها",
-      "suggested_one": "ربط اجتماع مقترح واحد؟",
-      "suggested_two": "ربط اجتماعين مقترحين؟",
-      "suggested_few": "ربط {{count}} اجتماعات مقترحة؟",
-      "suggested_many": "ربط {{count}} اجتماعًا مقترحًا؟",
-      "suggested_other": "ربط {{count}} اجتماع مقترح؟",
       "dismiss": "تجاهل",
       "confirm": "تأكيد",
       "loadError": "تعذر تحميل الأشخاص.",
       "empty": "لا يوجد أشخاص بعد.",
-      "meetings": "{{count}} اجتماعات",
-      "suggested": "ربط {{count}} اجتماعات مقترحة؟"
+      "meetings": "{{count}} اجتماعات"
     },
     "detail": {
       "nameLabel": "اسم الشخص",
@@ -2612,7 +2525,6 @@
       "deleteTitle": "حذف هذا الشخص؟",
       "deleteDescription": "حذف {{name}} وإزالة جميع روابط اجتماعاته؟",
       "carriedSince": "مفتوح منذ {{date}}",
-      "stillOpen": "ما زال مفتوحًا",
       "noOpenLoops": "لا يوجد شيء مفتوح.",
       "commitments": "الالتزامات",
       "noCommitments": "لا توجد التزامات مسجلة.",
@@ -2691,6 +2603,276 @@
       "stillOpen": "ما زال مفتوحًا: {{text}}",
       "metCount": "لقد قابلت {{name}} {{count}} مرات",
       "metBefore": "لقد قابلت {{name}} {{count}} مرات · آخر مرة {{date}}"
+    }
+  },
+  "libraryV2": {
+    "words_zero": "لا كلمات",
+    "words_one": "كلمة واحدة",
+    "words_two": "كلمتان",
+    "words_few": "{{count, number}} كلمات",
+    "words_many": "{{count, number}} كلمة",
+    "words_other": "{{count, number}} كلمة",
+    "summaryLoading": "يجري عدّ تسجيلاتك…",
+    "byMeaning": "حسب المعنى",
+    "actions": {
+      "copy": "نسخ",
+      "copied": "تم النسخ",
+      "transcribeAgain": "إعادة التفريغ",
+      "delete": "حذف",
+      "more": "إجراءات أخرى"
+    },
+    "recordings_zero": "لا تسجيلات",
+    "recordings_one": "تسجيل واحد",
+    "recordings_two": "تسجيلان",
+    "recordings_few": "{{count, number}} تسجيلات",
+    "recordings_many": "{{count, number}} تسجيلًا",
+    "recordings_other": "{{count, number}} تسجيل"
+  },
+  "meetingsV2": {
+    "retention": {
+      "keptForever": "يُحفظ إلى الأبد",
+      "keptDays": "يُحفظ {{days}} يومًا",
+      "change": "غيّرها في الإعدادات"
+    }
+  },
+  "peopleV2": {
+    "list": {
+      "lastMet": "آخر لقاء {{date}}"
+    },
+    "detail": {
+      "openLoops": "الأسئلة المعلّقة",
+      "howSonaKnows": "كيف عرف Sona ذلك",
+      "noEvidence": "لا شيء يربط هذا الشخص باجتماع حتى الآن."
+    }
+  },
+  "modesV2": {
+    "sections": {
+      "instructions": "التعليمات",
+      "model": "النموذج",
+      "output": "الإخراج"
+    },
+    "instructions": {
+      "enabled": {
+        "label": "التنظيف بالذكاء الاصطناعي"
+      },
+      "custom": {
+        "label": "تعليماتك الخاصة",
+        "hint": "ما تكتبه هنا يحلّ محل نمط الإخراج أدناه بدلًا من أن يُضاف إليه. اتركه فارغًا لاستخدام النمط.",
+        "placeholder": "اكتبه كما أكتبه أنا: جمل قصيرة، بلا نقاط."
+      },
+      "disabled": "فعّل التنظيف ليتبع Sona هذه التعليمات بعد كل إملاء."
+    },
+    "output": {
+      "style": {
+        "label": "نمط الإخراج"
+      }
+    },
+    "activation": {
+      "title": "يعمل من تلقاء نفسه",
+      "rules": {
+        "label": "التطبيقات والمواقع",
+        "empty": "لا شيء ينتقل إلى هذا الوضع من تلقاء نفسه.",
+        "example": "تخزّن القاعدة هوية تطبيق واحدة أو مضيف موقع واحدًا: com.apple.mail أو mail.google.com."
+      }
+    },
+    "advanced": {
+      "title": "متقدم",
+      "summary": "الاختصارات والنبرة والسياق والتسليم"
+    },
+    "list": {
+      "preset": "الإعداد المسبق"
+    },
+    "chip": {
+      "lead": "الوضع",
+      "title": "الأوضاع",
+      "action": "تغيير الوضع، الحالي {{mode}}",
+      "editLink": "تحرير الأوضاع في الإعدادات",
+      "switchError": "تعذّر تغيير الوضع. حاول مرة أخرى."
+    },
+    "rules": {
+      "title": "قواعد النص",
+      "kind": "النوع",
+      "left": "أنت تقول",
+      "right": "Sona يكتب",
+      "add": "إضافة قاعدة",
+      "loading": "جارٍ تحميل قواعد النص",
+      "empty": "لا توجد قواعد نص بعد. أضف واحدة أعلاه وسيطبّقها Sona على كل نص.",
+      "matching": "تنطبق القواعد على الكلمات الكاملة وتتجاهل حالة الأحرف. وإذا انطبقت قاعدتان على الموضع نفسه فازت الأطول.",
+      "applyRule": "تطبيق {{rule}}",
+      "removeRule": "حذف {{rule}}",
+      "restoreRewrites": "استعادة إعادات الصياغة الافتراضية",
+      "kinds": {
+        "vocabulary": "الإملاء",
+        "snippet": "اختصار",
+        "replacement": "إعادة صياغة",
+        "emoji": "إيموجي"
+      },
+      "kindHints": {
+        "vocabulary": "يعلّم Sona كيف يُكتب اسم ما، ليكتب الصيغة الدقيقة في كل مرة يسمع فيها العبارة.",
+        "snippet": "يوسّع محفّزًا قصيرًا إلى نص أطول، مثل omw إلى في طريقي.",
+        "replacement": "يعيد صياغة عبارة سمعها Sona بالفعل، مثل آت إلى @.",
+        "emoji": "يربط كلمة منطوقة محددة مثل smiley face بالإيموجي الذي تريد كتابته."
+      },
+      "placeholders": {
+        "vocabulary": {
+          "left": "open ai",
+          "right": "OpenAI"
+        },
+        "snippet": {
+          "left": "omw",
+          "right": "في طريقي"
+        },
+        "replacement": {
+          "left": "آت",
+          "right": "@"
+        },
+        "emoji": {
+          "left": "smiley face",
+          "right": "🙂"
+        }
+      },
+      "toggles": {
+        "emoji": "اكتب الإيموجي عند ذكر اسمه",
+        "snippet": "توسيع الاختصارات",
+        "replacement": "تطبيق إعادات الصياغة"
+      },
+      "toggleErrors": {
+        "spokenEdits": "تعذّر تغيير أوامر التحرير المنطوقة. حاول مرة أخرى.",
+        "emoji": "تعذّر تغيير كتابة الإيموجي. حاول مرة أخرى.",
+        "snippet": "تعذّر تغيير توسيع الاختصارات. حاول مرة أخرى.",
+        "replacement": "تعذّر تغيير إعادات الصياغة. حاول مرة أخرى."
+      },
+      "errors": {
+        "incomplete": "املأ الجانبين، أو احذف القاعدة.",
+        "duplicate": "قاعدة أخرى من هذا النوع تستخدم هذه العبارة بالفعل."
+      }
+    }
+  },
+  "settingsV2": {
+    "navigation": "الإعدادات",
+    "tabs": {
+      "essentials": "الأساسيات",
+      "advanced": "متقدم",
+      "debug": "تصحيح الأخطاء"
+    },
+    "essentials": {
+      "title": "الأساسيات",
+      "sounds": "الأصوات",
+      "launchAtLogin": "التشغيل عند بدء التشغيل",
+      "appearance": "المظهر",
+      "volume": "مستوى الصوت",
+      "detectMeetings": "لاحظ عندما أنضم إلى اجتماع",
+      "detectMeetingsHint": "يعرض Sona عليك التسجيل. ولا يبدأ التسجيل من تلقاء نفسه أبدًا.",
+      "retention": "احذف التسجيلات بعد",
+      "dictationStyles": "أنماط الإملاء",
+      "dictationStylesAction": "تحرير"
+    },
+    "advanced": {
+      "title": "متقدم",
+      "meetings": "الاجتماعات",
+      "models": "النماذج",
+      "modelCatalog": "كتالوج النماذج",
+      "cloudKeys": "مفاتيح التفريغ السحابي",
+      "cleanupProvider": "مزوّد التنظيف",
+      "dictation": "الإملاء",
+      "keepDictations": "عدد الإملاءات المحفوظة",
+      "readsFromOtherApps": "ما يمكن أن يقرأه Sona من التطبيقات الأخرى",
+      "workflows": "ما يفعله Sona بعد الاجتماع",
+      "sync": "المزامنة",
+      "leavesThisMac": "ما يغادر جهاز Mac هذا",
+      "agents": "الوكلاء",
+      "agentBridge": "جسر وكلاء البرمجة",
+      "about": "حول Sona",
+      "debugHint": "اضغط {{chord}} لفتح صفحة تصحيح الأخطاء."
+    },
+    "apps": {
+      "label": "تطبيقات الاجتماعات",
+      "browsersAutomatic": "المكالمة في علامة تبويب المتصفح تُكتشف دون إدراجها هنا.",
+      "runningNow": "قيد التشغيل الآن",
+      "add": "إضافة تطبيق",
+      "addTitle": "إضافة تطبيق اجتماعات",
+      "addDescription": "يحتاج Sona إلى معرّف التطبيق، ويمكنك قراءته في نافذة «حول» الخاصة بالتطبيق أو عبر `osascript -e 'id of app \"الاسم\"'`.",
+      "identifier": "معرّف التطبيق",
+      "identifierPlaceholder": "com.example.app",
+      "invalid": "يبدو المعرّف هكذا: com.example.app، كلمات صغيرة يربط بينها نقاط.",
+      "duplicate": "هذا التطبيق موجود في القائمة بالفعل.",
+      "remove": "إزالة {{app}}",
+      "names": {
+        "zoom": "Zoom",
+        "teams": "Microsoft Teams",
+        "webex": "Webex",
+        "facetime": "FaceTime",
+        "slack": "Slack"
+      }
+    }
+  },
+  "consentPanel": {
+    "calendarTitle": "{{title}} — أسجّله؟",
+    "appTitle": "اجتماع {{app}} — أسجّله؟",
+    "genericTitle": "أسجّل هذا الاجتماع؟",
+    "introduction": "يسجّل Sona على جهاز Mac هذا، والتحكّم يبقى بيدك.",
+    "seriesBrief_zero": "الاجتماع {{nth}} مع {{person}} · لا توجد حلقات مفتوحة",
+    "seriesBrief_one": "الاجتماع {{nth}} مع {{person}} · حلقة مفتوحة واحدة",
+    "seriesBrief_two": "الاجتماع {{nth}} مع {{person}} · حلقتان مفتوحتان",
+    "seriesBrief_few": "الاجتماع {{nth}} مع {{person}} · {{count}} حلقات مفتوحة",
+    "seriesBrief_many": "الاجتماع {{nth}} مع {{person}} · {{count}} حلقة مفتوحة",
+    "seriesBrief_other": "الاجتماع {{nth}} مع {{person}} · {{count}} حلقة مفتوحة",
+    "alwaysRecord": "سجّل هذا الاجتماع دائمًا",
+    "assurance": "لا تبدأ إلا بعد موافقة كل من في الاجتماع على التسجيل.",
+    "record": "تسجيل",
+    "ignore": "تجاهل",
+    "recording": "التسجيل",
+    "stop": "إيقاف",
+    "forgetSeries": "انسَ هذه السلسلة"
+  },
+  "learningV2": {
+    "workflows": {
+      "spokenPunctuation": {
+        "name": "اقتراح علامات الترقيم المنطوقة",
+        "description": "يلاحظ الرموز التي تنطقها ولا توجد لها قاعدة استبدال بعد."
+      },
+      "correctionLearning": {
+        "name": "التعلم من تصحيحاتك",
+        "description": "يحول التصحيحات التي تكتبها يدويًا إلى اقتراحات مفردات."
+      },
+      "modeHabits": {
+        "name": "اقتراح قواعد الأوضاع",
+        "description": "يلاحظ وضعًا تلجأ إليه بالاختصار دائمًا."
+      },
+      "captureAdvisor": {
+        "name": "نصائح جودة التسجيل",
+        "description": "يعرض إعادات المحاولة والتسجيلات المفقودة والصوت المنخفض من جلساتك."
+      },
+      "seriesPriming": {
+        "name": "تهيئة الاجتماعات المتكررة"
+      }
+    },
+    "feed": {
+      "title": "ما لاحظته Sona",
+      "spokenPunctuation": "لاحظنا أنك تقول {{spoken}} كثيرًا — نكتبها {{written}}؟",
+      "vocabularyCorrection": "تغيّر {{spoken}} إلى {{written}} باستمرار — نتعلمها؟",
+      "modeHabit": "تلجأ إلى {{mode}} بالاختصار معظم الأيام — نجعله الافتراضي؟",
+      "retryRate": "تُعاد محاولات {{subject}} بمعدل {{times}}× أكثر من غيرها.",
+      "lostCaptureRate": "تنتهي جلسات {{subject}} مقتطعة أو صامتة بمعدل {{times}}× أكثر من غيرها.",
+      "inputLevel": "وردت {{percent}}% من تسجيلاتك منخفضة — هل تراجع مستوى الميكروفون؟",
+      "example": "«{{text}}»",
+      "accept": "نعم",
+      "dismiss": "لا شكرًا",
+      "evidence_zero": "{{count}} مرة، عبر {{days}} يوم",
+      "evidence_one": "مرة واحدة، عبر {{days}} يوم",
+      "evidence_two": "{{count}} مرة، عبر {{days}} يوم",
+      "evidence_few": "{{count}} مرة، عبر {{days}} يوم",
+      "evidence_many": "{{count}} مرة، عبر {{days}} يوم",
+      "evidence_other": "{{count}} مرة، عبر {{days}} يوم"
+    },
+    "outcomes": {
+      "primed": "جهّزنا اجتماعًا متكررًا",
+      "noticed_zero": "لاحظنا {{count}} أمور",
+      "noticed_one": "لاحظنا أمرًا واحدًا",
+      "noticed_two": "لاحظنا {{count}} أمور",
+      "noticed_few": "لاحظنا {{count}} أمور",
+      "noticed_many": "لاحظنا {{count}} أمور",
+      "noticed_other": "لاحظنا {{count}} أمور"
     }
   }
 }

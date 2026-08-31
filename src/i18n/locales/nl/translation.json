@@ -26,15 +26,8 @@
     "secureInputWarning": "Sneltoetsen geblokkeerd door Secure Input"
   },
   "sidebar": {
-    "general": "Algemeen",
     "models": "Modellen",
-    "advanced": "Geavanceerd",
-    "postProcessing": "Naverwerking",
-    "debug": "Probleemoplossing",
-    "about": "Over Sona",
     "modes": "Modi",
-    "privacy": "Privacy",
-    "agents": "Agents",
     "meetings": "Vergaderingen",
     "navigation": "Hoofdnavigatie",
     "people": "Personen",
@@ -154,21 +147,13 @@
     "active": "Actief",
     "switching": "Wisselen…",
     "noModelsAvailable": "Geen modellen beschikbaar",
-    "searchPlaceholder": "Modellen zoeken",
     "verifying": "Verifiëren van {{modelName}}…",
     "verifyingGeneric": "Verifiëren…",
     "extracting": "Uitpakken van {{modelName}}…",
-    "extractingMultiple": "Uitpakken van {{count}} modellen…",
     "extractingGeneric": "Uitpakken…",
     "downloading": "Downloaden {{percentage}}%",
-    "downloadingMultiple": "Downloaden van {{count}} modellen…",
-    "downloadingGeneric": "Downloaden…",
-    "modelReady": "Model gereed",
     "loading": "Laden van {{modelName}}…",
     "loadingGeneric": "Laden…",
-    "modelError": "Modelfout",
-    "modelUnloaded": "Model ontladen",
-    "noModelDownloadRequired": "Geen model, download vereist",
     "deleteModel": "{{modelName}} verwijderen",
     "downloadSpeed": "{{speed}} MB/s",
     "cancel": "Annuleren",
@@ -181,8 +166,7 @@
       "translation": "Kan vertalen naar het Engels",
       "translate": "Vertalen",
       "streaming": "Toont live transcriptie tijdens het spreken"
-    },
-    "model": "Model"
+    }
   },
   "settings": {
     "modelSettings": {
@@ -330,7 +314,6 @@
       }
     },
     "sound": {
-      "title": "Geluid",
       "microphone": {
         "title": "Microfoon"
       },
@@ -338,16 +321,6 @@
         "title": "Ingangskanaal",
         "average": "Gemiddelde van alle kanalen",
         "channel": "Kanaal {{n}}"
-      },
-      "audioFeedback": {
-        "label": "Geluidsfeedback"
-      },
-      "outputDevice": {
-        "title": "Afspeelapparaat",
-        "description": "Waar feedbackgeluiden worden afgespeeld."
-      },
-      "volume": {
-        "title": "Volume"
       }
     },
     "advanced": {
@@ -357,13 +330,6 @@
           "as_spoken": "Zoals uitgesproken",
           "british": "Brits"
         }
-      },
-      "groups": {
-        "app": "App",
-        "output": "Uitvoer",
-        "transcription": "Transcriptie",
-        "history": "Geschiedenis",
-        "experimental": "Experimenteel"
       },
       "experimentalToggle": {
         "label": "Experimentele functies"
@@ -384,15 +350,8 @@
           "auto": "Automatisch"
         }
       },
-      "startHidden": {
-        "label": "Geminimaliseerd opstarten",
-        "description": "Start op de achtergrond in het systeemvak zonder het hoofdvenster te openen."
-      },
       "autostart": {
         "label": "Starten bij opstarten"
-      },
-      "showTrayIcon": {
-        "label": "Pictogram in systeemvak tonen"
       },
       "overlay": {
         "style": {
@@ -508,14 +467,6 @@
         },
         "empty": {
           "description": "Koppel een exact gesproken woord zoals smiley aan de emoji die je geschreven wilt hebben."
-        }
-      },
-      "disclosures": {
-        "launch": {
-          "title": "Opstarten"
-        },
-        "processing": {
-          "title": "Verwerking"
         }
       },
       "snippets": {
@@ -870,9 +821,6 @@
         "label": "Naverwerking",
         "description": "Herschrijf de transcriptie met een taalmodel na de transcriptie."
       },
-      "muteWhileRecording": {
-        "label": "Dempen tijdens opname"
-      },
       "appendTrailingSpace": {
         "label": "Spatie achteraan toevoegen",
         "description": "Voegt één spatie toe na het geplakte transcript."
@@ -930,13 +878,9 @@
       }
     },
     "about": {
-      "title": "Over Sona",
       "version": {
         "title": "Versie",
         "unavailable": "Niet beschikbaar"
-      },
-      "whatsNewUpdates": {
-        "label": "Toon 'Wat is er nieuw'"
       },
       "appDataDirectory": {
         "title": "App-datamap"
@@ -1553,7 +1497,6 @@
     },
     "workflows": {
       "title": "Werkstromen",
-      "builtIns": "Ingebouwde werkstromen",
       "loadError": "De werkstromen konden niet worden geladen.",
       "updateError": "De werkstroom kon niet worden bijgewerkt.",
       "empty": "Er zijn geen werkstromen beschikbaar.",
@@ -1561,24 +1504,27 @@
       "toggleLabel": "{{name}} inschakelen",
       "items": {
         "person_linking": {
-          "name": "Personen koppelen",
+          "name": "Personen onthouden",
           "description": "Koppelt vergaderingen aan personen met bevestigde deelnemers- en sprekersgegevens."
         },
         "pre_meeting_briefing": {
-          "name": "Voorbereiding voor de vergadering",
+          "name": "Vergaderoverzichten voorbereiden",
           "description": "Maakt vóór een gedetecteerde vergadering een overzicht van eerdere vergaderingen."
         },
         "continuity": {
-          "name": "Continuïteit",
+          "name": "Vergaderingen doorzetten",
           "description": "Neemt openstaande toezeggingen mee naar volgende vergaderingen."
         },
         "vocabulary_mining": {
-          "name": "Woordenschat vinden",
+          "name": "Nieuwe woorden leren",
           "description": "Vindt herhaalde namen en termen die mogelijk in je woordenschat thuishoren."
         },
         "document_linking": {
           "name": "Documenten koppelen",
           "description": "Koppelt geïmporteerde documenten aan de personen die erin worden genoemd."
+        },
+        "meeting_activity": {
+          "name": "Vergaderopname"
         }
       },
       "status": {
@@ -1587,20 +1533,21 @@
         "skipped": "Overgeslagen"
       },
       "outcomes": {
-        "personLinks_one": "1 persoonskoppeling bijgewerkt",
-        "personLinks_other": "{{count}} persoonskoppelingen bijgewerkt",
-        "briefing_one": "Briefing voor 1 persoon voorbereid",
-        "briefing_other": "Briefing voor {{count}} personen voorbereid",
-        "continuitySeries_one": "1 vergaderreeks bijgewerkt",
-        "continuitySeries_other": "{{count}} vergaderreeksen bijgewerkt",
-        "continuityCarried_one": "1 open punt meegenomen",
-        "continuityCarried_other": "{{count}} open punten meegenomen",
-        "vocabularyCandidates_one": "1 woordsuggestie gevonden",
-        "vocabularyCandidates_other": "{{count}} woordsuggesties gevonden",
-        "documentLinks_one": "1 documentkoppeling bijgewerkt",
-        "documentLinks_other": "{{count}} documentkoppelingen bijgewerkt",
-        "alreadyProcessed": "Al verwerkt",
-        "failed": "Uitvoering mislukt",
+        "personLinks_one": "1 persoon onthouden",
+        "personLinks_other": "{{count}} personen onthouden",
+        "briefing": "Je vergaderoverzicht is klaar",
+        "continuity_one": "1 open vraag meegenomen",
+        "continuity_other": "{{count}} open vragen meegenomen",
+        "vocabularyCandidates_one": "Een nieuw woord geleerd",
+        "vocabularyCandidates_other": "{{count}} nieuwe woorden geleerd",
+        "documentLinks_one": "Eén document gekoppeld",
+        "documentLinks_other": "{{count}} documenten gekoppeld",
+        "promptRecorded": "Opname gestart",
+        "promptIgnored": "Gedetecteerde vergadering niet opgenomen",
+        "autoRecordStarted": "Opname automatisch gestart",
+        "autoRecordStopped": "Opname automatisch gestopt",
+        "alreadyProcessed": "Niets nieuws te doen",
+        "failed": "Kon niet worden voltooid",
         "skipped": "Overgeslagen"
       },
       "vocabularySuggestions": {
@@ -1614,7 +1561,7 @@
       },
       "overview": {
         "whatSonaDid": "Wat Sona deed",
-        "commitments": "Toezeggingen",
+        "openLoops": "Open vragen",
         "openMeeting": "Vergadering {{title}} openen",
         "loadError": "Deze kaart kon niet worden geladen.",
         "retry": "Opnieuw proberen"
@@ -1626,18 +1573,6 @@
         "loadMoreError": "Meer uitvoeringen konden niet worden geladen.",
         "loadMore": "Meer laden",
         "chartAria": "Uitvoeringen per dag, {{count}} in de afgelopen 7 dagen"
-      }
-    },
-    "hub": {
-      "navigation": "Instellingensecties",
-      "tabs": {
-        "general": "Algemeen",
-        "privacy": "Privacy",
-        "agents": "Agents",
-        "workflows": "Werkstromen",
-        "advanced": "Geavanceerd",
-        "about": "Over",
-        "debug": "Foutopsporing"
       }
     },
     "vocabulary": {
@@ -1715,7 +1650,11 @@
     "play": "Afspelen",
     "pause": "Pauzeren",
     "seek": "Weergavepositie",
-    "resetSetting": "{{name}} herstellen"
+    "resetSetting": "{{name}} herstellen",
+    "day": {
+      "today": "Vandaag",
+      "yesterday": "Gisteren"
+    }
   },
   "commandPalette": {
     "open": "Zoeken",
@@ -1898,17 +1837,17 @@
     },
     "live": {
       "elapsed": "Verstreken",
-      "microphoneOnlyPartial": "Alleen microfoon / Gedeeltelijk. Systeemaudio is niet beschikbaar of verslechterd.",
-      "partialCapture": "Gedeeltelijke opname. Bekijk de hiaten voordat je op gegenereerde notities vertrouwt.",
+      "microphoneOnlyPartial": "Alleen de microfoon wordt opgenomen. Systeemaudio is niet beschikbaar, dus deze vergadering wordt gedeeltelijk.",
+      "partialCapture": "Er ontbreekt audio. Controleer de gaten voordat je op de gegenereerde notities vertrouwt.",
       "inputs": "Ingangen",
       "signal": "Signaal",
       "signalUnavailable": "Het niveau van {{source}} wordt niet gerapporteerd door de opname.",
       "notReported": "Niet gerapporteerd",
-      "durabilityLag": "Vertraging bij duurzaam opslaan",
+      "durabilityLag": "Opgeslagen op schijf",
       "behind": "{{duration}} achter",
       "progress": "Voortgang van transcript",
       "transcript": "Transcript",
-      "asrLag": "ASR-vertraging",
+      "asrLag": "Vertraging van het transcript",
       "storage": "Opslag",
       "storageHealthy": "De versleutelde lokale opslag is in orde.",
       "storageUnavailable": "De opslag vereist aandacht.",
@@ -1957,20 +1896,20 @@
     },
     "gaps": {
       "source_unavailable": "Bron niet beschikbaar",
-      "source_start_failed": "Starten van bron mislukt",
+      "source_start_failed": "Bron startte niet",
       "permission_lost": "Machtiging verloren",
       "paused": "Gepauzeerd",
-      "packet_dropped": "Audiopakket verloren",
-      "writer_pressure": "Schrijfdruk op de opslag",
-      "storage_failure": "Opslagfout",
-      "timestamp_missing": "Tijdstempel ontbreekt",
-      "timestamp_discontinuity": "Tijdstempelbreuk",
-      "invalid_format": "Ongeldig audioformaat",
+      "packet_dropped": "Audio verloren",
+      "writer_pressure": "Opslag liep achter",
+      "storage_failure": "Opslag is mislukt",
+      "timestamp_missing": "Tijden ontbreken",
+      "timestamp_discontinuity": "Tijden maakten een sprong",
+      "invalid_format": "Onleesbare audio",
       "source_stopped": "Bron gestopt",
-      "corrupt_record": "Beschadigd record",
-      "missing_record": "Ontbrekend record",
-      "recovery_tail": "Hersteluiteinde",
-      "system_sleep": "Mac-slaapstand"
+      "corrupt_record": "Beschadigde opname",
+      "missing_record": "Ontbrekende opname",
+      "recovery_tail": "Hersteld na een crash",
+      "system_sleep": "Je Mac ging slapen"
     },
     "errors": {
       "load": "Sona kon de huidige vergadergegevens niet laden.",
@@ -2088,7 +2027,7 @@
       "tabs": {
         "insights": "Inzichten",
         "ledger": "Register",
-        "questions": "Q&A",
+        "questions": "Vragen",
         "transcript": "Transcript"
       },
       "tabsLabel": "Secties vergaderoverzicht",
@@ -2152,12 +2091,12 @@
       "forgotten": "Vergeten"
     },
     "diarization": {
-      "not_requested": "Sprekerscheiding niet opgevraagd",
-      "model_unavailable": "Model voor sprekerscheiding niet beschikbaar",
-      "downloading": "Model voor sprekerscheiding downloaden",
+      "not_requested": "Sprekers niet gescheiden",
+      "model_unavailable": "Sprekermodel niet beschikbaar",
+      "downloading": "Sprekermodel downloaden",
       "running": "Sprekers scheiden",
-      "succeeded": "Sprekertoewijzingen actueel",
-      "failed": "Sprekerscheiding mislukt"
+      "succeeded": "Sprekers zijn bijgewerkt",
+      "failed": "Kon sprekers niet scheiden"
     },
     "list": {
       "searchLabel": "Vergaderingen zoeken",
@@ -2177,13 +2116,6 @@
         "ready": "Klaar",
         "processing": "In behandeling",
         "needs_attention": "Vereist aandacht"
-      },
-      "headline": {
-        "words": "{{count}} woorden getranscribeerd"
-      },
-      "sourceGlyph": {
-        "microphone": "MIC",
-        "system_audio": "SYS"
       },
       "filters": {
         "label": "Vergaderingen filteren",
@@ -2301,9 +2233,6 @@
       },
       "anyMic": {
         "label": "Vragen bij elk microfoongebruik"
-      },
-      "autoStart": {
-        "label": "De vergadering openen zodra de aftelling in beeld staat"
       },
       "apps": {
         "label": "Vergaderapps",
@@ -2540,15 +2469,11 @@
     "list": {
       "meetings_one": "1 vergadering",
       "meetings_other": "{{count}} vergaderingen",
-      "last": "Laatste {{date}}",
-      "suggested_one": "1 voorgestelde vergadering koppelen?",
-      "suggested_other": "{{count}} voorgestelde vergaderingen koppelen?",
       "dismiss": "Negeren",
       "confirm": "Bevestigen",
       "loadError": "Personen konden niet worden geladen.",
       "empty": "Nog geen personen.",
-      "meetings": "{{count}} vergaderingen",
-      "suggested": "{{count}} voorgestelde vergaderingen koppelen?"
+      "meetings": "{{count}} vergaderingen"
     },
     "detail": {
       "nameLabel": "Naam van persoon",
@@ -2564,7 +2489,6 @@
       "deleteTitle": "Deze persoon verwijderen?",
       "deleteDescription": "{{name}} en alle vergaderkoppelingen verwijderen?",
       "carriedSince": "Open sinds {{date}}",
-      "stillOpen": "Nog open",
       "noOpenLoops": "Er staat niets meer open.",
       "commitments": "Toezeggingen",
       "noCommitments": "Geen toezeggingen vastgelegd.",
@@ -2631,6 +2555,256 @@
       "stillOpen": "Nog open: {{text}}",
       "metCount": "Je hebt {{name}} {{count}} keer ontmoet",
       "metBefore": "Je hebt {{name}} {{count}} keer ontmoet · laatste {{date}}"
+    }
+  },
+  "libraryV2": {
+    "recordings_one": "{{count, number}} opname",
+    "recordings_other": "{{count, number}} opnames",
+    "words_one": "{{count, number}} woord",
+    "words_other": "{{count, number}} woorden",
+    "summaryLoading": "Je opnames worden geteld…",
+    "byMeaning": "op betekenis",
+    "actions": {
+      "copy": "Kopiëren",
+      "copied": "Gekopieerd",
+      "transcribeAgain": "Opnieuw transcriberen",
+      "delete": "Verwijderen",
+      "more": "Meer acties"
+    }
+  },
+  "meetingsV2": {
+    "retention": {
+      "keptForever": "Blijft altijd bewaard",
+      "keptDays": "Blijft {{days}} dagen bewaard",
+      "change": "wijzigen in Instellingen"
+    }
+  },
+  "peopleV2": {
+    "list": {
+      "lastMet": "Laatste vergadering op {{date}}"
+    },
+    "detail": {
+      "openLoops": "Open vragen",
+      "howSonaKnows": "Hoe Sona dit weet",
+      "noEvidence": "Nog niets koppelt deze persoon aan een vergadering."
+    }
+  },
+  "modesV2": {
+    "sections": {
+      "instructions": "Instructies",
+      "model": "Model",
+      "output": "Uitvoer"
+    },
+    "instructions": {
+      "enabled": {
+        "label": "Opschonen met AI"
+      },
+      "custom": {
+        "label": "Je eigen instructies",
+        "hint": "Wat je hier schrijft vervangt de uitvoerstijl hieronder in plaats van er iets aan toe te voegen. Laat het leeg om de stijl te gebruiken.",
+        "placeholder": "Schrijf het zoals ik het zou schrijven: korte zinnen, geen opsommingstekens."
+      },
+      "disabled": "Zet opschonen aan, dan volgt Sona deze instructies na elk dictaat."
+    },
+    "output": {
+      "style": {
+        "label": "Uitvoerstijl"
+      }
+    },
+    "activation": {
+      "title": "Gaat vanzelf aan",
+      "rules": {
+        "label": "Apps en websites",
+        "empty": "Niets schakelt vanzelf over naar deze modus.",
+        "example": "Een regel bewaart één app-identiteit of één websitehost: com.apple.mail of mail.google.com."
+      }
+    },
+    "advanced": {
+      "title": "Geavanceerd",
+      "summary": "Sneltoetsen, toon, context, levering"
+    },
+    "list": {
+      "preset": "Voorinstelling"
+    },
+    "chip": {
+      "lead": "Modus",
+      "title": "Modi",
+      "action": "Modus wijzigen, nu {{mode}}",
+      "editLink": "Modi bewerken in Instellingen",
+      "switchError": "Kon niet van modus wisselen. Probeer het opnieuw."
+    },
+    "rules": {
+      "title": "Tekstregels",
+      "kind": "Soort",
+      "left": "Jij zegt",
+      "right": "Sona schrijft",
+      "add": "Een regel toevoegen",
+      "loading": "Tekstregels worden geladen",
+      "empty": "Nog geen tekstregels. Voeg er hierboven een toe, dan past Sona die toe op elk transcript.",
+      "matching": "Regels passen op hele woorden en negeren hoofdletters. Als er twee op dezelfde plek passen, wint de langste.",
+      "applyRule": "{{rule}} toepassen",
+      "removeRule": "{{rule}} verwijderen",
+      "restoreRewrites": "Standaardherschrijvingen herstellen",
+      "kinds": {
+        "vocabulary": "Spelling",
+        "snippet": "Snelkoppeling",
+        "replacement": "Herschrijving",
+        "emoji": "Emoji"
+      },
+      "kindHints": {
+        "vocabulary": "Leert Sona hoe een naam wordt geschreven, zodat de exacte vorm verschijnt telkens als de uitdrukking valt.",
+        "snippet": "Breidt een korte trigger uit tot langere tekst, zoals omw naar onderweg.",
+        "replacement": "Herschrijft een uitdrukking die Sona al heeft gehoord, zoals apenstaartje naar @.",
+        "emoji": "Koppelt een exact gesproken woord zoals smiley aan de emoji die je geschreven wilt hebben."
+      },
+      "placeholders": {
+        "vocabulary": {
+          "left": "open ai",
+          "right": "OpenAI"
+        },
+        "snippet": {
+          "left": "omw",
+          "right": "onderweg"
+        },
+        "replacement": {
+          "left": "apenstaartje",
+          "right": "@"
+        },
+        "emoji": {
+          "left": "smiley",
+          "right": "🙂"
+        }
+      },
+      "toggles": {
+        "emoji": "Emoji schrijven wanneer je die benoemt",
+        "snippet": "Snelkoppelingen uitbreiden",
+        "replacement": "Herschrijvingen toepassen"
+      },
+      "toggleErrors": {
+        "spokenEdits": "Kon de gesproken bewerkingsopdrachten niet wijzigen. Probeer het opnieuw.",
+        "emoji": "Kon het schrijven van emoji niet wijzigen. Probeer het opnieuw.",
+        "snippet": "Kon het uitbreiden van snelkoppelingen niet wijzigen. Probeer het opnieuw.",
+        "replacement": "Kon de herschrijvingen niet wijzigen. Probeer het opnieuw."
+      },
+      "errors": {
+        "incomplete": "Vul beide kanten in of verwijder de regel.",
+        "duplicate": "Een andere regel van dit soort gebruikt deze uitdrukking al."
+      }
+    }
+  },
+  "settingsV2": {
+    "navigation": "Instellingen",
+    "tabs": {
+      "essentials": "Basis",
+      "advanced": "Geavanceerd",
+      "debug": "Probleemoplossing"
+    },
+    "essentials": {
+      "title": "Basis",
+      "sounds": "Geluiden",
+      "launchAtLogin": "Starten bij opstarten",
+      "appearance": "Weergave",
+      "volume": "Geluidsvolume",
+      "detectMeetings": "Melden wanneer ik aan een vergadering deelneem",
+      "detectMeetingsHint": "Sona biedt aan om op te nemen. Ze start nooit uit zichzelf een opname.",
+      "retention": "Opnames verwijderen na",
+      "dictationStyles": "Dicteerstijlen",
+      "dictationStylesAction": "Bewerken"
+    },
+    "advanced": {
+      "title": "Geavanceerd",
+      "meetings": "Vergaderingen",
+      "models": "Modellen",
+      "modelCatalog": "Modelcatalogus",
+      "cloudKeys": "Sleutels voor cloudtranscriptie",
+      "cleanupProvider": "Provider voor opschonen",
+      "dictation": "Dictaat",
+      "keepDictations": "Te bewaren dictaten",
+      "readsFromOtherApps": "Wat Sona uit andere apps mag lezen",
+      "workflows": "Wat Sona doet na een vergadering",
+      "sync": "Synchronisatie",
+      "leavesThisMac": "Wat deze Mac verlaat",
+      "agents": "Agents",
+      "agentBridge": "Brug voor code-agents",
+      "about": "Over Sona",
+      "debugHint": "Druk op {{chord}} om de foutopsporingspagina te openen."
+    },
+    "apps": {
+      "label": "Vergaderapps",
+      "browsersAutomatic": "Een gesprek in een browsertabblad wordt gedetecteerd zonder dat het hier staat.",
+      "runningNow": "Draait nu",
+      "add": "Een app toevoegen",
+      "addTitle": "Een vergaderapp toevoegen",
+      "addDescription": "Sona heeft de identificatie van de app nodig; die staat in het venster Over van de app zelf of komt uit `osascript -e 'id of app \"Naam\"'`.",
+      "identifier": "App-identificatie",
+      "identifierPlaceholder": "com.example.app",
+      "invalid": "Een identificatie ziet eruit als com.example.app: kleine letters, verbonden door punten.",
+      "duplicate": "Die app staat al in de lijst.",
+      "remove": "{{app}} verwijderen",
+      "names": {
+        "zoom": "Zoom",
+        "teams": "Microsoft Teams",
+        "webex": "Webex",
+        "facetime": "FaceTime",
+        "slack": "Slack"
+      }
+    }
+  },
+  "consentPanel": {
+    "calendarTitle": "{{title}} — opnemen?",
+    "appTitle": "{{app}}-vergadering — opnemen?",
+    "genericTitle": "Deze vergadering opnemen?",
+    "introduction": "Sona neemt op deze Mac op en jij houdt de controle.",
+    "seriesBrief_one": "Gesprek {{nth}} met {{person}} · {{count}} open punt",
+    "seriesBrief_other": "Gesprek {{nth}} met {{person}} · {{count}} open punten",
+    "alwaysRecord": "Deze vergadering altijd opnemen",
+    "assurance": "Begin pas als iedereen in de vergadering akkoord is met opnemen.",
+    "record": "Opnemen",
+    "ignore": "Negeren",
+    "recording": "Opname",
+    "stop": "Stoppen",
+    "forgetSeries": "Deze reeks vergeten"
+  },
+  "learningV2": {
+    "workflows": {
+      "spokenPunctuation": {
+        "name": "Gesproken interpunctie voorstellen",
+        "description": "Merkt symbolen op die je uitspreekt en waarvoor nog geen vervangregel bestaat."
+      },
+      "correctionLearning": {
+        "name": "Leren van je correcties",
+        "description": "Maakt van je handmatige correcties suggesties voor de woordenlijst."
+      },
+      "modeHabits": {
+        "name": "Modusregels voorstellen",
+        "description": "Merkt een modus op die je steeds met een sneltoets kiest."
+      },
+      "captureAdvisor": {
+        "name": "Adviseren over opnamekwaliteit",
+        "description": "Meldt herhalingen, verloren opnames en zacht geluid uit je eigen sessies."
+      },
+      "seriesPriming": {
+        "name": "Terugkerende vergaderingen voorbereiden"
+      }
+    },
+    "feed": {
+      "title": "Wat Sona opviel",
+      "spokenPunctuation": "Je zegt vaak {{spoken}} — als {{written}} schrijven?",
+      "vocabularyCorrection": "Je verandert {{spoken}} steeds in {{written}} — overnemen?",
+      "modeHabit": "Je kiest {{mode}} bijna elke dag met een sneltoets — de standaard maken?",
+      "retryRate": "Je {{subject}}-sessies worden {{times}}× vaker herhaald dan de rest.",
+      "lostCaptureRate": "Je {{subject}}-sessies eindigen {{times}}× vaker afgekapt of stil dan de rest.",
+      "inputLevel": "{{percent}}% van je opnames kwam zacht binnen — microfoonniveau nakijken?",
+      "example": "“{{text}}”",
+      "accept": "Ja",
+      "dismiss": "Nee, bedankt",
+      "evidence_one": "1 keer, over {{days}} dagen",
+      "evidence_other": "{{count}} keer, over {{days}} dagen"
+    },
+    "outcomes": {
+      "primed": "Terugkerende vergadering voorbereid",
+      "noticed_one": "1 ding opgemerkt",
+      "noticed_other": "{{count}} dingen opgemerkt"
     }
   }
 }

@@ -10,6 +10,7 @@ import { Notice, SettingsSection } from "@/components/settings/rows";
 import { WorkflowStatusGlyph } from "./WorkflowStatusGlyph";
 import { runsForLastSevenDays } from "./workflowRuns";
 import { formatWorkflowOutcome } from "./formatWorkflowOutcome";
+import { WORKFLOW_NAME_KEY } from "./workflowCatalogue";
 
 interface WorkflowRunLogProps {
   receipts: readonly WorkflowRunReceipt[];
@@ -91,8 +92,8 @@ export const WorkflowRunLog: React.FC<WorkflowRunLogProps> = ({
                 <p className="text-[13px] leading-5 text-gray-1000">
                   {formatWorkflowOutcome(receipt, t)}
                 </p>
-                <p className="font-mono text-[11px] text-gray-700">
-                  {t(`settings.workflows.items.${receipt.workflow_id}.name`)}
+                <p className="text-[11px] text-gray-700">
+                  {t(WORKFLOW_NAME_KEY[receipt.workflow_id])}
                   <span aria-hidden="true"> · </span>
                   <span className="tabular-nums">
                     {formatRelativeTime(receipt.finished_at_utc_ms, nowMs)}

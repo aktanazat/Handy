@@ -19,8 +19,7 @@ import { AgentPanelView, type PanelPhase } from "./AgentPanelView";
  * rebuild was asked to remove. Those are counting assertions, so they are the
  * ones worth pinning: a future edit that re-adds an echo cannot pass them.
  *
- * Colour and layout are Tailwind classes resolved against the Geist theme at
- * build time; how they look in dark/light is screenshot work for the parent. */
+ * Colour and layout resolve through the shared light and dark theme tokens. */
 
 const localeRoot = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -203,8 +202,8 @@ describe("which regions a phase is allowed to draw", () => {
   });
 });
 
-describe("the panel is on Geist tokens", () => {
-  test("the page, the cards and the hairlines all name a Geist step", () => {
+describe("the panel theme", () => {
+  test("the page, the cards and the hairlines all name a theme step", () => {
     const markup = render({
       phase: "proposal",
       conversation: CONVERSATION,
@@ -215,8 +214,7 @@ describe("the panel is on Geist tokens", () => {
     expect(markup).toContain("bg-background-100"); // card
     expect(markup).toContain("border-gray-alpha-400"); // hairline
     expect(markup).toContain("text-gray-1000"); // primary ink
-    expect(markup).toContain("font-mono"); // microlabel + identity
-    // The accent is Geist blue now; violet is dead everywhere.
+    // The accent is blue now; violet is dead everywhere.
     expect(markup).toContain("bg-blue-700");
     expect(markup.includes("violet")).toBe(false);
     /* No page-local class survives the port. Checked inside `class` attributes
@@ -231,9 +229,8 @@ describe("the panel is on Geist tokens", () => {
     expect(
       classNames.filter((value) => value.includes("agent-panel-")),
     ).toEqual([]);
-    /* And nothing in this panel carries a resting shadow: Geist is flat, and the
-     * only shadow the kit ships at rest is vg Button's own `shadow-xs`, which
-     * belongs to the kit rather than to this surface. */
+    /* And nothing in this panel carries a resting shadow; only floating
+     * surfaces may lift. */
     expect(
       classNames.filter((value) => /\bshadow-(sm|md|lg|xl)\b/.test(value)),
     ).toEqual([]);

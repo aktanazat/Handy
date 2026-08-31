@@ -36,10 +36,8 @@ import {
  * the dialog's own 150ms fade and scale. The global reduced-motion rule in
  * App.css collapses that for anyone who asked.
  *
- * `Dialog` + `Command` rather than the kit's `CommandDialog` wrapper: that
- * wrapper hard-codes group-heading styling on the element between them, and
- * the Geist microlabel would then be a specificity argument instead of a
- * class. */
+ * `Dialog` + `Command` rather than the kit's `CommandDialog` wrapper lets this
+ * surface apply the shared sentence-case group-label role directly. */
 
 export interface CommandPaletteProps {
   open: boolean;
@@ -112,7 +110,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               <CommandGroup
                 key={section.group}
                 heading={groupLabels[section.group]}
-                className="p-1.5 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:tracking-[0.12em] [&_[cmdk-group-heading]]:text-gray-800 [&_[cmdk-group-heading]]:uppercase"
+                className="p-1.5 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:text-[13px] [&_[cmdk-group-heading]]:leading-5 [&_[cmdk-group-heading]]:text-gray-900"
               >
                 {section.items.map((action) => {
                   const ActionIcon = action.icon;

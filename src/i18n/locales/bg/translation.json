@@ -26,15 +26,8 @@
     "secureInputWarning": "Бързите клавиши са блокирани от Secure Input"
   },
   "sidebar": {
-    "general": "Общи",
     "models": "Модели",
-    "advanced": "Разширени",
-    "postProcessing": "Постобработка",
-    "debug": "Отстраняване",
-    "about": "За приложението",
     "modes": "Режими",
-    "privacy": "Поверителност",
-    "agents": "Агенти",
     "meetings": "Срещи",
     "navigation": "Основна навигация",
     "people": "Хора",
@@ -153,21 +146,13 @@
     "active": "Активен",
     "switching": "Превключване…",
     "noModelsAvailable": "Няма налични модели",
-    "searchPlaceholder": "Търсене в моделите",
     "verifying": "Проверка на {{modelName}}…",
     "verifyingGeneric": "Проверка…",
     "extracting": "Разархивиране на {{modelName}}…",
-    "extractingMultiple": "Разархивиране на {{count}} модела…",
     "extractingGeneric": "Разархивиране…",
     "downloading": "Изтегляне {{percentage}}%",
-    "downloadingMultiple": "Изтегляне на {{count}} модела…",
-    "downloadingGeneric": "Изтегляне…",
-    "modelReady": "Моделът е готов",
     "loading": "Зареждане на {{modelName}}…",
     "loadingGeneric": "Зареждане…",
-    "modelError": "Грешка в модела",
-    "modelUnloaded": "Моделът е разтоварен",
-    "noModelDownloadRequired": "Няма модел, необходимо е изтегляне",
     "deleteModel": "Изтриване на {{modelName}}",
     "downloadSpeed": "{{speed}} MB/s",
     "cancel": "Отказ",
@@ -181,8 +166,7 @@
       "translate": "Превод на английски",
       "streaming": "Показва транскрипция на живо, докато говорите"
     },
-    "legacy": "Наследен",
-    "model": "Модел"
+    "legacy": "Наследен"
   },
   "settings": {
     "modelSettings": {
@@ -330,7 +314,6 @@
       }
     },
     "sound": {
-      "title": "Звук",
       "microphone": {
         "title": "Микрофон"
       },
@@ -338,16 +321,6 @@
         "title": "Входен канал",
         "average": "Осредняване на всички канали",
         "channel": "Канал {{n}}"
-      },
-      "audioFeedback": {
-        "label": "Звукова обратна връзка"
-      },
-      "outputDevice": {
-        "title": "Изходно устройство",
-        "description": "Мястото, където се възпроизвеждат звуците за обратна връзка."
-      },
-      "volume": {
-        "title": "Сила на звука"
       }
     },
     "advanced": {
@@ -357,13 +330,6 @@
           "as_spoken": "Както е разпознато",
           "british": "Британски"
         }
-      },
-      "groups": {
-        "app": "Приложение",
-        "output": "Изход",
-        "transcription": "Транскрипция",
-        "history": "История",
-        "experimental": "Експериментални"
       },
       "experimentalToggle": {
         "label": "Експериментални функции"
@@ -384,15 +350,8 @@
           "auto": "Автоматично"
         }
       },
-      "startHidden": {
-        "label": "Стартиране скрито",
-        "description": "Стартиране в системната област без отваряне на прозореца."
-      },
       "autostart": {
         "label": "Стартиране със системата"
-      },
-      "showTrayIcon": {
-        "label": "Икона в системната област"
       },
       "overlay": {
         "style": {
@@ -508,14 +467,6 @@
         },
         "empty": {
           "description": "Свържете точна изговорена дума като усмихнато лице с емотиконата, която искате да се изписва."
-        }
-      },
-      "disclosures": {
-        "launch": {
-          "title": "Стартиране"
-        },
-        "processing": {
-          "title": "Обработка"
         }
       },
       "snippets": {
@@ -864,9 +815,6 @@
         "label": "Постобработка",
         "description": "Пренаписва преписа с езиков модел след транскрипцията."
       },
-      "muteWhileRecording": {
-        "label": "Заглушаване при запис"
-      },
       "appendTrailingSpace": {
         "label": "Интервал в края",
         "description": "Добавя един интервал след поставения препис."
@@ -930,7 +878,6 @@
       }
     },
     "about": {
-      "title": "За приложението",
       "version": {
         "title": "Версия",
         "unavailable": "Недостъпно"
@@ -953,9 +900,6 @@
           "title": "ggml",
           "details": "Локалното реч-към-текст на Sona е изградено върху transcribe.cpp и ggml. Благодарности на Georgi Gerganov и сътрудниците."
         }
-      },
-      "whatsNewUpdates": {
-        "label": "Показвай новостите"
       },
       "files": {
         "title": "Файлове"
@@ -1553,7 +1497,6 @@
     },
     "workflows": {
       "title": "Работни потоци",
-      "builtIns": "Вградени работни потоци",
       "loadError": "Работните потоци не можаха да се заредят.",
       "updateError": "Работният поток не можа да се обнови.",
       "empty": "Няма налични работни потоци.",
@@ -1561,24 +1504,27 @@
       "toggleLabel": "Активиране на {{name}}",
       "items": {
         "person_linking": {
-          "name": "Свързване на хора",
+          "name": "Запомняй хората",
           "description": "Свързва срещите с хора чрез потвърдени данни за участници и говорители."
         },
         "pre_meeting_briefing": {
-          "name": "Подготовка преди среща",
+          "name": "Подготвяй обобщения за срещите",
           "description": "Създава резюме от предишни срещи, преди да започне открита среща."
         },
         "continuity": {
-          "name": "Приемственост",
+          "name": "Пренасяй срещите напред",
           "description": "Пренася нерешените ангажименти към следващите срещи."
         },
         "vocabulary_mining": {
-          "name": "Извличане на речник",
+          "name": "Учи нови думи",
           "description": "Намира повтарящи се имена и термини, които може да добавите към речника си."
         },
         "document_linking": {
-          "name": "Свързване на документи",
+          "name": "Свързвай документи",
           "description": "Свързва импортираните документи с хората, споменати в тях."
+        },
+        "meeting_activity": {
+          "name": "Запис на срещи"
         }
       },
       "status": {
@@ -1587,20 +1533,21 @@
         "skipped": "Пропуснато"
       },
       "outcomes": {
-        "personLinks_one": "Обновена е 1 връзка с човек",
-        "personLinks_other": "Обновени са {{count}} връзки с хора",
-        "briefing_one": "Подготвен е брифинг за 1 човек",
-        "briefing_other": "Подготвен е брифинг за {{count}} души",
-        "continuitySeries_one": "Обновена е 1 поредица от срещи",
-        "continuitySeries_other": "Обновени са {{count}} поредици от срещи",
-        "continuityCarried_one": "пренесена е 1 отворена задача",
-        "continuityCarried_other": "пренесени са {{count}} отворени задачи",
-        "vocabularyCandidates_one": "Намерено е 1 предложение за речника",
-        "vocabularyCandidates_other": "Намерени са {{count}} предложения за речника",
-        "documentLinks_one": "Обновена е 1 връзка с документ",
-        "documentLinks_other": "Обновени са {{count}} връзки с документи",
-        "alreadyProcessed": "Вече е обработено",
-        "failed": "Изпълнението е неуспешно",
+        "personLinks_one": "Запомнен е 1 човек",
+        "personLinks_other": "Запомнени са {{count}} души",
+        "briefing": "Обобщението за срещата ви е готово",
+        "continuity_one": "Пренесен е 1 висящ въпрос",
+        "continuity_other": "Пренесени са {{count}} висящи въпроса",
+        "vocabularyCandidates_one": "Научена е нова дума",
+        "vocabularyCandidates_other": "Научени са {{count}} нови думи",
+        "documentLinks_one": "Свързан е един документ",
+        "documentLinks_other": "Свързани са {{count}} документа",
+        "promptRecorded": "Записът започна",
+        "promptIgnored": "Открита среща не беше записана",
+        "autoRecordStarted": "Записът започна автоматично",
+        "autoRecordStopped": "Записът спря автоматично",
+        "alreadyProcessed": "Няма нищо ново за правене",
+        "failed": "Не можа да завърши",
         "skipped": "Пропуснато"
       },
       "vocabularySuggestions": {
@@ -1614,7 +1561,7 @@
       },
       "overview": {
         "whatSonaDid": "Какво направи Sona",
-        "commitments": "Ангажименти",
+        "openLoops": "Висящи въпроси",
         "openMeeting": "Отваряне на срещата {{title}}",
         "loadError": "Тази карта не можа да се зареди.",
         "retry": "Опитай отново"
@@ -1626,18 +1573,6 @@
         "loadMoreError": "Не можаха да се заредят още изпълнения.",
         "loadMore": "Зареждане на още",
         "chartAria": "Изпълнения на работни потоци по дни, {{count}} през последните 7 дни"
-      }
-    },
-    "hub": {
-      "navigation": "Раздели с настройки",
-      "tabs": {
-        "general": "Общи",
-        "privacy": "Поверителност",
-        "agents": "Агенти",
-        "workflows": "Работни потоци",
-        "advanced": "Разширени",
-        "about": "Относно",
-        "debug": "Отстраняване на грешки"
       }
     },
     "vocabulary": {
@@ -1712,7 +1647,11 @@
     "play": "Възпроизвеждане",
     "pause": "Пауза",
     "seek": "Позиция на възпроизвеждане",
-    "resetSetting": "Нулиране на {{name}}"
+    "resetSetting": "Нулиране на {{name}}",
+    "day": {
+      "today": "Днес",
+      "yesterday": "Вчера"
+    }
   },
   "commandPalette": {
     "open": "Търсене",
@@ -1898,17 +1837,17 @@
     },
     "live": {
       "elapsed": "Изминало",
-      "microphoneOnlyPartial": "Само микрофон / Частично. Системният звук не е достъпен или е влошен.",
-      "partialCapture": "Частично заснемане. Прегледайте пропуските, преди да разчитате на генерираните бележки.",
+      "microphoneOnlyPartial": "Записва се само микрофонът. Системният звук не е достъпен, затова тази среща ще бъде непълна.",
+      "partialCapture": "Липсва част от звука. Проверете празнините, преди да разчитате на генерираните бележки.",
       "inputs": "Входове",
       "signal": "Сигнал",
       "signalUnavailable": "Нивото на {{source}} не се отчита при заснемането.",
       "notReported": "Не се отчита",
-      "durabilityLag": "Изоставане на запазването",
+      "durabilityLag": "Записано на диска",
       "behind": "{{duration}} назад",
       "progress": "Напредък на транскрипта",
       "transcript": "Транскрипт",
-      "asrLag": "Изоставане на ASR",
+      "asrLag": "Забавяне на транскрипта",
       "storage": "Хранилище",
       "storageHealthy": "Шифрованото локално хранилище е в изправност.",
       "storageUnavailable": "Хранилището изисква внимание.",
@@ -1957,20 +1896,20 @@
     },
     "gaps": {
       "source_unavailable": "Източникът не е достъпен",
-      "source_start_failed": "Стартирането на източника беше неуспешно",
+      "source_start_failed": "Източникът не стартира",
       "permission_lost": "Разрешението е загубено",
       "paused": "Пауза",
-      "packet_dropped": "Изпуснат звуков пакет",
-      "writer_pressure": "Натиск върху записа в хранилището",
-      "storage_failure": "Отказ на хранилището",
-      "timestamp_missing": "Липсва времеви маркер",
-      "timestamp_discontinuity": "Прекъсване на времевите маркери",
-      "invalid_format": "Невалиден звуков формат",
+      "packet_dropped": "Загубен звук",
+      "writer_pressure": "Хранилището изостана",
+      "storage_failure": "Хранилището отказа",
+      "timestamp_missing": "Липсват времена",
+      "timestamp_discontinuity": "Скок във времето",
+      "invalid_format": "Нечетим звук",
       "source_stopped": "Източникът спря",
       "corrupt_record": "Повреден запис",
       "missing_record": "Липсващ запис",
-      "recovery_tail": "Край на възстановяването",
-      "system_sleep": "Mac заспа"
+      "recovery_tail": "Възстановено след срив",
+      "system_sleep": "Вашият Mac заспа"
     },
     "errors": {
       "load": "Sona не можа да зареди данните на текущата среща.",
@@ -2088,7 +2027,7 @@
       "tabs": {
         "insights": "Изводи",
         "ledger": "Регистър",
-        "questions": "Въпроси и отговори",
+        "questions": "Въпроси",
         "transcript": "Транскрипт"
       },
       "tabsLabel": "Раздели за преглед на срещата",
@@ -2152,12 +2091,12 @@
       "forgotten": "Забравено"
     },
     "diarization": {
-      "not_requested": "Диаризацията не е заявена",
-      "model_unavailable": "Моделът за диаризация не е наличен",
-      "downloading": "Изтегляне на модел за диаризация",
+      "not_requested": "Говорителите не са разделени",
+      "model_unavailable": "Моделът за говорители не е достъпен",
+      "downloading": "Изтегляне на модела за говорители",
       "running": "Разделяне на говорители",
-      "succeeded": "Присвояванията на говорители са актуални",
-      "failed": "Разделянето на говорители беше неуспешно"
+      "succeeded": "Говорителите са актуални",
+      "failed": "Говорителите не можаха да бъдат разделени"
     },
     "list": {
       "searchLabel": "Търсене на срещи",
@@ -2177,13 +2116,6 @@
         "ready": "Готова",
         "processing": "Обработва се",
         "needs_attention": "Изисква внимание"
-      },
-      "headline": {
-        "words": "{{count}} транскрибирани думи"
-      },
-      "sourceGlyph": {
-        "microphone": "МИК",
-        "system_audio": "СИС"
       },
       "filters": {
         "label": "Филтрирай срещите",
@@ -2301,9 +2233,6 @@
       },
       "anyMic": {
         "label": "Питай при всяко използване на микрофона"
-      },
-      "autoStart": {
-        "label": "Отвори срещата, когато нейното отброяване се вижда"
       },
       "apps": {
         "label": "Приложения за срещи",
@@ -2540,15 +2469,11 @@
     "list": {
       "meetings_one": "1 среща",
       "meetings_other": "{{count}} срещи",
-      "last": "Последна {{date}}",
-      "suggested_one": "Да се свърже 1 предложена среща?",
-      "suggested_other": "Да се свържат {{count}} предложени срещи?",
       "dismiss": "Отхвърляне",
       "confirm": "Потвърждаване",
       "loadError": "Хората не можаха да се заредят.",
       "empty": "Все още няма хора.",
-      "meetings": "{{count}} срещи",
-      "suggested": "Да се свържат {{count}} предложени срещи?"
+      "meetings": "{{count}} срещи"
     },
     "detail": {
       "nameLabel": "Име на човека",
@@ -2564,7 +2489,6 @@
       "deleteTitle": "Изтриване на този човек?",
       "deleteDescription": "Да се изтрие {{name}} и всички връзки към срещи?",
       "carriedSince": "Отворено от {{date}}",
-      "stillOpen": "Все още отворено",
       "noOpenLoops": "Няма нищо останало отворено.",
       "commitments": "Ангажименти",
       "noCommitments": "Няма записани ангажименти.",
@@ -2631,6 +2555,256 @@
       "stillOpen": "Все още отворено: {{text}}",
       "metCount": "Срещали сте {{name}} {{count}} пъти",
       "metBefore": "Срещали сте {{name}} {{count}} пъти · последно {{date}}"
+    }
+  },
+  "libraryV2": {
+    "recordings_one": "{{count, number}} запис",
+    "recordings_other": "{{count, number}} записа",
+    "words_one": "{{count, number}} дума",
+    "words_other": "{{count, number}} думи",
+    "summaryLoading": "Броим вашите записи…",
+    "byMeaning": "по значение",
+    "actions": {
+      "copy": "Копиране",
+      "copied": "Копирано",
+      "transcribeAgain": "Транскрибирай отново",
+      "delete": "Изтриване",
+      "more": "Още действия"
+    }
+  },
+  "meetingsV2": {
+    "retention": {
+      "keptForever": "Пази се завинаги",
+      "keptDays": "Пази се {{days}} дни",
+      "change": "промяна в Настройки"
+    }
+  },
+  "peopleV2": {
+    "list": {
+      "lastMet": "Последна среща: {{date}}"
+    },
+    "detail": {
+      "openLoops": "Висящи въпроси",
+      "howSonaKnows": "Откъде Sona знае това",
+      "noEvidence": "Още нищо не свързва този човек със среща."
+    }
+  },
+  "modesV2": {
+    "sections": {
+      "instructions": "Инструкции",
+      "model": "Модел",
+      "output": "Изход"
+    },
+    "instructions": {
+      "enabled": {
+        "label": "Изчистване с AI"
+      },
+      "custom": {
+        "label": "Ваши собствени инструкции",
+        "hint": "Написаното тук замества стила на изхода по-долу, вместо да се добавя към него. Оставете празно, за да се използва стилът.",
+        "placeholder": "Пиши както бих писал аз: кратки изречения, без списъци."
+      },
+      "disabled": "Включете изчистването и Sona ще следва тези инструкции след всяка диктовка."
+    },
+    "output": {
+      "style": {
+        "label": "Стил на изхода"
+      }
+    },
+    "activation": {
+      "title": "Включва се сам",
+      "rules": {
+        "label": "Приложения и сайтове",
+        "empty": "Нищо не превключва към този режим само.",
+        "example": "Едно правило съхранява една идентичност на приложение или един хост на сайт: com.apple.mail или mail.google.com."
+      }
+    },
+    "advanced": {
+      "title": "Разширени",
+      "summary": "Клавишни комбинации, тон, контекст, доставяне"
+    },
+    "list": {
+      "preset": "Шаблон"
+    },
+    "chip": {
+      "lead": "Режим",
+      "title": "Режими",
+      "action": "Смяна на режима, сега {{mode}}",
+      "editLink": "Редактиране на режимите в Настройки",
+      "switchError": "Режимът не можа да бъде сменен. Опитайте отново."
+    },
+    "rules": {
+      "title": "Правила за текст",
+      "kind": "Вид",
+      "left": "Вие казвате",
+      "right": "Sona пише",
+      "add": "Добави правило",
+      "loading": "Зареждане на правилата за текст",
+      "empty": "Още няма правила за текст. Добавете едно по-горе и Sona ще го прилага към всеки транскрипт.",
+      "matching": "Правилата съвпадат с цели думи и не различават малки и главни букви. Когато две пасват на едно и също място, печели по-дългото.",
+      "applyRule": "Приложи {{rule}}",
+      "removeRule": "Изтрий {{rule}}",
+      "restoreRewrites": "Възстанови пренаписванията по подразбиране",
+      "kinds": {
+        "vocabulary": "Изписване",
+        "snippet": "Съкращение",
+        "replacement": "Пренаписване",
+        "emoji": "Емотикона"
+      },
+      "kindHints": {
+        "vocabulary": "Учи Sona как се пише едно име, за да изписва точната форма всеки път, когато чуе израза.",
+        "snippet": "Разгръща кратък тригер в по-дълъг текст, например omw в on my way.",
+        "replacement": "Пренаписва израз, който Sona вече е чула, например кльомба в @.",
+        "emoji": "Свързва точна изговорена дума като усмихнато лице с емотиконата, която искате да се изписва."
+      },
+      "placeholders": {
+        "vocabulary": {
+          "left": "open ai",
+          "right": "OpenAI"
+        },
+        "snippet": {
+          "left": "omw",
+          "right": "on my way"
+        },
+        "replacement": {
+          "left": "кльомба",
+          "right": "@"
+        },
+        "emoji": {
+          "left": "усмихнато лице",
+          "right": "🙂"
+        }
+      },
+      "toggles": {
+        "emoji": "Изписвай емотикони, когато ги назовете",
+        "snippet": "Разгръщай съкращенията",
+        "replacement": "Прилагай пренаписванията"
+      },
+      "toggleErrors": {
+        "spokenEdits": "Гласовите команди за редакция не можаха да бъдат променени. Опитайте отново.",
+        "emoji": "Изписването на емотикони не можа да бъде променено. Опитайте отново.",
+        "snippet": "Разгръщането на съкращения не можа да бъде променено. Опитайте отново.",
+        "replacement": "Пренаписванията не можаха да бъдат променени. Опитайте отново."
+      },
+      "errors": {
+        "incomplete": "Попълнете двете страни или изтрийте правилото.",
+        "duplicate": "Друго правило от този вид вече използва този израз."
+      }
+    }
+  },
+  "settingsV2": {
+    "navigation": "Настройки",
+    "tabs": {
+      "essentials": "Основни",
+      "advanced": "Разширени",
+      "debug": "Отстраняване"
+    },
+    "essentials": {
+      "title": "Основни",
+      "sounds": "Звуци",
+      "launchAtLogin": "Стартиране със системата",
+      "appearance": "Външен вид",
+      "volume": "Сила на звука",
+      "detectMeetings": "Забелязвай, когато се включа в среща",
+      "detectMeetingsHint": "Sona предлага да запише. Никога не започва запис сама.",
+      "retention": "Изтривай записите след",
+      "dictationStyles": "Стилове на диктовка",
+      "dictationStylesAction": "Редактиране"
+    },
+    "advanced": {
+      "title": "Разширени",
+      "meetings": "Срещи",
+      "models": "Модели",
+      "modelCatalog": "Каталог с модели",
+      "cloudKeys": "Ключове за облачна транскрипция",
+      "cleanupProvider": "Доставчик за изчистване",
+      "dictation": "Диктовка",
+      "keepDictations": "Колко диктовки да се пазят",
+      "readsFromOtherApps": "Какво Sona може да чете от други приложения",
+      "workflows": "Какво прави Sona след среща",
+      "sync": "Синхронизация",
+      "leavesThisMac": "Какво напуска този Mac",
+      "agents": "Агенти",
+      "agentBridge": "Мост за кодиращи агенти",
+      "about": "За Sona",
+      "debugHint": "Натиснете {{chord}}, за да отворите страницата за отстраняване на проблеми."
+    },
+    "apps": {
+      "label": "Приложения за срещи",
+      "browsersAutomatic": "Разговор в раздел на браузъра се открива, без да е изброен тук.",
+      "runningNow": "Работят в момента",
+      "add": "Добави приложение",
+      "addTitle": "Добавяне на приложение за срещи",
+      "addDescription": "Sona се нуждае от идентификатора на приложението, който можете да видите в прозореца „За приложението“ или с `osascript -e 'id of app \"Име\"'`.",
+      "identifier": "Идентификатор на приложението",
+      "identifierPlaceholder": "com.example.app",
+      "invalid": "Идентификаторът изглежда така: com.example.app — малки букви, свързани с точки.",
+      "duplicate": "Това приложение вече е в списъка.",
+      "remove": "Премахни {{app}}",
+      "names": {
+        "zoom": "Zoom",
+        "teams": "Microsoft Teams",
+        "webex": "Webex",
+        "facetime": "FaceTime",
+        "slack": "Slack"
+      }
+    }
+  },
+  "consentPanel": {
+    "calendarTitle": "{{title}} — да я запиша ли?",
+    "appTitle": "Среща в {{app}} — да я запиша ли?",
+    "genericTitle": "Да запиша ли тази среща?",
+    "introduction": "Sona записва на този Mac и контролът остава при вас.",
+    "seriesBrief_one": "Среща {{nth}} с {{person}} · {{count}} отворен въпрос",
+    "seriesBrief_other": "Среща {{nth}} с {{person}} · {{count}} отворени въпроса",
+    "alwaysRecord": "Винаги записвай тази среща",
+    "assurance": "Започнете едва след като всички в срещата са се съгласили да бъдат записвани.",
+    "record": "Запис",
+    "ignore": "Пропусни",
+    "recording": "Записва се",
+    "stop": "Спри",
+    "forgetSeries": "Забрави тази поредица"
+  },
+  "learningV2": {
+    "workflows": {
+      "spokenPunctuation": {
+        "name": "Предлагай изговорена пунктуация",
+        "description": "Забелязва символи, които изговаряш, но никое правило за замяна още не изписва."
+      },
+      "correctionLearning": {
+        "name": "Учи се от корекциите ти",
+        "description": "Превръща ръчните ти поправки в предложения за речника."
+      },
+      "modeHabits": {
+        "name": "Предлагай правила за режими",
+        "description": "Забелязва режим, който често избираш с бърз клавиш."
+      },
+      "captureAdvisor": {
+        "name": "Съветвай за качеството на записа",
+        "description": "Показва повторни опити, загубени записи и тих звук от твоите сесии."
+      },
+      "seriesPriming": {
+        "name": "Подготвяй повтарящи се срещи"
+      }
+    },
+    "feed": {
+      "title": "Какво забеляза Sona",
+      "spokenPunctuation": "Забелязахме, че често казваш {{spoken}} — да го изписваме като {{written}}?",
+      "vocabularyCorrection": "Постоянно сменяш {{spoken}} на {{written}} — да го запомним?",
+      "modeHabit": "Почти всеки ден избираш {{mode}} с бърз клавиш — да стане ли основен?",
+      "retryRate": "Сесиите с {{subject}} се повтарят {{times}}× по-често от останалите.",
+      "lostCaptureRate": "Сесиите с {{subject}} завършват отрязани или без реч {{times}}× по-често от останалите.",
+      "inputLevel": "{{percent}}% от записите ти са тихи — провери нивото на микрофона?",
+      "example": "„{{text}}“",
+      "accept": "Да",
+      "dismiss": "Не, благодаря",
+      "evidence_one": "1 път, в рамките на {{days}} дни",
+      "evidence_other": "{{count}} пъти, в рамките на {{days}} дни"
+    },
+    "outcomes": {
+      "primed": "Подготви повтаряща се среща",
+      "noticed_one": "Забеляза 1 нещо",
+      "noticed_other": "Забеляза {{count}} неща"
     }
   }
 }

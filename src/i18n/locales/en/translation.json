@@ -26,15 +26,8 @@
     "secureInputWarning": "Shortcuts Blocked by Secure Input"
   },
   "sidebar": {
-    "general": "General",
     "models": "Models",
-    "advanced": "Advanced",
-    "postProcessing": "Post-processing",
-    "debug": "Debug",
-    "about": "About",
     "modes": "Modes",
-    "privacy": "Privacy",
-    "agents": "Agents",
     "meetings": "Meetings",
     "navigation": "Main navigation",
     "people": "People",
@@ -158,21 +151,13 @@
     "active": "Active",
     "switching": "Switching…",
     "noModelsAvailable": "No models available",
-    "searchPlaceholder": "Search models",
     "verifying": "Verifying {{modelName}}…",
     "verifyingGeneric": "Verifying…",
     "extracting": "Extracting {{modelName}}…",
-    "extractingMultiple": "Extracting {{count}} models…",
     "extractingGeneric": "Extracting…",
     "downloading": "Downloading {{percentage}}%",
-    "downloadingMultiple": "Downloading {{count}} models…",
-    "downloadingGeneric": "Downloading…",
-    "modelReady": "Model ready",
     "loading": "Loading {{modelName}}…",
     "loadingGeneric": "Loading…",
-    "modelError": "Model error",
-    "modelUnloaded": "Model unloaded",
-    "noModelDownloadRequired": "No model, download required",
     "deleteModel": "Delete {{modelName}}",
     "downloadSpeed": "{{speed}} MB/s",
     "cancel": "Cancel",
@@ -185,8 +170,7 @@
       "translation": "Can translate to English",
       "translate": "Translate",
       "streaming": "Shows live transcription as you speak"
-    },
-    "model": "Model"
+    }
   },
   "settings": {
     "modelSettings": {
@@ -334,7 +318,6 @@
       }
     },
     "sound": {
-      "title": "Sound",
       "microphone": {
         "title": "Microphone"
       },
@@ -342,16 +325,6 @@
         "title": "Input channel",
         "average": "Average all channels",
         "channel": "Channel {{n}}"
-      },
-      "audioFeedback": {
-        "label": "Audio feedback"
-      },
-      "outputDevice": {
-        "title": "Output device",
-        "description": "Where feedback sounds play."
-      },
-      "volume": {
-        "title": "Volume"
       }
     },
     "advanced": {
@@ -361,13 +334,6 @@
           "as_spoken": "As spoken",
           "british": "British"
         }
-      },
-      "groups": {
-        "app": "App",
-        "output": "Output",
-        "transcription": "Transcription",
-        "history": "History",
-        "experimental": "Experimental"
       },
       "experimentalToggle": {
         "label": "Experimental features"
@@ -388,15 +354,8 @@
           "auto": "Auto"
         }
       },
-      "startHidden": {
-        "label": "Start hidden",
-        "description": "Launch to system tray without opening the window."
-      },
       "autostart": {
         "label": "Launch on startup"
-      },
-      "showTrayIcon": {
-        "label": "Show tray icon"
       },
       "overlay": {
         "style": {
@@ -512,14 +471,6 @@
         },
         "empty": {
           "description": "Map an exact spoken token such as smiley face to the emoji you want written."
-        }
-      },
-      "disclosures": {
-        "launch": {
-          "title": "Launch"
-        },
-        "processing": {
-          "title": "Processing"
         }
       },
       "snippets": {
@@ -930,9 +881,6 @@
         "label": "Post-processing",
         "description": "Rewrite the transcript with a language model after transcription."
       },
-      "muteWhileRecording": {
-        "label": "Mute while recording"
-      },
       "appendTrailingSpace": {
         "label": "Append a trailing space",
         "description": "Adds one space after the pasted transcript."
@@ -990,13 +938,9 @@
       }
     },
     "about": {
-      "title": "About",
       "version": {
         "title": "Version",
         "unavailable": "Unavailable"
-      },
-      "whatsNewUpdates": {
-        "label": "Show what's new"
       },
       "appDataDirectory": {
         "title": "App data directory"
@@ -1613,7 +1557,6 @@
     },
     "workflows": {
       "title": "Workflows",
-      "builtIns": "Built-in workflows",
       "loadError": "Couldn't load workflows.",
       "updateError": "Couldn't update the workflow.",
       "empty": "No workflows are available.",
@@ -1621,24 +1564,27 @@
       "toggleLabel": "Enable {{name}}",
       "items": {
         "person_linking": {
-          "name": "Person linking",
+          "name": "Remember people",
           "description": "Connects meetings to people using confirmed attendee and speaker evidence."
         },
         "pre_meeting_briefing": {
-          "name": "Pre-meeting briefing",
+          "name": "Prepare meeting briefs",
           "description": "Builds a brief from past meetings before a detected meeting starts."
         },
         "continuity": {
-          "name": "Continuity",
+          "name": "Carry meetings forward",
           "description": "Carries unresolved commitments forward across meetings."
         },
         "vocabulary_mining": {
-          "name": "Vocabulary mining",
+          "name": "Learn new words",
           "description": "Finds repeated names and terms that may belong in your vocabulary."
         },
         "document_linking": {
-          "name": "Document linking",
+          "name": "Link documents",
           "description": "Connects imported documents to people named in them."
+        },
+        "meeting_activity": {
+          "name": "Meeting recording"
         }
       },
       "status": {
@@ -1647,20 +1593,21 @@
         "skipped": "Skipped"
       },
       "outcomes": {
-        "personLinks_one": "Updated 1 person link",
-        "personLinks_other": "Updated {{count}} person links",
-        "briefing_one": "Prepared a briefing for 1 person",
-        "briefing_other": "Prepared a briefing for {{count}} people",
-        "continuitySeries_one": "Updated 1 meeting series",
-        "continuitySeries_other": "Updated {{count}} meeting series",
-        "continuityCarried_one": "carried 1 open loop",
-        "continuityCarried_other": "carried {{count}} open loops",
-        "vocabularyCandidates_one": "Found 1 vocabulary suggestion",
-        "vocabularyCandidates_other": "Found {{count}} vocabulary suggestions",
-        "documentLinks_one": "Updated 1 document link",
-        "documentLinks_other": "Updated {{count}} document links",
-        "alreadyProcessed": "Already processed",
-        "failed": "Run failed",
+        "personLinks_one": "Remembered 1 person",
+        "personLinks_other": "Remembered {{count}} people",
+        "briefing": "Prepared your meeting brief",
+        "continuity_one": "Carried 1 open loop forward",
+        "continuity_other": "Carried {{count}} open loops forward",
+        "vocabularyCandidates_one": "Learned a new word",
+        "vocabularyCandidates_other": "Learned {{count}} new words",
+        "documentLinks_one": "Linked a document",
+        "documentLinks_other": "Linked {{count}} documents",
+        "promptRecorded": "Started recording",
+        "promptIgnored": "Skipped recording a detected meeting",
+        "autoRecordStarted": "Started recording automatically",
+        "autoRecordStopped": "Stopped recording automatically",
+        "alreadyProcessed": "Nothing new to do",
+        "failed": "Couldn't finish",
         "skipped": "Skipped"
       },
       "vocabularySuggestions": {
@@ -1674,7 +1621,7 @@
       },
       "overview": {
         "whatSonaDid": "What Sona did",
-        "commitments": "Commitments",
+        "openLoops": "Open loops",
         "openMeeting": "Open meeting {{title}}",
         "loadError": "Couldn't load this card.",
         "retry": "Retry"
@@ -1686,18 +1633,6 @@
         "loadMoreError": "Couldn't load more runs.",
         "loadMore": "Load more",
         "chartAria": "Workflow runs per day, {{count}} in the last 7 days"
-      }
-    },
-    "hub": {
-      "navigation": "Settings sections",
-      "tabs": {
-        "general": "General",
-        "privacy": "Privacy",
-        "agents": "Agents",
-        "advanced": "Advanced",
-        "about": "About",
-        "workflows": "Workflows",
-        "debug": "Debug"
       }
     }
   },
@@ -1719,7 +1654,11 @@
     "play": "Play",
     "pause": "Pause",
     "seek": "Playback position",
-    "resetSetting": "Reset {{name}}"
+    "resetSetting": "Reset {{name}}",
+    "day": {
+      "today": "Today",
+      "yesterday": "Yesterday"
+    }
   },
   "commandPalette": {
     "open": "Search",
@@ -1768,7 +1707,7 @@
     "commandRewriteUnavailableTitle": "Rewrite unavailable"
   },
   "appLanguage": {
-    "title": "Application Language"
+    "title": "App language"
   },
   "theme": {
     "title": "Application Theme",
@@ -1918,17 +1857,17 @@
     },
     "live": {
       "elapsed": "Elapsed",
-      "microphoneOnlyPartial": "Microphone only / Partial. System audio is unavailable or degraded.",
-      "partialCapture": "Partial capture. Review the gaps before relying on generated notes.",
+      "microphoneOnlyPartial": "Recording the microphone only. System audio is unavailable, so this meeting will be partial.",
+      "partialCapture": "Some audio is missing. Check the gaps before relying on the generated notes.",
       "inputs": "Inputs",
       "signal": "Signal",
       "signalUnavailable": "{{source}} level is not reported by capture.",
       "notReported": "Not reported",
-      "durabilityLag": "Durability lag",
+      "durabilityLag": "Saved to disk",
       "behind": "{{duration}} behind",
       "progress": "Transcript progress",
       "transcript": "Transcript",
-      "asrLag": "ASR lag",
+      "asrLag": "Transcript lag",
       "storage": "Storage",
       "storageHealthy": "Encrypted local storage is healthy.",
       "storageUnavailable": "Storage needs attention.",
@@ -1977,20 +1916,20 @@
     },
     "gaps": {
       "source_unavailable": "Source unavailable",
-      "source_start_failed": "Source start failed",
+      "source_start_failed": "Source didn't start",
       "permission_lost": "Permission lost",
       "paused": "Paused",
-      "packet_dropped": "Audio packet dropped",
-      "writer_pressure": "Storage writer pressure",
-      "storage_failure": "Storage failure",
-      "timestamp_missing": "Timestamp missing",
-      "timestamp_discontinuity": "Timestamp discontinuity",
-      "invalid_format": "Invalid audio format",
+      "packet_dropped": "Audio dropped",
+      "writer_pressure": "Storage fell behind",
+      "storage_failure": "Storage failed",
+      "timestamp_missing": "Timing missing",
+      "timestamp_discontinuity": "Timing jumped",
+      "invalid_format": "Unreadable audio",
       "source_stopped": "Source stopped",
-      "corrupt_record": "Corrupt record",
-      "missing_record": "Missing record",
-      "recovery_tail": "Recovery tail",
-      "system_sleep": "Mac sleep"
+      "corrupt_record": "Damaged recording",
+      "missing_record": "Missing recording",
+      "recovery_tail": "Recovered after a crash",
+      "system_sleep": "Your Mac slept"
     },
     "errors": {
       "load": "Sona could not load the current meeting data.",
@@ -2109,7 +2048,7 @@
       "tabs": {
         "insights": "Insights",
         "ledger": "Ledger",
-        "questions": "Q&A",
+        "questions": "Questions",
         "transcript": "Transcript"
       },
       "tabsLabel": "Meeting review sections",
@@ -2172,12 +2111,12 @@
       "forgotten": "Forgotten"
     },
     "diarization": {
-      "not_requested": "Diarization not requested",
-      "model_unavailable": "Diarization model unavailable",
-      "downloading": "Downloading diarization model",
+      "not_requested": "Speakers not separated",
+      "model_unavailable": "Speaker model unavailable",
+      "downloading": "Downloading the speaker model",
       "running": "Separating speakers",
-      "succeeded": "Speaker assignments current",
-      "failed": "Speaker separation failed"
+      "succeeded": "Speakers are up to date",
+      "failed": "Couldn't separate speakers"
     },
     "list": {
       "searchLabel": "Search meetings",
@@ -2197,13 +2136,6 @@
         "ready": "Ready",
         "processing": "Processing",
         "needs_attention": "Needs attention"
-      },
-      "headline": {
-        "words": "{{count}} words transcribed"
-      },
-      "sourceGlyph": {
-        "microphone": "MIC",
-        "system_audio": "SYS"
       },
       "filters": {
         "label": "Filter meetings",
@@ -2305,9 +2237,6 @@
       },
       "anyMic": {
         "label": "Ask on any microphone use"
-      },
-      "autoStart": {
-        "label": "Open the meeting when its countdown is showing"
       },
       "apps": {
         "label": "Meeting apps",
@@ -2540,15 +2469,11 @@
     "list": {
       "meetings_one": "1 meeting",
       "meetings_other": "{{count}} meetings",
-      "last": "Last {{date}}",
-      "suggested_one": "Link 1 suggested meeting?",
-      "suggested_other": "Link {{count}} suggested meetings?",
       "dismiss": "Dismiss",
       "confirm": "Confirm",
       "loadError": "Couldn't load people.",
       "empty": "No people yet.",
-      "meetings": "{{count}} meetings",
-      "suggested": "Link {{count}} suggested meetings?"
+      "meetings": "{{count}} meetings"
     },
     "detail": {
       "nameLabel": "Person name",
@@ -2564,7 +2489,6 @@
       "deleteTitle": "Delete this person?",
       "deleteDescription": "Delete {{name}} and remove all of their meeting links?",
       "carriedSince": "Open since {{date}}",
-      "stillOpen": "Still open",
       "noOpenLoops": "Nothing is still open.",
       "commitments": "Commitments",
       "noCommitments": "No commitments recorded.",
@@ -2631,6 +2555,256 @@
       "stillOpen": "Still open: {{text}}",
       "metCount": "You have met {{name}} {{count}} times",
       "metBefore": "You have met {{name}} {{count}} times · last {{date}}"
+    }
+  },
+  "libraryV2": {
+    "recordings_one": "{{count, number}} recording",
+    "recordings_other": "{{count, number}} recordings",
+    "words_one": "{{count, number}} word",
+    "words_other": "{{count, number}} words",
+    "summaryLoading": "Counting your recordings…",
+    "byMeaning": "by meaning",
+    "actions": {
+      "copy": "Copy",
+      "copied": "Copied",
+      "transcribeAgain": "Transcribe again",
+      "delete": "Delete",
+      "more": "More actions"
+    }
+  },
+  "meetingsV2": {
+    "retention": {
+      "keptForever": "Kept forever",
+      "keptDays": "Kept {{days}} days",
+      "change": "change in Settings"
+    }
+  },
+  "peopleV2": {
+    "list": {
+      "lastMet": "Last met {{date}}"
+    },
+    "detail": {
+      "openLoops": "Open loops",
+      "howSonaKnows": "How Sona knows",
+      "noEvidence": "Nothing links this person to a meeting yet."
+    }
+  },
+  "modesV2": {
+    "sections": {
+      "instructions": "Instructions",
+      "model": "Model",
+      "output": "Output"
+    },
+    "instructions": {
+      "enabled": {
+        "label": "Clean up with AI"
+      },
+      "custom": {
+        "label": "Your own instructions",
+        "hint": "Anything written here replaces the output style below, rather than being added to it. Leave it empty to use the style.",
+        "placeholder": "Write it the way I would: short sentences, no bullet points."
+      },
+      "disabled": "Turn on cleanup and Sona follows these instructions after every dictation."
+    },
+    "output": {
+      "style": {
+        "label": "Output style"
+      }
+    },
+    "activation": {
+      "title": "Turns on by itself",
+      "rules": {
+        "label": "Apps and websites",
+        "empty": "Nothing switches to this mode on its own.",
+        "example": "A rule stores one app identity or one website host — com.apple.mail, or mail.google.com."
+      }
+    },
+    "advanced": {
+      "title": "Advanced",
+      "summary": "Shortcuts, tone, context, delivery"
+    },
+    "list": {
+      "preset": "Preset"
+    },
+    "chip": {
+      "lead": "Mode",
+      "title": "Modes",
+      "action": "Change mode, currently {{mode}}",
+      "editLink": "Edit modes in Settings",
+      "switchError": "Couldn't switch mode. Try again."
+    },
+    "rules": {
+      "title": "Text rules",
+      "kind": "Kind",
+      "left": "You say",
+      "right": "Sona writes",
+      "add": "Add a rule",
+      "loading": "Loading text rules",
+      "empty": "No text rules yet. Add one above and Sona applies it to every transcript.",
+      "matching": "Rules match whole words and ignore case. When two fit the same spot the longer one wins.",
+      "applyRule": "Apply {{rule}}",
+      "removeRule": "Delete {{rule}}",
+      "restoreRewrites": "Restore default rewrites",
+      "kinds": {
+        "vocabulary": "Spelling",
+        "snippet": "Shortcut",
+        "replacement": "Rewrite",
+        "emoji": "Emoji"
+      },
+      "kindHints": {
+        "vocabulary": "Teaches Sona how a name is spelled, so it writes the exact form every time it hears the phrase.",
+        "snippet": "Expands a short trigger into longer text, such as omw into on my way.",
+        "replacement": "Rewrites a phrase Sona already heard, such as at sign into @.",
+        "emoji": "Maps an exact spoken token, such as smiley face, to the emoji you want written."
+      },
+      "placeholders": {
+        "vocabulary": {
+          "left": "open ai",
+          "right": "OpenAI"
+        },
+        "snippet": {
+          "left": "omw",
+          "right": "on my way"
+        },
+        "replacement": {
+          "left": "at sign",
+          "right": "@"
+        },
+        "emoji": {
+          "left": "smiley face",
+          "right": "🙂"
+        }
+      },
+      "toggles": {
+        "emoji": "Write emoji when you name one",
+        "snippet": "Expand shortcuts",
+        "replacement": "Apply rewrites"
+      },
+      "toggleErrors": {
+        "spokenEdits": "Couldn't change spoken editing commands. Try again.",
+        "emoji": "Couldn't change emoji writing. Try again.",
+        "snippet": "Couldn't change shortcut expansion. Try again.",
+        "replacement": "Couldn't change rewrites. Try again."
+      },
+      "errors": {
+        "incomplete": "Fill in both sides, or delete the rule.",
+        "duplicate": "Another rule of this kind already uses this phrase."
+      }
+    }
+  },
+  "settingsV2": {
+    "navigation": "Settings",
+    "tabs": {
+      "essentials": "Essentials",
+      "advanced": "Advanced",
+      "debug": "Debug"
+    },
+    "essentials": {
+      "title": "Essentials",
+      "sounds": "Sounds",
+      "launchAtLogin": "Launch at login",
+      "appearance": "Appearance",
+      "volume": "Sound volume",
+      "detectMeetings": "Notice when I join a meeting",
+      "detectMeetingsHint": "Sona offers to record. It never starts a recording on its own.",
+      "retention": "Delete recordings after",
+      "dictationStyles": "Dictation styles",
+      "dictationStylesAction": "Edit"
+    },
+    "advanced": {
+      "title": "Advanced",
+      "meetings": "Meetings",
+      "models": "Models",
+      "modelCatalog": "Model catalog",
+      "cloudKeys": "Cloud transcription keys",
+      "cleanupProvider": "Cleanup provider",
+      "dictation": "Dictation",
+      "keepDictations": "Dictations to keep",
+      "readsFromOtherApps": "What Sona may read from other apps",
+      "workflows": "What Sona does after a meeting",
+      "sync": "Sync",
+      "leavesThisMac": "What leaves this Mac",
+      "agents": "Agents",
+      "agentBridge": "Coding agent bridge",
+      "about": "About Sona",
+      "debugHint": "Press {{chord}} to open the debug page."
+    },
+    "apps": {
+      "label": "Meeting apps",
+      "browsersAutomatic": "A call in a browser tab is noticed without being listed here.",
+      "runningNow": "Running now",
+      "add": "Add an app",
+      "addTitle": "Add a meeting app",
+      "addDescription": "Sona needs the app's identifier, which you can read in the app's own About window or with `osascript -e 'id of app \"Name\"'`.",
+      "identifier": "App identifier",
+      "identifierPlaceholder": "com.example.app",
+      "invalid": "An identifier looks like com.example.app: lowercase words joined by dots.",
+      "duplicate": "That app is already on the list.",
+      "remove": "Remove {{app}}",
+      "names": {
+        "zoom": "Zoom",
+        "teams": "Microsoft Teams",
+        "webex": "Webex",
+        "facetime": "FaceTime",
+        "slack": "Slack"
+      }
+    }
+  },
+  "consentPanel": {
+    "calendarTitle": "{{title}} — record it?",
+    "appTitle": "{{app}} meeting — record it?",
+    "genericTitle": "Record this meeting?",
+    "introduction": "Sona records on this Mac and keeps you in control.",
+    "seriesBrief_one": "Meeting {{nth}} with {{person}} · {{count}} open loop",
+    "seriesBrief_other": "Meeting {{nth}} with {{person}} · {{count}} open loops",
+    "alwaysRecord": "Always record this meeting",
+    "assurance": "Only start after everyone in the meeting has agreed to be recorded.",
+    "record": "Record",
+    "ignore": "Ignore",
+    "recording": "Recording",
+    "stop": "Stop",
+    "forgetSeries": "Forget this series"
+  },
+  "learningV2": {
+    "workflows": {
+      "spokenPunctuation": {
+        "name": "Suggest spoken punctuation",
+        "description": "Notices symbols you say out loud that no replacement rule writes yet."
+      },
+      "correctionLearning": {
+        "name": "Learn from your corrections",
+        "description": "Turns fixes you make by hand into vocabulary suggestions."
+      },
+      "modeHabits": {
+        "name": "Suggest mode rules",
+        "description": "Notices a mode you keep reaching for by shortcut."
+      },
+      "captureAdvisor": {
+        "name": "Advise on capture quality",
+        "description": "Reports retries, lost captures and quiet audio from your own runs."
+      },
+      "seriesPriming": {
+        "name": "Prime recurring meetings"
+      }
+    },
+    "feed": {
+      "title": "What Sona noticed",
+      "spokenPunctuation": "Noticed you say {{spoken}} a lot — write it as {{written}}?",
+      "vocabularyCorrection": "You keep changing {{spoken}} to {{written}} — learn it?",
+      "modeHabit": "You reach for {{mode}} by shortcut most days — make it your default?",
+      "retryRate": "Your {{subject}} runs get retried {{times}}× more often than the rest.",
+      "lostCaptureRate": "Your {{subject}} runs end truncated or silent {{times}}× more often than the rest.",
+      "inputLevel": "{{percent}}% of your captures came in quiet — check your microphone level?",
+      "example": "“{{text}}”",
+      "accept": "Yes",
+      "dismiss": "No thanks",
+      "evidence_one": "1 time, across {{days}} days",
+      "evidence_other": "{{count}} times, across {{days}} days"
+    },
+    "outcomes": {
+      "primed": "Prepared a recurring meeting",
+      "noticed_one": "Noticed 1 thing",
+      "noticed_other": "Noticed {{count}} things"
     }
   }
 }
