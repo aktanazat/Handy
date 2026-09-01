@@ -15,7 +15,7 @@ Local runs keep captured audio on the device. Cloud transcription sends audio on
 
 ## Releases and install
 
-Tagged builds are published on the [releases page](https://github.com/aktanazat/Handy/releases). Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds macOS (Apple silicon), Windows, and Linux bundles and attaches them to a draft release for review before publishing.
+Tagged builds are published on the [releases page](https://github.com/aktanazat/sona/releases). Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds macOS (Apple silicon), Windows, and Linux bundles and attaches them to a draft release for review before publishing.
 
 - macOS: open the `.dmg` and drag Sona to Applications.
 - Windows: run the `.msi` or the NSIS `-setup.exe` installer.
