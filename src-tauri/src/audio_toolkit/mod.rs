@@ -1,6 +1,7 @@
 pub mod audio;
 pub mod constants;
 pub mod lang_id;
+pub mod ort_session;
 pub mod text;
 pub mod utils;
 pub mod vad;

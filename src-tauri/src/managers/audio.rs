@@ -7,7 +7,7 @@ use crate::audio_toolkit::{
     AudioRecorder, CaptureError, CaptureOverrun, RecordedAudio, VadPolicy,
 };
 use crate::helpers::clamshell;
-use crate::managers::transcription::StreamRouter;
+use crate::managers::transcription::{StreamRouter, TranscriptionManager};
 use crate::meeting::{
     capture::{MeetingCaptureSource, PacketSink},
     types::{
@@ -865,13 +865,17 @@ impl AudioRecordingManager {
     /// how that was verified). Always-on mode has already opened a stream by
     /// the time this runs, so every step below is a cache hit there.
     pub fn prewarm(&self) {
-        let vad_started = Instant::now();
-        if let Err(error) = self.preload_vad() {
-            debug!("Microphone prewarm: VAD preload failed: {error}");
-            return;
-        }
-        let vad_elapsed = vad_started.elapsed();
+        let vad_elapsed = {
+            let _span = crate::launch_trace::span("vad_load");
+            let started = Instant::now();
+            if let Err(error) = self.preload_vad() {
+                debug!("Microphone prewarm: VAD preload failed: {error}");
+                return;
+            }
+            started.elapsed()
+        };
 
+        let _span = crate::launch_trace::span("mic_prewarm");
         let settings = get_settings(&self.app_handle);
         let resolve_started = Instant::now();
         let resolution = self.resolve_microphone_device(&settings);
@@ -1063,13 +1067,15 @@ impl AudioRecordingManager {
     /// its active-set membership decided here, once.
     fn set_state(&self, guard: &mut RecordingState, new_state: RecordingState) {
         *guard = new_state;
-        self.recording_active.store(
-            matches!(
-                *guard,
-                RecordingState::Recording { .. } | RecordingState::Stopping
-            ),
-            Ordering::SeqCst,
+        let active = matches!(
+            *guard,
+            RecordingState::Recording { .. } | RecordingState::Stopping
         );
+        if self.recording_active.swap(active, Ordering::SeqCst) != active {
+            if let Some(manager) = self.app_handle.try_state::<Arc<TranscriptionManager>>() {
+                manager.signal_idle_watcher();
+            }
+        }
     }
 
     pub fn try_start_recording(

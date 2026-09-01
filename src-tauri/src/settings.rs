@@ -14,8 +14,8 @@ use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
 use std::collections::HashMap;
 use std::net::IpAddr;
-use std::sync::{Mutex, MutexGuard};
-use tauri::AppHandle;
+use std::sync::{Arc, Mutex, MutexGuard};
+use tauri::{AppHandle, Manager};
 use tauri_plugin_store::StoreExt;
 
 pub const APPLE_INTELLIGENCE_PROVIDER_ID: &str = "apple_intelligence";
@@ -2654,6 +2654,17 @@ fn try_update_settings_inner<R, E>(
         (result, revision, settings)
     };
     crate::modes::refresh_clipboard_context_watcher(&settings);
+    if let Some(runtime) = app.try_state::<Arc<crate::meeting::detection::DetectionRuntime>>() {
+        runtime.set_enabled(settings.detection_enabled);
+    }
+    if let Some(runtime) = app.try_state::<Arc<crate::cloud_sync::CloudSyncRuntime>>() {
+        runtime.cloud_settings_changed(&settings.cloud_sync);
+    }
+    if let Some(manager) =
+        app.try_state::<Arc<crate::managers::transcription::TranscriptionManager>>()
+    {
+        manager.signal_idle_watcher();
+    }
     Ok((result, revision))
 }
 

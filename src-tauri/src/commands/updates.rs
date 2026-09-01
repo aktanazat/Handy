@@ -7,6 +7,7 @@ use std::time::Duration;
 use tauri::AppHandle;
 
 const RELEASES_URL: &str = "https://api.github.com/repos/aktanazat/Handy/releases/latest";
+const RELEASES_URL_ENV: &str = "SONA_UPDATE_CHECK_URL";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 const UPDATE_USER_AGENT: &str = concat!("Sona/", env!("CARGO_PKG_VERSION"));
 const MAX_NOTES_BYTES: usize = 2000;
@@ -172,6 +173,7 @@ fn result_for_release(release: GithubRelease) -> UpdateCheckResult {
 #[tauri::command]
 #[specta::specta]
 pub async fn check_for_updates(app: AppHandle) -> Result<UpdateCheckResult, String> {
+    let _span = crate::launch_trace::update_check_span();
     if !settings::get_settings(&app).update_check_enabled {
         return Ok(UpdateCheckResult::disabled());
     }
@@ -186,8 +188,11 @@ pub async fn check_for_updates(app: AppHandle) -> Result<UpdateCheckResult, Stri
         }
     };
 
+    // The override is a launch-measurement hook for the local delayed/offline
+    // cohorts; ordinary builds keep the pinned GitHub endpoint.
+    let releases_url = std::env::var(RELEASES_URL_ENV).ok();
     let response = client
-        .get(RELEASES_URL)
+        .get(releases_url.as_deref().unwrap_or(RELEASES_URL))
         .header(USER_AGENT, HeaderValue::from_static(UPDATE_USER_AGENT))
         .header(
             ACCEPT,

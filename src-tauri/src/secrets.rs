@@ -499,6 +499,7 @@ impl SecretManager {
             let _permit = operation_lock
                 .lock()
                 .map_err(|_| SecretStoreError::new(SecretErrorKind::Backend))?;
+            let _span = crate::launch_trace::keyring_span();
             operation(backend.as_ref())
         })
         .await

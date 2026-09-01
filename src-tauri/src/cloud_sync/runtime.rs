@@ -6,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc, Mutex,
+        Arc, Condvar, Mutex,
     },
     thread,
     time::Duration,
@@ -84,6 +84,87 @@ const BACKGROUND_SCAN_INTERVAL: Duration = Duration::from_secs(5);
 const MAX_RETRY_DELAY_MS: i64 = 5 * 60 * 1000;
 const MAX_SHARE_EXPIRY_MS: i64 = 30 * 24 * 60 * 60 * 1000;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum BackgroundScanWake {
+    Configured,
+    Interval,
+}
+
+#[derive(Default)]
+struct BackgroundScanState {
+    configured: bool,
+    scan_immediately: bool,
+}
+
+#[derive(Default)]
+struct BackgroundScanGate {
+    state: Mutex<BackgroundScanState>,
+    changed: Condvar,
+}
+
+impl BackgroundScanGate {
+    fn set_configured(&self, configured: bool) {
+        let mut state = self
+            .state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if state.configured == configured {
+            return;
+        }
+        state.configured = configured;
+        state.scan_immediately = configured;
+        self.changed.notify_all();
+    }
+
+    fn wake(&self) {
+        drop(
+            self.state
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner()),
+        );
+        self.changed.notify_all();
+    }
+
+    fn wait(&self, stopped: &AtomicBool, interval: Duration) -> Option<BackgroundScanWake> {
+        let mut state = self
+            .state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        loop {
+            if stopped.load(Ordering::Acquire) {
+                return None;
+            }
+            if !state.configured {
+                state = self
+                    .changed
+                    .wait(state)
+                    .unwrap_or_else(|poisoned| poisoned.into_inner());
+                continue;
+            }
+            if state.scan_immediately {
+                state.scan_immediately = false;
+                return Some(BackgroundScanWake::Configured);
+            }
+            let (next_state, timeout) = self
+                .changed
+                .wait_timeout(state, interval)
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            state = next_state;
+            if timeout.timed_out() && state.configured {
+                return Some(BackgroundScanWake::Interval);
+            }
+        }
+    }
+}
+
+fn background_scan_configured(settings: &CloudSyncSettings) -> bool {
+    settings.enabled
+        && settings.has_current_consent()
+        && !settings.paused
+        && settings.endpoint().is_ok_and(|endpoint| endpoint.is_some())
+        && !portable::is_portable()
+}
+
 pub(crate) struct CloudSyncRuntime {
     app: AppHandle,
     meetings: Arc<MeetingSessionManager>,
@@ -91,6 +172,7 @@ pub(crate) struct CloudSyncRuntime {
     stopped: AtomicBool,
     started: AtomicBool,
     client: Mutex<Option<EndpointClient>>,
+    background_scan: BackgroundScanGate,
 }
 
 struct EndpointClient {
@@ -271,6 +353,7 @@ impl CloudSyncRuntime {
             stopped: AtomicBool::new(false),
             started: AtomicBool::new(false),
             client: Mutex::new(None),
+            background_scan: BackgroundScanGate::default(),
         }
     }
 
@@ -278,6 +361,7 @@ impl CloudSyncRuntime {
         if self.started.swap(true, Ordering::AcqRel) {
             return;
         }
+        self.cloud_settings_changed(&settings::get_settings(&self.app).cloud_sync);
 
         let event_runtime = Arc::clone(self);
         self.app.listen("meeting:session-changed", move |event| {
@@ -296,19 +380,39 @@ impl CloudSyncRuntime {
         });
 
         let runtime = Arc::clone(self);
-        thread::spawn(move || {
-            if let Ok(store) = tauri::async_runtime::block_on(runtime.meetings.cloud_store()) {
-                let _ = store.recover_claimed_cloud_outbox(utc_now_ms());
-            }
-            while !runtime.stopped.load(Ordering::Acquire) {
-                let _ = tauri::async_runtime::block_on(runtime.sync_once());
-                thread::sleep(BACKGROUND_SCAN_INTERVAL);
-            }
-        });
+        let _ = thread::Builder::new()
+            .name("sona-cloud-sync".to_owned())
+            .spawn(move || {
+                while let Some(wake) = runtime
+                    .background_scan
+                    .wait(&runtime.stopped, BACKGROUND_SCAN_INTERVAL)
+                {
+                    let started = std::time::Instant::now();
+                    if wake == BackgroundScanWake::Configured {
+                        if let Ok(store) =
+                            tauri::async_runtime::block_on(runtime.meetings.cloud_store())
+                        {
+                            let _ = store.recover_claimed_cloud_outbox(utc_now_ms());
+                        }
+                    }
+                    let _ = tauri::async_runtime::block_on(runtime.sync_once());
+                    log::debug!(
+                        "Cloud sync background scan finished in {:?}",
+                        started.elapsed()
+                    );
+                }
+            })
+            .map_err(|error| log::warn!("Cloud sync loop is unavailable: {error}"));
     }
 
     pub(crate) fn shutdown(&self) {
         self.stopped.store(true, Ordering::Release);
+        self.background_scan.wake();
+    }
+
+    pub(crate) fn cloud_settings_changed(&self, settings: &CloudSyncSettings) {
+        self.background_scan
+            .set_configured(background_scan_configured(settings));
     }
 
     pub(crate) async fn overview(&self) -> Result<CloudSyncOverview, CloudRuntimeError> {
@@ -3290,6 +3394,41 @@ fn strict_text(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unconfigured_background_sync_has_no_scan_deadline() {
+        let gate = Arc::new(BackgroundScanGate::default());
+        let stopped = Arc::new(AtomicBool::new(false));
+        let (sender, receiver) = std::sync::mpsc::channel();
+        let worker_gate = Arc::clone(&gate);
+        let worker_stopped = Arc::clone(&stopped);
+        let worker = thread::spawn(move || {
+            while let Some(wake) = worker_gate.wait(&worker_stopped, Duration::from_secs(1)) {
+                sender.send(wake).expect("scan receiver remains");
+            }
+        });
+
+        assert!(matches!(
+            receiver.recv_timeout(Duration::from_millis(50)),
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout)
+        ));
+        gate.set_configured(true);
+        assert_eq!(
+            receiver
+                .recv_timeout(Duration::from_secs(1))
+                .expect("configuration wakes the scanner"),
+            BackgroundScanWake::Configured
+        );
+        gate.set_configured(false);
+        assert!(matches!(
+            receiver.recv_timeout(Duration::from_millis(50)),
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout)
+        ));
+
+        stopped.store(true, Ordering::Release);
+        gate.wake();
+        worker.join().expect("scan gate worker");
+    }
 
     fn browser_share_payload(root: &[u8; 32]) -> (CloudShareRecord, StagedPayload) {
         let share = CloudShareRecord {

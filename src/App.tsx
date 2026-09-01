@@ -14,6 +14,7 @@ import SecureInputWarning from "./components/SecureInputWarning";
 import Onboarding from "./components/onboarding/Onboarding";
 import AccessibilityOnboarding from "./components/onboarding/AccessibilityOnboarding";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { LaunchShell } from "./components/LaunchShell";
 import { Sidebar } from "./components/Sidebar";
 import { ChatPill } from "./components/ChatPill";
 import {
@@ -187,9 +188,9 @@ export interface AppContentProps {
   onCommandOpen: () => void;
 }
 
-/* Exported for the shell's own test: `App` itself paints nothing until the
- * onboarding probe answers, so the layout — the rail, the banner strip, the
- * scroll owner and the chat pill's corner — is only assertable from here. */
+/* Exported for the shell's own test. While the onboarding probe is pending,
+ * this paints the real frame geometry with a route skeleton; the backend model
+ * catalog may still be loading without leaving an empty native window. */
 export const AppContent = ({
   onboardingStep,
   onAccessibilityComplete,
@@ -228,7 +229,9 @@ export const AppContent = ({
    * is inert until the shell below is the thing on screen. */
   const travel = useShellTravel(chatShowing);
 
-  if (onboardingStep === null) return null;
+  if (onboardingStep === null) {
+    return <LaunchShell direction={direction} loadingLabel={loadingLabel} />;
+  }
   if (onboardingStep === "accessibility") {
     return <AccessibilityOnboarding onComplete={onAccessibilityComplete} />;
   }

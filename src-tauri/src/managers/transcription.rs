@@ -1,3 +1,7 @@
+use crate::audio_toolkit::ort_session::{
+    capability_label as ort_capability_label, configure_transcribe_provider,
+    report_transcribe_session, OrtProvider, DEFAULT_ASR_PROVIDER,
+};
 use crate::audio_toolkit::{
     apply_british_spelling, apply_emoji_replacements, apply_exact_vocabulary_entries,
     apply_literal_punctuation, apply_spoken_edits, apply_text_replacements,
@@ -679,17 +683,53 @@ impl Drop for UnloadingGuard {
     }
 }
 
+type IdleWakeup = (Mutex<()>, Condvar);
+
+fn finish_counted_activity(
+    active: &AtomicU64,
+    last_activity: &AtomicU64,
+    idle_wakeup: &IdleWakeup,
+) {
+    let _wake = lock_recover(&idle_wakeup.0);
+    last_activity.store(TranscriptionManager::now_ms(), Ordering::Relaxed);
+    active.fetch_sub(1, Ordering::AcqRel);
+    idle_wakeup.1.notify_all();
+}
+
 /// Keeps automatic model unloading suspended while a media import owns its
 /// bounded decode/transcription lifecycle.
 pub struct MediaImportActivityGuard {
     active_media_imports: Arc<AtomicU64>,
+    last_activity: Arc<AtomicU64>,
+    idle_wakeup: Arc<IdleWakeup>,
 }
 
 impl Drop for MediaImportActivityGuard {
     fn drop(&mut self) {
-        self.active_media_imports.fetch_sub(1, Ordering::AcqRel);
+        finish_counted_activity(
+            &self.active_media_imports,
+            &self.last_activity,
+            &self.idle_wakeup,
+        );
     }
 }
+
+struct BatchUseGuard {
+    active_batch_uses: Arc<AtomicU64>,
+    last_activity: Arc<AtomicU64>,
+    idle_wakeup: Arc<IdleWakeup>,
+}
+
+impl Drop for BatchUseGuard {
+    fn drop(&mut self) {
+        finish_counted_activity(
+            &self.active_batch_uses,
+            &self.last_activity,
+            &self.idle_wakeup,
+        );
+    }
+}
+
 /// RAII guard that clears the streaming worker/lease flags on any worker exit -
 /// normal return, early return, or a panic in an engine call that unwinds the
 /// detached worker thread. Tokens prevent an older worker from clearing a newer
@@ -699,10 +739,15 @@ struct StreamWorkerGuard {
     active_stream_worker: Arc<AtomicU64>,
     active_engine_lease: Arc<AtomicU64>,
     stream_active: Arc<AtomicBool>,
+    last_activity: Arc<AtomicU64>,
+    idle_wakeup: Arc<IdleWakeup>,
 }
 
 impl Drop for StreamWorkerGuard {
     fn drop(&mut self) {
+        let _wake = lock_recover(&self.idle_wakeup.0);
+        self.last_activity
+            .store(TranscriptionManager::now_ms(), Ordering::Relaxed);
         if self.active_stream_worker.load(Ordering::Acquire) == self.worker_id {
             self.stream_active.store(false, Ordering::Release);
         }
@@ -718,6 +763,7 @@ impl Drop for StreamWorkerGuard {
             Ordering::AcqRel,
             Ordering::Acquire,
         );
+        self.idle_wakeup.1.notify_all();
     }
 }
 
@@ -732,6 +778,7 @@ pub struct TranscriptionManager {
     last_activity: Arc<AtomicU64>,
     shutdown_signal: Arc<AtomicBool>,
     watcher_handle: Arc<Mutex<Option<thread::JoinHandle<()>>>>,
+    idle_wakeup: Arc<IdleWakeup>,
     /// Load and unload progress; see [`EngineTransition`].
     transition: Arc<EngineTransition>,
     reload_model_on_next_use: Arc<AtomicBool>,
@@ -759,6 +806,9 @@ pub struct TranscriptionManager {
     /// Active import jobs suspend automatic model unloading while they decode
     /// and wait for the engine. A manual unload remains user-controlled.
     active_media_imports: Arc<AtomicU64>,
+    /// Batch calls register before waiting for the engine lease, so the idle
+    /// watcher cannot unload ahead of already-queued transcription work.
+    active_batch_uses: Arc<AtomicU64>,
     /// The one injectable provider connector. Production supplies the direct
     /// BYOK WebSocket path; focused manager tests supply deterministic fakes.
     #[cfg(feature = "cloud-realtime")]
@@ -814,6 +864,248 @@ fn lock_recover<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
         Err(poisoned) => poisoned.into_inner(),
     }
 }
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum IdleWait {
+    Indefinite,
+    Deadline(Duration),
+    Busy(Duration),
+    Unload { idle_ms: u64, limit_seconds: u64 },
+}
+
+fn idle_wait(
+    model_resident: bool,
+    timeout: ModelUnloadTimeout,
+    last_activity_ms: u64,
+    now_ms: u64,
+    blocked: bool,
+) -> IdleWait {
+    if !model_resident || timeout == ModelUnloadTimeout::Never {
+        return IdleWait::Indefinite;
+    }
+    let idle_ms = now_ms.saturating_sub(last_activity_ms);
+    if timeout == ModelUnloadTimeout::Immediately {
+        return if blocked {
+            IdleWait::Indefinite
+        } else {
+            IdleWait::Unload {
+                idle_ms,
+                limit_seconds: 0,
+            }
+        };
+    }
+    let Some(limit_seconds) = timeout.to_seconds() else {
+        return IdleWait::Indefinite;
+    };
+    let limit_ms = limit_seconds.saturating_mul(1_000);
+    if idle_ms <= limit_ms {
+        return IdleWait::Deadline(Duration::from_millis(
+            limit_ms.saturating_sub(idle_ms).saturating_add(1),
+        ));
+    }
+    if blocked {
+        return IdleWait::Busy(Duration::from_millis(limit_ms.saturating_add(1)));
+    }
+    IdleWait::Unload {
+        idle_ms,
+        limit_seconds,
+    }
+}
+
+fn automatic_unload_blocked(
+    app_handle: &AppHandle,
+    transition: &EngineTransition,
+    active_stream_worker: &AtomicU64,
+    active_media_imports: &AtomicU64,
+    active_batch_uses: &AtomicU64,
+    current_batch_allowance: u64,
+) -> bool {
+    let recording = app_handle
+        .try_state::<Arc<AudioRecordingManager>>()
+        .is_some_and(|manager| manager.is_recording());
+    recording
+        || transition.loads_in_flight()
+        || active_stream_worker.load(Ordering::Acquire) != 0
+        || active_media_imports.load(Ordering::Acquire) != 0
+        || active_batch_uses.load(Ordering::Acquire) > current_batch_allowance
+}
+
+fn unload_engine(
+    app_handle: &AppHandle,
+    engine: &Mutex<Option<LoadedEngine>>,
+    current_model_id: &Mutex<Option<String>>,
+    transition: &Arc<EngineTransition>,
+) -> Result<()> {
+    let _unloading = transition.begin_unload();
+    let unload_start = std::time::Instant::now();
+    debug!("Starting to unload model");
+    *lock_recover(engine) = None;
+    *lock_recover(current_model_id) = None;
+    let _ = app_handle.emit(
+        "model-state-changed",
+        ModelStateEvent {
+            event_type: "unloaded".to_string(),
+            model_id: None,
+            model_name: None,
+            error: None,
+        },
+    );
+    debug!(
+        "Model unloaded (took {}ms)",
+        unload_start.elapsed().as_millis()
+    );
+    Ok(())
+}
+
+struct IdleWatcherContext {
+    app_handle: AppHandle,
+    engine: Arc<Mutex<Option<LoadedEngine>>>,
+    engine_lease_gate: Arc<Mutex<()>>,
+    current_model_id: Arc<Mutex<Option<String>>>,
+    last_activity: Arc<AtomicU64>,
+    shutdown_signal: Arc<AtomicBool>,
+    idle_wakeup: Arc<IdleWakeup>,
+    transition: Arc<EngineTransition>,
+    active_stream_worker: Arc<AtomicU64>,
+    active_engine_lease: Arc<AtomicU64>,
+    active_media_imports: Arc<AtomicU64>,
+    active_batch_uses: Arc<AtomicU64>,
+}
+
+impl IdleWatcherContext {
+    fn from_manager(manager: &TranscriptionManager) -> Self {
+        Self {
+            app_handle: manager.app_handle.clone(),
+            engine: Arc::clone(&manager.engine),
+            engine_lease_gate: Arc::clone(&manager.engine_lease_gate),
+            current_model_id: Arc::clone(&manager.current_model_id),
+            last_activity: Arc::clone(&manager.last_activity),
+            shutdown_signal: Arc::clone(&manager.shutdown_signal),
+            idle_wakeup: Arc::clone(&manager.idle_wakeup),
+            transition: Arc::clone(&manager.transition),
+            active_stream_worker: Arc::clone(&manager.active_stream_worker),
+            active_engine_lease: Arc::clone(&manager.active_engine_lease),
+            active_media_imports: Arc::clone(&manager.active_media_imports),
+            active_batch_uses: Arc::clone(&manager.active_batch_uses),
+        }
+    }
+
+    fn model_resident(&self) -> bool {
+        lock_recover(&self.engine).is_some()
+            || self.active_engine_lease.load(Ordering::Acquire) != 0
+    }
+
+    fn unload_blocked(&self) -> bool {
+        automatic_unload_blocked(
+            &self.app_handle,
+            &self.transition,
+            &self.active_stream_worker,
+            &self.active_media_imports,
+            &self.active_batch_uses,
+            0,
+        )
+    }
+
+    fn unload_if_idle(&self) -> Result<bool> {
+        let _engine_lease = lock_recover(&self.engine_lease_gate);
+        let timeout = get_settings(&self.app_handle).model_unload_timeout;
+        if !matches!(
+            idle_wait(
+                self.model_resident(),
+                timeout,
+                self.last_activity.load(Ordering::Relaxed),
+                TranscriptionManager::now_ms(),
+                self.unload_blocked(),
+            ),
+            IdleWait::Unload { .. }
+        ) {
+            return Ok(false);
+        }
+        unload_engine(
+            &self.app_handle,
+            &self.engine,
+            &self.current_model_id,
+            &self.transition,
+        )?;
+        Ok(true)
+    }
+
+    fn run(self) {
+        debug!("Idle watcher thread started");
+        let mut wake = lock_recover(&self.idle_wakeup.0);
+        loop {
+            if self.shutdown_signal.load(Ordering::Acquire) {
+                break;
+            }
+            if !self.model_resident() {
+                wake = self
+                    .idle_wakeup
+                    .1
+                    .wait(wake)
+                    .unwrap_or_else(|poisoned| poisoned.into_inner());
+                continue;
+            }
+
+            let timeout = get_settings(&self.app_handle).model_unload_timeout;
+            let now_ms = TranscriptionManager::now_ms();
+            let decision = idle_wait(
+                true,
+                timeout,
+                self.last_activity.load(Ordering::Relaxed),
+                now_ms,
+                self.unload_blocked(),
+            );
+            match decision {
+                IdleWait::Indefinite => {
+                    wake = self
+                        .idle_wakeup
+                        .1
+                        .wait(wake)
+                        .unwrap_or_else(|poisoned| poisoned.into_inner());
+                }
+                IdleWait::Deadline(wait) => {
+                    wake = self
+                        .idle_wakeup
+                        .1
+                        .wait_timeout(wake, wait)
+                        .unwrap_or_else(|poisoned| poisoned.into_inner())
+                        .0;
+                }
+                IdleWait::Busy(wait) => {
+                    self.last_activity.store(now_ms, Ordering::Relaxed);
+                    wake = self
+                        .idle_wakeup
+                        .1
+                        .wait_timeout(wake, wait)
+                        .unwrap_or_else(|poisoned| poisoned.into_inner())
+                        .0;
+                }
+                IdleWait::Unload {
+                    idle_ms,
+                    limit_seconds,
+                } => {
+                    drop(wake);
+                    let unload_started = std::time::Instant::now();
+                    match self.unload_if_idle() {
+                        Ok(true) => info!(
+                            "Model unloaded after {}s idle (limit: {}s, took {}ms)",
+                            idle_ms / 1_000,
+                            limit_seconds,
+                            unload_started.elapsed().as_millis()
+                        ),
+                        Ok(false) => {
+                            self.last_activity
+                                .store(TranscriptionManager::now_ms(), Ordering::Relaxed);
+                        }
+                        Err(error) => error!("Failed to unload idle model: {error}"),
+                    }
+                    wake = lock_recover(&self.idle_wakeup.0);
+                }
+            }
+        }
+        debug!("Idle watcher thread shutting down gracefully");
+    }
+}
 impl TranscriptionManager {
     pub fn new(app_handle: &AppHandle, model_manager: Arc<ModelManager>) -> Result<Self> {
         let manager = Self {
@@ -825,6 +1117,7 @@ impl TranscriptionManager {
             last_activity: Arc::new(AtomicU64::new(Self::now_ms())),
             shutdown_signal: Arc::new(AtomicBool::new(false)),
             watcher_handle: Arc::new(Mutex::new(None)),
+            idle_wakeup: Arc::new((Mutex::new(()), Condvar::new())),
             transition: Arc::new(EngineTransition::new()),
             reload_model_on_next_use: Arc::new(AtomicBool::new(false)),
             router: Arc::new(StreamRouter::new()),
@@ -833,82 +1126,18 @@ impl TranscriptionManager {
             active_stream_worker: Arc::new(AtomicU64::new(0)),
             active_engine_lease: Arc::new(AtomicU64::new(0)),
             active_media_imports: Arc::new(AtomicU64::new(0)),
+            active_batch_uses: Arc::new(AtomicU64::new(0)),
             #[cfg(feature = "cloud-realtime")]
             cloud_transport_factory: Arc::new(DirectCloudTransportFactory),
             #[cfg(feature = "cloud-realtime")]
             cloud_finalization: Arc::new(Mutex::new(None)),
         };
 
-        // Start the idle watcher
-        {
-            let app_handle_cloned = app_handle.clone();
-            let manager_cloned = manager.clone();
-            let shutdown_signal = manager.shutdown_signal.clone();
-            let handle = thread::spawn(move || {
-                debug!("Idle watcher thread started");
-                while !shutdown_signal.load(Ordering::Relaxed) {
-                    thread::sleep(Duration::from_secs(10)); // Check every 10 seconds
-
-                    // Check shutdown signal again after sleep
-                    if shutdown_signal.load(Ordering::Relaxed) {
-                        break;
-                    }
-
-                    let settings = get_settings(&app_handle_cloned);
-                    let timeout = settings.model_unload_timeout;
-
-                    // Skip Immediately — that variant is handled by
-                    // maybe_unload_immediately() after each transcription.
-                    // Treating it as 0s here would unload the model mid-recording.
-                    if timeout == ModelUnloadTimeout::Immediately {
-                        continue;
-                    }
-
-                    // While recording, keep the idle timer fresh so the
-                    // model is never unloaded mid-session.
-                    let is_recording = app_handle_cloned
-                        .try_state::<Arc<AudioRecordingManager>>()
-                        .is_some_and(|a| a.is_recording());
-                    if is_recording || manager_cloned.has_active_media_import() {
-                        manager_cloned.touch_activity();
-                        continue;
-                    }
-
-                    if let Some(limit_seconds) = timeout.to_seconds() {
-                        let last = manager_cloned.last_activity.load(Ordering::Relaxed);
-                        let now_ms = TranscriptionManager::now_ms();
-                        let idle_ms = now_ms.saturating_sub(last);
-                        let limit_ms = limit_seconds * 1000;
-
-                        if idle_ms > limit_ms {
-                            // idle -> unload
-                            if manager_cloned.is_model_loaded() {
-                                let unload_start = std::time::Instant::now();
-                                info!(
-                                    "Model idle for {}s (limit: {}s), unloading",
-                                    idle_ms / 1000,
-                                    limit_seconds
-                                );
-                                match manager_cloned.unload_model() {
-                                    Ok(()) => {
-                                        let unload_duration = unload_start.elapsed();
-                                        info!(
-                                            "Model unloaded due to inactivity (took {}ms)",
-                                            unload_duration.as_millis()
-                                        );
-                                    }
-                                    Err(e) => {
-                                        error!("Failed to unload idle model: {}", e);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                debug!("Idle watcher thread shutting down gracefully");
-            });
-            *lock_recover(&manager.watcher_handle) = Some(handle);
-        }
+        let watcher = IdleWatcherContext::from_manager(&manager);
+        let handle = thread::Builder::new()
+            .name("sona-model-idle".to_owned())
+            .spawn(move || watcher.run())?;
+        *lock_recover(&manager.watcher_handle) = Some(handle);
 
         Ok(manager)
     }
@@ -952,13 +1181,23 @@ impl TranscriptionManager {
     pub fn begin_media_import(&self) -> MediaImportActivityGuard {
         self.active_media_imports.fetch_add(1, Ordering::AcqRel);
         self.touch_activity();
+        self.signal_idle_watcher();
         MediaImportActivityGuard {
             active_media_imports: Arc::clone(&self.active_media_imports),
+            last_activity: Arc::clone(&self.last_activity),
+            idle_wakeup: Arc::clone(&self.idle_wakeup),
         }
     }
 
-    fn has_active_media_import(&self) -> bool {
-        self.active_media_imports.load(Ordering::Acquire) != 0
+    fn begin_batch_use(&self) -> BatchUseGuard {
+        self.active_batch_uses.fetch_add(1, Ordering::AcqRel);
+        self.touch_activity();
+        self.signal_idle_watcher();
+        BatchUseGuard {
+            active_batch_uses: Arc::clone(&self.active_batch_uses),
+            last_activity: Arc::clone(&self.last_activity),
+            idle_wakeup: Arc::clone(&self.idle_wakeup),
+        }
     }
 
     /// Accelerator changes should not disturb the current transcription. Mark
@@ -983,37 +1222,14 @@ impl TranscriptionManager {
 
     pub fn unload_model(&self) -> Result<()> {
         let _engine_lease = self.lock_engine_lease_gate();
-        let _unloading = self.transition.begin_unload();
-        let unload_start = std::time::Instant::now();
-        debug!("Starting to unload model");
-
-        {
-            let mut engine = self.lock_engine();
-            // Dropping the engine frees all resources
-            *engine = None;
-        }
-        {
-            let mut current_model = lock_recover(&self.current_model_id);
-            *current_model = None;
-        }
-
-        // Emit unloaded event
-        let _ = self.app_handle.emit(
-            "model-state-changed",
-            ModelStateEvent {
-                event_type: "unloaded".to_string(),
-                model_id: None,
-                model_name: None,
-                error: None,
-            },
+        let result = unload_engine(
+            &self.app_handle,
+            &self.engine,
+            &self.current_model_id,
+            &self.transition,
         );
-
-        let unload_duration = unload_start.elapsed();
-        debug!(
-            "Model unloaded manually (took {}ms)",
-            unload_duration.as_millis()
-        );
-        Ok(())
+        self.signal_idle_watcher();
+        result
     }
 
     fn now_ms() -> u64 {
@@ -1028,9 +1244,22 @@ impl TranscriptionManager {
         self.last_activity.store(Self::now_ms(), Ordering::Relaxed);
     }
 
-    /// Unloads the model immediately if the setting is enabled and the model is loaded
+    pub(crate) fn signal_idle_watcher(&self) {
+        drop(lock_recover(&self.idle_wakeup.0));
+        self.idle_wakeup.1.notify_all();
+    }
+
+    /// Unloads the model immediately if the setting is enabled and no other
+    /// capture, load, stream, import, or batch is waiting for it.
     pub fn maybe_unload_immediately(&self, context: &str) {
-        if self.has_active_media_import() {
+        if automatic_unload_blocked(
+            &self.app_handle,
+            &self.transition,
+            &self.active_stream_worker,
+            &self.active_media_imports,
+            &self.active_batch_uses,
+            1,
+        ) {
             return;
         }
         let settings = get_settings(&self.app_handle);
@@ -1118,7 +1347,7 @@ impl TranscriptionManager {
         // has to mark the engine as loading. Nested inside a caller's scope
         // (see `initiate_model_load`) it just adds depth.
         let _loading = self.transition.begin_load();
-        apply_ort_accelerator(ort_accelerator);
+        let ort_provider = apply_ort_accelerator(ort_accelerator);
 
         let load_start = std::time::Instant::now();
         debug!("Starting to load model: {}", model_id);
@@ -1183,6 +1412,7 @@ impl TranscriptionManager {
                 },
             );
         };
+        let is_onnx = !matches!(&model_info.engine_type, EngineType::TranscribeCpp);
 
         let loaded_engine = match model_info.engine_type {
             EngineType::TranscribeCpp => {
@@ -1325,6 +1555,9 @@ impl TranscriptionManager {
                 LoadedEngine::Cohere(engine)
             }
         };
+        if is_onnx {
+            report_transcribe_session(model_id, ort_provider);
+        }
 
         // Update the current engine and model ID
         {
@@ -1338,6 +1571,7 @@ impl TranscriptionManager {
 
         // Reset idle timer so the watcher doesn't immediately unload a just-loaded model
         self.touch_activity();
+        self.signal_idle_watcher();
 
         // Emit loading completed event
         let _ = self.app_handle.emit(
@@ -1508,6 +1742,8 @@ impl TranscriptionManager {
             warn!("start_stream lost a race with another stream worker");
             return;
         }
+        self.touch_activity();
+        self.signal_idle_watcher();
         let lanes = self.router.open();
         self.stream_active.store(false, Ordering::Release);
 
@@ -1539,6 +1775,8 @@ impl TranscriptionManager {
             warn!("start_cloud_stream lost a race with another stream worker");
             return false;
         }
+        self.touch_activity();
+        self.signal_idle_watcher();
 
         let lanes = self.router.open();
         let (result_tx, result_rx) = mpsc::sync_channel(1);
@@ -1571,6 +1809,8 @@ impl TranscriptionManager {
             active_stream_worker: Arc::clone(&self.active_stream_worker),
             active_engine_lease: Arc::clone(&self.active_engine_lease),
             stream_active: Arc::clone(&self.stream_active),
+            last_activity: Arc::clone(&self.last_activity),
+            idle_wakeup: Arc::clone(&self.idle_wakeup),
         };
         run_cloud_transport_session(
             lanes,
@@ -1591,6 +1831,8 @@ impl TranscriptionManager {
             active_stream_worker: Arc::clone(&self.active_stream_worker),
             active_engine_lease: Arc::clone(&self.active_engine_lease),
             stream_active: Arc::clone(&self.stream_active),
+            last_activity: Arc::clone(&self.last_activity),
+            idle_wakeup: Arc::clone(&self.idle_wakeup),
         };
 
         // start_stream races the background load kicked off when recording
@@ -2038,8 +2280,7 @@ impl TranscriptionManager {
             ));
         }
 
-        // Update last activity timestamp
-        self.touch_activity();
+        let _batch_use = self.begin_batch_use();
 
         let st = std::time::Instant::now();
         let audio_len = audio.len();
@@ -3201,19 +3442,41 @@ fn transcribe_device_label(device: &transcribe_cpp::Device) -> String {
     }
 }
 
-/// Apply a frozen ORT accelerator choice before the corresponding model load.
-fn apply_ort_accelerator(setting: OrtAcceleratorSetting) {
-    use transcribe_rs::accel;
+/// Resolve a stored preference to a provider this build can initialize.
+///
+/// The macOS CoreML path remains benchmark-only until it clears the per-model
+/// gate, so Auto is deliberately the measured CPU default.
+fn configured_ort_provider(setting: OrtAcceleratorSetting) -> OrtProvider {
+    match setting {
+        OrtAcceleratorSetting::Auto => DEFAULT_ASR_PROVIDER,
+        OrtAcceleratorSetting::Cpu
+        | OrtAcceleratorSetting::Cuda
+        | OrtAcceleratorSetting::DirectMl
+        | OrtAcceleratorSetting::Rocm => OrtProvider::Cpu,
+    }
+}
 
-    let ort_pref = match setting {
-        OrtAcceleratorSetting::Auto => accel::OrtAccelerator::Auto,
-        OrtAcceleratorSetting::Cpu => accel::OrtAccelerator::CpuOnly,
-        OrtAcceleratorSetting::Cuda => accel::OrtAccelerator::Cuda,
-        OrtAcceleratorSetting::DirectMl => accel::OrtAccelerator::DirectMl,
-        OrtAcceleratorSetting::Rocm => accel::OrtAccelerator::Rocm,
-    };
-    accel::set_ort_accelerator(ort_pref);
-    info!("ORT accelerator set to: {}", ort_pref);
+fn ort_accelerator_log_line(provider: OrtProvider, capabilities: &str) -> String {
+    format!("ORT accelerator set to: {provider} (compiled capability: {capabilities})")
+}
+
+/// Apply a frozen ORT provider choice before the corresponding model load.
+fn apply_ort_accelerator(setting: OrtAcceleratorSetting) -> OrtProvider {
+    if !matches!(
+        setting,
+        OrtAcceleratorSetting::Auto | OrtAcceleratorSetting::Cpu
+    ) {
+        warn!(
+            "ORT accelerator {:?} is not a compiled provider for this target; using CPU",
+            setting
+        );
+    }
+    let provider = configure_transcribe_provider(configured_ort_provider(setting));
+    info!(
+        "{}",
+        ort_accelerator_log_line(provider, ort_capability_label())
+    );
+    provider
 }
 
 /// Apply the currently persisted accelerator preference outside a run.
@@ -3328,18 +3591,14 @@ pub fn get_available_accelerators() -> AvailableAccelerators {
 
 impl Drop for TranscriptionManager {
     fn drop(&mut self) {
-        // Skip shutdown unless this is the very last clone. TranscriptionManager
-        // is cloned by initiate_model_load() and the watcher thread — those
-        // clones dropping must not kill the watcher. The watcher thread holds
-        // its own clone, so engine's strong_count is always >= 2 while the
-        // watcher is alive. When it reaches 1, only this instance remains
-        // and we can safely shut down.
-        if Arc::strong_count(&self.engine) > 1 {
+        // The watcher owns only the engine handles it needs, not a manager
+        // clone. `watcher_handle` therefore counts manager clones exactly.
+        if Arc::strong_count(&self.watcher_handle) > 1 {
             return;
         }
 
-        // Signal the watcher thread to shutdown
-        self.shutdown_signal.store(true, Ordering::Relaxed);
+        self.shutdown_signal.store(true, Ordering::Release);
+        self.signal_idle_watcher();
 
         // Wait for the thread to finish gracefully.
         // Use match instead of unwrap to avoid panicking if the mutex is
@@ -3371,6 +3630,44 @@ mod tests {
     #[cfg(feature = "cloud-realtime")]
     #[cfg(feature = "cloud-realtime")]
     use zeroize::Zeroizing;
+
+    #[test]
+    fn idle_watcher_has_no_deadline_without_a_resident_model() {
+        assert_eq!(
+            idle_wait(false, ModelUnloadTimeout::Sec15, 0, 60_000, false,),
+            IdleWait::Indefinite
+        );
+    }
+
+    #[test]
+    fn idle_watcher_defers_expired_deadline_while_work_is_queued() {
+        assert_eq!(
+            idle_wait(true, ModelUnloadTimeout::Sec15, 0, 15_001, true),
+            IdleWait::Busy(Duration::from_millis(15_001))
+        );
+        assert_eq!(
+            idle_wait(true, ModelUnloadTimeout::Sec15, 0, 15_001, false),
+            IdleWait::Unload {
+                idle_ms: 15_001,
+                limit_seconds: 15,
+            }
+        );
+    }
+
+    #[test]
+    fn immediate_unload_waits_for_active_work_then_runs_on_its_signal() {
+        assert_eq!(
+            idle_wait(true, ModelUnloadTimeout::Immediately, 10, 20, true),
+            IdleWait::Indefinite
+        );
+        assert_eq!(
+            idle_wait(true, ModelUnloadTimeout::Immediately, 10, 20, false),
+            IdleWait::Unload {
+                idle_ms: 10,
+                limit_seconds: 0,
+            }
+        );
+    }
 
     fn languages(codes: &[&str]) -> Vec<String> {
         codes.iter().map(|code| (*code).to_string()).collect()
@@ -3807,6 +4104,23 @@ mod tests {
         assert!(router.preview_degraded());
         let queued_samples: usize = lanes.audio_rx.try_iter().map(|pcm| pcm.len()).sum();
         assert!(queued_samples <= STREAM_PREVIEW_QUEUE_SAMPLES);
+    }
+
+    #[test]
+    fn ort_auto_log_reports_the_effective_provider_and_compiled_capability() {
+        let provider = configured_ort_provider(OrtAcceleratorSetting::Auto);
+        assert_eq!(provider, OrtProvider::Cpu);
+        assert_eq!(
+            ort_accelerator_log_line(provider, "cpu, coreml"),
+            "ORT accelerator set to: cpu (compiled capability: cpu, coreml)"
+        );
+        for unavailable in [
+            OrtAcceleratorSetting::Cuda,
+            OrtAcceleratorSetting::DirectMl,
+            OrtAcceleratorSetting::Rocm,
+        ] {
+            assert_eq!(configured_ort_provider(unavailable), OrtProvider::Cpu);
+        }
     }
 
     #[test]

@@ -25,6 +25,7 @@ mod fs_util;
 mod helpers;
 mod identity_adoption;
 mod input;
+mod launch_trace;
 mod llm_client;
 mod managers;
 pub mod meeting;
@@ -152,22 +153,39 @@ fn build_console_filter() -> env_filter::Filter {
     builder.build()
 }
 
+fn activate_main_window(app: &AppHandle, main_window: &tauri::WebviewWindow<tauri::Wry>) {
+    // The paint handoff is asynchronous; respect a minimize that won the race.
+    if main_window.is_minimized().is_ok_and(|minimized| minimized) {
+        return;
+    }
+    #[cfg(target_os = "macos")]
+    match app.set_activation_policy(tauri::ActivationPolicy::Regular) {
+        Ok(()) => launch_trace::mark_window_promotion(),
+        Err(error) => log::error!("Failed to set activation policy to Regular: {error}"),
+    }
+    if let Err(error) = main_window.set_focus() {
+        log::error!("Failed to focus webview window: {error}");
+    }
+}
+
 pub(crate) fn show_main_window(app: &AppHandle) {
     if let Some(main_window) = app.get_webview_window("main") {
-        if let Err(e) = main_window.unminimize() {
-            log::error!("Failed to unminimize webview window: {}", e);
+        if let Err(error) = main_window.unminimize() {
+            log::error!("Failed to unminimize webview window: {error}");
         }
-        if let Err(e) = main_window.show() {
-            log::error!("Failed to show webview window: {}", e);
-        }
-        if let Err(e) = main_window.set_focus() {
-            log::error!("Failed to focus webview window: {}", e);
-        }
-        #[cfg(target_os = "macos")]
-        {
-            if let Err(e) = app.set_activation_policy(tauri::ActivationPolicy::Regular) {
-                log::error!("Failed to set activation policy to Regular: {}", e);
+        if let Err(error) = main_window.show() {
+            log::error!("Failed to show webview window: {error}");
+        } else {
+            launch_trace::mark_shell_shown();
+            if let Err(error) = app.emit(launch_trace::SHELL_VISIBLE_EVENT, ()) {
+                log::error!("Failed to report visible launch shell: {error}");
             }
+        }
+        // During launch the webview owns the handoff: it reports a composited
+        // frame, then the listener in setup activates and focuses this window.
+        // Later reveals focus immediately because that first frame already ran.
+        if launch_trace::first_visible_frame_recorded() {
+            activate_main_window(app, &main_window);
         }
         return;
     }
@@ -652,19 +670,19 @@ fn initialize_core_logic(app_handle: &AppHandle) -> anyhow::Result<()> {
     app_handle.manage(media_import_manager.clone());
     app_handle.manage(Arc::clone(&meeting_manager));
     app_handle.manage(Arc::clone(&cloud_runtime));
-    // Ordering preserved from the former synchronous startup: recovery opens the
-    // store, then the cloud runtime claims its outbox, then the retention
-    // sweeper starts. Nothing before the window paint waits on any of it. The
-    // reprocess pass goes last and on its own thread: it waits for whole
-    // transcription runs, which nothing here may wait for.
+    // The startup orchestrator calls this only after the launch shell's DOM
+    // paint. Recovery can now open the keyring and sweep without occupying it.
     let recovery_meetings = Arc::clone(&meeting_manager);
     let recovery_cloud = Arc::clone(&cloud_runtime);
     tauri::async_runtime::spawn(async move {
-        let recovered = match recovery_meetings.recover_at_startup().await {
-            Ok(recovered) => recovered,
-            Err(error) => {
-                log::warn!("Meeting recovery is unavailable at startup: {error:?}");
-                Vec::new()
+        let recovered = {
+            let _span = launch_trace::span("recovery_sweep");
+            match recovery_meetings.recover_at_startup().await {
+                Ok(recovered) => recovered,
+                Err(error) => {
+                    log::warn!("Meeting recovery is unavailable at startup: {error:?}");
+                    Vec::new()
+                }
             }
         };
         recovery_cloud.start();
@@ -1283,6 +1301,9 @@ pub fn run(cli_args: CliArgs) {
     // when the variable is unset
     let console_filter = build_console_filter();
     let headless_mode = is_headless_mode(&cli_args);
+    if !headless_mode {
+        launch_trace::start();
+    }
 
     let specta_builder = Builder::<tauri::Wry>::new()
         .commands(collect_commands![
@@ -1658,7 +1679,14 @@ pub fn run(cli_args: CliArgs) {
         // conservative `solid` material, so each document has to be told the
         // material actually in force once it loads — otherwise a reload (or the
         // overlay window being created long after startup) silently drops Glass.
-        .on_page_load(|webview, _payload| shortcut::reassert_window_material(webview))
+        .on_page_load(|webview, payload| {
+            if webview.label() == "main"
+                && payload.event() == tauri::webview::PageLoadEvent::Started
+            {
+                launch_trace::mark_webview_navigation_started();
+            }
+            shortcut::reassert_window_material(webview);
+        })
         .plugin(tauri_plugin_dialog::init())
         .plugin(
             LogBuilder::new()
@@ -1692,8 +1720,10 @@ pub fn run(cli_args: CliArgs) {
                         }
                     })
                     .filter(|metadata| {
-                        let file_level = FILE_LOG_LEVEL.load(Ordering::Relaxed);
-                        metadata.level() <= level_filter_from_u8(file_level)
+                        metadata.target() == "sona::launch" || {
+                            let file_level = FILE_LOG_LEVEL.load(Ordering::Relaxed);
+                            metadata.level() <= level_filter_from_u8(file_level)
+                        }
                     }),
                     // Stream logs to the webview (via the `log://log` event) so the
                     // debug panel's live log viewer can show them in real time. Only
@@ -1777,7 +1807,10 @@ pub fn run(cli_args: CliArgs) {
         ))
         .manage(cli_args.clone())
         .setup(move |app| {
-            identity_adoption::adopt_before_startup(app.handle())?;
+            {
+                let _span = launch_trace::span("migrations");
+                identity_adoption::adopt_before_startup(app.handle())?;
+            }
             let secret_manager = Arc::new(secrets::SecretManager::native());
             let migration_pending =
                 settings::legacy_provider_secret_migration_pending(app.handle());
@@ -1858,6 +1891,37 @@ pub fn run(cli_args: CliArgs) {
                 return Ok(());
             }
 
+            let paint_app = app.handle().clone();
+            app.listen(launch_trace::FIRST_DOM_PAINT_EVENT, move |event| {
+                match serde_json::from_str::<f64>(event.payload()) {
+                    Ok(epoch_ms) => launch_trace::mark_first_dom_paint(epoch_ms),
+                    Err(error) => log::warn!("Invalid first DOM paint mark: {error}"),
+                }
+                if launch_trace::shell_shown() {
+                    let _ = paint_app.emit(launch_trace::SHELL_VISIBLE_EVENT, ());
+                }
+            });
+            let activation_app = app.handle().clone();
+            app.listen(launch_trace::FIRST_VISIBLE_FRAME_EVENT, move |event| {
+                let epoch_ms = match serde_json::from_str::<f64>(event.payload()) {
+                    Ok(epoch_ms) => epoch_ms,
+                    Err(error) => {
+                        log::warn!("Invalid first visible frame mark: {error}");
+                        return;
+                    }
+                };
+                launch_trace::mark_first_visible_frame(epoch_ms);
+                if let Some(main_window) = activation_app.get_webview_window("main") {
+                    activate_main_window(&activation_app, &main_window);
+                }
+            });
+
+            let mut settings = get_settings(app.handle());
+            // Keep the first window non-activating until the webview reports a
+            // composited frame. This prevents macOS from focusing empty chrome.
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
             // Create main window programmatically so we can set data_directory
             // for portable mode (redirects WebView2 cache to portable Data dir)
             let mut win_builder =
@@ -1884,11 +1948,10 @@ pub fn run(cli_args: CliArgs) {
                     .hidden_title(true);
             }
 
-            let mut settings = get_settings(app.handle());
-
             win_builder = win_builder
                 .initialization_script(main_window_material_init(settings.appearance_material));
             let _main_window = win_builder.build()?;
+            launch_trace::mark_native_window_created();
             app.manage(agent_panel::AgentPanelManager::new(app.handle()));
 
             // Glass is opt-in now, so vibrancy is applied only when the setting
@@ -1925,89 +1988,87 @@ pub fn run(cli_args: CliArgs) {
             WEBVIEW_LOG_STREAMING.store(settings.debug_mode, Ordering::Relaxed);
             let app_handle = app.handle().clone();
             app.manage(TranscriptionCoordinator::new(app_handle.clone()));
-
-            initialize_core_logic(&app_handle)?;
-            let opened_audio_queued = enqueue_opened_paths(
-                &app_handle,
-                initial_opened_audio_paths(&cli_args.opened_audio_files),
-            );
-
-            if legacy_secret_cutover_pending {
-                let migration_app = app_handle.clone();
-                tauri::async_runtime::spawn(async move {
-                    let _ =
-                        secrets::migrate_legacy_provider_secrets(&migration_app, secret_manager)
-                            .await;
-                });
-            }
-
-            // Secure Input monitor (macOS): detects stuck secure input that
-            // silently blocks keyed shortcuts, warns the user, and activates
-            // the Carbon fallback. See secure_input.rs and issue #1578.
-            secure_input::init(&app_handle);
-
-            // Populate the overlay-enabled cache from initial settings so the
-            // audio path (overlay::emit_levels, called ~24 Hz during recording)
-            // can do a single atomic load instead of reading the Tauri store.
-            // Kept in sync by shortcut::change_overlay_style_setting.
-            overlay::update_overlay_enabled_cache(
-                settings.overlay_style != settings::OverlayStyle::None,
-            );
-
-            // Pre-warm GPU/accelerator enumeration on a background thread. The first
-            // get_available_accelerators call enumerates ORT execution providers and
-            // transcribe-cpp compute devices, which can take a moment; without this
-            // the cost is paid synchronously when the user first opens Advanced
-            // settings, freezing the UI. Result is cached in a OnceLock.
-            std::thread::spawn(|| {
-                let _ = crate::managers::transcription::get_available_accelerators();
-            });
-
-            // Pre-warm the microphone start path on its own thread: the VAD
-            // session, the named-device lookup, and the device's supported
-            // stream configs. All three are one-time costs that otherwise land
-            // between the first shortcut press and the first captured sample.
-            // No stream is opened and the device is never started, so this does
-            // not raise the OS microphone indicator.
-            let prewarm_audio = app_handle.clone();
-            std::thread::spawn(move || {
-                if let Some(manager) = prewarm_audio.try_state::<Arc<AudioRecordingManager>>() {
-                    manager.prewarm();
-                }
-            });
-
-            // Hide tray icon if --no-tray was passed
-            if cli_args.no_tray {
-                tray::set_tray_visibility(&app_handle, false);
-            }
-
-            // Show main window only if not starting hidden.
-            // CLI --start-hidden flag overrides the setting.
-            // But if permission onboarding is required, always show the window.
+            // Reveal the styled launch shell first. Its DOM-paint event below
+            // releases manager construction, including catalog and HF scans.
             let should_hide = settings.start_hidden || cli_args.start_hidden;
-            let should_force_show = should_force_show_permissions_window(&app_handle);
-
-            // If start_hidden but tray is disabled, we must show the window
-            // anyway. Without a tray icon, the dock is the only way back in.
             let tray_available = settings.show_tray_icon && !cli_args.no_tray;
-            if should_force_show || !should_hide || !tray_available || opened_audio_queued {
+            let shell_shown_before_startup = !should_hide || !tray_available;
+            if shell_shown_before_startup {
                 show_main_window(&app_handle);
             }
 
-            initialize_recording_overlay(&app_handle);
-            meeting::consent_panel::create(&app_handle);
+            let startup_app = app_handle.clone();
+            app_handle.once(launch_trace::FIRST_DOM_PAINT_EVENT, move |_| {
+                if let Err(error) = initialize_core_logic(&startup_app) {
+                    log::error!("Startup initialization failed after first paint: {error:#}");
+                    startup_app.exit(1);
+                    return;
+                }
 
-            // Last, and only now: the dictation history database resolves its
-            // encryption key. The read can surface an OS credential prompt, and
-            // a prompt raised before the window exists is invisible, which froze
-            // startup with no way forward. Every history query either waits out
-            // this task or reports a locked database, and the resulting state is
-            // readable through the `history_storage_status` command and the
-            // `history-storage-changed` event.
-            let unlock_history = Arc::clone(&app_handle.state::<Arc<HistoryManager>>());
-            let unlock_secrets = Arc::clone(&app_handle.state::<Arc<secrets::SecretManager>>());
-            tauri::async_runtime::spawn(async move {
-                unlock_history.unlock_storage(&unlock_secrets).await;
+                let opened_audio_queued = enqueue_opened_paths(
+                    &startup_app,
+                    initial_opened_audio_paths(&cli_args.opened_audio_files),
+                );
+
+                if legacy_secret_cutover_pending {
+                    let migration_app = startup_app.clone();
+                    let migration_secrets = secret_manager.clone();
+                    tauri::async_runtime::spawn(async move {
+                        let _ = secrets::migrate_legacy_provider_secrets(
+                            &migration_app,
+                            migration_secrets,
+                        )
+                        .await;
+                    });
+                }
+
+                // Secure Input monitor (macOS): detects stuck secure input that
+                // silently blocks keyed shortcuts and activates the Carbon fallback.
+                secure_input::init(&startup_app);
+                overlay::update_overlay_enabled_cache(
+                    settings.overlay_style != settings::OverlayStyle::None,
+                );
+
+                std::thread::spawn(|| {
+                    let _ = crate::managers::transcription::get_available_accelerators();
+                });
+                let prewarm_audio = startup_app.clone();
+                std::thread::spawn(move || {
+                    if let Some(manager) = prewarm_audio.try_state::<Arc<AudioRecordingManager>>() {
+                        manager.prewarm();
+                    }
+                });
+
+                if cli_args.no_tray {
+                    tray::set_tray_visibility(&startup_app, false);
+                }
+
+                let should_force_show = should_force_show_permissions_window(&startup_app);
+                if !shell_shown_before_startup && (should_force_show || opened_audio_queued) {
+                    show_main_window(&startup_app);
+                }
+
+                let ready_app = startup_app.clone();
+                if let Err(error) = startup_app.run_on_main_thread(move || {
+                    initialize_recording_overlay(&ready_app);
+                    meeting::consent_panel::create(&ready_app);
+                    if let Err(error) = ready_app.emit(launch_trace::BACKEND_READY_EVENT, ()) {
+                        log::error!("Failed to release the launch shell: {error}");
+                        ready_app.exit(1);
+                    }
+                }) {
+                    log::error!("Failed to schedule launch completion: {error}");
+                    startup_app.exit(1);
+                    return;
+                }
+
+                // Keyring work starts only after the shell paint that triggered
+                // this callback, so an OS prompt always has an owning surface.
+                let unlock_history = Arc::clone(&startup_app.state::<Arc<HistoryManager>>());
+                let unlock_secrets = secret_manager.clone();
+                tauri::async_runtime::spawn(async move {
+                    unlock_history.unlock_storage(&unlock_secrets).await;
+                });
             });
 
             Ok(())
@@ -2015,6 +2076,9 @@ pub fn run(cli_args: CliArgs) {
         .on_window_event(|window, event| {
             let label = window.label();
             match event {
+                tauri::WindowEvent::Focused(true) if label == "main" => {
+                    launch_trace::mark_window_focus();
+                }
                 tauri::WindowEvent::CloseRequested { api, .. } if label == "main" => {
                     api.prevent_close();
                     let _ = window.hide();

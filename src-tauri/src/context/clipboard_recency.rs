@@ -96,15 +96,7 @@ pub(crate) fn observe_clipboard_generation() -> Generation {
     let Ok(mut state) = lock.lock() else {
         return Generation::default();
     };
-    if !state.enabled {
-        return Generation::default();
-    }
-
-    observe_locked(&mut state, now_ms(), platform_generation());
-    Generation {
-        count: state.last_count,
-        changed_at_ms: state.changed_at_ms,
-    }
+    observe_if_enabled(&mut state, now_ms(), platform_generation)
 }
 
 fn watch_generations() {
@@ -120,18 +112,27 @@ fn watch_generations() {
                 Err(_) => return,
             };
         }
-        drop(state);
 
         let now = now_ms();
-        let count = platform_generation();
-        if let Ok(mut state) = lock.lock() {
-            if state.enabled {
-                observe_locked(&mut state, now, count);
-            }
-            let _ = wake.wait_timeout(state, POLL_INTERVAL);
-        } else {
+        let _ = observe_if_enabled(&mut state, now, platform_generation);
+        if wake.wait_timeout(state, POLL_INTERVAL).is_err() {
             return;
         }
+    }
+}
+
+fn observe_if_enabled(
+    state: &mut State,
+    now: u64,
+    read_generation: impl FnOnce() -> Option<i64>,
+) -> Generation {
+    if !state.enabled {
+        return Generation::default();
+    }
+    observe_locked(state, now, read_generation());
+    Generation {
+        count: state.last_count,
+        changed_at_ms: state.changed_at_ms,
     }
 }
 
@@ -188,6 +189,19 @@ fn now_ms() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn disabled_watch_performs_no_platform_read() {
+        let mut state = State::default();
+        let mut reads = 0;
+        let generation = observe_if_enabled(&mut state, 1_000, || {
+            reads += 1;
+            Some(8)
+        });
+
+        assert_eq!(generation, Generation::default());
+        assert_eq!(reads, 0);
+    }
 
     #[test]
     fn first_observation_is_a_baseline_not_a_claim_of_freshness() {

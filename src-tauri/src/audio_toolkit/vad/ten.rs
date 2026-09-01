@@ -1,8 +1,6 @@
 use anyhow::Result;
 use ndarray::{Array2, Array3};
 use ort::inputs;
-use ort::session::builder::GraphOptimizationLevel;
-use ort::session::Session;
 use ort::value::TensorRef;
 use rustfft::num_complex::Complex32;
 use rustfft::{Fft, FftPlanner};
@@ -11,6 +9,9 @@ use std::sync::Arc;
 
 use super::{VadFrame, VoiceActivityDetector};
 use crate::audio_toolkit::constants;
+use crate::audio_toolkit::ort_session::{
+    build_session, InitializedSession, OrtProvider, SessionConfig, DEFAULT_VAD_PROVIDER,
+};
 
 /// TEN-VAD (Agora, TEN framework) behind the same trait as [`super::SileroVad`].
 ///
@@ -43,7 +44,7 @@ use crate::audio_toolkit::constants;
 /// verdict is the strongest hop probability inside it, so `SmoothedVad`,
 /// `VadConfig` and the recorder need no changes.
 pub struct TenVad {
-    session: Session,
+    session: InitializedSession,
     threshold: f32,
     frame_samples: usize,
     front_end: FrontEnd,
@@ -173,20 +174,29 @@ impl TenVad {
     /// Open a TEN-VAD session. `threshold` is compared against the model's
     /// probability with the same strict `>` semantics as [`super::SileroVad`].
     pub fn new<P: AsRef<Path>>(model_path: P, threshold: f32) -> Result<Self> {
+        Self::new_with_provider(model_path, threshold, DEFAULT_VAD_PROVIDER)
+    }
+
+    pub fn new_with_provider<P: AsRef<Path>>(
+        model_path: P,
+        threshold: f32,
+        provider: OrtProvider,
+    ) -> Result<Self> {
         if !(0.0..=1.0).contains(&threshold) {
             anyhow::bail!("threshold must be between 0.0 and 1.0");
         }
         let frame_samples = usize::try_from(TEN_FRAME_SAMPLES)
             .map_err(|_| anyhow::anyhow!("TEN-VAD frame length does not fit target usize"))?;
 
-        let session = Session::builder()
-            .map_err(|e| anyhow::anyhow!("Failed to create TEN-VAD session builder: {e}"))?
-            .with_optimization_level(GraphOptimizationLevel::Level3)
-            .map_err(|e| anyhow::anyhow!("Failed to set TEN-VAD optimization level: {e}"))?
-            .with_intra_threads(1)
-            .map_err(|e| anyhow::anyhow!("Failed to set TEN-VAD thread count: {e}"))?
-            .commit_from_file(model_path.as_ref())
-            .map_err(|e| anyhow::anyhow!("Failed to load TEN-VAD model: {e}"))?;
+        let session = build_session(
+            model_path.as_ref(),
+            SessionConfig {
+                label: "ten-vad",
+                provider,
+                intra_threads: Some(1),
+                profiling_path: None,
+            },
+        )?;
 
         let inputs = session.inputs();
         let outputs = session.outputs();
@@ -215,6 +225,14 @@ impl TenVad {
             context: Array3::zeros((1, CONTEXT, FEATURES)),
             hidden: std::array::from_fn(|_| Array2::zeros((1, HIDDEN))),
         })
+    }
+
+    pub fn provider(&self) -> OrtProvider {
+        self.session.provider()
+    }
+
+    pub fn session_init_duration(&self) -> std::time::Duration {
+        self.session.init_duration()
     }
 
     /// Run the currently staged feature context through the model, advance the

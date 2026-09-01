@@ -137,7 +137,7 @@ tauri-plugin-global-shortcut = "2.3.1"
 tauri-plugin-single-instance = "2.3.2"
 
 [target.'cfg(windows)'.dependencies]
-# ONNX Runtime on Windows is CPU-only (no ort-directml), matching macOS/Linux.
+# ONNX Runtime on Windows is CPU-only (no ort-directml).
 # The DirectML EP was experimental and, more importantly, pulled in pyke's
 # prebuilt ONNX Runtime which is compiled with a global /arch:AVX2 baseline that
 # executes BMI2/AVX in a static initializer and crashes at process startup on any
@@ -191,6 +191,10 @@ transcribe-cpp = { version = "0.2.0", default-features = false }
 [target.'cfg(target_os = "macos")'.dependencies]
 tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2.1" }
 transcribe-cpp = { version = "0.2.0", default-features = false, features = ["metal"] }
+# CoreML stays a per-session experiment. Cargo unifies these target-only
+# features with the CPU baseline above only for macOS builds.
+ort = { version = "=2.0.0-rc.12", default-features = false, features = ["std", "ndarray", "coreml"] }
+transcribe-rs = { version = "0.3.8", features = ["onnx", "ort-coreml"] }
 # Used by the receipt-sequenced ("reliable") paste path for lazy NSPasteboard
 # promises. Versions track what Tauri already pulls in.
 objc2 = "0.6"

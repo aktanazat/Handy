@@ -1472,7 +1472,10 @@ impl ModelManager {
         // already in the HF cache dedups onto its richer catalog entry (the scans
         // only insert ids not already present) instead of showing as a bare cache
         // find. Additive — see `seed_catalog_models`.
-        Self::seed_catalog_models(&mut available_models);
+        {
+            let _span = crate::launch_trace::span("catalog_seed");
+            Self::seed_catalog_models(&mut available_models);
+        }
 
         // Auto-discover custom transcribe-cpp models (.bin / .gguf) in the models directory
         if let Err(e) = Self::discover_custom_transcribe_models(&models_dir, &mut available_models)
@@ -1481,7 +1484,10 @@ impl ModelManager {
         }
 
         // Auto-discover transcribe-cpp GGUF models already in the shared HF cache.
-        Self::discover_hf_cache_models(&mut available_models);
+        {
+            let _span = crate::launch_trace::span("hf_scan");
+            Self::discover_hf_cache_models(&mut available_models);
+        }
 
         let manager = Self {
             app_handle: app_handle.clone(),

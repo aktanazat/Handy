@@ -17,6 +17,7 @@ import {
   TooltipTrigger,
 } from "@/components/vg/tooltip";
 import { checkForUpdates, type UpdateCheckResult } from "@/lib/updateCheck";
+import { waitForFirstVisibleFrame } from "@/lib/launchTrace";
 import { UpdateBanner, UpdateCheckFailure } from "./UpdateNotice";
 import { ActivityBand } from "./ActivityBand";
 import { CaptureModeChip } from "./CaptureModeChip";
@@ -228,6 +229,7 @@ export const Overview: React.FC<OverviewProps> = ({
 
   useEffect(() => {
     let active = true;
+    let interval: number | undefined;
     const refresh = async () => {
       try {
         const recording = await commands.isRecording();
@@ -236,14 +238,23 @@ export const Overview: React.FC<OverviewProps> = ({
         if (active) setIsRecording(false);
       }
     };
-    void refresh();
-    const interval = window.setInterval(
-      () => void refresh(),
-      RECORDING_POLL_MS,
-    );
+    const syncPolling = () => {
+      if (document.hidden) {
+        if (interval !== undefined) {
+          window.clearInterval(interval);
+          interval = undefined;
+        }
+        return;
+      }
+      void refresh();
+      interval ??= window.setInterval(() => void refresh(), RECORDING_POLL_MS);
+    };
+    syncPolling();
+    document.addEventListener("visibilitychange", syncPolling);
     return () => {
       active = false;
-      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", syncPolling);
+      if (interval !== undefined) window.clearInterval(interval);
     };
   }, []);
 
@@ -283,11 +294,16 @@ export const Overview: React.FC<OverviewProps> = ({
     }
   }, []);
 
-  /* One check per visit. The backend owns the decision: with automatic checks
-   * off it answers "disabled" without touching the network, and this page
-   * renders nothing for that status. */
+  /* One check per visit, after the launch shell has composited. The backend
+   * still owns the preference decision; disabled checks make no request. */
   useEffect(() => {
-    void runUpdateCheck();
+    let cancelled = false;
+    void waitForFirstVisibleFrame().then(() => {
+      if (!cancelled) void runUpdateCheck();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [runUpdateCheck]);
 
   return (

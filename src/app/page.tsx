@@ -1,8 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { LaunchShell } from "@/components/LaunchShell";
 import { TooltipProvider } from "@/components/vg/tooltip";
 import { bootstrapWindow } from "@/lib/bootstrapWindow";
+import { waitForBackendReady } from "@/lib/launchTrace";
 import "@/App.css";
 
 /* The settings window. Everything the old src/main.tsx did before createRoot
@@ -15,6 +17,7 @@ import "@/App.css";
  * other two, so it does not listen for it. */
 const MainWindow = dynamic(
   async () => {
+    const backendReady = waitForBackendReady();
     const [{ default: App }, { useModelStore }] = await Promise.all([
       import("@/App"),
       import("@/stores/modelStore"),
@@ -22,14 +25,17 @@ const MainWindow = dynamic(
         compatShims: true,
         followThemeChanges: false,
       }),
+      backendReady,
     ]);
 
-    // Loads models and installs their event listeners.
-    useModelStore.getState().initialize();
+    // Manager construction starts only after LaunchShell paints. Keep the
+    // static shell until the complete catalog snapshot is available so the
+    // full app never renders a transient empty model list.
+    await useModelStore.getState().initialize();
 
     return App;
   },
-  { ssr: false },
+  { ssr: false, loading: () => <LaunchShell /> },
 );
 
 export default function MainWindowRoute() {

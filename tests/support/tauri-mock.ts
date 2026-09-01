@@ -27,6 +27,8 @@ export type TauriMockOptions = {
   responses?: Record<string, JsonValue>;
   /** Backend events delivered once their matching listener registers. */
   events?: Record<string, JsonValue[]>;
+  /** Commands that stay in flight for launch-order assertions. */
+  pending?: string[];
 };
 
 /** Installs the mocked Tauri runtime before any page script runs. */
@@ -39,7 +41,11 @@ export async function installTauriMock(
     modes: MODES_SNAPSHOT,
     startedAtUtcMs: meetingStartedAtMs(),
     responses: options.responses ?? {},
-    events: options.events ?? {},
+    events: {
+      "launch:backend-ready": [null],
+      ...(options.events ?? {}),
+    },
+    pending: options.pending ?? [],
   });
 }
 
@@ -50,6 +56,7 @@ type MockPayload = {
   startedAtUtcMs: number;
   responses: Record<string, JsonValue>;
   events: Record<string, JsonValue[]>;
+  pending: string[];
 };
 
 /** The envelope every mocked `plugin:event|listen` callback receives; the
@@ -70,6 +77,7 @@ export function installMockedRuntime(payload: MockPayload): void {
   localStorage.setItem("detection-panel-ack", "");
   localStorage.setItem("detection-prompt-response", "");
   const callbacks = new Map<number, (value: MockEventEnvelope) => void>();
+  const pendingCommands = new Set(payload.pending);
   let nextCallbackId = 1;
 
   /* Wire-boundary parsers: the mock validates request shapes the way the real
@@ -507,6 +515,9 @@ export function installMockedRuntime(payload: MockPayload): void {
     command: string,
     args?: Record<string, JsonValue>,
   ): Promise<JsonValue> => {
+    const invokeCountKey = `tauri-invoke:${command}`;
+    const invokeCount = Number(localStorage.getItem(invokeCountKey) ?? "0");
+    localStorage.setItem(invokeCountKey, String(invokeCount + 1));
     if (command === "plugin:event|listen") {
       const eventName = String(args?.event ?? "");
       const callbackId = Number(args?.handler);
@@ -523,6 +534,9 @@ export function installMockedRuntime(payload: MockPayload): void {
         }, 0);
       }
       return callbackId;
+    }
+    if (pendingCommands.has(command)) {
+      return new Promise<JsonValue>(() => undefined);
     }
     if (Object.prototype.hasOwnProperty.call(payload.responses, command)) {
       return payload.responses[command];

@@ -371,14 +371,12 @@ impl Wakeup {
         self.signal.notify_all();
     }
 
-    /// Waits up to `timeout` for a wake, then clears the flag.
+    /// Waits for a wake, optionally bounded by the next scheduled tick.
     ///
     /// The pre-check is load-bearing, not an optimization: an input-device edge
     /// arriving while the loop is inside `tick` sets the flag with nobody
-    /// waiting, and `Condvar::wait_timeout` does not consult a predicate. Without
-    /// it, that edge is lost until the next scheduled tick — up to a full
-    /// interval late for the one path §5.4 requires to be immediate.
-    fn wait(&self, timeout: Duration) {
+    /// waiting. Without it, that edge is lost until the next scheduled tick.
+    fn wait(&self, timeout: Option<Duration>) {
         let mut flagged = self
             .flagged
             .lock()
@@ -387,12 +385,24 @@ impl Wakeup {
             *flagged = false;
             return;
         }
-        let (mut flagged, _) = self
-            .signal
-            .wait_timeout(flagged, timeout)
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        flagged = match timeout {
+            Some(timeout) => {
+                self.signal
+                    .wait_timeout(flagged, timeout)
+                    .unwrap_or_else(|poisoned| poisoned.into_inner())
+                    .0
+            }
+            None => self
+                .signal
+                .wait(flagged)
+                .unwrap_or_else(|poisoned| poisoned.into_inner()),
+        };
         *flagged = false;
     }
+}
+
+fn tick_interval(enabled: bool, tracking_capture: bool) -> Option<Duration> {
+    (enabled || tracking_capture).then_some(TICK)
 }
 
 /// Owns the detection loop and the platform observers it drives.
@@ -407,6 +417,7 @@ pub struct DetectionRuntime {
     state: Mutex<RuntimeState>,
     wakeup: Arc<Wakeup>,
     stop: Arc<AtomicBool>,
+    enabled: AtomicBool,
     /// Probes Screen Recording lazily, and caches the answer.
     ///
     /// A function rather than a value because the probe is a ScreenCaptureKit
@@ -447,6 +458,7 @@ impl DetectionRuntime {
             state: Mutex::new(RuntimeState::default()),
             wakeup: Arc::new(Wakeup::default()),
             stop: Arc::new(AtomicBool::new(false)),
+            enabled: AtomicBool::new(false),
             screen_recording_probe,
             screen_recording: OnceLock::new(),
         }
@@ -460,6 +472,10 @@ impl DetectionRuntime {
     /// concrete type, and a trait object cannot be downcast to it. The thread
     /// owns the monitor for exactly as long as the loop runs.
     pub fn spawn_loop(self: &Arc<Self>, level: Arc<InputDeviceLevel>) {
+        self.enabled.store(
+            crate::settings::get_settings(&self.app).detection_enabled,
+            Ordering::Release,
+        );
         let runtime = Arc::clone(self);
         thread::Builder::new()
             .name("sona-meeting-detection".to_string())
@@ -468,6 +484,14 @@ impl DetectionRuntime {
             .unwrap_or_else(|error| {
                 log::warn!("Meeting detection loop is unavailable: {error}");
             });
+    }
+
+    /// Applies the master toggle to the loop lifecycle. Turning detection off
+    /// wakes the thread so it can drop the CoreAudio observer and park.
+    pub(crate) fn set_enabled(&self, enabled: bool) {
+        if self.enabled.swap(enabled, Ordering::AcqRel) != enabled {
+            self.wakeup.wake();
+        }
     }
 
     pub fn shutdown(&self) {
@@ -499,22 +523,46 @@ impl DetectionRuntime {
     }
 
     fn run(self: Arc<Self>, level: Arc<InputDeviceLevel>) {
-        // Registered here, on this thread, before the first wait — not during
-        // `setup`. Creating it instantiates the CoreAudio HAL client in-process
-        // and opens a coreaudiod connection, which is the heaviest platform
-        // work this slice does and the last of it to leave app launch.
-        //
-        // Before the first `wait` specifically: `start` seeds `level` with the
-        // device's current state, so a meeting already under way at launch is
-        // visible on the first tick instead of a full interval later.
-        let mut monitor = self.start_input_monitor(&level);
+        let mut monitor = None;
+        let mut observing = false;
         let mut previous_wall = utc_now_ms();
         let mut previous_monotonic = Instant::now();
+
         while !self.stop.load(Ordering::Acquire) {
-            self.wakeup.wait(TICK);
+            let interval = tick_interval(
+                self.enabled.load(Ordering::Acquire),
+                self.lock().tracked.is_some(),
+            );
+            let Some(interval) = interval else {
+                // Dropping the monitor unregisters its CoreAudio listener. The
+                // condition wait has no deadline, so disabled detection has no
+                // platform observer and no periodic tick.
+                monitor = None;
+                observing = false;
+                self.wakeup.wait(None);
+                continue;
+            };
+
+            if !observing {
+                monitor = self.start_input_monitor(&level);
+                previous_wall = utc_now_ms();
+                previous_monotonic = Instant::now();
+                observing = true;
+            }
+
+            self.wakeup.wait(Some(interval));
             if self.stop.load(Ordering::Acquire) {
                 return;
             }
+            if tick_interval(
+                self.enabled.load(Ordering::Acquire),
+                self.lock().tracked.is_some(),
+            )
+            .is_none()
+            {
+                continue;
+            }
+
             let wall = utc_now_ms();
             let monotonic = Instant::now();
             if slept_between(previous_wall, wall, previous_monotonic, monotonic) {
@@ -527,7 +575,9 @@ impl DetectionRuntime {
             // ad-hoc path. Re-registering on the new device is what keeps the
             // microphone dimension alive across a device change.
             self.refresh_input_monitor(&mut monitor, &level);
+            let started = Instant::now();
             self.tick(wall);
+            log::debug!("Meeting detection tick finished in {:?}", started.elapsed());
         }
     }
 
@@ -577,10 +627,17 @@ impl DetectionRuntime {
     }
 
     #[cfg(not(target_os = "macos"))]
-    fn start_input_monitor(self: &Arc<Self>, _level: &Arc<InputDeviceLevel>) {}
+    fn start_input_monitor(self: &Arc<Self>, _level: &Arc<InputDeviceLevel>) -> Option<()> {
+        Some(())
+    }
 
     #[cfg(not(target_os = "macos"))]
-    fn refresh_input_monitor(self: &Arc<Self>, _monitor: &mut (), _level: &Arc<InputDeviceLevel>) {}
+    fn refresh_input_monitor(
+        self: &Arc<Self>,
+        _monitor: &mut Option<()>,
+        _level: &Arc<InputDeviceLevel>,
+    ) {
+    }
 
     /// Screen Recording state, probed once on first use.
     fn screen_recording(&self) -> ScreenRecordingPermission {
@@ -2129,12 +2186,19 @@ mod tests {
         wakeup.wake();
 
         let started = Instant::now();
-        wakeup.wait(Duration::from_secs(30));
+        wakeup.wait(Some(Duration::from_secs(30)));
 
         assert!(
             started.elapsed() < Duration::from_secs(5),
             "a flagged wakeup must return immediately"
         );
+    }
+
+    #[test]
+    fn disabled_detection_has_no_tick_deadline() {
+        assert_eq!(tick_interval(false, false), None);
+        assert_eq!(tick_interval(true, false), Some(TICK));
+        assert_eq!(tick_interval(false, true), Some(TICK));
     }
 
     fn pending(prompt: PromptKind, show_introduction: bool) -> PendingPrompt {
