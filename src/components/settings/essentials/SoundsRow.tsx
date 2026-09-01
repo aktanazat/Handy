@@ -28,6 +28,9 @@ export const SoundsRow: React.FC = () => {
       fact={audioFeedbackEnabled ? `${Math.round(volume * 100)}%` : undefined}
       controlId={id}
     >
+      <span className="text-[11px] text-gray-800">
+        {t("settingsV2.essentials.volume")}
+      </span>
       <Slider
         aria-label={t("settingsV2.essentials.volume")}
         value={[volume]}

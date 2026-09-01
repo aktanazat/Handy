@@ -65,10 +65,7 @@ export const AgentBridgeWorkspace: React.FC = () => {
         <div className="border-b border-gray-alpha-400">
           <TabsList
             variant="line"
-            aria-label={t(
-              "settings.agents.workspaceNavigation",
-              "Agent views",
-            )}
+            aria-label={t("settings.agents.workspaceNavigation", "Agent views")}
             className="w-full justify-start gap-6 px-0"
           >
             {tabs.map((tab) => (

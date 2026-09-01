@@ -2554,10 +2554,10 @@
       "days_few": "{{count}} dny",
       "days_many": "{{count}} dne",
       "days_other": "{{count}} dní",
-      "streakAria_one": "Aktuální série, {{count}} den",
-      "streakAria_few": "Aktuální série, {{count}} dny",
-      "streakAria_many": "Aktuální série, {{count}} dne",
-      "streakAria_other": "Aktuální série, {{count}} dní"
+      "streakAria_one": "Aktuální série, {{count}} den. Aktivní dny tento týden: {{days}}.",
+      "streakAria_few": "Aktuální série, {{count}} dny. Aktivní dny tento týden: {{days}}.",
+      "streakAria_many": "Aktuální série, {{count}} dne. Aktivní dny tento týden: {{days}}.",
+      "streakAria_other": "Aktuální série, {{count}} dní. Aktivní dny tento týden: {{days}}."
     },
     "update": {
       "available": "Sona {{latest}} je k dispozici. Tato instalace má verzi {{current}}.",

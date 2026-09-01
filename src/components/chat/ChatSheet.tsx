@@ -53,10 +53,8 @@ interface ChatSheetHeaderProps {
   onNewChat: () => void;
 }
 
-/* Three round hairlines and nothing else. No title: the sheet is the answer to
- * a press on a pill that says Chat, and repeating the word at the top of it
- * would be the first of the duplications this surface keeps being rebuilt to
- * remove. The window's accessible name carries it instead. */
+/* The title names the independent chat surface; the hairline beneath it keeps
+ * its controls from merging into the conversation. */
 const ROUND_BUTTON =
   "grid size-7 place-items-center rounded-full border border-gray-alpha-400 text-gray-900 transition-colors hover:bg-gray-alpha-100 hover:text-gray-1000 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none";
 
@@ -74,19 +72,24 @@ const ChatSheetHeader: React.FC<ChatSheetHeaderProps> = ({
   const { t } = useTranslation();
 
   return (
-    <header className="flex flex-none items-center justify-between gap-2 px-3 py-2.5">
-      <button
-        type="button"
-        ref={closeRef}
-        data-slot="chat-close"
-        onClick={onClose}
-        aria-label={t("chat.close")}
-        title={t("chat.close")}
-        className={ROUND_BUTTON}
-      >
-        <X aria-hidden="true" className="size-3.5" />
-      </button>
-      <div className="flex items-center gap-1.5">
+    <header className="grid flex-none grid-cols-[64px_minmax(0,1fr)_64px] items-center border-b border-gray-alpha-400 px-3 py-2.5">
+      <div>
+        <button
+          type="button"
+          ref={closeRef}
+          data-slot="chat-close"
+          onClick={onClose}
+          aria-label={t("chat.close")}
+          title={t("chat.close")}
+          className={ROUND_BUTTON}
+        >
+          <X aria-hidden="true" className="size-3.5" />
+        </button>
+      </div>
+      <h2 className="truncate text-center text-[13px] leading-5 font-medium text-gray-1000">
+        {t("chat.title")}
+      </h2>
+      <div className="flex items-center justify-end gap-1.5">
         <ChatHistoryMenu
           conversations={history}
           currentId={currentId}
@@ -247,10 +250,11 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
 
   /* Where focus goes when the column opens.
    *
-   * It has to go somewhere: the press that opened it came from a pill that has
-   * just taken itself off screen, and focus left on a removed node falls back
-   * to the body — where Escape reaches nothing, because Escape is bound on
-   * this element rather than on the window.
+   * It has to go somewhere: the press that opened it came from a pill that is
+   * becoming inert. The field takes that focus, rather than leaving it on a
+   * control the reader can no longer reach or falling back to the body — where
+   * Escape reaches nothing, because Escape is bound on this element rather than
+   * on the window.
    *
    * The field is what the column is for, so the caret belongs in it. On the
    * first paint after a press it cannot take the caret — that is the loading
@@ -265,10 +269,13 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
     }
     if (caretPlaced.current) return;
     const holder = document.activeElement;
+    const openedFromPill =
+      holder instanceof HTMLElement && holder.dataset.slot === "chat-pill";
     if (
       holder !== null &&
       holder !== document.body &&
-      columnRef.current?.contains(holder) !== true
+      columnRef.current?.contains(holder) !== true &&
+      !openedFromPill
     )
       return;
     const field = fieldRef.current;
@@ -312,7 +319,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
       <div
         data-slot="chat-frame"
         className={cn(
-          "fixed inset-y-0 end-0 z-20 flex min-h-0 flex-col border-s border-gray-alpha-400 bg-background-100",
+          "fixed inset-y-0 end-0 z-20 flex min-h-0 flex-col border-s border-gray-alpha-500 bg-background-100",
           CHAT_WIDTH,
           CHAT_FRAME,
         )}

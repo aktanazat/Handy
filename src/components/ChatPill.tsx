@@ -16,11 +16,11 @@ import {
  * outside the page scroll region, so it neither scrolls away nor has to be
  * restated by twelve pages.
  *
- * It is a door and not a switch: while the chat column is open the pill is off
- * screen and the column's own X is what closes it. Two controls for one fold,
- * one of them sitting in a 512pt page that has just been narrowed to make room
- * for the other, is the duplication this surface keeps being rebuilt to
- * remove.
+ * It is a door and not a switch: while the chat column is open the pill fades
+ * with the shell's travel clock and is inert. The column's own X is what
+ * closes it. Two controls for one fold, one of them sitting in a 512pt page
+ * that has just been narrowed to make room for the other, is the duplication
+ * this surface keeps being rebuilt to remove.
  *
  * Geometry, stated once here because this component owns where it sits and the
  * shell only owns which box it sits in. The app's root is 14px, so every rem
@@ -100,8 +100,9 @@ export interface ChatPillProps {
   /** `agent_panel_paired`. Off means no relay would answer a turn. */
   paired: boolean;
   /**
-   * Whether the chat column beside it is showing. While it is, there is no
-   * pill at all — the column's own X is what closes it.
+   * Whether the chat column beside it is showing. While it is, this stays
+   * mounted only to sample the shell's opacity clock; it is inert and hidden
+   * from the accessibility tree.
    */
   open: boolean;
   /** Presses only ever open: closing belongs to the column's X and to Esc. */
@@ -134,10 +135,8 @@ export const ChatPill: React.FC<ChatPillProps> = ({
    * is noise. Settings is where it comes back. */
   if (!enabled) return null;
 
-  /* The column is showing, and it carries the X that closes it. A pill left
-   * standing in the page the column just took its width from would be a second
-   * control for one fold, in the half of the window with less room for it. */
-  if (open) return null;
+  /* The column's X remains the only way back out. The pill stays mounted while
+   * it fades so the root clock, not an unmount, owns that visual transition. */
 
   const pill = (
     <button
@@ -147,22 +146,22 @@ export const ChatPill: React.FC<ChatPillProps> = ({
       /* The label reads "Chat", which does not say chat with what. The
        * accessible name does. */
       aria-label={t("chat.label")}
-      /* The column it opens is not showing — a pill on screen is a column that
-       * is closed — so the state it reports is always the collapsed one. It
-       * reports it anyway: this is the control that reveals that region, and a
-       * disclosure that says nothing about its region is one a screen reader
-       * has to guess at. */
-      aria-expanded={paired ? false : undefined}
+      aria-hidden={open || undefined}
+      inert={open}
+      /* The visible pill is a disclosure. Its hidden travel state remains out
+       * of the accessibility tree while the sheet owns the open state. */
+      aria-expanded={paired ? open : undefined}
       /* `aria-disabled`, not `disabled`: the reason it is inert lives in the
        * tooltip below, and a `disabled` button takes neither hover nor focus,
        * so it would be the one state that cannot reach its own explanation.
        * Dimmed type rather than opacity, like every disabled settings row. */
       aria-disabled={paired ? undefined : true}
-      onClick={paired ? onOpen : undefined}
+      onClick={paired && !open ? onOpen : undefined}
       className={cn(
         PLACEMENT,
         "inline-flex h-[28px] items-center gap-1.5 rounded-full border border-gray-alpha-400 bg-raised ps-2.5 pe-3 text-[13px] leading-[18px] transition-colors outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
         paired ? "text-gray-1000 hover:bg-gray-alpha-100" : "text-gray-800",
+        open && "pointer-events-none",
       )}
     >
       <AuroraRing />

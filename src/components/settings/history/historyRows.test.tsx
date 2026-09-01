@@ -506,7 +506,9 @@ describe("library row, empty transcript", () => {
         }),
       ],
     });
-    expect(held).toContain("The cloud run was held");
+    expect(held).toContain(
+      "Sona held the cloud result: nothing trustworthy came back and no local model was available.",
+    );
     expect(held).not.toContain("Transcription failed");
   });
 
@@ -748,7 +750,8 @@ describe("library page chrome", () => {
      * changes the column changes both sides at once, while losing the column
      * or drawing a second one still fails here. */
     expect(occurrences(markup, PAGE_COLUMN)).toBe(1);
-    expect(markup).toContain("py-12");
+    expect(markup).toContain("pt-12");
+    expect(markup).toContain("pb-[72px]");
   });
 
   test("the title row carries exactly one action, and not the folder button", () => {

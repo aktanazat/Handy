@@ -1,22 +1,18 @@
 import * as React from "react";
 
-export const ACTIVITY_CHART_HEIGHT = 72;
+export const ACTIVITY_CHART_HEIGHT = 84;
 
 const CHART_WIDTH = 216;
 const PLOT_LEFT = 8;
 const PLOT_RIGHT = CHART_WIDTH - PLOT_LEFT;
 const PLOT_TOP = 8;
-const BASELINE = 66;
+const BASELINE = 58;
 const PLOT_HEIGHT = BASELINE - PLOT_TOP;
 const SLOT_COUNT = 7;
 const BAR_WIDTH = 8;
-const BAR_RADIUS = 4;
+const BAR_RADIUS = BAR_WIDTH / 3;
 const STUB_HEIGHT = 2;
-const RING_SIZE = ACTIVITY_CHART_HEIGHT;
-const RING_CENTER = RING_SIZE / 2;
-const RING_STROKE = 3;
-const RING_RADIUS = 26.5;
-const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+const WEEKDAY_LABEL_Y = 78;
 
 interface Point {
   x: number;
@@ -144,7 +140,7 @@ export function ActivitySparkline({
       aria-label={ariaLabel}
       viewBox={`0 0 ${CHART_WIDTH} ${ACTIVITY_CHART_HEIGHT}`}
       preserveAspectRatio="xMidYMid meet"
-      className="block h-[72px] w-full overflow-visible"
+      className="block h-[84px] w-full overflow-visible"
     >
       <defs>
         <linearGradient
@@ -202,15 +198,16 @@ export function ActivitySparkline({
 
 export interface ActivityBarsProps {
   values: readonly number[];
+  weekdayLabels: readonly string[];
   ariaLabel: string;
-  highlightIndex?: number;
 }
 
 export function ActivityBars({
   values,
+  weekdayLabels,
   ariaLabel,
-  highlightIndex,
 }: ActivityBarsProps) {
+  const gradientId = `activity-dictations-bar-${React.useId().replace(/:/g, "")}`;
   const slots = Array.from(
     { length: SLOT_COUNT },
     (_, index) => values[index] ?? 0,
@@ -227,8 +224,25 @@ export function ActivityBars({
       aria-label={ariaLabel}
       viewBox={`0 0 ${CHART_WIDTH} ${ACTIVITY_CHART_HEIGHT}`}
       preserveAspectRatio="xMidYMid meet"
-      className="block h-[72px] w-full overflow-visible"
+      className="block h-[84px] w-full overflow-visible"
     >
+      <defs>
+        <linearGradient
+          id={gradientId}
+          x1="0"
+          y1={PLOT_TOP}
+          x2="0"
+          y2={BASELINE}
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0%" stopColor="var(--color-blue-900)" />
+          <stop
+            offset="100%"
+            stopColor="var(--color-blue-900)"
+            stopOpacity="0.4"
+          />
+        </linearGradient>
+      </defs>
       <path
         d={`M ${PLOT_LEFT} ${BASELINE} H ${PLOT_RIGHT}`}
         fill="none"
@@ -238,77 +252,85 @@ export function ActivityBars({
       />
       {slots.map((rawValue, index) => {
         const value = sample(rawValue);
-        const height =
-          value === 0 || maximum === 0
-            ? STUB_HEIGHT
-            : (value / maximum) * PLOT_HEIGHT;
         const x = PLOT_LEFT + index * (BAR_WIDTH + gap);
-        const highlighted = index === highlightIndex;
 
         return (
-          <path
-            key={index}
-            data-slot="activity-bar"
-            d={roundedTopBar(x, height)}
-            className={
-              highlighted && value > 0 ? "fill-blue-900" : "fill-gray-alpha-300"
-            }
-          />
+          <React.Fragment key={index}>
+            {value === 0 ? (
+              <rect
+                data-slot="activity-bar"
+                x={round(x)}
+                y={BASELINE - STUB_HEIGHT}
+                width={BAR_WIDTH}
+                height={STUB_HEIGHT}
+                className="fill-gray-alpha-300"
+              />
+            ) : (
+              <path
+                data-slot="activity-bar"
+                data-active="true"
+                d={roundedTopBar(x, (value / maximum) * PLOT_HEIGHT)}
+                fill={`url(#${gradientId})`}
+              />
+            )}
+            <text
+              aria-hidden="true"
+              x={round(x + BAR_WIDTH / 2)}
+              y={WEEKDAY_LABEL_Y}
+              textAnchor="middle"
+              className="fill-[var(--gray-a-700)] text-[9px]"
+            >
+              {weekdayLabels[index] ?? ""}
+            </text>
+          </React.Fragment>
         );
       })}
     </svg>
   );
 }
 
-export interface ActivityRingProps {
-  value: number;
-  max: number;
-  center: string;
+export interface ActivityWeekDay {
+  label: string;
+  active: boolean;
+  today?: boolean;
+}
+
+export interface ActivityWeekProps {
+  days: readonly ActivityWeekDay[];
   ariaLabel: string;
 }
 
-export function ActivityRing({
-  value,
-  max,
-  center,
-  ariaLabel,
-}: ActivityRingProps) {
-  const progress = max <= 0 ? 0 : Math.min(1, Math.max(0, value / max));
-  const circumference = round(RING_CIRCUMFERENCE);
+export function ActivityWeek({ days, ariaLabel }: ActivityWeekProps) {
+  const slots = Array.from({ length: SLOT_COUNT }, (_, index) => days[index]);
 
   return (
-    <div className="relative mx-auto size-[72px]">
-      <svg
-        role="img"
-        aria-label={ariaLabel}
-        viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
-        className="block size-full -rotate-90"
-      >
-        <circle
-          cx={RING_CENTER}
-          cy={RING_CENTER}
-          r={RING_RADIUS}
-          fill="none"
-          className="stroke-gray-alpha-300"
-          strokeWidth={RING_STROKE}
-        />
-        <circle
-          cx={RING_CENTER}
-          cy={RING_CENTER}
-          r={RING_RADIUS}
-          fill="none"
-          className="stroke-blue-900"
-          strokeWidth={RING_STROKE}
-          strokeLinecap="round"
-          strokeDasharray={`${round(circumference * progress)} ${circumference}`}
-        />
-      </svg>
-      <span
-        aria-hidden="true"
-        className="absolute inset-0 flex items-center justify-center text-[18px] leading-none font-medium text-gray-1000 tabular-nums"
-      >
-        {center}
-      </span>
+    <div
+      role="img"
+      aria-label={ariaLabel}
+      className="mx-auto flex h-[84px] w-full max-w-[216px] items-end justify-between px-[8px] pb-[2px]"
+    >
+      {slots.map((day, index) => (
+        <div
+          key={index}
+          data-slot="activity-streak-day"
+          data-active={day?.active || undefined}
+          data-today={day?.today || undefined}
+          className="flex flex-col items-center gap-[7px]"
+        >
+          <span
+            aria-hidden="true"
+            className={`size-[10px] rounded-full ${
+              day?.active ? "bg-blue-900" : "bg-gray-alpha-300"
+            }${day?.today ? " outline outline-1 outline-blue-900/50 outline-offset-2" : ""}`}
+          />
+          <span
+            aria-hidden="true"
+            className="text-[9px] leading-3 text-[var(--gray-a-700)]"
+          >
+            {day?.label ?? ""}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

@@ -2554,10 +2554,10 @@
       "days_few": "{{count}} dni",
       "days_many": "{{count}} dni",
       "days_other": "{{count}} dnia",
-      "streakAria_one": "Bieżąca seria, {{count}} dzień",
-      "streakAria_few": "Bieżąca seria, {{count}} dni",
-      "streakAria_many": "Bieżąca seria, {{count}} dni",
-      "streakAria_other": "Bieżąca seria, {{count}} dnia"
+      "streakAria_one": "Bieżąca seria, {{count}} dzień. Aktywne dni w tym tygodniu: {{days}}.",
+      "streakAria_few": "Bieżąca seria, {{count}} dni. Aktywne dni w tym tygodniu: {{days}}.",
+      "streakAria_many": "Bieżąca seria, {{count}} dni. Aktywne dni w tym tygodniu: {{days}}.",
+      "streakAria_other": "Bieżąca seria, {{count}} dnia. Aktywne dni w tym tygodniu: {{days}}."
     },
     "update": {
       "available": "Sona {{latest}} jest dostępna. Ta instalacja ma wersję {{current}}.",

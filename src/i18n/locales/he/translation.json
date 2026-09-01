@@ -2547,9 +2547,9 @@
       "days_one": "יום אחד",
       "days_two": "יומיים",
       "days_other": "{{count}} ימים",
-      "streakAria_one": "רצף נוכחי, יום אחד",
-      "streakAria_two": "רצף נוכחי, יומיים",
-      "streakAria_other": "רצף נוכחי, {{count}} ימים"
+      "streakAria_one": "רצף נוכחי, יום אחד. ימים פעילים השבוע: {{days}}.",
+      "streakAria_two": "רצף נוכחי, יומיים. ימים פעילים השבוע: {{days}}.",
+      "streakAria_other": "רצף נוכחי, {{count}} ימים. ימים פעילים השבוע: {{days}}."
     },
     "update": {
       "available": "Sona {{latest}} זמין. ההתקנה הזו על {{current}}.",

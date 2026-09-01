@@ -2540,8 +2540,8 @@
       "wordsAria": "Woorden per dag, {{count}} in totaal, laatste waarde {{last}}",
       "days_one": "{{count}} dag",
       "days_other": "{{count}} dagen",
-      "streakAria_one": "Huidige reeks, {{count}} dag",
-      "streakAria_other": "Huidige reeks, {{count}} dagen"
+      "streakAria_one": "Huidige reeks, {{count}} dag. Actieve dagen deze week: {{days}}.",
+      "streakAria_other": "Huidige reeks, {{count}} dagen. Actieve dagen deze week: {{days}}."
     },
     "update": {
       "available": "Sona {{latest}} is beschikbaar. Deze installatie draait {{current}}.",

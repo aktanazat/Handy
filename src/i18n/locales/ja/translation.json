@@ -2533,7 +2533,7 @@
       "dictationsAria": "1日あたりの口述、{{day}}に最多{{count}}件",
       "wordsAria": "1日あたりの単語、合計{{count}}語、最終値{{last}}",
       "days_other": "{{count}}日",
-      "streakAria_other": "現在の連続記録、{{count}}日"
+      "streakAria_other": "現在の連続記録、{{count}}日。今週の活動日: {{days}}。"
     },
     "update": {
       "available": "Sona {{latest}} が利用可能です。このインストールは {{current}} です。",

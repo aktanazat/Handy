@@ -2533,7 +2533,7 @@
       "dictationsAria": "Số lần đọc chính tả mỗi ngày, cao nhất {{count}} vào {{day}}",
       "wordsAria": "Số từ mỗi ngày, tổng cộng {{count}}, giá trị cuối {{last}}",
       "days_other": "{{count}} ngày",
-      "streakAria_other": "Chuỗi hiện tại, {{count}} ngày"
+      "streakAria_other": "Chuỗi hiện tại, {{count}} ngày. Các ngày hoạt động trong tuần này: {{days}}."
     },
     "update": {
       "available": "Đã có Sona {{latest}}. Bản cài đặt này đang ở {{current}}.",

@@ -369,7 +369,9 @@ describe("the Overview activity band", () => {
     expect(markup).toContain(
       'aria-label="Words per day, 180 total, ending at 20"',
     );
-    expect(markup).toContain('aria-label="Current streak, 3 days"');
+    expect(markup).toContain(
+      'aria-label="Current streak, 3 days. Active days this week:',
+    );
     expect(markup).toContain('aria-label="Previous 7 days"');
     expect(markup).toContain('aria-label="Next 7 days"');
   });

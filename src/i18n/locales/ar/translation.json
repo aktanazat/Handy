@@ -2568,12 +2568,12 @@
       "days_few": "{{count}} أيام",
       "days_many": "{{count}} يومًا",
       "days_other": "{{count}} يوم",
-      "streakAria_zero": "التتابع الحالي، 0 يوم",
-      "streakAria_one": "التتابع الحالي، يوم واحد",
-      "streakAria_two": "التتابع الحالي، يومان",
-      "streakAria_few": "التتابع الحالي، {{count}} أيام",
-      "streakAria_many": "التتابع الحالي، {{count}} يومًا",
-      "streakAria_other": "التتابع الحالي، {{count}} يوم"
+      "streakAria_zero": "التتابع الحالي، 0 يوم. الأيام النشطة هذا الأسبوع: {{days}}.",
+      "streakAria_one": "التتابع الحالي، يوم واحد. الأيام النشطة هذا الأسبوع: {{days}}.",
+      "streakAria_two": "التتابع الحالي، يومان. الأيام النشطة هذا الأسبوع: {{days}}.",
+      "streakAria_few": "التتابع الحالي، {{count}} أيام. الأيام النشطة هذا الأسبوع: {{days}}.",
+      "streakAria_many": "التتابع الحالي، {{count}} يومًا. الأيام النشطة هذا الأسبوع: {{days}}.",
+      "streakAria_other": "التتابع الحالي، {{count}} يوم. الأيام النشطة هذا الأسبوع: {{days}}."
     },
     "update": {
       "available": "Sona {{latest}} متاح. هذا التثبيت على {{current}}.",

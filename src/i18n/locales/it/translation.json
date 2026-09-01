@@ -2547,9 +2547,9 @@
       "days_one": "{{count}} giorno",
       "days_many": "{{count}} giorni",
       "days_other": "{{count}} giorni",
-      "streakAria_one": "Serie attuale, {{count}} giorno",
-      "streakAria_many": "Serie attuale, {{count}} giorni",
-      "streakAria_other": "Serie attuale, {{count}} giorni"
+      "streakAria_one": "Serie attuale, {{count}} giorno. Giorni attivi questa settimana: {{days}}.",
+      "streakAria_many": "Serie attuale, {{count}} giorni. Giorni attivi questa settimana: {{days}}.",
+      "streakAria_other": "Serie attuale, {{count}} giorni. Giorni attivi questa settimana: {{days}}."
     },
     "update": {
       "available": "È disponibile Sona {{latest}}. Questa installazione è alla {{current}}.",

@@ -25,7 +25,7 @@ const ROW_COLLAPSE_MS = 180;
  * which is the point: a quiet log shows text, a count and a time, and grows the
  * controls only for the one row you asked about. */
 const ROW_BUTTON =
-  "flex w-full items-baseline gap-3 px-4 py-2.5 text-start transition-colors hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none";
+  "flex w-full items-center gap-3 px-4 py-2.5 text-start transition-colors hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none";
 
 /* The row's two measured cells. `snap-measured` because a count and a clock
  * time are measurements: tweening either displays a value nothing reported. */
@@ -177,10 +177,9 @@ const HistoryEntryRow: React.FC<HistoryEntryComponentProps> = ({
    * before the retry, and asking `hasText` separately would dress the app's
    * sentence up as that transcript.
    *
-   * `truncate` is what makes this "the first words": the browser fits as many
-   * as the row is wide and stops. Expanded, the same node wraps and shows the
-   * whole transcript — one text node, so the row never prints its opening
-   * words twice. */
+   * A two-line clamp keeps a complete-enough excerpt on the row. Expanded, the
+   * same node wraps and shows the whole transcript — one text node, so the row
+   * never prints its opening words twice. */
   let line: string;
   let lineTone: "text" | "stated" = "stated";
   if (retrying) {
@@ -236,7 +235,7 @@ const HistoryEntryRow: React.FC<HistoryEntryComponentProps> = ({
              * legacy SECONDARY tier — and the transcript is the row's content,
              * not help text. 13px/19px is the row tier this list has always
              * used. */
-            className="min-w-0 flex-1 truncate text-[13px] leading-[19px] text-gray-1000 select-text data-[expanded=true]:overflow-visible data-[expanded=true]:break-words data-[expanded=true]:whitespace-pre-wrap data-[tone=stated]:text-gray-900"
+            className="min-w-0 flex-1 text-pretty line-clamp-2 text-[13px] leading-[19px] text-gray-1000 select-text data-[expanded=true]:line-clamp-none data-[expanded=true]:overflow-visible data-[expanded=true]:break-words data-[expanded=true]:whitespace-pre-wrap data-[tone=stated]:text-gray-900"
             data-tone={lineTone}
             data-expanded={expanded ? "true" : undefined}
             data-testid="history-entry-transcript"

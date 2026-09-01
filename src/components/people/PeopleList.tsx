@@ -1,5 +1,5 @@
 import React from "react";
-import { AlertCircle, LoaderCircle, Users } from "lucide-react";
+import { AlertCircle, ChevronRight, LoaderCircle, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { PersonListEntry } from "@/bindings";
 import {
@@ -39,16 +39,27 @@ const PersonRow: React.FC<{
         <span className="min-w-0 flex-1 truncate text-[13px] leading-[19px] text-gray-1000">
           {entry.person.display_name}
         </span>
-        <span className="snap-measured flex-none text-[11px] text-gray-800 tabular-nums">
-          {t("people.list.meetings", { count: entry.confirmed_count })}
-        </span>
-        {lastMeeting === null ? null : (
-          <span className="snap-measured flex-none text-[11px] text-gray-800 tabular-nums">
-            {t("peopleV2.list.lastMet", {
-              date: formatEntryTimestamp(lastMeeting.at_ms),
-            })}
+        <span className="snap-measured flex flex-none items-center gap-1.5 text-[11px] text-gray-900 tabular-nums">
+          <span>
+            {t("people.list.meetings", { count: entry.confirmed_count })}
           </span>
-        )}
+          {lastMeeting === null ? null : (
+            <>
+              <span aria-hidden="true" className="text-gray-700">
+                ·
+              </span>
+              <span>
+                {t("peopleV2.list.lastMet", {
+                  date: formatEntryTimestamp(lastMeeting.at_ms),
+                })}
+              </span>
+            </>
+          )}
+        </span>
+        <ChevronRight
+          aria-hidden="true"
+          className="size-3.5 flex-none text-gray-700 rtl:rotate-180"
+        />
       </button>
     </li>
   );

@@ -78,12 +78,16 @@ describe("the chat pill's three states", () => {
     expect(markup).toContain("focus-visible:ring-[3px]");
   });
 
-  /* Open, there is no pill. The column that is showing carries the X that
-   * closes it, and a pill left standing in the page the column just narrowed
-   * would be a second control for one fold — in the half of the window with
-   * less room for it. */
-  test("with the column showing: no pill at all, not a pressed one", () => {
-    expect(paint(<ChatPill enabled paired open onOpen={noop} />)).toBe("");
+  /* Open, the pill stays mounted solely for the shell-owned opacity transition.
+   * It is inert and absent from the accessibility tree; the column's X remains
+   * the one reachable control that closes the fold. */
+  test("with the column showing: the fading pill is not reachable", () => {
+    const markup = paint(<ChatPill enabled paired open onOpen={noop} />);
+
+    expect(markup).toContain('data-slot="chat-pill"');
+    expect(markup).toContain('aria-hidden="true"');
+    expect(markup).toContain("inert");
+    expect(markup).toContain("pointer-events-none");
   });
 
   /* Unpaired is the state a first run is in: the agent is on, nothing would
@@ -152,7 +156,7 @@ describe("the aurora glyph", () => {
  *
  * The pill used to read the backend to decide whether to open or close a
  * second window, and then it was a toggle over the shell's own boolean. It is
- * a door now: it is only on screen while the column is closed, so a press only
+ * a door now: it is only reachable while the column is closed, so a press only
  * ever opens, and closing belongs to the column's X and to Escape. What is
  * worth pinning is that the press reaches the shell at all, and that an
  * unpaired pill's press does not. `renderToStaticMarkup` runs no events, so
@@ -316,10 +320,12 @@ describe("the shell's three columns", () => {
     expect(column).toBeGreaterThan(markup.indexOf("</main>"));
   });
 
-  test("open: no pill, and one X that owns the closing", () => {
+  test("open: one inert pill fades while one X owns the closing", () => {
     const markup = shell("overview", undefined, "macos", true);
 
-    expect(markup).not.toContain('data-slot="chat-pill"');
+    expect(occurrences(markup, 'data-slot="chat-pill"')).toBe(1);
+    expect(markup).toContain('aria-hidden="true"');
+    expect(markup).toContain("pointer-events-none");
     expect(occurrences(markup, 'data-slot="chat-close"')).toBe(1);
   });
 

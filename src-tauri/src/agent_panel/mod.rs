@@ -33,8 +33,8 @@ pub use wire::{
     AgentPanelPairingRequestV1, AgentPanelPairingStatusV1, AgentPanelProposalChangedEvent,
     AgentPanelProposalPreviewV1, AgentPanelProposalStateV1, AgentPanelRelayStatusV1,
     AgentPanelSendTurnRequestV1, AgentPanelStatusChangedEvent, AgentPanelStatusV1,
-    AgentPanelStepV1, AgentPanelTurnChangedEvent, AgentPanelTurnFailureV1,
-    AgentPanelTurnStateV1, AgentPanelTurnStatusV1, AgentPanelUndoChangeRequestV1,
+    AgentPanelStepV1, AgentPanelTurnChangedEvent, AgentPanelTurnFailureV1, AgentPanelTurnStateV1,
+    AgentPanelTurnStatusV1, AgentPanelUndoChangeRequestV1,
 };
 
 /// The one window there is. Every command on this surface is called from the

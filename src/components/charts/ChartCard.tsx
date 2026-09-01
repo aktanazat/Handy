@@ -1,18 +1,6 @@
 import * as React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { FactChip, Microlabel, SettingsCard } from "@/components/settings/rows";
-import { Button } from "@/components/vg/button";
 import { cn } from "@/lib/cn";
-
-export interface ChartCardRange {
-  label: string;
-  previousLabel: string;
-  nextLabel: string;
-  onPrevious: () => void;
-  onNext: () => void;
-  previousDisabled?: boolean;
-  nextDisabled?: boolean;
-}
 
 export interface ChartCardDelta {
   value: string;
@@ -29,7 +17,6 @@ export interface ChartCardProps
   label: string;
   metric: React.ReactNode;
   delta?: ChartCardDelta;
-  range?: ChartCardRange;
   children: React.ReactNode;
   footerFacts?: ChartCardFact[];
 }
@@ -44,7 +31,6 @@ export function ChartCard({
   label,
   metric,
   delta,
-  range,
   children,
   footerFacts,
   className,
@@ -58,41 +44,10 @@ export function ChartCard({
       className={cn("flex min-w-0 flex-col gap-4 p-4", className)}
       {...props}
     >
-      {/* The measurement's name is the one thing on this card that must stay
-       * readable, so the range control drops onto its own line rather than
-       * squeezing the title into an ellipsis. Three of these sit side by side
-       * in a 900pt window, which is exactly where the squeeze happened. */}
-      <div className="flex min-h-6 flex-wrap items-center justify-between gap-x-3 gap-y-1">
+      <div className="flex min-h-6 items-center">
         <h3 id={headingId} className="min-w-0 truncate">
           <Microlabel>{label}</Microlabel>
         </h3>
-        {range === undefined ? null : (
-          <div className="flex shrink-0 items-center gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-xs"
-              aria-label={range.previousLabel}
-              disabled={range.previousDisabled}
-              onClick={range.onPrevious}
-            >
-              <ChevronLeft aria-hidden="true" />
-            </Button>
-            <span className="min-w-[9.5ch] text-center text-[11px] text-gray-800 tabular-nums">
-              {range.label}
-            </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-xs"
-              aria-label={range.nextLabel}
-              disabled={range.nextDisabled}
-              onClick={range.onNext}
-            >
-              <ChevronRight aria-hidden="true" />
-            </Button>
-          </div>
-        )}
       </div>
 
       <div className="flex min-h-8 items-baseline gap-2">

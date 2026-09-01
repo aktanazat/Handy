@@ -2544,8 +2544,8 @@
       "wordsAria": "Words per day, {{count}} total, ending at {{last}}",
       "days_one": "{{count}} day",
       "days_other": "{{count}} days",
-      "streakAria_one": "Current streak, {{count}} day",
-      "streakAria_other": "Current streak, {{count}} days"
+      "streakAria_one": "Current streak, {{count}} day. Active days this week: {{days}}.",
+      "streakAria_other": "Current streak, {{count}} days. Active days this week: {{days}}."
     },
     "update": {
       "available": "Sona {{latest}} is available. This install is on {{current}}.",

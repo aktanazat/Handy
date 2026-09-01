@@ -2540,8 +2540,8 @@
       "wordsAria": "Ord per dag, totalt {{count}}, sista värde {{last}}",
       "days_one": "{{count}} dag",
       "days_other": "{{count}} dagar",
-      "streakAria_one": "Aktuell svit, {{count}} dag",
-      "streakAria_other": "Aktuell svit, {{count}} dagar"
+      "streakAria_one": "Aktuell svit, {{count}} dag. Aktiva dagar den här veckan: {{days}}.",
+      "streakAria_other": "Aktuell svit, {{count}} dagar. Aktiva dagar den här veckan: {{days}}."
     },
     "update": {
       "available": "Sona {{latest}} är tillgänglig. Den här installationen har {{current}}.",

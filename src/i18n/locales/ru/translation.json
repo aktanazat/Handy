@@ -2554,10 +2554,10 @@
       "days_few": "{{count}} дня",
       "days_many": "{{count}} дней",
       "days_other": "{{count}} дня",
-      "streakAria_one": "Текущая серия, {{count}} день",
-      "streakAria_few": "Текущая серия, {{count}} дня",
-      "streakAria_many": "Текущая серия, {{count}} дней",
-      "streakAria_other": "Текущая серия, {{count}} дня"
+      "streakAria_one": "Текущая серия, {{count}} день. Активные дни на этой неделе: {{days}}.",
+      "streakAria_few": "Текущая серия, {{count}} дня. Активные дни на этой неделе: {{days}}.",
+      "streakAria_many": "Текущая серия, {{count}} дней. Активные дни на этой неделе: {{days}}.",
+      "streakAria_other": "Текущая серия, {{count}} дня. Активные дни на этой неделе: {{days}}."
     },
     "update": {
       "available": "Доступна Sona {{latest}}. Установлена версия {{current}}.",

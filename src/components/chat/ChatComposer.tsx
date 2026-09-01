@@ -60,29 +60,34 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         onSend();
       }}
     >
-      <div
-        className="flex items-center gap-1"
-        role="radiogroup"
-        aria-label={t("chat.scopeLabel")}
-      >
-        {SCOPES.map((scope) => (
-          <button
-            key={scope}
-            type="button"
-            role="radio"
-            aria-checked={workspace === scope}
-            disabled={inert}
-            onClick={() => onWorkspaceChange(scope)}
-            className={cn(
-              "rounded-full border px-2.5 py-1 text-[12px] leading-4 transition-colors disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none",
-              workspace === scope
-                ? "border-gray-alpha-600 text-gray-1000"
-                : "border-gray-alpha-400 text-gray-900 hover:text-gray-1000",
-            )}
-          >
-            {t(`chat.scope.${scope}`)}
-          </button>
-        ))}
+      <div className="flex items-center gap-2">
+        <span className="shrink-0 text-[11px] text-gray-800">
+          {t("chat.scopeLabel")}
+        </span>
+        <div
+          className="flex items-center gap-1"
+          role="radiogroup"
+          aria-label={t("chat.scopeLabel")}
+        >
+          {SCOPES.map((scope) => (
+            <button
+              key={scope}
+              type="button"
+              role="radio"
+              aria-checked={workspace === scope}
+              disabled={inert}
+              onClick={() => onWorkspaceChange(scope)}
+              className={cn(
+                "rounded-full border px-2.5 py-1 text-[12px] leading-4 transition-colors disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none",
+                workspace === scope
+                  ? "border-gray-alpha-600 text-gray-1000"
+                  : "border-gray-alpha-400 text-gray-900 hover:text-gray-1000",
+              )}
+            >
+              {t(`chat.scope.${scope}`)}
+            </button>
+          ))}
+        </div>
       </div>
       {/* `items-end` so a question grown to three lines pushes the field up and
           leaves the send glyph on the baseline it started on. */}
@@ -117,7 +122,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
             data-slot="chat-send"
             disabled={disabled || draft.trim() === ""}
             aria-label={t("chat.send")}
-            className="grid size-7 flex-none place-items-center rounded-full bg-gray-1000 text-background-100 transition-opacity disabled:pointer-events-none disabled:opacity-30 motion-reduce:transition-none"
+            className="grid size-7 flex-none place-items-center rounded-full border border-transparent bg-gray-1000 text-background-100 transition-colors enabled:hover:bg-gray-900 disabled:border-gray-alpha-400 disabled:bg-transparent disabled:text-gray-700 disabled:opacity-100 disabled:pointer-events-none motion-reduce:transition-none"
           >
             <ArrowUp aria-hidden="true" className="size-4" />
           </button>

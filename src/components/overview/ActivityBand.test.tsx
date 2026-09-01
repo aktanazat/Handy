@@ -12,6 +12,7 @@ import { ActivityBand } from "./ActivityBand";
 import {
   ActivityBars,
   ActivitySparkline,
+  ActivityWeek,
   activitySparklineDomain,
 } from "./ActivityBandCharts";
 
@@ -121,7 +122,7 @@ const trend: HistoryTrendProjection = {
 };
 
 describe("ActivityBand charts", () => {
-  test("keeps three labeled chart images on the shared 72px drawing rhythm", () => {
+  test("keeps three labeled activity images on the shared 84px rhythm", () => {
     const markup = render(<ActivityBand trend={trend} />);
 
     expect(occurrences(markup, 'role="img"')).toBe(3);
@@ -131,9 +132,12 @@ describe("ActivityBand charts", () => {
     expect(markup).toContain(
       'aria-label="Words per day, 180 total, ending at 20"',
     );
-    expect(markup).toContain('aria-label="Current streak, 3 days"');
-    expect(occurrences(markup, "h-[72px]")).toBe(2);
-    expect(markup).toContain("size-[72px]");
+    expect(markup).toContain(
+      'aria-label="Current streak, 3 days. Active days this week:',
+    );
+    expect(occurrences(markup, "h-[84px]")).toBe(3);
+    expect(occurrences(markup, 'data-slot="activity-streak-day"')).toBe(7);
+    expect(markup).toContain("size-[10px]");
   });
 
   test("draws Words as a padded monotone curve with a soft area and solid endpoint", () => {
@@ -159,6 +163,7 @@ describe("ActivityBand charts", () => {
     expect(words).toContain('<circle cx="208"');
     expect(words).toContain('r="3.5"');
     expect(words).toContain("fill-blue-900");
+    expect(words.includes("<text")).toBe(false);
     expect(words.includes("transition")).toBe(false);
   });
 
@@ -177,17 +182,17 @@ describe("ActivityBand charts", () => {
     expect(domain.min >= 0).toBe(true);
     expect(domain.min).toBeLessThan(12);
     expect(domain.max).toBeGreaterThan(12);
-    expect(single).toContain('d="M 8 66 H 208"');
-    expect(single).toContain('<circle cx="108" cy="42.8" r="3.5"');
+    expect(single).toContain('d="M 8 58 H 208"');
+    expect(single).toContain('<circle cx="108" cy="38" r="3.5"');
     expect(single.includes("stroke-blue-900")).toBe(false);
   });
 
-  test("draws seven Dictation slots with visible zero stubs and one peak bar", () => {
+  test("draws seven labeled Dictation slots with flat zero stubs and blue gradients", () => {
     const bars = svgFor(
       render(
         <ActivityBars
           values={[0, 2]}
-          highlightIndex={1}
+          weekdayLabels={["M", "T"]}
           ariaLabel="Dictations per day, highest 2 on Tuesday"
         />,
       ),
@@ -196,30 +201,40 @@ describe("ActivityBand charts", () => {
 
     expect(bars).toContain('role="img"');
     expect(occurrences(bars, 'data-slot="activity-bar"')).toBe(7);
-    expect(bars).toContain(
-      'd="M 8 66 V 65 Q 8 64 9 64 H 15 Q 16 64 16 65 V 66 Z"',
-    );
-    expect(bars).toContain(
-      'd="M 40 66 V 12 Q 40 8 44 8 H 44 Q 48 8 48 12 V 66 Z"',
-    );
-    expect(bars).toContain("fill-gray-alpha-300");
-    expect(occurrences(bars, "fill-blue-900")).toBe(1);
+    expect(bars).toContain('<rect data-slot="activity-bar" x="8" y="56"');
+    expect(occurrences(bars, "fill-gray-alpha-300")).toBe(6);
+    expect(bars).toContain('fill="url(#activity-dictations-bar-');
+    expect(bars).toContain('stop-opacity="0.4"');
+    expect(bars).toContain(">M</text>");
+    expect(bars).toContain(">T</text>");
     expect(bars).toContain('stroke-width="1"');
     expect(bars.includes("transition")).toBe(false);
   });
 
-  test("uses a quiet three-pixel Streak ring with a rounded blue arc", () => {
-    const markup = render(<ActivityBand trend={trend} />);
-    const ring = svgFor(markup, "Current streak, 3 days");
-
-    expect(ring).toContain('viewBox="0 0 72 72"');
-    expect(occurrences(ring, 'stroke-width="3"')).toBe(2);
-    expect(ring).toContain("stroke-gray-alpha-300");
-    expect(ring).toContain("stroke-blue-900");
-    expect(ring).toContain('stroke-linecap="round"');
-    expect(markup).toContain(
-      "absolute inset-0 flex items-center justify-center text-[18px]",
+  test("renders localized weekday labels beneath seven active-state Streak dots", () => {
+    const week = render(
+      <ActivityWeek
+        days={[
+          { label: "M", active: true, today: true },
+          { label: "T", active: false },
+          { label: "W", active: true },
+          { label: "T", active: false },
+          { label: "F", active: false },
+          { label: "S", active: false },
+          { label: "S", active: false },
+        ]}
+        ariaLabel="Current streak, 2 days. Active days this week: Monday and Wednesday."
+      />,
     );
-    expect(ring.includes("transition")).toBe(false);
+
+    expect(week).toContain(
+      'aria-label="Current streak, 2 days. Active days this week: Monday and Wednesday."',
+    );
+    expect(occurrences(week, 'data-slot="activity-streak-day"')).toBe(7);
+    expect(occurrences(week, 'data-active="true"')).toBe(2);
+    expect(occurrences(week, 'data-today="true"')).toBe(1);
+    expect(week).toContain("size-[10px]");
+    expect(week).toContain("outline-offset-2");
+    expect(week).toContain("text-[9px]");
   });
 });

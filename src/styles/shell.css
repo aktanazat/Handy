@@ -52,9 +52,10 @@
 
 /* A registered property is the shell's only transition owner. The width boxes
  * change before the next frame, so the page never reflows during travel. The
- * three values share the one root clock: the frame reads the offset; the live
- * and outgoing rails read opposite opacity values. `length-percentage` keeps
- * the frame's 100% translate in compositor-friendly transform space. */
+ * four values share the one root clock: the frame reads the offset; the live
+ * and outgoing rails read opposite opacity values; the pill reads its own
+ * opacity. `length-percentage` keeps the frame's 100% translate in
+ * compositor-friendly transform space. */
 @property --shell-chat-offset {
   syntax: "<length-percentage>";
   inherits: true;
@@ -73,14 +74,39 @@
   initial-value: 1;
 }
 
+@property --shell-pill-opacity {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
 .app-shell {
+  /* ζ=.83, ωn=30rad/s, sampled across 300ms. The 1.0088 peak is 0.88%
+   * overshoot; the denser early samples keep the initial velocity smooth. */
+  --shell-chat-spring: linear(
+    0,
+    0.1853 8.333%,
+    0.489 16.667%,
+    0.7335 25%,
+    0.8858 33.333%,
+    0.9647 41.667%,
+    0.9983 50%,
+    1.0085 58.333%,
+    1.0088 66.667%,
+    1.0062 75%,
+    1.0035 83.333%,
+    1.0017 91.667%,
+    1
+  );
   --shell-chat-offset: 100%;
   --shell-rail-enter-opacity: 0;
   --shell-rail-exit-opacity: 1;
+  --shell-pill-opacity: 1;
   transition:
-    --shell-chat-offset 150ms var(--ease-out),
-    --shell-rail-enter-opacity 150ms var(--ease-out),
-    --shell-rail-exit-opacity 150ms var(--ease-out);
+    --shell-chat-offset 300ms var(--shell-chat-spring),
+    --shell-rail-enter-opacity 300ms var(--shell-chat-spring),
+    --shell-rail-exit-opacity 300ms var(--shell-chat-spring),
+    --shell-pill-opacity 300ms var(--shell-chat-spring);
 }
 
 .app-shell[dir="rtl"] {
@@ -91,6 +117,7 @@
   --shell-chat-offset: 0%;
   --shell-rail-enter-opacity: 1;
   --shell-rail-exit-opacity: 0;
+  --shell-pill-opacity: 0;
 }
 
 /* The frame and the two fixed-width rail forms are promoted only while the
@@ -98,6 +125,10 @@
  * `transitionend`, so still windows do not retain promotion hints. */
 .app-shell[data-shell-moving="true"] [data-slot="chat-frame"] {
   will-change: transform;
+}
+
+.app-shell[data-shell-moving="true"] [data-slot="chat-pill"] {
+  will-change: opacity;
 }
 
 .app-shell[data-shell-moving="true"] [data-slot="sidebar"],
@@ -123,6 +154,20 @@
 .app-shell[data-shell-moving="true"][data-shell-direction="closing"]
   [data-slot="sidebar-ghost"] {
   opacity: var(--shell-rail-enter-opacity);
+}
+
+/* `border-s` on the frame is the hard edge. This short logical shadow only
+ * softens that edge into the page; it is not a floating-card elevation. */
+.app-shell [data-slot="chat-frame"] {
+  box-shadow: -2px 0 6px -3px var(--chat-edge-shadow);
+}
+
+.app-shell[dir="rtl"] [data-slot="chat-frame"] {
+  box-shadow: 2px 0 6px -3px var(--chat-edge-shadow);
+}
+
+.app-shell [data-slot="chat-pill"] {
+  opacity: var(--shell-pill-opacity);
 }
 
 /* The root owns the one transition, but an inner hover wash or color fade that

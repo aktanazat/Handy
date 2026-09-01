@@ -16,9 +16,9 @@ import { formatTimeOfDay } from "@/lib/utils/localDay";
 import { processingStatusKey } from "../meetingUtils";
 import { MeetingStatusChip, meetingCardStatus } from "./MeetingStatusChip";
 
-/* Every row that can be acted on keeps its actions behind this one trigger:
- * a quiet glyph at the end of the row, the same menu on the meetings list and
- * on a person's meetings. */
+/* Every row that can be acted on keeps its actions behind this one outlined
+ * glyph at the end of the row, the same menu on the meetings list and on a
+ * person's meetings. */
 const RowActionsMenu: React.FC<{
   label: string;
   className?: string;
@@ -28,9 +28,9 @@ const RowActionsMenu: React.FC<{
     <DropdownMenuTrigger asChild>
       <Button
         type="button"
-        variant="ghost"
+        variant="outline"
         size="icon-sm"
-        className={cn("text-gray-700 hover:text-gray-1000", className)}
+        className={cn("text-gray-900 hover:text-gray-1000", className)}
         aria-label={label}
         title={label}
       >
@@ -203,11 +203,11 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({
           />
         )}
         {recordedMs === null ? null : (
-          <span className="snap-measured flex-none text-[11px] text-gray-800 tabular-nums">
+          <span className="snap-measured flex-none text-[11px] text-gray-900 tabular-nums">
             {formatDurationShort(recordedMs / 1000)}
           </span>
         )}
-        <span className="snap-measured w-[52px] flex-none text-end text-[11px] text-gray-800 tabular-nums">
+        <span className="snap-measured w-[52px] flex-none text-end text-[11px] text-gray-900 tabular-nums">
           {formatTimeOfDay(meeting.created_at_utc_ms)}
         </span>
       </button>

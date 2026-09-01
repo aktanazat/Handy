@@ -72,7 +72,11 @@ export const SettingsPage: React.FC<
   } & Omit<React.ComponentProps<"div">, "title" | "children">
 > = ({ title, actions, header, children, className, ...props }) => (
   <div
-    className={cn(PAGE_COLUMN, "flex flex-col gap-10 py-12", className)}
+    className={cn(
+      PAGE_COLUMN,
+      "flex flex-col gap-10 pt-12 pb-[72px]",
+      className,
+    )}
     {...props}
   >
     {header ?? (

@@ -2533,7 +2533,7 @@
       "dictationsAria": "일별 받아쓰기, {{day}}에 최고 {{count}}회",
       "wordsAria": "일별 단어, 총 {{count}}개, 마지막 값 {{last}}",
       "days_other": "{{count}}일",
-      "streakAria_other": "현재 연속 기록, {{count}}일"
+      "streakAria_other": "현재 연속 기록, {{count}}일. 이번 주 활동일: {{days}}."
     },
     "update": {
       "available": "Sona {{latest}}을(를) 사용할 수 있습니다. 이 설치본은 {{current}}입니다.",

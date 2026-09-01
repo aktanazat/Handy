@@ -393,12 +393,9 @@ test.describe("the shell's one travel", () => {
       };
     });
 
-  /* `ease-out` is a theme token in this app, not Tailwind's default curve:
-   * styles/theme.css sets `--ease-out` to the measured out-curve every panel,
-   * popover and view swap already uses, and the `@theme inline` bridge is what
-   * points the utility at it. Pinned as the resolved value, because that is
-   * the thing a reader sees. */
-  const EASE_OUT = "cubic-bezier(0.22, 1, 0.36, 1)";
+  /* The root's sampled spring is intentionally slightly underdamped. The
+   * resolved `linear()` is the only timing function the shell travel owns. */
+  const SHELL_SPRING = "linear(";
 
   test("the shell root is the sole transition owner", async ({ page }) => {
     await openApp(page);
@@ -412,12 +409,13 @@ test.describe("the shell's one travel", () => {
     ).toEqual(
       [
         "--shell-chat-offset",
+        "--shell-pill-opacity",
         "--shell-rail-enter-opacity",
         "--shell-rail-exit-opacity",
       ].sort(),
     );
-    expect(clock.durations.every((value) => value === 0.15)).toBe(true);
-    expect(clock.easing).toContain(EASE_OUT);
+    expect(clock.durations.every((value) => value === 0.3)).toBe(true);
+    expect(clock.easing).toContain(SHELL_SPRING);
     await expect(frame(page)).toHaveCSS("contain", "layout style");
     await expect(frame(page)).toHaveCSS("will-change", "auto");
 
@@ -459,6 +457,10 @@ test.describe("the shell's one travel", () => {
     await pill(page).click();
     await expect(shell(page)).toHaveAttribute("data-shell-moving", "true");
     await expect(frame(page)).toHaveCSS("will-change", "transform");
+    await expect(page.locator('[data-slot="chat-pill"]')).toHaveCSS(
+      "will-change",
+      "opacity",
+    );
     await expect(page.locator('[data-slot="sidebar"]')).toHaveCSS(
       "will-change",
       "opacity",
@@ -494,6 +496,7 @@ test.describe("the shell's one travel", () => {
       )
       .toEqual([
         { property: "--shell-chat-offset", target: "shell" },
+        { property: "--shell-pill-opacity", target: "shell" },
         { property: "--shell-rail-enter-opacity", target: "shell" },
         { property: "--shell-rail-exit-opacity", target: "shell" },
       ]);
@@ -501,6 +504,10 @@ test.describe("the shell's one travel", () => {
     await settle(page);
     await expect(shell(page)).not.toHaveAttribute("data-shell-moving", "true");
     await expect(frame(page)).toHaveCSS("will-change", "auto");
+    await expect(page.locator('[data-slot="chat-pill"]')).toHaveCSS(
+      "will-change",
+      "auto",
+    );
     await expect(page.locator('[data-slot="sidebar"]')).toHaveCSS(
       "will-change",
       "auto",

@@ -2540,8 +2540,8 @@
       "wordsAria": "प्रतिदिन शब्द, कुल {{count}}, अंतिम मान {{last}}",
       "days_one": "{{count}} दिन",
       "days_other": "{{count}} दिन",
-      "streakAria_one": "वर्तमान सिलसिला, {{count}} दिन",
-      "streakAria_other": "वर्तमान सिलसिला, {{count}} दिन"
+      "streakAria_one": "वर्तमान सिलसिला, {{count}} दिन। इस सप्ताह सक्रिय दिन: {{days}}।",
+      "streakAria_other": "वर्तमान सिलसिला, {{count}} दिन। इस सप्ताह सक्रिय दिन: {{days}}।"
     },
     "update": {
       "available": "Sona {{latest}} उपलब्ध है। यह इंस्टॉल {{current}} पर है।",

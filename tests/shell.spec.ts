@@ -697,19 +697,23 @@ test.describe("the fold at the shipped window size", () => {
     await expect(page.getByRole("region", { name: "Activity" })).toBeVisible();
 
     /* The pill is the way in, and it needs the pairing above to be live at
-     * all. It hides itself once the column is open — the column's own close
-     * button owns the way back out — so it is pressed once and not read
+     * all. It becomes unreachable once the column is open — the column's own
+     * close button owns the way back out — so it is pressed once and not read
      * again. */
-    await page.getByRole("button", { name: "Chat with Sona Agent" }).click();
+    await page
+      .getByRole("button", { name: "Chat with the Sona agent" })
+      .click();
     const column = page.locator('[data-slot="chat-sheet"]');
     await expect(column).toBeVisible();
-    /* Settled rather than mid-travel: the column animates its width over 150ms,
-     * and a measurement taken during that is a measurement of the animation. */
-    await column.evaluate(async (element) => {
-      await Promise.all(
-        element.getAnimations({ subtree: true }).map((a) => a.finished),
-      );
-    });
+    /* The root travel gate clears from its offset transition's own
+     * `transitionend`; the sheet is only a consumer of that clock. */
+    const shell = page.locator(".app-shell");
+    await expect(shell).toHaveAttribute("data-shell-moving", "true");
+    await expect(shell).not.toHaveAttribute("data-shell-moving", "true");
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+    );
 
     const sideways = await page.evaluate(() => {
       const spanOf = (selector: string) => {

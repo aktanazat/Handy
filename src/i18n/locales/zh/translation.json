@@ -2533,7 +2533,7 @@
       "dictationsAria": "每日口述，{{day}}最高 {{count}} 次",
       "wordsAria": "每日字词，共 {{count}} 个，最后为 {{last}}",
       "days_other": "{{count}} 天",
-      "streakAria_other": "当前连续记录，{{count}} 天"
+      "streakAria_other": "当前连续记录，{{count}} 天。本周活跃日：{{days}}。"
     },
     "update": {
       "available": "Sona {{latest}} 已可用。当前安装的是 {{current}}。",

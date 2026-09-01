@@ -143,7 +143,7 @@ export const OverviewWorkflowCardsView: React.FC<
             </Microlabel>
           </h2>
           {receipts.status === "loaded" ? (
-            <ul role="list" className="divide-y divide-gray-alpha-400">
+            <ul role="list" className="divide-y divide-gray-alpha-500">
               {feedReceipts.map((receipt) => {
                 const meetingId =
                   receipt.jump_target?.kind === "meeting"
@@ -154,7 +154,7 @@ export const OverviewWorkflowCardsView: React.FC<
                     <span className="block text-[13px] leading-5 text-gray-1000">
                       {formatWorkflowOutcome(receipt, t)}
                     </span>
-                    <span className="mt-1 block text-[11px] text-gray-700">
+                    <span className="mt-1 block text-[11px] text-gray-900">
                       {t(WORKFLOW_NAME_KEY[receipt.workflow_id])}
                       <span aria-hidden="true"> · </span>
                       <span className="snap-measured tabular-nums">
@@ -208,7 +208,7 @@ export const OverviewWorkflowCardsView: React.FC<
             </Microlabel>
           </h2>
           {openLoops.status === "loaded" ? (
-            <ul role="list" className="divide-y divide-gray-alpha-400">
+            <ul role="list" className="divide-y divide-gray-alpha-500">
               {openLoops.entries.map((openLoop) => (
                 <li
                   key={`${openLoop.meeting_id}:${openLoop.at_utc_ms}:${openLoop.text}`}
@@ -226,7 +226,7 @@ export const OverviewWorkflowCardsView: React.FC<
                     <span className="block text-[13px] leading-5 text-gray-1000">
                       {openLoop.text}
                     </span>
-                    <span className="mt-1 block truncate text-[11px] text-gray-700">
+                    <span className="mt-1 block truncate text-[11px] text-gray-900">
                       {openLoop.title}
                       <span aria-hidden="true"> · </span>
                       <span className="snap-measured tabular-nums">

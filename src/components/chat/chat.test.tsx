@@ -58,11 +58,13 @@ const localeFile = path.join(
 const en = JSON.parse(fs.readFileSync(localeFile, "utf8")) as {
   chat: {
     empty: string;
+    title: string;
     close: string;
     history: string;
     historyEmpty: string;
     newChat: string;
     placeholder: string;
+    scopeLabel: string;
     send: string;
     stop: string;
     retry: string;
@@ -221,8 +223,8 @@ describe("the column's shape", () => {
       "[transform:translateX(var(--shell-chat-offset))]",
     );
     expect(markup).toContain("w-[340px]");
-    // One hairline against the page, and no dimming of what is behind it.
-    expect(markup).toContain("border-s border-gray-alpha-400");
+    // One stronger hairline against the page, and no dimming of what is behind it.
+    expect(markup).toContain("border-s border-gray-alpha-500");
     expect(markup).not.toContain("bg-black/");
     expect(markup).not.toContain("backdrop-blur");
   });
@@ -245,7 +247,7 @@ describe("the column's shape", () => {
     expect(occurrences(markup, "w-[340px]")).toBe(2);
   });
 
-  test("the header is one X and two round hairlines", () => {
+  test("the header names the chat between one X and two round controls", () => {
     const markup = sheet();
 
     expect(occurrences(markup, 'data-slot="chat-close"')).toBe(1);
@@ -254,15 +256,16 @@ describe("the column's shape", () => {
     expect(markup).toContain(`aria-label="${en.chat.close}"`);
     expect(markup).toContain(`aria-label="${en.chat.history}"`);
     expect(markup).toContain(`aria-label="${en.chat.newChat}"`);
-    // No title: the pill that opened it already said the word.
-    expect(markup).not.toContain("<h1");
-    expect(markup).not.toContain("<h2");
+    expect(markup).toContain(`<h2`);
+    expect(markup).toContain(en.chat.title);
+    expect(markup).toContain("border-b border-gray-alpha-400");
   });
 
-  test("empty: one invitation, a scope row and a composer", () => {
+  test("empty: one invitation, a named scope row and a composer", () => {
     const markup = sheet();
 
     expect(markup).toContain(en.chat.empty);
+    expect(markup).toContain(en.chat.scopeLabel);
     expect(occurrences(markup, 'role="radio"')).toBe(2);
     expect(markup).toContain(`placeholder="${en.chat.placeholder}"`);
     expect(markup).toContain(`aria-label="${en.chat.send}"`);
@@ -792,8 +795,9 @@ describe("the shell's one fold", () => {
     // Closed: one pill, saying the region it opens is not showing.
     expect(shell(false)).toContain('aria-expanded="false"');
     expect(occurrences(shell(false), 'data-slot="chat-close"')).toBe(1);
-    // Open: no pill at all, and the same single X.
-    expect(shell(true)).not.toContain('data-slot="chat-pill"');
+    // Open: the root fades an inert, hidden pill while the same single X owns close.
+    expect(occurrences(shell(true), 'data-slot="chat-pill"')).toBe(1);
+    expect(shell(true)).toContain('aria-hidden="true"');
     expect(occurrences(shell(true), 'data-slot="chat-close"')).toBe(1);
   });
 

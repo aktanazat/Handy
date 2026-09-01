@@ -38,7 +38,7 @@ test.describe("Consent panel", () => {
     await page.goto("/consent");
 
     await expect(
-      page.getByRole("heading", { name: "Weekly sync — record it?" }),
+      page.getByRole("heading", { name: "Record Weekly sync?" }),
     ).toBeVisible();
     await expect(
       page.getByText("Sona records on this Mac and keeps you in control.", {
@@ -104,13 +104,13 @@ test.describe("Consent panel", () => {
     });
     await page.goto("/consent");
     await expect(
-      page.getByRole("heading", { name: "Weekly sync — record it?" }),
+      page.getByRole("heading", { name: "Record Weekly sync?" }),
     ).toBeVisible();
 
     await page.getByRole("button", { name: "Ignore", exact: true }).click();
 
     await expect(
-      page.getByRole("heading", { name: "Weekly sync — record it?" }),
+      page.getByRole("heading", { name: "Record Weekly sync?" }),
     ).toBeHidden();
     await expect
       .poll(() =>

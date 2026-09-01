@@ -2540,8 +2540,8 @@
       "wordsAria": "Думи на ден, общо {{count}}, последно {{last}}",
       "days_one": "{{count}} ден",
       "days_other": "{{count}} дни",
-      "streakAria_one": "Текуща поредица, {{count}} ден",
-      "streakAria_other": "Текуща поредица, {{count}} дни"
+      "streakAria_one": "Текуща поредица, {{count}} ден. Активни дни тази седмица: {{days}}.",
+      "streakAria_other": "Текуща поредица, {{count}} дни. Активни дни тази седмица: {{days}}."
     },
     "update": {
       "available": "Sona {{latest}} е налична. Тази инсталация е с версия {{current}}.",

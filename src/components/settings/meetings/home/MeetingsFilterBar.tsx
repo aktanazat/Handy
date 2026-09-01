@@ -51,9 +51,11 @@ const FilterSelect = <T extends string>({
       <SelectTrigger
         size="sm"
         aria-label={filterKey}
-        className="h-auto gap-1.5 border-0 bg-transparent px-0 py-1 shadow-none [&_svg]:size-3"
+        className="min-w-[112px] gap-1.5 px-2 text-[12px] [&_svg]:size-3"
       >
-        <Microlabel className="text-gray-900">{filterKey}:</Microlabel>
+        <Microlabel className="text-[12px] leading-4 text-gray-900">
+          {filterKey}:
+        </Microlabel>
         <SelectValue>
           <span className="text-[12px] text-gray-1000">{selected}</span>
         </SelectValue>

@@ -82,6 +82,7 @@
   --shadow-popover: 0 12px 30px rgba(0, 0, 0, 0.12);
   --shadow-dialog: 0 18px 44px rgba(0, 0, 0, 0.16);
   --shadow-overlay: 0 16px 40px -20px rgb(0 0 0 / 0.25);
+  --chat-edge-shadow: rgb(0 0 0 / 0.12);
 
   --glass-tint: rgba(255, 255, 255, 0.62);
   --glass-tint-dense: rgba(255, 255, 255, 0.85);
@@ -176,6 +177,7 @@
   --shadow-popover: 0 12px 30px rgba(0, 0, 0, 0.45);
   --shadow-dialog: 0 18px 44px rgba(0, 0, 0, 0.55);
   --shadow-overlay: 0 16px 40px -20px rgb(0 0 0 / 0.6);
+  --chat-edge-shadow: rgb(0 0 0 / 0.38);
 
   --glass-tint: rgba(17, 17, 17, 0.62);
   --glass-tint-dense: rgba(17, 17, 17, 0.85);

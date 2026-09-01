@@ -2540,8 +2540,8 @@
       "wordsAria": "Günlük kelime, toplam {{count}}, son değer {{last}}",
       "days_one": "{{count}} gün",
       "days_other": "{{count}} gün",
-      "streakAria_one": "Mevcut seri, {{count}} gün",
-      "streakAria_other": "Mevcut seri, {{count}} gün"
+      "streakAria_one": "Mevcut seri, {{count}} gün. Bu haftaki etkin günler: {{days}}.",
+      "streakAria_other": "Mevcut seri, {{count}} gün. Bu haftaki etkin günler: {{days}}."
     },
     "update": {
       "available": "Sona {{latest}} kullanılabilir. Bu kurulum {{current}} sürümünde.",
