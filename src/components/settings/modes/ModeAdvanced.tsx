@@ -247,6 +247,24 @@ export const ModeAdvanced: React.FC<ModeAdvancedProps> = ({
             />
           </SettingsField>
 
+          <SettingsRow
+            disabled={!llmEnabled}
+            label={t("settings.modes.writing.spokenInstructions.label")}
+            /* The cue itself, and that saying it is not the same as typing
+             * it — neither is inferable from the row's name. */
+            hint={t("settings.modes.writing.spokenInstructions.description")}
+            controlId="mode-spoken-instructions"
+          >
+            <Switch
+              id="mode-spoken-instructions"
+              checked={mode.llm.spoken_instructions ?? false}
+              disabled={!llmEnabled}
+              onCheckedChange={(enabled) =>
+                updateLlm("spoken_instructions", enabled)
+              }
+            />
+          </SettingsRow>
+
           <SettingsField
             label={t("settings.modes.context.policy.label")}
             /* Not inferable from four level names: the ceiling outranks

@@ -1202,13 +1202,40 @@ pub(crate) async fn process_transcription_output(
 
     if run.post_process_requested() {
         let context = run.context();
-        let rendered = crate::prompt_renderer::render(crate::prompt_renderer::PromptRenderInput {
-            run,
-            transcript: &final_text,
-            language: &effective_language,
-            target: context.target(),
-            context: context.packet(),
-        });
+        // A trailing "Sona, …" sentence is an instruction for the rewrite, not
+        // words to type. It leaves the delivery either way: typing the request
+        // back is never what was asked for, so a rewrite that cannot happen
+        // still delivers the dictation with the cue removed.
+        //
+        // The instruction replaces this run's preset rewrite rather than adding
+        // a second provider call: an explicit request outranks the mode's
+        // standing one, and two rewrites would fight over the same text.
+        let spoken = if run.prompt().spoken_instructions {
+            crate::audio_toolkit::split_spoken_instruction(&final_text)
+        } else {
+            None
+        };
+        if let Some(spoken) = &spoken {
+            final_text = spoken.text.clone();
+            post_processed_text = Some(final_text.clone());
+        }
+        let rendered = match &spoken {
+            Some(spoken) => crate::prompt_renderer::render_instruction(
+                crate::prompt_renderer::InstructionRenderInput {
+                    instruction: &spoken.instruction,
+                    input: &final_text,
+                    language: &effective_language,
+                    target: context.target(),
+                },
+            ),
+            None => crate::prompt_renderer::render(crate::prompt_renderer::PromptRenderInput {
+                run,
+                transcript: &final_text,
+                language: &effective_language,
+                target: context.target(),
+                context: context.packet(),
+            }),
+        };
         debug!(
             "Prompt budget: {} of {} bytes (transcript truncated: {})",
             rendered.budget_receipt.user_bytes,

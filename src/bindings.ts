@@ -4621,7 +4621,15 @@ cloud_timestamps?: boolean }
  */
 export type ModeDefinition = { id: string; name: string; tone: Tone; context_policy: ContextPolicy; asr: ModeAsrSettings; llm: ModeLlmSettings; prompt: ModePromptSettings; delivery: ModeDeliverySettings }
 export type ModeDeliverySettings = { paste_method: PasteMethod; clipboard_handling: ClipboardHandling; auto_submit: boolean; auto_submit_key: AutoSubmitKey; append_trailing_space: boolean; paste_delay_ms: number; paste_delay_after_ms: number; reliable_paste: boolean; typing_tool: TypingTool; external_script_path: string | null }
-export type ModeLlmSettings = { enabled: boolean; provider_id: string; model_id: string }
+export type ModeLlmSettings = { enabled: boolean; provider_id: string; model_id: string;
+/**
+ * Whether a trailing `Sona, …` sentence is handed to this mode's rewrite
+ * provider as an edit instruction instead of being typed. Off by default,
+ * and inert while `enabled` is false — without a rewrite provider the
+ * instruction has nowhere to go. Existing modes deserialize with it off.
+ * See [`crate::audio_toolkit::split_spoken_instruction`].
+ */
+spoken_instructions?: boolean }
 export type ModeMutationError = { kind: "stale_revision"; expected_revision: number; actual_revision: number } | { kind: "invalid_mode_id" } | { kind: "empty_name" } | { kind: "cannot_delete_default" } | { kind: "unknown_mode"; mode_id: string } | { kind: "duplicate_mode_id"; mode_id: string } | { kind: "invalid_reorder" } | { kind: "invalid_app_identity" } | { kind: "frontmost_application_unavailable" } | { kind: "invalid_website_host" } | { kind: "website_activation_consent_required" } | { kind: "frontmost_website_unavailable" } | { kind: "website_activation_secure_field" }
 export type ModePromptSettings = { preset: PromptPreset; source_prompt_id: string | null; custom_prompt: string | null }
 /**

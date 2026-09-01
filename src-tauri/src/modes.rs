@@ -135,6 +135,13 @@ pub struct ModeLlmSettings {
     pub enabled: bool,
     pub provider_id: String,
     pub model_id: String,
+    /// Whether a trailing `Sona, …` sentence is handed to this mode's rewrite
+    /// provider as an edit instruction instead of being typed. Off by default,
+    /// and inert while `enabled` is false — without a rewrite provider the
+    /// instruction has nowhere to go. Existing modes deserialize with it off.
+    /// See [`crate::audio_toolkit::split_spoken_instruction`].
+    #[serde(default)]
+    pub spoken_instructions: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize, Type)]
@@ -288,6 +295,7 @@ impl ModeDefinition {
                 enabled: settings.post_process_enabled,
                 provider_id,
                 model_id,
+                spoken_instructions: false,
             },
             prompt: ModePromptSettings {
                 preset: PromptPreset::MinimalistCleanup,
@@ -1205,6 +1213,12 @@ pub struct PromptPlan {
     /// Samples of the user's own writing, frozen at run start like every other
     /// plan field so a mid-run settings edit cannot change the prompt.
     pub persona_samples: Vec<PersonaSample>,
+    /// Whether this run reads a trailing `Sona, …` sentence as an edit
+    /// instruction. False whenever the run has no rewrite, whatever the mode
+    /// says: without a rewrite provider the instruction has nowhere to go.
+    /// Frozen with the rest of the plan, so turning the toggle off
+    /// mid-dictation cannot leave the cue text in the delivery.
+    pub spoken_instructions: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -1590,6 +1604,7 @@ impl RunPlan {
                 llm: None,
                 post_process_requested: false,
                 persona_samples: Vec::new(),
+                spoken_instructions: false,
             },
             context: ContextPlan {
                 requested_policy,
@@ -1724,6 +1739,7 @@ impl RunPlan {
                 llm,
                 post_process_requested,
                 persona_samples: settings.persona_samples.clone(),
+                spoken_instructions: post_process_requested && mode.llm.spoken_instructions,
             },
             context,
             delivery: DeliveryPlan::from(&mode.delivery),
@@ -2167,6 +2183,53 @@ mod tests {
         let run = RunPlan::for_reprocess(&settings, &mode_id).expect("active mode resolves");
 
         assert_eq!(run.prompt().persona_samples, settings.persona_samples);
+    }
+
+    /// The cue is read from the frozen plan, so a mode that never opted in
+    /// cannot have a `Sona, …` sentence taken out of its delivery, and an
+    /// existing mode deserializes opted out.
+    #[test]
+    fn spoken_instructions_are_off_until_the_mode_opts_in() {
+        let mut settings = configured_settings();
+        let mode_id = settings.active_mode_id.clone();
+        assert!(!settings.modes[0].llm.spoken_instructions);
+        let persisted = serde_json::to_value(&settings.modes[0]).unwrap();
+        let restored: ModeDefinition = serde_json::from_value(persisted).unwrap();
+        assert!(!restored.llm.spoken_instructions);
+
+        // The cue rides on the mode's rewrite, so the test gives it one.
+        grant_remote_llm_consent(&mut settings, "openai");
+        settings.modes[0].llm.enabled = true;
+        let run = RunPlan::for_intent(&settings, &TranscriptionIntent::ActiveMode)
+            .expect("active mode resolves");
+        assert!(run.post_process_requested());
+        assert!(!run.prompt().spoken_instructions);
+
+        settings.modes[0].llm.spoken_instructions = true;
+        let run = RunPlan::for_intent(&settings, &TranscriptionIntent::ActiveMode)
+            .expect("active mode resolves");
+        assert!(run.prompt().spoken_instructions);
+        // A replay runs under the chosen mode's own rewrite decision, so it
+        // inherits the toggle rather than carrying a second answer.
+        assert!(
+            RunPlan::for_reprocess(&settings, &mode_id)
+                .expect("active mode resolves")
+                .prompt()
+                .spoken_instructions
+        );
+        // A mode with the toggle on but AI cleanup off has no rewrite for the
+        // instruction to reach, so the plan says so itself.
+        settings.modes[0].llm.enabled = false;
+        let run = RunPlan::for_intent(&settings, &TranscriptionIntent::ActiveMode)
+            .expect("active mode resolves");
+        assert!(!run.post_process_requested());
+        assert!(!run.prompt().spoken_instructions);
+        // A file import admits no rewrite path at all, so the cue cannot fire
+        // there whatever the mode says.
+        settings.modes[0].llm.enabled = true;
+        let import = RunPlan::for_media_import(&settings).expect("active mode resolves");
+        assert!(!import.prompt().spoken_instructions);
+        assert!(!import.post_process_requested());
     }
 
     #[test]

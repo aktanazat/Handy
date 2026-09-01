@@ -2,6 +2,7 @@ pub mod audio;
 pub mod constants;
 pub mod lang_id;
 pub mod ort_session;
+pub mod spoken_edits;
 pub mod text;
 pub mod utils;
 pub mod vad;
@@ -12,11 +13,11 @@ pub use audio::{
     CpalDeviceInfo, RecordedAudio, VadPolicy,
 };
 pub use lang_id::detect_output_language;
+pub use spoken_edits::{apply_spoken_edits, split_spoken_instruction, SpokenInstruction};
 pub use text::{
     apply_british_spelling, apply_emoji_replacements, apply_exact_vocabulary_entries,
-    apply_literal_punctuation, apply_spoken_edits, apply_text_replacements,
-    apply_vocabulary_entries, normalize_transcription_output, remove_filler_words,
-    OutputLanguageEvidence,
+    apply_literal_punctuation, apply_text_replacements, apply_vocabulary_entries,
+    normalize_transcription_output, remove_filler_words, OutputLanguageEvidence,
 };
 pub use utils::get_cpal_host;
 pub use vad::{SileroVad, VoiceActivityDetector};

@@ -101,7 +101,12 @@ const MODE_VIEW: ModeView = {
     cloud_keyterms: [],
     cloud_timestamps: false,
   },
-  llm: { enabled: true, provider_id: "openai", model_id: "gpt-4o-mini" },
+  llm: {
+    enabled: true,
+    provider_id: "openai",
+    model_id: "gpt-4o-mini",
+    spoken_instructions: false,
+  },
   prompt: { preset: "email", source_prompt_id: null, custom_prompt: null },
   delivery: {
     paste_method: "ctrl_v",
@@ -431,6 +436,38 @@ describe("advanced", () => {
     // The privacy ceiling still outranks the mode, and still says so.
     expect(html).toContain("Privacy currently limits this mode");
     expect(html).toContain("No AI provider is configured");
+  });
+
+  /* The cue rides on the mode's rewrite provider, so the row is inert until
+   * cleanup is on — and the cue phrase itself has to be discoverable
+   * somewhere, which is the hint. The switch renders `aria-checked` and
+   * `disabled` before its id, so that is the order these patterns read in. */
+  test("offers spoken instructions, off and gated on AI cleanup", () => {
+    expect(html).toContain("Spoken instructions");
+    expect(html).toMatch(
+      /aria-checked="false"[^>]*id="mode-spoken-instructions"/,
+    );
+    // The hint text sits in a closed tooltip, which static markup does not
+    // carry, so the render proves the row has a hint and the bundle proves
+    // what that hint says.
+    expect(html).toMatch(
+      /Spoken instructions<\/label><button[^>]*aria-label="Spoken instructions"/,
+    );
+    expect(
+      i18n.t("settings.modes.writing.spokenInstructions.description"),
+    ).toContain('"Sona,"');
+
+    const enabled = editor({
+      mode: draft({ llm: { ...draft().llm, spoken_instructions: true } }),
+    });
+    expect(enabled).toMatch(
+      /aria-checked="true"[^>]*id="mode-spoken-instructions"/,
+    );
+
+    const noCleanup = editor({
+      mode: draft({ llm: { ...draft().llm, enabled: false } }),
+    });
+    expect(noCleanup).toMatch(/disabled=""[^>]*id="mode-spoken-instructions"/);
   });
 
   test("drops the knobs a default already answers", () => {

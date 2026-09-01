@@ -783,4 +783,125 @@ mod tests {
         assert_eq!(error, "Post-processing destination changed");
         assert!(!error.contains(CANARY));
     }
+
+    /// The JSON body of a captured HTTP request; empty until the headers end.
+    fn request_body(request: &[u8]) -> &[u8] {
+        match request.windows(4).position(|window| window == b"\r\n\r\n") {
+            Some(index) => &request[index + 4..],
+            None => &[],
+        }
+    }
+
+    /// Answers one chat completion and hands back the request it received.
+    async fn serve_one_completion(content: &str) -> (String, tokio::task::JoinHandle<Vec<u8>>) {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind completion server");
+        let address = listener.local_addr().expect("completion server address");
+        let body =
+            serde_json::json!({ "choices": [{ "message": { "content": content } }] }).to_string();
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.expect("completion request");
+            let mut request = Vec::new();
+            let mut chunk = [0_u8; 1024];
+            // Read until the body parses, not just until the first segment: a
+            // prompt this size does not arrive in one.
+            loop {
+                let read = stream.read(&mut chunk).await.expect("read request");
+                request.extend_from_slice(&chunk[..read]);
+                if read == 0
+                    || serde_json::from_slice::<serde_json::Value>(request_body(&request)).is_ok()
+                {
+                    break;
+                }
+            }
+            stream
+                .write_all(
+                    format!(
+                        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                        body.len()
+                    )
+                    .as_bytes(),
+                )
+                .await
+                .expect("write completion");
+            request
+        });
+        (format!("http://{address}"), server)
+    }
+
+    /// A dictation that ended with `Sona, …` reaches the provider as an
+    /// instruction over an input, never as one concatenated prompt: an input
+    /// that says "ignore the above" must not be able to direct the edit. The
+    /// answer is the whole delivery, which is why it is read back verbatim.
+    #[tokio::test]
+    async fn a_spoken_instruction_rides_as_instruction_plus_input() {
+        let (base_url, server) = serve_one_completion("The plan is ready by Friday?").await;
+        let provider = provider("custom", &base_url);
+        let endpoint = endpoint(&provider);
+        let rendered = crate::prompt_renderer::render_instruction(
+            crate::prompt_renderer::InstructionRenderInput {
+                instruction: "make that a question.",
+                input: "The plan is ready by Friday.",
+                language: "en",
+                target: &crate::context::TargetMetadata::default(),
+            },
+        );
+
+        let answer = send_chat_completion_with_schema(ChatCompletionInput {
+            provider: &provider,
+            endpoint: &endpoint,
+            secret: None,
+            model: "spoken-instruction",
+            user_content: rendered.user_message.clone(),
+            system_prompt: Some(rendered.system_message.clone()),
+            json_schema: None,
+            disable_reasoning: false,
+        })
+        .await;
+
+        assert_eq!(answer, Ok(Some("The plan is ready by Friday?".to_string())));
+
+        let request = server.await.expect("completion server finished");
+        let sent: serde_json::Value =
+            serde_json::from_slice(request_body(&request)).expect("the request body is JSON");
+        assert_eq!(sent["messages"][0]["role"], "system");
+        assert_eq!(sent["messages"][1]["role"], "user");
+        let envelope: serde_json::Value = serde_json::from_str(
+            sent["messages"][1]["content"]
+                .as_str()
+                .expect("user content"),
+        )
+        .expect("the user message is a JSON envelope");
+        assert_eq!(envelope["instruction"], "make that a question.");
+        assert_eq!(envelope["input"], "The plan is ready by Friday.");
+    }
+
+    /// A failed status has to arrive as an error, not as text: every caller
+    /// substitutes only what the provider returned, so anything else would
+    /// deliver a failure message in place of the user's dictation. This is the
+    /// one test that pins that mapping through `send_chat_completion`.
+    #[tokio::test]
+    async fn a_failed_status_is_an_error_not_text() {
+        let base_url = serve_one_response("500 Internal Server Error", "upstream is down").await;
+        let provider = provider("custom", &base_url);
+        let endpoint = endpoint(&provider);
+
+        let answer = send_chat_completion_with_schema(ChatCompletionInput {
+            provider: &provider,
+            endpoint: &endpoint,
+            secret: None,
+            model: "any",
+            user_content: "{}".to_string(),
+            system_prompt: None,
+            json_schema: None,
+            disable_reasoning: false,
+        })
+        .await;
+
+        assert_eq!(
+            answer,
+            Err("API request failed with status 500 Internal Server Error".to_string())
+        );
+    }
 }

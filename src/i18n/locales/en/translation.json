@@ -501,7 +501,7 @@
       },
       "spokenEdits": {
         "enabledLabel": "Obey spoken editing commands",
-        "enabledDescription": "Act on \"scratch that\", \"delete last word\" and \"delete the last word\" instead of writing them. English only, and only when the phrase stands alone between two pauses: \"scratch that plan\" and \"we should scratch that\" stay as text.",
+        "enabledDescription": "Act on \"scratch that\", \"delete last word\", \"delete the last word\", \"capitalize that\", \"lowercase that\", \"quote that\", \"make that a list\" and \"new bullet\" instead of writing them. English only, and only when the phrase stands alone between two pauses: \"scratch that plan\" and \"we should scratch that\" stay as text.",
         "toggleError": "Couldn't change spoken editing commands. Try again."
       }
     },
@@ -1069,6 +1069,10 @@
         },
         "model": {
           "label": "AI model"
+        },
+        "spokenInstructions": {
+          "label": "Spoken instructions",
+          "description": "End a dictation with \"Sona,\" and the rest of that sentence becomes an edit for the AI to apply, instead of words to type."
         },
         "disabledNote": "Turn on AI cleanup to use the preset, tone, provider, and model below."
       },
