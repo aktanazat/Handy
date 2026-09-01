@@ -111,10 +111,10 @@ pub struct MeetingSeriesRemoteOptOutSetRequest {
 /// D14. One series the operator can keep on this Mac, as the settings surface
 /// shows it.
 ///
-/// `title` is the title the most recent occurrence carried, because a series
-/// has no name of its own — only the events that belong to it do, and the
-/// latest one is the name the operator would recognize. `meetings` is how many
-/// of them Sona has actually sat in, which is what makes a row worth showing.
+/// `series_key`, `title`, `last_met_at_utc_ms` and `meetings` are
+/// `store::series::series_roster_in`'s answer, unchanged — the same four the
+/// automations roster carries, spelled `meeting_count` there for the same
+/// count. Only `remote_intelligence_opt_out` belongs to this surface.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 pub struct MeetingSeriesRemoteRow {
     pub series_key: String,

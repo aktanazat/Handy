@@ -45,7 +45,10 @@ export const QuestionsTab: React.FC<QuestionsTabProps> = ({
     <SettingsSection label={t("meetings.review.questions")}>
       <div className="flex flex-col gap-2 p-4">
         {/* The one sentence this surface keeps: where the answer comes from
-         * is not inferable from a text box and a button. */}
+         * is not inferable from a text box and a button, and since the
+         * question path was moved onto D14's engine chooser
+         * (`processing::text_generator_for_session`) "where" is no longer
+         * unconditionally this Mac. */}
         <p className="text-sm text-gray-700">
           {t("meetings.review.questionsDescription")}
         </p>
@@ -63,7 +66,7 @@ export const QuestionsTab: React.FC<QuestionsTabProps> = ({
             {!canAskQuestion
               ? t(
                   "meetings.review.askUnavailable",
-                  "Asking needs a finished local transcript.",
+                  "Asking needs a finished transcript.",
                 )
               : askingQuestion
                 ? t("meetings.review.asking", "Asking this meeting…")

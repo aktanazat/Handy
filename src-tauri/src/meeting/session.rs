@@ -499,14 +499,24 @@ impl MeetingSessionManager {
         Ok(recovery.recovered)
     }
 
-    /// One line per meeting the reconciliation touched, and one refreshed row
-    /// per meeting in every open window. Without the line there is no record
-    /// of why a meeting is asking for attention after a launch nobody watched.
+    /// One summary line per sweep, then one line per meeting the
+    /// reconciliation touched, and one refreshed row per meeting in every open
+    /// window. The summary is unconditional: a sweep that changed nothing used
+    /// to log nothing at all, so a launch where the rows stayed wrong and a
+    /// launch where the sweep never ran read identically. The per-meeting lines
+    /// are the record of why a meeting is asking for attention, or gone, after
+    /// a launch nobody watched.
     fn announce_recovery(
         &self,
         store: &MeetingStore,
         recovery: &InterruptedRecovery,
     ) -> Result<(), MeetingCommandError> {
+        log::info!(
+            "Meeting recovery sweep: {} interrupted, {} status healed, {} abandoned start gates discarded",
+            recovery.recovered.len(),
+            recovery.status_resolved.len(),
+            recovery.discarded.len(),
+        );
         for meeting in &recovery.recovered {
             log::info!(
                 "Meeting recovery: {:?} was left in {:?} by an earlier launch and now needs review",
@@ -518,6 +528,14 @@ impl MeetingSessionManager {
             log::info!(
                 "Meeting recovery: {session_id:?} was still marked as processing by an earlier launch, now marked interrupted",
             );
+        }
+        for session_id in &recovery.discarded {
+            log::info!(
+                "Meeting recovery: {session_id:?} was a start gate an earlier launch left open and recorded nothing, discarded",
+            );
+            // The row is gone, so there is no snapshot to refresh — the
+            // windows are told to drop it, exactly as a cancelled gate does.
+            self.emit_removed(*session_id, 0);
         }
         for session_id in recovery
             .recovered

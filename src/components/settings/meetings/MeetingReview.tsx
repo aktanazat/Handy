@@ -71,6 +71,26 @@ const REVIEW_TAB_IDS = [
 
 type ReviewTab = (typeof REVIEW_TAB_IDS)[number];
 
+/**
+ * Which tab this record opens on, given whatever was decided before and the
+ * snapshot in hand. `null` means nobody has decided yet — the record carries
+ * nothing written about it, so the transcript is all there is to read.
+ *
+ * A decision, once made, is never revisited: `chosen` short-circuits, so a
+ * refresh cannot move a reader who picked a tab and a deleted last note cannot
+ * pull one off Insights. The only transition this makes is the first one, from
+ * "nothing to read" to "something to read", which is exactly the moment a
+ * meeting finishes processing under an open review screen.
+ */
+export const nextReviewTab = (
+  chosen: ReviewTab | null,
+  snapshot: MeetingReviewSnapshot,
+): ReviewTab | null =>
+  chosen ??
+  (snapshot.artifacts.length > 0 || snapshot.notes.length > 0
+    ? "insights"
+    : null);
+
 /* The kit's own `line` variant draws the mark; this only quiets the type and
  * moves the focus ring onto the accent. */
 const TAB_TRIGGER_CLASSES =
@@ -129,14 +149,28 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
   onRefresh,
 }) => {
   const { t } = useTranslation();
-  /* D19 gives a finished meeting a title from its own content, and the notes
-   * written from it are what somebody came back for; the transcript is the
-   * evidence behind them, one click away. A meeting with nothing generated yet
-   * has only the transcript, so that is where it opens. Initial state, not
-   * derived: once a person has chosen a tab, a refresh must not move them. */
-  const [tab, setTab] = useState<ReviewTab>(
-    snapshot.artifacts.length > 0 ? "insights" : "transcript",
+  /* D19 gives a finished meeting a title from its own content, and what is
+   * written about it — the generated notes, or the ones the reader typed
+   * during it — is what somebody came back for; the transcript is the evidence
+   * behind them, one click away.
+   *
+   * Decided once, and not before there is anything to decide from. This used
+   * to be a plain `useState` initialiser over `snapshot.artifacts`, which
+   * reads the record exactly once: a meeting whose artifacts landed after this
+   * screen did — the ordinary case, since processing finishes while you are
+   * looking at it — latched "transcript" on its first, empty snapshot and
+   * stayed there for the rest of the visit. `null` is "nobody has decided
+   * yet", which renders the transcript, so nothing flickers while the record
+   * is still arriving. Once anything is decided it is final: a later snapshot
+   * cannot move a reader who chose a tab, and deleting the last note cannot
+   * pull one back off Insights. */
+  const [chosenTab, setChosenTab] = useState<ReviewTab | null>(() =>
+    nextReviewTab(null, snapshot),
   );
+  useEffect(() => {
+    setChosenTab((current) => nextReviewTab(current, snapshot));
+  }, [snapshot]);
+  const tab = chosenTab ?? "transcript";
   const [jump, setJump] = useState<SegmentJump | null>(null);
   const [newNote, setNewNote] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -279,11 +313,11 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
 
   const selectTab = (id: string) => {
     const next = REVIEW_TAB_IDS.find((candidate) => candidate === id);
-    if (next) setTab(next);
+    if (next) setChosenTab(next);
   };
 
   const jumpToSegment = (segmentId: string) => {
-    setTab("transcript");
+    setChosenTab("transcript");
     /* A live filter that does not contain the cited turn would swallow the
      * jump, and a citation that lands nowhere is the one thing citations
      * cannot do — so arriving clears the filter. */

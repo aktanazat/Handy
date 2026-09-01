@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
 import { installTauriMock } from "./support/tauri-mock";
+import { APP_SETTINGS, CAPTURE_AT_FULL_HEIGHT } from "./support/tauri-fixtures";
 
 /* The shell is Tailwind utilities on its components now, so nothing here
  * selects by class: every locator is a role or an accessible name, which is
@@ -18,6 +19,36 @@ const openApp = async (page: Page) => {
   await expect(
     sidebarNav(page).getByRole("button", { name: "Capture", exact: true }),
   ).toBeVisible();
+};
+
+/* One page of the query plane, one row per kind it produces. The shape is
+ * `QuerySearchPage` in src/bindings.ts. */
+const planeRow = (kind: string, id: string, title: string) => ({
+  kind,
+  id,
+  title,
+  snippet: `why ${title} is in front of you`,
+  when_utc_ms: 1_786_699_920_000,
+  link: `sona://${kind}/${id}`,
+});
+
+const SEARCH_PAGE = {
+  schema_version: 1,
+  entries: [
+    planeRow("meeting", "meeting-1", "Weekly planning"),
+    planeRow("person", "person-1", "Stephen Kowalski"),
+    planeRow("dictation", "7", "A dictated note"),
+    planeRow("loop", "meeting-1:loop:a", "Send the tier comparison"),
+  ],
+  next_cursor: null,
+};
+
+/* The ask row is gated on the panel toggle, a pairing and D14's consent, and
+ * the install that reported this had all three. */
+const PAIRED_SETTINGS = {
+  ...APP_SETTINGS,
+  agent_panel_paired: true,
+  meeting_remote_intelligence_enabled: true,
 };
 
 test.describe("App shell", () => {
@@ -273,9 +304,13 @@ test.describe("the palette's content", () => {
     await expect(options).toHaveCount(1);
     await expect(options.first()).toHaveText(/Import audio/);
 
+    /* Two characters in, the field is a corpus search as well as a filter, so
+       the one sentence covers both halves: no command matched and the plane
+       came back with nothing. "No commands found" would answer half the
+       question the reader just asked. */
     await page.getByRole("combobox").fill("zzzzzz");
     await expect(options).toHaveCount(0);
-    await expect(page.getByText("No commands found")).toBeVisible();
+    await expect(page.getByText("Nothing matched “zzzzzz”.")).toBeVisible();
   });
 
   /* One destination, one name. The palette used to label these two rows from
@@ -331,6 +366,64 @@ test.describe("the palette's content", () => {
     await expect(sidebarNav(page).locator('[aria-current="page"]')).toHaveCount(
       0,
     );
+  });
+
+  /* ⌘K's second half, which nothing covered until a live run reported it
+   * broken. Two characters in, the field is a search of the corpus, and the
+   * plane's page becomes one titled section per kind.
+   *
+   * "notes" is the word the live corpus actually answered — it returned a
+   * Meetings section — so it is the word typed here, and the empty-corpus case
+   * below keeps the "sync" that reported the finding. Two readings of one
+   * surface: a page of rows becomes sections, and no page becomes a sentence. */
+  test("a page from the query plane becomes one section per kind", async ({
+    page,
+  }) => {
+    await installTauriMock(page, {
+      responses: { sona_query_search: SEARCH_PAGE },
+    });
+    await page.goto("/");
+    await expect(
+      sidebarNav(page).getByRole("button", { name: "Capture", exact: true }),
+    ).toBeVisible();
+    await page.keyboard.press("Meta+k");
+    await page.getByRole("combobox").fill("notes");
+
+    for (const heading of ["Meetings", "People", "Dictations", "Open loops"]) {
+      await expect(page.getByRole("group", { name: heading })).toBeVisible();
+    }
+    await expect(
+      page.getByRole("option", { name: /Weekly planning/ }),
+    ).toBeVisible();
+    /* A row that matched semantically shares no letter with what was typed, so
+       the list may reorder the plane's rows but may never filter one away. */
+    await expect(page.getByText("Nothing matched")).toHaveCount(0);
+  });
+
+  /* The live report: typing a real word rendered the Ask row and nothing else,
+   * which reads exactly like a broken search. It was not — the corpus had no
+   * match — but the palette had no way to say so: `CommandEmpty` is cmdk's
+   * "no rows at all" branch, and the Ask row is a row, so on a paired install
+   * that branch can never fire. */
+  test("a corpus that matched nothing says so beside the ask row", async ({
+    page,
+  }) => {
+    await installTauriMock(page, {
+      responses: {
+        get_settings: PAIRED_SETTINGS,
+        get_app_settings: PAIRED_SETTINGS,
+      },
+    });
+    await page.goto("/");
+    await expect(
+      sidebarNav(page).getByRole("button", { name: "Capture", exact: true }),
+    ).toBeVisible();
+    await page.keyboard.press("Meta+k");
+    await page.getByRole("combobox").fill("sync");
+
+    // The row that used to be the only thing on screen.
+    await expect(page.getByRole("option", { name: /Ask Sona/ })).toBeVisible();
+    await expect(page.getByText("Nothing matched “sync”.")).toBeVisible();
   });
 });
 
@@ -392,15 +485,17 @@ test.describe("the palette's motion", () => {
  *
  * The window is hard-locked at 900x800 (src-tauri/src/lib.rs), so "below the
  * fold" is one fixed number rather than a guess about somebody's monitor: it is
- * whatever the shell's one scroll region cannot show at rest. Capture is the
- * default route and the page that has to answer at a glance, so it fits
- * outright — hero, the two feed cards, and the Activity charts down to the
- * bottom of the last chart. Every other route may scroll, because Library,
- * Meetings and Settings are logs and a log that runs past the window is still a
- * log. What no route may do is put a section where scrolling never reaches it.
+ * whatever the shell's one scroll region cannot show at rest.
  *
- * These are the assertions the 680 -> 800 grow was made against: at 680 the
- * Activity charts sat 116pt under the fold. */
+ * Capture is the default route and the page that has to answer at a glance, so
+ * the promise it keeps is its numbers: the hero and the Activity band are read
+ * without a scroll. The feed under them is a list that grows with the corpus,
+ * so the whole page fitting is not a promise this route can keep at all — it
+ * was pinned as one, the fixture behind it held a single feed row, and the
+ * shipped build cut the Activity charts off at the bottom edge while this suite
+ * stayed green. Every other route may scroll, because Library, Meetings and
+ * Settings are logs and a log that runs past the window is still a log. What no
+ * route may do is put a section where scrolling never reaches it. */
 test.describe("the fold at the shipped window size", () => {
   test.use({ viewport: { width: 900, height: 800 } });
 
@@ -414,93 +509,6 @@ test.describe("the fold at the shipped window size", () => {
     "Settings",
     "Models",
   ] as const;
-
-  const minutesAgo = (minutes: number) => Date.now() - minutes * 60_000;
-  const trendDay = (localDate: string, recordings: number) => ({
-    local_date: localDate,
-    recordings,
-    duration_ms: recordings * 2_000,
-    words: recordings * 20,
-    by_source: [],
-  });
-
-  /* Capture at its ordinary fullest: a week of dictation behind the Activity
-   * band, one workflow run that changed something, one promise still open. Each
-   * of those cards draws only when its command answers with data, so an empty
-   * mock would measure a page Capture never actually shows — and the charts are
-   * the exact thing that used to fall off the bottom. */
-  const CAPTURE_AT_FULL_HEIGHT = {
-    get_history_trend: {
-      range: "days_180",
-      range_start_local_date: "2026-08-24",
-      range_end_local_date: "2026-08-30",
-      all_time: {
-        recordings: 28,
-        duration_ms: 56_000,
-        words: 560,
-        by_source: [],
-      },
-      range_total: {
-        recordings: 28,
-        duration_ms: 56_000,
-        words: 560,
-        by_source: [],
-      },
-      active_days: 7,
-      current_streak_days: 3,
-      points: [
-        trendDay("2026-08-24", 1),
-        trendDay("2026-08-25", 2),
-        trendDay("2026-08-26", 3),
-        trendDay("2026-08-27", 4),
-        trendDay("2026-08-28", 5),
-        trendDay("2026-08-29", 6),
-        trendDay("2026-08-30", 7),
-      ],
-    },
-    workflow_runs: {
-      schema_version: 1,
-      revision: 1,
-      entries: [
-        {
-          id: "run-1",
-          workflow_id: "person_linking",
-          event_kind: "meeting_finalized",
-          jump_target: { kind: "meeting", session_id: "meeting-1" },
-          status: "ok",
-          started_at_utc_ms: minutesAgo(9),
-          finished_at_utc_ms: minutesAgo(8),
-          outcome_summary: "",
-          outcome_code: "person_links",
-          outcome_counts: {
-            changes: 2,
-            persons: 2,
-            series: 0,
-            carried: 0,
-            candidates: 0,
-            suggestions: 0,
-            terms: 0,
-          },
-          error: null,
-        },
-      ],
-      next_cursor: null,
-    },
-    open_loops_inbox: {
-      schema_version: 1,
-      revision: 1,
-      entries: [
-        {
-          meeting_id: "meeting-1",
-          title: "Weekly sync",
-          at_utc_ms: minutesAgo(40),
-          text: "Send Priya the revised timeline",
-          owner_person_id: null,
-          carried_since_at_utc_ms: null,
-        },
-      ],
-    },
-  };
 
   interface FoldSection {
     name: string;
@@ -613,7 +621,26 @@ test.describe("the fold at the shipped window size", () => {
     await expect(page.getByRole("status", { name: LOADING })).toHaveCount(0);
   };
 
-  test("Capture fits the window, chart bottoms included", async ({ page }) => {
+  const sectionNamed = (report: FoldReport, name: string): FoldSection => {
+    const section = report.sections.find((entry) => entry.name === name);
+    if (section === undefined) {
+      throw new Error(
+        `no "${name}" section on this page; saw ${report.sections
+          .map((entry) => entry.name)
+          .join(", ")}`,
+      );
+    }
+    return section;
+  };
+
+  /* Capture's three numbers are what the page is opened for, so they are what
+   * the window has to show without a scroll. The feed under them is a list
+   * that grows, so it is what scrolls — the whole page fitting is not a
+   * promise this route can keep, and pinning it as one is how the shipped
+   * build ended up with the charts cut off by the bottom edge instead. */
+  test("Capture keeps its numbers above the fold and scrolls the feed", async ({
+    page,
+  }) => {
     await installTauriMock(page, { responses: CAPTURE_AT_FULL_HEIGHT });
     await page.goto("/");
     await expect(
@@ -622,19 +649,112 @@ test.describe("the fold at the shipped window size", () => {
     await expect(page.getByRole("region", { name: "Activity" })).toBeVisible();
 
     const report = await measureFold(page);
+    const activity = sectionNamed(report, "Activity");
+    const feed = sectionNamed(report, "What Sona did");
     /* Recorded on the run so the numbers behind these thresholds stay readable
      * without re-deriving them by hand. */
     test.info().annotations.push({
       type: "fold",
-      description: `Capture: draws ${report.natural}px, window shows ${report.visible}px, scrolls ${report.content}px`,
+      description: `Capture: draws ${report.natural}px, window shows ${report.visible}px, scrolls ${report.content}px, Activity ends at ${activity.bottom}px`,
     });
 
-    // Nothing to scroll: the page asked for no more than the window shows.
-    expect(report.content).toBeLessThanOrEqual(report.visible);
+    /* The band is read from the top of the page, unscrolled, and clears the
+     * fold by a margin so its bottom card reads as a card rather than as a cut
+     * edge. */
+    expect(report.visible - activity.bottom).toBeGreaterThanOrEqual(16);
+    // And the feed is below it, which is what makes the scroll the feed's.
+    expect(feed.top).toBeGreaterThanOrEqual(activity.bottom);
+  });
 
-    /* And it clears the fold by a margin, so the bottom chart card reads as a
-     * card rather than as a cut edge. */
-    expect(report.visible - report.natural).toBeGreaterThanOrEqual(16);
+  /* The same page, read once more with the chat column open.
+   *
+   * The column is part of the layout rather than a strip over it, so opening it
+   * narrows the page: at the locked 900px the rail collapses to its glyph strip
+   * and the content keeps what the column leaves. A window this size cannot
+   * scroll sideways out of a column that does not fit — there is no wider
+   * monitor to fall back on and no way to drag the window bigger — and it will
+   * not show a scrollbar either, because the shell's row is `overflow-hidden`
+   * all the way down. A column that overlaps the page and a column clipped off
+   * the window's edge both look identical to `scrollWidth`, which is why the
+   * scroll is only half of what this reads.
+   *
+   * The other half is that the three columns are three columns: the chat and
+   * the page are horizontally disjoint, and both are inside the window. That is
+   * this suite's own subject — content nobody can reach, which is what the rest
+   * of the fold measures vertically — and it pins nothing the chat owns: not
+   * its width, not which edge it opens against. Vertical fit is not re-asserted
+   * here, because a narrower page reflows the feed and the feed is what this
+   * route scrolls anyway. */
+  test("Capture fits sideways with the chat column open", async ({ page }) => {
+    await installTauriMock(page, {
+      responses: {
+        ...CAPTURE_AT_FULL_HEIGHT,
+        get_settings: PAIRED_SETTINGS,
+        get_app_settings: PAIRED_SETTINGS,
+      },
+    });
+    await page.goto("/");
+    await expect(page.getByRole("region", { name: "Activity" })).toBeVisible();
+
+    /* The pill is the way in, and it needs the pairing above to be live at
+     * all. It hides itself once the column is open — the column's own close
+     * button owns the way back out — so it is pressed once and not read
+     * again. */
+    await page.getByRole("button", { name: "Chat with Sona Agent" }).click();
+    const column = page.locator('[data-slot="chat-sheet"]');
+    await expect(column).toBeVisible();
+    /* Settled rather than mid-travel: the column animates its width over 150ms,
+     * and a measurement taken during that is a measurement of the animation. */
+    await column.evaluate(async (element) => {
+      await Promise.all(
+        element.getAnimations({ subtree: true }).map((a) => a.finished),
+      );
+    });
+
+    const sideways = await page.evaluate(() => {
+      const spanOf = (selector: string) => {
+        const node = document.querySelector(selector);
+        if (node === null) throw new Error(`no ${selector} on this page`);
+        const box = node.getBoundingClientRect();
+        return { left: Math.round(box.left), right: Math.round(box.right) };
+      };
+      // SAFETY: the slot is App.tsx's rendered scroll owner, which is on the
+      // page by the time the Activity band inside it is visible.
+      const pane = document.querySelector(
+        '[data-slot="page-scroll"]',
+      ) as HTMLElement;
+      return {
+        windowShows: document.documentElement.clientWidth,
+        windowDraws: document.documentElement.scrollWidth,
+        paneDraws: pane.scrollWidth,
+        paneShows: pane.clientWidth,
+        page: spanOf('[data-slot="page-scroll"]'),
+        chat: spanOf('[data-slot="chat-sheet"]'),
+      };
+    });
+    test.info().annotations.push({
+      type: "fold",
+      description: `Capture with the chat column open: window ${sideways.windowShows}px, page ${sideways.page.left}–${sideways.page.right}px, chat ${sideways.chat.left}–${sideways.chat.right}px, page draws ${sideways.paneDraws}px across ${sideways.paneShows}px`,
+    });
+
+    // Nothing sideways to scroll, on the window or inside the page.
+    expect(sideways.windowDraws).toBeLessThanOrEqual(sideways.windowShows);
+    expect(sideways.paneDraws).toBeLessThanOrEqual(sideways.paneShows);
+    // Both columns inside the window, since a clipped one leaves no scroll.
+    expect(sideways.chat.left).toBeGreaterThanOrEqual(0);
+    expect(sideways.chat.right).toBeLessThanOrEqual(sideways.windowShows);
+    expect(sideways.page.left).toBeGreaterThanOrEqual(0);
+    expect(sideways.page.right).toBeLessThanOrEqual(sideways.windowShows);
+    /* And they are beside each other rather than one on top of the other: the
+     * page under an opaque column is the unreachable content this whole suite
+     * exists to catch. Either order passes; the chat picks its own edge. */
+    const disjoint =
+      sideways.page.right <= sideways.chat.left ||
+      sideways.chat.right <= sideways.page.left;
+    expect(
+      disjoint,
+      `the chat column (${sideways.chat.left}–${sideways.chat.right}px) overlaps the page (${sideways.page.left}–${sideways.page.right}px)`,
+    ).toBe(true);
   });
 
   test("no route puts a section where scrolling never reaches it", async ({

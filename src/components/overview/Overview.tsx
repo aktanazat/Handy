@@ -291,8 +291,13 @@ export const Overview: React.FC<OverviewProps> = ({
   }, [runUpdateCheck]);
 
   return (
-    /* The hero and activity cards share the settings-page measure. The hero
-     * remains first and the charts follow as one compact band. */
+    /* The hero and the activity cards share the settings-page measure. Order
+     * is glanceability: the hero, then the three numbers, then the feed. The
+     * band used to sit last, so at the shipped 900x800 a feed with anything in
+     * it pushed Dictations/Words/Streak off the bottom edge — the one part of
+     * this page you read without scrolling was the one part you had to scroll
+     * for. The feed is a list that grows; the band is three fixed cards, so
+     * the band is what can be promised above the fold. */
     <div className="mx-auto flex min-h-full w-full max-w-[760px] flex-col justify-center gap-6 px-8 py-12">
       {updateResult !== null &&
         updateResult.status === "update_available" &&
@@ -316,6 +321,8 @@ export const Overview: React.FC<OverviewProps> = ({
         onOpenModes={() => onOpenSection?.("modes")}
       />
 
+      {activityTrend === null ? null : <ActivityBand trend={activityTrend} />}
+
       <OverviewWorkflowCards
         onOpenMeeting={(meetingId) => onOpenMeeting?.(meetingId)}
       />
@@ -323,8 +330,6 @@ export const Overview: React.FC<OverviewProps> = ({
       {/* What Sona noticed, beside what Sona did: the same feed, and this half
        * is the one that asks the reader a question. */}
       <LearningSuggestionCard />
-
-      {activityTrend === null ? null : <ActivityBand trend={activityTrend} />}
 
       {updateResult !== null && updateResult.status === "check_failed" && (
         <UpdateCheckFailure

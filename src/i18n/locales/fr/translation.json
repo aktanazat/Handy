@@ -1756,6 +1756,7 @@
       "people": "Personnes",
       "dictations": "Dictées",
       "loops": "Questions en suspens",
+      "empty": "Rien ne correspond à \"{{query}}\".",
       "unavailable": "La recherche est indisponible pour le moment."
     }
   },
@@ -2096,16 +2097,16 @@
       "unassigned": "Non attribué",
       "noDueDate": "Aucune échéance",
       "questions": "Interroger cette réunion",
-      "questionsDescription": "Les réponses utilisent uniquement cette réunion locale et citent la transcription à l'appui.",
+      "questionsDescription": "Les réponses utilisent uniquement cette réunion et citent la transcription à l'appui, et elles ne sont écrites sur ton serveur que lorsque l'intelligence des réunions les y envoie.",
       "questionPlaceholder": "Posez une question sur cette réunion",
-      "ask": "Interroger en local",
+      "ask": "Interroger",
       "noQuestions": "Aucune réponse locale enregistrée.",
       "question": "Question",
       "insufficientEvidence": "Aucun passage à l'appui n'a été trouvé dans cette réunion.",
       "forget": "Oublier cette réponse",
       "searchPlaceholder": "Rechercher dans cette réunion",
       "noSearchResults": "Aucune correspondance exacte en local.",
-      "askUnavailable": "Poser une question nécessite une transcription locale terminée.",
+      "askUnavailable": "Poser une question nécessite une transcription terminée.",
       "asking": "Interrogation de cette réunion…",
       "droppedFrames": "Trames perdues : {{total}}",
       "hitKind": {
@@ -2463,40 +2464,29 @@
       "failed": "Impossible de rédiger un suivi pour cette réunion."
     }
   },
-  "agentPanel": {
-    "open": "Agent",
-    "retry": "Réessayer",
-    "cancel": "Annuler",
-    "apply": "Appliquer",
-    "undo": "Annuler",
-    "panelToggle": "Fermer le panneau de l'agent",
-    "conversationLabel": "Conversation",
-    "proposalTitle": "Modifications proposées",
-    "empty": "Posez une question sur vos réunions, vos notes et vos réglages. Les changements de réglages apparaissent ici sous forme de proposition à relire avant que quoi que ce soit ne change.",
+  "chat": {
+    "open": "Discussion",
+    "label": "Discuter avec l'agent Sona",
+    "title": "Agent Sona",
+    "unpaired": "Appairez l'agent Sona dans les Réglages",
+    "close": "Fermer la discussion",
+    "history": "Discussions récentes",
+    "historyEmpty": "Aucune discussion antérieure pour l'instant.",
+    "newChat": "Nouvelle discussion",
+    "empty": "Posez une question sur vos réunions, vos notes et vos réglages.",
+    "placeholder": "Posez n'importe quelle question",
     "inputLabel": "Question sur Sona",
     "send": "Envoyer",
-    "status": {
-      "loading": "Connexion…",
-      "disabled": "Le panneau de l'agent est désactivé.",
-      "unpaired": "Non apparié à un relais.",
-      "offline": "Le relais est hors ligne.",
-      "idle": "Prêt",
-      "proposal": "Proposition prête",
-      "error": "Le panneau de l'agent est indisponible."
-    },
-    "activityLabel": "Activité",
-    "workspaceLabel": "Qui répond",
-    "step": {
-      "sent": "Envoyé"
-    },
-    "workspace": {
+    "stop": "Arrêter",
+    "retry": "Réessayer",
+    "openSettings": "Réglages",
+    "scopeLabel": "Qui répond",
+    "scope": {
       "sona_chat": "Question",
       "sona_config": "Réglages"
     },
-    "placeholder": {
-      "sona_chat": "Posez une question sur vos réunions et vos notes…",
-      "sona_config": "Posez une question sur les réglages de Sona…"
-    },
+    "workedFor": "A travaillé {{seconds}} s",
+    "stepSeconds": "{{seconds}} s",
     "turnState": {
       "submitting": "Envoi",
       "queued": "En file",
@@ -2510,15 +2500,24 @@
       "canceled": "Arrêté",
       "unverified_external": "Réponse non vérifiée"
     },
+    "status": {
+      "disabled": "L'agent Sona est désactivé.",
+      "unpaired": "L'agent Sona n'est associé à aucun relais.",
+      "offline": "Le relais de l'agent Sona est injoignable.",
+      "error": "L'agent Sona est indisponible."
+    },
+    "proposal": {
+      "apply": "Appliquer",
+      "applied": "Appliqué",
+      "undo": "Annuler",
+      "undone": "Annulé",
+      "rejected": "Non appliqué"
+    },
     "ask": {
       "row": "Demander à Sona : {{query}}",
-      "error": "Impossible d’envoyer cette question à Sona."
+      "error": "Impossible d’envoyer cette question à Sona.",
+      "consentRequired": "Poser une question envoie des extraits de tes réunions à ton serveur, donc active d'abord l'intelligence des réunions."
     }
-  },
-  "chat": {
-    "open": "Discussion",
-    "label": "Discuter avec l'agent Sona",
-    "unpaired": "Appairez l'agent Sona dans les Réglages"
   },
   "overview": {
     "hero": {

@@ -326,10 +326,11 @@ pub struct MeetingAutomationRunReceipt {
 /// One series the operator could turn an automation on for, as the settings
 /// surface lists it.
 ///
-/// Assembled from the calendar facts meetings already recorded, so the list is
-/// "series you have actually recorded", not a calendar browse. `title` is the
-/// most recent occurrence's event title, which is what a person calls the
-/// series.
+/// `series_key`, `title`, `last_met_at_utc_ms` and `meeting_count` are
+/// `store::series::series_roster_in`'s answer, unchanged — the same four
+/// `MeetingSeriesRemoteRow` carries, so the two settings screens cannot
+/// disagree about which series exist or what they are called. Only
+/// `automations` belongs to this surface.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
 pub struct MeetingAutomationSeries {
     pub series_key: String,

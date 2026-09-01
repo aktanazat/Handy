@@ -23,15 +23,39 @@
 //! A second number here would be a second thing to keep true, and the failure
 //! mode of getting it wrong is a question that is refused after the reader has
 //! already asked it.
+//!
+//! # Why a series can be missing from its own pack
+//!
+//! A pack is the one thing on this surface that leaves the machine verbatim:
+//! `agent_panel` posts it to the operator's relay as a `sona_chat` turn. D14's
+//! per-series escape hatch — "a series listed here is always written on this
+//! Mac, even while meeting intelligence is on" — therefore has to hold here as
+//! well as in `processing::choose_text_engine`, and it holds the same way:
+//! [`without_excluded_series`] joins each meeting and loop row to the series
+//! behind it and drops the rows that series kept local. An unreadable
+//! preference counts as excluded, the direction `processing.rs` already leans
+//! for exactly this fact.
+//!
+//! The header says nothing about it. A dropped quote at the byte ceiling is
+//! reported because the model would otherwise answer "nothing else came up"
+//! from a truncated bundle; an excluded series is not evidence that was cut
+//! short, it is evidence the operator said may not be sent, and naming its
+//! absence on the wire would put the fact of the exclusion on the server that
+//! was not allowed to see the series.
 
-use super::{QueryError, QueryRow, QueryScope, QUERY_SCHEMA_VERSION};
+use super::{QueryError, QueryRow, QueryRowKind, QueryScope, QUERY_SCHEMA_VERSION};
 use crate::agent_panel::protocol::MAX_CONTEXT_PACK_BYTES;
 use crate::managers::history::HistoryManager;
+use crate::meeting::loop_types::MeetingLoopId;
 use crate::meeting::session::MeetingSessionManager;
+use crate::meeting::store::MeetingStore;
+use crate::meeting::types::MeetingSessionId;
 use chrono::TimeZone;
 use serde::{Deserialize, Serialize};
 use specta::Type;
+use std::collections::HashMap;
 use std::sync::Arc;
+use uuid::Uuid;
 
 /// How many rows one question is answered from.
 ///
@@ -55,10 +79,10 @@ pub struct QueryPack {
 
 /// Assemble the pack for one question.
 ///
-/// One search over every scope, then [`build`]. An empty question is
-/// [`QueryError::InvalidRequest`] rather than an empty pack: the plane refuses
-/// to match the whole corpus on no tokens, and a pack of nothing sent to a
-/// model is a question asked without its evidence.
+/// One search over every scope, the series exclusions applied, then [`build`].
+/// An empty question is [`QueryError::InvalidRequest`] rather than an empty
+/// pack: the plane refuses to match the whole corpus on no tokens, and a pack
+/// of nothing sent to a model is a question asked without its evidence.
 pub async fn for_question(
     meetings: &Arc<MeetingSessionManager>,
     history: &Arc<HistoryManager>,
@@ -77,7 +101,67 @@ pub async fn for_question(
         None,
     )
     .await?;
-    Ok(build(question, page.entries, page.next_cursor.is_some()))
+    // The same mount the search just read through, so the exclusion is decided
+    // against the store that produced the rows.
+    let store = meetings.store().await?;
+    let rows = without_excluded_series(&store, page.entries);
+    Ok(build(question, rows, page.next_cursor.is_some()))
+}
+
+/// Drop the rows whose series the operator kept on this Mac.
+///
+/// Meetings and loops only: a dictation belongs to no series, and a person row
+/// quotes the headline of whichever meeting they were last in rather than that
+/// meeting's own words. `more_matches` is left alone — it answers "does the
+/// corpus hold more matches than this page", which an exclusion here does not
+/// change.
+///
+/// One store read per distinct meeting, memoised, because a page of twelve is
+/// usually a handful of meetings and the read is a two-statement join.
+pub(crate) fn without_excluded_series(store: &MeetingStore, rows: Vec<QueryRow>) -> Vec<QueryRow> {
+    let mut excluded: HashMap<MeetingSessionId, bool> = HashMap::new();
+    rows.into_iter()
+        .filter(|row| {
+            let Some(session_id) = session_behind(row) else {
+                return true;
+            };
+            !*excluded
+                .entry(session_id)
+                .or_insert_with(|| series_opted_out_of_remote(store, session_id))
+        })
+        .collect()
+}
+
+/// The meeting a row's own words came out of, for the two kinds that have one.
+///
+/// A loop's id leads with its session uuid by construction, so neither kind
+/// needs a lookup to find its meeting.
+fn session_behind(row: &QueryRow) -> Option<MeetingSessionId> {
+    match row.kind {
+        QueryRowKind::Meeting => Uuid::parse_str(&row.id)
+            .ok()
+            .map(MeetingSessionId::from_uuid),
+        QueryRowKind::Loop => MeetingLoopId(row.id.clone()).session_id(),
+        _ => None,
+    }
+}
+
+/// Whether this meeting's series has been kept off the server.
+///
+/// A preference the store cannot read counts as opted out, which is the
+/// direction `processing::series_opted_out_of_remote` already leans for the
+/// same fact: the failure being guarded is evidence leaving the machine for a
+/// series whose answer we could not read.
+fn series_opted_out_of_remote(store: &MeetingStore, session_id: MeetingSessionId) -> bool {
+    match store.series_preferences_for_session(session_id) {
+        Ok(preferences) => preferences.remote_intelligence_opt_out,
+        Err(error) => {
+            log::warn!(
+                "Keeping {session_id:?} out of the context pack: its remote-intelligence preference could not be read: {error:?}"
+            );
+            true
+        }
+    }
 }
 
 /// Render the pack for rows that have already been found.
@@ -191,7 +275,11 @@ fn one_line(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::query::QueryRowKind;
+    use crate::meeting::detection::machine::CalendarEventSummary;
+    use crate::meeting::loop_types::MeetingLoopKind;
+    use crate::meeting::series_types::MeetingSeriesRemoteOptOutSetRequest;
+    use crate::meeting::store::workflow_core_tests::{meeting, store};
+    use crate::meeting::types::MeetingOperationId;
 
     /// 2026-08-14 09:32 UTC, so the rendered time is readable in the assertions
     /// rather than being a number this test also has to compute.
@@ -381,5 +469,182 @@ mod tests {
         );
         assert!(pack.sources.is_empty());
         assert!(!pack.pack.is_empty(), "the panel refuses an empty pack");
+    }
+
+    /// D14 at the pack boundary. The corpus is two meetings: one in a series
+    /// the operator excluded, one in a series they did not. The rows are built
+    /// the way the plane builds them so the ids the filter reads are the ids
+    /// the plane actually emits.
+    mod excluded_series {
+        use super::*;
+
+        struct Corpus {
+            _directory: tempfile::TempDir,
+            store: std::sync::Arc<MeetingStore>,
+            excluded: MeetingSessionId,
+            allowed: MeetingSessionId,
+        }
+
+        /// A series key is only ever written down as a calendar fact, so the
+        /// fixture writes one the way an accepted detection does.
+        fn in_series(
+            store: &MeetingStore,
+            session_id: MeetingSessionId,
+            series_key: &str,
+            title: &str,
+        ) {
+            store
+                .remember_calendar_facts(
+                    session_id,
+                    &CalendarEventSummary {
+                        event_key: format!("{series_key}#{title}"),
+                        series_key: series_key.to_string(),
+                        title: title.to_string(),
+                        attendee_count: 2,
+                        start_utc_ms: WHEN,
+                        end_utc_ms: WHEN + 1_800_000,
+                        attendees: Vec::new(),
+                        notes: None,
+                        calendar_name: None,
+                        url: None,
+                    },
+                )
+                .unwrap();
+        }
+
+        fn corpus() -> Corpus {
+            let (directory, store) = store();
+            let excluded = meeting(&store, "Pricing sync", WHEN);
+            let allowed = meeting(&store, "Design review", WHEN);
+            in_series(&store, excluded, "weekly-pricing", "Pricing sync");
+            in_series(&store, allowed, "weekly-design", "Design review");
+            store
+                .set_series_remote_opt_out(
+                    &MeetingSeriesRemoteOptOutSetRequest {
+                        operation_id: MeetingOperationId::new(),
+                        series_key: "weekly-pricing".to_string(),
+                        remote_intelligence_opt_out: true,
+                        expected_revision: 0,
+                    },
+                    WHEN,
+                )
+                .unwrap();
+            Corpus {
+                _directory: directory,
+                store,
+                excluded,
+                allowed,
+            }
+        }
+
+        fn meeting_row(session_id: MeetingSessionId, snippet: &str) -> QueryRow {
+            let mut row = row(
+                QueryRowKind::Meeting,
+                &session_id.uuid().to_string(),
+                "Weekly",
+                snippet,
+            );
+            row.link = crate::query::meeting_link(session_id);
+            row
+        }
+
+        fn loop_row(session_id: MeetingSessionId, text: &str) -> QueryRow {
+            let loop_id = MeetingLoopId::derive(session_id, MeetingLoopKind::Loop, text);
+            let mut row = row(QueryRowKind::Loop, loop_id.as_str(), text, "Weekly");
+            row.link = crate::query::loop_link(&loop_id);
+            row
+        }
+
+        #[test]
+        fn the_excluded_series_quotes_nothing() {
+            let corpus = corpus();
+
+            let kept = without_excluded_series(
+                &corpus.store,
+                vec![
+                    meeting_row(corpus.excluded, "The enterprise tier lands at 40k."),
+                    loop_row(corpus.excluded, "Confirm the enterprise tier"),
+                    meeting_row(corpus.allowed, "The empty state needs a second pass."),
+                    loop_row(corpus.allowed, "Pick the empty-state copy"),
+                ],
+            );
+
+            assert_eq!(
+                kept.iter().map(|row| row.link.clone()).collect::<Vec<_>>(),
+                vec![
+                    crate::query::meeting_link(corpus.allowed),
+                    loop_row(corpus.allowed, "Pick the empty-state copy").link,
+                ],
+                "both of the excluded series' rows are gone, the other series is untouched"
+            );
+            assert!(
+                !kept
+                    .iter()
+                    .any(|row| row.snippet.contains("enterprise tier")),
+                "no word of the excluded meeting survives into the pack"
+            );
+        }
+
+        /// Nouns that belong to no series are not the operator's exclusion to
+        /// make, and a pack with no meetings in it is still a pack.
+        #[test]
+        fn dictations_and_people_are_untouched() {
+            let corpus = corpus();
+
+            let kept = without_excluded_series(
+                &corpus.store,
+                vec![
+                    row(QueryRowKind::Dictation, "7", "Note", "Send the deck."),
+                    row(QueryRowKind::Person, "p-1", "Steven Park", "Tiers."),
+                    meeting_row(corpus.excluded, "The enterprise tier lands at 40k."),
+                ],
+            );
+
+            assert_eq!(kept.len(), 2);
+            assert_eq!(kept[0].kind, QueryRowKind::Dictation);
+            assert_eq!(kept[1].kind, QueryRowKind::Person);
+        }
+
+        /// A meeting with no calendar event behind it is in no series, so it
+        /// follows the global setting rather than being excluded by default.
+        #[test]
+        fn a_meeting_outside_any_series_stays() {
+            let corpus = corpus();
+            let loner = meeting(&corpus.store, "Ad hoc", WHEN);
+
+            let kept =
+                without_excluded_series(&corpus.store, vec![meeting_row(loner, "We just talked.")]);
+
+            assert_eq!(kept.len(), 1);
+        }
+
+        /// Silent by design: the pack the relay receives must not say that a
+        /// series it was not allowed to see exists.
+        #[test]
+        fn the_header_says_nothing_about_the_exclusion() {
+            let corpus = corpus();
+
+            let kept = without_excluded_series(
+                &corpus.store,
+                vec![
+                    meeting_row(corpus.excluded, "The enterprise tier lands at 40k."),
+                    meeting_row(corpus.allowed, "The empty state needs a second pass."),
+                ],
+            );
+            let pack = build("what did we decide", kept, false);
+
+            assert!(
+                pack.pack.contains("quotes: 1 of 1"),
+                "the count is of what is quoted, not of what matched: {}",
+                pack.pack
+            );
+            for word in ["exclud", "opt", "series", "dropped", "local"] {
+                assert!(
+                    !pack.pack.contains(word),
+                    "the pack names the exclusion with {word:?}: {}",
+                    pack.pack
+                );
+            }
+        }
     }
 }

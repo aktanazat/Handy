@@ -78,6 +78,10 @@ Errors are MCP errors carrying Sona's own machine token in `data.code`:
 ## Tests
 
 ```bash
-bun test        # tool → argv mapping and refusal passthrough, against a stub binary
-bunx tsc --noEmit
+bun test          # argv mapping, refusal passthrough, and the server on an
+                  # in-memory transport — all against a stub binary
+bunx tsc --noEmit # the only check that sees a dead import
 ```
+
+Both run from the repo root as `bun run test:mcp` and `bun run typecheck:mcp`,
+which install this package first; CI runs them in `code-quality.yml`.

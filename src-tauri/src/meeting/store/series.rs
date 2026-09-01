@@ -24,9 +24,10 @@
 //! whole-record write would let the template picker silently restore a digest
 //! flag the operator had just cleared in another window.
 
+use super::fence::{write_fenced, Fence, FencedWrite};
 use super::{
-    grant_series_consent_in, id, insert_operation_receipt, live_series_consent_in,
-    operation_receipt_in, revoke_series_consent_in, MeetingStore, StoreError,
+    grant_series_consent_in, id, live_series_consent_in, revoke_series_consent_in, MeetingStore,
+    StoreError,
 };
 use crate::meeting::analytics::MeetingNotesTemplate;
 use crate::meeting::series_types::{
@@ -34,19 +35,16 @@ use crate::meeting::series_types::{
     MeetingSeriesMutationResult, MeetingSeriesPreferences, MeetingSeriesRemoteOptOutSetRequest,
     MeetingSeriesRemoteRoster, MeetingSeriesRemoteRow, MeetingSeriesTemplateSetRequest,
 };
-use crate::meeting::types::{
-    MeetingCommandKind, MeetingOperationId, MeetingReasonCode, MeetingSessionId, OperationActor,
-    OperationReceipt, OperationResult,
-};
-use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
-use std::collections::HashMap;
+use crate::meeting::types::{MeetingCommandKind, MeetingOperationId, MeetingSessionId};
+use rusqlite::{params, Connection, OptionalExtension};
+use std::collections::{HashMap, HashSet};
 
-/// How many series the meeting-intelligence roster offers.
+/// How many series a roster offers.
 ///
 /// A settings list is a place to make a decision, not an archive: two dozen
 /// covers a working life's recurring meetings, and the number lives here rather
 /// than in a caller so one surface cannot ask for a longer list than another.
-const REMOTE_ROSTER_LIMIT: usize = 24;
+pub(super) const SERIES_ROSTER_LIMIT: usize = 24;
 
 impl MeetingStore {
     /// What one series has decided, by its own key.
@@ -107,63 +105,26 @@ impl MeetingStore {
         Ok(records)
     }
 
-    /// D14. The series this Mac has actually met with, newest first, each with
-    /// the one preference the meeting-intelligence surface can change.
+    /// D14. The roster with the one preference the meeting-intelligence surface
+    /// can change attached.
     ///
-    /// A settings surface cannot offer a per-series switch without a list of
-    /// series to offer it for, and there is no series table to read: a series
-    /// is known only through the meetings that carried it. So the roster is
-    /// derived from the calendar facts those meetings recorded, which is also
-    /// what makes it honest — a series Sona has never sat in cannot be excluded
-    /// from something it was never part of.
+    /// The list itself is [`series_roster_in`]'s; this only says which of those
+    /// series are kept off the operator's server.
     pub(crate) fn series_remote_roster(&self) -> Result<MeetingSeriesRemoteRoster, StoreError> {
         let connection = self.connection()?;
         let revision = series_revision_in(&connection)?;
-        let mut statement = connection.prepare(
-            "SELECT g.series_key,
-                    (SELECT json_extract(inner_facts.event_json, '$.title')
-                       FROM meeting_calendar_facts inner_facts
-                       JOIN meeting_sessions inner_sessions
-                         ON inner_sessions.id = inner_facts.session_id
-                      WHERE json_extract(inner_facts.event_json, '$.seriesKey') = g.series_key
-                      ORDER BY COALESCE(inner_sessions.started_at_utc_ms,
-                                        inner_sessions.created_at_utc_ms) DESC
-                      LIMIT 1) AS title,
-                    g.last_met_at,
-                    g.meetings,
-                    COALESCE(preferences.remote_intelligence_opt_out, 0)
-               FROM (SELECT json_extract(facts.event_json, '$.seriesKey') AS series_key,
-                            MAX(COALESCE(sessions.started_at_utc_ms,
-                                         sessions.created_at_utc_ms)) AS last_met_at,
-                            COUNT(*) AS meetings
-                       FROM meeting_calendar_facts facts
-                       JOIN meeting_sessions sessions ON sessions.id = facts.session_id
-                      WHERE json_extract(facts.event_json, '$.seriesKey') IS NOT NULL
-                        AND trim(json_extract(facts.event_json, '$.seriesKey')) <> ''
-                      GROUP BY series_key) g
-               LEFT JOIN meeting_series_preferences preferences
-                      ON preferences.series_key = g.series_key
-              ORDER BY g.last_met_at DESC, g.series_key
-              LIMIT ?1",
-        )?;
-        let mut rows = statement.query(params![
-            i64::try_from(REMOTE_ROSTER_LIMIT).map_err(|_| StoreError::Corrupt)?
-        ])?;
-        let mut roster = Vec::new();
-        while let Some(row) = rows.next()? {
-            let title: Option<String> = row.get(1)?;
-            roster.push(MeetingSeriesRemoteRow {
-                series_key: row.get(0)?,
-                title: title.unwrap_or_default(),
-                last_met_at_utc_ms: row.get(2)?,
-                meetings: u32::try_from(row.get::<_, i64>(3)?).unwrap_or(u32::MAX),
-                remote_intelligence_opt_out: row.get(4)?,
-            });
-        }
-        Ok(MeetingSeriesRemoteRoster {
-            rows: roster,
-            revision,
-        })
+        let excluded = remote_opt_out_keys_in(&connection)?;
+        let rows = series_roster_in(&connection, SERIES_ROSTER_LIMIT)?
+            .into_iter()
+            .map(|row| MeetingSeriesRemoteRow {
+                remote_intelligence_opt_out: excluded.contains(&row.series_key),
+                series_key: row.series_key,
+                title: row.title,
+                last_met_at_utc_ms: row.last_met_at_utc_ms,
+                meetings: row.meetings,
+            })
+            .collect();
+        Ok(MeetingSeriesRemoteRoster { rows, revision })
     }
 
     /// Remembers, or forgets, one series' template.
@@ -313,8 +274,12 @@ impl MeetingStore {
         )
     }
 
-    /// The one write path all three setters share: idempotency, the fence, the
-    /// receipt, and the revision bump, with only the statement differing.
+    /// The one write path all four setters share.
+    ///
+    /// The skeleton — idempotency, the fence, the receipt, the revision bump —
+    /// is [`write_fenced`]'s. All this adds is which counter fences a series
+    /// preference, what a read of one returns, and that the series a write
+    /// touched is the one thing its receipt cannot say on its own.
     fn write_series_preference(
         &self,
         series_key: &str,
@@ -328,48 +293,19 @@ impl MeetingStore {
         if series_key.is_empty() {
             return Err(StoreError::Invalid);
         }
-        let mut connection = self.connection()?;
-        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
-        if let Some(receipt) = operation_receipt_in(&transaction, operation_id)? {
-            let preferences = series_preferences_in(&transaction, Some(series_key))?;
-            transaction.commit()?;
-            return Ok(MeetingSeriesMutationResult {
-                receipt,
-                preferences,
-            });
-        }
-        let revision = series_revision_in(&transaction)?;
-        if revision != expected_revision {
-            let receipt = rejected_series_receipt(
-                operation_id,
+        let (receipt, preferences) = write_fenced(
+            self,
+            FencedWrite {
+                fence: SERIES_FENCE,
                 command,
+                effect_ids: vec![series_key.to_string()],
+                operation_id,
                 expected_revision,
-                revision,
                 requested_at_utc_ms,
-            );
-            insert_operation_receipt(&transaction, &receipt, now_utc_ms())?;
-            let preferences = series_preferences_in(&transaction, Some(series_key))?;
-            transaction.commit()?;
-            return Ok(MeetingSeriesMutationResult {
-                receipt,
-                preferences,
-            });
-        }
-        let now = now_utc_ms();
-        write(&transaction, series_key, now)?;
-        let next = bump_series_revision_in(&transaction)?;
-        let receipt = committed_series_receipt(
-            operation_id,
-            command,
-            expected_revision,
-            requested_at_utc_ms,
-            now,
-            next,
-            series_key,
-        );
-        insert_operation_receipt(&transaction, &receipt, now)?;
-        let preferences = series_preferences_in(&transaction, Some(series_key))?;
-        transaction.commit()?;
+            },
+            |connection| series_preferences_in(connection, Some(series_key)),
+            |connection, now| write(connection, series_key, now),
+        )?;
         Ok(MeetingSeriesMutationResult {
             receipt,
             preferences,
@@ -393,6 +329,91 @@ pub(crate) fn session_series_key_in(
         .optional()?
         .flatten();
     Ok(key.filter(|key| !key.trim().is_empty()))
+}
+
+/// One series on a roster: what every surface listing series needs, before any
+/// one of them attaches what only it cares about.
+pub(super) struct SeriesRosterRow {
+    pub series_key: String,
+    pub title: String,
+    pub last_met_at_utc_ms: i64,
+    pub meetings: u32,
+}
+
+/// The series this Mac has actually met with, newest first.
+///
+/// There is no series table: a series is known only through the meetings that
+/// carried it, so the roster is derived from the calendar facts those meetings
+/// recorded. That is also what makes it honest — a series Sona has never sat in
+/// cannot be offered a switch it was never part of.
+///
+/// Every surface that lists series reads this one function, because two
+/// settings screens showing a different set of series, a different name for the
+/// same series, or a different count, from one corpus is a disagreement no
+/// caller can see and none of them could be blamed for. So the three rules that
+/// used to differ per surface are settled here: a meeting on its way out
+/// (`phase = 'deleting'`) does not count towards a series it is about to leave;
+/// the title is the one the most recent occurrence that had a title used, which
+/// is the name the operator's calendar shows today rather than whatever the
+/// series was first called; and the list is bounded for everyone.
+pub(super) fn series_roster_in(
+    connection: &Connection,
+    limit: usize,
+) -> Result<Vec<SeriesRosterRow>, StoreError> {
+    let mut statement = connection.prepare(
+        "SELECT g.series_key,
+                (SELECT trim(json_extract(recent.event_json, '$.title'))
+                   FROM meeting_calendar_facts recent
+                   JOIN meeting_sessions recent_sessions
+                     ON recent_sessions.id = recent.session_id
+                  WHERE json_extract(recent.event_json, '$.seriesKey') = g.series_key
+                    AND recent_sessions.phase != 'deleting'
+                    AND trim(COALESCE(json_extract(recent.event_json, '$.title'), '')) <> ''
+                  ORDER BY COALESCE(recent_sessions.started_at_utc_ms,
+                                    recent_sessions.created_at_utc_ms) DESC
+                  LIMIT 1) AS title,
+                g.last_met_at,
+                g.meetings
+           FROM (SELECT json_extract(facts.event_json, '$.seriesKey') AS series_key,
+                        MAX(COALESCE(sessions.started_at_utc_ms,
+                                     sessions.created_at_utc_ms)) AS last_met_at,
+                        COUNT(*) AS meetings
+                   FROM meeting_calendar_facts facts
+                   JOIN meeting_sessions sessions ON sessions.id = facts.session_id
+                  WHERE sessions.phase != 'deleting'
+                    AND json_extract(facts.event_json, '$.seriesKey') IS NOT NULL
+                    AND trim(json_extract(facts.event_json, '$.seriesKey')) <> ''
+                  GROUP BY series_key) g
+          ORDER BY g.last_met_at DESC, g.series_key
+          LIMIT ?1",
+    )?;
+    let mut rows = statement.query(params![
+        i64::try_from(limit).map_err(|_| StoreError::Corrupt)?
+    ])?;
+    let mut roster = Vec::new();
+    while let Some(row) = rows.next()? {
+        let title: Option<String> = row.get(1)?;
+        roster.push(SeriesRosterRow {
+            series_key: row.get(0)?,
+            title: title.unwrap_or_default(),
+            last_met_at_utc_ms: row.get(2)?,
+            meetings: u32::try_from(row.get::<_, i64>(3)?).unwrap_or(u32::MAX),
+        });
+    }
+    Ok(roster)
+}
+
+/// The series kept off the operator's server, as a set: a roster attaches this
+/// column to two dozen rows at once, and one read beats a lookup per row.
+fn remote_opt_out_keys_in(connection: &Connection) -> Result<HashSet<String>, StoreError> {
+    let mut statement = connection.prepare(
+        "SELECT series_key FROM meeting_series_preferences
+          WHERE remote_intelligence_opt_out = 1",
+    )?;
+    let keys = statement
+        .query_map([], |row| row.get::<_, String>(0))?
+        .collect::<Result<HashSet<_>, _>>()?;
+    Ok(keys)
 }
 
 /// True unless this series has been taken out of the evening digest. A series
@@ -513,6 +534,13 @@ fn bump_series_revision_in(connection: &Connection) -> Result<u64, StoreError> {
     series_revision_in(connection)
 }
 
+/// The counter every series-preference write is fenced on. One per surface
+/// showing many series, not one per row: see [`MeetingStore::series_revision`].
+const SERIES_FENCE: Fence = Fence {
+    read: series_revision_in,
+    bump: bump_series_revision_in,
+};
+
 /// The stored form is the artifact template id, not the serde name: an
 /// artifact revision already persists these strings, and one spelling per
 /// template is what keeps a preference and the artifact it produced legible as
@@ -526,62 +554,4 @@ fn encode_series_template(template: MeetingNotesTemplate) -> &'static str {
 /// choice they never made.
 fn decode_series_template(stored: &str) -> Result<MeetingNotesTemplate, StoreError> {
     MeetingNotesTemplate::from_artifact_template_id(stored).ok_or(StoreError::Corrupt)
-}
-
-/// The series this write touched is the one thing a global receipt cannot say
-/// on its own, so it is the receipt's single effect id.
-fn committed_series_receipt(
-    operation_id: MeetingOperationId,
-    command: MeetingCommandKind,
-    expected_revision: u64,
-    requested_at_utc_ms: i64,
-    committed_at_utc_ms: i64,
-    new_revision: u64,
-    series_key: &str,
-) -> OperationReceipt {
-    OperationReceipt {
-        schema_version: super::STORE_SCHEMA_VERSION,
-        operation_id,
-        session_id: None,
-        actor: OperationActor::User,
-        command,
-        expected_revision,
-        from_phase: None,
-        to_phase: None,
-        requested_at_utc_ms,
-        committed_at_utc_ms: Some(committed_at_utc_ms),
-        result: OperationResult::Committed,
-        reason_codes: Vec::new(),
-        new_revision: Some(new_revision),
-        effect_ids: vec![series_key.to_string()],
-    }
-}
-
-fn rejected_series_receipt(
-    operation_id: MeetingOperationId,
-    command: MeetingCommandKind,
-    expected_revision: u64,
-    current_revision: u64,
-    requested_at_utc_ms: i64,
-) -> OperationReceipt {
-    OperationReceipt {
-        schema_version: super::STORE_SCHEMA_VERSION,
-        operation_id,
-        session_id: None,
-        actor: OperationActor::User,
-        command,
-        expected_revision,
-        from_phase: None,
-        to_phase: None,
-        requested_at_utc_ms,
-        committed_at_utc_ms: Some(now_utc_ms()),
-        result: OperationResult::Rejected,
-        reason_codes: vec![MeetingReasonCode::StaleRevision],
-        new_revision: Some(current_revision),
-        effect_ids: Vec::new(),
-    }
-}
-
-fn now_utc_ms() -> i64 {
-    chrono::Utc::now().timestamp_millis()
 }

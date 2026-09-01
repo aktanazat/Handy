@@ -3,7 +3,7 @@ import { THEME_STORAGE_KEY } from "@/lib/themeStorageKey";
 import "./globals.css";
 
 /* The shell every Sona window is served from. Each window is a route under this
- * layout — / (settings), /overlay (recording HUD), /agent-panel (companion) —
+ * layout — / (settings), /overlay (recording HUD), /consent (meeting consent) —
  * and each one exports its own title, so this file only owns the document. */
 
 export const metadata: Metadata = {

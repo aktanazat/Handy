@@ -78,16 +78,41 @@ export const groupQueryRows = (
   })).filter((section) => section.rows.length > 0);
 
 /**
+ * The three standing facts the ask row is offered on.
+ *
+ * `enabled` and `paired` are the panel's own (`agent_panel_enabled`,
+ * `agent_panel_paired`); `remoteIntelligence` is D14's
+ * `meeting_remote_intelligence_enabled`.
+ */
+export interface AskGate {
+  enabled: boolean;
+  paired: boolean;
+  remoteIntelligence: boolean;
+}
+
+/**
  * Whether the ask row is offered.
  *
- * Pairing and the panel toggle, not the relay's reachability: an offline relay
- * still takes the question (the panel queues the draft), while an unpaired one
- * has nowhere to send it and the row would be a promise the app cannot keep.
+ * Three settings, not the relay's reachability: an offline relay still takes
+ * the question (the panel queues the draft), while an unpaired one has nowhere
+ * to send it and the row would be a promise the app cannot keep.
+ *
+ * `remoteIntelligence` is here because of what [`askSona`] actually sends. The
+ * pack is verbatim corpus text — transcript segments and typed notes, quoted
+ * straight out of `meeting_search_documents` — and it leaves this Mac for the
+ * operator's server. That is the one thing
+ * `settings.meetings.remoteIntelligence.consent` promises is off until they
+ * turn it on, so the row cannot be offered while it is off, any more than a
+ * meeting's summary can be written there. The same consent, and the same
+ * per-series exclusion behind it, decides the engine for every other path that
+ * ships meeting evidence off-machine (`processing::choose_text_engine`); this
+ * is that boundary's half of ⌘K, and `query::pack` is the other.
  */
-export const canAsk = (
-  query: string,
-  panel: { enabled: boolean; paired: boolean },
-): boolean => panel.enabled && panel.paired && query.trim() !== "";
+export const canAsk = (query: string, panel: AskGate): boolean =>
+  panel.enabled &&
+  panel.paired &&
+  panel.remoteIntelligence &&
+  query.trim() !== "";
 
 /* cmdk scores every row against what was typed and hides anything that scores
  * zero. That is right for a fixed list of commands and wrong for a corpus: a
@@ -161,26 +186,41 @@ export const searchCorpus = async (
 export const openRow = (row: QueryRow): Promise<boolean> =>
   commands.sonaOpenLink(row.link);
 
-export type AskOutcome = "sent" | "failed";
+export type AskOutcome = "sent" | "failed" | "refused";
 
 /**
- * Ask the panel agent one question about the corpus.
+ * Ask the agent one question about the corpus.
  *
- * The pack is built first and the turn is refused without it: a question that
+ * The consent is checked here and not only where the row is drawn. Hiding the
+ * row is what a reader sees; this is what makes the send impossible. The two
+ * would otherwise be one render apart — the palette can be summoned with a
+ * question already in it (`sona://search?q=…`), the settings it reads arrive
+ * asynchronously, and the only thing standing between an off switch and a
+ * transcript on somebody's server would be a boolean computed during paint.
+ * `refused` rather than `failed` because a refusal has a reason the reader can
+ * act on, and "couldn't send that" would send them looking for a network
+ * problem that does not exist.
+ *
+ * The pack is built next and the turn is refused without it: a question that
  * reached the model with no evidence would be answered from the model's own
  * priors and cited to nothing, which is the exact failure "ask your history" is
  * supposed to end. `sona_query_pack` rejects an empty question, so the caller's
  * gate and the backend's agree.
+ *
+ * Sending and showing are separate: the turn goes to the backend, which emits
+ * the change the chat sheet is already listening for. Whoever calls this owns
+ * whether the sheet is open, because the sheet is a fold in the shell's layout
+ * and not something a search helper is allowed to reach into.
  */
 export const askSona = async (
   question: string,
   locale: string,
+  panel: AskGate,
 ): Promise<AskOutcome> => {
+  if (!canAsk(question, panel)) return "refused";
   try {
     const pack = await commands.sonaQueryPack(question);
     if (pack.status === "error") return "failed";
-    const opened = await commands.agentPanelOpen();
-    if (opened.status === "error") return "failed";
     const sent = await commands.agentPanelSendTurn({
       turn_id: crypto.randomUUID(),
       message: question,

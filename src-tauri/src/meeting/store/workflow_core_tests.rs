@@ -18,7 +18,7 @@ pub(super) fn inputs() -> impl crate::meeting::store::learning::LearningInputs {
     crate::meeting::learning::no_inputs()
 }
 
-pub(super) fn store() -> (TempDir, Arc<MeetingStore>) {
+pub(crate) fn store() -> (TempDir, Arc<MeetingStore>) {
     let directory = TempDir::new().unwrap();
     let secrets = SecretManager::with_backend(Arc::new(crate::secrets::MemorySecretBackend::new()));
     let key = tauri::async_runtime::block_on(secrets.meeting_storage_key()).unwrap();
@@ -26,7 +26,7 @@ pub(super) fn store() -> (TempDir, Arc<MeetingStore>) {
     (directory, store)
 }
 
-pub(super) fn meeting(store: &MeetingStore, title: &str, at_utc_ms: i64) -> MeetingSessionId {
+pub(crate) fn meeting(store: &MeetingStore, title: &str, at_utc_ms: i64) -> MeetingSessionId {
     let id = MeetingSessionId::new();
     store
         .connection()

@@ -153,22 +153,6 @@ async getAgentBridgeHookSnippet() : Promise<Result<string, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async agentPanelOpen() : Promise<Result<AgentPanelStatusV1, AgentPanelCommandErrorV1>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("agent_panel_open") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async agentPanelClose() : Promise<Result<AgentPanelStatusV1, AgentPanelCommandErrorV1>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("agent_panel_close") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async agentPanelStatus() : Promise<Result<AgentPanelStatusV1, AgentPanelCommandErrorV1>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("agent_panel_status") };
@@ -209,6 +193,33 @@ async agentPanelUndoChange(request: AgentPanelUndoChangeRequestV1) : Promise<Res
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * The titles the history button lists, newest first.
+ */
+async agentChatHistoryList() : Promise<Result<AgentChatConversationSummaryV1[], AgentPanelCommandErrorV1>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("agent_chat_history_list") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async agentChatOpen(conversationId: string) : Promise<Result<AgentPanelStatusV1, AgentPanelCommandErrorV1>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("agent_chat_open", { conversationId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async agentChatNew() : Promise<Result<AgentPanelStatusV1, AgentPanelCommandErrorV1>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("agent_chat_new") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async agentPanelPublicIdentity() : Promise<Result<AgentPanelPublicIdentityV1, AgentPanelCommandErrorV1>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("agent_panel_public_identity") };
@@ -218,9 +229,12 @@ async agentPanelPublicIdentity() : Promise<Result<AgentPanelPublicIdentityV1, Ag
 }
 },
 /**
- * The panel's lifecycle owner also owns the switch that turns it off:
- * disabling closes an attached panel instead of leaving a window whose
- * commands would all be refused.
+ * Switching the agent off stops the poll loop with it.
+ *
+ * A loop left running would keep signing requests to a relay the reader has
+ * just said no to, and would keep doing it until the turn finished. Nothing
+ * else needs closing: the sheet is a fold in the main window's layout, and
+ * the pill that opens it disappears with the setting.
  */
 async changeAgentPanelEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
     try {
@@ -2488,6 +2502,10 @@ async sonaQueryEvents(afterId: string | null, limit: number | null) : Promise<Re
  * Assemble the evidence for one question: the top rows that matched, quoted
  * verbatim with their `sona://` addresses, inside the ceiling the agent panel
  * accepts on the wire.
+ *
+ * A pack is built to be sent, so D14's per-series exclusion applies to it:
+ * rows from a series the operator kept on this Mac are not in it. See
+ * `query::pack::without_excluded_series`.
  */
 async sonaQueryPack(question: string) : Promise<Result<QueryPack, QueryError>> {
     try {
@@ -2565,7 +2583,6 @@ async meetingAutomationRuns(sessionId: MeetingSessionId) : Promise<Result<Meetin
 
 export const events = __makeEvents__<{
 agentBridgeUpdateEvent: AgentBridgeUpdateEvent,
-agentPanelGeometryChanged: AgentPanelGeometryChangedEvent,
 agentPanelProposalChanged: AgentPanelProposalChangedEvent,
 agentPanelStatusChanged: AgentPanelStatusChangedEvent,
 agentPanelTurnChanged: AgentPanelTurnChangedEvent,
@@ -2593,7 +2610,6 @@ streamTextEvent: StreamTextEvent,
 upstreamImportProgressEvent: UpstreamImportProgressEvent
 }>({
 agentBridgeUpdateEvent: "agent-bridge-update-event",
-agentPanelGeometryChanged: "agent-panel://geometry-changed",
 agentPanelProposalChanged: "agent-panel://proposal-changed",
 agentPanelStatusChanged: "agent-panel://status-changed",
 agentPanelTurnChanged: "agent-panel://turn-changed",
@@ -2668,14 +2684,20 @@ export type AgentBridgeRequestState = "observed" | "responded" | "dismissed" | "
 export type AgentBridgeSettings = { master_enabled: boolean; claude_enabled: boolean; codex_enabled: boolean; grok_enabled: boolean; omp_enabled: boolean; policy_generation?: number; allowed_projects: AgentBridgeProjectScope[]; permission_rules: AgentBridgePermissionRule[] }
 export type AgentBridgeStatus = { running: boolean; diagnostic: AgentBridgeDiagnostic; policy_generation: number; observed_sessions: number; pending_messages: number }
 export type AgentBridgeUpdateEvent = { status: AgentBridgeStatus }
+/**
+ * One row of the history popover: enough to choose by, and no transcript.
+ */
+export type AgentChatConversationSummaryV1 = { conversation_id: string; title: string; updated_at_utc_ms: number }
 export type AgentPanelActorV1 = "user"
-export type AgentPanelApplyChangeRequestV1 = { proposal_id: string; action_index: number; expected_revision: number; confirmed: boolean }
-export type AgentPanelAttachmentV1 = "right" | "left"
+/**
+ * Apply one proposal, whole.
+ *
+ * No action index: the card offers the change set the proposal describes, and
+ * the receipt it produces covers all of it.
+ */
+export type AgentPanelApplyChangeRequestV1 = { proposal_id: string; expected_revision: number; confirmed: boolean }
 export type AgentPanelCancelTurnRequestV1 = { turn_id: string }
-export type AgentPanelCommandErrorV1 = "unauthorized_window" | "disabled" | "unpaired" | "offline" | "invalid_configuration" | "secret_unavailable" | "untrusted_response" | "remote_rejected" | "ownership_rejected" | "main_unavailable" | "invalid_request" | "turn_active" | "unknown_turn" | "unknown_proposal" | "confirmation_required" | "stale_proposal" | "invalid_proposal" | "invalid_setting" | "not_undoable" | "native_window_failure"
-export type AgentPanelGeometryChangedEvent = { invalidation_id: number; status: AgentPanelGeometryStatusV1 }
-export type AgentPanelGeometryStatusV1 = "attached" | "hidden"
-export type AgentPanelGeometryV1 = { x: number; y: number; outer_width: number; outer_height: number; attachment: AgentPanelAttachmentV1; compact: boolean }
+export type AgentPanelCommandErrorV1 = "unauthorized_window" | "disabled" | "unpaired" | "offline" | "invalid_configuration" | "secret_unavailable" | "untrusted_response" | "remote_rejected" | "ownership_rejected" | "unknown_conversation" | "invalid_request" | "turn_active" | "unknown_turn" | "unknown_proposal" | "confirmation_required" | "stale_proposal" | "invalid_proposal" | "invalid_setting" | "not_undoable"
 export type AgentPanelPairingCommandV1 = "set" | "clear" | "test_connection"
 /**
  * Proof that a pairing change happened, in the shape the rest of the app
@@ -2705,21 +2727,42 @@ export type AgentPanelSendTurnRequestV1 = { turn_id: string; message: string; lo
  */
 context_pack: string | null }
 export type AgentPanelStatusChangedEvent = { invalidation_id: number; status: AgentPanelRelayStatusV1 }
-export type AgentPanelStatusV1 = { invalidation_id: number; relay_status: AgentPanelRelayStatusV1; panel_open: boolean; conversation: SonaAgentChatTurnV1[]; turn: AgentPanelTurnStatusV1 | null; proposal: AgentPanelProposalPreviewV1 | null; geometry: AgentPanelGeometryV1 | null }
+export type AgentPanelStatusV1 = { invalidation_id: number; relay_status: AgentPanelRelayStatusV1; conversation_id: string | null; conversation: SonaAgentChatTurnV1[]; turn: AgentPanelTurnStatusV1 | null; proposal: AgentPanelProposalPreviewV1 | null }
+/**
+ * One row of the sheet's "Worked for Ns" disclosure.
+ *
+ * The relay reports a step's identity, its label and whether it is still
+ * going; it reports no time at all. The panel is the only clock either side
+ * has, so the two offsets here are what the panel itself observed, measured
+ * from [`AgentPanelTurnStatusV1::started_at_utc_ms`] — first sighting, and
+ * the poll at which the step stopped running. Offsets rather than wall clocks
+ * because a duration is what the row shows, and a pair of offsets cannot
+ * disagree with the turn they belong to.
+ */
+export type AgentPanelStepV1 = { id: string; label: string; state: SonaAgentStepStateV1; started_after_ms: number;
+/**
+ * `None` while the step is still running.
+ */
+ended_after_ms: number | null }
 export type AgentPanelTurnChangedEvent = { invalidation_id: number; turn_id: string | null; state: AgentPanelTurnStateV1 | null }
 export type AgentPanelTurnStateV1 = "submitting" | "queued" | "leased" | "running" | "waiting_user" | "waiting_approval" | "canceling" | "succeeded" | "failed" | "canceled" | "unverified_external"
 export type AgentPanelTurnStatusV1 = { turn_id: string; workspace: AgentPanelWorkspaceV1; state: AgentPanelTurnStateV1; event_cursor: number;
 /**
- * When the panel accepted this turn, so the activity tree can count
- * elapsed time without inventing a start of its own every time the
- * webview re-reads status.
+ * When the panel accepted this turn, so the sheet can count elapsed time
+ * without inventing a start of its own every time it re-reads status.
  */
 started_at_utc_ms: number;
+/**
+ * When it reached a terminal state. A finished turn's "Worked for Ns" is
+ * a fact about the past, so it is fixed here rather than left to whatever
+ * the reader's clock says the next time the sheet is opened.
+ */
+completed_at_utc_ms: number | null;
 /**
  * What the remote side did on the way to its answer. Empty until a
  * workspace reports steps.
  */
-steps: SonaAgentStepV1[] }
+steps: AgentPanelStepV1[] }
 export type AgentPanelUndoChangeRequestV1 = { receipt_id: string; expected_revision: number }
 /**
  * Which capability-scoped brain a turn is addressed to. The relay registry
@@ -3893,10 +3936,11 @@ export type MeetingAutomationRunState = "started" | "committed" | "failed"
  * One series the operator could turn an automation on for, as the settings
  * surface lists it.
  *
- * Assembled from the calendar facts meetings already recorded, so the list is
- * "series you have actually recorded", not a calendar browse. `title` is the
- * most recent occurrence's event title, which is what a person calls the
- * series.
+ * `series_key`, `title`, `last_met_at_utc_ms` and `meeting_count` are
+ * `store::series::series_roster_in`'s answer, unchanged — the same four
+ * `MeetingSeriesRemoteRow` carries, so the two settings screens cannot
+ * disagree about which series exist or what they are called. Only
+ * `automations` belongs to this surface.
  */
 export type MeetingAutomationSeries = { series_key: string; title: string; last_met_at_utc_ms: number; meeting_count: number; automations: MeetingSeriesAutomation[] }
 /**
@@ -4315,10 +4359,10 @@ revision: number }
  * D14. One series the operator can keep on this Mac, as the settings surface
  * shows it.
  *
- * `title` is the title the most recent occurrence carried, because a series
- * has no name of its own — only the events that belong to it do, and the
- * latest one is the name the operator would recognize. `meetings` is how many
- * of them Sona has actually sat in, which is what makes a row worth showing.
+ * `series_key`, `title`, `last_met_at_utc_ms` and `meetings` are
+ * `store::series::series_roster_in`'s answer, unchanged — the same four the
+ * automations roster carries, spelled `meeting_count` there for the same
+ * count. Only `remote_intelligence_opt_out` belongs to this surface.
  */
 export type MeetingSeriesRemoteRow = { series_key: string; title: string; last_met_at_utc_ms: number; meetings: number; remote_intelligence_opt_out: boolean }
 /**
@@ -4954,14 +4998,6 @@ export type Snippet = { id: string; trigger: string; expansion: string; enabled:
 export type SonaAgentChatRoleV1 = "user" | "assistant"
 export type SonaAgentChatTurnV1 = { role: SonaAgentChatRoleV1; message: string }
 export type SonaAgentStepStateV1 = "running" | "done" | "failed"
-/**
- * One row of the panel's activity tree: what the remote side did on the way
- * to its answer. The relay does not report steps yet, so every response today
- * carries an empty list; the field exists now so that the day a workspace
- * gains tools the panel already has somewhere to draw them, and so both
- * mirrors agree on the shape before anything depends on it.
- */
-export type SonaAgentStepV1 = { id: string; label: string; state: SonaAgentStepStateV1 }
 export type SonaConfirmationClassV1 = "automatic" | "review" | "explicit"
 export type SonaSettingChangeV1 = { key: "theme"; value: Theme } | { key: "overlay_style"; value: OverlayStyle } | { key: "overlay_position"; value: OverlayPosition } | { key: "audio_feedback"; value: boolean } | { key: "audio_volume"; value: number } | { key: "mute_while_recording"; value: boolean } | { key: "audio_output_device_id"; value: string } | { key: "microphone_id"; value: string } | { key: "default_transcription_model"; value: string } | { key: "language"; value: string } | { key: "spelling_behavior"; value: EnglishSpelling } | { key: "mode_selection"; value: string } | { key: "mode_toggles"; value: Partial<{ [key in string]: boolean }> } | { key: "local_retention_period"; value: number } | { key: "start_hidden"; value: boolean } | { key: "tray_visibility"; value: boolean } | { key: "update_note_visibility"; value: boolean }
 export type SoundTheme = "marimba" | "pop" | "custom"

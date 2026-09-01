@@ -7,9 +7,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createInstance } from "i18next";
 import { I18nextProvider } from "react-i18next";
 import { TooltipProvider } from "@/components/vg/tooltip";
-import { commands, type AgentPanelStatusV1 } from "@/bindings";
 import { AppContent, type AppContentProps } from "@/App";
-import { ChatPill, toggleAgentPanel } from "./ChatPill";
+import { ChatPill } from "./ChatPill";
 
 /* The shell's one standing affordance, and the three things about it that are
  * not allowed to drift: which states it has, what a press means, and where it
@@ -55,13 +54,21 @@ const paint = (node: React.ReactElement): string =>
 const occurrences = (markup: string, needle: string): number =>
   markup.split(needle).length - 1;
 
+const noop = () => undefined;
+
 describe("the chat pill's three states", () => {
   test("enabled and paired: one live pill, named for the agent", () => {
-    const markup = paint(<ChatPill enabled paired />);
+    const markup = paint(
+      <ChatPill enabled paired open={false} onOpen={noop} />,
+    );
 
     expect(markup).toContain(`>${en.chat.open}</button>`);
     expect(markup).toContain(`aria-label="${en.chat.label}"`);
     expect(markup).not.toContain("aria-disabled");
+    /* The sheet is a region this button shows and hides, so the button says
+     * which state it is in rather than leaving the reader to infer it from a
+     * strip that may be mid-slide. */
+    expect(markup).toContain('aria-expanded="false"');
     // The shape: a pill on the raised surface inside a hairline, not a card.
     expect(markup).toContain("rounded-full");
     expect(markup).toContain("border-gray-alpha-400");
@@ -71,12 +78,22 @@ describe("the chat pill's three states", () => {
     expect(markup).toContain("focus-visible:ring-[3px]");
   });
 
-  /* Unpaired is the state a first run is in: the panel is on, nothing would
+  /* Open, there is no pill. The column that is showing carries the X that
+   * closes it, and a pill left standing in the page the column just narrowed
+   * would be a second control for one fold — in the half of the window with
+   * less room for it. */
+  test("with the column showing: no pill at all, not a pressed one", () => {
+    expect(paint(<ChatPill enabled paired open onOpen={noop} />)).toBe("");
+  });
+
+  /* Unpaired is the state a first run is in: the agent is on, nothing would
    * answer a turn yet. The pill stays visible and inert — hiding it here would
    * make the fix undiscoverable — and the reason is the tooltip's, which is why
    * the sentence itself must not be printed into the pill. */
   test("unpaired: inert, still focusable, and the reason is a tooltip", () => {
-    const markup = paint(<ChatPill enabled paired={false} />);
+    const markup = paint(
+      <ChatPill enabled paired={false} open={false} onOpen={noop} />,
+    );
 
     expect(markup).toContain('aria-disabled="true"');
     /* `asChild` puts the trigger's behaviour on the pill itself, so the pill
@@ -85,6 +102,8 @@ describe("the chat pill's three states", () => {
      * focusable and so keeps the reason reachable by keyboard. */
     expect(markup).toContain('data-state="closed"');
     expect(markup).not.toMatch(/\sdisabled(=|\s|>)/);
+    /* An inert pill claims no expanded state: it controls nothing. */
+    expect(markup).not.toContain("aria-expanded");
     // Said once, in the tooltip, which is portalled and so not in this markup.
     expect(markup).not.toContain(en.chat.unpaired);
     // Dimmed type rather than opacity, like every disabled row in the app,
@@ -95,8 +114,14 @@ describe("the chat pill's three states", () => {
   });
 
   test("disabled by setting: no pill at all, not a dimmed one", () => {
-    expect(paint(<ChatPill enabled={false} paired />)).toBe("");
-    expect(paint(<ChatPill enabled={false} paired={false} />)).toBe("");
+    expect(
+      paint(<ChatPill enabled={false} paired open={false} onOpen={noop} />),
+    ).toBe("");
+    expect(
+      paint(
+        <ChatPill enabled={false} paired={false} open={false} onOpen={noop} />,
+      ),
+    ).toBe("");
   });
 });
 
@@ -105,7 +130,9 @@ describe("the aurora glyph", () => {
    * the wash on Capture is the surface allowed to animate, and the tokens are
    * the only place these hues are written down. */
   test("is a static stroked ring in the three aurora tokens", () => {
-    const markup = paint(<ChatPill enabled paired />);
+    const markup = paint(
+      <ChatPill enabled paired open={false} onOpen={noop} />,
+    );
 
     for (const hue of ["--aurora-blue", "--aurora-cyan", "--aurora-violet"]) {
       expect(occurrences(markup, `stroke:var(${hue})`)).toBe(1);
@@ -121,72 +148,31 @@ describe("the aurora glyph", () => {
   });
 });
 
-const PANEL_STATUS: AgentPanelStatusV1 = {
-  invalidation_id: 1,
-  relay_status: "ready",
-  panel_open: false,
-  conversation: [],
-  turn: null,
-  proposal: null,
-  geometry: null,
-};
-
-const label = (key: string): string => key;
-
-/* The press, against the panel's own commands. The status read is what decides
- * the verb, so a panel that is already open must be closed rather than opened
- * a second time. */
+/* What a press means, now that it means one thing.
+ *
+ * The pill used to read the backend to decide whether to open or close a
+ * second window, and then it was a toggle over the shell's own boolean. It is
+ * a door now: it is only on screen while the column is closed, so a press only
+ * ever opens, and closing belongs to the column's X and to Escape. What is
+ * worth pinning is that the press reaches the shell at all, and that an
+ * unpaired pill's press does not. `renderToStaticMarkup` runs no events, so
+ * that is asserted through the handler the markup does or does not carry. */
 describe("what a press means", () => {
-  const withStubbedPanel = async (
-    panelOpen: boolean,
-    run: () => Promise<void>,
-  ): Promise<string[]> => {
-    const original = {
-      status: commands.agentPanelStatus,
-      open: commands.agentPanelOpen,
-      close: commands.agentPanelClose,
-    };
-    const calls: string[] = [];
-    commands.agentPanelStatus = async () => {
-      calls.push("status");
-      return {
-        status: "ok",
-        data: { ...PANEL_STATUS, panel_open: panelOpen },
-      };
-    };
-    commands.agentPanelOpen = async () => {
-      calls.push("open");
-      return { status: "ok", data: PANEL_STATUS };
-    };
-    commands.agentPanelClose = async () => {
-      calls.push("close");
-      return { status: "ok", data: PANEL_STATUS };
-    };
-    try {
-      await run();
-    } finally {
-      commands.agentPanelStatus = original.status;
-      commands.agentPanelOpen = original.open;
-      commands.agentPanelClose = original.close;
-    }
-    return calls;
-  };
+  const hasHandler = (markup: string): boolean =>
+    markup.includes('aria-disabled="true"') === false;
 
-  test("a closed panel is opened", async () => {
-    const calls = await withStubbedPanel(false, () =>
-      // SAFETY: the stub resolves only chat.* keys, the sole lookups the
-      // toggle performs; a full TFunction here would test i18next, not us.
-      toggleAgentPanel(label as never),
-    );
-    expect(calls).toEqual(["status", "open"]);
+  test("a paired pill is wired to the shell's opener", () => {
+    expect(
+      hasHandler(paint(<ChatPill enabled paired open={false} onOpen={noop} />)),
+    ).toBe(true);
   });
 
-  test("an open panel is closed, not opened again", async () => {
-    const calls = await withStubbedPanel(true, () =>
-      // SAFETY: same single-key stub as the open case above.
-      toggleAgentPanel(label as never),
-    );
-    expect(calls).toEqual(["status", "close"]);
+  test("an unpaired pill carries no press at all", () => {
+    expect(
+      hasHandler(
+        paint(<ChatPill enabled paired={false} open={false} onOpen={noop} />),
+      ),
+    ).toBe(false);
   });
 });
 
@@ -205,12 +191,20 @@ describe("what a press means", () => {
  * module scope changes how other suites render in the same process. */
 const shell = (
   section: AppContentProps["currentSection"],
-  agentPanel: AppContentProps["agentPanel"] = { enabled: true, paired: true },
+  agentPanel: AppContentProps["agentPanel"] = {
+    enabled: true,
+    paired: true,
+    remoteIntelligence: true,
+  },
+  /** The rail measures its traffic-light clearance from this; the pane's drag
+   * band is not allowed to. */
+  osType: "macos" | "windows" = "macos",
+  chatOpen = false,
 ): string => {
   const restore = Object.getOwnPropertyDescriptor(globalThis, "window");
   Object.defineProperty(globalThis, "window", {
     configurable: true,
-    value: { __TAURI_OS_PLUGIN_INTERNALS__: { os_type: "macos" } },
+    value: { __TAURI_OS_PLUGIN_INTERNALS__: { os_type: osType } },
   });
   try {
     return paint(
@@ -231,6 +225,8 @@ const shell = (
         commandActions={[]}
         commandSeed={null}
         agentPanel={agentPanel}
+        chatOpen={chatOpen}
+        onChatOpenChange={() => undefined}
         onCommandOpenChange={() => undefined}
         onCommandOpen={() => undefined}
       />,
@@ -271,8 +267,152 @@ describe("the shell's corner", () => {
   });
 
   test("the setting still decides whether the corner is used", () => {
-    const markup = shell("overview", { enabled: false, paired: false });
+    const markup = shell("overview", {
+      enabled: false,
+      paired: false,
+      remoteIntelligence: false,
+    });
 
     expect(markup).not.toContain('data-slot="chat-pill"');
+  });
+});
+
+/* The shell's three columns, which is what "the chat is part of the window"
+ * comes down to.
+ *
+ * The window is a fixed 900x800 (src-tauri/src/lib.rs) and nothing in the app
+ * resizes it, so the chat's 340 has to come out of the two columns already
+ * there: the rail gives up its words for 48 and the page keeps 512. The
+ * arithmetic belongs to the shell rather than to any one of the three, which
+ * is why all three are read here. */
+describe("the shell's three columns", () => {
+  test("closed: the named rail, the full page, and a column 0 wide", () => {
+    const markup = shell("overview");
+
+    expect(markup).toContain("w-[220px]");
+    expect(markup).not.toContain("w-[48px]");
+    /* Mounted so it has somewhere to open from, and taking no width until it
+     * does — the page is the full pane, exactly as it was before any of this. */
+    expect(occurrences(markup, 'data-slot="chat-sheet"')).toBe(1);
+    expect(markup).toContain("pointer-events-none w-0 opacity-0");
+  });
+
+  test("open: rail 48, page between, chat 340 — in that order", () => {
+    const markup = shell("overview", undefined, "macos", true);
+    const rail = markup.indexOf('data-slot="sidebar"');
+    const pane = markup.indexOf("<main");
+    const column = markup.indexOf('data-slot="chat-sheet"');
+
+    expect(markup).toContain("w-[48px]");
+    expect(markup).not.toContain("w-[220px]");
+    expect(markup).toContain("w-[340px]");
+    // Source order is column order: rail, then pane, then chat.
+    expect(rail).toBeLessThan(pane);
+    expect(pane).toBeLessThan(column);
+    /* Beside the pane and not inside it. A column that opens before `</main>`
+     * is a column whose width was never taken off the page, which is a page
+     * underneath the chat rather than next to it — the whole regression this
+     * cutover is about. */
+    expect(column).toBeGreaterThan(markup.indexOf("</main>"));
+  });
+
+  test("open: no pill, and one X that owns the closing", () => {
+    const markup = shell("overview", undefined, "macos", true);
+
+    expect(markup).not.toContain('data-slot="chat-pill"');
+    expect(occurrences(markup, 'data-slot="chat-close"')).toBe(1);
+  });
+
+  /* An agent switched off has no column, so there is nothing for the rail to
+   * make room for and nothing to narrow the page for. */
+  test("switched off, an open fold narrows nothing", () => {
+    const markup = shell(
+      "overview",
+      { enabled: false, paired: false, remoteIntelligence: false },
+      "macos",
+      true,
+    );
+
+    expect(markup).toContain("w-[220px]");
+    expect(markup).not.toContain("w-[48px]");
+    expect(markup).toContain("pointer-events-none w-0 opacity-0");
+  });
+
+  /* The pane's own handle is not the chat's: the drag band is 512 wide with the
+   * column open, and it is still the pane's full width, because the column is
+   * beside the pane rather than over part of it. */
+  test("open: the pane keeps one full-width drag band", () => {
+    const markup = shell("overview", undefined, "macos", true);
+
+    expect(occurrences(markup, 'data-slot="drag-band"')).toBe(1);
+    expect(markup).toContain("absolute inset-x-0 top-0 z-0 h-12");
+  });
+});
+
+/* The band the pill sits in is also the window's handle, which is why it is
+ * pinned in the same file: the two share 42px of chrome and one hit-test
+ * order, and the pill is the interactive thing inside a drag region that a
+ * drag region would be most likely to swallow.
+ *
+ * The mechanism itself is Tauri's: a mousedown whose target carries
+ * `data-tauri-drag-region` invokes `plugin:window|start_dragging`, which
+ * `core:window:allow-start-dragging` in capabilities/default.json permits.
+ * Nothing else in the pane claims a pixel of the band, so if the attribute
+ * leaves this strip the window stops moving — the regression these tests
+ * exist for. */
+describe("the pane's drag band", () => {
+  const openTag = (markup: string, slot: string): string =>
+    new RegExp(`<[a-z]+[^>]*data-slot="${slot}"[^>]*>`).exec(markup)?.[0] ?? "";
+
+  test("the strip carries the drag region on every route", () => {
+    for (const section of ["overview", "settings"] as const) {
+      const markup = shell(section);
+      const band = openTag(markup, "drag-band");
+
+      expect(occurrences(markup, 'data-slot="drag-band"')).toBe(1);
+      expect(band).toContain("data-tauri-drag-region");
+      // The pane's own top band: full width, page-content height, behind the
+      // pill. A strip that stops being those is a strip nobody can grab.
+      expect(band).toContain("absolute inset-x-0 top-0 z-0 h-12");
+      // Inside the pane and above its scroll owner, so it neither scrolls
+      // away nor lands twelve times.
+      const index = markup.indexOf('data-slot="drag-band"');
+      expect(index).toBeGreaterThan(markup.indexOf("<main"));
+      expect(index).toBeLessThan(markup.indexOf('data-slot="page-scroll"'));
+    }
+  });
+
+  /* The pill is a button in the middle of a drag region's band. Tauri would
+   * hand a bare-attribute strip the drag only when the strip is the mousedown
+   * target itself, and the pill outranks it anyway — but an attribute copied
+   * onto the pill would make the one interactive thing up there drag the
+   * window instead of opening the agent. */
+  test("the pill does not carry it", () => {
+    const markup = shell("overview");
+    const pill = openTag(markup, "chat-pill");
+
+    expect(pill).toContain("<button");
+    expect(pill).not.toContain("data-tauri-drag-region");
+    expect(pill).toContain("z-10");
+  });
+
+  /* The rail's clearance is platform-shaped; the pane's handle is not. A drag
+   * region is inert where the native title bar survives, so gating it would
+   * buy a branch and lose nothing. */
+  test("it is unconditional, not macOS-only", () => {
+    const band = openTag(shell("overview", undefined, "windows"), "drag-band");
+
+    expect(band).toContain("data-tauri-drag-region");
+  });
+
+  /* Turning the agent off removes the pill. It must not remove the handle. */
+  test("it survives the pill being switched off", () => {
+    const markup = shell("overview", {
+      enabled: false,
+      paired: false,
+      remoteIntelligence: false,
+    });
+
+    expect(openTag(markup, "drag-band")).toContain("data-tauri-drag-region");
   });
 });

@@ -6,6 +6,7 @@
       "name": "sona-mcp",
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.22.0",
+        "zod": "^4.5.4",
       },
       "devDependencies": {
         "@types/bun": "^1.3.4",

@@ -1756,6 +1756,7 @@
       "people": "אנשים",
       "dictations": "הכתבות",
       "loops": "שאלות פתוחות",
+      "empty": "שום דבר לא תואם ל\"{{query}}\".",
       "unavailable": "החיפוש אינו זמין כרגע."
     }
   },
@@ -2096,16 +2097,16 @@
       "unassigned": "לא מוקצה",
       "noDueDate": "בלי תאריך יעד",
       "questions": "שאל את הפגישה",
-      "questionsDescription": "התשובות מסתמכות רק על הפגישה המקומית הזאת ומצטטות את התמלול התומך.",
+      "questionsDescription": "התשובות מסתמכות רק על הפגישה הזאת ומצטטות את התמלול התומך, והן נכתבות על השרת שלך רק כשבינת הפגישות מנתבת אותן לשם.",
       "questionPlaceholder": "שאל שאלה על הפגישה הזאת",
-      "ask": "שאל מקומית",
+      "ask": "שאל",
       "noQuestions": "אין תשובות מקומיות שמורות.",
       "question": "שאלה",
       "insufficientEvidence": "לא נמצא קטע תומך בפגישה הזאת.",
       "forget": "שכח את התשובה הזאת",
       "searchPlaceholder": "חיפוש בפגישה הזאת",
       "noSearchResults": "אין התאמות מקומיות מדויקות.",
-      "askUnavailable": "שאילת שאלות דורשת תמלול מקומי שהושלם.",
+      "askUnavailable": "שאילת שאלות דורשת תמלול שהושלם.",
       "asking": "שואל את הפגישה…",
       "droppedFrames": "פריימים שאבדו: {{total}}",
       "hitKind": {
@@ -2463,40 +2464,29 @@
       "failed": "לא ניתן לנסח מעקב לפגישה הזו."
     }
   },
-  "agentPanel": {
-    "open": "סוכן",
-    "retry": "נסה שוב",
-    "cancel": "ביטול",
-    "apply": "החל",
-    "undo": "בטל",
-    "panelToggle": "סגירת לוח הסוכן",
-    "conversationLabel": "שיחה",
-    "proposalTitle": "שינויים מוצעים",
-    "empty": "אפשר לשאול על הפגישות, ההערות וההגדרות שלך. שינויי הגדרות מופיעים כאן כהצעה שאתה בודק לפני שמשהו משתנה.",
+  "chat": {
+    "open": "צ'אט",
+    "label": "צ'אט עם סוכן Sona",
+    "title": "סוכן Sona",
+    "unpaired": "התאם את סוכן Sona בהגדרות",
+    "close": "סגירת הצ'אט",
+    "history": "צ'אטים אחרונים",
+    "historyEmpty": "אין עדיין צ'אטים קודמים.",
+    "newChat": "צ'אט חדש",
+    "empty": "אפשר לשאול על הפגישות, ההערות וההגדרות שלך.",
+    "placeholder": "שאלו כל דבר",
     "inputLabel": "שאל על Sona",
     "send": "שלח",
-    "status": {
-      "loading": "מתחבר…",
-      "disabled": "לוח הסוכן מושבת.",
-      "unpaired": "לא מזווג לממסר.",
-      "offline": "הממסר במצב לא מקוון.",
-      "idle": "מוכן",
-      "proposal": "ההצעה מוכנה",
-      "error": "לוח הסוכן אינו זמין."
-    },
-    "activityLabel": "פעילות",
-    "workspaceLabel": "מי עונה",
-    "step": {
-      "sent": "נשלח"
-    },
-    "workspace": {
+    "stop": "עצירה",
+    "retry": "נסה שוב",
+    "openSettings": "הגדרות",
+    "scopeLabel": "מי עונה",
+    "scope": {
       "sona_chat": "שאלה",
       "sona_config": "הגדרות"
     },
-    "placeholder": {
-      "sona_chat": "שאל על הפגישות וההערות שלך…",
-      "sona_config": "שאל על ההגדרות של Sona…"
-    },
+    "workedFor": "עבד {{seconds}} שנ'",
+    "stepSeconds": "{{seconds}} שנ'",
     "turnState": {
       "submitting": "נשלח",
       "queued": "בתור",
@@ -2510,15 +2500,24 @@
       "canceled": "נעצר",
       "unverified_external": "תשובה לא מאומתת"
     },
+    "status": {
+      "disabled": "סוכן Sona כבוי.",
+      "unpaired": "סוכן Sona אינו משויך לממסר.",
+      "offline": "לא ניתן היה להגיע לממסר של סוכן Sona.",
+      "error": "סוכן Sona אינו זמין."
+    },
+    "proposal": {
+      "apply": "החל",
+      "applied": "הוחל",
+      "undo": "בטל",
+      "undone": "בוטל",
+      "rejected": "לא הוחל"
+    },
     "ask": {
       "row": "שאל את Sona: {{query}}",
-      "error": "לא ניתן היה לשלוח את השאלה ל-Sona."
+      "error": "לא ניתן היה לשלוח את השאלה ל-Sona.",
+      "consentRequired": "שאילת שאלה שולחת ציטוטים מהפגישות שלך לשרת שלך, לכן הפעל קודם את בינת הפגישות."
     }
-  },
-  "chat": {
-    "open": "צ'אט",
-    "label": "צ'אט עם סוכן Sona",
-    "unpaired": "התאם את סוכן Sona בהגדרות"
   },
   "overview": {
     "hero": {

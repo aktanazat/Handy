@@ -1744,6 +1744,7 @@
       "people": "Mọi người",
       "dictations": "Lần đọc chính tả",
       "loops": "Câu hỏi chưa được trả lời",
+      "empty": "Không có gì khớp với \"{{query}}\".",
       "unavailable": "Tìm kiếm hiện không khả dụng."
     }
   },
@@ -2084,16 +2085,16 @@
       "unassigned": "Chưa gán",
       "noDueDate": "Không có hạn",
       "questions": "Hỏi cuộc họp này",
-      "questionsDescription": "Câu trả lời chỉ dùng cuộc họp cục bộ này và dẫn lại đoạn bản ghi thoại làm căn cứ.",
+      "questionsDescription": "Câu trả lời chỉ dùng cuộc họp này và dẫn lại đoạn bản ghi thoại làm căn cứ, và chỉ được viết trên máy chủ của bạn khi trí tuệ cho cuộc họp chuyển chúng tới đó.",
       "questionPlaceholder": "Đặt câu hỏi về cuộc họp này",
-      "ask": "Hỏi cục bộ",
+      "ask": "Hỏi",
       "noQuestions": "Không có câu trả lời cục bộ nào đã lưu.",
       "question": "Câu hỏi",
       "insufficientEvidence": "Không tìm thấy đoạn nào trong cuộc họp này làm căn cứ.",
       "forget": "Quên câu trả lời này",
       "searchPlaceholder": "Tìm trong cuộc họp này",
       "noSearchResults": "Không có kết quả khớp chính xác trên máy.",
-      "askUnavailable": "Việc hỏi cần một bản ghi thoại cục bộ đã hoàn tất.",
+      "askUnavailable": "Việc hỏi cần một bản ghi thoại đã hoàn tất.",
       "asking": "Đang hỏi cuộc họp này…",
       "droppedFrames": "Khung hình bị mất: {{total}}",
       "hitKind": {
@@ -2451,40 +2452,29 @@
       "failed": "Không soạn được thư theo dõi cho cuộc họp này."
     }
   },
-  "agentPanel": {
-    "open": "Trợ lý",
-    "retry": "Thử lại",
-    "cancel": "Hủy",
-    "apply": "Áp dụng",
-    "undo": "Hoàn tác",
-    "panelToggle": "Đóng bảng trợ lý",
-    "conversationLabel": "Hội thoại",
-    "proposalTitle": "Thay đổi đề xuất",
-    "empty": "Hỏi về các cuộc họp, ghi chú và cài đặt của bạn. Thay đổi cài đặt xuất hiện ở đây dưới dạng đề xuất để bạn xem lại trước khi có gì thay đổi.",
+  "chat": {
+    "open": "Trò chuyện",
+    "label": "Trò chuyện với tác nhân Sona",
+    "title": "Tác nhân Sona",
+    "unpaired": "Ghép nối tác nhân Sona trong Cài đặt",
+    "close": "Đóng trò chuyện",
+    "history": "Trò chuyện gần đây",
+    "historyEmpty": "Chưa có cuộc trò chuyện nào trước đó.",
+    "newChat": "Trò chuyện mới",
+    "empty": "Hỏi về các cuộc họp, ghi chú và cài đặt của bạn.",
+    "placeholder": "Hỏi bất cứ điều gì",
     "inputLabel": "Hỏi về Sona",
     "send": "Gửi",
-    "status": {
-      "loading": "Đang kết nối…",
-      "disabled": "Bảng trợ lý đã tắt.",
-      "unpaired": "Chưa ghép nối với rơ-le.",
-      "offline": "Rơ-le ngoại tuyến.",
-      "idle": "Sẵn sàng",
-      "proposal": "Đề xuất đã sẵn sàng",
-      "error": "Bảng trợ lý không khả dụng."
-    },
-    "activityLabel": "Diễn tiến",
-    "workspaceLabel": "Ai trả lời",
-    "step": {
-      "sent": "Đã gửi"
-    },
-    "workspace": {
+    "stop": "Dừng",
+    "retry": "Thử lại",
+    "openSettings": "Cài đặt",
+    "scopeLabel": "Ai trả lời",
+    "scope": {
       "sona_chat": "Hỏi",
       "sona_config": "Cài đặt"
     },
-    "placeholder": {
-      "sona_chat": "Hỏi về cuộc họp và ghi chú của bạn…",
-      "sona_config": "Hỏi về cài đặt của Sona…"
-    },
+    "workedFor": "Đã chạy {{seconds}} giây",
+    "stepSeconds": "{{seconds}} giây",
     "turnState": {
       "submitting": "Đang gửi",
       "queued": "Đang xếp hàng",
@@ -2498,15 +2488,24 @@
       "canceled": "Đã dừng",
       "unverified_external": "Phản hồi chưa xác minh"
     },
+    "status": {
+      "disabled": "Tác nhân Sona đang tắt.",
+      "unpaired": "Tác nhân Sona chưa được ghép nối với relay.",
+      "offline": "Không thể kết nối tới relay của tác nhân Sona.",
+      "error": "Tác nhân Sona không khả dụng."
+    },
+    "proposal": {
+      "apply": "Áp dụng",
+      "applied": "Đã áp dụng",
+      "undo": "Hoàn tác",
+      "undone": "Đã hoàn tác",
+      "rejected": "Chưa áp dụng"
+    },
     "ask": {
       "row": "Hỏi Sona: {{query}}",
-      "error": "Không thể gửi câu hỏi đến Sona."
+      "error": "Không thể gửi câu hỏi đến Sona.",
+      "consentRequired": "Việc hỏi sẽ gửi các đoạn trích từ cuộc họp của bạn tới máy chủ của bạn, nên hãy bật trí tuệ cho cuộc họp trước."
     }
-  },
-  "chat": {
-    "open": "Trò chuyện",
-    "label": "Trò chuyện với tác nhân Sona",
-    "unpaired": "Ghép nối tác nhân Sona trong Cài đặt"
   },
   "overview": {
     "hero": {

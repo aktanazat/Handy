@@ -1744,6 +1744,7 @@
       "people": "人物",
       "dictations": "口述",
       "loops": "未答的问题",
+      "empty": "没有与“{{query}}”匹配的内容。",
       "unavailable": "搜索当前不可用。"
     }
   },
@@ -2084,16 +2085,16 @@
       "unassigned": "未分配",
       "noDueDate": "无截止日期",
       "questions": "向此会议提问",
-      "questionsDescription": "回答只使用这场本地会议，并引用支撑它的转录。",
+      "questionsDescription": "回答只使用这场会议，并引用支撑它的转录；只有会议智能把它们转到那里时，才会在你的服务器上撰写。",
       "questionPlaceholder": "就这场会议提问",
-      "ask": "在本地提问",
+      "ask": "提问",
       "noQuestions": "没有保存的本地回答。",
       "question": "问题",
       "insufficientEvidence": "在这场会议里没有找到可以支撑的段落。",
       "forget": "忘掉这条回答",
       "searchPlaceholder": "搜索这场会议",
       "noSearchResults": "没有完全匹配的本地结果。",
-      "askUnavailable": "提问需要已完成的本地转录。",
+      "askUnavailable": "提问需要已完成的转录。",
       "asking": "正在向此会议提问…",
       "droppedFrames": "丢帧数：{{total}}",
       "hitKind": {
@@ -2451,40 +2452,29 @@
       "failed": "无法为这场会议起草跟进。"
     }
   },
-  "agentPanel": {
-    "open": "代理",
-    "retry": "重试",
-    "cancel": "取消",
-    "apply": "应用",
-    "undo": "撤销",
-    "panelToggle": "关闭代理面板",
-    "conversationLabel": "对话",
-    "proposalTitle": "建议的更改",
-    "empty": "可以问会议、笔记和设置。设置改动会在这里以提案形式出现，你先过目，之后才会真的改。",
+  "chat": {
+    "open": "聊天",
+    "label": "与 Sona 代理聊天",
+    "title": "Sona 代理",
+    "unpaired": "在设置中配对 Sona 代理",
+    "close": "关闭聊天",
+    "history": "最近的聊天",
+    "historyEmpty": "还没有更早的聊天。",
+    "newChat": "新建聊天",
+    "empty": "可以问会议、笔记和设置。",
+    "placeholder": "问点什么",
     "inputLabel": "询问 Sona",
     "send": "发送",
-    "status": {
-      "loading": "连接中…",
-      "disabled": "代理面板已禁用。",
-      "unpaired": "未与中继配对。",
-      "offline": "中继离线。",
-      "idle": "就绪",
-      "proposal": "建议已就绪",
-      "error": "代理面板不可用。"
-    },
-    "activityLabel": "进展",
-    "workspaceLabel": "由谁回答",
-    "step": {
-      "sent": "已发送"
-    },
-    "workspace": {
+    "stop": "停止",
+    "retry": "重试",
+    "openSettings": "设置",
+    "scopeLabel": "由谁回答",
+    "scope": {
       "sona_chat": "提问",
       "sona_config": "设置"
     },
-    "placeholder": {
-      "sona_chat": "问问你的会议和笔记…",
-      "sona_config": "问问 Sona 的设置…"
-    },
+    "workedFor": "已处理 {{seconds}} 秒",
+    "stepSeconds": "{{seconds}} 秒",
     "turnState": {
       "submitting": "发送中",
       "queued": "排队中",
@@ -2498,15 +2488,24 @@
       "canceled": "已停止",
       "unverified_external": "未验证的回复"
     },
+    "status": {
+      "disabled": "Sona 代理已关闭。",
+      "unpaired": "Sona 代理尚未与中继配对。",
+      "offline": "无法连接 Sona 代理的中继。",
+      "error": "Sona 代理不可用。"
+    },
+    "proposal": {
+      "apply": "应用",
+      "applied": "已应用",
+      "undo": "撤销",
+      "undone": "已撤销",
+      "rejected": "未应用"
+    },
     "ask": {
       "row": "询问 Sona：{{query}}",
-      "error": "无法将该问题发送给 Sona。"
+      "error": "无法将该问题发送给 Sona。",
+      "consentRequired": "提问会把你的会议引文发送到你的服务器，请先开启会议智能。"
     }
-  },
-  "chat": {
-    "open": "聊天",
-    "label": "与 Sona 代理聊天",
-    "unpaired": "在设置中配对 Sona 代理"
   },
   "overview": {
     "hero": {

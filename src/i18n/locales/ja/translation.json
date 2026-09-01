@@ -1744,6 +1744,7 @@
       "people": "人物",
       "dictations": "口述",
       "loops": "未回答の問い",
+      "empty": "「{{query}}」に一致するものはありません。",
       "unavailable": "検索は現在利用できません。"
     }
   },
@@ -2084,16 +2085,16 @@
       "unassigned": "未割り当て",
       "noDueDate": "期限なし",
       "questions": "このミーティングに質問",
-      "questionsDescription": "回答はこのローカルのミーティングだけを使い、裏付けとなる文字起こしを引用します。",
+      "questionsDescription": "回答はこのミーティングだけを使い、裏付けとなる文字起こしを引用します。会議インテリジェンスがそちらに振り向けたときだけ、あなたのサーバー上で書かれます。",
       "questionPlaceholder": "このミーティングについて質問する",
-      "ask": "ローカルで質問",
+      "ask": "質問",
       "noQuestions": "保存されたローカルの回答はありません。",
       "question": "質問",
       "insufficientEvidence": "このミーティングには裏付けとなる箇所が見つかりませんでした。",
       "forget": "この回答を忘れる",
       "searchPlaceholder": "このミーティングを検索",
       "noSearchResults": "完全に一致するローカルの結果はありません。",
-      "askUnavailable": "質問にはローカルで完了した文字起こしが必要です。",
+      "askUnavailable": "質問には完了した文字起こしが必要です。",
       "asking": "このミーティングに質問中…",
       "droppedFrames": "ドロップフレーム: {{total}}",
       "hitKind": {
@@ -2451,40 +2452,29 @@
       "failed": "このミーティングのフォローアップを作成できませんでした。"
     }
   },
-  "agentPanel": {
-    "open": "エージェント",
-    "retry": "再試行",
-    "cancel": "キャンセル",
-    "apply": "適用",
-    "undo": "元に戻す",
-    "panelToggle": "エージェントパネルを閉じる",
-    "conversationLabel": "会話",
-    "proposalTitle": "提案された変更",
-    "empty": "会議やメモ、設定について聞いてください。設定の変更は、何かが変わる前に確認できる提案としてここに表示されます。",
+  "chat": {
+    "open": "チャット",
+    "label": "Sona エージェントとチャット",
+    "title": "Sona エージェント",
+    "unpaired": "設定で Sona エージェントをペアリングしてください",
+    "close": "チャットを閉じる",
+    "history": "最近のチャット",
+    "historyEmpty": "以前のチャットはまだありません。",
+    "newChat": "新しいチャット",
+    "empty": "会議やメモ、設定について聞いてください。",
+    "placeholder": "何でも質問してください",
     "inputLabel": "Sonaについて質問",
     "send": "送信",
-    "status": {
-      "loading": "接続中…",
-      "disabled": "エージェントパネルは無効です。",
-      "unpaired": "リレーとペアリングされていません。",
-      "offline": "リレーがオフラインです。",
-      "idle": "準備完了",
-      "proposal": "提案の準備ができました",
-      "error": "エージェントパネルを利用できません。"
-    },
-    "activityLabel": "経過",
-    "workspaceLabel": "回答する相手",
-    "step": {
-      "sent": "送信済み"
-    },
-    "workspace": {
+    "stop": "停止",
+    "retry": "再試行",
+    "openSettings": "設定",
+    "scopeLabel": "回答する相手",
+    "scope": {
       "sona_chat": "質問",
       "sona_config": "設定"
     },
-    "placeholder": {
-      "sona_chat": "会議やメモについて聞く…",
-      "sona_config": "Sona の設定について聞く…"
-    },
+    "workedFor": "{{seconds}} 秒動作しました",
+    "stepSeconds": "{{seconds}} 秒",
     "turnState": {
       "submitting": "送信中",
       "queued": "待機中",
@@ -2498,15 +2488,24 @@
       "canceled": "停止しました",
       "unverified_external": "未検証の返信"
     },
+    "status": {
+      "disabled": "Sona エージェントはオフです。",
+      "unpaired": "Sona エージェントはリレーとペアリングされていません。",
+      "offline": "Sona エージェントのリレーに接続できませんでした。",
+      "error": "Sona エージェントを利用できません。"
+    },
+    "proposal": {
+      "apply": "適用",
+      "applied": "適用済み",
+      "undo": "元に戻す",
+      "undone": "元に戻しました",
+      "rejected": "未適用"
+    },
     "ask": {
       "row": "Sona に質問: {{query}}",
-      "error": "質問を Sona に送信できませんでした。"
+      "error": "質問を Sona に送信できませんでした。",
+      "consentRequired": "質問すると会議の引用があなたのサーバーに送られます。先に会議インテリジェンスをオンにしてください。"
     }
-  },
-  "chat": {
-    "open": "チャット",
-    "label": "Sona エージェントとチャット",
-    "unpaired": "設定で Sona エージェントをペアリングしてください"
   },
   "overview": {
     "hero": {

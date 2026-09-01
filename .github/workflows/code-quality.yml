@@ -42,5 +42,14 @@ jobs:
       - name: Run script tests
         run: bun run test:scripts
 
+      # The MCP server is a standalone package with its own lockfile — the
+      # scripts install it before they run, and both run here because `bun test`
+      # transpiles without type-checking, so only tsc sees a dead import.
+      - name: Typecheck the Sona MCP server
+        run: bun run typecheck:mcp
+
+      - name: Run MCP server tests
+        run: bun run test:mcp
+
       - name: Run anti-slop gate
         run: bun run lint:anti-slop

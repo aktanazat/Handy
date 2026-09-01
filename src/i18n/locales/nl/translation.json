@@ -1753,6 +1753,7 @@
       "people": "Personen",
       "dictations": "Dictees",
       "loops": "Open vragen",
+      "empty": "Niets komt overeen met \"{{query}}\".",
       "unavailable": "Zoeken is nu niet beschikbaar."
     }
   },
@@ -2090,16 +2091,16 @@
       "unassigned": "Niet toegewezen",
       "noDueDate": "Geen deadline",
       "questions": "Deze vergadering vragen",
-      "questionsDescription": "Antwoorden gebruiken alleen deze lokale vergadering en citeren het ondersteunende transcript.",
+      "questionsDescription": "Antwoorden gebruiken alleen deze vergadering en citeren het ondersteunende transcript, en ze worden alleen op je server geschreven als vergaderintelligentie ze daarheen stuurt.",
       "questionPlaceholder": "Stel een vraag over deze vergadering",
-      "ask": "Lokaal vragen",
+      "ask": "Vragen",
       "noQuestions": "Geen opgeslagen lokale antwoorden.",
       "question": "Vraag",
       "insufficientEvidence": "Er is in deze vergadering geen ondersteunende passage gevonden.",
       "forget": "Dit antwoord vergeten",
       "searchPlaceholder": "Deze vergadering doorzoeken",
       "noSearchResults": "Geen exacte lokale overeenkomsten.",
-      "askUnavailable": "Vragen stellen vereist een voltooid lokaal transcript.",
+      "askUnavailable": "Vragen stellen vereist een voltooid transcript.",
       "asking": "Deze vergadering wordt bevraagd…",
       "droppedFrames": "Verloren frames: {{total}}",
       "hitKind": {
@@ -2457,40 +2458,29 @@
       "failed": "Er kon geen opvolging voor deze vergadering worden opgesteld."
     }
   },
-  "agentPanel": {
-    "open": "Agent",
-    "retry": "Opnieuw proberen",
-    "cancel": "Annuleren",
-    "apply": "Toepassen",
-    "undo": "Ongedaan maken",
-    "panelToggle": "Agentpaneel sluiten",
-    "conversationLabel": "Gesprek",
-    "proposalTitle": "Voorgestelde wijzigingen",
-    "empty": "Vraag naar je gesprekken, notities en instellingen. Wijzigingen in instellingen verschijnen hier als voorstel dat je nakijkt voordat er iets verandert.",
+  "chat": {
+    "open": "Chat",
+    "label": "Chatten met de Sona-agent",
+    "title": "Sona-agent",
+    "unpaired": "Koppel de Sona-agent in Instellingen",
+    "close": "Chat sluiten",
+    "history": "Recente chats",
+    "historyEmpty": "Nog geen eerdere chats.",
+    "newChat": "Nieuwe chat",
+    "empty": "Vraag naar je gesprekken, notities en instellingen.",
+    "placeholder": "Vraag wat je wilt",
     "inputLabel": "Vraag over Sona",
     "send": "Verzenden",
-    "status": {
-      "loading": "Verbinden…",
-      "disabled": "Het agentpaneel is uitgeschakeld.",
-      "unpaired": "Niet gekoppeld aan een relay.",
-      "offline": "Relay is offline.",
-      "idle": "Klaar",
-      "proposal": "Voorstel is klaar",
-      "error": "Het agentpaneel is niet beschikbaar."
-    },
-    "activityLabel": "Verloop",
-    "workspaceLabel": "Wie antwoordt",
-    "step": {
-      "sent": "Verstuurd"
-    },
-    "workspace": {
+    "stop": "Stoppen",
+    "retry": "Opnieuw proberen",
+    "openSettings": "Instellingen",
+    "scopeLabel": "Wie antwoordt",
+    "scope": {
       "sona_chat": "Vragen",
       "sona_config": "Instellingen"
     },
-    "placeholder": {
-      "sona_chat": "Vraag naar je gesprekken en notities…",
-      "sona_config": "Vraag naar de instellingen van Sona…"
-    },
+    "workedFor": "{{seconds}} s gewerkt",
+    "stepSeconds": "{{seconds}} s",
     "turnState": {
       "submitting": "Versturen",
       "queued": "In de wachtrij",
@@ -2504,15 +2494,24 @@
       "canceled": "Gestopt",
       "unverified_external": "Ongecontroleerd antwoord"
     },
+    "status": {
+      "disabled": "De Sona-agent staat uit.",
+      "unpaired": "De Sona-agent is niet gekoppeld aan een relay.",
+      "offline": "De relay van de Sona-agent was niet bereikbaar.",
+      "error": "De Sona-agent is niet beschikbaar."
+    },
+    "proposal": {
+      "apply": "Toepassen",
+      "applied": "Toegepast",
+      "undo": "Ongedaan maken",
+      "undone": "Ongedaan gemaakt",
+      "rejected": "Niet toegepast"
+    },
     "ask": {
       "row": "Sona vragen: {{query}}",
-      "error": "De vraag kon niet naar Sona worden verzonden."
+      "error": "De vraag kon niet naar Sona worden verzonden.",
+      "consentRequired": "Een vraag stuurt citaten uit je vergaderingen naar je server, zet dus eerst vergaderintelligentie aan."
     }
-  },
-  "chat": {
-    "open": "Chat",
-    "label": "Chatten met de Sona-agent",
-    "unpaired": "Koppel de Sona-agent in Instellingen"
   },
   "overview": {
     "hero": {

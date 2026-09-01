@@ -38,6 +38,7 @@ import {
   searchCorpus,
   SEARCH_DEBOUNCE_MS,
   SEARCH_MIN_CHARS,
+  type AskGate,
 } from "./commandPaletteSearch";
 
 /* The command palette: cmdk inside the shared dialog, and nothing else.
@@ -82,10 +83,17 @@ export interface CommandPaletteProps {
    */
   seed: { query: string; nonce: number } | null;
   /**
-   * The agent panel's two standing facts, which is what the ask row is gated
-   * on: the toggle in Settings and whether this machine is paired to a relay.
+   * The agent's three standing facts, which is what the ask row is gated on:
+   * the toggle in Settings, whether this machine is paired to a relay, and
+   * whether the operator has consented to meeting evidence being written on
+   * that relay. See `canAsk` for why the third one belongs here.
    */
-  panel: { enabled: boolean; paired: boolean };
+  panel: AskGate;
+  /**
+   * Show the chat sheet, because that is where the answer will arrive. The
+   * palette sends the turn; it does not own the surface that reads it.
+   */
+  onAsk: () => void;
 }
 
 interface ResultRowProps {
@@ -146,17 +154,34 @@ const SearchNotice: React.FC<{ message: string }> = ({ message }) => {
   );
 };
 
+/**
+ * One search, as this surface reads it.
+ *
+ * `pending` carries the page it is about to replace, so typing the next letter
+ * does not blank the list the reader is looking at — and, more to the point,
+ * so nothing claims the corpus came back empty while its answer is still out.
+ */
+type PaletteSearch =
+  /** Nothing worth a round trip is in the field. */
+  | { status: "idle" }
+  | { status: "pending"; rows: readonly QueryRow[] }
+  | { status: "rows"; rows: readonly QueryRow[] }
+  | { status: "failed" };
+
+const searchRows = (search: PaletteSearch): readonly QueryRow[] =>
+  search.status === "rows" || search.status === "pending" ? search.rows : [];
+
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
   open,
   onOpenChange,
   actions,
   seed,
   panel,
+  onAsk,
 }) => {
   const { t, i18n } = useTranslation();
   const [query, setQuery] = React.useState("");
-  const [rows, setRows] = React.useState<readonly QueryRow[]>([]);
-  const [failed, setFailed] = React.useState(false);
+  const [search, setSearch] = React.useState<PaletteSearch>({ status: "idle" });
   /* cmdk re-selects the first row on every keystroke, but a page that arrives
    * 150ms later is not a keystroke: without owning the selection, the highlight
    * would stay on whichever command was matched while the corpus answered, and
@@ -173,7 +198,21 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     navigation: t("commandPalette.navigation"),
     actions: t("commandPalette.actions"),
   } satisfies Record<CommandPaletteAction["group"], string>;
-  const results = groupQueryRows(rows);
+  const results = groupQueryRows(searchRows(search));
+  /* The one sentence a settled search is allowed, and the reason this state is
+   * four-valued rather than a pair of booleans. `CommandEmpty` is cmdk's
+   * `filtered.count === 0` branch, and the ask row scores 1 whenever the field
+   * has text and the agent is paired — so on a paired install that branch can
+   * never fire, and a search that matched nothing used to render nothing at
+   * all. A palette that looks identical whether the corpus answered "none",
+   * has not answered yet, or cannot be read is a palette people report as
+   * broken, which is exactly what happened. */
+  const notice =
+    search.status === "failed"
+      ? t("commandPalette.search.unavailable")
+      : search.status === "rows" && search.rows.length === 0
+        ? t("commandPalette.search.empty", { query: query.trim() })
+        : null;
   const asking = canAsk(query, panel);
 
   React.useEffect(() => {
@@ -186,8 +225,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   React.useEffect(() => {
     if (open) return;
     setQuery("");
-    setRows([]);
-    setFailed(false);
+    setSearch({ status: "idle" });
   }, [open]);
 
   React.useEffect(() => {
@@ -195,16 +233,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     const request = requestRef.current + 1;
     requestRef.current = request;
     if (question.length < SEARCH_MIN_CHARS) {
-      setRows([]);
-      setFailed(false);
+      setSearch({ status: "idle" });
       return;
     }
+    setSearch((current) => ({ status: "pending", rows: searchRows(current) }));
     const timer = setTimeout(() => {
       void searchCorpus(question).then((outcome) => {
         // A page that lost its race is a page for a query nobody is reading.
         if (requestRef.current !== request) return;
-        setRows(outcome.status === "rows" ? outcome.rows : []);
-        setFailed(outcome.status === "failed");
+        setSearch(outcome);
         if (outcome.status === "rows" && outcome.rows.length > 0) {
           setSelected(rowValue(outcome.rows[0]));
         }
@@ -223,8 +260,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   const ask = () => {
     const question = query.trim();
     onOpenChange(false);
-    void askSona(question, i18n.language).then((outcome) => {
-      if (outcome === "failed") toast.error(t("agentPanel.ask.error"));
+    /* Opened before the pack is built, not after the turn lands: assembling
+     * the evidence is a round trip through the corpus, and a palette that
+     * closes onto an unchanged page for half a second reads as a press that
+     * did nothing. */
+    onAsk();
+    void askSona(question, i18n.language, panel).then((outcome) => {
+      /* Two refusals, two sentences. A refused ask is the consent gate, and
+       * naming a network problem the reader does not have would send them
+       * looking in the wrong place for a switch they own. */
+      if (outcome === "refused") toast.error(t("chat.ask.consentRequired"));
+      else if (outcome === "failed") toast.error(t("chat.ask.error"));
     });
   };
 
@@ -280,9 +326,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               is a broken interaction, not a tight one. */}
           <CommandList className="max-h-[min(60vh,440px)]">
             <CommandEmpty className="py-10 text-center text-[13px] text-gray-900">
-              {failed
-                ? t("commandPalette.search.unavailable")
-                : t("commandPalette.noResults")}
+              {notice ?? t("commandPalette.noResults")}
             </CommandEmpty>
             {sections.map((section) => (
               <CommandGroup
@@ -339,9 +383,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 ))}
               </CommandGroup>
             ))}
-            {failed && (
-              <SearchNotice message={t("commandPalette.search.unavailable")} />
-            )}
+            {notice !== null && <SearchNotice message={notice} />}
             {asking && (
               <CommandGroup className="p-1.5">
                 <CommandItem
@@ -351,7 +393,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 >
                   <MessageSquare aria-hidden="true" className="size-4" />
                   <span className="min-w-0 truncate">
-                    {t("agentPanel.ask.row", { query: query.trim() })}
+                    {t("chat.ask.row", { query: query.trim() })}
                   </span>
                 </CommandItem>
               </CommandGroup>

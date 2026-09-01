@@ -1750,6 +1750,7 @@
       "people": "Personer",
       "dictations": "Dikteringar",
       "loops": "Öppna frågor",
+      "empty": "Inget matchar \"{{query}}\".",
       "unavailable": "Sökningen är inte tillgänglig just nu."
     }
   },
@@ -2090,16 +2091,16 @@
       "unassigned": "Ej tilldelad",
       "noDueDate": "Inget slutdatum",
       "questions": "Fråga det här mötet",
-      "questionsDescription": "Svaren använder bara det här lokala mötet och citerar det stödjande transkriptet.",
+      "questionsDescription": "Svaren använder bara det här mötet och citerar det stödjande transkriptet, och de skrivs på din server bara när mötesintelligens skickar dem dit.",
       "questionPlaceholder": "Ställ en fråga om det här mötet",
-      "ask": "Fråga lokalt",
+      "ask": "Fråga",
       "noQuestions": "Inga sparade lokala svar.",
       "question": "Fråga",
       "insufficientEvidence": "Ingen stödjande passage hittades i det här mötet.",
       "forget": "Glöm det här svaret",
       "searchPlaceholder": "Sök i det här mötet",
       "noSearchResults": "Inga exakta lokala träffar.",
-      "askUnavailable": "Frågor kräver ett färdigt lokalt transkript.",
+      "askUnavailable": "Frågor kräver ett färdigt transkript.",
       "asking": "Frågar detta möte…",
       "droppedFrames": "Tappade bildrutor: {{total}}",
       "hitKind": {
@@ -2457,40 +2458,29 @@
       "failed": "Det gick inte att skriva en uppföljning för det här mötet."
     }
   },
-  "agentPanel": {
-    "open": "Agent",
-    "retry": "Försök igen",
-    "cancel": "Avbryt",
-    "apply": "Tillämpa",
-    "undo": "Ångra",
-    "panelToggle": "Stäng agentpanelen",
-    "conversationLabel": "Konversation",
-    "proposalTitle": "Föreslagna ändringar",
-    "empty": "Fråga om dina möten, anteckningar och inställningar. Ändringar av inställningar dyker upp här som ett förslag du går igenom innan något ändras.",
+  "chat": {
+    "open": "Chatt",
+    "label": "Chatta med Sona-agenten",
+    "title": "Sona-agent",
+    "unpaired": "Parkoppla Sona-agenten i Inställningar",
+    "close": "Stäng chatten",
+    "history": "Senaste chattar",
+    "historyEmpty": "Inga tidigare chattar än.",
+    "newChat": "Ny chatt",
+    "empty": "Fråga om dina möten, anteckningar och inställningar.",
+    "placeholder": "Fråga vad som helst",
     "inputLabel": "Fråga om Sona",
     "send": "Skicka",
-    "status": {
-      "loading": "Ansluter…",
-      "disabled": "Agentpanelen är inaktiverad.",
-      "unpaired": "Inte ihopparad med ett relä.",
-      "offline": "Reläet är offline.",
-      "idle": "Redo",
-      "proposal": "Förslaget är klart",
-      "error": "Agentpanelen är inte tillgänglig."
-    },
-    "activityLabel": "Förlopp",
-    "workspaceLabel": "Vem svarar",
-    "step": {
-      "sent": "Skickat"
-    },
-    "workspace": {
+    "stop": "Stoppa",
+    "retry": "Försök igen",
+    "openSettings": "Inställningar",
+    "scopeLabel": "Vem svarar",
+    "scope": {
       "sona_chat": "Fråga",
       "sona_config": "Inställningar"
     },
-    "placeholder": {
-      "sona_chat": "Fråga om dina möten och anteckningar…",
-      "sona_config": "Fråga om Sonas inställningar…"
-    },
+    "workedFor": "Arbetade i {{seconds}} s",
+    "stepSeconds": "{{seconds}} s",
     "turnState": {
       "submitting": "Skickar",
       "queued": "I kö",
@@ -2504,15 +2494,24 @@
       "canceled": "Stoppat",
       "unverified_external": "Overifierat svar"
     },
+    "status": {
+      "disabled": "Sona-agenten är avstängd.",
+      "unpaired": "Sona-agenten är inte parkopplad med något relä.",
+      "offline": "Sona-agentens relä gick inte att nå.",
+      "error": "Sona-agenten är inte tillgänglig."
+    },
+    "proposal": {
+      "apply": "Tillämpa",
+      "applied": "Tillämpad",
+      "undo": "Ångra",
+      "undone": "Ångrad",
+      "rejected": "Inte tillämpad"
+    },
     "ask": {
       "row": "Fråga Sona: {{query}}",
-      "error": "Frågan kunde inte skickas till Sona."
+      "error": "Frågan kunde inte skickas till Sona.",
+      "consentRequired": "En fråga skickar citat ur dina möten till din server, så slå på mötesintelligens först."
     }
-  },
-  "chat": {
-    "open": "Chatt",
-    "label": "Chatta med Sona-agenten",
-    "unpaired": "Parkoppla Sona-agenten i Inställningar"
   },
   "overview": {
     "hero": {

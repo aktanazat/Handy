@@ -3,9 +3,12 @@
 use super::workflow_core_tests::{event, inputs, meeting, store};
 use super::*;
 use crate::meeting::analytics::MeetingNotesTemplate;
+use crate::meeting::automation_types::{MeetingAutomationKind, MeetingSeriesAutomationSetRequest};
+use crate::meeting::detection::machine::CalendarEventSummary;
 use crate::meeting::series_types::{
     MeetingSeriesAlwaysRecordSetRequest, MeetingSeriesDigestSetRequest,
-    MeetingSeriesMutationResult, MeetingSeriesTemplateSetRequest,
+    MeetingSeriesMutationResult, MeetingSeriesRemoteOptOutSetRequest,
+    MeetingSeriesTemplateSetRequest,
 };
 use crate::meeting::types::{
     MeetingCommandKind, MeetingOperationId, MeetingReasonCode, MeetingSessionId, OperationActor,
@@ -14,22 +17,30 @@ use crate::meeting::types::{
 use crate::meeting::workflow_types::{WorkflowEventKind, WorkflowId, WorkflowRunStatus};
 use rusqlite::params;
 
-fn calendar_facts(store: &MeetingStore, session_id: MeetingSessionId, series_key: &str) {
-    let event_json = serde_json::json!({
-        "eventKey": format!("{series_key}#1"),
-        "seriesKey": series_key,
-    });
+/// The calendar facts a finished meeting leaves behind, written through the
+/// call the app itself makes: the only place a series key or a series' name is
+/// ever recorded, so the roster and every preference read hang off it.
+fn calendar_facts(
+    store: &MeetingStore,
+    session_id: MeetingSessionId,
+    series_key: &str,
+    title: &str,
+) {
     store
-        .connection()
-        .unwrap()
-        .execute(
-            "INSERT INTO meeting_calendar_facts(session_id, event_key, event_json)
-             VALUES (?1, ?2, ?3)",
-            params![
-                session_id.uuid().to_string(),
-                format!("{series_key}#1"),
-                event_json.to_string()
-            ],
+        .remember_calendar_facts(
+            session_id,
+            &CalendarEventSummary {
+                event_key: format!("{series_key}#{}", session_id.uuid()),
+                series_key: series_key.to_string(),
+                title: title.to_string(),
+                attendee_count: 2,
+                start_utc_ms: 0,
+                end_utc_ms: 0,
+                attendees: Vec::new(),
+                notes: None,
+                calendar_name: None,
+                url: None,
+            },
         )
         .unwrap();
 }
@@ -90,6 +101,38 @@ fn set_always_record(
         },
         1_000,
     )
+}
+
+/// The one preference the meeting-intelligence roster attaches to a row.
+fn exclude(store: &MeetingStore, series_key: &str) {
+    store
+        .set_series_remote_opt_out(
+            &MeetingSeriesRemoteOptOutSetRequest {
+                operation_id: MeetingOperationId::new(),
+                series_key: series_key.to_string(),
+                remote_intelligence_opt_out: true,
+                expected_revision: store.series_revision().unwrap(),
+            },
+            1_000,
+        )
+        .unwrap();
+}
+
+/// The one the automations roster attaches, on the other screen.
+fn remind(store: &MeetingStore, series_key: &str) {
+    store
+        .set_series_automation(
+            &MeetingSeriesAutomationSetRequest {
+                operation_id: MeetingOperationId::new(),
+                series_key: series_key.to_string(),
+                kind: MeetingAutomationKind::Reminders,
+                enabled: true,
+                target: None,
+                expected_revision: store.series_automations(series_key).unwrap().revision,
+            },
+            1_000,
+        )
+        .unwrap();
 }
 
 #[test]
@@ -213,7 +256,7 @@ fn a_meeting_with_no_calendar_event_belongs_to_no_series() {
 fn a_meeting_resolves_the_template_of_the_series_it_belongs_to() {
     let (_directory, store) = store();
     let session_id = meeting(&store, "Weekly sync", 1);
-    calendar_facts(&store, session_id, "weekly-sync");
+    calendar_facts(&store, session_id, "weekly-sync", "Weekly sync");
     set(
         &store,
         "weekly-sync",
@@ -403,6 +446,143 @@ fn a_bulk_read_answers_for_every_key_including_the_ones_with_no_row() {
     );
 }
 
+/// The columns both series-listing surfaces show, in the order they show them.
+type RosterRows = Vec<(String, String, i64, u32)>;
+
+fn remote_rows(store: &MeetingStore) -> RosterRows {
+    store
+        .series_remote_roster()
+        .unwrap()
+        .rows
+        .into_iter()
+        .map(|row| {
+            (
+                row.series_key,
+                row.title,
+                row.last_met_at_utc_ms,
+                row.meetings,
+            )
+        })
+        .collect()
+}
+
+fn automation_rows(store: &MeetingStore) -> RosterRows {
+    store
+        .automation_roster()
+        .unwrap()
+        .series
+        .into_iter()
+        .map(|row| {
+            (
+                row.series_key,
+                row.title,
+                row.last_met_at_utc_ms,
+                row.meeting_count,
+            )
+        })
+        .collect()
+}
+
+/// A meeting on its way out under a retention rule.
+fn deleting(store: &MeetingStore, session_id: MeetingSessionId) {
+    store
+        .connection()
+        .unwrap()
+        .execute(
+            "UPDATE meeting_sessions SET phase = 'deleting' WHERE id = ?1",
+            params![session_id.uuid().to_string()],
+        )
+        .unwrap();
+}
+
+/// Two settings screens list series out of one corpus: Meeting Intelligence
+/// offers an exclusion per row, Automations offers a webhook. They may attach
+/// different things to a row. They may not disagree about which series there
+/// are, what each is called, when it last met, or how often — which is what
+/// having one roster behind both is for.
+#[test]
+fn both_series_surfaces_list_the_same_series() {
+    let (_directory, store) = store();
+    let older = meeting(&store, "Weekly sync", 1_000);
+    calendar_facts(&store, older, "weekly-sync", "Weekly sync");
+    let newer = meeting(&store, "Weekly sync", 5_000);
+    calendar_facts(&store, newer, "weekly-sync", "Weekly sync (new room)");
+    let board = meeting(&store, "Board", 3_000);
+    calendar_facts(&store, board, "board", "Board");
+    // Newest of all, and on its way out: it counts for neither surface.
+    let dropped = meeting(&store, "Board", 9_000);
+    calendar_facts(&store, dropped, "board", "Board (last one)");
+    deleting(&store, dropped);
+    // No calendar event at all, so no series to list it under.
+    meeting(&store, "Local notes", 7_000);
+    exclude(&store, "weekly-sync");
+    remind(&store, "board");
+
+    let expected: RosterRows = vec![
+        (
+            "weekly-sync".to_string(),
+            "Weekly sync (new room)".to_string(),
+            5_000,
+            2,
+        ),
+        ("board".to_string(), "Board".to_string(), 3_000, 1),
+    ];
+    assert_eq!(remote_rows(&store), expected);
+    assert_eq!(
+        automation_rows(&store),
+        expected,
+        "one roster, listed by two surfaces"
+    );
+
+    // Each surface still carries only what it owns.
+    let remote = store.series_remote_roster().unwrap();
+    assert!(remote.rows[0].remote_intelligence_opt_out);
+    assert!(!remote.rows[1].remote_intelligence_opt_out);
+    let automations = store.automation_roster().unwrap();
+    assert!(automations.series[0].automations.is_empty());
+    assert_eq!(automations.series[1].automations.len(), 1);
+}
+
+/// An occurrence that arrives without a name does not blank the row: the title
+/// is the most recent name the series actually had, which is the one the
+/// operator would recognise.
+#[test]
+fn a_nameless_occurrence_does_not_take_the_series_name_away() {
+    let (_directory, store) = store();
+    let named = meeting(&store, "Board", 1_000);
+    calendar_facts(&store, named, "board", "Board sync");
+    let nameless = meeting(&store, "Board", 2_000);
+    calendar_facts(&store, nameless, "board", "");
+
+    assert_eq!(
+        remote_rows(&store),
+        vec![("board".to_string(), "Board sync".to_string(), 2_000, 2)]
+    );
+    assert_eq!(automation_rows(&store), remote_rows(&store));
+}
+
+/// A settings list is a place to make a decision, not an archive. The bound
+/// belongs to the roster rather than to a surface, so neither screen can ask
+/// for a longer list than the other.
+#[test]
+fn both_surfaces_stop_at_the_same_two_dozen_series() {
+    let (_directory, store) = store();
+    let overflowing = super::series::SERIES_ROSTER_LIMIT + 3;
+    for index in 0..overflowing {
+        let session_id = meeting(&store, "Sync", 1_000 + index as i64);
+        calendar_facts(&store, session_id, &format!("series-{index:02}"), "Sync");
+    }
+
+    let rows = remote_rows(&store);
+    assert_eq!(rows.len(), super::series::SERIES_ROSTER_LIMIT);
+    assert_eq!(automation_rows(&store), rows);
+    assert_eq!(
+        rows[0].0,
+        format!("series-{:02}", overflowing - 1),
+        "newest first, so the oldest series are the ones that fall off"
+    );
+}
+
 /* D28's preference has to actually reach the evening sentence, or it is a
  * switch that does nothing. A meeting in an excluded series is not counted;
  * one with no calendar event at all still is. */
@@ -410,9 +590,9 @@ fn a_bulk_read_answers_for_every_key_including_the_ones_with_no_row() {
 fn the_digest_skips_meetings_whose_series_was_taken_out_of_it() {
     let (_directory, store) = store();
     let excluded = meeting(&store, "Weekly sync", 1_100);
-    calendar_facts(&store, excluded, "weekly-sync");
+    calendar_facts(&store, excluded, "weekly-sync", "Weekly sync");
     let kept = meeting(&store, "Design review", 1_200);
-    calendar_facts(&store, kept, "design-review");
+    calendar_facts(&store, kept, "design-review", "Design review");
     meeting(&store, "Local notes", 1_300);
     set_digest(&store, "weekly-sync", false, 0);
 

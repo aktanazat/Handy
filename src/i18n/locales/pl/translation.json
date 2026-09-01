@@ -1762,6 +1762,7 @@
       "people": "Osoby",
       "dictations": "Dyktowania",
       "loops": "Pytania bez odpowiedzi",
+      "empty": "Nic nie pasuje do \"{{query}}\".",
       "unavailable": "Wyszukiwanie jest teraz niedostępne."
     }
   },
@@ -2102,16 +2103,16 @@
       "unassigned": "Nieprzypisane",
       "noDueDate": "Bez terminu",
       "questions": "Zapytaj to spotkanie",
-      "questionsDescription": "Odpowiedzi korzystają tylko z tego lokalnego spotkania i przytaczają potwierdzający fragment transkrypcji.",
+      "questionsDescription": "Odpowiedzi korzystają tylko z tego spotkania i przytaczają potwierdzający fragment transkrypcji, a na twoim serwerze są pisane tylko wtedy, gdy inteligencja spotkań je tam skieruje.",
       "questionPlaceholder": "Zadaj pytanie o to spotkanie",
-      "ask": "Zapytaj lokalnie",
+      "ask": "Zapytaj",
       "noQuestions": "Brak zapisanych lokalnych odpowiedzi.",
       "question": "Pytanie",
       "insufficientEvidence": "Nie znaleziono w tym spotkaniu fragmentu, który by to potwierdzał.",
       "forget": "Zapomnij tę odpowiedź",
       "searchPlaceholder": "Szukaj w tym spotkaniu",
       "noSearchResults": "Brak dokładnych trafień lokalnych.",
-      "askUnavailable": "Zadawanie pytań wymaga ukończonej lokalnej transkrypcji.",
+      "askUnavailable": "Zadawanie pytań wymaga ukończonej transkrypcji.",
       "asking": "Pytanie o to spotkanie…",
       "droppedFrames": "Utracone klatki: {{total}}",
       "hitKind": {
@@ -2469,40 +2470,29 @@
       "failed": "Nie udało się napisać wiadomości do tego spotkania."
     }
   },
-  "agentPanel": {
-    "open": "Agent",
-    "retry": "Spróbuj ponownie",
-    "cancel": "Anuluj",
-    "apply": "Zastosuj",
-    "undo": "Cofnij",
-    "panelToggle": "Zamknij panel agenta",
-    "conversationLabel": "Rozmowa",
-    "proposalTitle": "Proponowane zmiany",
-    "empty": "Zapytaj o swoje spotkania, notatki i ustawienia. Zmiany ustawień pojawiają się tutaj jako propozycja, którą przeglądasz, zanim cokolwiek się zmieni.",
+  "chat": {
+    "open": "Czat",
+    "label": "Czat z agentem Sony",
+    "title": "Agent Sony",
+    "unpaired": "Sparuj agenta Sony w Ustawieniach",
+    "close": "Zamknij czat",
+    "history": "Ostatnie czaty",
+    "historyEmpty": "Nie ma jeszcze wcześniejszych czatów.",
+    "newChat": "Nowy czat",
+    "empty": "Zapytaj o swoje spotkania, notatki i ustawienia.",
+    "placeholder": "Zapytaj o cokolwiek",
     "inputLabel": "Zapytaj o Sona",
     "send": "Wyślij",
-    "status": {
-      "loading": "Łączenie…",
-      "disabled": "Panel agenta jest wyłączony.",
-      "unpaired": "Brak pary z przekaźnikiem.",
-      "offline": "Przekaźnik jest offline.",
-      "idle": "Gotowe",
-      "proposal": "Propozycja gotowa",
-      "error": "Panel agenta jest niedostępny."
-    },
-    "activityLabel": "Przebieg",
-    "workspaceLabel": "Kto odpowiada",
-    "step": {
-      "sent": "Wysłano"
-    },
-    "workspace": {
+    "stop": "Zatrzymaj",
+    "retry": "Spróbuj ponownie",
+    "openSettings": "Ustawienia",
+    "scopeLabel": "Kto odpowiada",
+    "scope": {
       "sona_chat": "Pytanie",
       "sona_config": "Ustawienia"
     },
-    "placeholder": {
-      "sona_chat": "Zapytaj o swoje spotkania i notatki…",
-      "sona_config": "Zapytaj o ustawienia Sony…"
-    },
+    "workedFor": "Pracował {{seconds}} s",
+    "stepSeconds": "{{seconds}} s",
     "turnState": {
       "submitting": "Wysyłanie",
       "queued": "W kolejce",
@@ -2516,15 +2506,24 @@
       "canceled": "Zatrzymano",
       "unverified_external": "Niezweryfikowana odpowiedź"
     },
+    "status": {
+      "disabled": "Agent Sona jest wyłączony.",
+      "unpaired": "Agent Sona nie jest sparowany z przekaźnikiem.",
+      "offline": "Nie udało się połączyć z przekaźnikiem agenta Sona.",
+      "error": "Agent Sona jest niedostępny."
+    },
+    "proposal": {
+      "apply": "Zastosuj",
+      "applied": "Zastosowano",
+      "undo": "Cofnij",
+      "undone": "Cofnięto",
+      "rejected": "Nie zastosowano"
+    },
     "ask": {
       "row": "Zapytaj Sonę: {{query}}",
-      "error": "Nie udało się wysłać pytania do Sony."
+      "error": "Nie udało się wysłać pytania do Sony.",
+      "consentRequired": "Pytanie wysyła cytaty z twoich spotkań na twój serwer, więc najpierw włącz inteligencję spotkań."
     }
-  },
-  "chat": {
-    "open": "Czat",
-    "label": "Czat z agentem Sony",
-    "unpaired": "Sparuj agenta Sony w Ustawieniach"
   },
   "overview": {
     "hero": {

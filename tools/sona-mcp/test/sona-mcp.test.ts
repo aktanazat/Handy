@@ -1,13 +1,18 @@
 /* What this server actually does: turn a tool call into a `sona` command line,
  * and hand back what `sona` said.
  *
- * The stub below is the whole test rig. It records the argv it was given and
- * replies with whatever the test told it to, which is enough to pin both
- * halves — the mapping, and the passthrough — without an installed app and
- * without a corpus.
+ * The stub below is most of the test rig. It records the argv it was given and
+ * replies with whatever the test told it to, which is enough to pin the mapping
+ * and the passthrough without an installed app and without a corpus. The last
+ * describe adds the piece a stub cannot reach: `index.ts` on a real MCP
+ * transport, so the server's construction — its imports included — is exercised
+ * by the suite rather than first by an agent's first `tools/call`.
  */
 
 import { afterEach, describe, expect, test } from "bun:test";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import {
   chmodSync,
   mkdtempSync,
@@ -32,6 +37,7 @@ import {
   type ToolInput,
   TOOLS,
 } from "../src/tools.ts";
+import { createServer } from "../src/index.ts";
 
 const directories: string[] = [];
 
@@ -310,3 +316,129 @@ const minimalInput = (tool: ToolDefinition): ToolInput =>
   Object.fromEntries(
     (tool.inputSchema.required ?? []).map((field) => [field, "abc"]),
   );
+
+/** A client talking to a freshly constructed server over linked in-memory
+ * transports. Constructing it is the point: `createServer` is where the
+ * `tools.ts` imports are resolved and the two request handlers are registered,
+ * and nothing else in this suite touches either. */
+async function connected(): Promise<Client> {
+  const [clientEnd, serverEnd] = InMemoryTransport.createLinkedPair();
+  const client = new Client({ name: "sona-mcp-test", version: "0.1.0" });
+  await Promise.all([
+    createServer().connect(serverEnd),
+    client.connect(clientEnd),
+  ]);
+  return client;
+}
+
+/** What the SDK itself lets a caller hand to `tools/call` — the owner type,
+ * so a deliberately malformed shape in these tests still speaks the wire's
+ * own vocabulary rather than a local dictionary's. */
+type RawCallArguments = NonNullable<
+  Parameters<Client["callTool"]>[0]["arguments"]
+>;
+
+/** The error a `tools/call` came back as, or a failure saying it succeeded. */
+async function errorOf(
+  name: string,
+  args: RawCallArguments,
+): Promise<McpError> {
+  const client = await connected();
+  try {
+    await client.callTool({ name, arguments: args });
+  } catch (error) {
+    if (error instanceof McpError) return error;
+    throw error;
+  } finally {
+    await client.close();
+  }
+  throw new Error(`${name} answered instead of failing`);
+}
+
+describe("the stdio server", () => {
+  test("publishes every tool it can run", async () => {
+    const client = await connected();
+
+    const listed = await client.listTools();
+
+    expect(listed.tools.map((published) => published.name)).toEqual(
+      TOOLS.map((definition) => definition.name),
+    );
+    /* The schema an agent reads is the one in `tools.ts`, verbatim: through
+     * JSON because that is how it reaches the agent. */
+    expect(listed.tools.map((published) => published.inputSchema)).toEqual(
+      JSON.parse(
+        JSON.stringify(TOOLS.map((definition) => definition.inputSchema)),
+      ),
+    );
+    await client.close();
+  });
+
+  test("a tools/call becomes an argv and comes back as one text block", async () => {
+    const sona = stub({ stdout: '{"schema_version":1,"entries":[]}' });
+    const client = await connected();
+
+    const answered = await client.callTool({
+      name: "sona_search",
+      arguments: { query: "tier comparison", limit: 5 },
+    });
+
+    expect(sona.argv()).toEqual(["--query", "tier comparison", "--limit", "5"]);
+    expect(answered.content).toEqual([
+      {
+        type: "text",
+        text: JSON.stringify({ schema_version: 1, entries: [] }, null, 2),
+      },
+    ]);
+    await client.close();
+  });
+
+  /* The refusal an agent has to be able to branch on: the code and the
+   * settings row survive the trip out through JSON-RPC. */
+  test("a consent refusal arrives as an invalid-request error naming the switch", async () => {
+    stub({
+      stderr: JSON.stringify({
+        schema_version: 1,
+        error: "consent_required",
+        message: "External access is off.",
+        settings_path: "Settings > Agents > External access",
+      }),
+      exit: 1,
+    });
+
+    const failed = await errorOf("sona_meetings", {});
+
+    expect(failed.code).toBe(ErrorCode.InvalidRequest);
+    expect(failed.message).toContain("External access is off");
+    expect(failed.message).toContain("Settings > Agents > External access");
+    expect(failed.data).toEqual({
+      code: "consent_required",
+      settingsPath: "Settings > Agents > External access",
+    });
+  });
+
+  /* Arguments come from a model rather than from a validating client, so the
+   * two shapes a tool cannot build a command line out of — a nested value, and
+   * a missing required field — have to be refused here as bad parameters, and
+   * refused before anything is spawned. The stub writes its argv file only
+   * when it runs, so a missing file is proof that it did not. */
+  test("an argument no argv can be built from is refused without running sona", async () => {
+    const sona = stub({ stdout: "{}" });
+
+    const nested = await errorOf("sona_search", { query: { text: "dana" } });
+    const missing = await errorOf("sona_people", {});
+
+    expect(nested.code).toBe(ErrorCode.InvalidParams);
+    expect(nested.message).toContain("flat object");
+    expect(missing.code).toBe(ErrorCode.InvalidParams);
+    expect(missing.message).toContain("name is required");
+    expect(() => sona.argv()).toThrow();
+  });
+
+  test("a tool this server does not have is method-not-found", async () => {
+    const failed = await errorOf("sona_delete_everything", {});
+
+    expect(failed.code).toBe(ErrorCode.MethodNotFound);
+    expect(failed.message).toContain("sona_delete_everything");
+  });
+});

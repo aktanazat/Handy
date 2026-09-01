@@ -41,7 +41,7 @@ mod tests;
 use crate::managers::history::semantic::SemanticModel;
 use crate::managers::history::{HistoryEntry, HistoryManager};
 use crate::meeting::loop_types::MeetingLoopId;
-use crate::meeting::people_types::{PersonId, PersonMeetingHeadline};
+use crate::meeting::people_types::{PersonId, PersonListEntry, PersonMeetingHeadline};
 use crate::meeting::session::MeetingSessionManager;
 use crate::meeting::store::query_plane::MeetingQueryCandidate;
 use crate::meeting::store::query_plane::QueryEventRow;
@@ -449,15 +449,7 @@ pub(crate) fn assemble(
 
     if scope.includes(QueryRowKind::Person) {
         for entry in store.people_list()?.entries {
-            // Every name this person answers to. People have no index of their
-            // own, so this is the match: the same all-tokens-present rule the
-            // FTS5 halves apply, over the names the store already holds.
-            let names = std::iter::once(entry.person.display_name.as_str())
-                .chain(entry.person.aliases.iter().map(String::as_str))
-                .chain(entry.person.calendar_emails.iter().map(String::as_str))
-                .collect::<Vec<_>>()
-                .join(" ");
-            if !matches_every_token(&names, &tokens) {
+            if !matches_every_token(&person_haystack(&entry), &tokens) {
                 continue;
             }
             let when_utc_ms = entry
@@ -652,6 +644,20 @@ fn tokens(query: &str) -> Vec<String> {
 fn matches_every_token(haystack: &str, tokens: &[String]) -> bool {
     let folded = haystack.to_lowercase();
     tokens.iter().all(|token| folded.contains(token))
+}
+
+/// Every name a person answers to, as one string to match against.
+///
+/// People have no index of their own, so this is what the all-tokens-present
+/// rule is applied to — here rather than at a call site, because a surface that
+/// searched a different set of names would be a second answer to "who counts as
+/// this person" without ever looking like one.
+pub(super) fn person_haystack(entry: &PersonListEntry) -> String {
+    std::iter::once(entry.person.display_name.as_str())
+        .chain(entry.person.aliases.iter().map(String::as_str))
+        .chain(entry.person.calendar_emails.iter().map(String::as_str))
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 /// Deduplicate, order, and cut one page.

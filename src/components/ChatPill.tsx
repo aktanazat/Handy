@@ -1,8 +1,5 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import type { TFunction } from "i18next";
-import { toast } from "sonner";
-import { commands } from "@/bindings";
 import { cn } from "@/lib/cn";
 import {
   Tooltip,
@@ -18,6 +15,12 @@ import {
  * the content pane's right gutter. It is mounted once by the shell (App.tsx)
  * outside the page scroll region, so it neither scrolls away nor has to be
  * restated by twelve pages.
+ *
+ * It is a door and not a switch: while the chat column is open the pill is off
+ * screen and the column's own X is what closes it. Two controls for one fold,
+ * one of them sitting in a 512pt page that has just been narrowed to make room
+ * for the other, is the duplication this surface keeps being rebuilt to
+ * remove.
  *
  * Geometry, stated once here because this component owns where it sits and the
  * shell only owns which box it sits in. The app's root is 14px, so every rem
@@ -91,54 +94,71 @@ const AuroraRing: React.FC = () => (
   </svg>
 );
 
-/* The backend owns whether the panel is open, so the click reads it rather
- * than mirroring it: a panel is a window of its own and can be closed from its
- * own header, from ⌘K, or by the relay going away. Nothing local to keep in
- * sync, and one round trip on a gesture nobody makes twice a second.
- *
- * Exported because this is the pill's verb, and a static render cannot press
- * a button: the two branches are pinned against stubbed commands instead. */
-export const toggleAgentPanel = async (t: TFunction): Promise<void> => {
-  try {
-    const status = await commands.agentPanelStatus();
-    const result =
-      status.status === "ok" && status.data.panel_open
-        ? await commands.agentPanelClose()
-        : await commands.agentPanelOpen();
-    if (result.status === "error") toast.error(t("agentPanel.status.error"));
-  } catch {
-    toast.error(t("agentPanel.status.error"));
-  }
-};
-
 export interface ChatPillProps {
   /** `agent_panel_enabled`. Off means the affordance does not exist at all. */
   enabled: boolean;
   /** `agent_panel_paired`. Off means no relay would answer a turn. */
   paired: boolean;
+  /**
+   * Whether the chat column beside it is showing. While it is, there is no
+   * pill at all — the column's own X is what closes it.
+   */
+  open: boolean;
+  /** Presses only ever open: closing belongs to the column's X and to Esc. */
+  onOpen: () => void;
 }
 
-export const ChatPill: React.FC<ChatPillProps> = ({ enabled, paired }) => {
+export const ChatPill: React.FC<ChatPillProps> = ({
+  enabled,
+  paired,
+  open,
+  onOpen,
+}) => {
   const { t } = useTranslation();
+  const pillRef = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
 
-  /* Nothing to offer and nothing to explain: the panel is off by setting, and
+  /* Closing the column brings the pill back, and whoever closed it with the
+   * column's X or with Escape has just had the element under their focus taken
+   * off screen. Focus returns here, where the press started, rather than
+   * falling back to the body. Only after the column has actually been open:
+   * on a fresh window this effect must not steal focus from whatever the route
+   * put it on. */
+  useEffect(() => {
+    if (wasOpen.current && !open) pillRef.current?.focus();
+    wasOpen.current = open;
+  }, [open]);
+
+  /* Nothing to offer and nothing to explain: the agent is off by setting, and
    * a disabled control pointing at a switch the reader turned off themselves
    * is noise. Settings is where it comes back. */
   if (!enabled) return null;
 
+  /* The column is showing, and it carries the X that closes it. A pill left
+   * standing in the page the column just took its width from would be a second
+   * control for one fold, in the half of the window with less room for it. */
+  if (open) return null;
+
   const pill = (
     <button
       type="button"
+      ref={pillRef}
       data-slot="chat-pill"
       /* The label reads "Chat", which does not say chat with what. The
        * accessible name does. */
       aria-label={t("chat.label")}
+      /* The column it opens is not showing — a pill on screen is a column that
+       * is closed — so the state it reports is always the collapsed one. It
+       * reports it anyway: this is the control that reveals that region, and a
+       * disclosure that says nothing about its region is one a screen reader
+       * has to guess at. */
+      aria-expanded={paired ? false : undefined}
       /* `aria-disabled`, not `disabled`: the reason it is inert lives in the
        * tooltip below, and a `disabled` button takes neither hover nor focus,
        * so it would be the one state that cannot reach its own explanation.
        * Dimmed type rather than opacity, like every disabled settings row. */
       aria-disabled={paired ? undefined : true}
-      onClick={paired ? () => void toggleAgentPanel(t) : undefined}
+      onClick={paired ? onOpen : undefined}
       className={cn(
         PLACEMENT,
         "inline-flex h-[28px] items-center gap-1.5 rounded-full border border-gray-alpha-400 bg-raised ps-2.5 pe-3 text-[13px] leading-[18px] transition-colors outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",

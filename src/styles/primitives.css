@@ -19,7 +19,7 @@
  * Every window now carries Tailwind, so the layer is real everywhere: under
  * Next.js this file is reached only through app/globals.css, which is the
  * Tailwind entry, and all three routes nest inside src/app/layout.tsx. That was
- * not true under Vite, where the overlay and agent-panel entries imported this
+ * not true under Vite, where the overlay and consent entries imported this
  * file as plain CSS and the layer was created on first use. Keep it layered. */
 @layer components {
   .settings-main

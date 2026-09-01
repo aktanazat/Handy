@@ -1,0 +1,224 @@
+import type {
+  AgentPanelProposalPreviewV1,
+  AgentPanelStatusV1,
+  AgentPanelStepV1,
+  AgentPanelTurnStatusV1,
+  SonaAgentChatTurnV1,
+} from "@/bindings";
+
+/**
+ * What the relay is doing, as the sheet needs to know it.
+ *
+ * Nine relay statuses collapse onto six, because the sheet acts on exactly six
+ * things: it has not asked yet, the agent is off, it is unpaired, the relay is
+ * away, something else went wrong, or it works. Whether a turn is running and
+ * whether a proposal is on screen are separate facts read from the status
+ * itself — folding them in here is how the old panel ended up with a "phase"
+ * that meant three different kinds of thing at once.
+ */
+export type ChatPhase =
+  | "loading"
+  | "disabled"
+  | "unpaired"
+  | "offline"
+  | "error"
+  | "ready";
+
+/** The phases that owe the reader a sentence instead of a conversation. */
+export const CHAT_NOTICE_PHASES = {
+  disabled: true,
+  unpaired: true,
+  offline: true,
+  error: true,
+} satisfies Partial<Record<ChatPhase, true>>;
+
+export const chatPhase = (status: AgentPanelStatusV1 | null): ChatPhase => {
+  if (status === null) return "loading";
+  switch (status.relay_status) {
+    case "disabled":
+      return "disabled";
+    case "unpaired":
+      return "unpaired";
+    case "offline":
+      return "offline";
+    case "ready":
+      return "ready";
+    /* Invalid pairing, a missing secret, an answer that failed verification, a
+     * rejection from the far side: all of them mean the same thing to someone
+     * looking at a chat window — it is not going to answer, and Settings is
+     * where the pairing lives. */
+    default:
+      return "error";
+  }
+};
+
+/**
+ * The turn states that are over. A live turn can be stopped; a finished one is
+ * a record, and offering to stop it is offering to undo the past.
+ */
+const TERMINAL_TURN_STATES = {
+  succeeded: true,
+  failed: true,
+  canceled: true,
+  unverified_external: true,
+} satisfies Partial<Record<AgentPanelTurnStatusV1["state"], true>>;
+
+/**
+ * Whether the turn on screen is still going. Deliberately not a type guard:
+ * its negation means "finished OR absent", and a guard would narrow the
+ * finished case away.
+ */
+export const isTurnRunning = (turn: AgentPanelTurnStatusV1 | null): boolean =>
+  turn !== null && !(turn.state in TERMINAL_TURN_STATES);
+
+/**
+ * How long the turn took, in milliseconds.
+ *
+ * A finished turn's number is fixed by the backend, so reopening the sheet
+ * tomorrow still says how long it took rather than how long ago it was.
+ */
+export const workedMs = (turn: AgentPanelTurnStatusV1, now: number): number =>
+  Math.max(0, (turn.completed_at_utc_ms ?? now) - turn.started_at_utc_ms);
+
+/** How long one step took, on the same axis. */
+export const stepMs = (
+  step: AgentPanelStepV1,
+  turn: AgentPanelTurnStatusV1,
+  now: number,
+): number =>
+  Math.max(
+    0,
+    (step.ended_after_ms ?? workedMs(turn, now)) - step.started_after_ms,
+  );
+
+/**
+ * Where the turn's work belongs in the scrollback: above the answer it
+ * produced, or at the end while there is no answer yet.
+ *
+ * `-1` when there is nothing to show, which is a finished turn that reported
+ * no steps — its answer is the whole record. A running turn always has a row,
+ * because "this is happening" is the one thing the scrollback cannot say by
+ * itself. The rule is positional because the scrollback is a flat list of
+ * things said, and the only row a turn can have produced is the last one —
+ * anything earlier belongs to a turn that already finished.
+ */
+export const workRowIndex = (
+  conversation: readonly SonaAgentChatTurnV1[],
+  turn: AgentPanelTurnStatusV1 | null,
+): number => {
+  if (turn === null) return -1;
+  if (!isTurnRunning(turn) && turn.steps.length === 0) return -1;
+  const last = conversation.length - 1;
+  return last >= 0 && conversation[last].role === "assistant"
+    ? last
+    : conversation.length;
+};
+
+/**
+ * The scrollback row a live proposal owns, or `-1` if it has none.
+ *
+ * The backend pushes a proposal's summary onto the conversation and stores the
+ * proposal beside it, so the card and the row are the same utterance. Drawing
+ * both would print one sentence twice; this is how the card takes the row's
+ * place instead of sitting under it.
+ */
+export const proposalRowIndex = (
+  conversation: readonly SonaAgentChatTurnV1[],
+  proposal: AgentPanelProposalPreviewV1 | null,
+): number => {
+  if (proposal === null) return -1;
+  const last = conversation.length - 1;
+  return last >= 0 &&
+    conversation[last].role === "assistant" &&
+    conversation[last].message === proposal.summary
+    ? last
+    : -1;
+};
+
+/**
+ * Stable keys for a conversation that can legitimately repeat itself: the same
+ * role saying the same words twice is one exchange, not one row rendered
+ * twice, so the occurrence count is part of the identity.
+ */
+export const conversationRows = (
+  conversation: readonly SonaAgentChatTurnV1[],
+): Array<{ key: string; turn: SonaAgentChatTurnV1 }> => {
+  const occurrences = new Map<string, number>();
+  return conversation.map((turn) => {
+    const identity = JSON.stringify([turn.role, turn.message]);
+    const occurrence = occurrences.get(identity) ?? 0;
+    occurrences.set(identity, occurrence + 1);
+    return { key: JSON.stringify([turn.role, turn.message, occurrence]), turn };
+  });
+};
+
+/* An answer worth reading cites where it came from, and the pack it was given
+ * is nothing but quotes with `sona://` addresses beside them (`query/pack.rs`),
+ * so an assistant that answers from evidence writes those addresses into its
+ * reply. Left as text they are unclickable noise; split out here they are the
+ * one gesture that turns an answer back into the meeting it came from.
+ *
+ * The address stops at the first character that cannot be inside one. Trailing
+ * sentence punctuation is trimmed after the fact rather than excluded from the
+ * class, because a `?` can legitimately open a query string while a `.` at the
+ * end of a sentence never belongs to the link. */
+const SONA_LINK = /sona:\/\/[^\s<>"'`)\]]+/g;
+const TRAILING_PUNCTUATION = /[.,;:!?]+$/;
+
+export type MessageSegment = { text: string } | { link: string };
+
+/** One message as alternating prose and addresses, in the order it was written. */
+export const linkifySona = (message: string): MessageSegment[] => {
+  const segments: MessageSegment[] = [];
+  let cursor = 0;
+  for (const match of message.matchAll(SONA_LINK)) {
+    const link = match[0].replace(TRAILING_PUNCTUATION, "");
+    if (link === "sona://") continue;
+    const start = match.index;
+    if (start > cursor) segments.push({ text: message.slice(cursor, start) });
+    segments.push({ link });
+    cursor = start + link.length;
+  }
+  if (cursor < message.length) segments.push({ text: message.slice(cursor) });
+  return segments;
+};
+
+/**
+ * The two members a key handler reads. React's own events satisfy this
+ * structurally, so a test can build one as a plain object instead of
+ * impersonating React's type.
+ */
+export interface ChatKeyEvent {
+  readonly key: string;
+  readonly shiftKey: boolean;
+  preventDefault(): void;
+}
+
+/**
+ * Enter sends, Shift+Enter opens a line. The field is a textarea so a question
+ * can run to two lines; that must not cost it the way every other single-line
+ * field on this machine is sent.
+ */
+export const composerKeys =
+  (send: () => void) =>
+  (event: ChatKeyEvent): void => {
+    if (event.key !== "Enter" || event.shiftKey) return;
+    event.preventDefault();
+    send();
+  };
+
+/**
+ * Escape closes the sheet.
+ *
+ * Bound on the sheet rather than on the window: a palette, a dialog or a
+ * popover open over it owns Escape first, and each of those stops the event
+ * before it reaches an ancestor. A window-level listener would close the sheet
+ * out from under whichever of them the reader was actually dismissing.
+ */
+export const sheetKeys =
+  (close: () => void) =>
+  (event: ChatKeyEvent): void => {
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    close();
+  };

@@ -9,6 +9,7 @@ pub(crate) mod digest;
 mod documents;
 #[cfg(test)]
 mod external_tests;
+mod fence;
 mod follow_up;
 pub(crate) mod learning;
 #[cfg(test)]
@@ -25,8 +26,13 @@ pub(crate) mod series;
 mod series_tests;
 #[cfg(test)]
 mod title_tests;
+/// The encrypted-store fixture, and the one place a test builds one. Reachable
+/// from the whole crate rather than just this module because the query plane
+/// spans this store and dictation history and so lives outside `meeting/`
+/// (see `MeetingSessionManager::store`), and a second fixture that opened its
+/// own database would be a second answer to what a fresh corpus looks like.
 #[cfg(test)]
-mod workflow_core_tests;
+pub(crate) mod workflow_core_tests;
 #[cfg(test)]
 mod workflow_receipt_tests;
 mod workflows;
@@ -1360,6 +1366,9 @@ pub struct InterruptedRecovery {
     /// Meetings already parked in recovery whose stale processing status this
     /// pass resolved. Their phase, revision, and history are untouched.
     pub status_resolved: Vec<MeetingSessionId>,
+    /// Start gates a previous launch left open, deleted by this pass. Nothing
+    /// was ever recorded against them.
+    pub discarded: Vec<MeetingSessionId>,
 }
 #[derive(Clone, Copy)]
 pub(crate) struct StoreMutation {
@@ -5653,8 +5662,8 @@ impl MeetingStore {
     /// Reconcile every meeting a previous launch left mid-flight, so that no
     /// row can advertise processing that no job is doing.
     ///
-    /// Two shapes need it. A live phase means the launch ended mid-capture or
-    /// mid-processing: the phase moves to `recovery_required` and the
+    /// Three shapes need it. A live phase means the launch ended mid-capture
+    /// or mid-processing: the phase moves to `recovery_required` and the
     /// processing status becomes terminal in the same transaction, because a
     /// phase that parks the meeting for a human while the status still reads
     /// `pending` is the state that showed "Processing" forever. A row already
@@ -5662,10 +5671,13 @@ impl MeetingStore {
     /// state left by launches that flipped the phase alone; it is healed
     /// without touching the phase, the revision, or the event log, since
     /// nothing about the meeting changed — only what was always true about it
-    /// is now written down. Terminal statuses are fixpoints, so a second pass
-    /// in the same launch changes nothing.
+    /// is now written down. A row still sitting at its start gate is the
+    /// third, and it is discarded outright. Terminal statuses are fixpoints,
+    /// and a discarded row is gone, so a second pass in the same launch
+    /// changes nothing.
     pub fn recover_interrupted(&self) -> Result<InterruptedRecovery, StoreError> {
         self.resume_deletions()?;
+        let discarded = self.discard_abandoned_preflights()?;
         let status_resolved = self.resolve_abandoned_recovery_status()?;
         let connection = self.connection()?;
         let mut statement = connection.prepare(
@@ -5725,7 +5737,41 @@ impl MeetingStore {
         Ok(InterruptedRecovery {
             recovered,
             status_resolved,
+            discarded,
         })
+    }
+
+    /// Meetings still parked at their start gate, deleted outright. Returned
+    /// so the caller can tell the windows those rows are gone.
+    ///
+    /// A preflight row is the draft the gate writes before anyone consents to
+    /// recording: no consent, no run plan, no track, no audio, and a title
+    /// nobody typed. Leaving the gate deletes it, which is why it is the one
+    /// phase with a cancel and no stop. It outlives its gate only when the
+    /// launch ends while the gate is still open, and then it is a row in the
+    /// history of meetings that never happened — born `pending`, so both the
+    /// Processing filter and the row chip read it as work in flight, forever.
+    /// This is the cancel the closing window never sent, so it deletes the
+    /// row the same way [`Self::cancel_preflight`] does. Nothing is lost that
+    /// pressing Start does not rebuild, and a row the person can still return
+    /// to is one whose gate is open in this launch, which no startup pass can
+    /// be looking at.
+    fn discard_abandoned_preflights(&self) -> Result<Vec<MeetingSessionId>, StoreError> {
+        let connection = self.connection()?;
+        let mut statement =
+            connection.prepare("SELECT id FROM meeting_sessions WHERE phase = 'preflight'")?;
+        let ids = statement
+            .query_map([], |row| row.get::<_, String>(0))?
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .map(|value| parse_uuid(&value).map(MeetingSessionId::from_uuid))
+            .collect::<Result<Vec<_>, _>>()?;
+        drop(statement);
+        if ids.is_empty() {
+            return Ok(ids);
+        }
+        connection.execute("DELETE FROM meeting_sessions WHERE phase = 'preflight'", [])?;
+        Ok(ids)
     }
 
     /// Meetings parked in `recovery_required` whose processing status never
@@ -11705,6 +11751,50 @@ mod tests {
             .collect()
     }
 
+    /// A start gate the way the app writes it, and the way seven of them were
+    /// found sitting in a real store: `create_preflight` and nothing after it.
+    /// No consent, no run plan, no track, no capture window, no duration, and
+    /// the `pending` status every meeting is born with.
+    fn open_start_gate(store: &Arc<MeetingStore>) -> MeetingSessionId {
+        let session_id = MeetingSessionId::new();
+        store
+            .create_preflight(
+                StoreMutation {
+                    operation_id: MeetingOperationId::new(),
+                    requested_at_utc_ms: 1,
+                    session_id,
+                    expected_revision: 0,
+                    command: MeetingCommandKind::PreflightCreate,
+                },
+                "Local notes".to_string(),
+                MeetingOrigin::Manual,
+                preflight(session_id),
+                MeetingRetentionPolicy::Forever,
+            )
+            .expect("open the start gate");
+        session_id
+    }
+
+    /// A meeting that made it all the way through, which is what shares the
+    /// list with the abandoned gates and what a sweep that deletes rows has to
+    /// leave standing.
+    fn finished_session(store: &Arc<MeetingStore>) -> MeetingSessionId {
+        let session_id = MeetingSessionId::new();
+        review_ready_session(store, session_id);
+        store
+            .connection()
+            .unwrap()
+            .execute(
+                "UPDATE meeting_sessions SET processing_status = ?1 WHERE id = ?2",
+                params![
+                    encode_json(&ProcessingStatus::Succeeded).unwrap(),
+                    id(session_id)
+                ],
+            )
+            .unwrap();
+        session_id
+    }
+
     /// Matrix 1: the shape that showed "Processing" for days. Recovery has to
     /// leave a terminal status behind, or the row keeps advertising work that
     /// no job is doing.
@@ -11851,6 +11941,7 @@ mod tests {
 
         assert!(second.recovered.is_empty());
         assert!(second.status_resolved.is_empty());
+        assert!(second.discarded.is_empty());
         assert_eq!(
             (
                 store.session_snapshot(interrupted).unwrap(),
@@ -11859,6 +11950,68 @@ mod tests {
             ),
             after_first
         );
+    }
+
+    /// Matrix 6: the shape that walked past every row above and was found in a
+    /// real store seven times over. A start gate is born `pending`, and both
+    /// the Processing filter and the row chip read `pending` as work in
+    /// flight, so a launch that ended with the gate open left a meeting that
+    /// never happened advertising a job that never existed. There is nothing
+    /// to park for review — no consent, no plan, no audio — so the sweep sends
+    /// the cancel the closing window never sent.
+    #[test]
+    fn recovery_discards_a_start_gate_an_earlier_launch_left_open() {
+        let (_directory, store) = store();
+        let finished = finished_session(&store);
+        let gate = open_start_gate(&store);
+        assert_eq!(
+            listed_ids(&store, MeetingStatusFilter::Processing),
+            vec![gate],
+            "an open gate is exactly what the person was shown as Processing"
+        );
+
+        let recovery = store.recover_interrupted().expect("recovery sweep");
+
+        assert_eq!(recovery.discarded, vec![gate]);
+        assert!(recovery.recovered.is_empty());
+        assert!(recovery.status_resolved.is_empty());
+        assert!(matches!(
+            store.session_snapshot(gate),
+            Err(StoreError::NotFound)
+        ));
+        assert_eq!(
+            event_count(&store, gate),
+            0,
+            "the gate's own history goes with it"
+        );
+        assert!(listed_ids(&store, MeetingStatusFilter::Processing).is_empty());
+        assert_eq!(
+            listed_ids(&store, MeetingStatusFilter::Any),
+            vec![finished],
+            "the meetings that did happen are not what this deletes"
+        );
+    }
+
+    /// Matrix 7: pressing Refresh before walking away bumps the revision and
+    /// writes a second event, which is the one live gate that was not still at
+    /// revision zero. It is the same draft, so it goes the same way, and the
+    /// deletion leaves the second sweep of the launch nothing to find.
+    #[test]
+    fn recovery_discards_a_refreshed_start_gate_and_stays_a_fixpoint() {
+        let (_directory, store) = store();
+        let finished = finished_session(&store);
+        let gate = open_start_gate(&store);
+        store
+            .refresh_preflight(MeetingOperationId::new(), 2, gate, 0, preflight(gate))
+            .expect("refresh the gate");
+        assert_eq!(store.session_snapshot(gate).unwrap().revision, 1);
+
+        let first = store.recover_interrupted().expect("first sweep");
+        let second = store.recover_interrupted().expect("second sweep");
+
+        assert_eq!(first.discarded, vec![gate]);
+        assert!(second.discarded.is_empty());
+        assert_eq!(listed_ids(&store, MeetingStatusFilter::Any), vec![finished]);
     }
 
     /// A meeting that lost its records on disk is exactly what the repair pass

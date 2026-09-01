@@ -786,17 +786,14 @@ pub(crate) fn people_page(
     name: &str,
     limit: usize,
 ) -> Result<ExternalPeoplePage, ExternalError> {
-    let tokens = name
-        .split_whitespace()
-        .map(str::to_lowercase)
-        .collect::<Vec<_>>();
+    let tokens = super::tokens(name);
     if tokens.is_empty() {
         return Err(ExternalError::invalid("--people needs a name to look up."));
     }
     let mut entries = Vec::new();
     let mut has_more = false;
     for entry in store.people_list().map_err(QueryError::from)?.entries {
-        if !matches_name(&entry, &tokens) {
+        if !super::matches_every_token(&super::person_haystack(&entry), &tokens) {
             continue;
         }
         if entries.len() == limit {
@@ -810,18 +807,6 @@ pub(crate) fn people_page(
         entries,
         has_more,
     })
-}
-
-/// Every name this person answers to, matched the way the plane's people
-/// source matches it: all tokens present, case folded.
-fn matches_name(entry: &PersonListEntry, tokens: &[String]) -> bool {
-    let names = std::iter::once(entry.person.display_name.as_str())
-        .chain(entry.person.aliases.iter().map(String::as_str))
-        .chain(entry.person.calendar_emails.iter().map(String::as_str))
-        .collect::<Vec<_>>()
-        .join(" ")
-        .to_lowercase();
-    tokens.iter().all(|token| names.contains(token))
 }
 
 fn person_row(entry: PersonListEntry) -> ExternalPersonRow {

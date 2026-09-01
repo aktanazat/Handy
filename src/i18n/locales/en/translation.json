@@ -1757,6 +1757,7 @@
       "people": "People",
       "dictations": "Dictations",
       "loops": "Open loops",
+      "empty": "Nothing matched “{{query}}”.",
       "unavailable": "Search is unavailable right now."
     }
   },
@@ -2111,16 +2112,16 @@
       "unassigned": "Unassigned",
       "noDueDate": "No due date",
       "questions": "Ask this meeting",
-      "questionsDescription": "Answers use only this local meeting and cite the supporting transcript.",
+      "questionsDescription": "Answers use only this meeting and cite the supporting transcript, and are written on your server only when meeting intelligence routes them there.",
       "questionPlaceholder": "Ask a question about this meeting",
-      "ask": "Ask locally",
+      "ask": "Ask",
       "noQuestions": "No saved local answers.",
       "question": "Question",
       "insufficientEvidence": "No supporting passage was found in this meeting.",
       "forget": "Forget this answer",
       "searchPlaceholder": "Search this meeting",
       "noSearchResults": "No exact local matches.",
-      "askUnavailable": "Asking needs a finished local transcript.",
+      "askUnavailable": "Asking needs a finished transcript.",
       "asking": "Asking this meeting…",
       "droppedFrames": "Dropped frames: {{total}}",
       "hitKind": {
@@ -2461,40 +2462,29 @@
       "failed": "Couldn't draft a follow-up for this meeting."
     }
   },
-  "agentPanel": {
-    "open": "Agent",
-    "retry": "Retry",
-    "cancel": "Cancel",
-    "apply": "Apply",
-    "undo": "Undo",
-    "panelToggle": "Close agent panel",
-    "conversationLabel": "Conversation",
-    "proposalTitle": "Proposed changes",
-    "empty": "Ask about your meetings, notes and settings. Settings changes appear here as a proposal you review before anything changes.",
+  "chat": {
+    "open": "Chat",
+    "label": "Chat with Sona Agent",
+    "title": "Sona agent",
+    "unpaired": "Pair Sona Agent in Settings",
+    "close": "Close chat",
+    "history": "Recent chats",
+    "historyEmpty": "No earlier chats yet.",
+    "newChat": "New chat",
+    "empty": "Ask about your meetings, notes and settings.",
+    "placeholder": "Ask anything",
     "inputLabel": "Ask about Sona",
     "send": "Send",
-    "status": {
-      "loading": "Connecting…",
-      "disabled": "Agent panel is disabled.",
-      "unpaired": "Not paired with a relay.",
-      "offline": "Relay offline.",
-      "idle": "Ready",
-      "proposal": "Proposal ready",
-      "error": "Agent panel unavailable."
-    },
-    "activityLabel": "Activity",
-    "workspaceLabel": "Who answers",
-    "step": {
-      "sent": "Sent"
-    },
-    "workspace": {
+    "stop": "Stop",
+    "retry": "Retry",
+    "openSettings": "Settings",
+    "scopeLabel": "Who answers",
+    "scope": {
       "sona_chat": "Ask",
       "sona_config": "Settings"
     },
-    "placeholder": {
-      "sona_chat": "Ask about your meetings and notes…",
-      "sona_config": "Ask about Sona settings…"
-    },
+    "workedFor": "Worked for {{seconds}}s",
+    "stepSeconds": "{{seconds}}s",
     "turnState": {
       "submitting": "Sending",
       "queued": "Queued",
@@ -2508,15 +2498,24 @@
       "canceled": "Stopped",
       "unverified_external": "Unverified reply"
     },
+    "status": {
+      "disabled": "Sona Agent is switched off.",
+      "unpaired": "Sona Agent is not paired with a relay.",
+      "offline": "Sona Agent's relay could not be reached.",
+      "error": "Sona Agent is unavailable."
+    },
+    "proposal": {
+      "apply": "Apply",
+      "applied": "Applied",
+      "undo": "Undo",
+      "undone": "Undone",
+      "rejected": "Not applied"
+    },
     "ask": {
       "row": "Ask Sona: {{query}}",
-      "error": "Couldn't send that question to Sona."
+      "error": "Couldn't send that question to Sona.",
+      "consentRequired": "Asking sends quotes from your meetings to your server, so turn on meeting intelligence first."
     }
-  },
-  "chat": {
-    "open": "Chat",
-    "label": "Chat with Sona Agent",
-    "unpaired": "Pair Sona Agent in Settings"
   },
   "overview": {
     "hero": {

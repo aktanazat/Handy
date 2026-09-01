@@ -1,18 +1,19 @@
 mod config;
+mod history;
 /// `pub(crate)` for one constant: the context-pack ceiling this module
 /// enforces on the wire is the same ceiling `query::pack` truncates to, and a
 /// second copy of that number would be a pack refused after it was built.
 pub(crate) mod protocol;
 mod relay;
-mod window;
 mod wire;
 
 use config::{AppliedSettings, ConfigError, SettingUndo};
 use protocol::{
     AgentPanelWorkspaceV1, PanelTurnV1, SonaAgentChatRoleV1, SonaAgentChatTurnV1,
-    SonaAgentResponseV1, SonaAgentStepV1, SonaAgentTurnV1, SonaAllowedValuesV1, SonaChatTurnV1,
-    SonaConfigProposalV1, SonaConfirmationClassV1, SonaSettingChangeV1, MAX_RECENT_TURNS,
-    MAX_RECENT_TURN_BYTES, SONA_AGENT_TURN_VERSION, SONA_CHAT_TURN_VERSION,
+    SonaAgentResponseV1, SonaAgentStepStateV1, SonaAgentStepV1, SonaAgentTurnV1,
+    SonaAllowedValuesV1, SonaChatTurnV1, SonaConfigProposalV1, SonaConfirmationClassV1,
+    SonaSettingChangeV1, MAX_RECENT_TURNS, MAX_RECENT_TURN_BYTES, SONA_AGENT_TURN_VERSION,
+    SONA_CHAT_TURN_VERSION,
 };
 use relay::{
     validate_pairing, RelayClient, RelayError, RelayEvent, RelayJob, RelayJobStateV1,
@@ -23,20 +24,22 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow};
 use tauri_specta::Event as _;
-use window::{AgentPanelWindowController, WindowError, AGENT_PANEL_WINDOW_LABEL};
 
+pub use history::AgentChatConversationSummaryV1;
 pub use relay::AgentPanelPublicIdentityV1;
-pub use window::AgentPanelGeometryV1;
 pub use wire::{
     AgentPanelActorV1, AgentPanelApplyChangeRequestV1, AgentPanelCancelTurnRequestV1,
-    AgentPanelCommandErrorV1, AgentPanelGeometryChangedEvent, AgentPanelGeometryStatusV1,
-    AgentPanelPairingCommandV1, AgentPanelPairingReceiptV1, AgentPanelPairingRequestV1,
-    AgentPanelPairingStatusV1, AgentPanelProposalChangedEvent, AgentPanelProposalPreviewV1,
-    AgentPanelProposalStateV1, AgentPanelRelayStatusV1, AgentPanelSendTurnRequestV1,
-    AgentPanelStatusChangedEvent, AgentPanelStatusV1, AgentPanelTurnChangedEvent,
-    AgentPanelTurnStateV1, AgentPanelTurnStatusV1, AgentPanelUndoChangeRequestV1,
+    AgentPanelCommandErrorV1, AgentPanelPairingCommandV1, AgentPanelPairingReceiptV1,
+    AgentPanelPairingRequestV1, AgentPanelPairingStatusV1, AgentPanelProposalChangedEvent,
+    AgentPanelProposalPreviewV1, AgentPanelProposalStateV1, AgentPanelRelayStatusV1,
+    AgentPanelSendTurnRequestV1, AgentPanelStatusChangedEvent, AgentPanelStatusV1,
+    AgentPanelStepV1, AgentPanelTurnChangedEvent, AgentPanelTurnStateV1, AgentPanelTurnStatusV1,
+    AgentPanelUndoChangeRequestV1,
 };
 
+/// The one window there is. Every command on this surface is called from the
+/// main webview now that the chat is a sheet inside it; the companion window
+/// and its label are gone.
 const MAIN_WINDOW_LABEL: &str = "main";
 const POLL_INTERVAL: Duration = Duration::from_millis(750);
 const IDLE_POLL_INTERVAL: Duration = Duration::from_secs(2);
@@ -56,7 +59,8 @@ struct ActiveTurn {
     cancel_requested: bool,
     last_progress: Instant,
     started_at_utc_ms: i64,
-    steps: Vec<SonaAgentStepV1>,
+    completed_at_utc_ms: Option<i64>,
+    steps: Vec<AgentPanelStepV1>,
 }
 
 impl ActiveTurn {
@@ -67,7 +71,59 @@ impl ActiveTurn {
             state: self.state,
             event_cursor: self.event_cursor,
             started_at_utc_ms: self.started_at_utc_ms,
+            completed_at_utc_ms: self.completed_at_utc_ms,
             steps: self.steps.clone(),
+        }
+    }
+
+    /// The one place a turn's state moves, so the one place that can stamp
+    /// when it stopped moving. A turn reaches a terminal state once; a second
+    /// terminal transition (a cancel landing after a failure, say) must not
+    /// rewrite the moment the reader watched it end.
+    fn set_state(&mut self, state: AgentPanelTurnStateV1) {
+        self.state = state;
+        if state.is_terminal() && self.completed_at_utc_ms.is_none() {
+            self.completed_at_utc_ms = Some(chrono::Utc::now().timestamp_millis());
+        }
+    }
+
+    /// Milliseconds since this turn was accepted, which is the axis every step
+    /// offset is measured on.
+    fn elapsed_ms(&self) -> i64 {
+        chrono::Utc::now()
+            .timestamp_millis()
+            .saturating_sub(self.started_at_utc_ms)
+    }
+}
+
+/// Fold the step list the relay reported into the one the panel has been
+/// watching.
+///
+/// The relay resends the whole list every poll and dates none of it, so the
+/// only honest timing is the panel's own: a step is stamped when it is first
+/// seen, and again when the poll that reported it says it is no longer
+/// running. A step never disappears once seen — a list that shrank would
+/// erase a row the reader already read.
+fn merge_steps(held: &mut Vec<AgentPanelStepV1>, reported: &[SonaAgentStepV1], elapsed_ms: i64) {
+    for step in reported {
+        let running = step.state == SonaAgentStepStateV1::Running;
+        match held.iter_mut().find(|existing| existing.id == step.id) {
+            Some(existing) => {
+                existing.label.clone_from(&step.label);
+                if existing.state != step.state {
+                    existing.state = step.state;
+                    if !running {
+                        existing.ended_after_ms = Some(elapsed_ms);
+                    }
+                }
+            }
+            None => held.push(AgentPanelStepV1 {
+                id: step.id.clone(),
+                label: step.label.clone(),
+                state: step.state,
+                started_after_ms: elapsed_ms,
+                ended_after_ms: (!running).then_some(elapsed_ms),
+            }),
         }
     }
 }
@@ -103,10 +159,13 @@ impl StoredProposal {
     }
 }
 
+/// What the sheet is showing. The sheet's own open/closed state is not here:
+/// it is a fold in the main window's layout, owned by `App`, and a copy of it
+/// on this side would be a second answer to a question the layout already
+/// answers.
 struct PanelState {
     invalidation_id: u64,
     relay_status: AgentPanelRelayStatusV1,
-    panel_open: bool,
     conversation_id: Option<String>,
     conversation: Vec<SonaAgentChatTurnV1>,
     turn: Option<ActiveTurn>,
@@ -118,7 +177,6 @@ impl Default for PanelState {
         Self {
             invalidation_id: 0,
             relay_status: AgentPanelRelayStatusV1::Disabled,
-            panel_open: false,
             conversation_id: None,
             conversation: Vec::new(),
             turn: None,
@@ -133,15 +191,14 @@ impl PanelState {
         self.invalidation_id
     }
 
-    fn status(&self, geometry: Option<AgentPanelGeometryV1>) -> AgentPanelStatusV1 {
+    fn status(&self) -> AgentPanelStatusV1 {
         AgentPanelStatusV1 {
             invalidation_id: self.invalidation_id,
             relay_status: self.relay_status,
-            panel_open: self.panel_open,
+            conversation_id: self.conversation_id.clone(),
             conversation: self.conversation.clone(),
             turn: self.turn.as_ref().map(ActiveTurn::status),
             proposal: self.proposal.as_ref().map(StoredProposal::preview),
-            geometry,
         }
     }
 
@@ -174,7 +231,6 @@ impl PanelState {
 
 pub(crate) struct AgentPanelManager {
     app: AppHandle,
-    window: AgentPanelWindowController,
     state: Mutex<PanelState>,
     nonce_cache: Arc<ResponseNonceCache>,
     poll_generation: AtomicU64,
@@ -184,7 +240,6 @@ impl AgentPanelManager {
     pub(crate) fn new(app: &AppHandle) -> Self {
         Self {
             app: app.clone(),
-            window: AgentPanelWindowController::new(app),
             state: Mutex::new(PanelState::default()),
             nonce_cache: Arc::new(ResponseNonceCache::default()),
             poll_generation: AtomicU64::new(0),
@@ -199,9 +254,7 @@ impl AgentPanelManager {
     }
 
     fn current_status(&self) -> AgentPanelStatusV1 {
-        let state = self.lock_state();
-        let geometry = state.panel_open.then(|| self.window.geometry()).flatten();
-        state.status(geometry)
+        self.lock_state().status()
     }
 
     fn configured_relay_status(&self) -> AgentPanelRelayStatusV1 {
@@ -219,100 +272,102 @@ impl AgentPanelManager {
         }
     }
 
-    pub(crate) fn open(&self) -> Result<AgentPanelStatusV1, AgentPanelCommandErrorV1> {
-        if !crate::settings::get_settings(&self.app).agent_panel_enabled {
-            return Err(AgentPanelCommandErrorV1::Disabled);
-        }
-        self.window.open().map_err(map_window_error)?;
-        let (invalidation_id, relay_status) = {
-            let mut state = self.lock_state();
-            state.panel_open = true;
-            self.refresh_configured_status_locked(&mut state);
-            let invalidation_id = state.invalidate();
-            (invalidation_id, state.relay_status)
-        };
-        self.emit_status(invalidation_id, relay_status);
-        self.emit_geometry(invalidation_id, AgentPanelGeometryStatusV1::Attached);
-        self.start_polling();
-        Ok(self.current_status())
-    }
-
-    pub(crate) fn close(&self) -> AgentPanelStatusV1 {
-        self.stop_polling();
-        self.window.close();
-        let (invalidation_id, relay_status) = {
-            let mut state = self.lock_state();
-            state.panel_open = false;
-            let invalidation_id = state.invalidate();
-            (invalidation_id, state.relay_status)
-        };
-        self.emit_status(invalidation_id, relay_status);
-        self.emit_geometry(invalidation_id, AgentPanelGeometryStatusV1::Hidden);
-        self.current_status()
-    }
-
-    pub(crate) fn on_main_hidden(&self) {
-        self.window.hide_for_main();
-        self.set_panel_hidden();
-    }
-
-    pub(crate) fn on_main_shown(&self) {
-        if self.window.restore_after_main_show().is_some() {
-            let (invalidation_id, relay_status) = {
-                let mut state = self.lock_state();
-                state.panel_open = true;
-                self.refresh_configured_status_locked(&mut state);
-                let invalidation_id = state.invalidate();
-                (invalidation_id, state.relay_status)
-            };
-            self.emit_status(invalidation_id, relay_status);
-            self.emit_geometry(invalidation_id, AgentPanelGeometryStatusV1::Attached);
-            self.start_polling();
-        }
-    }
-
-    pub(crate) fn sync_main_window(&self) {
-        if self.window.sync_from_main().is_some() {
-            let invalidation_id = {
-                let mut state = self.lock_state();
-                if !state.panel_open {
-                    state.panel_open = true;
-                }
-                state.invalidate()
-            };
-            self.emit_geometry(invalidation_id, AgentPanelGeometryStatusV1::Attached);
-        } else if self.window.is_desired_open() {
-            self.set_panel_hidden();
-        }
-    }
-
-    pub(crate) fn on_panel_destroyed(&self) {
-        self.window.on_panel_destroyed();
-        self.set_panel_hidden();
-    }
-
-    pub(crate) fn on_main_destroyed(&self) {
-        self.stop_polling();
-        self.window.on_main_destroyed();
-        self.set_panel_hidden();
-    }
-
-    fn set_panel_hidden(&self) {
-        self.stop_polling();
+    /// What the sheet reads when it opens: the same status every command
+    /// returns, with the relay's configured state refreshed first so a pairing
+    /// made in Settings since the last turn is visible without one.
+    pub(crate) fn status(&self) -> AgentPanelStatusV1 {
         let (invalidation_id, relay_status, changed) = {
             let mut state = self.lock_state();
-            if !state.panel_open {
-                (state.invalidation_id, state.relay_status, false)
+            let before = state.relay_status;
+            self.refresh_configured_status_locked(&mut state);
+            let changed = state.relay_status != before;
+            let invalidation_id = if changed {
+                state.invalidate()
             } else {
-                state.panel_open = false;
-                let invalidation_id = state.invalidate();
-                (invalidation_id, state.relay_status, true)
-            }
+                state.invalidation_id
+            };
+            (invalidation_id, state.relay_status, changed)
         };
         if changed {
             self.emit_status(invalidation_id, relay_status);
-            self.emit_geometry(invalidation_id, AgentPanelGeometryStatusV1::Hidden);
         }
+        self.current_status()
+    }
+
+    pub(crate) fn history_list(&self) -> Vec<AgentChatConversationSummaryV1> {
+        history::list(&self.app)
+    }
+
+    /// Load a remembered conversation into the sheet.
+    ///
+    /// Refused while a turn is in flight: the answer that is on its way belongs
+    /// to the conversation that asked for it, and swapping the scrollback under
+    /// it would file it against the wrong one.
+    pub(crate) fn open_conversation(
+        &self,
+        conversation_id: &str,
+    ) -> Result<AgentPanelStatusV1, AgentPanelCommandErrorV1> {
+        let turns = history::turns_of(&self.app, conversation_id)
+            .ok_or(AgentPanelCommandErrorV1::UnknownConversation)?;
+        let invalidation_id = {
+            let mut state = self.lock_state();
+            if state
+                .turn
+                .as_ref()
+                .is_some_and(|active| !active.state.is_terminal())
+            {
+                return Err(AgentPanelCommandErrorV1::TurnActive);
+            }
+            state.conversation_id = Some(conversation_id.to_string());
+            state.conversation = turns;
+            state.turn = None;
+            state.proposal = None;
+            self.refresh_configured_status_locked(&mut state);
+            state.invalidate()
+        };
+        self.emit_turn(invalidation_id, None, None);
+        self.emit_proposal(invalidation_id, None, None);
+        Ok(self.current_status())
+    }
+
+    /// Start again. The conversation being left is already on disk — every turn
+    /// writes it — so there is nothing to save here, only state to drop.
+    pub(crate) fn new_conversation(&self) -> Result<AgentPanelStatusV1, AgentPanelCommandErrorV1> {
+        let invalidation_id = {
+            let mut state = self.lock_state();
+            if state
+                .turn
+                .as_ref()
+                .is_some_and(|active| !active.state.is_terminal())
+            {
+                return Err(AgentPanelCommandErrorV1::TurnActive);
+            }
+            state.conversation_id = None;
+            state.conversation.clear();
+            state.turn = None;
+            state.proposal = None;
+            self.refresh_configured_status_locked(&mut state);
+            state.invalidate()
+        };
+        self.emit_turn(invalidation_id, None, None);
+        self.emit_proposal(invalidation_id, None, None);
+        Ok(self.current_status())
+    }
+
+    /// Write the conversation on screen to the history file.
+    ///
+    /// Called wherever a turn is pushed onto the scrollback, and nowhere else:
+    /// the file's contents are "what has been said", and what has been said
+    /// changes exactly when something is said.
+    fn remember_conversation(&self) {
+        let (conversation_id, turns) = {
+            let state = self.lock_state();
+            (state.conversation_id.clone(), state.conversation.clone())
+        };
+        let Some(conversation_id) = conversation_id else {
+            return;
+        };
+        history::remember(&self.app, &conversation_id, &turns);
     }
 
     pub(crate) async fn public_identity(
@@ -432,10 +487,12 @@ impl AgentPanelManager {
                 cancel_requested: false,
                 last_progress: Instant::now(),
                 started_at_utc_ms,
+                completed_at_utc_ms: None,
                 steps: Vec::new(),
             });
             state.invalidate()
         };
+        self.remember_conversation();
         self.emit_turn(
             invalidation_id,
             Some(turn_id.clone()),
@@ -483,11 +540,11 @@ impl AgentPanelManager {
                     return Ok(());
                 }
                 active.submitting = true;
-                active.state = if active.cancel_requested {
+                active.set_state(if active.cancel_requested {
                     AgentPanelTurnStateV1::Canceling
                 } else {
                     AgentPanelTurnStateV1::Submitting
-                };
+                });
                 (
                     active.idempotency_key.clone(),
                     active.request.clone(),
@@ -537,10 +594,10 @@ impl AgentPanelManager {
                 .filter(|active| active.turn_id == request.turn_id)
                 .ok_or(AgentPanelCommandErrorV1::UnknownTurn)?;
             if active.state.is_terminal() {
-                return Ok(state.status(None));
+                return Ok(state.status());
             }
             active.cancel_requested = true;
-            active.state = AgentPanelTurnStateV1::Canceling;
+            active.set_state(AgentPanelTurnStateV1::Canceling);
             let should_submit = active.job_id.is_none() && !active.submitting;
             let invalidation_id = state.invalidate();
             self.emit_turn(
@@ -659,9 +716,10 @@ impl AgentPanelManager {
                 active.job_id = Some(job_id);
                 active.submitting = false;
                 active.last_progress = Instant::now();
-                active.state = turn_state_for_job(&relay_state, active.cancel_requested);
+                active.set_state(turn_state_for_job(&relay_state, active.cancel_requested));
                 if let Some(response) = response.as_ref() {
-                    active.steps = response.steps().to_vec();
+                    let elapsed_ms = active.elapsed_ms();
+                    merge_steps(&mut active.steps, response.steps(), elapsed_ms);
                 }
                 (active.cancel_requested, active.state)
             };
@@ -714,6 +772,7 @@ impl AgentPanelManager {
             (invalidation_id, turn_state, proposal_event, follow_up)
         };
         self.emit_status(invalidation_id, AgentPanelRelayStatusV1::Ready);
+        self.remember_conversation();
         self.emit_turn(invalidation_id, Some(turn_id.to_string()), Some(turn_state));
         if let Some((proposal_id, proposal_state)) = proposal_event {
             self.emit_proposal(invalidation_id, Some(proposal_id), Some(proposal_state));
@@ -725,54 +784,31 @@ impl AgentPanelManager {
         &self,
         request: AgentPanelApplyChangeRequestV1,
     ) -> Result<AgentPanelStatusV1, AgentPanelCommandErrorV1> {
-        let (proposal_id, source_revision, allowed, change) = {
-            let state = self.lock_state();
-            let proposal = state
-                .proposal
-                .as_ref()
-                .filter(|proposal| proposal.id == request.proposal_id)
-                .ok_or(AgentPanelCommandErrorV1::UnknownProposal)?;
-            if proposal.state != AgentPanelProposalStateV1::Pending {
-                return Err(AgentPanelCommandErrorV1::NotUndoable);
-            }
-            if proposal.proposal.source_settings_revision != request.expected_revision {
-                return Err(AgentPanelCommandErrorV1::StaleProposal);
-            }
-            let action_index = usize::try_from(request.action_index)
-                .map_err(|_| AgentPanelCommandErrorV1::InvalidRequest)?;
-            let change = proposal
-                .proposal
-                .actions
-                .get(action_index)
-                .cloned()
-                .ok_or(AgentPanelCommandErrorV1::InvalidRequest)?;
-            if change.confirmation_class() != SonaConfirmationClassV1::Automatic
-                && !request.confirmed
-            {
-                return Err(AgentPanelCommandErrorV1::ConfirmationRequired);
-            }
-            (
-                proposal.id.clone(),
-                proposal.proposal.source_settings_revision,
-                proposal.allowed.clone(),
-                change,
-            )
-        };
-        let applied = config::apply_changes(&self.app, source_revision, &[change], &allowed);
-        let applied = match applied {
-            Ok(applied) => applied,
-            Err(error) => {
-                self.record_config_error(&proposal_id, error);
-                return Err(map_config_error(error));
-            }
-        };
-        self.store_applied_receipt(&proposal_id, applied)?;
+        self.apply_proposal(
+            &request.proposal_id,
+            Some(request.expected_revision),
+            request.confirmed,
+        )?;
         Ok(self.current_status())
     }
 
-    fn apply_safe_appearance_proposal(
+    /// Apply every change a proposal carries, as one revision.
+    ///
+    /// A proposal is one offer. The card names the whole change set and
+    /// carries one Apply, so applying part of it and then reporting the whole
+    /// card applied — which is what a per-action apply did, because the
+    /// receipt is the proposal's — would be a card that lied about what it
+    /// did. The safe-appearance auto path and the button are therefore the
+    /// same operation, differing only in what authorised it.
+    ///
+    /// `expected_revision` is the caller's claim about which settings the
+    /// proposal was written against; the auto path has no claim of its own to
+    /// make because it runs on the proposal the moment it arrives.
+    fn apply_proposal(
         &self,
         proposal_id: &str,
+        expected_revision: Option<u64>,
+        confirmed: bool,
     ) -> Result<(), AgentPanelCommandErrorV1> {
         let (source_revision, allowed, changes) = {
             let state = self.lock_state();
@@ -781,6 +817,60 @@ impl AgentPanelManager {
                 .as_ref()
                 .filter(|proposal| proposal.id == proposal_id)
                 .ok_or(AgentPanelCommandErrorV1::UnknownProposal)?;
+            if proposal.state != AgentPanelProposalStateV1::Pending {
+                return Err(AgentPanelCommandErrorV1::NotUndoable);
+            }
+            if expected_revision
+                .is_some_and(|revision| proposal.proposal.source_settings_revision != revision)
+            {
+                return Err(AgentPanelCommandErrorV1::StaleProposal);
+            }
+            if proposal.proposal.actions.is_empty() {
+                return Err(AgentPanelCommandErrorV1::InvalidProposal);
+            }
+            if strongest_confirmation(&proposal.proposal.actions)
+                != SonaConfirmationClassV1::Automatic
+                && !confirmed
+            {
+                return Err(AgentPanelCommandErrorV1::ConfirmationRequired);
+            }
+            (
+                proposal.proposal.source_settings_revision,
+                proposal.allowed.clone(),
+                proposal.proposal.actions.clone(),
+            )
+        };
+        let applied = match config::apply_changes(&self.app, source_revision, &changes, &allowed) {
+            Ok(applied) => applied,
+            Err(error) => {
+                self.record_config_error(proposal_id, error);
+                return Err(map_config_error(error));
+            }
+        };
+        self.store_applied_receipt(proposal_id, applied)
+    }
+
+    /// The one proposal shape that applies itself: every action in it is an
+    /// appearance change the reader can see and reverse at a glance, and the
+    /// setting that allows it is off on install.
+    ///
+    /// It claims no confirmation of its own. An all-`Automatic` set needs
+    /// none, so the gate in [`Self::apply_proposal`] passes on the actions'
+    /// own class rather than on this path's say-so — which is what keeps a
+    /// future non-automatic change from riding in on the auto flag.
+    fn apply_safe_appearance_proposal(
+        &self,
+        proposal_id: &str,
+    ) -> Result<(), AgentPanelCommandErrorV1> {
+        {
+            let state = self.lock_state();
+            let Some(proposal) = state
+                .proposal
+                .as_ref()
+                .filter(|proposal| proposal.id == proposal_id)
+            else {
+                return Err(AgentPanelCommandErrorV1::UnknownProposal);
+            };
             if proposal.state != AgentPanelProposalStateV1::Pending
                 || proposal.proposal.actions.is_empty()
                 || !proposal
@@ -791,21 +881,8 @@ impl AgentPanelManager {
             {
                 return Ok(());
             }
-            (
-                proposal.proposal.source_settings_revision,
-                proposal.allowed.clone(),
-                proposal.proposal.actions.clone(),
-            )
-        };
-        let applied = config::apply_changes(&self.app, source_revision, &changes, &allowed);
-        let applied = match applied {
-            Ok(applied) => applied,
-            Err(error) => {
-                self.record_config_error(proposal_id, error);
-                return Err(map_config_error(error));
-            }
-        };
-        self.store_applied_receipt(proposal_id, applied)
+        }
+        self.apply_proposal(proposal_id, None, false)
     }
 
     fn store_applied_receipt(
@@ -934,7 +1011,7 @@ impl AgentPanelManager {
                 .map(|active| {
                     active.submitting = false;
                     if !retryable && !matches!(error, RelayError::RequestFailed) {
-                        active.state = AgentPanelTurnStateV1::Failed;
+                        active.set_state(AgentPanelTurnStateV1::Failed);
                     }
                     active.state
                 });
@@ -954,7 +1031,7 @@ impl AgentPanelManager {
                 .as_mut()
                 .filter(|active| active.turn_id == turn_id)
                 .map(|active| {
-                    active.state = AgentPanelTurnStateV1::Failed;
+                    active.set_state(AgentPanelTurnStateV1::Failed);
                     active.state
                 });
             let invalidation_id = state.invalidate();
@@ -978,7 +1055,12 @@ impl AgentPanelManager {
         });
     }
 
-    fn stop_polling(&self) {
+    /// Stop the poll loop.
+    ///
+    /// `pub(crate)` because switching the agent off in Settings has to reach
+    /// it: the relay is no longer allowed to be talked to, and a loop left
+    /// running would keep talking to it until the turn finished.
+    pub(crate) fn stop_polling(&self) {
         self.poll_generation.fetch_add(1, Ordering::AcqRel);
     }
 
@@ -986,10 +1068,10 @@ impl AgentPanelManager {
         if self.poll_generation.load(Ordering::Acquire) != generation {
             return None;
         }
+        /* Polling follows the turn, not the surface. The sheet closing is a
+         * fold in a layout; the job on the far side is still running, and its
+         * answer belongs in the scrollback whether or not anyone is looking. */
         let state = self.lock_state();
-        if !state.panel_open {
-            return None;
-        }
         let active = state.turn.as_ref()?;
         let job_id = active.job_id.clone()?;
         if active.state.is_terminal() {
@@ -1046,10 +1128,8 @@ impl AgentPanelManager {
 
     pub(crate) async fn shutdown(&self) {
         self.stop_polling();
-        self.window.on_main_destroyed();
         let pending = {
             let mut state = self.lock_state();
-            state.panel_open = false;
             state.turn.as_mut().and_then(|active| {
                 if active.state.is_terminal() {
                     None
@@ -1108,16 +1188,6 @@ impl AgentPanelManager {
                 invalidation_id,
                 proposal_id,
                 state,
-            },
-        );
-    }
-
-    fn emit_geometry(&self, invalidation_id: u64, status: AgentPanelGeometryStatusV1) {
-        let _ = self.app.emit(
-            AgentPanelGeometryChangedEvent::NAME,
-            AgentPanelGeometryChangedEvent {
-                invalidation_id,
-                status,
             },
         );
     }
@@ -1457,18 +1527,20 @@ fn map_config_error(error: ConfigError) -> AgentPanelCommandErrorV1 {
     }
 }
 
-fn map_window_error(error: WindowError) -> AgentPanelCommandErrorV1 {
-    match error {
-        WindowError::MainUnavailable => AgentPanelCommandErrorV1::MainUnavailable,
-        WindowError::NativeFailure => AgentPanelCommandErrorV1::NativeWindowFailure,
-    }
+/// Whether a webview label may reach this surface.
+///
+/// One label, because there is one window. Every command below used to be
+/// split between the main window and the companion panel's own webview; the
+/// panel is a sheet inside the main window now, so the panel label is not a
+/// narrower caller than main — it does not exist. Kept as a predicate over the
+/// label rather than inlined into the gate so the rule is checkable without a
+/// live webview.
+fn is_allowed_caller(label: &str) -> bool {
+    label == MAIN_WINDOW_LABEL
 }
 
-fn require_caller(
-    caller: &WebviewWindow,
-    allowed_labels: &[&str],
-) -> Result<(), AgentPanelCommandErrorV1> {
-    if allowed_labels.iter().any(|label| *label == caller.label()) {
+fn require_caller(caller: &WebviewWindow) -> Result<(), AgentPanelCommandErrorV1> {
+    if is_allowed_caller(caller.label()) {
         Ok(())
     } else {
         Err(AgentPanelCommandErrorV1::UnauthorizedWindow)
@@ -1477,32 +1549,12 @@ fn require_caller(
 
 #[tauri::command]
 #[specta::specta]
-pub fn agent_panel_open(
-    caller: WebviewWindow,
-    manager: State<'_, AgentPanelManager>,
-) -> Result<AgentPanelStatusV1, AgentPanelCommandErrorV1> {
-    require_caller(&caller, &[MAIN_WINDOW_LABEL])?;
-    manager.open()
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn agent_panel_close(
-    caller: WebviewWindow,
-    manager: State<'_, AgentPanelManager>,
-) -> Result<AgentPanelStatusV1, AgentPanelCommandErrorV1> {
-    require_caller(&caller, &[AGENT_PANEL_WINDOW_LABEL])?;
-    Ok(manager.close())
-}
-
-#[tauri::command]
-#[specta::specta]
 pub fn agent_panel_status(
     caller: WebviewWindow,
     manager: State<'_, AgentPanelManager>,
 ) -> Result<AgentPanelStatusV1, AgentPanelCommandErrorV1> {
-    require_caller(&caller, &[AGENT_PANEL_WINDOW_LABEL])?;
-    Ok(manager.current_status())
+    require_caller(&caller)?;
+    Ok(manager.status())
 }
 
 #[tauri::command]
@@ -1512,7 +1564,7 @@ pub async fn agent_panel_send_turn(
     manager: State<'_, AgentPanelManager>,
     request: AgentPanelSendTurnRequestV1,
 ) -> Result<AgentPanelStatusV1, AgentPanelCommandErrorV1> {
-    require_caller(&caller, &[AGENT_PANEL_WINDOW_LABEL])?;
+    require_caller(&caller)?;
     manager.send_turn(request).await
 }
 
@@ -1523,7 +1575,7 @@ pub async fn agent_panel_cancel_turn(
     manager: State<'_, AgentPanelManager>,
     request: AgentPanelCancelTurnRequestV1,
 ) -> Result<AgentPanelStatusV1, AgentPanelCommandErrorV1> {
-    require_caller(&caller, &[AGENT_PANEL_WINDOW_LABEL])?;
+    require_caller(&caller)?;
     manager.cancel_turn(request).await
 }
 
@@ -1534,7 +1586,7 @@ pub fn agent_panel_apply_change(
     manager: State<'_, AgentPanelManager>,
     request: AgentPanelApplyChangeRequestV1,
 ) -> Result<AgentPanelStatusV1, AgentPanelCommandErrorV1> {
-    require_caller(&caller, &[AGENT_PANEL_WINDOW_LABEL])?;
+    require_caller(&caller)?;
     manager.apply_change(request)
 }
 
@@ -1545,8 +1597,40 @@ pub fn agent_panel_undo_change(
     manager: State<'_, AgentPanelManager>,
     request: AgentPanelUndoChangeRequestV1,
 ) -> Result<AgentPanelStatusV1, AgentPanelCommandErrorV1> {
-    require_caller(&caller, &[AGENT_PANEL_WINDOW_LABEL])?;
+    require_caller(&caller)?;
     manager.undo_change(request)
+}
+
+/// The titles the history button lists, newest first.
+#[tauri::command]
+#[specta::specta]
+pub fn agent_chat_history_list(
+    caller: WebviewWindow,
+    manager: State<'_, AgentPanelManager>,
+) -> Result<Vec<AgentChatConversationSummaryV1>, AgentPanelCommandErrorV1> {
+    require_caller(&caller)?;
+    Ok(manager.history_list())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn agent_chat_open(
+    caller: WebviewWindow,
+    manager: State<'_, AgentPanelManager>,
+    conversation_id: String,
+) -> Result<AgentPanelStatusV1, AgentPanelCommandErrorV1> {
+    require_caller(&caller)?;
+    manager.open_conversation(&conversation_id)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn agent_chat_new(
+    caller: WebviewWindow,
+    manager: State<'_, AgentPanelManager>,
+) -> Result<AgentPanelStatusV1, AgentPanelCommandErrorV1> {
+    require_caller(&caller)?;
+    manager.new_conversation()
 }
 
 pub(crate) async fn cli_public_identity(
@@ -1563,13 +1647,16 @@ pub async fn agent_panel_public_identity(
     caller: WebviewWindow,
     manager: State<'_, AgentPanelManager>,
 ) -> Result<AgentPanelPublicIdentityV1, AgentPanelCommandErrorV1> {
-    require_caller(&caller, &[MAIN_WINDOW_LABEL, AGENT_PANEL_WINDOW_LABEL])?;
+    require_caller(&caller)?;
     manager.public_identity().await
 }
 
-/// The panel's lifecycle owner also owns the switch that turns it off:
-/// disabling closes an attached panel instead of leaving a window whose
-/// commands would all be refused.
+/// Switching the agent off stops the poll loop with it.
+///
+/// A loop left running would keep signing requests to a relay the reader has
+/// just said no to, and would keep doing it until the turn finished. Nothing
+/// else needs closing: the sheet is a fold in the main window's layout, and
+/// the pill that opens it disappears with the setting.
 #[tauri::command]
 #[specta::specta]
 pub fn change_agent_panel_enabled_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
@@ -1578,7 +1665,7 @@ pub fn change_agent_panel_enabled_setting(app: AppHandle, enabled: bool) -> Resu
     });
     if !enabled {
         if let Some(manager) = app.try_state::<AgentPanelManager>() {
-            manager.close();
+            manager.stop_polling();
         }
     }
     Ok(())
@@ -1631,7 +1718,7 @@ pub fn set_agent_panel_pairing(
     app: AppHandle,
     request: AgentPanelPairingRequestV1,
 ) -> Result<AgentPanelPairingReceiptV1, AgentPanelCommandErrorV1> {
-    require_caller(&caller, &[MAIN_WINDOW_LABEL])?;
+    require_caller(&caller)?;
     let requested_at_utc_ms = chrono::Utc::now().timestamp_millis();
     let pairing = validate_pairing(
         &request.relay_url,
@@ -1662,7 +1749,7 @@ pub fn clear_agent_panel_pairing(
     caller: WebviewWindow,
     app: AppHandle,
 ) -> Result<AgentPanelPairingReceiptV1, AgentPanelCommandErrorV1> {
-    require_caller(&caller, &[MAIN_WINDOW_LABEL])?;
+    require_caller(&caller)?;
     let requested_at_utc_ms = chrono::Utc::now().timestamp_millis();
     crate::settings::update_settings(&app, |settings| {
         settings.agent_panel_relay_url = None;
@@ -1683,7 +1770,7 @@ pub async fn agent_panel_test_connection(
     app: AppHandle,
     manager: State<'_, AgentPanelManager>,
 ) -> Result<AgentPanelPairingReceiptV1, AgentPanelCommandErrorV1> {
-    require_caller(&caller, &[MAIN_WINDOW_LABEL])?;
+    require_caller(&caller)?;
     let requested_at_utc_ms = chrono::Utc::now().timestamp_millis();
     manager.test_connection().await?;
     crate::settings::update_settings(&app, |settings| {
@@ -1723,6 +1810,101 @@ mod tests {
     fn terminal_turns_do_not_poll() {
         assert!(AgentPanelTurnStateV1::Succeeded.is_terminal());
         assert!(!AgentPanelTurnStateV1::Running.is_terminal());
+    }
+
+    /// The gate every command on this surface goes through.
+    ///
+    /// It widened when the chat moved inside the main window: the commands
+    /// that drive a turn used to be reachable only from the companion
+    /// webview, and are now reachable only from main. What must not widen with
+    /// it is everything else — the overlay, the consent window, and the label
+    /// the deleted panel used to answer to.
+    #[test]
+    fn only_the_main_window_reaches_the_agent_commands() {
+        assert!(is_allowed_caller("main"));
+        for label in ["agent-panel", "recording_overlay", "consent", ""] {
+            assert!(!is_allowed_caller(label), "{label} is not the main window");
+        }
+    }
+
+    fn reported(id: &str, state: SonaAgentStepStateV1) -> SonaAgentStepV1 {
+        SonaAgentStepV1 {
+            id: id.to_string(),
+            label: format!("step {id}"),
+            state,
+        }
+    }
+
+    /// The relay resends its whole step list every poll and dates none of it,
+    /// so the first sighting is the only start a row can honestly claim, and it
+    /// must survive every later poll that repeats the same step.
+    #[test]
+    fn a_steps_start_is_the_poll_that_first_reported_it() {
+        let mut held = Vec::new();
+        merge_steps(
+            &mut held,
+            &[reported("read", SonaAgentStepStateV1::Running)],
+            400,
+        );
+        merge_steps(
+            &mut held,
+            &[
+                reported("read", SonaAgentStepStateV1::Running),
+                reported("draft", SonaAgentStepStateV1::Running),
+            ],
+            1_150,
+        );
+
+        assert_eq!(held.len(), 2);
+        assert_eq!(held[0].started_after_ms, 400);
+        assert_eq!(held[0].ended_after_ms, None);
+        assert_eq!(held[1].started_after_ms, 1_150);
+    }
+
+    /// A step that stops running is dated once, at the poll that saw it stop.
+    #[test]
+    fn a_finished_step_keeps_the_offset_it_finished_at() {
+        let mut held = Vec::new();
+        merge_steps(
+            &mut held,
+            &[reported("read", SonaAgentStepStateV1::Running)],
+            400,
+        );
+        merge_steps(
+            &mut held,
+            &[reported("read", SonaAgentStepStateV1::Done)],
+            900,
+        );
+        merge_steps(
+            &mut held,
+            &[reported("read", SonaAgentStepStateV1::Done)],
+            4_000,
+        );
+
+        assert_eq!(held[0].state, SonaAgentStepStateV1::Done);
+        assert_eq!(held[0].ended_after_ms, Some(900));
+    }
+
+    /// A response that stops mentioning a step has not un-run it. The rail is
+    /// a record of what happened, so a shrinking list must not shorten it.
+    #[test]
+    fn a_step_the_relay_stops_reporting_is_still_on_the_rail() {
+        let mut held = Vec::new();
+        merge_steps(
+            &mut held,
+            &[reported("read", SonaAgentStepStateV1::Done)],
+            400,
+        );
+        merge_steps(
+            &mut held,
+            &[reported("draft", SonaAgentStepStateV1::Running)],
+            900,
+        );
+
+        assert_eq!(
+            held.iter().map(|step| step.id.as_str()).collect::<Vec<_>>(),
+            vec!["read", "draft"]
+        );
     }
 
     /// A caller outside the panel decides what to tell its reader from this

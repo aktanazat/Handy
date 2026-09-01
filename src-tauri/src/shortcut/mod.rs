@@ -661,9 +661,7 @@ pub fn apply_window_theme(app: &AppHandle, theme: Theme) {
     }
 }
 
-/// Windows whose document follows the Material setting. The agent panel is
-/// deliberately absent: it is built opaque (`agent_panel::window`), so a
-/// transparent document there would paint over nothing.
+/// Windows whose document follows the Material setting: every window there is.
 const MATERIAL_WINDOWS: [&str; 2] = ["main", "recording_overlay"];
 
 /// The material actually in force — intent AND a live vibrancy view. Cached so
@@ -780,7 +778,7 @@ pub fn change_appearance_material_setting(app: AppHandle, material: String) -> R
         settings.appearance_material = parsed;
     });
     let effective = apply_window_material(&app, parsed);
-    // The overlay and agent-panel webviews cannot see this window's store, and
+    // The overlay webview cannot see this window's store, and
     // the effective material is not always the stored one, so the event carries
     // what is actually in force rather than what was asked for.
     let _ = app.emit(

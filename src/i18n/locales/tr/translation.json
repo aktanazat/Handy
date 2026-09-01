@@ -1750,6 +1750,7 @@
       "people": "Kişiler",
       "dictations": "Dikteler",
       "loops": "Yanıtsız sorular",
+      "empty": "\"{{query}}\" ile eşleşen bir şey yok.",
       "unavailable": "Arama şu anda kullanılamıyor."
     }
   },
@@ -2090,16 +2091,16 @@
       "unassigned": "Atanmamış",
       "noDueDate": "Bitiş tarihi yok",
       "questions": "Bu toplantıya sor",
-      "questionsDescription": "Yanıtlar yalnızca bu yerel toplantıyı kullanır ve destekleyen transkripti alıntılar.",
+      "questionsDescription": "Yanıtlar yalnızca bu toplantıyı kullanır ve destekleyen transkripti alıntılar; kendi sunucunda ise yalnızca toplantı zekâsı onları oraya yönlendirdiğinde yazılır.",
       "questionPlaceholder": "Bu toplantı hakkında bir soru sorun",
-      "ask": "Yerel olarak sor",
+      "ask": "Sor",
       "noQuestions": "Kayıtlı yerel yanıt yok.",
       "question": "Soru",
       "insufficientEvidence": "Bu toplantıda destekleyici bir bölüm bulunamadı.",
       "forget": "Bu yanıtı unut",
       "searchPlaceholder": "Bu toplantıda ara",
       "noSearchResults": "Tam yerel eşleşme yok.",
-      "askUnavailable": "Soru sormak için tamamlanmış bir yerel transkript gerekir.",
+      "askUnavailable": "Soru sormak için tamamlanmış bir transkript gerekir.",
       "asking": "Bu toplantıya soruluyor…",
       "droppedFrames": "Düşen kareler: {{total}}",
       "hitKind": {
@@ -2457,40 +2458,29 @@
       "failed": "Bu toplantı için takip mesajı yazılamadı."
     }
   },
-  "agentPanel": {
-    "open": "Ajan",
-    "retry": "Tekrar dene",
-    "cancel": "İptal",
-    "apply": "Uygula",
-    "undo": "Geri al",
-    "panelToggle": "Ajan panelini kapat",
-    "conversationLabel": "Sohbet",
-    "proposalTitle": "Önerilen değişiklikler",
-    "empty": "Toplantılarını, notlarını ve ayarlarını sor. Ayar değişiklikleri, bir şey değişmeden önce gözden geçirdiğin bir öneri olarak burada görünür.",
+  "chat": {
+    "open": "Sohbet",
+    "label": "Sona aracısıyla sohbet et",
+    "title": "Sona aracısı",
+    "unpaired": "Sona aracısını Ayarlar'da eşleştirin",
+    "close": "Sohbeti kapat",
+    "history": "Son sohbetler",
+    "historyEmpty": "Henüz önceki sohbet yok.",
+    "newChat": "Yeni sohbet",
+    "empty": "Toplantılarını, notlarını ve ayarlarını sor.",
+    "placeholder": "Ne isterseniz sorun",
     "inputLabel": "Sona hakkında sor",
     "send": "Gönder",
-    "status": {
-      "loading": "Bağlanıyor…",
-      "disabled": "Ajan paneli devre dışı.",
-      "unpaired": "Bir aktarıcıyla eşleştirilmedi.",
-      "offline": "Aktarıcı çevrimdışı.",
-      "idle": "Hazır",
-      "proposal": "Öneri hazır",
-      "error": "Ajan paneli kullanılamıyor."
-    },
-    "activityLabel": "Akış",
-    "workspaceLabel": "Kim yanıtlıyor",
-    "step": {
-      "sent": "Gönderildi"
-    },
-    "workspace": {
+    "stop": "Durdur",
+    "retry": "Tekrar dene",
+    "openSettings": "Ayarlar",
+    "scopeLabel": "Kim yanıtlıyor",
+    "scope": {
       "sona_chat": "Sor",
       "sona_config": "Ayarlar"
     },
-    "placeholder": {
-      "sona_chat": "Toplantıların ve notların hakkında sor…",
-      "sona_config": "Sona ayarları hakkında sor…"
-    },
+    "workedFor": "{{seconds}} sn çalıştı",
+    "stepSeconds": "{{seconds}} sn",
     "turnState": {
       "submitting": "Gönderiliyor",
       "queued": "Sırada",
@@ -2504,15 +2494,24 @@
       "canceled": "Durduruldu",
       "unverified_external": "Doğrulanmamış yanıt"
     },
+    "status": {
+      "disabled": "Sona aracısı kapalı.",
+      "unpaired": "Sona aracısı bir röleyle eşleştirilmemiş.",
+      "offline": "Sona aracısının rölesine ulaşılamadı.",
+      "error": "Sona aracısı kullanılamıyor."
+    },
+    "proposal": {
+      "apply": "Uygula",
+      "applied": "Uygulandı",
+      "undo": "Geri al",
+      "undone": "Geri alındı",
+      "rejected": "Uygulanmadı"
+    },
     "ask": {
       "row": "Sona'ya sor: {{query}}",
-      "error": "Soru Sona'ya gönderilemedi."
+      "error": "Soru Sona'ya gönderilemedi.",
+      "consentRequired": "Soru sormak toplantılarından alıntıları sunucuna gönderir, bu yüzden önce toplantı zekâsını aç."
     }
-  },
-  "chat": {
-    "open": "Sohbet",
-    "label": "Sona aracısıyla sohbet et",
-    "unpaired": "Sona aracısını Ayarlar'da eşleştirin"
   },
   "overview": {
     "hero": {

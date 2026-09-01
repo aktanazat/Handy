@@ -31,10 +31,7 @@ export const SIDES = ["mine", "waiting"] as const;
 /* The one shape an argv can be built out of: a flat object of JSON scalars,
  * keyed by field name. Nothing here re-checks a value it can turn into an
  * argument — Sona owns what a scope is and what a limit may be — so the schema
- * stops at "flat", which is the only property this file actually relies on.
- *
- * It is exported because the transport is where a `tools/call` first holds its
- * arguments, and that is the only honest place to run it. */
+ * stops at "flat", which is the only property this file actually relies on. */
 export const TOOL_INPUT = z.record(
   z.string(),
   z.union([z.string(), z.number(), z.boolean(), z.null()]),

@@ -1753,6 +1753,7 @@
       "people": "Personer",
       "dictations": "Dikteringer",
       "loops": "Åbne spørgsmål",
+      "empty": "Intet matcher \"{{query}}\".",
       "unavailable": "Søgning er utilgængelig lige nu."
     }
   },
@@ -2090,16 +2091,16 @@
       "unassigned": "Ikke tildelt",
       "noDueDate": "Ingen frist",
       "questions": "Spørg dette møde",
-      "questionsDescription": "Svarene bruger kun dette lokale møde og citerer den understøttende transskription.",
+      "questionsDescription": "Svarene bruger kun dette møde og citerer den understøttende transskription, og de skrives kun på din server, når mødeintelligens sender dem derhen.",
       "questionPlaceholder": "Stil et spørgsmål om dette møde",
-      "ask": "Spørg lokalt",
+      "ask": "Spørg",
       "noQuestions": "Ingen gemte lokale svar.",
       "question": "Spørgsmål",
       "insufficientEvidence": "Der blev ikke fundet nogen understøttende passage i dette møde.",
       "forget": "Glem dette svar",
       "searchPlaceholder": "Søg i dette møde",
       "noSearchResults": "Ingen præcise lokale match.",
-      "askUnavailable": "Spørgsmål kræver en færdig lokal transskription.",
+      "askUnavailable": "Spørgsmål kræver en færdig transskription.",
       "asking": "Spørger dette møde…",
       "droppedFrames": "Tabte frames: {{total}}",
       "hitKind": {
@@ -2457,40 +2458,29 @@
       "failed": "Der kunne ikke skrives en opfølgning til dette møde."
     }
   },
-  "agentPanel": {
-    "open": "Agent",
-    "retry": "Prøv igen",
-    "cancel": "Annullér",
-    "apply": "Anvend",
-    "undo": "Fortryd",
-    "panelToggle": "Luk agentpanelet",
-    "conversationLabel": "Samtale",
-    "proposalTitle": "Foreslåede ændringer",
-    "empty": "Spørg om dine møder, noter og indstillinger. Ændringer af indstillinger vises her som et forslag, du gennemgår, før noget ændrer sig.",
+  "chat": {
+    "open": "Chat",
+    "label": "Chat med Sona-agenten",
+    "title": "Sona-agent",
+    "unpaired": "Par Sona-agenten under Indstillinger",
+    "close": "Luk chat",
+    "history": "Seneste chats",
+    "historyEmpty": "Ingen tidligere chats endnu.",
+    "newChat": "Ny chat",
+    "empty": "Spørg om dine møder, noter og indstillinger.",
+    "placeholder": "Spørg om hvad som helst",
     "inputLabel": "Spørg om Sona",
     "send": "Send",
-    "status": {
-      "loading": "Forbinder…",
-      "disabled": "Agentpanelet er deaktiveret.",
-      "unpaired": "Ikke parret med et relæ.",
-      "offline": "Relæet er offline.",
-      "idle": "Klar",
-      "proposal": "Forslaget er klar",
-      "error": "Agentpanelet er utilgængeligt."
-    },
-    "activityLabel": "Aktivitet",
-    "workspaceLabel": "Hvem svarer",
-    "step": {
-      "sent": "Sendt"
-    },
-    "workspace": {
+    "stop": "Stop",
+    "retry": "Prøv igen",
+    "openSettings": "Indstillinger",
+    "scopeLabel": "Hvem svarer",
+    "scope": {
       "sona_chat": "Spørg",
       "sona_config": "Indstillinger"
     },
-    "placeholder": {
-      "sona_chat": "Spørg om dine møder og noter…",
-      "sona_config": "Spørg om Sonas indstillinger…"
-    },
+    "workedFor": "Arbejdede i {{seconds}} s",
+    "stepSeconds": "{{seconds}} s",
     "turnState": {
       "submitting": "Sender",
       "queued": "I kø",
@@ -2504,15 +2494,24 @@
       "canceled": "Stoppet",
       "unverified_external": "Ubekræftet svar"
     },
+    "status": {
+      "disabled": "Sona-agenten er slået fra.",
+      "unpaired": "Sona-agenten er ikke parret med et relay.",
+      "offline": "Sona-agentens relay kunne ikke nås.",
+      "error": "Sona-agenten er utilgængelig."
+    },
+    "proposal": {
+      "apply": "Anvend",
+      "applied": "Anvendt",
+      "undo": "Fortryd",
+      "undone": "Fortrudt",
+      "rejected": "Ikke anvendt"
+    },
     "ask": {
       "row": "Spørg Sona: {{query}}",
-      "error": "Spørgsmålet kunne ikke sendes til Sona."
+      "error": "Spørgsmålet kunne ikke sendes til Sona.",
+      "consentRequired": "Et spørgsmål sender citater fra dine møder til din server, så slå mødeintelligens til først."
     }
-  },
-  "chat": {
-    "open": "Chat",
-    "label": "Chat med Sona-agenten",
-    "unpaired": "Par Sona-agenten under Indstillinger"
   },
   "overview": {
     "hero": {

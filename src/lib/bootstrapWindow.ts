@@ -4,7 +4,7 @@ import type { Theme } from "@/bindings";
  * What one Sona window does before its React tree mounts.
  *
  * Three routes serve three windows — / (settings), /overlay (recording HUD),
- * /agent-panel (companion) — and each is its own webview, so each has to
+ * /consent (meeting consent) — and each is its own webview, so each has to
  * bootstrap itself. That sequence was copied into all three route factories and
  * had drifted four ways with nothing written down about why. It lives here now,
  * and every difference between the windows is an argument at the call site, so a

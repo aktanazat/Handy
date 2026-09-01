@@ -1750,6 +1750,7 @@
       "people": "Personen",
       "dictations": "Diktate",
       "loops": "Offene Fragen",
+      "empty": "Nichts entspricht \"{{query}}\".",
       "unavailable": "Die Suche ist gerade nicht verfügbar."
     }
   },
@@ -2090,16 +2091,16 @@
       "unassigned": "Nicht zugewiesen",
       "noDueDate": "Kein Fälligkeitsdatum",
       "questions": "Diese Besprechung fragen",
-      "questionsDescription": "Antworten nutzen nur diese lokale Besprechung und zitieren die belegende Transkriptstelle.",
+      "questionsDescription": "Antworten nutzen nur diese Besprechung und zitieren die belegende Transkriptstelle, und sie werden nur dann auf deinem Server geschrieben, wenn Meeting-Intelligenz sie dorthin leitet.",
       "questionPlaceholder": "Stellen Sie eine Frage zu dieser Besprechung",
-      "ask": "Lokal fragen",
+      "ask": "Fragen",
       "noQuestions": "Keine gespeicherten lokalen Antworten.",
       "question": "Frage",
       "insufficientEvidence": "In dieser Besprechung wurde keine belegende Passage gefunden.",
       "forget": "Diese Antwort vergessen",
       "searchPlaceholder": "Diese Besprechung durchsuchen",
       "noSearchResults": "Keine genauen lokalen Treffer.",
-      "askUnavailable": "Fragen erfordern ein fertiges lokales Transkript.",
+      "askUnavailable": "Fragen erfordern ein fertiges Transkript.",
       "asking": "Dieses Meeting wird befragt…",
       "droppedFrames": "Verlorene Frames: {{total}}",
       "hitKind": {
@@ -2457,40 +2458,29 @@
       "failed": "Für dieses Meeting konnte kein Entwurf geschrieben werden."
     }
   },
-  "agentPanel": {
-    "open": "Agent",
-    "retry": "Erneut versuchen",
-    "cancel": "Abbrechen",
-    "apply": "Anwenden",
-    "undo": "Rückgängig",
-    "panelToggle": "Agent-Panel schließen",
-    "conversationLabel": "Unterhaltung",
-    "proposalTitle": "Vorgeschlagene Änderungen",
-    "empty": "Frag nach deinen Meetings, Notizen und Einstellungen. Änderungen an Einstellungen erscheinen hier als Vorschlag, den du prüfst, bevor sich etwas ändert.",
+  "chat": {
+    "open": "Chat",
+    "label": "Chat mit dem Sona-Agenten",
+    "title": "Sona-Agent",
+    "unpaired": "Sona-Agent in den Einstellungen koppeln",
+    "close": "Chat schließen",
+    "history": "Letzte Chats",
+    "historyEmpty": "Noch keine früheren Chats.",
+    "newChat": "Neuer Chat",
+    "empty": "Frag nach deinen Meetings, Notizen und Einstellungen.",
+    "placeholder": "Frag irgendetwas",
     "inputLabel": "Zu Sona fragen",
     "send": "Senden",
-    "status": {
-      "loading": "Verbinde…",
-      "disabled": "Das Agent-Panel ist deaktiviert.",
-      "unpaired": "Nicht mit einem Relay gekoppelt.",
-      "offline": "Relay ist offline.",
-      "idle": "Bereit",
-      "proposal": "Vorschlag ist bereit",
-      "error": "Das Agent-Panel ist nicht verfügbar."
-    },
-    "activityLabel": "Verlauf",
-    "workspaceLabel": "Wer antwortet",
-    "step": {
-      "sent": "Gesendet"
-    },
-    "workspace": {
+    "stop": "Stoppen",
+    "retry": "Erneut versuchen",
+    "openSettings": "Einstellungen",
+    "scopeLabel": "Wer antwortet",
+    "scope": {
       "sona_chat": "Fragen",
       "sona_config": "Einstellungen"
     },
-    "placeholder": {
-      "sona_chat": "Frag nach deinen Meetings und Notizen…",
-      "sona_config": "Frag nach den Einstellungen von Sona…"
-    },
+    "workedFor": "{{seconds}} s gearbeitet",
+    "stepSeconds": "{{seconds}} s",
     "turnState": {
       "submitting": "Wird gesendet",
       "queued": "In der Warteschlange",
@@ -2504,15 +2494,24 @@
       "canceled": "Gestoppt",
       "unverified_external": "Ungeprüfte Antwort"
     },
+    "status": {
+      "disabled": "Der Sona-Agent ist ausgeschaltet.",
+      "unpaired": "Der Sona-Agent ist mit keinem Relay gekoppelt.",
+      "offline": "Das Relay des Sona-Agenten war nicht erreichbar.",
+      "error": "Der Sona-Agent ist nicht verfügbar."
+    },
+    "proposal": {
+      "apply": "Anwenden",
+      "applied": "Übernommen",
+      "undo": "Rückgängig",
+      "undone": "Rückgängig gemacht",
+      "rejected": "Nicht übernommen"
+    },
     "ask": {
       "row": "Sona fragen: {{query}}",
-      "error": "Die Frage konnte nicht an Sona gesendet werden."
+      "error": "Die Frage konnte nicht an Sona gesendet werden.",
+      "consentRequired": "Eine Frage schickt Zitate aus deinen Besprechungen an deinen Server, schalte also zuerst Meeting-Intelligenz ein."
     }
-  },
-  "chat": {
-    "open": "Chat",
-    "label": "Chat mit dem Sona-Agenten",
-    "unpaired": "Sona-Agent in den Einstellungen koppeln"
   },
   "overview": {
     "hero": {

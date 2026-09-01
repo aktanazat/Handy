@@ -1762,6 +1762,7 @@
       "people": "Lidé",
       "dictations": "Diktáty",
       "loops": "Otevřené otázky",
+      "empty": "Nic neodpovídá \"{{query}}\".",
       "unavailable": "Vyhledávání teď není k dispozici."
     }
   },
@@ -2102,16 +2103,16 @@
       "unassigned": "Nepřiřazeno",
       "noDueDate": "Bez termínu",
       "questions": "Dotázat se této schůzky",
-      "questionsDescription": "Odpovědi vycházejí jen z této místní schůzky a citují podpůrný přepis.",
+      "questionsDescription": "Odpovědi vycházejí jen z této schůzky a citují podpůrný přepis, a na tvém serveru se píší jen tehdy, když je tam inteligence schůzek nasměruje.",
       "questionPlaceholder": "Zadejte otázku k této schůzce",
-      "ask": "Dotázat se lokálně",
+      "ask": "Dotázat se",
       "noQuestions": "Žádné uložené místní odpovědi.",
       "question": "Otázka",
       "insufficientEvidence": "V této schůzce se nenašla žádná podpůrná pasáž.",
       "forget": "Zapomenout tuto odpověď",
       "searchPlaceholder": "Hledat v této schůzce",
       "noSearchResults": "Žádné přesné místní shody.",
-      "askUnavailable": "Dotazy vyžadují dokončený místní přepis.",
+      "askUnavailable": "Dotazy vyžadují dokončený přepis.",
       "asking": "Dotazování na tuto schůzku…",
       "droppedFrames": "Ztracené snímky: {{total}}",
       "hitKind": {
@@ -2469,40 +2470,29 @@
       "failed": "Pro tuto schůzku se nepodařilo sestavit návrh."
     }
   },
-  "agentPanel": {
-    "open": "Agent",
-    "retry": "Zkusit znovu",
-    "cancel": "Zrušit",
-    "apply": "Použít",
-    "undo": "Zpět",
-    "panelToggle": "Zavřít panel agenta",
-    "conversationLabel": "Konverzace",
-    "proposalTitle": "Navrhované změny",
-    "empty": "Zeptejte se na své schůzky, poznámky a nastavení. Změny nastavení se tu objeví jako návrh, který si projdete dřív, než se cokoli změní.",
+  "chat": {
+    "open": "Chat",
+    "label": "Chat s agentem Sona",
+    "title": "Agent Sona",
+    "unpaired": "Spárujte agenta Sona v Nastavení",
+    "close": "Zavřít chat",
+    "history": "Nedávné chaty",
+    "historyEmpty": "Zatím žádné dřívější chaty.",
+    "newChat": "Nový chat",
+    "empty": "Zeptejte se na své schůzky, poznámky a nastavení.",
+    "placeholder": "Zeptejte se na cokoli",
     "inputLabel": "Zeptejte se na Sona",
     "send": "Odeslat",
-    "status": {
-      "loading": "Připojování…",
-      "disabled": "Panel agenta je vypnutý.",
-      "unpaired": "Není spárováno s relé.",
-      "offline": "Relé je offline.",
-      "idle": "Připraveno",
-      "proposal": "Návrh je připraven",
-      "error": "Panel agenta není k dispozici."
-    },
-    "activityLabel": "Průběh",
-    "workspaceLabel": "Kdo odpovídá",
-    "step": {
-      "sent": "Odesláno"
-    },
-    "workspace": {
+    "stop": "Zastavit",
+    "retry": "Zkusit znovu",
+    "openSettings": "Nastavení",
+    "scopeLabel": "Kdo odpovídá",
+    "scope": {
       "sona_chat": "Dotaz",
       "sona_config": "Nastavení"
     },
-    "placeholder": {
-      "sona_chat": "Zeptejte se na své schůzky a poznámky…",
-      "sona_config": "Zeptejte se na nastavení Sony…"
-    },
+    "workedFor": "Pracoval {{seconds}} s",
+    "stepSeconds": "{{seconds}} s",
     "turnState": {
       "submitting": "Odesílá se",
       "queued": "Ve frontě",
@@ -2516,15 +2506,24 @@
       "canceled": "Zastaveno",
       "unverified_external": "Neověřená odpověď"
     },
+    "status": {
+      "disabled": "Agent Sona je vypnutý.",
+      "unpaired": "Agent Sona není spárovaný s relay.",
+      "offline": "Relay agenta Sona je nedostupný.",
+      "error": "Agent Sona není k dispozici."
+    },
+    "proposal": {
+      "apply": "Použít",
+      "applied": "Použito",
+      "undo": "Zpět",
+      "undone": "Vráceno zpět",
+      "rejected": "Nepoužito"
+    },
     "ask": {
       "row": "Zeptat se Sony: {{query}}",
-      "error": "Dotaz se nepodařilo odeslat do Sony."
+      "error": "Dotaz se nepodařilo odeslat do Sony.",
+      "consentRequired": "Dotaz odešle citace z tvých schůzek na tvůj server, takže nejdřív zapni inteligenci schůzek."
     }
-  },
-  "chat": {
-    "open": "Chat",
-    "label": "Chat s agentem Sona",
-    "unpaired": "Spárujte agenta Sona v Nastavení"
   },
   "overview": {
     "hero": {

@@ -16,6 +16,10 @@ import AccessibilityOnboarding from "./components/onboarding/AccessibilityOnboar
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Sidebar } from "./components/Sidebar";
 import { ChatPill } from "./components/ChatPill";
+import {
+  ChatOpenerProvider,
+  ChatSheetHost,
+} from "./components/chat/ChatSheetHost";
 import { CommandPalette } from "./components/CommandPalette";
 import { DetectionListeners } from "./components/settings/meetings/DetectionListeners";
 import { PAGE_COLUMN } from "./components/settings/rows";
@@ -170,7 +174,14 @@ export interface AppContentProps {
   commandOpen: boolean;
   commandActions: CommandPaletteAction[];
   commandSeed: SearchRequest | null;
-  agentPanel: { enabled: boolean; paired: boolean };
+  agentPanel: {
+    enabled: boolean;
+    paired: boolean;
+    remoteIntelligence: boolean;
+  };
+  /** The chat sheet's fold, owned here so the pill, Esc and ⌘K agree on it. */
+  chatOpen: boolean;
+  onChatOpenChange: (open: boolean) => void;
   onCommandOpenChange: (open: boolean) => void;
   onCommandOpen: () => void;
 }
@@ -195,6 +206,8 @@ export const AppContent = ({
   commandActions,
   commandSeed,
   agentPanel,
+  chatOpen,
+  onChatOpenChange,
   onCommandOpenChange,
   onCommandOpen,
 }: AppContentProps) => {
@@ -206,79 +219,141 @@ export const AppContent = ({
     return <Onboarding onModelSelected={onModelSelected} />;
   }
 
+  /* One fold, three columns. The chat is a column of the window rather than a
+   * strip over the page, so opening it collapses the rail to glyphs and
+   * narrows the page instead of covering it: 48 + 512 + 340 of the same fixed
+   * 900, and nothing anywhere resizes the window.
+   *
+   * The setting is folded in here rather than at each reader, so the rail, the
+   * pill and the column cannot disagree about whether the chat is showing: an
+   * agent switched off has no column, and a page beside a column that is not
+   * there would be a page narrowed for nothing. */
+  const chatShowing = chatOpen && agentPanel.enabled;
+
+  /* Anything that wants the chat from below — a review's follow-up button, the
+   * palette's Ask row — reaches the same fold the pill opens rather than
+   * opening a second one. */
   return (
-    <div
-      dir={direction}
-      /* `app-shell` carries no styling of its own any more. It survives as the
-       * hook the one material override in styles/shell.css keys off: a Glass
-       * window has to let the native vibrancy through, and that decision lives
-       * on a root attribute Rust writes, which no utility can read. */
-      className="app-shell flex h-screen cursor-default select-none bg-background-200"
-    >
-      <ErrorBoundary context="What's New">
-        <WhatsNewGate />
-      </ErrorBoundary>
-      <Sidebar
-        currentSection={currentSection}
-        onSectionChange={onSectionChange}
-        onOpenCommand={onCommandOpen}
-      />
-      {/* `settings-main` is a hook as well: primitives.css still styles bare
-       * inputs and selects through it for the surfaces that have not moved to
-       * the component kit yet. `relative` is what the chat pill is positioned
-       * against: the content pane, not the page and not the scroll box. */}
-      <main className="settings-main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        {/* Above the scroll owner and outside it, so it holds its corner on
-         * every route and through every scroll. It draws nothing at all when
-         * the panel is off by setting. */}
-        <ChatPill enabled={agentPanel.enabled} paired={agentPanel.paired} />
-        <div
-          data-slot="page-scroll"
-          className="flex-1 overflow-x-hidden overflow-y-auto"
-        >
-          {/* Every page owns its own column now, so the scroll region is full
-           * width and unpadded. These two are shell banners rather than
-           * pages, so they borrow the pages' column from the primitive that
-           * owns it — and both render nothing on the ordinary path, which is
-           * what collapses the wrapper. The top padding matches a page's
-           * `py-12` rather than sitting 14px above it: the pill's band is the
-           * one thing in the pane a banner may not grow into. */}
-          <div className={cn(PAGE_COLUMN, "pt-12 empty:hidden")}>
-            <AccessibilityPermissions />
-            <SecureInputWarning />
+    <ChatOpenerProvider value={() => onChatOpenChange(true)}>
+      <div
+        dir={direction}
+        /* `app-shell` carries no styling of its own any more. It survives as
+         * the hook the one material override in styles/shell.css keys off: a
+         * Glass window has to let the native vibrancy through, and that
+         * decision lives on a root attribute Rust writes, which no utility can
+         * read. */
+        className="app-shell flex h-screen cursor-default select-none bg-background-200"
+      >
+        <ErrorBoundary context="What's New">
+          <WhatsNewGate />
+        </ErrorBoundary>
+        <Sidebar
+          collapsed={chatShowing}
+          currentSection={currentSection}
+          onSectionChange={onSectionChange}
+          onOpenCommand={onCommandOpen}
+        />
+        {/* `settings-main` is a hook as well: primitives.css still styles bare
+         * inputs and selects through it for the surfaces that have not moved to
+         * the component kit yet. `relative` is what the chat pill is positioned
+         * against: the content pane, not the page and not the scroll box. */}
+        <main className="settings-main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          {/* The window's drag handle, and the reason this app can be moved at
+           * all on macOS: the window is TitleBarStyle::Overlay with a hidden
+           * title, so the webview covers the native title bar and the traffic
+           * lights are the only native thing left up there. Every pixel the
+           * cursor can grab has to be claimed in markup. The rail claims its own
+           * top strip (Sidebar.tsx); this claims the pane's, which is the band
+           * the reader actually reaches for — the full width above page content,
+           * on the traffic lights' row.
+           *
+           * `h-12` rather than a pinned 42px: this band IS the `py-12` every
+           * page leaves above its first heading, and writing it as the same step
+           * on the same scale is what stops the two from drifting apart.
+           *
+           * Unconditional. `data-tauri-drag-region` is inert on a platform that
+           * kept its native title bar, so gating it on macOS would buy a branch
+           * and nothing else.
+           *
+           * Bare, not `deep`: Tauri only starts a drag when the mousedown lands
+           * on this element itself, and it has no children. What sits above it
+           * stays live — the pill below is `z-10` against this band's `z-0`, and
+           * a positioned page element with a z-index of its own outranks it the
+           * same way. */}
+          <div
+            data-slot="drag-band"
+            data-tauri-drag-region
+            className="absolute inset-x-0 top-0 z-0 h-12"
+          />
+          {/* Above the scroll owner and outside it, so it holds its corner on
+           * every route and through every scroll. It draws nothing at all when
+           * the agent is off by setting, and nothing while the chat column is
+           * open: the column's own X is what closes it. */}
+          <ChatPill
+            enabled={agentPanel.enabled}
+            paired={agentPanel.paired}
+            open={chatShowing}
+            onOpen={() => onChatOpenChange(true)}
+          />
+          <div
+            data-slot="page-scroll"
+            className="flex-1 overflow-x-hidden overflow-y-auto"
+          >
+            {/* Every page owns its own column now, so the scroll region is full
+             * width and unpadded. These two are shell banners rather than
+             * pages, so they borrow the pages' column from the primitive that
+             * owns it — and both render nothing on the ordinary path, which is
+             * what collapses the wrapper. The top padding matches a page's
+             * `py-12` rather than sitting 14px above it: the pill's band is the
+             * one thing in the pane a banner may not grow into. */}
+            <div className={cn(PAGE_COLUMN, "pt-12 empty:hidden")}>
+              <AccessibilityPermissions />
+              <SecureInputWarning />
+            </div>
+            {/* Keyed on the section so switching routes shows the skeleton
+             * again rather than holding the previous page while the next
+             * chunk loads, and so a crashed section resets when you leave. */}
+            <ErrorBoundary key={currentSection} context={currentSection}>
+              <Suspense
+                fallback={
+                  <div className={cn(PAGE_COLUMN, "py-12")}>
+                    <RouteSkeleton label={loadingLabel} />
+                  </div>
+                }
+              >
+                {renderSettingsContent({
+                  section: currentSection,
+                  meetingInvalidation,
+                  meetingNavigationRequest,
+                  meetingStartRequest,
+                  personRequest,
+                  onSectionChange,
+                  onOpenMeeting,
+                })}
+              </Suspense>
+            </ErrorBoundary>
           </div>
-          {/* Keyed on the section so switching routes shows the skeleton
-           * again rather than holding the previous page while the next
-           * chunk loads, and so a crashed section resets when you leave. */}
-          <ErrorBoundary key={currentSection} context={currentSection}>
-            <Suspense
-              fallback={
-                <div className={cn(PAGE_COLUMN, "py-12")}>
-                  <RouteSkeleton label={loadingLabel} />
-                </div>
-              }
-            >
-              {renderSettingsContent({
-                section: currentSection,
-                meetingInvalidation,
-                meetingNavigationRequest,
-                meetingStartRequest,
-                personRequest,
-                onSectionChange,
-                onOpenMeeting,
-              })}
-            </Suspense>
-          </ErrorBoundary>
-        </div>
-      </main>
-      <CommandPalette
-        open={commandOpen}
-        onOpenChange={onCommandOpenChange}
-        actions={commandActions}
-        seed={commandSeed}
-        panel={agentPanel}
-      />
-    </div>
+        </main>
+        {/* A column of the shell, beside the pane rather than over it — which
+         * is the whole cutover: the page it is asked about stays lit, readable
+         * and clickable at 512pt, and the window never changes size. The
+         * setting closes it rather than hiding a column that is still open: an
+         * agent switched off has no conversation to be mid-way through. */}
+        <ChatSheetHost
+          open={chatShowing}
+          onClose={() => onChatOpenChange(false)}
+          onOpenSettings={() => onSectionChange("settings")}
+        />
+        <CommandPalette
+          open={commandOpen}
+          onOpenChange={onCommandOpenChange}
+          actions={commandActions}
+          seed={commandSeed}
+          panel={agentPanel}
+          onAsk={() => onChatOpenChange(true)}
+        />
+      </div>
+    </ChatOpenerProvider>
   );
 };
 
@@ -488,6 +563,10 @@ function App() {
     useState<MeetingNavigationPayload | null>(null);
   const [meetingStartRequest, setMeetingStartRequest] = useState(0);
   const [commandOpen, setCommandOpen] = useState(false);
+  /* Not persisted. The sheet is a thing you opened during this sitting, and a
+   * chat that reopens itself on the next launch is a chat that reopens a
+   * question you already stopped asking. */
+  const [chatOpen, setChatOpen] = useState(false);
   const [commandSeed, setCommandSeed] = useState<SearchRequest | null>(null);
   const [personRequest, setPersonRequest] = useState<PersonRequest | null>(
     null,
@@ -769,16 +848,7 @@ function App() {
     }
   }, []);
 
-  const openAgentPanel = useCallback(async () => {
-    try {
-      const result = await commands.agentPanelOpen();
-      if (result.status === "error") {
-        toast.error(t("agentPanel.status.error"));
-      }
-    } catch {
-      toast.error(t("agentPanel.status.error"));
-    }
-  }, [t]);
+  const openChat = useCallback(() => setChatOpen(true), []);
 
   const agentEnabled = settings?.agent_panel_enabled === true;
 
@@ -798,7 +868,7 @@ function App() {
       }),
     onImportAudio: () => void startAudioImport(),
     onOpenRecordings: () => void openRecordingsFolder(),
-    onOpenAgent: () => void openAgentPanel(),
+    onOpenAgent: openChat,
   });
 
   return (
@@ -819,14 +889,21 @@ function App() {
         meetingNavigationRequest={meetingNavigationRequest}
         meetingStartRequest={meetingStartRequest}
         personRequest={personRequest}
+        chatOpen={chatOpen}
+        onChatOpenChange={setChatOpen}
         commandOpen={commandOpen}
         commandActions={commandActions}
         commandSeed={commandSeed}
-        /* Pairing decides whether the ask row is offered, so the palette reads
-         * the same two settings the panel's own pairing screen writes. */
+        /* Pairing and the D14 consent decide whether the ask row is offered,
+         * so the palette reads the same settings the panel's pairing screen
+         * and the meeting-intelligence switch write. ⌘K's pack is verbatim
+         * transcript text, so it is the same consent a meeting's summary is
+         * written under. */
         agentPanel={{
           enabled: agentEnabled,
           paired: settings?.agent_panel_paired === true,
+          remoteIntelligence:
+            settings?.meeting_remote_intelligence_enabled === true,
         }}
         onCommandOpenChange={setCommandOpen}
         onCommandOpen={openCommandPalette}

@@ -4,7 +4,7 @@ import type { NextConfig } from "next";
  * `next build` emits plain HTML/JS into out/, which tauri.conf.json serves as
  * frontendDist. There is no Node server at runtime, hence output: "export".
  *
- * Each window is a route (/, /overlay, /agent-panel) and every route mounts its
+ * Each window is a route (/, /overlay) and every route mounts its
  * root through next/dynamic with ssr: false, because the components talk to
  * Tauri IPC on import and prerendering has no IPC host. trailingSlash keeps the
  * export at out/<route>/index.html, which is what a file:// webview resolves.

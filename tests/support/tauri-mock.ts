@@ -210,28 +210,19 @@ export function installMockedRuntime(payload: MockPayload): void {
     notes: userNotes(),
   });
 
-  /* The panel's quiet-but-healthy snapshot: relay paired and reachable, panel
-   * attached, nothing in flight. `relayStatusToPhase` (src/agent-panel/
-   * AgentPanelApp.tsx:24-41) maps ready + no turn + no proposal to the `idle`
-   * phase, which is the only state a browser can reach — the mock answers
+  /* The chat sheet's quiet-but-healthy snapshot: relay paired and reachable,
+   * nothing in flight. `chatPhase` (src/components/chat/chatModel.ts) maps
+   * `ready` to the one phase a browser can reach — the mock answers
    * `plugin:event|listen` with an id and then emits nothing, so no turn or
    * proposal lifecycle ever advances on its own. A spec that needs one supplies
    * it through `responses`. Shapes are AgentPanelStatusV1 in src/bindings.ts. */
   const agentPanel = () => ({
     invalidation_id: 1,
     relay_status: "ready",
-    panel_open: true,
+    conversation_id: null,
     conversation: [],
     turn: null,
     proposal: null,
-    geometry: {
-      x: 0,
-      y: 0,
-      outer_width: 380,
-      outer_height: 640,
-      attachment: "right",
-      compact: false,
-    },
   });
 
   const defaults = new Map<string, JsonValue>([
@@ -415,25 +406,28 @@ export function installMockedRuntime(payload: MockPayload): void {
      * command answers with nothing. */
     ["change_appearance_material_setting", null],
 
-    /* Agent panel (/agent-panel). Every commands.agentPanel* call site branches
-     * on the `{ status: "ok" | "error" }` result shape, so an unmocked command
-     * falling through to `return null` is a crash on `result.data.relay_status`,
-     * not a graceful miss. All seven status commands answer with the same idle
-     * snapshot except for the field each one actually moves. */
+    /* The chat sheet, inside the main window. Every commands.agentPanel* and
+     * commands.agentChat* call site branches on the `{ status: "ok" | "error" }`
+     * result shape, so an unmocked command falling through to `return null` is
+     * a crash on `result.data.relay_status`, not a graceful miss. They answer
+     * with the same quiet snapshot except for the field each one moves. */
     ["agent_panel_status", agentPanel()],
-    ["agent_panel_open", agentPanel()],
-    ["agent_panel_close", { ...agentPanel(), panel_open: false }],
     /* Post-enqueue, which is what the backend returns before any turn event:
-     * the panel goes to the `running` phase and stays there, because nothing
-     * here emits agent-panel://turn-changed. */
+     * the sheet shows a running turn and stays there, because nothing here
+     * emits agent-panel://turn-changed. */
     [
       "agent_panel_send_turn",
       {
         ...agentPanel(),
+        conversation_id: "conversation-1",
         turn: {
-          turn_id: "agent-panel-turn-1",
+          turn_id: "chat-turn-1",
+          workspace: "sona_chat",
           state: "queued",
           event_cursor: 0,
+          started_at_utc_ms: 0,
+          completed_at_utc_ms: null,
+          steps: [],
         },
       },
     ],
@@ -441,10 +435,15 @@ export function installMockedRuntime(payload: MockPayload): void {
       "agent_panel_cancel_turn",
       {
         ...agentPanel(),
+        conversation_id: "conversation-1",
         turn: {
-          turn_id: "agent-panel-turn-1",
+          turn_id: "chat-turn-1",
+          workspace: "sona_chat",
           state: "canceled",
           event_cursor: 1,
+          started_at_utc_ms: 0,
+          completed_at_utc_ms: 1000,
+          steps: [],
         },
       },
     ],
@@ -453,9 +452,14 @@ export function installMockedRuntime(payload: MockPayload): void {
      * affordance — supplies its own AgentPanelProposalPreviewV1. */
     ["agent_panel_apply_change", agentPanel()],
     ["agent_panel_undo_change", agentPanel()],
+    /* The history button reads the list on open; nothing has been asked yet in
+     * a fresh browser, so it is empty. */
+    ["agent_chat_history_list", []],
+    ["agent_chat_open", agentPanel()],
+    ["agent_chat_new", agentPanel()],
     [
       "agent_panel_public_identity",
-      { key_id: "agent-panel-key-1", public_key: "0".repeat(64) },
+      { key_id: "sona-key-1", public_key: "0".repeat(64) },
     ],
 
     /* The one query plane (⌘K). Two characters into the palette's field the

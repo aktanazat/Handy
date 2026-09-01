@@ -1756,6 +1756,7 @@
       "people": "Persone",
       "dictations": "Dettature",
       "loops": "Domande aperte",
+      "empty": "Niente corrisponde a \"{{query}}\".",
       "unavailable": "La ricerca non è disponibile in questo momento."
     }
   },
@@ -2096,16 +2097,16 @@
       "unassigned": "Non assegnato",
       "noDueDate": "Nessuna scadenza",
       "questions": "Interroga questa riunione",
-      "questionsDescription": "Le risposte usano solo questa riunione locale e citano la trascrizione a supporto.",
+      "questionsDescription": "Le risposte usano solo questa riunione e citano la trascrizione a supporto, e vengono scritte sul tuo server solo quando l'intelligenza delle riunioni le indirizza lì.",
       "questionPlaceholder": "Fai una domanda su questa riunione",
-      "ask": "Chiedi in locale",
+      "ask": "Chiedi",
       "noQuestions": "Nessuna risposta locale salvata.",
       "question": "Domanda",
       "insufficientEvidence": "In questa riunione non è stato trovato alcun passaggio a supporto.",
       "forget": "Dimentica questa risposta",
       "searchPlaceholder": "Cerca in questa riunione",
       "noSearchResults": "Nessuna corrispondenza esatta in locale.",
-      "askUnavailable": "Per porre domande serve una trascrizione locale completata.",
+      "askUnavailable": "Per porre domande serve una trascrizione completata.",
       "asking": "Interrogazione della riunione…",
       "droppedFrames": "Frame persi: {{total}}",
       "hitKind": {
@@ -2463,40 +2464,29 @@
       "failed": "Impossibile scrivere un follow-up per questa riunione."
     }
   },
-  "agentPanel": {
-    "open": "Agente",
-    "retry": "Riprova",
-    "cancel": "Annulla",
-    "apply": "Applica",
-    "undo": "Annulla",
-    "panelToggle": "Chiudi pannello agente",
-    "conversationLabel": "Conversazione",
-    "proposalTitle": "Modifiche proposte",
-    "empty": "Chiedi delle tue riunioni, delle note e delle impostazioni. Le modifiche alle impostazioni compaiono qui come una proposta che rivedi prima che cambi qualcosa.",
+  "chat": {
+    "open": "Chat",
+    "label": "Chatta con l'agente Sona",
+    "title": "Agente Sona",
+    "unpaired": "Abbina l'agente Sona in Impostazioni",
+    "close": "Chiudi la chat",
+    "history": "Chat recenti",
+    "historyEmpty": "Ancora nessuna chat precedente.",
+    "newChat": "Nuova chat",
+    "empty": "Chiedi delle tue riunioni, delle note e delle impostazioni.",
+    "placeholder": "Chiedi qualsiasi cosa",
     "inputLabel": "Chiedi di Sona",
     "send": "Invia",
-    "status": {
-      "loading": "Connessione…",
-      "disabled": "Il pannello agente è disattivato.",
-      "unpaired": "Non associato a un relay.",
-      "offline": "Il relay è offline.",
-      "idle": "Pronto",
-      "proposal": "Proposta pronta",
-      "error": "Pannello agente non disponibile."
-    },
-    "activityLabel": "Attività",
-    "workspaceLabel": "Chi risponde",
-    "step": {
-      "sent": "Inviato"
-    },
-    "workspace": {
+    "stop": "Interrompi",
+    "retry": "Riprova",
+    "openSettings": "Impostazioni",
+    "scopeLabel": "Chi risponde",
+    "scope": {
       "sona_chat": "Domanda",
       "sona_config": "Impostazioni"
     },
-    "placeholder": {
-      "sona_chat": "Chiedi delle tue riunioni e delle tue note…",
-      "sona_config": "Chiedi delle impostazioni di Sona…"
-    },
+    "workedFor": "Ha lavorato {{seconds}} s",
+    "stepSeconds": "{{seconds}} s",
     "turnState": {
       "submitting": "Invio",
       "queued": "In coda",
@@ -2510,15 +2500,24 @@
       "canceled": "Interrotto",
       "unverified_external": "Risposta non verificata"
     },
+    "status": {
+      "disabled": "L'agente Sona è disattivato.",
+      "unpaired": "L'agente Sona non è associato a un relay.",
+      "offline": "Il relay dell'agente Sona non è raggiungibile.",
+      "error": "L'agente Sona non è disponibile."
+    },
+    "proposal": {
+      "apply": "Applica",
+      "applied": "Applicato",
+      "undo": "Annulla",
+      "undone": "Annullato",
+      "rejected": "Non applicato"
+    },
     "ask": {
       "row": "Chiedi a Sona: {{query}}",
-      "error": "Impossibile inviare la domanda a Sona."
+      "error": "Impossibile inviare la domanda a Sona.",
+      "consentRequired": "Una domanda invia citazioni delle tue riunioni al tuo server, quindi attiva prima l'intelligenza delle riunioni."
     }
-  },
-  "chat": {
-    "open": "Chat",
-    "label": "Chatta con l'agente Sona",
-    "unpaired": "Abbina l'agente Sona in Impostazioni"
   },
   "overview": {
     "hero": {

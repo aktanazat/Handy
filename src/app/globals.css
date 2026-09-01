@@ -1,5 +1,5 @@
 /* The app's single Tailwind entry. Loaded by app/layout.tsx, so every window
- * route (/, /overlay, /agent-panel) gets one copy of preflight and one set of
+ * route (/, /overlay, /consent) gets one copy of preflight and one set of
  * utilities. Page stylesheets stay plain CSS. */
 
 @import "tailwindcss";

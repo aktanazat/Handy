@@ -163,9 +163,6 @@ pub(crate) fn show_main_window(app: &AppHandle) {
         if let Err(e) = main_window.set_focus() {
             log::error!("Failed to focus webview window: {}", e);
         }
-        if let Some(panel) = app.try_state::<agent_panel::AgentPanelManager>() {
-            panel.on_main_shown();
-        }
         #[cfg(target_os = "macos")]
         {
             if let Err(e) = app.set_activation_policy(tauri::ActivationPolicy::Regular) {
@@ -1310,13 +1307,14 @@ pub fn run(cli_args: CliArgs) {
             agent_bridge::delete_agent_bridge_permission_rule,
             agent_bridge::respond_agent_bridge_permission,
             agent_bridge::get_agent_bridge_hook_snippet,
-            agent_panel::agent_panel_open,
-            agent_panel::agent_panel_close,
             agent_panel::agent_panel_status,
             agent_panel::agent_panel_send_turn,
             agent_panel::agent_panel_cancel_turn,
             agent_panel::agent_panel_apply_change,
             agent_panel::agent_panel_undo_change,
+            agent_panel::agent_chat_history_list,
+            agent_panel::agent_chat_open,
+            agent_panel::agent_chat_new,
             agent_panel::agent_panel_public_identity,
             agent_panel::change_agent_panel_enabled_setting,
             agent_panel::set_agent_panel_pairing,
@@ -1600,7 +1598,6 @@ pub fn run(cli_args: CliArgs) {
             agent_panel::AgentPanelStatusChangedEvent,
             agent_panel::AgentPanelTurnChangedEvent,
             agent_panel::AgentPanelProposalChangedEvent,
-            agent_panel::AgentPanelGeometryChangedEvent,
             modes::ModesChangedEvent,
             managers::history::HistoryUpdatePayload,
             managers::transcription::StreamTextEvent,
@@ -2014,23 +2011,8 @@ pub fn run(cli_args: CliArgs) {
         .on_window_event(|window, event| {
             let label = window.label();
             match event {
-                tauri::WindowEvent::CloseRequested { api, .. } if label == "agent-panel" => {
-                    api.prevent_close();
-                    if let Some(panel) = window
-                        .app_handle()
-                        .try_state::<agent_panel::AgentPanelManager>()
-                    {
-                        panel.close();
-                    }
-                }
                 tauri::WindowEvent::CloseRequested { api, .. } if label == "main" => {
                     api.prevent_close();
-                    if let Some(panel) = window
-                        .app_handle()
-                        .try_state::<agent_panel::AgentPanelManager>()
-                    {
-                        panel.on_main_hidden();
-                    }
                     let _ = window.hide();
 
                     #[cfg(target_os = "macos")]
@@ -2048,32 +2030,16 @@ pub fn run(cli_args: CliArgs) {
                         }
                     }
                 }
-                tauri::WindowEvent::Moved(_)
-                | tauri::WindowEvent::Resized(_)
-                | tauri::WindowEvent::ScaleFactorChanged { .. }
-                    if label == "main" =>
-                {
-                    if let Some(panel) = window
-                        .app_handle()
-                        .try_state::<agent_panel::AgentPanelManager>()
-                    {
-                        panel.sync_main_window();
-                    }
-                }
-                tauri::WindowEvent::Destroyed if label == "agent-panel" => {
-                    if let Some(panel) = window
-                        .app_handle()
-                        .try_state::<agent_panel::AgentPanelManager>()
-                    {
-                        panel.on_panel_destroyed();
-                    }
-                }
                 tauri::WindowEvent::Destroyed if label == "main" => {
+                    /* The surface the chat sheet lives in is gone. Nothing is
+                     * left to read an answer, so the poll loop stops with it —
+                     * the relay job is cancelled at shutdown, not here, because
+                     * the app can outlive its window. */
                     if let Some(panel) = window
                         .app_handle()
                         .try_state::<agent_panel::AgentPanelManager>()
                     {
-                        panel.on_main_destroyed();
+                        panel.stop_polling();
                     }
                 }
                 tauri::WindowEvent::ThemeChanged(theme) if label == "main" => {

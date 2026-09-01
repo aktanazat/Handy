@@ -25,18 +25,17 @@
 //! [`crate::meeting::automations`] for why one bounded attempt is the whole
 //! doctrine.
 
-use super::{id, insert_operation_receipt, operation_receipt_in, MeetingStore, StoreError};
+use super::fence::{write_fenced, Fence, FencedWrite};
+use super::series::{series_roster_in, SERIES_ROSTER_LIMIT};
+use super::{id, MeetingStore, StoreError};
 use crate::meeting::automation_types::{
     MeetingAutomationFailure, MeetingAutomationKind, MeetingAutomationRoster,
     MeetingAutomationRunReceipt, MeetingAutomationRunState, MeetingAutomationSeries,
     MeetingSeriesAutomation, MeetingSeriesAutomationMutationResult,
     MeetingSeriesAutomationSetRequest, MeetingSeriesAutomationsSnapshot,
 };
-use crate::meeting::types::{
-    MeetingArtifactId, MeetingCommandKind, MeetingOperationId, MeetingReasonCode, MeetingSessionId,
-    OperationActor, OperationReceipt, OperationResult,
-};
-use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
+use crate::meeting::types::{MeetingArtifactId, MeetingCommandKind, MeetingSessionId};
+use rusqlite::{params, Connection, OptionalExtension};
 use std::collections::HashMap;
 
 /// What one attempt is about to do, handed back by [`MeetingStore::claim_automation_run`].
@@ -98,139 +97,76 @@ impl MeetingStore {
             Err(_) if !request.enabled => None,
             Err(_) => return Err(StoreError::Invalid),
         };
-        let mut connection = self.connection()?;
-        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
-        if let Some(receipt) = operation_receipt_in(&transaction, request.operation_id)? {
-            let snapshot = automations_snapshot_in(&transaction, Some(series_key))?;
-            transaction.commit()?;
-            return Ok(MeetingSeriesAutomationMutationResult { receipt, snapshot });
-        }
-        let revision = automations_revision_in(&transaction)?;
-        if revision != request.expected_revision {
-            let receipt = rejected_automation_receipt(
-                request.operation_id,
-                request.expected_revision,
-                revision,
+        let (receipt, snapshot) = write_fenced(
+            self,
+            FencedWrite {
+                fence: AUTOMATIONS_FENCE,
+                command: MeetingCommandKind::SeriesAutomationSet,
+                // The series and the kind: both are needed to read this receipt
+                // back as a decision somebody made.
+                effect_ids: vec![series_key.to_string(), request.kind.as_str().to_string()],
+                operation_id: request.operation_id,
+                expected_revision: request.expected_revision,
                 requested_at_utc_ms,
-                now_utc_ms(),
-            );
-            insert_operation_receipt(&transaction, &receipt, now_utc_ms())?;
-            let snapshot = automations_snapshot_in(&transaction, Some(series_key))?;
-            transaction.commit()?;
-            return Ok(MeetingSeriesAutomationMutationResult { receipt, snapshot });
-        }
-        let now = now_utc_ms();
-        if !request.enabled && target.is_none() {
-            // Off with nothing remembered is "forget this", which is how a URL
-            // leaves the machine for good.
-            transaction.execute(
-                "DELETE FROM meeting_series_automations WHERE series_key = ?1 AND kind = ?2",
-                params![series_key, request.kind.as_str()],
-            )?;
-        } else {
-            transaction.execute(
-                "INSERT INTO meeting_series_automations (
-                    series_key, kind, enabled, target, updated_at_utc_ms
-                 ) VALUES (?1, ?2, ?3, ?4, ?5)
-                 ON CONFLICT(series_key, kind) DO UPDATE SET
-                    enabled = excluded.enabled,
-                    target = excluded.target,
-                    updated_at_utc_ms = excluded.updated_at_utc_ms",
-                params![
-                    series_key,
-                    request.kind.as_str(),
-                    i64::from(request.enabled),
-                    target,
-                    now
-                ],
-            )?;
-        }
-        let next = bump_automations_revision_in(&transaction)?;
-        let receipt = committed_automation_receipt(
-            request.operation_id,
-            request.expected_revision,
-            requested_at_utc_ms,
-            now,
-            next,
-            series_key,
-            request.kind,
-        );
-        insert_operation_receipt(&transaction, &receipt, now)?;
-        let snapshot = automations_snapshot_in(&transaction, Some(series_key))?;
-        transaction.commit()?;
+            },
+            |connection| automations_snapshot_in(connection, Some(series_key)),
+            |connection, now| {
+                if !request.enabled && target.is_none() {
+                    // Off with nothing remembered is "forget this", which is how
+                    // a URL leaves the machine for good.
+                    connection.execute(
+                        "DELETE FROM meeting_series_automations
+                          WHERE series_key = ?1 AND kind = ?2",
+                        params![series_key, request.kind.as_str()],
+                    )?;
+                } else {
+                    connection.execute(
+                        "INSERT INTO meeting_series_automations (
+                            series_key, kind, enabled, target, updated_at_utc_ms
+                         ) VALUES (?1, ?2, ?3, ?4, ?5)
+                         ON CONFLICT(series_key, kind) DO UPDATE SET
+                            enabled = excluded.enabled,
+                            target = excluded.target,
+                            updated_at_utc_ms = excluded.updated_at_utc_ms",
+                        params![
+                            series_key,
+                            request.kind.as_str(),
+                            i64::from(request.enabled),
+                            target,
+                            now
+                        ],
+                    )?;
+                }
+                Ok(())
+            },
+        )?;
         Ok(MeetingSeriesAutomationMutationResult { receipt, snapshot })
     }
 
     /// Every series this machine has actually recorded a meeting for, newest
     /// first, with whatever automations it carries.
     ///
-    /// Assembled from calendar facts rather than from the calendar: the settings
-    /// surface offers automations for meetings that happen, not for every event
-    /// in an account. A series whose meetings have all been deleted disappears
-    /// from the list, and its rows are left alone — turning an automation on for
-    /// a series, deleting the meetings, and recording it again is one continuous
-    /// choice, not two.
+    /// The list is [`series_roster_in`]'s — the same rows, in the same order,
+    /// that Settings > Meeting Intelligence lists — and this only hangs each
+    /// series' configured automations off it. Rows for a series whose meetings
+    /// have all been deleted are left alone rather than cleaned up: turning an
+    /// automation on for a series, deleting the meetings, and recording it
+    /// again is one continuous choice, not two.
     pub(crate) fn automation_roster(&self) -> Result<MeetingAutomationRoster, StoreError> {
         let connection = self.connection()?;
-        let mut statement = connection.prepare(
-            "SELECT json_extract(f.event_json, '$.seriesKey') AS series_key,
-                    json_extract(f.event_json, '$.title'),
-                    COALESCE(s.started_at_utc_ms, s.created_at_utc_ms)
-               FROM meeting_calendar_facts f
-               JOIN meeting_sessions s ON s.id = f.session_id
-              WHERE s.phase != 'deleting'
-                AND series_key IS NOT NULL
-                AND length(trim(series_key)) > 0
-              ORDER BY 3 ASC",
-        )?;
-        let rows = statement
-            .query_map([], |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, Option<String>>(1)?,
-                    row.get::<_, i64>(2)?,
-                ))
-            })?
-            .collect::<Result<Vec<_>, _>>()?;
-        drop(statement);
-        let configured = all_automations_in(&connection)?;
-
-        // Ascending above, so the last write of each key is the most recent
-        // occurrence: one pass, and the title a person sees is the one their
-        // calendar shows today rather than whatever the series was called first.
-        let mut order = Vec::new();
-        let mut series = HashMap::<String, MeetingAutomationSeries>::new();
-        for (series_key, title, at_utc_ms) in rows {
-            let entry = series.entry(series_key.clone()).or_insert_with(|| {
-                order.push(series_key.clone());
-                MeetingAutomationSeries {
-                    series_key: series_key.clone(),
-                    title: String::new(),
-                    last_met_at_utc_ms: at_utc_ms,
-                    meeting_count: 0,
-                    automations: configured.get(&series_key).cloned().unwrap_or_default(),
-                }
-            });
-            entry.meeting_count = entry.meeting_count.saturating_add(1);
-            entry.last_met_at_utc_ms = at_utc_ms;
-            if let Some(title) = title.map(|title| title.trim().to_string()) {
-                if !title.is_empty() {
-                    entry.title = title;
-                }
-            }
-        }
-        let mut listed = order
+        let mut configured = all_automations_in(&connection)?;
+        let series = series_roster_in(&connection, SERIES_ROSTER_LIMIT)?
             .into_iter()
-            .filter_map(|key| series.remove(&key))
-            .collect::<Vec<_>>();
-        listed.sort_by(|left, right| {
-            right
-                .last_met_at_utc_ms
-                .cmp(&left.last_met_at_utc_ms)
-                .then_with(|| left.series_key.cmp(&right.series_key))
-        });
+            .map(|row| MeetingAutomationSeries {
+                automations: configured.remove(&row.series_key).unwrap_or_default(),
+                series_key: row.series_key,
+                title: row.title,
+                last_met_at_utc_ms: row.last_met_at_utc_ms,
+                meeting_count: row.meetings,
+            })
+            .collect();
         Ok(MeetingAutomationRoster {
-            series: listed,
+            series,
             revision: automations_revision_in(&connection)?,
         })
     }
@@ -508,61 +444,9 @@ fn bump_automations_revision_in(connection: &Connection) -> Result<u64, StoreErr
     automations_revision_in(connection)
 }
 
-/// The series and the kind this write touched: a global receipt cannot say
-/// either on its own, and both are needed to read the receipt back as a decision
-/// somebody made.
-fn committed_automation_receipt(
-    operation_id: MeetingOperationId,
-    expected_revision: u64,
-    requested_at_utc_ms: i64,
-    committed_at_utc_ms: i64,
-    new_revision: u64,
-    series_key: &str,
-    kind: MeetingAutomationKind,
-) -> OperationReceipt {
-    OperationReceipt {
-        schema_version: super::STORE_SCHEMA_VERSION,
-        operation_id,
-        session_id: None,
-        actor: OperationActor::User,
-        command: MeetingCommandKind::SeriesAutomationSet,
-        expected_revision,
-        from_phase: None,
-        to_phase: None,
-        requested_at_utc_ms,
-        committed_at_utc_ms: Some(committed_at_utc_ms),
-        result: OperationResult::Committed,
-        reason_codes: Vec::new(),
-        new_revision: Some(new_revision),
-        effect_ids: vec![series_key.to_string(), kind.as_str().to_string()],
-    }
-}
-
-fn rejected_automation_receipt(
-    operation_id: MeetingOperationId,
-    expected_revision: u64,
-    current_revision: u64,
-    requested_at_utc_ms: i64,
-    committed_at_utc_ms: i64,
-) -> OperationReceipt {
-    OperationReceipt {
-        schema_version: super::STORE_SCHEMA_VERSION,
-        operation_id,
-        session_id: None,
-        actor: OperationActor::User,
-        command: MeetingCommandKind::SeriesAutomationSet,
-        expected_revision,
-        from_phase: None,
-        to_phase: None,
-        requested_at_utc_ms,
-        committed_at_utc_ms: Some(committed_at_utc_ms),
-        result: OperationResult::Rejected,
-        reason_codes: vec![MeetingReasonCode::StaleRevision],
-        new_revision: Some(current_revision),
-        effect_ids: Vec::new(),
-    }
-}
-
-fn now_utc_ms() -> i64 {
-    chrono::Utc::now().timestamp_millis()
-}
+/// The counter every automation write is fenced on: one for the whole table,
+/// because the settings surface holds one and writes many rows against it.
+const AUTOMATIONS_FENCE: Fence = Fence {
+    read: automations_revision_in,
+    bump: bump_automations_revision_in,
+};

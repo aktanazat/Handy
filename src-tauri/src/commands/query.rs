@@ -38,6 +38,10 @@ pub async fn sona_query_events(
 /// Assemble the evidence for one question: the top rows that matched, quoted
 /// verbatim with their `sona://` addresses, inside the ceiling the agent panel
 /// accepts on the wire.
+///
+/// A pack is built to be sent, so D14's per-series exclusion applies to it:
+/// rows from a series the operator kept on this Mac are not in it. See
+/// `query::pack::without_excluded_series`.
 #[tauri::command]
 #[specta::specta]
 pub async fn sona_query_pack(

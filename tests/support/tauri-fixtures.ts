@@ -985,3 +985,144 @@ export const MODEL_LOAD_STATUS = {
  * since a captured timestamp.
  */
 export const meetingStartedAtMs = (): number => Date.now() - 7 * 60_000;
+
+const minutesAgo = (minutes: number) => Date.now() - minutes * 60_000;
+
+const trendDay = (localDate: string, recordings: number) => ({
+  local_date: localDate,
+  recordings,
+  duration_ms: recordings * 2_000,
+  words: recordings * 20,
+  by_source: [],
+});
+
+const feedRun = (
+  id: string,
+  workflowId: string,
+  outcomeCode: string,
+  counts: Record<string, number>,
+) => ({
+  id,
+  workflow_id: workflowId,
+  event_kind: "meeting_finalized",
+  jump_target: { kind: "meeting", session_id: `meeting-${id}` },
+  status: "ok",
+  started_at_utc_ms: minutesAgo(9),
+  finished_at_utc_ms: minutesAgo(8),
+  outcome_summary: "",
+  outcome_code: outcomeCode,
+  outcome_counts: {
+    changes: 0,
+    persons: 0,
+    series: 0,
+    carried: 0,
+    candidates: 0,
+    suggestions: 0,
+    terms: 0,
+    ...counts,
+  },
+  error: null,
+});
+
+/**
+ * Capture at its ordinary fullest: a week of dictation behind the Activity
+ * band, the feed at the three effects it caps itself at, two promises still
+ * open, one thing Sona noticed. Every card on that page draws only when its
+ * own command answers with data, so an empty mock renders a page Capture never
+ * actually shows.
+ *
+ * One run and one loop is what the fold suite used to measure, and that page
+ * fit the window with room to spare — which is why it passed while the shipped
+ * build cut the Activity charts off at the bottom edge. A feed is a list that
+ * grows, so the fixture is the full one, and it is shared: the fold suite
+ * measures this page and the Capture suite reads the order of it, and those two
+ * have to be the same page.
+ */
+export const CAPTURE_AT_FULL_HEIGHT = {
+  get_history_trend: {
+    range: "days_180",
+    range_start_local_date: "2026-08-24",
+    range_end_local_date: "2026-08-30",
+    all_time: {
+      recordings: 28,
+      duration_ms: 56_000,
+      words: 560,
+      by_source: [],
+    },
+    range_total: {
+      recordings: 28,
+      duration_ms: 56_000,
+      words: 560,
+      by_source: [],
+    },
+    active_days: 7,
+    current_streak_days: 3,
+    points: [
+      trendDay("2026-08-24", 1),
+      trendDay("2026-08-25", 2),
+      trendDay("2026-08-26", 3),
+      trendDay("2026-08-27", 4),
+      trendDay("2026-08-28", 5),
+      trendDay("2026-08-29", 6),
+      trendDay("2026-08-30", 7),
+    ],
+  },
+  workflow_runs: {
+    schema_version: 1,
+    revision: 1,
+    entries: [
+      feedRun("1", "series_priming", "series_primed", {}),
+      feedRun("2", "person_linking", "person_links", {
+        changes: 2,
+        persons: 2,
+      }),
+      feedRun("3", "vocabulary_mining", "vocabulary_candidates", {
+        candidates: 1,
+      }),
+    ],
+    next_cursor: null,
+  },
+  open_loops_inbox: {
+    schema_version: 1,
+    revision: 1,
+    entries: [
+      {
+        meeting_id: "meeting-1",
+        title: "Weekly sync",
+        at_utc_ms: minutesAgo(40),
+        text: "Send Priya the revised timeline",
+        owner_person_id: null,
+        carried_since_at_utc_ms: null,
+      },
+      {
+        meeting_id: "meeting-2",
+        title: "Local notes",
+        at_utc_ms: minutesAgo(95),
+        text: "Decide annual billing for Stephen",
+        owner_person_id: null,
+        carried_since_at_utc_ms: null,
+      },
+    ],
+  },
+  learning_suggestions: {
+    schema_version: 1,
+    revision: 1,
+    entries: [
+      {
+        loop_kind: "spoken_punctuation",
+        candidate_key: "open paren",
+        suggestion: {
+          kind: "spoken_punctuation",
+          spoken: "open paren",
+          written: "(",
+        },
+        evidence: {
+          occurrences: 7,
+          distinct_days: 3,
+          examples: ["open paren the second one close paren"],
+        },
+        generated_at_utc_ms: minutesAgo(300),
+      },
+    ],
+  },
+};

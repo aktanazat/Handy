@@ -1744,6 +1744,7 @@
       "people": "人物",
       "dictations": "口述",
       "loops": "未答的問題",
+      "empty": "沒有與\"{{query}}\"相符的內容。",
       "unavailable": "搜尋目前無法使用。"
     }
   },
@@ -2084,16 +2085,16 @@
       "unassigned": "未指派",
       "noDueDate": "無期限",
       "questions": "詢問這場會議",
-      "questionsDescription": "回答只使用這場本機會議，並引用支撐它的逐字稿。",
+      "questionsDescription": "回答只使用這場會議，並引用支撐它的逐字稿；只有會議智慧把它們轉到那裡時，才會在你的伺服器上撰寫。",
       "questionPlaceholder": "就這場會議提問",
-      "ask": "在本機提問",
+      "ask": "提問",
       "noQuestions": "沒有儲存的本機回答。",
       "question": "問題",
       "insufficientEvidence": "在這場會議裡沒有找到可以支撐的段落。",
       "forget": "忘掉這條回答",
       "searchPlaceholder": "搜尋這場會議",
       "noSearchResults": "沒有完全符合的本機結果。",
-      "askUnavailable": "提問需要已完成的本機逐字稿。",
+      "askUnavailable": "提問需要已完成的逐字稿。",
       "asking": "正在詢問這場會議…",
       "droppedFrames": "丟失影格：{{total}}",
       "hitKind": {
@@ -2451,40 +2452,29 @@
       "failed": "無法為這場會議草擬後續訊息。"
     }
   },
-  "agentPanel": {
-    "open": "代理",
-    "retry": "重試",
-    "cancel": "取消",
-    "apply": "套用",
-    "undo": "復原",
-    "panelToggle": "關閉代理面板",
-    "conversationLabel": "對話",
-    "proposalTitle": "建議的變更",
-    "empty": "可以問會議、筆記和設定。設定的變動會在這裡以提案出現，你先過目，之後才會真的改。",
+  "chat": {
+    "open": "聊天",
+    "label": "與 Sona 代理聊天",
+    "title": "Sona 代理",
+    "unpaired": "在設定中配對 Sona 代理",
+    "close": "關閉聊天",
+    "history": "最近的聊天",
+    "historyEmpty": "還沒有更早的聊天。",
+    "newChat": "新增聊天",
+    "empty": "可以問會議、筆記和設定。",
+    "placeholder": "問點什麼",
     "inputLabel": "詢問 Sona",
     "send": "傳送",
-    "status": {
-      "loading": "連線中…",
-      "disabled": "代理面板已停用。",
-      "unpaired": "未與中繼站配對。",
-      "offline": "中繼站離線。",
-      "idle": "就緒",
-      "proposal": "建議已就緒",
-      "error": "代理面板無法使用。"
-    },
-    "activityLabel": "進度",
-    "workspaceLabel": "由誰回答",
-    "step": {
-      "sent": "已送出"
-    },
-    "workspace": {
+    "stop": "停止",
+    "retry": "重試",
+    "openSettings": "設定",
+    "scopeLabel": "由誰回答",
+    "scope": {
       "sona_chat": "提問",
       "sona_config": "設定"
     },
-    "placeholder": {
-      "sona_chat": "問問你的會議和筆記…",
-      "sona_config": "問問 Sona 的設定…"
-    },
+    "workedFor": "已處理 {{seconds}} 秒",
+    "stepSeconds": "{{seconds}} 秒",
     "turnState": {
       "submitting": "傳送中",
       "queued": "排隊中",
@@ -2498,15 +2488,24 @@
       "canceled": "已停止",
       "unverified_external": "未驗證的回覆"
     },
+    "status": {
+      "disabled": "Sona 代理已關閉。",
+      "unpaired": "Sona 代理尚未與中繼配對。",
+      "offline": "無法連線 Sona 代理的中繼。",
+      "error": "Sona 代理無法使用。"
+    },
+    "proposal": {
+      "apply": "套用",
+      "applied": "已套用",
+      "undo": "復原",
+      "undone": "已復原",
+      "rejected": "未套用"
+    },
     "ask": {
       "row": "詢問 Sona：{{query}}",
-      "error": "無法將這個問題傳送給 Sona。"
+      "error": "無法將這個問題傳送給 Sona。",
+      "consentRequired": "提問會把你的會議引文傳送到你的伺服器，請先開啟會議智慧。"
     }
-  },
-  "chat": {
-    "open": "聊天",
-    "label": "與 Sona 代理聊天",
-    "unpaired": "在設定中配對 Sona 代理"
   },
   "overview": {
     "hero": {

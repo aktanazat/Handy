@@ -1,8 +1,7 @@
 use super::protocol::{
-    AgentPanelWorkspaceV1, SonaAgentChatTurnV1, SonaAgentStepV1, SonaConfirmationClassV1,
+    AgentPanelWorkspaceV1, SonaAgentChatTurnV1, SonaAgentStepStateV1, SonaConfirmationClassV1,
     SonaSettingChangeV1,
 };
-use super::window::AgentPanelGeometryV1;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
@@ -54,11 +53,24 @@ pub enum AgentPanelProposalStateV1 {
     Rejected,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[serde(rename_all = "snake_case")]
-pub enum AgentPanelGeometryStatusV1 {
-    Attached,
-    Hidden,
+/// One row of the sheet's "Worked for Ns" disclosure.
+///
+/// The relay reports a step's identity, its label and whether it is still
+/// going; it reports no time at all. The panel is the only clock either side
+/// has, so the two offsets here are what the panel itself observed, measured
+/// from [`AgentPanelTurnStatusV1::started_at_utc_ms`] — first sighting, and
+/// the poll at which the step stopped running. Offsets rather than wall clocks
+/// because a duration is what the row shows, and a pair of offsets cannot
+/// disagree with the turn they belong to.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(deny_unknown_fields)]
+pub struct AgentPanelStepV1 {
+    pub id: String,
+    pub label: String,
+    pub state: SonaAgentStepStateV1,
+    pub started_after_ms: i64,
+    /// `None` while the step is still running.
+    pub ended_after_ms: Option<i64>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -68,13 +80,16 @@ pub struct AgentPanelTurnStatusV1 {
     pub workspace: AgentPanelWorkspaceV1,
     pub state: AgentPanelTurnStateV1,
     pub event_cursor: u64,
-    /// When the panel accepted this turn, so the activity tree can count
-    /// elapsed time without inventing a start of its own every time the
-    /// webview re-reads status.
+    /// When the panel accepted this turn, so the sheet can count elapsed time
+    /// without inventing a start of its own every time it re-reads status.
     pub started_at_utc_ms: i64,
+    /// When it reached a terminal state. A finished turn's "Worked for Ns" is
+    /// a fact about the past, so it is fixed here rather than left to whatever
+    /// the reader's clock says the next time the sheet is opened.
+    pub completed_at_utc_ms: Option<i64>,
     /// What the remote side did on the way to its answer. Empty until a
     /// workspace reports steps.
-    pub steps: Vec<SonaAgentStepV1>,
+    pub steps: Vec<AgentPanelStepV1>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Type)]
@@ -97,11 +112,10 @@ pub struct AgentPanelProposalPreviewV1 {
 pub struct AgentPanelStatusV1 {
     pub invalidation_id: u64,
     pub relay_status: AgentPanelRelayStatusV1,
-    pub panel_open: bool,
+    pub conversation_id: Option<String>,
     pub conversation: Vec<SonaAgentChatTurnV1>,
     pub turn: Option<AgentPanelTurnStatusV1>,
     pub proposal: Option<AgentPanelProposalPreviewV1>,
-    pub geometry: Option<AgentPanelGeometryV1>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -123,11 +137,14 @@ pub struct AgentPanelCancelTurnRequestV1 {
     pub turn_id: String,
 }
 
+/// Apply one proposal, whole.
+///
+/// No action index: the card offers the change set the proposal describes, and
+/// the receipt it produces covers all of it.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(deny_unknown_fields)]
 pub struct AgentPanelApplyChangeRequestV1 {
     pub proposal_id: String,
-    pub action_index: u32,
     pub expected_revision: u64,
     pub confirmed: bool,
 }
@@ -203,7 +220,7 @@ pub enum AgentPanelCommandErrorV1 {
     UntrustedResponse,
     RemoteRejected,
     OwnershipRejected,
-    MainUnavailable,
+    UnknownConversation,
     InvalidRequest,
     TurnActive,
     UnknownTurn,
@@ -213,7 +230,6 @@ pub enum AgentPanelCommandErrorV1 {
     InvalidProposal,
     InvalidSetting,
     NotUndoable,
-    NativeWindowFailure,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -251,17 +267,6 @@ impl tauri_specta::Event for AgentPanelProposalChangedEvent {
     const NAME: &'static str = "agent-panel://proposal-changed";
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[serde(deny_unknown_fields)]
-pub struct AgentPanelGeometryChangedEvent {
-    pub invalidation_id: u64,
-    pub status: AgentPanelGeometryStatusV1,
-}
-
-impl tauri_specta::Event for AgentPanelGeometryChangedEvent {
-    const NAME: &'static str = "agent-panel://geometry-changed";
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -279,10 +284,6 @@ mod tests {
         assert_eq!(
             <AgentPanelProposalChangedEvent as tauri_specta::Event>::NAME,
             "agent-panel://proposal-changed"
-        );
-        assert_eq!(
-            <AgentPanelGeometryChangedEvent as tauri_specta::Event>::NAME,
-            "agent-panel://geometry-changed"
         );
     }
 }

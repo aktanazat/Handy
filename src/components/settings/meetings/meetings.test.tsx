@@ -22,7 +22,7 @@ import { MeetingLive } from "./MeetingLive";
 import { MeetingStartGate } from "./MeetingStartGate";
 import { InsightsTab } from "./review/InsightsTab";
 import { QuestionsTab } from "./review/QuestionsTab";
-import { MeetingReview } from "./MeetingReview";
+import { MeetingReview, nextReviewTab } from "./MeetingReview";
 import { MeetingsHome } from "./MeetingsHome";
 import { MeetingLedgerSection } from "./MeetingLedgerSection";
 import { currentLedger } from "./meetingLedger";
@@ -782,10 +782,11 @@ describe("meeting review", () => {
     );
   const markup = reviewMarkup();
   /* Radix mounts only the open panel's children, so the transcript's own
-   * contract is read on a meeting that has nothing generated yet — which is
-   * exactly the meeting that opens on it. */
+   * contract is read on a meeting with nothing written about it at all —
+   * neither generated notes nor typed ones — which is exactly the meeting
+   * that opens on it. */
   const onTranscript = reviewMarkup({
-    snapshot: { ...SNAPSHOT, artifacts: [] },
+    snapshot: { ...SNAPSHOT, artifacts: [], notes: [] },
   });
 
   test("opens on what was written from the meeting, all four panels reachable", () => {
@@ -814,7 +815,7 @@ describe("meeting review", () => {
     expect(markup).not.toContain("We ship the meetings redesign this week.");
   });
 
-  test("a meeting with nothing generated yet opens on its transcript", () => {
+  test("a meeting with nothing written about it yet opens on its transcript", () => {
     expect(buttonTag(onTranscript, "Transcript")).toContain(
       'data-state="active"',
     );
@@ -822,6 +823,40 @@ describe("meeting review", () => {
       'data-state="active"',
     );
     expect(onTranscript).toContain("We ship the meetings redesign this week.");
+  });
+
+  /* A meeting you typed notes into during the call has something to read on
+   * Insights even before D19 has written a word, so that is where it opens.
+   * The shipped build read `artifacts` alone and left those readers on the
+   * transcript, looking at the evidence for notes they could not see. */
+  test("notes typed during the meeting open it on Insights too", () => {
+    const onNotes = reviewMarkup({ snapshot: { ...SNAPSHOT, artifacts: [] } });
+    expect(buttonTag(onNotes, "Insights")).toContain('data-state="active"');
+    expect(buttonTag(onNotes, "Transcript")).not.toContain(
+      'data-state="active"',
+    );
+  });
+
+  /* The race this rule exists for, as the sequence the screen actually sees:
+   * processing finishes while the review is open, so the record arrives empty
+   * and fills in. A `useState` initialiser reads only the first of these. */
+  test("a record whose notes arrive after the screen does still opens on them", () => {
+    const arriving = { ...SNAPSHOT, artifacts: [], notes: [] };
+
+    // First snapshot: nothing to read, nobody has decided, transcript renders.
+    expect(nextReviewTab(null, arriving)).toBeNull();
+    // Second snapshot, same mounted screen: the artifacts landed.
+    expect(nextReviewTab(null, SNAPSHOT)).toBe("insights");
+  });
+
+  test("a decision, once made, survives every later snapshot", () => {
+    // The reader picked the transcript; a finished processing pass may not
+    // move them off it.
+    expect(nextReviewTab("transcript", SNAPSHOT)).toBe("transcript");
+    // And deleting the last note may not pull them back off Insights.
+    expect(
+      nextReviewTab("insights", { ...SNAPSHOT, artifacts: [], notes: [] }),
+    ).toBe("insights");
   });
 
   test("the title is the page's heading, and the only way to a field", () => {
@@ -876,6 +911,9 @@ describe("meeting review", () => {
       snapshot: {
         ...SNAPSHOT,
         artifacts: [],
+        // Nothing written about it, so the transcript is the open panel and
+        // the roster note is reachable in this render.
+        notes: [],
         diarization: {
           ...SNAPSHOT.diarization,
           status: "not_requested",
@@ -1009,7 +1047,20 @@ describe("question panel", () => {
     expect(markup).toContain("You agreed to ship on Thursday.");
     expect(markup).toContain(">Transcript 0:12</button>");
     expect(markup).toContain(">Forget this answer<");
-    expect(markup).toContain(">Ask locally<");
+    expect(markup).toContain(">Ask<");
+  });
+
+  /* The description is a consent sentence, so it is asserted rather than
+   * assumed: the question path resolves D14's engine chooser, and a surface
+   * that promised the answer was written on this Mac would be making a claim
+   * `text_generator_for_session` does not keep. */
+  test("names where the answer is written without claiming it is local", () => {
+    const markup = questionsMarkup({});
+    expect(markup).toContain("Answers use only this meeting");
+    expect(markup).toContain(
+      "written on your server only when meeting intelligence routes them there",
+    );
+    expect(markup).not.toContain("this local meeting");
   });
 
   test("says why asking is unavailable and offers no dead control", () => {
@@ -1017,9 +1068,9 @@ describe("question panel", () => {
       snapshot: { ...SNAPSHOT, questions: [] },
       canAskQuestion: false,
     });
-    expect(markup).toContain("Asking needs a finished local transcript.");
+    expect(markup).toContain("Asking needs a finished transcript.");
     expect(markup).toContain("No saved local answers.");
-    expect(buttonTag(markup, "Ask locally")).toContain("disabled");
+    expect(buttonTag(markup, "Ask")).toContain("disabled");
   });
 });
 

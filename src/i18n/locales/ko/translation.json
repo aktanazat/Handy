@@ -1744,6 +1744,7 @@
       "people": "사람",
       "dictations": "받아쓰기",
       "loops": "답 없는 질문",
+      "empty": "\"{{query}}\"와(과) 일치하는 항목이 없습니다.",
       "unavailable": "지금은 검색을 사용할 수 없습니다."
     }
   },
@@ -2084,16 +2085,16 @@
       "unassigned": "미배정",
       "noDueDate": "기한 없음",
       "questions": "이 회의에 질문",
-      "questionsDescription": "답변은 이 로컬 회의만 사용하고 근거가 되는 전사를 인용합니다.",
+      "questionsDescription": "답변은 이 회의만 사용하고 근거가 되는 전사를 인용하며, 회의 인텔리전스가 그쪽으로 보낼 때에만 사용자의 서버에서 작성됩니다.",
       "questionPlaceholder": "이 회의에 대해 질문하기",
-      "ask": "로컬에서 질문",
+      "ask": "질문",
       "noQuestions": "저장된 로컬 답변이 없습니다.",
       "question": "질문",
       "insufficientEvidence": "이 회의에서 근거가 되는 대목을 찾지 못했습니다.",
       "forget": "이 답변 지우기",
       "searchPlaceholder": "이 회의 검색",
       "noSearchResults": "정확히 일치하는 로컬 결과가 없습니다.",
-      "askUnavailable": "질문하려면 완료된 로컬 전사가 필요합니다.",
+      "askUnavailable": "질문하려면 완료된 전사가 필요합니다.",
       "asking": "이 회의에 질문하는 중…",
       "droppedFrames": "누락된 프레임: {{total}}",
       "hitKind": {
@@ -2451,40 +2452,29 @@
       "failed": "이 회의의 후속 메시지를 작성하지 못했습니다."
     }
   },
-  "agentPanel": {
-    "open": "에이전트",
-    "retry": "다시 시도",
-    "cancel": "취소",
-    "apply": "적용",
-    "undo": "실행 취소",
-    "panelToggle": "에이전트 패널 닫기",
-    "conversationLabel": "대화",
-    "proposalTitle": "제안된 변경",
-    "empty": "회의, 메모, 설정에 대해 물어보세요. 설정 변경은 무엇이든 바뀌기 전에 검토할 수 있는 제안으로 여기에 나타납니다.",
+  "chat": {
+    "open": "채팅",
+    "label": "Sona 에이전트와 채팅",
+    "title": "Sona 에이전트",
+    "unpaired": "설정에서 Sona 에이전트를 페어링하세요",
+    "close": "채팅 닫기",
+    "history": "최근 채팅",
+    "historyEmpty": "아직 이전 채팅이 없습니다.",
+    "newChat": "새 채팅",
+    "empty": "회의, 메모, 설정에 대해 물어보세요.",
+    "placeholder": "무엇이든 물어보세요",
     "inputLabel": "Sona에 대해 물어보기",
     "send": "보내기",
-    "status": {
-      "loading": "연결 중…",
-      "disabled": "에이전트 패널이 비활성화되었습니다.",
-      "unpaired": "릴레이와 페어링되지 않음.",
-      "offline": "릴레이가 오프라인입니다.",
-      "idle": "준비됨",
-      "proposal": "제안 준비 완료",
-      "error": "에이전트 패널을 사용할 수 없습니다."
-    },
-    "activityLabel": "진행",
-    "workspaceLabel": "답하는 쪽",
-    "step": {
-      "sent": "보냄"
-    },
-    "workspace": {
+    "stop": "중지",
+    "retry": "다시 시도",
+    "openSettings": "설정",
+    "scopeLabel": "답하는 쪽",
+    "scope": {
       "sona_chat": "질문",
       "sona_config": "설정"
     },
-    "placeholder": {
-      "sona_chat": "회의와 메모에 대해 물어보세요…",
-      "sona_config": "Sona 설정에 대해 물어보세요…"
-    },
+    "workedFor": "{{seconds}}초 동안 작업함",
+    "stepSeconds": "{{seconds}}초",
     "turnState": {
       "submitting": "보내는 중",
       "queued": "대기 중",
@@ -2498,15 +2488,24 @@
       "canceled": "멈춤",
       "unverified_external": "확인되지 않은 응답"
     },
+    "status": {
+      "disabled": "Sona 에이전트가 꺼져 있습니다.",
+      "unpaired": "Sona 에이전트가 릴레이와 페어링되지 않았습니다.",
+      "offline": "Sona 에이전트의 릴레이에 연결할 수 없습니다.",
+      "error": "Sona 에이전트를 사용할 수 없습니다."
+    },
+    "proposal": {
+      "apply": "적용",
+      "applied": "적용됨",
+      "undo": "실행 취소",
+      "undone": "실행 취소됨",
+      "rejected": "적용되지 않음"
+    },
     "ask": {
       "row": "Sona에게 질문: {{query}}",
-      "error": "질문을 Sona에 보내지 못했습니다."
+      "error": "질문을 Sona에 보내지 못했습니다.",
+      "consentRequired": "질문하면 회의 인용이 사용자의 서버로 전송되므로 먼저 회의 인텔리전스를 켜세요."
     }
-  },
-  "chat": {
-    "open": "채팅",
-    "label": "Sona 에이전트와 채팅",
-    "unpaired": "설정에서 Sona 에이전트를 페어링하세요"
   },
   "overview": {
     "hero": {

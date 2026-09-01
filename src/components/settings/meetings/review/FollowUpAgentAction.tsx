@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { commands, events, type MeetingReviewSnapshot } from "@/bindings";
 import { Button } from "@/components/vg/button";
+import { useChatOpener } from "@/components/chat/ChatSheetHost";
+
 export interface FollowUpAgentMessageSource {
   session: Pick<MeetingReviewSnapshot["session"], "title">;
   artifacts: ReadonlyArray<
@@ -50,6 +52,7 @@ export const buildFollowUpAgentMessage = (
 export const FollowUpAgentAction: React.FC<{
   snapshot: MeetingReviewSnapshot;
 }> = ({ snapshot }) => {
+  const openChat = useChatOpener();
   const { t, i18n } = useTranslation();
   const [connected, setConnected] = useState(false);
   const [sending, setSending] = useState(false);
@@ -93,12 +96,11 @@ export const FollowUpAgentAction: React.FC<{
 
   const discuss = async () => {
     setSending(true);
+    /* Shown first, then sent: the sheet is where the answer lands, and a
+     * button that appears to do nothing until a relay answers is a button
+     * people press twice. */
+    openChat();
     try {
-      const opened = await commands.agentPanelOpen();
-      if (opened.status === "error") {
-        toast.error(t("people.review.agentError"));
-        return;
-      }
       const sent = await commands.agentPanelSendTurn({
         turn_id: crypto.randomUUID(),
         message,

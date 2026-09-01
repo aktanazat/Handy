@@ -6,6 +6,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInstance } from "i18next";
 import { I18nextProvider } from "react-i18next";
+import { TooltipProvider } from "@/components/vg/tooltip";
 import { destinationIcons } from "@/lib/navIcons";
 import {
   commandActionIcons,
@@ -234,7 +235,11 @@ describe("the section registry", () => {
  * whether a render is a client render by whether `window` existed when it was
  * imported, so a global left standing here changes how lib/motion's own suite
  * renders in the same process. It did, measurably, before this was scoped. */
-const renderSidebar = (activeSection: "overview" | "meetings" = "overview") => {
+const renderSidebar = (
+  activeSection: "overview" | "meetings" = "overview",
+  /** Whether the chat column has the width, which is the rail's only fold. */
+  collapsed = false,
+) => {
   const restore = Object.getOwnPropertyDescriptor(globalThis, "window");
   Object.defineProperty(globalThis, "window", {
     configurable: true,
@@ -242,12 +247,18 @@ const renderSidebar = (activeSection: "overview" | "meetings" = "overview") => {
   });
   try {
     return renderToStaticMarkup(
+      /* Every window root mounts one `TooltipProvider`, and the collapsed rail
+       * is the state that needs it: a glyph with no word beside it names itself
+       * through Radix, which throws without a provider above it. */
       <I18nextProvider i18n={i18n}>
-        <Sidebar
-          currentSection={activeSection}
-          onSectionChange={() => undefined}
-          onOpenCommand={() => undefined}
-        />
+        <TooltipProvider>
+          <Sidebar
+            collapsed={collapsed}
+            currentSection={activeSection}
+            onSectionChange={() => undefined}
+            onOpenCommand={() => undefined}
+          />
+        </TooltipProvider>
       </I18nextProvider>,
     );
   } finally {
@@ -302,6 +313,71 @@ describe("Sidebar", () => {
   });
 });
 
+/* The rail's other width, and the one the chat column pays for.
+ *
+ * 48pt is 8 + 32 + 8: the same 32pt row, centred, with its word taken off the
+ * screen and put in a tooltip. What must survive the fold is everything that
+ * makes it navigation — the same destinations in the same order, the same
+ * selected route, the same accessible names — because a reader who opens the
+ * chat has not asked to be moved somewhere else. */
+describe("the rail, collapsed for the chat column", () => {
+  test("48pt wide, and the page keeps the rest", () => {
+    const markup = renderSidebar("overview", true);
+
+    expect(markup).toContain("w-[48px]");
+    expect(markup).not.toContain("w-[220px]");
+    // Width alone, at the column's duration, so both edges arrive together.
+    expect(markup).toContain("transition-[width] duration-150 ease-out");
+    expect(markup).toContain("motion-reduce:transition-none");
+  });
+
+  test("every destination survives as a glyph that still says its name", () => {
+    const markup = renderSidebar("overview", true);
+
+    /* No labels printed beside the glyphs — that is what "collapsed" means —
+     * and the same five names still on the buttons, so nothing is reachable
+     * only by sight. */
+    expect([...markup.matchAll(/>([A-Za-z ]+)<\/button>/g)]).toHaveLength(0);
+    for (const name of ["Capture", "Library", "Meetings", "People", "Settings"])
+      expect(markup).toContain(`aria-label="${name}"`);
+    /* Seven glyphs and no words: the mark, the magnifier, and one per
+     * destination. */
+    expect([...markup.matchAll(/<svg/g)]).toHaveLength(7);
+    /* `asChild` puts Radix's trigger on the row itself, so a wrapped row
+     * carries the tooltip's own state attribute. The sentence it shows is
+     * portalled, which server rendering has nowhere to put — six rows, five
+     * destinations and the search glyph, is what is checkable here. */
+    expect([...markup.matchAll(/data-state="closed"/g)]).toHaveLength(6);
+  });
+
+  test("the selected route is still the selected route", () => {
+    const markup = renderSidebar("meetings", true);
+
+    expect([...markup.matchAll(/aria-current="page"/g)]).toHaveLength(1);
+    expect(markup).toMatch(/aria-current="page"[^>]*Meetings/);
+    // Same border and fill the named row carries.
+    expect(markup).toContain("border-gray-alpha-400 bg-background-100");
+  });
+
+  test("the wordmark goes and the mark stays; the chord loses its keycap", () => {
+    const markup = renderSidebar("overview", true);
+
+    expect(markup).not.toContain(">Sona<");
+    expect(markup).toContain('aria-label="Search"');
+    expect([...markup.matchAll(/<kbd/g)]).toHaveLength(0);
+  });
+
+  test("expanded is unchanged: the named rail, at 220", () => {
+    const markup = renderSidebar();
+
+    expect(markup).toContain("w-[220px]");
+    expect(markup).not.toContain("w-[48px]");
+    expect(markup).toContain(">Sona<");
+    // Nothing is wrapped in a tooltip when the words are already on screen.
+    expect(markup).not.toContain('data-state="closed"');
+  });
+});
+
 /* ⌘K's second half: the corpus. The palette itself still cannot be rendered
  * here — Radix portals to a document this runner does not have — so what is
  * pinned is every rule the surface reads: how a page becomes sections, what the
@@ -326,11 +402,10 @@ const queryRow = (
 const PANEL_STATUS: AgentPanelStatusV1 = {
   invalidation_id: 1,
   relay_status: "ready",
-  panel_open: true,
+  conversation_id: "conversation-1",
   conversation: [],
   turn: null,
   proposal: null,
-  geometry: null,
 };
 
 describe("what a page of the query plane looks like in the palette", () => {
@@ -407,20 +482,38 @@ describe("what a page of the query plane looks like in the palette", () => {
 });
 
 describe("the ask row", () => {
-  const paired = { enabled: true, paired: true };
+  const ready = { enabled: true, paired: true, remoteIntelligence: true };
 
-  test("needs text, the panel toggle, and a pairing", () => {
-    expect(canAsk("what did I promise Steven", paired)).toBe(true);
-    expect(canAsk("   ", paired)).toBe(false);
-    expect(canAsk("", paired)).toBe(false);
+  test("needs text as well as the three settings", () => {
+    expect(canAsk("what did I promise Steven", ready)).toBe(true);
+    expect(canAsk("   ", ready)).toBe(false);
+    expect(canAsk("", ready)).toBe(false);
   });
 
-  /* An unpaired panel has nowhere to send the question, so offering to ask
-   * would be a promise the app cannot keep. */
-  test("an unpaired or disabled panel hides it", () => {
-    expect(canAsk("steven", { enabled: true, paired: false })).toBe(false);
-    expect(canAsk("steven", { enabled: false, paired: true })).toBe(false);
-    expect(canAsk("steven", { enabled: false, paired: false })).toBe(false);
+  /* Every combination, because the row's whole job is to be absent unless all
+   * three are yes: an unpaired panel has nowhere to send the question, and a
+   * machine that has not consented to remote meeting intelligence may not send
+   * transcript quotes anywhere at all — the pack is verbatim corpus text. */
+  test("only all three yeses offer it", () => {
+    const facts = [true, false];
+    for (const enabled of facts) {
+      for (const paired of facts) {
+        for (const remoteIntelligence of facts) {
+          const panel = { enabled, paired, remoteIntelligence };
+          expect(canAsk("steven", panel)).toBe(
+            enabled && paired && remoteIntelligence,
+          );
+        }
+      }
+    }
+  });
+
+  /* The one that D14 is about, pinned on its own so a regression names itself:
+   * a paired relay is not consent to write this meeting's evidence on it. */
+  test("a paired panel without the meeting-intelligence consent hides it", () => {
+    expect(canAsk("steven", { ...ready, remoteIntelligence: false })).toBe(
+      false,
+    );
   });
 });
 
@@ -487,12 +580,12 @@ describe("what the palette asks the backend", () => {
 });
 
 describe("asking Sona", () => {
-  test("the turn carries the pack that was just built", async () => {
+  const ready = { enabled: true, paired: true, remoteIntelligence: true };
+
+  test("the turn carries the pack that was just built, and opens no window", async () => {
     const originalPack = commands.sonaQueryPack;
-    const originalOpen = commands.agentPanelOpen;
     const originalSend = commands.agentPanelSendTurn;
     const sent: AgentPanelSendTurnRequestV1[] = [];
-    let opens = 0;
     commands.sonaQueryPack = async (question) => ({
       status: "ok",
       data: {
@@ -501,18 +594,15 @@ describe("asking Sona", () => {
         sources: [queryRow("meeting", "m-1")],
       },
     });
-    commands.agentPanelOpen = async () => {
-      opens += 1;
-      return { status: "ok", data: PANEL_STATUS };
-    };
     commands.agentPanelSendTurn = async (request) => {
       sent.push(request);
       return { status: "ok", data: PANEL_STATUS };
     };
 
     try {
-      expect(await askSona("what did I promise Steven", "de")).toBe("sent");
-      expect(opens).toBe(1);
+      expect(await askSona("what did I promise Steven", "de", ready)).toBe(
+        "sent",
+      );
       expect(sent).toHaveLength(1);
       expect(sent[0].message).toBe("what did I promise Steven");
       expect(sent[0].workspace).toBe("sona_chat");
@@ -522,7 +612,6 @@ describe("asking Sona", () => {
       );
     } finally {
       commands.sonaQueryPack = originalPack;
-      commands.agentPanelOpen = originalOpen;
       commands.agentPanelSendTurn = originalSend;
     }
   });
@@ -543,11 +632,49 @@ describe("asking Sona", () => {
     };
 
     try {
-      expect(await askSona("what did I promise Steven", "en")).toBe("failed");
+      expect(await askSona("what did I promise Steven", "en", ready)).toBe(
+        "failed",
+      );
       expect(sends).toBe(0);
     } finally {
       commands.sonaQueryPack = originalPack;
       commands.agentPanelSendTurn = originalSend;
+    }
+  });
+
+  /* The gate is checked here and not only where the row is drawn: hiding the
+   * row is what a reader sees, this is what makes the send impossible. Nothing
+   * is built, so no corpus read happens either — a refused ask does not even
+   * assemble the quotes it is not allowed to send. */
+  test("without the meeting-intelligence consent nothing is built or sent", async () => {
+    const original = {
+      pack: commands.sonaQueryPack,
+      send: commands.agentPanelSendTurn,
+    };
+    let packs = 0;
+    let sends = 0;
+    commands.sonaQueryPack = async () => {
+      packs += 1;
+      return { status: "error", error: "unavailable" };
+    };
+    commands.agentPanelSendTurn = async () => {
+      sends += 1;
+      return { status: "ok", data: PANEL_STATUS };
+    };
+
+    try {
+      expect(
+        await askSona("what did I promise Steven", "en", {
+          ...ready,
+          remoteIntelligence: false,
+        }),
+      ).toBe("refused");
+      expect(await askSona("   ", "en", ready)).toBe("refused");
+      expect(packs).toBe(0);
+      expect(sends).toBe(0);
+    } finally {
+      commands.sonaQueryPack = original.pack;
+      commands.agentPanelSendTurn = original.send;
     }
   });
 });
