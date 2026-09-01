@@ -37,19 +37,20 @@ void i18n.init({
               unpaired: "Not paired",
               lastReached: "Last reached",
               never: "Never",
-              relayUrl: "Relay address",
+              relayUrl: "Server address",
               relayUrlHint: "Only a Tailscale address or this Mac itself.",
-              relayKeyId: "Relay key id",
-              relayPublicKey: "Relay public key",
+              relayKeyId: "Server key ID",
+              relayPublicKey: "Server public key",
               identity: "This Mac's public key",
-              identityHint: "Add this key to the relay.",
+              identityHint:
+                "Add this key to the server so it accepts messages from this Mac. The private key never leaves your keychain.",
               identityUnavailable: "Turn the agent panel on to create a key.",
               copy: "Copy",
               copied: "Copied",
               unpair: "Unpair",
               test: "Test",
-              reached: "The relay answered.",
-              failed: "The relay could not be paired.",
+              reached: "The server replied.",
+              failed: "Couldn't connect to the server.",
             },
           },
         },
@@ -131,8 +132,8 @@ describe("the Sona agent pairing screen", () => {
     expect(markup).toContain("Paired");
     expect(markup).toContain("Never");
     // Nothing is claiming a success that has not happened.
-    expect(markup).not.toContain("The relay answered.");
-    expect(markup).not.toContain("The relay could not be paired.");
+    expect(markup).not.toContain("The server replied.");
+    expect(markup).not.toContain("Couldn't connect to the server.");
   });
 
   test("a reached relay states when, and does not restate never", () => {

@@ -38,7 +38,7 @@ export const AgentPanelToggle: React.FC = () => {
         label={t("settings.agents.panel.label", "Enable agent panel")}
         hint={t(
           "settings.agents.panel.rowDescription",
-          "Turning this off closes the panel window and makes Sona refuse every request to reopen it.",
+          "Turning this off closes the panel and prevents other apps from opening it again.",
         )}
         controlId="agent-panel-enabled"
       >

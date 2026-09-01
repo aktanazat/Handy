@@ -158,9 +158,9 @@ describe("Workflows settings", () => {
     expect(markup).toContain("Failed");
     expect(markup).toContain("Skipped");
     expect(markup).toContain(
-      'aria-label="Workflow runs per day, 3 in the last 7 days"',
+      'aria-label="Activity per day, 3 in the last 7 days"',
     );
-    expect(markup).toContain("Load more");
+    expect(markup).toContain("Show more");
     expect(markup.split("<rect").length - 1).toBe(7);
   });
 
@@ -215,9 +215,9 @@ describe("Workflows settings", () => {
       />,
     );
 
-    expect(markup).toContain("No workflow runs yet.");
+    expect(markup).toContain("No activity yet.");
     expect(markup.split("<svg").length - 1).toBe(1);
-    expect(markup.includes("Workflow runs per day")).toBe(false);
+    expect(markup.includes("Activity per day")).toBe(false);
   });
 });
 

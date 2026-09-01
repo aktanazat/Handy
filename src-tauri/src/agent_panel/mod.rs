@@ -16,8 +16,8 @@ use protocol::{
     SONA_CHAT_TURN_VERSION,
 };
 use relay::{
-    validate_pairing, RelayClient, RelayError, RelayEvent, RelayJob, RelayJobStateV1,
-    ResponseNonceCache,
+    validate_pairing, RelayClient, RelayError, RelayEvent, RelayJob, RelayJobFailure,
+    RelayJobStateV1, ResponseNonceCache,
 };
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -33,8 +33,8 @@ pub use wire::{
     AgentPanelPairingRequestV1, AgentPanelPairingStatusV1, AgentPanelProposalChangedEvent,
     AgentPanelProposalPreviewV1, AgentPanelProposalStateV1, AgentPanelRelayStatusV1,
     AgentPanelSendTurnRequestV1, AgentPanelStatusChangedEvent, AgentPanelStatusV1,
-    AgentPanelStepV1, AgentPanelTurnChangedEvent, AgentPanelTurnStateV1, AgentPanelTurnStatusV1,
-    AgentPanelUndoChangeRequestV1,
+    AgentPanelStepV1, AgentPanelTurnChangedEvent, AgentPanelTurnFailureV1,
+    AgentPanelTurnStateV1, AgentPanelTurnStatusV1, AgentPanelUndoChangeRequestV1,
 };
 
 /// The one window there is. Every command on this surface is called from the
@@ -60,6 +60,7 @@ struct ActiveTurn {
     last_progress: Instant,
     started_at_utc_ms: i64,
     completed_at_utc_ms: Option<i64>,
+    failure: Option<AgentPanelTurnFailureV1>,
     steps: Vec<AgentPanelStepV1>,
 }
 
@@ -73,6 +74,7 @@ impl ActiveTurn {
             started_at_utc_ms: self.started_at_utc_ms,
             completed_at_utc_ms: self.completed_at_utc_ms,
             steps: self.steps.clone(),
+            failure: self.failure,
         }
     }
 
@@ -85,6 +87,11 @@ impl ActiveTurn {
         if state.is_terminal() && self.completed_at_utc_ms.is_none() {
             self.completed_at_utc_ms = Some(chrono::Utc::now().timestamp_millis());
         }
+    }
+
+    fn fail(&mut self, failure: AgentPanelTurnFailureV1) {
+        self.failure.get_or_insert(failure);
+        self.set_state(AgentPanelTurnStateV1::Failed);
     }
 
     /// Milliseconds since this turn was accepted, which is the axis every step
@@ -488,6 +495,7 @@ impl AgentPanelManager {
                 last_progress: Instant::now(),
                 started_at_utc_ms,
                 completed_at_utc_ms: None,
+                failure: None,
                 steps: Vec::new(),
             });
             state.invalidate()
@@ -659,6 +667,7 @@ impl AgentPanelManager {
             id: job_id,
             state: relay_state,
             response,
+            failure,
         } = job;
         let auto_apply_enabled =
             crate::settings::get_settings(&self.app).agent_panel_safe_appearance_auto_apply;
@@ -717,6 +726,9 @@ impl AgentPanelManager {
                 active.submitting = false;
                 active.last_progress = Instant::now();
                 active.set_state(turn_state_for_job(&relay_state, active.cancel_requested));
+                if let Some(failure) = failure {
+                    active.failure.get_or_insert(turn_failure_for_job(failure));
+                }
                 if let Some(response) = response.as_ref() {
                     let elapsed_ms = active.elapsed_ms();
                     merge_steps(&mut active.steps, response.steps(), elapsed_ms);
@@ -1010,8 +1022,8 @@ impl AgentPanelManager {
                 .filter(|active| active.turn_id == turn_id)
                 .map(|active| {
                     active.submitting = false;
-                    if !retryable && !matches!(error, RelayError::RequestFailed) {
-                        active.set_state(AgentPanelTurnStateV1::Failed);
+                    if !retryable {
+                        active.fail(turn_failure_for_relay_error(error));
                     }
                     active.state
                 });
@@ -1031,7 +1043,7 @@ impl AgentPanelManager {
                 .as_mut()
                 .filter(|active| active.turn_id == turn_id)
                 .map(|active| {
-                    active.set_state(AgentPanelTurnStateV1::Failed);
+                    active.fail(AgentPanelTurnFailureV1::Failed);
                     active.state
                 });
             let invalidation_id = state.invalidate();
@@ -1436,6 +1448,30 @@ pub(crate) async fn run_chat_turn(
         /* Unreachable through `validate`, which refuses a proposal from the
          * chat workspace. Written out rather than unwrapped. */
         SonaAgentResponseV1::Proposal { .. } => Err(ChatTurnError::Failed),
+    }
+}
+
+fn turn_failure_for_job(failure: RelayJobFailure) -> AgentPanelTurnFailureV1 {
+    match failure {
+        RelayJobFailure::Refused => AgentPanelTurnFailureV1::Refused,
+        RelayJobFailure::Failed => AgentPanelTurnFailureV1::Failed,
+    }
+}
+
+fn turn_failure_for_relay_error(error: RelayError) -> AgentPanelTurnFailureV1 {
+    match error {
+        RelayError::Disabled
+        | RelayError::Unpaired
+        | RelayError::InvalidConfiguration
+        | RelayError::CleartextRejected
+        | RelayError::SecretUnavailable
+        | RelayError::RandomUnavailable
+        | RelayError::RequestFailed => AgentPanelTurnFailureV1::Unreachable,
+        RelayError::RemoteRejected => AgentPanelTurnFailureV1::Refused,
+        RelayError::ResponseTooLarge
+        | RelayError::ResponseSignatureInvalid
+        | RelayError::ResponseMalformed
+        | RelayError::OwnershipRejected => AgentPanelTurnFailureV1::Failed,
     }
 }
 
@@ -1942,5 +1978,29 @@ mod tests {
                 "{error:?} is an answer this client refused"
             );
         }
+    }
+
+    #[test]
+    fn panel_failures_keep_the_reason_the_sheet_can_act_on() {
+        assert_eq!(
+            turn_failure_for_relay_error(RelayError::RequestFailed),
+            AgentPanelTurnFailureV1::Unreachable
+        );
+        assert_eq!(
+            turn_failure_for_relay_error(RelayError::RemoteRejected),
+            AgentPanelTurnFailureV1::Refused
+        );
+        assert_eq!(
+            turn_failure_for_relay_error(RelayError::ResponseMalformed),
+            AgentPanelTurnFailureV1::Failed
+        );
+        assert_eq!(
+            turn_failure_for_job(RelayJobFailure::Refused),
+            AgentPanelTurnFailureV1::Refused
+        );
+        assert_eq!(
+            turn_failure_for_job(RelayJobFailure::Failed),
+            AgentPanelTurnFailureV1::Failed
+        );
     }
 }

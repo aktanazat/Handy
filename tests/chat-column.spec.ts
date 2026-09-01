@@ -120,8 +120,10 @@ const sidebarNav = (page: Page) =>
   page.getByRole("navigation", { name: "Main navigation" });
 const palette = (page: Page) => page.getByRole("dialog");
 const column = (page: Page) => page.locator('[data-slot="chat-sheet"]');
+const shell = (page: Page) => page.locator(".app-shell");
+const frame = (page: Page) => page.locator('[data-slot="chat-frame"]');
 const pill = (page: Page) =>
-  page.getByRole("button", { name: "Chat with Sona Agent" });
+  page.getByRole("button", { name: "Chat with the Sona agent" });
 
 const openApp = async (page: Page, extra: Record<string, JsonValue> = {}) => {
   await installTauriMock(page, { responses: { ...POPULATED, ...extra } });
@@ -132,16 +134,17 @@ const openApp = async (page: Page, extra: Record<string, JsonValue> = {}) => {
   ).toBeVisible();
 };
 
-/** Settled rather than mid-travel: two edges animate their width over 150ms,
- * and a measurement taken during that is a measurement of the animation. */
+/** Settled rather than mid-travel. The root itself says when its one clock has
+ * finished: the gate is raised in the commit that changes the registered
+ * values and lowered by that root transition's `transitionend`, so it cannot
+ * race an unrelated animation elsewhere in the app or reject when one is
+ * cancelled. */
 const settle = async (page: Page) => {
-  await page.locator(".app-shell").evaluate(async (shell) => {
-    await Promise.all(
-      shell
-        .getAnimations({ subtree: true })
-        .map((animation) => animation.finished),
-    );
-  });
+  await expect(shell(page)).not.toHaveAttribute("data-shell-moving", "true");
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+  );
 };
 
 const openChat = async (page: Page) => {
@@ -188,6 +191,24 @@ const measure = (page: Page): Promise<Columns> =>
       paneSpan: { left: pane.left, right: pane.right },
       chatSpan: { left: chat.left, right: chat.right },
     };
+  });
+
+/* The transform technique reserves the new pane width in the press commit.
+ * These samples read five compositor frames while the root still travels:
+ * every value must already be the target width, never an in-between layout. */
+const samplePaneWidths = (page: Page): Promise<number[]> =>
+  page.evaluate(async () => {
+    const pane = document.querySelector('[data-slot="page-scroll"]');
+    if (pane === null) throw new Error("no page scroll owner");
+
+    const widths: number[] = [];
+    for (let frame = 0; frame < 5; frame += 1) {
+      widths.push(Math.round(pane.getBoundingClientRect().width));
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve()),
+      );
+    }
+    return widths;
   });
 
 interface Sideways {
@@ -282,6 +303,10 @@ test.describe("the shell's three columns", () => {
     page,
   }) => {
     await openApp(page);
+    await test.info().attach("chat-column-closed", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    });
     await openChat(page);
 
     const shell = await measure(page);
@@ -304,6 +329,10 @@ test.describe("the shell's three columns", () => {
      * there is nothing to keep in step. */
     expect(shell.windowShows).toBe(WINDOW.width);
     expect(shell.windowHeight).toBe(WINDOW.height);
+    await test.info().attach("chat-column-open", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    });
   });
 
   test("the pane keeps one full-width drag band at the narrowed width", async ({
@@ -341,10 +370,17 @@ test.describe("the shell's three columns", () => {
   });
 });
 
-/* The travel, which is the page making room rather than a strip sliding over
- * it. Two boxes move — the rail's width and the column's width — and they move
- * on one duration so the page's two edges arrive together. */
-test.describe("the column's travel", () => {
+/* The shell's one clock.
+ *
+ * Grid tracks would make the rail, page and chat look like one movement, but
+ * interpolating them still re-lays out the flexing page on every frame. This
+ * shell takes the layout jump in the press frame instead: 48/512/340 on open
+ * and 220/680/0 on close are complete before the first animation frame. One
+ * registered transition on the root then drives the fixed frame's transform
+ * and the two fixed-width rail forms' opacity. The tests read computed styles
+ * and browser transition events rather than classes because a class can say
+ * the right thing while a later CSS rule gives a pane a second clock. */
+test.describe("the shell's one travel", () => {
   const travelOf = (page: Page, selector: string) =>
     page.locator(selector).evaluate((node) => {
       const style = getComputedStyle(node);
@@ -364,24 +400,170 @@ test.describe("the column's travel", () => {
    * the thing a reader sees. */
   const EASE_OUT = "cubic-bezier(0.22, 1, 0.36, 1)";
 
-  test("width and opacity, 150ms, ease-out, on both edges", async ({
+  test("the shell root is the sole transition owner", async ({ page }) => {
+    await openApp(page);
+
+    const clock = await travelOf(page, ".app-shell");
+    expect(
+      clock.properties
+        .split(",")
+        .map((property) => property.trim())
+        .sort(),
+    ).toEqual(
+      [
+        "--shell-chat-offset",
+        "--shell-rail-enter-opacity",
+        "--shell-rail-exit-opacity",
+      ].sort(),
+    );
+    expect(clock.durations.every((value) => value === 0.15)).toBe(true);
+    expect(clock.easing).toContain(EASE_OUT);
+    await expect(frame(page)).toHaveCSS("contain", "layout style");
+    await expect(frame(page)).toHaveCSS("will-change", "auto");
+
+    /* Every box that decides the page's geometry snaps. `none`, rather than a
+     * missing utility whose initial property is `all`, pins that a broad future
+     * rule cannot make a second width transition in the pane or rail. */
+    for (const selector of [
+      '[data-slot="sidebar"]',
+      "main.settings-main",
+      '[data-slot="page-scroll"]',
+      '[data-slot="chat-sheet"]',
+      '[data-slot="chat-frame"]',
+    ]) {
+      expect((await travelOf(page, selector)).properties).toBe("none");
+    }
+  });
+
+  test("the intent gate keeps the root clock and rail crossfade together", async ({
     page,
   }) => {
     await openApp(page);
-    await openChat(page);
+    await shell(page).evaluate((node) => {
+      node.dataset.shellTransitionRuns = "";
+      node.addEventListener("transitionrun", (event) => {
+        const target = event.target;
+        const targetName =
+          target === node
+            ? "shell"
+            : target instanceof HTMLElement
+              ? (target.getAttribute("data-slot") ?? "")
+              : "";
+        const prior = node.dataset.shellTransitionRuns;
+        const run = `${targetName}:${event.propertyName}`;
+        node.dataset.shellTransitionRuns =
+          prior === "" ? run : `${prior},${run}`;
+      });
+    });
 
-    const chat = await travelOf(page, '[data-slot="chat-sheet"]');
-    expect(chat.properties).toBe("width, opacity");
-    expect(chat.durations.every((value) => value === 0.15)).toBe(true);
-    expect(chat.easing).toContain(EASE_OUT);
+    await pill(page).click();
+    await expect(shell(page)).toHaveAttribute("data-shell-moving", "true");
+    await expect(frame(page)).toHaveCSS("will-change", "transform");
+    await expect(page.locator('[data-slot="sidebar"]')).toHaveCSS(
+      "will-change",
+      "opacity",
+    );
+    await expect(page.locator('[data-slot="sidebar-ghost"]')).toHaveCSS(
+      "will-change",
+      "opacity",
+    );
+    /* The gate reaches into the sheet while the root remains the sole owner.
+     * A focus or hover wash inside it cannot start another clock half-way
+     * through the slide. */
+    await expect(page.getByRole("button", { name: "Close chat" })).toHaveCSS(
+      "transition-property",
+      "none",
+    );
+    await expect(
+      page.locator('[data-slot="page-scroll"] button').first(),
+    ).toHaveCSS("transition-property", "none");
 
-    /* The rail animates width alone: its words are gone the instant the press
-     * lands, and fading a row out while the box it sits in narrows is two
-     * movements where the reader is watching one. */
-    const rail = await travelOf(page, '[data-slot="sidebar"]');
-    expect(rail.properties).toBe("width");
-    expect(rail.durations.every((value) => value === 0.15)).toBe(true);
-    expect(rail.easing).toContain(EASE_OUT);
+    await expect
+      .poll(() =>
+        shell(page).evaluate((node) => {
+          const runs = node.dataset.shellTransitionRuns;
+          if (runs === undefined || runs === "") return [];
+          return runs
+            .split(",")
+            .map((run) => {
+              const [target, property] = run.split(":");
+              return { property, target };
+            })
+            .sort((left, right) => left.property.localeCompare(right.property));
+        }),
+      )
+      .toEqual([
+        { property: "--shell-chat-offset", target: "shell" },
+        { property: "--shell-rail-enter-opacity", target: "shell" },
+        { property: "--shell-rail-exit-opacity", target: "shell" },
+      ]);
+
+    await settle(page);
+    await expect(shell(page)).not.toHaveAttribute("data-shell-moving", "true");
+    await expect(frame(page)).toHaveCSS("will-change", "auto");
+    await expect(page.locator('[data-slot="sidebar"]')).toHaveCSS(
+      "will-change",
+      "auto",
+    );
+    await expect(page.locator('[data-slot="sidebar-ghost"]')).toHaveCount(0);
+  });
+
+  test("a mounted closed column does not begin travelling", async ({
+    page,
+  }) => {
+    await openApp(page);
+
+    const transitions = await shell(page).evaluate((node) =>
+      node
+        .getAnimations({ subtree: true })
+        .filter(
+          (animation): animation is CSSTransition =>
+            animation instanceof CSSTransition,
+        )
+        .map((transition) => transition.transitionProperty),
+    );
+
+    expect(transitions).toEqual([]);
+    await expect(shell(page)).not.toHaveAttribute("data-shell-moving", "true");
+  });
+
+  test("the page and rail reach their final geometry in the press frame", async ({
+    page,
+  }) => {
+    await openApp(page);
+
+    await pill(page).click();
+    await expect(shell(page)).toHaveAttribute("data-shell-moving", "true");
+    expect(await samplePaneWidths(page)).toEqual(
+      Array.from({ length: 5 }, () => PAGE_NARROW),
+    );
+    expect(await measure(page)).toMatchObject({
+      rail: RAIL_GLYPH,
+      pane: PAGE_NARROW,
+      chat: CHAT,
+    });
+    /* The outgoing named rail is a separate, non-interactive fixed-width
+     * visual during the same root transition; it does not make the page wait
+     * to reach 512. */
+    expect(
+      (await page.locator('[data-slot="sidebar-ghost"]').boundingBox())?.width,
+    ).toBe(RAIL_NAMED);
+    await settle(page);
+
+    await page.getByRole("button", { name: "Close chat" }).click();
+    await expect(shell(page)).toHaveAttribute("data-shell-moving", "true");
+    expect(await samplePaneWidths(page)).toEqual(
+      Array.from({ length: 5 }, () => PAGE_WIDE),
+    );
+    expect(await measure(page)).toMatchObject({
+      rail: RAIL_NAMED,
+      pane: PAGE_WIDE,
+      chat: 0,
+    });
+    expect(
+      (await page.locator('[data-slot="sidebar-ghost"]').boundingBox())?.width,
+    ).toBe(RAIL_GLYPH);
+    await settle(page);
   });
 
   test("a device that asked to reduce motion gets no travel", async ({
@@ -404,20 +586,19 @@ test.describe("the column's travel", () => {
 
     await pill(page).click();
 
-    /* App.css zeroes every transition's duration for this device; the two
-     * moving boxes also drop the transition itself, which is the part App.css
-     * cannot say and the part that leaves nothing running to interrupt. */
-    for (const selector of [
-      '[data-slot="chat-sheet"]',
-      '[data-slot="sidebar"]',
-    ]) {
-      expect((await travelOf(page, selector)).properties).toBe("none");
-      expect(
-        await page
-          .locator(selector)
-          .evaluate((node) => node.getAnimations({ subtree: true }).length),
-      ).toBe(0);
-    }
+    expect((await travelOf(page, ".app-shell")).properties).toBe("none");
+    expect((await travelOf(page, '[data-slot="chat-frame"]')).properties).toBe(
+      "none",
+    );
+    expect(
+      await shell(page).evaluate(
+        (node) =>
+          node
+            .getAnimations({ subtree: true })
+            .filter((animation) => animation instanceof CSSTransition).length,
+      ),
+    ).toBe(0);
+    await expect(shell(page)).not.toHaveAttribute("data-shell-moving", "true");
     // And it is simply there, at its width, on the frame after the press.
     expect(await measure(page)).toMatchObject({
       rail: RAIL_GLYPH,

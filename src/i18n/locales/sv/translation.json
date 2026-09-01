@@ -34,7 +34,7 @@
     "settings": "Inställningar"
   },
   "onboarding": {
-    "subtitle": "Modellerna körs på den här datorn och avväger noggrannhet mot hastighet",
+    "subtitle": "Modellerna körs på den här datorn och avväger noggrannhet mot hastighet.",
     "existingModelsTitle": "Kompatibla modeller",
     "downloadModelsTitle": "Tillgängliga för nedladdning",
     "showAllModels": "Visa alla {{total}} modeller",
@@ -52,7 +52,7 @@
       },
       "medium": {
         "name": "Whisper Medium",
-        "description": "Bra noggrannhet, medelhög hastighet"
+        "description": "Bra noggrannhet, medelhög hastighet."
       },
       "turbo": {
         "name": "Whisper Turbo",
@@ -68,7 +68,7 @@
       },
       "parakeet-tdt-0.6b-v3": {
         "name": "Parakeet V3",
-        "description": "Snabb och noggrann"
+        "description": "Snabb och noggrann."
       },
       "moonshine-base": {
         "name": "Moonshine Base",
@@ -76,7 +76,7 @@
       },
       "moonshine-tiny-streaming-en": {
         "name": "Moonshine V2 Tiny",
-        "description": "Blixtsnabb, endast engelska"
+        "description": "Blixtsnabb, endast engelska."
       },
       "moonshine-small-streaming-en": {
         "name": "Moonshine V2 Small",
@@ -249,7 +249,7 @@
       },
       "cloud": {
         "title": "Molntranskribering",
-        "providerDescription": "Inloggningsuppgifterna stannar i operativsystemets säkra lagring.",
+        "providerDescription": "Nycklarna stannar i systemets nyckelhanterare.",
         "providers": {
           "deepgram": "Deepgram Nova-3",
           "elevenLabs": "ElevenLabs Scribe v2"
@@ -270,18 +270,18 @@
           "notSaved": "Ingen API-nyckel sparad.",
           "saved": "API-nyckeln är sparad. Den har inte verifierats.",
           "verified": "API-nyckeln är verifierad.",
-          "verifyRequiresConsent": "Granska överföringsinformationen i ett läge innan du verifierar den här nyckeln."
+          "verifyRequiresConsent": "Bekräfta överföringen i ett läge innan du verifierar den här nyckeln."
         },
         "errors": {
           "not_found": "Ingen API-nyckel är sparad för den här leverantören.",
-          "unavailable": "Systemets säkra lagring är inte tillgänglig.",
-          "locked": "Systemets säkra lagring är låst.",
-          "corrupt": "De sparade inloggningsuppgifterna kan inte läsas säkert.",
-          "invalid": "Inloggningsuppgifterna godtogs inte av den säkra lagringen.",
-          "busy": "Den säkra lagringen är upptagen. Försök igen.",
-          "backend": "Åtgärden för inloggningsuppgifterna kunde inte slutföras.",
+          "unavailable": "Systemets nyckelhanterare är inte tillgänglig.",
+          "locked": "Systemets nyckelhanterare är låst.",
+          "corrupt": "Den sparade nyckeln kan inte läsas säkert.",
+          "invalid": "Systemets nyckelhanterare godtog inte nyckeln.",
+          "busy": "Systemets nyckelhanterare är upptagen. Försök igen.",
+          "backend": "Systemets nyckelhanterare kunde inte slutföra åtgärden.",
           "not_configured": "Spara en API-nyckel innan du verifierar den.",
-          "consent_required": "Godkänn leverantörens överföringsinformation innan du verifierar.",
+          "consent_required": "Bekräfta överföringen till leverantören innan du verifierar.",
           "authentication": "Leverantören avvisade den här API-nyckeln.",
           "quota": "Leverantören avvisade verifieringen eftersom kontot har överskridit sin kvot.",
           "network": "Leverantören kunde inte nås för verifiering.",
@@ -335,8 +335,8 @@
         "label": "Experimentella funktioner"
       },
       "lazyStreamClose": {
-        "label": "Håll mikrofonen öppen mellan transkriptioner",
-        "description": "Håller mikrofonströmmen öppen i 30 sekunder efter att inspelningen avslutats, så att transkriptioner efter varandra startar snabbare. Bluetooth-ljudkvaliteten kan försämras medan den är öppen."
+        "label": "Håll mikrofonen öppen mellan dikteringar",
+        "description": "Håller mikrofonen öppen i 30 sekunder efter att du har stoppat, så att efterföljande dikteringar startar snabbare. Bluetooth-ljudkvaliteten kan sjunka medan den är öppen."
       },
       "acceleration": {
         "transcribe": {
@@ -520,7 +520,7 @@
         },
         "model": {
           "title": "Modell",
-          "descriptionCustom": "Ange den modellidentifierare som förväntas av din anpassade slutpunkt.",
+          "descriptionCustom": "Ange det modell-ID som din anpassade server förväntar sig.",
           "placeholderWithOptions": "Sök eller välj en modell",
           "placeholderNoOptions": "Ange ett modellnamn",
           "refreshModels": "Uppdatera modeller"
@@ -555,17 +555,17 @@
       },
       "remoteConsent": {
         "title": "Extern textöverföring",
-        "description": "Mötes- och transkriberingstext kan skickas till {{provider}} på {{endpoint}} för efterbearbetning.",
-        "acknowledge": "Jag är medveten om att text kan skickas till den här slutpunkten.",
+        "description": "Sona kan skicka mötes- och dikteringstexter till {{provider}} på {{endpoint}} för uppstädning.",
+        "acknowledge": "Jag är medveten om att text kan skickas till den här adressen.",
         "accept": "Tillåt textöverföring",
         "cancel": "Avbryt",
-        "endpointChanged": "Slutpunkten har ändrats. Granska och bekräfta den nya slutpunkten innan text kan lämna den här datorn.",
+        "endpointChanged": "Adressen har ändrats. Granska och bekräfta den nya innan text kan lämna den här datorn.",
         "invalidDestination": "Den här leverantörsdestinationen är ogiltig eller endast lokal, så inget fjärrmedgivande kan registreras.",
         "saveFailed": "Sona kunde inte spara den här bekräftelsen.",
-        "current": "Textöverföring är bekräftad för {{endpoint}}.",
+        "current": "Du tillät att text skickas till {{endpoint}}.",
         "review": "Granska bekräftelsen",
-        "endpointLabel": "Kanonisk slutpunkt",
-        "destinationPinned": "Sona låser exakt den här slutpunkten och det här ursprunget för bekräftelsen."
+        "endpointLabel": "Exakt adress",
+        "destinationPinned": "Sona knyter bekräftelsen till exakt den här adressen och det här ursprunget."
       }
     },
     "history": {
@@ -593,7 +593,7 @@
       "loadError": "Kunde inte läsa in historiken.",
       "retry": "Försök igen",
       "saveError": "Kunde inte uppdatera sparat-statusen. Försök igen.",
-      "postProcessEmpty": "Efterbearbetning returnerade ingen text. Visar originaltranskriptionen.",
+      "postProcessEmpty": "Efterbearbetningen gav ingen text, så det här är originaltranskriptionen.",
       "textView": {
         "label": "Transkriptionsvy",
         "processed": "Bearbetad",
@@ -667,11 +667,11 @@
         },
         "deliveryOutcome": {
           "delivered": "Levererad",
-          "definitely_not_dispatched": "Ej skickad",
-          "dispatched_but_unconfirmed": "Skickad, obekräftad"
+          "definitely_not_dispatched": "Inte skickat",
+          "dispatched_but_unconfirmed": "Skickat, inte bekräftat"
         },
         "modeLabel": "Läge",
-        "revisionLabel": "Revision",
+        "revisionLabel": "Inställningsversion",
         "engineLabel": "Motor",
         "sourceLabel": "Källa",
         "captureStatusLabel": "Inspelning",
@@ -749,10 +749,10 @@
       "recalledByMeaning": "via betydelse",
       "level": {
         "peak": "peak",
-        "rms": "rms"
+        "rms": "medel"
       },
       "noTextRecorded": "Ingen text registrerades för den här posten.",
-      "cloudHeld": "Cloud-körningen hölls tillbaka: inget tillförlitligt resultat kom in och ingen lokal modell var tillgänglig.",
+      "cloudHeld": "Sona höll tillbaka molnresultatet: inget tillförlitligt kom tillbaka och ingen lokal modell var tillgänglig.",
       "transcriptionEngineFailed": "Transkribering misslyckades, så ingenting registrerades.",
       "processAgain": {
         "action": "Bearbeta igen",
@@ -774,7 +774,7 @@
       },
       "liveLogs": {
         "title": "Liveloggar",
-        "description": "Endast rader som skapas medan den här panelen är öppen visas här, på loggnivån som ställts in ovan.",
+        "description": "Här visas bara rader som skrivs medan panelen är öppen, på den loggnivå som ställts in ovan.",
         "pause": "Pausa",
         "resume": "Återuppta",
         "copied": "Kopierad",
@@ -820,7 +820,7 @@
       },
       "keyboardImplementation": {
         "title": "Tangentbordsimplementering",
-        "bindingsReset": "Kortkommandona var inkompatibla och återställdes till standardvärden"
+        "bindingsReset": "Kortkommandona var inkompatibla och återställdes till standardvärden."
       },
       "paths": {
         "appData": "Appdata:",
@@ -841,30 +841,24 @@
       },
       "recordingBuffer": {
         "title": "Extra inspelningsbuffert",
-        "description": "Extra tid (i millisekunder) för att fortsätta spela in efter att du släppt tangenten, för att fånga upp avslutande ljud. 0 = ingen extra buffert."
+        "description": "Extra tid (i millisekunder) för att fortsätta spela in efter att du släppt tangenten, för att fånga upp avslutande ljud. Sätt den till 0 för ingen."
       },
       "keyboardDiagnostic": {
         "title": "Tangentbordsdiagnostik",
         "description": "Kontrollerar om tangentbordshändelser når Sona. Endast antalet händelser registreras, aldrig vilka tangenter du trycker på.",
         "run": "Kör 10 s diagnostik",
         "running": "Lyssnar… tryck på ditt kortkommando några gånger (t.ex. Option+Space)",
-        "secureInputLabel": "Secure Input",
+        "secureInputLabel": "Säkert inmatningsfält",
         "enabled": "aktiverat",
         "disabled": "inaktiverat",
         "holder": "hålls av {{name}} (pid {{pid}})",
-        "holderUnknown": "ingen synlig innehavare",
-        "keyDown": "Tangent ned",
-        "keyUp": "Tangent upp",
-        "flagsChanged": "Modifierare",
-        "mouse": "Mus",
-        "verdictBlocked": "Secure Input blockerar tangenthändelser, så kortkommandon med en vanlig tangent kan inte fungera förrän det är löst.",
-        "verdictSuspicious": "Modifierarhändelser kom fram men inga tangenthändelser. Något undertrycker tangenter trots att Secure Input rapporteras som inaktiverat. Rapportera detta på GitHub.",
-        "verdictOk": "Tangenthändelser når Sona som vanligt.",
-        "verdictNoEvents": "Inga händelser fångades under testet.",
-        "failed": "Diagnostiken misslyckades: {{error}}"
+        "notSupported": "Ejtödsstött på den här plattformen.",
+        "noHolder": "Ingen app använder säkert inmatningsläge.",
+        "status": "Status",
+        "error": "Tangentbordsdiagnostik är ej tillgänglig."
       },
       "whatsNewPreview": {
-        "title": "Förhandsvisa nyheter",
+        "title": "Förhandsvisa versionsnotisen",
         "description": "Öppna den senaste medföljande versionsinformationen utan att markera den som visad",
         "noNotes": "Ingen medföljande versionsinformation hittades",
         "error": "Kunde inte förhandsvisa versionsinformationen. Försök igen."
@@ -945,14 +939,14 @@
           },
           "capture": {
             "label": "Aktivera på webbplats",
-            "description": "Hämta värden från den främsta webbläsaren. Sona sparar värden, inte URL:en.",
+            "description": "Använd webbplatsen som är öppen framför dig. Sona sparar sidans namn, inte hela adressen.",
             "action": "Hämta aktuell webbplats",
             "capturing": "Hämtar…"
           },
           "empty": "Ingen webbplats aktiverar detta läge.",
-          "exampleDescription": "En regel lagrar en webbläsarvärd, till exempel mail.google.com."
+          "exampleDescription": "Varje regel använder en webbplats, till exempel mail.google.com."
         },
-        "exampleDescription": "En regel lagrar en appidentitet, till exempel com.apple.mail.",
+        "exampleDescription": "Varje regel använder ett app-ID, till exempel com.apple.mail.",
         "removeTarget": "Ta bort {{target}}",
         "unsupported": "App- och webbplatsaktivering är endast tillgängligt på macOS."
       },
@@ -1060,10 +1054,10 @@
           "unavailable": "{{provider}} är inte tillgänglig"
         },
         "cloud": {
-          "setupRequired": "{{provider}} behöver en sparad egen API-nyckel och aktuellt samtycke till överföring innan dess molninställningar blir tillgängliga.",
+          "setupRequired": "{{provider}} behöver en API-nyckel i systemets nyckelhanterare och en aktuell bekräftelse av överföringen innan dess molninställningar öppnas.",
           "fallback": {
             "label": "Använd lokal reserv",
-            "description": "Om molnleverantören inte kan returnera ett tillförlitligt slutresultat transkriberas det inspelade ljudet med en lokal modell.",
+            "description": "Om molnleverantören inte kan returnera ett tillförlitligt resultat transkriberas inspelningen med en lokal modell.",
             "useModeModel": "Använd lägets lokala modell",
             "model": {
               "label": "Reservmodell",
@@ -1071,8 +1065,8 @@
             }
           },
           "keyterms": {
-            "label": "Nyckeltermer för molnet",
-            "description": "En term per rad. Dessa termer skickas med den här molnbegäran.",
+            "label": "Ord att lyssna efter",
+            "description": "Ett ord eller namn per rad. Sona skickar dem till leverantören tillsammans med ljudet.",
             "placeholder": "Produktnamn\nPersonnamn"
           },
           "timestamps": {
@@ -1088,22 +1082,22 @@
               "description": "Inspelat ljud från det här läget skickas direkt till {{provider}} för transkribering."
             },
             "privacy": {
-              "label": "Integritetsavtal",
-              "description": "Leverantören får lägets ljud, valt språk och nyckeltermer. Appkontext och egna inloggningsuppgifter stannar på den här enheten."
+              "label": "Vad leverantören ser",
+              "description": "Leverantören får lägets ljud, dess språk och de ord du listat. Det Sona läser från dina andra appar, och dina nycklar, stannar på den här datorn."
             },
             "localFallback": {
               "label": "Lokal reserv",
-              "description": "Om molnleverantören inte kan returnera ett tillförlitligt slutresultat kan Sona använda den lokala modell du valt."
+              "description": "Om molnleverantören inte kan returnera ett tillförlitligt resultat kan Sona använda den lokala modell du valt."
             },
             "decline": "Fortsätt lokalt",
             "accept": "Godkänn och använd molnet",
             "accepting": "Godkänner…",
             "errors": {
               "unknown_provider": "Den här molnleverantören är inte tillgänglig i det här bygget.",
-              "backend": "Samtyckesposten kunde inte sparas."
+              "backend": "Bekräftelsen kunde inte sparas."
             }
           },
-          "title": "Molntransport"
+          "title": "Molntranskription"
         }
       },
       "context": {
@@ -1157,7 +1151,7 @@
         },
         "reliablePaste": {
           "label": "Tillförlitlig inklistring",
-          "description": "Använder kvittensordnad inklistring när plattformen stöder det."
+          "description": "Återställer urklipp först när appen har läst transkriptionen, där systemet tillåter det."
         },
         "delay": {
           "label": "Fördröjningar vid inklistring",
@@ -1187,14 +1181,14 @@
       },
       "errors": {
         "staleRevision": "Inställningarna har ändrats någon annanstans. Granska det senaste läget och spara igen.",
-        "invalid_mode_id": "Det här läges-ID:t är ogiltigt.",
+        "invalid_mode_id": "Sona kunde inte utläsa vilket läge det här är.",
         "empty_name": "Ett lägesnamn krävs.",
         "cannot_delete_default": "Standardläget kan inte tas bort.",
         "unknown_mode": "Det läget finns inte längre.",
-        "duplicate_mode_id": "Det finns redan ett läge med det här ID:t.",
+        "duplicate_mode_id": "Det läget finns redan.",
         "invalid_reorder": "Ordningen på lägena kunde inte sparas.",
         "invalid_website_host": "Webbplatsvärden är ogiltig.",
-        "website_activation_consent_required": "Aktivera webbläsar-URL:er i Integritet innan du lägger till en webbplatsregel.",
+        "website_activation_consent_required": "Aktivera ”Inkludera webbläsar-URL:er” i Integritet innan du lägger till en webbplatsregel.",
         "frontmost_website_unavailable": "Det gick inte att hämta en webbplats från webbläsaren.",
         "website_activation_secure_field": "Webbplatsregler kan inte hämtas från ett säkert fält."
       },
@@ -1240,10 +1234,10 @@
             "target_and_selection": "Markering",
             "full": "Fullständig"
           },
-          "error": "Kontexttaket kunde inte sparas"
+          "error": "Kontexttaket kunde inte sparas."
         },
         "sources": {
-          "none": "Läser ingen appkontext.",
+          "none": "Läser ingenting från dina andra appar.",
           "target": "Läser vilken app som är i förgrunden.",
           "target_and_selection": "Läser vilken app som är i förgrunden och markerad text när den finns.",
           "full": "Läser även en tillåten webbläsar-URL och nyligen ändrad urklippstext när de finns."
@@ -1257,7 +1251,7 @@
       "diagnostics": {
         "title": "Kontextdiagnostik",
         "refresh": "Uppdatera",
-        "error": "Diagnostiken kunde inte uppdateras",
+        "error": "Diagnostiken kunde inte uppdateras.",
         "accessibility": {
           "label": "Hjälpmedel"
         },
@@ -1299,14 +1293,14 @@
             "months_3": "3 månader"
           }
         },
-        "error": "Datalagringen kunde inte sparas",
+        "error": "Datalagringen kunde inte sparas.",
         "historyStorage": {
           "encrypted": "Krypterad i vila",
           "label": "Historiklagring",
           "locked": "Låst",
           "plaintext": "Inte krypterad",
           "reasons": {
-            "encryption_unavailable": "Den här versionen kan inte öppna en krypterad databas, så historiken lagras okrypterad.",
+            "encryption_unavailable": "Den här versionen av Sona kan inte öppna en krypterad databas, så historiken lagras okrypterad.",
             "key_rejected": "Den sparade nyckeln öppnar inte den krypterade databasen, så historiken kan inte läsas.",
             "key_unavailable": "Systemets nyckellagring returnerade ingen användbar nyckel, så historiken lagras okrypterad.",
             "migration_failed": "Kryptering av den befintliga databasen misslyckades. Den okrypterade databasen är intakt och används fortfarande."
@@ -1318,7 +1312,7 @@
       "cloudTranscription": {
         "title": "Molntranskribering",
         "checkFailed": "Inställningarna för molntranskribering kunde inte kontrolleras.",
-        "disclosure": "För ett läge med molnet aktiverat skickar Sona det inspelade ljudet, valt språk och lägets nyckeltermer direkt till leverantören. Appkontext och egna inloggningsuppgifter stannar på den här enheten."
+        "disclosure": "För ett läge med molnet aktiverat skickar Sona det inspelade ljudet, valt språk och de ord läget listar direkt till leverantören. Det Sona läser från dina andra appar, och dina nycklar, stannar på den här datorn."
       },
       "upstreamImport": {
         "title": "Importera från den gamla appen",
@@ -1358,11 +1352,11 @@
           "app_state_unverifiable": "Sona kan inte verifiera att den gamla appen är stängd på den här plattformen.",
           "invalid_selection": "Välj inställningar eller historik att importera.",
           "settings_unreadable": "Den gamla inställningsfilen kunde inte läsas.",
-          "secret_store_unavailable": "Systemets nyckelhanterare är inte tillgänglig, så inställningar med leverantörsnycklar importerades inte.",
-          "secret_conflict": "Det finns redan en leverantörsnyckel i systemets nyckelhanterare. Åtgärda det innan du importerar inställningar.",
+          "secret_store_unavailable": "Systemets inloggningsförråd är inte tillgängligt, så inställningar med leverantörsnycklar importerades inte.",
+          "secret_conflict": "Det finns redan en leverantörsnyckel i systemets inloggningsförråd. Lös konflikten innan du importerar inställningar.",
           "history_unreadable": "Den gamla historikdatabasen kunde inte läsas.",
           "recording_copy_failed": "En inspelning kunde inte kopieras och verifieras.",
-          "receipt_write_failed": "Importkvittot kunde inte sparas.",
+          "receipt_write_failed": "Sona kunde inte spara importdetaljerna.",
           "internal": "Importen slutfördes inte.",
           "status": "Den gamla appens data kunde inte granskas."
         },
@@ -1385,79 +1379,79 @@
     "agents": {
       "title": "Agents",
       "controls": {
-        "title": "Bryggkontroller",
+        "title": "Agentkontroller",
         "master": {
-          "label": "Aktivera agentbryggan"
+          "label": "Aktivera agentanslutningar"
         },
-        "status": "Status för körmiljön",
+        "status": "Status",
         "providers": {
           "claude": {
             "label": "Claude",
-            "description": "Observera Claude-sessioner och aktivera fixture-baserade svar där de finns."
+            "description": "Observera Claude-sessioner och svara där Sona stöder det."
           },
           "codex": {
             "label": "Codex",
-            "description": "Observera bara sessioner. Svar är skrivskyddade tills en wire-fixture stöder dem."
+            "description": "Observera endast sessioner. Sona kan ännu inte svara Codex."
           },
           "grok": {
             "label": "Grok",
-            "description": "Observera bara sessioner. Svar är skrivskyddade tills en wire-fixture stöder dem."
+            "description": "Observera endast sessioner. Sona kan ännu inte svara Grok."
           },
           "omp": {
             "label": "OMP",
-            "description": "Observera OMP-sessioner och godkännandeförfrågningar. Svar är bara tillgängliga vid ett stöttat OMP-sessionsstopp."
+            "description": "Observera OMP-sessioner och godkännandeförfrågningar. Sona kan bara svara när en OMP-session stoppar."
           }
         }
       },
       "status": {
         "disabled": "Inaktiverad",
-        "runtime_unavailable": "Körmiljön är inte tillgänglig",
-        "interactive_unsupported": "Interaktiva svar stöds ej",
+        "runtime_unavailable": "Körs inte",
+        "interactive_unsupported": "Svar är inte tillgängliga",
         "app_lock_held": "En annan Sona-instans är aktiv",
         "active": "Aktiv"
       },
       "projects": {
         "title": "Auktoriserade projekt",
-        "hashOnly": "Exakta projekthashar utgör behörighetsgränsen; mappsökvägar sparas inte här.",
+        "hashOnly": "Sona identifierar ett projekt från dess mapp utan att spara mappvägen här.",
         "add": "Auktorisera mapp",
         "remove": "Ta bort projekt",
         "empty": "Inga projekt är auktoriserade."
       },
       "hook": {
-        "title": "Hook-kodsnutt",
-        "description": "Kopiera den medföljande hook-konfigurationen till din agents egen konfiguration. Sona redigerar aldrig agenters konfigurationsfiler.",
-        "copy": "Kopiera kodsnutt",
-        "error": "Hook-kodsnutten är inte tillgänglig"
+        "title": "Konfigurationskod",
+        "description": "Kopiera denna konfigurationskod till din agents konfiguration. Sona ändrar aldrig agentfiler.",
+        "copy": "Kopiera konfigurationskod",
+        "error": "Konfigurationskod ej tillgänglig"
       },
       "replyQueue": {
         "title": "Förhandsgranskning av svar",
         "session": "Svarsdestination",
-        "noSession": "Ingen observerad session som stöder svar",
+        "noSession": "Ingen session som Sona kan svara",
         "message": "Svarstext",
         "createPreview": "Skapa förhandsgranskning",
-        "notReady": "Svar kräver att bryggan är på och att minst en agent är aktiverad."
+        "notReady": "Aktivera agentanslutningar och minst en agent innan du svarar."
       },
       "pending": {
         "empty": "Inga väntande svar.",
         "confirm": "Bekräfta exakt svar",
-        "confirmed": "Bekräftat för nästa stöttade Stopp-händelse",
+        "confirmed": "Skickas när agenten stoppar",
         "cancel": "Avbryt",
         "states": {
-          "held": "Hålls till nästa stöttade Stopp-händelse",
+          "held": "Väntar tills agenten stoppar",
           "response_written": "Svar skrivet",
-          "emitted": "Skickat",
+          "emitted": "Skickad",
           "copy_only": "Endast kopiering",
           "cancelled": "Avbruten"
         },
         "title": "Väntande svar"
       },
       "observed": {
-        "title": "Observerad aktivitet",
+        "title": "Agentaktivitet",
         "refresh": "Uppdatera",
         "sessions": "Sessioner",
-        "noSessions": "Inga sessioner observerade.",
+        "noSessions": "Ingen agentaktivitet ännu.",
         "requests": "Förfrågningar",
-        "noRequests": "Inga förfrågningar observerade.",
+        "noRequests": "Inga förfrågningar ännu.",
         "requestKinds": {
           "session_start": "Session startad",
           "user_prompt_submit": "Prompt skickad",
@@ -1474,7 +1468,7 @@
         "ompPermissionObserveOnly": "OMP-godkännandeförfrågningar observeras bara. Godkänn eller neka dem i OMP."
       },
       "rules": {
-        "title": "Exakta behörighetsregler",
+        "title": "Behörighetsregler",
         "empty": "Inga behörighetsregler.",
         "remove": "Ta bort regel",
         "decisions": {
@@ -1483,20 +1477,20 @@
         }
       },
       "errors": {
-        "load": "Data för agentbryggan kunde inte läsas in: {{error}}",
-        "operation": "Åtgärden för agentbryggan kunde inte slutföras: {{error}}"
+        "load": " kunde inte ladda agentanslutningsdetaljer: {{error}}",
+        "operation": " kunde inte slutföra den agentåtgärden: {{error}}"
       },
       "panel": {
         "error": "Inställningen för agentpanelen kunde inte sparas.",
         "label": "Aktivera agentpanel",
-        "rowDescription": "Om detta stängs av stängs panelfönstret och Sona nekar alla förfrågningar att öppna det igen.",
+        "rowDescription": "Om du stänger av detta stängs panelen och andra appar förhindras från att öppna den igen.",
         "title": "Agentpanel"
       },
       "externalAccess": {
         "label": "Extern åtkomst",
-        "rowDescription": "Låter andra program på den här datorn läsa dina möten, dikteringar, personer och öppna åtaganden via sona-kommandoraden och MCP-servern. Skrivskyddat och avstängt tills du slår på det."
+        "rowDescription": "Låter andra program på denna Mac läsa dina möten, diktat, personer och öppna loopar via Sonas kommandoradsverktyg och MCP-server. Det är endast för läsning och är avstängt tills du aktiverar det."
       },
-      "workspaceNavigation": "Vyer för agentbryggan",
+      "workspaceNavigation": "Agentvyer",
       "sonaAgent": {
         "title": "Sona-agent",
         "pairing": "Parkoppling",
@@ -1504,29 +1498,29 @@
         "unpaired": "Inte parkopplad",
         "lastReached": "Senast nådd",
         "never": "Aldrig",
-        "relayUrl": "Reläets adress",
+        "relayUrl": "Serveradress",
         "relayUrlHint": "Bara en Tailscale-adress eller den här datorn accepteras. Allt på det öppna internet avvisas innan det sparas.",
-        "relayKeyId": "Reläets nyckel-id",
-        "relayPublicKey": "Reläets publika nyckel",
+        "relayKeyId": "Servernyckel-ID",
+        "relayPublicKey": "Servers offentliga nyckel",
         "identity": "Den här datorns publika nyckel",
-        "identityHint": "Lägg in nyckeln i reläet så att det tar emot turer från den här datorn. Den privata halvan lämnar aldrig din nyckelring.",
+        "identityHint": "Lägg till denna nyckel på servern så att den accepterar meddelanden från denna Mac. Den privata nyckeln lämnar aldrig din keychain.",
         "identityUnavailable": "Slå på agentpanelen för att skapa en nyckel.",
         "copy": "Kopiera",
         "copied": "Kopierat",
         "unpair": "Koppla från",
         "test": "Testa",
-        "reached": "Reläet svarade.",
-        "failed": "Det gick inte att parkoppla reläet.",
+        "reached": "Servern svarade.",
+        "failed": " kunde inte ansluta till servern.",
         "reason": {
           "unauthorized_window": "Det fönstret får inte ändra parkopplingen.",
           "disabled": "Agentpanelen är avstängd.",
-          "unpaired": "Inget relä är parkopplat än.",
-          "offline": "Reläet svarade inte.",
+          "unpaired": "Ingen server är kopplad än.",
+          "offline": "Servern svarade inte.",
           "invalid_configuration": "Sona använder inte den adressen eller nyckeln.",
           "secret_unavailable": "Det gick inte att läsa den här datorns nyckel.",
-          "untrusted_response": "Svaret var inte signerat av det parkopplade reläet.",
-          "remote_rejected": "Reläet avvisade begäran.",
-          "ownership_rejected": "Reläet svarade åt någon annan."
+          "untrusted_response": "Svaret var inte signerat av den kopplade servern.",
+          "remote_rejected": "Servern avvisade förfrågan.",
+          "ownership_rejected": "Servern svarade för någon annan."
         }
       }
     },
@@ -1606,12 +1600,12 @@
         "retry": "Försök igen"
       },
       "runLog": {
-        "title": "Körningslogg",
-        "empty": "Inga arbetsflöden har körts ännu.",
-        "loadError": "Körningsloggen kunde inte läsas in.",
-        "loadMoreError": "Fler körningar kunde inte läsas in.",
-        "loadMore": "Läs in fler",
-        "chartAria": "Arbetsflödeskörningar per dag, {{count}} under de senaste 7 dagarna"
+        "title": "Aktivitet",
+        "empty": "Ingen aktivitet än.",
+        "loadError": "Kunde inte ladda aktivitet.",
+        "loadMoreError": "Kunde inte ladda mer aktivitet.",
+        "loadMore": "Visa mer",
+        "chartAria": "Aktivitet per dag, {{count}} under de senaste 7 dagarna"
       }
     },
     "vocabulary": {
@@ -1690,7 +1684,7 @@
         "shortcutHint": "Kör kortkommandot vid namn med mötets export som indata. Trettio sekunder, sedan stoppas det.",
         "shortcutPlaceholder": "Kortkommandots namn",
         "webhook": "Skicka till en webhook",
-        "webhookHint": "Skickar mötets export som JSON. Bara din egen maskin eller ditt tailnet — samma regel som reläet.",
+        "webhookHint": "Skickar mötesexporten som JSON. Använd endast din egen maskin eller tailnet, precis som med servern.",
         "webhookPlaceholder": "http://100.x.y.z:8650/hook",
         "needsTarget": "Lägg till ett namn först",
         "needsUrl": "Lägg till en adress först",
@@ -1701,11 +1695,11 @@
       "remoteIntelligence": {
         "title": "Mötesintelligens",
         "label": "Skriv mötesanteckningar på min server",
-        "consent": "Sammanfattningar och svar för möten skrivs på din server över ditt privata nätverk",
-        "unpaired": "Parkoppla Sona med din server under Agenter för att slå på detta",
+        "consent": "Sammanfattningar och svar för möten skrivs på din server över ditt privata nätverk.",
+        "unpaired": "Parkoppla Sona med din server under Agenter för att slå på detta.",
         "seriesTitle": "Serier som stannar på den här Macen",
         "seriesHint": "En serie i den här listan skrivs alltid på den här Macen, även när mötesintelligens är på.",
-        "seriesEmpty": "Inga återkommande möten inspelade än",
+        "seriesEmpty": "Inga återkommande möten inspelade än.",
         "loading": "Läser dina serier…",
         "lastMet": "Senast {{date}}",
         "keepLocalLabel": "Behåll {{series}} på den här Macen",
@@ -1736,10 +1730,10 @@
   },
   "commandPalette": {
     "open": "Sök",
-    "placeholder": "Skriv ett kommando eller sök",
+    "placeholder": "Sök eller välj en åtgärd",
     "navigation": "Navigering",
     "actions": "Åtgärder",
-    "noResults": "Inga kommandon hittades",
+    "noResults": "Ingenting hittades",
     "newMeeting": "Nytt möte",
     "importAudio": "Transkribera fil",
     "openRecordings": "Öppna mapp för inspelningar",
@@ -1782,9 +1776,9 @@
     "commandRewriteUnavailable": "Omskrivningen gav inget tillbaka, så din markering lämnades som den var. Kontrollera leverantören under Settings > Post-processing och försök igen.",
     "noModelSelectedTitle": "Ingen modell valdes",
     "noSpeechSaveFailedTitle": "Provet sparades inte",
-    "captureOverrunTitle": "Inspelningen överfylldes",
+    "captureOverrunTitle": "Inspelningen kapades",
     "cloudUnavailableTitle": "Molnet är inte tillgängligt",
-    "cloudTranscriptionHeldTitle": "Molnkörning hålls kvar",
+    "cloudTranscriptionHeldTitle": "Molnresultat tillbakahållet",
     "commandNoSelectionTitle": "Inget är markerat",
     "commandRewriteUnavailableTitle": "Omskrivning är inte tillgänglig"
   },
@@ -1910,7 +1904,7 @@
     },
     "setup": {
       "defaultTitle": "Lokala anteckningar",
-      "remoteUnavailable": "Fjärrbearbetning är inte tillgänglig i den här versionen, så alla möten transkriberas och sammanfattas på den här datorn."
+      "remoteUnavailable": "Fjärrbearbetning är inte tillgänglig i den här versionen av Sona, så varje möte transkriberas och sammanfattas på den här datorn."
     },
     "preflight": {
       "storage": "Lagring",
@@ -1918,7 +1912,7 @@
       "storageUnavailable": "Krypterat möteslager är inte tillgängligt.",
       "localModel": "Lokal modell",
       "localModelDescription": "Bearbetningen sker lokalt när en lokal modell är tillgänglig.",
-      "starting": "Startar synlig inspelning…",
+      "starting": "Startar inspelningen…",
       "refreshing": "Kontrollerar…"
     },
     "consent": {
@@ -1931,7 +1925,7 @@
       "partialCapture": "Ljud saknas. Kontrollera luckorna innan du litar på de genererade anteckningarna.",
       "inputs": "Ingångar",
       "signal": "Signal",
-      "signalUnavailable": "Nivån för {{source}} rapporteras inte av inspelningen.",
+      "signalUnavailable": "{{source}} rapporterar inte sin nivå.",
       "notReported": "Ej rapporterat",
       "durabilityLag": "Sparat på disk",
       "behind": "{{duration}} efter",
@@ -1957,7 +1951,7 @@
     },
     "retention": {
       "title": "Lagring",
-      "description": "Sona raderar berörda lokala mötesposter via samma verifierade raderingsväg.",
+      "description": "Sona raderar möten på den här datorn på samma verifierade sätt varje gång.",
       "forever": "Behåll tills jag raderar det",
       "days": "Radera efter {{days}} dagar",
       "loading": "Läser aktuell policy…"
@@ -1977,7 +1971,7 @@
       "source_start_failed": "En källa kunde inte starta.",
       "source_gap": "En källa rapporterade en lucka.",
       "storage_unavailable": "Krypterat möteslager är inte tillgängligt.",
-      "storage_failure": "Lagringen kunde inte spara den här ändringen.",
+      "storage_failure": "Lagringen kunde inte spara ändringen.",
       "local_model_unavailable": "Ingen lokal modell är tillgänglig.",
       "recovery_required": "Det här mötet behöver återställas.",
       "deleted": "Det här mötet togs bort.",
@@ -2008,7 +2002,7 @@
       "consent_required": "Bekräfta inspelningsmedgivandet innan du startar.",
       "consent_stale": "Inställningen har ändrats. Granska den igen innan du startar.",
       "invalid_transition": "Den här åtgärden är inte tillgänglig i mötets nuvarande fas.",
-      "stale_revision": "Det här mötet ändrades i ett annat fönster. Sona uppdaterade sin ögonblicksbild.",
+      "stale_revision": "Det här mötet ändrades i ett annat fönster. Sona läste in det på nytt.",
       "capture_lease_busy": "Ett annat möte spelar redan in ljud.",
       "no_source_started": "Ingen godkänd ljudkälla startade.",
       "source_unavailable": "En begärd ljudkälla är inte tillgänglig.",
@@ -2026,12 +2020,12 @@
       "liveTitle": "Stoppa och släng den här sessionen?",
       "keepRecording": "Behåll inspelningen",
       "stopAndDiscard": "Stoppa och släng",
-      "explainsData": "Ljud, transkript, manuella anteckningar, genererade anteckningar och lokala svarscacher tas bort. Detta kan inte ångras.",
+      "explainsData": "Ljud, transkription, manuella anteckningar, genererade anteckningar och sparade svar raderas. Det går inte att ångra.",
       "complete": "Sessionen slängd"
     },
     "delete": {
       "title": "Ta bort det här mötet?",
-      "explainsData": "Sona håller mötet oåtkomligt medan den verifierade borttagningen slutförs. Exporter och fjärrkopior omfattas inte av lokal borttagning.",
+      "explainsData": "Sona håller mötet utom räckhåll tills den verifierade raderingen är klar. Exporter och fjärrkopior omfattas inte.",
       "complete": "Mötet togs bort"
     },
     "review": {
@@ -2049,8 +2043,8 @@
       "showFewerGaps": "Visa färre",
       "transcript": "Transkript",
       "noTranscript": "Inget transkript är tillgängligt.",
-      "transcriptSegment": "Transkriptsegment",
-      "removeSegment": "Ta bort segment",
+      "transcriptSegment": "Tur i transkriptionen",
+      "removeSegment": "Ta bort den här turen",
       "editTurn": "Redigera det här inlägget",
       "unknownSpeaker": "Okänd talare",
       "speakers": "Talare",
@@ -2086,7 +2080,7 @@
       "keyQuestions": "Viktiga frågor",
       "risks": "Risker",
       "followUp": "Uppföljning",
-      "artifactUnavailable": "Den här genererade versionen är inte tillgänglig. Källtranskriptet och de manuella anteckningarna finns kvar lokalt.",
+      "artifactUnavailable": "De här genererade anteckningarna är inte tillgängliga. Transkriptionen och dina egna anteckningar stannar på den här datorn.",
       "actionMeta": "Ansvarig: {{owner}} · Klart senast: {{due}}",
       "unassigned": "Ej tilldelad",
       "noDueDate": "Inget slutdatum",
@@ -2129,10 +2123,10 @@
       "exportHtml": "Exportera registersida",
       "exported": "Registret skrevs till {{path}}",
       "exportMissing": "Det här mötet har inget register att exportera. Generera om anteckningarna först.",
-      "statThreads": "Avslutade trådar",
+      "statThreads": "Avklarade ämnen",
       "statReceipts": "Citat",
       "receiptsVerified": "kontrollerat",
-      "receiptsDegraded": "{{threads}} trådar och {{commitments}} åtaganden borttagna",
+      "receiptsDegraded": "{{threads}} trådar och {{commitments}} åtaganden togs bort",
       "threads": "Trådar",
       "asideThread": "sidospår",
       "openLoops": "Öppna frågor",
@@ -2262,7 +2256,7 @@
       "title": "Inspelningen startade inte",
       "readyTitle": "Klar att spela in",
       "recordAnyway": "Spela in utan den",
-      "recordAnywayHint": "Posten märks som ofullständig och den saknade källan står kvar namngiven i den."
+      "recordAnywayHint": "Mötet markeras som ofullständigt, och den saknade källan namnges i det."
     },
     "analytics": {
       "title": "Samtal",
@@ -2345,7 +2339,7 @@
       },
       "apps": {
         "label": "Mötesappar",
-        "description": "En bundle-identifierare per rad. En post räknas bara medan den appen körs, så en omdöpt identifierare blir verkningslös snarare än fel.",
+        "description": "Ett app-ID per rad. En post räknas endast medan den appen körs, så att ett omdöpt app-ID inte gör något istället för att ge felaktiga svar.",
         "running": "Körs nu: {{apps}}",
         "noneRunning": "Ingen av dessa körs just nu."
       },
@@ -2354,7 +2348,7 @@
         "calendarDenied": "Kalenderåtkomst gavs inte, så bara mikrofonvägen körs.",
         "notificationsDenied": "Aviseringar är av för Sona, så frågor visas bara i appen.",
         "bluetoothCaveat": "En mötesapp är öppen men ingenting rapporterar mikrofonanvändning. Bluetooth-headset gör ofta inte det, så starta mötet själv om ett pågår.",
-        "noSilenceStop": "Inspelningar stoppas vid händelsens slut, när appen avslutas, vid vila, eller när du själv stoppar. Tystnadstimern kräver löpande transkribering, som körs först efter att ett möte slutat."
+        "noSilenceStop": "Inspelningen stoppar när händelsen tar slut, appen avslutas, din Mac somnar, eller när du stoppar den själv. Tystnad stoppar den inte: det skulle kräva livetranskription, och transkriptionen körs efter mötet."
       },
       "why": {
         "disabled": "Detekteringen är av.",
@@ -2389,7 +2383,7 @@
         "autoOpen": "Öppna det här mötet när det börjar"
       },
       "recording": {
-        "none": "Ingen källa redo"
+        "none": "Ingen källa vald"
       },
       "participation": {
         "accepted": "Tackat ja",
@@ -2426,7 +2420,7 @@
       "loading": "Läser din kalender…",
       "empty": "Inget inplanerat den kommande veckan.",
       "noAccess": "Sona kan inte se din kalender.",
-      "noAccessHint": "Slå på \"Använd min kalender\" i mötesinställningarna och ge full åtkomst när macOS frågar. Allt som Kalender i macOS redan visar — Google, iCloud, Outlook — följer med.",
+      "noAccessHint": "Slå på ”Använd min kalender” i mötesinställningarna och ge sedan full åtkomst när macOS frågar. Allt som macOS Kalender redan visar (Google, iCloud, Outlook) följer med.",
       "unavailable": "Det här systemet har ingen kalender som Sona kan läsa.",
       "attendees": "Deltagare",
       "you": "Du",
@@ -2511,6 +2505,16 @@
       "row": "Fråga Sona: {{query}}",
       "error": "Frågan kunde inte skickas till Sona.",
       "consentRequired": "En fråga skickar citat ur dina möten till din server, så slå på mötesintelligens först."
+    },
+    "error": {
+      "unreachable": "Sona kunde inte ansluta.",
+      "refused": "Sona kunde inte ta emot den frågan.",
+      "failed": "Sona kunde inte slutföra det svaret."
+    },
+    "working": {
+      "searchedCorpus": "Gick igenom dina möten och anteckningar",
+      "stillWaiting": "Väntar fortfarande…",
+      "cancel": "Avbryt"
     }
   },
   "overview": {
@@ -2564,8 +2568,8 @@
     },
     "setup": {
       "title": "Ställ in ett synkroniseringskonto",
-      "endpoint": "Slutpunkt",
-      "bootstrapSecret": "Bootstrap-hemlighet",
+      "endpoint": "Serveradress",
+      "bootstrapSecret": "Konfigurationshemlighet",
       "submit": "Ställ in synkronisering"
     },
     "recovery": {
@@ -2586,13 +2590,13 @@
     },
     "errors": {
       "portable_unavailable": "Molnsynkronisering är inte tillgänglig i portabelt läge.",
-      "secret_unavailable": "Systemets säkra lagring är inte tillgänglig.",
+      "secret_unavailable": "Systemets nyckelhanterare är inte tillgänglig.",
       "setup_required": "Ställ in molnsynkronisering innan du använder den här åtgärden.",
       "auth_required": "Molninloggning krävs.",
       "quota": "Kvoten för molnlagring har uppnåtts.",
       "integrity_failure": "Molnåtgärden kunde inte verifieras.",
       "conflict": "Det här mötet har en synkroniseringskonflikt.",
-      "unsupported_protocol": "Den här enheten stöder inte molnprotokollet.",
+      "unsupported_protocol": "Den här enheten stöder inte den version av molnsynkronisering som används.",
       "transient": "Molnsynkronisering är tillfälligt otillgänglig.",
       "invalid_expiry": "Välj ett utgångsdatum i framtiden.",
       "invalid_offer": "Kopplingserbjudandet är ofullständigt eller ogiltigt.",
@@ -2686,16 +2690,16 @@
       "noDocuments": "Inga importerade dokument.",
       "deleteDocument": "Ta bort dokument",
       "deleteDocumentTitle": "Ta bort det här dokumentet?",
-      "deleteDocumentDescription": "Ta bort {{document}} från den importerade kontexten?",
+      "deleteDocumentDescription": "Ta bort {{document}} från Sonas dokument?",
       "cadence": "Mötesfrekvens",
       "lastMeeting": "Senaste mötet",
       "talkShare": "Andel talartid",
       "cadenceAria": "Möten per månad: {{values}}",
       "documentFilter": "Textdokument",
-      "documentImported": "Dokumentet importerades.",
+      "documentImported": "Dokument tillagt.",
       "split": "Dela upp person",
       "splitTitle": "Dela upp den här personen?",
-      "splitDescription": "Flytta valda identitetsuppgifter och möten från {{name}} till en annan person.",
+      "splitDescription": "Flytta valda detaljer och möten från {{name}} till en annan person.",
       "splitTarget": "Flytta till",
       "splitCreate": "Ny person",
       "splitExisting": "Befintlig person",
@@ -2707,7 +2711,7 @@
       "splitDocuments": "Dokument",
       "splitSubmit": "Dela upp person",
       "splitNothingSelected": "Välj minst ett objekt att flytta.",
-      "splitNoItems": "Den här personen har inga identitetsuppgifter eller möten att dela upp.",
+      "splitNoItems": "Denna person har inga detaljer eller möten att dela.",
       "loadError": "Den här personen kunde inte läsas in."
     },
     "errors": {
@@ -2720,11 +2724,11 @@
       "meetingsBefore_one": "1 tidigare möte",
       "meetingsBefore_other": "{{count}} tidigare möten",
       "last": "Senast {{date}}",
-      "agentPromptIntro": "Hjälp mig att skriva en uppföljning av ”{{title}}” utifrån de här mötesuppgifterna.",
+      "agentPromptIntro": "Hjälp mig utforma ett uppföljningsmeddelande för ”{{title}}” med hjälp av dessa möten.",
       "agentPromptCommitments": "Åtaganden",
       "agentPromptOpenLoops": "Öppna frågor",
       "agentPromptRequest": "Skriv uppföljningen. Hitta inte på detaljer eller löften.",
-      "agentError": "Det gick inte att öppna uppföljningen med agenten.",
+      "agentError": " kunde inte öppna uppföljningen med agenten.",
       "discussFollowUp": "Diskutera uppföljning med agenten",
       "meetingsBefore": "{{count}} tidigare möten"
     },
@@ -2773,7 +2777,7 @@
     },
     "detail": {
       "openLoops": "Öppna frågor",
-      "howSonaKnows": "Hur Sona vet det",
+      "howSonaKnows": "Varför Sona kopplar ihop den här personen",
       "noEvidence": "Inget kopplar den här personen till ett möte ännu."
     }
   },
@@ -2804,7 +2808,7 @@
       "rules": {
         "label": "Appar och webbplatser",
         "empty": "Inget växlar till det här läget av sig själv.",
-        "example": "En regel lagrar en appidentitet eller en webbplatsvärd: com.apple.mail eller mail.google.com."
+        "example": "Varje regel använder ett app ID eller webbplats, till exempel com.apple.mail eller mail.google.com."
       }
     },
     "advanced": {
@@ -2913,7 +2917,7 @@
       "sync": "Synkronisering",
       "leavesThisMac": "Vad som lämnar den här Macen",
       "agents": "Agents",
-      "agentBridge": "Brygga för kodagenter",
+      "agentBridge": "Agentanslutningar",
       "about": "Om Sona",
       "debugHint": "Tryck på {{chord}} för att öppna felsökningssidan."
     },
@@ -2923,10 +2927,10 @@
       "runningNow": "Körs nu",
       "add": "Lägg till en app",
       "addTitle": "Lägg till en mötesapp",
-      "addDescription": "Sona behöver appens identifierare, som du kan läsa i appens eget Om-fönster eller med `osascript -e 'id of app \"Namn\"'`.",
-      "identifier": "Appidentifierare",
+      "addDescription": "Sona behöver app-ID, som du kan hitta i appens Info-fönster eller med `osascript -e 'id of app \"Name\"'`.",
+      "identifier": "App-ID",
       "identifierPlaceholder": "com.example.app",
-      "invalid": "En identifierare ser ut så här: com.example.app, gemena ord sammanbundna med punkter.",
+      "invalid": "Ett app-ID ser ut som com.example.app: små bokstäver separerade av punkter.",
       "duplicate": "Den appen finns redan i listan.",
       "remove": "Ta bort {{app}}",
       "names": {
@@ -2939,8 +2943,8 @@
     }
   },
   "consentPanel": {
-    "calendarTitle": "{{title}} — spela in?",
-    "appTitle": "{{app}}-möte — spela in?",
+    "calendarTitle": "Spela in {{title}}?",
+    "appTitle": "Spela in det här {{app}}-mötet?",
     "genericTitle": "Spela in det här mötet?",
     "introduction": "Sona spelar in på den här Macen och du behåller kontrollen.",
     "seriesBrief_one": "Möte {{nth}} med {{person}} · {{count}} öppen punkt",
@@ -2969,7 +2973,7 @@
       },
       "captureAdvisor": {
         "name": "Ge råd om inspelningskvalitet",
-        "description": "Rapporterar omtag, förlorade inspelningar och svagt ljud från dina egna körningar."
+        "description": "Rapporterar omtag, förlorade inspelningar och svagt ljud från dina egna dikteringar."
       },
       "seriesPriming": {
         "name": "Förbered återkommande möten"
@@ -2977,12 +2981,12 @@
     },
     "feed": {
       "title": "Vad Sona lade märke till",
-      "spokenPunctuation": "Du säger {{spoken}} ofta — skriva det som {{written}}?",
-      "vocabularyCorrection": "Du ändrar hela tiden {{spoken}} till {{written}} — lära in det?",
-      "modeHabit": "Du väljer {{mode}} med kortkommando de flesta dagar — göra det till standard?",
-      "retryRate": "Dina {{subject}}-körningar görs om {{times}}× oftare än de övriga.",
-      "lostCaptureRate": "Dina {{subject}}-körningar slutar avklippta eller tysta {{times}}× oftare än de övriga.",
-      "inputLevel": "{{percent}}% av dina inspelningar kom in svaga — kolla mikrofonnivån?",
+      "spokenPunctuation": "Du säger {{spoken}} ofta. Skriva det som {{written}}?",
+      "vocabularyCorrection": "Du ändrar hela tiden {{spoken}} till {{written}}. Ska det läras in?",
+      "modeHabit": "Du tar till {{mode}} med kortkommandot de flesta dagar. Ska det bli standard?",
+      "retryRate": "Dikteringar via {{subject}} görs om {{times}}× oftare än de andra.",
+      "lostCaptureRate": "Dikteringar via {{subject}} slutar avkapade eller tysta {{times}}× oftare än de andra.",
+      "inputLevel": "{{percent}} % av dina inspelningar kom in svaga. Vill du kolla mikrofonnivån?",
       "example": "”{{text}}”",
       "accept": "Ja",
       "dismiss": "Nej tack",

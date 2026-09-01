@@ -19,14 +19,18 @@ import type {
 import { askSona } from "@/components/commandPaletteSearch";
 import { ChatHistoryList } from "./ChatHistoryMenu";
 import { ChatSheet } from "./ChatSheet";
+import { sendSheetTurn } from "./ChatSheetHost";
 import type { ChatPhase } from "./chatModel";
 import {
   chatPhase,
   composerKeys,
+  isStillWaiting,
   linkifySona,
   proposalRowIndex,
+  retryMessage,
   sheetKeys,
   stepMs,
+  turnFailure,
   workedMs,
   workRowIndex,
 } from "./chatModel";
@@ -61,8 +65,11 @@ const en = JSON.parse(fs.readFileSync(localeFile, "utf8")) as {
     placeholder: string;
     send: string;
     stop: string;
+    retry: string;
     openSettings: string;
     workedFor: string;
+    error: Record<"unreachable" | "refused" | "failed", string>;
+    working: Record<"searchedCorpus" | "stillWaiting" | "cancel", string>;
     status: Record<"disabled" | "unpaired" | "offline" | "error", string>;
     turnState: Record<"running", string>;
     proposal: Record<"apply" | "applied" | "undo", string>;
@@ -109,6 +116,7 @@ const TURN: AgentPanelTurnStatusV1 = {
   started_at_utc_ms: 1_000,
   completed_at_utc_ms: null,
   steps: [],
+  failure: null,
 };
 
 const PROPOSAL: AgentPanelProposalPreviewV1 = {
@@ -142,6 +150,7 @@ interface SheetCase {
   history?: readonly AgentChatConversationSummaryV1[];
   historyOpen?: boolean;
   now?: number;
+  searchedCorpus?: boolean;
 }
 const sheet = ({
   open = true,
@@ -152,6 +161,7 @@ const sheet = ({
   history = [],
   historyOpen = false,
   now = 6_000,
+  searchedCorpus = false,
 }: SheetCase = {}): string =>
   paint(
     <ChatSheet
@@ -160,6 +170,7 @@ const sheet = ({
       conversationId={null}
       conversation={conversation}
       turn={turn}
+      searchedCorpus={searchedCorpus}
       proposal={proposal}
       history={history}
       historyOpen={historyOpen}
@@ -181,55 +192,55 @@ const sheet = ({
       onOpenLink={noop}
       onOpenSettings={noop}
       onRetry={noop}
+      onRetryTurn={noop}
     />,
   );
 
 describe("the column's shape", () => {
-  /* Closed it is still mounted — the width has to animate from somewhere — so
-   * the three things that must be true of it are that it takes no width, that
-   * nothing can reach it, and that nothing can read it. */
+  /* Closed it is still mounted — the shell needs a 0pt structural column to
+   * return the page to 680 — so nothing can reach or read its fixed frame. */
   test("closed: mounted, 0 wide, inert, and out of the a11y tree", () => {
     const markup = sheet({ open: false });
 
     expect(markup).toContain('data-slot="chat-sheet"');
+    expect(markup).toContain('data-slot="chat-frame"');
     expect(markup).toContain('aria-hidden="true"');
     expect(markup).toContain("inert");
-    expect(markup).toContain("pointer-events-none w-0 opacity-0");
-    /* Nothing slides any more. A transform would put the column over the page
-     * again, which is the layout this cutover replaced. */
-    expect(markup).not.toContain("translate-x");
+    expect(markup).toContain("pointer-events-none w-0");
   });
 
-  /* Width and opacity, at the one duration, taking its 340 out of the layout
-   * rather than out of the page. A transform, a scrim or a blur here would each
-   * be the surface going back to covering what it was asked about. */
-  test("open: 340 of layout, on width and opacity alone", () => {
+  /* The layout takes the 340 in the press frame. The fixed frame reads the
+   * root shell's registered timeline after that; it owns no transition of its
+   * own, and no scrim or blur returns the page to being hidden behind chat. */
+  test("open: 340 of layout and a fixed frame on the shell timeline", () => {
     const markup = sheet();
 
-    expect(markup).toContain("transition-[width,opacity]");
-    expect(markup).toContain("duration-150");
-    expect(markup).toContain("ease-out");
-    expect(markup).toContain("motion-reduce:transition-none");
+    expect(markup).toContain('data-slot="chat-frame"');
+    expect(markup).toContain("transition-none");
+    expect(markup).toContain(
+      "[transform:translateX(var(--shell-chat-offset))]",
+    );
     expect(markup).toContain("w-[340px]");
-    expect(markup).not.toContain("translate-x");
     // One hairline against the page, and no dimming of what is behind it.
     expect(markup).toContain("border-s border-gray-alpha-400");
     expect(markup).not.toContain("bg-black/");
     expect(markup).not.toContain("backdrop-blur");
   });
 
-  /* Two boxes: the one that animates and clips, and the frame that holds its
-   * 340 through the travel so no answer rewraps while the page's edge moves.
-   * The hairline is the frame's, which is what keeps the column a border-box
-   * 340 of window rather than 341. */
-  test("open: a clipping box around a frame that does not move", () => {
+  /* Two boxes: the structural width box that makes room for the page, and the
+   * fixed frame that keeps one physical window edge through both the open and
+   * closed geometry. That stable edge is what lets a close slide out rather
+   * than jump to the edge before it moves. */
+  test("open: a structural width box and one fixed contained frame", () => {
     const markup = sheet();
     const outer = /<aside[^>]*class="([^"]*)"/.exec(markup)?.[1] ?? "";
 
-    expect(outer).toContain("overflow-hidden");
+    expect(outer).toContain("transition-none");
     expect(outer).toContain("flex-none");
     expect(outer).toContain("w-[340px]");
     expect(outer).not.toContain("border-s");
+    expect(markup).toContain("fixed inset-y-0 end-0");
+    expect(markup).toContain("[contain:layout_style]");
     // Stated on both boxes, and nowhere else.
     expect(occurrences(markup, "w-[340px]")).toBe(2);
   });
@@ -272,6 +283,73 @@ describe("a turn on screen", () => {
     expect(markup).toContain("5s");
     expect(markup).toContain('data-slot="chat-stop"');
     expect(markup).not.toContain('data-slot="chat-send"');
+  });
+
+  test("a live turn stays visible while its conversation is still arriving", () => {
+    const markup = sheet({ turn: TURN });
+
+    expect(markup).toContain('data-slot="chat-work"');
+    expect(markup).not.toContain('data-slot="chat-empty"');
+  });
+
+  test("failed: one typed failure line and a retry under its question", () => {
+    for (const failure of ["unreachable", "refused", "failed"] as const) {
+      const markup = sheet({
+        conversation: [user("What did we decide?")],
+        turn: {
+          ...TURN,
+          state: "failed",
+          completed_at_utc_ms: 4_000,
+          failure,
+        },
+      });
+
+      expect(markup).toContain('data-slot="chat-turn-error"');
+      expect(markup).toContain(escaped(en.chat.error[failure]));
+      expect(markup).toContain(en.chat.retry);
+      expect(markup).not.toContain('data-slot="chat-stop"');
+    }
+  });
+
+  test("waiting: offers the existing cancel action after thirty seconds", () => {
+    const queued = { ...TURN, state: "queued" as const };
+
+    expect(isStillWaiting(queued, 30_999)).toBe(false);
+    expect(isStillWaiting(queued, 31_000)).toBe(true);
+    expect(isStillWaiting({ ...queued, state: "waiting_user" }, 31_000)).toBe(
+      false,
+    );
+
+    const markup = sheet({
+      conversation: [user("What did we decide?")],
+      turn: queued,
+      now: 31_000,
+    });
+
+    expect(markup).toContain('data-slot="chat-still-waiting"');
+    expect(markup).toContain(en.chat.working.stillWaiting);
+    expect(markup).toContain(en.chat.working.cancel);
+  });
+
+  test("marks the sheet turn only when its pack had sources", () => {
+    const turn = {
+      ...TURN,
+      state: "succeeded" as const,
+      completed_at_utc_ms: 4_000,
+    };
+    const sourced = sheet({
+      conversation: [user("What did we decide?"), assistant("We decided.")],
+      turn,
+      searchedCorpus: true,
+    });
+    const packless = sheet({
+      conversation: [user("What did we decide?"), assistant("We decided.")],
+      turn,
+    });
+
+    expect(sourced).toContain('data-slot="chat-searched-corpus"');
+    expect(sourced).toContain(en.chat.working.searchedCorpus);
+    expect(packless).not.toContain('data-slot="chat-searched-corpus"');
   });
 
   /* Steps exist: the line becomes a disclosure, collapsed, with one row and a
@@ -529,6 +607,25 @@ describe("the model behind the sheet", () => {
     ).toBe(-1);
   });
 
+  test("a typed failure owns the retry question and its work row", () => {
+    const failed = {
+      ...TURN,
+      state: "failed" as const,
+      completed_at_utc_ms: 4_000,
+      failure: "unreachable" as const,
+    };
+    const conversation = [
+      user("Earlier question"),
+      assistant("Earlier answer"),
+      user("Retry this question"),
+    ];
+
+    expect(turnFailure(failed)).toBe("unreachable");
+    expect(retryMessage(conversation, failed)).toBe("Retry this question");
+    expect(retryMessage(conversation, TURN)).toBeNull();
+    expect(workRowIndex(conversation, failed)).toBe(3);
+  });
+
   test("the proposal takes the row whose words it already is", () => {
     expect(
       proposalRowIndex([user("q"), assistant(PROPOSAL.summary)], PROPOSAL),
@@ -705,6 +802,134 @@ describe("the shell's one fold", () => {
   test("no window-opening command survives on the chat path", () => {
     expect("agentPanelOpen" in commands).toBe(false);
     expect("agentPanelClose" in commands).toBe(false);
+  });
+});
+
+describe("the sheet's Ask turn", () => {
+  test("packs only a paired Ask turn with remote intelligence consent", async () => {
+    const original = {
+      pack: commands.sonaQueryPack,
+      send: commands.agentPanelSendTurn,
+    };
+    const packedQuestions: string[] = [];
+    const sent: Array<{ workspace: string; contextPack: string | null }> = [];
+    commands.sonaQueryPack = async (question) => {
+      packedQuestions.push(question);
+      return {
+        status: "ok",
+        data: {
+          schema_version: 1,
+          pack: "meeting quotes",
+          sources: [
+            {
+              kind: "meeting",
+              id: "m1",
+              title: "Decisions",
+              snippet: "We chose the launch date.",
+              when_utc_ms: 1,
+              link: "sona://meeting/m1",
+            },
+          ],
+        },
+      };
+    };
+    commands.agentPanelSendTurn = async (request) => {
+      sent.push({
+        workspace: request.workspace,
+        contextPack: request.context_pack,
+      });
+      return {
+        status: "ok",
+        data: {
+          invalidation_id: 1,
+          relay_status: "ready",
+          conversation_id: "c1",
+          conversation: [],
+          turn: null,
+          proposal: null,
+        },
+      };
+    };
+    const cases = [
+      {
+        workspace: "sona_chat",
+        gate: { paired: true, remoteIntelligence: true },
+      },
+      {
+        workspace: "sona_chat",
+        gate: { paired: true, remoteIntelligence: false },
+      },
+      {
+        workspace: "sona_chat",
+        gate: { paired: false, remoteIntelligence: true },
+      },
+      {
+        workspace: "sona_config",
+        gate: { paired: true, remoteIntelligence: true },
+      },
+    ] as const;
+    const searchedCorpus: boolean[] = [];
+    try {
+      for (const [index, turn] of cases.entries()) {
+        const outcome = await sendSheetTurn({
+          message: `question ${index}`,
+          locale: "en",
+          workspace: turn.workspace,
+          gate: turn.gate,
+        });
+        searchedCorpus.push(outcome.searchedCorpus);
+      }
+    } finally {
+      commands.sonaQueryPack = original.pack;
+      commands.agentPanelSendTurn = original.send;
+    }
+
+    expect(packedQuestions).toEqual(["question 0"]);
+    expect(sent).toEqual([
+      { workspace: "sona_chat", contextPack: "meeting quotes" },
+      { workspace: "sona_chat", contextPack: null },
+      { workspace: "sona_chat", contextPack: null },
+      { workspace: "sona_config", contextPack: null },
+    ]);
+    expect(searchedCorpus).toEqual([true, false, false, false]);
+  });
+
+  test("retrying a failed question creates a fresh turn", async () => {
+    const original = commands.agentPanelSendTurn;
+    const turnIds: string[] = [];
+    commands.agentPanelSendTurn = async (request) => {
+      turnIds.push(request.turn_id);
+      return {
+        status: "ok",
+        data: {
+          invalidation_id: 1,
+          relay_status: "ready",
+          conversation_id: "c1",
+          conversation: [],
+          turn: null,
+          proposal: null,
+        },
+      };
+    };
+    try {
+      await sendSheetTurn({
+        message: "What did we decide?",
+        locale: "en",
+        workspace: "sona_chat",
+        gate: { paired: false, remoteIntelligence: false },
+      });
+      await sendSheetTurn({
+        message: "What did we decide?",
+        locale: "en",
+        workspace: "sona_chat",
+        gate: { paired: false, remoteIntelligence: false },
+      });
+    } finally {
+      commands.agentPanelSendTurn = original;
+    }
+
+    expect(turnIds).toHaveLength(2);
+    expect(turnIds[0]).not.toBe(turnIds[1]);
   });
 });
 

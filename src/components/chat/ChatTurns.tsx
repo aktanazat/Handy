@@ -10,10 +10,12 @@ import { Button } from "@/components/vg/button";
 import { cn } from "@/lib/cn";
 import {
   conversationRows,
+  isStillWaiting,
   isTurnRunning,
   linkifySona,
   proposalRowIndex,
   stepMs,
+  turnFailure,
   workedMs,
   workRowIndex,
 } from "./chatModel";
@@ -54,28 +56,35 @@ const AssistantText: React.FC<AssistantTextProps> = ({
 interface TurnWorkProps {
   turn: AgentPanelTurnStatusV1;
   now: number;
+  searchedCorpus: boolean;
+  busy: boolean;
+  onStop: () => void;
+  onRetry: () => void;
 }
 
 const WORK_LINE =
   "inline-flex items-center gap-1 text-[12px] leading-4 text-gray-900";
 
 /**
- * What the turn is doing, or what it did, in one line.
+ * The activity that belongs below a turn's question.
  *
- * While it runs the line is the pulse — the state word and a ticking count,
- * because a scrollback with a question in it and nothing under it cannot say
- * "this is happening". Once it is over the line becomes the record: "Worked
- * for Ns", above the answer it produced.
- *
- * The steps fold away behind it, collapsed, because the answer is what was
- * asked for and the work is only interesting when the answer is not. A native
- * `details` rather than a state hook: the browser already owns "this is a
- * thing that opens", including the keyboard and the accessible name, and a
- * `useState` here would be a second copy of a fact the DOM holds correctly.
+ * A live turn always gets a timing line. A completed turn gets it only when
+ * the relay reported steps, leaving a plain answer as prose. Failure and the
+ * corpus marker share this row because neither has an assistant answer of its
+ * own to introduce them.
  */
-const TurnWork: React.FC<TurnWorkProps> = ({ turn, now }) => {
+const TurnWork: React.FC<TurnWorkProps> = ({
+  turn,
+  now,
+  searchedCorpus,
+  busy,
+  onStop,
+  onRetry,
+}) => {
   const { t } = useTranslation();
   const running = isTurnRunning(turn);
+  const failure = turnFailure(turn);
+  const showTiming = running || turn.steps.length > 0;
   const label = running
     ? `${t(`chat.turnState.${turn.state}`)} · ${t("chat.stepSeconds", {
         seconds: Math.round(workedMs(turn, now) / 1000),
@@ -84,52 +93,86 @@ const TurnWork: React.FC<TurnWorkProps> = ({ turn, now }) => {
         seconds: Math.round(workedMs(turn, now) / 1000),
       });
 
-  if (turn.steps.length === 0) {
-    return (
-      <p data-slot="chat-work" role="status" className={WORK_LINE}>
-        {label}
-      </p>
-    );
-  }
-
   return (
-    <details data-slot="chat-work" className="group">
-      <summary
-        className={cn(
-          WORK_LINE,
-          "cursor-default list-none outline-none marker:content-none hover:text-gray-1000 focus-visible:text-gray-1000 [&::-webkit-details-marker]:hidden",
-        )}
-      >
-        <ChevronRight
-          aria-hidden="true"
-          className="size-3 transition-transform group-open:rotate-90 motion-reduce:transition-none"
-        />
-        {label}
-      </summary>
-      <ol className="mt-1.5 flex list-none flex-col gap-1 border-s border-gray-alpha-400 py-0.5 ps-3">
-        {turn.steps.map((step) => (
-          <li
-            key={step.id}
-            className="flex items-baseline gap-2 text-[12px] leading-4"
-          >
-            <span
+    <div data-slot="chat-work" className="flex flex-col items-start gap-1">
+      {showTiming &&
+        (turn.steps.length === 0 ? (
+          <p role="status" className={WORK_LINE}>
+            {label}
+          </p>
+        ) : (
+          <details className="group">
+            <summary
               className={cn(
-                "min-w-0 flex-1 truncate",
-                step.state === "failed" ? "text-red-900" : "text-gray-900",
+                WORK_LINE,
+                "cursor-default list-none outline-none marker:content-none hover:text-gray-1000 focus-visible:text-gray-1000 [&::-webkit-details-marker]:hidden",
               )}
             >
-              {step.label}
-            </span>
-            {/* Tabular so a ticking second cannot shuffle the label beside it. */}
-            <span className="flex-none tabular-nums text-gray-800">
-              {t("chat.stepSeconds", {
-                seconds: Math.round(stepMs(step, turn, now) / 1000),
-              })}
-            </span>
-          </li>
+              <ChevronRight
+                aria-hidden="true"
+                className="size-3 transition-transform group-open:rotate-90 motion-reduce:transition-none"
+              />
+              {label}
+            </summary>
+            <ol className="mt-1.5 flex list-none flex-col gap-1 border-s border-gray-alpha-400 py-0.5 ps-3">
+              {turn.steps.map((step) => (
+                <li
+                  key={step.id}
+                  className="flex items-baseline gap-2 text-[12px] leading-4"
+                >
+                  <span
+                    className={cn(
+                      "min-w-0 flex-1 truncate",
+                      step.state === "failed"
+                        ? "text-red-900"
+                        : "text-gray-900",
+                    )}
+                  >
+                    {step.label}
+                  </span>
+                  <span className="flex-none tabular-nums text-gray-800">
+                    {t("chat.stepSeconds", {
+                      seconds: Math.round(stepMs(step, turn, now) / 1000),
+                    })}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </details>
         ))}
-      </ol>
-    </details>
+      {searchedCorpus && (
+        <p
+          data-slot="chat-searched-corpus"
+          className="text-[11px] leading-4 text-gray-800"
+        >
+          {t("chat.working.searchedCorpus")}
+        </p>
+      )}
+      {isStillWaiting(turn, now) && (
+        <p
+          data-slot="chat-still-waiting"
+          role="status"
+          className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] leading-4 text-gray-900"
+        >
+          {t("chat.working.stillWaiting")}
+          <Button variant="link" size="xs" onClick={onStop} disabled={busy}>
+            {t("chat.working.cancel")}
+          </Button>
+        </p>
+      )}
+      {failure !== null && (
+        <p
+          data-slot="chat-turn-error"
+          role="status"
+          className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] leading-4 text-red-900"
+        >
+          {t(`chat.error.${failure}`)}
+          <Button variant="link" size="xs" onClick={onRetry} disabled={busy}>
+            {t("chat.retry")}
+          </Button>
+        </p>
+      )}
+    </div>
   );
 };
 
@@ -219,7 +262,11 @@ export interface ChatTurnsProps {
   proposal: AgentPanelProposalPreviewV1 | null;
   /** Wall clock, ticked by the owner so the elapsed numbers are testable. */
   now: number;
+  /** This turn's optional evidence pack had at least one quoted source. */
+  searchedCorpus: boolean;
   busy: boolean;
+  onStop: () => void;
+  onRetry: () => void;
   onApply: () => void;
   onUndo: () => void;
   onOpenLink: (link: string) => void;
@@ -234,16 +281,26 @@ export const ChatTurns: React.FC<ChatTurnsProps> = ({
   turn,
   proposal,
   now,
+  searchedCorpus,
   busy,
+  onStop,
+  onRetry,
   onApply,
   onUndo,
   onOpenLink,
 }) => {
   const rows = conversationRows(conversation);
-  const workIndex = workRowIndex(conversation, turn);
+  const workIndex = workRowIndex(conversation, turn, searchedCorpus);
   const cardIndex = proposalRowIndex(conversation, proposal);
   const work = turn !== null && workIndex >= 0 && (
-    <TurnWork turn={turn} now={now} />
+    <TurnWork
+      turn={turn}
+      now={now}
+      searchedCorpus={searchedCorpus}
+      busy={busy}
+      onStop={onStop}
+      onRetry={onRetry}
+    />
   );
 
   return (

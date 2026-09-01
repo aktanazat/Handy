@@ -80,11 +80,18 @@ impl RelayJobStateV1 {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum RelayJobFailure {
+    Refused,
+    Failed,
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct RelayJob {
     pub(crate) id: String,
     pub(crate) state: RelayJobStateV1,
     pub(crate) response: Option<SonaAgentResponseV1>,
+    pub(crate) failure: Option<RelayJobFailure>,
 }
 
 /// The routing facts a job is checked against on the way back in. A reply is
@@ -524,8 +531,14 @@ impl RelayJobWire {
             return Err(RelayError::ResponseMalformed);
         }
         let state = parse_state(&self.state)?;
+        let result = self.result;
+        let failure = match state {
+            RelayJobStateV1::Failed => Some(failed_job_reason(result.as_ref())),
+            RelayJobStateV1::UnverifiedExternal => Some(RelayJobFailure::Failed),
+            _ => None,
+        };
         let response = if state == RelayJobStateV1::Succeeded {
-            let result = self.result.ok_or(RelayError::ResponseMalformed)?;
+            let result = result.ok_or(RelayError::ResponseMalformed)?;
             let serialized =
                 serde_json::to_vec(&result).map_err(|_| RelayError::ResponseMalformed)?;
             if serialized.len() > MAX_PROPOSAL_BYTES {
@@ -539,7 +552,18 @@ impl RelayJobWire {
             id: self.id,
             state,
             response,
+            failure,
         })
+    }
+}
+
+fn failed_job_reason(result: Option<&serde_json::Value>) -> RelayJobFailure {
+    match result
+        .and_then(|value| value.get("error_code"))
+        .and_then(serde_json::Value::as_str)
+    {
+        Some("sona_response_rejected") => RelayJobFailure::Refused,
+        _ => RelayJobFailure::Failed,
     }
 }
 
@@ -1053,6 +1077,49 @@ mod tests {
                 .into_job("sona-me", expectation(AgentPanelWorkspaceV1::SonaConfig))
                 .err(),
             Some(RelayError::ResponseMalformed)
+        );
+    }
+
+    #[test]
+    fn failed_jobs_keep_a_typed_reason_without_exposing_relay_error_text() {
+        let failure = |result| {
+            RelayJobWire {
+                id: "job-1".to_string(),
+                state: "FAILED".to_string(),
+                kind: "sona-chat".to_string(),
+                workspace_id: "sona-chat".to_string(),
+                model_alias: SONA_MODEL_ALIAS.to_string(),
+                capabilities: vec!["sona-chat".to_string()],
+                tools: Vec::new(),
+                submitter_key_id: "sona-me".to_string(),
+                external_ref: "abcd".to_string(),
+                result: Some(result),
+            }
+            .into_job(
+                "sona-me",
+                RelayJobExpectation {
+                    workspace: AgentPanelWorkspaceV1::SonaChat,
+                    job_id: Some("job-1"),
+                    idempotency_key: None,
+                },
+            )
+            .expect("a terminal job belongs to this turn")
+            .failure
+        };
+
+        assert_eq!(
+            failure(serde_json::json!({
+                "error": "the model answer did not match the contract",
+                "error_code": "sona_response_rejected"
+            })),
+            Some(RelayJobFailure::Refused)
+        );
+        assert_eq!(
+            failure(serde_json::json!({
+                "error": "omp exited with status 1",
+                "error_code": "omp_exit_status"
+            })),
+            Some(RelayJobFailure::Failed)
         );
     }
 }

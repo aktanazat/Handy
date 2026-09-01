@@ -673,7 +673,7 @@ describe("the start gate", () => {
     expect(markup).toContain("Permission required");
     // Recording anyway is a partial record, and says so before the press.
     expect(markup).toContain(
-      "The record is marked partial and the missing source stays named in it.",
+      "The meeting is marked partial, and the missing source is named in it.",
     );
     expect(buttonTag(markup, "Record without it")).toContain("disabled");
   });
@@ -885,7 +885,7 @@ describe("meeting review", () => {
     /* The words are words: no field per turn, and no destructive control on a
      * surface somebody is reading. */
     expect(onTranscript).not.toContain("<textarea");
-    expect(onTranscript).not.toContain(">Remove segment<");
+    expect(onTranscript).not.toContain(">Remove this turn<");
     expect(onTranscript).toContain('aria-label="Edit this turn"');
     expect(onTranscript).toContain("Permission lost");
     expect(onTranscript).toContain("Dropped frames: 128");
@@ -1277,7 +1277,7 @@ describe("meeting ledger", () => {
         },
       }),
     });
-    expect(markup).toContain("2 threads, 1 commitments removed");
+    expect(markup).toContain("2 threads and 1 commitments removed");
   });
 
   test("offers the export, and no dead control when there is nothing to export", () => {

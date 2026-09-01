@@ -3,7 +3,11 @@ import { useTranslation } from "react-i18next";
 import type { HistoryTrendPoint, HistoryTrendProjection } from "@/bindings";
 import { Microlabel } from "@/components/settings/rows";
 import { ChartCard } from "@/components/charts";
-import { Bars, Ring, Sparkline } from "@/components/vg/chart";
+import {
+  ActivityBars,
+  ActivityRing,
+  ActivitySparkline,
+} from "./ActivityBandCharts";
 import { ACTIVITY_DAYS_PER_PAGE, activityPage } from "./activityPaging";
 
 export interface ActivityBandProps {
@@ -101,7 +105,7 @@ export function ActivityBand({ trend }: ActivityBandProps) {
             },
           ]}
         >
-          <Bars
+          <ActivityBars
             values={dictations}
             highlightIndex={peak === undefined ? undefined : peakIndex}
             ariaLabel={t(
@@ -119,9 +123,8 @@ export function ActivityBand({ trend }: ActivityBandProps) {
           label={t("overview.activity.words", "Words")}
           metric={numberFormat.format(wordTotal)}
         >
-          <Sparkline
+          <ActivitySparkline
             values={words}
-            area
             ariaLabel={t(
               "overview.activity.wordsAria",
               "Words per day, {{count}} total, ending at {{last}}",
@@ -139,18 +142,16 @@ export function ActivityBand({ trend }: ActivityBandProps) {
             count: trend.current_streak_days,
           })}
         >
-          <div className="flex h-16 items-center justify-center">
-            <Ring
-              value={trend.current_streak_days}
-              max={ACTIVITY_DAYS_PER_PAGE}
-              center={numberFormat.format(trend.current_streak_days)}
-              ariaLabel={t(
-                "overview.activity.streakAria",
-                "Current streak, {{count}} days",
-                { count: trend.current_streak_days },
-              )}
-            />
-          </div>
+          <ActivityRing
+            value={trend.current_streak_days}
+            max={ACTIVITY_DAYS_PER_PAGE}
+            center={numberFormat.format(trend.current_streak_days)}
+            ariaLabel={t(
+              "overview.activity.streakAria",
+              "Current streak, {{count}} days",
+              { count: trend.current_streak_days },
+            )}
+          />
         </ChartCard>
       </div>
     </section>

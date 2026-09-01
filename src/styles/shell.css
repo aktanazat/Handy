@@ -48,6 +48,96 @@
   background: var(--glass-canvas);
 }
 
+/* ----------------------------------------------------------- chat travel */
+
+/* A registered property is the shell's only transition owner. The width boxes
+ * change before the next frame, so the page never reflows during travel. The
+ * three values share the one root clock: the frame reads the offset; the live
+ * and outgoing rails read opposite opacity values. `length-percentage` keeps
+ * the frame's 100% translate in compositor-friendly transform space. */
+@property --shell-chat-offset {
+  syntax: "<length-percentage>";
+  inherits: true;
+  initial-value: 100%;
+}
+
+@property --shell-rail-enter-opacity {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --shell-rail-exit-opacity {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+.app-shell {
+  --shell-chat-offset: 100%;
+  --shell-rail-enter-opacity: 0;
+  --shell-rail-exit-opacity: 1;
+  transition:
+    --shell-chat-offset 150ms var(--ease-out),
+    --shell-rail-enter-opacity 150ms var(--ease-out),
+    --shell-rail-exit-opacity 150ms var(--ease-out);
+}
+
+.app-shell[dir="rtl"] {
+  --shell-chat-offset: -100%;
+}
+
+.app-shell[data-shell-open="true"] {
+  --shell-chat-offset: 0%;
+  --shell-rail-enter-opacity: 1;
+  --shell-rail-exit-opacity: 0;
+}
+
+/* The frame and the two fixed-width rail forms are promoted only while the
+ * root clock runs. The shell clears this gate from the clock's own
+ * `transitionend`, so still windows do not retain promotion hints. */
+.app-shell[data-shell-moving="true"] [data-slot="chat-frame"] {
+  will-change: transform;
+}
+
+.app-shell[data-shell-moving="true"] [data-slot="sidebar"],
+.app-shell[data-shell-moving="true"] [data-slot="sidebar-ghost"] {
+  will-change: opacity;
+}
+
+.app-shell[data-shell-moving="true"][data-shell-direction="opening"]
+  [data-slot="sidebar"] {
+  opacity: var(--shell-rail-enter-opacity);
+}
+
+.app-shell[data-shell-moving="true"][data-shell-direction="opening"]
+  [data-slot="sidebar-ghost"] {
+  opacity: var(--shell-rail-exit-opacity);
+}
+
+.app-shell[data-shell-moving="true"][data-shell-direction="closing"]
+  [data-slot="sidebar"] {
+  opacity: var(--shell-rail-exit-opacity);
+}
+
+.app-shell[data-shell-moving="true"][data-shell-direction="closing"]
+  [data-slot="sidebar-ghost"] {
+  opacity: var(--shell-rail-enter-opacity);
+}
+
+/* The root owns the one transition, but an inner hover wash or color fade that
+ * lands while it travels becomes a second visible clock. Hold every descendant
+ * still for the same interval; the frame and rail opacity continue to sample
+ * the root's inherited properties without owning transitions themselves. */
+.app-shell[data-shell-moving="true"] * {
+  transition-property: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell {
+    transition-property: none;
+  }
+}
 /* --------------------------------------------------------- route loading */
 
 .app-route-skeleton {

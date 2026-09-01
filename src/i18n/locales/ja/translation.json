@@ -34,7 +34,7 @@
     "settings": "設定"
   },
   "onboarding": {
-    "subtitle": "モデルはこの Mac 上で動作し、精度と速度がトレードオフになります",
+    "subtitle": "モデルはこの Mac 上で動作し、精度と速度がトレードオフになります。",
     "existingModelsTitle": "互換性のあるモデル",
     "downloadModelsTitle": "ダウンロード可能",
     "showAllModels": "すべての{{total}}個のモデルを表示",
@@ -52,7 +52,7 @@
       },
       "medium": {
         "name": "Whisper Medium",
-        "description": "良好な精度、中程度の速度"
+        "description": "良好な精度、中程度の速度。"
       },
       "turbo": {
         "name": "Whisper Turbo",
@@ -68,7 +68,7 @@
       },
       "parakeet-tdt-0.6b-v3": {
         "name": "Parakeet V3",
-        "description": "高速で正確"
+        "description": "高速で正確。"
       },
       "moonshine-base": {
         "name": "Moonshine Base",
@@ -76,7 +76,7 @@
       },
       "moonshine-tiny-streaming-en": {
         "name": "Moonshine V2 Tiny",
-        "description": "超高速、英語のみ"
+        "description": "超高速、英語のみ。"
       },
       "moonshine-small-streaming-en": {
         "name": "Moonshine V2 Small",
@@ -193,7 +193,7 @@
       },
       "cloud": {
         "title": "クラウド文字起こし",
-        "providerDescription": "資格情報はオペレーティングシステムのセキュアストアに保管されます。",
+        "providerDescription": "キーはシステムの資格情報ストアに保管されます。",
         "providers": {
           "deepgram": "Deepgram Nova-3",
           "elevenLabs": "ElevenLabs Scribe v2"
@@ -210,22 +210,22 @@
           "verifying": "検証中…"
         },
         "status": {
-          "checking": "システムのキーストアを確認中…",
+          "checking": "システムの資格情報ストアを確認中…",
           "notSaved": "API キーは保存されていません。",
           "saved": "API キーを保存しました。まだ検証されていません。",
           "verified": "API キーを検証しました。",
-          "verifyRequiresConsent": "このキーを検証する前に、モードで転送に関する説明を確認してください。"
+          "verifyRequiresConsent": "このキーを検証する前に、モードで転送を了承してください。"
         },
         "errors": {
           "not_found": "このプロバイダーの API キーは保存されていません。",
-          "unavailable": "システムのセキュアストアを利用できません。",
-          "locked": "システムのセキュアストアがロックされています。",
-          "corrupt": "保存された資格情報を安全に読み取れません。",
-          "invalid": "セキュアストアがこの資格情報を受け付けませんでした。",
-          "busy": "セキュアストアが使用中です。もう一度お試しください。",
-          "backend": "資格情報の操作を完了できませんでした。",
+          "unavailable": "システムの資格情報ストアを利用できません。",
+          "locked": "システムの資格情報ストアがロックされています。",
+          "corrupt": "保存されたキーを安全に読み取れません。",
+          "invalid": "システムの資格情報ストアがこのキーを受け付けませんでした。",
+          "busy": "システムの資格情報ストアが使用中です。もう一度お試しください。",
+          "backend": "システムの資格情報ストアがこの操作を完了できませんでした。",
           "not_configured": "検証する前に API キーを保存してください。",
-          "consent_required": "検証する前に、プロバイダーの転送に関する説明に同意してください。",
+          "consent_required": "検証する前に、プロバイダーへの転送を了承してください。",
           "authentication": "プロバイダーがこの API キーを拒否しました。",
           "quota": "アカウントが上限を超えているため、プロバイダーが検証を拒否しました。",
           "network": "検証のためにプロバイダーへ接続できませんでした。",
@@ -335,8 +335,8 @@
         "label": "実験的な機能"
       },
       "lazyStreamClose": {
-        "label": "文字起こし間でマイクを有効にする",
-        "description": "録音停止後もマイクのストリームを30秒間開いたままにし、連続した文字起こしをより速く開始します。開いている間は Bluetooth の音声品質が低下することがあります。"
+        "label": "ディクテーションの間もマイクを開いたままにする",
+        "description": "停止後もマイクを30秒間開いたままにするため、続けてディクテーションをより早く始められます。開いている間は Bluetooth の音質が下がることがあります。"
       },
       "acceleration": {
         "transcribe": {
@@ -520,7 +520,7 @@
         },
         "model": {
           "title": "モデル",
-          "descriptionCustom": "カスタムエンドポイントが期待するモデル識別子を指定。",
+          "descriptionCustom": "カスタムサーバーが要求するモデルIDを入力してください。",
           "placeholderWithOptions": "モデルを検索または選択",
           "placeholderNoOptions": "モデル名を入力",
           "refreshModels": "モデルを更新"
@@ -555,17 +555,17 @@
       },
       "remoteConsent": {
         "title": "リモートへのテキスト送信",
-        "description": "ミーティングと文字起こしのテキストが、後処理のために {{endpoint}} の {{provider}} に送信される場合があります。",
-        "acknowledge": "このエンドポイントにテキストが送信される可能性があることを了承します。",
+        "description": "Sonaはクリーンアップのために、会議およびディクテーションのテキストを {{provider}} の {{endpoint}} へ送信することがあります。",
+        "acknowledge": "このアドレスにテキストが送信される可能性があることを了承します。",
         "accept": "テキストの送信を許可",
         "cancel": "キャンセル",
-        "endpointChanged": "エンドポイントが変わりました。テキストがこの Mac から出る前に、新しいエンドポイントを確認して了承してください。",
+        "endpointChanged": "アドレスが変わりました。テキストがこの Mac から出る前に、新しいアドレスを確認して了承してください。",
         "invalidDestination": "このプロバイダーの送信先は無効かローカル専用のため、リモートの了承は記録できません。",
         "saveFailed": "Sona はこの了承を保存できませんでした。",
-        "current": "{{endpoint}} へのテキスト送信は了承済みです。",
+        "current": "{{endpoint}} へのテキスト送信を許可しました。",
         "review": "了承内容を確認",
-        "endpointLabel": "正規のエンドポイント",
-        "destinationPinned": "Sona はこの了承に対して、このエンドポイントとオリジンを厳密に固定します。"
+        "endpointLabel": "正確なアドレス",
+        "destinationPinned": "Sona はこの了承を、このアドレスとオリジンに厳密に結び付けます。"
       }
     },
     "history": {
@@ -593,7 +593,7 @@
       "loadError": "履歴を読み込めませんでした。",
       "retry": "もう一度試す",
       "saveError": "保存状態を更新できませんでした。もう一度お試しください。",
-      "postProcessEmpty": "後処理がテキストを返しませんでした。未処理の書き起こしを表示しています。",
+      "postProcessEmpty": "後処理でテキストが作られなかったため、これは未処理の書き起こしです。",
       "textView": {
         "label": "トランスクリプト表示",
         "processed": "処理済み",
@@ -668,10 +668,10 @@
         "deliveryOutcome": {
           "delivered": "挿入済み",
           "definitely_not_dispatched": "未送信",
-          "dispatched_but_unconfirmed": "送信済み・未確認"
+          "dispatched_but_unconfirmed": "送信済み、未確認"
         },
         "modeLabel": "モード",
-        "revisionLabel": "リビジョン",
+        "revisionLabel": "設定のバージョン",
         "engineLabel": "エンジン",
         "sourceLabel": "ソース",
         "captureStatusLabel": "録音",
@@ -749,10 +749,10 @@
       "recalledByMeaning": "意味一致",
       "level": {
         "peak": "peak",
-        "rms": "rms"
+        "rms": "平均"
       },
       "noTextRecorded": "このエントリではテキストが記録されませんでした。",
-      "cloudHeld": "Cloud の実行は保留されました。信頼できる結果が届かず、利用できるローカルモデルもありませんでした。",
+      "cloudHeld": "Sona はクラウドの結果を保留しました。信頼できるものが返らず、利用できるローカルモデルもありませんでした。",
       "transcriptionEngineFailed": "文字起こしに失敗したため、何も記録されませんでした。",
       "processAgain": {
         "action": "もう一度処理",
@@ -774,7 +774,7 @@
       },
       "liveLogs": {
         "title": "ライブログ",
-        "description": "このパネルを開いている間に出力された行のみが、上記で設定したログレベルで表示されます。",
+        "description": "このパネルを開いている間に書き込まれた行だけが、上で設定したログレベルでここに表示されます。",
         "pause": "一時停止",
         "resume": "再開",
         "copied": "コピーしました",
@@ -820,7 +820,7 @@
       },
       "keyboardImplementation": {
         "title": "キーボード実装",
-        "bindingsReset": "キーボードショートカットに互換性がなかったため、デフォルトにリセットされました"
+        "bindingsReset": "キーボードショートカットに互換性がなかったため、デフォルトにリセットされました。"
       },
       "paths": {
         "appData": "アプリデータ:",
@@ -841,30 +841,24 @@
       },
       "recordingBuffer": {
         "title": "追加録音バッファ",
-        "description": "キーを離した後に録音を続ける追加時間(ミリ秒)。末尾の音声を捕捉するため。0 = 追加バッファなし。"
+        "description": "キーを離した後に録音を続ける追加時間(ミリ秒)。末尾の音声を拾うためのものです。不要な場合は 0 にしてください。"
       },
       "keyboardDiagnostic": {
         "title": "キーボード診断",
         "description": "キーボードイベントが Sona に届いているかを確認します。記録されるのはイベント数のみで、押したキーの内容は記録されません。",
         "run": "10 秒間の診断を実行",
         "running": "待機中… ショートカットを数回押してください (例: Option+Space)",
-        "secureInputLabel": "Secure Input",
+        "secureInputLabel": "セキュア入力",
         "enabled": "有効",
         "disabled": "無効",
         "holder": "{{name}} (pid {{pid}}) が保持中",
-        "holderUnknown": "保持元は不明",
-        "keyDown": "キー押下",
-        "keyUp": "キー解放",
-        "flagsChanged": "修飾キー",
-        "mouse": "マウス",
-        "verdictBlocked": "Secure Input がキーイベントをブロックしているため、解消されるまで通常キーを含むショートカットは動作しません。",
-        "verdictSuspicious": "修飾キーのイベントは届きましたが、キーイベントは届きませんでした。Secure Input は無効と報告されているのに、何かがキーを抑制しています。GitHub で報告してください。",
-        "verdictOk": "キーイベントは Sona に正常に届いています。",
-        "verdictNoEvents": "テスト中にイベントは検出されませんでした。",
-        "failed": "診断に失敗しました: {{error}}"
+        "notSupported": "このプラットフォームではサポートされていません。",
+        "noHolder": "Secure Inputを保持しているアプリはありません。",
+        "status": "ステータス",
+        "error": "キーボード診断は利用できません。"
       },
       "whatsNewPreview": {
-        "title": "新機能をプレビュー",
+        "title": "リリースノートをプレビュー",
         "description": "最新の同梱リリースノートを既読にせずに開く",
         "noNotes": "同梱リリースノートが見つかりません",
         "error": "リリースノートをプレビューできませんでした。もう一度お試しください。"
@@ -945,14 +939,14 @@
           },
           "capture": {
             "label": "ウェブサイトで有効化",
-            "description": "前面のブラウザのホストを取得します。Sona は URL ではなくホストを保存します。",
+            "description": "開いているウェブサイトを使用します。Sonaはサイト名を保存し、完全なアドレスは保存しません。",
             "action": "現在のウェブサイトを取得",
             "capturing": "取得中…"
           },
           "empty": "このモードを有効にするウェブサイトはありません。",
-          "exampleDescription": "1つのルールは1つのブラウザホストを保存します。例: mail.google.com"
+          "exampleDescription": "各ルールは、mail.google.comのような1つのウェブサイトを使用します。"
         },
-        "exampleDescription": "1つのルールは1つのアプリケーション識別子を保存します。例: com.apple.mail",
+        "exampleDescription": "各ルールは、com.apple.mailのような1つのアプリIDを使用します。",
         "removeTarget": "{{target}} を削除",
         "unsupported": "アプリとウェブサイトによる有効化は macOS でのみ利用できます。"
       },
@@ -1060,10 +1054,10 @@
           "unavailable": "{{provider}} は利用できません"
         },
         "cloud": {
-          "setupRequired": "{{provider}} のクラウド設定を使うには、保存済みの独自 API キーと有効な転送同意が必要です。",
+          "setupRequired": "{{provider}} のクラウド設定を開くには、システムの資格情報ストアにある API キーと、有効な転送の了承が必要です。",
           "fallback": {
             "label": "ローカル代替を使う",
-            "description": "クラウドプロバイダが信頼できる最終結果を返せない場合、取得した音声をローカルモデルで文字起こしします。",
+            "description": "クラウドプロバイダが信頼できる結果を返せない場合、録音をローカルモデルで文字起こしします。",
             "useModeModel": "このモードのローカルモデルを使う",
             "model": {
               "label": "代替モデル",
@@ -1071,8 +1065,8 @@
             }
           },
           "keyterms": {
-            "label": "クラウド重要語",
-            "description": "1 行に 1 語。これらの語はこのクラウドリクエストとともに送信されます。",
+            "label": "聞き取ってほしい語",
+            "description": "1 行に 1 語または 1 名。Sona が音声と一緒にプロバイダへ送ります。",
             "placeholder": "製品名\n人名"
           },
           "timestamps": {
@@ -1088,22 +1082,22 @@
               "description": "このモードで録音した音声は、文字起こしのため直接 {{provider}} に送信されます。"
             },
             "privacy": {
-              "label": "プライバシー契約",
-              "description": "プロバイダはこのモードの音声、選択した言語、重要語を受け取ります。アプリの文脈と独自の認証情報はこの端末に残ります。"
+              "label": "プロバイダが見るもの",
+              "description": "プロバイダはこのモードの音声、その言語、あなたが挙げた語を受け取ります。Sona がほかのアプリから読み取るものと、あなたのキーは、この Mac に残ります。"
             },
             "localFallback": {
               "label": "ローカル代替",
-              "description": "クラウドプロバイダが信頼できる最終結果を返せない場合、Sona は選択したローカルモデルを使用できます。"
+              "description": "クラウドプロバイダが信頼できる結果を返せない場合、Sona は選択したローカルモデルを使用できます。"
             },
             "decline": "ローカルのまま",
             "accept": "同意してクラウドを使う",
             "accepting": "同意中…",
             "errors": {
               "unknown_provider": "このクラウドプロバイダはこのビルドでは利用できません。",
-              "backend": "同意の記録を保存できませんでした。"
+              "backend": "了承を保存できませんでした。"
             }
           },
-          "title": "クラウドトランスポート"
+          "title": "クラウド文字起こし"
         }
       },
       "context": {
@@ -1157,7 +1151,7 @@
         },
         "reliablePaste": {
           "label": "確実な貼り付け",
-          "description": "プラットフォームが対応している場合、受信確認順の貼り付けを使います。"
+          "description": "システムが許す場合、アプリが書き起こしを読み取ってからクリップボードを戻します。"
         },
         "delay": {
           "label": "貼り付けの待ち時間",
@@ -1187,14 +1181,14 @@
       },
       "errors": {
         "staleRevision": "設定が別の場所で変更されました。最新のモードを確認して、もう一度保存してください。",
-        "invalid_mode_id": "このモード ID は無効です。",
+        "invalid_mode_id": "Sona はこれがどのモードなのか読み取れませんでした。",
         "empty_name": "モード名が必要です。",
         "cannot_delete_default": "既定のモードは削除できません。",
         "unknown_mode": "そのモードはもう存在しません。",
-        "duplicate_mode_id": "この ID のモードはすでに存在します。",
+        "duplicate_mode_id": "そのモードはすでに存在します。",
         "invalid_reorder": "モードの並び順を保存できませんでした。",
         "invalid_website_host": "ウェブサイトのホストが無効です。",
-        "website_activation_consent_required": "ウェブサイトのルールを追加する前に、プライバシーでブラウザ URL を有効にしてください。",
+        "website_activation_consent_required": "ウェブサイトのルールを追加する前に、プライバシーで「ブラウザ URL を含める」をオンにしてください。",
         "frontmost_website_unavailable": "ブラウザからウェブサイトを取得できませんでした。",
         "website_activation_secure_field": "安全なフィールドからウェブサイトのルールを取得することはできません。"
       },
@@ -1240,10 +1234,10 @@
             "target_and_selection": "選択範囲",
             "full": "すべて"
           },
-          "error": "コンテキストの上限を保存できませんでした"
+          "error": "コンテキストの上限を保存できませんでした。"
         },
         "sources": {
-          "none": "アプリのコンテキストを読み取りません。",
+          "none": "ほかのアプリからは何も読み取りません。",
           "target": "最前面のアプリの識別情報を読み取ります。",
           "target_and_selection": "最前面のアプリの識別情報と、利用できる場合は選択中のテキストを読み取ります。",
           "full": "許可されたブラウザの URL と、最近変更されたクリップボードのテキストも、利用できる場合は読み取ります。"
@@ -1257,7 +1251,7 @@
       "diagnostics": {
         "title": "コンテキストの診断",
         "refresh": "更新",
-        "error": "診断を更新できませんでした",
+        "error": "診断を更新できませんでした。",
         "accessibility": {
           "label": "アクセシビリティ"
         },
@@ -1299,14 +1293,14 @@
             "months_3": "3か月"
           }
         },
-        "error": "データの保持設定を保存できませんでした",
+        "error": "データの保持設定を保存できませんでした。",
         "historyStorage": {
           "encrypted": "保存時に暗号化",
           "label": "履歴ストレージ",
           "locked": "ロック中",
           "plaintext": "暗号化なし",
           "reasons": {
-            "encryption_unavailable": "このビルドは暗号化データベースを開けないため、履歴は暗号化なしで保存されています。",
+            "encryption_unavailable": "このバージョンの Sona は暗号化データベースを開けないため、履歴は暗号化されずに保存されます。",
             "key_rejected": "保存されているキーで暗号化データベースを開けないため、履歴を読み取れません。",
             "key_unavailable": "システムの資格情報ストアから使用可能なキーが得られなかったため、履歴は暗号化なしで保存されています。",
             "migration_failed": "既存データベースの暗号化に失敗しました。暗号化されていないデータベースは無傷で、引き続き使用されています。"
@@ -1318,7 +1312,7 @@
       "cloudTranscription": {
         "title": "クラウド文字起こし",
         "checkFailed": "クラウド文字起こしの設定を確認できませんでした。",
-        "disclosure": "クラウドを有効にしたモードでは、Sona は録音した音声、選択した言語、モードの重要語を直接プロバイダに送信します。アプリの文脈と独自の認証情報はこの端末に残ります。"
+        "disclosure": "クラウドを有効にしたモードでは、Sona は録音した音声、選択した言語、そのモードに挙げた語を直接プロバイダに送信します。Sona がほかのアプリから読み取るものと、あなたのキーは、この Mac に残ります。"
       },
       "upstreamImport": {
         "title": "旧アプリからインポート",
@@ -1358,11 +1352,11 @@
           "app_state_unverifiable": "このプラットフォームでは、Sona は旧アプリが終了していることを確認できません。",
           "invalid_selection": "インポートする設定または履歴を選んでください。",
           "settings_unreadable": "旧アプリの設定ファイルを読み取れませんでした。",
-          "secret_store_unavailable": "システムの資格情報ストアを利用できないため、プロバイダーのキーを含む設定はインポートされませんでした。",
-          "secret_conflict": "プロバイダーのキーがすでにシステムの資格情報ストアにあります。設定をインポートする前に解決してください。",
+          "secret_store_unavailable": "システムの認証情報ストアを利用できないため、プロバイダーキーを含む設定は読み込まれませんでした。",
+          "secret_conflict": "システムの認証情報ストアにはすでにプロバイダーキーがあります。設定を読み込む前に競合を解決してください。",
           "history_unreadable": "旧アプリの履歴データベースを読み取れませんでした。",
           "recording_copy_failed": "録音をコピーして検証することができませんでした。",
-          "receipt_write_failed": "インポートのレシートを保存できませんでした。",
+          "receipt_write_failed": "Sonaはインポートの詳細を保存できませんでした。",
           "internal": "インポートは完了しませんでした。",
           "status": "旧アプリのデータを調べられませんでした。"
         },
@@ -1385,79 +1379,79 @@
     "agents": {
       "title": "エージェント",
       "controls": {
-        "title": "ブリッジの操作",
+        "title": "エージェントのコントロール",
         "master": {
-          "label": "エージェントブリッジを有効にする"
+          "label": "エージェント接続を有効にする"
         },
-        "status": "ランタイムの状態",
+        "status": "状態",
         "providers": {
           "claude": {
             "label": "Claude",
-            "description": "Claude のセッションを観測し、利用できる場合はフィクスチャに基づく返信を有効にします。"
+            "description": "Claude のセッションを観測し、Sona が対応している場面では返信します。"
           },
           "codex": {
             "label": "Codex",
-            "description": "セッションの観測のみ。ワイヤーフィクスチャが対応するまで、返信は読み取り専用です。"
+            "description": "セッションの観測のみ。Sona はまだ Codex に返信できません。"
           },
           "grok": {
             "label": "Grok",
-            "description": "セッションの観測のみ。ワイヤーフィクスチャが対応するまで、返信は読み取り専用です。"
+            "description": "セッションの観測のみ。Sona はまだ Grok に返信できません。"
           },
           "omp": {
             "label": "OMP",
-            "description": "OMP のセッションと承認リクエストを観測します。返信は、対応している OMP セッションの停止時にのみ利用できます。"
+            "description": "OMP のセッションと承認リクエストを観測します。Sona が返信できるのは OMP セッションが停止したときだけです。"
           }
         }
       },
       "status": {
         "disabled": "無効",
-        "runtime_unavailable": "ランタイムを利用できません",
-        "interactive_unsupported": "対話的な応答は非対応",
+        "runtime_unavailable": "実行されていません",
+        "interactive_unsupported": "返信は利用できません",
         "app_lock_held": "別の Sona インスタンスが動作しています",
         "active": "使用中"
       },
       "projects": {
         "title": "許可されたプロジェクト",
-        "hashOnly": "権限の境界になるのはプロジェクトのハッシュそのもので、フォルダのパスはここに保存されません。",
+        "hashOnly": "Sonaはフォルダパスを保存せずに、フォルダからプロジェクトを識別します。",
         "add": "フォルダを許可",
         "remove": "プロジェクトを削除",
         "empty": "許可されたプロジェクトはありません。"
       },
       "hook": {
-        "title": "フックのスニペット",
-        "description": "同梱のフック設定を、お使いのエージェント自身の設定にコピーしてください。Sona がエージェントの設定ファイルを編集することはありません。",
-        "copy": "スニペットをコピー",
-        "error": "フックのスニペットを利用できません"
+        "title": "セットアップコード",
+        "description": "このセットアップコードをエージェントの設定にコピーしてください。Sonaはエージェントのファイルを変更することはありません。",
+        "copy": "セットアップコードをコピー",
+        "error": "セットアップコードは利用できません"
       },
       "replyQueue": {
         "title": "返信のプレビュー",
         "session": "返信の送信先",
-        "noSession": "返信できるセッションは観測されていません",
+        "noSession": "Sona が返信できるセッションはありません",
         "message": "返信のテキスト",
         "createPreview": "プレビューを作成",
-        "notReady": "返信にはブリッジがオンで、少なくとも1つのエージェントが有効である必要があります。"
+        "notReady": "返信を行う前に、エージェントの接続を有効にし、少なくとも1つのエージェントを有効にしてください。"
       },
       "pending": {
         "empty": "保留中の返信はありません。",
         "confirm": "この返信をそのまま確定",
-        "confirmed": "次にサポートされる Stop イベントで確定済み",
+        "confirmed": "エージェントが停止した際に送信されます",
         "cancel": "キャンセル",
         "states": {
-          "held": "次にサポートされる Stop イベントまで保留",
-          "response_written": "応答を書き込み済み",
-          "emitted": "送出済み",
+          "held": "エージェントの停止を待機中",
+          "response_written": "返信を書き込み済み",
+          "emitted": "送信済み",
           "copy_only": "コピーのみ",
           "cancelled": "キャンセル済み"
         },
         "title": "保留中の返信"
       },
       "observed": {
-        "title": "観測された動き",
+        "title": "エージェントのアクティビティ",
         "refresh": "更新",
         "sessions": "セッション",
-        "noSessions": "観測されたセッションはありません。",
+        "noSessions": "まだエージェントのアクティビティはありません。",
         "requests": "リクエスト",
-        "noRequests": "観測されたリクエストはありません。",
+        "noRequests": "リクエストはまだありません。",
         "requestKinds": {
           "session_start": "セッション開始",
           "user_prompt_submit": "プロンプト送信",
@@ -1474,7 +1468,7 @@
         "ompPermissionObserveOnly": "OMP の承認リクエストは観測のみです。承認や拒否は OMP 側で行ってください。"
       },
       "rules": {
-        "title": "完全一致の権限ルール",
+        "title": "権限ルール",
         "empty": "権限ルールはありません。",
         "remove": "ルールを削除",
         "decisions": {
@@ -1483,20 +1477,20 @@
         }
       },
       "errors": {
-        "load": "エージェントブリッジのデータを読み込めませんでした: {{error}}",
-        "operation": "エージェントブリッジの操作を完了できませんでした: {{error}}"
+        "load": "エージェントの接続詳細を読み込めませんでした: {{error}}",
+        "operation": "エージェントのアクションを完了できませんでした: {{error}}"
       },
       "panel": {
         "error": "エージェントパネルの設定を保存できませんでした。",
         "label": "エージェントパネルを有効にする",
-        "rowDescription": "オフにするとパネルウィンドウが閉じ、Sona は再表示のリクエストをすべて拒否します。",
+        "rowDescription": "これをオフにするとパネルが閉じ、他のアプリから再度開くことができなくなります。",
         "title": "エージェントパネル"
       },
       "externalAccess": {
         "label": "外部アクセス",
-        "rowDescription": "この Mac 上の他のプログラムが、sona コマンドラインと MCP サーバーを通じてミーティング、音声入力、人物、未完了の約束を読み取れるようにします。読み取り専用で、オンにするまで無効です。"
+        "rowDescription": "このMac上の他のプログラムが、SonaのコマンドラインツールとMCPサーバーを通じて、会議、ディクテーション、人物、およびオープンループを読み取れるようにします。読み取り専用で、オンにするまでオフのまま維持されます。"
       },
-      "workspaceNavigation": "エージェントブリッジのビュー",
+      "workspaceNavigation": "エージェントのビュー",
       "sonaAgent": {
         "title": "Sona エージェント",
         "pairing": "ペアリング",
@@ -1504,29 +1498,29 @@
         "unpaired": "未ペアリング",
         "lastReached": "最後に接続",
         "never": "なし",
-        "relayUrl": "リレーのアドレス",
+        "relayUrl": "サーバーアドレス",
         "relayUrlHint": "受け付けるのは Tailscale のアドレスかこの Mac 自身だけです。公開インターネット上のものは保存する前に拒否します。",
-        "relayKeyId": "リレーのキー ID",
-        "relayPublicKey": "リレーの公開鍵",
+        "relayKeyId": "サーバーキーID",
+        "relayPublicKey": "サーバー公開鍵",
         "identity": "この Mac の公開鍵",
-        "identityHint": "この鍵をリレーに登録すると、この Mac からのやり取りを受け付けます。秘密鍵側はキーチェーンから出ません。",
+        "identityHint": "このキーをサーバーに追加して、この Mac からのメッセージを受け取れるようにしてください。プライベートキーがキーチェーンから外れることはありません。",
         "identityUnavailable": "鍵を作成するにはエージェントパネルをオンにしてください。",
         "copy": "コピー",
         "copied": "コピーしました",
         "unpair": "解除",
         "test": "テスト",
-        "reached": "リレーが応答しました。",
-        "failed": "リレーとペアリングできませんでした。",
+        "reached": "サーバーからの応答がありました。",
+        "failed": "サーバーに接続できませんでした。",
         "reason": {
           "unauthorized_window": "そのウィンドウからはペアリングを変更できません。",
           "disabled": "エージェントパネルがオフです。",
-          "unpaired": "まだリレーがペアリングされていません。",
-          "offline": "リレーが応答しませんでした。",
+          "unpaired": "まだサーバーがペアリングされていません。",
+          "offline": "サーバーからの応答がありませんでした。",
           "invalid_configuration": "そのアドレスまたは鍵は Sona では使えません。",
           "secret_unavailable": "この Mac の鍵を読み取れませんでした。",
-          "untrusted_response": "応答にペアリング済みリレーの署名がありませんでした。",
-          "remote_rejected": "リレーが要求を拒否しました。",
-          "ownership_rejected": "リレーが別の相手として応答しました。"
+          "untrusted_response": "応答がペアリングされたサーバーによって署名されていません。",
+          "remote_rejected": "サーバーがリクエストを拒否しました。",
+          "ownership_rejected": "サーバーが別のユーザーの応答を返しました。"
         }
       }
     },
@@ -1600,12 +1594,12 @@
         "retry": "再試行"
       },
       "runLog": {
-        "title": "実行ログ",
-        "empty": "ワークフローはまだ実行されていません。",
-        "loadError": "実行ログを読み込めませんでした。",
-        "loadMoreError": "追加の実行を読み込めませんでした。",
-        "loadMore": "さらに読み込む",
-        "chartAria": "1日あたりのワークフロー実行数、過去7日間で{{count}}件"
+        "title": "アクティビティ",
+        "empty": "アクティビティはまだありません。",
+        "loadError": "アクティビティを読み込めませんでした。",
+        "loadMoreError": "アクティビティをさらに読み込めませんでした。",
+        "loadMore": "もっと見る",
+        "chartAria": "1日あたりのアクティビティ、過去7日間で {{count}} 件"
       }
     },
     "vocabulary": {
@@ -1684,7 +1678,7 @@
         "shortcutHint": "会議のエクスポートを入力として、名前で指定したショートカットを実行します。30 秒で打ち切ります。",
         "shortcutPlaceholder": "ショートカット名",
         "webhook": "Webhook に送信",
-        "webhookHint": "会議のエクスポートを JSON で POST します。自分のマシンか tailnet のみ — リレーと同じ規則です。",
+        "webhookHint": "会議の書き出しをJSONとして送信します。サーバーと同様に、自身のマシンまたはテールネットのみを使用してください。",
         "webhookPlaceholder": "http://100.x.y.z:8650/hook",
         "needsTarget": "先に名前を入れてください",
         "needsUrl": "先にアドレスを入れてください",
@@ -1695,11 +1689,11 @@
       "remoteIntelligence": {
         "title": "会議インテリジェンス",
         "label": "会議のノートを自分のサーバーで書く",
-        "consent": "会議の要約と回答は、あなたのプライベートネットワーク経由であなたのサーバー上で書かれます",
-        "unpaired": "有効にするには、エージェントで Sona をサーバーとペアリングしてください",
+        "consent": "会議の要約と回答は、あなたのプライベートネットワーク経由であなたのサーバー上で書かれます。",
+        "unpaired": "有効にするには、エージェントで Sona をサーバーとペアリングしてください。",
         "seriesTitle": "この Mac に残すシリーズ",
         "seriesHint": "ここに並ぶシリーズは、会議インテリジェンスがオンでも常にこの Mac で書かれます。",
-        "seriesEmpty": "繰り返しの会議はまだ記録されていません",
+        "seriesEmpty": "繰り返しの会議はまだ記録されていません。",
         "loading": "シリーズを読み込んでいます…",
         "lastMet": "最後は {{date}}",
         "keepLocalLabel": "{{series}} をこの Mac に残す",
@@ -1730,10 +1724,10 @@
   },
   "commandPalette": {
     "open": "検索",
-    "placeholder": "コマンドを入力または検索",
+    "placeholder": "アクションを検索または選択",
     "navigation": "ナビゲーション",
     "actions": "アクション",
-    "noResults": "コマンドが見つかりません",
+    "noResults": "何も見つかりませんでした",
     "newMeeting": "新しい会議",
     "importAudio": "ファイルを文字起こし",
     "openRecordings": "録音フォルダを開く",
@@ -1776,9 +1770,9 @@
     "commandRewriteUnavailable": "書き換えが何も返さなかったため、選択範囲はそのまま残りました。Settings > Post-processing でプロバイダーを確認して、もう一度お試しください。",
     "noModelSelectedTitle": "モデルが選択されていません",
     "noSpeechSaveFailedTitle": "サンプルを保存できません",
-    "captureOverrunTitle": "録音容量オーバー",
+    "captureOverrunTitle": "録音が途中で切れました",
     "cloudUnavailableTitle": "クラウドを利用できません",
-    "cloudTranscriptionHeldTitle": "クラウド処理を保留",
+    "cloudTranscriptionHeldTitle": "クラウドの結果を保留",
     "commandNoSelectionTitle": "選択範囲がありません",
     "commandRewriteUnavailableTitle": "書き換えを利用できません"
   },
@@ -1904,7 +1898,7 @@
     },
     "setup": {
       "defaultTitle": "ローカルのメモ",
-      "remoteUnavailable": "このビルドではリモート処理を利用できないため、すべてのミーティングはこの Mac 上で文字起こしと要約が行われます。"
+      "remoteUnavailable": "このバージョンの Sona ではリモート処理を利用できないため、すべてのミーティングはこの Mac で文字起こしと要約が行われます。"
     },
     "preflight": {
       "storage": "ストレージ",
@@ -1912,7 +1906,7 @@
       "storageUnavailable": "暗号化された会議ストレージを利用できません。",
       "localModel": "ローカルモデル",
       "localModelDescription": "ローカルモデルが利用できる場合、処理はローカルのままです。",
-      "starting": "可視の収録を開始中…",
+      "starting": "録音を開始中…",
       "refreshing": "確認中…"
     },
     "consent": {
@@ -1925,7 +1919,7 @@
       "partialCapture": "音声の一部が欠けています。生成されたメモを信頼する前に、抜けている箇所を確認してください。",
       "inputs": "入力",
       "signal": "信号",
-      "signalUnavailable": "収録は {{source}} の音量を報告しません。",
+      "signalUnavailable": "{{source}} は音量を報告しません。",
       "notReported": "報告なし",
       "durabilityLag": "ディスクに保存済み",
       "behind": "{{duration}} 遅延",
@@ -1951,7 +1945,7 @@
     },
     "retention": {
       "title": "保存期間",
-      "description": "Sona は対象となるローカルの会議記録を、同じ検証済みの削除経路で削除します。",
+      "description": "Sona はこの Mac のミーティングを、毎回同じ検証済みの方法で削除します。",
       "forever": "自分で削除するまで保存",
       "days": "{{days}} 日後に削除",
       "loading": "現在のポリシーを読み取り中…"
@@ -1959,7 +1953,7 @@
     "receipts": {
       "title": "修正のレシート",
       "saved": "ローカルに保存しました。",
-      "savedRevision": "ローカルに保存しました。リビジョン {{revision}}。",
+      "savedRevision": "ローカルに保存しました。バージョン {{revision}}。",
       "duplicate": "この操作はすでに記録されています。Sona は既存の結果を更新しました。"
     },
     "reasons": {
@@ -1971,7 +1965,7 @@
       "source_start_failed": "ソースを開始できませんでした。",
       "source_gap": "ソースが欠落を報告しました。",
       "storage_unavailable": "暗号化された会議ストレージを利用できません。",
-      "storage_failure": "ストレージはこの変更を保存できませんでした。",
+      "storage_failure": "ストレージにこの変更を保存できませんでした。",
       "local_model_unavailable": "ローカルモデルを利用できません。",
       "recovery_required": "このミーティングは復元が必要です。",
       "deleted": "このミーティングは削除されました。",
@@ -2002,7 +1996,7 @@
       "consent_required": "開始する前に録音の同意事項を確認してください。",
       "consent_stale": "設定が変わりました。開始する前にもう一度確認してください。",
       "invalid_transition": "現在のミーティングの段階では、この操作は利用できません。",
-      "stale_revision": "このミーティングは別のウィンドウで変更されました。Sona はスナップショットを更新しました。",
+      "stale_revision": "このミーティングは別のウィンドウで変更されました。Sona が読み込み直しました。",
       "capture_lease_busy": "別のミーティングがすでに音声を収録しています。",
       "no_source_started": "承認された音声ソースは開始されませんでした。",
       "source_unavailable": "要求された音声ソースを利用できません。",
@@ -2020,12 +2014,12 @@
       "liveTitle": "このセッションを停止して破棄しますか？",
       "keepRecording": "録音を続ける",
       "stopAndDiscard": "停止して破棄",
-      "explainsData": "音声、文字起こし、手動メモ、生成ノート、ローカルの回答キャッシュが削除されます。この操作は取り消せません。",
+      "explainsData": "音声、文字起こし、手動メモ、生成メモ、保存した回答が削除されます。元に戻せません。",
       "complete": "セッションを破棄しました"
     },
     "delete": {
       "title": "このミーティングを削除しますか？",
-      "explainsData": "検証済みの削除が完了するまで、Sona はこのミーティングにアクセスできない状態を保ちます。書き出したファイルとリモートの複製は、ローカルの削除の対象外です。",
+      "explainsData": "検証済みの削除が終わるまで、Sona はこのミーティングを手の届かない状態にします。書き出しやリモートのコピーはその対象外です。",
       "complete": "ミーティングを削除しました"
     },
     "review": {
@@ -2043,8 +2037,8 @@
       "showFewerGaps": "表示を減らす",
       "transcript": "文字起こし",
       "noTranscript": "利用できる文字起こしはありません。",
-      "transcriptSegment": "文字起こしのセグメント",
-      "removeSegment": "セグメントを削除",
+      "transcriptSegment": "文字起こしの発言",
+      "removeSegment": "この発言を削除",
       "editTurn": "この発言を編集",
       "unknownSpeaker": "不明な話者",
       "speakers": "話者",
@@ -2080,7 +2074,7 @@
       "keyQuestions": "主な問い",
       "risks": "リスク",
       "followUp": "フォローアップ",
-      "artifactUnavailable": "この生成されたリビジョンは利用できません。元の文字起こしと手動メモはローカルに残っています。",
+      "artifactUnavailable": "この生成メモは利用できません。文字起こしと手動メモはこの Mac に残っています。",
       "actionMeta": "担当: {{owner}} · 期限: {{due}}",
       "unassigned": "未割り当て",
       "noDueDate": "期限なし",
@@ -2123,10 +2117,10 @@
       "exportHtml": "台帳ページを書き出す",
       "exported": "台帳を {{path}} に書き出しました",
       "exportMissing": "このミーティングには書き出せる台帳がありません。先にメモを再生成してください。",
-      "statThreads": "決着したスレッド",
+      "statThreads": "決着した論点",
       "statReceipts": "引用",
       "receiptsVerified": "照合済み",
-      "receiptsDegraded": "スレッド {{threads}} 件、約束 {{commitments}} 件を削除しました",
+      "receiptsDegraded": "{{threads}} 件のスレッドと {{commitments}} 件の約束を削除しました",
       "threads": "スレッド",
       "asideThread": "余談",
       "openLoops": "未回答の問い",
@@ -2256,7 +2250,7 @@
       "title": "録音は開始されませんでした",
       "readyTitle": "録音の準備ができました",
       "recordAnyway": "それなしで録音",
-      "recordAnywayHint": "記録は部分的と印が付き、欠けたソースは記録内に名前が残ります。"
+      "recordAnywayHint": "ミーティングは部分的と印が付き、欠けたソースの名前がその中に残ります。"
     },
     "analytics": {
       "title": "会話",
@@ -2339,7 +2333,7 @@
       },
       "apps": {
         "label": "ミーティングアプリ",
-        "description": "1 行に 1 つのバンドル識別子。項目はそのアプリが動いている間だけ数えられるので、名前が変わった識別子は誤りではなく無効になります。",
+        "description": "1行につき1つのアプリID。エントリーはアプリの実行中のみカウントされるため、アプリIDをリネームした場合は誤作動を防ぐために何も行われません。",
         "running": "現在実行中: {{apps}}",
         "noneRunning": "今はどれも実行されていません。"
       },
@@ -2348,7 +2342,7 @@
         "calendarDenied": "カレンダーへのアクセスが許可されなかったため、マイク経路だけが動いています。",
         "notificationsDenied": "Sona の通知はオフなので、案内はアプリ内にだけ表示されます。",
         "bluetoothCaveat": "ミーティングアプリは開いていますが、マイクの使用を報告するものがありません。Bluetooth ヘッドセットは報告しないことが多いので、進行中なら自分でミーティングを開始してください。",
-        "noSilenceStop": "収録は予定の終了、アプリの終了、スリープ、またはあなたが止めたときに終わります。無音タイマーは進行中の書き起こしが必要で、それはミーティングが終わったあとに走ります。"
+        "noSilenceStop": "録音は、予定が終わったとき、アプリが終了したとき、Mac がスリープしたとき、または自分で止めたときに停止します。無音では止まりません。それにはライブの文字起こしが必要で、文字起こしはミーティング終了後に走ります。"
       },
       "why": {
         "disabled": "検出はオフです。",
@@ -2383,7 +2377,7 @@
         "autoOpen": "開始時にこのミーティングを開く"
       },
       "recording": {
-        "none": "音源が用意されていません"
+        "none": "音源が選ばれていません"
       },
       "participation": {
         "accepted": "参加",
@@ -2420,7 +2414,7 @@
       "loading": "カレンダーを読み込んでいます…",
       "empty": "今後1週間の予定はありません。",
       "noAccess": "Sona はカレンダーを見ることができません。",
-      "noAccessHint": "ミーティング設定で「カレンダーを使う」をオンにし、macOS が尋ねたらフルアクセスを許可してください。macOS カレンダーに表示されているもの（Google、iCloud、Outlook）はそのまま含まれます。",
+      "noAccessHint": "ミーティング設定で「自分のカレンダーを使う」をオンにし、macOS が尋ねたらフルアクセスを許可してください。macOS の「カレンダー」がすでに表示しているもの (Google、iCloud、Outlook) はそのまま付いてきます。",
       "unavailable": "このシステムには Sona が読めるカレンダーがありません。",
       "attendees": "参加者",
       "you": "自分",
@@ -2505,6 +2499,16 @@
       "row": "Sona に質問: {{query}}",
       "error": "質問を Sona に送信できませんでした。",
       "consentRequired": "質問すると会議の引用があなたのサーバーに送られます。先に会議インテリジェンスをオンにしてください。"
+    },
+    "error": {
+      "unreachable": "Sona は接続できませんでした。",
+      "refused": "Sona はこの質問を受け付けられませんでした。",
+      "failed": "Sona はこの回答を最後まで書けませんでした。"
+    },
+    "working": {
+      "searchedCorpus": "ミーティングとメモを見てきました",
+      "stillWaiting": "まだ待っています…",
+      "cancel": "キャンセル"
     }
   },
   "overview": {
@@ -2556,8 +2560,8 @@
     },
     "setup": {
       "title": "同期アカウントを設定",
-      "endpoint": "エンドポイント",
-      "bootstrapSecret": "ブートストラップシークレット",
+      "endpoint": "サーバーのアドレス",
+      "bootstrapSecret": "セットアップシークレット",
       "submit": "同期を設定"
     },
     "recovery": {
@@ -2578,13 +2582,13 @@
     },
     "errors": {
       "portable_unavailable": "ポータブルモードではクラウド同期を利用できません。",
-      "secret_unavailable": "システムのセキュアストアを利用できません。",
+      "secret_unavailable": "システムの資格情報ストアを利用できません。",
       "setup_required": "この操作を使う前にクラウド同期を設定してください。",
       "auth_required": "クラウドへのサインインが必要です。",
       "quota": "クラウドストレージの上限に達しました。",
       "integrity_failure": "クラウドの操作を検証できませんでした。",
       "conflict": "このミーティングには同期の競合があります。",
-      "unsupported_protocol": "この端末はクラウドのプロトコルに対応していません。",
+      "unsupported_protocol": "この端末は、使用中のクラウド同期のバージョンに対応していません。",
       "transient": "クラウド同期は一時的に利用できません。",
       "invalid_expiry": "未来の有効期限を選んでください。",
       "invalid_offer": "ペアリングの申し出が不完全か無効です。",
@@ -2678,16 +2682,16 @@
       "noDocuments": "読み込んだドキュメントはありません。",
       "deleteDocument": "ドキュメントを削除",
       "deleteDocumentTitle": "このドキュメントを削除しますか？",
-      "deleteDocumentDescription": "読み込んだコンテキストから{{document}}を削除しますか？",
+      "deleteDocumentDescription": "Sona のドキュメントから {{document}} を削除しますか？",
       "cadence": "ミーティング頻度",
       "lastMeeting": "前回のミーティング",
       "talkShare": "発言割合",
       "cadenceAria": "月別ミーティング: {{values}}",
       "documentFilter": "テキストドキュメント",
-      "documentImported": "ドキュメントを読み込みました。",
+      "documentImported": "ドキュメントを追加しました。",
       "split": "人物を分割",
       "splitTitle": "この人物を分割しますか？",
-      "splitDescription": "{{name}}から選択した識別情報とミーティングを別の人物へ移動します。",
+      "splitDescription": "選択した詳細と会議を {{name}} から別のユーザーに移動します。",
       "splitTarget": "移動先",
       "splitCreate": "新しい人物",
       "splitExisting": "既存の人物",
@@ -2699,7 +2703,7 @@
       "splitDocuments": "ドキュメント",
       "splitSubmit": "人物を分割",
       "splitNothingSelected": "移動する項目を1つ以上選択してください。",
-      "splitNoItems": "この人物には分割できる識別情報やミーティングがありません。",
+      "splitNoItems": "このユーザーには分割する詳細や会議がありません。",
       "loadError": "この人物を読み込めませんでした。"
     },
     "errors": {
@@ -2712,7 +2716,7 @@
       "meetingsBefore_one": "以前のミーティング1件",
       "meetingsBefore_other": "以前のミーティング{{count}}件",
       "last": "前回 {{date}}",
-      "agentPromptIntro": "このミーティング記録から「{{title}}」のフォローアップ文を作成してください。",
+      "agentPromptIntro": "これらの会議を使用して「{{title}}」のフォローアップのドラフトを作成するのを手伝ってください。",
       "agentPromptCommitments": "約束",
       "agentPromptOpenLoops": "未解決の項目",
       "agentPromptRequest": "フォローアップ文を作成してください。詳細や約束を捏造しないでください。",
@@ -2763,7 +2767,7 @@
     },
     "detail": {
       "openLoops": "未回答の問い",
-      "howSonaKnows": "Sona が知っている理由",
+      "howSonaKnows": "Sona がこの人物を関連付けている理由",
       "noEvidence": "この人物とミーティングを結びつけるものはまだありません。"
     }
   },
@@ -2794,7 +2798,7 @@
       "rules": {
         "label": "アプリとウェブサイト",
         "empty": "このモードに自動で切り替わるものはありません。",
-        "example": "1つのルールはアプリ識別子かウェブサイトのホストを1つ保存します。例: com.apple.mail、mail.google.com"
+        "example": "各ルールには、com.apple.mail や mail.google.com のようなアプリ ID またはウェブサイトを 1 つ使用します。"
       }
     },
     "advanced": {
@@ -2903,7 +2907,7 @@
       "sync": "同期",
       "leavesThisMac": "この Mac から出ていくもの",
       "agents": "エージェント",
-      "agentBridge": "コーディングエージェント連携",
+      "agentBridge": "エージェント接続",
       "about": "Sona について",
       "debugHint": "{{chord}} を押すとデバッグページが開きます。"
     },
@@ -2913,10 +2917,10 @@
       "runningNow": "実行中",
       "add": "アプリを追加",
       "addTitle": "ミーティングアプリを追加",
-      "addDescription": "Sona にはアプリの識別子が必要です。アプリ自身の「情報」ウインドウか、`osascript -e 'id of app \"名前\"'` で確認できます。",
-      "identifier": "アプリ識別子",
+      "addDescription": "SonaにはアプリIDが必要です。アプリの「このアプリケーションについて」ウィンドウ、または `osascript -e 'id of app \"Name\"'` で確認できます。",
+      "identifier": "アプリID",
       "identifierPlaceholder": "com.example.app",
-      "invalid": "識別子は com.example.app のような形です。小文字の語をドットでつなぎます。",
+      "invalid": "アプリIDは com.example.app のように、ドットで区切られた小文字の単語である必要があります。",
       "duplicate": "そのアプリはすでに一覧にあります。",
       "remove": "{{app}} を削除",
       "names": {
@@ -2929,8 +2933,8 @@
     }
   },
   "consentPanel": {
-    "calendarTitle": "{{title}} — 録音しますか？",
-    "appTitle": "{{app}} のミーティング — 録音しますか？",
+    "calendarTitle": "{{title}} を録音しますか?",
+    "appTitle": "この {{app}} のミーティングを録音しますか?",
     "genericTitle": "このミーティングを録音しますか？",
     "introduction": "Sona はこの Mac で録音し、主導権はあなたにあります。",
     "seriesBrief_other": "{{person}} とのミーティング {{nth}} · 未解決項目 {{count}} 件",
@@ -2957,8 +2961,8 @@
         "description": "ショートカットで繰り返し選んでいるモードに気づきます。"
       },
       "captureAdvisor": {
-        "name": "録音品質を助言",
-        "description": "自分の実行から再試行・失われた録音・小さすぎる音声を報告します。"
+        "name": "録音品質について助言する",
+        "description": "あなた自身のディクテーションから、やり直し、失われた録音、音量の小さい音声を報告します。"
       },
       "seriesPriming": {
         "name": "定例会議を下準備"
@@ -2966,12 +2970,12 @@
     },
     "feed": {
       "title": "Sona が気づいたこと",
-      "spokenPunctuation": "{{spoken}} とよく言っています — {{written}} と書きますか？",
-      "vocabularyCorrection": "{{spoken}} を {{written}} に直し続けています — 覚えますか？",
-      "modeHabit": "ほぼ毎日ショートカットで {{mode}} を選んでいます — 既定にしますか？",
-      "retryRate": "{{subject}} の実行は他より {{times}}× 多く再試行されています。",
-      "lostCaptureRate": "{{subject}} の実行は他より {{times}}× 多く途中終了または無音になっています。",
-      "inputLevel": "録音の {{percent}}% が小さすぎました — マイクの入力レベルを確認しますか？",
+      "spokenPunctuation": "{{spoken}} をよく言っています。{{written}} と書きますか?",
+      "vocabularyCorrection": "{{spoken}} を {{written}} に何度も直しています。覚えますか?",
+      "modeHabit": "ほとんどの日にショートカットで {{mode}} を使っています。既定にしますか?",
+      "retryRate": "{{subject}} でのディクテーションは、ほかより {{times}} 倍やり直されています。",
+      "lostCaptureRate": "{{subject}} でのディクテーションは、ほかより {{times}} 倍多く途中で切れたり無音になったりしています。",
+      "inputLevel": "録音の {{percent}}% が小さい音量でした。マイクの入力レベルを確認しますか?",
       "example": "「{{text}}」",
       "accept": "はい",
       "dismiss": "いいえ",

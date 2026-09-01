@@ -213,7 +213,7 @@ describe("a transcript turn at rest", () => {
     expect(markup).toContain(">Dana<");
     expect(markup).toContain(">0:12<");
     expect(markup).not.toContain("<textarea");
-    expect(markup).not.toContain(">Remove segment<");
+    expect(markup).not.toContain(">Remove this turn<");
     expect(markup).not.toContain("__MISSING__");
   });
 
@@ -245,13 +245,13 @@ describe("a transcript turn being corrected", () => {
 
   test("puts the field in the words' own place, and takes the pencil away", () => {
     expect(markup).toContain("<textarea");
-    expect(markup).toContain('aria-label="Transcript segment"');
+    expect(markup).toContain('aria-label="Transcript turn"');
     expect(markup).toContain("We ship the meetings redesign this week.");
     expect(markup).not.toContain('aria-label="Edit this turn"');
   });
 
   test("is the only place removal is offered, and it reads as removal", () => {
-    expect(markup).toContain(">Remove segment<");
+    expect(markup).toContain(">Remove this turn<");
     expect(markup).toContain("text-red-900");
   });
 
@@ -265,7 +265,7 @@ describe("a transcript turn being corrected", () => {
       }),
     );
 
-    press(tree, "Remove segment");
+    press(tree, "Remove this turn");
     expect(asked).toEqual([["segment-1", true]]);
   });
 
@@ -284,7 +284,7 @@ describe("a transcript turn being corrected", () => {
   test("a turn already removed is offered no second removal", () => {
     const gone = turn({ editing: true, removed: true });
     expect(gone).toContain("<textarea");
-    expect(gone).not.toContain(">Remove segment<");
+    expect(gone).not.toContain(">Remove this turn<");
   });
 });
 

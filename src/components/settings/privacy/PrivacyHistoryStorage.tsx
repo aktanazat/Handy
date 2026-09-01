@@ -33,7 +33,7 @@ export const PrivacyHistoryStorage: React.FC = () => {
       case "encryption_unavailable":
         return t(
           "settings.privacy.data.historyStorage.reasons.encryption_unavailable",
-          "This build cannot open an encrypted database, so history is stored unencrypted.",
+          "This version of Sona cannot open an encrypted database, so history is stored unencrypted.",
         );
       case "migration_failed":
         return t(

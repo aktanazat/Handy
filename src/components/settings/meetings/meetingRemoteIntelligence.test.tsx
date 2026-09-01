@@ -51,7 +51,7 @@ const paint = () =>
 describe("meeting intelligence", () => {
   test("names exactly what leaves the Mac, on the surface", () => {
     expect(paint()).toContain(
-      "Summaries and answers for meetings are written on your server over your private network",
+      "Summaries and answers for meetings are written on your server over your private network.",
     );
   });
 
@@ -59,7 +59,7 @@ describe("meeting intelligence", () => {
     const markup = paint();
 
     expect(markup).toContain(
-      "Pair Sona with your server under Agents to turn this on",
+      "Pair Sona with your server under Agents to turn this on.",
     );
     expect(markup).toContain("disabled");
   });

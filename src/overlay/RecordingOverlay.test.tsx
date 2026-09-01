@@ -339,9 +339,9 @@ describe("the compact HUD is a mark and a meter, and nothing else", () => {
       ["no_input_device", "No microphone found"],
       ["no_model_selected", "No model selected"],
       ["no_speech_save_failed", "Sample not saved"],
-      ["capture_overrun", "Capture overrun"],
+      ["capture_overrun", "Recording cut short"],
       ["cloud_unavailable", "Cloud unavailable"],
-      ["cloud_transcription_held", "Cloud run held"],
+      ["cloud_transcription_held", "Cloud result held"],
       ["command_no_selection", "Nothing selected"],
       ["command_rewrite_unavailable", "Rewrite unavailable"],
     ] as const;

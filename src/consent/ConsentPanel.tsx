@@ -261,7 +261,7 @@ export default function ConsentPanel() {
         <p className="max-w-[215px] text-xs leading-4 text-gray-900">
           {t(
             "meetings.start.assurance",
-            "Only start after everyone in the meeting has agreed to be recorded.",
+            "Records your Mac's audio locally. Nothing joins the call.",
           )}
         </p>
         <div className="flex gap-2">

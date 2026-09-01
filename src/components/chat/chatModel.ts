@@ -3,6 +3,7 @@ import type {
   AgentPanelStatusV1,
   AgentPanelStepV1,
   AgentPanelTurnStatusV1,
+  AgentPanelWorkspaceV1,
   SonaAgentChatTurnV1,
 } from "@/bindings";
 
@@ -71,6 +72,25 @@ const TERMINAL_TURN_STATES = {
 export const isTurnRunning = (turn: AgentPanelTurnStatusV1 | null): boolean =>
   turn !== null && !(turn.state in TERMINAL_TURN_STATES);
 
+export interface ChatPackGate {
+  paired: boolean;
+  remoteIntelligence: boolean;
+}
+
+/** Corpus evidence leaves this Mac only for the Ask workspace under its gate. */
+export const shouldPackChatTurn = (
+  workspace: AgentPanelWorkspaceV1,
+  gate: ChatPackGate,
+): boolean =>
+  workspace === "sona_chat" && gate.paired && gate.remoteIntelligence;
+
+export type ChatTurnFailure = "unreachable" | "refused" | "failed";
+
+/** The durable, localized failure category carried by a terminal turn. */
+export const turnFailure = (
+  turn: AgentPanelTurnStatusV1 | null,
+): ChatTurnFailure | null => turn?.failure ?? null;
+
 /**
  * How long the turn took, in milliseconds.
  *
@@ -79,6 +99,18 @@ export const isTurnRunning = (turn: AgentPanelTurnStatusV1 | null): boolean =>
  */
 export const workedMs = (turn: AgentPanelTurnStatusV1, now: number): number =>
   Math.max(0, (turn.completed_at_utc_ms ?? now) - turn.started_at_utc_ms);
+
+/** The wait message is a UI promise, never a relay timeout. */
+export const STILL_WAITING_AFTER_MS = 30_000;
+
+export const isStillWaiting = (
+  turn: AgentPanelTurnStatusV1 | null,
+  now: number,
+): boolean =>
+  turn !== null &&
+  turn.steps.length === 0 &&
+  (turn.state === "queued" || turn.state === "running") &&
+  workedMs(turn, now) >= STILL_WAITING_AFTER_MS;
 
 /** How long one step took, on the same axis. */
 export const stepMs = (
@@ -92,26 +124,42 @@ export const stepMs = (
   );
 
 /**
- * Where the turn's work belongs in the scrollback: above the answer it
+ * Where the turn's activity belongs in the scrollback: above the answer it
  * produced, or at the end while there is no answer yet.
  *
- * `-1` when there is nothing to show, which is a finished turn that reported
- * no steps — its answer is the whole record. A running turn always has a row,
- * because "this is happening" is the one thing the scrollback cannot say by
- * itself. The rule is positional because the scrollback is a flat list of
- * things said, and the only row a turn can have produced is the last one —
- * anything earlier belongs to a turn that already finished.
+ * A completed answer with no steps needs no row. A failed turn does: its only
+ * visible reply is the error beneath the question. The optional corpus marker
+ * takes that same row, so a fast answer can still say why it had evidence.
  */
 export const workRowIndex = (
   conversation: readonly SonaAgentChatTurnV1[],
   turn: AgentPanelTurnStatusV1 | null,
+  searchedCorpus = false,
 ): number => {
   if (turn === null) return -1;
-  if (!isTurnRunning(turn) && turn.steps.length === 0) return -1;
+  const hasActivity =
+    isTurnRunning(turn) ||
+    turn.steps.length > 0 ||
+    turnFailure(turn) !== null ||
+    searchedCorpus;
+  if (!hasActivity) return -1;
   const last = conversation.length - 1;
   return last >= 0 && conversation[last].role === "assistant"
     ? last
     : conversation.length;
+};
+
+/** The failed turn's own question, for retrying it as a new turn. */
+export const retryMessage = (
+  conversation: readonly SonaAgentChatTurnV1[],
+  turn: AgentPanelTurnStatusV1 | null,
+): string | null => {
+  if (turnFailure(turn) === null) return null;
+  for (let index = conversation.length - 1; index >= 0; index -= 1) {
+    const row = conversation[index];
+    if (row.role === "user") return row.message;
+  }
+  return null;
 };
 
 /**

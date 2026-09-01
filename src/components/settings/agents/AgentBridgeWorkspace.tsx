@@ -67,7 +67,7 @@ export const AgentBridgeWorkspace: React.FC = () => {
             variant="line"
             aria-label={t(
               "settings.agents.workspaceNavigation",
-              "Agent bridge views",
+              "Agent views",
             )}
             className="w-full justify-start gap-6 px-0"
           >

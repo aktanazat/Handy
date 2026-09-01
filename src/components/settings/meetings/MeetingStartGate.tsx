@@ -192,7 +192,7 @@ export const MeetingStartGate: React.FC<MeetingStartGateProps> = ({
             >
               {t(
                 "meetings.gate.recordAnywayHint",
-                "The record is marked partial and the missing source stays named in it.",
+                "The meeting is marked partial, and the missing source is named in it.",
               )}
             </label>
           </div>

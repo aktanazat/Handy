@@ -28,6 +28,15 @@ export interface SidebarProps {
   currentSection: SidebarSection;
   onSectionChange: (section: SidebarSection) => void;
   onOpenCommand: () => void;
+  /**
+   * The short-lived outgoing rail uses the same complete rendering as the
+   * active one, but its separate slot keeps geometry readers on the structural
+   * rail and gives the shell CSS a precise crossfade target.
+   */
+  dataSlot?: "sidebar" | "sidebar-ghost";
+  /** Makes the outgoing visual rail unavailable to pointer and assistive use. */
+  decorative?: boolean;
+  className?: string;
 }
 
 /* The rail's rows come from the section registry. Modes and Models stay
@@ -51,10 +60,11 @@ const NAV_ROW =
 const NAV_ROW_NAMED = "h-[32px] gap-2 px-[10px] text-start";
 const NAV_ROW_GLYPH = "size-[32px] flex-none justify-center";
 
-/* Width alone, at the chat column's duration, so the two edges of the page
- * arrive together rather than one of them appearing to chase the other. */
-const RAIL_MOTION =
-  "transition-[width] duration-150 ease-out motion-reduce:transition-none";
+/* The chat frame owns the shell's one transition. The rail and the content
+ * pane take their final widths in the press frame, which is what stops every
+ * item in the flexing page from reflowing for 150ms; `transition-none` on the
+ * rail makes a later broad utility unable to accidentally turn it back into a
+ * second clock. */
 
 /** Moves focus between sibling nav rows on arrow keys. Tab order keeps every
  * row, so this is an addition to normal tabbing, not a replacement. Up/Down
@@ -120,6 +130,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentSection,
   onSectionChange,
   onOpenCommand,
+  dataSlot = "sidebar",
+  decorative = false,
+  className,
 }) => {
   const { t, i18n } = useTranslation();
   const nav = useArrowNavigation();
@@ -137,15 +150,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
        Collapsed it is the same rail at 48pt: the destinations, in the same
        order, in the same states, with their words in tooltips instead of
-       beside their glyphs. `overflow-hidden` is what keeps the travel clean —
-       the words go the instant the chat column opens, and nothing may spill
-       past the edge while the edge is still moving. */
+       beside their glyphs. `overflow-hidden` keeps the named form from leaking
+       across the glyph form during the one press-frame width swap. */
     <aside
-      data-slot="sidebar"
+      data-slot={dataSlot}
+      aria-hidden={decorative ? true : undefined}
+      inert={decorative}
       className={cn(
-        "glass-surface flex min-h-0 flex-none flex-col overflow-hidden border-e border-gray-alpha-400 bg-background-200 pb-[10px]",
-        RAIL_MOTION,
+        "glass-surface flex min-h-0 flex-none flex-col overflow-hidden border-e border-gray-alpha-400 bg-background-200 pb-[10px] transition-none",
         collapsed ? "w-[48px] px-[8px]" : "w-[220px] px-[10px]",
+        className,
       )}
     >
       {/* Clearance for the overlay title bar's traffic lights (the window is

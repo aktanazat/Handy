@@ -474,7 +474,7 @@ export const MeetingPreviewCard: React.FC<MeetingPreviewCardProps> = ({
                 {recording.onToggle === undefined ? (
                   recording.armed.length === 0 ? (
                     <span className="text-[12px] leading-4 text-amber-900">
-                      {t("meetings.preview.recording.none", "No source armed")}
+                      {t("meetings.preview.recording.none", "No source chosen")}
                     </span>
                   ) : (
                     recording.armed

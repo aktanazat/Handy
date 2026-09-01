@@ -34,7 +34,7 @@
     "settings": "设置"
   },
   "onboarding": {
-    "subtitle": "模型在这台 Mac 上运行，需要在准确度和速度之间取舍",
+    "subtitle": "模型在这台 Mac 上运行，需要在准确度和速度之间取舍。",
     "existingModelsTitle": "兼容的模型",
     "downloadModelsTitle": "可供下载",
     "showAllModels": "显示全部 {{total}} 个模型",
@@ -52,7 +52,7 @@
       },
       "medium": {
         "name": "Whisper Medium",
-        "description": "准确度高，速度适中"
+        "description": "准确度高，速度适中。"
       },
       "turbo": {
         "name": "Whisper Turbo",
@@ -68,7 +68,7 @@
       },
       "parakeet-tdt-0.6b-v3": {
         "name": "Parakeet V3",
-        "description": "快速且准确"
+        "description": "快速且准确。"
       },
       "moonshine-base": {
         "name": "Moonshine Base",
@@ -76,7 +76,7 @@
       },
       "moonshine-tiny-streaming-en": {
         "name": "Moonshine V2 Tiny",
-        "description": "超快速，仅支持英语"
+        "description": "超快速，仅支持英语。"
       },
       "moonshine-small-streaming-en": {
         "name": "Moonshine V2 Small",
@@ -193,7 +193,7 @@
       },
       "cloud": {
         "title": "云转录",
-        "providerDescription": "凭据保存在操作系统的安全存储中。",
+        "providerDescription": "密钥保存在系统凭据存储中。",
         "providers": {
           "deepgram": "Deepgram Nova-3",
           "elevenLabs": "ElevenLabs Scribe v2"
@@ -210,22 +210,22 @@
           "verifying": "正在验证…"
         },
         "status": {
-          "checking": "正在检查系统密钥库…",
+          "checking": "正在检查系统凭据存储…",
           "notSaved": "尚未保存 API 密钥。",
           "saved": "已保存 API 密钥。尚未验证。",
           "verified": "API 密钥已验证。",
-          "verifyRequiresConsent": "验证这个密钥之前，请先在某个模式中查看传输说明。"
+          "verifyRequiresConsent": "验证这个密钥之前，请先在某个模式中确认传输。"
         },
         "errors": {
           "not_found": "尚未为该服务商保存 API 密钥。",
-          "unavailable": "系统安全存储不可用。",
-          "locked": "系统安全存储已锁定。",
-          "corrupt": "无法安全地读取已保存的凭据。",
-          "invalid": "安全存储不接受该凭据。",
-          "busy": "安全存储正忙。请重试。",
-          "backend": "无法完成凭据操作。",
+          "unavailable": "系统凭据存储不可用。",
+          "locked": "系统凭据存储已锁定。",
+          "corrupt": "无法安全地读取已保存的密钥。",
+          "invalid": "系统凭据存储不接受该密钥。",
+          "busy": "系统凭据存储正忙。请重试。",
+          "backend": "系统凭据存储无法完成该操作。",
           "not_configured": "请先保存 API 密钥，然后再验证。",
-          "consent_required": "请先同意服务商的传输说明，然后再验证。",
+          "consent_required": "请先确认向服务商的传输，然后再验证。",
           "authentication": "服务商拒绝了这个 API 密钥。",
           "quota": "账户已超出配额，因此服务商拒绝了验证。",
           "network": "无法连接服务商进行验证。",
@@ -335,8 +335,8 @@
         "label": "实验性功能"
       },
       "lazyStreamClose": {
-        "label": "在转录之间保持麦克风开启",
-        "description": "录音停止后保持麦克风流开启 30 秒，使连续转录启动更快。开启期间蓝牙音频质量可能下降。"
+        "label": "在听写之间保持麦克风开启",
+        "description": "停止后仍保持麦克风开启 30 秒，让连续听写更快开始。开启期间，蓝牙音质可能下降。"
       },
       "acceleration": {
         "transcribe": {
@@ -520,7 +520,7 @@
         },
         "model": {
           "title": "模型",
-          "descriptionCustom": "提供自定义端点期望的模型标识符。",
+          "descriptionCustom": "输入自定义服务器要求的模型 ID。",
           "placeholderWithOptions": "搜索或选择模型",
           "placeholderNoOptions": "输入模型名称",
           "refreshModels": "刷新模型"
@@ -555,17 +555,17 @@
       },
       "remoteConsent": {
         "title": "远程文本传输",
-        "description": "会议和转录文本可能会被发送到 {{endpoint}} 上的 {{provider}} 进行后处理。",
-        "acknowledge": "我了解文本可能会被发送到此端点。",
+        "description": "Sona 可能会将会议和听写文本发送至 {{endpoint}} 的 {{provider}} 以进行清理。",
+        "acknowledge": "我了解文本可能会被发送到此地址。",
         "accept": "允许文本传输",
         "cancel": "取消",
-        "endpointChanged": "端点已更改。在文本离开这台 Mac 之前，请查看并确认新端点。",
+        "endpointChanged": "地址已更改。在文本离开这台 Mac 之前，请查看并确认新地址。",
         "invalidDestination": "此服务商目标无效或仅限本地，因此无法记录远程同意。",
         "saveFailed": "Sona 无法保存此确认。",
-        "current": "已确认向 {{endpoint}} 传输文本。",
+        "current": "您已允许将文本发送至 {{endpoint}}。",
         "review": "查看确认内容",
-        "endpointLabel": "规范端点",
-        "destinationPinned": "Sona 会为该确认锁定这个确切的端点和来源。"
+        "endpointLabel": "确切地址",
+        "destinationPinned": "Sona 会把该确认绑定到这个确切的地址和来源。"
       }
     },
     "history": {
@@ -593,7 +593,7 @@
       "loadError": "无法加载历史。",
       "retry": "重试",
       "saveError": "无法更新保存状态。请重试。",
-      "postProcessEmpty": "后处理未返回文本。显示原始转录。",
+      "postProcessEmpty": "后处理没有产出文本，所以这是原始转录。",
       "textView": {
         "label": "转录视图",
         "processed": "已处理",
@@ -671,7 +671,7 @@
           "dispatched_but_unconfirmed": "已发送，未确认"
         },
         "modeLabel": "模式",
-        "revisionLabel": "修订号",
+        "revisionLabel": "设置版本",
         "engineLabel": "引擎",
         "sourceLabel": "来源",
         "captureStatusLabel": "录音",
@@ -749,10 +749,10 @@
       "recalledByMeaning": "按含义",
       "level": {
         "peak": "peak",
-        "rms": "rms"
+        "rms": "平均"
       },
       "noTextRecorded": "此条目未记录任何文本。",
-      "cloudHeld": "已扣下此次 Cloud 运行：没有收到可信结果，也没有可用的本地模型。",
+      "cloudHeld": "Sona 扣下了云端结果：没有可信的内容返回，也没有可用的本地模型。",
       "transcriptionEngineFailed": "转录失败，因此未记录任何内容。",
       "processAgain": {
         "action": "再处理一次",
@@ -774,7 +774,7 @@
       },
       "liveLogs": {
         "title": "实时日志",
-        "description": "仅显示此面板打开期间产生的日志行，按上方设置的日志级别显示。",
+        "description": "这里只显示此面板打开时按上方设置的日志级别写入的行。",
         "pause": "暂停",
         "resume": "继续",
         "copied": "已复制",
@@ -820,7 +820,7 @@
       },
       "keyboardImplementation": {
         "title": "键盘实现",
-        "bindingsReset": "键盘快捷键不兼容，已重置为默认值"
+        "bindingsReset": "键盘快捷键不兼容，已重置为默认值。"
       },
       "paths": {
         "appData": "应用数据:",
@@ -841,30 +841,24 @@
       },
       "recordingBuffer": {
         "title": "额外录音缓冲",
-        "description": "放开按键后继续录音的额外时间（毫秒），以捕捉尾音。0 = 无额外缓冲。"
+        "description": "放开按键后继续录音的额外时间（毫秒），用来捕捉尾音。不需要就设为 0。"
       },
       "keyboardDiagnostic": {
         "title": "键盘诊断",
         "description": "检查键盘事件是否能到达 Sona。仅记录事件数量，绝不记录您按了哪些键。",
         "run": "运行 10 秒诊断",
         "running": "正在监听… 请按几次您的快捷键（例如 Option+Space）",
-        "secureInputLabel": "Secure Input",
+        "secureInputLabel": "安全输入",
         "enabled": "已启用",
         "disabled": "已禁用",
         "holder": "被 {{name}}（pid {{pid}}）占用",
-        "holderUnknown": "未发现占用方",
-        "keyDown": "按键按下",
-        "keyUp": "按键释放",
-        "flagsChanged": "修饰键",
-        "mouse": "鼠标",
-        "verdictBlocked": "Secure Input 正在阻止按键事件，在问题解决前，包含普通按键的快捷键无法工作。",
-        "verdictSuspicious": "收到了修饰键事件，但没有按键事件。尽管 Secure Input 报告为已禁用，仍有程序在抑制按键。请在 GitHub 上反馈此问题。",
-        "verdictOk": "按键事件正常到达 Sona。",
-        "verdictNoEvents": "测试期间未捕获到任何事件。",
-        "failed": "诊断失败：{{error}}"
+        "notSupported": "此平台不支持。",
+        "noHolder": "没有应用正在占用安全输入。",
+        "status": "状态",
+        "error": "无法获取键盘诊断信息。"
       },
       "whatsNewPreview": {
-        "title": "预览新功能",
+        "title": "预览发布说明",
         "description": "打开最新内置发行说明，且不标记为已查看",
         "noNotes": "未找到内置发行说明",
         "error": "无法预览发布说明。请重试。"
@@ -945,14 +939,14 @@
           },
           "capture": {
             "label": "在网站中激活",
-            "description": "捕获前台浏览器的主机。Sona 仅保存主机，不保存 URL。",
+            "description": "使用当前打开的网站。Sona 将保存网站名称而非完整地址。",
             "action": "捕获当前网站",
             "capturing": "正在捕获…"
           },
           "empty": "没有网站会激活此模式。",
-          "exampleDescription": "每条规则存储一个浏览器主机名，例如 mail.google.com。"
+          "exampleDescription": "每条规则对应一个网站，例如 mail.google.com。"
         },
-        "exampleDescription": "每条规则存储一个应用标识，例如 com.apple.mail。",
+        "exampleDescription": "每条规则对应一个应用 ID，例如 com.apple.mail。",
         "removeTarget": "移除 {{target}}",
         "unsupported": "按应用和网站激活仅在 macOS 上可用。"
       },
@@ -1060,10 +1054,10 @@
           "unavailable": "{{provider}} 不可用"
         },
         "cloud": {
-          "setupRequired": "{{provider}} 需要已保存的自有 API 密钥和当前的传输同意，其云端选项才可用。",
+          "setupRequired": "{{provider}} 需要系统凭据存储中的 API 密钥和当前的传输确认，其云端选项才会开放。",
           "fallback": {
             "label": "使用本地回退",
-            "description": "如果云端提供方无法返回可信的最终结果，将用本地模型转录已采集的音频。",
+            "description": "如果云端提供方无法返回可信结果，将用本地模型转录这段录音。",
             "useModeModel": "使用此模式的本地模型",
             "model": {
               "label": "回退模型",
@@ -1071,8 +1065,8 @@
             }
           },
           "keyterms": {
-            "label": "云端关键词",
-            "description": "每行一个词。这些词会随此云端请求一起发送。",
+            "label": "需要听准的词",
+            "description": "每行一个词或一个名字。Sona 会把它们随音频一起发给提供方。",
             "placeholder": "产品名称\n人名"
           },
           "timestamps": {
@@ -1088,22 +1082,22 @@
               "description": "此模式录制的音频会直接发送给 {{provider}} 进行转录。"
             },
             "privacy": {
-              "label": "隐私约定",
-              "description": "提供方会收到此模式的音频、所选语言和关键词。应用上下文和自有凭据保留在本设备上。"
+              "label": "提供方能看到什么",
+              "description": "提供方会收到此模式的音频、它的语言和你列出的词。Sona 从你其他应用读到的内容和你的密钥都留在这台 Mac 上。"
             },
             "localFallback": {
               "label": "本地回退",
-              "description": "如果云端提供方无法返回可信的最终结果，Sona 可以使用你选择的本地模型。"
+              "description": "如果云端提供方无法返回可信结果，Sona 可以使用你选择的本地模型。"
             },
             "decline": "保持本地",
             "accept": "同意并使用云端",
             "accepting": "正在同意…",
             "errors": {
               "unknown_provider": "此云端提供方在该版本中不可用。",
-              "backend": "无法保存同意记录。"
+              "backend": "无法保存该确认。"
             }
           },
-          "title": "云端传输"
+          "title": "云端转录"
         }
       },
       "context": {
@@ -1157,7 +1151,7 @@
         },
         "reliablePaste": {
           "label": "可靠粘贴",
-          "description": "在平台支持时，使用按回执排序的粘贴。"
+          "description": "在系统允许的情况下，等应用读取转录后再恢复剪贴板。"
         },
         "delay": {
           "label": "粘贴延迟",
@@ -1187,14 +1181,14 @@
       },
       "errors": {
         "staleRevision": "设置已在别处更改。请查看最新的模式后重新保存。",
-        "invalid_mode_id": "此模式 ID 无效。",
+        "invalid_mode_id": "Sona 无法辨认这是哪个模式。",
         "empty_name": "需要填写模式名称。",
         "cannot_delete_default": "默认模式无法删除。",
         "unknown_mode": "该模式已不存在。",
-        "duplicate_mode_id": "已存在使用此 ID 的模式。",
+        "duplicate_mode_id": "该模式已存在。",
         "invalid_reorder": "无法保存模式顺序。",
         "invalid_website_host": "网站主机无效。",
-        "website_activation_consent_required": "添加网站规则前，请在“隐私”中启用浏览器 URL。",
+        "website_activation_consent_required": "添加网站规则前，请在“隐私”中开启“包含浏览器 URL”。",
         "frontmost_website_unavailable": "无法从浏览器捕获网站。",
         "website_activation_secure_field": "无法从安全字段捕获网站规则。"
       },
@@ -1240,10 +1234,10 @@
             "target_and_selection": "选中内容",
             "full": "完整"
           },
-          "error": "无法保存上下文上限"
+          "error": "无法保存上下文上限。"
         },
         "sources": {
-          "none": "不读取任何应用上下文。",
+          "none": "不从你的其他应用读取任何内容。",
           "target": "读取前台应用的标识。",
           "target_and_selection": "读取前台应用的标识，以及可用时的选中文本。",
           "full": "在可用时，还会读取已许可的浏览器网址和最近变动的剪贴板文本。"
@@ -1257,7 +1251,7 @@
       "diagnostics": {
         "title": "上下文诊断",
         "refresh": "刷新",
-        "error": "无法刷新诊断",
+        "error": "无法刷新诊断。",
         "accessibility": {
           "label": "辅助功能"
         },
@@ -1299,14 +1293,14 @@
             "months_3": "3 个月"
           }
         },
-        "error": "无法保存数据保留设置",
+        "error": "无法保存数据保留设置。",
         "historyStorage": {
           "encrypted": "静态加密",
           "label": "历史存储",
           "locked": "已锁定",
           "plaintext": "未加密",
           "reasons": {
-            "encryption_unavailable": "此版本无法打开加密数据库，因此历史以未加密方式存储。",
+            "encryption_unavailable": "此版本的 Sona 无法打开加密数据库，因此历史以未加密方式存储。",
             "key_rejected": "存储的密钥无法打开加密数据库，因此无法读取历史。",
             "key_unavailable": "系统凭据存储未返回可用密钥，因此历史以未加密方式存储。",
             "migration_failed": "加密现有数据库失败。未加密的数据库完好无损且仍在使用。"
@@ -1318,7 +1312,7 @@
       "cloudTranscription": {
         "title": "云转录",
         "checkFailed": "无法检查云转录的设置。",
-        "disclosure": "对于启用了云端的模式，Sona 会把录制的音频、所选语言和模式关键词直接发送给提供方。应用上下文和自有凭据保留在本设备上。"
+        "disclosure": "对于启用了云端的模式，Sona 会把录制的音频、所选语言和该模式列出的词直接发送给提供方。Sona 从你其他应用读到的内容和你的密钥都留在这台 Mac 上。"
       },
       "upstreamImport": {
         "title": "从旧版应用导入",
@@ -1358,11 +1352,11 @@
           "app_state_unverifiable": "在此平台上，Sona 无法确认旧版应用已关闭。",
           "invalid_selection": "请选择要导入的设置或历史。",
           "settings_unreadable": "无法读取旧版设置文件。",
-          "secret_store_unavailable": "系统凭据存储不可用，因此包含服务商密钥的设置未被导入。",
-          "secret_conflict": "系统凭据存储中已存在服务商密钥。请先解决后再导入设置。",
+          "secret_store_unavailable": "系统凭据存储不可用，因此未导入包含提供商密钥的设置。",
+          "secret_conflict": "系统凭据存储中已有提供商密钥。导入设置前请先解决冲突。",
           "history_unreadable": "无法读取旧版历史数据库。",
           "recording_copy_failed": "有一个录音无法复制并校验。",
-          "receipt_write_failed": "无法保存导入记录。",
+          "receipt_write_failed": "Sona 无法保存导入详情。",
           "internal": "导入没有完成。",
           "status": "无法检查旧版应用的数据。"
         },
@@ -1385,79 +1379,79 @@
     "agents": {
       "title": "智能体",
       "controls": {
-        "title": "桥接控制",
+        "title": "代理控制",
         "master": {
-          "label": "启用代理桥接"
+          "label": "启用代理连接"
         },
-        "status": "运行时状态",
+        "status": "状态",
         "providers": {
           "claude": {
             "label": "Claude",
-            "description": "观察 Claude 会话，并在可用时启用由协议样本支持的回复。"
+            "description": "观察 Claude 会话，并在 Sona 支持的地方回复。"
           },
           "codex": {
             "label": "Codex",
-            "description": "仅观察会话。在协议样本支持之前，回复是只读的。"
+            "description": "只观察会话。Sona 还不能回复 Codex。"
           },
           "grok": {
             "label": "Grok",
-            "description": "仅观察会话。在协议样本支持之前，回复是只读的。"
+            "description": "只观察会话。Sona 还不能回复 Grok。"
           },
           "omp": {
             "label": "OMP",
-            "description": "观察 OMP 会话和审批请求。回复仅在受支持的 OMP 会话停止时可用。"
+            "description": "观察 OMP 会话和审批请求。只有当 OMP 会话停止时，Sona 才能回复。"
           }
         }
       },
       "status": {
         "disabled": "已停用",
-        "runtime_unavailable": "运行时不可用",
-        "interactive_unsupported": "不支持交互式响应",
+        "runtime_unavailable": "未运行",
+        "interactive_unsupported": "无法查看回复",
         "app_lock_held": "另一个 Sona 实例正在运行",
         "active": "使用中"
       },
       "projects": {
         "title": "已授权的项目",
-        "hashOnly": "权限边界是精确的项目哈希；文件夹路径不会保存在这里。",
+        "hashOnly": "Sona 通过文件夹识别项目，而不会在此保存文件夹路径。",
         "add": "授权文件夹",
         "remove": "移除项目",
         "empty": "没有已授权的项目。"
       },
       "hook": {
-        "title": "钩子片段",
-        "description": "把随附的钩子配置复制到你自己代理的配置中。Sona 从不编辑代理的配置文件。",
-        "copy": "复制片段",
-        "error": "无法获取钩子片段"
+        "title": "设置代码",
+        "description": "将此设置代码复制到您的代理配置中。Sona 不会更改代理文件。",
+        "copy": "复制设置代码",
+        "error": "无法获取设置代码"
       },
       "replyQueue": {
         "title": "回复预览",
         "session": "回复目标",
-        "noSession": "没有观察到可回复的会话",
+        "noSession": "没有 Sona 可以回复的会话",
         "message": "回复文本",
         "createPreview": "创建预览",
-        "notReady": "回复需要开启桥接并至少启用一个代理。"
+        "notReady": "在回复前请开启代理连接并至少启用一个代理。"
       },
       "pending": {
         "empty": "没有待发送的回复。",
         "confirm": "确认这条回复原样发送",
-        "confirmed": "已确认用于下一个受支持的 Stop 事件",
+        "confirmed": "将在代理停止时发送",
         "cancel": "取消",
         "states": {
-          "held": "保留到下一个受支持的 Stop 事件",
-          "response_written": "已写入响应",
-          "emitted": "已发出",
+          "held": "等待代理停止",
+          "response_written": "回复已写入",
+          "emitted": "已发送",
           "copy_only": "仅复制",
           "cancelled": "已取消"
         },
         "title": "待发送的回复"
       },
       "observed": {
-        "title": "观察到的活动",
+        "title": "代理活动",
         "refresh": "刷新",
         "sessions": "会话",
-        "noSessions": "没有观察到会话。",
+        "noSessions": "尚无代理活动。",
         "requests": "请求",
-        "noRequests": "没有观察到请求。",
+        "noRequests": "尚无请求。",
         "requestKinds": {
           "session_start": "会话已开始",
           "user_prompt_submit": "提示词已提交",
@@ -1474,7 +1468,7 @@
         "ompPermissionObserveOnly": "OMP 审批请求仅供观察。请在 OMP 中批准或拒绝。"
       },
       "rules": {
-        "title": "精确匹配的权限规则",
+        "title": "权限规则",
         "empty": "没有权限规则。",
         "remove": "移除规则",
         "decisions": {
@@ -1483,20 +1477,20 @@
         }
       },
       "errors": {
-        "load": "无法加载代理桥接数据：{{error}}",
-        "operation": "无法完成代理桥接操作：{{error}}"
+        "load": "无法加载代理连接详情：{{error}}",
+        "operation": "无法完成代理操作：{{error}}"
       },
       "panel": {
         "error": "无法保存代理面板设置。",
         "label": "启用代理面板",
-        "rowDescription": "关闭后将关闭面板窗口，并使 Sona 拒绝所有重新打开它的请求。",
+        "rowDescription": "关闭此项将关闭面板，并阻止其他应用再次打开它。",
         "title": "代理面板"
       },
       "externalAccess": {
         "label": "外部访问",
-        "rowDescription": "允许这台 Mac 上的其他程序通过 sona 命令行和 MCP 服务器读取你的会议、听写、人物和未完成事项。只读，默认关闭，需你手动开启。"
+        "rowDescription": "允许本 Mac 上的其他程序通过 Sona 的命令行工具和 MCP 服务器读取您的会议、听写、人物和开放循环。此功能仅限读取，默认关闭，直到您手动开启。"
       },
-      "workspaceNavigation": "代理桥接视图",
+      "workspaceNavigation": "代理视图",
       "sonaAgent": {
         "title": "Sona 代理",
         "pairing": "配对",
@@ -1504,29 +1498,29 @@
         "unpaired": "未配对",
         "lastReached": "上次连通",
         "never": "从未",
-        "relayUrl": "中继地址",
+        "relayUrl": "服务器地址",
         "relayUrlHint": "只接受 Tailscale 地址或本机。公网上的地址在保存之前就会被拒绝。",
-        "relayKeyId": "中继密钥 ID",
-        "relayPublicKey": "中继公钥",
+        "relayKeyId": "服务器密钥 ID",
+        "relayPublicKey": "服务器公钥",
         "identity": "本机公钥",
-        "identityHint": "把这个公钥加到中继，它才会接受来自本机的请求。私钥那一半始终留在你的钥匙串里。",
+        "identityHint": "将此密钥添加到服务器，以便其接受来自此 Mac 的消息。私钥永远不会离开您的钥匙串。",
         "identityUnavailable": "打开代理面板以创建密钥。",
         "copy": "复制",
         "copied": "已复制",
         "unpair": "解除配对",
         "test": "测试",
-        "reached": "中继已响应。",
-        "failed": "无法与中继配对。",
+        "reached": "服务器已响应。",
+        "failed": "无法连接到服务器。",
         "reason": {
           "unauthorized_window": "该窗口无权更改配对。",
           "disabled": "代理面板已关闭。",
-          "unpaired": "还没有配对任何中继。",
-          "offline": "中继没有响应。",
+          "unpaired": "尚未配对任何服务器。",
+          "offline": "服务器未响应。",
           "invalid_configuration": "Sona 不会使用该地址或密钥。",
           "secret_unavailable": "无法读取本机密钥。",
-          "untrusted_response": "回复不是已配对中继签名的。",
-          "remote_rejected": "中继拒绝了请求。",
-          "ownership_rejected": "中继回复的是别人的请求。"
+          "untrusted_response": "响应未由配对的服务器签名。",
+          "remote_rejected": "服务器拒绝请求。",
+          "ownership_rejected": "服务器响应了其他人的请求。"
         }
       }
     },
@@ -1600,12 +1594,12 @@
         "retry": "重试"
       },
       "runLog": {
-        "title": "运行日志",
-        "empty": "尚无工作流运行记录。",
-        "loadError": "无法加载运行日志。",
-        "loadMoreError": "无法加载更多运行记录。",
-        "loadMore": "加载更多",
-        "chartAria": "每日工作流运行次数，过去 7 天共 {{count}} 次"
+        "title": "活动记录",
+        "empty": "暂无活动记录。",
+        "loadError": "无法加载活动记录。",
+        "loadMoreError": "无法加载更多活动记录。",
+        "loadMore": "显示更多",
+        "chartAria": "每日活动量，过去 7 天内共有 {{count}} 次"
       }
     },
     "vocabulary": {
@@ -1684,7 +1678,7 @@
         "shortcutHint": "按名称运行快捷指令，把会议导出作为输入。三十秒后停止。",
         "shortcutPlaceholder": "快捷指令名称",
         "webhook": "发送到 webhook",
-        "webhookHint": "以 JSON 形式 POST 会议导出。只能是你自己的机器或你的 tailnet——与中继同一条规则。",
+        "webhookHint": "将会议导出为 JSON。仅限在您自己的机器或 tailnet 上使用，与服务器一致。",
         "webhookPlaceholder": "http://100.x.y.z:8650/hook",
         "needsTarget": "请先填写名称",
         "needsUrl": "请先填写地址",
@@ -1695,11 +1689,11 @@
       "remoteIntelligence": {
         "title": "会议智能",
         "label": "在我的服务器上撰写会议笔记",
-        "consent": "会议的摘要和回答将通过你的私有网络在你的服务器上撰写",
-        "unpaired": "先在“代理”中将 Sona 与你的服务器配对，才能开启",
+        "consent": "会议的摘要和回答将通过你的私有网络在你的服务器上撰写。",
+        "unpaired": "先在“代理”中将 Sona 与你的服务器配对，才能开启。",
         "seriesTitle": "留在这台 Mac 上的系列",
         "seriesHint": "此处列出的系列始终在这台 Mac 上撰写，即使会议智能已开启。",
-        "seriesEmpty": "还没有记录到重复会议",
+        "seriesEmpty": "还没有记录到重复会议。",
         "loading": "正在读取你的系列…",
         "lastMet": "上次 {{date}}",
         "keepLocalLabel": "将 {{series}} 留在这台 Mac 上",
@@ -1730,10 +1724,10 @@
   },
   "commandPalette": {
     "open": "搜索",
-    "placeholder": "输入命令或搜索",
+    "placeholder": "搜索或选择操作",
     "navigation": "导航",
     "actions": "操作",
-    "noResults": "未找到命令",
+    "noResults": "未找到结果",
     "newMeeting": "新会议",
     "importAudio": "转录文件",
     "openRecordings": "打开录音文件夹",
@@ -1776,9 +1770,9 @@
     "commandRewriteUnavailable": "改写没有返回任何内容，所选文本保持原样。请在 Settings > Post-processing 中检查改写模型后重试。",
     "noModelSelectedTitle": "未选择模型",
     "noSpeechSaveFailedTitle": "样本未保存",
-    "captureOverrunTitle": "录音超出上限",
+    "captureOverrunTitle": "录音被截断",
     "cloudUnavailableTitle": "云端不可用",
-    "cloudTranscriptionHeldTitle": "云端运行已保留",
+    "cloudTranscriptionHeldTitle": "云端结果已扣下",
     "commandNoSelectionTitle": "未选中内容",
     "commandRewriteUnavailableTitle": "改写不可用"
   },
@@ -1904,7 +1898,7 @@
     },
     "setup": {
       "defaultTitle": "本地笔记",
-      "remoteUnavailable": "此版本不支持远程处理，因此所有会议都在这台 Mac 上转录和总结。"
+      "remoteUnavailable": "此版本的 Sona 不提供远端处理，因此每场会议都在这台 Mac 上转录和总结。"
     },
     "preflight": {
       "storage": "存储",
@@ -1912,7 +1906,7 @@
       "storageUnavailable": "加密的会议存储不可用。",
       "localModel": "本地模型",
       "localModelDescription": "有可用的本地模型时，处理会保持在本地。",
-      "starting": "正在开始可见的采集…",
+      "starting": "正在开始录音…",
       "refreshing": "正在检查…"
     },
     "consent": {
@@ -1925,7 +1919,7 @@
       "partialCapture": "有部分声音缺失。在依赖生成的笔记之前，请先查看空缺处。",
       "inputs": "输入",
       "signal": "信号",
-      "signalUnavailable": "采集未报告 {{source}} 的音量。",
+      "signalUnavailable": "{{source}} 不报告自己的音量。",
       "notReported": "未报告",
       "durabilityLag": "已写入磁盘",
       "behind": "落后 {{duration}}",
@@ -1951,7 +1945,7 @@
     },
     "retention": {
       "title": "保留",
-      "description": "Sona 会通过同一条已验证的删除路径删除符合条件的本地会议记录。",
+      "description": "Sona 每次都用同一套经过验证的方式删除这台 Mac 上的会议。",
       "forever": "保留到我手动删除",
       "days": "{{days}} 天后删除",
       "loading": "正在读取当前策略…"
@@ -1959,7 +1953,7 @@
     "receipts": {
       "title": "更正记录",
       "saved": "已保存在本地。",
-      "savedRevision": "已保存在本地。修订号 {{revision}}。",
+      "savedRevision": "已保存到本机。版本 {{revision}}。",
       "duplicate": "此操作已被记录。Sona 已刷新现有结果。"
     },
     "reasons": {
@@ -1971,7 +1965,7 @@
       "source_start_failed": "有来源无法启动。",
       "source_gap": "有来源报告了间隙。",
       "storage_unavailable": "加密的会议存储不可用。",
-      "storage_failure": "存储无法持久化此更改。",
+      "storage_failure": "存储无法保存此更改。",
       "local_model_unavailable": "没有可用的本地模型。",
       "recovery_required": "这场会议需要恢复。",
       "deleted": "这场会议已被删除。",
@@ -2002,7 +1996,7 @@
       "consent_required": "开始前请先确认录制须知。",
       "consent_stale": "设置已发生变化。开始前请再检查一次。",
       "invalid_transition": "在当前会议阶段无法执行此操作。",
-      "stale_revision": "这场会议在另一个窗口中被改动过。Sona 已刷新其快照。",
+      "stale_revision": "这场会议在另一个窗口中发生了变化。Sona 已重新载入。",
       "capture_lease_busy": "已有另一场会议在采集音频。",
       "no_source_started": "没有已批准的音频来源启动。",
       "source_unavailable": "请求的音频来源不可用。",
@@ -2020,12 +2014,12 @@
       "liveTitle": "停止并丢弃这个会话？",
       "keepRecording": "继续录制",
       "stopAndDiscard": "停止并丢弃",
-      "explainsData": "音频、转录、手动笔记、生成的笔记以及本地回答缓存都会被删除。此操作无法撤销。",
+      "explainsData": "音频、转录、手写笔记、生成的笔记和已保存的回答都会被删除。此操作无法撤销。",
       "complete": "会话已丢弃"
     },
     "delete": {
       "title": "删除这场会议？",
-      "explainsData": "在已验证的删除完成之前，Sona 会让这场会议保持无法访问。导出的文件和远程副本不在本地删除的范围内。",
+      "explainsData": "在经过验证的删除完成前，Sona 会让这场会议无法访问。导出文件和远端副本不在其中。",
       "complete": "会议已删除"
     },
     "review": {
@@ -2043,8 +2037,8 @@
       "showFewerGaps": "收起",
       "transcript": "转录",
       "noTranscript": "没有可用的转录。",
-      "transcriptSegment": "转录片段",
-      "removeSegment": "移除片段",
+      "transcriptSegment": "转录中的一段发言",
+      "removeSegment": "删除这段发言",
       "editTurn": "编辑这段话",
       "unknownSpeaker": "未知说话人",
       "speakers": "说话人",
@@ -2080,7 +2074,7 @@
       "keyQuestions": "关键问题",
       "risks": "风险",
       "followUp": "后续跟进",
-      "artifactUnavailable": "无法获取这个生成的修订版。原始转录和手动笔记仍保留在本地。",
+      "artifactUnavailable": "这些生成的笔记不可用。转录和你自己写的笔记都留在这台 Mac 上。",
       "actionMeta": "负责人：{{owner}} · 截止：{{due}}",
       "unassigned": "未分配",
       "noDueDate": "无截止日期",
@@ -2123,10 +2117,10 @@
       "exportHtml": "导出台账页面",
       "exported": "台账已写入 {{path}}",
       "exportMissing": "这场会议没有可导出的台账。请先重新生成笔记。",
-      "statThreads": "已了结的议题",
+      "statThreads": "已有结论的议题",
       "statReceipts": "引文",
       "receiptsVerified": "已核对",
-      "receiptsDegraded": "已移除 {{threads}} 条议题和 {{commitments}} 条承诺",
+      "receiptsDegraded": "已移除 {{threads}} 个线程和 {{commitments}} 项承诺",
       "threads": "议题",
       "asideThread": "题外话",
       "openLoops": "未答的问题",
@@ -2256,7 +2250,7 @@
       "title": "录制没有开始",
       "readyTitle": "可以开始录制",
       "recordAnyway": "不用它也录制",
-      "recordAnywayHint": "该记录会被标记为部分完整，缺失的来源仍会在记录中被点名。"
+      "recordAnywayHint": "该会议会标记为不完整，缺少的音源会在其中写明。"
     },
     "analytics": {
       "title": "对话",
@@ -2339,7 +2333,7 @@
       },
       "apps": {
         "label": "会议应用",
-        "description": "每行一个 bundle 标识符。条目只在那个应用运行时才计入，因此被改名的标识符是失效而不是出错。",
+        "description": "每行一个应用 ID。条目仅在应用运行时有效，因此重命名的应用 ID 将不会起作用，而不会产生误报。",
         "running": "正在运行：{{apps}}",
         "noneRunning": "这些现在都没有运行。"
       },
@@ -2348,7 +2342,7 @@
         "calendarDenied": "未授予日历访问权限，因此只有麦克风这条路径在运行。",
         "notificationsDenied": "Sona 的通知已关闭，因此提示只出现在应用内。",
         "bluetoothCaveat": "会议应用已打开，但没有任何东西报告正在使用麦克风。蓝牙耳机常常不报告，所以如果有会议正在进行，请自己开始录制。",
-        "noSilenceStop": "采集会在日程结束、应用退出、睡眠或你自己停止时结束。静音计时器需要实时转写，而它只在会议结束之后运行。"
+        "noSilenceStop": "录音会在日程结束、应用退出、Mac 睡眠或你自己停止时结束。没有什么会因为安静而停止它：那需要实时转录，而转录是在会议结束后才跑的。"
       },
       "why": {
         "disabled": "检测已关闭。",
@@ -2383,7 +2377,7 @@
         "autoOpen": "会议开始时打开它"
       },
       "recording": {
-        "none": "没有就绪的音源"
+        "none": "未选择音源"
       },
       "participation": {
         "accepted": "已接受",
@@ -2420,7 +2414,7 @@
       "loading": "正在读取你的日历…",
       "empty": "未来一周没有安排。",
       "noAccess": "Sona 看不到你的日历。",
-      "noAccessHint": "在会议设置中打开「使用我的日历」，并在 macOS 询问时授予完全访问权限。macOS 日历里已有的一切——Google、iCloud、Outlook——都会一并读到。",
+      "noAccessHint": "在会议设置中开启“使用我的日历”，然后在 macOS 询问时授予完全访问权限。macOS 日历已经显示的内容（Google、iCloud、Outlook）都会一并进来。",
       "unavailable": "此系统没有 Sona 能读取的日历。",
       "attendees": "参与者",
       "you": "你",
@@ -2505,6 +2499,16 @@
       "row": "询问 Sona：{{query}}",
       "error": "无法将该问题发送给 Sona。",
       "consentRequired": "提问会把你的会议引文发送到你的服务器，请先开启会议智能。"
+    },
+    "error": {
+      "unreachable": "Sona 无法连接。",
+      "refused": "Sona 无法接受这个问题。",
+      "failed": "Sona 没能写完这个回答。"
+    },
+    "working": {
+      "searchedCorpus": "看过你的会议和笔记了",
+      "stillWaiting": "还在等…",
+      "cancel": "取消"
     }
   },
   "overview": {
@@ -2556,8 +2560,8 @@
     },
     "setup": {
       "title": "设置同步账户",
-      "endpoint": "端点",
-      "bootstrapSecret": "引导密钥",
+      "endpoint": "服务器地址",
+      "bootstrapSecret": "设置密钥",
       "submit": "设置同步"
     },
     "recovery": {
@@ -2578,13 +2582,13 @@
     },
     "errors": {
       "portable_unavailable": "便携模式下无法使用云同步。",
-      "secret_unavailable": "系统安全存储不可用。",
+      "secret_unavailable": "系统凭据存储不可用。",
       "setup_required": "使用此操作前请先设置云同步。",
       "auth_required": "需要登录云端。",
       "quota": "已达到云端存储配额。",
       "integrity_failure": "无法校验该云端操作。",
       "conflict": "这场会议存在同步冲突。",
-      "unsupported_protocol": "此设备不支持该云端协议。",
+      "unsupported_protocol": "此设备不支持当前使用的云同步版本。",
       "transient": "云同步暂时不可用。",
       "invalid_expiry": "请选择一个将来的到期时间。",
       "invalid_offer": "配对提议不完整或无效。",
@@ -2678,16 +2682,16 @@
       "noDocuments": "没有已导入的文档。",
       "deleteDocument": "删除文档",
       "deleteDocumentTitle": "删除此文档？",
-      "deleteDocumentDescription": "从导入的上下文中删除 {{document}}？",
+      "deleteDocumentDescription": "是否从 Sona 的文档中删除 {{document}}？",
       "cadence": "会议频率",
       "lastMeeting": "最近一次会议",
       "talkShare": "发言比例",
       "cadenceAria": "每月会议：{{values}}",
       "documentFilter": "文本文档",
-      "documentImported": "文档已导入。",
+      "documentImported": "文档已添加。",
       "split": "拆分人物",
       "splitTitle": "拆分此人物？",
-      "splitDescription": "将 {{name}} 的所选身份信息和会议移至另一个人物。",
+      "splitDescription": "将选定的详情和会议从 {{name}} 移动到另一人。",
       "splitTarget": "移至",
       "splitCreate": "新人物",
       "splitExisting": "现有人物",
@@ -2699,7 +2703,7 @@
       "splitDocuments": "文档",
       "splitSubmit": "拆分人物",
       "splitNothingSelected": "请至少选择一项要移动的内容。",
-      "splitNoItems": "此人物没有可拆分的身份信息或会议。",
+      "splitNoItems": "此人没有可拆分的详情或会议。",
       "loadError": "无法加载此人物。"
     },
     "errors": {
@@ -2712,11 +2716,11 @@
       "meetingsBefore_one": "此前 1 次会议",
       "meetingsBefore_other": "此前 {{count}} 次会议",
       "last": "最近一次 {{date}}",
-      "agentPromptIntro": "请根据这些会议记录，帮我为“{{title}}”撰写后续消息。",
+      "agentPromptIntro": "利用这些会议，帮我起草关于 “{{title}}” 的后续跟进内容。",
       "agentPromptCommitments": "承诺事项",
       "agentPromptOpenLoops": "待处理事项",
       "agentPromptRequest": "撰写后续消息。不要编造细节或承诺。",
-      "agentError": "无法打开与代理的后续讨论。",
+      "agentError": "无法打开与代理的后续对话。",
       "discussFollowUp": "与代理讨论后续事项",
       "meetingsBefore": "此前 {{count}} 次会议"
     },
@@ -2763,7 +2767,7 @@
     },
     "detail": {
       "openLoops": "未答的问题",
-      "howSonaKnows": "Sona 如何得知",
+      "howSonaKnows": "Sona 关联此人的原因",
       "noEvidence": "目前还没有任何内容把这个人和会议联系起来。"
     }
   },
@@ -2794,7 +2798,7 @@
       "rules": {
         "label": "应用与网站",
         "empty": "没有任何东西会自动切换到此模式。",
-        "example": "每条规则存储一个应用标识或一个网站主机：com.apple.mail 或 mail.google.com。"
+        "example": "每条规则使用一个应用 ID 或网站，例如 com.apple.mail 或 mail.google.com。"
       }
     },
     "advanced": {
@@ -2903,7 +2907,7 @@
       "sync": "同步",
       "leavesThisMac": "有什么会离开这台 Mac",
       "agents": "智能体",
-      "agentBridge": "编程智能体桥接",
+      "agentBridge": "代理连接",
       "about": "关于 Sona",
       "debugHint": "按 {{chord}} 打开调试页面。"
     },
@@ -2913,10 +2917,10 @@
       "runningNow": "正在运行",
       "add": "添加应用",
       "addTitle": "添加会议应用",
-      "addDescription": "Sona 需要该应用的标识，你可以在应用自己的“关于”窗口中查看，或用 `osascript -e 'id of app \"名称\"'` 获取。",
-      "identifier": "应用标识",
+      "addDescription": "Sona 需要应用 ID，您可以在应用的“关于”窗口中找到，或使用 `osascript -e 'id of app \"Name\"'` 获取。",
+      "identifier": "应用 ID",
       "identifierPlaceholder": "com.example.app",
-      "invalid": "标识形如 com.example.app：小写单词用点连接。",
+      "invalid": "应用 ID 应类似于 com.example.app：由点分隔的小写单词。",
       "duplicate": "该应用已在列表中。",
       "remove": "移除 {{app}}",
       "names": {
@@ -2929,8 +2933,8 @@
     }
   },
   "consentPanel": {
-    "calendarTitle": "{{title}} — 要录制吗？",
-    "appTitle": "{{app}} 会议 — 要录制吗？",
+    "calendarTitle": "要录制 {{title}} 吗？",
+    "appTitle": "要录制这场 {{app}} 会议吗？",
     "genericTitle": "录制这场会议吗？",
     "introduction": "Sona 在这台 Mac 上录制，主动权始终在你手里。",
     "seriesBrief_other": "与 {{person}} 的会议 {{nth}} · {{count}} 个未结事项",
@@ -2958,7 +2962,7 @@
       },
       "captureAdvisor": {
         "name": "提示录音质量",
-        "description": "根据你自己的运行记录，报告重试、丢失的录音和过轻的音量。"
+        "description": "根据你自己的口述，报告重试、丢失的录音和过轻的音频。"
       },
       "seriesPriming": {
         "name": "为周期性会议做准备"
@@ -2966,12 +2970,12 @@
     },
     "feed": {
       "title": "Sona 注意到",
-      "spokenPunctuation": "你常说 {{spoken}} — 要写成 {{written}} 吗？",
-      "vocabularyCorrection": "你总是把 {{spoken}} 改成 {{written}} — 记下来吗？",
-      "modeHabit": "你几乎每天都用快捷键选 {{mode}} — 设为默认吗？",
-      "retryRate": "{{subject}} 的运行被重试的次数是其他的 {{times}} 倍。",
-      "lostCaptureRate": "{{subject}} 的运行被截断或无声的次数是其他的 {{times}} 倍。",
-      "inputLevel": "你有 {{percent}}% 的录音音量偏低 — 要检查麦克风电平吗？",
+      "spokenPunctuation": "你经常说 {{spoken}}。要写成 {{written}} 吗？",
+      "vocabularyCorrection": "你总是把 {{spoken}} 改成 {{written}}。要记住吗？",
+      "modeHabit": "你多数日子都用快捷键切到 {{mode}}。要设为默认吗？",
+      "retryRate": "走 {{subject}} 的口述被重试的次数是其余的 {{times}} 倍。",
+      "lostCaptureRate": "走 {{subject}} 的口述被截断或无声的次数是其余的 {{times}} 倍。",
+      "inputLevel": "你有 {{percent}}% 的录音音量偏小。要检查一下麦克风输入吗？",
       "example": "“{{text}}”",
       "accept": "好",
       "dismiss": "不用了",

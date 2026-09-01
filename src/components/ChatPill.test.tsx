@@ -294,7 +294,7 @@ describe("the shell's three columns", () => {
     /* Mounted so it has somewhere to open from, and taking no width until it
      * does — the page is the full pane, exactly as it was before any of this. */
     expect(occurrences(markup, 'data-slot="chat-sheet"')).toBe(1);
-    expect(markup).toContain("pointer-events-none w-0 opacity-0");
+    expect(markup).toContain("pointer-events-none w-0");
   });
 
   test("open: rail 48, page between, chat 340 — in that order", () => {
@@ -335,7 +335,7 @@ describe("the shell's three columns", () => {
 
     expect(markup).toContain("w-[220px]");
     expect(markup).not.toContain("w-[48px]");
-    expect(markup).toContain("pointer-events-none w-0 opacity-0");
+    expect(markup).toContain("pointer-events-none w-0");
   });
 
   /* The pane's own handle is not the chat's: the drag band is 512 wide with the

@@ -358,7 +358,7 @@ describe("recording", () => {
   test("a settled start with no source says so instead of showing an empty row", () => {
     const markup = card({ defaultExpanded: true, recording: { armed: [] } });
 
-    expect(markup).toContain("No source armed");
+    expect(markup).toContain("No source chosen");
   });
 
   test("a surface that arms nothing has no recording row at all", () => {

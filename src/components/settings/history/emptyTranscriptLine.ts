@@ -33,7 +33,7 @@ export const emptyTranscriptLine = (
     if (receipt.mode.cloud_status === "held_cloud_unavailable") {
       return t(
         "settings.history.cloudHeld",
-        "The cloud run was held: no trustworthy result arrived and no local model was available.",
+        "Sona held the cloud result: nothing trustworthy came back and no local model was available.",
       );
     }
     if (receipt.mode.engine_used == null) {

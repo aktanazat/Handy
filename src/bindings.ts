@@ -2745,6 +2745,14 @@ export type AgentPanelStepV1 = { id: string; label: string; state: SonaAgentStep
  */
 ended_after_ms: number | null }
 export type AgentPanelTurnChangedEvent = { invalidation_id: number; turn_id: string | null; state: AgentPanelTurnStateV1 | null }
+/**
+ * Why a turn ended with nothing to read.
+ *
+ * Relay errors and a relay-reported `FAILED` job collapse onto three reasons,
+ * because each asks the reader to do something different. The relay's own
+ * error text stays on the relay: it is not localized copy for this column.
+ */
+export type AgentPanelTurnFailureV1 = "unreachable" | "refused" | "failed"
 export type AgentPanelTurnStateV1 = "submitting" | "queued" | "leased" | "running" | "waiting_user" | "waiting_approval" | "canceling" | "succeeded" | "failed" | "canceled" | "unverified_external"
 export type AgentPanelTurnStatusV1 = { turn_id: string; workspace: AgentPanelWorkspaceV1; state: AgentPanelTurnStateV1; event_cursor: number;
 /**
@@ -2762,7 +2770,11 @@ completed_at_utc_ms: number | null;
  * What the remote side did on the way to its answer. Empty until a
  * workspace reports steps.
  */
-steps: AgentPanelStepV1[] }
+steps: AgentPanelStepV1[];
+/**
+ * Why it has no answer, when the panel can name the reason.
+ */
+failure: AgentPanelTurnFailureV1 | null }
 export type AgentPanelUndoChangeRequestV1 = { receipt_id: string; expected_revision: number }
 /**
  * Which capability-scoped brain a turn is addressed to. The relay registry

@@ -34,7 +34,7 @@
     "settings": "Ayarlar"
   },
   "onboarding": {
-    "subtitle": "Modeller bu Mac üzerinde çalışır ve doğruluk ile hız arasında denge kurar",
+    "subtitle": "Modeller bu Mac üzerinde çalışır ve doğruluk ile hız arasında denge kurar.",
     "existingModelsTitle": "Uyumlu Modeller",
     "downloadModelsTitle": "İndirilebilir",
     "showAllModels": "{{total}} modelin tümünü göster",
@@ -76,7 +76,7 @@
       },
       "moonshine-tiny-streaming-en": {
         "name": "Moonshine V2 Tiny",
-        "description": "Ultra hızlı, yalnızca İngilizce"
+        "description": "Ultra hızlı, yalnızca İngilizce."
       },
       "moonshine-small-streaming-en": {
         "name": "Moonshine V2 Small",
@@ -193,7 +193,7 @@
       },
       "cloud": {
         "title": "Bulut transkripsiyonu",
-        "providerDescription": "Kimlik bilgileri işletim sisteminizin kendi güvenli deposunda kalır.",
+        "providerDescription": "Anahtarlar sistem kimlik bilgisi deposunda kalır.",
         "providers": {
           "deepgram": "Deepgram Nova-3",
           "elevenLabs": "ElevenLabs Scribe v2"
@@ -210,22 +210,22 @@
           "verifying": "Doğrulanıyor…"
         },
         "status": {
-          "checking": "Sistemin anahtar deposu denetleniyor…",
+          "checking": "Sistem kimlik bilgisi deposu denetleniyor…",
           "notSaved": "Kaydedilmiş API anahtarı yok.",
           "saved": "API anahtarı kaydedildi. Doğrulanmadı.",
           "verified": "API anahtarı doğrulandı.",
-          "verifyRequiresConsent": "Bu anahtarı doğrulamadan önce bir moddaki aktarım bildirimini gözden geçirin."
+          "verifyRequiresConsent": "Bu anahtarı doğrulamadan önce bir modda aktarımı onaylayın."
         },
         "errors": {
           "not_found": "Bu sağlayıcı için kaydedilmiş API anahtarı yok.",
-          "unavailable": "Sistemin güvenli deposu kullanılamıyor.",
-          "locked": "Sistemin güvenli deposu kilitli.",
-          "corrupt": "Kaydedilen kimlik bilgisi güvenli biçimde okunamıyor.",
-          "invalid": "Kimlik bilgisi güvenli depo tarafından kabul edilmedi.",
-          "busy": "Güvenli depo meşgul. Yeniden deneyin.",
-          "backend": "Kimlik bilgisi işlemi tamamlanamadı.",
+          "unavailable": "Sistem kimlik bilgisi deposu kullanılamıyor.",
+          "locked": "Sistem kimlik bilgisi deposu kilitli.",
+          "corrupt": "Kaydedilen anahtar güvenli biçimde okunamıyor.",
+          "invalid": "Sistem kimlik bilgisi deposu anahtarı kabul etmedi.",
+          "busy": "Sistem kimlik bilgisi deposu meşgul. Yeniden deneyin.",
+          "backend": "Sistem kimlik bilgisi deposu bu işlemi tamamlayamadı.",
           "not_configured": "Doğrulamadan önce bir API anahtarı kaydedin.",
-          "consent_required": "Doğrulamadan önce sağlayıcı aktarım bildirimini kabul edin.",
+          "consent_required": "Doğrulamadan önce sağlayıcıya aktarımı onaylayın.",
           "authentication": "Sağlayıcı bu API anahtarını reddetti.",
           "quota": "Hesap kotayı aştığı için sağlayıcı doğrulamayı reddetti.",
           "network": "Doğrulama için sağlayıcıya ulaşılamadı.",
@@ -335,8 +335,8 @@
         "label": "Deneysel Özellikler"
       },
       "lazyStreamClose": {
-        "label": "Transkripsiyonlar Arasında Mikrofonu Açık Tut",
-        "description": "Kayıt durdurulduktan sonra mikrofon akışını 30 saniye açık tutar, böylece ardışık transkripsiyonlar daha hızlı başlar. Akış açıkken Bluetooth ses kalitesi düşebilir."
+        "label": "Dikte etmeler arasında mikrofonu açık tut",
+        "description": "Durdurduktan sonra mikrofonu 30 saniye açık tutar; böylece art arda dikte etmeler daha hızlı başlar. Açıkken Bluetooth ses kalitesi düşebilir."
       },
       "acceleration": {
         "transcribe": {
@@ -520,7 +520,7 @@
         },
         "model": {
           "title": "Model",
-          "descriptionCustom": "Özel uç noktanızın beklediği model tanımlayıcısını girin.",
+          "descriptionCustom": "Özel sunucunuzun beklediği model ID'sini girin.",
           "placeholderWithOptions": "Model ara veya seç",
           "placeholderNoOptions": "Model adı yazın",
           "refreshModels": "Modelleri Yenile"
@@ -555,17 +555,17 @@
       },
       "remoteConsent": {
         "title": "Uzak metin aktarımı",
-        "description": "Toplantı ve transkripsiyon metni, son işleme için {{endpoint}} adresindeki {{provider}} sağlayıcısına gönderilebilir.",
-        "acknowledge": "Metnin bu uç noktaya gönderilebileceğini kabul ediyorum.",
+        "description": "Sona, temizlik işlemi için toplantı ve dikte metinlerini {{endpoint}} adresindeki {{provider}} adresine gönderebilir.",
+        "acknowledge": "Metnin bu adrese gönderilebileceğini kabul ediyorum.",
         "accept": "Metin aktarımına izin ver",
         "cancel": "İptal",
-        "endpointChanged": "Uç nokta değişti. Metnin bu Mac'ten çıkabilmesi için yeni uç noktayı gözden geçirip onaylayın.",
+        "endpointChanged": "Adres değişti. Metnin bu Mac'ten çıkabilmesi için yeni adresi gözden geçirip onaylayın.",
         "invalidDestination": "Bu sağlayıcı hedefi geçersiz veya yalnızca yerel olduğundan uzak onay kaydedilemez.",
         "saveFailed": "Sona bu onayı kaydedemedi.",
-        "current": "{{endpoint}} için metin aktarımı onaylandı.",
+        "current": "Metinlerin {{endpoint}} adresine gönderilmesine izin verdiniz.",
         "review": "Onayı gözden geçir",
-        "endpointLabel": "Kanonik uç nokta",
-        "destinationPinned": "Sona bu onay için tam olarak bu uç noktayı ve kaynağı sabitler."
+        "endpointLabel": "Tam adres",
+        "destinationPinned": "Sona bu onayı tam olarak bu adrese ve kaynağa bağlar."
       }
     },
     "history": {
@@ -593,7 +593,7 @@
       "loadError": "Geçmiş yüklenemedi.",
       "retry": "Tekrar dene",
       "saveError": "Kaydetme durumu güncellenemedi. Yeniden deneyin.",
-      "postProcessEmpty": "Son işleme metin döndürmedi. Ham transkript gösteriliyor.",
+      "postProcessEmpty": "Son işleme metin üretmedi, bu yüzden ham transkript gösteriliyor.",
       "textView": {
         "label": "Transkript görünümü",
         "processed": "İşlendi",
@@ -671,7 +671,7 @@
           "dispatched_but_unconfirmed": "Gönderildi, doğrulanmadı"
         },
         "modeLabel": "Kip",
-        "revisionLabel": "Revizyon",
+        "revisionLabel": "Ayar sürümü",
         "engineLabel": "Motor",
         "sourceLabel": "Kaynak",
         "captureStatusLabel": "Kayıt",
@@ -749,10 +749,10 @@
       "recalledByMeaning": "anlama göre",
       "level": {
         "peak": "peak",
-        "rms": "rms"
+        "rms": "ortalama"
       },
       "noTextRecorded": "Bu kayıt için metin kaydedilmedi.",
-      "cloudHeld": "Cloud çalıştırması alıkonuldu: güvenilir bir sonuç gelmedi ve kullanılabilir yerel model yoktu.",
+      "cloudHeld": "Sona bulut sonucunu alıkoydu: güvenilir hiçbir şey dönmedi ve kullanılabilir yerel model yoktu.",
       "transcriptionEngineFailed": "Transkripsiyon başarısız oldu, bu yüzden hiçbir şey kaydedilmedi.",
       "processAgain": {
         "action": "Yeniden işle",
@@ -774,7 +774,7 @@
       },
       "liveLogs": {
         "title": "Canlı Loglar",
-        "description": "Yalnızca bu panel açıkken oluşturulan satırlar, yukarıda ayarlanan log seviyesinde burada görünür.",
+        "description": "Burada yalnızca bu panel açıkken, yukarıda ayarlanan günlük düzeyinde yazılan satırlar görünür.",
         "pause": "Duraklat",
         "resume": "Sürdür",
         "copied": "Kopyalandı",
@@ -820,10 +820,10 @@
       },
       "keyboardImplementation": {
         "title": "Klavye Uygulaması",
-        "bindingsReset": "Klavye kısayolları uyumsuzdu ve varsayılan ayarlara sıfırlandı"
+        "bindingsReset": "Klavye kısayolları uyumsuzdu ve varsayılan ayarlara sıfırlandı."
       },
       "paths": {
-        "appData": "Uygulama Verileri:",
+        "appData": "Uygulama verileri:",
         "models": "Modeller:",
         "settings": "Ayarlar:"
       },
@@ -841,30 +841,24 @@
       },
       "recordingBuffer": {
         "title": "Ekstra Kayıt Tamponu",
-        "description": "Tuşu bıraktıktan sonra arka plandaki sesi yakalamak için kaydı sürdürme süresi (milisaniye). 0 = ekstra tampon yok."
+        "description": "Tuşu bıraktıktan sonra son sesi yakalamak için kaydı sürdürme süresi (milisaniye). İstemiyorsanız 0 yapın."
       },
       "keyboardDiagnostic": {
         "title": "Klavye Tanılaması",
         "description": "Klavye olaylarının Sona'ye ulaşıp ulaşmadığını denetler. Yalnızca olay sayıları kaydedilir, hangi tuşlara bastığınız asla kaydedilmez.",
         "run": "10 sn'lik tanılamayı çalıştır",
         "running": "Dinleniyor… kısayolunuza birkaç kez basın (ör. Option+Space)",
-        "secureInputLabel": "Secure Input",
+        "secureInputLabel": "Güvenli giriş",
         "enabled": "etkin",
         "disabled": "devre dışı",
         "holder": "{{name}} tarafından tutuluyor (pid {{pid}})",
-        "holderUnknown": "görünür bir sahip yok",
-        "keyDown": "Tuş basma",
-        "keyUp": "Tuş bırakma",
-        "flagsChanged": "Değiştiriciler",
-        "mouse": "Fare",
-        "verdictBlocked": "Secure Input tuş olaylarını engelliyor, bu yüzden tuş içeren kısayollar bu sorun çözülene kadar çalışamaz.",
-        "verdictSuspicious": "Değiştirici olayları geldi ancak hiç tuş olayı gelmedi. Secure Input devre dışı görünmesine rağmen bir şey tuşları bastırıyor. Bunu GitHub'da bildirin.",
-        "verdictOk": "Tuş olayları Sona'ye normal şekilde ulaşıyor.",
-        "verdictNoEvents": "Test sırasında hiç olay yakalanmadı.",
-        "failed": "Tanılama başarısız: {{error}}"
+        "notSupported": "Bu platformda desteklenmiyor.",
+        "noHolder": "Güvenli Girişi (Secure Input) kullanan uygulama yok.",
+        "status": "Durum",
+        "error": "Klavye teşhisi kullanılamıyor."
       },
       "whatsNewPreview": {
-        "title": "Yenilikleri Önizle",
+        "title": "Sürüm notunu önizle",
         "description": "En son paketlenmiş sürüm notunu görüldü olarak işaretlemeden aç",
         "noNotes": "Paketlenmiş sürüm notu bulunamadı",
         "error": "Sürüm notları önizlenemedi. Yeniden deneyin."
@@ -945,14 +939,14 @@
           },
           "capture": {
             "label": "Web sitesinde etkinleştir",
-            "description": "Öndeki tarayıcının ana makinesini yakalayın. Sona URL'yi değil ana makineyi saklar.",
+            "description": "Öndeki web sitesini kullanın. Sona tam adres yerine site adını kaydeder.",
             "action": "Geçerli web sitesini yakala",
             "capturing": "Yakalanıyor…"
           },
           "empty": "Hiçbir web sitesi bu modu etkinleştirmiyor.",
-          "exampleDescription": "Bir kural tek bir tarayıcı sunucusu saklar, örneğin mail.google.com."
+          "exampleDescription": "Her kural, mail.google.com gibi tek bir web sitesi kullanır."
         },
-        "exampleDescription": "Bir kural tek bir uygulama kimliği saklar, örneğin com.apple.mail.",
+        "exampleDescription": "Her kural, com.apple.mail gibi tek bir uygulama ID'si kullanır.",
         "removeTarget": "{{target}} öğesini kaldır",
         "unsupported": "Uygulama ve web sitesi etkinleştirme yalnızca macOS'te kullanılabilir."
       },
@@ -1060,10 +1054,10 @@
           "unavailable": "{{provider}} kullanılamıyor"
         },
         "cloud": {
-          "setupRequired": "{{provider}} bulut denetimlerinin kullanılabilmesi için kayıtlı kendi API anahtarına ve güncel aktarım onayına ihtiyaç duyar.",
+          "setupRequired": "{{provider}} bulut denetimlerinin açılması için sistem kimlik bilgisi deposunda bir API anahtarına ve güncel aktarım onayına ihtiyaç duyar.",
           "fallback": {
             "label": "Yerel yedeği kullan",
-            "description": "Bulut sağlayıcısı güvenilir bir sonuç döndüremezse, yakalanan ses yerel bir modelle yazıya dökülür.",
+            "description": "Bulut sağlayıcısı güvenilir bir sonuç döndüremezse, kayıt yerel bir modelle yazıya dökülür.",
             "useModeModel": "Bu modun yerel modelini kullan",
             "model": {
               "label": "Yedek model",
@@ -1071,8 +1065,8 @@
             }
           },
           "keyterms": {
-            "label": "Bulut anahtar terimleri",
-            "description": "Her satıra bir terim. Bu terimler bu bulut isteğiyle gönderilir.",
+            "label": "Dikkat edilecek kelimeler",
+            "description": "Her satıra bir kelime ya da ad. Sona bunları sesle birlikte sağlayıcıya gönderir.",
             "placeholder": "Ürün adı\nKişi adı"
           },
           "timestamps": {
@@ -1088,22 +1082,22 @@
               "description": "Bu modda kaydedilen ses, transkripsiyon için doğrudan {{provider}} sağlayıcısına gönderilir."
             },
             "privacy": {
-              "label": "Gizlilik sözleşmesi",
-              "description": "Sağlayıcı bu modun sesini, seçilen dili ve anahtar terimleri alır. Uygulama bağlamı ve kendi kimlik bilgileriniz bu cihazda kalır."
+              "label": "Sağlayıcının gördükleri",
+              "description": "Sağlayıcı bu modun sesini, dilini ve sizin listelediğiniz kelimeleri alır. Sona'nın diğer uygulamalarınızdan okudukları ve anahtarlarınız bu Mac'te kalır."
             },
             "localFallback": {
               "label": "Yerel yedek",
-              "description": "Bulut sağlayıcısı güvenilir bir sonuç döndüremezse Sona, seçtiğiniz yerel modeli kullanabilir."
+              "description": "Bulut sağlayıcısı güvenilir bir sonuç döndüremezse, Sona seçtiğiniz yerel modeli kullanabilir."
             },
             "decline": "Yerelde kal",
             "accept": "Kabul et ve bulutu kullan",
             "accepting": "Kabul ediliyor…",
             "errors": {
               "unknown_provider": "Bu bulut sağlayıcısı bu derlemede kullanılamıyor.",
-              "backend": "Onay kaydı kaydedilemedi."
+              "backend": "Onay kaydedilemedi."
             }
           },
-          "title": "Bulut aktarımı"
+          "title": "Bulut transkripsiyonu"
         }
       },
       "context": {
@@ -1157,7 +1151,7 @@
         },
         "reliablePaste": {
           "label": "Güvenilir yapıştırma",
-          "description": "Platform desteklediğinde onay sırasına dayalı yapıştırma kullanır."
+          "description": "Sistem izin verdiği yerde, panoyu ancak uygulama transkripti okuduktan sonra geri yükler."
         },
         "delay": {
           "label": "Yapıştırma gecikmeleri",
@@ -1187,14 +1181,14 @@
       },
       "errors": {
         "staleRevision": "Ayarlar başka bir yerde değişti. En son modu gözden geçirip yeniden kaydedin.",
-        "invalid_mode_id": "Bu mod kimliği geçersiz.",
+        "invalid_mode_id": "Sona bunun hangi mod olduğunu okuyamadı.",
         "empty_name": "Bir mod adı gerekli.",
         "cannot_delete_default": "Varsayılan mod silinemez.",
         "unknown_mode": "Bu mod artık yok.",
-        "duplicate_mode_id": "Bu kimliğe sahip bir mod zaten var.",
+        "duplicate_mode_id": "Bu mod zaten var.",
         "invalid_reorder": "Mod sırası kaydedilemedi.",
         "invalid_website_host": "Web sitesi ana makinesi geçersiz.",
-        "website_activation_consent_required": "Web sitesi kuralı eklemeden önce Gizlilik'te tarayıcı URL'lerini etkinleştirin.",
+        "website_activation_consent_required": "Web sitesi kuralı eklemeden önce Gizlilik'te \"Tarayıcı URL'lerini dahil et\" seçeneğini açın.",
         "frontmost_website_unavailable": "Tarayıcıdan bir web sitesi yakalanamadı.",
         "website_activation_secure_field": "Web sitesi kuralları güvenli bir alandan yakalanamaz."
       },
@@ -1240,10 +1234,10 @@
             "target_and_selection": "Seçim",
             "full": "Tam"
           },
-          "error": "Bağlam üst sınırı kaydedilemedi"
+          "error": "Bağlam üst sınırı kaydedilemedi."
         },
         "sources": {
-          "none": "Hiçbir uygulama bağlamını okumaz.",
+          "none": "Diğer uygulamalarınızdan hiçbir şey okumaz.",
           "target": "Hangi uygulamanın önde olduğunu okur.",
           "target_and_selection": "Hangi uygulamanın önde olduğunu ve varsa seçili metni okur.",
           "full": "İzin verilen bir tarayıcı URL'sini ve varsa son değişen pano metnini de okuyabilir."
@@ -1257,7 +1251,7 @@
       "diagnostics": {
         "title": "Bağlam tanılaması",
         "refresh": "Yenile",
-        "error": "Tanılama yenilenemedi",
+        "error": "Tanılama yenilenemedi.",
         "accessibility": {
           "label": "Erişilebilirlik"
         },
@@ -1299,14 +1293,14 @@
             "months_3": "3 ay"
           }
         },
-        "error": "Veri saklama ayarı kaydedilemedi",
+        "error": "Veri saklama ayarı kaydedilemedi.",
         "historyStorage": {
           "encrypted": "Bekleme durumunda şifreli",
           "label": "Geçmiş depolaması",
           "locked": "Kilitli",
           "plaintext": "Şifreli değil",
           "reasons": {
-            "encryption_unavailable": "Bu sürüm şifreli bir veritabanını açamıyor, bu yüzden geçmiş şifrelenmeden saklanıyor.",
+            "encryption_unavailable": "Sona'nın bu sürümü şifreli bir veritabanını açamıyor, bu yüzden geçmiş şifrelenmeden saklanıyor.",
             "key_rejected": "Saklanan anahtar şifreli veritabanını açmıyor, bu yüzden geçmiş okunamıyor.",
             "key_unavailable": "Sistem kimlik bilgisi deposu kullanılabilir bir anahtar döndürmedi, bu yüzden geçmiş şifrelenmeden saklanıyor.",
             "migration_failed": "Mevcut veritabanının şifrelenmesi başarısız oldu. Şifrelenmemiş veritabanı sağlam ve kullanımda."
@@ -1318,7 +1312,7 @@
       "cloudTranscription": {
         "title": "Bulut transkripsiyonu",
         "checkFailed": "Bulut transkripsiyonu yapılandırması denetlenemedi.",
-        "disclosure": "Bulut etkin bir mod için Sona, kaydedilen sesi, seçilen dili ve modun anahtar terimlerini doğrudan sağlayıcıya gönderir. Uygulama bağlamı ve kendi kimlik bilgileriniz bu cihazda kalır."
+        "disclosure": "Bulut etkin bir mod için Sona, kaydedilen sesi, seçilen dili ve o modda listelenen kelimeleri doğrudan sağlayıcıya gönderir. Sona'nın diğer uygulamalarınızdan okudukları ve anahtarlarınız bu Mac'te kalır."
       },
       "upstreamImport": {
         "title": "Eski uygulamadan içe aktarma",
@@ -1358,11 +1352,11 @@
           "app_state_unverifiable": "Sona bu platformda eski uygulamanın kapalı olduğunu doğrulayamıyor.",
           "invalid_selection": "İçe aktarmak için ayarları veya geçmişi seçin.",
           "settings_unreadable": "Eski ayar dosyası okunamadı.",
-          "secret_store_unavailable": "Sistem kimlik bilgisi deposu kullanılamıyor, bu yüzden sağlayıcı anahtarları içeren ayarlar içe aktarılmadı.",
-          "secret_conflict": "Sistem kimlik bilgisi deposunda bir sağlayıcı anahtarı zaten var. Ayarları içe aktarmadan önce bunu çözün.",
+          "secret_store_unavailable": "Sistem kimlik bilgileri deposu kullanılamıyor; bu nedenle sağlayıcı anahtarlarını içeren ayarlar içe aktarılmadı.",
+          "secret_conflict": "Sistem kimlik bilgileri deposunda zaten bir sağlayıcı anahtarı var. Ayarları içe aktarmadan önce çakışmayı çözün.",
           "history_unreadable": "Eski geçmiş veritabanı okunamadı.",
           "recording_copy_failed": "Bir kayıt kopyalanıp doğrulanamadı.",
-          "receipt_write_failed": "İçe aktarma kaydı yazılamadı.",
+          "receipt_write_failed": "Sona içe aktarma detaylarını kaydedemedi.",
           "internal": "İçe aktarma tamamlanmadı.",
           "status": "Eski uygulamanın verileri incelenemedi."
         },
@@ -1385,65 +1379,65 @@
     "agents": {
       "title": "Ajanlar",
       "controls": {
-        "title": "Köprü denetimleri",
+        "title": "Ajan kontrolleri",
         "master": {
-          "label": "Ajan köprüsünü etkinleştir"
+          "label": "Ajan bağlantılarını etkinleştir"
         },
-        "status": "Çalışma zamanı durumu",
+        "status": "Durum",
         "providers": {
           "claude": {
             "label": "Claude",
-            "description": "Claude oturumlarını gözle ve mevcut olduğunda fikstür destekli yanıtları etkinleştir."
+            "description": "Claude oturumlarını gözle ve Sona'nın desteklediği yerlerde yanıtla."
           },
           "codex": {
             "label": "Codex",
-            "description": "Yalnızca oturumları gözler. Bir protokol fikstürü desteklemedikçe yanıtlar salt okunurdur."
+            "description": "Yalnızca oturumları gözle. Sona henüz Codex'e yanıt veremiyor."
           },
           "grok": {
             "label": "Grok",
-            "description": "Yalnızca oturumları gözler. Bir protokol fikstürü desteklemedikçe yanıtlar salt okunurdur."
+            "description": "Yalnızca oturumları gözle. Sona henüz Grok'a yanıt veremiyor."
           },
           "omp": {
             "label": "OMP",
-            "description": "OMP oturumlarını ve onay isteklerini gözle. Yanıtlar yalnızca desteklenen bir OMP oturumu durdurmasında kullanılabilir."
+            "description": "OMP oturumlarını ve onay isteklerini gözle. Sona ancak bir OMP oturumu durduğunda yanıt verebilir."
           }
         }
       },
       "status": {
         "disabled": "Devre dışı",
-        "runtime_unavailable": "Çalışma zamanı kullanılamıyor",
-        "interactive_unsupported": "Etkileşimli yanıtlar desteklenmiyor",
+        "runtime_unavailable": "Çalışmıyor",
+        "interactive_unsupported": "Yanıtlar mevcut değil",
         "app_lock_held": "Başka bir Sona örneği etkin",
         "active": "Etkin"
       },
       "projects": {
         "title": "Yetkilendirilmiş projeler",
-        "hashOnly": "İzin sınırını projelerin tam karma değerleri belirler; klasör yolları burada saklanmaz.",
+        "hashOnly": "Sona, klasör yolunu buraya kaydetmeden projeyi klasöründen tanır.",
         "add": "Klasörü yetkilendir",
         "remove": "Projeyi kaldır",
         "empty": "Yetkilendirilmiş proje yok."
       },
       "hook": {
-        "title": "Hook parçacığı",
-        "description": "Paketle gelen hook yapılandırmasını ajanınızın kendi yapılandırmasına kopyalayın. Sona ajan yapılandırma dosyalarını asla düzenlemez.",
-        "copy": "Parçacığı kopyala",
-        "error": "Hook parçacığı kullanılamıyor"
+        "title": "Kurulum kodu",
+        "description": "Bu kurulum kodunu ajanınızın yapılandırmasına yapıştırın. Sona asla ajan dosyalarını değiştirmez.",
+        "copy": "Kurulum kodunu kopyala",
+        "error": "Kurulum kodu mevcut değil"
       },
       "replyQueue": {
         "title": "Yanıt önizlemesi",
         "session": "Yanıtın hedefi",
-        "noSession": "Yanıt alabilecek gözlenen oturum yok",
+        "noSession": "Sona'nın yanıtlayabileceği bir oturum yok",
         "message": "Yanıt metni",
         "createPreview": "Önizleme oluştur",
-        "notReady": "Yanıtlar için köprünün açık olması ve en az bir ajanın etkin olması gerekir."
+        "notReady": "Yanıt vermeden önce ajan bağlantılarını ve en az bir ajanı açın."
       },
       "pending": {
         "empty": "Bekleyen yanıt yok.",
         "confirm": "Tam yanıtı onayla",
-        "confirmed": "Sonraki desteklenen durdurma olayı için onaylandı",
+        "confirmed": "Ajan durduğunda gönderilecek",
         "cancel": "İptal",
         "states": {
-          "held": "Sonraki desteklenen durdurma olayı için tutuluyor",
+          "held": "Ajan durana kadar bekleniyor",
           "response_written": "Yanıt yazıldı",
           "emitted": "Gönderildi",
           "copy_only": "Yalnızca kopyalama",
@@ -1452,12 +1446,12 @@
         "title": "Bekleyen yanıtlar"
       },
       "observed": {
-        "title": "Gözlenen etkinlik",
+        "title": "Ajan etkinliği",
         "refresh": "Yenile",
         "sessions": "Oturumlar",
-        "noSessions": "Gözlenen oturum yok.",
+        "noSessions": "Henüz ajan etkinliği yok.",
         "requests": "İstekler",
-        "noRequests": "Gözlenen istek yok.",
+        "noRequests": "Henüz istek yok.",
         "requestKinds": {
           "session_start": "Oturum başladı",
           "user_prompt_submit": "İstem gönderildi",
@@ -1474,7 +1468,7 @@
         "ompPermissionObserveOnly": "OMP onay istekleri yalnızca gözlenir. Bunları OMP içinde onaylayın veya reddedin."
       },
       "rules": {
-        "title": "Tam izin kuralları",
+        "title": "İzin kuralları",
         "empty": "İzin kuralı yok.",
         "remove": "Kuralı kaldır",
         "decisions": {
@@ -1483,20 +1477,20 @@
         }
       },
       "errors": {
-        "load": "Ajan köprüsü verileri yüklenemedi: {{error}}",
-        "operation": "Ajan köprüsü eylemi tamamlanamadı: {{error}}"
+        "load": "Ajan bağlantı detayları yüklenemedi: {{error}}",
+        "operation": "Ajan işlemi tamamlanamadı: {{error}}"
       },
       "panel": {
         "error": "Ajan paneli ayarı kaydedilemedi.",
         "label": "Ajan panelini etkinleştir",
-        "rowDescription": "Bunu kapatmak panel penceresini kapatır ve Sona'nın yeniden açma isteklerinin tümünü reddetmesini sağlar.",
+        "rowDescription": "Bunu kapatmak paneli kapatır ve diğer uygulamaların onu tekrar açmasını engeller.",
         "title": "Ajan paneli"
       },
       "externalAccess": {
         "label": "Harici erişim",
-        "rowDescription": "Bu Mac'teki diğer programların sona komut satırı ve MCP sunucusu üzerinden toplantılarınızı, dikte kayıtlarınızı, kişileri ve açık işleri okumasına izin verir. Salt okunur ve siz açana kadar kapalı."
+        "rowDescription": "Diğer programların bu Mac üzerindeki toplantılarınızı, diktelerinizi, kişileri ve açık döngüleri Sona'nın komut satırı aracını ve MCP sunucusunu kullanarak okumasına izin verir. Sadece okunabilir durumdadır ve siz açana kadar kapalı kalır."
       },
-      "workspaceNavigation": "Ajan köprüsü görünümleri",
+      "workspaceNavigation": "Ajan görünümleri",
       "sonaAgent": {
         "title": "Sona aracısı",
         "pairing": "Eşleşme",
@@ -1504,29 +1498,29 @@
         "unpaired": "Eşleşmedi",
         "lastReached": "Son ulaşılan",
         "never": "Hiç",
-        "relayUrl": "Röle adresi",
+        "relayUrl": "Sunucu adresi",
         "relayUrlHint": "Yalnızca bir Tailscale adresi ya da bu Mac'in kendisi kabul edilir. Açık internetteki her şey kaydedilmeden önce reddedilir.",
-        "relayKeyId": "Röle anahtar kimliği",
-        "relayPublicKey": "Rölenin açık anahtarı",
+        "relayKeyId": "Sunucu anahtar ID",
+        "relayPublicKey": "Sunucu açık anahtarı",
         "identity": "Bu Mac'in açık anahtarı",
-        "identityHint": "Bu anahtarı röleye ekle ki bu Mac'ten gelen istekleri kabul etsin. Özel yarısı anahtar zincirinden hiç çıkmaz.",
+        "identityHint": "Bu Mac'ten gelen mesajları kabul etmesi için bu anahtarı sunucuya ekleyin. Özel anahtar asla anahtar zincinizden çıkmaz.",
         "identityUnavailable": "Anahtar oluşturmak için aracı panelini aç.",
         "copy": "Kopyala",
         "copied": "Kopyalandı",
         "unpair": "Eşleşmeyi kaldır",
         "test": "Dene",
-        "reached": "Röle yanıt verdi.",
-        "failed": "Röleyle eşleşilemedi.",
+        "reached": "Sunucudan yanıt alındı.",
+        "failed": "Sunucuya bağlanılamadı.",
         "reason": {
           "unauthorized_window": "O pencere eşleşmeyi değiştiremez.",
           "disabled": "Aracı paneli kapalı.",
-          "unpaired": "Henüz eşleşmiş bir röle yok.",
-          "offline": "Röle yanıt vermedi.",
+          "unpaired": "Henüz eşleşmiş bir sunucu yok.",
+          "offline": "Sunucudan yanıt alınamadı.",
           "invalid_configuration": "Sona o adresi veya anahtarı kullanmaz.",
           "secret_unavailable": "Bu Mac'in anahtarı okunamadı.",
-          "untrusted_response": "Yanıt, eşleşmiş röle tarafından imzalanmamıştı.",
-          "remote_rejected": "Röle isteği reddetti.",
-          "ownership_rejected": "Röle başkası adına yanıt verdi."
+          "untrusted_response": "Yanıt, eşleşmiş sunucu tarafından imzalanmadı.",
+          "remote_rejected": "Sunucu isteği reddetti.",
+          "ownership_rejected": "Sunucu başkası için yanıt verdi."
         }
       }
     },
@@ -1606,12 +1600,12 @@
         "retry": "Yeniden dene"
       },
       "runLog": {
-        "title": "Çalıştırma günlüğü",
-        "empty": "Henüz hiçbir iş akışı çalıştırılmadı.",
-        "loadError": "Çalıştırma günlüğü yüklenemedi.",
-        "loadMoreError": "Daha fazla çalıştırma yüklenemedi.",
-        "loadMore": "Daha fazla yükle",
-        "chartAria": "Günlük iş akışı çalıştırmaları, son 7 günde {{count}}"
+        "title": "Etkinlik",
+        "empty": "Henüz bir etkinlik yok.",
+        "loadError": "Etkinlik yüklenemedi.",
+        "loadMoreError": "Daha fazla etkinlik yüklenemedi.",
+        "loadMore": "Daha fazla göster",
+        "chartAria": "Günlük etkinlik, son 7 günde {{count}}"
       }
     },
     "vocabulary": {
@@ -1690,7 +1684,7 @@
         "shortcutHint": "Kısayolu adıyla, toplantının dışa aktarımı girdi olarak çalıştırır. Otuz saniye, sonra durdurulur.",
         "shortcutPlaceholder": "Kısayol adı",
         "webhook": "Bir webhook'a gönder",
-        "webhookHint": "Toplantının dışa aktarımını JSON olarak gönderir. Yalnızca kendi makinen ya da tailnet'in — röleyle aynı kural.",
+        "webhookHint": "Toplantı dışa aktarımını JSON olarak gönderir. Sunucuda olduğu gibi sadece kendi makinenizi veya tailnet'inizi kullanın.",
         "webhookPlaceholder": "http://100.x.y.z:8650/hook",
         "needsTarget": "Önce bir ad ekle",
         "needsUrl": "Önce bir adres ekle",
@@ -1701,11 +1695,11 @@
       "remoteIntelligence": {
         "title": "Toplantı zekâsı",
         "label": "Toplantı notlarını kendi sunucumda yaz",
-        "consent": "Toplantı özetleri ve yanıtları, özel ağın üzerinden kendi sunucunda yazılır",
-        "unpaired": "Bunu açmak için Ajanlar bölümünde Sona'yı sunucunla eşleştir",
+        "consent": "Toplantı özetleri ve yanıtları, özel ağın üzerinden kendi sunucunda yazılır.",
+        "unpaired": "Bunu açmak için Ajanlar bölümünde Sona'yı sunucunla eşleştir.",
         "seriesTitle": "Bu Mac'te kalan seriler",
         "seriesHint": "Burada listelenen bir seri, toplantı zekâsı açıkken bile hep bu Mac'te yazılır.",
-        "seriesEmpty": "Henüz kaydedilmiş yinelenen toplantı yok",
+        "seriesEmpty": "Henüz kaydedilmiş yinelenen toplantı yok.",
         "loading": "Serileriniz okunuyor…",
         "lastMet": "Son görüşme {{date}}",
         "keepLocalLabel": "{{series}} serisini bu Mac'te tut",
@@ -1736,10 +1730,10 @@
   },
   "commandPalette": {
     "open": "Ara",
-    "placeholder": "Bir komut yazın veya arayın",
+    "placeholder": "Bir işlem arayın veya seçin",
     "navigation": "Gezinme",
     "actions": "Eylemler",
-    "noResults": "Komut bulunamadı",
+    "noResults": "Sonuç bulunamadı",
     "newMeeting": "Yeni toplantı",
     "importAudio": "Dosyayı transkribe et",
     "openRecordings": "Kayıtlar Klasörünü Aç",
@@ -1782,9 +1776,9 @@
     "commandRewriteUnavailable": "Yeniden yazım hiçbir şey döndürmedi, seçiminiz olduğu gibi kaldı. Settings > Post-processing bölümündeki sağlayıcıyı denetleyip yeniden deneyin.",
     "noModelSelectedTitle": "Model seçilmedi",
     "noSpeechSaveFailedTitle": "Örnek kaydedilmedi",
-    "captureOverrunTitle": "Kayıt taştı",
+    "captureOverrunTitle": "Kayıt yarıda kesildi",
     "cloudUnavailableTitle": "Bulut kullanılamıyor",
-    "cloudTranscriptionHeldTitle": "Bulut çalışması tutuldu",
+    "cloudTranscriptionHeldTitle": "Bulut sonucu alıkonuldu",
     "commandNoSelectionTitle": "Hiçbir şey seçili değil",
     "commandRewriteUnavailableTitle": "Yeniden yazma kullanılamıyor"
   },
@@ -1910,7 +1904,7 @@
     },
     "setup": {
       "defaultTitle": "Yerel notlar",
-      "remoteUnavailable": "Bu sürümde uzaktan işleme kullanılamaz, bu yüzden her toplantı bu Mac üzerinde çevriliyor ve özetleniyor."
+      "remoteUnavailable": "Sona'nın bu sürümünde uzaktan işleme yok, bu yüzden her toplantı bu Mac'te yazıya dökülür ve özetlenir."
     },
     "preflight": {
       "storage": "Depolama",
@@ -1918,7 +1912,7 @@
       "storageUnavailable": "Şifrelenmiş toplantı depolaması kullanılamıyor.",
       "localModel": "Yerel model",
       "localModelDescription": "Yerel bir model varken işleme yerelde kalır.",
-      "starting": "Görünür yakalama başlatılıyor…",
+      "starting": "Kayıt başlatılıyor…",
       "refreshing": "Kontrol ediliyor…"
     },
     "consent": {
@@ -1931,7 +1925,7 @@
       "partialCapture": "Sesin bir kısmı eksik. Oluşturulan notlara güvenmeden önce boşlukları kontrol edin.",
       "inputs": "Girişler",
       "signal": "Sinyal",
-      "signalUnavailable": "{{source}} düzeyi yakalama tarafından bildirilmiyor.",
+      "signalUnavailable": "{{source}} kendi düzeyini bildirmiyor.",
       "notReported": "Bildirilmiyor",
       "durabilityLag": "Diske kaydedildi",
       "behind": "{{duration}} geride",
@@ -1957,7 +1951,7 @@
     },
     "retention": {
       "title": "Saklama",
-      "description": "Sona, süresi gelen yerel toplantı kayıtlarını aynı doğrulanmış silme yolundan siler.",
+      "description": "Sona bu Mac'teki toplantıları her seferinde aynı doğrulanmış yolla siler.",
       "forever": "Ben silene kadar sakla",
       "days": "{{days}} gün sonra sil",
       "loading": "Geçerli politika okunuyor…"
@@ -1965,7 +1959,7 @@
     "receipts": {
       "title": "Düzeltme kaydı",
       "saved": "Yerel olarak kaydedildi.",
-      "savedRevision": "Yerel olarak kaydedildi. Revizyon {{revision}}.",
+      "savedRevision": "Yerel olarak kaydedildi. Sürüm {{revision}}.",
       "duplicate": "Bu eylem daha önce kaydedilmişti. Sona mevcut sonucu yeniledi."
     },
     "reasons": {
@@ -1977,7 +1971,7 @@
       "source_start_failed": "Bir kaynak başlatılamadı.",
       "source_gap": "Bir kaynak boşluk bildirdi.",
       "storage_unavailable": "Şifrelenmiş toplantı depolaması kullanılamıyor.",
-      "storage_failure": "Depolama bu değişikliği kalıcı hale getiremedi.",
+      "storage_failure": "Depolama bu değişikliği kaydedemedi.",
       "local_model_unavailable": "Yerel bir model kullanılamıyor.",
       "recovery_required": "Bu toplantının kurtarılması gerekiyor.",
       "deleted": "Bu toplantı silindi.",
@@ -2008,7 +2002,7 @@
       "consent_required": "Başlamadan önce kayıt onayını doğrulayın.",
       "consent_stale": "Kurulum değişti. Başlamadan önce yeniden gözden geçirin.",
       "invalid_transition": "Bu eylem toplantının şu anki aşamasında kullanılamaz.",
-      "stale_revision": "Bu toplantı başka bir pencerede değişti. Sona anlık görüntüsünü yeniledi.",
+      "stale_revision": "Bu toplantı başka bir pencerede değişti. Sona onu yeniden yükledi.",
       "capture_lease_busy": "Başka bir toplantı zaten ses yakalıyor.",
       "no_source_started": "Onaylanmış hiçbir ses kaynağı başlamadı.",
       "source_unavailable": "İstenen bir ses kaynağı kullanılamıyor.",
@@ -2026,12 +2020,12 @@
       "liveTitle": "Bu oturum durdurulup atılsın mı?",
       "keepRecording": "Kayda devam et",
       "stopAndDiscard": "Durdur ve at",
-      "explainsData": "Ses, transkript, elle alınan notlar, oluşturulan notlar ve yerel yanıt önbellekleri silinir. Bu geri alınamaz.",
+      "explainsData": "Ses, transkript, elle yazılan notlar, oluşturulan notlar ve kaydedilen yanıtlar silinecek. Bu geri alınamaz.",
       "complete": "Oturum atıldı"
     },
     "delete": {
       "title": "Bu toplantı silinsin mi?",
-      "explainsData": "Doğrulanmış silme tamamlanana kadar Sona toplantıyı erişilemez tutar. Dışa aktarmalar ve uzak kopyalar yerel silmenin dışındadır.",
+      "explainsData": "Doğrulanmış silme bitene kadar Sona toplantıyı erişim dışında tutar. Dışa aktarımlar ve uzak kopyalar buna dahil değildir.",
       "complete": "Toplantı silindi"
     },
     "review": {
@@ -2049,8 +2043,8 @@
       "showFewerGaps": "Daha az göster",
       "transcript": "Transkript",
       "noTranscript": "Kullanılabilir transkript yok.",
-      "transcriptSegment": "Transkript bölümü",
-      "removeSegment": "Bölümü kaldır",
+      "transcriptSegment": "Transkript sırası",
+      "removeSegment": "Bu sırayı kaldır",
       "editTurn": "Bu sözü düzenle",
       "unknownSpeaker": "Bilinmeyen konuşmacı",
       "speakers": "Konuşmacılar",
@@ -2086,7 +2080,7 @@
       "keyQuestions": "Temel sorular",
       "risks": "Riskler",
       "followUp": "Takip",
-      "artifactUnavailable": "Bu üretilmiş revizyon kullanılamıyor. Kaynak transkript ve elle alınan notlar yerelde kalır.",
+      "artifactUnavailable": "Bu oluşturulan notlar kullanılamıyor. Transkript ve kendi notlarınız bu Mac'te kalır.",
       "actionMeta": "Sahibi: {{owner}} · Bitiş: {{due}}",
       "unassigned": "Atanmamış",
       "noDueDate": "Bitiş tarihi yok",
@@ -2129,10 +2123,10 @@
       "exportHtml": "Kayıt defteri sayfasını dışa aktar",
       "exported": "Kayıt defteri {{path}} konumuna yazıldı",
       "exportMissing": "Bu toplantının dışa aktarılacak kayıt defteri yok. Önce notları yeniden üretin.",
-      "statThreads": "Kapanan konular",
+      "statThreads": "Sonuca bağlanan konular",
       "statReceipts": "Alıntılar",
       "receiptsVerified": "doğrulandı",
-      "receiptsDegraded": "{{threads}} konu ve {{commitments}} taahhüt kaldırıldı",
+      "receiptsDegraded": "{{threads}} ileti dizisi ve {{commitments}} taahhüt kaldırıldı",
       "threads": "Konular",
       "asideThread": "ara konu",
       "openLoops": "Yanıtsız sorular",
@@ -2262,7 +2256,7 @@
       "title": "Kayıt başlamadı",
       "readyTitle": "Kayda hazır",
       "recordAnyway": "Onsuz kaydet",
-      "recordAnywayHint": "Kayıt kısmi olarak işaretlenir ve eksik kaynak kayıtta adıyla anılmaya devam eder."
+      "recordAnywayHint": "Toplantı kısmi olarak işaretlenir ve eksik kaynak içinde adıyla kalır."
     },
     "analytics": {
       "title": "Konuşma",
@@ -2345,7 +2339,7 @@
       },
       "apps": {
         "label": "Toplantı uygulamaları",
-        "description": "Satır başına bir paket tanımlayıcısı. Bir girdi yalnızca o uygulama çalışırken sayılır; adı değişmiş bir tanımlayıcı yanlış olmaktan çok etkisiz kalır.",
+        "description": "Satır başına bir uygulama kimliği. Bir kayıt sadece uygulama çalışırken geçerlidir; böylece yanlış tetikleme yerine, yeniden adlandırılan bir uygulama kimliği işlem yapmaz.",
         "running": "Şimdi çalışıyor: {{apps}}",
         "noneRunning": "Bunlardan hiçbiri şu anda çalışmıyor."
       },
@@ -2354,7 +2348,7 @@
         "calendarDenied": "Takvim erişimi verilmedi, bu yüzden yalnızca mikrofon yolu çalışıyor.",
         "notificationsDenied": "Sona için bildirimler kapalı, bu yüzden uyarılar yalnızca uygulamada görünür.",
         "bluetoothCaveat": "Bir toplantı uygulaması açık ama hiçbir şey mikrofon kullanımı bildirmiyor. Bluetooth kulaklıklar bunu sık sık bildirmez; bir toplantı sürüyorsa kaydı kendiniz başlatın.",
-        "noSilenceStop": "Yakalamalar etkinliğin bitiminde, uygulama kapandığında, uykuda ya da siz durdurduğunuzda durur. Sessizlik sayacı canlı döküm gerektirir; o da ancak bir toplantı bittikten sonra çalışır."
+        "noSilenceStop": "Kayıt; etkinlik bittiğinde, uygulama kapandığında, Mac uykuya geçtiğinde ya da siz durdurduğunuzda biter. Sessizlik onu durdurmaz: bunun için canlı transkripsiyon gerekir, transkripsiyon ise toplantı bittikten sonra çalışır."
       },
       "why": {
         "disabled": "Algılama kapalı.",
@@ -2389,7 +2383,7 @@
         "autoOpen": "Bu toplantı başlayınca aç"
       },
       "recording": {
-        "none": "Hazır kaynak yok"
+        "none": "Kaynak seçilmedi"
       },
       "participation": {
         "accepted": "Kabul edildi",
@@ -2426,7 +2420,7 @@
       "loading": "Takviminiz okunuyor…",
       "empty": "Önümüzdeki hafta için planlanmış bir şey yok.",
       "noAccess": "Sona takviminizi göremiyor.",
-      "noAccessHint": "Toplantı ayarlarında \"Takvimimi kullan\"ı açın, macOS sorduğunda tam erişim verin. macOS Takvim'in zaten gösterdiği her şey — Google, iCloud, Outlook — bununla birlikte gelir.",
+      "noAccessHint": "Toplantı ayarlarında \"Takvimimi kullan\" seçeneğini açın, sonra macOS sorduğunda tam erişim verin. macOS Takvim'in zaten gösterdiği her şey (Google, iCloud, Outlook) bununla birlikte gelir.",
       "unavailable": "Bu sistemde Sona'nın okuyabileceği bir takvim yok.",
       "attendees": "Katılımcılar",
       "you": "Siz",
@@ -2511,6 +2505,16 @@
       "row": "Sona'ya sor: {{query}}",
       "error": "Soru Sona'ya gönderilemedi.",
       "consentRequired": "Soru sormak toplantılarından alıntıları sunucuna gönderir, bu yüzden önce toplantı zekâsını aç."
+    },
+    "error": {
+      "unreachable": "Sona bağlanamadı.",
+      "refused": "Sona bu soruyu alamadı.",
+      "failed": "Sona bu yanıtı tamamlayamadı."
+    },
+    "working": {
+      "searchedCorpus": "Toplantılarınıza ve notlarınıza baktım",
+      "stillWaiting": "Hâlâ bekleniyor…",
+      "cancel": "İptal"
     }
   },
   "overview": {
@@ -2564,8 +2568,8 @@
     },
     "setup": {
       "title": "Bir eşitleme hesabı ayarla",
-      "endpoint": "Uç nokta",
-      "bootstrapSecret": "Önyükleme gizli anahtarı",
+      "endpoint": "Sunucu adresi",
+      "bootstrapSecret": "Kurulum gizli anahtarı",
       "submit": "Eşitlemeyi ayarla"
     },
     "recovery": {
@@ -2586,13 +2590,13 @@
     },
     "errors": {
       "portable_unavailable": "Bulut eşitleme taşınabilir modda kullanılamaz.",
-      "secret_unavailable": "Sistemin güvenli deposu kullanılamıyor.",
+      "secret_unavailable": "Sistem kimlik bilgisi deposu kullanılamıyor.",
       "setup_required": "Bu eylemi kullanmadan önce bulut eşitlemeyi ayarlayın.",
       "auth_required": "Bulut oturumu açmanız gerekiyor.",
       "quota": "Bulut depolama kotasına ulaşıldı.",
       "integrity_failure": "Bulut işlemi doğrulanamadı.",
       "conflict": "Bu toplantıda bir eşitleme çakışması var.",
-      "unsupported_protocol": "Bu aygıt bulut protokolünü desteklemiyor.",
+      "unsupported_protocol": "Bu cihaz, kullanılan bulut eşitleme sürümünü desteklemiyor.",
       "transient": "Bulut eşitleme geçici olarak kullanılamıyor.",
       "invalid_expiry": "İleri bir bitiş tarihi seçin.",
       "invalid_offer": "Eşleştirme teklifi eksik veya geçersiz.",
@@ -2686,16 +2690,16 @@
       "noDocuments": "İçe aktarılmış belge yok.",
       "deleteDocument": "Belgeyi sil",
       "deleteDocumentTitle": "Bu belge silinsin mi?",
-      "deleteDocumentDescription": "{{document}} içe aktarılan bağlamdan silinsin mi?",
+      "deleteDocumentDescription": "{{document}} belgesini Sona belgelerinden sil?",
       "cadence": "Toplantı sıklığı",
       "lastMeeting": "Son toplantı",
       "talkShare": "Konuşma payı",
       "cadenceAria": "Aya göre toplantılar: {{values}}",
       "documentFilter": "Metin belgeleri",
-      "documentImported": "Belge içe aktarıldı.",
+      "documentImported": "Belge eklendi.",
       "split": "Kişiyi ayır",
       "splitTitle": "Bu kişi ayrılsın mı?",
-      "splitDescription": "{{name}} kişisinin seçili kimlik bilgilerini ve toplantılarını başka bir kişiye taşıyın.",
+      "splitDescription": "Seçili detayları ve toplantıları {{name}} kişisinden başka birine aktar.",
       "splitTarget": "Şuraya taşı",
       "splitCreate": "Yeni kişi",
       "splitExisting": "Mevcut kişi",
@@ -2707,7 +2711,7 @@
       "splitDocuments": "Belgeler",
       "splitSubmit": "Kişiyi ayır",
       "splitNothingSelected": "Taşımak için en az bir öğe seçin.",
-      "splitNoItems": "Bu kişinin ayrılabilecek kimlik bilgisi veya toplantısı yok.",
+      "splitNoItems": "Bu kişinin aktarılacak bir detayı veya toplantısı bulunmuyor.",
       "loadError": "Bu kişi yüklenemedi."
     },
     "errors": {
@@ -2720,11 +2724,11 @@
       "meetingsBefore_one": "Önceki 1 toplantı",
       "meetingsBefore_other": "Önceki {{count}} toplantı",
       "last": "Son {{date}}",
-      "agentPromptIntro": "Bu toplantı kayıtlarından “{{title}}” için bir takip mesajı hazırlamama yardım et.",
+      "agentPromptIntro": "Bu toplantıları kullanarak “{{title}}” için bir takip mesajı taslağı oluşturmama yardım et.",
       "agentPromptCommitments": "Taahhütler",
       "agentPromptOpenLoops": "Açık konular",
       "agentPromptRequest": "Takip mesajını hazırla. Ayrıntı veya söz uydurma.",
-      "agentError": "Temsilciyle takip açılamadı.",
+      "agentError": "Ajan ile takip işlemi açılamadı.",
       "discussFollowUp": "Takibi temsilciyle görüş",
       "meetingsBefore": "Önceki {{count}} toplantı"
     },
@@ -2773,7 +2777,7 @@
     },
     "detail": {
       "openLoops": "Yanıtsız sorular",
-      "howSonaKnows": "Sona bunu nereden biliyor",
+      "howSonaKnows": "Sona bu kişiyi neden ilişkilendiriyor",
       "noEvidence": "Bu kişiyi henüz hiçbir şey bir toplantıya bağlamıyor."
     }
   },
@@ -2804,7 +2808,7 @@
       "rules": {
         "label": "Uygulamalar ve web siteleri",
         "empty": "Hiçbir şey kendiliğinden bu moda geçmiyor.",
-        "example": "Bir kural tek bir uygulama kimliği ya da tek bir web sitesi ana makinesi saklar: com.apple.mail veya mail.google.com."
+        "example": "Her kural, com.apple.mail veya mail.google.com gibi bir uygulama ID'si veya web sitesi kullanır."
       }
     },
     "advanced": {
@@ -2913,7 +2917,7 @@
       "sync": "Eşitleme",
       "leavesThisMac": "Bu Mac'ten çıkanlar",
       "agents": "Ajanlar",
-      "agentBridge": "Kod ajanları köprüsü",
+      "agentBridge": "Ajan bağlantıları",
       "about": "Sona hakkında",
       "debugHint": "Hata ayıklama sayfasını açmak için {{chord}} tuşlarına basın."
     },
@@ -2923,10 +2927,10 @@
       "runningNow": "Şu anda çalışanlar",
       "add": "Uygulama ekle",
       "addTitle": "Toplantı uygulaması ekle",
-      "addDescription": "Sona uygulamanın tanımlayıcısına ihtiyaç duyar; bunu uygulamanın kendi Hakkında penceresinde ya da `osascript -e 'id of app \"Ad\"'` ile görebilirsiniz.",
-      "identifier": "Uygulama tanımlayıcısı",
+      "addDescription": "Sona, uygulamanın Hakkında penceresinde veya `osascript -e 'id of app \"Name\"'` komutuyla bulabileceğiniz uygulama kimliğine ihtiyaç duyar.",
+      "identifier": "Uygulama Kimliği",
       "identifierPlaceholder": "com.example.app",
-      "invalid": "Tanımlayıcı şuna benzer: com.example.app — noktalarla birleştirilmiş küçük harfli sözcükler.",
+      "invalid": "Bir uygulama kimliği com.example.app gibi görünmelidir: noktalarla ayrılmış küçük harfli kelimeler.",
       "duplicate": "Bu uygulama zaten listede.",
       "remove": "{{app}} uygulamasını kaldır",
       "names": {
@@ -2939,8 +2943,8 @@
     }
   },
   "consentPanel": {
-    "calendarTitle": "{{title}} — kaydedilsin mi?",
-    "appTitle": "{{app}} toplantısı — kaydedilsin mi?",
+    "calendarTitle": "{{title}} kaydedilsin mi?",
+    "appTitle": "Bu {{app}} toplantısı kaydedilsin mi?",
     "genericTitle": "Bu toplantı kaydedilsin mi?",
     "introduction": "Sona bu Mac'te kaydeder, kontrol sizde kalır.",
     "seriesBrief_one": "{{person}} ile toplantı {{nth}} · {{count}} açık konu",
@@ -2968,8 +2972,8 @@
         "description": "Kısayolla sürekli seçtiğin bir modu fark eder."
       },
       "captureAdvisor": {
-        "name": "Kayıt kalitesi için öneri ver",
-        "description": "Kendi çalıştırmalarından yeniden denemeleri, kaybolan kayıtları ve düşük sesi bildirir."
+        "name": "Kayıt kalitesi hakkında öneri ver",
+        "description": "Kendi dikte kayıtlarınızdan yeniden denemeleri, kaybolan kayıtları ve kısık sesi bildirir."
       },
       "seriesPriming": {
         "name": "Yinelenen toplantıları hazırla"
@@ -2977,12 +2981,12 @@
     },
     "feed": {
       "title": "Sona’nın fark ettikleri",
-      "spokenPunctuation": "{{spoken}} ifadesini sık söylüyorsun — {{written}} olarak yazılsın mı?",
-      "vocabularyCorrection": "{{spoken}} ifadesini sürekli {{written}} yapıyorsun — öğrenilsin mi?",
-      "modeHabit": "Neredeyse her gün kısayolla {{mode}} seçiyorsun — varsayılan yapılsın mı?",
-      "retryRate": "{{subject}} çalıştırmaların diğerlerinden {{times}}× daha sık yeniden deniyor.",
-      "lostCaptureRate": "{{subject}} çalıştırmaların diğerlerinden {{times}}× daha sık kesik veya sessiz bitiyor.",
-      "inputLevel": "Kayıtlarının %{{percent}} kadarı kısık geldi — mikrofon seviyesine bakılsın mı?",
+      "spokenPunctuation": "{{spoken}} ifadesini sık söylüyorsunuz. {{written}} olarak yazılsın mı?",
+      "vocabularyCorrection": "Sürekli {{spoken}} ifadesini {{written}} yapıyorsunuz. Bu öğrenilsin mi?",
+      "modeHabit": "Çoğu gün kısayolla {{mode}} moduna geçiyorsunuz. Varsayılan yapılsın mı?",
+      "retryRate": "{{subject}} üzerinden yapılan dikteler diğerlerine göre {{times}}× daha sık yineleniyor.",
+      "lostCaptureRate": "{{subject}} üzerinden yapılan dikteler diğerlerine göre {{times}}× daha sık yarıda kesiliyor ya da sessiz kalıyor.",
+      "inputLevel": "Kayıtlarınızın %{{percent}} kadarı kısık geldi. Mikrofon düzeyini kontrol eder misiniz?",
       "example": "“{{text}}”",
       "accept": "Evet",
       "dismiss": "Hayır, sağ ol",

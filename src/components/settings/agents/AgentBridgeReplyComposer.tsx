@@ -46,7 +46,7 @@ export const AgentBridgeReplyComposer: React.FC<
           <Notice>
             {t(
               "settings.agents.replyQueue.notReady",
-              "Replies need the bridge on and at least one agent enabled.",
+              "Turn on agent connections and at least one agent before replying.",
             )}
           </Notice>
         </div>

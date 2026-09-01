@@ -34,7 +34,7 @@
     "settings": "Cài đặt"
   },
   "onboarding": {
-    "subtitle": "Các mô hình chạy trên máy Mac này và đánh đổi giữa độ chính xác và tốc độ",
+    "subtitle": "Các mô hình chạy trên máy Mac này và đánh đổi giữa độ chính xác và tốc độ.",
     "existingModelsTitle": "Mô hình tương thích",
     "downloadModelsTitle": "Có sẵn để tải xuống",
     "showAllModels": "Hiển thị tất cả {{total}} mô hình",
@@ -52,7 +52,7 @@
       },
       "medium": {
         "name": "Whisper Medium",
-        "description": "Độ chính xác tốt, tốc độ trung bình"
+        "description": "Độ chính xác tốt, tốc độ trung bình."
       },
       "turbo": {
         "name": "Whisper Turbo",
@@ -68,7 +68,7 @@
       },
       "parakeet-tdt-0.6b-v3": {
         "name": "Parakeet V3",
-        "description": "Nhanh và chính xác"
+        "description": "Nhanh và chính xác."
       },
       "moonshine-base": {
         "name": "Moonshine Base",
@@ -76,7 +76,7 @@
       },
       "moonshine-tiny-streaming-en": {
         "name": "Moonshine V2 Tiny",
-        "description": "Cực nhanh, chỉ tiếng Anh"
+        "description": "Cực nhanh, chỉ tiếng Anh."
       },
       "moonshine-small-streaming-en": {
         "name": "Moonshine V2 Small",
@@ -193,7 +193,7 @@
       },
       "cloud": {
         "title": "Chuyển văn bản trên đám mây",
-        "providerDescription": "Thông tin xác thực vẫn nằm trong kho bảo mật riêng của hệ điều hành.",
+        "providerDescription": "Khóa vẫn nằm trong kho thông tin xác thực của hệ thống.",
         "providers": {
           "deepgram": "Deepgram Nova-3",
           "elevenLabs": "ElevenLabs Scribe v2"
@@ -210,22 +210,22 @@
           "verifying": "Đang xác minh…"
         },
         "status": {
-          "checking": "Đang kiểm tra kho khóa của hệ thống…",
+          "checking": "Đang kiểm tra kho thông tin xác thực của hệ thống…",
           "notSaved": "Chưa lưu khóa API nào.",
           "saved": "Đã lưu khóa API. Khóa chưa được xác minh.",
           "verified": "Đã xác minh khóa API.",
-          "verifyRequiresConsent": "Hãy xem thông báo về việc truyền dữ liệu trong một chế độ trước khi xác minh khóa này."
+          "verifyRequiresConsent": "Hãy xác nhận việc truyền dữ liệu trong một chế độ trước khi xác minh khóa này."
         },
         "errors": {
           "not_found": "Chưa lưu khóa API nào cho nhà cung cấp này.",
-          "unavailable": "Kho bảo mật của hệ thống không khả dụng.",
-          "locked": "Kho bảo mật của hệ thống đang bị khóa.",
-          "corrupt": "Không thể đọc an toàn thông tin xác thực đã lưu.",
-          "invalid": "Kho bảo mật không chấp nhận thông tin xác thực này.",
-          "busy": "Kho bảo mật đang bận. Hãy thử lại.",
-          "backend": "Không thể hoàn tất thao tác với thông tin xác thực.",
+          "unavailable": "Kho thông tin xác thực của hệ thống không khả dụng.",
+          "locked": "Kho thông tin xác thực của hệ thống đang bị khóa.",
+          "corrupt": "Không thể đọc an toàn khóa đã lưu.",
+          "invalid": "Kho thông tin xác thực của hệ thống không chấp nhận khóa này.",
+          "busy": "Kho thông tin xác thực của hệ thống đang bận. Hãy thử lại.",
+          "backend": "Kho thông tin xác thực của hệ thống không hoàn tất được thao tác đó.",
           "not_configured": "Hãy lưu khóa API trước khi xác minh.",
-          "consent_required": "Hãy chấp nhận thông báo về việc truyền dữ liệu tới nhà cung cấp trước khi xác minh.",
+          "consent_required": "Hãy xác nhận việc truyền dữ liệu tới nhà cung cấp trước khi xác minh.",
           "authentication": "Nhà cung cấp đã từ chối khóa API này.",
           "quota": "Nhà cung cấp đã từ chối xác minh vì tài khoản đã vượt hạn mức.",
           "network": "Không kết nối được tới nhà cung cấp để xác minh.",
@@ -335,8 +335,8 @@
         "label": "Tính năng thử nghiệm"
       },
       "lazyStreamClose": {
-        "label": "Giữ micro mở giữa các lần phiên âm",
-        "description": "Giữ luồng micro mở trong 30 giây sau khi dừng ghi âm, nên các lần phiên âm liên tiếp bắt đầu nhanh hơn. Chất lượng âm thanh Bluetooth có thể giảm khi luồng đang mở."
+        "label": "Giữ micrô mở giữa các lần đọc chính tả",
+        "description": "Giữ micrô mở trong 30 giây sau khi bạn dừng, để các lần đọc chính tả liên tiếp bắt đầu nhanh hơn. Chất lượng âm thanh Bluetooth có thể giảm khi micrô đang mở."
       },
       "acceleration": {
         "transcribe": {
@@ -520,7 +520,7 @@
         },
         "model": {
           "title": "Mô hình",
-          "descriptionCustom": "Cung cấp định danh mô hình được yêu cầu bởi điểm cuối tùy chỉnh của bạn.",
+          "descriptionCustom": "Nhập ID mô hình mà máy chủ tùy chỉnh của bạn yêu cầu.",
           "placeholderWithOptions": "Tìm kiếm hoặc chọn một mô hình",
           "placeholderNoOptions": "Nhập tên mô hình",
           "refreshModels": "Làm mới mô hình"
@@ -555,17 +555,17 @@
       },
       "remoteConsent": {
         "title": "Truyền văn bản từ xa",
-        "description": "Văn bản cuộc họp và bản chép lời có thể được gửi tới {{provider}} tại {{endpoint}} để xử lý sau.",
-        "acknowledge": "Tôi xác nhận rằng văn bản có thể được gửi tới điểm cuối này.",
+        "description": "Sona có thể gửi văn bản cuộc họp và đọc chính tả đến {{provider}} tại {{endpoint}} để làm sạch.",
+        "acknowledge": "Tôi xác nhận rằng văn bản có thể được gửi tới địa chỉ này.",
         "accept": "Cho phép truyền văn bản",
         "cancel": "Hủy",
-        "endpointChanged": "Điểm cuối đã thay đổi. Hãy xem lại và xác nhận điểm cuối mới trước khi văn bản có thể rời khỏi máy Mac này.",
+        "endpointChanged": "Địa chỉ đã thay đổi. Hãy xem lại và xác nhận địa chỉ mới trước khi văn bản có thể rời khỏi máy Mac này.",
         "invalidDestination": "Đích của nhà cung cấp này không hợp lệ hoặc chỉ dùng cục bộ, nên không thể ghi nhận sự đồng ý truyền dữ liệu từ xa.",
         "saveFailed": "Sona không thể lưu xác nhận này.",
-        "current": "Việc truyền văn bản đã được xác nhận cho {{endpoint}}.",
+        "current": "Bạn đã cho phép gửi văn bản đến {{endpoint}}.",
         "review": "Xem lại xác nhận",
-        "endpointLabel": "Điểm cuối chuẩn",
-        "destinationPinned": "Sona ghim đúng điểm cuối và nguồn gốc này cho lần xác nhận."
+        "endpointLabel": "Địa chỉ chính xác",
+        "destinationPinned": "Sona gắn lần xác nhận với đúng địa chỉ và nguồn gốc này."
       }
     },
     "history": {
@@ -593,7 +593,7 @@
       "loadError": "Không thể tải lịch sử.",
       "retry": "Thử lại",
       "saveError": "Không cập nhật được trạng thái lưu. Hãy thử lại.",
-      "postProcessEmpty": "Xử lý sau không trả về văn bản. Đang hiển thị bản ghi âm gốc.",
+      "postProcessEmpty": "Xử lý sau không tạo ra văn bản, nên đây là bản ghi gốc.",
       "textView": {
         "label": "Xem bản ghi âm",
         "processed": "Đã xử lý",
@@ -671,7 +671,7 @@
           "dispatched_but_unconfirmed": "Đã gửi, chưa xác nhận"
         },
         "modeLabel": "Chế độ",
-        "revisionLabel": "Bản sửa",
+        "revisionLabel": "Phiên bản cài đặt",
         "engineLabel": "Bộ máy",
         "sourceLabel": "Nguồn",
         "captureStatusLabel": "Bản thu",
@@ -749,10 +749,10 @@
       "recalledByMeaning": "theo ý nghĩa",
       "level": {
         "peak": "peak",
-        "rms": "rms"
+        "rms": "trung bình"
       },
       "noTextRecorded": "Không có văn bản nào được ghi cho mục này.",
-      "cloudHeld": "Lượt chạy Cloud đã bị giữ lại: không có kết quả đáng tin cậy nào đến và không có mô hình cục bộ nào khả dụng.",
+      "cloudHeld": "Sona đã giữ lại kết quả từ đám mây: không có gì đáng tin cậy trả về và không có mô hình cục bộ nào khả dụng.",
       "transcriptionEngineFailed": "Phiên âm thất bại, nên không có gì được ghi lại.",
       "processAgain": {
         "action": "Xử lý lại",
@@ -774,7 +774,7 @@
       },
       "liveLogs": {
         "title": "Nhật ký trực tiếp",
-        "description": "Chỉ các dòng được phát ra khi bảng này đang mở mới xuất hiện ở đây, theo mức nhật ký đặt ở trên.",
+        "description": "Chỉ các dòng được ghi khi bảng này mở mới xuất hiện ở đây, theo mức nhật ký đặt ở trên.",
         "pause": "Tạm dừng",
         "resume": "Tiếp tục",
         "copied": "Đã sao chép",
@@ -820,7 +820,7 @@
       },
       "keyboardImplementation": {
         "title": "Triển khai bàn phím",
-        "bindingsReset": "Các phím tắt không tương thích và đã được đặt lại về mặc định"
+        "bindingsReset": "Các phím tắt không tương thích và đã được đặt lại về mặc định."
       },
       "paths": {
         "appData": "Dữ liệu ứng dụng:",
@@ -841,30 +841,24 @@
       },
       "recordingBuffer": {
         "title": "Bộ đệm ghi âm thêm",
-        "description": "Thời gian thêm (tính bằng mili giây) để tiếp tục ghi âm sau khi nhả phím, để thu âm thanh cuối. 0 = không có bộ đệm thêm."
+        "description": "Thời gian thêm (tính bằng mili giây) để tiếp tục ghi âm sau khi nhả phím, nhằm thu phần âm cuối. Đặt 0 nếu không cần."
       },
       "keyboardDiagnostic": {
         "title": "Chẩn đoán bàn phím",
         "description": "Kiểm tra xem các sự kiện bàn phím có đến được Sona hay không. Chỉ số lượng sự kiện được ghi lại, không bao giờ ghi lại bạn bấm phím nào.",
         "run": "Chạy chẩn đoán 10 giây",
         "running": "Đang lắng nghe… hãy bấm phím tắt của bạn vài lần (ví dụ: Option+Space)",
-        "secureInputLabel": "Secure Input",
+        "secureInputLabel": "Nhập bảo mật",
         "enabled": "đang bật",
         "disabled": "đang tắt",
         "holder": "bị {{name}} (pid {{pid}}) giữ",
-        "holderUnknown": "không thấy tiến trình nào giữ",
-        "keyDown": "Nhấn phím",
-        "keyUp": "Nhả phím",
-        "flagsChanged": "Phím bổ trợ",
-        "mouse": "Chuột",
-        "verdictBlocked": "Secure Input đang chặn các sự kiện phím, nên phím tắt có chứa phím thường không thể hoạt động cho đến khi vấn đề này được xử lý.",
-        "verdictSuspicious": "Có sự kiện phím bổ trợ nhưng không có sự kiện phím nào. Thứ gì đó đang chặn phím dù Secure Input báo là đang tắt. Hãy báo cáo việc này trên GitHub.",
-        "verdictOk": "Các sự kiện phím đang đến Sona bình thường.",
-        "verdictNoEvents": "Không ghi nhận sự kiện nào trong lúc kiểm tra.",
-        "failed": "Chẩn đoán thất bại: {{error}}"
+        "notSupported": "Không hỗ trợ trên nền tảng này.",
+        "noHolder": "Không có ứng dụng nào đang giữ Secure Input.",
+        "status": "Trạng thái",
+        "error": "Không thể thực hiện chẩn đoán bàn phím."
       },
       "whatsNewPreview": {
-        "title": "Xem trước điểm mới",
+        "title": "Xem trước ghi chú phát hành",
         "description": "Mở ghi chú phát hành mới nhất được đóng gói mà không đánh dấu là đã xem",
         "noNotes": "Không tìm thấy ghi chú phát hành được đóng gói",
         "error": "Không xem trước được ghi chú phát hành. Hãy thử lại."
@@ -945,14 +939,14 @@
           },
           "capture": {
             "label": "Kích hoạt trên trang web",
-            "description": "Chụp máy chủ của trình duyệt ở phía trước. Sona chỉ lưu máy chủ, không lưu URL.",
+            "description": "Sử dụng trang web đang mở. Sona lưu tên trang web, không phải địa chỉ đầy đủ.",
             "action": "Chụp trang web hiện tại",
             "capturing": "Đang chụp…"
           },
           "empty": "Không có trang web nào kích hoạt chế độ này.",
-          "exampleDescription": "Một quy tắc lưu một máy chủ trình duyệt, ví dụ mail.google.com."
+          "exampleDescription": "Mỗi quy tắc sử dụng một trang web, ví dụ mail.google.com."
         },
-        "exampleDescription": "Một quy tắc lưu một định danh ứng dụng, ví dụ com.apple.mail.",
+        "exampleDescription": "Mỗi quy tắc sử dụng một ID ứng dụng, ví dụ com.apple.mail.",
         "removeTarget": "Xóa {{target}}",
         "unsupported": "Kích hoạt theo ứng dụng và trang web chỉ khả dụng trên macOS."
       },
@@ -1060,10 +1054,10 @@
           "unavailable": "{{provider}} không khả dụng"
         },
         "cloud": {
-          "setupRequired": "{{provider}} cần khóa API riêng đã lưu và sự đồng ý truyền dữ liệu hiện hành trước khi các tùy chọn đám mây khả dụng.",
+          "setupRequired": "{{provider}} cần một khóa API trong kho thông tin xác thực của hệ thống và một xác nhận truyền dữ liệu còn hiệu lực trước khi các tùy chọn đám mây mở ra.",
           "fallback": {
             "label": "Dùng dự phòng cục bộ",
-            "description": "Nếu nhà cung cấp đám mây không trả về kết quả cuối đáng tin cậy, âm thanh đã ghi sẽ được chuyển thành văn bản bằng mô hình cục bộ.",
+            "description": "Nếu nhà cung cấp đám mây không trả về kết quả đáng tin cậy, bản ghi sẽ được chuyển thành văn bản bằng mô hình cục bộ.",
             "useModeModel": "Dùng mô hình cục bộ của chế độ này",
             "model": {
               "label": "Mô hình dự phòng",
@@ -1071,8 +1065,8 @@
             }
           },
           "keyterms": {
-            "label": "Thuật ngữ khóa cho đám mây",
-            "description": "Mỗi dòng một thuật ngữ. Các thuật ngữ này được gửi kèm yêu cầu đám mây này.",
+            "label": "Từ cần nghe đúng",
+            "description": "Mỗi dòng một từ hoặc một tên. Sona gửi chúng tới nhà cung cấp cùng với âm thanh.",
             "placeholder": "Tên sản phẩm\nTên người"
           },
           "timestamps": {
@@ -1088,22 +1082,22 @@
               "description": "Âm thanh ghi trong chế độ này được gửi trực tiếp tới {{provider}} để chuyển thành văn bản."
             },
             "privacy": {
-              "label": "Hợp đồng quyền riêng tư",
-              "description": "Nhà cung cấp nhận âm thanh của chế độ này, ngôn ngữ đã chọn và các thuật ngữ khóa. Ngữ cảnh ứng dụng và thông tin đăng nhập riêng vẫn ở trên thiết bị này."
+              "label": "Nhà cung cấp thấy gì",
+              "description": "Nhà cung cấp nhận âm thanh của chế độ này, ngôn ngữ của nó và những từ bạn liệt kê. Những gì Sona đọc từ các ứng dụng khác của bạn, và các khóa của bạn, vẫn ở trên máy Mac này."
             },
             "localFallback": {
               "label": "Dự phòng cục bộ",
-              "description": "Nếu nhà cung cấp đám mây không trả về kết quả cuối đáng tin cậy, Sona có thể dùng mô hình cục bộ bạn đã chọn."
+              "description": "Nếu nhà cung cấp đám mây không trả về kết quả đáng tin cậy, Sona có thể dùng mô hình cục bộ bạn đã chọn."
             },
             "decline": "Giữ cục bộ",
             "accept": "Đồng ý và dùng đám mây",
             "accepting": "Đang đồng ý…",
             "errors": {
               "unknown_provider": "Nhà cung cấp đám mây này không có trong bản dựng này.",
-              "backend": "Không thể lưu bản ghi đồng ý."
+              "backend": "Không lưu được xác nhận."
             }
           },
-          "title": "Truyền tải đám mây"
+          "title": "Phiên âm trên đám mây"
         }
       },
       "context": {
@@ -1157,7 +1151,7 @@
         },
         "reliablePaste": {
           "label": "Dán đáng tin cậy",
-          "description": "Dùng cách dán theo trình tự biên nhận khi nền tảng hỗ trợ."
+          "description": "Chỉ khôi phục bảng nhớ tạm sau khi ứng dụng đã đọc bản ghi, ở nơi hệ thống cho phép."
         },
         "delay": {
           "label": "Độ trễ khi dán",
@@ -1187,14 +1181,14 @@
       },
       "errors": {
         "staleRevision": "Cài đặt đã thay đổi ở nơi khác. Hãy xem chế độ mới nhất rồi lưu lại.",
-        "invalid_mode_id": "ID chế độ này không hợp lệ.",
+        "invalid_mode_id": "Sona không đọc được đây là chế độ nào.",
         "empty_name": "Cần có tên chế độ.",
         "cannot_delete_default": "Không thể xóa chế độ mặc định.",
         "unknown_mode": "Chế độ đó không còn tồn tại.",
-        "duplicate_mode_id": "Đã có một chế độ với ID này.",
+        "duplicate_mode_id": "Chế độ đó đã có rồi.",
         "invalid_reorder": "Không thể lưu thứ tự các chế độ.",
         "invalid_website_host": "Máy chủ trang web không hợp lệ.",
-        "website_activation_consent_required": "Hãy bật URL trình duyệt trong Quyền riêng tư trước khi thêm quy tắc trang web.",
+        "website_activation_consent_required": "Hãy bật \"Bao gồm URL trình duyệt\" trong Quyền riêng tư trước khi thêm quy tắc trang web.",
         "frontmost_website_unavailable": "Không thể chụp trang web từ trình duyệt.",
         "website_activation_secure_field": "Không thể chụp quy tắc trang web từ trường bảo mật."
       },
@@ -1240,10 +1234,10 @@
             "target_and_selection": "Vùng chọn",
             "full": "Đầy đủ"
           },
-          "error": "Không lưu được giới hạn ngữ cảnh"
+          "error": "Không lưu được giới hạn ngữ cảnh."
         },
         "sources": {
-          "none": "Không đọc ngữ cảnh ứng dụng nào.",
+          "none": "Không đọc gì từ các ứng dụng khác của bạn.",
           "target": "Đọc danh tính của ứng dụng đang ở trước.",
           "target_and_selection": "Đọc danh tính của ứng dụng đang ở trước và văn bản đã chọn khi có sẵn.",
           "full": "Cũng có thể đọc URL trình duyệt được phép và văn bản vừa thay đổi trong bảng nhớ tạm khi có sẵn."
@@ -1257,7 +1251,7 @@
       "diagnostics": {
         "title": "Chẩn đoán ngữ cảnh",
         "refresh": "Làm mới",
-        "error": "Không làm mới được chẩn đoán",
+        "error": "Không làm mới được chẩn đoán.",
         "accessibility": {
           "label": "Trợ năng"
         },
@@ -1299,14 +1293,14 @@
             "months_3": "3 tháng"
           }
         },
-        "error": "Không lưu được thời gian giữ dữ liệu",
+        "error": "Không lưu được thời gian giữ dữ liệu.",
         "historyStorage": {
           "encrypted": "Được mã hóa khi lưu trữ",
           "label": "Lưu trữ lịch sử",
           "locked": "Đã khóa",
           "plaintext": "Không được mã hóa",
           "reasons": {
-            "encryption_unavailable": "Bản dựng này không thể mở cơ sở dữ liệu mã hóa, nên lịch sử được lưu không mã hóa.",
+            "encryption_unavailable": "Phiên bản Sona này không thể mở cơ sở dữ liệu mã hóa, nên lịch sử được lưu không mã hóa.",
             "key_rejected": "Khóa được lưu không mở được cơ sở dữ liệu mã hóa, nên không thể đọc lịch sử.",
             "key_unavailable": "Kho thông tin xác thực hệ thống không trả về khóa dùng được, nên lịch sử được lưu không mã hóa.",
             "migration_failed": "Mã hóa cơ sở dữ liệu hiện có thất bại. Cơ sở dữ liệu không mã hóa vẫn nguyên vẹn và đang được dùng."
@@ -1318,7 +1312,7 @@
       "cloudTranscription": {
         "title": "Chuyển văn bản trên đám mây",
         "checkFailed": "Không kiểm tra được thiết lập chuyển văn bản trên đám mây.",
-        "disclosure": "Với chế độ có bật đám mây, Sona gửi âm thanh đã ghi, ngôn ngữ đã chọn và các thuật ngữ khóa của chế độ trực tiếp tới nhà cung cấp. Ngữ cảnh ứng dụng và thông tin đăng nhập riêng vẫn ở trên thiết bị này."
+        "disclosure": "Với chế độ có bật đám mây, Sona gửi âm thanh đã ghi, ngôn ngữ đã chọn và những từ được liệt kê trong chế độ đó trực tiếp tới nhà cung cấp. Những gì Sona đọc từ các ứng dụng khác của bạn, và các khóa của bạn, vẫn ở trên máy Mac này."
       },
       "upstreamImport": {
         "title": "Nhập từ ứng dụng cũ",
@@ -1358,11 +1352,11 @@
           "app_state_unverifiable": "Sona không thể xác minh ứng dụng cũ đã đóng trên nền tảng này.",
           "invalid_selection": "Hãy chọn cài đặt hoặc lịch sử để nhập.",
           "settings_unreadable": "Không đọc được tệp cài đặt cũ.",
-          "secret_store_unavailable": "Kho thông tin xác thực hệ thống không khả dụng, nên các cài đặt có khóa nhà cung cấp không được nhập.",
-          "secret_conflict": "Kho thông tin xác thực hệ thống đã có khóa của nhà cung cấp. Hãy xử lý việc đó trước khi nhập cài đặt.",
+          "secret_store_unavailable": "Kho thông tin xác thực của hệ thống không khả dụng nên không nhập các cài đặt có khóa nhà cung cấp.",
+          "secret_conflict": "Đã có khóa nhà cung cấp trong kho thông tin xác thực của hệ thống. Hãy giải quyết xung đột trước khi nhập cài đặt.",
           "history_unreadable": "Không đọc được cơ sở dữ liệu lịch sử cũ.",
           "recording_copy_failed": "Không sao chép và xác minh được một bản ghi âm.",
-          "receipt_write_failed": "Không lưu được biên lai nhập dữ liệu.",
+          "receipt_write_failed": "Sona không thể lưu chi tiết nhập khẩu.",
           "internal": "Việc nhập chưa hoàn tất.",
           "status": "Không kiểm tra được dữ liệu của ứng dụng cũ."
         },
@@ -1385,79 +1379,79 @@
     "agents": {
       "title": "Tác nhân",
       "controls": {
-        "title": "Điều khiển cầu nối",
+        "title": "Điều khiển Agent",
         "master": {
-          "label": "Bật cầu nối agent"
+          "label": "Bật kết nối agent"
         },
-        "status": "Trạng thái thời gian chạy",
+        "status": "Trạng thái",
         "providers": {
           "claude": {
             "label": "Claude",
-            "description": "Quan sát các phiên Claude và bật phản hồi dựa trên fixture ở nơi có sẵn."
+            "description": "Quan sát các phiên Claude, và trả lời ở nơi Sona hỗ trợ."
           },
           "codex": {
             "label": "Codex",
-            "description": "Chỉ quan sát các phiên. Phản hồi ở chế độ chỉ đọc cho đến khi có fixture giao thức hỗ trợ."
+            "description": "Chỉ quan sát các phiên. Sona chưa thể trả lời Codex."
           },
           "grok": {
             "label": "Grok",
-            "description": "Chỉ quan sát các phiên. Phản hồi ở chế độ chỉ đọc cho đến khi có fixture giao thức hỗ trợ."
+            "description": "Chỉ quan sát các phiên. Sona chưa thể trả lời Grok."
           },
           "omp": {
             "label": "OMP",
-            "description": "Quan sát các phiên OMP và yêu cầu phê duyệt. Phản hồi chỉ khả dụng tại điểm dừng phiên OMP được hỗ trợ."
+            "description": "Quan sát các phiên OMP và yêu cầu phê duyệt. Sona chỉ có thể trả lời khi một phiên OMP dừng lại."
           }
         }
       },
       "status": {
         "disabled": "Đã tắt",
-        "runtime_unavailable": "Thời gian chạy không khả dụng",
-        "interactive_unsupported": "Không hỗ trợ phản hồi tương tác",
+        "runtime_unavailable": "Không chạy",
+        "interactive_unsupported": "Không thể phản hồi",
         "app_lock_held": "Một phiên bản Sona khác đang hoạt động",
         "active": "Đang hoạt động"
       },
       "projects": {
         "title": "Dự án được cấp quyền",
-        "hashOnly": "Ranh giới quyền là hash chính xác của dự án; đường dẫn thư mục không được lưu ở đây.",
+        "hashOnly": "Sona nhận diện dự án từ thư mục mà không lưu đường dẫn thư mục tại đây.",
         "add": "Cấp quyền cho thư mục",
         "remove": "Xóa dự án",
         "empty": "Chưa có dự án nào được cấp quyền."
       },
       "hook": {
-        "title": "Đoạn mã hook",
-        "description": "Sao chép cấu hình hook được đóng gói vào cấu hình riêng của agent bạn dùng. Sona không bao giờ sửa tệp cấu hình của agent.",
-        "copy": "Sao chép đoạn mã",
-        "error": "Đoạn mã hook không khả dụng"
+        "title": "Mã thiết lập",
+        "description": "Sao chép mã thiết lập này vào cấu hình agent của bạn. Sona không bao giờ thay đổi các tệp agent.",
+        "copy": "Sao chép mã thiết lập",
+        "error": "Mã thiết lập không khả dụng"
       },
       "replyQueue": {
         "title": "Xem trước phản hồi",
         "session": "Đích của phản hồi",
-        "noSession": "Không có phiên nào quan sát được có thể phản hồi",
+        "noSession": "Không có phiên nào Sona có thể trả lời",
         "message": "Nội dung phản hồi",
         "createPreview": "Tạo bản xem trước",
-        "notReady": "Phản hồi cần bật cầu nối và ít nhất một agent được bật."
+        "notReady": "Bật kết nối agent và ít nhất một agent trước khi phản hồi."
       },
       "pending": {
         "empty": "Không có phản hồi nào đang chờ.",
         "confirm": "Xác nhận phản hồi chính xác",
-        "confirmed": "Đã xác nhận cho sự kiện dừng được hỗ trợ tiếp theo",
+        "confirmed": "Sẽ gửi khi agent dừng",
         "cancel": "Hủy",
         "states": {
-          "held": "Đang giữ cho sự kiện dừng được hỗ trợ tiếp theo",
+          "held": "Đang chờ cho đến khi agent dừng",
           "response_written": "Đã ghi phản hồi",
-          "emitted": "Đã phát ra",
+          "emitted": "Đã gửi",
           "copy_only": "Chỉ sao chép",
           "cancelled": "Đã hủy"
         },
         "title": "Phản hồi đang chờ"
       },
       "observed": {
-        "title": "Hoạt động đã quan sát",
+        "title": "Hoạt động của Agent",
         "refresh": "Làm mới",
         "sessions": "Phiên",
-        "noSessions": "Chưa quan sát được phiên nào.",
+        "noSessions": "Chưa có hoạt động của Agent.",
         "requests": "Yêu cầu",
-        "noRequests": "Chưa quan sát được yêu cầu nào.",
+        "noRequests": "Chưa có yêu cầu nào.",
         "requestKinds": {
           "session_start": "Phiên đã bắt đầu",
           "user_prompt_submit": "Đã gửi prompt",
@@ -1474,7 +1468,7 @@
         "ompPermissionObserveOnly": "Yêu cầu phê duyệt của OMP chỉ được quan sát. Hãy phê duyệt hoặc từ chối chúng trong OMP."
       },
       "rules": {
-        "title": "Quy tắc quyền chính xác",
+        "title": "Quy tắc quyền hạn",
         "empty": "Không có quy tắc quyền nào.",
         "remove": "Xóa quy tắc",
         "decisions": {
@@ -1483,20 +1477,20 @@
         }
       },
       "errors": {
-        "load": "Không thể tải dữ liệu cầu nối agent: {{error}}",
-        "operation": "Không thể hoàn tất hành động cầu nối agent: {{error}}"
+        "load": "Không thể tải chi tiết kết nối agent: {{error}}",
+        "operation": "Không thể hoàn tất hành động của agent: {{error}}"
       },
       "panel": {
         "error": "Không thể lưu cài đặt bảng agent.",
         "label": "Bật bảng agent",
-        "rowDescription": "Tắt tùy chọn này sẽ đóng cửa sổ bảng và khiến Sona từ chối mọi yêu cầu mở lại.",
+        "rowDescription": "Tắt tính năng này sẽ đóng bảng điều khiển và ngăn các ứng dụng khác mở lại nó.",
         "title": "Bảng agent"
       },
       "externalAccess": {
         "label": "Truy cập bên ngoài",
-        "rowDescription": "Cho phép các chương trình khác trên máy Mac này đọc cuộc họp, bản đọc chính tả, mọi người và các việc còn mở qua dòng lệnh sona và máy chủ MCP. Chỉ đọc, và tắt cho đến khi bạn bật."
+        "rowDescription": "Cho phép các chương trình khác trên Mac này đọc các cuộc họp, lời đọc, danh bạ và các vòng lặp mở thông qua công cụ dòng lệnh và máy chủ MCP của Sona. Chế độ này chỉ cho phép đọc và sẽ tắt cho đến khi bạn bật lên."
       },
-      "workspaceNavigation": "Chế độ xem cầu nối agent",
+      "workspaceNavigation": "Agent xem",
       "sonaAgent": {
         "title": "Tác nhân Sona",
         "pairing": "Ghép nối",
@@ -1504,29 +1498,29 @@
         "unpaired": "Chưa ghép nối",
         "lastReached": "Lần liên lạc gần nhất",
         "never": "Chưa bao giờ",
-        "relayUrl": "Địa chỉ relay",
+        "relayUrl": "Địa chỉ máy chủ",
         "relayUrlHint": "Chỉ chấp nhận địa chỉ Tailscale hoặc chính máy Mac này. Mọi địa chỉ trên internet mở đều bị từ chối trước khi lưu.",
-        "relayKeyId": "ID khoá của relay",
-        "relayPublicKey": "Khoá công khai của relay",
+        "relayKeyId": "ID khóa máy chủ",
+        "relayPublicKey": "Khóa công khai máy chủ",
         "identity": "Khoá công khai của máy Mac này",
-        "identityHint": "Thêm khoá này vào relay để nó nhận lượt hỏi từ máy Mac này. Nửa khoá riêng không bao giờ rời khỏi keychain của bạn.",
+        "identityHint": "Thêm khóa này vào máy chủ để nó chấp nhận tin nhắn từ Mac này. Khóa riêng tư không bao giờ rời khỏi keychain của bạn.",
         "identityUnavailable": "Bật bảng tác nhân để tạo khoá.",
         "copy": "Sao chép",
         "copied": "Đã sao chép",
         "unpair": "Huỷ ghép nối",
         "test": "Thử",
-        "reached": "Relay đã trả lời.",
-        "failed": "Không ghép nối được với relay.",
+        "reached": "Máy chủ đã phản hồi.",
+        "failed": "Không thể kết nối đến máy chủ.",
         "reason": {
           "unauthorized_window": "Cửa sổ đó không được đổi ghép nối.",
           "disabled": "Bảng tác nhân đang tắt.",
-          "unpaired": "Chưa có relay nào được ghép nối.",
-          "offline": "Relay không trả lời.",
+          "unpaired": "Chưa có máy chủ nào được ghép nối.",
+          "offline": "Máy chủ không phản hồi.",
           "invalid_configuration": "Sona sẽ không dùng địa chỉ hoặc khoá đó.",
           "secret_unavailable": "Không đọc được khoá của máy Mac này.",
-          "untrusted_response": "Phản hồi không do relay đã ghép nối ký.",
-          "remote_rejected": "Relay đã từ chối yêu cầu.",
-          "ownership_rejected": "Relay trả lời thay cho người khác."
+          "untrusted_response": "Phản hồi không được ký bởi máy chủ đã ghép nối.",
+          "remote_rejected": "Máy chủ từ chối yêu cầu.",
+          "ownership_rejected": "Máy chủ phản hồi cho người khác."
         }
       }
     },
@@ -1600,12 +1594,12 @@
         "retry": "Thử lại"
       },
       "runLog": {
-        "title": "Nhật ký chạy",
-        "empty": "Chưa có quy trình nào được chạy.",
-        "loadError": "Không thể tải nhật ký chạy.",
-        "loadMoreError": "Không thể tải thêm lượt chạy.",
-        "loadMore": "Tải thêm",
-        "chartAria": "Số lượt chạy mỗi ngày, {{count}} trong 7 ngày qua"
+        "title": "Hoạt động",
+        "empty": "Chưa có hoạt động nào.",
+        "loadError": "Không thể tải hoạt động.",
+        "loadMoreError": "Không thể tải thêm hoạt động.",
+        "loadMore": "Xem thêm",
+        "chartAria": "Hoạt động mỗi ngày, {{count}} trong 7 ngày qua"
       }
     },
     "vocabulary": {
@@ -1684,7 +1678,7 @@
         "shortcutHint": "Chạy Phím tắt theo tên với bản xuất của cuộc họp làm đầu vào. Ba mươi giây rồi dừng.",
         "shortcutPlaceholder": "Tên Phím tắt",
         "webhook": "Gửi tới một webhook",
-        "webhookHint": "Gửi bản xuất của cuộc họp dạng JSON. Chỉ máy của bạn hoặc tailnet của bạn — cùng quy tắc với relay.",
+        "webhookHint": "Gửi dữ liệu xuất cuộc họp dưới dạng JSON. Chỉ sử dụng máy của bạn hoặc tailnet, tương tự như với máy chủ.",
         "webhookPlaceholder": "http://100.x.y.z:8650/hook",
         "needsTarget": "Nhập tên trước đã",
         "needsUrl": "Nhập địa chỉ trước đã",
@@ -1695,11 +1689,11 @@
       "remoteIntelligence": {
         "title": "Trí tuệ cho cuộc họp",
         "label": "Viết ghi chú cuộc họp trên máy chủ của tôi",
-        "consent": "Bản tóm tắt và câu trả lời cho cuộc họp được viết trên máy chủ của bạn qua mạng riêng của bạn",
-        "unpaired": "Ghép nối Sona với máy chủ của bạn ở mục Tác nhân để bật cái này",
+        "consent": "Bản tóm tắt và câu trả lời cho cuộc họp được viết trên máy chủ của bạn qua mạng riêng của bạn.",
+        "unpaired": "Ghép nối Sona với máy chủ của bạn ở mục Tác nhân để bật cái này.",
         "seriesTitle": "Chuỗi ở lại trên máy Mac này",
         "seriesHint": "Chuỗi có trong danh sách này luôn được viết trên máy Mac này, kể cả khi trí tuệ cho cuộc họp đang bật.",
-        "seriesEmpty": "Chưa ghi cuộc họp định kỳ nào",
+        "seriesEmpty": "Chưa ghi cuộc họp định kỳ nào.",
         "loading": "Đang đọc các chuỗi của bạn…",
         "lastMet": "Gặp lần cuối {{date}}",
         "keepLocalLabel": "Giữ {{series}} trên máy Mac này",
@@ -1730,10 +1724,10 @@
   },
   "commandPalette": {
     "open": "Tìm kiếm",
-    "placeholder": "Nhập lệnh hoặc tìm kiếm",
+    "placeholder": "Tìm kiếm hoặc chọn hành động",
     "navigation": "Điều hướng",
     "actions": "Thao tác",
-    "noResults": "Không tìm thấy lệnh nào",
+    "noResults": "Không tìm thấy kết quả nào",
     "newMeeting": "Cuộc họp mới",
     "importAudio": "Chuyển tệp thành văn bản",
     "openRecordings": "Mở thư mục ghi âm",
@@ -1776,9 +1770,9 @@
     "commandRewriteUnavailable": "Phần viết lại không trả về gì, nên đoạn bạn chọn vẫn nguyên như cũ. Hãy kiểm tra nhà cung cấp trong Settings > Post-processing rồi thử lại.",
     "noModelSelectedTitle": "Chưa chọn mô hình",
     "noSpeechSaveFailedTitle": "Chưa lưu mẫu",
-    "captureOverrunTitle": "Vượt giới hạn thu",
+    "captureOverrunTitle": "Bản ghi bị cắt ngắn",
     "cloudUnavailableTitle": "Đám mây không khả dụng",
-    "cloudTranscriptionHeldTitle": "Đã giữ lượt chạy trên đám mây",
+    "cloudTranscriptionHeldTitle": "Kết quả đám mây bị giữ lại",
     "commandNoSelectionTitle": "Chưa chọn nội dung",
     "commandRewriteUnavailableTitle": "Không thể viết lại"
   },
@@ -1904,7 +1898,7 @@
     },
     "setup": {
       "defaultTitle": "Ghi chú trên máy",
-      "remoteUnavailable": "Xử lý từ xa không khả dụng trong bản dựng này, nên mọi cuộc họp đều được chuyển thành văn bản và tóm tắt trên máy Mac này."
+      "remoteUnavailable": "Xử lý từ xa không có trong phiên bản Sona này, nên mọi cuộc họp đều được phiên âm và tóm tắt trên máy Mac này."
     },
     "preflight": {
       "storage": "Bộ lưu trữ",
@@ -1912,7 +1906,7 @@
       "storageUnavailable": "Bộ lưu trữ cuộc họp đã mã hoá không khả dụng.",
       "localModel": "Mô hình cục bộ",
       "localModelDescription": "Việc xử lý vẫn ở trên máy khi có mô hình cục bộ.",
-      "starting": "Đang bắt đầu bản thu hiển thị…",
+      "starting": "Đang bắt đầu ghi âm…",
       "refreshing": "Đang kiểm tra…"
     },
     "consent": {
@@ -1925,7 +1919,7 @@
       "partialCapture": "Thiếu một phần âm thanh. Hãy xem các khoảng trống trước khi tin vào ghi chú được tạo ra.",
       "inputs": "Đầu vào",
       "signal": "Tín hiệu",
-      "signalUnavailable": "Mức {{source}} không được bản thu báo về.",
+      "signalUnavailable": "{{source}} không báo mức tín hiệu của nó.",
       "notReported": "Không được báo",
       "durabilityLag": "Đã lưu vào đĩa",
       "behind": "chậm {{duration}}",
@@ -1951,7 +1945,7 @@
     },
     "retention": {
       "title": "Thời gian lưu",
-      "description": "Sona xoá các bản ghi cuộc họp cục bộ đủ điều kiện qua cùng một luồng xoá đã được xác minh.",
+      "description": "Sona xóa các cuộc họp trên máy Mac này theo cùng một cách đã được kiểm chứng, mỗi lần như nhau.",
       "forever": "Giữ đến khi tôi xoá",
       "days": "Xoá sau {{days}} ngày",
       "loading": "Đang đọc chính sách hiện tại…"
@@ -1959,7 +1953,7 @@
     "receipts": {
       "title": "Biên lai chỉnh sửa",
       "saved": "Đã lưu trên máy.",
-      "savedRevision": "Đã lưu trên máy. Bản sửa đổi {{revision}}.",
+      "savedRevision": "Đã lưu cục bộ. Phiên bản {{revision}}.",
       "duplicate": "Thao tác này đã được ghi lại. Sona đã làm mới kết quả hiện có."
     },
     "reasons": {
@@ -1971,7 +1965,7 @@
       "source_start_failed": "Một nguồn không khởi động được.",
       "source_gap": "Một nguồn đã báo có khoảng trống.",
       "storage_unavailable": "Bộ lưu trữ cuộc họp đã mã hoá không khả dụng.",
-      "storage_failure": "Bộ lưu trữ không ghi được thay đổi này.",
+      "storage_failure": "Bộ nhớ không thể lưu thay đổi này.",
       "local_model_unavailable": "Không có mô hình cục bộ nào khả dụng.",
       "recovery_required": "Cuộc họp này cần được phục hồi.",
       "deleted": "Cuộc họp này đã bị xóa.",
@@ -2002,7 +1996,7 @@
       "consent_required": "Hãy xác nhận việc ghi âm trước khi bắt đầu.",
       "consent_stale": "Thiết lập đã thay đổi. Hãy xem lại trước khi bắt đầu.",
       "invalid_transition": "Thao tác này không khả dụng ở giai đoạn hiện tại của cuộc họp.",
-      "stale_revision": "Cuộc họp này đã thay đổi ở cửa sổ khác. Sona đã làm mới ảnh chụp của mình.",
+      "stale_revision": "Cuộc họp này đã thay đổi ở cửa sổ khác. Sona đã tải lại nó.",
       "capture_lease_busy": "Một cuộc họp khác đang thu âm thanh.",
       "no_source_started": "Không có nguồn âm thanh được phê duyệt nào khởi động.",
       "source_unavailable": "Nguồn âm thanh được yêu cầu không khả dụng.",
@@ -2020,12 +2014,12 @@
       "liveTitle": "Dừng và loại bỏ phiên này?",
       "keepRecording": "Tiếp tục ghi âm",
       "stopAndDiscard": "Dừng và loại bỏ",
-      "explainsData": "Âm thanh, bản ghi thoại, ghi chú thủ công, ghi chú được tạo và bộ đệm câu trả lời cục bộ sẽ bị xóa. Không thể hoàn tác việc này.",
+      "explainsData": "Âm thanh, bản ghi, ghi chú tay, ghi chú được tạo và các câu trả lời đã lưu sẽ bị xóa. Không thể hoàn tác.",
       "complete": "Đã loại bỏ phiên"
     },
     "delete": {
       "title": "Xóa cuộc họp này?",
-      "explainsData": "Sona giữ cuộc họp ở trạng thái không thể truy cập cho đến khi việc xóa đã xác minh hoàn tất. Bản xuất và bản sao từ xa nằm ngoài phạm vi xóa trên máy.",
+      "explainsData": "Sona giữ cuộc họp ngoài tầm với cho đến khi việc xóa có kiểm chứng hoàn tất. Các bản xuất và bản sao từ xa không nằm trong phạm vi đó.",
       "complete": "Đã xóa cuộc họp"
     },
     "review": {
@@ -2043,8 +2037,8 @@
       "showFewerGaps": "Hiển thị ít hơn",
       "transcript": "Bản ghi thoại",
       "noTranscript": "Không có bản ghi thoại nào.",
-      "transcriptSegment": "Đoạn bản ghi thoại",
-      "removeSegment": "Xóa đoạn",
+      "transcriptSegment": "Lượt nói trong bản ghi",
+      "removeSegment": "Xóa lượt nói này",
       "editTurn": "Sửa lượt nói này",
       "unknownSpeaker": "Người nói không rõ",
       "speakers": "Người nói",
@@ -2080,7 +2074,7 @@
       "keyQuestions": "Câu hỏi chính",
       "risks": "Rủi ro",
       "followUp": "Bước tiếp theo",
-      "artifactUnavailable": "Bản sửa đổi được tạo này không khả dụng. Bản ghi thoại gốc và ghi chú thủ công vẫn ở trên máy.",
+      "artifactUnavailable": "Các ghi chú được tạo này không khả dụng. Bản ghi và ghi chú tay của bạn vẫn ở trên máy Mac này.",
       "actionMeta": "Phụ trách: {{owner}} · Hạn: {{due}}",
       "unassigned": "Chưa gán",
       "noDueDate": "Không có hạn",
@@ -2123,10 +2117,10 @@
       "exportHtml": "Xuất trang sổ ghi",
       "exported": "Đã ghi sổ ghi vào {{path}}",
       "exportMissing": "Cuộc họp này không có sổ ghi để xuất. Hãy tạo lại ghi chú trước.",
-      "statThreads": "Mạch đã chốt",
+      "statThreads": "Chủ đề đã ngã ngũ",
       "statReceipts": "Trích dẫn",
       "receiptsVerified": "đã đối chiếu",
-      "receiptsDegraded": "Đã bỏ {{threads}} mạch và {{commitments}} cam kết",
+      "receiptsDegraded": "Đã xóa {{threads}} chuỗi và {{commitments}} cam kết",
       "threads": "Mạch thảo luận",
       "asideThread": "lạc đề",
       "openLoops": "Câu hỏi chưa được trả lời",
@@ -2256,7 +2250,7 @@
       "title": "Việc ghi đã không bắt đầu",
       "readyTitle": "Sẵn sàng ghi",
       "recordAnyway": "Ghi mà không có nguồn đó",
-      "recordAnywayHint": "Bản ghi được đánh dấu là chưa đầy đủ và nguồn còn thiếu vẫn được nêu tên trong đó."
+      "recordAnywayHint": "Cuộc họp được đánh dấu là một phần, và nguồn còn thiếu vẫn được nêu tên trong đó."
     },
     "analytics": {
       "title": "Cuộc hội thoại",
@@ -2339,7 +2333,7 @@
       },
       "apps": {
         "label": "Ứng dụng họp",
-        "description": "Mỗi dòng một định danh bundle. Một mục chỉ được tính khi ứng dụng đó đang chạy, nên một định danh bị đổi tên là vô hiệu chứ không phải sai.",
+        "description": "Một ID ứng dụng trên mỗi dòng. Một mục chỉ có hiệu lực khi ứng dụng đó đang chạy, vì vậy ID ứng dụng bị đổi tên sẽ không có tác dụng thay vì hoạt động sai.",
         "running": "Đang chạy: {{apps}}",
         "noneRunning": "Hiện không có mục nào đang chạy."
       },
@@ -2348,7 +2342,7 @@
         "calendarDenied": "Quyền truy cập lịch chưa được cấp, nên chỉ có đường qua micrô hoạt động.",
         "notificationsDenied": "Thông báo của Sona đang tắt, nên các lời nhắc chỉ hiện trong ứng dụng.",
         "bluetoothCaveat": "Một ứng dụng họp đang mở nhưng không có gì báo là đang dùng micrô. Tai nghe Bluetooth thường không báo, nên hãy tự bắt đầu buổi họp nếu đang có một buổi.",
-        "noSilenceStop": "Việc thu dừng khi sự kiện kết thúc, khi ứng dụng thoát, khi máy ngủ, hoặc khi bạn tự dừng. Đồng hồ đo im lặng cần bản ghi theo thời gian thực, mà việc đó chỉ chạy sau khi buổi họp kết thúc."
+        "noSilenceStop": "Bản ghi dừng khi sự kiện kết thúc, ứng dụng thoát, máy Mac ngủ, hoặc khi bạn tự dừng. Không có gì dừng nó vì im lặng: điều đó cần phiên âm trực tiếp, mà phiên âm chỉ chạy sau khi cuộc họp kết thúc."
       },
       "why": {
         "disabled": "Việc phát hiện đang tắt.",
@@ -2383,7 +2377,7 @@
         "autoOpen": "Mở cuộc họp này khi bắt đầu"
       },
       "recording": {
-        "none": "Chưa có nguồn nào sẵn sàng"
+        "none": "Chưa chọn nguồn"
       },
       "participation": {
         "accepted": "Đã nhận lời",
@@ -2420,7 +2414,7 @@
       "loading": "Đang đọc lịch của bạn…",
       "empty": "Không có gì được lên lịch trong tuần tới.",
       "noAccess": "Sona không thấy lịch của bạn.",
-      "noAccessHint": "Bật \"Dùng lịch của tôi\" trong cài đặt cuộc họp, rồi cho phép truy cập đầy đủ khi macOS hỏi. Mọi thứ Lịch macOS đã hiển thị — Google, iCloud, Outlook — đều đi kèm.",
+      "noAccessHint": "Bật \"Dùng lịch của tôi\" trong cài đặt cuộc họp, rồi cấp quyền truy cập đầy đủ khi macOS hỏi. Mọi thứ mà Lịch của macOS đã hiển thị (Google, iCloud, Outlook) đều đi kèm.",
       "unavailable": "Hệ thống này không có lịch nào Sona đọc được.",
       "attendees": "Người tham dự",
       "you": "Bạn",
@@ -2505,6 +2499,16 @@
       "row": "Hỏi Sona: {{query}}",
       "error": "Không thể gửi câu hỏi đến Sona.",
       "consentRequired": "Việc hỏi sẽ gửi các đoạn trích từ cuộc họp của bạn tới máy chủ của bạn, nên hãy bật trí tuệ cho cuộc họp trước."
+    },
+    "error": {
+      "unreachable": "Sona không kết nối được.",
+      "refused": "Sona không nhận được câu hỏi đó.",
+      "failed": "Sona không hoàn thành được câu trả lời đó."
+    },
+    "working": {
+      "searchedCorpus": "Đã xem qua các cuộc họp và ghi chú của bạn",
+      "stillWaiting": "Vẫn đang chờ…",
+      "cancel": "Hủy"
     }
   },
   "overview": {
@@ -2556,8 +2560,8 @@
     },
     "setup": {
       "title": "Thiết lập tài khoản đồng bộ",
-      "endpoint": "Điểm cuối",
-      "bootstrapSecret": "Khóa bí mật khởi tạo",
+      "endpoint": "Địa chỉ máy chủ",
+      "bootstrapSecret": "Khóa bí mật thiết lập",
       "submit": "Thiết lập đồng bộ"
     },
     "recovery": {
@@ -2578,13 +2582,13 @@
     },
     "errors": {
       "portable_unavailable": "Đồng bộ đám mây không khả dụng ở chế độ di động.",
-      "secret_unavailable": "Kho bảo mật của hệ thống không khả dụng.",
+      "secret_unavailable": "Kho thông tin xác thực của hệ thống không khả dụng.",
       "setup_required": "Hãy thiết lập Đồng bộ đám mây trước khi dùng thao tác này.",
       "auth_required": "Cần đăng nhập vào đám mây.",
       "quota": "Đã đạt hạn mức lưu trữ trên đám mây.",
       "integrity_failure": "Không xác minh được thao tác trên đám mây.",
       "conflict": "Cuộc họp này có xung đột đồng bộ.",
-      "unsupported_protocol": "Máy này không hỗ trợ giao thức đám mây.",
+      "unsupported_protocol": "Thiết bị này không hỗ trợ phiên bản đồng bộ đám mây đang dùng.",
       "transient": "Đồng bộ đám mây tạm thời không khả dụng.",
       "invalid_expiry": "Hãy chọn thời điểm hết hạn trong tương lai.",
       "invalid_offer": "Lời mời ghép nối chưa đầy đủ hoặc không hợp lệ.",
@@ -2678,16 +2682,16 @@
       "noDocuments": "Không có tài liệu đã nhập.",
       "deleteDocument": "Xóa tài liệu",
       "deleteDocumentTitle": "Xóa tài liệu này?",
-      "deleteDocumentDescription": "Xóa {{document}} khỏi ngữ cảnh đã nhập?",
+      "deleteDocumentDescription": "Xóa {{document}} khỏi tài liệu của Sona?",
       "cadence": "Tần suất cuộc họp",
       "lastMeeting": "Cuộc họp gần nhất",
       "talkShare": "Tỷ lệ phát biểu",
       "cadenceAria": "Cuộc họp theo tháng: {{values}}",
       "documentFilter": "Tài liệu văn bản",
-      "documentImported": "Đã nhập tài liệu.",
+      "documentImported": "Đã thêm tài liệu.",
       "split": "Tách người",
       "splitTitle": "Tách người này?",
-      "splitDescription": "Chuyển thông tin nhận dạng và cuộc họp đã chọn từ {{name}} sang một người khác.",
+      "splitDescription": "Chuyển các chi tiết và cuộc họp đã chọn từ {{name}} sang người khác.",
       "splitTarget": "Chuyển sang",
       "splitCreate": "Người mới",
       "splitExisting": "Người hiện có",
@@ -2699,7 +2703,7 @@
       "splitDocuments": "Tài liệu",
       "splitSubmit": "Tách người",
       "splitNothingSelected": "Chọn ít nhất một mục để chuyển.",
-      "splitNoItems": "Người này không có thông tin nhận dạng hoặc cuộc họp để tách.",
+      "splitNoItems": "Người này không có chi tiết hoặc cuộc họp nào để chia sẻ.",
       "loadError": "Không thể tải người này."
     },
     "errors": {
@@ -2712,11 +2716,11 @@
       "meetingsBefore_one": "1 cuộc họp trước",
       "meetingsBefore_other": "{{count}} cuộc họp trước",
       "last": "Gần nhất {{date}}",
-      "agentPromptIntro": "Hãy giúp tôi soạn nội dung theo dõi cho “{{title}}” từ các bản ghi cuộc họp này.",
+      "agentPromptIntro": "Giúp tôi soạn thảo nội dung theo dõi cho “{{title}}” bằng cách sử dụng các cuộc họp này.",
       "agentPromptCommitments": "Cam kết",
       "agentPromptOpenLoops": "Nội dung còn mở",
       "agentPromptRequest": "Soạn nội dung theo dõi. Không được bịa chi tiết hoặc lời hứa.",
-      "agentError": "Không thể mở nội dung theo dõi với trợ lý.",
+      "agentError": "Không thể mở phần theo dõi với agent.",
       "discussFollowUp": "Thảo luận nội dung theo dõi với trợ lý",
       "meetingsBefore": "{{count}} cuộc họp trước"
     },
@@ -2763,7 +2767,7 @@
     },
     "detail": {
       "openLoops": "Câu hỏi chưa được trả lời",
-      "howSonaKnows": "Sona biết điều này từ đâu",
+      "howSonaKnows": "Tại sao Sona liên kết người này",
       "noEvidence": "Chưa có gì nối người này với một cuộc họp."
     }
   },
@@ -2794,7 +2798,7 @@
       "rules": {
         "label": "Ứng dụng và trang web",
         "empty": "Không có gì tự chuyển sang chế độ này.",
-        "example": "Một quy tắc lưu một định danh ứng dụng hoặc một máy chủ trang web: com.apple.mail hoặc mail.google.com."
+        "example": "Mỗi quy tắc sử dụng một ID ứng dụng hoặc trang web, ví dụ như com.apple.mail hoặc mail.google.com."
       }
     },
     "advanced": {
@@ -2903,7 +2907,7 @@
       "sync": "Đồng bộ",
       "leavesThisMac": "Những gì rời khỏi máy Mac này",
       "agents": "Tác nhân",
-      "agentBridge": "Cầu nối tác nhân lập trình",
+      "agentBridge": "Kết nối agent",
       "about": "Giới thiệu Sona",
       "debugHint": "Nhấn {{chord}} để mở trang gỡ lỗi."
     },
@@ -2913,10 +2917,10 @@
       "runningNow": "Đang chạy",
       "add": "Thêm một ứng dụng",
       "addTitle": "Thêm một ứng dụng họp",
-      "addDescription": "Sona cần định danh của ứng dụng; bạn có thể xem trong cửa sổ Giới thiệu của chính ứng dụng đó hoặc bằng `osascript -e 'id of app \"Tên\"'`.",
-      "identifier": "Định danh ứng dụng",
+      "addDescription": "Sona cần ID ứng dụng, bạn có thể tìm thấy trong cửa sổ About của ứng dụng hoặc bằng lệnh `osascript -e 'id of app \"Name\"'`.",
+      "identifier": "ID ứng dụng",
       "identifierPlaceholder": "com.example.app",
-      "invalid": "Định danh trông như com.example.app: các từ viết thường nối bằng dấu chấm.",
+      "invalid": "ID ứng dụng phải có dạng com.example.app: các từ viết thường cách nhau bởi dấu chấm.",
       "duplicate": "Ứng dụng đó đã có trong danh sách.",
       "remove": "Bỏ {{app}}",
       "names": {
@@ -2929,8 +2933,8 @@
     }
   },
   "consentPanel": {
-    "calendarTitle": "{{title}} — ghi lại chứ?",
-    "appTitle": "Buổi họp {{app}} — ghi lại chứ?",
+    "calendarTitle": "Ghi lại {{title}}?",
+    "appTitle": "Ghi lại cuộc họp {{app}} này?",
     "genericTitle": "Ghi lại cuộc họp này?",
     "introduction": "Sona ghi ngay trên máy Mac này và bạn vẫn nắm quyền quyết định.",
     "seriesBrief_other": "Cuộc họp {{nth}} với {{person}} · {{count}} vấn đề còn mở",
@@ -2957,8 +2961,8 @@
         "description": "Nhận ra chế độ bạn liên tục chọn bằng phím tắt."
       },
       "captureAdvisor": {
-        "name": "Tư vấn chất lượng thu âm",
-        "description": "Báo về các lần thử lại, bản thu bị mất và âm lượng thấp từ chính các lần chạy của bạn."
+        "name": "Góp ý về chất lượng bản ghi",
+        "description": "Báo cáo các lần thử lại, bản ghi bị mất và âm thanh quá nhỏ từ chính các lần đọc của bạn."
       },
       "seriesPriming": {
         "name": "Chuẩn bị cho họp định kỳ"
@@ -2966,12 +2970,12 @@
     },
     "feed": {
       "title": "Điều Sona nhận thấy",
-      "spokenPunctuation": "Bạn nói {{spoken}} rất nhiều — viết thành {{written}} nhé?",
-      "vocabularyCorrection": "Bạn liên tục đổi {{spoken}} thành {{written}} — học lại nhé?",
-      "modeHabit": "Hầu như ngày nào bạn cũng chọn {{mode}} bằng phím tắt — đặt làm mặc định nhé?",
-      "retryRate": "Các lần chạy {{subject}} bị thử lại nhiều hơn {{times}}× so với phần còn lại.",
-      "lostCaptureRate": "Các lần chạy {{subject}} kết thúc bị cắt hoặc im lặng nhiều hơn {{times}}× so với phần còn lại.",
-      "inputLevel": "{{percent}}% bản thu của bạn có âm lượng thấp — kiểm tra mức micrô nhé?",
+      "spokenPunctuation": "Bạn hay nói {{spoken}}. Viết thành {{written}} nhé?",
+      "vocabularyCorrection": "Bạn liên tục đổi {{spoken}} thành {{written}}. Học lại điều đó nhé?",
+      "modeHabit": "Hầu như ngày nào bạn cũng bấm phím tắt để dùng {{mode}}. Đặt làm mặc định nhé?",
+      "retryRate": "Các lần đọc qua {{subject}} phải thử lại nhiều hơn phần còn lại {{times}}×.",
+      "lostCaptureRate": "Các lần đọc qua {{subject}} kết thúc bị cắt hoặc im lặng nhiều hơn phần còn lại {{times}}×.",
+      "inputLevel": "{{percent}}% bản ghi của bạn vào rất nhỏ. Kiểm tra mức micro nhé?",
       "example": "“{{text}}”",
       "accept": "Có",
       "dismiss": "Không, cảm ơn",

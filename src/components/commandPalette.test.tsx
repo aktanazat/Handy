@@ -326,9 +326,9 @@ describe("the rail, collapsed for the chat column", () => {
 
     expect(markup).toContain("w-[48px]");
     expect(markup).not.toContain("w-[220px]");
-    // Width alone, at the column's duration, so both edges arrive together.
-    expect(markup).toContain("transition-[width] duration-150 ease-out");
-    expect(markup).toContain("motion-reduce:transition-none");
+    // The shell root owns the one clock; this structural rail snaps on intent.
+    expect(markup).toContain("transition-none");
+    expect(markup).not.toContain("transition-[width]");
   });
 
   test("every destination survives as a glyph that still says its name", () => {

@@ -267,7 +267,7 @@ describe("person detail", () => {
       markup.indexOf("Open loops"),
     );
     expect(markup.indexOf("Open loops")).toBeLessThan(
-      markup.indexOf("How Sona knows"),
+      markup.indexOf("Why Sona links this person"),
     );
     /* Three kinds of evidence across three links: an invite, a voice, a
      * title. The section counts the links already on screen above it and asks

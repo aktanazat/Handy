@@ -245,7 +245,7 @@ export const MeetingDetectionState: React.FC = () => {
       live: false,
       text: t(
         "meetings.detection.state.noSilenceStop",
-        "Captures stop on the event end, the app quitting, sleep, or your own stop. The silence timer needs live transcription, which runs after a meeting ends.",
+        "Recording stops when the event ends, the app quits, your Mac sleeps, or you stop it yourself. Nothing stops it for silence: that would need live transcription, which only runs after a meeting ends.",
       ),
     });
   }

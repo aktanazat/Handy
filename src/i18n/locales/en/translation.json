@@ -38,7 +38,7 @@
     "library": "Library"
   },
   "onboarding": {
-    "subtitle": "Models run on this Mac and trade accuracy against speed",
+    "subtitle": "Models run on this Mac and trade accuracy against speed.",
     "existingModelsTitle": "Compatible models",
     "downloadModelsTitle": "Available to download",
     "showAllModels": "Show all {{total}} models",
@@ -56,7 +56,7 @@
       },
       "medium": {
         "name": "Whisper Medium",
-        "description": "Good accuracy, medium speed"
+        "description": "Good accuracy, medium speed."
       },
       "turbo": {
         "name": "Whisper Turbo",
@@ -72,7 +72,7 @@
       },
       "parakeet-tdt-0.6b-v3": {
         "name": "Parakeet V3",
-        "description": "Fast and accurate"
+        "description": "Fast and accurate."
       },
       "moonshine-base": {
         "name": "Moonshine Base",
@@ -80,7 +80,7 @@
       },
       "moonshine-tiny-streaming-en": {
         "name": "Moonshine V2 Tiny",
-        "description": "Ultra-fast, English only"
+        "description": "Ultra-fast, English only."
       },
       "moonshine-small-streaming-en": {
         "name": "Moonshine V2 Small",
@@ -253,7 +253,7 @@
       "noModelsMatch": "No models match this filter.",
       "cloud": {
         "title": "Cloud transcription",
-        "providerDescription": "Credentials stay in your operating system's native secure store.",
+        "providerDescription": "Keys stay in the system credential store.",
         "providers": {
           "deepgram": "Deepgram Nova-3",
           "elevenLabs": "ElevenLabs Scribe v2"
@@ -270,22 +270,22 @@
           "verifying": "Verifying…"
         },
         "status": {
-          "checking": "Checking native key store…",
+          "checking": "Checking the system credential store…",
           "notSaved": "No API key saved.",
           "saved": "API key saved. It has not been verified.",
           "verified": "API key verified.",
-          "verifyRequiresConsent": "Review the transfer disclosure in a mode before verifying this key."
+          "verifyRequiresConsent": "Acknowledge the transfer in a mode before verifying this key."
         },
         "errors": {
           "not_found": "No API key is saved for this provider.",
-          "unavailable": "The native secure store is unavailable.",
-          "locked": "The native secure store is locked.",
-          "corrupt": "The saved credential cannot be read safely.",
-          "invalid": "The credential was not accepted by the secure store.",
-          "busy": "The secure store is busy. Try again.",
-          "backend": "The credential operation could not be completed.",
+          "unavailable": "The system credential store is unavailable.",
+          "locked": "The system credential store is locked.",
+          "corrupt": "The saved key cannot be read safely.",
+          "invalid": "The system credential store did not accept the key.",
+          "busy": "The system credential store is busy. Try again.",
+          "backend": "The system credential store could not complete that action.",
           "not_configured": "Save an API key before verifying it.",
-          "consent_required": "Accept the provider transfer disclosure before verifying.",
+          "consent_required": "Acknowledge the provider transfer before verifying.",
           "authentication": "The provider rejected this API key.",
           "quota": "The provider rejected verification because the account is over quota.",
           "network": "The provider could not be reached for verification.",
@@ -339,8 +339,8 @@
         "label": "Experimental features"
       },
       "lazyStreamClose": {
-        "label": "Keep Mic Open Between Transcriptions",
-        "description": "Keeps the microphone stream open for 30 seconds after recording stops, so back-to-back transcriptions start faster. Bluetooth audio quality can drop while it is open."
+        "label": "Keep the microphone open between dictations",
+        "description": "Keeps the microphone open for 30 seconds after you stop, so back-to-back dictations start faster. Bluetooth audio quality can drop while it is open."
       },
       "acceleration": {
         "transcribe": {
@@ -524,7 +524,7 @@
         },
         "model": {
           "title": "Model",
-          "descriptionCustom": "Provide the model identifier expected by your custom endpoint.",
+          "descriptionCustom": "Enter the model ID your custom server expects.",
           "placeholderWithOptions": "Search or select a model",
           "placeholderNoOptions": "Type a model name",
           "refreshModels": "Refresh models"
@@ -559,17 +559,17 @@
       },
       "remoteConsent": {
         "title": "Remote text transfer",
-        "description": "Meeting and transcription text may be sent to {{provider}} at {{endpoint}} for post-processing.",
-        "acknowledge": "I acknowledge that text may be sent to this endpoint.",
+        "description": "Sona may send meeting and dictation text to {{provider}} at {{endpoint}} for cleanup.",
+        "acknowledge": "I acknowledge that text may be sent to this address.",
         "accept": "Allow text transfer",
         "cancel": "Cancel",
-        "endpointChanged": "The endpoint changed. Review and acknowledge the new endpoint before text can leave this Mac.",
+        "endpointChanged": "The address changed. Review and acknowledge the new one before text can leave this Mac.",
         "invalidDestination": "This provider destination is invalid or local-only, so no remote consent can be recorded.",
         "saveFailed": "Sona could not save this acknowledgement.",
-        "current": "Text transfer is acknowledged for {{endpoint}}.",
+        "current": "You allowed text to be sent to {{endpoint}}.",
         "review": "Review acknowledgement",
-        "endpointLabel": "Canonical endpoint",
-        "destinationPinned": "Sona pins this exact endpoint and origin for the acknowledgement."
+        "endpointLabel": "Exact address",
+        "destinationPinned": "Sona ties the acknowledgement to this exact address and origin."
       }
     },
     "vocabulary": {
@@ -662,7 +662,7 @@
       "loadError": "Couldn't load history.",
       "retry": "Try again",
       "saveError": "Couldn't update the saved status. Try again.",
-      "postProcessEmpty": "Post-processing returned no text. Showing the raw transcript.",
+      "postProcessEmpty": "Post-processing produced no text, so this is the raw transcript.",
       "textView": {
         "label": "Transcript view",
         "processed": "Processed",
@@ -742,11 +742,11 @@
         },
         "deliveryOutcome": {
           "delivered": "Delivered",
-          "definitely_not_dispatched": "Not dispatched",
-          "dispatched_but_unconfirmed": "Dispatched, unconfirmed"
+          "definitely_not_dispatched": "Not sent",
+          "dispatched_but_unconfirmed": "Sent, not confirmed"
         },
         "modeLabel": "Mode",
-        "revisionLabel": "Revision",
+        "revisionLabel": "Settings version",
         "engineLabel": "Engine",
         "sourceLabel": "Source",
         "captureStatusLabel": "Capture",
@@ -818,10 +818,10 @@
       "recalledByMeaning": "by meaning",
       "level": {
         "peak": "peak",
-        "rms": "rms"
+        "rms": "average"
       },
       "noTextRecorded": "No text was recorded for this entry.",
-      "cloudHeld": "The cloud run was held: no trustworthy result arrived and no local model was available.",
+      "cloudHeld": "Sona held the cloud result: nothing trustworthy came back and no local model was available.",
       "transcriptionEngineFailed": "Transcription failed, so nothing was recorded."
     },
     "debug": {
@@ -834,7 +834,7 @@
       },
       "liveLogs": {
         "title": "Live logs",
-        "description": "Only lines emitted while this panel is open appear here, at the log level set above.",
+        "description": "Only lines written while this panel is open appear here, at the log level set above.",
         "pause": "Pause",
         "resume": "Resume",
         "copied": "Copied",
@@ -842,7 +842,7 @@
         "empty": "No lines yet."
       },
       "whatsNewPreview": {
-        "title": "Preview What's New",
+        "title": "Preview the release note",
         "description": "Open the latest bundled release note without marking it as seen.",
         "noNotes": "No bundled release notes found",
         "error": "Couldn't preview the release notes. Try again."
@@ -886,10 +886,10 @@
       },
       "keyboardImplementation": {
         "title": "Keyboard implementation",
-        "bindingsReset": "Keyboard shortcuts were incompatible and reset to defaults"
+        "bindingsReset": "Keyboard shortcuts were incompatible and reset to defaults."
       },
       "paths": {
-        "appData": "App Data:",
+        "appData": "App data:",
         "models": "Models:",
         "settings": "Settings:"
       },
@@ -907,27 +907,21 @@
       },
       "recordingBuffer": {
         "title": "Extra recording buffer",
-        "description": "Extra time (in milliseconds) to keep recording after you release the key, to capture trailing audio. 0 = no extra buffer."
+        "description": "Extra time (in milliseconds) to keep recording after you release the key, to catch trailing audio. Set it to 0 for none."
       },
       "keyboardDiagnostic": {
         "title": "Keyboard diagnostic",
         "description": "Checks whether keyboard events reach Sona. Only event counts are recorded, never which keys you press.",
         "run": "Run 10s diagnostic",
         "running": "Listening… press your shortcut a few times (e.g. Option+Space)",
-        "secureInputLabel": "Secure Input",
+        "secureInputLabel": "Secure input",
         "enabled": "enabled",
         "disabled": "disabled",
         "holder": "held by {{name}} (pid {{pid}})",
-        "holderUnknown": "no visible holder",
-        "keyDown": "Key down",
-        "keyUp": "Key up",
-        "flagsChanged": "Modifiers",
-        "mouse": "Mouse",
-        "verdictBlocked": "Secure Input is blocking key events, so keyed shortcuts cannot work until it is resolved.",
-        "verdictSuspicious": "Modifier events arrived but no key events. Something is suppressing keys even though Secure Input reports disabled. Report this on GitHub.",
-        "verdictOk": "Key events are reaching Sona normally.",
-        "verdictNoEvents": "No events were captured during the test.",
-        "failed": "Diagnostic failed: {{error}}"
+        "notSupported": "Not supported on this platform.",
+        "noHolder": "No app is holding Secure Input.",
+        "status": "Status",
+        "error": "Keyboard diagnostics are unavailable."
       },
       "groups": {
         "capture": "Capture",
@@ -1005,14 +999,14 @@
           },
           "capture": {
             "label": "Activate on website",
-            "description": "Capture the browser host in front. Sona stores the host, not the URL.",
+            "description": "Use the website open in front. Sona saves its site name, not the full address.",
             "action": "Capture current website",
             "capturing": "Capturing…"
           },
           "empty": "No website activates this mode.",
-          "exampleDescription": "A rule stores one browser host, for example mail.google.com."
+          "exampleDescription": "Each rule uses one website, such as mail.google.com."
         },
-        "exampleDescription": "A rule stores one application identity, for example com.apple.mail.",
+        "exampleDescription": "Each rule uses one app ID, such as com.apple.mail.",
         "removeTarget": "Remove {{target}}",
         "unsupported": "App and website activation are available on macOS only."
       },
@@ -1120,10 +1114,10 @@
           "unavailable": "{{provider}} is unavailable"
         },
         "cloud": {
-          "setupRequired": "{{provider}} needs a saved native API key and current transfer consent before its cloud controls are available.",
+          "setupRequired": "{{provider}} needs an API key in the system credential store and a current transfer acknowledgement before its cloud controls open up.",
           "fallback": {
             "label": "Use local fallback",
-            "description": "If the cloud provider cannot return a trustworthy final, transcribe the captured audio with a local model.",
+            "description": "If the cloud provider cannot return a trustworthy result, transcribe the recording with a local model.",
             "useModeModel": "Use this mode's local model",
             "model": {
               "label": "Fallback model",
@@ -1131,8 +1125,8 @@
             }
           },
           "keyterms": {
-            "label": "Cloud keyterms",
-            "description": "One term per line. These terms are sent with this cloud request.",
+            "label": "Words to listen for",
+            "description": "One word or name per line. Sona sends them to the provider with the audio.",
             "placeholder": "Product name\nPerson name"
           },
           "timestamps": {
@@ -1148,22 +1142,22 @@
               "description": "Recorded audio from this mode is sent directly to {{provider}} for transcription."
             },
             "privacy": {
-              "label": "Privacy contract",
-              "description": "The provider receives this mode's audio, selected language, and keyterms. Application context and native credentials stay on this device."
+              "label": "What the provider sees",
+              "description": "The provider receives this mode's audio, its language, and the words you listed. What Sona reads from your other apps, and your keys, stay on this Mac."
             },
             "localFallback": {
               "label": "Local fallback",
-              "description": "If the cloud provider cannot return a trustworthy final, Sona can use your selected local model."
+              "description": "If the cloud provider cannot return a trustworthy result, Sona can use your selected local model."
             },
             "decline": "Keep local",
             "accept": "Accept and use cloud",
             "accepting": "Accepting…",
             "errors": {
               "unknown_provider": "This cloud provider is not available in this build.",
-              "backend": "The consent record could not be saved."
+              "backend": "The acknowledgement could not be saved."
             }
           },
-          "title": "Cloud transport"
+          "title": "Cloud transcription"
         }
       },
       "context": {
@@ -1217,7 +1211,7 @@
         },
         "reliablePaste": {
           "label": "Reliable paste",
-          "description": "Use receipt-sequenced paste when the platform supports it."
+          "description": "Restore the clipboard only after the app reads the transcript, where the system allows it."
         },
         "delay": {
           "label": "Paste delays",
@@ -1247,14 +1241,14 @@
       },
       "errors": {
         "staleRevision": "Settings changed elsewhere. Review the latest mode and save again.",
-        "invalid_mode_id": "This mode ID is invalid.",
+        "invalid_mode_id": "Sona could not read which mode this is.",
         "empty_name": "A mode name is required.",
         "cannot_delete_default": "The default mode cannot be deleted.",
         "unknown_mode": "That mode no longer exists.",
-        "duplicate_mode_id": "A mode with this ID already exists.",
+        "duplicate_mode_id": "That mode already exists.",
         "invalid_reorder": "The mode order could not be saved.",
         "invalid_website_host": "This website host is invalid.",
-        "website_activation_consent_required": "Enable Browser URLs in Privacy before adding a website rule.",
+        "website_activation_consent_required": "Turn on \"Include browser URLs\" in Privacy before adding a website rule.",
         "frontmost_website_unavailable": "No browser website could be captured.",
         "website_activation_secure_field": "Website rules cannot be captured from a secure field."
       },
@@ -1300,10 +1294,10 @@
             "target_and_selection": "Selection",
             "full": "Full"
           },
-          "error": "The context ceiling could not be saved"
+          "error": "The context ceiling could not be saved."
         },
         "sources": {
-          "none": "Reads no application context.",
+          "none": "Reads nothing from your other apps.",
           "target": "Reads the frontmost app identity.",
           "target_and_selection": "Reads the frontmost app identity and selected text when available.",
           "full": "May also read a permitted browser URL and recently changed clipboard text when available."
@@ -1317,7 +1311,7 @@
       "diagnostics": {
         "title": "Context diagnostics",
         "refresh": "Refresh",
-        "error": "Diagnostics could not be refreshed",
+        "error": "Diagnostics could not be refreshed.",
         "accessibility": {
           "label": "Accessibility"
         },
@@ -1359,14 +1353,14 @@
             "months_3": "3 months"
           }
         },
-        "error": "Data retention could not be saved",
+        "error": "Data retention could not be saved.",
         "historyStorage": {
           "encrypted": "Encrypted at rest",
           "label": "History storage",
           "locked": "Locked",
           "plaintext": "Not encrypted",
           "reasons": {
-            "encryption_unavailable": "This build cannot open an encrypted database, so history is stored unencrypted.",
+            "encryption_unavailable": "This version of Sona cannot open an encrypted database, so history is stored unencrypted.",
             "key_rejected": "The stored key does not open the encrypted database, so history cannot be read.",
             "key_unavailable": "The system credential store returned no usable key, so history is stored unencrypted.",
             "migration_failed": "Encrypting the existing database failed. The unencrypted database is intact and still in use."
@@ -1378,7 +1372,7 @@
       "cloudTranscription": {
         "title": "Cloud transcription",
         "checkFailed": "Cloud transcription setup could not be checked.",
-        "disclosure": "For a cloud-enabled mode, Sona sends recorded audio, the selected language, and mode keyterms directly to the provider. Application context and native credentials stay on this device."
+        "disclosure": "For a cloud-enabled mode, Sona sends the recorded audio, the selected language, and the words that mode lists directly to the provider. What Sona reads from your other apps, and your keys, stay on this Mac."
       },
       "upstreamImport": {
         "title": "Import from legacy app",
@@ -1418,11 +1412,11 @@
           "app_state_unverifiable": "Sona cannot verify that the legacy app is closed on this platform.",
           "invalid_selection": "Choose settings or history to import.",
           "settings_unreadable": "The legacy settings file could not be read.",
-          "secret_store_unavailable": "The native credential store is unavailable, so settings with provider keys were not imported.",
-          "secret_conflict": "A provider key already exists in the native credential store. Resolve it before importing settings.",
+          "secret_store_unavailable": "The system credential store is unavailable, so settings with provider keys were not imported.",
+          "secret_conflict": "A provider key already exists in the system credential store. Resolve it before importing settings.",
           "history_unreadable": "The legacy history database could not be read.",
           "recording_copy_failed": "A recording could not be copied and verified.",
-          "receipt_write_failed": "The import receipt could not be saved.",
+          "receipt_write_failed": "Sona couldn't save the import details.",
           "internal": "The import did not finish.",
           "status": "The legacy app's data could not be inspected."
         },
@@ -1445,79 +1439,79 @@
     "agents": {
       "title": "Agents",
       "controls": {
-        "title": "Bridge controls",
+        "title": "Agent controls",
         "master": {
-          "label": "Enable agent bridge"
+          "label": "Enable agent connections"
         },
-        "status": "Runtime status",
+        "status": "Status",
         "providers": {
           "claude": {
             "label": "Claude",
-            "description": "Observe Claude sessions and enable fixture-backed replies where available."
+            "description": "Observe Claude sessions, and reply where Sona supports it."
           },
           "codex": {
             "label": "Codex",
-            "description": "Observe sessions only. Replies are read-only until a wire fixture supports them."
+            "description": "Observe sessions only. Sona cannot reply to Codex yet."
           },
           "grok": {
             "label": "Grok",
-            "description": "Observe sessions only. Replies are read-only until a wire fixture supports them."
+            "description": "Observe sessions only. Sona cannot reply to Grok yet."
           },
           "omp": {
             "label": "OMP",
-            "description": "Observe OMP sessions and approval requests. Replies are available only at a supported OMP session stop."
+            "description": "Observe OMP sessions and approval requests. Sona can reply only when an OMP session stops."
           }
         }
       },
       "status": {
         "disabled": "Disabled",
-        "runtime_unavailable": "Runtime unavailable",
-        "interactive_unsupported": "Interactive responses unsupported",
+        "runtime_unavailable": "Not running",
+        "interactive_unsupported": "Replies aren't available",
         "app_lock_held": "Another Sona instance is active",
         "active": "Active"
       },
       "projects": {
         "title": "Authorized projects",
-        "hashOnly": "Exact project hashes are the permission boundary; folder paths are not stored here.",
+        "hashOnly": "Sona recognizes a project from its folder without saving the folder path here.",
         "add": "Authorize folder",
         "remove": "Remove project",
         "empty": "No projects are authorized."
       },
       "hook": {
-        "title": "Hook snippet",
-        "description": "Copy the packaged hook configuration into your agent's own configuration. Sona never edits agent configuration files.",
-        "copy": "Copy snippet",
-        "error": "Hook snippet unavailable"
+        "title": "Setup code",
+        "description": "Copy this setup code into your agent's configuration. Sona never changes agent files.",
+        "copy": "Copy setup code",
+        "error": "Setup code unavailable"
       },
       "replyQueue": {
         "title": "Reply preview",
         "session": "Reply destination",
-        "noSession": "No observed reply-capable session",
+        "noSession": "No session Sona can reply to",
         "message": "Reply text",
         "createPreview": "Create preview",
-        "notReady": "Replies need the bridge on and at least one agent enabled."
+        "notReady": "Turn on agent connections and at least one agent before replying."
       },
       "pending": {
         "empty": "No pending replies.",
         "confirm": "Confirm exact reply",
-        "confirmed": "Confirmed for the next supported Stop event",
+        "confirmed": "Will send when the agent stops",
         "cancel": "Cancel",
         "states": {
-          "held": "Held for the next supported Stop event",
-          "response_written": "Response written",
-          "emitted": "Emitted",
+          "held": "Waiting until the agent stops",
+          "response_written": "Reply written",
+          "emitted": "Sent",
           "copy_only": "Copy-only",
           "cancelled": "Cancelled"
         },
         "title": "Pending replies"
       },
       "observed": {
-        "title": "Observed activity",
+        "title": "Agent activity",
         "refresh": "Refresh",
         "sessions": "Sessions",
-        "noSessions": "No sessions observed.",
+        "noSessions": "No agent activity yet.",
         "requests": "Requests",
-        "noRequests": "No requests observed.",
+        "noRequests": "No requests yet.",
         "requestKinds": {
           "session_start": "Session started",
           "user_prompt_submit": "Prompt submitted",
@@ -1534,7 +1528,7 @@
         "ompPermissionObserveOnly": "OMP approval requests are observed only. Approve or deny them in OMP."
       },
       "rules": {
-        "title": "Exact permission rules",
+        "title": "Permission rules",
         "empty": "No permission rules.",
         "remove": "Remove rule",
         "decisions": {
@@ -1543,20 +1537,20 @@
         }
       },
       "errors": {
-        "load": "Agent bridge data could not be loaded: {{error}}",
-        "operation": "The agent bridge action could not be completed: {{error}}"
+        "load": "Couldn't load agent connection details: {{error}}",
+        "operation": "Couldn't finish that agent action: {{error}}"
       },
       "panel": {
         "error": "The agent panel setting could not be saved.",
         "label": "Enable agent panel",
-        "rowDescription": "Turning this off closes the panel window and makes Sona refuse every request to reopen it.",
+        "rowDescription": "Turning this off closes the panel and prevents other apps from opening it again.",
         "title": "Agent panel"
       },
       "externalAccess": {
         "label": "External access",
-        "rowDescription": "Lets other programs on this Mac read your meetings, dictations, people and open loops through the sona command line and the MCP server. Read-only, and off until you turn it on."
+        "rowDescription": "Lets other programs on this Mac read your meetings, dictations, people and open loops through Sona's command-line tool and MCP server. It is read-only and stays off until you turn it on."
       },
-      "workspaceNavigation": "Agent bridge views",
+      "workspaceNavigation": "Agent views",
       "sonaAgent": {
         "title": "Sona agent",
         "pairing": "Pairing",
@@ -1564,29 +1558,29 @@
         "unpaired": "Not paired",
         "lastReached": "Last reached",
         "never": "Never",
-        "relayUrl": "Relay address",
+        "relayUrl": "Server address",
         "relayUrlHint": "Only a Tailscale address or this Mac itself is accepted. Anything on the open internet is refused before it is saved.",
-        "relayKeyId": "Relay key id",
-        "relayPublicKey": "Relay public key",
+        "relayKeyId": "Server key ID",
+        "relayPublicKey": "Server public key",
         "identity": "This Mac's public key",
-        "identityHint": "Add this key to the relay so it accepts turns from this Mac. The private half never leaves your keychain.",
+        "identityHint": "Add this key to the server so it accepts messages from this Mac. The private key never leaves your keychain.",
         "identityUnavailable": "Turn the agent panel on to create a key.",
         "copy": "Copy",
         "copied": "Copied",
         "unpair": "Unpair",
         "test": "Test",
-        "reached": "The relay answered.",
-        "failed": "The relay could not be paired.",
+        "reached": "The server replied.",
+        "failed": "Couldn't connect to the server.",
         "reason": {
           "unauthorized_window": "That window may not change pairing.",
           "disabled": "The agent panel is off.",
-          "unpaired": "No relay is paired yet.",
-          "offline": "The relay did not answer.",
+          "unpaired": "No server is paired yet.",
+          "offline": "The server didn't reply.",
           "invalid_configuration": "That address or key is not one Sona will use.",
           "secret_unavailable": "This Mac's key could not be read.",
-          "untrusted_response": "The reply was not signed by the paired relay.",
-          "remote_rejected": "The relay refused the request.",
-          "ownership_rejected": "The relay answered for someone else."
+          "untrusted_response": "The reply was not signed by the paired server.",
+          "remote_rejected": "The server refused the request.",
+          "ownership_rejected": "The server replied for someone else."
         }
       }
     },
@@ -1666,12 +1660,12 @@
         "retry": "Retry"
       },
       "runLog": {
-        "title": "Run log",
-        "empty": "No workflow runs yet.",
-        "loadError": "Couldn't load the run log.",
-        "loadMoreError": "Couldn't load more runs.",
-        "loadMore": "Load more",
-        "chartAria": "Workflow runs per day, {{count}} in the last 7 days"
+        "title": "Activity",
+        "empty": "No activity yet.",
+        "loadError": "Couldn't load activity.",
+        "loadMoreError": "Couldn't load more activity.",
+        "loadMore": "Show more",
+        "chartAria": "Activity per day, {{count}} in the last 7 days"
       }
     },
     "meetings": {
@@ -1694,7 +1688,7 @@
         "shortcutHint": "Runs the Shortcut by name with the meeting's export on its input. Thirty seconds, then it is stopped.",
         "shortcutPlaceholder": "Shortcut name",
         "webhook": "Send to a webhook",
-        "webhookHint": "POSTs the meeting's export as JSON. Only your own machine or your tailnet — the same rule as the relay.",
+        "webhookHint": "Sends the meeting export as JSON. Use only your own machine or tailnet, as with the server.",
         "webhookPlaceholder": "http://100.x.y.z:8650/hook",
         "needsTarget": "Add a name first",
         "needsUrl": "Add an address first",
@@ -1705,11 +1699,11 @@
       "remoteIntelligence": {
         "title": "Meeting intelligence",
         "label": "Write meeting notes on my server",
-        "consent": "Summaries and answers for meetings are written on your server over your private network",
-        "unpaired": "Pair Sona with your server under Agents to turn this on",
+        "consent": "Summaries and answers for meetings are written on your server over your private network.",
+        "unpaired": "Pair Sona with your server under Agents to turn this on.",
         "seriesTitle": "Series that stay on this Mac",
         "seriesHint": "A series listed here is always written on this Mac, even while meeting intelligence is on.",
-        "seriesEmpty": "No recurring meetings recorded yet",
+        "seriesEmpty": "No recurring meetings recorded yet.",
         "loading": "Reading your series…",
         "lastMet": "Last met {{date}}",
         "keepLocalLabel": "Keep {{series}} on this Mac",
@@ -1743,10 +1737,10 @@
   },
   "commandPalette": {
     "open": "Search",
-    "placeholder": "Type a command or search",
+    "placeholder": "Search or choose an action",
     "navigation": "Navigation",
     "actions": "Actions",
-    "noResults": "No commands found",
+    "noResults": "Nothing found",
     "newMeeting": "New meeting",
     "importAudio": "Import audio",
     "openRecordings": "Open recordings folder",
@@ -1789,9 +1783,9 @@
     "commandRewriteUnavailable": "The rewrite returned nothing, so your selection was left as it was. Check the provider in Settings > Post-processing and try again.",
     "noModelSelectedTitle": "No model selected",
     "noSpeechSaveFailedTitle": "Sample not saved",
-    "captureOverrunTitle": "Capture overrun",
+    "captureOverrunTitle": "Recording cut short",
     "cloudUnavailableTitle": "Cloud unavailable",
-    "cloudTranscriptionHeldTitle": "Cloud run held",
+    "cloudTranscriptionHeldTitle": "Cloud result held",
     "commandNoSelectionTitle": "Nothing selected",
     "commandRewriteUnavailableTitle": "Rewrite unavailable"
   },
@@ -1799,7 +1793,7 @@
     "title": "App language"
   },
   "theme": {
-    "title": "Application Theme",
+    "title": "App theme",
     "options": {
       "system": "System",
       "light": "Light",
@@ -1912,7 +1906,7 @@
       "title": "Recording did not start",
       "readyTitle": "Ready to record",
       "recordAnyway": "Record without it",
-      "recordAnywayHint": "The record is marked partial and the missing source stays named in it."
+      "recordAnywayHint": "The meeting is marked partial, and the missing source is named in it."
     },
     "actions": {
       "back": "Back",
@@ -1930,7 +1924,7 @@
     },
     "setup": {
       "defaultTitle": "Local notes",
-      "remoteUnavailable": "Remote processing is unavailable in this build, so every meeting is transcribed and summarized on this Mac."
+      "remoteUnavailable": "Remote processing is unavailable in this version of Sona, so every meeting is transcribed and summarized on this Mac."
     },
     "preflight": {
       "storage": "Storage",
@@ -1938,7 +1932,7 @@
       "storageUnavailable": "Encrypted meeting storage is unavailable.",
       "localModel": "Local model",
       "localModelDescription": "Processing remains local when a local model is available.",
-      "starting": "Starting visible capture…",
+      "starting": "Starting the recording…",
       "refreshing": "Checking…"
     },
     "consent": {
@@ -1951,7 +1945,7 @@
       "partialCapture": "Some audio is missing. Check the gaps before relying on the generated notes.",
       "inputs": "Inputs",
       "signal": "Signal",
-      "signalUnavailable": "{{source}} level is not reported by capture.",
+      "signalUnavailable": "{{source}} does not report its level.",
       "notReported": "Not reported",
       "durabilityLag": "Saved to disk",
       "behind": "{{duration}} behind",
@@ -1977,7 +1971,7 @@
     },
     "retention": {
       "title": "Retention",
-      "description": "Sona deletes eligible local meeting records through the same verified deletion path.",
+      "description": "Sona deletes meetings on this Mac the same verified way every time.",
       "forever": "Keep until I delete it",
       "days": "Delete after {{days}} days",
       "loading": "Reading the current policy…"
@@ -1985,7 +1979,7 @@
     "receipts": {
       "title": "Correction receipt",
       "saved": "Saved locally.",
-      "savedRevision": "Saved locally. Revision {{revision}}.",
+      "savedRevision": "Saved locally. Version {{revision}}.",
       "duplicate": "This action was already recorded. Sona refreshed the existing result."
     },
     "reasons": {
@@ -1997,7 +1991,7 @@
       "source_start_failed": "A source could not start.",
       "source_gap": "A source reported a gap.",
       "storage_unavailable": "Encrypted meeting storage is unavailable.",
-      "storage_failure": "Storage could not persist this change.",
+      "storage_failure": "Storage could not save this change.",
       "local_model_unavailable": "A local model is unavailable.",
       "recovery_required": "This meeting needs recovery.",
       "deleted": "This meeting was deleted.",
@@ -2028,7 +2022,7 @@
       "consent_required": "Confirm the recording acknowledgement before starting.",
       "consent_stale": "The setup changed. Review it again before starting.",
       "invalid_transition": "This action is unavailable in the current meeting phase.",
-      "stale_revision": "This meeting changed in another window. Sona refreshed its snapshot.",
+      "stale_revision": "This meeting changed in another window. Sona reloaded it.",
       "capture_lease_busy": "Another meeting is already capturing audio.",
       "no_source_started": "No approved audio source started.",
       "source_unavailable": "A requested audio source is unavailable.",
@@ -2046,12 +2040,12 @@
       "liveTitle": "Stop and discard this session?",
       "keepRecording": "Keep recording",
       "stopAndDiscard": "Stop and discard",
-      "explainsData": "Audio, transcript, manual notes, generated notes, and local answer caches will be deleted. This cannot be undone.",
+      "explainsData": "Audio, transcript, manual notes, generated notes, and saved answers will be deleted. This cannot be undone.",
       "complete": "Session discarded"
     },
     "delete": {
       "title": "Delete this meeting?",
-      "explainsData": "Sona keeps the meeting inaccessible while verified deletion finishes. Exports and remote copies are outside local deletion.",
+      "explainsData": "Sona keeps the meeting out of reach while verified deletion finishes. Exports and remote copies are not covered by it.",
       "complete": "Meeting deleted"
     },
     "review": {
@@ -2069,8 +2063,8 @@
       "showFewerGaps": "Show fewer",
       "transcript": "Transcript",
       "noTranscript": "No transcript is available.",
-      "transcriptSegment": "Transcript segment",
-      "removeSegment": "Remove segment",
+      "transcriptSegment": "Transcript turn",
+      "removeSegment": "Remove this turn",
       "editTurn": "Edit this turn",
       "unknownSpeaker": "Unknown speaker",
       "speakers": "Speakers",
@@ -2106,7 +2100,7 @@
       "keyQuestions": "Key questions",
       "risks": "Risks",
       "followUp": "Follow-up",
-      "artifactUnavailable": "This generated revision is unavailable. The source transcript and manual notes remain local.",
+      "artifactUnavailable": "These generated notes are unavailable. The transcript and your manual notes stay on this Mac.",
       "actionMeta": "Owner: {{owner}} · Due: {{due}}",
       "actionDone": "Mark this action item done",
       "unassigned": "Unassigned",
@@ -2149,10 +2143,10 @@
       "exportHtml": "Export ledger page",
       "exported": "Ledger written to {{path}}",
       "exportMissing": "This meeting has no ledger to export. Regenerate the notes first.",
-      "statThreads": "Threads landed",
+      "statThreads": "Threads settled",
       "statReceipts": "Receipts",
       "receiptsVerified": "verified",
-      "receiptsDegraded": "{{threads}} threads, {{commitments}} commitments removed",
+      "receiptsDegraded": "{{threads}} threads and {{commitments}} commitments removed",
       "threads": "Threads",
       "asideThread": "aside",
       "openLoops": "Open loops",
@@ -2349,7 +2343,7 @@
       },
       "apps": {
         "label": "Meeting apps",
-        "description": "One bundle identifier per line. An entry only counts while that app is running, so a renamed identifier is inert rather than wrong.",
+        "description": "One app ID per line. An entry counts only while that app is running, so a renamed app ID does nothing instead of misfiring.",
         "running": "Running now: {{apps}}",
         "noneRunning": "None of these are running right now."
       },
@@ -2358,7 +2352,7 @@
         "calendarDenied": "Calendar access was not granted, so only the microphone path runs.",
         "notificationsDenied": "Notifications are off for Sona, so prompts appear in the app only.",
         "bluetoothCaveat": "A meeting app is open but nothing reports using the microphone. Bluetooth headsets often do not, so start the meeting yourself if one is running.",
-        "noSilenceStop": "Captures stop on the event end, the app quitting, sleep, or your own stop. The silence timer needs live transcription, which runs after a meeting ends."
+        "noSilenceStop": "Recording stops when the event ends, the app quits, your Mac sleeps, or you stop it yourself. Nothing stops it for silence: that would need live transcription, which only runs after a meeting ends."
       },
       "why": {
         "disabled": "Detection is off.",
@@ -2393,7 +2387,7 @@
         "autoOpen": "Open this meeting when it starts"
       },
       "recording": {
-        "none": "No source armed"
+        "none": "No source chosen"
       },
       "participation": {
         "accepted": "Accepted",
@@ -2430,7 +2424,7 @@
       "loading": "Reading your calendar…",
       "empty": "Nothing scheduled for the next week.",
       "noAccess": "Sona cannot see your calendar.",
-      "noAccessHint": "Turn on \"Use my calendar\" in Meetings settings, then allow full access when macOS asks. Whatever macOS Calendar already shows — Google, iCloud, Outlook — comes with it.",
+      "noAccessHint": "Turn on \"Use my calendar\" in Meetings settings, then allow full access when macOS asks. Whatever macOS Calendar already shows (Google, iCloud, Outlook) comes with it.",
       "unavailable": "This system has no calendar Sona can read.",
       "attendees": "Attendees",
       "you": "You",
@@ -2464,9 +2458,9 @@
   },
   "chat": {
     "open": "Chat",
-    "label": "Chat with Sona Agent",
+    "label": "Chat with the Sona agent",
     "title": "Sona agent",
-    "unpaired": "Pair Sona Agent in Settings",
+    "unpaired": "Pair the Sona agent in Settings",
     "close": "Close chat",
     "history": "Recent chats",
     "historyEmpty": "No earlier chats yet.",
@@ -2485,6 +2479,16 @@
     },
     "workedFor": "Worked for {{seconds}}s",
     "stepSeconds": "{{seconds}}s",
+    "error": {
+      "unreachable": "Sona couldn't connect.",
+      "refused": "Sona couldn't take that question.",
+      "failed": "Sona couldn't finish that answer."
+    },
+    "working": {
+      "searchedCorpus": "Looked through your meetings and notes",
+      "stillWaiting": "Still waiting…",
+      "cancel": "Cancel"
+    },
     "turnState": {
       "submitting": "Sending",
       "queued": "Queued",
@@ -2499,10 +2503,10 @@
       "unverified_external": "Unverified reply"
     },
     "status": {
-      "disabled": "Sona Agent is switched off.",
-      "unpaired": "Sona Agent is not paired with a relay.",
-      "offline": "Sona Agent's relay could not be reached.",
-      "error": "Sona Agent is unavailable."
+      "disabled": "The Sona agent is switched off.",
+      "unpaired": "The Sona agent is not paired with a relay.",
+      "offline": "The Sona agent's relay could not be reached.",
+      "error": "The Sona agent is unavailable."
     },
     "proposal": {
       "apply": "Apply",
@@ -2553,7 +2557,7 @@
   },
   "cloudSync": {
     "account": {
-      "title": "Cloud Sync",
+      "title": "Cloud sync",
       "status": {
         "loading": "Checking…",
         "local": "Local only",
@@ -2568,8 +2572,8 @@
     },
     "setup": {
       "title": "Set up a sync account",
-      "endpoint": "Endpoint",
-      "bootstrapSecret": "Bootstrap secret",
+      "endpoint": "Server address",
+      "bootstrapSecret": "Setup secret",
       "submit": "Set up sync"
     },
     "recovery": {
@@ -2589,21 +2593,21 @@
       "accept": "Accept offer"
     },
     "errors": {
-      "portable_unavailable": "Cloud Sync is unavailable in portable mode.",
-      "secret_unavailable": "The native secure store is unavailable.",
-      "setup_required": "Set up Cloud Sync before using this action.",
+      "portable_unavailable": "Cloud sync is unavailable in portable mode.",
+      "secret_unavailable": "The system credential store is unavailable.",
+      "setup_required": "Set up cloud sync before using this action.",
       "auth_required": "Cloud sign-in is required.",
       "quota": "Cloud storage quota has been reached.",
       "integrity_failure": "The cloud operation could not be verified.",
       "conflict": "This meeting has a sync conflict.",
-      "unsupported_protocol": "This device does not support the cloud protocol.",
-      "transient": "Cloud Sync is temporarily unavailable.",
+      "unsupported_protocol": "This device does not support the version of cloud sync in use.",
+      "transient": "Cloud sync is temporarily unavailable.",
       "invalid_expiry": "Choose a future expiry.",
       "invalid_offer": "The pairing offer is incomplete or invalid.",
       "unexpected": "The cloud operation failed."
     },
     "meeting": {
-      "title": "Cloud Sync",
+      "title": "Cloud sync",
       "status": {
         "loading": "Checking sync…",
         "local": "Local only",
@@ -2686,16 +2690,16 @@
       "noDocuments": "No imported documents.",
       "deleteDocument": "Delete document",
       "deleteDocumentTitle": "Delete this document?",
-      "deleteDocumentDescription": "Delete {{document}} from imported context?",
+      "deleteDocumentDescription": "Delete {{document}} from Sona's documents?",
       "cadence": "Meeting cadence",
       "lastMeeting": "Last meeting",
       "talkShare": "Talk share",
       "cadenceAria": "Meetings by month: {{values}}",
       "documentFilter": "Text documents",
-      "documentImported": "Document imported.",
+      "documentImported": "Document added.",
       "split": "Split person",
       "splitTitle": "Split this person?",
-      "splitDescription": "Move selected identity details and meetings from {{name}} to another person.",
+      "splitDescription": "Move selected details and meetings from {{name}} to another person.",
       "splitTarget": "Move to",
       "splitCreate": "New person",
       "splitExisting": "Existing person",
@@ -2707,7 +2711,7 @@
       "splitDocuments": "Documents",
       "splitSubmit": "Split person",
       "splitNothingSelected": "Choose at least one item to move.",
-      "splitNoItems": "This person has no identity details or meetings to split.",
+      "splitNoItems": "This person has no details or meetings to split.",
       "loadError": "Couldn't load this person."
     },
     "errors": {
@@ -2720,11 +2724,11 @@
       "meetingsBefore_one": "1 earlier meeting",
       "meetingsBefore_other": "{{count}} earlier meetings",
       "last": "Last {{date}}",
-      "agentPromptIntro": "Help me draft a follow-up for “{{title}}” from these meeting records.",
+      "agentPromptIntro": "Help me draft a follow-up for “{{title}}” using these meetings.",
       "agentPromptCommitments": "Commitments",
       "agentPromptOpenLoops": "Open loops",
       "agentPromptRequest": "Draft the follow-up. Do not invent details or promises.",
-      "agentError": "Couldn't open the agent follow-up.",
+      "agentError": "Couldn't open the follow-up with the agent.",
       "discussFollowUp": "Discuss follow-up with agent",
       "meetingsBefore": "{{count}} earlier meetings"
     },
@@ -2773,7 +2777,7 @@
     },
     "detail": {
       "openLoops": "Open loops",
-      "howSonaKnows": "How Sona knows",
+      "howSonaKnows": "Why Sona links this person",
       "noEvidence": "Nothing links this person to a meeting yet."
     }
   },
@@ -2804,7 +2808,7 @@
       "rules": {
         "label": "Apps and websites",
         "empty": "Nothing switches to this mode on its own.",
-        "example": "A rule stores one app identity or one website host — com.apple.mail, or mail.google.com."
+        "example": "Each rule uses one app ID or website, such as com.apple.mail or mail.google.com."
       }
     },
     "advanced": {
@@ -2913,7 +2917,7 @@
       "sync": "Sync",
       "leavesThisMac": "What leaves this Mac",
       "agents": "Agents",
-      "agentBridge": "Coding agent bridge",
+      "agentBridge": "Agent connections",
       "about": "About Sona",
       "debugHint": "Press {{chord}} to open the debug page."
     },
@@ -2923,10 +2927,10 @@
       "runningNow": "Running now",
       "add": "Add an app",
       "addTitle": "Add a meeting app",
-      "addDescription": "Sona needs the app's identifier, which you can read in the app's own About window or with `osascript -e 'id of app \"Name\"'`.",
-      "identifier": "App identifier",
+      "addDescription": "Sona needs the app ID, which you can find in the app's About window or with `osascript -e 'id of app \"Name\"'`.",
+      "identifier": "App ID",
       "identifierPlaceholder": "com.example.app",
-      "invalid": "An identifier looks like com.example.app: lowercase words joined by dots.",
+      "invalid": "An app ID looks like com.example.app: lowercase words separated by dots.",
       "duplicate": "That app is already on the list.",
       "remove": "Remove {{app}}",
       "names": {
@@ -2939,8 +2943,8 @@
     }
   },
   "consentPanel": {
-    "calendarTitle": "{{title}} — record it?",
-    "appTitle": "{{app}} meeting — record it?",
+    "calendarTitle": "Record {{title}}?",
+    "appTitle": "Record this {{app}} meeting?",
     "genericTitle": "Record this meeting?",
     "introduction": "Sona records on this Mac and keeps you in control.",
     "seriesBrief_one": "Meeting {{nth}} with {{person}} · {{count}} open loop",
@@ -2968,8 +2972,8 @@
         "description": "Notices a mode you keep reaching for by shortcut."
       },
       "captureAdvisor": {
-        "name": "Advise on capture quality",
-        "description": "Reports retries, lost captures and quiet audio from your own runs."
+        "name": "Advise on recording quality",
+        "description": "Reports retries, lost recordings, and quiet audio from your own dictations."
       },
       "seriesPriming": {
         "name": "Prime recurring meetings"
@@ -2977,12 +2981,12 @@
     },
     "feed": {
       "title": "What Sona noticed",
-      "spokenPunctuation": "Noticed you say {{spoken}} a lot — write it as {{written}}?",
-      "vocabularyCorrection": "You keep changing {{spoken}} to {{written}} — learn it?",
-      "modeHabit": "You reach for {{mode}} by shortcut most days — make it your default?",
-      "retryRate": "Your {{subject}} runs get retried {{times}}× more often than the rest.",
-      "lostCaptureRate": "Your {{subject}} runs end truncated or silent {{times}}× more often than the rest.",
-      "inputLevel": "{{percent}}% of your captures came in quiet — check your microphone level?",
+      "spokenPunctuation": "You say {{spoken}} a lot. Write it as {{written}}?",
+      "vocabularyCorrection": "You keep changing {{spoken}} to {{written}}. Learn it?",
+      "modeHabit": "You reach for {{mode}} by shortcut most days. Make it your default?",
+      "retryRate": "Dictations on {{subject}} get retried {{times}}× more often than the rest.",
+      "lostCaptureRate": "Dictations on {{subject}} end cut off or silent {{times}}× more often than the rest.",
+      "inputLevel": "{{percent}}% of your recordings came in quiet. Check your microphone level?",
       "example": "“{{text}}”",
       "accept": "Yes",
       "dismiss": "No thanks",

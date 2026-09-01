@@ -34,7 +34,7 @@
     "settings": "Nastavení"
   },
   "onboarding": {
-    "subtitle": "Modely běží na tomto Macu a volí kompromis mezi přesností a rychlostí",
+    "subtitle": "Modely běží na tomto Macu a volí kompromis mezi přesností a rychlostí.",
     "existingModelsTitle": "Kompatibilní modely",
     "downloadModelsTitle": "Dostupné ke stažení",
     "showAllModels": "Zobrazit všech {{total}} modelů",
@@ -52,7 +52,7 @@
       },
       "medium": {
         "name": "Whisper Medium",
-        "description": "Dobrá přesnost, střední rychlost"
+        "description": "Dobrá přesnost, střední rychlost."
       },
       "turbo": {
         "name": "Whisper Turbo",
@@ -68,7 +68,7 @@
       },
       "parakeet-tdt-0.6b-v3": {
         "name": "Parakeet V3",
-        "description": "Rychlý a přesný"
+        "description": "Rychlý a přesný."
       },
       "moonshine-base": {
         "name": "Moonshine Base",
@@ -76,7 +76,7 @@
       },
       "moonshine-tiny-streaming-en": {
         "name": "Moonshine V2 Tiny",
-        "description": "Ultrarychlý, pouze angličtina"
+        "description": "Ultrarychlý, pouze angličtina."
       },
       "moonshine-small-streaming-en": {
         "name": "Moonshine V2 Small",
@@ -193,7 +193,7 @@
       },
       "cloud": {
         "title": "Cloudový přepis",
-        "providerDescription": "Pověření zůstávají v zabezpečeném úložišti vašeho operačního systému.",
+        "providerDescription": "Klíče zůstávají v systémovém úložišti pověření.",
         "providers": {
           "deepgram": "Deepgram Nova-3",
           "elevenLabs": "ElevenLabs Scribe v2"
@@ -210,22 +210,22 @@
           "verifying": "Ověřování…"
         },
         "status": {
-          "checking": "Kontrola systémového úložiště klíčů…",
+          "checking": "Kontrola systémového úložiště pověření…",
           "notSaved": "Není uložen žádný klíč API.",
           "saved": "Klíč API uložen. Nebyl ověřen.",
           "verified": "Klíč API ověřen.",
-          "verifyRequiresConsent": "Než tento klíč ověříte, přečtěte si v režimu informaci o přenosu."
+          "verifyRequiresConsent": "Než tento klíč ověříte, potvrďte přenos v některém režimu."
         },
         "errors": {
           "not_found": "Pro tohoto poskytovatele není uložen žádný klíč API.",
-          "unavailable": "Systémové zabezpečené úložiště není dostupné.",
-          "locked": "Systémové zabezpečené úložiště je uzamčeno.",
-          "corrupt": "Uložené pověření nelze bezpečně přečíst.",
-          "invalid": "Zabezpečené úložiště toto pověření nepřijalo.",
-          "busy": "Zabezpečené úložiště je zaneprázdněné. Zkuste to znovu.",
-          "backend": "Operaci s pověřením se nepodařilo dokončit.",
+          "unavailable": "Systémové úložiště pověření není dostupné.",
+          "locked": "Systémové úložiště pověření je uzamčeno.",
+          "corrupt": "Uložený klíč nelze bezpečně přečíst.",
+          "invalid": "Systémové úložiště pověření tento klíč nepřijalo.",
+          "busy": "Systémové úložiště pověření je zaneprázdněné. Zkuste to znovu.",
+          "backend": "Systémové úložiště pověření tuto akci nedokončilo.",
           "not_configured": "Než klíč API ověříte, uložte jej.",
-          "consent_required": "Před ověřením přijměte informaci o přenosu k poskytovateli.",
+          "consent_required": "Před ověřením potvrďte přenos k poskytovateli.",
           "authentication": "Poskytovatel tento klíč API odmítl.",
           "quota": "Poskytovatel odmítl ověření, protože účet překročil kvótu.",
           "network": "Poskytovatele se pro ověření nepodařilo kontaktovat.",
@@ -335,8 +335,8 @@
         "label": "Experimentální funkce"
       },
       "lazyStreamClose": {
-        "label": "Ponechat mikrofon zapnutý mezi přepisy",
-        "description": "Ponechá stream mikrofonu otevřený po dobu 30 sekund po zastavení nahrávání, takže opakované přepisy začínají rychleji. Kvalita zvuku Bluetooth se může po tuto dobu zhoršit."
+        "label": "Nechat mikrofon otevřený mezi diktováním",
+        "description": "Nechá mikrofon otevřený 30 sekund po zastavení, takže po sobě jdoucí diktování začíná rychleji. Kvalita zvuku přes Bluetooth může při otevřeném mikrofonu klesnout."
       },
       "acceleration": {
         "transcribe": {
@@ -520,7 +520,7 @@
         },
         "model": {
           "title": "Model",
-          "descriptionCustom": "Zadejte identifikátor modelu očekávaný vaším vlastním endpointem.",
+          "descriptionCustom": "Zadejte ID modelu, které očekává váš vlastní server.",
           "placeholderWithOptions": "Vyhledejte nebo vyberte model",
           "placeholderNoOptions": "Zadejte název modelu",
           "refreshModels": "Obnovit modely"
@@ -555,17 +555,17 @@
       },
       "remoteConsent": {
         "title": "Vzdálený přenos textu",
-        "description": "Text schůzek a přepisů může být pro následné zpracování odeslán poskytovateli {{provider}} na {{endpoint}}.",
-        "acknowledge": "Beru na vědomí, že text může být odeslán na tento endpoint.",
+        "description": "Sona může odesílat text zítek a diktát do {{provider}} na {{endpoint}} pro úpravu.",
+        "acknowledge": "Beru na vědomí, že text může být odeslán na tuto adresu.",
         "accept": "Povolit přenos textu",
         "cancel": "Zrušit",
-        "endpointChanged": "Endpoint se změnil. Než bude text moci opustit tento Mac, zkontrolujte a potvrďte nový endpoint.",
+        "endpointChanged": "Adresa se změnila. Než bude text moci opustit tento Mac, zkontrolujte a potvrďte novou.",
         "invalidDestination": "Tento cíl poskytovatele je neplatný nebo jen místní, takže nelze zaznamenat souhlas se vzdáleným přenosem.",
         "saveFailed": "Sona nemohla toto potvrzení uložit.",
-        "current": "Přenos textu je potvrzen pro {{endpoint}}.",
+        "current": "Umožnili jste odesílání textu na {{endpoint}}.",
         "review": "Zkontrolovat potvrzení",
-        "endpointLabel": "Kanonický endpoint",
-        "destinationPinned": "Sona k tomuto potvrzení připíná právě tento endpoint a jeho origin."
+        "endpointLabel": "Přesná adresa",
+        "destinationPinned": "Sona váže toto potvrzení právě na tuto adresu a její origin."
       }
     },
     "history": {
@@ -593,7 +593,7 @@
       "loadError": "Nelze načíst historii.",
       "retry": "Zkusit znovu",
       "saveError": "Stav uložení se nepodařilo aktualizovat. Zkuste to znovu.",
-      "postProcessEmpty": "Následné zpracování nevrátilo text. Zobrazuje se surový přepis.",
+      "postProcessEmpty": "Následné zpracování nevytvořilo žádný text, takže tohle je surový přepis.",
       "textView": {
         "label": "Zobrazení přepisu",
         "processed": "Zpracováno",
@@ -668,10 +668,10 @@
         "deliveryOutcome": {
           "delivered": "Doručeno",
           "definitely_not_dispatched": "Neodesláno",
-          "dispatched_but_unconfirmed": "Odesláno, nepotvrzeno"
+          "dispatched_but_unconfirmed": "Odesláno, ale nepotvrzeno"
         },
         "modeLabel": "Režim",
-        "revisionLabel": "Revize",
+        "revisionLabel": "Verze nastavení",
         "engineLabel": "Engine",
         "sourceLabel": "Zdroj",
         "captureStatusLabel": "Záznam",
@@ -749,10 +749,10 @@
       "recalledByMeaning": "podle významu",
       "level": {
         "peak": "peak",
-        "rms": "rms"
+        "rms": "průměr"
       },
       "noTextRecorded": "Pro tento záznam nebyl zaznamenán žádný text.",
-      "cloudHeld": "Spuštění v Cloudu bylo zadrženo: nepřišel žádný důvěryhodný výsledek a nebyl dostupný žádný místní model.",
+      "cloudHeld": "Sona zadržela cloudový výsledek: nic důvěryhodného se nevrátilo a nebyl dostupný žádný místní model.",
       "transcriptionEngineFailed": "Přepis selhal, takže se nic nezaznamenalo.",
       "processAgain": {
         "action": "Zpracovat znovu",
@@ -774,7 +774,7 @@
       },
       "liveLogs": {
         "title": "Živé logy",
-        "description": "Zobrazují se pouze řádky vytvořené, když je tento panel otevřený, v úrovni logování nastavené výše.",
+        "description": "Zobrazí se zde jen řádky zapsané, když je tento panel otevřený, na úrovni protokolu nastavené výše.",
         "pause": "Pozastavit",
         "resume": "Pokračovat",
         "copied": "Zkopírováno",
@@ -820,7 +820,7 @@
       },
       "keyboardImplementation": {
         "title": "Implementace klávesnice",
-        "bindingsReset": "Klávesové zkratky byly nekompatibilní a byly obnoveny na výchozí hodnoty"
+        "bindingsReset": "Klávesové zkratky byly nekompatibilní a byly obnoveny na výchozí hodnoty."
       },
       "paths": {
         "appData": "Data aplikace:",
@@ -841,30 +841,24 @@
       },
       "recordingBuffer": {
         "title": "Extra vyrovnávací paměť nahrávání",
-        "description": "Extra čas (v milisekundách) pro pokračování nahrávání po uvolnění klávesy, pro zachycení zbývajícího zvuku. 0 = žádná extra vyrovnávací paměť."
+        "description": "Extra čas (v milisekundách) pro pokračování nahrávání po uvolnění klávesy, pro zachycení zbývajícího zvuku. Nastavte 0, pokud žádný nechcete."
       },
       "keyboardDiagnostic": {
         "title": "Diagnostika klávesnice",
         "description": "Ověří, zda události klávesnice dorazí do Sona. Zaznamenává se pouze počet událostí, nikdy to, které klávesy stisknete.",
         "run": "Spustit 10s diagnostiku",
         "running": "Naslouchání… několikrát stiskněte svou zkratku (např. Option+Space)",
-        "secureInputLabel": "Secure Input",
+        "secureInputLabel": "Bezpečný vstup",
         "enabled": "zapnuto",
         "disabled": "vypnuto",
         "holder": "drží ji {{name}} (pid {{pid}})",
-        "holderUnknown": "žádný viditelný držitel",
-        "keyDown": "Stisk klávesy",
-        "keyUp": "Uvolnění klávesy",
-        "flagsChanged": "Modifikátory",
-        "mouse": "Myš",
-        "verdictBlocked": "Secure Input blokuje události kláves, takže zkratky obsahující běžnou klávesu nemohou fungovat, dokud se to nevyřeší.",
-        "verdictSuspicious": "Dorazily události modifikátorů, ale žádné události kláves. Něco klávesy potlačuje, přestože Secure Input hlásí, že je vypnutý. Nahlaste to na GitHubu.",
-        "verdictOk": "Události kláves dorazí do Sona normálně.",
-        "verdictNoEvents": "Během testu nebyly zachyceny žádné události.",
-        "failed": "Diagnostika selhala: {{error}}"
+        "notSupported": "Na této platformě není podporováno.",
+        "noHolder": "Žádná aplikace nepoužívá zabezpečené zadávání.",
+        "status": "Stav",
+        "error": "Diagnostika klávesnice není k dispozici."
       },
       "whatsNewPreview": {
-        "title": "Náhled novinek",
+        "title": "Náhled poznámky k vydání",
         "description": "Otevřít nejnovější přibalené poznámky k vydání bez označení jako zobrazené",
         "noNotes": "Nebyly nalezeny žádné přibalené poznámky k vydání",
         "error": "Poznámky k vydání se nepodařilo zobrazit. Zkuste to znovu."
@@ -945,14 +939,14 @@
           },
           "capture": {
             "label": "Aktivovat na webu",
-            "description": "Zachyťte hostitele prohlížeče v popředí. Sona ukládá hostitele, ne adresu URL.",
+            "description": "Použijte otevřený web. Sona si uloží název webu, necelou adresu.",
             "action": "Zachytit aktuální web",
             "capturing": "Zachytávání…"
           },
           "empty": "Tento režim neaktivuje žádný web.",
-          "exampleDescription": "Pravidlo ukládá jednoho hostitele prohlížeče, například mail.google.com."
+          "exampleDescription": "Každé pravidlo používá jeden web, například mail.google.com."
         },
-        "exampleDescription": "Pravidlo ukládá identitu jedné aplikace, například com.apple.mail.",
+        "exampleDescription": "Každé pravidlo používá jedno ID aplikace, například com.apple.mail.",
         "removeTarget": "Odstranit {{target}}",
         "unsupported": "Aktivace podle aplikace a webu je dostupná pouze na macOS."
       },
@@ -1060,10 +1054,10 @@
           "unavailable": "{{provider}} není dostupný"
         },
         "cloud": {
-          "setupRequired": "{{provider}} vyžaduje uložený vlastní klíč API a aktuální souhlas s přenosem, než budou jeho cloudové ovládací prvky dostupné.",
+          "setupRequired": "{{provider}} vyžaduje klíč API v systémovém úložišti pověření a aktuální potvrzení přenosu, než se jeho cloudové ovládací prvky otevřou.",
           "fallback": {
             "label": "Použít lokální zálohu",
-            "description": "Pokud cloudový poskytovatel nemůže vrátit důvěryhodný výsledek, zachycené audio se přepíše lokálním modelem.",
+            "description": "Pokud cloudový poskytovatel nemůže vrátit důvěryhodný výsledek, nahrávka se přepíše lokálním modelem.",
             "useModeModel": "Použít lokální model tohoto režimu",
             "model": {
               "label": "Záložní model",
@@ -1071,8 +1065,8 @@
             }
           },
           "keyterms": {
-            "label": "Klíčové termíny pro cloud",
-            "description": "Jeden termín na řádek. Tyto termíny se odesílají s tímto cloudovým požadavkem.",
+            "label": "Slova, na která si dát pozor",
+            "description": "Jedno slovo nebo jméno na řádek. Sona je posílá poskytovateli spolu se zvukem.",
             "placeholder": "Název produktu\nJméno osoby"
           },
           "timestamps": {
@@ -1088,22 +1082,22 @@
               "description": "Zaznamenané audio z tohoto režimu se k přepisu odesílá přímo poskytovateli {{provider}}."
             },
             "privacy": {
-              "label": "Smlouva o soukromí",
-              "description": "Poskytovatel obdrží audio tohoto režimu, vybraný jazyk a klíčové termíny. Kontext aplikace a vlastní přihlašovací údaje zůstávají v tomto zařízení."
+              "label": "Co poskytovatel vidí",
+              "description": "Poskytovatel obdrží audio tohoto režimu, jeho jazyk a slova, která jste uvedli. To, co Sona čte z vašich ostatních aplikací, i vaše klíče zůstávají na tomto Macu."
             },
             "localFallback": {
               "label": "Lokální záloha",
-              "description": "Pokud cloudový poskytovatel nemůže vrátit důvěryhodný výsledek, Sona může použít lokální model, který jste vybrali."
+              "description": "Pokud cloudový poskytovatel nemůže vrátit důvěryhodný výsledek, Sona může použít vybraný místní model."
             },
             "decline": "Zůstat lokálně",
             "accept": "Přijmout a použít cloud",
             "accepting": "Přijímání…",
             "errors": {
               "unknown_provider": "Tento cloudový poskytovatel není v tomto buildu dostupný.",
-              "backend": "Záznam o souhlasu se nepodařilo uložit."
+              "backend": "Potvrzení se nepodařilo uložit."
             }
           },
-          "title": "Cloudový přenos"
+          "title": "Cloudový přepis"
         }
       },
       "context": {
@@ -1157,7 +1151,7 @@
         },
         "reliablePaste": {
           "label": "Spolehlivé vkládání",
-          "description": "Použije vkládání řízené potvrzením, pokud to platforma podporuje."
+          "description": "Schránka se obnoví až poté, co aplikace přečte přepis, pokud to systém dovolí."
         },
         "delay": {
           "label": "Prodlevy vkládání",
@@ -1187,14 +1181,14 @@
       },
       "errors": {
         "staleRevision": "Nastavení se změnilo jinde. Zkontrolujte nejnovější režim a uložte znovu.",
-        "invalid_mode_id": "Toto ID režimu je neplatné.",
+        "invalid_mode_id": "Sona nedokázala rozpoznat, o který režim jde.",
         "empty_name": "Název režimu je povinný.",
         "cannot_delete_default": "Výchozí režim nelze odstranit.",
         "unknown_mode": "Tento režim už neexistuje.",
-        "duplicate_mode_id": "Režim s tímto ID už existuje.",
+        "duplicate_mode_id": "Tento režim už existuje.",
         "invalid_reorder": "Pořadí režimů se nepodařilo uložit.",
         "invalid_website_host": "Hostitel webu není platný.",
-        "website_activation_consent_required": "Před přidáním pravidla webu zapněte v Soukromí adresy URL prohlížeče.",
+        "website_activation_consent_required": "Před přidáním pravidla webu zapněte v Soukromí možnost „Zahrnout adresy URL prohlížeče“.",
         "frontmost_website_unavailable": "Z prohlížeče se nepodařilo zachytit žádný web.",
         "website_activation_secure_field": "Pravidla webu nelze zachytit ze zabezpečeného pole."
       },
@@ -1240,10 +1234,10 @@
             "target_and_selection": "Výběr",
             "full": "Plná"
           },
-          "error": "Limit kontextu se nepodařilo uložit"
+          "error": "Limit kontextu se nepodařilo uložit."
         },
         "sources": {
-          "none": "Nečte žádný kontext aplikace.",
+          "none": "Nečte nic z vašich ostatních aplikací.",
           "target": "Čte identitu aplikace v popředí.",
           "target_and_selection": "Čte identitu aplikace v popředí a vybraný text, pokud je dostupný.",
           "full": "Může také přečíst povolenou URL prohlížeče a nedávno změněný text ze schránky, pokud jsou dostupné."
@@ -1257,7 +1251,7 @@
       "diagnostics": {
         "title": "Diagnostika kontextu",
         "refresh": "Obnovit",
-        "error": "Diagnostiku se nepodařilo obnovit",
+        "error": "Diagnostiku se nepodařilo obnovit.",
         "accessibility": {
           "label": "Zpřístupnění"
         },
@@ -1299,14 +1293,14 @@
             "months_3": "3 měsíce"
           }
         },
-        "error": "Uchovávání dat se nepodařilo uložit",
+        "error": "Uchovávání dat se nepodařilo uložit.",
         "historyStorage": {
           "encrypted": "Šifrováno v klidu",
           "label": "Úložiště historie",
           "locked": "Uzamčeno",
           "plaintext": "Nešifrováno",
           "reasons": {
-            "encryption_unavailable": "Toto sestavení nemůže otevřít šifrovanou databázi, takže historie je uložena nešifrovaně.",
+            "encryption_unavailable": "Tato verze Sony neumí otevřít šifrovanou databázi, takže se historie ukládá nešifrovaně.",
             "key_rejected": "Uložený klíč šifrovanou databázi neotevře, takže historii nelze číst.",
             "key_unavailable": "Systémové úložiště pověření nevrátilo použitelný klíč, takže historie je uložena nešifrovaně.",
             "migration_failed": "Šifrování stávající databáze selhalo. Nešifrovaná databáze je neporušená a stále se používá."
@@ -1318,7 +1312,7 @@
       "cloudTranscription": {
         "title": "Cloudový přepis",
         "checkFailed": "Nastavení cloudového přepisu se nepodařilo zkontrolovat.",
-        "disclosure": "V režimu s cloudem Sona odesílá zaznamenané audio, vybraný jazyk a klíčové termíny režimu přímo poskytovateli. Kontext aplikace a vlastní přihlašovací údaje zůstávají v tomto zařízení."
+        "disclosure": "V režimu s cloudem Sona odesílá zaznamenané audio, vybraný jazyk a slova uvedená v tomto režimu přímo poskytovateli. To, co Sona čte z vašich ostatních aplikací, i vaše klíče zůstávají na tomto Macu."
       },
       "upstreamImport": {
         "title": "Import ze starší aplikace",
@@ -1358,11 +1352,11 @@
           "app_state_unverifiable": "Sona nemůže na této platformě ověřit, že je starší aplikace zavřená.",
           "invalid_selection": "Vyberte k importu nastavení nebo historii.",
           "settings_unreadable": "Soubor nastavení starší aplikace se nepodařilo přečíst.",
-          "secret_store_unavailable": "Systémové úložiště pověření není dostupné, takže nastavení s klíči poskytovatelů nebyla importována.",
-          "secret_conflict": "V systémovém úložišti pověření už klíč poskytovatele existuje. Před importem nastavení to vyřešte.",
+          "secret_store_unavailable": "Systémové úložiště přihlašovacích údajů není dostupné, takže nastavení s klíči poskytovatelů nebylo importováno.",
+          "secret_conflict": "V systémovém úložišti přihlašovacích údajů už existuje klíč poskytovatele. Před importem nastavení konflikt vyřešte.",
           "history_unreadable": "Starší databázi historie se nepodařilo přečíst.",
           "recording_copy_failed": "Nahrávku se nepodařilo zkopírovat a ověřit.",
-          "receipt_write_failed": "Protokol o importu se nepodařilo uložit.",
+          "receipt_write_failed": "Sona se nepodařilo uložit detaily importu.",
           "internal": "Import nebyl dokončen.",
           "status": "Data starší aplikace se nepodařilo prozkoumat."
         },
@@ -1385,65 +1379,65 @@
     "agents": {
       "title": "Agenti",
       "controls": {
-        "title": "Ovládání mostu",
+        "title": "Ovládání agentů",
         "master": {
-          "label": "Povolit most agentů"
+          "label": "Zapnout připojení agentů"
         },
-        "status": "Stav běhového prostředí",
+        "status": "Stav",
         "providers": {
           "claude": {
             "label": "Claude",
-            "description": "Sledovat sezení Claude a povolit odpovědi založené na fixture tam, kde jsou dostupné."
+            "description": "Sledovat sezení Claude a odpovídat tam, kde to Sona podporuje."
           },
           "codex": {
             "label": "Codex",
-            "description": "Sledovat pouze sezení. Odpovědi jsou jen ke čtení, dokud je nepodpoří fixture protokolu."
+            "description": "Sledovat pouze sezení. Sona zatím nedokáže Codexu odpovídat."
           },
           "grok": {
             "label": "Grok",
-            "description": "Sledovat pouze sezení. Odpovědi jsou jen ke čtení, dokud je nepodpoří fixture protokolu."
+            "description": "Sledovat pouze sezení. Sona zatím nedokáže Grokovi odpovídat."
           },
           "omp": {
             "label": "OMP",
-            "description": "Sledovat sezení OMP a žádosti o schválení. Odpovědi jsou dostupné jen při podporovaném zastavení sezení OMP."
+            "description": "Sledovat sezení OMP a žádosti o schválení. Sona může odpovědět jen tehdy, když se sezení OMP zastaví."
           }
         }
       },
       "status": {
         "disabled": "Zakázáno",
-        "runtime_unavailable": "Běhové prostředí není dostupné",
-        "interactive_unsupported": "Interaktivní odpovědi nejsou podporovány",
+        "runtime_unavailable": "Neběží",
+        "interactive_unsupported": "Odpovědi nejsou k dispozici",
         "app_lock_held": "Je aktivní jiná instance Sony",
         "active": "Aktivní"
       },
       "projects": {
         "title": "Autorizované projekty",
-        "hashOnly": "Hranicí oprávnění jsou přesné hashe projektů; cesty ke složkám se zde neukládají.",
+        "hashOnly": "Sona rozpozná projekt podle jeho složky bez ukládání cesty k této složce zde.",
         "add": "Autorizovat složku",
         "remove": "Odebrat projekt",
         "empty": "Není autorizován žádný projekt."
       },
       "hook": {
-        "title": "Úryvek hooku",
-        "description": "Zkopírujte přibalenou konfiguraci hooku do vlastní konfigurace svého agenta. Sona nikdy neupravuje konfigurační soubory agentů.",
-        "copy": "Zkopírovat úryvek",
-        "error": "Úryvek hooku není dostupný"
+        "title": "Konfigurační kód",
+        "description": "Скопиrujte tento konfigurační kód do nastavení svého agenta. Sona soubory agenta nikdy nemění.",
+        "copy": "Скопиrovat konfigurační kód",
+        "error": "Konfigurační kód není k dispozici"
       },
       "replyQueue": {
         "title": "Náhled odpovědi",
         "session": "Cíl odpovědi",
-        "noSession": "Žádné zaznamenané sezení schopné odpovědi",
+        "noSession": "Žádné sezení, kterému by Sona mohla odpovědět",
         "message": "Text odpovědi",
         "createPreview": "Vytvořit náhled",
-        "notReady": "Odpovědi vyžadují zapnutý most a alespoň jednoho povoleného agenta."
+        "notReady": "Zapněte připojení agentů a alespoň jednoho agenta před odesláním odpovědi."
       },
       "pending": {
         "empty": "Žádné čekající odpovědi.",
         "confirm": "Potvrdit přesnou odpověď",
-        "confirmed": "Potvrzeno pro příští podporovanou událost zastavení",
+        "confirmed": "Pošle se, až agent skončí",
         "cancel": "Zrušit",
         "states": {
-          "held": "Zadrženo do příští podporované události zastavení",
+          "held": "Čekání na ukončení agenta",
           "response_written": "Odpověď zapsána",
           "emitted": "Odesláno",
           "copy_only": "Jen kopírování",
@@ -1452,12 +1446,12 @@
         "title": "Čekající odpovědi"
       },
       "observed": {
-        "title": "Zaznamenaná aktivita",
+        "title": "Činnost agenta",
         "refresh": "Obnovit",
         "sessions": "Sezení",
-        "noSessions": "Nebyla zaznamenána žádná sezení.",
+        "noSessions": "Žádná aktivita agenta zatím.",
         "requests": "Požadavky",
-        "noRequests": "Nebyly zaznamenány žádné požadavky.",
+        "noRequests": "Žádné žádosti zatím.",
         "requestKinds": {
           "session_start": "Sezení začalo",
           "user_prompt_submit": "Prompt odeslán",
@@ -1474,7 +1468,7 @@
         "ompPermissionObserveOnly": "Žádosti o schválení z OMP se pouze sledují. Schvalte je nebo zamítněte v OMP."
       },
       "rules": {
-        "title": "Přesná pravidla oprávnění",
+        "title": "Pravidla oprávnění",
         "empty": "Žádná pravidla oprávnění.",
         "remove": "Odebrat pravidlo",
         "decisions": {
@@ -1483,20 +1477,20 @@
         }
       },
       "errors": {
-        "load": "Data mostu agentů se nepodařilo načíst: {{error}}",
-        "operation": "Akci mostu agentů se nepodařilo dokončit: {{error}}"
+        "load": "Nepodařilo se načíst detaily připojení agenta: {{error}}",
+        "operation": "Nepodařilo se dokončit akci agenta: {{error}}"
       },
       "panel": {
         "error": "Nastavení panelu agentů se nepodařilo uložit.",
         "label": "Povolit panel agentů",
-        "rowDescription": "Vypnutím se okno panelu zavře a Sona odmítne každý požadavek na jeho opětovné otevření.",
+        "rowDescription": "Vypnutím tohoto tlačítka se panel zavře a jiné aplikace jej nemohou znovu otevřít.",
         "title": "Panel agentů"
       },
       "externalAccess": {
         "label": "Externí přístup",
-        "rowDescription": "Umožňuje jiným programům na tomto Macu číst vaše schůzky, diktáty, lidi a otevřené závazky přes příkazový řádek sona a server MCP. Pouze pro čtení a vypnuté, dokud je nezapnete."
+        "rowDescription": "Umožňuje jiným programům na tomto Macu číst vaše schůzky, diktáty, kontakty a otevřené úlohy prostřednicti Sona příkazové řádky a MCP serveru. Je to pouze pro čtení a zůstane vypnuté, dokud jej nezaktivujete."
       },
-      "workspaceNavigation": "Zobrazení mostu agentů",
+      "workspaceNavigation": "Zobrazení agentů",
       "sonaAgent": {
         "title": "Agent Sona",
         "pairing": "Spárování",
@@ -1504,29 +1498,29 @@
         "unpaired": "Nespárováno",
         "lastReached": "Naposledy spojeno",
         "never": "Nikdy",
-        "relayUrl": "Adresa relay",
+        "relayUrl": "Adresa serveru",
         "relayUrlHint": "Přijímá se jen adresa v Tailscale nebo tento Mac. Cokoli na otevřeném internetu se odmítne dřív, než se uloží.",
-        "relayKeyId": "ID klíče relay",
-        "relayPublicKey": "Veřejný klíč relay",
+        "relayKeyId": "ID klíče serveru",
+        "relayPublicKey": "Veřejný klíč serveru",
         "identity": "Veřejný klíč tohoto Macu",
-        "identityHint": "Přidejte tento klíč do relay, aby přijímala požadavky z tohoto Macu. Soukromá polovina nikdy neopustí vaši klíčenku.",
+        "identityHint": "Přidejte tento klíč ke serveru, aby přijímal zprávy z tohoto Macu. Soukromý klíč nikdy neopustí váš svazek klíčů.",
         "identityUnavailable": "Zapněte panel agenta, aby se klíč vytvořil.",
         "copy": "Kopírovat",
         "copied": "Zkopírováno",
         "unpair": "Zrušit spárování",
         "test": "Vyzkoušet",
-        "reached": "Relay odpověděla.",
-        "failed": "S relay se nepodařilo spárovat.",
+        "reached": "Server odpověděl.",
+        "failed": "Nepodařilo se připojit k serveru.",
         "reason": {
           "unauthorized_window": "Toto okno nesmí měnit spárování.",
           "disabled": "Panel agenta je vypnutý.",
-          "unpaired": "Zatím není spárovaná žádná relay.",
-          "offline": "Relay neodpověděla.",
+          "unpaired": "Ještě není párován žádný server.",
+          "offline": "Server neodpovídal.",
           "invalid_configuration": "Tuto adresu ani klíč Sona nepoužije.",
           "secret_unavailable": "Klíč tohoto Macu se nepodařilo přečíst.",
-          "untrusted_response": "Odpověď nepodepsala spárovaná relay.",
-          "remote_rejected": "Relay požadavek odmítla.",
-          "ownership_rejected": "Relay odpověděla za někoho jiného."
+          "untrusted_response": "Odpověď nebyla podepsána párovaným serverem.",
+          "remote_rejected": "Server požádávku odmítl.",
+          "ownership_rejected": "Server odpověděl pro jinou osobu."
         }
       }
     },
@@ -1618,12 +1612,12 @@
         "retry": "Zkusit znovu"
       },
       "runLog": {
-        "title": "Protokol spuštění",
-        "empty": "Zatím nejsou zaznamenána žádná spuštění.",
-        "loadError": "Protokol spuštění se nepodařilo načíst.",
-        "loadMoreError": "Další spuštění se nepodařilo načíst.",
-        "loadMore": "Načíst další",
-        "chartAria": "Počet spuštění za den, {{count}} za posledních 7 dní"
+        "title": "Činnost",
+        "empty": "Žádná aktivita.",
+        "loadError": "Nepodařilo se načíst aktivitu.",
+        "loadMoreError": "Nepodařilo se načíst další aktivity.",
+        "loadMore": "Zobrazit více",
+        "chartAria": "Činnost podle dne, {{count}} v posledních 7 dnech"
       }
     },
     "vocabulary": {
@@ -1702,7 +1696,7 @@
         "shortcutHint": "Spustí zkratku podle jména s exportem schůzky na vstupu. Třicet sekund, pak se ukončí.",
         "shortcutPlaceholder": "Název zkratky",
         "webhook": "Odeslat na webhook",
-        "webhookHint": "Odešle export schůzky jako JSON. Jen váš vlastní stroj nebo váš tailnet — stejné pravidlo jako u relé.",
+        "webhookHint": "Pošle export schůzky jako JSON. Používejte pouze vlastní stroj nebo tailnet, stejně jako u serveru.",
         "webhookPlaceholder": "http://100.x.y.z:8650/hook",
         "needsTarget": "Nejdřív doplňte název",
         "needsUrl": "Nejdřív doplňte adresu",
@@ -1713,11 +1707,11 @@
       "remoteIntelligence": {
         "title": "Inteligence schůzek",
         "label": "Psát poznámky ze schůzek na mém serveru",
-        "consent": "Souhrny a odpovědi ke schůzkám se píší na tvém serveru přes tvou soukromou síť",
-        "unpaired": "Nejdřív spáruj Sonu se svým serverem v části Agenti",
+        "consent": "Souhrny a odpovědi ke schůzkám se píší na tvém serveru přes tvou soukromou síť.",
+        "unpaired": "Nejdřív spáruj Sonu se svým serverem v části Agenti.",
         "seriesTitle": "Série, které zůstávají na tomto Macu",
         "seriesHint": "Série uvedená zde se vždy píše na tomto Macu, i když je inteligence schůzek zapnutá.",
-        "seriesEmpty": "Zatím žádné zaznamenané opakující se schůzky",
+        "seriesEmpty": "Zatím žádné zaznamenané opakující se schůzky.",
         "loading": "Načítání tvých série…",
         "lastMet": "Naposledy {{date}}",
         "keepLocalLabel": "Nechat {{series}} na tomto Macu",
@@ -1748,10 +1742,10 @@
   },
   "commandPalette": {
     "open": "Hledat",
-    "placeholder": "Napište příkaz nebo hledejte",
+    "placeholder": "Vyhledat nebo vybrat akci",
     "navigation": "Navigace",
     "actions": "Akce",
-    "noResults": "Žádné příkazy nenalezeny",
+    "noResults": "Nič nebylo nalezeno",
     "newMeeting": "Nová schůzka",
     "importAudio": "Transkribovat soubor",
     "openRecordings": "Otevřít složku nahrávek",
@@ -1794,9 +1788,9 @@
     "commandRewriteUnavailable": "Přepsání nic nevrátilo, takže označený text zůstal, jak byl. Zkontrolujte poskytovatele v Settings > Post-processing a zkuste to znovu.",
     "noModelSelectedTitle": "Není vybrán model",
     "noSpeechSaveFailedTitle": "Vzorek neuložen",
-    "captureOverrunTitle": "Přetečení záznamu",
+    "captureOverrunTitle": "Nahrávka byla zkrácena",
     "cloudUnavailableTitle": "Cloud není dostupný",
-    "cloudTranscriptionHeldTitle": "Cloudový běh pozastaven",
+    "cloudTranscriptionHeldTitle": "Cloudový výsledek zadržen",
     "commandNoSelectionTitle": "Nic není vybráno",
     "commandRewriteUnavailableTitle": "Přepis není dostupný"
   },
@@ -1922,7 +1916,7 @@
     },
     "setup": {
       "defaultTitle": "Místní poznámky",
-      "remoteUnavailable": "Vzdálené zpracování není v tomto sestavení dostupné, takže každá schůzka se přepisuje a shrnuje na tomto Macu."
+      "remoteUnavailable": "Vzdálené zpracování není v této verzi Sony dostupné, takže se každá schůzka přepisuje a shrnuje na tomto Macu."
     },
     "preflight": {
       "storage": "Úložiště",
@@ -1930,7 +1924,7 @@
       "storageUnavailable": "Šifrované úložiště schůzek není dostupné.",
       "localModel": "Místní model",
       "localModelDescription": "Zpracování zůstává místní, pokud je dostupný místní model.",
-      "starting": "Spouštění viditelného záznamu…",
+      "starting": "Spouštění nahrávání…",
       "refreshing": "Kontrola…"
     },
     "consent": {
@@ -1943,7 +1937,7 @@
       "partialCapture": "Část zvuku chybí. Než se spolehnete na vygenerované poznámky, zkontrolujte mezery.",
       "inputs": "Vstupy",
       "signal": "Signál",
-      "signalUnavailable": "Úroveň {{source}} záznam nehlásí.",
+      "signalUnavailable": "{{source}} nehlásí svou úroveň.",
       "notReported": "Nenahlášeno",
       "durabilityLag": "Uloženo na disk",
       "behind": "{{duration}} pozadu",
@@ -1969,7 +1963,7 @@
     },
     "retention": {
       "title": "Uchovávání",
-      "description": "Sona odstraňuje způsobilé místní záznamy schůzek stejnou ověřenou cestou mazání.",
+      "description": "Sona maže schůzky na tomto Macu pokaždé stejným ověřeným způsobem.",
       "forever": "Uchovávat, dokud to nesmažu",
       "days": "Smazat po {{days}} dnech",
       "loading": "Načítání aktuálních zásad…"
@@ -1977,7 +1971,7 @@
     "receipts": {
       "title": "Protokol o opravě",
       "saved": "Uloženo lokálně.",
-      "savedRevision": "Uloženo lokálně. Revize {{revision}}.",
+      "savedRevision": "Uloženo místně. Verze {{revision}}.",
       "duplicate": "Tato akce už byla zaznamenána. Sona obnovila stávající výsledek."
     },
     "reasons": {
@@ -1989,7 +1983,7 @@
       "source_start_failed": "Zdroj se nepodařilo spustit.",
       "source_gap": "Zdroj nahlásil mezeru.",
       "storage_unavailable": "Šifrované úložiště schůzek není dostupné.",
-      "storage_failure": "Úložiště nemohlo tuto změnu zapsat.",
+      "storage_failure": "Úložišti se nepodařilo tuto změnu uložit.",
       "local_model_unavailable": "Není dostupný žádný místní model.",
       "recovery_required": "Tato schůzka potřebuje obnovení.",
       "deleted": "Tato schůzka byla smazána.",
@@ -2020,7 +2014,7 @@
       "consent_required": "Před spuštěním potvrďte souhlas s nahráváním.",
       "consent_stale": "Nastavení se změnilo. Před spuštěním jej znovu zkontrolujte.",
       "invalid_transition": "Tato akce není v aktuální fázi schůzky dostupná.",
-      "stale_revision": "Tato schůzka se změnila v jiném okně. Sona obnovila svůj snímek.",
+      "stale_revision": "Tato schůzka se změnila v jiném okně. Sona ji znovu načetla.",
       "capture_lease_busy": "Zvuk už zaznamenává jiná schůzka.",
       "no_source_started": "Nespustil se žádný schválený zdroj zvuku.",
       "source_unavailable": "Požadovaný zdroj zvuku není dostupný.",
@@ -2038,12 +2032,12 @@
       "liveTitle": "Zastavit a zahodit toto sezení?",
       "keepRecording": "Pokračovat v nahrávání",
       "stopAndDiscard": "Zastavit a zahodit",
-      "explainsData": "Audio, přepis, ruční poznámky, generované poznámky a místní mezipaměti odpovědí budou smazány. Tuto akci nelze vzít zpět.",
+      "explainsData": "Audio, přepis, ruční poznámky, vygenerované poznámky a uložené odpovědi budou smazány. Nelze to vrátit zpět.",
       "complete": "Sezení zahozeno"
     },
     "delete": {
       "title": "Smazat tuto schůzku?",
-      "explainsData": "Sona drží schůzku nepřístupnou, dokud se ověřené mazání nedokončí. Exporty a vzdálené kopie stojí mimo místní mazání.",
+      "explainsData": "Sona drží schůzku mimo dosah, dokud ověřené mazání neskončí. Exporty a vzdálené kopie do něj nespadají.",
       "complete": "Schůzka smazána"
     },
     "review": {
@@ -2061,8 +2055,8 @@
       "showFewerGaps": "Zobrazit méně",
       "transcript": "Přepis",
       "noTranscript": "Není dostupný žádný přepis.",
-      "transcriptSegment": "Segment přepisu",
-      "removeSegment": "Odebrat segment",
+      "transcriptSegment": "Replika přepisu",
+      "removeSegment": "Odebrat tuto repliku",
       "editTurn": "Upravit tuto repliku",
       "unknownSpeaker": "Neznámý mluvčí",
       "speakers": "Mluvčí",
@@ -2098,7 +2092,7 @@
       "keyQuestions": "Klíčové otázky",
       "risks": "Rizika",
       "followUp": "Další kroky",
-      "artifactUnavailable": "Tato generovaná revize není dostupná. Zdrojový přepis a ruční poznámky zůstávají lokálně.",
+      "artifactUnavailable": "Tyto vygenerované poznámky nejsou dostupné. Přepis i vaše ruční poznámky zůstávají na tomto Macu.",
       "actionMeta": "Vlastník: {{owner}} · Termín: {{due}}",
       "unassigned": "Nepřiřazeno",
       "noDueDate": "Bez termínu",
@@ -2141,10 +2135,10 @@
       "exportHtml": "Exportovat stránku registru",
       "exported": "Registr zapsán do {{path}}",
       "exportMissing": "Tato schůzka nemá registr k exportu. Nejprve vygenerujte poznámky znovu.",
-      "statThreads": "Uzavřená témata",
+      "statThreads": "Vyřešená témata",
       "statReceipts": "Citace",
       "receiptsVerified": "ověřeno",
-      "receiptsDegraded": "odebráno {{threads}} témat a {{commitments}} příslibů",
+      "receiptsDegraded": "Odstraněno: {{threads}} vláken a {{commitments}} závazků",
       "threads": "Témata",
       "asideThread": "odbočka",
       "openLoops": "Otevřené otázky",
@@ -2274,7 +2268,7 @@
       "title": "Nahrávání se nespustilo",
       "readyTitle": "Připraveno k nahrávání",
       "recordAnyway": "Nahrát bez něj",
-      "recordAnywayHint": "Záznam se označí jako částečný a chybějící zdroj v něm zůstane pojmenován."
+      "recordAnywayHint": "Schůzka se označí jako částečná a chybějící zdroj se v ní jmenuje."
     },
     "analytics": {
       "title": "Konverzace",
@@ -2357,7 +2351,7 @@
       },
       "apps": {
         "label": "Aplikace pro schůzky",
-        "description": "Jeden identifikátor balíčku na řádek. Záznam se počítá jen po dobu, kdy ta aplikace běží, takže přejmenovaný identifikátor je nečinný, nikoli špatný.",
+        "description": "Jeden ID aplikace na řádek. Záznam platí pouze tehdy, dokud je daná aplikace běžící, takže přejmenované ID aplikace nebuduje chyby, ale zůstane neaktivní.",
         "running": "Právě běží: {{apps}}",
         "noneRunning": "Žádná z nich právě neběží."
       },
@@ -2366,7 +2360,7 @@
         "calendarDenied": "Přístup ke kalendáři nebyl udělen, běží tedy jen cesta přes mikrofon.",
         "notificationsDenied": "Oznámení jsou pro Sonu vypnutá, dotazy se proto objevují jen v aplikaci.",
         "bluetoothCaveat": "Aplikace pro schůzky je otevřená, ale nic nehlásí použití mikrofonu. Bluetooth sluchátka to často nehlásí, takže pokud schůzka běží, spusťte ji sami.",
-        "noSilenceStop": "Záznam se zastaví na konci události, při ukončení aplikace, při uspání nebo když ho zastavíte sami. Časovač ticha potřebuje průběžný přepis, který běží až po skončení schůzky."
+        "noSilenceStop": "Nahrávání se zastaví, když událost skončí, aplikace se ukončí, Mac usne, nebo když ho zastavíte sami. Ticho ho nezastaví: to by vyžadovalo živý přepis, a ten běží až po skončení schůzky."
       },
       "why": {
         "disabled": "Rozpoznávání je vypnuté.",
@@ -2401,7 +2395,7 @@
         "autoOpen": "Otevřít tuto schůzku, až začne"
       },
       "recording": {
-        "none": "Není připraven žádný zdroj"
+        "none": "Není vybraný žádný zdroj"
       },
       "participation": {
         "accepted": "Přijal",
@@ -2438,7 +2432,7 @@
       "loading": "Načítání kalendáře…",
       "empty": "Na příští týden nic naplánovaného.",
       "noAccess": "Sona nevidí váš kalendář.",
-      "noAccessHint": "Zapněte „Používat můj kalendář“ v nastavení schůzek a povolte plný přístup, až se macOS zeptá. Vše, co Kalendář macOS už zobrazuje — Google, iCloud, Outlook — přijde s ním.",
+      "noAccessHint": "Zapněte „Používat můj kalendář“ v nastavení schůzek a pak povolte plný přístup, až se macOS zeptá. Přijde s tím všechno, co Kalendář v macOS už zobrazuje (Google, iCloud, Outlook).",
       "unavailable": "Tento systém nemá kalendář, který by Sona přečetla.",
       "attendees": "Účastníci",
       "you": "Vy",
@@ -2523,6 +2517,16 @@
       "row": "Zeptat se Sony: {{query}}",
       "error": "Dotaz se nepodařilo odeslat do Sony.",
       "consentRequired": "Dotaz odešle citace z tvých schůzek na tvůj server, takže nejdřív zapni inteligenci schůzek."
+    },
+    "error": {
+      "unreachable": "Sona se nemohla připojit.",
+      "refused": "Sona tuto otázku nemohla přijmout.",
+      "failed": "Sona nedokázala tuto odpověď dokončit."
+    },
+    "working": {
+      "searchedCorpus": "Prošla jsem vaše schůzky a poznámky",
+      "stillWaiting": "Stále čekám…",
+      "cancel": "Zrušit"
     }
   },
   "overview": {
@@ -2580,8 +2584,8 @@
     },
     "setup": {
       "title": "Nastavit synchronizační účet",
-      "endpoint": "Endpoint",
-      "bootstrapSecret": "Inicializační tajný klíč",
+      "endpoint": "Adresa serveru",
+      "bootstrapSecret": "Tajný klíč nastavení",
       "submit": "Nastavit synchronizaci"
     },
     "recovery": {
@@ -2602,13 +2606,13 @@
     },
     "errors": {
       "portable_unavailable": "Cloudová synchronizace není v přenosném režimu dostupná.",
-      "secret_unavailable": "Systémové zabezpečené úložiště není dostupné.",
+      "secret_unavailable": "Systémové úložiště pověření není dostupné.",
       "setup_required": "Před použitím této akce nastavte cloudovou synchronizaci.",
       "auth_required": "Je vyžadováno přihlášení do cloudu.",
       "quota": "Kvóta cloudového úložiště byla vyčerpána.",
       "integrity_failure": "Cloudovou operaci se nepodařilo ověřit.",
       "conflict": "Tato schůzka má konflikt synchronizace.",
-      "unsupported_protocol": "Toto zařízení nepodporuje cloudový protokol.",
+      "unsupported_protocol": "Toto zařízení nepodporuje používanou verzi cloudové synchronizace.",
       "transient": "Cloudová synchronizace je dočasně nedostupná.",
       "invalid_expiry": "Vyberte datum vypršení v budoucnosti.",
       "invalid_offer": "Nabídka párování je neúplná nebo neplatná.",
@@ -2704,16 +2708,16 @@
       "noDocuments": "Žádné importované dokumenty.",
       "deleteDocument": "Smazat dokument",
       "deleteDocumentTitle": "Smazat tento dokument?",
-      "deleteDocumentDescription": "Smazat {{document}} z importovaného kontextu?",
+      "deleteDocumentDescription": "Smazat {{document}} z dokumentů Sona?",
       "cadence": "Frekvence schůzek",
       "lastMeeting": "Poslední schůzka",
       "talkShare": "Podíl na hovoru",
       "cadenceAria": "Schůzky podle měsíců: {{values}}",
       "documentFilter": "Textové dokumenty",
-      "documentImported": "Dokument importován.",
+      "documentImported": "Dokument byl přidán.",
       "split": "Rozdělit osobu",
       "splitTitle": "Rozdělit tuto osobu?",
-      "splitDescription": "Přesuňte vybrané údaje o identitě a schůzky osoby {{name}} k jiné osobě.",
+      "splitDescription": "Přesunout vybrané detaily a schůzky z {{name}} na jinou osobu.",
       "splitTarget": "Přesunout k",
       "splitCreate": "Nová osoba",
       "splitExisting": "Existující osoba",
@@ -2725,7 +2729,7 @@
       "splitDocuments": "Dokumenty",
       "splitSubmit": "Rozdělit osobu",
       "splitNothingSelected": "Vyberte alespoň jednu položku k přesunutí.",
-      "splitNoItems": "Tato osoba nemá údaje o identitě ani schůzky, které lze oddělit.",
+      "splitNoItems": "Tato osoba nemá žádné detaily ani schůzky k rozdělení.",
       "loadError": "Tuto osobu se nepodařilo načíst."
     },
     "errors": {
@@ -2740,11 +2744,11 @@
       "meetingsBefore_many": "{{count}} dřívější schůzky",
       "meetingsBefore_other": "{{count}} dřívějších schůzek",
       "last": "Poslední {{date}}",
-      "agentPromptIntro": "Pomoz mi z těchto záznamů schůzky sepsat navazující zprávu k „{{title}}“.",
+      "agentPromptIntro": "Pomozte mi sestavit následné sdělení pro „{{title}}“ pomocí těchto schůzek.",
       "agentPromptCommitments": "Závazky",
       "agentPromptOpenLoops": "Otevřené otázky",
       "agentPromptRequest": "Sepiš navazující zprávu. Nevymýšlej si podrobnosti ani sliby.",
-      "agentError": "Navazující akci s agentem se nepodařilo otevřít.",
+      "agentError": "Nepodařilo se otevřít následné akce s agentem.",
       "discussFollowUp": "Probrat navazující zprávu s agentem",
       "meetingsBefore": "{{count}} dřívějších schůzek"
     },
@@ -2801,7 +2805,7 @@
     },
     "detail": {
       "openLoops": "Otevřené otázky",
-      "howSonaKnows": "Odkud to Sona ví",
+      "howSonaKnows": "Proč Sona tuto osobu propojuje",
       "noEvidence": "Tuto osobu zatím nic nespojuje se schůzkou."
     }
   },
@@ -2832,7 +2836,7 @@
       "rules": {
         "label": "Aplikace a weby",
         "empty": "Do tohoto režimu nic samo nepřepíná.",
-        "example": "Pravidlo ukládá identitu jedné aplikace nebo jeden host webu: com.apple.mail nebo mail.google.com."
+        "example": "Každé pravidlo používá jeden app ID nebo webovou stránku, například com.apple.mail nebo mail.google.com."
       }
     },
     "advanced": {
@@ -2941,7 +2945,7 @@
       "sync": "Synchronizace",
       "leavesThisMac": "Co opouští tento Mac",
       "agents": "Agenti",
-      "agentBridge": "Most pro kódovací agenty",
+      "agentBridge": "Připojení agentů",
       "about": "O Soně",
       "debugHint": "Stiskněte {{chord}} pro otevření stránky ladění."
     },
@@ -2951,10 +2955,10 @@
       "runningNow": "Právě běží",
       "add": "Přidat aplikaci",
       "addTitle": "Přidat aplikaci pro schůzky",
-      "addDescription": "Sona potřebuje identifikátor aplikace, který najdete v okně O aplikaci nebo pomocí `osascript -e 'id of app \"Název\"'`.",
-      "identifier": "Identifikátor aplikace",
+      "addDescription": "Sona potřebuje ID aplikace, které najdete v okně Informace o aplikaci nebo pomocí `osascript -e 'id of app \"Name\"'`.",
+      "identifier": "ID aplikace",
       "identifierPlaceholder": "com.example.app",
-      "invalid": "Identifikátor vypadá takto: com.example.app — malá písmena spojená tečkami.",
+      "invalid": "ID aplikace musí vypadat jako com.example.app: malá písmena oddělená tečkami.",
       "duplicate": "Tato aplikace už je v seznamu.",
       "remove": "Odebrat {{app}}",
       "names": {
@@ -2967,8 +2971,8 @@
     }
   },
   "consentPanel": {
-    "calendarTitle": "{{title}} — nahrát?",
-    "appTitle": "Schůzka v {{app}} — nahrát?",
+    "calendarTitle": "Nahrát {{title}}?",
+    "appTitle": "Nahrát tuto schůzku v {{app}}?",
     "genericTitle": "Nahrát tuto schůzku?",
     "introduction": "Sona nahrává na tomto Macu a kontrolu máte vy.",
     "seriesBrief_one": "Schůzka {{nth}} s {{person}} · {{count}} otevřený bod",
@@ -2998,8 +3002,8 @@
         "description": "Všímá si režimu, který si často zapínáš zkratkou."
       },
       "captureAdvisor": {
-        "name": "Radit s kvalitou záznamu",
-        "description": "Hlásí opakování, ztracené záznamy a tichý zvuk z tvých běhů."
+        "name": "Radit ke kvalitě nahrávek",
+        "description": "Hlásí opakování, ztracené nahrávky a tichý zvuk z vašich vlastních diktátů."
       },
       "seriesPriming": {
         "name": "Připravovat opakované schůzky"
@@ -3007,12 +3011,12 @@
     },
     "feed": {
       "title": "Co si Sona všimla",
-      "spokenPunctuation": "Často říkáš {{spoken}} — psát to jako {{written}}?",
-      "vocabularyCorrection": "Pořád měníš {{spoken}} na {{written}} — naučit se to?",
-      "modeHabit": "Skoro každý den sáhneš zkratkou po {{mode}} — nastavit ho jako výchozí?",
-      "retryRate": "Běhy {{subject}} se opakují {{times}}× častěji než ostatní.",
-      "lostCaptureRate": "Běhy {{subject}} končí zkrácené nebo bez řeči {{times}}× častěji než ostatní.",
-      "inputLevel": "{{percent}}% tvých záznamů přišlo tiše — zkontroluj úroveň mikrofonu?",
+      "spokenPunctuation": "Říkáte {{spoken}} často. Psát to jako {{written}}?",
+      "vocabularyCorrection": "Pořád měníte {{spoken}} na {{written}}. Naučit se to?",
+      "modeHabit": "Většinu dní saháte po {{mode}} přes zkratku. Nastavit ho jako výchozí?",
+      "retryRate": "Diktáty přes {{subject}} se opakují {{times}}× častěji než ostatní.",
+      "lostCaptureRate": "Diktáty přes {{subject}} končí useknuté nebo tiché {{times}}× častěji než ostatní.",
+      "inputLevel": "{{percent}} % vašich nahrávek přišlo tiše. Zkontrolovat úroveň mikrofonu?",
       "example": "„{{text}}“",
       "accept": "Ano",
       "dismiss": "Ne, děkuji",

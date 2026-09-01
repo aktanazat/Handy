@@ -4,12 +4,20 @@ import {
   commands,
   events,
   type AgentChatConversationSummaryV1,
+  type AgentPanelCommandErrorV1,
   type AgentPanelStatusV1,
   type AgentPanelWorkspaceV1,
+  type Result,
   type SonaAgentChatTurnV1,
 } from "@/bindings";
 import { ChatSheet } from "./ChatSheet";
-import { chatPhase, isTurnRunning } from "./chatModel";
+import {
+  chatPhase,
+  isTurnRunning,
+  retryMessage,
+  shouldPackChatTurn,
+} from "./chatModel";
+import type { ChatPackGate } from "./chatModel";
 
 const EMPTY_CONVERSATION: readonly SonaAgentChatTurnV1[] = [];
 const EMPTY_HISTORY: readonly AgentChatConversationSummaryV1[] = [];
@@ -48,8 +56,49 @@ const subscribeToChatEvents = async (
   };
 };
 
+export interface SheetTurnRequest {
+  message: string;
+  locale: string;
+  workspace: AgentPanelWorkspaceV1;
+  gate: ChatPackGate;
+}
+
+export interface SheetTurnResult {
+  result: Result<AgentPanelStatusV1, AgentPanelCommandErrorV1>;
+  searchedCorpus: boolean;
+}
+
+/** Assemble evidence only for an explicitly consented Ask turn. */
+export const sendSheetTurn = async ({
+  message,
+  locale,
+  workspace,
+  gate,
+}: SheetTurnRequest): Promise<SheetTurnResult> => {
+  let contextPack: string | null = null;
+  let searchedCorpus = false;
+  if (shouldPackChatTurn(workspace, gate)) {
+    const pack = await commands.sonaQueryPack(message);
+    if (pack.status === "ok") {
+      contextPack = pack.data.pack;
+      searchedCorpus = pack.data.sources.length > 0;
+    }
+  }
+  return {
+    result: await commands.agentPanelSendTurn({
+      turn_id: crypto.randomUUID(),
+      message,
+      locale,
+      workspace,
+      context_pack: contextPack,
+    }),
+    searchedCorpus,
+  };
+};
+
 export interface ChatSheetHostProps {
   open: boolean;
+  panel: ChatPackGate;
   onClose: () => void;
   onOpenSettings: () => void;
 }
@@ -65,6 +114,7 @@ export interface ChatSheetHostProps {
  */
 export const ChatSheetHost: React.FC<ChatSheetHostProps> = ({
   open,
+  panel,
   onClose,
   onOpenSettings,
 }) => {
@@ -79,6 +129,7 @@ export const ChatSheetHost: React.FC<ChatSheetHostProps> = ({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [searchedCorpus, setSearchedCorpus] = useState(false);
   const requestRef = useRef(0);
 
   const refresh = useCallback(async () => {
@@ -119,6 +170,7 @@ export const ChatSheetHost: React.FC<ChatSheetHostProps> = ({
    * event behind them, so they are the only thing that gets a clock — and only
    * while a turn is actually running. */
   const turn = status?.turn ?? null;
+  const conversation = status?.conversation ?? EMPTY_CONVERSATION;
   const running = isTurnRunning(turn);
   useEffect(() => {
     if (!running) return;
@@ -154,21 +206,26 @@ export const ChatSheetHost: React.FC<ChatSheetHostProps> = ({
     [],
   );
 
-  const send = async () => {
-    const message = draft.trim();
-    if (message === "" || busy) return;
-    const sent = await run(() =>
-      commands.agentPanelSendTurn({
-        turn_id: crypto.randomUUID(),
+  const sendTurn = async (message: string): Promise<boolean> => {
+    let turnSearchedCorpus = false;
+    const sent = await run(async () => {
+      const outcome = await sendSheetTurn({
         message,
         locale: i18n.language,
         workspace,
-        /* Packs are assembled by whoever has the evidence. The sheet asks the
-         * question; it does not go looking through the corpus first. */
-        context_pack: null,
-      }),
-    );
-    if (sent) setDraft("");
+        gate: panel,
+      });
+      turnSearchedCorpus = outcome.searchedCorpus;
+      return outcome.result;
+    });
+    setSearchedCorpus(turnSearchedCorpus);
+    return sent;
+  };
+
+  const send = async () => {
+    const message = draft.trim();
+    if (message === "" || busy) return;
+    if (await sendTurn(message)) setDraft("");
   };
 
   const openHistory = async (next: boolean) => {
@@ -184,7 +241,19 @@ export const ChatSheetHost: React.FC<ChatSheetHostProps> = ({
 
   const selectConversation = async (conversationId: string) => {
     setHistoryOpen(false);
-    await run(() => commands.agentChatOpen(conversationId));
+    if (await run(() => commands.agentChatOpen(conversationId))) {
+      setSearchedCorpus(false);
+    }
+  };
+
+  const newConversation = async () => {
+    if (await run(commands.agentChatNew)) setSearchedCorpus(false);
+  };
+
+  const retryTurn = async () => {
+    const message = retryMessage(conversation, turn);
+    if (message === null || busy) return;
+    await sendTurn(message);
   };
 
   const proposal = status?.proposal ?? null;
@@ -194,8 +263,9 @@ export const ChatSheetHost: React.FC<ChatSheetHostProps> = ({
       open={open}
       phase={chatPhase(status)}
       conversationId={status?.conversation_id ?? null}
-      conversation={status?.conversation ?? EMPTY_CONVERSATION}
+      conversation={conversation}
       turn={turn}
+      searchedCorpus={searchedCorpus}
       proposal={proposal}
       history={history}
       historyOpen={historyOpen}
@@ -207,7 +277,7 @@ export const ChatSheetHost: React.FC<ChatSheetHostProps> = ({
       onClose={onClose}
       onHistoryOpenChange={(next) => void openHistory(next)}
       onSelectConversation={(id) => void selectConversation(id)}
-      onNewChat={() => void run(commands.agentChatNew)}
+      onNewChat={() => void newConversation()}
       onDraftChange={setDraft}
       onWorkspaceChange={setWorkspace}
       onSend={() => void send()}
@@ -248,6 +318,7 @@ export const ChatSheetHost: React.FC<ChatSheetHostProps> = ({
       onOpenLink={(link) => void commands.sonaOpenLink(link)}
       onOpenSettings={onOpenSettings}
       onRetry={() => void refresh()}
+      onRetryTurn={() => void retryTurn()}
     />
   );
 };

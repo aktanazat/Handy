@@ -34,7 +34,7 @@
     "settings": "Impostazioni"
   },
   "onboarding": {
-    "subtitle": "I modelli funzionano su questo Mac e bilanciano accuratezza e velocità",
+    "subtitle": "I modelli funzionano su questo Mac e bilanciano accuratezza e velocità.",
     "existingModelsTitle": "Modelli compatibili",
     "downloadModelsTitle": "Disponibile per il download",
     "showAllModels": "Mostra tutti e {{total}} modelli",
@@ -52,7 +52,7 @@
       },
       "medium": {
         "name": "Whisper Medium",
-        "description": "Buona accuratezza, velocità nella media"
+        "description": "Buona accuratezza, velocità nella media."
       },
       "turbo": {
         "name": "Whisper Turbo",
@@ -68,7 +68,7 @@
       },
       "parakeet-tdt-0.6b-v3": {
         "name": "Parakeet V3",
-        "description": "Veloce e accurato"
+        "description": "Veloce e accurato."
       },
       "moonshine-base": {
         "name": "Moonshine Base",
@@ -76,7 +76,7 @@
       },
       "moonshine-tiny-streaming-en": {
         "name": "Moonshine V2 Tiny",
-        "description": "Ultra-veloce, solo inglese"
+        "description": "Ultra-veloce, solo inglese."
       },
       "moonshine-small-streaming-en": {
         "name": "Moonshine V2 Small",
@@ -193,7 +193,7 @@
       },
       "cloud": {
         "title": "Trascrizione cloud",
-        "providerDescription": "Le credenziali restano nell'archivio sicuro nativo del tuo sistema operativo.",
+        "providerDescription": "Le chiavi restano nel portachiavi di sistema.",
         "providers": {
           "deepgram": "Deepgram Nova-3",
           "elevenLabs": "ElevenLabs Scribe v2"
@@ -210,22 +210,22 @@
           "verifying": "Verifica…"
         },
         "status": {
-          "checking": "Verifica dell'archivio chiavi di sistema…",
+          "checking": "Verifica del portachiavi di sistema…",
           "notSaved": "Nessuna chiave API salvata.",
           "saved": "Chiave API salvata. Non è stata verificata.",
           "verified": "Chiave API verificata.",
-          "verifyRequiresConsent": "Controlla l'informativa sul trasferimento in una modalità prima di verificare questa chiave."
+          "verifyRequiresConsent": "Accetta il trasferimento in una modalità prima di verificare questa chiave."
         },
         "errors": {
           "not_found": "Nessuna chiave API è salvata per questo provider.",
-          "unavailable": "L'archivio sicuro di sistema non è disponibile.",
-          "locked": "L'archivio sicuro di sistema è bloccato.",
-          "corrupt": "La credenziale salvata non può essere letta in modo sicuro.",
-          "invalid": "La credenziale non è stata accettata dall'archivio sicuro.",
-          "busy": "L'archivio sicuro è occupato. Riprova.",
-          "backend": "Non è stato possibile completare l'operazione sulle credenziali.",
+          "unavailable": "Il portachiavi di sistema non è disponibile.",
+          "locked": "Il portachiavi di sistema è bloccato.",
+          "corrupt": "La chiave salvata non può essere letta in modo sicuro.",
+          "invalid": "Il portachiavi di sistema non ha accettato la chiave.",
+          "busy": "Il portachiavi di sistema è occupato. Riprova.",
+          "backend": "Il portachiavi di sistema non ha potuto completare l'operazione.",
           "not_configured": "Salva una chiave API prima di verificarla.",
-          "consent_required": "Accetta l'informativa sul trasferimento del provider prima di verificare.",
+          "consent_required": "Accetta il trasferimento al provider prima di verificare.",
           "authentication": "Il provider ha rifiutato questa chiave API.",
           "quota": "Il provider ha rifiutato la verifica perché l'account ha superato la quota.",
           "network": "Non è stato possibile contattare il provider per la verifica.",
@@ -335,8 +335,8 @@
         "label": "Funzionalità Sperimentali"
       },
       "lazyStreamClose": {
-        "label": "Mantieni il microfono aperto tra le trascrizioni",
-        "description": "Mantiene lo stream del microfono aperto per 30 secondi dopo l'arresto della registrazione, così le trascrizioni consecutive iniziano più rapidamente. La qualità audio Bluetooth può calare mentre è aperto."
+        "label": "Mantieni aperto il microfono tra le dettature",
+        "description": "Mantiene aperto il microfono per 30 secondi dopo l'interruzione, così le dettature consecutive iniziano più rapidamente. La qualità audio Bluetooth può calare mentre resta aperto."
       },
       "acceleration": {
         "transcribe": {
@@ -520,7 +520,7 @@
         },
         "model": {
           "title": "Modello",
-          "descriptionCustom": "Fornisci l'identificatore del modello previsto dal tuo endpoint personalizzato.",
+          "descriptionCustom": "Inserisci l'ID del modello richiesto dal tuo server personalizzato.",
           "placeholderWithOptions": "Cerca o scegli un modello",
           "placeholderNoOptions": "Digita il nome di un modello",
           "refreshModels": "Aggiorna modelli"
@@ -555,17 +555,17 @@
       },
       "remoteConsent": {
         "title": "Trasferimento remoto del testo",
-        "description": "Il testo delle riunioni e delle trascrizioni può essere inviato a {{provider}} su {{endpoint}} per la post-elaborazione.",
-        "acknowledge": "Riconosco che il testo può essere inviato a questo endpoint.",
+        "description": "Sona può inviare testi di riunioni e dettati a {{provider}} su {{endpoint}} per la pulizia.",
+        "acknowledge": "Riconosco che il testo può essere inviato a questo indirizzo.",
         "accept": "Consenti il trasferimento del testo",
         "cancel": "Annulla",
-        "endpointChanged": "L'endpoint è cambiato. Controlla e accetta il nuovo endpoint prima che il testo possa lasciare questo Mac.",
+        "endpointChanged": "L'indirizzo è cambiato. Controlla e accetta il nuovo prima che il testo possa lasciare questo Mac.",
         "invalidDestination": "Questa destinazione del provider non è valida o è solo locale, quindi non è possibile registrare alcun consenso remoto.",
         "saveFailed": "Sona non ha potuto salvare questa accettazione.",
-        "current": "Il trasferimento del testo è stato accettato per {{endpoint}}.",
+        "current": "Hai autorizzato l'invio di testi a {{endpoint}}.",
         "review": "Controlla l'accettazione",
-        "endpointLabel": "Endpoint canonico",
-        "destinationPinned": "Sona fissa esattamente questo endpoint e questa origine per l'accettazione."
+        "endpointLabel": "Indirizzo esatto",
+        "destinationPinned": "Sona lega l'accettazione esattamente a questo indirizzo e a questa origine."
       }
     },
     "history": {
@@ -593,7 +593,7 @@
       "loadError": "Impossibile caricare la cronologia.",
       "retry": "Riprova",
       "saveError": "Non è stato possibile aggiornare lo stato di salvataggio. Riprova.",
-      "postProcessEmpty": "La post-elaborazione non ha restituito testo. Visualizzazione della trascrizione originale.",
+      "postProcessEmpty": "La post-elaborazione non ha prodotto testo, quindi questa è la trascrizione originale.",
       "textView": {
         "label": "Visualizzazione trascrizione",
         "processed": "Elaborato",
@@ -671,7 +671,7 @@
           "dispatched_but_unconfirmed": "Inviato, non confermato"
         },
         "modeLabel": "Modalità",
-        "revisionLabel": "Revisione",
+        "revisionLabel": "Versione impostazioni",
         "engineLabel": "Motore",
         "sourceLabel": "Origine",
         "captureStatusLabel": "Acquisizione",
@@ -749,10 +749,10 @@
       "recalledByMeaning": "per significato",
       "level": {
         "peak": "peak",
-        "rms": "rms"
+        "rms": "medio"
       },
       "noTextRecorded": "Per questa voce non è stato registrato alcun testo.",
-      "cloudHeld": "L'esecuzione Cloud è stata trattenuta: non è arrivato alcun risultato affidabile e nessun modello locale era disponibile.",
+      "cloudHeld": "Sona ha trattenuto il risultato cloud: non è tornato nulla di affidabile e non c'era alcun modello locale disponibile.",
       "transcriptionEngineFailed": "Trascrizione fallita, quindi non è stato registrato nulla.",
       "processAgain": {
         "action": "Elabora di nuovo",
@@ -774,7 +774,7 @@
       },
       "liveLogs": {
         "title": "Log in Tempo Reale",
-        "description": "Qui appaiono solo le righe emesse mentre questo pannello è aperto, al livello di log impostato sopra.",
+        "description": "Qui compaiono solo le righe scritte mentre questo pannello è aperto, al livello di registro impostato sopra.",
         "pause": "Pausa",
         "resume": "Riprendi",
         "copied": "Copiato",
@@ -820,10 +820,10 @@
       },
       "keyboardImplementation": {
         "title": "Implementazione tastiera",
-        "bindingsReset": "Le scorciatoie da tastiera erano incompatibili e sono state ripristinate ai valori predefiniti"
+        "bindingsReset": "Le scorciatoie da tastiera erano incompatibili e sono state ripristinate ai valori predefiniti."
       },
       "paths": {
-        "appData": "Dati App:",
+        "appData": "Dati app:",
         "models": "Modelli:",
         "settings": "Impostazioni:"
       },
@@ -841,30 +841,24 @@
       },
       "recordingBuffer": {
         "title": "Buffer di registrazione extra",
-        "description": "Tempo extra (in millisecondi) per continuare a registrare dopo aver rilasciato il tasto, per catturare l'audio finale. 0 = nessun buffer extra."
+        "description": "Tempo extra (in millisecondi) per continuare a registrare dopo aver rilasciato il tasto, per catturare l'audio finale. Imposta 0 per nessuno."
       },
       "keyboardDiagnostic": {
         "title": "Diagnostica tastiera",
         "description": "Verifica se gli eventi della tastiera arrivano a Sona. Viene registrato solo il numero di eventi, mai quali tasti premi.",
         "run": "Esegui diagnostica di 10 s",
         "running": "In ascolto… premi la tua scorciatoia alcune volte (ad es. Option+Space)",
-        "secureInputLabel": "Secure Input",
+        "secureInputLabel": "Inserimento sicuro",
         "enabled": "abilitato",
         "disabled": "disabilitato",
         "holder": "trattenuto da {{name}} (pid {{pid}})",
-        "holderUnknown": "nessun responsabile visibile",
-        "keyDown": "Tasto premuto",
-        "keyUp": "Tasto rilasciato",
-        "flagsChanged": "Modificatori",
-        "mouse": "Mouse",
-        "verdictBlocked": "Secure Input sta bloccando gli eventi dei tasti, quindi le scorciatoie che includono un tasto normale non possono funzionare finché non viene risolto.",
-        "verdictSuspicious": "Sono arrivati eventi dei modificatori ma nessun evento dei tasti. Qualcosa sta sopprimendo i tasti anche se Secure Input risulta disabilitato. Segnalalo su GitHub.",
-        "verdictOk": "Gli eventi dei tasti arrivano a Sona normalmente.",
-        "verdictNoEvents": "Nessun evento rilevato durante il test.",
-        "failed": "Diagnostica non riuscita: {{error}}"
+        "notSupported": "Non supportato su questa piattaforma.",
+        "noHolder": "Nessuna app sta utilizzando l'Input Sicuro.",
+        "status": "Stato",
+        "error": "Le diagnostiche della tastiera non sono disponibili."
       },
       "whatsNewPreview": {
-        "title": "Anteprima delle novità",
+        "title": "Anteprima della nota di rilascio",
         "description": "Apri le note di rilascio incluse più recenti senza segnarle come viste",
         "noNotes": "Nessuna nota di rilascio inclusa trovata",
         "error": "Non è stato possibile mostrare le note di rilascio. Riprova."
@@ -945,14 +939,14 @@
           },
           "capture": {
             "label": "Attiva sul sito web",
-            "description": "Acquisisci l'host del browser in primo piano. Sona salva l'host, non l'URL.",
+            "description": "Usa il sito web aperto davanti. Sona salva il nome del sito, non l'indirizzo completo.",
             "action": "Acquisisci il sito web attuale",
             "capturing": "Acquisizione in corso…"
           },
           "empty": "Nessun sito web attiva questa modalità.",
-          "exampleDescription": "Una regola memorizza un host del browser, per esempio mail.google.com."
+          "exampleDescription": "Ogni regola utilizza un sito web, come mail.google.com."
         },
-        "exampleDescription": "Una regola memorizza l'identità di un'applicazione, per esempio com.apple.mail.",
+        "exampleDescription": "Ogni regola utilizza un ID app, come com.apple.mail.",
         "removeTarget": "Rimuovi {{target}}",
         "unsupported": "L'attivazione per app e siti web è disponibile solo su macOS."
       },
@@ -1060,10 +1054,10 @@
           "unavailable": "{{provider}} non è disponibile"
         },
         "cloud": {
-          "setupRequired": "{{provider}} richiede una chiave API propria salvata e un consenso al trasferimento aggiornato prima che i suoi controlli cloud siano disponibili.",
+          "setupRequired": "{{provider}} richiede una chiave API nel portachiavi di sistema e un'accettazione del trasferimento aggiornata prima che i suoi controlli cloud si aprano.",
           "fallback": {
             "label": "Usa il fallback locale",
-            "description": "Se il provider cloud non riesce a restituire un risultato finale affidabile, l'audio acquisito viene trascritto con un modello locale.",
+            "description": "Se il provider cloud non riesce a restituire un risultato affidabile, la registrazione viene trascritta con un modello locale.",
             "useModeModel": "Usa il modello locale di questa modalità",
             "model": {
               "label": "Modello di fallback",
@@ -1071,8 +1065,8 @@
             }
           },
           "keyterms": {
-            "label": "Termini chiave cloud",
-            "description": "Un termine per riga. Questi termini vengono inviati con questa richiesta cloud.",
+            "label": "Parole da riconoscere",
+            "description": "Una parola o un nome per riga. Sona li invia al provider insieme all'audio.",
             "placeholder": "Nome prodotto\nNome persona"
           },
           "timestamps": {
@@ -1088,22 +1082,22 @@
               "description": "L'audio registrato in questa modalità viene inviato direttamente a {{provider}} per la trascrizione."
             },
             "privacy": {
-              "label": "Contratto di privacy",
-              "description": "Il provider riceve l'audio di questa modalità, la lingua scelta e i termini chiave. Il contesto dell'app e le credenziali proprie restano su questo dispositivo."
+              "label": "Cosa vede il provider",
+              "description": "Il provider riceve l'audio di questa modalità, la sua lingua e le parole che hai elencato. Ciò che Sona legge dalle tue altre app, e le tue chiavi, restano su questo Mac."
             },
             "localFallback": {
               "label": "Fallback locale",
-              "description": "Se il provider cloud non riesce a restituire un risultato finale affidabile, Sona può usare il modello locale che hai scelto."
+              "description": "Se il provider cloud non riesce a restituire un risultato affidabile, Sona può usare il modello locale che hai scelto."
             },
             "decline": "Resta in locale",
             "accept": "Accetta e usa il cloud",
             "accepting": "Accettazione…",
             "errors": {
               "unknown_provider": "Questo provider cloud non è disponibile in questa build.",
-              "backend": "Non è stato possibile salvare il record di consenso."
+              "backend": "Non è stato possibile salvare l'accettazione."
             }
           },
-          "title": "Trasporto cloud"
+          "title": "Trascrizione cloud"
         }
       },
       "context": {
@@ -1157,7 +1151,7 @@
         },
         "reliablePaste": {
           "label": "Incolla affidabile",
-          "description": "Usa l'incolla sequenziato da ricevuta quando la piattaforma lo supporta."
+          "description": "Ripristina gli appunti solo dopo che l'app ha letto la trascrizione, dove il sistema lo consente."
         },
         "delay": {
           "label": "Ritardi di incolla",
@@ -1187,14 +1181,14 @@
       },
       "errors": {
         "staleRevision": "Le impostazioni sono cambiate altrove. Controlla la modalità più recente e salva di nuovo.",
-        "invalid_mode_id": "Questo ID modalità non è valido.",
+        "invalid_mode_id": "Sona non è riuscita a capire di quale modalità si tratta.",
         "empty_name": "È richiesto un nome per la modalità.",
         "cannot_delete_default": "La modalità predefinita non può essere eliminata.",
         "unknown_mode": "Quella modalità non esiste più.",
-        "duplicate_mode_id": "Esiste già una modalità con questo ID.",
+        "duplicate_mode_id": "Questa modalità esiste già.",
         "invalid_reorder": "Non è stato possibile salvare l'ordine delle modalità.",
         "invalid_website_host": "L'host del sito web non è valido.",
-        "website_activation_consent_required": "Attiva gli URL del browser in Privacy prima di aggiungere una regola per il sito web.",
+        "website_activation_consent_required": "Attiva «Includi gli URL del browser» in Privacy prima di aggiungere una regola per il sito web.",
         "frontmost_website_unavailable": "Non è stato possibile acquisire un sito web dal browser.",
         "website_activation_secure_field": "Non è possibile acquisire regole per siti web da un campo protetto."
       },
@@ -1240,10 +1234,10 @@
             "target_and_selection": "Selezione",
             "full": "Completo"
           },
-          "error": "Non è stato possibile salvare il limite di contesto"
+          "error": "Non è stato possibile salvare il limite di contesto."
         },
         "sources": {
-          "none": "Non legge alcun contesto dell'app.",
+          "none": "Non legge nulla dalle tue altre app.",
           "target": "Legge l'identità dell'app in primo piano.",
           "target_and_selection": "Legge l'identità dell'app in primo piano e il testo selezionato, quando disponibile.",
           "full": "Può anche leggere un URL del browser consentito e il testo degli appunti modificato di recente, quando disponibili."
@@ -1257,7 +1251,7 @@
       "diagnostics": {
         "title": "Diagnostica del contesto",
         "refresh": "Aggiorna",
-        "error": "Non è stato possibile aggiornare la diagnostica",
+        "error": "Non è stato possibile aggiornare la diagnostica.",
         "accessibility": {
           "label": "Accessibilità"
         },
@@ -1299,14 +1293,14 @@
             "months_3": "3 mesi"
           }
         },
-        "error": "Non è stato possibile salvare la conservazione dei dati",
+        "error": "Non è stato possibile salvare la conservazione dei dati.",
         "historyStorage": {
           "encrypted": "Crittografata a riposo",
           "label": "Archiviazione della cronologia",
           "locked": "Bloccata",
           "plaintext": "Non crittografata",
           "reasons": {
-            "encryption_unavailable": "Questa build non può aprire un database crittografato, quindi la cronologia è archiviata senza crittografia.",
+            "encryption_unavailable": "Questa versione di Sona non può aprire un database cifrato, quindi la cronologia viene salvata non cifrata.",
             "key_rejected": "La chiave memorizzata non apre il database crittografato, quindi la cronologia non può essere letta.",
             "key_unavailable": "L'archivio credenziali di sistema non ha restituito una chiave utilizzabile, quindi la cronologia è archiviata senza crittografia.",
             "migration_failed": "La crittografia del database esistente non è riuscita. Il database non crittografato è intatto e ancora in uso."
@@ -1318,7 +1312,7 @@
       "cloudTranscription": {
         "title": "Trascrizione cloud",
         "checkFailed": "Non è stato possibile verificare la configurazione della trascrizione cloud.",
-        "disclosure": "Per una modalità che usa il cloud, Sona invia l'audio registrato, la lingua scelta e i termini chiave della modalità direttamente al provider. Il contesto dell'app e le credenziali proprie restano su questo dispositivo."
+        "disclosure": "Per una modalità che usa il cloud, Sona invia l'audio registrato, la lingua scelta e le parole elencate in quella modalità direttamente al provider. Ciò che Sona legge dalle tue altre app, e le tue chiavi, restano su questo Mac."
       },
       "upstreamImport": {
         "title": "Importa dall'app precedente",
@@ -1358,11 +1352,11 @@
           "app_state_unverifiable": "Sona non può verificare che l'app precedente sia chiusa su questa piattaforma.",
           "invalid_selection": "Scegli le impostazioni o la cronologia da importare.",
           "settings_unreadable": "Non è stato possibile leggere il file delle impostazioni dell'app precedente.",
-          "secret_store_unavailable": "Il portachiavi di sistema non è disponibile, quindi le impostazioni con chiavi del provider non sono state importate.",
-          "secret_conflict": "Nel portachiavi di sistema esiste già una chiave del provider. Risolvi il conflitto prima di importare le impostazioni.",
+          "secret_store_unavailable": "L'archivio delle credenziali di sistema non è disponibile, quindi le impostazioni con chiavi del provider non sono state importate.",
+          "secret_conflict": "Nell'archivio delle credenziali di sistema esiste già una chiave del provider. Risolvi il conflitto prima di importare le impostazioni.",
           "history_unreadable": "Non è stato possibile leggere il database della cronologia dell'app precedente.",
           "recording_copy_failed": "Non è stato possibile copiare e verificare una registrazione.",
-          "receipt_write_failed": "Non è stato possibile salvare la ricevuta dell'importazione.",
+          "receipt_write_failed": "Sona non è riuscito a salvare i dettagli dell'importazione.",
           "internal": "L'importazione non è stata completata.",
           "status": "Non è stato possibile esaminare i dati dell'app precedente."
         },
@@ -1385,79 +1379,79 @@
     "agents": {
       "title": "Agenti",
       "controls": {
-        "title": "Controlli del bridge",
+        "title": "Controlli agente",
         "master": {
-          "label": "Attiva il bridge agenti"
+          "label": "Abilita connessioni agente"
         },
-        "status": "Stato del runtime",
+        "status": "Stato",
         "providers": {
           "claude": {
             "label": "Claude",
-            "description": "Osserva le sessioni di Claude e attiva le risposte supportate da una fixture quando disponibili."
+            "description": "Osserva le sessioni di Claude e risponde dove Sona lo supporta."
           },
           "codex": {
             "label": "Codex",
-            "description": "Osserva solo le sessioni. Le risposte sono in sola lettura fino a quando una fixture del protocollo non le supporta."
+            "description": "Osserva solo le sessioni. Sona non può ancora rispondere a Codex."
           },
           "grok": {
             "label": "Grok",
-            "description": "Osserva solo le sessioni. Le risposte sono in sola lettura fino a quando una fixture del protocollo non le supporta."
+            "description": "Osserva solo le sessioni. Sona non può ancora rispondere a Grok."
           },
           "omp": {
             "label": "OMP",
-            "description": "Osserva le sessioni e le richieste di approvazione di OMP. Le risposte sono disponibili solo a un arresto di sessione OMP supportato."
+            "description": "Osserva le sessioni OMP e le richieste di approvazione. Sona può rispondere solo quando una sessione OMP si ferma."
           }
         }
       },
       "status": {
         "disabled": "Disattivato",
-        "runtime_unavailable": "Runtime non disponibile",
-        "interactive_unsupported": "Risposte interattive non supportate",
+        "runtime_unavailable": "Non in esecuzione",
+        "interactive_unsupported": "Risposte non disponibili",
         "app_lock_held": "Un'altra istanza di Sona è attiva",
         "active": "Attivo"
       },
       "projects": {
         "title": "Progetti autorizzati",
-        "hashOnly": "Gli hash esatti dei progetti costituiscono il confine dei permessi; i percorsi delle cartelle non vengono memorizzati qui.",
+        "hashOnly": "Sona riconosce un progetto dalla sua cartella senza salvare il percorso della cartella qui.",
         "add": "Autorizza una cartella",
         "remove": "Rimuovi il progetto",
         "empty": "Nessun progetto è autorizzato."
       },
       "hook": {
-        "title": "Snippet dell'hook",
-        "description": "Copia la configurazione dell'hook fornita nella configurazione del tuo agente. Sona non modifica mai i file di configurazione degli agenti.",
-        "copy": "Copia lo snippet",
-        "error": "Snippet dell'hook non disponibile"
+        "title": "Codice di configurazione",
+        "description": "Copia questo codice di configurazione nella configurazione del tuo agente. Sona non modifica mai i file degli agenti.",
+        "copy": "Copia codice di configurazione",
+        "error": "Codice di configurazione non disponibile"
       },
       "replyQueue": {
         "title": "Anteprima della risposta",
         "session": "Destinazione della risposta",
-        "noSession": "Nessuna sessione osservata può ricevere risposte",
+        "noSession": "Nessuna sessione a cui Sona possa rispondere",
         "message": "Testo della risposta",
         "createPreview": "Crea l'anteprima",
-        "notReady": "Le risposte richiedono il bridge attivo e almeno un agente abilitato."
+        "notReady": "Attiva le connessioni degli agenti e almeno un agente prima di rispondere."
       },
       "pending": {
         "empty": "Nessuna risposta in attesa.",
         "confirm": "Conferma la risposta esatta",
-        "confirmed": "Confermata per il prossimo evento Stop supportato",
+        "confirmed": "Verrà inviato quando l'agente si interrompe",
         "cancel": "Annulla",
         "states": {
-          "held": "Trattenuta per il prossimo evento Stop supportato",
+          "held": "In attesa della chiusura dell'agente",
           "response_written": "Risposta scritta",
-          "emitted": "Emessa",
+          "emitted": "Inviata",
           "copy_only": "Solo copia",
           "cancelled": "Annullata"
         },
         "title": "Risposte in attesa"
       },
       "observed": {
-        "title": "Attività osservata",
+        "title": "Attività agente",
         "refresh": "Aggiorna",
         "sessions": "Sessioni",
-        "noSessions": "Nessuna sessione osservata.",
+        "noSessions": "Nessuna attività dell'agente ancora.",
         "requests": "Richieste",
-        "noRequests": "Nessuna richiesta osservata.",
+        "noRequests": "Nessuna richiesta ancora.",
         "requestKinds": {
           "session_start": "Sessione avviata",
           "user_prompt_submit": "Prompt inviato",
@@ -1474,7 +1468,7 @@
         "ompPermissionObserveOnly": "Le richieste di approvazione di OMP vengono solo osservate. Approvale o negale in OMP."
       },
       "rules": {
-        "title": "Regole esatte dei permessi",
+        "title": "Regole di autorizzazione",
         "empty": "Nessuna regola dei permessi.",
         "remove": "Rimuovi la regola",
         "decisions": {
@@ -1483,20 +1477,20 @@
         }
       },
       "errors": {
-        "load": "Non è stato possibile caricare i dati del bridge agenti: {{error}}",
-        "operation": "Non è stato possibile completare l'azione del bridge agenti: {{error}}"
+        "load": "Impossibile caricare i dettagli della connessione dell'agente: {{error}}",
+        "operation": "Impossibile completare l'azione dell'agente: {{error}}"
       },
       "panel": {
         "error": "Impossibile salvare l'impostazione del pannello agenti.",
         "label": "Abilita pannello agenti",
-        "rowDescription": "Disattivandolo la finestra del pannello si chiude e Sona rifiuta ogni richiesta di riaprirla.",
+        "rowDescription": "Disattivando questa opzione, il pannello si chiude e altre app non potranno riaprirlo.",
         "title": "Pannello agenti"
       },
       "externalAccess": {
         "label": "Accesso esterno",
-        "rowDescription": "Consente ad altri programmi su questo Mac di leggere riunioni, dettati, persone e impegni aperti tramite la riga di comando sona e il server MCP. Sola lettura, e disattivato finché non lo attivi."
+        "rowDescription": "Consente ad altre applicazioni su questo Mac di leggere i tuoi incontri, dettature, persone e loop aperti tramite lo strumento da riga di comando di Sona e il server MCP. È in sola lettura e rimane disattivata finché non la attivi."
       },
-      "workspaceNavigation": "Viste del bridge agenti",
+      "workspaceNavigation": "Visualizzazioni agente",
       "sonaAgent": {
         "title": "Agente Sona",
         "pairing": "Abbinamento",
@@ -1504,29 +1498,29 @@
         "unpaired": "Non abbinato",
         "lastReached": "Ultimo contatto",
         "never": "Mai",
-        "relayUrl": "Indirizzo del relay",
+        "relayUrl": "Indirizzo server",
         "relayUrlHint": "Si accetta solo un indirizzo Tailscale o questo Mac stesso. Tutto ciò che sta su internet aperta viene rifiutato prima di essere salvato.",
-        "relayKeyId": "ID chiave del relay",
-        "relayPublicKey": "Chiave pubblica del relay",
+        "relayKeyId": "ID chiave server",
+        "relayPublicKey": "Chiave pubblica server",
         "identity": "Chiave pubblica di questo Mac",
-        "identityHint": "Aggiungi questa chiave al relay perché accetti i turni da questo Mac. La metà privata non lascia mai il tuo portachiavi.",
+        "identityHint": "Aggiungi questa chiave al server affinché accetti messaggi da questo Mac. La chiave privata non lascia mai la tua keychain.",
         "identityUnavailable": "Attiva il pannello agente per creare una chiave.",
         "copy": "Copia",
         "copied": "Copiato",
         "unpair": "Disabbina",
         "test": "Prova",
-        "reached": "Il relay ha risposto.",
-        "failed": "Non è stato possibile abbinare il relay.",
+        "reached": "Il server ha risposto.",
+        "failed": "Impossibile connettersi al server.",
         "reason": {
           "unauthorized_window": "Quella finestra non può cambiare l'abbinamento.",
           "disabled": "Il pannello agente è spento.",
-          "unpaired": "Non è ancora abbinato nessun relay.",
-          "offline": "Il relay non ha risposto.",
+          "unpaired": "Nessun server è ancora associato.",
+          "offline": "Il server non ha risposto.",
           "invalid_configuration": "Sona non userà quell'indirizzo o quella chiave.",
           "secret_unavailable": "Non è stato possibile leggere la chiave di questo Mac.",
-          "untrusted_response": "La risposta non è stata firmata dal relay abbinato.",
-          "remote_rejected": "Il relay ha rifiutato la richiesta.",
-          "ownership_rejected": "Il relay ha risposto per qualcun altro."
+          "untrusted_response": "La risposta non è stata firmata dal server associato.",
+          "remote_rejected": "Il server ha rifiutato la richiesta.",
+          "ownership_rejected": "Il server ha risposto per un'altra persona."
         }
       }
     },
@@ -1612,12 +1606,12 @@
         "retry": "Riprova"
       },
       "runLog": {
-        "title": "Registro delle esecuzioni",
-        "empty": "Non ci sono ancora esecuzioni.",
-        "loadError": "Impossibile caricare il registro delle esecuzioni.",
-        "loadMoreError": "Impossibile caricare altre esecuzioni.",
-        "loadMore": "Carica altro",
-        "chartAria": "Esecuzioni al giorno, {{count}} negli ultimi 7 giorni"
+        "title": "Attività",
+        "empty": "Nessuna attività ancora.",
+        "loadError": "Impossibile caricare l'attività.",
+        "loadMoreError": "Impossibile caricare altre attività.",
+        "loadMore": "Mostra altro",
+        "chartAria": "Attività per giorno, {{count}} negli ultimi 7 giorni"
       }
     },
     "vocabulary": {
@@ -1696,7 +1690,7 @@
         "shortcutHint": "Esegue il comando rapido per nome con l'esportazione della riunione in ingresso. Trenta secondi, poi viene fermato.",
         "shortcutPlaceholder": "Nome del comando rapido",
         "webhook": "Invia a un webhook",
-        "webhookHint": "Invia l'esportazione della riunione come JSON. Solo la tua macchina o la tua tailnet: la stessa regola del relay.",
+        "webhookHint": "Invia l'esportazione dell'incontro come JSON. Usa solo la tua macchina o tailnet, come con il server.",
         "webhookPlaceholder": "http://100.x.y.z:8650/hook",
         "needsTarget": "Aggiungi prima un nome",
         "needsUrl": "Aggiungi prima un indirizzo",
@@ -1707,11 +1701,11 @@
       "remoteIntelligence": {
         "title": "Intelligenza delle riunioni",
         "label": "Scrivi le note delle riunioni sul mio server",
-        "consent": "I riassunti e le risposte delle riunioni vengono scritti sul tuo server attraverso la tua rete privata",
-        "unpaired": "Abbina Sona al tuo server in Agenti per attivarlo",
+        "consent": "I riassunti e le risposte delle riunioni vengono scritti sul tuo server attraverso la tua rete privata.",
+        "unpaired": "Abbina Sona al tuo server in Agenti per attivarlo.",
         "seriesTitle": "Serie che restano su questo Mac",
         "seriesHint": "Una serie elencata qui viene sempre scritta su questo Mac, anche con l'intelligenza delle riunioni attiva.",
-        "seriesEmpty": "Nessuna riunione ricorrente registrata finora",
+        "seriesEmpty": "Nessuna riunione ricorrente registrata finora.",
         "loading": "Lettura delle tue serie…",
         "lastMet": "Ultima volta il {{date}}",
         "keepLocalLabel": "Tieni {{series}} su questo Mac",
@@ -1742,10 +1736,10 @@
   },
   "commandPalette": {
     "open": "Cerca",
-    "placeholder": "Digita un comando o cerca",
+    "placeholder": "Cerca o scegli un'azione",
     "navigation": "Navigazione",
     "actions": "Azioni",
-    "noResults": "Nessun comando trovato",
+    "noResults": "Niente trovato",
     "newMeeting": "Nuova riunione",
     "importAudio": "Trascrivi file",
     "openRecordings": "Apri la cartella delle registrazioni",
@@ -1788,9 +1782,9 @@
     "commandRewriteUnavailable": "La riscrittura non ha restituito nulla, quindi la selezione è rimasta com'era. Controlla il provider in Settings > Post-processing e riprova.",
     "noModelSelectedTitle": "Nessun modello selezionato",
     "noSpeechSaveFailedTitle": "Campione non salvato",
-    "captureOverrunTitle": "Acquisizione oltre il limite",
+    "captureOverrunTitle": "Registrazione troncata",
     "cloudUnavailableTitle": "Cloud non disponibile",
-    "cloudTranscriptionHeldTitle": "Esecuzione cloud trattenuta",
+    "cloudTranscriptionHeldTitle": "Risultato cloud trattenuto",
     "commandNoSelectionTitle": "Nessuna selezione",
     "commandRewriteUnavailableTitle": "Riscrittura non disponibile"
   },
@@ -1916,7 +1910,7 @@
     },
     "setup": {
       "defaultTitle": "Note locali",
-      "remoteUnavailable": "L'elaborazione remota non è disponibile in questa build, quindi ogni riunione viene trascritta e riassunta su questo Mac."
+      "remoteUnavailable": "L'elaborazione remota non è disponibile in questa versione di Sona, quindi ogni riunione viene trascritta e riassunta su questo Mac."
     },
     "preflight": {
       "storage": "Archiviazione",
@@ -1924,7 +1918,7 @@
       "storageUnavailable": "L'archiviazione cifrata delle riunioni non è disponibile.",
       "localModel": "Modello locale",
       "localModelDescription": "L'elaborazione resta in locale quando è disponibile un modello locale.",
-      "starting": "Avvio della registrazione visibile…",
+      "starting": "Avvio della registrazione…",
       "refreshing": "Verifica in corso…"
     },
     "consent": {
@@ -1937,7 +1931,7 @@
       "partialCapture": "Manca una parte dell'audio. Controlla i vuoti prima di fidarti delle note generate.",
       "inputs": "Ingressi",
       "signal": "Segnale",
-      "signalUnavailable": "Il livello di {{source}} non viene riportato dalla registrazione.",
+      "signalUnavailable": "{{source}} non comunica il proprio livello.",
       "notReported": "Non riportato",
       "durabilityLag": "Salvato su disco",
       "behind": "{{duration}} di ritardo",
@@ -1963,7 +1957,7 @@
     },
     "retention": {
       "title": "Conservazione",
-      "description": "Sona elimina i record locali delle riunioni interessati tramite lo stesso percorso di eliminazione verificato.",
+      "description": "Sona elimina le riunioni su questo Mac sempre nello stesso modo verificato.",
       "forever": "Conserva finché non lo elimino",
       "days": "Elimina dopo {{days}} giorni",
       "loading": "Lettura della policy attuale…"
@@ -1971,7 +1965,7 @@
     "receipts": {
       "title": "Ricevuta della correzione",
       "saved": "Salvato in locale.",
-      "savedRevision": "Salvato in locale. Revisione {{revision}}.",
+      "savedRevision": "Salvato in locale. Versione {{revision}}.",
       "duplicate": "Questa azione era già stata registrata. Sona ha aggiornato il risultato esistente."
     },
     "reasons": {
@@ -1983,7 +1977,7 @@
       "source_start_failed": "Una sorgente non è riuscita ad avviarsi.",
       "source_gap": "Una sorgente ha segnalato un'interruzione.",
       "storage_unavailable": "L'archiviazione cifrata delle riunioni non è disponibile.",
-      "storage_failure": "L'archiviazione non ha potuto rendere persistente questa modifica.",
+      "storage_failure": "L'archivio non è riuscito a salvare questa modifica.",
       "local_model_unavailable": "Non è disponibile alcun modello locale.",
       "recovery_required": "Questa riunione deve essere recuperata.",
       "deleted": "Questa riunione è stata eliminata.",
@@ -2014,7 +2008,7 @@
       "consent_required": "Conferma il consenso alla registrazione prima di iniziare.",
       "consent_stale": "La configurazione è cambiata. Controllala di nuovo prima di iniziare.",
       "invalid_transition": "Questa azione non è disponibile nella fase attuale della riunione.",
-      "stale_revision": "Questa riunione è cambiata in un'altra finestra. Sona ha aggiornato la sua istantanea.",
+      "stale_revision": "Questa riunione è cambiata in un'altra finestra. Sona l'ha ricaricata.",
       "capture_lease_busy": "Un'altra riunione sta già registrando l'audio.",
       "no_source_started": "Nessuna sorgente audio approvata è stata avviata.",
       "source_unavailable": "Una sorgente audio richiesta non è disponibile.",
@@ -2032,12 +2026,12 @@
       "liveTitle": "Interrompere e scartare questa sessione?",
       "keepRecording": "Continua a registrare",
       "stopAndDiscard": "Interrompi e scarta",
-      "explainsData": "Audio, trascrizione, note manuali, note generate e cache delle risposte locali verranno eliminati. L'operazione non può essere annullata.",
+      "explainsData": "Audio, trascrizione, note manuali, note generate e risposte salvate verranno eliminati. Non è reversibile.",
       "complete": "Sessione scartata"
     },
     "delete": {
       "title": "Eliminare questa riunione?",
-      "explainsData": "Sona mantiene la riunione inaccessibile fino al termine dell'eliminazione verificata. Le esportazioni e le copie remote restano fuori dall'eliminazione locale.",
+      "explainsData": "Sona tiene la riunione fuori portata finché la cancellazione verificata non è finita. Esportazioni e copie remote non ne fanno parte.",
       "complete": "Riunione eliminata"
     },
     "review": {
@@ -2055,8 +2049,8 @@
       "showFewerGaps": "Mostra meno",
       "transcript": "Trascrizione",
       "noTranscript": "Non è disponibile alcuna trascrizione.",
-      "transcriptSegment": "Segmento della trascrizione",
-      "removeSegment": "Rimuovi il segmento",
+      "transcriptSegment": "Turno della trascrizione",
+      "removeSegment": "Rimuovi questo turno",
       "editTurn": "Modifica questo intervento",
       "unknownSpeaker": "Parlante sconosciuto",
       "speakers": "Parlanti",
@@ -2092,7 +2086,7 @@
       "keyQuestions": "Domande chiave",
       "risks": "Rischi",
       "followUp": "Messaggio di follow-up",
-      "artifactUnavailable": "Questa revisione generata non è disponibile. La trascrizione di origine e le note manuali restano in locale.",
+      "artifactUnavailable": "Queste note generate non sono disponibili. La trascrizione e le tue note manuali restano su questo Mac.",
       "actionMeta": "Responsabile: {{owner}} · Scadenza: {{due}}",
       "unassigned": "Non assegnato",
       "noDueDate": "Nessuna scadenza",
@@ -2135,10 +2129,10 @@
       "exportHtml": "Esporta pagina del registro",
       "exported": "Registro scritto in {{path}}",
       "exportMissing": "Questa riunione non ha un registro da esportare. Rigenera prima le note.",
-      "statThreads": "Temi chiusi",
+      "statThreads": "Temi risolti",
       "statReceipts": "Citazioni",
       "receiptsVerified": "verificato",
-      "receiptsDegraded": "{{threads}} temi e {{commitments}} impegni rimossi",
+      "receiptsDegraded": "Rimossi {{threads}} thread e {{commitments}} impegni",
       "threads": "Temi",
       "asideThread": "digressione",
       "openLoops": "Domande aperte",
@@ -2268,7 +2262,7 @@
       "title": "La registrazione non è partita",
       "readyTitle": "Pronto a registrare",
       "recordAnyway": "Registra senza di essa",
-      "recordAnywayHint": "La registrazione viene contrassegnata come parziale e l'origine mancante resta indicata al suo interno."
+      "recordAnywayHint": "La riunione viene contrassegnata come parziale e la fonte mancante vi resta indicata."
     },
     "analytics": {
       "title": "Conversazione",
@@ -2351,7 +2345,7 @@
       },
       "apps": {
         "label": "App di riunione",
-        "description": "Un identificatore di bundle per riga. Una voce conta solo mentre quell'app è in esecuzione, quindi un identificatore rinominato è inerte anziché sbagliato.",
+        "description": "Un ID app per riga. Una voce conta solo mentre l'app è in esecuzione, così un ID app rinominato non farà nulla invece di attivarsi erroneamente.",
         "running": "In esecuzione ora: {{apps}}",
         "noneRunning": "Nessuna di queste è in esecuzione in questo momento."
       },
@@ -2360,7 +2354,7 @@
         "calendarDenied": "L'accesso al calendario non è stato concesso, quindi funziona solo la via del microfono.",
         "notificationsDenied": "Le notifiche sono disattivate per Sona, quindi gli avvisi appaiono solo nell'app.",
         "bluetoothCaveat": "Un'app di riunione è aperta ma nulla segnala l'uso del microfono. Le cuffie Bluetooth spesso non lo fanno, quindi avvia la riunione tu se ce n'è una in corso.",
-        "noSilenceStop": "Le acquisizioni si fermano alla fine dell'evento, alla chiusura dell'app, allo stop di sistema o quando le fermi tu. Il timer del silenzio richiede una trascrizione dal vivo, che avviene dopo la fine della riunione."
+        "noSilenceStop": "La registrazione si ferma quando l'evento finisce, l'app si chiude, il Mac va in stop o la fermi tu. Il silenzio non la ferma: servirebbe la trascrizione dal vivo, e la trascrizione parte dopo la riunione."
       },
       "why": {
         "disabled": "Il rilevamento è disattivato.",
@@ -2395,7 +2389,7 @@
         "autoOpen": "Apri questa riunione quando inizia"
       },
       "recording": {
-        "none": "Nessuna sorgente pronta"
+        "none": "Nessuna fonte scelta"
       },
       "participation": {
         "accepted": "Accettato",
@@ -2432,7 +2426,7 @@
       "loading": "Lettura del calendario…",
       "empty": "Niente in programma per la prossima settimana.",
       "noAccess": "Sona non vede il tuo calendario.",
-      "noAccessHint": "Attiva «Usa il mio calendario» nelle impostazioni delle riunioni e concedi l'accesso completo quando macOS lo chiede. Tutto ciò che Calendario di macOS già mostra — Google, iCloud, Outlook — arriva con esso.",
+      "noAccessHint": "Attiva «Usa il mio calendario» nelle impostazioni delle riunioni, poi concedi l'accesso completo quando macOS lo chiede. Tutto ciò che Calendario di macOS mostra già (Google, iCloud, Outlook) arriva insieme.",
       "unavailable": "Questo sistema non ha un calendario che Sona possa leggere.",
       "attendees": "Partecipanti",
       "you": "Tu",
@@ -2517,6 +2511,16 @@
       "row": "Chiedi a Sona: {{query}}",
       "error": "Impossibile inviare la domanda a Sona.",
       "consentRequired": "Una domanda invia citazioni delle tue riunioni al tuo server, quindi attiva prima l'intelligenza delle riunioni."
+    },
+    "error": {
+      "unreachable": "Sona non è riuscita a connettersi.",
+      "refused": "Sona non ha potuto accettare questa domanda.",
+      "failed": "Sona non è riuscita a completare questa risposta."
+    },
+    "working": {
+      "searchedCorpus": "Ho esaminato le tue riunioni e le tue note",
+      "stillWaiting": "Sto ancora aspettando…",
+      "cancel": "Annulla"
     }
   },
   "overview": {
@@ -2572,8 +2576,8 @@
     },
     "setup": {
       "title": "Configura un account di sincronizzazione",
-      "endpoint": "Endpoint",
-      "bootstrapSecret": "Segreto di avvio",
+      "endpoint": "Indirizzo del server",
+      "bootstrapSecret": "Segreto di configurazione",
       "submit": "Configura la sincronizzazione"
     },
     "recovery": {
@@ -2594,13 +2598,13 @@
     },
     "errors": {
       "portable_unavailable": "La sincronizzazione cloud non è disponibile in modalità portatile.",
-      "secret_unavailable": "L'archivio sicuro di sistema non è disponibile.",
+      "secret_unavailable": "Il portachiavi di sistema non è disponibile.",
       "setup_required": "Configura la sincronizzazione cloud prima di usare questa azione.",
       "auth_required": "È necessario accedere al cloud.",
       "quota": "La quota di archiviazione nel cloud è stata raggiunta.",
       "integrity_failure": "Non è stato possibile verificare l'operazione nel cloud.",
       "conflict": "Questa riunione ha un conflitto di sincronizzazione.",
-      "unsupported_protocol": "Questo dispositivo non supporta il protocollo cloud.",
+      "unsupported_protocol": "Questo dispositivo non supporta la versione di sincronizzazione cloud in uso.",
       "transient": "La sincronizzazione cloud è temporaneamente non disponibile.",
       "invalid_expiry": "Scegli una scadenza futura.",
       "invalid_offer": "L'offerta di abbinamento è incompleta o non valida.",
@@ -2695,16 +2699,16 @@
       "noDocuments": "Nessun documento importato.",
       "deleteDocument": "Elimina documento",
       "deleteDocumentTitle": "Eliminare questo documento?",
-      "deleteDocumentDescription": "Eliminare {{document}} dal contesto importato?",
+      "deleteDocumentDescription": "Eliminare {{document}} dai documenti di Sona?",
       "cadence": "Cadenza delle riunioni",
       "lastMeeting": "Ultima riunione",
       "talkShare": "Quota di conversazione",
       "cadenceAria": "Riunioni per mese: {{values}}",
       "documentFilter": "Documenti di testo",
-      "documentImported": "Documento importato.",
+      "documentImported": "Documento aggiunto.",
       "split": "Dividi persona",
       "splitTitle": "Dividere questa persona?",
-      "splitDescription": "Sposta i dati identificativi e le riunioni selezionati da {{name}} a un’altra persona.",
+      "splitDescription": "Sposta i dettagli e gli incontri selezionati da {{name}} a un'altra persona.",
       "splitTarget": "Sposta in",
       "splitCreate": "Nuova persona",
       "splitExisting": "Persona esistente",
@@ -2716,7 +2720,7 @@
       "splitDocuments": "Documenti",
       "splitSubmit": "Dividi persona",
       "splitNothingSelected": "Scegli almeno un elemento da spostare.",
-      "splitNoItems": "Questa persona non ha dati identificativi o riunioni da separare.",
+      "splitNoItems": "Questa persona non ha dettagli o incontri da dividere.",
       "loadError": "Impossibile caricare questa persona."
     },
     "errors": {
@@ -2730,11 +2734,11 @@
       "meetingsBefore_many": "{{count}} riunioni precedenti",
       "meetingsBefore_other": "{{count}} riunioni precedenti",
       "last": "Ultima {{date}}",
-      "agentPromptIntro": "Aiutami a scrivere un seguito per “{{title}}” usando questi dati della riunione.",
+      "agentPromptIntro": "Aiutami a scrivere un follow-up per “{{title}}” usando questi incontri.",
       "agentPromptCommitments": "Impegni",
       "agentPromptOpenLoops": "Questioni aperte",
       "agentPromptRequest": "Scrivi il seguito. Non inventare dettagli o promesse.",
-      "agentError": "Impossibile aprire il seguito con l’agente.",
+      "agentError": "Impossibile aprire il follow-up con l'agente.",
       "discussFollowUp": "Discuti il seguito con l’agente",
       "meetingsBefore": "{{count}} riunioni precedenti"
     },
@@ -2787,7 +2791,7 @@
     },
     "detail": {
       "openLoops": "Domande aperte",
-      "howSonaKnows": "Come fa Sona a saperlo",
+      "howSonaKnows": "Perché Sona associa questa persona",
       "noEvidence": "Nulla collega ancora questa persona a una riunione."
     }
   },
@@ -2818,7 +2822,7 @@
       "rules": {
         "label": "App e siti web",
         "empty": "Niente passa a questa modalità da solo.",
-        "example": "Una regola memorizza l'identità di un'app o l'host di un sito web: com.apple.mail oppure mail.google.com."
+        "example": "Ogni regola utilizza un app ID o sito web, come com.apple.mail o mail.google.com."
       }
     },
     "advanced": {
@@ -2927,7 +2931,7 @@
       "sync": "Sincronizzazione",
       "leavesThisMac": "Cosa esce da questo Mac",
       "agents": "Agenti",
-      "agentBridge": "Ponte per gli agenti di codice",
+      "agentBridge": "Connessioni agent",
       "about": "Informazioni su Sona",
       "debugHint": "Premi {{chord}} per aprire la pagina di debug."
     },
@@ -2937,10 +2941,10 @@
       "runningNow": "In esecuzione ora",
       "add": "Aggiungi un'app",
       "addTitle": "Aggiungi un'app di riunione",
-      "addDescription": "Sona ha bisogno dell'identificatore dell'app, che puoi leggere nella sua finestra Informazioni oppure con `osascript -e 'id of app \"Nome\"'`.",
-      "identifier": "Identificatore dell'app",
+      "addDescription": "Sona ha bisogno dell'ID dell'app, che puoi trovare nella finestra 'Informazioni' dell'app o con `osascript -e 'id of app \"Nome\"'`.",
+      "identifier": "ID App",
       "identifierPlaceholder": "com.example.app",
-      "invalid": "Un identificatore è fatto così: com.example.app, parole minuscole unite da punti.",
+      "invalid": "Un ID app deve essere simile a com.esempio.app: parole minuscole separate da punti.",
       "duplicate": "Quell'app è già nell'elenco.",
       "remove": "Rimuovi {{app}}",
       "names": {
@@ -2953,8 +2957,8 @@
     }
   },
   "consentPanel": {
-    "calendarTitle": "{{title}} — la registro?",
-    "appTitle": "Riunione {{app}} — la registro?",
+    "calendarTitle": "Registrare {{title}}?",
+    "appTitle": "Registrare questa riunione su {{app}}?",
     "genericTitle": "Registrare questa riunione?",
     "introduction": "Sona registra su questo Mac e il controllo resta a te.",
     "seriesBrief_one": "Riunione {{nth}} con {{person}} · {{count}} punto in sospeso",
@@ -2983,8 +2987,8 @@
         "description": "Nota una modalità che scegli continuamente con la scorciatoia."
       },
       "captureAdvisor": {
-        "name": "Consiglia sulla qualità di acquisizione",
-        "description": "Segnala ritentativi, acquisizioni perse e audio basso dalle tue sessioni."
+        "name": "Consigliare sulla qualità della registrazione",
+        "description": "Segnala nuovi tentativi, registrazioni perse e audio troppo basso dalle tue dettature."
       },
       "seriesPriming": {
         "name": "Prepara riunioni ricorrenti"
@@ -2992,12 +2996,12 @@
     },
     "feed": {
       "title": "Cosa ha notato Sona",
-      "spokenPunctuation": "Dici spesso {{spoken}} — scriverlo come {{written}}?",
-      "vocabularyCorrection": "Cambi sempre {{spoken}} in {{written}} — impararlo?",
-      "modeHabit": "Scegli {{mode}} con la scorciatoia quasi ogni giorno — renderla predefinita?",
-      "retryRate": "Le tue sessioni {{subject}} vengono ritentate {{times}}× più delle altre.",
-      "lostCaptureRate": "Le tue sessioni {{subject}} finiscono troncate o mute {{times}}× più delle altre.",
-      "inputLevel": "Il {{percent}}% delle tue acquisizioni era basso — controlli il livello del microfono?",
+      "spokenPunctuation": "Dici spesso {{spoken}}. Scriverlo come {{written}}?",
+      "vocabularyCorrection": "Cambi continuamente {{spoken}} in {{written}}. Impararlo?",
+      "modeHabit": "Quasi ogni giorno passi a {{mode}} con la scorciatoia. Renderla predefinita?",
+      "retryRate": "Le dettature su {{subject}} vengono ritentate {{times}}× più spesso delle altre.",
+      "lostCaptureRate": "Le dettature su {{subject}} finiscono tronche o mute {{times}}× più spesso delle altre.",
+      "inputLevel": "Il {{percent}}% delle tue registrazioni è arrivato basso. Controlli il livello del microfono?",
       "example": "«{{text}}»",
       "accept": "Sì",
       "dismiss": "No, grazie",

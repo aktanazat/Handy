@@ -34,7 +34,7 @@
     "settings": "Instellingen"
   },
   "onboarding": {
-    "subtitle": "Modellen draaien op deze Mac en wegen nauwkeurigheid af tegen snelheid",
+    "subtitle": "Modellen draaien op deze Mac en wegen nauwkeurigheid af tegen snelheid.",
     "existingModelsTitle": "Compatibele modellen",
     "downloadModelsTitle": "Beschikbaar voor download",
     "showAllModels": "Toon alle {{total}} modellen",
@@ -249,7 +249,7 @@
       "noModelsMatch": "Geen modellen voldoen aan dit filter.",
       "cloud": {
         "title": "Cloudtranscriptie",
-        "providerDescription": "Inloggegevens blijven in de beveiligde opslag van je besturingssysteem.",
+        "providerDescription": "Sleutels blijven in de sleutelopslag van het systeem.",
         "providers": {
           "deepgram": "Deepgram Nova-3",
           "elevenLabs": "ElevenLabs Scribe v2"
@@ -270,18 +270,18 @@
           "notSaved": "Geen API-sleutel opgeslagen.",
           "saved": "API-sleutel opgeslagen. Hij is niet geverifieerd.",
           "verified": "API-sleutel geverifieerd.",
-          "verifyRequiresConsent": "Bekijk de overdrachtsverklaring in een modus voordat je deze sleutel verifieert."
+          "verifyRequiresConsent": "Erken de overdracht in een modus voordat je deze sleutel verifieert."
         },
         "errors": {
           "not_found": "Er is geen API-sleutel opgeslagen voor deze provider.",
-          "unavailable": "De beveiligde opslag van het systeem is niet beschikbaar.",
-          "locked": "De beveiligde opslag van het systeem is vergrendeld.",
-          "corrupt": "De opgeslagen inloggegevens kunnen niet veilig worden gelezen.",
-          "invalid": "De inloggegevens zijn niet geaccepteerd door de beveiligde opslag.",
-          "busy": "De beveiligde opslag is bezig. Probeer het opnieuw.",
-          "backend": "De bewerking met de inloggegevens kon niet worden voltooid.",
+          "unavailable": "De sleutelopslag van het systeem is niet beschikbaar.",
+          "locked": "De sleutelopslag van het systeem is vergrendeld.",
+          "corrupt": "De opgeslagen sleutel kan niet veilig worden gelezen.",
+          "invalid": "De sleutelopslag van het systeem heeft de sleutel niet geaccepteerd.",
+          "busy": "De sleutelopslag van het systeem is bezig. Probeer het opnieuw.",
+          "backend": "De sleutelopslag van het systeem kon die actie niet voltooien.",
           "not_configured": "Sla een API-sleutel op voordat je hem verifieert.",
-          "consent_required": "Accepteer de overdrachtsverklaring van de provider voordat je verifieert.",
+          "consent_required": "Erken de overdracht naar de provider voordat je verifieert.",
           "authentication": "De provider heeft deze API-sleutel geweigerd.",
           "quota": "De provider heeft de verificatie geweigerd omdat het account over de limiet is.",
           "network": "De provider was niet bereikbaar voor verificatie.",
@@ -335,8 +335,8 @@
         "label": "Experimentele functies"
       },
       "lazyStreamClose": {
-        "label": "Microfoon openhouden tussen transcripties",
-        "description": "Houdt de microfoonstream 30 seconden open nadat een opname stopt, zodat opeenvolgende transcripties sneller starten. De Bluetooth-audiokwaliteit kan intussen afnemen."
+        "label": "Microfoon open houden tussen dicteersessies",
+        "description": "Houdt de microfoon na het stoppen 30 seconden open, zodat opeenvolgende dicteersessies sneller beginnen. De Bluetooth-audiokwaliteit kan dalen zolang deze open staat."
       },
       "acceleration": {
         "transcribe": {
@@ -520,7 +520,7 @@
         },
         "model": {
           "title": "Model",
-          "descriptionCustom": "Geef de model-ID op die door je aangepaste eindpunt wordt verwacht.",
+          "descriptionCustom": "Voer het model-ID in dat je eigen server verwacht.",
           "placeholderWithOptions": "Zoek of selecteer een model",
           "placeholderNoOptions": "Typ een modelnaam",
           "refreshModels": "Modellen verversen"
@@ -555,17 +555,17 @@
       },
       "remoteConsent": {
         "title": "Externe tekstoverdracht",
-        "description": "Vergader- en transcriptietekst kan voor naverwerking naar {{provider}} op {{endpoint}} worden verzonden.",
-        "acknowledge": "Ik erken dat er tekst naar dit eindpunt kan worden verzonden.",
+        "description": "Sona kan vergaderings- en dicteerteksten naar {{provider}} op {{endpoint}} sturen voor opschoning.",
+        "acknowledge": "Ik erken dat er tekst naar dit adres kan worden verzonden.",
         "accept": "Tekstoverdracht toestaan",
         "cancel": "Annuleren",
-        "endpointChanged": "Het eindpunt is gewijzigd. Bekijk en erken het nieuwe eindpunt voordat tekst deze Mac kan verlaten.",
+        "endpointChanged": "Het adres is gewijzigd. Bekijk en erken het nieuwe voordat tekst deze Mac kan verlaten.",
         "invalidDestination": "Deze providerbestemming is ongeldig of alleen lokaal, dus er kan geen externe toestemming worden vastgelegd.",
         "saveFailed": "Sona kon deze erkenning niet opslaan.",
-        "current": "Tekstoverdracht is erkend voor {{endpoint}}.",
+        "current": "Je hebt toestemming gegeven om tekst naar {{endpoint}} te sturen.",
         "review": "Erkenning bekijken",
-        "endpointLabel": "Canoniek eindpunt",
-        "destinationPinned": "Sona legt exact dit eindpunt en deze herkomst vast voor de erkenning."
+        "endpointLabel": "Exact adres",
+        "destinationPinned": "Sona koppelt de erkenning aan exact dit adres en deze herkomst."
       }
     },
     "history": {
@@ -593,7 +593,7 @@
       "loadError": "Geschiedenis kon niet worden geladen.",
       "retry": "Opnieuw proberen",
       "saveError": "Kon de bewaarstatus niet bijwerken. Probeer het opnieuw.",
-      "postProcessEmpty": "Naverwerking heeft geen tekst opgeleverd. De originele transcriptie wordt weergegeven.",
+      "postProcessEmpty": "De naverwerking leverde geen tekst op, dus dit is de originele transcriptie.",
       "textView": {
         "label": "Transcriptieweergave",
         "processed": "Verwerkt",
@@ -668,10 +668,10 @@
         "deliveryOutcome": {
           "delivered": "Ingevoegd",
           "definitely_not_dispatched": "Niet verzonden",
-          "dispatched_but_unconfirmed": "Verzonden, onbevestigd"
+          "dispatched_but_unconfirmed": "Verzonden, niet bevestigd"
         },
         "modeLabel": "Modus",
-        "revisionLabel": "Revisie",
+        "revisionLabel": "Instellingenversie",
         "engineLabel": "Engine",
         "sourceLabel": "Bron",
         "captureStatusLabel": "Opname",
@@ -749,10 +749,10 @@
       "recalledByMeaning": "op betekenis",
       "level": {
         "peak": "peak",
-        "rms": "rms"
+        "rms": "gemiddeld"
       },
       "noTextRecorded": "Voor dit item is geen tekst vastgelegd.",
-      "cloudHeld": "De Cloud-run is tegengehouden: er kwam geen betrouwbaar resultaat en er was geen lokaal model beschikbaar.",
+      "cloudHeld": "Sona hield het cloudresultaat tegen: er kwam niets betrouwbaars terug en er was geen lokaal model beschikbaar.",
       "transcriptionEngineFailed": "Transcriptie mislukt, dus er is niets vastgelegd.",
       "processAgain": {
         "action": "Opnieuw verwerken",
@@ -774,7 +774,7 @@
       },
       "liveLogs": {
         "title": "Live logboeken",
-        "description": "Alleen regels die worden gegenereerd terwijl dit paneel open is verschijnen hier, op het hierboven ingestelde logboekniveau.",
+        "description": "Hier verschijnen alleen regels die worden geschreven terwijl dit paneel open is, op het hierboven ingestelde logniveau.",
         "pause": "Pauzeren",
         "resume": "Hervatten",
         "copied": "Gekopieerd",
@@ -782,7 +782,7 @@
         "empty": "Nog geen regels."
       },
       "whatsNewPreview": {
-        "title": "Voorbeeld van release-notes",
+        "title": "Voorbeeld van de release-note",
         "description": "Open de nieuwste meegeleverde release-notes zonder deze als gelezen te markeren",
         "noNotes": "Geen meegeleverde release-notes gevonden",
         "error": "Kon de releasenotes niet weergeven. Probeer het opnieuw."
@@ -826,7 +826,7 @@
       },
       "keyboardImplementation": {
         "title": "Toetsenbord-implementatie",
-        "bindingsReset": "Sneltoetsen waren incompatibel en zijn teruggezet naar de standaardwaarden"
+        "bindingsReset": "Sneltoetsen waren incompatibel en zijn teruggezet naar de standaardwaarden."
       },
       "paths": {
         "appData": "App-data:",
@@ -847,27 +847,21 @@
       },
       "recordingBuffer": {
         "title": "Extra opnamebuffer",
-        "description": "Extra tijd (in milliseconden) om te blijven opnemen nadat je de toets loslaat, om naloopaudio op te vangen. 0 = geen extra buffer."
+        "description": "Extra tijd (in milliseconden) om te blijven opnemen nadat je de toets loslaat, om naloopaudio op te vangen. Zet op 0 voor geen."
       },
       "keyboardDiagnostic": {
         "title": "Toetsenborddiagnose",
         "description": "Controleert of toetsenbordgebeurtenissen Sona bereiken. Alleen het aantal gebeurtenissen wordt vastgelegd, nooit welke toetsen je indrukt.",
         "run": "Diagnose van 10 s uitvoeren",
         "running": "Luisteren… druk je sneltoets een paar keer in (bijv. Option+Space)",
-        "secureInputLabel": "Secure Input",
+        "secureInputLabel": "Veilige invoer",
         "enabled": "ingeschakeld",
         "disabled": "uitgeschakeld",
         "holder": "vastgehouden door {{name}} (pid {{pid}})",
-        "holderUnknown": "geen zichtbare veroorzaker",
-        "keyDown": "Toets ingedrukt",
-        "keyUp": "Toets losgelaten",
-        "flagsChanged": "Modificatietoetsen",
-        "mouse": "Muis",
-        "verdictBlocked": "Secure Input blokkeert toetsgebeurtenissen, dus sneltoetsen met een gewone toets kunnen pas weer werken als dit is opgelost.",
-        "verdictSuspicious": "Er kwamen wel modificatiegebeurtenissen binnen, maar geen toetsgebeurtenissen. Iets onderdrukt toetsen terwijl Secure Input als uitgeschakeld wordt gemeld. Meld dit op GitHub.",
-        "verdictOk": "Toetsgebeurtenissen bereiken Sona normaal.",
-        "verdictNoEvents": "Er zijn tijdens de test geen gebeurtenissen vastgelegd.",
-        "failed": "Diagnose mislukt: {{error}}"
+        "notSupported": "Niet ondersteund op dit platform.",
+        "noHolder": "Geen app houdt Secure Input vast.",
+        "status": "Status",
+        "error": "Toetsenborddiagnose is niet beschikbaar."
       },
       "groups": {
         "capture": "Opname",
@@ -945,14 +939,14 @@
           },
           "capture": {
             "label": "Activeren op website",
-            "description": "Leg de host van de voorste browser vast. Sona bewaart de host, niet de URL.",
+            "description": "Gebruik de geopende website. Sona slaat de sitenaam op, niet het volledige adres.",
             "action": "Huidige website vastleggen",
             "capturing": "Vastleggen…"
           },
           "empty": "Geen website activeert deze modus.",
-          "exampleDescription": "Een regel bewaart één browserhost, bijvoorbeeld mail.google.com."
+          "exampleDescription": "Elke regel gebruikt één website, zoals mail.google.com."
         },
-        "exampleDescription": "Een regel bewaart één applicatie-identiteit, bijvoorbeeld com.apple.mail.",
+        "exampleDescription": "Elke regel gebruikt één app-ID, zoals com.apple.mail.",
         "removeTarget": "{{target}} verwijderen",
         "unsupported": "Activatie per app en website is alleen beschikbaar op macOS."
       },
@@ -1060,10 +1054,10 @@
           "unavailable": "{{provider}} is niet beschikbaar"
         },
         "cloud": {
-          "setupRequired": "{{provider}} heeft een opgeslagen eigen API-sleutel en actuele toestemming voor overdracht nodig voordat de cloudopties beschikbaar zijn.",
+          "setupRequired": "{{provider}} heeft een API-sleutel in de sleutelopslag van het systeem en een actuele erkenning van de overdracht nodig voordat de cloudopties opengaan.",
           "fallback": {
             "label": "Lokale terugval gebruiken",
-            "description": "Als de cloudprovider geen betrouwbaar eindresultaat kan teruggeven, wordt de opgenomen audio met een lokaal model getranscribeerd.",
+            "description": "Als de cloudprovider geen betrouwbaar resultaat kan teruggeven, wordt de opname met een lokaal model getranscribeerd.",
             "useModeModel": "Het lokale model van deze modus gebruiken",
             "model": {
               "label": "Terugvalmodel",
@@ -1071,8 +1065,8 @@
             }
           },
           "keyterms": {
-            "label": "Cloud-kernbegrippen",
-            "description": "Eén term per regel. Deze termen worden met dit cloudverzoek meegestuurd.",
+            "label": "Woorden om op te letten",
+            "description": "Eén woord of naam per regel. Sona stuurt ze samen met de audio naar de provider.",
             "placeholder": "Productnaam\nPersoonsnaam"
           },
           "timestamps": {
@@ -1088,22 +1082,22 @@
               "description": "Opgenomen audio uit deze modus wordt voor transcriptie direct naar {{provider}} verzonden."
             },
             "privacy": {
-              "label": "Privacycontract",
-              "description": "De provider ontvangt de audio van deze modus, de gekozen taal en de kernbegrippen. Appcontext en eigen inloggegevens blijven op dit apparaat."
+              "label": "Wat de provider ziet",
+              "description": "De provider ontvangt de audio van deze modus, de taal ervan en de woorden die je hebt opgegeven. Wat Sona uit je andere apps leest, en je sleutels, blijven op deze Mac."
             },
             "localFallback": {
               "label": "Lokale terugval",
-              "description": "Als de cloudprovider geen betrouwbaar eindresultaat kan teruggeven, kan Sona het lokale model gebruiken dat je hebt gekozen."
+              "description": "Als de cloudprovider geen betrouwbaar resultaat kan teruggeven, kan Sona het lokale model gebruiken dat je hebt gekozen."
             },
             "decline": "Lokaal blijven",
             "accept": "Accepteren en cloud gebruiken",
             "accepting": "Accepteren…",
             "errors": {
               "unknown_provider": "Deze cloudprovider is niet beschikbaar in deze build.",
-              "backend": "De toestemmingsregistratie kon niet worden opgeslagen."
+              "backend": "De erkenning kon niet worden opgeslagen."
             }
           },
-          "title": "Cloudtransport"
+          "title": "Cloudtranscriptie"
         }
       },
       "context": {
@@ -1157,7 +1151,7 @@
         },
         "reliablePaste": {
           "label": "Betrouwbaar plakken",
-          "description": "Gebruikt plakken op basis van bevestigingsvolgorde wanneer het platform dat ondersteunt."
+          "description": "Herstelt het klembord pas nadat de app de transcriptie heeft gelezen, waar het systeem dat toestaat."
         },
         "delay": {
           "label": "Plakvertragingen",
@@ -1187,14 +1181,14 @@
       },
       "errors": {
         "staleRevision": "De instellingen zijn elders gewijzigd. Bekijk de nieuwste modus en sla opnieuw op.",
-        "invalid_mode_id": "Deze modus-ID is ongeldig.",
+        "invalid_mode_id": "Sona kon niet vaststellen om welke modus dit gaat.",
         "empty_name": "Een modusnaam is vereist.",
         "cannot_delete_default": "De standaardmodus kan niet worden verwijderd.",
         "unknown_mode": "Die modus bestaat niet meer.",
-        "duplicate_mode_id": "Er bestaat al een modus met deze ID.",
+        "duplicate_mode_id": "Die modus bestaat al.",
         "invalid_reorder": "De volgorde van de modi kon niet worden opgeslagen.",
         "invalid_website_host": "Deze websitehost is ongeldig.",
-        "website_activation_consent_required": "Schakel browser-URL's in bij Privacy voordat je een websiteregel toevoegt.",
+        "website_activation_consent_required": "Schakel 'Browser-URL's opnemen' in bij Privacy voordat je een websiteregel toevoegt.",
         "frontmost_website_unavailable": "Er kon geen website uit de browser worden vastgelegd.",
         "website_activation_secure_field": "Websiteregels kunnen niet uit een beveiligd veld worden vastgelegd."
       },
@@ -1240,10 +1234,10 @@
             "target_and_selection": "Selectie",
             "full": "Volledig"
           },
-          "error": "De contextlimiet kon niet worden opgeslagen"
+          "error": "De contextlimiet kon niet worden opgeslagen."
         },
         "sources": {
-          "none": "Leest geen appcontext.",
+          "none": "Leest niets uit je andere apps.",
           "target": "Leest welke app op de voorgrond staat.",
           "target_and_selection": "Leest welke app op de voorgrond staat en, indien beschikbaar, de geselecteerde tekst.",
           "full": "Leest indien beschikbaar ook een toegestane browser-URL en recent gewijzigde klembordtekst."
@@ -1257,7 +1251,7 @@
       "diagnostics": {
         "title": "Contextdiagnose",
         "refresh": "Verversen",
-        "error": "De diagnose kon niet worden ververst",
+        "error": "De diagnose kon niet worden ververst.",
         "accessibility": {
           "label": "Toegankelijkheid"
         },
@@ -1299,14 +1293,14 @@
             "months_3": "3 maanden"
           }
         },
-        "error": "De gegevensbewaring kon niet worden opgeslagen",
+        "error": "De gegevensbewaring kon niet worden opgeslagen.",
         "historyStorage": {
           "encrypted": "Versleuteld in rust",
           "label": "Geschiedenisopslag",
           "locked": "Vergrendeld",
           "plaintext": "Niet versleuteld",
           "reasons": {
-            "encryption_unavailable": "Deze build kan geen versleutelde database openen, dus de geschiedenis wordt onversleuteld opgeslagen.",
+            "encryption_unavailable": "Deze versie van Sona kan geen versleutelde database openen, dus de geschiedenis wordt onversleuteld bewaard.",
             "key_rejected": "De opgeslagen sleutel opent de versleutelde database niet, dus de geschiedenis kan niet worden gelezen.",
             "key_unavailable": "De systeemsleutelopslag gaf geen bruikbare sleutel terug, dus de geschiedenis wordt onversleuteld opgeslagen.",
             "migration_failed": "Het versleutelen van de bestaande database is mislukt. De onversleutelde database is intact en nog in gebruik."
@@ -1318,7 +1312,7 @@
       "cloudTranscription": {
         "title": "Cloudtranscriptie",
         "checkFailed": "De opzet van cloudtranscriptie kon niet worden gecontroleerd.",
-        "disclosure": "Bij een modus met cloud ingeschakeld stuurt Sona de opgenomen audio, de gekozen taal en de kernbegrippen van de modus direct naar de provider. Appcontext en eigen inloggegevens blijven op dit apparaat."
+        "disclosure": "Bij een modus met cloud ingeschakeld stuurt Sona de opgenomen audio, de gekozen taal en de woorden die die modus opgeeft direct naar de provider. Wat Sona uit je andere apps leest, en je sleutels, blijven op deze Mac."
       },
       "upstreamImport": {
         "title": "Importeren uit oude app",
@@ -1358,11 +1352,11 @@
           "app_state_unverifiable": "Sona kan op dit platform niet controleren of de oude app is gesloten.",
           "invalid_selection": "Kies instellingen of geschiedenis om te importeren.",
           "settings_unreadable": "Het oude instellingenbestand kon niet worden gelezen.",
-          "secret_store_unavailable": "De sleutelopslag van het systeem is niet beschikbaar, dus instellingen met providersleutels zijn niet geïmporteerd.",
-          "secret_conflict": "Er staat al een providersleutel in de sleutelopslag van het systeem. Los dat op voordat je instellingen importeert.",
+          "secret_store_unavailable": "De systeemreferentieopslag is niet beschikbaar, dus instellingen met providersleutels zijn niet geïmporteerd.",
+          "secret_conflict": "Er staat al een providersleutel in de systeemreferentieopslag. Los het conflict op voordat je instellingen importeert.",
           "history_unreadable": "De oude geschiedenisdatabase kon niet worden gelezen.",
           "recording_copy_failed": "Een opname kon niet worden gekopieerd en gecontroleerd.",
-          "receipt_write_failed": "De importbevestiging kon niet worden opgeslagen.",
+          "receipt_write_failed": "Sona kon de importgegevens niet opslaan.",
           "internal": "De import is niet voltooid.",
           "status": "De gegevens van de oude app konden niet worden onderzocht."
         },
@@ -1385,65 +1379,65 @@
     "agents": {
       "title": "Agents",
       "controls": {
-        "title": "Bridge-instellingen",
+        "title": "Agent-bediening",
         "master": {
-          "label": "Agentbridge inschakelen"
+          "label": "Agent-verbindingen inschakelen"
         },
-        "status": "Runtimestatus",
+        "status": "Status",
         "providers": {
           "claude": {
             "label": "Claude",
-            "description": "Claude-sessies observeren en antwoorden met fixture-ondersteuning inschakelen waar beschikbaar."
+            "description": "Claude-sessies observeren en antwoorden waar Sona dat ondersteunt."
           },
           "codex": {
             "label": "Codex",
-            "description": "Alleen sessies observeren. Antwoorden zijn alleen-lezen totdat een wire-fixture ze ondersteunt."
+            "description": "Alleen sessies observeren. Sona kan Codex nog niet beantwoorden."
           },
           "grok": {
             "label": "Grok",
-            "description": "Alleen sessies observeren. Antwoorden zijn alleen-lezen totdat een wire-fixture ze ondersteunt."
+            "description": "Alleen sessies observeren. Sona kan Grok nog niet beantwoorden."
           },
           "omp": {
             "label": "OMP",
-            "description": "OMP-sessies en goedkeuringsverzoeken observeren. Antwoorden zijn alleen beschikbaar bij een ondersteunde OMP-sessiestop."
+            "description": "OMP-sessies en goedkeuringsverzoeken observeren. Sona kan alleen antwoorden wanneer een OMP-sessie stopt."
           }
         }
       },
       "status": {
         "disabled": "Uitgeschakeld",
-        "runtime_unavailable": "Runtime niet beschikbaar",
-        "interactive_unsupported": "Interactieve antwoorden niet ondersteund",
+        "runtime_unavailable": "Draait niet",
+        "interactive_unsupported": "Antwoorden zijn niet beschikbaar",
         "app_lock_held": "Er is een andere Sona-instantie actief",
         "active": "Actief"
       },
       "projects": {
         "title": "Geautoriseerde projecten",
-        "hashOnly": "Exacte projecthashes vormen de machtigingsgrens; mappaden worden hier niet opgeslagen.",
+        "hashOnly": "Sona herkent een project aan de map zonder de maplocatie hier op te slaan.",
         "add": "Map autoriseren",
         "remove": "Project verwijderen",
         "empty": "Er zijn geen projecten geautoriseerd."
       },
       "hook": {
-        "title": "Hook-fragment",
-        "description": "Kopieer de meegeleverde hookconfiguratie naar de eigen configuratie van je agent. Sona wijzigt nooit configuratiebestanden van agents.",
-        "copy": "Fragment kopiëren",
-        "error": "Hook-fragment niet beschikbaar"
+        "title": "Setup-code",
+        "description": "Kopieer deze setup-code naar de configuratie van je agent. Sona wijzigt nooit agent-bestanden.",
+        "copy": "Setup-code kopiëren",
+        "error": "Setup-code niet beschikbaar"
       },
       "replyQueue": {
         "title": "Voorvertoning van antwoord",
         "session": "Antwoordbestemming",
-        "noSession": "Geen geobserveerde sessie die antwoorden ondersteunt",
+        "noSession": "Geen sessie waarop Sona kan antwoorden",
         "message": "Antwoordtekst",
         "createPreview": "Voorvertoning maken",
-        "notReady": "Antwoorden vereisen dat de bridge aan staat en minstens één agent is ingeschakeld."
+        "notReady": "Schakel agent-verbindingen en ten minste één agent in voordat je reageert."
       },
       "pending": {
         "empty": "Geen antwoorden in de wachtrij.",
         "confirm": "Exact antwoord bevestigen",
-        "confirmed": "Bevestigd voor de volgende ondersteunde Stop-gebeurtenis",
+        "confirmed": "Wordt verzonden zodra de agent stopt",
         "cancel": "Annuleren",
         "states": {
-          "held": "Vastgehouden voor de volgende ondersteunde Stop-gebeurtenis",
+          "held": "Wachten tot de agent stopt",
           "response_written": "Antwoord geschreven",
           "emitted": "Verzonden",
           "copy_only": "Alleen kopiëren",
@@ -1452,12 +1446,12 @@
         "title": "Antwoorden in wachtrij"
       },
       "observed": {
-        "title": "Geobserveerde activiteit",
+        "title": "Agent-activiteit",
         "refresh": "Verversen",
         "sessions": "Sessies",
-        "noSessions": "Geen sessies geobserveerd.",
+        "noSessions": "Nog geen agent-activiteit.",
         "requests": "Verzoeken",
-        "noRequests": "Geen verzoeken geobserveerd.",
+        "noRequests": "Nog geen verzoeken.",
         "requestKinds": {
           "session_start": "Sessie gestart",
           "user_prompt_submit": "Prompt verzonden",
@@ -1474,7 +1468,7 @@
         "ompPermissionObserveOnly": "OMP-goedkeuringsverzoeken worden alleen geobserveerd. Keur ze goed of weiger ze in OMP."
       },
       "rules": {
-        "title": "Exacte machtigingsregels",
+        "title": "Toegangsregels",
         "empty": "Geen machtigingsregels.",
         "remove": "Regel verwijderen",
         "decisions": {
@@ -1483,20 +1477,20 @@
         }
       },
       "errors": {
-        "load": "De gegevens van de agentbridge konden niet worden geladen: {{error}}",
-        "operation": "De actie van de agentbridge kon niet worden voltooid: {{error}}"
+        "load": "Agent-verbinding details konden niet worden geladen: {{error}}",
+        "operation": "Agent-actie kon niet worden voltooid: {{error}}"
       },
       "panel": {
         "error": "De instelling voor het agentpaneel kon niet worden opgeslagen.",
         "label": "Agentpaneel inschakelen",
-        "rowDescription": "Uitschakelen sluit het paneelvenster en laat Sona elk verzoek om het te heropenen weigeren.",
+        "rowDescription": "Als je dit uitschakelt, wordt het paneel gesloten en kunnen andere apps het niet meer openen.",
         "title": "Agentpaneel"
       },
       "externalAccess": {
         "label": "Externe toegang",
-        "rowDescription": "Laat andere programma's op deze Mac je vergaderingen, dictaten, personen en openstaande punten lezen via de sona-opdrachtregel en de MCP-server. Alleen-lezen, en uit totdat je het aanzet."
+        "rowDescription": "Hiermee kunnen andere programma's op deze Mac je meetings, dicteerteksten, personen en open loops lezen via Sona's command-line tool en MCP-server. Dit is alleen voor lezen en blijft uit tot je het inschakelt."
       },
-      "workspaceNavigation": "Agentbridge-weergaven",
+      "workspaceNavigation": "Agent-weergaven",
       "sonaAgent": {
         "title": "Sona-agent",
         "pairing": "Koppeling",
@@ -1504,29 +1498,29 @@
         "unpaired": "Niet gekoppeld",
         "lastReached": "Laatst bereikt",
         "never": "Nooit",
-        "relayUrl": "Adres van de relay",
+        "relayUrl": "Serveradres",
         "relayUrlHint": "Alleen een Tailscale-adres of deze Mac zelf wordt geaccepteerd. Alles op het open internet wordt geweigerd voordat het wordt bewaard.",
-        "relayKeyId": "Sleutel-id van de relay",
-        "relayPublicKey": "Publieke sleutel van de relay",
+        "relayKeyId": "Server sleutel-ID",
+        "relayPublicKey": "Server publieke sleutel",
         "identity": "Publieke sleutel van deze Mac",
-        "identityHint": "Zet deze sleutel in de relay zodat die beurten vanaf deze Mac aanneemt. De privéhelft verlaat je sleutelhanger nooit.",
+        "identityHint": "Voeg deze sleutel toe aan de server zodat deze berichten van deze Mac accepteert. De private sleutel verlaat nooit je keychain.",
         "identityUnavailable": "Zet het agentpaneel aan om een sleutel te maken.",
         "copy": "Kopiëren",
         "copied": "Gekopieerd",
         "unpair": "Ontkoppelen",
         "test": "Testen",
-        "reached": "De relay antwoordde.",
-        "failed": "Koppelen met de relay lukte niet.",
+        "reached": "De server heeft geantwoord.",
+        "failed": "Kon niet verbinden met de server.",
         "reason": {
           "unauthorized_window": "Dat venster mag de koppeling niet wijzigen.",
           "disabled": "Het agentpaneel staat uit.",
-          "unpaired": "Er is nog geen relay gekoppeld.",
-          "offline": "De relay antwoordde niet.",
+          "unpaired": "Er is nog geen server gekoppeld.",
+          "offline": "De server heeft niet geantwoord.",
           "invalid_configuration": "Dat adres of die sleutel gebruikt Sona niet.",
           "secret_unavailable": "De sleutel van deze Mac kon niet worden gelezen.",
-          "untrusted_response": "Het antwoord was niet ondertekend door de gekoppelde relay.",
-          "remote_rejected": "De relay wees het verzoek af.",
-          "ownership_rejected": "De relay antwoordde voor iemand anders."
+          "untrusted_response": "Het antwoord was niet ondertekend door de gekoppelde server.",
+          "remote_rejected": "De server weigerde de aanvraag.",
+          "ownership_rejected": "De server antwoordde voor iemand anders."
         }
       }
     },
@@ -1606,12 +1600,12 @@
         "retry": "Opnieuw proberen"
       },
       "runLog": {
-        "title": "Uitvoeringslogboek",
-        "empty": "Er zijn nog geen werkstromen uitgevoerd.",
-        "loadError": "Het uitvoeringslogboek kon niet worden geladen.",
-        "loadMoreError": "Meer uitvoeringen konden niet worden geladen.",
-        "loadMore": "Meer laden",
-        "chartAria": "Uitvoeringen per dag, {{count}} in de afgelopen 7 dagen"
+        "title": "Activiteit",
+        "empty": "Nog geen activiteit.",
+        "loadError": "Activiteit kon niet worden geladen.",
+        "loadMoreError": "Meer activiteit kon niet worden geladen.",
+        "loadMore": "Toon meer",
+        "chartAria": "Activiteit per dag, {{count}} in de laatste 7 dagen"
       }
     },
     "vocabulary": {
@@ -1690,7 +1684,7 @@
         "shortcutHint": "Voert de Snelle actie op naam uit met de export van de vergadering als invoer. Dertig seconden, dan wordt hij gestopt.",
         "shortcutPlaceholder": "Naam van de Snelle actie",
         "webhook": "Naar een webhook sturen",
-        "webhookHint": "Verstuurt de export van de vergadering als JSON. Alleen je eigen machine of je tailnet — dezelfde regel als de relay.",
+        "webhookHint": "Verstuurt de meeting-export als JSON. Gebruik alleen je eigen machine of tailnet, net als bij de server.",
         "webhookPlaceholder": "http://100.x.y.z:8650/hook",
         "needsTarget": "Vul eerst een naam in",
         "needsUrl": "Vul eerst een adres in",
@@ -1701,11 +1695,11 @@
       "remoteIntelligence": {
         "title": "Vergaderintelligentie",
         "label": "Vergadernotities op mijn server schrijven",
-        "consent": "Samenvattingen en antwoorden voor vergaderingen worden op je server geschreven via je privénetwerk",
-        "unpaired": "Koppel Sona onder Agents aan je server om dit aan te zetten",
+        "consent": "Samenvattingen en antwoorden voor vergaderingen worden op je server geschreven via je privénetwerk.",
+        "unpaired": "Koppel Sona onder Agents aan je server om dit aan te zetten.",
         "seriesTitle": "Reeksen die op deze Mac blijven",
         "seriesHint": "Een reeks in deze lijst wordt altijd op deze Mac geschreven, ook als vergaderintelligentie aan staat.",
-        "seriesEmpty": "Nog geen terugkerende vergaderingen opgenomen",
+        "seriesEmpty": "Nog geen terugkerende vergaderingen opgenomen.",
         "loading": "Je reeksen worden gelezen…",
         "lastMet": "Laatst op {{date}}",
         "keepLocalLabel": "{{series}} op deze Mac houden",
@@ -1739,10 +1733,10 @@
   },
   "commandPalette": {
     "open": "Zoeken",
-    "placeholder": "Typ een opdracht of zoek",
+    "placeholder": "Zoek of kies een actie",
     "navigation": "Navigatie",
     "actions": "Acties",
-    "noResults": "Geen opdrachten gevonden",
+    "noResults": "Niets gevonden",
     "newMeeting": "Nieuwe vergadering",
     "importAudio": "Bestand transcriberen",
     "openRecordings": "Opnamemap openen",
@@ -1785,9 +1779,9 @@
     "commandRewriteUnavailable": "De herschrijving gaf niets terug, dus je selectie bleef zoals hij was. Controleer de provider in Settings > Post-processing en probeer het opnieuw.",
     "noModelSelectedTitle": "Geen model geselecteerd",
     "noSpeechSaveFailedTitle": "Fragment niet opgeslagen",
-    "captureOverrunTitle": "Opname liep over",
+    "captureOverrunTitle": "Opname afgebroken",
     "cloudUnavailableTitle": "Cloud niet beschikbaar",
-    "cloudTranscriptionHeldTitle": "Cloudrun vastgehouden",
+    "cloudTranscriptionHeldTitle": "Cloudresultaat tegengehouden",
     "commandNoSelectionTitle": "Niets geselecteerd",
     "commandRewriteUnavailableTitle": "Herschrijven niet beschikbaar"
   },
@@ -1910,7 +1904,7 @@
     },
     "setup": {
       "defaultTitle": "Lokale notities",
-      "remoteUnavailable": "Externe verwerking is niet beschikbaar in deze build, dus elke vergadering wordt op deze Mac getranscribeerd en samengevat."
+      "remoteUnavailable": "Verwerking op afstand is niet beschikbaar in deze versie van Sona, dus elke vergadering wordt op deze Mac getranscribeerd en samengevat."
     },
     "preflight": {
       "storage": "Opslag",
@@ -1918,7 +1912,7 @@
       "storageUnavailable": "Versleutelde vergaderopslag is niet beschikbaar.",
       "localModel": "Lokaal model",
       "localModelDescription": "De verwerking blijft lokaal wanneer er een lokaal model beschikbaar is.",
-      "starting": "Zichtbare opname starten…",
+      "starting": "Opname wordt gestart…",
       "refreshing": "Controleren…"
     },
     "consent": {
@@ -1931,7 +1925,7 @@
       "partialCapture": "Er ontbreekt audio. Controleer de gaten voordat je op de gegenereerde notities vertrouwt.",
       "inputs": "Ingangen",
       "signal": "Signaal",
-      "signalUnavailable": "Het niveau van {{source}} wordt niet gerapporteerd door de opname.",
+      "signalUnavailable": "{{source}} meldt het niveau niet.",
       "notReported": "Niet gerapporteerd",
       "durabilityLag": "Opgeslagen op schijf",
       "behind": "{{duration}} achter",
@@ -1957,7 +1951,7 @@
     },
     "retention": {
       "title": "Bewaartermijn",
-      "description": "Sona verwijdert de betreffende lokale vergaderrecords via hetzelfde geverifieerde verwijderpad.",
+      "description": "Sona verwijdert vergaderingen op deze Mac elke keer op dezelfde geverifieerde manier.",
       "forever": "Bewaren tot ik het verwijder",
       "days": "Verwijderen na {{days}} dagen",
       "loading": "Huidig beleid lezen…"
@@ -1977,7 +1971,7 @@
       "source_start_failed": "Een bron kon niet starten.",
       "source_gap": "Een bron heeft een hiaat gemeld.",
       "storage_unavailable": "Versleutelde vergaderopslag is niet beschikbaar.",
-      "storage_failure": "De opslag kon deze wijziging niet vastleggen.",
+      "storage_failure": "De opslag kon deze wijziging niet opslaan.",
       "local_model_unavailable": "Er is geen lokaal model beschikbaar.",
       "recovery_required": "Deze vergadering moet worden hersteld.",
       "deleted": "Deze vergadering is verwijderd.",
@@ -2008,7 +2002,7 @@
       "consent_required": "Bevestig de opnametoestemming voordat je begint.",
       "consent_stale": "De opzet is gewijzigd. Bekijk die opnieuw voordat je begint.",
       "invalid_transition": "Deze actie is niet beschikbaar in de huidige vergaderfase.",
-      "stale_revision": "Deze vergadering is in een ander venster gewijzigd. Sona heeft de momentopname vernieuwd.",
+      "stale_revision": "Deze vergadering is in een ander venster gewijzigd. Sona heeft hem opnieuw geladen.",
       "capture_lease_busy": "Een andere vergadering neemt al audio op.",
       "no_source_started": "Er is geen goedgekeurde audiobron gestart.",
       "source_unavailable": "Een opgevraagde audiobron is niet beschikbaar.",
@@ -2026,12 +2020,12 @@
       "liveTitle": "Deze sessie stoppen en weggooien?",
       "keepRecording": "Opname behouden",
       "stopAndDiscard": "Stoppen en weggooien",
-      "explainsData": "Audio, transcript, handmatige notities, gegenereerde notities en lokale antwoordcaches worden verwijderd. Dit kan niet worden ongedaan gemaakt.",
+      "explainsData": "Audio, transcriptie, handmatige notities, gegenereerde notities en opgeslagen antwoorden worden verwijderd. Dit kan niet ongedaan worden gemaakt.",
       "complete": "Sessie weggegooid"
     },
     "delete": {
       "title": "Deze vergadering verwijderen?",
-      "explainsData": "Sona houdt de vergadering ontoegankelijk terwijl de geverifieerde verwijdering wordt afgerond. Exports en externe kopieën vallen buiten de lokale verwijdering.",
+      "explainsData": "Sona houdt de vergadering buiten bereik totdat het geverifieerde verwijderen klaar is. Exports en kopieën op afstand vallen er niet onder.",
       "complete": "Vergadering verwijderd"
     },
     "review": {
@@ -2049,8 +2043,8 @@
       "showFewerGaps": "Minder tonen",
       "transcript": "Transcript",
       "noTranscript": "Er is geen transcript beschikbaar.",
-      "transcriptSegment": "Transcriptsegment",
-      "removeSegment": "Segment verwijderen",
+      "transcriptSegment": "Beurt in de transcriptie",
+      "removeSegment": "Deze beurt verwijderen",
       "editTurn": "Deze passage bewerken",
       "unknownSpeaker": "Onbekende spreker",
       "speakers": "Sprekers",
@@ -2086,7 +2080,7 @@
       "keyQuestions": "Belangrijkste vragen",
       "risks": "Risico's",
       "followUp": "Opvolging",
-      "artifactUnavailable": "Deze gegenereerde versie is niet beschikbaar. Het brontranscript en de handmatige notities blijven lokaal.",
+      "artifactUnavailable": "Deze gegenereerde notities zijn niet beschikbaar. De transcriptie en je eigen notities blijven op deze Mac.",
       "actionMeta": "Eigenaar: {{owner}} · Deadline: {{due}}",
       "unassigned": "Niet toegewezen",
       "noDueDate": "Geen deadline",
@@ -2132,7 +2126,7 @@
       "statThreads": "Afgeronde onderwerpen",
       "statReceipts": "Citaten",
       "receiptsVerified": "gecontroleerd",
-      "receiptsDegraded": "{{threads}} onderwerpen en {{commitments}} toezeggingen verwijderd",
+      "receiptsDegraded": "{{threads}} threads en {{commitments}} toezeggingen verwijderd",
       "threads": "Onderwerpen",
       "asideThread": "zijspoor",
       "openLoops": "Open vragen",
@@ -2262,7 +2256,7 @@
       "title": "De opname is niet gestart",
       "readyTitle": "Klaar om op te nemen",
       "recordAnyway": "Zonder die bron opnemen",
-      "recordAnywayHint": "De vastlegging wordt als gedeeltelijk gemarkeerd en de ontbrekende bron blijft erin benoemd."
+      "recordAnywayHint": "De vergadering wordt als gedeeltelijk gemarkeerd en de ontbrekende bron blijft erin genoemd."
     },
     "analytics": {
       "title": "Gesprek",
@@ -2345,7 +2339,7 @@
       },
       "apps": {
         "label": "Vergaderapps",
-        "description": "Eén bundle-identifier per regel. Een regel telt alleen zolang die app draait, dus een hernoemde identifier is inert in plaats van verkeerd.",
+        "description": "Eén app-ID per regel. Een vermelding telt alleen zolang de app draait, zodat een hernoemde app-ID niets doet in plaats van fouten te veroorzaken.",
         "running": "Nu actief: {{apps}}",
         "noneRunning": "Hiervan draait er nu geen enkele."
       },
@@ -2354,7 +2348,7 @@
         "calendarDenied": "Agendatoegang is niet gegeven, dus alleen de microfoonroute loopt.",
         "notificationsDenied": "Meldingen staan uit voor Sona, dus meldingen verschijnen alleen in de app.",
         "bluetoothCaveat": "Er staat een vergaderapp open maar niets meldt microfoongebruik. Bluetooth-headsets doen dat vaak niet, dus start de vergadering zelf als er een loopt.",
-        "noSilenceStop": "Opnames stoppen aan het einde van de afspraak, als de app afsluit, bij sluimeren, of als je zelf stopt. De stiltetimer heeft live transcriptie nodig, en die loopt pas nadat een vergadering is afgelopen."
+        "noSilenceStop": "De opname stopt wanneer de afspraak eindigt, de app afsluit, je Mac gaat slapen, of je hem zelf stopt. Stilte stopt hem niet: daarvoor is live transcriptie nodig, en die draait pas na de vergadering."
       },
       "why": {
         "disabled": "Detectie staat uit.",
@@ -2389,7 +2383,7 @@
         "autoOpen": "Deze vergadering openen wanneer ze begint"
       },
       "recording": {
-        "none": "Geen bron gereed"
+        "none": "Geen bron gekozen"
       },
       "participation": {
         "accepted": "Geaccepteerd",
@@ -2426,7 +2420,7 @@
       "loading": "Je agenda wordt gelezen…",
       "empty": "Niets gepland voor de komende week.",
       "noAccess": "Sona kan je agenda niet zien.",
-      "noAccessHint": "Zet \"Mijn agenda gebruiken\" aan in de vergaderinstellingen en geef volledige toegang wanneer macOS erom vraagt. Alles wat Agenda op macOS al toont — Google, iCloud, Outlook — komt mee.",
+      "noAccessHint": "Zet 'Mijn agenda gebruiken' aan in de vergaderinstellingen en geef daarna volledige toegang wanneer macOS erom vraagt. Alles wat macOS Agenda al toont (Google, iCloud, Outlook) komt mee.",
       "unavailable": "Dit systeem heeft geen agenda die Sona kan lezen.",
       "attendees": "Deelnemers",
       "you": "Jij",
@@ -2511,6 +2505,16 @@
       "row": "Sona vragen: {{query}}",
       "error": "De vraag kon niet naar Sona worden verzonden.",
       "consentRequired": "Een vraag stuurt citaten uit je vergaderingen naar je server, zet dus eerst vergaderintelligentie aan."
+    },
+    "error": {
+      "unreachable": "Sona kon geen verbinding maken.",
+      "refused": "Sona kon die vraag niet aannemen.",
+      "failed": "Sona kon dat antwoord niet afmaken."
+    },
+    "working": {
+      "searchedCorpus": "Je vergaderingen en notities doorgenomen",
+      "stillWaiting": "Nog aan het wachten…",
+      "cancel": "Annuleren"
     }
   },
   "overview": {
@@ -2564,8 +2568,8 @@
     },
     "setup": {
       "title": "Een synchronisatieaccount instellen",
-      "endpoint": "Eindpunt",
-      "bootstrapSecret": "Bootstrap-geheim",
+      "endpoint": "Serveradres",
+      "bootstrapSecret": "Instelgeheim",
       "submit": "Synchronisatie instellen"
     },
     "recovery": {
@@ -2586,13 +2590,13 @@
     },
     "errors": {
       "portable_unavailable": "Cloudsynchronisatie is niet beschikbaar in portable modus.",
-      "secret_unavailable": "De beveiligde opslag van het systeem is niet beschikbaar.",
+      "secret_unavailable": "De sleutelopslag van het systeem is niet beschikbaar.",
       "setup_required": "Stel Cloudsynchronisatie in voordat je deze actie gebruikt.",
       "auth_required": "Cloud-aanmelding is vereist.",
       "quota": "De cloudopslaglimiet is bereikt.",
       "integrity_failure": "De cloudbewerking kon niet worden gecontroleerd.",
       "conflict": "Deze vergadering heeft een synchronisatieconflict.",
-      "unsupported_protocol": "Dit apparaat ondersteunt het cloudprotocol niet.",
+      "unsupported_protocol": "Dit apparaat ondersteunt de gebruikte versie van cloudsynchronisatie niet.",
       "transient": "Cloudsynchronisatie is tijdelijk niet beschikbaar.",
       "invalid_expiry": "Kies een verloopmoment in de toekomst.",
       "invalid_offer": "Het koppelingsaanbod is onvolledig of ongeldig.",
@@ -2686,16 +2690,16 @@
       "noDocuments": "Geen geïmporteerde documenten.",
       "deleteDocument": "Document verwijderen",
       "deleteDocumentTitle": "Dit document verwijderen?",
-      "deleteDocumentDescription": "{{document}} uit de geïmporteerde context verwijderen?",
+      "deleteDocumentDescription": "Verwijder {{document}} uit de documenten van Sona?",
       "cadence": "Vergaderfrequentie",
       "lastMeeting": "Laatste vergadering",
       "talkShare": "Aandeel spreektijd",
       "cadenceAria": "Vergaderingen per maand: {{values}}",
       "documentFilter": "Tekstdocumenten",
-      "documentImported": "Document geïmporteerd.",
+      "documentImported": "Document toegevoegd.",
       "split": "Persoon splitsen",
       "splitTitle": "Deze persoon splitsen?",
-      "splitDescription": "Verplaats geselecteerde identiteitsgegevens en vergaderingen van {{name}} naar een andere persoon.",
+      "splitDescription": "Verplaats geselecteerde details en meetings van {{name}} naar een andere persoon.",
       "splitTarget": "Verplaatsen naar",
       "splitCreate": "Nieuwe persoon",
       "splitExisting": "Bestaande persoon",
@@ -2707,7 +2711,7 @@
       "splitDocuments": "Documenten",
       "splitSubmit": "Persoon splitsen",
       "splitNothingSelected": "Kies minstens één item om te verplaatsen.",
-      "splitNoItems": "Deze persoon heeft geen identiteitsgegevens of vergaderingen om te splitsen.",
+      "splitNoItems": "Deze persoon heeft geen details of meetings om te splitsen.",
       "loadError": "Deze persoon kon niet worden geladen."
     },
     "errors": {
@@ -2720,11 +2724,11 @@
       "meetingsBefore_one": "1 eerdere vergadering",
       "meetingsBefore_other": "{{count}} eerdere vergaderingen",
       "last": "Laatste {{date}}",
-      "agentPromptIntro": "Help me met deze vergadergegevens een opvolgbericht voor ‘{{title}}’ op te stellen.",
+      "agentPromptIntro": "Help me een opvolging schrijven voor “{{title}}” met behulp van deze meetings.",
       "agentPromptCommitments": "Toezeggingen",
       "agentPromptOpenLoops": "Open punten",
       "agentPromptRequest": "Stel het opvolgbericht op. Verzin geen details of toezeggingen.",
-      "agentError": "De opvolging met de agent kon niet worden geopend.",
+      "agentError": "Kon de opvolging met de agent niet openen.",
       "discussFollowUp": "Opvolging met agent bespreken",
       "meetingsBefore": "{{count}} eerdere vergaderingen"
     },
@@ -2773,7 +2777,7 @@
     },
     "detail": {
       "openLoops": "Open vragen",
-      "howSonaKnows": "Hoe Sona dit weet",
+      "howSonaKnows": "Waarom Sona deze persoon koppelt",
       "noEvidence": "Nog niets koppelt deze persoon aan een vergadering."
     }
   },
@@ -2804,7 +2808,7 @@
       "rules": {
         "label": "Apps en websites",
         "empty": "Niets schakelt vanzelf over naar deze modus.",
-        "example": "Een regel bewaart één app-identiteit of één websitehost: com.apple.mail of mail.google.com."
+        "example": "Elke regel gebruikt één app ID of website, zoals com.apple.mail of mail.google.com."
       }
     },
     "advanced": {
@@ -2913,7 +2917,7 @@
       "sync": "Synchronisatie",
       "leavesThisMac": "Wat deze Mac verlaat",
       "agents": "Agents",
-      "agentBridge": "Brug voor code-agents",
+      "agentBridge": "Agent-verbindingen",
       "about": "Over Sona",
       "debugHint": "Druk op {{chord}} om de foutopsporingspagina te openen."
     },
@@ -2923,10 +2927,10 @@
       "runningNow": "Draait nu",
       "add": "Een app toevoegen",
       "addTitle": "Een vergaderapp toevoegen",
-      "addDescription": "Sona heeft de identificatie van de app nodig; die staat in het venster Over van de app zelf of komt uit `osascript -e 'id of app \"Naam\"'`.",
-      "identifier": "App-identificatie",
+      "addDescription": "Sona heeft het app-ID nodig, dat je kunt vinden in het 'Over'-venster van de app of met `osascript -e 'id of app \"Naam\"'`.",
+      "identifier": "App-ID",
       "identifierPlaceholder": "com.example.app",
-      "invalid": "Een identificatie ziet eruit als com.example.app: kleine letters, verbonden door punten.",
+      "invalid": "Een app-ID ziet eruit als com.voorbeeld.app: kleine letters gescheiden door punten.",
       "duplicate": "Die app staat al in de lijst.",
       "remove": "{{app}} verwijderen",
       "names": {
@@ -2939,8 +2943,8 @@
     }
   },
   "consentPanel": {
-    "calendarTitle": "{{title}} — opnemen?",
-    "appTitle": "{{app}}-vergadering — opnemen?",
+    "calendarTitle": "{{title}} opnemen?",
+    "appTitle": "Deze {{app}}-vergadering opnemen?",
     "genericTitle": "Deze vergadering opnemen?",
     "introduction": "Sona neemt op deze Mac op en jij houdt de controle.",
     "seriesBrief_one": "Gesprek {{nth}} met {{person}} · {{count}} open punt",
@@ -2969,7 +2973,7 @@
       },
       "captureAdvisor": {
         "name": "Adviseren over opnamekwaliteit",
-        "description": "Meldt herhalingen, verloren opnames en zacht geluid uit je eigen sessies."
+        "description": "Rapporteert nieuwe pogingen, verloren opnames en zachte audio uit je eigen dictaten."
       },
       "seriesPriming": {
         "name": "Terugkerende vergaderingen voorbereiden"
@@ -2977,12 +2981,12 @@
     },
     "feed": {
       "title": "Wat Sona opviel",
-      "spokenPunctuation": "Je zegt vaak {{spoken}} — als {{written}} schrijven?",
-      "vocabularyCorrection": "Je verandert {{spoken}} steeds in {{written}} — overnemen?",
-      "modeHabit": "Je kiest {{mode}} bijna elke dag met een sneltoets — de standaard maken?",
-      "retryRate": "Je {{subject}}-sessies worden {{times}}× vaker herhaald dan de rest.",
-      "lostCaptureRate": "Je {{subject}}-sessies eindigen {{times}}× vaker afgekapt of stil dan de rest.",
-      "inputLevel": "{{percent}}% van je opnames kwam zacht binnen — microfoonniveau nakijken?",
+      "spokenPunctuation": "Je zegt vaak {{spoken}}. Als {{written}} schrijven?",
+      "vocabularyCorrection": "Je verandert {{spoken}} steeds in {{written}}. Zal ik dat onthouden?",
+      "modeHabit": "Je grijpt de meeste dagen met de sneltoets naar {{mode}}. Als standaard instellen?",
+      "retryRate": "Dictaten via {{subject}} worden {{times}}× vaker opnieuw geprobeerd dan de rest.",
+      "lostCaptureRate": "Dictaten via {{subject}} eindigen {{times}}× vaker afgekapt of stil dan de rest.",
+      "inputLevel": "{{percent}}% van je opnames kwam zacht binnen. Microfoonniveau controleren?",
       "example": "“{{text}}”",
       "accept": "Ja",
       "dismiss": "Nee, bedankt",

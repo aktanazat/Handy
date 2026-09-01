@@ -46,7 +46,7 @@ export const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({
     },
     {
       id: "revision",
-      label: t("settings.history.receipts.revisionLabel", "Revision"),
+      label: t("settings.history.receipts.revisionLabel", "Settings version"),
       value: receipt.mode.settings_revision,
     },
     {
@@ -99,7 +99,7 @@ export const HistoryReceiptCard: React.FC<HistoryReceiptCardProps> = ({
   if (receipt.mode.input_rms != null) {
     pairs.push({
       id: "rms",
-      label: t("settings.history.level.rms", "rms"),
+      label: t("settings.history.level.rms", "average"),
       value: receipt.mode.input_rms.toFixed(AMPLITUDE_DIGITS),
     });
   }

@@ -44,6 +44,19 @@ impl AgentPanelTurnStateV1 {
     }
 }
 
+/// Why a turn ended with nothing to read.
+///
+/// Relay errors and a relay-reported `FAILED` job collapse onto three reasons,
+/// because each asks the reader to do something different. The relay's own
+/// error text stays on the relay: it is not localized copy for this column.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum AgentPanelTurnFailureV1 {
+    Unreachable,
+    Refused,
+    Failed,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum AgentPanelProposalStateV1 {
@@ -90,6 +103,8 @@ pub struct AgentPanelTurnStatusV1 {
     /// What the remote side did on the way to its answer. Empty until a
     /// workspace reports steps.
     pub steps: Vec<AgentPanelStepV1>,
+    /// Why it has no answer, when the panel can name the reason.
+    pub failure: Option<AgentPanelTurnFailureV1>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Type)]

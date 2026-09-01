@@ -24,23 +24,21 @@ import type { ChatPhase } from "./chatModel";
  * than a strip over the page. Border-box, so the hairline is inside the 340
  * rather than a 341st pixel taken off the page.
  *
- * Stated twice below on purpose, and only here: the outer box is what
- * animates, the inner frame is what the content is laid out in. */
+ * Stated twice below on purpose, and only here: the outer box is the width the
+ * layout gives up, the inner frame is the box that travels. */
 const CHAT_WIDTH = "w-[340px]";
 
-/* Width and opacity, nothing else. A column that is part of the layout has to
- * move the page's edge with it — that is what being ingrained costs, and it is
- * the one thing a slide-over never had to pay. It stays cheap because the
- * chat itself is not re-laid-out while the edge travels: the frame inside
- * holds its 340 and the outer box clips it.
+/* The frame only reads the shell's registered travel value. The shell root
+ * owns that value's transition, so this frame never starts a second one: the
+ * outer width box, rail and page resolve their final geometry in the press
+ * frame, then this transform and the rail crossfade sample one timeline.
  *
- * 150ms because that is long enough to read as the page making room and short
- * enough that a second press is never queued behind it. Under
- * prefers-reduced-motion App.css zeroes every transition globally, so
- * `motion-reduce:transition-none` here is belt and braces on the one element
- * that would look worst mid-travel. */
-const CHAT_MOTION =
-  "transition-[width,opacity] duration-150 ease-out motion-reduce:transition-none";
+ * `contain` keeps the moving subtree out of surrounding layout. `will-change`
+ * is intentionally absent: styles/shell.css adds it through the moving gate
+ * and removes it at the root's `transitionend`, rather than leaving a promoted
+ * layer alive while chat is still. */
+const CHAT_FRAME =
+  "transition-none [transform:translateX(var(--shell-chat-offset))] [contain:layout_style]";
 
 interface ChatSheetHeaderProps {
   history: readonly AgentChatConversationSummaryV1[];
@@ -169,6 +167,8 @@ export interface ChatSheetProps {
   now: number;
   draft: string;
   workspace: AgentPanelWorkspaceV1;
+  /** The current Ask turn's pack contained at least one corpus source. */
+  searchedCorpus: boolean;
   /** A send, stop, apply, undo or history read is mid-flight. */
   busy: boolean;
   /** A refused command, as distinct from the relay's own state. */
@@ -186,22 +186,17 @@ export interface ChatSheetProps {
   onOpenLink: (link: string) => void;
   onOpenSettings: () => void;
   onRetry: () => void;
+  onRetryTurn: () => void;
 }
 
 /**
  * The chat, as a column of the main window rather than a window of its own.
  *
- * It is mounted whether or not it is open, and when it opens it takes its
- * 340pt out of the layout rather than out of the page: the rail collapses to
- * glyphs, the page column narrows to 512, and what you were reading stays
- * beside the answer — lit, scrollable, clickable, separated by one hairline.
- * Nothing is covered and there is no scrim, because a chat that hides the
- * thing you are asking about is a chat you have to close in order to use.
- *
- * Two boxes, one job each. The outer box is the width: it animates between 0
- * and 340 and clips what is inside it. The inner frame is the chat: it holds
- * its 340 through the whole travel, so no line of an answer rewraps while the
- * page's edge is moving.
+ * It is mounted whether or not it is open. Opening gives its 340pt to the
+ * layout in the press frame: the rail becomes 48, the page becomes 512, and
+ * what the reader was reading stays beside the answer. The fixed inner frame
+ * then slides into that already-reserved space on `transform`; closing reverses
+ * the transform while the page gets its 680pt back immediately.
  *
  * A pure function of its props apart from one effect — where focus goes when
  * the column opens, which the pill cannot own because the pill has unmounted
@@ -221,6 +216,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
   workspace,
   busy,
   error,
+  searchedCorpus,
   onClose,
   onHistoryOpenChange,
   onSelectConversation,
@@ -234,6 +230,7 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
   onOpenLink,
   onOpenSettings,
   onRetry,
+  onRetryTurn,
 }) => {
   const { t } = useTranslation();
   const running = isTurnRunning(turn);
@@ -293,22 +290,31 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
       aria-hidden={open ? undefined : true}
       inert={!open}
       onKeyDown={sheetKeys(onClose)}
+      /* The width, and nothing else. This box is what the layout gives up: it
+         is 340 or it is 0, it changes in one frame, and it never animates —
+         `transition-none` is stated rather than left to the initial `all`
+         because "one moving part" is a promise, and a promise a stylesheet can
+         contradict later is not one. The actual frame is fixed to the window
+         below so its physical starting edge does not move when this width box
+         changes. */
       className={cn(
-        "flex min-h-0 flex-none overflow-hidden",
-        CHAT_MOTION,
-        open
-          ? cn(CHAT_WIDTH, "opacity-100")
-          : "pointer-events-none w-0 opacity-0",
+        "relative z-20 min-h-0 flex-none transition-none",
+        open ? CHAT_WIDTH : "pointer-events-none w-0",
       )}
     >
-      {/* The frame that does not move, carrying the hairline that separates
-          the column from the page. The line lives here rather than on the box
-          above so that a border-box 340 is 340 of window and the frame inside
-          it is exactly as wide as the box it is clipped by. */}
+      {/* The frame, which is the column: the hairline that separates it from
+          the page, the surface it is drawn on, and the only box in the window
+          that moves. It is fixed to the window's trailing edge instead of the
+          width box above: that box must snap from 340 to 0 to give the page
+          its space back, while the frame has to stay at the same physical edge
+          so a close can travel from its visible position to just beyond the
+          window rather than jump there first. */}
       <div
+        data-slot="chat-frame"
         className={cn(
-          "flex min-h-0 flex-none flex-col border-s border-gray-alpha-400 bg-background-100",
+          "fixed inset-y-0 end-0 z-20 flex min-h-0 flex-col border-s border-gray-alpha-400 bg-background-100",
           CHAT_WIDTH,
+          CHAT_FRAME,
         )}
       >
         <ChatSheetHeader
@@ -333,7 +339,9 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
                 className="size-4 animate-spin text-gray-800 motion-reduce:animate-none"
               />
             </div>
-          ) : conversation.length === 0 && proposal === null ? (
+          ) : conversation.length === 0 &&
+            proposal === null &&
+            turn === null ? (
             <div
               data-slot="chat-empty"
               className="flex h-full items-center justify-center"
@@ -349,6 +357,9 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
               proposal={proposal}
               now={now}
               busy={busy}
+              searchedCorpus={searchedCorpus}
+              onStop={onStop}
+              onRetry={onRetryTurn}
               onApply={onApply}
               onUndo={onUndo}
               onOpenLink={onOpenLink}

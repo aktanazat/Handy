@@ -37,6 +37,7 @@ import {
 } from "./components/sidebarSections";
 import { WhatsNewGate } from "./components/whats-new";
 import { useAudioImport } from "./hooks/useAudioImport";
+import { useShellTravel } from "./hooks/useShellTravel";
 import { useSettings } from "./hooks/useSettings";
 import { useSettingsStore } from "./stores/settingsStore";
 import { commands, events, type MeetingNavigationPayload } from "@/bindings";
@@ -211,14 +212,6 @@ export const AppContent = ({
   onCommandOpenChange,
   onCommandOpen,
 }: AppContentProps) => {
-  if (onboardingStep === null) return null;
-  if (onboardingStep === "accessibility") {
-    return <AccessibilityOnboarding onComplete={onAccessibilityComplete} />;
-  }
-  if (onboardingStep === "model") {
-    return <Onboarding onModelSelected={onModelSelected} />;
-  }
-
   /* One fold, three columns. The chat is a column of the window rather than a
    * strip over the page, so opening it collapses the rail to glyphs and
    * narrows the page instead of covering it: 48 + 512 + 340 of the same fixed
@@ -230,6 +223,19 @@ export const AppContent = ({
    * there would be a page narrowed for nothing. */
   const chatShowing = chatOpen && agentPanel.enabled;
 
+  /* The shell's one clock, above the onboarding returns because a hook has to
+   * be. Nothing travels during onboarding — there is no chat to open — so this
+   * is inert until the shell below is the thing on screen. */
+  const travel = useShellTravel(chatShowing);
+
+  if (onboardingStep === null) return null;
+  if (onboardingStep === "accessibility") {
+    return <AccessibilityOnboarding onComplete={onAccessibilityComplete} />;
+  }
+  if (onboardingStep === "model") {
+    return <Onboarding onModelSelected={onModelSelected} />;
+  }
+
   /* Anything that wants the chat from below — a review's follow-up button, the
    * palette's Ask row — reaches the same fold the pill opens rather than
    * opening a second one. */
@@ -238,11 +244,25 @@ export const AppContent = ({
       <div
         dir={direction}
         /* `app-shell` carries no styling of its own any more. It survives as
-         * the hook the one material override in styles/shell.css keys off: a
-         * Glass window has to let the native vibrancy through, and that
-         * decision lives on a root attribute Rust writes, which no utility can
-         * read. */
-        className="app-shell flex h-screen cursor-default select-none bg-background-200"
+         * the hook the two shell rules in styles/shell.css key off: the Glass
+         * material override, which reads a root attribute Rust writes, and the
+         * travel gate below, which reaches down into the column and the rail.
+         * Neither is a thing a utility on the element can say.
+         *
+         * `data-shell-open` changes the root's registered CSS properties. That
+         * root is the one transition owner: its clock moves the fixed frame
+         * and crossfades the old, decorative rail against the new fixed-width
+         * one. `data-shell-moving` exists only while that clock runs. It puts
+         * `will-change` on the moving frame, holds inner transitions still, and
+         * lets the outgoing rail exist for the same interval. `transitionend`
+         * bubbles to here because the shell owns the transition. */
+        data-shell-open={chatShowing ? "true" : undefined}
+        data-shell-moving={travel.moving ? "true" : undefined}
+        data-shell-direction={
+          travel.moving ? (chatShowing ? "opening" : "closing") : undefined
+        }
+        onTransitionEnd={travel.onTransitionEnd}
+        className="app-shell relative flex h-screen cursor-default select-none bg-background-200"
       >
         <ErrorBoundary context="What's New">
           <WhatsNewGate />
@@ -253,11 +273,26 @@ export const AppContent = ({
           onSectionChange={onSectionChange}
           onOpenCommand={onCommandOpen}
         />
+        {travel.moving && (
+          /* The rail's outgoing form is visual only. It overlays the structural
+             rail at its old fixed width and fades through the shell's same
+             custom-property clock, while `inert` keeps duplicate buttons and
+             drag regions out of every interaction path. */
+          <Sidebar
+            collapsed={!chatShowing}
+            currentSection={currentSection}
+            onSectionChange={onSectionChange}
+            onOpenCommand={onCommandOpen}
+            dataSlot="sidebar-ghost"
+            decorative
+            className="pointer-events-none absolute inset-y-0 start-0 z-30"
+          />
+        )}
         {/* `settings-main` is a hook as well: primitives.css still styles bare
          * inputs and selects through it for the surfaces that have not moved to
          * the component kit yet. `relative` is what the chat pill is positioned
          * against: the content pane, not the page and not the scroll box. */}
-        <main className="settings-main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <main className="settings-main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-none">
           {/* The window's drag handle, and the reason this app can be moved at
            * all on macOS: the window is TitleBarStyle::Overlay with a hidden
            * title, so the webview covers the native title bar and the traffic
@@ -297,7 +332,7 @@ export const AppContent = ({
           />
           <div
             data-slot="page-scroll"
-            className="flex-1 overflow-x-hidden overflow-y-auto"
+            className="flex-1 overflow-x-hidden overflow-y-auto transition-none"
           >
             {/* Every page owns its own column now, so the scroll region is full
              * width and unpadded. These two are shell banners rather than
@@ -341,6 +376,7 @@ export const AppContent = ({
          * agent switched off has no conversation to be mid-way through. */}
         <ChatSheetHost
           open={chatShowing}
+          panel={agentPanel}
           onClose={() => onChatOpenChange(false)}
           onOpenSettings={() => onSectionChange("settings")}
         />
