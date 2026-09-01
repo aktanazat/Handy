@@ -2465,6 +2465,18 @@
       "copied": "Návrh zkopírován.",
       "copyFailed": "Návrh se nepodařilo zkopírovat.",
       "failed": "Pro tuto schůzku se nepodařilo sestavit návrh."
+    },
+    "prep": {
+      "label": "Příprava",
+      "title": "{{title}} — za {{count}} min",
+      "lastTime": "Minule:",
+      "myOpenLoops": "Moje otevřené úkoly ({{count}})",
+      "waitingOn": "Čeká se na ({{count}})",
+      "participantMeetings": "{{count}} schůzek",
+      "participants": "Účastníci:",
+      "openBrief": "Otevřít souhrn",
+      "recordWhenStarts": "Nahrát při zahájení",
+      "dismiss": "Zavřít"
     }
   },
   "chat": {
@@ -2988,7 +3000,18 @@
     "ignore": "Přeskočit",
     "recording": "Nahrávání",
     "stop": "Zastavit",
-    "forgetSeries": "Zapomenout tuto sérii"
+    "forgetSeries": "Zapomenout tuto sérii",
+    "wrap": {
+      "label": "Závěr",
+      "title": "{{title}} — uloženo",
+      "followUps": "Následné úkoly: {{count}}",
+      "waitingOnPerson": "{{count}} čeká na {{name}}",
+      "waitingOn": "Čeká se na ({{count}})",
+      "openNotes": "Otevřít poznámky",
+      "copyFollowUp": "Kopírovat zprávu",
+      "copied": "Zkopírováno",
+      "done": "Hotovo"
+    }
   },
   "learningV2": {
     "workflows": {

@@ -48,6 +48,23 @@ export const DetectionListeners: React.FC = () => {
   }, [clearPrompt]);
 
   useEffect(() => {
+    const subscriptions = Promise.all([
+      events.meetingRitual.listen((event) => {
+        if (event.payload.delivery !== "in_app_only") return;
+        toast(event.payload.notificationTitle, {
+          id: ritualToastId(event.payload.ritualId),
+        });
+      }),
+      events.meetingRitualRetracted.listen((event) => {
+        toast.dismiss(ritualToastId(event.payload.ritualId));
+      }),
+    ]);
+    return () => {
+      void subscriptions.then((stops) => stops.forEach((stop) => stop()));
+    };
+  }, []);
+
+  useEffect(() => {
     /* Subscribing rather than reading: this effect has to fire for every prompt,
      * including ones that arrive while the window is hidden. */
     return useDetectionStore.subscribe((state, previous) => {
@@ -81,6 +98,9 @@ export const DetectionListeners: React.FC = () => {
 
 const promptToastId = (promptId: string): string =>
   `detection-prompt:${promptId}`;
+
+const ritualToastId = (ritualId: string): string =>
+  `meeting-ritual:${ritualId}`;
 
 /* A name the payload actually supplied.
  *

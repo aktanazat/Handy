@@ -2459,6 +2459,18 @@
       "copied": "הטיוטה הועתקה.",
       "copyFailed": "לא ניתן להעתיק את הטיוטה.",
       "failed": "לא ניתן לנסח מעקב לפגישה הזו."
+    },
+    "prep": {
+      "label": "הכנה",
+      "title": "{{title}} — בעוד {{count}} דק׳",
+      "lastTime": "בפעם הקודמת:",
+      "myOpenLoops": "המשימות הפתוחות שלי ({{count}})",
+      "waitingOn": "בהמתנה ({{count}})",
+      "participantMeetings": "{{count}} פגישות",
+      "participants": "משתתפים:",
+      "openBrief": "פתיחת התקציר",
+      "recordWhenStarts": "הקלטה כשהפגישה מתחילה",
+      "dismiss": "סגירה"
     }
   },
   "chat": {
@@ -2973,7 +2985,18 @@
     "ignore": "התעלם",
     "recording": "מקליט",
     "stop": "עצור",
-    "forgetSeries": "שכח את הסדרה הזו"
+    "forgetSeries": "שכח את הסדרה הזו",
+    "wrap": {
+      "label": "סיכום",
+      "title": "{{title}} — נשמר",
+      "followUps": "{{count}} משימות המשך",
+      "waitingOnPerson": "{{count}} בהמתנה ל־{{name}}",
+      "waitingOn": "בהמתנה ({{count}})",
+      "openNotes": "פתיחת ההערות",
+      "copyFollowUp": "העתקת הודעת המשך",
+      "copied": "הועתק",
+      "done": "סיום"
+    }
   },
   "learningV2": {
     "workflows": {

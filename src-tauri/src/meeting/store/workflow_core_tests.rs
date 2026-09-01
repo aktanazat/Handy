@@ -1,7 +1,12 @@
 use super::people::calendar_context_in;
-use super::people::{derive_calendar_links_in, derive_speaker_link_in, derive_title_links_in};
+use super::people::{
+    derive_calendar_links_in, derive_speaker_link_in, derive_title_links_in,
+    recompute_organizations_in,
+};
 use super::*;
-use crate::meeting::detection::machine::{CalendarAttendee, ParticipationStatus};
+use crate::meeting::detection::machine::{
+    CalendarAttendee, CalendarEventSummary, ParticipationStatus,
+};
 use crate::meeting::people_types::{
     PersonId, PersonLinkConfidence, PersonLinkSource, PersonSplitRequest, PersonSplitTarget,
 };
@@ -88,6 +93,39 @@ fn link(
             ],
         )
         .unwrap();
+}
+
+fn calendar_link(
+    store: &MeetingStore,
+    person_id: PersonId,
+    email: &str,
+    at_utc_ms: i64,
+) -> MeetingSessionId {
+    let meeting_id = meeting(store, email, at_utc_ms);
+    store
+        .remember_calendar_facts(
+            meeting_id,
+            &CalendarEventSummary {
+                event_key: format!("{email}-{at_utc_ms}"),
+                series_key: String::new(),
+                title: email.to_string(),
+                attendee_count: 2,
+                start_utc_ms: at_utc_ms,
+                end_utc_ms: at_utc_ms + 1,
+                attendees: vec![CalendarAttendee {
+                    name: email.to_string(),
+                    email: Some(email.to_string()),
+                    status: ParticipationStatus::Accepted,
+                    is_self: false,
+                }],
+                notes: None,
+                calendar_name: None,
+                url: None,
+            },
+        )
+        .unwrap();
+    link(store, meeting_id, person_id, "calendar", "confirmed");
+    meeting_id
 }
 
 fn artifact(store: &MeetingStore, meeting_id: MeetingSessionId, headline: &str) {
@@ -273,6 +311,107 @@ fn link_derivation_respects_evidence_strength() {
     assert_eq!(
         derive_speaker_link_in(&connection, speaker_meeting, "Bob", 10).unwrap(),
         0
+    );
+}
+
+#[test]
+fn people_organization_derivation_strips_public_mail_and_reads_registrable_labels() {
+    let (_directory, store) = store();
+    let cases = [
+        ("person@acme.com", Some("Acme")),
+        ("person@eu.acme.co.uk", Some("Acme")),
+        ("person@gmail.com", None),
+        ("person@googlemail.com", None),
+        ("person@outlook.com", None),
+        ("person@hotmail.com", None),
+        ("person@live.com", None),
+        ("person@icloud.com", None),
+        ("person@me.com", None),
+        ("person@yahoo.co.uk", None),
+        ("person@proton.me", None),
+        ("person@pm.me", None),
+        ("person@aol.com", None),
+        ("person@fastmail.com", None),
+        ("person@gmx.de", None),
+        ("person@yandex.ru", None),
+        ("person@zoho.com", None),
+    ];
+    let mut people = Vec::new();
+    for (index, (email, expected)) in cases.into_iter().enumerate() {
+        let person_id = person(&store, email, &[], &[email]);
+        calendar_link(&store, person_id, email, i64::try_from(index).unwrap() + 1);
+        people.push((person_id, expected));
+    }
+    let no_email = person(&store, "No calendar address", &[], &[]);
+    people.push((no_email, None));
+
+    let connection = store.connection().unwrap();
+    assert_eq!(recompute_organizations_in(&connection).unwrap(), 2);
+    drop(connection);
+    for (person_id, expected) in &people {
+        assert_eq!(
+            store
+                .person_detail(*person_id)
+                .unwrap()
+                .detail
+                .person
+                .organization
+                .as_deref(),
+            *expected
+        );
+    }
+    let organizations = store
+        .organizations_for_person_ids(
+            &people
+                .iter()
+                .map(|(person_id, _)| *person_id)
+                .collect::<Vec<_>>(),
+        )
+        .unwrap();
+    assert_eq!(organizations.len(), 2);
+    assert!(organizations.values().all(|value| value == "Acme"));
+}
+
+#[test]
+fn people_organization_recompute_prefers_frequency_then_newest_and_is_idempotent() {
+    let (_directory, store) = store();
+    let person_id = person(
+        &store,
+        "Dana Reyes",
+        &[],
+        &["dana@acme.com", "dana@beta.io"],
+    );
+    calendar_link(&store, person_id, "dana@acme.com", 10);
+    calendar_link(&store, person_id, "dana@beta.io", 20);
+
+    let connection = store.connection().unwrap();
+    assert_eq!(recompute_organizations_in(&connection).unwrap(), 1);
+    drop(connection);
+    assert_eq!(
+        store
+            .person_detail(person_id)
+            .unwrap()
+            .detail
+            .person
+            .organization
+            .as_deref(),
+        Some("Beta")
+    );
+
+    calendar_link(&store, person_id, "dana@acme.com", 30);
+    let connection = store.connection().unwrap();
+    assert_eq!(recompute_organizations_in(&connection).unwrap(), 1);
+    assert_eq!(recompute_organizations_in(&connection).unwrap(), 0);
+    drop(connection);
+    assert_eq!(
+        store
+            .person_detail(person_id)
+            .unwrap()
+            .detail
+            .person
+            .organization
+            .as_deref(),
+        Some("Acme")
     );
 }
 

@@ -344,6 +344,41 @@ impl MeetingSessionManager {
         .await
     }
 
+    /// One durable meeting-activity row for a ritual presentation or action.
+    /// Replaying the same occurrence returns `false` and does not add a second
+    /// run-log entry.
+    pub(crate) async fn record_ritual_activity(
+        &self,
+        kind: WorkflowEventKind,
+        ritual_id: &str,
+        session_id: MeetingSessionId,
+        occurrence_key: &str,
+    ) -> bool {
+        let Ok(store) = self.store().await else {
+            return false;
+        };
+        match dispatch_daily_workflow_event(
+            store,
+            NewWorkflowEvent {
+                kind,
+                payload: serde_json::json!({
+                    "ritual_id": ritual_id,
+                    "session_id": session_id.uuid().to_string(),
+                }),
+                occurred_at_utc_ms: now_utc_ms(),
+                source: "meeting_ritual",
+                dedupe_key: format!("{}:{occurrence_key}", kind.as_str()),
+            },
+            self.app_handle().cloned(),
+        ) {
+            Ok(dispatch) => dispatch.inserted,
+            Err(error) => {
+                log::warn!("meeting ritual workflow event failed: {error:?}");
+                false
+            }
+        }
+    }
+
     async fn record_event(
         &self,
         kind: WorkflowEventKind,

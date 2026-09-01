@@ -2447,6 +2447,18 @@
       "copied": "Đã sao chép bản nháp.",
       "copyFailed": "Không sao chép được bản nháp.",
       "failed": "Không soạn được thư theo dõi cho cuộc họp này."
+    },
+    "prep": {
+      "label": "Chuẩn bị",
+      "title": "{{title}} — sau {{count}} phút",
+      "lastTime": "Lần trước:",
+      "myOpenLoops": "Việc còn mở của tôi ({{count}})",
+      "waitingOn": "Đang chờ ({{count}})",
+      "participantMeetings": "{{count}} cuộc họp",
+      "participants": "Người tham gia:",
+      "openBrief": "Mở tóm tắt",
+      "recordWhenStarts": "Ghi khi bắt đầu",
+      "dismiss": "Đóng"
     }
   },
   "chat": {
@@ -2947,7 +2959,18 @@
     "ignore": "Bỏ qua",
     "recording": "Đang ghi âm",
     "stop": "Dừng",
-    "forgetSeries": "Quên chuỗi này"
+    "forgetSeries": "Quên chuỗi này",
+    "wrap": {
+      "label": "Kết thúc",
+      "title": "{{title}} — đã lưu",
+      "followUps": "{{count}} việc theo dõi",
+      "waitingOnPerson": "{{count}} việc đang chờ {{name}}",
+      "waitingOn": "Đang chờ ({{count}})",
+      "openNotes": "Mở ghi chú",
+      "copyFollowUp": "Sao chép nội dung theo dõi",
+      "copied": "Đã sao chép",
+      "done": "Xong"
+    }
   },
   "learningV2": {
     "workflows": {

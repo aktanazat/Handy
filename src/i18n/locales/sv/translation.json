@@ -2453,6 +2453,18 @@
       "copied": "Utkastet kopierat.",
       "copyFailed": "Utkastet kunde inte kopieras.",
       "failed": "Det gick inte att skriva en uppföljning för det här mötet."
+    },
+    "prep": {
+      "label": "Förberedelse",
+      "title": "{{title}} — om {{count}} min",
+      "lastTime": "Förra gången:",
+      "myOpenLoops": "Mina öppna punkter ({{count}})",
+      "waitingOn": "Väntar på ({{count}})",
+      "participantMeetings": "{{count}} möten",
+      "participants": "Deltagare:",
+      "openBrief": "Öppna översikt",
+      "recordWhenStarts": "Spela in när det börjar",
+      "dismiss": "Stäng"
     }
   },
   "chat": {
@@ -2958,7 +2970,18 @@
     "ignore": "Ignorera",
     "recording": "Inspelning",
     "stop": "Stoppa",
-    "forgetSeries": "Glöm den här serien"
+    "forgetSeries": "Glöm den här serien",
+    "wrap": {
+      "label": "Avslut",
+      "title": "{{title}} — sparat",
+      "followUps": "{{count}} uppföljningar",
+      "waitingOnPerson": "{{count}} väntar på {{name}}",
+      "waitingOn": "Väntar på ({{count}})",
+      "openNotes": "Öppna anteckningar",
+      "copyFollowUp": "Kopiera uppföljning",
+      "copied": "Kopierat",
+      "done": "Klar"
+    }
   },
   "learningV2": {
     "workflows": {

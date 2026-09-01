@@ -47,6 +47,7 @@ pub struct Person {
     pub display_name: String,
     pub aliases: Vec<String>,
     pub calendar_emails: Vec<String>,
+    pub organization: Option<String>,
     pub created_at_utc_ms: i64,
     pub updated_at_utc_ms: i64,
 }

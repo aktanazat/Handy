@@ -331,7 +331,15 @@ pub(super) fn matching_enabled_workflows_in(
         WorkflowEventKind::MeetingPromptRecorded
         | WorkflowEventKind::MeetingPromptIgnored
         | WorkflowEventKind::MeetingAutoRecordStarted
-        | WorkflowEventKind::MeetingAutoRecordStopped => &[WorkflowId::MeetingActivity],
+        | WorkflowEventKind::MeetingAutoRecordStopped
+        | WorkflowEventKind::MeetingPrepPresented
+        | WorkflowEventKind::MeetingPrepRecordArmed
+        | WorkflowEventKind::MeetingPrepBriefOpened
+        | WorkflowEventKind::MeetingPrepDismissed
+        | WorkflowEventKind::MeetingWrapPresented
+        | WorkflowEventKind::MeetingWrapNotesOpened
+        | WorkflowEventKind::MeetingWrapFollowUpCopied
+        | WorkflowEventKind::MeetingWrapDone => &[WorkflowId::MeetingActivity],
         WorkflowEventKind::DictationCorpusSwept => &[
             WorkflowId::SpokenPunctuation,
             WorkflowId::ModeHabits,
@@ -648,6 +656,16 @@ pub(super) fn outcome_projection(
                 WorkflowEventKind::MeetingAutoRecordStopped => {
                     WorkflowOutcomeCode::AutoRecordStopped
                 }
+                WorkflowEventKind::MeetingPrepPresented => WorkflowOutcomeCode::PrepPresented,
+                WorkflowEventKind::MeetingPrepRecordArmed => WorkflowOutcomeCode::PrepRecordArmed,
+                WorkflowEventKind::MeetingPrepBriefOpened => WorkflowOutcomeCode::PrepBriefOpened,
+                WorkflowEventKind::MeetingPrepDismissed => WorkflowOutcomeCode::PrepDismissed,
+                WorkflowEventKind::MeetingWrapPresented => WorkflowOutcomeCode::WrapPresented,
+                WorkflowEventKind::MeetingWrapNotesOpened => WorkflowOutcomeCode::WrapNotesOpened,
+                WorkflowEventKind::MeetingWrapFollowUpCopied => {
+                    WorkflowOutcomeCode::WrapFollowUpCopied
+                }
+                WorkflowEventKind::MeetingWrapDone => WorkflowOutcomeCode::WrapDone,
                 _ => WorkflowOutcomeCode::Skipped,
             },
         },
@@ -686,7 +704,15 @@ fn jump_target(kind: WorkflowEventKind, payload: &Value) -> Option<WorkflowJumpT
         | WorkflowEventKind::SpeakerRenamed
         | WorkflowEventKind::MeetingPromptRecorded
         | WorkflowEventKind::MeetingAutoRecordStarted
-        | WorkflowEventKind::MeetingAutoRecordStopped => "session_id",
+        | WorkflowEventKind::MeetingAutoRecordStopped
+        | WorkflowEventKind::MeetingPrepPresented
+        | WorkflowEventKind::MeetingPrepRecordArmed
+        | WorkflowEventKind::MeetingPrepBriefOpened
+        | WorkflowEventKind::MeetingPrepDismissed
+        | WorkflowEventKind::MeetingWrapPresented
+        | WorkflowEventKind::MeetingWrapNotesOpened
+        | WorkflowEventKind::MeetingWrapFollowUpCopied
+        | WorkflowEventKind::MeetingWrapDone => "session_id",
         _ => return None,
     };
     let id = Uuid::parse_str(payload.get(key)?.as_str()?).ok()?;

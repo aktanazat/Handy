@@ -2459,6 +2459,18 @@
       "copied": "Borrador copiado.",
       "copyFailed": "No se pudo copiar el borrador.",
       "failed": "No se pudo redactar un seguimiento para esta reunión."
+    },
+    "prep": {
+      "label": "Preparación",
+      "title": "{{title}} — en {{count}} min",
+      "lastTime": "La última vez:",
+      "myOpenLoops": "Mis pendientes ({{count}})",
+      "waitingOn": "En espera ({{count}})",
+      "participantMeetings": "{{count}} reuniones",
+      "participants": "Participantes:",
+      "openBrief": "Abrir resumen",
+      "recordWhenStarts": "Grabar al empezar",
+      "dismiss": "Cerrar"
     }
   },
   "chat": {
@@ -2973,7 +2985,18 @@
     "ignore": "Ignorar",
     "recording": "Grabando",
     "stop": "Detener",
-    "forgetSeries": "Olvidar esta serie"
+    "forgetSeries": "Olvidar esta serie",
+    "wrap": {
+      "label": "Cierre",
+      "title": "{{title}} — guardado",
+      "followUps": "{{count}} seguimientos",
+      "waitingOnPerson": "{{count}} esperan a {{name}}",
+      "waitingOn": "En espera ({{count}})",
+      "openNotes": "Abrir notas",
+      "copyFollowUp": "Copiar seguimiento",
+      "copied": "Copiado",
+      "done": "Listo"
+    }
   },
   "learningV2": {
     "workflows": {

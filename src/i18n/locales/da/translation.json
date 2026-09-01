@@ -2453,6 +2453,18 @@
       "copied": "Udkast kopieret.",
       "copyFailed": "Udkastet kunne ikke kopieres.",
       "failed": "Der kunne ikke skrives en opfølgning til dette møde."
+    },
+    "prep": {
+      "label": "Forbered",
+      "title": "{{title}} — om {{count}} min.",
+      "lastTime": "Sidste gang:",
+      "myOpenLoops": "Mine åbne punkter ({{count}})",
+      "waitingOn": "Afventer ({{count}})",
+      "participantMeetings": "{{count}} møder",
+      "participants": "Deltagere:",
+      "openBrief": "Åbn overblik",
+      "recordWhenStarts": "Optag, når det starter",
+      "dismiss": "Luk"
     }
   },
   "chat": {
@@ -2958,7 +2970,18 @@
     "ignore": "Ignorér",
     "recording": "Optagelse",
     "stop": "Stop",
-    "forgetSeries": "Glem denne serie"
+    "forgetSeries": "Glem denne serie",
+    "wrap": {
+      "label": "Afrunding",
+      "title": "{{title}} — gemt",
+      "followUps": "{{count}} opfølgninger",
+      "waitingOnPerson": "{{count}} afventer {{name}}",
+      "waitingOn": "Afventer ({{count}})",
+      "openNotes": "Åbn noter",
+      "copyFollowUp": "Kopiér opfølgning",
+      "copied": "Kopieret",
+      "done": "Færdig"
+    }
   },
   "learningV2": {
     "workflows": {

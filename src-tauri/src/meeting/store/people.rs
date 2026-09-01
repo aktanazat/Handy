@@ -4,7 +4,7 @@ mod vocabulary;
 
 pub(super) use mutations::{
     derive_calendar_links_in, derive_speaker_link_in, derive_title_links_in,
-    link_document_mentions_in,
+    link_document_mentions_in, recompute_organizations_in,
 };
 pub(super) use queries::{calendar_context_in, continuity_summary_in};
 pub(super) use vocabulary::vocabulary_candidates_in;
@@ -15,7 +15,7 @@ use rusqlite::{Connection, OptionalExtension};
 use std::collections::HashSet;
 use uuid::Uuid;
 
-pub(super) const SCHEMA_VERSION: u32 = 1;
+pub(super) const SCHEMA_VERSION: u32 = 2;
 
 pub(super) fn people_revision_in(connection: &Connection) -> Result<u64, StoreError> {
     let revision: i64 = connection.query_row(
@@ -51,7 +51,7 @@ pub(super) fn person_by_id_in(
     connection
         .query_row(
             "SELECT id, display_name, aliases_json, calendar_emails_json,
-                    created_at_utc_ms, updated_at_utc_ms
+                    organization, created_at_utc_ms, updated_at_utc_ms
                FROM persons WHERE id = ?1",
             [person_id.uuid().to_string()],
             person_from_row,
@@ -63,7 +63,7 @@ pub(super) fn person_by_id_in(
 pub(super) fn all_people_in(connection: &Connection) -> Result<Vec<Person>, StoreError> {
     let mut statement = connection.prepare(
         "SELECT id, display_name, aliases_json, calendar_emails_json,
-                created_at_utc_ms, updated_at_utc_ms
+                organization, created_at_utc_ms, updated_at_utc_ms
            FROM persons ORDER BY display_name COLLATE NOCASE, id",
     )?;
     let people = statement
@@ -86,8 +86,9 @@ fn person_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Person> {
         display_name: row.get(1)?,
         aliases,
         calendar_emails,
-        created_at_utc_ms: row.get(4)?,
-        updated_at_utc_ms: row.get(5)?,
+        organization: row.get(4)?,
+        created_at_utc_ms: row.get(5)?,
+        updated_at_utc_ms: row.get(6)?,
     })
 }
 

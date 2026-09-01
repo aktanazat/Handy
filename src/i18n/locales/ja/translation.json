@@ -2447,6 +2447,18 @@
       "copied": "下書きをコピーしました。",
       "copyFailed": "下書きをコピーできませんでした。",
       "failed": "このミーティングのフォローアップを作成できませんでした。"
+    },
+    "prep": {
+      "label": "準備",
+      "title": "{{title}} — あと{{count}}分",
+      "lastTime": "前回:",
+      "myOpenLoops": "自分の未完了項目 ({{count}})",
+      "waitingOn": "待機中 ({{count}})",
+      "participantMeetings": "{{count}}回のミーティング",
+      "participants": "参加者:",
+      "openBrief": "概要を開く",
+      "recordWhenStarts": "開始時に録音",
+      "dismiss": "閉じる"
     }
   },
   "chat": {
@@ -2947,7 +2959,18 @@
     "ignore": "無視",
     "recording": "録音中",
     "stop": "停止",
-    "forgetSeries": "このシリーズを忘れる"
+    "forgetSeries": "このシリーズを忘れる",
+    "wrap": {
+      "label": "まとめ",
+      "title": "{{title}} — 保存済み",
+      "followUps": "フォローアップ {{count}}件",
+      "waitingOnPerson": "{{name}}待ち {{count}}件",
+      "waitingOn": "待機中 ({{count}})",
+      "openNotes": "ノートを開く",
+      "copyFollowUp": "フォローアップをコピー",
+      "copied": "コピー済み",
+      "done": "完了"
+    }
   },
   "learningV2": {
     "workflows": {

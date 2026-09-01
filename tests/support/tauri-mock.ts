@@ -357,6 +357,21 @@ export function installMockedRuntime(payload: MockPayload): void {
     ["detection_notification_access_request", "not_determined"],
     ["detection_prompt_respond", null],
     ["detection_prompt_panel_ack", null],
+    ["meeting_ritual_panel_ack", null],
+    ["meeting_ritual_respond", true],
+    [
+      "meeting_follow_up_draft",
+      {
+        session_id: "00000000-0000-0000-0000-000000000020",
+        title: "Weekly product review",
+        source: "structured",
+        message: "Thanks for the meeting. I will send the launch plan.",
+        summary: "Launch plan agreed.",
+        mine: ["Send the launch plan"],
+        decisions: [],
+        receipt: receipt(),
+      },
+    ],
     ["detection_running_meeting_apps", []],
     ["meeting_consent_panel_forget_series", true],
 
@@ -599,6 +614,26 @@ export function installMockedRuntime(payload: MockPayload): void {
       }
       localStorage.setItem("detection-panel-ack", promptId);
       return null;
+    }
+    if (command === "meeting_ritual_panel_ack") {
+      const ritualId = args?.ritualId;
+      if (!isJsonString(ritualId)) {
+        throw new Error("meeting_ritual_panel_ack requires ritualId");
+      }
+      localStorage.setItem("meeting-ritual-panel-ack", ritualId);
+      return null;
+    }
+    if (command === "meeting_ritual_respond") {
+      const ritualId = args?.ritualId;
+      const action = args?.action;
+      if (!isJsonString(ritualId) || !isJsonString(action)) {
+        throw new Error("meeting_ritual_respond requires a ritual response");
+      }
+      localStorage.setItem(
+        "meeting-ritual-response",
+        JSON.stringify({ ritualId, action }),
+      );
+      return true;
     }
     if (command === "detection_prompt_respond") {
       const promptId = args?.promptId;

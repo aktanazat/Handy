@@ -27,6 +27,50 @@ const ACTIVE_PANEL_STATE = {
   standing_series_key: null,
 };
 
+const PREP_RITUAL = {
+  eventSchemaVersion: 2,
+  ritualId: "prep:weekly-product",
+  ritual: {
+    kind: "prep",
+    card: {
+      eventKey: "weekly-product#next",
+      seriesKey: "weekly-product",
+      title: "Weekly product review",
+      startUtcMs: Date.now() + 5 * 60_000,
+      lastMeetingId: "00000000-0000-0000-0000-000000000010",
+      headline: "Launch sequencing stayed unresolved.",
+      mineOpenLoops: ["Send the launch plan", "Confirm beta dates"],
+      mineOpenLoopCount: 2,
+      waitingOnCount: 1,
+      participants: [
+        { name: "Maya", meetingsCount: 6, organization: "Northstar" },
+        { name: "Jon", meetingsCount: 2, organization: null },
+      ],
+      canRecordWhenStarts: true,
+    },
+  },
+  notificationTitle: "Weekly product review — in 5 minutes",
+  delivery: "panel",
+};
+
+const WRAP_RITUAL = {
+  eventSchemaVersion: 2,
+  ritualId: "wrap:00000000-0000-0000-0000-000000000020",
+  ritual: {
+    kind: "wrap",
+    card: {
+      sessionId: "00000000-0000-0000-0000-000000000020",
+      title: "Weekly product review",
+      headline: "The launch plan is ready for review.",
+      followUpCount: 2,
+      waitingOnCount: 1,
+      waitingOnNames: ["Maya"],
+    },
+  },
+  notificationTitle: "Weekly product review — saved",
+  delivery: "panel",
+};
+
 test.describe("Consent panel", () => {
   test("acknowledges, records with the panel command, and stops from the pill", async ({
     page,
@@ -181,5 +225,88 @@ test.describe("Consent panel", () => {
         page.evaluate(() => localStorage.getItem("detection-panel-ack")),
       )
       .toBe("");
+  });
+
+  test("shows the recurring-meeting PREP context and opens its brief", async ({
+    page,
+  }) => {
+    await installTauriMock(page, {
+      events: { "meeting-ritual": [PREP_RITUAL] },
+    });
+    await page.goto("/consent");
+
+    await expect(page.getByTestId("prep-card")).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        name: /Weekly product review — in 5 minutes/,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Last time: Launch sequencing stayed unresolved."),
+    ).toBeVisible();
+    await expect(page.getByText("Send the launch plan")).toBeVisible();
+    await expect(page.getByText("Confirm beta dates")).toBeVisible();
+    await expect(page.getByText(/Maya · 6 meetings · Northstar/)).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Record when it starts" }),
+    ).toBeVisible();
+    await expect
+      .poll(() =>
+        page.evaluate(() => localStorage.getItem("meeting-ritual-panel-ack")),
+      )
+      .toBe(PREP_RITUAL.ritualId);
+
+    await page.getByRole("button", { name: "Open brief" }).click();
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          JSON.parse(localStorage.getItem("meeting-ritual-response") ?? "null"),
+        ),
+      )
+      .toEqual({
+        ritualId: PREP_RITUAL.ritualId,
+        action: "prep_open_brief",
+      });
+  });
+
+  test("shows WRAP deltas and keeps a stable copied confirmation", async ({
+    page,
+  }) => {
+    await page
+      .context()
+      .grantPermissions(["clipboard-read", "clipboard-write"]);
+    await installTauriMock(page, {
+      events: { "meeting-ritual": [WRAP_RITUAL] },
+    });
+    await page.goto("/consent");
+
+    await expect(page.getByTestId("wrap-card")).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        name: "Weekly product review — saved",
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("The launch plan is ready for review."),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/2 follow-ups · 1 waiting on Maya/),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Copy follow-up" }).click();
+    await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          JSON.parse(localStorage.getItem("meeting-ritual-response") ?? "null"),
+        ),
+      )
+      .toEqual({
+        ritualId: WRAP_RITUAL.ritualId,
+        action: "wrap_follow_up_copied",
+      });
+
+    await page.getByRole("button", { name: "Done" }).click();
+    await expect(page.getByTestId("wrap-card")).toBeHidden();
   });
 });

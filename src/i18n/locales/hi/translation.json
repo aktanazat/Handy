@@ -2453,6 +2453,18 @@
       "copied": "ड्राफ़्ट कॉपी हो गया।",
       "copyFailed": "ड्राफ़्ट कॉपी नहीं हो सका।",
       "failed": "इस मीटिंग के लिए फ़ॉलो-अप नहीं लिखा जा सका।"
+    },
+    "prep": {
+      "label": "तैयारी",
+      "title": "{{title}} — {{count}} मिनट में",
+      "lastTime": "पिछली बार:",
+      "myOpenLoops": "मेरे खुले काम ({{count}})",
+      "waitingOn": "इंतज़ार में ({{count}})",
+      "participantMeetings": "{{count}} मीटिंग",
+      "participants": "प्रतिभागी:",
+      "openBrief": "सार खोलें",
+      "recordWhenStarts": "शुरू होने पर रिकॉर्ड करें",
+      "dismiss": "बंद करें"
     }
   },
   "chat": {
@@ -2958,7 +2970,18 @@
     "ignore": "अनदेखा करें",
     "recording": "रिकॉर्डिंग",
     "stop": "बंद करें",
-    "forgetSeries": "यह शृंखला भूल जाएँ"
+    "forgetSeries": "यह शृंखला भूल जाएँ",
+    "wrap": {
+      "label": "समापन",
+      "title": "{{title}} — सहेजा गया",
+      "followUps": "{{count}} फ़ॉलो-अप",
+      "waitingOnPerson": "{{count}} {{name}} के इंतज़ार में",
+      "waitingOn": "इंतज़ार में ({{count}})",
+      "openNotes": "नोट्स खोलें",
+      "copyFollowUp": "फ़ॉलो-अप कॉपी करें",
+      "copied": "कॉपी हो गया",
+      "done": "हो गया"
+    }
   },
   "learningV2": {
     "workflows": {

@@ -2453,6 +2453,18 @@
       "copied": "Concept gekopieerd.",
       "copyFailed": "Het concept kon niet worden gekopieerd.",
       "failed": "Er kon geen opvolging voor deze vergadering worden opgesteld."
+    },
+    "prep": {
+      "label": "Voorbereiding",
+      "title": "{{title}} — over {{count}} min.",
+      "lastTime": "Vorige keer:",
+      "myOpenLoops": "Mijn open punten ({{count}})",
+      "waitingOn": "Wachten op ({{count}})",
+      "participantMeetings": "{{count}} vergaderingen",
+      "participants": "Deelnemers:",
+      "openBrief": "Overzicht openen",
+      "recordWhenStarts": "Opnemen bij aanvang",
+      "dismiss": "Sluiten"
     }
   },
   "chat": {
@@ -2958,7 +2970,18 @@
     "ignore": "Negeren",
     "recording": "Opname",
     "stop": "Stoppen",
-    "forgetSeries": "Deze reeks vergeten"
+    "forgetSeries": "Deze reeks vergeten",
+    "wrap": {
+      "label": "Afronding",
+      "title": "{{title}} — opgeslagen",
+      "followUps": "{{count}} vervolgacties",
+      "waitingOnPerson": "{{count}} wachten op {{name}}",
+      "waitingOn": "Wachten op ({{count}})",
+      "openNotes": "Notities openen",
+      "copyFollowUp": "Vervolgbericht kopiëren",
+      "copied": "Gekopieerd",
+      "done": "Klaar"
+    }
   },
   "learningV2": {
     "workflows": {

@@ -14,7 +14,7 @@ use crate::meeting::store::learning::{
 use crate::meeting::store::people::{
     bump_people_revision_in, calendar_context_in, continuity_summary_in, derive_calendar_links_in,
     derive_speaker_link_in, derive_title_links_in, link_document_mentions_in,
-    vocabulary_candidates_in,
+    recompute_organizations_in, vocabulary_candidates_in,
 };
 use crate::meeting::store::{MeetingStore, StoreError};
 use crate::meeting::types::MeetingSessionId;
@@ -229,7 +229,7 @@ fn run_person_linking_in(
 ) -> Result<String, StoreError> {
     let session_id = payload_uuid(&event.payload, "session_id")?;
     let session_id = MeetingSessionId::from_uuid(session_id);
-    let changes = match event.kind {
+    let mut changes = match event.kind {
         WorkflowEventKind::MeetingStarted => {
             let Some(calendar) = calendar_facts_in(connection, session_id)? else {
                 return Ok("person_links:changes=0".to_string());
@@ -267,6 +267,7 @@ fn run_person_linking_in(
         }
         _ => return Err(StoreError::Invalid),
     };
+    changes += recompute_organizations_in(connection)?;
     if changes != 0 {
         bump_people_revision_in(connection)?;
     }
@@ -347,7 +348,15 @@ fn run_meeting_activity_in(event: &StoredWorkflowEvent) -> Result<String, StoreE
         WorkflowEventKind::MeetingPromptRecorded
         | WorkflowEventKind::MeetingPromptIgnored
         | WorkflowEventKind::MeetingAutoRecordStarted
-        | WorkflowEventKind::MeetingAutoRecordStopped => {
+        | WorkflowEventKind::MeetingAutoRecordStopped
+        | WorkflowEventKind::MeetingPrepPresented
+        | WorkflowEventKind::MeetingPrepRecordArmed
+        | WorkflowEventKind::MeetingPrepBriefOpened
+        | WorkflowEventKind::MeetingPrepDismissed
+        | WorkflowEventKind::MeetingWrapPresented
+        | WorkflowEventKind::MeetingWrapNotesOpened
+        | WorkflowEventKind::MeetingWrapFollowUpCopied
+        | WorkflowEventKind::MeetingWrapDone => {
             Ok(format!("meeting_activity:decision={}", event.kind.as_str()))
         }
         _ => Err(StoreError::Invalid),

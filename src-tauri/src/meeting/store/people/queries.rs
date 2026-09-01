@@ -21,7 +21,7 @@ use crate::meeting::store::workflows::{
 use crate::meeting::store::{MeetingStore, StoreError};
 use crate::meeting::types::MeetingSessionId;
 use crate::meeting::workflow_types::WorkflowId;
-use rusqlite::Connection;
+use rusqlite::{Connection, OptionalExtension};
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
@@ -148,13 +148,40 @@ impl MeetingStore {
         }
         Ok(links)
     }
+
+    /// Cached organizations for the requested people; unknown and public-mail
+    /// domains are absent.
+    pub(crate) fn organizations_for_person_ids(
+        &self,
+        person_ids: &[PersonId],
+    ) -> Result<HashMap<PersonId, String>, StoreError> {
+        if person_ids.is_empty() {
+            return Ok(HashMap::new());
+        }
+        let connection = self.connection()?;
+        let mut statement = connection.prepare(
+            "SELECT organization
+               FROM persons
+              WHERE id = ?1 AND organization IS NOT NULL",
+        )?;
+        let mut organizations = HashMap::with_capacity(person_ids.len());
+        for person_id in person_ids {
+            let organization = statement
+                .query_row([person_id.uuid().to_string()], |row| row.get(0))
+                .optional()?;
+            if let Some(organization) = organization {
+                organizations.insert(*person_id, organization);
+            }
+        }
+        Ok(organizations)
+    }
 }
 
 fn people_list_in(connection: &Connection) -> Result<PeopleListResult, StoreError> {
     let revision = people_revision_in(connection)?;
     let mut statement = connection.prepare(
         "SELECT p.id, p.display_name, p.aliases_json, p.calendar_emails_json,
-                p.created_at_utc_ms, p.updated_at_utc_ms,
+                p.organization, p.created_at_utc_ms, p.updated_at_utc_ms,
                 SUM(CASE WHEN l.confidence = 'confirmed' THEN 1 ELSE 0 END),
                 lm.at_utc_ms,
                 SUM(CASE WHEN l.confidence = 'suggested' THEN 1 ELSE 0 END),
@@ -188,13 +215,13 @@ fn people_list_in(connection: &Connection) -> Result<PeopleListResult, StoreErro
         .query_map([], |row| {
             Ok((
                 person_from_row(row)?,
-                row.get::<_, i64>(6)?,
-                row.get::<_, Option<i64>>(7)?,
-                row.get::<_, i64>(8)?,
-                row.get::<_, String>(9)?,
-                row.get::<_, Option<String>>(10)?,
+                row.get::<_, i64>(7)?,
+                row.get::<_, Option<i64>>(8)?,
+                row.get::<_, i64>(9)?,
+                row.get::<_, String>(10)?,
                 row.get::<_, Option<String>>(11)?,
                 row.get::<_, Option<String>>(12)?,
+                row.get::<_, Option<String>>(13)?,
             ))
         })?
         .collect::<Result<Vec<_>, _>>()?;

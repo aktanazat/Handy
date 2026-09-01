@@ -45,7 +45,7 @@ interface PersonHeaderProps {
 
 /**
  * A person's page reads as a page about that person: their name as the title,
- * and nothing beside it.
+ * then their derived organization and meeting count as one quiet line.
  *
  * The name is the field that edits it — click it and it becomes an input,
  * which commits on Enter or on leaving it and reverts on Escape. There is no
@@ -80,6 +80,9 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({
     (entry) => entry.person.id === mergeTarget,
   )?.person.display_name;
   const actionsLabel = t("people.detail.personActions");
+  const meetingsLabel = t("people.list.meetings", {
+    count: links.filter((link) => link.confidence === "confirmed").length,
+  });
 
   /* One commit path. Enter and Escape both blur the field; Escape puts the
    * saved name back first, so leaving the field is the only thing that ever
@@ -108,39 +111,50 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({
       </Button>
 
       <div className="flex items-start justify-between gap-4">
-        {editing ? (
-          <Input
-            autoFocus
-            value={nameDraft}
-            onChange={(event) => setNameDraft(event.target.value)}
-            onBlur={commitName}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") event.currentTarget.blur();
-              if (event.key === "Escape") {
+        <div className="flex min-w-0 flex-col gap-1">
+          {editing ? (
+            <Input
+              autoFocus
+              value={nameDraft}
+              onChange={(event) => setNameDraft(event.target.value)}
+              onBlur={commitName}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") event.currentTarget.blur();
+                if (event.key === "Escape") {
+                  setNameDraft(person.display_name);
+                  event.currentTarget.blur();
+                }
+              }}
+              aria-label={t("people.detail.nameLabel")}
+              className="h-9 min-w-0 flex-1 sm:max-w-[360px] text-[18px] font-medium"
+            />
+          ) : (
+            /* The title is the control. A bare button so the name keeps the page
+             * title's own type, with the hover wash the only thing that says it
+             * can be typed into. */
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
                 setNameDraft(person.display_name);
-                event.currentTarget.blur();
-              }
-            }}
-            aria-label={t("people.detail.nameLabel")}
-            className="h-9 min-w-0 flex-1 sm:max-w-[360px] text-[18px] font-medium"
-          />
-        ) : (
-          /* The title is the control. A bare button so the name keeps the page
-           * title's own type, with the hover wash the only thing that says it
-           * can be typed into. */
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => {
-              setNameDraft(person.display_name);
-              setEditing(true);
-            }}
-            title={t("people.detail.rename")}
-            className="-mx-2 min-w-0 rounded-md px-2 py-0.5 text-start hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
-          >
-            <PageTitle className="truncate">{person.display_name}</PageTitle>
-          </button>
-        )}
+                setEditing(true);
+              }}
+              title={t("people.detail.rename")}
+              className="-mx-2 min-w-0 rounded-md px-2 py-0.5 text-start hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+            >
+              <PageTitle className="truncate">{person.display_name}</PageTitle>
+            </button>
+          )}
+          <p className="text-[11px] leading-4 text-gray-800 tabular-nums">
+            {person.organization === null ? (
+              meetingsLabel
+            ) : (
+              <span data-slot="person-organization">
+                {`${person.organization} · ${meetingsLabel}`}
+              </span>
+            )}
+          </p>
+        </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

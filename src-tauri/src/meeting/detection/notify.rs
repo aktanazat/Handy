@@ -44,6 +44,9 @@ pub const DISMISS_TITLE: &str = "Dismiss";
 /// digest per local day; there is never a reason to see two.
 pub const CATEGORY_DIGEST: &str = "computer.sona.digest.evening";
 
+/// PREP/WRAP fallback category. Title only, with no notification actions.
+pub const CATEGORY_RITUAL: &str = "computer.sona.meeting.ritual";
+
 /// What the operator did with a prompt.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PromptResponse {
@@ -142,6 +145,8 @@ pub trait PromptPresenter: Send + Sync {
     /// Rust `&str` and cannot reach the frontend's i18next catalog, which is
     /// the same reason `PromptKind::notification_title` is English.
     fn present_digest(&self, title: &str, body: &str) -> bool;
+    /// Posts a title-only PREP/WRAP fallback.
+    fn present_ritual(&self, ritual_id: &str, title: &str) -> bool;
 }
 
 /// Used when no notification center is reachable. Detection still runs and
@@ -166,6 +171,10 @@ impl PromptPresenter for NoPrompts {
     fn present_digest(&self, _title: &str, _body: &str) -> bool {
         false
     }
+
+    fn present_ritual(&self, _ritual_id: &str, _title: &str) -> bool {
+        false
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -181,6 +190,12 @@ pub(super) enum PanelCommand<T> {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct PanelFinish<T> {
     pub removed: Option<T>,
+    pub commands: Vec<PanelCommand<T>>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) struct PanelCapture<T> {
+    pub discarded: Vec<(String, T)>,
     pub commands: Vec<PanelCommand<T>>,
 }
 
@@ -301,21 +316,38 @@ impl<T: Clone> PanelSlot<T> {
         commands
     }
 
-    pub fn begin_capture(&mut self) -> Vec<PanelCommand<T>> {
+    pub fn begin_capture(&mut self, should_fallback: impl Fn(&T) -> bool) -> PanelCapture<T> {
         self.owner = None;
         let mut pending = self
             .pending
             .iter()
-            .filter(|(_, entry)| entry.panel_eligible)
             .map(|(prompt_id, entry)| (entry.sequence, prompt_id.clone()))
             .collect::<Vec<_>>();
         pending.sort_by_key(|(sequence, _)| *sequence);
-        let mut commands = pending
-            .into_iter()
-            .filter_map(|(_, prompt_id)| self.mark_for_fallback(&prompt_id))
-            .collect::<Vec<_>>();
+        let mut discarded = Vec::new();
+        let mut commands = Vec::new();
+        for (_, prompt_id) in pending {
+            let Some(entry) = self.pending.get(&prompt_id) else {
+                continue;
+            };
+            if should_fallback(&entry.prompt) {
+                if entry.panel_eligible {
+                    if let Some(command) = self.mark_for_fallback(&prompt_id) {
+                        commands.push(command);
+                    }
+                }
+                continue;
+            }
+            if let Some(entry) = self.pending.remove(&prompt_id) {
+                discarded.push((prompt_id.clone(), entry.prompt));
+                commands.push(PanelCommand::WithdrawPrompt { prompt_id });
+            }
+        }
         commands.push(PanelCommand::ShowPanel);
-        commands
+        PanelCapture {
+            discarded,
+            commands,
+        }
     }
 
     pub fn end_capture(&mut self) -> Vec<PanelCommand<T>> {
@@ -383,6 +415,16 @@ impl<T: Clone> PanelSlot<T> {
             .map(|(prompt_id, entry)| (prompt_id.as_str(), &entry.prompt))
     }
 
+    pub fn get(&self, prompt_id: &str) -> Option<&T> {
+        self.pending.get(prompt_id).map(|entry| &entry.prompt)
+    }
+
+    pub fn get_mut(&mut self, prompt_id: &str) -> Option<&mut T> {
+        self.pending
+            .get_mut(prompt_id)
+            .map(|entry| &mut entry.prompt)
+    }
+
     #[cfg(test)]
     fn owner_id(&self) -> Option<&str> {
         self.owner.as_ref().map(|owner| owner.prompt_id.as_str())
@@ -397,6 +439,7 @@ pub trait ConsentPromptSurface: Send + Sync {
     fn show_panel(&self, layout: ConsentPanelLayout) -> bool;
     fn hide_panel(&self);
     fn present_fallback(&self, prompt_id: &str, prompt: &PromptKind) -> DetectionPromptDelivery;
+    fn present_ritual_fallback(&self, ritual_id: &str, title: &str) -> DetectionPromptDelivery;
     fn withdraw(&self, prompt_id: &str);
 }
 
@@ -436,6 +479,14 @@ impl ConsentPromptSurface for ConsentPromptPresenter {
         }
     }
 
+    fn present_ritual_fallback(&self, ritual_id: &str, title: &str) -> DetectionPromptDelivery {
+        if self.native.present_ritual(ritual_id, title) {
+            DetectionPromptDelivery::Notification
+        } else {
+            DetectionPromptDelivery::InAppOnly
+        }
+    }
+
     fn withdraw(&self, prompt_id: &str) {
         self.native.withdraw(prompt_id);
     }
@@ -449,7 +500,7 @@ mod macos {
     use super::{
         NotificationAccess, NotificationAccessFuture, PromptKind, PromptPresenter, PromptResponder,
         PromptResponse, ACTION_DISMISS, ACTION_START, CATEGORY_DETECTION, CATEGORY_DIGEST,
-        DISMISS_TITLE, START_TITLE,
+        CATEGORY_RITUAL, DISMISS_TITLE, START_TITLE,
     };
     use block2::RcBlock;
     use objc2::rc::Retained;
@@ -527,13 +578,18 @@ mod macos {
                 let request = response.notification().request();
                 let prompt_id = request.identifier().to_string();
                 let responder = Arc::clone(&self.ivars().responder);
+                // Title-only rituals register no action and deliberately do not
+                // turn a body click into recording authority.
+                let category = request.content().categoryIdentifier().to_string();
+                if category == CATEGORY_RITUAL {
+                    completion.call(());
+                    return;
+                }
                 // The digest is told apart by its category, not its identifier:
                 // the category is what the notification was posted under and
                 // cannot drift from the content the way a parsed id would. It
                 // registers no actions, so its only gesture is the body.
-                let is_digest = request.content().categoryIdentifier().to_string()
-                    == CATEGORY_DIGEST;
-                if is_digest {
+                if category == CATEGORY_DIGEST {
                     if action == DEFAULT_ACTION {
                         responder.prompt_answered(PromptResponse::DigestOpened);
                     }
@@ -683,12 +739,11 @@ mod macos {
         }
     }
 
-    /// Registers both categories in one call.
+    /// Registers all notification categories in one call.
     ///
-    /// `setNotificationCategories` replaces the whole set, so the two have to
-    /// be declared together — registering them from their own owners would
-    /// leave whichever ran second holding the only category the system knows
-    /// about.
+    /// `setNotificationCategories` replaces the whole set, so they have to be
+    /// declared together — registering them from their own owners would leave
+    /// whichever ran last holding the only category the system knows about.
     fn register_categories(center: &UNUserNotificationCenter) {
         objc2::rc::autoreleasepool(|_| {
             // `Foreground` brings Sona forward on click, which is what the
@@ -712,9 +767,8 @@ mod macos {
                     &intents,
                     UNNotificationCategoryOptions::empty(),
                 );
-            // No actions: the digest states the day and the body click opens
-            // Capture. A button would have to name a second place to go, and
-            // there is not a second place to go.
+            // No actions: the digest has one body-click destination, while a
+            // ritual fallback is informational only.
             let no_actions: Retained<NSArray<UNNotificationAction>> = NSArray::new();
             let digest =
                 UNNotificationCategory::categoryWithIdentifier_actions_intentIdentifiers_options(
@@ -723,7 +777,14 @@ mod macos {
                     &intents,
                     UNNotificationCategoryOptions::empty(),
                 );
-            let categories = NSSet::from_retained_slice(&[detection, digest]);
+            let ritual =
+                UNNotificationCategory::categoryWithIdentifier_actions_intentIdentifiers_options(
+                    &NSString::from_str(CATEGORY_RITUAL),
+                    &no_actions,
+                    &intents,
+                    UNNotificationCategoryOptions::empty(),
+                );
+            let categories = NSSet::from_retained_slice(&[detection, digest, ritual]);
             center.setNotificationCategories(&categories);
         });
     }
@@ -816,6 +877,25 @@ mod macos {
                 // digest replaces the first instead of stacking beside it.
                 let request = UNNotificationRequest::requestWithIdentifier_content_trigger(
                     &NSString::from_str(CATEGORY_DIGEST),
+                    &content,
+                    None,
+                );
+                self.center()
+                    .addNotificationRequest_withCompletionHandler(&request, None);
+                true
+            })
+        }
+
+        fn present_ritual(&self, ritual_id: &str, title: &str) -> bool {
+            if self.access() != NotificationAccess::Authorized {
+                return false;
+            }
+            objc2::rc::autoreleasepool(|_| {
+                let content = UNMutableNotificationContent::new();
+                content.setTitle(&NSString::from_str(title));
+                content.setCategoryIdentifier(&NSString::from_str(CATEGORY_RITUAL));
+                let request = UNNotificationRequest::requestWithIdentifier_content_trigger(
+                    &NSString::from_str(ritual_id),
                     &content,
                     None,
                 );
@@ -1011,8 +1091,9 @@ mod tests {
         slot.acknowledge("calendar");
         slot.raise("browser".to_string(), "browser", 1, true);
 
+        let capture = slot.begin_capture(|_| true);
         assert_eq!(
-            slot.begin_capture(),
+            capture.commands,
             vec![
                 PanelCommand::PresentFallback {
                     prompt_id: "calendar".to_string(),
@@ -1025,7 +1106,27 @@ mod tests {
                 PanelCommand::ShowPanel,
             ]
         );
+        assert!(capture.discarded.is_empty());
         assert_eq!(slot.owner_id(), None);
+    }
+
+    #[test]
+    fn capture_discards_rituals_instead_of_notifying_over_recording() {
+        let mut slot = PanelSlot::default();
+        slot.raise("prompt".to_string(), "prompt", 10, true);
+        slot.raise("wrap".to_string(), "wrap", 1, true);
+
+        let capture = slot.begin_capture(|pending| *pending == "prompt");
+
+        assert_eq!(capture.discarded, vec![("wrap".to_string(), "wrap")]);
+        assert!(capture.commands.contains(&PanelCommand::PresentFallback {
+            prompt_id: "prompt".to_string(),
+            prompt: "prompt",
+        }));
+        assert!(!capture.commands.contains(&PanelCommand::PresentFallback {
+            prompt_id: "wrap".to_string(),
+            prompt: "wrap",
+        }));
     }
 
     #[test]

@@ -772,6 +772,16 @@ impl MeetingProcessingService {
                 ) {
                     log::warn!("meeting finalization workflow event failed: {error:?}");
                 }
+                if let Some(app) = self.app.as_ref() {
+                    if let Some(runtime) =
+                        app.try_state::<Arc<crate::meeting::detection::DetectionRuntime>>()
+                    {
+                        let runtime = Arc::clone(runtime.inner());
+                        tauri::async_runtime::spawn(async move {
+                            runtime.present_wrap(session_id).await;
+                        });
+                    }
+                }
                 // D22, last and off this thread. Everything an automation sends
                 // is final by now — the artifact revision is current, its
                 // headline has become the title, loops have been carried, the

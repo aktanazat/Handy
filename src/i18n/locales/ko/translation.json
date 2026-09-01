@@ -2447,6 +2447,18 @@
       "copied": "초안을 복사했습니다.",
       "copyFailed": "초안을 복사하지 못했습니다.",
       "failed": "이 회의의 후속 메시지를 작성하지 못했습니다."
+    },
+    "prep": {
+      "label": "준비",
+      "title": "{{title}} — {{count}}분 후",
+      "lastTime": "지난번:",
+      "myOpenLoops": "내 미완료 항목 ({{count}})",
+      "waitingOn": "대기 중 ({{count}})",
+      "participantMeetings": "미팅 {{count}}회",
+      "participants": "참석자:",
+      "openBrief": "요약 열기",
+      "recordWhenStarts": "시작할 때 녹음",
+      "dismiss": "닫기"
     }
   },
   "chat": {
@@ -2947,7 +2959,18 @@
     "ignore": "무시",
     "recording": "녹음 중",
     "stop": "중지",
-    "forgetSeries": "이 시리즈 잊기"
+    "forgetSeries": "이 시리즈 잊기",
+    "wrap": {
+      "label": "마무리",
+      "title": "{{title}} — 저장됨",
+      "followUps": "후속 조치 {{count}}개",
+      "waitingOnPerson": "{{name}} 대기 {{count}}개",
+      "waitingOn": "대기 중 ({{count}})",
+      "openNotes": "노트 열기",
+      "copyFollowUp": "후속 메시지 복사",
+      "copied": "복사됨",
+      "done": "완료"
+    }
   },
   "learningV2": {
     "workflows": {

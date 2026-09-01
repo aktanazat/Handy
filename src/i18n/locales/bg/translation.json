@@ -2453,6 +2453,18 @@
       "copied": "Черновата е копирана.",
       "copyFailed": "Черновата не можа да бъде копирана.",
       "failed": "Не можа да се състави чернова за тази среща."
+    },
+    "prep": {
+      "label": "Подготовка",
+      "title": "{{title}} — след {{count}} мин",
+      "lastTime": "Миналия път:",
+      "myOpenLoops": "Моите отворени задачи ({{count}})",
+      "waitingOn": "Чакащи ({{count}})",
+      "participantMeetings": "{{count}} срещи",
+      "participants": "Участници:",
+      "openBrief": "Отвори резюмето",
+      "recordWhenStarts": "Запис при започване",
+      "dismiss": "Затвори"
     }
   },
   "chat": {
@@ -2958,7 +2970,18 @@
     "ignore": "Пропусни",
     "recording": "Записва се",
     "stop": "Спри",
-    "forgetSeries": "Забрави тази поредица"
+    "forgetSeries": "Забрави тази поредица",
+    "wrap": {
+      "label": "Обобщение",
+      "title": "{{title}} — запазено",
+      "followUps": "{{count}} последващи задачи",
+      "waitingOnPerson": "{{count}} чакат {{name}}",
+      "waitingOn": "Чакащи ({{count}})",
+      "openNotes": "Отвори бележките",
+      "copyFollowUp": "Копирай съобщението",
+      "copied": "Копирано",
+      "done": "Готово"
+    }
   },
   "learningV2": {
     "workflows": {

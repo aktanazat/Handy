@@ -36,8 +36,18 @@ const PersonRow: React.FC<{
         onClick={onOpen}
         className="hover-fast flex w-full min-w-0 items-center gap-3 px-4 py-2.5 text-start hover:bg-background-200 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
       >
-        <span className="min-w-0 flex-1 truncate text-[13px] leading-[19px] text-gray-1000">
-          {entry.person.display_name}
+        <span className="flex min-w-0 flex-1 items-baseline gap-2">
+          <span className="min-w-0 truncate text-[13px] leading-[19px] text-gray-1000">
+            {entry.person.display_name}
+          </span>
+          {entry.person.organization === null ? null : (
+            <span
+              data-slot="person-organization"
+              className="flex-none text-[10px] leading-4 text-gray-700"
+            >
+              {entry.person.organization}
+            </span>
+          )}
         </span>
         <span className="snap-measured flex flex-none items-center gap-1.5 text-[11px] text-gray-900 tabular-nums">
           <span>

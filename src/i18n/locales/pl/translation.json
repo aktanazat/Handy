@@ -2465,6 +2465,18 @@
       "copied": "Szkic skopiowany.",
       "copyFailed": "Nie udało się skopiować szkicu.",
       "failed": "Nie udało się napisać wiadomości do tego spotkania."
+    },
+    "prep": {
+      "label": "Przygotowanie",
+      "title": "{{title}} — za {{count}} min",
+      "lastTime": "Ostatnio:",
+      "myOpenLoops": "Moje otwarte sprawy ({{count}})",
+      "waitingOn": "Oczekujące ({{count}})",
+      "participantMeetings": "{{count}} spotkań",
+      "participants": "Uczestnicy:",
+      "openBrief": "Otwórz podsumowanie",
+      "recordWhenStarts": "Nagraj po rozpoczęciu",
+      "dismiss": "Zamknij"
     }
   },
   "chat": {
@@ -2988,7 +3000,18 @@
     "ignore": "Pomiń",
     "recording": "Nagrywanie",
     "stop": "Zatrzymaj",
-    "forgetSeries": "Zapomnij tę serię"
+    "forgetSeries": "Zapomnij tę serię",
+    "wrap": {
+      "label": "Zakończenie",
+      "title": "{{title}} — zapisano",
+      "followUps": "Dalsze działania: {{count}}",
+      "waitingOnPerson": "{{count}} czeka na {{name}}",
+      "waitingOn": "Oczekujące ({{count}})",
+      "openNotes": "Otwórz notatki",
+      "copyFollowUp": "Kopiuj wiadomość",
+      "copied": "Skopiowano",
+      "done": "Gotowe"
+    }
   },
   "learningV2": {
     "workflows": {

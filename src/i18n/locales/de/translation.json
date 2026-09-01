@@ -2453,6 +2453,18 @@
       "copied": "Entwurf kopiert.",
       "copyFailed": "Der Entwurf konnte nicht kopiert werden.",
       "failed": "Für dieses Meeting konnte kein Entwurf geschrieben werden."
+    },
+    "prep": {
+      "label": "Vorbereitung",
+      "title": "{{title}} — in {{count}} Min.",
+      "lastTime": "Beim letzten Mal:",
+      "myOpenLoops": "Meine offenen Punkte ({{count}})",
+      "waitingOn": "Ausstehend ({{count}})",
+      "participantMeetings": "{{count}} Besprechungen",
+      "participants": "Teilnehmende:",
+      "openBrief": "Übersicht öffnen",
+      "recordWhenStarts": "Beim Start aufnehmen",
+      "dismiss": "Schließen"
     }
   },
   "chat": {
@@ -2958,7 +2970,18 @@
     "ignore": "Ignorieren",
     "recording": "Aufnahme",
     "stop": "Stoppen",
-    "forgetSeries": "Diese Reihe vergessen"
+    "forgetSeries": "Diese Reihe vergessen",
+    "wrap": {
+      "label": "Abschluss",
+      "title": "{{title}} — gespeichert",
+      "followUps": "{{count}} Nachfasspunkte",
+      "waitingOnPerson": "{{count}} warten auf {{name}}",
+      "waitingOn": "Ausstehend ({{count}})",
+      "openNotes": "Notizen öffnen",
+      "copyFollowUp": "Nachricht kopieren",
+      "copied": "Kopiert",
+      "done": "Fertig"
+    }
   },
   "learningV2": {
     "workflows": {

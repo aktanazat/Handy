@@ -2459,6 +2459,18 @@
       "copied": "Brouillon copié.",
       "copyFailed": "Impossible de copier le brouillon.",
       "failed": "Impossible de rédiger un suivi pour cette réunion."
+    },
+    "prep": {
+      "label": "Préparation",
+      "title": "{{title}} — dans {{count}} min",
+      "lastTime": "La dernière fois :",
+      "myOpenLoops": "Mes points ouverts ({{count}})",
+      "waitingOn": "En attente ({{count}})",
+      "participantMeetings": "{{count}} réunions",
+      "participants": "Participants :",
+      "openBrief": "Ouvrir le récapitulatif",
+      "recordWhenStarts": "Enregistrer au démarrage",
+      "dismiss": "Fermer"
     }
   },
   "chat": {
@@ -2973,7 +2985,18 @@
     "ignore": "Ignorer",
     "recording": "Enregistrement",
     "stop": "Arrêter",
-    "forgetSeries": "Oublier cette série"
+    "forgetSeries": "Oublier cette série",
+    "wrap": {
+      "label": "Clôture",
+      "title": "{{title}} — enregistré",
+      "followUps": "{{count}} suivis",
+      "waitingOnPerson": "{{count}} en attente de {{name}}",
+      "waitingOn": "En attente ({{count}})",
+      "openNotes": "Ouvrir les notes",
+      "copyFollowUp": "Copier le suivi",
+      "copied": "Copié",
+      "done": "Terminé"
+    }
   },
   "learningV2": {
     "workflows": {

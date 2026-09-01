@@ -2465,6 +2465,18 @@
       "copied": "Черновик скопирован.",
       "copyFailed": "Не удалось скопировать черновик.",
       "failed": "Не удалось составить письмо по этой встрече."
+    },
+    "prep": {
+      "label": "Подготовка",
+      "title": "{{title}} — через {{count}} мин",
+      "lastTime": "В прошлый раз:",
+      "myOpenLoops": "Мои открытые задачи ({{count}})",
+      "waitingOn": "Ожидают ({{count}})",
+      "participantMeetings": "{{count}} встреч",
+      "participants": "Участники:",
+      "openBrief": "Открыть сводку",
+      "recordWhenStarts": "Записать при начале",
+      "dismiss": "Закрыть"
     }
   },
   "chat": {
@@ -2988,7 +3000,18 @@
     "ignore": "Пропустить",
     "recording": "Запись",
     "stop": "Остановить",
-    "forgetSeries": "Забыть эту серию"
+    "forgetSeries": "Забыть эту серию",
+    "wrap": {
+      "label": "Завершение",
+      "title": "{{title}} — сохранено",
+      "followUps": "Дальнейшие действия: {{count}}",
+      "waitingOnPerson": "{{count}} ожидают {{name}}",
+      "waitingOn": "Ожидают ({{count}})",
+      "openNotes": "Открыть заметки",
+      "copyFollowUp": "Копировать сообщение",
+      "copied": "Скопировано",
+      "done": "Готово"
+    }
   },
   "learningV2": {
     "workflows": {

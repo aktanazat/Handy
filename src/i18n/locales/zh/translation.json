@@ -2447,6 +2447,18 @@
       "copied": "草稿已复制。",
       "copyFailed": "无法复制草稿。",
       "failed": "无法为这场会议起草跟进。"
+    },
+    "prep": {
+      "label": "会前准备",
+      "title": "{{title}} — {{count}} 分钟后",
+      "lastTime": "上次:",
+      "myOpenLoops": "我的待办事项 ({{count}})",
+      "waitingOn": "等待中 ({{count}})",
+      "participantMeetings": "{{count}} 次会议",
+      "participants": "参与者:",
+      "openBrief": "打开摘要",
+      "recordWhenStarts": "开始时录音",
+      "dismiss": "关闭"
     }
   },
   "chat": {
@@ -2947,7 +2959,18 @@
     "ignore": "忽略",
     "recording": "录制中",
     "stop": "停止",
-    "forgetSeries": "忘记这个系列"
+    "forgetSeries": "忘记这个系列",
+    "wrap": {
+      "label": "会后整理",
+      "title": "{{title}} — 已保存",
+      "followUps": "{{count}} 项后续",
+      "waitingOnPerson": "{{count}} 项等待 {{name}}",
+      "waitingOn": "等待中 ({{count}})",
+      "openNotes": "打开笔记",
+      "copyFollowUp": "复制跟进内容",
+      "copied": "已复制",
+      "done": "完成"
+    }
   },
   "learningV2": {
     "workflows": {

@@ -277,6 +277,17 @@ describe("formatWorkflowOutcome", () => {
       "Stopped recording automatically",
     );
   });
+
+  test("narrates each meeting ritual receipt", () => {
+    expect(format("prep_presented")).toBe("Prep");
+    expect(format("prep_record_armed")).toBe("Record when it starts");
+    expect(format("prep_brief_opened")).toBe("Open brief");
+    expect(format("prep_dismissed")).toBe("Dismiss");
+    expect(format("wrap_presented")).toBe("Wrap");
+    expect(format("wrap_notes_opened")).toBe("Open notes");
+    expect(format("wrap_follow_up_copied")).toBe("Copied");
+    expect(format("wrap_done")).toBe("Done");
+  });
 });
 
 describe("runsForLastSevenDays", () => {

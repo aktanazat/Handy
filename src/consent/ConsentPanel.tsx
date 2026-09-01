@@ -2,18 +2,30 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import {
   commands,
   events,
   type DetectionPromptEvent,
   type DetectionStatus,
   type MeetingConsentPanelSessionState,
+  type MeetingPrepCard,
+  type MeetingRitualAction,
+  type MeetingRitualEvent,
+  type MeetingWrapCard,
 } from "@/bindings";
 import { Button } from "@/components/vg/button";
 import { Checkbox } from "@/components/vg/checkbox";
 import { consentFor } from "@/components/settings/meetings/MeetingStartGate";
 import type { MeetingStartOptions } from "@/components/settings/meetings/meetingTypes";
+import {
+  followUpDraftText,
+  meetingFollowUpDraft,
+} from "@/components/settings/meetings/review/followUpDraft";
 import { elapsedLabel } from "./elapsed";
+
+const panelClass =
+  "m-2 flex h-[calc(100%-1rem)] flex-col gap-3 rounded-lg border border-border bg-raised p-4 text-gray-1000 shadow-lg";
 
 const startOptions = (prompt: DetectionPromptEvent): MeetingStartOptions => ({
   title:
@@ -30,15 +42,191 @@ const startOptions = (prompt: DetectionPromptEvent): MeetingStartOptions => ({
   preview: null,
 });
 
+type PrepCardProps = {
+  card: MeetingPrepCard;
+  onAction: (action: MeetingRitualAction) => void;
+  t: TFunction;
+  now?: number;
+};
+
+export function PrepCard({
+  card,
+  onAction,
+  t,
+  now = Date.now(),
+}: PrepCardProps) {
+  const minutes = Math.max(1, Math.ceil((card.startUtcMs - now) / 60_000));
+  const participants = card.participants
+    .map((participant) => {
+      const meetings = t("meetings.prep.participantMeetings", {
+        count: participant.meetingsCount,
+      });
+      return [participant.name, meetings, participant.organization]
+        .filter(Boolean)
+        .join(" · ");
+    })
+    .join("; ");
+
+  return (
+    <main className={panelClass} data-testid="prep-card">
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-800">
+            {t("meetings.prep.label")}
+          </p>
+          <h1 className="truncate text-base font-semibold tracking-tight">
+            {t("meetings.prep.title", { title: card.title, count: minutes })}
+          </h1>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="-mr-2 -mt-2 px-2 text-gray-800"
+          aria-label={t("meetings.prep.dismiss")}
+          onClick={() => onAction("prep_dismiss")}
+        >
+          ×
+        </Button>
+      </div>
+
+      <p className="line-clamp-2 text-sm text-gray-900">
+        <span className="font-medium text-gray-1000">
+          {t("meetings.prep.lastTime")}
+        </span>{" "}
+        {card.headline}
+      </p>
+
+      {card.mineOpenLoopCount > 0 ? (
+        <div className="min-h-0 text-sm">
+          <p className="font-medium">
+            {t("meetings.prep.myOpenLoops", {
+              count: card.mineOpenLoopCount,
+            })}
+          </p>
+          <ul className="mt-0.5 space-y-0.5 text-gray-900">
+            {card.mineOpenLoops.slice(0, 2).map((loop) => (
+              <li className="truncate" key={loop}>
+                · {loop}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {card.waitingOnCount > 0 ? (
+        <p className="text-sm text-gray-900">
+          {t("meetings.prep.waitingOn", { count: card.waitingOnCount })}
+        </p>
+      ) : null}
+
+      {participants !== "" ? (
+        <p className="line-clamp-2 text-xs leading-4 text-gray-900">
+          <span className="font-medium text-gray-1000">
+            {t("meetings.prep.participants")}
+          </span>{" "}
+          {participants}
+        </p>
+      ) : null}
+
+      <div className="mt-auto flex justify-end gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => onAction("prep_open_brief")}
+        >
+          {t("meetings.prep.openBrief")}
+        </Button>
+        {card.canRecordWhenStarts ? (
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => onAction("prep_record_when_starts")}
+          >
+            {t("meetings.prep.recordWhenStarts")}
+          </Button>
+        ) : null}
+      </div>
+    </main>
+  );
+}
+
+type WrapCardProps = {
+  card: MeetingWrapCard;
+  copied: boolean;
+  onAction: (action: MeetingRitualAction) => void;
+  onCopy: () => void;
+  t: TFunction;
+};
+
+export function WrapCard({ card, copied, onAction, onCopy, t }: WrapCardProps) {
+  const waiting =
+    card.waitingOnCount === 0
+      ? null
+      : card.waitingOnNames.length === 1
+        ? t("consentPanel.wrap.waitingOnPerson", {
+            count: card.waitingOnCount,
+            name: card.waitingOnNames[0],
+          })
+        : t("consentPanel.wrap.waitingOn", { count: card.waitingOnCount });
+  const delta = [
+    card.followUpCount > 0
+      ? t("consentPanel.wrap.followUps", { count: card.followUpCount })
+      : null,
+    waiting,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <main className={panelClass} data-testid="wrap-card">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-800">
+          {t("consentPanel.wrap.label")}
+        </p>
+        <h1 className="truncate text-base font-semibold tracking-tight">
+          {t("consentPanel.wrap.title", { title: card.title })}
+        </h1>
+      </div>
+      <p className="line-clamp-2 text-sm text-gray-900">{card.headline}</p>
+      {delta !== "" ? <p className="text-sm text-gray-900">{delta}</p> : null}
+      <div className="mt-auto flex justify-end gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => onAction("wrap_open_notes")}
+        >
+          {t("consentPanel.wrap.openNotes")}
+        </Button>
+        <Button type="button" variant="outline" size="sm" onClick={onCopy}>
+          {copied
+            ? t("consentPanel.wrap.copied")
+            : t("consentPanel.wrap.copyFollowUp")}
+        </Button>
+        <Button type="button" size="sm" onClick={() => onAction("wrap_done")}>
+          {t("consentPanel.wrap.done")}
+        </Button>
+      </div>
+      <span className="sr-only" role="status" aria-live="polite">
+        {copied ? t("consentPanel.wrap.copied") : ""}
+      </span>
+    </main>
+  );
+}
+
 export default function ConsentPanel() {
   const { t } = useTranslation();
   const [prompt, setPrompt] = useState<DetectionPromptEvent | null>(null);
+  const [ritual, setRitual] = useState<MeetingRitualEvent | null>(null);
   const [status, setStatus] = useState<DetectionStatus | null>(null);
   const [active, setActive] = useState<MeetingConsentPanelSessionState | null>(
     null,
   );
   const [alwaysRecord, setAlwaysRecord] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [now, setNow] = useState(Date.now());
   const activeRef = useRef<MeetingConsentPanelSessionState | null | undefined>(
     undefined,
@@ -52,6 +240,10 @@ export default function ConsentPanel() {
     }
     activeRef.current = result.data;
     setActive(result.data);
+    if (result.data !== null) {
+      setPrompt(null);
+      setRitual(null);
+    }
   }, []);
 
   useEffect(() => {
@@ -64,9 +256,15 @@ export default function ConsentPanel() {
     void refreshActive();
     const listeners = Promise.all([
       events.detectionPrompt.listen((event) => {
-        if (event.payload.delivery !== "panel" || activeRef.current !== null) {
+        if (event.payload.delivery !== "panel") {
+          setPrompt((current) =>
+            current?.promptId === event.payload.promptId ? null : current,
+          );
           return;
         }
+        if (activeRef.current !== null && activeRef.current !== undefined)
+          return;
+        setRitual(null);
         setPrompt(event.payload);
         setAlwaysRecord(false);
         void commands
@@ -78,6 +276,29 @@ export default function ConsentPanel() {
       events.detectionPromptRetracted.listen((event) =>
         setPrompt((current) =>
           current?.promptId === event.payload.promptId ? null : current,
+        ),
+      ),
+      events.meetingRitual.listen((event) => {
+        if (event.payload.delivery !== "panel") {
+          setRitual((current) =>
+            current?.ritualId === event.payload.ritualId ? null : current,
+          );
+          return;
+        }
+        if (activeRef.current !== null && activeRef.current !== undefined)
+          return;
+        setPrompt(null);
+        setCopied(false);
+        setRitual(event.payload);
+        void commands
+          .meetingRitualPanelAck(event.payload.ritualId)
+          .catch((error) => {
+            console.error("Could not acknowledge the meeting ritual", error);
+          });
+      }),
+      events.meetingRitualRetracted.listen((event) =>
+        setRitual((current) =>
+          current?.ritualId === event.payload.ritualId ? null : current,
         ),
       ),
       events.detectionStatus.listen((event) => setStatus(event.payload)),
@@ -92,10 +313,10 @@ export default function ConsentPanel() {
   }, [refreshActive]);
 
   useEffect(() => {
-    if (active === null) return;
+    if (active === null && ritual?.ritual.kind !== "prep") return;
     const timer = window.setInterval(() => setNow(Date.now()), 1_000);
     return () => window.clearInterval(timer);
-  }, [active]);
+  }, [active, ritual]);
 
   const briefing = useMemo(() => {
     if (prompt?.prompt.kind !== "CalendarEvent") return null;
@@ -130,6 +351,33 @@ export default function ConsentPanel() {
     }
   }, [prompt, t]);
 
+  const ritualAction = async (action: MeetingRitualAction) => {
+    if (ritual === null) return;
+    const result = await commands.meetingRitualRespond(ritual.ritualId, action);
+    if (
+      result.status === "ok" &&
+      result.data &&
+      action !== "wrap_follow_up_copied"
+    ) {
+      setRitual(null);
+    }
+  };
+
+  const copyFollowUp = async () => {
+    if (ritual?.ritual.kind !== "wrap") return;
+    try {
+      const draft = await meetingFollowUpDraft(
+        crypto.randomUUID(),
+        ritual.ritual.card.sessionId,
+      );
+      await navigator.clipboard.writeText(followUpDraftText(draft, t));
+      setCopied(true);
+      await ritualAction("wrap_follow_up_copied");
+    } catch (error: unknown) {
+      console.error("Could not copy the meeting follow-up", error);
+    }
+  };
+
   const record = async () => {
     if (prompt === null) return;
     setStarting(true);
@@ -146,9 +394,8 @@ export default function ConsentPanel() {
         setPrompt(null);
         return;
       }
-      if (result.data.snapshot.phase === "capturing_recording") {
+      if (result.data.snapshot.phase === "capturing_recording")
         await refreshActive();
-      }
       setPrompt(null);
     } catch (error: unknown) {
       console.error("Could not start the meeting", error);
@@ -197,7 +444,7 @@ export default function ConsentPanel() {
 
   if (active !== null) {
     return (
-      <main className="m-2 flex h-[calc(100%-1rem)] flex-col gap-3 rounded-lg border border-border bg-raised p-4 text-gray-1000 shadow-lg">
+      <main className={panelClass}>
         <div className="flex items-center gap-2">
           <span className="size-2 rounded-full bg-red-700" aria-hidden="true" />
           <strong className="text-sm font-semibold">
@@ -229,50 +476,76 @@ export default function ConsentPanel() {
     );
   }
 
-  if (prompt === null) return null;
-  const calendarPrompt = prompt.prompt.kind === "CalendarEvent";
-  return (
-    <main className="m-2 flex h-[calc(100%-1rem)] flex-col gap-3 rounded-lg border border-border bg-raised p-4 text-gray-1000 shadow-lg">
-      {/* The one block that gives way when copy runs long: a wrapped title
-       * loses its tail rather than pushing the checkbox and the buttons out
-       * of a window whose height was decided before this text was measured. */}
-      <div className="min-h-0 overflow-hidden">
-        <h1 className="text-base font-semibold tracking-tight">{title}</h1>
-        {prompt.showIntroduction ? (
-          <p className="mt-1 text-sm text-gray-900">
-            {t("consentPanel.introduction")}
-          </p>
-        ) : null}
-        {briefing !== null ? (
-          <p className="mt-1 text-sm text-gray-900">{briefing}</p>
-        ) : null}
-      </div>
-      {calendarPrompt ? (
-        <label className="flex items-center gap-2 text-sm">
-          <Checkbox
-            className="border-gray-700"
-            checked={alwaysRecord}
-            onCheckedChange={(checked) => setAlwaysRecord(checked === true)}
-          />
-          <span>{t("consentPanel.alwaysRecord")}</span>
-        </label>
-      ) : null}
-      <div className="flex items-end justify-between gap-3">
-        <p className="max-w-[215px] text-xs leading-4 text-gray-900">
-          {t(
-            "meetings.start.assurance",
-            "Records your Mac's audio locally. Nothing joins the call.",
-          )}
-        </p>
-        <div className="flex gap-2">
-          <Button type="button" variant="ghost" size="sm" onClick={ignore}>
-            {t("consentPanel.ignore")}
-          </Button>
-          <Button type="button" size="sm" disabled={starting} onClick={record}>
-            {t("consentPanel.record")}
-          </Button>
+  if (prompt !== null) {
+    const calendarPrompt = prompt.prompt.kind === "CalendarEvent";
+    return (
+      <main className={panelClass}>
+        <div className="min-h-0 overflow-hidden">
+          <h1 className="text-base font-semibold tracking-tight">{title}</h1>
+          {prompt.showIntroduction ? (
+            <p className="mt-1 text-sm text-gray-900">
+              {t("consentPanel.introduction")}
+            </p>
+          ) : null}
+          {briefing !== null ? (
+            <p className="mt-1 text-sm text-gray-900">{briefing}</p>
+          ) : null}
         </div>
-      </div>
-    </main>
-  );
+        {calendarPrompt ? (
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              className="border-gray-700"
+              checked={alwaysRecord}
+              onCheckedChange={(checked) => setAlwaysRecord(checked === true)}
+            />
+            <span>{t("consentPanel.alwaysRecord")}</span>
+          </label>
+        ) : null}
+        <div className="flex items-end justify-between gap-3">
+          <p className="max-w-[215px] text-xs leading-4 text-gray-900">
+            {t(
+              "meetings.start.assurance",
+              "Records your Mac's audio locally. Nothing joins the call.",
+            )}
+          </p>
+          <div className="flex gap-2">
+            <Button type="button" variant="ghost" size="sm" onClick={ignore}>
+              {t("consentPanel.ignore")}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={starting}
+              onClick={record}
+            >
+              {t("consentPanel.record")}
+            </Button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (ritual?.ritual.kind === "prep") {
+    return (
+      <PrepCard
+        card={ritual.ritual.card}
+        onAction={(action) => void ritualAction(action)}
+        t={t}
+        now={now}
+      />
+    );
+  }
+  if (ritual?.ritual.kind === "wrap") {
+    return (
+      <WrapCard
+        card={ritual.ritual.card}
+        copied={copied}
+        onAction={(action) => void ritualAction(action)}
+        onCopy={() => void copyFollowUp()}
+        t={t}
+      />
+    );
+  }
+  return null;
 }

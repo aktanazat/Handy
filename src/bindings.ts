@@ -2456,6 +2456,17 @@ async detectionPromptRespond(promptId: string, accepted: boolean) : Promise<void
 async detectionPromptPanelAck(promptId: string) : Promise<void> {
     await TAURI_INVOKE("detection_prompt_panel_ack", { promptId });
 },
+async meetingRitualPanelAck(ritualId: string) : Promise<void> {
+    await TAURI_INVOKE("meeting_ritual_panel_ack", { ritualId });
+},
+async meetingRitualRespond(ritualId: string, action: MeetingRitualAction) : Promise<Result<boolean, null>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("meeting_ritual_respond", { ritualId, action }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 /**
  * Allowlisted bundle IDs whose application is running right now. The settings UI
  * uses this to show an operator whether an entry they typed is real, which is
@@ -2592,6 +2603,8 @@ detectionPrompt: DetectionPromptEvent,
 detectionPromptRetracted: DetectionPromptRetractedEvent,
 detectionStatus: DetectionStatus,
 historyUpdatePayload: HistoryUpdatePayload,
+meetingRitual: MeetingRitualEvent,
+meetingRitualRetracted: MeetingRitualRetractedEvent,
 meetingArtifactChanged: MeetingArtifactChangedEvent,
 meetingNavigationRequested: MeetingNavigationRequestedEvent,
 meetingNoteChanged: MeetingNoteChangedEvent,
@@ -2619,6 +2632,8 @@ detectionPrompt: "detection-prompt",
 detectionPromptRetracted: "detection-prompt-retracted",
 detectionStatus: "detection-status",
 historyUpdatePayload: "history-update-payload",
+meetingRitual: "meeting-ritual",
+meetingRitualRetracted: "meeting-ritual-retracted",
 meetingArtifactChanged: "meeting:artifact-changed",
 meetingNavigationRequested: "meeting:navigation-requested",
 meetingNoteChanged: "meeting:note-changed",
@@ -4236,6 +4251,8 @@ export type MeetingPersonContextRow = { person_id: PersonId; display_name: strin
 export type MeetingPhase = "preflight" | "starting" | "capturing_recording" | "capturing_pausing" | "capturing_paused" | "capturing_resuming" | "stopping" | "processing" | "review_ready" | "recovery_required" | "deleting"
 export type MeetingPreflightCreateRequest = { operation_id: MeetingOperationId; expected_revision: number; title: string; origin: MeetingOrigin; suggestion_id: MeetingSuggestionId | null; calendar_event_key?: string | null; requested_sources: SourceKind[]; required_sources: SourceKind[]; accepted_known_missing_sources: SourceKind[]; degraded_start_policy: DegradedStartPolicy; destination: ProcessingDestination; remote_acknowledgement: RemoteAcknowledgement | null; microphone_device_uid: string | null; frozen_system_audio_application_bundle_ids: string[] }
 export type MeetingPreflightRefreshRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number }
+export type MeetingPrepCard = { eventKey: string; seriesKey: string; title: string; startUtcMs: number; lastMeetingId: MeetingSessionId; headline: string; mineOpenLoops: string[]; mineOpenLoopCount: number; waitingOnCount: number; participants: MeetingPrepParticipant[]; canRecordWhenStarts: boolean }
+export type MeetingPrepParticipant = { name: string; meetingsCount: number; organization: string | null }
 export type MeetingProvider = "zoom" | "google_meet" | "microsoft_teams" | "webex" | "slack_huddle" | "face_time" | "configured_app"
 export type MeetingQuestionId = string
 export type MeetingQuestionRequest = { operation_id: MeetingOperationId; session_id: MeetingSessionId; expected_revision: number; question_id: MeetingQuestionId; question: string; scope?: MeetingQuestionScope; save_history?: boolean }
@@ -4255,6 +4272,10 @@ export type MeetingRetentionPolicy = { kind: "forever" } | { kind: "delete_after
 export type MeetingRetentionSetRequest = { operation_id: MeetingOperationId; expected_revision: number; policy: MeetingRetentionPolicy }
 export type MeetingRetentionSnapshot = { policy: MeetingRetentionPolicy; revision: number }
 export type MeetingReviewSnapshot = { session: MeetingSessionSnapshot; tracks: MeetingTrackSnapshot[]; gaps: SourceGap[]; speakers: MeetingSpeaker[]; transcript: EffectiveTranscriptSegment[]; notes: ManualNote[]; artifacts: MeetingArtifactRevision[]; questions: MeetingAnswer[]; diarization: MeetingDiarizationSnapshot; can_export: boolean; remote_cancellation_pending: boolean }
+export type MeetingRitual = { kind: "prep"; card: MeetingPrepCard } | { kind: "wrap"; card: MeetingWrapCard }
+export type MeetingRitualAction = "prep_record_when_starts" | "prep_open_brief" | "prep_dismiss" | "wrap_open_notes" | "wrap_follow_up_copied" | "wrap_done"
+export type MeetingRitualEvent = { eventSchemaVersion: number; ritualId: string; ritual: MeetingRitual; notificationTitle: string; delivery: DetectionPromptDelivery }
+export type MeetingRitualRetractedEvent = { eventSchemaVersion: number; ritualId: string }
 export type MeetingSearchHit = { session_id: MeetingSessionId; kind: CitationKind; entity_id: string; start_offset_ns: number | null; end_offset_ns: number | null; excerpt: string }
 export type MeetingSearchRequest = { query: string; session_ids: MeetingSessionId[]; limit: number | null }
 export type MeetingSearchResult = { entries: MeetingSearchHit[] }
@@ -4553,6 +4574,7 @@ revision: number; updated_at_utc_ms: number }
  * runs on an autosave timer while other edits may be in flight.
  */
 export type MeetingUserNotesSaveRequest = { session_id: MeetingSessionId; body: string; template: MeetingNotesTemplate; expected_note_revision: number }
+export type MeetingWrapCard = { sessionId: MeetingSessionId; title: string; headline: string; followUpCount: number; waitingOnCount: number; waitingOnNames: string[] }
 /**
  * One exact frontmost-application identity mapped to one mode. Application
  * bundle identities are the only match keys; URLs and sites never enter this
@@ -4735,7 +4757,7 @@ export type PasteMethod = "ctrl_v" | "direct" | "none" | "shift_insert" | "ctrl_
 export type PeopleListResult = { schema_version: number; revision: number; entries: PersonListEntry[] }
 export type PeopleMutationResult = { schema_version: number; revision: number; person: Person | null; removed: boolean }
 export type PermissionAccess = "allowed" | "denied" | "unknown"
-export type Person = { id: PersonId; display_name: string; aliases: string[]; calendar_emails: string[]; created_at_utc_ms: number; updated_at_utc_ms: number }
+export type Person = { id: PersonId; display_name: string; aliases: string[]; calendar_emails: string[]; organization: string | null; created_at_utc_ms: number; updated_at_utc_ms: number }
 export type PersonBriefingLastMeeting = { id: MeetingSessionId; title: string; at_utc_ms: number; headline: string | null }
 export type PersonBriefingRow = { person_id: PersonId; display_name: string; meetings_count: number; last: PersonBriefingLastMeeting | null; open_loops: PersonOpenLoop[]; commitments: PersonCommitment[] }
 export type PersonCommitment = { loop_id: MeetingLoopId; meeting_id: MeetingSessionId; title: string; at_utc_ms: number; text: string; status: MeetingLoopStatus;
@@ -5193,7 +5215,7 @@ export type VocabularyScope = { kind: "global" } | { kind: "current_mode" } | { 
  */
 export type WebsiteHostMatch = "exact" | "suffix"
 export type WindowsMicrophonePermissionStatus = { supported: boolean; overall_access: PermissionAccess; device_access: PermissionAccess; app_access: PermissionAccess; desktop_app_access: PermissionAccess }
-export type WorkflowEventKind = "meeting_finalized" | "meeting_started" | "speaker_renamed" | "audio_imported" | "document_ingested" | "calendar_meeting_detected" | "agent_hook_event" | "meeting_prompt_recorded" | "meeting_prompt_ignored" | "meeting_auto_record_started" | "meeting_auto_record_stopped" |
+export type WorkflowEventKind = "meeting_finalized" | "meeting_started" | "speaker_renamed" | "audio_imported" | "document_ingested" | "calendar_meeting_detected" | "agent_hook_event" | "meeting_prompt_recorded" | "meeting_prompt_ignored" | "meeting_auto_record_started" | "meeting_auto_record_stopped" | "meeting_prep_presented" | "meeting_prep_record_armed" | "meeting_prep_brief_opened" | "meeting_prep_dismissed" | "meeting_wrap_presented" | "meeting_wrap_notes_opened" | "meeting_wrap_follow_up_copied" | "meeting_wrap_done" |
 /**
  * The dictation history has runs the learning loops have not read yet.
  *
@@ -5271,7 +5293,7 @@ export type WorkflowOutcomeCode = "person_links" | "briefing" | "continuity" | "
  * sentence: they are what the day held, not what this run changed —
  * the digest writes nothing.
  */
-"digest_raised" | "prompt_recorded" | "prompt_ignored" | "auto_record_started" | "auto_record_stopped" | "already_processed" | "failed" | "skipped"
+"digest_raised" | "prompt_recorded" | "prompt_ignored" | "auto_record_started" | "auto_record_stopped" | "prep_presented" | "prep_record_armed" | "prep_brief_opened" | "prep_dismissed" | "wrap_presented" | "wrap_notes_opened" | "wrap_follow_up_copied" | "wrap_done" | "already_processed" | "failed" | "skipped"
 export type WorkflowOutcomeCounts = { changes: number; persons: number; series: number; carried: number; candidates: number; suggestions: number; terms: number;
 /**
  * D20: meetings captured on the digest's local day.

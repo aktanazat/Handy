@@ -35,9 +35,12 @@ use crate::meeting::series_types::{
     MeetingSeriesMutationResult, MeetingSeriesPreferences, MeetingSeriesRemoteOptOutSetRequest,
     MeetingSeriesRemoteRoster, MeetingSeriesRemoteRow, MeetingSeriesTemplateSetRequest,
 };
-use crate::meeting::types::{MeetingCommandKind, MeetingOperationId, MeetingSessionId};
+use crate::meeting::types::{
+    GeneratedMeetingArtifacts, MeetingCommandKind, MeetingOperationId, MeetingSessionId,
+};
 use rusqlite::{params, Connection, OptionalExtension};
 use std::collections::{HashMap, HashSet};
+use uuid::Uuid;
 
 /// How many series a roster offers.
 ///
@@ -46,6 +49,11 @@ use std::collections::{HashMap, HashSet};
 /// than in a caller so one surface cannot ask for a longer list than another.
 pub(super) const SERIES_ROSTER_LIMIT: usize = 24;
 
+/// The previous occurrence's link target and generated headline.
+pub(crate) struct PreviousSeriesBrief {
+    pub session_id: MeetingSessionId,
+    pub headline: String,
+}
 impl MeetingStore {
     /// What one series has decided, by its own key.
     pub(crate) fn series_preferences(
@@ -54,6 +62,21 @@ impl MeetingStore {
     ) -> Result<MeetingSeriesPreferences, StoreError> {
         let connection = self.connection()?;
         series_preferences_in(&connection, Some(series_key.trim()))
+    }
+
+    /// The occurrence immediately before a calendar start, when its current
+    /// artifact has a headline worth showing.
+    pub(crate) fn previous_series_brief(
+        &self,
+        series_key: &str,
+        before_utc_ms: i64,
+    ) -> Result<Option<PreviousSeriesBrief>, StoreError> {
+        let series_key = series_key.trim();
+        if series_key.is_empty() {
+            return Ok(None);
+        }
+        let connection = self.connection()?;
+        previous_series_brief_in(&connection, series_key, before_utc_ms)
     }
 
     /// The fence every series write carries, on its own.
@@ -329,6 +352,52 @@ pub(crate) fn session_series_key_in(
         .optional()?
         .flatten();
     Ok(key.filter(|key| !key.trim().is_empty()))
+}
+
+fn previous_series_brief_in(
+    connection: &Connection,
+    series_key: &str,
+    before_utc_ms: i64,
+) -> Result<Option<PreviousSeriesBrief>, StoreError> {
+    let row: Option<(String, Option<String>)> = connection
+        .query_row(
+            "SELECT f.session_id,
+                    (SELECT a.content_json
+                       FROM meeting_artifact_revisions a
+                      WHERE a.session_id = f.session_id
+                        AND a.state = 'current'
+                        AND a.content_json IS NOT NULL
+                      ORDER BY a.generated_at_utc_ms DESC LIMIT 1)
+               FROM meeting_calendar_facts f
+               JOIN meeting_sessions m ON m.id = f.session_id
+              WHERE json_extract(f.event_json, '$.seriesKey') = ?1
+                AND COALESCE(m.started_at_utc_ms, m.created_at_utc_ms) < ?2
+                AND m.phase != 'deleting'
+              ORDER BY COALESCE(m.started_at_utc_ms, m.created_at_utc_ms) DESC, m.id DESC
+              LIMIT 1",
+            params![series_key, before_utc_ms],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .optional()?;
+    let Some((session_id, Some(content_json))) = row else {
+        return Ok(None);
+    };
+    let content: GeneratedMeetingArtifacts =
+        serde_json::from_str(&content_json).map_err(|_| StoreError::Corrupt)?;
+    let Some(headline) = content
+        .headline()
+        .map(str::trim)
+        .filter(|headline| !headline.is_empty())
+    else {
+        return Ok(None);
+    };
+    let session_id = Uuid::parse_str(&session_id)
+        .map(MeetingSessionId::from_uuid)
+        .map_err(|_| StoreError::Corrupt)?;
+    Ok(Some(PreviousSeriesBrief {
+        session_id,
+        headline: headline.to_string(),
+    }))
 }
 
 /// One series on a roster: what every surface listing series needs, before any

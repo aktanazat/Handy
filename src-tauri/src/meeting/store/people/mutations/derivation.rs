@@ -1,6 +1,6 @@
 use super::encode_strings;
 use super::linking::upsert_link_in;
-use crate::meeting::detection::machine::CalendarAttendee;
+use crate::meeting::detection::machine::{CalendarAttendee, CalendarEventSummary};
 use crate::meeting::document_types::DocumentId;
 use crate::meeting::people_types::{Person, PersonId, PersonLinkConfidence, PersonLinkSource};
 use crate::meeting::store::people::{
@@ -10,7 +10,7 @@ use crate::meeting::store::people::{
 use crate::meeting::store::StoreError;
 use crate::meeting::types::MeetingSessionId;
 use rusqlite::{params, Connection};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub(in crate::meeting::store) fn derive_calendar_links_in(
     connection: &Connection,
@@ -31,6 +31,7 @@ pub(in crate::meeting::store) fn derive_calendar_links_in(
             display_name: attendee.name.trim().to_string(),
             aliases: Vec::new(),
             calendar_emails: vec![email.clone()],
+            organization: None,
             created_at_utc_ms: now_utc_ms,
             updated_at_utc_ms: now_utc_ms,
         });
@@ -47,6 +48,137 @@ pub(in crate::meeting::store) fn derive_calendar_links_in(
         )?);
     }
     Ok(changed)
+}
+
+pub(in crate::meeting::store) fn recompute_organizations_in(
+    connection: &Connection,
+) -> Result<usize, StoreError> {
+    let mut changed = 0;
+    for person in all_people_in(connection)? {
+        let organization = organization_for_person_in(connection, &person)?;
+        if organization == person.organization {
+            continue;
+        }
+        connection.execute(
+            "UPDATE persons SET organization = ?1 WHERE id = ?2",
+            params![organization, person.id.uuid().to_string()],
+        )?;
+        changed += 1;
+    }
+    Ok(changed)
+}
+
+fn organization_for_person_in(
+    connection: &Connection,
+    person: &Person,
+) -> Result<Option<String>, StoreError> {
+    let emails = person
+        .calendar_emails
+        .iter()
+        .map(|email| normalized_email(email))
+        .collect::<HashSet<_>>();
+    if emails.is_empty() {
+        return Ok(None);
+    }
+    let mut statement = connection.prepare(
+        "SELECT f.event_json
+           FROM meeting_person_links l
+           JOIN meeting_calendar_facts f ON f.session_id = l.meeting_id
+          WHERE l.person_id = ?1",
+    )?;
+    let facts = statement
+        .query_map([person.id.uuid().to_string()], |row| {
+            row.get::<_, String>(0)
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut scores = HashMap::<String, (u64, i64)>::new();
+    for event_json in facts {
+        let event: CalendarEventSummary =
+            serde_json::from_str(&event_json).map_err(|_| StoreError::Corrupt)?;
+        for email in event
+            .attendees
+            .iter()
+            .filter_map(|attendee| attendee.email.as_deref())
+            .filter(|email| emails.contains(&normalized_email(email)))
+        {
+            let Some(organization) = organization_from_email(email) else {
+                continue;
+            };
+            let score = scores
+                .entry(organization)
+                .or_insert((0, event.start_utc_ms));
+            score.0 += 1;
+            score.1 = score.1.max(event.start_utc_ms);
+        }
+    }
+    Ok(scores
+        .into_iter()
+        .max_by(
+            |(left_name, (left_count, left_newest)), (right_name, (right_count, right_newest))| {
+                left_count
+                    .cmp(right_count)
+                    .then_with(|| left_newest.cmp(right_newest))
+                    .then_with(|| left_name.cmp(right_name))
+            },
+        )
+        .map(|(organization, _)| organization))
+}
+
+const PUBLIC_EMAIL_DOMAINS: &[&str] = &[
+    "126.com",
+    "163.com",
+    "aol.com",
+    "fastmail.com",
+    "gmail.com",
+    "gmx.com",
+    "gmx.de",
+    "googlemail.com",
+    "hey.com",
+    "hotmail.com",
+    "icloud.com",
+    "live.com",
+    "mac.com",
+    "mail.com",
+    "mail.ru",
+    "me.com",
+    "msn.com",
+    "outlook.com",
+    "pm.me",
+    "proton.me",
+    "protonmail.com",
+    "qq.com",
+    "tuta.com",
+    "tutamail.com",
+    "tutanota.com",
+    "yahoo.com",
+    "yandex.com",
+    "yandex.ru",
+    "zoho.com",
+];
+
+fn organization_from_email(email: &str) -> Option<String> {
+    let domain = email
+        .trim()
+        .rsplit_once('@')?
+        .1
+        .trim_end_matches('.')
+        .to_lowercase();
+    let registrable = psl::domain_str(&domain)?;
+    if PUBLIC_EMAIL_DOMAINS.binary_search(&registrable).is_ok()
+        || registrable.starts_with("yahoo.")
+        || registrable.starts_with("gmx.")
+        || registrable.starts_with("yandex.")
+    {
+        return None;
+    }
+    let mut label = registrable.split('.').next()?.chars();
+    let first = label.next()?;
+    Some(
+        first
+            .to_uppercase()
+            .chain(label.flat_map(char::to_lowercase))
+            .collect(),
+    )
 }
 
 pub(in crate::meeting::store) fn derive_speaker_link_in(
@@ -68,6 +200,7 @@ pub(in crate::meeting::store) fn derive_speaker_link_in(
         display_name: display_name.to_string(),
         aliases: Vec::new(),
         calendar_emails: Vec::new(),
+        organization: None,
         created_at_utc_ms: now_utc_ms,
         updated_at_utc_ms: now_utc_ms,
     });

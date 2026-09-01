@@ -3,7 +3,7 @@ mod linking;
 
 pub(in crate::meeting::store) use derivation::{
     derive_calendar_links_in, derive_speaker_link_in, derive_title_links_in,
-    link_document_mentions_in,
+    link_document_mentions_in, recompute_organizations_in,
 };
 
 use self::linking::{confidence_from_db, repoint_meeting_links_in, source_from_db, upsert_link_in};
@@ -127,6 +127,7 @@ impl MeetingStore {
                     display_name,
                     aliases: Vec::new(),
                     calendar_emails: Vec::new(),
+                    organization: None,
                     created_at_utc_ms: now_utc_ms,
                     updated_at_utc_ms: now_utc_ms,
                 };

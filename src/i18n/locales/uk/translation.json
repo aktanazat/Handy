@@ -2465,6 +2465,18 @@
       "copied": "Чернетку скопійовано.",
       "copyFailed": "Не вдалося скопіювати чернетку.",
       "failed": "Не вдалося скласти лист за цією зустріччю."
+    },
+    "prep": {
+      "label": "Підготовка",
+      "title": "{{title}} — через {{count}} хв",
+      "lastTime": "Минулого разу:",
+      "myOpenLoops": "Мої відкриті справи ({{count}})",
+      "waitingOn": "Очікують ({{count}})",
+      "participantMeetings": "{{count}} зустрічей",
+      "participants": "Учасники:",
+      "openBrief": "Відкрити огляд",
+      "recordWhenStarts": "Записати на початку",
+      "dismiss": "Закрити"
     }
   },
   "chat": {
@@ -2988,7 +3000,18 @@
     "ignore": "Пропустити",
     "recording": "Запис",
     "stop": "Зупинити",
-    "forgetSeries": "Забути цю серію"
+    "forgetSeries": "Забути цю серію",
+    "wrap": {
+      "label": "Завершення",
+      "title": "{{title}} — збережено",
+      "followUps": "Подальші дії: {{count}}",
+      "waitingOnPerson": "{{count}} очікують на {{name}}",
+      "waitingOn": "Очікують ({{count}})",
+      "openNotes": "Відкрити нотатки",
+      "copyFollowUp": "Копіювати повідомлення",
+      "copied": "Скопійовано",
+      "done": "Готово"
+    }
   },
   "learningV2": {
     "workflows": {

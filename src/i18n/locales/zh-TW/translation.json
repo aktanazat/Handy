@@ -2447,6 +2447,18 @@
       "copied": "草稿已複製。",
       "copyFailed": "無法複製草稿。",
       "failed": "無法為這場會議草擬後續訊息。"
+    },
+    "prep": {
+      "label": "會前準備",
+      "title": "{{title}} — {{count}} 分鐘後",
+      "lastTime": "上次:",
+      "myOpenLoops": "我的待辦事項 ({{count}})",
+      "waitingOn": "等待中 ({{count}})",
+      "participantMeetings": "{{count}} 次會議",
+      "participants": "參與者:",
+      "openBrief": "開啟摘要",
+      "recordWhenStarts": "開始時錄音",
+      "dismiss": "關閉"
     }
   },
   "chat": {
@@ -2947,7 +2959,18 @@
     "ignore": "忽略",
     "recording": "錄製中",
     "stop": "停止",
-    "forgetSeries": "忘記這個系列"
+    "forgetSeries": "忘記這個系列",
+    "wrap": {
+      "label": "會後整理",
+      "title": "{{title}} — 已儲存",
+      "followUps": "{{count}} 項後續",
+      "waitingOnPerson": "{{count}} 項等待 {{name}}",
+      "waitingOn": "等待中 ({{count}})",
+      "openNotes": "開啟筆記",
+      "copyFollowUp": "複製跟進內容",
+      "copied": "已複製",
+      "done": "完成"
+    }
   },
   "learningV2": {
     "workflows": {

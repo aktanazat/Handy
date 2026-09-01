@@ -2459,6 +2459,18 @@
       "copied": "Bozza copiata.",
       "copyFailed": "Impossibile copiare la bozza.",
       "failed": "Impossibile scrivere un follow-up per questa riunione."
+    },
+    "prep": {
+      "label": "Preparazione",
+      "title": "{{title}} — tra {{count}} min",
+      "lastTime": "L’ultima volta:",
+      "myOpenLoops": "I miei punti aperti ({{count}})",
+      "waitingOn": "In attesa ({{count}})",
+      "participantMeetings": "{{count}} riunioni",
+      "participants": "Partecipanti:",
+      "openBrief": "Apri riepilogo",
+      "recordWhenStarts": "Registra all’inizio",
+      "dismiss": "Chiudi"
     }
   },
   "chat": {
@@ -2973,7 +2985,18 @@
     "ignore": "Ignora",
     "recording": "Registrazione",
     "stop": "Interrompi",
-    "forgetSeries": "Dimentica questa serie"
+    "forgetSeries": "Dimentica questa serie",
+    "wrap": {
+      "label": "Chiusura",
+      "title": "{{title}} — salvata",
+      "followUps": "{{count}} attività di follow-up",
+      "waitingOnPerson": "{{count}} in attesa di {{name}}",
+      "waitingOn": "In attesa ({{count}})",
+      "openNotes": "Apri note",
+      "copyFollowUp": "Copia follow-up",
+      "copied": "Copiato",
+      "done": "Fine"
+    }
   },
   "learningV2": {
     "workflows": {

@@ -46,6 +46,7 @@ const PEOPLE: PersonListEntry[] = [
       display_name: "Dana Reyes",
       aliases: [],
       calendar_emails: [],
+      organization: null,
       created_at_utc_ms: 1,
       updated_at_utc_ms: 1,
     },

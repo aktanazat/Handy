@@ -4,7 +4,9 @@ use tauri::State;
 
 use crate::meeting::detection::calendar::CalendarAccess;
 use crate::meeting::detection::notify::NotificationAccess;
-use crate::meeting::detection::{DetectionRuntime, DetectionSettings, DetectionStatus};
+use crate::meeting::detection::{
+    DetectionRuntime, DetectionSettings, DetectionStatus, MeetingRitualAction,
+};
 
 /// Writes the operator's detection policy and returns the status it produces, so
 /// the caller never has to re-read to see the effect of its own write.
@@ -72,6 +74,23 @@ pub fn detection_prompt_respond(
 #[specta::specta]
 pub fn detection_prompt_panel_ack(runtime: State<'_, Arc<DetectionRuntime>>, prompt_id: String) {
     runtime.acknowledge_panel(&prompt_id);
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn meeting_ritual_panel_ack(runtime: State<'_, Arc<DetectionRuntime>>, ritual_id: String) {
+    runtime.acknowledge_panel(&ritual_id);
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn meeting_ritual_respond(
+    runtime: State<'_, Arc<DetectionRuntime>>,
+    ritual_id: String,
+    action: MeetingRitualAction,
+) -> Result<bool, ()> {
+    let runtime = Arc::clone(&runtime);
+    Ok(runtime.respond_ritual(&ritual_id, action).await)
 }
 
 /// Allowlisted bundle IDs whose application is running right now. The settings UI

@@ -2453,6 +2453,18 @@
       "copied": "Taslak kopyalandı.",
       "copyFailed": "Taslak kopyalanamadı.",
       "failed": "Bu toplantı için takip mesajı yazılamadı."
+    },
+    "prep": {
+      "label": "Hazırlık",
+      "title": "{{title}} — {{count}} dk içinde",
+      "lastTime": "Geçen sefer:",
+      "myOpenLoops": "Açık işlerim ({{count}})",
+      "waitingOn": "Beklenen ({{count}})",
+      "participantMeetings": "{{count}} toplantı",
+      "participants": "Katılımcılar:",
+      "openBrief": "Özeti aç",
+      "recordWhenStarts": "Başlayınca kaydet",
+      "dismiss": "Kapat"
     }
   },
   "chat": {
@@ -2958,7 +2970,18 @@
     "ignore": "Yoksay",
     "recording": "Kayıt",
     "stop": "Durdur",
-    "forgetSeries": "Bu seriyi unut"
+    "forgetSeries": "Bu seriyi unut",
+    "wrap": {
+      "label": "Kapanış",
+      "title": "{{title}} — kaydedildi",
+      "followUps": "{{count}} takip",
+      "waitingOnPerson": "{{count}} öğe {{name}} kişisini bekliyor",
+      "waitingOn": "Beklenen ({{count}})",
+      "openNotes": "Notları aç",
+      "copyFollowUp": "Takip mesajını kopyala",
+      "copied": "Kopyalandı",
+      "done": "Bitti"
+    }
   },
   "learningV2": {
     "workflows": {

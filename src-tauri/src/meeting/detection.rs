@@ -35,7 +35,7 @@ pub mod input_device;
 pub mod machine;
 pub mod notify;
 
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex, OnceLock};
 use std::thread;
@@ -51,9 +51,10 @@ use crate::meeting::consent_panel::ConsentPanelLayout;
 use crate::meeting::people_types::PersonBriefingRow;
 use crate::meeting::session::{MeetingSessionManager, MeetingTitleSetRequest};
 use crate::meeting::types::{
-    MeetingNavigationDestination, MeetingOperationId, MeetingPhase, MeetingSessionId,
-    MeetingSessionSnapshot,
+    MeetingArtifactState, MeetingNavigationDestination, MeetingOperationId, MeetingPhase,
+    MeetingSessionId, MeetingSessionSnapshot,
 };
+use crate::meeting::workflow_types::WorkflowEventKind;
 use crate::settings::AppSettings;
 
 use apps::{RunningApp, RunningAppsSource};
@@ -78,6 +79,7 @@ pub const DETECTION_EVENT_SCHEMA_VERSION: u32 = 2;
 /// database read at all.
 const TICK: Duration = Duration::from_secs(15);
 const PANEL_ACK_WINDOW: Duration = Duration::from_millis(750);
+const WRAP_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// A wall-clock jump this much larger than the monotonic clock's advance means
 /// the host slept. Both clocks are read on the same tick, so the only source of
@@ -116,6 +118,84 @@ pub struct DetectionPromptEvent {
 /// wire name stay together.
 impl tauri_specta::Event for DetectionPromptEvent {
     const NAME: &'static str = "detection-prompt";
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct MeetingPrepParticipant {
+    pub name: String,
+    pub meetings_count: u64,
+    pub organization: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct MeetingPrepCard {
+    pub event_key: String,
+    pub series_key: String,
+    pub title: String,
+    pub start_utc_ms: i64,
+    pub last_meeting_id: MeetingSessionId,
+    pub headline: String,
+    pub mine_open_loops: Vec<String>,
+    pub mine_open_loop_count: u64,
+    pub waiting_on_count: u64,
+    pub participants: Vec<MeetingPrepParticipant>,
+    pub can_record_when_starts: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct MeetingWrapCard {
+    pub session_id: MeetingSessionId,
+    pub title: String,
+    pub headline: String,
+    pub follow_up_count: u64,
+    pub waiting_on_count: u64,
+    pub waiting_on_names: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(tag = "kind", content = "card", rename_all = "snake_case")]
+pub enum MeetingRitual {
+    Prep(MeetingPrepCard),
+    Wrap(MeetingWrapCard),
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum MeetingRitualAction {
+    PrepRecordWhenStarts,
+    PrepOpenBrief,
+    PrepDismiss,
+    WrapOpenNotes,
+    WrapFollowUpCopied,
+    WrapDone,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct MeetingRitualEvent {
+    pub event_schema_version: u32,
+    pub ritual_id: String,
+    pub ritual: MeetingRitual,
+    pub notification_title: String,
+    pub delivery: DetectionPromptDelivery,
+}
+
+impl tauri_specta::Event for MeetingRitualEvent {
+    const NAME: &'static str = "meeting-ritual";
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct MeetingRitualRetractedEvent {
+    pub event_schema_version: u32,
+    pub ritual_id: String,
+}
+
+impl tauri_specta::Event for MeetingRitualRetractedEvent {
+    const NAME: &'static str = "meeting-ritual-retracted";
 }
 
 /// The countdown half of §5.3 case 1, and everything the pre-meeting card
@@ -225,6 +305,25 @@ struct PendingPrompt {
     calendar_event: Option<CalendarEventSummary>,
     show_introduction: bool,
 }
+
+#[derive(Clone, Debug)]
+struct PendingRitual {
+    ritual: MeetingRitual,
+    notification_title: String,
+    idle_generation: u64,
+}
+
+#[derive(Clone, Debug)]
+enum PendingPanel {
+    Prompt(PendingPrompt),
+    Ritual(PendingRitual),
+}
+
+impl PendingPanel {
+    const fn is_prompt(&self) -> bool {
+        matches!(self, Self::Prompt(_))
+    }
+}
 /// A capture detection started, and what stops it.
 #[derive(Clone, Debug)]
 struct TrackedCapture {
@@ -235,7 +334,7 @@ struct TrackedCapture {
 
 #[derive(Default)]
 struct RuntimeState {
-    panel: PanelSlot<PendingPrompt>,
+    panel: PanelSlot<PendingPanel>,
     /// Calendar event keys already prompted for. Without this the 15s tick would
     /// re-notify for the same event every tick until it ended — the most likely
     /// new failure this subsystem introduces, and the cheapest to block.
@@ -760,8 +859,12 @@ impl DetectionRuntime {
         let runtime = Arc::clone(self);
         tauri::async_runtime::spawn(async move {
             let event_key = event.event_key.clone();
-            let briefing = runtime.meetings.calendar_briefing(event, now_utc_ms).await;
+            let briefing = runtime
+                .meetings
+                .calendar_briefing(event.clone(), now_utc_ms)
+                .await;
             runtime.publish_calendar_briefing(&event_key, briefing);
+            runtime.present_prep(event, now_utc_ms).await;
         });
     }
 
@@ -783,6 +886,248 @@ impl DetectionRuntime {
         let _ = status.emit(&self.app);
     }
 
+    async fn prep_card(
+        &self,
+        event: &CalendarEventSummary,
+        now_utc_ms: i64,
+    ) -> Option<MeetingPrepCard> {
+        if event.series_key.trim().is_empty() || now_utc_ms >= event.start_utc_ms {
+            return None;
+        }
+        let store = self.meetings.store().await.ok()?;
+        let previous = store
+            .previous_series_brief(&event.series_key, event.start_utc_ms)
+            .ok()
+            .flatten()?;
+        let loops = store.meeting_loops(previous.session_id).ok()?;
+        let mut mine_open_loop_count = 0_u64;
+        let mut waiting_on_count = 0_u64;
+        let mut mine_open_loops = Vec::with_capacity(2);
+        for row in &loops.rows {
+            if row.is_open() && row.is_mine() {
+                mine_open_loop_count += 1;
+                if mine_open_loops.len() < 2 {
+                    mine_open_loops.push(row.text.clone());
+                }
+            } else if row.is_open() && row.is_waiting_on() {
+                waiting_on_count += 1;
+            }
+        }
+
+        let emails = event
+            .attendees
+            .iter()
+            .filter(|attendee| !attendee.is_self)
+            .filter_map(|attendee| attendee.email.clone())
+            .collect::<Vec<_>>();
+        let ids_by_email = store.person_ids_for_calendar_emails(&emails).ok()?;
+        let person_ids = ids_by_email
+            .values()
+            .copied()
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>();
+        let context = store.person_context(&person_ids).ok()?;
+        let organizations = store.organizations_for_person_ids(&person_ids).ok()?;
+        let context_by_id = context
+            .rows
+            .into_iter()
+            .map(|row| (row.person_id, (row.display_name, row.meetings_count)))
+            .collect::<HashMap<_, _>>();
+        let participants = event
+            .attendees
+            .iter()
+            .filter(|attendee| !attendee.is_self)
+            .filter_map(|attendee| {
+                let fallback_name = attendee.name.trim();
+                if fallback_name.is_empty() {
+                    return None;
+                }
+                let person_id = attendee
+                    .email
+                    .as_deref()
+                    .and_then(|email| ids_by_email.get(&email.trim().to_lowercase()));
+                let (name, meetings_count) = person_id
+                    .and_then(|person_id| context_by_id.get(person_id))
+                    .map(|(name, meetings_count)| (name.clone(), *meetings_count))
+                    .unwrap_or_else(|| (fallback_name.to_string(), 0));
+                Some(MeetingPrepParticipant {
+                    name,
+                    meetings_count,
+                    organization: person_id
+                        .and_then(|person_id| organizations.get(person_id))
+                        .cloned(),
+                })
+            })
+            .collect();
+        let can_record_when_starts = store
+            .live_series_consent(&event.series_key)
+            .ok()
+            .flatten()
+            .is_some();
+        Some(MeetingPrepCard {
+            event_key: event.event_key.clone(),
+            series_key: event.series_key.clone(),
+            title: event.title.clone(),
+            start_utc_ms: event.start_utc_ms,
+            last_meeting_id: previous.session_id,
+            headline: previous.headline,
+            mine_open_loops,
+            mine_open_loop_count,
+            waiting_on_count,
+            participants,
+            can_record_when_starts,
+        })
+    }
+
+    async fn present_prep(self: &Arc<Self>, event: CalendarEventSummary, now_utc_ms: i64) {
+        let Some(card) = self.prep_card(&event, now_utc_ms).await else {
+            return;
+        };
+        if self.active_capture().await.is_some() {
+            return;
+        }
+        let ritual_id = format!("prep:{}", card.event_key);
+        if !self
+            .meetings
+            .record_ritual_activity(
+                WorkflowEventKind::MeetingPrepPresented,
+                &ritual_id,
+                card.last_meeting_id,
+                &card.event_key,
+            )
+            .await
+        {
+            return;
+        }
+        if self.active_capture().await.is_some() {
+            return;
+        }
+        let minutes = event
+            .start_utc_ms
+            .saturating_sub(now_utc_ms)
+            .saturating_add(59_999)
+            / 60_000;
+        let minutes = minutes.max(1);
+        let pending = PendingPanel::Ritual(PendingRitual {
+            notification_title: format!("{} — in {minutes} minutes", event.title),
+            ritual: MeetingRitual::Prep(card),
+            idle_generation: 0,
+        });
+        let mut state = self.lock();
+        let panel_available = state.tracked.is_none();
+        let commands = state.panel.raise(ritual_id, pending, 2, panel_available);
+        self.apply_panel_commands(&mut state, commands);
+    }
+
+    async fn wrap_card(&self, session_id: MeetingSessionId) -> Option<MeetingWrapCard> {
+        let store = self.meetings.store().await.ok()?;
+        let review = store.review_snapshot(session_id).ok()?;
+        if review.session.phase != MeetingPhase::ReviewReady {
+            return None;
+        }
+        let headline = review
+            .artifacts
+            .iter()
+            .filter(|artifact| artifact.state == MeetingArtifactState::Current)
+            .find_map(|artifact| artifact.content.as_ref())
+            .and_then(|content| content.headline())
+            .map(str::trim)
+            .filter(|headline| !headline.is_empty())?
+            .to_string();
+        let loops = store.meeting_loops(session_id).ok()?;
+        let mut follow_up_count = 0_u64;
+        let mut waiting_on_count = 0_u64;
+        let mut waiting_on_names = Vec::new();
+        let mut seen_names = HashSet::new();
+        for row in &loops.rows {
+            if row.is_open() && row.is_mine() {
+                follow_up_count += 1;
+            } else if row.is_open() && row.is_waiting_on() {
+                waiting_on_count += 1;
+                let name = row
+                    .owner_display_name
+                    .as_deref()
+                    .or(row.owner_text.as_deref())
+                    .map(str::trim)
+                    .filter(|name| !name.is_empty());
+                if let Some(name) = name {
+                    let key = name.to_lowercase();
+                    if seen_names.insert(key) {
+                        waiting_on_names.push(name.to_string());
+                    }
+                }
+            }
+        }
+        Some(MeetingWrapCard {
+            session_id,
+            title: review.session.title,
+            headline,
+            follow_up_count,
+            waiting_on_count,
+            waiting_on_names,
+        })
+    }
+
+    pub(crate) async fn present_wrap(self: &Arc<Self>, session_id: MeetingSessionId) {
+        let Some(card) = self.wrap_card(session_id).await else {
+            return;
+        };
+        if self.active_capture().await.is_some() {
+            return;
+        }
+        let ritual_id = format!("wrap:{}", session_id.uuid());
+        if !self
+            .meetings
+            .record_ritual_activity(
+                WorkflowEventKind::MeetingWrapPresented,
+                &ritual_id,
+                session_id,
+                &session_id.uuid().to_string(),
+            )
+            .await
+        {
+            return;
+        }
+        if self.active_capture().await.is_some() {
+            return;
+        }
+        let pending = PendingPanel::Ritual(PendingRitual {
+            notification_title: format!("{} — saved", card.title),
+            ritual: MeetingRitual::Wrap(card),
+            idle_generation: 0,
+        });
+        let mut state = self.lock();
+        let panel_available = state.tracked.is_none();
+        let commands = state
+            .panel
+            .raise(ritual_id.clone(), pending, 1, panel_available);
+        self.apply_panel_commands(&mut state, commands);
+        drop(state);
+        self.schedule_wrap_timeout(ritual_id, 0);
+    }
+
+    fn schedule_wrap_timeout(self: &Arc<Self>, ritual_id: String, generation: u64) {
+        let runtime = Arc::clone(self);
+        tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(WRAP_IDLE_TIMEOUT).await;
+            let should_finish = {
+                let state = runtime.lock();
+                matches!(
+                    state.panel.get(&ritual_id),
+                    Some(PendingPanel::Ritual(PendingRitual {
+                        ritual: MeetingRitual::Wrap(_),
+                        idle_generation,
+                        ..
+                    })) if *idle_generation == generation
+                )
+            };
+            if should_finish {
+                runtime.finish_ritual(&ritual_id);
+            }
+        });
+    }
+
     fn retract_stale_prompts(
         self: &Arc<Self>,
         now_utc_ms: i64,
@@ -793,30 +1138,43 @@ impl DetectionRuntime {
             .lock()
             .panel
             .iter()
-            .filter_map(|(prompt_id, pending)| {
-                let reason = if pending
-                    .event_end_utc_ms
-                    .is_some_and(|end| now_utc_ms >= end)
-                {
-                    Some(DetectionPromptRetractionReason::EventEnded)
-                } else if pending
-                    .prompt
-                    .bundle_id()
-                    .is_some_and(|bundle_id| !apps::is_app_running(running, bundle_id))
-                {
-                    Some(DetectionPromptRetractionReason::TriggerAppQuit)
-                } else if mic == MicSignal::Idle
-                    && !matches!(pending.prompt, PromptKind::CalendarEvent { .. })
-                {
-                    Some(DetectionPromptRetractionReason::MicEpisodeEnded)
-                } else {
-                    None
-                };
-                reason.map(|reason| (prompt_id.to_string(), reason))
+            .filter_map(|(prompt_id, pending)| match pending {
+                PendingPanel::Prompt(pending) => {
+                    let reason = if pending
+                        .event_end_utc_ms
+                        .is_some_and(|end| now_utc_ms >= end)
+                    {
+                        Some(DetectionPromptRetractionReason::EventEnded)
+                    } else if pending
+                        .prompt
+                        .bundle_id()
+                        .is_some_and(|bundle_id| !apps::is_app_running(running, bundle_id))
+                    {
+                        Some(DetectionPromptRetractionReason::TriggerAppQuit)
+                    } else if mic == MicSignal::Idle
+                        && !matches!(pending.prompt, PromptKind::CalendarEvent { .. })
+                    {
+                        Some(DetectionPromptRetractionReason::MicEpisodeEnded)
+                    } else {
+                        None
+                    };
+                    reason.map(|reason| (prompt_id.to_string(), Some(reason)))
+                }
+                PendingPanel::Ritual(pending) if ritual_is_stale(&pending.ritual, now_utc_ms) => {
+                    Some((prompt_id.to_string(), None))
+                }
+                PendingPanel::Ritual(_) => None,
             })
             .collect::<Vec<_>>();
         for (prompt_id, reason) in retract {
-            self.finish_prompt(&prompt_id, reason);
+            match reason {
+                Some(reason) => {
+                    self.finish_prompt(&prompt_id, reason);
+                }
+                None => {
+                    self.finish_ritual(&prompt_id);
+                }
+            }
         }
     }
 
@@ -828,12 +1186,10 @@ impl DetectionRuntime {
             .and_then(|status| status.countdown.as_ref())
             .map(|countdown| &countdown.event)
             .into_iter()
-            .chain(
-                state
-                    .panel
-                    .iter()
-                    .filter_map(|(_, pending)| pending.calendar_event.as_ref()),
-            )
+            .chain(state.panel.iter().filter_map(|(_, pending)| match pending {
+                PendingPanel::Prompt(pending) => pending.calendar_event.as_ref(),
+                PendingPanel::Ritual(_) => None,
+            }))
             .find(|event| event.event_key == event_key)
             .cloned();
         event
@@ -849,12 +1205,12 @@ impl DetectionRuntime {
         let show_introduction =
             tauri::async_runtime::block_on(self.meetings.consent_panel_introduction_needed());
         let priority = prompt_priority(&prompt);
-        let pending = PendingPrompt {
+        let pending = PendingPanel::Prompt(PendingPrompt {
             prompt,
             event_end_utc_ms,
             calendar_event,
             show_introduction,
-        };
+        });
         let mut state = self.lock();
         let panel_available = state.tracked.is_none();
         let commands = state
@@ -866,7 +1222,7 @@ impl DetectionRuntime {
     fn apply_panel_commands(
         self: &Arc<Self>,
         state: &mut RuntimeState,
-        commands: Vec<PanelCommand<PendingPrompt>>,
+        commands: Vec<PanelCommand<PendingPanel>>,
     ) {
         let mut commands = VecDeque::from(commands);
         while let Some(command) = commands.pop_front() {
@@ -880,15 +1236,18 @@ impl DetectionRuntime {
                 }
                 PanelCommand::PresentPanel { prompt_id, prompt } => {
                     self.prompts.withdraw(&prompt_id);
-                    let layout = prompt_panel_layout(
-                        &prompt,
-                        state
-                            .last_status
-                            .as_ref()
-                            .and_then(|status| status.countdown.as_ref()),
-                    );
+                    let layout = match &prompt {
+                        PendingPanel::Prompt(prompt) => prompt_panel_layout(
+                            prompt,
+                            state
+                                .last_status
+                                .as_ref()
+                                .and_then(|status| status.countdown.as_ref()),
+                        ),
+                        PendingPanel::Ritual(ritual) => ritual_panel_layout(&ritual.ritual),
+                    };
                     if self.prompts.show_panel(layout) {
-                        self.emit_prompt(&prompt_id, &prompt, DetectionPromptDelivery::Panel);
+                        self.emit_panel(&prompt_id, &prompt, DetectionPromptDelivery::Panel);
                         self.schedule_panel_ack_timeout(prompt_id);
                     } else {
                         commands.extend(state.panel.fallback_if_unacknowledged(&prompt_id));
@@ -896,21 +1255,42 @@ impl DetectionRuntime {
                 }
                 PanelCommand::PresentFallback { prompt_id, prompt } => {
                     self.prompts.withdraw(&prompt_id);
-                    let delivery = self.prompts.present_fallback(&prompt_id, &prompt.prompt);
-                    self.emit_prompt(&prompt_id, &prompt, delivery);
+                    let delivery = match &prompt {
+                        PendingPanel::Prompt(prompt) => {
+                            self.prompts.present_fallback(&prompt_id, &prompt.prompt)
+                        }
+                        PendingPanel::Ritual(ritual) => self
+                            .prompts
+                            .present_ritual_fallback(&prompt_id, &ritual.notification_title),
+                    };
+                    self.emit_panel(&prompt_id, &prompt, delivery);
                 }
                 PanelCommand::Acknowledged {
                     prompt_id: _,
                     prompt,
                 } => {
-                    if prompt.show_introduction {
-                        let meetings = Arc::clone(&self.meetings);
-                        tauri::async_runtime::spawn(async move {
-                            meetings.mark_consent_panel_introduction_shown().await;
-                        });
+                    if let PendingPanel::Prompt(prompt) = prompt {
+                        if prompt.show_introduction {
+                            let meetings = Arc::clone(&self.meetings);
+                            tauri::async_runtime::spawn(async move {
+                                meetings.mark_consent_panel_introduction_shown().await;
+                            });
+                        }
                     }
                 }
             }
+        }
+    }
+
+    fn emit_panel(
+        &self,
+        prompt_id: &str,
+        pending: &PendingPanel,
+        delivery: DetectionPromptDelivery,
+    ) {
+        match pending {
+            PendingPanel::Prompt(prompt) => self.emit_prompt(prompt_id, prompt, delivery),
+            PendingPanel::Ritual(ritual) => self.emit_ritual(prompt_id, ritual, delivery),
         }
     }
 
@@ -927,6 +1307,22 @@ impl DetectionRuntime {
             prompt: pending.prompt.clone(),
             delivery,
             show_introduction: pending.show_introduction,
+        }
+        .emit(&self.app);
+    }
+
+    fn emit_ritual(
+        &self,
+        ritual_id: &str,
+        pending: &PendingRitual,
+        delivery: DetectionPromptDelivery,
+    ) {
+        let _ = MeetingRitualEvent {
+            event_schema_version: DETECTION_EVENT_SCHEMA_VERSION,
+            ritual_id: ritual_id.to_string(),
+            ritual: pending.ritual.clone(),
+            notification_title: pending.notification_title.clone(),
+            delivery,
         }
         .emit(&self.app);
     }
@@ -999,6 +1395,148 @@ impl DetectionRuntime {
         });
     }
 
+    pub async fn respond_ritual(
+        self: &Arc<Self>,
+        ritual_id: &str,
+        action: MeetingRitualAction,
+    ) -> bool {
+        let pending = {
+            let state = self.lock();
+            match state.panel.get(ritual_id) {
+                Some(PendingPanel::Ritual(pending)) => pending.clone(),
+                _ => return false,
+            }
+        };
+        match (&pending.ritual, action) {
+            (MeetingRitual::Prep(card), MeetingRitualAction::PrepRecordWhenStarts) => {
+                if !card.can_record_when_starts
+                    || self
+                        .meetings
+                        .live_series_consent(&card.series_key)
+                        .await
+                        .ok()
+                        .flatten()
+                        .is_none()
+                {
+                    return false;
+                }
+                if !self
+                    .meetings
+                    .record_ritual_activity(
+                        WorkflowEventKind::MeetingPrepRecordArmed,
+                        ritual_id,
+                        card.last_meeting_id,
+                        ritual_id,
+                    )
+                    .await
+                {
+                    return false;
+                }
+                self.finish_ritual(ritual_id);
+                true
+            }
+            (MeetingRitual::Prep(card), MeetingRitualAction::PrepOpenBrief) => {
+                if !self
+                    .meetings
+                    .record_ritual_activity(
+                        WorkflowEventKind::MeetingPrepBriefOpened,
+                        ritual_id,
+                        card.last_meeting_id,
+                        ritual_id,
+                    )
+                    .await
+                {
+                    return false;
+                }
+                let opened = crate::dispatch_deep_link(
+                    &self.app,
+                    &crate::query::meeting_link(card.last_meeting_id),
+                );
+                self.finish_ritual(ritual_id);
+                opened
+            }
+            (MeetingRitual::Prep(card), MeetingRitualAction::PrepDismiss) => {
+                if !self
+                    .meetings
+                    .record_ritual_activity(
+                        WorkflowEventKind::MeetingPrepDismissed,
+                        ritual_id,
+                        card.last_meeting_id,
+                        ritual_id,
+                    )
+                    .await
+                {
+                    return false;
+                }
+                self.finish_ritual(ritual_id);
+                true
+            }
+            (MeetingRitual::Wrap(card), MeetingRitualAction::WrapOpenNotes) => {
+                if !self
+                    .meetings
+                    .record_ritual_activity(
+                        WorkflowEventKind::MeetingWrapNotesOpened,
+                        ritual_id,
+                        card.session_id,
+                        ritual_id,
+                    )
+                    .await
+                {
+                    return false;
+                }
+                let opened = crate::dispatch_deep_link(
+                    &self.app,
+                    &crate::query::meeting_link(card.session_id),
+                );
+                self.finish_ritual(ritual_id);
+                opened
+            }
+            (MeetingRitual::Wrap(card), MeetingRitualAction::WrapFollowUpCopied) => {
+                if !self
+                    .meetings
+                    .record_ritual_activity(
+                        WorkflowEventKind::MeetingWrapFollowUpCopied,
+                        ritual_id,
+                        card.session_id,
+                        ritual_id,
+                    )
+                    .await
+                {
+                    return false;
+                }
+                let generation = {
+                    let mut state = self.lock();
+                    match state.panel.get_mut(ritual_id) {
+                        Some(PendingPanel::Ritual(pending)) => {
+                            pending.idle_generation += 1;
+                            pending.idle_generation
+                        }
+                        _ => return false,
+                    }
+                };
+                self.schedule_wrap_timeout(ritual_id.to_string(), generation);
+                true
+            }
+            (MeetingRitual::Wrap(card), MeetingRitualAction::WrapDone) => {
+                if !self
+                    .meetings
+                    .record_ritual_activity(
+                        WorkflowEventKind::MeetingWrapDone,
+                        ritual_id,
+                        card.session_id,
+                        ritual_id,
+                    )
+                    .await
+                {
+                    return false;
+                }
+                self.finish_ritual(ritual_id);
+                true
+            }
+            _ => false,
+        }
+    }
+
     fn finish_prompt(
         self: &Arc<Self>,
         prompt_id: &str,
@@ -1006,11 +1544,28 @@ impl DetectionRuntime {
     ) -> Option<PendingPrompt> {
         let mut state = self.lock();
         let finish = state.panel.finish(prompt_id);
-        let pending = finish.removed?;
+        let PendingPanel::Prompt(pending) = finish.removed? else {
+            return None;
+        };
         let _ = DetectionPromptRetractedEvent {
             event_schema_version: DETECTION_EVENT_SCHEMA_VERSION,
             prompt_id: prompt_id.to_string(),
             reason,
+        }
+        .emit(&self.app);
+        self.apply_panel_commands(&mut state, finish.commands);
+        Some(pending)
+    }
+
+    fn finish_ritual(self: &Arc<Self>, ritual_id: &str) -> Option<PendingRitual> {
+        let mut state = self.lock();
+        let finish = state.panel.finish(ritual_id);
+        let PendingPanel::Ritual(pending) = finish.removed? else {
+            return None;
+        };
+        let _ = MeetingRitualRetractedEvent {
+            event_schema_version: DETECTION_EVENT_SCHEMA_VERSION,
+            ritual_id: ritual_id.to_string(),
         }
         .emit(&self.app);
         self.apply_panel_commands(&mut state, finish.commands);
@@ -1034,8 +1589,17 @@ impl DetectionRuntime {
             trigger_bundle_id,
             started_utc_ms: utc_now_ms(),
         });
-        let commands = state.panel.begin_capture();
-        self.apply_panel_commands(&mut state, commands);
+        let capture = state.panel.begin_capture(PendingPanel::is_prompt);
+        for (ritual_id, pending) in capture.discarded {
+            if matches!(pending, PendingPanel::Ritual(_)) {
+                let _ = MeetingRitualRetractedEvent {
+                    event_schema_version: DETECTION_EVENT_SCHEMA_VERSION,
+                    ritual_id,
+                }
+                .emit(&self.app);
+            }
+        }
+        self.apply_panel_commands(&mut state, capture.commands);
     }
 
     pub fn track_ended(self: &Arc<Self>, session_id: MeetingSessionId) {
@@ -1372,10 +1936,10 @@ impl DetectionRuntime {
 }
 fn prompt_priority(prompt: &PromptKind) -> u8 {
     match prompt {
-        PromptKind::CalendarEvent { .. } => 3,
-        PromptKind::AppMeeting { .. } | PromptKind::AppHuddle { .. } => 2,
-        PromptKind::BrowserCall { .. } => 1,
-        PromptKind::UnknownMicSource => 0,
+        PromptKind::CalendarEvent { .. } => 13,
+        PromptKind::AppMeeting { .. } | PromptKind::AppHuddle { .. } => 12,
+        PromptKind::BrowserCall { .. } => 11,
+        PromptKind::UnknownMicSource => 10,
     }
 }
 
@@ -1406,6 +1970,23 @@ fn prompt_panel_layout(
             })
         }),
     }
+}
+
+fn ritual_panel_layout(ritual: &MeetingRitual) -> ConsentPanelLayout {
+    match ritual {
+        MeetingRitual::Prep(card) => ConsentPanelLayout::Prep {
+            loop_rows: card.mine_open_loops.len().min(2) as u8,
+            waiting_on: card.waiting_on_count != 0,
+            participants: !card.participants.is_empty(),
+        },
+        MeetingRitual::Wrap(card) => ConsentPanelLayout::Wrap {
+            loop_delta: card.follow_up_count != 0 || card.waiting_on_count != 0,
+        },
+    }
+}
+
+fn ritual_is_stale(ritual: &MeetingRitual, now_utc_ms: i64) -> bool {
+    matches!(ritual, MeetingRitual::Prep(card) if now_utc_ms >= card.start_utc_ms)
 }
 
 /// The four §5.5 triggers whose evidence this build actually observes. `Silence`
@@ -1639,5 +2220,70 @@ mod tests {
         assert!(!brief_shown(Some(&countdown("event-2", true))));
         assert!(!brief_shown(Some(&countdown("event-1", false))));
         assert!(!brief_shown(None));
+    }
+    fn prep_card(start_utc_ms: i64) -> MeetingPrepCard {
+        MeetingPrepCard {
+            event_key: "event-1".to_string(),
+            series_key: "series-1".to_string(),
+            title: "Weekly sync".to_string(),
+            start_utc_ms,
+            last_meeting_id: MeetingSessionId::from_uuid(Uuid::nil()),
+            headline: "Pricing stayed open.".to_string(),
+            mine_open_loops: vec!["One".to_string(), "Two".to_string()],
+            mine_open_loop_count: 2,
+            waiting_on_count: 1,
+            participants: vec![MeetingPrepParticipant {
+                name: "Morgan".to_string(),
+                meetings_count: 3,
+                organization: Some("Northstar".to_string()),
+            }],
+            can_record_when_starts: true,
+        }
+    }
+
+    #[test]
+    fn ritual_layout_tracks_only_rows_the_cards_render() {
+        assert_eq!(
+            ritual_panel_layout(&MeetingRitual::Prep(prep_card(1_000))),
+            ConsentPanelLayout::Prep {
+                loop_rows: 2,
+                waiting_on: true,
+                participants: true,
+            }
+        );
+        assert_eq!(
+            ritual_panel_layout(&MeetingRitual::Wrap(MeetingWrapCard {
+                session_id: MeetingSessionId::from_uuid(Uuid::nil()),
+                title: "Weekly sync".to_string(),
+                headline: "Saved.".to_string(),
+                follow_up_count: 0,
+                waiting_on_count: 0,
+                waiting_on_names: Vec::new(),
+            })),
+            ConsentPanelLayout::Wrap { loop_delta: false }
+        );
+    }
+
+    #[test]
+    fn prep_expires_at_the_event_start_but_wrap_waits_for_its_idle_timer() {
+        assert!(!ritual_is_stale(
+            &MeetingRitual::Prep(prep_card(1_000)),
+            999,
+        ));
+        assert!(ritual_is_stale(
+            &MeetingRitual::Prep(prep_card(1_000)),
+            1_000,
+        ));
+        assert!(!ritual_is_stale(
+            &MeetingRitual::Wrap(MeetingWrapCard {
+                session_id: MeetingSessionId::from_uuid(Uuid::nil()),
+                title: "Weekly sync".to_string(),
+                headline: "Saved.".to_string(),
+                follow_up_count: 1,
+                waiting_on_count: 0,
+                waiting_on_names: Vec::new(),
+            }),
+            i64::MAX,
+        ));
     }
 }

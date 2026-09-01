@@ -2457,6 +2457,18 @@
       "copied": "Draft copied.",
       "copyFailed": "Couldn't copy the draft.",
       "failed": "Couldn't draft a follow-up for this meeting."
+    },
+    "prep": {
+      "label": "Prep",
+      "title": "{{title}} — in {{count}} minutes",
+      "lastTime": "Last time:",
+      "myOpenLoops": "My open loops ({{count}})",
+      "waitingOn": "Waiting on ({{count}})",
+      "participantMeetings": "{{count}} meetings",
+      "participants": "Participants:",
+      "openBrief": "Open brief",
+      "recordWhenStarts": "Record when it starts",
+      "dismiss": "Dismiss"
     }
   },
   "chat": {
@@ -2958,7 +2970,18 @@
     "ignore": "Ignore",
     "recording": "Recording",
     "stop": "Stop",
-    "forgetSeries": "Forget this series"
+    "forgetSeries": "Forget this series",
+    "wrap": {
+      "label": "Wrap",
+      "title": "{{title}} — saved",
+      "followUps": "{{count}} follow-ups",
+      "waitingOnPerson": "{{count}} waiting on {{name}}",
+      "waitingOn": "Waiting on ({{count}})",
+      "openNotes": "Open notes",
+      "copyFollowUp": "Copy follow-up",
+      "copied": "Copied",
+      "done": "Done"
+    }
   },
   "learningV2": {
     "workflows": {

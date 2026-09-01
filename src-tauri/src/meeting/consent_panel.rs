@@ -29,6 +29,20 @@ const PROMPT_SERIES_BRIEF: f64 = 21.0;
 /// The in-session pill: status row, meeting title, buttons. The title
 /// truncates and the rest is short, so every locale renders the same height.
 const RECORDING_CONTENT: f64 = 118.0;
+/// PREP's fixed rows: ritual label, title, last-time headline and actions.
+/// 197pt plus its optional rows measured 302pt outer height at the 380pt width.
+const PREP_CONTENT: f64 = 197.0;
+/// One verbatim open-loop row. The card shows at most two.
+const PREP_LOOP_ROW: f64 = 20.0;
+/// The waiting-on count.
+const PREP_WAITING_ROW: f64 = 17.0;
+/// Participant names, meeting counts and optional organizations, clamped to two lines.
+const PREP_PARTICIPANTS_ROW: f64 = 34.0;
+/// WRAP's ritual label, saved title, headline and actions. With its delta row,
+/// the measured outer height is 197pt.
+const WRAP_CONTENT: f64 = 162.0;
+/// The follow-up and waiting-on delta.
+const WRAP_DELTA_ROW: f64 = 21.0;
 
 /// Which rows the panel is about to render, and therefore how tall its window
 /// has to be. One window hosts both states — the same arrangement
@@ -43,8 +57,16 @@ pub enum ConsentPanelLayout {
         introduction: bool,
         series_brief: bool,
     },
+    /// Context shown before a recurring meeting begins.
+    Prep {
+        loop_rows: u8,
+        waiting_on: bool,
+        participants: bool,
+    },
     /// The pill shown while this panel's meeting records.
     Recording,
+    /// The saved-meeting recap shown after artifact generation.
+    Wrap { loop_delta: bool },
 }
 
 impl ConsentPanelLayout {
@@ -68,7 +90,24 @@ impl ConsentPanelLayout {
                 }
                 content
             }
+            Self::Prep {
+                loop_rows,
+                waiting_on,
+                participants,
+            } => {
+                PREP_CONTENT
+                    + PREP_LOOP_ROW * f64::from(loop_rows.min(2))
+                    + if waiting_on { PREP_WAITING_ROW } else { 0.0 }
+                    + if participants {
+                        PREP_PARTICIPANTS_ROW
+                    } else {
+                        0.0
+                    }
+            }
             Self::Recording => RECORDING_CONTENT,
+            Self::Wrap { loop_delta } => {
+                WRAP_CONTENT + if loop_delta { WRAP_DELTA_ROW } else { 0.0 }
+            }
         };
         content + 2.0 * CARD_INSET
     }
@@ -208,13 +247,26 @@ mod tests {
         assert_eq!(prompt(true, false, false), 146.0);
         assert_eq!(prompt(true, true, false), 184.0);
         assert_eq!(prompt(true, true, true), 205.0);
+        assert_eq!(
+            ConsentPanelLayout::Prep {
+                loop_rows: 2,
+                waiting_on: true,
+                participants: true,
+            }
+            .height(),
+            302.0
+        );
         assert_eq!(ConsentPanelLayout::Recording.height(), 132.0);
+        assert_eq!(
+            ConsentPanelLayout::Wrap { loop_delta: true }.height(),
+            197.0
+        );
     }
 
-    /// The panel used to be one 212pt window for every state, which is where
-    /// the prompt's blank band and the pill's floating title came from.
+    /// Ritual cards stay bounded rather than expanding toward the full app
+    /// window when their source data grows.
     #[test]
-    fn no_state_is_as_tall_as_the_one_size_that_replaced_it() {
+    fn every_state_stays_within_the_ritual_panel_bound() {
         let states = [
             ConsentPanelLayout::Recording,
             ConsentPanelLayout::Prompt {
@@ -222,12 +274,18 @@ mod tests {
                 introduction: true,
                 series_brief: true,
             },
+            ConsentPanelLayout::Prep {
+                loop_rows: 2,
+                waiting_on: true,
+                participants: true,
+            },
+            ConsentPanelLayout::Wrap { loop_delta: true },
         ];
 
         for state in states {
             assert!(
-                state.height() < 212.0,
-                "{state:?} still asks for the old fixed height"
+                state.height() < 320.0,
+                "{state:?} exceeds the bounded ritual panel height"
             );
         }
     }

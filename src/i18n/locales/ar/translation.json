@@ -2477,6 +2477,18 @@
       "copied": "تم نسخ المسودة.",
       "copyFailed": "تعذّر نسخ المسودة.",
       "failed": "تعذّر إنشاء مسودة متابعة لهذا الاجتماع."
+    },
+    "prep": {
+      "label": "تحضير",
+      "title": "{{title}} — خلال {{count}} د",
+      "lastTime": "في المرة السابقة:",
+      "myOpenLoops": "مهامي المفتوحة ({{count}})",
+      "waitingOn": "بانتظار ({{count}})",
+      "participantMeetings": "{{count}} اجتماعات",
+      "participants": "المشاركون:",
+      "openBrief": "فتح الملخص",
+      "recordWhenStarts": "التسجيل عند البدء",
+      "dismiss": "تجاهل"
     }
   },
   "chat": {
@@ -3018,7 +3030,18 @@
     "ignore": "تجاهل",
     "recording": "التسجيل",
     "stop": "إيقاف",
-    "forgetSeries": "انسَ هذه السلسلة"
+    "forgetSeries": "انسَ هذه السلسلة",
+    "wrap": {
+      "label": "ختام",
+      "title": "{{title}} — تم الحفظ",
+      "followUps": "{{count}} متابعات",
+      "waitingOnPerson": "{{count}} بانتظار {{name}}",
+      "waitingOn": "بانتظار ({{count}})",
+      "openNotes": "فتح الملاحظات",
+      "copyFollowUp": "نسخ المتابعة",
+      "copied": "تم النسخ",
+      "done": "تم"
+    }
   },
   "learningV2": {
     "workflows": {

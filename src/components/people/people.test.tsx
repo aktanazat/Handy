@@ -60,6 +60,7 @@ const PERSON: Person = {
   display_name: "Dana Reyes",
   aliases: ["Dana R."],
   calendar_emails: ["dana@example.com"],
+  organization: "Acme",
   created_at_utc_ms: JANUARY,
   updated_at_utc_ms: JUNE,
 };
@@ -69,6 +70,7 @@ const OTHER_PERSON: Person = {
   display_name: "Amir Khan",
   aliases: [],
   calendar_emails: ["amir@example.com"],
+  organization: null,
 };
 const ENTRY: PersonListEntry = {
   person: PERSON,
@@ -219,12 +221,14 @@ describe("People list", () => {
     expect(markup).not.toContain('data-slot="person-card"');
   });
 
-  test("says a person's name, meeting count and last meeting on one line", () => {
+  test("shows a quiet organization label beside the relationship facts", () => {
     const markup = list([ENTRY]);
 
     expect(markup).toContain('data-slot="person-card"');
     expect(markup).toContain("Dana Reyes");
     expect(markup).toContain("2 meetings");
+    expect(markup).toContain('data-slot="person-organization"');
+    expect(markup).toContain("Acme");
     expect(markup).toContain("Last met");
     /* The line is the whole row. The initial bubble, the last meeting's
      * headline, the evidence chips and the suggested-links footer all moved to
@@ -280,6 +284,8 @@ describe("person detail", () => {
 
   test("renders cadence, relationship facts, links, and imported context", () => {
     const markup = detail(DETAIL, [DOCUMENT]);
+    expect(markup).toContain('data-slot="person-organization"');
+    expect(markup).toContain("Acme · 2 meetings");
 
     const cadenceBars =
       markup.match(

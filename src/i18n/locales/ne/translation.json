@@ -2453,6 +2453,18 @@
       "copied": "मस्यौदा प्रतिलिपि भयो।",
       "copyFailed": "मस्यौदा प्रतिलिपि गर्न सकिएन।",
       "failed": "यो बैठकको फलोअप लेख्न सकिएन।"
+    },
+    "prep": {
+      "label": "तयारी",
+      "title": "{{title}} — {{count}} मिनेटमा",
+      "lastTime": "अघिल्लो पटक:",
+      "myOpenLoops": "मेरा खुला काम ({{count}})",
+      "waitingOn": "पर्खाइमा ({{count}})",
+      "participantMeetings": "{{count}} बैठक",
+      "participants": "सहभागीहरू:",
+      "openBrief": "सार खोल्नुहोस्",
+      "recordWhenStarts": "सुरु हुँदा रेकर्ड गर्नुहोस्",
+      "dismiss": "बन्द गर्नुहोस्"
     }
   },
   "chat": {
@@ -2958,7 +2970,18 @@
     "ignore": "बेवास्ता गर्नुहोस्",
     "recording": "रेकर्डिङ",
     "stop": "बन्द गर्नुहोस्",
-    "forgetSeries": "यो शृंखला बिर्सनुहोस्"
+    "forgetSeries": "यो शृंखला बिर्सनुहोस्",
+    "wrap": {
+      "label": "समापन",
+      "title": "{{title}} — सुरक्षित भयो",
+      "followUps": "{{count}} फलो-अप",
+      "waitingOnPerson": "{{count}} {{name}} को पर्खाइमा",
+      "waitingOn": "पर्खाइमा ({{count}})",
+      "openNotes": "नोट खोल्नुहोस्",
+      "copyFollowUp": "फलो-अप प्रतिलिपि गर्नुहोस्",
+      "copied": "प्रतिलिपि भयो",
+      "done": "सम्पन्न"
+    }
   },
   "learningV2": {
     "workflows": {

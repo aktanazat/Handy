@@ -1156,6 +1156,36 @@ static MIGRATIONS: &[M] = &[
             CHECK (remote_intelligence_opt_out IN (0, 1));
         ",
     ),
+    // Organization is a disposable projection of calendar facts, recomputed by
+    // the person-linking workflow rather than edited as a second identity.
+    M::up(
+        "
+        ALTER TABLE persons ADD COLUMN organization TEXT;
+        ",
+    ),
+    // PREP and WRAP are meeting-activity receipts. Their event kinds widen the
+    // workflow event constraint; no new configurable workflow is introduced.
+    M::up(rebuilt_workflow_tables!(
+        workflow_ids: "
+            'person_linking', 'pre_meeting_briefing', 'continuity',
+            'vocabulary_mining', 'document_linking', 'meeting_activity',
+            'spoken_punctuation', 'correction_learning', 'mode_habits',
+            'capture_advisor', 'series_priming', 'daily_digest'
+        ",
+        seeded: "('daily_digest', 1) ON CONFLICT(workflow_id) DO NOTHING",
+        event_kinds: "
+            'meeting_finalized', 'meeting_started', 'speaker_renamed',
+            'audio_imported', 'doc_ingested', 'calendar_meeting_detected',
+            'agent_hook_event', 'meeting_prompt_recorded',
+            'meeting_prompt_ignored', 'meeting_auto_record_started',
+            'meeting_auto_record_stopped', 'dictation_corpus_swept',
+            'dictation_correction_recorded', 'daily_digest_due',
+            'meeting_prep_presented', 'meeting_prep_record_armed',
+            'meeting_prep_brief_opened', 'meeting_prep_dismissed',
+            'meeting_wrap_presented', 'meeting_wrap_notes_opened',
+            'meeting_wrap_follow_up_copied', 'meeting_wrap_done'
+        ",
+    )),
 ];
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StoreError {

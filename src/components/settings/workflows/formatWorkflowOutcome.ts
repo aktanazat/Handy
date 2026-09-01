@@ -52,6 +52,22 @@ export const formatWorkflowOutcome = (
       return t("settings.workflows.outcomes.autoRecordStarted");
     case "auto_record_stopped":
       return t("settings.workflows.outcomes.autoRecordStopped");
+    case "prep_presented":
+      return t("meetings.prep.label");
+    case "prep_record_armed":
+      return t("meetings.prep.recordWhenStarts");
+    case "prep_brief_opened":
+      return t("meetings.prep.openBrief");
+    case "prep_dismissed":
+      return t("meetings.prep.dismiss");
+    case "wrap_presented":
+      return t("consentPanel.wrap.label");
+    case "wrap_notes_opened":
+      return t("consentPanel.wrap.openNotes");
+    case "wrap_follow_up_copied":
+      return t("consentPanel.wrap.copied");
+    case "wrap_done":
+      return t("consentPanel.wrap.done");
     case "already_processed":
       return t("settings.workflows.outcomes.alreadyProcessed");
     case "failed":
@@ -98,6 +114,14 @@ export const workflowOutcomeHasEffect = (
     case "prompt_ignored":
     case "auto_record_started":
     case "auto_record_stopped":
+    case "prep_presented":
+    case "prep_record_armed":
+    case "prep_brief_opened":
+    case "prep_dismissed":
+    case "wrap_presented":
+    case "wrap_notes_opened":
+    case "wrap_follow_up_copied":
+    case "wrap_done":
     case "failed":
       return true;
     default: {
