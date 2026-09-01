@@ -14,9 +14,8 @@ import {
   type SpeakerId,
 } from "@/bindings";
 import {
-  FactChip,
-  Microlabel,
   Notice,
+  PageTitle,
   SettingsPage,
   SettingsSection,
 } from "@/components/settings/rows";
@@ -37,8 +36,9 @@ import { QuestionsTab } from "./review/QuestionsTab";
 import { TalkTimeRow } from "./review/TalkTimeRow";
 import { TranscriptTab } from "./review/TranscriptTab";
 import { MeetingLedgerSection } from "./MeetingLedgerSection";
-import { CaptureCompletenessText, MeetingPhaseText } from "./MeetingStatus";
+import { MeetingPhaseText } from "./MeetingStatus";
 import { type LoopChange } from "./review/LoopRows";
+import { committedEdit, inlineEditKeys } from "./review/inlineEdit";
 import {
   formatMeetingDate,
   formatMeetingOffset,
@@ -78,6 +78,11 @@ const TAB_TRIGGER_CLASSES =
 
 /** Every review panel is a column of sections on the page's own rhythm. */
 const TAB_PANEL_CLASSES = "flex flex-col gap-10";
+
+/** How long typing settles before the store is asked for its own answer.
+ * Short enough that a finished word is answered, long enough that a typed
+ * word is one query rather than five. */
+const SEARCH_SETTLE_MS = 250;
 
 interface MeetingReviewProps {
   snapshot: MeetingReviewSnapshot;
@@ -124,12 +129,18 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
   onRefresh,
 }) => {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<ReviewTab>("transcript");
+  /* D19 gives a finished meeting a title from its own content, and the notes
+   * written from it are what somebody came back for; the transcript is the
+   * evidence behind them, one click away. A meeting with nothing generated yet
+   * has only the transcript, so that is where it opens. Initial state, not
+   * derived: once a person has chosen a tab, a refresh must not move them. */
+  const [tab, setTab] = useState<ReviewTab>(
+    snapshot.artifacts.length > 0 ? "insights" : "transcript",
+  );
   const [jump, setJump] = useState<SegmentJump | null>(null);
   const [newNote, setNewNote] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchHits, setSearchHits] = useState<MeetingSearchHit[] | null>(null);
-  const [searching, setSearching] = useState(false);
   const [question, setQuestion] = useState("");
   const [askingQuestion, setAskingQuestion] = useState(false);
   const [exportingLedger, setExportingLedger] = useState(false);
@@ -273,6 +284,10 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
 
   const jumpToSegment = (segmentId: string) => {
     setTab("transcript");
+    /* A live filter that does not contain the cited turn would swallow the
+     * jump, and a citation that lands nowhere is the one thing citations
+     * cannot do — so arriving clears the filter. */
+    setSearchQuery("");
     setJump((current) => ({ segmentId, nonce: (current?.nonce ?? 0) + 1 }));
   };
 
@@ -283,31 +298,49 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
     setNewNote("");
   };
 
-  const searchTranscript = async () => {
-    const query = searchQuery.trim();
-    if (query.length === 0) {
-      setSearchHits(null);
-      return;
-    }
-
-    setSearching(true);
-    try {
+  /* The field narrows the transcript as it is typed; the store is asked once
+   * the typing settles, because its index is the authority on what this
+   * meeting contains and reaches the notes and the title as well. */
+  const searchTranscript = useCallback(
+    async (query: string) => {
       const result = await commands.meetingSearch({
         query,
-        session_ids: [snapshot.session.session_id],
+        session_ids: [sessionId],
         limit: 50,
       });
       if (result.status === "error") {
         toast.error(t(meetingErrorKey(result.error)));
-        return;
+        return null;
       }
-      setSearchHits(result.data.entries);
-    } catch {
-      toast.error(t("meetings.errors.operation"));
-    } finally {
-      setSearching(false);
-    }
-  };
+      return result.data.entries;
+    },
+    [sessionId, t],
+  );
+
+  useEffect(() => {
+    /* Hits belong to the query that asked for them, so a keystroke retires
+     * them: the transcript narrows on the words alone until the store answers
+     * the query now in the field. */
+    setSearchHits(null);
+    const query = searchQuery.trim();
+    if (query.length === 0) return;
+
+    /* A slow answer to an abandoned query must not overwrite a newer one. */
+    let live = true;
+    const timer = window.setTimeout(() => {
+      searchTranscript(query)
+        .then((hits) => {
+          if (live && hits !== null) setSearchHits(hits);
+        })
+        .catch(() => {
+          if (live) toast.error(t("meetings.errors.operation"));
+        });
+    }, SEARCH_SETTLE_MS);
+    return () => {
+      live = false;
+      window.clearTimeout(timer);
+    };
+  }, [searchQuery, searchTranscript, t]);
 
   const askQuestion = async () => {
     const text = question.trim();
@@ -465,10 +498,7 @@ export const MeetingReview: React.FC<MeetingReviewProps> = ({
             jump={jump}
             searchQuery={searchQuery}
             searchHits={searchHits}
-            searching={searching}
             onSearchQueryChange={setSearchQuery}
-            onSearch={searchTranscript}
-            onJumpToSegment={jumpToSegment}
             onSegmentEdit={onSegmentEdit}
             onSpeakerRename={onSpeakerRename}
             onSpeakerMerge={onSpeakerMerge}
@@ -561,7 +591,21 @@ const MeetingReviewHeader: React.FC<MeetingReviewHeaderProps> = ({
   onTitleSet,
 }) => {
   const { t } = useTranslation();
+  const startedAtUtcMs = snapshot.session.started_at_utc_ms;
   const elapsedOffsetNs = snapshot.session.elapsed_offset_ns;
+  /* When it started and how long it ran are one sentence, because they are one
+   * fact about the recording. A labelled ELAPSED chip made a measurement out
+   * of the second half of it. */
+  const metadata = [
+    startedAtUtcMs === null
+      ? t("meetings.review.noStartTime")
+      : t("meetings.review.started", {
+          date: formatMeetingDate(startedAtUtcMs),
+        }),
+    elapsedOffsetNs === null ? null : formatMeetingOffset(elapsedOffsetNs),
+  ]
+    .filter((fact): fact is string => fact !== null)
+    .join(" · ");
 
   return (
     <header className="flex flex-col gap-3">
@@ -583,25 +627,20 @@ const MeetingReviewHeader: React.FC<MeetingReviewHeaderProps> = ({
         disabled={busy || !editable}
         onTitleSet={onTitleSet}
       />
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+      {/* One line of facts about the recording, and the state it is in. The
+       * completeness word only appears when it changes what the record can be
+       * trusted for: "Complete" beside "Ready for review" says nothing twice,
+       * and a partial recording has to say so in words. */}
+      <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <MeetingPhaseText phase={snapshot.session.phase} />
-        <CaptureCompletenessText
-          completeness={snapshot.session.capture_completeness}
-        />
-        <span className="text-sm text-gray-700">
-          {snapshot.session.started_at_utc_ms === null
-            ? t("meetings.review.noStartTime")
-            : t("meetings.review.started", {
-                date: formatMeetingDate(snapshot.session.started_at_utc_ms),
-              })}
-        </span>
-        {elapsedOffsetNs === null ? null : (
-          <FactChip
-            label={t("meetings.live.elapsed")}
-            value={formatMeetingOffset(elapsedOffsetNs)}
-          />
-        )}
-      </div>
+        {snapshot.session.capture_completeness === "partial" ? (
+          /* `StatusWord`'s warning tone; the copy is this surface's own. */
+          <span className="text-[12px] leading-4 text-amber-900">
+            {t("meetings.review.partialRecording")}
+          </span>
+        ) : null}
+        <span className="text-[13px] leading-5 text-gray-700">{metadata}</span>
+      </p>
       {/* Talk share sits under the facts line, not among them: it is a shape,
        * and the chips beside it are single values. */}
       <TalkTimeRow
@@ -622,51 +661,54 @@ interface MeetingTitleEditorProps {
   onTitleSet: (title: string) => void;
 }
 
+/* The meeting's title is the page's title, so it is the page's title: an H1
+ * that reads as one. D19 writes it from the meeting's own content, which makes
+ * editing the exception rather than the expected first act — so there is no
+ * field and no Save button until somebody presses the words themselves. */
 const MeetingTitleEditor: React.FC<MeetingTitleEditorProps> = ({
   title,
   disabled,
   onTitleSet,
 }) => {
   const { t } = useTranslation();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [canSave, setCanSave] = useState(false);
+  const [editing, setEditing] = useState(false);
 
-  const save = () => {
-    const nextTitle = inputRef.current?.value.trim() ?? "";
-    if (nextTitle.length === 0 || nextTitle === title) return;
-    onTitleSet(nextTitle);
+  const commit = (draft: string) => {
+    setEditing(false);
+    const next = committedEdit(draft, title);
+    if (next !== null) onTitleSet(next);
   };
 
+  if (editing) {
+    return (
+      /* Set in the H1's own type so opening the field moves no other line on
+       * the page; the heading is still the heading behind it. */
+      <input
+        autoFocus
+        defaultValue={title}
+        aria-label={t("meetings.review.meetingTitle")}
+        onBlur={(event) => commit(event.target.value)}
+        onKeyDown={inlineEditKeys(commit, () => setEditing(false))}
+        className="w-full border-0 border-b border-blue-700 bg-transparent pb-px text-[24px] leading-[30px] font-medium tracking-tight text-gray-1000 outline-none"
+      />
+    );
+  }
+
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <label htmlFor="meeting-review-title">
-          <Microlabel>{t("meetings.review.meetingTitle")}</Microlabel>
-        </label>
-        {/* The meeting's title is the page's title, so it is set in the page
-         * title's type and edited in place. */}
-        <input
-          ref={inputRef}
-          id="meeting-review-title"
-          defaultValue={title}
-          onChange={(event) => {
-            const nextTitle = event.target.value.trim();
-            setCanSave(nextTitle.length > 0 && nextTitle !== title);
-          }}
-          disabled={disabled}
-          className="w-full border-0 border-b border-gray-alpha-400 bg-transparent pb-1 text-2xl font-medium tracking-tight text-gray-1000 outline-none transition-colors enabled:hover:border-gray-alpha-600 focus-visible:border-blue-700 disabled:cursor-not-allowed disabled:text-gray-700"
-        />
-      </div>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={save}
-        disabled={disabled || !canSave}
-      >
-        {t("common.save")}
-      </Button>
-    </div>
+    <PageTitle>
+      {disabled ? (
+        title
+      ) : (
+        <button
+          type="button"
+          title={t("meetings.review.editTitle")}
+          onClick={() => setEditing(true)}
+          className="cursor-pointer rounded-md text-start transition-colors hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+        >
+          {title}
+        </button>
+      )}
+    </PageTitle>
   );
 };
 

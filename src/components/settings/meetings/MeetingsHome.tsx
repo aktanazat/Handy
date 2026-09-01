@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { Ellipsis } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { MeetingRetentionPolicy, SourceKind } from "@/bindings";
 import {
@@ -9,6 +10,12 @@ import {
   SettingsSection,
 } from "@/components/settings/rows";
 import { Button } from "@/components/vg/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/vg/dropdown-menu";
 import { formatEntryTimestamp } from "@/lib/utils/format";
 import { destinationIcons } from "@/lib/navIcons";
 import { CaptureCompletenessText } from "./MeetingStatus";
@@ -237,15 +244,33 @@ export const MeetingsHome: React.FC<MeetingsHomeProps> = ({
                   >
                     {t("meetings.recovery.finalize")}
                   </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="text-red-900"
-                    onClick={() => onDiscardRecovery(meeting.session_id)}
-                  >
-                    {t("meetings.actions.discard")}
-                  </Button>
+                  {/* Throwing the recording away is the other answer, and it
+                   * is the one that cannot be taken back — so it waits behind
+                   * the same glyph every other row in the app keeps its
+                   * operations behind, rather than sitting in red beside the
+                   * one that saves the meeting. */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        className="text-gray-700 hover:text-gray-1000"
+                        aria-label={t("meetings.list.rowActions")}
+                        title={t("meetings.list.rowActions")}
+                      >
+                        <Ellipsis aria-hidden="true" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onSelect={() => onDiscardRecovery(meeting.session_id)}
+                      >
+                        {t("meetings.actions.discard")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </span>
               </li>
             ))}

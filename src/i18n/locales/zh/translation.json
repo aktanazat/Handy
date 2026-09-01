@@ -711,14 +711,13 @@
         "jobs": "文件导入",
         "status": {
           "queued": "排队中",
-          "decoding": "正在解码音频",
+          "decoding": "正在读取音频",
           "transcribing": "正在转录",
           "done": "已保存到历史记录",
           "cancelled": "已取消",
           "failed": "失败",
           "cancelling": "正在取消"
         },
-        "decodedSamples": "已解码 {{count}} 个样本",
         "cancel": "取消",
         "failure": {
           "invalid_file": "无法读取所选文件。",
@@ -1514,7 +1513,6 @@
         "identityUnavailable": "打开代理面板以创建密钥。",
         "copy": "复制",
         "copied": "已复制",
-        "save": "保存",
         "unpair": "解除配对",
         "test": "测试",
         "reached": "中继已响应。",
@@ -1942,8 +1940,8 @@
       "addNote": "添加带时间戳的笔记"
     },
     "recovery": {
-      "title": "恢复未完成的会议",
-      "finalize": "按未完成状态归档"
+      "title": "未完成的会议",
+      "finalize": "完成保存"
     },
     "history": {
       "title": "会议历史",
@@ -2031,8 +2029,10 @@
     },
     "review": {
       "meetingTitle": "会议标题",
+      "editTitle": "重命名这场会议",
       "noStartTime": "这场会议没有记录开始时间。",
       "started": "{{date}} 开始",
+      "partialRecording": "部分录音",
       "status": "采集状态",
       "timeline": "音频时间线与间隙",
       "timeUnknown": "时间未知",
@@ -2044,13 +2044,13 @@
       "noTranscript": "没有可用的转录。",
       "transcriptSegment": "转录片段",
       "removeSegment": "移除片段",
+      "editTurn": "编辑这段话",
       "unknownSpeaker": "未知说话人",
       "speakers": "说话人",
       "noSpeakers": "没有可用的说话人标签。",
       "speakerName": "说话人名称",
-      "mergeSource": "合并这个说话人",
-      "mergeTarget": "合并到这个说话人",
-      "merge": "合并说话人",
+      "renameSpeaker": "重命名这个说话人",
+      "samePersonAs": "与 {{name}} 是同一人",
       "manualNotes": "手动笔记",
       "manualNote": "手动笔记",
       "newNote": "新建手动笔记",
@@ -2091,23 +2091,19 @@
       "question": "问题",
       "insufficientEvidence": "在这场会议里没有找到可以支撑的段落。",
       "forget": "忘掉这条回答",
-      "exactSearch": "精确搜索",
       "searchPlaceholder": "搜索这场会议",
-      "search": "搜索",
       "noSearchResults": "没有完全匹配的本地结果。",
       "askUnavailable": "提问需要已完成的本地转录。",
       "asking": "正在向此会议提问…",
       "droppedFrames": "丢帧数：{{total}}",
       "hitKind": {
         "manualNote": "手动笔记",
-        "title": "会议标题",
-        "transcript": "转录"
+        "title": "会议标题"
       },
       "noGeneratedNotesDescription": "生成的笔记来自转录，因此随时可以重新生成。",
       "processingDescription": "转录完成后即会显示生成的笔记和本地回答。",
       "processingTitle": "Sona 仍在处理此会议",
       "remoteProcessingUnavailable": "远程目标始终不可用，因此未生成任何内容。重新生成将在这台 Mac 上运行。",
-      "searching": "正在搜索…",
       "sonaAnswered": "Sona 的回答",
       "tabs": {
         "insights": "洞察",
@@ -2142,8 +2138,6 @@
       "trustMeasured": "轮次、时长、词数和发言占比来自转录。每个状态都是从旁边那条引文读出的判断：照做之前请先核对引文。",
       "unattributed": "未标明发言人",
       "columnAt": "时间点",
-      "columnQuestion": "问题",
-      "columnInstead": "实际发生了什么",
       "columnDirection": "方向",
       "columnWhat": "内容",
       "columnTaken": "被如何理解",
@@ -2211,7 +2205,7 @@
       "searchPlaceholder": "按标题搜索",
       "clearFilters": "清除筛选",
       "noMatchesFiltered": "没有会议符合条件",
-      "noMatchesFilteredDescription": "没有保留的会议符合这个筛选条件。查询会覆盖磁盘上的所有会议，而不只是屏幕上这一页。",
+      "noMatchesFilteredDescription": "没有符合这些筛选条件的内容。Sona 查看了所有保留的会议，而不只是这一页。",
       "rowActions": "会议操作",
       "exportMarkdown": "导出笔记（Markdown）",
       "exportJson": "导出笔记（JSON）",
@@ -2659,10 +2653,9 @@
     "detail": {
       "nameLabel": "人物名称",
       "rename": "重命名",
+      "personActions": "联系人操作",
       "deletePerson": "删除人物",
       "aliases": "其他名称：{{aliases}}",
-      "renameTitle": "重命名此人物？",
-      "renameDescription": "将此人物重命名为 {{name}}？",
       "merge": "合并",
       "mergeTitle": "合并此人物？",
       "mergeDescription": "将 {{source}} 合并到 {{target}}？关联、其他名称和关系历史将被合并。",

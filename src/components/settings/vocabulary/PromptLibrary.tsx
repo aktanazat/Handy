@@ -15,14 +15,17 @@ import {
 import { Input } from "@/components/vg/input";
 import { Label } from "@/components/vg/label";
 import { Textarea } from "@/components/vg/textarea";
-import { Notice, SettingsSection } from "@/components/settings/rows";
+import {
+  Notice,
+  RowActions,
+  SettingsSection,
+} from "@/components/settings/rows";
 import { useSettings } from "../../../hooks/useSettings";
 import {
   EmptyLine,
   Hint,
   literalText,
   LoadingRows,
-  RowActions,
   RuleList,
   RuleRow,
 } from "./PanelParts";

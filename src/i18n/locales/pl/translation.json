@@ -711,14 +711,13 @@
         "jobs": "Importy plików",
         "status": {
           "queued": "W kolejce",
-          "decoding": "Dekodowanie dźwięku",
+          "decoding": "Wczytywanie dźwięku",
           "transcribing": "Transkrybowanie",
           "done": "Zapisano w historii",
           "cancelled": "Anulowano",
           "failed": "Niepowodzenie",
           "cancelling": "Anulowanie"
         },
-        "decodedSamples": "Zdekodowane próbki: {{count}}",
         "cancel": "Anuluj",
         "failure": {
           "invalid_file": "Nie można odczytać wybranego pliku.",
@@ -1514,7 +1513,6 @@
         "identityUnavailable": "Włącz panel agenta, aby utworzyć klucz.",
         "copy": "Kopiuj",
         "copied": "Skopiowano",
-        "save": "Zapisz",
         "unpair": "Rozparuj",
         "test": "Sprawdź",
         "reached": "Przekaźnik odpowiedział.",
@@ -1960,8 +1958,8 @@
       "addNote": "Dodaj notatkę ze znacznikiem czasu"
     },
     "recovery": {
-      "title": "Odzyskaj częściowe spotkania",
-      "finalize": "Zakończ częściowo"
+      "title": "Niedokończone spotkania",
+      "finalize": "Dokończ zapis"
     },
     "history": {
       "title": "Historia spotkań",
@@ -2049,8 +2047,10 @@
     },
     "review": {
       "meetingTitle": "Tytuł spotkania",
+      "editTitle": "Zmień nazwę tego spotkania",
       "noStartTime": "To spotkanie nie zapisało godziny rozpoczęcia.",
       "started": "Rozpoczęto {{date}}",
+      "partialRecording": "Częściowe nagranie",
       "status": "Stan nagrywania",
       "timeline": "Oś czasu audio i luki",
       "timeUnknown": "Nieznana godzina",
@@ -2062,13 +2062,13 @@
       "noTranscript": "Transkrypcja jest niedostępna.",
       "transcriptSegment": "Fragment transkrypcji",
       "removeSegment": "Usuń fragment",
+      "editTurn": "Edytuj tę wypowiedź",
       "unknownSpeaker": "Nieznany mówiący",
       "speakers": "Mówiący",
       "noSpeakers": "Brak dostępnych etykiet mówiących.",
       "speakerName": "Imię mówiącego",
-      "mergeSource": "Scal tego mówiącego",
-      "mergeTarget": "Z tym mówiącym",
-      "merge": "Scal mówiących",
+      "renameSpeaker": "Zmień imię tego mówiącego",
+      "samePersonAs": "Ta sama osoba co {{name}}",
       "manualNotes": "Notatki ręczne",
       "manualNote": "Notatka ręczna",
       "newNote": "Nowa notatka ręczna",
@@ -2109,23 +2109,19 @@
       "question": "Pytanie",
       "insufficientEvidence": "Nie znaleziono w tym spotkaniu fragmentu, który by to potwierdzał.",
       "forget": "Zapomnij tę odpowiedź",
-      "exactSearch": "Wyszukiwanie dokładne",
       "searchPlaceholder": "Szukaj w tym spotkaniu",
-      "search": "Szukaj",
       "noSearchResults": "Brak dokładnych trafień lokalnych.",
       "askUnavailable": "Zadawanie pytań wymaga ukończonej lokalnej transkrypcji.",
       "asking": "Pytanie o to spotkanie…",
       "droppedFrames": "Utracone klatki: {{total}}",
       "hitKind": {
         "manualNote": "Notatka ręczna",
-        "title": "Tytuł spotkania",
-        "transcript": "Transkrypcja"
+        "title": "Tytuł spotkania"
       },
       "noGeneratedNotesDescription": "Wygenerowane notatki pochodzą z transkrypcji, więc można je odtworzyć w dowolnym momencie.",
       "processingDescription": "Wygenerowane notatki i lokalne odpowiedzi pojawią się po ukończeniu transkrypcji.",
       "processingTitle": "Sona wciąż przetwarza to spotkanie",
       "remoteProcessingUnavailable": "Zdalne miejsce docelowe nigdy nie stało się dostępne, więc nic nie zostało wygenerowane. Ponowne generowanie odbywa się na tym Macu.",
-      "searching": "Wyszukiwanie…",
       "sonaAnswered": "Sona odpowiedziała",
       "tabs": {
         "insights": "Wnioski",
@@ -2160,8 +2156,6 @@
       "trustMeasured": "Kolejki, czasy, liczby wyrazów i udział w rozmowie pochodzą z transkrypcji. Każdy stan to ocena odczytana z cytatu obok: sprawdź cytat, zanim na nim oprzesz decyzję.",
       "unattributed": "Bez przypisania",
       "columnAt": "Czas",
-      "columnQuestion": "Pytanie",
-      "columnInstead": "Co stało się zamiast tego",
       "columnDirection": "Kierunek",
       "columnWhat": "Co",
       "columnTaken": "Jak to zrozumiano",
@@ -2229,7 +2223,7 @@
       "searchPlaceholder": "Szukaj po tytule",
       "clearFilters": "Wyczyść filtry",
       "noMatchesFiltered": "Żadne spotkanie nie pasuje",
-      "noMatchesFilteredDescription": "Żadne zachowane spotkanie nie pasuje do tego filtra. Zapytanie działa na wszystkich spotkaniach na dysku, nie tylko na stronie widocznej na ekranie.",
+      "noMatchesFilteredDescription": "Nic nie pasuje do tych filtrów. Sona przejrzała wszystkie zachowane spotkania, nie tylko tę stronę.",
       "rowActions": "Akcje spotkania",
       "exportMarkdown": "Eksportuj notatki (Markdown)",
       "exportJson": "Eksportuj notatki (JSON)",
@@ -2685,10 +2679,9 @@
     "detail": {
       "nameLabel": "Imię i nazwisko",
       "rename": "Zmień nazwę",
+      "personActions": "Działania osoby",
       "deletePerson": "Usuń osobę",
       "aliases": "Także: {{aliases}}",
-      "renameTitle": "Zmienić nazwę tej osoby?",
-      "renameDescription": "Zmienić nazwę tej osoby na {{name}}?",
       "merge": "Scal",
       "mergeTitle": "Scalić tę osobę?",
       "mergeDescription": "Scalić {{source}} z {{target}}? Połączenia, aliasy i historia relacji zostaną połączone.",

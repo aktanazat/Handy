@@ -571,8 +571,24 @@ describe("meetings list", () => {
       filter: { ...NO_MEETING_FILTER, status: "failed" },
     });
     expect(empty).toContain("No meetings match");
-    expect(empty).toContain("not just the page on screen");
+    expect(empty).toContain("Sona looked through every meeting it has kept");
     expect(occurrences(empty, "No meetings yet")).toBe(0);
+  });
+
+  /* §2b rule 2: a page you read does not print an irreversible verb on every
+   * line. Finishing the save is the answer this row is asking for and stays
+   * named; throwing the recording away is behind the row's own menu, which is
+   * a portal a static render never mounts — so the trigger is what proves it
+   * left the row. */
+  test("an unfinished meeting offers the save inline and the discard behind its menu", () => {
+    const markup = homeMarkup({
+      recovery: [{ ...SUMMARY, session_id: "meeting-recovery" }],
+    });
+
+    expect(markup).toContain("Unfinished meetings");
+    expect(markup).toContain(">Finish saving</button>");
+    expect(markup).not.toContain(">Discard</button>");
+    expect(occurrences(markup, 'aria-label="Meeting actions"')).toBe(1);
   });
 
   /* `disabled=""` and not "disabled": the Button primitive carries
@@ -740,28 +756,39 @@ describe("live capture", () => {
 });
 
 describe("meeting review", () => {
-  const markup = render(
-    <MeetingReview
-      snapshot={SNAPSHOT}
-      lastReceipt={null}
-      pendingAction={null}
-      onBack={noop}
-      onTitleSet={noop}
-      onSpeakerRename={noop}
-      onSpeakerMerge={noop}
-      onSegmentEdit={noop}
-      onNoteCreate={noop}
-      onNoteUpdate={noop}
-      onNoteDelete={noop}
-      onRegenerate={noop}
-      onExport={noop}
-      onRemoteCancel={noop}
-      onDelete={noop}
-      onRefresh={async () => {}}
-    />,
-  );
+  const reviewMarkup = (
+    overrides: Partial<React.ComponentProps<typeof MeetingReview>> = {},
+  ) =>
+    render(
+      <MeetingReview
+        snapshot={SNAPSHOT}
+        lastReceipt={null}
+        pendingAction={null}
+        onBack={noop}
+        onTitleSet={noop}
+        onSpeakerRename={noop}
+        onSpeakerMerge={noop}
+        onSegmentEdit={noop}
+        onNoteCreate={noop}
+        onNoteUpdate={noop}
+        onNoteDelete={noop}
+        onRegenerate={noop}
+        onExport={noop}
+        onRemoteCancel={noop}
+        onDelete={noop}
+        onRefresh={async () => {}}
+        {...overrides}
+      />,
+    );
+  const markup = reviewMarkup();
+  /* Radix mounts only the open panel's children, so the transcript's own
+   * contract is read on a meeting that has nothing generated yet — which is
+   * exactly the meeting that opens on it. */
+  const onTranscript = reviewMarkup({
+    snapshot: { ...SNAPSHOT, artifacts: [] },
+  });
 
-  test("opens on the transcript tab with all four panels reachable", () => {
+  test("opens on what was written from the meeting, all four panels reachable", () => {
     expect(markup).toContain('aria-label="Meeting review sections"');
     /* The strip is Radix now, so the ids that wire a tab to its panel are
      * generated rather than authored — asserting them would pin a detail the
@@ -773,36 +800,103 @@ describe("meeting review", () => {
       expect(markup).toContain(`>${label}<`);
     }
     /* All four panels are rendered so the strip is navigable without JS, but
-     * exactly one is open: the active trigger and the active panel. */
+     * exactly one is open. This meeting has generated notes, so that is the
+     * one: the transcript is the evidence behind them, one press away. */
     expect(occurrences(markup, 'role="tabpanel"')).toBe(4);
     expect(occurrences(markup, 'data-state="active"')).toBe(2);
-    expect(markup).toContain("We ship the meetings redesign this week.");
+    expect(buttonTag(markup, "Insights")).toContain('data-state="active"');
+    expect(buttonTag(markup, "Transcript")).not.toContain(
+      'data-state="active"',
+    );
+    /* The open panel is the generated one, so its words are the ones on the
+     * page: the transcript's are behind its trigger. */
+    expect(markup).toContain("The team agreed to ship this week.");
+    expect(markup).not.toContain("We ship the meetings redesign this week.");
   });
 
-  test("transcript panel carries speakers, segments, coverage and gaps", () => {
-    expect(markup).toContain("We ship the meetings redesign this week.");
-    expect(markup).toContain('id="meeting-transcript-segment-segment-1"');
-    /* The roster says what happened in plain words. "Diarization" is the
-     * subsystem's name for separating speakers and reaches no reader. */
-    expect(markup).toContain("Speakers are up to date");
-    expect(markup).not.toContain("iarization");
-    expect(markup).toContain(">Merge speakers<");
-    expect(markup).toContain(">Remove segment<");
-    expect(markup).toContain("Permission lost");
-    expect(markup).toContain("Dropped frames: 128");
-    expect(markup).toContain("Gaps: 2");
-    expect(markup).toContain('aria-label="Exact search"');
-    expect(markup).toContain('placeholder="Search this meeting"');
+  test("a meeting with nothing generated yet opens on its transcript", () => {
+    expect(buttonTag(onTranscript, "Transcript")).toContain(
+      'data-state="active"',
+    );
+    expect(buttonTag(onTranscript, "Insights")).not.toContain(
+      'data-state="active"',
+    );
+    expect(onTranscript).toContain("We ship the meetings redesign this week.");
+  });
+
+  test("the title is the page's heading, and the only way to a field", () => {
+    expect(markup).toContain(">Weekly planning</button>");
+    expect(markup).toContain('title="Rename this meeting"');
+    /* No microlabel over it, no field, and no Save: D19 writes the title, so
+     * correcting it is the exception rather than the first thing offered. */
+    expect(markup).not.toContain(">Meeting title<");
+    expect(markup).not.toContain('id="meeting-review-title"');
+  });
+
+  test("the header states the recording once, and measures it in a sentence", () => {
+    expect(markup).toContain(">Ready for review<");
+    /* Sentence case, and the word that changes what the record can be trusted
+     * for. "Partial" on its own was a machine's shorthand for it. */
+    expect(markup).toContain(">Partial recording<");
+    /* When it started and how long it ran are one quiet line, not a labelled
+     * ELAPSED measurement beside the state. */
+    expect(markup).toContain("Started ");
+    expect(markup).toContain(" · 30:45");
+    expect(markup).not.toContain(">Elapsed<");
+  });
+
+  test("the transcript panel reads as prose, and still carries its coverage", () => {
+    expect(onTranscript).toContain('id="meeting-transcript-segment-segment-1"');
+    /* The words are words: no field per turn, and no destructive control on a
+     * surface somebody is reading. */
+    expect(onTranscript).not.toContain("<textarea");
+    expect(onTranscript).not.toContain(">Remove segment<");
+    expect(onTranscript).toContain('aria-label="Edit this turn"');
+    expect(onTranscript).toContain("Permission lost");
+    expect(onTranscript).toContain("Dropped frames: 128");
+    expect(onTranscript).toContain("Gaps: 2");
+  });
+
+  test("speakers are a row of names, and no roster machinery", () => {
+    expect(occurrences(onTranscript, 'data-slot="speaker-chip"')).toBe(2);
+    expect(onTranscript).toContain(">Aktan</button>");
+    expect(onTranscript).toContain(">Guest</button>");
+    expect(onTranscript).toContain('title="Rename this speaker"');
+    /* No labelled field, no Save, and no pair of merge dropdowns. */
+    expect(onTranscript).not.toContain(">Speaker name<");
+    expect(onTranscript).not.toContain(">Merge speakers<");
+    /* Separation worked here, so the roster says nothing about it: the names
+     * are the result. "Diarization" reaches no reader either way. */
+    expect(onTranscript).not.toContain("Speakers are up to date");
+    expect(onTranscript).not.toContain("iarization");
+  });
+
+  test("a meeting whose speakers were never separated says so, once and quietly", () => {
+    const undiarized = reviewMarkup({
+      snapshot: {
+        ...SNAPSHOT,
+        artifacts: [],
+        diarization: {
+          ...SNAPSHOT.diarization,
+          status: "not_requested",
+          assigned_segment_count: 0,
+        },
+      },
+    });
+    expect(occurrences(undiarized, "Speakers not separated")).toBe(1);
+  });
+
+  test("search is one live field on the transcript, with no card and no submit", () => {
+    expect(onTranscript).toContain('placeholder="Search this meeting"');
+    expect(onTranscript).toContain('aria-label="Search this meeting"');
+    expect(onTranscript).not.toContain(">Exact search<");
+    expect(onTranscript).not.toContain(">Search</button>");
   });
 
   test("keeps the export and delete actions on the record", () => {
     expect(markup).toContain(">Export Markdown<");
     expect(markup).toContain(">Export JSON<");
     expect(markup).toContain(">Delete meeting<");
-    /* The capture length is presented as one measurement: an ELAPSED label and
-     * its value, not the sentence "Captured 30:45". */
-    expect(markup).toContain(">Elapsed<");
-    expect(markup).toContain(">30:45<");
   });
 });
 

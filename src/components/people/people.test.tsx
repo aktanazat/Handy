@@ -293,8 +293,15 @@ describe("person detail", () => {
     expect(occurrences(markup, 'data-slot="person-meeting"')).toBe(3);
     expect(markup).toContain('data-slot="person-document"');
     expect(markup).toContain("Dana prefers a concise weekly update.");
-    expect(markup).toContain(">Split person</button>");
-    expect(occurrences(markup, 'data-slot="dropdown-menu-trigger"')).toBe(3);
+    /* The name is the control that renames it, so there is no Rename button
+     * beside the title — and split, merge and delete are operations on who
+     * this person is, so they wait behind one quiet trigger instead of a row
+     * of named buttons. Four triggers: three meeting rows and the header. */
+    expect(markup).not.toContain(">Rename</button>");
+    expect(markup).not.toContain(">Split person</button>");
+    expect(markup).toContain('title="Rename"');
+    expect(markup).toContain('aria-label="Person actions"');
+    expect(occurrences(markup, 'data-slot="dropdown-menu-trigger"')).toBe(4);
     /* An open loop names the meeting it came from, and the name is the way
      * back into that meeting rather than a caption about it. */
     expect(occurrences(markup, ">Planning</button>")).toBe(2);

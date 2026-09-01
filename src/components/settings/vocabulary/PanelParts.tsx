@@ -44,9 +44,9 @@ export const RuleList: React.FC<RuleListProps> = ({
 );
 
 /**
- * One rule. The wash names the row under the pointer, and `group/row` lets the
- * row's own actions stay out of the way until the pointer or the keyboard
- * arrives — which is why the focus-within state is not optional.
+ * One rule. The wash names the row under the pointer, and `group/row` is what
+ * lets `RowActions` from the settings grammar keep this row's own controls out
+ * of the way until the pointer or the keyboard arrives.
  */
 export const RuleRow: React.FC<React.ComponentProps<"li">> = ({
   className,
@@ -59,25 +59,6 @@ export const RuleRow: React.FC<React.ComponentProps<"li">> = ({
     )}
     {...props}
   />
-);
-
-/**
- * A row's own actions, dimmed until the row is hovered or something inside it
- * takes focus. Opacity alone would strand a keyboard, so the focus-within
- * state carries exactly the same weight as the hover one.
- */
-export const RowActions: React.FC<{
-  children: React.ReactNode;
-  className?: string;
-}> = ({ children, className }) => (
-  <span
-    className={cn(
-      "flex items-center gap-1 opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-within/row:opacity-100",
-      className,
-    )}
-  >
-    {children}
-  </span>
 );
 
 export interface ColumnHeaderProps {

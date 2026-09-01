@@ -14,12 +14,13 @@ import { useSettings } from "@/hooks/useSettings";
 /* Where the panel sends its turns, and the key it will believe when they come
  * back.
  *
- * Three fields and two buttons, because pairing is three facts and two
- * decisions: the relay's address, the relay's key id, the relay's public key —
- * then "save this" and "does it answer". Saving and testing are deliberately
- * separate: a relay that is asleep is still the relay you paired with, and a
- * screen that refuses to save an address it cannot reach right now is a screen
- * that cannot be used on a laptop.
+ * Three fields and one button, because pairing is three facts and one question
+ * the fields cannot answer: does it answer. The three facts are written when
+ * you are done with a field — Enter, or leaving it — and the row at the top
+ * says whether this Mac is paired, which is the receipt. Saving and testing
+ * stay separate: a relay that is asleep is still the relay you paired with,
+ * and a screen that refuses to keep an address it cannot reach right now is a
+ * screen that cannot be used on a laptop.
  *
  * The private half of this Mac's identity never appears here. It lives in the
  * secret backend; the public half is shown so it can be added to the relay's
@@ -99,7 +100,22 @@ export const SonaAgentPairing: React.FC = () => {
     }
   };
 
-  const save = () =>
+  const complete =
+    relayUrl.trim() !== "" &&
+    relayKeyId.trim() !== "" &&
+    relayPublicKey.trim() !== "";
+  const changed =
+    relayUrl !== savedUrl ||
+    relayKeyId !== savedKeyId ||
+    relayPublicKey !== savedPublicKey;
+  const disabled = settings === null || busy;
+
+  /* Leaving a field writes the three of them, because a pairing is one fact in
+   * three parts and the backend takes it whole. Nothing is written until all
+   * three are filled in and at least one differs from what is stored, so
+   * tabbing through a saved pairing is silent and a half-filled one waits. */
+  const commitPairing = () => {
+    if (!complete || !changed || busy) return;
     void run(() =>
       commands.setAgentPanelPairing({
         relay_url: relayUrl,
@@ -107,6 +123,12 @@ export const SonaAgentPairing: React.FC = () => {
         relay_public_key: relayPublicKey,
       }),
     );
+  };
+
+  /* Enter is the same act as leaving the field: it blurs, and blur commits. */
+  const commitOnEnter = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") event.currentTarget.blur();
+  };
 
   const test = async () => {
     setReached(await run(commands.agentPanelTestConnection));
@@ -122,12 +144,6 @@ export const SonaAgentPairing: React.FC = () => {
       setError(String(copyError));
     }
   };
-
-  const complete =
-    relayUrl.trim() !== "" &&
-    relayKeyId.trim() !== "" &&
-    relayPublicKey.trim() !== "";
-  const disabled = settings === null || busy;
 
   return (
     <>
@@ -179,6 +195,8 @@ export const SonaAgentPairing: React.FC = () => {
           value={relayUrl}
           disabled={disabled}
           onChange={(event) => setRelayUrl(event.target.value)}
+          onBlur={commitPairing}
+          onKeyDown={commitOnEnter}
           placeholder="http://100.64.0.1:8650"
         />
       </SettingsField>
@@ -194,6 +212,8 @@ export const SonaAgentPairing: React.FC = () => {
           value={relayKeyId}
           disabled={disabled}
           onChange={(event) => setRelayKeyId(event.target.value)}
+          onBlur={commitPairing}
+          onKeyDown={commitOnEnter}
         />
       </SettingsField>
 
@@ -201,25 +221,17 @@ export const SonaAgentPairing: React.FC = () => {
         label={t("settings.agents.sonaAgent.relayPublicKey")}
         controlId="sona-agent-relay-public-key"
       >
-        <div className="flex items-center gap-2">
-          <Input
-            id="sona-agent-relay-public-key"
-            type="text"
-            spellCheck={false}
-            className="min-w-0 flex-1 font-mono"
-            value={relayPublicKey}
-            disabled={disabled}
-            onChange={(event) => setRelayPublicKey(event.target.value)}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={save}
-            disabled={disabled || !complete}
-          >
-            {t("settings.agents.sonaAgent.save")}
-          </Button>
-        </div>
+        <Input
+          id="sona-agent-relay-public-key"
+          type="text"
+          spellCheck={false}
+          className="w-full font-mono"
+          value={relayPublicKey}
+          disabled={disabled}
+          onChange={(event) => setRelayPublicKey(event.target.value)}
+          onBlur={commitPairing}
+          onKeyDown={commitOnEnter}
+        />
       </SettingsField>
 
       <SettingsField

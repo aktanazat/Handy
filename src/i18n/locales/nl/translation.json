@@ -711,14 +711,13 @@
         "jobs": "Bestandsimporten",
         "status": {
           "queued": "In wachtrij",
-          "decoding": "Audio decoderen",
+          "decoding": "Audio lezen",
           "transcribing": "Transcriberen",
           "done": "Opgeslagen in de geschiedenis",
           "cancelled": "Geannuleerd",
           "failed": "Mislukt",
           "cancelling": "Annuleren"
         },
-        "decodedSamples": "{{count}} samples gedecodeerd",
         "cancel": "Annuleren",
         "failure": {
           "invalid_file": "Het geselecteerde bestand kan niet worden gelezen.",
@@ -1514,7 +1513,6 @@
         "identityUnavailable": "Zet het agentpaneel aan om een sleutel te maken.",
         "copy": "Kopiëren",
         "copied": "Gekopieerd",
-        "save": "Bewaren",
         "unpair": "Ontkoppelen",
         "test": "Testen",
         "reached": "De relay antwoordde.",
@@ -1948,8 +1946,8 @@
       "addNote": "Notitie met tijdstempel toevoegen"
     },
     "recovery": {
-      "title": "Gedeeltelijke vergaderingen herstellen",
-      "finalize": "Gedeeltelijk afronden"
+      "title": "Onafgeronde vergaderingen",
+      "finalize": "Opslaan afronden"
     },
     "history": {
       "title": "Vergadergeschiedenis",
@@ -2037,8 +2035,10 @@
     },
     "review": {
       "meetingTitle": "Vergadertitel",
+      "editTitle": "Naam van deze vergadering wijzigen",
       "noStartTime": "Voor deze vergadering is geen starttijd vastgelegd.",
       "started": "Gestart {{date}}",
+      "partialRecording": "Gedeeltelijke opname",
       "status": "Opnamestatus",
       "timeline": "Audiotijdlijn en hiaten",
       "timeUnknown": "Onbekend tijdstip",
@@ -2050,13 +2050,13 @@
       "noTranscript": "Er is geen transcript beschikbaar.",
       "transcriptSegment": "Transcriptsegment",
       "removeSegment": "Segment verwijderen",
+      "editTurn": "Deze passage bewerken",
       "unknownSpeaker": "Onbekende spreker",
       "speakers": "Sprekers",
       "noSpeakers": "Er zijn geen sprekerlabels beschikbaar.",
       "speakerName": "Sprekersnaam",
-      "mergeSource": "Deze spreker samenvoegen",
-      "mergeTarget": "Met deze spreker",
-      "merge": "Sprekers samenvoegen",
+      "renameSpeaker": "Naam van deze spreker wijzigen",
+      "samePersonAs": "Dezelfde persoon als {{name}}",
       "manualNotes": "Handmatige notities",
       "manualNote": "Handmatige notitie",
       "newNote": "Nieuwe handmatige notitie",
@@ -2097,23 +2097,19 @@
       "question": "Vraag",
       "insufficientEvidence": "Er is in deze vergadering geen ondersteunende passage gevonden.",
       "forget": "Dit antwoord vergeten",
-      "exactSearch": "Exact zoeken",
       "searchPlaceholder": "Deze vergadering doorzoeken",
-      "search": "Zoeken",
       "noSearchResults": "Geen exacte lokale overeenkomsten.",
       "askUnavailable": "Vragen stellen vereist een voltooid lokaal transcript.",
       "asking": "Deze vergadering wordt bevraagd…",
       "droppedFrames": "Verloren frames: {{total}}",
       "hitKind": {
         "manualNote": "Handmatige notitie",
-        "title": "Vergadertitel",
-        "transcript": "Transcript"
+        "title": "Vergadertitel"
       },
       "noGeneratedNotesDescription": "Gegenereerde notities zijn afgeleid van het transcript en kunnen dus altijd opnieuw worden opgebouwd.",
       "processingDescription": "Gegenereerde notities en lokale antwoorden verschijnen zodra het transcript voltooid is.",
       "processingTitle": "Sona verwerkt deze vergadering nog",
       "remoteProcessingUnavailable": "De externe bestemming werd nooit beschikbaar, dus er is niets gegenereerd. Opnieuw genereren gebeurt op deze Mac.",
-      "searching": "Zoeken…",
       "sonaAnswered": "Sona antwoordde",
       "tabs": {
         "insights": "Inzichten",
@@ -2148,8 +2144,6 @@
       "trustMeasured": "Spreekbeurten, tijden, woordaantallen en spreektijdverdeling komen uit het transcript. Elke stand is een oordeel dat uit het citaat ernaast is gelezen: controleer het citaat voordat je erop handelt.",
       "unattributed": "Zonder toeschrijving",
       "columnAt": "Op",
-      "columnQuestion": "De vraag",
-      "columnInstead": "Wat er in plaats daarvan gebeurde",
       "columnDirection": "Richting",
       "columnWhat": "Wat",
       "columnTaken": "Hoe het bedoeld was",
@@ -2217,7 +2211,7 @@
       "searchPlaceholder": "Zoeken op titel",
       "clearFilters": "Filters wissen",
       "noMatchesFiltered": "Geen vergaderingen komen overeen",
-      "noMatchesFilteredDescription": "Geen bewaarde vergadering past bij dit filter. De zoekopdracht loopt over alle vergaderingen op schijf, niet alleen over de pagina op het scherm.",
+      "noMatchesFilteredDescription": "Niets past bij deze filters. Sona heeft elke bewaarde vergadering doorgekeken, niet alleen deze pagina.",
       "rowActions": "Vergaderacties",
       "exportMarkdown": "Notities exporteren (Markdown)",
       "exportJson": "Notities exporteren (JSON)",
@@ -2667,10 +2661,9 @@
     "detail": {
       "nameLabel": "Naam van persoon",
       "rename": "Naam wijzigen",
+      "personActions": "Persoonsacties",
       "deletePerson": "Persoon verwijderen",
       "aliases": "Ook: {{aliases}}",
-      "renameTitle": "Naam van deze persoon wijzigen?",
-      "renameDescription": "De naam van deze persoon wijzigen in {{name}}?",
       "merge": "Samenvoegen",
       "mergeTitle": "Deze persoon samenvoegen?",
       "mergeDescription": "{{source}} samenvoegen met {{target}}? Koppelingen, aliassen en de relatiegeschiedenis worden gecombineerd.",

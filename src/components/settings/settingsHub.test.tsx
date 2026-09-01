@@ -216,7 +216,7 @@ describe("Advanced", () => {
   });
 });
 
-test("the whole non-debug surface stays at thirty rows or under", () => {
+test("the whole non-debug surface stays at thirty-four rows or under", () => {
   const total =
     countRows(paint(<EssentialsSettings onOpenModes={() => {}} />)) +
     countRows(
@@ -224,12 +224,13 @@ test("the whole non-debug surface stays at thirty rows or under", () => {
     ) +
     UNRENDERABLE_ADVANCED_ROWS;
 
-  /* Thirty is the brief's ceiling and the page is at it: twenty-eight rendered
-   * here plus the two detection switches a static render cannot reach. Three of
-   * those thirty are the settings this branch had dropped by accident — the app
-   * language, the window material and the idle pill — so the number went up by
-   * restoring writes to live fields, not by adding anything. Settings carried
-   * about seventy rows across seven tabs before the restructure; the next row
-   * added here has to displace one. */
-  expect(total).toBeLessThan(31);
+  /* Thirty-four is the round-3 ceiling. Round 2 held the page at thirty;
+   * the round-3 consensus (DECISIONS-3.md §7, 2026-08-31) then added four
+   * consented surfaces — remote meeting intelligence (D14), external access
+   * for the CLI and MCP server (D15), after-meeting automations (D22), and
+   * the per-series calendar controls (D28) — so the number moved by
+   * decision, not by drift. Settings carried about seventy rows across
+   * seven tabs before the restructure; the next row added here still has
+   * to displace one or argue with this comment. */
+  expect(total).toBeLessThan(35);
 });

@@ -14,7 +14,6 @@ import {
   SettingsRow,
   SettingsSection,
 } from "@/components/settings/rows";
-import { Button } from "@/components/vg/button";
 import { Input } from "@/components/vg/input";
 import { Switch } from "@/components/vg/switch";
 import { meetingErrorKey } from "./meetingUtils";
@@ -25,12 +24,11 @@ import { meetingErrorKey } from "./meetingUtils";
  * somebody opens one — a person with a dozen recurring meetings should see a
  * dozen quiet lines, not thirty-six switches.
  *
- * Two shapes of write live here and they behave differently on purpose. A
- * switch writes the moment it is pressed, because a switch that needs a second
- * press somewhere else is not a switch. A text field writes on an explicit
- * press, because a URL is half-typed for most of the time it exists and saving
- * a half-typed one would fire an automation at whatever that prefix resolves
- * to.
+ * Two shapes of write live here and they behave the same way: at the point of
+ * intent. A switch writes the moment it is pressed. A text field writes when
+ * the person is done with it — Enter, or leaving the field — because a URL is
+ * half-typed for most of the time it exists and every keystroke is not a
+ * decision. Neither needs a press to confirm the press.
  *
  * Every write carries the shared revision, so a second window editing another
  * series fences this one. A rejection is not an error to apologise for — it is
@@ -259,6 +257,15 @@ const AutomationRow: React.FC<AutomationRowProps> = ({
   const dirty = targetKind !== null && value.trim() !== saved.trim();
   const blocked = targetKind !== null && value.trim() === "";
 
+  /* Enter and blur are the same act: Enter blurs the field, and leaving it is
+   * the one thing that writes. A draft equal to what is stored is not a
+   * change, and an empty target is refused by the backend, so neither reaches
+   * the command. */
+  const commit = () => {
+    if (!dirty || blocked || busy) return;
+    onWrite(enabled, value);
+  };
+
   return (
     <SettingsRow
       label={t(LABEL_KEYS[kind])}
@@ -278,18 +285,11 @@ const AutomationRow: React.FC<AutomationRowProps> = ({
           disabled={busy}
           placeholder={t(PLACEHOLDER_KEYS[targetKind])}
           onChange={(changed) => onDraft(changed.target.value)}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") event.currentTarget.blur();
+          }}
         />
-      ) : null}
-      {dirty ? (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={busy || blocked}
-          onClick={() => onWrite(enabled, value)}
-        >
-          {busy ? t("common.saving") : t("common.save")}
-        </Button>
       ) : null}
       <Switch
         checked={enabled}

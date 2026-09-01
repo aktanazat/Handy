@@ -2,7 +2,11 @@ import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Plus, Radar, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Notice, SettingsSection } from "@/components/settings/rows";
+import {
+  Notice,
+  RowActions,
+  SettingsSection,
+} from "@/components/settings/rows";
 import { Button } from "@/components/vg/button";
 import { Input } from "@/components/vg/input";
 import {
@@ -101,7 +105,7 @@ export const MeetingTrackersSettings: React.FC = () => {
           {trackers.map((tracker, index) => (
             <li
               key={index}
-              className="flex flex-wrap items-center gap-2 px-4 py-2.5"
+              className="group/row flex flex-wrap items-center gap-2 px-4 py-2.5"
             >
               <Input
                 value={tracker.name}
@@ -134,22 +138,24 @@ export const MeetingTrackersSettings: React.FC = () => {
                 disabled={saving}
                 className="h-8 min-w-48 flex-1 text-[13px]"
               />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="flex-none text-red-900"
-                aria-label={t(
-                  "meetings.analytics.removeTracker",
-                  "Remove tracker",
-                )}
-                onClick={() =>
-                  void commit(trackers.filter((_, at) => at !== index))
-                }
-                disabled={saving}
-              >
-                <Trash2 aria-hidden="true" />
-              </Button>
+              <RowActions className="flex-none">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-gray-700 hover:text-red-900"
+                  aria-label={t(
+                    "meetings.analytics.removeTracker",
+                    "Remove tracker",
+                  )}
+                  onClick={() =>
+                    void commit(trackers.filter((_, at) => at !== index))
+                  }
+                  disabled={saving}
+                >
+                  <Trash2 aria-hidden="true" />
+                </Button>
+              </RowActions>
             </li>
           ))}
         </ul>

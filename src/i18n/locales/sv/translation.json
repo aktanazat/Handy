@@ -711,14 +711,13 @@
         "jobs": "Filimporter",
         "status": {
           "queued": "I kö",
-          "decoding": "Avkodar ljud",
+          "decoding": "Läser ljudet",
           "transcribing": "Transkriberar",
           "done": "Sparat i historiken",
           "cancelled": "Avbruten",
           "failed": "Misslyckades",
           "cancelling": "Avbryter"
         },
-        "decodedSamples": "{{count}} ljudprover avkodade",
         "cancel": "Avbryt",
         "failure": {
           "invalid_file": "Den valda filen kan inte läsas.",
@@ -1514,7 +1513,6 @@
         "identityUnavailable": "Slå på agentpanelen för att skapa en nyckel.",
         "copy": "Kopiera",
         "copied": "Kopierat",
-        "save": "Spara",
         "unpair": "Koppla från",
         "test": "Testa",
         "reached": "Reläet svarade.",
@@ -1948,8 +1946,8 @@
       "addNote": "Lägg till anteckning med tidsstämpel"
     },
     "recovery": {
-      "title": "Återställ delvisa möten",
-      "finalize": "Slutför delvist"
+      "title": "Oavslutade möten",
+      "finalize": "Slutför sparandet"
     },
     "history": {
       "title": "Möteshistorik",
@@ -2037,8 +2035,10 @@
     },
     "review": {
       "meetingTitle": "Mötestitel",
+      "editTitle": "Byt namn på det här mötet",
       "noStartTime": "Det här mötet registrerade ingen starttid.",
       "started": "Startade {{date}}",
+      "partialRecording": "Delvis inspelning",
       "status": "Inspelningsstatus",
       "timeline": "Ljudtidslinje och luckor",
       "timeUnknown": "Okänd tid",
@@ -2050,13 +2050,13 @@
       "noTranscript": "Inget transkript är tillgängligt.",
       "transcriptSegment": "Transkriptsegment",
       "removeSegment": "Ta bort segment",
+      "editTurn": "Redigera det här inlägget",
       "unknownSpeaker": "Okänd talare",
       "speakers": "Talare",
       "noSpeakers": "Inga talarbeteckningar är tillgängliga.",
       "speakerName": "Talarnamn",
-      "mergeSource": "Slå samman den här talaren",
-      "mergeTarget": "Med den här talaren",
-      "merge": "Slå samman talare",
+      "renameSpeaker": "Byt namn på den här talaren",
+      "samePersonAs": "Samma person som {{name}}",
       "manualNotes": "Manuella anteckningar",
       "manualNote": "Manuell anteckning",
       "newNote": "Ny manuell anteckning",
@@ -2097,23 +2097,19 @@
       "question": "Fråga",
       "insufficientEvidence": "Ingen stödjande passage hittades i det här mötet.",
       "forget": "Glöm det här svaret",
-      "exactSearch": "Exakt sökning",
       "searchPlaceholder": "Sök i det här mötet",
-      "search": "Sök",
       "noSearchResults": "Inga exakta lokala träffar.",
       "askUnavailable": "Frågor kräver ett färdigt lokalt transkript.",
       "asking": "Frågar detta möte…",
       "droppedFrames": "Tappade bildrutor: {{total}}",
       "hitKind": {
         "manualNote": "Manuell anteckning",
-        "title": "Mötestitel",
-        "transcript": "Transkript"
+        "title": "Mötestitel"
       },
       "noGeneratedNotesDescription": "Genererade anteckningar härleds från transkriptet, så de kan byggas om när som helst.",
       "processingDescription": "Genererade anteckningar och lokala svar visas när transkriptet är klart.",
       "processingTitle": "Sona bearbetar fortfarande detta möte",
       "remoteProcessingUnavailable": "Fjärrdestinationen blev aldrig tillgänglig, så inget genererades. Omgenerering körs på den här datorn.",
-      "searching": "Söker…",
       "sonaAnswered": "Sona svarade",
       "tabs": {
         "insights": "Insikter",
@@ -2148,8 +2144,6 @@
       "trustMeasured": "Turtagning, tider, ordantal och taltid kommer från transkriptet. Varje läge är en bedömning läst ur citatet bredvid: kontrollera citatet innan du agerar på det.",
       "unattributed": "Utan avsändare",
       "columnAt": "Vid",
-      "columnQuestion": "Frågan",
-      "columnInstead": "Vad som hände i stället",
       "columnDirection": "Riktning",
       "columnWhat": "Vad",
       "columnTaken": "Hur den togs emot",
@@ -2217,7 +2211,7 @@
       "searchPlaceholder": "Sök efter titel",
       "clearFilters": "Rensa filter",
       "noMatchesFiltered": "Inga möten matchar",
-      "noMatchesFilteredDescription": "Inget sparat möte matchar det här filtret. Frågan körs mot alla möten på disken, inte bara sidan på skärmen.",
+      "noMatchesFilteredDescription": "Inget matchar de här filtren. Sona gick igenom alla möten den har sparat, inte bara den här sidan.",
       "rowActions": "Mötesåtgärder",
       "exportMarkdown": "Exportera anteckningar (Markdown)",
       "exportJson": "Exportera anteckningar (JSON)",
@@ -2667,10 +2661,9 @@
     "detail": {
       "nameLabel": "Personens namn",
       "rename": "Byt namn",
+      "personActions": "Personåtgärder",
       "deletePerson": "Ta bort person",
       "aliases": "Även: {{aliases}}",
-      "renameTitle": "Byta namn på den här personen?",
-      "renameDescription": "Ändra personens namn till {{name}}?",
       "merge": "Slå ihop",
       "mergeTitle": "Slå ihop den här personen?",
       "mergeDescription": "Slå ihop {{source}} med {{target}}? Länkar, alias och relationshistorik kombineras.",

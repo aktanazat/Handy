@@ -711,14 +711,13 @@
         "jobs": "Filimporter",
         "status": {
           "queued": "I kø",
-          "decoding": "Afkoder lyd",
+          "decoding": "Læser lyden",
           "transcribing": "Transskriberer",
           "done": "Gemt i historikken",
           "cancelled": "Annulleret",
           "failed": "Mislykkedes",
           "cancelling": "Annullerer"
         },
-        "decodedSamples": "{{count}} lydprøver afkodet",
         "cancel": "Annuller",
         "failure": {
           "invalid_file": "Den valgte fil kan ikke læses.",
@@ -1514,7 +1513,6 @@
         "identityUnavailable": "Slå agentpanelet til for at oprette en nøgle.",
         "copy": "Kopiér",
         "copied": "Kopieret",
-        "save": "Gem",
         "unpair": "Fjern parring",
         "test": "Test",
         "reached": "Relayet svarede.",
@@ -1948,8 +1946,8 @@
       "addNote": "Tilføj note med tidsstempel"
     },
     "recovery": {
-      "title": "Gendan delvise møder",
-      "finalize": "Færdiggør delvist"
+      "title": "Ufærdige møder",
+      "finalize": "Færdiggør lagring"
     },
     "history": {
       "title": "Mødehistorik",
@@ -2037,8 +2035,10 @@
     },
     "review": {
       "meetingTitle": "Mødetitel",
+      "editTitle": "Omdøb dette møde",
       "noStartTime": "Dette møde registrerede ikke et starttidspunkt.",
       "started": "Startet {{date}}",
+      "partialRecording": "Delvis optagelse",
       "status": "Optagelsesstatus",
       "timeline": "Lydtidslinje og huller",
       "timeUnknown": "Ukendt tidspunkt",
@@ -2050,13 +2050,13 @@
       "noTranscript": "Der er ingen transskription tilgængelig.",
       "transcriptSegment": "Transskriptionssegment",
       "removeSegment": "Fjern segment",
+      "editTurn": "Rediger denne replik",
       "unknownSpeaker": "Ukendt taler",
       "speakers": "Talere",
       "noSpeakers": "Der er ingen talerbetegnelser tilgængelige.",
       "speakerName": "Talernavn",
-      "mergeSource": "Flet denne taler",
-      "mergeTarget": "Med denne taler",
-      "merge": "Flet talere sammen",
+      "renameSpeaker": "Omdøb denne taler",
+      "samePersonAs": "Samme person som {{name}}",
       "manualNotes": "Manuelle noter",
       "manualNote": "Manuel note",
       "newNote": "Ny manuel note",
@@ -2097,23 +2097,19 @@
       "question": "Spørgsmål",
       "insufficientEvidence": "Der blev ikke fundet nogen understøttende passage i dette møde.",
       "forget": "Glem dette svar",
-      "exactSearch": "Præcis søgning",
       "searchPlaceholder": "Søg i dette møde",
-      "search": "Søg",
       "noSearchResults": "Ingen præcise lokale match.",
       "askUnavailable": "Spørgsmål kræver en færdig lokal transskription.",
       "asking": "Spørger dette møde…",
       "droppedFrames": "Tabte frames: {{total}}",
       "hitKind": {
         "manualNote": "Manuel note",
-        "title": "Mødetitel",
-        "transcript": "Transskription"
+        "title": "Mødetitel"
       },
       "noGeneratedNotesDescription": "Genererede noter er afledt af transskriptionen, så de kan gendannes når som helst.",
       "processingDescription": "Genererede noter og lokale svar vises, når transskriptionen er færdig.",
       "processingTitle": "Sona behandler stadig dette møde",
       "remoteProcessingUnavailable": "Fjerndestinationen blev aldrig tilgængelig, så intet blev genereret. Regenerering kører på denne Mac.",
-      "searching": "Søger…",
       "sonaAnswered": "Sona svarede",
       "tabs": {
         "insights": "Indsigter",
@@ -2148,8 +2144,6 @@
       "trustMeasured": "Taleture, tider, ordtal og taletid kommer fra transskriptionen. Hver tilstand er et skøn læst ud af citatet ved siden af: kontrollér citatet, før du handler på det.",
       "unattributed": "Uden afsender",
       "columnAt": "Ved",
-      "columnQuestion": "Spørgsmålet",
-      "columnInstead": "Hvad der skete i stedet",
       "columnDirection": "Retning",
       "columnWhat": "Hvad",
       "columnTaken": "Hvordan det blev givet",
@@ -2217,7 +2211,7 @@
       "searchPlaceholder": "Søg efter titel",
       "clearFilters": "Ryd filtre",
       "noMatchesFiltered": "Ingen møder matcher",
-      "noMatchesFilteredDescription": "Intet bevaret møde matcher dette filter. Forespørgslen kører mod alle møder på disken, ikke kun siden på skærmen.",
+      "noMatchesFilteredDescription": "Intet matcher disse filtre. Sona gennemgik alle de møder, den har gemt, ikke kun denne side.",
       "rowActions": "Mødehandlinger",
       "exportMarkdown": "Eksportér noter (Markdown)",
       "exportJson": "Eksportér noter (JSON)",
@@ -2667,10 +2661,9 @@
     "detail": {
       "nameLabel": "Personens navn",
       "rename": "Omdøb",
+      "personActions": "Personhandlinger",
       "deletePerson": "Slet person",
       "aliases": "Også: {{aliases}}",
-      "renameTitle": "Omdøb denne person?",
-      "renameDescription": "Skift denne persons navn til {{name}}?",
       "merge": "Flet",
       "mergeTitle": "Flet denne person?",
       "mergeDescription": "Flet {{source}} ind i {{target}}? Tilknytninger, aliasser og relationshistorik bliver samlet.",

@@ -711,14 +711,13 @@
         "jobs": "Dosya içe aktarımları",
         "status": {
           "queued": "Kuyrukta",
-          "decoding": "Ses çözümleniyor",
+          "decoding": "Ses okunuyor",
           "transcribing": "Transkribe ediliyor",
           "done": "Geçmişe kaydedildi",
           "cancelled": "İptal edildi",
           "failed": "Başarısız",
           "cancelling": "İptal ediliyor"
         },
-        "decodedSamples": "{{count}} örnek çözümlendi",
         "cancel": "İptal",
         "failure": {
           "invalid_file": "Seçilen dosya okunamıyor.",
@@ -1514,7 +1513,6 @@
         "identityUnavailable": "Anahtar oluşturmak için aracı panelini aç.",
         "copy": "Kopyala",
         "copied": "Kopyalandı",
-        "save": "Kaydet",
         "unpair": "Eşleşmeyi kaldır",
         "test": "Dene",
         "reached": "Röle yanıt verdi.",
@@ -1948,8 +1946,8 @@
       "addNote": "Zaman damgalı not ekle"
     },
     "recovery": {
-      "title": "Kısmi toplantıları kurtar",
-      "finalize": "Kısmi olarak tamamla"
+      "title": "Tamamlanmamış toplantılar",
+      "finalize": "Kaydetmeyi tamamla"
     },
     "history": {
       "title": "Toplantı geçmişi",
@@ -2037,8 +2035,10 @@
     },
     "review": {
       "meetingTitle": "Toplantı başlığı",
+      "editTitle": "Bu toplantıyı yeniden adlandır",
       "noStartTime": "Bu toplantı için başlangıç saati kaydedilmedi.",
       "started": "Başlangıç {{date}}",
+      "partialRecording": "Kısmi kayıt",
       "status": "Yakalama durumu",
       "timeline": "Ses zaman çizelgesi ve boşluklar",
       "timeUnknown": "Bilinmeyen saat",
@@ -2050,13 +2050,13 @@
       "noTranscript": "Kullanılabilir transkript yok.",
       "transcriptSegment": "Transkript bölümü",
       "removeSegment": "Bölümü kaldır",
+      "editTurn": "Bu sözü düzenle",
       "unknownSpeaker": "Bilinmeyen konuşmacı",
       "speakers": "Konuşmacılar",
       "noSpeakers": "Konuşmacı etiketi yok.",
       "speakerName": "Konuşmacı adı",
-      "mergeSource": "Bu konuşmacıyı birleştir",
-      "mergeTarget": "Şu konuşmacıyla",
-      "merge": "Konuşmacıları birleştir",
+      "renameSpeaker": "Bu konuşmacıyı yeniden adlandır",
+      "samePersonAs": "{{name}} ile aynı kişi",
       "manualNotes": "Elle alınan notlar",
       "manualNote": "Elle alınan not",
       "newNote": "Yeni elle alınan not",
@@ -2097,23 +2097,19 @@
       "question": "Soru",
       "insufficientEvidence": "Bu toplantıda destekleyici bir bölüm bulunamadı.",
       "forget": "Bu yanıtı unut",
-      "exactSearch": "Tam arama",
       "searchPlaceholder": "Bu toplantıda ara",
-      "search": "Ara",
       "noSearchResults": "Tam yerel eşleşme yok.",
       "askUnavailable": "Soru sormak için tamamlanmış bir yerel transkript gerekir.",
       "asking": "Bu toplantıya soruluyor…",
       "droppedFrames": "Düşen kareler: {{total}}",
       "hitKind": {
         "manualNote": "Elle alınan not",
-        "title": "Toplantı başlığı",
-        "transcript": "Transkript"
+        "title": "Toplantı başlığı"
       },
       "noGeneratedNotesDescription": "Oluşturulan notlar transkriptten türetilir, bu yüzden istenildiğinde yeniden oluşturulabilir.",
       "processingDescription": "Oluşturulan notlar ve yerel yanıtlar transkript tamamlanınca görünür.",
       "processingTitle": "Sona bu toplantıyı hâlâ işliyor",
       "remoteProcessingUnavailable": "Uzak hedef hiç kullanılabilir olmadı, bu yüzden hiçbir şey oluşturulmadı. Yeniden oluşturma bu Mac üzerinde çalışır.",
-      "searching": "Aranıyor…",
       "sonaAnswered": "Sona yanıtladı",
       "tabs": {
         "insights": "İçgörüler",
@@ -2148,8 +2144,6 @@
       "trustMeasured": "Söz sırası, süreler, sözcük sayıları ve konuşma payı transkriptten gelir. Her durum, yanındaki alıntıdan okunmuş bir yargıdır: harekete geçmeden önce alıntıyı kontrol edin.",
       "unattributed": "Kime ait olduğu belirsiz",
       "columnAt": "Zaman",
-      "columnQuestion": "Soru",
-      "columnInstead": "Onun yerine ne oldu",
       "columnDirection": "Yön",
       "columnWhat": "Ne",
       "columnTaken": "Nasıl anlaşıldı",
@@ -2217,7 +2211,7 @@
       "searchPlaceholder": "Başlığa göre ara",
       "clearFilters": "Filtreleri temizle",
       "noMatchesFiltered": "Eşleşen toplantı yok",
-      "noMatchesFilteredDescription": "Bu filtreye uyan saklanmış toplantı yok. Sorgu ekrandaki sayfayla sınırlı değil, diskteki tüm toplantılarda çalışır.",
+      "noMatchesFilteredDescription": "Bu filtrelere uyan bir şey yok. Sona, yalnızca bu sayfayı değil, sakladığı bütün toplantıları taradı.",
       "rowActions": "Toplantı işlemleri",
       "exportMarkdown": "Notları dışa aktar (Markdown)",
       "exportJson": "Notları dışa aktar (JSON)",
@@ -2667,10 +2661,9 @@
     "detail": {
       "nameLabel": "Kişi adı",
       "rename": "Yeniden adlandır",
+      "personActions": "Kişi işlemleri",
       "deletePerson": "Kişiyi sil",
       "aliases": "Diğer adlar: {{aliases}}",
-      "renameTitle": "Bu kişi yeniden adlandırılsın mı?",
-      "renameDescription": "Bu kişinin adı {{name}} olarak değiştirilsin mi?",
       "merge": "Birleştir",
       "mergeTitle": "Bu kişi birleştirilsin mi?",
       "mergeDescription": "{{source}}, {{target}} ile birleştirilsin mi? Bağlantılar, diğer adlar ve ilişki geçmişi birleştirilecek.",

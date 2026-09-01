@@ -711,14 +711,13 @@
         "jobs": "Dateiimporte",
         "status": {
           "queued": "In Warteschlange",
-          "decoding": "Audio wird dekodiert",
+          "decoding": "Audio wird gelesen",
           "transcribing": "Transkription läuft",
           "done": "Im Verlauf gespeichert",
           "cancelled": "Abgebrochen",
           "failed": "Fehlgeschlagen",
           "cancelling": "Wird abgebrochen"
         },
-        "decodedSamples": "{{count}} Samples dekodiert",
         "cancel": "Abbrechen",
         "failure": {
           "invalid_file": "Die ausgewählte Datei kann nicht gelesen werden.",
@@ -1514,7 +1513,6 @@
         "identityUnavailable": "Schalte das Agent-Panel ein, um einen Schlüssel zu erzeugen.",
         "copy": "Kopieren",
         "copied": "Kopiert",
-        "save": "Sichern",
         "unpair": "Kopplung lösen",
         "test": "Testen",
         "reached": "Das Relay hat geantwortet.",
@@ -1948,8 +1946,8 @@
       "addNote": "Notiz mit Zeitstempel hinzufügen"
     },
     "recovery": {
-      "title": "Unvollständige Meetings wiederherstellen",
-      "finalize": "Unvollständig abschließen"
+      "title": "Unvollständige Meetings",
+      "finalize": "Speichern abschließen"
     },
     "history": {
       "title": "Meeting-Verlauf",
@@ -2037,8 +2035,10 @@
     },
     "review": {
       "meetingTitle": "Meeting-Titel",
+      "editTitle": "Diese Besprechung umbenennen",
       "noStartTime": "Für diese Besprechung wurde keine Startzeit aufgezeichnet.",
       "started": "Begonnen {{date}}",
+      "partialRecording": "Teilweise Aufnahme",
       "status": "Aufnahmestatus",
       "timeline": "Audio-Zeitleiste und Lücken",
       "timeUnknown": "Unbekannte Zeit",
@@ -2050,13 +2050,13 @@
       "noTranscript": "Es ist kein Transkript verfügbar.",
       "transcriptSegment": "Transkriptsegment",
       "removeSegment": "Segment entfernen",
+      "editTurn": "Diesen Redebeitrag bearbeiten",
       "unknownSpeaker": "Unbekannter Sprecher",
       "speakers": "Sprecher",
       "noSpeakers": "Es sind keine Sprecherbezeichnungen verfügbar.",
       "speakerName": "Sprechername",
-      "mergeSource": "Diesen Sprecher zusammenführen",
-      "mergeTarget": "Mit diesem Sprecher",
-      "merge": "Sprecher zusammenführen",
+      "renameSpeaker": "Diesen Sprecher umbenennen",
+      "samePersonAs": "Dieselbe Person wie {{name}}",
       "manualNotes": "Manuelle Notizen",
       "manualNote": "Manuelle Notiz",
       "newNote": "Neue manuelle Notiz",
@@ -2097,23 +2097,19 @@
       "question": "Frage",
       "insufficientEvidence": "In dieser Besprechung wurde keine belegende Passage gefunden.",
       "forget": "Diese Antwort vergessen",
-      "exactSearch": "Genaue Suche",
       "searchPlaceholder": "Diese Besprechung durchsuchen",
-      "search": "Suchen",
       "noSearchResults": "Keine genauen lokalen Treffer.",
       "askUnavailable": "Fragen erfordern ein fertiges lokales Transkript.",
       "asking": "Dieses Meeting wird befragt…",
       "droppedFrames": "Verlorene Frames: {{total}}",
       "hitKind": {
         "manualNote": "Manuelle Notiz",
-        "title": "Meeting-Titel",
-        "transcript": "Transkript"
+        "title": "Meeting-Titel"
       },
       "noGeneratedNotesDescription": "Generierte Notizen werden aus dem Transkript abgeleitet und können daher jederzeit neu erstellt werden.",
       "processingDescription": "Generierte Notizen und lokale Antworten erscheinen, sobald das Transkript fertig ist.",
       "processingTitle": "Sona verarbeitet dieses Meeting noch",
       "remoteProcessingUnavailable": "Das entfernte Ziel wurde nie verfügbar, daher wurde nichts generiert. Die Neuerstellung läuft auf diesem Mac.",
-      "searching": "Suche läuft…",
       "sonaAnswered": "Sona hat geantwortet",
       "tabs": {
         "insights": "Einblicke",
@@ -2148,8 +2144,6 @@
       "trustMeasured": "Redebeiträge, Zeiten, Wortzahlen und Redeanteil kommen aus dem Transkript. Jeder Zustand ist ein Urteil, das aus dem Zitat daneben gelesen wurde: prüfe das Zitat, bevor du danach handelst.",
       "unattributed": "Ohne Zuordnung",
       "columnAt": "Bei",
-      "columnQuestion": "Die Frage",
-      "columnInstead": "Was stattdessen geschah",
       "columnDirection": "Richtung",
       "columnWhat": "Was",
       "columnTaken": "Wie sie gemeint war",
@@ -2217,7 +2211,7 @@
       "searchPlaceholder": "Nach Titel suchen",
       "clearFilters": "Filter löschen",
       "noMatchesFiltered": "Keine Meetings entsprechen",
-      "noMatchesFilteredDescription": "Kein aufbewahrtes Meeting entspricht diesem Filter. Die Abfrage läuft über alle Meetings auf der Festplatte, nicht nur über die Seite auf dem Bildschirm.",
+      "noMatchesFilteredDescription": "Nichts entspricht diesen Filtern. Sona hat jedes aufbewahrte Meeting durchgesehen, nicht nur diese Seite.",
       "rowActions": "Meeting-Aktionen",
       "exportMarkdown": "Notizen exportieren (Markdown)",
       "exportJson": "Notizen exportieren (JSON)",
@@ -2667,10 +2661,9 @@
     "detail": {
       "nameLabel": "Personenname",
       "rename": "Umbenennen",
+      "personActions": "Personen-Aktionen",
       "deletePerson": "Person löschen",
       "aliases": "Auch: {{aliases}}",
-      "renameTitle": "Diese Person umbenennen?",
-      "renameDescription": "Den Namen dieser Person in {{name}} ändern?",
       "merge": "Zusammenführen",
       "mergeTitle": "Diese Person zusammenführen?",
       "mergeDescription": "{{source}} mit {{target}} zusammenführen? Verknüpfungen, Aliasse und der Beziehungsverlauf werden kombiniert.",

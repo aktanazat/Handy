@@ -711,14 +711,13 @@
         "jobs": "Importations de fichiers",
         "status": {
           "queued": "En attente",
-          "decoding": "Décodage de l'audio",
+          "decoding": "Lecture de l'audio",
           "transcribing": "Transcription en cours",
           "done": "Enregistré dans l'historique",
           "cancelled": "Annulé",
           "failed": "Échec",
           "cancelling": "Annulation en cours"
         },
-        "decodedSamples": "{{count}} échantillons décodés",
         "cancel": "Annuler",
         "failure": {
           "invalid_file": "Le fichier sélectionné ne peut pas être lu.",
@@ -1514,7 +1513,6 @@
         "identityUnavailable": "Activez le panneau agent pour créer une clé.",
         "copy": "Copier",
         "copied": "Copié",
-        "save": "Enregistrer",
         "unpair": "Désappairer",
         "test": "Tester",
         "reached": "Le relais a répondu.",
@@ -1954,8 +1952,8 @@
       "addNote": "Ajouter une note horodatée"
     },
     "recovery": {
-      "title": "Récupérer les réunions partielles",
-      "finalize": "Finaliser partiellement"
+      "title": "Réunions inachevées",
+      "finalize": "Terminer l'enregistrement"
     },
     "history": {
       "title": "Historique des réunions",
@@ -2043,8 +2041,10 @@
     },
     "review": {
       "meetingTitle": "Titre de la réunion",
+      "editTitle": "Renommer cette réunion",
       "noStartTime": "Cette réunion n'a pas enregistré d'heure de début.",
       "started": "Démarrée le {{date}}",
+      "partialRecording": "Enregistrement partiel",
       "status": "État de la capture",
       "timeline": "Chronologie audio et lacunes",
       "timeUnknown": "Heure inconnue",
@@ -2056,13 +2056,13 @@
       "noTranscript": "Aucune transcription n'est disponible.",
       "transcriptSegment": "Segment de transcription",
       "removeSegment": "Supprimer le segment",
+      "editTurn": "Modifier cette prise de parole",
       "unknownSpeaker": "Locuteur inconnu",
       "speakers": "Locuteurs",
       "noSpeakers": "Aucune étiquette de locuteur n'est disponible.",
       "speakerName": "Nom du locuteur",
-      "mergeSource": "Fusionner ce locuteur",
-      "mergeTarget": "Avec ce locuteur",
-      "merge": "Fusionner les locuteurs",
+      "renameSpeaker": "Renommer ce locuteur",
+      "samePersonAs": "Même personne que {{name}}",
       "manualNotes": "Notes manuelles",
       "manualNote": "Note manuelle",
       "newNote": "Nouvelle note manuelle",
@@ -2103,23 +2103,19 @@
       "question": "Question",
       "insufficientEvidence": "Aucun passage à l'appui n'a été trouvé dans cette réunion.",
       "forget": "Oublier cette réponse",
-      "exactSearch": "Recherche exacte",
       "searchPlaceholder": "Rechercher dans cette réunion",
-      "search": "Rechercher",
       "noSearchResults": "Aucune correspondance exacte en local.",
       "askUnavailable": "Poser une question nécessite une transcription locale terminée.",
       "asking": "Interrogation de cette réunion…",
       "droppedFrames": "Trames perdues : {{total}}",
       "hitKind": {
         "manualNote": "Note manuelle",
-        "title": "Titre de la réunion",
-        "transcript": "Transcription"
+        "title": "Titre de la réunion"
       },
       "noGeneratedNotesDescription": "Les notes générées sont dérivées de la transcription, elles peuvent donc être reconstruites à tout moment.",
       "processingDescription": "Les notes générées et les réponses locales apparaissent une fois la transcription terminée.",
       "processingTitle": "Sona traite encore cette réunion",
       "remoteProcessingUnavailable": "La destination distante n'a jamais été disponible, donc rien n'a été généré. La régénération s'exécute sur ce Mac.",
-      "searching": "Recherche…",
       "sonaAnswered": "Sona a répondu",
       "tabs": {
         "insights": "Analyses",
@@ -2154,8 +2150,6 @@
       "trustMeasured": "Les tours de parole, les durées, le nombre de mots et la part de parole viennent de la transcription. Chaque état est un jugement tiré de la citation qui l'accompagne : vérifiez la citation avant d'agir en conséquence.",
       "unattributed": "Non attribué",
       "columnAt": "À",
-      "columnQuestion": "La question",
-      "columnInstead": "Ce qui s'est passé à la place",
       "columnDirection": "Sens",
       "columnWhat": "Quoi",
       "columnTaken": "Comment il a été pris",
@@ -2223,7 +2217,7 @@
       "searchPlaceholder": "Rechercher par titre",
       "clearFilters": "Effacer les filtres",
       "noMatchesFiltered": "Aucune réunion ne correspond",
-      "noMatchesFilteredDescription": "Aucune réunion conservée ne correspond à ce filtre. La requête porte sur toutes les réunions sur le disque, pas seulement sur la page affichée.",
+      "noMatchesFilteredDescription": "Rien ne correspond à ces filtres. Sona a parcouru toutes les réunions qu'elle a gardées, pas seulement cette page.",
       "rowActions": "Actions de la réunion",
       "exportMarkdown": "Exporter les notes (Markdown)",
       "exportJson": "Exporter les notes (JSON)",
@@ -2676,10 +2670,9 @@
     "detail": {
       "nameLabel": "Nom de la personne",
       "rename": "Renommer",
+      "personActions": "Actions de la personne",
       "deletePerson": "Supprimer la personne",
       "aliases": "Aussi : {{aliases}}",
-      "renameTitle": "Renommer cette personne ?",
-      "renameDescription": "Remplacer le nom de cette personne par {{name}} ?",
       "merge": "Fusionner",
       "mergeTitle": "Fusionner cette personne ?",
       "mergeDescription": "Fusionner {{source}} avec {{target}} ? Les liens, alias et l’historique de la relation seront regroupés.",

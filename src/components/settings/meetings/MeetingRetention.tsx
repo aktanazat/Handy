@@ -18,7 +18,7 @@ import { meetingErrorKey } from "./meetingUtils";
 
 const RETENTION_DAYS = [7, 30, 90] as const;
 
-/* One setting, so one row: the policy, and the press that writes it.
+/* One setting, so one row: the policy, and nothing else.
  *
  * How long a *meeting* is kept, which is a different object from the dictation
  * recordings Essentials governs — so it lives where meetings do, in Advanced >
@@ -26,8 +26,12 @@ const RETENTION_DAYS = [7, 30, 90] as const;
  * it is dropped into that section's hairline surface, where a heading saying
  * "Retention" above a row labelled "Retention" would be the same word twice.
  *
- * The write is explicit because the command carries `expected_revision`: a
- * select that saved on change would race another window and lose. */
+ * Picking an option is the write. The command carries `expected_revision`, so
+ * a second window that moved the policy underneath this one is refused rather
+ * than overwritten: the row states the refusal, re-reads, and shows what is
+ * actually stored. That is the same protection the Save button next to this
+ * select used to claim, minus a press that only ever repeated the choice
+ * already made. */
 export const MeetingRetentionSettings: React.FC = () => {
   const { t } = useTranslation();
   const [snapshot, setSnapshot] = useState<MeetingRetentionSnapshot | null>(
@@ -66,12 +70,12 @@ export const MeetingRetentionSettings: React.FC = () => {
     void load();
   }, [load]);
 
-  const save = async () => {
+  const save = async (selected: string) => {
     if (!snapshot) return;
     const policy: MeetingRetentionPolicy =
-      selection === "forever"
+      selected === "forever"
         ? { kind: "forever" }
-        : { kind: "delete_after_days", days: Number(selection) };
+        : { kind: "delete_after_days", days: Number(selected) };
 
     setSaving(true);
     setError(null);
@@ -119,7 +123,10 @@ export const MeetingRetentionSettings: React.FC = () => {
         ) : null}
         <Select
           value={selection}
-          onValueChange={setSelection}
+          onValueChange={(next) => {
+            setSelection(next);
+            void save(next);
+          }}
           disabled={blocked}
         >
           <SelectTrigger
@@ -139,15 +146,6 @@ export const MeetingRetentionSettings: React.FC = () => {
             ))}
           </SelectContent>
         </Select>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => void save()}
-          disabled={blocked}
-        >
-          {saving ? t("common.saving") : t("common.save")}
-        </Button>
       </SettingsRow>
       {error ? (
         /* `role="alert"` sits on the group, not the sentence, so the failure

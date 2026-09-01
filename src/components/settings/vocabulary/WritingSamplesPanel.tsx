@@ -6,6 +6,7 @@ import { Textarea } from "@/components/vg/textarea";
 import {
   Microlabel,
   Notice,
+  RowActions,
   SettingsField,
   SettingsSection,
 } from "@/components/settings/rows";
@@ -157,7 +158,7 @@ export const WritingSamplesPanel: React.FC = () => {
               {/* `SettingsField` takes only its documented props, so the
                * row's test handle rides on the block it wraps. */}
               <div
-                className="flex items-start gap-2"
+                className="group/row flex items-start gap-2"
                 data-testid="persona-sample-row"
               >
                 {/* Prose in the person's own voice, so it is set as prose. */}
@@ -185,24 +186,26 @@ export const WritingSamplesPanel: React.FC = () => {
                   disabled={busy}
                   data-testid={`persona-sample-${index}`}
                 />
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="text-gray-700 hover:text-red-900"
-                  onClick={() =>
-                    void commit(
-                      samples.filter((_, position) => position !== index),
-                    )
-                  }
-                  disabled={busy}
-                  aria-label={t("settings.prompts.samples.delete", {
-                    defaultValue: "Delete sample {{number}}",
-                    number: index + 1,
-                  })}
-                  data-testid={`persona-sample-delete-${index}`}
-                >
-                  <Trash2 aria-hidden="true" />
-                </Button>
+                <RowActions className="pt-1">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-gray-700 hover:text-red-900"
+                    onClick={() =>
+                      void commit(
+                        samples.filter((_, position) => position !== index),
+                      )
+                    }
+                    disabled={busy}
+                    aria-label={t("settings.prompts.samples.delete", {
+                      defaultValue: "Delete sample {{number}}",
+                      number: index + 1,
+                    })}
+                    data-testid={`persona-sample-delete-${index}`}
+                  >
+                    <Trash2 aria-hidden="true" />
+                  </Button>
+                </RowActions>
               </div>
             </SettingsField>
           );

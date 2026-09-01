@@ -711,14 +711,13 @@
         "jobs": "檔案匯入",
         "status": {
           "queued": "已排入佇列",
-          "decoding": "正在解碼音訊",
+          "decoding": "正在讀取音訊",
           "transcribing": "正在轉錄",
           "done": "已儲存到歷史紀錄",
           "cancelled": "已取消",
           "failed": "失敗",
           "cancelling": "正在取消"
         },
-        "decodedSamples": "已解碼 {{count}} 個樣本",
         "cancel": "取消",
         "failure": {
           "invalid_file": "無法讀取所選檔案。",
@@ -1514,7 +1513,6 @@
         "identityUnavailable": "開啟代理面板以建立金鑰。",
         "copy": "複製",
         "copied": "已複製",
-        "save": "儲存",
         "unpair": "解除配對",
         "test": "測試",
         "reached": "中繼已回應。",
@@ -1942,8 +1940,8 @@
       "addNote": "新增帶時間戳記的筆記"
     },
     "recovery": {
-      "title": "復原未完成的會議",
-      "finalize": "以未完成狀態歸檔"
+      "title": "未完成的會議",
+      "finalize": "完成儲存"
     },
     "history": {
       "title": "會議記錄",
@@ -2031,8 +2029,10 @@
     },
     "review": {
       "meetingTitle": "會議標題",
+      "editTitle": "重新命名這場會議",
       "noStartTime": "這場會議沒有記錄開始時間。",
       "started": "{{date}} 開始",
+      "partialRecording": "部分錄音",
       "status": "擷取狀態",
       "timeline": "音訊時間軸與間隔",
       "timeUnknown": "時間未知",
@@ -2044,13 +2044,13 @@
       "noTranscript": "沒有可用的逐字稿。",
       "transcriptSegment": "逐字稿片段",
       "removeSegment": "移除片段",
+      "editTurn": "編輯這段話",
       "unknownSpeaker": "未知說話者",
       "speakers": "說話者",
       "noSpeakers": "沒有可用的說話者標籤。",
       "speakerName": "說話者名稱",
-      "mergeSource": "合併這個說話者",
-      "mergeTarget": "合併到這個說話者",
-      "merge": "合併說話者",
+      "renameSpeaker": "重新命名這個說話者",
+      "samePersonAs": "與 {{name}} 是同一人",
       "manualNotes": "手動筆記",
       "manualNote": "手動筆記",
       "newNote": "新增手動筆記",
@@ -2091,23 +2091,19 @@
       "question": "問題",
       "insufficientEvidence": "在這場會議裡沒有找到可以支撐的段落。",
       "forget": "忘掉這條回答",
-      "exactSearch": "精確搜尋",
       "searchPlaceholder": "搜尋這場會議",
-      "search": "搜尋",
       "noSearchResults": "沒有完全符合的本機結果。",
       "askUnavailable": "提問需要已完成的本機逐字稿。",
       "asking": "正在詢問這場會議…",
       "droppedFrames": "丟失影格：{{total}}",
       "hitKind": {
         "manualNote": "手動筆記",
-        "title": "會議標題",
-        "transcript": "逐字稿"
+        "title": "會議標題"
       },
       "noGeneratedNotesDescription": "生成的筆記衍生自逐字稿，因此隨時可以重新建立。",
       "processingDescription": "逐字稿完成後，生成的筆記和本機回答就會出現。",
       "processingTitle": "Sona 仍在處理這場會議",
       "remoteProcessingUnavailable": "遠端目的地一直無法使用，因此未生成任何內容。重新生成會在這台 Mac 上執行。",
-      "searching": "正在搜尋…",
       "sonaAnswered": "Sona 的回答",
       "tabs": {
         "insights": "洞察",
@@ -2142,8 +2138,6 @@
       "trustMeasured": "輪次、時長、字詞數與發言占比來自逐字稿。每個狀態都是從旁邊那條引文讀出的判斷：照做之前請先核對引文。",
       "unattributed": "未標明發言者",
       "columnAt": "時間點",
-      "columnQuestion": "問題",
-      "columnInstead": "實際發生了什麼",
       "columnDirection": "方向",
       "columnWhat": "內容",
       "columnTaken": "被如何理解",
@@ -2211,7 +2205,7 @@
       "searchPlaceholder": "依標題搜尋",
       "clearFilters": "清除篩選",
       "noMatchesFiltered": "沒有會議符合條件",
-      "noMatchesFilteredDescription": "沒有保留的會議符合這個篩選條件。查詢會涵蓋磁碟上的所有會議，而不只是畫面上這一頁。",
+      "noMatchesFilteredDescription": "沒有符合這些篩選條件的內容。Sona 檢視了所有保留的會議，而不只是這一頁。",
       "rowActions": "會議操作",
       "exportMarkdown": "匯出筆記（Markdown）",
       "exportJson": "匯出筆記（JSON）",
@@ -2659,10 +2653,9 @@
     "detail": {
       "nameLabel": "人物名稱",
       "rename": "重新命名",
+      "personActions": "聯絡人操作",
       "deletePerson": "刪除人物",
       "aliases": "其他名稱：{{aliases}}",
-      "renameTitle": "重新命名此人物？",
-      "renameDescription": "將此人物重新命名為 {{name}}？",
       "merge": "合併",
       "mergeTitle": "合併此人物？",
       "mergeDescription": "將 {{source}} 合併到 {{target}}？連結、其他名稱與關係記錄都會合併。",

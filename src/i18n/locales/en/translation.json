@@ -780,14 +780,13 @@
         "jobs": "File imports",
         "status": {
           "queued": "Queued",
-          "decoding": "Decoding audio",
+          "decoding": "Reading the audio",
           "transcribing": "Transcribing",
           "done": "Saved to history",
           "cancelled": "Cancelled",
           "failed": "Failed",
           "cancelling": "Cancelling"
         },
-        "decodedSamples": "{{count}} samples decoded",
         "cancel": "Cancel",
         "failure": {
           "invalid_file": "The selected file cannot be read.",
@@ -1574,7 +1573,6 @@
         "identityUnavailable": "Turn the agent panel on to create a key.",
         "copy": "Copy",
         "copied": "Copied",
-        "save": "Save",
         "unpair": "Unpair",
         "test": "Test",
         "reached": "The relay answered.",
@@ -1968,8 +1966,8 @@
       "addNote": "Add timestamped note"
     },
     "recovery": {
-      "title": "Recover partial meetings",
-      "finalize": "Finalize partial"
+      "title": "Unfinished meetings",
+      "finalize": "Finish saving"
     },
     "history": {
       "title": "Meeting history",
@@ -2057,8 +2055,10 @@
     },
     "review": {
       "meetingTitle": "Meeting title",
+      "editTitle": "Rename this meeting",
       "noStartTime": "This meeting did not record a start time.",
       "started": "Started {{date}}",
+      "partialRecording": "Partial recording",
       "status": "Capture status",
       "timeline": "Audio timeline and gaps",
       "timeUnknown": "Unknown time",
@@ -2070,13 +2070,13 @@
       "noTranscript": "No transcript is available.",
       "transcriptSegment": "Transcript segment",
       "removeSegment": "Remove segment",
+      "editTurn": "Edit this turn",
       "unknownSpeaker": "Unknown speaker",
       "speakers": "Speakers",
       "noSpeakers": "No speaker labels are available.",
       "speakerName": "Speaker name",
-      "mergeSource": "Merge this speaker",
-      "mergeTarget": "Into this speaker",
-      "merge": "Merge speakers",
+      "renameSpeaker": "Rename this speaker",
+      "samePersonAs": "Same person as {{name}}",
       "manualNotes": "Manual notes",
       "manualNote": "Manual note",
       "newNote": "New manual note",
@@ -2118,23 +2118,19 @@
       "question": "Question",
       "insufficientEvidence": "No supporting passage was found in this meeting.",
       "forget": "Forget this answer",
-      "exactSearch": "Exact search",
       "searchPlaceholder": "Search this meeting",
-      "search": "Search",
       "noSearchResults": "No exact local matches.",
       "askUnavailable": "Asking needs a finished local transcript.",
       "asking": "Asking this meeting…",
       "droppedFrames": "Dropped frames: {{total}}",
       "hitKind": {
         "manualNote": "Manual note",
-        "title": "Meeting title",
-        "transcript": "Transcript"
+        "title": "Meeting title"
       },
       "noGeneratedNotesDescription": "Generated notes are derived from the transcript, so they can be rebuilt at any time.",
       "processingDescription": "Generated notes and local answers appear once the transcript is complete.",
       "processingTitle": "Sona is still processing this meeting",
       "remoteProcessingUnavailable": "The remote destination never became available, so nothing was generated. Regenerating runs on this Mac.",
-      "searching": "Searching…",
       "sonaAnswered": "Sona answered",
       "tabs": {
         "insights": "Insights",
@@ -2168,8 +2164,6 @@
       "trustMeasured": "Turns, timings, word counts, and talk share come from the transcript. Every state is a judgment read out of the quote beside it: check the quote before acting on it.",
       "unattributed": "Unattributed",
       "columnAt": "At",
-      "columnQuestion": "The question",
-      "columnInstead": "What happened instead",
       "columnDirection": "Direction",
       "columnWhat": "What",
       "columnTaken": "How it was taken",
@@ -2237,7 +2231,7 @@
       "searchPlaceholder": "Search by title",
       "clearFilters": "Clear filters",
       "noMatchesFiltered": "No meetings match",
-      "noMatchesFilteredDescription": "No retained meeting matches this filter. The query runs against every meeting on disk, not just the page on screen.",
+      "noMatchesFilteredDescription": "Nothing matches these filters. Sona looked through every meeting it has kept, not just this page.",
       "rowActions": "Meeting actions",
       "exportMarkdown": "Export notes (Markdown)",
       "exportJson": "Export notes (JSON)",
@@ -2667,10 +2661,9 @@
     "detail": {
       "nameLabel": "Person name",
       "rename": "Rename",
+      "personActions": "Person actions",
       "deletePerson": "Delete person",
       "aliases": "Also: {{aliases}}",
-      "renameTitle": "Rename this person?",
-      "renameDescription": "Change this person's name to {{name}}?",
       "merge": "Merge",
       "mergeTitle": "Merge this person?",
       "mergeDescription": "Merge {{source}} into {{target}}? Links, aliases, and relationship history will be combined.",

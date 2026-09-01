@@ -711,14 +711,13 @@
         "jobs": "Nhập tệp",
         "status": {
           "queued": "Đã xếp hàng",
-          "decoding": "Đang giải mã âm thanh",
+          "decoding": "Đang đọc âm thanh",
           "transcribing": "Đang chuyển thành văn bản",
           "done": "Đã lưu vào Lịch sử",
           "cancelled": "Đã hủy",
           "failed": "Thất bại",
           "cancelling": "Đang hủy"
         },
-        "decodedSamples": "Đã giải mã {{count}} mẫu",
         "cancel": "Hủy",
         "failure": {
           "invalid_file": "Không thể đọc tệp đã chọn.",
@@ -1514,7 +1513,6 @@
         "identityUnavailable": "Bật bảng tác nhân để tạo khoá.",
         "copy": "Sao chép",
         "copied": "Đã sao chép",
-        "save": "Lưu",
         "unpair": "Huỷ ghép nối",
         "test": "Thử",
         "reached": "Relay đã trả lời.",
@@ -1942,8 +1940,8 @@
       "addNote": "Thêm ghi chú có dấu thời gian"
     },
     "recovery": {
-      "title": "Phục hồi cuộc họp dở dang",
-      "finalize": "Hoàn tất dở dang"
+      "title": "Cuộc họp chưa hoàn tất",
+      "finalize": "Hoàn tất lưu"
     },
     "history": {
       "title": "Lịch sử cuộc họp",
@@ -2031,8 +2029,10 @@
     },
     "review": {
       "meetingTitle": "Tiêu đề cuộc họp",
+      "editTitle": "Đổi tên cuộc họp này",
       "noStartTime": "Cuộc họp này không ghi lại thời điểm bắt đầu.",
       "started": "Bắt đầu {{date}}",
+      "partialRecording": "Bản ghi một phần",
       "status": "Trạng thái ghi",
       "timeline": "Dòng thời gian âm thanh và khoảng trống",
       "timeUnknown": "Không rõ thời gian",
@@ -2044,13 +2044,13 @@
       "noTranscript": "Không có bản ghi thoại nào.",
       "transcriptSegment": "Đoạn bản ghi thoại",
       "removeSegment": "Xóa đoạn",
+      "editTurn": "Sửa lượt nói này",
       "unknownSpeaker": "Người nói không rõ",
       "speakers": "Người nói",
       "noSpeakers": "Không có nhãn người nói nào.",
       "speakerName": "Tên người nói",
-      "mergeSource": "Gộp người nói này",
-      "mergeTarget": "Vào người nói này",
-      "merge": "Gộp người nói",
+      "renameSpeaker": "Đổi tên người nói này",
+      "samePersonAs": "Cùng một người với {{name}}",
       "manualNotes": "Ghi chú thủ công",
       "manualNote": "Ghi chú thủ công",
       "newNote": "Ghi chú thủ công mới",
@@ -2091,23 +2091,19 @@
       "question": "Câu hỏi",
       "insufficientEvidence": "Không tìm thấy đoạn nào trong cuộc họp này làm căn cứ.",
       "forget": "Quên câu trả lời này",
-      "exactSearch": "Tìm kiếm chính xác",
       "searchPlaceholder": "Tìm trong cuộc họp này",
-      "search": "Tìm kiếm",
       "noSearchResults": "Không có kết quả khớp chính xác trên máy.",
       "askUnavailable": "Việc hỏi cần một bản ghi thoại cục bộ đã hoàn tất.",
       "asking": "Đang hỏi cuộc họp này…",
       "droppedFrames": "Khung hình bị mất: {{total}}",
       "hitKind": {
         "manualNote": "Ghi chú thủ công",
-        "title": "Tiêu đề cuộc họp",
-        "transcript": "Bản ghi thoại"
+        "title": "Tiêu đề cuộc họp"
       },
       "noGeneratedNotesDescription": "Ghi chú được tạo bắt nguồn từ bản ghi thoại, nên có thể tạo lại bất cứ lúc nào.",
       "processingDescription": "Ghi chú được tạo và câu trả lời cục bộ sẽ xuất hiện khi bản ghi thoại hoàn tất.",
       "processingTitle": "Sona vẫn đang xử lý cuộc họp này",
       "remoteProcessingUnavailable": "Đích từ xa không bao giờ khả dụng, nên không có gì được tạo. Việc tạo lại sẽ chạy trên máy Mac này.",
-      "searching": "Đang tìm kiếm…",
       "sonaAnswered": "Sona đã trả lời",
       "tabs": {
         "insights": "Thông tin chuyên sâu",
@@ -2142,8 +2138,6 @@
       "trustMeasured": "Số lượt nói, thời lượng, số từ và tỷ lệ nói đến từ bản ghi thoại. Mỗi trạng thái là một phán đoán đọc ra từ trích dẫn bên cạnh: hãy kiểm tra trích dẫn trước khi hành động.",
       "unattributed": "Không rõ người nói",
       "columnAt": "Lúc",
-      "columnQuestion": "Câu hỏi",
-      "columnInstead": "Điều đã xảy ra thay vào đó",
       "columnDirection": "Hướng",
       "columnWhat": "Nội dung",
       "columnTaken": "Được hiểu thế nào",
@@ -2211,7 +2205,7 @@
       "searchPlaceholder": "Tìm theo tiêu đề",
       "clearFilters": "Xóa bộ lọc",
       "noMatchesFiltered": "Không có cuộc họp nào khớp",
-      "noMatchesFilteredDescription": "Không có cuộc họp nào được giữ lại khớp với bộ lọc này. Truy vấn chạy trên mọi cuộc họp trên đĩa, không chỉ trang đang hiển thị.",
+      "noMatchesFilteredDescription": "Không có gì khớp với các bộ lọc này. Sona đã xem qua mọi cuộc họp đang giữ, không chỉ trang này.",
       "rowActions": "Thao tác cuộc họp",
       "exportMarkdown": "Xuất ghi chú (Markdown)",
       "exportJson": "Xuất ghi chú (JSON)",
@@ -2659,10 +2653,9 @@
     "detail": {
       "nameLabel": "Tên người",
       "rename": "Đổi tên",
+      "personActions": "Thao tác với người này",
       "deletePerson": "Xóa người",
       "aliases": "Còn gọi là: {{aliases}}",
-      "renameTitle": "Đổi tên người này?",
-      "renameDescription": "Đổi tên người này thành {{name}}?",
       "merge": "Hợp nhất",
       "mergeTitle": "Hợp nhất người này?",
       "mergeDescription": "Hợp nhất {{source}} vào {{target}}? Các liên kết, tên khác và lịch sử mối quan hệ sẽ được gộp lại.",

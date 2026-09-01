@@ -299,10 +299,7 @@ const transcript = (jump: { segmentId: string; nonce: number } | null) =>
       jump={jump}
       searchQuery=""
       searchHits={null}
-      searching={false}
       onSearchQueryChange={noop}
-      onSearch={noop}
-      onJumpToSegment={noop}
       onSegmentEdit={noop}
       onSpeakerRename={noop}
       onSpeakerMerge={noop}

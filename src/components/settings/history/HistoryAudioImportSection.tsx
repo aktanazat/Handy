@@ -69,13 +69,6 @@ export const HistoryAudioImportSection: React.FC<
                               `settings.history.audioImport.status.${job.status}`,
                             )}
                     </p>
-                    {job.status === "decoding" && (
-                      <p className="mt-0.5 text-[11px] text-gray-800 tabular-nums">
-                        {t("settings.history.audioImport.decodedSamples", {
-                          count: job.decoded_samples,
-                        })}
-                      </p>
-                    )}
                   </div>
                   {canCancel && (
                     <Button

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInstance } from "i18next";
@@ -8,7 +8,7 @@ import type { AppSettings } from "@/bindings";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { SonaAgentPairing } from "./SonaAgentPairing";
 
-/* Pairing is three facts and two decisions, and the screen's whole job is to
+/* Pairing is three facts and one decision, and the screen's whole job is to
  * be honest about which of them are true right now.
  *
  * The two states worth pinning are the ones a reader acts on: unpaired, which
@@ -46,7 +46,6 @@ void i18n.init({
               identityUnavailable: "Turn the agent panel on to create a key.",
               copy: "Copy",
               copied: "Copied",
-              save: "Save",
               unpair: "Unpair",
               test: "Test",
               reached: "The relay answered.",
@@ -70,6 +69,14 @@ const paint = (settings: AppSettings): string => {
     </I18nextProvider>,
   );
 };
+
+/* `paint` mutates the module-scoped zustand store, and bun runs every test
+ * file in one runtime, so a later suite would otherwise inherit this file's
+ * paired state. Restore the snapshot this file found. */
+const priorState = useSettingsStore.getState();
+afterAll(() => {
+  useSettingsStore.setState(priorState, true);
+});
 
 const PAIRED: AppSettings = {
   agent_panel_enabled: true,
@@ -100,7 +107,10 @@ describe("the Sona agent pairing screen", () => {
      * is the part this screen owes a reader. */
     expect(hasButton(markup, "Test")).toBe(true);
     expect(hasButton(markup, "Unpair")).toBe(true);
-    expect(hasButton(markup, "Save")).toBe(true);
+    /* Nothing to press to keep an address. The three fields write the pairing
+     * when the reader leaves one, and the row above states whether this Mac is
+     * paired — which is the receipt a Save button was standing in for. */
+    expect(hasButton(markup, "Save")).toBe(false);
   });
 
   test("a saved pairing seeds its own fields", () => {

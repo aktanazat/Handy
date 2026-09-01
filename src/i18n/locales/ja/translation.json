@@ -711,14 +711,13 @@
         "jobs": "ファイルのインポート",
         "status": {
           "queued": "待機中",
-          "decoding": "音声をデコード中",
+          "decoding": "音声を読み込み中",
           "transcribing": "文字起こし中",
           "done": "履歴に保存しました",
           "cancelled": "キャンセル済み",
           "failed": "失敗",
           "cancelling": "キャンセル中"
         },
-        "decodedSamples": "{{count}} サンプルをデコードしました",
         "cancel": "キャンセル",
         "failure": {
           "invalid_file": "選択したファイルを読み取れません。",
@@ -1514,7 +1513,6 @@
         "identityUnavailable": "鍵を作成するにはエージェントパネルをオンにしてください。",
         "copy": "コピー",
         "copied": "コピーしました",
-        "save": "保存",
         "unpair": "解除",
         "test": "テスト",
         "reached": "リレーが応答しました。",
@@ -1942,8 +1940,8 @@
       "addNote": "タイムスタンプ付きメモを追加"
     },
     "recovery": {
-      "title": "不完全な会議を復元",
-      "finalize": "不完全なまま確定"
+      "title": "終わっていない会議",
+      "finalize": "保存を完了"
     },
     "history": {
       "title": "会議の履歴",
@@ -2031,8 +2029,10 @@
     },
     "review": {
       "meetingTitle": "ミーティングタイトル",
+      "editTitle": "このミーティングの名前を変更",
       "noStartTime": "このミーティングには開始時刻が記録されていません。",
       "started": "開始 {{date}}",
+      "partialRecording": "部分的な録音",
       "status": "収録の状態",
       "timeline": "音声のタイムラインと欠落",
       "timeUnknown": "時刻不明",
@@ -2044,13 +2044,13 @@
       "noTranscript": "利用できる文字起こしはありません。",
       "transcriptSegment": "文字起こしのセグメント",
       "removeSegment": "セグメントを削除",
+      "editTurn": "この発言を編集",
       "unknownSpeaker": "不明な話者",
       "speakers": "話者",
       "noSpeakers": "話者のラベルはありません。",
       "speakerName": "話者名",
-      "mergeSource": "この話者を統合",
-      "mergeTarget": "この話者へ",
-      "merge": "話者を統合",
+      "renameSpeaker": "この話者の名前を変更",
+      "samePersonAs": "{{name}}と同じ人物",
       "manualNotes": "手動メモ",
       "manualNote": "手動メモ",
       "newNote": "新しい手動メモ",
@@ -2091,23 +2091,19 @@
       "question": "質問",
       "insufficientEvidence": "このミーティングには裏付けとなる箇所が見つかりませんでした。",
       "forget": "この回答を忘れる",
-      "exactSearch": "完全一致検索",
       "searchPlaceholder": "このミーティングを検索",
-      "search": "検索",
       "noSearchResults": "完全に一致するローカルの結果はありません。",
       "askUnavailable": "質問にはローカルで完了した文字起こしが必要です。",
       "asking": "このミーティングに質問中…",
       "droppedFrames": "ドロップフレーム: {{total}}",
       "hitKind": {
         "manualNote": "手動メモ",
-        "title": "ミーティングタイトル",
-        "transcript": "文字起こし"
+        "title": "ミーティングタイトル"
       },
       "noGeneratedNotesDescription": "生成ノートは文字起こしから作られるため、いつでも再生成できます。",
       "processingDescription": "文字起こしが完了すると、生成ノートとローカルの回答が表示されます。",
       "processingTitle": "Sona はまだこのミーティングを処理中です",
       "remoteProcessingUnavailable": "リモートの送信先が利用可能にならなかったため、何も生成されませんでした。再生成はこの Mac 上で実行されます。",
-      "searching": "検索中…",
       "sonaAnswered": "Sona の回答",
       "tabs": {
         "insights": "インサイト",
@@ -2142,8 +2138,6 @@
       "trustMeasured": "ターン数、時間、単語数、発話比率は文字起こしから出ています。状態はすべて隣の引用から読み取った判断です。行動する前に引用を確認してください。",
       "unattributed": "話者不明",
       "columnAt": "時点",
-      "columnQuestion": "問い",
-      "columnInstead": "代わりに起きたこと",
       "columnDirection": "向き",
       "columnWhat": "内容",
       "columnTaken": "どう受け取られたか",
@@ -2211,7 +2205,7 @@
       "searchPlaceholder": "タイトルで検索",
       "clearFilters": "フィルターをクリア",
       "noMatchesFiltered": "該当するミーティングはありません",
-      "noMatchesFilteredDescription": "この条件に合う保存済みミーティングはありません。検索は画面のページだけでなく、ディスク上のすべてのミーティングを対象にしています。",
+      "noMatchesFilteredDescription": "この条件に合うものはありません。Sona はこのページだけでなく、保存しているすべての会議を見ています。",
       "rowActions": "ミーティングの操作",
       "exportMarkdown": "メモを書き出す (Markdown)",
       "exportJson": "メモを書き出す (JSON)",
@@ -2659,10 +2653,9 @@
     "detail": {
       "nameLabel": "人物名",
       "rename": "名前を変更",
+      "personActions": "人物の操作",
       "deletePerson": "人物を削除",
       "aliases": "別名: {{aliases}}",
-      "renameTitle": "この人物の名前を変更しますか？",
-      "renameDescription": "この人物の名前を{{name}}に変更しますか？",
       "merge": "統合",
       "mergeTitle": "この人物を統合しますか？",
       "mergeDescription": "{{source}}を{{target}}に統合しますか？リンク、別名、関係の履歴がまとめられます。",

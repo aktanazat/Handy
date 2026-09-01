@@ -711,14 +711,13 @@
         "jobs": "फ़ाइल इंपोर्ट",
         "status": {
           "queued": "कतार में",
-          "decoding": "ऑडियो डिकोड हो रहा है",
+          "decoding": "ऑडियो पढ़ा जा रहा है",
           "transcribing": "ट्रांसक्राइब हो रहा है",
           "done": "इतिहास में सहेजा गया",
           "cancelled": "रद्द किया गया",
           "failed": "विफल",
           "cancelling": "रद्द किया जा रहा है"
         },
-        "decodedSamples": "{{count}} सैंपल डिकोड किए गए",
         "cancel": "रद्द करें",
         "failure": {
           "invalid_file": "चुनी गई फ़ाइल पढ़ी नहीं जा सकती.",
@@ -1514,7 +1513,6 @@
         "identityUnavailable": "कुंजी बनाने के लिए एजेंट पैनल चालू करें।",
         "copy": "कॉपी करें",
         "copied": "कॉपी हो गया",
-        "save": "सहेजें",
         "unpair": "जोड़ी हटाएँ",
         "test": "जाँचें",
         "reached": "रिले ने उत्तर दिया।",
@@ -1948,8 +1946,8 @@
       "addNote": "टाइमस्टैम्प वाला नोट जोड़ें"
     },
     "recovery": {
-      "title": "अधूरी मीटिंग पुनर्प्राप्त करें",
-      "finalize": "अधूरा अंतिम करें"
+      "title": "अधूरी मीटिंग",
+      "finalize": "सहेजना पूरा करें"
     },
     "history": {
       "title": "मीटिंग इतिहास",
@@ -2037,8 +2035,10 @@
     },
     "review": {
       "meetingTitle": "मीटिंग शीर्षक",
+      "editTitle": "इस मीटिंग का नाम बदलें",
       "noStartTime": "इस मीटिंग ने शुरू होने का समय दर्ज नहीं किया।",
       "started": "{{date}} को शुरू हुई",
+      "partialRecording": "अधूरी रिकॉर्डिंग",
       "status": "कैप्चर स्थिति",
       "timeline": "ऑडियो टाइमलाइन और गैप",
       "timeUnknown": "अज्ञात समय",
@@ -2050,13 +2050,13 @@
       "noTranscript": "कोई ट्रांसक्रिप्ट उपलब्ध नहीं है।",
       "transcriptSegment": "ट्रांसक्रिप्ट सेगमेंट",
       "removeSegment": "सेगमेंट हटाएँ",
+      "editTurn": "इस बात को संपादित करें",
       "unknownSpeaker": "अज्ञात वक्ता",
       "speakers": "वक्ता",
       "noSpeakers": "कोई वक्ता लेबल उपलब्ध नहीं है।",
       "speakerName": "वक्ता का नाम",
-      "mergeSource": "इस वक्ता को मिलाएँ",
-      "mergeTarget": "इस वक्ता में",
-      "merge": "वक्ता मिलाएँ",
+      "renameSpeaker": "इस वक्ता का नाम बदलें",
+      "samePersonAs": "{{name}} के समान व्यक्ति",
       "manualNotes": "मैनुअल नोट",
       "manualNote": "मैनुअल नोट",
       "newNote": "नया मैनुअल नोट",
@@ -2097,23 +2097,19 @@
       "question": "सवाल",
       "insufficientEvidence": "इस मीटिंग में कोई समर्थक अंश नहीं मिला।",
       "forget": "यह जवाब भुला दें",
-      "exactSearch": "सटीक खोज",
       "searchPlaceholder": "इस मीटिंग में खोजें",
-      "search": "खोजें",
       "noSearchResults": "कोई सटीक लोकल मेल नहीं।",
       "askUnavailable": "पूछने के लिए एक पूर्ण लोकल ट्रांसक्रिप्ट चाहिए।",
       "asking": "इस मीटिंग से पूछा जा रहा है…",
       "droppedFrames": "छूटे फ़्रेम: {{total}}",
       "hitKind": {
         "manualNote": "मैनुअल नोट",
-        "title": "मीटिंग शीर्षक",
-        "transcript": "ट्रांसक्रिप्ट"
+        "title": "मीटिंग शीर्षक"
       },
       "noGeneratedNotesDescription": "जनरेट किए गए नोट ट्रांसक्रिप्ट से बनते हैं, इसलिए इन्हें कभी भी फिर से बनाया जा सकता है।",
       "processingDescription": "ट्रांसक्रिप्ट पूरा होने पर जनरेट किए गए नोट और लोकल उत्तर दिखाई देते हैं।",
       "processingTitle": "Sona अभी भी इस मीटिंग को प्रोसेस कर रहा है",
       "remoteProcessingUnavailable": "रिमोट डेस्टिनेशन कभी उपलब्ध नहीं हुआ, इसलिए कुछ भी जनरेट नहीं हुआ। फिर से जनरेट करना इसी Mac पर चलता है।",
-      "searching": "खोज हो रही है…",
       "sonaAnswered": "Sona ने उत्तर दिया",
       "tabs": {
         "insights": "इनसाइट्स",
@@ -2148,8 +2144,6 @@
       "trustMeasured": "बारी, समय, शब्दों की गिनती और बोलने का हिस्सा ट्रांसक्रिप्ट से आते हैं। हर स्थिति उसके साथ दिए उद्धरण से पढ़ा गया आकलन है: उस पर काम करने से पहले उद्धरण जाँच लें।",
       "unattributed": "बिना श्रेय",
       "columnAt": "समय",
-      "columnQuestion": "सवाल",
-      "columnInstead": "उसके बजाय क्या हुआ",
       "columnDirection": "दिशा",
       "columnWhat": "क्या",
       "columnTaken": "कैसे लिया गया",
@@ -2217,7 +2211,7 @@
       "searchPlaceholder": "शीर्षक से खोजें",
       "clearFilters": "फ़िल्टर साफ़ करें",
       "noMatchesFiltered": "कोई मीटिंग मेल नहीं खाती",
-      "noMatchesFilteredDescription": "इस फ़िल्टर से कोई रखी गई मीटिंग मेल नहीं खाती। खोज डिस्क पर मौजूद हर मीटिंग पर चलती है, सिर्फ़ स्क्रीन पर दिखे पेज पर नहीं।",
+      "noMatchesFilteredDescription": "इन फ़िल्टरों से कुछ भी मेल नहीं खाता। Sona ने अपनी रखी हुई हर मीटिंग देखी, सिर्फ़ यह पेज नहीं।",
       "rowActions": "मीटिंग की कार्रवाइयाँ",
       "exportMarkdown": "नोट्स एक्सपोर्ट करें (Markdown)",
       "exportJson": "नोट्स एक्सपोर्ट करें (JSON)",
@@ -2667,10 +2661,9 @@
     "detail": {
       "nameLabel": "व्यक्ति का नाम",
       "rename": "नाम बदलें",
+      "personActions": "व्यक्ति की कार्रवाइयाँ",
       "deletePerson": "व्यक्ति हटाएँ",
       "aliases": "अन्य नाम: {{aliases}}",
-      "renameTitle": "इस व्यक्ति का नाम बदलें?",
-      "renameDescription": "इस व्यक्ति का नाम बदलकर {{name}} करें?",
       "merge": "मर्ज करें",
       "mergeTitle": "इस व्यक्ति को मर्ज करें?",
       "mergeDescription": "{{source}} को {{target}} में मर्ज करें? लिंक, अन्य नाम और संबंध का इतिहास एक साथ जोड़ दिया जाएगा।",

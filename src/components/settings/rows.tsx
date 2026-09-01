@@ -236,6 +236,30 @@ export const SettingsRow: React.FC<SettingsRowProps> = ({
 };
 
 /**
+ * A row's own controls, dimmed until the row is hovered or something inside it
+ * takes focus. This is where a destructive control waits: a reading surface
+ * does not print "delete" on every line, and the row under the pointer is the
+ * only one being asked about. Opacity alone would strand a keyboard, so the
+ * focus-within state carries exactly the same weight as the hover one.
+ *
+ * Needs a `group/row` ancestor — whichever element the pointer enters declares
+ * it, which is the row itself in every current caller.
+ */
+export const RowActions: React.FC<{
+  children: React.ReactNode;
+  className?: string;
+}> = ({ children, className }) => (
+  <span
+    className={cn(
+      "flex items-center gap-1 opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-within/row:opacity-100",
+      className,
+    )}
+  >
+    {children}
+  </span>
+);
+
+/**
  * A row whose control is too wide to sit beside its label — a text area, a
  * list, a recorder. Same hairline surface, label stacked over the control.
  */

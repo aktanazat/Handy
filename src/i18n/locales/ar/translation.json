@@ -623,14 +623,13 @@
         "jobs": "استيرادات الملفات",
         "status": {
           "queued": "في قائمة الانتظار",
-          "decoding": "جارٍ فك ترميز الصوت",
+          "decoding": "جارٍ قراءة الصوت",
           "transcribing": "جارٍ التفريغ",
           "done": "حُفظ في السجل",
           "cancelled": "أُلغي",
           "failed": "فشل",
           "cancelling": "جارٍ الإلغاء"
         },
-        "decodedSamples": "{{count}} عيّنة فُك ترميزها",
         "cancel": "إلغاء",
         "failure": {
           "invalid_file": "الملف المحدد غير قابل للقراءة.",
@@ -1514,7 +1513,6 @@
         "identityUnavailable": "شغّل لوحة الوكيل لإنشاء مفتاح.",
         "copy": "نسخ",
         "copied": "تم النسخ",
-        "save": "حفظ",
         "unpair": "إلغاء الاقتران",
         "test": "اختبار",
         "reached": "استجاب المُرحِّل.",
@@ -1972,8 +1970,8 @@
       "addNote": "إضافة ملاحظة بطابع زمني"
     },
     "recovery": {
-      "title": "استرجاع الاجتماعات الجزئية",
-      "finalize": "إتمام الجزئي"
+      "title": "اجتماعات لم تكتمل",
+      "finalize": "إنهاء الحفظ"
     },
     "history": {
       "title": "سجل الاجتماعات",
@@ -2061,8 +2059,10 @@
     },
     "review": {
       "meetingTitle": "عنوان الاجتماع",
+      "editTitle": "إعادة تسمية هذا الاجتماع",
       "noStartTime": "لم يسجّل هذا الاجتماع وقت بداية.",
       "started": "بدأ {{date}}",
+      "partialRecording": "تسجيل جزئي",
       "status": "حالة التسجيل",
       "timeline": "الخط الزمني للصوت والفجوات",
       "timeUnknown": "وقت غير معروف",
@@ -2074,13 +2074,13 @@
       "noTranscript": "لا يتوفر نص.",
       "transcriptSegment": "مقطع من النص",
       "removeSegment": "إزالة المقطع",
+      "editTurn": "تعديل هذه المداخلة",
       "unknownSpeaker": "متحدث غير معروف",
       "speakers": "المتحدثون",
       "noSpeakers": "لا تتوفر تسميات للمتحدثين.",
       "speakerName": "اسم المتحدث",
-      "mergeSource": "دمج هذا المتحدث",
-      "mergeTarget": "مع هذا المتحدث",
-      "merge": "دمج المتحدثين",
+      "renameSpeaker": "إعادة تسمية هذا المتحدث",
+      "samePersonAs": "نفس الشخص مثل {{name}}",
       "manualNotes": "الملاحظات اليدوية",
       "manualNote": "ملاحظة يدوية",
       "newNote": "ملاحظة يدوية جديدة",
@@ -2121,23 +2121,19 @@
       "question": "سؤال",
       "insufficientEvidence": "لم يُعثر على مقطع مؤيد في هذا الاجتماع.",
       "forget": "نسيان هذه الإجابة",
-      "exactSearch": "بحث مطابق تمامًا",
       "searchPlaceholder": "البحث في هذا الاجتماع",
-      "search": "بحث",
       "noSearchResults": "لا توجد مطابقات محلية دقيقة.",
       "askUnavailable": "يتطلب طرح الأسئلة نصًا محليًا مكتملًا.",
       "asking": "جارٍ سؤال هذا الاجتماع…",
       "droppedFrames": "الإطارات المفقودة: {{total}}",
       "hitKind": {
         "manualNote": "ملاحظة يدوية",
-        "title": "عنوان الاجتماع",
-        "transcript": "النص"
+        "title": "عنوان الاجتماع"
       },
       "noGeneratedNotesDescription": "الملاحظات المولّدة مشتقة من النص، لذا يمكن إعادة إنشائها في أي وقت.",
       "processingDescription": "تظهر الملاحظات المولّدة والإجابات المحلية بمجرد اكتمال النص.",
       "processingTitle": "لا يزال Sona يعالج هذا الاجتماع",
       "remoteProcessingUnavailable": "لم تصبح الوجهة البعيدة متاحة قط، لذا لم يُولَّد أي شيء. تتم إعادة التوليد على جهاز Mac هذا.",
-      "searching": "جارٍ البحث…",
       "sonaAnswered": "أجاب Sona",
       "tabs": {
         "insights": "الرؤى",
@@ -2172,8 +2168,6 @@
       "trustMeasured": "الأدوار والتوقيتات وأعداد الكلمات ونصيب الكلام كلها من النص. أما كل حالة فهي حكم قُرئ من الاقتباس المجاور لها: راجع الاقتباس قبل التصرف بناءً عليه.",
       "unattributed": "غير منسوب",
       "columnAt": "عند",
-      "columnQuestion": "السؤال",
-      "columnInstead": "ما حدث بدلًا من ذلك",
       "columnDirection": "الاتجاه",
       "columnWhat": "ماذا",
       "columnTaken": "كيف أُخذ",
@@ -2241,7 +2235,7 @@
       "searchPlaceholder": "البحث حسب العنوان",
       "clearFilters": "مسح عوامل التصفية",
       "noMatchesFiltered": "لا توجد اجتماعات مطابقة",
-      "noMatchesFilteredDescription": "لا يطابق أي اجتماع محفوظ عوامل التصفية هذه. يجري البحث على كل اجتماع على القرص، وليس على الصفحة المعروضة فقط.",
+      "noMatchesFilteredDescription": "لا شيء يطابق عوامل التصفية هذه. بحثت سونا في كل اجتماع محفوظ لديها، وليس في هذه الصفحة وحدها.",
       "rowActions": "إجراءات الاجتماع",
       "exportMarkdown": "تصدير الملاحظات (Markdown)",
       "exportJson": "تصدير الملاحظات (JSON)",
@@ -2703,10 +2697,9 @@
     "detail": {
       "nameLabel": "اسم الشخص",
       "rename": "إعادة التسمية",
+      "personActions": "إجراءات الشخص",
       "deletePerson": "حذف الشخص",
       "aliases": "أيضًا: {{aliases}}",
-      "renameTitle": "إعادة تسمية هذا الشخص؟",
-      "renameDescription": "تغيير اسم هذا الشخص إلى {{name}}؟",
       "merge": "دمج",
       "mergeTitle": "دمج هذا الشخص؟",
       "mergeDescription": "دمج {{source}} مع {{target}}؟ ستُجمع الروابط والأسماء البديلة وسجل العلاقة.",

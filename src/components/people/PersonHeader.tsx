@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ArrowLeft, GitMerge, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Ellipsis } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type {
   DocumentSummary,
@@ -10,6 +10,13 @@ import type {
 } from "@/bindings";
 import { PageTitle } from "@/components/settings/rows";
 import { Button } from "@/components/vg/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/vg/dropdown-menu";
 import { Input } from "@/components/vg/input";
 import {
   Select,
@@ -36,6 +43,19 @@ interface PersonHeaderProps {
   ) => void;
 }
 
+/**
+ * A person's page reads as a page about that person: their name as the title,
+ * and nothing beside it.
+ *
+ * The name is the field that edits it — click it and it becomes an input,
+ * which commits on Enter or on leaving it and reverts on Escape. There is no
+ * Save, because a rename is one value with a receipt behind it, and no "rename
+ * this person?" dialog, because confirming a reversible edit of a name is
+ * ceremony. Splitting, merging and deleting are the three things that change
+ * who this person *is*, so they wait behind the row's own menu — the same
+ * quiet glyph a meeting row and a mode row keep their operations behind — and
+ * the two irreversible ones keep their confirmation.
+ */
 export const PersonHeader: React.FC<PersonHeaderProps> = ({
   person,
   people,
@@ -51,15 +71,28 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState(person.display_name);
-  const [renameConfirming, setRenameConfirming] = useState(false);
+  const [splitting, setSplitting] = useState(false);
   const [mergeConfirming, setMergeConfirming] = useState(false);
   const [deleteConfirming, setDeleteConfirming] = useState(false);
   const [mergeTarget, setMergeTarget] = useState<string | null>(null);
-  const trimmedName = nameDraft.trim();
   const mergeOptions = people.filter((entry) => entry.person.id !== person.id);
   const mergeTargetName = mergeOptions.find(
     (entry) => entry.person.id === mergeTarget,
   )?.person.display_name;
+  const actionsLabel = t("people.detail.personActions");
+
+  /* One commit path. Enter and Escape both blur the field; Escape puts the
+   * saved name back first, so leaving the field is the only thing that ever
+   * writes, and it writes only when the name actually changed. */
+  const commitName = () => {
+    setEditing(false);
+    const trimmed = nameDraft.trim();
+    if (trimmed === "" || trimmed === person.display_name) {
+      setNameDraft(person.display_name);
+      return;
+    }
+    onRename(trimmed);
+  };
 
   return (
     <div className="flex flex-col gap-4" data-slot="person-header">
@@ -74,85 +107,77 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({
         {t("meetings.actions.back")}
       </Button>
 
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4">
         {editing ? (
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <Input
-              autoFocus
-              value={nameDraft}
-              onChange={(event) => setNameDraft(event.target.value)}
-              aria-label={t("people.detail.nameLabel")}
-              className="h-9 max-w-[360px] text-[18px] font-medium"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
+          <Input
+            autoFocus
+            value={nameDraft}
+            onChange={(event) => setNameDraft(event.target.value)}
+            onBlur={commitName}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") event.currentTarget.blur();
+              if (event.key === "Escape") {
                 setNameDraft(person.display_name);
-                setEditing(false);
-              }}
-            >
-              {t("common.cancel")}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              disabled={
-                trimmedName.length === 0 || trimmedName === person.display_name
+                event.currentTarget.blur();
               }
-              onClick={() => setRenameConfirming(true)}
-            >
-              {t("common.save")}
-            </Button>
-          </div>
+            }}
+            aria-label={t("people.detail.nameLabel")}
+            className="h-9 min-w-0 flex-1 sm:max-w-[360px] text-[18px] font-medium"
+          />
         ) : (
-          <PageTitle>{person.display_name}</PageTitle>
+          /* The title is the control. A bare button so the name keeps the page
+           * title's own type, with the hover wash the only thing that says it
+           * can be typed into. */
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => {
+              setNameDraft(person.display_name);
+              setEditing(true);
+            }}
+            title={t("people.detail.rename")}
+            className="-mx-2 min-w-0 rounded-md px-2 py-0.5 text-start hover:bg-gray-alpha-100 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+          >
+            <PageTitle className="truncate">{person.display_name}</PageTitle>
+          </button>
         )}
 
-        {editing ? null : (
-          <div className="flex flex-wrap items-center justify-end gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button
               type="button"
-              variant="outline"
-              size="sm"
-              disabled={pending}
-              onClick={() => setEditing(true)}
+              variant="ghost"
+              size="icon-sm"
+              className="flex-none text-gray-700 hover:text-gray-1000"
+              aria-label={actionsLabel}
+              title={actionsLabel}
             >
-              <Pencil aria-hidden="true" />
-              {t("people.detail.rename")}
+              <Ellipsis aria-hidden="true" />
             </Button>
-            <PersonSplitDialog
-              person={person}
-              people={people}
-              links={links}
-              documents={documents}
-              pending={pending}
-              onSplit={onSplit}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-52">
+            <DropdownMenuItem
+              disabled={pending}
+              onSelect={() => setSplitting(true)}
+            >
+              {t("people.detail.split")}
+            </DropdownMenuItem>
+            <DropdownMenuItem
               disabled={pending || mergeOptions.length === 0}
-              onClick={() => setMergeConfirming(true)}
+              onSelect={() => setMergeConfirming(true)}
             >
-              <GitMerge aria-hidden="true" />
               {t("people.detail.merge")}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="text-red-900 hover:text-red-900"
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
               disabled={pending}
-              onClick={() => setDeleteConfirming(true)}
+              variant="destructive"
+              onSelect={() => setDeleteConfirming(true)}
             >
-              <Trash2 aria-hidden="true" />
               {t("people.detail.deletePerson")}
-            </Button>
-          </div>
-        )}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {person.aliases.length === 0 ? null : (
@@ -161,19 +186,15 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({
         </p>
       )}
 
-      <PeopleConfirmDialog
-        open={renameConfirming}
-        onOpenChange={setRenameConfirming}
-        title={t("people.detail.renameTitle")}
-        description={t("people.detail.renameDescription", {
-          name: trimmedName,
-        })}
-        confirmLabel={t("people.detail.rename")}
+      <PersonSplitDialog
+        open={splitting}
+        onOpenChange={setSplitting}
+        person={person}
+        people={people}
+        links={links}
+        documents={documents}
         pending={pending}
-        onConfirm={() => {
-          setEditing(false);
-          onRename(trimmedName);
-        }}
+        onSplit={onSplit}
       />
 
       <PeopleConfirmDialog

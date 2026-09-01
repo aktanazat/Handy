@@ -711,14 +711,13 @@
         "jobs": "ייבואי קבצים",
         "status": {
           "queued": "בתור",
-          "decoding": "מפענח שמע",
+          "decoding": "קורא את השמע",
           "transcribing": "מתמלל",
           "done": "נשמר בהיסטוריה",
           "cancelled": "בוטל",
           "failed": "נכשל",
           "cancelling": "מבטל"
         },
-        "decodedSamples": "{{count}} דגימות פוענחו",
         "cancel": "ביטול",
         "failure": {
           "invalid_file": "לא ניתן לקרוא את הקובץ שנבחר.",
@@ -1514,7 +1513,6 @@
         "identityUnavailable": "הפעל את חלונית הסוכן כדי ליצור מפתח.",
         "copy": "העתק",
         "copied": "הועתק",
-        "save": "שמור",
         "unpair": "בטל התאמה",
         "test": "בדוק",
         "reached": "הממסר ענה.",
@@ -1954,8 +1952,8 @@
       "addNote": "הוסף הערה עם חותמת זמן"
     },
     "recovery": {
-      "title": "שחזור פגישות חלקיות",
-      "finalize": "סיים חלקית"
+      "title": "פגישות שלא הושלמו",
+      "finalize": "לסיים לשמור"
     },
     "history": {
       "title": "היסטוריית פגישות",
@@ -2043,8 +2041,10 @@
     },
     "review": {
       "meetingTitle": "כותרת הפגישה",
+      "editTitle": "שינוי שם הפגישה",
       "noStartTime": "הפגישה הזאת לא רשמה שעת התחלה.",
       "started": "התחילה ב־{{date}}",
+      "partialRecording": "הקלטה חלקית",
       "status": "מצב הלכידה",
       "timeline": "ציר הזמן של האודיו והפערים",
       "timeUnknown": "שעה לא ידועה",
@@ -2056,13 +2056,13 @@
       "noTranscript": "אין תמלול זמין.",
       "transcriptSegment": "מקטע תמלול",
       "removeSegment": "הסר מקטע",
+      "editTurn": "עריכת הדברים האלה",
       "unknownSpeaker": "דובר לא ידוע",
       "speakers": "דוברים",
       "noSpeakers": "אין תוויות דוברים זמינות.",
       "speakerName": "שם הדובר",
-      "mergeSource": "מזג את הדובר הזה",
-      "mergeTarget": "לתוך הדובר הזה",
-      "merge": "מיזוג דוברים",
+      "renameSpeaker": "שינוי שם הדובר",
+      "samePersonAs": "אותו אדם כמו {{name}}",
       "manualNotes": "הערות ידניות",
       "manualNote": "הערה ידנית",
       "newNote": "הערה ידנית חדשה",
@@ -2103,23 +2103,19 @@
       "question": "שאלה",
       "insufficientEvidence": "לא נמצא קטע תומך בפגישה הזאת.",
       "forget": "שכח את התשובה הזאת",
-      "exactSearch": "חיפוש מדויק",
       "searchPlaceholder": "חיפוש בפגישה הזאת",
-      "search": "חיפוש",
       "noSearchResults": "אין התאמות מקומיות מדויקות.",
       "askUnavailable": "שאילת שאלות דורשת תמלול מקומי שהושלם.",
       "asking": "שואל את הפגישה…",
       "droppedFrames": "פריימים שאבדו: {{total}}",
       "hitKind": {
         "manualNote": "הערה ידנית",
-        "title": "כותרת הפגישה",
-        "transcript": "תמלול"
+        "title": "כותרת הפגישה"
       },
       "noGeneratedNotesDescription": "הערות שנוצרו נגזרות מהתמלול, ולכן ניתן לבנות אותן מחדש בכל עת.",
       "processingDescription": "הערות שנוצרו ותשובות מקומיות יופיעו לאחר שהתמלול יושלם.",
       "processingTitle": "Sona עדיין מעבד את הפגישה הזו",
       "remoteProcessingUnavailable": "היעד המרוחק לא הפך לזמין, ולכן לא נוצר דבר. יצירה מחדש מתבצעת במחשב Mac זה.",
-      "searching": "מחפש…",
       "sonaAnswered": "Sona ענה",
       "tabs": {
         "insights": "תובנות",
@@ -2154,8 +2150,6 @@
       "trustMeasured": "התורים, הזמנים, ספירות המילים וחלוקת זמן הדיבור באים מהתמלול. כל מצב הוא שיקול דעת שנקרא מהציטוט שלידו: בדוק את הציטוט לפני שאתה פועל לפיו.",
       "unattributed": "בלי שיוך",
       "columnAt": "בזמן",
-      "columnQuestion": "השאלה",
-      "columnInstead": "מה קרה במקום",
       "columnDirection": "כיוון",
       "columnWhat": "מה",
       "columnTaken": "איך היא נלקחה",
@@ -2223,7 +2217,7 @@
       "searchPlaceholder": "חיפוש לפי כותרת",
       "clearFilters": "נקה מסננים",
       "noMatchesFiltered": "אין פגישות מתאימות",
-      "noMatchesFilteredDescription": "אין פגישה שנשמרה שמתאימה למסנן הזה. השאילתה רצה על כל הפגישות בדיסק, לא רק על העמוד שעל המסך.",
+      "noMatchesFilteredDescription": "שום דבר לא מתאים למסננים האלה. סונה עברה על כל פגישה ששמרה, לא רק על העמוד הזה.",
       "rowActions": "פעולות לפגישה",
       "exportMarkdown": "ייצוא סיכום (Markdown)",
       "exportJson": "ייצוא סיכום (JSON)",
@@ -2676,10 +2670,9 @@
     "detail": {
       "nameLabel": "שם האדם",
       "rename": "שינוי שם",
+      "personActions": "פעולות עבור האדם",
       "deletePerson": "מחיקת אדם",
       "aliases": "גם: {{aliases}}",
-      "renameTitle": "לשנות את שם האדם הזה?",
-      "renameDescription": "לשנות את שם האדם הזה ל־{{name}}?",
       "merge": "מיזוג",
       "mergeTitle": "למזג את האדם הזה?",
       "mergeDescription": "למזג את {{source}} עם {{target}}? הקישורים, הכינויים והיסטוריית הקשר יאוחדו.",

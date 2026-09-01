@@ -1,24 +1,25 @@
-import React, { useId, useState } from "react";
+import React, { useRef, useState } from "react";
+import { User } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type {
-  DiarizationStatus,
-  MeetingReviewSnapshot,
-  SpeakerId,
-} from "@/bindings";
+import type { MeetingReviewSnapshot, SpeakerId } from "@/bindings";
+import { cn } from "@/lib/cn";
 import { Notice, SettingsSection } from "@/components/settings/rows";
-import { Button } from "@/components/vg/button";
 import { Input } from "@/components/vg/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/vg/select";
+import { committedEdit, inlineEditKeys } from "./inlineEdit";
+
+/* Who was in the room, as a row of names.
+ *
+ * A speaker is a name, and a name is a word — so the roster reads as words,
+ * and the field that changes one appears on the name being changed. The pair
+ * of labelled dropdowns that used to sit under it existed to answer "these two
+ * are the same person", which is a sentence, so it is written as one on the
+ * name you are already correcting. */
+
+type MeetingSpeaker = MeetingReviewSnapshot["speakers"][number];
 
 interface SpeakerRosterProps {
-  speakers: MeetingReviewSnapshot["speakers"];
-  diarizationStatus: DiarizationStatus;
+  speakers: MeetingSpeaker[];
+  diarization: MeetingReviewSnapshot["diarization"];
   disabled: boolean;
   onRename: (speakerId: SpeakerId, displayName: string) => void;
   onMerge: (sourceSpeakerId: SpeakerId, targetSpeakerId: SpeakerId) => void;
@@ -26,174 +27,144 @@ interface SpeakerRosterProps {
 
 export const SpeakerRoster: React.FC<SpeakerRosterProps> = ({
   speakers,
-  diarizationStatus,
+  diarization,
   disabled,
   onRename,
   onMerge,
 }) => {
   const { t } = useTranslation();
+  const [editingSpeakerId, setEditingSpeakerId] = useState<SpeakerId | null>(
+    null,
+  );
+  /* Separation either produced assignments or it did not. A run that succeeded
+   * against nothing left the same roster an unrequested one leaves, and saying
+   * "Speakers are up to date" over it would be a claim about work that has no
+   * result on screen. */
+  const separated =
+    diarization.status === "succeeded" &&
+    diarization.assigned_segment_count > 0;
 
   return (
-    <SettingsSection
-      label={t("meetings.review.speakers")}
-      action={
-        <span className="text-[11px] text-gray-700">
-          {t(`meetings.diarization.${diarizationStatus}`)}
-        </span>
-      }
-    >
-      {speakers.length === 0 ? (
-        <div className="px-4 py-3">
+    <SettingsSection label={t("meetings.review.speakers")}>
+      <div className="flex flex-col gap-2 px-4 py-3">
+        {speakers.length === 0 ? (
           <Notice tone="muted" live={false}>
             {t("meetings.review.noSpeakers")}
           </Notice>
-        </div>
-      ) : (
-        <>
+        ) : (
           <ul
             role="list"
             aria-label={t("meetings.review.speakers")}
-            className="divide-y divide-gray-alpha-400"
+            className="flex flex-wrap items-start gap-1.5"
           >
             {speakers.map((speaker) => (
-              <SpeakerRow
-                key={`${speaker.speaker_id}:${speaker.revision}:${speaker.display_name}`}
-                speakerId={speaker.speaker_id}
-                name={speaker.display_name}
-                disabled={disabled}
-                onRename={onRename}
-              />
+              <li key={speaker.speaker_id} data-slot="speaker-chip">
+                {editingSpeakerId === speaker.speaker_id ? (
+                  <SpeakerNameEditor
+                    speaker={speaker}
+                    others={speakers.filter(
+                      (other) => other.speaker_id !== speaker.speaker_id,
+                    )}
+                    onCommit={(draft) => {
+                      setEditingSpeakerId(null);
+                      const next = committedEdit(draft, speaker.display_name);
+                      if (next !== null) onRename(speaker.speaker_id, next);
+                    }}
+                    onCancel={() => setEditingSpeakerId(null)}
+                    onMerge={(targetSpeakerId) => {
+                      setEditingSpeakerId(null);
+                      onMerge(speaker.speaker_id, targetSpeakerId);
+                    }}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    disabled={disabled}
+                    title={t("meetings.review.renameSpeaker")}
+                    onClick={() => setEditingSpeakerId(speaker.speaker_id)}
+                    className="inline-flex h-6 items-center gap-1.5 rounded-md border border-gray-alpha-400 px-2 text-[13px] text-gray-1000 transition-colors hover:bg-gray-alpha-200 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none disabled:pointer-events-none disabled:text-gray-700"
+                  >
+                    <User aria-hidden="true" className="size-3 text-gray-700" />
+                    {speaker.display_name}
+                  </button>
+                )}
+              </li>
             ))}
           </ul>
-          {speakers.length > 1 ? (
-            <MeetingSpeakerMerge
-              key={speakers
-                .map((speaker) => `${speaker.speaker_id}:${speaker.revision}`)
-                .join("|")}
-              speakers={speakers}
-              disabled={disabled}
-              onMerge={onMerge}
-            />
-          ) : null}
-        </>
-      )}
+        )}
+        {separated ? null : (
+          <p className="text-[11px] text-gray-700">
+            {t(`meetings.diarization.${diarization.status}`)}
+          </p>
+        )}
+      </div>
     </SettingsSection>
   );
 };
 
-interface SpeakerRowProps {
-  speakerId: SpeakerId;
-  name: string;
-  disabled: boolean;
-  onRename: (speakerId: SpeakerId, name: string) => void;
+export interface SpeakerNameEditorProps {
+  speaker: MeetingSpeaker;
+  /** Everybody else in the room, each one a person this speaker could be. */
+  others: MeetingSpeaker[];
+  onCommit: (draft: string) => void;
+  onCancel: () => void;
+  onMerge: (targetSpeakerId: SpeakerId) => void;
 }
 
-const SpeakerRow: React.FC<SpeakerRowProps> = ({
-  speakerId,
-  name,
-  disabled,
-  onRename,
-}) => {
-  const { t } = useTranslation();
-  const [draftName, setDraftName] = useState(name);
-  const trimmedName = draftName.trim();
-  const canSave = trimmedName.length > 0 && trimmedName !== name;
-
-  return (
-    <li className="flex flex-wrap items-center gap-2 px-4 py-2.5">
-      <Input
-        value={draftName}
-        onChange={(event) => setDraftName(event.target.value)}
-        aria-label={t("meetings.review.speakerName")}
-        disabled={disabled}
-        className="h-8 min-w-0 flex-1"
-      />
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => onRename(speakerId, trimmedName)}
-        disabled={disabled || !canSave}
-      >
-        {t("common.save")}
-      </Button>
-    </li>
-  );
-};
-
-interface MeetingSpeakerMergeProps {
-  speakers: MeetingReviewSnapshot["speakers"];
-  disabled: boolean;
-  onMerge: (sourceSpeakerId: SpeakerId, targetSpeakerId: SpeakerId) => void;
-}
-
-const MeetingSpeakerMerge: React.FC<MeetingSpeakerMergeProps> = ({
-  speakers,
-  disabled,
+/* The chip, open. Naming and merging are the same intent seen twice — this is
+ * who that voice was — so they sit together and both leave when it is settled.
+ *
+ * The merge actions keep the field focused on the way down: a commit fired by
+ * losing focus would close this editor out from under the click that asked for
+ * the merge. */
+export const SpeakerNameEditor: React.FC<SpeakerNameEditorProps> = ({
+  speaker,
+  others,
+  onCommit,
+  onCancel,
   onMerge,
 }) => {
   const { t } = useTranslation();
-  const fieldId = useId();
-  const [source, setSource] = useState<SpeakerId>(
-    speakers[0]?.speaker_id ?? "",
-  );
-  const [target, setTarget] = useState<SpeakerId>(
-    speakers[1]?.speaker_id ?? "",
-  );
-  const canMerge =
-    !disabled && source.length > 0 && target.length > 0 && source !== target;
+  const container = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="flex flex-wrap items-end gap-3 px-4 py-3">
-      <div className="flex min-w-0 flex-1 basis-40 flex-col gap-1">
-        <label
-          className="text-[13px] text-gray-900"
-          htmlFor={`${fieldId}-source`}
-        >
-          {t("meetings.review.mergeSource")}
-        </label>
-        <Select value={source} onValueChange={setSource} disabled={disabled}>
-          <SelectTrigger id={`${fieldId}-source`} size="sm" className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {speakers.map((speaker) => (
-              <SelectItem key={speaker.speaker_id} value={speaker.speaker_id}>
-                {speaker.display_name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="flex min-w-0 flex-1 basis-40 flex-col gap-1">
-        <label
-          className="text-[13px] text-gray-900"
-          htmlFor={`${fieldId}-target`}
-        >
-          {t("meetings.review.mergeTarget")}
-        </label>
-        <Select value={target} onValueChange={setTarget} disabled={disabled}>
-          <SelectTrigger id={`${fieldId}-target`} size="sm" className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {speakers.map((speaker) => (
-              <SelectItem key={speaker.speaker_id} value={speaker.speaker_id}>
-                {speaker.display_name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => onMerge(source, target)}
-        disabled={!canMerge}
-      >
-        {t("meetings.review.merge")}
-      </Button>
+    <div ref={container} className="flex flex-col gap-1">
+      <span className="inline-flex h-6 items-center gap-1.5 rounded-md border border-blue-700 ps-2 pe-1">
+        <User aria-hidden="true" className="size-3 flex-none text-gray-700" />
+        <Input
+          autoFocus
+          defaultValue={speaker.display_name}
+          aria-label={t("meetings.review.speakerName")}
+          onBlur={(event) => {
+            /* Tabbing onto a merge action is not leaving the editor. */
+            if (container.current?.contains(event.relatedTarget) === true) {
+              return;
+            }
+            onCommit(event.target.value);
+          }}
+          onKeyDown={inlineEditKeys(onCommit, onCancel)}
+          className={cn(
+            "h-5 w-28 rounded-none border-0 px-0 text-[13px] text-gray-1000 md:text-[13px]",
+            "focus-visible:border-0 focus-visible:ring-0",
+          )}
+        />
+      </span>
+      {others.length === 0 ? null : (
+        <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          {others.map((other) => (
+            <button
+              key={other.speaker_id}
+              type="button"
+              data-slot="speaker-merge"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => onMerge(other.speaker_id)}
+              className="cursor-pointer text-[11px] text-gray-700 underline-offset-2 transition-colors hover:text-gray-1000 hover:underline focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:outline-none"
+            >
+              {t("meetings.review.samePersonAs", { name: other.display_name })}
+            </button>
+          ))}
+        </span>
+      )}
     </div>
   );
 };

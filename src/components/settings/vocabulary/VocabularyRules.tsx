@@ -12,14 +12,13 @@ import {
   SelectValue,
 } from "@/components/vg/select";
 import { Switch } from "@/components/vg/switch";
-import { Notice, SettingsField } from "@/components/settings/rows";
+import { Notice, RowActions, SettingsField } from "@/components/settings/rows";
 import {
   ColumnHeader,
   EmptyLine,
   Hint,
   literalText,
   LoadingRows,
-  RowActions,
   RuleList,
   RuleRow,
 } from "./PanelParts";

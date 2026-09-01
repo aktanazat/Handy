@@ -1,5 +1,4 @@
 import React, { useId, useState } from "react";
-import { GitFork } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type {
   DocumentSummary,
@@ -83,6 +82,9 @@ const SplitSelectionGroup: React.FC<{
 };
 
 interface PersonSplitDialogProps {
+  /** Owned by the header's actions menu: the trigger is a menu item there. */
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   person: Person;
   people: PersonListEntry[];
   links: PersonMeetingLink[];
@@ -94,6 +96,8 @@ interface PersonSplitDialogProps {
 }
 
 export const PersonSplitDialog: React.FC<PersonSplitDialogProps> = ({
+  open,
+  onOpenChange,
   person,
   people,
   links,
@@ -104,7 +108,6 @@ export const PersonSplitDialog: React.FC<PersonSplitDialogProps> = ({
   const { t } = useTranslation();
   const idPrefix = useId();
   const nameInputId = `${idPrefix}-name`;
-  const [open, setOpen] = useState(false);
   const [targetValue, setTargetValue] = useState(CREATE_TARGET);
   const [name, setName] = useState("");
   const [meetingIds, setMeetingIds] = useState<string[]>([]);
@@ -141,170 +144,154 @@ export const PersonSplitDialog: React.FC<PersonSplitDialogProps> = ({
   };
 
   return (
-    <>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        disabled={pending}
-        onClick={() => setOpen(true)}
-      >
-        <GitFork aria-hidden="true" />
-        {t("people.detail.split")}
-      </Button>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!pending) onOpenChange(nextOpen);
+      }}
+    >
+      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-[520px]">
+        <DialogHeader>
+          <DialogTitle>{t("people.detail.splitTitle")}</DialogTitle>
+          <DialogDescription>
+            {t("people.detail.splitDescription", {
+              name: person.display_name,
+            })}
+          </DialogDescription>
+        </DialogHeader>
 
-      <Dialog
-        open={open}
-        onOpenChange={(nextOpen) => {
-          if (!pending) setOpen(nextOpen);
-        }}
-      >
-        <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-[520px]">
-          <DialogHeader>
-            <DialogTitle>{t("people.detail.splitTitle")}</DialogTitle>
-            <DialogDescription>
-              {t("people.detail.splitDescription", {
-                name: person.display_name,
-              })}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <span className="text-[13px] text-gray-1000">
-                {t("people.detail.splitTarget")}
-              </span>
-              <Select value={targetValue} onValueChange={setTargetValue}>
-                <SelectTrigger
-                  size="sm"
-                  className="w-full"
-                  aria-label={t("people.detail.splitTarget")}
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <span className="text-[13px] text-gray-1000">
+              {t("people.detail.splitTarget")}
+            </span>
+            <Select value={targetValue} onValueChange={setTargetValue}>
+              <SelectTrigger
+                size="sm"
+                className="w-full"
+                aria-label={t("people.detail.splitTarget")}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>{t("people.detail.splitCreate")}</SelectLabel>
+                  <SelectItem value={CREATE_TARGET}>
+                    {t("people.detail.splitCreate")}
+                  </SelectItem>
+                </SelectGroup>
+                {targetOptions.length === 0 ? null : (
                   <SelectGroup>
-                    <SelectLabel>{t("people.detail.splitCreate")}</SelectLabel>
-                    <SelectItem value={CREATE_TARGET}>
-                      {t("people.detail.splitCreate")}
-                    </SelectItem>
+                    <SelectLabel>
+                      {t("people.detail.splitExisting")}
+                    </SelectLabel>
+                    {targetOptions.map((entry) => (
+                      <SelectItem key={entry.person.id} value={entry.person.id}>
+                        {entry.person.display_name}
+                      </SelectItem>
+                    ))}
                   </SelectGroup>
-                  {targetOptions.length === 0 ? null : (
-                    <SelectGroup>
-                      <SelectLabel>
-                        {t("people.detail.splitExisting")}
-                      </SelectLabel>
-                      {targetOptions.map((entry) => (
-                        <SelectItem
-                          key={entry.person.id}
-                          value={entry.person.id}
-                        >
-                          {entry.person.display_name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {createTarget ? (
-              <div className="space-y-2">
-                <label
-                  htmlFor={nameInputId}
-                  className="text-[13px] text-gray-1000"
-                >
-                  {t("people.detail.splitNameLabel")}
-                </label>
-                <Input
-                  id={nameInputId}
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                />
-              </div>
-            ) : null}
-
-            <div className="space-y-3">
-              <Microlabel>{t("people.detail.splitEvidence")}</Microlabel>
-              {availableCount === 0 ? (
-                <p className="text-[13px] text-gray-700">
-                  {t("people.detail.splitNoItems")}
-                </p>
-              ) : (
-                <>
-                  <SplitSelectionGroup
-                    idPrefix={`${idPrefix}-meetings`}
-                    label={t("people.detail.splitMeetings")}
-                    options={links.map((link) => ({
-                      value: link.meeting.id,
-                      label: `${link.meeting.title} · ${formatEntryTimestamp(
-                        link.meeting.at_utc_ms,
-                      )}`,
-                    }))}
-                    selected={meetingIds}
-                    onChange={setMeetingIds}
-                  />
-                  <SplitSelectionGroup
-                    idPrefix={`${idPrefix}-aliases`}
-                    label={t("people.detail.splitAliases")}
-                    options={person.aliases.map((alias) => ({
-                      value: alias,
-                      label: alias,
-                    }))}
-                    selected={aliases}
-                    onChange={setAliases}
-                  />
-                  <SplitSelectionGroup
-                    idPrefix={`${idPrefix}-emails`}
-                    label={t("people.detail.splitEmails")}
-                    options={person.calendar_emails.map((email) => ({
-                      value: email,
-                      label: email,
-                    }))}
-                    selected={calendarEmails}
-                    onChange={setCalendarEmails}
-                  />
-                  <SplitSelectionGroup
-                    idPrefix={`${idPrefix}-documents`}
-                    label={t("people.detail.splitDocuments")}
-                    options={documents.map((document) => ({
-                      value: document.id,
-                      label: document.title,
-                    }))}
-                    selected={documentIds}
-                    onChange={setDocumentIds}
-                  />
-                </>
-              )}
-              {!createTarget && selectedCount === 0 ? (
-                <p className="text-[12px] text-gray-700">
-                  {t("people.detail.splitNothingSelected")}
-                </p>
-              ) : null}
-            </div>
+                )}
+              </SelectContent>
+            </Select>
           </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={pending}
-              onClick={() => setOpen(false)}
-            >
-              {t("common.cancel")}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              disabled={submitDisabled}
-              onClick={submit}
-            >
-              {pending ? t("common.saving") : t("people.detail.splitSubmit")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+          {createTarget ? (
+            <div className="space-y-2">
+              <label
+                htmlFor={nameInputId}
+                className="text-[13px] text-gray-1000"
+              >
+                {t("people.detail.splitNameLabel")}
+              </label>
+              <Input
+                id={nameInputId}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+              />
+            </div>
+          ) : null}
+
+          <div className="space-y-3">
+            <Microlabel>{t("people.detail.splitEvidence")}</Microlabel>
+            {availableCount === 0 ? (
+              <p className="text-[13px] text-gray-700">
+                {t("people.detail.splitNoItems")}
+              </p>
+            ) : (
+              <>
+                <SplitSelectionGroup
+                  idPrefix={`${idPrefix}-meetings`}
+                  label={t("people.detail.splitMeetings")}
+                  options={links.map((link) => ({
+                    value: link.meeting.id,
+                    label: `${link.meeting.title} · ${formatEntryTimestamp(
+                      link.meeting.at_utc_ms,
+                    )}`,
+                  }))}
+                  selected={meetingIds}
+                  onChange={setMeetingIds}
+                />
+                <SplitSelectionGroup
+                  idPrefix={`${idPrefix}-aliases`}
+                  label={t("people.detail.splitAliases")}
+                  options={person.aliases.map((alias) => ({
+                    value: alias,
+                    label: alias,
+                  }))}
+                  selected={aliases}
+                  onChange={setAliases}
+                />
+                <SplitSelectionGroup
+                  idPrefix={`${idPrefix}-emails`}
+                  label={t("people.detail.splitEmails")}
+                  options={person.calendar_emails.map((email) => ({
+                    value: email,
+                    label: email,
+                  }))}
+                  selected={calendarEmails}
+                  onChange={setCalendarEmails}
+                />
+                <SplitSelectionGroup
+                  idPrefix={`${idPrefix}-documents`}
+                  label={t("people.detail.splitDocuments")}
+                  options={documents.map((document) => ({
+                    value: document.id,
+                    label: document.title,
+                  }))}
+                  selected={documentIds}
+                  onChange={setDocumentIds}
+                />
+              </>
+            )}
+            {!createTarget && selectedCount === 0 ? (
+              <p className="text-[12px] text-gray-700">
+                {t("people.detail.splitNothingSelected")}
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={pending}
+            onClick={() => onOpenChange(false)}
+          >
+            {t("common.cancel")}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            disabled={submitDisabled}
+            onClick={submit}
+          >
+            {pending ? t("common.saving") : t("people.detail.splitSubmit")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
