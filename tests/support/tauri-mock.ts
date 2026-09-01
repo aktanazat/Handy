@@ -43,7 +43,7 @@ export async function installTauriMock(
     responses: options.responses ?? {},
     events: {
       "launch:backend-ready": [null],
-      ...(options.events ?? {}),
+      ...options.events,
     },
     pending: options.pending ?? [],
   });
