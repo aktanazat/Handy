@@ -2332,7 +2332,10 @@
       },
       "calendar": {
         "label": "Brug min kalender",
-        "description": "Viser en nedtælling et minut før begivenheder med to eller flere deltagere. macOS beder om fuld kalenderadgang første gang, fordi Apple ikke tilbyder en læseadgang alene."
+        "description": "Viser en nedtælling et minut før begivenheder med to eller flere deltagere. macOS beder om fuld kalenderadgang første gang, fordi Apple ikke tilbyder en læseadgang alene.",
+        "refusedLabel": "Kalenderadgang er begrænset",
+        "refused": "macOS lader Sona tilføje begivenheder, men ikke læse dem, og spørger kun én gang. Vælg fuld kalenderadgang til Sona i Systemindstillinger, og slå dette til igen.",
+        "openSettings": "Åbn Systemindstillinger"
       },
       "anyMic": {
         "label": "Spørg ved al mikrofonbrug"

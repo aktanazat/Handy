@@ -2338,7 +2338,10 @@
       },
       "calendar": {
         "label": "Usar o meu calendário",
-        "description": "Mostra uma contagem regressiva um minuto antes de eventos com dois ou mais participantes. O macOS pede acesso total ao calendário na primeira vez, porque a Apple não oferece permissão somente de leitura."
+        "description": "Mostra uma contagem regressiva um minuto antes de eventos com dois ou mais participantes. O macOS pede acesso total ao calendário na primeira vez, porque a Apple não oferece permissão somente de leitura.",
+        "refusedLabel": "O acesso ao calendário está limitado",
+        "refused": "O macOS deixa o Sona adicionar eventos, mas não lê-los, e pergunta só uma vez. Escolha acesso total ao calendário para o Sona nos Ajustes do Sistema e ative isto de novo.",
+        "openSettings": "Abrir Ajustes do Sistema"
       },
       "anyMic": {
         "label": "Perguntar em qualquer uso do microfone"

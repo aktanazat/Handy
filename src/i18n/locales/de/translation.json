@@ -2332,7 +2332,10 @@
       },
       "calendar": {
         "label": "Meinen Kalender verwenden",
-        "description": "Zeigt eine Minute vor Terminen mit zwei oder mehr Teilnehmenden einen Countdown. macOS fragt beim ersten Mal nach vollem Kalenderzugriff, weil Apple keine Nur-Lese-Freigabe anbietet."
+        "description": "Zeigt eine Minute vor Terminen mit zwei oder mehr Teilnehmenden einen Countdown. macOS fragt beim ersten Mal nach vollem Kalenderzugriff, weil Apple keine Nur-Lese-Freigabe anbietet.",
+        "refusedLabel": "Kalenderzugriff ist eingeschränkt",
+        "refused": "macOS lässt Sona Termine anlegen, aber nicht lesen, und fragt nur einmal. Wählen Sie in den Systemeinstellungen vollen Kalenderzugriff für Sona und schalten Sie dies dann wieder ein.",
+        "openSettings": "Systemeinstellungen öffnen"
       },
       "anyMic": {
         "label": "Bei jeder Mikrofonnutzung fragen"

@@ -162,6 +162,9 @@ interface DetectionStore {
    * Meetings page. A per-component boolean leaves every one of them believing
    * nothing is being written. */
   savingSettings: boolean;
+  /* True after an enable attempt that macOS answered without a dialog and
+   * without full access — the decided-permission case a reader cannot see. */
+  calendarRefused: boolean;
   patch: (change: Partial<DetectionSettings>) => Promise<void>;
   enableCalendar: (enabled: boolean) => Promise<void>;
   requestCalendarAccess: () => Promise<CalendarAccess>;
@@ -172,6 +175,7 @@ export const useDetectionStore = create<DetectionStore>()((set, get) => ({
   status: null,
   prompts: [],
   savingSettings: false,
+  calendarRefused: false,
   setStatus: (status) =>
     set((state) => ({
       status,
@@ -257,6 +261,7 @@ export const useDetectionStore = create<DetectionStore>()((set, get) => ({
    * has its dialog up can be turned off and then back on by the grant. */
   enableCalendar: async (enabled) => {
     if (!enabled) {
+      set({ calendarRefused: false });
       await get().patch({ calendarEnabled: false });
       return;
     }
@@ -268,7 +273,16 @@ export const useDetectionStore = create<DetectionStore>()((set, get) => ({
     } finally {
       set({ savingSettings: false });
     }
-    if (authorized) await get().patch({ calendarEnabled: true });
+    if (authorized) {
+      await get().patch({ calendarEnabled: true });
+      set({ calendarRefused: false });
+      return;
+    }
+    /* macOS answers a decided permission without a dialog, so a refusal here
+     * is invisible unless this store says it happened. The flag is
+     * launch-local on purpose: System Settings is the only place that can
+     * change the answer, and a fresh launch re-reads it. */
+    set({ calendarRefused: true });
   },
 
   requestCalendarAccess: async () => {

@@ -2332,7 +2332,10 @@
       },
       "calendar": {
         "label": "Mijn agenda gebruiken",
-        "description": "Toont een aftelling een minuut voor afspraken met twee of meer deelnemers. macOS vraagt de eerste keer om volledige agendatoegang, omdat Apple geen alleen-lezen recht aanbiedt."
+        "description": "Toont een aftelling een minuut voor afspraken met twee of meer deelnemers. macOS vraagt de eerste keer om volledige agendatoegang, omdat Apple geen alleen-lezen recht aanbiedt.",
+        "refusedLabel": "Agenda-toegang is beperkt",
+        "refused": "macOS laat Sona activiteiten toevoegen maar niet lezen, en vraagt het maar één keer. Kies volledige agenda-toegang voor Sona in Systeeminstellingen en zet dit daarna weer aan.",
+        "openSettings": "Open Systeeminstellingen"
       },
       "anyMic": {
         "label": "Vragen bij elk microfoongebruik"

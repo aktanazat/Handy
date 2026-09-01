@@ -2326,7 +2326,10 @@
       },
       "calendar": {
         "label": "使用我的日历",
-        "description": "在有两位或更多参与者的日程开始前一分钟显示倒计时。由于 Apple 不提供只读授权，macOS 首次会请求完整日历访问权限。"
+        "description": "在有两位或更多参与者的日程开始前一分钟显示倒计时。由于 Apple 不提供只读授权，macOS 首次会请求完整日历访问权限。",
+        "refusedLabel": "日历访问受限",
+        "refused": "macOS 只允许 Sona 添加日程而不能读取，并且只询问一次。请在系统设置中为 Sona 选择完全日历访问，然后重新打开此项。",
+        "openSettings": "打开系统设置"
       },
       "anyMic": {
         "label": "任何使用麦克风时都询问"

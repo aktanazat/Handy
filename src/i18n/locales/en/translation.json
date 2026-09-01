@@ -2336,7 +2336,10 @@
       },
       "calendar": {
         "label": "Use my calendar",
-        "description": "Shows a countdown a minute before events with two or more attendees. macOS asks for full calendar access the first time, because Apple offers no read-only grant."
+        "description": "Shows a countdown a minute before events with two or more attendees. macOS asks for full calendar access the first time, because Apple offers no read-only grant.",
+        "refusedLabel": "Calendar access is limited",
+        "refused": "macOS is letting Sona add events but not read them, and it only asks once. Choose Full Calendar Access for Sona in System Settings, then turn this on again.",
+        "openSettings": "Open System Settings"
       },
       "anyMic": {
         "label": "Ask on any microphone use"

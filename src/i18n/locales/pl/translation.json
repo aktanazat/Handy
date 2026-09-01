@@ -2344,7 +2344,10 @@
       },
       "calendar": {
         "label": "Używaj mojego kalendarza",
-        "description": "Pokazuje odliczanie minutę przed wydarzeniami z dwoma lub więcej uczestnikami. macOS prosi o pełny dostęp do kalendarza za pierwszym razem, bo Apple nie oferuje uprawnienia tylko do odczytu."
+        "description": "Pokazuje odliczanie minutę przed wydarzeniami z dwoma lub więcej uczestnikami. macOS prosi o pełny dostęp do kalendarza za pierwszym razem, bo Apple nie oferuje uprawnienia tylko do odczytu.",
+        "refusedLabel": "Dostęp do kalendarza jest ograniczony",
+        "refused": "macOS pozwala Sonie dodawać wydarzenia, ale nie je czytać, i pyta tylko raz. Wybierz pełny dostęp do kalendarza dla Sony w Ustawieniach systemowych, a potem włącz to ponownie.",
+        "openSettings": "Otwórz Ustawienia systemowe"
       },
       "anyMic": {
         "label": "Pytaj przy każdym użyciu mikrofonu"

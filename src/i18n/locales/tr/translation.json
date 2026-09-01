@@ -2332,7 +2332,10 @@
       },
       "calendar": {
         "label": "Takvimimi kullan",
-        "description": "İki veya daha fazla katılımcısı olan etkinliklerden bir dakika önce geri sayım gösterir. Apple yalnızca okuma izni sunmadığından, macOS ilk seferde tam takvim erişimi ister."
+        "description": "İki veya daha fazla katılımcısı olan etkinliklerden bir dakika önce geri sayım gösterir. Apple yalnızca okuma izni sunmadığından, macOS ilk seferde tam takvim erişimi ister.",
+        "refusedLabel": "Takvim erişimi sınırlı",
+        "refused": "macOS, Sona'nın etkinlik eklemesine izin veriyor ama okumasına izin vermiyor ve yalnızca bir kez soruyor. Sistem Ayarları'nda Sona için tam takvim erişimini seçin, sonra bunu yeniden açın.",
+        "openSettings": "Sistem Ayarları'nı aç"
       },
       "anyMic": {
         "label": "Her mikrofon kullanımında sor"

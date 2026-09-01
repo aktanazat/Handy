@@ -2326,7 +2326,10 @@
       },
       "calendar": {
         "label": "使用我的行事曆",
-        "description": "在有兩位或更多參與者的行程開始前一分鐘顯示倒數。由於 Apple 不提供唯讀授權，macOS 首次會請求完整行事曆存取權限。"
+        "description": "在有兩位或更多參與者的行程開始前一分鐘顯示倒數。由於 Apple 不提供唯讀授權，macOS 首次會請求完整行事曆存取權限。",
+        "refusedLabel": "行事曆取用受限",
+        "refused": "macOS 只允許 Sona 新增行程而無法讀取，且只詢問一次。請在系統設定中為 Sona 選擇完整行事曆取用權，然後重新開啟此項。",
+        "openSettings": "打開系統設定"
       },
       "anyMic": {
         "label": "任何使用麥克風時都詢問"

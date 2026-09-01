@@ -635,3 +635,66 @@ describe("the shared write gate", () => {
     expect(useDetectionStore.getState().savingSettings).toBe(false);
   });
 });
+
+/* The decided-permission case: macOS answers an enable attempt without a
+ * dialog and without full access. The store must say it happened, because
+ * nothing on screen otherwise moves. */
+describe("a refused calendar enable", () => {
+  const priorWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+
+  beforeAll(() => {
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: {
+        ...globalThis.window,
+        __TAURI_INTERNALS__: {
+          invoke: (command: string) => {
+            if (command === "detection_calendar_access_request") {
+              return Promise.resolve("denied");
+            }
+            if (command === "detection_status_get") {
+              return Promise.resolve(status(true));
+            }
+            throw new Error(`unexpected command: ${command}`);
+          },
+        },
+      },
+    });
+  });
+  afterAll(() => {
+    if (priorWindow) Object.defineProperty(globalThis, "window", priorWindow);
+    else Reflect.deleteProperty(globalThis, "window");
+  });
+
+  test("sets the flag, writes nothing, and turning off clears it", async () => {
+    useDetectionStore.setState({
+      status: status(true),
+      prompts: [],
+      savingSettings: false,
+      calendarRefused: false,
+    });
+
+    await useDetectionStore.getState().enableCalendar(true);
+    expect(useDetectionStore.getState().calendarRefused).toBe(true);
+    expect(useDetectionStore.getState().status?.settings.calendarEnabled).toBe(
+      false,
+    );
+
+    await useDetectionStore.getState().enableCalendar(false);
+    expect(useDetectionStore.getState().calendarRefused).toBe(false);
+  });
+
+  test("the advanced rows then point at System Settings", () => {
+    useDetectionStore.setState({
+      status: status(true),
+      prompts: [],
+      savingSettings: false,
+      calendarRefused: true,
+    });
+    const markup = paint(<MeetingDetectionAdvanced />);
+
+    expect(markup).toContain("Calendar access is limited");
+    expect(markup).toContain("Open System Settings");
+    expect(markup).toContain("Full Calendar Access");
+  });
+});

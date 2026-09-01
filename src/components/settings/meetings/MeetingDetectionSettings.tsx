@@ -1,5 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { Button } from "@/components/vg/button";
 import {
   Notice,
   SettingsRow,
@@ -54,10 +56,15 @@ interface DetectionStateLine {
   text: string;
 }
 
+const CALENDARS_PANE =
+  "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars";
+
 export interface DetectionEditor {
   status: DetectionStatus | null;
   settings: DetectionSettings | null;
   saving: boolean;
+  /* A decided macOS permission answers without a dialog; this is that answer. */
+  calendarRefused: boolean;
   patch: (change: Partial<DetectionSettings>) => Promise<void>;
   enableCalendar: (enabled: boolean) => Promise<void>;
 }
@@ -77,11 +84,13 @@ export const useDetectionEditor = (): DetectionEditor => {
   const saving = useDetectionStore((state) => state.savingSettings);
   const patch = useDetectionStore((state) => state.patch);
   const enableCalendar = useDetectionStore((state) => state.enableCalendar);
+  const calendarRefused = useDetectionStore((state) => state.calendarRefused);
 
   return {
     status,
     settings: status?.settings ?? null,
     saving,
+    calendarRefused,
     patch,
     enableCalendar,
   };
@@ -126,7 +135,8 @@ export const MeetingDetectionToggle: React.FC = () => {
  * makes them matter. */
 export const MeetingDetectionAdvanced: React.FC = () => {
   const { t } = useTranslation();
-  const { settings, saving, patch, enableCalendar } = useDetectionEditor();
+  const { settings, saving, patch, enableCalendar, calendarRefused } =
+    useDetectionEditor();
 
   if (settings === null) {
     return (
@@ -159,6 +169,31 @@ export const MeetingDetectionAdvanced: React.FC = () => {
           disabled={!settings.enabled || saving}
         />
       </SettingsRow>
+
+      {calendarRefused && (
+        <SettingsRow
+          label={t(
+            "meetings.detection.calendar.refusedLabel",
+            "Calendar access is limited",
+          )}
+          hint={t(
+            "meetings.detection.calendar.refused",
+            "macOS is letting Sona add events but not read them, and it only asks once. Choose Full Calendar Access for Sona in System Settings, then turn this on again.",
+          )}
+          controlId="detection-calendar-refused"
+        >
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void openUrl(CALENDARS_PANE)}
+          >
+            {t(
+              "meetings.detection.calendar.openSettings",
+              "Open System Settings",
+            )}
+          </Button>
+        </SettingsRow>
+      )}
 
       <SettingsRow
         label={t(

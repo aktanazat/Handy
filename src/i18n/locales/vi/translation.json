@@ -2326,7 +2326,10 @@
       },
       "calendar": {
         "label": "Dùng lịch của tôi",
-        "description": "Hiện đồng hồ đếm ngược một phút trước các sự kiện có hai người tham dự trở lên. macOS xin quyền truy cập lịch đầy đủ lần đầu, vì Apple không cấp quyền chỉ đọc."
+        "description": "Hiện đồng hồ đếm ngược một phút trước các sự kiện có hai người tham dự trở lên. macOS xin quyền truy cập lịch đầy đủ lần đầu, vì Apple không cấp quyền chỉ đọc.",
+        "refusedLabel": "Quyền truy cập lịch bị giới hạn",
+        "refused": "macOS cho Sona thêm sự kiện nhưng không cho đọc, và chỉ hỏi một lần. Hãy chọn quyền truy cập lịch đầy đủ cho Sona trong Cài đặt Hệ thống, rồi bật lại mục này.",
+        "openSettings": "Mở Cài đặt Hệ thống"
       },
       "anyMic": {
         "label": "Hỏi mỗi khi micrô được dùng"

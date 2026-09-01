@@ -2344,7 +2344,10 @@
       },
       "calendar": {
         "label": "Používat můj kalendář",
-        "description": "Zobrazí odpočet minutu před událostmi se dvěma nebo více účastníky. macOS si poprvé vyžádá plný přístup ke kalendáři, protože Apple nenabízí oprávnění jen pro čtení."
+        "description": "Zobrazí odpočet minutu před událostmi se dvěma nebo více účastníky. macOS si poprvé vyžádá plný přístup ke kalendáři, protože Apple nenabízí oprávnění jen pro čtení.",
+        "refusedLabel": "Přístup ke kalendáři je omezený",
+        "refused": "macOS dovoluje Soně události přidávat, ale ne číst, a ptá se jen jednou. V Nastavení systému zvolte pro Sonu plný přístup ke kalendáři a pak toto znovu zapněte.",
+        "openSettings": "Otevřít Nastavení systému"
       },
       "anyMic": {
         "label": "Zeptat se při každém použití mikrofonu"

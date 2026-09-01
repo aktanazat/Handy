@@ -2332,7 +2332,10 @@
       },
       "calendar": {
         "label": "Använd min kalender",
-        "description": "Visar en nedräkning en minut före händelser med två eller fler deltagare. macOS ber om full kalenderåtkomst första gången, eftersom Apple inte erbjuder någon läsbehörighet."
+        "description": "Visar en nedräkning en minut före händelser med två eller fler deltagare. macOS ber om full kalenderåtkomst första gången, eftersom Apple inte erbjuder någon läsbehörighet.",
+        "refusedLabel": "Kalenderåtkomsten är begränsad",
+        "refused": "macOS låter Sona lägga till händelser men inte läsa dem, och frågar bara en gång. Välj full kalenderåtkomst för Sona i Systeminställningar och slå sedan på detta igen.",
+        "openSettings": "Öppna Systeminställningar"
       },
       "anyMic": {
         "label": "Fråga vid all mikrofonanvändning"

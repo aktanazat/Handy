@@ -2338,7 +2338,10 @@
       },
       "calendar": {
         "label": "Utiliser mon calendrier",
-        "description": "Affiche un compte à rebours une minute avant les événements comptant au moins deux participants. macOS demande l'accès complet au calendrier la première fois, car Apple n'offre pas d'accès en lecture seule."
+        "description": "Affiche un compte à rebours une minute avant les événements comptant au moins deux participants. macOS demande l'accès complet au calendrier la première fois, car Apple n'offre pas d'accès en lecture seule.",
+        "refusedLabel": "L'accès au calendrier est limité",
+        "refused": "macOS laisse Sona ajouter des événements sans les lire, et ne demande qu'une fois. Choisissez l'accès complet au calendrier pour Sona dans Réglages Système, puis réactivez ceci.",
+        "openSettings": "Ouvrir Réglages Système"
       },
       "anyMic": {
         "label": "Demander à chaque usage du microphone"
